@@ -227,18 +227,12 @@ create_no_ai=""
 if [ "$command_name" = "create" ] && [ "$no_ai_formulate" = "yes" ]; then
   create_no_ai="yes"
 fi
-# A reset needs no model at all: three files back to their templates
-# (aide-reset-spec), and the boundary mark this script stamps afterwards.
-# A model turn here was refused its commands under a permission mode
-# with nobody to ask, and left the files as they were (2026-09-14).
-reset_no_ai=""
-[ "$command_name" = "reset" ] && reset_no_ai="yes"
 # A reopen is mechanical either way, so no model runs for it. Keeping the
 # files is aide-reopen-spec alone; --reset-files runs that same script and
 # then aide-reset-spec over the folder it moved back, which is the pair a
 # model turn was asked to imitate. The turn also cost a run and could be
 # refused its own commands under a permission mode with nobody to ask —
-# the reason `reset` stopped using one.
+# the reason the `reset` step stopped using one before it was removed.
 reopen_keep_no_ai=""
 reopen_reset_no_ai=""
 if [ "$command_name" = "reopen" ]; then
@@ -521,7 +515,7 @@ else
 fi
 }
 
-if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reset_no_ai" ] || [ -n "$reopen_keep_no_ai" ] \
+if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reopen_keep_no_ai" ] \
    || [ -n "$reopen_reset_no_ai" ]; then
   # No child spawned: every variable the commit loop, the phase-outcome
   # writer and the final JSON result read from a completed run is given
@@ -556,20 +550,6 @@ if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reset_no_ai" ] || [ -n 
       terminal_reason="refused"
       tool="none"; model=""; effort=""
       error_msg="$(jq -r '.error // "aide-create-spec refused"' <<<"$create_result" 2>/dev/null)"
-    fi
-  elif [ -n "$reset_no_ai" ]; then
-    reset_result="$("$SCRIPT_DIR/aide-reset-spec" --specs-root "$specs_root_wt" --spec "$spec_folder" 2>/dev/null)"
-    if [ "$(jq -r '.ok // false' <<<"$reset_result" 2>/dev/null)" = "true" ]; then
-      terminal_reason="completed"
-      cost_measured="true"
-      tool="none"
-      model=""; effort=""
-    else
-      # The script's own refusal, before any AI ran: not the CLI failing,
-      # so nothing names a tool or a model for it.
-      terminal_reason="refused"
-      tool="none"; model=""; effort=""
-      error_msg="$(jq -r '.error // "aide-reset-spec refused"' <<<"$reset_result" 2>/dev/null)"
     fi
   elif [ -n "$reopen_keep_no_ai" ] || [ -n "$reopen_reset_no_ai" ]; then
     reopen_args=(--specs-root "$specs_root_wt" --spec "$spec_folder")

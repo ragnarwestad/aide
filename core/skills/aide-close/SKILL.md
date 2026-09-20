@@ -8,9 +8,9 @@ description: >-
   Use when: a spec's idea does not hold, its description asked for
   something that cannot be built, a work round needs to end without
   being finished.
-  Do NOT use for: finished work (use aide-archive), starting a work
-  round over on the same spec (use aide-reset), unfinished work that is
-  still worth finishing.
+  Do NOT use for: finished work (use aide-archive), another round on the
+  same spec (change an acceptance criterion and run analyze again),
+  unfinished work that is still worth finishing.
 argument-hint: "[spec number] [reason]"
 effort: medium
 ---

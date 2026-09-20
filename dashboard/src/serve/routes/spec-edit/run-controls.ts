@@ -1,11 +1,12 @@
-// the controls a run is started or steered with: Reset and its page, and the model and effort a step runs at. One of the three families `handleSpecEditRoutes` asks in
+// the controls a run is started or steered with: the reopen page, and the
+// model and effort a step runs at. One of the three families
+// `handleSpecEditRoutes` asks in
 // turn (split 2026-09-04: the file had reached 567 lines). Every
 // check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own.
-import { FILTER_FIELD_PREFIX, FROM_LIST_FIELD, renderReopenSpecPage, renderResetSpecPage, specPagePath } from "../../../render";
+import { FILTER_FIELD_PREFIX, FROM_LIST_FIELD, renderReopenSpecPage } from "../../../render";
 import { ARCHIVED_REFUSAL, bodyToObject, json, languageChoice, logRefusal, specsClientScript, readBounded, specsRedirect } from "../../serve-helpers";
 
-import { landingInProject } from "../../../queue/queue.ts";
 import type { RoutesContext } from "..";
 
 export async function runControlRoutes(
@@ -15,24 +16,6 @@ export async function runControlRoutes(
   path: string,
   wantsJson: boolean,
 ): Promise<Response | null> {
-  const resetPage = path.match(/^\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/reset$/);
-  if (resetPage) {
-    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-    const [, project, specFolder] = resetPage;
-    const ref = ctx.specRef(project!, specFolder!);
-    if (!ref || ref.archived) return new Response("not found", { status: 404 });
-    const langResult = languageChoice(url, req);
-    const html = renderResetSpecPage(project!, specFolder!, ctx.nav(), new Date().toISOString(), {
-      error: url.searchParams.get("error") ?? undefined,
-      script: await specsClientScript(),
-      lang: langResult.lang,
-      currentUrl: langResult.currentUrl,
-    });
-    const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
-    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
-    return new Response(html, { headers });
-  }
-
   const reopenPage = path.match(/^\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/reopen$/);
   if (reopenPage) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
@@ -57,43 +40,6 @@ export async function runControlRoutes(
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
     return new Response(html, { headers });
-  }
-
-  const resetPost = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/reset$/);
-  if (resetPost) {
-    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-    const [, project, specFolder] = resetPost;
-    const back = `${specPagePath(project!, specFolder!)}/reset`;
-    const sent = await readBounded(req);
-    if ("refusal" in sent) return sent.refusal;
-    // Read and discarded: the body carries nothing this route acts on
-    // any more, but a malformed one is still a malformed request and is
-    // still answered as one.
-    try {
-      if (sent.text) bodyToObject(sent.text, req.headers.get("content-type"));
-    } catch {
-      return json({ error: "malformed body" }, 400);
-    }
-    const refuseReset = (error: string): Response =>
-      wantsJson ? json({ error }, 400) : specsRedirect({}, { error }, back);
-    // No typed confirmation: the page asks the question in a sentence
-    // and the press is the answer (2026-09-08). What still stands
-    // between a stray request and a reset is every guard below — an
-    // archived spec, a merge in flight, a job still running.
-    const ref = ctx.specRef(project!, specFolder!);
-    if (!ref) return new Response("not found", { status: 404 });
-    if (ref.archived) return refuseReset(`${specFolder} is archived — Reset is only for active specs`);
-    if (landingInProject(ctx.queue.list(), project!)) return refuseReset("a merge is in progress");
-    if (ctx.queue.list().some((job) =>
-      job.project === project && job.specFolder === specFolder &&
-      (job.state === "queued" || job.state === "running")
-    )) return refuseReset("another job for this spec is still running");
-    const result = ctx.queue.enqueue({ project, specFolder, steps: ["reset"] });
-    if (!result.ok) return refuseReset(result.error);
-    await ctx.tickRunner();
-    return wantsJson
-      ? json({ ok: true, job: result.job })
-      : specsRedirect({}, undefined, specPagePath(project!, specFolder!));
   }
 
   // Spec 308: a model picked for a phase before any job exists — the

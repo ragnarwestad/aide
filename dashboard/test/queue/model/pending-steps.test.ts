@@ -49,13 +49,13 @@ describe("QueueStore.setPendingSteps() (spec 439)", () => {
     expect(store.pendingSteps["aide/81-queue-and-runner"]).toEqual([]);
   });
 
-  // Filtered against PHASE_STEPS, not WORKFLOW_STEPS: `reset`/`close`
+  // Filtered against PHASE_STEPS, not WORKFLOW_STEPS: `reopen`/`close`
   // are real steps a job may carry, but neither is a phase a row's own
   // checkbox could ever have ticked, and must never be recorded as if
   // one had been.
   test("drops anything that is not analyze/implement/archive, by name", () => {
     const store = new QueueStore({ defaults: DEFAULTS, resolve });
-    store.setPendingSteps("aide", "81-queue-and-runner", ["analyze", "reset", "bogus", "archive"]);
+    store.setPendingSteps("aide", "81-queue-and-runner", ["analyze", "reopen", "bogus", "archive"]);
     expect(store.pendingSteps["aide/81-queue-and-runner"]).toEqual(["analyze", "archive"]);
   });
 
@@ -132,7 +132,7 @@ describe("what records a phase choice, and what must not (spec 439)", () => {
   });
 
   // The generic `enqueue()` is deliberately NOT hooked: it is also
-  // called with synthetic, non-phase step lists by reset, close and the
+  // called with synthetic, non-phase step lists by explore, close, reopen and the
   // scheduler (3-solution.md's Risk analysis), none of which carry a
   // reader's own phase-checkbox choice. A direct call bypasses the
   // row-run ROUTE's own seeding (`job-actions.ts`, covered below at the
@@ -140,14 +140,14 @@ describe("what records a phase choice, and what must not (spec 439)", () => {
   test("the generic enqueue() never touches a recorded choice, whatever steps it carries", () => {
     const store = new QueueStore({ defaults: DEFAULTS, resolve });
     store.setPendingSteps("aide", "81-queue-and-runner", ["implement"]);
-    const result = store.enqueue({ project: "aide", specFolder: "81-queue-and-runner", steps: ["reset"] });
+    const result = store.enqueue({ project: "aide", specFolder: "81-queue-and-runner", steps: ["explore"] });
     expect(result.ok).toBe(true);
     expect(store.pendingSteps["aide/81-queue-and-runner"]).toEqual(["implement"]);
   });
 
   test("the generic enqueue() records nothing new for a spec with no prior choice", () => {
     const store = new QueueStore({ defaults: DEFAULTS, resolve });
-    const result = store.enqueue({ project: "aide", specFolder: "81-queue-and-runner", steps: ["reset"] });
+    const result = store.enqueue({ project: "aide", specFolder: "81-queue-and-runner", steps: ["explore"] });
     expect(result.ok).toBe(true);
     expect(store.pendingSteps["aide/81-queue-and-runner"]).toBeUndefined();
   });

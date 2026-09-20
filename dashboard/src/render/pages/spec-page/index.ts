@@ -42,8 +42,8 @@
 // types.ts (the view types), tabs.ts (paths, tabs, file/phase maps),
 // overview.ts (the banner's own facts — archived read-only, the
 // depends-on/acceptance tracking control editable — the checklist,
-// Reopen/Reset), panels.ts (the document tabs), reset-page.ts (the
-// reset confirmation page). `renderSpecPage` itself — the one function
+// Reopen), panels.ts (the document tabs) and reopen-page.ts (the
+// reopen question). `renderSpecPage` itself — the one function
 // that assembles all of them — stays here.
 
 import type { LogFilter } from "../../../queue/parse-stream";
@@ -55,7 +55,7 @@ import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { landingRefusal, stepResults, tabBar, tabbedBody } from "../job-page";
 import {
   actionsHelp, archivedLine, testServerStatus, closedLine, closeControl, pdfControl,
-  reopenControl, resetControl, trackingControl,
+  reopenControl, trackingControl,
 } from "./overview.ts";
 import { descriptionPanel, documentPanel } from "./panels.ts";
 import {
@@ -68,7 +68,6 @@ export {
   EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, FILE_TABS, resolveSpecTab, TAB_FILES,
   documentTabScript, specPagePath, specTabPath,
 } from "./tabs.ts";
-export { renderResetSpecPage } from "./reset-page.ts";
 export { renderCloseSpecPage } from "./close-page.ts";
 export { renderReopenSpecPage } from "./reopen-page.ts";
 
@@ -125,7 +124,6 @@ export function renderSpecPage(
   const actions =
     actionsHelp(view) +
     (view.archived ? reopenControl(view) : "") +
-    resetControl(view) +
     closeControl(view) +
     // A GET would let a reload re-run the pull, so this is a form and
     // not a link, exactly as every other action on this dashboard is.
@@ -163,7 +161,7 @@ export function renderSpecPage(
   // The end of the title line (2026-09-09): what is running, and the
   // PDF link at the far right — the phase pips that stood there said
   // nothing the tabs below do not, and the PDF is not an action on the
-  // spec the way Reset, Close and Update are.
+  // spec the way Close and Update are.
   const headTrailing =
     (running ? badge("running", gerund(opts.lang ?? "en", running)) : "") +
     pdfControl(view);

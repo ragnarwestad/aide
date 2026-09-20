@@ -121,20 +121,23 @@ def test_archive_is_legal_from_implemented(tmp_path):
 # --- REQ-9: backward moves are refused, naming the way back ----------------
 
 
-def test_analyze_refused_once_implemented_names_reset(tmp_path):
+def test_analyze_refused_once_implemented_names_another_round(tmp_path):
     status_file = _status_file(tmp_path, "7-x", workflow_line="create, analyze, implement")
     result = may_apply(status_file, "analyze")
     assert result["RC"] == "1"
     assert result["REASON"] == "already-implemented"
-    assert "/aide-reset" in result["MESSAGE"]
+    # The way back is another round, since the reset step was removed.
+    assert "another round" in result["MESSAGE"]
+    assert "aide-reset" not in result["MESSAGE"]
 
 
-def test_create_refused_once_analyzed_names_reset(tmp_path):
+def test_create_refused_once_analyzed_says_so_without_naming_a_way_back(tmp_path):
     status_file = _status_file(tmp_path, "7-x", workflow_line="create, analyze")
     result = may_apply(status_file, "create")
     assert result["RC"] == "1"
     assert result["REASON"] == "already-analyzed"
-    assert "/aide-reset" in result["MESSAGE"]
+    assert "cannot run again" in result["MESSAGE"]
+    assert "aide-reset" not in result["MESSAGE"]
 
 
 def test_analyze_refused_on_an_archived_spec_names_reopen(tmp_path):
@@ -145,7 +148,7 @@ def test_analyze_refused_on_an_archived_spec_names_reopen(tmp_path):
     assert "only reopen" in result["MESSAGE"]
 
 
-# --- reopen/reset --------------------------------------------------------
+# --- reopen ---------------------------------------------------------------
 
 
 def test_reopen_is_legal_only_from_archived(tmp_path):
@@ -160,11 +163,13 @@ def test_reopen_is_legal_only_from_archived(tmp_path):
     assert result["RC"] == "0"
 
 
-def test_reset_is_legal_from_analyzed_and_implemented(tmp_path):
+def test_reset_is_no_longer_an_event_the_table_knows(tmp_path):
+    """The step was removed: a reopen with its reset is the way back, and an
+    event no row names is a refusal, not a gap."""
     analyzed = _status_file(tmp_path, "1-x", workflow_line="create, analyze")
-    assert may_apply(analyzed, "reset")["RC"] == "0"
+    assert may_apply(analyzed, "reset")["RC"] != "0"
     implemented = _status_file(tmp_path, "2-x", workflow_line="create, analyze, implement")
-    assert may_apply(implemented, "reset")["RC"] == "0"
+    assert may_apply(implemented, "reset")["RC"] != "0"
 
 
 # --- close: legal from any pre-archive phase, unlike archive (REQ-1, REQ-13) --

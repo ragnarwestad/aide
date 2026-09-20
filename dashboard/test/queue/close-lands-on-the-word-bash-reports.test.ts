@@ -35,15 +35,13 @@ describe("close: the word bash reports is the word the dashboard lands on", () =
 
   // A close whose branch never reached origin must not report `closed`:
   // the dashboard would then try to land a branch that is not there.
-  // A reset discards the round, and the phases ticked for it go with
-  // it: the wiring drops the spec's recorded choice on a finished reset,
+  // A reopen that resets the files discards the round, and the phases
+  // ticked for it go with it: the wiring drops the spec's recorded choice
   // before the step's own landing, and only on a finished one.
-  test("a finished reset forgets the spec's phase choice, and nothing else does", () => {
+  test("a finished reopen with reset forgets the spec's phase choice, and nothing else does", () => {
     const okBranch = /if \(outcome\.ok\) \{([\s\S]*?)\n\s{6}\}/.exec(RUNNER_SETUP)?.[1] ?? "";
-    // A reopen that reset the files discarded the round the same way, so it
-    // is the second — and last — press that drops the choice.
     expect(okBranch).toContain(
-      'if (step === "reset" || (step === "reopen" && job.resetFiles)) ctx.store.forgetPendingSteps(job.project, job.specFolder);',
+      'if (step === "reopen" && job.resetFiles) ctx.store.forgetPendingSteps(job.project, job.specFolder);',
     );
     expect(okBranch.indexOf("forgetPendingSteps")).toBeLessThan(okBranch.indexOf("landStepBranch"));
     expect(RUNNER_SETUP.split("forgetPendingSteps").length - 1).toBe(1);

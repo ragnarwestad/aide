@@ -18,7 +18,7 @@ decides whether a landing finished, and how a project keeps its code branch open
 A job that touches two repositories makes a branch of the same name in both — `aide/89-merge-from-the-dashboard` exists
 in the project and in the specs repo, with different contents and two separate compare pages. Merging one does nothing
 for the other: each repo's branch is landed independently, asked of that repo's own checkout. A project whose specs
-live inside it has one repo and one branch for both, so a step that lands no code — `analyze`, `reopen`, `reset`,
+live inside it has one repo and one branch for both, so a step that lands no code — `analyze`, `reopen`,
 `close` — copies the spec's own folder (and its `archive/` twin) from that branch onto the default branch as one
 commit, and leaves every other path as it was. The branch stays open for the next step, whose run merges the default
 branch in before it starts; a `close` deletes it afterwards. Code reaches the default branch through `archive` alone.

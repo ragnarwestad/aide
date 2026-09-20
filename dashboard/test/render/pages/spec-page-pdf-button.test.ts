@@ -22,7 +22,7 @@ describe("spec 358: the PDF button", () => {
   const ARIA_LABEL = 'aria-label="open this spec as a PDF"';
 
   test("it sits at the end of the title line, not in the actions row", () => {
-    const html = withPdf({ resetAction: "/reset-confirm" });
+    const html = withPdf({ closeAction: "/close-confirm" });
     expect(titleLineEnd(html)).toContain(`href="${PDF_ACTION}"`);
     expect(actionsGroup(html)).not.toContain(`href="${PDF_ACTION}"`);
   });

@@ -1,6 +1,6 @@
 // Spec 356 (REQ-9): the spec-342 bug — `analyze` (or `create`) requested
 // on a spec that has already reached a later phase must be refused
-// before the job ever reaches the queue, naming `reset` as the way
+// before the job ever reaches the queue, naming the way
 // back. `job-actions.ts` is the one HTTP-reachable path both the
 // spec-page control and the specs-list row's forms post through.
 
@@ -133,12 +133,12 @@ describe("spec 511: a reopened spec's round-gate, for BOTH analyze and implement
     });
     const res = await queue(base, ["analyze"]);
     expect(res.status).toBe(400);
-    expect(((await res.json()) as { error: string }).error).toContain("/aide-reset");
+    expect(((await res.json()) as { error: string }).error).toContain("another round");
   });
 });
 
 describe("REQ-9: a backward move is refused before it reaches the queue", () => {
-  test("analyze requested on an already-implemented spec is refused, naming reset", async () => {
+  test("analyze requested on an already-implemented spec is refused, naming another round", async () => {
     const { base } = harness.start({
       extra: {},
       status: statusSaying(["create", "analyze", "implement"]),
@@ -147,7 +147,7 @@ describe("REQ-9: a backward move is refused before it reaches the queue", () => 
     const res = await queue(base, ["analyze"]);
     expect(res.status).toBe(400);
     const body = (await res.json()) as { error: string };
-    expect(body.error).toContain("/aide-reset");
+    expect(body.error).toContain("another round");
 
     const listed = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as { jobs: unknown[] };
     expect(listed.jobs).toHaveLength(0);

@@ -184,7 +184,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
       //
       // Busy excludes only the phase the CURRENT job is itself naming
       // (spec 286) — not the whole row. A job re-running this exact step
-      // by hand (via /aide-reset, outside this row) still reports the
+      // by hand (outside this row) still reports the
       // older `g.done`, and the busy arm beneath this one already renders
       // that correctly, with its own reason in the title; this branch
       // must not shadow it. But a job retrying a LATER phase (e.g.

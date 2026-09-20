@@ -97,9 +97,8 @@ export interface SpecPageView {
    *  moves the same way either way, and this is what tells the two
    *  apart everywhere the page reads `archived` to mean "record,
    *  nothing editable" — `closedLine` draws in place of `archivedLine`
-   *  when this is set, and `closeControl` stays hidden alongside
-   *  `resetControl` for the same `view.archived` check both already
-   *  make. */
+   *  when this is set, and `closeControl` stays hidden for the same
+   *  `view.archived` check. */
   closed?: boolean;
   /** The reason typed by the person who closed this spec (REQ-5), and
    *  when — off the `**Closed:**` stamp. Present only when `closed` is. */
@@ -108,18 +107,13 @@ export interface SpecPageView {
   /** Where the Update button posts. Built by the server, because only
    *  it knows the action's own path. */
   updateAction: string;
-  /** Confirmation page for starting a new work round on an active spec. */
-  resetAction?: string;
-  /** Why Reset cannot be selected at this instant. */
-  resetUnavailableReason?: string;
   /** Confirmation page for closing a spec that is not going to work
-   *  (spec 406, REQ-1) — present in every phase Reset's own control is,
-   *  absent once the spec is archived (closed included: `closeControl`
-   *  checks `view.archived` the same way `resetControl` does). */
+   *  (spec 406, REQ-1) — present while the spec is active, absent once
+   *  it is archived (closed included: `closeControl` checks
+   *  `view.archived`). */
   closeAction?: string;
-  /** Why Close cannot be selected at this instant (REQ-11) — the same
-   *  busy reason `resetUnavailableReason` reads, since a job in flight
-   *  or a landing in progress blocks either lifecycle move alike. */
+  /** Why Close cannot be selected at this instant (REQ-11): a job in
+   *  flight or a landing in progress blocks the move. */
   closeUnavailableReason?: string;
   /** Where the PDF button opens (spec 358) — a plain `GET`, streamed
    *  inline, never a form. */
@@ -186,7 +180,7 @@ export interface SpecPageView {
   testServerOpenHref?: string;
   /** Why the control is disabled while `testServerAction` IS present — a
    *  transient reason (another job running, a landing in progress), the
-   *  same disabled-with-reason shape `resetUnavailableReason` uses. */
+   *  same disabled-with-reason shape `closeUnavailableReason` uses. */
   testServerUnavailableReason?: string;
   /** The board's own live status (REQ-4), read off the registry on every
    *  render — absent means none has ever been started for this spec's

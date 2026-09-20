@@ -470,9 +470,9 @@ export class QueueStore {
    *  `test/queue/store/store-core-fields.test.ts` — a second, unwanted
    *  fire here is what a naive `this.setPendingSteps(...)` call inside
    *  `enqueueCreate()` produced before this split). */
-  /** A reset discards the round, and the phases a reader had ticked for
-   *  that round go with it: the row falls back to every phase the spec
-   *  has not had, so its button names the next one — Analyze. */
+  /** A reopen that resets the files discards the round, and the phases a
+   *  reader had ticked for it go with it: the row falls back to every
+   *  phase the spec has not had, so its button names Analyze. */
   forgetPendingSteps(project: string, specFolder: string): void {
     const key = `${project}/${specFolder}`;
     if (!(key in this.pendingSteps)) return;
@@ -489,7 +489,7 @@ export class QueueStore {
   /** Record which phases a reader chose, before or between jobs (spec
    *  439) — the sibling of `setPendingModel()`/`setPendingEffort()`
    *  above, filtered against `PHASE_STEPS` rather than `WORKFLOW_STEPS`:
-   *  `reset`/`close` and every other internal-only step are real
+   *  `reopen`/`close` and every other internal-only step are real
    *  members of `WORKFLOW_STEPS` but never a phase a row's own checkbox
    *  could have ticked, and must never be recorded as if one had been.
    *  Unlike its two siblings this never refuses — an unknown entry is

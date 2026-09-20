@@ -174,7 +174,7 @@ export async function postForm(
     // painted between the two, so the row is locked in the same beat
     // the click lands in either way.
     for (const el of controls) el.disabled = true;
-    // A form that says it takes the page away covers it instead. Reset,
+    // A form that says it takes the page away covers it instead. Reopen,
     // Close, Remove project and Deploy all end with the page gone — the
     // spec's branches deleted, the folder moved, the project dropped,
     // the service restarted underneath — and a word on a button that

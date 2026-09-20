@@ -21,7 +21,7 @@ export const SETTINGS_TABS = ["phases", ...TOOL_TABS, "notifications"] as const;
  *  specs list. They are one group because that is the one thing they
  *  have in common, and it is the thing a reader is looking for. */
 export const SPEC_STEPS = [
-  "create", "analyze", "implement", "archive", "close", "reopen", "reset",
+  "create", "analyze", "implement", "archive", "close", "reopen",
 ] as const;
 
 /** The steps that do not act on a spec. `manifest` updates the
@@ -91,7 +91,7 @@ export interface SettingsPageOptions {
 
 const LABELS: Record<(typeof SETTINGS_STEPS)[number], string> = {
   create: "Create", analyze: "Analyze", implement: "Implement",
-  archive: "Archive", close: "Close", reopen: "Reopen", reset: "Reset",
+  archive: "Archive", close: "Close", reopen: "Reopen",
   manifest: "Manifest", schedule: "Schedule",
 };
 const rowLabel = (step: (typeof SETTINGS_ROWS)[number]): string =>
@@ -113,7 +113,7 @@ const PAGE_HELP =
   "<strong>On a spec.</strong> Create writes the spec's folder. Analyze works out how to do it. " +
   "Implement writes the code and its tests. Archive merges the branch and moves the folder to " +
   "archive. Close ends a spec whose idea did not hold, without merging its code. Reopen brings an " +
-  "archived spec back. Reset takes a spec back to an earlier phase." +
+  "archived spec back." +
   "<br><br>" +
   "<strong>Not on a spec.</strong> Manifest updates the project's own manifest. Schedule runs a " +
   "job from a prompt file and names no spec at all." +

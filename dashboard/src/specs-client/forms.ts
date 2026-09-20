@@ -209,7 +209,7 @@ export async function submitDeploy(form: HTMLFormElement, event: Event): Promise
   if (event.defaultPrevented) return;
   event.preventDefault();
   // The covering layer is raised by the press itself, off this form's
-  // own `data-overlay` (press.ts) — the same way Reset, Close and Remove
+  // own `data-overlay` (press.ts) — the same way Reopen, Close and Remove
   // project ask for it. What is left here is the ONE thing a deploy has
   // that they do not: a second, longer wait after the answer, which the
   // layer has to say something else about.

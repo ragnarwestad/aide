@@ -101,14 +101,6 @@ describe("spec 435: the language links preserve the page, tab, sort and filter",
     expect(html).toContain(`href="/specs/${job.id}?tab=steps&amp;lang=nb"`);
   });
 
-  test("the Reset confirmation page", async () => {
-    const { base } = start();
-    const res = await fetch(`${base}/specs/aide/${FOLDER}/reset`);
-    const html = await res.text();
-    expect(html).toContain(`href="/specs/aide/${FOLDER}/reset?lang=en"`);
-    expect(html).toContain(`href="/specs/aide/${FOLDER}/reset?lang=nb"`);
-  });
-
   test("the Close confirmation page", async () => {
     const { base } = start();
     const res = await fetch(`${base}/specs/aide/${FOLDER}/close`);

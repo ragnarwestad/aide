@@ -1,7 +1,7 @@
 // Landing ONE spec's own folder from its branch, and nothing else on it.
 //
 // A project whose specs live inside its code repo has one branch for
-// both, and a round's `analyze` (or a `reopen`, `reset`, `close`) must
+// both, and a round's `analyze` (or a `reopen`, `close`) must
 // bring the spec's files to the default branch without the code an
 // earlier `implement` left beside them: code reaches the default branch
 // through `archive` alone. So this copies what the branch changed under

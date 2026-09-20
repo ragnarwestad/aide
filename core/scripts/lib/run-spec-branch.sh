@@ -31,26 +31,13 @@
 # `aide/<folder>` from the default branch for this very run, and the
 # reopen's own commit lives on it. What has to disappear is the earlier
 # round's TIP, so that nothing is merged forward out of it.
-if [ "$command_name" = "reopen" ] || [ "$command_name" = "reset" ]; then
+if [ "$command_name" = "reopen" ]; then
   for root in "${roots[@]}"; do
     sweep_worktree "$root" "$branch" ""
     git -C "$root" branch -D "$branch" >/dev/null 2>&1 || true
     if git -C "$root" remote get-url origin >/dev/null 2>&1; then
       git -C "$root" push -q origin --delete "$branch" >/dev/null 2>&1 || true
       git -C "$root" update-ref -d "refs/remotes/origin/$branch" >/dev/null 2>&1 || true
-      if [ "$command_name" = "reset" ]; then
-        # The push above went to the PUSH url; `ls-remote origin` alone
-        # would read the FETCH url instead, which is the same host for
-        # everybody except a remote configured with a separate push url
-        # (every test fixture in this suite, to isolate pushes from the
-        # network) — resolve it explicitly so the verification checks
-        # the place the deletion actually happened.
-        push_url="$(git -C "$root" remote get-url --push origin 2>/dev/null)" \
-          || push_url="$(git -C "$root" remote get-url origin 2>/dev/null)"
-        remote_ref="$(git -C "$root" ls-remote --heads "$push_url" "refs/heads/$branch" 2>/dev/null)" \
-          || refuse "cannot verify that origin/$branch was removed from $root"
-        [ -z "$remote_ref" ] || refuse "cannot remove origin/$branch from $root"
-      fi
     fi
   done
 fi
@@ -66,12 +53,12 @@ for root in "${roots[@]}"; do
   sweep_worktree "$root" "$branch" "$wt"
   base_ref_for "$root" "$base"
   # spec 356 (REQ-5): the specs repository's own default-branch tip, at
-  # the moment of reopening/resetting — the boundary
+  # the moment of reopening — the boundary
   # completed_steps_for's own `--not <sha>` counts from (spec 198).
   # Captured HERE, before this run's own commits exist on top of it,
   # rather than re-read later when the stamp is written.
   if [ "$root" = "$specs_repo" ] && \
-     { [ "$command_name" = "reopen" ] || [ "$command_name" = "reset" ]; }; then
+     [ "$command_name" = "reopen" ]; then
     reopen_boundary_sha="$(git -C "$root" rev-parse --short "$base_ref" 2>/dev/null)"
   fi
   # A leftover from a landing is not a branch to build on: throw it away

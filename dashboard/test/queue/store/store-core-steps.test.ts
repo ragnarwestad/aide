@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   PHASE_STEPS,
+  WORKFLOW_STEPS,
   currentWorkRoundJobs,
   parseJobRequest,
   type QueueDefaults,
@@ -112,43 +113,45 @@ describe("spec 198: reopen", () => {
   });
 });
 
-describe("spec 231: reset", () => {
-  test("an active spec can be asked for reset", () => {
-    const r = parseJobRequest({ ...REQ, steps: ["reset"] }, { resolve, defaults: DEFAULTS });
-    expect(r.ok).toBe(true);
-    expect(r.ok && r.job.steps).toEqual(["reset"]);
-  });
-
-  test("reset is not a workflow phase and is refused for an archived spec", () => {
+describe("the round boundary", () => {
+  test("reset is not a workflow phase, and is not a step any more", () => {
     expect([...PHASE_STEPS] as string[]).not.toContain("reset");
-    const r = parseJobRequest(
-      { ...REQ, specFolder: "17-clean-up-console-log", steps: ["reset"] },
-      {
-        resolve: () => ({
-          specFolders: ["81-queue-and-runner"],
-          archivedFolders: ["17-clean-up-console-log"],
-        }),
-        defaults: DEFAULTS,
-      },
-    );
-    expect(r.ok).toBe(false);
-    expect(!r.ok && r.error).toContain("archived");
+    expect((WORKFLOW_STEPS as readonly string[])).not.toContain("reset");
   });
 
-  test("only jobs after a successfully landed Reset belong to the current round", () => {
+  test("only jobs after a successfully landed reopen-with-reset belong to the current round", () => {
+    const jobs = [
+      { steps: ["analyze"], state: "done", createdAt: "2026-08-24T10:00:00Z" },
+      { steps: ["reopen"], resetFiles: true, state: "done", createdAt: "2026-08-24T11:00:00Z" },
+      { steps: ["analyze"], state: "failed", createdAt: "2026-08-24T12:00:00Z" },
+    ];
+    expect(currentWorkRoundJobs(jobs)).toEqual([jobs[2]]);
+  });
+
+  test("a reopen that kept the files is no boundary", () => {
+    const jobs = [
+      { steps: ["analyze"], state: "done", createdAt: "2026-08-24T10:00:00Z" },
+      { steps: ["reopen"], state: "done", createdAt: "2026-08-24T11:00:00Z" },
+    ];
+    expect(currentWorkRoundJobs(jobs)).toEqual(jobs);
+  });
+
+  test("a reopen-with-reset still landing is not a boundary yet", () => {
+    const jobs = [
+      { steps: ["analyze"], state: "done", createdAt: "2026-08-24T10:00:00Z" },
+      { steps: ["reopen"], resetFiles: true, state: "done", landing: true, createdAt: "2026-08-24T11:00:00Z" },
+    ];
+    expect(currentWorkRoundJobs(jobs)).toEqual(jobs);
+  });
+
+  // A history from before the step was removed still names it, and those
+  // jobs are still the boundary they were.
+  test("an old Reset job in the history is still a boundary", () => {
     const jobs = [
       { steps: ["analyze"], state: "done", createdAt: "2026-08-24T10:00:00Z" },
       { steps: ["reset"], state: "done", createdAt: "2026-08-24T11:00:00Z" },
       { steps: ["analyze"], state: "failed", createdAt: "2026-08-24T12:00:00Z" },
     ];
     expect(currentWorkRoundJobs(jobs)).toEqual([jobs[2]]);
-  });
-
-  test("a Reset still landing is not a boundary yet", () => {
-    const jobs = [
-      { steps: ["analyze"], state: "done", createdAt: "2026-08-24T10:00:00Z" },
-      { steps: ["reset"], state: "done", landing: true, createdAt: "2026-08-24T11:00:00Z" },
-    ];
-    expect(currentWorkRoundJobs(jobs)).toEqual(jobs);
   });
 });

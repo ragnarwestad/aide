@@ -228,7 +228,7 @@ describe("every step lands its own work (spec 149)", () => {
   }, 20000);
 
   // REQ-1, REQ-3, REQ-7 (spec 327). `analyze`'s landing fails to merge
-  // the specs repo; `reset` runs next and its OWN landing succeeds
+  // the specs repo; `close` runs next and its OWN landing succeeds
   // (a different repo). A later step's success must not erase the
   // earlier failure — clearing it belongs to whatever actually
   // resolves it, not to an unrelated step's own landing.
@@ -242,7 +242,7 @@ describe("every step lands its own work (spec 149)", () => {
       await fetch(`${base}/api/queue`, {
         method: "POST",
         headers: AUTH,
-        body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: ["analyze", "reset"] }),
+        body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: ["analyze", "close"], closeReason: "the idea did not hold" }),
       })
     ).json()) as { job: { id: string } };
     const id = made.job.id;
@@ -251,11 +251,11 @@ describe("every step lands its own work (spec 149)", () => {
       join(resultDir(dir), `${id}.json`),
       JSON.stringify(result({ branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }] })),
     );
-    // Wait for `reset` to actually be running — proof `analyze`'s
+    // Wait for `close` to actually be running — proof `analyze`'s
     // landing has fully settled, since `Runner.tick()` refuses to
     // start anything while any job carries `landing: true`. A larger
     // budget than `settle`'s default: this crosses TWO poll ticks (one
-    // to notice `analyze`'s result, one to start `reset` once its
+    // to notice `analyze`'s result, one to start `close` once its
     // landing has cleared), on top of the landing's own retries.
     const running = await settle(base, id, (j) => j.stepIndex === 1 && j.state === "running", 300);
     expect(sentence(running.landingError)).toContain("analyze merge failed");

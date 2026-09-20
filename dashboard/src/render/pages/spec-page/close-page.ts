@@ -1,5 +1,5 @@
 // The close confirmation page (spec 406). Structural sibling of
-// reset-page.ts, but with a reason `<textarea>` and the standard
+// reopen-page.ts, but with a reason `<textarea>` and the standard
 // `specform` Save/Cancel pair (REQ-4) in place of `typedConfirm()` —
 // see 3-solution.md's own "Confirmation shape, within Approach A" for
 // why this page, not a modal, is the right shape for Close.
@@ -9,13 +9,13 @@ import { t, type Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { specPagePath } from "./tabs.ts";
 
-/** The one sentence stated wherever a reader meets Close or Reset
- *  (REQ-2): on this confirmation page's own body text, and again — via
- *  `overview.ts`'s `actionsHelp` — beside the two controls on the
- *  spec's own page. One string, so the two places can never say it
+/** The one sentence stated wherever a reader meets Close (REQ-2): on
+ *  this confirmation page's own body text, and again — via
+ *  `overview.ts`'s `actionsHelp` — beside the control on the spec's own
+ *  page. One string, so the two places can never say it
  *  differently. */
-export const CLOSE_VS_RESET_SENTENCE =
-  "Reset starts this spec over and keeps it active; Close says it will not work and archives it as a record.";
+export const CLOSE_SENTENCE =
+  "Close says this spec will not work and archives it as a record; another round is how a spec that is still worth doing goes on.";
 
 export function renderCloseSpecPage(
   project: string,
@@ -31,7 +31,7 @@ export function renderCloseSpecPage(
     (opts.error ? rowMessage("failed", opts.error, { tag: "p" }) : "") +
     rowMessage(
       "info",
-      `${CLOSE_VS_RESET_SENTENCE} Closing merges this spec's files into archive/ as the record, and deletes its code branch (never merges it) — none of that work will be used.`,
+      `${CLOSE_SENTENCE} Closing merges this spec's files into archive/ as the record, and deletes its code branch (never merges it) — none of that work will be used.`,
       { tag: "p" },
     ) +
     `<form method="post" action="/api/queue${back}/close" class="newspecform specform" ` +

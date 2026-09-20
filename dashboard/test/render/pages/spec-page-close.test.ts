@@ -1,4 +1,4 @@
-// Spec 406: the Close control, the shared Reset/Close distinction
+// Spec 406: the Close control and the sentence that says what it means
 // sentence, and the closed-spec read-only line. Follows the shape
 // spec-page-reopen-and-reset.test.ts's own Reset suite already tests
 // against.
@@ -9,7 +9,7 @@ import { GENERATED, NAV, page, view } from "./spec-page-fixtures.ts";
 
 describe("spec 406, REQ-1: the Close control", () => {
   test("present and enabled beside Reset when both actions are offered", () => {
-    const html = page(view({ resetAction: "/reset-confirm", closeAction: "/close-confirm" }));
+    const html = page(view({ closeAction: "/close-confirm" }));
     const group = /<nav class="tabbar subtabs">[\s\S]*?<span class="row">([\s\S]*?)<\/span><\/nav>/.exec(html)?.[1] ?? "";
     expect(group).toContain('href="/close-confirm"');
     expect(group).toContain("Close");
@@ -58,17 +58,16 @@ describe("spec 406, REQ-1: the Close control", () => {
   });
 });
 
-describe("spec 406, REQ-2: the Reset/Close distinction is visible page text, not only a hover title", () => {
+describe("spec 406, REQ-2: what Close means is visible page text, not only a hover title", () => {
   test("present whenever either control is drawn", () => {
-    const html = page(view({ resetAction: "/reset-confirm", closeAction: "/close-confirm" }));
+    const html = page(view({ closeAction: "/close-confirm" }));
     const withoutTitles = html.replace(/title="[^"]*"/g, "");
-    expect(withoutTitles).toContain("Reset starts this spec over and keeps it active");
-    expect(withoutTitles).toContain("Close says it will not work");
+    expect(withoutTitles).toContain("Close says this spec will not work and archives it as a record");
   });
 
   test("absent once the spec is archived — nothing left to distinguish", () => {
-    const html = page(view({ archived: true, resetAction: "/reset-confirm", closeAction: "/close-confirm" }));
-    expect(html).not.toContain("Reset starts this spec over");
+    const html = page(view({ archived: true, closeAction: "/close-confirm" }));
+    expect(html).not.toContain("Close says this spec will not work and archives it as a record");
   });
 });
 
@@ -109,12 +108,11 @@ describe("spec 406, REQ-7: a closed spec reads as closed, never as archived", ()
 });
 
 describe("spec 406, REQ-2/REQ-9: the Close confirmation page", () => {
-  test("states the branch-deletion warning and repeats the Reset/Close distinction", () => {
+  test("states the branch-deletion warning and repeats what Close means", () => {
     const html = renderCloseSpecPage("aide", view().specFolder, NAV, GENERATED, {});
     const withoutTitles = html.replace(/title="[^"]*"/g, "");
     expect(withoutTitles).toMatch(/branch.*delet|delet.*branch/i);
-    expect(withoutTitles).toContain("Reset starts this spec over and keeps it active");
-    expect(withoutTitles).toContain("Close says it will not work");
+    expect(withoutTitles).toContain("Close says this spec will not work and archives it as a record");
   });
 
   test("carries a reason field and posts to the close route", () => {

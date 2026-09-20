@@ -49,7 +49,7 @@ Run it again to update; it replaces what it installed and removes what it no lon
 
 Every skill in `core/skills/` is installed: the `aide-*` workflow skills (`aide-create`,
 `aide-analyze`, `aide-implement`, `aide-archive`, `aide-explore`, `aide-manifest`, `aide-reopen`,
-`aide-reset`, `aide-close`, `aide-to-pdf`) and the expertise skills Claude Code activates by context
+`aide-close`, `aide-to-pdf`) and the expertise skills Claude Code activates by context
 (`tdd-coach`, `task-workflow-assistant`, `documentation`, `markdown-linting`, `spec-structure`,
 `tools-and-scripts`, `unit-tests`, `playwright-e2e`, `workflows`).
 

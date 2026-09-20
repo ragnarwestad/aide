@@ -75,9 +75,9 @@ A spec whose archive is held back on unticked `## Acceptance criteria`
 rows, and whose `4-status.md` carries a `**Round boundary:**` stamp
 (written by `aide-archive-spec` the moment it declined), is not a fresh
 analysis — it is taking ANOTHER round on the checks that are still
-open. This is a THIRD kind of restart, distinct from `/aide-reopen` and
-`/aide-reset`: those regenerate `2-analysis.md`/`3-solution.md`/
-`4-status.md` from their templates and drop history; a held-back round
+open. This is a different kind of restart from `/aide-reopen` with its
+reset, which regenerates `2-analysis.md`/`3-solution.md`/
+`4-status.md` from their templates and drops history; a held-back round
 does the opposite on every point below.
 
 **A reopened spec takes the same round.** A spec taken back with

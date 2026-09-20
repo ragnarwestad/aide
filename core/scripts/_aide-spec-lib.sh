@@ -302,7 +302,7 @@ aide_spec_dependencies() {
 # The three files a work round fills in — 2-analysis.md, 3-solution.md
 # and 4-status.md — written fresh from the templates in
 # core/skills/aide-create/references/file-templates.md. One writer for
-# create (a new spec) and reset (a spec whose round must not count):
+# create (a new spec) and aide-reset-spec (a spec whose round must not count):
 # 0-README.md and 1-description.md are never touched here.
 # Usage: aide_write_placeholder_files <dest-dir> <title> <folder>
 aide_write_placeholder_files() {

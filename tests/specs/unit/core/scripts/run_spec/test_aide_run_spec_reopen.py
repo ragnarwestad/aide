@@ -150,48 +150,6 @@ def test_reopen_refusal_leaves_an_active_specs_branch_alone(
     for bare in (origin["project"], origin["specs"]):
         assert has_branch(bare, BRANCH), f"{bare} lost its branch"
 
-def test_reset_accepts_an_active_spec_and_removes_remote_branches(
-    runner, workspace, fake_claude, origin
-):
-    for root in (workspace["project"], workspace["specs"]):
-        make_branch(root, BRANCH)
-        git(root, "push", "-q", "origin", BRANCH)
-    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude, command="reset")
-    assert rc == 0, out
-    for bare in (origin["project"], origin["specs"]):
-        assert not has_branch(bare, BRANCH)
-
-def test_reset_runs_no_model_and_puts_the_round_files_back(runner, workspace, fake_claude, origin):
-    """A reset is mechanical (aide-reset-spec): the runner spawns no model
-    at all — a fake claude that would fail is never reached — reports its
-    tool as none, and the three round files come back from the templates
-    with the boundary mark stamped on 4-status.md."""
-    specs = workspace["specs"]
-    folder = specs / "81-queue-and-runner"
-    (folder / "2-analysis.md").write_text("# Queue - Analysis\n\n## Mapping\n\n- src/x.ts — everything\n")
-    git(specs, "add", "-A")
-    git(specs, "commit", "-q", "-m", "a round's analysis")
-    claude = fake_claude("exit 1")
-    rc, out, _ = run(runner, workspace, claude, command="reset", push="branch")
-    assert rc == 0, out
-    assert out["ok"] is True and out["terminalReason"] == "completed", out
-    assert out["tool"] == "none", out
-    assert not fake_claude.calls.exists()
-    # The step's own commit, on the branch it pushed to origin.
-    analysis = git(origin["specs"], "show", f"{BRANCH}:81-queue-and-runner/2-analysis.md")
-    assert "src/x.ts" not in analysis and "Filled in by /aide-analyze" in analysis, analysis
-    status = git(origin["specs"], "show", f"{BRANCH}:81-queue-and-runner/4-status.md")
-    assert "**Reset:**" in status, status
-
-
-def test_reset_is_refused_for_an_archived_spec(runner, workspace, fake_claude):
-    archive_the_spec(workspace)
-    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude, command="reset")
-    assert rc == 2, out
-    assert "unknown spec" in out["error"]
-
 @pytest.mark.parametrize("reset", [False, True], ids=["keep", "reset"])
 def test_reopen_leaves_the_earlier_rounds_commits_in_the_repository(
     reset,

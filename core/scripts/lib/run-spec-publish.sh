@@ -10,7 +10,7 @@
 # The commit loop and the push loop below both used to run exactly once.
 # Now they run as `commit_and_push_roots`, callable more than once in the
 # same invocation: once, unconditionally, for the step's own content
-# (every command, including `explore`/`manifest`/`reopen`/`reset`/
+# (every command, including `explore`/`manifest`/`reopen`/
 # `schedule`, none of which ever set $status_file); and, only for the
 # four WORKFLOW_ARC commands, a second time for the `Workflow steps
 # completed` line's own small commit — made only once the first pass has

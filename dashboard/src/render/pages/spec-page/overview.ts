@@ -1,6 +1,6 @@
 // The spec's read-only facts (what it depends on, whether it is
 // archived) drawn in the banner on every tab, the Status tab's
-// criteria checklist, and the Reopen/Reset controls.
+// criteria checklist, and the Reopen and Close controls.
 
 import { helpPopover, ICON_PDF, rowMessage, saveCancelActions } from "../../ui/components";
 import { SPINNER } from "../../ui/components";
@@ -10,7 +10,7 @@ import { checkControls, checkReadOnlyMark } from "../../ui/check-controls.ts";
 import { failedCount, notVerifiedCount } from "../../../project/parse-status/not-verified.ts";
 import { dependsOnField } from "../new-spec-page.ts";
 import { t, type Language } from "../../../i18n";
-import { CLOSE_VS_RESET_SENTENCE } from "./close-page.ts";
+import { CLOSE_SENTENCE } from "./close-page.ts";
 import { specPagePath } from "./tabs.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
 
@@ -28,7 +28,7 @@ import type { SpecCheckView, SpecPageView } from "./types.ts";
  *
  *  The acceptance switch is drawn LOCKED, not omitted, once `analyze`
  *  has already decided the question (REQ-6) — the same disabled-with-
- *  title shape `pdfControl`/`resetControl` use below for "possible in
+ *  title shape `pdfControl`/`closeControl` use below for "possible in
  *  principle, not right now". A locked box submits nothing at all, the
  *  same as an unchecked one — `acceptanceEditable` is a hidden sentinel
  *  precisely so the route can tell those two apart (see
@@ -351,7 +351,7 @@ export function reopenControl(view: SpecPageView): string {
  *  the browser's own viewer shows it — a plain link, never a form, so it
  *  works with JavaScript switched off (REQ-2). Disabled with its reason
  *  rather than hidden when the tool is missing (REQ-7), the exact shape
- *  `resetControl` below already uses.
+ *  `closeControl` below already uses.
  *
  *  An icon alone, not the word "PDF" beside it (spec 391): it opens a
  *  document, so it reads as one — the same `aria-label` says what it
@@ -429,24 +429,11 @@ export function testServerStatus(view: SpecPageView): string {
   );
 }
 
-export function resetControl(view: SpecPageView): string {
-  if (!view.resetAction) return "";
-  // Shown disabled rather than hidden on an archived spec (2026-09-09):
-  // a control that vanishes leaves the reader wondering where it went;
-  // one that is greyed out says it exists and why it cannot be pressed.
-  // The reason itself is `actionsHelp()`'s, the row's one shared mark —
-  // this button carries no popover of its own.
-  if (view.archived) return `<span class="btn" aria-disabled="true">Reset</span>`;
-  if (view.resetUnavailableReason) return `<span class="btn" aria-disabled="true">Reset</span>`;
-  return `<a class="btn" href="${esc(view.resetAction)}">Reset</a>`;
-}
-
-/** The other operation that ends a work round (spec 406, REQ-1), drawn
- *  beside Reset. Same disabled shape as `resetControl` for "possible in
- *  principle, not right now" (REQ-11) — `view.archived` hides it for an
- *  archived OR a closed spec alike, the same one flag `resetControl`
- *  already checks, since neither move applies once a spec has left the
- *  active list. */
+/** The operation that ends a work round without archiving the work (spec
+ *  406, REQ-1). Disabled rather than hidden for "possible in principle,
+ *  not right now" (REQ-11) — `view.archived` hides it for an archived OR
+ *  a closed spec alike, since the move does not apply once a spec has
+ *  left the active list. */
 export function closeControl(view: SpecPageView): string {
   if (!view.closeAction || view.archived) return "";
   // The reason itself is `actionsHelp()`'s, the row's one shared mark —
@@ -456,12 +443,11 @@ export function closeControl(view: SpecPageView): string {
 }
 
 /** One "(?)" for the whole action row (spec 457), replacing what used
- *  to be up to four separate ones: Reopen's own, Reset's and Close's
- *  own disabled reasons, the Reset/Close distinction (REQ-2 — a reader
- *  meets Close and Reset differently only in a `title` attribute
- *  otherwise, which REQ-2 explicitly says is not enough; shares its
- *  exact wording with the close confirmation page's own prose,
- *  `CLOSE_VS_RESET_SENTENCE` in close-page.ts, so the two places can
+ *  to be several separate ones: Reopen's own, Close's own disabled
+ *  reason, what Close means (REQ-2 — a reader meets Close only in a
+ *  `title` attribute otherwise, which REQ-2 explicitly says is not
+ *  enough; shares its exact wording with the close confirmation page's
+ *  own prose, `CLOSE_SENTENCE` in close-page.ts, so the two places can
  *  never say it differently), and Update's own. Drawn once, before the
  *  row's own buttons — covering what each button does and, where one
  *  will not take a click right now, why. */
@@ -473,15 +459,8 @@ export function actionsHelp(view: SpecPageView): string {
         "description, the analysis, the plan and the status, and removes its old branch; " +
         "you can choose to reset the analysis, the plan and the status as well.",
     );
-  } else if (view.resetAction || view.closeAction) {
-    sentences.push(CLOSE_VS_RESET_SENTENCE);
-  }
-  if (view.resetAction) {
-    if (view.archived) {
-      sentences.push("An archived spec cannot be reset — reopen it first.");
-    } else if (view.resetUnavailableReason) {
-      sentences.push(`Reset can't run right now because ${view.resetUnavailableReason}.`);
-    }
+  } else if (view.closeAction) {
+    sentences.push(CLOSE_SENTENCE);
   }
   if (view.closeAction && !view.archived && view.closeUnavailableReason) {
     sentences.push(`Close can't run right now because ${view.closeUnavailableReason}.`);

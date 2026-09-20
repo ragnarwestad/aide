@@ -106,7 +106,7 @@ export function handedToMerge(
  *  code repo, their branch is also the code's, and merging it whole
  *  would put an earlier `implement`'s code on the default branch before
  *  `archive` — so these land the spec's own folder alone. */
-const SPEC_ONLY_STEPS = new Set(["analyze", "reopen", "reset", "close"]);
+const SPEC_ONLY_STEPS = new Set(["analyze", "reopen", "close"]);
 
 /** The spec's folder and its `archive/` twin relative to `root`, or
  *  `undefined` when the specs root is not inside `root` at all. */

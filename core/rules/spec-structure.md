@@ -341,7 +341,7 @@ Number, created date, expected duration
   every section below it describes that approach and no other, and
   `/aide-implement` builds the plan it finds. Wanting a different one
   means saying so in `1-description.md` and analysing again
-  (`/aide-reset`, then `/aide-analyze`)
+  (change an acceptance criterion, then `/aide-analyze` again)
 - Before/After in SEPARATE code blocks (avoids redeclaration errors)
 - Behavior delta: what the solution ADDS / MODIFIES / REMOVES relative to
   current behavior — not just which files change
@@ -431,9 +431,9 @@ step skills offer exactly that commit, and ask first.
 **The line is added to, never subtracted from.** A step it already
 names stays even when no commit currently corroborates it — a copied
 claim (a spec's four files copied from a sibling) stands the same way,
-since the scan cannot tell it from a real one. `aide-reopen` and
-`aide-reset` are the only places a step comes off, by regenerating the
-file without the line at all.
+since the scan cannot tell it from a real one. A reopen that resets the
+files is the only place a step comes off, by regenerating the file
+without the line at all.
 
 The dashboard reads the same commits, live, to mark a spec's phases
 done — a `4-status.md` that disagrees with them is said out loud on the
@@ -552,7 +552,7 @@ archives exactly as it did before this section existed.
 **A held-back spec may take another round on its open rows.**
 `/aide-analyze` and `/aide-implement` may run again on a spec whose
 archive is held back this way — a THIRD kind of restart, distinct
-from `/aide-reopen` and `/aide-reset`, which regenerate this table from
+from a reopen that resets the files, which regenerates this table from
 its template. A held-back round instead APPENDS: a ticked row's Status
 and Notes cells are left exactly as they are; only an OPEN row's Notes
 cell may gain text naming what the round still finds missing; and a

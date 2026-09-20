@@ -135,7 +135,7 @@ describe("the board on the spec page", () => {
 
 // The tab row holds BUTTONS. A `<p>` among them is a block element in a
 // flex row: the whole action group wraps below the tabs and the buttons
-// stack on top of each other, which is what put PDF/Reset/Close at the
+// stack on top of each other, which is what put PDF/Close at the
 // foot of every tab.
 describe("the spec's actions stay on the tab row", () => {
   const withBoard = (extra: Partial<SpecPageView> = {}) => page(view({ testServerAction: TEST_SERVER_ACTION, ...extra }));
@@ -166,9 +166,9 @@ describe("the spec's actions stay on the tab row", () => {
   // Spec 457: the sentence moved from its own "(?)" (resetCloseNote)
   // into the row's single shared one (actionsHelp) — still a "(?)",
   // never a paragraph under the row.
-  test("the Reset-or-Close sentence is a (?) in the row, not a paragraph under it", () => {
-    const html = page(view({ resetAction: "/specs/aide/x/reset", closeAction: "/specs/aide/x/close" }));
-    expect(html).toContain("Reset starts this spec over and keeps it active");
+  test("the Close sentence is a (?) in the row, not a paragraph under it", () => {
+    const html = page(view({ closeAction: "/specs/aide/x/close" }));
+    expect(html).toContain("Close says this spec will not work and archives it as a record");
     expect(trailing(html)).toContain('<details class="intro">');
     expect(html).not.toMatch(/<p class="small muted">Reset/);
   });

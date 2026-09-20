@@ -172,14 +172,14 @@ describe("a step reads busy for the whole landing window (spec 254)", () => {
 
     const html = await (await fetch(`${base}/specs/aide/${SPEC}`, { headers: AUTH })).text();
     // The lead is the analyze job that is STILL LANDING, not the newer
-    // cancelled decoy: the page says so by disabling Reset for exactly
+    // cancelled decoy: the page says so by disabling Close for exactly
     // that reason, and by counting the analyze job's one step. A page
-    // that had taken the decoy as lead would offer Reset and know
+    // that had taken the decoy as lead would offer Close and know
     // nothing of a landing.
-    // Spec 457: the disabled reason names the button now ("Reset can't
-    // run right now"), reworded when its own "(?)" was folded into the
+    // Spec 457: the disabled reason names the button ("Close can't run
+    // right now"), reworded when its own "(?)" was folded into the
     // action row's single shared one.
-    expect(html).toContain("Reset can't run right now because a merge is in progress.");
+    expect(html).toContain("Close can't run right now because a merge is in progress.");
     expect(html).toContain("Logs (1)");
     expect(html.slice(html.indexOf("<body"))).not.toContain("cancelled");
 

@@ -315,7 +315,7 @@ describe("parseCreateRequest — steps (spec 342)", () => {
   // (`PHASE_STEPS`) — never `create` a second time, and never a step
   // outside the workflow's own vocabulary.
   test("an entry outside analyze/implement/archive is refused", () => {
-    for (const bad of [["create"], ["reset"], ["explore"], ["nope"], [7]]) {
+    for (const bad of [["create"], ["reopen"], ["explore"], ["nope"], [7]]) {
       expect(parseCreateRequest({ ...CREATE, steps: bad }, { allow, defaults: DEFAULTS }).ok).toBe(false);
     }
   });

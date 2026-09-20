@@ -47,7 +47,7 @@ describe("STEP_LABELS_NB/STEP_LABELS_ES/STEP_LABELS_DE/STEP_LABELS_FR", () => {
     expect(stepLabel("explore", "nb")).toBe("Utforsk");
     expect(stepLabel("manifest", "nb")).toBe("Manifest");
     expect(stepLabel("reopen", "nb")).toBe("Gjenåpne");
-    expect(stepLabel("reset", "nb")).toBe("Tilbakestill");
+    expect(stepLabel("reopen", "nb")).toBe("Gjenåpne");
     expect(stepLabel("schedule", "nb")).toBe("Kjøring");
     expect(stepLabel("close", "nb")).toBe("Lukk");
   });

@@ -116,7 +116,7 @@ with the tests and assertions that pin all of them.
   merge has not reached yet. An analyze or implement landing moves the
   specs repository alone and holds nothing — `landStepBranch` leaves the
   code root out even when the run's own catch-up merge moved it. Where
-  the specs live inside that root, an analyze, reopen, reset or close
+  the specs live inside that root, an analyze, reopen or close
   landing copies the spec's own folder onto main and nothing else of the
   branch (`landSpecFolderOnly`, `git/spec-folder-landing.ts`, chosen in
   `handed-to-merge.ts`): code reaches main through `archive` alone.
@@ -179,7 +179,7 @@ with the tests and assertions that pin all of them.
 ## Close
 
 A spec whose idea did not hold (spec 406) — a fourth member of the
-archive/reopen/reset family, with its own phase (`closed`) rather than
+archive/reopen family, with its own phase (`closed`) rather than
 reusing `archived`'s. `core/scripts/aide-close-spec` is `aide-archive-spec`'s
 stamp-and-move tail without its `not-implemented-yet`/`acceptance-criteria-
 unticked` gates: Close is legal from every phase Archive would refuse.

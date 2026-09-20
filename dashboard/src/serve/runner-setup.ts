@@ -276,13 +276,12 @@ export function stepDoneHandler(
       // and a reopen left on its branch would show nowhere at all
       // — "reopening is one action" would then still end with
       // somebody in a terminal.
-      // A finished reset takes the round's phase choice with it, so
-      // the row's boxes and button start over from Analyze rather than
-      // from whatever was ticked for the round just discarded. A reopen
-      // that reset the files discarded the same round, so it does the
-      // same; a reopen that kept them keeps the choice too.
-      if (step === "reset" || (step === "reopen" && job.resetFiles)) ctx.store.forgetPendingSteps(job.project, job.specFolder);
-      if (step === "analyze" || step === "reopen" || step === "reset") {
+      // A reopen that reset the files discarded the round, and the phases
+      // ticked for it go with it: the row's boxes and button start over
+      // from Analyze rather than from whatever was ticked for the round
+      // just discarded. A reopen that kept the files keeps the choice.
+      if (step === "reopen" && job.resetFiles) ctx.store.forgetPendingSteps(job.project, job.specFolder);
+      if (step === "analyze" || step === "reopen") {
         return ctx.landStepBranch(job, step, outcome);
       }
       // `archive` lands on `completed` alone. A refusal from

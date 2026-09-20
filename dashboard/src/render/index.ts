@@ -122,7 +122,6 @@ export {
   TAB_FILES,
   documentTabScript,
   renderSpecPage,
-  renderResetSpecPage,
   renderCloseSpecPage,
   renderReopenSpecPage,
   specPagePath,

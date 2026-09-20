@@ -14,7 +14,7 @@ afterEach(() => {
 const folder = "81-queue-and-runner";
 
 describe("spec 406: the Close confirmation page (GET)", () => {
-  test("states the branch-deletion sentence and the Close-vs-Reset distinction", async () => {
+  test("states the branch-deletion sentence and what Close means", async () => {
     const { base } = start();
     const res = await fetch(`${base}/specs/aide/${folder}/close`);
     expect(res.status).toBe(200);
@@ -24,8 +24,7 @@ describe("spec 406: the Close confirmation page (GET)", () => {
     expect(html).toMatch(/branch.*delet|delet.*branch/i);
     // REQ-2: the distinction is body text, not only a hover title.
     const withoutTitles = html.replace(/title="[^"]*"/g, "");
-    expect(withoutTitles).toContain("Reset starts this spec over and keeps it active");
-    expect(withoutTitles).toContain("Close says it will not work");
+    expect(withoutTitles).toContain("Close says this spec will not work and archives it as a record");
     expect(html).toContain(`/api/queue/specs/aide/${folder}/close`);
     // REQ-3/REQ-4: a reason field, in the standard specform shape.
     expect(html).toMatch(/class="[^"]*\bspecform\b[^"]*"/);

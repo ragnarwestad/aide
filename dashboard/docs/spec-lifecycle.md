@@ -15,7 +15,7 @@ post-step checks in `core/scripts/aide-run-spec`, the gates in `core/scripts/aid
 - [What holds a phase back](#what-holds-a-phase-back)
 - [Where the work is between phases](#where-the-work-is-between-phases)
 - [Another round on the same spec](#another-round-on-the-same-spec)
-- [Going backwards: reopen and reset](#going-backwards-reopen-and-reset)
+- [Going backwards: reopen](#going-backwards-reopen)
 - [Closing: a different terminal move from archive](#closing-a-different-terminal-move-from-archive)
 - [What the list makes of it](#what-the-list-makes-of-it)
 
@@ -30,7 +30,7 @@ post-step checks in `core/scripts/aide-run-spec`, the gates in `core/scripts/aid
 | `implement` | Code and tests in the project, the status rows in `4-status.md`, and `test-run.json` beside the spec                     | Nothing. The code waits on `aide/<folder>`                                           |
 | `archive`   | The `Archived:` stamp, moves the folder into `archive/`, feeds documentation back                                        | Merges the specs repo, then the code root, runs `AIDE_INSTALL_CMD`, then asks origin |
 
-Other steps exist — `explore`, `manifest`, `schedule`, `reopen`, `reset`, `close` — but they are not phases: none of
+Other steps exist — `explore`, `manifest`, `schedule`, `reopen`, `close` — but they are not phases: none of
 them appears in the workflow arc, and none moves the spec along it.
 
 ## What "has had a phase" means
@@ -88,8 +88,6 @@ stateDiagram-v2
     analyzed --> implemented: implement completes — code stays on its branch
     implemented --> archived: archive moves the folder and lands every repo
     archived --> created: reopen (a new work round)
-    analyzed --> created: reset (same round discarded)
-    implemented --> created: reset
     created --> closed: close says the spec will not work
     analyzed --> closed: close says the spec will not work
     implemented --> closed: close says the spec will not work
@@ -173,7 +171,7 @@ root's branch open through `archive` too, as the pull request; the specs root st
 ## Another round on the same spec
 
 A spec whose acceptance criteria are not all ticked, or that was reopened with its files kept, can take another round of analysis or implementation without being
-reopened or reset. It is the one way back that keeps everything: the analysis, the plan, the status and every ticked
+reopened. It is the one way back that keeps everything: the analysis, the plan, the status and every ticked
 row stay as they are.
 
 - **The round begins where archive declines.** `aide-archive-spec` refuses an archive while any row under
@@ -196,10 +194,10 @@ row stay as they are.
 
 When the user is satisfied, they tick the rows on the spec's Status tab and press Archive.
 
-## Going backwards: reopen and reset
+## Going backwards: reopen
 
-Both keep the spec; reopen with reset and reset discard a work round. Both are skills (`/aide-reopen`, `/aide-reset`),
-not queue steps the runner decides on its own.
+Reopen keeps the spec, and discards a work round when it is asked to. It is a skill (`/aide-reopen`) at a keyboard and a
+queue step the dashboard presses, never a step the runner decides on its own.
 
 - **Reopen** takes an archived or closed spec back to the active list and asks one question on its own page
   (`/specs/<project>/<spec>/reopen`, reached from the Reopen link on the spec page and from the list row): also reset
@@ -218,21 +216,19 @@ not queue steps the runner decides on its own.
     keeping `0-README.md` and `1-description.md`. The step records
     `- **Reopened:** <date> (history before <sha> does not count)` in `4-status.md`. The sha is the boundary
     `completed_steps_for` counts from: runner commits before it are the old round's and no longer put a step on the
-    line. It drops the spec's recorded phase choice too, the way a reset does: those ticks belonged to the round just
-    discarded.
+    line. It drops the spec's recorded phase choice too: those ticks belonged to the round just discarded.
 
   A stamp with a later `**Round boundary:**`, `**Reopened:**` or `**Reset:**` mark after it is history: the phase
   reads `archived` or `closed` only while no such mark follows the stamp, in `spec-transitions.sh`, `spec-state.sh` and
   the dashboard's readers alike (`stampInEffect`, `discover/spec-files.ts`). A new stamp after the boundary counts.
-- **Reset** does the same for an active spec whose current round must not count, keeping the description, the commits
-  and the earlier job history. It needs no model: `core/scripts/aide-reset-spec` writes the three files from the
-  templates, and a headless `reset` step runs that script directly, the way a create with no AI already writes its
-  spec — the step ends in seconds and reports its tool as `none`.
+There was a `reset` step beside Reopen for an ACTIVE spec, with its own button and confirmation page. It is gone:
+another round covers what it was used for, and a reopen with its reset covers the rest. The `**Reset:**` stamp and old
+`reset` jobs are still READ, so a spec that was reset keeps its boundary.
 
-A spec reopened with reset, or reset, reads as `created` again: the line is empty until a step runs. A reset also
-drops the phase choice recorded under the spec (`pending-steps.json`): the ticks belonged to the round just discarded,
-so the row falls back to every phase the spec has not had and its button reads Analyze. A reopen keeps the choice as it
-was.
+A spec reopened with reset reads as `created` again: the line is empty until a step runs. It also drops the phase
+choice recorded under the spec (`pending-steps.json`): the ticks belonged to the round just discarded, so the row falls
+back to every phase the spec has not had and its button reads Analyze. A reopen that keeps the files keeps the choice
+as it was.
 
 ## Closing: a different terminal move from archive
 

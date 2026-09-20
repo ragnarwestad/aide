@@ -32,7 +32,7 @@ import effortLevelsData from "../../../core/scripts/lib/effort-levels.json" with
 // already has, though the exemption is separate new logic in
 // `parseJobRequest` below rather than a copy of `create`'s (which lives
 // in a wholly different parser, `parseCreateRequest`). Queueable and,
-// like `explore`/`manifest`/`reopen`/`reset`, deliberately not part of
+// like `explore`/`manifest`/`reopen`, deliberately not part of
 // the workflow arc: a schedule run is not a stage any spec passes
 // through.
 
@@ -45,11 +45,11 @@ import effortLevelsData from "../../../core/scripts/lib/effort-levels.json" with
 // `workflowSteps` disagree, in every process that loads it (the
 // dashboard and every test alike).
 export type WorkflowStep =
-  | "explore" | "create" | "analyze" | "implement" | "archive" | "manifest" | "reopen" | "reset"
+  | "explore" | "create" | "analyze" | "implement" | "archive" | "manifest" | "reopen"
   | "schedule" | "close";
 
 const KNOWN_STEPS: readonly WorkflowStep[] = [
-  "explore", "create", "analyze", "implement", "archive", "manifest", "reopen", "reset",
+  "explore", "create", "analyze", "implement", "archive", "manifest", "reopen",
   "schedule", "close",
 ];
 
@@ -88,19 +88,24 @@ if (
   );
 }
 
-/** Keep only jobs after the newest Reset that completed and landed. */
+/** Keep only jobs after the newest round-discarding job that completed and
+ *  landed: a reopen that reset the files, or — in a history old enough to
+ *  hold one — a Reset, the step that did the same before it was removed. */
 export function currentWorkRoundJobs<T extends {
   steps: readonly string[];
   state: string;
   landing?: boolean;
+  resetFiles?: boolean;
   createdAt: string;
   startedAt?: string;
 }>(
   jobs: T[],
 ): T[] {
   const at = (job: T): number => Date.parse(job.startedAt ?? job.createdAt) || 0;
+  const discardsTheRound = (job: T): boolean =>
+    job.steps.includes("reset") || (job.steps.includes("reopen") && job.resetFiles === true);
   const boundary = jobs
-    .filter((job) => job.state === "done" && !job.landing && job.steps.includes("reset"))
+    .filter((job) => job.state === "done" && !job.landing && discardsTheRound(job))
     .reduce((latest, job) => Math.max(latest, at(job)), -Infinity);
   return boundary === -Infinity ? jobs : jobs.filter((job) => at(job) > boundary);
 }
@@ -121,7 +126,7 @@ export const PHASE_STEPS = ["analyze", "implement", "archive"] as const;
  *  (REQ-1): `create` and `archive` take minutes, `analyze` and
  *  `implement` a half hour or more. `close` (spec 406) does no model
  *  work either, in the same sense `archive` doesn't. Every step not
- *  named here — `explore`, `manifest`, `reopen`, `reset`, `schedule` —
+ *  named here — `explore`, `manifest`, `reopen`, `schedule` —
  *  stays in the slow group: none of them is characterized the way these
  *  are. Module-internal: nothing outside this file needs it directly
  *  (only `queuePriorityOrder`, below, is exported for other files to

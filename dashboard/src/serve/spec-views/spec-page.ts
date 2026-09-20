@@ -212,7 +212,7 @@ export async function specPageView(
     url: testServerEntry.url,
     error: testServerEntry.error,
   };
-  // The same busy reasons `resetUnavailableReason` already reads below —
+  // The busy reasons `closeUnavailableReason` reads below —
   // a board is another lifecycle action against this spec's own branch,
   // and neither should run while a job for it is in flight or a landing
   // is under way.
@@ -274,14 +274,12 @@ export async function specPageView(
     // Built from the page's own path, so the two cannot drift into a
     // button that posts where nothing listens.
     updateAction: `/api/queue${specPagePath(project, specFolder)}/update`,
-    resetAction: `${specPagePath(project, specFolder)}/reset`,
-    // spec 406: same "always present, disabled with a reason while
-    // busy" shape as resetAction — closeControl (overview.ts) is what
-    // hides it once the spec is archived.
+    // spec 406: always present, disabled with a reason while busy —
+    // closeControl (overview.ts) is what hides it once the spec is
+    // archived.
     closeAction: `${specPagePath(project, specFolder)}/close`,
     pdfAction: `${specPagePath(project, specFolder)}/pdf`,
     pdfUnavailableReason: ctx.pdfToolAvailable ? undefined : "md-to-pdf is not installed on this host",
-    resetUnavailableReason: busyReason,
     closeUnavailableReason: busyReason,
     testServerAction: testServerCapable ? `/api/queue${specPagePath(project, specFolder)}/test-server` : undefined,
     testServerStopAction: testServerEntry ? `/api/queue${specPagePath(project, specFolder)}/test-server/stop` : undefined,
