@@ -11,7 +11,6 @@ implementation and archiving.
 - [The aide-* skills](#the-aide--skills)
 - [Install & Configuration](#install--configuration)
     - [Per-project configuration](#per-project-configuration)
-        - [AIDE_SPECS_PATH](#aide_specs_path-optional-per-project)
 - [AI-assisted workflow](#ai-assisted-workflow)
 - [The Aide dashboard](#the-aide-dashboard)
 - [Resources](#resources)
@@ -169,17 +168,31 @@ The other skills:
 
 ## Install & Configuration
 
-Clone the repo and run the installer. It installs mise with a node, and Claude Code, when they are missing;
-signing in to Claude Code is the one step left to you. Nothing is installed into the project you will use Aide on
-— the skills go in your home directory, and any project can then use them.
+Clone the repo and run the installer. It installs mise, Node.js and Claude Code where they are missing, and sets
+up Aide's skills for all four AI tools. Nothing is installed into the project you will use Aide on — the skills go
+in your home directory, and any project can then use them.
 
 ```bash
 git clone https://github.com/ragnarwestad/aide.git
 cd aide && ./install-all.sh
-claude    # sign in once, then /exit
 ```
 
-`./install-all.sh` runs the installer for all four AI tools and asks nothing. To install for one tool only:
+The installer adds a PATH line to your shell's startup file, so open a new terminal before the next step. Signing
+in to Claude Code is left to you, and is done once:
+
+```bash
+claude    # sign in, then /exit
+```
+
+Codex, Copilot and OpenCode are not installed for you. Their installers set up Aide's skills and configuration for
+them and say so when the tool itself is missing; install the ones you want to use yourself.
+
+[mise](https://mise.jdx.dev) is what `install-all.sh` uses to install the tools the skills and scripts call: bun,
+jq, gh, pandoc and md-to-pdf.
+
+`./install-all.sh` runs all four installers and asks nothing. The only questions any of them has are Codex's two
+optional MCP servers — browser testing and Context7 — and run from here, both are answered no. To be asked them,
+or to install for one tool only, run that tool's installer on its own:
 
 | AI tool        | Install                                  | Documentation                                        |
 |----------------|------------------------------------------|------------------------------------------------------|
@@ -188,42 +201,36 @@ claude    # sign in once, then /exit
 | Codex          | `implementations/codex/install.sh`       | [README.md](implementations/codex/README.md)         |
 | OpenCode       | `implementations/opencode/install.sh`    | [README.md](implementations/opencode/README.md)      |
 
-Each installer is self-contained: instructions, commands, scripts and documentation. [mise](https://mise.jdx.dev)
-is what `install-all.sh` uses to install bun, jq, gh, pandoc and md-to-pdf.
-
-The dashboard is installed after this, on the machine that will run it, with `dashboard/install.sh`, which sets it
-up as a service that starts by itself. On Linux there is no such service: `dashboard/serve.sh` runs it in a
-terminal instead. Either way it starts every step through Aide's own scripts and skills, so those have to be
-installed first, and the script checks that they are. See
+The dashboard is installed afterwards, on the one machine that will run it, and serves at
+`http://127.0.0.1:8788`. On macOS that is `dashboard/install.sh`, which sets it up as a service that starts when
+you log in. On Linux there is no such service, and `install.sh` refuses: `dashboard/serve.sh` runs the dashboard
+in a terminal instead. Either way the dashboard starts every step through Aide's own scripts and skills, so run
+`./install-all.sh` on that machine too. See
 [Requirements in the dashboard's README](dashboard/README.md#requirements) for what else it needs.
 
-Aide runs on macOS and Linux; `scripts/test-linux-install` installs it on a clean Debian and takes a spec through the
-dashboard there. On Windows it runs inside [WSL](https://learn.microsoft.com/en-us/windows/wsl/install), which is
-Linux; Git Bash is not enough.
+Aide runs on macOS and Linux, and the Linux install is tested end to end on a clean Debian. On Windows it runs
+inside [WSL](https://learn.microsoft.com/en-us/windows/wsl/install), which is Linux; Git Bash is not enough.
 
 ### Per-project configuration
 
-#### AIDE_SPECS_PATH (optional, per project)
-
-Store specs outside a project — set the key
-in `.aide/config` in that project's root:
+**`AIDE_SPECS_PATH`** stores a project's specs outside the project. Set it in `.aide/config` in the project's
+root:
 
 ```text
 AIDE_SPECS_PATH=/Users/you/develop/my-specs-repo
 ```
 
-Where several projects share one specs repo, give each its own subfolder
-(`my-specs-repo/<project>/`), so each keeps its own number sequence and
-its own `archive/`; pointing them all at the repo root puts every
-project's specs in one pool.
+Without it, specs are written to `specs/` in the project root. Where several projects share one specs repo, give
+each its own subfolder (`my-specs-repo/<project>/`): each then keeps its own number sequence and its own
+`archive/`. Point them all at the repo root and they share one sequence, so a spec's number no longer tells you
+which project it belongs to.
 
-**Default:** specs are written to `specs/` in the project root. The path
-is per-project configuration, not an environment variable — two projects
-can point at two different spec repos. Keep `.aide/config` out of git with a personal global
-gitignore (`core.excludesFile`); it holds one machine's own settings.
-The manifest `.aide/project.yaml` describes the project itself — its
-test command, the directories a run has to borrow, how its code lands —
-and is committed where a project uses it.
+`.aide/config` holds one machine's own settings for that project, and is not meant to be committed — a personal
+global gitignore (`core.excludesFile`) keeps it out without touching the project's own `.gitignore`. The other
+file, `.aide/project.yaml`, describes the project itself: the command that runs its tests, the directories a run
+needs that git does not track (`node_modules`, `.env` and the like), and whether its code is merged or left open
+as a pull request. It does not have to be there at all — the dashboard keeps those settings in its own state,
+outside the project — and the dashboard writes the file only in a project that already tracks one.
 
 ---
 
