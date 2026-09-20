@@ -6,8 +6,15 @@
 // file is "written" once it ends in a newline.
 import { readFileSync } from "node:fs";
 
-export async function fileOnceWritten(path: string, what: string): Promise<string> {
-  for (let i = 0; i < 200; i++) {
+/** 200 x 50 ms: the ten seconds a stub gets to write its first line. */
+export const FILE_WAIT_TRIES = 200;
+
+export async function fileOnceWritten(
+  path: string,
+  what: string,
+  tries: number = FILE_WAIT_TRIES,
+): Promise<string> {
+  for (let i = 0; i < tries; i++) {
     let text: string | undefined;
     try {
       text = readFileSync(path, "utf-8");

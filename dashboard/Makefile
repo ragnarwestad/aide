@@ -29,12 +29,12 @@ export AIDE_DASH_HOST
 # something.
 test:
 	bunx tsc --noEmit
-	# 20 s per test, not bun's 5 s: the git-backed route tests run beside
-	# three other jobs' suites on the serving host and lose to load alone.
-	# `--path-ignore-patterns`, not a list of directories to include:
-	# tests live under `src/` too (the message catalogue's own), and
-	# naming the directories left them out.
-	bun test --timeout 20000 --path-ignore-patterns='**/test/e2e/**' --path-ignore-patterns='**/test/round/**'
+	# Several bun processes over disjoint paths, since one process runs one
+	# file at a time and `test/queue-routes` alone was four of the suite's
+	# six minutes. The script holds the per-test limit, the groups and the
+	# two directories that stay out; `make test-e2e` and `make test-slow`
+	# are those two.
+	bash scripts/run-tests.sh
 
 # The browser tests, on their own, for a quiet machine. Run them when
 # layout or the page's own behaviour changed -- they are not part of

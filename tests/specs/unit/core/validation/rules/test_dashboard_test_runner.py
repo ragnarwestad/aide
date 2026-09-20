@@ -1,0 +1,80 @@
+"""The dashboard's test command and the script it hands the work to.
+
+`make test` is what the landing, the runner and CI all invoke, and it runs
+the suite as several bun processes. Three things have to stay true of that
+pair, and each is a silent failure if it drifts:
+
+- the target type-checks before it tests, since bun transpiles without
+  type-checking;
+- the two directories that start a real browser and a real board stay out
+  of it, because they have targets of their own;
+- the per-test limit stays generous enough for a git-backed test running
+  beside another job's suite.
+"""
+
+import re
+
+import pytest
+
+
+@pytest.fixture
+def makefile(workspace_root):
+    path = workspace_root / "dashboard" / "Makefile"
+    assert path.exists(), "dashboard/Makefile is gone"
+    return path.read_text()
+
+
+@pytest.fixture
+def runner_script(workspace_root):
+    path = workspace_root / "dashboard" / "scripts" / "run-tests.sh"
+    assert path.exists(), \
+        "dashboard/scripts/run-tests.sh is gone — `make test` names it"
+    return path.read_text()
+
+
+def _target(text, name):
+    """The recipe lines of one Makefile target."""
+    match = re.search(rf"^{name}:\n((?:\t.*\n)+)", text, re.M)
+    assert match, f"the Makefile has no {name}: target"
+    return match.group(1)
+
+
+class TestTheTestTarget:
+    def test_it_type_checks_before_it_runs_the_tests(self, makefile):
+        recipe = _target(makefile, "test")
+        lines = [ln.strip() for ln in recipe.splitlines() if not ln.strip().startswith("#")]
+        assert lines[0] == "bunx tsc --noEmit", \
+            "the first thing `make test` does must be the type check"
+
+    def test_it_hands_the_tests_to_the_runner_script(self, makefile):
+        recipe = _target(makefile, "test")
+        assert "scripts/run-tests.sh" in recipe, \
+            "`make test` must run dashboard/scripts/run-tests.sh, which is " \
+            "where the groups and the per-test limit live"
+
+    def test_the_browser_and_board_suites_keep_their_own_targets(self, makefile):
+        assert "test/e2e" in _target(makefile, "test-e2e")
+        assert "test/round" in _target(makefile, "test-slow")
+
+
+class TestTheRunnerScript:
+    def test_it_leaves_the_browser_and_board_suites_out(self, runner_script):
+        assert "-not -path 'test/e2e/*'" in runner_script, \
+            "test/e2e must stay out of the command a landing runs"
+        assert "-not -path 'test/round/*'" in runner_script, \
+            "test/round must stay out of the command a landing runs"
+
+    def test_it_collects_the_tests_under_src_as_well(self, runner_script):
+        assert re.search(r"find src test ", runner_script), \
+            "tests live under src/ too (the message catalogues'), so both " \
+            "trees are collected"
+
+    def test_the_per_test_limit_is_twenty_seconds(self, runner_script):
+        assert "LIMIT=20000" in runner_script, \
+            "a git-backed test beside another job's suite loses to load at " \
+            "bun's own 5 s"
+
+    def test_a_red_worker_prints_its_output(self, runner_script):
+        assert 'cat "$OUT/out.$w"' in runner_script, \
+            "CI reads the failing lines out of this output — a red worker " \
+            "that only reported a count would name no test"

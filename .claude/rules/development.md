@@ -18,8 +18,10 @@ carries a manifest, so it is not a project in its own right anymore.
 Aide's test command stays `pytest` — a `package.json` at the root would
 silently redirect it, which
 `tests/specs/unit/core/validation/test_dashboard_merge.py` guards
-against. Run the dashboard's own suite from inside `dashboard/`:
-`bunx tsc --noEmit && bun test`.
+against. Run the dashboard's own suite from inside `dashboard/` with `make test`:
+it type-checks first, then spreads the test files over one bun process per
+core (`dashboard/scripts/run-tests.sh`). A bare `bun test` runs them in one
+process and takes several times as long.
 
 **The queue/worktree/merge/archive internals live in `dashboard/CLAUDE.md`
 now** (moved 2026-08-26, /doctor check 4), not here — that content only

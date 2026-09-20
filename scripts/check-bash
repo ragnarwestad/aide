@@ -33,6 +33,7 @@ shellcheck --severity=warning \
   dashboard/install.sh \
   dashboard/deploy/check-prerequisites.sh \
   dashboard/deploy/repair-serve-plist.sh \
+  dashboard/scripts/run-tests.sh \
   dashboard/test/round/run \
   dashboard/test/round/claude-stub \
   scripts/test-linux-install \
