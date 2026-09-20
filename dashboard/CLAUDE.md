@@ -9,7 +9,7 @@ should read this file by hand.
 
 ## How a run touches the repositories
 
-`docs/running-specs.md`, "How a run touches the repositories".
+`docs/the-runner.md`, "How a run touches the repositories".
 
 - `aide-run-spec` branches EVERY repo it touches, and pushes a repo only
   when its branch has content beyond its own default branch AND origin

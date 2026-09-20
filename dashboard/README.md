@@ -74,7 +74,8 @@ do there is add a project, which [Projects](docs/projects.md) covers.
 ## Reference
 
 - [Developing the dashboard](docs/developing.md) — its tests, and running it from a checkout
-- [Running specs](docs/running-specs.md) — the queue, the runner, the checkouts, what a step publishes
+- [Running specs](docs/running-specs.md) — the queue: making a spec, time limits, which AI runs a step, schedules
+- [The runner and its checkouts](docs/the-runner.md) — what a run does to the repositories, and what a step publishes
 - [The specs list and the spec page](docs/the-specs-list.md) — what a row says, what its controls do, the spec's own page
 - [Projects](docs/projects.md) — adding one, whether a run can start there, the project page
 - [A spec's lifecycle](docs/spec-lifecycle.md) — the four phases, what moves a spec between them, what holds one back

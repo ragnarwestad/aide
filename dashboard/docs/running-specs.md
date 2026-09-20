@@ -1,11 +1,16 @@
 # Running specs
 
-How a spec becomes a run: the queue, the runner, the checkouts it works in, and what each step publishes.
-Five pages sit beside this one: [A spec's lifecycle](spec-lifecycle.md) — the four phases and what moves a spec
-between them — [A job's states](job-states.md) — the job's state machine, in one place —
-[The specs list and the spec page](the-specs-list.md) — what a row says and what its controls do —
-[Projects](projects.md) — adding one, and whether a run can start there — and
-[Branches and landing](landing.md) — how each step's branch is merged, and what stops one from landing.
+How a spec becomes a run: the form that makes one, who the dashboard answers, what decides a step's time limit, AI
+and model, how many run at once, and what it tells you while they do. What a run then does to the repositories is
+on [The runner and its checkouts](the-runner.md).
+
+Five pages sit beside this one:
+
+- [A spec's lifecycle](spec-lifecycle.md) — the four phases, and what moves a spec between them
+- [A job's states](job-states.md) — the job's state machine, in one place
+- [The specs list and the spec page](the-specs-list.md) — what a row says, and what its controls do
+- [Projects](projects.md) — adding one, and whether a run can start there
+- [Branches and landing](landing.md) — how each step's branch is merged, and what stops one from landing
 
 ## Table of contents
 
@@ -14,87 +19,77 @@ between them — [A job's states](job-states.md) — the job's state machine, in
 - [The time limit](#the-time-limit)
 - [Which AI runs a step](#which-ai-runs-a-step)
 - [How the board finds a CLI](#how-the-board-finds-a-cli)
+- [Which effort level a step runs at](#which-effort-level-a-step-runs-at)
 - [Global defaults for the AI and model](#global-defaults-for-the-ai-and-model)
 - [Running a job on a schedule](#running-a-job-on-a-schedule)
 - [How many run at once](#how-many-run-at-once)
-- [The dashboard's own checkouts](#the-dashboards-own-checkouts)
-- [How a run touches the repositories](#how-a-run-touches-the-repositories)
-- [Running a step by hand](#running-a-step-by-hand)
 - [Notifications](#notifications)
+    - [Push notifications on a phone or laptop](#push-notifications-on-a-phone-or-laptop)
 - [Live runs](#live-runs)
-- [What a finished step publishes](#what-a-finished-step-publishes)
 
 ---
 
-The spec list runs Aide workflow steps headless on this machine: one job at a time, each step a
-`claude -p "/aide-<step> <spec>"` process started by Aide's `aide-run-spec`. A job is an ordered list of steps; a step
-that ends either advances the job or ends it.
+The spec list runs Aide's workflow steps headless on this machine: each step is a
+`claude -p "/aide-<step> <spec>"` process started by Aide's `aide-run-spec`. A job is an ordered list of steps; a
+step that ends either advances the job or ends it, and several jobs run at once — see
+[How many run at once](#how-many-run-at-once).
 
 ## Making a spec from the page
 
-Every spec that exists is a row, and every row runs. A spec that does not exist yet has no row — so above the table
-there is a "New spec"
-button, and it is a plain link to `/new`. That page is the form and nothing else: a project (the field starts on
-"Choose a project…", and the browser stops Create at the field until one is chosen,
-as it does for a missing title or description; the server refuses a request with no project as well), what the spec
-builds on, a title, a description, a phase table, and two actions — Create, which posts to
-`POST /api/queue/create` and returns to the list, and Cancel, which returns having done nothing. The phase table has
-one row per phase — create, analyze, implement, archive — each with a tick, an AI choice and a model choice, drawn by
-the same pickers the spec row on the list uses. `create`'s tick is always checked and cannot be unchecked; the other
-three are checked by default too, so a form submitted without touching them queues all four phases in order, guarded
-and timed exactly like any other job. Unticking a box before pressing Create still works, and is how a
-`create`-only job is queued. Whatever was ticked here is recorded against the spec this job makes, and is what the
-row's own phase boxes on the list show once the spec has a row — not re-derived from scratch on the next render, and
-not lost the moment this one job finishes. It sticks until the reader re-ticks the row itself and presses Run, which
-records that choice in its place.
+Every spec that exists is a row on the list, and every row can be run. A spec that does not exist yet has no row,
+so above the table there is a **New spec** button — a plain link to `/new`. That page is the form and nothing
+else: a project, what the spec builds on, a title, a description, a phase table, and two buttons, Create and
+Cancel. Create posts to `POST /api/queue/create` and returns to the list; Cancel returns having done nothing. Both
+work with no script at all — a link and a form POST — and a refused submission comes back to `/new?error=…`, where
+what was typed can be corrected. The browser holds Create at an empty project, title or description, and the
+server refuses a request with no project as well.
 
-It is a page rather than a disclosure folded into `/`: a primary button that unfolds the page under it reads oddly,
-and leaves no way out but pressing the same button again. Both actions work with no script at
-all — a link and a form POST — and a refused submission comes back to `/new?error=…`, where what was typed can be
-corrected.
+The phase table has one row per phase — create, analyze, implement, archive — each with a tick, an AI choice and a
+model choice, drawn by the same pickers the spec's row on the list uses. `create`'s tick is always on and cannot be
+turned off; the other three are on by default, so a form submitted without touching them queues all four phases in
+order, guarded and timed like any other job. Unticking a box before pressing Create is how a `create`-only job is
+queued. What was ticked here is recorded against the spec this job makes, and is what the row's own phase boxes
+show once the spec has a row — not re-derived on the next render, and not lost when this job finishes. It stands
+until someone re-ticks the row itself and presses Run.
 
-Two things about it are worth knowing:
+Two things about the form are worth knowing:
 
-- **The project list is the raw allowlist** (`queue-config.json`'s
-  `projects`, seeded from `QUEUE_PROJECTS`), not the projects the server has found specs for. Every other control on the
-  page is about a spec that exists; this one is about a project whose FIRST spec may not, and such a project appears in
-  no other list here.
+- **The project list is the raw allowlist** — `queue-config.json`'s `projects`, seeded from `QUEUE_PROJECTS` — not
+  the projects the server has found specs for. Every other control on the page is about a spec that exists; this
+  one is about a project whose FIRST spec may not, and such a project appears in no other list here.
   `/api/queue` is unchanged and still refuses a project with no discovered spec.
 - **Nothing here names the spec.** The job carries a provisional key (`new-abc123de`) which names its branch, its
   worktree and its folder on disk — the `create` step writes its five files under that literal name, choosing no
   number and no slug. `aide-run-spec` reports that same folder as `specFolder` in its result.
 
-When the step succeeds the dashboard **lands the branch itself**, and it is landing — not the step — that decides the
-spec's real number and slug: under the specs repo's own merge lock, the one point where two landings for the same
-repo are already serialized, it counts the folders already there, assigns the next number, and renames the job's
-provisional folder to it before the merge is pushed. That is not a convenience: the list shows what is on disk in the
-main checkout, which every run keeps on its default branch, so a created spec that is only pushed to a branch appears
-nowhere at all. A job that ticked further phases runs its next step under that real folder name, never the
-provisional one. A landing that fails leaves the provisional key in place and says which repo and why. Two `create`
-jobs for the same project start in the same tick — nothing holds one behind the other any more, since there is no
-longer a number for them to collide over. **While any job is landing the scheduler starts nothing at all**, whatever
-the concurrency is set to: a landing merges into the shared main checkout, which worktree isolation does not cover.
+**The number and the slug are the landing's to assign, not the step's.** When the step succeeds the dashboard lands
+the branch itself: under the specs repo's own merge lock — the one point where two landings for the same repo are
+already serialized — it counts the folders already there, takes the next number, and renames the provisional folder
+to it before the merge is pushed. That is not a convenience. The list shows what is on disk in the main checkout,
+which every run keeps on its default branch, so a created spec that only ever reached a branch would appear
+nowhere. A job that ticked further phases runs its next step under the real folder name. A landing that fails
+leaves the provisional key in place and says which repo and why. Two `create` jobs for one project start in the
+same tick, since there is no longer a number for them to collide over. A landing holds nothing back any more: it
+merges in a worktree of its own and touches the shared checkout for one fast-forward at the end. Only the job being
+landed waits for it, and a second `archive` in the same project.
 
-The list holds SPECS, not the machine's whole run history: a spec that has been archived leaves the page along with the
-jobs it had. Nothing is destroyed — `/api/queue` still returns every job and `/specs/<id>` still renders each one. A
-project the server knows no specs for at all keeps every row it has: an empty spec list means "we cannot tell", never
+**The list holds specs, not the machine's whole run history.** An archived spec leaves the page along with the jobs
+it had. Nothing is destroyed — `/api/queue` still returns every job and `/specs/<id>` still renders each one. A
+project the server knows no specs for keeps every row it has: an empty spec list means "we cannot tell", never
 "everything here is archived".
 
-Nothing is guessed at across a restart: the runner spawns detached, in its own process group (such a child survives
-`launchctl bootout`), and **the result file is the contract** — the scheduler polls the pid and the file, and a job left
-`running` is reconciled from both.
-
-A run that hits its own time limit is **stopped**, never **failed**. With tight timeouts a time-stop is a common,
-healthy outcome, and a reader who cannot tell it from a broken agent will start ignoring both.
+A job survives a restart: the runner spawns detached in its own process group, and the result file is the
+contract — the scheduler polls the pid and the file, and a job left `running` is reconciled from both. A step that
+hits its own time limit is `stopped`, not `failed`. [A job's states](job-states.md) has both in full.
 
 ## Who may call it
 
 The dashboard asks for no sign-in. It refuses requests from other sites instead, with one check in front of every
 route — the static site, `/live` and `POST /api/aide-run` included:
 
-- **The `Host` must be one of its own names:** `localhost`, `127.0.0.1`, `[::1]`, the name of an HTTPS proxy it finds
-  on the machine, and any name listed in `allowedHosts` in `queue-config.json`. The port is ignored, since the test boards
-  answer as `<name>:8801`. Anything else answers 403 with the refused host in the body, so a page cannot reach the
+- **The `Host` must be one of its own names:** `localhost`, `127.0.0.1`, `[::1]`, the machine's own Tailscale name when it has
+  one, and any name listed in `allowedHosts` in `queue-config.json`. The port is ignored, since the test boards
+  answer on their own ports, 8801 to 8806. Anything else answers 403 with the refused host in the body, so a page cannot reach the
   dashboard through a DNS name of its own.
 - **A request that changes something must come from the dashboard's own address.** That is any method but GET, HEAD
   and OPTIONS, and the one GET that starts a test board (`?startTestServer=1`). Its `Origin`, when it has one, must
@@ -104,16 +99,13 @@ route — the static site, `/live` and `POST /api/aide-run` included:
 - **A header that is absent passes.** `curl`, the run emitter and the round script send no `Origin`, so they are
   admitted.
 
-Each name the dashboard answers to is written once to the log when it is added, so the serving host's log says which
-addresses work. `headerAuth` in `queue-config.json` is still read, and refused unless the server binds loopback; it
+The Tailscale name is written to the log once, when it is found, so the serving host's log says which address
+works from another device. `headerAuth` in `queue-config.json` is still read, and refused unless the server binds loopback; it
 admits nobody the rule above does not.
 
 **The rule stops web pages, not another machine.** `Host`, `Origin` and `Sec-Fetch-Site` are set by whoever sends the
 request, so a machine that can reach the port and sends `Host: localhost` is admitted. Bind loopback
 (`--bind 127.0.0.1`), which the install does by default.
-
-The service refuses an argument it no longer knows, so a change that drops one the launchd job passes has it dropped
-from the job by the install after the merge (see Deploy in [hosting.md](hosting.md)).
 
 ## The time limit
 
@@ -148,8 +140,8 @@ the queue config (`--queue-config`), so a wrong number costs a config edit and a
 ```
 
 A job may only TIGHTEN the timeout, and cannot set the permission mode at all. A timed-out step reports its cost as
-unmeasured, never assumed: a SIGKILLed run prints no usage, so the figure is `0` with an `est.` marker beside it —
-the step's own row, the job's total and the spec's — rather than a guessed number standing in for one.
+unmeasured, never assumed: a SIGKILLed run prints no usage, so the figure is `0`, and the step's own phase file
+records `(unmeasured)` beside it rather than a guessed number standing in for one.
 
 `timeoutSec` is a table per step, read the same way `permissionMode` and
 `model` below are: a step the table does not name falls to `default`. It is per step because a plain `analyze` is
@@ -288,8 +280,10 @@ checks. A directory that does not exist is not added, and a directory already on
 One function rather than one per caller, because the failure the two-copy version produced is silent and confusing: a
 check reporting a CLI as missing while every real run found it.
 
-A project can point a run at a particular binary instead, with `AIDE_CLAUDE_BIN`, `AIDE_CODEX_BIN` or
-`AIDE_OPENCODE_BIN` in its `.aide/config`. That override wins over the `PATH` search entirely.
+`AIDE_CLAUDE_BIN`, `AIDE_CODEX_BIN` and `AIDE_OPENCODE_BIN` point a run at a particular binary instead, and win
+over the `PATH` search entirely. All three are read from the environment; `AIDE_CLAUDE_BIN` alone is also read from
+the project's `.aide/config`, which is how a project points its runs at a stand-in binary. A value written there
+for either of the other two does nothing.
 
 The tool checks run when the board starts, when Check is pressed, and again for the tool a queued job's next step
 will run on — at most once a minute per tool — before the runner looks at the queue. A check that finds something
@@ -302,34 +296,31 @@ asked to check anything never spawns a CLI to do it.
 
 ## Which effort level a step runs at
 
-Every phase line carries an Effort select beside its model select, offering `low`, `medium`, `high`, `xhigh` and
-`max` — the plain reasoning-effort levels Claude Code's `--effort` flag accepts — plus a leading, always-present "—"
-option for "nothing chosen". `ultracode` is deliberately not offered: it is a Claude-Code-specific setting that turns
-on multi-agent workflow orchestration on top of `xhigh` reasoning, not a plain effort level, and offering it here
-would let a routine step silently opt into a much larger, multi-agent run.
+A step runs at the effort level its own job request named, and at no level at all when it named none — there is no
+default to fall back to and no whole-job pick. Nothing on the board sets one: the specs list draws no Effort
+control, deliberately (`specs-list/phase-rows.ts`, "the effort a step runs at is a configuration answer, not a
+per-row pick"), so a level reaches a job through `POST /api/queue` and nowhere else. `resolveStepEffort` reads
+`job.effort[step]` and nothing else.
 
-Unlike the model choice, there is no admin-configured default to fall back to and no whole-job pick: a step with
-nothing chosen runs exactly as it always has, and "unset" is a real, resting value the select can show — never a
-placeholder standing in for a real name the way the old "default" model option used to. The resolution is `used`
-(what the phase actually ran at) over `pending` (an earlier pick, see below) over unset, three tiers where the model
-select's own chain has four.
+The levels are `low`, `medium`, `high`, `xhigh` and `max` — the reasoning-effort levels Claude Code's `--effort`
+flag accepts, listed in `core/scripts/lib/effort-levels.json`. `ultracode` is deliberately not among them: it is a
+Claude-Code-specific setting that turns on multi-agent orchestration on top of `xhigh` reasoning, not a plain
+effort level, and a routine step must not be able to opt into a much larger run by naming one.
 
-**An effort level picked for a phase survives leaving the page**, the same way a model pick does: the instant a
-reader picks one for a phase that has not run yet, the dashboard records it — per spec, per phase — and a run started
-later, from a reload, a different browser, or another day, uses it. A phase that has since actually run shows what it
-ran at instead. There is no live edit of a running job's not-yet-reached step's effort, unlike the model select: a
-reader who wants to change it waits for the current step to finish first.
-
-The chosen level reaches `aide-run-spec` as `--effort <level>`, appended to the `claude -p` invocation only — Codex
-has no equivalent flag, and a level chosen for a phase that ends up running on Codex is accepted and silently
-dropped, the same "ignored, not refused" treatment the script already gives Codex's other Claude-only knobs. The
-level a step actually ran at is recorded in that step's own phase file, as a `- **Effort:**` line beside
-`- **Model:**`, and shown on the job's own detail page beside its Model row.
+The level reaches `aide-run-spec` as `--effort <level>`, appended to the `claude -p` invocation only. Codex and
+OpenCode have no equivalent flag, and a level chosen for a step that runs on either is accepted and silently
+dropped — the same "ignored, not refused" treatment the script gives Codex's other Claude-only knobs. The level a
+step actually ran at is recorded in that step's own phase file, as a `- **Effort:**` line beside `- **Model:**`,
+and shown on the job's own detail page beside its Model row.
 
 ## Global defaults for the AI and model
 
-`/settings` holds the default AI and model per step — Explore, Create, Analyze, Implement, Archive, Manifest and
-Reopen. Saving posts to `POST /api/queue/settings`, which validates all seven model names against `modelChoices`,
+`/settings` holds the default AI and model per step. It has nine rows: the six that act on a spec — Create,
+Analyze, Implement, Archive, Close and Reopen — then Manifest and Schedule, which do not, and Default, which every
+step without a row of its own falls back to. `explore` is deliberately left out: it has no button, no row action
+and no place in Schedule, so a model set for it could not be used. Beside the models the page holds a `timeoutSec`
+table, in minutes. Saving posts to `POST /api/queue/settings`, which validates every model name against
+`modelChoices`,
 updates `queue-config.json` atomically while retaining comments and unrelated values, and changes the live defaults
 only after the write succeeds. Later jobs use them immediately; jobs already accepted keep their stored choices.
 
@@ -422,10 +413,10 @@ when the file is read, and a malformed `cron` drops that one entry — never the
 
 ## How many run at once
 
-`concurrency`, two by default. **1 to 4 is accepted and anything else — missing, non-numeric, out of range — falls back
-to two**; it does not clamp, because `concurrency: 9` would otherwise have to be both 4 and 2 depending on which rule
-you read. The upper bound is the only thing between a typo in this file and sixteen `claude` sessions on the serving
-host.
+`concurrency`, two by default. **1 to 8 is accepted and anything else — missing, non-numeric, out of range — falls
+back to two**; it does not clamp, because `concurrency: 9` would otherwise have to be both 8 and 2 depending on
+which rule you read. The upper bound is the only thing between a typo in this file and a host full of `claude`
+sessions. The serving host runs six.
 
 `1` runs one job at a time, so backing out of concurrent runs is a config edit and a restart.
 
@@ -434,123 +425,12 @@ nature. Nor are two `archive` steps in the same project: both land into the code
 `queued` with the reason on its row until the first has landed. Beyond that the jobs are genuinely independent: each `aide-run-spec` run works in `git
 worktree` checkouts of its own, so the main checkouts never leave their default branch and no run can see another's.
 
-## The dashboard's own checkouts
-
-**The checkout a run is cut from is not the one a user edits.** Cutting a worktree from
-`<projects root>/<project>` — the directory Add clones into and the directory somebody works in — puts two writers on
-one tree: the runner puts every root it touches onto its default branch before it starts, and a landing merges and
-pushes from the same tree, while a user edits it meanwhile. The per-repo lock serializes the dashboard against
-itself; nothing serializes it against a user's own git client, and nothing can.
-
-So the dashboard keeps clones of its own, under
-`~/.aide/dashboard/checkouts/<project>/` — `code/`, plus `specs/` when the specs root is a separate repository. One per
-project, never one per run;
-`--dashboard-checkouts <dir>` moves them. They are made the first time they are needed, by cloning the user's
-checkout's own `origin`, and reused ever after. Everything that MUTATES goes there: `aide-run-spec
---project-dir`, a landing's merge and push, Save, Update, the dependency gate's fetches, the drift poll. The user's
-checkout is read for the project list and the manifests, and is otherwise asked one read-only question ever — which
-origin to clone from.
-
-**The spec list itself is read from the dashboard's own checkout, not the user's.** Every reader-facing
-listing —
-`GET /projects/:name`, `GET /projects` and the home page's queue rows, archived rows included — lists from
-`resolvedCheckouts.get(project)?.specs`
-when the dashboard's own clone exists, falling back to the user's checkout otherwise (a new project, or one whose
-clone failed). This is the same clone `aide-run-spec` resolves a spec folder against, so a folder that only exists in
-the user's checkout, committed but never pushed, does not appear in the list — a row for it would offer a step that
-fails with `unknown spec: ... (not under
-<dashboard-checkout>/specs/<project>)`. The fetch that keeps the dashboard's clone current happens inside
-`refreshSpecCaches`'s existing schedule, never inside a request, so this costs no git spawn on the render path.
-
-Two consequences worth knowing:
-
-- **A landed run and a Save do not show up in a user's own checkout until they pull it.** Nothing auto-syncs into
-  it, deliberately: an auto-pull would recreate exactly the collision this removes. The specs cron pulls it every two
-  minutes, which is what closes the gap in practice.
-- **`.aide/config` is gitignored, so a clone never carries it.** It is copied from the user's checkout on every
-  ensure — it is the file an operator edits by hand between merges, and a copy taken once would go on answering with
-  whatever was true the day the clone was made.
-  `AIDE_SPECS_PATH` is the one key that does not survive the copy: it names a directory in the user's checkout, and is
-  replaced with the dashboard's own specs. The file is written once, finished, through a rename — a run starting for
-  another job never reads a copy that still names the user's path.
-
-A project whose checkout has no `origin` gets no clone of its own. It runs in the user's checkout, and its readiness
-line says so, so the one project where a run and a user's editing can still
-meet is named rather than silent.
-
-## How a run touches the repositories
-
-**`aide-run-spec` branches EVERY repo it touches, not just the project.** An `analyze` step changes only the specs
-repo, so branching the project alone would leave the analysis committed on `main` — the one thing `push branch` exists
-to prevent. A repo whose HEAD did not move during the run is not pushed at all, and the compare link is built from the
-repos that actually changed (`branchUrls` in the result; `branchUrl` keeps the single most interesting one). **HEAD
-movement is the test, not `changedFiles`** — that field counts only what the run's own commit loop found uncommitted,
-and a step that commits its own work (archive does) leaves it at `0` with real commits on the branch.
-
-**It branches them in `git worktree` checkouts of its own**, under `$HOME/.aide/dashboard/worktrees/<project>/<spec>/`. The real
-checkouts are put back **onto** their default branch before the worktrees are made and never leave it, so several runs
-can go at once, the dashboard's spec list never describes whatever branch a running job is on, and a user can use the
-checkout meanwhile. Two consequences worth knowing before changing anything here:
-
-- The result's `repos[].root` is the MAIN checkout, not the directory the work happened in — the dashboard spawns git
-  in that path after the run is over, and a worktree path is deleted when the run ends. `repos[].worktree` carries the
-  throwaway one.
-- A worktree carries tracked files only, so `.venv` and `dashboard/node_modules` reach it through `worktreeLinks:` in
-  the `.aide/project.yaml` (committed, or the dashboard's untracked copy, which the run copies into the worktree and
-  keeps out of the commit) — symlinked in, and excluded from `git add -A` by pathspec, because a `dir/`
-  gitignore rule does not match a symlink. `.aide/config`'s `AIDE_WORKTREE_LINKS` is still read when the manifest names
-  none — the manifest wins where both do, and the run reports which file it read (`worktreeLinksSource` in the result
-  blob, and a line on stderr).
-- The specs root reaches the worktree in one of three shapes. A separate specs repository gets a worktree of its own. A
-  specs root inside the project that git ignores — aide's own `/specs/` — is linked in from the main checkout and never
-  committed. One inside the project that is tracked, or not committed yet as in a new project's first spec, is part
-  of the branch and committed with the step. A `.aide/config` naming the specs root by absolute path is pointed at the
-  worktree's copy for the run.
-
-**A run reaches the project and its specs root, and nothing else.** A repo the run was not told about is not touched,
-and there is no flag to name a third one. A spec that has to change two projects at once needs that naming built,
-deliberately.
-
-**`aide-run-spec` runs from a private copy of itself, and that is load-bearing:** an `implement` step reinstalls Aide,
-which copies the script over itself while bash is still reading it by byte offset. The copy's marker holds its own
-path and is unset before `claude` starts — a bare exported flag would be inherited by `claude`, and the next nested
-invocation would delete the installed script.
-
-**`aide-run-spec`'s shebang finds `/bin/bash` on this machine, and that is bash 3.2 — `mapfile` is bash 4 and is not
-available.** Anything added to this script that wants an array built from multiple lines has to set it via repeated
-`array+=(...)` instead.
-
-## Running a step by hand
-
-The queue is what normally drives `aide-run-spec`, but it runs ONE workflow step for ONE spec from a terminal too,
-with the same guards:
-
-```bash
-aide-run-spec --project-dir ~/develop/myproject --command analyze --spec 81 \
-              --timeout-sec 1200 \
-              --permission-mode acceptEdits \
-              --result-file /tmp/step.json [--push none|branch|pr] [--pull]
-              [--worktree-base ~/.aide/dashboard/worktrees]
-```
-
-It refuses to start when the spec folder does not exist or when a required value is missing — but not over a dirty
-checkout: the work happens in a worktree cut from origin's default branch, so what somebody left uncommitted in the
-main checkout stops nobody. `--permission-mode` is never defaulted, because the most dangerous knob has to be typed
-out by whoever starts the run. It enforces the step's own time limit (SIGTERM to the process group, then SIGKILL), commits
-whatever the step managed to write in BOTH roots — the project and the specs repo — and writes one JSON line to
-stdout and to `--result-file`. `--worktree-base` relocates the worktrees; a base inside any of the repos is refused.
-The worktrees go when the run ends, and one left behind by a killed run is swept by the next run for that spec.
-`--dry-run` prints the command line it would use and starts nothing.
-
-A step started this way reports nothing to a board unless `AIDE_RUN_URL` is set (see Live runs below); a step the
-queue starts needs no such setting.
-
 ## Notifications
 
 `notifyCommand` is an argv ARRAY, run with **no shell**, given one line of JSON on stdin (claude-usage's contract,
 copied so one wrapper can serve both). It is spawn-and-forget, SIGTERM at 10 s and SIGKILL a second later, and absent
 unless configured. `deploy/notify-slack.sh` is the wrapper we use: it reads the payload and posts one line to a Slack
-incoming webhook, whose URL lives in `~/.aide/dashboard/slack-webhook`
+incoming webhook, whose URL lives in `~/aide-dashboard/slack-webhook`, or in the file `AIDE_SLACK_WEBHOOK_FILE` names
 (a secret — never in either repo).
 
 The line reads, for example:
@@ -642,13 +522,3 @@ else.
 **`GET /api/aide-runs` is these runs in flight, as JSON.** No page renders it directly: the spec list shows every
 queued run per row, and interactive sessions are claude-usage's own page. Runs are kept in memory (LRU 512) and
 mirrored to `~/.aide/dashboard/aide-runs.json` so restarts keep them.
-
-## What a finished step publishes
-
-`push` in the queue config, passed on to `aide-run-spec`:
-
-- `none` — commit locally and stop. Review by fetching from the host that ran it.
-- `branch` (default) — also push `aide/<spec-folder>`, and the specs repo's own commits. The specs page and the
-  notification then link to the GitHub compare page.
-- `pr` — also open a pull request. Needs `gh auth login` on the serving host; a broken `gh` records the error and leaves
-  the run successful.

@@ -74,7 +74,8 @@ pages run to 450; they are written to be searched. Where to look:
 | Question                                                | Page                               |
 |---------------------------------------------------------|------------------------------------|
 | What the dashboard is, its URLs, live runs              | `dashboard/README.md`              |
-| How the queue, the runner and the checkouts work        | `dashboard/docs/running-specs.md`  |
+| How the queue runs specs, and what it tells you         | `dashboard/docs/running-specs.md`  |
+| What a run does to the repositories and its checkouts   | `dashboard/docs/the-runner.md`     |
 | What a row on the specs list says, the spec page        | `dashboard/docs/the-specs-list.md` |
 | Adding a project, whether a run can start there         | `dashboard/docs/projects.md`       |
 | A job's states and every transition between them        | `dashboard/docs/job-states.md`     |
