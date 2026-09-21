@@ -11,12 +11,13 @@
 // input/change is enough, and nothing here re-reads a field's live
 // content afterwards.
 //
-// `[data-unit-choice]` is excluded the same way spec-form-actions.ts
-// excludes it: the page-wide Units radio sits inside these same forms
-// but is not an edit to their own content.
+// `[data-unit-choice]` is skipped, since a Units radio is a display
+// preference and not an edit to a form's content. The unit choice is
+// drawn only in the header today, outside every form listed below, so
+// nothing reaches that line.
 //
 // Like every other head script here, this file can neither import nor
-// export anything; test/render/ui/unsaved-changes.test.ts runs the
+// export anything; test/render/ui/forms/unsaved-changes.test.ts runs the
 // transpiled source against a fake document and window.
 
 (() => {

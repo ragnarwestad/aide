@@ -13,6 +13,8 @@ and the layout rules that keep them consistent.
 - [A structural marker with no CSS rule uses data-*, not a class](#a-structural-marker-with-no-css-rule-uses-data--not-a-class)
 - [The length count under a bounded text field](#the-length-count-under-a-bounded-text-field)
 - [`form="<id>"` only wires submission, not event bubbling](#formid-only-wires-submission-not-event-bubbling)
+- [Every control works with script off](#every-control-works-with-script-off)
+- [What a button's variant means](#what-a-buttons-variant-means)
 - [Theme choice](#theme-choice)
 - [Language choice](#language-choice)
 - [Header and tab bar, not a sidebar](#header-and-tab-bar-not-a-sidebar)
@@ -33,8 +35,9 @@ none of them may contain a literal. The full set — and the type and space scal
 from — is `tokens.css` itself; the names below are the ones a reader of the palette needs first.
 
 The palette is the brand's: warm neutrals (paper `--bg`, card
-`--surface`, ink `--text`), vermilion `--accent`, a muted blue `--link` for every link (the accent is for action and
-activity alone, so a page of spec titles never reads as a page of failures), and `--danger` set to the darkest bar of
+`--surface`, ink `--text`), vermilion `--accent`, a muted blue `--link` for every link (the accent marks action and
+activity, and otherwise only the wordmark's own letter and the current tab's underline, so a page of spec titles
+never reads as a page of failures), and `--danger` set to the darkest bar of
 the mark rather than to a shade of the accent — so
 "running" and "refused" never rest on hue alone. The refused badge is also the only live one with a visible border, and
 the row that carries it carries a `.rowmsg.failed` with its own mark beside the reason.
@@ -167,6 +170,29 @@ Where a field must ride inside the form for event bubbling but must never itself
 place that does this, skipping `[data-unit-choice]`; `spec-form-actions.ts`'s own `bind()` listens on the
 form with no guard at all, and `specs-client/index.ts`'s `closest("select[data-ai]")` is the opposite —
 it picks a control out rather than leaving one alone.
+
+## Every control works with script off
+
+Every control a page draws is plain HTML that does its job with scripting off — a form that posts, a link that
+navigates, a `<details>` that opens — and script only makes it quicker or quieter. That is why `btn()` renders
+`type="submit"` unless told otherwise: every button on a page is a real form's. Three controls are outside that
+promise, and their own code says so:
+
+- the phase box on a running row that posts on the tick itself, which belongs to no form;
+- a scheduled job's Enabled checkbox, which flips the flag at once and does nothing without script;
+- the Cancel of `saveCancelActions()`, which renders disabled, since nothing asks it to work without script.
+
+A new control that needs script to do anything joins that list, with a comment at the control saying so.
+
+## What a button's variant means
+
+`primary` is the one thing a form wants pressed — Save, Create, Deploy — and every spec row's one action, so the
+specs list carries a column of them on purpose. Bare is secondary: every control that is not that one thing, such as
+the Cancel beside a Save.
+
+`danger` means one thing only: an action a mistake cannot undo — removing a project, deleting a scheduled job,
+leaving a page with its edits unsaved. Every `danger` control either sits on a confirm step — a page or a dialog asking
+the question first — or opens one, as the Delete link in the scheduled jobs' list does. A job's Cancel is `primary` and not `danger`, because a cancelled run can be started again.
 
 ## Theme choice
 
