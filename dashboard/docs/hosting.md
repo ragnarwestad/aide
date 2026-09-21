@@ -13,6 +13,7 @@ move it to another host or run the whole thing on one machine.
 - [Saying it once instead of every time](#saying-it-once-instead-of-every-time)
 - [On one machine](#on-one-machine)
 - [Keeping the host's specs current](#keeping-the-hosts-specs-current)
+- [Reviewing what an unattended run writes](#reviewing-what-an-unattended-run-writes)
 - [Known gaps](#known-gaps)
 
 ---
@@ -274,6 +275,35 @@ and reported as deployed. Code that landed some other way is REPORTED instead of
 an install command configured, the project's Deploy tab compares the checkout against `origin` and says how many
 commits behind it is, and which commit the service runs. It only ever looks; nothing there fetches more than the
 default branch, and nothing merges, pulls or moves a checkout.
+
+## Reviewing what an unattended run writes
+
+A step on this host writes code with nobody reading it, and the landing's test gate asks only whether the suite is
+green. The `security-guidance` plugin is a second opinion on that code, installed for the user the service runs
+as:
+
+```bash
+claude plugin marketplace add anthropics/claude-plugins-official   # already present on this host
+claude plugin install security-guidance@claude-plugins-official
+```
+
+It is hooks, not skills, so it costs a run no context: a regex check on every `Edit`/`Write`, and a review of the
+turn's own diff, by a separate model call, when the turn ends. Findings reach the session that wrote the code,
+before the step finishes. It needs `python3` on the PATH the hooks are started with — `/usr/bin/python3` is
+enough — and it spends on the same AI account the runs do.
+
+**Read its log before trusting it, and read it here rather than on a laptop.** Every firing is recorded in
+`~/.claude/security/log.txt`:
+
+```bash
+grep -E "LLM code review|reviews took|empty review set" ~/.claude/security/log.txt | tail -20
+```
+
+`empty review set` means the turn changed no files, which is the ordinary answer for a turn that only ran git.
+A line naming the review and one saying how long it took is a real run — on a laptop those took 18 seconds each.
+Two questions are open until this log answers them on a host that runs steps unattended: what the extra seconds
+per file-writing turn come to inside a step's own time limit, and what happens to `aide-run-spec`'s turn
+accounting when a finding is fed back to a session mid-step.
 
 ## Known gaps
 
