@@ -39,6 +39,7 @@ import { checkRequest, createHostAllowlist } from "./serve-helpers";
 import { answerProjectChange, persistAllowlist as persistAllowlistImpl, type ProjectActionsContext } from "./project-actions.ts";
 import { createServerState } from "./state.ts";
 import { setupWatch } from "./setup/watch.ts";
+import { makeSettle } from "./serve-helpers/settle.ts";
 import { setupPush } from "./setup/push.ts";
 import { createScheduleStore } from "../queue/schedule-store.ts";
 import { setupProjectResolution } from "./setup/project-resolution.ts";
@@ -460,6 +461,7 @@ export function createServer(opts: ServerOptions) {
      *  board is already tracked, without spawning a real round to get
      *  there) that nothing else exposes. */
     testServersStore: () => testServerStore,
+    settle: makeSettle(state, schedules.refreshSpecCaches),
     // `server.stop` resolves once the last connection is closed. Nothing
     // here waits for that — the caller is shutting down — so the promise
     // is dropped on purpose rather than by accident.
