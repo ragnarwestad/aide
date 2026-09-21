@@ -109,7 +109,19 @@ write() {  # write <file> ; content on stdin
     || fail "claude-stub: aide-write-spec refused $1"
 }
 
-status_file() {  # status_file <mark for phase 1> <mark for phase 2>
+# status_file <mark for phase 1> <mark for phase 2> [acceptance section]
+#
+# The acceptance section goes AFTER the last phase and BEFORE `##
+# Notation`, and is listed in the table of contents — where
+# requirements-tracing.md step 8 puts it, not wherever appending happens
+# to land it.
+status_file() {
+  local acceptance="${3:-}" toc_acceptance="" toc_notation="4"
+  if [ -n "$acceptance" ]; then
+    toc_acceptance="4. [Acceptance criteria](#acceptance-criteria)
+"
+    toc_notation="5"
+  fi
   cat <<STATUS
 # $slug - Status
 
@@ -121,7 +133,7 @@ Estimate: minutes
 1. [Tracking info](#tracking-info)
 2. [Phase 1: RED](#phase-1-red)
 3. [Phase 2: GREEN](#phase-2-green)
-4. [Notation](#notation)
+${toc_acceptance}${toc_notation}. [Notation](#notation)
 
 ## Tracking info
 
@@ -139,12 +151,19 @@ Estimate: minutes
 | Task | Status | Notes |
 |------|--------|-------|
 | Add the fact to src/facts.ts | $2 | |
+STATUS
+  # `%s\n`, not `%s`: `$(acceptance_section)` has its trailing newline
+  # eaten by the command substitution, and without one back the heading
+  # below would sit on the line after the last table row with no blank
+  # line between them.
+  [ -n "$acceptance" ] && printf '%s\n' "$acceptance"
+  cat <<'NOTATION'
 
 ## Notation
 
 - ⬜ Not started
 - ✅ Completed
-STATUS
+NOTATION
 }
 
 # What each spec's implement does, keyed by slug. A fact goes onto the
@@ -178,8 +197,22 @@ append_fact() {  # append_fact <text>
 # (core/skills/aide-analyze/references/requirements-tracing.md, step 8),
 # so it lands on the default branch with analyze and the Checks tab can
 # offer the row while implement's own work is still on its branch.
+#
+# DERIVED from `1-description.md`'s own `- **AC-n:**` bullets — one row
+# per id, in id order, the requirement text verbatim — because that is
+# what step 8 says, and because this script stands in for the MODEL, not
+# for the spec. A table written out here answers to nothing: the ids
+# would not match the description's, and the shape could drift from the
+# rule the real model is given with nothing to notice it.
 acceptance_section() {
-  printf '\n## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n| REQ-1: a person has judged this | ⬜ | |\n'
+  local desc="$specs_root/$folder/1-description.md" line id text
+  printf '\n## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n'
+  while IFS= read -r line; do
+    id="$(printf '%s' "$line" | sed -n 's/^- \*\*\(AC-[0-9][0-9]*\):\*\*.*/\1/p')"
+    [ -n "$id" ] || continue
+    text="$(printf '%s' "$line" | sed 's/^- \*\*AC-[0-9][0-9]*:\*\*[[:space:]]*//')"
+    printf '| %s: %s | ⬜ | |\n' "$id" "$text"
+  done < "$desc"
 }
 
 write_test() {  # write_test <slug> <text expected>
@@ -197,9 +230,9 @@ case "$step" in
   analyze)
     printf '# %s - Analysis\n\n## Summary\n\nOne fact goes onto the list in src/facts.ts, and one test looks for it.\nComplexity: LOW.\n' "$slug" | write 2-analysis.md
     printf '# %s - Solution\n\n## Plan\n\n1. Write the failing test.\n2. Append the fact.\n' "$slug" | write 3-solution.md
-    { status_file "⬜" "⬜"
-      case "$slug" in an-unticked-acceptance-row) acceptance_section ;; esac
-    } | write 4-status.md
+    acceptance=""
+    case "$slug" in an-unticked-acceptance-row) acceptance="$(acceptance_section)" ;; esac
+    status_file "⬜" "⬜" "$acceptance" | write 4-status.md
     ok "analyzed $folder"
     ;;
   implement)
@@ -213,7 +246,7 @@ case "$step" in
         fact="$(fact_for "$slug")"
         write_test "$slug" "$fact"
         append_fact "$fact"
-        { status_file "✅" "✅"; acceptance_section; } | write 4-status.md
+        status_file "✅" "✅" "$(acceptance_section)" | write 4-status.md
         ;;
       a-step-that-runs-past-its-time-limit)
         # The fixture gives this spec a 10s limit; the runner's own clock

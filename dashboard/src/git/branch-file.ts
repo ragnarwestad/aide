@@ -21,7 +21,7 @@
 // which is what actually rejects a race against a headless run's own
 // commit to the same branch (git enforces fast-forward server-side).
 
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, relative } from "node:path";
 import type { BranchStatusChecker, GitRunner } from "./branch-status.ts";
@@ -196,6 +196,18 @@ export interface OpenBranchTarget {
  *  rather than one copy per call site (the read path's cached call and
  *  the write path's `fresh` one) because the two are otherwise
  *  identical; `fresh` is the only thing that differs between them. */
+/** A path with every symlink resolved, or the path itself where it
+ *  cannot be — the same shape `sameRoot` (land-branch/merge.ts) uses, and
+ *  for the same reason: a path that is not there answers as itself rather
+ *  than throwing. */
+function real(p: string): string {
+  try {
+    return realpathSync(p);
+  } catch {
+    return p;
+  }
+}
+
 export async function resolveOpenBranchTarget(
   ctx: { specsRoot: (dir: string) => Promise<string>; branchStatus: BranchStatusChecker },
   dir: string,
@@ -207,10 +219,22 @@ export async function resolveOpenBranchTarget(
   const branch = specBranch(specFolder);
   const open = await ctx.branchStatus.openSpecBranches(root, fresh);
   if (!open?.has(branch)) return null;
+  // Both sides through `realpathSync` before the subtraction. `root` is
+  // git's own answer and so already resolved; `dir` comes off the scan of
+  // the projects root and is not — and on macOS `$TMPDIR` is
+  // `/var/folders/...`, a link to `/private/var/folders/...`. The prefix
+  // then never matched, `relative()` climbed out of the repo and back
+  // down an absolute path, and `git show <ref>:<that>` found nothing: the
+  // read came back empty, so every row looked gone and every tick was
+  // refused with "that check is not there to change any more". The same
+  // trap `aide-run-spec` resolves for the specs root it is handed
+  // (`run-spec-code-landing.sh`).
+  const realRoot = real(root);
+  const realDir = real(dir);
   return {
     root,
     branch,
-    relPath: relative(root, join(dir, file)),
-    archivedRelPath: relative(root, join(dirname(dir), "archive", basename(dir), file)),
+    relPath: relative(realRoot, join(realDir, file)),
+    archivedRelPath: relative(realRoot, join(dirname(realDir), "archive", basename(realDir), file)),
   };
 }

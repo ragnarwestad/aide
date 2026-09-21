@@ -282,6 +282,22 @@ describe("archiveHeldBackApplies", () => {
     expect(archiveHeldBackApplies(ACCEPTANCE_CRITERIA_UNTICKED_NOTE, ["analyze", "implement"])).toBe(true);
   });
 
+  // The state the note exists for, and the one it used to be dropped in.
+  // `implement` lands nothing — it falls through the landing dispatch by
+  // design — so its own copy of `4-status.md` stays on its branch until
+  // archive merges it, and the done list read off the default branch
+  // cannot name it. Every row waiting on a tick therefore said nothing
+  // about why archive was not moving.
+  test("the note applies when only git proves implement ran, its work still on the branch", () => {
+    expect(
+      archiveHeldBackApplies(ACCEPTANCE_CRITERIA_UNTICKED_NOTE, ["create", "analyze"], ["analyze", "implement"]),
+    ).toBe(true);
+  });
+
+  test("and still means nothing when neither list has implement", () => {
+    expect(archiveHeldBackApplies(ACCEPTANCE_CRITERIA_UNTICKED_NOTE, ["analyze"], ["analyze"])).toBe(false);
+  });
+
   test("every other reason applies regardless — it came out of an actual declined run", () => {
     expect(archiveHeldBackApplies("the Slack webhook (Phase 4, still unchecked)", [])).toBe(true);
   });
