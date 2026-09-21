@@ -70,24 +70,27 @@ should read this file by hand.
 
 ## The dashboard's own checkouts
 
-`docs/projects.md`, "Adding and removing a project".
+`docs/projects.md`, "Adding a project".
 
 - **A clone happens on a press and nowhere else.** `ensureDashboardCheckout`
-  clones only when its caller passes `mayClone` — Add, and a Settings
-  save that names a specs root. Every tick, boot and page render asks
+  clones only when its caller passes `mayClone` — Add, and any
+  successful Settings save of the project, whichever field it changed. Every tick, boot and page render asks
   without it and is told what is missing; `CheckoutEnsurer.make()` is
   the one entry that may clone, and `get`/`fresh` never do.
 - **Nothing here deletes a checkout, and nothing re-clones one to repair
   it.** A directory that is there and that git cannot answer for is
-  reported — by project, with what git said, at the top of every page
-  (`render/ui/checkout-faults.ts`) — and left alone. A checkout that IS
+  reported by project at the top of every page
+  (`render/ui/checkout-faults.ts`), in the dashboard's own sentence —
+  git's own words appear only for a clone that failed — and left alone. A checkout that IS
   the project's own entry gets its own sentence, because the advice
   "remove it by hand" would be advice to delete the project.
-- **One layout, because a project is added by its git address.** The
-  entry under the projects root is the checkout the dashboard made, or a
-  link to it. There is no way to register a directory already on the
-  host, so `personDir` and the dashboard's own checkout are never two
-  different things by accident.
+- **A project is added by its git address, so no directory already on
+  the host is ever registered.** Where the clone lands depends on the
+  projects root. On the directory of links a serving host uses, the
+  entry is a link to the dashboard's own checkout, so `personDir` and
+  that checkout are one directory. On an ordinary projects root, Add
+  clones into `<projects root>/<name>` and then makes the dashboard's own
+  checkout as a second clone of the same origin, so they are two.
 
 ## The hand-paired bash/TypeScript pairs
 
