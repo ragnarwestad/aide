@@ -8,7 +8,7 @@
 # guards. They live in both suites, which is why a doc change has no
 # obvious command to run — this is that command.
 #
-# Eight seconds, against four minutes for both full suites. A change that
+# About ten seconds, against four minutes for both full suites. A change that
 # also touches `dashboard/src` or `core/scripts` needs those:
 #   .venv/bin/pytest -q              # the aide suite
 #   cd dashboard && make test        # the dashboard suite

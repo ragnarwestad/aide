@@ -34,8 +34,8 @@ missing, so a machine without it never reports a bash change as checked.
 
 **A change to the documentation has its own command.** Fourteen tests read a page rather than the code — the table in
 `.claude/CLAUDE.md`, the lifecycle diagram against `transitions.json`, the rules, the skills, the templates, the
-dashboard's own docs guards — and they sit in both suites. `scripts/check-docs` runs exactly those, in 17 seconds
-against the four minutes both full suites take.
+dashboard's own docs guards — and they sit in both suites. `scripts/check-docs` runs exactly those, in about ten
+seconds against the four minutes both full suites take.
 
 `.githooks/pre-push` runs it before a push that moves `main`, and nothing on a push to a working branch. Turn it on
 once per clone:

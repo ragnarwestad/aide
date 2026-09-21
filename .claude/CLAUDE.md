@@ -39,6 +39,7 @@ cd dashboard && make test           # the dashboard's gate: tsc --noEmit, then b
 cd dashboard && bun test test/queue.test.ts   # one suite
 npx markdownlint-cli2 '**/*.md'     # markdown, from the repo ROOT (the config lives there)
 scripts/check-bash                  # shellcheck over core/scripts and the round's bash — run it when a bash script changed
+scripts/check-docs                  # the tests that read the documentation, about ten seconds — run it when a page changed
 ```
 
 **`bun test` transpiles; it does not type-check.** A green `bun test` says

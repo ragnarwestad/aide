@@ -20,6 +20,10 @@ that directory to this command alone, so pytest does not run for it. It deals th
 machine is doing, and the whole of it takes about a minute on a 14-core machine. It leaves out the round's own tests
 alone: each starts a real test server, and they lose to load on a busy machine without a fault in the change.
 
+A change to the documentation alone, these pages included, has a command of its own at the repository root:
+`scripts/check-docs` runs the tests that read a page rather than the code, in about ten seconds. A change that also
+touches `dashboard/src` needs `make test` as well.
+
 CI runs both `make test` and `make test-slow`, on a pull request only — never on a push. A change the dashboard lands
 through its own merge does not reach CI at all; the landing's own run of `make test` is the gate it passes.
 
