@@ -84,45 +84,18 @@ One line in the Tracking info of `4-status.md` is the whole record:
 - **Workflow steps completed:** create, analyze
 ```
 
-**The runner writes it, not the model.** After every step, `completed_steps_for` in
-`core/scripts/lib/run-spec-records.sh`
-rebuilds the line from the specs repo's own history: the commits whose subject reads `Run /aide-<step> for <folder>`
-since the current work round began, plus the step that has just completed. A step that ended `stopped` or `failed`
-is committed with the reason in its subject (`(stopped: timeout)`) and is not counted. A spec made by hand, with no runner commit behind it, has no line and
-reads as having had nothing — deliberately, because a spec that reads as unfinished is fixed by running the step, where
-a guess is not.
+**The runner writes it, not the model**, and it writes a step onto the line only once the step's work is there to
+see: code that actually changed for an implement, a folder actually under `archive/` for an archive, nothing
+outside its own spec folder for an analyze. A step that ended `stopped` or `failed` is not counted. A spec made by
+hand, with no runner commit behind it, has no line and reads as having had nothing.
 
-**A step's own claim of success is cross-checked before it counts**, because the model's turn ending cleanly is not
-evidence that the phase happened:
+The checks themselves, and what each one refuses, are in
+[The runner and its checkouts](the-runner.md#what-counts-as-a-step-having-run).
 
-- `implement` counts only if the project's HEAD moved, its tree changed, or its branch differs from the default
-  branch — the third catches a re-pressed implement that finds an earlier run's code already on the branch and
-  writes nothing itself. Otherwise the step ends `no-progress` and
-  the line is not extended. It also ends only on a green test run the runner made ITSELF
-  (`run-spec-step-tests.sh`): the same `aide-resolve-test-cmd` and `aide-record-test-run` the landing's gate calls run
-  on the step's result in its worktree, and the record on the branch is the runner's. Red goes back to the same
-  session first — the failing lines as a follow-up turn, up to two more rounds within what is left of the step's
-  time limit (`AIDE_TEST_FIX_ROUNDS`; claude resumes its session, Codex its thread through `codex exec resume`). Still red after
-  that, the step ends `tests-red` with the failing lines as its detail, and Implement is the button to press again.
-  A change no test command covers has nothing to run and passes as before. A record the session wrote through
-  `aide-record-test-run` on exactly the delivered tree (its `tree` hash), green and naming the same commands, is
-  accepted as that run; anything the session changed afterwards makes the runner run the suite itself.
-- `archive` runs no suite of its own, merged with main or not: its landing runs the project's tests once, on
-  exactly what the default branch is about to become, and that is the one run an archive gets
-  ([Branches and landing](landing.md#the-tests-run-on-the-landing-once)).
-- `archive` counts only if the folder is under `archive/` afterwards. A folder that stayed put because
-  `aide-archive-spec` refused (`not-implemented-yet`, `acceptance-criteria-unticked`) ends as that refusal, the same
-  as when the refusal came before the session; otherwise `no-progress`. An archive handed a merge with the default
-  branch OPEN (`update_branch_to_base`) counts only if the branch contains that base tip afterwards — a session
-  that aborted the merge and still moved the folder ends `merge-unfinished`, since the landing would meet the same
-  conflict again.
-- `analyze` is refused as `scope-violation` if it changed the project, advanced a status row, or wrote a step onto the
-  line that it did not run.
-
-What the cross-check does not cover: whether the step's commit reached origin, and whether the landing that follows
-succeeded. The line is rebuilt from local history, so a step whose push was refused is still on it, and a landing that
-fails afterwards does not take it off. `job-states.md` describes how such a landing reaches the JOB (`done` to `failed`
-with an `errorReason`); the spec's own record is unchanged by it.
+What the record does NOT cover: whether the step's commit reached origin, and whether the landing that followed
+succeeded. It is rebuilt from local history, so a step whose push was refused is still on it, and a landing that
+fails afterwards does not take it off — that reaches the JOB instead, as `done` to `failed`
+([A job's states](job-states.md)).
 
 ## The transitions
 
@@ -307,9 +280,10 @@ queue step the dashboard presses, never a step the runner decides on its own.
     `completed_steps_for` counts from: runner commits before it are the old round's and no longer put a step on the
     line. It drops the spec's recorded phase choice too: those ticks belonged to the round just discarded.
 
-  A stamp with a later `**Round boundary:**`, `**Reopened:**` or `**Reset:**` mark after it is history: the state
-  reads `archived` or `closed` only while no such mark follows the stamp, in `spec-transitions.sh`, `spec-state.sh` and
-  the dashboard's readers alike (`stampInEffect`, `discover/spec-files.ts`). A new stamp after the boundary counts.
+  A stamp only counts while nothing later cancels it: an `**Archived:**` or `**Closed:**` line followed by a
+  `**Round boundary:**`, `**Reopened:**` or `**Reset:**` mark is history, and the spec reads as active again. A new
+  stamp after that boundary counts. [The runner and its checkouts](the-runner.md#what-counts-as-a-step-having-run)
+  has which readers apply that rule.
 There is no `reset` step for an ACTIVE spec: another round covers that, and a reopen with its reset covers the
 rest. A `**Reset:**` stamp is still read where an older job left one, so such a spec keeps its boundary.
 

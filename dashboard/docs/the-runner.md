@@ -12,6 +12,7 @@ Two pages sit beside this one:
 
 - [The dashboard's own checkouts](#the-dashboards-own-checkouts)
 - [How a run touches the repositories](#how-a-run-touches-the-repositories)
+- [What counts as a step having run](#what-counts-as-a-step-having-run)
 - [What a finished step publishes](#what-a-finished-step-publishes)
 - [Running a step by hand](#running-a-step-by-hand)
 
@@ -112,6 +113,57 @@ invocation would delete the installed script.
 **`aide-run-spec`'s shebang finds `/bin/bash` on this machine, and that is bash 3.2 — `mapfile` is bash 4 and is not
 available.** Anything added to this script that wants an array built from multiple lines has to set it via repeated
 `array+=(...)` instead.
+
+## What counts as a step having run
+
+A step's own claim of success is not what puts it on a spec's `Workflow steps completed:` line. The runner
+rebuilds that line after every step, and cross-checks the claim first, because a model's turn ending cleanly is
+not evidence that the phase happened. What the line is FOR is on
+[A spec's lifecycle](spec-lifecycle.md#what-has-had-a-phase-means); what follows is how it is decided.
+
+**The runner writes it, not the model.** After every step, `completed_steps_for` in
+`core/scripts/lib/run-spec-records.sh`
+rebuilds the line from the specs repo's own history: the commits whose subject reads `Run /aide-<step> for <folder>`
+since the current work round began, plus the step that has just completed. A step that ended `stopped` or `failed`
+is committed with the reason in its subject (`(stopped: timeout)`) and is not counted. A spec made by hand, with no runner commit behind it, has no line and
+reads as having had nothing — deliberately, because a spec that reads as unfinished is fixed by running the step, where
+a guess is not.
+
+**A step's own claim of success is cross-checked before it counts**, because the model's turn ending cleanly is not
+evidence that the phase happened:
+
+- `implement` counts only if the project's HEAD moved, its tree changed, or its branch differs from the default
+  branch — the third catches a re-pressed implement that finds an earlier run's code already on the branch and
+  writes nothing itself. Otherwise the step ends `no-progress` and
+  the line is not extended. It also ends only on a green test run the runner made ITSELF
+  (`run-spec-step-tests.sh`): the same `aide-resolve-test-cmd` and `aide-record-test-run` the landing's gate calls run
+  on the step's result in its worktree, and the record on the branch is the runner's. Red goes back to the same
+  session first — the failing lines as a follow-up turn, up to two more rounds within what is left of the step's
+  time limit (`AIDE_TEST_FIX_ROUNDS`; claude resumes its session, Codex its thread through `codex exec resume`). Still red after
+  that, the step ends `tests-red` with the failing lines as its detail, and Implement is the button to press again.
+  A change no test command covers has nothing to run and passes as before. A record the session wrote through
+  `aide-record-test-run` on exactly the delivered tree (its `tree` hash), green and naming the same commands, is
+  accepted as that run; anything the session changed afterwards makes the runner run the suite itself.
+- `archive` runs no suite of its own, merged with main or not: its landing runs the project's tests once, on
+  exactly what the default branch is about to become, and that is the one run an archive gets
+  ([Branches and landing](landing.md#the-tests-run-on-the-landing-once)).
+- `archive` counts only if the folder is under `archive/` afterwards. A folder that stayed put because
+  `aide-archive-spec` refused (`not-implemented-yet`, `acceptance-criteria-unticked`) ends as that refusal, the same
+  as when the refusal came before the session; otherwise `no-progress`. An archive handed a merge with the default
+  branch OPEN (`update_branch_to_base`) counts only if the branch contains that base tip afterwards — a session
+  that aborted the merge and still moved the folder ends `merge-unfinished`, since the landing would meet the same
+  conflict again.
+- `analyze` is refused as `scope-violation` if it changed the project, advanced a status row, or wrote a step onto the
+  line that it did not run.
+
+**A stamp counts only while nothing cancels it.** An `**Archived:**` or `**Closed:**` line is in effect until a
+later `**Round boundary:**`, `**Reopened:**` or `**Reset:**` mark follows it, and every reader applies that same
+rule — `spec-transitions.sh` and `spec-state.sh` in bash, `stampInEffect` in `discover/spec-files.ts` on the
+dashboard's side. A new stamp written after the boundary counts again.
+
+What the cross-check does not cover: whether the step's commit reached origin, and whether the landing that
+follows succeeded. The line is rebuilt from local history, so a step whose push was refused is still on it, and a
+landing that fails afterwards does not take it off.
 
 ## What a finished step publishes
 
