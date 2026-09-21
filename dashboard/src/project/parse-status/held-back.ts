@@ -129,11 +129,29 @@ export function acceptanceStillOpen(
  *  no such gate: archive cannot have been attempted, let alone
  *  declined, before implement is done.
  *
+ *  `historyDone` answers beside `doneSteps` because `implement` LANDS
+ *  NOTHING (`runner-setup.ts`: it falls through the landing dispatch by
+ *  design). `doneSteps` prefers the state file on the default branch,
+ *  and implement's own copy of it stays on the branch until archive
+ *  merges it — so that list cannot name implement in exactly the state
+ *  this note exists for, and the note was dropped from every row waiting
+ *  on a tick. `historyDone` is the git-proved list, unlanded branches
+ *  included (spec 418), and the same signal the phase line already reads
+ *  to draw Implement as done.
+ *
  *  Owned here, next to the constant it compares against, so callers
  *  (`heldBackFor` in specs-list/data-model/phases.ts) ask instead of
  *  re-deriving the comparison themselves. */
-export function archiveHeldBackApplies(reason: string, doneSteps: string[]): boolean {
-  return reason !== ACCEPTANCE_CRITERIA_UNTICKED_NOTE || doneSteps.includes("implement");
+export function archiveHeldBackApplies(
+  reason: string,
+  doneSteps: string[],
+  historyDone: string[] = [],
+): boolean {
+  return (
+    reason !== ACCEPTANCE_CRITERIA_UNTICKED_NOTE ||
+    doneSteps.includes("implement") ||
+    historyDone.includes("implement")
+  );
 }
 
 // --- spec 471: another round on a held-back spec's open checks --------------

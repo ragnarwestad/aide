@@ -207,9 +207,20 @@ spec is created from, and `<NN-slug>.json` says which steps it runs and how it m
 `expected` (`archived` or `not-archived`), and optionally `expect`, what its row on the board must
 show at the end: the job's `state`, its `stopReason`, and its `message` (the message key when the
 board wrote one, `runner.notAnalyzed`, or a piece of the sentence when the runner script's own
-English is the text). A fixture can also tighten its own time limit with `timeoutSec`, which is how
-the round has a row the clock stopped. The script grades every field and names the one that was
-off, so a message that changes on the board is caught here before anyone reads it on the real one.
+English is the text), and `stepReason`, the `terminalReason` a named step's own result must carry.
+That last one is what a fixture whose point is a REFUSAL says: a step the archive gates turned away
+ends the job `done` with nothing archived, which is the same end state a step that never ran at all
+leaves behind, so `state` and `expected` cannot tell the two apart. A fixture can also tighten its
+own time limit with `timeoutSec`, which is how there is a row the clock stopped. The script grades
+every field and names the one that was off, so a message that changes on the board is caught here
+before anyone reads it on the real one.
+
+A sample spec's description is the real thing, not a sketch: where a fixture is about acceptance
+criteria, its `.md` carries a `## Acceptance criteria` section with `- **AC-n:**` bullets, and
+`claude-stub` derives `4-status.md`'s own table from them — one row per id, the text verbatim,
+before `## Notation` — exactly as `requirements-tracing.md` step 8 tells the model to. The stub
+stands in for the MODEL; a table written out inside the stub answers to nothing, and its shape can
+drift from the rule the real model is given with nothing to notice.
 
 Two process ids are tracked for different reasons: one is this server's own handle on the spawned
 process, known immediately and what a stop signal reaches (the whole process group, so a server

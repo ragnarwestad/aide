@@ -7,6 +7,10 @@
   ],
   "expected": "not-archived",
   "expect": {
-    "state": "done"
+    "state": "done",
+    "stepReason": {
+      "step": "archive",
+      "terminalReason": "acceptance-criteria-unticked"
+    }
   }
 }

@@ -46,6 +46,12 @@ export interface RoundExpect {
   state?: string;
   stopReason?: string;
   message?: string;
+  /** The `terminalReason` a named STEP's own result must carry. The one
+   *  way a fixture whose point is a refusal can say so: a step the
+   *  archive gates turned away ends the job `done` with nothing
+   *  archived, which is the same end state a step that never ran at all
+   *  leaves — `state` and `expected` cannot tell the two apart. */
+  stepReason?: { step: string; terminalReason: string };
 }
 
 export interface RoundSpec {
