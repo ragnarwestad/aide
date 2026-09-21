@@ -7,10 +7,7 @@ import {
   type QueueRowView,
   type SpecTarget,
 } from "../../../../../src/render";
-import {
-  row,
-  openKeys,
-} from "../../fixtures.ts";
+import { openKeys } from "../../fixtures.ts";
 
 // --- spec 192: the phase line's controls share one cell ---------------------
 //
@@ -79,9 +76,6 @@ describe("spec 192: the phase line's controls share one cell", () => {
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">[\\s\\S]*?</tr>`))?.[0] ?? "";
   const caption = (html: string) =>
     html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
-  const subRows = (html: string) => [
-    ...html.matchAll(/<tr class="subrow[^"]*"[^>]*data-step="[^"]*">[\s\S]*?<\/tr>/g),
-  ].map((m) => m[0]);
 
   // --- criterion 2: the name is what the eye lands on -----------------------
 
@@ -136,17 +130,6 @@ describe("spec 192: the phase line's controls share one cell", () => {
     expect([...html.matchAll(/rowspan="/g)]).toHaveLength(0);
     // The caption line carries the words, never a control.
     expect(caption(html)).not.toContain("<select");
-  });
-
-  test("a step outside the usual four shares its cell the same way (criterion 1)", () => {
-    const html = rows([
-      row({ id: "j1", specFolder: "192-one-cell", steps: ["manifest"], stepIndex: 0, state: "done" }),
-    ]);
-    expect(subRows(html)).toHaveLength(5);
-    const line = subRow(html, "manifest");
-    expect(cellTags(line)[1]).toBe('<td class="modelcell">');
-    expect(cells(line)[1]).toContain('data-ai="model.manifest"');
-    expect(cells(line)[1]).toContain('<select name="model.manifest"');
   });
 
   // --- criterion 3: the captions move with the controls they head -----------

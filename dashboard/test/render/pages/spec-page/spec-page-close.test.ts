@@ -130,18 +130,31 @@ describe("spec 406, REQ-2/REQ-9: the Close confirmation page", () => {
   });
 });
 
-describe("the Close page covers the page while the work runs", () => {
-  test("Close's form asks for the layer, and names what is happening", () => {
+describe("the Close page says what is happening while the work runs (AC-2)", () => {
+  const dialogOf = (html: string): string => html.match(/<dialog[^>]*data-progress-dialog[\s\S]*?<\/dialog>/)?.[0] ?? "";
+
+  test("the form holds a modal dialog titled Closing…, with no button, and names the spec page", () => {
     const html = renderCloseSpecPage("aide", view().specFolder, NAV, GENERATED, {});
     const form = html.match(/<form[^>]*action="[^"]*\/close"[^>]*>/)?.[0] ?? "";
-    expect(form).toContain('data-overlay="closing…"');
+    expect(form).toContain(`data-progress="/specs/aide/${view().specFolder}"`);
+    expect(form).toContain('method="post"');
+    expect(form).not.toContain("data-overlay");
+    const dialog = dialogOf(html);
+    expect(dialog).toContain('class="confirmdialog"');
+    expect(dialog).toContain("Closing…");
+    expect(dialog).not.toContain("<button");
+    expect(html.match(/<form[^>]*data-progress=[\s\S]*?<\/form>/)?.[0]).toContain("data-progress-dialog");
   });
 
-  // Spec 422, REQ-2: the same text, in the reader's own language.
-  test("in Norwegian (nb), the overlay text is the Norwegian one", () => {
+  test("in Norwegian (nb), the title is the Norwegian one", () => {
     const html = renderCloseSpecPage("aide", view().specFolder, NAV, GENERATED, { lang: "nb" });
-    const form = html.match(/<form[^>]*action="[^"]*\/close"[^>]*>/)?.[0] ?? "";
-    expect(form).toContain('data-overlay="lukker…"');
+    expect(dialogOf(html)).toContain("Lukker…");
+  });
+
+  test("the reason still posts to the close route (AC-3)", () => {
+    const html = renderCloseSpecPage("aide", view().specFolder, NAV, GENERATED, {});
+    expect(html).toContain('name="reason"');
+    expect(html).toContain(`action="/api/queue/specs/aide/${view().specFolder}/close"`);
   });
 });
 

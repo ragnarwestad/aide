@@ -40,6 +40,8 @@ export interface ActionResult {
   /** A Deploy whose restart is held back by these running jobs (spec
    *  385) — present instead of `restarting`, never alongside it. */
   restartWaiting?: string[];
+  /** The job a queue request started, for a caller that waits for it. */
+  job?: { id?: string };
 }
 
 /** Why the server said no, whichever shape it said it in: the project

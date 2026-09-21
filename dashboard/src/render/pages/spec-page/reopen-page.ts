@@ -4,6 +4,7 @@ import { backLink, btn, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { type Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
+import { progressDialog } from "./progress-dialog.ts";
 import { specPagePath } from "./tabs.ts";
 
 export function renderReopenSpecPage(
@@ -36,7 +37,8 @@ export function renderReopenSpecPage(
         "Tick the box to start the round from a clean slate instead.",
       { tag: "p" },
     ) +
-    `<form method="post" action="/api/queue" class="newspecform">` +
+    `<form method="post" action="/api/queue" class="newspecform" data-progress="${esc(back)}">` +
+    progressDialog(opts.lang ?? "en", "list.reopening") +
     handOn +
     `<input type="hidden" name="project" value="${esc(project)}">` +
     `<input type="hidden" name="specFolder" value="${esc(specFolder)}">` +

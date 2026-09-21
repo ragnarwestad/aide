@@ -295,8 +295,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
       // The AI had a column of its own from spec 165 to spec 192, and
       // one cell for the whole group before that — a span that had to
       // be kept level with `g.phases.length` and never a literal five,
-      // since a spec whose past jobs touched a step outside the usual
-      // set has that step appended as a line of its own. Neither is
+      // since a spec's phase lines are always the four. Neither is
       // needed now: every line writes this cell, whichever step it
       // names, and `aiPicker` simply draws nothing when there is one
       // configured AI and nothing to choose between.

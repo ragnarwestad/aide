@@ -43,6 +43,24 @@ describe("the Reopen confirmation page", () => {
   });
 });
 
+describe("the Reopen form's progress dialog (AC-2, AC-3)", () => {
+  test("holds a modal dialog titled Reopening…, with no button, and names the spec page", () => {
+    const html = render();
+    const form = html.match(/<form[^>]*action="\/api\/queue"[^>]*>/)?.[0] ?? "";
+    expect(form).toContain(`data-progress="/specs/aide/${FOLDER}"`);
+    const dialog = html.match(/<dialog[^>]*data-progress-dialog[\s\S]*?<\/dialog>/)?.[0] ?? "";
+    expect(dialog).toContain('class="confirmdialog"');
+    expect(dialog).toContain("Reopening…");
+    expect(dialog).not.toContain("<button");
+    expect(html.match(/<form[^>]*data-progress=[\s\S]*?<\/form>/)?.[0]).toContain("data-progress-dialog");
+  });
+
+  test("in Norwegian (nb), the title is the Norwegian one", () => {
+    const html = renderReopenSpecPage("aide", FOLDER, NAV, GENERATED, { lang: "nb" });
+    expect(html).toContain("Gjenåpner…");
+  });
+});
+
 describe("GET /specs/<project>/<spec>/reopen", () => {
   test("answers for an archived spec, handing the list's fields on AC-1", async () => {
     const { base } = start();

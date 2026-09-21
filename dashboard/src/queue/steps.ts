@@ -20,9 +20,8 @@ import effortLevelsData from "../../../core/scripts/lib/effort-levels.json" with
 // terminal are one operation with one path. Queueable, but deliberately
 // NOT part of the workflow arc (`HISTORY_STEPS`, `parse-status.ts`'s own
 // list, the bash `WORKFLOW_ARC`) — it is not a stage a spec passes
-// through. It DOES draw a phase box, unlike `explore` and `manifest`:
-// since spec 271, `specPhases()` gives a completed `reopen` a fixed
-// spot between `create` and `analyze`, where it happened.
+// through, and draws no phase line: `specPhases()` returns the four
+// and the Logs tab lists the step.
 //
 // `schedule` joined it in spec 259: a project's own recurring job — a
 // cron entry naming a prompt file in its repo, not an aide skill — runs

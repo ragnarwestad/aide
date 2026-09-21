@@ -6,8 +6,10 @@
 
 import { backLink, field, rowMessage, saveCancelActions } from "../../ui/components";
 import { DESCRIPTION_MAX } from "../../../queue/parse-request.ts";
-import { t, type Language } from "../../../i18n";
+import { type Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
+import { esc } from "../../ui/html.ts";
+import { progressDialog } from "./progress-dialog.ts";
 import { specPagePath } from "./tabs.ts";
 
 /** The one sentence stated wherever a reader meets Close (REQ-2): on
@@ -36,7 +38,8 @@ export function renderCloseSpecPage(
       { tag: "p" },
     ) +
     `<form method="post" action="/api/queue${back}/close" class="newspecform specform" ` +
-      `data-overlay="${t(opts.lang ?? "en", "shell.overlayClosing")}">` +
+      `data-progress="${esc(back)}">` +
+    progressDialog(opts.lang ?? "en", "shell.overlayClosing") +
     `<div class="panelhead"><h2>Close</h2>${saveCancelActions()}</div>` +
     `<span class="frow">` +
     // A data attribute, not maxlength: with script off the server's own

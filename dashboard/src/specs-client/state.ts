@@ -9,8 +9,10 @@
  *  `/new` (spec 121), and `/projects`/`/projects/<name>` have only the
  *  other two, which would otherwise answer in its place — bound twice,
  *  two POSTs for one press (spec 486, the same collision spec 115 fixed
- *  for the Add form). */
-export const NEW_SPEC_FORM = "form.newspecform:not(.addprojectform):not(.projectsettingsform)";
+ *  for the Add form). The Reopen and Close confirmation forms wear the class
+ *  too and carry `data-progress`, which is theirs to bind. */
+export const NEW_SPEC_FORM =
+  "form.newspecform:not(.addprojectform):not(.projectsettingsform):not([data-progress])";
 
 /** The look a control wears between the click and the answer (spec
  *  208). One class for both kinds of waiting — an in-page swap and a

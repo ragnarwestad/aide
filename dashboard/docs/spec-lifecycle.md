@@ -53,7 +53,8 @@ The code is `transitions.json`, read in bash by `may_apply_spec_transition`
 
 Other steps exist — `explore`, `manifest`, `schedule`, `reopen`, `close` — but they are not phases: none of
 them appears in the workflow arc. `close` and `reopen` do move a spec between STATES, which is why they have rows
-in the transition table and lines on a spec's row once they have run; they simply do not move it along the arc.
+in the transition table; they draw no line on a spec's row, which always has the four, and the Logs tab lists them.
+They simply do not move a spec along the arc.
 
 ## One spec, from first to last
 
@@ -264,6 +265,7 @@ queue step the dashboard presses, never a step the runner decides on its own.
 - **Reopen** takes an archived or closed spec back to the active list and asks one question on its own page
   (`/specs/<project>/<spec>/reopen`, reached from the Reopen link on the spec page and from the list row): also reset
   the analysis, the plan and the status? The box is unticked, and the job carries `resetFiles` only when it is ticked.
+  Pressing Reopen opens a "Reopening…" dialog that stands until the job has settled.
   It deletes the branch the earlier round left behind in both modes.
   - **Keep (the default, also a bare `steps=reopen`).** `core/scripts/aide-reopen-spec` moves the folder out of
     `archive/` and runs no model. `0-README.md` to `3-solution.md` are untouched; in `4-status.md` `archive` leaves the

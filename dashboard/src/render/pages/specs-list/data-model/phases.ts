@@ -249,20 +249,12 @@ export function attemptsPerStep(jobs: QueueRowView[]): Record<string, QueueRowVi
 }
 
 /** The phase lines a spec's row and a spec's total are both built over:
- *  the four in order, then anything else that ran, each with the
- *  attempts that speak for it, newest first. */
+ *  the four in order and nothing else — reopen, close, explore and the
+ *  rest are steps, and the Logs tab lists them — each with the attempts
+ *  that speak for it, newest first. */
 function specPhases(all: QueueRowView[], dir?: string): Phase[] {
   const recent = [...all].sort((a, b) => activityMs(b) - activityMs(a));
-  const touched = new Set(all.flatMap(stepsTouched));
-  const extra = [...touched].filter((s) => s !== "reopen" && !PHASE_LINES.includes(s));
-  // A reopen is what STARTED this round: drawn between `create` and
-  // `analyze`, where it happened, not appended after `archive` with
-  // every other step outside the fixed four (spec 271).
-  const analyzeIndex = PHASE_LINES.indexOf("analyze");
-  const lines = touched.has("reopen")
-    ? [...PHASE_LINES.slice(0, analyzeIndex), "reopen", ...PHASE_LINES.slice(analyzeIndex)]
-    : PHASE_LINES;
-  return [...lines, ...extra].map((step) => {
+  return PHASE_LINES.map((step) => {
     const attempts = recent.map((r) => attemptFor(r, step)).filter((a): a is QueueRowView => a !== null);
     // No queue job ever ran this phase: the only other place its
     // duration/cost could be is the file the interactive counterpart

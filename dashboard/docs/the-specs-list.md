@@ -231,8 +231,9 @@ spinner, a different fact with a different lifetime (see [what the script adds](
 movement.
 
 Filtering and sorting work on the spec's grouped jobs. "Active" means the spec has something in flight; sorting by
-cost sorts on the sum. A step outside the four (`explore`, `create`, `manifest` — valid steps the form does not offer)
-is appended after them rather than dropped, so a run is never invisible.
+cost sorts on the sum. A spec's phase lines are the four and nothing else: a step outside them (`reopen`, `close`,
+`explore`, `manifest`, `schedule`) draws no line, and the Logs tab on the spec page lists it. The spec's total time is
+the sum over the four phases, so a step outside them adds nothing to it.
 
 ## A failed create
 
@@ -386,6 +387,14 @@ The page's own browser code does one thing to the controls: it keeps the reader 
 Run and Cancel — are real `<form>`s that work on their own, and the script only intercepts. Cancel is intercepted
 twice over: once to open its confirmation dialog, and once for the press that follows.
 
+- **Reopen and Close stand behind a dialog.** Their confirmation forms carry `data-progress` (the spec page) and a
+  `dialog.confirmdialog` titled "Reopening…" or "Closing…". On submit the script opens it as a modal with no buttons
+  (Escape does not dismiss it, and a back/forward-cache restore closes it), posts the form, and polls
+  `GET /api/queue/<id>` once a second, at most 120 times, until the job has settled and, for a `done` job, its landing
+  is over. A job that is `done` takes the reader to the list; any other end, a job the queue has forgotten and a wait
+  that runs out take them to the spec page, whose error line says why a `failed`, `stopped` or `interrupted` reopen or
+  close ended (`failedRoundSentence`). A refused post closes the dialog and goes to the spec page with the reason. With
+  no script, or a browser without `<dialog>`, the form posts natively and follows its redirect.
 - **A press changes the button at once, without changing its width.**
   It disables, gains the `busy` look and a spinner ahead of its own label — the label itself stays put, only
   the `title` carries the pending word ("starting…", "cancelling…", "queueing…",

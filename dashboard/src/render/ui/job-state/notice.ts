@@ -86,6 +86,19 @@ export function detailBeyond(text: string, error: unknown, detail: string | unde
 const isStepTestsRed = (error: unknown): boolean =>
   typeof error === "object" && error !== null && String((error as { key?: unknown }).key ?? "").startsWith("runner.testsRed");
 
+/** The sentence of a spec's lead job when it ended without finishing a
+ *  reopen or a close: `failed`, `stopped` (its time limit) or
+ *  `interrupted`. The spec page draws it on its own error line, where a
+ *  failed Update's sentence goes; the list row draws the same sentence
+ *  from `specNotice`. */
+export function failedRoundSentence(lead: QueueRowView | undefined, lang: Language = "en"): string | undefined {
+  if (!lead?.error) return undefined;
+  if (lead.state !== "failed" && lead.state !== "stopped" && lead.state !== "interrupted") return undefined;
+  const step = currentStep(lead);
+  if (step !== "reopen" && step !== "close") return undefined;
+  return renderSentence(lang, lead.error);
+}
+
 /** Which of the five applies, if any. The order is the row's own: the
  *  queue's refusal of the press just made comes first, then a job that
  *  failed saying why it failed, then the spec's standing note about an

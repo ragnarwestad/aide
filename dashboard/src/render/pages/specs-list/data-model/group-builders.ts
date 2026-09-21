@@ -286,8 +286,8 @@ function jobGroup(all: QueueRowView[], target: SpecTarget | undefined, now: numb
   const lead = recent.find(inFlight) ?? recent[0]!;
   // The five, always, in order — a phase nobody has run yet still holds
   // its place, which is what makes progress readable at a glance. A
-  // step outside them (explore, manifest) is appended rather
-  // than dropped: a job that ran is never invisible. `create` is one of
+  // step outside them (reopen, close, explore, manifest) draws no
+  // line; the Logs tab lists it. `create` is one of
   // the five since spec 116, so a create job lands on its own line at
   // the front rather than being appended after archive.
   // Built before the group, because the spec's total is a sum over

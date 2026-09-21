@@ -10,6 +10,7 @@ import { resolveLogFilter } from "../../../queue/parse-stream";
 import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, renderSpecPageFailedRest, renderSpecPageHead, renderSpecPageRest, resolveBackHref, resolveSpecTab, specPagePath, specTabPath } from "../../../render";
 import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, languageChoice, logRefusal, readBounded, specsRedirect, streamedPage } from "../../serve-helpers";
 
+import { failedRoundSentence } from "../../../render/ui/job-state";
 import type { RoutesContext } from "..";
 
 export async function specPageRoutes(
@@ -117,7 +118,7 @@ export async function specPageRoutes(
         return renderSpecPageRest(
           {
             ...view,
-            error: url.searchParams.get("error") ?? undefined,
+            error: url.searchParams.get("error") ?? failedRoundSentence(view.lead, langResult.lang),
             notice: url.searchParams.get("notice")
               ? { note: url.searchParams.get("notice")!, ok: url.searchParams.get("noticeOk") === "1" }
               : undefined,

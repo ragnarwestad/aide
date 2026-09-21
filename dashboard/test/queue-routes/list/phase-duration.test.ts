@@ -294,6 +294,20 @@ describe("computeSpecTotalDurationMs (spec 207, spec 281)", () => {
     expect(computeSpecTotalDurationMs(rows(), NOW)?.ms).toBe(20 * 60 * 1000);
   });
 
+  // A reopen, a close or an explore is a step, not a phase: its span is
+  // not part of the spec's total (AC-1).
+  test("a finished reopen's span is not in the total (AC-1)", () => {
+    const withReopen = [
+      row("r1", {
+        steps: ["reopen"],
+        startedAt: "2026-08-12T09:00:00Z",
+        results: [{ step: "reopen", ok: true, costUsd: 0, at: "2026-08-12T09:30:00Z" }],
+      }),
+      ...rows(),
+    ];
+    expect(computeSpecTotalDurationMs(withReopen, NOW)?.ms).toBe(20 * 60 * 1000);
+  });
+
   // The exact case 1-description.md names as the motivation: a spec
   // stopped by an error still owes a total — analyze finished, nothing
   // else has run yet — and the old `done`-keyed guard blanked exactly

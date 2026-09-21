@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { renderSpecsRows, type QueueRowView } from "../../../../../src/render";
+import { phasePips, phasesFor, renderSpecsRows, type QueueRowView } from "../../../../../src/render";
 import { row, openKeys } from "../../fixtures.ts";
 
 // The › that opens a phase's messages (spec 500) is a link in the cell; the name beside it is still plain text.
@@ -155,29 +155,36 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     expect(noFold(subRow(html, "create"))).not.toContain("<a ");
   });
 
-  test("a step outside the four is still shown, never silently dropped", () => {
-    const html = rows([job("j1", "analyze"), job("j2", "explore")]);
+  // Reopen, close, explore, manifest and schedule are steps, not phases:
+  // whichever of them ran, the strip is the four.
+  for (const step of ["reopen", "close", "explore", "manifest", "schedule"]) {
+    test(`a ${step} job leaves the phase lines at the four (AC-1)`, () => {
+      const html = rows([job("j1", "analyze"), job("j2", step)]);
+      const order = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
+      expect(order).toEqual(["create", "analyze", "implement", "archive"]);
+    });
+  }
+
+  test("a spec with a job for each of them still draws the four, and a head row with four pips (AC-1)", () => {
+    const html = rows(["close", "explore", "manifest", "schedule", "reopen"].map((s, i) => job(`j${i}`, s)));
     const order = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
-    expect(order).toEqual(["create", "analyze", "implement", "archive", "explore"]);
-    // Spec 451: every phase name is plain text now, the fixed four and
-    // a step outside them alike.
-    expect(subRow(html, "explore")).not.toContain('href="/specs/j2"');
-    expect(noFold(subRow(html, "explore"))).not.toContain("<a ");
+    expect(order).toEqual(["create", "analyze", "implement", "archive"]);
+    const jobs = ["close", "explore", "manifest", "schedule", "reopen"].map((s, i) => job(`j${i}`, s));
+    const phases = phasesFor(jobs, undefined);
+    expect(phases.map((p) => p.step)).toEqual(["create", "analyze", "implement", "archive"]);
+    expect((phasePips(phases, []).match(/class="pip /g) ?? []).length).toBe(4);
   });
 
-  // Spec 271: a reopen is what STARTED this round, so it is drawn
-  // between create and analyze, where it happened — not appended after
-  // archive with every other step outside the fixed four.
-  test("a reopen sits between create and analyze, where it happened (spec 271)", () => {
-    const html = rows([
-      job("j1", "reopen", { startedAt: "2026-08-15T09:00:00Z" }),
-      job("j2", "analyze", { startedAt: "2026-08-16T09:00:00Z" }),
-      job("j3", "implement", { startedAt: "2026-08-16T11:00:00Z" }),
-    ]);
-    const order = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
-    expect(order).toEqual(["create", "reopen", "analyze", "implement", "archive"]);
-    expect(subRow(html, "reopen")).toContain("disabled");
-  });
+  // A failed reopen or close keeps its sentence under the row; the strip
+  // above it stays the four (AC-1, AC-5).
+  for (const step of ["reopen", "close"]) {
+    test(`a failed ${step} keeps its sentence under the row, over four lines (AC-5)`, () => {
+      const html = rows([job("j1", step, { state: "failed", error: "It did not go through." })]);
+      expect(html).toContain("It did not go through.");
+      const order = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
+      expect(order).toEqual(["create", "analyze", "implement", "archive"]);
+    });
+  }
 
   // Spec 451: all four of the fixed steps carry no link of their own.
   test("each of the four phases' names is plain text, not a link", () => {

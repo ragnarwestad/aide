@@ -75,8 +75,8 @@ export interface SpecPageView {
    *  fixture that has no reason to care about it) leaves it absent
    *  rather than every caller having to spell out `steps: []`. */
   steps?: JobStepResultView[];
-  /** The spec's own run history, the same four-phase (plus any extra
-   *  step) chain the front page's row draws (spec 239) — read off the
+  /** The spec's own run history, the same four-phase
+   *  chain the front page's row draws (spec 239) — read off the
    *  same source, never recomputed. Absent only for a view built before
    *  this field existed; the server always sets it, empty jobs list
    *  included. */

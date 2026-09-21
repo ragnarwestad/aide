@@ -48,6 +48,7 @@ import { relabelRunButton } from "./row-swap.ts";
 import {
   bindScheduleDelete, postScheduleEnabled, postScheduleRun, scheduleCronPreview,
 } from "./schedule-actions.ts";
+import { submitProgress } from "./progress-dialog/index.ts";
 import { NEW_SPEC_FORM } from "./state.ts";
 import { postTailModel, postTailStep } from "./tail-actions.ts";
 import { checkboxKey, chosen, chosenSteps, selectKey } from "./state.ts";
@@ -198,6 +199,11 @@ newSpec?.addEventListener("change", ((event: Event) => {
   const model = target?.closest?.('select[name^="model."]') as HTMLSelectElement | null;
   if (model) syncAiToModel(model);
 }) as EventListener);
+// Reopen and Close: bound directly, as the New-spec form is, so the
+// submit is theirs before any delegated listener sees it.
+for (const form of document.querySelectorAll("form[data-progress]")) {
+  form.addEventListener("submit", ((event: Event) => submitProgress(form as HTMLFormElement, event)) as EventListener);
+}
 syncDependsOn();
 newSpec?.querySelector("select[name=project]")?.addEventListener("change", syncDependsOn);
 

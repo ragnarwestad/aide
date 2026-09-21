@@ -17,7 +17,7 @@ export type { RestingState } from "./resting.ts";
 export { restingChip, specStateChip } from "./resting.ts";
 
 export type { RowNotice } from "./notice.ts";
-export { specNotice } from "./notice.ts";
+export { failedRoundSentence, specNotice } from "./notice.ts";
 
 export { completedThirds } from "./tdd.ts";
 
