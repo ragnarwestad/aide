@@ -32,6 +32,21 @@ pull request:
 `scripts/check-bash` refuses with the install command when shellcheck is
 missing, so a machine without it never reports a bash change as checked.
 
+**A change to the documentation has its own command.** Fourteen tests read a page rather than the code — the table in
+`.claude/CLAUDE.md`, the lifecycle diagram against `transitions.json`, the rules, the skills, the templates, the
+dashboard's own docs guards — and they sit in both suites. `scripts/check-docs` runs exactly those, in 17 seconds
+against the four minutes both full suites take.
+
+`.githooks/pre-push` runs it before a push that moves `main`, and nothing on a push to a working branch. Turn it on
+once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+A push straight to `main` has nothing else in front of it: the board's landing gates what the board runs, and CI runs
+on a pull request only. `AIDE_SKIP_PRE_PUSH=1` skips the hook and says on the way out that it did.
+
 **Installing on Linux** is checked by `scripts/test-linux-install`, which needs Docker: it installs Aide in a clean
 Debian container the way a new user would, checks the tools, scripts and skills, and starts the dashboard. With `--run`
 and a token from `claude setup-token` in `CLAUDE_CODE_OAUTH_TOKEN`, it also queues one spec on the dashboard and takes
