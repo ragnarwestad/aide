@@ -3,6 +3,11 @@
 // attributes — the server's public key to subscribe with and the
 // language the device reads, which is stored with its subscription so a
 // notification is written in it.
+//
+// The switch is drawn disabled and only the script turns it on:
+// subscribing a device is the browser's Push API, with no form a server
+// could answer, so with script off it stays off and the status line
+// keeps saying it is checking.
 
 import { switchControl } from "../../ui/components";
 import { esc } from "../../ui/html.ts";

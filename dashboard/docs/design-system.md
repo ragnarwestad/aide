@@ -107,6 +107,13 @@ writes distinctive sentinels rather than English words for exactly that reason.
 A gap between two interactive controls comes from the flex `gap` on the row that holds them, never from a `margin` on
 one of the components: a component carrying its own margin looks right beside one sibling and wrong, or doubled,
 beside the next.
+
+One control is an exception, and its CSS says so: the specs list's state filter, `.menu.state`, carries
+`margin-left: var(--sp-3)` on a desktop screen — more room from the "(?)" beside it than the row's gap gives, because
+the two are easy to mis-click together — and `narrow.css` sets it back to 0 at phone width. A `margin-left: auto`
+that pushes a control to the row's far end, as the New spec button's does, is not a gap between two controls, and
+the rule does not cover it.
+
 `test/design/css-guard/css-guard-layout.test.ts` asserts that `.mergeform`, `.actionform` and `.extra` declare no
 `margin`. Beside it, that file asserts the stylesheet contains no `data-controls` at all, and that `.row` keeps its
 own unscoped `align-items: center`. There used to be a row that mixed a labelled field with plain buttons and needed
@@ -175,12 +182,16 @@ it picks a control out rather than leaving one alone.
 
 Every control a page draws is plain HTML that does its job with scripting off — a form that posts, a link that
 navigates, a `<details>` that opens — and script only makes it quicker or quieter. That is why `btn()` renders
-`type="submit"` unless told otherwise: every button on a page is a real form's. Three controls are outside that
-promise, and their own code says so:
+`type="submit"` unless told otherwise: every button on a page is a real form's. These controls are outside that
+promise, and each says so in a comment where it is drawn:
 
 - the phase box on a running row that posts on the tick itself, which belongs to no form;
-- a scheduled job's Enabled checkbox, which flips the flag at once and does nothing without script;
-- the Cancel of `saveCancelActions()`, which renders disabled, since nothing asks it to work without script.
+- the model picker on a running row, which posts itself for the same reason;
+- a scheduled job's Enabled checkbox, which flips the flag at once;
+- the Cancel of `saveCancelActions()`, which renders disabled;
+- the theme buttons, since the choice is kept in the browser's `localStorage`;
+- the language dropdown in the "…" menu, while the language menu's links do the same job without script;
+- the switch for push notifications, which is the browser's Push API.
 
 A new control that needs script to do anything joins that list, with a comment at the control saying so.
 

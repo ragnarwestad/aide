@@ -89,7 +89,8 @@ export function modelPicker(
     // convention the tail box's tick already uses. While a job runs the
     // run form asks for a SECOND job and the queue refuses it as a
     // clash, so the select posts itself rather than waiting for a
-    // press this row does not offer.
+    // press this row does not offer. With script off a live pick does
+    // nothing: the run form it names has no press while the job runs.
     (live ? ` data-post-to="/api/queue/${esc(g.lead!.id)}/model"` : "") +
     // Whether this select is showing HISTORY or a suggestion, said to
     // the browser (spec 169). It scoped the removed "set all" control

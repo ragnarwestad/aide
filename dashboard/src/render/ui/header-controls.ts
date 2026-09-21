@@ -55,6 +55,9 @@ function checkMark(): string {
 
 // The theme choice rows of themeControl()'s own standalone panel
 // (desktop). The "…" menu's phone rows are menuSettingRows() below.
+// `type="button"`, and they do nothing with script off: the choice is
+// kept in the browser's localStorage, which only theme-script.ts
+// writes, so there is no form to post and no server that learns it.
 export function themeChoiceRows(lang: Language): string {
   return THEME_CHOICES.map(
     ([choice]) =>
@@ -136,6 +139,7 @@ function menuRow(kind: string, caption: string, control: string): string {
   return `<div class="morerows ${kind}"><span class="lbl">${caption}</span>${control}</div>`;
 }
 
+// Script only, for the reason themeChoiceRows() gives above.
 function themeSegment(lang: Language): string {
   const buttons = ["auto", "light", "dark"]
     .map(
@@ -147,6 +151,9 @@ function themeSegment(lang: Language): string {
   return `<span class="seg" role="group" aria-label="${t(lang, "shell.theme")}">${buttons}</span>`;
 }
 
+// Changes the language only with script: an <option> has no href of its
+// own to follow. The language menu's links (languageChoiceLinks) do the
+// same job with script off.
 function languageSelect(lang: Language, currentUrl: string): string {
   const options = LANGUAGES.map(
     (l) =>
