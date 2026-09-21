@@ -1,6 +1,8 @@
 // Split out of css-token-guard.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { CSS, oneRule, rules } from "../css-guard-fixtures.ts";
 
 // --- the gap lives in the container (spec 120) ------------------------------
@@ -281,5 +283,32 @@ describe("the confirm box's answers sit side by side (spec 518, AC-1, AC-6)", ()
   test(".dialogactions > form resets the margin a form's own class may carry", () => {
     const body = CSS.match(/\.dialogactions\s*>\s*form\s*\{([^}]*)\}/)?.[1] ?? "";
     expect(body).toMatch(/margin:\s*0/);
+  });
+});
+
+// --- the Failed control of an archived row (spec 522) ------------------------
+
+const cssFile = (name: string): string => readFileSync(join(import.meta.dir, "..", "..", "..", "src", "render", "ui", "css", name), "utf-8");
+
+describe("the Failed control takes half the row and its note is a capped text area (spec 522)", () => {
+  const control = CSS.match(/\.check \.failcontrol\s*\{([^}]*)\}/)?.[1] ?? "";
+  const note = CSS.match(/\.check \.failnote\s*\{([^}]*)\}/)?.[1] ?? "";
+
+  test(".check .failcontrol has a zero basis like the criterion, so the two are equal (AC-1, AC-3)", () => {
+    expect(control).toMatch(/flex:\s*1 1 0/);
+    expect(control).toMatch(/min-width:\s*0/);
+  });
+
+  test(".check .failnote is full width, drags vertically and is capped at ten lines of its own line height (AC-3)", () => {
+    expect(note).toMatch(/width:\s*100%/);
+    expect(note).toMatch(/resize:\s*vertical/);
+    expect(note).toMatch(/max-height:\s*calc\(10 \* var\(--fs-s\) \* var\(--lh\)/);
+  });
+
+  test("the stack is a phone rule in narrow.css, and remaining-checks.css holds no @media (AC-5)", () => {
+    expect(cssFile("remaining-checks.css")).not.toContain("@media");
+    const stacked = mediaBlocks(cssFile("narrow.css")).filter((b) => /\.check \.failcontrol\s*\{[^}]*flex:\s*1 0 100%/.test(b));
+    expect(stacked).toHaveLength(1);
+    expect(cssFile("narrow.css")).toMatch(/@media \(max-width: 40rem\) \{\s*\.check \.failcontrol/);
   });
 });

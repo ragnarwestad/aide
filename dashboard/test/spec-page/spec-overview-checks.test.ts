@@ -457,7 +457,9 @@ describe("the Failed choice on the Status tab (spec 510)", () => {
     const form = block(await statusTab(archivedPage().base, `/specs/aide/${ARCHIVED}`));
     expect(form).toContain(`name="tick" value="${NV_ROW}">`);
     expect(form).toContain(`name="failed" value="${NV_ROW}">`);
-    expect(form).toContain('name="failnote-0"');
+    expect(form).toContain('<textarea class="failnote" name="failnote-0"');
+    expect(form).toMatch(/<div class="failcontrol"><label class="unverified">/);
+    expect(form).not.toContain('<input type="text" class="failnote"');
     expect(form.match(/name="tick"/g)).toHaveLength(1);
   });
 

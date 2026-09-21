@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import { renderAddProjectPage, renderCloseSpecPage, renderNewSpecPage, renderProjectPage } from "../../../src/render";
 import type { ProjectView } from "../../../src/render";
+import { checkControls } from "../../../src/render/ui/check-controls.ts";
 import { renderScheduleForm } from "../../../src/render/pages/schedule-page/form.ts";
 import { bindLimits } from "../../../src/specs-client/limits/index.ts";
 
@@ -32,6 +33,8 @@ const PAGES: Record<string, () => string> = {
       NAV,
       { worktreeLinkCandidates: [], editing: true },
     ),
+  "Failed note": () =>
+    `<body>${checkControls({ line: "| AC-1: x | Not verified | |", done: true, notVerified: true }, "en", { archivedIndex: 0 })}</body>`,
   Schedule: () => `<body>${renderScheduleForm({ action: "/x", fixedProject: "aide" })}</body>`,
 };
 

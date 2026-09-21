@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import { bindLimits, refreshLimit } from "../../../src/specs-client/limits/index.ts";
+import { bindLimits, drawLimits, refreshLimit } from "../../../src/specs-client/limits/index.ts";
 
 type Field = HTMLInputElement | HTMLTextAreaElement;
 
@@ -173,5 +173,33 @@ describe("the discarded-text line", () => {
     const h = load();
     await paste(h.win, h.reason, "y".repeat(5100), "y".repeat(5000));
     expect(note(h.reason).textContent).toContain("100 characters did not fit");
+  });
+});
+
+describe("drawLimits (spec 522)", () => {
+  const FIELD = '<textarea class="failnote" name="failnote-0" maxlength="500"></textarea>';
+
+  test("called twice on one root leaves one count and one note per field (AC-4)", () => {
+    const { doc } = load();
+    drawLimits(doc);
+    drawLimits(doc);
+    for (const name of ["title", "description", "reason"]) {
+      const f = doc.querySelector(`[name="${name}"]`) as unknown as Field;
+      expect(count(f).hasAttribute("data-limit")).toBe(true);
+      expect(note(f).hasAttribute("data-limit-note")).toBe(true);
+      expect(note(f).nextElementSibling?.hasAttribute("data-limit")).not.toBe(true);
+    }
+  });
+
+  test("a field added after bindLimits is counted once by drawLimits(container) (AC-4)", () => {
+    const { doc } = load('<div id="late"></div>');
+    const box = doc.getElementById("late")!;
+    box.innerHTML = FIELD;
+    drawLimits(box);
+    drawLimits(box);
+    const f = box.querySelector("textarea") as unknown as Field;
+    expect(count(f).textContent).toBe("0 of 500 characters");
+    expect(box.querySelectorAll("[data-limit]")).toHaveLength(1);
+    expect(box.querySelectorAll("[data-limit-note]")).toHaveLength(1);
   });
 });

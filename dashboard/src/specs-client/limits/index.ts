@@ -71,8 +71,16 @@ function watch(field: Field, inserted: number, replaced: number): void {
   }, 0);
 }
 
+/** Draw the count and the note under every bounded field below `root` that has none yet.
+ *  For rows the server redraws after the page has loaded. */
+export function drawLimits(root: ParentNode): void {
+  for (const field of root.querySelectorAll(BOUNDED)) {
+    if (!drawn.has(field as Field)) draw(field.ownerDocument, field as Field);
+  }
+}
+
 export function bindLimits(doc: Document): void {
-  for (const field of doc.querySelectorAll(BOUNDED)) draw(doc, field as Field);
+  drawLimits(doc);
   let dragged: Field | null = null;
   doc.addEventListener("input", (e) => {
     const field = fieldOf(e);

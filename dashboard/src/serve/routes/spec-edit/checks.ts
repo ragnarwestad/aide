@@ -13,6 +13,8 @@ import {
   clearArchiveHeldBack,
   cleanFailNote,
   failedCount,
+  failNoteTooLong,
+  FAIL_NOTE_MAX,
   markFailedStatusLine,
   markNotVerifiedStatusLine,
   notVerifiedCount,
@@ -203,8 +205,14 @@ export async function checkRoutes(
             : current
         : wantedState(wanted.has(line), unverified.has(line), current);
       if (target === current) continue;
-      if (target === "failed" && !cleanFailNote(failNote(line))) {
-        return refuse("say what did not hold before marking a check Failed — nothing was saved", body);
+      if (target === "failed") {
+        const note = failNote(line);
+        if (!cleanFailNote(note)) {
+          return refuse("say what did not hold before marking a check Failed — nothing was saved", body);
+        }
+        if (failNoteTooLong(note)) {
+          return refuse(`the note is over ${FAIL_NOTE_MAX} characters — shorten it and press Save again, nothing was saved`, body);
+        }
       }
       const next =
         target === "done"

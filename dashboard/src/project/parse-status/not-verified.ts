@@ -45,6 +45,14 @@ export function cleanFailNote(text: string): string {
   return text.replace(/\s*[\r\n]+\s*/g, " ").replace(/\|/g, "/").trim();
 }
 
+/** How long a note saying what did not hold may be, counted as the browser counts
+ *  the field: UTF-16 units, a line break as one. */
+export const FAIL_NOTE_MAX = 500;
+
+/** Whether `text` is over the bound. A form post carries a text area's line breaks as
+ *  `\r\n`, so they are folded first, as `closeReason` is (`parse-request.ts`). */
+export const failNoteTooLong = (text: string): boolean => text.replace(/\r\n?/g, "\n").length > FAIL_NOTE_MAX;
+
 /** How many of `rows` are flagged Not verified. */
 export function notVerifiedCount(rows: { notVerified?: boolean }[]): number {
   let n = 0;

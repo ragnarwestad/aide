@@ -97,6 +97,41 @@ describe("an archived spec: a Not verified row can fail with a note (AC-4)", () 
   });
 });
 
+describe("an archived spec: the Failed note has a length bound (AC-4)", () => {
+  const folded = "x\r\n".repeat(250);
+  const accepted = async (note: string) => {
+    const git = recording();
+    const { base, dir } = start(NV_STATUS, git.run);
+    const res = await press(base, { rows: [NV_ROW], failed: [NV_ROW], notes: [note] });
+    return { res, dir, git };
+  };
+
+  test("a note of exactly 500 characters is written as Failed (AC-4)", async () => {
+    const { res, dir } = await accepted("a".repeat(500));
+    expect(res.status).toBe(200);
+    expect(readFileSync(fileOf(dir), "utf-8")).toContain("| ❌ Failed |");
+  });
+
+  test("a note of 501 characters is refused, names 500, and nothing is written (AC-4)", async () => {
+    const { res, dir, git } = await accepted("a".repeat(501));
+    expect(res.status).toBe(409);
+    expect(await res.text()).toContain("500");
+    expect(readFileSync(fileOf(dir), "utf-8")).toBe(NV_STATUS);
+    expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(0);
+  });
+
+  test("line breaks count once: 750 raw characters that fold to 500 are written (AC-4)", async () => {
+    expect(folded).toHaveLength(750);
+    const { res } = await accepted(folded);
+    expect(res.status).toBe(200);
+  });
+
+  test("that note plus one more character folds to 501 and is refused (AC-4)", async () => {
+    const { res } = await accepted(`${folded}y`);
+    expect(res.status).toBe(409);
+  });
+});
+
 describe("an archived spec: nothing else moves (AC-4)", () => {
   const refusals: [string, string, Parameters<typeof press>[1]][] = [
     ["a done row marked Failed", NV_STATUS, { rows: [DONE_ROW], failed: [DONE_ROW], notes: ["x"] }],

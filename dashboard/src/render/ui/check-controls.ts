@@ -6,6 +6,7 @@
 // spec's Not verified row has a different set: the tick box, a Failed box and
 // the note saying what did not hold.
 
+import { FAIL_NOTE_MAX } from "../../project/parse-status";
 import { esc } from "./html.ts";
 import { t, type Language } from "../../i18n";
 
@@ -48,9 +49,11 @@ export function checkControls(row: CheckControlRow, lang: Language, options: Opt
   if (options.archivedIndex !== undefined) {
     return (
       tick +
+      `<div class="failcontrol">` +
       `<label class="unverified"><input type="checkbox" name="failed" value="${value}"${form}> ${esc(t(lang, "checks.failed"))}</label>` +
-      `<input type="text" class="failnote" name="failnote-${options.archivedIndex}"${form} autocomplete="off" ` +
-      `placeholder="${esc(t(lang, "checks.failNote"))}" aria-label="${esc(t(lang, "checks.failNote"))}">`
+      `<textarea class="failnote" name="failnote-${options.archivedIndex}"${form} rows="5" maxlength="${FAIL_NOTE_MAX}" autocomplete="off" ` +
+      `placeholder="${esc(t(lang, "checks.failNote"))}" aria-label="${esc(t(lang, "checks.failNote"))}"></textarea>` +
+      `</div>`
     );
   }
   return (

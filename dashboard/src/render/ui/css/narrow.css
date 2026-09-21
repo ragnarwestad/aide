@@ -583,6 +583,13 @@
   .checksunread { padding-left: 0; }
 }
 
+/* The Failed control of an archived row (spec 522), at a phone's width: two
+   halves are too narrow for a sentence, so the control takes a line of its own
+   under the criterion. */
+@media (max-width: 40rem) {
+  .check .failcontrol { flex: 1 0 100%; }
+}
+
 /* A phase's messages unfolded under its line (spec 500), at a phone's
    width: the indent goes, so the text keeps every pixel the box leaves. */
 @media (max-width: 40rem) {

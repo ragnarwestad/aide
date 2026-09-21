@@ -66,6 +66,13 @@ describe("an archived row with criteria waiting for a check has a › of its own
     expect(open).not.toContain('name="unverified"');
   });
 
+  test("the Failed box and its note are one block, the note a five-line text area bounded at 500 (AC-2, AC-3, AC-4)", () => {
+    const block = /<div class="failcontrol">(.*?)<\/div>/s.exec(open)?.[1] ?? "";
+    expect(block).toMatch(/^<label class="unverified"><input type="checkbox" name="failed"/);
+    expect(block).toMatch(/<\/label><textarea class="failnote" name="failnote-0"[^>]* rows="5" maxlength="500"/);
+    expect(open).not.toContain('<input type="text" class="failnote"');
+  });
+
   test("every other row is read-only: no box, and a Failed row shows its note and a Reopen link (AC-4, AC-8)", () => {
     expect(open).not.toContain(`value="${DONE}"`);
     expect(open).not.toContain(`value="${FAILED}"`);

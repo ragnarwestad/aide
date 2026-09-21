@@ -2,6 +2,7 @@
 // whose rows actually differ, and never a row a press is mid-click on
 // (spec 204).
 
+import { drawLimits } from "./limits/index.ts";
 import { offerEachToItsTool, syncAiToModel } from "./ai-sync.ts";
 import { AWAITING, chosen, chosenSteps, checkboxKey, press, selectKey } from "./state.ts";
 
@@ -334,6 +335,7 @@ export async function swapRows(): Promise<void> {
     lastRows = next;
     const wrap = body.querySelector(".tablewrap") as HTMLElement | null;
     if (wrap) wrap.scrollTop = scrolled;
+    drawLimits(body);
     restoreChosen(body);
     // After the restore, never before: a model put back by hand may
     // belong to the other tool, and the list has to follow the value

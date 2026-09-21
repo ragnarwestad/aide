@@ -51,8 +51,16 @@ label.checkbox input { margin: 0; cursor: pointer; }
 .check .unverified input { margin: 0; cursor: pointer; }
 .check .unverified.readonly { color: var(--warn); }
 .check .unverified.readonly.failed { color: var(--danger); }
-/* The note saying what did not hold, beside the Failed box of an archived row. */
-.check .failnote { order: 2; flex: 1 1 12em; min-width: 0; font-size: var(--fs-s); }
+/* The Failed control of an archived row: the Failed box, and under it the note
+   saying what did not hold. It takes the half of the row the criterion leaves
+   (both have a basis of 0, so the two are equal). The note is a text area of five
+   lines that can be dragged to ten and no further — the cap is in the field's own
+   line height, so a change of the tokens moves it with them. */
+.check .failcontrol { order: 2; flex: 1 1 0; min-width: 0; }
+.check .failnote { display: block; width: 100%; box-sizing: border-box; margin-top: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2); border: 1px solid var(--line-strong); border-radius: var(--r-s);
+  background: var(--surface); color: var(--text); font: var(--fs-s)/var(--lh) var(--sans);
+  resize: vertical; max-height: calc(10 * var(--fs-s) * var(--lh) + 2 * var(--sp-1) + 2px); }
 .check .checknote, .check .checktests { order: 3; }
 
 

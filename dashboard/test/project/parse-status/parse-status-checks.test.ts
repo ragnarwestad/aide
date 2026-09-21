@@ -2,7 +2,9 @@ import { describe, expect, test } from "bun:test";
 import {
   acceptanceSectionUnreadable,
   checkStateOf,
+  FAIL_NOTE_MAX,
   failedCount,
+  failNoteTooLong,
   markFailedStatusLine,
   markNotVerifiedStatusLine,
   notVerifiedCount,
@@ -516,5 +518,21 @@ describe("the Failed mark (spec 510)", () => {
     expect(untickStatusLine(file("❌ Failed"), PHASE, line)).toBeNull();
     expect(tickStatusLine(file("❌ Failed"), PHASE, line)).toBeNull();
     expect(markNotVerifiedStatusLine(file("❌ Failed"), PHASE, line)).toBeNull();
+  });
+});
+
+describe("failNoteTooLong (spec 522)", () => {
+  test("the bound is 500 (AC-4)", () => {
+    expect(FAIL_NOTE_MAX).toBe(500);
+  });
+
+  test("500 characters fit, 501 do not (AC-4)", () => {
+    expect(failNoteTooLong("a".repeat(500))).toBe(false);
+    expect(failNoteTooLong("a".repeat(501))).toBe(true);
+  });
+
+  test("a line break counts once, as the browser counts a text area (AC-4)", () => {
+    expect(failNoteTooLong(`${"a".repeat(499)}\r\n`)).toBe(false);
+    expect(failNoteTooLong(`${"a".repeat(500)}\r`)).toBe(true);
   });
 });

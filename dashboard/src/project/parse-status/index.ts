@@ -422,7 +422,7 @@ export function parseStatusChecks(content: string): StatusCheck[] {
 
 export { tickStatusLine, markNotVerifiedStatusLine, untickStatusLine, markFailedStatusLine } from "./row-movers.ts";
 
-export { notVerifiedCount, failedCount, cleanFailNote, checkStateOf, type CheckState } from "./not-verified.ts";
+export { notVerifiedCount, failedCount, cleanFailNote, failNoteTooLong, FAIL_NOTE_MAX, checkStateOf, type CheckState } from "./not-verified.ts";
 
 // What used to live here too, in parts beside this file.
 export { archiveHeldBackReason, acceptanceCriteriaUnticked, acceptanceRowsOf, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, acceptanceStillOpen, archiveHeldBackApplies, clearArchiveHeldBack, roundGate, latestRoundBoundary, reopenedRound } from "./held-back.ts";
