@@ -49,6 +49,17 @@ nav.tabbar.subtabs { display: flex; flex-wrap: wrap; align-items: center; gap: v
    elsewhere on this site. Wraps to its own line, still right-aligned on
    it, once the row no longer fits both groups side by side. */
 nav.tabbar.subtabs > .row { margin-left: auto; flex: 0 0 auto; flex-wrap: nowrap; }
+/* The Settings page alone: its tab row and each tab's own content sit in
+   the middle of the frame, over the phases form `.settingsform` already
+   centres. The hook is the bar's own hrefs rather than a class of its
+   own — the class vocabulary is closed (css-guard-class-vocabulary), and
+   `:has()` is how `narrow.css` already scopes a rule to the page it is
+   about. Every other page's tab bar is untouched: the spec page's own
+   actions ride at its right end. */
+main:has(> nav.tabbar.subtabs a[href^="/settings"]) > nav.tabbar.subtabs {
+  justify-content: center; }
+main:has(> nav.tabbar.subtabs a[href^="/settings"]) > .toolpanel {
+  width: fit-content; margin-inline: auto; }
 /* Narrower than the site's two: seven tabs at 7rem each do not fit a
    laptop, and these labels are one word. They keep the row's own
    rhythm by their padding instead. */
