@@ -7,14 +7,12 @@ import { ARCHIVED_OPEN_STATE, ARCHIVED_STATE, CLOSED_STATE, isFinishedGroup, typ
 
 // "Failed" holds everything that did not simply finish and did not
 // merely stop on its own terms — a cap-stop reads differently from a
-// crash, which is why "Stopped" is its own chip beside this one.
+// crash, which is why "Stopped" is its own entry beside this one.
 //
-// "Active" is FIRST, and that position is the whole of what makes
-// it the default: `stateFilter` falls back to `STATE_FILTERS[0]`, so
-// moving it changes the default filter for every reader. It held "All"
-// until spec 221 folded the archive onto this list — at which point
-// "All" started meaning all, archived specs included, and the reading
-// view every tab sits on needed a chip of its own to be.
+// The FIRST entry is the default: `stateFilter` falls back to
+// `STATE_FILTERS[0]`, so moving one changes the default filter for
+// every reader. "All" holds that place — see the array itself, which
+// says why — and "Active" is the entry beside it for the reading view.
 //
 // `excludeStates` exists for that one entry and no other. An allow-list
 // cannot say "every state but this one" without naming every job state

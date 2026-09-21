@@ -136,10 +136,10 @@ function reopenForm(g: SpecGroup, opts: SpecsPageOptions, lang: Language): strin
 // greyed-out invitation. There was a third, Resolve, until spec 171
 // folded resolving into `archive`.
 //
-// It sits in the State column now, after the badge, because the badge
-// already answers what is happening or what can happen next (spec 132)
-// and the button completes that sentence: "archive held back ·
-// Implement", "implementing · Cancel". It used to be a stack
+// It sits in the State column of the caption line, under the badge the
+// head row carries: the badge already answers what is happening or what
+// can happen next (spec 132) and the button completes that sentence —
+// "archive held back · Implement", "implementing · Cancel". It used to be a stack
 // of buttons in a cell of its own — a COLUMN at the front of the table
 // in spec 124, which pushed every other column sideways, then the spec
 // column's own cell spanning the phase lines (2026-08-19). Both were

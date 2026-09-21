@@ -197,18 +197,14 @@ export function specHeadRow(
     `</td>` +
     // The badge says what is happening, or — once nothing is — the
     // resting state and what can happen next (spec 132). A sentence
-    // under it said what to press until spec 174: the button beside it
-    // names the phase it would run, so the line was telling a reader to
-    // press the control they were looking at, to do what it already
-    // said. The pips and the badge each answer a narrower question of
-    // their own.
+    // under it said what to press until spec 174: the control names the
+    // phase it would run, so the line was telling a reader to press what
+    // they were looking at, to do what it already said. The pips and the
+    // badge each answer a narrower question of their own.
     //
-    // The row's one button stands beside the badge since spec 157,
-    // completing the sentence it starts: "archive held back ·
-    // Implement". They share the page's own `row` container, so the
-    // gap between them is declared once and the button drops to a line
-    // of its own when the column runs out of width, rather than
-    // widening the table (`.tablewrap` would scroll instead).
+    // No button stands here: the row's one action rides the caption line
+    // inside the fold (`phase-rows.ts`), so this row is information and
+    // nothing else.
     // `.badgeslot` mirrors `.actionslot`: an invisible holder that can
     // reserve a width (mobile does) without stretching the pill inside
     // it — a min-width on the badge itself widened the coloured pill
