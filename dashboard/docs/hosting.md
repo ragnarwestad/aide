@@ -23,6 +23,7 @@ Two pages sit beside this one:
 - [Running it without a second host](#running-it-without-a-second-host)
 - [Keeping the host's specs current](#keeping-the-hosts-specs-current)
 - [Reviewing what an unattended run writes](#reviewing-what-an-unattended-run-writes)
+- [Not written down yet](#not-written-down-yet)
 - [Known gaps](#known-gaps)
 
 ---
@@ -327,6 +328,21 @@ grep -E "LLM code review|reviews took|empty review set" ~/.claude/security/log.t
 `empty review set` means the turn changed no files, which is the ordinary answer for a turn that only ran git.
 A line naming the review and one saying how long it took is a real run, and the log is where to see what the
 extra seconds per file-writing turn come to inside a step's own time limit.
+
+## Not written down yet
+
+What an operator needs and will not find here, or anywhere else in these pages:
+
+- **Backup and restore.** The host owns state nothing else has: `queue.json` and the other mirrors, the jobs
+  directory, the checkouts, the worktrees. Nothing says which of it is precious, which regenerates itself, or how
+  to take a copy.
+- **How the host authenticates.** The runs use an AI account and push over git; a keychain that locks after a
+  reboot is the classic unattended failure, and nothing here says how to check either.
+- **A health check.** `GET /api/version` answers with the commit the service booted, and that is the whole of it:
+  no liveness check, and nothing on what launchd does when the process dies.
+- **Disk growth.** `serve.log`, `~/.claude/security/log.txt`, the jobs directory, `pdf-cache`, `round-logs` and the
+  worktrees all grow, and nothing prunes any of them.
+- **Decommissioning a host.** Stopping the job is `launchctl bootout`; what to remove afterwards is not written.
 
 ## Known gaps
 
