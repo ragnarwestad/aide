@@ -28,13 +28,16 @@ The code is `transitions.json`, read in bash by `may_apply_spec_transition`
 ## Table of contents
 
 - [The four phases](#the-four-phases)
+- [One spec, from first to last](#one-spec-from-first-to-last)
 - [What "has had a phase" means](#what-has-had-a-phase-means)
 - [The transitions](#the-transitions)
-- [What holds a phase back](#what-holds-a-phase-back)
+- [When a spec stops, and what moves it on](#when-a-spec-stops-and-what-moves-it-on)
+- [How a hold works](#how-a-hold-works)
 - [Where the work is between phases](#where-the-work-is-between-phases)
 - [Another round on the same spec](#another-round-on-the-same-spec)
 - [Going backwards: reopen](#going-backwards-reopen)
 - [Closing: a different terminal move from archive](#closing-a-different-terminal-move-from-archive)
+- [Which button a row offers](#which-button-a-row-offers)
 - [What the list makes of it](#what-the-list-makes-of-it)
 
 ---
@@ -51,6 +54,27 @@ The code is `transitions.json`, read in bash by `may_apply_spec_transition`
 Other steps exist — `explore`, `manifest`, `schedule`, `reopen`, `close` — but they are not phases: none of
 them appears in the workflow arc. `close` and `reopen` do move a spec between STATES, which is why they have rows
 in the transition table and lines on a spec's row once they have run; they simply do not move it along the arc.
+
+## One spec, from first to last
+
+A spec for a change to the dashboard, run on the board, with nothing going wrong:
+
+1. **New spec.** You fill in the form: the project, a title, a description, and the four phases left ticked. The
+   job is queued under a provisional name, and the list shows a create running.
+2. **Create lands.** The folder gets its number and slug when its branch is merged — `512-a-project-keeps-nothing`
+   — and the spec has a row from that moment. Its state is `created`.
+3. **Analyze runs**, writes `2-analysis.md` and `3-solution.md` with the acceptance criteria, and lands them in the
+   specs repository. The state is `analyzed`, and the row's button now reads Implement.
+4. **Implement runs**, writes the code and its tests on `aide/512-…`, and the runner holds it to the project's own
+   suite: green ends the step, red goes back to the same session twice before the step fails. Nothing is merged —
+   the code waits on the branch. The state is `implemented`.
+5. **Archive is held back.** The spec has acceptance criteria, so the job ends `done` without running anything, and
+   the row says so. You read the result, tick the rows on the Status tab, and press Archive.
+6. **Archive runs and lands.** The folder moves into `archive/`, the documentation feedback is written, and the
+   landing merges the code into the default branch once the project's tests pass on the merged result. The state is
+   `archived`, and the row leaves the active list.
+
+Anything that goes differently is one of the rows in [When a spec stops, and what moves it on](#when-a-spec-stops-and-what-moves-it-on).
 
 ## What "has had a phase" means
 
@@ -186,7 +210,30 @@ asks origin whether `aide/<folder>` is still there. A root that still holds it i
 job goes `failed` with `errorReason: "unlanded"`, and the spec keeps a row on the default view wearing "not landed"
 until `archive` is run again — see [Branches and landing](landing.md).
 
-## What holds a phase back
+## When a spec stops, and what moves it on
+
+Every stop writes its own sentence onto the spec's row, and most of them end by naming the button to press. This
+is the whole set:
+
+| What the row says                     | What happened                                                                      | What moves it on                                                    |
+|---------------------------------------|------------------------------------------------------------------------------------|---------------------------------------------------------------------|
+| held back: not analyzed yet           | The spec has not analyzed, and implement needs a plan                              | Run Analyze                                                         |
+| held back: depends on `<spec>`        | A spec it names has not archived yet                                               | Nothing. It starts itself once that spec archives                   |
+| held back: another archive is running | A second archive in the same project is ahead of it                                | Nothing. It starts when that one has merged                         |
+| archive held back                     | A row under `## Acceptance criteria` is still open                                 | Tick the rows on the Status tab, then press Archive                 |
+| stopped: no-progress                  | The step said it succeeded but changed nothing in the project                      | Press the same button again                                         |
+| stopped: merge-unfinished             | The step dropped the merge with the default branch it was handed open              | Press the same button again                                         |
+| stopped: scope-violation              | The step wrote outside its own spec folder, or claimed a step it did not run       | Press the same button again                                         |
+| stopped: tests-red                    | The project's suite is red, after the runner gave the session two more turns at it | Make the suite green, then press Implement                          |
+| stopped: timeout                      | The step reached its own time limit                                                | Press the same button again; the work it committed is on the branch |
+| not landed                            | Archive finished, but the spec's branch is still on origin                         | Run Archive again                                                   |
+| conflict                              | A merge conflict no machine could settle                                           | Resolve it yourself, with the diff in front of you                  |
+
+An archived or closed spec refuses every step but Reopen, whatever is ticked on its row.
+
+## How a hold works
+
+Three of the rows above are holds rather than stops: nothing failed, and the job is still queued.
 
 - **A dependency.** `Depends on:` in `1-description.md` names other specs. `implement` and `archive` are held back
   while any of them still has a branch on origin carrying commits the default branch does not — which is until that
@@ -281,6 +328,15 @@ writes a
 that the work will not be used, not that it was. **Whatever code that branch held is gone with it**, and a later
 reopen does not bring it back — the spec's four files return, the code does not. A closed spec reads `closed`, never `archived`, everywhere a spec's
 state is shown, and only `reopen` is legal on it afterward — the same one-step exception `archived` already has.
+
+## Which button a row offers
+
+The row carries one control at a time, on the caption line inside the fold. While nothing of the spec is running it
+is the run button, **labelled with the phase it would run** — Analyze, Implement, Archive — and greyed out, still
+named, when that phase is unticked. While a step runs it is Cancel instead, and while `create` runs there is no
+button at all: cancelling it would throw away the title and the description with no spec left to run again from.
+
+An archived or closed row has one control only, **Reopen**, since the server refuses every other step for it.
 
 ## What the list makes of it
 
