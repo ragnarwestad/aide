@@ -18,7 +18,7 @@ The queue behind the rows is on [Running specs](running-specs.md); how a step's 
 - [A phase's own transcript](#a-phases-own-transcript)
 - [Which tests prove a criterion](#which-tests-prove-a-criterion)
 - [Plain forms first](#plain-forms-first)
-- [How the list reads](#how-the-list-reads)
+- [The create line, and the pips](#the-create-line-and-the-pips)
 - [A failed create](#a-failed-create)
 - [Filtering and searching the list](#filtering-and-searching-the-list)
 - [Changing a running job's tail](#changing-a-running-jobs-tail)
@@ -32,13 +32,25 @@ The queue behind the rows is on [Running specs](running-specs.md); how a step's 
 
 ## The row, open and shut
 
-One way in: the spec's own row. Shut is the default, and a shut row carries no control but the one that opens it:
-a chevron in front of the spec's name. Opening is a link — it adds the spec's key to `?open=<project>/<folder>,…`,
-which is what makes it survive the table's own row refresh and work with JavaScript switched off.
+One row per spec, not per job, and shut by default. A shut row shows the spec's name and title, one status line,
+the phase pips, how long its phases have taken, what they cost and when it was created — and carries no control
+but the one that opens it: a chevron in front of the name. Under the name sits the row's notice line, and under
+that, when the spec has one, the `N not verified` line. Both belong to the shut row, so a reader sees what went
+wrong without opening it.
 
-A shut row shows the spec's name, its state, how long its phases have taken, what they cost, and when it was
-created. Under the name sits the row's notice line, and under that, when the spec has one, the `N not verified`
-line. Both belong to the shut row, so a reader sees what went wrong without opening it.
+Opening is a link, and lives in the query string (`?open=<project>/<folder>,…`). That is what makes it survive
+the table's own row refresh, work with JavaScript switched off, and keep a row the reader just acted on open
+across the redirect that follows their own submit.
+
+An open row reveals the workflow phases underneath, always in that order, so how far a spec has got is readable
+without counting rows. The phase lines sit directly under the row; its message rows — held-back, refusal, info
+line — come after them. A phase never run shows a muted "not run yet". A phase run more than once shows its LATEST
+attempt with the count beside it, because a re-run is ordinary.
+
+The header carries what belongs to the spec rather than to one run, shut or open: the summed cost, one link per
+repo the spec pushed to, and the state that matters most right now — whatever is in flight, else the most recent
+outcome. It carries no button: the row's one action is on the caption line inside the fold, once per spec rather
+than once per job.
 
 ## The row's controls
 
@@ -189,17 +201,7 @@ never a click away from learning that nothing here can spend money.
 The page is called Specs, not Queue. That a queue orders the runs is an implementation detail — `QueueStore`,
 `/api/queue`, `QUEUE_PROJECTS` and the rest keep the name; what a reader reads does not.
 
-## How the list reads
-
-One row per spec, not per job, and collapsed by default: name, title, one status line and the phase pips.
-Expanding it — the chevron in front of the name, `?open=…` — reveals the workflow phases underneath, always in
-that order, so how far a spec has got is readable without counting rows, and with them the run controls: a tick
-box, an AI select and a model select per phase, and the action on the caption line above them. The phase lines sit
-directly under the row; its message rows — held-back, refusal, info line — come after them. A phase never run
-shows a muted "not run yet". A phase run more than once shows its LATEST attempt with the count beside it, because a
-re-run is ordinary. Expanding is a link and lives in the query string (`?open=<project>/<folder>,…`), which is what
-makes it survive the table's own row refresh, work with JavaScript switched off, and keep the row a user just acted
-on open across the redirect that follows their own submit.
+## The create line, and the pips
 
 The first line is `create` — history, not a control. It reads done once `4-status.md` records it, which is
 what `/aide-create`
@@ -227,11 +229,6 @@ spinner, a different fact with a different lifetime (see [what the script adds](
 `prefers-reduced-motion` is honoured here: `.pip.now` drops the animation and holds
 `--accent` still, so a machine set to reduce motion still tells a running phase from a waiting one, just without the
 movement.
-
-The header carries what belongs to the spec rather than to one run, collapsed or expanded: the summed cost, one
-link per repo the spec pushed to, and the state that matters most right now — whatever is in flight, else the most
-recent outcome. It carries no button: both Run and Cancel are on the caption line inside the fold, once per spec
-rather than once per job.
 
 Filtering and sorting work on the spec's grouped jobs. "Active" means the spec has something in flight; sorting by
 cost sorts on the sum. A step outside the four (`explore`, `create`, `manifest` — valid steps the form does not offer)

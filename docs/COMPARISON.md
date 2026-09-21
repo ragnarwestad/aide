@@ -95,25 +95,27 @@ of its own, under a time limit, on a model chosen for that step. A worktree is a
 repository on a branch of its own, so a run never touches the checkout anyone else is using. The job's row on the
 dashboard records the model, the cost, the token count and the reason each step ended. A step running unattended
 has nobody to ask, so a step that needs a decision writes the question into the spec's own files and finishes
-without the answer.
+without the answer. The queue and its limits are in
+[Running specs](../dashboard/docs/running-specs.md); what a run does to the repositories is in
+[The runner and its checkouts](../dashboard/docs/the-runner.md).
 
 **Code handling.** Aide calls this landing. Each step works on the branch `aide/<spec-folder>`, and when a step
 ends the dashboard lands what that step produced. Analyze, close and reopen copy the spec's own folder onto the
 default branch and leave the rest of the branch alone. Implement lands nothing: its code stays on the branch
 until the archive step, which merges the branch into the default branch and deletes it on origin. Code therefore
-reaches the default branch through archive alone. Before a merge is pushed, the project's test suite runs on the merged result in a
-throwaway worktree, and a failing run stops the job with nothing merged. An implement step is held to the same
-suite: a failing run goes back to the same session at most twice, and the step then ends as failed. With
-`codeLanding: pr` in the project's settings, the code branch is left open as a pull request instead, for someone to
-review and merge. Run by hand, the skills run the tests themselves, and what to do about a failure — and when to merge — is the
-person's.
+reaches the default branch through archive alone. Before a merge is pushed, the project's test suite runs on the
+merged result, and a failing run stops the job with nothing merged. With `codeLanding: pr` in the project's
+settings, the code branch is left open as a pull request instead, for someone to review and merge. Run by hand,
+the skills run the tests themselves, and what to do about a failure — and when to merge — is the person's.
+[Branches and landing](../dashboard/docs/landing.md) has the merge, the conflicts and the test gate in full.
 
 **Invasiveness.** In the working tree, two file sets, and both can be kept out. The first is the project's
 settings: name, description, test command, worktree links — the gitignored directories a run has to borrow, such
 as `node_modules` — and the `codeLanding` choice. The dashboard stores them next to the clones it keeps, and
 writes them into the project only where `.aide/project.yaml` is committed there already, a file a team that has
-adopted Aide writes itself with the `/aide-manifest` skill or by hand. `.aide/config`, which holds one machine's
-own settings, is never committed. The second set is the spec folders, which go in `specs/` unless
+adopted Aide writes itself with the `/aide-manifest` skill or by hand — see
+[Projects](../dashboard/docs/projects.md). `.aide/config`, which holds one machine's own settings, is never
+committed. The second set is the spec folders, which go in `specs/` unless
 `AIDE_SPECS_PATH` points at a specs repository. The workflow itself is never installed into a project, since the
 skills live in the user's home directory.
 

@@ -170,4 +170,4 @@ as "ready for <next phase>" or "done — nothing waiting on you"; `stopped` as "
 "stopped — provider limit"; `failed` with `errorReason` as the conflict or the unlanded branch
 and the button that re-runs `archive`. `cancelled` is drawn amber like `stopped` — a step somebody stopped by hand, not a failure and not a step that never ran; `interrupted` is
 grouped with `failed`. The words themselves live in `src/render/ui/job-state/` and are described on
-[The specs list and the spec page](the-specs-list.md#how-the-list-reads).
+[The specs list and the spec page](the-specs-list.md#the-state-column).
