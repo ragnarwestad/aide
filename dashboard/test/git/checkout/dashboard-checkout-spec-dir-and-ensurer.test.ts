@@ -11,7 +11,11 @@
 // after it asked.
 
 import { describe, expect, test } from "bun:test";
-import { CheckoutEnsurer, dashboardSpecDir, type DashboardCheckout } from "../../../src/git/dashboard-checkout.ts";
+import {
+  dashboardSpecDir,
+  type DashboardCheckout,
+} from "../../../src/git/dashboard-checkout.ts";
+import { CheckoutEnsurer } from "../../../src/git/checkout-ensurer.ts";
 
 describe("dashboardSpecDir", () => {
   // What Save and Update need: the display found a spec folder in the

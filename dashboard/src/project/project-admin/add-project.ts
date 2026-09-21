@@ -2,12 +2,11 @@
 // settings in the dashboard's own file, and point it at its specs root
 // if one was named.
 
-import { existsSync, mkdirSync, statSync, symlinkSync } from "node:fs";
+import { existsSync, mkdirSync, symlinkSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import type { GitRunner } from "../../git/branch-status.ts";
 import { dashboardCheckoutRoot, dashboardProjectsRoot, dashboardSettingsFile } from "../../git/dashboard-checkout.ts";
 import {
-  addProjectTarget,
   minimalManifest,
   projectNameError,
   worktreeLinksError,
@@ -86,14 +85,19 @@ export async function addProject(
   checkoutBase?: string,
 ): Promise<ProjectAdminResult> {
   const gitUrl = req.gitUrl?.trim();
-  const { name, existingPath } = addProjectTarget(projectsRoot, req);
+  const name = req.name?.trim() ?? "";
   const nameError = projectNameError(name);
   if (nameError) return fail("name", nameError);
-  if (!gitUrl && !existingPath) {
-    return fail("name", "say where the project comes from: a git URL, or a path already on this host");
-  }
-  if (gitUrl && existingPath) {
-    return fail("name", "give a git URL or a path already on this host, not both");
+  // The one way in. A project used to be addable by naming a directory
+  // already on the host, and the two layouts that left behind are what
+  // made a delete in `ensureDashboardCheckout` destroy woodstack on
+  // 2026-09-21: for a cloned project the entry under the projects root
+  // IS the dashboard's own checkout, for a registered one it was the
+  // person's, and one line could not be right about both. One layout
+  // now: every project is cloned, and the entry is always the
+  // dashboard's own.
+  if (!gitUrl) {
+    return fail("name", "say where the project comes from: its git address, which the dashboard clones");
   }
 
   const steps: ProjectStep[] = [{ step: "name", ok: true }];
@@ -104,7 +108,7 @@ export async function addProject(
     return done();
   };
 
-  if (gitUrl) {
+  {
     // Before the clone, never after: git would refuse a non-empty
     // destination anyway, but not in words anybody wants to read, and
     // an empty one it would happily fill.
@@ -144,22 +148,6 @@ export async function addProject(
       }
     }
     steps.push({ step: "clone", ok: true });
-  } else {
-    // A project is discovered as a DIRECTORY under the projects root
-    // (`discover.ts`), so a checkout anywhere else is one this dashboard
-    // could never list. Said in those words rather than silently
-    // registering something invisible.
-    if (resolve(existingPath!) !== resolve(dir)) {
-      return stop(
-        "register",
-        `a project is found as a directory under ${projectsRoot}, so "${name}" has to be ` +
-          `${dir} — not ${existingPath}`,
-      );
-    }
-    if (!existsSync(dir) || !statSync(dir).isDirectory()) {
-      return stop("register", `there is no directory at ${dir}`);
-    }
-    steps.push({ step: "register", ok: true });
   }
 
   // A project keeps nothing of Aide's in its repository. What Add would

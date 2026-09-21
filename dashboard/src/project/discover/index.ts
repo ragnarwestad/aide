@@ -26,6 +26,6 @@ export { specDependsOn, stripDependsOnLine, withDependsOnLine } from "./depends-
 export { specAcceptanceNotRequired, stripAcceptanceLine, withAcceptanceLine } from "./acceptance.ts";
 
 export {
-  discoverProjects, discoverUnclaimedDirectories, manifestInside, gitignoreCandidates, buildProjectViews,
+  discoverProjects, manifestInside, gitignoreCandidates, buildProjectViews,
   type SpecRef, type DiscoveredProject, type OwnedSpecsRoot, type ManifestFallback, type SpecView, type ProjectView,
 } from "./scan.ts";

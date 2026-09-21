@@ -20,6 +20,7 @@ export const es: Record<TranslationKey, string> = {
   "shell.restartWaiting": "El despliegue espera a {jobs}; el servicio se reinicia cuando terminen.",
   "shell.installWarning": "la última instalación de aide encontró un problema: {problem} — la salida completa está en {path}",
   "shell.toolFault": "{tool}: {problems} — abre Settings y pulsa Check en esa pestaña",
+  "shell.checkoutFault": "{project}: el panel no puede usar su propia copia — {said}",
   "shell.overlayDeploying": "desplegando…",
   "shell.overlayResetting": "restableciendo…",
   "shell.overlayClosing": "cerrando…",

@@ -126,7 +126,6 @@ export interface ProjectsPageOptions {
    *  — what "…or a path on this host" picks from (spec 131). Bare
    *  names: the pick settles the project's name as well as where it is,
    *  and the server resolves it against the same root. */
-  existingCheckouts?: string[];
   /** Gitignored paths read off those checkouts' own `.gitignore` files
    *  (spec 140) — what the Worktree links field suggests. The union
    *  across every offered checkout, deduped: the field is filled in
@@ -181,7 +180,6 @@ export interface ProjectsPageOptions {
    *  goes straight into the fields, which is what makes the help work
    *  with no script at all; with several, the map rides on the form and
    *  the pick fills them in. */
-  proposalsByCheckout?: Record<string, { specsPath: string; worktreeLinks: string }>;
   /** Spec 408. Absent means English — the same default `pageShell`'s
    *  own `opts.lang` falls back to. */
   lang?: Language;
@@ -253,17 +251,6 @@ export function renderAddProjectPage(
   generatedAt: string,
   opts: ProjectsPageOptions,
 ): string {
-  // With exactly one checkout on offer the proposals are unambiguous and
-  // go into the fields themselves — the one case a browser with no
-  // script gets the help too. With several, nothing has been picked yet
-  // and a value filled in for one of them would be a claim about which.
-  const offered = opts.existingCheckouts ?? [];
-  const proposals = opts.proposalsByCheckout ?? {};
-  const only = offered.length === 1 ? proposals[offered[0]!] : undefined;
-  const prefill = (field: "specsPath" | "worktreeLinks"): string => {
-    const proposed = only?.[field] ?? "";
-    return proposed ? `value="${esc(proposed)}" ` : "";
-  };
   const body =
     backLink("/projects", "Add project") +
     (opts.error ? rowMessage("failed", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
@@ -277,50 +264,25 @@ export function renderAddProjectPage(
         "deployment and docs.",
       { tag: "p" },
     ) +
-    `<form method="post" action="/api/queue/projects" class="newspecform addprojectform"` +
-    (Object.keys(proposals).length ? ` data-proposals="${esc(JSON.stringify(proposals))}"` : "") +
-    `>` +
+    `<form method="post" action="/api/queue/projects" class="newspecform addprojectform">` +
     `<span class="frow">` +
     field(
       "Name",
-      // Not `required`: picking a checkout with Name left blank is a
-      // whole submission on its own, and a browser with no script would
-      // refuse to send it. `pattern` does not gate an empty value on
-      // its own, so nothing the pattern rejected is admitted here —
-      // only the empty string, which the server still refuses when
-      // nothing was picked either.
-      `<input type="text" name="name" maxlength="64" ` +
+      // A project's name IS its directory name (spec 140), and here it
+      // names the directory the clone is about to make.
+      `<input type="text" name="name" maxlength="64" required ` +
         `pattern="[A-Za-z0-9][A-Za-z0-9._-]*" ` +
-        // Spec 140: a project's name IS its directory name, so a Name
-        // typed beside a picked checkout settles nothing — the pick
-        // wins. The field carries a real choice on the clone path
-        // alone, where it names the directory about to be made, and it
-        // says so rather than letting a reader type a name that gets
-        // quietly replaced.
-        `placeholder="only when cloning from a Git URL — a picked checkout names itself">`,
+        `placeholder="the directory the clone makes under the projects root">`,
     ) +
     field(
       "Git URL",
-      `<input type="text" name="gitUrl" maxlength="300" placeholder="cloned under the projects root">`,
+      `<input type="text" name="gitUrl" maxlength="300" required placeholder="cloned under the projects root">`,
     ) +
     `</span>` +
     `<span class="frow">` +
     field(
-      // Picked, never typed (spec 131): the server accepts exactly one
-      // path for a given name, and it is the one it worked out itself.
-      // A real `<select>`, because this page works with no script.
-      "…or a path on this host",
-      opts.existingCheckouts?.length
-        ? `<select name="existingPath"><option value=""></option>` +
-          opts.existingCheckouts.map((d) => `<option value="${esc(d)}">${esc(d)}</option>`).join("") +
-          `</select>`
-        : `<select name="existingPath" disabled>` +
-          `<option value="">no checkouts found under the projects root</option></select>`,
-    ) +
-    field(
       "Specs root",
       `<input type="text" name="specsPath" maxlength="300" ` +
-        prefill("specsPath") +
         `placeholder="optional — its own specs/ otherwise">`,
     ) +
     // The same choice the project page's Edit offers, asked here so a
@@ -346,22 +308,11 @@ export function renderAddProjectPage(
       // has nothing to do with its change. Nothing can derive which
       // paths those are, so the form asks.
       "Worktree links",
+      // No suggestion list here, unlike the project page's own Edit: the
+      // candidates are read from a checkout's `.gitignore`, and the
+      // project being added has no checkout on this host yet.
       `<input type="text" name="worktreeLinks" maxlength="300" ` +
-        prefill("worktreeLinks") +
-        // Spec 140: nothing can derive WHICH gitignored paths a project's
-        // commands need — but the checkout's own `.gitignore` names the
-        // candidates, and the reader had to go and open it. A
-        // `<datalist>` is a suggestion the browser offers and the reader
-        // may ignore, and it needs no script, which every control on
-        // this page manages without. Absent when there is nothing to
-        // suggest: an empty list is a control that opens onto nothing.
-        (opts.worktreeLinkCandidates?.length ? `list="wtlinks" ` : "") +
-        `placeholder="optional — gitignored paths a run must link in: node_modules .venv">` +
-        (opts.worktreeLinkCandidates?.length
-          ? `<datalist id="wtlinks">` +
-            opts.worktreeLinkCandidates.map((c) => `<option value="${esc(c)}">`).join("") +
-            `</datalist>`
-          : ""),
+        `placeholder="optional — gitignored paths a run must link in: node_modules .venv">`,
       { wide: true },
     ) +
     `</span>` +

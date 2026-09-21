@@ -16,6 +16,7 @@ import { AT, NAV, page, project } from "./projects-page-fixtures.ts";
 // allowlisted row carries its own Remove linking to a confirm page.
 
 describe("the Add button and the Remove links on /projects", () => {
+
   test("the project link marks the whole row while Remove stays a separate anchor", () => {
     const html = page([project("aide")], { createProjects: ["aide"] });
     expect(html).toContain('<a class="proj-row-link" href="/projects/aide">aide</a>');
@@ -65,12 +66,21 @@ describe("the Add page", () => {
     expect(html).toContain('action="/api/queue/projects"');
     expect(html).toContain('name="name"');
     expect(html).toContain('name="gitUrl"');
-    expect(html).toContain('name="existingPath"');
     expect(html).toContain('name="specsPath"');
     expect(html).toContain('name="description"');
     // The same refusal slot the New-spec form has, and for the same
     // reason: a project that was never added has no row to land on.
     expect(html).toContain('class="refused rowmsg failed"');
+  });
+
+  // 2026-09-21: a git address is the only way in, so the form has no
+  // "…or a path on this host" picker any more. A project used to be
+  // addable by naming a directory already on the host, which left two
+  // layouts for one line of delete code to be right about.
+  test("there is no picker for a path already on this host", () => {
+    const html = add();
+    expect(html).not.toContain("existingPath");
+    expect(html).not.toContain("or a path on this host");
   });
 
   // Spec 252: the bottom Cancel beside Save is gone — the top-left
@@ -105,29 +115,6 @@ describe("the Add page", () => {
     expect(add({ error: "the name is already taken" })).toContain("The name is already taken");
   });
 
-  // Spec 131: "…or a path on this host" asked for a path the reader had
-  // no way to know — the server accepts exactly one, and it follows from
-  // the projects root and the name. It picks from the host's own
-  // manifest-less directories now, and it is still a real form control,
-  // because this page works with no script at all.
-  // Criterion 3.
-  test("the checkouts already on the host are picked, not typed", () => {
-    const html = add({ existingCheckouts: ["atlasaurus", "scratch"] });
-    expect(html).toContain('<select name="existingPath">');
-    expect(html).toContain('<option value="atlasaurus">atlasaurus</option>');
-    expect(html).toContain('<option value="scratch">scratch</option>');
-    // Nothing picked stays representable, the way an empty box was.
-    expect(html).toContain('<option value=""></option>');
-  });
-
-  // Criterion 4.
-  test("no checkouts to offer is said in words, on a control that is still there", () => {
-    const html = add({ existingCheckouts: [] });
-    expect(html).toContain('name="existingPath"');
-    expect(html).toContain("<select");
-    expect(html).toContain("disabled");
-    expect(html).toContain("no checkouts found under the projects root");
-  });
 
   // Picking a checkout with Name left blank is a whole submission on its
   // own — a `required` Name would let no browser send it.

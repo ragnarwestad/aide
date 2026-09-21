@@ -37,7 +37,10 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
 
   /** A git that answers for a checkout which is its own root, clean, on
    *  its default branch — with `answers` layered over it. */
-  const readyGit = (answers: Record<string, { code: number; stdout?: string }> = {}) =>
+  /** `brings` is what the clone puts in the checkout it makes — a
+   *  project is added by its git address now, so anything a test needs
+   *  the checkout to hold arrives with the clone. */
+  const readyGit = (answers: Record<string, { code: number; stdout?: string }> = {}, brings: string[] = ["specs"]) =>
     async (at: string, args: string[]) => {
       const joined = args.join(" ");
       for (const [prefix, a] of Object.entries(answers)) {
@@ -45,7 +48,9 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
       }
       const clone = args.indexOf("clone");
       if (clone !== -1) {
-        mkdirSync(join(at, args[clone + 2]!), { recursive: true });
+        const dest = join(at, args[args.length - 1]!);
+        mkdirSync(dest, { recursive: true });
+        for (const path of brings) mkdirSync(join(dest, path), { recursive: true });
         return { code: 0, stdout: "" };
       }
       if (joined.startsWith("rev-parse --show-toplevel")) return { code: 0, stdout: `${at}\n` };
@@ -62,19 +67,17 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
   // Criterion 10: additive. A caller that reads `ok`, `project` and
   // `results` sees exactly what it saw before.
   test("a successful add carries readiness beside the steps it always carried", async () => {
-    const { base, dir } = start({ gitRun: readyGit() });
-    const path = join(dir, "root", "ready-one");
-    mkdirSync(join(path, "specs"), { recursive: true });
+    const { base } = start({ gitRun: readyGit() });
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       headers: AUTH,
-      body: JSON.stringify({ name: "ready-one", existingPath: path }),
+      body: JSON.stringify({ name: "ready-one", gitUrl: "https://example.com/ready-one.git" }),
     });
     expect(res.status).toBe(200);
     const body = (await res.json()) as StepBody;
     expect(body.ok).toBe(true);
     expect(body.project).toBe("ready-one");
-    expect(body.results.map((r) => r.step)).toEqual(["name", "register", "manifest", "allowlist"]);
+    expect(body.results.map((r) => r.step)).toEqual(["name", "clone", "manifest", "allowlist"]);
     expect(body.readiness!.canRun).toBe(true);
     expect(body.readiness!.note).toContain("ready to run");
   });
@@ -82,16 +85,15 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
   // Criterion 10, the other half: the two answers are independent. This
   // is Skjer — added, allowlisted, and unable to run.
   test("registration succeeds while the run is blocked, and the answer says both", async () => {
-    const { base, dir } = start({ gitRun: readyGit() });
     // No specs root, and none named on the form — one of the four
     // things that refused the real Skjer, and the one still left of
     // them that a bare Add cannot put right itself.
+    const { base, dir } = start({ gitRun: readyGit({}, []) });
     const path = join(dir, "root", "skjer");
-    mkdirSync(path, { recursive: true });
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       headers: AUTH,
-      body: JSON.stringify({ name: "skjer", existingPath: path }),
+      body: JSON.stringify({ name: "skjer", gitUrl: "https://example.com/skjer.git" }),
     });
     // 200: the registration DID complete, and a 400 would tell an API
     // caller to try it again against a checkout that is already there.
@@ -111,14 +113,13 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
   // Criterion 11, the no-JavaScript half: the result cannot be left in a
   // response body the redirect throws away.
   test("a form POST carries the whole readiness answer to the page it lands on", async () => {
-    const { base, dir } = start({ gitRun: readyGit() });
+    const { base, dir } = start({ gitRun: readyGit({}, []) });
     const path = join(dir, "root", "noscript");
-    mkdirSync(path, { recursive: true });
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       redirect: "manual",
       headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ name: "noscript", existingPath: path }),
+      body: new URLSearchParams({ name: "noscript", gitUrl: "https://example.com/noscript.git" }),
     });
     expect(res.status).toBe(303);
     const location = res.headers.get("location")!;
@@ -145,13 +146,16 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
   // and `.aide/config` is dropped by a global ignore rule, so a clone
   // arrived on the next machine with the answer gone.
   test("worktree links are written to the dashboard's settings file, not the project", async () => {
-    const { base, dir } = start({ gitRun: readyGit() });
+    const { base, dir } = start({ gitRun: readyGit({}, ["specs", "node_modules"]) });
     const path = join(dir, "root", "withlinks");
-    mkdirSync(join(path, "node_modules"), { recursive: true });
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       headers: AUTH,
-      body: JSON.stringify({ name: "withlinks", existingPath: path, worktreeLinks: "node_modules" }),
+      body: JSON.stringify({
+        name: "withlinks",
+        gitUrl: "https://example.com/withlinks.git",
+        worktreeLinks: "node_modules",
+      }),
     });
     expect(res.status).toBe(200);
     expect(readFileSync(join(dir, "owned", "withlinks", "settings.yaml"), "utf-8")).toContain(
@@ -162,13 +166,15 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
   });
 
   test("a worktree link that would leave the repository is refused", async () => {
-    const { base, dir } = start({ gitRun: readyGit() });
-    const path = join(dir, "root", "badlinks");
-    mkdirSync(path, { recursive: true });
+    const { base } = start({ gitRun: readyGit() });
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       headers: AUTH,
-      body: JSON.stringify({ name: "badlinks", existingPath: path, worktreeLinks: "../escape" }),
+      body: JSON.stringify({
+        name: "badlinks",
+        gitUrl: "https://example.com/badlinks.git",
+        worktreeLinks: "../escape",
+      }),
     });
     expect(res.status).toBe(400);
     const body = (await res.json()) as StepBody;

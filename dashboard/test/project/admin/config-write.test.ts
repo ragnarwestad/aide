@@ -7,11 +7,11 @@ import { tmpdir } from "node:os";
 // unchanged and keep their names.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { addProject } from "../../../src/project/project-admin";
 import { configValue, resolveWorktreeLinks } from "../../../src/project/discover";
-import { fakeGit } from "../../helpers/fake-git.ts";
+import { cloningGit } from "../../helpers/fake-git.ts";
 
 const dirs: string[] = [];
 const root = (): string => {
@@ -52,10 +52,9 @@ describe("writing .aide/config (spec 138)", () => {
     const projectsRoot = root();
     const base = root();
     const dir = join(projectsRoot, "links");
-    mkdirSync(dir, { recursive: true });
-    const result = await addProject(fakeGit({}).run, projectsRoot, {
+    const result = await addProject(cloningGit().run, projectsRoot, {
       name: "links",
-      existingPath: dir,
+      gitUrl: "git@example.com:me/links.git",
       worktreeLinks: ".venv dashboard/node_modules",
     }, base);
     expect(result.ok).toBe(true);
@@ -66,17 +65,17 @@ describe("writing .aide/config (spec 138)", () => {
     const projectsRoot = root();
     const base = root();
     const dir = join(projectsRoot, "both");
-    mkdirSync(join(dir, ".aide"), { recursive: true });
-    writeFileSync(
-      join(dir, ".aide", "config"),
-      "# personal — kept out of git\nAIDE_INSTALL_CMD=./install.sh\n",
-    );
-    const result = await addProject(fakeGit({}).run, projectsRoot, {
+    const result = await addProject(
+      cloningGit({}, { ".aide/config": "# personal — kept out of git\nAIDE_INSTALL_CMD=./install.sh\n" }).run,
+      projectsRoot,
+      {
       name: "both",
-      existingPath: dir,
+      gitUrl: "git@example.com:me/both.git",
       specsPath: "/repos/aide-specs/both",
       worktreeLinks: ".venv",
-    }, base);
+      },
+      base,
+    );
     expect(result.ok).toBe(true);
     const settingsFile = dashboardSettingsFile(base, "both");
     const text = readFileSync(join(dir, ".aide", "config"), "utf-8");
@@ -95,10 +94,9 @@ describe("writing .aide/config (spec 138)", () => {
   test("an unusable worktree-links value is refused before it is written", async () => {
     const projectsRoot = root();
     const dir = join(projectsRoot, "refused");
-    mkdirSync(dir, { recursive: true });
-    const result = await addProject(fakeGit({}).run, projectsRoot, {
+    const result = await addProject(cloningGit().run, projectsRoot, {
       name: "refused",
-      existingPath: dir,
+      gitUrl: "git@example.com:me/refused.git",
       worktreeLinks: "/etc",
     });
     expect(result.ok).toBe(false);
@@ -111,10 +109,9 @@ describe("writing .aide/config (spec 138)", () => {
   test("a worktree-links value naming a build output is refused before it is written", async () => {
     const projectsRoot = root();
     const dir = join(projectsRoot, "buildrefused");
-    mkdirSync(join(dir, "build"), { recursive: true });
-    const result = await addProject(fakeGit({}).run, projectsRoot, {
+    const result = await addProject(cloningGit({}, { "build/": "" }).run, projectsRoot, {
       name: "buildrefused",
-      existingPath: dir,
+      gitUrl: "git@example.com:me/buildrefused.git",
       worktreeLinks: "build",
     });
     expect(result.ok).toBe(false);
@@ -128,10 +125,9 @@ describe("writing .aide/config (spec 138)", () => {
   test("no worktree links means no key is written for them", async () => {
     const projectsRoot = root();
     const dir = join(projectsRoot, "quiet");
-    mkdirSync(dir, { recursive: true });
-    await addProject(fakeGit({}).run, projectsRoot, {
+    await addProject(cloningGit().run, projectsRoot, {
       name: "quiet",
-      existingPath: dir,
+      gitUrl: "git@example.com:me/quiet.git",
       specsPath: "/somewhere",
     });
     expect(configValue(dir, "AIDE_WORKTREE_LINKS")).toBeNull();

@@ -4,6 +4,8 @@
 // degrades to — so a harness kept in two copies would be a harness that
 // one day disagrees with itself about what git said.
 
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import type { GitRunner } from "../../src/git/branch-status.ts";
 
 export interface GitCall {
@@ -49,6 +51,55 @@ export function fakeGit(answers: Record<string, Answer | Answer[]>) {
     return { code: 1, stdout: "" };
   };
   return { run, calls };
+}
+
+/** A `fakeGit` whose `clone` also MAKES the destination, so a test can
+ *  add a project without a network and without a real repository: the
+ *  one thing `addProject` needs from a clone is a directory that is
+ *  there afterwards, and everything it does next — the manifest, the
+ *  settings file, `.aide/config` — writes into it.
+ *
+ *  Reached for because a project is added by its git address and nothing
+ *  else (2026-09-21): registering a directory already on the host is
+ *  gone, so the tests that used it as a shortcut clone instead.
+ *
+ *  `clone <url> <name>` is answered with `cwd` as the parent, which is
+ *  how `addProject` and `ensureDashboardCheckout` both call it. */
+export function cloningGit(
+  answers: Record<string, Answer | Answer[]> = {},
+  /** What the cloned repository contains. A key ending in `/` is a
+   *  directory; anything else is a file with that text. Used where a
+   *  test's subject is what an add does with what the checkout already
+   *  holds — a hand-written `.aide/config`, a build directory a
+   *  worktree link must be refused for. */
+  seed: Record<string, string> = {},
+) {
+  const made: string[] = [];
+  const inner = fakeGit(answers);
+  const run: GitRunner = async (dir, args) => {
+    const i = args.indexOf("clone");
+    if (i >= 0 && args.length > i + 2) {
+      const dest = join(dir, args[args.length - 1]!);
+      mkdirSync(join(dest, ".git"), { recursive: true });
+      writeFileSync(join(dest, ".git", "HEAD"), "ref: refs/heads/main\n");
+      for (const [path, text] of Object.entries(seed)) {
+        if (path.endsWith("/")) {
+          mkdirSync(join(dest, path), { recursive: true });
+          continue;
+        }
+        mkdirSync(dirname(join(dest, path)), { recursive: true });
+        writeFileSync(join(dest, path), text);
+      }
+      made.push(dest);
+      // Answered here rather than from the table: the real call is
+      // `-c credential.helper= clone <url> <name>`, so a `clone` prefix
+      // in a table never matches it.
+      void inner.run(dir, args);
+      return { code: 0, stdout: "" };
+    }
+    return inner.run(dir, args);
+  };
+  return { run, calls: inner.calls, made };
 }
 
 /** What a clean checkout on its default branch answers before anything

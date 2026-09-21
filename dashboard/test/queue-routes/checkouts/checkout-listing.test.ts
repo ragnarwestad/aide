@@ -175,7 +175,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
   // working exactly as it did before spec 205 — the same fallback
   // `machinerySpecDir` and `peekMachinerySpecDir` already take.
   test("a project with no checkout of its own is listed from the person's, as before (spec 218)", async () => {
-    const { projectsRoot, person, site, owned } = realProject();
+    const { projectsRoot, person, site, owned } = realProject({ ownClone: false });
     commitSpecUnpushed(person, "992-only-in-my-checkout");
     // The one question the clone rests on, refused: there is nothing to
     // clone from, so no checkout of the dashboard's own is ever

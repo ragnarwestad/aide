@@ -6,12 +6,12 @@
  *  itself: a project name becomes a directory under the projects root
  *  AND an argument to `git clone`, so it is checked before anything
  *  else runs — a refusal that happens after the clone is not a refusal.
- *  `clone` and `register` are the two ways a checkout gets here, and
- *  exactly one of them appears in any one answer. */
+ *  `clone` is the one way a checkout gets here: a project is added by
+ *  its git address and cloned, never registered from a directory that
+ *  was already on the host. */
 export type ProjectStepName =
   | "name"
   | "clone"
-  | "register"
   | "manifest"
   | "specsConfig"
   | "worktreeLinks"
@@ -88,13 +88,10 @@ export interface ProjectAdminResult {
 
 export interface AddProjectRequest {
   name: string;
-  /** Clone it from here. Mutually exclusive with `existingPath`. */
+  /** Clone it from here. The only way a project is added: the
+   *  dashboard's own checkout IS the project's directory, so there is
+   *  one layout and one moment a clone happens. */
   gitUrl?: string;
-  /** It is already on this machine: an absolute path, or — what the
-   *  Add form's picker sends — the bare name of a directory directly
-   *  under the projects root, which names the project too when `name`
-   *  is left blank. Mutually exclusive with `gitUrl`. */
-  existingPath?: string;
   description?: string;
   /** `AIDE_SPECS_PATH` for the project's own `.aide/config`. Omitted
    *  means the config is not written at all — `<project>/specs` is the

@@ -7,11 +7,11 @@
 // three be asked one after another exactly as the chain read before.
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { buildProjectViews, manifestInside, configValue, discoverUnclaimedDirectories, gitignoreCandidates, resolveCodeLanding, resolveInstallCmd } from "../../../project/discover";
+import { buildProjectViews, manifestInside, gitignoreCandidates, resolveCodeLanding, resolveInstallCmd } from "../../../project/discover";
 import { projectSettings } from "../../../project/project-settings.ts";
 import { lastChecks } from "../../tool-check.ts";
 import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardSettingsFile } from "../../../git/dashboard-checkout.ts";
-import { assessProjectReadiness, manifestTracked, settingsHome, suggestSpecsPath, suggestWorktreeLinksFromLockfile } from "../../../project/project-admin";
+import { assessProjectReadiness, manifestTracked, settingsHome } from "../../../project/project-admin";
 import { ADD_PROJECT_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderRemoveProjectPage, renderSettingsPage, renderTestServersPage, resolveBackHref, specPagePath, type TestServerRow } from "../../../render";
 import { MAIN_TEST_SERVER_KEY, refreshTestServerStatus } from "../../test-servers/lifecycle.ts";
 import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "../spec-edit/test-server-waiting.ts";
@@ -95,40 +95,9 @@ export async function projectPages(
     if (!ctx.opts.projectRoot) {
       return new Response(null, { status: 302, headers: { location: `/${OVERVIEW_PAGE}` } });
     }
-    // Read fresh per request, the way /projects reads its own scan:
-    // a checkout that appeared on the host a minute ago is offered.
-    const unclaimed = discoverUnclaimedDirectories(ctx.opts.projectRoot, manifestInside(ctx.machineryProjectDir));
     const langResult = languageChoice(url, req);
     const html = renderAddProjectPage(ctx.nav(), new Date().toISOString(), {
       script: await specsClientScript(),
-      existingCheckouts: unclaimed,
-      // And what each of them ignores, which is where the worktree
-      // links a run needs are named (spec 140). The union, deduped
-      // and sorted: nothing has been picked yet at the moment this
-      // page is drawn.
-      worktreeLinkCandidates: [
-        ...new Set(unclaimed.flatMap((d) => gitignoreCandidates(join(ctx.opts.projectRoot!, d)))),
-      ].sort(),
-      // Spec 184: what each of them would be configured with, worked
-      // out rather than asked for — the checkout's own lockfile for
-      // the links, and how the projects already added lay their specs
-      // out for the specs root. Anything that cannot be worked out
-      // comes back empty and is rendered as a blank field.
-      proposalsByCheckout: Object.fromEntries(
-        unclaimed.map((d) => [
-          d,
-          {
-            specsPath: suggestSpecsPath(
-              d,
-              [...ctx.allowed].map((name) => ({
-                name,
-                specsPath: configValue(ctx.displayProjectDir(name), "AIDE_SPECS_PATH"),
-              })),
-            ),
-            worktreeLinks: suggestWorktreeLinksFromLockfile(join(ctx.opts.projectRoot!, d)),
-          },
-        ]),
-      ),
       error: url.searchParams.get("error") ?? undefined,
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,

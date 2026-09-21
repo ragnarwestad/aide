@@ -6,6 +6,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { checkoutFaults } from "./checkout-faults.ts";
 import { rowMessage } from "./components";
 import { getPendingRestartNotice } from "./pending-restart.ts";
 import { t, type Language } from "../../i18n";
@@ -80,9 +81,21 @@ function toolFaultNotices(lang: Language): string {
     .join("");
 }
 
+/** A project whose own checkout the dashboard will not touch (2026-09-21).
+ *  One line per project: two broken checkouts are two different things
+ *  to look at, and the line carries what git said, because that is the
+ *  whole answer to "why is this project's list wrong". */
+function checkoutFaultNotices(lang: Language): string {
+  return checkoutFaults()
+    .map(({ project, said }) =>
+      rowMessage("failed", t(lang, "shell.checkoutFault", { project, said }), { tag: "p", hook: "checkout-fault" }),
+    )
+    .join("");
+}
+
 export function headerNotices(lang: Language): string {
   const installBanner = lastInstallWarnings(lang)
     .map((warning) => rowMessage("waiting", warning, { tag: "p", hook: "install-warning" }))
     .join("");
-  return installBanner + toolFaultNotices(lang) + restartWaitingNotice(lang);
+  return installBanner + checkoutFaultNotices(lang) + toolFaultNotices(lang) + restartWaitingNotice(lang);
 }

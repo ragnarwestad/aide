@@ -69,7 +69,7 @@ describe("ensureDashboardCheckout", () => {
     });
     const base = join(where, "owned");
 
-    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone });
+    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
 
     expect(result.checkout!.specsRepo).toBe(result.checkout!.code);
     expect(result.checkout!.specs).toBe(join(result.checkout!.code, "specs"));
@@ -90,7 +90,7 @@ describe("ensureDashboardCheckout", () => {
     writeFileSync(join(clone, ".aide", "config"), `AIDE_SPECS_PATH=${personSpecsRoot}\n`);
     const base = join(where, "owned");
 
-    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone });
+    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
 
     expect(result.ok).toBe(true);
     expect(result.checkout!.specsRepo).toBe(dashboardSpecsRepo(base, "aide"));
@@ -114,9 +114,9 @@ describe("ensureDashboardCheckout", () => {
     writeFileSync(join(clone, ".aide", "config"), `AIDE_SPECS_PATH=${join(first.clone, "aide")}\n`);
     const base = join(where, "owned");
 
-    await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone });
+    await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
     writeFileSync(join(clone, ".aide", "config"), `AIDE_SPECS_PATH=${join(second.clone, "aide")}\n`);
-    const after = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone });
+    const after = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
 
     expect(after.ok).toBe(true);
     expect(configValue(after.checkout!.code, "AIDE_SPECS_PATH")).toBe(after.checkout!.specs);
@@ -139,7 +139,7 @@ describe("ensureDashboardCheckout", () => {
     writeFileSync(join(clone, ".venv", "marker"), "person\n");
     const base = join(where, "owned");
 
-    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone });
+    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
 
     expect(existsSync(join(result.checkout!.code, ".venv"))).toBe(true);
     expect(existsSync(join(result.checkout!.code, "node_modules"))).toBe(true);
@@ -157,7 +157,7 @@ describe("ensureDashboardCheckout", () => {
     git(lonely, "init", "-q", "-b", "main");
     const base = join(where, "owned");
 
-    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: lonely });
+    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: lonely, mayClone: true });
 
     expect(result.ok).toBe(false);
     expect(result.error).toContain("origin");
@@ -172,7 +172,7 @@ describe("ensureDashboardCheckout", () => {
     const before = git(clone, "status", "--porcelain=v1", "--branch");
     const base = join(where, "owned");
 
-    await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone });
+    await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
 
     expect(git(clone, "status", "--porcelain=v1", "--branch")).toBe(before);
     expect(readFileSync(join(clone, "README.md"), "utf-8")).toBe("# edited by a person\n");
@@ -190,7 +190,7 @@ describe("the dashboard's checkout keeps up with origin", () => {
     const { origin, clone } = repoWithClone(where, "aide", { "README.md": "# aide\n" });
     const base = join(where, "owned");
 
-    const first = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone });
+    const first = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
     expect(first.ok).toBe(true);
     const owned = first.checkout!.code;
     expect(existsSync(join(owned, "later.md"))).toBe(false);
@@ -202,7 +202,7 @@ describe("the dashboard's checkout keeps up with origin", () => {
     git(clone, "push", "-q", "origin", "main");
     expect(origin.length).toBeGreaterThan(0);
 
-    const second = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone });
+    const second = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
     expect(second.ok).toBe(true);
     expect(second.cloned).toBe(false);
     expect(readFileSync(join(owned, "later.md"), "utf-8")).toBe("written after the clone\n");
@@ -238,8 +238,8 @@ describe("the checkout's config never names the person's specs path", () => {
     })();
     // Twice: the first call clones, the second brings up to date — the
     // window existed on both paths.
-    const first = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone });
-    const second = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone });
+    const first = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
+    const second = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
     stop = true;
     await poll;
 

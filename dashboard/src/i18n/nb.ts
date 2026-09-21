@@ -20,6 +20,7 @@ export const nb: Record<TranslationKey, string> = {
   "shell.restartWaiting": "Deploy venter på {jobs}; tjenesten restarter når de er ferdige.",
   "shell.installWarning": "siste installasjon fant et problem: {problem} — hele utskriften står i {path}",
   "shell.toolFault": "{tool}: {problems} — åpne Settings og trykk Check på den fanen",
+  "shell.checkoutFault": "{project}: dashbordet kan ikke bruke sin egen utsjekk — {said}",
   "shell.overlayDeploying": "deployer…",
   "shell.overlayResetting": "nullstiller…",
   "shell.overlayClosing": "lukker…",

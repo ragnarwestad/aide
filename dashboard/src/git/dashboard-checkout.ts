@@ -28,7 +28,7 @@
 //  - Nothing here runs a git command in the person's directory except
 //    the two read-only questions above.
 
-import { existsSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync, renameSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import type { GitRunner } from "./branch-status.ts";
@@ -63,6 +63,16 @@ export interface EnsureRequest {
   /** The checkout a person edits: where `origin` and the personal
    *  `.aide/config` are read from, and nothing else. */
   personDir: string;
+  /** Whether this call may CLONE what is missing. False — the default,
+   *  and what every tick, boot and page render passes — reports instead.
+   *
+   *  A clone belongs to a press: Add makes a project's checkout, and
+   *  saving a specs root makes the clone of the repository it names.
+   *  Between those, a checkout that is not there is something to look
+   *  at: the dashboard used to clone one whenever it noticed the
+   *  absence, which is how it came to delete woodstack's and try to
+   *  clone it back from itself (2026-09-21). */
+  mayClone?: boolean;
 }
 
 export interface EnsureResult {
@@ -74,6 +84,12 @@ export interface EnsureResult {
   /** Whether THIS call did the cloning. The second call for a project
    *  answers `false`, which is what "reused, not re-cloned" means. */
   cloned: boolean;
+  /** Not made yet, and the project is readable without it: every caller
+   *  falls back to the checkout it used before spec 205, so this is a
+   *  state the board works in rather than one to be looked at. It is
+   *  what keeps the banner (`render/ui/checkout-faults.ts`) for the
+   *  checkouts that ARE there and cannot be used. */
+  absent?: boolean;
 }
 
 /** Pure path resolution, so every reader that only needs to KNOW the
@@ -128,10 +144,17 @@ const CLONE_TIMEOUT_MS = 10 * 60 * 1000;
  *  seconds too — less than a clone, which moves the whole history. */
 const FETCH_TIMEOUT_MS = 60 * 1000;
 
-async function cloneFrom(run: GitRunner, from: string, dest: string): Promise<string | null> {
-  const origin = await run(from, ["remote", "get-url", "origin"]);
+/** The url a checkout would be cloned back from, asked of the checkout
+ *  itself — which is why it is asked BEFORE anything is deleted. The
+ *  answer lives in `.git/config`, so a delete that runs first takes the
+ *  only copy of it with it. */
+async function originUrlOf(run: GitRunner, dir: string): Promise<string | null> {
+  const origin = await run(dir, ["remote", "get-url", "origin"]);
   const url = origin.code === 0 ? origin.stdout.trim() : "";
-  if (!url) return `${from} has no origin remote, so the dashboard has nothing to clone its own checkout from`;
+  return url || null;
+}
+
+async function cloneFrom(run: GitRunner, url: string, dest: string): Promise<string | null> {
   mkdirSync(dirname(dest), { recursive: true });
   // `cwd` at the parent with the name as the destination argument, the
   // way `addProject` clones: the destination does not exist yet, so it
@@ -256,12 +279,58 @@ export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest
   const code = dashboardCheckoutRoot(req.base, req.project);
   let cloned = false;
   if (!looksCloned(code) || !(await isUsable(run, code))) {
-    // Whatever a killed clone left is in the way: `git clone` refuses a
-    // non-empty directory. Nothing here is anyone's work — it is a
-    // clone, and what it was a clone of is still on origin. A no-op
-    // when there is nothing there yet.
-    rmSync(code, { recursive: true, force: true });
-    const failed = await cloneFrom(run, req.personDir, code);
+    // On a host whose projects root is the dashboard's own directory of
+    // links, the person's checkout IS this one — `cloneDestination`
+    // (`project-admin/add-project.ts`) clones into
+    // `checkouts/<project>/code` and links the projects root to it, one
+    // copy read and written by the same server. Said first and in its
+    // own words, because the answer below ("remove it by hand") would be
+    // advice to delete the project.
+    if (real(req.personDir) === real(code)) {
+      return {
+        ok: false,
+        error: `${code} is the project's own checkout, not a copy of one, so the dashboard will not touch it — look at what git says about it`,
+        cloned: false,
+      };
+    }
+    // A directory that is here but cannot answer is reported, never
+    // repaired. It used to be deleted and cloned again, on the
+    // assumption that a checkout of the dashboard's own is never anyone's
+    // work — and on 2026-09-21 that delete removed a project. A clone
+    // that cannot say what it is, is a thing to look at: nothing here
+    // knows whether it holds work, and a re-clone decided by the board
+    // is a repair nobody asked for.
+    if (existsSync(code)) {
+      return {
+        ok: false,
+        error: `${code} is not a checkout git can answer for — the dashboard clones only into a directory that is not there, so remove it by hand once you have seen what is in it`,
+        cloned: false,
+      };
+    }
+    if (!req.mayClone) {
+      return {
+        ok: false,
+        error: `${code} is not there, and the dashboard clones only when a project is added or its specs root is saved`,
+        cloned: false,
+        // Readable without it, or not at all: a project whose own entry
+        // is there is one every reader falls back to, and one whose
+        // entry is gone too — a checkout somebody removed by hand, a
+        // link pointing at nothing — is a project the board can say
+        // nothing about, which is what the banner is for.
+        absent: existsSync(req.personDir),
+      };
+    }
+    // Read from the person's checkout, which is the only place the url
+    // is written down.
+    const url = await originUrlOf(run, req.personDir);
+    if (!url) {
+      return {
+        ok: false,
+        error: `${req.personDir} has no origin remote, so the dashboard has nothing to clone its own checkout from`,
+        cloned: false,
+      };
+    }
+    const failed = await cloneFrom(run, url, code);
     if (failed) return { ok: false, error: failed, cloned: false };
     cloned = true;
     await excludeDerivedManifest(run, code);
@@ -313,8 +382,42 @@ export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest
     } else {
       specsRepo = dashboardSpecsRepo(req.base, req.project);
       if (!looksCloned(specsRepo) || !(await isUsable(run, specsRepo))) {
-        rmSync(specsRepo, { recursive: true, force: true });
-        const failed = await cloneFrom(run, specsTop, specsRepo);
+        // The same three answers the code checkout gives above, for the
+        // same reasons. The first one is not hypothetical here: this
+        // function REWRITES `AIDE_SPECS_PATH` to name this very clone,
+        // so the specs root it is handed on the next call is the clone
+        // itself.
+        if (real(specsTop) === real(specsRepo)) {
+          return {
+            ok: false,
+            error: `${specsRepo} is the project's own specs checkout, not a copy of one, so the dashboard will not touch it — look at what git says about it`,
+            cloned,
+          };
+        }
+        if (existsSync(specsRepo)) {
+          return {
+            ok: false,
+            error: `${specsRepo} is not a checkout git can answer for — the dashboard clones only into a directory that is not there, so remove it by hand once you have seen what is in it`,
+            cloned,
+          };
+        }
+        if (!req.mayClone) {
+          return {
+            ok: false,
+            error: `${specsRepo} is not there, and the dashboard clones only when a project is added or its specs root is saved`,
+            cloned,
+            absent: existsSync(personSpecs),
+          };
+        }
+        const specsUrl = await originUrlOf(run, specsTop);
+        if (!specsUrl) {
+          return {
+            ok: false,
+            error: `${specsTop} has no origin remote, so the dashboard has nothing to clone its own specs checkout from`,
+            cloned,
+          };
+        }
+        const failed = await cloneFrom(run, specsUrl, specsRepo);
         if (failed) return { ok: false, error: failed, cloned };
         cloned = true;
       } else {
@@ -333,7 +436,7 @@ export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest
   mkdirSync(join(specs, "archive"), { recursive: true });
   // Written whole on every call: the Settings page writes into the
   // person's config, and the runner reads out of this one.
-  writeCheckoutConfig(code, personConfigText, specs);
+  writeCheckoutConfig(code, personConfigText, specs, { project: req.project, specsRepo });
   return { ok: true, cloned, checkout: { code, specs, specsRepo } };
 }
 
@@ -341,9 +444,40 @@ export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest
  *  `AIDE_SPECS_PATH` replaced by the dashboard's own specs checkout,
  *  built in a temporary file beside it and swapped in with one
  *  `rename`, so no reader ever sees a copy that still names the
- *  person's path. */
-function writeCheckoutConfig(code: string, personConfigText: string | null, specs: string): void {
+ *  person's path.
+ *
+ *  Two things are said in the log, because this one line decides where a
+ *  run makes a spec folder and nothing used to say anything about it at
+ *  all (2026-09-21: a spec created at the specs repository's root, a
+ *  landing looking for it under the project's own directory, and no
+ *  record of how the root got there).
+ *
+ *  A CHANGED value is said with both sides of it. And a value naming the
+ *  specs REPOSITORY's own root, while that repository holds a directory
+ *  named after this project, is said every time: it is what the incident
+ *  looked like, and the value reproduces itself — the root is derived
+ *  from the root — so "it changed" would never catch it. Said, not
+ *  corrected: a specs repository with one project in it legitimately
+ *  keeps its specs at the root, and the board cannot tell the two apart. */
+function writeCheckoutConfig(
+  code: string,
+  personConfigText: string | null,
+  specs: string,
+  says: { project: string; specsRepo: string },
+): void {
   const dir = join(code, ".aide");
+  const file = join(dir, "config");
+  const before = configValue(code, "AIDE_SPECS_PATH");
+  if (before !== null && before !== specs) {
+    console.error(`queue: the specs path in ${file} changes: ${before} -> ${specs}`);
+  }
+  if (real(specs) === real(says.specsRepo) && existsSync(join(says.specsRepo, says.project))) {
+    console.error(
+      `queue: the specs path in ${file} names the specs repository's own root (${specs}), ` +
+        `and that repository also holds ${join(says.specsRepo, says.project)} — ` +
+        `specs for ${says.project} will be made at the root`,
+    );
+  }
   mkdirSync(dir, { recursive: true });
   const kept = (personConfigText ?? "").split("\n").filter((line) => line.split("=")[0] !== "AIDE_SPECS_PATH");
   while (kept.length && kept[kept.length - 1] === "") kept.pop();
@@ -351,74 +485,4 @@ function writeCheckoutConfig(code: string, personConfigText: string | null, spec
   const tmp = join(dir, `.config.${process.pid}.${Date.now()}.tmp`);
   writeFileSync(tmp, `${kept.join("\n")}\n`);
   renameSync(tmp, join(dir, "config"));
-}
-
-/** Who may be handed a bring-up-to-date that is already running, and who
- *  may not (spec 216).
- *
- *  One `git fetch` per project at a time is the right shape for almost
- *  everything here: a page read, the boot-time warm and a Settings save
- *  all want a checkout that is roughly current, and two fetches into one
- *  directory buy nothing. That is `get`, and it is what this whole area
- *  did before this class existed.
- *
- *  The runner needs a different sentence. A fetch that began before a
- *  push answers with the picture from before it, so a job queued after
- *  the push and started off that answer runs against a checkout that
- *  does not have it — `unknown spec:
- *  215-a-run-leaves-no-branch-that-blocks-the-next-run`, on a spec that
- *  was on origin (2026-08-23). With several projects going, something is
- *  usually in flight, so this is not a narrow window.
- *
- *  `fresh` is that second sentence: no answer older than the moment I
- *  asked. It waits for whatever is running and then runs once more.
- *  Every `fresh` caller that piles up while it waits shares that one
- *  follow-up, so the extra cost is one run per overlap, not one per
- *  caller — and a project with nothing in flight pays nothing at all,
- *  which is what keeps an idle project fetching exactly as often as it
- *  did before.
- *
- *  `tickRunner` is the one caller that needs `fresh`. Reaching for `get`
- *  there — it is the shorter name, and both compile — puts the race
- *  back. */
-export class CheckoutEnsurer {
-  /** The run going on right now, per project. */
-  private readonly running = new Map<string, Promise<DashboardCheckout | undefined>>();
-  /** The follow-up run promised to the `fresh` callers that arrived
-   *  while `running` was busy — one per project, shared by all of them. */
-  private readonly queued = new Map<string, Promise<DashboardCheckout | undefined>>();
-
-  constructor(private readonly ensure: (project: string) => Promise<DashboardCheckout | undefined>) {}
-
-  /** Any answer that eventually arrives is good enough. */
-  get(project: string): Promise<DashboardCheckout | undefined> {
-    return this.running.get(project) ?? this.start(project);
-  }
-
-  /** No answer older than this call. */
-  fresh(project: string): Promise<DashboardCheckout | undefined> {
-    const promised = this.queued.get(project);
-    if (promised) return promised;
-    const running = this.running.get(project);
-    if (!running) return this.start(project);
-    // Both arms, because a run that FAILED still says nothing about
-    // origin as it is now — and a rejection that ended the chain would
-    // leave the entry in `queued` for ever.
-    const next = running.then(
-      () => this.start(project),
-      () => this.start(project),
-    );
-    this.queued.set(project, next);
-    return next.finally(() => {
-      if (this.queued.get(project) === next) this.queued.delete(project);
-    });
-  }
-
-  private start(project: string): Promise<DashboardCheckout | undefined> {
-    const started = this.ensure(project).finally(() => {
-      if (this.running.get(project) === started) this.running.delete(project);
-    });
-    this.running.set(project, started);
-    return started;
-  }
 }

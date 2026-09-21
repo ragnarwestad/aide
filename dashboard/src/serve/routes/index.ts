@@ -91,7 +91,7 @@ export interface RoutesContext {
   ownedSpecsRoot: (project: string) => string | undefined;
   /** `fresh`: no answer older than this call — after a save that the
    *  clone has to carry (spec 512). */
-  ensureCheckout: (project: string, opts?: { fresh?: boolean }) => Promise<DashboardCheckout | undefined>;
+  ensureCheckout: (project: string, opts?: { fresh?: boolean; clone?: boolean }) => Promise<DashboardCheckout | undefined>;
   gitRun: GitRunner;
   branchStatus: BranchStatusChecker;
   mergeLock: ReturnType<typeof createRootLock>;

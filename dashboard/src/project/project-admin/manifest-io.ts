@@ -3,7 +3,7 @@
 // both readers refuse the same value by.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, dirname, join } from "node:path";
+import { dirname, join } from "node:path";
 import { stringify } from "yaml";
 
 /** A directory name, and nothing that could be read as a path. No
@@ -29,39 +29,6 @@ export function projectNameError(name: unknown): string | null {
   return null;
 }
 
-/** What an add is actually AIMED at, once the Add form's picker is
- *  allowed to settle it (spec 131): the project's name, and the path of
- *  the checkout to register.
- *
- *  A bare `existingPath` — no separator — is what the picker sends:
- *  shorthand for the checkout of that name directly under the projects
- *  root, and the project's NAME, whatever was typed into Name beside it
- *  (spec 140). A project's name is its directory name and can be
- *  nothing else: `discoverProjects` reads it off the entry under the
- *  projects root and never out of a manifest, so a project registered
- *  under a differing typed name could never be discovered again.
- *  Typing `Skjer` for the directory `skjer` used to be refused, in a
- *  message naming `<root>/Skjer` — a path that does not exist either.
- *  A typed Name settles the name where there is nothing picked: the
- *  git-clone path, where it is the directory about to be made. A full
- *  path, typed by hand or posted straight at the route, is used exactly
- *  as before, mismatch refusal and all — that is not the picker.
- *
- *  Exported for the same reason `projectNameError` is: the route needs
- *  the DERIVED name — it is what goes on the allowlist — and a second
- *  copy of this rule in `serve.ts` would eventually disagree with this
- *  one. */
-export function addProjectTarget(
-  projectsRoot: string,
-  req: { name: string; existingPath?: string },
-): { name: string; existingPath?: string } {
-  const raw = req.existingPath?.trim();
-  const bare = raw && !raw.includes("/") ? raw : undefined;
-  return {
-    name: bare || req.name?.trim() || "",
-    existingPath: raw ? (bare ? join(projectsRoot, bare) : raw) : undefined,
-  };
-}
 
 /** The manifest the Add flow writes when a checkout has none: `name`
  *  and `description`, which is the smallest manifest that renders
@@ -211,55 +178,4 @@ export function worktreeLinksError(value: string, key = "worktreeLinks"): string
   return null;
 }
 
-/** What a lockfile at the root says about the gitignored directory the
- *  project's own commands need (spec 184).
- *
- *  Not a guess and not a scan: a lockfile IS the project stating which
- *  package manager owns its dependency tree, and each of these puts that
- *  tree in one well-known gitignored directory beside it. The Add form
- *  offered the checkout's `.gitignore` entries as autocomplete before
- *  this — help a reader still had to act on. Anything this cannot work
- *  out is left EMPTY: a wrong pre-filled answer is worse than a blank
- *  field, because it is one the reader has to notice to undo.
- *
- *  The result is the space-separated shape `worktreeLinks` takes, in a
- *  stable order, so two toolchains in one checkout propose both. */
-export function suggestWorktreeLinksFromLockfile(dir: string): string {
-  const rules: { files: string[]; link: string }[] = [
-    { files: ["bun.lock", "bun.lockb", "package-lock.json", "pnpm-lock.yaml", "yarn.lock", "package.json"], link: "node_modules" },
-    { files: ["requirements.txt", "pyproject.toml", "Pipfile", "setup.py"], link: ".venv" },
-  ];
-  return rules
-    .filter((r) => r.files.some((f) => existsSync(join(dir, f))))
-    .map((r) => r.link)
-    .join(" ");
-}
 
-/** Where a new project's specs would go, read off where the already-added
- *  ones keep theirs (spec 184).
- *
- *  The pattern this looks for is the one the projects on this host
- *  actually follow: one shared specs repository with a directory per
- *  project, `<parent>/<projectName>`. At least TWO projects have to
- *  agree before it counts — one is an example, not a pattern — and a
- *  project whose specs root is not named after it says nothing about
- *  where a differently-named one would go.
- *
- *  Proposes nothing where there is no pattern, rather than a guess. */
-export function suggestSpecsPath(
-  newName: string,
-  projects: { name: string; specsPath: string | null }[],
-): string {
-  const byParent = new Map<string, number>();
-  for (const p of projects) {
-    if (!p.specsPath) continue;
-    const parent = dirname(p.specsPath);
-    if (basename(p.specsPath) !== p.name) continue;
-    byParent.set(parent, (byParent.get(parent) ?? 0) + 1);
-  }
-  let best: string | null = null;
-  for (const [parent, count] of byParent) {
-    if (count >= 2 && count > (best === null ? 0 : byParent.get(best)!)) best = parent;
-  }
-  return best === null ? "" : join(best, newName);
-}

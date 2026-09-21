@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import { bindLimits } from "../../../src/specs-client/limits/index.ts";
-import { bindProposals } from "../../../src/specs-client/forms.ts";
+import { bindLimits, refreshLimit } from "../../../src/specs-client/limits/index.ts";
 
 type Field = HTMLInputElement | HTMLTextAreaElement;
 
@@ -79,19 +78,18 @@ describe("the count", () => {
   test("a value the script writes itself reaches the count, with no input event (AC-1, AC-6)", () => {
     win = new Window();
     win.document.write(
-      `<form class="addprojectform" data-proposals='${JSON.stringify({ aide: { specsPath: "y".repeat(40), worktreeLinks: "" } })}'>` +
-        `<select name="existingPath"><option value="">-</option><option value="aide">aide</option></select>` +
+      `<form class="addprojectform">` +
         `<input type="text" name="specsPath" maxlength="300">` +
         `<input type="text" name="worktreeLinks" maxlength="300"></form>`,
     );
     const doc = win.document as unknown as Document;
     bindLimits(doc);
     const form = doc.querySelector("form") as unknown as HTMLFormElement;
-    bindProposals(form);
-    const picker = form.querySelector("select") as unknown as HTMLSelectElement;
-    picker.value = "aide";
-    picker.dispatchEvent(new win.Event("change", { bubbles: true }) as unknown as Event);
     const specs = form.querySelector('[name="specsPath"]') as unknown as Field;
+    // Written by the script, not typed: no `input` event is fired, and
+    // the count has to follow anyway.
+    (specs as unknown as HTMLInputElement).value = "y".repeat(40);
+    refreshLimit(specs as unknown as HTMLInputElement);
     expect(count(specs).textContent).toBe("40 of 300 characters");
   });
 });

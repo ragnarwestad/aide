@@ -99,11 +99,10 @@ export function buildProjectsPanel(tokenInput: { value: string }, on: Record<str
   // and a success written into it must not stay the colour of one.
   const addSlot = { textContent: "", className: "refused rowmsg failed" };
   const addForm = {
-    // Every real form element has one; spec 184's proposal binding reads
-    // it, and an empty one is what a page with nothing to propose sends.
+    // Every real form element has one.
     dataset: {} as Record<string, string>,
     action: "http://dash.test/api/queue/projects",
-    fields: [["name", "skjer"], ["existingPath", "skjer"]] as [string, string][],
+    fields: [["name", "skjer"], ["gitUrl", "git@example.com:me/skjer.git"]] as [string, string][],
     querySelectorAll: () => [addButton],
     querySelector: (sel: string) =>
       sel.includes("data-confirm")

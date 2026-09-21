@@ -53,34 +53,16 @@ describe("the Add page says what a run will need (spec 138)", () => {
 describe("the Add page helps with what it cannot decide (spec 140)", () => {
   const add = (opts: Partial<ProjectsPageOptions> = {}) => renderAddProjectPage(NAV, AT, opts);
 
-  // Criterion 6. The candidates are read from the offered checkouts'
-  // own `.gitignore` files by the server — a suggestion list on the
-  // field, working with no script at all, because every control on this
-  // page does.
-  test("gitignored paths from the host's checkouts are offered on the Worktree links field", () => {
-    const html = add({
-      existingCheckouts: ["skjer"],
-      worktreeLinkCandidates: ["node_modules", ".venv"],
-    });
-    expect(html).toContain("<datalist");
-    expect(html).toContain('<option value="node_modules">');
-    expect(html).toContain('<option value=".venv">');
-    // Wired to the input, or the list is a list of nothing.
-    const list = html.match(/<datalist id="([^"]+)"/)![1]!;
-    expect(html).toContain(`name="worktreeLinks"`);
-    expect(html).toMatch(new RegExp(`name="worktreeLinks"[^>]*list="${list}"`));
-  });
 
-  test("no candidates means no empty datalist hanging off the field", () => {
-    expect(add({ existingCheckouts: ["skjer"] })).not.toContain("<datalist");
-  });
 
-  // Criterion 7. A project's name IS its directory name, so the field
-  // carries a real choice only when the directory is about to be made
-  // — the clone. Saying so is what stops a reader typing a name that
-  // differs from the checkout they picked.
-  test("the Name field says it only settles anything for a clone", () => {
-    expect(add()).toContain("only when cloning from a Git URL");
+  // A project's name IS its directory name, and the clone is what makes
+  // that directory — so the field says what it names, and both it and
+  // the address are required: there is no other way in.
+  test("the Name field says what the name is for, and both it and the address are required", () => {
+    const html = add();
+    expect(html).toContain("the directory the clone makes");
+    expect(html).toMatch(/name="name"[^>]*required/);
+    expect(html).toMatch(/name="gitUrl"[^>]*required/);
   });
 });
 
@@ -133,51 +115,17 @@ describe("the Add page proposes what it can work out (spec 184)", () => {
   const value = (html: string, name: string): string | null =>
     html.match(new RegExp(`name="${name}"[^>]*value="([^"]*)"`))?.[1] ?? null;
 
-  // Criteria 5 and 10. Exactly one checkout on offer is the only case
-  // the page can pre-fill for with no script: with several, nothing has
-  // been picked yet, and a value filled in for one of them would be a
-  // claim about which.
-  test("one offered checkout has its proposals filled in", () => {
-    const html = add({
-      existingCheckouts: ["skjer"],
-      proposalsByCheckout: { skjer: { specsPath: "/repos/aide-specs/skjer", worktreeLinks: "node_modules" } },
-    });
-    expect(value(html, "worktreeLinks")).toBe("node_modules");
-    expect(value(html, "specsPath")).toBe("/repos/aide-specs/skjer");
-  });
 
-  // Criterion 6, rendered: a proposal that could not be made is a blank
-  // field, never a guess.
-  test("a proposal that could not be made leaves the field empty", () => {
-    const html = add({
-      existingCheckouts: ["skjer"],
-      proposalsByCheckout: { skjer: { specsPath: "", worktreeLinks: "node_modules" } },
-    });
-    expect(value(html, "worktreeLinks")).toBe("node_modules");
-    expect(value(html, "specsPath")).toBeNull();
-  });
 
-  test("several checkouts on offer pre-fill nothing, because nothing is picked yet", () => {
-    const html = add({
-      existingCheckouts: ["skjer", "atlasaurus"],
-      proposalsByCheckout: {
-        skjer: { specsPath: "/repos/aide-specs/skjer", worktreeLinks: "node_modules" },
-        atlasaurus: { specsPath: "/repos/aide-specs/atlasaurus", worktreeLinks: ".venv" },
-      },
-    });
-    expect(value(html, "worktreeLinks")).toBeNull();
-    expect(value(html, "specsPath")).toBeNull();
-    // But the proposals ARE on the page, for the pick to fill in.
-    expect(html).toContain("data-proposals");
-    expect(html).toContain("atlasaurus");
-  });
 
-  // A project not on this host yet has no lockfile to read, so there is
-  // nothing to propose from — the clone has not happened.
-  test("a page with no checkouts on offer proposes nothing at all", () => {
+  // A project is added by its git address, so it is not on this host at
+  // all yet: there is no lockfile to read and no `.gitignore` to
+  // suggest from, and the form fills nothing in for it.
+  test("the form proposes nothing, because the project is not on this host yet", () => {
     const html = add();
     expect(value(html, "worktreeLinks")).toBeNull();
     expect(value(html, "specsPath")).toBeNull();
     expect(html).not.toContain("data-proposals");
+    expect(html).not.toContain("<datalist");
   });
 });

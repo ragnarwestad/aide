@@ -14,7 +14,7 @@ import { resolveInstallCmd } from "../../project/discover";
 import { SETTING_LABELS } from "../../project/setting-labels.ts";
 import { listedModelName } from "../../queue/model-name.ts";
 import { persistQueueSettings } from "../../queue/queue.ts";
-import { addProject, addProjectTarget, assessProjectReadiness, commitManifestEdits, projectNameError, removeProject, updateProjectSettings } from "../../project/project-admin";
+import { addProject, assessProjectReadiness, commitManifestEdits, projectNameError, removeProject, updateProjectSettings } from "../../project/project-admin";
 import { NEW_SPEC_ROUTE, SETTINGS_ROUTE, SETTINGS_ROWS, resolveBackHref } from "../../render";
 import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../serve-helpers";
 import { CHECKABLE_TOOLS, checkTool, isCheckableTool, recordCheck } from "../tool-check.ts";
@@ -165,14 +165,9 @@ export async function handleQueueAdminRoutes(
     const text = (v: unknown): string | undefined =>
       typeof v === "string" && v.trim() ? v.trim() : undefined;
     const rawName = typeof asked.name === "string" ? asked.name : "";
-    // The picked checkout settles the project's name when Name was
-    // left blank (spec 131), and the ALLOWLIST is what that name is
-    // for — so the rule is asked of `project-admin.ts` here rather
-    // than copied, and the answer names the project that was added.
-    const name = addProjectTarget(ctx.opts.projectRoot ?? "", {
-      name: rawName,
-      existingPath: text(asked.existingPath),
-    }).name || rawName;
+    // A project's name is the directory the clone makes, so the name the
+    // allowlist gets is the one the form typed, trimmed.
+    const name = rawName.trim() || rawName;
     // Adding a project means putting a directory under the projects
     // root, and without `--root` there is no such root: refused in
     // those words rather than half-done somewhere arbitrary.
@@ -188,7 +183,6 @@ export async function handleQueueAdminRoutes(
     const result = await addProject(ctx.gitRun, ctx.opts.projectRoot, {
       name: rawName,
       gitUrl: text(asked.gitUrl),
-      existingPath: text(asked.existingPath),
       description: text(asked.description),
       specsPath: text(asked.specsPath),
       worktreeLinks: text(asked.worktreeLinks),
@@ -210,7 +204,9 @@ export async function handleQueueAdminRoutes(
       // readiness is re-taken afterwards so the answer describes the
       // checkout that now exists, not the one that did not a moment
       // ago.
-      await ctx.ensureCheckout(name);
+      // `clone: true`: this press is one of the two moments a clone may
+      // be made at all (`EnsureRequest.mayClone`).
+      await ctx.ensureCheckout(name, { clone: true });
       // Again, after the ensure: the invalidation above can be refilled
       // by a request that lands while the clone is still being made, and
       // the clone's derived manifest is what lists a project whose own
@@ -295,7 +291,7 @@ export async function handleQueueAdminRoutes(
     // reaches the clone's derived manifest only in an ensure that
     // started after the save.
     const readiness = result.ok
-      ? await ctx.ensureCheckout(name, { fresh: true }).then(() =>
+      ? await ctx.ensureCheckout(name, { fresh: true, clone: true }).then(() =>
           assessProjectReadiness(ctx.gitRun, join(ctx.opts.projectRoot!, name), ctx.machineryProjectDir(name)).catch(
             () => result.readiness,
           ),

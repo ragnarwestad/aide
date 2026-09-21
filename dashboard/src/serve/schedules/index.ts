@@ -16,7 +16,8 @@ import type {
 } from "../../git/description-freshness.ts";
 import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/workflow-history.ts";
 import { resolveOpenBranchTarget } from "../../git/branch-file.ts";
-import type { CheckoutEnsurer, DashboardCheckout } from "../../git/dashboard-checkout.ts";
+import type { DashboardCheckout } from "../../git/dashboard-checkout.ts";
+import type { CheckoutEnsurer } from "../../git/checkout-ensurer.ts";
 import {
   SPEC_FILES, buildProjectViews, manifestInside, resolveInstallCmd,
 } from "../../project/discover";

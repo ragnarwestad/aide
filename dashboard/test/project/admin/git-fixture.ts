@@ -12,8 +12,12 @@ export function git(cwd: string, ...args: string[]): string {
 }
 
 /** `<root>/projects/demo` cloned from `<root>/origin.git` with `files`
- *  committed, and an empty `<root>/checkouts` beside it. */
-export function projectWithOrigin(files: Record<string, string>) {
+ *  committed, and an empty `<root>/checkouts` beside it.
+ *
+ *  `opts.clone: false` leaves the projects root EMPTY, for a test that
+ *  calls `addProject` itself: a project is added by its git address now,
+ *  and Add refuses a directory that is already there. */
+export function projectWithOrigin(files: Record<string, string>, opts: { clone?: boolean } = {}) {
   const root = mkdtempSync(join(tmpdir(), "aide-untracked-settings-"));
   const origin = join(root, "origin.git");
   const seed = join(root, "seed");
@@ -34,9 +38,11 @@ export function projectWithOrigin(files: Record<string, string>) {
   const projects = join(root, "projects");
   mkdirSync(projects);
   const dir = join(projects, "demo");
-  git(root, "clone", "-q", origin, dir);
-  git(dir, "config", "user.email", "t@example.com");
-  git(dir, "config", "user.name", "T");
+  if (opts.clone !== false) {
+    git(root, "clone", "-q", origin, dir);
+    git(dir, "config", "user.email", "t@example.com");
+    git(dir, "config", "user.name", "T");
+  }
   const base = join(root, "checkouts");
   mkdirSync(base);
   return { root, origin, projects, dir, base, cleanup: () => rmSync(root, { recursive: true, force: true }) };

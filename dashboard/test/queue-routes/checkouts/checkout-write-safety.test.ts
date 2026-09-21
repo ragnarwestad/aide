@@ -166,17 +166,15 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
       expect(git(person, "status", "--porcelain=v1", "--branch")).toBe(before);
       // And nothing their directory was ever asked can CHANGE it.
       //
-      // The one question this design rests on is still there — which
-      // origin to clone the dashboard's own checkout from — and since
-      // spec 208 the cache schedule asks the person's spec folders the
-      // same read-only questions the page render used to ask them
-      // inside a request. That is the same reading, on a clock; what
-      // spec 205 exists to prevent is a WRITE, and the list below is
-      // every verb that would be one.
+      // Read, it still is: since spec 208 the cache schedule asks the
+      // person's spec folders the same read-only questions the page
+      // render used to ask inside a request. That is the same reading,
+      // on a clock; what spec 205 exists to prevent is a WRITE, and the
+      // list below is every verb that would be one.
       const asked = recorded.calls
         .filter((c) => c.dir === person || c.dir.startsWith(`${person}/`))
         .map((c) => c.args.join(" "));
-      expect(asked).toContain("remote get-url origin");
+      expect(asked.length).toBeGreaterThan(0);
       const writes = ["checkout", "switch", "merge", "commit", "push", "add", "fetch", "reset", "clean"];
       expect(asked.filter((a) => writes.includes(a.split(" ")[0]!))).toEqual([]);
     } finally {

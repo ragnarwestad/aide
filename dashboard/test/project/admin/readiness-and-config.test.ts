@@ -1,6 +1,6 @@
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, readlinkSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { dashboardSettingsFile } from "../../../src/git/dashboard-checkout.ts";
 import { addProject, type AddProjectRequest, type ProjectAdminResult } from "../../../src/project/project-admin";
@@ -62,10 +62,34 @@ describe("whether a run could start there (spec 138)", () => {
     projectsRoot: string,
     answers: Record<string, { code: number; stdout?: string; stderr?: string }> = {},
     req: Partial<AddProjectRequest> = {},
+    /** What the clone brings: a `specs/` unless a test names its own
+     *  specs root, plus any file the test's subject needs the checkout
+     *  to already hold — `.aide/config` with worktree links in it, say. */
+    brings: { specs?: boolean; files?: Record<string, string> } = {},
   ) {
     const table = { ...READY, ...answers };
     const run: GitRunner = async (at, args) => {
       const joined = args.join(" ");
+      // The clone the add asks for, made rather than merely answered:
+      // every check after it reads the directory.
+      const clone = args.indexOf("clone");
+      if (clone !== -1 && args.length > clone + 2) {
+        const dest = join(at, args[args.length - 1]!);
+        mkdirSync(join(dest, ".git"), { recursive: true });
+        writeFileSync(join(dest, ".git", "HEAD"), "ref: refs/heads/main\n");
+        if (brings.specs !== false) mkdirSync(join(dest, "specs"), { recursive: true });
+        for (const [path, text] of Object.entries(brings.files ?? {})) {
+          // A trailing slash is a directory the checkout holds — what a
+          // worktree link has to name something real for.
+          if (path.endsWith("/")) {
+            mkdirSync(join(dest, path), { recursive: true });
+            continue;
+          }
+          mkdirSync(dirname(join(dest, path)), { recursive: true });
+          writeFileSync(join(dest, path), text);
+        }
+        return { code: 0, stdout: "" };
+      }
       for (const [prefix, answer] of Object.entries(answers)) {
         if (joined.startsWith(prefix)) return { code: answer.code, stdout: answer.stdout ?? "", stderr: answer.stderr };
       }
@@ -79,19 +103,20 @@ describe("whether a run could start there (spec 138)", () => {
     };
     return await addProject(run, projectsRoot, {
       name: dir.split("/").pop()!,
-      existingPath: dir,
+      gitUrl: "git@example.com:me/project.git",
       ...req,
     }, checkoutsUnder(projectsRoot));
   }
 
-  /** A checkout under a projects root, with a specs directory beside it
-   *  so the fallback specs root exists. */
-  function checkout(name: string, opts: { specs?: boolean } = {}): { projectsRoot: string; dir: string } {
+  /** Where a project's checkout WILL be, and what the clone puts in it.
+   *
+   *  Nothing is made here: a project is added by its git address now, so
+   *  the checkout comes into being during the add — `assess` answers the
+   *  clone by making the directory, with a `specs/` inside it unless a
+   *  test says otherwise, so the fallback specs root is there. */
+  function checkout(name: string, opts: { specs?: boolean } = {}): { projectsRoot: string; dir: string; specs: boolean } {
     const projectsRoot = root();
-    const dir = join(projectsRoot, name);
-    mkdirSync(dir, { recursive: true });
-    if (opts.specs !== false) mkdirSync(join(dir, "specs"), { recursive: true });
-    return { projectsRoot, dir };
+    return { projectsRoot, dir: join(projectsRoot, name), specs: opts.specs !== false };
   }
 
   const check = (r: ProjectAdminResult, name: string) =>
@@ -113,7 +138,7 @@ describe("whether a run could start there (spec 138)", () => {
   // directory is not there.
   test("no specs path and no specs/ directory blocks, naming the path it looked for", async () => {
     const { projectsRoot, dir } = checkout("nospecs", { specs: false });
-    const result = await assess(dir, projectsRoot);
+    const result = await assess(dir, projectsRoot, {}, {}, { specs: false });
     expect(result.ok).toBe(true);
     expect(result.readiness!.canRun).toBe(false);
     expect(blockers(result)).toContain(join(dir, "specs"));
@@ -133,6 +158,7 @@ describe("whether a run could start there (spec 138)", () => {
         [`status --porcelain`]: { code: 0, stdout: "" },
       },
       { specsPath: specs },
+      { specs: false },
     );
     expect(result.readiness!.canRun).toBe(true);
     // Both roots were asked, and the answer says which is which.
@@ -228,13 +254,35 @@ describe("whether a run could start there (spec 138)", () => {
     // The serving host's projects root is a directory of links to the
     // dashboard's own checkouts (2026-09-03); git answers with the real
     // path, and comparing that to the link's path read every project as
-    // "inside another repository".
-    const { projectsRoot, dir } = checkout("real-aide");
-    const link = join(projectsRoot, "aide");
-    symlinkSync(dir, link);
-    const result = await assess(link, projectsRoot, {
-      "rev-parse --show-toplevel": { code: 0, stdout: `${realpathSync(dir)}\n` },
-    });
+    // "inside another repository". Add makes exactly that layout: the
+    // clone goes to `<base>/<name>/code` and the projects root gets a
+    // link to it.
+    const home = root();
+    const projectsRoot = join(home, "projects");
+    const base = join(home, "checkouts");
+    mkdirSync(projectsRoot, { recursive: true });
+    const code = join(base, "aide", "code");
+    const run: GitRunner = async (_at, args) => {
+      const joined = args.join(" ");
+      const clone = args.indexOf("clone");
+      if (clone !== -1 && args.length > clone + 2) {
+        mkdirSync(join(code, ".git"), { recursive: true });
+        writeFileSync(join(code, ".git", "HEAD"), "ref: refs/heads/main\n");
+        mkdirSync(join(code, "specs"), { recursive: true });
+        return { code: 0, stdout: "" };
+      }
+      // Git answers with the REAL path, never the link's.
+      if (joined.startsWith("rev-parse --show-toplevel")) return { code: 0, stdout: `${realpathSync(code)}\n` };
+      for (const [prefix, answer] of Object.entries(READY)) {
+        if (joined.startsWith(prefix)) return { code: answer.code, stdout: answer.stdout ?? "" };
+      }
+      return { code: 1, stdout: "" };
+    };
+    const result = await addProject(run, projectsRoot, { name: "aide", gitUrl: "git@example.com:me/aide.git" }, base);
+
+    // The entry really is a link to the checkout, and readiness reads it
+    // as the project's own git root rather than one inside another.
+    expect(readlinkSync(join(projectsRoot, "aide"))).toBe(code);
     expect(check(result, "gitRoot")[0]!.ok).toBe(true);
     expect(blockers(result)).not.toContain("inside the one at");
   });
@@ -249,10 +297,17 @@ describe("whether a run could start there (spec 138)", () => {
   });
 
   test("a specs root outside any git repository blocks, because nothing would commit the spec", async () => {
-    const { projectsRoot, dir } = checkout("looserspecs", { specs: false });
+    const { projectsRoot } = checkout("looserspecs", { specs: false });
     const specs = root();
     const run: GitRunner = async (at, args) => {
       const joined = args.join(" ");
+      const clone = args.indexOf("clone");
+      if (clone !== -1 && args.length > clone + 2) {
+        const dest = join(at, args[args.length - 1]!);
+        mkdirSync(join(dest, ".git"), { recursive: true });
+        writeFileSync(join(dest, ".git", "HEAD"), "ref: refs/heads/main\n");
+        return { code: 0, stdout: "" };
+      }
       // The specs root answers the way a directory outside any
       // repository does: git refuses the question.
       if (joined.startsWith("rev-parse --show-toplevel")) {
@@ -265,9 +320,9 @@ describe("whether a run could start there (spec 138)", () => {
     };
     const result = await addProject(run, projectsRoot, {
       name: "looserspecs",
-      existingPath: dir,
+      gitUrl: "git@example.com:me/looserspecs.git",
       specsPath: specs,
-    });
+    }, checkoutsUnder(projectsRoot));
     expect(result.readiness!.canRun).toBe(false);
     expect(check(result, "specsRepo")[0]!.blocking).toBe(true);
   });
@@ -282,9 +337,9 @@ describe("whether a run could start there (spec 138)", () => {
       // Hand-written into the config, not posted at the form: the form's
       // own value is refused before it is ever written (below). This is
       // the file as `aide-run-spec` would find it.
-      mkdirSync(join(dir, ".aide"), { recursive: true });
-      writeFileSync(join(dir, ".aide", "config"), `AIDE_WORKTREE_LINKS=${entry}\n`);
-      const result = await assess(dir, projectsRoot);
+      const result = await assess(dir, projectsRoot, {}, {}, {
+        files: { ".aide/config": `AIDE_WORKTREE_LINKS=${entry}\n` },
+      });
       expect(result.readiness!.canRun).toBe(false);
       expect(blockers(result)).toContain(entry);
     },
@@ -315,10 +370,9 @@ describe("whether a run could start there (spec 138)", () => {
     "a worktree link naming a build output (%p) blocks, and says why",
     async (entry) => {
       const { projectsRoot, dir } = checkout("buildlink");
-      mkdirSync(join(dir, entry), { recursive: true });
-      mkdirSync(join(dir, ".aide"), { recursive: true });
-      writeFileSync(join(dir, ".aide", "config"), `AIDE_WORKTREE_LINKS=${entry}\n`);
-      const result = await assess(dir, projectsRoot);
+      const result = await assess(dir, projectsRoot, {}, {}, {
+        files: { [`${entry}/`]: "", ".aide/config": `AIDE_WORKTREE_LINKS=${entry}\n` },
+      });
       expect(result.readiness!.canRun).toBe(false);
       expect(blockers(result)).toContain(entry);
       expect(blockers(result)).toContain("build output");
@@ -328,9 +382,9 @@ describe("whether a run could start there (spec 138)", () => {
   // Criterion 4: this repo's own setting, unaffected by the new check.
   test("the dependency caches a build only reads are not refused", async () => {
     const { projectsRoot, dir } = checkout("readonlylinks");
-    mkdirSync(join(dir, ".venv"), { recursive: true });
-    mkdirSync(join(dir, "dashboard", "node_modules"), { recursive: true });
-    const result = await assess(dir, projectsRoot, {}, { worktreeLinks: ".venv dashboard/node_modules" });
+    const result = await assess(dir, projectsRoot, {}, { worktreeLinks: ".venv dashboard/node_modules" }, {
+      files: { ".venv/": "", "dashboard/node_modules/": "" },
+    });
     expect(result.readiness!.canRun).toBe(true);
     expect(check(result, "worktreeLinks")[0]!.ok).toBe(true);
   });
@@ -345,8 +399,9 @@ describe("whether a run could start there (spec 138)", () => {
 
   test("worktree links that are all there do not block", async () => {
     const { projectsRoot, dir } = checkout("goodlinks");
-    mkdirSync(join(dir, "node_modules"), { recursive: true });
-    const result = await assess(dir, projectsRoot, {}, { worktreeLinks: "node_modules" });
+    const result = await assess(dir, projectsRoot, {}, { worktreeLinks: "node_modules" }, {
+      files: { "node_modules/": "" },
+    });
     expect(result.readiness!.canRun).toBe(true);
     expect(check(result, "worktreeLinks")[0]!.ok).toBe(true);
   });
@@ -413,7 +468,7 @@ describe("whether a run could start there (spec 138)", () => {
         const noSpecs = id.startsWith("specsRoot");
         const { projectsRoot, dir } = checkout(id.replace(/[^a-z]/gi, ""), { specs: !noSpecs });
         const req = id.startsWith("worktreeLinks") ? { worktreeLinks: "nowhere" } : {};
-        const result = await assess(dir, projectsRoot, answers!, req);
+        const result = await assess(dir, projectsRoot, answers!, req, { specs: !noSpecs });
         const found = check(result, c.check).find((ch) => !ch.ok);
         expect(found?.blocking).toBe(c.blocking);
       });

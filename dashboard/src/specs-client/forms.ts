@@ -12,7 +12,6 @@
 // stays a real form rather than a button this code has to give meaning
 // to.
 
-import { refreshLimit } from "./limits/index.ts";
 import { ACTIONS, postForm } from "./press.ts";
 import { swapRows } from "./row-swap.ts";
 import { showRefusal } from "./tail-actions.ts";
@@ -163,42 +162,6 @@ export async function submitProjectSettings(form: HTMLFormElement, event: Event)
   );
 }
 
-/** Spec 184: the Add form's two settings, proposed for whichever
- *  checkout is picked. The server works one proposal out per offered
- *  checkout and puts them all on the form, because nothing is picked at
- *  the moment the page is drawn.
- *
- *  Only ever fills a field the reader has not typed in, and never
- *  overwrites what they did type: a proposal is help, and help that
- *  undoes an answer is not help. A checkout with nothing to propose
- *  clears the field back to blank, so the form never shows the previous
- *  pick's answer beside this one's name. */
-export function bindProposals(form: HTMLFormElement): void {
-  const raw = form.dataset.proposals;
-  if (!raw) return;
-  let proposals: Record<string, { specsPath: string; worktreeLinks: string }>;
-  try {
-    proposals = JSON.parse(raw);
-  } catch {
-    return; // nothing to propose beats a page whose script died
-  }
-  const picker = form.querySelector('[name="existingPath"]') as HTMLSelectElement | null;
-  if (!picker) return;
-  const typed = new Set<string>();
-  const fields = (["specsPath", "worktreeLinks"] as const).map((name) => {
-    const input = form.querySelector(`[name="${name}"]`) as HTMLInputElement | null;
-    input?.addEventListener("input", () => void typed.add(name));
-    return { name, input };
-  });
-  picker.addEventListener("change", () => {
-    const proposed = proposals[picker.value];
-    for (const { name, input } of fields) {
-      if (!input || typed.has(name)) continue;
-      input.value = proposed?.[name] ?? "";
-      refreshLimit(input);
-    }
-  });
-}
 
 /** The Deploy button (spec 258): a plain POST that fast-forwards the
  *  checkout and re-runs its install. Bound on its own — not through

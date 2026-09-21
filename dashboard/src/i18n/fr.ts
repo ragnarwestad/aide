@@ -20,6 +20,7 @@ export const fr: Record<TranslationKey, string> = {
   "shell.restartWaiting": "Le déploiement attend {jobs} ; le service redémarre une fois terminés.",
   "shell.installWarning": "la dernière installation d'aide a rencontré un problème : {problem} — la sortie complète est dans {path}",
   "shell.toolFault": "{tool}: {problems} — ouvre Settings et clique sur Check dans cet onglet",
+  "shell.checkoutFault": "{project} : le tableau de bord ne peut pas utiliser sa propre copie — {said}",
   "shell.overlayDeploying": "déploiement…",
   "shell.overlayResetting": "réinitialisation…",
   "shell.overlayClosing": "fermeture…",

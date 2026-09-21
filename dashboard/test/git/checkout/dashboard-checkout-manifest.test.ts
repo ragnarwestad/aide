@@ -52,7 +52,7 @@ function world(files: Record<string, string> = { "README.md": "hi\n" }) {
   git(root, "clone", "-q", origin, personDir);
   const base = join(root, "checkouts");
   mkdirSync(join(base, "demo"), { recursive: true });
-  const ensure = () => ensureDashboardCheckout(run, { base, project: "demo", personDir });
+  const ensure = () => ensureDashboardCheckout(run, { base, project: "demo", personDir, mayClone: true });
   const push = (path: string, text: string) => {
     mkdirSync(join(seed, path, ".."), { recursive: true });
     writeFileSync(join(seed, path), text);
@@ -147,7 +147,7 @@ describe("the dashboard's clone carries the settings file", () => {
     await w.ensure();
     const link = join(w.base, "linked");
     symlinkSync(w.code, link);
-    await ensureDashboardCheckout(run, { base: w.base, project: "demo", personDir: link });
+    await ensureDashboardCheckout(run, { base: w.base, project: "demo", personDir: link, mayClone: true });
     expect(git(w.personDir, "status", "--porcelain").trim()).toBe("");
   });
 });

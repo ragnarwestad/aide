@@ -15,11 +15,11 @@ import {
   BranchStatusChecker, createGitRunner, type GitRunner,
 } from "../../git/branch-status.ts";
 import {
-  CheckoutEnsurer,
   DEFAULT_DASHBOARD_CHECKOUT_ROOT,
   ensureDashboardCheckout,
   type DashboardCheckout,
 } from "../../git/dashboard-checkout.ts";
+import { CheckoutEnsurer } from "../../git/checkout-ensurer.ts";
 import type { Job } from "../../queue/queue.ts";
 import {
   displayProjectDir as displayProjectDirImpl,
@@ -47,6 +47,7 @@ import {
 } from "../spec-lookup.ts";
 import type { ServerState } from "../state.ts";
 import type { ScheduleStore } from "../../queue/schedule-store.ts";
+import { clearCheckoutFault } from "../../render/ui/checkout-faults.ts";
 
 export interface ProjectResolutionOptions {
   queueProjectRoot?: string;
@@ -110,18 +111,21 @@ export function setupProjectResolution(
   function machinerySpecsRoot(project: string) {
     return machinerySpecsRootImpl(projectCheckoutCtx, project);
   }
-  function complain(project: string, said: string) {
-    return complainImpl(projectCheckoutCtx, project, said);
+  function complain(project: string, said: string, banner = true) {
+    return complainImpl(projectCheckoutCtx, project, said, banner);
   }
-  const checkoutEnsurer = new CheckoutEnsurer((project) =>
+  const checkoutEnsurer = new CheckoutEnsurer((project, mayClone) =>
     ensureDashboardCheckout(gitRun, {
       base: checkoutBase,
       project,
       personDir: displayProjectDir(project),
+      mayClone,
     })
       .then((result) => {
-        if (result.ok) saidAbout.delete(project);
-        else complain(project, result.error ?? "it could not be made");
+        if (result.ok) {
+          saidAbout.delete(project);
+          clearCheckoutFault(project);
+        } else complain(project, result.error ?? "it could not be made", !result.absent);
         if (result.checkout) resolvedCheckouts.set(project, result.checkout);
         return result.checkout;
       })
@@ -137,8 +141,14 @@ export function setupProjectResolution(
    *  A project whose clone CANNOT be made — no origin, an unreachable
    *  one — answers `undefined`, and every caller falls back to the
    *  checkout it used before this spec. */
-  const ensureCheckout = (project: string, opts?: { fresh?: boolean }): Promise<DashboardCheckout | undefined> =>
-    opts?.fresh ? checkoutEnsurer.fresh(project) : checkoutEnsurer.get(project);
+  const ensureCheckout = (
+    project: string,
+    opts?: { fresh?: boolean; clone?: boolean },
+  ): Promise<DashboardCheckout | undefined> => {
+    // `clone` is a press's, never a tick's: see `EnsureRequest.mayClone`.
+    if (opts?.clone) return checkoutEnsurer.make(project);
+    return opts?.fresh ? checkoutEnsurer.fresh(project) : checkoutEnsurer.get(project);
+  };
   // One runner, two users now: the read path asks whether a branch
   // landed, the write path lands it.
   const gitRun: GitRunner = opts.gitRun ?? createGitRunner();

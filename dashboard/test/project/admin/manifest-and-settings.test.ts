@@ -12,7 +12,7 @@ import {
 } from "../../../src/project/project-admin";
 import { parseManifest } from "../../../src/project/parse-manifest.ts";
 import { configValue, resolveWorktreeLinks } from "../../../src/project/discover";
-import { fakeGit } from "../../helpers/fake-git.ts";
+import { cloningGit, fakeGit } from "../../helpers/fake-git.ts";
 
 const dirs: string[] = [];
 const root = (): string => {
@@ -215,10 +215,9 @@ describe("adding a project keeps its links in the dashboard's settings file (spe
     const projectsRoot = root();
     const base = root();
     const dir = join(projectsRoot, "travels");
-    mkdirSync(dir, { recursive: true });
-    const result = await addProject(fakeGit({}).run, projectsRoot, {
+    const result = await addProject(cloningGit().run, projectsRoot, {
       name: "travels",
-      existingPath: dir,
+      gitUrl: "git@example.com:me/travels.git",
       worktreeLinks: ".venv dashboard/node_modules",
     }, base);
     expect(result.ok).toBe(true);
@@ -235,12 +234,10 @@ describe("adding a project keeps its links in the dashboard's settings file (spe
     const projectsRoot = root();
     const base = root();
     const dir = join(projectsRoot, "hasmanifest");
-    mkdirSync(join(dir, ".aide"), { recursive: true });
     const drafted = "name: hasmanifest\ndescription: written by /aide-manifest\nstack:\n  backend: none\n";
-    writeFileSync(join(dir, ".aide", "project.yaml"), drafted);
-    const result = await addProject(fakeGit({}).run, projectsRoot, {
+    const result = await addProject(cloningGit({}, { ".aide/project.yaml": drafted }).run, projectsRoot, {
       name: "hasmanifest",
-      existingPath: dir,
+      gitUrl: "git@example.com:me/hasmanifest.git",
       worktreeLinks: "node_modules",
     }, base);
     expect(result.ok).toBe(true);
@@ -255,10 +252,9 @@ describe("adding a project keeps its links in the dashboard's settings file (spe
     const projectsRoot = root();
     const base = root();
     const dir = join(projectsRoot, "specsonly");
-    mkdirSync(dir, { recursive: true });
-    const result = await addProject(fakeGit({}).run, projectsRoot, {
+    const result = await addProject(cloningGit().run, projectsRoot, {
       name: "specsonly",
-      existingPath: dir,
+      gitUrl: "git@example.com:me/specsonly.git",
       specsPath: join(root(), "aide-specs", "specsonly"),
     }, base);
     expect(result.ok).toBe(true);
@@ -270,10 +266,9 @@ describe("adding a project keeps its links in the dashboard's settings file (spe
     const projectsRoot = root();
     const base = root();
     const dir = join(projectsRoot, "stillrefused");
-    mkdirSync(dir, { recursive: true });
-    const result = await addProject(fakeGit({}).run, projectsRoot, {
+    const result = await addProject(cloningGit().run, projectsRoot, {
       name: "stillrefused",
-      existingPath: dir,
+      gitUrl: "git@example.com:me/stillrefused.git",
       worktreeLinks: "/etc",
     }, base);
     expect(result.ok).toBe(false);

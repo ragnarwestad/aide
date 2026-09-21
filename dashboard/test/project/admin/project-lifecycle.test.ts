@@ -1,17 +1,16 @@
 import { dashboardSettingsFile } from "../../../src/git/dashboard-checkout.ts";
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   addProject,
-  addProjectTarget,
   projectNameError,
   removeProject,
 } from "../../../src/project/project-admin";
 import { parseManifest } from "../../../src/project/parse-manifest.ts";
 import { configValue } from "../../../src/project/discover";
-import { fakeGit } from "../../helpers/fake-git.ts";
+import { cloningGit, fakeGit } from "../../helpers/fake-git.ts";
 
 const dirs: string[] = [];
 const root = (): string => {
@@ -23,32 +22,6 @@ const root = (): string => {
 afterEach(() => {
   while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
 });
-
-/** A git that answers a clone by making the directory the real one
- *  would have made — everything after the clone step reads that
- *  directory, so a fake that leaves nothing behind would test only the
- *  first step. */
-function cloningGit(files: Record<string, string> = {}) {
-  const calls: { dir: string; args: string[] }[] = [];
-  return {
-    calls,
-    run: async (dir: string, args: string[]) => {
-      calls.push({ dir, args });
-      const clone = args.indexOf("clone");
-      if (clone !== -1) {
-        const dest = join(dir, args[clone + 2]!);
-        mkdirSync(dest, { recursive: true });
-        for (const [path, text] of Object.entries(files)) {
-          mkdirSync(join(dest, path).replace(/\/[^/]+$/, ""), { recursive: true });
-          writeFileSync(join(dest, path), text);
-        }
-        return { code: 0, stdout: "" };
-      }
-      return { code: 1, stdout: "" };
-    },
-  };
-}
-
 
 describe("a project name has to be safe before anything is touched", () => {
   // Criterion 3. The name becomes a directory under the projects root
@@ -299,19 +272,18 @@ describe("adding a checkout that is already on the host", () => {
   test("an existing manifest is kept, not overwritten", async () => {
     const projectsRoot = root();
     const dir = join(projectsRoot, "already");
-    mkdirSync(join(dir, ".aide"), { recursive: true });
     const manifest = join(dir, ".aide", "project.yaml");
-    writeFileSync(manifest, "name: already\ndescription: written by /aide-manifest\nstack:\n  api: Go\n");
-    const git = fakeGit({});
+    const git = cloningGit({}, {
+      ".aide/project.yaml": "name: already\ndescription: written by /aide-manifest\nstack:\n  api: Go\n",
+    });
     const result = await addProject(git.run, projectsRoot, {
       name: "already",
-      existingPath: dir,
+      gitUrl: "git@example.com:me/already.git",
       description: "ignored, because there is a manifest already",
     });
     expect(result.ok).toBe(true);
-    // Nothing was CLONED: the checkout was already there. (Readiness
-    // asks the same runner its own read-only questions afterwards.)
-    expect(git.calls.filter((c) => c.args.includes("clone"))).toEqual([]);
+    // The manifest the clone brought is the one that stays.
+    expect(git.calls.filter((c) => c.args.includes("clone")).length).toBe(1);
     expect(readFileSync(manifest, "utf-8")).toContain("api: Go");
     expect(readFileSync(manifest, "utf-8")).not.toContain("ignored");
   });
@@ -323,10 +295,9 @@ describe("adding a checkout that is already on the host", () => {
     const projectsRoot = root();
     const base = root();
     const dir = join(projectsRoot, "bare");
-    mkdirSync(dir, { recursive: true });
-    const result = await addProject(fakeGit({}).run, projectsRoot, {
+    const result = await addProject(cloningGit().run, projectsRoot, {
       name: "bare",
-      existingPath: dir,
+      gitUrl: "git@example.com:me/bare.git",
       description: "A checkout that predates its manifest",
     }, base);
     expect(result.ok).toBe(true);
@@ -340,104 +311,27 @@ describe("adding a checkout that is already on the host", () => {
     });
   });
 
-  test("a path that is not <root>/<name> is refused, because nothing would discover it", async () => {
-    const projectsRoot = root();
-    const elsewhere = root();
-    const result = await addProject(fakeGit({}).run, projectsRoot, {
-      name: "outside",
-      existingPath: elsewhere,
-    });
+
+
+
+
+
+  // 2026-09-21: a git address is the only way in. A project used to be
+  // addable by naming a directory already on the host, which left the
+  // dashboard with two layouts — for a cloned project the entry under
+  // the projects root IS its own checkout, for a registered one it was
+  // the person's — and a delete in `ensureDashboardCheckout` that was
+  // right about one of them removed woodstack.
+  test("a name with no git address is refused, because there is nothing to clone", async () => {
+    const result = await addProject(fakeGit({}).run, root(), { name: "urlless" });
     expect(result.ok).toBe(false);
-    expect(result.steps.find((s) => s.step === "register")!.error).toContain(projectsRoot);
-  });
-
-  test("a path that is not there at all is refused", async () => {
-    const projectsRoot = root();
-    const result = await addProject(fakeGit({}).run, projectsRoot, {
-      name: "ghost",
-      existingPath: join(projectsRoot, "ghost"),
-    });
-    expect(result.ok).toBe(false);
-    expect(result.steps.find((s) => s.step === "register")!.ok).toBe(false);
-  });
-
-  // Spec 131: the form picks a directory NAME now, not a path — so a
-  // value with no separator in it means "the checkout of that name
-  // directly under the projects root", and the name of the project
-  // follows from the pick rather than being typed a second time.
-  test("a picked directory name settles the path and the name together", async () => {
-    const projectsRoot = root();
-    const base = root();
-    const dir = join(projectsRoot, "atlasaurus");
-    mkdirSync(dir, { recursive: true });
-    const result = await addProject(fakeGit({}).run, projectsRoot, {
-      name: "",
-      existingPath: "atlasaurus",
-      description: "picked, not typed",
-    }, base);
-    expect(result.ok).toBe(true);
-    // The manifest is where criterion 5 actually bites: the name written
-    // there has to be the picked one, not the blank the reader left.
-    expect(parseManifest(readFileSync(dashboardSettingsFile(base, "atlasaurus"), "utf-8"))).toEqual({
-      ok: true,
-      data: { name: "atlasaurus", description: "picked, not typed" },
-    });
-  });
-
-  // Spec 140, criterion 1: a project's name IS its directory name —
-  // `discoverProjects` reads it off the entry under the projects root
-  // and nowhere else, so a project registered under a typed name that
-  // differs could never be found again. The pick therefore wins over
-  // the typed Name, where before the mismatch was refused with a
-  // message naming a path that does not exist.
-  test("a typed name that does not match the picked directory loses to the pick", async () => {
-    const projectsRoot = root();
-    const base = root();
-    const dir = join(projectsRoot, "skjer");
-    mkdirSync(dir, { recursive: true });
-    const result = await addProject(fakeGit({}).run, projectsRoot, {
-      name: "Skjer",
-      existingPath: "skjer",
-      description: "picked as skjer, typed as Skjer",
-    }, base);
-    expect(result.ok).toBe(true);
-    // The directory's own name is what the manifest — and so the
-    // allowlist, and `discoverProjects` — ends up carrying.
-    expect(parseManifest(readFileSync(dashboardSettingsFile(base, "skjer"), "utf-8"))).toEqual({
-      ok: true,
-      data: { name: "skjer", description: "picked as skjer, typed as Skjer" },
-    });
-    // The entry under the projects root is what `discoverProjects`
-    // reads a project's name off, and there is exactly one of it —
-    // asked by listing, because a case-insensitive filesystem answers
-    // `existsSync(<root>/Skjer)` with a yes it does not mean.
-    expect(readdirSync(projectsRoot)).toEqual(["skjer"]);
-  });
-
-  // The rule itself, at the level the route asks it too: the same
-  // question `serve.ts` puts to `addProjectTarget` for the allowlist.
-  test("a bare existingPath settles the name, and a typed Name only names a clone", () => {
-    const projectsRoot = root();
-    expect(addProjectTarget(projectsRoot, { name: "Skjer", existingPath: "skjer" })).toEqual({
-      name: "skjer",
-      existingPath: join(projectsRoot, "skjer"),
-    });
-    // Nothing picked: the typed Name is all there is, and it is what
-    // the clone's destination directory gets called.
-    expect(addProjectTarget(projectsRoot, { name: "fresh" })).toEqual({
-      name: "fresh",
-      existingPath: undefined,
-    });
-    // A full path is not the picker, so the typed Name still names it —
-    // and the mismatch below is still refused, as it always was.
-    expect(addProjectTarget(projectsRoot, { name: "typed", existingPath: "/elsewhere/typed" })).toEqual({
-      name: "typed",
-      existingPath: "/elsewhere/typed",
-    });
+    const step = result.steps[0]!;
+    expect(step.step).toBe("name");
+    expect(step.error).toContain("git address");
   });
 
   test("nothing picked and nothing typed is still refused for saying neither", async () => {
-    const result = await addProject(fakeGit({}).run, root(), { name: "", existingPath: "" });
+    const result = await addProject(fakeGit({}).run, root(), { name: "", gitUrl: "" });
     expect(result.ok).toBe(false);
     expect(result.steps[0]!.step).toBe("name");
   });
@@ -464,16 +358,15 @@ describe("where the project's specs live", () => {
   test("an existing .aide/config keeps its other keys", async () => {
     const projectsRoot = root();
     const dir = join(projectsRoot, "hasconfig");
-    mkdirSync(join(dir, ".aide"), { recursive: true });
-    writeFileSync(
-      join(dir, ".aide", "config"),
-      "# personal\nAIDE_INSTALL_CMD=./install.sh\nAIDE_SPECS_PATH=/old/place\n",
-    );
-    const result = await addProject(fakeGit({}).run, projectsRoot, {
+    const result = await addProject(
+      cloningGit({}, { ".aide/config": "# personal\nAIDE_INSTALL_CMD=./install.sh\nAIDE_SPECS_PATH=/old/place\n" }).run,
+      projectsRoot,
+      {
       name: "hasconfig",
-      existingPath: dir,
+      gitUrl: "git@example.com:me/hasconfig.git",
       specsPath: "/new/place",
-    });
+      },
+    );
     expect(result.ok).toBe(true);
     expect(configValue(dir, "AIDE_INSTALL_CMD")).toBe("./install.sh");
     expect(configValue(dir, "AIDE_SPECS_PATH")).toBe("/new/place");
@@ -490,12 +383,10 @@ describe("where the project's specs live", () => {
   // `archive/` a run walks beside it.
   test("a specs root that is not there yet is created, archive and all", async () => {
     const projectsRoot = root();
-    const dir = join(projectsRoot, "makesspecs");
-    mkdirSync(dir, { recursive: true });
     const specs = join(root(), "aide-specs", "makesspecs");
-    const result = await addProject(fakeGit({}).run, projectsRoot, {
+    const result = await addProject(cloningGit().run, projectsRoot, {
       name: "makesspecs",
-      existingPath: dir,
+      gitUrl: "git@example.com:me/makesspecs.git",
       specsPath: specs,
     });
     expect(result.ok).toBe(true);
@@ -510,13 +401,11 @@ describe("where the project's specs live", () => {
 
   test("a specs root that already exists is left exactly as it is", async () => {
     const projectsRoot = root();
-    const dir = join(projectsRoot, "hasspecs");
-    mkdirSync(dir, { recursive: true });
     const specs = join(root(), "already-there");
     mkdirSync(join(specs, "07-something"), { recursive: true });
-    const result = await addProject(fakeGit({}).run, projectsRoot, {
+    const result = await addProject(cloningGit().run, projectsRoot, {
       name: "hasspecs",
-      existingPath: dir,
+      gitUrl: "git@example.com:me/hasspecs.git",
       specsPath: specs,
     });
     expect(result.ok).toBe(true);
@@ -526,8 +415,10 @@ describe("where the project's specs live", () => {
   test("no specs path means no config is written at all", async () => {
     const projectsRoot = root();
     const dir = join(projectsRoot, "nospecs");
-    mkdirSync(dir, { recursive: true });
-    const result = await addProject(fakeGit({}).run, projectsRoot, { name: "nospecs", existingPath: dir });
+    const result = await addProject(cloningGit().run, projectsRoot, {
+      name: "nospecs",
+      gitUrl: "git@example.com:me/nospecs.git",
+    });
     expect(result.ok).toBe(true);
     expect(result.steps.some((s) => s.step === "specsConfig")).toBe(false);
     expect(existsSync(join(dir, ".aide", "config"))).toBe(false);

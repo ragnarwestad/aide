@@ -4,8 +4,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   assessProjectReadiness,
-  suggestSpecsPath,
-  suggestWorktreeLinksFromLockfile,
   updateProjectSettings,
 } from "../../../src/project/project-admin";
 import type { GitRunner } from "../../../src/git/branch-status.ts";
@@ -23,9 +21,7 @@ afterEach(() => {
   while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
 });
 
-/** A checkout under a projects root of its own — the same shape the
- *  readiness tests above build, at module scope because spec 184's tests
- *  want it too. */
+/** A checkout under a projects root of its own. */
 function checkoutFor(name: string): { projectsRoot: string; dir: string } {
   const projectsRoot = root();
   const dir = join(projectsRoot, name);
@@ -33,109 +29,6 @@ function checkoutFor(name: string): { projectsRoot: string; dir: string } {
   return { projectsRoot, dir };
 }
 
-
-// --- spec 184: the form stops asking for what can be worked out --------------
-describe("proposing the worktree links from a checkout's own lockfile", () => {
-  const withFiles = (...files: string[]): string => {
-    const dir = root();
-    for (const f of files) writeFileSync(join(dir, f), "");
-    return dir;
-  };
-
-  // Criterion 5. Not a guess: a lockfile at the root IS the project
-  // saying its dependency tree lives in the directory beside it, and
-  // that directory is gitignored in every one of these ecosystems.
-  test.each([
-    ["bun.lock", "node_modules"],
-    ["package-lock.json", "node_modules"],
-    ["pnpm-lock.yaml", "node_modules"],
-    ["yarn.lock", "node_modules"],
-    ["package.json", "node_modules"],
-    ["requirements.txt", ".venv"],
-    ["pyproject.toml", ".venv"],
-  ])("%s proposes %s", (file, expected) => {
-    expect(suggestWorktreeLinksFromLockfile(withFiles(file))).toBe(expected);
-  });
-
-  test("a project with both toolchains proposes both, in the shape the config takes", () => {
-    expect(suggestWorktreeLinksFromLockfile(withFiles("package.json", "pyproject.toml"))).toBe(
-      "node_modules .venv",
-    );
-  });
-
-  test("two node lockfiles propose node_modules once", () => {
-    expect(suggestWorktreeLinksFromLockfile(withFiles("bun.lock", "package.json"))).toBe("node_modules");
-  });
-
-  // A proposal that cannot be made is left empty rather than guessed.
-  test("a checkout with no lockfile at all proposes nothing", () => {
-    expect(suggestWorktreeLinksFromLockfile(withFiles("README.md"))).toBe("");
-  });
-
-  test("a directory that is not there proposes nothing rather than throwing", () => {
-    expect(suggestWorktreeLinksFromLockfile(join(root(), "gone"))).toBe("");
-  });
-});
-
-describe("proposing the specs root from how the other projects are laid out", () => {
-  // Criterion 10: a shared specs repository with a directory per project
-  // is a pattern, and the pattern is what proposes the path.
-  test("a shared parent across two projects proposes the same shape for a new name", () => {
-    expect(
-      suggestSpecsPath("skjer", [
-        { name: "aide", specsPath: "/repos/aide-specs/aide" },
-        { name: "atlasaurus", specsPath: "/repos/aide-specs/atlasaurus" },
-      ]),
-    ).toBe("/repos/aide-specs/skjer");
-  });
-
-  // Criterion 6: one project is an example, not a pattern.
-  test("a single existing project is not enough to infer a pattern from", () => {
-    expect(suggestSpecsPath("skjer", [{ name: "aide", specsPath: "/repos/aide-specs/aide" }])).toBe("");
-  });
-
-  test("projects whose specs roots share no parent propose nothing", () => {
-    expect(
-      suggestSpecsPath("skjer", [
-        { name: "aide", specsPath: "/repos/aide-specs/aide" },
-        { name: "atlasaurus", specsPath: "/elsewhere/atlas-specs/atlasaurus" },
-      ]),
-    ).toBe("");
-  });
-
-  // The pattern is `<parent>/<projectName>`. A specs root whose last
-  // segment is something else says nothing about where a project named
-  // `skjer` would put its own.
-  test("specs roots that are not named after their project are not a pattern", () => {
-    expect(
-      suggestSpecsPath("skjer", [
-        { name: "aide", specsPath: "/repos/specs/todo" },
-        { name: "atlasaurus", specsPath: "/repos/specs/todo" },
-      ]),
-    ).toBe("");
-  });
-
-  test("a project with no specs root configured contributes nothing", () => {
-    expect(
-      suggestSpecsPath("skjer", [
-        { name: "aide", specsPath: "/repos/aide-specs/aide" },
-        { name: "atlasaurus", specsPath: null },
-      ]),
-    ).toBe("");
-  });
-
-  // Never over an existing project: the proposal is for a name that is
-  // about to be added, and one already there has its own answer.
-  test("the majority pattern wins where the roots disagree", () => {
-    expect(
-      suggestSpecsPath("skjer", [
-        { name: "aide", specsPath: "/repos/aide-specs/aide" },
-        { name: "atlasaurus", specsPath: "/repos/aide-specs/atlasaurus" },
-        { name: "odd", specsPath: "/somewhere/else/odd" },
-      ]),
-    ).toBe("/repos/aide-specs/skjer");
-  });
-});
 
 // Spec 205: the checks answer for the checkout a RUN will use.
 //

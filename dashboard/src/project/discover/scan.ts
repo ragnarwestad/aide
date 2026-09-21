@@ -5,7 +5,6 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { parseManifest, type ManifestResult } from "../parse-manifest.ts";
-import { projectNameError } from "../project-admin";
 import { parseStatus, type StatusInfo } from "../parse-status";
 import { failedCount, notVerifiedCount } from "../parse-status/not-verified.ts";
 import { readSpecState } from "../parse-spec-state.ts";
@@ -157,33 +156,33 @@ export function discoverProjects(
   return projects.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** The inverse of `discoverProjects`: the directories under the same
- *  root that carry NO manifest — checkouts on this host that are not
- *  projects yet (spec 131). The Add-project form offers these to be
- *  PICKED, because the one path its own check accepts follows from the
- *  projects root and the name, and asking a reader to type it was
- *  asking for something only the server knew.
+
+
+/** Everything a page shows about a projects root: the manifest scan
+ *  above, plus each project's parsed manifest and each spec's parsed
+ *  status. The generator and the served `/projects` page (spec 115) both
+ *  want exactly this, from exactly these files — so it is written once
+ *  here rather than twice, the way `serve.ts` already refuses to read
+ *  one file for two answers.
  *
- *  Bare directory names, not paths: the picked value is the project's
- *  name as well as its location, and `addProject` resolves it against
- *  the same root. A name that could never be a project name is left out
- *  — offering it would only produce a refusal nobody could act on. The
- *  try/catch is `discoverProjects`' own: a dangling symlink is not a
- *  checkout, and it is not a crash either. */
-export function discoverUnclaimedDirectories(root: string, manifestFallback?: ManifestFallback): string[] {
-  const found: string[] = [];
-  if (!existsSync(root)) return found;
-  for (const entry of readdirSync(root)) {
-    if (projectNameError(entry) !== null) continue;
-    const dir = join(root, entry);
-    try {
-      if (!statSync(dir).isDirectory() || manifestOf(dir, entry, manifestFallback)) continue;
-    } catch {
-      continue; // dangling symlink or unreadable entry — nothing to offer
-    }
-    found.push(entry);
-  }
-  return found.sort((a, b) => a.localeCompare(b));
+ *  A spec with no `4-status.md` gets `null`, never an invented zero: the
+ *  page tells "not started" and "nothing written down" apart. */
+export function buildProjectViews(
+  root: string,
+  ownedSpecsRoot?: OwnedSpecsRoot,
+  manifestFallback?: ManifestFallback,
+): ProjectView[] {
+  return discoverProjects(root, ownedSpecsRoot, manifestFallback).map((p) => ({
+    name: p.name,
+    manifest: parseManifest(readFileSync(p.manifestPath, "utf-8")),
+    specs: p.specs.map((s) => {
+      const statusPath = join(s.dir, "4-status.md");
+      return {
+        ...s,
+        status: existsSync(statusPath) ? parseStatus(readFileSync(statusPath, "utf-8")) : null,
+      };
+    }),
+  }));
 }
 
 /** The gitignored paths of a checkout that could plausibly be worktree
@@ -212,31 +211,4 @@ export function gitignoreCandidates(dir: string): string[] {
   } catch {
     return []; // unreadable is not a crash — it is nothing to suggest
   }
-}
-
-/** Everything a page shows about a projects root: the manifest scan
- *  above, plus each project's parsed manifest and each spec's parsed
- *  status. The generator and the served `/projects` page (spec 115) both
- *  want exactly this, from exactly these files — so it is written once
- *  here rather than twice, the way `serve.ts` already refuses to read
- *  one file for two answers.
- *
- *  A spec with no `4-status.md` gets `null`, never an invented zero: the
- *  page tells "not started" and "nothing written down" apart. */
-export function buildProjectViews(
-  root: string,
-  ownedSpecsRoot?: OwnedSpecsRoot,
-  manifestFallback?: ManifestFallback,
-): ProjectView[] {
-  return discoverProjects(root, ownedSpecsRoot, manifestFallback).map((p) => ({
-    name: p.name,
-    manifest: parseManifest(readFileSync(p.manifestPath, "utf-8")),
-    specs: p.specs.map((s) => {
-      const statusPath = join(s.dir, "4-status.md");
-      return {
-        ...s,
-        status: existsSync(statusPath) ? parseStatus(readFileSync(statusPath, "utf-8")) : null,
-      };
-    }),
-  }));
 }

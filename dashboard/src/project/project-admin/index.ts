@@ -18,14 +18,11 @@ export type {
 
 export {
   projectNameError,
-  addProjectTarget,
   minimalManifest,
   upsertManifestScalar,
   writeAideConfig,
   WORKTREE_LINK_DENYLIST,
   worktreeLinksError,
-  suggestWorktreeLinksFromLockfile,
-  suggestSpecsPath,
 } from "./manifest-io.ts";
 
 export {

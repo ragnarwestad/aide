@@ -15,7 +15,8 @@ import {
   SpecFileCommitChecker,
 } from "../../git/description-freshness.ts";
 import { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/workflow-history.ts";
-import type { CheckoutEnsurer, DashboardCheckout } from "../../git/dashboard-checkout.ts";
+import type { DashboardCheckout } from "../../git/dashboard-checkout.ts";
+import type { CheckoutEnsurer } from "../../git/checkout-ensurer.ts";
 import type { QueueStore } from "../../queue/queue.ts";
 import type { CheckableTool, SpecTarget } from "../../render";
 import {

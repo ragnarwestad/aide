@@ -15,18 +15,15 @@
 // a working tree, and a fake that answers "clone: ok" would prove only
 // that the code asked for one.
 //
-// This file covers the first-use clone, reuse on a second call, and
-// recovery from a checkout left half-made by an interrupted clone.
+// This file covers the first-use clone and reuse on a second call. What
+// happens to a checkout git cannot answer for — reported, never deleted
+// or re-cloned — is in dashboard-checkout-never-deletes-the-project.test.ts.
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  dashboardCheckoutRoot,
-  dashboardSpecsRepo,
-  ensureDashboardCheckout,
-} from "../../../src/git/dashboard-checkout.ts";
+import { dashboardCheckoutRoot, ensureDashboardCheckout } from "../../../src/git/dashboard-checkout.ts";
 import { createGitRunner } from "../../../src/git/branch-status.ts";
 import { configValue } from "../../../src/project/discover";
 
@@ -75,7 +72,7 @@ describe("ensureDashboardCheckout", () => {
     const { clone } = repoWithClone(where, "aide", { "README.md": "# aide\n" });
     const base = join(where, "owned");
 
-    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone });
+    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
 
     expect(result.ok).toBe(true);
     expect(result.cloned).toBe(true);
@@ -89,11 +86,11 @@ describe("ensureDashboardCheckout", () => {
     const { clone } = repoWithClone(where, "aide", { "README.md": "# aide\n" });
     const base = join(where, "owned");
 
-    const first = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone });
+    const first = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
     // Something only THIS checkout has: if a second call re-cloned, the
     // file would be gone.
     writeFileSync(join(first.checkout!.code, "scratch.txt"), "kept\n");
-    const second = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone });
+    const second = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
 
     expect(second.ok).toBe(true);
     expect(second.cloned).toBe(false);
@@ -114,41 +111,7 @@ describe("ensureDashboardCheckout", () => {
     writeFileSync(join(dir, "left-behind.txt"), "from the killed clone\n");
   }
 
-  test("a half-made checkout is replaced on the next call", async () => {
-    const where = tmp("aide-checkout-");
-    const { clone } = repoWithClone(where, "aide", { "README.md": "# aide\n" });
-    const base = join(where, "owned");
-    halfMadeCheckout(dashboardCheckoutRoot(base, "aide"));
 
-    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone });
-
-    expect(result.ok).toBe(true);
-    expect(result.cloned).toBe(true);
-    // The clone really happened: the content is there, and what the
-    // killed one left behind is not.
-    expect(readFileSync(join(result.checkout!.code, "README.md"), "utf-8")).toBe("# aide\n");
-    expect(existsSync(join(result.checkout!.code, "left-behind.txt"))).toBe(false);
-    expect(existsSync(join(result.checkout!.code, ".git", "HEAD"))).toBe(true);
-  });
-
-  test("a half-made separate specs checkout is replaced on the next call", async () => {
-    const where = tmp("aide-checkout-");
-    const { clone } = repoWithClone(where, "aide", { "README.md": "# aide\n" });
-    const specs = repoWithClone(where, "aide-specs", { "aide/01-first/1-description.md": "# First\n" });
-    const personSpecsRoot = join(specs.clone, "aide");
-    mkdirSync(join(clone, ".aide"), { recursive: true });
-    writeFileSync(join(clone, ".aide", "config"), `AIDE_SPECS_PATH=${personSpecsRoot}\n`);
-    const base = join(where, "owned");
-    halfMadeCheckout(dashboardSpecsRepo(base, "aide"));
-
-    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone });
-
-    expect(result.ok).toBe(true);
-    expect(result.cloned).toBe(true);
-    expect(result.checkout!.specs).toBe(join(dashboardSpecsRepo(base, "aide"), "aide"));
-    expect(existsSync(join(result.checkout!.specs, "01-first", "1-description.md"))).toBe(true);
-    expect(existsSync(join(result.checkout!.specsRepo, "left-behind.txt"))).toBe(false);
-  });
 
   // Requirement 3: a replacement that fails says which checkout and
   // why. The one thing it must never do is report success, because the
@@ -162,7 +125,7 @@ describe("ensureDashboardCheckout", () => {
     const code = dashboardCheckoutRoot(base, "aide");
     halfMadeCheckout(code);
 
-    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone });
+    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
 
     expect(result.ok).toBe(false);
     expect(result.error).toContain(code);
@@ -179,7 +142,7 @@ describe("ensureDashboardCheckout", () => {
     const base = join(where, "owned");
 
     for (let i = 0; i < 3; i++) {
-      await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone });
+      await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
     }
 
     expect(readdirSync(base)).toEqual(["aide"]);
@@ -197,7 +160,7 @@ describe("ensureDashboardCheckout", () => {
     writeFileSync(join(clone, ".aide", "config"), "AIDE_INSTALL_CMD=deploy/install.sh\n");
     const base = join(where, "owned");
 
-    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone });
+    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
 
     expect(configValue(result.checkout!.code, "AIDE_INSTALL_CMD")).toBe("deploy/install.sh");
   });

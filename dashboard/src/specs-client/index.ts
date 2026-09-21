@@ -27,7 +27,6 @@
 import { applyAiPick, MODEL_SELECTS, offerEachToItsTool, refreshAiModelBox, syncAiToModel } from "./ai-sync.ts";
 import { interceptCancelSubmit } from "./cancel-confirm.ts";
 import {
-  bindProposals,
   formNote,
   submitAction,
   submitCreate,
@@ -63,7 +62,6 @@ if (pushPanel) bindPushPanel(pushPanel);
 
 for (const el of document.querySelectorAll("form.addprojectform, form.removeform")) {
   const form = el as HTMLFormElement;
-  bindProposals(form);
   form.addEventListener("submit", ((event: Event) => submitProjectChange(form, event)) as EventListener);
 }
 

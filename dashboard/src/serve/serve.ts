@@ -52,6 +52,7 @@ import { createLaunchdRestart } from "./land-branch";
 import { createQueueRunner, type RunnerSetupContext } from "./runner-setup.ts";
 import { recoverTestServers, sweepDeadTestServers } from "./test-servers/recover.ts";
 import { setBoardInfo } from "../render/ui/board-info.ts";
+import { clearCheckoutFaults } from "../render/ui/checkout-faults.ts";
 
 export function createServer(opts: ServerOptions) {
   // Spec 363: a header this process trusts is only trustworthy because
@@ -481,6 +482,9 @@ export function createServer(opts: ServerOptions) {
       }
       watch.watchers.clear();
       watch.phaseWatchers.clear();
+      // The checkout faults are this board's, so the next board in the
+      // process does not inherit them (`render/ui/checkout-faults.ts`).
+      clearCheckoutFaults();
       void server.stop(true);
     },
   };

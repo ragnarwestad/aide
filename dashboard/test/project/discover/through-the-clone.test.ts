@@ -7,7 +7,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { discoverProjects, discoverUnclaimedDirectories, manifestInside } from "../../../src/project/discover";
+import { discoverProjects, manifestInside } from "../../../src/project/discover";
 import { projectSettings } from "../../../src/project/project-settings.ts";
 
 const dirs: string[] = [];
@@ -35,12 +35,6 @@ describe("discovery reads the manifest from the dashboard's clone", () => {
     const found = discoverProjects(w.projects, undefined, w.fallback);
     expect(found.map((p) => p.name)).toEqual(["skjer"]);
     expect(found[0]!.manifestPath).toBe(join(w.clone, ".aide", "project.yaml"));
-  });
-
-  test("the directory is no longer offered as one to add (AC-4)", () => {
-    const w = world();
-    expect(discoverUnclaimedDirectories(w.projects)).toEqual(["skjer"]);
-    expect(discoverUnclaimedDirectories(w.projects, w.fallback)).toEqual([]);
   });
 
   test("the settings page shows the test command from the clone (AC-4)", () => {

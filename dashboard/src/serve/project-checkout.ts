@@ -15,6 +15,7 @@ import { resolveCodeLanding, type CodeLanding } from "../project/discover";
 import type { Job } from "../queue/queue.ts";
 import type { ScheduleStore } from "../queue/schedule-store.ts";
 import type { SpecTarget } from "../render";
+import { clearCheckoutFault, setCheckoutFault } from "../render/ui/checkout-faults.ts";
 
 export interface ProjectCheckoutContext {
   queueProjectRoot: string | undefined;
@@ -104,7 +105,19 @@ export function machinerySpecsRoot(ctx: ProjectCheckoutContext, project: string)
  *  changed is not said again. Every tick asks, and a project whose
  *  origin is unreachable would otherwise fill the log with one line
  *  every two seconds for as long as the server runs. */
-export function complain(ctx: ProjectCheckoutContext, project: string, said: string): void {
+export function complain(
+  ctx: ProjectCheckoutContext,
+  project: string,
+  said: string,
+  /** Whether this also belongs at the top of every page. A checkout that
+   *  has not been made yet, on a project the board can still read, is
+   *  said in the log and nowhere else — see `EnsureResult.absent`. */
+  banner = true,
+): void {
+  // Set on every call, not only a changed one: it is the state as it is
+  // now, and the log line is the one thing being kept quiet here.
+  if (banner) setCheckoutFault(project, said);
+  else clearCheckoutFault(project);
   if (ctx.saidAbout.get(project) === said) return;
   ctx.saidAbout.set(project, said);
   console.error(`queue: the dashboard's own checkout of ${project} — ${said}`);

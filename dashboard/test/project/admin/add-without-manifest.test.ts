@@ -16,7 +16,10 @@ afterEach(() => {
   while (cleanups.length) cleanups.pop()!();
 });
 const fixture = (files: Record<string, string> = {}) => {
-  const f = projectWithOrigin(files);
+  // Nothing under the projects root: every test here calls `addProject`,
+  // which clones the project itself and refuses a directory already
+  // standing where it would go.
+  const f = projectWithOrigin(files, { clone: false });
   cleanups.push(f.cleanup);
   return f;
 };
@@ -24,7 +27,7 @@ const fixture = (files: Record<string, string> = {}) => {
 describe("Add writes the dashboard's settings file, not the checkout", () => {
   test("a checkout with no manifest gets none, and the file beside the checkouts holds name and description (AC-1)", async () => {
     const f = fixture();
-    const result = await addProject(run, f.projects, { name: "demo", existingPath: f.dir, description: "A demo" }, f.base);
+    const result = await addProject(run, f.projects, { name: "demo", gitUrl: f.origin, description: "A demo" }, f.base);
     expect(result.ok).toBe(true);
     expect(existsSync(join(f.dir, ".aide", "project.yaml"))).toBe(false);
     const settings = readFileSync(dashboardSettingsFile(f.base, "demo"), "utf-8");
@@ -37,7 +40,7 @@ describe("Add writes the dashboard's settings file, not the checkout", () => {
     await addProject(
       run,
       f.projects,
-      { name: "demo", existingPath: f.dir, worktreeLinks: "node_modules", codeLanding: "pr" },
+      { name: "demo", gitUrl: f.origin, worktreeLinks: "node_modules", codeLanding: "pr" },
       f.base,
     );
     const settings = readFileSync(dashboardSettingsFile(f.base, "demo"), "utf-8");
@@ -52,7 +55,7 @@ describe("Add writes the dashboard's settings file, not the checkout", () => {
     const result = await addProject(
       run,
       f.projects,
-      { name: "demo", existingPath: f.dir, worktreeLinks: "node_modules" },
+      { name: "demo", gitUrl: f.origin, worktreeLinks: "node_modules" },
       f.base,
     );
     expect(readFileSync(join(f.dir, ".aide", "project.yaml"), "utf-8")).toBe(tracked);
@@ -63,10 +66,16 @@ describe("Add writes the dashboard's settings file, not the checkout", () => {
 
   test("an untracked manifest seeds the settings file and is left as it was (AC-1)", async () => {
     const f = fixture();
-    mkdirSync(join(f.dir, ".aide"));
+    // A checkout the dashboard had already made, holding a manifest
+    // somebody drafted with /aide-manifest and never committed. That is
+    // the one way an untracked manifest is there when Add runs, now that
+    // Add clones the project itself.
+    const code = join(f.base, "demo", "code");
+    git(f.root, "clone", "-q", f.origin, code);
+    mkdirSync(join(code, ".aide"));
     const draft = "name: demo\ndescription: drafted\ntestCmd: make check\n";
-    writeFileSync(join(f.dir, ".aide", "project.yaml"), draft);
-    await addProject(run, f.projects, { name: "demo", existingPath: f.dir }, f.base);
+    writeFileSync(join(code, ".aide", "project.yaml"), draft);
+    await addProject(run, f.projects, { name: "demo", gitUrl: f.origin }, f.base);
     expect(readFileSync(dashboardSettingsFile(f.base, "demo"), "utf-8")).toBe(draft);
     expect(readFileSync(join(f.dir, ".aide", "project.yaml"), "utf-8")).toBe(draft);
   });
@@ -75,7 +84,7 @@ describe("Add writes the dashboard's settings file, not the checkout", () => {
     const f = fixture();
     mkdirSync(join(f.base, "demo"), { recursive: true });
     writeFileSync(dashboardSettingsFile(f.base, "demo"), "name: demo\ntestCmd: mine\n");
-    await addProject(run, f.projects, { name: "demo", existingPath: f.dir, description: "new" }, f.base);
+    await addProject(run, f.projects, { name: "demo", gitUrl: f.origin, description: "new" }, f.base);
     expect(readFileSync(dashboardSettingsFile(f.base, "demo"), "utf-8")).toContain("testCmd: mine");
   });
 });

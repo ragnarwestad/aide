@@ -68,6 +68,27 @@ should read this file by hand.
   checkout under its feet when another run is in its own section.
   A refusal from such a command quotes git's own first line.
 
+## The dashboard's own checkouts
+
+`docs/projects.md`, "Adding and removing a project".
+
+- **A clone happens on a press and nowhere else.** `ensureDashboardCheckout`
+  clones only when its caller passes `mayClone` — Add, and a Settings
+  save that names a specs root. Every tick, boot and page render asks
+  without it and is told what is missing; `CheckoutEnsurer.make()` is
+  the one entry that may clone, and `get`/`fresh` never do.
+- **Nothing here deletes a checkout, and nothing re-clones one to repair
+  it.** A directory that is there and that git cannot answer for is
+  reported — by project, with what git said, at the top of every page
+  (`render/ui/checkout-faults.ts`) — and left alone. A checkout that IS
+  the project's own entry gets its own sentence, because the advice
+  "remove it by hand" would be advice to delete the project.
+- **One layout, because a project is added by its git address.** The
+  entry under the projects root is the checkout the dashboard made, or a
+  link to it. There is no way to register a directory already on the
+  host, so `personDir` and the dashboard's own checkout are never two
+  different things by accident.
+
 ## The hand-paired bash/TypeScript pairs
 
 `core/scripts/aide-run-spec` and the dashboard make several of the same

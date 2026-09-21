@@ -38,9 +38,17 @@ The Add form asks for:
 | Code landing    | Merge the code, or leave it as a pull request                                                                                             |
 | --------------  | -----------------------------------------------                                                                                           |
 
-A clone lands in `<projects root>/<name>` — or, when the projects root is the directory of links beside the
+**A project is added by its git address and cloned — there is no way to register a directory already on the host.**
+That leaves ONE layout for every project: the entry under the projects root is the checkout the dashboard itself
+made. A clone lands in `<projects root>/<name>` — or, when the projects root is the directory of links beside the
 dashboard's own checkouts, in `~/.aide/dashboard/checkouts/<name>/code`, with a link to it at
 `<projects root>/<name>`.
+
+**A clone happens on a press and at no other time.** Add clones the project; saving a specs root clones the
+repository that path names. Every tick, boot and page render asks for the checkout without permission to make one,
+so a checkout that is missing or that git cannot answer for is reported — at the top of every page, naming the
+project and what git said — and left exactly as it is. The dashboard never deletes a checkout and never re-clones
+one to repair it: a directory that is there and does not answer is something to look at, and the message says so.
 
 **A project that does not already track a manifest keeps nothing of Aide's in its repository.** What Add would have
 written into the checkout — the name, the description, worktree links, code landing — goes to the dashboard's own
@@ -144,11 +152,9 @@ the sentence is dropped. Reload the project page to see where the save left thin
 
 Add does itself what a run would otherwise refuse over a minute later.
 
-**The name is the directory's, not the typed one.** A project is discovered as a directory under the projects root,
-and its name is read off that entry and out of no manifest — so a project registered under a name that differs
-could never be found again. Where a pick and a typed name disagree, the pick wins, and the Name field then only
-names the directory a **clone** would create. A path typed by hand instead of picked is taken as given, and an add
-whose typed name and typed path disagree is refused.
+**The name is the directory's.** A project is discovered as a directory under the projects root, and its name is
+read off that entry and out of no manifest — so a project under a name that differs could never be found again. The
+Name field therefore names the directory the clone creates, and nothing else settles it.
 
 **A specs root that is not there is made.** Writing the path into `.aide/config` and then reporting the project as
 unable to run over a directory that is not there is a refusal over a path known the moment it was written. Add
@@ -161,25 +167,16 @@ machine: a personal global gitignore (`core.excludesFile`) covers it in every pr
 project's own `.gitignore`. The dashboard's own clone, which nobody edits, lists its derived `.aide/project.yaml`
 in that clone's `.git/info/exclude`.
 
-**Worktree links are suggested from the checkout's own `.gitignore`.**
-Nothing can derive which gitignored paths a project's commands need, which is why the field exists — but the checkouts
-on offer name the candidates in a file the reader had to go and open. The field carries a
-`<datalist>` of the literal, top-level entries from every offered checkout's `.gitignore`, deduped: a suggestion the
-reader may ignore, needing no script, like every other control on this page. Globs, negations, comments and nested paths
-are left out — they are not values
-`worktreeLinks` can take. A suggestion is not an endorsement either: a
-`.gitignore` routinely lists `build`, `dist` or `.gradle` beside
-`node_modules`, and those are refused — with the path named — because a link is one shared symlink, and a build writing
-through it would collide with every other run's.
-
-**And both fields are PROPOSED where they can be worked out.** A checkout's own lockfile says which package
-manager owns its dependency tree, and each of those puts that tree in one well-known gitignored directory: `bun.lock`/
-`package.json` proposes `node_modules`,
-`pyproject.toml`/`requirements.txt` proposes `.venv`, both propose both. The Specs root is proposed from how the
-projects already added lay theirs out — at least two sharing a `<parent>/<projectName>` pattern proposes
-`<parent>/<newName>`, and fewer than two is an example rather than a pattern. Anything that cannot be worked out is left
-blank, never guessed. With exactly one checkout on offer the answer is unambiguous and goes straight into the fields, so
-a browser with no script gets the help too; with several, the proposals ride on the form and the pick fills them in.
+**Worktree links are suggested on the project's own page, not on Add.** Nothing can derive which gitignored paths a
+project's commands need, which is why the field exists — but a checkout's `.gitignore` names the candidates in a
+file the reader had to go and open. The Config tab's Edit form carries a `<datalist>` of the literal, top-level
+entries from that checkout's `.gitignore`: a suggestion the reader may ignore, needing no script, like every other
+control on these pages. Globs, negations, comments and nested paths are left out — they are not values
+`worktreeLinks` can take. A suggestion is not an endorsement either: a `.gitignore` routinely lists `build`, `dist`
+or `.gradle` beside `node_modules`, and those are refused — with the path named — because a link is one shared
+symlink, and a build writing through it would collide with every other run's. Add has no such list, and proposes
+nothing at all: the project is not on this host yet, so there is no lockfile to read and no `.gitignore` to suggest
+from.
 
 ### A page render never waits on the network
 

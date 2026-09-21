@@ -19,11 +19,19 @@ export function checkoutSafetyHelpers(ownDirs: string[]) {
     return out.stdout.toString();
   }
 
-  /** A projects root holding ONE real project — a bare origin, and a
-   *  clone of it standing in for the checkout a person edits. The
-   *  harness's own fixture is a plain directory, and this suite needs a
-   *  repository with a remote to clone from. */
-  function realProject(): { projectsRoot: string; person: string; owned: string; site: string } {
+  /** A projects root holding ONE real project — a bare origin, a clone
+   *  of it standing in for the checkout a person edits, and the
+   *  dashboard's own clone beside it. The harness's own fixture is a
+   *  plain directory, and this suite needs a repository with a remote to
+   *  clone from.
+   *
+   *  The dashboard's clone is made HERE because a board never makes one
+   *  itself: a clone happens when a project is added or its specs root is
+   *  saved, and at no other time (`EnsureRequest.mayClone`). A board
+   *  booting on a project whose checkout is missing reports it and
+   *  touches nothing — which is a different test, in
+   *  test/git/checkout/dashboard-checkout-never-deletes-the-project.test.ts. */
+  function realProject(opts: { ownClone?: boolean } = {}): { projectsRoot: string; person: string; owned: string; site: string } {
     const where = mkdtempSync(join(tmpdir(), "aide-205-"));
     ownDirs.push(where);
     const seed = join(where, "seed");
@@ -45,10 +53,17 @@ export function checkoutSafetyHelpers(ownDirs: string[]) {
     Bun.spawnSync({ cmd: ["git", "clone", "-q", origin, person] });
     git(person, "config", "user.name", "Test");
     git(person, "config", "user.email", "test@example.com");
+    // What Add left behind: the dashboard's own clone of the same origin.
+    // `ownClone: false` is the project that has none, which a board reads
+    // from the person's checkout instead.
+    const owned = join(where, "owned");
+    if (opts.ownClone !== false) {
+      Bun.spawnSync({ cmd: ["git", "clone", "-q", origin, join(owned, "aide", "code")] });
+    }
     const site = join(where, "site");
     mkdirSync(site, { recursive: true });
     writeFileSync(join(site, "projects.html"), "<p>overview</p>");
-    return { projectsRoot, person, owned: join(where, "owned"), site };
+    return { projectsRoot, person, owned, site };
   }
 
   /** The real runner, wrapped so a test can say which directories the

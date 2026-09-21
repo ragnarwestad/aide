@@ -357,36 +357,36 @@ describe("POST /api/queue/projects (spec 112)", () => {
     expect(existsSync(join(dir, "root", ".hidden"))).toBe(false);
   });
 
-  // Criterion 6: an existing checkout with no manifest gets one, and
-  // the answer says so rather than leaving the operator to find out.
-  test("a checkout already on the host is registered, and a made manifest is reported", async () => {
-    const { base, dir } = start();
-    const path = join(dir, "root", "already-here");
-    mkdirSync(path, { recursive: true });
+  // Criterion 6: a clone with no manifest gets one, and the answer says
+  // so rather than leaving the operator to find out.
+  test("a clone with no manifest is added, and the made manifest is reported", async () => {
+    const { base } = start({ gitRun: cloningGit() });
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       headers: AUTH,
-      body: JSON.stringify({ name: "already-here", existingPath: path, description: "on disk already" }),
+      body: JSON.stringify({
+        name: "already-here",
+        gitUrl: "https://example.com/already-here.git",
+        description: "on disk already",
+      }),
     });
     expect(res.status).toBe(200);
     const body = (await res.json()) as StepBody;
     expect(body.ok).toBe(true);
-    expect(body.results.map((r) => r.step)).toEqual(["name", "register", "manifest", "allowlist"]);
+    expect(body.results.map((r) => r.step)).toEqual(["name", "clone", "manifest", "allowlist"]);
     expect(body.results.find((r) => r.step === "manifest")!.note).toMatch(/aide-manifest/);
   });
 
-  // Spec 131: the form picks a checkout by its bare directory name and
-  // leaves Name blank — so the name the ALLOWLIST gets has to be the one
-  // derived from the pick. Posting the raw blank would add "" and the
-  // project the manifest was just written for would never be runnable.
-  test("a picked checkout with no Name is allowlisted under the picked name", async () => {
+  // The name the ALLOWLIST gets is the name the directory gets, trimmed:
+  // posting it with spaces around it used to allowlist a name no
+  // directory has, and the project would never be runnable.
+  test("the name is allowlisted as the directory is named, trimmed", async () => {
     const file = ownConfig({ concurrency: 2 });
-    const { base, dir } = start({ queueConfigFile: file });
-    mkdirSync(join(dir, "root", "picked"), { recursive: true });
+    const { base } = start({ queueConfigFile: file, gitRun: cloningGit() });
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       headers: AUTH,
-      body: JSON.stringify({ name: "", existingPath: "picked" }),
+      body: JSON.stringify({ name: "  picked  ", gitUrl: "https://example.com/picked.git" }),
     });
     expect(res.status).toBe(200);
     const body = (await res.json()) as StepBody;
@@ -442,7 +442,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
   // Every other route here still lands on `/` — the target is a
   // parameter with `/` as its default, not a rewrite.
   test("a form submit lands back on /projects, refusal and success alike", async () => {
-    const { base, dir } = start();
+    const { base } = start({ gitRun: cloningGit() });
     const FORM = { "content-type": "application/x-www-form-urlencoded" };
     const refused = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
@@ -454,13 +454,11 @@ describe("POST /api/queue/projects (spec 112)", () => {
     // Back to the page the FORM is on (2026-08-19): the Add page.
     expect(refused.headers.get("location")!.startsWith("/projects/new?error=")).toBe(true);
 
-    const path = join(dir, "root", "on-disk");
-    mkdirSync(path, { recursive: true });
     const ok = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       redirect: "manual",
       headers: FORM,
-      body: new URLSearchParams({ name: "on-disk", existingPath: path }),
+      body: new URLSearchParams({ name: "on-disk", gitUrl: "https://example.com/on-disk.git" }),
     });
     expect(ok.status).toBe(303);
     // The list, as it has been since spec 115 — carrying the readiness
