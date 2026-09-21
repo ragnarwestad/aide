@@ -1,19 +1,22 @@
 # Test server
 
 When a spec's `archive` step is held back because its acceptance criteria still need reviewing —
-someone has to go through the Status tab and tick each requirement off before it can be
-archived — the specs list offers that reviewer a link to start a test server: a real, running copy
-of the dashboard, built from that spec's own branch. Reviewing a requirement by reading the diff
-again is one way to check it; opening the actual thing and clicking through it is another, and
-often the more convincing one.
+someone has to go through the Status tab and tick each requirement off before it can be archived —
+the specs list offers that reviewer a link to start a test server: a running copy of the project,
+built from that spec's own branch, on the same machine as this dashboard. Open it and click through
+the change instead of reading the diff again.
 
 ## Table of contents
 
 - [Where you find it](#where-you-find-it)
 - [What happens when you click it](#what-happens-when-you-click-it)
+- [What you are looking at](#what-you-are-looking-at)
+- [What it costs](#what-it-costs)
 - [Checking on it afterwards](#checking-on-it-afterwards)
 - [Stopping it](#stopping-it)
+- [Running the sample specs again](#running-the-sample-specs-again)
 - [After the dashboard restarts](#after-the-dashboard-restarts)
+- [Which commit it serves](#which-commit-it-serves)
 - [Which projects this works for](#which-projects-this-works-for)
 - [Under the hood](#under-the-hood)
 
@@ -23,74 +26,118 @@ often the more convincing one.
 
 On the specs list, a spec waiting only on that requirements review gets a second note on its row,
 beside the "archive held back" one: **"Click the link to start a test server running this
-branch."**
+branch."** The branch has to be on origin — a test server is built from what origin has, so work
+that is still only on your own machine is refused with "no such branch on origin".
 
 A project's own page has a second entry point, on its Deploy tab: beside "Deploy for prod", a
-"Test server with the test specs" section with its own "Start test server" button. Pressing it starts
-a test server from the project's latest main, seeded with the round's own eleven fixture specs —
-useful whenever you want to try the dashboard as it stands today, not a spec's own branch. It opens
-in a new tab, and pressing it again restarts the server rather than starting a second one, so it
-always ends up running the latest main.
+"Test server with the test specs" section with its own "Start test server" button. It starts a test
+server from the project's latest main rather than from a spec's branch, for when you want to try
+the project as it stands today. It opens in a new tab the same way.
+
+The two differ on a second press:
+
+| Pressed again                | What happens                                                                                  |
+|------------------------------|-----------------------------------------------------------------------------------------------|
+| **The link on a spec's row** | Takes you to the one that link already started, whatever state it is in — never a second one. |
+| **The Deploy tab's button**  | Stops the one it started and starts a fresh one, so it ends up running the latest main.       |
 
 ## What happens when you click it
 
-The link opens a new tab and holds it: building a test server is a real dashboard starting
-from scratch, which takes a minute or two, not seconds, so the page you land on says so and waits —
-"leave it open" — rather than sending you off to go find the address yourself later. It checks
-again every few seconds on its own; there is nothing to click or refresh by hand.
+The link opens a new tab and holds it: building a test server takes a minute or two, not seconds,
+so the page you land on says so and waits — "leave it open". It checks again every few seconds on
+its own; there is nothing to click or refresh by hand.
 
 The moment the server answers, that same tab is carried straight to it — that is well before the
-test run has finished: the specs on it are created one by one, and you watch the list fill. If it
-failed to start instead, the tab says so with the reason it gave, and offers **Try again** — which
-stops the failed entry and starts a fresh server.
+test run has finished: the specs on it are created one by one, and you watch the list fill.
 
-Short of that, clicking the link again for the same spec never starts a second server: whatever is
-already running, starting, or has failed for that exact branch and commit is what you get taken to
-or told about.
+If it failed to start, the tab says so with the reason it gave, and offers **Try again**, which
+clears the failed attempt and starts a fresh server. Having closed that tab, click the same link on
+the spec's row again: it brings the failure and its **Try again** back. The spec page's own banner
+states the failure but carries no button.
+
+A test server runs on the same machine as this dashboard, on one of six ports, 8801 to 8806. You
+reach it through this dashboard's own link, on the same address you use for the dashboard itself —
+the `127.0.0.1` address the start-up log prints is the serving machine's own, and means nothing on
+yours. Reaching those ports from another device is a one-off setup on the host, described in
+[tailscale.md](tailscale.md); where it has not been done, the start refuses and names the command
+to run there.
+
+With all six ports in use, the start refuses as well: "N of 6 test servers are already running —
+open Test servers (⋯ menu) and stop one before starting another".
+
+## What you are looking at
+
+**A spec in aide itself.** The test server is the dashboard, running your branch's own code. What
+it holds is not your work: it builds a throwaway project with its own repositories in a temporary
+directory, seeds eleven sample specs into it, and shows those. Your real projects and your real
+specs are not on it and cannot be reached from it — its own banner says so, "The specs shown are
+from the test suite, not the ones on the prod dashboard". Press anything you like there. No model
+is used either: a stand-in script answers in place of one, so queueing a step or pressing Run on a
+test server costs nothing.
+
+**A spec in any other project.** The test server is that project's own dev server, started from
+your spec's branch. What it holds is what that dev server normally holds on this machine: the local
+settings and the database it is pointed at, linked into the checkout. Pressing things there does
+what pressing them in your own dev server does. Migrations are not run for you: a branch that adds
+one is served against the database as it stands.
+
+## What it costs
+
+- A minute or two to start.
+- One of six ports, 8801 to 8806, for as long as it runs.
+- Nothing in model spend for a test server in aide — the sample specs go through with a stand-in in
+  place of the model. Another project's test server runs that project's own command, and costs
+  whatever that command costs.
+- No time limit: a test server runs until something stops it. Most stop themselves, per
+  [Stopping it](#stopping-it) — the one started on a spec that stays held back is the one you have
+  to remember.
 
 ## Checking on it afterwards
 
 The spec's own page shows the same starting/running/failed state, in the banner above the tabs so it
-is there whichever tab is open, for as long as a
-test server exists for it, with a link to the running one — useful once you have closed
-the tab the server opened and want to get back to it, or check whether one that was still starting
-has come up.
+is there whichever tab is open, for as long as a test server exists for it, with a link to the
+running one — useful once you have closed the tab the server opened and want to get back to it, or
+check whether one that was still starting has come up.
 
 ## Stopping it
 
-A **Stop test server** button appears on the spec page while its server is RUNNING; a starting or a
-failed one shows a sentence there instead, and the Test servers list is where every tracked server has
-a Stop of its own whatever its state. On the spec page both the link and Stop survive archiving, so a
-spec that was archived with its server still up can still be opened and stopped from there. The specs
-list is the other way round: an archived row carries no start link at all, and both start routes refuse
-an archived spec. It also stops on its own, with nothing to press, in two cases: the moment the spec it belongs
-to is actually archived (merged or discarded, there is no reason left to keep a preview of it running),
-or the moment the test server itself is no longer there to be reached — a crash, or a process someone
-killed outside this button — which the next load of either page notices and clears.
+Three places to press Stop:
 
-Every test server on the machine, whichever spec started it, is also listed in one place: **Test
-servers**, in the "⋯" menu beside Settings. Each row names its project, its spec, its branch and its
-status, with its own Stop button — this is also where a full pool shows up — six ports, 8801 to 8806 — and where
-you go to free one.
+- **The spec's own page**, while its test server is running. A starting or a failed one shows a
+  sentence there instead.
+- **The Test servers list**, in the "⋯" menu beside Settings. Every test server on the machine is
+  listed there, whichever spec started it, with its project, spec, branch and status, and a Stop of
+  its own whatever its state. This is where you go to free a port when all six are taken.
+- **The test server's own header.** Every page there carries a line naming the machine and the spec
+  it runs ("*machine* - Test - *spec number*", with the folder and branch in its tooltip), with a
+  **Stop** button beside it. It frees the worktree, the log and the port the same way the other two
+  do, without going back to this dashboard.
 
-A test server can also stop itself, from its own header: every page there carries a line naming the
-machine and the spec it is running ("*machine* - Test - *spec number*", with the folder and branch in its
-tooltip), with a **Stop**
-button right beside it. Pressing it works the same way as the prod-board button — the worktree, the log
-and the port are freed — without needing to go back to the prod board's spec page at all. The prod
-board's own header carries no such line beyond "*machine* - Prod", and no Stop button.
+Two cases need no press at all:
 
-A test server started from a checkout by `dashboard/test/round/run` (the round's own board, showing
-the round's fixture specs) has a **Run** button beside Stop: it puts the round's fixture specs through
-again on this same server, the server itself left as it is. A test server started from a spec's
-branch previews that spec and has no Run button — the script seeds the round's fixture specs once,
-when that server comes up, and they are never run again from there. Whatever the last round left is cleared
-first — its jobs cancelled and dropped, the throwaway project and its specs put back to their first
-commit — and then the fixtures go in one by one, exactly as `dashboard/test/round/run` sends them
-(that script presses the same endpoint, `POST /api/self-run`). While the round runs the server's
-checkouts follow origin the way the specs cron does on the serving host, so a spec that depends on
-an archived one sees the archive. `GET /api/self-run` says how far it has come. The prod board has
-no Run button either.
+- **Its archive lands.** Once the acceptance criteria are ticked and the `archive` step merges — or
+  the spec is closed — the test server stops with it. An archive that stays held back never lands,
+  and its test server keeps running.
+- **It is gone already.** A crash, or a process killed outside these buttons: the next load of the
+  spec page or the Test servers list notices and clears the entry.
+
+On the spec page the link and the Stop button stay after a spec is marked archived, so a test server
+still up can be opened and stopped from there. Starting one is the other way round: an archived row
+carries no start link, and a start reached directly for an archived spec is refused.
+
+## Running the sample specs again
+
+A test server started from the Deploy tab carries a **Run** button beside Stop: it puts the eleven
+sample specs through again on that same server, the server itself left as it is. Whatever the last
+run left is cleared first — its jobs cancelled and dropped, the throwaway project and its specs put
+back to their first commit — and then the samples go in one by one, exactly as
+`dashboard/test/round/run` sends them (that script presses the same endpoint, `POST /api/self-run`).
+While they run, the server's checkouts follow origin the way the specs cron does on the serving
+host, so a spec that depends on an archived one sees the archive. `GET /api/self-run` says how far
+it has come.
+
+A test server started from a spec's row carries no Run button. It previews that spec, and its
+sample specs are seeded once, when the server comes up.
 
 ## After the dashboard restarts
 
@@ -99,11 +146,8 @@ memory. A test server started before the restart is still up — still on its po
 branch checked out — so on start-up the dashboard asks the ports themselves: what is listening
 there, which directory that process was started with, and which branch the project's own worktree
 list says is checked out in it. What it finds goes back in the register, and the spec page shows it
-again.
-
-Without that, the next click on the spec's link tried to start a second test server on a branch git
-already had checked out, and refused: "it may already be checked out there, or in a leftover
-worktree".
+again. A test server the dashboard has forgotten still holds its branch checked out, and the next
+start on that branch is refused: "it may already be checked out there, or in a leftover worktree".
 
 A test server that did NOT survive the restart leaves the same obstacle behind. Its worktree is
 removed by a watcher the test run leaves running beside it — and a restart that takes the server
@@ -112,40 +156,37 @@ checkout. Start-up clears those too: a worktree the test run made, on a branch i
 that no live server answers for.
 
 A kept test server that dies on its own keeps its log: the watcher copies the server's own log to
-`~/.aide/dashboard/round-logs/` (one file per event, named by time and board) before it removes the
+`~/.aide/dashboard/round-logs/` (one file per event, named by time and server) before it removes the
 rest, so a server that is gone can still say how it went.
 
 ## Which commit it serves
 
 Whatever origin has for that branch, at the moment the test run starts. The checkout the run works
-from is fetched first and its own copy of the branch moved to origin's tip — so a second test
-server for the same branch never quietly serves the commit before the one you just pushed. The one
-exception is a branch already checked out in a worktree there, which means a test server is running
-on it: that one is left alone.
+from is fetched first and its own copy of the branch moved to origin's tip, so a second test server
+for the same branch serves the commit you just pushed. The one exception is a branch already
+checked out in a worktree there, which means a test server is running on it: that one is left alone.
 
 ## Which projects this works for
 
 Any project that says how to start itself. Aide is its own case: its checkout carries the
 dashboard's source and the round script, and a test server there is that round left running. Every
 other project names a preview command — the Settings table on its project page writes it, under the
-row labelled `AIDE_PREVIEW_CMD`, as
-`previewCmd:` in the committed `.aide/project.yaml`, and a machine that starts the project
-differently overrides it with `AIDE_PREVIEW_CMD` in its own `.aide/config`, the same precedence the
-install and test commands have.
+row labelled `AIDE_PREVIEW_CMD`, as `previewCmd:` in the committed `.aide/project.yaml`, and a
+machine that starts the project differently overrides it with `AIDE_PREVIEW_CMD` in its own
+`.aide/config`, the same precedence the install and test commands have.
 
 The command is expected to serve on `$PORT` and keep running until it is stopped, for example
 `pnpm dev --port $PORT --host 127.0.0.1`. It runs in a worktree of the spec's branch, with the
 project's `worktreeLinks` paths linked in — a worktree carries tracked files only, so the
-dependencies and the local settings a dev server needs get there that way and no other. Database
-migrations are not run for you: a branch that adds one is served against the database as it stands.
+dependencies and the local settings a dev server needs get there that way and no other.
 
-A project that names no command can have no board: the spec's row carries no start link at all, and
-the Deploy tab's "Test server with the test specs" section keeps its heading with a sentence saying a
-test server cannot start from there — and no button.
+Where a project names no command, the spec's row carries no start link, and the Deploy tab's "Test
+server with the test specs" section keeps its heading with a sentence saying a test server cannot
+start from there.
 
 ## Under the hood
 
-For a project with a Preview command, `core/scripts/aide-preview` is what starts it: it fetches the
+For a project with a preview command, `core/scripts/aide-preview` is what starts it: it fetches the
 branch, makes the worktree under `~/.aide/dashboard/previews/` (`AIDE_PREVIEW_DIR` moves that),
 links the gitignored paths in, starts the command with `PORT` set, and waits until something
 answers on that port before printing the one line this dashboard reads — `board up: pid N, <url>`.
@@ -154,12 +195,12 @@ worktree is removed by a watcher it leaves behind, when the served process ends.
 `.git/aide-run-spec-worktree.lock` a run takes, because a `git worktree add` outside that lock
 loses a ref lock while a run is in its own section.
 
-For aide itself, this reuses `dashboard/test/round/run` — a script normally used to test the dashboard end to end:
-it builds a fresh, throwaway copy of it from a given checkout, feeds it a small set of sample specs
-end to end, and checks each one came out as expected. Starting a test server is that same script,
-told to leave the result running (`--keep`) instead of finishing and cleaning up — the same real
-dashboard a test run already proves works, just left up for a user to open instead of graded and
-torn down, implemented as a thin wrapper around it in `src/serve/test-servers/lifecycle.ts`.
+For aide itself, this reuses `dashboard/test/round/run` — a script normally used to test the
+dashboard end to end: it builds a fresh, throwaway copy of it from a given checkout, feeds it the
+sample specs end to end, and checks each one came out as expected. Starting a test server is that
+same script, told to leave the result running (`--keep`) instead of finishing and cleaning up,
+wrapped in `src/serve/test-servers/lifecycle.ts`. The queue it drives runs against the throwaway
+project alone (`--queue-projects aide-test`), with `claude-stub` in place of the model.
 
 Each sample spec is a pair in `dashboard/test/round/specs/`: `<NN-slug>.md` is the description the
 spec is created from, and `<NN-slug>.json` says which steps it runs and how it must come out —
