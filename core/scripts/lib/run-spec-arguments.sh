@@ -44,6 +44,14 @@ EFFORT_LEVELS="$(jq -r '.effortLevels | join(" ")' "$_effort_levels_file" 2>/dev
 WORKTREE_LINK_DENYLIST="build target dist .gradle"
 
 project_dir=""; command_name=""; spec_arg=""; timeout_sec=""
+# Where the caller says this project's spec folders live. The dashboard
+# passes it, so the run makes a folder in the same place the landing
+# looks for it: the two used to work it out separately — the run from
+# `.aide/config`, the landing from its own answer — and a create wrote
+# its folder at the specs repo's root while the landing looked for it
+# under the project's own directory. Empty means "work it out here", the
+# way a run started by hand still does.
+specs_root_arg=""
 permission_mode=""; result_file=""; model=""; effort=""; session_id=""
 kill_grace_sec="30"; do_pull="no"; dry_run="no"
 # Which AI actually runs the step (spec 125). Defaults to claude, so
@@ -116,6 +124,7 @@ push_mode_explicit="no"
 while [ $# -gt 0 ]; do
   case "$1" in
     --project-dir) project_dir="${2:-}"; shift 2 ;;
+    --specs-root) specs_root_arg="${2:-}"; shift 2 ;;
     --command) command_name="${2:-}"; shift 2 ;;
     --spec) spec_arg="${2:-}"; shift 2 ;;
     --title) title="${2:-}"; shift 2 ;;

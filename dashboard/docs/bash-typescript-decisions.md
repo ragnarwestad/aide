@@ -7,6 +7,7 @@ carries the detail.
 ## Table of contents
 
 - [The pairs](#the-pairs)
+- [Not a pair: where a project's specs live](#not-a-pair-where-a-projects-specs-live)
 - [Not a pair: the workflow's own vocabulary](#not-a-pair-the-workflows-own-vocabulary)
 - [Not a pair: the effort levels](#not-a-pair-the-effort-levels)
 - [Not a pair: spec-phase transitions](#not-a-pair-spec-phase-transitions)
@@ -41,6 +42,29 @@ Two known asymmetries in the readiness pair are named in that test's own
 exclusion list rather than in the fixture: `specsRepo` is a check the
 dashboard makes blocking that `aide-run-spec` does not refuse on, and
 `dashboardCheckout` has no `aide-run-spec` counterpart at all.
+
+## Not a pair: where a project's specs live
+
+**A run is TOLD where its spec folders are; it does not work it out
+alongside the dashboard.** The dashboard passes `--specs-root` from the
+same answer its own landing uses (`machinerySpecsRoot`), and
+`aide-run-spec` prefers that flag over `AIDE_SPECS_PATH` in
+`.aide/config`. Left out — a run started by hand — the script reads the
+config exactly as it always did.
+
+The flag exists because the two DID work it out separately, and
+disagreed: the script read `.aide/config` in the dashboard's own
+checkout, a file the dashboard rewrites on every ensure, while the
+landing used its own resolver. A create then made its folder at the specs
+repository's root, the landing looked for it under the project's own
+directory, the spec could not be given its number, and nothing reached
+main.
+
+Pinned by `tests/specs/unit/core/scripts/run_spec/test_aide_run_spec_specs_root_flag.py`
+(the flag wins, the config still decides without it, a root that is not
+there is refused by name) and
+`dashboard/test/queue-routes/runner/runner-specs-root-argv.test.ts` (the
+dashboard passes its own answer, ahead of `--command`).
 
 ## Not a pair: the workflow's own vocabulary
 

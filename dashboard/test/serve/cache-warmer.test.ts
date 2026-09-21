@@ -23,7 +23,7 @@ import { BranchStatusChecker } from "../../src/git/branch-status.ts";
 import { refreshSpecCaches, type ScheduleContext } from "../../src/serve/schedules";
 import { createScheduleStore } from "../../src/queue/schedule-store.ts";
 import type { QueueStore } from "../../src/queue/queue.ts";
-import type { CheckoutEnsurer } from "../../src/git/dashboard-checkout.ts";
+import type { CheckoutEnsurer } from "../../src/git/checkout-ensurer.ts";
 import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../src/git/workflow-history.ts";
 import type {
   DescriptionFreshnessChecker, SpecCreatedAtChecker, SpecFileCommitChecker,

@@ -75,7 +75,7 @@ for _a in "$@"; do
       cat <<'USAGE'
 Usage:
   aide-run-spec --project-dir <path> --command <create|analyze|implement|archive>
-                 --spec <arg> [--title T] [--description D] [--depends-on D]
+                 --spec <arg> [--specs-root P] [--title T] [--description D] [--depends-on D]
                  [--reason R] [--acceptance-not-required] [--no-ai-formulate]
                  [--prompt-file F] [--timeout-sec S] [--permission-mode M]
                  [--result-file F] [--model M] [--effort E] [--tool T]

@@ -75,6 +75,15 @@ export function runnerArgv(
      *  spec 205 that is the clone the DASHBOARD owns, and this function
      *  knows no path convention that could send it anywhere else. */
     projectDir: string;
+    /** Where this project's spec folders live, in the checkout above —
+     *  the dashboard's own answer (`machinerySpecsRoot`), handed over so
+     *  the run makes a folder in the place the LANDING looks for it.
+     *  Left out, `aide-run-spec` works it out from `.aide/config`, which
+     *  is a file the dashboard writes itself: the two derivations
+     *  disagreed on 2026-09-21 and a created spec fell between them.
+     *  Undefined for a project whose specs the dashboard cannot resolve,
+     *  where the script's own answer is still the best one available. */
+    specsRoot?: string;
     push: string;
     /** The file a `schedule` step's prompt is read from, relative to the
      *  project root (spec 259). Meaningless, and omitted, for every
@@ -111,6 +120,7 @@ export function runnerArgv(
   return [
     o.runnerBin,
     "--project-dir", o.projectDir,
+    ...(o.specsRoot ? ["--specs-root", o.specsRoot] : []),
     "--command", step,
     "--spec", job.specFolder,
     "--timeout-sec", String(resolveTimeoutSec(job.timeoutSec, step, o.timeoutSec ?? {})),

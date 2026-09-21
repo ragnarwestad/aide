@@ -38,7 +38,12 @@ fi
 # The specs root is usually a DIFFERENT repository (AIDE_SPECS_PATH): it
 # is where analyze actually writes, so every check below covers both
 # roots, not just the project.
-if declare -f aide_specs_root >/dev/null 2>&1; then
+# `--specs-root` wins: the caller that knows where its own landing will
+# look is the one that must decide, and the file read below is one the
+# dashboard writes itself.
+if [ -n "${specs_root_arg:-}" ]; then
+  specs_root="$specs_root_arg"
+elif declare -f aide_specs_root >/dev/null 2>&1; then
   specs_root="$(aide_specs_root "$project_root")"
 else
   specs_root="$project_root/specs"

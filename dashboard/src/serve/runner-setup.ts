@@ -172,6 +172,10 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
           {
             runnerBin,
             projectDir: ctx.machineryProjectDir(job.project),
+            // The same answer the landing uses to find the folder
+            // afterwards (`machinerySpecsRoot`), so the two cannot
+            // disagree about where a spec belongs.
+            specsRoot: ctx.machinerySpecsRoot(job.project),
             // Spec 220. The global setting speaks for every project
             // on this host at once; a project that reviews its code
             // says so in its own committed manifest, and that
