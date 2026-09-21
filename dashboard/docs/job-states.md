@@ -163,8 +163,8 @@ rides with the last of them, and the permanent records of a landing attempt — 
   `stepIndex` on to its next step when the landing starts, so that next step reads "Queued", never "Running".
 
   The row also reads the spec's files and git history, which are cached and catch up after the queue does. Each
-  answer carries when it was read (`SpecTarget.sourcesCheckedAt`, the older of the history's and the branch copy's
-  read), and a phase whose latest run ended after that reads as its run's own word, with no sentence about the files
+  answer carries when it was read (`SpecTarget.sourcesCheckedAt`, the oldest of the history's read, the branch copy's
+  read and, when the disk copy is the one compared, the disk scan's read), and a phase whose latest run ended after that reads as its run's own word, with no sentence about the files
   disagreeing — they have not seen the run yet. A step with no landing of its own (`implement`, a failed step) has
   those answers read again as soon as its result is written (`stepDoneHandler`, `src/serve/runner-setup.ts`); a step
   with a landing has them read again by the landing.

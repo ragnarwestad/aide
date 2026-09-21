@@ -120,6 +120,31 @@ describe("resolveWorkflowState", () => {
     expect(resolveWorkflowState(history, branch, DIR, FOLDER, undefined, undefined)?.checkedAt).toBe(5_000);
   });
 
+  test("the disk scan's read time counts when the disk copy is the file source (AC-1)", async () => {
+    const history = new WorkflowHistoryChecker({ run: gitLogging(subject("analyze")).run, now: () => 5_000 });
+    await history.read(DIR, FOLDER);
+    const branch = new BranchFileStepsChecker({ run: fakeGit({}).run });
+    const disk = { proseSteps: ["create"], stateSteps: undefined, readAt: 2_000 };
+    expect(resolveWorkflowState(history, branch, DIR, FOLDER, undefined, disk)?.checkedAt).toBe(2_000);
+  });
+
+  test("a disk scan read after the history does not make the answer newer (AC-1)", async () => {
+    const history = new WorkflowHistoryChecker({ run: gitLogging(subject("analyze")).run, now: () => 5_000 });
+    await history.read(DIR, FOLDER);
+    const branch = new BranchFileStepsChecker({ run: fakeGit({}).run });
+    const disk = { proseSteps: ["create"], stateSteps: undefined, readAt: 9_000 };
+    expect(resolveWorkflowState(history, branch, DIR, FOLDER, undefined, disk)?.checkedAt).toBe(5_000);
+  });
+
+  test("the disk scan is left out when the branch copy is the file source (AC-1)", async () => {
+    const history = new WorkflowHistoryChecker({ run: gitLogging(subject("analyze")).run, now: () => 5_000 });
+    await history.read(DIR, FOLDER);
+    const branch = new BranchFileStepsChecker({ run: branchFileFake(["analyze"]).run, now: () => 3_000 });
+    await branch.read(DIR, FOLDER, BRANCH_TARGET);
+    const disk = { proseSteps: ["create"], stateSteps: undefined, readAt: 1_000 };
+    expect(resolveWorkflowState(history, branch, DIR, FOLDER, undefined, disk)?.checkedAt).toBe(3_000);
+  });
+
   /** A `WorkflowHistoryChecker` already warmed with `history`, ready to
    *  `peekHistory` without spawning git again. */
   const warmedHistory = async (...subjects: string[]): Promise<WorkflowHistoryChecker> => {
