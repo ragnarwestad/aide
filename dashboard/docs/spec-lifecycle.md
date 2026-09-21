@@ -13,7 +13,11 @@ run of one or more steps, and its `queued`/`running`/`done` says nothing about h
 | **State** | Where the spec stands now, in the past tense: `created`, `analyzed`, `implemented`, `archived`, `closed`                      | the `phase` column of `core/scripts/lib/transitions.json`                           |
 
 `close` and `reopen` are steps, not phases: a spec that is `closed` has left the arc rather than reached a fifth
-stage of it. The table's own column is named `phase` and holds states — read its values, not its heading.
+stage of it. Two things about that table are worth knowing before reading it: its column is named `phase` and
+holds states, and its `next` value names what the move is allowed to reach, not what the spec then reads as. **A
+spec's state is never stored — it is derived from its own files** every time it is asked for: a `**Closed:**`
+stamp in effect makes it `closed`, an `**Archived:**` stamp `archived`, and otherwise the `Workflow steps
+completed:` line decides between `implemented`, `analyzed` and `created`.
 
 The code is `transitions.json`, read in bash by `may_apply_spec_transition`
 (`core/scripts/lib/spec-transitions.sh`) and in TypeScript by `isLegalMove`
@@ -106,11 +110,11 @@ stateDiagram-v2
     analyzed --> implemented: implement
     implemented --> implemented: implement again
     implemented --> archived: archive
-    archived --> created: reopen
+    archived --> created: reopen with reset
     created --> closed: close
     analyzed --> closed: close
     implemented --> closed: close
-    closed --> created: reopen
+    closed --> created: reopen with reset
 ```
 
 **Into `create`.** `POST /api/queue/create` queues a job whose first step is `create`, followed by whatever else
@@ -128,7 +132,7 @@ still under its provisional key) has no row. It leaves a message at the top of t
 both offering to try again with what was typed; see [the specs list](the-specs-list.md#a-failed-create).
 
 **`create` to `analyze`.** A spec that has not implemented yet may be analyzed, again and again: `created` and
-`analyzed` both take the move, the second as a self-loop. An `implemented` spec is refused — "analyze would rewrite
+`analyzed` both take the move — analyzing an analyzed spec simply leaves it analyzed. An `implemented` spec is refused — "analyze would rewrite
 a landed plan" — unless a round is under way, which is what changing an acceptance criterion opens; the round gate
 is asked first, and a spec that passes it has already moved back before the refusal could apply. The row's boxes
 follow whatever was
@@ -140,7 +144,7 @@ duration read as still going, not as done — see [Beside the state](job-states.
 **`analyze` to `implement`.** A spec that has not analyzed is refused — `not-analyzed-yet`, "run /aide-analyze
 first" — by the runner's own gate before the step starts, and by the queue before that, which holds the job
 `queued` with that reason on its row rather than starting it. An `analyzed` or `implemented` spec takes the move,
-the second as a self-loop, so a re-run needs no gate of its own. A dependency that has not archived holds it back
+and running implement on an implemented spec leaves it implemented, so a re-run needs no gate of its own. A dependency that has not archived holds it back
 too — see the next section. Beyond those, nothing is checked: an `implement` run against an empty `3-solution.md`
 is refused by the skill, not by the queue.
 
@@ -154,6 +158,11 @@ order, stopping at the first that applies:
 | `conflict-open`                | The branch could not be brought up to date with the default branch; the model resolves it       |
 | `not-implemented-yet`          | `implement` is not on the completed line                                                        |
 | `acceptance-criteria-unticked` | A row under `## Acceptance criteria` in `4-status.md` is still open — only a user ticks those   |
+
+The acceptance criteria live in two files, and the difference matters when an archive is held back. The criteria
+themselves — the `AC-n` lines saying what done means — are written in `1-description.md`, and that is the file you
+edit to change one. The tick rows are in `4-status.md`, one per criterion, and that is what the gate reads. You
+tick them on the spec's **Status** tab, or under the › on its row, and press Archive when they are all settled.
 | `archived`                     | Stamped and moved; the landing follows                                                          |
 
 Four of the five outcomes short of `archived` end the step with no model run at all: `refused`,
@@ -181,8 +190,8 @@ until `archive` is run again — see [Branches and landing](landing.md).
 
 - **A dependency.** `Depends on:` in `1-description.md` names other specs. `implement` and `archive` are held back
   while any of them still has a branch on origin carrying commits the default branch does not — which is until that
-  spec's own `archive` lands. The dashboard leaves the job `queued` with the reason on its row and tries again every
-  tick; a run started by hand is refused. `create` and `analyze` run regardless.
+  spec's own `archive` lands. The dashboard leaves the job `queued` with the reason on its row and tries again on
+  every pass of the runner; a run started by hand is refused. `create` and `analyze` run regardless.
 - **Another job on the same spec.** Two jobs for one spec never run at once.
 - **That job's own landing.** A job with `landing` set does not start its next step until its merge settles.
   Every other job runs as usual: the landing merges in a worktree of its own.
@@ -254,9 +263,8 @@ queue step the dashboard presses, never a step the runner decides on its own.
   A stamp with a later `**Round boundary:**`, `**Reopened:**` or `**Reset:**` mark after it is history: the state
   reads `archived` or `closed` only while no such mark follows the stamp, in `spec-transitions.sh`, `spec-state.sh` and
   the dashboard's readers alike (`stampInEffect`, `discover/spec-files.ts`). A new stamp after the boundary counts.
-There was a `reset` step beside Reopen for an ACTIVE spec, with its own button and confirmation page. It is gone:
-another round covers what it was used for, and a reopen with its reset covers the rest. The `**Reset:**` stamp and old
-`reset` jobs are still READ, so a spec that was reset keeps its boundary.
+There is no `reset` step for an ACTIVE spec: another round covers that, and a reopen with its reset covers the
+rest. A `**Reset:**` stamp is still read where an older job left one, so such a spec keeps its boundary.
 
 A spec reopened with reset reads as `created` again: the line is empty until a step runs. It also drops the phase
 choice recorded under the spec (`pending-steps.json`): the ticks belonged to the round just discarded, so the row falls
@@ -266,11 +274,12 @@ as it was.
 ## Closing: a different terminal move from archive
 
 `close` reaches the state `closed` from `created`, `analyzed` or `implemented` — every state Archive would refuse,
-since Close carries no `not-implemented-yet`/`acceptance-criteria-unticked` gate. It is a step and not a phase: a
-closed spec has left the arc, rather than reached a stage beyond `archived`. `core/scripts/aide-close-spec` writes a
+since Close carries no `not-implemented-yet`/`acceptance-criteria-unticked` gate. `core/scripts/aide-close-spec`
+writes a
 `**Closed:** <date> — <reason>` stamp (the reason is required) and moves the folder into `archive/`, exactly as
 `aide-archive-spec` does — but its landing deletes the code root's branch instead of merging it, since Close records
-that the work will not be used, not that it was. A closed spec reads `closed`, never `archived`, everywhere a spec's
+that the work will not be used, not that it was. **Whatever code that branch held is gone with it**, and a later
+reopen does not bring it back — the spec's four files return, the code does not. A closed spec reads `closed`, never `archived`, everywhere a spec's
 state is shown, and only `reopen` is legal on it afterward — the same one-step exception `archived` already has.
 
 ## What the list makes of it
@@ -280,9 +289,12 @@ The row's state is one of: `not-started` (the spec has no job at all), the state
 (archived with its branch still on origin), or `closed` — except that a job whose branch is still landing reads as
 `running` for this purpose regardless of its own state, so a still-merging spec sits with the ones still going rather
 than the ones waiting on a press. The chips group those — "All" is the default, "Active" is everything not archived
-and not closed, "Running" only `running` (landing included, `queued` excluded), "Waiting" (`queued` or `done`, with
-no landing in progress), "Stopped", "Failed" (the three other failure states and `archived-unlanded`), "Archived"
-(both archived states) and "Closed" (`closed` has its own chip now, rather than being reachable only from "All").
-Which PHASE a spec has reached is not a state on that axis:
-it is read off the completed line and drawn as the pips and the resting-state sentence ("ready for implement") — see
+and not closed, "Running" only `running` (landing included, `queued` excluded), "Waiting" (`queued` or `done`,
+with no landing in progress), "Stopped", "Failed" (the three other failure states and `archived-unlanded`),
+"Archived" (both archived states), "Closed" and "Not verified".
+
+**That list is a job's state, not the spec's.** `archived` and `closed` appear in both vocabularies and mean the
+same thing; the rest — `queued`, `running`, `done`, `stopped`, `failed`, `cancelled`, `interrupted` — belong to the
+job, and say nothing about how far the spec has got. Which PHASE a spec has reached is read off the completed line
+and drawn as the four marks beside its name — see
 [The specs list and the spec page](the-specs-list.md).
