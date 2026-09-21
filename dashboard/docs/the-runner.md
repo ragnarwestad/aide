@@ -3,6 +3,23 @@
 What a run does to the repositories it touches: the clones the dashboard keeps of its own, the `git worktree`
 checkouts a step works in, what a finished step publishes — and, last, how to run one step by hand.
 
+**Where the code is.** `core/scripts/aide-run-spec` is the entry point and holds little else; the mechanics are in
+`core/scripts/lib/run-spec-*.sh`, eighteen files named for what they do. The ones this page describes:
+
+| For a change to                                     | Open                      |
+|-----------------------------------------------------|---------------------------|
+| The flags and what each refuses                     | `run-spec-arguments.sh`   |
+| The worktrees, their paths and the links into them  | `run-spec-checkouts.sh`   |
+| Branching each root, and the per-root lock it takes | `run-spec-branch.sh`      |
+| The gates before a step starts, and the lock itself | `run-spec-gates.sh`       |
+| Committing and pushing afterwards                   | `run-spec-publish.sh`     |
+| Whether a step counts as having run                 | `run-spec-status-line.sh` |
+| The test gate an implement ends on                  | `run-spec-step-tests.sh`  |
+| Where the specs root comes from, and the model turn | `run-spec-spec-paths.sh`  |
+
+The per-root lock is `$root/.git/aide-run-spec-worktree.lock` (`acquire_worktree_lock`, `run-spec-gates.sh`). Every
+move of a shared checkout takes it: the switch, the fetch, the fast-forward and the `worktree add`.
+
 Two pages sit beside this one:
 
 - [Running specs](running-specs.md) — the queue that starts these runs
@@ -10,6 +27,7 @@ Two pages sit beside this one:
 
 ## Table of contents
 
+- [What a run does, in order](#what-a-run-does-in-order)
 - [The dashboard's own checkouts](#the-dashboards-own-checkouts)
 - [How a run touches the repositories](#how-a-run-touches-the-repositories)
 - [What counts as a step having run](#what-counts-as-a-step-having-run)
@@ -18,13 +36,27 @@ Two pages sit beside this one:
 
 ---
 
+## What a run does, in order
+
+1. The checkouts it will touch are put onto their default branch and brought up to date, under the per-root lock.
+2. A `git worktree` is cut from each one, on the branch `aide/<spec-folder>`.
+3. The gitignored paths the project needs are symlinked into each worktree, and the dashboard's own
+   `.aide/project.yaml` and a repointed `.aide/config` are copied in.
+4. The step runs there — one turn of the chosen CLI, under the step's time limit.
+5. Whatever it wrote is committed in every root it touched.
+6. Each root is pushed, or not, by the three conditions below.
+7. One JSON line is written to stdout and to `--result-file`, and the worktrees are removed.
+
+Each of those is a section below, except the step's own turn, which is
+[Running specs](running-specs.md)'s business.
+
 ## The dashboard's own checkouts
 
 **The checkout a run is cut from is not the one a user edits.** Cutting a worktree from
 `<projects root>/<project>` — the directory Add clones into and the directory somebody works in — puts two writers on
 one tree: the runner puts every root it touches onto its default branch before it starts, and a landing merges and
-pushes from the same tree, while a user edits it meanwhile. The per-repo lock serializes the dashboard against
-itself; nothing serializes it against a user's own git client, and nothing can.
+pushes from the same tree, while a user edits it meanwhile. The per-repo lock serializes the dashboard against itself. Nothing serializes it against a person's own git
+client.
 
 So the dashboard keeps clones of its own, under
 `~/.aide/dashboard/checkouts/<project>/` — `code/`, plus `specs/` when the specs root is a separate repository. One per
@@ -54,26 +86,31 @@ Two consequences worth knowing:
   it, deliberately: an auto-pull would recreate exactly the collision this removes. An operator closes that gap with a cron entry for `aide-pull-specs` — every two minutes on the serving host — set
   up by hand; see [Hosting the dashboard](hosting.md#keeping-the-hosts-specs-current).
 - **`.aide/config` is gitignored, so a clone never carries it.** It is copied from the user's checkout on every
-  ensure — it is the file an operator edits by hand between merges, and a copy taken once would go on answering with
-  whatever was true the day the clone was made.
+  ensure, because it is the file an operator edits by hand between merges: a copy taken once would go stale.
   `AIDE_SPECS_PATH` is the one key that does not survive the copy: it names a directory in the user's checkout, and is
   replaced with the dashboard's own specs. The file is written once, finished, through a rename — a run starting for
   another job never reads a copy that still names the user's path.
 
 A project whose checkout has no `origin` gets no clone of its own. It runs in the user's checkout, and its readiness
-line says so, so the one project where a run and a user's editing can still
-meet is named rather than silent.
+line says so, so a reader sees which project that is.
 
 ## How a run touches the repositories
 
 **`aide-run-spec` branches EVERY repo it touches, not just the project.** An `analyze` step changes only the specs
 repo, so branching the project alone would leave the analysis committed on `main` — the one thing `push branch` exists
-to prevent. A repo is pushed when its branch holds something beyond its own default branch, origin does not already have
-that tip, and — for a root this run did not move — the run ended `completed` (`run-spec-publish.sh`). A root the
-run DID move is pushed whatever the run's terminal reason. **Origin's answer is the test, not `changedFiles`, and not whether
-this run moved anything** — `changedFiles` counts only what the run's own commit loop found uncommitted, and a step
-that commits its own work (archive does) leaves it at `0` with real commits on the branch; asking only about this
-run would strand a commit whose push failed in an earlier one, since no later run would retry it. The compare link
+to prevent. Three conditions decide it (`run-spec-publish.sh`), in this order:
+
+1. The branch holds something beyond its own default branch. A branch with nothing of its own is never pushed.
+2. Origin does not already have that tip.
+3. Either this run moved the root's HEAD, or the run ended `completed` — `terminalReason` in the result, the one
+   word saying how the step ended (`completed`, `tests-red`, `no-progress`, `timeout`, `scope-violation` and the
+   rest). A root the run did move is pushed whatever
+   the run's terminal reason; a root it did not move is pushed only by a completed run.
+
+The third condition is what lets a later run retry a commit whose push failed in an earlier one: a rule that asked
+only "did THIS run move it" would strand that commit, since no later run would ever pick it up. **It is never
+`changedFiles`** — that field counts only what the run's own commit loop found uncommitted, and a step that commits
+its own work, as archive does, leaves it at `0` with real commits on the branch. The compare link
 is built from the repos that were pushed (`branchUrls` in the result; `branchUrl` keeps the single most interesting
 one).
 
@@ -101,11 +138,12 @@ checkout meanwhile. Two consequences worth knowing before changing anything here
   of the branch and committed with the step. A `.aide/config` naming the specs root by absolute path is pointed at the
   worktree's copy for the run.
 
-**A run reaches the project and its specs root, and nothing else.** A repo the run was not told about is not touched,
+**A run reaches the project and its specs root, and under the specs root only its own spec's folder.** A step
+that writes another spec's folder ends `scope-violation`, with those changes discarded before the commit. A repo the run was not told about is not touched,
 and there is no flag to name a third one. A spec that has to change two projects at once needs that naming built,
 deliberately.
 
-**`aide-run-spec` runs from a private copy of itself, and that is load-bearing:** an `implement` step reinstalls Aide,
+**`aide-run-spec` runs from a private copy of itself.** an `implement` step reinstalls Aide,
 which copies the script over itself while bash is still reading it by byte offset. The copy's marker holds its own
 path and is unset before `claude` starts — a bare exported flag would be inherited by `claude`, and the next nested
 invocation would delete the installed script.
@@ -170,20 +208,20 @@ landing that fails afterwards does not take it off.
 What the queue passes as `--push`: `push` from the queue config, or `pr` regardless of it for a project whose
 manifest says `codeLanding: pr`.
 
-- `none` — commit locally and stop. Review by fetching from the host that ran it.
+- `none` — commit and stop. The commits are on `aide/<spec-folder>` in the checkout `--project-dir` named, not in
+  the worktree, which is deleted when the run ends; review them there, or fetch that branch from the host.
 - `branch` (the queue's default) — also push `aide/<spec-folder>`, and the specs repo's own commits. The specs page and the
   notification then link to the GitHub compare page.
 - `pr` — also open a pull request. Needs `gh auth login` on the serving host; a broken `gh` records the error and leaves
   the run successful.
 
-
 ## Running a step by hand
 
 The queue is what normally drives `aide-run-spec`, but it runs ONE workflow step for ONE spec from a terminal
-too, with the same guards. The program is `core/scripts/aide-run-spec` plus `core/scripts/lib/run-spec-*.sh`,
-which is where nearly all of the mechanics above live — the argument parsing in `run-spec-arguments.sh`, the
-worktrees in `run-spec-checkouts.sh`, the branching in `run-spec-branch.sh`, the publishing in
-`run-spec-publish.sh`.
+too, with the same guards. **A by-hand run works in the checkout you point it at** — your own, if that is what
+`--project-dir` names. It puts that checkout on its default branch and cuts its worktrees from it, so do not run
+one against a directory you are editing in another window. The dashboard avoids that by pointing at its own clone;
+from a terminal, the choice is yours.
 
 ```bash
 aide-run-spec --project-dir ~/develop/myproject --command analyze --spec 81 \
@@ -200,8 +238,8 @@ chooses the CLI, `--model` and `--effort` what it runs as, `--push none|branch|p
 worktrees go. `run-spec-arguments.sh` is the whole list.
 It refuses to start when the spec folder does not exist or when a required value is missing — but not over a dirty
 checkout: the work happens in a worktree cut from origin's default branch, so what somebody left uncommitted in the
-main checkout stops nobody. `--permission-mode` is never defaulted, because the most dangerous knob has to be typed
-out by whoever starts the run. It enforces the step's own time limit (SIGTERM to the process group, then SIGKILL), commits
+main checkout stops nobody. `--permission-mode` is never defaulted: the most dangerous flag has to be typed out. The queue passes
+`bypassPermissions` for the steps that run Aide's own git-writing scripts and `acceptEdits` for the rest. It enforces the step's own time limit (SIGTERM to the process group, then SIGKILL), commits
 whatever the step managed to write in BOTH roots — the project and the specs repo — and writes one JSON line to
 stdout and to `--result-file`. `--worktree-base` relocates the worktrees; a base inside any of the repos is refused.
 The worktrees go when the run ends, and one left behind by a killed run is swept by the next run for that spec.
