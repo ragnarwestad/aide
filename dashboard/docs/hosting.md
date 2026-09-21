@@ -1,7 +1,12 @@
 # Hosting the dashboard
 
-Where the dashboard is served from, how HTTPS is put in front of it, and what it takes to
-move it to another host or run the whole thing on one machine.
+Where the dashboard is served from, how HTTPS is put in front of it, what it takes to move it to another host or
+run the whole thing on one machine, and what it keeps current once it is there.
+
+Two pages sit beside this one:
+
+- [The dashboard's README](../README.md#installation) — installing it in the first place
+- [Tailscale](tailscale.md) — the optional way to reach it from a phone or another computer
 
 ## Table of contents
 
@@ -10,8 +15,8 @@ move it to another host or run the whole thing on one machine.
 - [Installing it as an app](#installing-it-as-an-app)
 - [On a second host](#on-a-second-host)
 - [Moving the board's own directories](#moving-the-boards-own-directories)
-- [Saying it once instead of every time](#saying-it-once-instead-of-every-time)
-- [On one machine](#on-one-machine)
+- [Naming your machines once, in .env.deploy](#naming-your-machines-once-in-envdeploy)
+- [Running it without a second host](#running-it-without-a-second-host)
 - [Keeping the host's specs current](#keeping-the-hosts-specs-current)
 - [Reviewing what an unattended run writes](#reviewing-what-an-unattended-run-writes)
 - [Known gaps](#known-gaps)
@@ -228,13 +233,13 @@ again by the install after every merge, into the site directory and from the pro
 The machine name they show is `AIDE_DASH_HOST` when it is set, and the generating machine's `hostname()` otherwise,
 the same way the header's own machine name is found (`dashboard/src/render/ui/shell.ts`'s `boardLine()`).
 
-## Saying it once instead of every time
+## Naming your machines once, in .env.deploy
 
 Copy `.env.deploy.example` to `.env.deploy` and fill in your own machines. The Makefile includes it, so
 `make install-serve` stops needing a wall of variables on the command line. The file is gitignored — which is the point: the
 tracked repo names nobody's machine, and this is where yours lives instead.
 
-## On one machine
+## Running it without a second host
 
 `dashboard/install.sh` (`make install-local`) is `install-serve` on the machine it runs on: the same prerequisite
 check, checkout, plist and launchd job, with a local shell in place of ssh. It takes the same variables, except
@@ -260,7 +265,8 @@ spec written and pushed from another machine is simply not there — and a spec 
 aide-pull-specs ~/develop/aide-specs [~/develop/other-specs ...]
 ```
 
-Each repo is pulled only when it is safe to do so with nobody watching: a git working tree, nothing uncommitted,
+Each repo is pulled only when it is safe to do so with nobody watching: a git working tree, no uncommitted
+changes to TRACKED files — an untracked scratch file is no obstacle to a fast-forward and does not stop it —
 sitting on its own default branch, and a fast-forward. Anything else is skipped with a reason, and the repos beside it
 are still pulled. Nothing is ever committed, merged or reset. A repo already up to date prints nothing, so a cron entry
 mails only when something happened. On an always-on host, every two minutes:
@@ -288,7 +294,8 @@ claude plugin install security-guidance@claude-plugins-official
 ```
 
 It is hooks, not skills, so it costs a run no context: a regex check on every `Edit`/`Write`, and a review of the
-turn's own diff, by a separate model call, when the turn ends. Findings reach the session that wrote the code,
+diff by a separate model call — at the end of a turn AND at the end of every subagent. A skill that fans work out
+to agents therefore triggers one per agent, not one per step. Findings reach the session that wrote the code,
 before the step finishes. It needs `python3` on the PATH the hooks are started with — `/usr/bin/python3` is
 enough — and it spends on the same AI account the runs do.
 
