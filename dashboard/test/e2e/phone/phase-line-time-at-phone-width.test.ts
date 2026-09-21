@@ -11,28 +11,20 @@
 // operator's quick e2e allow-list (Atlasaurus, PaceUp only). Written so
 // AC-7 is met — the file exists and checks AC-5 at the three named
 // widths — and left for the user's own run.
-import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
+import { afterAll, beforeAll, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
+import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
 import { queueHarness, ran } from "../../helpers/queue-server.ts";
 
-setDefaultTimeout(20_000);
+browserDeadline();
 
 const harness = queueHarness("aide-e2e-phase-time-");
 let browser: Browser;
 let page: Page;
 let base: string;
 
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`${label} did not resolve within ${ms}ms`)), ms),
-    ),
-  ]);
-}
-
 beforeAll(async () => {
-  browser = await withTimeout(chromium.launch(), 15_000, "chromium.launch()");
+  browser = await withBrowser(chromium.launch(), "chromium.launch()");
   page = await browser.newPage();
   const started = harness.start({
     extra: {
@@ -49,9 +41,8 @@ beforeAll(async () => {
   base = started.base;
   ran(started.dir, ["create", "analyze"]);
   await new Promise((r) => setTimeout(r, 400));
-  await withTimeout(
+  await withBrowser(
     page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`),
-    10_000,
     "page.goto(/?live=0)",
   );
 });
@@ -72,9 +63,8 @@ const WIDTHS = [360, 390, 430];
 test("the phase line's Time shows on the state's line, at 360/390/430px, without wrapping, and shares one left edge", async () => {
   for (const width of WIDTHS) {
     await page.setViewportSize({ width, height: 900 });
-    await withTimeout(
+    await withBrowser(
       page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`),
-      10_000,
       `page.goto at ${width}px`,
     );
     const rows = await page

@@ -12,11 +12,12 @@
 //
 // Computed style is a browser's answer, so this is a browser's test.
 
-import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
+import { afterAll, beforeAll, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
+import { browserDeadline, withBrowser } from "../helpers/browser-deadline.ts";
 import { queueHarness, ran } from "../helpers/queue-server.ts";
 
-setDefaultTimeout(20_000);
+browserDeadline();
 
 const DESKTOP = { width: 1270, height: 800 };
 
@@ -25,23 +26,14 @@ let browser: Browser;
 let page: Page;
 let base: string;
 
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`${label} did not resolve within ${ms}ms`)), ms),
-    ),
-  ]);
-}
-
 beforeAll(async () => {
-  browser = await withTimeout(chromium.launch(), 15_000, "chromium.launch()");
+  browser = await withBrowser(chromium.launch(), "chromium.launch()");
   page = await browser.newPage();
   const started = harness.start();
   base = started.base;
   ran(started.dir, []);
   await new Promise((r) => setTimeout(r, 400));
-  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/?live=0)");
+  await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/?live=0)");
 });
 
 afterAll(async () => {
@@ -67,7 +59,7 @@ async function visiblyChosen(menuSelector: string, rowSelector: string): Promise
 
 test("the theme menu shows a mark on exactly one choice, and it is the live one", async () => {
   await page.setViewportSize(DESKTOP);
-  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
+  await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
 
   const marked = await visiblyChosen(".menu.theme", "[data-theme-choice]");
   expect(marked.length).toBe(1);
@@ -82,7 +74,7 @@ test("the theme menu shows a mark on exactly one choice, and it is the live one"
 
 test("the language menu shows a mark on exactly one choice", async () => {
   await page.setViewportSize(DESKTOP);
-  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
+  await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
 
   // The language choices are LINKS, not buttons. A stylesheet rule that
   // named buttons alone left this menu with nothing visible at all,
@@ -93,7 +85,7 @@ test("the language menu shows a mark on exactly one choice", async () => {
 
 test("an unchosen row's mark takes up its space without being seen", async () => {
   await page.setViewportSize(DESKTOP);
-  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
+  await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
   await page.locator(".menu.theme > summary").click();
 
   // Hidden by opacity, not by display: the labels line up because every
@@ -109,14 +101,14 @@ test("an unchosen row's mark takes up its space without being seen", async () =>
 
 test("the unit menu's stored choice is the one selected after a reload", async () => {
   await page.setViewportSize(DESKTOP);
-  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
+  await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
   await page.locator(".menu.unit > summary").click();
   await page.locator('.menu.unit [data-unit-choice="tokens"]').check();
 
   // The server renders "$" selected every time — which unit a reader
   // picked is theirs, not the server's. Only the script restores it, and
   // only a real browser runs the script.
-  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/) again");
+  await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/) again");
   await page.locator(".menu.unit > summary").click();
   expect(await page.locator('.menu.unit [data-unit-choice="tokens"]').isChecked()).toBe(true);
   expect(await page.locator('.menu.unit [data-unit-choice="usd"]').isChecked()).toBe(false);

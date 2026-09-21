@@ -5,29 +5,21 @@
 //
 // Only a browser answers this: what scrolls is layout's answer.
 
-import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
+import { afterAll, beforeAll, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
+import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { harness, ownDirs, projectsRoot, settled, serve } from "../../project/detail/project-detail-route-fixtures.ts";
 
-setDefaultTimeout(30_000);
+browserDeadline();
 
 let browser: Browser;
 let page: Page;
 let base: string;
 
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`${label} did not resolve within ${ms}ms`)), ms),
-    ),
-  ]);
-}
-
 beforeAll(async () => {
-  browser = await withTimeout(chromium.launch(), 15_000, "chromium.launch()");
+  browser = await withBrowser(chromium.launch(), "chromium.launch()");
   page = await browser.newPage({ extraHTTPHeaders: {} });
   // Enough rows to scroll on any phone.
   const root = projectsRoot({ aide: "" });
@@ -48,7 +40,7 @@ afterAll(async () => {
 for (const [w, h] of [[360, 640], [390, 844]] as const) {
   test(`at ${w}x${h}, the rows scroll and the header and the filter row stay where they were`, async () => {
     await page.setViewportSize({ width: w, height: h });
-    await withTimeout(page.goto(`${base}/?live=0`), 10_000, `page.goto at ${w}x${h}`);
+    await withBrowser(page.goto(`${base}/?live=0`), `page.goto at ${w}x${h}`);
     const searchBefore = await page.locator("form.specsearch").evaluate((e) => Math.round(e.getBoundingClientRect().top));
     const after = await page.evaluate(() => {
       const box = document.querySelector("#jobrows .tablewrap") as HTMLElement;

@@ -7,11 +7,12 @@
 //
 // Only a browser answers this: the editor mounts from script, and the
 // toolbar's own collapse is its measurement, not ours.
-import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
+import { afterAll, beforeAll, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
+import { browserDeadline } from "../../helpers/browser-deadline.ts";
 import { createSpecSaveHarness, savable, DESCRIPTION_TAB } from "../../spec-page/spec-save-fixtures.ts";
 
-setDefaultTimeout(30_000);
+browserDeadline();
 
 const { harness, start } = createSpecSaveHarness("aide-e2e-spec-editor-");
 let browser: Browser;

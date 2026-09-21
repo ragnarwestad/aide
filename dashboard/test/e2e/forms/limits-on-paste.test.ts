@@ -1,11 +1,12 @@
 // A real-browser check for the length counts (spec 513): a paste is the one
 // place the browser's own truncation and the script's measurement meet, and
 // a unit test can only stand in for the truncation.
-import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chromium, type Browser } from "playwright";
+import { browserDeadline } from "../../helpers/browser-deadline.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 
-setDefaultTimeout(20_000);
+browserDeadline();
 
 const harness = queueHarness("aide-e2e-limits-on-paste-");
 let browser: Browser;

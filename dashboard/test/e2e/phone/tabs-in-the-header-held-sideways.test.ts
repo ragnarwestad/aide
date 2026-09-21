@@ -6,28 +6,20 @@
 // Only a browser answers this: which copy of the tabs shows is a media
 // query's answer (orientation, height and width together).
 
-import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
+import { afterAll, beforeAll, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
+import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
 import { rmSync } from "node:fs";
 import { harness, ownDirs, projectsRoot, settled, serve } from "../../project/detail/project-detail-route-fixtures.ts";
 
-setDefaultTimeout(30_000);
+browserDeadline();
 
 let browser: Browser;
 let page: Page;
 let base: string;
 
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`${label} did not resolve within ${ms}ms`)), ms),
-    ),
-  ]);
-}
-
 beforeAll(async () => {
-  browser = await withTimeout(chromium.launch(), 15_000, "chromium.launch()");
+  browser = await withBrowser(chromium.launch(), "chromium.launch()");
   page = await browser.newPage({ extraHTTPHeaders: {} });
   const root = projectsRoot({ aide: "" });
   base = serve(root, settled(root, "aide"));
@@ -43,7 +35,7 @@ afterAll(async () => {
  *  page reaches past the window's width. */
 async function tabsAt(width: number, height: number) {
   await page.setViewportSize({ width, height });
-  await withTimeout(page.goto(`${base}/?live=0`), 10_000, `page.goto at ${width}x${height}`);
+  await withBrowser(page.goto(`${base}/?live=0`), `page.goto at ${width}x${height}`);
   return page.evaluate((w) => {
     const shown = (sel: string) => {
       const e = document.querySelector(sel);

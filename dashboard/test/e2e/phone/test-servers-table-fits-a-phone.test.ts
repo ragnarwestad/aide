@@ -6,27 +6,19 @@
 // Nothing here is reachable from a string: widths, wrapping and which
 // columns a window shows are layout's and a media query's answer.
 
-import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
+import { afterAll, beforeAll, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
+import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
 import { MAIN_TEST_SERVER_KEY } from "../../../src/serve/test-servers/lifecycle.ts";
 import type { TestServer } from "../../../src/serve/test-servers/store.ts";
 import { queueHarness, ran } from "../../helpers/queue-server.ts";
 
-setDefaultTimeout(30_000);
+browserDeadline();
 
 const harness = queueHarness("aide-e2e-test-servers-");
 let browser: Browser;
 let page: Page;
 let base: string;
-
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`${label} did not resolve within ${ms}ms`)), ms),
-    ),
-  ]);
-}
 
 const board = (overrides: Partial<TestServer> = {}): TestServer => ({
   branch: "aide/81-queue-and-runner",
@@ -43,7 +35,7 @@ const board = (overrides: Partial<TestServer> = {}): TestServer => ({
 });
 
 beforeAll(async () => {
-  browser = await withTimeout(chromium.launch(), 15_000, "chromium.launch()");
+  browser = await withBrowser(chromium.launch(), "chromium.launch()");
   page = await browser.newPage();
   const started = harness.start({ extra: { testServersIsAlive: () => true }, alsoSpecs: ["82-second"] });
   base = started.base;
@@ -63,7 +55,7 @@ const LONG_ADDRESS = "a-tailnet-host.tail1234abcd.ts.net:8801"; // ~40 character
 
 async function open(width: number, longNames = false): Promise<void> {
   await page.setViewportSize({ width, height: 900 });
-  await withTimeout(page.goto(`${base}/test-servers?live=0`), 10_000, `page.goto at ${width}px`);
+  await withBrowser(page.goto(`${base}/test-servers?live=0`), `page.goto at ${width}px`);
   if (!longNames) return;
   await page.evaluate(([folder, address]) => {
     const spec = document.querySelector('table.testservers tbody td[data-col="ts-spec"] a');
@@ -149,7 +141,7 @@ test("a heading and a body cell look like the specs list's (AC-2)", async () => 
     body: await look("table.testservers tbody tr:nth-child(2) td:nth-child(2)"),
     table: await tableLook("table.testservers"),
   };
-  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
+  await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
   const theirs = {
     head: await look("table.speclist thead th:nth-child(2)"),
     body: await look("table.speclist tbody tr.spechead:nth-child(n+2) td:nth-child(2)"),

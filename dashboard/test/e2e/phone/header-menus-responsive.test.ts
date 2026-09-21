@@ -8,34 +8,26 @@
 // no nested <details>) avoids this by construction; this spec is what
 // would actually catch a regression back into the nested shape, in a
 // real browser, at a real viewport width.
-import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
+import { afterAll, beforeAll, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
+import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
 import { queueHarness, ran } from "../../helpers/queue-server.ts";
 
-setDefaultTimeout(20_000);
+browserDeadline();
 
 const harness = queueHarness("aide-e2e-header-menus-");
 let browser: Browser;
 let page: Page;
 let base: string;
 
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`${label} did not resolve within ${ms}ms`)), ms),
-    ),
-  ]);
-}
-
 beforeAll(async () => {
-  browser = await withTimeout(chromium.launch(), 15_000, "chromium.launch()");
+  browser = await withBrowser(chromium.launch(), "chromium.launch()");
   page = await browser.newPage();
   const started = harness.start();
   base = started.base;
   ran(started.dir, []);
   await new Promise((r) => setTimeout(r, 400));
-  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/?live=0)");
+  await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/?live=0)");
 });
 
 afterAll(async () => {
@@ -60,7 +52,7 @@ const DESKTOP = { width: 1270, height: 800 };
 
 test("AC-1: at desktop width, theme, language and unit each stand as their own header trigger", async () => {
   await page.setViewportSize(DESKTOP);
-  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
+  await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
   for (const selector of [".menu.theme", ".menu.lang", ".menu.unit"]) {
     expect(await page.locator(selector).isVisible()).toBe(true);
   }
@@ -68,7 +60,7 @@ test("AC-1: at desktop width, theme, language and unit each stand as their own h
 
 test("AC-2 criterion 3: at phone width, the three standalone triggers are hidden", async () => {
   await page.setViewportSize(PHONE);
-  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
+  await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
   for (const selector of [".menu.theme", ".menu.lang", ".menu.unit"]) {
     expect(await page.locator(selector).isHidden()).toBe(true);
   }
@@ -76,7 +68,7 @@ test("AC-2 criterion 3: at phone width, the three standalone triggers are hidden
 
 test("AC-2 criterion 4: opening the … menu at phone width reveals all three choice groups", async () => {
   await page.setViewportSize(PHONE);
-  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
+  await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
   // Named first, so a header that stops carrying the menu fails here in
   // one line rather than through a 20-second click timeout.
   expect(await page.locator(MORE_MENU).count()).toBe(1);
@@ -95,7 +87,7 @@ test("AC-2 criterion 4: opening the … menu at phone width reveals all three ch
 // reason for existing, per 3-solution.md's Risk analysis item 4.
 test("AC-2 criterion 5: tapping a choice row applies it and leaves the … menu open", async () => {
   await page.setViewportSize(PHONE);
-  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
+  await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
   const trigger = page.locator(`${MORE_MENU} > summary`);
   await trigger.click();
   const menu = page.locator(MORE_MENU);
@@ -113,7 +105,7 @@ test("AC-2 criterion 5: tapping a choice row applies it and leaves the … menu 
 type Box = { x: number; y: number; width: number; height: number };
 async function openMore(size: { width: number; height: number }, path = "/?live=0"): Promise<void> {
   await page.setViewportSize(size);
-  await withTimeout(page.goto(`${base}${path}`), 10_000, `page.goto(${path})`);
+  await withBrowser(page.goto(`${base}${path}`), `page.goto(${path})`);
   await page.locator(`${MORE_MENU} > summary`).click();
 }
 async function box(selector: string): Promise<Box> {

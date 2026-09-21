@@ -10,34 +10,26 @@
 // Nothing here is reachable from a string: which columns a window shows
 // is a media query's answer, and only a browser evaluates one.
 
-import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
+import { afterAll, beforeAll, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
+import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
 import { queueHarness, ran } from "../../helpers/queue-server.ts";
 
-setDefaultTimeout(20_000);
+browserDeadline();
 
 const harness = queueHarness("aide-e2e-columns-");
 let browser: Browser;
 let page: Page;
 let base: string;
 
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`${label} did not resolve within ${ms}ms`)), ms),
-    ),
-  ]);
-}
-
 beforeAll(async () => {
-  browser = await withTimeout(chromium.launch(), 15_000, "chromium.launch()");
+  browser = await withBrowser(chromium.launch(), "chromium.launch()");
   page = await browser.newPage();
   const started = harness.start();
   base = started.base;
   ran(started.dir, []);
   await new Promise((r) => setTimeout(r, 400));
-  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/?live=0)");
+  await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/?live=0)");
 });
 
 afterAll(async () => {
@@ -50,7 +42,7 @@ afterAll(async () => {
  *  this reads the heading cells, which are what a reader sees. */
 async function shownColumns(width: number): Promise<string[]> {
   await page.setViewportSize({ width, height: 900 });
-  await withTimeout(page.goto(`${base}/?live=0`), 10_000, `page.goto at ${width}px`);
+  await withBrowser(page.goto(`${base}/?live=0`), `page.goto at ${width}px`);
   return page.locator("table.speclist th[data-col]").evaluateAll((cells) =>
     cells
       .filter((c) => getComputedStyle(c).display !== "none")
@@ -89,7 +81,7 @@ test("no width in the span scrolls sideways", async () => {
   // table past the window, and the whole page gains a sideways scroll.
   for (const width of [952, 900, 848, 800, 744, 700, 660]) {
     await page.setViewportSize({ width, height: 900 });
-    await withTimeout(page.goto(`${base}/?live=0`), 10_000, `page.goto at ${width}px`);
+    await withBrowser(page.goto(`${base}/?live=0`), `page.goto at ${width}px`);
     const overflow = await page.evaluate(() => ({
       doc: document.documentElement.scrollWidth,
       win: window.innerWidth,
@@ -104,7 +96,7 @@ test("a dropped column takes its body cells with it", async () => {
   // under the wrong heading rather than as a missing column.
   for (const width of [900, 800, 700]) {
     await page.setViewportSize({ width, height: 900 });
-    await withTimeout(page.goto(`${base}/?live=0`), 10_000, `page.goto at ${width}px`);
+    await withBrowser(page.goto(`${base}/?live=0`), `page.goto at ${width}px`);
     const disagreed = await page.evaluate((cols) => {
       const visible = (el: Element | null) => el !== null && getComputedStyle(el).display !== "none";
       const table = document.querySelector("table.speclist");

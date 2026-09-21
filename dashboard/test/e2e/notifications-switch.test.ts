@@ -2,11 +2,12 @@
 // what colour its track is, in a real browser — layout and paint exist
 // only there. Run by the user.
 
-import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
+import { afterAll, beforeAll, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
+import { browserDeadline } from "../helpers/browser-deadline.ts";
 import { queueHarness } from "../helpers/queue-server.ts";
 
-setDefaultTimeout(20_000);
+browserDeadline();
 
 const harness = queueHarness("aide-e2e-notifications-switch-");
 let browser: Browser;

@@ -4,11 +4,12 @@
 // Not run by the session: Aide is not a project where the session runs the
 // e2e suite. `make test` runs it, and by hand:
 // `cd dashboard && bun test --timeout 20000 test/e2e/progress-dialog-stands.test.ts`.
-import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
+import { browserDeadline } from "../helpers/browser-deadline.ts";
 import { ARCHIVED, LIVE, STAMPED, harness, start } from "../archived/archived-specs-fixtures.ts";
 
-setDefaultTimeout(20_000);
+browserDeadline();
 
 let browser: Browser;
 let base: string;

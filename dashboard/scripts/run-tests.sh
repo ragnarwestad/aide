@@ -18,17 +18,27 @@
 # at any per-test limit. `make test-slow` is theirs. The browser tests
 # are IN, since spreading them over the workers took them from 2 min 15 s
 # to 19 s and took with them the cascade that made them flaky — one
-# process running all 22 files killed its own browser between them.
+# process running all 22 files killed its own browser between them. They
+# run in a pool of their own, capped and with a deadline of their own:
+# see BROWSER_WORKERS below.
 set -o pipefail
 cd "$(dirname "$0")/.." || exit 1
 
 # 20 s per test, not bun's 5 s: the git-backed route tests run beside
 # other jobs' suites on the serving host and lose to load alone.
 LIMIT=20000
+# A file that starts a real browser sets its own, longer deadline —
+# `test/helpers/browser-deadline.ts`, which is what a file's own
+# `setDefaultTimeout` leaves this limit no say in.
 # Two cores are left for whatever else the host is doing — a run's own AI
 # session, another spec's suite. Override with AIDE_TEST_WORKERS.
 CPUS=$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)
 WORKERS=${AIDE_TEST_WORKERS:-$(( CPUS > 3 ? CPUS - 2 : 1 ))}
+# How many of those workers may be running a browser file at once. The
+# rest of the suite costs a bun process; a browser file costs a chromium
+# too, and eight of those competing is what made a launch miss its
+# deadline. Override with AIDE_TEST_BROWSER_WORKERS.
+BROWSER_WORKERS=${AIDE_TEST_BROWSER_WORKERS:-3}
 
 # With no argument: the suite `make test` runs. Tests live under `src/` too
 # (the message catalogues' own), so both trees are collected, and the two
@@ -46,9 +56,36 @@ started=$(date +%s)
 OUT=$(mktemp -d)
 trap 'rm -rf "$OUT"' EXIT
 
-i=0
+# Two pools, dealt separately: the files that start a browser take the
+# first `BROWSER_WORKERS` workers, everything else takes the rest. Dealt
+# together — one round-robin over every file — which pool a worker ended
+# up carrying was decided by the file COUNT, so adding any test file
+# anywhere reshuffled the browsers and a run went red for reasons that
+# had nothing to do with the change.
+browser=""
+rest=""
 for f in $files; do
-  echo "$f" >> "$OUT/list.$(( i % WORKERS ))"
+  if grep -q 'from "playwright"' "$f" 2>/dev/null; then
+    browser="$browser $f"
+  else
+    rest="$rest $f"
+  fi
+done
+# Nothing else to run beside them (`make test-e2e` passes their own
+# directory): then the browsers have the machine to themselves and the
+# cap is what would slow them down, so it is lifted.
+[ -z "$rest" ] && BROWSER_WORKERS="$WORKERS"
+[ -z "$browser" ] && BROWSER_WORKERS=0
+[ "$BROWSER_WORKERS" -ge "$WORKERS" ] && [ -n "$rest" ] && BROWSER_WORKERS=$(( WORKERS - 1 ))
+
+i=0
+for f in $browser; do
+  echo "$f" >> "$OUT/list.$(( i % BROWSER_WORKERS ))"
+  i=$(( i + 1 ))
+done
+i=0
+for f in $rest; do
+  echo "$f" >> "$OUT/list.$(( BROWSER_WORKERS + i % (WORKERS - BROWSER_WORKERS) ))"
   i=$(( i + 1 ))
 done
 

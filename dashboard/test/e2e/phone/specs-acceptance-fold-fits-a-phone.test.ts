@@ -7,14 +7,15 @@
 // Not run by this round: Aide is not a project where the session runs the
 // e2e suite. Written so the check exists; run it with
 // `cd dashboard && bun test test/e2e/specs-acceptance-fold-fits-a-phone.test.ts`.
-import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
+import { browserDeadline } from "../../helpers/browser-deadline.ts";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { queueHarness, ran } from "../../helpers/queue-server.ts";
 import { recording } from "../../spec-page/spec-checks-fixtures.ts";
 
-setDefaultTimeout(20_000);
+browserDeadline();
 const FOLDER = "81-queue-and-runner";
 const LONG = `AC-2: ${"a criterion that keeps going and going ".repeat(5)}`.trim();
 const ROW_ONE = "| AC-1: it folds | ⬜ | |";

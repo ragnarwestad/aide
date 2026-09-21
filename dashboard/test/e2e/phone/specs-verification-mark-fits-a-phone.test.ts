@@ -6,12 +6,13 @@
 // Not run by this round: Aide is not a project where the session runs the
 // e2e suite. Run it with
 // `cd dashboard && bun test --timeout 20000 test/e2e/specs-verification-mark-fits-a-phone.test.ts`.
-import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
+import { browserDeadline } from "../../helpers/browser-deadline.ts";
 import { queueHarness, ran } from "../../helpers/queue-server.ts";
 import { recording } from "../../spec-page/spec-checks-fixtures.ts";
 
-setDefaultTimeout(20_000);
+browserDeadline();
 const FOLDER = "81-queue-and-runner";
 const STATUS = [
   "# Queue - Status", "",

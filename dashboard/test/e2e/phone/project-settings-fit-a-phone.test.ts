@@ -8,28 +8,20 @@
 // Only a browser answers this: the stacking is a media query's, and the
 // widths are layout's.
 
-import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
+import { afterAll, beforeAll, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
+import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
 import { harness, ownDirs, projectsRoot, settled, serve } from "../../project/detail/project-detail-route-fixtures.ts";
 import { rmSync } from "node:fs";
 
-setDefaultTimeout(30_000);
+browserDeadline();
 
 let browser: Browser;
 let page: Page;
 let base: string;
 
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`${label} did not resolve within ${ms}ms`)), ms),
-    ),
-  ]);
-}
-
 beforeAll(async () => {
-  browser = await withTimeout(chromium.launch(), 15_000, "chromium.launch()");
+  browser = await withBrowser(chromium.launch(), "chromium.launch()");
   page = await browser.newPage({ extraHTTPHeaders: {} });
   // A long configured path and a lockfile, so the table carries a long
   // value, two notices and the test command's suggestion — its widest
@@ -48,7 +40,7 @@ afterAll(async () => {
  *  window at `width` — 0 each when nothing scrolls sideways. */
 async function overflow(width: number, edit: boolean): Promise<{ page: number; table: number }> {
   await page.setViewportSize({ width, height: 900 });
-  await withTimeout(page.goto(`${base}/projects/paceup${edit ? "?edit=1" : ""}`), 10_000, `page.goto at ${width}px`);
+  await withBrowser(page.goto(`${base}/projects/paceup${edit ? "?edit=1" : ""}`), `page.goto at ${width}px`);
   return page.evaluate((w) => {
     const wrap = document.querySelector(".tablewrap");
     return {
@@ -68,7 +60,7 @@ for (const width of [360, 390]) {
 
 test("on a desktop the table keeps its three columns, Value and Comment evenly", async () => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await withTimeout(page.goto(`${base}/projects/paceup`), 10_000, "page.goto at 1280px");
+  await withBrowser(page.goto(`${base}/projects/paceup`), "page.goto at 1280px");
   const widths = await page
     .locator("table.list thead th")
     .evaluateAll((cells) => cells.map((c) => Math.round(c.getBoundingClientRect().width)));

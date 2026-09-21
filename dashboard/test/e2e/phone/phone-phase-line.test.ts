@@ -15,14 +15,15 @@
 // Step 4 asks for, run against this project's own fixture model/tool
 // names ("Sonnet"/"claude").
 
-import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
+import { afterAll, beforeAll, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium, type Browser, type Page } from "playwright";
+import { browserDeadline } from "../../helpers/browser-deadline.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 
-setDefaultTimeout(30_000);
+browserDeadline();
 
 const OPEN = "open=aide%2F81-queue-and-runner";
 

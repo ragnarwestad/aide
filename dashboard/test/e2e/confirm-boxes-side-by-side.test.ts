@@ -3,14 +3,15 @@
 // stay inside the box at phone width. Layout exists only in a browser.
 // Run by the user.
 
-import { afterAll, afterEach, beforeAll, beforeEach, expect, setDefaultTimeout, test } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:test";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium, type Browser, type Page } from "playwright";
+import { browserDeadline } from "../helpers/browser-deadline.ts";
 import { queueHarness } from "../helpers/queue-server.ts";
 
-setDefaultTimeout(30_000);
+browserDeadline();
 
 const FOLDER = "81-queue-and-runner";
 const harness = queueHarness("aide-e2e-confirm-boxes-");

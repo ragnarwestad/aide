@@ -6,8 +6,9 @@
 // form submit, and presses the row's real Run/Archive control to prove
 // the hold is actually gone — the other half of the proof
 // `dashboard/test/round`'s sixth fixture gives on the machine side.
-import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
+import { browserDeadline, withBrowser } from "../helpers/browser-deadline.ts";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { queueHarness, ran } from "../helpers/queue-server.ts";
@@ -18,7 +19,7 @@ import { queueHarness, ran } from "../helpers/queue-server.ts";
 // write the browser's own Save triggers actually lands.
 import { recording } from "../spec-page/spec-checks-fixtures.ts";
 
-setDefaultTimeout(20_000);
+browserDeadline();
 const FOLDER = "81-queue-and-runner";
 const ACCEPTANCE_ROW = "| REQ-1: a person has judged this | ⬜ | |";
 const STATUS = [
@@ -56,19 +57,8 @@ async function waitUntil(cond: () => Promise<boolean>, ms: number, label: string
   }
 }
 
-// A bounded wait around every browser/page call, not just error handling —
-// the same helper specs-page-layout.test.ts uses.
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`${label} did not resolve within ${ms}ms`)), ms),
-    ),
-  ]);
-}
-
 beforeAll(async () => {
-  browser = await withTimeout(chromium.launch(), 15_000, "chromium.launch()");
+  browser = await withBrowser(chromium.launch(), "chromium.launch()");
   page = await browser.newPage();
   const started = harness.start({
     extra: { gitRun: recording().run },
@@ -103,13 +93,13 @@ afterAll(async () => { await browser.close(); harness.cleanup(); });
 
 describe("the acceptance gate, on a page a person could click", () => {
   test("REQ-4: the specs list names the Status tab", async () => {
-    await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
+    await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
     const notice = page.locator(`tr.specnotice[data-folder="${FOLDER}"]`);
     expect(await notice.textContent()).toContain("tick them under › on the Specs list, or on the Status tab");
   });
 
   test("AC-17: the rendered file sits below the criteria block, Save and Cancel enable on a change, nothing scrolls sideways (AC-17)", async () => {
-    await withTimeout(page.goto(`${base}/specs/aide/${FOLDER}?tab=status&live=0`), 10_000, "page.goto(status)");
+    await withBrowser(page.goto(`${base}/specs/aide/${FOLDER}?tab=status&live=0`), "page.goto(status)");
     await page.waitForSelector("#spec-editor-host[data-mounted]", { timeout: 10_000 });
     const block = await page.locator("section.checks").boundingBox();
     const file = await page.locator("#spec-editor-host").boundingBox();
@@ -126,7 +116,7 @@ describe("the acceptance gate, on a page a person could click", () => {
   });
 
   test("REQ-5: ticking the row clears the message and archive becomes possible", async () => {
-    await withTimeout(page.goto(`${base}/specs/aide/${FOLDER}?tab=status&live=0`), 10_000, "page.goto(status)");
+    await withBrowser(page.goto(`${base}/specs/aide/${FOLDER}?tab=status&live=0`), "page.goto(status)");
     await page.locator(`input[name="tick"][value="${ACCEPTANCE_ROW}"]`).check();
     await Promise.all([
       page.waitForEvent("load"),
@@ -140,9 +130,8 @@ describe("the acceptance gate, on a page a person could click", () => {
     await new Promise((r) => setTimeout(r, 300));
     // Open: the row's one action rides the caption line the fold opens
     // (2026-09-08), so a shut row has no button to press.
-    await withTimeout(
+    await withBrowser(
       page.goto(`${base}/?live=0&open=aide%2F${FOLDER}`),
-      10_000,
       "page.goto(/) again",
     );
     const notice = page.locator(`tr.specnotice[data-folder="${FOLDER}"]`);
@@ -154,10 +143,10 @@ describe("the acceptance gate, on a page a person could click", () => {
     // Run/Archive control and confirm the resulting queued job is NOT
     // held for the acceptance reason any more.
     await page.getByRole("button", { name: /archive/i }).click();
-    const queued = await withTimeout(
-      page.request.get(`${base}/api/queue`, ),
-      5_000, "GET /api/queue",
-    ).then((r) => r.json());
+    const queued = await withBrowser(
+      page.request.get(`${base}/api/queue`),
+      "GET /api/queue",
+    ).then((r: { json: () => Promise<{ jobs: { specFolder: string; error?: { key?: string } }[] }> }) => r.json());
     const job = queued.jobs.find((j: { specFolder: string }) => j.specFolder === FOLDER);
     expect(job?.error?.key).not.toBe("runner.acceptanceCriteriaUnticked");
   });

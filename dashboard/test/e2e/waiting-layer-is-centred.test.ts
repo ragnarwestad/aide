@@ -7,11 +7,12 @@
 // Not run by the session: Aide is not a project where the session runs the
 // e2e suite. CI runs it (`make test-e2e`), and by hand:
 // `cd dashboard && bun test --timeout 20000 test/e2e/waiting-layer-is-centred.test.ts`.
-import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
+import { browserDeadline } from "../helpers/browser-deadline.ts";
 import { queueHarness } from "../helpers/queue-server.ts";
 
-setDefaultTimeout(20_000);
+browserDeadline();
 const FOLDER = "81-queue-and-runner";
 const GAP = 16;
 const LONG_NOTE = Array.from({ length: 40 }, () => "Deploying, this takes a while.").join(" ");

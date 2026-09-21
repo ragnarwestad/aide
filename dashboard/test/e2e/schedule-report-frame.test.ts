@@ -2,15 +2,16 @@
 // browser. The sandbox and the theme exist only there, so a unit test can
 // say what the markup carries but not what happens. Run by the user.
 
-import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
+import { afterAll, beforeAll, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium, type Browser, type Page } from "playwright";
+import { browserDeadline } from "../helpers/browser-deadline.ts";
 import { scheduleRunOutputDir } from "../../src/queue/schedule.ts";
 import { queueHarness } from "../helpers/queue-server.ts";
 
-setDefaultTimeout(20_000);
+browserDeadline();
 
 const KEY = "schedule-nightly-report";
 // The run has to be newer than the cron's most recent fire, or the board

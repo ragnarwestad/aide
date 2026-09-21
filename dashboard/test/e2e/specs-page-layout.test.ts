@@ -1,40 +1,27 @@
 // A real-browser check for the Specs page (spec 348): every case here
 // re-creates a regression that a text-only CSS/HTML test already missed
 // once, because none of them are about a rule existing — they are about
-// what a browser actually draws. `setDefaultTimeout` raises bun:test's
-// own 5s default: launching a real Chromium under Bun (Risk analysis,
+// what a browser actually draws. `browserDeadline` raises bun:test's own
+// 5 s default: launching a real Chromium under Bun (Risk analysis,
 // 3-solution.md) alone takes several seconds, before a single page has
-// loaded.
-import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from "bun:test";
+// loaded — and every browser test shares that one value.
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
+import { browserDeadline, withBrowser } from "../helpers/browser-deadline.ts";
 import { queueHarness, ran } from "../helpers/queue-server.ts";
 import { CSS } from "../../src/render/ui/css";
 import { badge } from "../../src/render/ui/components";
 import { t } from "../../src/i18n";
 
-setDefaultTimeout(20_000);
+browserDeadline();
 
 const harness = queueHarness("aide-e2e-layout-");
 let browser: Browser;
 let page: Page;
 let base: string;
 
-// A bounded wait around every browser/page call, not just error handling:
-// if Bun's own process cannot complete a Chromium launch or navigation
-// (an open compatibility question, see 3-solution.md's Risk analysis),
-// this turns a silent hang into a fast, readable test failure instead of
-// a wedged suite or a wedged archive gate.
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`${label} did not resolve within ${ms}ms`)), ms),
-    ),
-  ]);
-}
-
 beforeAll(async () => {
-  browser = await withTimeout(chromium.launch(), 15_000, "chromium.launch()");
+  browser = await withBrowser(chromium.launch(), "chromium.launch()");
   page = await browser.newPage();
   const started = harness.start({
     extra: {},
@@ -64,7 +51,7 @@ beforeAll(async () => {
   // shortly after load and races this test's own reads of the DOM it
   // just rendered — caught as an intermittent 0-rect read on
   // `.created-date` (REQ-3) with the app's own live update wired in.
-  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/?live=0)");
+  await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/?live=0)");
 });
 
 afterAll(async () => {
@@ -89,7 +76,7 @@ for (const viewport of VIEWPORTS) {
     // bar and main column at three different widths.
     test("REQ-1: header, tab bar and main share one width", async () => {
       await page.setViewportSize(viewport);
-      await withTimeout(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), 10_000, "page.goto(/)");
+      await withBrowser(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), "page.goto(/)");
       const widths = await Promise.all(
         ["header", "body > nav.tabbar", "main"].map((sel) =>
           page.locator(sel).evaluate((el) => el.getBoundingClientRect().width),
@@ -103,7 +90,7 @@ for (const viewport of VIEWPORTS) {
     // that let the whole document grow past the viewport instead.
     test("REQ-2: the page itself does not scroll", async () => {
       await page.setViewportSize(viewport);
-      await withTimeout(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), 10_000, "page.goto(/)");
+      await withBrowser(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), "page.goto(/)");
       const { docHeight, winHeight } = await page.evaluate(() => ({
         docHeight: document.documentElement.scrollHeight,
         winHeight: window.innerHeight,
@@ -143,11 +130,11 @@ async function measureStateRow() {
 
 test("spec 379 REQ-2/REQ-3/REQ-4: the State column, the table and the badge-to-button gap do not grow with the window", async () => {
   await page.setViewportSize({ width: 1100, height: 900 });
-  await withTimeout(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), 10_000, "page.goto(/) at 1100px");
+  await withBrowser(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), "page.goto(/) at 1100px");
   const narrow = await measureStateRow();
 
   await page.setViewportSize({ width: 1920, height: 1080 });
-  await withTimeout(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), 10_000, "page.goto(/) at 1920px");
+  await withBrowser(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), "page.goto(/) at 1920px");
   const wide = await measureStateRow();
 
   // REQ-2: the State column's own width is the same at both widths.
@@ -201,11 +188,11 @@ async function measureControlsAndTable() {
 
 test("spec 381 REQ-1/REQ-7: the controls line's right edge matches the table's, at more than one window width", async () => {
   await page.setViewportSize({ width: 1100, height: 900 });
-  await withTimeout(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), 10_000, "page.goto(/) at 1100px");
+  await withBrowser(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), "page.goto(/) at 1100px");
   const narrow = await measureControlsAndTable();
 
   await page.setViewportSize({ width: 1920, height: 1080 });
-  await withTimeout(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), 10_000, "page.goto(/) at 1920px");
+  await withBrowser(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), "page.goto(/) at 1920px");
   const wide = await measureControlsAndTable();
 
   // Within 1px: `table.list`'s own 1px border plus `border-collapse`
@@ -231,7 +218,7 @@ test("spec 381 REQ-1/REQ-7: the controls line's right edge matches the table's, 
 // the bar to drift into.
 test("the list's scroll box ends where the table does", async () => {
   await page.setViewportSize({ width: 1920, height: 1080 });
-  await withTimeout(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), 10_000, "page.goto(/) at 1920px");
+  await withBrowser(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), "page.goto(/) at 1920px");
   const [wrap, table] = await Promise.all([
     page.locator("#jobrows .tablewrap").evaluate((el) => el.getBoundingClientRect()),
     page.locator("table.speclist").evaluate((el) => el.getBoundingClientRect()),
@@ -249,7 +236,7 @@ test("the list's scroll box ends where the table does", async () => {
 // still pass every one of them.
 test("spec 415 REQ-1: the controls/table block is centered inside main, not flush left", async () => {
   await page.setViewportSize({ width: 1920, height: 1080 });
-  await withTimeout(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), 10_000, "page.goto(/) at 1920px");
+  await withBrowser(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), "page.goto(/) at 1920px");
   const [wrap, frame] = await Promise.all([
     page.locator("#jobrows .tablewrap").evaluate((el) => el.getBoundingClientRect()),
     page.locator("main").first().evaluate((el) => el.getBoundingClientRect()),
@@ -279,7 +266,7 @@ test("spec 415 REQ-1: the controls/table block is centered inside main, not flus
 test("spec 379 REQ-4: the action stands on the State column's own midline", async () => {
   for (const width of [900, 1920]) {
     await page.setViewportSize({ width, height: 900 });
-    await withTimeout(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), 10_000, `page.goto(/) at ${width}px`);
+    await withBrowser(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), `page.goto(/) at ${width}px`);
     // REQ-4 asked that nothing but the cell's padding stand between the
     // action and the next column, when the button was hard against the
     // end of its cell. It is centred in the State column since
@@ -299,7 +286,7 @@ test("spec 379 REQ-4: the action stands on the State column's own midline", asyn
 
 test("spec 379 REQ-5: the phone layout's row is not held to the desktop's fixed width", async () => {
   await page.setViewportSize({ width: 375, height: 800 });
-  await withTimeout(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), 10_000, "page.goto(/) at phone width");
+  await withBrowser(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), "page.goto(/) at phone width");
   // The badge's own holder, since the `.row` that held the pair is
   // dissolved at this width (2026-09-08): what REQ-5 is about is that
   // nothing on the phone's row carries a desktop width.
@@ -319,7 +306,7 @@ test("spec 379 REQ-5: the phone layout's row is not held to the desktop's fixed 
 // own (measured on the unmodified code in 2-analysis.md).
 test("spec 460: New sits beside the search field at 800px width", async () => {
   await page.setViewportSize({ width: 800, height: 800 });
-  await withTimeout(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), 10_000, "page.goto(/) at 800px");
+  await withBrowser(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), "page.goto(/) at 800px");
   const [field, newLink] = await Promise.all([
     page.locator(".searchfield").first().evaluate((el) => el.getBoundingClientRect()),
     page.locator(".specsearch > a.btn.primary").first().evaluate((el) => el.getBoundingClientRect()),
@@ -353,7 +340,7 @@ test("spec 379 REQ-1: the widest state badge fits the State column", async () =>
     `<tbody><tr class="spechead"><td><span class="badgeslot">${worstBadge}</span></td></tr></tbody>` +
     `</table></body></html>`;
   const fixturePage = await browser.newPage();
-  await withTimeout(fixturePage.setContent(html), 10_000, "fixturePage.setContent(worst-case badge)");
+  await withBrowser(fixturePage.setContent(html), "fixturePage.setContent(worst-case badge)");
   const [badgeslot, cell] = await Promise.all([
     fixturePage.locator(".badgeslot").evaluate((el) => el.getBoundingClientRect()),
     fixturePage.locator("td").evaluate((el) => el.getBoundingClientRect()),
@@ -378,7 +365,7 @@ test("spec 379 REQ-1: the widest state badge fits the State column", async () =>
 // currently-true REQ-3 assertion and the one that starts mattering
 // again the moment this table's own width ever becomes constrained.
 test("REQ-3: a spec row's Created cell stays on one line", async () => {
-  await withTimeout(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), 10_000, "page.goto(/)");
+  await withBrowser(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), "page.goto(/)");
   // The row for the one spec `ran()` gave a real git-datable commit
   // (beforeAll) — every other row here reads the fixed "date unknown"
   // string, which cannot wrap regardless of the CSS rule this guards.
@@ -397,7 +384,7 @@ test("REQ-3: a spec row's Created cell stays on one line", async () => {
 // `#jobrows .tablewrap` overflow its own height in the first place.
 test("spec 440: the header row stays pinned to the top of the box as the list scrolls", async () => {
   await page.setViewportSize({ width: 1270, height: 600 });
-  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
+  await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
   const wrap = page.locator("#jobrows .tablewrap");
   const before = await wrap.evaluate((el) => ({
     wrapTop: el.getBoundingClientRect().top,
@@ -428,18 +415,16 @@ test("spec 440: the header row stays pinned to the top of the box as the list sc
 // that fell through to no script at all, leaving the raw markdown source
 // visible instead of the rendered document.
 test("REQ-4: a locked document tab shows the rendered document", async () => {
-  await withTimeout(
+  await withBrowser(
     page.goto(`${base}/specs/aide/99-archived-spec?tab=status&live=0`),
-    10_000,
     "page.goto(/specs/aide/99-archived-spec?tab=status)",
   );
-  await withTimeout(
+  await withBrowser(
     page.waitForSelector(".spec-editor-mount[data-mounted]"),
-    10_000,
     "waitForSelector(.spec-editor-mount[data-mounted])",
   );
   const heading = page.locator(".toastui-editor-contents h2", { hasText: "A rendered heading" });
-  await withTimeout(heading.waitFor({ state: "visible" }), 10_000, "waitFor(rendered heading)");
+  await withBrowser(heading.waitFor({ state: "visible" }), "waitFor(rendered heading)");
   const rawDisplay = await page
     .locator(".spec-editor-raw")
     .evaluate((el) => getComputedStyle(el).display);

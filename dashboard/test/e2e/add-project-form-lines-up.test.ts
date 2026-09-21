@@ -9,15 +9,16 @@
 // while the rows above them split the whole window between two fields
 // and reached well past that, so no two edges lined up.
 
-import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
+import { browserDeadline } from "../helpers/browser-deadline.ts";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { renderAddProjectPage } from "../../src/render";
 
-setDefaultTimeout(20_000);
+browserDeadline();
 
 let browser: Browser;
 let page: Page;

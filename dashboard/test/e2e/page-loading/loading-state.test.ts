@@ -3,13 +3,14 @@
 // then sends a rest, so the moment between the two can be looked at.
 // Run by hand, apart from `make test`:
 //   bun test --timeout 30000 test/e2e/page-loading/loading-state.test.ts
-import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chromium, type Browser } from "playwright";
+import { browserDeadline } from "../../helpers/browser-deadline.ts";
 import { renderSpecPageHead, renderSpecPageRest } from "../../../src/render";
 import { queueHarness } from "../../helpers/queue-server.ts";
 import { GENERATED, NAV, view } from "../../render/pages/spec-page-fixtures.ts";
 
-setDefaultTimeout(30_000);
+browserDeadline();
 
 const FOLDER = "150-one-page-shows-the-whole-spec";
 let browser: Browser;

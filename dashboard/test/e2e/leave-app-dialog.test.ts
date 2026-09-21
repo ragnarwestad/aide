@@ -5,11 +5,12 @@
 // and checks the replacement dialog (a) sits inside the viewport, not
 // off it, and (b) leaves none of nav-busy.ts's/nav-overlay.ts's own
 // side effects behind once the reader chooses to stay.
-import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
+import { browserDeadline, withBrowser } from "../helpers/browser-deadline.ts";
 import { queueHarness, ran } from "../helpers/queue-server.ts";
 
-setDefaultTimeout(20_000);
+browserDeadline();
 
 const FOLDER = "81-queue-and-runner";
 
@@ -18,17 +19,8 @@ let browser: Browser;
 let page: Page;
 let base: string;
 
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`${label} did not resolve within ${ms}ms`)), ms),
-    ),
-  ]);
-}
-
 beforeAll(async () => {
-  browser = await withTimeout(chromium.launch(), 15_000, "chromium.launch()");
+  browser = await withBrowser(chromium.launch(), "chromium.launch()");
   page = await browser.newPage();
   const started = harness.start();
   base = started.base;
@@ -63,18 +55,16 @@ describe("the leave-app dialog replaces the native prompt for an in-app link (sp
   // deep: the selector went stale once already, and a test whose exit
   // path has vanished says nothing about the dialog either way.
   test("the exit path these cases use is on the page", async () => {
-    await withTimeout(
+    await withBrowser(
       page.goto(`${base}/specs/aide/${FOLDER}?live=0`),
-      10_000,
       "page.goto(spec page)",
     );
     expect(await exitLink().count()).toBe(1);
   });
 
   test("AC-1/AC-2: dialog.leaveapp opens inside the viewport, not off it", async () => {
-    await withTimeout(
+    await withBrowser(
       page.goto(`${base}/specs/aide/${FOLDER}?live=0`),
-      10_000,
       "page.goto(spec page)",
     );
     await dirtyTheTrackingForm();
@@ -95,9 +85,8 @@ describe("the leave-app dialog replaces the native prompt for an in-app link (sp
   });
 
   test('pressing Cancel leaves no stray .awaiting link and no open pageoverlay behind', async () => {
-    await withTimeout(
+    await withBrowser(
       page.goto(`${base}/specs/aide/${FOLDER}?live=0`),
-      10_000,
       "page.goto(spec page)",
     );
     await dirtyTheTrackingForm();
@@ -114,9 +103,8 @@ describe("the leave-app dialog replaces the native prompt for an in-app link (sp
   });
 
   test('pressing OK navigates to the link\'s destination', async () => {
-    await withTimeout(
+    await withBrowser(
       page.goto(`${base}/specs/aide/${FOLDER}?live=0`),
-      10_000,
       "page.goto(spec page)",
     );
     await dirtyTheTrackingForm();
