@@ -1,11 +1,25 @@
 # A spec's lifecycle
 
-The one place the SPEC's progression is written down: the four phases `create`, `analyze`, `implement` and
-`archive`, what moves a spec from one to the next, who records that it moved, and what has to be true for the move to
-count. This is the level above [A job's states](job-states.md): a job is one run of one or more phases, and its
-`queued`/`running`/`done` says nothing about how far the spec has got. The code is `completed_steps_for` and the
-post-step checks in `core/scripts/aide-run-spec`, the gates in `core/scripts/aide-archive-spec`, and the landing in
-`src/serve/land-branch/`.
+The one place the SPEC's progression is written down: what moves a spec forward, who records that it moved, and
+what has to be true for the move to count. This is the level above [A job's states](job-states.md): a job is one
+run of one or more steps, and its `queued`/`running`/`done` says nothing about how far the spec has got.
+
+**Three words, and they are not the same.**
+
+| Word      | What it is                                                                                                                    | Where it is decided                                                                 |
+|-----------|-------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
+| **Step**  | Anything the queue can run: `create`, `analyze`, `implement`, `archive`, `explore`, `manifest`, `schedule`, `reopen`, `close` | `workflowSteps` in `core/scripts/lib/workflow-steps.json`                           |
+| **Phase** | The four steps a spec passes through — `create`, `analyze`, `implement`, `archive`                                            | `workflowArc` in the same file, "deliberately narrower … not places a spec gets to" |
+| **State** | Where the spec stands now, in the past tense: `created`, `analyzed`, `implemented`, `archived`, `closed`                      | the `phase` column of `core/scripts/lib/transitions.json`                           |
+
+`close` and `reopen` are steps, not phases: a spec that is `closed` has left the arc rather than reached a fifth
+stage of it. The table's own column is named `phase` and holds states — read its values, not its heading.
+
+The code is `transitions.json`, read in bash by `may_apply_spec_transition`
+(`core/scripts/lib/spec-transitions.sh`) and in TypeScript by `isLegalMove`
+(`dashboard/src/queue/spec-transitions.ts`); `completed_steps_for` and the post-step checks in
+`core/scripts/lib/run-spec-records.sh` and `run-spec-status-line.sh`; the gates in
+`core/scripts/aide-archive-spec`; and the landing in `src/serve/land-branch/`.
 
 ## Table of contents
 
@@ -31,7 +45,8 @@ post-step checks in `core/scripts/aide-run-spec`, the gates in `core/scripts/aid
 | `archive`   | The `Archived:` stamp, moves the folder into `archive/`, feeds documentation back                                        | Merges the specs repo, then the code root, runs `AIDE_INSTALL_CMD`, then asks origin |
 
 Other steps exist — `explore`, `manifest`, `schedule`, `reopen`, `close` — but they are not phases: none of
-them appears in the workflow arc, and none moves the spec along it.
+them appears in the workflow arc. `close` and `reopen` do move a spec between STATES, which is why they have rows
+in the transition table and lines on a spec's row once they have run; they simply do not move it along the arc.
 
 ## What "has had a phase" means
 
@@ -85,15 +100,17 @@ with an `errorReason`); the spec's own record is unchanged by it.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> created: create lands, job renamed to the folder
-    created --> analyzed: analyze completes and lands
-    analyzed --> implemented: implement completes — code stays on its branch
-    implemented --> archived: archive moves the folder and lands every repo
-    archived --> created: reopen (a new work round)
-    created --> closed: close says the spec will not work
-    analyzed --> closed: close says the spec will not work
-    implemented --> closed: close says the spec will not work
-    closed --> created: reopen (a new work round)
+    [*] --> created: create
+    created --> analyzed: analyze
+    analyzed --> analyzed: analyze again
+    analyzed --> implemented: implement
+    implemented --> implemented: implement again
+    implemented --> archived: archive
+    archived --> created: reopen
+    created --> closed: close
+    analyzed --> closed: close
+    implemented --> closed: close
+    closed --> created: reopen
 ```
 
 **Into `create`.** `POST /api/queue/create` queues a job whose first step is `create`, followed by whatever else
@@ -221,7 +238,7 @@ queue step the dashboard presses, never a step the runner decides on its own.
   It deletes the branch the earlier round left behind in both modes.
   - **Keep (the default, also a bare `steps=reopen`).** `core/scripts/aide-reopen-spec` moves the folder out of
     `archive/` and runs no model. `0-README.md` to `3-solution.md` are untouched; in `4-status.md` `archive` leaves the
-    `Workflow steps completed:` line and a `**Round boundary:**` stamp is appended. The spec ends in the phase its files
+    `Workflow steps completed:` line and a `**Round boundary:**` stamp is appended. The spec ends in the state its files
     show (`implemented` for a spec that was implemented), not in `created`, and it takes the round described above: it
     is read as reopened while its last `**Archived:**` or `**Closed:**` stamp is followed by a `**Round boundary:**`
     stamp with no `**Reopened:**` or `**Reset:**` mark between (`reopenedRound`, `held-back.ts`). Analyze and Implement
@@ -234,7 +251,7 @@ queue step the dashboard presses, never a step the runner decides on its own.
     `completed_steps_for` counts from: runner commits before it are the old round's and no longer put a step on the
     line. It drops the spec's recorded phase choice too: those ticks belonged to the round just discarded.
 
-  A stamp with a later `**Round boundary:**`, `**Reopened:**` or `**Reset:**` mark after it is history: the phase
+  A stamp with a later `**Round boundary:**`, `**Reopened:**` or `**Reset:**` mark after it is history: the state
   reads `archived` or `closed` only while no such mark follows the stamp, in `spec-transitions.sh`, `spec-state.sh` and
   the dashboard's readers alike (`stampInEffect`, `discover/spec-files.ts`). A new stamp after the boundary counts.
 There was a `reset` step beside Reopen for an ACTIVE spec, with its own button and confirmation page. It is gone:
@@ -248,8 +265,9 @@ as it was.
 
 ## Closing: a different terminal move from archive
 
-`close` reaches `closed` from `created`, `analyzed` or `implemented` — any phase Archive would refuse, since Close
-carries no `not-implemented-yet`/`acceptance-criteria-unticked` gate. `core/scripts/aide-close-spec` writes a
+`close` reaches the state `closed` from `created`, `analyzed` or `implemented` — every state Archive would refuse,
+since Close carries no `not-implemented-yet`/`acceptance-criteria-unticked` gate. It is a step and not a phase: a
+closed spec has left the arc, rather than reached a stage beyond `archived`. `core/scripts/aide-close-spec` writes a
 `**Closed:** <date> — <reason>` stamp (the reason is required) and moves the folder into `archive/`, exactly as
 `aide-archive-spec` does — but its landing deletes the code root's branch instead of merging it, since Close records
 that the work will not be used, not that it was. A closed spec reads `closed`, never `archived`, everywhere a spec's
