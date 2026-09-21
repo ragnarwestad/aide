@@ -24,12 +24,13 @@ through a variable, and a control has one class wherever it appears — never a 
 
 ## Tokens
 
-The stylesheet is seventeen real `.css` files under `src/render/ui/css/`, which `index.ts` reads and joins into the
-one string inlined into every page. `tokens.css` declares every colour, type size, space and radius ONCE, as CSS
+The stylesheet is the seventeen `.css` files `src/render/ui/css/index.ts` lists in `SECTIONS`, read and joined in
+that order into the one string inlined into every page. `tokens.css` declares every colour, type size, space and radius ONCE, as CSS
 custom properties, between the `tokens:start` and `tokens:end` sentinels. There are four such blocks: `:root`, the
 same ramp read from the other end inside `@media (prefers-color-scheme: dark)`, and one each for
 `:root[data-theme="dark"]` and `:root[data-theme="light"]`. Every rule in the other sixteen files uses `var(--…)`;
-none of them may contain a literal.
+none of them may contain a literal. The full set — and the type and space scales a font size or a gap has to come
+from — is `tokens.css` itself; the names below are the ones a reader of the palette needs first.
 
 The palette is the brand's: warm neutrals (paper `--bg`, card
 `--surface`, ink `--text`), vermilion `--accent`, a muted blue `--link` for every link (the accent is for action and
@@ -38,14 +39,15 @@ the mark rather than to a shade of the accent — so
 "running" and "refused" never rest on hue alone. The refused badge is also the only live one with a visible border, and
 the row that carries it carries a `.rowmsg.failed` with its own mark beside the reason.
 
-A row, job-page or project-page message is one of three kinds, decided by the producer and never by `rowMessage()`'s
-caller reading a colour off a hunch: `info` ("what does the reader have to do?" — nothing), `waiting` (something waits
+A row, job-page or project-page message is one of three kinds. The code that knows what happened picks the kind and
+passes it in; nothing passes a colour or an icon: `info` ("what does the reader have to do?" — nothing), `waiting` (something waits
 on a user or on time; nothing is broken), and `failed` (a step, a landing or a request failed and a user has to
-act). `rowMessage()` alone turns a kind into a colour and an icon — never at the call site.
+act). `rowMessage()` and `rowMessageParts()` turn a kind into a colour and an icon — never at the call site.
 
 ## Components
 
-`src/render/ui/components/index.ts` is the one place markup for them is built:
+`src/render/ui/components/index.ts` builds the markup for every one of these but `.iconlink`, which is a class a
+caller puts on its own link:
 
 | Component             | Variants                                                                                                                              |
 |-----------------------|---------------------------------------------------------------------------------------------------------------------------------------|
@@ -81,7 +83,7 @@ or a `specs-client` file emits that is not one of the components, one of the two
 hooks (`rowrun`, `actionform`, `refused` and the rest), or one of the short list of structural names it writes out in
 full. `css-guard-layout.test.ts` and `css-guard-select.test.ts` hold the layout rules and the select control.
 
-So a spec that wants a look it cannot build from the tokens has to change the TOKENS — visibly, in one block — rather
+So a spec that wants a look it cannot build from the tokens has to change the TOKENS — visibly, in `tokens.css` — rather
 than add a colour beside them.
 
 **What these guards do not answer is whether the layout holds.** They read the stylesheet as text: that a rule exists,
@@ -220,7 +222,8 @@ English fallback for the two of those that are not required to cover every langu
 1. **The UI-string catalogue** (`shell.theme`, `list.search`, and the couple of hundred other keys `en.ts` types):
    add a `<lang>.ts` file shaped `Record<TranslationKey, string>` (the same shape `nb.ts`/`es.ts`/`de.ts`/`fr.ts`
    already are) and register it in `translations.ts`'s `translations` object and `LANGUAGES` list. A key
-   missing from the new file fails `tsc`, the same way an incomplete `nb.ts` already does.
+   missing from the new file fails `tsc`, the same way an incomplete `nb.ts` already does — and the same way a new
+   string does: a key added to `en.ts` fails `tsc` until the other four catalogues have it too.
 2. **The board-message catalogue** (`src/i18n/messages.ts`'s `MESSAGES`, the runner/landing/tab sentences):
    add the new language's field to the `MessageEntry` interface and then to every one of its entries. This is
    a different shape from step 1 — an interface change plus per-entry content, not a new file — because
