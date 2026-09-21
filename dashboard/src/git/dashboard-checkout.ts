@@ -310,7 +310,7 @@ export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest
     if (!req.mayClone) {
       return {
         ok: false,
-        error: `${code} is not there, and the dashboard clones only when a project is added or its specs root is saved`,
+        error: `${code} is not there, and the dashboard clones only when a project is added, or its settings are saved on its own page`,
         cloned: false,
         // Readable without it, or not at all: a project whose own entry
         // is there is one every reader falls back to, and one whose
@@ -404,7 +404,7 @@ export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest
         if (!req.mayClone) {
           return {
             ok: false,
-            error: `${specsRepo} is not there, and the dashboard clones only when a project is added or its specs root is saved`,
+            error: `${specsRepo} is not there, and the dashboard clones only when a project is added, or its settings are saved on its own page`,
             cloned,
             absent: existsSync(personSpecs),
           };

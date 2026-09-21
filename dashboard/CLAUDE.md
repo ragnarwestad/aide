@@ -246,7 +246,7 @@ unticked` gates: Close is legal from every phase Archive would refuse.
 
 ## Code health
 
-The dashboard's own source keeps five limits, checked by
+The dashboard's own source keeps these limits, checked by
 `test/design/code-health-limits.test.ts`:
 
 - A source file under `src/` stays at or under 500 lines. `messages.ts`,
@@ -267,6 +267,11 @@ The dashboard's own source keeps five limits, checked by
   module, holding an `index.ts` — never a file sitting beside a
   directory of the same name. `src/render/pages/spec-page/index.ts`,
   not `spec-page.ts` next to `spec-page/`.
+
+- No `<name>-e` twin sits beside a file under `src/` or `test/`. macOS
+  `sed -i -e ...` reads `-e` as the backup suffix and leaves the original
+  under that name; the copy still parses, so nothing fails and nothing
+  says so.
 
 A file nearing a limit is split by responsibility, not by size — pull
 out the part that has its own name, not an arbitrary half. New

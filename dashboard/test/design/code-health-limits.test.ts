@@ -7,6 +7,16 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, join } from "node:path";
 
+/** Every file under `dir`, whatever its extension — `tsFilesUnder` below
+ *  sees only `.ts`, and what this guard looks for is the file nobody
+ *  meant to add. */
+function allFilesUnder(dir: string): string[] {
+  return readdirSync(dir).flatMap((name) => {
+    const full = join(dir, name);
+    return statSync(full).isDirectory() ? allFilesUnder(full) : [full];
+  });
+}
+
 function tsFilesUnder(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
     const full = join(dir, name);
@@ -114,6 +124,20 @@ describe("dashboard code health (spec 443)", () => {
       (name) => !srcTopLevel.has(name) && !TEST_ONLY_TOP_LEVEL_DIRS.includes(name),
     );
     expect(bad).toEqual([]);
+  });
+
+  // `sed -i -e ...` on macOS reads `-e` as the backup SUFFIX, so it
+  // writes the original alongside as `<name>-e` and edits in place. The
+  // twin is a working copy of a real file, so nothing breaks and nothing
+  // says so: `narrow.css-e` sat in git for weeks, an older copy of
+  // `narrow.css` that no `SECTIONS` list loaded and no reader opened.
+  test("no sed backup twin is left beside a file under src or test", () => {
+    const files = [...allFilesUnder(SRC), ...allFilesUnder(TEST)];
+    const twins = files.filter((file) => {
+      if (!file.endsWith("-e")) return false;
+      return existsSync(file.slice(0, -"-e".length));
+    });
+    expect(twins.map(relPath)).toEqual([]);
   });
 
   test("no source file under src shares its base name with a sibling directory (spec 450)", () => {
