@@ -142,6 +142,27 @@ def test_push_pr_opens_a_pull_request_and_reports_its_url(
     assert out["prUrl"] == "https://github.com/example/aide/pull/7"
     assert out.get("prError") is None
 
+def test_no_pull_request_is_opened_for_a_branch_with_nothing_in_it(
+    runner, workspace, fake_claude, fake_gh, origin
+):
+    """An `analyze` changes the specs repo and nothing else, so the
+    project's own branch holds nothing to review — `gh` refuses such a
+    branch with "No commits between main and ...", and every create and
+    every analyze in a `pr` project ended with the row saying no pull
+    request could be opened. A refusal about work that does not exist.
+
+    The push already answers this per root; nothing is asked twice."""
+    claude = specs_only_claude(fake_claude, workspace)
+    gh = fake_gh()
+
+    rc, out, _ = run_with_gh(runner, workspace, claude, gh, push="pr", command="analyze")
+
+    assert rc == 0, out
+    assert not fake_gh.calls.exists(), "nothing to open a pull request for"
+    assert out.get("prError") is None, "and nothing to report about it either"
+    assert out.get("prUrl") is None
+
+
 def test_a_broken_gh_never_fails_a_finished_run(runner, workspace, fake_claude, fake_gh, origin):
     """`gh` on the mini needs an interactive re-auth only the user can
     do. A run whose work succeeded must not be reported as failed

@@ -389,6 +389,15 @@ if [ "$push_mode" = "pr" ]; then
     pr_error="cannot find the gh binary (set AIDE_GH_BIN, or run gh auth login)"
   elif [ -n "$push_error" ]; then
     pr_error="no pull request: the branch was not pushed"
+  elif ! jq -e --arg root "$project_root" 'any(.[]; .root == $root)' <<<"$branch_urls_json" >/dev/null 2>&1; then
+    # Nothing was pushed for the project's own repo, so its branch holds
+    # nothing to review and `gh` refuses with "No commits between main
+    # and <branch>". A create or an analyze changes the specs repo
+    # alone, and every one of them ended with the row saying no pull
+    # request could be opened — a refusal about work that does not
+    # exist. The push already decided this, per root, and
+    # `$branch_urls_json` is its answer: no entry, nothing pushed.
+    :
   else
     if pr_out="$(cd "$project_wt" && "$gh_bin" pr create \
         --base "$(default_branch "$project_root")" --head "$branch" \
