@@ -113,6 +113,17 @@ select[name^="model."] {
    DEFAULT a reader with JS off, or a failed bundle, gets. Once mounted,
    the roles swap: the rich editor shows, and the raw textarea (still
    the field the form actually submits) steps out of view. */
+/* A field never makes the page wider than the page. A flex item's own
+   `min-width: auto` lets its content decide instead, and the markdown
+   editor's toolbar is 713 px of buttons: a spec page's Description tab
+   went out to 731 px on a 375 px screen and scrolled sideways. Told the
+   room it has, the editor collapses the rest of the toolbar into its own
+   "…" menu — its own behaviour, which it never got to use.
+
+   The library's own elements are not named here: their styling comes with
+   the editor's script (AC-9, spec 472), and the mount around them is
+   enough to tell them the width. */
+.frow, .field, .spec-editor-mount { min-width: 0; max-width: 100%; }
 .spec-editor-mount { display: none; }
 .spec-editor-mount[data-mounted] { display: block; }
 .spec-editor-mount[data-mounted] + .spec-editor-raw { display: none; }
