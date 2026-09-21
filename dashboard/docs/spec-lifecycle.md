@@ -1,7 +1,7 @@
 # A spec's lifecycle
 
-The one place the SPEC's progression is written down: what moves a spec forward, who records that it moved, and
-what has to be true for the move to count. This is the level above [A job's states](job-states.md): a job is one
+A spec moves through four phases. This page says what moves it from one to the next, who records that it moved,
+and what has to be true for the move to count. This is the level above [A job's states](job-states.md): a job is one
 run of one or more steps, and its `queued`/`running`/`done` says nothing about how far the spec has got.
 
 **Three words, and they are not the same.**

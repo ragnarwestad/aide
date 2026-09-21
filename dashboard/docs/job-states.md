@@ -1,7 +1,7 @@
 # A job's states
 
-The one place the queue's state machine is written down: what a job's `state` can be, which piece of code moves it
-and when, and the fields beside it that behave like a state without being one.
+A job carries a `state`, and only the queue's own state machine moves it. This page says what that state can be,
+which piece of code moves it and when, and which fields beside it behave like a state without being one.
 
 The code is `JOB_STATES` and `TRANSITIONS` in `src/queue/steps.ts`. Nothing writes `state` directly — every caller
 goes through the one `QueueStore.transition()` in `src/queue/store/index.ts`: the runner
