@@ -319,7 +319,7 @@ describe("spec 132: the State line says what is happening, or what is next", () 
     );
   const chip = (html: string) => {
     const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
-    const state = (head.split("<td")[2] ?? "").replace(/<span class="dot"[^>]*><\/span>/g, "");
+    const state = head.split("<td")[2] ?? "";
     return state.match(/<span class="badge b-[a-z]+"[^>]*>([^<]*)<\/span>/)?.[1] ?? "";
   };
   const chipTitle = (html: string) => {

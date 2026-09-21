@@ -172,15 +172,4 @@ describe("spec 109: an expanded row reveals its controls below the header line",
     const { CSS } = await import("../../../../../src/render/ui/css");
     expect(CSS.match(/\n\.row \{[^}]*\}/)![0]).toContain("flex-wrap: wrap");
   });
-
-  // `.row` on its own is block-level `flex`, which would put the
-  // rarely-set fields on a line directly UNDER the run form — the
-  // two-line shape spec 117 exists to remove, rebuilt in CSS. They
-  // have to sit BESIDE it, which is what `inline-flex` buys.
-  test("the rarely-set fields sit beside the run form, not under it (spec 117)", async () => {
-    const { CSS } = await import("../../../../../src/render/ui/css");
-    const rule = CSS.match(/\n\.extra \{[^}]*\}/)![0];
-    expect(rule).toContain("display: inline-flex");
-    expect(rule).toContain("font-size: var(--fs-s)");
-  });
 });

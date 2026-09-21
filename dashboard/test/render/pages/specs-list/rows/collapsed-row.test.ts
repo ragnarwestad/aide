@@ -137,7 +137,6 @@ describe("spec 103: a collapsed row shows status only", () => {
           "103-busy-branch",
         ),
       );
-      expect(cell).not.toContain("mergeform");
       expect(cell).not.toContain("/merge");
       // Cancel and only Cancel, as on the open row — three buttons now
       // (spec 423): Cancel itself, plus the confirmation's OK and

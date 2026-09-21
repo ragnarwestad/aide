@@ -37,7 +37,7 @@ describe("spec 391: Save/Cancel sit beside the tab's own mark, not below the fie
     const afterHidden = form.replace(/^[\s\S]*name="statusBaseSha"[^>]*>/, "");
     expect(afterHidden.trimStart().startsWith('<div class="panelhead">')).toBe(true);
     const head = panelhead(form);
-    expect(head).toContain('<p class="checkshead">');
+    expect(head).toContain('<p data-checkshead>');
     expect(head).toContain('id="specform-save"');
     expect(head).toContain('id="specform-cancel"');
     // Nothing Save/Cancel-shaped remains after the list.

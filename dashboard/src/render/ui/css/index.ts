@@ -45,7 +45,6 @@ const SECTIONS = [
   "remaining-checks.css",
   "row-message.css",
   "field.css",
-  "filter-pill.css",
   "list.css",
   "rows-and-forms.css",
   "job-page.css",

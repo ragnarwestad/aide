@@ -518,13 +518,21 @@ table.list tr.spechead:has(.fold[aria-expanded="true"]) .pipslot { display: none
    and this row already tolerates the extra width by wrapping. */
 .specsearch { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2);
   margin: var(--sp-2) 0 0; }
+/* The whole controls line keeps clear air down to the table. Retargeted
+   from `#jobrows > .row:first-child` (spec 289): the state dropdown
+   folded the old chips row into `.specsearch`. Scoped to `.specsearch`
+   itself, not `#jobrows > .specsearch` — `/schedule` uses the same
+   `.specsearch` form (`schedule-page/list.ts`) but has no `#jobrows`
+   of its own, and the ID-scoped version left it with no gap down to
+   its own table at all. */
+.specsearch:first-child { margin: var(--sp-3) 0; }
 /* Caps this line at the table's own width (spec 381, REQ-1/REQ-2), so
    New — pinned to the line's own right edge below — lands at the
    table's right edge instead of stretching to `#jobrows`'s full flex
    width. `max-width`, not `width`: this row has no scroll box of its
    own, so it must stay free to narrow further at a window too small
    even for the table. Scoped to `#jobrows` because `.specsearch` is
-   shared with `/schedule` (filter-pill.css), which has no such
+   shared with `/schedule`, which has no such
    ancestor and must render exactly as it does today. */
 /* Centred the same way as .tablewrap just above, and for the same
    reason page.css's own frame rule states (spec 325): a flex item with

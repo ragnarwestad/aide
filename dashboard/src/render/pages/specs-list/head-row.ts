@@ -70,17 +70,10 @@ export function specHeadRow(
   // being that `busy` says "not right now" and this says "not ever
   // again, without a Reopen first".
   const locked = isArchivedRow(g);
-  // Four answers, not three — and named `run-*` rather than
-  // `active`/`archived`, which `projects-page.ts` uses for the unrelated
-  // question of whether a spec folder has been archived on disk. The
-  // two used to share the words and mean different things.
-  const rowClass = locked
-    ? "run-archived"
-    : !g.lead
-      ? "run-new"
-      : inFlight(g.lead)
-        ? "run-live"
-        : "run-past";
+  // Four answers, not three: a spec that has never run, one with a job in
+  // flight, one whose last job is over, and an archived one. Written as
+  // `data-run`, a marker no stylesheet styles.
+  const runState = locked ? "archived" : !g.lead ? "new" : inFlight(g.lead) ? "live" : "past";
   // The spec name is the way IN, and since spec 150 it opens the SPEC —
   // all four of its files as they stand — rather than whichever job
   // happened to run last. Which means EVERY spec has somewhere to point:
@@ -177,7 +170,9 @@ export function specHeadRow(
     // `data-folder`, not `data-spec`: the attribute NAME would otherwise
     // end in the same "a-spec" that half the fixtures use as a folder,
     // and a test looking for a spec by name would find the markup.
-    `<tr class="spechead ${rowClass}" id="${esc(rowAnchorId(g))}" data-folder="${esc(g.specFolder)}">` +
+    // `data-run` sits BEFORE `data-folder`: about twenty test helpers read a
+    // head row by `data-folder="…">` with the `>` directly after it.
+    `<tr class="spechead" id="${esc(rowAnchorId(g))}" data-run="${runState}" data-folder="${esc(g.specFolder)}">` +
     // Two columns wide, like its heading: the second is the AI
     // column the phase lines below open up (spec 165), and this row
     // has nothing to say in it.

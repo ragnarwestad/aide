@@ -200,7 +200,7 @@ describe("spec 311: every tab carries its own (?) explaining what it shows", () 
     const statusWithRows = tabpanel(
       page(view({ checks: { rows, phase: "Acceptance criteria", baseSha: "abc" } }), "status"),
     );
-    expect(statusWithRows.match(/<p class="checkshead">[\s\S]*?<\/p>/)?.[0] ?? "").not.toContain(MARK);
+    expect(statusWithRows.match(/<p data-checkshead>[\s\S]*?<\/p>/)?.[0] ?? "").not.toContain(MARK);
     expect(statusWithRows.split(MARK).length - 1).toBe(1);
 
     // REQ-2: Logs, both states.

@@ -12,7 +12,7 @@
      spec list, and Cancel on /new. Both GO somewhere and do nothing
      else, which is what a link is for — but the page's own a-rule
      underlines on hover, and a button that grows an underline under
-     the pointer stops looking like one. .brand, .filters and .sortlink
+     the pointer stops looking like one. .brand and .sortlink
      each say the same thing for the same reason. */
   text-decoration: none; }
 .btn:hover { border-color: var(--muted); text-decoration: none; }

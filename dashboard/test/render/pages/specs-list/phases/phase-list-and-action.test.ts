@@ -332,7 +332,6 @@ describe("spec 124: one phase list, and one action beside the state", () => {
       );
       expect(`${state}: ${html.includes(">Merge</button>")}`).toBe(`${state}: false`);
       expect(`${state}: ${html.includes(">Approve</button>")}`).toBe(`${state}: false`);
-      expect(`${state}: ${html.includes("mergeform")}`).toBe(`${state}: false`);
       expect(`${state}: ${html.includes("/merge")}`).toBe(`${state}: false`);
       expect(`${state}: ${html.includes("/approve")}`).toBe(`${state}: false`);
       // "ready to merge" stops being a state the row reports: there is

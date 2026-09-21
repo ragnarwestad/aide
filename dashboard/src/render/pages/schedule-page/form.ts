@@ -126,7 +126,7 @@ export function renderScheduleForm(opts: ScheduleFormOptions, lang: Language = "
     `<form method="post" action="${esc(opts.action)}" class="scheduleform" id="${SCHEDULE_FORM_ID}" ` +
     `data-cron-preview-url="/api/queue/schedule/cron-next">` +
     (opts.fixedProject ? `<input type="hidden" name="project" value="${esc(opts.fixedProject)}">` : "") +
-    `<p class="rowmsg failed scheduleform-error" aria-live="polite">${opts.error ? esc(opts.error) : ""}</p>` +
+    `<p class="rowmsg failed" data-scheduleform-error aria-live="polite">${opts.error ? esc(opts.error) : ""}</p>` +
     `<div class="frow">` +
     (opts.projects
       ? field(
@@ -140,7 +140,7 @@ export function renderScheduleForm(opts: ScheduleFormOptions, lang: Language = "
     field(
       "Cron",
       `<input type="text" name="cron" required class="cron-input" value="${esc(e?.cron ?? "")}">` +
-        `<span class="cron-next muted" data-${CRON_NEXT_HOOK}>` +
+        `<span class="muted" data-${CRON_NEXT_HOOK}>` +
         (initialNext ? `Next run: ${esc(initialNext.toISOString())}` : "") +
         `</span>`,
     ) +

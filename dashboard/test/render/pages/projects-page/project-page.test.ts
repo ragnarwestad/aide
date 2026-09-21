@@ -198,7 +198,7 @@ describe("renderProjectPage: the Deploy tab's two headed sections (spec 441)", (
     );
     expect(html).toContain("Starts a test server from the latest main");
     expect(html).toContain("the server shows up under Test servers");
-    expect(html).toContain('class="testserverform"');
+    expect(html).toContain("data-testserverform");
     expect(html).toContain("Start test server");
   });
 
@@ -215,7 +215,7 @@ describe("renderProjectPage: the Deploy tab's two headed sections (spec 441)", (
     );
     expect(html).toContain("<h3>Test server with the test specs</h3>");
     expect(html).toContain("This project does not carry the dashboard's own source");
-    expect(html).not.toContain('class="testserverform"');
+    expect(html).not.toContain("data-testserverform");
   });
 
   // Risk analysis's own must-catch case: the button's form must NOT carry
@@ -230,9 +230,9 @@ describe("renderProjectPage: the Deploy tab's two headed sections (spec 441)", (
       NAV,
       deployTab({ testServerAvailable: true }),
     );
-    const form = html.match(/<form[^>]*class="testserverform"[^>]*>/)?.[0] ?? "";
+    const form = html.match(/<form[^>]*data-testserverform[^>]*>/)?.[0] ?? "";
     expect(form).not.toBe("");
-    expect(form).not.toMatch(/class="[^"]*\b(deployform|actionform|rowrun)\b/);
+    expect(form).not.toContain("class=");
     expect(form).toContain('target="_blank"');
   });
 

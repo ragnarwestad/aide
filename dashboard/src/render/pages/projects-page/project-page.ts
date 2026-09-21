@@ -181,7 +181,7 @@ function testServerSection(name: string, opts: ProjectPageOptions): string {
   // spaces this form's children with no CSS of its own needed.
   const button =
     `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/test-server" ` +
-    `target="_blank" class="testserverform">` +
+    `target="_blank" data-testserverform>` +
     btn({ label: t(lang, "project.testServerButton"), variant: "primary" }) +
     `</form>`;
   return heading + panel(rowMessage("info", t(lang, "project.testServerNote")) + button);

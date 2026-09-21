@@ -39,11 +39,10 @@ describe("spec 101: one line per row for what is going on and what is next (crit
   const hint = (html: string) =>
     stateCell(html).match(/<div class="muted small">([\s\S]*?)<\/div>\s*<\/td>/)?.[1] ?? "";
   /** Spec 132: the FIRST line — the badge itself. Once nothing is
-   *  running it carries the whole sentence, and `hint` above is empty.
-   *  The dot comes off first: it is the badge's live mark, not a word. */
+   *  running it carries the whole sentence, and `hint` above is empty. */
   const chip = (html: string) => {
     const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
-    const state = (head.split("<td")[2] ?? "").replace(/<span class="dot"[^>]*><\/span>/g, "");
+    const state = head.split("<td")[2] ?? "";
     return state.match(/<span class="badge b-[a-z]+"[^>]*>([^<]*)<\/span>/)?.[1] ?? "";
   };
 

@@ -248,7 +248,7 @@ export function stepResults(
   // plain text with a hover underline, not as something to press.
   const stepCell = (label: string, key: string, isOpen: boolean): string =>
     opts.tabHref
-      ? `<a class="fold steplink${isOpen ? "" : " shut"}" data-nav ` +
+      ? `<a class="fold${isOpen ? "" : " shut"}" data-nav data-steplink ` +
         `href="${opts.tabHref}&step=${isOpen ? "none" : esc(key)}" ` +
         `aria-expanded="${isOpen ? "true" : "false"}" ` +
         `title="${isOpen ? "hide" : "show"} this step's own log">${ICON_CHEVRON}</a> ${esc(label)}`

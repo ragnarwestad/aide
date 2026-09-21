@@ -1,8 +1,20 @@
 // Split out of css-token-guard.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { ROOT, RENDER_FILES } from "../css-guard-fixtures.ts";
+import {
+  CSS,
+  LOADING_CSS,
+  ROOT,
+  RENDER_FILES,
+  deadRules,
+  emittedWords,
+  isEmitted,
+  isEmittedIn,
+  selectorClasses,
+  stringTexts,
+} from "../css-guard-fixtures.ts";
 
 // --- the class vocabulary ---------------------------------------------------
 
@@ -19,7 +31,7 @@ const COMPONENTS = [
   // for the two kinds of waiting a BUTTON's `busy` does not cover — an
   // in-page row swap, and a real navigation to another document.
   "awaiting",
-  "badge", "b-idle", "b-running", "b-waiting", "b-ready", "b-refused", "b-done", "dot",
+  "badge", "b-idle", "b-running", "b-waiting", "b-ready", "b-refused", "b-done",
   "phases", "phase", "default", "checked", "done", "off", "box",
   // the picked half of the Depends-on control (spec 404): the same
   // .phases wrapper, uncapped, ahead of the scrolling remainder.
@@ -46,7 +58,6 @@ const COMPONENTS = [
   // `formdoc`: a `.doc` whose content is fields, so it takes the
   // fields' own narrower right edge.
   "formdoc",
-  "filters",
   // the WYSIWYG mount point (spec 292) and the raw textarea beside it —
   // the fallback CSS in css/field.css swaps which one is visible once
   // the client script sets data-mounted.
@@ -58,8 +69,8 @@ const COMPONENTS = [
  *  Cancel, Merge or the refusal display in a browser, with no type
  *  error to catch it. */
 const JS_HOOKS = [
-  "rowrun", "actionform", "mergeform",
-  "refused", "refusal", "newspec", "newspecform", "frow", "factions",
+  "rowrun", "actionform",
+  "refused", "refusal", "newspecform", "frow", "factions",
   // spec 112: the Projects panel — the Add form and one Remove per
   // allowlisted project.
   "addprojectform", "removeform",
@@ -68,12 +79,6 @@ const JS_HOOKS = [
   "projectsettingsform",
   // spec 258: the Deploy button on a project's own page.
   "deployform",
-  // spec 441: the Deploy tab's "Testserver med testspecene" button.
-  // Deliberately matched by no CSS rule and no JS selector — the whole
-  // point of its own class is to stay OUTSIDE `specs-client.ts`'s
-  // `ACTIONS` selector (`form.rowrun, form.actionform`), so its submit is
-  // never replaced by an XHR and `target="_blank"` still opens a new tab.
-  "testserverform",
   // spec 276: specs-client.ts selects on all three — the Enabled
   // checkbox, the Run-now form, and the create/edit form (whose own
   // `input[name="cron"]` feeds the live cron-next preview).
@@ -85,6 +90,10 @@ const JS_HOOKS = [
   // listener that opens its confirmation dialog can find it without
   // matching every `.actionform` on the page.
   "cancelform",
+  // the page-wide leave-confirmation dialog (spec 478): a `confirmdialog`
+  // shown in place of the native beforeunload prompt for an in-app link
+  // click; unsaved-changes.ts selects it by class.
+  "leaveapp",
   // the on/off switch (`switchControl()`): a track, its knob and the
   // word beside it.
   "switch", "switchtrack", "switchknob", "switchword",
@@ -101,7 +110,7 @@ const STRUCTURE = [
   "pagehead", "stamp", "brand", "mark", "mark-l", "mark-d", "surface", "actionslot",
   // The spec's own state drawn again inside the caption line's action
   // slot, for a phone (2026-09-10).
-  "headstate", "headtime", "current", "lbl",
+  "headstate", "headtime", "lbl",
   // The check mark beside the theme/language menus' own chosen row
   // (spec 475) — a name of its own since "check" below already means
   // two other things under this same .menupanel shape.
@@ -147,10 +156,6 @@ const STRUCTURE = [
   // (2026-08-31, the schedule row's Delete): the same `<dialog>` the
   // About box is, and the panel inside it.
   "confirmdialog", "confirmpanel",
-  // the page-wide leave-confirmation dialog (spec 478): a `confirmdialog`
-  // shown in place of the native beforeunload prompt for an in-app link
-  // click, named the way "about" names a page-wide dialog beside it.
-  "leaveapp",
   // the Deploy panel's own state sentence, button and refusal line,
   // spaced apart by this container's gap rather than a component margin
   // (spec 377, design-system.md "Spacing lives in the container").
@@ -203,7 +208,7 @@ const STRUCTURE = [
   // the state, in the page's ordinary "row" container. "tablewrap" is
   // the box a table too wide for the window scrolls inside, so the
   // PAGE never does (spec 155).
-  "row", "tabpanel", "facts", "extra",
+  "row", "tabpanel", "facts",
   // the shared "(?)" popover (spec 261's search-field help, and since
   // spec 311 every spec tab's own explanation of what it shows) — one
   // `helpPopover()` component in components.ts, not scoped to any one
@@ -214,9 +219,9 @@ const STRUCTURE = [
   // anything. "backhead" is the flex row `backLink()` draws around it
   // and the page's own <h1> when a title is given (spec 296).
   "backlink", "backhead",
-  // the Steps tab's per-row expand (spec 240): the link that opens a
-  // step's own log, and the row the log itself sits in.
-  "steplink", "steplog",
+  // the Steps tab's per-row expand (spec 240): the row a step's own log
+  // sits in.
+  "steplog",
   "tablewrap",
   // the spec list
   // "modelcell" is where a phase line's three choices sit: the AI, the
@@ -246,16 +251,8 @@ const STRUCTURE = [
   // a sentence out of a status file or a runner's refusal wraps instead
   // of running off the right edge of a cell sized for a word.
   "specnotice",
-  "empty", "listnote", "fold", "shut", "sortlink", "on", "asc",
+  "empty", "fold", "shut", "sortlink", "on", "asc",
   "pipwrap", "pipletters", "pips", "pip", "now", "past", "todo", "waiting", "refused",
-  // a spec row's own state — deliberately NOT `active`/`archived`,
-  // which `site.ts` uses for the unrelated question of whether a spec
-  // folder has been archived on disk. "run-archived" is spec 221's
-  // reader row: an archived spec, on the list, with no control on it
-  // the server would refuse.
-  "run-new", "run-live", "run-past", "run-archived",
-  // and site.ts's answer to that other question
-  "spec-open", "spec-archived",
   // the project overview
   "proj-row", "error-text", "error",
   // the row's name is stretched across the whole row by an ::after
@@ -269,7 +266,7 @@ const STRUCTURE = [
   // carrying the button that ticks it. "checkbox" is that button — and
   // the same-sized span a done or archived row shows in its place, so
   // the two kinds of row line up.
-  "checks", "checkshead", "checklist", "checkphase", "check", "checktask", "checkbox",
+  "checks", "checklist", "checkphase", "check", "checktask", "checkbox",
   // spec 509: a row's second box, "Not verified", and its read-only twin.
   "unverified", "readonly", "notverified",
   // spec 510: the note field of an archived row's Failed choice.
@@ -290,9 +287,8 @@ const STRUCTURE = [
   // .specform button" locator.
   "trackingform",
   // /schedule (spec 276, reworked spec 278): the detail page's
-  // key/value overview, the create/edit form's error line, and the
-  // Cron field's input and its live "Next run" preview span.
-  "kv", "scheduleform-error", "cron-input", "cron-next",
+  // key/value overview and the Cron field's input.
+  "kv", "cron-input",
   // the Config tab's button row (spec 301): always two buttons, right-
   // aligned, with its own margin to the table below.
   "configactions",
@@ -320,6 +316,12 @@ const STRUCTURE = [
   // spec 515: the loading element the spec page's first chunk carries.
   "pageloading",
 ];
+
+/** One value of a family whose other values carry the rules: a phase
+ *  chip's base state, a pip's, and a check row's "not verified". They are
+ *  read as classes elsewhere (`.check.open`), so they stay classes and need
+ *  no rule of their own. */
+const STATE_VALUES = ["default", "todo", "notverified"];
 
 const ALLOWED = new Set([...COMPONENTS, ...JS_HOOKS, ...STRUCTURE]);
 
@@ -360,5 +362,90 @@ describe("render files use the component vocabulary and nothing else", () => {
     const source = (await Promise.all(files.map((f) => Bun.file(join(ROOT, f)).text()))).join("\n");
     const unknown = [...new Set(classesIn(source))].filter((c) => !ALLOWED.has(c));
     expect(unknown).toEqual([]);
+  });
+});
+
+// --- the list holds only what is used ---------------------------------------
+
+describe("the vocabulary lists cannot hold a name nothing uses", () => {
+  test("every name on the list is emitted by a render or specs-client file (AC-1)", () => {
+    expect([...ALLOWED].filter((n) => !isEmitted(n))).toEqual([]);
+  });
+
+  test("every name on the list has a CSS rule, is a script hook, or is a state value (AC-2)", () => {
+    const styled = selectorClasses(CSS + LOADING_CSS);
+    const bare = [...ALLOWED].filter((n) => !styled.has(n) && !JS_HOOKS.includes(n) && !STATE_VALUES.includes(n));
+    expect(bare).toEqual([]);
+  });
+
+  test("no stylesheet rule selects only classes nothing emits (AC-4)", () => {
+    expect(deadRules(CSS)).toEqual([]);
+  });
+
+  test("filter-pill.css is gone (AC-4)", () => {
+    expect(existsSync(join(ROOT, "src/render/ui/css/filter-pill.css"))).toBe(false);
+  });
+});
+
+describe("the reader of what is emitted (AC-3)", () => {
+  const emits = (name: string, ...sources: string[]) => isEmittedIn(name, emittedWords(sources));
+
+  test("a name only in a comment, an identifier, a substitution's code or a longer word is unemitted", () => {
+    expect(emits("gone", '// gone\nconst x = 1;')).toBe(false);
+    expect(emits("gone", "/* gone */ const x = 1;")).toBe(false);
+    expect(emits("gone", "const gone = 1;")).toBe(false);
+    expect(emits("gone", "const s = `${gone}`;")).toBe(false);
+    expect(emits("current", 'const s = "aria-current";')).toBe(false);
+    expect(emits("gone")).toBe(false);
+  });
+
+  test("a name in a plain string, a nested string, a template part or a b- prefix is emitted", () => {
+    expect(emits("here", 'const s = "a here b";')).toBe(true);
+    expect(emits("here", "const s = `x ${cond ? 'here' : ''}`;")).toBe(true);
+    expect(emits("here", "const s = `<p class=\"here ${x}\">`;")).toBe(true);
+    expect(emits("b-idle", 'const s = `<span class="badge b-${state}">`;')).toBe(true);
+    expect(emits("spec-open", 'const s = `<tr id="spec-${key}">`;')).toBe(false);
+  });
+
+  test("the reader reads every render and client file without throwing, and finds the known names", () => {
+    const words = emittedWords(
+      [...RENDER_FILES, ...new Bun.Glob("src/specs-client/**/*.ts").scanSync(ROOT)].map((f) =>
+        readFileSync(join(ROOT, f), "utf-8"),
+      ),
+    );
+    for (const name of ["btn", "spechead", "b-running"]) expect(isEmittedIn(name, words)).toBe(true);
+    expect(words.has("b-")).toBe(true);
+  });
+
+  test("a quote in a regex, a regex in a substitution, a // in a string and a division are read whole", () => {
+    expect(stringTexts('const a = /"/g; const b = "kept";')).toEqual(["kept"]);
+    expect(stringTexts("const a = `x ${s.replace(/`/g, '')} y`;")).toEqual(["x ", "", " y"]);
+    expect(stringTexts('const a = "http://x"; const b = "kept";')).toEqual(["http://x", "kept"]);
+    expect(stringTexts('const a = w! / 2; const b = "kept";')).toEqual(["kept"]);
+    expect(stringTexts('const a = (n) / 2 / 3; const b = "kept";')).toEqual(["kept"]);
+  });
+
+  test("a literal that never ends throws", () => {
+    expect(() => stringTexts('const a = "open')).toThrow();
+    expect(() => stringTexts("const a = `open")).toThrow();
+  });
+});
+
+describe("the dead-rule check (AC-4)", () => {
+  const live = (name: string) => name === "live" || name === "b-running";
+  const dead = (css: string) => deadRules(css, (n) => live(n) || isEmittedIn(n, new Set(["b-"])));
+
+  test("a rule whose every selector names an unemitted class is dead", () => {
+    expect(dead(".gone, .also-gone { color: red; }")).toEqual([".gone, .also-gone"]);
+    expect(dead(".a .gone { color: red; }")).toEqual([".a .gone"]);
+  });
+
+  test("one selector that matches something keeps the rule", () => {
+    expect(dead(".live, .gone { color: red; }")).toEqual([]);
+  });
+
+  test("a selector naming no class, and a b- state class, are not dead", () => {
+    expect(dead("table { color: red; } from { top: 0; } to { top: 1px; }")).toEqual([]);
+    expect(dead(".b-idle { color: red; }")).toEqual([]);
   });
 });

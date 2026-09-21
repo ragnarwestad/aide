@@ -480,6 +480,17 @@ describe("filtering a step's raw log", () => {
     expect(html).not.toContain(`href="${HREF}&step=0"`);
   });
 
+  test("the step link is marked by data-steplink, open and closed, and is no steplink class (AC-2)", () => {
+    for (const openStep of ["0", "none"]) {
+      const html = stepResults([RESULT], undefined, { tabHref: HREF, openStep });
+      const link = html.match(/<a class="fold[^"]*" data-nav[^>]*>/)?.[0] ?? "";
+      expect(link).toContain(" data-steplink ");
+      expect(link).toContain(openStep === "0" ? 'class="fold"' : 'class="fold shut"');
+      expect(html).not.toContain("steplink\"");
+      expect(html).not.toMatch(/class="[^"]*\bsteplink\b/);
+    }
+  });
+
   test("a collapsed row has no filter links at all", () => {
     const html = stepResults([RESULT], undefined, { tabHref: HREF });
 

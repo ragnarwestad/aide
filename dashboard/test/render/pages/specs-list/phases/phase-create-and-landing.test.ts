@@ -246,10 +246,9 @@ describe("spec 116: create is the first phase line", () => {
     const withCreate = rows([analyzed], [target("116-status", { done: ["create", "analyze"] })]);
     const withoutCreate = rows([analyzed], [target("116-status", { done: ["analyze"] })]);
     // Spec 132: the sentence is the badge itself once the job is at
-    // rest. The dot comes off first — it is the badge's live mark.
+    // rest.
     const said = (html: string) =>
       head(html)
-        .replace(/<span class="dot"[^>]*><\/span>/g, "")
         .match(/<span class="badge b-[a-z]+"[^>]*>([^<]*)<\/span>/)?.[1] ?? "";
     expect(said(withCreate)).toBe(said(withoutCreate));
     expect(said(withCreate)).toBe("Ready");
@@ -502,8 +501,7 @@ describe("a landing marks only the step being landed, not every finished step", 
   const badgeLabel = (html: string, step: string): string =>
     (
       html
-        .match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">[\\s\\S]*?</tr>`))?.[0]
-        ?.replace(/<span class="dot"[^>]*><\/span>/g, "") ?? ""
+        .match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">[\\s\\S]*?</tr>`))?.[0] ?? ""
     ).match(/<span class="badge b-[a-z]+"[^>]*>([^<]*)<\/span>/)?.[1] ?? "";
 
   const chained = row({

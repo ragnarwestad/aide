@@ -39,6 +39,23 @@ describe("renderScheduleForm", () => {
     expect(html).toContain("a cron expression is required");
   });
 
+  test("the error line is marked by data-scheduleform-error, not by a class (AC-2)", () => {
+    const failed = renderScheduleForm({ action: "/api/queue/schedule/aide", error: "a cron expression is required" });
+    expect(failed).toContain('<p class="rowmsg failed" data-scheduleform-error aria-live="polite">');
+    expect(failed).not.toContain("scheduleform-error\"");
+  });
+
+  test("the live-preview span is found by its data attribute alone, with no cron-next class (AC-2)", () => {
+    const html = renderScheduleForm({
+      entryName: "nightly",
+      entry: { name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md" },
+      action: "/api/queue/schedule/aide/nightly",
+    });
+    const spans = html.match(new RegExp(`<span[^>]*data-${CRON_NEXT_HOOK}[^>]*>`, "g")) ?? [];
+    expect(spans).toHaveLength(1);
+    expect(spans[0]).toBe('<span class="muted" data-cron-next>');
+  });
+
   test("a `projects` option renders a Project select with one option per project (spec 278, criterion 12)", () => {
     const html = renderScheduleForm({ action: "/api/queue/schedule", projects: ["aide", "atlasaurus"] });
     expect(html).toContain('<select name="project">');

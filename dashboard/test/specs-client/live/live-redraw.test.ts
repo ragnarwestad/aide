@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { renderSpecsRows } from "../../../src/render";
 import { durationLabel } from "../../../src/render/ui/job-state";
 import {
   harness,
@@ -346,6 +347,30 @@ describe("a redraw touches only the specs that changed (spec 204)", () => {
     expect(h.rowFor(`spec-${A}`)).toBe(head);
     expect(h.rowFor(`spec-${A}`)!.nextElementSibling).toBe(sub);
     expect(h.rowFor(`spec-${B}`)).not.toBeNull();
+  });
+
+  test("the renderer's own head rows are found and kept across an unchanged redraw (AC-5)", async () => {
+    const own = renderSpecsRows(
+      [],
+      {
+        runnerAvailable: true,
+        targets: [
+          { project: "aide", specFolder: "204-coming-back" },
+          { project: "aide", specFolder: "203-the-projects-page" },
+        ],
+      },
+      Date.parse("2026-09-21T12:00:00Z"),
+    );
+    const h = pages(own, own);
+    await settle(h);
+    const heads = h.rowIds().filter((id) => id.startsWith("spec-"));
+    expect(heads).toHaveLength(2);
+    const kept = heads.map((id) => h.rowFor(id));
+
+    h.live()!.emit("open");
+    await flush();
+
+    heads.forEach((id, i) => expect(h.rowFor(id)).toBe(kept[i]!));
   });
 
   test("a spec whose state moved IS replaced, and no other is (criterion 2)", async () => {

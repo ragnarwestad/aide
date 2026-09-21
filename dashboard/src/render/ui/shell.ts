@@ -117,10 +117,9 @@ function unitControl(lang: Language): string {
 // already a link home (`brand.ts`), so the logo IS the home button —
 // there is no second control saying the same thing.
 //
-// The menu is a native <details>, the same disclosure `.newspec` and
-// `.intro` already are: it opens with JavaScript off, and it keeps the
-// promise that a generated page carries the theme switcher and no
-// other script.
+// The menu is a native <details>, the same disclosure `.intro` already
+// is: it opens with JavaScript off, and it keeps the promise that a
+// generated page carries the theme switcher and no other script.
 /** The About prose, one source for the dialog on every page and the
  *  about.html fallback a reader without JavaScript still lands on. */
 export function aboutProse(): string {

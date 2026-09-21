@@ -74,26 +74,33 @@ describe("every token has a dark-surface value (acceptance criterion 13)", () =>
 
 // --- one name, one question ------------------------------------------------
 
-// `active` and `archived` used to be two class names meaning two
-// unrelated things: on the spec list, whether a job is in flight; on a
-// project page, whether the spec folder has been archived on disk.
-// Nothing pinned either, so nothing would have noticed them drifting
-// into each other.
-describe("the two row-state vocabularies are distinct (acceptance criterion 9)", () => {
-  test("the spec list says whether a job is in flight", () => {
-    expect(rows([], { targets: [target()] })).toContain('class="spechead run-new"');
-    expect(rows([row({ state: "running" })], { targets: [target()] })).toContain(
-      'class="spechead run-live"',
-    );
-    expect(rows([row({ state: "done" })], { targets: [target()] })).toContain(
-      'class="spechead run-past"',
-    );
+describe("the spec list says whether a job is in flight (acceptance criterion 9)", () => {
+  test("each head row carries its run state as data-run, before data-folder (AC-2)", () => {
+    const head = (html: string) => html.match(/<tr class="spechead"[^>]*>/)?.[0] ?? "";
+    expect(head(rows([], { targets: [target()] }))).toMatch(/^<tr class="spechead" id="[^"]*" data-run="new" data-folder="[^"]*">$/);
+    expect(head(rows([row({ state: "running" })], { targets: [target()] }))).toContain('data-run="live" data-folder="');
+    expect(head(rows([row({ state: "done" })], { targets: [target()] }))).toContain('data-run="past" data-folder="');
+    const archivedSpec = {
+      project: "aide",
+      folder: "191-x",
+      notLanded: false,
+      done: ["create", "analyze", "implement", "archive"],
+      models: {},
+      phaseOutcomes: {},
+    };
+    const archived = rows([], {
+      targets: [],
+      archived: ["aide/191-x"],
+      archivedSpecs: [archivedSpec],
+      filter: { state: "archived" },
+    });
+    expect(head(archived)).toContain('data-run="archived" data-folder="191-x"');
   });
 
-  // The generated project page had two spec-row classes of its own,
-  // `spec-open` and `spec-archived`, kept distinct from the queue's
-  // `active`/`archived`. That page went on 2026-08-22 and the classes
-  // with it; the queue's vocabulary is the only one left.
+  test("no run- class is written on the row (AC-2)", () => {
+    const html = rows([row({ state: "running" })], { targets: [target()] });
+    expect(html).not.toMatch(/class="[^"]*\brun-/);
+  });
 });
 
 // Spec 143: the panel a row's long message goes into is the message

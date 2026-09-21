@@ -364,7 +364,7 @@ describe("the Status tab draws the criteria, then the rest of the file (AC-1, AC
     expect(html).toMatch(/name="tick" value="[^"]*AC-2[^"]*" checked/);
     expect(html).not.toMatch(/name="tick" value="[^"]*AC-1[^"]*" checked/);
     expect(html).toContain('<span class="checknote">delivered for one case</span>');
-    const head = html.match(/<div class="panelhead"><p class="checkshead">[\s\S]*?<\/div>/)?.[0] ?? "";
+    const head = html.match(/<div class="panelhead"><p data-checkshead>[\s\S]*?<\/div>/)?.[0] ?? "";
     expect(head).toContain("Save");
     expect(head).toContain("Cancel");
   });

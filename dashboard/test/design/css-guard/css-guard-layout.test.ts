@@ -16,7 +16,7 @@ import { CSS, oneRule, rules } from "../css-guard-fixtures.ts";
 // suite would notice one creeping back.
 
 describe("the space between two controls comes from their container", () => {
-  const GAPLESS = [".mergeform", ".actionform", ".extra"];
+  const GAPLESS = [".actionform"];
 
   for (const cls of GAPLESS) {
     test(`${cls} declares no margin of its own`, () => {

@@ -304,7 +304,7 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
   // (spec 391) — one `.panelhead` div, the form's first child, so the
   // buttons sit on the same line as the mark rather than below the list.
   const panelHead = (actions = ""): string =>
-    `<div class="panelhead"><p class="checkshead"><strong>Checks</strong> ` +
+    `<div class="panelhead"><p data-checkshead><strong>Checks</strong> ` +
     `<span class="small muted">${checksSummary(open, rows.length, unverified, failed, lang)}</span></p>${actions}</div>`;
   // The boxes sit INSIDE the one form, and Save closes it — no id
   // plumbing, because there is only ever one form to belong to.

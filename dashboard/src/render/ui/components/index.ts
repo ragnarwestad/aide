@@ -5,8 +5,8 @@
 // They live in ONE file with one call site each, because the problem
 // they solve was not that the stylesheet was ugly — it was that every
 // spec added a class for its own control. `.stepbox`, `.chip`,
-// `.state`, `.pip`, `.tick`, `.branch`, `.refusal`, `.newspec`,
-// `.rowrun`, `.extra`, and a button in three versions depending on which
+// `.state`, `.pip`, `.tick`, `.branch`, `.refusal`,
+// `.rowrun`, and a button in three versions depending on which
 // form it sat in. Shared CSS classes alone would not have stopped that:
 // nothing prevents the next spec writing its own markup with its own
 // class. A function does, and a guard test

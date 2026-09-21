@@ -84,7 +84,13 @@ or an off-scale font size anywhere in the stylesheet outside the token blocks, a
 loading page's own CSS to the same rule. `css-guard-class-vocabulary.test.ts` fails it on any CSS class a render file
 or a `specs-client` file emits that is not one of the components, one of the two dozen named `specs-client` selector
 hooks (`rowrun`, `actionform`, `refused` and the rest), or one of the short list of structural names it writes out in
-full. `css-guard-layout.test.ts` and `css-guard-select.test.ts` hold the layout rules and the select control.
+full. The same file also fails on a name on those lists that no render or `specs-client` file emits, on a listed name
+that no rule selects and that is neither a script hook nor a state value, and on a stylesheet rule whose every selector
+names a class nothing emits; `filter-pill.css` may not come back. Two groups are exempt from "has a rule": the script
+hooks (`JS_HOOKS`), which a script or a browser test selects by class, and the state values `default`, `todo` and
+`notverified`, each one value of a family whose other values carry the rules. A marker that only names a role is a
+`data-*` attribute, not a class. `css-guard-layout.test.ts` and `css-guard-select.test.ts` hold the layout rules and the
+select control.
 
 So a spec that wants a look it cannot build from the tokens has to change the TOKENS — visibly, in `tokens.css` — rather
 than add a colour beside them.
@@ -114,7 +120,7 @@ the two are easy to mis-click together — and `narrow.css` sets it back to 0 at
 that pushes a control to the row's far end, as the New spec button's does, is not a gap between two controls, and
 the rule does not cover it.
 
-`test/design/css-guard/css-guard-layout.test.ts` asserts that `.mergeform`, `.actionform` and `.extra` declare no
+`test/design/css-guard/css-guard-layout.test.ts` asserts that `.actionform` declares no
 `margin`. Beside it, that file asserts the stylesheet contains no `data-controls` at all, and that `.row` keeps its
 own unscoped `align-items: center`. There used to be a row that mixed a labelled field with plain buttons and needed
 its own baseline, scoped to a `data-controls` attribute; both are gone, and the guard now keeps them gone — a guard

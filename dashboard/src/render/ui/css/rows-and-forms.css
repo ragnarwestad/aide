@@ -51,28 +51,12 @@ td form { margin: 0; display: inline-block; }
    That container wraps, which is the whole width rule the pairing
    needs — the badge and the button drop to two lines rather than
    widening a column the whole table is aligned on. */
-/* No margin on "extra" below: the space between two controls is
+/* No margin on a control below: the space between two controls is
    declared once, by the "row" that holds them (spec 120). A margin here
    would travel into every layout the form is put in next, and a
    container gap does not absorb it. "actionform" has no rule at all —
    "td form" above gives it everything it had, and the conflict form's
    rule went with the control it belonged to (spec 171). */
-/* The last thing in the State cell of an open row: "also touches" (the
-   model left for the phase lines in spec 123). Small and
-   bottom-aligned, so a labelled field and a bare checkbox share one
-   line, and quiet enough that the badge and the button beside them
-   still read first. */
-.extra { display: inline-flex; vertical-align: bottom;
-  font-size: var(--fs-s); align-items: flex-end; }
-/* A disclosure holding a form that is not about an existing spec. The
-   New-spec form wore this until spec 121 moved it to /new, where a page
-   needs nothing folded away; the Projects panel still does. */
-.newspec { margin: var(--sp-3) 0; }
-/* A summary draws its native triangle only while its computed display
-   is list-item, and .btn's inline-flex already suppresses it. The two
-   rules below are for older WebKit, which needs telling. */
-.newspec > summary { list-style: none; }
-.newspec > summary::-webkit-details-marker { display: none; }
 .newspecform, .scheduledeleteform { display: flex; gap: var(--sp-3); align-items: flex-end;
   flex-wrap: wrap; margin-top: var(--sp-3); }
 .newspecform .refused { flex-basis: 100%; }
@@ -255,8 +239,7 @@ td form { margin: 0; display: inline-block; }
 /* The base `.menu > summary` above is a bare 32px icon circle, sized for
    the header's "…" and Theme triggers, which carry no text. This
    trigger's own label ("Archived (12)") needs room a fixed circle
-   cannot give it — sized to its content instead, the same pill shape
-   `.filters` used before this dropdown replaced it. */
+   cannot give it — sized to its content instead, as a pill. */
 .menu.state > summary { width: auto; height: auto; border-radius: 999px;
   padding: 3px 9px; gap: var(--sp-1); font-size: var(--fs-s); color: var(--muted);
   background: var(--surface); border: 1px solid var(--line-strong); }
