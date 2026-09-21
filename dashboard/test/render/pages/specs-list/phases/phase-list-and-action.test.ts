@@ -184,14 +184,14 @@ describe("spec 124: one phase list, and one action beside the state", () => {
   });
 
   // The other half of the same distinction every date cell on this page
-  // draws: nothing has ASKED git yet is "checking…", not a dash.
+  // draws: nothing has ASKED git yet is "Checking…", not a dash.
   test("a spec nothing has asked git about yet shows checking…, not a dash", () => {
     const html = rows([], [target("124-stack", { createdAt: undefined, createdAtChecking: true })]);
     const spechead = head(html, "124-stack");
     const cell = spechead.slice(spechead.indexOf('data-col="created"'));
     const cellBody = cell.slice(0, cell.indexOf("</td>"));
-    expect(cellBody).toContain("checking…");
-    expect(cellBody).toContain('<span class="checking" title="checking…">');
+    expect(cellBody).toContain("Checking…");
+    expect(cellBody).toContain('<span class="checking" title="Checking…">');
     expect(cellBody).not.toContain("&lt;span class=&quot;checking&quot;");
   });
 

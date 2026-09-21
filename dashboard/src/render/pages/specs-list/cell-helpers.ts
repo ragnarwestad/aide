@@ -17,6 +17,7 @@ import {
   type RestingState,
 } from "../../ui/job-state";
 import { isArchivedRow, phaseDuration, type Phase, type SpecGroup } from "./data-model";
+import { capitalizeFirst } from "../../../format/error-sentence.ts";
 
 // The two cells the header line and the phase lines fill the same way.
 // A spec's state and a phase's state are the same question asked at two
@@ -261,7 +262,7 @@ export function createdCell(
 ): string {
   if (createdAt) return esc(createdAt.slice(0, 10));
   if (checking) return CHECKING;
-  return finished ? t(lang, "list.createdNotRegistered") : "–";
+  return finished ? capitalizeFirst(t(lang, "list.createdNotRegistered")) : "–";
 }
 
 /** What the "not landed" mark says on hover, age included (spec 208).

@@ -5,6 +5,7 @@ import type { Job } from "../../../queue/types.ts";
 import { durationLabel } from "../../ui/job-state";
 import { rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
+import { capitalizeFirst } from "../../../format/error-sentence.ts";
 
 export interface ScheduleHistoryRow {
   job: Job;
@@ -17,9 +18,9 @@ function row(r: ScheduleHistoryRow): string {
   const duration = r.job.finishedAt
     ? durationLabel(Date.parse(r.job.finishedAt) - Date.parse(started))
     : `<span class="muted">–</span>`;
-  const output = r.outputHref ? `<a href="${esc(r.outputHref)}">output</a>` : `<span class="muted">–</span>`;
+  const output = r.outputHref ? `<a href="${esc(r.outputHref)}">Output</a>` : `<span class="muted">–</span>`;
   return (
-    `<tr><td>${esc(started)}</td><td>${esc(r.job.state)}</td>` +
+    `<tr><td>${esc(started)}</td><td>${esc(capitalizeFirst(r.job.state))}</td>` +
     `<td>${duration}</td><td>${output}</td></tr>`
   );
 }

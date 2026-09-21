@@ -26,6 +26,7 @@ import {
   type SpecGroup,
 } from "./data-model";
 import type { SpecsPageOptions } from "./";
+import { capitalizeFirst } from "../../../format/error-sentence.ts";
 
 // Links, not script: the filter lives in the URL, so it survives a
 // reload, can be shared, and works with JavaScript switched off. The
@@ -207,7 +208,7 @@ function searchForm(f: SpecsFilter, opts: SpecsPageOptions, state: string, lang:
     `<span class="searchfield">` +
     `<span class="icon-search" aria-hidden="true">${ICON_SEARCH}</span>` +
     `<input class="archive-q" type="search" name="q" value="${esc(q)}" ` +
-    `placeholder="${t(lang, "list.searchPlaceholder")}" aria-label="${t(lang, "list.searchAriaLabel")}">` +
+    `placeholder="${capitalizeFirst(t(lang, "list.searchPlaceholder"))}" aria-label="${t(lang, "list.searchAriaLabel")}">` +
     (q
       ? `<a class="searchclear" data-nav href="${queueHref(f, { q: "" })}" ` +
         `title="${clearLabel}" aria-label="${clearLabel}">&times;</a>`

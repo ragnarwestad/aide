@@ -13,9 +13,9 @@ const group = (over: Partial<SpecGroup>): SpecGroup =>
 const byCreated = (dir: "asc" | "desc"): SpecsFilter => ({ sort: "created", dir }) as SpecsFilter;
 
 describe("an archived spec without a creation date", () => {
-  test("reads 'not registered', in the reader's language, never the dash", () => {
-    expect(createdCell(undefined, false, true, "en")).toBe("not registered");
-    expect(createdCell(undefined, false, true, "nb")).toBe("ikke registrert");
+  test("reads 'Not registered', in the reader's language, never the dash", () => {
+    expect(createdCell(undefined, false, true, "en")).toBe("Not registered");
+    expect(createdCell(undefined, false, true, "nb")).toBe("Ikke registrert");
   });
 
   test("a live spec without one keeps the dash, and a dated one its date", () => {

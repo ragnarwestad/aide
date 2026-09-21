@@ -13,6 +13,7 @@ import { t, type Language } from "../../../i18n";
 import { CLOSE_SENTENCE } from "./close-page.ts";
 import { specPagePath } from "./tabs.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
+import { capitalizeFirst } from "../../../format/error-sentence.ts";
 
 /** The two whole-spec facts that sit above the tabs (spec 394): what the
  *  spec depends on, and whether it requires acceptance ticking. Neither
@@ -40,7 +41,7 @@ export function trackingControl(view: SpecPageView, lang: Language = "en"): stri
     const dep = folders.length ? fact(t(lang, "newSpec.dependsOn"), folders.map((f) => esc(f)).join(", ")) : "";
     return (
       dep +
-      fact(t(lang, "spec.acceptance"), view.acceptanceNotRequired ? t(lang, "spec.acceptanceNotRequired") : t(lang, "spec.acceptanceRequired"))
+      fact(t(lang, "spec.acceptance"), capitalizeFirst(view.acceptanceNotRequired ? t(lang, "spec.acceptanceNotRequired") : t(lang, "spec.acceptanceRequired")))
     );
   }
   const acceptanceLocked = view.done?.includes("analyze") ?? false;
@@ -363,7 +364,7 @@ export function pdfControl(view: SpecPageView): string {
   // Trimmed from "...in a new tab" (spec 454): the design guard caps a
   // title attribute at a few words, and the link's own target attribute
   // already says where it opens.
-  const what = "open this spec as a PDF";
+  const what = "Open this spec as a PDF";
   if (view.pdfUnavailableReason) {
     return (
       `<span class="iconlink" aria-disabled="true" aria-label="${esc(what)}">${ICON_PDF}</span>` +
@@ -466,5 +467,5 @@ export function actionsHelp(view: SpecPageView): string {
     sentences.push(`Close can't run right now because ${view.closeUnavailableReason}.`);
   }
   sentences.push("Update pulls the specs repository and shows what it says now.");
-  return helpPopover("what these buttons do", esc(sentences.join(" ")));
+  return helpPopover("What these buttons do", esc(sentences.join(" ")));
 }

@@ -10,6 +10,7 @@ import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { modelFlag } from "./model-flag.ts";
 import { deleteSchedulePath, schedulePagePath } from "./tabs.ts";
+import { capitalizeFirst } from "../../../format/error-sentence.ts";
 
 export interface SchedulePageRow {
   project: string;
@@ -94,7 +95,7 @@ export interface ScheduleListOptions {
 
 function row(r: SchedulePageRow, now: Date, o: Pick<ScheduleListOptions, "modelNames" | "lang">): string {
   const next = nextFireTime(r.entry.cron, now);
-  const state = r.lastState ?? "never run";
+  const state = capitalizeFirst(r.lastState ?? "never run");
   const output = r.outputHref ? ` — <a href="${esc(r.outputHref)}">output</a>` : "";
   const toggleUrl = `/api/queue/schedule/${encodeURIComponent(r.project)}/${encodeURIComponent(r.entry.name)}/enabled`;
   const runUrl = `/api/queue/schedule/${encodeURIComponent(r.project)}/${encodeURIComponent(r.entry.name)}/run`;
@@ -178,7 +179,7 @@ function searchForm(f: ScheduleFilter): string {
     `<span class="searchfield">` +
     `<span class="icon-search" aria-hidden="true">${ICON_SEARCH}</span>` +
     `<input class="archive-q" type="search" name="q" value="${esc(q)}" ` +
-    `placeholder="a project, a name or a prompt path" aria-label="Search the schedule">` +
+    `placeholder="A project, a name or a prompt path" aria-label="Search the schedule">` +
     (q
       ? `<a class="searchclear" href="${scheduleHref(f, { q: "" })}" ` +
         `title="Clear the search" aria-label="Clear the search">&times;</a>`

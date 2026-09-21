@@ -102,4 +102,4 @@ export const ICON_THEME_AUTO =
  *  word survives inside, visually hidden, for screen readers — and for
  *  every test that asks whether a cell is still checking. */
 export const CHECKING =
-  '<span class="checking" title="checking…"><span class="sr">checking…</span></span>';
+  '<span class="checking" title="Checking…"><span class="sr">Checking…</span></span>';

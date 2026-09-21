@@ -22,7 +22,7 @@ const page = (opts: Partial<SpecsPageOptions> = {}): string =>
 describe("the Specs list in Norwegian (spec 350)", () => {
   test("the filter bar: search placeholder, New-spec link, column heading", () => {
     const html = page({ lang: "nb", createProjects: ["aide"] });
-    expect(html).toContain('placeholder="et ord i ett av tre felt"');
+    expect(html).toContain('placeholder="Et ord i ett av tre felt"');
     expect(html).toContain(">Ny<");
     expect(html).toContain(">Spesifikasjon<");
     expect(html).not.toContain('placeholder="a word in any of three fields"');

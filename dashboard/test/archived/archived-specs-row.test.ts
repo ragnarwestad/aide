@@ -152,7 +152,7 @@ describe("an archived spec's row", () => {
     const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), UNDATED);
     expect(row).not.toContain("date unknown");
     const cell = row.slice(row.indexOf('data-col="created"'));
-    expect(cell.slice(0, cell.indexOf("</td>"))).toContain("not registered");
+    expect(cell.slice(0, cell.indexOf("</td>"))).toContain("Not registered");
   });
 
   test("carries what the spec cost in time, when its archive recorded one", async () => {
@@ -272,6 +272,6 @@ describe("an archived spec's row", () => {
   test("says not registered when the rename-aware lookup cannot date it (REQ-5)", async () => {
     const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), UNDATED);
     const createdCell = row.slice(row.indexOf('data-col="created"'));
-    expect(createdCell.slice(0, createdCell.indexOf("</td>"))).toContain("not registered");
+    expect(createdCell.slice(0, createdCell.indexOf("</td>"))).toContain("Not registered");
   });
 });

@@ -67,10 +67,10 @@ describe("no render path runs git or a network command (spec 208)", () => {
     expect(git.calls.length).toBe(before);
     // Not a false "nothing has run": the row says the answer is not in
     // yet. This is the shape spec 178's own plan review flagged.
-    expect(html).toContain("checking…");
+    expect(html).toContain("Checking…");
     const rows = await (await get(base, "/?rows=1")).text();
     expect(git.calls.length).toBe(before);
-    expect(rows).toContain("checking…");
+    expect(rows).toContain("Checking…");
   });
 
   // Criterion 6.
@@ -87,7 +87,7 @@ describe("no render path runs git or a network command (spec 208)", () => {
     const before = git.calls.length;
     const html = await (await get(base, "/")).text();
     expect(git.calls.length).toBe(before);
-    expect(html).not.toContain("checking…");
+    expect(html).not.toContain("Checking…");
   });
 
   // Criterion 8. It asked `/archive` until spec 221 retired that page;
@@ -107,7 +107,7 @@ describe("no render path runs git or a network command (spec 208)", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(git.calls.length).toBe(before);
-    expect(html).toContain("checking…");
+    expect(html).toContain("Checking…");
   });
 
   // Criterion 9: the dashboard's own clone (spec 205) is started at
@@ -148,7 +148,7 @@ describe("no render path runs git or a network command (spec 208)", () => {
     const first = await (await get(base, "/specs/aide/81-queue-and-runner?tab=analysis")).text();
     // The stamps are not known yet, and the page says so rather than
     // holding for four `git log`s.
-    expect(first).toContain("checking…");
+    expect(first).toContain("Checking…");
     expect(first).not.toContain("deadbee");
     // The fire-and-forget fill did run — it was simply never awaited.
     expect(await until(() => git.calls.length > before)).toBe(true);

@@ -20,7 +20,7 @@ const ALLOWED_TITLES: (string | RegExp)[] = [
   "cannot run yet — see the project's page", // projects-page warning icon
   "Clear the search", // schedule-page/list.ts search-clear ×
   /^\$\{clearLabel\}$/, // specs-list filter-bar.ts search-clear ×
-  "checking…", // icons.ts CHECKING mark
+  "Checking…", // icons.ts CHECKING mark
   "already done", // phaseChip()'s own done tick
   /^\$\{theme\}$/, // shell.ts theme menu trigger
   /^\$\{langLabel\}$/, // shell.ts language menu trigger

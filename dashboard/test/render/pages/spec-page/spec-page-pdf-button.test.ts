@@ -19,7 +19,7 @@ describe("spec 358: the PDF button", () => {
 
   // Spec 454: trimmed to fit the design guard's word limit for a
   // `title=` — the icon still opens the spec in a new tab, unchanged.
-  const ARIA_LABEL = 'aria-label="open this spec as a PDF"';
+  const ARIA_LABEL = 'aria-label="Open this spec as a PDF"';
 
   test("it sits at the end of the title line, not in the actions row", () => {
     const html = withPdf({ closeAction: "/close-confirm" });

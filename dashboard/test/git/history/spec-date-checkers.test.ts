@@ -145,7 +145,7 @@ describe("SpecCreatedAtChecker.peekCreatedAt", () => {
   });
 
   // Asked and undatable is a real answer, and a different cell from one
-  // nobody has asked yet: the first shows a dash, the second "checking…".
+  // nobody has asked yet: the first shows a dash, the second "Checking…".
   test("an undatable spec is a real, timestamped null", async () => {
     const git = fakeGit({});
     const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => 5000 });
@@ -320,7 +320,7 @@ describe("SpecFileCommitChecker", () => {
 
   // A file git cannot date still renders — a spec outside git, a file
   // never committed. Asked-and-undatable is timestamped, so the page
-  // stops saying "checking…" about it.
+  // stops saying "Checking…" about it.
   test("an undatable file is a real, timestamped null", async () => {
     const git = fakeGit({});
     const checker = new SpecFileCommitChecker({ run: git.run, ttlMs: 30_000, now: () => 5000 });

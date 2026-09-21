@@ -23,7 +23,7 @@ describe("the tracking banner, in Norwegian (spec 482)", () => {
     );
     expect(html).toContain("<strong>Avhenger av</strong>");
     expect(html).toContain("<strong>Akseptanse</strong>");
-    expect(html).toContain("kreves");
+    expect(html).toContain("Kreves");
     expect(html).not.toContain("<strong>Depends on</strong>");
     expect(html).not.toContain("<strong>Acceptance</strong>");
   });
@@ -150,6 +150,6 @@ describe("spec 394: the banner's combined tracking control", () => {
     const html = page(view({ archived: true, dependsOn: ["80-earlier"], acceptanceNotRequired: true }));
     expect(html).not.toContain('action="/api/queue/specs/aide/150-one-page-shows-the-whole-spec/tracking"');
     expect(html).toContain("80-earlier");
-    expect(html).toContain("not required");
+    expect(html).toContain("Not required");
   });
 });
