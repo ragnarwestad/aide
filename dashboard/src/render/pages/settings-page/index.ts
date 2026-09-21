@@ -194,7 +194,9 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
     : current === "notifications"
       ? notificationsPanel(opts.pushPublicKey, opts.lang ?? "en")
       : toolPanel(current as CheckableTool, opts.checks?.[current as CheckableTool]);
-  const body = `<main>${back}${bar}${panel}</main>`;
+  // `pageShell` wraps the body in `<main>`: a second one inside it takes
+  // the frame's padding twice.
+  const body = `${back}${bar}${panel}`;
   return pageShell("Settings", entries, SETTINGS_ROUTE, body, generatedAt, undefined, {
     script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,
   });

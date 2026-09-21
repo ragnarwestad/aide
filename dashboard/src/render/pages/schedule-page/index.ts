@@ -41,7 +41,9 @@ export interface SchedulePageOptions {
 }
 
 export function renderSchedulePage(nav: NavEntry[], generatedAt: string, opts: SchedulePageOptions): string {
-  const body = `<main>${renderScheduleList(opts)}</main>`;
+  // `pageShell` wraps the body in `<main>`: a second one inside it takes
+  // the frame's padding twice.
+  const body = renderScheduleList(opts);
   // "Jobs", not "Schedule" — the nav tab beside this page already says
   // "Schedule"; repeating it as a visible page heading read as the same
   // word twice in a row, so the heading is hidden and "Jobs" survives
