@@ -13,6 +13,11 @@ import { queueHarness } from "../helpers/queue-server.ts";
 setDefaultTimeout(20_000);
 
 const KEY = "schedule-nightly-report";
+// The run has to be newer than the cron's most recent fire, or the board
+// rightly reads the entry as overdue, enqueues one of its own, and the
+// page shows THAT run — which has no report. A fixed date made the test
+// pass on the day it was written and rot every day after.
+const NOW = new Date().toISOString();
 const REPORT =
   `<html><body style="background:#ff00ff;color:#00ff00"><h1>Findings</h1>` +
   `<script>document.title = "script-ran"</script><a href="https://example.com/">link</a></body></html>`;
@@ -33,7 +38,7 @@ beforeAll(async () => {
     JSON.stringify([
       {
         id: "run1", project: "aide", specFolder: KEY, steps: ["schedule"], stepIndex: 0, state: "done",
-        timeoutSec: {}, permissionMode: {}, model: {}, createdAt: "2026-09-18T03:00:00Z", startedAt: "2026-09-18T03:00:00Z",
+        timeoutSec: {}, permissionMode: {}, model: {}, createdAt: NOW, startedAt: NOW,
       },
     ]),
   );
@@ -70,11 +75,21 @@ async function frameColours(scheme: "light" | "dark"): Promise<{ frame: string[]
   };
 }
 
+const TRANSPARENT = "rgba(0, 0, 0, 0)";
+
 for (const scheme of ["light", "dark"] as const) {
   test(`the framed report uses the board's own text and background in ${scheme} mode`, async () => {
     const { frame, page: host } = await frameColours(scheme);
-    expect(frame).toEqual(host);
+    // Text: the board's own, exactly — the report's `color:#00ff00` must
+    // not win.
+    expect(frame[0]).toBe(host[0]);
+    // Background: the board's own, or none of its own, which is the same
+    // thing to look at since the board's paints through a frame that does
+    // not. The report's `background:#ff00ff` would read as itself here,
+    // which is what this holds onto.
+    expect([host[1], TRANSPARENT]).toContain(frame[1]);
     expect(frame[0]).not.toBe("rgb(0, 255, 0)");
+    expect(frame[1]).not.toBe("rgb(255, 0, 255)");
   });
 }
 
