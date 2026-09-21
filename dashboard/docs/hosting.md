@@ -25,7 +25,8 @@ Two pages sit beside this one:
 
 ## HTTPS and other devices
 
-The dashboard binds `127.0.0.1` and answers on the machine it runs on alone, at `http://127.0.0.1:8788`. HTTPS, and
+An installed board binds `127.0.0.1` and answers on the machine it runs on alone, at `http://127.0.0.1:8788` —
+`BIND` in the Makefile puts it there. The server's own default, with no `--bind`, is `0.0.0.0`. HTTPS, and
 reaching it from a phone or another computer, come from a proxy on the serving host that terminates TLS and forwards
 to that address; the dashboard does no certificate handling of its own. Keep `BIND` at `127.0.0.1` behind such a
 proxy, so the port is not open on the local network too. The proxy passes the client's `Host` on, which has to be one
@@ -56,7 +57,9 @@ reach the port, so a server bound to any other address — `0.0.0.0` included �
 loopback requirement "HTTPS and other devices" above already puts on the whole deploy, so a serving host that
 already binds `127.0.0.1` needs nothing further to turn this on.
 
-**The match is exact-string, not a prefix or a domain suffix.** Some proxies carry more than the bare identifier — Google
+**Nothing in the dashboard matches that header against `users` today** — the key is parsed and its shape checked,
+and the only thing the server does with it is refuse to start when it is set alongside a non-loopback bind. Were
+the match implemented, it would be exact-string, not a prefix or a domain suffix. Some proxies carry more than the bare identifier — Google
 IAP's header, for instance, prefixes it with `accounts.google.com:`. Whatever the proxy actually sends has to be the
 literal string listed in `users`; a looser match (a suffix, a substring) would risk admitting more than intended, and
 a wrong guess about the prefix is safer refused than silently widened.
@@ -77,14 +80,15 @@ background behind the title bar.
 
 An installed app is launched on `start_url` — `/`, with no query string — and opens straight into the spec list.
 
-Eight routes make it work, and none of them is a file:
-`/manifest.webmanifest`, `/sw.js`, `/icon-512.svg`, `/icon-512-maskable.svg`, `/icon-192.png`, `/icon-512.png`,
-`/icon-512-maskable.png` and `/apple-touch-icon.png` are all computed in `src/render/ui/pwa.ts` and answered from memory,
-so nothing has to be kept in sync with the mark by hand and nothing is published by rsync. The three PNG icons are drawn
+Eight routes make it work — `/manifest.webmanifest`, `/sw.js`, `/icon-512.svg`, `/icon-512-maskable.svg`,
+`/icon-192.png`, `/icon-512.png`, `/icon-512-maskable.png` and `/apple-touch-icon.png`. All eight are computed in
+`src/render/ui/pwa.ts`, so nothing has to be kept in sync by hand. The served board answers them from memory,
+ahead of the static files; `generate` also writes the same eight into the site directory, which is what a
+published copy of the site needs beside its pages. The three PNG icons are drawn
 from the SVG icons at start-up (`src/render/ui/icon-png.ts`); Chrome on Android offers an install, not a home-screen
-shortcut, only when the manifest lists raster icons of 192 and 512 pixels and a maskable one. They are the only things on
-this site a page fetches rather than carries inline — a browser will not install a page whose manifest is a data URI —
-and they answer any request with a `Host` of the dashboard's own.
+shortcut, only when the manifest lists raster icons of 192 and 512 pixels and a maskable one. A browser will not install a page whose manifest is a data URI, which is why these are
+routes at all; they answer any request with a `Host` of the dashboard's own. The spec page fetches one more thing —
+its own editor or viewer script — and everything else a page needs is carried inline.
 
 The service worker caches **nothing**. Every line of this dashboard is live state, and a queue served out of yesterday's
 storage would be worse than no app at all: it passes every request through to the server and answers a page load with a
@@ -102,8 +106,9 @@ The manifest and the icons are served either way, and the tags on the page are i
 
 ## On a second host
 
-`MINI=<host> make install-serve` first runs `deploy/check-prerequisites.sh` there, and stops if Aide, bun, jq or git
-is missing. Then it clones or pulls the repo there (the clone URL comes from this checkout's own `origin`),
+`MINI=<host> make install-serve` first runs `deploy/check-prerequisites.sh` there, and stops if Aide, bun, jq or
+git is missing — or if the host has no `launchctl`, or the user has no GUI login session, which is the likeliest
+of the six to bite on a fresh machine. Then it clones or pulls the repo there (the clone URL comes from this checkout's own `origin`),
 installs deps, renders a launchd plist and starts the job. No plist is committed:
 `deploy/render-plist.ts` builds it per invocation from the target's own
 `$HOME`, resolved over ssh at install time. Logs go to
@@ -231,7 +236,7 @@ move is finished, and remove the stray directory by hand.
 The generated pages — `about.html`, and one per project — are written by the install on the serving host itself, and
 again by the install after every merge, into the site directory and from the projects root the launchd job names.
 The machine name they show is `AIDE_DASH_HOST` when it is set, and the generating machine's `hostname()` otherwise,
-the same way the header's own machine name is found (`dashboard/src/render/ui/shell.ts`'s `boardLine()`).
+the same way the header's own machine name is found (`boardText()` in `dashboard/src/render/ui/shell.ts`).
 
 ## Naming your machines once, in .env.deploy
 
