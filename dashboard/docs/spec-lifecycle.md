@@ -41,7 +41,8 @@ One line in the Tracking info of `4-status.md` is the whole record:
 - **Workflow steps completed:** create, analyze
 ```
 
-**The runner writes it, not the model.** After every step, `completed_steps_for` in `core/scripts/aide-run-spec`
+**The runner writes it, not the model.** After every step, `completed_steps_for` in
+`core/scripts/lib/run-spec-records.sh`
 rebuilds the line from the specs repo's own history: the commits whose subject reads `Run /aide-<step> for <folder>`
 since the current work round began, plus the step that has just completed. A step that ended `stopped` or `failed`
 is committed with the reason in its subject (`(stopped: timeout)`) and is not counted. A spec made by hand, with no runner commit behind it, has no line and
@@ -51,7 +52,9 @@ a guess is not.
 **A step's own claim of success is cross-checked before it counts**, because the model's turn ending cleanly is not
 evidence that the phase happened:
 
-- `implement` counts only if the project's HEAD moved or its tree changed. Otherwise the step ends `no-progress` and
+- `implement` counts only if the project's HEAD moved, its tree changed, or its branch differs from the default
+  branch — the third catches a re-pressed implement that finds an earlier run's code already on the branch and
+  writes nothing itself. Otherwise the step ends `no-progress` and
   the line is not extended. It also ends only on a green test run the runner made ITSELF
   (`run-spec-step-tests.sh`): the same `aide-resolve-test-cmd` and `aide-record-test-run` the landing's gate calls run
   on the step's result in its worktree, and the record on the branch is the runner's. Red goes back to the same
@@ -61,10 +64,9 @@ evidence that the phase happened:
   A change no test command covers has nothing to run and passes as before. A record the session wrote through
   `aide-record-test-run` on exactly the delivered tree (its `tree` hash), green and naming the same commands, is
   accepted as that run; anything the session changed afterwards makes the runner run the suite itself.
-- `archive` ends on the same green run when its pull merged main into the branch (a fast-forward brought
-  nothing new, and nothing is run): the suite runs on the merged result, red goes back to the archive session the
-  same way, and still red ends the step `tests-red` with Archive as the button. The record is written into the
-  folder under `archive/`.
+- `archive` runs no suite of its own, merged with main or not: its landing runs the project's tests once, on
+  exactly what the default branch is about to become, and that is the one run an archive gets
+  ([Branches and landing](landing.md#the-tests-run-on-the-landing-once)).
 - `archive` counts only if the folder is under `archive/` afterwards. A folder that stayed put because
   `aide-archive-spec` refused (`not-implemented-yet`, `acceptance-criteria-unticked`) ends as that refusal, the same
   as when the refusal came before the session; otherwise `no-progress`. An archive handed a merge with the default
@@ -94,7 +96,8 @@ stateDiagram-v2
     closed --> created: reopen (a new work round)
 ```
 
-**Into `create`.** `POST /api/queue/create` queues a job with the single step `create`, under a provisional key
+**Into `create`.** `POST /api/queue/create` queues a job whose first step is `create`, followed by whatever else
+the New spec form ticked, under a provisional key
 (`new-<id>`) that names its branch, its worktree and its folder on disk: `/aide-create` writes its five files under
 that literal name, choosing no number and no slug itself. The number and the slug are decided at landing instead,
 under the specs repo's own merge lock — the one place two landings for the same repo are already serialized by
@@ -107,14 +110,22 @@ A `create` that ends without a spec (`failed`, `stopped`, `interrupted`, or a fa
 still under its provisional key) has no row. It leaves a message at the top of the specs list and a push notification,
 both offering to try again with what was typed; see [the specs list](the-specs-list.md#a-failed-create).
 
-**`create` to `analyze`.** Any spec on the list may be analyzed; there is no gate. The row's boxes follow whatever was
+**`create` to `analyze`.** A spec that has not implemented yet may be analyzed, again and again: `created` and
+`analyzed` both take the move, the second as a self-loop. An `implemented` spec is refused — "analyze would rewrite
+a landed plan" — unless a round is under way, which is what changing an acceptance criterion opens; the round gate
+is asked first, and a spec that passes it has already moved back before the refusal could apply. The row's boxes
+follow whatever was
 posted from New spec at create time — every phase by default, fewer if the reader unticked one — so an untouched
 create queues analyze, implement and archive as one job. The runner queues each following step the moment the one
 before it completes, and starts it once that step's landing has settled. Until then, that step's own phase line and
 duration read as still going, not as done — see [Beside the state](job-states.md#beside-the-state).
 
-**`analyze` to `implement`.** Held back while a dependency is unmerged — see the next section. Nothing else is
-checked: an `implement` run against an empty `3-solution.md` is refused by the skill, not by the queue.
+**`analyze` to `implement`.** A spec that has not analyzed is refused — `not-analyzed-yet`, "run /aide-analyze
+first" — by the runner's own gate before the step starts, and by the queue before that, which holds the job
+`queued` with that reason on its row rather than starting it. An `analyzed` or `implemented` spec takes the move,
+the second as a self-loop, so a re-run needs no gate of its own. A dependency that has not archived holds it back
+too — see the next section. Beyond those, nothing is checked: an `implement` run against an empty `3-solution.md`
+is refused by the skill, not by the queue.
 
 **`implement` to `archive`.** `core/scripts/aide-archive-spec` runs before any model is spawned and decides in this
 order, stopping at the first that applies:
@@ -128,17 +139,21 @@ order, stopping at the first that applies:
 | `acceptance-criteria-unticked` | A row under `## Acceptance criteria` in `4-status.md` is still open — only a user ticks those   |
 | `archived`                     | Stamped and moved; the landing follows                                                          |
 
-The first four outcomes short of `archived` end the step without a model run. `conflict-open` and `archived` spawn
-one, for the conflict and for the documentation feedback respectively.
+Four of the five outcomes short of `archived` end the step with no model run at all: `refused`,
+`already-archived`, `not-implemented-yet` and `acceptance-criteria-unticked`. `conflict-open` and `archived` spawn
+one, for the conflict and for the documentation feedback respectively. An `acceptance-criteria-unticked` archive
+often never reaches the script: the runner ends a queued one on the spot, with that outcome, no process and no
+cost.
 
 An Acceptance row marked `Not verified` counts as ticked for `acceptance-criteria-unticked`: a check that can only be
 made after deploy does not hold the archive back, and the spec keeps showing it until the row is ticked. A row marked
 `Failed` is open and does hold it back; Reopen (without reset) sets such rows back to open and leaves their `Failed:`
 notes, which `roundGate` reads as a changed criterion.
 
-`acceptance-criteria-unticked` never applies to a run started with the "acceptance ticking not required" switch: its
-`4-status.md` carries a one-line note under `## Acceptance criteria` instead of a row, and a section with no row is
-not one this gate can find open.
+`acceptance-criteria-unticked` never applies to a spec created with the "acceptance ticking not required" switch.
+The switch itself is a `- **Acceptance:** not required` line in `1-description.md`'s Tracking info; its effect is
+that the analyze session writes one plain sentence under `## Acceptance criteria` in `4-status.md` instead of a
+table, and a section with no row is not one this gate can find open.
 
 **`archive`'s landing** merges the specs repo, then the code root, runs `AIDE_INSTALL_CMD` after a code root, and then
 asks origin whether `aide/<folder>` is still there. A root that still holds it is a landing that did not finish: the
@@ -152,7 +167,8 @@ until `archive` is run again — see [Branches and landing](landing.md).
   spec's own `archive` lands. The dashboard leaves the job `queued` with the reason on its row and tries again every
   tick; a run started by hand is refused. `create` and `analyze` run regardless.
 - **Another job on the same spec.** Two jobs for one spec never run at once.
-- **A landing in progress, anywhere.** Nothing starts while any job has `landing` set.
+- **That job's own landing.** A job with `landing` set does not start its next step until its merge settles.
+  Every other job runs as usual: the landing merges in a worktree of its own.
 - **An archived or closed spec.** The server refuses every step but `reopen` for it (`ARCHIVE_ONLY_STEP`).
 
 ## Where the work is between phases
