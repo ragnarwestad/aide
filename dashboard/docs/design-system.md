@@ -160,6 +160,11 @@ script off is unchanged. A bounded field added later is covered by the selector 
 `input type="text"`: the selector names that one type, so a bounded `search`, `email`, `url` or `number` field would
 get no count until the selector is widened.
 
+The spans are drawn twice: once at load, over the whole document, and again over each row the specs list swaps in on
+its five-second refresh (`drawLimits`, called from `row-swap.ts`). A field already carrying them is left alone, so the
+second pass costs nothing — and without it a bounded field inside a swapped row would lose its count the first time
+the row was redrawn.
+
 ## `form="<id>"` only wires submission, not event bubbling
 
 A control outside a `<form>`'s literal DOM tree can still submit with it via `form="settings-form"`,
