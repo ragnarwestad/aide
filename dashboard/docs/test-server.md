@@ -26,51 +26,56 @@ beside the "archive held back" one: **"Click the link to start a test server run
 branch."**
 
 A project's own page has a second entry point, on its Deploy tab: beside "Deploy for prod", a
-"Testserver med testspecene" section with its own "Start test server" button. Pressing it starts a
-test server from the project's latest main, seeded with the round's own twelve fixture specs —
+"Test server with the test specs" section with its own "Start test server" button. Pressing it starts
+a test server from the project's latest main, seeded with the round's own eleven fixture specs —
 useful whenever you want to try the dashboard as it stands today, not a spec's own branch. It opens
 in a new tab, and pressing it again restarts the server rather than starting a second one, so it
 always ends up running the latest main.
 
 ## What happens when you click it
 
-The link opens in the same tab and holds it: building a test server is a real dashboard starting
+The link opens a new tab and holds it: building a test server is a real dashboard starting
 from scratch, which takes a minute or two, not seconds, so the page you land on says so and waits —
 "leave it open" — rather than sending you off to go find the address yourself later. It checks
 again every few seconds on its own; there is nothing to click or refresh by hand.
 
 The moment the server answers, that same tab is carried straight to it — that is well before the
 test run has finished: the specs on it are created one by one, and you watch the list fill. If it
-failed to start instead, the tab says so and stops there, with the reason it gave.
+failed to start instead, the tab says so with the reason it gave, and offers **Try again** — which
+stops the failed entry and starts a fresh server.
 
-Clicking the link again for the same spec never starts a second server: whatever is already
-running, starting, or has failed for that exact branch and commit is what you get taken to or told
-about.
+Short of that, clicking the link again for the same spec never starts a second server: whatever is
+already running, starting, or has failed for that exact branch and commit is what you get taken to
+or told about.
 
 ## Checking on it afterwards
 
-The spec's own page (its Overview) shows the same starting/running/failed state for as long as a
+The spec's own page shows the same starting/running/failed state, in the banner above the tabs so it
+is there whichever tab is open, for as long as a
 test server exists for it, with a link to the running one — useful once you have closed
 the tab the server opened and want to get back to it, or check whether one that was still starting
 has come up.
 
 ## Stopping it
 
-A **Stop test server** button appears on the spec page for as long as its test server is tracked —
-starting, running or failed — including on an already-archived spec: whether the archive is held back
-waiting on a requirements review, or genuinely never merges, the link and the button stay exactly where
-they were. It also stops on its own, with nothing to press, in two cases: the moment the spec it belongs
+A **Stop test server** button appears on the spec page while its server is RUNNING; a starting or a
+failed one shows a sentence there instead, and the Test servers list is where every tracked server has
+a Stop of its own whatever its state. On the spec page both the link and Stop survive archiving, so a
+spec that was archived with its server still up can still be opened and stopped from there. The specs
+list is the other way round: an archived row carries no start link at all, and both start routes refuse
+an archived spec. It also stops on its own, with nothing to press, in two cases: the moment the spec it belongs
 to is actually archived (merged or discarded, there is no reason left to keep a preview of it running),
 or the moment the test server itself is no longer there to be reached — a crash, or a process someone
 killed outside this button — which the next load of either page notices and clears.
 
 Every test server on the machine, whichever spec started it, is also listed in one place: **Test
 servers**, in the "⋯" menu beside Settings. Each row names its project, its spec, its branch and its
-status, with its own Stop button — this is also where a full pool of three shows up, and where you go to
-free one.
+status, with its own Stop button — this is also where a full pool shows up — six ports, 8801 to 8806 — and where
+you go to free one.
 
 A test server can also stop itself, from its own header: every page there carries a line naming the
-machine, the spec and the branch it is running ("*machine* - Test - *spec* : *branch*"), with a **Stop**
+machine and the spec it is running ("*machine* - Test - *spec number*", with the folder and branch in its
+tooltip), with a **Stop**
 button right beside it. Pressing it works the same way as the prod-board button — the worktree, the log
 and the port are freed — without needing to go back to the prod board's spec page at all. The prod
 board's own header carries no such line beyond "*machine* - Prod", and no Stop button.
@@ -122,7 +127,8 @@ on it: that one is left alone.
 
 Any project that says how to start itself. Aide is its own case: its checkout carries the
 dashboard's source and the round script, and a test server there is that round left running. Every
-other project names a **Preview command** — the Settings table on its project page writes it, as
+other project names a preview command — the Settings table on its project page writes it, under the
+row labelled `AIDE_PREVIEW_CMD`, as
 `previewCmd:` in the committed `.aide/project.yaml`, and a machine that starts the project
 differently overrides it with `AIDE_PREVIEW_CMD` in its own `.aide/config`, the same precedence the
 install and test commands have.
@@ -133,9 +139,9 @@ project's `worktreeLinks` paths linked in — a worktree carries tracked files o
 dependencies and the local settings a dev server needs get there that way and no other. Database
 migrations are not run for you: a branch that adds one is served against the database as it stands.
 
-A project that names no command can have no board: the spec's link falls back to its own Logs tab,
-and the Deploy tab's "Testserver med testspecene" section keeps its heading with a sentence saying
-a test server cannot start from there — and no button.
+A project that names no command can have no board: the spec's row carries no start link at all, and
+the Deploy tab's "Test server with the test specs" section keeps its heading with a sentence saying a
+test server cannot start from there — and no button.
 
 ## Under the hood
 
@@ -169,5 +175,6 @@ process, known immediately and what a stop signal reaches (the whole process gro
 mid-build stops as cleanly as a fully running one); the other is read out of the running server's
 own log once it exists, and is shown for reference only.
 
-**Kept in memory, not on disk.** A restart of this dashboard loses track of every test server
-currently running.
+**Kept in memory, not on disk** — and recovered at start-up rather than lost: a restart re-finds the
+servers that are still alive and puts them back on the list, which is what
+[After the dashboard restarts](#after-the-dashboard-restarts) describes.
