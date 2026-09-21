@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# The doc guards, before a push to the default branch.
+#
+# A push straight to `main` has nothing else in front of it: the board's
+# landing gates what the board runs, and CI runs on a pull request only
+# (`.github/workflows/ci.yml`). A documentation round pushed from a
+# session is gated by this and by whoever remembers — so this is the
+# part that does not have to be remembered.
+#
+# Eight seconds, and only for `main`: a push to a working branch runs
+# nothing. AIDE_SKIP_PRE_PUSH=1 skips it for the push where that is the
+# right call, and says so on the way out.
+#
+# Installed by pointing git at this directory, once per clone:
+#   git config core.hooksPath .githooks
+set -o pipefail
+root="$(git rev-parse --show-toplevel)"
+
+if [ "${AIDE_SKIP_PRE_PUSH:-}" = "1" ]; then
+  echo "pre-push: skipped by AIDE_SKIP_PRE_PUSH=1 — the doc guards did not run" >&2
+  exit 0
+fi
+
+# stdin carries one line per ref being pushed: <local ref> <local sha>
+# <remote ref> <remote sha>. Only a push that moves the default branch
+# is this hook's business.
+pushing_main=""
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  case "$remote_ref" in refs/heads/main|refs/heads/master) pushing_main="yes" ;; esac
+done
+[ -n "$pushing_main" ] || exit 0
+
+echo "pre-push: the doc guards (scripts/check-docs)" >&2
+if ! "$root/scripts/check-docs"; then
+  echo "pre-push: refused — a guard that reads a page is red. Fix it, or push with AIDE_SKIP_PRE_PUSH=1." >&2
+  exit 1
+fi

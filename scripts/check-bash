@@ -37,4 +37,6 @@ shellcheck --severity=warning \
   dashboard/test/round/run \
   dashboard/test/round/claude-stub \
   scripts/test-linux-install \
-  scripts/check-bash
+  scripts/check-bash \
+  scripts/check-docs \
+  .githooks/pre-push
