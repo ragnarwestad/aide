@@ -53,7 +53,6 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     // Spec 220: stored on the job — only the run that called `gh` knows
     // the URL, and there is nothing on this machine to work it out from.
     prUrl: job.prUrl,
-    prError: job.prError,
     pushError: job.pushError,
     stopReason: job.stopReason,
     error: job.error,

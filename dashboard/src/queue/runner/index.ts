@@ -398,6 +398,7 @@ export class Runner {
         // `aide-run-spec` has emitted this since spec 81; nothing here
         // read it until now.
         repos: stepRepoRanges(outcome.repos),
+        prError: outcome.prError,
         // A step whose work lands (spec 395, REQ-3): the clock this
         // stamp ends is the step's OWN work, and that work is not over
         // until the merge is. Written immediately only when there is
@@ -451,7 +452,6 @@ export class Runner {
       // `archive` never touches, so the step that ends the job is not
       // the step that opened it.
       prUrl: outcome.prUrl ?? job.prUrl,
-      prError: outcome.prError ?? job.prError,
       pushError: outcome.pushError ?? job.pushError,
       // Accumulated BY ROOT, never replaced: a step that pushed to one
       // repo must not erase the repo an earlier step pushed to.

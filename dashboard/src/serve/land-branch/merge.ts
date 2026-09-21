@@ -414,7 +414,6 @@ export async function landBranch(
       branchUrl: stillOpen.length ? (stillOpen[0]!.url ?? job.branchUrl) : undefined,
       branchUrls: stillOpen,
       prUrl: review.prUrl,
-      prError: review.prError,
       branchDeleteError: deleteErrors.length ? deleteErrors : undefined,
       ...(keepsItsReason ? {} : { error: undefined, errorReason: undefined }),
     });

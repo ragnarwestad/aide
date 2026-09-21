@@ -100,6 +100,17 @@ export interface StepResult {
    *  shows no changed-files list, the same "nothing to show" degrade
    *  `tokens`/`streamFile` already take. */
   repos?: StepRepoRange[];
+  /** Why `gh` opened no pull request for this step's branch. ONE step
+   *  calls `gh`, so the answer is that step's: a job of four steps had
+   *  one field between them and no way to say which one it belonged to,
+   *  and the row could not point at the line where it happened. A result
+   *  entry is also written once and never rewritten, unlike a job field
+   *  every later step and every landing patches. Not an `error`: the
+   *  step succeeded and the code is on its branch — what is missing is
+   *  the request describing it, which for a project whose landing
+   *  deliberately leaves that branch open is exactly the thing a reader
+   *  has to be told. */
+  prError?: string;
 }
 
 /** One repo a step pushed the spec's branch to, and the compare page for
@@ -252,15 +263,9 @@ export interface Job {
    *  Absent for every job on a project that merges its code, which is
    *  every job there was before this spec. */
   prUrl?: string;
-  /** Why `gh` opened none. Not an `error`: the step succeeded and the
-   *  code is on its branch — what is missing is the request describing
-   *  it, which for a project whose landing deliberately leaves that
-   *  branch open is exactly the thing a reader has to be told. */
-  prError?: string;
   /** Why the branch itself did not reach origin (spec 328). Not an
    *  `error`: the step succeeded and its work is committed, only the
-   *  push failed — `prError`'s sibling, same shape, its own field for
-   *  the same reason. */
+   *  push failed — its own field for that reason. */
   pushError?: string;
   /** A landing merged this job's branch but could not delete it on
    *  origin (spec 319): `mergeBranchIntoDefault`'s own `branchDeleteError`,

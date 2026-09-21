@@ -10,7 +10,7 @@ import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status
 import { heldBackReasonText } from "../../ui/job-state/notice.ts";
 import { specPagePath } from "../spec-page";
 import { type ArchivedSpecView, type SpecGroup } from "./data-model";
-import { LANDING_FAILED, NO_PULL_REQUEST, NOT_PUSHED, PULL_REQUEST, TEST_SERVER, TESTS_RED } from "./row-shared.ts";
+import { LANDING_FAILED, NO_PULL_REQUEST, NOT_PUSHED, prErrorOf, prErrorSentence, PULL_REQUEST, TEST_SERVER, TESTS_RED } from "./row-shared.ts";
 import { notLandedTitle } from "./cell-helpers.ts";
 import { roundUnderWay } from "./row-state.ts";
 
@@ -35,14 +35,6 @@ const testServerStartLinkSentence = (lang: Language): string => t(lang, "list.te
  *  it locally" said nothing about WHOSE checkout, and the only one a
  *  reader can act on is the one on the serving host. */
 const pushErrorSentence = (lang: Language): string => t(lang, "list.pushError");
-
-/** The sentence a LIVE row carries when no pull request could be opened
- *  for its branch (spec 220, spec 335, spec 352). Fixed prose for the
- *  same reason as `pushErrorSentence` — one of `prError`'s four cases
- *  is raw `gh pr create` stderr, and the other three are already custom
- *  text this sentence now stands in for uniformly. Names the checkout
- *  (REQ-3, spec 352), the same location `pushErrorSentence` names. */
-const prErrorSentence = (lang: Language): string => t(lang, "list.prError");
 
 /** The sentence an ARCHIVED row carries when a landing merged its branch
  *  but left it on origin because the delete failed (spec 319, spec
@@ -87,7 +79,14 @@ function liveMarks(g: SpecGroup, lang: Language, testServerAvailable: (project: 
       sentence: renderSentence(lang, g.landingError)!,
     });
   }
-  if (g.prError) marks.push({ variant: "refused", label: NO_PULL_REQUEST(lang), sentence: prErrorSentence(lang) });
+  // Off the step that called `gh` (`prErrorOf`), never off the job,
+  // which had one field for four steps. The sentence stays on the row's
+  // panel rather than only on the phase line — a collapsed row draws no
+  // phase lines at all, and a badge's title is nothing to read on a
+  // phone — and the phase line is what says WHICH step it was.
+  if (g.phases.some((p) => prErrorOf(p))) {
+    marks.push({ variant: "refused", label: NO_PULL_REQUEST(lang), sentence: prErrorSentence(lang) });
+  }
   // Spec 411: the same field `resting.ts` already reads to draw the
   // "ready" badge for this exact state — a spec waiting on the round,
   // not on a person deciding something. Two marks together, not one

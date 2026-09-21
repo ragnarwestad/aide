@@ -243,7 +243,13 @@ repository without review. A project that keeps its specs inside its own reposit
 the archived spec waits in the same pull request as the code.
 
 A pull request is opened with `gh` on the machine that runs the dashboard, so `gh` has to be logged in there. When it
-is not, the run still succeeds, and the row says no pull request was opened and that one can be opened by hand.
+is not, the run still succeeds, and the row says no pull request was opened and that one can be opened by hand — on the
+line of the step that tried, since that is the step that called `gh`.
+
+Two cases are not failures and say nothing. A step that pushed nothing to the project's own repository opens no request
+at all: a create and an analyze change the spec folder alone, and there is nothing about the code to review. And a
+branch that already has a request keeps it — a later step of the same spec meets the request an earlier one opened, and
+the row links to that one.
 
 Only `codeLanding: pr` is ever written: merge is what an absent key already means (a manifest with none reads it), and choosing it removes the key
 again. It goes in the project's `.aide/project.yaml` where the project tracks its manifest — and then every machine

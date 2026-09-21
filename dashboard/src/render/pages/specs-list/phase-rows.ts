@@ -12,6 +12,7 @@ import { costCell, phaseDurationCell, phaseWordCell, specTotalCell } from "./cel
 import { aiPicker, ALREADY_RUN_REASON, compactModelLabel, compactModelLabelFull, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells } from "./model-picker.ts";
 import { chosenSteps, offersAnotherRound, runFormId, specBusy } from "./row-state.ts";
 import { stateAction } from "./row-controls.ts";
+import { NO_PULL_REQUEST, prErrorOf, prErrorSentence } from "./row-shared.ts";
 import { headStateBadge } from "./head-row.ts";
 import { phaseHasRun, phaseMessagesFold, phaseMessagesRow } from "./phase-messages";
 
@@ -148,6 +149,14 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
       // on the analyze line, because analyze is the phase that has to
       // run again. Amber, like every other "worth noticing, not
       // alarming" mark on this page — and it blocks nothing.
+      // `gh` opened no pull request for THIS step's branch. The row's
+      // panel carries the sentence for a reader; this says which of the
+      // five lines it happened on, which is the one thing the panel
+      // cannot say. A badge, not the text: a sentence beside a phase
+      // badge runs off the right edge of the table.
+      const noPullRequest = prErrorOf(p)
+        ? " " + badge("refused", NO_PULL_REQUEST(opts.lang ?? "en"), prErrorSentence(opts.lang ?? "en"))
+        : "";
       const stale =
         p.step === "analyze" && g.analyzeStale
           ? " " +
@@ -333,7 +342,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
           // 165 moved the box in beside the model.
           `<td class="phasecell">${phaseMessagesFold(g, p, opts, ran)}${name}</td>` +
           pickCell +
-          `<td data-col="state">${phaseWordCell(word, stale, attemptCount)}</td>` +
+          `<td data-col="state">${phaseWordCell(word, stale + noPullRequest, attemptCount)}</td>` +
           // The phase's own duration, not when it began (spec 199).
           // Same physical column, a different question per row type —
           // which this column already did before, and which is what

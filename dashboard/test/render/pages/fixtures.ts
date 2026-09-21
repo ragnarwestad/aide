@@ -121,6 +121,13 @@ export const row = (extra: Partial<QueueRowView> = {}): QueueRowView => ({
   ...extra,
 });
 
+/** A row whose `step` reports that `gh` opened no pull request for its
+ *  branch. On the step's own result, which is where that answer lives —
+ *  a job field is rewritten by the next landing to finish. */
+export const noPullRequest = (step: string, why = "gh auth login required"): Partial<QueueRowView> => ({
+  results: [{ step, ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", prError: why }],
+});
+
 /** Since spec 103 a row is COLLAPSED unless the view names it: the
  *  phase lines, the run control and the "more" line come with opening
  *  it. A block that is about what an expanded row holds says so by

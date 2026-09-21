@@ -163,6 +163,47 @@ def test_no_pull_request_is_opened_for_a_branch_with_nothing_in_it(
     assert out.get("prUrl") is None
 
 
+def test_a_pull_request_that_already_exists_is_the_link_not_a_failure(
+    runner, workspace, fake_claude, fake_gh, origin
+):
+    """One spec calls `gh pr create` on the same branch from more than one
+    step, so the second call meets the request the first one opened. `gh`
+    exits non-zero and names the request in the message it refuses with —
+    that URL is the answer the row wants, not a report that no request
+    could be opened."""
+    claude = writing_claude(fake_claude, workspace)
+    gh = fake_gh(
+        'echo \'a pull request for branch "aide/81-queue-and-runner" into branch '
+        '"main" already exists: https://github.com/example/aide/pull/1\' >&2; exit 1'
+    )
+
+    rc, out, _ = run_with_gh(runner, workspace, claude, gh, push="pr", command="implement")
+
+    assert rc == 0, out
+    assert out["prUrl"] == "https://github.com/example/aide/pull/1"
+    assert out.get("prError") is None, "the request exists; there is nothing to report"
+
+
+def test_another_refusals_own_links_are_never_taken_for_the_review(
+    runner, workspace, fake_claude, fake_gh, origin
+):
+    """`gh`'s connection failure prints a status page. Only the phrase
+    `gh` uses for a request that already exists names this branch's
+    review, so a URL anywhere else in a refusal stays part of the
+    refusal."""
+    claude = writing_claude(fake_claude, workspace)
+    gh = fake_gh(
+        'echo "error connecting to api.github.com  check your internet '
+        'connection or https status.github.com" >&2; exit 1'
+    )
+
+    rc, out, _ = run_with_gh(runner, workspace, claude, gh, push="pr", command="implement")
+
+    assert rc == 0, out
+    assert out.get("prUrl") is None
+    assert out["prError"], "it is still a refusal"
+
+
 def test_a_broken_gh_never_fails_a_finished_run(runner, workspace, fake_claude, fake_gh, origin):
     """`gh` on the mini needs an interactive re-auth only the user can
     do. A run whose work succeeded must not be reported as failed

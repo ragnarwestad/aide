@@ -8,6 +8,7 @@ import {
   type SpecTarget,
 } from "../../../../../src/render";
 import {
+  noPullRequest,
   row,
   openKeys,
 } from "../../fixtures.ts";
@@ -292,5 +293,66 @@ describe("spec 210: a running implement says which third it is in", () => {
       );
       expect(subRow(html, "implement")).not.toContain("(refactor)");
     }
+  });
+});
+
+// --- the step that called `gh` is the step that reports it -------------------
+//
+// One step of a spec calls `gh pr create`. The answer belonged to the
+// JOB, which meant a row with four steps had one field between them and
+// no way to say which step it came from. It is the step's own record
+// now, and the row draws it on that step's line.
+describe("no pull request is reported on the line of the step that tried", () => {
+  const FOLDER = "81-queue-and-runner";
+  const listed = (open: boolean) =>
+    renderSpecsRows(
+      [row({ steps: ["analyze", "implement"], stepIndex: 1, state: "done", ...noPullRequest("implement") })],
+      {
+        runnerAvailable: true,
+        targets: [],
+        ...(open ? { filter: { open: `aide/${FOLDER}` } } : {}),
+      },
+      Date.parse("2026-08-22T12:00:00Z"),
+    );
+  const line = (html: string, phase: string) =>
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
+  const notice = (html: string) => html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
+
+  test("the mark is on that step's own line, and on no other phase's", () => {
+    const html = listed(true);
+    expect(line(html, "implement")).toContain("No pull request");
+    expect(line(html, "analyze")).not.toContain("No pull request");
+    expect(line(html, "create")).not.toContain("No pull request");
+  });
+
+  // A badge is `nowrap`, so the sentence cannot stand beside one — it
+  // rides in the badge's title, and the panel says it in full.
+  test("the sentence rides in the mark's title, never as text on the line", () => {
+    const html = listed(true);
+    const SENTENCE = "No pull request could be opened for this branch. — Open one by hand, in the checkout on the serving host.";
+    expect(line(html, "implement")).toContain(`title="${SENTENCE}"`);
+    expect(line(html, "implement").replace(/<[^>]*>/g, "")).not.toContain("Open one by hand");
+  });
+
+  // A collapsed row draws no phase lines at all, so the panel — which it
+  // does draw — is where the sentence has to be readable.
+  test("a collapsed row still says it, in its panel", () => {
+    const html = listed(false);
+    expect(line(html, "implement")).toBe("");
+    expect(notice(html)).toContain("No pull request could be opened for this branch.");
+  });
+
+  // The latest attempt answers for the phase: a step run again, this
+  // time opening the request, has nothing left to report.
+  test("a later attempt that opened one leaves nothing to say", () => {
+    const html = renderSpecsRows(
+      [
+        row({ id: "first", steps: ["implement"], state: "done", ...noPullRequest("implement") }),
+        row({ id: "second", steps: ["implement"], state: "done", startedAt: "2026-08-22T11:00:00Z" }),
+      ],
+      { runnerAvailable: true, targets: [], filter: { open: `aide/${FOLDER}` } },
+      Date.parse("2026-08-22T12:00:00Z"),
+    );
+    expect(html).not.toContain("No pull request");
   });
 });

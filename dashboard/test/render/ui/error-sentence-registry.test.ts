@@ -5,7 +5,7 @@ import { notLandedTitle } from "../../../src/render/pages/specs-list/cell-helper
 import { wordPhase } from "../../../src/render/ui/job-state";
 import { worktreeLinksError } from "../../../src/project/project-admin";
 import { t } from "../../../src/i18n";
-import { row } from "../pages/fixtures.ts";
+import { noPullRequest, row } from "../pages/fixtures.ts";
 
 /** One sentence the board can show, and the claim this registry makes
  *  about it: either `resolve` — a substring of `text` that names what
@@ -119,7 +119,7 @@ const PHASE_1_PILOT: RegistryEntry[] = [
   },
   {
     name: "no pull request (cell-helpers.ts, PR_ERROR_SENTENCE)",
-    text: rowBlock(live("70-pr", { prError: "gh auth login required" }), "70-pr"),
+    text: rowBlock(live("70-pr", noPullRequest("analyze")), "70-pr"),
     resolve: "checkout on the serving host",
   },
   {

@@ -406,7 +406,18 @@ if [ "$push_mode" = "pr" ]; then
       pr_url="$(printf '%s\n' "$pr_out" | grep -o 'https://[^[:space:]]*' | tail -1)"
       [ -n "$pr_url" ] || pr_error="gh reported no pull request URL"
     else
-      pr_error="$(printf '%s' "$pr_out" | tr '\n' ' ' | tail -c 200)"
+      # A branch that already has a pull request is not a failure: the
+      # request exists, `gh` names it in the very message it refuses
+      # with, and that URL is the answer the row wants. One spec runs
+      # `gh pr create` on the same branch from more than one step, so a
+      # second call is the ordinary case rather than a problem. Matched
+      # on gh's own phrase and not on "any URL in the output": another
+      # refusal's text carries links of its own (status.github.com),
+      # which must never be recorded as this branch's review.
+      pr_url="$(printf '%s' "$pr_out" | grep -o 'already exists: https://[^[:space:]]*' | sed 's/^already exists: //' | tail -1)"
+      if [ -z "$pr_url" ]; then
+        pr_error="$(printf '%s' "$pr_out" | tr '\n' ' ' | tail -c 200)"
+      fi
     fi
   fi
 fi

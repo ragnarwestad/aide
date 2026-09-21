@@ -5,7 +5,7 @@
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { specPagePath } from "../spec-page";
-import { CLOSED_STATE, FILTER_FIELD_PREFIX, FILTER_KEYS, isArchivedRow, type SpecGroup, type SpecsFilter } from "./data-model";
+import { CLOSED_STATE, FILTER_FIELD_PREFIX, FILTER_KEYS, isArchivedRow, type Phase, type SpecGroup, type SpecsFilter } from "./data-model";
 
 /** The mark a row carries — live or archived — when its code is on a
  *  branch waiting on a pull request (spec 220, spec 335): the same word
@@ -39,6 +39,22 @@ export const NOT_PUSHED = (lang: Language): string => t(lang, "list.notPushed");
  *  `PULL_REQUEST` gives — a branch left open with nothing describing it,
  *  which no amount of waiting resolves. */
 export const NO_PULL_REQUEST = (lang: Language): string => t(lang, "list.noPullRequest");
+
+/** The sentence said when no pull request could be opened for a branch
+ *  (spec 220, spec 335, spec 352). Fixed prose — one of the four cases
+ *  is raw `gh pr create` stderr, and the other three are custom text
+ *  this stands in for uniformly. Names the checkout (REQ-3, spec 352),
+ *  the same location the push-failure sentence names. Said twice, by the
+ *  row's panel and by the phase line's badge title, from here so the two
+ *  cannot drift. */
+export const prErrorSentence = (lang: Language): string => t(lang, "list.prError");
+
+/** Why `gh` opened no pull request for this phase's branch, off the step
+ *  result the run wrote, which is the step that called `gh`. The LATEST
+ *  attempt only: a phase run again, this time opening the request, has
+ *  nothing left to report. */
+export const prErrorOf = (p: Phase): string | undefined =>
+  (p.attempts[0]?.results ?? []).find((r) => r.step === p.step)?.prError;
 
 /** Whether the row draws the info line with its ›, which says the same
  *  counts `notVerifiedMark` does — so the count is said on one of the two,

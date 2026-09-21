@@ -246,15 +246,12 @@ export class QueueStore {
    *  where no job remembers either — the queue keeps two hundred jobs
    *  and the archive grows past that, so an old spec simply has no link,
    *  which is a blank rather than a claim. */
-  pullRequestFor(project: string, specFolder: string): { prUrl?: string; prError?: string } {
+  pullRequestFor(project: string, specFolder: string): { prUrl?: string } {
     const recency = (job: Job) => Date.parse(job.startedAt ?? job.createdAt) || 0;
     const mine = [...this.jobs.values()]
       .filter((j) => j.project === project && j.specFolder === specFolder)
       .sort((a, b) => recency(b) - recency(a));
-    return {
-      prUrl: mine.find((j) => j.prUrl)?.prUrl,
-      prError: mine.find((j) => j.prError)?.prError,
-    };
+    return { prUrl: mine.find((j) => j.prUrl)?.prUrl };
   }
 
   /** The newest reason a landing for this spec could not delete its own

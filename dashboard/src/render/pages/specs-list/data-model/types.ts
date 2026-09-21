@@ -456,18 +456,17 @@ export interface SpecGroup extends HasNotVerified {
    *  row has to say where the review IS, or a reader has no way to tell
    *  it from a landing that got stuck. */
   prUrl?: string;
-  /** Why `gh` opened none. The other half of the same answer, and the
-   *  more urgent one: this is a branch left unmerged with nothing
-   *  describing it, which no amount of waiting will resolve. */
-  prError?: string;
-  /** Why a step's push did not reach origin (spec 328), off the most
-   *  recently active job that reported one — same aggregation as
-   *  `prError`, its nearest sibling. The step still succeeded; only the
-   *  branch itself was left stranded. */
+  /** Why a step's push did not reach origin (spec 328), off the lead
+   *  job. The step still succeeded; only the branch itself was left
+   *  stranded.
+   *
+   *  There is no `prError` beside it: why `gh` opened no pull request is
+   *  the STEP's own answer, read off `phases` (`prErrorOf`,
+   *  row-shared.ts) on the line of the step that called `gh`. */
   pushError?: string;
   /** REQ-4 (spec 327): the lead job's own unresolved landing failure,
    *  read straight off `lead` rather than scanned across every job for
-   *  this spec the way `prError` is — see Risk analysis for why a
+   *  this spec the way `prUrl` is — see Risk analysis for why a
    *  cross-job scan would show the wrong job's failure. */
   landingError?: Sentence | Sentence[];
   /** Why the lead job's landing was refused, when it was — the same

@@ -42,6 +42,11 @@ describe("a project can leave its code for a pull request (spec 220)", () => {
     );
   };
 
+  /** Why `gh` opened no pull request, off the step that called it. Not a
+   *  job field: a landing rewrites those. */
+  const prErrorOn = (job: Record<string, unknown>, step: string): string | undefined =>
+    (job.results as { step: string; prError?: string }[]).find((r) => r.step === step)?.prError;
+
   const onlyTheSpecsRepo = (paths: { specs: string }) => ({
     branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
   });
@@ -162,22 +167,27 @@ describe("a project can leave its code for a pull request (spec 220)", () => {
   // failure teeth: the landing now trusts `pr` to mean a request
   // exists. A branch left open with nothing describing it has to say
   // so.
-  test("a gh failure is reported beside the branch it left open", async () => {
+  //
+  // On the STEP's own result, not on the job: it is one step that calls
+  // `gh`, and a job that runs four of them has no single answer to
+  // give. The phase line for that step is where the row says which one
+  // it was.
+  test("a gh failure is reported on the step that called gh", async () => {
     const dir = own("aide-220-prerror-");
     const paths = repos(dir);
     landsWith(paths, "pr");
     const git = gitFor({ openOn: [paths.project, paths.specs] });
     const { base } = serverWithHarness(dir, paths, git);
 
-    await implemented(base, dir, paths, { prError: "gh auth login required" });
-    const landed = await stepWithResult(base, dir, "archive", onlyTheSpecsRepo(paths));
+    const implement = await implemented(base, dir, paths, { prError: "gh auth login required" });
 
-    expect(landed.prError).toBe("gh auth login required");
-    expect(landed.prUrl).toBeFalsy();
+    expect(prErrorOn(implement, "implement")).toBe("gh auth login required");
+    expect(implement.prUrl).toBeFalsy();
     // Still not a failed job: the code IS on its branch, which is
     // where PR mode wanted it. What is missing is the request.
-    expect(landed.state).toBe("done");
+    expect(implement.state).toBe("done");
   }, 20000);
+
 
   // Spec 328: `pushError` is `prError`'s sibling — `aide-run-spec` has
   // reported it in its result JSON since before this spec, but nothing

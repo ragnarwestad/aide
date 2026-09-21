@@ -41,9 +41,9 @@ const TEST = join(ROOT, "test");
 // that shrinks below 500 has its entry removed instead.
 const OVER_LINE_LIMIT: Record<string, number> = {
   "src/queue/runner/index.ts": 518,
-  "src/queue/store/index.ts": 568,
+  "src/queue/store/index.ts": 565,
   "src/git/branch-merge.ts": 605,
-  "src/render/pages/specs-list/data-model/types.ts": 525,
+  "src/render/pages/specs-list/data-model/types.ts": 524,
 };
 
 // src/i18n/messages.ts is exempt by filename alone (see EXEMPT_BY_FILENAME

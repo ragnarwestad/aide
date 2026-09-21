@@ -58,15 +58,10 @@ export interface QueueRowView {
    *  only the run that called `gh` knows the URL, and there is nothing
    *  on this machine to re-derive it from. */
   prUrl?: string;
-  /** Why `gh` opened none. Shown BESIDE the branch rather than as the
-   *  job's error, because the step succeeded and the code really is on
-   *  its branch — what is missing is the request describing it, which
-   *  for a project whose landing deliberately leaves that branch open is
-   *  the whole difference between waiting on a review and an orphan. */
-  prError?: string;
   /** Why the branch itself did not reach origin (spec 328). Shown beside
-   *  the branch like `prError`, and for the same reason: the step
-   *  succeeded and its work is committed, only the push failed. */
+   *  the branch: the step succeeded and its work is committed, only the
+   *  push failed. Why `gh` opened no pull request is NOT here — that one
+   *  is the step's own answer, on `StepResultView.prError` below. */
   pushError?: string;
   error?: Sentence | Sentence[];
   /** Why the job's own landing was refused, when it was refused for
@@ -150,6 +145,11 @@ export interface StepResultView {
    *  Absent means measured: every record written before the flag
    *  existed came from a run that printed its own figure. */
   costMeasured?: boolean;
+  /** Why `gh` opened no pull request for this step's branch — the
+   *  render-side mirror of `StepResult.prError`. Per STEP, and shown on
+   *  that step's own phase line for the same reason its duration is:
+   *  one step called `gh`, and the row has a line for it. */
+  prError?: string;
 }
 
 /** Whether anything summed over these steps was a stand-in rather than a

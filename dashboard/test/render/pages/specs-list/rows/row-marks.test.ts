@@ -12,7 +12,7 @@ import {
   type QueueRowView,
   type SpecTarget,
 } from "../../../../../src/render";
-import { row } from "../../fixtures.ts";
+import { noPullRequest, row } from "../../fixtures.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status";
 
 // Split out of grouping.test.ts by theme.
@@ -123,7 +123,7 @@ describe("a row shows the pull request its run opened (spec 220)", () => {
   // the badge test above, which stays put.
   test("a gh that could not open one says so instead, in a sentence for a person", () => {
     const RAW = "gh auth login required";
-    const html = open({ prError: RAW });
+    const html = open(noPullRequest("archive", RAW));
     const state = stateCellHtml(html, FOLDER);
     expect(state).not.toContain(RAW);
     expect(state).not.toContain("No pull request could be opened for this branch. — Open one by hand, in the checkout on the serving host.");
@@ -137,7 +137,7 @@ describe("a row shows the pull request its run opened (spec 220)", () => {
   // raw `gh pr create` stderr never reaches the row either.
   test("gh's own stderr, on the one case that carries it, never reaches the row", () => {
     const RAW = "error connecting to api.github.com  check your internet connection or https status.github.com";
-    const html = open({ prError: RAW });
+    const html = open(noPullRequest("archive", RAW));
     expect(html).not.toContain(RAW);
     expect(noticeCellHtml(html, FOLDER)).toContain(
       "No pull request could be opened for this branch. — Open one by hand, in the checkout on the serving host.",
@@ -541,7 +541,7 @@ describe("no status mark renders inside the Spec cell (REQ-1, REQ-7)", () => {
   const fixtures: Array<[string, string, string]> = [
     ["pushError", "70-a", live("70-a", { pushError: "cannot push aide/70-a: non-fast-forward" })],
     ["landingError", "70-b", live("70-b", { landingError: "analyze landing failed: cannot merge aide/70-b" })],
-    ["prError", "70-c", live("70-c", { prError: "gh auth login required" })],
+    ["prError", "70-c", live("70-c", noPullRequest("analyze"))],
     ["prUrl", "70-d", live("70-d", { prUrl: "https://github.test/aide/pull/1" })],
     ["archive.prOpen", "70-e", archived("70-e", { prOpen: true, prUrl: "https://github.test/aide/pull/2" })],
     [
