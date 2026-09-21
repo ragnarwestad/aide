@@ -52,19 +52,21 @@ same answer its own landing uses (`machinerySpecsRoot`), and
 `.aide/config`. Left out — a run started by hand — the script reads the
 config exactly as it always did.
 
-The flag exists because the two DID work it out separately, and
-disagreed: the script read `.aide/config` in the dashboard's own
-checkout, a file the dashboard rewrites on every ensure, while the
-landing used its own resolver. A create then made its folder at the specs
-repository's root, the landing looked for it under the project's own
-directory, the spec could not be given its number, and nothing reached
-main.
+The run and the landing have to agree on this one answer: a create that
+makes its folder somewhere the landing does not look can never be given
+its number.
 
-Pinned by `tests/specs/unit/core/scripts/run_spec/test_aide_run_spec_specs_root_flag.py`
-(the flag wins, the config still decides without it, a root that is not
-there is refused by name) and
-`dashboard/test/queue-routes/runner/runner-specs-root-argv.test.ts` (the
-dashboard passes its own answer, ahead of `--command`).
+Each side has a test of its own, and neither reads the other.
+`tests/specs/unit/core/scripts/run_spec/test_aide_run_spec_specs_root_flag.py`
+holds the script: the flag wins, the config still decides without it, and
+a root that is not there is refused by name — except for `create`, which
+makes a missing root that lies inside the project. The test covers a root
+outside the project only.
+`dashboard/test/queue-routes/runner/runner-specs-root-argv.test.ts` holds
+`runnerArgv`: it passes on the root it is handed, ahead of `--command`.
+Nothing tests that the root handed to it is the dashboard's own answer
+(`specsRoot: ctx.machinerySpecsRoot(job.project)` in `runner-setup.ts`),
+and a flag renamed on one side fails neither test.
 
 ## Not a pair: the workflow's own vocabulary
 
