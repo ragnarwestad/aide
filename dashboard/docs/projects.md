@@ -19,14 +19,32 @@ queue that runs its specs is on [Running specs](running-specs.md).
 
 ## Adding and removing a project
 
-The Projects panel on `/projects`, held to the same-origin rule like every other mutating control. It sits under the
-listing it changes, which it can because the overview is a served page with a server behind it. Add
-takes a name plus either a git URL (cloned to
-`<projects root>/<name>` — or, when the projects root is the directory of links beside the dashboard's own checkouts,
-cloned to `checkouts/<name>/code` with a link to it at `<projects root>/<name>`) or a path to a checkout already there, and optionally a specs root and a one-line description.
-**A project keeps nothing of Aide's in its repository.** What Add would have written into the checkout — the name, the
-description, worktree links, code landing — goes to the dashboard's own settings file,
-`checkouts/<name>/settings.yaml`, in the manifest's own format. A manifest the checkout already tracks is the team's and
+`/projects` lists every project the dashboard knows, with an **Add** button above the list and a **Remove** link on
+each row. Add opens a page of its own; both are held to the same-origin rule, like every other control that changes
+something.
+
+**The projects root is where they all live** — the directory the server was started with as `--root`. A project is
+a directory under it, and the list is what the dashboard finds there. Adding one also puts its name on the queue's
+allowlist, which is what a run checks before it starts; removing one takes the name off again.
+
+The Add form asks for:
+
+| Field           | What it takes                                                                                                                             |
+|-----------------|-------------------------------------------------------------------------------------------------------------------------------------------|
+| Name            | The directory's name under the projects root. Picked from the checkouts already there, or typed to name the directory a clone will create |
+| Git URL or path | A URL to clone, or a path to a checkout already on disk                                                                                   |
+| Specs root      | Where this project's specs live, when they are not in `specs/` inside it                                                                  |
+| Worktree links  | Space-separated repo-relative paths a run has to symlink into its worktree                                                                |
+| Code landing    | Merge the code, or leave it as a pull request                                                                                             |
+| --------------  | -----------------------------------------------                                                                                           |
+
+A clone lands in `<projects root>/<name>` — or, when the projects root is the directory of links beside the
+dashboard's own checkouts, in `~/.aide/dashboard/checkouts/<name>/code`, with a link to it at
+`<projects root>/<name>`.
+
+**A project that does not already track a manifest keeps nothing of Aide's in its repository.** What Add would have
+written into the checkout — the name, the description, worktree links, code landing — goes to the dashboard's own
+settings file, `~/.aide/dashboard/checkouts/<name>/settings.yaml`, in the manifest's own format. A manifest the checkout already tracks is the team's and
 is never written to; Add says so in its manifest step and writes nothing for the links and the landing. An untracked
 `.aide/project.yaml` in the checkout (a draft from `/aide-manifest`) is left as it is and seeds the settings file, so what
 it said is not lost. Filling in the rest is `/aide-manifest`'s job afterwards, and the form says so.
@@ -46,6 +64,18 @@ the landing's test gate copies it into its tree, and reads the worktree links fr
 `<dir>/.aide/project.yaml` — TypeScript and bash — therefore finds it unchanged. Discovery and the project page read a
 project's manifest from the clone when the project's own directory holds none.
 
+Remove takes the project off the allowlist and off this dashboard, and that is all it does: the checkout and the
+specs root stay on disk, untouched. `/projects/<name>/remove` asks the question in a sentence and the press is the
+answer; nothing is typed back.
+
+A server started without `--root` has no projects root to list or add to. Its `GET /projects` redirects to the
+generated `projects.html` instead of rendering an empty listing, and its nav goes on naming that file — an empty
+page would read as "no projects on this machine" rather than "this server was never told where they are". That
+generated file is a redirect to the served page and carries no controls of its own; the only other generated page
+is `about.html`. There is no generated page per project: the served `/projects/<name>` is the only one, because a
+frozen copy beside it was a second page with the same name, one tab away from the live one and always a little out
+of date.
+
 ### Whether a run can start there
 
 An Add that answers "added" and nothing else leaves the things that decide whether `aide-run-spec` will START
@@ -64,19 +94,19 @@ for a reason that has nothing to do with its change. Nothing can derive which pa
 it empty is normal and is reported as a note rather than a fault.
 
 Most of these checks are `aide-run-spec`'s own prerequisites, read-only, taken after the Add has written its files —
-the `.aide` written a second earlier is part of what the runner will see. Three rows are this dashboard's own:
-`gitRoot`'s "inside a bigger repository" case, `specsRepo`, and `dashboardCheckout`. `aide-run-spec` refuses on
-none of the three, a known asymmetry recorded in `tests/fixtures/project-readiness-prerequisites.json`'s own
-comment rather than pinned against the runner.
+the `.aide` written a second earlier is part of what the runner will see. Three rows are this dashboard's own, and `aide-run-spec` refuses on none of
+them: `gitRoot`'s "inside a bigger repository" case, `specsRepo`, and `dashboardCheckout` — which blocks nothing at
+all, and is left out of the table below because all it reports is whether the run will use a checkout the dashboard
+owns rather than the project's own directory. The asymmetry is recorded in
+`tests/fixtures/project-readiness-prerequisites.json`'s own comment rather than pinned against the runner.
 
-| Check               | Blocks a run when                                                                                                                                           |
-|---------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `gitRoot`           | the project directory is no repository at all — or, in this dashboard check only, is inside a bigger one (`aide-run-spec` does not refuse that second case) |
-| `specsRoot`         | the configured `AIDE_SPECS_PATH`, or `<project>/specs` when none was given, is not a directory                                                              |
-| `specsRepo`         | (dashboard only) that specs root is in no git repository — `aide-run-spec` silently leaves such a root out of what it commits, rather than refusing         |
-| `defaultBranch`     | the default branch is neither here nor on origin, or another worktree already has it checked out                                                            |
-| `worktreeLinks`     | a configured entry leaves the repository, or names a path that is not there                                                                                 |
-| `dashboardCheckout` | never — it is this dashboard's own row, saying whether a run will use a checkout the dashboard owns rather than the project's own directory                 |
+| Check           | Blocks a run when                                                                                                                                                     |
+|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `gitRoot`       | the project directory is no repository at all — or, in this dashboard check only, is inside a bigger one (`aide-run-spec` does not refuse that second case)           |
+| `specsRoot`     | the configured `AIDE_SPECS_PATH`, or `<project>/specs` when none was given, is not a directory                                                                        |
+| `specsRepo`     | (dashboard only) that specs root is in no git repository — `aide-run-spec` silently leaves such a root out of what it commits, rather than refusing                   |
+| `defaultBranch` | the default branch is neither here nor on origin, or another worktree already has it checked out                                                                      |
+| `worktreeLinks` | a configured entry leaves the repository, names a path that is not there, or names a build directory (`build`, `dist`, `.gradle`, `target`), which is refused by name |
 
 `worktreeLinks` is read from the project's `.aide/project.yaml` (the committed one, else the dashboard's derived copy)
 first and from `.aide/config`'s older `AIDE_WORKTREE_LINKS` second — the same order, and the same winner, as
@@ -87,6 +117,9 @@ written independently and nothing else would stop them drifting.
 `tests/fixtures/project-readiness-prerequisites.json` is the equivalent table for `gitRoot`, `specsRoot`,
 `defaultBranch` and `worktreeLinks` themselves: a test on each side reads it and asserts `aide-run-spec` really
 refuses what this page says it does, for the same identifier and the same blocking answer.
+
+A `defaultBranch` blocked by another worktree is the one a reader meets by accident: `git worktree list` in the
+checkout names the directory holding it, and `git worktree remove <dir>` releases it.
 
 `defaultBranch` is asked of **every** repository a run touches — the project's, and the specs repo when the specs live
 elsewhere — because the runner refuses on it in any of them. A checkout on a feature branch is reported and does not
@@ -103,28 +136,30 @@ second worktree on a minute later, and Run says so at the time — this is a pre
 An Add's result is shown where Save was pressed. With script it goes into the form's own slot and the page stays
 put, because the Specs root and Worktree links fields are usually what fixes it and saving again re-assesses.
 Without script the redirect carries the same sentence to `/projects` in the query string, where the page renders
-it. The sentence is built once, on the server, so the two modes cannot drift apart. A Settings save is the gap: its
-redirect carries the sentence to `/projects/<name>`, which reads only an error from the query string, so a
-successful save's readiness line reaches no page.
+it. The sentence is built once, on the server, so the two modes cannot drift apart. A Settings save is the gap: a successful one shows no readiness line at
+all. Its redirect carries the sentence to `/projects/<name>`, which reads only an error from the query string, so
+the sentence is dropped. Reload the project page to see where the save left things.
 
 ### What Add finishes itself
 
 Add does itself what a run would otherwise refuse over a minute later.
 
-**The name is the directory's, not the typed one.** A project is discovered as a directory under the projects root, and
-`discoverProjects` reads its name off that entry and out of no manifest — so a project registered under a name that
-differs could never be found again. Where a pick and a typed name disagree, the pick wins. The Name field says what it is actually for:
-naming the directory a **clone** creates. A full path typed by hand is not the picker, mismatch refusal
-and all.
+**The name is the directory's, not the typed one.** A project is discovered as a directory under the projects root,
+and its name is read off that entry and out of no manifest — so a project registered under a name that differs
+could never be found again. Where a pick and a typed name disagree, the pick wins, and the Name field then only
+names the directory a **clone** would create. A path typed by hand instead of picked is taken as given, and an add
+whose typed name and typed path disagree is refused.
 
 **A specs root that is not there is made.** Writing the path into `.aide/config` and then reporting the project as
 unable to run over a directory that is not there is a refusal over a path known the moment it was written. Add
 creates it, with the `archive/` beside it that a run walks. A creation that fails is not a refusal of the add:
 the step says what happened, and the `specsRoot` check below reads the real state either way.
 
-**Nothing is appended to `.git/info/exclude` of a checkout a person edits.** Add writes nothing into it, so there is
-nothing to get out of git. The dashboard's own clone, which nobody edits, lists its derived `.aide/project.yaml` in its
-own `.git/info/exclude`, the way its `.aide/config` is already ignored.
+**Nothing is appended to `.git/info/exclude` of a checkout a person edits.** Add writes nothing into it, so there
+is nothing to get out of git afterwards. Keeping `.aide/config` untracked is the reader's own job, once per
+machine: a personal global gitignore (`core.excludesFile`) covers it in every project without touching any
+project's own `.gitignore`. The dashboard's own clone, which nobody edits, lists its derived `.aide/project.yaml`
+in that clone's `.git/info/exclude`.
 
 **Worktree links are suggested from the checkout's own `.gitignore`.**
 Nothing can derive which gitignored paths a project's commands need, which is why the field exists — but the checkouts
@@ -145,18 +180,6 @@ projects already added lay theirs out — at least two sharing a `<parent>/<proj
 `<parent>/<newName>`, and fewer than two is an example rather than a pattern. Anything that cannot be worked out is left
 blank, never guessed. With exactly one checkout on offer the answer is unambiguous and goes straight into the fields, so
 a browser with no script gets the help too; with several, the proposals ride on the form and the pick fills them in.
-
-Remove takes the project off the allowlist and off this dashboard, and that is all it does: the checkout and the
-specs root stay on disk, untouched. `/projects/<name>/remove` asks the question in a sentence and the press is the
-answer; nothing is typed back.
-
-A server started without `--root` has no projects root to list or add to. Its `GET /projects` redirects to the
-generated `projects.html` instead of rendering an empty listing, and its nav goes on naming that file — an empty
-page would read as "no projects on this machine" rather than "this server was never told where they are". That
-generated file is a redirect to the served page and carries no controls of its own; the only other generated page
-is `about.html`. There is no generated page per project: the served `/projects/<name>` is the only one, because a
-frozen copy beside it was a second page with the same name, one tab away from the live one and always a little out
-of date.
 
 ### A page render never waits on the network
 
@@ -222,8 +245,11 @@ heading stays with a sentence saying it is unavailable.
 
 ### Schedule
 
-This project's scheduled jobs — name, cron expression, prompt and next run — or a line saying nothing is scheduled,
-and under it the form that creates one, with this project already filled in. The tab is drawn even for a project
+A scheduled job runs a prompt against this project on a cron expression, with no spec involved — a report, a
+sweep, a check. The tab lists this project's jobs by name, cron expression, prompt and next run, or says nothing is
+scheduled, and under the list is the form that creates one, with this project already filled in.
+[Running a job on a schedule](running-specs.md#running-a-job-on-a-schedule) has what such a job may do and where
+its output goes. The tab is drawn even for a project
 that is not on the allowlist; its submission is then refused, with the reason on the form.
 
 
@@ -232,10 +258,10 @@ that is not on the allowlist; its submission is then refused, with the reason on
 When a spec is archived, the dashboard lands its code in one of two ways, chosen per project with **Code landing** — in
 the Add form, or under Edit on the project's own page:
 
-| Code landing                        | What happens                                                                                                                                                                                                                                        |
-|-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Merge into `<branch>` (the default) | Archive merges the code branch into the project's main branch, once the project's tests pass on the merged result.                                                                                                                                  |
-| Create a pull request               | Each step that pushes the code branch opens a pull request for it, and archive leaves that pull request open instead of merging, so someone can review the code before it reaches main. The row links to it for as long as the branch is on origin. |
+| Code landing                                | What happens                                                                                                                                                                                                                                        |
+|---------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Merge into the default branch (the default) | Archive merges the code branch into the project's main branch, once the project's tests pass on the merged result.                                                                                                                                  |
+| Create a pull request                       | Each step that pushes the code branch opens a pull request for it, and archive leaves that pull request open instead of merging, so someone can review the code before it reaches main. The row links to it for as long as the branch is on origin. |
 
 Either way, the spec folder itself is archived straight away: its move to `archive/` is merged into the specs
 repository without review. A project that keeps its specs inside its own repository has one branch for both, so there
