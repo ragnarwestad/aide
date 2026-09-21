@@ -171,8 +171,8 @@ rides with the last of them, and the permanent records of a landing attempt — 
 - **`stopReason`** is `timeout`, `provider-limit` or `tests-red`, set with `stopped` and nowhere else.
   `stopped` is deliberately not `failed`: under a tight timeout a time-stop is a common, healthy outcome, and a red
   suite on a landing is work that is not green yet rather than a broken agent.
-- **`errorReason`** is `conflict`, `held-back`, `tests-red` or `unlanded`: the class of the thing standing in the
-  way, for a reader who needs to act on it without matching on the sentence. `conflict` and `unlanded` are
+- **`errorReason`** is `conflict`, `held-back`, `tests-red` or `unlanded`, set when something stands in the way of
+  the job: the class of it, for a reader who needs to act without matching on the sentence. `conflict` and `unlanded` are
   resolved by running `archive` again; `tests-red` by making the suite green and running the step again; and
   `held-back` clears itself on a later tick, with nothing for anyone to press. A landing held for a red suite sets
   it beside `stopReason: tests-red` — the same fact, once as the state's reason and once as its class. It is declared in `src/queue/types.ts` and again
