@@ -15,8 +15,8 @@ make generate                       # write the site to out/
 make serve-local                    # generate + serve out/ on this machine, no service
 ```
 
-`make test` is what a step and a landing run for a change in `dashboard/`: aide's own test command runs pytest and
-then this. It deals the test files out to one bun process per core, leaving two cores free for whatever else the
+`make test` is what a step and a landing run for a change that stays inside `dashboard/` — the manifest scopes
+that directory to this command alone, so pytest does not run for it. It deals the test files out to one bun process per core, leaving two cores free for whatever else the
 machine is doing, and the whole of it takes about a minute on a 14-core machine. It leaves out the round's own tests
 alone: each starts a real test server, and they lose to load on a busy machine without a fault in the change.
 
