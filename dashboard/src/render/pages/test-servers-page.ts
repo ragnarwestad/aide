@@ -87,13 +87,16 @@ export function renderTestServersPage(
   // This codebase's own "nothing to show, show nothing" rule: most of
   // the time no board is running at all, and an empty table reads as
   // broken rather than as the ordinary case.
+  // No `<main>` of its own: `pageShell` already wraps the body in one, and
+  // a second inside it took the frame's padding twice — the table then sat
+  // 32 px inside the frame every other page's content lines up with.
   const body = !rows.length
-    ? `<main>${back}<p class="muted">No test server is running right now.</p></main>`
-    : `<main>${back}<div class="tablewrap"><table class="list testservers">` +
+    ? `${back}<p class="muted">No test server is running right now.</p>`
+    : `${back}<div class="tablewrap"><table class="list testservers">` +
       `<colgroup>${COLUMNS.map((c) => `<col data-col="${c}">`).join("")}</colgroup><thead><tr>` +
       th("ts-project", "Project") + th("ts-spec", "Spec") + th("ts-branch", "Branch") +
       th("ts-status", "Status") + th("ts-address", "Address") + th("ts-stop", "") +
-      `</tr></thead><tbody>${rows.map(row).join("")}</tbody></table></div></main>`;
+      `</tr></thead><tbody>${rows.map(row).join("")}</tbody></table></div>`;
   return pageShell("Test servers", entries, TEST_SERVERS_ROUTE, body, generatedAt, undefined, {
     hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,
   });
