@@ -54,8 +54,8 @@ export const PROJECTS_ROUTE = "/projects";
  *  spec list until the button that opened it became a link to here. */
 export const NEW_SPEC_ROUTE = "/new";
 
-/** Where a project's own page is SERVED (spec 185). The generated
- *  `<slug>.html` is still written and still reachable; this is the one
- *  a live server links to, because it is the one that can answer what
- *  the config file says right now. */
+/** Where a project's own page is SERVED (spec 185) — the only one there
+ *  is. A generated `<slug>.html` beside it was written until then, and
+ *  went because a frozen copy could not answer what the config file says
+ *  right now, while sitting one tab away from the page that could. */
 export const projectPagePath = (name: string): string => `/projects/${encodeURIComponent(name)}`;

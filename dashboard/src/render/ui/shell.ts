@@ -310,13 +310,15 @@ function tabBar(entries: NavEntry[], currentPath: string, lang: Language): strin
   // lists of the same projects were one too many. A project's own page
   // counts as being "in" Projects, so that tab is current there too.
   //
-  // Except the sections (spec 163): a project page is a generated file,
-  // `<slug>.html`, and anything among the rest with an ABSOLUTE path is
-  // a half of the dashboard rather than a project — so it gets a tab of
-  // its own and is not one of the pages Projects is current on. The
-  // shape is what decides, not the label, and `navFromSite()`'s
-  // fallback nav (all `.html`, no root, no archive to read) therefore
-  // draws exactly the two tabs it always drew.
+  // Except the sections (spec 163): anything among the rest with an
+  // ABSOLUTE path is a half of the dashboard rather than a project — so
+  // it gets a tab of its own and is not one of the pages Projects is
+  // current on. The shape is what decides, not the label. A RELATIVE
+  // `<slug>.html` is read as a project page, which no build writes any
+  // more (spec 185 served it instead); the rule stands for
+  // `navFromSite()`, whose fallback nav walks a site directory that may
+  // still hold one, and which therefore draws exactly the two tabs it
+  // always drew.
   const [projectsPage, ...rest] = entries;
   const sections = rest.filter((e) => e.path.startsWith("/"));
   const projects = rest.filter((e) => !e.path.startsWith("/"));
