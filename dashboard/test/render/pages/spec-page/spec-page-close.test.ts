@@ -56,6 +56,17 @@ describe("spec 406, REQ-1: the Close control", () => {
     const html = renderCloseSpecPage("aide", view().specFolder, NAV, GENERATED, {});
     expect(html).not.toContain('<nav class="tabbar">');
   });
+
+  // design-system.md, "What a button's variant means": `danger` is an
+  // action a mistake cannot undo, and closing deletes the spec's code
+  // branch without merging it. Every other `saveCancelActions()` form
+  // saves text and stays `primary`.
+  test("its submit is danger, not the primary every other form's Save is", () => {
+    const html = renderCloseSpecPage("aide", view().specFolder, NAV, GENERATED, {});
+    const save = /<button id="specform-save"[^>]*>/.exec(html)?.[0] ?? "";
+    expect(save).toContain("danger");
+    expect(save).not.toContain("primary");
+  });
 });
 
 describe("spec 406, REQ-2: what Close means is visible page text, not only a hover title", () => {

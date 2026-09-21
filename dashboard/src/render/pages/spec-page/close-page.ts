@@ -40,7 +40,7 @@ export function renderCloseSpecPage(
     `<form method="post" action="/api/queue${back}/close" class="newspecform specform" ` +
       `data-progress="${esc(back)}">` +
     progressDialog(opts.lang ?? "en", "shell.overlayClosing") +
-    `<div class="panelhead"><h2>Close</h2>${saveCancelActions()}</div>` +
+    `<div class="panelhead"><h2>Close</h2>${saveCancelActions("specform", { variant: "danger" })}</div>` +
     `<span class="frow">` +
     // A data attribute, not maxlength: with script off the server's own
     // refusal stays what a too-long reason meets; the script reads it and

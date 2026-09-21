@@ -72,11 +72,15 @@ export function btn(o: {
  *  scripting off — and `spec-form-actions.ts` disables both the instant
  *  it runs, only re-enabling them once the form has seen an edit.
  *  Cancel renders `disabled` from the start: nothing asks it to work
- *  without that script, so there is nothing wrong with it needing one. */
-export function saveCancelActions(prefix = "specform"): string {
+ *  without that script, so there is nothing wrong with it needing one.
+ *
+ *  `o.variant` is for the one form whose submit cannot be undone — Close
+ *  deletes the spec's code branch without merging it — so it carries
+ *  `danger` the way every other irreversible control does. */
+export function saveCancelActions(prefix = "specform", o: { variant?: BtnVariant } = {}): string {
   return (
     `<span class="factions">` +
-    btn({ id: `${prefix}-save`, label: "Save", variant: "primary", pending: "saving…" }) +
+    btn({ id: `${prefix}-save`, label: "Save", variant: o.variant ?? "primary", pending: "saving…" }) +
     btn({ id: `${prefix}-cancel`, label: "Cancel", type: "button", disabled: true }) +
     `</span>`
   );
