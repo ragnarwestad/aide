@@ -9,6 +9,7 @@ route in the source.
 
 - [How to read this page](#how-to-read-this-page)
 - [Reads and actions share a prefix](#reads-and-actions-share-a-prefix)
+- [Adding a route](#adding-a-route)
 - [The routes](#the-routes)
   - [Jobs and the board](#jobs-and-the-board)
   - [Specs](#specs)
@@ -26,7 +27,9 @@ route in the source.
 
 A route is a method and a path shape, so `GET /api/queue` and `POST /api/queue` are two rows. In a path, `<id>` is a
 job's id, `<project>` a project's name, `<spec>` a spec's folder and `<name>` a schedule's name. A row can end in a query
-string (`?startTestServer=1`) where the query changes what the route does.
+string where the query changes the row's own Kind: `?startTestServer=1` starts something, so it has a row
+of its own beside the plain `GET`. A query that only changes what comes back — `?rows=`, `?tab=` — stays
+in the Takes column of the one row.
 
 | Column   | Says                                                                                                                                     |
 |----------|------------------------------------------------------------------------------------------------------------------------------------------|
@@ -44,18 +47,21 @@ the repository shows are the evidence: `aide-emit-run` posts to `/api/aide-run`,
 repository shows, not a census of every caller.
 
 **How an action answers.** Almost every `POST` reads its body as JSON or as a form
-(`application/x-www-form-urlencoded`), up to 4,096 bytes (65,536 for `save` and `tracking`). A caller that sends
+(`application/x-www-form-urlencoded`), up to 4,096 bytes (65,536 for `tick`, `save` and `tracking`). A caller that sends
 `Accept: application/json` gets JSON: `{ ok: true, … }`, or `{ error }` with 400 (409 for a refused tick or cancel, 404
 for an unknown job). Anything else gets a 303 redirect back to the page the press came from. A body over the cap gets 413
 `{ error: "payload too large" }`, whatever the route. The wrong method on a known path gets 405
-`method not allowed`, and an unknown project or spec gets a plain-text 404 before the route reads
-anything. A project that was added, changed or removed answers 400 when any step of that change
+`method not allowed` — except the three redirects `/queue`, `/specs` and `/queue/<rest>`, which answer
+the same 302 for every method — and an unknown project or spec gets a plain-text 404 before the route
+reads anything. A project that was added, changed or removed answers 400 when any step of that change
 failed, rather than 200 with `ok: false`. Where a row says otherwise, the row is right: `POST /api/queue/projects/<project>/test-server`
 answers only a redirect or an HTML page, and the spec `update`, `save` and `tracking` routes redirect whatever `Accept`
 says, apart from a 400 for a malformed body.
 
 A row's wording can go stale while its path stays real: the test checks that a route and a row exist, not what the row
-says. Each family below names the source file that answers it.
+says. It does check the row's shape — every row must fill Takes, Answers and Made for, Made for must be one of the three
+words, and a `POST` row must be an `action`. `HEAD` gets no rows: the static files answer it, and their `GET` rows stand
+for both. Each family below names the source file that answers it.
 
 ---
 
@@ -72,12 +78,25 @@ has the `Host` allowlist, the `Origin` and `Sec-Fetch-Site` check, and why a req
 Nothing in that rule tells a reading caller from an acting one. The dashboard asks for no sign-in, so a caller admitted
 to `GET /api/queue` is admitted to `POST /api/queue` as well.
 
-**Adding a route puts it behind that rule, with one exception.** `checkRequest`
-(`src/serve/serve-helpers/request-guard.ts`) runs in front of every route, so a new `POST` is covered the moment it
+---
+
+## Adding a route
+
+**A path reaches a handler through one `??`-chain.** `handleRoutes()` in `src/serve/routes/index.ts` tries each themed
+route file in turn, and each returns `null` for a path that is not its own. A new route is a new check inside one of
+those files, and the file it belongs in is the one this page names for its family.
+
+**The order of that chain is load-bearing.** Several routes work only because a more specific one is tried first —
+`job-detail.ts` matches a single path segment as a job id, and would swallow `/api/queue/create` if it came earlier.
+A new route goes in without reordering the chain; moving a file up or down it means re-checking every regex above and
+below for overlap.
+
+**The request guard covers a new route already, with one exception.** `checkRequest`
+(`src/serve/serve-helpers/request-guard.ts`) runs in front of every route, so a new `POST` is behind it the moment it
 exists. A new `GET` that changes something is not: `changesSomething()` in that file decides which requests need the
 `Origin` check, and it asks for a method other than `GET`, `HEAD` and `OPTIONS`, or the literal query
 `startTestServer=1`. A second `GET` that changes something has to be named there by hand, or any web page can trigger
-it.
+it. Nothing about a `read` in the new route's row will say so.
 
 Two `GET`s are not plain reads, and the Origin check counts both as requests that change something:
 
