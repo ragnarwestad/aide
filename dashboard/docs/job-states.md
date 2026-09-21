@@ -72,11 +72,12 @@ queued `create` or `archive` step before any queued `analyze` or `implement`, ol
   archived, and tries again next tick. The state does not move.
 - Ends an `archive` whose spec still has an unticked acceptance row `done`, before anything else and without
   taking a slot, with the result `core/scripts/aide-archive-spec`'s own pre-check would have written
-  (`terminalReason: acceptance-criteria-unticked`, no process, no cost). The row reads the one reason, "archive held
-  back", and a user presses Archive once the rows are ticked — a tick never starts it. It is judged only on the
+  (`terminalReason: acceptance-criteria-unticked`, no process, no cost). The row's badge reads **Ready** — unticked
+  criteria are the spec's own next step — and the notice line under it carries the reason. A user presses Archive
+  once the rows are ticked; a tick never starts it. It is judged only on the
   BRANCH copy read since the last tick (`archiveWithOpenAcceptance`, `schedules/blocked.ts`); an unread or stale
   answer starts the step, and the script's own pre-check decides.
-  The row's own "archive held back" is worked out afresh on every render, never remembered from a refusal, and it
+  That reason is worked out afresh on every render, never remembered from a refusal, and it
   asks the BRANCH's copy of `4-status.md` before the disk's (`spec-lookup.ts`): a tick on a spec whose
   `aide/<folder>` is open lands there, and the disk copy stays unticked until archive lands. It says nothing while
   a round is under way (`row-marks.ts`) — a reader whose own run is going has nothing to go and tick.
@@ -90,8 +91,10 @@ queued `create` or `archive` step before any queued `analyze` or `implement`, ol
   the other windows' figures, and the plan or refused credit where the tool names them. The runner reads it from
   claude's `rate_limit_event` and from the session file Codex keeps for the thread (a Codex turn is a
   `provider-limit` only when that file shows a full window); opencode has no reader. The row and the Logs tab say it
-  as one sentence in place of the runner's own summary. A stopped step still lands what it did, and that landing leaves
-  the job's `error` in place: it is the reason the step stopped, not a fault the landing resolved.
+  as one sentence in place of the runner's own summary. A stopped step lands what it pushed outside the code root — a
+  `timeout` or `provider-limit` step, with something pushed, and no code root among it; a stopped `implement` whose
+  code branch was pushed lands nothing, and that code waits for `archive`. A landing that does run leaves the job's
+  `error` in place: it is the reason the step stopped, not a fault the landing resolved.
 - Any other failure gives `failed`, with `error` and, when the runner found a merge conflict at step start,
   `errorReason: "conflict"`.
 - Success on the last step gives `done`. Success with steps left gives `queued` again, with `stepIndex` advanced.
@@ -102,8 +105,9 @@ empty: `poll()` while the server runs ("the run vanished without leaving a resul
 server restarted while this step was running"). A job whose process is gone but whose result IS on disk is completed
 normally from that file — nothing about a restart is guessed at.
 
-**Cancelled** comes from `POST /api/queue/<id>/cancel` alone. It sends `SIGTERM` to the job's process group when there
-is one and writes `cancelled`. A job that has already finished is refused with 409 and keeps its state: `done`,
+**Cancelled** comes from `POST /api/queue/<id>/cancel`, and from the test board's own control, which cancels every
+queued and running job of a project at once. Both write `cancelled` first and then send `SIGTERM` to the job's
+process group, where there is one. A job that has already finished is refused with 409 and keeps its state: `done`,
 `failed`, `stopped` and the rest are history, and Cancel does not rewrite history.
 
 **Done to failed** is the one transition made after the fact. The step succeeded, so `complete()` has already written
@@ -131,9 +135,10 @@ scripts the merge runs for it are stopped, nothing is pushed, and `landing-cance
 Three fields say something the state alone does not, and each is read by the page as if it were one.
 
 - **`landing`** is set on a job while its finished step's branch is being merged, and cleared once the whole landing
-  promise settles. While ANY job carries it the runner starts nothing, because a landing writes to the shared main
-  checkout that no worktree isolates. It is never restored from the persisted mirror: a flag that survived a restart
-  would hold the queue shut with nothing left to clear it. **An `onLanded` callback runs before its own job's flag is
+  promise settles. It holds back that job alone — its own next step waits for its merge — and nothing else on the
+  board: the landing merges in a worktree of its own and touches the shared checkout for one fast-forward at the
+  end. It is never restored from the persisted mirror: a flag that survived a restart would hold that job shut with
+  nothing left to clear it. **An `onLanded` callback runs before its own job's flag is
   cleared.** `Runner.complete()` in `src/queue/runner/index.ts` is synchronous: it starts the landing work (`onStepDone`,
   e.g. `landArchivedSpec` for `archive`), writes `landing: true` onto the job's own store row, and only clears that
   flag in a `.then()` once the WHOLE landing promise settles — including whatever `onLanded` itself does. So a callback
@@ -157,17 +162,20 @@ Three fields say something the state alone does not, and each is read by the pag
   re-running `archive` resolves the conflict and the unlanded branch. It is declared in `src/queue/types.ts` and again
   in `src/render/ui/job-state/types.ts`,
   which do not import each other; `test/queue/requests/parsing-schedule-and-errors.test.ts` reads both as text and asserts they agree.
-  `error` beside it is what a reader is told, present on `stopped`, `failed` and `interrupted`, and on a `queued` job
-  that is held back. It is a `Sentence`, or several: a message key and its values, translated where it is drawn, never
+  `error` beside it is what a reader is told: always written on `failed`, on `interrupted`, on a `queued` job that
+  is held back, and on a landing held for a red suite. A `timeout` or `provider-limit` stop passes the run's own
+  error through, so a result file that recorded none leaves it unset. It is a `Sentence`, or several: a message key and its values, translated where it is drawn, never
   a finished string the queue made up.
 
 ## What the page makes of it
 
-The row's first line is the verb for what is happening or the resting state and what is next — never the bare word.
-`running` reads as the phase's own verb ("analyzing"); `queued` as "<phase> n/total" — its place among every job waiting
-its turn, off the same order the runner picks — or, held back, the reason; `done`
-as "ready for <next phase>" or "done — nothing waiting on you"; `stopped` as "stopped — 45 min" or
-"stopped — provider limit"; `failed` with `errorReason` as the conflict or the unlanded branch
-and the button that re-runs `archive`. `cancelled` is drawn amber like `stopped` — a step somebody stopped by hand, not a failure and not a step that never ran; `interrupted` is
-grouped with `failed`. The words themselves live in `src/render/ui/job-state/` and are described on
+The row's badge is short by design, and what it does not say is on the notice line under it. A running job reads
+**Running**; a queued one **Queued 3/11** — its place among every job waiting its turn, off the same order the
+runner picks — or "<phase> queued" when it has no position, or **Held back**. Once nothing is running the badge is
+one word: **Ready**, **Done** or **Stopped**, and `failed`, `cancelled` and `interrupted` are the bare word too.
+
+The longer forms — "stopped — 45 min", "stopped — provider limit", "stopped — tests red" — exist, but on the job's
+own detail page, on the phase lines and in the schedule report, not on the row. `cancelled` is drawn amber like
+`stopped`, since it is a step somebody stopped by hand rather than a failure; `interrupted` is grouped with
+`failed`. The words themselves live in `src/render/ui/job-state/` and are described on
 [The specs list and the spec page](the-specs-list.md#the-state-column).

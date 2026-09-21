@@ -456,9 +456,9 @@ export async function landBranch(
       }
     }
   } catch (err) {
-    // Never rethrown: the `landing` flag holds the WHOLE queue, and
-    // the runner clears it when this promise settles — which it must
-    // do, however this went.
+    // Never rethrown: the `landing` flag holds this job's own next
+    // step, and the runner clears it when this promise settles — which
+    // it must do, however this went.
     const rawMsg = err instanceof Error ? err.message : String(err);
     const note = what.failedNote(rawMsg);
     const patch = {

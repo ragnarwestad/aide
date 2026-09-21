@@ -413,9 +413,9 @@ export class Runner {
       // "always clear the flag" shape already used below, extended to
       // also close out this step's own duration at the instant its
       // work is actually done. Nothing else can extend `job.results`
-      // for THIS job before this fires: `Runner.tick()` starts no job
-      // at all while any job is landing (`docs/job-states.md`, "Beside
-      // the state"), so `resultIndex` still names the same entry.
+      // for THIS job before this fires: `Runner.tick()` skips a job
+      // that has `landing` set (`docs/job-states.md`), so it cannot
+      // start its next step and `resultIndex` still names the entry.
       const settleDuration = (): void => {
         const current = this.o.store.get(job.id);
         const entry = current?.results[resultIndex];
