@@ -23,14 +23,16 @@ DIAGRAM_EDGE_RE = re.compile(r"^\s*(\w+)\s*-->\s*(\w+)\s*:\s*(.+?)\s*$")
 # name — this maps the diagram's wording to the table's event vocabulary
 # for the specific six edges the diagram draws today.
 DIAGRAM_LABEL_TO_EVENT = {
-    "create lands, job renamed to the folder": None,  # the entry edge, excluded
-    "analyze completes and lands": "analyze",
-    "implement completes — code stays on its branch": "implement",
-    "archive moves the folder and lands every repo": "archive",
-    "reopen (a new work round)": "reopen",
-    "reset (same round discarded)": "reset",
-    "reset": "reset",
-    "close says the spec will not work": "close",
+    "create": None,  # the entry edge, excluded
+    "analyze": "analyze",
+    "analyze again": "analyze",
+    "implement": "implement",
+    "implement again": "implement",
+    "archive": "archive",
+    # One edge for both ways back to `created`: `reset` keeps the phase it
+    # is in, so the move drawn here is `reopen`'s.
+    "reopen with reset": "reopen",
+    "close": "close",
 }
 
 
@@ -51,6 +53,12 @@ def _diagram_edges(text):
             continue
         src, dst, label = m.groups()
         if src == "[*]":
+            continue
+        # A loop back to the same phase is a legal rerun, not a move
+        # between phases — `_table_edges` leaves those out for the same
+        # reason, so the diagram's own must go too or the two sets can
+        # never match.
+        if src == dst:
             continue
         event = DIAGRAM_LABEL_TO_EVENT.get(label)
         assert event is not None, f"unrecognized diagram edge label: {label!r}"
@@ -98,14 +106,14 @@ def test_the_parser_tolerates_a_reformatted_but_equivalent_diagram():
     reformatted = """
 ```mermaid
 stateDiagram-v2
-    [*]     -->     created: create lands, job renamed to the folder
-    created --> analyzed: analyze completes and lands
+    [*]     -->     created: create
+    created --> analyzed: analyze
 
-    analyzed --> implemented: implement completes — code stays on its branch
-    implemented --> archived: archive moves the folder and lands every repo
-    archived --> created: reopen (a new work round)
-    analyzed --> created: reset (same round discarded)
-    implemented --> created: reset
+    analyzed --> implemented: implement
+    implemented --> archived: archive
+    archived --> created: reopen with reset
+    closed --> created: reopen with reset
+    implemented --> closed: close
 ```
 """
     edges = _diagram_edges(reformatted)

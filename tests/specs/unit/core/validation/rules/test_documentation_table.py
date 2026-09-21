@@ -25,7 +25,11 @@ def table_rows() -> list[tuple[str, str]]:
     content = CLAUDE_MD.read_text(encoding="utf-8")
     section = content.split("## Reading the documentation", 1)[1]
     section = section.split("\n## ", 1)[0]  # stop at the next heading
-    return re.findall(r"^\|\s*([^|]+?)\s*\|\s*`([^`]+)`\s*\|$", section, re.MULTILINE)
+    # The row carries a third column ("Changing the code") since the table
+    # said who each page is for, and may gain a fourth: the question and
+    # the page are the two this reads, and the rest of the line is not its
+    # business.
+    return re.findall(r"^\|\s*([^|]+?)\s*\|\s*`([^`]+)`\s*\|.*$", section, re.MULTILINE)
 
 
 def keyword_stems(question: str) -> set[str]:

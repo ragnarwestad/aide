@@ -58,17 +58,8 @@ describe("the waiting layer is centred (AC-1, AC-2, AC-6)", () => {
   const SIZES: [string, number, number][] = [
     ["a phone", 375, 800], ["a phone sideways", 800, 375], ["a desktop window", 1280, 900],
   ];
-  // The spec page is left out at a phone's width, and only there: its
-  // Description editor's toolbar is 713 px wide at a 375 px screen, so the
-  // page is wider than the screen, the layout viewport grows to hold it,
-  // and a fixed dialog centres in THAT — 178 px off the screen's centre.
-  // Nothing about the layer: the spec page has not been adapted to a phone
-  // yet (narrow.css covers the specs list, the header, the phase lines,
-  // the acceptance fold and the project settings). It comes back here when
-  // it has been.
   for (const path of ["/", `/specs/aide/${FOLDER}`]) {
     for (const [name, w, h] of SIZES) {
-      if (path !== "/" && w < 500) continue;
       test(`${path} at ${name}: centred on both axes (AC-2)`, async () => {
         const page = await openLayer(path, w, h, "Deploying");
         expectCentred(await box(page), w, h);

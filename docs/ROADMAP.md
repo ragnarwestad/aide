@@ -14,7 +14,6 @@ New contributors (human or AI): read this first.
   - [From OpenGeni](#from-opengeni)
 - [Phase 5: The dashboard — toward spec-driven, observable runs](#phase-5-the-dashboard--toward-spec-driven-observable-runs)
   - [Parked: one project, several code repositories](#parked-one-project-several-code-repositories)
-  - [The pages a phone has not been given yet](#the-pages-a-phone-has-not-been-given-yet)
 
 ---
 
@@ -275,26 +274,3 @@ The agreed shape:
   on origin, and names the repositories still waiting.
 - No merge across repositories at once is needed: the order and the
   review are the team's.
-
-### The pages a phone has not been given yet
-
-`narrow.css` covers the specs list, the header and its menus, the phase
-lines, the acceptance fold, the project settings and the Test servers
-table. The spec page is not in it, and one case on it is wider than a
-phone: the Description tab of a spec that can be EDITED, where the
-markdown editor mounts and draws a 713 px toolbar on a 375 px screen. The
-page then scrolls sideways, and a fixed element centres in the layout
-viewport rather than the screen — which is how the waiting layer came to
-sit 178 px off centre there, the symptom that found this.
-
-An archived spec shows the viewer instead and fits: measured on the board
-at 375 px, its page is exactly 375 px wide with nothing over the edge. So
-this is not "the spec page on a phone" — it is the editor on it.
-
-What it takes: the editor's toolbar has to wrap to more rows, or the
-editor has to be held inside the page's width. It is a third-party
-component (toastui), so the rule belongs in `narrow.css` beside the
-others rather than in the component.
-
-Until then `test/e2e/waiting-layer-is-centred.test.ts` leaves the spec
-page out at phone width, and only there.
