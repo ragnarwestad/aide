@@ -301,8 +301,8 @@ const heldBackFor = (step: string, t: SpecTarget | undefined): { heldBack?: { re
  *  can go wrong.
  *
  *  The disagreement is asked per step, not per spec: one line of one
- *  file covers all five, but the row has a line per phase and the same
- *  sentence down all five of them is the duplication spec 143 already
+ *  file covers all four, but the row has a line per phase and the same
+ *  sentence down all four of them is the duplication spec 143 already
  *  took off this page once. */
 const historyFor = (
   step: string,

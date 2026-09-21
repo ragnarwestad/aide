@@ -50,9 +50,10 @@ export class CheckoutEnsurer {
     return this.running.get(project) ?? this.start(project);
   }
 
-  /** The one entry that may CLONE: a press that adds a project, or saves
-   *  the specs root a clone would be made of. Never joined to a run
-   *  already going, because that one was told not to clone. */
+  /** The one entry that may CLONE: a press that adds a project, or a
+   *  save of the project's settings on its own page, whichever field
+   *  changed. It clones only a checkout that is missing. Never joined to
+   *  a run already going, because that one was told not to clone. */
   make(project: string): Promise<DashboardCheckout | undefined> {
     return this.start(project, true);
   }
