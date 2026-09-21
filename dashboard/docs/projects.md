@@ -55,7 +55,7 @@ written into the checkout — the name, the description, worktree links, code la
 settings file, `~/.aide/dashboard/checkouts/<name>/settings.yaml`, in the manifest's own format. A manifest the checkout already tracks is the team's and
 is never written to; Add says so in its manifest step and writes nothing for the links and the landing. An untracked
 `.aide/project.yaml` in the checkout (a draft from `/aide-manifest`) is left as it is and seeds the settings file, so what
-it said is not lost. Filling in the rest is `/aide-manifest`'s job afterwards, and the form says so.
+it said is not lost.
 
 **Two homes for a project's manifest keys, one winner.** "Tracked" means `git ls-files --error-unmatch
 .aide/project.yaml` in the checkout answers yes (exit 0); exit 1 is not tracked, and any other answer means git cannot

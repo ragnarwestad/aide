@@ -254,14 +254,15 @@ export function renderAddProjectPage(
   const body =
     backLink("/projects", "Add project") +
     (opts.error ? rowMessage("failed", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
-    // The copy 1-description.md asks for, before the form rather than
-    // in a doc nobody has open: what is written here is the least a
-    // manifest can be, and the rest is a separate job.
+    // Where what this form collects is kept, before the form rather
+    // than in a doc nobody has open. It says nothing about a project's
+    // stack, deployment or docs: the dashboard neither asks for those
+    // nor shows them anywhere, and a line sending a reader off to fill
+    // them in belongs where something reads them.
     rowMessage(
       "info",
       "The dashboard keeps the name and the description in its own settings file — nothing is written " +
-        "into the project's repository. Run /aide-manifest in the project afterwards to fill in the stack, " +
-        "deployment and docs.",
+        "into the project's repository.",
       { tag: "p" },
     ) +
     `<form method="post" action="/api/queue/projects" class="newspecform addprojectform">` +

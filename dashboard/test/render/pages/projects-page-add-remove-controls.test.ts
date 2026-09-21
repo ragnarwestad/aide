@@ -106,9 +106,13 @@ describe("the Add page", () => {
 
   test("it says the dashboard keeps the settings itself and writes nothing into the project (AC-1)", () => {
     const html = add();
-    expect(html).toContain("/aide-manifest");
     expect(html).toContain("nothing is written into the project's repository");
     expect(html).not.toContain("A minimal .aide/project.yaml is written");
+    // And it sends nobody off to fill in a stack, a deployment or a
+    // docs list: the dashboard does not ask for them and shows them
+    // nowhere, so the Add page is not where that belongs.
+    expect(html).not.toContain("/aide-manifest");
+    expect(html).not.toContain("deployment and docs");
   });
 
   test("a refusal carried back in the query string is shown here", () => {
