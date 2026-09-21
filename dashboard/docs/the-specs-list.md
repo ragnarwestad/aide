@@ -183,7 +183,7 @@ A phase that is only queued, or that nothing touched, has no ›.
 **Each criterion names the tests that prove it**, here and on the Status tab: the tests whose names carry its
 AC-id, from `ac-coverage.json`, which the runner writes into the spec's folder after a completed implement
 (`core/scripts/lib/run-spec-ac-coverage.sh`). Only lines the branch added count, since `AC-1` is in the tests of
-many specs. A browser test is marked as run in implement, since the merge's test suite leaves it out. A criterion
+many specs. A criterion
 no test names gets an amber line saying so, unless analyze's Notes cell already says `Not tested:` and why.
 
 ## Plain forms first

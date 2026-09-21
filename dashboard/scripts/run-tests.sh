@@ -13,9 +13,12 @@
 # the slow files of one directory are neighbours in that list, so they
 # land on different workers, and a new file joins by existing.
 #
-# `test/e2e` and `test/round` stay out, as they were out of the single
-# command this replaces: they start a real browser and a real board, and
-# they have `make test-e2e` and `make test-slow`.
+# `test/round` stays out: each of its tests starts a real board and does
+# real git work, and on a machine running other suites they lose to load
+# at any per-test limit. `make test-slow` is theirs. The browser tests
+# are IN, since spreading them over the workers took them from 2 min 15 s
+# to 19 s and took with them the cascade that made them flaky — one
+# process running all 22 files killed its own browser between them.
 set -o pipefail
 cd "$(dirname "$0")/.." || exit 1
 
@@ -35,8 +38,7 @@ WORKERS=${AIDE_TEST_WORKERS:-$(( CPUS > 3 ? CPUS - 2 : 1 ))}
 if [ "$#" -gt 0 ]; then
   files=$(find "$@" -name '*.test.ts' | sort)
 else
-  files=$(find src test -name '*.test.ts' \
-    -not -path 'test/e2e/*' -not -path 'test/round/*' | sort)
+  files=$(find src test -name '*.test.ts' -not -path 'test/round/*' | sort)
 fi
 [ -n "$files" ] || { echo "no test files found"; exit 1; }
 

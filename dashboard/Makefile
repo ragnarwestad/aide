@@ -15,32 +15,28 @@
 # which is the case here.)
 export AIDE_DASH_HOST
 
-# The gate a merge runs, and the one to run while working: everything
-# except the browser tests below.
+# What a merge runs, and what to run while working: everything but the
+# round's own tests, which `make test-slow` keeps.
 #
-# `test/e2e` is left out because those are the only tests that can fail
-# with nothing wrong. They drive a real Chromium and measure what it
-# painted, so on a host running several Claude sessions and another
-# suite they lose to load and stop a merge that carried no fault --
-# three times on 2026-09-05, once with 201 dangling processes killed at
-# the end of the run. The other four thousand only compute, and never
-# noticed. They also answer a different question from the one a merge
-# asks: whether the page looks right, not whether the change broke
-# something.
+# The browser tests are part of it. They were out while one bun process
+# ran all 22 of them and killed its own browser between files — "browser
+# has been closed", three merges stopped on 2026-09-05 with nothing
+# wrong. Spread over one process per core they take 19 seconds and that
+# cascade is gone. If they start stopping merges under load again, take
+# them back out: they are the only tests here that can fail with nothing
+# wrong.
+#
 # The type check first, since bun transpiles without type-checking, then
 # the suite over one bun process per core. The script holds the per-test
-# limit, the workers and the two directories that stay out of this target
-# — `make test-e2e` and `make test-slow` are those two. Comments live here
+# limit, the workers and the directory that stays out. Comments live here
 # rather than in the recipe: make echoes a recipe line even when it is a
 # comment, and five of them buried the output.
 test:
 	bunx tsc --noEmit
 	bash scripts/run-tests.sh
 
-# The browser tests, on their own, for a quiet machine. Run them when
-# layout or the page's own behaviour changed -- they are not part of
-# `test`, so a landing never runs them. CI's dashboard job does, as its
-# own step after `make test`.
+# The browser tests on their own, for when layout is what changed and the
+# rest would only be noise. `make test` runs them too.
 test-e2e:
 	bash scripts/run-tests.sh test/e2e
 

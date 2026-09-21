@@ -81,6 +81,8 @@ jobs:
       - run: cd dashboard && bun install
       # The e2e suite's own browser (REQ-6) — a machine-level cache, not
       # something `bun install` reaches on its own.
+      # `make test` runs the browser tests too, so the browser is
+      # installed before it rather than for a step of its own.
       - run: cd dashboard && bunx playwright install chromium
       # make test, not bun test: bun test transpiles without type-checking,
       # so it alone says nothing about types. The Makefile runs
@@ -91,11 +93,6 @@ jobs:
       # The round's own tests start real boards and are left out of `make
       # test` because they lose to load on the serving host; they run here as their own step.
       - run: cd dashboard && make test-slow
-      # The browser tests are not in `make test` on purpose: that target
-      # is also the landing's gate on the serving host, where they lose
-      # to load. This runner is quiet, and it has the browser from the
-      # step above — so this is where they run.
-      - run: cd dashboard && make test-e2e
 
   markdownlint:
     name: markdownlint

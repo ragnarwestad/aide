@@ -6,8 +6,9 @@ pair, and each is a silent failure if it drifts:
 
 - the target type-checks before it tests, since bun transpiles without
   type-checking;
-- the two directories that start a real browser and a real board stay out
-  of it, because they have targets of their own;
+- the round's own tests, which start a real board each, stay out of it —
+  they have a target of their own, and the browser tests do not: those
+  run with everything else;
 - the per-test limit stays generous enough for a git-backed test running
   beside another job's suite.
 """
@@ -52,17 +53,22 @@ class TestTheTestTarget:
             "`make test` must run dashboard/scripts/run-tests.sh, which is " \
             "where the groups and the per-test limit live"
 
-    def test_the_browser_and_board_suites_keep_their_own_targets(self, makefile):
+    def test_the_browser_and_board_suites_keep_targets_of_their_own(self, makefile):
+        """Both can still be run alone; only the round's is left out of `test`."""
         assert "test/e2e" in _target(makefile, "test-e2e")
         assert "test/round" in _target(makefile, "test-slow")
 
 
 class TestTheRunnerScript:
-    def test_it_leaves_the_browser_and_board_suites_out(self, runner_script):
-        assert "-not -path 'test/e2e/*'" in runner_script, \
-            "test/e2e must stay out of the command a landing runs"
+    def test_it_leaves_the_round_s_own_tests_out(self, runner_script):
         assert "-not -path 'test/round/*'" in runner_script, \
             "test/round must stay out of the command a landing runs"
+
+    def test_it_runs_the_browser_tests(self, runner_script):
+        assert "-not -path 'test/e2e/*'" not in runner_script, \
+            "the browser tests belong to the command a landing runs: they " \
+            "are 19 s over the workers, and a spec that lands with its own " \
+            "browser test red is what leaving them out allowed"
 
     def test_it_collects_the_tests_under_src_as_well(self, runner_script):
         assert re.search(r"find src test ", runner_script), \
