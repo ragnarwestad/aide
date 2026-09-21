@@ -46,7 +46,6 @@ describe("spec 157: the row draws one action, on its caption line", () => {
       {
         runnerAvailable: true,
         targets,
-        projects: ["aide"],
         ...(open ? { filter: { open: openKeys(list, targets) } } : {}),
         ...opts,
       },
@@ -338,7 +337,6 @@ describe("spec 439: a recorded phase choice survives the render (AC-1 - AC-5)", 
       {
         runnerAvailable: true,
         targets,
-        projects: ["aide"],
         filter: { open: openKeys([], targets) },
         ...o,
       },
@@ -439,7 +437,6 @@ describe("spec 161: the row's one action is primary", () => {
       {
         runnerAvailable: true,
         targets,
-        projects: ["aide"],
         filter: { open: openKeys(list, targets) },
       },
       Date.parse("2026-08-21T12:00:00Z"),
@@ -516,7 +513,6 @@ describe("spec 496: the caption line's total is the head row's own", () => {
       {
         runnerAvailable: true,
         targets,
-        projects: ["aide"],
         modelChoices: [{ name: "sonnet" }],
         filter: { open: `aide/496-total` },
         ...extra,

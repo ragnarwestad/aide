@@ -110,7 +110,6 @@ Answered by the files under `src/serve/routes/spec-edit/`.
 | `POST /api/queue/specs/<project>/<spec>/update`           | action | nothing; pulls the spec's repository from its remote  | a redirect back to the spec page, with a notice | form     |
 | `POST /api/queue/specs/<project>/<spec>/save`             | action | the file's text, and the sha it was read at           | a redirect; 400 for a malformed body            | form     |
 | `POST /api/queue/specs/<project>/<spec>/model`            | action | step and model                                        | `{ ok }`, or a 303 to the spec page             | form     |
-| `POST /api/queue/specs/<project>/<spec>/effort`           | action | step and effort                                       | `{ ok }`, or a 303 to the spec page             | form     |
 | `POST /api/queue/specs/<project>/<spec>/close`            | action | a reason                                              | `{ ok, job }`, or a 303; 400 without a reason   | form     |
 | `POST /api/queue/specs/<project>/<spec>/test-server`      | action | nothing                                               | `{ ok }`, or a 303 to the waiting page          | form     |
 | `POST /api/queue/specs/<project>/<spec>/test-server/stop` | action | nothing                                               | `{ ok }`, or a 303 to the spec page             | form     |

@@ -100,7 +100,6 @@ export async function specsPages(
       // phase picker and need nothing here.
       pendingModels: ctx.queue.pendingModels,
       // The sibling of pendingModels, for an effort level (spec 364).
-      pendingEffort: ctx.queue.pendingEffort,
       // Which phases a reader chose — at create time, or at a later Run
       // — recorded so a fresh render shows that choice instead of
       // re-deriving one from history alone (spec 439).
@@ -110,7 +109,6 @@ export async function specsPages(
       // string with the reason itself, so it survives the
       // five-second row swap the same way the filter does.
       errorSpec: url.searchParams.get("errorSpec") ?? undefined,
-      projects: [...new Set(liveTargets.map((t) => t.project))].sort(),
       // The raw allowlist, not the discovered set: a project whose
       // FIRST spec this form exists to make has nothing on disk to be
       // discovered from, so deriving these from `targets()` would

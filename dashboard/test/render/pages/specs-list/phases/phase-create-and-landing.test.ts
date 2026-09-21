@@ -159,7 +159,6 @@ describe("spec 116: create is the first phase line", () => {
     const archived: ArchivedSpecView = {
       project: "aide",
       folder: "116-archived-free",
-      archivedAt: "2026-09-10T09:00:00Z",
       done: ["create", "analyze", "implement", "archive"],
       models: {},
       phaseOutcomes: { create: { cost: 0, timeSpentMs: 1000 } },

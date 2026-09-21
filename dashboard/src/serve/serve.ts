@@ -125,7 +125,6 @@ export function createServer(opts: ServerOptions) {
   const queue = new QueueStore({
     mirrorPath: opts.queueMirrorPath,
     pendingModelsPath: opts.pendingModelsPath,
-    pendingEffortPath: opts.pendingEffortPath,
     pendingStepsPath: opts.pendingStepsPath,
     defaults: opts.queueDefaults ?? QUEUE_DEFAULTS,
     resolve: resolveProject,

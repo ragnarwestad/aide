@@ -7,12 +7,6 @@ import { t, type Language } from "../../../i18n";
 import { specPagePath } from "../spec-page";
 import { CLOSED_STATE, FILTER_FIELD_PREFIX, FILTER_KEYS, isArchivedRow, type SpecGroup, type SpecsFilter } from "./data-model";
 
-/** What the date cell says when the spec carries no stamp and git
- *  cannot date its folder either — a folder copied in rather than
- *  committed. Spelled out here so the row and its test cannot word the
- *  same absence differently. */
-export const NO_DATE = (lang: Language): string => t(lang, "list.dateUnknown");
-
 /** The mark a row carries — live or archived — when its code is on a
  *  branch waiting on a pull request (spec 220, spec 335): the same word
  *  either way, since it is the same fact from a reader's chair — code is

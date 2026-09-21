@@ -97,6 +97,6 @@ export function specFileViews(ctx: SpecViewsContext, dir: string): SpecFileView[
  *  shrinking minority. */
 
 // The three families that used to live here as well.
-export { archivedAt, archivedSteps, archivedModels, archivedPhaseOutcomes, archivedSpecRows } from "./archived.ts";
+export { archivedSteps, archivedModels, archivedPhaseOutcomes, archivedSpecRows } from "./archived.ts";
 export { specPageView } from "./spec-page.ts";
 export { jobDetailView } from "./job-detail.ts";

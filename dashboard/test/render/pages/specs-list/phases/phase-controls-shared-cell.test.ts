@@ -58,7 +58,6 @@ describe("spec 192: the phase line's controls share one cell", () => {
       {
         runnerAvailable: true,
         targets,
-        projects: ["aide"],
         modelChoices: BOTH,
         filter: { open: openKeys(list, targets) },
         ...opts,

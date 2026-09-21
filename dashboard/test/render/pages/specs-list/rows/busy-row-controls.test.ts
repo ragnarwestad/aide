@@ -41,7 +41,6 @@ describe("spec 105: a busy row offers only what its state allows", () => {
         runnerAvailable: true,
         targets,
         filter: { open: openKeys(list, targets) },
-        projects: ["aide", "paceup"],
         modelChoices: [{ name: "sonnet" }],
         ...opts,
       },

@@ -90,7 +90,6 @@ const archived = (folder: string, over: Partial<ArchivedSpecView>): string =>
       {
         project: "aide",
         folder,
-        archivedAt: "2026-08-22",
         done: ["create", "analyze", "implement", "archive"],
         models: {},
         phaseOutcomes: {},

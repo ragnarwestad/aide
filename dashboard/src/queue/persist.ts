@@ -6,7 +6,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "
 import { asRunnableTool } from "./steps.ts";
 import { dirname } from "node:path";
 import { applyEdits, modify, parse } from "jsonc-parser";
-import { EFFORT_LEVELS, JOB_STATES, WORKFLOW_STEPS, type WorkflowStep } from "./steps.ts";
+import { JOB_STATES, WORKFLOW_STEPS, type WorkflowStep } from "./steps.ts";
 import { mergeBranchRefs, type BranchRef, type Job, type ModelChoice, type QueueDefaults, type StepResult } from "./types.ts";
 import { FOLDER_RE, NAME_RE } from "./parse-request.ts";
 
@@ -177,48 +177,9 @@ export function persistPendingModels(file: string, table: Record<string, Record<
   }
 }
 
-/** An effort level picked for a phase before any job exists (spec 364) —
- *  the sibling of `parsePendingModels` above, as it is written in
- *  `pending-effort.json`: `{ "<project>/<specFolder>": { "<step>":
- *  "<level>" } }`. Validated against `EFFORT_LEVELS` at parse time
- *  rather than trusting any non-empty string — effort, unlike a model
- *  name, is a small closed set knowable here with no config to consult. */
-export function parsePendingEffort(raw: unknown): Record<string, Record<string, string>> | null {
-  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
-  const out: Record<string, Record<string, string>> = {};
-  for (const [key, steps] of Object.entries(raw as Record<string, unknown>)) {
-    if (steps === null || typeof steps !== "object" || Array.isArray(steps)) continue;
-    const perStep: Record<string, string> = {};
-    for (const [step, level] of Object.entries(steps as Record<string, unknown>)) {
-      if (
-        typeof level === "string" &&
-        (EFFORT_LEVELS as readonly string[]).includes(level) &&
-        (WORKFLOW_STEPS as readonly string[]).includes(step)
-      ) {
-        perStep[step] = level;
-      }
-    }
-    if (Object.keys(perStep).length > 0) out[key] = perStep;
-  }
-  return out;
-}
-
-/** Write the whole table back, tmp-then-renamed like every other file
- *  this store writes — the same shape as `persistPendingModels`. */
-export function persistPendingEffort(file: string, table: Record<string, Record<string, string>>): string | null {
-  try {
-    mkdirSync(dirname(file), { recursive: true });
-    const tmp = `${file}.tmp`;
-    writeFileSync(tmp, JSON.stringify(table, null, 2));
-    renameSync(tmp, file);
-    return null;
-  } catch (err) {
-    return `could not write ${file}: ${err instanceof Error ? err.message : String(err)}`;
-  }
-}
 
 /** A phase choice recorded before or between jobs (spec 439) — the
- *  sibling of `parsePendingModels`/`parsePendingEffort` above, one level
+ *  sibling of `parsePendingModels` above, one level
  *  shallower: a list of steps rather than a per-step value, as it is
  *  written in `pending-steps.json`: `{ "<project>/<specFolder>":
  *  ["<step>", ...] }`. `null` for anything malformed, the same

@@ -182,7 +182,6 @@ describe("spec 103: a collapsed row shows status only", () => {
   test("expanding a row reveals every control the page has always had (criterion 5)", () => {
     const html = rows([], [target("103-idle")], {
       ...open("103-idle"),
-      projects: ["aide", "paceup"],
       modelChoices: [{ name: "sonnet" }],
     });
     const line = controlsLine(html, "103-idle");

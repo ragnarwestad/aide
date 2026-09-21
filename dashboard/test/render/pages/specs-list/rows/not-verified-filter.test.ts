@@ -6,7 +6,6 @@ import { renderSpecsRows, type ArchivedSpecView, type SpecsFilter, type SpecTarg
 const archived = (folder: string, over: Partial<ArchivedSpecView> = {}): ArchivedSpecView => ({
   project: "aide",
   folder,
-  archivedAt: "2026-09-15",
   done: ["create", "analyze", "implement", "archive"],
   models: {},
   phaseOutcomes: {},

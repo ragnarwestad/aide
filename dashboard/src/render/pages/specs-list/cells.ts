@@ -6,15 +6,15 @@
 // head-row.ts (the spec's own header row), phase-rows.ts (one line per
 // phase) and notice-row.ts (the row's message panel). Kept as a barrel at this
 // path because `specs-list.ts` and `model-picker.ts` both import from
-// it — `model-picker.ts` reads `busyReason`/`runFormId` (now
-// row-state.ts's) through here, which is the reverse of `phase-rows.ts`
+// it — `model-picker.ts` reads `runFormId` (now row-state.ts's)
+// through here, which is the reverse of `phase-rows.ts`
 // importing `aiPicker`/`modelPicker`/etc. FROM model-picker.ts. The two
 // files no longer import each other directly, so the circular import
 // `cells.ts` used to have with `model-picker.ts` is gone with the
 // split, not just papered over.
 
-export { NO_DATE, LIST_COLUMNS } from "./row-shared.ts";
-export { busyReason, refusalFor, runFormId } from "./row-state.ts";
+export { LIST_COLUMNS } from "./row-shared.ts";
+export { refusalFor, runFormId } from "./row-state.ts";
 export { foldControl } from "./row-controls.ts";
 export { phasePips } from "./cell-helpers.ts";
 export { specHeadRow } from "./head-row.ts";

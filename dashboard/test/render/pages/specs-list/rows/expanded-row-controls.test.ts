@@ -36,7 +36,6 @@ describe("spec 109: an expanded row reveals its controls below the header line",
       {
         runnerAvailable: true,
         targets,
-        projects: ["aide", "paceup"],
         modelChoices: [{ name: "sonnet" }],
         ...opts,
       },

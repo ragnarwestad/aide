@@ -2,9 +2,7 @@
 // whether it is busy, what phase it is waiting on, what a press would
 // run.
 
-import { currentStep, inFlight, stateLabel } from "../../ui/job-state";
-import { gerund, landingStep } from "../../ui/job-state/resting.ts";
-import { stepLabel } from "../../ui/components";
+import { inFlight } from "../../ui/job-state";
 import { stepButton } from "../../../format/step-label.ts";
 import type { SpecsPageOptions } from "./";
 import { RUN_STEPS, groupKey, type SpecGroup } from "./data-model";
@@ -21,24 +19,6 @@ import type { QueueRowView } from "../../ui/job-state/types.ts";
  *  THIS, so a control added later has one question to ask rather than a
  *  rule to remember. */
 export const specBusy = (g: SpecGroup): boolean => !!g.lead && inFlight(g.lead);
-
-/** Why the row will not take a click, in the words the badge uses. One
- *  sentence for the whole row: about the JOB, so every locked control
- *  says the same thing rather than each wording it freshly.
- *
- *  A landing in flight names the step whose MERGE is actually running —
- *  `landingStep`'s own rule (spec 399, REQ-3), the same one the row's
- *  badge (`specStateChip`) uses — not `currentStep()`, which names the
- *  wrong step once the job has already advanced to `queued` on its next
- *  one while the previous step's branch is still merging. */
-export const busyReason = (g: SpecGroup): string => {
-  if (!g.lead) return "";
-  if (g.lead.landing) {
-    const step = landingStep(g.lead);
-    return `${stepLabel(step)} is ${gerund("en", step)}`;
-  }
-  return `${stepLabel(currentStep(g.lead))} is ${stateLabel(g.lead)}`;
-};
 
 // THE phase a spec is still waiting on — one fact, read by both halves
 // of the State column, so the badge and the button beside it cannot
@@ -122,7 +102,7 @@ function defaultTicked(g: SpecGroup): Set<string> {
 // What the row's boxes are ticked FROM (spec 439): a phase choice
 // recorded at create time, or at the reader's own later Run —
 // `opts.pendingSteps`, keyed `project/specFolder` the same way
-// `pendingModels`/`pendingEffort` already are — when one is on record,
+// `pendingModels` already is — when one is on record,
 // and `defaultTicked()` above only as the fallback for a spec that has
 // never had either kind of submission recorded under this fix.
 //

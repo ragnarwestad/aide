@@ -92,7 +92,6 @@ export const en = {
   "list.noPullRequest": "no pull request",
   "list.landingFailed": "merge failed",
   "list.testsRed": "tests red",
-  "list.dateUnknown": "date unknown",
   "list.waitingOnReview": "its code is waiting on a pull request — open it to review",
   "list.testServer": "test server",
   "list.testServerStartLink": "Click the link to start a test server running this branch",

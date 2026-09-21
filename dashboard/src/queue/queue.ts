@@ -53,11 +53,9 @@ export {
   mergeQueueDefaults,
   parseHeaderAuth,
   parseAllowedHosts,
-  parsePendingEffort,
   parsePendingModels,
   parseQueueProjects,
   parseStoredJob,
-  persistPendingEffort,
   persistPendingModels,
   persistQueueProjects,
   persistQueueSettings,
@@ -66,7 +64,6 @@ export {
 
 export {
   QueueStore,
-  type PendingEffortResult,
   type PendingModelResult,
   type QueueOptions,
   type TransitionResult,

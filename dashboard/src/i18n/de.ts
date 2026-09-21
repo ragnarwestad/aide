@@ -91,7 +91,6 @@ export const de: Record<TranslationKey, string> = {
   "list.noPullRequest": "kein Pull Request",
   "list.landingFailed": "Merge fehlgeschlagen",
   "list.testsRed": "Tests rot",
-  "list.dateUnknown": "Datum unbekannt",
   "list.waitingOnReview": "der Code wartet auf einen Pull Request — öffne ihn zur Überprüfung",
   "list.testServer": "Testserver",
   "list.testServerStartLink": "Klicke auf den Link, um einen Testserver mit diesem Branch zu starten",

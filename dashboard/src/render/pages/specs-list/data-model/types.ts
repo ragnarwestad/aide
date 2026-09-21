@@ -140,10 +140,6 @@ export interface ArchivedSpecView extends HasNotVerified {
    *  of it and the search reads all of it — cutting it here would make
    *  the two disagree. */
   description?: string;
-  /** When it was archived: the `4-status.md` stamp, or failing that the
-   *  commit that last touched the folder. `null` when neither answers,
-   *  and the row says so in words rather than leaving the cell blank. */
-  archivedAt: string | null;
   /** Its own `aide/<folder>` is STILL on origin (spec 193): the spec
    *  was archived and its work never landed. Derived from origin rather
    *  than from the job, because this is the half that reaches a spec
@@ -184,16 +180,8 @@ export interface ArchivedSpecView extends HasNotVerified {
    *  not date this way either. */
   createdAt?: string;
   /** Nobody has yet asked git for this spec's creation date (spec 317)
-   *  — the same "checking…" distinction `dateChecking` draws for the
-   *  archive date, over the separate question. */
+   *  — the cell says "checking…" for it rather than a dash. */
   createdAtChecking?: boolean;
-  /** Nobody has yet asked git when this spec was archived (spec 208).
-   *  Only a spec whose `4-status.md` carries no `Archived:` stamp can
-   *  reach git at all, so this is the shrinking minority of a shrinking
-   *  minority — and the cell says "checking…" for it rather than
-   *  `date unknown`, which is what a spec git ASKED about and could not
-   *  date says. */
-  dateChecking?: boolean;
   /** Which steps the spec's own `4-status.md` CLAIMS it has had (spec
    *  224). It is what the row's phase lines and its pip strip are drawn
    *  from, and it is the file's own unverified word — deliberately, and

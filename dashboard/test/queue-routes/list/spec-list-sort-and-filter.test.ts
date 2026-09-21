@@ -77,7 +77,6 @@ describe("the job list sorts and filters", () => {
   const archived = (folder: string, extra: Partial<ArchivedSpecView> = {}): ArchivedSpecView => ({
     project: "aide",
     folder,
-    archivedAt: "2026-08-01",
     done: [],
     models: {},
     phaseOutcomes: {},

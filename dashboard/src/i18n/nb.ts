@@ -91,7 +91,6 @@ export const nb: Record<TranslationKey, string> = {
   "list.noPullRequest": "ingen pull-forespørsel",
   "list.landingFailed": "merge feilet",
   "list.testsRed": "testene er røde",
-  "list.dateUnknown": "dato ukjent",
   "list.waitingOnReview": "koden venter på en pull-forespørsel — åpne den for å se over",
   "list.testServer": "testserver",
   "list.testServerStartLink": "Klikk på lenken for å starte en testserver som kjører denne branchen",

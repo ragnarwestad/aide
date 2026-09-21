@@ -18,7 +18,7 @@ import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/w
 import { resolveOpenBranchTarget } from "../../git/branch-file.ts";
 import type { CheckoutEnsurer, DashboardCheckout } from "../../git/dashboard-checkout.ts";
 import {
-  SPEC_FILES, buildProjectViews, manifestInside, resolveInstallCmd, specArchivedDate,
+  SPEC_FILES, buildProjectViews, manifestInside, resolveInstallCmd,
 } from "../../project/discover";
 import { isDue, mostRecentFireTime, scheduleTrackingKey, type ScheduleJobRef } from "../../queue/schedule.ts";
 import type { QueueStore } from "../../queue/queue.ts";
@@ -193,11 +193,9 @@ export async function refreshSpecCaches(ctx: ScheduleContext): Promise<void> {
     const scan = ctx.readScan();
     const archivedKeys = scan?.archived ?? [];
     const roots = new Set<string>();
-    const archivedDirs: string[] = [];
-    // Spec 317, REQ-6: every archived dir, not narrowed to the unstamped
-    // ones the way `archivedDirs` above is — there is no write-time
-    // stamp for Created to short-circuit against, so this is the whole
-    // archive on the first sweep that reaches it. `createdAtForArchived`'s
+    // Spec 317, REQ-6: every archived dir. There is no write-time stamp
+    // for Created to short-circuit against, so this is the whole archive
+    // on the first sweep that reaches it. `createdAtForArchived`'s
     // own long-lived cache (a day, once resolved) is what keeps that
     // bounded on every sweep after.
     const createdAtTargets: { dir: string; folder: string }[] = [];
@@ -206,9 +204,6 @@ export async function refreshSpecCaches(ctx: ScheduleContext): Promise<void> {
       for (const root of ctx.specRoots(key.slice(0, cut))) roots.add(root);
       const dir = scan?.dirs.get(key);
       if (!dir) continue;
-      // Only the ones git would be asked about anyway: a spec whose
-      // status file already stamps the date never reaches git at all.
-      if (!specArchivedDate(dir)) archivedDirs.push(dir);
       createdAtTargets.push({ dir, folder: key.slice(cut + 1) });
     }
     // Before the sweep, so a change made DURING it is compared against
@@ -221,7 +216,6 @@ export async function refreshSpecCaches(ctx: ScheduleContext): Promise<void> {
       // nothing-known, so one unreachable origin never takes the
       // others with it.
       ...[...roots].map((root) => ctx.branchStatus.openSpecBranches(root)),
-      ...archivedDirs.map((dir) => ctx.readSpecFileCommits().commitFor(dir, ".")),
       ...createdAtTargets.map((t) => ctx.readSpecCreatedAt().createdAtForArchived(t.dir, t.folder)),
       ...live.map((t) => warmSpec(ctx, t)),
       // And the checkout the LIST is read from (spec 218). Every other

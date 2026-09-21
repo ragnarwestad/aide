@@ -8,7 +8,6 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "
 import { dirname } from "node:path";
 import { stepButton } from "../../format/step-label.ts";
 import {
-  EFFORT_LEVELS,
   PHASE_STEPS,
   TRANSITIONS,
   UNFINISHED,
@@ -30,25 +29,22 @@ import {
   type ParseResult,
 } from "../parse-request.ts";
 import {
-  parsePendingEffort,
   parsePendingModels,
   parsePendingSteps,
   parseStoredJob,
-  persistPendingEffort,
   persistPendingModels,
   persistPendingSteps,
 } from "../persist.ts";
 import { gerund, landingStepIndex } from "../../format/gerund.ts";
 
 
-import type { PendingEffortResult, PendingModelResult, PendingStepsResult, QueueOptions, TransitionResult } from "./types.ts";
+import type { PendingModelResult, PendingStepsResult, QueueOptions, TransitionResult } from "./types.ts";
 
 export class QueueStore {
   private readonly jobs = new Map<string, Job>(); // insertion order = age order
   private readonly cap: number;
   private readonly mirrorPath?: string;
   private readonly pendingModelsPath?: string;
-  private readonly pendingEffortPath?: string;
   private readonly pendingStepsPath?: string;
   readonly defaults: QueueDefaults;
   /** A model picked for a phase before any job exists (spec 308), keyed
@@ -57,12 +53,9 @@ export class QueueStore {
    *  like `defaults`: the render side reads it straight off, and only
    *  `setPendingModel()` is allowed to write it. */
   readonly pendingModels: Record<string, Record<string, string>> = {};
-  /** The sibling of `pendingModels`, for an effort level (spec 364).
-   *  Only `setPendingEffort()` is allowed to write it. */
-  readonly pendingEffort: Record<string, Record<string, string>> = {};
   /** The phase choice a reader made — at create time, or at a later Run
    *  — recorded so it outlives the one job that made it (spec 439): the
-   *  same `project/specFolder` key as `pendingModels`/`pendingEffort`,
+   *  same `project/specFolder` key as `pendingModels`,
    *  one level shallower (a list of steps, not a per-step value). Only
    *  `setPendingSteps()` is allowed to write it; the render layer reads
    *  it straight off, the way it already reads its two siblings. */
@@ -75,7 +68,6 @@ export class QueueStore {
     this.cap = opts.cap ?? 200;
     this.mirrorPath = opts.mirrorPath;
     this.pendingModelsPath = opts.pendingModelsPath;
-    this.pendingEffortPath = opts.pendingEffortPath;
     this.pendingStepsPath = opts.pendingStepsPath;
     this.defaults = opts.defaults;
     this.resolve = opts.resolve;
@@ -86,7 +78,6 @@ export class QueueStore {
     // store finding out what it already was.
     this.load();
     this.loadPendingModels();
-    this.loadPendingEffort();
     this.loadPendingSteps();
   }
 
@@ -445,23 +436,6 @@ export class QueueStore {
     this.changed();
   }
 
-  /** The sibling of `setPendingModel()`, for an effort level (spec 364).
-   *  Checked against `WORKFLOW_STEPS` and `EFFORT_LEVELS` directly —
-   *  there is no config table to look an effort level up in, unlike a
-   *  model name. */
-  setPendingEffort(project: string, specFolder: string, step: string, effort: string): PendingEffortResult {
-    const wanted = WORKFLOW_STEPS.find((s) => s === step);
-    if (!wanted) return { ok: false, error: invalidRequest(`${step || "that step"} is not a step an effort level can be chosen for`) };
-    if (!(EFFORT_LEVELS as readonly string[]).includes(effort)) {
-      return { ok: false, error: invalidRequest(`invalid effort: ${effort} (one of: ${EFFORT_LEVELS.join(", ")})`) };
-    }
-    const key = `${project}/${specFolder}`;
-    this.pendingEffort[key] = { ...this.pendingEffort[key], [wanted]: effort };
-    this.persistPendingEffortTable();
-    this.changed();
-    return { ok: true };
-  }
-
   /** The write `setPendingSteps()` and `enqueueCreate()`'s own hook
    *  share, without either one's own `changed()` call: `enqueueCreate()`
    *  folds this into the ONE insert-and-seed operation a create request
@@ -573,22 +547,6 @@ export class QueueStore {
     persistPendingModels(this.pendingModelsPath, this.pendingModels);
   }
 
-  private loadPendingEffort(): void {
-    if (!this.pendingEffortPath || !existsSync(this.pendingEffortPath)) return;
-    try {
-      const raw = JSON.parse(readFileSync(this.pendingEffortPath, "utf-8")) as unknown;
-      const parsed = parsePendingEffort(raw);
-      if (parsed) Object.assign(this.pendingEffort, parsed);
-    } catch {
-      // a corrupt file is not worth crashing over — start empty
-    }
-  }
-
-  private persistPendingEffortTable(): void {
-    if (!this.pendingEffortPath) return;
-    persistPendingEffort(this.pendingEffortPath, this.pendingEffort);
-  }
-
   private loadPendingSteps(): void {
     if (!this.pendingStepsPath || !existsSync(this.pendingStepsPath)) return;
     try {
@@ -607,4 +565,4 @@ export class QueueStore {
 }
 
 // What used to live here too, in parts beside this file.
-export type { PendingModelResult, PendingEffortResult, PendingStepsResult, TransitionResult, QueueOptions } from "./types.ts";
+export type { PendingModelResult, PendingStepsResult, TransitionResult, QueueOptions } from "./types.ts";

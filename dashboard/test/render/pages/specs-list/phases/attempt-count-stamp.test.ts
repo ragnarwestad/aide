@@ -43,7 +43,6 @@ describe("a phase's attempt count outlives the queue's memory (spec 341)", () =>
     const archived: ArchivedSpecView = {
       project: "aide",
       folder: "aa-spec",
-      archivedAt: "2026-09-02T09:00:00Z",
       done: ["create", "analyze", "implement", "archive"],
       models: {},
       phaseOutcomes: { analyze: { attempts: 3 } },

@@ -94,7 +94,7 @@ export function defaultModelForTool(
  *  satisfies this structurally, so none of them change. */
 export type PickerOptions = Pick<
   SpecsPageOptions,
-  "modelChoices" | "defaultModels" | "pendingModels" | "pendingEffort"
+  "modelChoices" | "defaultModels" | "pendingModels"
 >;
 
 /** Why a phase that has already run will not take a pick. The same

@@ -36,10 +36,8 @@ describe("building the archived rows", () => {
     // The gate is the resolved filter's own answer...
     expect(fn).toContain("filterShowsArchived(state)");
     // ...and it stands in front of the per-row file reads, which is what
-    // makes it a gate rather than a filter over work already done.
-    expect(fn.indexOf("continue;")).toBeLessThan(fn.indexOf("archivedAt(ctx, ref.dir)"));
-    // Spec 224 added a SECOND read behind the same gate: the phase lines
-    // a locked row now opens come off `4-status.md`'s own claim.
+    // makes it a gate rather than a filter over work already done: the
+    // phase lines a locked row opens come off `4-status.md`'s own claim.
     expect(fn.indexOf("continue;")).toBeLessThan(fn.indexOf("archivedSteps(ref.dir)"));
   });
 

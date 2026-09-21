@@ -145,12 +145,6 @@ export interface SpecsPageOptions {
    *  an entry means nobody has picked one yet, which falls through to
    *  the configured default exactly as before this existed. */
   pendingModels?: Record<string, Record<string, string>>;
-  /** The sibling of `pendingModels`, for an effort level picked before
-   *  any job exists for it to attach to (spec 364) — same shape, same
-   *  role. The store keeps it; no row renders it, since the effort a
-   *  step runs at is a configuration answer rather than a per-row pick
-   *  (`phase-rows.ts`, "No effort control"). */
-  pendingEffort?: Record<string, Record<string, string>>;
   /** Which phases a reader chose — at create time, or at a later Run —
    *  keyed by `project/specFolder` (spec 439): what `chosenSteps()` and
    *  `actionState()` read the row's ticks and its action button from,
@@ -158,10 +152,6 @@ export interface SpecsPageOptions {
    *  entry here at all. Absent or missing an entry behaves exactly as
    *  before this existed. */
   pendingSteps?: Record<string, string[]>;
-  /** Every allowlisted project. A job may name others it expects to
-   *  touch, so the run watches and commits them instead of leaving half
-   *  the work uncommitted on the machine. */
-  projects?: string[];
   /** Every project a spec may be CREATED in — the raw allowlist, not
    *  the discovered set. A project whose first spec this form exists to
    *  make has nothing on disk yet, so it appears in no other list on

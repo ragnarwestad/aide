@@ -15,11 +15,7 @@ import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "
  *  smaller type of its own. */
 export type PendingModelResult = { ok: true } | { ok: false; error: string };
 
-/** The sibling of `PendingModelResult`, for `setPendingEffort()` (spec
- *  364) — same shape, same reason. */
-export type PendingEffortResult = { ok: true } | { ok: false; error: string };
-
-/** The sibling of `PendingModelResult`/`PendingEffortResult`, for
+/** The sibling of `PendingModelResult`, for
  *  `setPendingSteps()` (spec 439) — same shape. Unlike the other two,
  *  `setPendingSteps()` never refuses: it filters what it is given
  *  against `PHASE_STEPS` rather than reporting an unknown entry, so this
@@ -42,10 +38,6 @@ export interface QueueOptions {
    *  Absent means the table is in-memory only, for the tests and any
    *  caller that has no disk to give it. */
   pendingModelsPath?: string;
-  /** The sibling of `pendingModelsPath`, for an effort level picked
-   *  before any job exists (spec 364) — the `pending-effort.json`
-   *  sibling of the queue mirror. */
-  pendingEffortPath?: string;
   /** Where a phase choice recorded at create time, or at a later Run,
    *  survives to (spec 439) — the `pending-steps.json` sibling of the
    *  queue mirror. Absent means the table is in-memory only, the same

@@ -399,7 +399,6 @@ describe("computeSpecTotalDurationMs (spec 207, spec 281)", () => {
     const archived: ArchivedSpecView = {
       project: "aide",
       folder: "aa-spec",
-      archivedAt: "2026-08-16T09:15:00Z",
       done: ["analyze", "implement", "archive"],
       models: {},
       phaseOutcomes: {
@@ -447,7 +446,6 @@ describe("an archived row reads a still-remembered queue job the same way a live
   const archived = (extra: Partial<ArchivedSpecView> = {}): ArchivedSpecView => ({
     project: "aide",
     folder: "aa-spec",
-    archivedAt: "2026-08-16T09:20:00Z",
     done: ["create", "analyze", "implement"],
     models: {},
     phaseOutcomes: { implement: { timeSpentMs: 1000 } },

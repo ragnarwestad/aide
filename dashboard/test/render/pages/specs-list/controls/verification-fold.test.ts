@@ -25,7 +25,6 @@ const rowOf = (line: string) => {
 const archived = (over: Partial<ArchivedSpecView> = {}): ArchivedSpecView => ({
   project: "aide",
   folder: FOLDER,
-  archivedAt: "2026-09-15",
   done: ["create", "analyze", "implement", "archive"],
   models: {},
   phaseOutcomes: {},

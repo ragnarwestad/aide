@@ -133,7 +133,6 @@ describe("an archived spec whose branch is still on origin (spec 193)", () => {
           {
             project: "aide",
             folder: "191-x",
-            archivedAt: "2026-08-22",
             notLanded,
             done: ["create", "analyze", "implement", "archive"],
             models: {},
@@ -194,7 +193,6 @@ describe("spec 221: archived specs on the spec list", () => {
     folder,
     title: `Title of ${folder}`,
     description: `What ${folder} was about.`,
-    archivedAt: "2026-08-13",
     // Spec 317: a real default so tests that do not care about Created
     // are not surprised by the archive-date tests' own "date unknown"/
     // "checking" text turning up in a second, unrelated cell.
@@ -419,7 +417,7 @@ describe("a cancelled create is not a row on a project with only archived specs"
     expect(html).not.toContain('data-folder="new-8638781b"');
   });
   test("with the project's specs given as archived views", () => {
-    const archivedSpec: ArchivedSpecView = { project: "aide", folder: "466-x", archivedAt: "2026-09-15T09:00:00Z", done: ["create"], models: {}, phaseOutcomes: {} };
+    const archivedSpec: ArchivedSpecView = { project: "aide", folder: "466-x", done: ["create"], models: {}, phaseOutcomes: {} };
     const html = renderSpecsRows([cancelledCreate], { runnerAvailable: true, targets: [], archivedSpecs: [archivedSpec] }, Date.parse("2026-09-15T10:00:00Z"));
     expect(html).not.toContain('data-folder="new-8638781b"');
   });
@@ -453,7 +451,6 @@ describe("spec 483: an archived spec's row does not warn about an earlier cancel
   const archivedSpec = (over: Partial<ArchivedSpecView> = {}): ArchivedSpecView => ({
     project: "aide",
     folder: "480-locked",
-    archivedAt: "2026-09-15",
     done: BUILT,
     models: {},
     phaseOutcomes: {},

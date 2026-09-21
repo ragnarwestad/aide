@@ -529,7 +529,6 @@ describe("no status mark renders inside the Spec cell (REQ-1, REQ-7)", () => {
         {
           project: "aide",
           folder,
-          archivedAt: "2026-08-22",
           done: ["create", "analyze", "implement", "archive"],
           models: {},
           phaseOutcomes: {},
@@ -627,7 +626,6 @@ describe("the row says what to do once every check is ticked (spec 467)", () => 
         {
           project: "aide",
           folder: FOLDER,
-          archivedAt: "2026-09-15",
           done: ["create", "analyze", "implement", "archive"],
           models: {},
           phaseOutcomes: {},
@@ -647,7 +645,6 @@ describe("the not-verified mark on a row's name cell", () => {
   const archived = (over: Partial<ArchivedSpecView> = {}): ArchivedSpecView => ({
     project: "aide",
     folder: ARCH,
-    archivedAt: "2026-09-15",
     done: ["create", "analyze", "implement", "archive"],
     models: {},
     phaseOutcomes: {},
@@ -730,7 +727,6 @@ describe("the not-verified mark stays when no info line says the count (spec 520
   const archived = (over: Partial<ArchivedSpecView> = {}): ArchivedSpecView => ({
     project: "aide",
     folder: ARCH,
-    archivedAt: "2026-09-15",
     done: ["create", "analyze", "implement", "archive"],
     models: {},
     phaseOutcomes: {},

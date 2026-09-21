@@ -2,27 +2,11 @@
 //
 // Split out of spec-views.ts 2026-09-04, where it had grown to 562
 // lines; every function is unchanged and keeps its name.
-import { specArchivedDate, specCloseReason, specFileText } from "../../project/discover";
+import { specCloseReason, specFileText } from "../../project/discover";
 import { acceptanceRowsOf, parseStatus } from "../../project/parse-status";
 import { specPhaseOutcome, type PhaseOutcome } from "../../project/parse-phase-outcome.ts";
 import { filterShowsArchived, NOT_VERIFIED_KEY, PHASE_LINES, type ArchivedSpecView } from "../../render";
 import type { SpecViewsContext } from "./";
-
-export function archivedAt(ctx: SpecViewsContext, dir: string): { date: string | null; checking: boolean } {
-  const stamped = specArchivedDate(dir);
-  if (stamped) return { date: stamped, checking: false };
-  // A peek since spec 208, and the same "read, never take" rule as
-  // everywhere else: `refreshSpecCaches` warms exactly this question,
-  // for exactly the archived specs that have no stamp on disk.
-  const { at, checkedAt } = ctx.specFileCommits.peekCommitFor(dir, ".");
-  // Nothing is started from here, unlike `specFileViews`: this exact
-  // question is on the warmer's own sweep, for exactly the archived
-  // specs that have no stamp, so `/archive` spawns nothing at all.
-  if (checkedAt === null) return { date: null, checking: true };
-  // The DATE, not the instant: every stamp on disk is a date, and one
-  // column reading two ways is worse than either.
-  return { date: at ? at.slice(0, 10) : null, checking: false };
-}
 
 /** Which steps an archived spec's own `4-status.md` CLAIMS it has had
  *  (spec 224) — what its phase lines and its pip strip are drawn from
@@ -144,15 +128,13 @@ export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefine
     // that is built anyway (its branch is still open) is not skipped.
     if (state === NOT_VERIFIED_KEY && !notLanded && !(ref.notVerified ?? 0) && !(ref.failed ?? 0)) continue;
     const project = key.slice(0, key.indexOf("/"));
-    const when = archivedAt(ctx, ref.dir);
     // Spec 319: the newest landing's own reason its delete failed, when
     // there is one — read off the job store rather than re-derived, so
     // this can never disagree with what `mergeBranchIntoDefault` itself
     // found. `undefined` here just means no job recorded one; the row
     // still falls through to the plain `NOT_LANDED` wording.
     const branchDeleteError = notLanded ? ctx.queue.branchDeleteErrorFor(project, ref.folder) : undefined;
-    // REQ-6: the spec's own creation date, distinct from `when` above
-    // (which is the ARCHIVE date, from the `git mv`). A peek, never a
+    // REQ-6: the spec's own creation date. A peek, never a
     // take (spec 208's rule, held for every question on this route):
     // `refreshSpecCaches` is what warms this, never a request.
     const created = ctx.specCreatedAt.peekCreatedAtForArchived(ref.dir, ref.folder);
@@ -161,8 +143,6 @@ export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefine
       folder: ref.folder,
       title: ref.title ?? undefined,
       description: ref.description ?? undefined,
-      archivedAt: when.date,
-      dateChecking: when.checking,
       createdAt: created.createdAt ?? undefined,
       createdAtChecking: created.checkedAt === null,
       notLanded,

@@ -42,7 +42,6 @@ describe("spec 124: one phase list, and one action beside the state", () => {
       {
         runnerAvailable: true,
         targets,
-        projects: ["aide"],
         filter: { open: openKeys(list, targets) },
         ...opts,
       },
@@ -112,7 +111,6 @@ describe("spec 124: one phase list, and one action beside the state", () => {
       {
         runnerAvailable: true,
         targets: [target("124-stack")],
-        projects: ["aide"],
         modelChoices: CHOICES,
         filter: { open: "aide/124-stack" },
       },

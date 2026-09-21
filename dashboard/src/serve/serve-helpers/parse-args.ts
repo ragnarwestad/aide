@@ -51,7 +51,6 @@ export function parseArgs(argv: string[]): ServerOptions {
     else if (a === "--bind" && v) opts.bindHost = argv[++i];
     else if (a === "--queue-mirror" && v) opts.queueMirrorPath = argv[++i];
     else if (a === "--pending-models" && v) opts.pendingModelsPath = argv[++i];
-    else if (a === "--pending-effort" && v) opts.pendingEffortPath = argv[++i];
     else if (a === "--pending-steps" && v) opts.pendingStepsPath = argv[++i];
     else if (a === "--queue-projects" && v) opts.queueProjects = argv[++i]!.split(",").map((s) => s.trim());
     else if (a === "--runner-bin" && v) opts.queueRunnerBin = argv[++i];
@@ -78,7 +77,6 @@ export function parseArgs(argv: string[]): ServerOptions {
   // prod and wrote its choices into prod's pending files.
   const queueDir = dirname(opts.queueMirrorPath);
   if (!opts.pendingModelsPath) opts.pendingModelsPath = join(queueDir, "pending-models.json");
-  if (!opts.pendingEffortPath) opts.pendingEffortPath = join(queueDir, "pending-effort.json");
   if (!opts.pendingStepsPath) opts.pendingStepsPath = join(queueDir, "pending-steps.json");
   if (!opts.pushSubscriptionsPath) opts.pushSubscriptionsPath = join(queueDir, "push-subscriptions.json");
   if (!opts.failedCreatesPath) opts.failedCreatesPath = join(queueDir, "failed-creates.json");

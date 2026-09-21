@@ -46,7 +46,6 @@ describe("spec 265: an archived phase line looks like a live one", () => {
   const archivedFixture = (folder: string, models: Record<string, string>): ArchivedSpecView => ({
     project: "aide",
     folder,
-    archivedAt: "2026-08-15",
     done: ["create", "analyze"],
     models,
     phaseOutcomes: {},
