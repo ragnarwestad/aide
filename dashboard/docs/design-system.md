@@ -75,6 +75,13 @@ outside the token block, and on any CSS class a render file emits that is not on
 So a spec that wants a look it cannot build from the tokens has to change the TOKENS — visibly, in one block — rather
 than add a colour beside them.
 
+**What these guards do not answer is whether the layout holds.** They read the stylesheet as text: that a rule exists,
+that a class is one of the known ones, that no colour sits outside the tokens. A rule can be present and still be
+wrong — `tr.spechead .spec-title { order: 4; flex: 0 0 100%; }` was pinned verbatim by
+`test/design/layout/responsive.test.ts` while the line it described hung 35 px past the row's right edge, because a
+whole width plus a left margin is wider than the row. Whether something fits is measured in a browser, by
+`test/e2e/`, which every merge runs.
+
 `CSS` in `css/index.ts` is a template literal, so a backtick inside a comment closes it and the file stops parsing —
 `bunx tsc --noEmit` catches this,
 `bun test` alone does not. A comment's prose also reaches the browser as page content, re-read on every
