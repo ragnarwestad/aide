@@ -7,8 +7,12 @@ queue that runs its specs is on [Running specs](running-specs.md).
 
 - [Adding and removing a project](#adding-and-removing-a-project)
     - [Whether a run can start there](#whether-a-run-can-start-there)
-    - [A page render never waits on the network](#a-page-render-never-waits-on-the-network)
     - [What Add finishes itself](#what-add-finishes-itself)
+    - [A page render never waits on the network](#a-page-render-never-waits-on-the-network)
+- [A project's own page](#a-projects-own-page)
+    - [Config](#config)
+    - [Deploy](#deploy)
+    - [Schedule](#schedule)
 - [How a project's code lands](#how-a-projects-code-lands)
 
 ---
@@ -60,18 +64,19 @@ for a reason that has nothing to do with its change. Nothing can derive which pa
 it empty is normal and is reported as a note rather than a fault.
 
 Most of these checks are `aide-run-spec`'s own prerequisites, read-only, taken after the Add has written its files —
-the `.aide` written a second earlier is part of what the runner will see. Two rows are not: `gitRoot`'s
-"inside a bigger repository" case and `specsRepo` are this dashboard's own, stricter reading — `aide-run-spec` does
-not refuse on either today, a known asymmetry recorded in
-`tests/fixtures/project-readiness-prerequisites.json`'s own comment rather than pinned against the runner.
+the `.aide` written a second earlier is part of what the runner will see. Three rows are this dashboard's own:
+`gitRoot`'s "inside a bigger repository" case, `specsRepo`, and `dashboardCheckout`. `aide-run-spec` refuses on
+none of the three, a known asymmetry recorded in `tests/fixtures/project-readiness-prerequisites.json`'s own
+comment rather than pinned against the runner.
 
-| Check           | Blocks a run when                                                                                                                                           |
-|-----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `gitRoot`       | the project directory is no repository at all — or, in this dashboard check only, is inside a bigger one (`aide-run-spec` does not refuse that second case) |
-| `specsRoot`     | the configured `AIDE_SPECS_PATH`, or `<project>/specs` when none was given, is not a directory                                                              |
-| `specsRepo`     | (dashboard only) that specs root is in no git repository — `aide-run-spec` silently leaves such a root out of what it commits, rather than refusing         |
-| `defaultBranch` | the default branch is neither here nor on origin, or another worktree already has it checked out                                                            |
-| `worktreeLinks` | a configured entry leaves the repository, or names a path that is not there                                                                                 |
+| Check               | Blocks a run when                                                                                                                                           |
+|---------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `gitRoot`           | the project directory is no repository at all — or, in this dashboard check only, is inside a bigger one (`aide-run-spec` does not refuse that second case) |
+| `specsRoot`         | the configured `AIDE_SPECS_PATH`, or `<project>/specs` when none was given, is not a directory                                                              |
+| `specsRepo`         | (dashboard only) that specs root is in no git repository — `aide-run-spec` silently leaves such a root out of what it commits, rather than refusing         |
+| `defaultBranch`     | the default branch is neither here nor on origin, or another worktree already has it checked out                                                            |
+| `worktreeLinks`     | a configured entry leaves the repository, or names a path that is not there                                                                                 |
+| `dashboardCheckout` | never — it is this dashboard's own row, saying whether a run will use a checkout the dashboard owns rather than the project's own directory                 |
 
 `worktreeLinks` is read from the project's `.aide/project.yaml` (the committed one, else the dashboard's derived copy)
 first and from `.aide/config`'s older `AIDE_WORKTREE_LINKS` second — the same order, and the same winner, as
@@ -95,20 +100,12 @@ Nothing in the assessment mutates anything: no branch is switched, no directory 
 why the answer can go stale. A default branch resolvable when the project was added is one somebody can delete or park a
 second worktree on a minute later, and Run says so at the time — this is a preflight check, not a promise.
 
-The result is shown where Save was pressed. With script it goes into the form's own slot and the page stays put, because
-the Specs root and Worktree links fields on that page are usually what fixes it and saving again re-assesses. Without
-script the redirect carries the same sentence to `/projects` in the query string, where the page renders it. The
-sentence is built once, on the server, so the two modes cannot drift apart.
-
-### A page render never waits on the network
-
-`assessProjectReadiness` only ever touches disk — `rev-parse`, `show-ref`, `symbolic-ref`, `worktree list` — and so
-does everything else on the request path. The commits-behind-origin count on a project's own Deploy tab needs a real
-`git fetch origin`, and that fetch runs off the request path: `refreshDrift()` walks the configured projects on an
-`.unref()`'d `setInterval`, the same shape as the runner's own tick and the SSE keep-alive ping, cleared in `stop()`
-beside them. The handler calls the synchronous `peekDrift()`, which reads the cache and never spawns git. A project
-the poll has never reached yet returns `checkedAt: null`, and the Deploy tab says the check has not been made yet —
-a labelled stale number, never a page that blocks on GitHub being reachable.
+An Add's result is shown where Save was pressed. With script it goes into the form's own slot and the page stays
+put, because the Specs root and Worktree links fields are usually what fixes it and saving again re-assesses.
+Without script the redirect carries the same sentence to `/projects` in the query string, where the page renders
+it. The sentence is built once, on the server, so the two modes cannot drift apart. A Settings save is the gap: its
+redirect carries the sentence to `/projects/<name>`, which reads only an error from the query string, so a
+successful save's readiness line reaches no page.
 
 ### What Add finishes itself
 
@@ -149,47 +146,86 @@ projects already added lay theirs out — at least two sharing a `<parent>/<proj
 blank, never guessed. With exactly one checkout on offer the answer is unambiguous and goes straight into the fields, so
 a browser with no script gets the help too; with several, the proposals ride on the form and the pick fills them in.
 
-**The project's own page, `/projects/<name>`, answers the two things a generated file could not:** what its
-`.aide/config` says, and whether a run could start there at all. The manifest itself is not repeated — a frozen copy
-of a file nothing on the page can act on, and a manifest that fails to parse already says so on the project's
-`/projects` row, which is the live view of the same thing. Each of the seven recognized config keys is marked
-configured, worked out (naming the lockfile that decided it, hedged as a default rather than a verified command) or
-not set. The test command is the exception: a run and a landing test with a configured one only
-(`aide-resolve-test-cmd`), so an unset one reads "not set — no tests run when a spec lands", with the worked-out command
-beside it as a suggestion. Edit makes it a field of its own, saved to the manifest's `testCmd`: empty, with the
-worked-out command as its placeholder, so a save that never touched it configures nothing. A checkout with no `.aide/config` says so in as many words, because "no file" and "a file setting nothing"
-are different states and the first is what a project cloned onto a second machine is in. Below that, the same checks
-`assessProjectReadiness` runs at Add time, on every load rather than once in a notice gone by the next page. Nothing
-is executed and nothing is moved: a git that cannot answer leaves the settings standing, with no readiness section.
-The generated `/<slug>.html` page shows the manifest and the specs only: it is generated after a merge lands somewhere
-in the queue, and a config file edited between merges would be described there as it stood days ago.
+Remove takes the project off the allowlist and off this dashboard, and that is all it does: the checkout and the
+specs root stay on disk, untouched. `/projects/<name>/remove` asks the question in a sentence and the press is the
+answer; nothing is typed back.
 
-**A project's settings can be changed after it is added.** Its own
-`/projects/<name>` page keeps the current values and the read-only settings overview visible while Edit opens Specs
-root, Worktree links and Code landing inline. Save and Cancel return to the same project page. The same writer still
-saves the specs path to `.aide/config` and the other two settings to the project's `.aide/project.yaml` when it is
-tracked, else to the dashboard's settings file; unchanged values are not rewritten. The page says above the table where
-the settings are kept. `/projects/<name>/settings` redirects to the project page.
+A server started without `--root` has no projects root to list or add to. Its `GET /projects` redirects to the
+generated `projects.html` instead of rendering an empty listing, and its nav goes on naming that file — an empty
+page would read as "no projects on this machine" rather than "this server was never told where they are". That
+generated file is a redirect to the served page and carries no controls of its own; the only other generated page
+is `about.html`. There is no generated page per project: the served `/projects/<name>` is the only one, because a
+frozen copy beside it was a second page with the same name, one tab away from the live one and always a little out
+of date.
 
-**And the readiness note is recomputed on every visit.** Each row that cannot run carries its own note, beside the
-Settings link that acts on it — a note shown once, in the query string of the redirect an Add lands on, leaves an
-operator who did not act on it there no way to rediscover what was missing except by starting a run and having it
-refused.
+### A page render never waits on the network
 
-Remove takes the project off the allowlist and off this dashboard, and that is all it does: the checkout and the specs
-root stay on disk, untouched. It asks for the project's name to be typed back, and the server refuses anything but an
-exact match — the browser turning the button off until it matches is a convenience over that check, not the check
-itself.
+`assessProjectReadiness` only ever touches disk — `rev-parse`, `show-ref`, `symbolic-ref`, `worktree list`,
+`remote get-url` — and so
+does everything else on the request path. The commits-behind-origin count on a project's own Deploy tab needs a real
+`git fetch origin`, and that fetch runs off the request path: `refreshDrift()` walks the configured projects on an
+`.unref()`'d `setInterval`, the same shape as the runner's own tick and the SSE keep-alive ping, cleared in `stop()`
+beside them. The handler calls the synchronous `peekDrift()`, which reads the cache and never spawns git. A project
+the poll has never reached yet returns `checkedAt: null`, and the Deploy tab says the check has not been made yet —
+a labelled stale number, never a page that blocks on GitHub being reachable.
 
-The generated `projects.html` carries neither control: it is a redirect to the served page. The generated pages stay
-open, which means they carry nothing that changes anything — and both of these actions do.
+## A project's own page
 
-A server started without `--root` has no projects root to list or add to. Its `GET /projects` redirects to the generated
-`projects.html`
-instead of rendering an empty listing, and its nav goes on naming that file — an empty page would read as "no projects
-on this machine" rather than "this server was never told where they are".
+`/projects/<name>` has three tabs — **Config**, **Deploy** and **Schedule** — chosen with `?tab=` and defaulting to
+Config, which is also where an unrecognised value lands.
 
----
+### Config
+
+Four things, in this order.
+
+A line saying the checkout has no `.aide/config`, when it has none: "no file" and "a file setting nothing" are
+different states, and the first is what a project cloned onto a second machine is in.
+
+**The readiness verdict**, one line: a run can start here, or it cannot. It is absent entirely when git could not be
+asked, and it is recomputed on every visit rather than shown once in a notice that is gone by the next page.
+
+**The checkout itself** — the readiness checks the page cannot act on: `gitRoot`, `specsRepo`, `defaultBranch` and
+`dashboardCheckout`. They are fixed on the machine, not on this page, and the section says so. The two checks a
+settings row owns, `specsRoot` and `worktreeLinks`, are left out here and carried inline on their own rows instead.
+
+**The settings table**, with a sentence above it saying where this project's settings live: in the dashboard's own
+file, in the project's tracked manifest, in both — where the tracked manifest wins and the dashboard's copy is not
+used — or nowhere yet. The table has a row per recognized `.aide/config` key, each marked configured, worked out
+(naming the lockfile that decided it, hedged as a default rather than a verified command) or not set, plus a **Code
+landing** row, which is not a config key. A row whose readiness check failed carries that check's sentence inline.
+
+The test command is the one worth knowing: a run and a landing test with a configured command only
+(`aide-resolve-test-cmd`), so an unset one reads "not set — no tests run when a spec lands", with the worked-out
+command beside it as a suggestion.
+
+**Edit** (`?edit=1`) turns the same table into a form — there is only ever one table on the page, in either mode.
+Six controls open: Specs root, Worktree links, Install command, Preview command, Test command and Code landing.
+Lint and build stay read-only, since nothing a run does reads them. The test field is empty with the worked-out
+command as its placeholder, so a save that never touched it configures nothing. Worktree links carries a
+`<datalist>` of the checkout's own top-level `.gitignore` entries. Save and Cancel both return to
+`/projects/<name>`, and `/projects/<name>/settings` redirects there too.
+
+Where each value is written is not one rule but two. Specs root and Install command go to `.aide/config`, which is
+never committed. Worktree links, Preview command, Test command and Code landing go to the manifest — the project's
+own `.aide/project.yaml` where it is tracked, else the dashboard's `settings.yaml`. Unchanged values are not
+rewritten.
+
+### Deploy
+
+Two panels. The first says how far the checkout is behind origin, and for the one project this server runs from,
+which commit it is serving; under it a **Deploy** button, disabled when the checkout matches origin or when origin
+has not been checked yet. A project with no `AIDE_INSTALL_CMD` keeps the heading and a sentence saying there is
+nothing to act on. When drift has not been checked yet, the page asks for itself again after five seconds.
+
+The second panel starts a test server for the project, in a new tab. Without a preview command configured, the
+heading stays with a sentence saying it is unavailable.
+
+### Schedule
+
+This project's scheduled jobs — name, cron expression, prompt and next run — or a line saying nothing is scheduled,
+and under it the form that creates one, with this project already filled in. The tab is drawn even for a project
+that is not on the allowlist; its submission is then refused, with the reason on the form.
+
 
 ## How a project's code lands
 
@@ -208,8 +244,10 @@ the archived spec waits in the same pull request as the code.
 A pull request is opened with `gh` on the machine that runs the dashboard, so `gh` has to be logged in there. When it
 is not, the run still succeeds, and the row says no pull request was opened and that one can be opened by hand.
 
-The choice is saved as `codeLanding: merge` or `codeLanding: pr` in the project's `.aide/project.yaml` — the committed one where the project tracks its manifest, otherwise the dashboard's settings file, which reaches a run as a copy — so
-every machine and every teammate lands the same way. It is never read from `.aide/config`, which stays out of git.
+Only `codeLanding: pr` is ever written: merge is what an absent key already means, and choosing it removes the key
+again. It goes in the project's `.aide/project.yaml` where the project tracks its manifest — and then every machine
+and every teammate lands the same way — otherwise in the dashboard's own settings file, which reaches a run as a
+copy and is local to this machine. It is never read from `.aide/config`.
 
 It applies only to what the dashboard lands. `/aide-archive` run by hand in an AI assistant archives the spec and leaves
 the branches as they are; merging them or opening a pull request is then up to you.
