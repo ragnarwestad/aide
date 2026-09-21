@@ -273,10 +273,12 @@ export function renderAddProjectPage(
       `<input type="text" name="name" maxlength="64" required ` +
         `pattern="[A-Za-z0-9][A-Za-z0-9._-]*" ` +
         `placeholder="the directory the clone makes under the projects root">`,
+      { wide: true },
     ) +
     field(
       "Git URL",
       `<input type="text" name="gitUrl" maxlength="300" required placeholder="cloned under the projects root">`,
+      { wide: true },
     ) +
     `</span>` +
     `<span class="frow">` +
@@ -284,6 +286,7 @@ export function renderAddProjectPage(
       "Specs root",
       `<input type="text" name="specsPath" maxlength="300" ` +
         `placeholder="optional — its own specs/ otherwise">`,
+      { wide: true },
     ) +
     // The same choice the project page's Edit offers, asked here so a
     // project that must never merge straight in does not spend its
@@ -298,6 +301,7 @@ export function renderAddProjectPage(
           .map((o) => `<option value="${o.value}">${esc(o.label)}</option>`)
           .join("") +
         `</select>`,
+      { wide: true },
     ) +
     `</span>` +
     `<span class="frow">` +
