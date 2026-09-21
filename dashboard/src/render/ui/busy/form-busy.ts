@@ -40,6 +40,9 @@
     if (event.defaultPrevented) return;
     const form = event.target as (HTMLFormElement & { dataset: Record<string, string> }) | null;
     if (!form?.dataset) return;
+    // A `method="dialog"` form only closes its dialog (Cancel). Marking it
+    // busy would make the second press of it on one page do nothing.
+    if (form.method === "dialog") return;
     // A second press while the first is still out. The page is about to
     // be replaced by the answer to the first, so the second is refused
     // rather than sent: the request behind these buttons commits and

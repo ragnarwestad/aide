@@ -280,6 +280,13 @@ dialog.confirmdialog::backdrop { background: var(--backdrop); }
    `method="dialog"` form beside it, so the row is made by this wrapper.
    A form's own class may carry a margin, which the row resets. */
 .dialogactions { display: flex; gap: var(--sp-2); }
+/* A dialog that stands while its job runs (`data-standing`, set by
+   `submitProgress`): the heading that says so is the only thing in the
+   panel. Drawn for every reader only in that state. */
+.confirmpanel .standingtitle { display: none; }
+dialog[data-standing] .confirmpanel > :not(.standingtitle) { display: none; }
+dialog[data-standing] .confirmpanel .standingtitle { display: block; }
+.confirmpanel textarea { width: 100%; box-sizing: border-box; }
 .dialogactions > form { margin: 0; }
 .confirmpanel [data-confirm] { display: flex; flex-direction: column; gap: var(--sp-2);
   align-items: flex-start; }

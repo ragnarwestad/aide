@@ -85,6 +85,25 @@ describe("the split page is the page it was (AC-1)", () => {
     expect(renderSpecPageHead(FOLDER, "en")).not.toContain("http-equiv");
   });
 
+  test("with script the Steps refresh sits in noscript and a reload marker is drawn (AC-1)", () => {
+    const rest = renderSpecPageRest(view(), GENERATED, NAV, { ...REST_OPTS, tab: "steps", script: "/*bundle*/" });
+    expect(rest).toContain('<noscript><meta http-equiv="refresh" content="10"></noscript>');
+    expect(rest).not.toMatch(/(^|\n)<meta http-equiv="refresh"/);
+    expect(rest).toContain('<span hidden data-reload-every="10"></span>');
+  });
+
+  test("without script the refresh is the plain meta and no marker is drawn (AC-1)", () => {
+    const rest = renderSpecPageRest(view(), GENERATED, NAV, { ...REST_OPTS, tab: "steps" });
+    expect(rest).toContain('\n<meta http-equiv="refresh" content="10">');
+    expect(rest).not.toContain("data-reload-every");
+  });
+
+  test("another tab with script has neither refresh nor marker (AC-1)", () => {
+    const rest = renderSpecPageRest(view(), GENERATED, NAV, { ...REST_OPTS, tab: "description", script: "/*bundle*/" });
+    expect(rest).not.toContain("http-equiv");
+    expect(rest).not.toContain("data-reload-every");
+  });
+
   test("another tab has no refresh in either chunk (AC-1)", () => {
     const rest = renderSpecPageRest(view(), GENERATED, NAV, { ...REST_OPTS, tab: "description" });
     expect(rest).not.toContain("http-equiv");

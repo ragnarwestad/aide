@@ -51,6 +51,10 @@ export function resolveSpecTab(raw: string | undefined): SpecTab {
  *  half-typed or half-ticked. */
 export const RELOADING_TABS: readonly SpecTab[] = ["steps"];
 
+/** How often a reloading tab reloads, whether by the page's meta refresh or
+ *  by the client script's timer. */
+export const RELOAD_SECONDS = 10;
+
 /** The one file of the four a person owns (spec 162). `2-analysis.md`
  *  and `3-solution.md` are the analyze step's output —
  *  a hand edit there is overwritten the next time it runs — and

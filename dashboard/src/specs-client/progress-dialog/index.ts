@@ -55,35 +55,71 @@ export async function settled(id: string, io: ProgressIo, attempts = SETTLE_POLL
   return undefined;
 }
 
+/** What a dialog is doing, kept per dialog so its listeners are attached
+ *  once however many times it is submitted. */
+const states = new WeakMap<object, { waiting: boolean }>();
+
+/** The ask's line for a refusal: empty when `why` is. */
+function say(ask: HTMLDialogElement, why: string): void {
+  const line = ask.querySelector(".refused");
+  if (line) line.textContent = why;
+}
+
 export async function submitProgress(form: HTMLFormElement, event: Event, io: ProgressIo = browserIo): Promise<void> {
   if (event.defaultPrevented) return;
-  const dialog = form.querySelector("dialog[data-progress-dialog]") as HTMLDialogElement | null;
+  // The close ask holds its form inside the dialog; the Reopen and Close
+  // pages hold the dialog inside the form.
+  const ask = form.closest("dialog[data-progress-dialog]") as HTMLDialogElement | null;
+  const dialog = ask ?? (form.querySelector("dialog[data-progress-dialog]") as HTMLDialogElement | null);
   // No `<dialog>` here: the form posts natively and follows the redirect.
   if (!dialog || typeof dialog.showModal !== "function") return;
   event.preventDefault();
   const back = form.dataset.progress ?? "/";
-  let waiting = true;
-  dialog.addEventListener("cancel", (e) => e.preventDefault());
-  // A browser can close a modal whose cancel was prevented (a second Escape): stand again.
-  dialog.addEventListener("close", () => {
-    if (waiting) dialog.showModal();
-  });
-  io.onRestore(() => {
-    waiting = false;
-    dialog.close();
-  });
-  dialog.showModal();
+  let state = states.get(dialog);
+  if (!state) {
+    const fresh = { waiting: false };
+    state = fresh;
+    states.set(dialog, fresh);
+    dialog.addEventListener("cancel", (e) => {
+      if (fresh.waiting) e.preventDefault();
+    });
+    // A browser can close a modal whose cancel was prevented (a second Escape): stand again.
+    dialog.addEventListener("close", () => {
+      if (fresh.waiting) dialog.showModal();
+    });
+    io.onRestore(() => {
+      fresh.waiting = false;
+      if (ask) {
+        ask.removeAttribute("data-standing");
+        say(ask, "");
+      }
+      dialog.close();
+    });
+  }
+  const mine = state;
+  mine.waiting = true;
+  if (ask) {
+    ask.setAttribute("data-standing", "");
+    say(ask, "");
+  }
+  if (!dialog.open) dialog.showModal();
   await postForm(
     form,
     async (answer) => {
       const id = answer?.job?.id;
       const job = id ? await settled(id, io) : undefined;
-      waiting = false;
+      mine.waiting = false;
       // The spec page says what a failed job did; the list shows what a done one changed.
       io.go(job?.state === "done" ? "/" : back);
     },
     (why) => {
-      waiting = false;
+      mine.waiting = false;
+      // The ask stays open with the reason still typed; the pages' dialog is only a wait.
+      if (ask) {
+        ask.removeAttribute("data-standing");
+        say(ask, why);
+        return;
+      }
       dialog.close();
       io.go(`${back}?error=${encodeURIComponent(why)}`);
     },

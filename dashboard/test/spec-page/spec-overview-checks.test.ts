@@ -35,6 +35,10 @@ import {
   ACCEPTANCE_PHASE, ACCEPTANCE_OPEN_ROW, STATUS_WITH_OPEN_ACCEPTANCE, TDD_OPEN_ROW,
 } from "./spec-checks-fixtures.ts";
 
+/** The page's markup, without its inline scripts: the client bundle the spec
+ *  page carries holds strings that look like the markup these tests count. */
+const pageText = async (r: Response): Promise<string> => (await r.text()).replace(/<script>[\s\S]*?<\/script>/g, "");
+
 const { harness } = createSpecSaveHarness();
 afterEach(() => harness.cleanup());
 const startWithChecks = (gitRun: GitRunner, status = STATUS) => start(harness, gitRun, status);
@@ -43,7 +47,7 @@ describe("the checks on the Overview tab", () => {
   // --- criterion 1: which checks Overview offers as boxes -------------------
 
   describe("GET the Overview tab", () => {
-    const overview = (base: string) => fetch(`${base}${PAGE}?tab=status`).then((r) => r.text());
+    const overview = (base: string) => fetch(`${base}${PAGE}?tab=status`).then(pageText);
     // The tick block alone: the Status tab also shows the whole file
     // (the Phase tables included) read-only below it.
     const block = (html: string): string => html.match(/<section class="checks">[\s\S]*?<\/section>/)?.[0] ?? "";
@@ -69,7 +73,7 @@ describe("the checks on the Overview tab", () => {
 
     test("an old ?tab=checks link opens the Status tab, tick form and all (AC-4)", async () => {
       const { base } = startWithChecks(savable("/host"));
-      const html = await fetch(`${base}${PAGE}?tab=checks`).then((r) => r.text());
+      const html = await fetch(`${base}${PAGE}?tab=checks`).then(pageText);
       expect(html).toContain('name="tick"');
     });
 
@@ -85,7 +89,8 @@ describe("the checks on the Overview tab", () => {
       expect(html).toContain(`name="statusBaseSha"`);
       // Its own action, not the description's: two forms, two commits.
       expect(html).toContain(`action="/api/queue/specs/aide/81-queue-and-runner/tick"`);
-      expect(html).not.toContain("<textarea");
+      // The Close dialog beside the page's actions has its own Reason field.
+      expect(html.replace(/<dialog[\s\S]*?<\/dialog>/g, "")).not.toContain("<textarea");
     });
 
     // A check already made is a box too, and a ticked one. It used to be
@@ -136,7 +141,7 @@ describe("the checks on the Overview tab", () => {
       const { base } = startWithChecks(savable("/host"), "# Queue - Status\n\n- [ ] something\n");
       const res = await fetch(`${base}${PAGE}`);
       expect(res.status).toBe(200);
-      expect(await res.text()).not.toContain('name="tick"');
+      expect(await pageText(res)).not.toContain('name="tick"');
     });
 
     // Spec 266 gave a LOW-complexity spec's `## Checklist` the same box a
@@ -383,7 +388,7 @@ describe("the checks on the Overview tab", () => {
 // --- spec 509: the second box, and a spec whose only open rows are Not verified ---
 
 describe("the Not verified box on the Status tab (spec 509)", () => {
-  const statusTab = (base: string, path = PAGE) => fetch(`${base}${path}?tab=status`).then((r) => r.text());
+  const statusTab = (base: string, path = PAGE) => fetch(`${base}${path}?tab=status`).then(pageText);
   const block = (html: string): string => html.match(/<section class="checks">[\s\S]*?<\/section>/)?.[0] ?? "";
   const withNv = STATUS.replace(SECOND_OPEN_ROW, NV_ROW);
 
@@ -441,7 +446,7 @@ describe("the Not verified box on the Status tab (spec 509)", () => {
 // --- spec 510: the Failed choice on an archived spec, and a Failed row --------
 
 describe("the Failed choice on the Status tab (spec 510)", () => {
-  const statusTab = (base: string, path = PAGE) => fetch(`${base}${path}?tab=status`).then((r) => r.text());
+  const statusTab = (base: string, path = PAGE) => fetch(`${base}${path}?tab=status`).then(pageText);
   const block = (html: string): string => html.match(/<section class="checks">[\s\S]*?<\/section>/)?.[0] ?? "";
   const FAILED_ROW = "| AC-6: failed earlier | ❌ Failed | Failed: it did not hold |";
   const withFailed = NV_STATUS.replace(NV_ROW, `${NV_ROW}\n${FAILED_ROW}`);

@@ -320,7 +320,8 @@ acceptance ticking (`POST /api/queue/specs/<project>/<spec>/tracking`).
 **The Logs tab lists every step from every attempt in one flat list, no picker.** A spec with more than one job for
 the same work round tags each row `Attempt N` (oldest = 1); a single-attempt spec shows no marker at all. There is no
 `?job=`: the tab's own count is the true total across every attempt, not just the latest one's. **Only the Logs tab
-reloads itself** (`<meta refresh>`, ten seconds): it is the one that moves while a step runs, and every other tab
+reloads itself**, every ten seconds — by `<meta refresh>` without script, and with script by a timer that skips a
+tick while a dialog is open: it is the one that moves while a step runs, and every other tab
 carries a form a timer would wipe. The price is a page only as fresh as the last time it was asked for,
 which is what Update is for. Each step's raw log now sits behind a summary, drawn above it, never
 behind its own fold: the files that step's own commit changed (with lines added/removed), the
@@ -387,6 +388,12 @@ The page's own browser code does one thing to the controls: it keeps the reader 
 Run and Cancel — are real `<form>`s that work on their own, and the script only intercepts. Cancel is intercepted
 twice over: once to open its confirmation dialog, and once for the press that follows.
 
+- **Close on the spec page asks in a dialog, with the close page as the fallback.** The Close link carries
+  `data-close-ask` and a `dialog.confirmdialog` sits beside it, holding the question, a required Reason field (bounded
+  and counted like the close page's), a refusal line, and OK (danger) and Cancel. With script the click opens it; without
+  script, or a browser without `<dialog>`, the link's `href` reaches the close page. OK posts the same route and stands
+  as "Closing…" the way the two pages below do; a refused post is written in the dialog's own line, which stays open with
+  the reason still typed.
 - **Reopen and Close stand behind a dialog.** Their confirmation forms carry `data-progress` (the spec page) and a
   `dialog.confirmdialog` titled "Reopening…" or "Closing…". On submit the script opens it as a modal with no buttons
   (Escape does not dismiss it, and a back/forward-cache restore closes it), posts the form, and polls

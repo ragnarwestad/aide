@@ -24,6 +24,8 @@ const COMPONENTS = [
   "btn", "primary", "ok", "danger", "busy", "spin",
   // Spec 518: the two answers of a confirm box, on one row.
   "dialogactions",
+  // Spec 525: the "Closing…" heading of a dialog that stands while its job runs.
+  "standingtitle",
   // A control that is its icon alone, no button frame: the spec page's
   // PDF link, and the red PDF icon it carries (2026-09-09).
   "iconlink", "icon-pdf",

@@ -36,6 +36,7 @@ import {
   syncDependsOn,
 } from "./forms.ts";
 import { formatElapsed } from "./elapsed.ts";
+import { bindConfirmLink } from "./confirm-link/index.ts";
 import { bindLimits } from "./limits/index.ts";
 import { connect, onVisibility } from "./live.ts";
 import { navigate } from "./navigation.ts";
@@ -43,10 +44,9 @@ import { postPendingModel } from "./pending-model.ts";
 import { bindReportFrame } from "./report-frame.ts";
 import { postForm } from "./press.ts";
 import { bindPushPanel } from "./push.ts";
+import { startReloadWhileIdle } from "./reload-while-idle/index.ts";
 import { relabelRunButton } from "./row-swap.ts";
-import {
-  bindScheduleDelete, postScheduleEnabled, postScheduleRun, scheduleCronPreview,
-} from "./schedule-actions.ts";
+import { postScheduleEnabled, postScheduleRun, scheduleCronPreview } from "./schedule-actions.ts";
 import { submitProgress } from "./progress-dialog/index.ts";
 import { NEW_SPEC_FORM } from "./state.ts";
 import { postTailModel, postTailStep } from "./tail-actions.ts";
@@ -252,13 +252,15 @@ for (const el of document.querySelectorAll("form.scheduleform")) {
     if (model) syncAiToModel(model);
   }) as EventListener);
 }
-// Delete on a schedule row opens that row's own confirmation over the
-// list instead of navigating to it (2026-08-31). The link's `href` is
-// the confirmation PAGE and stays exactly that with no script: this
-// only intercepts the click where a dialog can actually be opened.
-for (const el of document.querySelectorAll("a[data-delete-schedule]")) {
-  bindScheduleDelete(el as HTMLAnchorElement);
+// Delete on a schedule row, and Close on the spec page, open their own
+// confirmation over the page instead of navigating to it. The link's `href`
+// is the confirmation PAGE and stays exactly that with no script: this only
+// intercepts the click where a dialog can actually be opened.
+for (const el of document.querySelectorAll("a[data-delete-schedule], a[data-close-ask]")) {
+  bindConfirmLink(el as HTMLAnchorElement);
 }
+// The spec page's Steps tab reloads from here, and waits while a dialog is open.
+startReloadWhileIdle(document);
 
 document.addEventListener("visibilitychange", onVisibility);
 // An installed app coming back to the foreground can be restored from

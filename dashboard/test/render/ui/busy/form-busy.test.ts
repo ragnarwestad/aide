@@ -31,6 +31,7 @@ function harness() {
   };
   const form = {
     tagName: "FORM",
+    method: "post",
     dataset: {} as Record<string, string>,
     querySelector: (sel: string) => (sel === "button[type=submit]" ? button : null),
   };
@@ -98,5 +99,24 @@ describe("a pressed Save looks pressed", () => {
   // here posts nothing. The flag on the form is the guard instead.
   test("nothing is disabled, so nothing drops out of the payload", () => {
     expect(SOURCE).not.toContain("disabled = true");
+  });
+});
+
+describe("a form that only closes a dialog is not a press (AC-1)", () => {
+  test("a method=dialog form is left unmarked, so its Cancel closes the box on every press (AC-1)", () => {
+    const h = harness();
+    h.form.method = "dialog";
+    h.press();
+    h.press();
+    expect(h.form.dataset.busy).toBeUndefined();
+    expect(h.classes.has("busy")).toBe(false);
+    expect(h.html).toEqual([]);
+  });
+
+  test("a post form is still marked busy (AC-1)", () => {
+    const h = harness();
+    h.press();
+    expect(h.form.dataset.busy).toBe("on");
+    expect(h.classes.has("busy")).toBe(true);
   });
 });

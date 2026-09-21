@@ -162,7 +162,8 @@ describe("the checks on the Overview tab", () => {
     // ?tab=status, not the bare URL: spec 294 (landed the same day)
     // made Description the default tab and renamed this one from
     // "Overview" to "Checks" — the bare URL no longer serves it.
-    const html = await (await fetch(`${base}/specs/aide/${ARCHIVED}?tab=status`)).text();
+    // Without the page's inline scripts: the client bundle holds strings that look like markup.
+    const html = (await (await fetch(`${base}/specs/aide/${ARCHIVED}?tab=status`)).text()).replace(/<script>[\s\S]*?<\/script>/g, "");
     expect(html).toContain("Manual check at 375px in a real browser");
     expect(html).not.toContain('name="tick"');
   });

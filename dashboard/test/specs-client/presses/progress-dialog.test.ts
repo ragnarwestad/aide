@@ -75,7 +75,7 @@ afterEach(() => {
 /** The post: what the server answers, and the requests it received. */
 function stubPost(status: number, body: unknown) {
   const requests: { headers: Record<string, string> }[] = [];
-  (globalThis as unknown as { document: unknown }).document = { dispatchEvent: () => true };
+  (globalThis as unknown as { document: unknown }).document = { dispatchEvent: () => true, querySelectorAll: () => [] };
   (globalThis as unknown as { FormData: unknown }).FormData = class {
     forEach(): void {}
   };
@@ -182,6 +182,119 @@ describe("submitProgress", () => {
     await submitProgress(fakeForm(dialog), event, io);
     expect(event.defaultPrevented).toBe(false);
     expect(io.gone).toEqual([]);
+  });
+});
+
+/** The close ask: a dialog the posting form sits INSIDE, with a line for a refusal. */
+function fakeAsk() {
+  const base = fakeDialog();
+  const attrs = new Set<string>();
+  const line = { textContent: "" };
+  const ask = Object.assign(base, {
+    open: false,
+    showModal() {
+      ask.shows += 1;
+      ask.open = true;
+    },
+    close() {
+      ask.closes += 1;
+      ask.open = false;
+    },
+    setAttribute: (name: string) => void attrs.add(name),
+    removeAttribute: (name: string) => void attrs.delete(name),
+    hasAttribute: (name: string) => attrs.has(name),
+    querySelector: (sel: string) => (sel === ".refused" ? line : null),
+  });
+  const form = {
+    action: "http://dash.test/api/queue",
+    id: "closeask",
+    dataset: { progress: BACK } as Record<string, string>,
+    querySelector: () => null,
+    querySelectorAll: () => [],
+    closest: (sel: string) => (sel.includes("data-progress-dialog") ? ask : null),
+  } as unknown as HTMLFormElement;
+  return { ask, form, line, standing: () => attrs.has("data-standing") };
+}
+
+describe("submitProgress from inside the close ask (spec 525)", () => {
+  test("the dialog is found from the form's ancestor and is not opened again when it is open (AC-5)", async () => {
+    stubPost(200, { ok: true, job: { id: "j1" } });
+    const a = fakeAsk();
+    a.ask.open = true;
+    await submitProgress(a.form, submit(), fakeIo([{ job: { state: "done" } }]));
+    expect(a.ask.shows).toBe(0);
+  });
+
+  test("it stands while waiting and goes to the list when the job is done (AC-6)", async () => {
+    stubPost(200, { ok: true, job: { id: "j1" } });
+    const a = fakeAsk();
+    const io = fakeIo([{ job: { state: "running" } }, { job: { state: "done" } }]);
+    let standingWhileWaiting = false;
+    const sleep = io.sleep;
+    io.sleep = async (ms) => {
+      standingWhileWaiting = a.standing();
+      return sleep(ms);
+    };
+    await submitProgress(a.form, submit(), io);
+    expect(standingWhileWaiting).toBe(true);
+    expect(io.gone).toEqual(["/"]);
+  });
+
+  test("any other end takes the reader to the spec page (AC-6)", async () => {
+    stubPost(200, { ok: true, job: { id: "j1" } });
+    const io = fakeIo([{ job: { state: "failed" } }]);
+    await submitProgress(fakeAsk().form, submit(), io);
+    expect(io.gone).toEqual([BACK]);
+  });
+
+  test("a refusal is written in the box, which stays open, is not standing, and nothing navigates (AC-5)", async () => {
+    stubPost(400, { error: "Give a reason." });
+    const a = fakeAsk();
+    const io = fakeIo([]);
+    await submitProgress(a.form, submit(), io);
+    expect(a.line.textContent).toBe("Give a reason.");
+    expect(a.ask.closes).toBe(0);
+    expect(a.standing()).toBe(false);
+    expect(io.gone).toEqual([]);
+  });
+
+  test("Escape is prevented only while a job is waited for, and again after a second press (AC-5)", async () => {
+    stubPost(400, { error: "no" });
+    const a = fakeAsk();
+    const io = fakeIo([]);
+    await submitProgress(a.form, submit(), io);
+    expect(a.ask.fire("cancel").defaultPrevented).toBe(false);
+    stubPost(200, { ok: true, job: { id: "j1" } });
+    let during: boolean | undefined;
+    const io2 = fakeIo([{ job: { state: "running" } }, { job: { state: "done" } }]);
+    io2.sleep = async () => {
+      during = a.ask.fire("cancel").defaultPrevented;
+    };
+    await submitProgress(a.form, submit(), io2);
+    expect(during).toBe(true);
+  });
+
+  test("a second press does not stack listeners: one cancel prevention per event, one stand-up per close (AC-5)", async () => {
+    stubPost(400, { error: "no" });
+    const a = fakeAsk();
+    await submitProgress(a.form, submit(), fakeIo([]));
+    await submitProgress(a.form, submit(), fakeIo([]));
+    const shown = a.ask.shows;
+    a.ask.fire("close");
+    expect(a.ask.shows).toBe(shown);
+  });
+
+  test("a restore from the cache closes the box and clears the standing state and the line (AC-6)", async () => {
+    stubPost(200, { ok: true, job: { id: "j1" } });
+    const a = fakeAsk();
+    a.line.textContent = "old";
+    const io = fakeIo([{ job: { state: "done" } }]);
+    await submitProgress(a.form, submit(), io);
+    a.ask.setAttribute("data-standing");
+    io.restore!();
+    expect(a.ask.closes).toBe(1);
+    expect(a.standing()).toBe(false);
+    expect(a.line.textContent).toBe("");
   });
 });
 

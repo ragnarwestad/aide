@@ -8,7 +8,7 @@ import { pullFastForward, saveSpecFiles } from "../../../git/specs-pull.ts";
 import { resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
 import { resolveLogFilter } from "../../../queue/parse-stream";
 import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, renderSpecPageFailedRest, renderSpecPageHead, renderSpecPageRest, resolveBackHref, resolveSpecTab, specPagePath, specTabPath } from "../../../render";
-import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, languageChoice, logRefusal, readBounded, specsRedirect, streamedPage } from "../../serve-helpers";
+import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, languageChoice, logRefusal, readBounded, specsClientScript, specsRedirect, streamedPage } from "../../serve-helpers";
 
 import { failedRoundSentence } from "../../../render/ui/job-state";
 import type { RoutesContext } from "..";
@@ -131,6 +131,9 @@ export async function specPageRoutes(
             step: url.searchParams.get("step") ?? undefined,
             only,
             currentUrl: langResult.currentUrl,
+            // Close's dialog, the count under its Reason field and the
+            // Steps tab's reload timer are all this bundle's (spec 525).
+            script: await specsClientScript(),
             // REQ-1/REQ-4/REQ-5 (spec 315, extended by spec 333): a src=
             // reference to whichever bundle's own route this tab's panel
             // actually mounts (`documentTabScript`, the same predicate

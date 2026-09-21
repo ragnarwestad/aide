@@ -20,6 +20,11 @@ import { specPagePath } from "./tabs.ts";
 export const CLOSE_SENTENCE =
   "Close says this spec will not work and archives it as a record; another round is how a spec that is still worth doing goes on.";
 
+/** What Close does to the spec's files and its code branch, said on the
+ *  close page and in the ask's dialog with the same words. */
+export const CLOSE_EFFECT =
+  "Closing merges this spec's files into archive/ as the record, and deletes its code branch (never merges it) — none of that work will be used.";
+
 export function renderCloseSpecPage(
   project: string,
   specFolder: string,
@@ -34,7 +39,7 @@ export function renderCloseSpecPage(
     (opts.error ? rowMessage("failed", opts.error, { tag: "p" }) : "") +
     rowMessage(
       "info",
-      `${CLOSE_SENTENCE} Closing merges this spec's files into archive/ as the record, and deletes its code branch (never merges it) — none of that work will be used.`,
+      `${CLOSE_SENTENCE} ${CLOSE_EFFECT}`,
       { tag: "p" },
     ) +
     `<form method="post" action="/api/queue${back}/close" class="newspecform specform" ` +

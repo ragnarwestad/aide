@@ -10,6 +10,7 @@ import { checkControls, checkReadOnlyMark } from "../../ui/check-controls.ts";
 import { failedCount, notVerifiedCount } from "../../../project/parse-status/not-verified.ts";
 import { dependsOnField } from "../new-spec-page.ts";
 import { t, type Language } from "../../../i18n";
+import { closeAskDialog } from "./close-ask.ts";
 import { CLOSE_SENTENCE } from "./close-page.ts";
 import { specPagePath } from "./tabs.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
@@ -435,12 +436,17 @@ export function testServerStatus(view: SpecPageView): string {
  *  not right now" (REQ-11) — `view.archived` hides it for an archived OR
  *  a closed spec alike, since the move does not apply once a spec has
  *  left the active list. */
-export function closeControl(view: SpecPageView): string {
+export function closeControl(view: SpecPageView, lang: Language = "en"): string {
   if (!view.closeAction || view.archived) return "";
   // The reason itself is `actionsHelp()`'s, the row's one shared mark —
   // this button carries no popover of its own.
   if (view.closeUnavailableReason) return `<span class="btn" aria-disabled="true">Close</span>`;
-  return `<a class="btn" href="${esc(view.closeAction)}">Close</a>`;
+  // With script the click opens the dialog beside it (spec 525); without,
+  // the `href` is the close page.
+  return (
+    `<a class="btn" href="${esc(view.closeAction)}" data-close-ask>Close</a>` +
+    closeAskDialog(view.project, view.specFolder, lang)
+  );
 }
 
 /** One "(?)" for the whole action row (spec 457), replacing what used

@@ -26,6 +26,11 @@ describe("spec 406, REQ-1: the Close control", () => {
     expect(html).toContain('href="/close-confirm"');
   });
 
+  test("the link carries data-close-ask, and the close page draws none (AC-2)", () => {
+    expect(page(view({ closeAction: "/close-confirm" }))).toContain('href="/close-confirm" data-close-ask');
+    expect(renderCloseSpecPage("aide", view().specFolder, NAV, GENERATED, {})).not.toContain("data-close-ask");
+  });
+
   test("absent for an archived spec", () => {
     expect(page(view({ archived: true, closeAction: "/close-confirm" }))).not.toContain("/close-confirm");
   });
