@@ -57,7 +57,7 @@ export function btn(o: {
   const attrs =
     (o.id ? `id="${esc(o.id)}" ` : "") +
     `type="${o.type ?? "submit"}" class="${cls}"` +
-    (o.pending ? ` data-pending="${esc(o.pending)}"` : "") +
+    (o.pending ? ` data-pending="${esc(capitalizeFirst(o.pending))}"` : "") +
     (o.title ? ` title="${esc(o.title)}"` : "") +
     (o.disabled ? " disabled" : "");
   // The spinner sits INSIDE the button, before the label, so a busy
@@ -95,7 +95,8 @@ export type BadgeVariant = "idle" | "running" | "waiting" | "ready" | "refused" 
  *  was one more thing in front of the word. */
 export function badge(variant: BadgeVariant, label: string, title?: string): string {
   return (
-    `<span class="badge b-${variant}"${title ? ` title="${esc(title)}"` : ""}>${esc(label)}</span>`
+    `<span class="badge b-${variant}"${title ? ` title="${esc(title)}"` : ""}>` +
+    `${esc(capitalizeFirst(label))}</span>`
   );
 }
 

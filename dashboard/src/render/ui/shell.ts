@@ -12,6 +12,7 @@ import { ICON_LINKS, WORDMARK } from "./brand.ts";
 import { PWA_LINKS } from "./pwa.ts";
 import { esc } from "./html.ts";
 import { dialogAnswers } from "./components";
+import { capitalizeFirst } from "../../format/error-sentence.ts";
 import { themeControl, languageControl, menuSettingRows } from "./header-controls.ts";
 import { getBoardInfo, isRoundBoard } from "./board-info.ts";
 import { headerNotices } from "./header-notices.ts";
@@ -407,7 +408,7 @@ ${PWA_LINKS}
 <style>${CSS}</style>
 <script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${FORM_BUSY_SCRIPT}${UNSAVED_CHANGES_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}${SPEC_FORM_ACTIONS_SCRIPT}${DEPENDS_LIFT_SCRIPT}</script>
 </head>
-<body data-overlay-note="${esc(t(lang, "shell.overlayLoading"))}">`;
+<body data-overlay-note="${esc(capitalizeFirst(t(lang, "shell.overlayLoading")))}">`;
 }
 
 /** The rest of the document, from the header to `</html>`. `refresh` is

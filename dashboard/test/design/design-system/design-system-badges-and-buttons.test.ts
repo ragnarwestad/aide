@@ -174,9 +174,13 @@ describe("a conflict refusal (spec 171)", () => {
 describe("the status badge carries no mark of its own", () => {
   test("no dot in the markup, for any variant", () => {
     for (const variant of ["idle", "running", "waiting", "ready", "refused", "done"] as const) {
+      // The word comes back capitalised: a badge is a message of its own,
+      // and the catalogue keeps its entries lowercase for the places that
+      // glue them behind something else.
+      const Word = variant.charAt(0).toUpperCase() + variant.slice(1);
       expect([variant, badge(variant, variant)]).toEqual([
         variant,
-        `<span class="badge b-${variant}">${variant}</span>`,
+        `<span class="badge b-${variant}">${Word}</span>`,
       ]);
     }
   });

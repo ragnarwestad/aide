@@ -245,8 +245,8 @@ describe("a description newer than the analysis is shown on the row", () => {
     });
     analysedSpec(dir);
     const html = await listPage(base);
-    expect(subRow(html, "analyze")).toContain("description changed since");
-    expect(subRow(html, "implement")).not.toContain("description changed since");
+    expect(subRow(html, "analyze")).toContain("Description changed since");
+    expect(subRow(html, "implement")).not.toContain("Description changed since");
   });
 
   test("analyze stops counting as done (criteria 2, 3)", async () => {
@@ -295,7 +295,7 @@ describe("a description newer than the analysis is shown on the row", () => {
     });
     analysedSpec(dir);
     const html = await listPage(base);
-    expect(html).not.toContain("description changed since");
+    expect(html).not.toContain("Description changed since");
     const line = specControls(html, "81-queue-and-runner");
     expect(phaseDone(line, "analyze")).toBe(true);
   });
@@ -306,7 +306,7 @@ describe("a description newer than the analysis is shown on the row", () => {
     });
     analysedSpec(dir);
     const html = await listPage(base);
-    expect(html).not.toContain("description changed since");
+    expect(html).not.toContain("Description changed since");
     expect(phaseDone(specControls(html, "81-queue-and-runner"), "analyze")).toBe(true);
   });
 
@@ -330,7 +330,7 @@ describe("a description newer than the analysis is shown on the row", () => {
     const html = await listUntil(base, (h) =>
       specControls(h, "81-queue-and-runner").includes("disagree about whether"),
     );
-    expect(html).not.toContain("description changed since");
+    expect(html).not.toContain("Description changed since");
     const line = specControls(html, "81-queue-and-runner");
     expect(phaseDone(line, "analyze")).toBe(false);
     expect(line).toContain("disagree about whether");

@@ -71,7 +71,7 @@ describe("the Description tab", () => {
   // register (asked for 2026-08-23).
   test("the shell's busy script comes with the page, so Save looks pressed", () => {
     const html = edit();
-    expect(html).toContain('data-pending="saving…"');
+    expect(html).toContain('data-pending="Saving…"');
     // The transpiled listener itself, not just its effect: this page
     // is served with no `script` of its own, so the head tag is the
     // only place it can come from.

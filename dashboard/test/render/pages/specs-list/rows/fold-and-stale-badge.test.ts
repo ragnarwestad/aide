@@ -150,9 +150,9 @@ describe("the description-changed badge (criteria 1, 3)", () => {
   // would never fire for any of them.
   test("a spec with job history carries it on the analyze line (criterion 1)", () => {
     const html = rows([job("j1", "analyze")], [target("97-stale", { analyzeStale: true })]);
-    expect(subRow(html, "analyze")).toContain("description changed since");
+    expect(subRow(html, "analyze")).toContain("Description changed since");
     for (const phase of ["implement", "archive"]) {
-      expect(subRow(html, phase)).not.toContain("description changed since");
+      expect(subRow(html, phase)).not.toContain("Description changed since");
     }
   });
 
@@ -165,8 +165,8 @@ describe("the description-changed badge (criteria 1, 3)", () => {
     const html = rows([job("j1", "analyze")], [target("97-stale", { analyzeStale: true })]);
     const line = subRow(html, "analyze");
     const nameCell = line.match(/<td class="phasecell">[\s\S]*?<\/td>/)?.[0] ?? "";
-    expect(nameCell).not.toContain("description changed since");
-    expect(line).toContain("description changed since");
+    expect(nameCell).not.toContain("Description changed since");
+    expect(line).toContain("Description changed since");
   });
 
   test("the attempt count sits in the state cell too", () => {
@@ -181,12 +181,12 @@ describe("the description-changed badge (criteria 1, 3)", () => {
 
   test("a spec nothing has run carries it too (criterion 1)", () => {
     const html = rows([], [target("97-never-run", { analyzeStale: true })]);
-    expect(subRow(html, "analyze")).toContain("description changed since");
+    expect(subRow(html, "analyze")).toContain("Description changed since");
   });
 
   test("a spec whose description has not moved carries nothing (criterion 4)", () => {
     const html = rows([job("j1", "analyze")], [target("97-stale")]);
-    expect(html).not.toContain("description changed since");
+    expect(html).not.toContain("Description changed since");
   });
 
   // `done` is what the server has already stripped `analyze`
