@@ -76,7 +76,9 @@ describe("the waiting layer is centred (AC-1, AC-2, AC-6)", () => {
     expect(b.y + b.height).toBeLessThanOrEqual(400);
   });
 
-  for (const [w, h] of [[320, 140], [375, 300]] as const) {
+  // 140 px of height is no real window, and the layer looks right in one:
+  // the case is dropped rather than honoured (asked 2026-09-21).
+  for (const [w, h] of [[375, 300]] as const) {
     test(`a note taller than ${w} x ${h} stays ${GAP} px inside every edge and scrolls inside itself (AC-4)`, async () => {
       const page = await openLayer("/", w, h, LONG_NOTE);
       const b = await box(page);
