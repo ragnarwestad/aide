@@ -1,13 +1,19 @@
 # A job's states
 
 The one place the queue's state machine is written down: what a job's `state` can be, which piece of code moves it
-and when, and the three fields beside it that behave like a state without being one. The code is `JOB_STATES` and
-`TRANSITIONS` in `src/queue/steps.ts`, consulted through the one `QueueStore.transition()` in `src/queue/store/index.ts`
-that every caller — `src/queue/runner/index.ts`, the cancel route in `src/serve/routes/job-actions.ts`, and the
-landing in `src/serve/land-branch/merge.ts` — asks instead of writing `state` itself. How a
-state reads on the page is on [The specs list and the spec page](the-specs-list.md); the level above — which of the four
-phases a SPEC has reached, and what moves it — is on [A spec's lifecycle](spec-lifecycle.md). What a job's own
-`error` sentence has to say is the one rule on [Error sentences](error-sentences.md).
+and when, and the fields beside it that behave like a state without being one.
+
+The code is `JOB_STATES` and `TRANSITIONS` in `src/queue/steps.ts`. Nothing writes `state` directly — every caller
+goes through the one `QueueStore.transition()` in `src/queue/store/index.ts`: the runner
+(`src/queue/runner/index.ts` and `src/queue/runner/unticked-archive.ts`), the cancel route in
+`src/serve/routes/job-actions.ts`, the test board's own bulk cancel in `src/serve/routes/self-run.ts`, and the
+landing in `src/serve/land-branch/merge.ts`.
+
+Three pages sit beside this one:
+
+- [The specs list and the spec page](the-specs-list.md) — how a state reads on the page
+- [A spec's lifecycle](spec-lifecycle.md) — the level above: which of the four phases a SPEC has reached
+- [Error sentences](error-sentences.md) — the one rule a job's own `error` sentence follows
 
 ## Table of contents
 
@@ -22,18 +28,20 @@ phases a SPEC has reached, and what moves it — is on [A spec's lifecycle](spec
 
 A job is an ordered list of steps with a `stepIndex`; its `state` says where the job as a whole is.
 
-| State         | Meaning                                                                                                                  |
-|---------------|--------------------------------------------------------------------------------------------------------------------------|
-| `queued`      | Waiting for the runner to start its next step. Also where a job sits between two steps.                                  |
-| `running`     | One step has a live process. `pid`, `pgid`, `resultFile`, `sessionId` and `streamFile` are set.                          |
-| `done`        | Every step succeeded and, for a step that lands, the landing succeeded too.                                              |
-| `stopped`     | A step reached its own time limit, a provider limit ended it, or a landing's test run went red. `stopReason` says which. |
-| `failed`      | A step reported failure, or a landing after a successful step did not finish.                                            |
-| `cancelled`   | A user pressed Cancel.                                                                                                   |
-| `interrupted` | The step's process died without leaving a result.                                                                        |
+| State         | Meaning                                                                                                                                                                                                     |
+|---------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `queued`      | Waiting for the runner to start its next step. Also where a job sits between two steps.                                                                                                                     |
+| `running`     | One step has a live process. `pid`, `pgid`, `resultFile`, `sessionId` and `streamFile` are set.                                                                                                             |
+| `done`        | No step is left to run. Written the instant the last step's process succeeds, so a landing that follows may still fail — and an `archive` held back on unticked criteria reaches it without running at all. |
+| `stopped`     | A step reached its own time limit, a provider limit ended it, or a landing's test run went red. `stopReason` says which.                                                                                    |
+| `failed`      | A step reported failure, or a landing after a successful step did not finish.                                                                                                                               |
+| `cancelled`   | A user pressed Cancel.                                                                                                                                                                                      |
+| `interrupted` | The step's process died without leaving a result.                                                                                                                                                           |
 
-Only `queued` and `running` own their work (`UNFINISHED` in `src/queue/steps.ts`). Every other state has released
-it: the same step may be queued again for the same spec, and the duplicate guard no longer refuses it.
+Only `queued` and `running` own their work (`UNFINISHED` in `src/queue/steps.ts`), and the duplicate guard is
+built on that set alone. A second guard sits beside it: `QueueStore.landingJob()` refuses a NEW job of any step for
+a spec whose own job reads `done` with a landing still in flight, since that spec's working tree is half merged.
+Once the landing settles, the same step may be queued again — as a new job; a finished job is never resumed.
 
 ## The transitions
 
@@ -54,13 +62,16 @@ stateDiagram-v2
     running --> cancelled: Cancel
 ```
 
-**Into the queue.** `POST /api/queue`, `POST /api/queue/create` and the schedule poll all insert a job as `queued`.
+**Into the queue.** Five callers insert a job as `queued`: `POST /api/queue`, `POST /api/queue/create`, the
+schedule poll, the schedule page's own Run now, and the Close control on a spec's page.
 
 **The runner's tick, every two seconds** (`Runner.tick()`), walks the queue in `queuePriorityOrder()`'s order — every
-queued `create` or `archive` step before any queued `analyze` or `implement`, oldest first within each group
+queued `create`, `archive` or `close` step — the ones that do no model work — before any queued `analyze` or
+`implement`, oldest first within each group
 (`src/queue/steps.ts`) — and, for each `queued` job:
 
-- Starts nothing at all while any job has `landing` set — see [Beside the state](#beside-the-state).
+- Skips a job that has `landing` set: that job's next step waits for its own merge. Every other job runs as
+  usual — see [Beside the state](#beside-the-state).
 - Skips a job whose spec already has a running job: two steps for one spec are ordered by nature.
 - Leaves an `archive` job `queued` with a reason on it — "held back: another archive is running in this project — it
   starts when that one has merged" — while another `archive` in the same project is running or landing. Both branch
@@ -132,7 +143,9 @@ scripts the merge runs for it are stopped, nothing is pushed, and `landing-cance
 
 ## Beside the state
 
-Three fields say something the state alone does not, and each is read by the page as if it were one.
+Three fields say something the state alone does not, and each is read by the page as if it were one. `error`
+rides with the last of them, and the permanent records of a landing attempt — `landingError` and
+`landingErrorDetail` — are in [The transitions](#the-transitions) above, where they are written.
 
 - **`landing`** is set on a job while its finished step's branch is being merged, and cleared once the whole landing
   promise settles. It holds back that job alone — its own next step waits for its merge — and nothing else on the
@@ -158,8 +171,11 @@ Three fields say something the state alone does not, and each is read by the pag
 - **`stopReason`** is `timeout`, `provider-limit` or `tests-red`, set with `stopped` and nowhere else.
   `stopped` is deliberately not `failed`: under a tight timeout a time-stop is a common, healthy outcome, and a red
   suite on a landing is work that is not green yet rather than a broken agent.
-- **`errorReason`** is `conflict`, `held-back`, `tests-red` or `unlanded`, set when a user can act on the cause —
-  re-running `archive` resolves the conflict and the unlanded branch. It is declared in `src/queue/types.ts` and again
+- **`errorReason`** is `conflict`, `held-back`, `tests-red` or `unlanded`: the class of the thing standing in the
+  way, for a reader who needs to act on it without matching on the sentence. `conflict` and `unlanded` are
+  resolved by running `archive` again; `tests-red` by making the suite green and running the step again; and
+  `held-back` clears itself on a later tick, with nothing for anyone to press. A landing held for a red suite sets
+  it beside `stopReason: tests-red` — the same fact, once as the state's reason and once as its class. It is declared in `src/queue/types.ts` and again
   in `src/render/ui/job-state/types.ts`,
   which do not import each other; `test/queue/requests/parsing-schedule-and-errors.test.ts` reads both as text and asserts they agree.
   `error` beside it is what a reader is told: always written on `failed`, on `interrupted`, on a `queued` job that
