@@ -1,6 +1,6 @@
 // The spec list's data model — split by theme into data-model/types.ts
 // (SpecGroup and everything it is built from), phases.ts (a spec's
-// phase lines and their durations), filter-sort.ts (which chip, which
+// phase lines and their durations), filter-sort.ts (which filter, which
 // column, which search term) and group-builders.ts (turning jobs,
 // targets and archived records into rows). Kept as a barrel at this
 // path because ten files import from it.

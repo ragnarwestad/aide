@@ -54,7 +54,7 @@ export function archivedPhaseOutcomes(dir: string): Record<string, PhaseOutcome>
   return result;
 }
 
-/** Every archived spec the reader's own chip asks for, as a row for
+/** Every archived spec the reader's own filter asks for, as a row for
  *  the Specs list (spec 221; this built the `/archive` page until that
  *  page retired).
  *
@@ -73,12 +73,12 @@ export function archivedPhaseOutcomes(dir: string): Record<string, PhaseOutcome>
  *  (`archivedAt`, the duration stamp and the steps its `4-status.md`
  *  claims — spec 224, when the row grew phase lines), aide alone archives about
  *  150 specs, and this page rebuilds itself on every change event on
- *  every open tab. A view whose chip cannot show an archived row
+ *  every open tab. A view whose filter cannot show an archived row
  *  builds nothing for one — with ONE exception, and it is spec 193's:
  *  an archived spec whose own branch is still on origin has NOT
  *  finished, and taking its row off the reading view would hide the
  *  exact failure spec 193 exists to surface. 1-description.md asks for
- *  the default chip to be today's reading view unchanged in content,
+ *  the default filter to be today's reading view unchanged in content,
  *  and that is what this keeps. The set is `peekUnlanded()`, it is
  *  normally empty, and it is bounded by how many specs are genuinely
  *  stranded rather than by how big the archive has grown.

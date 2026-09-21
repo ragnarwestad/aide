@@ -63,7 +63,7 @@ export async function specsPages(
     const langResult = languageChoice(url, req);
     // Every archived spec is a row on this list since spec 221 — but
     // only for a reader whose chip asks for one. The builder decides
-    // that itself, off the same `filterShowsArchived` the chips are
+    // that itself, off the same `filterShowsArchived` the filter's entries are
     // defined by, and the scale question is why: aide alone archives
     // about 150 specs, this page rebuilds itself on every change
     // event on every open tab, and the default view must not pay for

@@ -1,4 +1,4 @@
-// The questions actually asked of this list: which chip a reader has
+// The questions actually asked of this list: which filter a reader has
 // picked, which column it is sorted by, and what a search term matches
 // against.
 
@@ -29,7 +29,7 @@ type StateFilterEntry = {
   label: string;
   states?: string[];
   excludeStates?: string[];
-  /** A predicate on the row itself, for a chip that is not a state:
+  /** A predicate on the row itself, for an entry that is not a state:
    *  "Not verified" cuts across live and archived rows alike. */
   where?: (g: SpecGroup) => boolean;
 };
@@ -44,13 +44,13 @@ export const STATE_FILTERS: StateFilterEntry[] = [
   // CLOSED_STATE joins the exclusion (spec 406, REQ-7): a closed spec
   // is no more "everything still going on" than an archived one is, but
   // it has its own word and must not borrow ARCHIVED_STATE's meaning
-  // just to be kept out of this chip.
+  // just to be kept out of this entry.
   { key: "not-archived", label: "Active", excludeStates: [ARCHIVED_STATE, CLOSED_STATE] },
   // `["running"]` alone, not IN_FLIGHT (queued+running): `group-builders.ts`
   // now folds a job's `landing` flag into this same state before it reaches
   // here (see below), so "running" already means "running, or a step's
   // branch is still being merged" — queued-with-no-landing is Waiting's to
-  // show, not this chip's.
+  // show, not this entry's.
   { key: "active:all", label: "Running", states: ["running"] },
   { key: "waiting", label: "Waiting", states: ["queued", "done"] },
   { key: "stopped", label: "Stopped", states: ["stopped"] },
@@ -68,13 +68,13 @@ export const STATE_FILTERS: StateFilterEntry[] = [
   { key: NOT_VERIFIED_KEY, label: "Not verified", where: (g) => g.state !== CLOSED_STATE && (g.notVerified ?? 0) + (g.failed ?? 0) > 0 },
 ];
 
-/** The default, by position and not by name — so a chip moved to the
+/** The default, by position and not by name — so an entry moved to the
  *  front is the default, and nothing has to be told twice. */
 export const DEFAULT_STATE_FILTER = STATE_FILTERS[0]!;
 
 /** `STATE_FILTERS`' own `label` field stays English — it is a fixed key
  *  for `stateFilter()`'s own lookup, not what the page draws (spec 350).
- *  What the page draws is this, keyed by the chip's `key` and read
+ *  What the page draws is this, keyed by the entry's `key` and read
  *  through `t()`, so a reader in `nb` mode sees "Alle"/"Aktive"/… while
  *  the filter logic above keeps matching on the same untranslated keys
  *  it always has. */
@@ -119,10 +119,10 @@ export function stateFilter(key: string | undefined): StateFilterEntry {
   return STATE_FILTERS.find((f) => f.key === resolved) ?? DEFAULT_STATE_FILTER;
 }
 
-/** Whether one chip admits one state. Written once because `applyFilter`
+/** Whether one entry admits one state. Written once because `applyFilter`
  *  decides which rows are RENDERED with it and `filterBar` decides what
- *  each chip's count SAYS with it — two answers to one question is how
- *  a chip comes to read "(0)" over a table with rows in it. */
+ *  each entry's count SAYS with it — two answers to one question is how
+ *  an entry comes to read "(0)" over a table with rows in it. */
 export const matchesState = (
   f: { states?: string[]; excludeStates?: string[] },
   state: string,
@@ -140,10 +140,10 @@ export function matchesStateFilter(f: StateFilterEntry, g: SpecGroup): boolean {
  *  every open tab sits on, refreshing itself on every change event —
  *  must never pay for it. One exported rule rather than a second
  *  reading of the query string in `serve.ts`, so the gate and the
- *  filter can never disagree about which chips show what.
+ *  filter can never disagree about which entries show what.
  *
- *  A closed spec lives in the same archive/ folder, so a chip that
- *  shows closed rows needs the walk exactly as the Archived chip does —
+ *  A closed spec lives in the same archive/ folder, so an entry that
+ *  shows closed rows needs the walk exactly as the Archived entry does —
  *  without this, Closed counted two and listed none. */
 export function filterShowsArchived(state: string | undefined): boolean {
   const f = stateFilter(state);
@@ -157,7 +157,7 @@ export function filterShowsArchived(state: string | undefined): boolean {
  *  row in exactly the same sense as an archived one, since both are the
  *  same `readerGroup()` builder over the same archive/ walk. Read
  *  wherever the ROW SHAPE is the question rather than the filter's —
- *  which is the routing in `groupRows` and the chip counts. */
+ *  which is the routing in `groupRows` and the entry counts. */
 export const isArchivedRow = (g: SpecGroup): boolean =>
   g.state === ARCHIVED_STATE || g.state === ARCHIVED_OPEN_STATE || g.state === CLOSED_STATE;
 
@@ -178,10 +178,10 @@ export const matchesSearch = (g: SpecGroup, f: SpecsFilter): boolean => {
 };
 
 export function applyFilter(groups: SpecGroup[], f: SpecsFilter): SpecGroup[] {
-  const chip = stateFilter(f.state);
+  const entry = stateFilter(f.state);
   return groups.filter(
     (g) =>
-      matchesStateFilter(chip, g) &&
+      matchesStateFilter(entry, g) &&
       (!f.project || g.project === f.project) &&
       matchesSearch(g, f),
   );

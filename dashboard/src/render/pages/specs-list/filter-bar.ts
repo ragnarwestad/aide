@@ -1,4 +1,4 @@
-// The filter chips, the search field, the sortable column headers and
+// The state filter, the search field, the sortable column headers and
 // the New-spec link that sit above the spec list. This file draws the
 // controls that choose WHICH rows show and in WHAT order; `cells.ts`
 // draws the rows themselves.
@@ -57,7 +57,7 @@ export function filterBar(groups: SpecGroup[], f: SpecsFilter, opts: SpecsPageOp
   // Counts are of what the OTHER filter already allows, so the numbers
   // add up to the table you are looking at rather than to some list
   // nobody asked for. The search is one of those filters since spec 221
-  // — a chip counting rows a term has cut would be counting a table
+  // — an entry counting rows a term has cut would be counting a table
   // nobody can see. They count SPECS, because that is what the table
   // holds one line per.
   const counted = groups.filter((g) => matchesSearch(g, f));
@@ -73,13 +73,13 @@ export function filterBar(groups: SpecGroup[], f: SpecsFilter, opts: SpecsPageOp
   //
   // Dropped while a search term is active: which archived specs a term
   // would have matched cannot be known without the rows, and a number
-  // that is wrong is worse than a chip with no number on it.
+  // that is wrong is worse than an entry with no number on it.
   const built = new Set(
     groups.filter(isArchivedRow).map((g) => groupKey(g.project, g.specFolder)),
   );
   // spec 406, REQ-7: split in two rather than one `uncounted` total —
   // an unbuilt CLOSED key must count toward "All" but never toward
-  // "Archived", the same split its own chip already keeps once a row
+  // "Archived", the same split its own entry already keeps once a row
   // IS built (`matchesStateFilter` on `CLOSED_STATE`). `opts.closed` is
   // the same cheap key list `opts.archived` is, filtered server-side to
   // the ones actually closed.
@@ -136,7 +136,7 @@ function stateDropdown(
       counted.filter((g) => matchesStateFilter(s, g)).length +
       (s.where ? uncounted.notVerified : matchesState(s, ARCHIVED_STATE) ? uncounted.archived : 0) +
       // spec 406, REQ-7: an unbuilt closed key never reaches "Archived"
-      // (CLOSED_STATE is not in that chip's `states`), only "All".
+      // (CLOSED_STATE is not in that entry's `states`), only "All".
       (!s.where && matchesState(s, CLOSED_STATE) ? uncounted.closed : 0);
     return { s, on, count };
   });
@@ -178,7 +178,7 @@ function stateDropdown(
  *  form, so it works with JavaScript switched off, survives a reload and
  *  can be pasted to someone else. A GET form REPLACES the query string,
  *  so everything else in the view travels as hidden fields — without
- *  them, searching would silently throw away the chip and the column the
+ *  them, searching would silently throw away the filter and the column the
  *  reader had just chosen. `state` is one of those fields, unchanged by
  *  spec 289: it still travels as a hidden field like every other filter
  *  key, so a plain "Search" press with no JavaScript preserves whichever

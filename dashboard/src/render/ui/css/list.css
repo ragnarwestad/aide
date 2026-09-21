@@ -10,7 +10,7 @@
 
 /* And the spec list scrolls DOWN inside the same box (spec 226). The
    25-row cap that kept this list short is gone, so it is as long as the
-   archive is; bounding it here is what keeps the chips, the (?), New
+   archive is; bounding it here is what keeps the filter, the (?), New
    spec and the search field where the reader left them while the rows
    move under them.
 
@@ -510,7 +510,8 @@ table.list tr.spechead:has(.fold[aria-expanded="true"]) .pipslot { display: none
    every row. */
 .created-date { white-space: nowrap; }
 /* The search on the Specs list (spec 221), the field the archive page
-   had. A line of its own UNDER the chips: at six chips wide, a 26rem
+   had. A line of its own UNDER the filter row: at the six chips that
+   control was then, a 26rem
    field on the same line wrapped the button onto a row by itself. The
    (?) and New spec moved onto THIS line instead (spec 261) — readers
    look for them beside the field they are about to use, not above it —

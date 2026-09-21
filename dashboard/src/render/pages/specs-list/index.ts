@@ -101,7 +101,7 @@ export interface SpecsPageOptions {
   archived?: string[];
   /** The CLOSED subset of `archived` above (spec 406, REQ-7) — same
    *  cheap key list, filtered to the ones carrying a `**Closed:**`
-   *  stamp. Read by the chip counter (`filter-bar.ts`) so an unbuilt
+   *  stamp. Read by the filter's own counts (`filter-bar.ts`) so an unbuilt
    *  closed spec's key contributes to "All" but never to "Archived":
    *  the same key/row split `archived` itself already has, one level
    *  more specific. */
