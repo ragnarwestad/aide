@@ -1,43 +1,39 @@
 #!/usr/bin/env bash
 # What the tool installers need and do not install themselves: mise, with a
 # node, for the tools they declare through it (install_mise_declared_tools
-# in _install-bin.sh), and Claude Code. Each is installed only when it is
-# missing. Sourced by install-all.sh, which calls install_prerequisites
-# before the tool installers; signing in to Claude Code is left to the user.
+# in _install-bin.sh), and the CLI of an AI tool. Nothing here is installed
+# for you — each missing piece is reported with the command that installs
+# it, and installing it is yours to run. Sourced by install-all.sh, which
+# calls check_prerequisites before the tool installers.
+#
+# The file keeps its `_install-` name because that prefix is what keeps it
+# out of ~/.local/bin (_core_bin_scripts in _install-bin.sh copies every
+# other file in this directory).
 
-# _aide_mise_activate <shell> <rc file in $HOME>
-_aide_mise_activate() {
-  grep -qs "mise activate $1" "$HOME/$2" ||
-    echo "eval \"\$(\$HOME/.local/bin/mise activate $1)\"" >> "$HOME/$2"
-}
-
-install_prerequisites() {
+check_prerequisites() {
   local status=0
   case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac
 
   if ! command -v mise &> /dev/null; then
-    echo "Installing mise (https://mise.jdx.dev)..."
-    if curl -fsSL https://mise.run | sh; then
-      # An interactive shell reaches the tools mise installs through this
-      # line, in the rc file of the user's own shell — both when that
-      # cannot be told.
-      case "$(basename "${SHELL:-}")" in
-        zsh) _aide_mise_activate zsh .zshrc ;;
-        bash) _aide_mise_activate bash .bashrc ;;
-        *) _aide_mise_activate zsh .zshrc; _aide_mise_activate bash .bashrc ;;
-      esac
-    else
-      echo "⚠️  mise could not be installed"
-      status=1
-    fi
+    echo "⚠️  mise is not installed (https://mise.jdx.dev). Install it, open a new terminal, and run this again:"
+    echo "      curl https://mise.run | sh"
+    echo "   mise's own installer prints the line to add to your shell's startup file."
+    status=1
+  elif ! mise which node &> /dev/null; then
+    echo "⚠️  mise has no node installed. Install one and run this again:"
+    echo "      mise use -g node@lts"
+    status=1
+  else
+    echo "✅ mise and node are in place"
   fi
-  if command -v mise &> /dev/null && ! mise which node &> /dev/null; then
-    echo "Installing node through mise..."
-    mise use -g node@lts || status=1
-  fi
+
+  # Not part of the status: aide installs its skills for all four AI CLIs
+  # whether or not the CLI itself is there, and which one you use is your
+  # choice. Each tool's own installer reports it too, through aide-preflight.
   if ! command -v claude &> /dev/null; then
-    echo "Installing Claude Code (https://claude.ai/install.sh)..."
-    curl -fsSL https://claude.ai/install.sh | bash || status=1
+    echo "ℹ️  Claude Code is not on PATH. Install it with:"
+    echo "      curl -fsSL https://claude.ai/install.sh | bash"
   fi
+
   return "$status"
 }

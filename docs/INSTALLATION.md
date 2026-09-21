@@ -47,14 +47,27 @@ These steps apply regardless of which AI tool you use.
 
 ### Prerequisites
 
+`./install-all.sh` checks for these and installs none of them. A missing one is reported with the command below,
+and the install carries on with what it can do without it.
+
 **You must have:**
 
-- ✅ Git, and `jq`, which every spec script needs — `./install-all.sh` installs `jq` through mise where it is missing
+- ✅ Git, and your projects cloned and working
 - ✅ [mise](https://mise.jdx.dev) with a node installed — the installers put the shared tools
-  (markdownlint-cli2, jq, gh, bun, pandoc, md-to-pdf) in place through it; without mise they are skipped with a
-  warning. `./install-all.sh` installs mise and node itself when they are missing
-- ✅ The CLI of the AI tool you will use, on PATH — `./install-all.sh` installs Claude Code when it is missing
-- ✅ Your projects cloned and working
+  (markdownlint-cli2, jq, gh, bun, pandoc, md-to-pdf) in place through it, and `jq` is what every spec script
+  needs; without mise they are all skipped with a warning
+
+  ```bash
+  curl https://mise.run | sh   # mise's own installer prints the line to add to your shell's startup file
+  mise use -g node@lts
+  ```
+
+- ✅ The CLI of the AI tool you will use, on PATH. Aide's skills install for all four whether or not the CLI is
+  there, so only the one you actually use has to be
+
+  ```bash
+  curl -fsSL https://claude.ai/install.sh | bash   # Claude Code; the other three have their own installers
+  ```
 
 **Directory structure after setup:**
 
