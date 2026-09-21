@@ -81,7 +81,11 @@ describe("the loading element while the second half is held back", () => {
 
   test("an explicit dark choice wins over a light machine (AC-2)", async () => {
     const context = await browser.newContext({ colorScheme: "light", viewport: { width: 800, height: 600 } });
-    await context.addInitScript(() => document.documentElement.setAttribute("data-theme", "dark"));
+    // The reader's choice arrives the way the product reads it: the
+    // `theme` key in localStorage, which the head script applies before
+    // the page paints. Setting the attribute here instead put it on the
+    // empty document the navigation then replaced.
+    await context.addInitScript(() => localStorage.setItem("theme", "dark"));
     const page = await context.newPage();
     await page.goto(`http://localhost:${server.port}/`, { waitUntil: "commit" });
     await page.waitForSelector(".pageloading", { state: "attached" });

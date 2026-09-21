@@ -36,9 +36,14 @@ describe("a paste into a bounded field", () => {
       const d = document.querySelector('textarea[name="description"]') as HTMLTextAreaElement;
       return d.value.length === 5000;
     });
-    const note = page.locator('textarea[name="description"] ~ [data-limit-note]');
-    await page.waitForFunction(() =>
-      document.querySelector("[data-limit-note]")?.textContent?.includes("100 characters did not fit"),
+    // Scoped to THIS field's note: the page carries one per bounded field,
+    // and a bare `[data-limit-note]` finds Title's, which has nothing to
+    // say about a paste into Description and never will.
+    const NOTE = 'textarea[name="description"] ~ [data-limit-note]';
+    const note = page.locator(NOTE);
+    await page.waitForFunction(
+      (sel) => document.querySelector(sel)?.textContent?.includes("100 characters did not fit"),
+      NOTE,
     );
     expect(await note.textContent()).toContain("100 characters did not fit");
     await context.close();

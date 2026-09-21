@@ -102,12 +102,21 @@ describe("at phone width", () => {
 describe("saving from the list", () => {
   test("ticking one and saving keeps the message, ticking the last one takes it away, and nothing is started", async () => {
     await page.goto(`${base}/?live=0&checks=aide%2F${FOLDER}`);
+    // A save replaces the whole row (row-swap.ts), so the next tick has
+    // to go on the row that came BACK: waiting for "one is checked" is
+    // true of the old node too, and a box ticked there goes with it —
+    // the save after it then posted a form with nothing ticked.
+    const save = async (): Promise<void> => {
+      const before = await notice().locator("form.rowchecks").elementHandle();
+      await notice().locator("form.rowchecks button").click();
+      if (before) await page.waitForFunction((el) => !(el as Element).isConnected, before, { timeout: 10_000 });
+    };
     await notice().locator(`input[name="tick"]`).first().check();
-    await notice().locator("form.rowchecks button").click();
+    await save();
     await waitUntil(async () => (await notice().locator("input[name=\"tick\"]:checked").count()) === 1, 10_000, "the first tick to be saved");
     expect(await notice().textContent()).toContain("tick them under › on the Specs list, or on the Status tab");
     await notice().locator(`input[name="tick"]`).nth(1).check();
-    await notice().locator("form.rowchecks button").click();
+    await save();
     await waitUntil(async () => (await notice().count()) === 0 || !(await notice().textContent())?.includes("tick them"), 10_000, "the message to go");
     const jobs = (await (await fetch(`${base}/api/queue`, { headers: { accept: "application/json" } })).json()).jobs;
     expect(jobs).toEqual([]);
