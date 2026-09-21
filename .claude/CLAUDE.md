@@ -71,24 +71,29 @@ process started by hand with `pkill` + `bun run` is not the service.
 **Grep the long pages; do not read one whole.** `docs/AI_NEWS_LOG.md` is 650 lines and the dashboard's docs
 pages run to 450; they are written to be searched. Where to look:
 
-| Question                                                | Page                               |
-|---------------------------------------------------------|------------------------------------|
-| What the dashboard is, its URLs, live runs              | `dashboard/README.md`              |
-| How the queue runs specs, and what it tells you         | `dashboard/docs/running-specs.md`  |
-| What a run does to the repositories and its checkouts   | `dashboard/docs/the-runner.md`     |
-| What a row on the specs list says, the spec page        | `dashboard/docs/the-specs-list.md` |
-| Adding a project, whether a run can start there         | `dashboard/docs/projects.md`       |
-| A job's states and every transition between them        | `dashboard/docs/job-states.md`     |
-| The four phases, what moves a spec between them         | `dashboard/docs/spec-lifecycle.md` |
-| How a step's branch is merged, conflicts, unlanded work | `dashboard/docs/landing.md`        |
-| Tokens, components and the CSS class vocabulary         | `dashboard/docs/design-system.md`  |
-| Serving it, HTTPS, moving it to another host            | `dashboard/docs/hosting.md`        |
-| Every HTTP route: method, read or action, what it takes | `dashboard/docs/http-routes.md`    |
-| Installation layout, what goes where, the gotchas       | `.claude/rules/development.md`     |
-| Where the project came from and what is next            | `docs/ROADMAP.md`                  |
-| How Aide compares with other spec-driven tools          | `docs/COMPARISON.md`               |
-| What each AI tool supports, verified                    | `docs/AI_SUPPORT_MATRIX.md`        |
-| How to write a skill                                    | `docs/SKILL_GUIDE.md`              |
+| Question                                                  | Page                                          | Who it's for      |
+|-----------------------------------------------------------|-----------------------------------------------|-------------------|
+| What the dashboard is, its URLs, live runs                | `dashboard/README.md`                         | Both              |
+| How the queue runs specs, and what it tells you           | `dashboard/docs/running-specs.md`             | Both              |
+| What a run does to the repositories and its checkouts     | `dashboard/docs/the-runner.md`                | Changing the code |
+| What a row on the specs list says, the spec page          | `dashboard/docs/the-specs-list.md`            | Changing the code |
+| Adding a project, whether a run can start there           | `dashboard/docs/projects.md`                  | Both              |
+| A job's states and every transition between them          | `dashboard/docs/job-states.md`                | Changing the code |
+| The four phases, what moves a spec between them           | `dashboard/docs/spec-lifecycle.md`            | Both              |
+| How a step's branch is merged, conflicts, unlanded work   | `dashboard/docs/landing.md`                   | Changing the code |
+| The one rule every error the board shows follows          | `dashboard/docs/error-sentences.md`           | Changing the code |
+| Tokens, components and the CSS class vocabulary           | `dashboard/docs/design-system.md`             | Changing the code |
+| Every HTTP route: method, read or action, what it takes   | `dashboard/docs/http-routes.md`               | Changing the code |
+| The decisions made twice, in bash and TypeScript          | `dashboard/docs/bash-typescript-decisions.md` | Changing the code |
+| The dashboard's own tests, and running it from a checkout | `dashboard/docs/developing.md`                | Changing the code |
+| Serving it, HTTPS, moving it to another host              | `dashboard/docs/hosting.md`                   | Running the board |
+| Reaching the board from a phone or another computer       | `dashboard/docs/tailscale.md`                 | Running the board |
+| The test server a held-back spec offers                   | `dashboard/docs/test-server.md`               | Using the board   |
+| Installation layout, what goes where, the gotchas         | `.claude/rules/development.md`                | Changing the code |
+| Where the project came from and what is next              | `docs/ROADMAP.md`                             | Both              |
+| How Aide compares with other spec-driven tools            | `docs/COMPARISON.md`                          | Both              |
+| What each AI tool supports, verified                      | `docs/AI_SUPPORT_MATRIX.md`                   | Changing the code |
+| How to write a skill                                      | `docs/SKILL_GUIDE.md`                         | Changing the code |
 
 ---
 
