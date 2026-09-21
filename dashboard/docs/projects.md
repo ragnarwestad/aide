@@ -3,21 +3,33 @@
 How a project is added to the dashboard, what decides whether a run can start there, and what its own page shows. The
 queue that runs its specs is on [Running specs](running-specs.md).
 
+The page has two parts. [Using it](#using-it) is for someone adding and running projects on the board.
+[How it works inside](#how-it-works-inside) is for someone changing the code that does it.
+
 ## Table of contents
 
-- [Adding and removing a project](#adding-and-removing-a-project)
+- [Using it](#using-it)
+    - [Adding a project](#adding-a-project)
+    - [Removing a project](#removing-a-project)
     - [Whether a run can start there](#whether-a-run-can-start-there)
     - [What Add finishes itself](#what-add-finishes-itself)
+    - [A project's own page](#a-projects-own-page)
+        - [Config](#config)
+        - [Deploy](#deploy)
+        - [Schedule](#schedule)
+    - [How a project's code lands](#how-a-projects-code-lands)
+- [How it works inside](#how-it-works-inside)
+    - [Two homes for a project's manifest keys](#two-homes-for-a-projects-manifest-keys)
+    - [How the settings reach a run](#how-the-settings-reach-a-run)
+    - [Which readiness checks are the dashboard's own](#which-readiness-checks-are-the-dashboards-own)
     - [A page render never waits on the network](#a-page-render-never-waits-on-the-network)
-- [A project's own page](#a-projects-own-page)
-    - [Config](#config)
-    - [Deploy](#deploy)
-    - [Schedule](#schedule)
-- [How a project's code lands](#how-a-projects-code-lands)
+    - [A server started with no projects root](#a-server-started-with-no-projects-root)
 
 ---
 
-## Adding and removing a project
+## Using it
+
+### Adding a project
 
 `/projects` lists every project the dashboard knows, with an **Add** button above the list and a **Remove** link on
 each row. Add opens a page of its own; both are held to the same-origin rule, like every other control that changes
@@ -29,26 +41,36 @@ allowlist, which is what a run checks before it starts; removing one takes the n
 
 The Add form asks for:
 
-| Field           | What it takes                                                                                                                             |
-|-----------------|-------------------------------------------------------------------------------------------------------------------------------------------|
-| Name            | The directory's name under the projects root. Picked from the checkouts already there, or typed to name the directory a clone will create |
-| Git URL or path | A URL to clone, or a path to a checkout already on disk                                                                                   |
-| Specs root      | Where this project's specs live, when they are not in `specs/` inside it                                                                  |
-| Worktree links  | Space-separated repo-relative paths a run has to symlink into its worktree                                                                |
-| Code landing    | Merge the code, or leave it as a pull request                                                                                             |
-| --------------  | -----------------------------------------------                                                                                           |
+| Field          | What it takes                                                                                                  |
+|----------------|----------------------------------------------------------------------------------------------------------------|
+| Name           | Required. The name of the directory the clone makes under the projects root, and the project's name everywhere |
+| Git URL        | Required. The address to clone                                                                                 |
+| Specs root     | Optional. Where this project's specs live, when they are not in `specs/` inside it                             |
+| Code landing   | Merge the code, or leave it as a pull request — see [How a project's code lands](#how-a-projects-code-lands)   |
+| Worktree links | Optional. Space-separated repo-relative paths a run has to symlink into its worktree                           |
+| Description    | One line saying what the project is                                                                            |
 
 **A project is added by its git address and cloned — there is no way to register a directory already on the host.**
-That leaves ONE layout for every project: the entry under the projects root is the checkout the dashboard itself
-made. A clone lands in `<projects root>/<name>` — or, when the projects root is the directory of links beside the
-dashboard's own checkouts, in `~/.aide/dashboard/checkouts/<name>/code`, with a link to it at
-`<projects root>/<name>`.
+That leaves ONE layout for every project: the entry under the projects root is a checkout the dashboard itself made.
+Where the clone lands depends on what the projects root is:
 
-**A clone happens on a press and at no other time.** Add clones the project; saving a specs root clones the
-repository that path names. Every tick, boot and page render asks for the checkout without permission to make one,
-so a checkout that is missing or that git cannot answer for is reported — at the top of every page, naming the
-project and what git said — and left exactly as it is. The dashboard never deletes a checkout and never re-clones
-one to repair it: a directory that is there and does not answer is something to look at, and the message says so.
+- **An ordinary directory**, such as a laptop's own `~/develop`: Add clones into `<projects root>/<name>`, and then
+  makes the dashboard's own checkout, `~/.aide/dashboard/checkouts/<name>/code`, as a second clone.
+- **The directory of links beside the dashboard's own checkouts**, as on a serving host: Add clones into
+  `~/.aide/dashboard/checkouts/<name>/code` and puts a link to it at `<projects root>/<name>`. A checkout already
+  there — one `install-serve` made — is linked rather than cloned again.
+
+**A clone happens on a press and at no other time.** Add clones the project, and a successful save of its settings
+on the project's own page makes any checkout it is still missing — whichever field was saved, not the specs root
+alone. Every tick, boot and page render asks for the checkout without permission to make one. The dashboard never
+deletes a checkout and never re-clones one to repair it: a directory that is there and does not answer is something
+to look at, and the message says so.
+
+**What is reported, and where.** A checkout git cannot answer for, and a clone that failed, are named at the top of
+every page. A missing dashboard checkout is named there only when the project's own entry under the projects root is
+gone as well: while that entry is there, every reader falls back to it, and the missing checkout goes to the server's
+log alone. The sentence at the top of the page is the dashboard's own, naming the path and what to do about it —
+except for a failed clone, where it quotes what git said.
 
 **A project that does not already track a manifest keeps nothing of Aide's in its repository.** What Add would have
 written into the checkout — the name, the description, worktree links, code landing — goes to the dashboard's own
@@ -57,32 +79,11 @@ is never written to; Add says so in its manifest step and writes nothing for the
 `.aide/project.yaml` in the checkout (a draft from `/aide-manifest`) is left as it is and seeds the settings file, so what
 it said is not lost.
 
-**Two homes for a project's manifest keys, one winner.** "Tracked" means `git ls-files --error-unmatch
-.aide/project.yaml` in the checkout answers yes (exit 0); exit 1 is not tracked, and any other answer means git cannot
-say, so nothing is written, committed or overwritten for a manifest key and the save names why. A tracked manifest
-wins as a whole file: the settings file is then read by nothing, and the project's page says so. Without a tracked
-manifest the settings file is the manifest. A Settings save commits and pushes only where the manifest is tracked;
-otherwise it writes the settings file and waits for a fresh `ensureDashboardCheckout` to carry it.
-
-**How the settings reach a run.** `ensureDashboardCheckout` writes the settings file as an ignored
-`.aide/project.yaml` in the dashboard's own clone (listed in that clone's `.git/info/exclude` before any
-fast-forward, so the day the team commits a manifest the pull overwrites the copy instead of refusing). `aide-run-spec`
-copies it from the main checkout into a step's worktree and keeps it out of the commit and out of `aide_tree_hash`;
-the landing's test gate copies it into its tree, and reads the worktree links from there. Every reader of
-`<dir>/.aide/project.yaml` — TypeScript and bash — therefore finds it unchanged. Discovery and the project page read a
-project's manifest from the clone when the project's own directory holds none.
+### Removing a project
 
 Remove takes the project off the allowlist and off this dashboard, and that is all it does: the checkout and the
 specs root stay on disk, untouched. `/projects/<name>/remove` asks the question in a sentence and the press is the
 answer; nothing is typed back.
-
-A server started without `--root` has no projects root to list or add to. Its `GET /projects` redirects to the
-generated `projects.html` instead of rendering an empty listing, and its nav goes on naming that file — an empty
-page would read as "no projects on this machine" rather than "this server was never told where they are". That
-generated file is a redirect to the served page and carries no controls of its own; the only other generated page
-is `about.html`. There is no generated page per project: the served `/projects/<name>` is the only one, because a
-frozen copy beside it was a second page with the same name, one tab away from the live one and always a little out
-of date.
 
 ### Whether a run can start there
 
@@ -105,8 +106,7 @@ Most of these checks are `aide-run-spec`'s own prerequisites, read-only, taken a
 the `.aide` written a second earlier is part of what the runner will see. Three rows are this dashboard's own, and `aide-run-spec` refuses on none of
 them: `gitRoot`'s "inside a bigger repository" case, `specsRepo`, and `dashboardCheckout` — which blocks nothing at
 all, and is left out of the table below because all it reports is whether the run will use a checkout the dashboard
-owns rather than the project's own directory. The asymmetry is recorded in
-`tests/fixtures/project-readiness-prerequisites.json`'s own comment rather than pinned against the runner.
+owns rather than the project's own directory.
 
 | Check           | Blocks a run when                                                                                                                                                     |
 |-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -115,16 +115,6 @@ owns rather than the project's own directory. The asymmetry is recorded in
 | `specsRepo`     | (dashboard only) that specs root is in no git repository — `aide-run-spec` silently leaves such a root out of what it commits, rather than refusing                   |
 | `defaultBranch` | the default branch is neither here nor on origin, or another worktree already has it checked out                                                                      |
 | `worktreeLinks` | a configured entry leaves the repository, names a path that is not there, or names a build directory (`build`, `dist`, `.gradle`, `target`), which is refused by name |
-
-`worktreeLinks` is read from the project's `.aide/project.yaml` (the committed one, else the dashboard's derived copy)
-first and from `.aide/config`'s older `AIDE_WORKTREE_LINKS` second — the same order, and the same winner, as
-`aide-run-spec` itself reads them in.
-`tests/fixtures/worktree-links-precedence.json` is the one table both sides are tested against, because the two are
-written independently and nothing else would stop them drifting.
-
-`tests/fixtures/project-readiness-prerequisites.json` is the equivalent table for `gitRoot`, `specsRoot`,
-`defaultBranch` and `worktreeLinks` themselves: a test on each side reads it and asserts `aide-run-spec` really
-refuses what this page says it does, for the same identifier and the same blocking answer.
 
 A `defaultBranch` blocked by another worktree is the one a reader meets by accident: `git worktree list` in the
 checkout names the directory holding it, and `git worktree remove <dir>` releases it.
@@ -178,23 +168,12 @@ symlink, and a build writing through it would collide with every other run's. Ad
 nothing at all: the project is not on this host yet, so there is no lockfile to read and no `.gitignore` to suggest
 from.
 
-### A page render never waits on the network
-
-`assessProjectReadiness` only ever touches disk — `rev-parse`, `show-ref`, `symbolic-ref`, `worktree list`,
-`remote get-url` — and so
-does everything else on the request path. The commits-behind-origin count on a project's own Deploy tab needs a real
-`git fetch origin`, and that fetch runs off the request path: `refreshDrift()` walks the configured projects on an
-`.unref()`'d `setInterval`, the same shape as the runner's own tick and the SSE keep-alive ping, cleared in `stop()`
-beside them. The handler calls the synchronous `peekDrift()`, which reads the cache and never spawns git. A project
-the poll has never reached yet returns `checkedAt: null`, and the Deploy tab says the check has not been made yet —
-a labelled stale number, never a page that blocks on GitHub being reachable.
-
-## A project's own page
+### A project's own page
 
 `/projects/<name>` has three tabs — **Config**, **Deploy** and **Schedule** — chosen with `?tab=` and defaulting to
 Config, which is also where an unrecognised value lands.
 
-### Config
+#### Config
 
 Four things, in this order.
 
@@ -230,7 +209,7 @@ never committed. Worktree links, Preview command, Test command and Code landing 
 own `.aide/project.yaml` where it is tracked, else the dashboard's `settings.yaml`. Unchanged values are not
 rewritten.
 
-### Deploy
+#### Deploy
 
 Two panels. The first says how far the checkout is behind origin, and for the one project this server runs from,
 which commit it is serving; under it a **Deploy** button, disabled when the checkout matches origin or when origin
@@ -240,7 +219,7 @@ nothing to act on. When drift has not been checked yet, the page asks for itself
 The second panel starts a test server for the project, in a new tab. Without a preview command configured, the
 heading stays with a sentence saying it is unavailable.
 
-### Schedule
+#### Schedule
 
 A scheduled job runs a prompt against this project on a cron expression, with no spec involved — a report, a
 sweep, a check. The tab lists this project's jobs by name, cron expression, prompt and next run, or says nothing is
@@ -249,8 +228,7 @@ scheduled, and under the list is the form that creates one, with this project al
 its output goes. The tab is drawn even for a project
 that is not on the allowlist; its submission is then refused, with the reason on the form.
 
-
-## How a project's code lands
+### How a project's code lands
 
 When a spec is archived, the dashboard lands its code in one of two ways, chosen per project with **Code landing** — in
 the Add form, or under Edit on the project's own page:
@@ -277,3 +255,62 @@ the branches as they are; merging them or opening a pull request is then up to y
 
 How the landing works inside, and what not to get backwards when changing it:
 [A project can ask for its code branch to stay open](landing.md#a-project-can-ask-for-its-code-branch-to-stay-open).
+
+---
+
+## How it works inside
+
+### Two homes for a project's manifest keys
+
+"Tracked" means `git ls-files --error-unmatch
+.aide/project.yaml` in the checkout answers yes (exit 0); exit 1 is not tracked, and any other answer means git cannot
+say, so nothing is written, committed or overwritten for a manifest key and the save names why. A tracked manifest
+wins as a whole file: the settings file is then read by nothing, and the project's page says so. Without a tracked
+manifest the settings file is the manifest. A Settings save commits and pushes only where the manifest is tracked;
+otherwise it writes the settings file and waits for a fresh `ensureDashboardCheckout` to carry it.
+
+### How the settings reach a run
+
+`ensureDashboardCheckout` writes the settings file as an ignored
+`.aide/project.yaml` in the dashboard's own clone (listed in that clone's `.git/info/exclude` before any
+fast-forward, so the day the team commits a manifest the pull overwrites the copy instead of refusing). `aide-run-spec`
+copies it from the main checkout into a step's worktree and keeps it out of the commit and out of `aide_tree_hash`;
+the landing's test gate copies it into its tree, and reads the worktree links from there. Every reader of
+`<dir>/.aide/project.yaml` — TypeScript and bash — therefore finds it unchanged. Discovery and the project page read a
+project's manifest from the clone when the project's own directory holds none.
+
+### Which readiness checks are the dashboard's own
+
+The asymmetry is recorded in
+`tests/fixtures/project-readiness-prerequisites.json`'s own comment rather than pinned against the runner.
+
+`worktreeLinks` is read from the project's `.aide/project.yaml` (the committed one, else the dashboard's derived copy)
+first and from `.aide/config`'s older `AIDE_WORKTREE_LINKS` second — the same order, and the same winner, as
+`aide-run-spec` itself reads them in.
+`tests/fixtures/worktree-links-precedence.json` is the one table both sides are tested against, because the two are
+written independently and nothing else would stop them drifting.
+
+`tests/fixtures/project-readiness-prerequisites.json` is the equivalent table for `gitRoot`, `specsRoot`,
+`defaultBranch` and `worktreeLinks` themselves: a test on each side reads it and asserts `aide-run-spec` really
+refuses what this page says it does, for the same identifier and the same blocking answer.
+
+### A page render never waits on the network
+
+`assessProjectReadiness` only ever touches disk — `rev-parse`, `show-ref`, `symbolic-ref`, `worktree list`,
+`remote get-url` — and so
+does everything else on the request path. The commits-behind-origin count on a project's own Deploy tab needs a real
+`git fetch origin`, and that fetch runs off the request path: `refreshDrift()` walks the configured projects on an
+`.unref()`'d `setInterval`, the same shape as the runner's own tick and the SSE keep-alive ping, cleared in `stop()`
+beside them. The handler calls the synchronous `peekDrift()`, which reads the cache and never spawns git. A project
+the poll has never reached yet returns `checkedAt: null`, and the Deploy tab says the check has not been made yet —
+a labelled stale number, never a page that blocks on GitHub being reachable.
+
+### A server started with no projects root
+
+A server started without `--root` has no projects root to list or add to. Its `GET /projects` redirects to the
+generated `projects.html` instead of rendering an empty listing, and its nav goes on naming that file — an empty
+page would read as "no projects on this machine" rather than "this server was never told where they are". That
+generated file is a redirect to the served page and carries no controls of its own; the only other generated page
+is `about.html`. There is no generated page per project: the served `/projects/<name>` is the only one, because a
+frozen copy beside it was a second page with the same name, one tab away from the live one and always a little out
+of date.
