@@ -97,8 +97,12 @@ describe("Started and Cost fold away at phone width", () => {
     // After all three, never beside them: equal orders keep document
     // order, and this line is written in the FIRST cell — at the
     // badge's own order it came before the badge and, taking the whole
-    // width, pushed it onto a line of its own.
-    expect(NARROW).toMatch(/tr\.spechead \.spec-title \{ order: 4; flex: 0 0 100%; \}/);
+    // width, pushed it onto a line of its own. The basis is the width
+    // MINUS the indent both lines carry, since a basis of the whole
+    // width plus a left margin hangs past the row's right edge.
+    expect(NARROW).toMatch(
+      /tr\.spechead \.spec-title,\s*\n\s*table\.list tr\.spechead \.spec-notverified \{\s*\n\s*order: 4; flex: 0 0 calc\(100% - \(24px \+ var\(--sp-1\) \+ var\(--sp-2\)\)\); \}/,
+    );
   });
 
   // The badge reserved the width of its longest label ("implementing

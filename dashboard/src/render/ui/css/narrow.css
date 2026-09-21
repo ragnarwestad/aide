@@ -211,8 +211,12 @@
      width, it then pushed the state onto a line of its own, which is
      why a row with a summary wrapped and an archived one (which has
      none) did not. */
-  table.list tr.spechead .spec-title { order: 4; flex: 0 0 100%; }
-  table.list tr.spechead .spec-notverified { order: 4; flex: 0 0 100%; }
+  /* 100% MINUS the indent both lines carry (list.css): a basis of the
+     whole width plus a left margin is wider than the row, and the mark
+     hung 35 px past its right edge at 375 px. */
+  table.list tr.spechead .spec-title,
+  table.list tr.spechead .spec-notverified {
+    order: 4; flex: 0 0 calc(100% - (24px + var(--sp-1) + var(--sp-2))); }
   /* The header line starts further left than the phase lines under it
      (asked for 2026-08-24): the fold+name is the row's MAJOR line, and
      the base cell padding (var(--sp-3)) put it flush with the minor

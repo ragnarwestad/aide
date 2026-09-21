@@ -8,8 +8,6 @@
 // `cd dashboard && bun test --timeout 20000 test/e2e/specs-verification-mark-fits-a-phone.test.ts`.
 import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { queueHarness, ran } from "../../helpers/queue-server.ts";
 import { recording } from "../../spec-page/spec-checks-fixtures.ts";
 
@@ -41,9 +39,12 @@ let base: string;
 beforeAll(async () => {
   browser = await chromium.launch();
   page = await browser.newPage({ viewport: { width: 375, height: 800 } });
-  const started = harness.start({ extra: { gitRun: recording().run }, status: STATUS });
+  // The state goes in through the harness, not written afterwards: the
+  // server reads a spec once and caches it, so a 4-status.json that lands
+  // after `start()` is never seen — the row then has no counts, and the
+  // mark this test is about is correctly not drawn.
+  const started = harness.start({ extra: { gitRun: recording().run }, status: STATUS, liveState: STATE_JSON });
   base = started.base;
-  writeFileSync(join(started.dir, "root", "aide", "specs", FOLDER, "4-status.json"), STATE_JSON);
   ran(started.dir, ["analyze", "implement"]);
 });
 
@@ -56,7 +57,10 @@ describe("the verification mark at phone width", () => {
     await mark.waitFor();
     expect(await mark.innerText()).toContain("1 not verified · 1 failed");
     const box = (await mark.boundingBox())!;
-    const name = (await page.locator(`tr.spechead[data-folder="${FOLDER}"] .spec-name`).boundingBox())!;
+    // `.label`, not `.spec-name`: the wrapper is `display: contents` at
+    // phone width (narrow.css), so it draws no box at all and has no
+    // position to be under. The line that draws `aide: 81-…` does.
+    const name = (await page.locator(`tr.spechead[data-folder="${FOLDER}"] .label`).boundingBox())!;
     const row = (await page.locator(`tr.spechead[data-folder="${FOLDER}"]`).boundingBox())!;
     expect(box.y).toBeGreaterThanOrEqual(name.y + name.height - 1);
     expect(box.x).toBeGreaterThanOrEqual(row.x);
