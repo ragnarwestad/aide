@@ -98,10 +98,10 @@ export interface AddProjectRequest {
    *  fallback both readers already implement. */
   specsPath?: string;
   /** What happens to code when a spec is archived, the same choice the
-   *  project page's own Edit offers. `merge` is the default and writes
-   *  NOTHING: it is what a manifest with no `codeLanding` already
-   *  means, and a key stating the default is a key that has to be kept
-   *  in step with it. */
+   *  project page's own Edit offers. Required: an Add without it is
+   *  refused. `merge` writes NOTHING — it is what a manifest with no
+   *  `codeLanding` already means, and a key stating that is a key to
+   *  keep in step with it — and `pr` is written. */
   codeLanding?: string;
   /** `worktreeLinks`: the space-separated, repo-relative paths a
    *  run has to link into its worktree because git does not carry them

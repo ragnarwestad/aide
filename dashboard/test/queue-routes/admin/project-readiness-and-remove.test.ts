@@ -71,7 +71,7 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       headers: AUTH,
-      body: JSON.stringify({ name: "ready-one", gitUrl: "https://example.com/ready-one.git" }),
+      body: JSON.stringify({ name: "ready-one", gitUrl: "https://example.com/ready-one.git", codeLanding: "merge" }),
     });
     expect(res.status).toBe(200);
     const body = (await res.json()) as StepBody;
@@ -93,7 +93,7 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       headers: AUTH,
-      body: JSON.stringify({ name: "skjer", gitUrl: "https://example.com/skjer.git" }),
+      body: JSON.stringify({ name: "skjer", gitUrl: "https://example.com/skjer.git", codeLanding: "merge" }),
     });
     // 200: the registration DID complete, and a 400 would tell an API
     // caller to try it again against a checkout that is already there.
@@ -119,7 +119,7 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
       method: "POST",
       redirect: "manual",
       headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ name: "noscript", gitUrl: "https://example.com/noscript.git" }),
+      body: new URLSearchParams({ name: "noscript", gitUrl: "https://example.com/noscript.git", codeLanding: "merge" }),
     });
     expect(res.status).toBe(303);
     const location = res.headers.get("location")!;
@@ -154,6 +154,7 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
       body: JSON.stringify({
         name: "withlinks",
         gitUrl: "https://example.com/withlinks.git",
+        codeLanding: "merge",
         worktreeLinks: "node_modules",
       }),
     });
@@ -173,6 +174,7 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
       body: JSON.stringify({
         name: "badlinks",
         gitUrl: "https://example.com/badlinks.git",
+        codeLanding: "merge",
         worktreeLinks: "../escape",
       }),
     });

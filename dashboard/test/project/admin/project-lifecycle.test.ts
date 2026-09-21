@@ -71,6 +71,7 @@ describe("adding a project by cloning it", () => {
     const result = await addProject(git.run, projectsRoot, {
       name: "newproj",
       gitUrl: "https://example.com/newproj.git",
+      codeLanding: "merge",
       description: "What it is for",
     }, base);
     expect(result.ok).toBe(true);
@@ -103,6 +104,7 @@ describe("adding a project by cloning it", () => {
     const result = await addProject(git.run, projectsRoot, {
       name: "taken",
       gitUrl: "https://example.com/taken.git",
+      codeLanding: "merge",
     });
     expect(result.ok).toBe(false);
     const clone = result.steps.find((s) => s.step === "clone")!;
@@ -117,6 +119,7 @@ describe("adding a project by cloning it", () => {
     const result = await addProject(git.run, projectsRoot, {
       name: "nope",
       gitUrl: "https://example.com/nope.git",
+      codeLanding: "merge",
     });
     expect(result.ok).toBe(false);
     expect(result.steps.map((s) => s.step)).toEqual(["name", "clone"]);
@@ -142,6 +145,7 @@ describe("adding a project on a host whose projects root holds links", () => {
     const result = await addProject(git.run, projectsRoot, {
       name: "newproj",
       gitUrl: "https://example.com/newproj.git",
+      codeLanding: "merge",
     }, base);
     expect(result.ok).toBe(true);
     expect(git.calls.filter((c) => c.args.includes("clone"))).toEqual([
@@ -164,6 +168,7 @@ describe("adding a project on a host whose projects root holds links", () => {
     const result = await addProject(git.run, projectsRoot, {
       name: "aide",
       gitUrl: "https://example.com/aide.git",
+      codeLanding: "merge",
     }, base);
     expect(result.ok).toBe(true);
     expect(git.calls.filter((c) => c.args.includes("clone"))).toEqual([]);
@@ -177,6 +182,7 @@ describe("adding a project on a host whose projects root holds links", () => {
     const result = await addProject(git.run, projectsRoot, {
       name: "newproj",
       gitUrl: "https://example.com/newproj.git",
+      codeLanding: "merge",
     }, base);
     expect(result.ok).toBe(true);
     expect(lstatSync(join(projectsRoot, "newproj")).isDirectory()).toBe(true);
@@ -205,6 +211,7 @@ describe("a clone that cannot authenticate", () => {
     await addProject(git.run, projectsRoot, {
       name: "newproj",
       gitUrl: "https://example.com/newproj.git",
+      codeLanding: "merge",
     });
     const clone = git.calls.find((c) => c.args.includes("clone"))!;
     expect(clone.args.slice(0, 3)).toEqual(["-c", "credential.helper=", "clone"]);
@@ -216,6 +223,7 @@ describe("a clone that cannot authenticate", () => {
     const result = await addProject(git.run, root(), {
       name: "private",
       gitUrl: "https://example.com/owner/private.git",
+      codeLanding: "merge",
     });
     const clone = result.steps.find((s) => s.step === "clone")!;
     expect(clone.ok).toBe(false);
@@ -230,6 +238,7 @@ describe("a clone that cannot authenticate", () => {
     const result = await addProject(git.run, root(), {
       name: "private",
       gitUrl: "https://example.com/owner/private",
+      codeLanding: "merge",
     });
     expect(result.steps.find((s) => s.step === "clone")!.error).toContain(
       "git@example.com:owner/private.git",
@@ -244,6 +253,7 @@ describe("a clone that cannot authenticate", () => {
     const result = await addProject(git.run, root(), {
       name: "nope",
       gitUrl: "https://example.com/nope.git",
+      codeLanding: "merge",
     });
     const clone = result.steps.find((s) => s.step === "clone")!;
     expect(clone.error).toContain("repository not found");
@@ -260,6 +270,7 @@ describe("a clone that cannot authenticate", () => {
     const result = await addProject(git.run, projectsRoot, {
       name: "bykey",
       gitUrl: "git@example.com:owner/bykey.git",
+      codeLanding: "merge",
     }, base);
     expect(result.ok).toBe(true);
     expect(result.steps.map((s) => s.step)).toEqual(["name", "clone", "manifest"]);
@@ -279,6 +290,7 @@ describe("adding a checkout that is already on the host", () => {
     const result = await addProject(git.run, projectsRoot, {
       name: "already",
       gitUrl: "git@example.com:me/already.git",
+      codeLanding: "merge",
       description: "ignored, because there is a manifest already",
     });
     expect(result.ok).toBe(true);
@@ -298,6 +310,7 @@ describe("adding a checkout that is already on the host", () => {
     const result = await addProject(cloningGit().run, projectsRoot, {
       name: "bare",
       gitUrl: "git@example.com:me/bare.git",
+      codeLanding: "merge",
       description: "A checkout that predates its manifest",
     }, base);
     expect(result.ok).toBe(true);
@@ -315,6 +328,22 @@ describe("adding a checkout that is already on the host", () => {
 
 
 
+
+  test.each([
+    ["absent", undefined],
+    ["empty", ""],
+    ["only spaces", "   "],
+  ])("an Add with Code landing %s is refused before anything is cloned (AC-3)", async (_label, codeLanding) => {
+    const git = cloningGit();
+    const projectsRoot = root();
+    const req = { name: "nochoice", gitUrl: "https://example.com/nochoice.git", codeLanding };
+    const result = await addProject(git.run, projectsRoot, req);
+    expect(result.ok).toBe(false);
+    expect(result.steps.map((s) => s.step)).toEqual(["codeLanding"]);
+    expect(result.steps[0]!.error).toMatch(/^choose/);
+    expect(git.calls).toEqual([]);
+    expect(existsSync(join(projectsRoot, "nochoice"))).toBe(false);
+  });
 
   // 2026-09-21: a git address is the only way in. A project used to be
   // addable by naming a directory already on the host, which left the
@@ -344,6 +373,7 @@ describe("where the project's specs live", () => {
     const result = await addProject(git.run, projectsRoot, {
       name: "withspecs",
       gitUrl: "https://example.com/withspecs.git",
+      codeLanding: "merge",
       specsPath: "/repos/aide-specs/withspecs",
     });
     expect(result.ok).toBe(true);
@@ -364,6 +394,7 @@ describe("where the project's specs live", () => {
       {
       name: "hasconfig",
       gitUrl: "git@example.com:me/hasconfig.git",
+      codeLanding: "merge",
       specsPath: "/new/place",
       },
     );
@@ -387,6 +418,7 @@ describe("where the project's specs live", () => {
     const result = await addProject(cloningGit().run, projectsRoot, {
       name: "makesspecs",
       gitUrl: "git@example.com:me/makesspecs.git",
+      codeLanding: "merge",
       specsPath: specs,
     });
     expect(result.ok).toBe(true);
@@ -406,6 +438,7 @@ describe("where the project's specs live", () => {
     const result = await addProject(cloningGit().run, projectsRoot, {
       name: "hasspecs",
       gitUrl: "git@example.com:me/hasspecs.git",
+      codeLanding: "merge",
       specsPath: specs,
     });
     expect(result.ok).toBe(true);
@@ -418,6 +451,7 @@ describe("where the project's specs live", () => {
     const result = await addProject(cloningGit().run, projectsRoot, {
       name: "nospecs",
       gitUrl: "git@example.com:me/nospecs.git",
+      codeLanding: "merge",
     });
     expect(result.ok).toBe(true);
     expect(result.steps.some((s) => s.step === "specsConfig")).toBe(false);

@@ -218,6 +218,7 @@ describe("adding a project keeps its links in the dashboard's settings file (spe
     const result = await addProject(cloningGit().run, projectsRoot, {
       name: "travels",
       gitUrl: "git@example.com:me/travels.git",
+      codeLanding: "merge",
       worktreeLinks: ".venv dashboard/node_modules",
     }, base);
     expect(result.ok).toBe(true);
@@ -238,6 +239,7 @@ describe("adding a project keeps its links in the dashboard's settings file (spe
     const result = await addProject(cloningGit({}, { ".aide/project.yaml": drafted }).run, projectsRoot, {
       name: "hasmanifest",
       gitUrl: "git@example.com:me/hasmanifest.git",
+      codeLanding: "merge",
       worktreeLinks: "node_modules",
     }, base);
     expect(result.ok).toBe(true);
@@ -255,6 +257,7 @@ describe("adding a project keeps its links in the dashboard's settings file (spe
     const result = await addProject(cloningGit().run, projectsRoot, {
       name: "specsonly",
       gitUrl: "git@example.com:me/specsonly.git",
+      codeLanding: "merge",
       specsPath: join(root(), "aide-specs", "specsonly"),
     }, base);
     expect(result.ok).toBe(true);
@@ -269,6 +272,7 @@ describe("adding a project keeps its links in the dashboard's settings file (spe
     const result = await addProject(cloningGit().run, projectsRoot, {
       name: "stillrefused",
       gitUrl: "git@example.com:me/stillrefused.git",
+      codeLanding: "merge",
       worktreeLinks: "/etc",
     }, base);
     expect(result.ok).toBe(false);

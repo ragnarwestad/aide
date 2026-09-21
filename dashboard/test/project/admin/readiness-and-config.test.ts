@@ -104,6 +104,7 @@ describe("whether a run could start there (spec 138)", () => {
     return await addProject(run, projectsRoot, {
       name: dir.split("/").pop()!,
       gitUrl: "git@example.com:me/project.git",
+      codeLanding: "merge",
       ...req,
     }, checkoutsUnder(projectsRoot));
   }
@@ -278,7 +279,7 @@ describe("whether a run could start there (spec 138)", () => {
       }
       return { code: 1, stdout: "" };
     };
-    const result = await addProject(run, projectsRoot, { name: "aide", gitUrl: "git@example.com:me/aide.git" }, base);
+    const result = await addProject(run, projectsRoot, { name: "aide", gitUrl: "git@example.com:me/aide.git", codeLanding: "merge" }, base);
 
     // The entry really is a link to the checkout, and readiness reads it
     // as the project's own git root rather than one inside another.
@@ -321,6 +322,7 @@ describe("whether a run could start there (spec 138)", () => {
     const result = await addProject(run, projectsRoot, {
       name: "looserspecs",
       gitUrl: "git@example.com:me/looserspecs.git",
+      codeLanding: "merge",
       specsPath: specs,
     }, checkoutsUnder(projectsRoot));
     expect(result.readiness!.canRun).toBe(false);
@@ -520,12 +522,6 @@ describe("whether a run could start there (spec 138)", () => {
       const { projectsRoot, dir } = checkout("alpha");
       const r = await assess(dir, projectsRoot, {}, { codeLanding: "merge" });
       expect(r.steps.find((s) => s.step === "codeLanding")).toBeUndefined();
-      expect(manifestOf(dir)).not.toContain("codeLanding");
-    });
-
-    test("not asked at all writes nothing either", async () => {
-      const { projectsRoot, dir } = checkout("alpha");
-      await assess(dir, projectsRoot, {});
       expect(manifestOf(dir)).not.toContain("codeLanding");
     });
 

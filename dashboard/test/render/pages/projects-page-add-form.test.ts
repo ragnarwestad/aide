@@ -129,3 +129,25 @@ describe("the Add page proposes what it can work out (spec 184)", () => {
     expect(html).not.toContain("<datalist");
   });
 });
+
+describe("Code landing is a choice the reader makes on the Add page", () => {
+  const select = (): string => {
+    const html = renderAddProjectPage(NAV, AT, {});
+    const start = html.indexOf('<select name="codeLanding"');
+    return html.slice(start, html.indexOf("</select>", start));
+  };
+  const optionsOf = (html: string): string[] => html.match(/<option[^>]*>/g) ?? [];
+
+  test("the first option is empty and asks to choose, and neither answer is pre-selected (AC-1)", () => {
+    const html = select();
+    const options = optionsOf(html);
+    expect(options.map((o) => o.match(/value="([^"]*)"/)![1])).toEqual(["", "merge", "pr"]);
+    expect(options[0]).toContain("selected");
+    expect(options.slice(1).some((o) => o.includes("selected"))).toBe(false);
+    expect(html).toMatch(/<option[^>]*value=""[^>]*>\s*Choose/);
+  });
+
+  test("the select is marked required (AC-2)", () => {
+    expect(select().split(">")[0]).toContain("required");
+  });
+});

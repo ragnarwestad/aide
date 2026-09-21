@@ -291,11 +291,13 @@ export function renderAddProjectPage(
     ) +
     // The same choice the project page's Edit offers, asked here so a
     // project that must never merge straight in does not spend its
-    // first specs doing exactly that. `merge` is the default and
-    // writes nothing.
+    // first specs doing exactly that. Nothing is pre-selected: whether
+    // code is reviewed before it lands is how a team works, and the
+    // dashboard cannot know it. The server refuses an Add without it.
     field(
       "Code landing",
-      `<select name="codeLanding">` +
+      `<select name="codeLanding" required>` +
+        `<option value="" selected>Choose how code lands…</option>` +
         // `null`: the project is not cloned yet, so it HAS no branch
         // name to show. The project page names the real one.
         codeLandingChoices(null)

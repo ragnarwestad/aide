@@ -46,7 +46,7 @@ The Add form asks for:
 | Name           | Required. The name of the directory the clone makes under the projects root, and the project's name everywhere |
 | Git URL        | Required. The address to clone                                                                                 |
 | Specs root     | Optional. Where this project's specs live, when they are not in `specs/` inside it                             |
-| Code landing   | Merge the code, or leave it as a pull request — see [How a project's code lands](#how-a-projects-code-lands)   |
+| Code landing   | Required, none pre-selected — see [How a project's code lands](#how-a-projects-code-lands)                     |
 | Worktree links | Optional. Space-separated repo-relative paths a run has to symlink into its worktree                           |
 | Description    | One line saying what the project is                                                                            |
 
@@ -231,11 +231,11 @@ that is not on the allowlist; its submission is then refused, with the reason on
 ### How a project's code lands
 
 When a spec is archived, the dashboard lands its code in one of two ways, chosen per project with **Code landing** — in
-the Add form, or under Edit on the project's own page:
+the Add form, which leaves it unchosen and refuses a project added without an answer, or under Edit on the project's own page:
 
 | Code landing                                | What happens                                                                                                                                                                                                                                        |
 |---------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Merge into the default branch (the default) | Archive merges the code branch into the project's main branch, once the project's tests pass on the merged result.                                                                                                                                  |
+| Merge into the default branch               | Archive merges the code branch into the project's main branch, once the project's tests pass on the merged result.                                                                                                                                  |
 | Create a pull request                       | Each step that pushes the code branch opens a pull request for it, and archive leaves that pull request open instead of merging, so someone can review the code before it reaches main. The row links to it for as long as the branch is on origin. |
 
 Either way, the spec folder itself is archived straight away: its move to `archive/` is merged into the specs
@@ -245,7 +245,7 @@ the archived spec waits in the same pull request as the code.
 A pull request is opened with `gh` on the machine that runs the dashboard, so `gh` has to be logged in there. When it
 is not, the run still succeeds, and the row says no pull request was opened and that one can be opened by hand.
 
-Only `codeLanding: pr` is ever written: merge is what an absent key already means, and choosing it removes the key
+Only `codeLanding: pr` is ever written: merge is what an absent key already means (a manifest with none reads it), and choosing it removes the key
 again. It goes in the project's `.aide/project.yaml` where the project tracks its manifest — and then every machine
 and every teammate lands the same way — otherwise in the dashboard's own settings file, which reaches a run as a
 copy and is local to this machine. It is never read from `.aide/config`.

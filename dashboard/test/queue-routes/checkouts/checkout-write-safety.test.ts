@@ -106,7 +106,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
       const res = await fetch(`http://127.0.0.1:${server.port}/api/queue/projects`, {
         method: "POST",
         headers: AUTH,
-        body: JSON.stringify({ name: "second", gitUrl: originOfSecond }),
+        body: JSON.stringify({ name: "second", gitUrl: originOfSecond, codeLanding: "merge" }),
       });
       expect(res.status).toBe(200);
       expect(existsSync(join(owned, "second", "code", ".git"))).toBe(true);

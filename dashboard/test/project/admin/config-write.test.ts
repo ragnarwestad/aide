@@ -55,6 +55,7 @@ describe("writing .aide/config (spec 138)", () => {
     const result = await addProject(cloningGit().run, projectsRoot, {
       name: "links",
       gitUrl: "git@example.com:me/links.git",
+      codeLanding: "merge",
       worktreeLinks: ".venv dashboard/node_modules",
     }, base);
     expect(result.ok).toBe(true);
@@ -71,6 +72,7 @@ describe("writing .aide/config (spec 138)", () => {
       {
       name: "both",
       gitUrl: "git@example.com:me/both.git",
+      codeLanding: "merge",
       specsPath: "/repos/aide-specs/both",
       worktreeLinks: ".venv",
       },
@@ -97,6 +99,7 @@ describe("writing .aide/config (spec 138)", () => {
     const result = await addProject(cloningGit().run, projectsRoot, {
       name: "refused",
       gitUrl: "git@example.com:me/refused.git",
+      codeLanding: "merge",
       worktreeLinks: "/etc",
     });
     expect(result.ok).toBe(false);
@@ -112,6 +115,7 @@ describe("writing .aide/config (spec 138)", () => {
     const result = await addProject(cloningGit({}, { "build/": "" }).run, projectsRoot, {
       name: "buildrefused",
       gitUrl: "git@example.com:me/buildrefused.git",
+      codeLanding: "merge",
       worktreeLinks: "build",
     });
     expect(result.ok).toBe(false);
@@ -128,6 +132,7 @@ describe("writing .aide/config (spec 138)", () => {
     await addProject(cloningGit().run, projectsRoot, {
       name: "quiet",
       gitUrl: "git@example.com:me/quiet.git",
+      codeLanding: "merge",
       specsPath: "/somewhere",
     });
     expect(configValue(dir, "AIDE_WORKTREE_LINKS")).toBeNull();

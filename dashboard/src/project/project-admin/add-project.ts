@@ -100,6 +100,13 @@ export async function addProject(
     return fail("name", "say where the project comes from: its git address, which the dashboard clones");
   }
 
+  // Asked, never defaulted: whether code is reviewed before it lands is
+  // how a team works. Refused here, before anything is cloned.
+  const landing = (req.codeLanding ?? "").trim();
+  if (!landing) {
+    return fail("codeLanding", "choose how code lands: merge into the main branch, or a pull request");
+  }
+
   const steps: ProjectStep[] = [{ step: "name", ok: true }];
   const dir = join(projectsRoot, name);
   const done = (): ProjectAdminResult => ({ ok: steps.every((s) => s.ok), steps });
@@ -242,8 +249,7 @@ export async function addProject(
   // (`update-settings.ts`). Refused before it is written, for the
   // reason that file gives: a manifest every reader will reject is
   // worse than one never written.
-  const landing = (req.codeLanding ?? "").trim();
-  if (landing && landing !== "merge") {
+  if (landing !== "merge") {
     if (landing !== "pr") {
       return stop("codeLanding", `code landing must be merge or pr — not "${landing}"`);
     }

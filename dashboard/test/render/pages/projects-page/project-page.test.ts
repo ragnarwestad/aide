@@ -283,3 +283,20 @@ describe("renderProjectPage: the settings form carries its own JS hook (spec 486
     expect(html).toContain('class="newspecform projectsettingsform"');
   });
 });
+
+describe("renderProjectPage: an added project's Code landing select (AC-6)", () => {
+  test("offers merge and pr only, with the stored answer selected", () => {
+    const html = renderProjectPage(
+      project(),
+      { hasConfigFile: false, rows: [] },
+      null,
+      "2026-08-31T00:00:00Z",
+      NAV,
+      { worktreeLinkCandidates: [], editing: true, codeLanding: "pr" },
+    );
+    const start = html.indexOf('<select name="codeLanding"');
+    const options = html.slice(start, html.indexOf("</select>", start)).match(/<option[^>]*>/g) ?? [];
+    expect(options.map((o) => o.match(/value="([^"]*)"/)![1])).toEqual(["merge", "pr"]);
+    expect(options.filter((o) => o.includes("selected")).map((o) => o.match(/value="([^"]*)"/)![1])).toEqual(["pr"]);
+  });
+});

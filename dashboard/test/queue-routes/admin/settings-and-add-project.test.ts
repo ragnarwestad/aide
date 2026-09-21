@@ -309,7 +309,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       headers: AUTH,
-      body: JSON.stringify({ name: "newproj", gitUrl: "https://example.com/newproj.git" }),
+      body: JSON.stringify({ name: "newproj", gitUrl: "https://example.com/newproj.git", codeLanding: "merge" }),
     });
     expect(res.status).toBe(200);
     const body = (await res.json()) as StepBody;
@@ -333,7 +333,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       headers: AUTH,
-      body: JSON.stringify({ name: "aide", gitUrl: "https://example.com/aide.git" }),
+      body: JSON.stringify({ name: "aide", gitUrl: "https://example.com/aide.git", codeLanding: "merge" }),
     });
     expect(res.status).toBe(400);
     const body = (await res.json()) as StepBody;
@@ -357,6 +357,58 @@ describe("POST /api/queue/projects (spec 112)", () => {
     expect(existsSync(join(dir, "root", ".hidden"))).toBe(false);
   });
 
+  test("an Add with no Code landing is refused, and nothing is cloned or put on the allowlist (AC-3)", async () => {
+    const { base, dir } = start({ gitRun: cloningGit() });
+    const res = await fetch(`${base}/api/queue/projects`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ name: "nochoice", gitUrl: "https://example.com/nochoice.git" }),
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as StepBody;
+    expect(body.ok).toBe(false);
+    expect(existsSync(join(dir, "root", "nochoice"))).toBe(false);
+    expect(existsSync(join(dir, "owned", "nochoice"))).toBe(false);
+    const html = await (await fetch(`${base}/new`)).text();
+    expect(html.slice(html.indexOf('action="/api/queue/create"'))).not.toContain('value="nochoice"');
+  });
+
+  test("the Code landing refusal has the shape of the git-address refusal (AC-4)", async () => {
+    const { base } = start({ gitRun: cloningGit() });
+    const post = async (payload: object) => {
+      const res = await fetch(`${base}/api/queue/projects`, { method: "POST", headers: AUTH, body: JSON.stringify(payload) });
+      return { status: res.status, body: (await res.json()) as StepBody };
+    };
+    const noLanding = await post({ name: "nochoice", gitUrl: "https://example.com/nochoice.git" });
+    const noAddress = await post({ name: "noaddress", codeLanding: "merge" });
+    expect(noLanding.status).toBe(400);
+    expect(noAddress.status).toBe(400);
+    expect(Object.keys(noLanding.body).sort()).toEqual(Object.keys(noAddress.body).sort());
+    for (const { body } of [noLanding, noAddress]) {
+      expect(Object.keys(body.results[0]!).sort()).toEqual(["error", "ok", "step"]);
+      expect(body.results[0]!.ok).toBe(false);
+      const error = body.results[0]!.error!;
+      expect(error).not.toContain("\n");
+      expect(error[0]).toBe(error[0]!.toLowerCase());
+    }
+    expect(noLanding.body.results[0]!.error).toMatch(/^choose/);
+    expect(noAddress.body.results[0]!.error).toMatch(/^say/);
+  });
+
+  test("a form post with no Code landing goes back to the Add page with the sentence (AC-4)", async () => {
+    const { base } = start({ gitRun: cloningGit() });
+    const FORM = { "content-type": "application/x-www-form-urlencoded" };
+    const post = (fields: Record<string, string>) =>
+      fetch(`${base}/api/queue/projects`, { method: "POST", redirect: "manual", headers: FORM, body: new URLSearchParams(fields) });
+    const noLanding = await post({ name: "nochoice", gitUrl: "https://example.com/nochoice.git" });
+    const noAddress = await post({ name: "noaddress", codeLanding: "merge" });
+    expect(noLanding.status).toBe(303);
+    const location = noLanding.headers.get("location")!;
+    expect(location.startsWith("/projects/new?error=")).toBe(true);
+    expect(decodeURIComponent(location)).toMatch(/choose/i);
+    expect(noAddress.headers.get("location")!.startsWith("/projects/new?error=")).toBe(true);
+  });
+
   // Criterion 6: a clone with no manifest gets one, and the answer says
   // so rather than leaving the operator to find out.
   test("a clone with no manifest is added, and the made manifest is reported", async () => {
@@ -367,6 +419,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
       body: JSON.stringify({
         name: "already-here",
         gitUrl: "https://example.com/already-here.git",
+        codeLanding: "merge",
         description: "on disk already",
       }),
     });
@@ -386,7 +439,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       headers: AUTH,
-      body: JSON.stringify({ name: "  picked  ", gitUrl: "https://example.com/picked.git" }),
+      body: JSON.stringify({ name: "  picked  ", gitUrl: "https://example.com/picked.git", codeLanding: "merge" }),
     });
     expect(res.status).toBe(200);
     const body = (await res.json()) as StepBody;
@@ -402,7 +455,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
     await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       headers: AUTH,
-      body: JSON.stringify({ name: "newproj", gitUrl: "https://example.com/newproj.git" }),
+      body: JSON.stringify({ name: "newproj", gitUrl: "https://example.com/newproj.git", codeLanding: "merge" }),
     });
     expect(projectsIn(file).sort()).toEqual(["aide", "newproj"]);
     // The rest of the config is untouched.
@@ -419,7 +472,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
       fetch(`${base}/api/queue/projects`, {
         method: "POST",
         headers: AUTH,
-        body: JSON.stringify({ name, gitUrl: `https://example.com/${name}.git` }),
+        body: JSON.stringify({ name, gitUrl: `https://example.com/${name}.git`, codeLanding: "merge" }),
       });
     await Promise.all([add("one"), add("two")]);
     expect(projectsIn(file).sort()).toEqual(["aide", "one", "two"]);
@@ -458,7 +511,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
       method: "POST",
       redirect: "manual",
       headers: FORM,
-      body: new URLSearchParams({ name: "on-disk", gitUrl: "https://example.com/on-disk.git" }),
+      body: new URLSearchParams({ name: "on-disk", gitUrl: "https://example.com/on-disk.git", codeLanding: "merge" }),
     });
     expect(ok.status).toBe(303);
     // The list, as it has been since spec 115 — carrying the readiness
