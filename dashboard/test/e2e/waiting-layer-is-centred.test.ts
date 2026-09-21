@@ -85,16 +85,26 @@ describe("the waiting layer is centred (AC-1, AC-2, AC-6)", () => {
     expect(b.y + b.height).toBeLessThanOrEqual(400);
   });
 
-  // 140 px of height is no real window, and the layer looks right in one:
-  // the case is dropped rather than honoured (asked 2026-09-21).
-  for (const [w, h] of [[375, 300]] as const) {
+  // 320 px WIDE is what makes this bite: the note's own max-width is
+  // 22rem (352 px), so without the layer's `max-width` the box is wider
+  // than the screen. 375 x 300 alone passed with the rule deleted. The
+  // height pair that came with it, 320 x 140, is dropped: no window is
+  // that short, and the layer looks right in one (asked 2026-09-21).
+  for (const [w, h] of [[320, 640], [375, 300]] as const) {
     test(`a note taller than ${w} x ${h} stays ${GAP} px inside every edge and scrolls inside itself (AC-4)`, async () => {
       const page = await openLayer("/", w, h, LONG_NOTE);
       const b = await box(page);
+      // Measured against the viewport the browser lays the box out in,
+      // not the size asked for: at a short height Chromium's mobile
+      // emulation adds a classic 16 px scrollbar OUTSIDE the viewport,
+      // so the page is 391 px wide in a 375 px window and a box centred
+      // with `margin: auto` puts its gap where the screen ends. A phone
+      // has overlay scrollbars and no such gap between the two.
+      const view = await page.evaluate(() => ({ w: window.innerWidth, h: window.innerHeight }));
       expect(b.x).toBeGreaterThanOrEqual(GAP - 0.5);
       expect(b.y).toBeGreaterThanOrEqual(GAP - 0.5);
-      expect(b.x + b.width).toBeLessThanOrEqual(w - GAP + 0.5);
-      expect(b.y + b.height).toBeLessThanOrEqual(h - GAP + 0.5);
+      expect(b.x + b.width).toBeLessThanOrEqual(view.w - GAP + 0.5);
+      expect(b.y + b.height).toBeLessThanOrEqual(view.h - GAP + 0.5);
       const scrolls = await page.locator("dialog.pageoverlay").evaluate((el) => el.scrollHeight > el.clientHeight);
       expect(scrolls).toBe(true);
     });
