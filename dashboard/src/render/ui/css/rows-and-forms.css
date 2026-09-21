@@ -112,6 +112,15 @@ td form { margin: 0; display: inline-block; }
    no effect and the div is already full width. */
 .configactions { display: flex; justify-content: flex-end; gap: var(--sp-2);
   flex-basis: 100%; margin-bottom: var(--sp-3); }
+/* The Settings page's phases form: as wide as its own table and centred
+   in the frame. `table.settingstable` is `width: auto`, so it is as wide
+   as its content and no wider — and with the form full width, Save and
+   Cancel (`.configactions`, right-aligned) ended up at the page's right
+   edge, a screen away from the rows they save. Narrower than the frame
+   the form now sits in the middle; wider, `fit-content` gives way and it
+   fills. */
+.settingsform { width: fit-content; margin-inline: auto; }
+
 /* `display: contents` removes this wrapper from layout entirely, so
    its two fields become direct items of `.scheduleform`'s own grid
    (field.css) — one shared set of column tracks across both rows,
