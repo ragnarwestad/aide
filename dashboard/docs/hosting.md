@@ -1,7 +1,11 @@
 # Hosting the dashboard
 
-Where the dashboard is served from, how HTTPS is put in front of it, what it takes to move it to another host or
-run the whole thing on one machine, and what it keeps current once it is there.
+Where the dashboard is served from, how HTTPS is put in front of it, how to stand one up on a second machine or
+run the whole thing on one, and what the host does on its own once it is there.
+
+Moving an EXISTING board is not one operation: it is a fresh install on the new machine, plus carrying over the
+directories [Moving the board's own directories](#moving-the-boards-own-directories) lists, plus stopping the old
+machine's launchd job. Nothing here automates that.
 
 Two pages sit beside this one:
 
@@ -30,7 +34,8 @@ An installed board binds `127.0.0.1` and answers on the machine it runs on alone
 reaching it from a phone or another computer, come from a proxy on the serving host that terminates TLS and forwards
 to that address; the dashboard does no certificate handling of its own. Keep `BIND` at `127.0.0.1` behind such a
 proxy, so the port is not open on the local network too. The proxy passes the client's `Host` on, which has to be one
-of the dashboard's own names ("Which requests the dashboard answers" in `running-specs.md`); `allowedHosts` in `queue-config.json` adds
+of the dashboard's own names ("Which requests the dashboard answers" in `running-specs.md`); `allowedHosts` in `queue-config.json` — the file `--queue-config` names, which the installed job puts at
+`~/.aide/dashboard/queue-config.json` — adds
 the proxy's. The dashboard's README, under Installation, points to one way to set one up.
 
 Installing the dashboard as an app on a phone or a desktop needs HTTPS: a service worker needs a secure context.
@@ -84,7 +89,7 @@ Eight routes make it work — `/manifest.webmanifest`, `/sw.js`, `/icon-512.svg`
 `/icon-192.png`, `/icon-512.png`, `/icon-512-maskable.png` and `/apple-touch-icon.png`. All eight are computed in
 `src/render/ui/pwa.ts`, so nothing has to be kept in sync by hand. The served board answers them from memory,
 ahead of the static files; `generate` also writes the same eight into the site directory, which is what a
-published copy of the site needs beside its pages. The three PNG icons are drawn
+published copy of the site needs beside its pages. The four PNG icons are drawn
 from the SVG icons at start-up (`src/render/ui/icon-png.ts`); Chrome on Android offers an install, not a home-screen
 shortcut, only when the manifest lists raster icons of 192 and 512 pixels and a maskable one. A browser will not install a page whose manifest is a data URI, which is why these are
 routes at all; they answer any request with a `Host` of the dashboard's own. The spec page fetches one more thing —
@@ -261,31 +266,39 @@ in, for trying a change, not as a service.
 
 ## Keeping the host's specs current
 
-The board lists specs by reading the spec folders off the serving host's working copy, and nothing pulls that copy. A
-spec written and pushed from another machine is simply not there — and a spec that is not listed cannot be queued.
+**The board keeps its own copy current by itself.** It lists specs from the clone it owns,
+`~/.aide/dashboard/checkouts/<project>/specs`, and its own sweep fetches and fast-forwards that clone for every
+allowed project. A spec pushed from another machine reaches the list without anyone doing anything.
 
-`aide-pull-specs` is the unattended pull for exactly that case:
+What is NOT pulled is the person's own checkout on that host — the one under `~/develop`, which a project was added
+from and which somebody working on the host edits. `aide-pull-specs` is the unattended pull for that:
 
 ```bash
 aide-pull-specs ~/develop/aide-specs [~/develop/other-specs ...]
 ```
 
-Each repo is pulled only when it is safe to do so with nobody watching: a git working tree, no uncommitted
-changes to TRACKED files — an untracked scratch file is no obstacle to a fast-forward and does not stop it —
-sitting on its own default branch, and a fast-forward. Anything else is skipped with a reason, and the repos beside it
-are still pulled. Nothing is ever committed, merged or reset. A repo already up to date prints nothing, so a cron entry
-mails only when something happened. On an always-on host, every two minutes:
+Two cases make it worth a cron entry. A project with no `origin` has no clone of its own, so the board reads that
+checkout directly and a stale one is a stale list. And anyone working on the host — over ssh, or at the screen —
+wants it current for the same reason they would on a laptop.
+
+Each repo is pulled only when it is safe to do so with nobody watching: a git working tree, no uncommitted changes
+to TRACKED files — an untracked scratch file is no obstacle to a fast-forward and does not stop it — sitting on its
+own default branch, and a fast-forward. Anything else is skipped with a reason on stdout, and the repos beside it
+are still pulled. Nothing is ever committed, merged or reset. A repo already up to date prints nothing, so a cron
+entry mails only when something happened.
+
+Installing it is by hand, once, on the host. Every two minutes:
 
 ```cron
 */2 * * * * $HOME/.local/bin/aide-pull-specs $HOME/develop/aide-specs
 ```
 
 **Point it at specs, not at code.** Merging code and installing it belong together (`AIDE_INSTALL_CMD`), and a
-background pull would move the code under a server that goes on running the old version — merged, but not deployed,
-and reported as deployed. Code that landed some other way is REPORTED instead of pulled: for every project that has
-an install command configured, the project's Deploy tab compares the checkout against `origin` and says how many
-commits behind it is, and which commit the service runs. It only ever looks; nothing there fetches more than the
-default branch, and nothing merges, pulls or moves a checkout.
+background pull would move the code under a server that goes on running the old version — merged, but not
+deployed, and reported as deployed. Code that landed some other way is REPORTED instead of pulled: for every
+project that has an install command configured, the project's Deploy tab compares the checkout against `origin`
+and says how many commits behind it is, and which commit the service runs. It only ever looks; nothing there
+fetches more than the default branch, and nothing merges, pulls or moves a checkout.
 
 ## Reviewing what an unattended run writes
 
@@ -294,7 +307,7 @@ green. The `security-guidance` plugin is a second opinion on that code, installe
 as:
 
 ```bash
-claude plugin marketplace add anthropics/claude-plugins-official   # already present on this host
+claude plugin marketplace add anthropics/claude-plugins-official
 claude plugin install security-guidance@claude-plugins-official
 ```
 
@@ -312,16 +325,14 @@ grep -E "LLM code review|reviews took|empty review set" ~/.claude/security/log.t
 ```
 
 `empty review set` means the turn changed no files, which is the ordinary answer for a turn that only ran git.
-A line naming the review and one saying how long it took is a real run — on a laptop those took 18 seconds each.
-Two questions are open until this log answers them on a host that runs steps unattended: what the extra seconds
-per file-writing turn come to inside a step's own time limit, and what happens to `aide-run-spec`'s turn
-accounting when a finding is fed back to a session mid-step.
+A line naming the review and one saying how long it took is a real run, and the log is where to see what the
+extra seconds per file-writing turn come to inside a step's own time limit.
 
 ## Known gaps
 
-The Deploy button's restart is not gated on `isDashboardRoot`. The automatic per-step landing
-(`land-branch/merge.ts`) only restarts this dashboard when the landed repo IS this dashboard's own
-checkout. The Deploy button's wrapped `installAfterMerge` (`setup/land.ts`) carries no equivalent
+The Deploy button's restart is not gated on `isDashboardRoot`. A landing never restarts anything; it uses
+`isDashboardRoot` (`land-branch/merge.ts`) to decide whether to LOG that the served page now runs older code than
+main. The Deploy button's wrapped `installAfterMerge` (`setup/land.ts`) does restart, and carries no equivalent
 check: pressing Deploy on any project with an install command, on a host where this dashboard's own
 launchd job is registered, triggers the same restart wait and fire. No current page depends on this
 being scoped further, since the Deploy tab's own `serving` comparison only ever exists for the
