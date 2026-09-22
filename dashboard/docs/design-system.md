@@ -13,7 +13,7 @@ and the layout rules that keep them consistent.
 - [A structural marker with no CSS rule uses data-*, not a class](#a-structural-marker-with-no-css-rule-uses-data--not-a-class)
 - [The length count under a bounded text field](#the-length-count-under-a-bounded-text-field)
 - [`form="<id>"` only wires submission, not event bubbling](#formid-only-wires-submission-not-event-bubbling)
-- [Every control works with script off](#every-control-works-with-script-off)
+- [A control is the page's own HTML](#a-control-is-the-pages-own-html)
 - [What a button's variant means](#what-a-buttons-variant-means)
 - [Theme choice](#theme-choice)
 - [Language choice](#language-choice)
@@ -189,12 +189,19 @@ place that does this, skipping `[data-unit-choice]`; `spec-form-actions.ts`'s ow
 form with no guard at all, and `specs-client/index.ts`'s `closest("select[data-ai]")` is the opposite —
 it picks a control out rather than leaving one alone.
 
-## Every control works with script off
+## A control is the page's own HTML
 
-Every control a page draws is plain HTML that does its job with scripting off — a form that posts, a link that
-navigates, a `<details>` that opens — and script only makes it quicker or quieter. That is why `btn()` renders
-`type="submit"` unless told otherwise: every button on a page is a real form's. These controls are outside that
-promise, and each says so in a comment where it is drawn:
+A page arrives fully drawn from the server, so a button is a real form's submit and a link is a link. Script
+attaches afterwards, and what it adds is speed and quiet. That is why `btn()` renders `type="submit"` unless told
+otherwise: every button on a page is a real form's.
+
+Two things follow, and they are what this is worth keeping for. A press made in the moment between the page
+arriving and the script attaching still does its job. And a script that fails to build leaves the page working
+rather than read-only: `specsClientScript()` in `serve-helpers/static.ts` answers `undefined` on a build error,
+and the page goes out with no script at all.
+
+What does not follow is that every control works with scripting off. These need script to do anything, and a
+control added later may join them:
 
 - the phase box on a running row that posts on the tick itself, which belongs to no form;
 - the model picker on a running row, which posts itself for the same reason;
@@ -202,11 +209,11 @@ promise, and each says so in a comment where it is drawn:
 - a scheduled job's Delete button, which opens its own dialog and has no confirm page behind it;
 - the Cancel of `saveCancelActions()`, which renders disabled;
 - the theme buttons, since the choice is kept in the browser's `localStorage`;
-- the language dropdown in the "…" menu, while the language menu's links do the same job without script;
+- the language dropdown in the "…" menu;
 - the switch for push notifications, which is the browser's Push API;
-- the Close button on a spec page, which has no fallback page behind it (spec 527).
+- the Close button on a spec page, which has no fallback page behind it.
 
-A new control that needs script to do anything joins that list, with a comment at the control saying so.
+The board is not built for a reader who has JavaScript disabled.
 
 ## What a button's variant means
 
