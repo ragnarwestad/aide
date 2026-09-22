@@ -11,7 +11,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { scheduleRunOutputDir } from "../../../src/queue/schedule.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
-import { savable } from "../../spec-page/spec-save-fixtures.ts";
 
 const harness = queueHarness("aide-schedule-page-route-");
 afterEach(() => harness.cleanup());
@@ -249,54 +248,11 @@ describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
   });
 });
 
-describe("GET /schedule/<project>/<name>/delete (spec 277)", () => {
-  test("renders the confirmation, naming the entry (criterion 8)", async () => {
+describe("GET /schedule/<project>/<name>/delete no longer exists (AC-1)", () => {
+  test("returns 404, not the removed confirm page", async () => {
     const { base } = start();
     writeSchedule("aide", [NIGHTLY]);
     const res = await fetch(`${base}/schedule/aide/nightly-report/delete`, );
-    expect(res.status).toBe(200);
-    const html = await res.text();
-    expect(html).toContain("nightly-report");
-    // The question in a sentence since 2026-09-08, where the entry's
-    // name had to be typed back into a field before.
-    expect(html).toContain("Are you sure you want to delete nightly-report?");
-  });
-
-  // Spec 408, REQ-1/REQ-4.
-  test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
-    const { base } = start();
-    writeSchedule("aide", [NIGHTLY]);
-    const res = await fetch(
-      `${base}/schedule/aide/nightly-report/delete?lang=nb`,
-    );
-    expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
-    const html = await res.text();
-    expect(html).toContain('<html lang="nb">');
-  });
-
-  test("an unknown entry in an allowed project is 404 (criterion 5)", async () => {
-    const { base } = start();
-    writeSchedule("aide", [NIGHTLY]);
-    const res = await fetch(`${base}/schedule/aide/ghost/delete`, );
-    expect(res.status).toBe(404);
-  });
-
-  test("an unallowed project is 404 (criterion 6)", async () => {
-    const { base } = start();
-    const res = await fetch(`${base}/schedule/ghost-project/nightly/delete`, );
-    expect(res.status).toBe(404);
-  });
-
-  test("after a successful delete, the entry's own detail page is 404 (criterion 9)", async () => {
-    const { base } = start({ extra: { gitRun: savable("/host") } });
-    writeSchedule("aide", [NIGHTLY]);
-    const del = await fetch(`${base}/api/queue/schedule/aide/nightly-report/delete`, {
-      method: "POST",
-      headers: { accept: "application/json", "content-type": "application/json" },
-      body: JSON.stringify({ confirm: "nightly-report" }),
-    });
-    expect(del.status).toBe(200);
-    const res = await fetch(`${base}/schedule/aide/nightly-report`, );
     expect(res.status).toBe(404);
   });
 });

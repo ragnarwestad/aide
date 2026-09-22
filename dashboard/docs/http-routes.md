@@ -177,7 +177,7 @@ Answered by `src/serve/routes/schedule-admin-routes.ts`.
 | `POST /api/queue/schedule/<project>/<name>`         | action | name, cron, prompt, model, notify          | `{ ok }`, or a 303; 400 for a refused schedule                                 | form     |
 | `POST /api/queue/schedule/<project>/<name>/enabled` | action | enabled                                    | `{ ok, enabled }`, or a 303                                                    | form     |
 | `POST /api/queue/schedule/<project>/<name>/run`     | action | nothing                                    | `{ ok, job }`, or a 303 to the schedule list                                   | form     |
-| `POST /api/queue/schedule/<project>/<name>/delete`  | action | nothing                                    | `{ ok }`, or a 303 to the schedule list; a refusal returns to the confirm page | form     |
+| `POST /api/queue/schedule/<project>/<name>/delete`  | action | nothing                                    | `{ ok }`, or a 303 to the schedule list; a refusal redirects there too        | form     |
 
 ### Push
 
@@ -229,7 +229,6 @@ Answered by the files under `src/serve/routes/page-routes/`, `src/serve/routes/s
 | `GET /specs/<project>/<spec>`                   | read   | optional `?tab=`, `?only=`, `?step=`         | the spec's page                                                                                               | page     |
 | `GET /specs/<project>/<spec>?startTestServer=1` | action | optional `?retryTestServer=1`                | starts a test server for the spec, then a waiting page, a 303 to it, or a page saying why it could not start  | page     |
 | `GET /specs/<project>/<spec>/reopen`            | read   | optional `?error=`                           | the confirm page for reopening the spec                                                                       | page     |
-| `GET /specs/<project>/<spec>/close`             | read   | optional `?error=`                           | the confirm page for closing the spec                                                                         | page     |
 | `GET /specs/<project>/<spec>/pdf`               | read   | nothing                                      | `application/pdf`; 503 without md-to-pdf, 502 when the generator fails; writes a cached file when none exists | page     |
 | `GET /settings`                                 | read   | optional `?tab=`, `?error=`                  | the settings page                                                                                             | page     |
 | `GET /test-servers`                             | read   | nothing                                      | the running test servers                                                                                      | page     |
@@ -241,7 +240,6 @@ Answered by the files under `src/serve/routes/page-routes/`, `src/serve/routes/s
 | `GET /projects/<project>/remove`                | read   | optional `?error=`                           | the confirm page for removing the project                                                                     | page     |
 | `GET /schedule`                                 | read   | optional `?q=`, `?sort=`, `?dir=`            | the schedule list                                                                                             | page     |
 | `GET /schedule/<project>/<name>`                | read   | optional `?tab=`, `?run=`                    | the schedule's page                                                                                           | page     |
-| `GET /schedule/<project>/<name>/delete`         | read   | optional `?error=`                           | the confirm page for deleting the schedule                                                                    | page     |
 | `GET /schedule-output/<file>`                   | read   | nothing                                      | a file from the schedule output folder                                                                        | page     |
 
 ### Files

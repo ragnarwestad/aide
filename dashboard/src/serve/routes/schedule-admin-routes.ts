@@ -5,7 +5,7 @@
 // no-JS redirect back to the list.
 import { createScheduleEntry, deleteScheduleEntry, setScheduleEnabled, updateScheduleEntry } from "../../project/project-admin";
 import { nextFireTime, scheduleTrackingKey } from "../../queue/schedule.ts";
-import { deleteSchedulePath, projectPagePath, SCHEDULE_ROUTE } from "../../render";
+import { projectPagePath, SCHEDULE_ROUTE } from "../../render";
 import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../serve-helpers";
 import type { RoutesContext } from "./";
 
@@ -102,11 +102,12 @@ export async function handleScheduleAdminRoutes(
     const sent = await readJsonBody(req);
     if ("refusal" in sent) return sent.refusal;
     const body = sent.body;
-    const back = deleteSchedulePath(project, name);
-    // No typed confirmation (2026-09-08): the page and the dialog both
-    // ask the question in a sentence, and the press is the answer.
+    // No typed confirmation (2026-09-08): the dialog asks the question
+    // in a sentence, and the press is the answer. No confirm page to
+    // fall back to any more either (spec 528): a refusal redirects to
+    // the schedule list, the same as every other route in this file.
     const result = deleteScheduleEntry(ctx.scheduleStore, project, name);
-    if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, back);
+    if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, SCHEDULE_ROUTE);
     return wantsJson ? json({ ok: true }) : specsRedirect(body, undefined, SCHEDULE_ROUTE);
   }
 

@@ -13,7 +13,6 @@ and the layout rules that keep them consistent.
 - [A structural marker with no CSS rule uses data-*, not a class](#a-structural-marker-with-no-css-rule-uses-data--not-a-class)
 - [The length count under a bounded text field](#the-length-count-under-a-bounded-text-field)
 - [`form="<id>"` only wires submission, not event bubbling](#formid-only-wires-submission-not-event-bubbling)
-- [Every control works with script off](#every-control-works-with-script-off)
 - [What a button's variant means](#what-a-buttons-variant-means)
 - [Theme choice](#theme-choice)
 - [Language choice](#language-choice)
@@ -65,7 +64,7 @@ caller puts on its own link:
 | `rowMessageParts()`   | the same three kinds built from parts rather than one string; every link in one opens in a new tab                                    |
 | `messageSlot()`       | an empty message the browser code writes into later — it draws nothing until it does                                                  |
 | `field()`             | label above any control, one height and one radius                                                                                    |
-| `saveCancelActions()` | a form's Save and Cancel pair; Save works with script off, Cancel renders disabled because it cannot                                  |
+| `saveCancelActions()` | a form's Save and Cancel pair; Save submits the form, Cancel renders disabled because it needs script                                 |
 | `dialogAnswers()`     | a confirm box's two answers on one row: the affirmative first, then Cancel (the platform's own close)                                 |
 | `helpPopover()`       | a `details.intro` disclosure holding developer-authored help text                                                                     |
 | `backLink()`          | the link back out of a page, with the page's title beside it rather than below                                                        |
@@ -189,23 +188,6 @@ place that does this, skipping `[data-unit-choice]`; `spec-form-actions.ts`'s ow
 form with no guard at all, and `specs-client/index.ts`'s `closest("select[data-ai]")` is the opposite —
 it picks a control out rather than leaving one alone.
 
-## Every control works with script off
-
-Every control a page draws is plain HTML that does its job with scripting off — a form that posts, a link that
-navigates, a `<details>` that opens — and script only makes it quicker or quieter. That is why `btn()` renders
-`type="submit"` unless told otherwise: every button on a page is a real form's. These controls are outside that
-promise, and each says so in a comment where it is drawn:
-
-- the phase box on a running row that posts on the tick itself, which belongs to no form;
-- the model picker on a running row, which posts itself for the same reason;
-- a scheduled job's Enabled checkbox, which flips the flag at once;
-- the Cancel of `saveCancelActions()`, which renders disabled;
-- the theme buttons, since the choice is kept in the browser's `localStorage`;
-- the language dropdown in the "…" menu, while the language menu's links do the same job without script;
-- the switch for push notifications, which is the browser's Push API.
-
-A new control that needs script to do anything joins that list, with a comment at the control saying so.
-
 ## What a button's variant means
 
 `primary` is the one thing a form wants pressed — Save, Create, Deploy — and every spec row's one action, so the
@@ -214,7 +196,7 @@ the Cancel beside a Save.
 
 `danger` means one thing only: an action a mistake cannot undo — removing a project, deleting a scheduled job,
 leaving a page with its edits unsaved. Every `danger` control either sits on a confirm step — a page or a dialog asking
-the question first — or opens one, as the Delete link in the scheduled jobs' list does. A job's Cancel is `primary` and not `danger`, because a cancelled run can be started again.
+the question first — or opens one, as the Delete button in the scheduled jobs' list does. A job's Cancel is `primary` and not `danger`, because a cancelled run can be started again.
 
 ## Theme choice
 

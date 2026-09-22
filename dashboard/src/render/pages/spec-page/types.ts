@@ -107,11 +107,12 @@ export interface SpecPageView {
   /** Where the Update button posts. Built by the server, because only
    *  it knows the action's own path. */
   updateAction: string;
-  /** Confirmation page for closing a spec that is not going to work
-   *  (spec 406, REQ-1) — present while the spec is active, absent once
-   *  it is archived (closed included: `closeControl` checks
-   *  `view.archived`). */
-  closeAction?: string;
+  /** Whether Close is offered for closing a spec that is not going to
+   *  work (spec 406, REQ-1) — true while the spec is active, absent
+   *  once it is archived (closed included: `closeControl` checks
+   *  `view.archived`). Close has no fallback page behind it (spec 527),
+   *  so this is a flag, not a URL. */
+  closeAvailable?: boolean;
   /** Why Close cannot be selected at this instant (REQ-11): a job in
    *  flight or a landing in progress blocks the move. */
   closeUnavailableReason?: string;

@@ -321,10 +321,9 @@ export function renderSpecsPage(
   // The front page IS the board: the tab says only that — and the
   // heading said it a second time right under the Specs tab, so it is
   // gone (2026-08-19). The title still names the page for the shell.
-  return pageShell("Specs", entries, "/", body, generatedAt, 10, {
+  return pageShell("Specs", entries, "/", body, generatedAt, opts.script ? undefined : 10, {
     docTitle: "aide -board",
     hideHeading: true,
-    refreshInNoscript: !!opts.script,
     script: opts.script,
     lang,
     currentUrl: opts.currentUrl,

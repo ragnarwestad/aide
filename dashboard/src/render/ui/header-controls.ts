@@ -152,8 +152,9 @@ function themeSegment(lang: Language): string {
 }
 
 // Changes the language only with script: an <option> has no href of its
-// own to follow. The language menu's links (languageChoiceLinks) do the
-// same job with script off.
+// own to follow. This is the phone row; the wide layout's own control is
+// languageChoiceLinks' five links, and narrow.css shows exactly one of
+// the two (`.menu.lang` against `.menu .morerows.lang`).
 function languageSelect(lang: Language, currentUrl: string): string {
   const options = LANGUAGES.map(
     (l) =>

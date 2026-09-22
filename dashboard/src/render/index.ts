@@ -25,7 +25,7 @@
 // none.
 
 export {
-  ABOUT_PAGE, NEW_SPEC_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, projectListBody, renderSite,
+  NEW_SPEC_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, projectListBody, renderSite,
   navEntries,
   // `/projects/<name>` — the project's own page, served (spec 185), so
   // what it says about the config file is true when it is read rather
@@ -63,13 +63,13 @@ export type { TestServerRow, TestServersPageOptions } from "./pages/test-servers
 // project's scheduled jobs. The New-job form itself moved to each
 // project's own Schedule tab (spec 468).
 export {
-  renderSchedulePage, renderScheduleDetailPage, renderDeleteSchedulePage,
+  renderSchedulePage, renderScheduleDetailPage,
   renderReportPanel, buildReportDocument,
-  SCHEDULE_ROUTE, SCHEDULE_TABS, schedulePagePath, scheduleTabPath, deleteSchedulePath,
+  SCHEDULE_ROUTE, SCHEDULE_TABS, schedulePagePath, scheduleTabPath,
 } from "./pages/schedule-page";
 export type {
   SchedulePageOptions, SchedulePageRow, ScheduleDetailPageOptions,
-  DeleteSchedulePageOptions, ScheduleHistoryRow, ScheduleTab,
+  ScheduleHistoryRow, ScheduleTab,
 } from "./pages/schedule-page";
 
 // The eight answers that make the dashboard an app you install (spec
@@ -126,7 +126,6 @@ export {
   renderSpecPageHead,
   renderSpecPageRest,
   renderSpecPageFailedRest,
-  renderCloseSpecPage,
   renderReopenSpecPage,
   specPagePath,
   specTabPath,

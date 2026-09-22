@@ -120,8 +120,7 @@ function unitControl(lang: Language): string {
 // The menu is a native <details>, the same disclosure `.intro` already
 // is: it opens with JavaScript off, and it keeps the promise that a
 // generated page carries the theme switcher and no other script.
-/** The About prose, one source for the dialog on every page and the
- *  about.html fallback a reader without JavaScript still lands on. */
+/** The About prose, shown in the dialog the "…" menu opens. */
 export function aboutProse(): string {
   return (
     `<p class="intro">aide -board runs spec-driven development across ` +
@@ -139,22 +138,12 @@ export function aboutProse(): string {
   );
 }
 
-/** The build stamp, said in words. Only the static pages carry one —
- *  a served page is rendered per request, and stamping THAT time here
- *  would call it a build. */
-export function buildStampLine(generatedAt: string): string {
-  return (
-    `<p class="stamp">Build: these static pages (Projects, About, the ` +
-    `project pages) were last generated ${esc(generatedAt)}.</p>`
-  );
-}
-
 // About is a DIALOG, not a page you navigate to (asked for 2026-08-19):
 // the menu item opens it in place, the cross and a click outside close
 // it. The <form method="dialog"> close is the platform's own — no
 // script involved once the box is open; opening it modally is the one
 // thing `menu-script.ts` does for it.
-function aboutDialog(buildStamp?: string): string {
+function aboutDialog(): string {
   return (
     `<dialog class="about"><div class="aboutpanel">` +
     `<form method="dialog"><button class="aboutclose" aria-label="Close">` +
@@ -163,7 +152,6 @@ function aboutDialog(buildStamp?: string): string {
     `<path d="M4 4l8 8M12 4l-8 8"></path></svg></button></form>` +
     `<h2>About</h2>` +
     aboutProse() +
-    (buildStamp ? buildStampLine(buildStamp) : "") +
     `</div></dialog>`
   );
 }
@@ -299,7 +287,7 @@ function pageHeader(lang: Language, currentUrl: string, tabs = ""): string {
     // then About.
     `<div class="menupanel">${boardRow(lang)}${menuSettingRows(lang, currentUrl)}<a href="/settings">${t(lang, "shell.settings")}</a>` +
     `<a href="/test-servers">${t(lang, "shell.testServers")}</a>` +
-    `<a href="about.html" data-about>${t(lang, "shell.about")}</a></div>` +
+    `<button type="button" data-about>${t(lang, "shell.about")}</button></div>` +
     `</details></div></header>`
   );
 }
@@ -350,7 +338,6 @@ function tabBar(entries: NavEntry[], currentPath: string, lang: Language): strin
 
 /** Everything `pageShell` takes beyond the title, the tabs and the body. */
 export interface PageShellOpts {
-  refreshInNoscript?: boolean;
   script?: string;
   /** A second, distinct script tag (spec 315) — `src=` rather than
    *  inline text, for the one script this dashboard wants a browser
@@ -360,7 +347,6 @@ export interface PageShellOpts {
   hideHeading?: boolean;
   /** When this page is part of a static build: its generation time,
    *  shown labelled at the bottom of the About dialog. */
-  buildStamp?: string;
   /** Spec 350. Absent (never required) on every page — every call site
    *  passes some real `lang` since spec 408 (REQ-1, guarded at runtime
    *  by `pageshell-lang-coverage.test.ts`, REQ-5), so absent still
@@ -381,12 +367,11 @@ export interface PageShellOpts {
 /** The meta refresh, as the text a head (or, for a streamed page, the
  *  start of its second half) carries. A meta refresh is fine on a page you
  *  only read. On a page with a FORM it is hostile: it wipes what you were
- *  half-way through filling in. The spec list therefore refreshes its table
- *  from script and keeps the blunt refresh as the fallback for a browser
- *  that did not run it. */
-export function refreshMeta(refreshSeconds?: number, inNoscript?: boolean): string {
-  const meta = refreshSeconds ? `<meta http-equiv="refresh" content="${refreshSeconds}">` : "";
-  return !meta ? "" : inNoscript ? `\n<noscript>${meta}</noscript>` : `\n${meta}`;
+ *  half-way through filling in. A page that ships the script asks for no
+ *  seconds at all, since the script reloads it; a page served without the
+ *  script asks for them and is refreshed by this. */
+export function refreshMeta(refreshSeconds?: number): string {
+  return refreshSeconds ? `\n<meta http-equiv="refresh" content="${refreshSeconds}">` : "";
 }
 
 /** The document up to and including `<body …>`: what a streamed page can
@@ -435,7 +420,7 @@ export function shellRest(
   return `${opts.refresh ?? ""}
 ${pageHeader(lang, currentUrl, tabs)}
 ${headerNotices(lang)}
-${aboutDialog(opts.buildStamp)}
+${aboutDialog()}
 ${leaveAppDialog(lang)}
 ${tabs}
 <main>
@@ -462,7 +447,7 @@ export function pageShell(
     shellHead(title, {
       lang: opts.lang,
       docTitle: opts.docTitle,
-      refresh: refreshMeta(refreshSeconds, opts.refreshInNoscript),
+      refresh: refreshMeta(refreshSeconds),
     }) + shellRest(entries, currentPath, title, body, opts)
   );
 }

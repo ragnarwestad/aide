@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import { closeAskDialog } from "../../../src/render/pages/spec-page/close-ask.ts";
-import { renderAddProjectPage, renderCloseSpecPage, renderNewSpecPage, renderProjectPage } from "../../../src/render";
+import { renderAddProjectPage, renderNewSpecPage, renderProjectPage } from "../../../src/render";
 import type { ProjectView } from "../../../src/render";
 import { checkControls } from "../../../src/render/ui/check-controls.ts";
 import { renderScheduleForm } from "../../../src/render/pages/schedule-page/form.ts";
@@ -15,7 +15,6 @@ const project: ProjectView = { name: "aide", manifest: { ok: false, error: "no m
 
 const PAGES: Record<string, () => string> = {
   "New spec": () => renderNewSpecPage(NAV, NOW, { createProjects: ["aide"], targets: [] }),
-  Close: () => renderCloseSpecPage("aide", "81-x", NAV, NOW, {}),
   "Close, in the spec page's dialog": () => `<body>${closeAskDialog("aide", "81-x", "en")}</body>`,
   "Add project": () => renderAddProjectPage(NAV, NOW, { createProjects: ["aide"] }),
   "project settings": () =>

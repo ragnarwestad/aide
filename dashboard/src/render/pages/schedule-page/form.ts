@@ -71,8 +71,7 @@ function modelFields(opts: ScheduleFormOptions, lang: Language = "en"): string {
   const restingTool = models.find((m) => m.name === chosen)?.tool ?? "claude";
   const aiSelect =
     tools.length > 1
-      ? `<noscript><style>[data-ai]{display:none}</style></noscript>` +
-        `<select data-ai="model" form="${SCHEDULE_FORM_ID}">` +
+      ? `<select data-ai="model" form="${SCHEDULE_FORM_ID}">` +
         tools
           .map(
             (tool) =>

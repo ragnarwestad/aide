@@ -168,9 +168,17 @@ The other skills:
 
 ## Install & Configuration
 
-Clone the repo and run the installer. It installs mise, Node.js and Claude Code where they are missing, and sets
-up Aide's skills for all four AI CLIs. Nothing is installed into the project you will use Aide on — the skills go
-in your home directory, and any project can then use them.
+Install these first — Aide checks for them and installs none of them:
+
+```bash
+curl https://mise.run | sh              # mise, then follow its own instructions for your shell
+mise use -g node@lts                    # a node, which the tools Aide declares are installed with
+curl -fsSL https://claude.ai/install.sh | bash   # the AI CLI you will use, here Claude Code
+```
+
+Then clone the repo and run the installer. It sets up Aide's skills for all four AI CLIs, and names the command
+for anything on that list it cannot find. Nothing is installed into the project you will use Aide on — the skills
+go in your home directory, and any project can then use them.
 
 ```bash
 git clone https://github.com/ragnarwestad/aide.git
@@ -184,8 +192,8 @@ in to Claude Code is left to you, and is done once:
 claude    # sign in, then /exit
 ```
 
-Codex, Copilot and OpenCode are not installed for you. Their installers set up Aide's skills and configuration for
-them and say so when the tool itself is missing; install the ones you want to use yourself.
+No AI CLI is installed for you. Each tool's installer sets up Aide's skills and configuration for it and says so
+when the tool itself is missing, so install the ones you want to use yourself.
 
 [mise](https://mise.jdx.dev) is what `install-all.sh` uses to install the tools the skills and scripts call: bun,
 jq, gh, pandoc and md-to-pdf.

@@ -70,7 +70,6 @@ export {
   EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, FILE_TABS, resolveSpecTab, TAB_FILES,
   documentTabScript, specPagePath, specTabPath,
 } from "./tabs.ts";
-export { renderCloseSpecPage } from "./close-page.ts";
 export { renderReopenSpecPage } from "./reopen-page.ts";
 
 interface SpecPageOpts {
@@ -113,8 +112,8 @@ function specPageBody(view: SpecPageView, opts: SpecPageOpts): { body: string; t
     // the tab row below, which holds buttons only.
     testServerStatus(view) +
     // With script the Steps tab reloads from a timer that waits while a
-    // dialog is open; the marker tells it how often (the meta refresh is
-    // in `<noscript>` then).
+    // dialog is open; the marker tells it how often, and the page asks for
+    // no meta refresh of its own.
     (opts.script && RELOADING_TABS.includes(tab) ? `<span hidden data-reload-every="${RELOAD_SECONDS}"></span>` : "") +
     (view.error ? rowMessage("failed", view.error, { tag: "p" }) : "") +
     (view.notice ? rowMessage(view.notice.ok ? "info" : "waiting", view.notice.note, { tag: "p" }) : "");
@@ -208,9 +207,8 @@ export function renderSpecPage(
     "/",
     body,
     generatedAt,
-    RELOADING_TABS.includes(tab) ? RELOAD_SECONDS : undefined,
+    !opts.script && RELOADING_TABS.includes(tab) ? RELOAD_SECONDS : undefined,
     {
-      refreshInNoscript: !!opts.script,
       script: opts.script,
       scriptSrc: opts.scriptSrc,
       hideHeading: true,
@@ -246,7 +244,7 @@ export function renderSpecPageRest(
     hideTabBar: true,
     lang: opts.lang,
     currentUrl: opts.currentUrl,
-    refresh: refreshMeta(RELOADING_TABS.includes(tab) ? RELOAD_SECONDS : undefined, !!opts.script),
+    refresh: refreshMeta(!opts.script && RELOADING_TABS.includes(tab) ? RELOAD_SECONDS : undefined),
     afterMain: LOADING_HIDE_RULE,
   });
 }

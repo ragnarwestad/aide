@@ -36,7 +36,6 @@ import {
   syncDependsOn,
 } from "./forms.ts";
 import { formatElapsed } from "./elapsed.ts";
-import { bindConfirmLink } from "./confirm-link/index.ts";
 import { bindLimits } from "./limits/index.ts";
 import { connect, onVisibility } from "./live.ts";
 import { navigate } from "./navigation.ts";
@@ -46,7 +45,7 @@ import { postForm } from "./press.ts";
 import { bindPushPanel } from "./push.ts";
 import { startReloadWhileIdle } from "./reload-while-idle/index.ts";
 import { relabelRunButton } from "./row-swap.ts";
-import { postScheduleEnabled, postScheduleRun, scheduleCronPreview } from "./schedule-actions.ts";
+import { bindScheduleDeleteButton, postScheduleEnabled, postScheduleRun, scheduleCronPreview } from "./schedule-actions.ts";
 import { submitProgress } from "./progress-dialog/index.ts";
 import { NEW_SPEC_FORM } from "./state.ts";
 import { postTailModel, postTailStep } from "./tail-actions.ts";
@@ -252,12 +251,18 @@ for (const el of document.querySelectorAll("form.scheduleform")) {
     if (model) syncAiToModel(model);
   }) as EventListener);
 }
-// Delete on a schedule row, and Close on the spec page, open their own
-// confirmation over the page instead of navigating to it. The link's `href`
-// is the confirmation PAGE and stays exactly that with no script: this only
-// intercepts the click where a dialog can actually be opened.
-for (const el of document.querySelectorAll("a[data-delete-schedule], a[data-close-ask]")) {
-  bindConfirmLink(el as HTMLAnchorElement);
+// Delete on a schedule row is a plain button with no href and no
+// confirmation page behind it (spec 528) — its own dialog is opened by
+// script alone.
+for (const el of document.querySelectorAll("button[data-delete-schedule]")) {
+  bindScheduleDeleteButton(el as HTMLButtonElement);
+}
+// Close's button has no fallback page either (spec 527): it only ever
+// opens its own dialog, so no href to preserve and nothing to preventDefault().
+for (const el of document.querySelectorAll("button[data-close-ask]")) {
+  const button = el as HTMLButtonElement;
+  const box = button.parentElement?.querySelector("dialog") as HTMLDialogElement | null;
+  if (box && typeof box.showModal === "function") button.addEventListener("click", () => box.showModal());
 }
 // The spec page's Steps tab reloads from here, and waits while a dialog is open.
 startReloadWhileIdle(document);

@@ -10,8 +10,7 @@ import { checkControls, checkReadOnlyMark } from "../../ui/check-controls.ts";
 import { failedCount, notVerifiedCount } from "../../../project/parse-status/not-verified.ts";
 import { dependsOnField } from "../new-spec-page.ts";
 import { t, type Language } from "../../../i18n";
-import { closeAskDialog } from "./close-ask.ts";
-import { CLOSE_SENTENCE } from "./close-page.ts";
+import { CLOSE_SENTENCE, closeAskDialog } from "./close-ask.ts";
 import { specPagePath } from "./tabs.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
@@ -437,14 +436,15 @@ export function testServerStatus(view: SpecPageView): string {
  *  a closed spec alike, since the move does not apply once a spec has
  *  left the active list. */
 export function closeControl(view: SpecPageView, lang: Language = "en"): string {
-  if (!view.closeAction || view.archived) return "";
+  if (!view.closeAvailable || view.archived) return "";
   // The reason itself is `actionsHelp()`'s, the row's one shared mark —
   // this button carries no popover of its own.
   if (view.closeUnavailableReason) return `<span class="btn" aria-disabled="true">Close</span>`;
-  // With script the click opens the dialog beside it (spec 525); without,
-  // the `href` is the close page.
+  // Close has no fallback page behind it (spec 527) — this button needs
+  // script to do anything, joining design-system.md's list of controls
+  // that do.
   return (
-    `<a class="btn" href="${esc(view.closeAction)}" data-close-ask>Close</a>` +
+    `<button type="button" class="btn" data-close-ask>Close</button>` +
     closeAskDialog(view.project, view.specFolder, lang)
   );
 }
@@ -453,11 +453,11 @@ export function closeControl(view: SpecPageView, lang: Language = "en"): string 
  *  to be several separate ones: Reopen's own, Close's own disabled
  *  reason, what Close means (REQ-2 — a reader meets Close only in a
  *  `title` attribute otherwise, which REQ-2 explicitly says is not
- *  enough; shares its exact wording with the close confirmation page's
- *  own prose, `CLOSE_SENTENCE` in close-page.ts, so the two places can
- *  never say it differently), and Update's own. Drawn once, before the
- *  row's own buttons — covering what each button does and, where one
- *  will not take a click right now, why. */
+ *  enough; shares its exact wording with the close dialog's own prose,
+ *  `CLOSE_SENTENCE` in close-ask.ts, so the two places can never say it
+ *  differently), and Update's own. Drawn once, before the row's own
+ *  buttons — covering what each button does and, where one will not
+ *  take a click right now, why. */
 export function actionsHelp(view: SpecPageView): string {
   const sentences: string[] = [];
   if (view.archived) {
@@ -466,10 +466,10 @@ export function actionsHelp(view: SpecPageView): string {
         "description, the analysis, the plan and the status, and removes its old branch; " +
         "you can choose to reset the analysis, the plan and the status as well.",
     );
-  } else if (view.closeAction) {
+  } else if (view.closeAvailable) {
     sentences.push(CLOSE_SENTENCE);
   }
-  if (view.closeAction && !view.archived && view.closeUnavailableReason) {
+  if (view.closeAvailable && !view.archived && view.closeUnavailableReason) {
     sentences.push(`Close can't run right now because ${view.closeUnavailableReason}.`);
   }
   sentences.push("Update pulls the specs repository and shows what it says now.");

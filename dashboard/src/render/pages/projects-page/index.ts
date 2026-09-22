@@ -30,9 +30,9 @@ import {
   rowMessage,
   } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
-import { pageShell, aboutProse, buildStampLine, type NavEntry } from "../../ui/shell.ts";
+import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { t, type Language } from "../../../i18n";
-import { navEntries, ABOUT_PAGE, OVERVIEW_PAGE, PROJECTS_ROUTE, NEW_SPEC_ROUTE, projectPagePath } from "./routes.ts";
+import { navEntries, OVERVIEW_PAGE, PROJECTS_ROUTE, NEW_SPEC_ROUTE, projectPagePath } from "./routes.ts";
 import { projectListBody, projectSummary } from "./overview-list.ts";
 import { driftPrefix, renderProjectPage } from "./project-page.ts";
 import {
@@ -47,7 +47,6 @@ import { codeLandingChoices } from "./settings-table.ts";
 export type { SpecView, ProjectView, Page, ProjectDrift, ProjectPageOptions };
 export {
   navEntries,
-  ABOUT_PAGE,
   OVERVIEW_PAGE,
   PROJECTS_ROUTE,
   NEW_SPEC_ROUTE,
@@ -57,13 +56,6 @@ export {
   driftPrefix,
   renderProjectPage,
 };
-
-// The prose itself lives in shell.ts, where the About DIALOG on every
-// page shows the same words — this page is the no-JS fallback the menu
-// item's href still points at.
-function aboutBody(generatedAt: string): string {
-  return aboutProse() + buildStampLine(generatedAt);
-}
 
 export function renderSite(_projects: ProjectView[], generatedAt: string): Page[] {
   const entries = navEntries();
@@ -91,14 +83,6 @@ export function renderSite(_projects: ProjectView[], generatedAt: string): Page[
       }),
     },
   ];
-  pages.push({
-    path: ABOUT_PAGE,
-    html: pageShell("About", entries, ABOUT_PAGE, aboutBody(generatedAt), generatedAt, undefined, {
-      buildStamp: generatedAt,
-      // Same reason as above: no request exists at generate time.
-      lang: "en",
-    }),
-  });
   // A page per project was written here until 2026-08-22. The server
   // serves one now (spec 185) — the one with the settings and the
   // readiness answer on it, reached from the Projects page — and a

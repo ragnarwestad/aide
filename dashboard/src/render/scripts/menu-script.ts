@@ -27,11 +27,10 @@
   document.addEventListener("click", (e) => {
     const target = e.target as Element | null;
     closeBoxes(target);
-    // The About item opens the dialog in place; its href stays as the
-    // no-JS fallback. Escape and the cross are the platform's own once
-    // the box is modal — a click on the backdrop is not, so it is
-    // handled here: the dialog element itself is only ever the click
-    // target when the click landed outside the panel.
+    // The About item opens the dialog in place. Escape and the cross are
+    // the platform's own once the box is modal — a click on the backdrop
+    // is not, so it is handled here: the dialog element itself is only
+    // ever the click target when the click landed outside the panel.
     if (target?.closest?.("[data-about]")) {
       e.preventDefault();
       closeAll();

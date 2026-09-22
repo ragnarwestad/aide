@@ -34,10 +34,6 @@ export function navEntries(): NavEntry[] {
   ];
 }
 
-/** The generated pages that are not projects. The server's fallback
- *  nav reads the site directory and would otherwise list them as ones. */
-export const ABOUT_PAGE = "about.html";
-
 /** The project overview. It answered `/` until spec 100 gave the root to
  *  the spec list, so it needs a filename of its own — and the Bun server
  *  never reaches `serveStatic` for `/` any more.

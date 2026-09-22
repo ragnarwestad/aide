@@ -7,7 +7,7 @@ import {
 } from "node:fs";
 import { dirname, join, normalize, resolve, sep } from "node:path";
 import {
-  ABOUT_PAGE, OVERVIEW_PAGE,
+  OVERVIEW_PAGE,
   APPLE_TOUCH_ICON, APP_BADGE_PNG_96, APP_ICON, APP_ICON_MASKABLE, APP_ICON_MASKABLE_PNG_512, APP_ICON_PNG_192, APP_ICON_PNG_512,
   SERVICE_WORKER, WEBMANIFEST,
   type NavEntry,
@@ -29,9 +29,7 @@ export function navFromSite(siteDir: string): NavEntry[] {
   try {
     const { readdirSync } = require("node:fs") as typeof import("node:fs");
     for (const f of readdirSync(siteDir).sort()) {
-      // About is a generated page, not a project — listing it under
-      // Projects would invent one that does not exist.
-      if (!f.endsWith(".html") || f === OVERVIEW_PAGE || f === ABOUT_PAGE) continue;
+      if (!f.endsWith(".html") || f === OVERVIEW_PAGE) continue;
       entries.push({ label: f.replace(/\.html$/, ""), path: f });
     }
   } catch {
