@@ -293,6 +293,9 @@ describe("spec 192: the phase line's controls share one cell", () => {
     // The pinned flex bases the three-in-one cell needed before spec
     // 165 stay gone: the widths are not pinned by hand this time.
     expect(CSS).not.toContain(".phasecell > .row");
-    expect(CSS).not.toMatch(/\.modelcell[^{]*\{[^}]*flex: 0 0/);
+    // Comments out first: a rule is what this forbids, and a neighbouring
+    // comment that names the cell otherwise reads as one.
+    const rules = CSS.replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(rules).not.toMatch(/\.modelcell[^{]*\{[^}]*flex: 0 0/);
   });
 });

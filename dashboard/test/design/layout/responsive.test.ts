@@ -92,9 +92,13 @@ describe("Started and Cost fold away at phone width", () => {
     // under its own chevron.
     expect(NARROW).not.toContain(".spec-name { display: contents; }");
     expect(NARROW).toContain("table.list tr.spechead .spec-name > .label { flex: 1 1 auto; min-width: 0; }");
-    // The pips' own cell is what is dissolved, so they stand beside the
-    // badge as items of the line rather than inside a cell of their own.
-    expect(NARROW).toContain("table.list tr.specstate > td:first-child { display: contents; }");
+    // The pips' cell keeps the width the phase lines' name, box and tick
+    // take, so the badge beside it stands over the state a phase line
+    // shows once the row is open (2026-09-22).
+    expect(NARROW).toMatch(
+      /table\.list tr\.specstate > td:first-child \{ box-sizing: border-box;\s*\n\s*flex: 0 0 calc\(var\(--sp-3\) \+ var\(--fold-w\) \+ var\(--phase-w\) \+ var\(--aimodel-w\) \+ var\(--tick-w\)/,
+    );
+    expect(NARROW).toContain("padding-left: calc(24px + var(--sp-1)); }");
     // The summary and the not-verified mark keep the indent both lines
     // carry: a basis of the whole width plus a left margin hangs past the
     // row's right edge.
