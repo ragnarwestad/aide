@@ -9,7 +9,7 @@ import { ICON_CHEVRON, ICON_SEARCH, btn, dialogAnswers, rowMessage } from "../..
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { modelFlag } from "./model-flag.ts";
-import { deleteSchedulePath, schedulePagePath } from "./tabs.ts";
+import { schedulePagePath } from "./tabs.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 
 export interface SchedulePageRow {
@@ -132,23 +132,22 @@ function row(r: SchedulePageRow, now: Date, o: Pick<ScheduleListOptions, "modelN
 // place a reader goes to CHANGE an entry — reaching it meant opening
 // the thing you had decided to be rid of.
 //
-// The control is a LINK to the confirmation page spec 277 already
-// built, so a browser with no script keeps exactly the flow it has
-// today. With script the click opens that same confirmation over the
-// list instead: `<dialog>`, the platform's own modal, the way the
-// About box in the header is done — Escape and Cancel close it, and
-// nothing is deleted by a stray click on a table row.
+// The control is a plain button, script-only (spec 528: no confirm page
+// behind it any more). Its click opens the confirmation beside it:
+// `<dialog>`, the platform's own modal, the way the About box in the
+// header is done — Escape and Cancel close it, and nothing is deleted
+// by a stray click on a table row.
 //
 // What it asks is the question itself, in the heading, with the two
-// answers under it — the same shape the entry's own Delete page uses.
-// It asked for the entry's exact name, typed back, until 2026-09-08.
+// answers under it. It asked for the entry's exact name, typed back,
+// until 2026-09-08.
 function deleteCell(r: SchedulePageRow): string {
   const name = r.entry.name;
   const deleteUrl = `/api/queue/schedule/${encodeURIComponent(r.project)}/${encodeURIComponent(name)}/delete`;
   return (
     `<td>` +
-    `<a class="btn danger" href="${esc(deleteSchedulePath(r.project, name))}" ` +
-    `data-delete-schedule aria-label="Delete ${esc(name)}">Delete</a>` +
+    `<button type="button" class="btn danger" ` +
+    `data-delete-schedule aria-label="Delete ${esc(name)}">Delete</button>` +
     `<dialog class="confirmdialog"><div class="confirmpanel">` +
     `<h2>Delete ${esc(r.project)}:${esc(name)}?</h2>` +
     `<p class="muted">The entry is removed and stops firing. ` +

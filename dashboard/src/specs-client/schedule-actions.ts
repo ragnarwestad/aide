@@ -64,6 +64,17 @@ export async function postScheduleRun(form: HTMLFormElement, fetchImpl: typeof f
   }
 }
 
+/** The Delete button on a list row: no href and no confirmation page
+ *  behind it — script is what opens its dialog. The dialog is looked
+ *  up in the button's own parent, because a list has one per row: a
+ *  page-wide lookup would open the first row's box from every row's
+ *  press. */
+export function bindScheduleDeleteButton(button: HTMLButtonElement): void {
+  const box = button.parentElement?.querySelector("dialog") as HTMLDialogElement | null;
+  if (!box || typeof box.showModal !== "function") return;
+  button.addEventListener("click", () => box.showModal());
+}
+
 const DEBOUNCE_MS = 300;
 const timers = new WeakMap<HTMLInputElement, ReturnType<typeof setTimeout>>();
 

@@ -361,6 +361,31 @@ describe("POST /api/queue/schedule/<project>/<name>/delete", () => {
     expect(t.stored()).toEqual([]);
   });
 
+  // AC-3: no confirm page to fall back to any more, so a refusal has to
+  // land on the schedule list, the same as every other route in this file.
+  test("a no-script POST that is refused redirects to /schedule, with the reason", async () => {
+    const t = start([nightly()]);
+    const res = await fetch(`${t.base}/api/queue/schedule/aide/ghost/delete`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: "",
+    });
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")!.startsWith("/schedule?error=")).toBe(true);
+  });
+
+  // Moved from schedule-page-route.test.ts (spec 528): that file's own
+  // GET .../delete describe block is gone with the confirm page it
+  // covered, but this test proves POST behavior unrelated to that page.
+  test("after a successful delete, the entry's own detail page is 404 (criterion 9)", async () => {
+    const t = start([nightly()]);
+    const res = await fetch(`${t.base}/api/queue/schedule/aide/nightly/delete`, jsonPost({}));
+    expect(res.status).toBe(200);
+    const detail = await fetch(`${t.base}/schedule/aide/nightly`, );
+    expect(detail.status).toBe(404);
+  });
+
   test("an unknown entry name in an allowed project refuses with 400", async () => {
     const t = start([nightly()]);
     const res = await fetch(`${t.base}/api/queue/schedule/aide/ghost/delete`, jsonPost({}));

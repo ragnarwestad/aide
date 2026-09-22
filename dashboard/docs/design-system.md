@@ -199,6 +199,7 @@ promise, and each says so in a comment where it is drawn:
 - the phase box on a running row that posts on the tick itself, which belongs to no form;
 - the model picker on a running row, which posts itself for the same reason;
 - a scheduled job's Enabled checkbox, which flips the flag at once;
+- a scheduled job's Delete button, which opens its own dialog and has no confirm page behind it;
 - the Cancel of `saveCancelActions()`, which renders disabled;
 - the theme buttons, since the choice is kept in the browser's `localStorage`;
 - the language dropdown in the "…" menu, while the language menu's links do the same job without script;
@@ -214,7 +215,7 @@ the Cancel beside a Save.
 
 `danger` means one thing only: an action a mistake cannot undo — removing a project, deleting a scheduled job,
 leaving a page with its edits unsaved. Every `danger` control either sits on a confirm step — a page or a dialog asking
-the question first — or opens one, as the Delete link in the scheduled jobs' list does. A job's Cancel is `primary` and not `danger`, because a cancelled run can be started again.
+the question first — or opens one, as the Delete button in the scheduled jobs' list does. A job's Cancel is `primary` and not `danger`, because a cancelled run can be started again.
 
 ## Theme choice
 
