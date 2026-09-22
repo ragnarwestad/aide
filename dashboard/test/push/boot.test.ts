@@ -47,7 +47,7 @@ async function boot(jobs: object[]) {
   const runner = join(dir, "runner");
   writeFileSync(runner, "#!/bin/sh\nexit 0\n", { mode: 0o755 });
   const server = createServer({
-    siteDir: dir, port: 0, mirrorPath: join(dir, "runs.json"), queueMirrorPath: join(dir, "queue.json"),
+    port: 0, mirrorPath: join(dir, "runs.json"), queueMirrorPath: join(dir, "queue.json"),
     projectRoot: root, queueProjectRoot: root, queueProjects: ["aide"], dashboardCheckoutRoot: join(dir, "owned"),
     queueRunnerBin: runner, queueResultDir: join(dir, "results"), queueDefaults: DEFAULTS,
     specCachePollMs: 0, driftPollMs: 0, scheduleCheckMs: 0,

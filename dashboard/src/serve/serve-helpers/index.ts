@@ -24,7 +24,7 @@ export {
 } from "./redirect.ts";
 
 export {
-  navFromSite, specsClientScript, specEditorClientScript, serveSpecEditorAsset,
+  specsClientScript, specEditorClientScript, serveSpecEditorAsset,
   SPEC_EDITOR_ASSET_PATH, specViewerClientScript, serveSpecViewerAsset, SPEC_VIEWER_ASSET_PATH,
   etagFor, STREAM_TAIL_BYTES, tailFile, serveStatic, servePwaAsset,
 } from "./static.ts";

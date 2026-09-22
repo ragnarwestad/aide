@@ -86,10 +86,10 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
   // clones actually take up disk and the default is a directory under
   // $HOME.
   test("the checkout root is a flag, and defaults to nothing the server invents", () => {
-    expect(parseArgs(["--site", "/s", "--dashboard-checkouts", "/data/owned"]).dashboardCheckoutRoot).toBe(
+    expect(parseArgs(["--dashboard-checkouts", "/data/owned"]).dashboardCheckoutRoot).toBe(
       "/data/owned",
     );
-    expect(parseArgs(["--site", "/s"]).dashboardCheckoutRoot).toBeUndefined();
+    expect(parseArgs([]).dashboardCheckoutRoot).toBeUndefined();
   });
 
   // Criterion 8: eagerly, so no project ever pays a full clone inside
@@ -98,7 +98,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     const { projectsRoot, site, owned } = realProject();
     const originOfSecond = join(projectsRoot, "..", "aide.git");
     const server = createServer({
-      siteDir: site, port: 0,
+      port: 0,
       mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
       projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned,
     });
@@ -126,7 +126,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     const before = git(person, "status", "--porcelain=v1", "--branch");
     const recorded = recording();
     const server = createServer({
-      siteDir: site, port: 0,
+      port: 0,
       mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
       projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned, gitRun: recorded.run,
     });

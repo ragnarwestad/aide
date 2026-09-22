@@ -28,8 +28,8 @@ JS_TOOLCHAIN_MARKERS = ("pnpm-lock.yaml", "package-lock.json", "yarn.lock",
 
 # Marker files that prove the dashboard's tree came across, not just an
 # empty directory: its package manifest, its deploy entry point and its
-# generator entry point.
-DASHBOARD_MARKERS = ("package.json", "Makefile", "src/main.ts")
+# server entry point.
+DASHBOARD_MARKERS = ("package.json", "Makefile", "src/serve/serve.ts")
 
 
 @pytest.mark.validation

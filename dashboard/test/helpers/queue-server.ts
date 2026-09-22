@@ -72,9 +72,6 @@ export function queueHarness(prefix: string): QueueHarness {
     } = {}) {
       const dir = mkdtempSync(join(tmpdir(), prefix));
       dirs.push(dir);
-      // The generated site's overview, at the filename `renderSite`
-      // actually writes since spec 100 — `/` belongs to the spec list.
-      writeFileSync(join(dir, "projects.html"), "<p>overview</p>");
       const root = join(dir, "root");
       project(root, "aide", "81-queue-and-runner", description, status);
       if (liveState !== undefined) writeFileSync(join(root, "aide", "specs", "81-queue-and-runner", "4-status.json"), liveState);
@@ -96,7 +93,6 @@ export function queueHarness(prefix: string): QueueHarness {
         if (spec.solution !== undefined) writeFileSync(join(archived, "3-solution.md"), spec.solution);
       }
       const server = createServer({
-        siteDir: dir,
         port: 0,
         mirrorPath: join(dir, "runs.json"),
         queueMirrorPath: join(dir, "queue.json"),

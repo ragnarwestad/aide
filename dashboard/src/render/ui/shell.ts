@@ -27,9 +27,9 @@ export interface NavEntry {
    *  before any reader's language is known, so a tab whose word can
    *  change per language names the catalogue KEY here instead of
    *  baking in English. Absent for every entry with nothing to
-   *  translate (a project's own name, the generated fallback nav's
-   *  `navFromSite()`), which keeps rendering `label` exactly as before —
-   *  a widening, not a breaking change to this type. */
+   *  translate (a project's own name), which keeps rendering `label`
+   *  exactly as before — a widening, not a breaking change to this
+   *  type. */
   labelKey?: TranslationKey;
 }
 
@@ -183,15 +183,11 @@ function leaveAppDialog(lang: Language): string {
 // through `pageShell()`'s 17 call sites, the same shape
 // `lastInstallWarning()` (header-notices.ts) already uses for `AIDE_INSTALL_LOG`.
 //
-// The machine name reads `AIDE_DASH_HOST` before `hostname()` for the
-// same reason `main.ts generate` needs to at build time: the two
-// STATICALLY generated pages (Projects, About) can be built on one
-// machine for another (a test board's, `test/round/run`), and
-// `renderSite()` calls this same function — so reading the real
-// `hostname()` here would stamp the wrong machine's name onto them
-// whenever the env var is not also set on the machine actually serving
-// them. Harmless when unset: `hostname()` is then this same machine's
-// own name anyway.
+// The machine name reads `AIDE_DASH_HOST` before `hostname()` because a
+// test board (`test/round/run`) can run its process on one machine while
+// serving on another's behalf — reading the real `hostname()` here would
+// stamp the wrong machine's name onto the header. Harmless when unset:
+// `hostname()` is then this same machine's own name anyway.
 function boardLine(lang: Language): string {
   return `<span class="row muted small boardline"${boardTitle()}>${boardText(lang)}</span>`;
 }
@@ -303,10 +299,8 @@ function tabBar(entries: NavEntry[], currentPath: string, lang: Language): strin
   // it gets a tab of its own and is not one of the pages Projects is
   // current on. The shape is what decides, not the label. A RELATIVE
   // `<slug>.html` is read as a project page, which no build writes any
-  // more (spec 185 served it instead); the rule stands for
-  // `navFromSite()`, whose fallback nav walks a site directory that may
-  // still hold one, and which therefore draws exactly the two tabs it
-  // always drew.
+  // more (spec 185 served it instead) — `projects` below is empty in
+  // practice, since nothing produces such an entry any more.
   const [projectsPage, ...rest] = entries;
   const sections = rest.filter((e) => e.path.startsWith("/"));
   const projects = rest.filter((e) => !e.path.startsWith("/"));

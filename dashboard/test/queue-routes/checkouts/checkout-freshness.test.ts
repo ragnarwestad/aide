@@ -94,7 +94,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     );
 
     const server = createServer({
-      siteDir: site, port: 0,
+      port: 0,
       mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
       projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned, gitRun: gated,
       queueRunnerBin: bin, queueResultDir: join(site, "jobs"),

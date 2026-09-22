@@ -7,7 +7,7 @@ export function runCli() {
   const argv = process.argv.slice(2);
   if (argv[0] !== "serve") {
     console.error(
-      "usage: serve.ts serve --site DIR [--port N] [--bind ADDR]\n" +
+      "usage: serve.ts serve [--port N] [--bind ADDR]\n" +
         "                     [--mirror FILE] [--root DIR]\n" +
         "                     [--queue-mirror FILE] [--queue-projects a,b]\n" +
         "                     [--runner-bin PATH] [--pdf-bin PATH] [--result-dir DIR]\n" +
@@ -19,5 +19,5 @@ export function runCli() {
   // The one place the tool checks are turned on: a person serving the
   // board wants to know, on the page, whether each AI is usable here.
   const s = createServer({ ...opts, checkToolsOnStart: true, tailscaleName: lookupTailscaleName });
-  console.log(`aide-dashboard serving ${opts.siteDir} on :${s.port}`);
+  console.log(`aide-dashboard serving ${opts.projectRoot ?? "no project root"} on :${s.port}`);
 }

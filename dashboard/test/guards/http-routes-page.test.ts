@@ -65,8 +65,8 @@ describe("the page against the source", () => {
     expect(gaps.wrongMethod).toEqual([]);
   });
 
-  test("the fallback row stands for serveStatic, which core-routes.ts still ends in (AC-4)", () => {
+  test("the fallback row stands for the plain 404 core-routes.ts still ends in (AC-4)", () => {
     expect(rows.some((r) => r.method === "GET" && r.path === "/<file>")).toBe(true);
-    expect(files["src/serve/core-routes.ts"]).toContain("return serveStatic(ctx.siteDir, path);");
+    expect(files["src/serve/core-routes.ts"]).toContain('return new Response("not found", { status: 404 });');
   });
 });

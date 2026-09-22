@@ -1,13 +1,11 @@
 // Spec 515: the spec page's first chunk carries a loading element, and the
 // second chunk hides it with CSS. These tests pin the rules the two halves
-// have to keep: what is in the head, where the hide rule sits, that the
-// split page is the page it was, and that the generated site knows nothing
-// of any of it.
+// have to keep: what is in the head, where the hide rule sits, and that the
+// split page is the page it was.
 import { describe, expect, test } from "bun:test";
-import { renderSite, renderSpecPage, renderSpecPageHead, renderSpecPageRest, type ProjectView } from "../../../src/render";
+import { renderSpecPage, renderSpecPageHead, renderSpecPageRest } from "../../../src/render";
 import { shellHead, shellRest, pageShell } from "../../../src/render/ui/shell.ts";
 import { LOADING_CSS, LOADING_HIDE_RULE, loadingBlock } from "../../../src/render/ui/loading.ts";
-import { CSS } from "../../../src/render/ui/css";
 import { t, type Language } from "../../../src/i18n";
 import { GENERATED, NAV, NOW, view } from "../pages/spec-page-fixtures.ts";
 
@@ -109,25 +107,12 @@ describe("the split page is the page it was (AC-1)", () => {
   });
 });
 
-describe("the generated site is unaffected (AC-5)", () => {
-  const project: ProjectView = { name: "aide", manifest: { ok: true, data: { name: "aide" } }, specs: [] };
-  const pages = renderSite([project], GENERATED);
-
+describe("pageShell composition (AC-5)", () => {
   test("pageShell is shellHead + shellRest for the same input (AC-5)", () => {
     const entries = [{ label: "Projects", path: "projects.html" }];
     const whole = pageShell("Title", entries, "projects.html", "<p>body</p>", GENERATED, undefined, { lang: "nb" });
     const parts =
       shellHead("Title", { lang: "nb" }) + shellRest(entries, "projects.html", "Title", "<p>body</p>", { lang: "nb" });
     expect(parts).toBe(whole);
-  });
-
-  test("no generated page, and not the stylesheet, holds the loading element (AC-5)", () => {
-    expect(pages.length).toBeGreaterThan(0);
-    for (const p of pages) {
-      for (const needle of ["pageloading", LOADING_HIDE_RULE, ...LANGS.map((l) => t(l, "shell.loadingPage"))]) {
-        expect([p.path, p.html.includes(needle)]).toEqual([p.path, false]);
-      }
-    }
-    expect(CSS).not.toContain("pageloading");
   });
 });

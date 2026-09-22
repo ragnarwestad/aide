@@ -14,7 +14,6 @@ import {
   renderJobDetailPage,
   renderProjectsPage,
   renderSpecsPage,
-  renderSite,
   type ProjectView,
 } from "../../../src/render";
 import { ICON_LINKS, WORDMARK } from "../../../src/render/ui/brand.ts";
@@ -25,32 +24,29 @@ import { AT, detail } from "../design-system-fixtures.ts";
 
 describe("the mark is on the page (description item 3)", () => {
   const project: ProjectView = { name: "aide", manifest: { ok: true, data: { name: "aide" } }, specs: [] };
-  const site = new Map(renderSite([project], AT).map((p) => [p.path, p.html]));
+  const html = renderProjectsPage([project], AT, navEntries(), {});
 
   test("the favicons go in <head>, before the stylesheet", () => {
-    const html = site.get("projects.html")!;
     expect(html).toContain(ICON_LINKS);
     expect(html.indexOf(ICON_LINKS)).toBeLessThan(html.indexOf("<style>"));
   });
 
   test("the wordmark opens the header, before the … menu", () => {
-    for (const html of site.values()) {
-      expect(html).toContain(`<header>${WORDMARK}`);
-      expect(html.indexOf(WORDMARK)).toBeLessThan(html.indexOf('<details class="menu">'));
-    }
+    expect(html).toContain(`<header>${WORDMARK}`);
+    expect(html.indexOf(WORDMARK)).toBeLessThan(html.indexOf('<details class="menu">'));
   });
 
   test("the mark ships as inline SVG and data URIs — the site is opened from a folder too", () => {
-    const html = site.get("projects.html")!;
     expect(html).not.toContain('href="/favicon');
     expect(html).not.toContain("<img");
     expect(ICON_LINKS).toContain("data:image/svg+xml,");
   });
 
-  test("the overview's tab title carries the tagline; its heading does not change", () => {
-    const html = site.get("projects.html")!;
+  // No <h1>: the tab says "Projects" and the list's own heading would
+  // say it a third time (2026-08-21) — `renderProjectsPage` passes
+  // `hideHeading: true` for exactly that reason.
+  test("the overview's tab title carries the tagline", () => {
     expect(html).toContain("<title>aide -board — from spec to merge</title>");
-    expect(html).toContain("<h1>Projects</h1>");
   });
 
   // Every tab leads with the surface's name: the reader picks it out of
@@ -77,7 +73,6 @@ describe("the mark is on the page (description item 3)", () => {
 
 describe("the header and the two tabs (spec 119)", () => {
   const project: ProjectView = { name: "aide", manifest: { ok: true, data: { name: "aide" } }, specs: [] };
-  const site = new Map(renderSite([project], AT).map((p) => [p.path, p.html]));
   // The entries the SERVER passes — `navEntries` is what `serve.ts`
   // calls, and the Projects entry it builds is the served route, which
   // is what decides whether that tab reads as current on `/projects`.
@@ -87,7 +82,7 @@ describe("the header and the two tabs (spec 119)", () => {
     "/specs/job-1": renderJobDetailPage(detail(), AT, entries),
     "/projects": renderProjectsPage([project], AT, entries, {}),
   };
-  const every = new Map<string, string>([...site, ...Object.entries(served)]);
+  const every = new Map<string, string>(Object.entries(served));
 
   const menu = (h: string) => h.match(/<details class="menu">[\s\S]*?<\/details>/)?.[0] ?? "";
   const tabs = (h: string) => h.match(/<nav[^>]*>[\s\S]*?<\/nav>/)?.[0] ?? "";
@@ -173,13 +168,9 @@ describe("the header and the two tabs (spec 119)", () => {
     expect(served["/specs/job-1"]).not.toContain('<nav class="tabbar">');
   });
 
-  // A project's own generated page went on 2026-08-22 — the server
-  // serves the one project page there is.
   test("Projects is current on the projects page", () => {
-    for (const html of [served["/projects"], site.get("projects.html")!]) {
-      expect(tab(html, "Projects")).toContain('aria-current="page"');
-      expect(tab(html, "Specs")).not.toContain("aria-current");
-    }
+    expect(tab(served["/projects"], "Projects")).toContain('aria-current="page"');
+    expect(tab(served["/projects"], "Specs")).not.toContain("aria-current");
   });
 });
 
@@ -187,11 +178,9 @@ describe("the header and the two tabs (spec 119)", () => {
 //
 // Which board a page is served from — a process-lifetime value read
 // directly by `pageHeader()` (`getBoardInfo()`), never threaded through
-// any of the call sites above. Covers both a statically generated page
-// (`renderSite`) and a dynamically served one (`renderSpecsPage`),
-// since REQ-2 names "headeren" with no page excluded and a test board's
-// own Projects/About come from exactly the same `renderSite()` call a
-// dynamically served page's header does.
+// any of the call sites above. Covers two differently-shaped served
+// pages (`renderProjectsPage`, `renderSpecsPage`), since REQ-2 names
+// "headeren" with no page excluded.
 
 describe("the board line and its Stop control (spec 424)", () => {
   const project: ProjectView = { name: "aide", manifest: { ok: true, data: { name: "aide" } }, specs: [] };
@@ -202,7 +191,7 @@ describe("the board line and its Stop control (spec 424)", () => {
 
   function render(): string[] {
     return [
-      ...renderSite([project], AT).map((p) => p.html),
+      renderProjectsPage([project], AT, entries, {}),
       renderSpecsPage([], AT, entries, { runnerAvailable: true, targets: [] }),
     ];
   }

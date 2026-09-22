@@ -11,8 +11,7 @@ make test                           # tsc + bun test, browser tests included
 make test-slow                      # the round's own tests, which start real test servers
 make test-e2e                       # the browser tests alone
 make test-all                       # all three — the browser tests twice, since make test has them
-make generate                       # write the site to out/
-make serve-local                    # generate + serve out/ on this machine, no service
+make serve-local                    # serves the checkout it is started in, no build step, no service
 ```
 
 `make test` is what a step and a landing run for a change that stays inside `dashboard/` — the manifest scopes

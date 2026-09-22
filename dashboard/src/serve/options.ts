@@ -10,11 +10,10 @@ import type { RestartHook } from "./land-branch";
 import type { PortProbe, Spawner } from "./test-servers/lifecycle.ts";
 
 export interface ServerOptions {
-  siteDir: string;
   port: number;
   mirrorPath?: string;
   // Nav entries for /live: derived from --root's manifests when given,
-  // else from the site dir's project pages.
+  // else the fixed fallback `navEntries()` itself returns.
   navEntries?: NavEntry[];
   /** Where to listen. Default 0.0.0.0; the mini pins its Tailscale
    *  address, the way claude-usage's plist does. */

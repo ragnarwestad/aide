@@ -260,7 +260,8 @@ other method gets 405.
 | `GET /icon-512-maskable.svg` | read | nothing | the maskable app icon as SVG                        | page     |
 | `GET /apple-touch-icon.png`  | read | nothing | the icon iOS puts on a home screen                  | page     |
 | `GET /badge-96.png`          | read | nothing | the notification badge: the mark on transparency    | page     |
-| `GET /<file>`                | read | nothing | any other file in the generated site, or 404        | page     |
+| `GET /projects.html`         | read | nothing | 302 to `/projects`, keeping the query string        | page     |
+| `GET /<file>`                | read | nothing | 404 — nothing else answers a path this route reaches | page     |
 
-`GET /<file>` is the fallback: it has no path in the source, since `serveStatic` in `src/serve/core-routes.ts` answers
-whatever no other route claimed. It is the one row the test does not look for a handler for.
+`GET /<file>` is the fallback: it has no path in the source, since `handleCore` in `src/serve/core-routes.ts` ends in
+a plain 404 once every other check above has declined. It is the one row the test does not look for a handler for.

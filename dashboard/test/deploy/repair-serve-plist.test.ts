@@ -33,16 +33,16 @@ describe.skipIf(!existsSync(BUDDY))("repair-serve-plist.sh", () => {
   }
 
   test("an option the code dropped goes, with its value; the rest stays in order", () => {
-    const plist = plistWith(["serve", "--site", "/x/site", "--token-file", "/x/token", "--port", "8788"]);
+    const plist = plistWith(["serve", "--root", "/x/root", "--token-file", "/x/token", "--port", "8788"]);
     const res = Bun.spawnSync(["bash", REPAIR, plist, PARSE_ARGS]);
 
     expect(res.exitCode).toBe(0);
     expect(res.stdout.toString()).toContain("removed --token-file");
-    expect(programArguments(plist)).toEqual(["/b/bun", "run", "/s/serve.ts", "serve", "--site", "/x/site", "--port", "8788"]);
+    expect(programArguments(plist)).toEqual(["/b/bun", "run", "/s/serve.ts", "serve", "--root", "/x/root", "--port", "8788"]);
   });
 
   test("a job passing only accepted options is left as it was", () => {
-    const plist = plistWith(["serve", "--site", "/x/site", "--port", "8788"]);
+    const plist = plistWith(["serve", "--root", "/x/root", "--port", "8788"]);
     const before = programArguments(plist);
     const res = Bun.spawnSync(["bash", REPAIR, plist, PARSE_ARGS]);
 

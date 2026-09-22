@@ -42,12 +42,6 @@ mkdir -p "$(dirname "$LOG")"
 } >> "$LOG" 2>&1
 PLIST="${AIDE_DASH_PLIST:-$HOME/Library/LaunchAgents/com.aide-dashboard.serve.plist}"
 ARGS_SRC="dashboard/src/serve/serve-helpers/parse-args.ts"
-# The value the installed launchd job passes after <flag>, or nothing.
-plist_arg() {
-  [ -f "$PLIST" ] || return 0
-  /usr/libexec/PlistBuddy -c "Print :ProgramArguments" "$PLIST" 2>/dev/null |
-    sed -e 's/^ *//' | awk -v f="$1" 'prev == f { print; exit } { prev = $0 }'
-}
 BUN="${AIDE_DASH_BUN:-$HOME/.local/share/mise/shims/bun}"
 if [ -x "$BUN" ]; then
   ( cd dashboard && "$BUN" install --silent )
@@ -56,15 +50,6 @@ if [ -x "$BUN" ]; then
   # already covers — the first `make test` on a host that has never run
   # this before finds no Chromium executable otherwise.
   ( cd dashboard && "$(dirname "$BUN")/bunx" playwright install chromium )
-  # The static pages (overview, about, one per project) share the nav
-  # with the served ones and are files on disk: a merge that changes the
-  # shell leaves them stale until regenerated. Same root and site dir
-  # the served instance uses, read off its own launchd job.
-  SITE="${AIDE_DASH_SITE:-$(plist_arg --site)}"
-  ROOT="${AIDE_DASH_ROOT:-$(plist_arg --root)}"
-  if [ -d "$SITE" ] && [ -d "$ROOT" ]; then
-    ( cd dashboard && "$BUN" run src/main.ts generate --root "$ROOT" --out "$SITE" >/dev/null 2>&1 ) || true
-  fi
 fi
 
 # The launchd job's arguments are set once, when the service is

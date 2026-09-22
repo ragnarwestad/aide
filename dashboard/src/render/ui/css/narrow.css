@@ -708,10 +708,17 @@
    give back some of their air. The board's name stays: it is what says
    whether this is Prod or a test board. A desktop window and a phone
    held upright are untouched — the width bound keeps a short desktop
-   window out. */
+   window out.
+
+   `min-width: 0` and `overflow-x: auto` are what keep a third tab
+   (spec 272, Schedule) from doing here what the board's name already
+   gives way for: a flex item's default `min-width: auto` refuses to
+   shrink it below its own content's width, which would otherwise widen
+   the whole header — and with it the page — past the viewport instead
+   of scrolling only the bar itself. */
 @media (orientation: landscape) and (max-height: 30rem) and (max-width: 60rem) {
   header > nav.tabbar { display: flex; flex: 1 1 auto; justify-content: center; gap: var(--sp-3);
-    padding: 0; border-bottom: 0; }
+    padding: 0; border-bottom: 0; min-width: 0; overflow-x: auto; }
   header > nav.tabbar .tab { min-width: 0; padding-left: var(--sp-2); padding-right: var(--sp-2); }
   body > nav.tabbar { display: none; }
   header { padding-top: var(--sp-2); padding-bottom: var(--sp-2); border-bottom: 1px solid var(--line); }

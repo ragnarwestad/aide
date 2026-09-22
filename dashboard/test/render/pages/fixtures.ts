@@ -2,9 +2,9 @@
 // describe blocks) into test/render/pages/, one file per theme.
 
 import {
-  renderSite,
+  navEntries,
+  renderProjectsPage,
   type JobDetailView,
-  type Page,
   type ProjectView,
   type QueueRowView,
 } from "../../../src/render";
@@ -84,13 +84,12 @@ export const broken: ProjectView = {
 
 export const generatedAt = "2026-08-16T12:00:00+02:00";
 
-export const site = renderSite([healthy, broken], generatedAt);
-export const byPath = new Map(site.map((p: Page) => [p.path, p.html]));
-// A per-project file needed a filename, so a project's name was
-// slugged and collisions numbered. There are no per-project files any
-// more — the server serves the one project page there is — so the
-// slugs went with them (2026-08-22).
-
+// Every test below that loops `for (const page of site)` is really
+// testing `pageShell()`'s own shared markup (nav, theme menu, About
+// dialog, head tags) — a served page proves the same thing a generated
+// one used to (spec 530), and the Projects page is the one every such
+// test already expected as current.
+export const site: string[] = [renderProjectsPage([healthy, broken], generatedAt, navEntries(), {})];
 
 export const NAV = [{ label: "Overview", path: "projects.html" }];
 

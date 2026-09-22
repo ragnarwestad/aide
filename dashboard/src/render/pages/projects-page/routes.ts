@@ -8,10 +8,7 @@ import { SCHEDULE_ROUTE } from "../schedule-page";
 //
 // The Projects entry points at the SERVED page (spec 115), not at the
 // generated file: the page that lists the projects is the page that adds
-// and removes them, and that needs a server behind it. `navFromSite()`
-// in serve.ts is the no-`--root` fallback and deliberately still names
-// the file — it has no project set to link the served page's contents
-// from.
+// and removes them, and that needs a server behind it.
 export function navEntries(): NavEntry[] {
   return [
     { label: "Projects", path: PROJECTS_ROUTE },
@@ -34,12 +31,13 @@ export function navEntries(): NavEntry[] {
   ];
 }
 
-/** The project overview. It answered `/` until spec 100 gave the root to
- *  the spec list, so it needs a filename of its own — and the Bun server
- *  never reaches `serveStatic` for `/` any more.
- *
- *  Since spec 115 the file itself is a redirect: the overview is SERVED,
- *  at `PROJECTS_ROUTE`. The filename stays because people bookmarked it. */
+/** The address people bookmarked before the overview became a served
+ *  route (spec 115). `core-routes.ts` answers `/projects.html` with a
+ *  redirect to `PROJECTS_ROUTE`, in server code, with no file behind it
+ *  (spec 530) — the literal there, not this constant, since the route
+ *  scanner behind `docs/http-routes.md`'s guard test reads a `path ===`
+ *  check by its own literal or a plain constant name, not a
+ *  concatenation. */
 export const OVERVIEW_PAGE = "projects.html";
 
 /** Where the overview actually lives (spec 115): a served route, so the

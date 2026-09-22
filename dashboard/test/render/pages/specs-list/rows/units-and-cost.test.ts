@@ -35,7 +35,7 @@ describe("spec 436: the … menu now also carries the theme, language and unit c
   // aria-label/title, a sibling `.menu.unit`, not inside this menu.
   test("every page's … menu has a data-unit-choice element", () => {
     for (const page of site) {
-      const m = menu(page.html);
+      const m = menu(page);
       expect(m).toContain("data-unit-choice");
     }
   });
@@ -48,7 +48,7 @@ describe("spec 436: the … menu now also carries the theme, language and unit c
   // wrapper is itself a nested `<div>` inside `.menupanel`.
   test("the menu panel's tail is still Settings, Test servers, About, in that order", () => {
     for (const page of site) {
-      const m = menu(page.html);
+      const m = menu(page);
       const settingsAt = m.indexOf('href="/settings"');
       const testServersAt = m.indexOf('href="/test-servers"');
       const aboutAt = m.indexOf("data-about");
@@ -60,9 +60,7 @@ describe("spec 436: the … menu now also carries the theme, language and unit c
 
   test("one script tag still, carrying the unit setting", () => {
     for (const page of site) {
-      const scripts = [...page.html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]!);
-      // The overview is a redirect and has a second script of its own;
-      // every other page has exactly one, and it holds it.
+      const scripts = [...page.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]!);
       const shared = scripts[0]!;
       expect(shared).toContain("data-unit-choice");
     }

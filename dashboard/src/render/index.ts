@@ -1,10 +1,9 @@
 // The dashboard's rendering, one file per page:
 //
 //   render/projects-page.ts  /projects — the listing, the panel that adds
-//                            and removes projects, projects.html + one
-//                            page per project (the generated file), and
-//                            the served `/projects/<name>` that carries
-//                            the config and the readiness answer
+//                            and removes projects, and the served
+//                            `/projects/<name>` that carries the config
+//                            and the readiness answer
 //   render/specs-list.ts  / — the spec list
 //   render/new-spec-page.ts  /new — the form that makes a spec
 //   render/job-page.ts    /specs/<id> — one job, in full
@@ -18,18 +17,14 @@
 //
 // This file is the door: callers ask render.ts for a page and do not
 // have to know which file it lives in. Every page is self-contained —
-// inline CSS, no external references — because the generated site is
-// published as plain files. The three SERVED pages — the spec list at
-// `/`, the New-spec form at `/new` and Projects at `/projects` — carry
-// browser code, compiled from specs-client.ts; the generated ones carry
-// none.
+// inline CSS, no external references.
 
 export {
-  NEW_SPEC_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, projectListBody, renderSite,
+  NEW_SPEC_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, projectListBody,
   navEntries,
   // `/projects/<name>` — the project's own page, served (spec 185), so
   // what it says about the config file is true when it is read rather
-  // than when the site was last generated.
+  // than at some earlier time.
   projectPagePath, renderProjectPage,
   renderProjectsPage,
   renderAddProjectPage,
@@ -37,7 +32,7 @@ export {
   ADD_PROJECT_ROUTE,
   removeProjectRoute,
 } from "./pages/projects-page";
-export type { Page, ProjectPageOptions, ProjectView, SpecView, ProjectsPageOptions, ProjectDrift } from "./pages/projects-page";
+export type { ProjectPageOptions, ProjectView, SpecView, ProjectsPageOptions, ProjectDrift } from "./pages/projects-page";
 
 export { renderNewSpecPage } from "./pages/new-spec-page.ts";
 export type { NewSpecPageOptions } from "./pages/new-spec-page.ts";

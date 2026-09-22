@@ -96,7 +96,7 @@ describe("the plist names the installed scripts by absolute path", () => {
   });
 
   test("--pdf-bin is the argument that sets the generator the PDF route spawns", () => {
-    expect(parseArgs(["--site", "/s", "--pdf-bin", "/opt/bin/aide-generate-pdf"]).pdfGeneratorBin).toBe(
+    expect(parseArgs(["--pdf-bin", "/opt/bin/aide-generate-pdf"]).pdfGeneratorBin).toBe(
       "/opt/bin/aide-generate-pdf",
     );
   });
@@ -110,7 +110,7 @@ describe("serve-local still runs from the checkout it is invoked in", () => {
   const recipe = dryRun("serve-local");
 
   test("it serves straight from this checkout", () => {
-    expect(recipe).toContain("bun run src/serve/serve.ts serve --site out --port 8788");
+    expect(recipe).toContain("bun run src/serve/serve.ts serve --port 8788");
   });
 
   test("no second host, no clone, no launchd", () => {

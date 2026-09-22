@@ -4,15 +4,15 @@
 
 import type { AideRunStore } from "../queue/aide-run-store.ts";
 import { parseAideRun } from "../queue/aide-run-store.ts";
+import { PROJECTS_ROUTE } from "../render";
 import {
-  json, readBounded, serveStatic, servePwaAsset, serveSpecEditorAsset, SPEC_EDITOR_ASSET_PATH,
+  json, readBounded, servePwaAsset, serveSpecEditorAsset, SPEC_EDITOR_ASSET_PATH,
   serveSpecViewerAsset, SPEC_VIEWER_ASSET_PATH,
 } from "./serve-helpers";
 
 export interface CoreRoutesContext {
   store: AideRunStore;
   notifyQueueChanged: () => void;
-  siteDir: string;
   /** This process's own boot-time commit (spec 269), a getter since it
    *  is read once, asynchronously, right after `createServer` starts —
    *  see `state.ts`'s own doc comment for why it stays `null` rather
@@ -23,7 +23,7 @@ export interface CoreRoutesContext {
 export async function handleCore(
   ctx: CoreRoutesContext,
   req: Request,
-  _url: URL,
+  url: URL,
   path: string,
 ): Promise<Response> {
   if (path === "/api/aide-run") {
@@ -72,5 +72,12 @@ export async function handleCore(
   const pwaAsset = servePwaAsset(path);
   if (pwaAsset) return pwaAsset;
 
-  return serveStatic(ctx.siteDir, path);
+  // AC-1: the address people bookmarked before the overview became a
+  // served route — answered here, not from a file, so nothing has to
+  // regenerate it when the route it points at changes.
+  if (path === "/projects.html") {
+    return new Response(null, { status: 302, headers: { location: `${PROJECTS_ROUTE}${url.search}` } });
+  }
+
+  return new Response("not found", { status: 404 });
 }

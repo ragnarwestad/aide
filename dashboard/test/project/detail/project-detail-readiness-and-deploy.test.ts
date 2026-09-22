@@ -1,8 +1,7 @@
 // Split out of project-detail-route.test.ts by theme.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { rmSync } from "node:fs";
 import { join } from "node:path";
 import { navEntries } from "../../../src/render";
 import { parseArgs } from "../../../src/serve/serve.ts";
@@ -544,9 +543,7 @@ describe("the nav does not name the projects", () => {
 
   test("a server started with --root builds a nav with no project in it", () => {
     const root = projectsRoot({ aide: null });
-    const site = mkdtempSync(join(tmpdir(), "aide-detail-site-"));
-    ownDirs.push(site);
-    const opts = parseArgs(["--site", site, "--root", root]);
+    const opts = parseArgs(["--root", root]);
     expect(opts.navEntries?.some((e) => e.label === "aide")).toBe(false);
     expect(opts.navEntries?.map((e) => e.label)).toEqual(["Projects", "Schedule"]);
   });

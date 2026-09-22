@@ -60,9 +60,11 @@ export function checkoutSafetyHelpers(ownDirs: string[]) {
     if (opts.ownClone !== false) {
       Bun.spawnSync({ cmd: ["git", "clone", "-q", origin, join(owned, "aide", "code")] });
     }
+    // Not the generated site any more (spec 530) — just a scratch
+    // directory this fixture's callers write their mirror/queue/job
+    // files into, same as `owned` is one for the dashboard's own clone.
     const site = join(where, "site");
     mkdirSync(site, { recursive: true });
-    writeFileSync(join(site, "projects.html"), "<p>overview</p>");
     return { projectsRoot, person, owned, site };
   }
 

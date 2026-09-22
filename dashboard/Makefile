@@ -1,4 +1,4 @@
-.PHONY: test test-e2e test-slow test-all generate serve-local require-host install-serve deploy-serve install-local
+.PHONY: test test-e2e test-slow test-all serve-local require-host install-serve deploy-serve install-local
 
 # Your machine's answers to the questions this Makefile refuses to guess
 # — MINI, ROOT, BIND. Gitignored, because naming them here
@@ -8,7 +8,7 @@
 # defaults below.
 -include .env.deploy
 
-# The generated pages read this from the ENVIRONMENT (the machine name
+# The served pages read this from the ENVIRONMENT (the machine name
 # they show), and make does not pass its own variables to a recipe's
 # shell unless told to. (A value given on make's command line is
 # exported automatically; one that comes from an included file is not,
@@ -51,15 +51,12 @@ test-slow:
 # All three, for the rare time you want the lot.
 test-all: test test-slow test-e2e
 
-generate:
-	bun run src/main.ts generate
-
 PORT ?= 8788
-# Generate and serve on THIS machine: no ssh, no rsync, no launchd.
+# Serve on THIS machine: no ssh, no rsync, no launchd, no build step.
 # ROOT is optional — serve.ts only needs it to build the project nav,
 # and a built-in default would name someone's checkout location.
-serve-local: generate
-	bun run src/serve/serve.ts serve --site out --port $(PORT) $(if $(ROOT),--root $(ROOT))
+serve-local:
+	bun run src/serve/serve.ts serve --port $(PORT) $(if $(ROOT),--root $(ROOT))
 
 # --- Serving on a second host ------------------------------------------
 # MINI is the ssh target and has NO default: a deploy aimed at a machine
@@ -133,7 +130,6 @@ install-serve: require-host
 		--working-directory "$$home/$(MINI_SRC)" \
 		--log-path "$$home/Library/Logs/aide-dashboard/serve.log" \
 		-- serve \
-		--site "$$home/$(REMOTE_STATE)/site" \
 		--port $(PORT) \
 		--mirror "$$home/$(REMOTE_STATE)/aide-runs.json" \
 		--queue-mirror "$$home/$(REMOTE_STATE)/aide-queue.json" \
@@ -155,12 +151,9 @@ install-serve: require-host
 	@# rather than bootstrapping into a failure.
 	@# With no ROOT the projects root is the directory of links beside
 	@# the checkouts, and the dashboard's own checkout is its first link.
-	@# The generated pages (about.html, one per project) are written from
-	@# it on every install, since the server only serves them.
-	$(ON_HOST) 'set -e; mkdir -p Library/Logs/aide-dashboard $(REMOTE_STATE)/site; \
+	$(ON_HOST) 'set -e; mkdir -p Library/Logs/aide-dashboard; \
 		$(if $(ROOT),,mkdir -p $(REMOTE_STATE)/projects; \
 		[ -L $(REMOTE_STATE)/projects/aide ] || [ -e $(REMOTE_STATE)/projects/aide ] || ln -s "$$HOME/$(MINI_REPO)" $(REMOTE_STATE)/projects/aide;) \
-		(cd $(MINI_SRC) && ~/$(REMOTE_BUN) run src/main.ts generate --root "$(if $(ROOT),$(ROOT),$$HOME/$(REMOTE_STATE)/projects)" --out "$$HOME/$(REMOTE_STATE)/site" >/dev/null); \
 		launchctl bootout gui/$$(id -u)/$(LABEL) 2>/dev/null || true; \
 		for i in $$(seq 1 50); do \
 			launchctl print gui/$$(id -u)/$(LABEL) >/dev/null 2>&1 || break; \

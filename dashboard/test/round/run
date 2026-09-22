@@ -150,7 +150,7 @@ git -C "$SPECS" -c user.name=round -c user.email=round@localhost commit -qm "sta
 git -C "$SPECS" push -q origin main
 
 echo "== preparing the board's own files"
-mkdir -p "$WORK/site" "$WORK/jobs" "$WORK/checkouts" "$WORK/root"
+mkdir -p "$WORK/jobs" "$WORK/checkouts" "$WORK/root"
 ln -sfn "$CODE" "$WORK/root/aide-test"
 # `concurrency` matches the serving board's own, so the queue behaves the
 # way it does there: how many rows run at once, and which are held back,
@@ -188,11 +188,8 @@ else
 fi
 
 echo "== starting the dashboard from $SERVE_FROM on :$PORT"
-( cd "$SERVE_FROM/dashboard" && "$BUN" run src/main.ts generate --root "$WORK/root" --out "$WORK/site" \
-    ${TEST_BOARD_ARGS[@]+"${TEST_BOARD_ARGS[@]}"} >/dev/null 2>&1 ) \
-  || echo "(generate failed; serving without a generated site)"
 ( cd "$SERVE_FROM/dashboard" && exec "$BUN" run src/serve/serve.ts serve \
-    --port "$PORT" --bind 127.0.0.1 --root "$WORK/root" --site "$WORK/site" \
+    --port "$PORT" --bind 127.0.0.1 --root "$WORK/root" \
     --queue-config "$WORK/queue-config.json" --queue-mirror "$WORK/queue.json" \
     --mirror "$WORK/runs.json" --result-dir "$WORK/jobs" \
     --dashboard-checkouts "$WORK/checkouts" --runner-bin "$SERVE_FROM/core/scripts/aide-run-spec" \

@@ -1,42 +1,16 @@
-// Serving what is not a queue route: the generated static site, the PWA
-// assets, the fallback nav for a server with no project root, the
-// bundled specs-client script, and a bounded file tail.
+// Serving what is not a queue route: the PWA assets, the bundled
+// specs-client script, a bounded file tail, and the traversal-safe
+// static-file primitive a schedule's own recorded output is read
+// through.
 
 import {
   closeSync, existsSync, fstatSync, openSync, readFileSync, readSync, statSync,
 } from "node:fs";
 import { dirname, join, normalize, resolve, sep } from "node:path";
 import {
-  OVERVIEW_PAGE,
   APPLE_TOUCH_ICON, APP_BADGE_PNG_96, APP_ICON, APP_ICON_MASKABLE, APP_ICON_MASKABLE_PNG_512, APP_ICON_PNG_192, APP_ICON_PNG_512,
   SERVICE_WORKER, WEBMANIFEST,
-  type NavEntry,
 } from "../../render";
-
-// Nav for a server started without `--root`: reconstruct the entries
-// from the generated site directory (the overview + every *.html except
-// About).
-//
-// It does NOT call `navEntries()`, deliberately and not by oversight.
-// That function points Projects at the SERVED page (spec 115), which
-// this server cannot render: with no project root it has nothing to
-// list. So the fallback keeps naming the generated file, which is
-// exactly what it has always shown — and `GET /projects` on such a
-// server redirects there too. Change one of the two and you have made
-// them disagree; they answer differently on purpose.
-export function navFromSite(siteDir: string): NavEntry[] {
-  const entries: NavEntry[] = [{ label: "Projects", path: OVERVIEW_PAGE }];
-  try {
-    const { readdirSync } = require("node:fs") as typeof import("node:fs");
-    for (const f of readdirSync(siteDir).sort()) {
-      if (!f.endsWith(".html") || f === OVERVIEW_PAGE) continue;
-      entries.push({ label: f.replace(/\.html$/, ""), path: f });
-    }
-  } catch {
-    // no site yet — nav is just Overview + Live
-  }
-  return entries;
-}
 
 // Page code is TypeScript, split across src/specs-client/*.ts and bundled
 // from its src/specs-client/index.ts entry point; the browser needs one flat
@@ -222,14 +196,16 @@ export function tailFile(path: string, maxBytes = STREAM_TAIL_BYTES): string {
   }
 }
 
-export function serveStatic(siteDir: string, pathname: string): Response {
-  // `/` never reaches here: `isQueuePath` claims it for the spec list
-  // before the static fallback is tried at all (spec 100). Every other
-  // path is a file in the generated site, or a 404.
+// A traversal-safe read of one file under `root` (spec 80; the site
+// directory this originally served went at spec 530, leaving
+// `/schedule-output/`'s own recorded files as the one caller left).
+export function serveStatic(root: string, pathname: string): Response {
   const rel = decodeURIComponent(pathname.slice(1));
-  const root = resolve(siteDir);
-  const target = resolve(root, normalize(rel));
-  if (target !== root && !target.startsWith(root + sep)) return new Response("not found", { status: 404 });
+  const resolvedRoot = resolve(root);
+  const target = resolve(resolvedRoot, normalize(rel));
+  if (target !== resolvedRoot && !target.startsWith(resolvedRoot + sep)) {
+    return new Response("not found", { status: 404 });
+  }
   if (!existsSync(target) || !statSync(target).isFile()) return new Response("not found", { status: 404 });
   const type = target.endsWith(".html") ? "text/html; charset=utf-8" : "application/octet-stream";
   return new Response(readFileSync(target), { headers: { "content-type": type } });
@@ -241,9 +217,9 @@ export function serveStatic(siteDir: string, pathname: string): Response {
  *  file on disk. There is nothing in any of them a reader could not already see
  *  in the page's own <head>.
  *
- *  `null` for every other path — the caller falls through to
- *  `serveStatic` (and, before that, its own routes). Pure: no closure,
- *  unlike almost everything else `createServer` calls. */
+ *  `null` for every other path — the caller falls through to its own
+ *  routes, and then a 404. Pure: no closure, unlike almost everything
+ *  else `createServer` calls. */
 export function servePwaAsset(path: string): Response | null {
   if (path === "/manifest.webmanifest") {
     return new Response(WEBMANIFEST, {

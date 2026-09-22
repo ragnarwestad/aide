@@ -88,9 +88,8 @@ An installed app is launched on `start_url` — `/`, with no query string — an
 
 Nine routes make it work — `/manifest.webmanifest`, `/sw.js`, `/icon-512.svg`, `/icon-512-maskable.svg`,
 `/icon-192.png`, `/icon-512.png`, `/icon-512-maskable.png`, `/apple-touch-icon.png` and `/badge-96.png`. All nine are
-computed in `src/render/ui/pwa.ts`, so nothing has to be kept in sync by hand. The served board answers them from
-memory, ahead of the static files; `generate` also writes the same nine into the site directory, which is what a
-published copy of the site needs beside its pages. The five PNGs are drawn
+computed in `src/render/ui/pwa.ts`, so nothing has to be kept in sync by hand. The served board answers all nine from
+memory — no file behind any of them. The five PNGs are drawn
 from the SVG icons at start-up (`src/render/ui/icon-png.ts`); Chrome on Android offers an install, not a home-screen
 shortcut, only when the manifest lists raster icons of 192 and 512 pixels and a maskable one. A browser will not install a page whose manifest is a data URI, which is why these are
 routes at all; they answer any request with a `Host` of the dashboard's own. The spec page fetches one more thing —
@@ -172,7 +171,7 @@ All paths are relative to the serving host's own `$HOME`.
 | `PORT`           | `8788`                                | port to serve on, behind the proxy                                |
 | `MINI_REPO`      | `.aide/dashboard/checkouts/aide/code` | the repo to clone or pull — the dashboard's own checkout          |
 | `MINI_SRC`       | `$(MINI_REPO)/dashboard`              | the directory bun runs in, and what the plist points at           |
-| `REMOTE_STATE`   | `.aide/dashboard`                     | site, mirrors, queue state                                        |
+| `REMOTE_STATE`   | `.aide/dashboard`                     | mirrors, queue state, logs                                        |
 | `REMOTE_BUN`     | `.local/share/mise/shims/bun`         | bun on that host                                                  |
 | `LABEL`          | `com.aide-dashboard.serve`            | launchd job label                                                 |
 | `QUEUE_PROJECTS` | `aide`                                | the allowlist's first-boot seed                                   |
@@ -246,10 +245,8 @@ own checkout or worktree now lives in a directory this procedure is
 about to leave behind, so treat it as failed and re-queue it once the
 move is finished, and remove the stray directory by hand.
 
-The generated pages — `about.html`, and one per project — are written by the install on the serving host itself, and
-again by the install after every merge, into the site directory and from the projects root the launchd job names.
-The machine name they show is `AIDE_DASH_HOST` when it is set, and the generating machine's `hostname()` otherwise,
-the same way the header's own machine name is found (`boardText()` in `dashboard/src/render/ui/shell.ts`).
+The header's own machine name (`boardText()` in `dashboard/src/render/ui/shell.ts`) is `AIDE_DASH_HOST` when it is
+set, and the serving machine's `hostname()` otherwise.
 
 ## Naming your machines once, in .env.deploy
 
@@ -267,10 +264,9 @@ check, checkout, plist and launchd job, with a local shell in place of ssh. It t
 until it is stopped. It refuses to start where the launchd service already runs, since two servers on one state would
 run the same queue twice.
 
-`make serve-local` generates the site and serves `out/` from the same machine — no ssh, no rsync, no launchd, no second
-host involved. `PORT=`
-and an optional `ROOT=` (the directory to scan for projects) are the only knobs. It serves the checkout it is run
-in, for trying a change, not as a service.
+`make serve-local` serves the checkout it is run in, from the same machine — no build step, no ssh, no rsync, no
+launchd, no second host involved. `PORT=` and an optional `ROOT=` (the directory to scan for projects) are the only
+knobs. It is for trying a change, not as a service.
 
 ## Keeping the host's specs current
 

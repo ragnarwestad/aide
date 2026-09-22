@@ -38,14 +38,13 @@ export function resolveDependencyFolder(
 }
 
 export function parseArgs(argv: string[]): ServerOptions {
-  const opts: ServerOptions = { siteDir: join(homedir(), ".aide", "dashboard", "site"), port: 8788 };
+  const opts: ServerOptions = { port: 8788 };
   let root: string | undefined;
   let queueConfigFile: string | undefined;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const v = argv[i + 1];
-    if (a === "--site" && v) opts.siteDir = argv[++i]!;
-    else if (a === "--port" && v) opts.port = Number(argv[++i]);
+    if (a === "--port" && v) opts.port = Number(argv[++i]);
     else if (a === "--mirror" && v) opts.mirrorPath = argv[++i];
     else if (a === "--root" && v) root = argv[++i];
     else if (a === "--bind" && v) opts.bindHost = argv[++i];
@@ -128,10 +127,10 @@ export function parseArgs(argv: string[]): ServerOptions {
     // The checkouts and the manifests live under the same root here.
     opts.queueProjectRoot = root;
   }
-  // The nav is the same three tabs whatever the projects are — a
-  // project is reached from the Projects page, not from the bar. The
-  // `navFromSite()` fallback below is what a server with no project
-  // root uses, and it reads the site directory instead.
+  // The nav is the same entries whatever the projects are — a project
+  // is reached from the Projects page, not from the bar. `serve.ts`'s
+  // own fallback computes the identical constant when this is unset, so
+  // setting it here only with `root` is not load-bearing any more.
   if (root) opts.navEntries = navEntries();
   return opts;
 }

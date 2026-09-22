@@ -47,13 +47,11 @@ if [ "${#missing[@]}" -gt 0 ]; then
 fi
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
-mkdir -p "$state/site" "$root"
+mkdir -p "$root"
 bun install --silent
-bun run src/main.ts generate --root "$root" --out "$state/site" >/dev/null
 
 echo "the dashboard: http://$bind:$port/"
 exec bun run src/serve/serve.ts serve \
-  --site "$state/site" \
   --port "$port" \
   --mirror "$state/aide-runs.json" \
   --queue-mirror "$state/aide-queue.json" \

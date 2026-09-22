@@ -1,7 +1,7 @@
-// Spec 424: `run` passes `--test-board <folder>` to BOTH its `generate`
-// invocation and its `serve.ts serve` one, whenever it was given
-// `--branch` — the folder the header needs to say which spec/branch this
-// board is for, and the self-stop route needs to know it may act at all.
+// Spec 424: `run` passes `--test-board <folder>` to its `serve.ts serve`
+// invocation whenever it was given `--branch` — the folder the header
+// needs to say which spec/branch this board is for, and the self-stop
+// route needs to know it may act at all.
 //
 // `AIDE_ROUND_BUN` points `run` at a fake `bun` that records its own
 // argv (one line per invocation) and, for the `serve.ts serve`
@@ -109,8 +109,8 @@ async function runToExit(args: string[], env: Record<string, string>): Promise<{
   return { code };
 }
 
-describe("spec 424: run passes --test-board to both its generate and serve.ts serve invocations", () => {
-  test("when given --branch, both invocations carry --test-board <folder>", async () => {
+describe("spec 424: run passes --test-board to its serve.ts serve invocation", () => {
+  test("when given --branch, the invocation carries --test-board <folder>", async () => {
     const originBare = tmp("aide-round-origin-");
     git(originBare, ["init", "-q", "--bare", "-b", "main"]);
 
@@ -152,9 +152,7 @@ describe("spec 424: run passes --test-board to both its generate and serve.ts se
       // hours, 2026-09-19).
       expect(leftovers(aide)).toEqual([]);
       const lines = readFileSync(logPath, "utf-8").trim().split("\n");
-      const generateLine = lines.find((l) => l.includes("src/main.ts") && l.includes("generate"));
       const serveLine = lines.find((l) => l.includes("src/serve/serve.ts") && l.includes("serve"));
-      expect(generateLine).toContain("--test-board 424-headeren-sier-hvilket-board");
       expect(serveLine).toContain("--test-board 424-headeren-sier-hvilket-board");
     } finally {
       await decoy.stop();
@@ -211,7 +209,7 @@ describe("spec 424: run passes --test-board to both its generate and serve.ts se
   // Every board the round starts is a test board (2026-09-10): with no
   // --branch the checkout's own folder name is the label, which the
   // header shows as just "Test".
-  test("with no --branch, both invocations carry --test-board <checkout folder>", async () => {
+  test("with no --branch, the invocation carries --test-board <checkout folder>", async () => {
     const originBare = tmp("aide-round-origin-");
     git(originBare, ["init", "-q", "--bare", "-b", "main"]);
     const seed = tmp("aide-round-seed-");

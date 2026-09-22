@@ -1,8 +1,10 @@
-// Criteria 4-5 (spec 80): the Bun server serves the static site
-// byte-identical, refuses traversal, accepts runs, and serves them as JSON
-// through the generator's layout; generated pages carry a Live entry.
+// Criterion 4 (spec 80): the Bun server accepts runs and serves them as
+// JSON through the generator's layout; pages carry a Live entry.
+// Path-traversal refusal is `serveStatic`'s own guard, covered where it
+// is actually still called — `/schedule-output/`
+// (test/serve/schedule/schedule-output-route.test.ts).
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer, parseArgs } from "../../src/serve/serve.ts";
@@ -14,10 +16,7 @@ let base: string;
 
 beforeAll(() => {
   dir = mkdtempSync(join(tmpdir(), "aide-serve-"));
-  writeFileSync(join(dir, "projects.html"), "<p>overview</p>");
-  writeFileSync(join(dir, "aide.html"), "<p>aide</p>");
   server = createServer({
-    siteDir: dir,
     port: 0,
     mirrorPath: join(dir, "runs.json"),
   });
@@ -29,20 +28,13 @@ afterAll(() => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-describe("static", () => {
-  // `/` is no longer one of these: since spec 100 the Bun server answers
-  // it with the spec list before `serveStatic` is reached at all, and
-  // what it answers with is covered by `queue-routes.test.ts`.
-  test("the generated pages are byte-identical to disk", async () => {
-    expect(await (await fetch(`${base}/projects.html`)).text()).toBe(
-      readFileSync(join(dir, "projects.html"), "utf-8"),
-    );
-    expect(await (await fetch(`${base}/aide.html`)).text()).toBe("<p>aide</p>");
-  });
-
-  test("traversal is refused", async () => {
-    const res = await fetch(`${base}/..%2F..%2Fetc%2Fpasswd`);
-    expect(res.status).toBe(404);
+// --- spec 530: /projects.html is a redirect, answered by the server, ---
+// with no site directory involved at all (AC-5) ---------------------------
+describe("GET /projects.html", () => {
+  test("redirects to /projects, keeping the query string (AC-1)", async () => {
+    const res = await fetch(`${base}/projects.html?foo=bar`, { redirect: "manual" });
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe("/projects?foo=bar");
   });
 });
 
@@ -132,23 +124,35 @@ describe("GET /projects (spec 115)", () => {
 
   // With no --root there is no project set to list, and an empty listing
   // would read as "no projects" rather than "this server was not told
-  // where they are". The generated file is what it showed before.
-  test("without --root it falls back to the generated page", async () => {
+  // where they are" — so the page itself says so, in a notice, instead
+  // of bouncing to a file that no longer exists (spec 530).
+  test("without --root it renders the ordinary page with a notice", async () => {
     const { base } = harness.start({ extra: { projectRoot: undefined } });
     const res = await fetch(`${base}/projects`, { redirect: "manual" });
-    expect(res.status).toBe(302);
-    expect(res.headers.get("location")).toBe("/projects.html");
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain("no project root");
   });
 
-  // And its nav keeps pointing at that file: `navFromSite()` is a
-  // separate, hand-written fallback that deliberately does not call
-  // `navEntries()`, which is what lets the two answer differently.
-  test("the no---root nav still points at projects.html", async () => {
+  // And its own Add page redirects to /projects too (spec 530), not to
+  // the removed file: nothing to add a project TO, but the page that
+  // explains why still exists.
+  test("without --root, /projects/new redirects to /projects", async () => {
+    const { base } = harness.start({ extra: { projectRoot: undefined } });
+    const res = await fetch(`${base}/projects/new`, { redirect: "manual" });
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe("/projects");
+  });
+
+  // The nav is always navEntries()'s three constant entries now (spec
+  // 530) — with or without --root, there is no separate fallback any
+  // more.
+  test("the nav points at /projects, with or without --root", async () => {
     const { base } = harness.start({ extra: { projectRoot: undefined } });
     const html = await (await fetch(`${base}/`)).text();
     const navHtml = html.match(/<nav[^>]*>[\s\S]*?<\/nav>/)![0];
-    expect(navHtml).toContain('href="projects.html"');
-    expect(navHtml).not.toContain('href="/projects"');
+    expect(navHtml).toContain('href="/projects"');
+    expect(navHtml).not.toContain('href="projects.html"');
   });
 });
 

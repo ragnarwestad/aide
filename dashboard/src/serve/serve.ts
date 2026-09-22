@@ -2,12 +2,12 @@ import { resolve, dirname } from "node:path";
 import { checkAllTools, setConfiguredTools, toolRechecker, type CheckableTool } from "./tool-check.ts";
 import { runProjectSuiteBeforePush } from "./land-branch/test-gate.ts";
 import { assignSpecNumberAfterMerge } from "./land-branch/finalize-create.ts";
-// The aide-dashboard server (spec 80): serves the generated static
-// site, receives aide-run events (POST /api/aide-run), and renders
+// The aide-dashboard server (spec 80): serves the spec list and project
+// pages, receives aide-run events (POST /api/aide-run), and renders
 // /live through the generator's layout. Replaces the python3 static
 // server on the serving host — same port, same launchd label.
 //
-// CLI: serve --site DIR [--port N] [--mirror FILE]
+// CLI: serve [--port N] [--mirror FILE]
 //
 // `createServer` is a staged assembly, not one long body: each of the
 // setup/*.ts files it calls builds one cluster of wiring that used to
@@ -26,7 +26,7 @@ import { AideRunStore } from "../queue/aide-run-store.ts";
 import { Notifier } from "../integrations/notify.ts";
 import { QueueStore, type ProjectResolver } from "../queue/queue.ts";
 
-import { QUEUE_DEFAULTS, navFromSite, compressResponse } from "./serve-helpers";
+import { QUEUE_DEFAULTS, compressResponse, checkRequest, createHostAllowlist } from "./serve-helpers";
 export * from "./serve-helpers";
 export type { ServerOptions } from "./options.ts";
 import type { ServerOptions } from "./options.ts";
@@ -35,7 +35,6 @@ import { handleRoutes, type RoutesContext } from "./routes";
 import { DEFAULT_PDF_CACHE_DIR } from "./routes/spec-pdf.ts";
 import { type SpecViewsContext } from "./spec-views";
 import { isLoopbackBind, isQueuePath } from "./queue-guard.ts";
-import { checkRequest, createHostAllowlist } from "./serve-helpers";
 import { answerProjectChange, persistAllowlist as persistAllowlistImpl, type ProjectActionsContext } from "./project-actions.ts";
 import { createServerState } from "./state.ts";
 import { setupWatch } from "./setup/watch.ts";
@@ -54,6 +53,7 @@ import { createQueueRunner, type RunnerSetupContext } from "./runner-setup.ts";
 import { recoverTestServers, sweepDeadTestServers } from "./test-servers/recover.ts";
 import { setBoardInfo } from "../render/ui/board-info.ts";
 import { clearCheckoutFaults } from "../render/ui/checkout-faults.ts";
+import { navEntries } from "../render";
 
 export function createServer(opts: ServerOptions) {
   // Spec 363: a header this process trusts is only trustworthy because
@@ -72,7 +72,7 @@ export function createServer(opts: ServerOptions) {
   }
 
   const store = new AideRunStore({ mirrorPath: opts.mirrorPath });
-  const nav = () => opts.navEntries ?? navFromSite(opts.siteDir);
+  const nav = () => opts.navEntries ?? navEntries();
   const state = createServerState();
   // Spec 424: always set, including `undefined` — `board-info.ts`'s own
   // rule, since `bun test` runs many `createServer()` calls in one
@@ -378,7 +378,7 @@ export function createServer(opts: ServerOptions) {
   });
 
   const coreCtx: CoreRoutesContext = {
-    store, notifyQueueChanged: watch.notifyQueueChanged, siteDir: opts.siteDir,
+    store, notifyQueueChanged: watch.notifyQueueChanged,
     readServingSha: () => state.servingSha,
   };
 

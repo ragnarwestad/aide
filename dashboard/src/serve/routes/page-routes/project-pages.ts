@@ -12,7 +12,7 @@ import { projectSettings } from "../../../project/project-settings.ts";
 import { lastChecks } from "../../tool-check.ts";
 import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardSettingsFile } from "../../../git/dashboard-checkout.ts";
 import { assessProjectReadiness, manifestTracked, settingsHome } from "../../../project/project-admin";
-import { ADD_PROJECT_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderRemoveProjectPage, renderSettingsPage, renderTestServersPage, resolveBackHref, specPagePath, type TestServerRow } from "../../../render";
+import { ADD_PROJECT_ROUTE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderRemoveProjectPage, renderSettingsPage, renderTestServersPage, resolveBackHref, specPagePath, type TestServerRow } from "../../../render";
 import { MAIN_TEST_SERVER_KEY, refreshTestServerStatus } from "../../test-servers/lifecycle.ts";
 import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "../spec-edit/test-server-waiting.ts";
 import { isSpecFolder } from "../../../render/ui/shell.ts";
@@ -93,8 +93,10 @@ export async function projectPages(
 
   if (path === ADD_PROJECT_ROUTE) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    // Send the reader to the page that now explains it, instead of the
+    // file that no longer exists.
     if (!ctx.opts.projectRoot) {
-      return new Response(null, { status: 302, headers: { location: `/${OVERVIEW_PAGE}` } });
+      return new Response(null, { status: 302, headers: { location: PROJECTS_ROUTE } });
     }
     const langResult = languageChoice(url, req);
     const html = renderAddProjectPage(ctx.nav(), new Date().toISOString(), {
@@ -170,8 +172,8 @@ export async function projectPages(
       return waitingForTestServerPage(name, MAIN_TEST_SERVER_KEY);
     }
     // Read fresh, uncached, exactly as `/projects` does: nothing polls
-    // this page, so a scan per request is the cost `make generate`
-    // already treats as cheap — and no invalidation to get wrong.
+    // this page, so a scan per request is cheap enough to redo every
+    // time — and no invalidation to get wrong.
     const view = buildProjectViews(ctx.opts.projectRoot, ctx.ownedSpecsRoot, manifestInside(ctx.machineryProjectDir)).find((p) => p.name === name);
     if (!view) return new Response("no such project\n", { status: 404 });
     const dir = ctx.displayProjectDir(name);
@@ -282,15 +284,24 @@ export async function projectPages(
   if (path === PROJECTS_ROUTE) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     // No `--root`, no project set: an empty listing would read as "no
-    // projects on this machine" rather than "this server was never
-    // told where they are". The generated page is what such a server
-    // has always shown, and it is still there.
+    // projects on this machine" rather than "this server was never told
+    // where they are" — so render the ordinary (empty) listing with a
+    // notice explaining why, instead of bouncing to a page that would
+    // just redirect back here.
     if (!ctx.opts.projectRoot) {
-      return new Response(null, { status: 302, headers: { location: `/${OVERVIEW_PAGE}` } });
+      const langResult = languageChoice(url, req);
+      const html = renderProjectsPage([], new Date().toISOString(), ctx.nav(), {
+        error: "this board was started with no project root, so it has no projects to list",
+        lang: langResult.lang,
+        currentUrl: langResult.currentUrl,
+      });
+      const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
+      if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
+      return new Response(html, { headers });
     }
     // Read fresh, uncached: unlike `/` nothing polls this page, so a
-    // scan per request is the same cost `make generate` already treats
-    // as cheap — and no invalidation to get wrong.
+    // scan per request is cheap enough to redo every time — and no
+    // invalidation to get wrong.
     const projects = buildProjectViews(ctx.opts.projectRoot, ctx.ownedSpecsRoot, manifestInside(ctx.machineryProjectDir));
     // Spec 184: whether a run could start in each project, asked on
     // every visit. The Add flow answered this exactly once, in the
@@ -345,9 +356,9 @@ export async function projectPages(
   }
 
   // Spec 272. Whatever a `schedule` step wrote to its own output
-  // directory, served with the same `serveStatic()` primitive
-  // `core-routes.ts` already uses for the generated site — pointed at a
-  // different root. `scheduleOutputDir()` is the SAME function
+  // directory, served with the same traversal-safe `serveStatic()`
+  // primitive `schedule-pages.ts` uses for `/schedule-output/` —
+  // pointed at a different root. `scheduleOutputDir()` is the SAME function
   // `runner-setup.ts`'s spawn imports for the write side; a second
   // implementation of the join here would be the hand-paired-pair
   // failure mode `dashboard/CLAUDE.md` already names six instances of.

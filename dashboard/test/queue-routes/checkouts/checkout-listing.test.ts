@@ -130,7 +130,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     commitSpecUnpushed(person, "990-only-in-my-checkout");
 
     const server = createServer({
-      siteDir: site, port: 0,
+      port: 0,
       mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
       projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned, driftPollMs: 0,
     });
@@ -157,7 +157,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     commitSpecUnpushed(person, "991-only-in-my-checkout");
 
     const server = createServer({
-      siteDir: site, port: 0,
+      port: 0,
       mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
       projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned, driftPollMs: 0,
     });
@@ -185,7 +185,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
       args.join(" ") === "remote get-url origin" ? { code: 1, stdout: "" } : await real(dir, args, timeoutMs);
 
     const server = createServer({
-      siteDir: site, port: 0,
+      port: 0,
       mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
       projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned, driftPollMs: 0, gitRun: noOrigin,
     });
@@ -217,7 +217,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     expect(made.ok).toBe(true);
 
     const server = createServer({
-      siteDir: site, port: 0,
+      port: 0,
       mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
       projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned, driftPollMs: 0, specCachePollMs: 250,
     });
@@ -258,7 +258,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     // request is in flight, so the count taken across it is the
     // request's.
     const server = createServer({
-      siteDir: site, port: 0,
+      port: 0,
       mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
       projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned, driftPollMs: 0, specCachePollMs: 100_000, gitRun: recorded.run,
     });

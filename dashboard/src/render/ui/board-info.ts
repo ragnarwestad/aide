@@ -14,10 +14,10 @@ export interface BoardInfo {
 
 let current: BoardInfo | undefined;
 
-/** Always called — including with `undefined` — by `createServer()` and
- *  `main()`'s own `generate` command. `bun test` runs many such calls in
- *  one process, and a merge/leave-if-set implementation would let an
- *  earlier test's board leak into a later, ordinary-server test. */
+/** Always called — including with `undefined` — by `createServer()`.
+ *  `bun test` runs many such calls in one process, and a
+ *  merge/leave-if-set implementation would let an earlier test's board
+ *  leak into a later, ordinary-server test. */
 export function setBoardInfo(specFolder: string | undefined): void {
   current = specFolder ? { specFolder, branch: `aide/${specFolder}` } : undefined;
 }

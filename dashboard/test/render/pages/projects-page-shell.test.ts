@@ -2,17 +2,15 @@ import { describe, expect, test } from "bun:test";
 import {
   renderJobDetailPage,
   renderNewSpecPage,
+  renderProjectsPage,
   renderSpecsPage,
   navEntries,
-  renderSite,
   type SpecsPageOptions,
 } from "../../../src/render";
 import {
   external,
   project,
-  generatedAt,
   site,
-  byPath,
   NAV,
   detail,
   row,
@@ -24,17 +22,15 @@ describe("nav (criterion 2)", () => {
   // nav: two lists of the same projects were one too many.
   test("the nav lists no project pages, and no Projects label", () => {
     for (const page of site) {
-      expect(page.html).not.toContain('<li class="lbl">Projects</li>');
+      expect(page).not.toContain('<li class="lbl">Projects</li>');
       // Spec 115: the entry points at the SERVED page, not at the file.
-      expect(page.html).toContain('href="/projects"');
-      expect(page.html).not.toMatch(/<nav>[\s\S]*href="goodproj.html"[\s\S]*<\/nav>/);
+      expect(page).toContain('href="/projects"');
+      expect(page).not.toMatch(/<nav>[\s\S]*href="goodproj.html"[\s\S]*<\/nav>/);
     }
   });
 
   // Criterion 9 (spec 115), at the source: one entry, retargeted at the
-  // served page. `navFromSite()` in serve.ts is a SEPARATE fallback and
-  // deliberately still answers `projects.html` — serve.test.ts holds
-  // that half.
+  // served page.
   test("the Projects entry points at the served page", () => {
     expect(navEntries()[0]).toEqual({ label: "Projects", path: "/projects" });
   });
@@ -47,12 +43,12 @@ describe("nav (criterion 2)", () => {
   // site.
   test("the tabs are Specs, Projects and Schedule; the wordmark is still home", () => {
     for (const page of site) {
-      const navHtml = page.html.match(/<nav[^>]*>[\s\S]*?<\/nav>/)![0];
+      const navHtml = page.match(/<nav[^>]*>[\s\S]*?<\/nav>/)![0];
       const links = [...navHtml.matchAll(/<a[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/g)].map(
         (m) => [m[2], m[1]],
       );
       expect(links).toEqual([["Specs", "/"], ["Projects", "/projects"], ["Schedule", "/schedule"]]);
-      expect(page.html).toContain('<a class="brand" href="/">');
+      expect(page).toContain('<a class="brand" href="/">');
     }
   });
 
@@ -61,7 +57,7 @@ describe("nav (criterion 2)", () => {
   // list, so Specs is never the current tab here.
   test("exactly one current tab, and on a generated page it is Projects", () => {
     for (const page of site) {
-      const navHtml = page.html.match(/<nav[^>]*>[\s\S]*?<\/nav>/)![0];
+      const navHtml = page.match(/<nav[^>]*>[\s\S]*?<\/nav>/)![0];
       const currents = [...navHtml.matchAll(/<a[^>]*aria-current="page"[^>]*>([^<]+)<\/a>/g)];
       expect(currents.map((m) => m[1])).toEqual(["Projects"]);
     }
@@ -84,8 +80,8 @@ describe("the theme choice in the header (specs 107, 119, 243)", () => {
   // width where the standalone .menu.theme trigger is hidden.
   test("every page offers Dark, Light and Auto in the header's own popup, and again flat inside the … menu", () => {
     for (const page of site) {
-      const m = menu(page.html);
-      const t = themeMenu(page.html);
+      const m = menu(page);
+      const t = themeMenu(page);
       const choices = [
         ...t.matchAll(/data-theme-choice="([^"]+)"[^>]*>[\s\S]*?<span>([^<]+)<\/span>[\s\S]*?<\/button>/g),
       ].map((x) => [x[1], x[2]]);
@@ -95,7 +91,7 @@ describe("the theme choice in the header (specs 107, 119, 243)", () => {
   });
 
   test("the choices are buttons, not links — they go nowhere", () => {
-    const h = header(site[0]!.html);
+    const h = header(site[0]!);
     expect(h).toMatch(/<button type="button" data-theme-choice="dark"/);
     expect(h).not.toMatch(/<a[^>]*data-theme-choice/);
   });
@@ -105,7 +101,7 @@ describe("the theme choice in the header (specs 107, 119, 243)", () => {
   // carries two copies of the same "chosen" mark, not one.
   test("Auto is marked as chosen, because the server cannot know better", () => {
     for (const page of site) {
-      const h = header(page.html);
+      const h = header(page);
       const marked = [...h.matchAll(/data-theme-choice="([^"]+)"[^>]*aria-current=/g)].map(
         (x) => x[1],
       );
@@ -117,72 +113,25 @@ describe("the theme choice in the header (specs 107, 119, 243)", () => {
   });
 });
 
-// Spec 115: the listing itself moved to the SERVED `/projects`, where
-// the panel that changes the list can sit beside it. What the generator
-// still writes at this filename is a redirect — the file has to keep
-// existing (people have bookmarked it), but the reader belongs on the
-// served page.
-// The listing's own tests went with it, to projects-page.test.ts.
-describe("the generated overview is a redirect to /projects", () => {
-  const index = byPath.get("projects.html")!;
-
-  test("it sends the reader on, keeping whatever the address carried", () => {
-    expect(index).toContain("location.replace('/projects' + location.search)");
-  });
-
-  // The script is the fast path, not the only one: a browser with
-  // JavaScript off, or a folder opened without a server, still has
-  // something to click.
-  test("a plain link too, for a reader the script never reaches", () => {
-    expect(index).toContain('<a href="/projects">');
-    expect(index.toLowerCase()).toContain("moved");
-  });
-
-  test("it is still a page of the site, nav and all, and carries no stamp", () => {
-    expect(index).toContain("<nav");
-    expect(index).not.toContain(generatedAt);
-  });
-});
-
 // About opens as a DIALOG from the menu (asked for 2026-08-19): the
 // markup rides on every page and the menu button opens it in place.
 // There is no About page behind it.
 describe("the About dialog", () => {
   test("every page carries the dialog, with a close cross", () => {
     for (const p of site) {
-      expect(p.html).toContain('<dialog class="about">');
-      expect(p.html).toContain('<button class="aboutclose" aria-label="Close">');
+      expect(p).toContain('<dialog class="about">');
+      expect(p).toContain('<button class="aboutclose" aria-label="Close">');
       // the platform's own close: no script once the box is open
-      expect(p.html).toContain('<form method="dialog">');
+      expect(p).toContain('<form method="dialog">');
     }
   });
 
 });
 
 describe("the About prose", () => {
-  const index = byPath.get("projects.html")!;
-
-  test("it says what the board does rather than how it is built", () => {
-    // The four phases are the whole of what the board is for, so About
-    // names them.
-    for (const phase of ["create", "analyze", "implement", "archive"]) {
-      expect(index).toContain(phase);
-    }
-    expect(index).toContain(".aide/project.yaml");
-  });
-
-  // It described a static site regenerated by hand long after the board
-  // had become a server that runs specs. A dialog nobody can act on is
-  // worse than none: it teaches the wrong thing.
-  test("it no longer describes the board as a read-only static site", () => {
-    for (const stale of ["read-only", "make publish", "The site is static"]) {
-      expect(index).not.toContain(stale);
-    }
-  });
-
   test("every page's menu carries the button that opens it", () => {
     for (const p of site) {
-      expect(p.html).toContain('<button type="button" data-about>About</button>');
+      expect(p).toContain('<button type="button" data-about>About</button>');
     }
   });
 });
@@ -190,7 +139,7 @@ describe("the About prose", () => {
 describe("self-contained (criterion 5)", () => {
   test("no external references on any page", () => {
     for (const page of site) {
-      expect(page.html).not.toContain("<script src");
+      expect(page).not.toContain("<script src");
       // The favicons are data URIs, so a <link> is fine — what this
       // test is about is a reference that needs a second request.
       //
@@ -201,8 +150,8 @@ describe("self-contained (criterion 5)", () => {
       // both from memory. On a generated page opened from a folder
       // they find nothing at all, which is the same inert as the
       // `href="/"` that page's own nav already carries.
-      expect(external(page.html)).toEqual(["/manifest.webmanifest", "/apple-touch-icon.png"]);
-      expect(page.html).not.toMatch(/<img[^>]+src="https?:/);
+      expect(external(page)).toEqual(["/manifest.webmanifest", "/apple-touch-icon.png"]);
+      expect(page).not.toMatch(/<img[^>]+src="https?:/);
     }
   });
 });
@@ -330,7 +279,7 @@ describe("the Overview's facts table (criterion 10)", () => {
 // own `href="/"` nav links, not a new kind of broken.
 describe("spec 173: every page says how it is installed", () => {
   const pages = (): string[] => [
-    ...renderSite([project("aide")], "2026-08-21T00:00:00Z").map((p) => p.html),
+    renderProjectsPage([project("aide")], "2026-08-21T00:00:00Z", navEntries(), {}),
     renderSpecsPage([], "2026-08-21T00:00:00Z", [{ label: "Projects", path: "/projects" }], {
       runnerAvailable: true,
       targets: [],

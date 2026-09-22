@@ -40,14 +40,6 @@ describe("install-local is install-serve on this machine", () => {
     expect(recipe).toContain('cp "$plist" "$HOME/Library/LaunchAgents/com.aide-dashboard.serve.plist"');
   });
 
-  // The server serves the generated pages but never writes them;
-  // without this a fresh install links to a 404.
-  test("it writes the generated pages into the site the server serves", () => {
-    expect(recipe).toContain(
-      'run src/main.ts generate --root "$HOME/.aide/dashboard/projects" --out "$HOME/.aide/dashboard/site"',
-    );
-  });
-
   test("it keeps install-serve's steps: the service's own checkout, and the wait before bootstrap", () => {
     expect(recipe).toContain("git -C .aide/dashboard/checkouts/aide/code pull");
     expect(recipe).toContain("is still loaded after 10s");

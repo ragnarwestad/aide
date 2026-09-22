@@ -3,7 +3,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { renderSpecsPage, renderSite, OVERVIEW_PAGE, type QueueRowView } from "../../../src/render";
+import { renderSpecsPage, type QueueRowView } from "../../../src/render";
 import { CSS } from "../../../src/render/ui/css";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
 import { JOB, specHead, specPanel, specControls, phaseDone, OPEN_81, listUntil, rowSaysDone, setupQueueRoutesHarness } from "../fixtures.ts";
@@ -70,30 +70,6 @@ describe("GET / (the spec list, HTML)", () => {
     expect(html).toContain('id="jobrows"');
   });
 
-  // Spec 107 narrowed this, deliberately and by exactly one script. A
-  // theme the reader chose has to be applied before the page paints,
-  // and a generated page is a FILE — there is no server in front of it
-  // to have decided. So every page now carries the theme switcher, and
-  // this test says which script that is rather than allowing scripts
-  // in general: anything else appearing here is still the drift the
-  // test was written to stop.
-  //
-  // Spec 115 widened it by exactly one more, on exactly one page: the
-  // overview is a redirect now, and sending a reader on is what that
-  // page is FOR. Named here rather than allowed in general — the rule
-  // for every other page is unchanged, and this one's second script is
-  // asserted to be the redirect and nothing else.
-  test("the generated pages carry no page code beyond the shared theme switcher", () => {
-    for (const page of renderSite([{ name: "p", manifest: { ok: true, data: { name: "p" } }, specs: [] }], "x")) {
-      const scripts = [...page.html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]!);
-      const allowed = page.path === OVERVIEW_PAGE ? 2 : 1;
-      expect([page.path, scripts.length]).toEqual([page.path, allowed]);
-      expect(scripts[0]).toContain("data-theme-choice");
-      if (allowed === 2) expect(scripts[1]).toBe("location.replace('/projects' + location.search);");
-      expect(page.html.match(/<script/g)).toHaveLength(allowed);
-    }
-  });
-
   test("?rows=1 returns the table body alone, for the script to swap in", async () => {
     const { base } = start();
     const headers = { "content-type": "application/json", accept: "application/json" };
@@ -115,16 +91,6 @@ describe("GET / (the spec list, HTML)", () => {
     expect(line).toContain(">Cancel</button>");
   });
 
-  // A generated page is a FILE, and the list it points at is served.
-  // Both ways there are absolute: the wordmark and, since spec 119, the
-  // Specs tab — which is never the current one on a generated page.
-  test("generated pages reach the list through the wordmark and the Specs tab", () => {
-    const pages = renderSite([{ name: "p", manifest: { ok: true, data: { name: "p" } }, specs: [] }], "2026-08-16");
-    for (const p of pages) {
-      expect(p.html).toContain('<a class="brand" href="/">');
-      expect(p.html).toContain('<a class="tab" data-nav data-goto href="/">Specs</a>');
-    }
-  });
 });
 
 describe("renderSpecsPage state labels", () => {
