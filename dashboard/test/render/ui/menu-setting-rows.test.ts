@@ -16,10 +16,10 @@ function menuPanel(opts: { lang?: "en" | "nb" | "fr"; currentUrl?: string } = {}
 describe("the phone menu's setting rows (spec 507)", () => {
   test("three rows in order, a separator, then the links (AC-1, AC-5)", () => {
     const panel = menuPanel();
-    const order = [...panel.matchAll(/<div class="morerows (theme|lang|unit)">|<div class="menusep"|<a href="([^"]+)"/g)].map(
-      (m) => m[1] ?? (m[2] ? m[2] : "sep"),
-    );
-    expect(order).toEqual(["theme", "lang", "unit", "sep", "/settings", "/test-servers", "about.html"]);
+    const order = [
+      ...panel.matchAll(/<div class="morerows (theme|lang|unit)">|<div class="menusep"|<a href="([^"]+)"|<button type="button" (data-about)/g),
+    ].map((m) => m[1] ?? m[2] ?? m[3] ?? "sep");
+    expect(order).toEqual(["theme", "lang", "unit", "sep", "/settings", "/test-servers", "data-about"]);
   });
 
   test("each row's caption names it in the page's language (AC-1)", () => {

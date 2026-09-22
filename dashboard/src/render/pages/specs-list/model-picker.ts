@@ -250,8 +250,7 @@ export function phaseCaptionCells(
     // configured, so the heading and the control under it can never
     // disagree about which column is which.
     (tools.size > 0
-      ? `<span class="muted small" data-cap="ai" data-ai-cap>${t(lang, "list.captionAi")}</span>` +
-        `<noscript><style>[data-ai],[data-ai-cap]{display:none}</style></noscript>`
+      ? `<span class="muted small" data-cap="ai" data-ai-cap>${t(lang, "list.captionAi")}</span>`
       : "") +
     `<span class="muted small" data-cap="model">${t(lang, "list.captionModel")}</span>` +
     `<span class="muted small" data-cap="box">${t(lang, "list.captionSelect")}</span>` +

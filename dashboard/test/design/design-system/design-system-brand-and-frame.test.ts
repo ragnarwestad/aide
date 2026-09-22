@@ -105,11 +105,11 @@ describe("the header and the two tabs (spec 119)", () => {
   test("Settings and About live inside the menu, nowhere else", () => {
     for (const [path, html] of every) {
       const m = menu(html);
-      expect([path, m.includes('href="about.html"')]).toEqual([path, true]);
+      expect([path, m.includes("data-about")]).toEqual([path, true]);
       expect([path, m.match(/href="\/settings"/g)?.length]).toEqual([path, 1]);
       const outside = html.replace(m, "");
       const body = outside.slice(outside.indexOf("<body"));
-      expect([path, body.includes('href="about.html"')]).toEqual([path, false]);
+      expect([path, body.includes("data-about")]).toEqual([path, false]);
       expect([path, body.includes('href="/settings"')]).toEqual([path, false]);
     }
   });

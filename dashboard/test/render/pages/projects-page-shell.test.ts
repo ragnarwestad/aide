@@ -148,8 +148,8 @@ describe("the generated overview is a redirect to /projects", () => {
 });
 
 // About opens as a DIALOG from the menu (asked for 2026-08-19): the
-// markup rides on every page, the menu item opens it in place, and the
-// about.html page below stays as the no-JS fallback its href points at.
+// markup rides on every page and the menu item opens it in place. The
+// about.html page below is generated output, reached by its address.
 describe("the About dialog", () => {
   test("every page carries the dialog, with a close cross", () => {
     for (const p of site) {
@@ -197,9 +197,9 @@ describe("the About page", () => {
     }
   });
 
-  test("every page links to it from the menu", () => {
+  test("every page's menu carries the control that opens it", () => {
     for (const p of site) {
-      expect(p.html).toContain('href="about.html"');
+      expect(p.html).toContain("data-about");
     }
   });
 
@@ -208,7 +208,7 @@ describe("the About page", () => {
   test("it is reached from the menu, and marks no tab current", () => {
     const page = byPath.get("about.html")!;
     const menu = page.match(/<details class="menu">[\s\S]*?<\/details>/)![0];
-    expect(menu).toContain('<a href="about.html" data-about>About</a>');
+    expect(menu).toContain('<button type="button" data-about>About</button>');
     expect(page.match(/<nav[^>]*>[\s\S]*?<\/nav>/)![0]).not.toContain("aria-current");
   });
 

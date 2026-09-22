@@ -13,7 +13,6 @@ and the layout rules that keep them consistent.
 - [A structural marker with no CSS rule uses data-*, not a class](#a-structural-marker-with-no-css-rule-uses-data--not-a-class)
 - [The length count under a bounded text field](#the-length-count-under-a-bounded-text-field)
 - [`form="<id>"` only wires submission, not event bubbling](#formid-only-wires-submission-not-event-bubbling)
-- [A control is the page's own HTML](#a-control-is-the-pages-own-html)
 - [What a button's variant means](#what-a-buttons-variant-means)
 - [Theme choice](#theme-choice)
 - [Language choice](#language-choice)
@@ -65,7 +64,7 @@ caller puts on its own link:
 | `rowMessageParts()`   | the same three kinds built from parts rather than one string; every link in one opens in a new tab                                    |
 | `messageSlot()`       | an empty message the browser code writes into later — it draws nothing until it does                                                  |
 | `field()`             | label above any control, one height and one radius                                                                                    |
-| `saveCancelActions()` | a form's Save and Cancel pair; Save works with script off, Cancel renders disabled because it cannot                                  |
+| `saveCancelActions()` | a form's Save and Cancel pair; Save submits the form, Cancel renders disabled because it needs script                                 |
 | `dialogAnswers()`     | a confirm box's two answers on one row: the affirmative first, then Cancel (the platform's own close)                                 |
 | `helpPopover()`       | a `details.intro` disclosure holding developer-authored help text                                                                     |
 | `backLink()`          | the link back out of a page, with the page's title beside it rather than below                                                        |
@@ -188,32 +187,6 @@ Where a field must ride inside the form for event bubbling but must never itself
 place that does this, skipping `[data-unit-choice]`; `spec-form-actions.ts`'s own `bind()` listens on the
 form with no guard at all, and `specs-client/index.ts`'s `closest("select[data-ai]")` is the opposite —
 it picks a control out rather than leaving one alone.
-
-## A control is the page's own HTML
-
-A page arrives fully drawn from the server, so a button is a real form's submit and a link is a link. Script
-attaches afterwards, and what it adds is speed and quiet. That is why `btn()` renders `type="submit"` unless told
-otherwise: every button on a page is a real form's.
-
-Two things follow, and they are what this is worth keeping for. A press made in the moment between the page
-arriving and the script attaching still does its job. And a script that fails to build leaves the page working
-rather than read-only: `specsClientScript()` in `serve-helpers/static.ts` answers `undefined` on a build error,
-and the page goes out with no script at all.
-
-What does not follow is that every control works with scripting off. These need script to do anything, and a
-control added later may join them:
-
-- the phase box on a running row that posts on the tick itself, which belongs to no form;
-- the model picker on a running row, which posts itself for the same reason;
-- a scheduled job's Enabled checkbox, which flips the flag at once;
-- a scheduled job's Delete button, which opens its own dialog and has no confirm page behind it;
-- the Cancel of `saveCancelActions()`, which renders disabled;
-- the theme buttons, since the choice is kept in the browser's `localStorage`;
-- the language dropdown in the "…" menu;
-- the switch for push notifications, which is the browser's Push API;
-- the Close button on a spec page, which has no fallback page behind it.
-
-The board is not built for a reader who has JavaScript disabled.
 
 ## What a button's variant means
 

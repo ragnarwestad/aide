@@ -128,22 +128,13 @@ describe("spec 169: one picker per phase", () => {
     }
   });
 
-  // --- criterion 7: the no-JS floor -----------------------------------------
+  // --- criterion 7: the model selects stand on their own --------------------
 
-  // Filling a model in from an AI is a script's job, and every control
-  // on this page works without one. Without a script the AI select
-  // must simply not be there: it writes the model select and does
-  // nothing else, so one that looks pressable and silently does
-  // nothing would be worse than the removed AI filter's inert
-  // degradation ever was. Its caption goes with it — a column headed
-  // "AI" with nothing under it reads as broken.
-  test("with no script the AI selects are hidden, and the phase selects are not", () => {
+  // The AI select writes the model select and does nothing else, so the
+  // five model selects underneath it are never filtered by it: every
+  // model is in every one of them, and none of them is hidden.
+  test("every phase select carries every model, unfiltered", () => {
     const html = rows();
-    expect(html).toContain(
-      "<noscript><style>[data-ai],[data-ai-cap]{display:none}</style></noscript>",
-    );
-    // The five selects underneath stay exactly as usable as they are
-    // with a script: every model, in every one of them, unfiltered.
     for (const step of STEPS) {
       const select = phaseSelect(html, step);
       for (const m of BOTH) {

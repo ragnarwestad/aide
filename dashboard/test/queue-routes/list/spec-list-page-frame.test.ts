@@ -60,12 +60,12 @@ describe("GET / (the spec list, HTML)", () => {
     expect(html).not.toContain("schedule-nightly");
   });
 
-  test("the blunt meta refresh is a no-JS fallback, not the mechanism", async () => {
+  test("a page that ships the script carries no meta refresh", async () => {
     const { base } = start();
     const html = await (await fetch(`${base}/`, )).text();
     // A page with a form must not reload underneath someone filling it
     // in; the script swaps the table body instead.
-    expect(html).toContain("<noscript><meta http-equiv=\"refresh\"");
+    expect(html).not.toContain('http-equiv="refresh"');
     expect(html).toContain("<script");
     expect(html).toContain('id="jobrows"');
   });

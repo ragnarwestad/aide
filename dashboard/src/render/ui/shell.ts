@@ -299,7 +299,7 @@ function pageHeader(lang: Language, currentUrl: string, tabs = ""): string {
     // then About.
     `<div class="menupanel">${boardRow(lang)}${menuSettingRows(lang, currentUrl)}<a href="/settings">${t(lang, "shell.settings")}</a>` +
     `<a href="/test-servers">${t(lang, "shell.testServers")}</a>` +
-    `<a href="about.html" data-about>${t(lang, "shell.about")}</a></div>` +
+    `<button type="button" data-about>${t(lang, "shell.about")}</button></div>` +
     `</details></div></header>`
   );
 }
@@ -350,7 +350,6 @@ function tabBar(entries: NavEntry[], currentPath: string, lang: Language): strin
 
 /** Everything `pageShell` takes beyond the title, the tabs and the body. */
 export interface PageShellOpts {
-  refreshInNoscript?: boolean;
   script?: string;
   /** A second, distinct script tag (spec 315) — `src=` rather than
    *  inline text, for the one script this dashboard wants a browser
@@ -381,12 +380,11 @@ export interface PageShellOpts {
 /** The meta refresh, as the text a head (or, for a streamed page, the
  *  start of its second half) carries. A meta refresh is fine on a page you
  *  only read. On a page with a FORM it is hostile: it wipes what you were
- *  half-way through filling in. The spec list therefore refreshes its table
- *  from script and keeps the blunt refresh as the fallback for a browser
- *  that did not run it. */
-export function refreshMeta(refreshSeconds?: number, inNoscript?: boolean): string {
-  const meta = refreshSeconds ? `<meta http-equiv="refresh" content="${refreshSeconds}">` : "";
-  return !meta ? "" : inNoscript ? `\n<noscript>${meta}</noscript>` : `\n${meta}`;
+ *  half-way through filling in. A page that ships the script asks for no
+ *  seconds at all, since the script reloads it; a page served without the
+ *  script asks for them and is refreshed by this. */
+export function refreshMeta(refreshSeconds?: number): string {
+  return refreshSeconds ? `\n<meta http-equiv="refresh" content="${refreshSeconds}">` : "";
 }
 
 /** The document up to and including `<body …>`: what a streamed page can
@@ -462,7 +460,7 @@ export function pageShell(
     shellHead(title, {
       lang: opts.lang,
       docTitle: opts.docTitle,
-      refresh: refreshMeta(refreshSeconds, opts.refreshInNoscript),
+      refresh: refreshMeta(refreshSeconds),
     }) + shellRest(entries, currentPath, title, body, opts)
   );
 }

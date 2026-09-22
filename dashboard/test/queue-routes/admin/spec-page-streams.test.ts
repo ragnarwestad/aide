@@ -120,14 +120,14 @@ describe("the spec page is sent in two halves", () => {
     expect(await res.text()).not.toContain("pageloading");
   });
 
-  test("the Steps tab's refresh comes in the second half, before the header; other tabs have none (AC-1)", async () => {
+  test("the Steps tab reloads from its marker, and no tab carries a refresh (AC-1)", async () => {
     const { base } = start();
     const steps = await (await fetch(`${base}/specs/aide/${FOLDER}?tab=steps`)).text();
-    const meta = steps.indexOf('http-equiv="refresh"');
-    expect(meta).toBeGreaterThan(steps.indexOf("<body"));
-    expect(meta).toBeLessThan(steps.indexOf("<header>"));
+    expect(steps).not.toContain('http-equiv="refresh"');
+    expect(steps).toContain('<span hidden data-reload-every="10"></span>');
     const description = await (await fetch(`${base}/specs/aide/${FOLDER}?tab=description`)).text();
     expect(description).not.toContain('http-equiv="refresh"');
+    expect(description).not.toContain("<span hidden data-reload-every");
   });
 });
 
