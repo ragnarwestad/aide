@@ -94,6 +94,17 @@ user does nothing else.
   repeated per iteration.
 - When the user is waiting to see something, deploy or show it first and verify in the background.
 
+### A red full run is fixed file by file
+
+The full run finds what broke; it does not confirm each fix.
+
+1. When it comes back red, list the failing files from that run's own output.
+2. Fix them running only the file at hand (`bun test <file>`, `pytest <file>`) until each is green.
+3. Run the full suite again once, when every file on the list is green — never between fixes.
+
+A test that fails in the full run and passes on its own is the machine's load, not a fault: name it,
+and do not run the full suite again for it.
+
 ---
 
 ## Test commands

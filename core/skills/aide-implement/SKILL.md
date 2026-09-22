@@ -109,7 +109,10 @@ The order is fixed: the full suite is run only once every test this
 step wrote is green (Phase 2). Red in the full suite is then something
 the change BROKE — an existing test that still expects the old
 behaviour, or a file another scope covers — and it is this step's to
-fix, back through Phase 2, before anything is reported. Never tick the
+fix, back through Phase 2, before anything is reported — running only
+the files that failed until each is green, and recording the full suite
+again once, after the last of them (the testing rule, "A red full run is
+fixed file by file"). Never tick the
 full-suite row with a red run on the record: `aide-run-spec` runs the
 same commands itself on the step's result afterwards. A red run there
 comes back to this session as a follow-up turn with the failing lines —

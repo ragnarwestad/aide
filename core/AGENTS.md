@@ -269,6 +269,7 @@ fill. Kept in the skill rather than duplicated here so the two copies cannot dri
 ## Table of contents
 
 - [Every change ships with its test](#every-change-ships-with-its-test)
+- [Replaced behaviour takes its tests with it](#replaced-behaviour-takes-its-tests-with-it)
 - [Core rule](#core-rule)
 - [Test commands](#test-commands)
   - [Unit tests](#unit-tests)
@@ -309,6 +310,30 @@ which spec — but never leave the change with nothing at all.
 
 ---
 
+## Replaced behaviour takes its tests with it
+
+**A change that replaces behaviour deletes the tests for the behaviour it replaced, in the same
+job.** A suite only grows if nothing ever leaves it, and what is left behind is worse than noise:
+a test named for a control that no longer exists tells the next reader that the control is still a
+concern.
+
+What goes:
+
+- A test whose subject is gone — the removed heading, the replaced field, the deleted page.
+- A check that something removed is still absent, once the thing that replaced it is checked in the
+  same test. `expect(html).not.toContain('<h3>Config</h3>')` beside an assertion on the tab that
+  replaced the heading proves nothing the positive one does not.
+- The comment that only dates the removal. Git says when; the test says what holds now.
+
+What stays: a check where the absence IS the rule, with nothing having replaced it — no colour
+literal outside the token block, no confirm field on a form that asks in a sentence, no English
+label on a Norwegian page.
+
+A test left red by the change is not covered by this: fix it or delete it deliberately, and say
+which in the summary.
+
+---
+
 ## Core rule
 
 Run a test as soon as you create or modify it, and verify it passes before moving on.
@@ -334,6 +359,17 @@ user does nothing else.
 - Run the full suite exactly once per job, in the background, before commit — never inline, never
   repeated per iteration.
 - When the user is waiting to see something, deploy or show it first and verify in the background.
+
+### A red full run is fixed file by file
+
+The full run finds what broke; it does not confirm each fix.
+
+1. When it comes back red, list the failing files from that run's own output.
+2. Fix them running only the file at hand (`bun test <file>`, `pytest <file>`) until each is green.
+3. Run the full suite again once, when every file on the list is green — never between fixes.
+
+A test that fails in the full run and passes on its own is the machine's load, not a fault: name it,
+and do not run the full suite again for it.
 
 ---
 
@@ -521,10 +557,11 @@ use `ps aux` to identify your own processes, then `kill <PID>` for those specifi
 
 1. Every fix and every new feature ships with its test, in the same job — revert the fix once to
    confirm the test catches it
-2. Run unit tests immediately after creating or modifying them
-3. Verify that all tests pass before committing
-4. Use TDD (Red → Green → Refactor) for new features
-5. Run the e2e suite only where it's quick (per the E2E section's list), say so first, and ask the
+2. A change that replaces behaviour deletes the tests for what it replaced, in the same job
+3. Run unit tests immediately after creating or modifying them
+4. Verify that all tests pass before committing
+5. Use TDD (Red → Green → Refactor) for new features
+6. Run the e2e suite only where it's quick (per the E2E section's list), say so first, and ask the
    user to run it elsewhere
 
 ---
