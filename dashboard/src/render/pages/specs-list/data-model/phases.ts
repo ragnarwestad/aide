@@ -291,7 +291,7 @@ function specPhases(all: QueueRowView[], dir?: string): Phase[] {
  *  to the note it is about, not re-derived here. */
 const heldBackFor = (step: string, t: SpecTarget | undefined): { heldBack?: { reason: string } } => {
   if (step !== "archive" || !t?.archiveHeldBack) return {};
-  if (!archiveHeldBackApplies(t.archiveHeldBack.reason, t.done ?? [])) return {};
+  if (!archiveHeldBackApplies(t.archiveHeldBack.reason, t.done ?? [], t.historyDone ?? [])) return {};
   return { heldBack: t.archiveHeldBack };
 };
 

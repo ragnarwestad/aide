@@ -151,6 +151,12 @@ unable to run over a directory that is not there is a refusal over a path known 
 creates it, with the `archive/` beside it that a run walks. A creation that fails is not a refusal of the add:
 the step says what happened, and the `specsRoot` check below reads the real state either way.
 
+**A specs root one level too high is refused, not guessed.** One specs repository holds the specs of several
+projects, each in a folder of its own, so a root set to the repository itself looks exactly like a root set right.
+Where the root IS the repository's top level and a folder named after the project is already sitting in it, the run
+refuses and names both paths: set the root to that folder, or move it aside if it is not this project's. Guessing
+either way writes the spec folder in one place while every list looks in the other.
+
 **Nothing is appended to `.git/info/exclude` of a checkout a person edits.** Add writes nothing into it, so there
 is nothing to get out of git afterwards. Keeping `.aide/config` untracked is the reader's own job, once per
 machine: a personal global gitignore (`core.excludesFile`) covers it in every project without touching any

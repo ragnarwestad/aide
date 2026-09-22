@@ -177,6 +177,20 @@ describe("a spec held for Checks carries a link to a board on its branch (spec 4
       targets: [target({ done: ["implement"], archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE }, ...targetExtra })],
     });
 
+  // The shape the BOARD actually has in this state, which every test in
+  // this block missed: `done` is read off the default branch's own
+  // `4-status.md`, and `implement` lands nothing — it falls through the
+  // landing dispatch by design — so that list names `create, analyze`
+  // and no more while the spec waits on a tick. `historyDone` is what
+  // proves implement ran, its work on the branch. Handing `done:
+  // ["implement"]`, as the tests around this one do, is a state the
+  // board cannot produce, and the row said nothing about why archive was
+  // not moving in the one state this note exists for.
+  test("the note is there when only git proves implement ran", () => {
+    const html = heldForChecks({ done: ["create", "analyze"], historyDone: ["analyze", "implement"] });
+    expect(noticeCellHtml(html, FOLDER)).toContain("the Acceptance criteria are not all ticked");
+  });
+
   // REQ-1: the exact sentence, carrying the link.
   test("REQ-1: the sentence, with a link, is in the notice line", () => {
     const notice = noticeCellHtml(heldForChecks(), FOLDER);
