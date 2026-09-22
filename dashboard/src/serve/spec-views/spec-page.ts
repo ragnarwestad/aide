@@ -274,10 +274,10 @@ export async function specPageView(
     // Built from the page's own path, so the two cannot drift into a
     // button that posts where nothing listens.
     updateAction: `/api/queue${specPagePath(project, specFolder)}/update`,
-    // spec 406: always present, disabled with a reason while busy —
+    // spec 406: always available, disabled with a reason while busy —
     // closeControl (overview.ts) is what hides it once the spec is
-    // archived.
-    closeAction: `${specPagePath(project, specFolder)}/close`,
+    // archived. No fallback page behind it (spec 527), so this is a flag.
+    closeAvailable: true,
     pdfAction: `${specPagePath(project, specFolder)}/pdf`,
     pdfUnavailableReason: ctx.pdfToolAvailable ? undefined : "md-to-pdf is not installed on this host",
     closeUnavailableReason: busyReason,

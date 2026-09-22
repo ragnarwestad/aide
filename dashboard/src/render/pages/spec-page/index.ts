@@ -70,7 +70,6 @@ export {
   EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, FILE_TABS, resolveSpecTab, TAB_FILES,
   documentTabScript, specPagePath, specTabPath,
 } from "./tabs.ts";
-export { renderCloseSpecPage } from "./close-page.ts";
 export { renderReopenSpecPage } from "./reopen-page.ts";
 
 interface SpecPageOpts {

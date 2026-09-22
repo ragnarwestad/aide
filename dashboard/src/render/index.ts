@@ -126,7 +126,6 @@ export {
   renderSpecPageHead,
   renderSpecPageRest,
   renderSpecPageFailedRest,
-  renderCloseSpecPage,
   renderReopenSpecPage,
   specPagePath,
   specTabPath,

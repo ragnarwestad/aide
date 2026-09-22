@@ -2,19 +2,17 @@
 // markup of the link and the box beside it.
 
 import { describe, expect, test } from "bun:test";
-import { closeAskDialog } from "../../../../src/render/pages/spec-page/close-ask.ts";
-import { CLOSE_EFFECT, CLOSE_SENTENCE } from "../../../../src/render/pages/spec-page/close-page.ts";
+import { closeAskDialog, CLOSE_EFFECT, CLOSE_SENTENCE } from "../../../../src/render/pages/spec-page/close-ask.ts";
 import { DESCRIPTION_MAX } from "../../../../src/queue/parse-request.ts";
 import { closeControl } from "../../../../src/render/pages/spec-page/overview.ts";
 import { view } from "../spec-page-fixtures.ts";
 
 const FOLDER = "150-one-page-shows-the-whole-spec";
-const close = "/specs/aide/" + FOLDER + "/close";
 
-describe("the Close link and its dialog (AC-1)", () => {
-  test("an active spec gets the link and a closed dialog beside it (AC-1)", () => {
-    const html = closeControl(view({ closeAction: close }), "en");
-    expect(html).toContain(`<a class="btn" href="${close}" data-close-ask>Close</a>`);
+describe("the Close button and its dialog (AC-1)", () => {
+  test("an active spec gets the button and a closed dialog beside it (AC-1)", () => {
+    const html = closeControl(view({ closeAvailable: true }), "en");
+    expect(html).toContain(`<button type="button" class="btn" data-close-ask>Close</button>`);
     const dialog = /<dialog[^>]*>/.exec(html)?.[0] ?? "";
     expect(dialog).toContain('class="confirmdialog"');
     expect(dialog).not.toContain("open");
@@ -23,8 +21,8 @@ describe("the Close link and its dialog (AC-1)", () => {
   });
 
   test("a spec with a job, or an archived one, gets no dialog (AC-1)", () => {
-    expect(closeControl(view({ closeAction: close, closeUnavailableReason: "a job is running" }), "en")).not.toContain("<dialog");
-    expect(closeControl(view({ closeAction: close, archived: true }), "en")).toBe("");
+    expect(closeControl(view({ closeAvailable: true, closeUnavailableReason: "a job is running" }), "en")).not.toContain("<dialog");
+    expect(closeControl(view({ closeAvailable: true, archived: true }), "en")).toBe("");
   });
 });
 

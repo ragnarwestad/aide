@@ -7,7 +7,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
 import { browserDeadline } from "../helpers/browser-deadline.ts";
-import { ARCHIVED, LIVE, STAMPED, harness, start } from "../archived/archived-specs-fixtures.ts";
+import { ARCHIVED, STAMPED, harness, start } from "../archived/archived-specs-fixtures.ts";
 
 browserDeadline();
 
@@ -54,12 +54,5 @@ describe("the progress dialog stands (AC-2)", () => {
     const page = await open(`/specs/aide/${STAMPED}/reopen`);
     await page.getByRole("button", { name: "Reopen" }).click();
     await standsThroughEscape(page, "Reopening…");
-  });
-
-  test("Close: a modal reading Closing… stays open the same way", async () => {
-    const page = await open(`/specs/aide/${LIVE}/close`);
-    await page.locator("textarea[name=reason]").fill("It will not work.");
-    await page.getByRole("button", { name: "Save" }).click();
-    await standsThroughEscape(page, "Closing…");
   });
 });

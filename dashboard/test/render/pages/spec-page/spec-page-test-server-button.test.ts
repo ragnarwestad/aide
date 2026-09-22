@@ -167,7 +167,7 @@ describe("the spec's actions stay on the tab row", () => {
   // into the row's single shared one (actionsHelp) — still a "(?)",
   // never a paragraph under the row.
   test("the Close sentence is a (?) in the row, not a paragraph under it", () => {
-    const html = page(view({ closeAction: "/specs/aide/x/close" }));
+    const html = page(view({ closeAvailable: true }));
     expect(html).toContain("Close says this spec will not work and archives it as a record");
     expect(trailing(html)).toContain('<details class="intro">');
   });

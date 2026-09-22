@@ -202,7 +202,8 @@ promise, and each says so in a comment where it is drawn:
 - the Cancel of `saveCancelActions()`, which renders disabled;
 - the theme buttons, since the choice is kept in the browser's `localStorage`;
 - the language dropdown in the "…" menu, while the language menu's links do the same job without script;
-- the switch for push notifications, which is the browser's Push API.
+- the switch for push notifications, which is the browser's Push API;
+- the Close button on a spec page, which has no fallback page behind it (spec 527).
 
 A new control that needs script to do anything joins that list, with a comment at the control saying so.
 

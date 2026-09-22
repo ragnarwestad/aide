@@ -1,8 +1,9 @@
-// Spec 406: the Close confirmation routes — GET the page, POST the
-// reason. Follows the shape run-controls.ts's own Reset-route suite
-// already tests against (dashboard/test/queue-routes/admin/
+// Spec 406: the Close POST route. Follows the shape run-controls.ts's own
+// Reset-route suite already tests against (dashboard/test/queue-routes/admin/
 // auth-and-navigation.test.ts): a real createServer, real fixture
-// files, real HTTP.
+// files, real HTTP. Spec 527: Close has no confirmation page of its own
+// any more — the GET route is gone, and the dialog it fell back to is
+// close-ask.test.ts's own.
 import { afterEach, describe, expect, test } from "bun:test";
 import { JOB, setupQueueRoutesHarness } from "../fixtures.ts";
 
@@ -12,53 +13,6 @@ afterEach(() => {
 });
 
 const folder = "81-queue-and-runner";
-
-describe("spec 406: the Close confirmation page (GET)", () => {
-  test("states the branch-deletion sentence and what Close means", async () => {
-    const { base } = start();
-    const res = await fetch(`${base}/specs/aide/${folder}/close`);
-    expect(res.status).toBe(200);
-    const html = await res.text();
-    // REQ-9: the confirmation states what is about to happen, including
-    // that the code branch goes, before it happens.
-    expect(html).toMatch(/branch.*delet|delet.*branch/i);
-    // REQ-2: the distinction is body text, not only a hover title.
-    const withoutTitles = html.replace(/title="[^"]*"/g, "");
-    expect(withoutTitles).toContain("Close says this spec will not work and archives it as a record");
-    expect(html).toContain(`/api/queue/specs/aide/${folder}/close`);
-    // REQ-3/REQ-4: a reason field, in the standard specform shape.
-    expect(html).toMatch(/class="[^"]*\bspecform\b[^"]*"/);
-    expect(html).toContain('name="reason"');
-    expect(html).toContain('id="specform-save"');
-    expect(html).toContain('id="specform-cancel"');
-  });
-
-  // Spec 408, REQ-1/REQ-4: this route reads and remembers the language
-  // the same way `/` already does.
-  test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
-    const { base } = start();
-    const res = await fetch(`${base}/specs/aide/${folder}/close?lang=nb`);
-    expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
-    const html = await res.text();
-    expect(html).toContain('<html lang="nb">');
-  });
-
-  test("404 for an unknown spec", async () => {
-    const { base } = start();
-    const res = await fetch(`${base}/specs/aide/never-existed/close`);
-    expect(res.status).toBe(404);
-  });
-
-  test("404 for an already-archived spec", async () => {
-    const archivedFolder = "82-archived";
-    const { base } = harness.start({
-      extra: {},
-      archivedSpecs: { [archivedFolder]: {} },
-    });
-    const res = await fetch(`${base}/specs/aide/${archivedFolder}/close`);
-    expect(res.status).toBe(404);
-  });
-});
 
 describe("spec 406, REQ-3/REQ-13: Close POST refuses an empty reason", () => {
   test("an empty reason refuses and enqueues no job", async () => {
@@ -93,6 +47,22 @@ describe("spec 406, REQ-3/REQ-13: Close POST refuses an empty reason", () => {
       body: JSON.stringify({}),
     });
     expect(res.status).toBe(400);
+  });
+
+  // AC-3: with no fallback close page left to redirect to, a no-script
+  // refusal has to land on the spec page itself, carrying the reason.
+  test("a no-script POST with an empty reason redirects to the spec page with the reason (AC-3)", async () => {
+    const { base } = start();
+    const res = await fetch(`${base}/api/queue/specs/aide/${folder}/close`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: "reason=",
+    });
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toBe(
+      `/specs/aide/${folder}?error=${encodeURIComponent("type a reason to close this spec")}`,
+    );
   });
 });
 

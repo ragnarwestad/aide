@@ -252,12 +252,19 @@ for (const el of document.querySelectorAll("form.scheduleform")) {
     if (model) syncAiToModel(model);
   }) as EventListener);
 }
-// Delete on a schedule row, and Close on the spec page, open their own
-// confirmation over the page instead of navigating to it. The link's `href`
-// is the confirmation PAGE and stays exactly that with no script: this only
-// intercepts the click where a dialog can actually be opened.
-for (const el of document.querySelectorAll("a[data-delete-schedule], a[data-close-ask]")) {
+// Delete on a schedule row opens its own confirmation over the page instead
+// of navigating to it. The link's `href` is the confirmation PAGE and stays
+// exactly that with no script: this only intercepts the click where a
+// dialog can actually be opened.
+for (const el of document.querySelectorAll("a[data-delete-schedule]")) {
   bindConfirmLink(el as HTMLAnchorElement);
+}
+// Close's button has no fallback page (spec 527): it only ever opens its
+// own dialog, so no href to preserve and nothing to preventDefault().
+for (const el of document.querySelectorAll("button[data-close-ask]")) {
+  const button = el as HTMLButtonElement;
+  const box = button.parentElement?.querySelector("dialog") as HTMLDialogElement | null;
+  if (box && typeof box.showModal === "function") button.addEventListener("click", () => box.showModal());
 }
 // The spec page's Steps tab reloads from here, and waits while a dialog is open.
 startReloadWhileIdle(document);

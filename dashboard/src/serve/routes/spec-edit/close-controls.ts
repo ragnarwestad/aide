@@ -1,10 +1,13 @@
-// The Close control and its confirmation page (spec 406): the other
-// operation that ends a work round, beside Reset — one of the three
-// families `handleSpecEditRoutes` asks in turn. Split out on its own
-// rather than folded into run-controls.ts, so that file stays the size
-// its own header comment already notes a 2026-09-04 split at.
-import { renderCloseSpecPage, specPagePath } from "../../../render";
-import { bodyToObject, json, languageChoice, logRefusal, specsClientScript, readBounded, specsRedirect } from "../../serve-helpers";
+// The Close control (spec 406): the other operation that ends a work
+// round, beside Reset — one of the three families
+// `handleSpecEditRoutes` asks in turn. Split out on its own rather than
+// folded into run-controls.ts, so that file stays the size its own
+// header comment already notes a 2026-09-04 split at. Has no fallback
+// page behind it (spec 527): the POST's refusal redirects to the spec
+// page like every other outcome, following the shape
+// test-server-controls.ts's own start route already uses.
+import { specPagePath } from "../../../render";
+import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../../serve-helpers";
 
 import { landingInProject } from "../../../queue/queue.ts";
 import type { RoutesContext } from "..";
@@ -12,33 +15,14 @@ import type { RoutesContext } from "..";
 export async function closeControlRoutes(
   ctx: RoutesContext,
   req: Request,
-  url: URL,
   path: string,
   wantsJson: boolean,
 ): Promise<Response | null> {
-  const closePage = path.match(/^\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/close$/);
-  if (closePage) {
-    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-    const [, project, specFolder] = closePage;
-    const ref = ctx.specRef(project!, specFolder!);
-    if (!ref || ref.archived) return new Response("not found", { status: 404 });
-    const langResult = languageChoice(url, req);
-    const html = renderCloseSpecPage(project!, specFolder!, ctx.nav(), new Date().toISOString(), {
-      error: url.searchParams.get("error") ?? undefined,
-      script: await specsClientScript(),
-      lang: langResult.lang,
-      currentUrl: langResult.currentUrl,
-    });
-    const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
-    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
-    return new Response(html, { headers });
-  }
-
   const closePost = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/close$/);
   if (closePost) {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
     const [, project, specFolder] = closePost;
-    const back = `${specPagePath(project!, specFolder!)}/close`;
+    const back = specPagePath(project!, specFolder!);
     const sent = await readBounded(req);
     if ("refusal" in sent) return sent.refusal;
     let body: Record<string, unknown> = {};

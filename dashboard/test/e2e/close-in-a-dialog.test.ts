@@ -40,7 +40,7 @@ const ACCEPTED = { status: 200, json: { ok: true, job: { id: "j1" } } };
 describe("Close asks in a dialog (AC-7)", () => {
   test("Close opens a modal with the Reason field, OK and Cancel, and the address stays (AC-2)", async () => {
     const page = await open(ACCEPTED);
-    await page.getByRole("link", { name: "Close" }).click();
+    await page.getByRole("button", { name: "Close" }).click();
     await dialog(page).waitFor({ state: "visible" });
     expect(await dialog(page).evaluate((el) => (el as HTMLDialogElement).matches(":modal"))).toBe(true);
     expect(await dialog(page).locator("textarea[name=reason]").isVisible()).toBe(true);
@@ -53,7 +53,7 @@ describe("Close asks in a dialog (AC-7)", () => {
     const page = await open(ACCEPTED);
     let posts = 0;
     page.on("request", (r) => r.method() === "POST" && (posts += 1));
-    await page.getByRole("link", { name: "Close" }).click();
+    await page.getByRole("button", { name: "Close" }).click();
     await dialog(page).getByRole("button", { name: "OK" }).click();
     expect(posts).toBe(0);
     expect(await dialog(page).textContent()).toContain("0 of 5000 characters");
@@ -63,7 +63,7 @@ describe("Close asks in a dialog (AC-7)", () => {
 
   test("a refusal is written in the box, which stays open with the reason in it, and Escape closes it (AC-5)", async () => {
     const page = await open({ status: 400, json: { error: "Give a reason that is not blank." } });
-    await page.getByRole("link", { name: "Close" }).click();
+    await page.getByRole("button", { name: "Close" }).click();
     await dialog(page).locator("textarea").fill("   ");
     await dialog(page).getByRole("button", { name: "OK" }).click();
     await dialog(page).getByText("Give a reason that is not blank.").waitFor();
@@ -77,7 +77,7 @@ describe("Close asks in a dialog (AC-7)", () => {
 
   test("an accepted post stands as Closing… through two presses of Escape (AC-6)", async () => {
     const page = await open(ACCEPTED);
-    await page.getByRole("link", { name: "Close" }).click();
+    await page.getByRole("button", { name: "Close" }).click();
     await dialog(page).locator("textarea").fill("It will not work.");
     await dialog(page).getByRole("button", { name: "OK" }).click();
     await dialog(page).locator(".standingtitle").waitFor({ state: "visible" });
@@ -92,7 +92,7 @@ describe("Close asks in a dialog (AC-7)", () => {
   test("Cancel closes the box on every press (AC-1)", async () => {
     const page = await open(ACCEPTED);
     for (let i = 0; i < 2; i++) {
-      await page.getByRole("link", { name: "Close" }).click();
+      await page.getByRole("button", { name: "Close" }).click();
       await dialog(page).waitFor({ state: "visible" });
       await dialog(page).getByRole("button", { name: "Cancel" }).click();
       await dialog(page).waitFor({ state: "hidden" });
@@ -101,7 +101,7 @@ describe("Close asks in a dialog (AC-7)", () => {
 
   test("at a phone width the field and both buttons lie inside the box (AC-1)", async () => {
     const page = await open(ACCEPTED, { width: 375, height: 667 });
-    await page.getByRole("link", { name: "Close" }).click();
+    await page.getByRole("button", { name: "Close" }).click();
     await dialog(page).waitFor({ state: "visible" });
     const box = (await dialog(page).boundingBox())!;
     for (const inside of [
@@ -116,15 +116,17 @@ describe("Close asks in a dialog (AC-7)", () => {
   });
 });
 
-describe("the page without script (AC-7)", () => {
-  test("Close reaches the close page, whose form refuses a whitespace-only reason on the page (AC-2)", async () => {
+describe("the button without script (AC-7)", () => {
+  // AC-2: Close has no fallback page behind it (spec 527) — with script
+  // off, the button does nothing at all: no navigation, and the dialog
+  // it would open with script never appears.
+  test("Close does nothing: no navigation, and the dialog never opens", async () => {
     const context = await browser.newContext({ javaScriptEnabled: false });
     const page = await context.newPage();
     await page.goto(`${base}${SPEC}?live=0`);
-    await page.getByRole("link", { name: "Close" }).click();
-    expect(new URL(page.url()).pathname).toBe(`${SPEC}/close`);
-    await page.locator("textarea[name=reason]").fill("   ");
-    await page.getByRole("button", { name: "Save" }).click();
-    await page.getByText("type a reason to close this spec").waitFor();
+    await page.getByRole("button", { name: "Close" }).click();
+    await page.waitForTimeout(300);
+    expect(new URL(page.url()).pathname).toBe(SPEC);
+    expect(await dialog(page).isVisible()).toBe(false);
   });
 });
