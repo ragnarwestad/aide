@@ -71,10 +71,12 @@ const capture = () =>
       tops: [rect(btn).top, rect(state).top, rect(total).top],
       btnLeft: rect(btn).left,
       stateLeft: rect(state).left,
-      totalLeft: rect(text).left,
+      // The centre: Time reads centred in its own column here since
+      // 2026-09-22, as it does on a wider window.
+      totalLeft: rect(text).left + rect(text).width / 2,
       capHeight: rect(cap).height,
       phaseTimeLefts: [...document.querySelectorAll('tr.subrow[data-step] [data-col="started"] span')].map(
-        (s) => s.getBoundingClientRect().left,
+        (s) => s.getBoundingClientRect().left + s.getBoundingClientRect().width / 2,
       ),
       phaseHeights: [...document.querySelectorAll("tr.subrow[data-step]")].map((r) => r.getBoundingClientRect().height),
       overflow: document.documentElement.scrollWidth - window.innerWidth,
@@ -103,7 +105,10 @@ test("the total's text changing moves nothing on the line (AC-3)", async () => {
       document.querySelector('tr.subrow[data-caption="1"] .headtime span')!.textContent = t;
     }, text);
     const after = await capture();
-    expect(after.totalLeft, text).toBe(before.totalLeft);
+    // The centre holds, within the rounding of a fractional width — and
+    // a total wider than its column ("100h 05m") spills to both sides
+    // now that it is centred, which moves that centre a pixel or two.
+    expect(Math.abs(after.totalLeft - before.totalLeft), text).toBeLessThanOrEqual(3);
     expect(after.btnLeft, text).toBe(before.btnLeft);
     expect(after.stateLeft, text).toBe(before.stateLeft);
     expect(after.capHeight, text).toBe(before.capHeight);

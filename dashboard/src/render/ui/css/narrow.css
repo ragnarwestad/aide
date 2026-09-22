@@ -352,7 +352,7 @@
      right of it. */
   table.list tr.subrow[data-step] td[data-col="state"] {
     flex: 0 0 var(--state-w); width: var(--state-w); min-width: 0; box-sizing: border-box;
-    overflow: hidden; white-space: nowrap; text-align: left;
+    overflow: hidden; white-space: nowrap; text-align: center;
   }
   /* The last phase line's air belongs to the ROW on a phone: given to
      every cell (list.css), it made the name's cell taller than the
@@ -381,7 +381,19 @@
   /* The pips and the badge are two cells of the flex line now, in that
      order, so nothing here places them: the grid this rule used to build
      existed only because both lived inside the one State cell. */
-  table.list tr.specstate .badgeslot { justify-self: start; }
+  table.list tr.specstate .badgeslot { justify-self: center; }
+  /* And its cell takes the state column's own width, so the badge
+     centres over the phase states rather than over whatever its own
+     text happens to be wide. */
+  table.list tr.specstate > td[data-col="state"] { flex: 0 0 var(--state-w); text-align: center;
+    overflow: hidden; }
+  table.list tr.specstate > td[data-col="state"] .badgeslot,
+  table.list tr.specstate > td[data-col="state"] .badge {
+    max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  /* Time reads centred in its own column too, as it does above 640px:
+     a two-character duration under a four-character one otherwise looks
+     misplaced rather than merely short. */
+  table.list tr.subrow > td[data-col="started"] { text-align: center; }
   /* Time and cost follow the button, on the same left edge as
      everything else on this line. They stood at the line's RIGHT edge
      until the pips came in beside the name (2026-09-07): with the name,
@@ -501,7 +513,7 @@
   /* The button keeps the same air from the left edge as a shut row's
      pips do; the padding comes off the first column again, so the state
      copy still starts over the phases' own state column. */
-    table.list tr.subrow[data-caption="1"] .actionslot > .headstate { display: block; justify-self: start; }
+    table.list tr.subrow[data-caption="1"] .actionslot > .headstate { display: block; justify-self: center; }
   /* The slot holds an empty form (the button points at it by id), the
      button, and the state copy: the button in the first column at its
      own width, the state in the second, the form out of the grid. */
@@ -515,7 +527,7 @@
   /* The row's total, in the Time column the phase lines use (spec 496),
      and the state copy trimmed to its column. */
   table.list tr.subrow[data-caption="1"] .actionslot > .headtime { display: block; grid-column: 3; grid-row: 1;
-    padding-left: var(--sp-2); text-align: left; white-space: nowrap; }
+    padding-left: var(--sp-2); text-align: center; white-space: nowrap; }
   table.list tr.subrow[data-caption="1"] .actionslot > .headstate { min-width: 0; max-width: 100%; overflow: hidden; }
   table.list tr.subrow[data-caption="1"] .actionslot > .headstate .badge { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
   /* An open row's own second line comes off: the caption line carries

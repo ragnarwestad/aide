@@ -76,13 +76,17 @@ async function lineAt(width: number) {
   await page.goto(`${base}/?${OPEN}&live=0`);
   return page.evaluate(() => {
     const box = (el: Element | null) => (el ? el.getBoundingClientRect() : undefined);
+    const mid = (r: DOMRect) => r.left + r.width / 2;
     const shown = (el: Element | null) => !!el && (el as HTMLElement).getClientRects().length > 0;
     const line = document.querySelector('tr.subrow[data-step="analyze"]')!;
     const button = line.querySelector(".aimodelnow") as HTMLElement;
     const card = line.closest("table")!;
     return {
-      headState: box(document.querySelector("tr.subrow[data-caption] .headstate"))!.left,
-      phaseState: box(line.querySelector('td[data-col="state"] .badge'))!.left,
+      // Centres, not left edges: the state column reads centred on a
+      // phone since 2026-09-22, so two words of different lengths share
+      // a middle rather than a left edge.
+      headState: mid(box(document.querySelector("tr.subrow[data-caption] .headstate"))!),
+      phaseState: mid(box(line.querySelector('td[data-col="state"] .badge'))!),
       timeLeft: box(line.querySelector('td[data-col="started"]'))!.left,
       timeRight: box(line.querySelector('td[data-col="started"]'))!.right,
       cardRight: box(card)!.right,
