@@ -124,7 +124,7 @@ describe("the test servers overview", () => {
 
   test("the table is a list table wrapped in .tablewrap, with six named columns (AC-1)", () => {
     const html = renderTestServersPage(NAV, GENERATED, [row()]);
-    expect(html).toContain('<div class="tablewrap"><table class="list testservers">');
+    expect(html).toContain('<div id="test-servers-rows" class="tablewrap"><table class="list testservers">');
     const cols = [...html.matchAll(/<col data-col="([\w-]+)">/g)].map((m) => m[1]);
     const names = ["ts-project", "ts-spec", "ts-branch", "ts-status", "ts-address", "ts-stop"];
     expect(cols).toEqual(names);
@@ -152,5 +152,20 @@ describe("the test servers overview", () => {
   test("an address that does not parse is shown as it is, escaped (AC-5)", () => {
     const html = renderTestServersPage(NAV, GENERATED, [row({ url: "not a <url>" })]);
     expect(html).toContain(">not a &lt;url&gt;</a>");
+  });
+
+  // Spec 529: the Stop button's own refusal slot, empty until the
+  // browser code writes into it (AC-3).
+  test("a row's Stop form carries an empty .refused slot (AC-3)", () => {
+    const html = renderTestServersPage(NAV, GENERATED, [row()]);
+    expect(html).toContain('<p class="refused rowmsg failed"></p>');
+  });
+
+  // Spec 529: the delegation anchor the browser code binds its submit
+  // listener to, so a successful Stop can remove its own row without
+  // reloading the page (AC-1, AC-2).
+  test("the rows sit inside id=\"test-servers-rows\" (AC-1, AC-2)", () => {
+    const html = renderTestServersPage(NAV, GENERATED, [row()]);
+    expect(html).toContain('id="test-servers-rows"');
   });
 });

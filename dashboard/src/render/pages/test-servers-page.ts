@@ -6,7 +6,7 @@
 // table of rows", and reached the same way Settings is: the "…" menu.
 
 import { isSpecFolder, pageShell, type NavEntry } from "../ui/shell.ts";
-import { backLink } from "../ui/components";
+import { backLink, messageSlot } from "../ui/components";
 import { esc } from "../ui/html.ts";
 import type { Language } from "../../i18n";
 
@@ -35,6 +35,10 @@ export interface TestServersPageOptions {
   /** Spec 435. The request's own address, threaded to `pageShell` so its
    *  language links keep the reader on this same page. */
   currentUrl?: string;
+  /** `specsClientScript()` — what turns Stop into an XHR that removes
+   *  its own row instead of reloading the page (spec 529). Optional so
+   *  a caller that wants the no-script fallback alone can leave it out. */
+  script?: string;
 }
 
 // REQ-4's own text is unconditional ("Hver testserver... skal ha en
@@ -72,7 +76,7 @@ const row = (r: TestServerRow): string => {
     `<td data-col="ts-status">${esc(r.status)}</td>` +
     `<td data-col="ts-address">${address}</td>` +
     `<td data-col="ts-stop"><form class="actionform" method="post" action="${esc(r.stopAction)}">` +
-    `<button class="btn" type="submit">Stop</button></form></td>` +
+    `<button class="btn" type="submit">Stop</button>${messageSlot("refused")}</form></td>` +
     `</tr>`
   );
 };
@@ -92,12 +96,14 @@ export function renderTestServersPage(
   // 32 px inside the frame every other page's content lines up with.
   const body = !rows.length
     ? `${back}<p class="muted">No test server is running right now.</p>`
-    : `${back}<div class="tablewrap"><table class="list testservers">` +
+    // The submit listener's delegation anchor (specs-client/index.ts) —
+    // the same role `#jobrows` plays for the specs list.
+    : `${back}<div id="test-servers-rows" class="tablewrap"><table class="list testservers">` +
       `<colgroup>${COLUMNS.map((c) => `<col data-col="${c}">`).join("")}</colgroup><thead><tr>` +
       th("ts-project", "Project") + th("ts-spec", "Spec") + th("ts-branch", "Branch") +
       th("ts-status", "Status") + th("ts-address", "Address") + th("ts-stop", "") +
       `</tr></thead><tbody>${rows.map(row).join("")}</tbody></table></div>`;
   return pageShell("Test servers", entries, TEST_SERVERS_ROUTE, body, generatedAt, undefined, {
-    hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,
+    hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl, script: opts.script,
   });
 }

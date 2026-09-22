@@ -33,6 +33,7 @@ import {
   submitDeploy,
   submitProjectChange,
   submitProjectSettings,
+  submitTestServerStop,
   syncDependsOn,
 } from "./forms.ts";
 import { formatElapsed } from "./elapsed.ts";
@@ -218,6 +219,11 @@ setInterval(() => {
     mark.textContent = formatElapsed(Date.now() - since);
   }
 }, 1000);
+
+// The Test servers list's own Stop button (spec 529) — bound once,
+// like the Schedule page's own controls below: this page is never
+// redrawn from the server on a timer, so there is nothing to rebind.
+document.getElementById("test-servers-rows")?.addEventListener("submit", submitTestServerStop as EventListener);
 
 // The /schedule page's own controls (spec 276): none of these sit
 // inside `#jobrows`, and nothing on this page is swapped from the

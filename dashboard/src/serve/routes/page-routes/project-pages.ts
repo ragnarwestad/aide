@@ -84,6 +84,7 @@ export async function projectPages(
       backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/"),
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
+      script: await specsClientScript(),
     });
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);

@@ -39,6 +39,28 @@ export async function submitAction(event: Event): Promise<void> {
   );
 }
 
+/** The Test servers list's own Stop button (spec 529). Removing the
+ *  row instead of navigating is what keeps "← Back" pointed at
+ *  whatever page the list itself was opened from — a reload would
+ *  recompute it off a Referer that has become this same page. A
+ *  refusal says why in the row's own slot and leaves the row where it
+ *  is; `postForm()`'s own network-failure fallback (a reload) is
+ *  shared with every other button on the board and is not this file's
+ *  to change. */
+export async function submitTestServerStop(event: Event): Promise<void> {
+  if (event.defaultPrevented) return;
+  const form = (event.target as Element | null)?.closest?.(ACTIONS) as HTMLFormElement | null;
+  if (!form) return;
+  event.preventDefault();
+  await postForm(
+    form,
+    async () => {
+      form.closest("tr")?.remove();
+    },
+    (why) => formNote(form, why),
+  );
+}
+
 // The New-spec form is the one control that is NOT about a spec that
 // exists, and it is bound directly rather than by delegation: it is
 // the whole of its own page (spec 121), with no #jobrows around it for

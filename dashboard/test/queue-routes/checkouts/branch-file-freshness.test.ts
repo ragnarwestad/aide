@@ -167,8 +167,21 @@ describe("spec 298: the file is read from the branch a still-open spec is on", (
     });
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze", "implement"]));
     ran(dir, ["create"]);
-    const line = specControls(await listPage(base), FOLDER);
-    expect(line).toContain("disagree about whether");
+    // `listPage`'s own `dated` predicate is satisfied by `targets()`'s
+    // FIRST scan — cached for a flat 5s (`spec-lookup.ts`) regardless of
+    // how often the schedule ticks — which here ran before this test's
+    // own `writeFileSync` above. Every other test in this file gives a
+    // branch answer that skips the disk read entirely; this is the one
+    // whose assertion needs that scan to have caught up with the
+    // rewrite, so it polls for the words themselves rather than for
+    // `dated` alone.
+    const html = await listUntil(
+      base,
+      (h) => specControls(h, FOLDER).includes("disagree about whether"),
+      undefined,
+      "the disk scan to catch up with the rewritten status file",
+    );
+    expect(specControls(html, FOLDER)).toContain("disagree about whether");
   });
 
   // Spec 362 (REQ-1/REQ-5, branch path): the branch's own 4-status.json
