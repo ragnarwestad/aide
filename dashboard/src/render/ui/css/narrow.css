@@ -368,7 +368,10 @@
      to hard-clip it with no indicator at all. An ellipsis here instead,
      recovered in full via the badge's own `title` (cell-helpers.ts). */
   table.list tr.subrow[data-step] td[data-col="state"] .badge {
-    max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+    /* The column's own width, so the phase badges read as one column
+       rather than four words of different lengths — the desktop's own
+       7.5rem does not fit here, but the cell's width does. */
+    min-width: 100%; max-width: 100%; overflow: hidden; text-overflow: ellipsis;
   }
   /* Line 2 is the State cell, whole: the pips at the left and the badge
      in a second column that starts where the caption line's own copy of
@@ -388,8 +391,9 @@
   table.list tr.specstate > td[data-col="state"] { flex: 0 0 var(--state-w); text-align: center;
     overflow: hidden; }
   table.list tr.specstate > td[data-col="state"] .badgeslot,
-  table.list tr.specstate > td[data-col="state"] .badge {
-    max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  table.list tr.specstate > td[data-col="state"] .badge,
+  table.list tr.subrow[data-caption="1"] .actionslot > .headstate .badge {
+    min-width: 100%; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
   /* Time reads centred in its own column too, as it does above 640px:
      a two-character duration under a four-character one otherwise looks
      misplaced rather than merely short. */

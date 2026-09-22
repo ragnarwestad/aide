@@ -335,8 +335,10 @@ describe("the phase lines stop being pinned columns at phone width", () => {
     // The badge inside it still gives way with an ellipsis, not a hard
     // clip with no indicator — its full text stays reachable via title
     // (cell-helpers.ts).
+    // And it fills that width, so the four phases' badges read as one
+    // column rather than four words of their own lengths (2026-09-22).
     expect(NARROW).toContain(
-      'table.list tr.subrow[data-step] td[data-col="state"] .badge {\n    max-width: 100%; overflow: hidden; text-overflow: ellipsis;',
+      'min-width: 100%; max-width: 100%; overflow: hidden; text-overflow: ellipsis;',
     );
   });
 
