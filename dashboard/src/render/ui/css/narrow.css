@@ -91,8 +91,13 @@
      the 5.25rem it had before. 4px of slack keeps a rounding pixel from
      wrapping the line; the phase lines and the caption grid use the same
      two widths, so the state and the total start at one x on every line. */
+  /* No room to keep the fold control's width free here: the phase line
+     is the name, the box, the tick, the state and the total on one line
+     at 360px, and reserving it wrapped the total onto a second. The
+     control sits in front of the name on a phone, as it always has. */
+  table.list { --fold-w: 0px; }
   table.list { --phase-w: 5.75rem; --aimodel-w: 16.5rem; --tick-w: 31px; --time-w: 3.25rem;
-    --state-w: min(5.25rem, max(2.5rem, calc(100vw - 4px - 2 * var(--sp-4) - var(--sp-3) - var(--phase-w)
+    --state-w: min(5.25rem, max(2.5rem, calc(100vw - 4px - 2 * var(--sp-4) - var(--sp-3) - var(--fold-w) - var(--phase-w)
       - var(--aimodel-w) - var(--tick-w) - 4 * var(--sp-2) - var(--time-w)))); }
   html[lang="en"] table.list { --phase-w: 4.5rem; }
   header { padding: var(--sp-3) var(--sp-4) var(--sp-2); }
@@ -475,7 +480,7 @@
      the second. */
   table.list tr.subrow[data-caption="1"] > td[data-col="state"] { order: 1; flex: 0 0 100%; }
   table.list tr.subrow[data-caption="1"] td[data-col="state"] > .actionslot { display: grid; width: 100%;
-    grid-template-columns: calc(var(--phase-w) + var(--aimodel-w) + var(--tick-w) + 3 * var(--sp-2))
+    grid-template-columns: calc(var(--fold-w) + var(--phase-w) + var(--aimodel-w) + var(--tick-w) + 3 * var(--sp-2))
                            var(--state-w) calc(var(--sp-2) + var(--time-w));
     align-items: center; padding-left: var(--sp-3); box-sizing: border-box; }
   /* The button keeps the same air from the left edge as a shut row's
