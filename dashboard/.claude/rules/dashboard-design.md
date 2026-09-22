@@ -1,18 +1,15 @@
 ---
 paths:
-  - "dashboard/src/render/**"
-  - "dashboard/src/specs-client/**"
   - "src/render/**"
   - "src/specs-client/**"
 ---
 
 # The dashboard's design rules
 
-Four things a change under `dashboard/src/render/` has to keep. Each one
-is checked by a guard in `dashboard/test/design/css-guard/`, so breaking
-it is a red suite rather than a review comment.
-`dashboard/docs/design-system.md` says why, and holds the full component
-list and the class vocabulary.
+Four things a change under `src/render/` has to keep. Each one is checked
+by a guard in `test/design/css-guard/`, so breaking it is a red suite
+rather than a review comment. `docs/design-system.md` says why, and holds
+the full component list and the class vocabulary.
 
 ## Colours, sizes and lengths come from tokens
 
