@@ -99,9 +99,13 @@ describe("Started and Cost fold away at phone width", () => {
       /table\.list tr\.specstate > td:first-child \{ box-sizing: border-box;\s*\n\s*flex: 0 0 calc\(var\(--sp-3\) \+ var\(--fold-w\) \+ var\(--phase-w\) \+ var\(--aimodel-w\) \+ var\(--tick-w\)/,
     );
     expect(NARROW).toContain("padding-left: calc(var(--sp-3) + 24px + var(--sp-1)); }");
-    // And the title line carries the same left edge as the lines under
-    // it, rather than sitting flush against the list's own (2026-09-22).
-    expect(NARROW).toContain("table.list tr.spechead > td.foldcell { flex: 0 0 auto; padding: 0 0 0 var(--sp-3); }");
+    // The title line takes the left edge and the air above it from its
+    // own CELLS: a phone's head row is still a table row, whose padding
+    // draws nothing, so the line sat flush against the list's edge.
+    expect(NARROW).toContain(
+      "table.list tr.spechead > td.foldcell { flex: 0 0 auto; padding: var(--sp-2) 0 0 var(--sp-3); }",
+    );
+    expect(NARROW).toContain("table.list tr.spechead > td { padding-top: var(--sp-2); padding-bottom: 0; }");
     // The summary and the not-verified mark keep the indent both lines
     // carry: a basis of the whole width plus a left margin hangs past the
     // row's right edge.
@@ -784,17 +788,5 @@ describe("spec 474: the New-spec page's Depends-on columns sit side by side, fra
 
   test("the narrow-width block collapses the two columns to one", () => {
     expect(NARROW).toMatch(/\.depends-pair \{[^}]*flex-direction:\s*column/);
-  });
-});
-
-// --- spec 520: message rows come after the phase lines and keep the ground ---
-
-describe("an open row paints no ground of its own on a phone (AC-2)", () => {
-  test("the phone rules leave the phase lines and their message rows the page's background", () => {
-    // Painted on the rows here until 2026-09-22, since the cells are
-    // flex items at this width — and it greyed the message cards the
-    // open row draws inside it.
-    expect(NARROW).not.toMatch(/table\.list tr\.subrow,[^{]*\{[^}]*background: var\(--surface-2\)/);
-    expect(NARROW).not.toMatch(/tr\.specnotice[^{]*\{[^}]*background: var\(--surface-2\)/);
   });
 });

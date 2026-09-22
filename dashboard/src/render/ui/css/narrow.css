@@ -261,14 +261,19 @@
      without it the chevron and the title sat flush against the list's
      own edge while the pips, the summary and the message cards did
      not. */
-  table.list tr.spechead > td.foldcell { flex: 0 0 auto; padding: 0 0 0 var(--sp-3); }
+  table.list tr.spechead > td.foldcell { flex: 0 0 auto; padding: var(--sp-2) 0 0 var(--sp-3); }
   /* The vertical padding moves off the cells and onto the row: each td
      kept the desktop 10px above and below, and two tds stacked as two
      flex lines put 10px + the row gap + 10px between the name line and
      the badge line — read as a hole. The row pads once, at its edges. */
   table.list tr.spechead { padding-top: 10px; }
   table.list tr.specstate { padding-bottom: 10px; }
-  table.list :is(tr.spechead, tr.specstate) > td { padding-top: 0; padding-bottom: 0; }
+  /* The title line's own air above it sits on the CELLS: a phone's head
+     row is still a table row, and a table row's padding draws nothing —
+     which left the title against the line above it. The state line under
+     it keeps none, so the two read as one. */
+  table.list tr.spechead > td { padding-top: var(--sp-2); padding-bottom: 0; }
+  table.list tr.specstate > td { padding-top: 0; padding-bottom: 0; }
   /* The horizontal cell padding goes the same way as the vertical did:
      each line-2 cell kept the desktop 12px on both sides, which put
      up to 24px of dead air between badge, date and cost — enough to
