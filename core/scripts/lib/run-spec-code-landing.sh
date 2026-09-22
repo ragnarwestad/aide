@@ -69,6 +69,21 @@ specs_root="$(cd "$specs_root" 2>/dev/null && pwd -P || printf '%s' "$specs_root
 # is an ordering change and nothing else.
 specs_repo="$(git -C "$specs_root" rev-parse --show-toplevel 2>/dev/null || true)"
 
+# A specs root that IS its repository's top level, with a folder named
+# after the project sitting inside it, is one setup mistake this script
+# must not work around: the two answers are both plausible, and picking
+# either silently is how a spec folder ends up at the repository root
+# while every list looks for it under the project's own folder. One
+# repository holds the specs of several projects, each in a folder of its
+# own, so a root set one level too high looks exactly like this.
+if [ -n "$specs_repo" ] && [ "$specs_repo" = "$specs_root" ] \
+  && declare -f aide_manifest_get >/dev/null 2>&1; then
+  specs_root_project="$(aide_manifest_get name "$project_root")"
+  if [ -n "$specs_root_project" ] && [ -d "$specs_root/$specs_root_project" ]; then
+    refuse "the specs root is $specs_root, which is the specs repository's own top level, and $specs_root/$specs_root_project is already there — set the specs root to that folder, or move it aside if it is not this project's"
+  fi
+fi
+
 roots=("$project_root")
 [ -n "$specs_repo" ] && [ "$specs_repo" != "$project_root" ] && roots+=("$specs_repo")
 

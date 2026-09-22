@@ -196,7 +196,7 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
           // a git-history comparison of a state-file spec compares two
           // records that can legitimately disagree for reasons that
           // mean nothing (spec 349).
-          fileSteps: { proseSteps: parseStatus(statusText).workflowSteps, stateSteps: state?.completedPhases },
+          fileSteps: { proseSteps: parseStatus(statusText).workflowSteps, stateSteps: state?.completedPhases, readAt: now },
           // Where this spec's history starts, when it has been
           // reopened (spec 198). Off the same state file as `fileSteps`
           // and `heldBack`'s acceptance half.

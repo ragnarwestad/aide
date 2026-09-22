@@ -27,34 +27,35 @@ describe("spec 154: what has run is what has been committed", () => {
   const specDir = (dir: string) => join(dir, "root", "aide", "specs", "81-queue-and-runner");
   /** Spec 208: every fixture here writes its `4-status.md` and makes
    *  its commits AFTER the server started, and a render reads memory
-   *  now. Two things have to catch up before the row is the row this
-   *  suite is about — the cache schedule has to have seen the git repo
-   *  at all, and the filesystem watcher has to have cleared the disk
-   *  scan the boot-time tick took — so the page is asked again until
-   *  the row stops changing.
+   *  now. Both of a row's sources have to catch up first — the git side
+   *  that dates the folder, and the disk scan that reads what the files
+   *  claim — so `settle()` reads both again before the page is asked.
    *
-   *  The Started cell is the git half's tell: `–` until git can date
-   *  the folder, a real date once the repo exists. The stability of the
-   *  whole row is the disk half's, since what the file claims differs
-   *  per test and there is no one string to wait for. Bounded, and it
-   *  falls through with the last answer so a regression reads as the
-   *  assertion it broke. */
-  const listPage = async (base: string): Promise<string> => {
-    // Past the filesystem watcher's own 300 ms debounce (`serve.ts`,
-    // `scheduleNotify`), which is what clears the disk scan the
-    // boot-time warm took. Waiting for the ROW to stop changing does
-    // not do it: the row is stable for those 300 ms, at the old answer.
-    await new Promise((r) => setTimeout(r, 400));
+   *  It used to wait 400 ms instead, for the specs-root watcher's own
+   *  300 ms debounce to drop the boot-time scan. That left 100 ms of
+   *  margin, which a machine running eleven other workers does not
+   *  have: the wait ran out with the git side fresh and the disk side
+   *  stale, and the row said the two disagreed about a phase that had
+   *  run. Waiting for the ROW to stop changing cannot replace it —
+   *  half these tests assert that the row says NOTHING, and a stale row
+   *  says nothing just as convincingly.
+   *
+   *  `listUntil` stays as the backstop, and the Started cell is what it
+   *  watches: `–` until git can date the folder, a real date once it
+   *  can. Bounded, and it falls through with the last answer so a
+   *  regression reads as the assertion it broke. */
+  const listPage = async (base: string, server: { settle: () => Promise<void> }): Promise<string> => {
+    await server.settle();
     return listUntil(base, dated, undefined, "a dated Created cell for the spec");
   };
 
   // Criterion 1: the 153 incident.
   test("a copied 4-status.md cannot make a fresh spec look analysed", async () => {
-    const { base, dir } = start();
+    const { base, dir, server } = start();
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze", "implement"]));
     // The folder exists, and nothing has ever run in it.
     ran(dir, []);
-    const line = specControls(await listPage(base), "81-queue-and-runner");
+    const line = specControls(await listPage(base, server), "81-queue-and-runner");
     // Spec 176: `create` is settled by the folder existing, so it is
     // done here and says nothing about the copy. What spec 153 is the
     // guard for is the two below it.
@@ -74,10 +75,10 @@ describe("spec 154: what has run is what has been committed", () => {
   // written by hand has no `Run /aide-create` commit at all — and the
   // pip has read it that way since spec 167. The phase LINE agrees now.
   test("a spec whose folder exists has had create, whatever git records", async () => {
-    const { base, dir } = start();
+    const { base, dir, server } = start();
     // Analyze has a commit; create never did.
     ran(dir, ["analyze"]);
-    const line = specControls(await listPage(base), "81-queue-and-runner");
+    const line = specControls(await listPage(base, server), "81-queue-and-runner");
     expect(phaseDone(line, "create")).toBe(true);
     // The create line itself, not the group: the three phases below it
     // genuinely have not run, and say so.
@@ -89,38 +90,38 @@ describe("spec 154: what has run is what has been committed", () => {
   // here does not name `create`, which before spec 176 would have been
   // a disagreement the moment `create` was forced into `done`.
   test("forcing create into done invents no disagreement", async () => {
-    const { base, dir } = start();
+    const { base, dir, server } = start();
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["analyze"]));
     ran(dir, ["analyze"]);
-    const line = specControls(await listPage(base), "81-queue-and-runner");
+    const line = specControls(await listPage(base, server), "81-queue-and-runner");
     expect(phaseDone(line, "create")).toBe(true);
     expect(line).not.toContain("disagree about whether");
   });
 
   // Criterion 3, the same fixture: the row does not swallow it.
   test("a file claiming a step the history does not have says so on the row", async () => {
-    const { base, dir } = start();
+    const { base, dir, server } = start();
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze", "implement"]));
     ran(dir, ["create"]);
-    const line = specControls(await listPage(base), "81-queue-and-runner");
+    const line = specControls(await listPage(base, server), "81-queue-and-runner");
     expect(phaseDone(line, "create")).toBe(true);
     expect(line).toContain("disagree about whether");
   });
 
   test("and so does a file that has NOT caught up with a step that ran", async () => {
-    const { base, dir } = start();
+    const { base, dir, server } = start();
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create"]));
     ran(dir, ["create", "analyze"]);
-    const line = specControls(await listPage(base), "81-queue-and-runner");
+    const line = specControls(await listPage(base, server), "81-queue-and-runner");
     expect(phaseDone(line, "analyze")).toBe(true);
     expect(line).toContain("disagree about whether");
   });
 
   test("a file that agrees with the history says nothing at all", async () => {
-    const { base, dir } = start();
+    const { base, dir, server } = start();
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
     ran(dir, ["create", "analyze"]);
-    const line = specControls(await listPage(base), "81-queue-and-runner");
+    const line = specControls(await listPage(base, server), "81-queue-and-runner");
     expect(line).not.toContain("disagree about whether");
   });
 
@@ -129,7 +130,7 @@ describe("spec 154: what has run is what has been committed", () => {
   // 349's own incident, an amended commit that never reached origin
   // while the phase it recorded landed anyway, inside a later commit.
   test("a spec whose state file claims a phase git has no commit for is not shown as disagreeing (spec 362)", async () => {
-    const { base, dir } = start();
+    const { base, dir, server } = start();
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
     writeFileSync(
       join(specDir(dir), "4-status.json"),
@@ -142,7 +143,7 @@ describe("spec 154: what has run is what has been committed", () => {
       }),
     );
     ran(dir, ["create"]);
-    const line = specControls(await listPage(base), "81-queue-and-runner");
+    const line = specControls(await listPage(base, server), "81-queue-and-runner");
     expect(phaseDone(line, "analyze")).toBe(true);
     expect(line).not.toContain("disagree about whether");
   });
@@ -150,11 +151,11 @@ describe("spec 154: what has run is what has been committed", () => {
   // Criterion 2: the 147 incident. No job in the queue's memory at all
   // — the row is built from the commit alone.
   test("a step killed by the time limit reads as stopped, not as not-run", async () => {
-    const { base, dir } = start();
+    const { base, dir, server } = start();
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
     ran(dir, ["create", "analyze"]);
     ran(dir, ["implement"], "81-queue-and-runner", { stopped: "timeout" });
-    const line = specControls(await listPage(base), "81-queue-and-runner");
+    const line = specControls(await listPage(base, server), "81-queue-and-runner");
     const implement =
       line.match(/<tr class="subrow[^"]*"[^>]*data-step="implement">[\s\S]*?<\/tr>/)?.[0] ?? "";
     expect(implement).toContain("Stopped");
@@ -168,11 +169,11 @@ describe("spec 154: what has run is what has been committed", () => {
 
   // Criterion 4.
   test("a completed re-run supersedes the stop before it", async () => {
-    const { base, dir } = start();
+    const { base, dir, server } = start();
     ran(dir, ["create", "analyze"]);
     ran(dir, ["implement"], "81-queue-and-runner", { stopped: "timeout" });
     ran(dir, ["implement"]);
-    const line = specControls(await listPage(base), "81-queue-and-runner");
+    const line = specControls(await listPage(base, server), "81-queue-and-runner");
     expect(phaseDone(line, "implement")).toBe(true);
     expect(line).not.toContain("stopped: timeout");
     expect(line).toMatch(/value="archive" checked/);
@@ -181,9 +182,9 @@ describe("spec 154: what has run is what has been committed", () => {
   // Criterion 5: a step run at somebody's keyboard, committed by hand
   // with the subject the four skills now offer.
   test("an interactive commit with no headless marker counts the same", async () => {
-    const { base, dir } = start();
+    const { base, dir, server } = start();
     ran(dir, ["create", "analyze"], "81-queue-and-runner", { headless: false });
-    const line = specControls(await listPage(base), "81-queue-and-runner");
+    const line = specControls(await listPage(base, server), "81-queue-and-runner");
     expect(phaseDone(line, "analyze")).toBe(true);
   });
 });

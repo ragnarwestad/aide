@@ -276,6 +276,9 @@ export interface FileStepsAnswer {
   /** The Acceptance section's rows off that same file, for the Specs
    *  list's unfold — the row draws them without reading git. */
   acceptance?: StatusCheck[];
+  /** When the disk scan read this copy, epoch ms. Set by `targets()` on the disk answer only — the branch
+   *  copy's read time is `peekFileSteps().checkedAt` — so an answer that came from the branch has none. */
+  readAt?: number;
 }
 
 /** The steps `4-status.md`'s own line and the history do not agree
@@ -448,8 +451,9 @@ export interface ResolvedWorkflowState {
    *  "the work is on the branch" apart from "nothing was written"
    *  (spec 418). */
   historyDone: string[];
-  /** When the two answers above were read, as epoch ms — the older of
-   *  the history's and, when there is one, the branch copy's. */
+  /** When the two answers above were read, as epoch ms — the oldest of
+   *  the history's, the branch copy's and, when the disk copy is the
+   *  file source, the disk scan's. */
   checkedAt: number;
 }
 
@@ -470,7 +474,9 @@ export function resolveWorkflowState(
   if (h === null || checkedAt === null) return null;
   const branchPeek = branchFileSteps.peekFileSteps(dir, specFolder);
   const branchSteps = branchPeek.steps;
-  const answer = branchSteps ?? diskFileSteps ?? { proseSteps: [], stateSteps: undefined };
+  const answer: FileStepsAnswer = branchSteps ?? diskFileSteps ?? { proseSteps: [], stateSteps: undefined };
+  // Only the disk answer carries `readAt`: the disk scan counts when it is the file source.
+  const reads = [checkedAt, branchPeek.checkedAt, answer.readAt].filter((at): at is number => at != null);
   // REQ-4: the state file is what a gate reads, so it is what the pips
   // and the done list read too, once one exists — git's own
   // `history.done` only when there is no state file for this spec yet.
@@ -482,6 +488,6 @@ export function resolveWorkflowState(
     fileDisagrees: stepsFileDisagreesOn(answer, h),
     fileSteps: answer.proseSteps,
     historyDone: h.done,
-    checkedAt: branchPeek.checkedAt === null ? checkedAt : Math.min(checkedAt, branchPeek.checkedAt),
+    checkedAt: Math.min(...reads),
   };
 }

@@ -414,11 +414,24 @@ while [ "$i" -lt "${#FOLDERS[@]}" ]; do
         *) miss="$miss message=${got_key:-none}(want $want_msg)" ;;
       esac
     fi
+    # A named STEP's own `terminalReason`. A fixture whose point is a
+    # REFUSAL has no job error to name: the step ran, the gate turned it
+    # away, and the job is `done` with nothing archived — the same end
+    # state a step that never ran leaves behind.
+    want_step="$(printf '%s' "$row" | jq -r '.stepReason.step // empty')"
+    if [ -n "$want_step" ]; then
+      want_reason="$(printf '%s' "$row" | jq -r '.stepReason.terminalReason')"
+      got_reason="$(printf '%s' "$jobs" | jq -r --arg f "$folder" --arg s "$want_step" \
+        '[.jobs[] | select(.specFolder==$f) | .results[]? | select(.step==$s)] | last | .terminalReason // ""')"
+      [ "$got_reason" = "$want_reason" ] \
+        && miss="$miss" || miss="$miss $want_step=${got_reason:-never ran}(want $want_reason)"
+    fi
     [ -z "$miss" ] || { mark="MISMATCH"; fails=$((fails + 1)); }
   fi
   printf '  %-8s %-42s job=%-9s %s%s%s%s\n' "$mark" "$folder" "$state" "$got" "$branch" "${err:+ — $err}" "${miss:+ —$miss}"
   i=$((i + 1))
 done
+
 
 if [ -n "$MODEL" ]; then
   total_cost="$(printf '%s' "$jobs" | jq '[.jobs[].costUsd // 0] | add')"

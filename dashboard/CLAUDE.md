@@ -84,6 +84,18 @@ should read this file by hand.
   git's own words appear only for a clone that failed — and left alone. A checkout that IS
   the project's own entry gets its own sentence, because the advice
   "remove it by hand" would be advice to delete the project.
+- **A path handed to git has both sides resolved first.** git answers
+  with every symlink resolved; a path off the scan of the projects root
+  does not — that root is a directory of LINKS on a serving host, and on
+  macOS `$TMPDIR` is a link too. Subtracting one from the other
+  (`relative(root, dir)`) then climbs out of the repository and back down
+  an absolute path, and `git show <ref>:<that>` finds nothing while
+  failing quietly: the read comes back empty and whatever it fed reads as
+  "gone" — an acceptance tick was refused with "that check is not there
+  to change any more" on a row the page had just drawn. `real()` in
+  `git/branch-file.ts` and `sameRoot` in `land-branch/merge.ts` are the
+  guard; `aide-run-spec` resolves the specs root it is handed for the
+  same reason.
 - **A project is added by its git address, so no directory already on
   the host is ever registered.** Where the clone lands depends on the
   projects root. On the directory of links a serving host uses, the
@@ -124,6 +136,15 @@ with the tests and assertions that pin all of them.
   `dashboard/src/serve/land-branch/merge.ts` is the one place a branch
   lands, under `mergeLock` per repo root. There is no Merge or Approve
   button, no `gateAfter`, no `awaiting-approval` state.
+- **`implement` lands nothing, so no reader may ask the default branch
+  whether it ran.** It falls through the landing dispatch by design
+  (`runner-setup.ts`), and its `4-status.md` stays on its branch until
+  archive merges it — so `SpecTarget.done`, which prefers the state file
+  on the default branch, names `create, analyze` and no more while a spec
+  waits on a tick. `historyDone` is the git-proved list, unlanded
+  branches included, and it is what a question like "has implement run"
+  reads (`archiveHeldBackApplies`). Asking `done` alone dropped the
+  acceptance hold-back from every row waiting on one.
 - **An `onLanded` callback runs before its own job's `landing` flag is
   cleared**, so it cannot trust that one row's flag and must treat it as
   settled by hand — `docs/job-states.md`, "Beside the state".
