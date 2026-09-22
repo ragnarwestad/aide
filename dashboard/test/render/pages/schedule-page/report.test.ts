@@ -50,13 +50,16 @@ describe("renderReportPanel", () => {
     });
   }
 
-  test("a stopped run names how it stopped", () => {
+  // The state, in the word the badge beside it uses: why the run stopped
+  // is the run's own error sentence, not something written after the
+  // state wherever the state is said.
+  test("a stopped run says it stopped, and no more than that", () => {
     const html = renderReportPanel({
       lang: "en",
       run: { view: view("stopped", { stopReason: "timeout", timeoutSec: 1200 }), startedAt: "t" },
     });
-    expect(html).toContain("No report from this run (stopped");
-    expect(html).toContain("20 min");
+    expect(html).toContain("No report from this run (stopped)");
+    expect(html).not.toContain("20 min");
     expect(html).not.toContain("<iframe");
   });
 

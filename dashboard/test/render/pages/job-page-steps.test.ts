@@ -10,7 +10,7 @@ import {
   renderSpecsRows,
   type JobDetailView,
 } from "../../../src/render";
-import { stateChip, stateLabel } from "../../../src/render/ui/job-state";
+import { stateChip } from "../../../src/render/ui/job-state";
 import { resolveOpenStep, specFilePanel, stepResults } from "../../../src/render/pages/job-page";
 import { landingRefusal } from "../../../src/render/pages/job-page/steps-table.ts";
 import {
@@ -222,12 +222,6 @@ describe("spec 395: a step still landing renders no timestamp, not undefined", (
 // the two TOTALS built on top of those steps had no access to the flag,
 // so 149's spec total read "41.13 USD" as if it were money spent.
 describe("provider-limit presentation", () => {
-  test("the stopped label identifies the provider limit", () => {
-    expect(stateLabel(row({ state: "stopped", stopReason: "provider-limit" } as never))).toBe(
-      "stopped — provider limit",
-    );
-  });
-
   test("the specs list and job detail show the structured explanation", () => {
     const error = "seven day provider limit; resets 2026-08-24 12:00 UTC";
     const capitalized = "Seven day provider limit; resets 2026-08-24 12:00 UTC";
@@ -283,14 +277,6 @@ describe("the job detail page's banner capitalizes job.error (spec 442)", () => 
     const stopped = row({ state: "stopped", stopReason: "timeout", error: "stopped at its own time limit" } as never);
     const html = renderJobDetailPage(detail({ ...stopped } as never), "2026-08-24T10:00:00Z", NAV);
     expect(html).toContain("Stopped at its own time limit");
-  });
-});
-
-describe("red-suite presentation", () => {
-  test("the stopped label identifies the red suite, distinct from a timeout stop", () => {
-    expect(stateLabel(row({ state: "stopped", stopReason: "tests-red" } as never))).toBe(
-      "stopped — tests red",
-    );
   });
 });
 

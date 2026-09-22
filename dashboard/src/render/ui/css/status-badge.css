@@ -16,10 +16,10 @@
 @media (prefers-reduced-motion: reduce) { .b-running { animation: none; } }
 .b-waiting { background: var(--warn-soft); color: var(--warn); }
 .b-ready { background: var(--ok-soft); color: var(--ok); }
-/* The only live variant with a visible border. Refused must never be
-   told from running by hue alone, and the row that carries it also
-   carries a .rowmsg.failed with its own mark. */
-.b-refused { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); }
+/* No border, like every other variant: the word says which state it is,
+   and the row that carries it also carries a .rowmsg.failed with its own
+   mark. */
+.b-refused { background: var(--danger-soft); color: var(--danger); }
 /* Green, the same tones as `.b-ready` (2026-09-11): a finished phase's
    pip is green, and the badge beside it said the same thing in grey —
    one state, two colours. "archived" takes it too, over a row of four

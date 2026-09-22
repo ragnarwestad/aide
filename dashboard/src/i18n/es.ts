@@ -131,9 +131,6 @@ export const es: Record<TranslationKey, string> = {
   "state.interrupted": "interrumpido",
   "state.heldBack": "retenido",
   "state.stopped": "detenido",
-  "state.stoppedTimeout": "detenido — {minutes} min",
-  "state.stoppedProviderLimit": "detenido — límite del proveedor",
-  "state.stoppedTestsRed": "detenido — tests en rojo",
 
   "project.deployRestartWaiting":
     "Este checkout coincide con origin, pero el servicio todavía está ejecutando el commit {sha} — " +

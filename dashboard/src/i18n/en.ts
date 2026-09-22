@@ -141,9 +141,6 @@ export const en = {
   // A stopped job is not a failed one, and the reason is the half that
   // says which. These read on the row itself, so they are as short as
   // the badge is wide.
-  "state.stoppedTimeout": "stopped — {minutes} min",
-  "state.stoppedProviderLimit": "stopped — provider limit",
-  "state.stoppedTestsRed": "stopped — tests red",
 
   "project.deployRestartWaiting":
     "This checkout matches origin, but the service is still running commit {sha} — " +

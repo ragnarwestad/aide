@@ -95,7 +95,12 @@
      is the name, the box, the tick, the state and the total on one line
      at 360px, and reserving it wrapped the total onto a second. The
      control sits in front of the name on a phone, as it always has. */
-  table.list { --fold-w: 0px; }
+  /* What the fold control costs a phase line here: it hangs into the
+     cell's own left padding, so only the rest is reserved — and with it
+     every phase name starts at one x, whether its own line draws a
+     control or not. */
+  table.list { --fold-w: 16px; }
+  table.list tr.subrow .phasecell > .fold { margin-left: calc(-1 * (24px + var(--sp-1))); }
   table.list { --phase-w: 5.75rem; --aimodel-w: 16.5rem; --tick-w: 31px; --time-w: 3.25rem;
     --state-w: min(5.25rem, max(2.5rem, calc(100vw - 4px - 2 * var(--sp-4) - var(--sp-3) - var(--fold-w) - var(--phase-w)
       - var(--aimodel-w) - var(--tick-w) - 4 * var(--sp-2) - var(--time-w)))); }
@@ -256,6 +261,10 @@
      header's own cell stays: the two header rows are flex lines here, so
      the chevron rides inside one rather than standing in a column. */
   table.list tr.subrow > td[data-col="fold"] { display: none; }
+  /* The state's own column reads centred here as it does on a wider
+     window: a started phase's badge and an unstarted one's "–" stand in
+     the same place. */
+  table.list tr.subrow > td[data-col="state"] { text-align: center; }
   /* The title line keeps the same left edge as everything under it: the
      cell's own padding is what every other line here carries, and
      without it the chevron and the title sat flush against the list's
@@ -343,7 +352,7 @@
      right of it. */
   table.list tr.subrow[data-step] td[data-col="state"] {
     flex: 0 0 var(--state-w); width: var(--state-w); min-width: 0; box-sizing: border-box;
-    overflow: hidden; white-space: nowrap; text-align: left;
+    overflow: hidden; white-space: nowrap; text-align: center;
   }
   /* The last phase line's air belongs to the ROW on a phone: given to
      every cell (list.css), it made the name's cell taller than the
@@ -359,7 +368,10 @@
      to hard-clip it with no indicator at all. An ellipsis here instead,
      recovered in full via the badge's own `title` (cell-helpers.ts). */
   table.list tr.subrow[data-step] td[data-col="state"] .badge {
-    max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+    /* The column's own width, so the phase badges read as one column
+       rather than four words of different lengths — the desktop's own
+       7.5rem does not fit here, but the cell's width does. */
+    min-width: 100%; max-width: 100%; overflow: hidden; text-overflow: ellipsis;
   }
   /* Line 2 is the State cell, whole: the pips at the left and the badge
      in a second column that starts where the caption line's own copy of
@@ -372,7 +384,20 @@
   /* The pips and the badge are two cells of the flex line now, in that
      order, so nothing here places them: the grid this rule used to build
      existed only because both lived inside the one State cell. */
-  table.list tr.specstate .badgeslot { justify-self: start; }
+  table.list tr.specstate .badgeslot { justify-self: center; }
+  /* And its cell takes the state column's own width, so the badge
+     centres over the phase states rather than over whatever its own
+     text happens to be wide. */
+  table.list tr.specstate > td[data-col="state"] { flex: 0 0 var(--state-w); text-align: center;
+    overflow: hidden; }
+  table.list tr.specstate > td[data-col="state"] .badgeslot,
+  table.list tr.specstate > td[data-col="state"] .badge,
+  table.list tr.subrow[data-caption="1"] .actionslot > .headstate .badge {
+    min-width: 100%; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  /* Time reads centred in its own column too, as it does above 640px:
+     a two-character duration under a four-character one otherwise looks
+     misplaced rather than merely short. */
+  table.list tr.subrow > td[data-col="started"] { text-align: center; }
   /* Time and cost follow the button, on the same left edge as
      everything else on this line. They stood at the line's RIGHT edge
      until the pips came in beside the name (2026-09-07): with the name,
@@ -492,7 +517,11 @@
   /* The button keeps the same air from the left edge as a shut row's
      pips do; the padding comes off the first column again, so the state
      copy still starts over the phases' own state column. */
-    table.list tr.subrow[data-caption="1"] .actionslot > .headstate { display: block; justify-self: start; }
+  /* The slot fills its column rather than shrinking to its own word:
+     the badge inside takes the slot's width (below), so the caption
+     line's badge is exactly as wide as the phase lines' badges under
+     it — one column of equal chips, not one chip a word wide. */
+    table.list tr.subrow[data-caption="1"] .actionslot > .headstate { display: block; justify-self: stretch; }
   /* The slot holds an empty form (the button points at it by id), the
      button, and the state copy: the button in the first column at its
      own width, the state in the second, the form out of the grid. */
@@ -506,9 +535,9 @@
   /* The row's total, in the Time column the phase lines use (spec 496),
      and the state copy trimmed to its column. */
   table.list tr.subrow[data-caption="1"] .actionslot > .headtime { display: block; grid-column: 3; grid-row: 1;
-    padding-left: var(--sp-2); text-align: left; white-space: nowrap; }
+    padding-left: var(--sp-2); text-align: center; white-space: nowrap; }
   table.list tr.subrow[data-caption="1"] .actionslot > .headstate { min-width: 0; max-width: 100%; overflow: hidden; }
-  table.list tr.subrow[data-caption="1"] .actionslot > .headstate .badge { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  table.list tr.subrow[data-caption="1"] .actionslot > .headstate .badge { min-width: 100%; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
   /* An open row's own second line comes off: the caption line carries
      the state, over the phases' states, and the phase lines say what the
      pips say — one state twice on one screen is one too many. A shut
@@ -624,9 +653,13 @@
    side, exactly as above 640px — AC-3 is this cutoff moving, not a new
    rule of its own. */
 @media (max-width: 37.5rem) {
-  /* The sub-400px default (unchanged, spec 480): 3.875rem holds "Sonnet"
-     bare. The band below, 400-600px, overrides it wider again. */
-  table.list { --aimodel-w: 3.875rem; }
+  /* The sub-400px default: 3.125rem, 12px less than the 3.875rem that
+     held "Sonnet" bare (spec 480). The room goes to the phase line's
+     own fold control, which every line reserves here since 2026-09-22
+     so the names read down one edge; the button's own text ellipsis-
+     clips a word earlier, and its full name is a tap away. The band
+     below, 400-600px, overrides it wider again. */
+  table.list { --aimodel-w: 3.125rem; }
   table.list tr.subrow .modelcell,
   table.list tr.subrow .modelcell > .row { display: contents; }
   /* One box instead of two selects: a 360px phone has room for one of
@@ -691,11 +724,14 @@
    fixture): at 8rem, the button wraps Time onto a second line up to
    412-416px and fits cleanly from 413-417px on — close enough to the
    400px (25rem) start of this whole band that ONE step, from 400px,
-   was not safe, contrary to this file's first guess. 27rem (432px) is
+   was not safe, contrary to this file's first guess. 27.5rem (440px) is
    the inner cutoff instead, with room under that measured edge; below
    it AC-2 applies (the pair does not fit yet, so the button stays the
-   sub-400px default, unchanged) and this block does not apply at all. */
-@media (min-width: 27rem) and (max-width: 37.5rem) {
+   sub-400px default, unchanged) and this block does not apply at all.
+   It moved out from 27rem on 2026-09-22, when the phase line began
+   reserving its fold control's width: at 432px the Norwegian labels
+   and the full button no longer shared the line. */
+@media (min-width: 27.5rem) and (max-width: 37.5rem) {
   table.list { --aimodel-w: 8rem; }
   table.list tr.subrow .aimodelshort { display: none; }
   table.list tr.subrow .aimodelfull { display: block; }

@@ -11,7 +11,7 @@
 export type { QueueRowView, StepResultView } from "./types.ts";
 export { anyCostUnmeasured } from "./types.ts";
 
-export { stateLabel, durationLabel, BADGE_VARIANT, stateChip, notStartedChip, IN_FLIGHT, inFlight, currentStep } from "./format.ts";
+export { stateWord, durationLabel, BADGE_VARIANT, stateChip, notStartedChip, IN_FLIGHT, inFlight, currentStep } from "./format.ts";
 
 export type { RestingState } from "./resting.ts";
 export { restingChip, specStateChip } from "./resting.ts";
