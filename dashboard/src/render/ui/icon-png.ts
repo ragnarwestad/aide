@@ -7,6 +7,68 @@ import { crc32, deflateSync } from "node:zlib";
  *  throws on anything else, so a change to the artwork's shape fails loudly
  *  rather than yielding a blank icon. No alpha channel: a maskable icon must be
  *  opaque. */
+/** The MARK alone, on transparency, for Android's notification badge.
+ *
+ *  A badge is not an icon: Android reads the alpha channel and draws a
+ *  white silhouette of whatever is opaque. `rasterizeIcon` below writes
+ *  colour type 2 — RGB, no alpha — so its output silhouettes to a solid
+ *  square, which is what the icon's own background rect is. The four
+ *  bars with nothing behind them silhouette to four bars.
+ *
+ *  Takes `brand.ts`'s bars-only `svg()` shape (no canvas rect, no
+ *  transform group), and writes colour type 6. Each pixel's alpha is the
+ *  coverage of whichever bar covers it most; the colour is that bar's,
+ *  which Android ignores and a browser that draws the file as an ordinary
+ *  image does not. */
+export function rasterizeMark(svg: string, size: number): Buffer<ArrayBuffer> {
+  const barRe = /<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)" rx="([\d.]+)" fill="(#[0-9A-Fa-f]{6})"\/>/g;
+  const bars = [...svg.matchAll(barRe)];
+  const rest = svg.replace(barRe, "");
+  if (bars.length !== 4 || !/^<svg [^>]*><\/svg>$/.test(rest)) {
+    throw new Error("icon-png: the SVG is not the shape brand.ts's bars-only svg() emits");
+  }
+  const k = size / 64;
+  const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const pills = bars.map((m) => {
+    const [x, y, w, h, rx] = [1, 2, 3, 4, 5].map((i) => Number(m[i]));
+    return {
+      cx: (x! + w! / 2) * k,
+      cy: (y! + h! / 2) * k,
+      hw: (w! / 2) * k,
+      hh: (h! / 2) * k,
+      r: rx! * k,
+      color: rgb(m[6]!),
+    };
+  });
+
+  const stride = 1 + 4 * size;
+  const raw = Buffer.alloc(stride * size);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      let alpha = 0;
+      let color = [0, 0, 0];
+      for (const p of pills) {
+        const qx = Math.abs(x + 0.5 - p.cx) - (p.hw - p.r);
+        const qy = Math.abs(y + 0.5 - p.cy) - (p.hh - p.r);
+        const d = Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - p.r;
+        const cover = Math.min(Math.max(0.5 - d, 0), 1);
+        // The bars never overlap, so the one that covers this pixel most
+        // is the one whose colour it takes.
+        if (cover > alpha) {
+          alpha = cover;
+          color = p.color as number[];
+        }
+      }
+      const o = y * stride + 1 + x * 4;
+      raw[o] = color[0]!;
+      raw[o + 1] = color[1]!;
+      raw[o + 2] = color[2]!;
+      raw[o + 3] = Math.round(alpha * 255);
+    }
+  }
+  return pngOf(raw, size, 6);
+}
+
 export function rasterizeIcon(svg: string, size: number): Buffer<ArrayBuffer> {
   const canvasRe = /<rect width="64" height="64" fill="(#[0-9A-Fa-f]{6})"\/>/;
   const groupRe = /<g transform="translate\(([-\d.]+) ([-\d.]+)\) scale\(([\d.]+)\)">/;
@@ -57,6 +119,13 @@ export function rasterizeIcon(svg: string, size: number): Buffer<ArrayBuffer> {
     }
   }
 
+  return pngOf(raw, size, 2);
+}
+
+/** A square PNG from already-filtered scanlines. `colourType` is 2 (RGB)
+ *  for the icons and 6 (RGBA) for the badge, which is the only difference
+ *  between the two writers above. */
+function pngOf(raw: Buffer, size: number, colourType: 2 | 6): Buffer<ArrayBuffer> {
   const chunk = (type: string, data: Buffer): Buffer => {
     const body = Buffer.concat([Buffer.from(type, "ascii"), data]);
     const out = Buffer.alloc(body.length + 8);
@@ -69,7 +138,7 @@ export function rasterizeIcon(svg: string, size: number): Buffer<ArrayBuffer> {
   ihdr.writeUInt32BE(size, 0);
   ihdr.writeUInt32BE(size, 4);
   ihdr[8] = 8; // bit depth
-  ihdr[9] = 2; // colour type: RGB
+  ihdr[9] = colourType;
   return Buffer.from(Buffer.concat([
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
     chunk("IHDR", ihdr),

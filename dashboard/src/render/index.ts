@@ -79,6 +79,7 @@ export type {
 // of this file.
 export {
   APPLE_TOUCH_ICON,
+  APP_BADGE_PNG_96,
   APP_ICON,
   APP_ICON_MASKABLE,
   APP_ICON_MASKABLE_PNG_512,

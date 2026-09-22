@@ -8,7 +8,7 @@ import {
 import { dirname, join, normalize, resolve, sep } from "node:path";
 import {
   ABOUT_PAGE, OVERVIEW_PAGE,
-  APPLE_TOUCH_ICON, APP_ICON, APP_ICON_MASKABLE, APP_ICON_MASKABLE_PNG_512, APP_ICON_PNG_192, APP_ICON_PNG_512,
+  APPLE_TOUCH_ICON, APP_BADGE_PNG_96, APP_ICON, APP_ICON_MASKABLE, APP_ICON_MASKABLE_PNG_512, APP_ICON_PNG_192, APP_ICON_PNG_512,
   SERVICE_WORKER, WEBMANIFEST,
   type NavEntry,
 } from "../../render";
@@ -272,6 +272,7 @@ export function servePwaAsset(path: string): Response | null {
     path === "/icon-192.png" ? APP_ICON_PNG_192
     : path === "/icon-512.png" ? APP_ICON_PNG_512
     : path === "/icon-512-maskable.png" ? APP_ICON_MASKABLE_PNG_512
+    : path === "/badge-96.png" ? APP_BADGE_PNG_96
     : null;
   if (png) return new Response(png, { headers: { "content-type": "image/png" } });
   if (path === "/apple-touch-icon.png") {
