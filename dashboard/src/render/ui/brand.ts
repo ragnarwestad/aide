@@ -103,3 +103,10 @@ export const appIcon = (background: string): string => icon(background, 0.86);
  *  a circle or a squircle, so the mark keeps well clear of the edges.
  *  Same bars, less of the canvas. */
 export const appIconMaskable = (background: string): string => icon(background, 0.7);
+
+/** The mark with NOTHING behind it, for Android's notification badge:
+ *  that one is drawn as a white silhouette of whatever is opaque, so an
+ *  icon with a background rect silhouettes to a solid square. Bars at 10
+ *  rather than 9 for the same reason the favicon uses 10 — the badge is
+ *  drawn at 24dp, and the lightest bar is the first thing to disappear. */
+export const appBadge = (): string => svg(LIGHT, 10);

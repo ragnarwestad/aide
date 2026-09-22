@@ -13,7 +13,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { appIcon, appIconMaskable } from "../../../src/render/ui/brand.ts";
 import { CSS } from "../../../src/render/ui/css";
-import { APPLE_TOUCH_ICON, SERVICE_WORKER, THEME_COLORS } from "../../../src/render/ui/pwa.ts";
+import { APPLE_TOUCH_ICON, PWA_FILES, SERVICE_WORKER, THEME_COLORS } from "../../../src/render/ui/pwa.ts";
 import { barCentres, coloredBox, decodePng, hexRgb, readIconSvg } from "../../helpers/icon-image.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 
@@ -139,6 +139,9 @@ describe("the icons (criterion 3)", () => {
     ["/icon-512.png", "image/png"],
     ["/icon-512-maskable.png", "image/png"],
     ["/apple-touch-icon.png", "image/png"],
+    // Not an app icon and not in the manifest: the notification badge,
+    // which only the service worker asks for.
+    ["/badge-96.png", "image/png"],
   ];
 
   for (const [path, type] of cases) {
@@ -307,13 +310,19 @@ describe("the app's colours are the page's colours", () => {
  *  globals it uses. */
 function worker(networkAnswer: () => Promise<Response>) {
   const listeners: Record<string, (event: unknown) => void> = {};
-  const shown: { title: string; options: { body?: string; data?: { url?: string } } }[] = [];
+  const shown: {
+    title: string;
+    options: { body?: string; icon?: string; badge?: string; data?: { url?: string } };
+  }[] = [];
   const opened: string[] = [];
   const self = {
     addEventListener: (type: string, fn: (event: unknown) => void) => void (listeners[type] = fn),
     clients: { claim: () => Promise.resolve(), openWindow: async (url: string) => void opened.push(url) },
     registration: {
-      showNotification: async (title: string, options: { body?: string; data?: { url?: string } }) =>
+      showNotification: async (
+        title: string,
+        options: { body?: string; icon?: string; badge?: string; data?: { url?: string } },
+      ) =>
         void shown.push({ title, options }),
     },
   };
@@ -409,6 +418,20 @@ describe("the worker shows every push and opens the spec on a tap (criterion 10)
     const w = worker(async () => new Response("ok"));
     await w.push(() => ({ title: "aide · 81-x", body: "Implement failed.", url: "/specs/aide/81-x" }));
     expect(w.shown).toEqual([{ title: "aide · 81-x", options: expect.objectContaining({ body: "Implement failed.", data: { url: "/specs/aide/81-x" } }) }]);
+  });
+
+  // Without these the phone draws its own generic mark. The badge is the
+  // status-bar glyph, which Android silhouettes off the alpha channel, so
+  // it names the transparent one and never an app icon.
+  test("a notification carries the mark, and the badge is the transparent one", async () => {
+    const w = worker(async () => new Response("ok"));
+    await w.push(() => ({ title: "aide · 81-x", body: "Implement failed." }));
+    expect(w.shown[0]!.options.icon).toBe("/icon-192.png");
+    expect(w.shown[0]!.options.badge).toBe("/badge-96.png");
+  });
+
+  test("the badge it names is a file the board actually serves", () => {
+    expect(Object.keys(PWA_FILES)).toContain("badge-96.png");
   });
 
   test("a push with no payload, or one that is not JSON, still shows a notification", async () => {

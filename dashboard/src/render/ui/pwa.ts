@@ -19,8 +19,8 @@
 // who wants it already is.
 import { Buffer } from "node:buffer";
 
-import { appIcon, appIconMaskable } from "./brand.ts";
-import { rasterizeIcon } from "./icon-png.ts";
+import { appBadge, appIcon, appIconMaskable } from "./brand.ts";
+import { rasterizeIcon, rasterizeMark } from "./icon-png.ts";
 
 /** The window's own colour, light and dark: what paints the title bar
  *  of an installed desktop app and the status bar on a phone. Both are
@@ -41,6 +41,10 @@ export const APP_ICON_MASKABLE = appIconMaskable(THEME_COLORS.light);
 export const APP_ICON_PNG_192 = rasterizeIcon(APP_ICON, 192);
 export const APP_ICON_PNG_512 = rasterizeIcon(APP_ICON, 512);
 export const APP_ICON_MASKABLE_PNG_512 = rasterizeIcon(APP_ICON_MASKABLE, 512);
+/** What a push notification names as its `badge` — the mark on
+ *  transparency, at the size Android asks for. Not in the manifest: a
+ *  badge is not an app icon, and nothing installs it. */
+export const APP_BADGE_PNG_96 = rasterizeMark(appBadge(), 96);
 
 /** The manifest itself. `start_url` carries no query string, so the
  *  installed app opens on the list. */
@@ -184,8 +188,18 @@ self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim(
 self.addEventListener("push", (event) => {
   let n = {};
   try { n = event.data.json(); } catch (e) {}
+  // The mark, not the browser's own stand-in. No backticks in here: this
+  // whole worker is a template literal, and one would end it.
+  //
+  // The icon is the picture in the notification. The badge is the small
+  // glyph in the status bar, which Android draws as a white silhouette of
+  // whatever is opaque — so it points at the mark on transparency and
+  // never at an app icon, whose background rect would silhouette to a
+  // solid square.
   event.waitUntil(self.registration.showNotification(n.title || "aide -board", {
     body: n.body || "",
+    icon: "/icon-192.png",
+    badge: "/badge-96.png",
     data: { url: n.url || "/" },
   }));
 });
@@ -223,6 +237,7 @@ export const PWA_FILES: Readonly<Record<string, string | Buffer>> = {
   "icon-192.png": APP_ICON_PNG_192,
   "icon-512.png": APP_ICON_PNG_512,
   "icon-512-maskable.png": APP_ICON_MASKABLE_PNG_512,
+  "badge-96.png": APP_BADGE_PNG_96,
   "apple-touch-icon.png": APPLE_TOUCH_ICON,
 };
 

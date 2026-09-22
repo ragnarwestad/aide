@@ -86,15 +86,22 @@ background behind the title bar.
 
 An installed app is launched on `start_url` — `/`, with no query string — and opens straight into the spec list.
 
-Eight routes make it work — `/manifest.webmanifest`, `/sw.js`, `/icon-512.svg`, `/icon-512-maskable.svg`,
-`/icon-192.png`, `/icon-512.png`, `/icon-512-maskable.png` and `/apple-touch-icon.png`. All eight are computed in
-`src/render/ui/pwa.ts`, so nothing has to be kept in sync by hand. The served board answers them from memory,
-ahead of the static files; `generate` also writes the same eight into the site directory, which is what a
-published copy of the site needs beside its pages. The four PNG icons are drawn
+Nine routes make it work — `/manifest.webmanifest`, `/sw.js`, `/icon-512.svg`, `/icon-512-maskable.svg`,
+`/icon-192.png`, `/icon-512.png`, `/icon-512-maskable.png`, `/apple-touch-icon.png` and `/badge-96.png`. All nine are
+computed in `src/render/ui/pwa.ts`, so nothing has to be kept in sync by hand. The served board answers them from
+memory, ahead of the static files; `generate` also writes the same nine into the site directory, which is what a
+published copy of the site needs beside its pages. The five PNGs are drawn
 from the SVG icons at start-up (`src/render/ui/icon-png.ts`); Chrome on Android offers an install, not a home-screen
 shortcut, only when the manifest lists raster icons of 192 and 512 pixels and a maskable one. A browser will not install a page whose manifest is a data URI, which is why these are
 routes at all; they answer any request with a `Host` of the dashboard's own. The spec page fetches one more thing —
 its own editor or viewer script — and everything else a page needs is carried inline.
+
+**A notification carries the mark.** A push names `/icon-192.png` as its icon — the picture in the notification — and
+`/badge-96.png` as its badge, the small glyph Android draws in the status bar. The badge is the only image here with an
+alpha channel, and that is the whole reason it exists separately: Android draws a badge as a white silhouette of
+whatever is opaque, so an app icon, whose background covers the canvas, silhouettes to a solid square. `/badge-96.png`
+is the four bars with nothing behind them. Named by the service worker alone — it is not an app icon, so the manifest
+does not list it.
 
 The service worker caches **nothing**. Every line of this dashboard is live state, and a queue served out of yesterday's
 storage would be worse than no app at all: it passes every request through to the server and answers a page load with a

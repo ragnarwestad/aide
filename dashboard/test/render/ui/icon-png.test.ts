@@ -1,8 +1,8 @@
 // Spec 505: the rasterizer that draws the icon SVG as a PNG, checked against
 // the pixels it produces.
 import { describe, expect, test } from "bun:test";
-import { appIcon, appIconMaskable } from "../../../src/render/ui/brand.ts";
-import { rasterizeIcon } from "../../../src/render/ui/icon-png.ts";
+import { appBadge, appIcon, appIconMaskable } from "../../../src/render/ui/brand.ts";
+import { rasterizeIcon, rasterizeMark } from "../../../src/render/ui/icon-png.ts";
 import { THEME_COLORS } from "../../../src/render/ui/pwa.ts";
 import { barCentres, coloredBox, decodePng, hexRgb, readIconSvg } from "../../helpers/icon-image.ts";
 
@@ -56,4 +56,48 @@ describe("the rasterizer refuses an SVG it does not understand (AC-3)", () => {
       expect(() => rasterizeIcon(svg, 64)).toThrow();
     });
   }
+});
+
+// The notification badge. Android reads the alpha channel and draws a
+// white silhouette of whatever is opaque, so the ONE thing that matters
+// here is that the space around the bars is transparent: an icon with its
+// background rect silhouettes to a solid square, which is worse than the
+// bell the browser draws by itself.
+describe("the badge PNG is the mark on transparency", () => {
+  const png = decodePng(rasterizeMark(appBadge(), 96));
+
+  test("it carries an alpha channel, unlike the icons", () => {
+    expect(png.colorType).toBe(6);
+    expect(png.width).toBe(96);
+  });
+
+  test("the corners are fully transparent", () => {
+    for (const [x, y] of [[0, 0], [95, 0], [0, 95], [95, 95]] as const) {
+      expect(png.pixel(x, y)[3]).toBe(0);
+    }
+  });
+
+  test("every bar's own centre is fully opaque", () => {
+    const bars = appBadge().matchAll(
+      /<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/g,
+    );
+    let seen = 0;
+    for (const m of bars) {
+      const k = 96 / 64;
+      const cx = Math.floor((Number(m[1]) + Number(m[3]) / 2) * k);
+      const cy = Math.floor((Number(m[2]) + Number(m[4]) / 2) * k);
+      expect(png.pixel(cx, cy)[3]).toBe(255);
+      seen += 1;
+    }
+    expect(seen).toBe(4);
+  });
+
+  // The band between two bars: nothing is drawn there, so a silhouette
+  // has to show four separate marks rather than one block.
+  test("the gaps between the bars are transparent", () => {
+    const k = 96 / 64;
+    for (const x of [21, 35, 49]) {
+      expect(png.pixel(Math.round(x * k), Math.round(32 * k))[3]).toBe(0);
+    }
+  });
 });

@@ -16,16 +16,19 @@ function crc32(bytes: Uint8Array): number {
 }
 
 export type Rgb = [number, number, number];
+/** An RGBA pixel, which only the badge's own colour type 6 produces. */
+export type Rgba = [number, number, number, number];
 
 export interface DecodedPng {
   width: number;
   height: number;
   colorType: number;
-  pixel(x: number, y: number): Rgb;
+  pixel(x: number, y: number): Rgb | Rgba;
 }
 
 /** Decodes an 8-bit, non-interlaced RGB PNG with filter 0 only; throws on
- *  anything malformed (signature, chunk CRC, IEND, inflated length). */
+ *  anything malformed (signature, chunk CRC, IEND, inflated length). RGBA
+ *  (colour type 6) too, for the notification badge. */
 export function decodePng(bytes: Uint8Array): DecodedPng {
   const sig = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
   if (!sig.every((b, i) => bytes[i] === b)) throw new Error("png: bad signature");
@@ -51,17 +54,25 @@ export function decodePng(bytes: Uint8Array): DecodedPng {
   }
   if (!ended || at !== bytes.length) throw new Error("png: no IEND at the end");
   if (!header) throw new Error("png: no IHDR");
-  if (header.colorType !== 2) throw new Error(`png: colour type ${header.colorType}, want 2 (RGB)`);
+  // 2 is the icons' own (RGB); 6 is the badge's (RGBA), whose whole point
+  // is the alpha channel. `pixel` then answers four values instead of
+  // three, so a caller asking an RGB icon about alpha gets `undefined`
+  // rather than a made-up 255.
+  if (header.colorType !== 2 && header.colorType !== 6) {
+    throw new Error(`png: colour type ${header.colorType}, want 2 (RGB) or 6 (RGBA)`);
+  }
+  const channels = header.colorType === 6 ? 4 : 3;
   const raw = inflateSync(Buffer.concat(idat));
   const { width, height } = header;
-  if (raw.length !== height * (1 + 3 * width)) throw new Error("png: inflated length is wrong");
-  const stride = 1 + 3 * width;
+  if (raw.length !== height * (1 + channels * width)) throw new Error("png: inflated length is wrong");
+  const stride = 1 + channels * width;
   for (let y = 0; y < height; y++) if (raw[y * stride] !== 0) throw new Error("png: filter is not 0");
   return {
     ...header,
     pixel: (x, y) => {
-      const o = y * stride + 1 + x * 3;
-      return [raw[o]!, raw[o + 1]!, raw[o + 2]!];
+      const o = y * stride + 1 + x * channels;
+      const px: Rgb = [raw[o]!, raw[o + 1]!, raw[o + 2]!];
+      return channels === 4 ? ([...px, raw[o + 3]!] as Rgba) : px;
     },
   };
 }
@@ -109,7 +120,7 @@ export function coloredBox(png: DecodedPng, canvas: Rgb) {
 }
 
 /** Each bar's centre pixel at the PNG's scale. */
-export function barCentres(png: DecodedPng, bars: IconBar[]): Rgb[] {
+export function barCentres(png: DecodedPng, bars: IconBar[]): (Rgb | Rgba)[] {
   const k = png.width / 64;
   return bars.map((b) => png.pixel(Math.floor(((b.x0 + b.x1) / 2) * k), Math.floor(((b.y0 + b.y1) / 2) * k)));
 }
