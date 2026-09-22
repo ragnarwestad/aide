@@ -97,7 +97,7 @@
      control sits in front of the name on a phone, as it always has. */
   table.list { --fold-w: 0px; }
   table.list { --phase-w: 5.75rem; --aimodel-w: 16.5rem; --tick-w: 31px; --time-w: 3.25rem;
-    --state-w: min(5.25rem, max(2.5rem, calc(100vw - 4px - 2 * var(--sp-4) - var(--sp-3) - var(--fold-w) - var(--phase-w)
+    --state-w: min(5.25rem, max(2.5rem, calc(100vw - 4px - 2px - 2 * var(--sp-4) - var(--sp-3) - var(--fold-w) - var(--phase-w)
       - var(--aimodel-w) - var(--tick-w) - 4 * var(--sp-2) - var(--time-w)))); }
   html[lang="en"] table.list { --phase-w: 4.5rem; }
   header { padding: var(--sp-3) var(--sp-4) var(--sp-2); }
@@ -243,16 +243,19 @@
      so the padding it used to carry is gone with it; the subrows keep
      theirs and so read as indented under this line. */
 
-  /* The open spec's faint ground, restated on the ROWS: the base rule
-     paints the cells, and at this width the cells are flex items with
-     their padding moved off them — or display:contents, which paints
-     nothing at all — so the tint showed in patches. The tr is the box
-     that spans the group here, so it carries the ground. */
-  table.list tr.spechead:has(+ tr.specstate + tr.subrow),
-  table.list tr.specstate:has(+ tr.subrow),
+  /* The open spec's frame, restated on the ROWS: list.css draws it on
+     the cells, and at this width the cells are flex items with their
+     padding moved off them — or display:contents, which draws nothing
+     at all — so the line showed in pieces. The tr is the box that spans
+     the group here, so it carries the frame; the lines keep the page's
+     own background, as everywhere else. */
   table.list tr.subrow,
   table.list :is(tr.subrow, tr.phasemsgs) + tr.specnotice,
-  table.list :is(tr.subrow, tr.phasemsgs) + tr.specnotice + tr.specnotice { background: var(--surface-2); }
+  table.list :is(tr.subrow, tr.phasemsgs) + tr.specnotice + tr.specnotice {
+    border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+  table.list tr.specstate + tr.subrow { border-top: 1px solid var(--line); }
+  table.list :is(tr.subrow, tr.phasemsgs, tr.specnotice):is(:last-child, :has(+ tr.spechead)) {
+    border-bottom: 1px solid var(--line); }
   table.list tr.specstate > td:not(:first-child) { flex: 0 0 auto; min-width: 0; }
   /* The chevron's COLUMN is gone at this width (its width is 0 in
      list.css), so the empty cell every phase line carries for it goes

@@ -782,14 +782,16 @@ describe("spec 474: the New-spec page's Depends-on columns sit side by side, fra
 
 // --- spec 520: message rows come after the phase lines and keep the ground ---
 
-describe("a message row after the phase lines has the open row's ground on a phone (AC-2)", () => {
-  test("the ground rule names a message row that follows tr.subrow or tr.phasemsgs", () => {
-    // The header's own row is followed by its state row now, so what it
-    // looks ahead to is that one and then the phase lines (2026-09-22).
-    const rule = NARROW.match(/([^\n}]*tr\.spechead:has\(\+ tr\.specstate \+ tr\.subrow\)[^{]*)\{([^}]*)\}/)?.[0] ?? "";
-    expect(rule).toContain("background: var(--surface-2)");
-    expect(rule).toContain("tr.specnotice");
-    expect(rule).toContain("tr.phasemsgs");
-    expect(rule).not.toContain("tr.specnotice:has(+ tr.subrow)");
+describe("a message row after the phase lines is inside the open row's frame on a phone (AC-2)", () => {
+  test("the frame rule names a message row that follows tr.subrow or tr.phasemsgs", () => {
+    // A frame rather than a ground since 2026-09-22, and drawn on the
+    // rows here: the cells are flex items at this width, so a line on
+    // them showed in pieces.
+    const sides = NARROW.match(/table\.list tr\.subrow,\n[^{]*\{[^}]*\}/)?.[0] ?? "";
+    expect(sides).toContain("border-left: 1px solid var(--line)");
+    expect(sides).toContain("tr.specnotice");
+    expect(sides).toContain("tr.phasemsgs");
+    expect(NARROW).toContain("table.list tr.specstate + tr.subrow { border-top: 1px solid var(--line); }");
+    expect(NARROW).not.toMatch(/table\.list tr\.subrow,[^{]*\{[^}]*background: var\(--surface-2\)/);
   });
 });
