@@ -222,7 +222,7 @@
   table.list tr.specstate > td:first-child { box-sizing: border-box;
     flex: 0 0 calc(var(--sp-3) + var(--fold-w) + var(--phase-w) + var(--aimodel-w) + var(--tick-w)
       + 2 * var(--sp-2));
-    padding-left: calc(24px + var(--sp-1)); }
+    padding-left: calc(var(--sp-3) + 24px + var(--sp-1)); }
   /* Line 1: the fold's own 24px, the row's 8px gap, and 8px more —
      `100% - 32px` is the exact sum, and exact is what wraps, since one
      fractional pixel in the row's own width is enough to put the title
@@ -256,7 +256,12 @@
      header's own cell stays: the two header rows are flex lines here, so
      the chevron rides inside one rather than standing in a column. */
   table.list tr.subrow > td[data-col="fold"] { display: none; }
-  table.list tr.spechead > td.foldcell { flex: 0 0 auto; padding: 0; }
+  /* The title line keeps the same left edge as everything under it: the
+     cell's own padding is what every other line here carries, and
+     without it the chevron and the title sat flush against the list's
+     own edge while the pips, the summary and the message cards did
+     not. */
+  table.list tr.spechead > td.foldcell { flex: 0 0 auto; padding: 0 0 0 var(--sp-3); }
   /* The vertical padding moves off the cells and onto the row: each td
      kept the desktop 10px above and below, and two tds stacked as two
      flex lines put 10px + the row gap + 10px between the name line and

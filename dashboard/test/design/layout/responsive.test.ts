@@ -98,7 +98,10 @@ describe("Started and Cost fold away at phone width", () => {
     expect(NARROW).toMatch(
       /table\.list tr\.specstate > td:first-child \{ box-sizing: border-box;\s*\n\s*flex: 0 0 calc\(var\(--sp-3\) \+ var\(--fold-w\) \+ var\(--phase-w\) \+ var\(--aimodel-w\) \+ var\(--tick-w\)/,
     );
-    expect(NARROW).toContain("padding-left: calc(24px + var(--sp-1)); }");
+    expect(NARROW).toContain("padding-left: calc(var(--sp-3) + 24px + var(--sp-1)); }");
+    // And the title line carries the same left edge as the lines under
+    // it, rather than sitting flush against the list's own (2026-09-22).
+    expect(NARROW).toContain("table.list tr.spechead > td.foldcell { flex: 0 0 auto; padding: 0 0 0 var(--sp-3); }");
     // The summary and the not-verified mark keep the indent both lines
     // carry: a basis of the whole width plus a left margin hangs past the
     // row's right edge.
