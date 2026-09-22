@@ -39,7 +39,7 @@ const NARROW = mediaBlock(CSS, "@media (max-width: 40rem) {");
 // Spec 488: the two narrower bands the compact AI/model button's own
 // toggle lives in now, below the outer 40rem block above.
 const BELOW_600 = mediaBlock(CSS, "@media (max-width: 37.5rem) {");
-const GROWING_BAND = mediaBlock(CSS, "@media (min-width: 27rem) and (max-width: 37.5rem) {");
+const GROWING_BAND = mediaBlock(CSS, "@media (min-width: 27.5rem) and (max-width: 37.5rem) {");
 
 const target = (specFolder: string): SpecTarget => ({ project: "aide", specFolder });
 
@@ -390,7 +390,7 @@ describe("the compact button grows with the width (spec 488)", () => {
   // exactly as before spec 488 — the bare model name, never the
   // tool-prefixed form.
   test("below 400px the button still shows the short text, and hides the full one", () => {
-    expect(BELOW_600).toContain("table.list { --aimodel-w: 3.875rem; }");
+    expect(BELOW_600).toContain("table.list { --aimodel-w: 3.125rem; }");
     expect(BELOW_600).toMatch(/\.aimodelfull \{ display: none; \}/);
   });
 
