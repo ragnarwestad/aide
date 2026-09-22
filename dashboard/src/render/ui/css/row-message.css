@@ -9,7 +9,10 @@
 .trackingform + .rowmsg, .specform + .rowmsg { margin-top: var(--sp-3); }
 .rowmsg.failed { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
 .rowmsg.waiting { background: var(--warn-soft); border-color: var(--warn); color: var(--warn); }
-.rowmsg.info { background: var(--surface-2); border-color: var(--line); color: var(--muted); }
+/* The light background, framed — not a filled grey box: a card on the
+   specs list sits inside the open row's own frame, and two greys one
+   inside the other read as a panel rather than a message. */
+.rowmsg.info { background: var(--surface); border-color: var(--line); color: var(--muted); }
 /* A message that carries a path: `<span>` takes the room the icon
    leaves, and a path with no spaces in it breaks rather than pushing the
    page sideways at phone width. */

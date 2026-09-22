@@ -270,7 +270,10 @@ describe("an open row's message rows have air above the first and under the last
 
   test("the last message row of the open row has the closing air, and a bare specnotice does not", async () => {
     const { CSS } = await import("../../../src/render/ui/css");
-    const rule = CSS.match(/([^\n}]*:last-child[^{]*tr\.specnotice[^{]*|[^\n}]*tr\.specnotice:is\(:last-child[^{]*)\{([^}]*)\}/) ?? ([] as unknown as RegExpMatchArray);
+    // By the declaration, not by the selector's shape: the open row's
+    // frame (2026-09-22) selects the same last row to draw its bottom
+    // edge on, and a selector-shaped search finds that one first.
+    const rule = CSS.match(/([^\n}]*tr\.specnotice[^{]*)\{([^}]*padding-bottom: var\(--sp-3\)[^}]*)\}/) ?? ([] as unknown as RegExpMatchArray);
     expect(rule[2] ?? "").toContain("padding-bottom: var(--sp-3)");
     expect(rule[1] ?? "").toContain("tr.phasemsgs");
     expect(rule[1] ?? "").toContain("tr.spechead");

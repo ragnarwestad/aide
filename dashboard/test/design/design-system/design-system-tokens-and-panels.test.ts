@@ -134,18 +134,23 @@ describe("the row's message panel is the component, not new markup", () => {
   });
 });
 
-// --- spec 520: message rows come after the phase lines and keep the ground ---
+// --- spec 520: message rows come after the phase lines, inside the frame ---
 
-describe("a message row after the phase lines has the open row's ground (spec 520, AC-2)", () => {
-  test("list.css grounds a message row that follows tr.subrow or tr.phasemsgs", async () => {
+describe("a message row after the phase lines is inside the open row's frame (spec 520, AC-2)", () => {
+  test("list.css frames the phase lines and the message rows that follow them", async () => {
     const { CSS } = await import("../../../src/render/ui/css");
-    // The ground starts at the phase lines: the two head lines above
-    // keep the background every other head line has, so the fold
-    // control's hover stays visible on them (2026-09-22).
-    const rule = CSS.match(/table\.list tr\.subrow td,[^{]*\{[^}]*\}/)?.[0] ?? "";
-    expect(rule).toContain("background: var(--surface-2)");
-    expect(rule).toContain("tr.specnotice td");
-    expect(rule).toContain("tr.phasemsgs");
-    expect(rule).not.toContain("tr.specnotice:has(+ tr.subrow)");
+    // A frame rather than a ground since 2026-09-22: the lines keep the
+    // page's own background, so a message card inside them is not a
+    // grey box on a grey box, and the fold control's hover — drawn in
+    // that same faint colour — stays visible.
+    const sides = CSS.match(/table\.list :is\(tr\.subrow, tr\.phasemsgs\) > td:first-child,[^{]*\{[^}]*\}/)?.[0] ?? "";
+    expect(sides).toContain("border-left: 1px solid var(--line)");
+    expect(sides).toContain("+ tr.specnotice > td:first-child");
+    const top = CSS.match(/table\.list tr\.specstate \+ :is\(tr\.subrow, tr\.phasemsgs\) > td \{[^}]*\}/)?.[0] ?? "";
+    expect(top).toContain("border-top: 1px solid var(--line)");
+    const bottom = CSS.match(/table\.list :is\(tr\.subrow, tr\.phasemsgs, tr\.specnotice\):is\(:last-child[^{]*\{[^}]*\}/)?.[0] ?? "";
+    expect(bottom).toContain("border-bottom: 1px solid var(--line)");
+    // And no row of an open spec paints a ground of its own any more.
+    expect(CSS).not.toMatch(/table\.list tr\.subrow td[^{]*\{[^}]*background: var\(--surface-2\)/);
   });
 });
