@@ -134,23 +134,17 @@ describe("the row's message panel is the component, not new markup", () => {
   });
 });
 
-// --- spec 520: message rows come after the phase lines, inside the frame ---
+// --- spec 520: message rows come after the phase lines, on the same ground ---
 
-describe("a message row after the phase lines is inside the open row's frame (spec 520, AC-2)", () => {
-  test("list.css frames the phase lines and the message rows that follow them", async () => {
+describe("an open row paints no ground of its own (spec 520, AC-2)", () => {
+  test("list.css leaves the phase lines and their message rows the page's own background", async () => {
     const { CSS } = await import("../../../src/render/ui/css");
-    // A frame rather than a ground since 2026-09-22: the lines keep the
-    // page's own background, so a message card inside them is not a
-    // grey box on a grey box, and the fold control's hover — drawn in
-    // that same faint colour — stays visible.
-    const sides = CSS.match(/table\.list :is\(tr\.subrow, tr\.phasemsgs\) > td:first-child,[^{]*\{[^}]*\}/)?.[0] ?? "";
-    expect(sides).toContain("border-left: 1px solid var(--line)");
-    expect(sides).toContain("+ tr.specnotice > td:first-child");
-    const top = CSS.match(/table\.list tr\.specstate \+ :is\(tr\.subrow, tr\.phasemsgs\) > td \{[^}]*\}/)?.[0] ?? "";
-    expect(top).toContain("border-top: 1px solid var(--line)");
-    const bottom = CSS.match(/table\.list :is\(tr\.subrow, tr\.phasemsgs, tr\.specnotice\):is\(:last-child[^{]*\{[^}]*\}/)?.[0] ?? "";
-    expect(bottom).toContain("border-bottom: 1px solid var(--line)");
-    // And no row of an open spec paints a ground of its own any more.
+    // The faint ground the group had until 2026-09-22 greyed the message
+    // cards inside it and hid the fold control's hover, drawn in that
+    // same colour.
     expect(CSS).not.toMatch(/table\.list tr\.subrow td[^{]*\{[^}]*background: var\(--surface-2\)/);
+    expect(CSS).not.toMatch(/tr\.specnotice td[^{]*\{[^}]*background: var\(--surface-2\)/);
+    // And an info card is framed, not filled.
+    expect(CSS).toMatch(/\.rowmsg\.info \{[^}]*background: var\(--surface\)[^}]*border-color: var\(--line\)/);
   });
 });

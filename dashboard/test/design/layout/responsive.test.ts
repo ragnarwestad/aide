@@ -782,16 +782,12 @@ describe("spec 474: the New-spec page's Depends-on columns sit side by side, fra
 
 // --- spec 520: message rows come after the phase lines and keep the ground ---
 
-describe("a message row after the phase lines is inside the open row's frame on a phone (AC-2)", () => {
-  test("the frame rule names a message row that follows tr.subrow or tr.phasemsgs", () => {
-    // A frame rather than a ground since 2026-09-22, and drawn on the
-    // rows here: the cells are flex items at this width, so a line on
-    // them showed in pieces.
-    const sides = NARROW.match(/table\.list tr\.subrow,\n[^{]*\{[^}]*\}/)?.[0] ?? "";
-    expect(sides).toContain("border-left: 1px solid var(--line)");
-    expect(sides).toContain("tr.specnotice");
-    expect(sides).toContain("tr.phasemsgs");
-    expect(NARROW).toContain("table.list tr.specstate + tr.subrow { border-top: 1px solid var(--line); }");
+describe("an open row paints no ground of its own on a phone (AC-2)", () => {
+  test("the phone rules leave the phase lines and their message rows the page's background", () => {
+    // Painted on the rows here until 2026-09-22, since the cells are
+    // flex items at this width — and it greyed the message cards the
+    // open row draws inside it.
     expect(NARROW).not.toMatch(/table\.list tr\.subrow,[^{]*\{[^}]*background: var\(--surface-2\)/);
+    expect(NARROW).not.toMatch(/tr\.specnotice[^{]*\{[^}]*background: var\(--surface-2\)/);
   });
 });

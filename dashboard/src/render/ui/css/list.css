@@ -627,20 +627,10 @@ table.list tr.specstate td { border-top: none; border-bottom: none; }
    group a control belongs to. A ground of its own (used until
    2026-09-22) greyed the message cards inside it as well, and hid the
    fold control's hover, which is drawn in the same faint colour. */
-table.list :is(tr.subrow, tr.phasemsgs) > td:first-child,
-table.list :is(tr.subrow, tr.phasemsgs) + tr.specnotice > td:first-child,
-table.list :is(tr.subrow, tr.phasemsgs) + tr.specnotice + tr.specnotice > td:first-child {
-  border-left: 1px solid var(--line); }
-table.list :is(tr.subrow, tr.phasemsgs) > td:last-child,
-table.list :is(tr.subrow, tr.phasemsgs) + tr.specnotice > td:last-child,
-table.list :is(tr.subrow, tr.phasemsgs) + tr.specnotice + tr.specnotice > td:last-child {
-  border-right: 1px solid var(--line); }
-/* The frame's own top and bottom: the first line under the head pair,
-   and whichever line is the group's last — the one the next spec's head
-   row follows, or the last row of the table. */
-table.list tr.specstate + :is(tr.subrow, tr.phasemsgs) > td { border-top: 1px solid var(--line); }
-table.list :is(tr.subrow, tr.phasemsgs, tr.specnotice):is(:last-child, :has(+ tr.spechead)) > td {
-  border-bottom: 1px solid var(--line); }
+/* An OPEN spec keeps the page's own light background, as every other
+   row does: the faint ground it had until 2026-09-22 greyed the message
+   cards sitting inside it and hid the fold control's hover, which is
+   drawn in that same colour. */
 table.list tbody tr.spechead:first-child td,
 table.list.testservers tbody tr:first-child td { border-top: none; }
 /* The subrow that follows the pair reads as indented under it, so the
