@@ -119,7 +119,7 @@ async function measureStateRow() {
     page.locator('th[data-col="state"]').evaluate((el) => el.getBoundingClientRect()),
     page.locator("table.speclist").evaluate((el) => el.getBoundingClientRect()),
     page.locator("main").first().evaluate((el) => el.getBoundingClientRect()),
-    page.locator("tr.spechead .badgeslot").first().evaluate((el) => el.getBoundingClientRect()),
+    page.locator("tr.specstate .badgeslot").first().evaluate((el) => el.getBoundingClientRect()),
     // The row's one action rides the caption line the fold opens
     // (2026-09-08); a head row carries none.
     page.locator('tr.subrow[data-caption="1"] .actionslot').first()
@@ -290,7 +290,7 @@ test("spec 379 REQ-5: the phone layout's row is not held to the desktop's fixed 
   // The badge's own holder, since the `.row` that held the pair is
   // dissolved at this width (2026-09-08): what REQ-5 is about is that
   // nothing on the phone's row carries a desktop width.
-  const row = await page.locator("tr.spechead .badgeslot").first().evaluate((el) => el.getBoundingClientRect());
+  const row = await page.locator("tr.specstate .badgeslot").first().evaluate((el) => el.getBoundingClientRect());
   expect(row.width).toBeLessThan(280);
   // Every test after this one shares `page` and assumes a desktop
   // width (this file sets no viewport of its own outside `VIEWPORTS`'

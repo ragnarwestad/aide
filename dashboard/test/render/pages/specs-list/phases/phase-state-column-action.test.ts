@@ -52,12 +52,15 @@ describe("spec 157: the row draws one action, on its caption line", () => {
       Date.parse("2026-08-21T12:00:00Z"),
     );
   };
-  const headRow = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
+  const headRow = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
   const cells = (tr: string): string[] =>
-    [...tr.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
-  /** The State column: the head row's second cell, which is where spec
-   *  143 pinned it. The badge is what it holds. */
-  const state = (html: string) => cells(headRow(html))[1] ?? "";
+    [...tr.replace(/<td[^>]*data-col="fold"[^>]*>[\s\S]*?<\/td>/g, "").matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)]
+      .map((m) => m[1] ?? "");
+  /** The State column of the header, by its column rather than its
+   *  position: the header is two rows since 2026-09-22, and the chevron
+   *  has a cell of its own. The badge is what it holds. */
+  const state = (html: string) =>
+    headRow(html).match(/<td[^>]*data-col="state"[^>]*>([\s\S]*?)<\/td>/)?.[1] ?? "";
   /** The caption line's State cell, which is where the row's one
    *  control lives since 2026-09-08: the head line says what the spec
    *  IS, and the line that heads what it is set to do carries the
@@ -205,10 +208,13 @@ describe("spec 157: the row draws one action, on its caption line", () => {
     });
     const subs = [...html.matchAll(/<tr class="subrow[^"]*"[^>]*>[\s\S]*?<\/tr>/g)].map((m) => m[0]);
     for (const sub of subs) {
+      // The chevron's own column comes first and is empty on every line
+      // but the header's (2026-09-22); the phase's own cell is the next.
       expect([sub.slice(0, 60), sub.indexOf('<td class="phasecell">')]).toEqual([
         sub.slice(0, 60),
-        sub.indexOf("<td"),
+        sub.indexOf('<td class="phasecell">'),
       ]);
+      expect(sub.indexOf('<td data-col="fold">')).toBe(sub.indexOf("<td"));
       // The same count on EVERY phase line since spec 179 put a picker
       // on each of them: no line borrows a slot from a `rowspan` on
       // the line above it any more. Six since Created's blank
@@ -238,7 +244,10 @@ describe("spec 157: the row draws one action, on its caption line", () => {
   test("the head row ends on the cost cell whatever the state", () => {
     for (const r of [[], [lead()], [lead({ state: "running" })], [lead({ errorReason: "conflict" })]]) {
       const row = headRow(rows(r as QueueRowView[]));
-      expect(cells(row)).toHaveLength(5);
+      // Title, pips, state, time, cost, created — the chevron's cell is
+      // dropped by `cells` above, and the pips gained one of their own
+      // when the title took a row to itself (2026-09-22).
+      expect(cells(row)).toHaveLength(6);
       expect(row).toMatch(/data-col="cost">[\s\S]*<\/td><\/tr>$/);
     }
   });
@@ -343,7 +352,8 @@ describe("spec 439: a recorded phase choice survives the render (AC-1 - AC-5)", 
       Date.parse("2026-08-21T12:00:00Z"),
     );
   const cells = (tr: string): string[] =>
-    [...tr.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
+    [...tr.replace(/<td[^>]*data-col="fold"[^>]*>[\s\S]*?<\/td>/g, "").matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)]
+      .map((m) => m[1] ?? "");
   const captionLine = (html: string) =>
     html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
   const action = (html: string) => cells(captionLine(html))[2] ?? "";
@@ -523,8 +533,10 @@ describe("spec 496: the caption line's total is the head row's own", () => {
     html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
   const slot = (html: string) => captionLine(html).match(/<span class="actionslot">([\s\S]*?)<\/span><\/td>/)?.[1] ?? "";
   const headTime = (html: string) => captionLine(html).match(/<span class="headtime">([\s\S]*?)<\/span><\/span>(?=<\/td>)/)?.[1];
+  // The header's own Time cell, which sits on the second of its two rows
+  // (2026-09-22): the title has the first to itself.
   const headCell = (html: string) =>
-    html.match(/<tr class="spechead[^"]*"[^>]*data-folder="496-total">[\s\S]*?<\/tr>/)?.[0]
+    html.match(/<tr class="specstate"[^>]*data-folder="496-total">[\s\S]*?<\/tr>/)?.[0]
       ?.match(/<td[^>]*data-col="started"[^>]*>([\s\S]*?)<\/td>/)?.[1];
 
   const done = job({

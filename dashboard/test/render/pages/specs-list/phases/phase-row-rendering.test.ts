@@ -47,7 +47,7 @@ describe("a spec's row runs its own phases", () => {
     });
 
   const head = (html: string, folder: string) =>
-    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
+    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>\\s*<tr class="specstate".*?</tr>`))?.[0] ?? "";
   /** The line the run control is on — since spec 109 a `<tr>` of its
    *  own under the header, rather than the header's last cell. */
   const runLine = (html: string, folder: string) =>
@@ -318,18 +318,18 @@ describe("spec 132: the State line says what is happening, or what is next", () 
       Date.parse("2026-08-20T12:00:00Z"),
     );
   const chip = (html: string) => {
-    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
-    const state = head.split("<td")[2] ?? "";
+    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
+    const state = head.match(/<td[^>]*data-col="state"[\s\S]*?<\/td>/)?.[0] ?? "";
     return state.match(/<span class="badge b-[a-z]+"[^>]*>([^<]*)<\/span>/)?.[1] ?? "";
   };
   const chipTitle = (html: string) => {
-    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
-    const state = head.split("<td")[2] ?? "";
+    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
+    const state = head.match(/<td[^>]*data-col="state"[\s\S]*?<\/td>/)?.[0] ?? "";
     return state.match(/<span class="badge b-[a-z]+" title="([^"]*)"/)?.[1] ?? "";
   };
   const actionCell = (html: string) => {
-    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
-    const cells = [...head.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
+    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
+    const cells = [...head.replace(/<td[^>]*data-col="fold"[^>]*>[\s\S]*?<\/td>/g, "").matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
     return cells[cells.length - 1] ?? "";
   };
   const done = () => row({ id: "j1", specFolder: "132-a", steps: ["implement"], state: "done" });

@@ -31,14 +31,15 @@ describe("the specs table fits the box that scrolls it", () => {
   // was squeezed to 7px, with the phase name lying across the pickers
   // beside it (2026-09-09).
   // Four times over: the full list, and the three steps down that hide
-  // one figure column each (Created, Cost, Time) — every set of six adds
-  // up to the whole table, with the hidden columns at 0.
-  test("the six columns are percentages, and they add up to the whole table", () => {
+  // one figure column each (Created, Cost, Time) — every set of seven
+  // (the chevron's own column joined the six since 2026-09-22) adds up
+  // to the whole table, with the hidden columns at 0.
+  test("the seven columns are percentages, and they add up to the whole table", () => {
     // A hidden column is a bare 0 — a zero needs no unit.
     const cols = [...css.matchAll(/col\[data-col="\w+"\] \{ width: (?:([\d.]+)%|0;)/g)].map((m) => rem(m[1] ?? "0"));
-    expect(cols).toHaveLength(24);
-    for (let i = 0; i < cols.length; i += 6) {
-      expect(cols.slice(i, i + 6).reduce((a, b) => a + b, 0)).toBeCloseTo(100, 1);
+    expect(cols).toHaveLength(28);
+    for (let i = 0; i < cols.length; i += 7) {
+      expect(cols.slice(i, i + 7).reduce((a, b) => a + b, 0)).toBeCloseTo(100, 1);
     }
     expect(css).not.toMatch(/col\[data-col="\w+"\] \{ width: (auto|[\d.]+rem)/);
   });

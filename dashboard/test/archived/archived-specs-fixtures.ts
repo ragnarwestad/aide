@@ -215,7 +215,12 @@ export const order = (html: string): string[] =>
 export const rowFor = (html: string, folder: string): string => {
   const rows = html.split('<tr class="spechead').filter((r) => r.includes(`/${folder}"`));
   expect(rows.length).toBe(1);
-  return rows[0]!.slice(0, rows[0]!.indexOf("</tr>"));
+  // The header is TWO rows since 2026-09-22 — the title, then its state —
+  // so it runs to the end of the second, which is where the cells are.
+  const row = rows[0]!;
+  const state = row.indexOf('<tr class="specstate"');
+  const end = state >= 0 ? row.indexOf("</tr>", state) : row.indexOf("</tr>");
+  return row.slice(0, end);
 };
 
 /** One spec's row AND everything drawn under it: its notice panel and,

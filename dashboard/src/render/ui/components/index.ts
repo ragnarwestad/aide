@@ -459,9 +459,9 @@ export type PipKind = "past" | "now" | "todo" | "waiting" | "refused";
  *  Only ever on the pip that is running. A `past` or `todo` pip handed
  *  one is the mark answering a question nobody asked of it, so it is
  *  dropped here rather than trusted from each call site. */
-// A letter over each pip (asked 2026-08-31): the row already carries
-// the full name in `title` (a hover-only fact), so the letter is just
-// its first character — no second source of truth to keep in sync.
+// A letter over each pip, in its pip's own state class so the two take
+// one colour and one skim (list.css). The row already carries the full
+// name in `title`, so the letter is its first character and nothing more.
 // `aria-hidden`: `title` already gives the same word to assistive
 // tech per pip, and a screen reader spelling out four bare letters
 // beside four `title`s reading "Create"/"Analyze"/... would say the
@@ -469,7 +469,7 @@ export type PipKind = "past" | "now" | "todo" | "waiting" | "refused";
 export const pips = (items: { kind: PipKind; title: string; third?: 1 | 2 }[]): string =>
   `<div class="pipwrap">` +
   `<div class="pipletters" aria-hidden="true">` +
-  items.map((p) => `<span>${esc(p.title.slice(0, 1))}</span>`).join("") +
+  items.map((p) => `<span class="${p.kind}">${esc(p.title.slice(0, 1))}</span>`).join("") +
   `</div>` +
   `<div class="pips">` +
   items

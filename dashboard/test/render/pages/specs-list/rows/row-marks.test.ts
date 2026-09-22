@@ -29,15 +29,17 @@ const rowBlock = (html: string, folder: string): string =>
     ),
   )?.[0] ?? "";
 
+// The title cell spans LIST_COLUMNS - 1 since the chevron took a column
+// of its own (2026-09-22) — 6 today, not the "2" of spec+phase merged
+// that it was before the header had a state row of its own.
 const specCell = (html: string, folder: string): string =>
-  rowBlock(html, folder).match(/<td colspan="2">[\s\S]*?<\/td>/)?.[0] ?? "";
+  rowBlock(html, folder).match(/<td colspan="6">[\s\S]*?<\/td>/)?.[0] ?? "";
 
-const stateCellHtml = (html: string, folder: string): string => {
-  const block = rowBlock(html, folder);
-  const start = block.indexOf('<td colspan="2">');
-  const specEnd = start + (block.slice(start).match(/<td colspan="2">[\s\S]*?<\/td>/)?.[0].length ?? 0);
-  return block.slice(specEnd).match(/<td>[\s\S]*?<\/td>/)?.[0] ?? "";
-};
+// The State cell is on the header's SECOND row now (tr.specstate), not
+// after the title cell on the same row.
+const stateCellHtml = (html: string, folder: string): string =>
+  rowBlock(html, folder).match(/<tr class="specstate"[\s\S]*?<td data-col="state">[\s\S]*?<\/td>/)?.[0]
+    ?.match(/<td data-col="state">[\s\S]*?<\/td>/)?.[0] ?? "";
 
 // The row's own message panel (spec 143), where REQ-2's errors move to.
 const noticeCellHtml = (html: string, folder: string): string =>

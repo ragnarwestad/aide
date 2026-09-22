@@ -112,13 +112,15 @@ describe("the row's message panel is the component, not new markup", () => {
       targets: [target()],
     });
     const panel = html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
-    // Six since the Created column joined the other five (spec 317).
-    expect(panel).toContain(`<td colspan="6">`);
+    // Seven since the chevron took a column of its own (2026-09-22); six
+    // since the Created column joined the other five (spec 317).
+    expect(panel).toContain(`<td colspan="7">`);
     expect(panel).toMatch(/class="rowmsg failed">\s*<svg/);
     // The same colspan the "no spec matches" row uses — one column
-    // count for the table, not two that can drift apart.
+    // count for the table, not two that can drift apart. Seven since the
+    // chevron took a column of its own (2026-09-22).
     const empty = renderSpecsRows([], { runnerAvailable: true, targets: [] });
-    expect(empty).toContain(`colspan="6"`);
+    expect(empty).toContain(`colspan="7"`);
   });
 
   test("a held-back note is amber, like the badge that announces it", async () => {
@@ -137,7 +139,9 @@ describe("the row's message panel is the component, not new markup", () => {
 describe("a message row after the phase lines has the open row's ground (spec 520, AC-2)", () => {
   test("list.css grounds a message row that follows tr.subrow or tr.phasemsgs", async () => {
     const { CSS } = await import("../../../src/render/ui/css");
-    const rule = CSS.match(/table\.list tr\.spechead:has\(\+ tr\.subrow\) td,[^{]*\{[^}]*\}/)?.[0] ?? "";
+    // The header's own row is followed by its state row now, so what it
+    // looks ahead to is that one and then the phase lines (2026-09-22).
+    const rule = CSS.match(/table\.list tr\.spechead:has\(\+ tr\.specstate \+ tr\.subrow\) td,[^{]*\{[^}]*\}/)?.[0] ?? "";
     expect(rule).toContain("background: var(--surface-2)");
     expect(rule).toContain("tr.specnotice td");
     expect(rule).toContain("tr.phasemsgs");

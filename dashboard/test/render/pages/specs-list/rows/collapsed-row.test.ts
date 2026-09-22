@@ -38,7 +38,7 @@ describe("spec 103: a collapsed row shows status only", () => {
     );
 
   const head = (html: string, folder: string) =>
-    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
+    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>\\s*<tr class="specstate".*?</tr>`))?.[0] ?? "";
   /** The row's own controls line: since spec 109 the run form and
    *  Cancel are a `<tr>` under the header, not a cell inside it. */
   const controlsLine = (html: string, folder: string) =>
@@ -55,7 +55,7 @@ describe("spec 103: a collapsed row shows status only", () => {
    *  spanning `stackcell` (open) before that. */
   const actionCell = (chunk: string) => {
     const caption = chunk.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
-    const cells = [...caption.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
+    const cells = [...caption.replace(/<td[^>]*data-col="fold"[^>]*>[\s\S]*?<\/td>/g, "").matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
     return cells[2] ?? "";
   };
 
@@ -92,11 +92,11 @@ describe("spec 103: a collapsed row shows status only", () => {
     expect(line).toContain('class="badge b-ready"');
     expect(line).toContain(">Ready<");
     // The button left the head line on 2026-09-08 — the phase it would
-    // run next is one click in. The pips are back since 2026-09-11, in
-    // the State cell over the badge (beside it on a phone), never in
-    // the name box.
+    // run next is one click in. The pips sit in their own cell on the
+    // second row, ahead of the badge's own state cell, never in the
+    // name box.
     expect(line).not.toContain("<button");
-    expect(line).toMatch(/<td data-col="state"><span class="pipslot">[\s\S]*?class="pips"[\s\S]*?<span class="badgeslot">/);
+    expect(line).toMatch(/<td colspan="2"><span class="pipslot">[\s\S]*?class="pips"[\s\S]*?<\/span><\/td><td data-col="state"><span class="badgeslot">/);
     expect(line).toContain("$1.50");
   });
 

@@ -181,7 +181,7 @@ describe("every spec is a row (criteria 1-10)", () => {
   // One header row and everything up to the next `<tr`, which is the
   // whole header line and nothing else.
   const head = (html: string, folder: string) =>
-    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
+    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>\\s*<tr class="specstate".*?</tr>`))?.[0] ?? "";
   /** A phase's own line — an ordinary row of six cells since spec 157,
    *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>

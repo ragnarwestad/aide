@@ -31,26 +31,30 @@ describe("the row's one action rides the caption line, not a column of its own",
 
   test("the button is on the caption line, and spans no rows", () => {
     const html = rows([], { targets: [target()] });
-    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
+    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
     // Nowhere on the head line: it says what the spec IS.
     expect(head).not.toContain("<button");
     // The caption line's THIRD cell — the State column, the same one
     // the badge above it and the phase words below it are under.
     const caption = html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
-    const cells = [...caption.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
+    const cells = [...caption.replace(/<td[^>]*data-col="fold"[^>]*>[\s\S]*?<\/td>/g, "").matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
     expect(cells[2]).toContain("</button>");
     expect(cells[0]).not.toContain("</button>");
     expect(cells[1]).not.toContain("</button>");
     // The guard is about THIS button, not about the string: spec 165
     // gave the row's AI select a legitimate spanning cell of its own,
-    // so a blanket ban would now fail for the wrong reason. What must
-    // not come back is the action in a cell spanning the phase lines.
-    expect(head).not.toContain("rowspan");
+    // and the chevron's own cell spans the header's two lines
+    // (2026-09-22) — a blanket ban would now fail for the wrong reason.
+    // What must not come back is the action in a cell spanning the
+    // phase lines, which the loop below checks directly.
+    expect(head).not.toMatch(/<td(?![^>]*data-col="fold")[^>]*rowspan/);
     for (const cell of html.matchAll(/<td[^>]*rowspan[^>]*>([\s\S]*?)<\/td>/g)) {
       expect(cell[1]).not.toContain("</button>");
     }
     // And the phase lines lead with their own cell, hard left.
-    expect(html).toMatch(/<tr class="subrow[^"]*"[^>]*><td class="phasecell">/);
+    // The caption line's own first cell is the chevron's empty column,
+    // then the phase cell (2026-09-22).
+    expect(html).toMatch(/<tr class="subrow[^"]*"[^>]*><td data-col="fold"><\/td><td class="phasecell">/);
   });
 });
 

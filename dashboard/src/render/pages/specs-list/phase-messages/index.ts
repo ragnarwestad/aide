@@ -11,6 +11,7 @@ import type { Phase, SpecGroup } from "../data-model";
 import { queueHref } from "../filter-bar.ts";
 import type { SpecsPageOptions } from "../";
 import { phaseKey } from "./keys.ts";
+import { LIST_COLUMNS } from "../row-shared.ts";
 
 export { phaseKey, parsePhaseKeys } from "./keys.ts";
 
@@ -79,6 +80,6 @@ export function phaseMessagesRow(
       : `<ul class="phasemsglist">${found.messages.map((m) => `<li>${m}</li>`).join("")}</ul>`;
   return {
     tag: `<tr class="phasemsgs" data-msgs="${esc(p.step)}">`,
-    cells: `<td colspan="6">${body}<a class="phasemsgopen" href="${href}">${esc(t(lang, "list.phaseOpenLog"))}</a></td>`,
+    cells: `<td colspan="${LIST_COLUMNS}">${body}<a class="phasemsgopen" href="${href}">${esc(t(lang, "list.phaseOpenLog"))}</a></td>`,
   };
 }

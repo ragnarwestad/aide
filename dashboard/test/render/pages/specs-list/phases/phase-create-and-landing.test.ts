@@ -49,7 +49,7 @@ describe("spec 116: create is the first phase line", () => {
       { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) } },
       Date.parse("2026-08-19T12:00:00Z"),
     );
-  const head = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
+  const head = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
   /** Everything one row draws: its header line and, when it is open,
    *  the phase lines under it — where the boxes live since spec 124. */
   const runLine = (html: string) =>
@@ -302,7 +302,7 @@ describe("spec 254: a step still landing reads busy, not ready", () => {
       Date.parse("2026-08-26T12:00:00Z"),
     );
   const head = (html: string, folder: string) =>
-    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
+    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>\\s*<tr class="specstate".*?</tr>`))?.[0] ?? "";
   /** The row's own controls line: since spec 109 the run form and
    *  Cancel are a `<tr>` under the header, not a cell inside it. */
   const controlsLine = (html: string, folder: string) =>
@@ -319,7 +319,7 @@ describe("spec 254: a step still landing reads busy, not ready", () => {
    *  spanning `stackcell` (open) before that. */
   const actionCell = (chunk: string) => {
     const caption = chunk.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
-    const cells = [...caption.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
+    const cells = [...caption.replace(/<td[^>]*data-col="fold"[^>]*>[\s\S]*?<\/td>/g, "").matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
     return cells[2] ?? "";
   };
 

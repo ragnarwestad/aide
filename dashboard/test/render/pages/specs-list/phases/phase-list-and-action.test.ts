@@ -48,8 +48,12 @@ describe("spec 124: one phase list, and one action beside the state", () => {
       Date.parse("2026-08-19T12:00:00Z"),
     );
 
+  /** The header, BOTH of its rows (2026-09-22): the title has the first
+   *  to itself and the cells are on the second. */
   const head = (html: string, folder: string) =>
-    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
+    html.match(
+      new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>\\s*<tr class="specstate".*?</tr>`),
+    )?.[0] ?? "";
   /** A phase's own line — an ordinary row of six cells since spec 157,
    *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
@@ -61,6 +65,7 @@ describe("spec 124: one phase list, and one action beside the state", () => {
    *  opening tag and the next one's. */
   const cells = (tr: string): string[] =>
     tr
+      .replace(/<t[dh]\b[^>]*data-col="fold"[^>]*>[\s\S]*?<\/t[dh]>/g, "")
       .split(/<t[dh]\b[^>]*>/)
       .slice(1)
       .map((s) => s.replace(/<\/t[dh]>[\s\S]*$/, ""));
@@ -117,26 +122,36 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     );
     const thead = html.match(/<thead><tr>.*?<\/tr><\/thead>/)?.[0] ?? "";
     const spechead = head(html, "124-stack");
+    // The header's two rows, counted apart: the title's row declares the
+    // chevron's column and the title's span, and the state row declares
+    // the rest — the chevron's column reaching it through that cell's own
+    // `rowspan` rather than a cell of its own.
+    const titleRow = spechead.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
+    const stateRow = spechead.match(/<tr class="specstate[\s\S]*?<\/tr>/)?.[0] ?? "";
+    expect(columnUnits(titleRow)).toBe(7);
+    expect(columnUnits(stateRow)).toBe(6);
     const firstSub = html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
     const firstPhase = subRow(html, "create");
     expect([thead, spechead, firstSub, firstPhase, subRow(html, "analyze")].every(Boolean)).toBe(true);
-    // Six since the Created column went in (spec 317). It was five from
-    // 2026-08-23, when the blank trailing column went; seven under spec
-    // 165, which gave the row's AI a column of its own between the
-    // phase name and the model; six-before-this when the pips moved in
-    // beside the name and the Progress column went.
-    for (const tr of [thead, spechead, firstSub, firstPhase]) {
-      expect([tr.slice(0, 40), columnUnits(tr)]).toEqual([tr.slice(0, 40), 6]);
+    // Seven since the chevron took a column of its own (2026-09-22). Six
+    // since the Created column went in (spec 317); five from 2026-08-23,
+    // when the blank trailing column went; seven under spec 165, which
+    // gave the row's AI a column of its own between the phase name and
+    // the model; six-before-that when the pips moved in beside the name
+    // and the Progress column went.
+    for (const tr of [thead, firstSub, firstPhase]) {
+      expect([tr.slice(0, 40), columnUnits(tr)]).toEqual([tr.slice(0, 40), 7]);
     }
     // And the same on every phase line after the first as well, since
     // spec 179: the AI column is a cell of each line's own, so no line
     // borrows a slot from a `rowspan` on the one above it.
-    expect(columnUnits(subRow(html, "analyze"))).toBe(6);
+    expect(columnUnits(subRow(html, "analyze"))).toBe(7);
     // The header and both row types end on Cost.
     expect(thead).toMatch(/data-col="cost"[\s\S]*<\/th><\/tr><\/thead>$/);
-    expect(spechead).toMatch(/data-col="cost">[\s\S]*<\/td><\/tr>$/);
-    // And the phase lines lead with their own cell, hard left.
-    expect(firstSub).toMatch(/^<tr class="subrow" data-caption="1"><td class="phasecell">/);
+    expect(stateRow).toMatch(/data-col="cost">[\s\S]*<\/td><\/tr>$/);
+    // And the phase lines lead with the chevron's own column, empty, then
+    // their own cell.
+    expect(firstSub).toMatch(/^<tr class="subrow" data-caption="1"><td data-col="fold"><\/td><td class="phasecell">/);
   });
 
   // --- spec 317: the Created column ------------------------------------------
@@ -298,13 +313,15 @@ describe("spec 124: one phase list, and one action beside the state", () => {
   test("the button rides with the name; the header keeps its own cells (criterion 6)", () => {
     const html = rows([]);
     expect(actionCell(group(html, "124-stack"))).toContain(">Analyze</button>");
-    // Five cells: name, state, started, cost, created. The Progress
-    // column went into the name cell with the pips (2026-08-22) and the
-    // blank spare after Cost went on 2026-08-23; Created joined between
-    // state and started (spec 317) and moved to the END on 2026-09-08,
-    // where the one column a phase line cannot fill stops standing
-    // between the state and the two it does.
-    expect(cells(head(html, "124-stack"))).toHaveLength(5);
+    // Six cells across the header's two rows, the chevron's own left out
+    // by `cells`: title, pips, state, started, cost, created. The pips
+    // took a cell of their own when the title got a row to itself
+    // (2026-09-22); the Progress column went into the name cell with them
+    // in 2026-08-22 and the blank spare after Cost went on 2026-08-23;
+    // Created joined between state and started (spec 317) and moved to
+    // the END on 2026-09-08, where the one column a phase line cannot
+    // fill stops standing between the state and the two it does.
+    expect(cells(head(html, "124-stack"))).toHaveLength(6);
     expect(head(html, "124-stack")).toMatch(
       /<td class="created-date" data-col="created">[\s\S]*?<\/td><\/tr>$/,
     );

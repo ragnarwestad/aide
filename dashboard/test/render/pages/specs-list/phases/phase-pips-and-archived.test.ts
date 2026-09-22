@@ -16,10 +16,13 @@ describe("spec 210: pips() marks the completed thirds", () => {
     expect(pips([{ kind: "now", title: "implement", third: 2 }])).toContain('data-third="2"');
   });
 
+  // The letter's class rides the pip's own kind since 2026-09-22, so the
+  // two share a colour and a skim (list.css) — the `<span>` itself is the
+  // same shape either way.
   test("a now pip without a third carries nothing, exactly as before", async () => {
     const { pips } = await import("../../../../../src/render/ui/components");
     expect(pips([{ kind: "now", title: "implement" }])).toBe(
-      `<div class="pipwrap"><div class="pipletters" aria-hidden="true"><span>i</span></div>` +
+      `<div class="pipwrap"><div class="pipletters" aria-hidden="true"><span class="now">i</span></div>` +
         `<div class="pips"><span class="pip now" title="implement"></span></div></div>`,
     );
   });

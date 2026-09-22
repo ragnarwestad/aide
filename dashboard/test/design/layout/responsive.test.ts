@@ -74,32 +74,30 @@ describe("Started and Cost fold away at phone width", () => {
   // state. A reader there is checking what is happening and pressing the
   // one control; neither figure is part of either.
   test("the spec header drops its time and its cost too", () => {
-    expect(NARROW).toContain('table.list tr.spechead [data-col="started"] { display: none; }');
-    expect(NARROW).toContain('table.list tr.spechead [data-col="cost"] { display: none; }');
+    expect(NARROW).toContain('table.list tr.specstate [data-col="started"] { display: none; }');
+    expect(NARROW).toContain('table.list tr.specstate [data-col="cost"] { display: none; }');
   });
 
   // Line 1 is the title alone; line 2 is the pips, the button and the
   // state, in that order. The pips live inside the name box — where a
   // desktop wants them — so both the cell and the box are dissolved to
   // let them reach the second line.
-  // The chevron and the title share line 1. The title's width is the
-  // row less the chevron, the gap AND a little slack: the exact sum
-  // wraps, because one fractional pixel in the row's width is enough to
-  // drop the title under the chevron.
+  // The header is two ROWS since 2026-09-22 — the title, then its state —
+  // so a phone no longer builds the two lines out of one row's cells. The
+  // chevron shares line 1 with the title, in a cell of its own; the
+  // second row is the flex line that carries the rest.
   test("the head row is two lines: the title, then the state", () => {
-    expect(NARROW).toContain("table.list tr.spechead > td:first-child { display: contents; }");
-    expect(NARROW).toContain(".spec-name { display: contents; }");
-    expect(NARROW).toContain("table.list tr.spechead .spec-name > .label { flex: 0 0 calc(100% - 40px); }");
-    // Line 2 is the State cell as one item, taking the whole width: the
-    // pips at its left, the badge in its second column. Order 3 keeps
-    // the title after it on a line of its own.
-    expect(NARROW).toMatch(/tr\.spechead > td\[data-col="state"\] \{ order: 3; flex: 0 0 100%; display: grid;/);
-    // After all three, never beside them: equal orders keep document
-    // order, and this line is written in the FIRST cell — at the
-    // badge's own order it came before the badge and, taking the whole
-    // width, pushed it onto a line of its own. The basis is the width
-    // MINUS the indent both lines carry, since a basis of the whole
-    // width plus a left margin hangs past the row's right edge.
+    expect(NARROW).toContain("table.list tr.specstate { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }");
+    // The name box stays a box: dissolving it put the title on the line
+    // under its own chevron.
+    expect(NARROW).not.toContain(".spec-name { display: contents; }");
+    expect(NARROW).toContain("table.list tr.spechead .spec-name > .label { flex: 1 1 auto; min-width: 0; }");
+    // The pips' own cell is what is dissolved, so they stand beside the
+    // badge as items of the line rather than inside a cell of their own.
+    expect(NARROW).toContain("table.list tr.specstate > td:first-child { display: contents; }");
+    // The summary and the not-verified mark keep the indent both lines
+    // carry: a basis of the whole width plus a left margin hangs past the
+    // row's right edge.
     expect(NARROW).toMatch(
       /tr\.spechead \.spec-title,\s*\n\s*table\.list tr\.spechead \.spec-notverified \{\s*\n\s*order: 4; flex: 0 0 calc\(100% - \(24px \+ var\(--sp-1\) \+ var\(--sp-2\)\)\); \}/,
     );
@@ -111,10 +109,10 @@ describe("Started and Cost fold away at phone width", () => {
   // (2026-09-07) — and 144px held for a five-letter "ready" wrapped the
   // state onto a line of its own.
   test("the spec header's badge takes its own width", () => {
-    expect(NARROW).toMatch(/table\.list tr\.spechead \.badgeslot \{ width: auto/);
+    expect(NARROW).toMatch(/table\.list tr\.specstate \.badgeslot \{ width: auto/);
     // The holder, never the pill: a width on the badge itself stretches
     // its coloured background.
-    expect(NARROW).not.toMatch(/tr\.spechead \.badge \{/);
+    expect(NARROW).not.toMatch(/tr\.specstate \.badge \{/);
   });
 
   // Criterion 2. Three separate renderers write these two cells — the
@@ -157,7 +155,7 @@ describe("Started and Cost fold away at phone width", () => {
 // it, same treatment Started/Cost already get on the subrow.
 describe("Created folds away on the spec header at phone width", () => {
   test("the narrow-width block hides the column on the spec header line", () => {
-    expect(NARROW).toContain('table.list tr.spechead [data-col="created"] { display: none; }');
+    expect(NARROW).toContain('table.list tr.specstate [data-col="created"] { display: none; }');
   });
 
   test("the head row's Created cell carries the hook", () => {
@@ -205,7 +203,9 @@ describe("the row's name at phone width", () => {
   // head-row rule is the more specific of the two and every .spec-name
   // on this page is inside a head row.
   test("one rule sets the title's width, and it is the head row's", () => {
-    expect(NARROW).toContain(".spec-name > .label { flex: 0 0 calc(100% - 40px); }");
+    // It takes what the chevron leaves and shrinks rather than pushing the
+    // table wide; `min-width: 0` is what lets its own ellipsis work.
+    expect(NARROW).toContain(".spec-name > .label { flex: 1 1 auto; min-width: 0; }");
     expect((NARROW.match(/\.spec-name > \.label \{/g) ?? []).length).toBe(1);
   });
 
@@ -784,7 +784,9 @@ describe("spec 474: the New-spec page's Depends-on columns sit side by side, fra
 
 describe("a message row after the phase lines has the open row's ground on a phone (AC-2)", () => {
   test("the ground rule names a message row that follows tr.subrow or tr.phasemsgs", () => {
-    const rule = NARROW.match(/([^\n}]*tr\.spechead:has\(\+ tr\.subrow\)[^{]*)\{([^}]*)\}/)?.[0] ?? "";
+    // The header's own row is followed by its state row now, so what it
+    // looks ahead to is that one and then the phase lines (2026-09-22).
+    const rule = NARROW.match(/([^\n}]*tr\.spechead:has\(\+ tr\.specstate \+ tr\.subrow\)[^{]*)\{([^}]*)\}/)?.[0] ?? "";
     expect(rule).toContain("background: var(--surface-2)");
     expect(rule).toContain("tr.specnotice");
     expect(rule).toContain("tr.phasemsgs");

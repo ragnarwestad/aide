@@ -185,7 +185,12 @@
      wrap around another cell's boundary. tr.spechead becomes the flex
      container; each td is still a td, just laid out as a flex item
      instead of a table cell. */
-  table.list tr.spechead { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+  /* The state line is the flex row now, not the header: the title has a
+     row of its own (head-row.ts), so nothing here has to wrap around a
+     cell boundary any more. What is left is what a phone still needs —
+     the figures reading from the left instead of standing in columns
+     that are zero wide at this width. */
+  table.list tr.specstate { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
   /* min-width: 0 on the cells, or nothing ever truncates: a flex item
      refuses to shrink below its content's min-content width by default
      (min-width: auto), so a long spec name forced the whole row — and
@@ -199,12 +204,17 @@
      leave its parent's box, so both boxes go and their contents become
      items of the row itself. The same technique the phase lines use for
      `.modelcell`. */
-  table.list tr.spechead > td:first-child { display: contents; }
+  /* The pips' cell is dissolved so they become an item of the line
+     itself, beside the badge — the cell spans two columns that are only
+     there to hold the title's width on a wide screen. */
+  table.list tr.specstate > td:first-child { display: contents; }
   /* Line 1: the fold's own 24px, the row's 8px gap, and 8px more —
      `100% - 32px` is the exact sum, and exact is what wraps, since one
      fractional pixel in the row's own width is enough to put the title
      under the chevron instead of beside it. */
-  table.list tr.spechead .spec-name > .label { flex: 0 0 calc(100% - 40px); }
+  /* The label takes what the fold leaves, and shrinks rather than pushing
+     the table wide: `min-width: 0` is what lets its own ellipsis work. */
+  table.list tr.spechead .spec-name > .label { flex: 1 1 auto; min-width: 0; }
   /* The spec's own summary line, under all three. `order: 3` — the
      badge's own — put it BEFORE the badge: equal orders keep document
      order, and this line is written in the first cell. Taking the whole
@@ -229,23 +239,32 @@
      their padding moved off them — or display:contents, which paints
      nothing at all — so the tint showed in patches. The tr is the box
      that spans the group here, so it carries the ground. */
-  table.list tr.spechead:has(+ tr.subrow),
+  table.list tr.spechead:has(+ tr.specstate + tr.subrow),
+  table.list tr.specstate:has(+ tr.subrow),
   table.list tr.subrow,
   table.list :is(tr.subrow, tr.phasemsgs) + tr.specnotice,
   table.list :is(tr.subrow, tr.phasemsgs) + tr.specnotice + tr.specnotice { background: var(--surface-2); }
-  table.list tr.spechead > td:not(:first-child) { flex: 0 0 auto; min-width: 0; }
+  table.list tr.specstate > td:not(:first-child) { flex: 0 0 auto; min-width: 0; }
+  /* The chevron's COLUMN is gone at this width (its width is 0 in
+     list.css), so the empty cell every phase line carries for it goes
+     too — a column the header does not use would only indent them. The
+     header's own cell stays: the two header rows are flex lines here, so
+     the chevron rides inside one rather than standing in a column. */
+  table.list tr.subrow > td[data-col="fold"] { display: none; }
+  table.list tr.spechead > td.foldcell { flex: 0 0 auto; padding: 0; }
   /* The vertical padding moves off the cells and onto the row: each td
      kept the desktop 10px above and below, and two tds stacked as two
      flex lines put 10px + the row gap + 10px between the name line and
      the badge line — read as a hole. The row pads once, at its edges. */
-  table.list tr.spechead { padding-top: 10px; padding-bottom: 10px; }
-  table.list tr.spechead > td { padding-top: 0; padding-bottom: 0; }
+  table.list tr.spechead { padding-top: 10px; }
+  table.list tr.specstate { padding-bottom: 10px; }
+  table.list :is(tr.spechead, tr.specstate) > td { padding-top: 0; padding-bottom: 0; }
   /* The horizontal cell padding goes the same way as the vertical did:
      each line-2 cell kept the desktop 12px on both sides, which put
      up to 24px of dead air between badge, date and cost — enough to
      wrap the cost off the line on a phone. The row's flex gap is the
      one spacing between them. */
-  table.list tr.spechead > td:not(:first-child) { padding-left: 0; padding-right: 0; }
+  table.list tr.specstate > td:not(:first-child) { padding-left: 0; padding-right: 0; }
 
   /* The 2px separator above a spec sits on the CELLS in the base rule,
      and here the cells wrap onto line 2 — each drawing its own border
@@ -265,7 +284,7 @@
      the phone screen; flex-start keeps the badge and the button side by
      side with the ordinary gap once space-between's old reserved space
      (REQ-4, spec 379) is gone. */
-  table.list tr.spechead > td > .row { width: auto; justify-content: flex-start; }
+  table.list tr.specstate > td > .row { width: auto; justify-content: flex-start; }
   /* What IS reserved on this line is the badge's SLOT — or the action
      button after it starts wherever the state's wording happens to
      end, in a different place on every row. On the holder, never the
@@ -279,7 +298,7 @@
      and there is no button after it any more: the order is button,
      pips, state. Held anyway, a "ready" of five characters carried
      144px of reserved width and wrapped the state onto a third line. */
-  table.list tr.spechead .badgeslot { width: auto; margin-left: 0; }
+  table.list tr.specstate .badgeslot { width: auto; margin-left: 0; }
   /* The desktop's one-width badges (7.5rem, status-badge.css) do not
      fit a phone line: every badge wrapped onto a line of its own and
      pushed the button off the row (2026-09-10). Each badge is its own
@@ -335,22 +354,10 @@
      width, no side padding), since it overrides both. The pips are back on a phone since 2026-09-11: alone at the
      left of its line the badge read as a stray, and the pips say at a
      glance what the phase lines under a shut row cannot. */
-  table.list tr.spechead > td[data-col="state"] { order: 3; flex: 0 0 100%; display: grid;
-    grid-template-columns: minmax(min-content, calc(var(--phase-w) + var(--aimodel-w) + var(--tick-w) + 3 * var(--sp-2))) auto;
-    align-items: center; padding-left: var(--sp-3); padding-right: var(--sp-3); box-sizing: border-box; }
-  /* The same air on both sides. The left padding is taken off the first
-     column again, so the badge still starts where the caption line's
-     copy of it does. */
-  /* The first column gives way, never the badge: a long state
-     ("implementing 1/1") on a 390px screen would otherwise run past the
-     edge. With a short one the badge starts where the caption line's
-     copy of it does. */
-  /* Flush left: the desktop's own padding before the pips (list.css)
-     is for a pip block that ends a name line, and here they start one;
-     its auto margin, which right-aligns them there, goes for the same
-     reason. */
-  table.list tr.spechead .pipslot { display: inline-flex; grid-column: 1; grid-row: 1; justify-self: start; justify-content: flex-start; min-width: 0; padding-left: 0; margin: 0; }
-  table.list tr.spechead .badgeslot { grid-column: 2; grid-row: 1; justify-self: start; }
+  /* The pips and the badge are two cells of the flex line now, in that
+     order, so nothing here places them: the grid this rule used to build
+     existed only because both lived inside the one State cell. */
+  table.list tr.specstate .badgeslot { justify-self: start; }
   /* Time and cost follow the button, on the same left edge as
      everything else on this line. They stood at the line's RIGHT edge
      until the pips came in beside the name (2026-09-07): with the name,
@@ -361,14 +368,14 @@
      phone's spec line is the title, then the pips, the button and the
      state — a reader here is checking what is happening and pressing
      the one control, and neither figure is part of either. */
-  table.list tr.spechead [data-col="started"] { display: none; }
-  table.list tr.spechead [data-col="cost"] { display: none; }
+  table.list tr.specstate [data-col="started"] { display: none; }
+  table.list tr.specstate [data-col="cost"] { display: none; }
   /* Spec 317, REQ-8: dropped rather than reflowed onto this already-
      crowded line (fold, name, pips, badge, action, duration, cost) — a
      phone reader here is oriented to state and how long it took, not
      when it began. The sort itself is unaffected; only the cell is
      hidden. */
-  table.list tr.spechead [data-col="created"] { display: none; }
+  table.list tr.specstate [data-col="created"] { display: none; }
   /* No "· " separator before the cost (removed 2026-08-24): it read
      fine while date and cost sat side by side, and as a stray leading
      dot every time the cost wrapped alone or the date showed the
@@ -392,18 +399,10 @@
      kept its own intrinsic width and wrapped a line early, leaving the
      space the auto-margin before the pips was not using empty instead
      of given to the name. */
-  /* The name box itself is dissolved (see the head-row block above):
-     the fold, the title and the pips become items of the ROW, which is
-     what lets the title have line 1 and the pips reach line 2. The gap
-     between fold and title is the row's own from here on, so the
-     tighter one this rule used to set has nothing left to set it on. */
-  .spec-name { display: contents; }
-  .spec-name > .fold { margin-right: 0; }
-  /* The desktop's `margin-left: auto` is what makes every row's pips
-     start at the same x, so they read as one column down the table.
-     There is no column here — each row is its own block — and the
-     auto margin only pushed them away from the name they belong to. */
-  .spec-name > .pipslot { margin-left: 0; }
+  /* The name box stays a box. It was dissolved until 2026-09-22, so the
+     pips inside it could reach the row's second line — the title has a
+     row of its own now (head-row.ts) and the pips a cell of their own, so
+     dissolving it only put the title on the line under its own chevron. */
 
   /* No sortable column headings on mobile: "Spec/State/Started/Cost"
      headed a column layout that is gone at this width (Started and
@@ -499,7 +498,7 @@
      the state, over the phases' states, and the phase lines say what the
      pips say — one state twice on one screen is one too many. A shut
      row keeps the line under the name. */
-  table.list tr.spechead:has(.fold[aria-expanded="true"]) > td[data-col="state"] { display: none; }
+  table.list tr.spechead:has(.fold[aria-expanded="true"]) + tr.specstate > td[data-col="state"] { display: none; }
   table.list tr.subrow[data-caption="1"] > .phasecell { order: 3; }
   table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="ai"] { order: 4; }
   /* Same tier as "ai" (spec 488): a tie in flex `order` falls back to DOM

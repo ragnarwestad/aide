@@ -279,10 +279,16 @@ export function sortableHead(f: SpecsFilter, lang: Language = "en"): string {
     // alone and this head row spans across it, so a width stated on
     // cells left it 0 wide with every row shut and 300-odd wide with one
     // open, moving every column to its right (2026-09-04).
-    `<colgroup>${["spec", "phase", "state", "started", "cost", "created"]
+    // "fold" is the chevron's own, first and narrow (2026-09-22): the
+    // control opens and shuts the row and is the one thing on it that is
+    // not information, so it stands outside the title rather than inside
+    // it — which also gives it a cell's worth of height to be hit in,
+    // across both of the header's two lines.
+    `<colgroup>${["fold", "spec", "phase", "state", "started", "cost", "created"]
       .map((c) => `<col data-col="${c}">`)
       .join("")}</colgroup>` +
-    `<thead><tr>${th("spec", t(lang, "list.colSpec"), "", undefined, ' colspan="2" data-col="spec"')}` +
+    `<thead><tr><th data-col="fold"></th>` +
+    `${th("spec", t(lang, "list.colSpec"), "", undefined, ' colspan="2" data-col="spec"')}` +
     `${th("state", t(lang, "list.colState"), "", undefined, ' data-col="state"')}` +
     `${th("started", t(lang, "list.colTime"), "", undefined, ' data-col="started"')}` +
     `${th(

@@ -66,12 +66,15 @@ describe("spec 192: the phase line's controls share one cell", () => {
    *  opening tag and the next one's. */
   const cells = (tr: string): string[] =>
     tr
+      .replace(/<t[dh]\b[^>]*data-col="fold"[^>]*>[\s\S]*?<\/t[dh]>/g, "")
       .split(/<t[dh]\b[^>]*>/)
       .slice(1)
       .map((s) => s.replace(/<\/t[dh]>[\s\S]*$/, ""));
   /** One row's cell OPENING TAGS, in order: what a cell is, as opposed
    *  to what is in it. */
-  const cellTags = (tr: string): string[] => [...tr.matchAll(/<t[dh]\b[^>]*>/g)].map((m) => m[0]);
+  const cellTags = (tr: string): string[] =>
+    [...tr.replace(/<t[dh]\b[^>]*data-col="fold"[^>]*>[\s\S]*?<\/t[dh]>/g, "").matchAll(/<t[dh]\b[^>]*>/g)]
+      .map((m) => m[0]);
   const subRow = (html: string, phase: string) =>
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">[\\s\\S]*?</tr>`))?.[0] ?? "";
   const caption = (html: string) =>
@@ -125,9 +128,15 @@ describe("spec 192: the phase line's controls share one cell", () => {
       ]);
     }
     expect(html).not.toContain("toolcell");
-    // Nothing spans anything. One control down five rows was what the
-    // rowspan carried, and there is no such control left.
-    expect([...html.matchAll(/rowspan="/g)]).toHaveLength(0);
+    // No phase line spans anything. One control down five rows was what
+    // the rowspan carried, and there is no such control left. The one
+    // rowspan on the page is the chevron's own cell, which spans the
+    // HEADER's two lines (2026-09-22) and no phase line at all.
+    for (const line of ["create", "analyze", "implement", "archive"].map((s) => subRow(html, s))) {
+      expect(line).not.toContain('rowspan="');
+    }
+    expect([...html.matchAll(/rowspan="/g)]).toHaveLength(1);
+    expect(html).toMatch(/<td class="foldcell" rowspan="2"/);
     // The caption line carries the words, never a control.
     expect(caption(html)).not.toContain("<select");
   });
@@ -230,7 +239,10 @@ describe("spec 192: the phase line's controls share one cell", () => {
         '<span class="muted small" data-none>–</span>',
       ]);
     }
-    expect([...html.matchAll(/rowspan="/g)]).toHaveLength(0);
+    // The page's one rowspan is the chevron's own cell, over the header's
+    // two lines; no phase line spans anything.
+    expect([...html.matchAll(/rowspan="/g)]).toHaveLength(1);
+    expect(html).toMatch(/<td class="foldcell" rowspan="2"/);
   });
 
   // --- criterion 8: the script still finds the control ---------------------

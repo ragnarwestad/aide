@@ -91,7 +91,7 @@ describe("an archived row with criteria waiting for a check has a › of its own
 
 describe("an archived row says its count once, on the info line (AC-1, AC-2, AC-3)", () => {
   const count = (html: string, text: string) => html.split(text).length - 1;
-  const head = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
+  const head = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
   const twoNv = archived({ notVerified: 2, failed: undefined, acceptance: [DONE, NV, NV].map(rowOf) });
 
   test("2 not verified: once in the info line, no line under the title (AC-1)", () => {
@@ -132,8 +132,8 @@ describe("an archived row says its count once, on the info line (AC-1, AC-2, AC-
     const at = (s: string) => html.indexOf(s);
     const subrows = [...html.matchAll(/<tr class="subrow/g)].map((m) => m.index!);
     expect(subrows.length).toBeGreaterThan(0);
-    const headEnd = html.indexOf("</tr>", at("spechead")) + "</tr>".length;
-    expect(html.slice(headEnd, subrows[0]!).trim()).toBe("");
+    const stateEnd = html.indexOf("</tr>", at('<tr class="specstate"')) + "</tr>".length;
+    expect(html.slice(stateEnd, subrows[0]!).trim()).toBe("");
     expect(at('<tr class="specnotice"')).toBeGreaterThan(subrows[subrows.length - 1]!);
   });
 

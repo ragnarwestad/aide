@@ -232,7 +232,7 @@ const STRUCTURE = [
   // column boundary is a reserved width and two lots of cell padding,
   // and the three read as three separate things with that between
   // them.
-  "list", "spechead", "subrow", "phasecell", "modelcell",
+  "list", "spechead", "specstate", "foldcell", "subrow", "phasecell", "modelcell",
   // the spec list's own table (2026-08-24): the mobile stylesheet lays
   // it out as stacked blocks, and the archive page and the settings
   // table share "list" without wanting any of that.

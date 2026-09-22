@@ -18,7 +18,7 @@ import {
   stateCell,
 } from "./cell-helpers.ts";
 import { foldControl } from "./row-controls.ts";
-import { notVerifiedMark } from "./row-shared.ts";
+import { LIST_COLUMNS, notVerifiedMark } from "./row-shared.ts";
 import { nextPhase, rowAnchorId, specNumber } from "./row-state.ts";
 
 // One line about the spec: what NOTHING ELSE on the row says. It used
@@ -173,9 +173,13 @@ export function specHeadRow(
     // `data-run` sits BEFORE `data-folder`: about twenty test helpers read a
     // head row by `data-folder="…">` with the `>` directly after it.
     `<tr class="spechead" id="${esc(rowAnchorId(g))}" data-run="${runState}" data-folder="${esc(g.specFolder)}">` +
-    // Two columns wide, like its heading: the second is the AI
-    // column the phase lines below open up (spec 165), and this row
-    // has nothing to say in it.
+    // The whole row wide, since 2026-09-22. It spanned the Spec and
+    // Phase columns until then, and a long project name ate the line: a
+    // spec on `woodstack-climate` started its title nearly halfway
+    // across the cell and wrapped after a handful of words, while the
+    // three figures to the right sat on a line of their own anyway.
+    // Nothing else stands on this line, so there is nothing for the
+    // title to share it with.
     // The row's own button rides with the name, at the end of the name
     // box — where the pips were until 2026-09-07. The workflow is
     // LINEAR, so the button's label says how far the spec has come:
@@ -185,11 +189,35 @@ export function specHeadRow(
     // The badge is left alone in the State cell by the same move, which
     // is what lets the table align the two by column instead of by two
     // hand-set widths inside one cell.
-    `<td colspan="2"><div class="spec-name">${foldControl(g, opts.filter ?? {}, opened, lang)} ${spec}` +
+    // The chevron spans BOTH of the header's lines and is centred in
+    // them: it opens the whole spec, not the title line, and a control
+    // one line tall was hard to hit (asked for 2026-09-22). Out here it
+    // also gives the title and the pips below it the same left edge for
+    // nothing — they both start where this cell ends.
+    `<td class="foldcell" rowspan="2" data-col="fold">${foldControl(g, opts.filter ?? {}, opened, lang)}</td>` +
+    `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name">${spec}` +
     `</div>` +
     notVerifiedMark(g, lang) +
     under +
     `</td>` +
+    `</tr>` +
+    // Line 2, its own row since the title took line 1 whole. A ROW and
+    // not a grid on the one above: the table already sizes these
+    // columns, and it drops them one at a time as the box narrows
+    // (list.css's four breakpoints) — mirroring those percentages in a
+    // grid would be the same six widths written twice. What a phone
+    // shows falls out of the same markup: there the last three columns
+    // are zero, so the figures land beside the badge by themselves,
+    // which is what narrow.css used to lay out by hand.
+    //
+    // `data-folder` again, so a helper can find this line on its own;
+    // the anchor id, `data-run` and the `spechead` class stay on the
+    // title's row, which is the row every other reader looks for.
+    `<tr class="specstate" data-folder="${esc(g.specFolder)}">` +
+    // The pips at the left, in the columns the title no longer needs:
+    // the button's label says how far the spec has come, and the pips
+    // say the same at a glance for a row that is shut.
+    `<td colspan="2"><span class="pipslot">${phasePips(g.phases, g.done)}</span></td>` +
     // The badge says what is happening, or — once nothing is — the
     // resting state and what can happen next (spec 132). A sentence
     // under it said what to press until spec 174: the control names the
@@ -209,8 +237,7 @@ export function specHeadRow(
     // and the badge over the phases' own state column). A desktop hides
     // them: there the button's label already says how far the spec has
     // come, and the pips drew that fact a second time.
-    `<td data-col="state"><span class="pipslot">${phasePips(g.phases, g.done)}</span>` +
-    `<span class="badgeslot">${stateBadge}</span></td>` +
+    `<td data-col="state"><span class="badgeslot">${stateBadge}</span></td>` +
     // When the spec was made (spec 317, REQ-1/REQ-6) — one call for
     // either kind of row, now that `readerGroup()` copies an archived
     // row's own answer onto these same top-level fields.

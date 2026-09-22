@@ -46,11 +46,12 @@ describe("the job list sorts and filters", () => {
   const specOrder = (html: string): (string | undefined)[] =>
     [...html.matchAll(/<tr class="[^"]*spechead[^"]*"[^>]*data-folder="([^"]+)"/g)].map((m) => m[1]);
 
-  /** One spec's own Started cell, off its header row. */
+  /** One spec's own Started cell, on the second of the header's two rows
+   *  since 2026-09-22: the title has the first to itself. */
   const startedCell = (html: string, folder: string): string =>
     html
-      .match(new RegExp(`<tr class="spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0]
-      .match(/<td data-col="started">.*?<\/td>/)?.[0] ?? "";
+      .match(new RegExp(`<tr class="specstate"[^>]*data-folder="${folder}">.*?</tr>`))?.[0]
+      ?.match(/<td data-col="started">.*?<\/td>/)?.[0] ?? "";
 
   const page = (
     rows: QueueRowView[],

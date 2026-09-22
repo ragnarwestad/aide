@@ -62,7 +62,7 @@ describe("spec 105: a busy row offers only what its state allows", () => {
    *  last cell for a shut row and a spanning `stackcell` for an open
    *  one, which is why this used to need the whole row group. */
   const actionCell = (chunk: string) => {
-    const headRow = chunk.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? chunk;
+    const headRow = chunk.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? chunk;
     const cells = [...headRow.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
     return cells[1] ?? "";
   };
@@ -330,7 +330,7 @@ describe("spec 423: a confirmation asks before Cancel takes effect", () => {
   // own extraction).
   const actionCell = (chunk: string) => {
     const caption = chunk.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
-    const cells = [...caption.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
+    const cells = [...caption.replace(/<td[^>]*data-col="fold"[^>]*>[\s\S]*?<\/td>/g, "").matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
     return cells[2] ?? "";
   };
   const cellFor = (r: QueueRowView, folder = "423-busy", opts: Partial<SpecsPageOptions> = {}) =>

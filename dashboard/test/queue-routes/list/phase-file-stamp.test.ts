@@ -82,9 +82,11 @@ describe("a phase's own file stamp fills the gap no queue job can (spec 284)", (
       .match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">.*?</tr>`))?.[0]
       ?.match(new RegExp(`<td[^>]*data-col="${col}"[^>]*>(.*?)</td>`))?.[1] ?? "";
 
+  /** The header's own Time cell, on the second of its two rows since
+   *  2026-09-22: the title has the first to itself. */
   const headCell = (html: string): string =>
     html
-      .match(/<tr class="spechead[^"]*"[^>]*data-folder="aa-spec">.*?<\/tr>/)?.[0]
+      .match(/<tr class="specstate"[^>]*data-folder="aa-spec">.*?<\/tr>/)?.[0]
       ?.match(/<td data-col="started">(.*?)<\/td>/)?.[1] ?? "";
 
   test("REQ-1-AC1: create's stamped Time spent fills the phase line when no queue job ever ran it", () => {

@@ -24,7 +24,7 @@ export function setupQueueRoutesHarness(prefix = "aide-queue-routes-") {
  *  collapsed row leaves in the page. Its Run control moved onto the
  *  caption line the fold opens (2026-09-08). */
 export const specHead = (html: string, folder: string): string =>
-  html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
+  html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>\\s*<tr class="specstate".*?</tr>`))?.[0] ?? "";
 
 /** The row's message panel (spec 143): the full-width row under the
  *  head, where every long message a row has to say is written — and

@@ -32,7 +32,7 @@ describe("a spec's phases fold away (criteria 11-15)", () => {
     );
 
   const head = (html: string, folder: string) =>
-    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
+    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>\\s*<tr class="specstate".*?</tr>`))?.[0] ?? "";
 
   test("a spec nobody has opened reads as shut, and its control opens it (criterion 11)", () => {
     const html = rows([target("90-x")]);

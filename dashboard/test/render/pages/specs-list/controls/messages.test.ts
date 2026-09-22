@@ -50,14 +50,17 @@ describe("spec 143: a long message gets a panel row of its own", () => {
    *  all three at once, which is why no existing helper caught it. */
   const wholeRow = (html: string) =>
     html.match(/<tr class="[^"]*spechead[\s\S]*?(?=<tr class="[^"]*spechead|<\/tbody>|$)/)?.[0] ?? "";
-  const headRow = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
-  /** The State column: third cell of the head row. */
+  const headRow = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
+  /** The State column, by its own data-col rather than a cell position:
+   *  the header is two rows since 2026-09-22 and the chevron has a cell
+   *  of its own, so counting cells names something different than it
+   *  used to. */
   const stateCell = (html: string) =>
-    [...headRow(html).matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "")[1] ?? "";
-  /** The Spec column: first cell of the head row, and the one the
-   *  queue's refusal used to be written into (spec 151). */
+    headRow(html).match(/<td data-col="state">([\s\S]*?)<\/td>/)?.[1] ?? "";
+  /** The Spec column: the title cell, spanning LIST_COLUMNS - 1 (2026-09-22)
+   *  — the one the queue's refusal used to be written into (spec 151). */
   const nameCell = (html: string) =>
-    [...headRow(html).matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "")[0] ?? "";
+    headRow(html).match(/<td colspan="6">([\s\S]*?)<\/td>/)?.[1] ?? "";
   const panel = (html: string) =>
     html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
   const subRow = (html: string, phase: string) =>
@@ -97,8 +100,9 @@ describe("spec 143: a long message gets a panel row of its own", () => {
       [target("141-says-what", { done: BUILT, archiveHeldBack: { reason: REASON } })],
     );
     expect(panel(html)).toContain('data-folder="141-says-what"');
-    // Six since the Created column joined the other five (spec 317).
-    expect(panel(html)).toContain(`colspan="6"`);
+    // Seven since the chevron took a column of its own (2026-09-22); six
+    // since the Created column joined the other five (spec 317).
+    expect(panel(html)).toContain(`colspan="7"`);
     expect(panel(html)).toContain("rowmsg");
     expect(panel(html)).toContain("hand ticks survive");
     // Under the head row, not above it.

@@ -137,16 +137,19 @@ describe("every '(?)' popover shares one font", () => {
 });
 
 describe("a class is declared in one place", () => {
-  test(".spec-name is declared once per context: the base, and one mobile override", () => {
+  test(".spec-name is declared once, in the base — the phone needs no override", () => {
     // Two rules for one class is how a class starts having two homes:
     // the next reader changes the first one and never sees the second.
     // (`.spec-name > .label` is a different selector and does not count.)
-    // Exactly one lives OUTSIDE the phone media query; the second is
-    // that block's own override (2026-08-24) — a third anywhere is the
-    // drift this test exists to catch.
+    // Exactly ONE, and it lives outside the phone media query. There was
+    // a second from 2026-08-24 — the phone's own `display: contents`,
+    // which dissolved the box so the pips inside it could reach the row's
+    // second line. The header is two rows since 2026-09-22 and the pips
+    // have a cell of their own, so the box stays a box at every width and
+    // the override is gone. A second anywhere is the drift this catches.
     const base = CSS.slice(0, CSS.indexOf("@media (max-width: 40rem) {"));
     expect((base.match(/\.spec-name\s*\{/g) ?? []).length).toBe(1);
-    expect((CSS.match(/\.spec-name\s*\{/g) ?? []).length).toBe(2);
+    expect((CSS.match(/\.spec-name\s*\{/g) ?? []).length).toBe(1);
   });
 });
 

@@ -51,7 +51,7 @@ describe("spec 108: one rule per phase", () => {
       { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) } },
       Date.parse("2026-08-19T12:00:00Z"),
     );
-  const head = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
+  const head = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
   /** The Run button's own line, under the header since spec 109. */
   /** Everything one row draws: its header line and, when it is open,
    *  the phase lines under it — where the boxes live since spec 124. */

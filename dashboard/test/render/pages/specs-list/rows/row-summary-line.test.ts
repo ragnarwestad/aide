@@ -31,18 +31,18 @@ describe("spec 101: one line per row for what is going on and what is next (crit
   // stays as the reader of that div — it is how these tests say the
   // div is not there.
   const stateCell = (html: string) => {
-    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
-    // The SECOND cell: name, then state. Progress went into the name
-    // cell with the pips (2026-08-22).
-    return head.split("<td")[2] ?? "";
+    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
+    // By its COLUMN, not its position: the header is two rows now and
+    // the chevron has a cell of its own, so counting cells says nothing.
+    return head.match(/<td[^>]*data-col="state"[\s\S]*?<\/td>/)?.[0] ?? "";
   };
   const hint = (html: string) =>
     stateCell(html).match(/<div class="muted small">([\s\S]*?)<\/div>\s*<\/td>/)?.[1] ?? "";
   /** Spec 132: the FIRST line — the badge itself. Once nothing is
    *  running it carries the whole sentence, and `hint` above is empty. */
   const chip = (html: string) => {
-    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
-    const state = head.split("<td")[2] ?? "";
+    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
+    const state = head.match(/<td[^>]*data-col="state"[\s\S]*?<\/td>/)?.[0] ?? "";
     return state.match(/<span class="badge b-[a-z]+"[^>]*>([^<]*)<\/span>/)?.[1] ?? "";
   };
 
@@ -71,7 +71,7 @@ describe("spec 101: one line per row for what is going on and what is next (crit
       [row({ specFolder: "101-a", steps: ["analyze", "implement"], stepIndex: 0, state: "running" })],
       [target("101-a")],
     );
-    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)![0];
+    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)![0];
     expect(head).toContain(">Analyzing<");
     expect(head).not.toContain("to follow");
     expect(hint(html)).toBe("");

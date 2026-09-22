@@ -46,7 +46,10 @@ async function shownColumns(width: number): Promise<string[]> {
   return page.locator("table.speclist th[data-col]").evaluateAll((cells) =>
     cells
       .filter((c) => getComputedStyle(c).display !== "none")
-      .map((c) => c.getAttribute("data-col") ?? ""),
+      .map((c) => c.getAttribute("data-col") ?? "")
+      // The chevron's own column heads nothing and never drops: it is a
+      // control's column, not one of the data columns this counts.
+      .filter((name) => name !== "fold"),
   );
 }
 

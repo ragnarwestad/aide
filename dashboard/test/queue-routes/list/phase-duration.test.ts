@@ -59,9 +59,11 @@ describe("a phase says how long it took", () => {
       ?.match(/<td data-col="started">(.*?)<\/td>/)?.[1] ?? "";
 
   /** The spec header row's own Started cell. */
+  /** The header's own Time cell, on the second of its two rows since
+   *  2026-09-22: the title has the first to itself. */
   const headCell = (html: string, folder: string): string =>
     html
-      .match(new RegExp(`<tr class="spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0]
+      .match(new RegExp(`<tr class="specstate"[^>]*data-folder="${folder}">.*?</tr>`))?.[0]
       ?.match(/<td data-col="started">(.*?)<\/td>/)?.[1] ?? "";
 
   test("a finished single-step phase shows its own span (criterion 3)", () => {
@@ -468,7 +470,7 @@ describe("an archived row reads a still-remembered queue job the same way a live
 
   const headCell = (html: string): string =>
     html
-      .match(/<tr class="spechead[^"]*"[^>]*data-folder="aa-spec">.*?<\/tr>/)?.[0]
+      .match(/<tr class="specstate"[^>]*data-folder="aa-spec">.*?<\/tr>/)?.[0]
       ?.match(/<td[^>]*data-col="started"[^>]*>(.*?)<\/td>/)?.[1] ?? "";
 
   test("REQ-1/REQ-3: a queue-measured phase wins over that phase's own file stamp, even on a locked row", () => {

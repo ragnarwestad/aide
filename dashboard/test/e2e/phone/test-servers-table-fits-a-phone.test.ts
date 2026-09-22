@@ -142,9 +142,15 @@ test("a heading and a body cell look like the specs list's (AC-2)", async () => 
     table: await tableLook("table.testservers"),
   };
   await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
+  // A spec's row is two lines since 2026-09-22 (title, then its state):
+  // the top edge — background, text, the separator's border and padding
+  // — belongs to the title line, and the bottom edge belongs to the
+  // state line beneath it, so the body comparison reads one from each.
+  const rowTop = await look("table.speclist tbody tr.spechead:nth-child(n+2) td:nth-child(2)");
+  const rowBottom = await look('table.speclist tbody tr.specstate:nth-child(n+2) td[data-col="state"]');
   const theirs = {
     head: await look("table.speclist thead th:nth-child(2)"),
-    body: await look("table.speclist tbody tr.spechead:nth-child(n+2) td:nth-child(2)"),
+    body: [...rowTop.slice(0, 5), rowBottom[5], rowTop[6], rowBottom[7]],
     table: await tableLook("table.speclist"),
   };
   expect(ours).toEqual(theirs);

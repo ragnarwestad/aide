@@ -239,6 +239,7 @@ export function phaseCaptionCells(
 ): string {
   const tools = new Set((opts.modelChoices ?? []).map((m) => m.tool ?? "claude"));
   return (
+    (includeListColumns ? `<td data-col="fold"></td>` : "") +
     `<td class="phasecell"><span class="muted small">${t(lang, "list.captionPhase")}</span></td>` +
     // Each caption over the control it heads, not three words bunched
     // at the left of the cell: `data-cap` pairs a caption with its

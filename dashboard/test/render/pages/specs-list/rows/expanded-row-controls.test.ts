@@ -45,7 +45,7 @@ describe("spec 109: an expanded row reveals its controls below the header line",
   const open = (folder: string) => ({ filter: { open: `aide/${folder}` } });
 
   const head = (html: string, folder: string) =>
-    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
+    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>\\s*<tr class="specstate".*?</tr>`))?.[0] ?? "";
   /** The line this spec adds: an open row's controls, under the header
    *  rather than inside it — everything an open row offers, since spec
    *  117 folded the rarely-set fields onto it too. */
@@ -63,7 +63,7 @@ describe("spec 109: an expanded row reveals its controls below the header line",
    *  spanning `stackcell` (open) before that. */
   const actionCell = (chunk: string) => {
     const caption = chunk.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
-    const cells = [...caption.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
+    const cells = [...caption.replace(/<td[^>]*data-col="fold"[^>]*>[\s\S]*?<\/td>/g, "").matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
     return cells[2] ?? "";
   };
 
