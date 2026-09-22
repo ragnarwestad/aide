@@ -236,7 +236,7 @@ describe("spec 123: each phase line picks its own model", () => {
     // `analyze` is not the first phase line, so the AI column's slot
     // here is the first line's `rowspan` and no cell of its own
     // stands between the two.
-    expect(line).toMatch(/<td class="phasecell">[\s\S]*?<\/td><td class="modelcell">/);
+    expect(line).toMatch(/<td class="phasecell" colspan="2">[\s\S]*?<\/td><td class="modelcell">/);
     expect(line).toContain('<select name="model.analyze"');
   });
 

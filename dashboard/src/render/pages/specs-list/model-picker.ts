@@ -239,8 +239,10 @@ export function phaseCaptionCells(
 ): string {
   const tools = new Set((opts.modelChoices ?? []).map((m) => m.tool ?? "claude"));
   return (
-    (includeListColumns ? `<td data-col="fold"></td>` : "") +
-    `<td class="phasecell"><span class="muted small">${t(lang, "list.captionPhase")}</span></td>` +
+    // The chevron's column is the head row's alone: a phase line spans
+    // it with its own first cell, so the lines under a head row start
+    // at the row's left edge rather than a column in.
+    `<td class="phasecell"${includeListColumns ? ` colspan="2"` : ""}><span class="muted small">${t(lang, "list.captionPhase")}</span></td>` +
     // Each caption over the control it heads, not three words bunched
     // at the left of the cell: `data-cap` pairs a caption with its
     // control, and the stylesheet gives the two the same width. Spec

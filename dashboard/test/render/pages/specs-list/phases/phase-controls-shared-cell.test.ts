@@ -103,7 +103,7 @@ describe("spec 192: the phase line's controls share one cell", () => {
       ]).toEqual([step, true]);
       // And it is still a cell of its own: the merge is behind it, not
       // around it.
-      expect([step, cellTags(subRow(html, step))[0]]).toEqual([step, '<td class="phasecell">']);
+      expect([step, cellTags(subRow(html, step))[0]]).toEqual([step, '<td class="phasecell" colspan="2">']);
     }
   });
 

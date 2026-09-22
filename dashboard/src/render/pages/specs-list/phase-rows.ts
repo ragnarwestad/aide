@@ -118,7 +118,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
     lines.push({
       tag: `<tr class="subrow" data-caption="1">`,
       cells:
-        `<td data-col="fold"></td><td class="phasecell"></td><td class="modelcell"></td>` +
+        `<td class="phasecell" colspan="2"></td><td class="modelcell"></td>` +
         `<td data-col="state"><span class="actionslot">${action}${headState}${headTime}</span></td>` +
         `<td data-col="started"></td><td class="num" data-col="cost"></td><td data-col="created"></td>`,
     });
@@ -340,8 +340,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
           // The name alone, hard left: it is what the eye lands on
           // first, and it started 2.5rem in behind the box until spec
           // 165 moved the box in beside the model.
-          `<td data-col="fold"></td>` +
-          `<td class="phasecell">${phaseMessagesFold(g, p, opts, ran)}${name}</td>` +
+          `<td class="phasecell" colspan="2">${phaseMessagesFold(g, p, opts, ran)}${name}</td>` +
           pickCell +
           `<td data-col="state">${phaseWordCell(word, stale + noPullRequest, attemptCount)}</td>` +
           // The phase's own duration, not when it began (spec 199).
