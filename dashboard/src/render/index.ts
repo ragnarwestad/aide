@@ -25,7 +25,7 @@
 // none.
 
 export {
-  ABOUT_PAGE, NEW_SPEC_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, projectListBody, renderSite,
+  NEW_SPEC_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, projectListBody, renderSite,
   navEntries,
   // `/projects/<name>` — the project's own page, served (spec 185), so
   // what it says about the config file is true when it is read rather

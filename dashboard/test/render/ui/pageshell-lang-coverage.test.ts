@@ -40,9 +40,9 @@ describe("every pageShell call passes a real language (spec 408, REQ-5)", () => 
     .map((file) => ({ file, calls: pageShellCallArgs(readFileSync(file, "utf-8")) }))
     .filter((f) => f.calls.length > 0);
 
-  test("at least 15 pageShell call sites are found (the scan itself is working)", () => {
+  test("at least 14 pageShell call sites are found (the scan itself is working)", () => {
     const total = callsByFile.reduce((n, f) => n + f.calls.length, 0);
-    expect(total).toBeGreaterThanOrEqual(15);
+    expect(total).toBeGreaterThanOrEqual(14);
   });
 
   test("every call site names lang, and none of them writes lang: undefined", () => {

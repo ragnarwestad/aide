@@ -59,7 +59,8 @@ describe("the mark is on the page (description item 3)", () => {
   // name — the CLI and this page are one product and two surfaces, and
   // the tab is one of the places that has to say which.
   test("a sub-page's tab title leads with the surface name", () => {
-    expect(site.get("about.html")!).toContain("<title>aide -board · About</title>");
+    const page = renderJobDetailPage(detail(), AT, navEntries());
+    expect(page).toContain("<title>aide -board · 102-design-foundation</title>");
   });
 });
 
@@ -179,11 +180,6 @@ describe("the header and the two tabs (spec 119)", () => {
       expect(tab(html, "Projects")).toContain('aria-current="page"');
       expect(tab(html, "Specs")).not.toContain("aria-current");
     }
-  });
-
-  test("neither tab is current on About — it is reached through the menu now", () => {
-    const html = site.get("about.html")!;
-    expect(tabs(html)).not.toContain("aria-current");
   });
 });
 
