@@ -177,7 +177,7 @@ Answered by `src/serve/routes/schedule-admin-routes.ts`.
 | `POST /api/queue/schedule/<project>/<name>`         | action | name, cron, prompt, model, notify          | `{ ok }`, or a 303; 400 for a refused schedule                                 | form     |
 | `POST /api/queue/schedule/<project>/<name>/enabled` | action | enabled                                    | `{ ok, enabled }`, or a 303                                                    | form     |
 | `POST /api/queue/schedule/<project>/<name>/run`     | action | nothing                                    | `{ ok, job }`, or a 303 to the schedule list                                   | form     |
-| `POST /api/queue/schedule/<project>/<name>/delete`  | action | nothing                                    | `{ ok }`, or a 303 to the schedule list; a refusal redirects there too        | form     |
+| `POST /api/queue/schedule/<project>/<name>/delete`  | action | nothing                                    | `{ ok }`, or a 303 to the schedule list; a refusal redirects there too         | form     |
 
 ### Push
 
