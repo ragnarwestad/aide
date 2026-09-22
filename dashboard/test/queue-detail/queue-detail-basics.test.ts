@@ -149,7 +149,7 @@ describe("the finished steps a job table cannot show (criterion 2)", () => {
 // this state shows a model it is not running on and a limit that is
 // not a number.
 describe("the page resolves a step its job's tables never named", () => {
-  test("the model and the limit shown are the live config's, not blank", async () => {
+  test("the model shown is the live config's, not blank", async () => {
     const { base, dir } = start();
     const id = await enqueue(base, ["analyze"]);
     const mirror = join(dir, "queue.json");
@@ -164,9 +164,13 @@ describe("the page resolves a step its job's tables never named", () => {
 
     const { base: base2 } = start({ queueMirrorPath: mirror });
     const html = await (await fetch(`${base2}/specs/${id}`)).text();
-    // `implement`'s own configured model and its own 90-minute limit —
-    // not "as configured" and not "NaN min".
+    // `implement`'s own configured model — not "as configured".
     expect(html).toContain("opus");
-    expect(html).toContain("Stopped — 90 min");
+    // The badge says the state and nothing else; the step's own limit
+    // is no longer written after it. That the limit resolves to the
+    // step's own figure is pinned by
+    // `test/queue-routes/runner/runner-concurrency-and-timeout.test.ts`.
+    expect(html).toContain(">Stopped<");
+    expect(html).not.toContain("90 min");
   });
 });

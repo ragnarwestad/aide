@@ -517,7 +517,11 @@
   /* The button keeps the same air from the left edge as a shut row's
      pips do; the padding comes off the first column again, so the state
      copy still starts over the phases' own state column. */
-    table.list tr.subrow[data-caption="1"] .actionslot > .headstate { display: block; justify-self: center; }
+  /* The slot fills its column rather than shrinking to its own word:
+     the badge inside takes the slot's width (below), so the caption
+     line's badge is exactly as wide as the phase lines' badges under
+     it — one column of equal chips, not one chip a word wide. */
+    table.list tr.subrow[data-caption="1"] .actionslot > .headstate { display: block; justify-self: stretch; }
   /* The slot holds an empty form (the button points at it by id), the
      button, and the state copy: the button in the first column at its
      own width, the state in the second, the form out of the grid. */
@@ -533,7 +537,7 @@
   table.list tr.subrow[data-caption="1"] .actionslot > .headtime { display: block; grid-column: 3; grid-row: 1;
     padding-left: var(--sp-2); text-align: center; white-space: nowrap; }
   table.list tr.subrow[data-caption="1"] .actionslot > .headstate { min-width: 0; max-width: 100%; overflow: hidden; }
-  table.list tr.subrow[data-caption="1"] .actionslot > .headstate .badge { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  table.list tr.subrow[data-caption="1"] .actionslot > .headstate .badge { min-width: 100%; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
   /* An open row's own second line comes off: the caption line carries
      the state, over the phases' states, and the phase lines say what the
      pips say — one state twice on one screen is one too many. A shut

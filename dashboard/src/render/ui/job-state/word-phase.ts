@@ -7,7 +7,7 @@ import type { Language } from "../../../i18n";
 import { t } from "../../../i18n";
 import { stepButton } from "../../../format/step-label.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
-import { BADGE_VARIANT, inFlight, stateLabel } from "./format.ts";
+import { BADGE_VARIANT, inFlight, stateWord } from "./format.ts";
 import type { QueueRowView } from "./types.ts";
 
 /** The reasons a step declines, each as the sentence a reader can act
@@ -72,7 +72,7 @@ const filesDisagreeSentence = (lang: Language, step: string | undefined): string
 const attemptQualifier = (attempt: QueueRowView, lang: Language): string =>
   attempt.errorReason === "unlanded"
     ? renderMessage(lang, { key: "wordPhase.attemptQualifierUnlanded" })
-    : t(lang, "list.lastRerun").replace("{state}", stateLabel(attempt, lang));
+    : t(lang, "list.lastRerun").replace("{state}", stateWord(attempt, lang));
 
 /** The one rule, applied by everything that words a phase.
  *
@@ -172,8 +172,8 @@ function decidePhase(
         // leftover report as if it were live.
         label:
           attempt!.tddPhase && attempt!.state === "running"
-            ? `${capitalizeFirst(stateLabel(attempt!, lang))} (${attempt!.tddPhase})`
-            : capitalizeFirst(stateLabel(attempt!, lang)),
+            ? `${capitalizeFirst(stateWord(attempt!, lang))} (${attempt!.tddPhase})`
+            : capitalizeFirst(stateWord(attempt!, lang)),
       },
       qualifier: filesDisagree,
     };
@@ -186,7 +186,7 @@ function decidePhase(
   if (happened && attempt && !running && attempt.state !== "done" && landingRefused(attempt)) {
     return {
       pip: "todo",
-      badge: { variant: BADGE_VARIANT[attempt.state], label: capitalizeFirst(stateLabel(attempt, lang)) },
+      badge: { variant: BADGE_VARIANT[attempt.state], label: capitalizeFirst(stateWord(attempt, lang)) },
       qualifier: attemptQualifier(attempt, lang),
     };
   }
@@ -281,7 +281,7 @@ function decidePhase(
       // later step's, not a reason to colour this one. Amber only when
       // nothing reached the files at all, and the row's own message
       // says so (2026-09-11).
-      badge: { variant: history.historyDone ? "done" : "waiting", label: capitalizeFirst(stateLabel(attempt, lang)) },
+      badge: { variant: history.historyDone ? "done" : "waiting", label: capitalizeFirst(stateWord(attempt, lang)) },
       qualifier: renderMessage(lang, {
         key: history.historyDone ? "wordPhase.lastRunDisagreesUnlanded" : "wordPhase.lastRunDisagreesUnwritten",
       }),
@@ -289,7 +289,7 @@ function decidePhase(
   }
   return {
     pip: running ? "now" : "todo",
-    badge: { variant: BADGE_VARIANT[attempt.state], label: capitalizeFirst(stateLabel(attempt, lang)) },
+    badge: { variant: BADGE_VARIANT[attempt.state], label: capitalizeFirst(stateWord(attempt, lang)) },
   };
 }
 

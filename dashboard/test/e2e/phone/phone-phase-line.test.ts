@@ -87,6 +87,11 @@ async function lineAt(width: number) {
       // a middle rather than a left edge.
       headState: mid(box(document.querySelector("tr.subrow[data-caption] .headstate"))!),
       phaseState: mid(box(line.querySelector('td[data-col="state"] .badge'))!),
+      // The badge on the caption line is the same chip as the badges
+      // under it — one column of equal widths, not one chip sized to
+      // its own word (2026-09-22).
+      headBadgeWidth: box(document.querySelector("tr.subrow[data-caption] .headstate .badge"))!.width,
+      phaseBadgeWidth: box(line.querySelector('td[data-col="state"] .badge'))!.width,
       timeLeft: box(line.querySelector('td[data-col="started"]'))!.left,
       timeRight: box(line.querySelector('td[data-col="started"]'))!.right,
       cardRight: box(card)!.right,
@@ -108,6 +113,7 @@ test.each([360, 390, 430])("at %ipx the line fits and lines up", async (width) =
   const at = await lineAt(width);
   expect(at.buttonCut).toBe(false);
   expect(Math.abs(at.phaseState - at.headState)).toBeLessThanOrEqual(1);
+  expect(Math.abs(at.headBadgeWidth - at.phaseBadgeWidth)).toBeLessThanOrEqual(1);
   expect(at.timeRight).toBeLessThanOrEqual(at.cardRight);
   // One line, not two: Time never wraps under the state.
   expect(at.lineBottom - at.lineTop).toBeLessThan(40);

@@ -36,14 +36,19 @@ describe("the four states with no example on the design sheet", () => {
 });
 
 describe("refused and running are told apart by more than the word", () => {
-  test("the refused badge carries a border the running one does not", async () => {
+  // No variant draws a border of its own (2026-09-22): one badge with a
+  // ring among six without read as a different component rather than a
+  // different state. The hues stay each their own, and a refusal says so
+  // on the row as well.
+  test("each state has its own ground, and none is ringed", async () => {
     const { CSS } = await import("../../../src/render/ui/css");
     const refused = CSS.match(/\.b-refused\s*\{([^}]*)\}/)?.[1] ?? "";
     const running = CSS.match(/\.b-running\s*\{([^}]*)\}/)?.[1] ?? "";
-    expect(refused).toContain("border-color: var(--danger)");
-    expect(running).not.toContain("border-color:");
     expect(refused).toContain("var(--danger-soft)");
     expect(running).toContain("var(--accent-soft)");
+    for (const variant of ["b-refused", "b-running", "b-waiting", "b-ready", "b-done"]) {
+      expect(CSS.match(new RegExp(`\\.${variant}\\s*\\{([^}]*)\\}`))?.[1] ?? "").not.toContain("border-color:");
+    }
   });
 
   test("a refusal on the row is a message with the warning mark, not colour alone", () => {

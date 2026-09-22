@@ -8,9 +8,9 @@ import { t, type Language, type TranslationKey } from "../../../i18n";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import type { QueueRowView } from "./types.ts";
 
-// Every state but `stopped` (which carries its own reason, below) is a
-// single catalogue key — added here rather than left as `r.state`
-// (spec 482), which was the raw English enum value in every language.
+// Every state is a single catalogue key — added here rather than left
+// as `r.state` (spec 482), which was the raw English enum value in
+// every language.
 const STATE_LABEL_KEYS: Record<Exclude<QueueRowView["state"], "stopped">, TranslationKey> = {
   queued: "state.queued",
   running: "state.running",
@@ -20,18 +20,13 @@ const STATE_LABEL_KEYS: Record<Exclude<QueueRowView["state"], "stopped">, Transl
   interrupted: "state.interrupted",
 };
 
-// A stopped job is NOT a failed one, and the two must never render as
-// the same string: with a tight timeout a time-stop is a common,
-// healthy outcome, and a reader who cannot tell them apart ignores both.
-export function stateLabel(r: QueueRowView, lang: Language = "en"): string {
-  if (r.state === "stopped") {
-    if (r.stopReason === "timeout") {
-      return t(lang, "state.stoppedTimeout").replace("{minutes}", String(Math.round(r.timeoutSec / 60)));
-    }
-    if (r.stopReason === "provider-limit") return t(lang, "state.stoppedProviderLimit");
-    return t(lang, "state.stoppedTestsRed");
-  }
-  return t(lang, STATE_LABEL_KEYS[r.state]);
+/** The state, in one word. That word is the whole of what the page says
+ *  about a state: why a job stopped — red tests, a provider's limit, the
+ *  step's own time limit — is the error sentence's to tell, in the
+ *  row's message and the popover beside the chip, and is never written
+ *  after the word. */
+export function stateWord(r: QueueRowView, lang: Language = "en"): string {
+  return r.state === "stopped" ? t(lang, "state.stopped") : t(lang, STATE_LABEL_KEYS[r.state]);
 }
 
 /** How long, in words (spec 199). "45s", "4m12s", "1h04m" — the unit
@@ -93,7 +88,11 @@ export const BADGE_VARIANT: Record<QueueRowView["state"], BadgeVariant> = {
 };
 
 export function stateChip(r: QueueRowView, lang: Language = "en"): string {
-  const b = badge(BADGE_VARIANT[r.state], capitalizeFirst(stateLabel(r, lang)));
+  // The word alone (see `stateWord`); why it stopped is what the popover
+  // beside it is for.
+  const b = badge(BADGE_VARIANT[r.state], capitalizeFirst(stateWord(r, lang)));
+  // Why it stopped is the popover's, not the badge's — and a stop with
+  // no sentence of its own gets no popover at all (spec 454).
   const detail = r.state === "stopped" ? renderSentence(lang, r.error) : undefined;
   return detail ? b + helpPopover("why this stopped", esc(detail)) : b;
 }

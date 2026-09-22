@@ -4,7 +4,7 @@
 import { t, type Language } from "../../../i18n";
 import { badge } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
-import { BADGE_VARIANT, stateLabel, type QueueRowView } from "../../ui/job-state";
+import { BADGE_VARIANT, stateWord, type QueueRowView } from "../../ui/job-state";
 
 /** No `allow-scripts`: nothing in a report runs. `allow-same-origin` lets
  *  the page's own script reach the frame's document (theme, height);
@@ -23,7 +23,7 @@ export interface ReportPanelRun {
 export function renderReportPanel(opts: { lang: Language; run?: ReportPanelRun }): string {
   const { lang, run } = opts;
   if (!run) return `<section id="report"><p class="muted">${esc(t(lang, "report.neverRan"))}</p></section>`;
-  const label = stateLabel(run.view, lang);
+  const label = stateWord(run.view, lang);
   const head =
     `<p class="reporthead">${badge(BADGE_VARIANT[run.view.state], label)} ` +
     `${esc(t(lang, "report.runOf", { time: run.startedAt }))}` +
