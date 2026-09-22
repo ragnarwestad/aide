@@ -151,7 +151,7 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     expect(stateRow).toMatch(/data-col="cost">[\s\S]*<\/td><\/tr>$/);
     // And the phase lines lead with the chevron's own column, empty, then
     // their own cell.
-    expect(firstSub).toMatch(/^<tr class="subrow" data-caption="1"><td data-col="fold"><\/td><td class="phasecell">/);
+    expect(firstSub).toMatch(/^<tr class="subrow" data-caption="1"><td class="phasecell" colspan="2">/);
   });
 
   // --- spec 317: the Created column ------------------------------------------

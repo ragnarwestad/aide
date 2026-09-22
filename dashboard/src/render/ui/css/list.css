@@ -173,7 +173,7 @@ table.settingstable tbody:first-of-type tr.settingsgroup th { padding-top: 0; }
    control is the one thing on the row that is not information. Taken off
    Phase, which the head row no longer spans. */
 table.speclist > colgroup > col[data-col="fold"] { width: 3.6036%; }
-table.speclist > colgroup > col[data-col="spec"] { width: 12.6126%; }
+table.speclist > colgroup > col[data-col="spec"] { width: 9.0090%; }
 /* What a phase line actually puts here, measured in a browser with this
    stylesheet: the AI/model pair (256px), the tick box (40, the width it
    shares with its "Select" caption) and the gap and the cell's own left
@@ -182,7 +182,7 @@ table.speclist > colgroup > col[data-col="spec"] { width: 12.6126%; }
    column and Spec beside it, and keeps whatever is left. 19rem is NOT
    enough — the model select wraps
    onto a second line, and the whole open row grows a line with it. */
-table.speclist > colgroup > col[data-col="phase"] { width: 32.4324%; }
+table.speclist > colgroup > col[data-col="phase"] { width: 36.0360%; }
 /* The badge alone since the button left this cell, and the badge is one
    word: the widest a spec row can draw is "implementing" (97px) or its
    Norwegian "implementerer" (102), measured in a browser with this
@@ -214,8 +214,8 @@ table.speclist > colgroup > col[data-col="cost"] { width: 11.7117%; }
   #jobrows { --speclist-width: 49rem; }
   table.speclist th[data-col="created"], table.speclist td[data-col="created"] { display: none; }
   table.speclist > colgroup > col[data-col="fold"] { width: 4.0816%; }
-  table.speclist > colgroup > col[data-col="spec"] { width: 14.2857%; }
-  table.speclist > colgroup > col[data-col="phase"] { width: 36.7347%; }
+  table.speclist > colgroup > col[data-col="spec"] { width: 10.2041%; }
+  table.speclist > colgroup > col[data-col="phase"] { width: 40.8163%; }
   table.speclist > colgroup > col[data-col="state"] { width: 18.3673%; }
   table.speclist > colgroup > col[data-col="started"] { width: 13.2653%; }
   table.speclist > colgroup > col[data-col="cost"] { width: 13.2654%; }
@@ -225,8 +225,8 @@ table.speclist > colgroup > col[data-col="cost"] { width: 11.7117%; }
   #jobrows { --speclist-width: 42.5rem; }
   table.speclist th[data-col="cost"], table.speclist td[data-col="cost"] { display: none; }
   table.speclist > colgroup > col[data-col="fold"] { width: 4.7059%; }
-  table.speclist > colgroup > col[data-col="spec"] { width: 16.4706%; }
-  table.speclist > colgroup > col[data-col="phase"] { width: 42.3529%; }
+  table.speclist > colgroup > col[data-col="spec"] { width: 11.7647%; }
+  table.speclist > colgroup > col[data-col="phase"] { width: 47.0588%; }
   table.speclist > colgroup > col[data-col="state"] { width: 21.1765%; }
   table.speclist > colgroup > col[data-col="started"] { width: 15.2941%; }
   table.speclist > colgroup > col[data-col="cost"] { width: 0; }
@@ -236,8 +236,8 @@ table.speclist > colgroup > col[data-col="cost"] { width: 11.7117%; }
   #jobrows { --speclist-width: 36rem; }
   table.speclist th[data-col="started"], table.speclist td[data-col="started"] { display: none; }
   table.speclist > colgroup > col[data-col="fold"] { width: 5.5556%; }
-  table.speclist > colgroup > col[data-col="spec"] { width: 19.4444%; }
-  table.speclist > colgroup > col[data-col="phase"] { width: 50%; }
+  table.speclist > colgroup > col[data-col="spec"] { width: 13.8888%; }
+  table.speclist > colgroup > col[data-col="phase"] { width: 55.5556%; }
   table.speclist > colgroup > col[data-col="state"] { width: 25%; }
   table.speclist > colgroup > col[data-col="started"] { width: 0; }
   table.speclist > colgroup > col[data-col="cost"] { width: 0; }
@@ -625,9 +625,10 @@ table.list tr.specstate td { border-top: none; border-bottom: none; }
    its own faint ground holds the phase lines and the button together, so
    a reader can see which group a control belongs to (asked for
    2026-08-23). Faint on purpose — the separator above is what divides
-   the specs; this only gathers what is already inside one. */
-table.list tr.spechead:has(+ tr.specstate + tr.subrow) td,
-table.list tr.specstate:has(+ tr.subrow) td,
+   the specs; this only gathers what is already inside one. The two head
+   lines keep the ground every other head line has: the fold control's
+   own hover is drawn in this same faint colour, and against it the
+   press a reader is aiming at disappeared. */
 table.list tr.subrow td,
 table.list :is(tr.subrow, tr.phasemsgs) + tr.specnotice td,
 table.list :is(tr.subrow, tr.phasemsgs) + tr.specnotice + tr.specnotice td { background: var(--surface-2); }

@@ -51,10 +51,10 @@ describe("the row's one action rides the caption line, not a column of its own",
     for (const cell of html.matchAll(/<td[^>]*rowspan[^>]*>([\s\S]*?)<\/td>/g)) {
       expect(cell[1]).not.toContain("</button>");
     }
-    // And the phase lines lead with their own cell, hard left.
-    // The caption line's own first cell is the chevron's empty column,
-    // then the phase cell (2026-09-22).
-    expect(html).toMatch(/<tr class="subrow[^"]*"[^>]*><td data-col="fold"><\/td><td class="phasecell">/);
+    // And the phase lines lead with their own cell, hard left: it spans
+    // the chevron's column, which belongs to the head row alone
+    // (2026-09-22).
+    expect(html).toMatch(/<tr class="subrow[^"]*"[^>]*><td class="phasecell" colspan="2">/);
   });
 });
 

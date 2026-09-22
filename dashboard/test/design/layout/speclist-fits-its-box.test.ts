@@ -80,7 +80,12 @@ describe("the specs table fits the box that scrolls it", () => {
   test("the Spec column holds the four workflow steps' names in either language", () => {
     const px = (r: number) => r * 16;
     const stated = rem(/--speclist-width: ([\d.]+)rem/.exec(css)![1]!);
-    const share = rem(/col\[data-col="spec"\] \{ width: ([\d.]+)%/.exec(css)![1]!) / 100;
+    // A phase line's name cell spans the chevron's column and the Spec
+    // column — the chevron belongs to the head row alone — so the room
+    // the name has is the two together.
+    const share =
+      (rem(/col\[data-col="fold"\] \{ width: ([\d.]+)%/.exec(css)![1]!) +
+        rem(/col\[data-col="spec"\] \{ width: ([\d.]+)%/.exec(css)![1]!)) / 100;
     // `th, td` pads on the right only, so that is what the name loses.
     const padding = rem(/--sp-3: (\d+)px/.exec(
       readFileSync(new URL("../../../src/render/ui/css/tokens.css", import.meta.url), "utf8"),

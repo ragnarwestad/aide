@@ -139,9 +139,10 @@ describe("the row's message panel is the component, not new markup", () => {
 describe("a message row after the phase lines has the open row's ground (spec 520, AC-2)", () => {
   test("list.css grounds a message row that follows tr.subrow or tr.phasemsgs", async () => {
     const { CSS } = await import("../../../src/render/ui/css");
-    // The header's own row is followed by its state row now, so what it
-    // looks ahead to is that one and then the phase lines (2026-09-22).
-    const rule = CSS.match(/table\.list tr\.spechead:has\(\+ tr\.specstate \+ tr\.subrow\) td,[^{]*\{[^}]*\}/)?.[0] ?? "";
+    // The ground starts at the phase lines: the two head lines above
+    // keep the background every other head line has, so the fold
+    // control's hover stays visible on them (2026-09-22).
+    const rule = CSS.match(/table\.list tr\.subrow td,[^{]*\{[^}]*\}/)?.[0] ?? "";
     expect(rule).toContain("background: var(--surface-2)");
     expect(rule).toContain("tr.specnotice td");
     expect(rule).toContain("tr.phasemsgs");

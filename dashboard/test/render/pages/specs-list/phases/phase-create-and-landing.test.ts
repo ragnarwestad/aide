@@ -95,7 +95,7 @@ describe("spec 116: create is the first phase line", () => {
     // disabled and nameless: the folder being on disk IS its answer,
     // and a line with no box at all read as a different KIND of line.
     expect(line).toMatch(
-      new RegExp(`<td class="phasecell">(?:<a class="fold[^>]*>.*?</a>)?<span class="phasefold">Create</span></td>`),
+      new RegExp(`<td class="phasecell" colspan="2">(?:<a class="fold[^>]*>.*?</a>)?<span class="phasefold">Create</span></td>`),
     );
     expect(line).toContain(
       '<label class="phase checked" data-phase="create">' +

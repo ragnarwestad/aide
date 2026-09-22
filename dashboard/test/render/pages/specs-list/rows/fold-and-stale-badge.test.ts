@@ -164,7 +164,7 @@ describe("the description-changed badge (criteria 1, 3)", () => {
   test("the stale mark sits in the state cell, not beside the model picker", () => {
     const html = rows([job("j1", "analyze")], [target("97-stale", { analyzeStale: true })]);
     const line = subRow(html, "analyze");
-    const nameCell = line.match(/<td class="phasecell">[\s\S]*?<\/td>/)?.[0] ?? "";
+    const nameCell = line.match(/<td class="phasecell" colspan="2">[\s\S]*?<\/td>/)?.[0] ?? "";
     expect(nameCell).not.toContain("Description changed since");
     expect(line).toContain("Description changed since");
   });
@@ -175,7 +175,7 @@ describe("the description-changed badge (criteria 1, 3)", () => {
       [target("97-tries", {})],
     );
     const line = subRow(html, "analyze");
-    const nameCell = line.match(/<td class="phasecell">[\s\S]*?<\/td>/)?.[0] ?? "";
+    const nameCell = line.match(/<td class="phasecell" colspan="2">[\s\S]*?<\/td>/)?.[0] ?? "";
     if (line.includes("attempts")) expect(nameCell).not.toContain("attempts");
   });
 

@@ -167,7 +167,21 @@ describe("spec 298: the file is read from the branch a still-open spec is on", (
     });
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze", "implement"]));
     ran(dir, ["create"]);
-    const line = specControls(await listPage(base), FOLDER);
+    // The row says this the moment the disk scan has read the copy
+    // written above; until then it draws the copy the harness started
+    // with, which claims `create` alone and disagrees with nothing. A
+    // dated Created cell is no longer proof that the scan got there,
+    // so the wait is for the sentence itself — a notice that never
+    // arrives runs the budget out and fails.
+    const line = specControls(
+      await listUntil(
+        base,
+        (html) => specControls(html, FOLDER).includes("disagree about whether"),
+        10_000,
+        "the row's disagreement notice",
+      ),
+      FOLDER,
+    );
     expect(line).toContain("disagree about whether");
   });
 

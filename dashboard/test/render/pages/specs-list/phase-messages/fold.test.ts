@@ -34,7 +34,7 @@ const render = (list: QueueRowView[], filter: SpecsFilter = {}, targets = [targe
 
 const line = (html: string, step: string) =>
   html.match(new RegExp(`<tr class="subrow" data-step="${step}">[\\s\\S]*?</tr>`))?.[0] ?? "";
-const firstCell = (html: string, step: string) => line(html, step).match(/<td class="phasecell">[\s\S]*?<\/td>/)?.[0] ?? "";
+const firstCell = (html: string, step: string) => line(html, step).match(/<td class="phasecell" colspan="2">[\s\S]*?<\/td>/)?.[0] ?? "";
 const foldLink = (cell: string) => cell.match(/<a class="fold[^"]*"[^>]*>/)?.[0] ?? "";
 
 describe("the › on a phase line", () => {

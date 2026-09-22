@@ -208,13 +208,9 @@ describe("spec 157: the row draws one action, on its caption line", () => {
     });
     const subs = [...html.matchAll(/<tr class="subrow[^"]*"[^>]*>[\s\S]*?<\/tr>/g)].map((m) => m[0]);
     for (const sub of subs) {
-      // The chevron's own column comes first and is empty on every line
-      // but the header's (2026-09-22); the phase's own cell is the next.
-      expect([sub.slice(0, 60), sub.indexOf('<td class="phasecell">')]).toEqual([
-        sub.slice(0, 60),
-        sub.indexOf('<td class="phasecell">'),
-      ]);
-      expect(sub.indexOf('<td data-col="fold">')).toBe(sub.indexOf("<td"));
+      // The phase's own cell leads the line and spans the chevron's
+      // column, which belongs to the header's rows alone (2026-09-22).
+      expect(sub.indexOf('<td class="phasecell" colspan="2">')).toBe(sub.indexOf("<td"));
       // The same count on EVERY phase line since spec 179 put a picker
       // on each of them: no line borrows a slot from a `rowspan` on
       // the line above it any more. Six since Created's blank
