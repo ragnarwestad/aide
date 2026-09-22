@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import {
-  renderDeleteSchedulePage,
   renderScheduleDetailPage,
   renderSchedulePage,
 } from "../../../../src/render";
@@ -109,8 +108,10 @@ describe("Schedule page (spec 272, extended spec 276, reworked spec 278)", () =>
       expect(listed()).not.toContain('class="btn small"');
     });
 
-    test("the control is a link to the confirmation page — the no-script flow, unchanged", () => {
-      expect(listed()).toContain('href="/schedule/aide/nightly-report/delete"');
+    test("the control is a button, not a link — no delete page behind it (AC-2)", () => {
+      const html = listed();
+      expect(html).toContain('<button type="button" class="btn danger" data-delete-schedule aria-label="Delete nightly-report">Delete</button>');
+      expect(html).not.toContain('href="/schedule/aide/nightly-report/delete"');
     });
 
     // The dialog asked for the entry's name, typed back, until
@@ -217,46 +218,6 @@ describe("Schedule page (spec 272, extended spec 276, reworked spec 278)", () =>
       ],
     });
     expect(html).toContain('href="/projects/aide?tab=schedule"');
-  });
-});
-
-describe("renderDeleteSchedulePage (spec 277, acceptance criterion 8)", () => {
-  // It made the reader type the entry's name back into a field until
-  // 2026-09-08 — on a page whose own heading is that name. It asks the
-  // question in a sentence now, with the two answers under it.
-  test("explains every effect, asks in a sentence, and styles the button as destructive", () => {
-    const html = renderDeleteSchedulePage(NAV, "2026-08-29T00:00:00Z", {
-      project: "aide",
-      entryName: "nightly-report",
-    });
-    expect(html).toContain("nightly-report");
-    expect(html.toLowerCase()).toContain("run history");
-    expect(html).toContain("Are you sure you want to delete nightly-report? This cannot be undone.");
-    expect(html).not.toContain("data-confirm=");
-    expect(html).not.toContain('name="confirm"');
-    expect(html).toContain('class="btn danger"');
-    expect(html).toContain(">Cancel</a>");
-  });
-
-  test("posts to the delete route beside the entry's own path", () => {
-    const html = renderDeleteSchedulePage(NAV, "2026-08-29T00:00:00Z", {
-      project: "aide",
-      entryName: "nightly-report",
-    });
-    expect(html).toContain('action="/api/queue/schedule/aide/nightly-report/delete"');
-  });
-
-  // Spec 296: the "Delete <name>" title sits beside ← Back, on one line.
-  test("the title sits inside .backhead, right after ← Back, and appears as <h1> exactly once", () => {
-    const html = renderDeleteSchedulePage(NAV, "2026-08-29T00:00:00Z", {
-      project: "aide",
-      entryName: "nightly-report",
-    });
-    expect(html).toContain(
-      '<div class="backhead"><a class="backlink" href="/schedule/aide/nightly-report">← Back</a>' +
-        "<h1>Delete nightly-report</h1></div>",
-    );
-    expect(html.match(/<h1>Delete nightly-report<\/h1>/g)?.length ?? 0).toBe(1);
   });
 });
 

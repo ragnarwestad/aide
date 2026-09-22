@@ -6,7 +6,7 @@
 // Acceptance criteria 14, 15, 16.
 import { describe, expect, test } from "bun:test";
 import {
-  postScheduleEnabled, postScheduleRun, runCronPreview, scheduleCronPreview,
+  bindScheduleDeleteButton, postScheduleEnabled, postScheduleRun, runCronPreview, scheduleCronPreview,
 } from "../../src/specs-client/schedule-actions.ts";
 
 function fakeCheckbox(o: { checked: boolean; postTo: string }): HTMLInputElement {
@@ -131,6 +131,42 @@ function fakeTarget(): HTMLElement {
     classList: { add: (c: string) => classes.add(c), remove: (c: string) => classes.delete(c), contains: (c: string) => classes.has(c) },
   } as unknown as HTMLElement;
 }
+
+function fakeDeleteButton(o: { hasDialog?: boolean; modal?: boolean } = {}) {
+  const opened: string[] = [];
+  const dialog = o.modal === false ? {} : { showModal: () => void opened.push("open") };
+  const parent = { querySelector: (sel: string) => (sel === "dialog" && o.hasDialog !== false ? dialog : null) };
+  const listeners: (() => void)[] = [];
+  const button = {
+    parentElement: parent,
+    addEventListener: (_name: string, fn: () => void) => void listeners.push(fn),
+  };
+  const click = () => {
+    for (const fn of listeners) fn();
+  };
+  return { button, click, opened, bound: () => listeners.length };
+}
+
+describe("bindScheduleDeleteButton (AC-2)", () => {
+  test("the click opens the row's own dialog", () => {
+    const row = fakeDeleteButton();
+    bindScheduleDeleteButton(row.button as unknown as HTMLButtonElement);
+    row.click();
+    expect(row.opened).toEqual(["open"]);
+  });
+
+  test("a button with no dialog beside it is left alone", () => {
+    const row = fakeDeleteButton({ hasDialog: false });
+    bindScheduleDeleteButton(row.button as unknown as HTMLButtonElement);
+    expect(row.bound()).toBe(0);
+  });
+
+  test("a browser without showModal is left alone too", () => {
+    const row = fakeDeleteButton({ modal: false });
+    bindScheduleDeleteButton(row.button as unknown as HTMLButtonElement);
+    expect(row.bound()).toBe(0);
+  });
+});
 
 describe("runCronPreview / scheduleCronPreview (acceptance criterion 16)", () => {
   test("a valid cron writes the computed Next-run line", async () => {

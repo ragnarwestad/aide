@@ -6,19 +6,17 @@
 
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import type { Language } from "../../../i18n";
-import { backLink, btn, rowMessage } from "../../ui/components";
-import { esc } from "../../ui/html.ts";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import type { ScheduleFormOptions } from "./form.ts";
 import { renderScheduleHistory, type ScheduleHistoryRow } from "./history.ts";
 import { renderScheduleList, type ScheduleFilter, type SchedulePageRow } from "./list.ts";
 import { renderScheduleOverview } from "./overview.ts";
-import { deleteSchedulePath, schedulePagePath, SCHEDULE_TABS, scheduleTabPath, type ScheduleTab } from "./tabs.ts";
+import { schedulePagePath, SCHEDULE_TABS, scheduleTabPath, type ScheduleTab } from "./tabs.ts";
 import { pickTab, tabBar, tabbedBody } from "../job-page";
 
 export { renderReportPanel } from "./report.ts";
 export { buildReportDocument } from "./report-document.ts";
-export { SCHEDULE_TABS, deleteSchedulePath, schedulePagePath, scheduleTabPath };
+export { SCHEDULE_TABS, schedulePagePath, scheduleTabPath };
 export type { SchedulePageRow, ScheduleFilter, ScheduleHistoryRow, ScheduleTab };
 
 export const SCHEDULE_ROUTE = "/schedule";
@@ -102,52 +100,5 @@ export function renderScheduleDetailPage(
     hideHeading: true,
     lang: opts.lang,
     currentUrl: opts.currentUrl,
-  });
-}
-
-export interface DeleteSchedulePageOptions {
-  project: string;
-  entryName: string;
-  script?: string;
-  error?: string;
-  /** Spec 408. Absent means English — the same default `pageShell`'s
-   *  own `opts.lang` falls back to. */
-  lang?: Language;
-  /** Spec 435. The request's own address, threaded to `pageShell` so its
-   *  language links keep the reader on this same page. */
-  currentUrl?: string;
-}
-
-export function renderDeleteSchedulePage(
-  nav: NavEntry[],
-  generatedAt: string,
-  opts: DeleteSchedulePageOptions,
-): string {
-  const back = schedulePagePath(opts.project, opts.entryName);
-  const title = `Delete ${opts.entryName}`;
-  const body =
-    backLink(back, title) +
-    (opts.error ? rowMessage("failed", opts.error, { tag: "p" }) : "") +
-    rowMessage(
-      "info",
-      `Deleting ${opts.entryName} removes it from ${opts.project}'s schedule for good. ` +
-        `Its run history stays in the queue and ages out on its own.`,
-      { tag: "p" },
-    ) +
-    `<form method="post" action="/api/queue${deleteSchedulePath(opts.project, opts.entryName)}" class="scheduledeleteform">` +
-    // The question in a sentence and the two answers (2026-09-08); it
-    // was a field the reader had to type the name back into, on a page
-    // whose own heading is that name. Cancel is a LINK wearing the
-    // button's look — it submits nothing, and where it goes is the page
-    // the reader came from.
-    rowMessage("waiting", `Are you sure you want to delete ${opts.entryName}? This cannot be undone.`, {
-      tag: "p",
-    }) +
-    `<span class="factions">` +
-    btn({ label: "Delete", variant: "danger", pending: "deleting…" }) +
-    `<a class="btn" href="${esc(back)}">Cancel</a>` +
-    `</span></form>`;
-  return pageShell(title, nav, back, body, generatedAt, undefined, {
-    script: opts.script, hideHeading: true, lang: opts.lang, currentUrl: opts.currentUrl,
   });
 }

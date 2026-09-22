@@ -63,13 +63,13 @@ export type { TestServerRow, TestServersPageOptions } from "./pages/test-servers
 // project's scheduled jobs. The New-job form itself moved to each
 // project's own Schedule tab (spec 468).
 export {
-  renderSchedulePage, renderScheduleDetailPage, renderDeleteSchedulePage,
+  renderSchedulePage, renderScheduleDetailPage,
   renderReportPanel, buildReportDocument,
-  SCHEDULE_ROUTE, SCHEDULE_TABS, schedulePagePath, scheduleTabPath, deleteSchedulePath,
+  SCHEDULE_ROUTE, SCHEDULE_TABS, schedulePagePath, scheduleTabPath,
 } from "./pages/schedule-page";
 export type {
   SchedulePageOptions, SchedulePageRow, ScheduleDetailPageOptions,
-  DeleteSchedulePageOptions, ScheduleHistoryRow, ScheduleTab,
+  ScheduleHistoryRow, ScheduleTab,
 } from "./pages/schedule-page";
 
 // The eight answers that make the dashboard an app you install (spec

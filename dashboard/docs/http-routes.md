@@ -177,7 +177,7 @@ Answered by `src/serve/routes/schedule-admin-routes.ts`.
 | `POST /api/queue/schedule/<project>/<name>`         | action | name, cron, prompt, model, notify          | `{ ok }`, or a 303; 400 for a refused schedule                                 | form     |
 | `POST /api/queue/schedule/<project>/<name>/enabled` | action | enabled                                    | `{ ok, enabled }`, or a 303                                                    | form     |
 | `POST /api/queue/schedule/<project>/<name>/run`     | action | nothing                                    | `{ ok, job }`, or a 303 to the schedule list                                   | form     |
-| `POST /api/queue/schedule/<project>/<name>/delete`  | action | nothing                                    | `{ ok }`, or a 303 to the schedule list; a refusal returns to the confirm page | form     |
+| `POST /api/queue/schedule/<project>/<name>/delete`  | action | nothing                                    | `{ ok }`, or a 303 to the schedule list; a refusal redirects there too        | form     |
 
 ### Push
 
@@ -240,7 +240,6 @@ Answered by the files under `src/serve/routes/page-routes/`, `src/serve/routes/s
 | `GET /projects/<project>/remove`                | read   | optional `?error=`                           | the confirm page for removing the project                                                                     | page     |
 | `GET /schedule`                                 | read   | optional `?q=`, `?sort=`, `?dir=`            | the schedule list                                                                                             | page     |
 | `GET /schedule/<project>/<name>`                | read   | optional `?tab=`, `?run=`                    | the schedule's page                                                                                           | page     |
-| `GET /schedule/<project>/<name>/delete`         | read   | optional `?error=`                           | the confirm page for deleting the schedule                                                                    | page     |
 | `GET /schedule-output/<file>`                   | read   | nothing                                      | a file from the schedule output folder                                                                        | page     |
 
 ### Files

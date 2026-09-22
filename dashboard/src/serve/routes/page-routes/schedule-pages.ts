@@ -1,4 +1,4 @@
-// the Schedule tab: its listing, a new entry, one entry's own page and its delete confirmation, and a run's recorded output. One of the three route families `handlePageRoutes`
+// the Schedule tab: its listing, a new entry, one entry's own page, and a run's recorded output. One of the three route families `handlePageRoutes`
 // asks in turn (split 2026-09-04: the file had reached 594 lines,
 // a single function with a chain of route checks in it).
 //
@@ -7,7 +7,7 @@
 // three be asked one after another exactly as the chain read before.
 import { DEFAULT_SCHEDULE_OUTPUT_ROOT, readScheduleRunReport, scheduleTrackingKey } from "../../../queue/schedule.ts";
 import {
-  SCHEDULE_ROUTE, buildReportDocument, projectPagePath, renderDeleteSchedulePage, renderReportPanel,
+  SCHEDULE_ROUTE, buildReportDocument, projectPagePath, renderReportPanel,
   renderScheduleDetailPage, renderSchedulePage, resolveBackHref, schedulePagePath,
 } from "../../../render";
 import { languageChoice, specsClientScript } from "../../serve-helpers";
@@ -65,28 +65,6 @@ export async function schedulePages(
       },
       error: url.searchParams.get("error") ?? undefined,
       modelNames: Object.keys(ctx.queue.defaults.modelChoices ?? {}),
-      lang: langResult.lang,
-      currentUrl: langResult.currentUrl,
-    });
-    const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
-    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
-    return new Response(html, { headers });
-  }
-
-  const scheduleDeletePage = path.match(/^\/schedule\/([^/]+)\/([^/]+)\/delete$/);
-  if (scheduleDeletePage) {
-    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-    const project = decodeURIComponent(scheduleDeletePage[1]!);
-    const name = decodeURIComponent(scheduleDeletePage[2]!);
-    if (!ctx.allowed.has(project)) return new Response("not found", { status: 404 });
-    const entry = ctx.scheduleStore.list(project).find((e) => e.name === name);
-    if (!entry) return new Response("not found", { status: 404 });
-    const langResult = languageChoice(url, req);
-    const html = renderDeleteSchedulePage(ctx.nav(), new Date().toISOString(), {
-      project,
-      entryName: name,
-      script: await specsClientScript(),
-      error: url.searchParams.get("error") ?? undefined,
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
     });

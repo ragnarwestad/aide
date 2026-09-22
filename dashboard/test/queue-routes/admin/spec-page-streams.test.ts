@@ -135,6 +135,6 @@ describe("the spec page carries the client bundle (spec 525)", () => {
   test("the page holds the specs client script, so Close can open its dialog (AC-1)", async () => {
     const { base } = start();
     const html = await (await fetch(`${base}/specs/aide/${FOLDER}?tab=description`)).text();
-    expect(html).toContain("function bindConfirmLink");
+    expect(html).toContain('querySelectorAll("button[data-close-ask]")');
   });
 });
