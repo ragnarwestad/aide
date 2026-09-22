@@ -681,7 +681,14 @@ table.list :is(tr.subrow, tr.phasemsgs) + tr.specnotice + tr.specnotice:is(:last
    stated on the model select itself.
    The name stands hard left with nothing in front of it: it is what
    the eye lands on first, and it began 2.5rem in, behind the box. */
-table.list tr.subrow .phasecell { white-space: nowrap; }
+/* Every phase line keeps the fold control's width free, drawn or not —
+   24px of control and the gap after it — so the names read down one
+   edge whether or not a phase has messages to show, and the control
+   itself sits at the cell's own left edge rather than in front of the
+   name it belongs to. */
+table.list tr.subrow .phasecell { white-space: nowrap;
+  padding-left: calc(var(--sp-3) + 24px + var(--sp-1)); }
+table.list tr.subrow .phasecell > .fold { margin-left: calc(-24px - var(--sp-1)); }
 /* The AI select, the model select and the phase's box, in the column
    the head row's pips leave empty on a phase line: they claim the width
    they need rather than wrapping, or the cell squeezes them into two
