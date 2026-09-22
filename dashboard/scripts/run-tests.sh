@@ -56,6 +56,15 @@ started=$(date +%s)
 OUT=$(mktemp -d)
 trap 'rm -rf "$OUT"' EXIT
 
+# Every temp directory a test makes goes inside this run's own, and is
+# removed with it. A test that leaves its directory behind otherwise
+# leaves it in the machine's shared temp directory for good: those had
+# piled up to 1.9 million entries by 2026-09-22, and reading that
+# directory takes minutes — which is what a board starting from it, or
+# any other program reaching for temp, then waits for.
+export TMPDIR="$OUT/tmp"
+mkdir -p "$TMPDIR"
+
 # Two pools, dealt separately: the files that start a browser take the
 # first `BROWSER_WORKERS` workers, everything else takes the rest. Dealt
 # together — one round-robin over every file — which pool a worker ended

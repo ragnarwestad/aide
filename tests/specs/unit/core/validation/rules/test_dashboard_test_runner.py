@@ -96,6 +96,15 @@ class TestTheRunnerScript:
             "the last line must carry the wall-clock time, in minutes and " \
             "seconds"
 
+    def test_the_run_keeps_its_temp_directories_inside_its_own(self, runner_script):
+        assert 'export TMPDIR="$OUT/tmp"' in runner_script, \
+            "a test's own temp directory must land inside the run's, which " \
+            "is removed on exit — otherwise what a test leaves behind stays " \
+            "in the machine's shared temp directory for good"
+        assert re.search(r"trap 'rm -rf \"\$OUT\"' EXIT", runner_script), \
+            "the run's directory — which now holds every test's temp files " \
+            "— must still be removed when the run ends"
+
     def test_a_red_worker_prints_its_output(self, runner_script):
         assert 'cat "$OUT/out.$w"' in runner_script, \
             "CI reads the failing lines out of this output — a red worker " \
