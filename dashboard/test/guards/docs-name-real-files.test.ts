@@ -17,6 +17,7 @@ const PAGES = [
   "README.md",
   "../.claude/CLAUDE.md",
   "../.claude/rules/development.md",
+  ...[...new Bun.Glob(".claude/rules/*.md").scanSync(ROOT)],
   ...[...new Bun.Glob("docs/**/*.md").scanSync(ROOT)],
 ];
 

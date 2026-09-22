@@ -4,18 +4,29 @@ import { join } from "node:path";
 
 const ROOT = join(import.meta.dir, "..", "..", "..");
 const claudeMd = () => readFileSync(join(ROOT, "dashboard", "CLAUDE.md"), "utf-8");
+const landingRule = () => readFileSync(join(ROOT, "dashboard", ".claude", "rules", "landing.md"), "utf-8");
 const developmentMd = () => readFileSync(join(ROOT, ".claude", "rules", "development.md"), "utf-8");
 const pairsPage = () => readFileSync(join(ROOT, "dashboard", "docs", "bash-typescript-decisions.md"), "utf-8");
 
 describe("dashboard/CLAUDE.md keeps its rules (REQ-1)", () => {
-  test("still tells a session how a run touches the repositories, lands and archives", () => {
-    const text = claudeMd();
-    expect(text).toContain("`aide-run-spec` branches EVERY repo it touches");
+  test("still tells a session how a run touches the repositories", () => {
+    expect(claudeMd()).toContain("`aide-run-spec` branches EVERY repo it touches");
+  });
+
+  test("the landing rule tells a session how a branch lands and archives", () => {
+    const text = landingRule();
     expect(text).toContain("No step's work is merged by hand.");
     expect(text).toContain("Origin decides whether an `archive` landing finished.");
     expect(text.replace(/\s+/g, " ")).toContain(
       "A conflict is `archive`'s to resolve, by the literal string `archive`, never a denylist.",
     );
+  });
+
+  test("CLAUDE.md names the rules that moved out of it", () => {
+    const text = claudeMd();
+    for (const rule of ["landing.md", "process-groups.md", "dashboard-design.md"]) {
+      expect(text).toContain(rule);
+    }
   });
 });
 

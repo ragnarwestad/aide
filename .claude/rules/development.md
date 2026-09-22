@@ -23,10 +23,15 @@ it type-checks first, then spreads the test files over one bun process per
 core (`dashboard/scripts/run-tests.sh`). A bare `bun test` runs them in one
 process and takes several times as long.
 
-**The queue/worktree/merge/archive internals live in `dashboard/CLAUDE.md`
-now** (moved 2026-08-26, /doctor check 4), not here — that content only
-matters to a session actually working in `dashboard/`, and loads
-automatically for one. It also documents `core/scripts/aide-run-spec`.
+**The queue/worktree/merge/archive internals live under `dashboard/`,**
+not here — that content only matters to a session actually working in
+`dashboard/`. `dashboard/CLAUDE.md` holds what every such session needs,
+and `dashboard/.claude/rules/` holds the rules for one part of the code
+(the landing, archive and close; signalling a process group; the design
+rules), loaded when a file they name is read. Both also document
+`core/scripts/aide-run-spec`; a session run from here reads them by hand,
+since a rule scoped by `paths:` loads only for a session whose working
+directory is `dashboard/`.
 
 **`specs/` is gitignored, and `specs/README.md` alone is force-tracked.**
 A project's specs are its own, not this repo's; `AIDE_SPECS_PATH` points
