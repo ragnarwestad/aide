@@ -268,7 +268,7 @@ link, a bookmark, the back button — falls back to that cookie instead of alway
 `?state=` always wins and becomes the new memory. The search term (`?q=`) is never remembered this way.
 
 **An archived spec is a row on this list**, and nowhere else — there is no separate archive page. Its row is a READER
-row: the link to its own `/specs/<project>/<spec>` page, its name under a two-line clamp, what its phases came to in
+row: its name as two links — the project to its page and the rest to its own `/specs/<project>/<spec>` page — under a two-line clamp, what its phases came to in
 time, and Reopen. It draws no description — a locked row's description stays searchable but is not shown — and no
 archive date: the Time column holds a duration and never a date. Reopen is a link to a confirmation page
 (`/specs/<project>/<spec>/reopen`) that asks whether to reset the analysis, the plan and the status as well; the

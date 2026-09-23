@@ -12,9 +12,16 @@ describe("the spec's name hangs under itself when it wraps", () => {
     const label = /\.spec-name > \.label \{([^}]*)\}/.exec(css)![1]!;
     expect(label).toMatch(/display: flex/);
     expect(label).not.toMatch(/line-clamp/);
-    const name = /\.spec-name > \.label > \.specname \{([^}]*)\}/.exec(css)![1]!;
+    const part = /\.spec-name > \.label > \.specpart \{([^}]*)\}/.exec(css)![1]!;
+    expect(part).toMatch(/display: flex/);
+    expect(part).toMatch(/min-width: 0/);
+    // No `gap` on either flex row: the project's link and the colon touch.
+    expect(label).not.toMatch(/gap/);
+    expect(part).not.toMatch(/gap/);
+    const name = /\.spec-name > \.label > \.specpart > \.specname \{([^}]*)\}/.exec(css)![1]!;
     expect(name).toMatch(/-webkit-line-clamp: 2/);
     expect(name).toMatch(/min-width: 0/);
     expect(/\.spec-name > \.label > \.muted \{[^}]*flex: 0 0 auto/.test(css)).toBe(true);
+    expect(/\.spec-name > \.label > \.specpart > \.muted \{[^}]*flex: 0 0 auto/.test(css)).toBe(true);
   });
 });

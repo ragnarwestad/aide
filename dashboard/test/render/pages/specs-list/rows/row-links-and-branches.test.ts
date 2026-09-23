@@ -23,8 +23,9 @@ describe("the queue row links to the spec (criterion 12)", () => {
     // Project, then the spec's NUMBER and its title. The slug is left
     // to the href: it says the title over again in hyphens.
     expect(html).toContain(
-      `<a class="label" data-goto href="${SPEC_HREF}" title="aide:81-queue-and-runner">` +
-        `<span class="muted">aide:</span><span class="specname">81-`,
+      `<span class="label"><a class="muted" data-goto href="/projects/aide">aide</a>` +
+        `<a class="specpart" data-goto href="${SPEC_HREF}" title="aide:81-queue-and-runner">` +
+        `<span class="muted">:</span><span class="specname">81-`,
     );
     expect(html).toContain(`href="${SPEC_HREF}"`);
   });
@@ -58,7 +59,7 @@ describe("the queue row links to the spec (criterion 12)", () => {
   // click).
   test("the stylesheet clamps the name", async () => {
     const { CSS } = await import("../../../../../src/render/ui/css");
-    expect(CSS).toContain(".spec-name > .label > .specname { overflow: hidden;");
+    expect(CSS).toContain(".spec-name > .label > .specpart > .specname { overflow: hidden;");
     expect(CSS).toContain("-webkit-line-clamp: 2;");
   });
 
@@ -72,8 +73,12 @@ describe("the queue row links to the spec (criterion 12)", () => {
     // The project is on this row from the first moment too, the same
     // shape every landed row has — only the link is missing, because
     // there is no page to open yet.
-    expect(html).toContain('<span class="label"><span class="muted">aide:</span><span class="specname">My new idea</span></span>');
-    expect(html).not.toContain("data-goto");
+    expect(html).toContain(
+      '<span class="label"><a class="muted" data-goto href="/projects/aide">aide</a>' +
+        '<span class="specpart"><span class="muted">:</span><span class="specname">My new idea</span></span></span>',
+    );
+    // Only the project links: there is no spec page to open yet.
+    expect(html).not.toContain('href="/specs/');
   });
 
   // REQ-4: the name carries the title now, so the line under it must
@@ -98,7 +103,45 @@ describe("the queue row links to the spec (criterion 12)", () => {
     });
     const landed = renderSpecsRows([row({ steps: ["analyze"] })], { runnerAvailable: true, targets: [] });
     for (const html of [creating, landed]) {
-      expect(html).toContain('<span class="muted">aide:</span>');
+      expect(html).toContain('<a class="muted" data-goto href="/projects/aide">aide</a>');
     }
+  });
+});
+
+// The name is two anchors side by side, the project's and the spec's
+// (AC-2), and reads the same as before with its tags removed (AC-3).
+describe("the row's name is two links", () => {
+  const strip = (html: string): string => html.replace(/<[^>]*>/g, "");
+  const label = (html: string): string => /<span class="label">.*?<\/span><\/a><\/span>/s.exec(html)![0];
+  const targets = [{ project: "aide", specFolder: "81-queue-and-runner" }];
+
+  test("a live row: no anchor holds another, and no whitespace stands between the halves (AC-2, AC-3)", () => {
+    const name = label(renderSpecsRows([row()], { runnerAvailable: true, targets }));
+    expect(name.match(/<a /g)).toHaveLength(2);
+    expect(name).not.toMatch(/<a [^>]*>(?:(?!<\/a>).)*<a /s);
+    expect(name).toContain("</a><a ");
+    expect(name.match(/data-goto/g)).toHaveLength(2);
+    expect(strip(name)).toMatch(/^aide:81-/);
+  });
+
+  test("an archived row has the same two anchors (AC-2)", () => {
+    const html = renderSpecsRows([], {
+      runnerAvailable: true,
+      targets: [],
+      archivedSpecs: [
+        {
+          project: "aide", folder: "81-queue-and-runner", title: "Queue and runner", description: "",
+          createdAt: "2026-08-01T09:00:00Z", done: ["create", "analyze", "implement", "archive"],
+          models: {}, phaseOutcomes: {},
+        },
+      ],
+    });
+    expect(html).toContain('<a class="muted" data-goto href="/projects/aide">aide</a><a class="specpart" data-goto href="/specs/aide/81-queue-and-runner"');
+  });
+
+  test("the list search still matches aide:81, and the tooltip is the identifier (AC-3)", () => {
+    const html = renderSpecsRows([row()], { runnerAvailable: true, targets });
+    expect(html).toContain('title="aide:81-queue-and-runner"');
+    expect(strip(label(html))).toContain("aide:81");
   });
 });

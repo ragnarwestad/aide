@@ -102,7 +102,7 @@ export function tabBar<T extends string>(
  *  `backHref` is resolved by the server, from the request's own
  *  `Referer` (spec 252) — this layer only draws it. */
 export function tabbedBody(
-  banner: string, tabs: string, panel: string, backHref: string, title?: string,
+  banner: string, tabs: string, panel: string, backHref: string, title?: string | { html: string },
   /** True for a page whose content is FIELDS: they cap themselves at a
    *  reading width narrower than `.doc`'s own, and the wrapper takes
    *  theirs so the page has one right edge. A page of tables — this

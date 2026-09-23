@@ -8,6 +8,7 @@ import { join } from "node:path";
 
 import { checkoutFaults } from "./checkout-faults.ts";
 import { rowMessage } from "./components";
+import { jobsSentence } from "./components/spec-name.ts";
 import { getPendingRestartNotice } from "./pending-restart.ts";
 import { t, type Language } from "../../i18n";
 import { toolsWithFaults } from "./tool-checks.ts";
@@ -61,8 +62,8 @@ function lastInstallWarnings(lang: Language): string[] {
 function restartWaitingNotice(lang: Language): string {
   const waiting = getPendingRestartNotice();
   if (waiting.length === 0) return "";
-  const text = t(lang, "shell.restartWaiting", { jobs: waiting.join(", ") });
-  return rowMessage("waiting", text, { tag: "p", hook: "restart-notice" });
+  const { text, html } = jobsSentence(lang, "shell.restartWaiting", {}, waiting);
+  return rowMessage("waiting", text, { tag: "p", hook: "restart-notice", html });
 }
 
 /** A tool the board checked and found wanting (2026-09-16). Without

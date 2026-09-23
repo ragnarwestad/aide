@@ -270,7 +270,10 @@ describe("a landing that installs and asks for a restart", () => {
         await new Promise((r) => setTimeout(r, 25));
         html = await (await fetch(`${base}/projects/aide?tab=deploy`, { headers: AUTH })).text();
       }
-      expect(html).toContain(`the restart is waiting for running jobs: ${job.project}:${job.specFolder}`);
+      // The job's name is two links, so the sentence is read with its tags removed.
+      expect(html.replace(/<[^>]*>/g, "")).toContain(
+        `the restart is waiting for running jobs: ${job.project}:${job.specFolder}`,
+      );
       expect(html).not.toContain("Deploy restarts it on commit");
       // Spec 392 (REQ-9): the button stays live (a press still retries
       // the install), but its title says a press will not restart the

@@ -378,6 +378,33 @@ test("REQ-3: a spec row's Created cell stays on one line", async () => {
   expect(whiteSpace).toBe("nowrap");
 });
 
+// AC-3 (spec 532): the project's link and the colon touch, and a name
+// that wraps starts its second line at the same left edge as its first,
+// at desktop width and at a phone's.
+for (const width of [1280, 375]) {
+  test(`spec 532 AC-3: the project's link and the colon touch, and a wrapped name hangs under itself at ${width}px (browser)`, async () => {
+    await page.setViewportSize({ width, height: 800 });
+    await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
+    const row = page.locator('tr[data-folder="81-queue-and-runner"]');
+    const project = row.locator(".spec-name > .label > a.muted");
+    const colon = row.locator(".spec-name > .label > .specpart > .muted");
+    const name = row.locator(".spec-name > .label > .specpart > .specname");
+    const [p, c, n] = await Promise.all([
+      project.evaluate((el) => el.getBoundingClientRect().right),
+      colon.evaluate((el) => el.getBoundingClientRect().left),
+      name.evaluate((el) => el.getBoundingClientRect().left),
+    ]);
+    expect(Math.abs(c - p)).toBeLessThan(1);
+    // The name's box starts where every one of its lines does.
+    const lineLefts = await name.evaluate((el) => {
+      const r = document.createRange();
+      r.selectNodeContents(el);
+      return [...r.getClientRects()].map((q) => Math.round(q.left));
+    });
+    for (const left of lineLefts) expect(Math.abs(left - n)).toBeLessThan(2);
+  });
+}
+
 // Spec 440: the header row stays pinned to the top of the scroll box
 // while the list's own rows scroll underneath it, instead of scrolling
 // away with them. The 40 padding specs `beforeAll` seeds are what make

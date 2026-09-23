@@ -181,7 +181,7 @@ const STRUCTURE = [
   "small", "muted", "num", "label",
   // The spec's own name beside the project inside `.label` (2026-09-10):
   // the part that wraps, hanging under itself.
-  "specname", "desc", "summary", "counts",
+  "specname", "specpart", "desc", "summary", "counts",
   // one whole spec file, preformatted (spec 150) — the spec page shows
   // four of them and a phase's job page one
   "specfile",

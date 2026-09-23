@@ -7,6 +7,7 @@ import { FIELD_OWNED_CHECKS, type ProjectSettingsView } from "../../../project/p
 import { SETTING_LABELS } from "../../../project/setting-labels.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
 import { btn, messageSlot, rowMessage } from "../../ui/components";
+import { jobsSentence } from "../../ui/components/spec-name.ts";
 import { esc, relTimeLabel } from "../../ui/html.ts";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { t } from "../../../i18n";
@@ -112,6 +113,7 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
         : `the service is ${s.behindCount ?? "some"} commit${s.behindCount === 1 ? "" : "s"} behind this checkout` +
           ` — the newest change is "${s.newestSubject}"`;
 
+  let sentenceHtml: string | undefined;
   const sentence = notYetChecked
     ? (() => {
         const phrase = serving && servedCommitPhrase(serving);
@@ -124,10 +126,14 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
         (serving ? ", and restarts the service." : ".")
       : stale
         ? opts.restartWaiting?.length
-          ? t(opts.lang ?? "en", "project.deployRestartWaiting", {
-              sha: serving!.sha.slice(0, 7),
-              jobs: opts.restartWaiting.join(", "),
-            })
+          ? (() => {
+              const s = jobsSentence(
+                opts.lang ?? "en", "project.deployRestartWaiting",
+                { sha: serving!.sha.slice(0, 7) }, opts.restartWaiting!,
+              );
+              sentenceHtml = s.html;
+              return s.text;
+            })()
           : `This checkout matches origin, but the service is still running commit ${serving!.sha.slice(0, 7)}; ` +
             `Deploy restarts it on commit ${serving!.checkoutHead.slice(0, 7)}.`
         : serving
@@ -160,7 +166,7 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
     }) +
     messageSlot("refused") +
     `</form>`;
-  return heading + panel(errorLine + rowMessage(notYetChecked || behind! > 0 || stale ? "waiting" : "info", sentence) + button);
+  return heading + panel(errorLine + rowMessage(notYetChecked || behind! > 0 || stale ? "waiting" : "info", sentence, { html: sentenceHtml }) + button);
 }
 
 /** AC-3/AC-4/AC-8: the section beside Deploy for prod — a button that

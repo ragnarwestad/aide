@@ -231,13 +231,13 @@ const MESSAGE_ICON: Record<MessageVariant, string> = {
 export function rowMessage(
   variant: MessageVariant,
   text: string,
-  o: { hook?: string; tag?: "div" | "p"; actions?: string } = {},
+  o: { hook?: string; tag?: "div" | "p"; actions?: string; html?: string } = {},
 ): string {
   const tag = o.tag ?? "div";
   const cls = [o.hook, "rowmsg", variant].filter(Boolean).join(" ");
   // `actions` is markup drawn inside the box after the text: controls
   // the message offers (a link to try again, a form that dismisses it).
-  return `<${tag} class="${cls}">${MESSAGE_ICON[variant]}<span>${esc(capitalizeFirst(text))}</span>${o.actions ?? ""}</${tag}>`;
+  return `<${tag} class="${cls}">${MESSAGE_ICON[variant]}<span>${o.html ?? esc(capitalizeFirst(text))}</span>${o.actions ?? ""}</${tag}>`;
 }
 
 /** One sentence of a row's message, and how it is drawn. `own` stands it
@@ -394,7 +394,7 @@ export function helpPopover(what: string, body: string): string {
  *  hand-written `<h1>` after `backLink()`, either of which left the
  *  title on a line of its own. Omitted, the markup is exactly what it
  *  was before `title` existed. */
-export function backLink(href: string, title?: string, trailing = ""): string {
+export function backLink(href: string, title?: string | { html: string }, trailing = ""): string {
   const link = `<a class="backlink" href="${esc(href)}">← Back</a>`;
   // `trailing` rides at the far end of the title's own line: on the spec
   // page, where the spec STANDS — its four pips and, while a phase is
@@ -402,7 +402,7 @@ export function backLink(href: string, title?: string, trailing = ""): string {
   // and the line naming the spec said nothing.
   const end = trailing ? `<span class="headend">${trailing}</span>` : "";
   return title
-    ? `<div class="backhead">${link}<h1>${esc(title)}</h1>${end}</div>`
+    ? `<div class="backhead">${link}<h1>${typeof title === "string" ? esc(title) : title.html}</h1>${end}</div>`
     : `<p class="intro">${link}</p>`;
 }
 

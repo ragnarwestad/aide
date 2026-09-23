@@ -4,6 +4,7 @@ import type { Language } from "../../../i18n";
 
 import { specPagePath } from "../spec-page";
 import { CHECKING, badge, stepLabel } from "../../ui/components";
+import { projectLink } from "../../ui/components/spec-name.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { esc } from "../../ui/html.ts";
 import { inFlight, restingChip } from "../../ui/job-state";
@@ -114,21 +115,25 @@ export function specHeadRow(
   // and prefixing it again read "81-81-queue-and-runner".
   const number = g.named ? g.specFolder.split("-")[0] : "";
   const specName = g.title ? (number ? `${number}-${g.title}` : g.title) : g.specFolder;
-  const project = `<span class="muted">${esc(g.project)}:</span>`;
+  // The project is a link to its page and the rest a link to the spec:
+  // two anchors side by side inside the label's flex row, the colon in
+  // the spec's, with no whitespace between them so the two touch.
+  const project = projectLink(g.project, { className: "muted" });
   const spec = g.named
-    ? `<a class="label" data-goto href="${esc(specPagePath(g.project, g.specFolder))}" ` +
+    ? `<span class="label">${project}<a class="specpart" data-goto href="${esc(specPagePath(g.project, g.specFolder))}" ` +
       // The tooltip is the IDENTIFIER — project and folder — which is
       // what a reader copies into a command or another page.
       `title="${esc(g.project)}:${esc(g.specFolder)}">` +
-      // The name in a span of its own beside the project (2026-09-10):
+      // The name in a span of its own beside the colon (2026-09-10):
       // the label is a flex row, so a name that wraps hangs under
       // itself — every line starting where the number does — rather
       // than running back under the project on its second line.
-      `${project}<span class="specname">${esc(specName)}</span></a>`
+      `<span class="muted">:</span><span class="specname">${esc(specName)}</span></a></span>`
     // No `title` attribute here: the whole name is already on the line,
     // and a tooltip repeating it would put the spec's title on the page
-    // twice (`row-links-and-branches.test.ts`).
-    : `<span class="label">${project}<span class="specname">${esc(specName)}</span></span>`;
+    // twice (`row-links-and-branches.test.ts`). There is no spec page to
+    // open yet, so only the project is a link.
+    : `<span class="label">${project}<span class="specpart"><span class="muted">:</span><span class="specname">${esc(specName)}</span></span></span>`;
   // A pull request open for this row's branch is a fact about the work,
   // not a second state the spec is IN (REQ-1, spec 403 — reversing spec
   // 339's own REQ-1, which put it here): it is true for the whole window

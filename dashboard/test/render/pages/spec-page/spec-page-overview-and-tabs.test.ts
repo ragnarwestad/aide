@@ -45,16 +45,28 @@ describe("spec 212: one tab per document", () => {
   test("the title sits inside .backhead, right after ← Back, and appears as <h1> exactly once", () => {
     const html = page();
     expect(html).toContain(
-      '<div class="backhead"><a class="backlink" href="/">← Back</a><h1>aide:150-one-page-shows-the-whole-spec</h1></div>',
+      '<div class="backhead"><a class="backlink" href="/">← Back</a>' +
+        '<h1><a data-goto href="/projects/aide">aide</a>:150-one-page-shows-the-whole-spec</h1>',
     );
-    expect(html.match(/<h1>aide:150-one-page-shows-the-whole-spec<\/h1>/g)?.length ?? 0).toBe(1);
+    const h1s = html.match(/<h1>.*?<\/h1>/gs) ?? [];
+    expect(h1s).toHaveLength(1);
+    // Exactly one link in it, and its text is the name as before (AC-1, AC-3).
+    expect(h1s[0]!.match(/<a /g)).toHaveLength(1);
+    expect(h1s[0]!.replace(/<[^>]*>/g, "")).toBe("aide:150-one-page-shows-the-whole-spec");
   });
 
   // REQ-5, REQ-6: the format is read off `view.project`, not hardcoded
   // to the fixture's own default of "aide".
   test("the title's project comes from the view, not a hardcoded default", () => {
     const html = page(view({ project: "atlasaurus" }));
-    expect(html).toContain("<h1>atlasaurus:150-one-page-shows-the-whole-spec</h1>");
+    expect(html).toContain(
+      '<h1><a data-goto href="/projects/atlasaurus">atlasaurus</a>:150-one-page-shows-the-whole-spec</h1>',
+    );
+  });
+
+  test("a project that needs encoding and escaping is encoded in the address and escaped in the text (AC-1)", () => {
+    const html = page(view({ project: "a&b c" }));
+    expect(html).toContain('<a data-goto href="/projects/a%26b%20c">a&amp;b c</a>:150-');
   });
 
   // There is no Checks tab: the tab row is Description, Analysis,

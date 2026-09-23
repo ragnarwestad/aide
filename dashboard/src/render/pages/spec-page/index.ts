@@ -48,6 +48,7 @@
 
 import type { LogFilter } from "../../../queue/parse-stream";
 import { badge, helpPopover, rowMessage } from "../../ui/components";
+import { projectLink } from "../../ui/components/spec-name.ts";
 import { gerund } from "../../../format/gerund.ts";
 import { esc } from "../../ui/html.ts";
 import type { Language } from "../../../i18n";
@@ -181,7 +182,7 @@ function specPageBody(view: SpecPageView, opts: SpecPageOpts): { body: string; t
     ),
     panel,
     view.backHref ?? "/",
-    `${view.project}:${view.specFolder}`,
+    { html: `${projectLink(view.project)}:${esc(view.specFolder)}` },
     // The spec page's content is FIELDS — the depends-on picker, the
     // acceptance switch, the description editor — and they cap
     // themselves narrower than `.doc`'s default. One right edge means
