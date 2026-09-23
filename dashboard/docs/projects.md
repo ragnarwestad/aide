@@ -10,6 +10,7 @@ The page has two parts. [Using it](#using-it) is for someone adding and running 
 
 - [Using it](#using-it)
     - [Adding a project](#adding-a-project)
+    - [Where a project's settings are kept](#where-a-projects-settings-are-kept)
     - [Removing a project](#removing-a-project)
     - [Whether a run can start there](#whether-a-run-can-start-there)
     - [What Add finishes itself](#what-add-finishes-itself)
@@ -78,6 +79,30 @@ settings file, `~/.aide/dashboard/checkouts/<name>/settings.yaml`, in the manife
 is never written to; Add says so in its manifest step and writes nothing for the links and the landing. An untracked
 `.aide/project.yaml` in the checkout (a draft from `/aide-manifest`) is left as it is and seeds the settings file, so what
 it said is not lost.
+
+### Where a project's settings are kept
+
+A project's settings live in one of two files, and the page says which in a sentence above the table.
+Four states, in the page's own words:
+
+| The page says                                  | What it means                                                                        |
+|------------------------------------------------|--------------------------------------------------------------------------------------|
+| Kept in the project's own `.aide/project.yaml` | The repository tracks a manifest, and it travels with the project to any machine     |
+| Kept in the dashboard, in `settings.yaml`      | The repository tracks no manifest, so this dashboard holds them beside its checkouts |
+| … and the dashboard's copy is not used         | Both files exist, and the tracked manifest wins as a whole file                      |
+| No settings are stored yet                     | Neither file exists                                                                  |
+
+**Add always leaves a project in the second state**, whatever was typed: the form writes the name,
+the description, the worktree links and the code landing to the dashboard's own settings file and
+nothing into the repository.
+
+**What moves a project to the first state is the project itself**: commit an `.aide/project.yaml` in
+its repository — `/aide-manifest` drafts one — and the dashboard reads that instead from the next
+render on. Nothing on the board moves the settings, and no press copies one file into the other.
+
+Two of the seven values never travel this way at all: Specs root and Install command are written to
+`.aide/config`, which is never committed, so they are this machine's alone whichever state the
+project is in.
 
 ### Removing a project
 
