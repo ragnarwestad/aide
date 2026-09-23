@@ -157,7 +157,7 @@ describe("a project's settings route (spec 184)", () => {
     const afterSave = await (await fetch(`${base}${ok.headers.get("location")}`, {
       headers: {},
     })).text();
-    expect(afterSave).toContain("<td>node_modules</td>");
+    expect(afterSave).toContain(`<td data-col="setting-value">node_modules</td>`);
     const refused = await fetch(`${base}/api/queue/projects/aide/settings`, {
       method: "POST",
       redirect: "manual",

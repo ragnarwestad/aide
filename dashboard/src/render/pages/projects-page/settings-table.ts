@@ -178,7 +178,8 @@ export function unifiedSettingsTable(
         const unsetTest = r.key === "AIDE_TEST_CMD" && r.origin !== "configured";
         return (
           `<tr><td>${esc(SETTING_LABELS[r.key] ?? r.key)} <span class="muted">${esc(r.key)}</span></td>` +
-          `<td>${unsetTest && !editing ? `<span class="muted">–</span>` : settingValueCell(r, editing, opts)}</td>` +
+          `<td data-col="setting-value">` +
+          `${unsetTest && !editing ? `<span class="muted">–</span>` : settingValueCell(r, editing, opts)}</td>` +
           `<td>${esc(r.purpose)} — ${unsetTest ? unsetTestComment(r) : originText(r, opts.settingsHome)}${problem}</td></tr>`
         );
       })

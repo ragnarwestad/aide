@@ -82,6 +82,13 @@ table.settingstable { width: auto; }
    and auto layout otherwise handed most of the width to the values. */
 table.list col[data-col="setting-value"],
 table.list col[data-col="setting-comment"] { width: 42%; }
+/* A path has no break the browser will take on its own, so auto layout
+   sized the Value column to the whole path and left the Comment a
+   ribbon six words tall — the 42% above is a hint auto layout drops when
+   a cell cannot be made narrower. `anywhere` is what makes it narrower:
+   unlike `break-word` it counts in the min-content width the layout is
+   computed from, which is the number that has to change. */
+table.list td[data-col="setting-value"] { overflow-wrap: anywhere; }
 /* The heading row that opens a group of settings rows. A row rather than
    a blank gap, so the grouping survives being read aloud and being read
    as markup. */
