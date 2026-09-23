@@ -15,6 +15,7 @@ It is further distilled into two documents:
   - [Sources](#sources)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-09-21](#2026-09-21)
   - [2026-09-14](#2026-09-14)
   - [2026-05-23](#2026-05-23)
   - [2026-05-14](#2026-05-14)
@@ -66,6 +67,58 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-09-21
+
+Short period (Sep 14 – Sep 21). The one finding that matters for Aide: **Claude Code v2.1.277 reads `AGENTS.md` in projects without a `CLAUDE.md`**. The Codex changelog has moved from `developers.openai.com/codex/changelog/` to `learn.chatgpt.com/docs/changelog` (a permanent redirect).
+
+**Claude Code (Sep 17 – Sep 19, v2.1.271 → v2.1.278):**
+
+| Date   | Version  | News                                                                                                                                                                                       | Source                                                                |
+|--------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
+| Sep 17 | v2.1.275 | `ctrl+enter` interrupts the turn and sends queued messages; skills and plugins enabled on claude.ai sync to terminal sessions (`syncClaudeAiSkills`/`syncClaudeAiPlugins: false` opts out) | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
+| Sep 18 | v2.1.276 | Fixed every request failing with `400 … advisor_20260301` behind a proxy or gateway (2.1.275 regression)                                                                                   | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
+| Sep 18 | v2.1.277 | **Reads `AGENTS.md` in projects without `CLAUDE.md`** (not yet on Bedrock/Vertex/Foundry); `CLAUDE_GATEWAY_PROXY_IS_EGRESS_BOUNDARY=1`; `headers:` map on gateway upstreams                | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
+| Sep 19 | v2.1.278 | Auto mode defaults to a server-side classifier for Claude API and Enterprise users (`CLAUDE_CODE_AUTO_MODE_SERVER=0` opts out); `/status` shows where the classifier runs                  | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
+
+Versions v2.1.271–274 were not itemised on the releases page.
+
+**GitHub Copilot CLI (Sep 16 – Sep 18, v1.0.85 → v1.0.87-0):**
+
+| Date   | Version         | News                                                                                                                                                                           | Source                                                            |
+|--------|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
+| Sep 16 | v1.0.85         | Vim mode for everyone; `transcriptView: "concise"`; `enable`/`disable` on `plugin`, `mcp` and `skill` commands; `copilot instruction list` and `copilot lsp list`; GPT-6 Astra | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
+| Sep 17 | v1.0.86         | Custom agents can opt into repo instruction files with `include-custom-instructions: true`; session resume keeps marketplace plugins and skills                                | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
+| Sep 18 | v1.0.87-0 (pre) | Auto routing tier with org policy; `worktreePathTemplate` setting; configurable MCP slow-connection warning                                                                    | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
+
+**GitHub Copilot Platform (Sep 14–18):**
+
+| Date   | News                                                               | Source                                                      |
+|--------|--------------------------------------------------------------------|-------------------------------------------------------------|
+| Sep 14 | Cost and quality configurable in Copilot auto model selection      | [GitHub Blog](https://github.blog/changelog/label/copilot/) |
+| Sep 17 | Agentic CLI customizations available through the usage metrics API | [GitHub Blog](https://github.blog/changelog/label/copilot/) |
+| Sep 18 | Selected Copilot models are phased out in mid-October              | [GitHub Blog](https://github.blog/changelog/label/copilot/) |
+
+**OpenAI Codex CLI (Sep 17 – Sep 18, v0.155.0 → v0.155.1):**
+
+| Date   | Version  | News                                                                                                                                                       | Source                                                      |
+|--------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|
+| Sep 14 | —        | GPT-5.3-Codex-Spark deprecated; GPT-5.5 retires Oct 14 (switch to GPT-5.6-Sol)                                                                             | [Codex changelog](https://learn.chatgpt.com/docs/changelog) |
+| Sep 17 | v0.155.0 | Experimental voice conversations; Touch ID verification for MCP requests on macOS; configurable daemon updates; AWS credential handling for Amazon Bedrock | [Codex changelog](https://learn.chatgpt.com/docs/changelog) |
+| Sep 18 | v0.155.1 | New local TUI sessions leave reasoning summaries off by default (fixes rejections by providers that do not support them)                                   | [GitHub](https://github.com/openai/codex/releases)          |
+
+The 0.156.0 alphas (Sep 19–21) carry no release notes.
+
+**Relevance for Aide:**
+
+- ⭐ **Claude Code reads `AGENTS.md` when a project has no `CLAUDE.md` (v2.1.277)** — a project where Aide's Codex-side instructions live in `AGENTS.md` alone now also reaches Claude Code. Verify the installer's handling of a project with `AGENTS.md` and no `CLAUDE.md` before relying on it. Proposed: in `.claude/skills/ai-tools-reference/SKILL.md`, note under Claude Code's instruction files that `AGENTS.md` is a fallback when `CLAUDE.md` is absent (not on Bedrock/Vertex/Foundry).
+- ✅ **Claude Code syncs claude.ai skills and plugins to the terminal (v2.1.275)** — skills enabled on claude.ai can now appear next to Aide's; opt out with `syncClaudeAiSkills: false`. Proposed: in `.claude/skills/ai-tools-reference/SKILL.md`, list the two settings under skill discovery.
+- ✅ **Copilot CLI `enable`/`disable` on `plugin`, `mcp`, `skill` (v1.0.85) and `include-custom-instructions` for custom agents (v1.0.86)** — logged for the next verification sweep. Proposed: in `docs/AI_SUPPORT_MATRIX.md`, add `include-custom-instructions` to the Copilot agents row after verifying it on the installed 1.0.86.
+- ✅ **Auto mode server-side classifier (Claude Code v2.1.278)** — no effect on the queue, which passes `--permission-mode` per step.
+- ⚠️ **Codex changelog URL moved to `learn.chatgpt.com/docs/changelog` (permanent redirect)** — Proposed: in `docs/AI_NEWS_LOG.md` (Sources) and `.claude/skills/check-news/SKILL.md`, replace the old URL; that is a source list, not the matrix or reference, so it is left for a user to approve.
+- ℹ **Codex 0.155 voice, Touch ID for MCP, Bedrock credentials; Copilot Vim mode, auto routing, model phase-out; GPT-5.5 retirement Oct 14** — no Aide action; Aide's `modelChoices` should not name GPT-5.5 or GPT-5.3-Codex-Spark.
+
+---
 
 ### 2026-09-14
 
