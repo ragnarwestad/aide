@@ -183,8 +183,8 @@ export function unifiedSettingsTable(
         );
       })
       .join("") + codeLandingRow(codeLanding, editing, opts.defaultBranch ?? null);
-  const table =
-    settingsHomeSentence(opts.settingsHome) +
+  const homeSentence = settingsHomeSentence(opts.settingsHome);
+  const tableBody =
     `<div class="tablewrap"><table class="list">` +
     `<colgroup><col data-col="setting-name"><col data-col="setting-value"><col data-col="setting-comment"></colgroup>` +
     `<thead><tr><th>Name</th><th>Value</th>` +
@@ -197,7 +197,8 @@ export function unifiedSettingsTable(
       `<div class="configactions"><a class="btn primary" href="${esc(path)}?edit=1">Edit</a>` +
       btn({ label: "Cancel", type: "button", disabled: true }) +
       `</div>` +
-      table
+      homeSentence +
+      tableBody
     );
   }
   return (
@@ -212,7 +213,12 @@ export function unifiedSettingsTable(
     // `data-discard-changes` gives unsaved-changes.ts the same
     // exemption by a different marker (spec 438).
     `<a class="btn" data-discard-changes href="${esc(path)}">Cancel</a></div>` +
-    `<span class="frow">${table}</span>` +
+    // Two sibling rows, not one holding both (spec 531) — `.newspecform
+    // .frow` is a flex row, so a single shared frow made the sentence
+    // and the table flex children squeezed beside each other instead of
+    // stacked.
+    (homeSentence ? `<span class="frow">${homeSentence}</span>` : "") +
+    `<span class="frow">${tableBody}</span>` +
     messageSlot("refused") +
     `</form>`
   );

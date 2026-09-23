@@ -20,7 +20,7 @@ describe("what the page says about whether a run could start (criteria 4-6, 8)",
     const html = await (await get(serve(root, stranded(root, "aide")), "aide")).text();
     expect(html).toContain("there is no such branch, here or on origin");
     // The whole point: no Add, no Run, no query string — a plain GET.
-    expect(html).toContain("cannot run");
+    expect(html).toContain("cannot start");
   });
 
   test("a settled checkout says a run could start here", async () => {

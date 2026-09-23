@@ -13,6 +13,7 @@ import { t } from "../../../i18n";
 import { pickTab, tabBar, tabbedBody } from "../job-page";
 import { renderScheduleForm } from "../schedule-page/form.ts";
 import { schedulePagePath } from "../schedule-page";
+import { projectDescription } from "./overview-list.ts";
 import { PROJECTS_ROUTE, projectPagePath } from "./routes.ts";
 import { unifiedSettingsTable } from "./settings-table.ts";
 import type { ProjectPageOptions, ProjectView } from "./types.ts";
@@ -238,29 +239,29 @@ function scheduleSection(project: string, entries: readonly ScheduleEntry[], opt
   );
 }
 
-/** The checks no settings row owns (spec 378, REQ-3) — the checkout
- *  itself is not its own repository, the specs root is not in one, the
- *  checkout cannot reach its default branch, the dashboard cannot clone
- *  it. `FIELD_OWNED_CHECKS` is filtered out here because those checks
- *  already read on their own settings row (`unifiedSettingsTable`) —
- *  one source of truth for which check belongs where, so a fact is never
- *  shown twice with two chances to disagree. */
-function checkoutSection(readiness: ProjectReadiness): string {
-  const checks = readiness.checks.filter((c) => !FIELD_OWNED_CHECKS.has(c.check));
-  if (checks.length === 0) return "";
-  return (
-    `<h3>The checkout itself</h3>` +
-    `<p class="muted">Fixed on the machine, not on this page.</p>` +
-    checks
-      .map((c) =>
-        c.blocking
-          ? rowMessage("failed", c.detail)
-          : c.ok
-            ? `<p class="muted">${esc(c.detail)}</p>`
-            : rowMessage("waiting", c.detail),
-      )
-      .join("")
-  );
+/** The checks no settings row owns that did NOT pass (spec 378, spec
+ *  531) — a check that passed says nothing here; the summary line above
+ *  has already said as much. `FIELD_OWNED_CHECKS` keeps this the one
+ *  place a fact this page draws twice cannot disagree with itself. */
+function checkoutChecks(readiness: ProjectReadiness): string {
+  const checks = readiness.checks.filter((c) => !FIELD_OWNED_CHECKS.has(c.check) && !c.ok);
+  return checks.map((c) => rowMessage(c.blocking ? "failed" : "waiting", c.detail)).join("");
+}
+
+/** The one line at the top of Config saying whether a run can start
+ *  (spec 378) — the information card while nothing blocks it, and the
+ *  board's own error card, naming every blocking reason in the same
+ *  words its own check already carries, when something does (spec 531).
+ *  `readiness.canRun` guarantees at least one blocking check exists in
+ *  the false branch (`readiness.ts`: `canRun = checks.every(c =>
+ *  !c.blocking)`). Non-blocking-but-failing checks are named in their
+ *  own amber card below (`checkoutChecks`), not repeated here. */
+function readinessSummary(readiness: ProjectReadiness): string {
+  if (readiness.canRun) {
+    return rowMessage("info", "Nothing stops a run: this checkout is ready to run.");
+  }
+  const reasons = readiness.checks.filter((c) => c.blocking).map((c) => c.detail);
+  return rowMessage("failed", `a run cannot start here yet: ${reasons.join("; ")}`);
 }
 
 /** The Config tab: the settings table, plus — since the Health tab went
@@ -282,13 +283,8 @@ function configSection(
   const noFile = settings.hasConfigFile
     ? ""
     : rowMessage("info", "There is no .aide/config in this checkout, so nothing below was configured on this machine.");
-  const summary = readiness
-    ? rowMessage(
-        readiness.canRun ? "info" : "failed",
-        readiness.canRun ? "Nothing stops a run: this checkout is ready to run." : "A run cannot run here yet.",
-      )
-    : "";
-  const checkout = readiness ? checkoutSection(readiness) : "";
+  const summary = readiness ? readinessSummary(readiness) : "";
+  const checkout = readiness ? checkoutChecks(readiness) : "";
   return noFile + summary + checkout + unifiedSettingsTable(settings, name, opts.editing, opts);
 }
 
@@ -337,7 +333,7 @@ export function renderProjectPage(
   // forms a reload would clear from under someone mid-edit.
   const awaitingDrift = tab === "deploy" && opts.drift?.checkedAt === null;
 
-  const body = tabbedBody("", tabBar(PROJECT_TABS, base, tab, {}), panel, PROJECTS_ROUTE, p.name);
+  const body = tabbedBody(projectDescription(p), tabBar(PROJECT_TABS, base, tab, {}), panel, PROJECTS_ROUTE, p.name);
   return pageShell(p.name, nav, base, body, generatedAt, awaitingDrift ? AWAITING_DRIFT_REFRESH_SECONDS : undefined, {
     script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,
   });

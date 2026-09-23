@@ -6,6 +6,15 @@ import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import type { ProjectView } from "./types.ts";
 
+/** The project's own description, from its manifest (spec 531) — the
+ *  `.desc` paragraph both the projects list and a project's own page
+ *  draw, empty wherever there is none to show. */
+export function projectDescription(p: ProjectView): string {
+  return p.manifest.ok && p.manifest.data.description
+    ? `<p class="desc">${esc(p.manifest.data.description)}</p>`
+    : "";
+}
+
 // `removeHref` only on the served page: a generated file has no server
 // behind it, so its rows carry no control (asked for 2026-08-19 —
 // Remove lives ON the row, at the right of the description).
@@ -40,9 +49,7 @@ function overviewRow(
   }
   const active = p.specs.filter((s) => !s.archived).length;
   const archived = p.specs.length - active;
-  const desc = p.manifest.data.description
-    ? `<p class="desc">${esc(p.manifest.data.description)}</p>`
-    : "";
+  const desc = projectDescription(p);
   return (
     `<div class="proj-row"><div>${projectLink}` +
     `<span class="counts">${active} ${t(lang, "project.active")} · ${archived} ${t(lang, "project.archived")}</span>` +
