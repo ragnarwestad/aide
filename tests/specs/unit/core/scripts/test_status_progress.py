@@ -137,3 +137,41 @@ def test_the_start_pass_starts_nothing_in_a_later_round_AC_20(tmp_path):
 @pytest.mark.parametrize("before", [None, ""])
 def test_the_start_pass_starts_nothing_on_a_missing_or_empty_baseline_AC_20(tmp_path, before):
     assert start_pass(tmp_path, WITH_ACCEPTANCE, before) == WITH_ACCEPTANCE
+
+
+# The mark is a symbol AND its words — "⬜ Not started" is what the
+# shipped `4-status.md` template writes, and what a model writing a fresh
+# plan copies. Read as anything but a start state it failed a whole
+# analyze (north-star:01, 2026-09-23): 27 rows nobody had touched were
+# counted as advanced, and the step was refused for a scope violation it
+# had not committed.
+def test_a_not_started_row_written_with_its_symbol_is_not_an_advance(tmp_path):
+    content = (
+        "# Queue - Status\n\n## Phase 1: RED\n\n"
+        "| Task | Status | Notes |\n|------|--------|-------|\n"
+        "| a | ⬜ Not started | |\n"
+        "| b | ⬜ | |\n"
+        "| c | Not started | |\n"
+    )
+    assert advanced_count(tmp_path, content) == 0
+
+
+def test_a_mark_that_carries_a_symbol_and_real_words_still_counts(tmp_path):
+    content = (
+        "# Queue - Status\n\n## Phase 1: RED\n\n"
+        "| Task | Status | Notes |\n|------|--------|-------|\n"
+        "| a | ✅ Completed | |\n"
+        "| b | 🔄 In progress | |\n"
+        "| c | ⬜ Not started | |\n"
+    )
+    assert advanced_count(tmp_path, content) == 2
+
+
+def test_not_verified_with_its_symbol_is_still_a_start_state(tmp_path):
+    content = (
+        "# Queue - Status\n\n## Acceptance criteria\n\n"
+        "| Task | Status | Notes |\n|------|--------|-------|\n"
+        "| AC-1 | ⬜ Not verified | |\n"
+        "| AC-2 | Not verified | |\n"
+    )
+    assert advanced_count(tmp_path, content) == 0

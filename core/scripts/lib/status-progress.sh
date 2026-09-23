@@ -112,9 +112,17 @@ status_advanced_count_for() {   # sets $advanced_count
       }
       if (mark == "" || length(mark) > 30 || mark ~ /,/) { prev_counted = 0; next }
       low = tolower(mark)
+      # The symbol and the words are one mark: "⬜ Not started" is the
+      # form the shipped 4-status template writes, and reading it as
+      # anything but a start state failed a whole analyze over 27 rows
+      # nobody had touched. So the leading symbol comes off and the
+      # words are read on their own; a mark that is only a symbol keeps
+      # its own comparison below.
+      word = low
+      sub(/^[^a-z0-9]+[ \t]*/, "", word)
       # "Not verified" is a done mark for the count above, but it is
       # never an advance here: it is a start state, like ⬜.
-      prev_counted = (mark != "⬜" && low != "not started" && low != "not verified") ? 1 : 0
+      prev_counted = (mark != "⬜" && low != "not started" && low != "not verified" && word != "not started" && word != "not verified") ? 1 : 0
       if (prev_counted) advanced++
       next
     }
