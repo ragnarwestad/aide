@@ -7,13 +7,17 @@ import {
 
 // --- spec 138: a successful Add has something to say -------------------------
 //
-// The Add form used to navigate on success, exactly like Remove, and the
-// answer went with it: the server had worked out whether a run could
-// start in the project just added, and the browser threw that away in
-// `location.href = "/projects"`. Skjer was added on 2026-08-20 and looked
-// added; the reasons it could not run were in a response body nobody ever
-// saw.
-describe("the Add form keeps the readiness answer on screen", () => {
+// The answer the server worked out — whether a run can start in the
+// project just added, and every reason it cannot — must reach the
+// reader. It was thrown away once (Skjer, 2026-08-20: added, looked
+// added, and the reasons it could not run were in a response body
+// nobody ever saw), and the fix then was to keep the page put.
+//
+// Since 2026-09-23 the page goes to the list instead, and the answer
+// rides with it in the query string — the same way it already reached a
+// browser with no script. Staying left Save live under a line saying it
+// worked, offering to add the same project a second time.
+describe("a successful Add goes to the list, and takes its answer along", () => {
   const READY = {
     ok: true,
     project: "skjer",
@@ -33,31 +37,38 @@ describe("the Add form keeps the readiness answer on screen", () => {
     },
   };
 
-  // Criterion 11, the JavaScript half: every blocker in the answer, on
-  // the page the reader pressed Save on — which is also the page whose
-  // Specs root and Worktree links fields are what usually fix it.
-  test("every blocker in the answer is written beside the form, and the page stays put", async () => {
+  test("every blocker in the answer travels to the list, uncoloured as a success", async () => {
     const h = harness(() => ({ ok: true, body: BLOCKED }));
     await h.submitAdd();
-    expect(h.addSlot.textContent).toContain("cannot run yet");
-    expect(h.addSlot.textContent).toContain(".aide/");
-    expect(h.addSlot.textContent).toContain("/repos/skjer/specs");
-    expect(h.addSlot.className).toBe("refused rowmsg waiting");
-    expect(h.location.href).toBe("http://dash.test/");
+    const url = new URL(h.location.href, "http://dash.test");
+    expect(url.pathname).toBe("/projects");
+    expect(url.searchParams.get("notice")).toContain("cannot run yet");
+    expect(url.searchParams.get("notice")).toContain(".aide/");
+    expect(url.searchParams.get("notice")).toContain("/repos/skjer/specs");
+    expect(url.searchParams.get("noticeOk")).toBe(null);
   });
 
-  test("a project that CAN run says so, in the same place", async () => {
+  test("a project that CAN run says so, and says it in the ready colour", async () => {
     const h = harness(() => ({ ok: true, body: READY }));
     await h.submitAdd();
-    expect(h.addSlot.textContent).toContain("ready to run");
-    // Not the colour of a refusal: the project can run.
-    expect(h.addSlot.className).toBe("refused rowmsg info");
+    const url = new URL(h.location.href, "http://dash.test");
+    expect(url.pathname).toBe("/projects");
+    expect(url.searchParams.get("notice")).toContain("ready to run");
+    expect(url.searchParams.get("noticeOk")).toBe("1");
+  });
+
+  // A refusal is not a success: it stays on the form, where the fields
+  // that fix it are.
+  test("a refused Add stays on the form, with the reason beside it", async () => {
+    const h = harness(() => ({ ok: false, body: { ok: false, results: [{ step: "name", error: "that name is taken" }] } }));
+    await h.submitAdd();
+    expect(h.addSlot.textContent).toContain("that name is taken");
     expect(h.location.href).toBe("http://dash.test/");
   });
 
   // A Remove carries no readiness — there is nothing to be ready — so it
-  // still returns to the list it changed.
-  test("a removal still returns to the list, because it has no such answer", async () => {
+  // returns to the list with nothing to say.
+  test("a removal returns to the list with no notice on it", async () => {
     const h = harness(
       () => ({ ok: true, body: { ok: true, results: [{ step: "confirm", ok: true }] } }),
       "actionform",

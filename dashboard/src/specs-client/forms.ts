@@ -135,28 +135,29 @@ export async function submitProjectChange(form: HTMLFormElement, event: Event): 
   await postForm(
     form,
     async (body) => {
-      // Spec 138: an Add that succeeded has something to SAY — whether
-      // a run can start in the project just registered, and every
-      // reason it cannot. Navigating would throw that away, which is
-      // exactly what hid Skjer's missing specs root and dangling
-      // default branch until someone pressed Run. So it stays here: on the page Save
-      // was pressed, whose Specs root and Worktree links fields are
-      // usually what fixes it, and where saving again re-assesses.
+      formNote(form, "");
+      // Both endings are the same page now (2026-09-23): the list the
+      // press changed. Staying on the Add form left Save live under a
+      // "it worked" line, offering to add the same project again.
+      //
+      // Spec 138's answer is not lost by going: an Add that succeeded
+      // has something to SAY — whether a run can start in the project
+      // just registered, and every reason it cannot — and it rides to
+      // the list in the query string, exactly as it already does for a
+      // browser with no script (`answerProjectChange`). Dropping it is
+      // what hid Skjer's missing specs root until someone pressed Run.
+      const params = new URLSearchParams(location.search);
+      params.delete("error");
+      params.delete("errorSpec");
+      params.delete("notice");
+      params.delete("noticeOk");
       const note = body?.readiness?.note;
       if (note) {
-        // In the form's own message slot, which the server renders as a
-        // refusal — so the look follows the answer: a project that CAN
-        // run must not be reported in the colour of one that cannot.
-        const slot = form.querySelector(".refused") as HTMLElement | null;
-        if (slot) slot.className = `refused rowmsg ${body?.readiness?.canRun ? "info" : "waiting"}`;
-        formNote(form, note);
-        return;
+        params.set("notice", note);
+        if (body?.readiness?.canRun) params.set("noticeOk", "1");
       }
-      formNote(form, "");
-      // A Remove has no such answer, and does what it always did: the
-      // forms live on pages of their own (2026-08-19), so it returns to
-      // the list it changed, with the reader's own query string.
-      location.href = "/projects" + location.search;
+      const query = params.toString();
+      location.href = query ? `/projects?${query}` : "/projects";
     },
     (why) => formNote(form, why),
   );
