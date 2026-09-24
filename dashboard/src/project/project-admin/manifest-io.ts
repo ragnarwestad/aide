@@ -3,7 +3,7 @@
 // both readers refuse the same value by.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, isAbsolute, join } from "node:path";
 import { stringify } from "yaml";
 
 /** A directory name, and nothing that could be read as a path. No
@@ -178,4 +178,17 @@ export function worktreeLinksError(value: string, key = "worktreeLinks"): string
   return null;
 }
 
-
+/** Why a specs root cannot be used as typed, or `null` when it can. It
+ *  has to be a full path. The server reads a relative one from its own
+ *  working directory, which is the dashboard's own checkout: on
+ *  2026-09-24 `aide-specs/claude-plattform` made a folder inside that
+ *  checkout, and the project was set up to clone the dashboard's own
+ *  repository as its specs. An empty value is not a path at all — it
+ *  clears the setting — so it passes. */
+export function specsPathError(value: string): string | null {
+  if (!value || isAbsolute(value)) return null;
+  return (
+    `the specs path has to be a full path, starting with /: ${value} would be read from the dashboard's own folder, ` +
+    "not from yours — write it out in full, for example /Users/<you>/develop/aide-specs/<project>"
+  );
+}

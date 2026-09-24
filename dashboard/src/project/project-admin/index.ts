@@ -22,6 +22,7 @@ export {
   upsertManifestScalar,
   writeAideConfig,
   WORKTREE_LINK_DENYLIST,
+  specsPathError,
   worktreeLinksError,
 } from "./manifest-io.ts";
 

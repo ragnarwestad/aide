@@ -9,6 +9,7 @@ import { dashboardCheckoutRoot, dashboardProjectsRoot, dashboardSettingsFile } f
 import {
   minimalManifest,
   projectNameError,
+  specsPathError,
   worktreeLinksError,
   writeAideConfig,
 } from "./manifest-io.ts";
@@ -99,6 +100,10 @@ export async function addProject(
   if (!gitUrl) {
     return fail("name", "say where the project comes from: its git address, which the dashboard clones");
   }
+  // Before the clone, like the name: a specs root the server would read
+  // from its own folder is known to be wrong the moment it is typed.
+  const specsError = specsPathError(req.specsPath?.trim() ?? "");
+  if (specsError) return fail("specsConfig", specsError);
 
   // Asked, never defaulted: whether code is reviewed before it lands is
   // how a team works. Refused here, before anything is cloned.

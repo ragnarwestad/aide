@@ -5,7 +5,7 @@ import { join } from "node:path";
 import type { GitRunner } from "../../git/branch-status.ts";
 import { configValue } from "../discover";
 import { parseManifest } from "../parse-manifest.ts";
-import { upsertManifestScalar, worktreeLinksError, writeAideConfig } from "./manifest-io.ts";
+import { specsPathError, upsertManifestScalar, worktreeLinksError, writeAideConfig } from "./manifest-io.ts";
 import { assessProjectReadiness } from "./readiness.ts";
 import { applySettingsEdits, manifestTracked } from "./settings-state.ts";
 import { fail, type ProjectAdminResult, type ProjectStep, type ProjectStepName } from "./types.ts";
@@ -79,6 +79,8 @@ export async function updateProjectSettings(
     const linkError = worktreeLinksError(links);
     if (linkError) return fail("worktreeLinks", linkError);
   }
+  const specsError = specsPathError((req.specsPath ?? "").trim());
+  if (specsError) return fail("specsConfig", specsError);
   // Before either file is opened, exactly like the links above: a value
   // written and then refused by every reader is worse than one never
   // written at all.
