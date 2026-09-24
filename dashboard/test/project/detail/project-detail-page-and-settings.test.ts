@@ -133,8 +133,8 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
     );
     const base = serve(root, settled(root, "aide"));
     const html = await (await fetch(`${base}/projects/aide?edit=1`)).text();
-    expect(html).toMatch(/name="specsPath"[^>]*value="\/repos\/specs\/aide"/);
-    expect(html).toMatch(/name="worktreeLinks"[^>]*value="node_modules"/);
+    expect(html).toMatch(/name="specsPath"[^>]*>\/repos\/specs\/aide<\/textarea>/);
+    expect(html).toMatch(/name="worktreeLinks"[^>]*>node_modules<\/textarea>/);
     expect(html).toMatch(/value="pr"[^>]*selected|selected[^>]*value="pr"/);
   });
 
@@ -149,9 +149,9 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
     expect(html).not.toContain('name="AIDE_BUILD_CMD"');
     // The test command is what runs use, so it is an input, holding the
     // configured value.
-    expect(html).toMatch(/name="testCmd"[^>]*value="make test"/);
+    expect(html).toMatch(/name="testCmd"[^>]*>make test<\/textarea>/);
     // Meanwhile a non-derivable, currently-unset key does become an input.
-    expect(html).toMatch(/name="installCmd"[^>]*value=""/);
+    expect(html).toMatch(/name="installCmd"[^>]*><\/textarea>/);
   });
 
   test("the table has one row per SETTING_KEYS entry plus Code landing, under Name/Value/Comment (criterion 1)", async () => {
@@ -232,7 +232,7 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
     const root = projectsRoot({ aide: "" }, ["pnpm-lock.yaml"]);
     const base = serve(root, settled(root, "aide"));
     const html = await (await fetch(`${base}/projects/aide?edit=1`)).text();
-    expect(html).toMatch(/name="testCmd"[^>]*value=""[^>]*placeholder="pnpm test -- --run"/);
+    expect(html).toMatch(/name="testCmd"[^>]*placeholder="pnpm test -- --run"><\/textarea>/);
   });
 
   test("a key with neither a value nor anything to work it out from reads not set (criterion 7)", async () => {

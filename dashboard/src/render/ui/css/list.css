@@ -89,6 +89,19 @@ table.list col[data-col="setting-comment"] { width: 42%; }
    unlike `break-word` it counts in the min-content width the layout is
    computed from, which is the number that has to change. */
 table.list td[data-col="setting-value"] { overflow-wrap: anywhere; }
+/* An edit field is as wide as its cell, at every width. */
+table.list td[data-col="setting-value"] :is(textarea, select) { width: 100%; box-sizing: border-box; }
+/* The five text settings are textareas that wrap; they wear the cell's
+   own look, not the platform's, and are sized by script, not by hand. */
+table.list td[data-col="setting-value"] textarea {
+  display: block;
+  resize: none;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-s);
+  background: var(--surface);
+  font: inherit;
+  color: inherit;
+}
 /* The heading row that opens a group of settings rows. A row rather than
    a blank gap, so the grouping survives being read aloud and being read
    as markup. */

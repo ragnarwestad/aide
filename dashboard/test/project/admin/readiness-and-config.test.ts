@@ -327,6 +327,8 @@ describe("whether a run could start there (spec 138)", () => {
     }, checkoutsUnder(projectsRoot));
     expect(result.readiness!.canRun).toBe(false);
     expect(check(result, "specsRepo")[0]!.blocking).toBe(true);
+    expect(check(result, "specsRepo")[0]!.detail).toContain("Specs path");
+    expect(check(result, "specsRepo")[0]!.detail).not.toContain("Specs root");
   });
 
   // Criterion 7, the dashboard half. The runner half is in

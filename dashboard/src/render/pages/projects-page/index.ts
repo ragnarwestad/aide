@@ -34,6 +34,7 @@ import {
   type SpecView,
   type ProjectPageOptions,
 } from "./types.ts";
+import { SETTING_LABELS } from "../../../project/setting-labels.ts";
 import { codeLandingChoices } from "./settings-table.ts";
 
 export type { SpecView, ProjectView, ProjectDrift, ProjectPageOptions };
@@ -225,7 +226,7 @@ export function renderAddProjectPage(
     `</span>` +
     `<span class="frow">` +
     field(
-      "Specs root",
+      SETTING_LABELS.AIDE_SPECS_PATH,
       `<input type="text" name="specsPath" maxlength="300" ` +
         `placeholder="optional — its own specs/ otherwise">`,
       { wide: true },

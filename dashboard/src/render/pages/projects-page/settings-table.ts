@@ -83,8 +83,10 @@ const EDITABLE_FIELD: Record<string, string> = {
 
 /** A row's Value cell: plain text in view mode and for lint and build
  *  always (gated on KEY membership, never on the row's current
- *  `origin`); a text `<input>`, pre-filled from the row's own current
- *  value, otherwise. */
+ *  `origin`); a one-line `<textarea data-oneline>`, pre-filled from the
+ *  row's own current value, otherwise. A textarea wraps a long value,
+ *  which an `<input>` cannot; `bindOneLineFields` gives back what the
+ *  input did (growth, Enter to save, no line break). */
 function settingValueCell(r: SettingRow, editing: boolean, opts: ProjectPageOptions): string {
   if (!editing || (r.key in DERIVABLE && !(r.key in EDITABLE_FIELD))) {
     return r.value === null ? `<span class="muted">–</span>` : esc(r.value);
@@ -94,22 +96,24 @@ function settingValueCell(r: SettingRow, editing: boolean, opts: ProjectPageOpti
   // row does not quietly configure it.
   if (r.key === "AIDE_TEST_CMD" && r.origin !== "configured") {
     const hint = r.origin === "derived" && r.value ? ` placeholder="${esc(r.value)}"` : "";
-    return `<input type="text" name="testCmd" maxlength="300" value=""${hint}>`;
+    return `<textarea name="testCmd" data-oneline rows="1" maxlength="300"${hint}></textarea>`;
   }
   const field = EDITABLE_FIELD[r.key]!;
   const value = esc(r.value ?? "");
   if (r.key === "AIDE_WORKTREE_LINKS") {
+    // A `<datalist>` cannot be attached to a textarea, so the
+    // candidates are text under the field, in the order and spacing a
+    // value is typed.
     return (
-      `<input type="text" name="${field}" maxlength="300" value="${value}" ` +
-      (opts.worktreeLinkCandidates.length ? `list="wtlinks" ` : "") +
-      `placeholder="gitignored paths a run must link in: node_modules .venv">` +
+      `<textarea name="${field}" data-oneline rows="1" maxlength="300" ` +
+      `placeholder="gitignored paths a run must link in: node_modules .venv">${value}</textarea>` +
       (opts.worktreeLinkCandidates.length
-        ? `<datalist id="wtlinks">${opts.worktreeLinkCandidates.map((c) => `<option value="${esc(c)}">`).join("")}</datalist>`
+        ? `<span class="muted">Suggested from the checkout's .gitignore: ${opts.worktreeLinkCandidates.map(esc).join(" ")}</span>`
         : "")
     );
   }
   const placeholder = r.key === "AIDE_SPECS_PATH" ? ` placeholder="its own specs/ when empty"` : "";
-  return `<input type="text" name="${field}" maxlength="300" value="${value}"${placeholder}>`;
+  return `<textarea name="${field}" data-oneline rows="1" maxlength="300"${placeholder}>${value}</textarea>`;
 }
 
 /** The Code-landing row (spec 255). Not a `SettingRow` — it has no
@@ -123,7 +127,7 @@ function codeLandingRow(codeLanding: "merge" | "pr", editing: boolean, defaultBr
         (o) => `<option value="${o.value}"${codeLanding === o.value ? " selected" : ""}>${esc(o.label)}</option>`,
       ).join("")}</select>`
     : esc(choices.find((o) => o.value === codeLanding)!.label);
-  return `<tr><td>Code landing</td><td>${value}</td><td>What happens to code when a spec is archived</td></tr>`;
+  return `<tr><td>Code landing</td><td data-col="setting-value">${value}</td><td>What happens to code when a spec is archived</td></tr>`;
 }
 
 /** Where the settings are kept, in one sentence above the table (spec

@@ -101,6 +101,14 @@ export function manifestWithScalar(text: string, key: string, value: string, lab
   return lines.join("\n") + (trailing !== undefined || lines.length ? "\n" : "");
 }
 
+/** What a one-line setting's value is: every line break, with the space
+ *  around it, folded to one space, and the ends trimmed. The client's
+ *  `foldLineBreaks` (`specs-client/forms.ts`) is the same expression;
+ *  a test pairs them. */
+export function oneLine(value: string): string {
+  return value.replace(/\s*[\r\n]+\s*/g, " ").trim();
+}
+
 /** Keys into the project's own `.aide/config`, in the plain `KEY=value`
  *  form every reader expects (`discover.ts`'s `configValue` and the
  *  shell's `aide_specs_root` and `aide_config_get`). The file is

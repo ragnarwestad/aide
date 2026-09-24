@@ -46,7 +46,7 @@ The Add form asks for:
 |----------------|----------------------------------------------------------------------------------------------------------------|
 | Name           | Required. The name of the directory the clone makes under the projects root, and the project's name everywhere |
 | Git URL        | Required. The address to clone                                                                                 |
-| Specs root     | Optional. Where this project's specs live, when they are not in `specs/` inside it                             |
+| Specs path     | Optional. Where this project's specs live, when they are not in `specs/` inside it                             |
 | Code landing   | Required, none pre-selected — see [How a project's code lands](#how-a-projects-code-lands)                     |
 | Worktree links | Optional. Space-separated repo-relative paths a run has to symlink into its worktree                           |
 | Description    | One line saying what the project is                                                                            |
@@ -100,7 +100,7 @@ nothing into the repository.
 its repository — `/aide-manifest` drafts one — and the dashboard reads that instead from the next
 render on. Nothing on the board moves the settings, and no press copies one file into the other.
 
-Two of the seven values never travel this way at all: Specs root and Install command are written to
+Two of the seven values never travel this way at all: Specs path and Install command are written to
 `.aide/config`, which is never committed, so they are this machine's alone whichever state the
 project is in.
 
@@ -157,7 +157,7 @@ why the answer can go stale. A default branch resolvable when the project was ad
 second worktree on a minute later, and Run says so at the time — this is a preflight check, not a promise.
 
 An Add's result is shown where Save was pressed. With script it goes into the form's own slot and the page stays
-put, because the Specs root and Worktree links fields are usually what fixes it and saving again re-assesses.
+put, because the Specs path and Worktree links fields are usually what fixes it and saving again re-assesses.
 Without script the redirect carries the same sentence to `/projects` in the query string, where the page renders
 it. The sentence is built once, on the server, so the two modes cannot drift apart. A Settings save is the gap: a successful one shows no readiness line at
 all. Its redirect carries the sentence to `/projects/<name>`, which reads only an error from the query string, so
@@ -190,9 +190,8 @@ in that clone's `.git/info/exclude`.
 
 **Worktree links are suggested on the project's own page, not on Add.** Nothing can derive which gitignored paths a
 project's commands need, which is why the field exists — but a checkout's `.gitignore` names the candidates in a
-file the reader had to go and open. The Config tab's Edit form carries a `<datalist>` of the literal, top-level
-entries from that checkout's `.gitignore`: a suggestion the reader may ignore, needing no script, like every other
-control on these pages. Globs, negations, comments and nested paths are left out — they are not values
+file the reader had to go and open. The Config tab's Edit form lists the literal, top-level
+entries from that checkout's `.gitignore` as a line of text under the field: a suggestion the reader may ignore. Globs, negations, comments and nested paths are left out — they are not values
 `worktreeLinks` can take. A suggestion is not an endorsement either: a `.gitignore` routinely lists `build`, `dist`
 or `.gradle` beside `node_modules`, and those are refused — with the path named — because a link is one shared
 symlink, and a build writing through it would collide with every other run's. Add has no such list, and proposes
@@ -229,13 +228,15 @@ The test command is the one worth knowing: a run and a landing test with a confi
 command beside it as a suggestion.
 
 **Edit** (`?edit=1`) turns the same table into a form — there is only ever one table on the page, in either mode.
-Six controls open: Specs root, Worktree links, Install command, Preview command, Test command and Code landing.
+Six controls open: Specs path, Worktree links, Install command, Preview command, Test command and Code landing.
 Lint and build stay read-only, since nothing a run does reads them. The test field is empty with the worked-out
-command as its placeholder, so a save that never touched it configures nothing. Worktree links carries a
-`<datalist>` of the checkout's own top-level `.gitignore` entries. Save and Cancel both return to
+command as its placeholder, so a save that never touched it configures nothing. Worktree links has a line of the
+checkout's own top-level `.gitignore` entries under it. The five text fields are as wide as their cell and grow to
+show the whole value; with the board's script on, Enter saves, and a value is always one line — a line break in it is
+folded to a space. Save and Cancel both return to
 `/projects/<name>`, and `/projects/<name>/settings` redirects there too.
 
-Where each value is written is not one rule but two. Specs root and Install command go to `.aide/config`, which is
+Where each value is written is not one rule but two. Specs path and Install command go to `.aide/config`, which is
 never committed. Worktree links, Preview command, Test command and Code landing go to the manifest — the project's
 own `.aide/project.yaml` where it is tracked, else the dashboard's `settings.yaml`. Unchanged values are not
 rewritten.

@@ -170,7 +170,6 @@
     border-bottom: 1px solid var(--line);
     padding: var(--sp-2) 0;
   }
-  table.list:has(> colgroup > col[data-col="setting-name"]) :is(input, select) { width: 100%; box-sizing: border-box; }
 
   /* A checkout's path, under a project page's readiness line, is one
      word as far as the browser knows; unbroken, it widened the page

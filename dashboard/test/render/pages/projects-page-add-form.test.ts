@@ -1,5 +1,6 @@
 // Split out of projects-page.test.ts by theme.
 
+import { SETTING_LABELS } from "../../../src/project/setting-labels.ts";
 import { describe, expect, test } from "bun:test";
 import { renderAddProjectPage, type ProjectsPageOptions } from "../../../src/render";
 import { AT, NAV, page, project } from "./projects-page-fixtures.ts";
@@ -127,6 +128,15 @@ describe("the Add page proposes what it can work out (spec 184)", () => {
     expect(value(html, "specsPath")).toBeNull();
     expect(html).not.toContain("data-proposals");
     expect(html).not.toContain("<datalist");
+  });
+});
+
+describe("the Add form's specs field is named as on the project's page", () => {
+  test("is labelled Specs path, and Specs root appears nowhere (AC-4)", () => {
+    const html = renderAddProjectPage(NAV, AT, {});
+    expect(html).toContain(`<span>${SETTING_LABELS.AIDE_SPECS_PATH}</span>`);
+    expect(SETTING_LABELS.AIDE_SPECS_PATH).toBe("Specs path");
+    expect(html).not.toContain("Specs root");
   });
 });
 
