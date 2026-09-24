@@ -151,6 +151,17 @@ Work there, not in $root."
   i=$(( i + 1 ))
 done
 
+# A create is told the one path it may write its folder under. The
+# session picks the value it hands aide-create-spec, and the six runs
+# before 2026-09-24 picked four different ones — the full path, "specs",
+# "$SPECS_ROOT" and ".", the last of them the specs repository's top
+# level, one directory above where the landing looks. Now a fact the
+# prompt states, like the folder's name above it.
+if [ "$command_name" = "create" ]; then
+  prompt="$prompt
+Create it under this specs root and nowhere else: pass --specs-root \"$specs_root_wt\" to aide-create-spec in Step 4."
+fi
+
 head_before=()
 for wt in "${work_roots[@]}"; do
   head_before+=("$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "")")
@@ -634,6 +645,39 @@ if [ "$command_name" = "create" ] && [ "$ok" = "true" ]; then
 $(spec_folders_now)
 EOF
   [ "$created_count" -eq 1 ] || created_spec_folder=""
+fi
+# A create that reported success without a folder named $spec_arg under
+# its specs root did not make the spec: the landing gives that exact
+# folder its number and looks nowhere else (spec 453). Said here, where
+# it happened, instead of as "could not assign this spec its number"
+# from the landing — and the folder is left where it is: the board says
+# what went wrong, it does not move things to make it right.
+if [ "$command_name" = "create" ] && [ "$ok" = "true" ] && [ -z "$create_no_ai" ] \
+   && [ ! -d "$specs_root_wt/$spec_arg" ]; then
+  misplaced_where=""
+  for misplaced_base in "${specs_wt:-}" "$project_wt"; do
+    [ -n "$misplaced_base" ] || continue
+    misplaced_found="$(find "$misplaced_base" -maxdepth 4 -type d -name "$spec_arg" -not -path '*/.git/*' 2>/dev/null | head -1)"
+    if [ -n "$misplaced_found" ]; then
+      if [ "$misplaced_base" = "${specs_wt:-}" ]; then
+        misplaced_where="at ${misplaced_found#"$misplaced_base"/} in the specs repository"
+      else
+        misplaced_where="at ${misplaced_found#"$misplaced_base"/} in the project's own repository"
+      fi
+      break
+    fi
+  done
+  specs_root_shown="${specs_root_wt#"${specs_wt:-$project_wt}"/}"
+  [ "$specs_root_shown" = "$specs_root_wt" ] && specs_root_shown="the specs root"
+  terminal_reason="no-progress"
+  ok="false"
+  suffix=" (stopped: no-progress)"
+  if [ -n "$misplaced_where" ]; then
+    error_msg="the step reported success but made the spec folder in the wrong place — $spec_arg is $misplaced_where, not under $specs_root_shown. Press $step_button again for this step."
+  else
+    error_msg="the step reported success but made no spec folder named $spec_arg under $specs_root_shown. Press $step_button again for this step."
+  fi
+  created_spec_folder=""
 fi
 # The commit message says what the work IS, so it names the spec the step
 # really made rather than the tracking key that stood in for it.

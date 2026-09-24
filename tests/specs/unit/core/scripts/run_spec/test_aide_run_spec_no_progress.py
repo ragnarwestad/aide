@@ -11,6 +11,7 @@ import re
 import subprocess
 import pytest
 import pytest
+from .run_spec_invoking import create
 from ..conftest import READ_SPECS, git, run
 from .run_spec_fakes import analyze_claude_advancing_row, analyze_claude_naming_implement, analyze_claude_renaming_the_header, analyze_claude_writing_the_line_from_nothing, project_only_claude, specs_foreign_folder_claude, specs_only_claude, writing_claude
 from .run_spec_origins import origin
@@ -228,12 +229,12 @@ def test_archive_no_progress_guard_never_fires_for_other_steps(
         claude = fake_claude(
             "cat > /dev/null\n"
             + READ_SPECS
-            + 'mkdir -p "$specs/99-a-brand-new-spec"\n'
-            + 'printf "%s\\n" "# New - Status" "" "## Tracking info" "" "- **Task:** `99-a-brand-new-spec/`" '
-            + '> "$specs/99-a-brand-new-spec/4-status.md"\n'
+            + 'mkdir -p "$specs/new-abc123de"\n'
+            + 'printf "%s\\n" "# New - Status" "" "## Tracking info" "" "- **Task:** `new-abc123de/`" '
+            + '> "$specs/new-abc123de/4-status.md"\n'
             + f"echo '{json.dumps(RESULT_OK)}'"
         )
-        rc, out, _ = run(runner, workspace, claude, command="create", spec="81")
+        rc, out, _ = create(runner, workspace, claude)
     elif step == "analyze":
         with_status(workspace)
         claude = specs_only_claude(fake_claude, workspace)
