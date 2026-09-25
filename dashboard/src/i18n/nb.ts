@@ -118,7 +118,6 @@ export const nb: Record<TranslationKey, string> = {
   "list.noRunner":
     "Ingen kjøretjeneste er installert på denne maskinen ennå (del 81b) — køede jobber blir " +
     "stående i kø, og ingenting her koster penger.",
-  "list.createdNotRegistered": "ikke registrert",
   "list.ready": "Klar",
   "list.archiveHeldBackWord": "{step} holdt tilbake",
   "list.done": "Ferdig",

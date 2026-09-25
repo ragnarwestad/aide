@@ -1,10 +1,8 @@
-// The Created column's two readings of "no date" (2026-09-09): a live
-// spec git has not dated yet is the newest thing on the list and shows
-// a dash; an archived or closed spec git could not date was made before
-// the board recorded creation dates at all — it says so, and sorts as
-// the oldest.
+// Sorting by Created when git has no date: a live spec git has not
+// dated yet is the newest thing on the list; an archived or closed spec
+// git could not date was made before the board recorded creation dates
+// at all, and sorts as the oldest.
 import { describe, expect, test } from "bun:test";
-import { createdCell } from "../../../../src/render/pages/specs-list/cell-helpers.ts";
 import { sortGroups, type SpecsFilter, type SpecGroup } from "../../../../src/render/pages/specs-list/data-model";
 
 const group = (over: Partial<SpecGroup>): SpecGroup =>
@@ -12,18 +10,8 @@ const group = (over: Partial<SpecGroup>): SpecGroup =>
 
 const byCreated = (dir: "asc" | "desc"): SpecsFilter => ({ sort: "created", dir }) as SpecsFilter;
 
-describe("an archived spec without a creation date", () => {
-  test("reads 'Not registered', in the reader's language, never the dash", () => {
-    expect(createdCell(undefined, false, true, "en")).toBe("Not registered");
-    expect(createdCell(undefined, false, true, "nb")).toBe("Ikke registrert");
-  });
-
-  test("a live spec without one keeps the dash, and a dated one its date", () => {
-    expect(createdCell(undefined, false, false, "nb")).toBe("–");
-    expect(createdCell("2026-09-09T10:00:00Z", false, true, "nb")).toBe("2026-09-09");
-  });
-
-  test("sorts as the oldest, while a live undated spec sorts as the newest", () => {
+describe("specs without a creation date", () => {
+  test("an archived one sorts as the oldest, while a live undated spec sorts as the newest (AC-3)", () => {
     const old = group({ specFolder: "24-old", state: "archived" });
     const dated = group({ specFolder: "300-dated", state: "archived", createdAt: "2026-09-01T00:00:00Z" });
     const fresh = group({ specFolder: "430-fresh", state: "not-started" });

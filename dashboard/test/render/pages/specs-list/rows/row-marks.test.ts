@@ -30,10 +30,10 @@ const rowBlock = (html: string, folder: string): string =>
   )?.[0] ?? "";
 
 // The title cell spans LIST_COLUMNS - 1 since the chevron took a column
-// of its own (2026-09-22) — 6 today, not the "2" of spec+phase merged
+// of its own (2026-09-22) — 5 today, not the "2" of spec+phase merged
 // that it was before the header had a state row of its own.
 const specCell = (html: string, folder: string): string =>
-  rowBlock(html, folder).match(/<td colspan="6">[\s\S]*?<\/td>/)?.[0] ?? "";
+  rowBlock(html, folder).match(/<td colspan="5">[\s\S]*?<\/td>/)?.[0] ?? "";
 
 // The State cell is on the header's SECOND row now (tr.specstate), not
 // after the title cell on the same row.

@@ -33,7 +33,7 @@
    phone-safe here: REQ-4 wants no box at all there, not a differently
    sized one — see that file's own comment. */
 #jobrows { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0;
-  --speclist-width: 55.5rem; }
+  --speclist-width: 49rem; }
 /* The same width as the table it scrolls, for the same reason the
    search line above it takes it: the scrollbar belongs against the
    list. Left at full width, the box goes on spanning the frame while
@@ -192,8 +192,8 @@ table.settingstable tbody:first-of-type tr.settingsgroup th { padding-top: 0; }
    (with the cell's own padding, a 40px target) and no wider, since the
    control is the one thing on the row that is not information. Taken off
    Phase, which the head row no longer spans. */
-table.speclist > colgroup > col[data-col="fold"] { width: 3.6036%; }
-table.speclist > colgroup > col[data-col="spec"] { width: 9.0090%; }
+table.speclist > colgroup > col[data-col="fold"] { width: 4.0816%; }
+table.speclist > colgroup > col[data-col="spec"] { width: 10.2041%; }
 /* What a phase line actually puts here, measured in a browser with this
    stylesheet: the AI/model pair (256px), the tick box (40, the width it
    shares with its "Select" caption) and the gap and the cell's own left
@@ -202,7 +202,7 @@ table.speclist > colgroup > col[data-col="spec"] { width: 9.0090%; }
    column and Spec beside it, and keeps whatever is left. 19rem is NOT
    enough — the model select wraps
    onto a second line, and the whole open row grows a line with it. */
-table.speclist > colgroup > col[data-col="phase"] { width: 36.0360%; }
+table.speclist > colgroup > col[data-col="phase"] { width: 40.8163%; }
 /* The badge alone since the button left this cell, and the badge is one
    word: the widest a spec row can draw is "implementing" (97px) or its
    Norwegian "implementerer" (102), measured in a browser with this
@@ -210,37 +210,24 @@ table.speclist > colgroup > col[data-col="phase"] { width: 36.0360%; }
    longer word than either. It held 11rem while the badge could read
    "arkivering holdt tilbake" — which is the row's own notice line's
    sentence now, not a state. */
-table.speclist > colgroup > col[data-col="state"] { width: 16.2162%; }
-/* The three figure columns — Time, Cost/Tokens and Created — are one
-   width, the widest of the three: they hold the same KIND of thing, a
-   short value under a one-word heading, and 4.5rem left Time and Cost
-   crowded against their own headings while Created beside them had
-   room. Asked for 2026-09-09. Their width comes out of the list's own
-   total, not off a neighbouring column. */
-table.speclist > colgroup > col[data-col="created"] { width: 11.7117%; }
-table.speclist > colgroup > col[data-col="started"] { width: 11.7117%; }
-table.speclist > colgroup > col[data-col="cost"] { width: 11.7117%; }
-/* Under 952px the list no longer fits the page (its 55.5rem plus the
-   page's own 2 × 32px), and the three figure columns leave one at a
-   time from the right — Created, then Cost, then Time — rather than all
-   at once at the phone's 40rem. Each step hides one column and takes
-   its 6.5rem off the list's own width, so the columns still shown keep
-   the pixel widths they had; the percentages are the same rem widths
-   over the new total. The last step lands the list at 36rem, which is
-   the room left at exactly 40rem, where narrow.css takes over. Only
-   the cells and the heading go — the <col> keeps a width of 0 so the
-   fixed layout has six columns to lay out, as it always has. */
-@media (max-width: 59.5rem) {
-  #jobrows { --speclist-width: 49rem; }
-  table.speclist th[data-col="created"], table.speclist td[data-col="created"] { display: none; }
-  table.speclist > colgroup > col[data-col="fold"] { width: 4.0816%; }
-  table.speclist > colgroup > col[data-col="spec"] { width: 10.2041%; }
-  table.speclist > colgroup > col[data-col="phase"] { width: 40.8163%; }
-  table.speclist > colgroup > col[data-col="state"] { width: 18.3673%; }
-  table.speclist > colgroup > col[data-col="started"] { width: 13.2653%; }
-  table.speclist > colgroup > col[data-col="cost"] { width: 13.2654%; }
-  table.speclist > colgroup > col[data-col="created"] { width: 0; }
-}
+table.speclist > colgroup > col[data-col="state"] { width: 18.3673%; }
+/* The two figure columns — Time and Cost/Tokens — are one width, the
+   widest of the two: they hold the same KIND of thing, a short value
+   under a one-word heading, and 4.5rem left them crowded against their
+   own headings. Their width comes out of the list's own total, not off
+   a neighbouring column. */
+table.speclist > colgroup > col[data-col="started"] { width: 13.2653%; }
+table.speclist > colgroup > col[data-col="cost"] { width: 13.2654%; }
+/* Under 848px the list no longer fits the page (its 49rem plus the
+   page's own 2 × 32px), and the two figure columns leave one at a
+   time from the right — Cost, then Time — rather than all at once at
+   the phone's 40rem. Each step hides one column and takes its 6.5rem
+   off the list's own width, so the columns still shown keep the pixel
+   widths they had; the percentages are the same rem widths over the
+   new total. The last step lands the list at 36rem, which is the room
+   left at exactly 40rem, where narrow.css takes over. Only the cells
+   and the heading go — the <col> keeps a width of 0 so the fixed
+   layout has six columns to lay out, as it always has. */
 @media (max-width: 53rem) {
   #jobrows { --speclist-width: 42.5rem; }
   table.speclist th[data-col="cost"], table.speclist td[data-col="cost"] { display: none; }
@@ -250,7 +237,6 @@ table.speclist > colgroup > col[data-col="cost"] { width: 11.7117%; }
   table.speclist > colgroup > col[data-col="state"] { width: 21.1765%; }
   table.speclist > colgroup > col[data-col="started"] { width: 15.2941%; }
   table.speclist > colgroup > col[data-col="cost"] { width: 0; }
-  table.speclist > colgroup > col[data-col="created"] { width: 0; }
 }
 @media (max-width: 46.5rem) {
   #jobrows { --speclist-width: 36rem; }
@@ -261,7 +247,6 @@ table.speclist > colgroup > col[data-col="cost"] { width: 11.7117%; }
   table.speclist > colgroup > col[data-col="state"] { width: 25%; }
   table.speclist > colgroup > col[data-col="started"] { width: 0; }
   table.speclist > colgroup > col[data-col="cost"] { width: 0; }
-  table.speclist > colgroup > col[data-col="created"] { width: 0; }
 }
 /* The Test servers table (spec 519): a `table.list` with columns of its
    own, so nothing written for the specs list's `data-col`s reaches it.
@@ -356,12 +341,11 @@ table.list th:last-child, table.list td:last-child { padding-right: var(--sp-3);
    cell itself on every row, holder or not. */
 table.list td[data-col="state"] {
   padding-left: var(--sp-3); padding-right: var(--sp-3); text-align: center; }
-/* Time, Cost/Tokens and Created (REQ-1, spec 427): one short value
-   under a one-word heading, all three centred instead of two left and
-   one right by accident of which default each fell into. */
+/* Time and Cost/Tokens: one short value under a one-word heading,
+   both centred instead of one left and one right by accident of which
+   default each fell into. */
 table.list td[data-col="started"],
-table.list td[data-col="cost"],
-table.list td[data-col="created"] { text-align: center; }
+table.list td[data-col="cost"] { text-align: center; }
 /* And the slot gives up the fixed width it holds a COLUMN still with:
    6.5rem is wider than what the clearance leaves on either side, so a
    slot that kept it had nothing left to centre in. Centred, the button
@@ -564,13 +548,6 @@ table.list tr.specstate > td { padding-top: var(--sp-1); }
    whose archive never recorded a figure, which is a blank and not a gap
    in the row. */
 .archive-duration { white-space: nowrap; }
-/* The Created column's date, same treatment (spec 326): a bare
-   `yyyy-mm-dd` string with no span of its own, breaking at its hyphens
-   once the column narrows past the date's own width. A sibling of
-   `.archive-date` rather than a reuse of it — that one is documented
-   above as scoped to the archive's own cells, and Created exists on
-   every row. */
-.created-date { white-space: nowrap; }
 /* The search on the Specs list (spec 221), the field the archive page
    had. A line of its own UNDER the filter row: at the six chips that
    control was then, a 26rem

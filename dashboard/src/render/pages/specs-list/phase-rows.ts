@@ -120,7 +120,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
       cells:
         `<td class="phasecell" colspan="2"></td><td class="modelcell"></td>` +
         `<td data-col="state"><span class="actionslot">${action}${headState}${headTime}</span></td>` +
-        `<td data-col="started"></td><td class="num" data-col="cost"></td><td data-col="created"></td>`,
+        `<td data-col="started"></td><td class="num" data-col="cost"></td>`,
     });
   }
   g.phases
@@ -373,11 +373,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
                 : ranWithNoCost
                   ? costCell(p.cost ?? 0, p.tokens, "–", p.cost !== undefined)
                   : ""
-          }</td>` +
-          // Blank, and LAST since 2026-09-08: a phase line has no
-          // creation date of its own to draw, and the empty cell used
-          // to sit between the state and the two figures it does fill.
-          `<td data-col="created"></td>`,
+          }</td>`,
       });
       // The model's own messages, unfolded under the line (spec 500).
       const messages = phaseMessagesRow(g, p, opts, ran);

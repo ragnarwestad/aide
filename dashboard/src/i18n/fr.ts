@@ -116,7 +116,6 @@ export const fr: Record<TranslationKey, string> = {
   "list.noRunner":
     "Aucun runner n'est encore installé sur cette machine (slice 81b) — les jobs en file d'attente restent " +
     "en attente, et rien ici ne coûte d'argent.",
-  "list.createdNotRegistered": "non enregistrée",
   "list.ready": "Prête",
   "list.archiveHeldBackWord": "{step} retenu",
   "list.done": "Terminé",

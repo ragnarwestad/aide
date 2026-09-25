@@ -77,13 +77,6 @@ export interface SpecTarget extends HasNotVerified {
    *  git could not answer, and then the cell shows a dash — never a
    *  job's time, which would put the movement straight back. */
   createdAt?: string;
-  /** Nobody has yet asked git for this spec's creation date (spec 317)
-   *  — `SpecCreatedAtChecker.peekCreatedAt`'s own `checkedAt === null`,
-   *  carried onto the target rather than lost the moment `createdAt`
-   *  collapses "never asked" and "asked, unanswerable" into the same
-   *  `undefined`. The Created cell draws "checking…" for this, and a
-   *  dash for a real, timestamped `null`. */
-  createdAtChecking?: boolean;
   /** Nothing has yet asked git anything about this spec (spec 208).
    *  Not "no step has run" — that is a real answer — and the row says
    *  "checking…" rather than draw a done-set, a Started date and a
@@ -179,9 +172,6 @@ export interface ArchivedSpecView extends HasNotVerified {
    *  exactly the repeat REQ-6 rules out. Absent for a spec git could
    *  not date this way either. */
   createdAt?: string;
-  /** Nobody has yet asked git for this spec's creation date (spec 317)
-   *  — the cell says "checking…" for it rather than a dash. */
-  createdAtChecking?: boolean;
   /** Which steps the spec's own `4-status.md` CLAIMS it has had (spec
    *  224). It is what the row's phase lines and its pip strip are drawn
    *  from, and it is the file's own unverified word — deliberately, and
@@ -412,12 +402,6 @@ export interface SpecGroup extends HasNotVerified {
    *  row it is, rather than branching on `archive?.createdAt` at each
    *  call site. */
   createdAt?: string;
-  /** Spec 317: nobody has yet asked git for this date — the Created
-   *  cell then draws "checking…" rather than a dash, the same
-   *  distinction `freshnessUnknown` draws for the done-set. Copied up
-   *  from `archive.createdAtChecking` for a locked row, on the same
-   *  terms as `createdAt` above. */
-  createdAtChecking?: boolean;
   /** How long the spec's phases took, added together — the work, not
    *  the calendar (spec 199). A spec that waited three days between two
    *  phases did not take three days, which is why this is a SUM of
