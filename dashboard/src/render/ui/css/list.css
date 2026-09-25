@@ -884,3 +884,29 @@ table.list tr.subrow .modelcell > .row > .phase[data-phase] {
 .pip.now[data-third="1"]::after { width: 33%; }
 .pip.now[data-third="2"]::after { width: 67%; }
 
+/* --- every spec its own card, with air between (above 640px) -------------
+   The list is one table, so a spec's card is drawn on the cells of its
+   rows: the side edges on each row's outer cells, the top on its head row,
+   the bottom on whichever row comes last before its gap row. */
+tr.specgap > td { height: 10px; padding: 0; border: 0; background: none; }
+@media (min-width: 40.0625rem) {
+  table.speclist { border: 0; background: none; border-collapse: separate; border-spacing: 0; }
+  table.speclist thead th { background: none; border-bottom: 0; }
+  table.speclist > tbody > tr:not(.specgap) > td { background: var(--surface); border-bottom: 0; }
+  /* The fold cell spans the title and the state line, so the state
+     line's own first cell is not at the card's left edge. */
+  table.speclist > tbody > tr:not(.specgap):not(.specstate) > td:first-child { border-left: 1px solid var(--line); }
+  table.speclist > tbody > tr:not(.specgap) > td:last-child { border-right: 1px solid var(--line); }
+  table.speclist > tbody > tr.spechead > td { border-top: 1px solid var(--line); }
+  table.speclist > tbody > tr.spechead > td:first-child { border-top-left-radius: var(--r); }
+  table.speclist > tbody > tr.spechead > td:last-child { border-top-right-radius: var(--r); }
+  table.speclist > tbody > tr:has(+ tr.specgap) > td { border-bottom: 1px solid var(--line); }
+  table.speclist > tbody > tr:has(+ tr.specgap) > td:last-child { border-bottom-right-radius: var(--r); }
+  table.speclist > tbody > tr:has(+ tr.specgap):not(.specstate) > td:first-child { border-bottom-left-radius: var(--r); }
+  /* A shut spec ends on its state line, whose left corner is the fold cell's. */
+  table.speclist > tbody > tr.spechead:has(+ tr.specstate + tr.specgap) > td.foldcell {
+    border-bottom: 1px solid var(--line); border-bottom-left-radius: var(--r); }
+  /* An open spec's detail is set off from its own two lines. */
+  table.speclist > tbody > tr.specstate + tr:not(.specgap) > td { border-top: 1px solid var(--line); }
+}
+@media (max-width: 40rem) { tr.specgap { display: none; } }

@@ -1,7 +1,7 @@
 /* --- row-level message ---------------------------------------------- */
 
 .rowmsg { display: flex; align-items: center; gap: var(--sp-2);
-  padding: 6px 10px; border-radius: var(--r-s); font-size: var(--fs-s);
+  padding: 6px 10px; border-radius: var(--r); font-size: var(--fs-s);
   border: 1px solid; margin: var(--sp-1) 0 0; }
 .rowmsg svg { width: 14px; height: 14px; flex: none; }
 /* A refusal that lands under a form needs air between it and the Save

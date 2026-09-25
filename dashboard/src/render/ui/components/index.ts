@@ -17,6 +17,7 @@
 // (`specs/102-design-foundation/assets/Components.dc.html`); nothing is
 // invented at this layer.
 
+import { stateIcon } from "./state-icon.ts";
 import { esc } from "../html.ts";
 import { t, type Language } from "../../../i18n";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
@@ -100,7 +101,7 @@ export type BadgeVariant = "idle" | "running" | "waiting" | "ready" | "refused" 
 export function badge(variant: BadgeVariant, label: string, title?: string): string {
   return (
     `<span class="badge b-${variant}"${title ? ` title="${esc(title)}"` : ""}>` +
-    `${esc(capitalizeFirst(label))}</span>`
+    `${stateIcon(label)}${esc(capitalizeFirst(label))}</span>`
   );
 }
 

@@ -60,3 +60,7 @@
    not a state colour, so it follows neither the text nor --danger. */
 .icon-pdf { color: var(--pdf); }
 
+/* The shape every button shares: a hairline shadow under the border,
+   and a soft fill on hover rather than a darker edge. */
+.btn { box-shadow: 0 1px 2px color-mix(in oklab, var(--text) 6%, transparent); }
+.btn:not(.primary):not(.ok):not(:disabled):hover { background: var(--surface-2); border-color: var(--line); }
