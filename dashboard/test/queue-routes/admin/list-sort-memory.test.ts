@@ -32,6 +32,16 @@ describe("the column the reader sorted by is remembered", () => {
     expect(sortedBy(await plain.text())).toBe("Time");
   });
 
+  test("Created oldest first is written down too, and a bare / gets it back (AC-3)", async () => {
+    const { base, server } = start();
+    const chosen = await fetch(`${base}/?sort=created&dir=asc`);
+    expect(sortCookie(chosen, server.port)).toContain(`aide_sort_${server.port}=created`);
+    const jar = sortCookie(chosen, server.port).split(";")[0]!;
+    const plain = await (await fetch(`${base}/`, { headers: { cookie: jar } })).text();
+    expect(sortedBy(plain)).toBe("Created");
+    expect(plain).toMatch(/data-col="created" aria-sort="ascending"/);
+  });
+
   // Pressing a heading never reloads the page — the script rewrites
   // the address and fetches the rows alone. A cookie written only on
   // the whole page would never be written by the act of choosing.

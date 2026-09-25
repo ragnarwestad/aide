@@ -3,8 +3,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import type { GitRunner } from "../../src/git/branch-status.ts";
 import {
-  ARCHIVED_VIEW, SAME_DAY, STAMPED, STAMPED_COST_LABEL, STAMPED_TIME_SHOWN, STAMPED_TIME_SPENT, TWO_TOOLS, UNDATED,
-  UNSTAMPED, blockFor, described, gitDated, harness, noStamp, opened, outcome, rowFor, specsList, stamp, start,
+  ARCHIVED_VIEW, SAME_DAY, STAMPED, STAMPED_COST_LABEL, STAMPED_TIME_SHOWN, STAMPED_TIME_SPENT, TWO_TOOLS,
+  UNSTAMPED, blockFor, described, harness, noStamp, opened, order, outcome, rowFor, specsList, stamp, start,
 } from "./archived-specs-fixtures.ts";
 
 afterEach(() => harness.cleanup());
@@ -140,21 +140,6 @@ describe("an archived spec's row", () => {
     expect(body).not.toMatch(/\d{4}-\d{2}-\d{2}/);
   });
 
-  // A blank cell for half the archive is the one outcome
-  // 1-description.md ruled out by name.
-  // A dash, not the words "date unknown": the cache is cold for a moment
-  // after every restart, and a row that announces a failure it is about
-  // to recover from teaches the reader to distrust the column.
-  // An ARCHIVED spec nothing can date was made before the board kept
-  // creation dates — it says so (2026-09-09); the dash is the live
-  // spec's, whose date is on its way.
-  test("a spec neither the stamp nor git can date reads as not registered", async () => {
-    const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), UNDATED);
-    expect(row).not.toContain("date unknown");
-    const cell = row.slice(row.indexOf('data-col="created"'));
-    expect(cell.slice(0, cell.indexOf("</td>"))).toContain("Not registered");
-  });
-
   test("carries what the spec cost in time, when its archive recorded one", async () => {
     expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain(STAMPED_TIME_SHOWN);
   });
@@ -242,36 +227,40 @@ describe("an archived spec's row", () => {
     expect(body).not.toContain("$0.00");
   });
 
-  // --- spec 317, REQ-6: an archived row's own Created date -------------------
-
-  // SAME_DAY has no recorded phase duration, so its Time cell reads
-  // `0s`. Created must show the spec's TRUE beginning — and no cell on
-  // the row may carry the archive stamp ("2026-08-13") in its place.
-  test("carries its own creation date, distinct from the archive date beside it (REQ-6)", async () => {
-    const gitRun: GitRunner = async (dir, args) => {
-      if (args.join(" ").startsWith("log --follow --format=%aI") && dir.includes(SAME_DAY)) {
-        return { code: 0, stdout: "2026-07-01T09:00:00+02:00\n" };
-      }
-      return gitDated({ [UNSTAMPED]: "2026-07-30T11:02:00+02:00" })(dir, args);
-    };
-    const { base } = start({ gitRun });
-    const row = rowFor(await specsList(base, ARCHIVED_VIEW), SAME_DAY);
+  // SAME_DAY has no recorded phase duration, so its Time cell reads `0s`,
+  // and no cell on the row carries the archive stamp in its place.
+  test("a spec with no recorded duration shows 0s, not the archive date", async () => {
+    const gitRun: GitRunner = async () => ({ code: 1, stdout: "" });
+    const row = rowFor(await specsList(start({ gitRun }).base, ARCHIVED_VIEW), SAME_DAY);
     const timeCell = row.slice(row.indexOf('data-col="started"'));
     const time = timeCell.slice(0, timeCell.indexOf("</td>"));
     expect(time).toContain("0s");
     expect(time).not.toContain("2026-08-13");
-    const createdCell = row.slice(row.indexOf('data-col="created"'));
-    const body = createdCell.slice(0, createdCell.indexOf("</td>"));
-    expect(body).toContain("2026-07-01");
-    expect(body).not.toContain("2026-08-13");
   });
 
-  // A spec with nothing for the rename-aware lookup to find (no
-  // 1-description.md history) is a real, honest "cannot date" — the
-  // same dash convention every other undatable spec on this page shows.
-  test("says not registered when the rename-aware lookup cannot date it (REQ-5)", async () => {
-    const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), UNDATED);
-    const createdCell = row.slice(row.indexOf('data-col="created"'));
-    expect(createdCell.slice(0, createdCell.indexOf("</td>"))).toContain("Not registered");
+  // --- the archive sorts by its own creation date ---------------------------
+
+  // The dates run opposite to the folder numbers (150 oldest, 92 newest,
+  // 60 between), so a sort that fell back to folder order, or to the
+  // archive stamp, would come out differently.
+  test("archived rows sort by the date git gives their spec, both ways (AC-3)", async () => {
+    const dates: Record<string, string> = {
+      [STAMPED]: "2026-06-01T09:00:00+02:00",
+      [SAME_DAY]: "2026-07-01T09:00:00+02:00",
+      [UNSTAMPED]: "2026-07-30T11:02:00+02:00",
+    };
+    const gitRun: GitRunner = async (dir, args) => {
+      if (args.join(" ").startsWith("log --follow --format=%aI")) {
+        const folder = Object.keys(dates).find((f) => dir.includes(f));
+        if (folder) return { code: 0, stdout: `${dates[folder]}\n` };
+      }
+      return { code: 1, stdout: "" };
+    };
+    const { base } = start({ gitRun });
+    const dated = [STAMPED, SAME_DAY, UNSTAMPED];
+    const listed = async (dir: string) =>
+      order(await specsList(base, `${ARCHIVED_VIEW}&sort=created&dir=${dir}`)).filter((f) => dated.includes(f));
+    expect(await listed("desc")).toEqual([UNSTAMPED, SAME_DAY, STAMPED]);
+    expect(await listed("asc")).toEqual([STAMPED, SAME_DAY, UNSTAMPED]);
   });
 });

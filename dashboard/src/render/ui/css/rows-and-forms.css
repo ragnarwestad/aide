@@ -18,7 +18,7 @@
    given the leftover shows it as empty space: the row used to be a
    single 19rem box with the badge and the button packed left inside it,
    which put every shorter row's leftover AFTER the button — a hand's
-   width of nothing between the button and the Created column.
+   width of nothing between the button and the next column.
    `.badgeslot` is the longest state text this column can draw (measured
    in a browser with this stylesheet: 150px, "arkivering holdt
    tilbake" — the widest of the sixty texts a spec row can draw);

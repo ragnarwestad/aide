@@ -79,6 +79,6 @@ describe("the message row", () => {
     // Class exists in the stylesheet with wrapping text; the browser case in
     // test/e2e/phone-phase-line.test.ts checks it at a phone's width.
     // Seven since the chevron took a column of its own (2026-09-22).
-    expect(panel(render([finished("j", "analyze", "2026-09-19T09:00:00Z")], () => ({ messages: ["x"], running: false })))).toContain('colspan="7"');
+    expect(panel(render([finished("j", "analyze", "2026-09-19T09:00:00Z")], () => ({ messages: ["x"], running: false })))).toContain('colspan="6"');
   });
 });

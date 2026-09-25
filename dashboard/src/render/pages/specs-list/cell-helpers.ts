@@ -3,9 +3,9 @@
 // (the notice-line sentences an archived or live row's own fields can
 // carry).
 
-import { CHECKING, badge, pips, stepLabel } from "../../ui/components";
+import { badge, pips, stepLabel } from "../../ui/components";
 import { esc, relTimeLabel, usdOrTokens } from "../../ui/html.ts";
-import { t, type Language } from "../../../i18n";
+import type { Language } from "../../../i18n";
 import {
   completedThirds,
   durationLabel,
@@ -17,7 +17,6 @@ import {
   type RestingState,
 } from "../../ui/job-state";
 import { isArchivedRow, phaseDuration, type Phase, type SpecGroup } from "./data-model";
-import { capitalizeFirst } from "../../../format/error-sentence.ts";
 
 // The two cells the header line and the phase lines fill the same way.
 // A spec's state and a phase's state are the same question asked at two
@@ -238,31 +237,6 @@ export function phasePips(phases: Phase[], done: string[]): string {
  *  row's. */
 export function archiveDateCell(durationMs: number): string {
   return `<span class="archive-duration">${esc(durationLabel(Math.max(0, durationMs)))}</span>`;
-}
-
-/** When the spec was MADE (spec 317, REQ-1/REQ-4). One call for either
- *  kind of row (REQ-6) — `SpecGroup.createdAt`/`createdAtChecking`
- *  already carry the archived-row answer by the time this is called,
- *  copied up by `readerGroup()`.
- *
- *  A dash where git has no answer, never the words "date unknown": the
- *  cache is cold for a moment on every restart, and a row that ANNOUNCES
- *  a failure it is about to recover from teaches the reader to distrust
- *  the column. "checking…" still stands while the question is out, since
- *  that one says an answer is coming. */
-export function createdCell(
-  createdAt: string | undefined,
-  checking: boolean,
-  /** An archived or closed spec git could not date was made before the
-   *  board recorded creation dates — the oldest rows on the list, not
-   *  the newest. The dash stays for a live spec, whose date is on its
-   *  way (2026-09-09). */
-  finished = false,
-  lang: Language = "en",
-): string {
-  if (createdAt) return esc(createdAt.slice(0, 10));
-  if (checking) return CHECKING;
-  return finished ? capitalizeFirst(t(lang, "list.createdNotRegistered")) : "–";
 }
 
 /** What the "not landed" mark says on hover, age included (spec 208).

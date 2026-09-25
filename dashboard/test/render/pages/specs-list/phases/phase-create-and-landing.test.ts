@@ -106,12 +106,12 @@ describe("spec 116: create is the first phase line", () => {
     // The Time cell is the exception to the emptiness: it always says
     // something, so a blank cannot read as a broken line. A dash where
     // no duration was recorded, never `0s` — that claims a measurement
-    // nobody made — and the same dash the State, Created and Cost
-    // columns already draw for "nothing here".
+    // nobody made — and the same dash the State and Cost columns
+    // already draw for "nothing here".
     expect(line).toContain(
       '<td data-col="state"><span class="badge b-done" title="Done" data-icon="check">Done</span></td>' +
         '<td data-col="started"><span class="muted small">–</span></td>' +
-        '<td class="num" data-col="cost"></td><td data-col="created"></td>',
+        '<td class="num" data-col="cost"></td></tr>',
     );
   });
 

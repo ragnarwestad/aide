@@ -18,10 +18,10 @@ describe("unit, language and theme leave the header one at a time", () => {
     expect(header.map((s) => s[1])).toEqual(["unit", "lang", "theme"]);
   });
 
-  test("at the same widths the list drops its figure columns", () => {
+  test("the list drops its figure columns at the menu's last two steps", () => {
     const columns = stepsOf(list, /#jobrows \{ --speclist-width: [\d.]+rem; \}\s*table\.speclist th\[data-col="(\w+)"\]/);
-    expect(columns.map((s) => s[1])).toEqual(["created", "cost", "started"]);
-    expect(header.map((s) => s[0])).toEqual(columns.map((s) => s[0]));
+    expect(columns.map((s) => s[1])).toEqual(["cost", "started"]);
+    expect(header.slice(1).map((s) => s[0])).toEqual(columns.map((s) => s[0]));
   });
 
   test("each step reveals the menu's copy of the one control it hides", () => {

@@ -33,7 +33,7 @@ The queue behind the rows is on [Running specs](running-specs.md); how a step's 
 ## The row, open and shut
 
 One row per spec, not per job, and shut by default. A shut row shows the spec's name and title, one status line,
-the phase pips, how long its phases have taken, what they cost and when it was created — and carries no control
+the phase pips, how long its phases have taken, and what they cost — and carries no control
 but the one that opens it: a chevron in front of the name. Under the name sits the row's notice line, and under
 that, when the spec has one, the `N not verified` line. Both belong to the shut row, so a reader sees what went
 wrong without opening it.
@@ -274,8 +274,8 @@ archive date: the Time column holds a duration and never a date. Reopen is a lin
 (`/specs/<project>/<spec>/reopen`) that asks whether to reset the analysis, the plan and the status as well; the
 answer comes back to the list, filter and all. No model select, no tick box and no Run — the server
 refuses every step but `reopen` for an archived spec (`ARCHIVE_ONLY_STEP`), and a control that would be refused is a
-control that should not be drawn. The Created column is the one date on the row: a dash where git has no answer for a live
-spec, and "not registered" for a finished one.
+control that should not be drawn. The list shows no creation date on any row; the spec's page does, as the
+Created line of its description's Tracking info.
 
 **What that row says a spec cost, in time,** is computed the same way whether the row is live or archived
 (`totalDuration()`, `data-model/phases.ts`): a queue-measured span per phase — the worktree, the AI session, the commit
@@ -488,7 +488,8 @@ timer from a stopped test's server would fire into the next one.
 
 ## A spec's date does not move, and a phase says how long it took
 
-The **Created** column holds when the spec was made, and a run does not move it. Holding the most recently active job's
+The **Created** heading, first in the heading row over the chevron and Spec columns, sorts the list by when the spec was
+made, and a run does not move that date. The list shows no created date itself. Holding the most recently active job's
 own start instead would throw a row to the top of a list sorted by it every time a phase started, so a spec made months
 ago and re-run an hour ago would outrank one made this morning. The list opens sorted by this column, newest first.
 
@@ -506,14 +507,14 @@ Two traps worth knowing before touching this:
 - **The oldest commit is not `git log -1 --reverse`.** `-1` limits the commit SELECTION, which runs newest-first, and
   `--reverse` only turns the already-limited output round — the two together still answer with the newest. The oldest is
   the last line of the unlimited log.
-- **A spec git cannot date shows a dash — "not registered" once it is finished — and deliberately no fallback to a
-  job's own time.** A `Job`-backed fallback
+- **A spec git cannot date sorts as the newest while it is live and as the oldest once it is finished, and deliberately
+  has no fallback to a job's own time.** A `Job`-backed fallback
   would put the jumping straight back for exactly the specs that cannot be dated. The never-run tie-break in
   `sortGroups` therefore asks two things, not one: neither spec has a job AND neither has a date.
 - **An archived spec's folder has moved, and a plain path-filtered log only sees the move.** Once `aide-archive-spec`
   has `git mv`'d a spec's folder into `archive/<folder>`, `git log -- .` on the new path only shows the move commit and
   anything after it — every earlier commit touched the old path and is invisible to that query. `--follow` crosses
-  exactly this kind of rename, but only for a single-file pathspec, not a directory — so an archived row's Created date
+  exactly this kind of rename, but only for a single-file pathspec, not a directory — so an archived row's creation date
   is read with `firstCommitAtFollowingRenames()` against `1-description.md`, not the plain directory lookup live
   rows use. The file has to be one whose CONTENT is unique per spec: `--follow` matches renames on content
   similarity, so `0-README.md` — the same fixed template in every spec — can be paired with an unrelated spec's
@@ -534,7 +535,7 @@ Three things the column then says, by row type:
 - A finished phase: its own settled duration, in the phase line's own time cell.
 - A running phase: the same cell, carrying `data-elapsed` — the instant to count up from. The server writes a readable
   figure into it too, so the cell says something with script switched off.
-- A spec with nothing left to run: its phases' durations **added together**, beside the creation date on the header row.
+- A spec with nothing left to run: its phases' durations **added together**, on the header row.
   A sum, never a span — a spec that waited three days between two phases did not take three days.
 
 The live count is the one timer on this page, and it is deliberately the narrowest one there can be: a one-second

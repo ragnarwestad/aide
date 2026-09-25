@@ -127,7 +127,6 @@ export const de: Record<TranslationKey, string> = {
   "list.noRunner":
     "Auf dieser Maschine ist noch kein Runner installiert (Slice 81b) — Jobs in der Warteschlange bleiben " +
     "dort stehen, und hier kostet nichts Geld.",
-  "list.createdNotRegistered": "nicht registriert",
   "list.ready": "Bereit",
   "list.archiveHeldBackWord": "{step} zurückgehalten",
   "list.done": "Fertig",

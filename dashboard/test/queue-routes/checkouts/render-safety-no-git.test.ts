@@ -94,7 +94,7 @@ describe("no render path runs git or a network command (spec 208)", () => {
   // the rows are on the Specs list now, behind the chip that shows
   // them, and the rule they have to keep is the same one — peek, never
   // take, on the request path.
-  test("cold, an archived row renders with a checking date rather than blocking on git", async () => {
+  test("cold, an archived row renders without blocking on git", async () => {
     const git = recording();
     const { base } = harness.start({
       extra: { gitRun: git.run, driftPollMs: 0, specCachePollMs: 0 },
@@ -107,7 +107,7 @@ describe("no render path runs git or a network command (spec 208)", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(git.calls.length).toBe(before);
-    expect(html).toContain("Checking…");
+    expect(html).toContain("77-old-thing");
   });
 
   // Criterion 9: the dashboard's own clone (spec 205) is started at
