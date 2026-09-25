@@ -908,5 +908,5 @@ tr.specgap > td { height: 10px; padding: 0; border: 0; background: none; }
     border-bottom: 1px solid var(--line); border-bottom-left-radius: var(--r); }
   /* Whatever comes under a spec's own two lines — the open detail, or the
      message a shut spec shows — is set off by a line, with air under it. */
-  table.speclist > tbody > tr.specstate + tr:not(.specgap) > td { border-top: 1px solid var(--line); padding-top: var(--sp-4); }
+  table.speclist > tbody > tr.specstate + tr:not(.specgap) > td { border-top: 1px solid var(--line); padding-top: var(--sp-2); }
 }

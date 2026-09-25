@@ -784,5 +784,5 @@
     border-bottom: 1px solid var(--line); border-bottom-left-radius: var(--r); border-bottom-right-radius: var(--r); }
   /* Whatever comes under a spec's own two lines — the open detail, or the
      message a shut spec shows — gets a line, and air under it. */
-  table.speclist > tbody > tr.specstate + tr:not(.specgap) { border-top: 1px solid var(--line); padding-top: var(--sp-3); }
+  table.speclist > tbody > tr.specstate + tr:not(.specgap) { border-top: 1px solid var(--line); padding-top: var(--sp-2); }
 }
