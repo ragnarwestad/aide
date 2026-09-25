@@ -396,25 +396,26 @@ async function queueFixtures(ctx: RoutesContext, project: string, specs: RoundSp
     });
   };
 
-  // Every fixture with no dependency starts in the same tick — none
-  // waits on another fixture's folder before its own create is queued
-  // (the description's own acceptance proof). A fixture WITH a
-  // dependency waits, but only for the specific folder(s) it names, and
-  // queues its own create the moment they resolve — never before, and
-  // never behind an unrelated fixture that happens to precede it.
-  const withoutDeps = specs.filter((s) => s.dependsOn.length === 0);
-  const withDeps = specs.filter((s) => s.dependsOn.length > 0);
-  await Promise.all(withoutDeps.map(runFixture));
-  for (const spec of withDeps) {
+  // One fixture at a time, in the fixtures' own order, each waiting for
+  // the one before to land its number (2026-09-25). A spec's number is
+  // given when its create lands, so fixtures created together were
+  // numbered in whatever order they happened to land, and a board built
+  // twice showed the same fixture as 08 once and 10 the next time, in a
+  // different state. That concurrent creates work is the runner's own
+  // unit tests' to prove (runner-scheduling.test.ts), not this board's.
+  for (const spec of fixtureOrder(specs)) await runFixture(spec);
+}
+
+/** The order the round creates its fixtures in: the fixtures' own, which
+ *  is also the order their numbers come out in. A fixture that depends on
+ *  one listed after it could never be created, so it is refused by name. */
+export function fixtureOrder(specs: RoundSpec[]): RoundSpec[] {
+  specs.forEach((spec, i) => {
     for (const dep of spec.dependsOn) {
-      const depSpec = specs.find((s) => s.slug.startsWith(`${dep}-`));
-      if (!depSpec) throw new Error(`no fixture found for dependency ${dep} of ${spec.slug}`);
-      const until = Date.now() + 180_000;
-      while (!depSpec.folder) {
-        if (Date.now() > until) throw new Error(`no folder yet for dependency ${dep} of ${spec.slug}`);
-        await new Promise((r) => setTimeout(r, 1000));
-      }
+      const at = specs.findIndex((s) => s.slug.startsWith(`${dep}-`));
+      if (at < 0) throw new Error(`no fixture found for dependency ${dep} of ${spec.slug}`);
+      if (at > i) throw new Error(`${spec.slug} depends on ${specs[at]!.slug}, which comes after it`);
     }
-    await runFixture(spec);
-  }
+  });
+  return specs;
 }
