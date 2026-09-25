@@ -30,16 +30,17 @@ describe("the specs table fits the box that scrolls it", () => {
   // it worse: the five fixed ones took the whole table and the auto one
   // was squeezed to 7px, with the phase name lying across the pickers
   // beside it (2026-09-09).
-  // Four times over: the full list, and the three steps down that hide
-  // one figure column each (Created, Cost, Time) — every set of seven
-  // (the chevron's own column joined the six since 2026-09-22) adds up
-  // to the whole table, with the hidden columns at 0.
-  test("the seven columns are percentages, and they add up to the whole table", () => {
+  // Three times over: the full list, and the two steps down that hide
+  // one figure column each (Cost, Time) — every set of six adds up to
+  // the whole table, with the hidden columns at 0.
+  test("the six columns are percentages, and they add up to the whole table (AC-4)", () => {
     // A hidden column is a bare 0 — a zero needs no unit.
     const cols = [...css.matchAll(/col\[data-col="\w+"\] \{ width: (?:([\d.]+)%|0;)/g)].map((m) => rem(m[1] ?? "0"));
-    expect(cols).toHaveLength(28);
-    for (let i = 0; i < cols.length; i += 7) {
-      expect(cols.slice(i, i + 7).reduce((a, b) => a + b, 0)).toBeCloseTo(100, 1);
+    expect(cols).toHaveLength(18);
+    expect(css).not.toMatch(/col\[data-col="created"\]/);
+    expect(css).not.toMatch(/td\[data-col="created"\]/);
+    for (let i = 0; i < cols.length; i += 6) {
+      expect(cols.slice(i, i + 6).reduce((a, b) => a + b, 0)).toBeCloseTo(100, 1);
     }
     expect(css).not.toMatch(/col\[data-col="\w+"\] \{ width: (auto|[\d.]+rem)/);
   });
@@ -48,15 +49,26 @@ describe("the specs table fits the box that scrolls it", () => {
   // taking the column's 6.5rem off the list's width so the others keep
   // their pixel widths, and the last step lands at the phone's own room
   // (40rem less the page's 2 × 32px = 36rem).
-  test("Created, Cost and Time leave one at a time, each taking its width with it", () => {
+  test("Cost and Time leave one at a time, each taking its width with it (AC-4)", () => {
     const steps = [...css.matchAll(/@media \(max-width: ([\d.]+)rem\) \{\s*#jobrows \{ --speclist-width: ([\d.]+)rem; \}\s*table\.speclist th\[data-col="(\w+)"\], table\.speclist td\[data-col="\w+"\] \{ display: none; \}/g)]
       .map((m) => ({ at: rem(m[1]!), width: rem(m[2]!), hides: m[3] }));
-    expect(steps.map((s) => s.hides)).toEqual(["created", "cost", "started"]);
-    expect(steps.map((s) => s.width)).toEqual([49, 42.5, 36]);
+    expect(steps.map((s) => s.hides)).toEqual(["cost", "started"]);
+    expect(steps.map((s) => s.width)).toEqual([42.5, 36]);
     // Each breakpoint is where the previous width stops fitting: the
     // list plus 4rem of page padding.
-    expect(steps.map((s) => s.at)).toEqual([55.5 + 4, 49 + 4, 42.5 + 4]);
+    expect(steps.map((s) => s.at)).toEqual([49 + 4, 42.5 + 4]);
     expect(steps.every((s) => s.at > 40)).toBe(true);
+  });
+
+  // The six columns keep the widths they had as rem, as percentages of
+  // the 49rem the list is now: 2, 5, 20, 9, 6.5 and 6.5rem.
+  test("the list is 49rem wide, and its columns are the widths their content needs (AC-4)", () => {
+    expect(rem(/--speclist-width: ([\d.]+)rem/.exec(css)![1]!)).toBe(49);
+    const base = ["fold", "spec", "phase", "state", "started", "cost"].map((c) =>
+      rem(new RegExp(`col\\[data-col="${c}"\\] \\{ width: ([\\d.]+)%`).exec(css)![1]!),
+    );
+    const wanted = [2, 5, 20, 9, 6.5, 6.5].map((r) => (r / 49) * 100);
+    base.forEach((w, i) => expect(w).toBeCloseTo(wanted[i]!, 2));
   });
 
   // The Spec column carries a phase line's name and nothing else, and
@@ -255,14 +267,13 @@ describe("the specs table fits the box that scrolls it", () => {
     expect(shared).not.toMatch(/position: sticky/);
   });
 
-  // Time, Cost/Tokens and Created used to fall into two different
-  // defaults by accident — Time and Created left-aligned (the table's
-  // own default), Cost/Tokens right-aligned (`.num`) — and none of the
-  // three centred (REQ-1, spec 427). All three now state their own
-  // centring, scoped to their own `data-col`, so no other column's
-  // `.num` cell or `.sortlink` header is touched.
-  test("Time, Cost/Tokens and Created values are centred", () => {
-    for (const col of ["started", "cost", "created"]) {
+  // Time and Cost/Tokens used to fall into two different defaults by
+  // accident — Time left-aligned (the table's own default), Cost/Tokens
+  // right-aligned (`.num`) — and neither centred (REQ-1, spec 427). Both
+  // now state their own centring, scoped to their own `data-col`, so no
+  // other column's `.num` cell or `.sortlink` header is touched.
+  test("Time and Cost/Tokens values are centred", () => {
+    for (const col of ["started", "cost"]) {
       const cell = new RegExp(`table\\.list td\\[data-col="${col}"\\][^{]*\\{([^}]*)\\}`).exec(css)![1]!;
       expect(cell).toMatch(/text-align: center/);
     }

@@ -5,7 +5,7 @@
 // one stage that reads every other one.
 
 import type { BranchFileStepsChecker } from "../../git/workflow-history.ts";
-import { setPendingRestart, type ServerState } from "../state.ts";
+import { setDeployFault, setPendingRestart, type ServerState } from "../state.ts";
 import { type RoutesContext } from "../routes";
 
 /** Everything `RoutesContext` needs, minus the handful of fields
@@ -15,7 +15,7 @@ import { type RoutesContext } from "../routes";
  *  describes for `readScan`/`invalidateScan`. */
 export type QueueContextInputs = Omit<
   RoutesContext,
-  "readScan" | "invalidateScan" | "forgetBranchFileSteps" | "readServing" | "readPendingRestart" | "setPendingRestart" | "selfStopExit"
+  "readScan" | "invalidateScan" | "forgetBranchFileSteps" | "readServing" | "readPendingRestart" | "setPendingRestart" | "setDeployFault" | "selfStopExit"
 > & {
   branchFileSteps: BranchFileStepsChecker;
 };
@@ -53,7 +53,7 @@ export function setupQueueContext(state: ServerState, inputs: QueueContextInputs
     tickRunner: inputs.tickRunner,
     serverPort: inputs.serverPort,
     jobRow: inputs.jobRow,
-    installAfterMerge: inputs.installAfterMerge,
+    deploy: inputs.deploy,
     persistAllowlist: inputs.persistAllowlist,
     answerProjectChange: inputs.answerProjectChange,
     archivedSpecRows: inputs.archivedSpecRows,
@@ -62,6 +62,7 @@ export function setupQueueContext(state: ServerState, inputs: QueueContextInputs
     readServing: () => ({ sha: state.servingSha, repoRoot: state.servingRepoRoot }),
     readPendingRestart: () => state.pendingRestart,
     setPendingRestart: (jobs) => setPendingRestart(state, jobs),
+    setDeployFault: (fault) => setDeployFault(state, fault),
     pdfCacheDir: inputs.pdfCacheDir,
     pdfGeneratorBin: inputs.pdfGeneratorBin,
     pdfToolAvailable: inputs.pdfToolAvailable,

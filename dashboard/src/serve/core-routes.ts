@@ -5,6 +5,7 @@
 import type { AideRunStore } from "../queue/aide-run-store.ts";
 import { parseAideRun } from "../queue/aide-run-store.ts";
 import { PROJECTS_ROUTE } from "../render";
+import { STARTED_AT } from "./state.ts";
 import {
   json, readBounded, servePwaAsset, serveSpecEditorAsset, SPEC_EDITOR_ASSET_PATH,
   serveSpecViewerAsset, SPEC_VIEWER_ASSET_PATH,
@@ -59,7 +60,7 @@ export async function handleCore(
   // monitoring can use needs no more than a Host of its own.
   if (path === "/api/version") {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-    return json({ sha: ctx.readServingSha() });
+    return json({ sha: ctx.readServingSha(), startedAt: STARTED_AT });
   }
 
   if (req.method !== "GET" && req.method !== "HEAD") {

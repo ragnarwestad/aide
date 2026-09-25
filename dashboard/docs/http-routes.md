@@ -153,7 +153,9 @@ Answered by the files under `src/serve/routes/spec-edit/`.
 
 ### Projects and settings
 
-Answered by `src/serve/routes/queue-admin.ts`.
+Answered by `src/serve/routes/queue-admin.ts`, except the four `deploy/<step>` rows, which `src/serve/routes/deploy-steps.ts`
+answers. The page script posts those four one after the other; the combined `deploy` route does the same work in one
+request for a form posted without script.
 
 | Route                                                 | Kind   | Takes                               | Answers                                                                                              | Made for |
 |-------------------------------------------------------|--------|-------------------------------------|------------------------------------------------------------------------------------------------------|----------|
@@ -162,6 +164,10 @@ Answered by `src/serve/routes/queue-admin.ts`.
 | `POST /api/queue/projects`                            | action | name, git URL and Code landing      | `{ ok, … }` with the steps taken, or a 303                                                           | form     |
 | `POST /api/queue/projects/<project>/settings`         | action | the project's settings              | `{ ok, … }` with the steps taken, or a 303                                                           | form     |
 | `POST /api/queue/projects/<project>/deploy`           | action | nothing                             | `{ ok, restarting, installError? }`, or a 303; fast-forwards a checkout and runs the install command | form     |
+| `POST /api/queue/projects/<project>/deploy/fetch`     | action | nothing                             | `{ ok }`; 400 `{ error }` for a refusal; fast-forwards the checkout                                  | form     |
+| `POST /api/queue/projects/<project>/deploy/install`   | action | nothing                             | `{ ok }`; 400 `{ error, faulty? }` when the install fails; then a fresh count against origin         | form     |
+| `POST /api/queue/projects/<project>/deploy/restart`   | action | nothing                             | `{ ok, restart, startedAt?, faulty? }`: `restart` is `fired`, `held` or `none`                       | form     |
+| `POST /api/queue/projects/<project>/deploy/check`     | action | nothing                             | `{ ok }`; 400 `{ error, faulty }` when the service runs another commit than the checkout             | form     |
 | `POST /api/queue/projects/<project>/test-server`      | action | nothing                             | a 303 or an HTML page, never JSON                                                                    | form     |
 | `POST /api/queue/projects/<project>/test-server/stop` | action | nothing                             | `{ ok }`, or a 303 back to the page it was pressed on                                                | form     |
 | `POST /api/queue/projects/<project>/remove`           | action | nothing                             | `{ ok }`, or a 303 to the projects list                                                              | form     |
@@ -206,11 +212,11 @@ idle after it.
 Answered by `src/serve/core-routes.ts`. These three are the only API routes that do not go through the queue's
 dispatcher.
 
-| Route                | Kind   | Takes                              | Answers                                         | Made for  |
-|----------------------|--------|------------------------------------|-------------------------------------------------|-----------|
-| `POST /api/aide-run` | action | JSON: a session's report of itself | `{ ok, sessionId }`; 400 for a malformed body   | interface |
-| `GET /api/aide-runs` | read   | nothing                            | `{ generatedAt, rows }`: the sessions in flight | interface |
-| `GET /api/version`   | read   | nothing                            | `{ sha }`: the commit this process is running   | interface |
+| Route                | Kind   | Takes                              | Answers                                                                | Made for  |
+|----------------------|--------|------------------------------------|------------------------------------------------------------------------|-----------|
+| `POST /api/aide-run` | action | JSON: a session's report of itself | `{ ok, sessionId }`; 400 for a malformed body                          | interface |
+| `GET /api/aide-runs` | read   | nothing                            | `{ generatedAt, rows }`: the sessions in flight                        | interface |
+| `GET /api/version`   | read   | nothing                            | `{ sha, startedAt }`: the commit this process runs, and when it booted | interface |
 
 ### Pages
 

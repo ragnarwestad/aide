@@ -261,7 +261,7 @@ export function phaseCaptionCells(
     (includeListColumns
       ? `<td data-col="state">${action ? `<span class="actionslot">${action}</span>` : ""}</td>` +
         `<td data-col="started"></td>` +
-        `<td class="num" data-col="cost"></td><td data-col="created"></td>`
+        `<td class="num" data-col="cost"></td>`
       : "")
   );
 }

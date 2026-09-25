@@ -9,12 +9,11 @@ import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { esc } from "../../ui/html.ts";
 import { inFlight, restingChip } from "../../ui/job-state";
 import type { SpecsPageOptions } from "./";
-import { ARCHIVED_STATE, CLOSED_STATE, isArchivedRow, isFinishedGroup, type SpecGroup } from "./data-model";
+import { ARCHIVED_STATE, CLOSED_STATE, isArchivedRow, type SpecGroup } from "./data-model";
 import {
   activeDurationCell,
   archiveDateCell,
   costCell,
-  createdCell,
   phasePips,
   stateCell,
 } from "./cell-helpers.ts";
@@ -257,11 +256,6 @@ export function specHeadRow(
       ? `<td class="archive-date" data-col="started">${archiveDateCell(g.totalDurationMs ?? 0)}</td>`
       : `<td data-col="started">${activeDurationCell(g)}</td>`) +
     `<td class="num" data-col="cost">${costCell(g.spentUsd, g.spentTokens, "–", g.done.length > 0)}</td>` +
-    // Last, after the two figures a phase line also fills (2026-09-08):
-    // a phase has no creation date of its own, and this column standing
-    // in the middle left an empty cell on every phase line between the
-    // state and the numbers.
-    `<td class="created-date" data-col="created">${createdCell(g.createdAt, g.createdAtChecking ?? false, isFinishedGroup(g), lang)}</td>` +
     `</tr>`
   );
 }

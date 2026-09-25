@@ -18,7 +18,7 @@
    given the leftover shows it as empty space: the row used to be a
    single 19rem box with the badge and the button packed left inside it,
    which put every shorter row's leftover AFTER the button — a hand's
-   width of nothing between the button and the Created column.
+   width of nothing between the button and the next column.
    `.badgeslot` is the longest state text this column can draw (measured
    in a browser with this stylesheet: 150px, "arkivering holdt
    tilbake" — the widest of the sixty texts a spec row can draw);
@@ -328,10 +328,29 @@ dialog.pageoverlay[open] { position: fixed; inset: 0; margin: auto;
   max-width: calc(100% - 2 * var(--sp-4)); max-height: calc(100% - 2 * var(--sp-4));
   overflow: auto; }
 dialog.pageoverlay::backdrop { background: var(--backdrop); }
-/* A navigation shows the spinner alone; a deploy waits long enough that
-   a bare spinner says too little, so it hands the layer a line of text. */
+/* A navigation shows the spinner alone; a press that takes the page away
+   without one hands the layer a line of text. */
 dialog.pageoverlay > .overlaynote { margin: var(--sp-3) 0 0; max-width: 22rem;
   color: var(--muted); text-align: center; }
+
+/* The Deploy dialog keeps one box from the press to the end: a fixed
+   width, a message area of fixed height that scrolls inside itself, and
+   the Close row always laid out — `visibility`, not `hidden`, so showing
+   it after a failure adds no height. */
+dialog[data-deploy-dialog] { width: 26rem; max-width: calc(100% - 2 * var(--sp-4)); }
+.deploysteps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column;
+  gap: var(--sp-2); }
+/* Room for two lines each, whatever the language: a longer state word must
+   not wrap a label onto a second line and make the box taller. */
+.deploysteps li { display: flex; justify-content: space-between; align-items: center;
+  gap: var(--sp-3); min-height: 3.2em; }
+.deploysteps li[data-state="waiting"] { color: var(--muted); }
+.deploysteps li[data-state="failed"] { color: var(--danger); }
+.deploystate { color: var(--muted); }
+.deploymessage { height: 8rem; overflow: auto; }
+.deploymessage .rowmsg { margin: 0; }
+dialog[data-deploy-dialog] [data-deploy-close] { align-self: flex-start; visibility: hidden; }
+dialog[data-deploy-dialog][data-failed] [data-deploy-close] { visibility: visible; }
 
 /* How runs work: a small question mark at the right-hand end of the
    search field's own row (spec 261 moved it there from the filter

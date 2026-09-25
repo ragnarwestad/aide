@@ -15,6 +15,14 @@ describe("the Description tab", () => {
     expect(html).toContain("The dashboard never shows a spec.");
   });
 
+  // The specs list no longer shows a creation date; the spec page does,
+  // as the Created line of the description's Tracking info.
+  test("still shows when the spec was created (AC-6)", () => {
+    const tracking = "## Tracking info\n\n- **Created:** `2026-09-25 20:10 UTC`\n";
+    const html = edit(view({ files: [file("1-description.md", tracking), ...view().files.slice(1)] }));
+    expect(html).toContain("- **Created:** `2026-09-25 20:10 UTC`");
+  });
+
   // REQ-2: the save route now takes the file as part of the request —
   // Description's own form names itself, same as the other three tabs.
   test("names which file the Save is about", () => {

@@ -17,7 +17,7 @@
 import type { LogFilter } from "../../queue/parse-stream";
 import type { GitRunner } from "../../git/branch-status.ts";
 import type { BranchStatusChecker } from "../../git/branch-status.ts";
-import type { RepoMergeResult } from "../../git/branch-merge.ts";
+import type { Sentence } from "../../i18n/message.ts";
 import type { DashboardCheckout } from "../../git/dashboard-checkout.ts";
 import type { SpecRef } from "../../project/discover";
 import type {
@@ -42,6 +42,7 @@ import type { TestServersContext } from "../test-servers/lifecycle.ts";
 import { handlePageRoutes } from "./page-routes";
 import { handleQueueEvents } from "./sse.ts";
 import { handleQueueAdminRoutes } from "./queue-admin.ts";
+import { handleDeploySteps, type DeployHooks } from "./deploy-steps.ts";
 import { handleJobActionRoutes } from "./job-actions.ts";
 import { handleSpecEditRoutes } from "./spec-edit";
 import { handleSpecPdfRoute } from "./spec-pdf.ts";
@@ -104,9 +105,8 @@ export interface RoutesContext {
    *  before it does. Names the port-scoped sort/state cookies. */
   serverPort: () => number;
   jobRow: (job: ReturnType<QueueStore["list"]>[number]) => Promise<QueueRowView>;
-  /** Runs the install; the restart it may call for comes back as a
-   *  thunk, to be fired only once the answer has been composed. */
-  installAfterMerge: (result: RepoMergeResult) => Promise<{ restart?: () => void }>;
+  /** What a Deploy press asks of the landing code (see `deploy-steps.ts`). */
+  deploy: DeployHooks;
   persistAllowlist: (what: string) => ProjectStep;
   answerProjectChange: (
     action: string,
@@ -128,6 +128,9 @@ export interface RoutesContext {
    *  `state.ts`'s `pendingRestart` for what it means. */
   readPendingRestart: () => { jobs: string[] } | null;
   setPendingRestart: (jobs: string[]) => void;
+  /** What a finished deploy left wrong at the top of every page, or
+   *  `null` to clear it (see `state.ts`'s `deployFault`). */
+  setDeployFault: (fault: Sentence | null) => void;
   /** Where `aide-generate-pdf` writes the PDF it makes (spec 358),
    *  outside every checkout (REQ-4). */
   pdfCacheDir: string;
@@ -160,6 +163,7 @@ export async function handleRoutes(ctx: RoutesContext, req: Request, url: URL, p
     (await handlePageRoutes(ctx, req, url, path)) ??
     handleQueueEvents(ctx, req, path) ??
     failedCreateRoutes(ctx, req, path, wantsJson) ??
+    (await handleDeploySteps(ctx, req, path)) ??
     (await handleQueueAdminRoutes(ctx, req, path, wantsJson)) ??
     (await handlePushRoutes(ctx, req, url, path)) ??
     (await handleJobActionRoutes(ctx, req, path, wantsJson)) ??

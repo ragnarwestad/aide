@@ -108,7 +108,7 @@ describe("spec 124: one phase list, and one action beside the state", () => {
   // `phaseCaptionRow`, `phaseSubRows`) and nothing in the type system
   // makes them agree. A row short of a column does not fail loudly —
   // it shifts every column after it, on some rows and not others.
-  test("every row kind declares the same five columns, and none is blank", () => {
+  test("every row kind declares the same six columns, and none is blank (AC-1)", () => {
     const html = renderSpecsPage(
       [row({ id: "j1", specFolder: "124-stack", state: "done" })],
       "2026-08-19T00:00:00Z",
@@ -128,24 +128,18 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     // `rowspan` rather than a cell of its own.
     const titleRow = spechead.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
     const stateRow = spechead.match(/<tr class="specstate[\s\S]*?<\/tr>/)?.[0] ?? "";
-    expect(columnUnits(titleRow)).toBe(7);
-    expect(columnUnits(stateRow)).toBe(6);
+    expect(columnUnits(titleRow)).toBe(6);
+    expect(columnUnits(stateRow)).toBe(5);
     const firstSub = html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
     const firstPhase = subRow(html, "create");
     expect([thead, spechead, firstSub, firstPhase, subRow(html, "analyze")].every(Boolean)).toBe(true);
-    // Seven since the chevron took a column of its own (2026-09-22). Six
-    // since the Created column went in (spec 317); five from 2026-08-23,
-    // when the blank trailing column went; seven under spec 165, which
-    // gave the row's AI a column of its own between the phase name and
-    // the model; six-before-that when the pips moved in beside the name
-    // and the Progress column went.
     for (const tr of [thead, firstSub, firstPhase]) {
-      expect([tr.slice(0, 40), columnUnits(tr)]).toEqual([tr.slice(0, 40), 7]);
+      expect([tr.slice(0, 40), columnUnits(tr)]).toEqual([tr.slice(0, 40), 6]);
     }
     // And the same on every phase line after the first as well, since
     // spec 179: the AI column is a cell of each line's own, so no line
     // borrows a slot from a `rowspan` on the one above it.
-    expect(columnUnits(subRow(html, "analyze"))).toBe(7);
+    expect(columnUnits(subRow(html, "analyze"))).toBe(6);
     // The header and both row types end on Cost.
     expect(thead).toMatch(/data-col="cost"[\s\S]*<\/th><\/tr><\/thead>$/);
     expect(stateRow).toMatch(/data-col="cost">[\s\S]*<\/td><\/tr>$/);
@@ -154,70 +148,39 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     expect(firstSub).toMatch(/^<tr class="subrow" data-caption="1"><td class="phasecell" colspan="2">/);
   });
 
-  // --- spec 317: the Created column ------------------------------------------
+  // --- the Created column is not in the list ---------------------------------
 
-  // Last since 2026-09-08: it is the one column a PHASE line has nothing
-  // to put in, and in the middle it left an empty cell between the state
-  // and the two figures every phase line does fill.
-  test("Created comes after Time and Cost, on the header and the spec row (REQ-1)", () => {
+  test("no row draws a Created cell or a creation date (AC-1)", () => {
+    const html = rows([], [
+      target("124-stack", { createdAt: "2026-08-12T09:00:00Z" }),
+      target("125-undated", { createdAt: undefined }),
+    ]);
+    const body = html.slice(html.indexOf("</thead>"));
+    expect(body).not.toContain('data-col="created"');
+    expect(body).not.toContain("created-date");
+    expect(body).not.toContain("2026-08-12");
+    expect(body).not.toMatch(/not registered/i);
+    const colgroup = html.match(/<colgroup>.*?<\/colgroup>/)?.[0] ?? "";
+    expect([...colgroup.matchAll(/data-col="(\w+)"/g)].map((m) => m[1])).toEqual([
+      "fold",
+      "spec",
+      "phase",
+      "state",
+      "started",
+      "cost",
+    ]);
+  });
+
+  test("the heading row starts with Created, before Specification, over two columns (AC-2)", () => {
     const html = rows([], [target("124-stack", { createdAt: "2026-08-12T09:00:00Z" })]);
     const thead = html.match(/<thead><tr>.*?<\/tr><\/thead>/)?.[0] ?? "";
-    const stateAt = thead.indexOf(">State/Action<");
-    const startedAt = thead.indexOf('data-col="started"');
-    const costAt = thead.indexOf('data-col="cost"');
-    const createdAt_ = thead.indexOf('data-col="created"');
-    expect(stateAt).toBeGreaterThan(-1);
-    expect(startedAt).toBeGreaterThan(stateAt);
-    expect(costAt).toBeGreaterThan(startedAt);
-    expect(createdAt_).toBeGreaterThan(costAt);
-
-    const spechead = head(html, "124-stack");
-    const stateCellAt = spechead.indexOf("badgeslot");
-    const startedCellAt = spechead.indexOf('data-col="started"');
-    const createdCellAt = spechead.indexOf('data-col="created"');
-    expect(startedCellAt).toBeGreaterThan(stateCellAt);
-    expect(createdCellAt).toBeGreaterThan(startedCellAt);
-  });
-
-  // REQ-4: the same plain YYYY-MM-DD format `archiveDateCell` already
-  // draws for the Time column's archive date — not a full timestamp.
-  test("a live row's Created cell shows a plain date (REQ-4)", () => {
-    const html = rows([], [target("124-stack", { createdAt: "2026-08-12T09:14:00+02:00" })]);
-    const spechead = head(html, "124-stack");
-    const cell = spechead.slice(spechead.indexOf('data-col="created"'));
-    expect(cell.slice(0, cell.indexOf("</td>"))).toContain("2026-08-12");
-    expect(cell.slice(0, cell.indexOf("</td>"))).not.toContain("09:14");
-  });
-
-  // REQ-5: a spec git could not date — asked, and answered with nothing
-  // — shows a dash, never a job's own time and never a crash.
-  test("a spec git could not date shows the dash convention (REQ-5)", () => {
-    const html = rows([], [target("124-stack", { createdAt: undefined, createdAtChecking: false })]);
-    const spechead = head(html, "124-stack");
-    const cell = spechead.slice(spechead.indexOf('data-col="created"'));
-    expect(cell.slice(0, cell.indexOf("</td>"))).toContain("–");
-  });
-
-  // The other half of the same distinction every date cell on this page
-  // draws: nothing has ASKED git yet is "Checking…", not a dash.
-  test("a spec nothing has asked git about yet shows checking…, not a dash", () => {
-    const html = rows([], [target("124-stack", { createdAt: undefined, createdAtChecking: true })]);
-    const spechead = head(html, "124-stack");
-    const cell = spechead.slice(spechead.indexOf('data-col="created"'));
-    const cellBody = cell.slice(0, cell.indexOf("</td>"));
-    expect(cellBody).toContain("Checking…");
-    expect(cellBody).toContain('<span class="checking" title="Checking…">');
-    expect(cellBody).not.toContain("&lt;span class=&quot;checking&quot;");
-  });
-
-  // Every phase line and the caption row draw a blank placeholder cell
-  // in the same column, purely for alignment (LIST_COLUMNS).
-  test("phase lines and the caption row carry a blank Created cell", () => {
-    const html = rows([], undefined, { modelChoices: CHOICES });
-    const analyze = subRow(html, "analyze");
-    expect(analyze).toContain('<td data-col="created"></td>');
-    const caption = html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
-    expect(caption).toContain('<td data-col="created"></td>');
+    expect(thead.startsWith('<thead><tr><th')).toBe(true);
+    const first = thead.match(/^<thead><tr>(<th[^>]*>)/)?.[1] ?? "";
+    expect(first).toContain('data-col="created"');
+    expect(first).toContain('colspan="2"');
+    expect(thead.indexOf('data-col="created"')).toBeLessThan(thead.indexOf('data-col="spec"'));
+    expect(thead).not.toContain('<th data-col="fold"></th>');
+    expect(thead).toContain("sort=created");
   });
 
   // --- criteria 1, 3, 4, 5, 15: the checkbox lives on the phase line ---------
@@ -313,18 +276,10 @@ describe("spec 124: one phase list, and one action beside the state", () => {
   test("the button rides with the name; the header keeps its own cells (criterion 6)", () => {
     const html = rows([]);
     expect(actionCell(group(html, "124-stack"))).toContain(">Analyze</button>");
-    // Six cells across the header's two rows, the chevron's own left out
-    // by `cells`: title, pips, state, started, cost, created. The pips
-    // took a cell of their own when the title got a row to itself
-    // (2026-09-22); the Progress column went into the name cell with them
-    // in 2026-08-22 and the blank spare after Cost went on 2026-08-23;
-    // Created joined between state and started (spec 317) and moved to
-    // the END on 2026-09-08, where the one column a phase line cannot
-    // fill stops standing between the state and the two it does.
-    expect(cells(head(html, "124-stack"))).toHaveLength(6);
-    expect(head(html, "124-stack")).toMatch(
-      /<td class="created-date" data-col="created">[\s\S]*?<\/td><\/tr>$/,
-    );
+    // Five cells across the header's two rows, the chevron's own left out
+    // by `cells`: title, pips, state, started, cost.
+    expect(cells(head(html, "124-stack"))).toHaveLength(5);
+    expect(head(html, "124-stack")).toMatch(/<td class="num" data-col="cost">[\s\S]*?<\/td><\/tr>$/);
   });
 
   test("a spec no job has ever touched offers its next phases alone (criterion 8)", () => {

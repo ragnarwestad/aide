@@ -30,8 +30,10 @@ describe("runsHelp() (spec 311, REQ-1)", () => {
 });
 
 describe("sortableHead() (spec 336, REQ-1/REQ-2)", () => {
-  test("the Spec header carries data-col=\"spec\" alongside its colspan", () => {
+  test("the Created header carries data-col=\"created\" alongside its colspan, the Spec header none", () => {
     const thead = page().match(/<thead>[\s\S]*?<\/thead>/)?.[0] ?? "";
-    expect(thead).toMatch(/<th class=""[^>]*colspan="2"[^>]*data-col="spec"[^>]*>/);
+    expect(thead).toMatch(/<th class=""[^>]*colspan="2"[^>]*data-col="created"[^>]*>/);
+    expect(thead).toMatch(/<th class=""[^>]*data-col="spec"[^>]*>/);
+    expect(thead).not.toMatch(/<th[^>]*colspan="2"[^>]*data-col="spec"/);
   });
 });

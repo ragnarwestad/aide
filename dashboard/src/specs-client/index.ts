@@ -31,12 +31,12 @@ import {
   formNote,
   submitAction,
   submitCreate,
-  submitDeploy,
   submitProjectChange,
   submitProjectSettings,
   submitTestServerStop,
   syncDependsOn,
 } from "./forms.ts";
+import { submitDeploy } from "./deploy/index.ts";
 import { formatElapsed } from "./elapsed.ts";
 import { bindLimits } from "./limits/index.ts";
 import { connect, onVisibility } from "./live.ts";

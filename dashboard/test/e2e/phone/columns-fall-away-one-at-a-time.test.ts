@@ -47,19 +47,19 @@ async function shownColumns(width: number): Promise<string[]> {
     cells
       .filter((c) => getComputedStyle(c).display !== "none")
       .map((c) => c.getAttribute("data-col") ?? "")
-      // The chevron's own column heads nothing and never drops: it is a
-      // control's column, not one of the data columns this counts.
-      .filter((name) => name !== "fold"),
+      // The Created heading stands over the chevron's column and the
+      // Spec column and never drops; it sorts, it is not one of the data
+      // columns this counts.
+      .filter((name) => name !== "created"),
   );
 }
 
-// The three breakpoints `list.css` declares, in the order a window
-// narrows through them: 59.5rem, 53rem and 46.5rem at a 16px root. Only
-// three columns are ever droppable — `spec` carries the phase under its
-// own `colspan="2"`, and `state` is what a row is read for.
-const DROPPABLE = ["created", "cost", "started"] as const;
+// The two breakpoints `list.css` declares for the list's own columns, in
+// the order a window narrows through them: 53rem and 46.5rem at a 16px
+// root. Only two columns are ever droppable — `spec` carries the phase,
+// and `state` is what a row is read for.
+const DROPPABLE = ["cost", "started"] as const;
 const STEPS: { width: number; shown: string[] }[] = [
-  { width: 1000, shown: ["spec", "state", "started", "cost", "created"] },
   { width: 900, shown: ["spec", "state", "started", "cost"] },
   { width: 800, shown: ["spec", "state", "started"] },
   { width: 700, shown: ["spec", "state"] },

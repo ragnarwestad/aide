@@ -80,11 +80,6 @@ export function withFreshness(ctx: LandContext, list: SpecTarget[]): SpecTarget[
       // `git mv` — and then the cell shows a dash rather than a
       // job's own time, which is the field this replaces.
       createdAt: createdAtPeek.createdAt ?? undefined,
-      // Spec 317: "checking…" versus a real "cannot date" — the same
-      // distinction the Created cell draws for an archived row, kept
-      // for a live one too rather than losing `checkedAt` the moment
-      // it reaches `SpecTarget`.
-      createdAtChecking: createdAtPeek.checkedAt === null,
     };
     if (!ctx.freshness.peekStale(t.dir, t.specFolder, t.reopenedAfter).stale) return withHistory;
     return {

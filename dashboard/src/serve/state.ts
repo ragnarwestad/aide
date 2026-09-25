@@ -11,6 +11,8 @@
 // functions, unchanged — this object is what those functions close
 // over now instead of a bare local.
 
+import type { Sentence } from "../i18n/message.ts";
+import { setDeployFaultNotice } from "../render/ui/faults/deploy-fault.ts";
 import { setPendingRestartNotice } from "../render/ui/pending-restart.ts";
 import type { SpecTarget } from "../render";
 import type { SpecRef } from "../project/discover";
@@ -85,7 +87,16 @@ export interface ServerState {
    *  by running jobs (spec 385) — the Deploy tab's own "waiting" state,
    *  read fresh on every GET the way `servingSha` already is. */
   pendingRestart: { jobs: string[] } | null;
+  /** What a finished deploy left wrong at the top of every page — the
+   *  running service is older than the dashboard's own checkout — or
+   *  `null`. Lives as long as the process: a restart starts without it,
+   *  which is "until a later deploy or restart fixes it". */
+  deployFault: Sentence | null;
 }
+
+/** When this process booted. `/api/version` answers it, so the page
+ *  can tell the process it is leaving from the one that replaced it. */
+export const STARTED_AT = new Date().toISOString();
 
 /** The state whose pending-restart list the shell shows. `bun test`
  *  runs many servers in one process, and a replaced server's
@@ -96,9 +107,10 @@ let noticeOwner: ServerState | undefined;
 
 export function createServerState(): ServerState {
   setPendingRestartNotice([]);
+  setDeployFaultNotice(null);
   const state: ServerState = {
     scan: null, unlanded: [], prOpen: [], notifySoon: null, warming: false, server: null, runner: null,
-    servingSha: null, servingRepoRoot: null, pendingRestart: null,
+    servingSha: null, servingRepoRoot: null, pendingRestart: null, deployFault: null,
   };
   noticeOwner = state;
   return state;
@@ -112,4 +124,12 @@ export function createServerState(): ServerState {
 export function setPendingRestart(state: ServerState, jobs: string[]): void {
   state.pendingRestart = jobs.length > 0 ? { jobs } : null;
   if (state === noticeOwner) setPendingRestartNotice(jobs);
+}
+
+/** The one place that stores what a deploy left wrong — `null` clears
+ *  it. Guarded by `noticeOwner` for the same reason `setPendingRestart`
+ *  is: a replaced test server must not write the shared notice. */
+export function setDeployFault(state: ServerState, fault: Sentence | null): void {
+  state.deployFault = fault;
+  if (state === noticeOwner) setDeployFaultNotice(fault);
 }

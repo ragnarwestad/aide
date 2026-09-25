@@ -144,7 +144,6 @@ export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefine
       title: ref.title ?? undefined,
       description: ref.description ?? undefined,
       createdAt: created.createdAt ?? undefined,
-      createdAtChecking: created.checkedAt === null,
       notLanded,
       notLandedCheckedAt: notLanded ? (openCheckedAt ?? undefined) : undefined,
       branchDeleteError,

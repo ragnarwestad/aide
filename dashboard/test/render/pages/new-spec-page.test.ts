@@ -508,7 +508,6 @@ describe("spec 342: the phase table", () => {
     const captionRow = html.match(/<tr class="subrow" data-caption="1">.*?<\/tr>/)?.[0] ?? "";
     expect(captionRow).not.toBe("");
     expect(captionRow.match(/<td/g)?.length).toBe(2);
-    expect(captionRow).not.toContain('data-col="created"');
     expect(captionRow).not.toContain('data-col="started"');
     expect(captionRow).not.toContain('data-col="cost"');
     expect(captionRow).not.toContain("<td></td>");
@@ -522,7 +521,6 @@ describe("spec 342: the phase table", () => {
   // needs a real browser, covered by the e2e check instead.
   test("spec 415 REQ-3: the table's HTML carries no list-only column markers", () => {
     const html = table(newPage({ modelChoices: [{ name: "sonnet" }] }));
-    expect(html).not.toContain('data-col="created"');
     expect(html).not.toContain('data-col="started"');
     expect(html).not.toContain('data-col="cost"');
   });

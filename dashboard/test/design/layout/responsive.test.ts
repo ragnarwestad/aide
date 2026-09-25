@@ -9,6 +9,7 @@
 // page actually looks right at 390px — that is the Manual testing note
 // in 3-solution.md.
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 import { CSS } from "../../../src/render/ui/css";
 import {
   renderSpecsRows,
@@ -69,8 +70,7 @@ describe("Started and Cost fold away at phone width", () => {
     );
   });
 
-  // Time and Cost went the way Created already had (2026-09-07): the
-  // phone's spec line is the title, then the pips, the button and the
+  // The phone's spec line is the title, then the pips, the button and the
   // state. A reader there is checking what is happening and pressing the
   // one control; neither figure is part of either.
   test("the spec header drops its time and its cost too", () => {
@@ -157,27 +157,17 @@ describe("Started and Cost fold away at phone width", () => {
   });
 });
 
-// --- spec 317, REQ-8: the Created column at phone width ---------------------
-//
-// A deliberate choice, not an oversight: the phone's spec-header line
-// already carries fold, name, pips, badge, action, duration and cost —
-// a phone reader there is oriented to STATE and HOW LONG, not WHEN it
-// began. Created is dropped from that line rather than reflowed onto
-// it, same treatment Started/Cost already get on the subrow.
-describe("Created folds away on the spec header at phone width", () => {
-  test("the narrow-width block hides the column on the spec header line", () => {
-    expect(NARROW).toContain('table.list tr.specstate [data-col="created"] { display: none; }');
-  });
+// --- the Created column is gone from every window width ---------------------
 
-  test("the head row's Created cell carries the hook", () => {
-    const html = rows();
-    expect(html).toContain('data-col="created"');
-  });
-
-  test("the Created cell never breaks its date across two lines", () => {
-    const html = rows();
-    expect(html).toContain('<td class="created-date" data-col="created">');
-    expect(CSS).toContain(".created-date { white-space: nowrap; }");
+describe("no rule for the phone or for a window up to 59.5rem names Created (AC-5)", () => {
+  const blocks = (css: string) => css.match(/@media \(max-width: [\d.]+rem\) \{[\s\S]*?\n\}/g) ?? [];
+  test("neither stylesheet's width steps mention it", () => {
+    const list = readFileSync(new URL("../../../src/render/ui/css/list.css", import.meta.url), "utf8");
+    const narrow = readFileSync(new URL("../../../src/render/ui/css/narrow.css", import.meta.url), "utf8");
+    const steps = [...blocks(list), ...blocks(narrow)];
+    expect(steps.length).toBeGreaterThan(3);
+    for (const block of steps) expect(block).not.toMatch(/created/i);
+    expect(list).not.toMatch(/td\[data-col="created"\]|\.created-date/);
   });
 });
 

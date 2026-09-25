@@ -165,6 +165,10 @@ const STRUCTURE = [
   // spaced apart by this container's gap rather than a component margin
   // (spec 377, design-system.md "Spacing lives in the container").
   "deploypanel",
+  // the Deploy dialog's step list, each line's state word, and the
+  // fixed-height area its error and finished message are written into
+  // (the dialog keeps one size from the press to the end).
+  "deploysteps", "deploystate", "deploymessage",
   // the covering layer a click that leaves the page gets, from the
   // click until the new document arrives (spec 314): the same
   // `<dialog>` shape About and the confirm box are.
@@ -193,11 +197,6 @@ const STRUCTURE = [
   // what the spec cost in time (spec 207). All three are on the Specs
   // list since spec 221, which folded the archive into it.
   "archive-q", "archive-date", "archive-duration",
-  // the Created column's own date cell (spec 326) — the same
-  // "must not wrap" treatment as the two above, kept as a separate
-  // class because it protects a different column, on every row rather
-  // than only archived ones.
-  "created-date",
   // and the form that box sits in (spec 221): a line of its own under
   // the chips, because that line was already full. "searchfield" is the
   // box's own wrapper and "searchclear" the × inside it (spec 226) —
