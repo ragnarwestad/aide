@@ -172,21 +172,18 @@ describe("a conflict refusal (spec 171)", () => {
   });
 });
 
-// The badge is the word and its colour. A dot in front of it marked the
-// four live variants apart from the two settled ones until 2026-09-07;
-// the colour already says that, and the mark was one more thing in
-// front of the word on a row read on a phone.
-describe("the status badge carries no mark of its own", () => {
-  test("no dot in the markup, for any variant", () => {
+// The badge is its word, its colour, and since 2026-09-25 the state's own
+// icon in front of the word. The icon is named on the badge and drawn by
+// the stylesheet, so the markup still holds nothing but the word: no
+// dot, no inline drawing repeated on every row of a long list.
+describe("the status badge's markup is its word and the name of its icon", () => {
+  test("nothing in front of the word in the markup, for any variant", () => {
     for (const variant of ["idle", "running", "waiting", "ready", "refused", "done"] as const) {
       // The word comes back capitalised: a badge is a message of its own,
       // and the catalogue keeps its entries lowercase for the places that
       // glue them behind something else.
       const Word = variant.charAt(0).toUpperCase() + variant.slice(1);
-      expect([variant, badge(variant, variant)]).toEqual([
-        variant,
-        `<span class="badge b-${variant}">${Word}</span>`,
-      ]);
+      expect(badge(variant, variant)).toMatch(new RegExp(`^<span class="badge b-${variant}"( data-icon="[a-z]+")?>${Word}</span>$`));
     }
   });
 

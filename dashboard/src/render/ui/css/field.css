@@ -18,7 +18,8 @@
 .field input, .field select, .field textarea,
 select[name^="model."], select[data-ai], select[data-lang-select] {
   height: 28px; padding: 0 var(--sp-2); border-radius: var(--r-s);
-  border: 1px solid var(--line-strong); background: var(--surface);
+  border: 1px solid var(--line); background: var(--surface);
+  box-shadow: 0 1px 2px color-mix(in oklab, var(--text) 5%, transparent);
   color: var(--text); font: var(--fs-m)/1 var(--sans); }
 /* Without appearance: none the browser goes on drawing its own control
    on top of ours — its chevron, its inner edge, and a height that is
@@ -154,12 +155,3 @@ select[name^="model."] {
 [data-limit="near"] { color: var(--warn); }
 [data-limit-note]:not(:empty) { color: var(--warn); }
 [data-limit-note]:empty { display: none; }
-
-/* A field's resting edge is the light line, with a hairline shadow; focus
-   is a soft ring rather than a coloured border. */
-.field input, .field select, .field textarea,
-select[name^="model."], select[data-ai], select[data-lang-select] {
-  border-color: var(--line); box-shadow: 0 1px 2px color-mix(in oklab, var(--text) 5%, transparent); }
-.field input:focus-visible, .field select:focus-visible, .field textarea:focus-visible,
-select[name^="model."]:focus-visible, select[data-ai]:focus-visible {
-  outline: none; border-color: var(--muted); box-shadow: 0 0 0 3px color-mix(in oklab, var(--muted) 25%, transparent); }

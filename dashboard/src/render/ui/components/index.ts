@@ -17,7 +17,6 @@
 // (`specs/102-design-foundation/assets/Components.dc.html`); nothing is
 // invented at this layer.
 
-import { stateIcon } from "./state-icon.ts";
 import { esc } from "../html.ts";
 import { t, type Language } from "../../../i18n";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
@@ -89,21 +88,7 @@ export function saveCancelActions(prefix = "specform", o: { variant?: BtnVariant
 
 // --- status badge --------------------------------------------------------------
 
-/** The six the design sheet defines. Every job state maps onto one of
- *  them (`job-state.ts`, `BADGE_VARIANT`) — a seventh would be a state
- *  the page has no word for. */
-export type BadgeVariant = "idle" | "running" | "waiting" | "ready" | "refused" | "done";
-
-/** The word and its colour, and nothing else. A dot marked the four
- *  LIVE variants apart from the two settled ones until 2026-09-07 —
- *  the colour already says it, and on a row read on a phone the mark
- *  was one more thing in front of the word. */
-export function badge(variant: BadgeVariant, label: string, title?: string): string {
-  return (
-    `<span class="badge b-${variant}"${title ? ` title="${esc(title)}"` : ""}>` +
-    `${stateIcon(label)}${esc(capitalizeFirst(label))}</span>`
-  );
-}
+export { badge, type BadgeVariant } from "./badge.ts";
 
 // --- phase chip ----------------------------------------------------------------
 
