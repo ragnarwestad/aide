@@ -7,8 +7,8 @@
 /* A refusal that lands under a form needs air between it and the Save
    it is answering: 4px read as part of the button row. */
 .trackingform + .rowmsg, .specform + .rowmsg { margin-top: var(--sp-3); }
-.rowmsg.failed { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
-.rowmsg.waiting { background: var(--warn-soft); border-color: var(--warn); color: var(--warn); }
+.rowmsg.failed { background: var(--danger-ground); border-color: var(--danger); color: var(--danger); }
+.rowmsg.waiting { background: var(--warn-ground); border-color: var(--warn); color: var(--warn); }
 /* The light background, framed — not a filled grey box: a card on the
    specs list sits inside the open row's own frame, and two greys one
    inside the other read as a panel rather than a message. */

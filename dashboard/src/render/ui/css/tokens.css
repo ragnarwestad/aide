@@ -7,9 +7,9 @@
   --link: #09090B; --link-strong: #3F3F46;
   --pip-skim: #F0A48B;
   --on-accent: #FCFAF7;
-  --ok: #15803D; --ok-soft: #F0FDF4;
-  --warn: #B45309; --warn-soft: #FFFBEB;
-  --danger: #DC2626; --danger-soft: #FEF2F2;
+  --ok: #15803D; --ok-soft: #E3F0E7; --ok-ground: #E3F0E7;
+  --warn: #B45309; --warn-soft: #F8EDD6; --warn-ground: #F8EDD6;
+  --danger: #DC2626; --danger-soft: #F1DDD7; --danger-ground: #F1DDD7;
   --pdf: #D0342C;
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2371717A' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5'/%3E%3C/svg%3E");
   --fs-s: 12px; --fs-m: calc(27px / 2); --fs-l: 16px; --fs-xl: 20px; --fs-brand: 26px;
@@ -70,9 +70,9 @@
   --link: #FAFAFA; --link-strong: #D4D4D8;
   --pip-skim: #FFC4AC;
   --on-accent: #16181C;
-  --ok: #6FC08F; --ok-soft: #252F2E;
-  --warn: #E0A84A; --warn-soft: #2E2D29;
-  --danger: #EB7878; --danger-soft: #2F292D;
+  --ok: #6FC08F; --ok-soft: #22352A; --ok-ground: #252F2E;
+  --warn: #E0A84A; --warn-soft: #3A2F1C; --warn-ground: #2E2D29;
+  --danger: #EB7878; --danger-soft: #3D211B; --danger-ground: #2F292D;
   --pdf: #E0473C;
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23A1A1AA' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5'/%3E%3C/svg%3E");
 /* tokens:end */
@@ -96,9 +96,9 @@
   --link: #FAFAFA; --link-strong: #D4D4D8;
   --pip-skim: #FFC4AC;
   --on-accent: #16181C;
-  --ok: #6FC08F; --ok-soft: #252F2E;
-  --warn: #E0A84A; --warn-soft: #2E2D29;
-  --danger: #EB7878; --danger-soft: #2F292D;
+  --ok: #6FC08F; --ok-soft: #22352A; --ok-ground: #252F2E;
+  --warn: #E0A84A; --warn-soft: #3A2F1C; --warn-ground: #2E2D29;
+  --danger: #EB7878; --danger-soft: #3D211B; --danger-ground: #2F292D;
   --pdf: #E0473C;
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23A1A1AA' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5'/%3E%3C/svg%3E");
 /* tokens:end */
@@ -114,9 +114,9 @@
   --link: #09090B; --link-strong: #3F3F46;
   --pip-skim: #F0A48B;
   --on-accent: #FCFAF7;
-  --ok: #15803D; --ok-soft: #F0FDF4;
-  --warn: #B45309; --warn-soft: #FFFBEB;
-  --danger: #DC2626; --danger-soft: #FEF2F2;
+  --ok: #15803D; --ok-soft: #E3F0E7; --ok-ground: #E3F0E7;
+  --warn: #B45309; --warn-soft: #F8EDD6; --warn-ground: #F8EDD6;
+  --danger: #DC2626; --danger-soft: #F1DDD7; --danger-ground: #F1DDD7;
   --pdf: #D0342C;
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2371717A' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5'/%3E%3C/svg%3E");
 /* tokens:end */
