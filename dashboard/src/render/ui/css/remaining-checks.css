@@ -76,7 +76,10 @@ label.checkbox input { margin: 0; cursor: pointer; }
    takes a line of its own under the words, in the page's own text
    colour rather than the message's. */
 .rowmsg:has(> .rowchecks, > .checksunread) { flex-wrap: wrap; }
-.rowmsg > .rowchecks, .rowmsg > .checksunread { flex: 1 0 100%; color: var(--text); }
+/* The words keep their place beside the icon and wrap there; only the
+   list goes to a line of its own. */
+.rowmsg:has(> .rowchecks, > .checksunread) > span { flex: 1 1 0; min-width: 0; }
+.rowmsg > .rowchecks, .rowmsg > .checksunread { flex: 1 0 100%; color: var(--text); padding-right: var(--sp-2); box-sizing: border-box; }
 
 /* A phase's latest messages, unfolded under its line (spec 500). A
    model's sentence is of any length: the list may shrink below its
