@@ -59,6 +59,12 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 BUN="${AIDE_ROUND_BUN:-$(command -v bun || echo "$HOME/.local/share/mise/shims/bun")}"
 BASE="http://127.0.0.1:$PORT"
 
+# What earlier rounds left behind goes first: a kept board's directory
+# outlives the round, and nothing else removes it once its server is gone.
+# shellcheck source=clean-earlier-rounds.sh
+source "$HERE/clean-earlier-rounds.sh"
+clean_earlier_rounds "$(dirname "$(mktemp -u)")" "$AIDE"
+
 WORK="$(mktemp -d)"
 # Where a round's serve log outlives the round: a mismatch keeps its log
 # (the tail of this script), and so does a kept board that dies (the
