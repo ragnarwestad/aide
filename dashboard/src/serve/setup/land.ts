@@ -33,6 +33,7 @@ import {
   type LandContext,
   type RestartHook,
 } from "../land-branch";
+import type { DeployHooks } from "../routes/deploy-steps.ts";
 import { setPendingRestart, type ServerState } from "../state.ts";
 import type { TestServersContext } from "../test-servers/lifecycle.ts";
 
@@ -134,12 +135,24 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
       },
     };
   }
+  /** What the deploy routes ask of the landing code: the wrapper above
+   *  for the combined route, and the same install, the restart check and
+   *  the restart itself one at a time for the routes that run a step per
+   *  request. */
+  const deploy: DeployHooks = {
+    installAfterMerge,
+    installCheckout: (result) => installAfterMergeImpl(landCtx, result),
+    restartRegistered: () => inputs.restart.registered(),
+    restartDashboard: () => {
+      void restartAfterLanding(landCtx);
+    },
+  };
   function withFreshness(list: SpecTarget[]) {
     return withFreshnessImpl(landCtx, list);
   }
 
   return {
     jobRow, landNewSpec, landStepBranch, landStoppedStepBranch, landArchivedSpec, landClosedSpec,
-    installAfterMerge, withFreshness,
+    deploy, withFreshness,
   };
 }

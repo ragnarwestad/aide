@@ -248,6 +248,23 @@ which commit it is serving; under it a **Deploy** button, disabled when the chec
 has not been checked yet. A project with no `AIDE_INSTALL_CMD` keeps the heading and a sentence saying there is
 nothing to act on. When drift has not been checked yet, the page asks for itself again after five seconds.
 
+Pressing **Deploy** opens one dialog that keeps its size until it closes. It lists five steps, each waiting, running,
+done or failed, one running at a time: fetch from origin, install, restart the service, wait for the service to
+answer, and check that the service runs the newest commit. The page runs them one request each
+(`POST .../deploy/<step>`, `http-routes.md`), and the wait for the restart ends when `/api/version` answers a new
+`startedAt`. The last step counts the checkout against origin on the process that will serve the page, so the page
+that loads next never says the check has not been made. When the last step is done the dialog says so, stays two
+seconds and closes. A failed step leaves the dialog open with its error in the usual message layout and a Close
+button; the steps after it stay waiting.
+
+A restart held back by running jobs, or with nothing on the machine to restart the service, ends the run after the
+restart step: the dialog closes and the page reloads onto the Deploy tab's own sentence. A deploy that leaves the
+dashboard's own service on an older commit than its checkout — the check finds them different, an install fails after
+the checkout moved, or there is nothing to restart with — stores one message that every page shows under the header
+until a later check finds them equal or the service restarts. A service that never answers after the restart cannot
+store anything, so Close puts that message on the page already loaded. A browser without script posts the whole
+deploy as one request (`POST .../deploy`) and follows its redirect.
+
 The second panel starts a test server for the project, in a new tab. Without a preview command configured, the
 heading stays with a sentence saying it is unavailable.
 

@@ -14,6 +14,7 @@ import { t } from "../../../i18n";
 import { pickTab, tabBar, tabbedBody } from "../job-page";
 import { renderScheduleForm } from "../schedule-page/form.ts";
 import { schedulePagePath } from "../schedule-page";
+import { deployDialog } from "./deploy-dialog.ts";
 import { projectDescription } from "./overview-list.ts";
 import { PROJECTS_ROUTE, projectPagePath } from "./routes.ts";
 import { unifiedSettingsTable } from "./settings-table.ts";
@@ -152,8 +153,7 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
         : undefined;
 
   const button =
-    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/deploy" class="deployform" ` +
-      `data-overlay="${t(opts.lang ?? "en", "shell.overlayDeploying")}">` +
+    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/deploy" class="deployform">` +
     btn({
       label: "Deploy",
       variant: "primary",
@@ -165,6 +165,7 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
       ...(title ? { title } : {}),
     }) +
     messageSlot("refused") +
+    deployDialog(opts.lang ?? "en") +
     `</form>`;
   return heading + panel(errorLine + rowMessage(notYetChecked || behind! > 0 || stale ? "waiting" : "info", sentence, { html: sentenceHtml }) + button);
 }

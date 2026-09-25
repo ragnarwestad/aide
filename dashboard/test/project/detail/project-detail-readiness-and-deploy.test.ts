@@ -555,20 +555,20 @@ describe("the nav does not name the projects", () => {
 // restart it triggers empties the answer and the reader's next page load
 // beats the first poll back. The sentence has to correct itself.
 describe("the Deploy tab asks for itself again while the origin answer is missing", () => {
-  test("Deploy's form asks for the covering layer, like Reset and Close", async () => {
+  test("Deploy's form holds its own dialog and does not ask for the covering layer (AC-1)", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "deploy")).text();
     const form = html.match(/<form[^>]*class="deployform"[^>]*>/)?.[0] ?? "";
-    expect(form).toContain('data-overlay="deploying…"');
+    expect(form).not.toContain("data-overlay");
+    expect(html).toMatch(/<form[^>]*class="deployform"[\s\S]*?<dialog[^>]*data-deploy-dialog/);
   });
 
-  // Spec 422, REQ-2: the same text, in the reader's own language.
-  test("in Norwegian (nb), the overlay text is the Norwegian one", async () => {
+  // Spec 422, REQ-2: the dialog's words, in the reader's own language.
+  test("in Norwegian (nb), the dialog's steps are the Norwegian ones", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     const base = serve(root, settled(root, "aide"), 0);
     const html = await (await fetch(`${base}/projects/aide?tab=deploy&lang=nb`)).text();
-    const form = html.match(/<form[^>]*class="deployform"[^>]*>/)?.[0] ?? "";
-    expect(form).toContain('data-overlay="deployer…"');
+    expect(html).toContain("Hent fra origin");
   });
 
   test("no answer yet: the Deploy tab carries a refresh", async () => {

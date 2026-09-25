@@ -364,7 +364,7 @@ export function createServer(opts: ServerOptions) {
     tickRunner: schedules.tickRunner,
     serverPort: currentPort,
     jobRow: land.jobRow,
-    installAfterMerge: land.installAfterMerge,
+    deploy: land.deploy,
     persistAllowlist,
     answerProjectChange,
     archivedSpecRows,

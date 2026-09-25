@@ -77,4 +77,16 @@ describe("GET /api/version — this process's own boot-time commit (spec 269)", 
     const res = await fetch(`${base}/api/version`, { method: "POST" });
     expect(res.status).toBe(405);
   });
+
+  // The page tells the process it is leaving from the one that replaced
+  // it by this alone: two processes on one commit answer the same `sha`.
+  test("answers startedAt, the same on every call for the life of the process (AC-2)", async () => {
+    const { run } = bootGit({ code: 0, stdout: "abc1234deadbeef\n" });
+    const { base } = harness.start({ extra: { gitRun: run } });
+    const first = (await (await fetch(`${base}/api/version`)).json()) as { startedAt: string };
+    await new Promise((r) => setTimeout(r, 15));
+    const second = (await (await fetch(`${base}/api/version`)).json()) as { startedAt: string };
+    expect(Number.isNaN(Date.parse(first.startedAt))).toBe(false);
+    expect(second.startedAt).toBe(first.startedAt);
+  });
 });
