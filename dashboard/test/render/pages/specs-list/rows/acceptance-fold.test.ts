@@ -49,6 +49,16 @@ describe("the › beside the held-back message", () => {
     expect(link).not.toContain(encodeURIComponent(KEY));
   });
 
+  // Inside the held-back message's own box, under its words: the whole
+  // message opens, rather than a list hanging below a box that is already
+  // closed (2026-09-25).
+  test("the list is inside the held-back message's own box", () => {
+    const html = notice({ checks: KEY });
+    const box = html.match(/<div class="rowmsg [a-z]+">(?:(?!<div class="rowmsg ).)*?Archive held back.*?<\/form><\/div>/s)?.[0] ?? "";
+    expect(box).toContain("AC-1: it folds");
+    expect(box).toContain('class="actionform rowchecks"');
+  });
+
   test("the list sits directly under the held-back message, before the test server's", () => {
     const html = notice({ checks: KEY });
     const held = html.indexOf("Archive held back");

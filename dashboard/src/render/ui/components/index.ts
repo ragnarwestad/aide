@@ -259,8 +259,11 @@ export function rowMessageParts(
     p.href
       ? `<a href="${esc(p.href)}" target="_blank" rel="noopener">${esc(capitalizeFirst(p.text))}</a>`
       : esc(capitalizeFirst(p.text));
-  const box = (v: MessageVariant, body: string, lead = "", hook = o.hook): string =>
-    `<${tag} class="${[hook, "rowmsg", v].filter(Boolean).join(" ")}">${lead}${MESSAGE_ICON[v]}<span>${body}</span></${tag}>`;
+  // What a part unfolds (`after`) goes INSIDE its own box, under the
+  // words: the message grows to hold it, rather than the unfolded list
+  // hanging below a box it belongs to (2026-09-25).
+  const box = (v: MessageVariant, body: string, lead = "", hook = o.hook, after = ""): string =>
+    `<${tag} class="${[hook, "rowmsg", v].filter(Boolean).join(" ")}">${lead}${MESSAGE_ICON[v]}<span>${body}</span>${after}</${tag}>`;
   if (!parts.some((p) => p.own)) return box(variant, parts.map(link).join(" · "));
   // A part that asks for a line of its own is its own box; the parts
   // between two of them still join with " · " into one, as they always did.
@@ -276,7 +279,7 @@ export function rowMessageParts(
       continue;
     }
     flush();
-    boxes.push(box(p.variant ?? variant, link(p), p.lead, boxes.length ? undefined : o.hook) + (p.after ?? ""));
+    boxes.push(box(p.variant ?? variant, link(p), p.lead, boxes.length ? undefined : o.hook, p.after ?? ""));
   }
   flush();
   return `<div class="msgstack">${boxes.join("")}</div>`;

@@ -72,6 +72,11 @@ label.checkbox input { margin: 0; cursor: pointer; }
 .rowchecks .checklist { min-width: 0; align-self: stretch; }
 .rowchecks .check { min-width: 0; }
 .checksunread { margin: 0; padding-left: var(--sp-4); font-size: var(--fs-s); }
+/* Unfolded inside the message it belongs to: the box wraps, and the list
+   takes a line of its own under the words, in the page's own text
+   colour rather than the message's. */
+.rowmsg:has(> .rowchecks, > .checksunread) { flex-wrap: wrap; }
+.rowmsg > .rowchecks, .rowmsg > .checksunread { flex: 1 0 100%; color: var(--text); }
 
 /* A phase's latest messages, unfolded under its line (spec 500). A
    model's sentence is of any length: the list may shrink below its
