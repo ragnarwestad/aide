@@ -26,7 +26,18 @@ worktree_base="$(cd "$worktree_base" && pwd -P)" || refuse "cannot resolve the w
 refuse_base_inside_a_root "$worktree_base"
 # Keyed by project AND spec: two projects can share one specs repo, and a
 # path keyed by the spec alone would put both runs in the same directory.
-wt_dir="$worktree_base/$(basename "$project_root")/$spec_label"
+# The dashboard keeps every project's clone at `checkouts/<project>/code`,
+# so there the project is the parent directory's name, not the clone's.
+worktree_project_key() {
+  local root="$1" parent
+  parent="$(dirname "$root")"
+  if [ "$(basename "$root")" = "code" ] && [ "$(basename "$(dirname "$parent")")" = "checkouts" ]; then
+    basename "$parent"
+  else
+    basename "$root"
+  fi
+}
+wt_dir="$worktree_base/$(worktree_project_key "$project_root")/$spec_label"
 
 # --- the dependencies a worktree lacks ---------------------------------------
 # `git worktree add` checks out TRACKED files only, so every gitignored
