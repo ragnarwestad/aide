@@ -163,8 +163,11 @@ def test_no_pull_request_is_opened_for_a_branch_with_nothing_in_it(
     assert out.get("prUrl") is None
 
 
+# gh itself puts the link on a line of its own after the colon; the
+# one-line shape is kept so a gh that joins them still reads the same.
+@pytest.mark.parametrize("between", ["\\n", " "], ids=["gh-own-shape", "one-line"])
 def test_a_pull_request_that_already_exists_is_the_link_not_a_failure(
-    runner, workspace, fake_claude, fake_gh, origin
+    runner, workspace, fake_claude, fake_gh, origin, between
 ):
     """One spec calls `gh pr create` on the same branch from more than one
     step, so the second call meets the request the first one opened. `gh`
@@ -173,8 +176,8 @@ def test_a_pull_request_that_already_exists_is_the_link_not_a_failure(
     could be opened."""
     claude = writing_claude(fake_claude, workspace)
     gh = fake_gh(
-        'echo \'a pull request for branch "aide/81-queue-and-runner" into branch '
-        '"main" already exists: https://github.com/example/aide/pull/1\' >&2; exit 1'
+        'printf \'a pull request for branch "aide/81-queue-and-runner" into branch '
+        f'"main" already exists:{between}https://github.com/example/aide/pull/1\\n\' >&2; exit 1'
     )
 
     rc, out, _ = run_with_gh(runner, workspace, claude, gh, push="pr", command="implement")

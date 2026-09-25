@@ -418,8 +418,10 @@ if [ "$push_mode" = "pr" ]; then
       # second call is the ordinary case rather than a problem. Matched
       # on gh's own phrase and not on "any URL in the output": another
       # refusal's text carries links of its own (status.github.com),
-      # which must never be recorded as this branch's review.
-      pr_url="$(printf '%s' "$pr_out" | grep -o 'already exists: https://[^[:space:]]*' | sed 's/^already exists: //' | tail -1)"
+      # which must never be recorded as this branch's review. gh puts the
+      # link on a line of its own after the colon, so the lines are joined
+      # before the phrase is looked for.
+      pr_url="$(printf '%s' "$pr_out" | tr '\n' ' ' | grep -o 'already exists:[[:space:]]*https://[^[:space:]]*' | sed 's/^already exists:[[:space:]]*//' | tail -1)"
       if [ -z "$pr_url" ]; then
         pr_error="$(printf '%s' "$pr_out" | tr '\n' ' ' | tail -c 200)"
       fi
