@@ -46,7 +46,7 @@ describe("buildReportDocument", () => {
 
   test("carries the board's tokens: the light block, the dark preference and both chosen themes", async () => {
     const doc = await buildReportDocument("<p>x</p>", BASE);
-    expect(doc).toContain("--bg: #FFFFFF");
+    expect(doc).toContain("--bg: #EFECE5");
     expect(doc).toContain("@media (prefers-color-scheme: dark)");
     expect(doc).toContain(':root[data-theme="dark"]');
     expect(doc).toContain(':root[data-theme="light"]');

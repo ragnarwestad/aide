@@ -67,7 +67,7 @@ describe("the loading element while the second half is held back", () => {
         const box = await page.locator(".pageloading").boundingBox();
         expect(box).toEqual({ x: 0, y: 0, width: 800, height: 600 });
         const bg = await page.locator(".pageloading").evaluate((e) => getComputedStyle(e).backgroundColor);
-        expect(bg).toBe(scheme === "light" ? "rgb(255, 255, 255)" : "rgb(9, 9, 11)");
+        expect(bg).toBe(scheme === "light" ? "rgb(239, 236, 229)" : "rgb(22, 24, 28)");
         const visible = await page.locator(".pageloading .mark-l").isVisible();
         expect(visible).toBe(scheme === "light");
         expect(await page.locator(".pageloading .mark-d").isVisible()).toBe(scheme === "dark");
