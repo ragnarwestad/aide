@@ -354,6 +354,10 @@ expression, and a prompt file's path, relative to the project's own root. A back
 entries and enqueues a `schedule` step through the same queue, runner and worktree machinery every other step uses
 whenever an entry is due and nothing is already queued or running for it.
 
+**A scheduled job produces a report and never changes a repository.** It may read the project; a change that should
+reach the repository goes through a spec. A job that commits anyway ends as failed, its commit is discarded and no
+branch of it is left locally or on origin. The New and Edit forms say so.
+
 `/schedule` lists every allowed project's entries, flattened into one list (`?q=`, `?sort=` and `?dir=` filter and
 sort it); `/schedule/new` makes an entry and `/schedule/<project>/<name>` is one entry's own page (Overview and
 History tabs), with `/schedule/<project>/<name>/delete` its delete confirmation. The pages post to

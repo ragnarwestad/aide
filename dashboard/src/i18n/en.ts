@@ -190,6 +190,7 @@ export const en = {
   "schedule.notifyNever": "Never",
   "schedule.notifyFailure": "Only when the run did not succeed",
   "schedule.notifyAlways": "Every run",
+  "schedule.reportOnly": "A scheduled job produces a report. It cannot change the repository — a change that should reach it goes through a spec.",
   "schedule.enabled": "Enabled",
   "schedule.yes": "yes",
   "schedule.no": "no",

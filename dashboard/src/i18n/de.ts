@@ -181,6 +181,7 @@ export const de: Record<TranslationKey, string> = {
   "schedule.notifyNever": "Nie",
   "schedule.notifyFailure": "Nur wenn der Lauf nicht erfolgreich war",
   "schedule.notifyAlways": "Bei jedem Lauf",
+  "schedule.reportOnly": "Ein geplanter Job erstellt einen Bericht. Er kann das Repository nicht ändern — eine Änderung, die ins Repository gelangen soll, läuft über eine Spec.",
   "schedule.enabled": "Aktiviert",
   "schedule.yes": "ja",
   "schedule.no": "nein",

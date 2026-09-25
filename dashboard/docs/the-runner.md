@@ -4,18 +4,19 @@ What a run does to the repositories it touches: the clones the dashboard keeps o
 checkouts a step works in, what a finished step publishes — and, last, how to run one step by hand.
 
 **Where the code is.** `core/scripts/aide-run-spec` is the entry point and holds little else; the mechanics are in
-`core/scripts/lib/run-spec-*.sh`, eighteen files named for what they do. The ones this page describes:
+`core/scripts/lib/run-spec-*.sh`, nineteen files named for what they do. The ones this page describes:
 
-| For a change to                                     | Open                      |
-|-----------------------------------------------------|---------------------------|
-| The flags and what each refuses                     | `run-spec-arguments.sh`   |
-| The worktrees, their paths and the links into them  | `run-spec-checkouts.sh`   |
-| Branching each root, and the per-root lock it takes | `run-spec-branch.sh`      |
-| The gates before a step starts, and the lock itself | `run-spec-gates.sh`       |
-| Committing and pushing afterwards                   | `run-spec-publish.sh`     |
-| Whether a step counts as having run                 | `run-spec-status-line.sh` |
-| The test gate an implement ends on                  | `run-spec-step-tests.sh`  |
-| Where the specs root comes from, and the model turn | `run-spec-spec-paths.sh`  |
+| For a change to                                     | Open                         |
+|-----------------------------------------------------|------------------------------|
+| The flags and what each refuses                     | `run-spec-arguments.sh`      |
+| The worktrees, their paths and the links into them  | `run-spec-checkouts.sh`      |
+| Branching each root, and the per-root lock it takes | `run-spec-branch.sh`         |
+| The gates before a step starts, and the lock itself | `run-spec-gates.sh`          |
+| Committing and pushing afterwards                   | `run-spec-publish.sh`        |
+| A scheduled run that committed anyway               | `run-spec-schedule-guard.sh` |
+| Whether a step counts as having run                 | `run-spec-status-line.sh`    |
+| The test gate an implement ends on                  | `run-spec-step-tests.sh`     |
+| Where the specs root comes from, and the model turn | `run-spec-spec-paths.sh`     |
 
 The per-root lock is `$root/.git/aide-run-spec-worktree.lock` (`acquire_worktree_lock`, `run-spec-gates.sh`). Every
 move of a shared checkout takes it: the switch, the fetch, the fast-forward and the `worktree add`.
@@ -106,6 +107,13 @@ to prevent. Three conditions decide it (`run-spec-publish.sh`), in this order:
    word saying how the step ended (`completed`, `tests-red`, `no-progress`, `timeout`, `scope-violation` and the
    rest). A root the run did move is pushed whatever
    the run's terminal reason; a root it did not move is pushed only by a completed run.
+
+**A `schedule` step is the exception to all three: it commits nothing and pushes nothing.** A scheduled job produces a
+report and changes no repository, so whatever it leaves in a worktree is dropped with the worktree, and a commit the
+session made is discarded (`discard_scheduled_commits`, `run-spec-publish.sh`): the worktree goes back to the tip the run
+started from and a branch the session pushed is deleted from origin. A run that would otherwise end `completed` ends
+`failed` with `terminalReason` `scope-violation` (`run-spec-schedule-guard.sh`); a run that already ended `timeout`
+keeps that ending. Cancelling a scheduled run discards its commits the same way.
 
 The third condition is what lets a later run retry a commit whose push failed in an earlier one: a rule that asked
 only "did THIS run move it" would strand that commit, since no later run would ever pick it up. **It is never

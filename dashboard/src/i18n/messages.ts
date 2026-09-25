@@ -123,6 +123,17 @@ export const MESSAGES = {
     fr: "archive a signalé un succès, mais les tests du projet sont au rouge après le merge avec main — le runner les a lancés lui-même, et les tests en échec sont listés ci-dessous. — Cliquez de nouveau sur {button} ; l'étape ne se termine que sur une exécution au vert.",
     resolve: "Press {button} again; the step ends only on a green run.",
   },
+  // A scheduled job produces a report and changes no repository
+  // (core/scripts/lib/run-spec-schedule-guard.sh): the script's own
+  // sentence, naming the repositories, stays on the job as hover detail.
+  "runner.scheduleChangedRepository": {
+    en: "a scheduled job cannot change the repository — the commit it made was discarded. — Rewrite the job's prompt so it only writes its report; a change that should reach the repository goes through a spec.",
+    nb: "en planlagt jobb kan ikke endre repoet — commiten den gjorde ble forkastet. — Skriv om jobbens prompt slik at den bare skriver rapporten; en endring som skal inn i repoet går gjennom en spec.",
+    es: "un trabajo programado no puede cambiar el repositorio — el commit que hizo se descartó. — Reescribe el prompt del trabajo para que solo escriba su informe; un cambio que deba llegar al repositorio pasa por una spec.",
+    de: "Ein geplanter Job darf das Repository nicht ändern — der Commit, den er gemacht hat, wurde verworfen. — Schreibe den Prompt des Jobs so um, dass er nur seinen Bericht schreibt; eine Änderung, die ins Repository gelangen soll, läuft über eine Spec.",
+    fr: "une tâche planifiée ne peut pas modifier le dépôt — le commit qu'elle a fait a été écarté. — Réécrivez le prompt de la tâche pour qu'elle n'écrive que son rapport ; un changement qui doit atteindre le dépôt passe par une spec.",
+    resolve: "Rewrite the job's prompt",
+  },
   "runner.mergeUnfinishedArchive": {
     en: "archive reported success, but dropped the merge with main it was handed open — the branch is still behind main, and the same conflict waits at the next merge. — Press {button} again; the session has to finish that merge.",
     nb: "arkivering meldte ferdig, men kastet mergen med main den fikk åpen — grenen ligger fortsatt bak main, og den samme konflikten venter ved neste merge. — Trykk {button} igjen; økta må fullføre mergen.",

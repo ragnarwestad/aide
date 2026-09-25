@@ -20,6 +20,9 @@ export function noProgressMessage(step: WorkflowStep, outcome: Partial<StepOutco
   if (outcome.terminalReason === "merge-unfinished" && step === "archive") {
     return { key: "runner.mergeUnfinishedArchive", values: { button: stepButton(step) } };
   }
+  if (step === "schedule" && outcome.terminalReason === "scope-violation") {
+    return { key: "runner.scheduleChangedRepository" };
+  }
   if (outcome.terminalReason !== "no-progress") return undefined;
   if (step === "archive") return { key: "runner.noProgressArchive", values: { button: stepButton(step) } };
   if (step === "implement") return { key: "runner.noProgressImplement", values: { button: stepButton(step) } };

@@ -168,6 +168,11 @@ BASH_ERROR_REGISTRY: list[dict] = [
         "resolve": "Press $step_button again",
     },
     {
+        "name": "a scheduled job committed to a repository",
+        "pattern": r"a scheduled job cannot change the repository.*",
+        "resolve": "Rewrite the job's prompt",
+    },
+    {
         "name": "a completed archive left no real progress",
         "pattern": r"the step reported success but left no real progress — the spec folder was never moved to archive/.*",
         "resolve": "Press $step_button again",
