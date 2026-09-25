@@ -786,3 +786,8 @@
      message a shut spec shows — gets air above it, and no line. */
   table.speclist > tbody > tr.specstate + tr:not(.specgap) { padding-top: var(--sp-2); }
 }
+
+/* At a phone's width the badge is the word alone: the state column there
+   is a fixed width measured for the word, and "Implementing" with an icon
+   in front of it does not fit. */
+@media (max-width: 40rem) { .badge[data-icon]::before { content: none; } }

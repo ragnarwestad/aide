@@ -195,4 +195,11 @@ describe("the status badge's markup is its word and the name of its icon", () =>
     expect(CSS).toMatch(/\.b-idle \{[^}]*border-color: var\(--line\)/);
     expect(CSS).toMatch(/\.b-done \{ background: var\(--ok-soft\); color: var\(--ok\); \}/);
   });
+
+  // The phone's state column is a fixed width measured for the word, so
+  // "Implementing" with an icon in front of it ran past its edge.
+  test("at a phone's width the badge drops its icon", async () => {
+    const { CSS } = await import("../../../src/render/ui/css");
+    expect(CSS).toMatch(/@media \(max-width: 40rem\) \{ \.badge\[data-icon\]::before \{ content: none; \} \}/);
+  });
 });
