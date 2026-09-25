@@ -215,6 +215,12 @@ manifest says `codeLanding: pr`.
 - `pr` — also open a pull request. Needs `gh auth login` on the serving host; a broken `gh` records the error and leaves
   the run successful.
 
+**What the commits and the pull request say.** The specs repo's commit is the step's record, `Run /aide-<step> for
+<folder>`, and is where the steps are read back from. A code repo's commit describes the change and names no tool, spec
+or step, because the project may have nothing to do with Aide: the session writes the message to a file the prompt
+names, the spec's title stands in when it wrote none, and a stopped step's is marked `WIP:`. The pull request takes
+that message's subject as its title and the rest as its description.
+
 ## Running a step by hand
 
 The queue is what normally drives `aide-run-spec`, but it runs ONE workflow step for ONE spec from a terminal

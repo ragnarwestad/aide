@@ -10,6 +10,7 @@
 - [Commit messages](#commit-messages)
   - [Format](#format)
   - [No Co-Authored-By lines](#no-co-authored-by-lines)
+  - [No tool in a project's history](#no-tool-in-a-projects-history)
   - [Good examples](#good-examples)
   - [Not this](#not-this)
   - [Structure](#structure)
@@ -98,6 +99,17 @@ Write commit messages in English, in the imperative mood (not past tense).
 Do not add `Co-Authored-By` lines to commit messages, for any variant (`Claude`, `Copilot`, `GPT`,
 etc.).
 
+### No tool in a project's history
+
+A commit message and a pull request's title and description describe the change, as a developer
+on the project would. They name no tool: not Aide, not the AI assistant or its model, not a spec,
+a workflow step or a slash command. The project may have nothing to do with any of them.
+
+The one exception is a repository whose own rules say otherwise — its `CLAUDE.md`, `AGENTS.md`,
+`CONTRIBUTING.md` or the like. The specs repository is such a place: there the
+`Run /aide-<step> for <spec-folder>` subject is how a step is recorded, and the skills say when to
+write it.
+
 ### Good examples
 
 - "Add automatic git add for new files"
@@ -165,5 +177,6 @@ fill. Kept in the skill rather than duplicated here so the two copies cannot dri
 2. Add new files with explicit file names
 3. Use `git mv` when renaming files, to preserve history
 4. Write commit messages in English, in the imperative mood
-5. Push only on explicit request, and report push status only from a command run in the same
+5. Name no tool in a commit or pull request — only the specs repository records steps by name
+6. Push only on explicit request, and report push status only from a command run in the same
    reply — except `/aide-create`'s own commit, per that skill's instructions

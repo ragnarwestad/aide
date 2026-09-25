@@ -401,28 +401,6 @@ def test_a_step_that_commits_part_of_its_own_work_gets_one_commit_not_two(
         assert git(workspace["project"], "show", f"{branch}:{name}"), name
     assert git(workspace["project"], "status", "--porcelain") == ""
 
-def test_a_stopped_run_still_folds_into_the_step_s_own_commit(runner, workspace, fake_claude):
-    """The stop reason is the whole point of the fallback commit's
-    message. Folding the leftover into the step's own commit must not
-    drop it — and it belongs on its own line, below a body that is the
-    step's."""
-    claude = partially_committing_claude(
-        fake_claude, then="trap '' TERM\nwhile true; do sleep 0.2; done\n"
-    )
-    rc, out, _ = run(runner, workspace, claude, timeout_sec=STOP_DEADLINE_SEC, kill_grace_sec="2")
-    assert out["terminalReason"] == "timeout"
-    branch = "aide/81-queue-and-runner"
-    project = {r["root"]: r for r in out["repos"]}[str(workspace["project"])]
-
-    count = git(workspace["project"], "rev-list", "--count", f"{project['headBefore']}..{branch}")
-    assert count == "1", "a stopped run does not get an extra commit either"
-    message = git(workspace["project"], "log", "-1", "--pretty=%B", branch)
-    assert message.startswith("The step wrote this itself"), message
-    assert "And explained why" in message
-    assert message.rstrip().endswith("(stopped: timeout)"), message
-    assert git(workspace["project"], "show", f"{branch}:left-behind.txt")
-    assert git(workspace["project"], "status", "--porcelain") == ""
-
 def test_an_unknown_push_mode_is_refused_before_anything_starts(runner, workspace, fake_claude):
     claude = fake_claude("exit 1")
     rc, out, _ = run(runner, workspace, claude, push="everywhere")

@@ -161,6 +161,12 @@ so the step is recognised the same way:
 Run /aide-archive for <spec-folder> (model: <tool> <model>)
 ```
 
+That subject belongs to the specs repository alone. When the step also
+changed the project's own documentation, suggest a separate commit there whose
+message describes the change as a developer on the project would, and
+names no tool, spec or step — the project may have nothing to do with
+Aide (the git rules, "No tool in a project's history").
+
 Add the `(model: ...)` part only when you can name your own model with
 certainty. A Claude Code session is told which model it is running in
 its own context, so it can write `claude claude-opus-5`; an assistant
