@@ -70,9 +70,9 @@
   --link: #FAFAFA; --link-strong: #D4D4D8;
   --pip-skim: #FFC4AC;
   --on-accent: #16181C;
-  --ok: #4ADE80; --ok-soft: #052E16;
-  --warn: #FBBF24; --warn-soft: #422006;
-  --danger: #F87171; --danger-soft: #450A0A;
+  --ok: #6FC08F; --ok-soft: #252F2E;
+  --warn: #E0A84A; --warn-soft: #2E2D29;
+  --danger: #E8836B; --danger-soft: #2F2A2C;
   --pdf: #E0473C;
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23A1A1AA' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5'/%3E%3C/svg%3E");
 /* tokens:end */
@@ -96,9 +96,9 @@
   --link: #FAFAFA; --link-strong: #D4D4D8;
   --pip-skim: #FFC4AC;
   --on-accent: #16181C;
-  --ok: #4ADE80; --ok-soft: #052E16;
-  --warn: #FBBF24; --warn-soft: #422006;
-  --danger: #F87171; --danger-soft: #450A0A;
+  --ok: #6FC08F; --ok-soft: #252F2E;
+  --warn: #E0A84A; --warn-soft: #2E2D29;
+  --danger: #E8836B; --danger-soft: #2F2A2C;
   --pdf: #E0473C;
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23A1A1AA' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5'/%3E%3C/svg%3E");
 /* tokens:end */
