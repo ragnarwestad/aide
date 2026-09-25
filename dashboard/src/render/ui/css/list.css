@@ -422,7 +422,12 @@ table.list th[data-col="state"] { width: 0; white-space: nowrap; }
    new needed here. Phone width hides the whole `<thead>` (narrow.css,
    `display: none` below 40rem) before this rule can have any visible
    effect there. */
-table.speclist thead th { position: sticky; top: 0; }
+/* Above the rows it pins over: a row's own positioned parts — the AI and
+   model picker, the phase chips, a disclosure — would otherwise paint on
+   top of it as they scroll under, positioned elements later in the page
+   stacking above earlier ones. Below the menus (20), so an open menu
+   still shows over it. */
+table.speclist thead th { position: sticky; top: 0; z-index: 5; }
 /* Every sortable column shares one rule: the label centres in the
    FULL column width, narrowed only by its own reserved padding.
    box-sizing: border-box is what makes that padding a genuine
