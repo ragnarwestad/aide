@@ -784,7 +784,11 @@ table.list tr.subrow .modelcell > .row > .phase[data-phase] {
    Model under AI — the moment the cell was narrower than the two
    selects, with the row's own `flex-wrap: nowrap` unable to reach
    inside it. */
-.aimodel { position: relative; display: flex; flex-wrap: nowrap; }
+/* The AI and the Model select stand as far apart as one phase line's
+   stands from the next (2px + 2px of cell padding), and the "Model"
+   caption moves with its select. */
+.aimodel { position: relative; display: flex; flex-wrap: nowrap; gap: var(--sp-1); }
+table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="model"] { margin-left: var(--sp-1); }
 .aimodelopen, .aimodelnow { display: none; }
 .aimodelpanel, .aimodelfield { display: contents; }
 .aimodelfield > span { display: none; }
