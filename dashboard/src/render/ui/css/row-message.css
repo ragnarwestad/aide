@@ -12,7 +12,7 @@
 /* The light background, framed — not a filled grey box: a card on the
    specs list sits inside the open row's own frame, and two greys one
    inside the other read as a panel rather than a message. */
-.rowmsg.info { background: var(--surface); border-color: var(--line); color: var(--muted); }
+.rowmsg.info { background: var(--surface); border-color: var(--line-strong); color: var(--muted); }
 /* A message that carries a path: `<span>` takes the room the icon
    leaves, and a path with no spaces in it breaks rather than pushing the
    page sideways at phone width. */
