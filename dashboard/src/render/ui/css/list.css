@@ -896,13 +896,11 @@ table.list tr.subrow .modelcell > .row > .phase[data-phase] {
 tr.specgap > td { height: 10px; padding: 0; border: 0; background: none; }
 @media (min-width: 40.0625rem) {
   table.speclist { border: 0; background: none; border-collapse: separate; border-spacing: 0; }
-  /* The headings are a band of their own, rounded like the cards, so
-     they do not run into the page; opaque, since they stay pinned while
-     the cards scroll under them (spec 440). The air under the band is a
-     row the list's body draws before its first card. */
-  table.speclist thead th { background: var(--surface-2); border-bottom: 0; }
-  table.speclist thead th:first-child { border-top-left-radius: var(--r); border-bottom-left-radius: var(--r); }
-  table.speclist thead th:last-child { border-top-right-radius: var(--r); border-bottom-right-radius: var(--r); }
+  /* The headings stand on the page's own ground, above the cards: opaque,
+     since they stay pinned while the cards scroll under them (spec 440).
+     The air under them is a row the list's body draws before its first
+     card. */
+  table.speclist thead th { background: var(--bg); border-bottom: 0; }
   table.speclist > tbody::before { content: ""; display: table-row; height: 10px; }
   table.speclist > tbody > tr:not(.specgap) > td { background: var(--surface); border-bottom: 0; }
   /* The fold cell spans the title and the state line, so the state

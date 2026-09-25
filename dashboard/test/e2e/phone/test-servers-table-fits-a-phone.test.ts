@@ -134,7 +134,9 @@ test("a heading and a body cell look like the specs list's (AC-2)", async () => 
 
   await open(1280);
   const ours = {
-    head: await look("table.testservers thead th:nth-child(2)"),
+    // The specs list's headings stand on the page's ground above its
+    // cards; this table's sit in its own heading band. The fill is left out.
+    head: (await look("table.testservers thead th:nth-child(2)")).slice(1),
     // A card's cells paint their own fill; this table's show its own
     // through. Both are the page's surface, so the fill is left out.
     body: (await look("table.testservers tbody tr:nth-child(2) td:nth-child(2)")).slice(1),
@@ -145,7 +147,7 @@ test("a heading and a body cell look like the specs list's (AC-2)", async () => 
   const rowTop = await look("table.speclist tbody tr.spechead:nth-child(n+2) td:nth-child(2)");
   const rowBottom = await look('table.speclist tbody tr.specstate:nth-child(n+2) td[data-col="state"]');
   const theirs = {
-    head: await look("table.speclist thead th:nth-child(2)"),
+    head: (await look("table.speclist thead th:nth-child(2)")).slice(1),
     body: [...rowTop.slice(1, 5), rowBottom[5]],
   };
   expect(ours).toEqual(theirs);
