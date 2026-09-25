@@ -109,3 +109,47 @@ class TestTheRunnerScript:
         assert 'cat "$OUT/out.$w"' in runner_script, \
             "CI reads the failing lines out of this output — a red worker " \
             "that only reported a count would name no test"
+
+
+# A stand-in for `bun test`, handed to run-tests.sh as an exported bash
+# function so no new executable is written. What it does is decided by
+# the one file it is given: `killed-once` is stopped by a signal the first
+# time only, `killed` every time, `red` has a failing test.
+_FAKE_BUN = r'''() {
+  f="${@: -1}"; name="$(basename "$f" .test.ts)"
+  case "$name" in
+    killed-once) [ -e "$f.seen" ] || { : > "$f.seen"; kill -9 "$(sh -c 'echo $PPID')"; } ;;
+    killed) kill -9 "$(sh -c 'echo $PPID')" ;;
+    red) echo "(fail) a test > that fails"; echo "Ran 1 tests across 1 file."; return 1 ;;
+  esac
+  echo "Ran 1 tests across 1 file."
+}'''
+
+
+def _run_suite(workspace_root, tmp_path, name):
+    import os
+    import subprocess
+    (tmp_path / f"{name}.test.ts").write_text("")
+    env = {**os.environ, "AIDE_TEST_WORKERS": "1", "BASH_FUNC_bun%%": _FAKE_BUN}
+    return subprocess.run(
+        ["bash", str(workspace_root / "dashboard" / "scripts" / "run-tests.sh"), str(tmp_path)],
+        capture_output=True, text=True, env=env, timeout=60,
+    )
+
+
+class TestAWorkerStoppedFromOutside:
+    def test_a_worker_killed_once_is_run_again_and_the_suite_is_green(self, workspace_root, tmp_path):
+        r = _run_suite(workspace_root, tmp_path, "killed-once")
+        assert r.returncode == 0, r.stdout + r.stderr
+        assert "was killed (signal 9) without a failing test; running its files again" in r.stdout
+        assert "is RED" not in r.stdout
+
+    def test_a_worker_killed_twice_is_red(self, workspace_root, tmp_path):
+        r = _run_suite(workspace_root, tmp_path, "killed")
+        assert r.returncode == 1, r.stdout + r.stderr
+        assert "red: worker(s) 0" in r.stdout
+
+    def test_a_failing_test_is_red_without_a_second_run(self, workspace_root, tmp_path):
+        r = _run_suite(workspace_root, tmp_path, "red")
+        assert r.returncode == 1, r.stdout + r.stderr
+        assert "running its files again" not in r.stdout

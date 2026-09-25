@@ -128,8 +128,10 @@ while :; do
     ran=$(grep -E '^Ran [0-9]+ tests' "$OUT/out.$w" | tail -1)
     if [ -n "$ran" ] && ! grep -q '^(fail)' "$OUT/out.$w"; then
       printf -- '--- worker %s  %s  (%s still running)\n' "$w" "$ran" "$left"
-    else
+    elif grep -q '^(fail)' "$OUT/out.$w"; then
       printf -- '--- worker %s is RED  (%s still running)\n' "$w" "$left"
+    else
+      printf -- '--- worker %s stopped before it finished  (%s still running)\n' "$w" "$left"
     fi
   done
   fails=$(grep -ch '^(fail)' "$OUT"/out.* 2>/dev/null | paste -sd+ - | bc)
@@ -148,9 +150,24 @@ while :; do
   sleep 2
 done
 
+# A worker that ended on a signal with no failing test was stopped from
+# outside — the machine short of memory, another job's cleanup — and says
+# nothing about the code. Its files are run once more, and only a second
+# failure counts; a failing test anywhere in it is red as it stands.
 failed=""
 for p in $pids; do
-  wait "${p%%:*}" || failed="$failed ${p##*:}"
+  w=${p##*:}
+  wait "${p%%:*}"; rc=$?
+  [ "$rc" -eq 0 ] && continue
+  if [ "$rc" -gt 128 ] && ! grep -q '^(fail)' "$OUT/out.$w"; then
+    echo "--- worker $w was killed (signal $(( rc - 128 ))) without a failing test; running its files again"
+    # shellcheck disable=SC2046  # the list is our own, one path per line
+    if ( bun test --timeout "$LIMIT" $(cat "$OUT/list.$w") ) > "$OUT/out.$w" 2>&1; then
+      echo "--- worker $w, run again: $(grep -E '^Ran [0-9]+ tests' "$OUT/out.$w" | tail -1)"
+      continue
+    fi
+  fi
+  failed="$failed $w"
 done
 
 total=0
