@@ -9,8 +9,10 @@ import { join } from "node:path";
 import { checkoutFaults } from "./checkout-faults.ts";
 import { rowMessage } from "./components";
 import { jobsSentence } from "./components/spec-name.ts";
+import { getDeployFaultNotice } from "./faults/deploy-fault.ts";
 import { getPendingRestartNotice } from "./pending-restart.ts";
 import { t, type Language } from "../../i18n";
+import { renderSentence } from "../../i18n/message.ts";
 import { toolsWithFaults } from "./tool-checks.ts";
 import { TOOL_TAB_LABELS } from "../pages/settings-page/tools.ts";
 
@@ -94,9 +96,20 @@ function checkoutFaultNotices(lang: Language): string {
     .join("");
 }
 
+/** What a finished deploy left wrong (the service does not run the
+ *  checkout's commit): on every page until a later deploy or restart
+ *  puts it right. */
+function deployFaultNotice(lang: Language): string {
+  const fault = getDeployFaultNotice();
+  if (fault === null) return "";
+  return rowMessage("failed", renderSentence(lang, fault) ?? "", { tag: "p", hook: "deploy-fault" });
+}
+
 export function headerNotices(lang: Language): string {
   const installBanner = lastInstallWarnings(lang)
     .map((warning) => rowMessage("waiting", warning, { tag: "p", hook: "install-warning" }))
     .join("");
-  return installBanner + checkoutFaultNotices(lang) + toolFaultNotices(lang) + restartWaitingNotice(lang);
+  return (
+    installBanner + checkoutFaultNotices(lang) + toolFaultNotices(lang) + deployFaultNotice(lang) + restartWaitingNotice(lang)
+  );
 }

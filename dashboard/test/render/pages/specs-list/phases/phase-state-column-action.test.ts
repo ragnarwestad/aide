@@ -213,9 +213,8 @@ describe("spec 157: the row draws one action, on its caption line", () => {
       expect(sub.indexOf('<td class="phasecell" colspan="2">')).toBe(sub.indexOf("<td"));
       // The same count on EVERY phase line since spec 179 put a picker
       // on each of them: no line borrows a slot from a `rowspan` on
-      // the line above it any more. Six since Created's blank
-      // placeholder cell joined the other five (spec 317).
-      expect([sub.slice(0, 60), cells(sub).length]).toEqual([sub.slice(0, 60), 6]);
+      // the line above it any more.
+      expect([sub.slice(0, 60), cells(sub).length]).toEqual([sub.slice(0, 60), 5]);
     }
   });
 
@@ -240,10 +239,10 @@ describe("spec 157: the row draws one action, on its caption line", () => {
   test("the head row ends on the cost cell whatever the state", () => {
     for (const r of [[], [lead()], [lead({ state: "running" })], [lead({ errorReason: "conflict" })]]) {
       const row = headRow(rows(r as QueueRowView[]));
-      // Title, pips, state, time, cost, created — the chevron's cell is
+      // Title, pips, state, time, cost — the chevron's cell is
       // dropped by `cells` above, and the pips gained one of their own
       // when the title took a row to itself (2026-09-22).
-      expect(cells(row)).toHaveLength(6);
+      expect(cells(row)).toHaveLength(5);
       expect(row).toMatch(/data-col="cost">[\s\S]*<\/td><\/tr>$/);
     }
   });

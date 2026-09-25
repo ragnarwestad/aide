@@ -38,19 +38,16 @@ beforeAll(async () => {
     },
   });
   base = started.base;
-  // REQ-3 needs a real yyyy-mm-dd in the Created cell — with no git
-  // history at all every row reads the fixed string "date unknown",
-  // which cannot wrap regardless of the CSS rule this test guards.
-  // `ran()` gives the default live spec a real first-commit date; the
-  // 400ms matches committed-history-freshness.test.ts's own wait for
+  // `ran()` gives the default live spec a git history; the 400ms
+  // matches committed-history-freshness.test.ts's own wait for
   // the harness's cache-poll/debounce to pick the new git repo up.
   ran(started.dir, []);
   await new Promise((r) => setTimeout(r, 400));
   // `live=0` is carried on every navigation below: without it, the page's own
   // SSE connection (specs-client/live.ts) fires an async swapRows()
   // shortly after load and races this test's own reads of the DOM it
-  // just rendered — caught as an intermittent 0-rect read on
-  // `.created-date` (REQ-3) with the app's own live update wired in.
+  // just rendered — caught as an intermittent 0-rect read with the
+  // app's own live update wired in.
   await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/?live=0)");
 });
 
@@ -295,8 +292,8 @@ test("spec 379 REQ-5: the phone layout's row is not held to the desktop's fixed 
   // Every test after this one shares `page` and assumes a desktop
   // width (this file sets no viewport of its own outside `VIEWPORTS`'
   // loop and this test) — leaving the phone size behind broke the
-  // unrelated "Created cell" test below, which reads a table-layout
-  // cell that does not exist at this width.
+  // unrelated tests below, which read a table-layout cell that does
+  // not exist at this width.
   await page.setViewportSize({ width: 1270, height: 800 });
 });
 
@@ -349,34 +346,107 @@ test("spec 379 REQ-1: the widest state badge fits the State column", async () =>
   expect(badgeslot.width).toBeLessThanOrEqual(cell.width);
 });
 
-// Guards spec 326: the Created column's bare yyyy-mm-dd date breaking at
-// its own hyphens once the column narrowed past the date's width.
-//
-// Measured directly (not assumed): `.tablewrap { overflow-x: auto }`
-// lets `table.list` always render at its own natural (unwrapped) width
-// and scroll instead of compressing — table-layout:auto never forces
-// this column below its content width at any real viewport here, so
-// removing `white-space: nowrap` alone cannot be driven to a visible
-// two-line wrap through viewport or fixture content in the CURRENT
-// page (verified by hand across the full 641–1920px range, the widest
-// span this column can appear at outside the flex/card breakpoint).
-// The `whiteSpace` check below is what actually turns red if the rule
-// is removed or overridden; `getClientRects()` stays as the literal,
-// currently-true REQ-3 assertion and the one that starts mattering
-// again the moment this table's own width ever becomes constrained.
-test("REQ-3: a spec row's Created cell stays on one line", async () => {
-  await withBrowser(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), "page.goto(/)");
-  // The row for the one spec `ran()` gave a real git-datable commit
-  // (beforeAll) — every other row here reads the fixed "date unknown"
-  // string, which cannot wrap regardless of the CSS rule this guards.
-  const cell = page.locator('tr[data-folder="81-queue-and-runner"] .created-date');
-  const [lineCount, whiteSpace] = await Promise.all([
-    cell.evaluate((el) => el.getClientRects().length),
-    cell.evaluate((el) => getComputedStyle(el).whiteSpace),
-  ]);
-  expect(lineCount).toBe(1);
-  expect(whiteSpace).toBe("nowrap");
-});
+/** Each sortable heading's own box, its label's and its chevron's, as
+ *  the browser draws them. The label is the link's contents up to the
+ *  chevron, so a heading with two spans (Cost/Tokens) measures the one
+ *  shown. */
+async function headingBoxes() {
+  return page.locator("table.speclist thead th[data-col]").evaluateAll((cells) =>
+    cells
+      .filter((th) => getComputedStyle(th).display !== "none")
+      .map((th) => {
+        const link = th.querySelector("a")!;
+        const chevron = link.querySelector("svg")!;
+        const range = document.createRange();
+        range.setStart(link, 0);
+        range.setEndBefore(chevron);
+        const box = (r: DOMRect) => ({ left: r.left, right: r.right, width: r.width });
+        return {
+          col: th.getAttribute("data-col")!,
+          th: box(th.getBoundingClientRect()),
+          label: box(range.getBoundingClientRect()),
+          chevron: box(chevron.getBoundingClientRect()),
+        };
+      }),
+  );
+}
+
+// AC-2 (browser): the Created heading is the first one, over the chevron
+// column and the Spec column, its label and chevron clear of each other,
+// and a click on its label lands on its own link. Norwegian's "Opprettet"
+// is the longest label of the five languages.
+for (const lang of ["en", "nb"]) {
+  test(`AC-2: the Created heading starts the heading row, and its label and link work in ${lang} (browser)`, async () => {
+    await page.setViewportSize({ width: 1270, height: 800 });
+    await withBrowser(page.goto(`${base}/?live=0&lang=${lang}`), `page.goto(/) in ${lang}`);
+    const table = await page.locator("table.speclist").evaluate((el) => el.getBoundingClientRect().left);
+    const heads = await headingBoxes();
+    const created = heads.find((h) => h.col === "created")!;
+    const spec = heads.find((h) => h.col === "spec")!;
+    expect(heads[0]!.col).toBe("created");
+    expect(Math.abs(created.th.left - table)).toBeLessThanOrEqual(2);
+    expect(Math.abs(created.th.right - spec.th.left)).toBeLessThanOrEqual(1);
+    expect(created.label.right).toBeLessThanOrEqual(created.chevron.left);
+    expect(created.label.left).toBeGreaterThanOrEqual(created.th.left);
+    expect(created.chevron.right).toBeLessThanOrEqual(created.th.right);
+    const x = (created.label.left + created.label.right) / 2;
+    const y = await page.locator('th[data-col="created"]').evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      return r.top + r.height / 2;
+    });
+    const hit = await page.evaluate(
+      ([px, py]) => document.elementFromPoint(px!, py!)?.closest("a")?.getAttribute("href") ?? "",
+      [x, y],
+    );
+    expect(hit).toContain("sort=created");
+  });
+}
+
+// AC-4 (browser): the list is 49rem wide and its six columns are the
+// widths they had — 2, 5, 20, 9, 6.5 and 6.5rem — with every heading's
+// label clear of its chevron and every value inside its column.
+for (const lang of ["en", "nb"]) {
+  test(`AC-4: the list is 49rem wide and its columns fit their content in ${lang} (browser)`, async () => {
+    await page.setViewportSize({ width: 1270, height: 800 });
+    await withBrowser(
+      page.goto(`${base}/?live=0&lang=${lang}&open=aide%2F81-queue-and-runner`),
+      `page.goto(/) in ${lang}`,
+    );
+    const rem = 16;
+    const table = await page.locator("table.speclist").evaluate((el) => el.getBoundingClientRect());
+    expect(Math.abs(table.width - 49 * rem)).toBeLessThanOrEqual(3);
+    const fold = await page
+      .locator("table.speclist tr.spechead > td")
+      .first()
+      .evaluate((el) => el.getBoundingClientRect().width);
+    const heads = await headingBoxes();
+    const width = (col: string) => heads.find((h) => h.col === col)!.th.width;
+    const measured = [
+      fold,
+      width("created") - fold,
+      width("spec"),
+      width("state"),
+      width("started"),
+      width("cost"),
+    ];
+    measured.forEach((w, i) => expect(Math.abs(w - [2, 5, 20, 9, 6.5, 6.5][i]! * rem)).toBeLessThanOrEqual(3));
+    // No sideways scrollbar in the scroll box, and the controls line ends
+    // where the table does.
+    const wrap = await page.locator("#jobrows .tablewrap").evaluate((el) => el.scrollWidth - el.clientWidth);
+    expect(wrap).toBeLessThanOrEqual(0);
+    const { controls, table: measuredTable } = await measureControlsAndTable();
+    expect(Math.abs(controls.x + controls.width - (measuredTable.x + measuredTable.width))).toBeLessThanOrEqual(1);
+    // Every heading's label clears its chevron.
+    for (const h of heads) expect([h.col, h.label.right <= h.chevron.left]).toEqual([h.col, true]);
+    // The Time and Cost values and the state badge fit their columns.
+    const overflow = await page
+      .locator("tr.specstate td[data-col]")
+      .evaluateAll((cells) =>
+        cells.filter((td) => td.scrollWidth > td.clientWidth + 1).map((td) => td.getAttribute("data-col")),
+      );
+    expect(overflow).toEqual([]);
+  });
+}
 
 // AC-3 (spec 532): the project's link and the colon touch, and a name
 // that wraps starts its second line at the same left edge as its first,

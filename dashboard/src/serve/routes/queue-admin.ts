@@ -328,7 +328,7 @@ export async function handleQueueAdminRoutes(
     if (!base) return refuse(`cannot work out the default branch in ${root}`);
     const result = await ctx.mergeLock.run(root, () => fastForwardToOrigin(ctx.gitRun, root, base));
     if (!result.ok) return refuse(renderSentence("en", result.error) ?? `cannot bring ${root} up to date`);
-    const after = await ctx.installAfterMerge(result);
+    const after = await ctx.deploy.installAfterMerge(result);
     // Fresh, not cached: the checkout just moved, and the next reader
     // of this project's page must not see the old count for up to
     // driftPollMs longer.

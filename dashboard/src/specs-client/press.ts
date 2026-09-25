@@ -33,13 +33,6 @@ export interface ActionResult {
    *  server writes the sentence — the same one its own redirect carries
    *  for a browser with no script — so there is one wording, not two. */
   readiness?: { canRun?: boolean; note?: string };
-  /** A Deploy that installed into the dashboard's own checkout: the
-   *  service restarts right after this answer, and the page has to wait
-   *  for it to be back before reloading. */
-  restarting?: boolean;
-  /** A Deploy whose restart is held back by these running jobs (spec
-   *  385) — present instead of `restarting`, never alongside it. */
-  restartWaiting?: string[];
   /** The job a queue request started, for a caller that waits for it. */
   job?: { id?: string };
 }
@@ -177,10 +170,9 @@ export async function postForm(
     // the click lands in either way.
     for (const el of controls) el.disabled = true;
     // A form that says it takes the page away covers it instead. Reopen,
-    // Close, Remove project and Deploy all end with the page gone — the
-    // spec's branches deleted, the folder moved, the project dropped,
-    // the service restarted underneath — and a word on a button that
-    // stays live under the reader's cursor says too little for that.
+    // Close and Remove project all end with the page gone — the
+    // spec's branches deleted, the folder moved, the project dropped —
+    // and a word on a button that stays live under the reader's cursor says too little for that.
     // `nav-overlay.ts` (the shell's own head script) draws the layer;
     // this only asks for it, because that file is an IIFE with nothing
     // to import.

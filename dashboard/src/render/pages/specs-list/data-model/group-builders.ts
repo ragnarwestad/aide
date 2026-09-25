@@ -57,7 +57,6 @@ function fromTarget(
   | "dependsOn"
   | "analyzeStale"
   | "createdAt"
-  | "createdAtChecking"
   | "freshnessUnknown"
 > {
   return {
@@ -80,7 +79,6 @@ function fromTarget(
     // fallback would leave the row jumping for exactly the specs git
     // cannot date.
     createdAt: t?.createdAt,
-    createdAtChecking: t?.createdAtChecking,
   };
 }
 
@@ -275,7 +273,6 @@ function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number): Sp
     // kind of row it is, and a `readerGroup()` that left it unset would
     // sort every archived row as "unknown" regardless of its real date.
     createdAt: s.createdAt,
-    createdAtChecking: s.createdAtChecking,
     archive: s,
   };
 }

@@ -139,15 +139,25 @@ describe("the job list sorts and filters", () => {
     ]);
     expect(html.indexOf("109-second")).toBeLessThan(html.indexOf("104-first"));
     expect(html).toMatch(
-      /<th class="" data-col="created" aria-sort="descending"><a class="sortlink on"[^>]*>Created<svg/,
+      /<th class="" colspan="2" data-col="created" aria-sort="descending"><a class="sortlink on"[^>]*>Created<svg/,
     );
   });
 
-  // REQ-2: the Created column sorts like every other — a click turns it
+  test("the Created heading's link asks for newest first, and turns round once it is the sort (AC-3)", () => {
+    const link = (html: string) => html.match(/data-col="created"[^>]*><a[^>]*href="([^"]*)"/)?.[1] ?? "";
+    const byState = page([], { sort: "state" });
+    expect(link(byState)).toContain("sort=created");
+    expect(link(byState)).not.toContain("dir=");
+    const newestFirst = page([], { sort: "created", dir: "desc" });
+    expect(link(newestFirst)).toContain("dir=asc");
+    expect(newestFirst).toContain('aria-sort="descending"');
+  });
+
+  // REQ-2: the Created heading sorts like every other — a click turns it
   // round. Folder numbers run the OPPOSITE way from creation date here,
   // so a sort that silently fell back to folder order would fail this
   // exactly as it would pass the default-order test above by accident.
-  test("the Created column sorts ascending on request, oldest first", () => {
+  test("the Created heading sorts ascending on request, oldest first", () => {
     const html = page([], { sort: "created", dir: "asc" }, [
       target("109-earlier", { createdAt: "2026-08-10T09:00:00Z" }),
       target("104-later", { createdAt: "2026-08-16T09:00:00Z" }),

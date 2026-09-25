@@ -60,7 +60,7 @@ describe("spec 143: a long message gets a panel row of its own", () => {
   /** The Spec column: the title cell, spanning LIST_COLUMNS - 1 (2026-09-22)
    *  — the one the queue's refusal used to be written into (spec 151). */
   const nameCell = (html: string) =>
-    headRow(html).match(/<td colspan="6">([\s\S]*?)<\/td>/)?.[1] ?? "";
+    headRow(html).match(/<td colspan="5">([\s\S]*?)<\/td>/)?.[1] ?? "";
   const panel = (html: string) =>
     html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
   const subRow = (html: string, phase: string) =>
@@ -100,9 +100,8 @@ describe("spec 143: a long message gets a panel row of its own", () => {
       [target("141-says-what", { done: BUILT, archiveHeldBack: { reason: REASON } })],
     );
     expect(panel(html)).toContain('data-folder="141-says-what"');
-    // Seven since the chevron took a column of its own (2026-09-22); six
-    // since the Created column joined the other five (spec 317).
-    expect(panel(html)).toContain(`colspan="7"`);
+    // The panel spans every column of the list.
+    expect(panel(html)).toContain(`colspan="6"`);
     expect(panel(html)).toContain("rowmsg");
     expect(panel(html)).toContain("hand ticks survive");
     // Under the head row, not above it.

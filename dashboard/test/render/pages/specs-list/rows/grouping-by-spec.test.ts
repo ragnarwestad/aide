@@ -221,7 +221,7 @@ describe("every spec ends with its own gap row", () => {
   );
 
   test("one gap row per spec, spanning the whole table", () => {
-    const gaps = html.match(/<tr class="specgap" aria-hidden="true"><td colspan="7"><\/td><\/tr>/g) ?? [];
+    const gaps = html.match(/<tr class="specgap" aria-hidden="true"><td colspan="6"><\/td><\/tr>/g) ?? [];
     expect(gaps).toHaveLength(2);
   });
 

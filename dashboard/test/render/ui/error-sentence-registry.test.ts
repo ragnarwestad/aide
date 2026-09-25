@@ -5,6 +5,7 @@ import { notLandedTitle } from "../../../src/render/pages/specs-list/cell-helper
 import { wordPhase } from "../../../src/render/ui/job-state";
 import { worktreeLinksError } from "../../../src/project/project-admin";
 import { t } from "../../../src/i18n";
+import { renderSentence } from "../../../src/i18n/message.ts";
 import { noPullRequest, row } from "../pages/fixtures.ts";
 
 /** One sentence the board can show, and the claim this registry makes
@@ -58,6 +59,21 @@ const REGISTRY: RegistryEntry[] = [
     name: "a stale spec edit (git/specs-pull.ts:216)",
     text: "4-status.md has changed since you opened it for editing — nothing was saved, open it again",
     resolve: "open it again",
+  },
+  {
+    name: "a deploy left the service older than the checkout (messages.ts landing.deployServiceOlder)",
+    text: renderSentence("en", { key: "landing.deployServiceOlder", values: { served: "abc1234", head: "9999999" } })!,
+    resolve: "press Deploy again",
+  },
+  {
+    name: "the service did not answer after a deploy's restart (messages.ts landing.deployNoAnswer)",
+    text: renderSentence("en", { key: "landing.deployNoAnswer" })!,
+    resolve: "check it on the serving host",
+  },
+  {
+    name: "nothing restarts the service after a deploy (messages.ts landing.deployNoRestart)",
+    text: renderSentence("en", { key: "landing.deployNoRestart", values: { served: "abc1234", head: "9999999" } })!,
+    resolve: "restart it by hand",
   },
   {
     name: "the spec page failed after its head was sent (i18n shell.pageFailed)",
