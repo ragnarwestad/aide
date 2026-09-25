@@ -308,4 +308,13 @@ describe("spec 192: the phase line's controls share one cell", () => {
     expect(CSS).toMatch(/\.aimodel \{ position: relative; display: flex; flex-wrap: nowrap; gap: var\(--sp-1\); \}/);
     expect(CSS).toContain('table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="model"] { margin-left: var(--sp-1); }');
   });
+
+  // The spec's own chevron opens the whole spec and is drawn larger; the
+  // phases' and the messages' chevrons keep the icon's own 14px.
+  test("only the spec row's chevron is drawn larger", async () => {
+    const { CSS } = await import("../../../../../src/render/ui/css");
+    expect(CSS).toContain("table.list td.foldcell > .fold > svg { vertical-align: middle; width: 20px; height: 20px; }");
+    const rules = CSS.replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(rules.match(/[^}]*\.fold[^{]*svg[^{]*\{[^}]*width: 20px/g)?.length).toBe(1);
+  });
 });

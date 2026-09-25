@@ -489,7 +489,9 @@ table.list tr.spechead td.foldcell { vertical-align: middle; text-align: center;
    and 8px above its bottom. A block with `vertical-align: middle` on the
    cell is centred in it. 40px is the target's own height. */
 table.list td.foldcell > .fold { display: block; width: 100%; height: 40px; line-height: 40px; margin: 0; }
-table.list td.foldcell > .fold > svg { vertical-align: middle; }
+/* The spec's own chevron is drawn larger than the phases' and the
+   messages': it opens the whole spec, and is the one a reader hunts for. */
+table.list td.foldcell > .fold > svg { vertical-align: middle; width: 20px; height: 20px; }
 table.list tr.spechead:has(.fold[aria-expanded="true"]) + tr.specstate .pipslot { display: none; }
 /* The two rows are one row to a reader: no border between them, and the
    line's own air sits under the second. */
