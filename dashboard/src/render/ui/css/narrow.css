@@ -765,19 +765,24 @@
    rows under it are boxes of their own, so they carry their side edges,
    and the last of them the bottom edge and corners. */
 @media (max-width: 40rem) {
-  table.speclist { border: 0; background: none; }
+  /* Separate edges and no spacing: the title row's own table inherits
+     both, and collapsed edges split its border across the card's edge. */
+  table.speclist { border: 0; background: none; border-collapse: separate; border-spacing: 0; }
   table.speclist > tbody > tr.specgap > td { height: 10px; }
   table.speclist > tbody > tr > td { border-bottom: 0; }
   table.speclist > tbody > tr.spechead,
   table.speclist > tbody tr.spechead:first-child { border-top: 0; }
   table.speclist > tbody > tr.spechead > td { background: var(--surface); border-top: 1px solid var(--line); }
   table.speclist > tbody > tr.spechead > td:first-child { border-left: 1px solid var(--line); border-top-left-radius: var(--r); }
-  table.speclist > tbody > tr.spechead > td:last-child { border-right: 1px solid var(--line); border-top-right-radius: var(--r); }
+  /* The title row is a table of its own here, only as wide as its title
+     — a short one left the card's top edge short of its sides. The title
+     cell takes the whole width, so the row always spans the card. */
+  table.speclist > tbody > tr.spechead > td:last-child { width: 100%; border-right: 1px solid var(--line); border-top-right-radius: var(--r); }
   table.speclist > tbody > tr:not(.spechead):not(.specgap) {
     background: var(--surface); border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
   table.speclist > tbody > tr:not(.spechead):has(+ tr.specgap) {
     border-bottom: 1px solid var(--line); border-bottom-left-radius: var(--r); border-bottom-right-radius: var(--r); }
-  /* The open detail: a line under the spec's own two lines, and air under it. */
-  table.speclist > tbody > tr.specstate + tr:not(.specgap) { border-top: 1px solid var(--line); }
-  table.speclist > tbody > tr.specstate + tr.subrow { padding-top: var(--sp-3); }
+  /* Whatever comes under a spec's own two lines — the open detail, or the
+     message a shut spec shows — gets a line, and air under it. */
+  table.speclist > tbody > tr.specstate + tr:not(.specgap) { border-top: 1px solid var(--line); padding-top: var(--sp-3); }
 }
