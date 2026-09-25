@@ -328,7 +328,7 @@ table.testservers > colgroup > col[data-col="ts-stop"] { width: 9.5%; }
 }
 th, td { text-align: left; padding: var(--sp-2) var(--sp-3) var(--sp-2) 0;
   vertical-align: top; }
-thead th { font-size: var(--fs-s); font-weight: 500; color: var(--muted);
+thead th { font-size: var(--fs-s); font-weight: 500; color: var(--heading);
   border-bottom: 1px solid var(--line); }
 table.list { background: var(--surface); border: 1px solid var(--line);
   border-radius: var(--r); }
@@ -897,11 +897,8 @@ tr.specgap > td { height: 10px; padding: 0; border: 0; background: none; }
 @media (min-width: 40.0625rem) {
   table.speclist { border: 0; background: none; border-collapse: separate; border-spacing: 0; }
   /* The headings stand on the page's own ground, above the cards: opaque,
-     since they stay pinned while the cards scroll under them (spec 440).
-     The air under them is a row the list's body draws before its first
-     card. */
+     since they stay pinned while the cards scroll under them (spec 440). */
   table.speclist thead th { background: var(--bg); border-bottom: 0; }
-  table.speclist > tbody::before { content: ""; display: table-row; height: 10px; }
   table.speclist > tbody > tr:not(.specgap) > td { background: var(--surface); border-bottom: 0; }
   /* The fold cell spans the title and the state line, so the state
      line's own first cell is not at the card's left edge. */
