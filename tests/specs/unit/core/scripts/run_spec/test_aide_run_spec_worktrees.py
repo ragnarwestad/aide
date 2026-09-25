@@ -245,3 +245,29 @@ def test_a_branch_carrying_work_survives_a_run_that_adds_nothing_to_it(
     assert rc == 0, out
     assert BRANCH in git(project, "branch", "--list", BRANCH), "the branch must survive"
     assert is_ancestor(project, earlier, BRANCH), "and so must its commit"
+
+
+def _as_dashboard_checkout(workspace, project):
+    """Moves the fixture's project to where the dashboard keeps a clone:
+    `checkouts/<project>/code`."""
+    home = workspace["project"].parent / "checkouts" / project
+    home.mkdir(parents=True)
+    workspace["project"].rename(home / "code")
+    return {**workspace, "project": home / "code"}
+
+
+def test_a_dashboard_checkout_s_worktree_is_named_for_its_project(runner, workspace, fake_claude):
+    """Every clone the dashboard keeps is called `code`, so naming the
+    worktree for the clone put every project's runs in one directory."""
+    ws = _as_dashboard_checkout(workspace, "north-star")
+    rc, out, _ = run(runner, ws, writing_claude(fake_claude, ws))
+    assert rc == 0, out
+    worktree = {r["root"]: r for r in out["repos"]}[str(ws["project"])]["worktree"]
+    assert worktree.startswith(str(ws["wtbase"] / "north-star" / "81-queue-and-runner")), worktree
+
+
+def test_any_other_project_s_worktree_is_named_for_its_directory(runner, workspace, fake_claude):
+    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace))
+    assert rc == 0, out
+    worktree = {r["root"]: r for r in out["repos"]}[str(workspace["project"])]["worktree"]
+    assert worktree.startswith(str(workspace["wtbase"] / "proj" / "81-queue-and-runner")), worktree
