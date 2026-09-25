@@ -144,7 +144,8 @@ describe("an open row paints no ground of its own (spec 520, AC-2)", () => {
     // same colour.
     expect(CSS).not.toMatch(/table\.list tr\.subrow td[^{]*\{[^}]*background: var\(--surface-2\)/);
     expect(CSS).not.toMatch(/tr\.specnotice td[^{]*\{[^}]*background: var\(--surface-2\)/);
-    // And an info card is framed, not filled.
-    expect(CSS).toMatch(/\.rowmsg\.info \{[^}]*background: var\(--surface\)[^}]*border-color: var\(--line\)/);
+    // And an info card is framed, not filled — with the stronger line, so
+    // the frame still shows on a card of the same surface in dark mode.
+    expect(CSS).toMatch(/\.rowmsg\.info \{[^}]*background: var\(--surface\)[^}]*border-color: var\(--line-strong\)/);
   });
 });

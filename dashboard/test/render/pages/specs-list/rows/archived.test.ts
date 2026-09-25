@@ -167,13 +167,13 @@ describe("an archived spec whose branch is still on origin (spec 193)", () => {
   // mark goes. The fact that used to qualify it moved to the notice line
   // (the test above), which is where an error belongs.
   test("the State cell says the bare word, whichever way the branch mark goes (REQ-1)", () => {
-    expect(listed(true)).toContain('<span class="badge b-done">Archived</span>');
+    expect(listed(true)).toContain('<span class="badge b-done" data-icon="archive">Archived</span>');
     expect(listed(true)).not.toContain("archived, not landed");
   });
 
   test("and stays the bare word once the branch is gone", () => {
     const html = listed(false);
-    expect(html).toContain('<span class="badge b-done">Archived</span>');
+    expect(html).toContain('<span class="badge b-done" data-icon="archive">Archived</span>');
     expect(html).not.toContain("archived, not landed");
   });
 });
@@ -351,8 +351,8 @@ describe("spec 221: archived specs on the spec list", () => {
       archivedSpecs: [archivedSpec("50-archived")],
       filter: { state: "archived" },
     });
-    expect(withPr).toContain('<span class="badge b-done">Archived</span>');
-    expect(withoutPr).toContain('<span class="badge b-done">Archived</span>');
+    expect(withPr).toContain('<span class="badge b-done" data-icon="archive">Archived</span>');
+    expect(withoutPr).toContain('<span class="badge b-done" data-icon="archive">Archived</span>');
   });
 
   test("the search reads folder, title and description, across both kinds", () => {

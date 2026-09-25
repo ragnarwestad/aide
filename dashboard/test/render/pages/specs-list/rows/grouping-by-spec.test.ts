@@ -84,7 +84,7 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     // spec's own file still names none of them. The title repeats the
     // visible label too, since spec 480 (Round 2): a phone's fixed-width
     // state cell can ellipsis-clip the label itself.
-    expect(analyze).toMatch(/title="Done \(2\) — 2 attempts">Done \(2\)<\/span>/);
+    expect(analyze).toMatch(/title="Done \(2\) — 2 attempts" data-icon="check">Done \(2\)<\/span>/);
     expect(html.match(/data-step="analyze"/g)).toHaveLength(1);
   });
 
@@ -206,5 +206,27 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     const implement = subRow(html, "implement");
     expect(implement).toContain(PHASE_NOT_RUN);
     expect(implement).not.toContain("<a ");
+  });
+});
+
+// Each spec is drawn as a card of its own, with air between (2026-09-25),
+// and the air is an empty row that CLOSES a spec rather than opening the
+// next: the page's own row swap takes a spec as its head row and
+// everything up to the next head row, so a gap row in front of a head
+// would belong to the spec above and be lost or doubled on every swap.
+describe("every spec ends with its own gap row", () => {
+  const html = renderSpecsRows(
+    [row({ id: "a", specFolder: "1-first" }), row({ id: "b", specFolder: "2-second" })],
+    { runnerAvailable: true, targets: [] },
+  );
+
+  test("one gap row per spec, spanning the whole table", () => {
+    const gaps = html.match(/<tr class="specgap" aria-hidden="true"><td colspan="7"><\/td><\/tr>/g) ?? [];
+    expect(gaps).toHaveLength(2);
+  });
+
+  test("the gap row comes after a spec's rows, never in front of a head row", () => {
+    const order = [...html.matchAll(/<tr class="(spechead|specgap)/g)].map((m) => m[1]);
+    expect(order).toEqual(["spechead", "specgap", "spechead", "specgap"]);
   });
 });

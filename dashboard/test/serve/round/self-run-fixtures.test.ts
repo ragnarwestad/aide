@@ -2,12 +2,14 @@
 // tighten its own time limit — both read from `<slug>.json` beside the
 // description, and both optional: a fixture that says nothing about
 // its row is checked on archived/not-archived alone, as before.
-import { expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parseCreateRequest } from "../../../src/queue/queue.ts";
-import { fixtureCreateBody, readFixtures } from "../../../src/serve/routes/self-run.ts";
+import { fixtureCreateBody, fixtureOrder, readFixtures, type RoundSpec } from "../../../src/serve/routes/self-run.ts";
+
+const FIXTURES = join(import.meta.dir, "..", "..", "round", "specs");
 
 test("a fixture's expect and timeoutSec are read; a fixture without them carries neither", () => {
   const dir = mkdtempSync(join(tmpdir(), "aide-round-fixtures-"));
@@ -66,4 +68,29 @@ test("a fixture's create asks for acceptance ticking, as New spec does by defaul
   expect(parsed.ok).toBe(true);
   if (!parsed.ok) return;
   expect(parsed.job.acceptanceNotRequired).toBeUndefined();
+});
+
+// The round creates its fixtures one at a time, in their own order, each
+// after the one before has its number (2026-09-25) — so a board built
+// twice numbers every fixture the same and ends in the same states.
+describe("the order the round creates its fixtures in", () => {
+  const spec = (slug: string, dependsOn: string[] = []) =>
+    ({ slug, title: slug, steps: ["create"], expected: "done", dependsOn }) as RoundSpec;
+
+  test("is the fixtures' own order", () => {
+    const specs = [spec("01-a"), spec("02-b"), spec("03-c", ["01"])];
+    expect(fixtureOrder(specs).map((s) => s.slug)).toEqual(["01-a", "02-b", "03-c"]);
+  });
+
+  test("a fixture that depends on one listed after it is refused by name", () => {
+    expect(() => fixtureOrder([spec("01-a", ["02"]), spec("02-b")])).toThrow("01-a depends on 02-b, which comes after it");
+  });
+
+  test("a dependency with no fixture at all is refused by name", () => {
+    expect(() => fixtureOrder([spec("01-a", ["09"])])).toThrow("no fixture found for dependency 09 of 01-a");
+  });
+
+  test("every checked-in fixture can be created in its own order", () => {
+    expect(() => fixtureOrder(readFixtures(FIXTURES))).not.toThrow();
+  });
 });
