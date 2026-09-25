@@ -9,6 +9,7 @@ import json
 import re
 import subprocess
 from ..conftest import READ_SPECS, STOP_DEADLINE_SEC, git, run
+from .run_spec_invoking import CREATE_KEY, create
 from .run_spec_fakes import project_only_claude, specs_only_claude, writing_claude
 from .run_spec_results import RESULT_OK
 from .run_spec_status_files import already_ran, bullet, phase_file_text, recorded_line, recorded_model, subject, with_status
@@ -214,7 +215,7 @@ def test_a_create_run_writes_the_line_into_the_folder_it_just_made(
     """`create` is the one step whose spec folder is not the one the run
     was started with — the commit names what it made, and so does the
     file it writes into."""
-    made = "99-a-brand-new-spec"
+    made = CREATE_KEY
     claude = fake_claude(
         "cat > /dev/null\n"
         + READ_SPECS
@@ -223,10 +224,10 @@ def test_a_create_run_writes_the_line_into_the_folder_it_just_made(
         + f'> "$specs/{made}/4-status.md"\n'
         + f"echo '{json.dumps(RESULT_OK)}'"
     )
-    rc, out, _ = run(runner, workspace, claude, command="create", spec="81")
+    rc, out, _ = create(runner, workspace, claude)
     assert rc == 0, out
     assert out["specFolder"] == made
-    assert recorded_line(workspace, path=f"{made}/4-status.md") == "create"
+    assert recorded_line(workspace, branch=f"aide/{CREATE_KEY}", path=f"{made}/4-status.md") == "create"
 
 def test_a_step_outside_the_workflow_arc_leaves_the_line_alone(
     runner, workspace, fake_claude

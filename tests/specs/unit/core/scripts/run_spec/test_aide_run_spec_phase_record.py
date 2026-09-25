@@ -12,6 +12,7 @@ import pathlib
 import re
 import time
 from ..conftest import READ_SPECS, STOP_DEADLINE_SEC, git, run
+from .run_spec_invoking import CREATE_KEY, create
 from .run_spec_fakes import analyzing_claude
 from .run_spec_results import CODEX_STREAM_FAILED, CODEX_STREAM_OK, CODEX_USAGE, FLAT_USAGE, RESULT_OK, emits
 from .run_spec_status_files import TIME_OF_DAY_RE, TIME_SPENT_RE, already_ran, bullet, phase_file_text, recorded_line, tracking_block, with_analysis, with_analysis_attempts, with_solution, with_status
@@ -23,7 +24,7 @@ def test_a_create_run_records_its_own_outcome_and_no_repo_line(
     """AC1: `create` gains a time of day on `Created:`, and `Model` (when
     a model was named), `Result: completed` and `Time spent` — but no
     `Repo` line, since nothing was yet analyzed against."""
-    made = "99-a-brand-new-spec"
+    made = CREATE_KEY
     claude = fake_claude(
         "cat > /dev/null\n"
         + READ_SPECS
@@ -33,10 +34,10 @@ def test_a_create_run_records_its_own_outcome_and_no_repo_line(
         + f'> "$specs/{made}/1-description.md"\n'
         + f"echo '{json.dumps(RESULT_OK)}'"
     )
-    rc, out, _ = run(runner, workspace, claude, command="create", spec="81",
+    rc, out, _ = create(runner, workspace, claude,
                      model="claude-sonnet-5")
     assert rc == 0, out
-    text = phase_file_text(workspace, f"{made}/1-description.md")
+    text = phase_file_text(workspace, f"{made}/1-description.md", branch=f"aide/{CREATE_KEY}")
     created = bullet(text, "Created")
     assert created and TIME_OF_DAY_RE.match(created), created
     assert bullet(text, "Model") == "claude claude-sonnet-5"
@@ -48,7 +49,7 @@ def test_a_create_run_records_its_own_outcome_and_no_repo_line(
 def test_a_create_run_with_an_effort_records_it_beside_the_model(runner, workspace, fake_claude):
     """REQ-5: an `--effort` a run was given lands as its own bullet in the
     phase file's own Tracking info, beside `- **Model:**`."""
-    made = "99-a-brand-new-spec"
+    made = CREATE_KEY
     claude = fake_claude(
         "cat > /dev/null\n"
         + READ_SPECS
@@ -58,10 +59,10 @@ def test_a_create_run_with_an_effort_records_it_beside_the_model(runner, workspa
         + f'> "$specs/{made}/1-description.md"\n'
         + f"echo '{json.dumps(RESULT_OK)}'"
     )
-    rc, out, _ = run(runner, workspace, claude, command="create", spec="81",
+    rc, out, _ = create(runner, workspace, claude,
                      model="claude-sonnet-5", effort="high")
     assert rc == 0, out
-    text = phase_file_text(workspace, f"{made}/1-description.md")
+    text = phase_file_text(workspace, f"{made}/1-description.md", branch=f"aide/{CREATE_KEY}")
     assert bullet(text, "Model") == "claude claude-sonnet-5"
     assert bullet(text, "Effort") == "high"
 
@@ -351,7 +352,7 @@ def test_the_stamped_time_covers_the_step_not_the_ai_session_alone(
     every run, fast or slow: the stamp is never SHORTER than the
     session's own `durationSec`, which the run reports in its JSON.
     """
-    made = "98-a-timed-spec"
+    made = CREATE_KEY
     claude = fake_claude(
         "cat > /dev/null\n"
         + READ_SPECS
@@ -362,11 +363,11 @@ def test_the_stamped_time_covers_the_step_not_the_ai_session_alone(
         + f'> "$specs/{made}/1-description.md"\n'
         + f"echo '{json.dumps(RESULT_OK)}'"
     )
-    rc, out, _ = run(runner, workspace, claude, command="create", spec="81",
+    rc, out, _ = create(runner, workspace, claude,
                      model="claude-sonnet-5")
     assert rc == 0, out
     session_secs = out["durationSec"]
-    stamped = bullet(phase_file_text(workspace, f"{made}/1-description.md"), "Time spent")
+    stamped = bullet(phase_file_text(workspace, f"{made}/1-description.md", branch=f"aide/{CREATE_KEY}"), "Time spent")
     minutes, seconds = re.match(r"(\d+)m(\d\d)s", stamped).groups()
     step_secs = int(minutes) * 60 + int(seconds)
     assert step_secs >= session_secs, (stamped, session_secs)

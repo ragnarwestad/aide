@@ -7,7 +7,7 @@ unchanged and keep their names.
 
 import json
 
-from ..conftest import git, init_repo, run
+from ..conftest import READ_SPECS, git, init_repo, run
 from .run_spec_fakes import creating_claude
 from .run_spec_results import RESULT_OK
 from .run_spec_invoking import CREATE_KEY, SCHEDULE_KEY, create, schedule
@@ -126,30 +126,75 @@ def test_the_two_acceptance_answers_are_never_both_stated(runner, workspace, fak
 
 def test_create_reports_the_folder_the_step_actually_made(runner, workspace, fake_claude):
     """Read off the disk, never computed: the run diffs the specs root
-    before and after, so the number and the slug stay the skill's
-    business alone."""
-    claude = creating_claude(fake_claude, ["94-a-new-spec"])
+    before and after. Since spec 453 the folder a session makes is the
+    provisional key itself — the landing gives it its number."""
+    claude = creating_claude(fake_claude, [CREATE_KEY])
     rc, out, _ = create(runner, workspace, claude)
     assert rc == 0, out
-    assert out["specFolder"] == "94-a-new-spec", out
-    # And the work is committed under the name the spec really has, not
-    # under the throwaway key.
-    branch_log = git(workspace["specs"], "log", "--oneline", f"aide/{CREATE_KEY}")
-    assert "94-a-new-spec" in branch_log, branch_log
+    assert out["ok"] is True, out
+    assert out["specFolder"] == CREATE_KEY, out
 
 def test_create_reports_no_folder_when_two_appeared(runner, workspace, fake_claude):
     """Ambiguity is left unreported rather than guessed at: the spec
     still lands, and the job simply keeps its provisional key."""
-    claude = creating_claude(fake_claude, ["94-a-new-spec", "95-another-spec"])
+    claude = creating_claude(fake_claude, [CREATE_KEY, "95-another-spec"])
     rc, out, _ = create(runner, workspace, claude)
     assert rc == 0, out
+    assert out["ok"] is True, out
     assert "specFolder" not in out, out
 
-def test_create_reports_no_folder_when_none_appeared(runner, workspace, fake_claude):
+def test_a_create_that_made_no_folder_did_not_make_the_spec(runner, workspace, fake_claude):
+    """A success claim with nothing under the specs root is refused where
+    it happened, not left for the landing to fail on as "could not
+    assign this spec its number"."""
     claude = creating_claude(fake_claude, [])
     rc, out, _ = create(runner, workspace, claude)
     assert rc == 0, out
+    assert out["ok"] is False, out
+    assert out["terminalReason"] == "no-progress", out
+    assert f"made no spec folder named {CREATE_KEY}" in out["error"], out
     assert "specFolder" not in out, out
+
+def test_a_create_folder_one_level_too_high_is_refused_and_named(runner, workspace, fake_claude):
+    """2026-09-24: the session handed aide-create-spec `--specs-root "."`
+    from the specs repository's top level, so the folder sat one directory
+    above the project's own folder, where the landing looks. The step is
+    refused, the message says where the folder went, and it is not moved."""
+    inside = workspace["specs"] / "proj-a"
+    inside.mkdir()
+    (inside / ".gitkeep").write_text("")
+    git(workspace["specs"], "add", "-A")
+    git(workspace["specs"], "commit", "-qm", "a folder for the project")
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'mkdir -p "$specs/../{CREATE_KEY}"\n'
+        + f'printf "# x\\n" > "$specs/../{CREATE_KEY}/1-description.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = create(runner, workspace, claude, specs_root=str(inside))
+    assert rc == 0, out
+    assert out["ok"] is False, out
+    assert out["terminalReason"] == "no-progress", out
+    assert f"{CREATE_KEY} is at {CREATE_KEY} in the specs repository, not under proj-a" in out["error"], out
+
+def test_create_is_told_the_specs_root_it_must_write_under(runner, workspace, fake_claude, tmp_path):
+    """The path is a fact the prompt states, the same way the folder's
+    name is — the session is not left to work out which directory of the
+    specs checkout to hand aide-create-spec."""
+    seen = tmp_path / "prompt.txt"
+    root = tmp_path / "root.txt"
+    claude = fake_claude(
+        f'cat > "{seen}"\n'
+        + READ_SPECS
+        + f'printf "%s" "$specs" > "{root}"\n'
+        + f'mkdir -p "$specs/{CREATE_KEY}"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = create(runner, workspace, claude)
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert f'pass --specs-root "{root.read_text()}" to aide-create-spec' in seen.read_text()
 
 # --- spec 433: create with no AI session at all ------------------------------
 
@@ -312,15 +357,15 @@ def test_create_makes_the_specs_root_of_a_project_that_has_none_yet(runner, fake
     # No .aide/config to name it: the skill's own default, specs/ here.
     claude = fake_claude(
         "cat > /dev/null\n"
-        'mkdir -p "$PWD/specs/01-first-spec"\n'
-        'echo "# First" > "$PWD/specs/01-first-spec/1-description.md"\n'
+        f'mkdir -p "$PWD/specs/{CREATE_KEY}"\n'
+        f'echo "# First" > "$PWD/specs/{CREATE_KEY}/1-description.md"\n'
         f"echo '{json.dumps(RESULT_OK)}'"
     )
     rc, out, _ = create(runner, ws, claude)
     assert rc == 0, out
-    assert out.get("specFolder") == "01-first-spec", out
+    assert out.get("specFolder") == CREATE_KEY, out
     files = git(project, "show", "--name-only", "--pretty=", f"aide/{CREATE_KEY}")
-    assert "specs/01-first-spec/1-description.md" in files, files
+    assert f"specs/{CREATE_KEY}/1-description.md" in files, files
 
 
 def test_every_other_step_still_refuses_a_project_with_no_specs_root(runner, fake_claude, tmp_path):

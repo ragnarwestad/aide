@@ -238,7 +238,7 @@ def linking_claude(fake_claude, workspace, candidates):
     return fake_claude(body), log
 
 
-def creating_claude(fake_claude, folders=("94-a-new-spec",)):
+def creating_claude(fake_claude, folders=("new-abc123de",)):
     """A stand-in `/aide-create`: it writes the spec folders it was told
     to write, into the specs root its own working directory points at."""
     body = READ_SPECS
