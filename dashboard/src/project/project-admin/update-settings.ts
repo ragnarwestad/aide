@@ -5,7 +5,7 @@ import { join } from "node:path";
 import type { GitRunner } from "../../git/branch-status.ts";
 import { configValue } from "../discover";
 import { parseManifest } from "../parse-manifest.ts";
-import { specsPathError, upsertManifestScalar, worktreeLinksError, writeAideConfig } from "./manifest-io.ts";
+import { oneLine, specsPathError, upsertManifestScalar, worktreeLinksError, writeAideConfig } from "./manifest-io.ts";
 import { assessProjectReadiness } from "./readiness.ts";
 import { applySettingsEdits, manifestTracked } from "./settings-state.ts";
 import { fail, type ProjectAdminResult, type ProjectStep, type ProjectStepName } from "./types.ts";
@@ -45,7 +45,7 @@ const CODE_LANDINGS = ["merge", "pr"] as const;
 export async function updateProjectSettings(
   run: GitRunner,
   projectDir: string,
-  req: {
+  raw: {
     specsPath?: string;
     worktreeLinks?: string;
     codeLanding?: string;
@@ -74,6 +74,12 @@ export async function updateProjectSettings(
     settingsFile?: string;
   } = {},
 ): Promise<ProjectAdminResult> {
+  // A value is one line. A field the request does not carry stays
+  // absent, so a partial save clears nothing.
+  const req = { ...raw };
+  for (const key of ["specsPath", "worktreeLinks", "installCmd", "previewCmd", "testCmd"] as const) {
+    if (req[key] !== undefined) req[key] = oneLine(req[key]);
+  }
   const links = (req.worktreeLinks ?? "").trim();
   if (links) {
     const linkError = worktreeLinksError(links);

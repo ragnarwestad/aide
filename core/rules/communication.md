@@ -8,6 +8,7 @@ Rules for how the AI assistant presents text in the conversation with the user.
 - [Answering "do we have anything outstanding?"](#answering-do-we-have-anything-outstanding)
 - [Lead with the outcome](#lead-with-the-outcome)
 - [Who fixes it: the dashboard, or me](#who-fixes-it-the-dashboard-or-me)
+- [Handing over a spec](#handing-over-a-spec)
 - [Suggested text the user will copy out](#suggested-text-the-user-will-copy-out)
 
 ---
@@ -107,6 +108,30 @@ perform.
 Never blur the two. A fix described half in dashboard terms and half in
 git terms leaves the user unsure whether he is being handed a task or
 told what happened.
+
+---
+
+## Handing over a spec
+
+**A spec agreed in the conversation is handed over as text, and it ends
+there.** The user creates it from the dashboard. Never create it
+yourself — not with `/aide-create`, not by hand — and never write,
+commit or push anything in the specs repo on your own initiative.
+
+1. **Ask first.** Raise the choices the spec depends on — thresholds,
+   scope, dependencies on other specs — before writing the text, not as
+   a list of open questions after it.
+2. **Hand over three parts:** a title line, the description (what goes
+   in `1-description.md`, with its `- **AC-n:**` lines), and a
+   `Depends on:` line when there is one.
+3. **Plain text between `---` lines**, as in the section below — no
+   blockquotes.
+4. **No number.** The number is assigned when the spec is created, not
+   by whoever writes the text; don't call it "spec 02".
+
+Don't offer to create it afterwards either. The same goes for an
+existing spec's files: the aide commands write them, never a hand edit
+proposed in the conversation.
 
 ---
 

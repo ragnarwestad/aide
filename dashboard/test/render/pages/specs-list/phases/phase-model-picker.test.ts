@@ -221,7 +221,7 @@ describe("spec 123: each phase line picks its own model", () => {
     // repeats the visible label too, since spec 480 (Round 2): a phone's
     // fixed-width state cell can ellipsis-clip the label itself.
     expect(line).toMatch(
-      /<span class="badge b-[a-z]+" title="Done \(2\) — 2 attempts">Done \(2\)<\/span>/,
+      /<span class="badge b-[a-z]+" title="Done \(2\) — 2 attempts" data-icon="check">Done \(2\)<\/span>/,
     );
   });
 

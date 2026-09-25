@@ -27,6 +27,7 @@
 import { applyAiPick, MODEL_SELECTS, offerEachToItsTool, refreshAiModelBox, syncAiToModel } from "./ai-sync.ts";
 import { interceptCancelSubmit } from "./cancel-confirm.ts";
 import {
+  bindOneLineFields,
   formNote,
   submitAction,
   submitCreate,
@@ -73,6 +74,7 @@ for (const el of document.querySelectorAll("form.deployform")) {
 for (const el of document.querySelectorAll("form.projectsettingsform")) {
   const form = el as HTMLFormElement;
   form.addEventListener("submit", ((event: Event) => submitProjectSettings(form, event)) as EventListener);
+  bindOneLineFields(form);
 }
 
 const settingsCandidate = document.querySelector("form[data-settings-form]") as HTMLFormElement | null;

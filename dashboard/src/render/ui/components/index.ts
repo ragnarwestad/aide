@@ -88,21 +88,7 @@ export function saveCancelActions(prefix = "specform", o: { variant?: BtnVariant
 
 // --- status badge --------------------------------------------------------------
 
-/** The six the design sheet defines. Every job state maps onto one of
- *  them (`job-state.ts`, `BADGE_VARIANT`) — a seventh would be a state
- *  the page has no word for. */
-export type BadgeVariant = "idle" | "running" | "waiting" | "ready" | "refused" | "done";
-
-/** The word and its colour, and nothing else. A dot marked the four
- *  LIVE variants apart from the two settled ones until 2026-09-07 —
- *  the colour already says it, and on a row read on a phone the mark
- *  was one more thing in front of the word. */
-export function badge(variant: BadgeVariant, label: string, title?: string): string {
-  return (
-    `<span class="badge b-${variant}"${title ? ` title="${esc(title)}"` : ""}>` +
-    `${esc(capitalizeFirst(label))}</span>`
-  );
-}
+export { badge, type BadgeVariant } from "./badge.ts";
 
 // --- phase chip ----------------------------------------------------------------
 
@@ -273,8 +259,11 @@ export function rowMessageParts(
     p.href
       ? `<a href="${esc(p.href)}" target="_blank" rel="noopener">${esc(capitalizeFirst(p.text))}</a>`
       : esc(capitalizeFirst(p.text));
-  const box = (v: MessageVariant, body: string, lead = "", hook = o.hook): string =>
-    `<${tag} class="${[hook, "rowmsg", v].filter(Boolean).join(" ")}">${lead}${MESSAGE_ICON[v]}<span>${body}</span></${tag}>`;
+  // What a part unfolds (`after`) goes INSIDE its own box, under the
+  // words: the message grows to hold it, rather than the unfolded list
+  // hanging below a box it belongs to (2026-09-25).
+  const box = (v: MessageVariant, body: string, lead = "", hook = o.hook, after = ""): string =>
+    `<${tag} class="${[hook, "rowmsg", v].filter(Boolean).join(" ")}">${lead}${MESSAGE_ICON[v]}<span>${body}</span>${after}</${tag}>`;
   if (!parts.some((p) => p.own)) return box(variant, parts.map(link).join(" · "));
   // A part that asks for a line of its own is its own box; the parts
   // between two of them still join with " · " into one, as they always did.
@@ -290,7 +279,7 @@ export function rowMessageParts(
       continue;
     }
     flush();
-    boxes.push(box(p.variant ?? variant, link(p), p.lead, boxes.length ? undefined : o.hook) + (p.after ?? ""));
+    boxes.push(box(p.variant ?? variant, link(p), p.lead, boxes.length ? undefined : o.hook, p.after ?? ""));
   }
   flush();
   return `<div class="msgstack">${boxes.join("")}</div>`;

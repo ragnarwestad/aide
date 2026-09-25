@@ -236,9 +236,15 @@ function groupRows(
       const notice = specNoticeRow(g, refusalFor(g, opts), now, opts.lang ?? "en", testServerAvailable, {
         filter: opts.filter,
       });
+      // Each spec ends with an empty row the stylesheet turns into the air
+      // between two cards. It closes the group rather than opening the
+      // next one, so the page's own row swap (row-swap.ts, which takes a
+      // spec as its head row and everything up to the next) carries it
+      // along with the spec it belongs to.
+      const gap = `<tr class="specgap" aria-hidden="true"><td colspan="${LIST_COLUMNS}"></td></tr>`;
       return opened.has(groupKey(g.project, g.specFolder))
-        ? head + phaseSubRows(g, opts, now) + notice
-        : head + notice;
+        ? head + phaseSubRows(g, opts, now) + notice + gap
+        : head + notice + gap;
     })
     .join("");
 }

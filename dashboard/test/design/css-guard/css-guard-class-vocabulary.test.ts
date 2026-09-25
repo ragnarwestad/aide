@@ -123,6 +123,9 @@ const STRUCTURE = [
   // Spec 493: several messages on a notice line, each in its own box, and
   // the acceptance criteria unfolded under the held-back one.
   "msgstack", "rowchecks", "checksunread",
+  // The empty row that closes each spec on the list, which the stylesheet
+  // turns into the air between two cards (2026-09-25).
+  "specgap",
   // Spec 500: a phase's latest messages, unfolded under its line — the
   // row, its list, the empty-state line and the link to the step's log.
   "phasemsgs", "phasemsglist", "phasemsgempty", "phasemsgopen",

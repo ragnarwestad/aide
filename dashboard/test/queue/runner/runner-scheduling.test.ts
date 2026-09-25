@@ -148,8 +148,9 @@ describe("several jobs at once", () => {
   // all — landing assigns it later, under the specs repo's own lock,
   // the one place two concurrent creates cannot both miss. So nothing
   // about two creates for the same project needs them ordered any more —
-  // both start in the same tick. (The round's own acceptance proof goes
-  // further, with three concurrent creates across a live board.)
+  // both start in the same tick. This is the one place that proves it:
+  // the round creates its fixtures one at a time, so a test board always
+  // numbers them the same.
   test("two create steps for the same project both start in one tick", () => {
     const a = enqueue({ steps: ["create"] });
     const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["create"] });

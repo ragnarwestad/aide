@@ -434,6 +434,19 @@ test("spec 440: the header row stays pinned to the top of the box as the list sc
   // AC-2: an opaque background, so a row scrolled up underneath does not
   // show through.
   expect(background).not.toBe("rgba(0, 0, 0, 0)");
+  // And nothing a row carries paints on top of it: at the middle of every
+  // heading, the topmost element is the heading's own. A row's positioned
+  // parts — the AI and model picker, a phase chip — stacked above a
+  // heading with no z-index of its own as they scrolled under it.
+  const covered = await page.evaluate(() =>
+    [...document.querySelectorAll("table.speclist thead th")].flatMap((th) => {
+      const r = th.getBoundingClientRect();
+      if (r.width === 0) return [];
+      const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return top && top.closest("thead") ? [] : [`${th.textContent?.trim() || "(fold)"} under ${top?.className || top?.tagName}`];
+    }),
+  );
+  expect(covered).toEqual([]);
 
   await page.setViewportSize({ width: 1270, height: 800 });
 });

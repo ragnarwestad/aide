@@ -268,3 +268,53 @@ export async function waitForServer(
   }
   return false;
 }
+
+/** A line break, with the space around it, folded to one space. The
+ *  server's `oneLine` (`manifest-io.ts`) holds the same expression and
+ *  then trims; the bundle imports nothing from outside this folder, so a
+ *  test runs both over the same inputs. No trim here: the reader may be
+ *  mid-word. */
+export function foldLineBreaks(text: string): string {
+  return text.replace(/\s*[\r\n]+\s*/g, " ");
+}
+
+/** The settings table's text fields are textareas, so a long value wraps
+ *  instead of scrolling. A textarea does not grow, does not save on
+ *  Enter and takes a line break, all of which an `<input>` did; each is
+ *  put back here, per field (never the form: a form with no such field
+ *  binds nothing, and `window` is touched only when one was found). */
+export function bindOneLineFields(form: HTMLFormElement): void {
+  const fields = Array.from(form.querySelectorAll("textarea[data-oneline]")) as HTMLTextAreaElement[];
+  if (!fields.length) return;
+  const fits: (() => void)[] = [];
+  for (const field of fields) {
+    // From one row every time, which is what lets a field shrink again.
+    const fit = () => {
+      field.style.height = "auto";
+      field.style.height = `${field.scrollHeight + ((field.offsetHeight - field.clientHeight) || 0)}px`;
+    };
+    field.addEventListener("keydown", ((event: KeyboardEvent) => {
+      if (event.key !== "Enter") return;
+      if (event.isComposing || event.keyCode === 229) return;
+      event.preventDefault();
+      if (event.repeat) return;
+      // A browser skips implicit submission while Save is disabled;
+      // `requestSubmit()` does not, so the same condition is read here.
+      const save = form.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+      if (save?.disabled) return;
+      form.requestSubmit();
+    }) as EventListener);
+    field.addEventListener("input", () => {
+      if (/[\r\n]/.test(field.value)) {
+        const fromEnd = field.value.length - (field.selectionEnd ?? field.value.length);
+        field.value = foldLineBreaks(field.value);
+        const caret = Math.max(0, field.value.length - fromEnd);
+        field.setSelectionRange?.(caret, caret);
+      }
+      fit();
+    });
+    fits.push(fit);
+    fit();
+  }
+  window.addEventListener("resize", () => fits.forEach((fit) => fit()));
+}

@@ -120,38 +120,35 @@ test("the table is as wide as the page's frame, and no heading moves for a long 
 });
 
 test("a heading and a body cell look like the specs list's (AC-2)", async () => {
+  // The words on the two lists read alike: a heading's colour, size and
+  // weight, and a cell's text and its padding. Their edges no longer
+  // can: since 2026-09-25 the specs list draws every spec as a card of
+  // its own, with air between, while this is still one bordered table —
+  // so neither the tables' own frames nor the cells' borders are compared.
   const look = (selector: string) =>
     page.evaluate((sel) => {
       const el = document.querySelector(sel)!;
       const cs = getComputedStyle(el);
-      return [
-        cs.backgroundColor, cs.color, cs.fontSize, cs.fontWeight,
-        cs.borderTopWidth, cs.borderBottomWidth, cs.paddingTop, cs.paddingBottom,
-      ];
-    }, selector);
-  const tableLook = (selector: string) =>
-    page.evaluate((sel) => {
-      const cs = getComputedStyle(document.querySelector(sel)!);
-      return [cs.backgroundColor, cs.borderTopWidth, cs.borderTopColor, cs.borderTopLeftRadius];
+      return [cs.backgroundColor, cs.color, cs.fontSize, cs.fontWeight, cs.paddingTop, cs.paddingBottom];
     }, selector);
 
   await open(1280);
   const ours = {
-    head: await look("table.testservers thead th:nth-child(2)"),
-    body: await look("table.testservers tbody tr:nth-child(2) td:nth-child(2)"),
-    table: await tableLook("table.testservers"),
+    // The specs list's headings stand on the page's ground above its
+    // cards; this table's sit in its own heading band. The fill is left out.
+    head: (await look("table.testservers thead th:nth-child(2)")).slice(1),
+    // A card's cells paint their own fill; this table's show its own
+    // through. Both are the page's surface, so the fill is left out.
+    body: (await look("table.testservers tbody tr:nth-child(2) td:nth-child(2)")).slice(1),
   };
   await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
-  // A spec's row is two lines since 2026-09-22 (title, then its state):
-  // the top edge — background, text, the separator's border and padding
-  // — belongs to the title line, and the bottom edge belongs to the
-  // state line beneath it, so the body comparison reads one from each.
+  // A spec's row is two lines (title, then its state): the top edge's
+  // padding belongs to the title line, the bottom edge's to the state line.
   const rowTop = await look("table.speclist tbody tr.spechead:nth-child(n+2) td:nth-child(2)");
   const rowBottom = await look('table.speclist tbody tr.specstate:nth-child(n+2) td[data-col="state"]');
   const theirs = {
-    head: await look("table.speclist thead th:nth-child(2)"),
-    body: [...rowTop.slice(0, 5), rowBottom[5], rowTop[6], rowBottom[7]],
-    table: await tableLook("table.speclist"),
+    head: (await look("table.speclist thead th:nth-child(2)")).slice(1),
+    body: [...rowTop.slice(1, 5), rowBottom[5]],
   };
   expect(ours).toEqual(theirs);
 });

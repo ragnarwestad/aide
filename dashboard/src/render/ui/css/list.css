@@ -89,6 +89,19 @@ table.list col[data-col="setting-comment"] { width: 42%; }
    unlike `break-word` it counts in the min-content width the layout is
    computed from, which is the number that has to change. */
 table.list td[data-col="setting-value"] { overflow-wrap: anywhere; }
+/* An edit field is as wide as its cell, at every width. */
+table.list td[data-col="setting-value"] :is(textarea, select) { width: 100%; box-sizing: border-box; }
+/* The five text settings are textareas that wrap; they wear the cell's
+   own look, not the platform's, and are sized by script, not by hand. */
+table.list td[data-col="setting-value"] textarea {
+  display: block;
+  resize: none;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-s);
+  background: var(--surface);
+  font: inherit;
+  color: inherit;
+}
 /* The heading row that opens a group of settings rows. A row rather than
    a blank gap, so the grouping survives being read aloud and being read
    as markup. */
@@ -315,7 +328,7 @@ table.testservers > colgroup > col[data-col="ts-stop"] { width: 9.5%; }
 }
 th, td { text-align: left; padding: var(--sp-2) var(--sp-3) var(--sp-2) 0;
   vertical-align: top; }
-thead th { font-size: var(--fs-s); font-weight: 500; color: var(--muted);
+thead th { font-size: var(--fs-s); font-weight: 500; color: var(--heading);
   border-bottom: 1px solid var(--line); }
 table.list { background: var(--surface); border: 1px solid var(--line);
   border-radius: var(--r); }
@@ -409,7 +422,12 @@ table.list th[data-col="state"] { width: 0; white-space: nowrap; }
    new needed here. Phone width hides the whole `<thead>` (narrow.css,
    `display: none` below 40rem) before this rule can have any visible
    effect there. */
-table.speclist thead th { position: sticky; top: 0; }
+/* Above the rows it pins over: a row's own positioned parts — the AI and
+   model picker, the phase chips, a disclosure — would otherwise paint on
+   top of it as they scroll under, positioned elements later in the page
+   stacking above earlier ones. Below the menus (20), so an open menu
+   still shows over it. */
+table.speclist thead th { position: sticky; top: 0; z-index: 5; }
 /* Every sortable column shares one rule: the label centres in the
    FULL column width, narrowed only by its own reserved padding.
    box-sizing: border-box is what makes that padding a genuine
@@ -471,7 +489,9 @@ table.list tr.spechead td.foldcell { vertical-align: middle; text-align: center;
    and 8px above its bottom. A block with `vertical-align: middle` on the
    cell is centred in it. 40px is the target's own height. */
 table.list td.foldcell > .fold { display: block; width: 100%; height: 40px; line-height: 40px; margin: 0; }
-table.list td.foldcell > .fold > svg { vertical-align: middle; }
+/* The spec's own chevron is drawn larger than the phases' and the
+   messages': it opens the whole spec, and is the one a reader hunts for. */
+table.list td.foldcell > .fold > svg { vertical-align: middle; width: 20px; height: 20px; }
 table.list tr.spechead:has(.fold[aria-expanded="true"]) + tr.specstate .pipslot { display: none; }
 /* The two rows are one row to a reader: no border between them, and the
    line's own air sits under the second. */
@@ -766,7 +786,11 @@ table.list tr.subrow .modelcell > .row > .phase[data-phase] {
    Model under AI — the moment the cell was narrower than the two
    selects, with the row's own `flex-wrap: nowrap` unable to reach
    inside it. */
-.aimodel { position: relative; display: flex; flex-wrap: nowrap; }
+/* The AI and the Model select stand as far apart as one phase line's
+   stands from the next (2px + 2px of cell padding), and the "Model"
+   caption moves with its select. */
+.aimodel { position: relative; display: flex; flex-wrap: nowrap; gap: var(--sp-1); }
+table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="model"] { margin-left: var(--sp-1); }
 .aimodelopen, .aimodelnow { display: none; }
 .aimodelpanel, .aimodelfield { display: contents; }
 .aimodelfield > span { display: none; }
@@ -871,3 +895,31 @@ table.list tr.subrow .modelcell > .row > .phase[data-phase] {
 .pip.now[data-third="1"]::after { width: 33%; }
 .pip.now[data-third="2"]::after { width: 67%; }
 
+/* --- every spec its own card, with air between (above 640px) -------------
+   The list is one table, so a spec's card is drawn on the cells of its
+   rows: the side edges on each row's outer cells, the top on its head row,
+   the bottom on whichever row comes last before its gap row. */
+tr.specgap > td { height: 10px; padding: 0; border: 0; background: none; }
+@media (min-width: 40.0625rem) {
+  table.speclist { border: 0; background: none; border-collapse: separate; border-spacing: 0; }
+  /* The headings stand on the page's own ground, above the cards: opaque,
+     since they stay pinned while the cards scroll under them (spec 440). */
+  table.speclist thead th { background: var(--bg); border-bottom: 0; }
+  table.speclist > tbody > tr:not(.specgap) > td { background: var(--surface); border-bottom: 0; }
+  /* The fold cell spans the title and the state line, so the state
+     line's own first cell is not at the card's left edge. */
+  table.speclist > tbody > tr:not(.specgap):not(.specstate) > td:first-child { border-left: 1px solid var(--line); }
+  table.speclist > tbody > tr:not(.specgap) > td:last-child { border-right: 1px solid var(--line); }
+  table.speclist > tbody > tr.spechead > td { border-top: 1px solid var(--line); }
+  table.speclist > tbody > tr.spechead > td:first-child { border-top-left-radius: var(--r); }
+  table.speclist > tbody > tr.spechead > td:last-child { border-top-right-radius: var(--r); }
+  table.speclist > tbody > tr:has(+ tr.specgap) > td { border-bottom: 1px solid var(--line); }
+  table.speclist > tbody > tr:has(+ tr.specgap) > td:last-child { border-bottom-right-radius: var(--r); }
+  table.speclist > tbody > tr:has(+ tr.specgap):not(.specstate) > td:first-child { border-bottom-left-radius: var(--r); }
+  /* A shut spec ends on its state line, whose left corner is the fold cell's. */
+  table.speclist > tbody > tr.spechead:has(+ tr.specstate + tr.specgap) > td.foldcell {
+    border-bottom: 1px solid var(--line); border-bottom-left-radius: var(--r); }
+  /* Whatever comes under a spec's own two lines — the open detail, or the
+     message a shut spec shows — gets air above it, and no line. */
+  table.speclist > tbody > tr.specstate + tr:not(.specgap) > td { padding-top: var(--sp-2); }
+}

@@ -282,7 +282,7 @@ export async function assessProjectReadiness(
       detail:
         specsTop === null
           ? `${specsRoot} is in no git repository, so nothing would commit the spec a run writes there — ` +
-            `put it under one, or point Specs root at a directory that already is`
+            `put it under one, or point ${SETTING_LABELS.AIDE_SPECS_PATH} at a directory that already is`
           : resolve(specsTop) === resolve(projectRoot)
             ? `the specs are in the project's own repository`
             : `the specs are in the repository at ${specsTop}, which a run branches too`,

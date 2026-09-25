@@ -298,4 +298,23 @@ describe("spec 192: the phase line's controls share one cell", () => {
     const rules = CSS.replace(/\/\*[\s\S]*?\*\//g, "");
     expect(rules).not.toMatch(/\.modelcell[^{]*\{[^}]*flex: 0 0/);
   });
+
+  // The AI and the Model select stood flush against each other while a
+  // phase line stands 4px (2px + 2px of cell padding) from the next; the
+  // two now match, and the "Model" caption moves with its select.
+  test("AI and Model stand as far apart as one phase line from the next", async () => {
+    const { CSS } = await import("../../../../../src/render/ui/css");
+    expect(CSS).toContain("table.list tr.subrow td { border-bottom: none; padding-top: 2px; padding-bottom: 2px;");
+    expect(CSS).toMatch(/\.aimodel \{ position: relative; display: flex; flex-wrap: nowrap; gap: var\(--sp-1\); \}/);
+    expect(CSS).toContain('table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="model"] { margin-left: var(--sp-1); }');
+  });
+
+  // The spec's own chevron opens the whole spec and is drawn larger; the
+  // phases' and the messages' chevrons keep the icon's own 14px.
+  test("only the spec row's chevron is drawn larger", async () => {
+    const { CSS } = await import("../../../../../src/render/ui/css");
+    expect(CSS).toContain("table.list td.foldcell > .fold > svg { vertical-align: middle; width: 20px; height: 20px; }");
+    const rules = CSS.replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(rules.match(/[^}]*\.fold[^{]*svg[^{]*\{[^}]*width: 20px/g)?.length).toBe(1);
+  });
 });

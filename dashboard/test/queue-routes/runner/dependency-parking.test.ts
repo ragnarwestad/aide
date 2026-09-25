@@ -354,7 +354,7 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     // seventh badge variant and no new job state were introduced. The
     // title repeats the label since spec 480 (Round 2): a phone's
     // fixed-width state cell can ellipsis-clip it.
-    expect(html).toContain('badge b-idle" title="Queued">Queued');
+    expect(html).toContain('badge b-idle" title="Queued" data-icon="clock">Queued');
     expect(html).toContain("held back: depends on 80, which is not archived yet");
   });
 
