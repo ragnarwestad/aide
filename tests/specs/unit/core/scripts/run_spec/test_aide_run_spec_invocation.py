@@ -338,7 +338,9 @@ def test_work_is_committed_on_a_branch_in_both_roots(runner, workspace, fake_cla
     # The work is ON the branch; the main checkout never left main.
     assert git(workspace["project"], "rev-parse", "--abbrev-ref", "HEAD") == "main"
     assert git(workspace["specs"], "rev-parse", "--abbrev-ref", "HEAD") == "main"
-    assert "analyze" in git(workspace["project"], "log", "-1", "--pretty=%s", branch)
+    # The code repo's commit describes the change and names no step: the
+    # step's own subject is the specs repo's record alone.
+    assert "Run /aide-" not in git(workspace["project"], "log", "-1", "--pretty=%s", branch)
     # The specs repo is branched too, and handed back on main — the
     # analysis lives on the branch, not on main.
     assert "analyze" in git(workspace["specs"], "log", "-1", "--pretty=%s", branch)
@@ -373,12 +375,12 @@ def test_a_run_past_its_deadline_is_killed_and_reported_as_stopped(runner, works
     assert result_file.exists(), "a stop must always leave a result file"
     assert json.loads(result_file.read_text())["terminalReason"] == "timeout"
 
-    # Whatever the step managed to write is committed, with the reason,
+    # Whatever the step managed to write is committed, marked unfinished,
     # so the tree is clean for the next run.
     assert git(workspace["project"], "status", "--porcelain") == ""
-    assert "stopped: timeout" in git(
-        workspace["project"], "log", "-1", "--pretty=%s%n%b", "aide/81-queue-and-runner"
-    )
+    assert git(
+        workspace["project"], "log", "-1", "--pretty=%s", "aide/81-queue-and-runner"
+    ).startswith("WIP: ")
 
     # Spec 152: the sentence a reader actually sees. A stop at OUR OWN
     # limit is not an outside fault, and the work is not lost — the

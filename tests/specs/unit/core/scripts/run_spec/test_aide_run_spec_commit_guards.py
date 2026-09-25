@@ -58,7 +58,7 @@ def test_a_commit_already_on_origin_is_never_amended(tmp_path):
     main_tip = _git(root, "rev-parse", "main")
     _commit_with_lost_state(root, wt)
     assert _git(wt, "rev-parse", "HEAD^") == main_tip, "main's own commit was amended"
-    assert "(stopped: cancelled)" in _git(wt, "log", "-1", "--format=%s")
+    assert _git(wt, "log", "-1", "--format=%s") == "WIP: 7-x", "a commit of its own, marked unfinished"
     assert _git(wt, "show", "HEAD:work.txt") == "half done"
 
 
