@@ -759,3 +759,25 @@
   header { padding-top: var(--sp-2); padding-bottom: var(--sp-2); border-bottom: 1px solid var(--line); }
   main { padding-top: var(--sp-3); }
 }
+
+/* Every spec its own card on a phone too. The title row is still a table
+   row here, so its top edge and corners are drawn on its two cells; the
+   rows under it are boxes of their own, so they carry their side edges,
+   and the last of them the bottom edge and corners. */
+@media (max-width: 40rem) {
+  table.speclist { border: 0; background: none; }
+  table.speclist > tbody > tr.specgap > td { height: 10px; }
+  table.speclist > tbody > tr > td { border-bottom: 0; }
+  table.speclist > tbody > tr.spechead,
+  table.speclist > tbody tr.spechead:first-child { border-top: 0; }
+  table.speclist > tbody > tr.spechead > td { background: var(--surface); border-top: 1px solid var(--line); }
+  table.speclist > tbody > tr.spechead > td:first-child { border-left: 1px solid var(--line); border-top-left-radius: var(--r); }
+  table.speclist > tbody > tr.spechead > td:last-child { border-right: 1px solid var(--line); border-top-right-radius: var(--r); }
+  table.speclist > tbody > tr:not(.spechead):not(.specgap) {
+    background: var(--surface); border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+  table.speclist > tbody > tr:not(.spechead):has(+ tr.specgap) {
+    border-bottom: 1px solid var(--line); border-bottom-left-radius: var(--r); border-bottom-right-radius: var(--r); }
+  /* The open detail: a line under the spec's own two lines, and air under it. */
+  table.speclist > tbody > tr.specstate + tr:not(.specgap) { border-top: 1px solid var(--line); }
+  table.speclist > tbody > tr.specstate + tr.subrow { padding-top: var(--sp-3); }
+}

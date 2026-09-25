@@ -906,7 +906,8 @@ tr.specgap > td { height: 10px; padding: 0; border: 0; background: none; }
   /* A shut spec ends on its state line, whose left corner is the fold cell's. */
   table.speclist > tbody > tr.spechead:has(+ tr.specstate + tr.specgap) > td.foldcell {
     border-bottom: 1px solid var(--line); border-bottom-left-radius: var(--r); }
-  /* An open spec's detail is set off from its own two lines. */
+  /* An open spec's detail is set off from its own two lines, with air
+     under the line before the phase lines start. */
   table.speclist > tbody > tr.specstate + tr:not(.specgap) > td { border-top: 1px solid var(--line); }
+  table.speclist > tbody > tr.specstate + tr.subrow > td { padding-top: var(--sp-4); }
 }
-@media (max-width: 40rem) { tr.specgap { display: none; } }
