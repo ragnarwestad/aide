@@ -17,6 +17,17 @@ from pathlib import Path
 import shutil
 import os
 
+# Every temp directory a test makes, and every one the scripts under test
+# make (they inherit TMPDIR), goes inside this process's own, removed when
+# the process exits. Left in the machine's shared temp directory they are
+# never removed, and a directory of millions of entries takes minutes to
+# read for every program that reaches for temp.
+_own_tmp = _tempfile.mkdtemp(prefix="aide-pytest-")
+_os.environ["TMPDIR"] = _own_tmp
+_tempfile.tempdir = None
+import atexit as _atexit
+_atexit.register(shutil.rmtree, _own_tmp, True)
+
 
 @pytest.fixture
 def mock_workspace(tmp_path):
