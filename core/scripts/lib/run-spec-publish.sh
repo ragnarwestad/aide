@@ -164,6 +164,30 @@ commit_is_public() {
   [ -n "$(git -C "$1" branch -r --contains "$2" 2>/dev/null)" ]
 }
 
+# A commit in a code repository describes the change the way a developer
+# on that project would, and names no tool: the project may have nothing
+# to do with Aide. The step's bookkeeping subject, `Run /aide-<step> for
+# <folder>`, is read back from the specs repository alone, so it stays
+# there. The session proposes the message in $commit_message_file; the
+# spec's own title stands in when it wrote none. A stopped step's work is
+# marked unfinished, since the message describes the whole change.
+spec_title() {
+  local f
+  for f in "$specs_root_wt/$commit_label/1-description.md" "$specs_root_wt/archive/$commit_label/1-description.md"; do
+    [ -f "$f" ] || continue
+    sed -n '1s/^# //; 1s/ - Description$//p' "$f"
+    return 0
+  done
+}
+code_commit_message() {
+  local msg=""
+  [ -s "${commit_message_file:-}" ] && msg="$(sed -e '/[^[:space:]]/,$!d' "$commit_message_file")"
+  [ -n "$msg" ] || msg="$(spec_title)"
+  [ -n "$msg" ] || msg="$commit_label"
+  [ -n "$suffix" ] && msg="WIP: $msg"
+  printf '%s\n' "$msg"
+}
+
 commit_and_push_roots() {
   local i=0 root wt changed head_now amend_source=() excludes=() line
   for root in "${roots[@]}"; do
@@ -207,7 +231,7 @@ EXCLUDES_EOF
         # origin already has is what stranded spec 327's stamp on the
         # machine that ran it.
         amend_source[i]="$head_now"
-        if [ -n "$amend_note" ]; then
+        if [ -n "$amend_note" ] && [ "$root" = "${specs_repo:-}" ]; then
           # The step's own message can have a body, so gluing the note
           # onto the raw %B would land it mid-paragraph: give it a line of
           # its own and drop the leading space that only made sense
@@ -221,7 +245,11 @@ EXCLUDES_EOF
           git -C "$wt" commit -q --amend --no-edit >/dev/null 2>&1 || true
         fi
       else
-        git -C "$wt" commit -q -m "Run /aide-$command_name for $commit_label (headless)$model_suffix$suffix" >/dev/null 2>&1 || true
+        if [ "$root" = "${specs_repo:-}" ]; then
+          git -C "$wt" commit -q -m "Run /aide-$command_name for $commit_label (headless)$model_suffix$suffix" >/dev/null 2>&1 || true
+        else
+          git -C "$wt" commit -q -F - >/dev/null 2>&1 <<<"$(code_commit_message)" || true
+        fi
       fi
     fi
     head_after_per_root[i]="$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "${head_after_per_root[$i]}")"

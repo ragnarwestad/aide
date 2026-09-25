@@ -399,10 +399,15 @@ if [ "$push_mode" = "pr" ]; then
     # `$branch_urls_json` is its answer: no entry, nothing pushed.
     :
   else
+    # The pull request says what the commit says: the change, in the
+    # project's own words, and no tool (code_commit_message).
+    pr_message="$(code_commit_message)"
+    pr_title="${pr_message%%$'\n'*}"
+    pr_body="$(sed -e '1d' -e '/[^[:space:]]/,$!d' <<<"$pr_message")"
+    [ -n "$pr_body" ] || pr_body="$pr_title"
     if pr_out="$(cd "$project_wt" && "$gh_bin" pr create \
         --base "$(default_branch "$project_root")" --head "$branch" \
-        --title "Run /aide-$command_name for $commit_label" \
-        --body "Headless aide run ($command_name, $commit_label)$suffix." 2>&1)"; then
+        --title "$pr_title" --body "$pr_body" 2>&1)"; then
       pr_url="$(printf '%s\n' "$pr_out" | grep -o 'https://[^[:space:]]*' | tail -1)"
       [ -n "$pr_url" ] || pr_error="gh reported no pull request URL"
     else
