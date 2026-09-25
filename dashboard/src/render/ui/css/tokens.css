@@ -3,10 +3,10 @@
 /* tokens:start */
   --bg: #FFFFFF; --surface: #FFFFFF; --surface-2: #F4F4F5;
   --text: #09090B; --muted: #71717A; --line: #E4E4E7; --line-strong: #D4D4D8;
-  --accent: #18181B; --accent-strong: #27272A; --accent-soft: #F4F4F5;
+  --accent: #A8331A; --accent-strong: #8C2B16; --accent-soft: #F8E4DD;
   --link: #09090B; --link-strong: #3F3F46;
-  --pip-skim: #A1A1AA;
-  --on-accent: #FAFAFA;
+  --pip-skim: #F0A48B;
+  --on-accent: #FCFAF7;
   --ok: #15803D; --ok-soft: #F0FDF4;
   --warn: #B45309; --warn-soft: #FFFBEB;
   --danger: #DC2626; --danger-soft: #FEF2F2;
@@ -53,10 +53,10 @@
 /* tokens:start */
   --bg: #09090B; --surface: #09090B; --surface-2: #18181B;
   --text: #FAFAFA; --muted: #A1A1AA; --line: #27272A; --line-strong: #3F3F46;
-  --accent: #FAFAFA; --accent-strong: #E4E4E7; --accent-soft: #27272A;
+  --accent: #DA5A34; --accent-strong: #F0663F; --accent-soft: #3A2620;
   --link: #FAFAFA; --link-strong: #D4D4D8;
-  --pip-skim: #52525B;
-  --on-accent: #18181B;
+  --pip-skim: #FFC4AC;
+  --on-accent: #16181C;
   --ok: #4ADE80; --ok-soft: #052E16;
   --warn: #FBBF24; --warn-soft: #422006;
   --danger: #F87171; --danger-soft: #450A0A;
@@ -79,10 +79,10 @@
 /* tokens:start */
   --bg: #09090B; --surface: #09090B; --surface-2: #18181B;
   --text: #FAFAFA; --muted: #A1A1AA; --line: #27272A; --line-strong: #3F3F46;
-  --accent: #FAFAFA; --accent-strong: #E4E4E7; --accent-soft: #27272A;
+  --accent: #DA5A34; --accent-strong: #F0663F; --accent-soft: #3A2620;
   --link: #FAFAFA; --link-strong: #D4D4D8;
-  --pip-skim: #52525B;
-  --on-accent: #18181B;
+  --pip-skim: #FFC4AC;
+  --on-accent: #16181C;
   --ok: #4ADE80; --ok-soft: #052E16;
   --warn: #FBBF24; --warn-soft: #422006;
   --danger: #F87171; --danger-soft: #450A0A;
@@ -97,10 +97,10 @@
 /* tokens:start */
   --bg: #FFFFFF; --surface: #FFFFFF; --surface-2: #F4F4F5;
   --text: #09090B; --muted: #71717A; --line: #E4E4E7; --line-strong: #D4D4D8;
-  --accent: #18181B; --accent-strong: #27272A; --accent-soft: #F4F4F5;
+  --accent: #A8331A; --accent-strong: #8C2B16; --accent-soft: #F8E4DD;
   --link: #09090B; --link-strong: #3F3F46;
-  --pip-skim: #A1A1AA;
-  --on-accent: #FAFAFA;
+  --pip-skim: #F0A48B;
+  --on-accent: #FCFAF7;
   --ok: #15803D; --ok-soft: #F0FDF4;
   --warn: #B45309; --warn-soft: #FFFBEB;
   --danger: #DC2626; --danger-soft: #FEF2F2;
