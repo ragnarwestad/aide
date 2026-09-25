@@ -172,6 +172,7 @@ export const nb: Record<TranslationKey, string> = {
   "schedule.notifyNever": "Aldri",
   "schedule.notifyFailure": "Bare når kjøringen ikke lyktes",
   "schedule.notifyAlways": "Hver kjøring",
+  "schedule.reportOnly": "En planlagt jobb lager en rapport. Den kan ikke endre repoet — en endring som skal inn i repoet går gjennom en spec.",
   "schedule.enabled": "Aktivert",
   "schedule.yes": "ja",
   "schedule.no": "nei",

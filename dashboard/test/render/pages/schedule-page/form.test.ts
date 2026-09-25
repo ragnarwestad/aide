@@ -34,6 +34,23 @@ describe("renderScheduleForm", () => {
     expect(html).toContain("Next run:");
   });
 
+  test("a new entry's form says a scheduled job produces a report and cannot change the repository (AC-4)", () => {
+    const en = renderScheduleForm({ action: "/api/queue/schedule/aide" });
+    expect(en).toContain("A scheduled job produces a report. It cannot change the repository");
+    expect(renderScheduleForm({ action: "/api/queue/schedule/aide" }, "nb")).toContain(
+      "En planlagt jobb lager en rapport. Den kan ikke endre repoet",
+    );
+  });
+
+  test("the Edit form says the same (AC-4)", () => {
+    const html = renderScheduleForm({
+      entryName: "nightly",
+      entry: { name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md" },
+      action: "/api/queue/schedule/aide/nightly",
+    });
+    expect(html).toContain("A scheduled job produces a report. It cannot change the repository");
+  });
+
   test("an error is shown in the form's own slot", () => {
     const html = renderScheduleForm({ action: "/api/queue/schedule/aide", error: "a cron expression is required" });
     expect(html).toContain("a cron expression is required");

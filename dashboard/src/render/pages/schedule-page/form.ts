@@ -6,7 +6,7 @@
 // `GET /api/queue/schedule/cron-next` patches this element's text as
 // the field changes.
 import { nextFireTime, scheduleNotifyOf, type ScheduleNotify } from "../../../queue/schedule.ts";
-import { btn, field } from "../../ui/components";
+import { btn, field, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { defaultModelForTool, modelOptions, resolveChosenModel, TOOL_NAMES, type SpecsPageOptions } from "../specs-list";
@@ -126,6 +126,7 @@ export function renderScheduleForm(opts: ScheduleFormOptions, lang: Language = "
     `data-cron-preview-url="/api/queue/schedule/cron-next">` +
     (opts.fixedProject ? `<input type="hidden" name="project" value="${esc(opts.fixedProject)}">` : "") +
     `<p class="rowmsg failed" data-scheduleform-error aria-live="polite">${opts.error ? esc(opts.error) : ""}</p>` +
+    rowMessage("info", t(lang, "schedule.reportOnly"), { tag: "p" }) +
     `<div class="frow">` +
     (opts.projects
       ? field(
