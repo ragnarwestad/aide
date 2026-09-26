@@ -118,8 +118,8 @@ Versions v2.1.280–282 were not itemised on the releases page.
 - ℹ **Codex 0.157's background server** starts in interactive sessions only; the runner uses `codex exec`.
 - ℹ **Claude Code `deniedModels`/`availableModelsMatch`** apply to organisation-managed settings, which Aide does not use.
 - ℹ **Copilot `worktreePathTemplate`, plugin toggles, MCP indexing** — the runner does not drive Copilot; no Aide action.
-- ⚠️ **GPT-5.5 retires Oct 14** (from 2026-09-21) — the board still offers `gpt-5.5`. Remove it from `modelChoices`
-  before that date.
+- ⚠️ **GPT-5.5 retires Oct 14** (from 2026-09-21) — done: `gpt-5.5` is out of the board's `modelChoices`; no default,
+  schedule or queued job named it.
 
 **Carried over from 2026-09-21, awaiting approval:**
 
@@ -127,8 +127,8 @@ Versions v2.1.280–282 were not itemised on the releases page.
   `CLAUDE.md` (v2.1.277; not on Bedrock/Vertex/Foundry).
 - Done: `.claude/skills/ai-tools-reference/SKILL.md` lists `syncClaudeAiSkills`/`syncClaudeAiPlugins` among Claude Code's
   configuration files (v2.1.275).
-- Proposed, not yet verified: in `docs/AI_SUPPORT_MATRIX.md`, add `include-custom-instructions` to the Copilot agents
-  row once a run on the installed CLI (1.0.88) shows it works; neither its help nor its binary names the field.
+- Declined: `include-custom-instructions` for Copilot's custom agents is not added to `docs/AI_SUPPORT_MATRIX.md`. It
+  could not be verified on 1.0.88 without a live run, and the runner does not drive Copilot.
 - Done here: the Codex changelog address is now `learn.chatgpt.com/docs/changelog` in the Sources table and in the
   check-news skill.
 
