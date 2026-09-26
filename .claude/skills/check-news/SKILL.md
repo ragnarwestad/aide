@@ -42,7 +42,7 @@ Check these sources for news **since the last review**:
 ### OpenAI Codex
 
 1. WebFetch: `https://github.com/openai/codex/releases`
-2. WebFetch: `https://developers.openai.com/codex/changelog/`
+2. WebFetch: `https://learn.chatgpt.com/docs/changelog`
 
 ### OpenCode
 

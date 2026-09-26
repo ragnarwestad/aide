@@ -1,7 +1,7 @@
 # AI Dev Tools — News Log
 
-Living changelog for the three AI dev tools Aide supports:
-Claude Code, GitHub Copilot CLI and OpenAI Codex CLI.
+Living changelog for the four AI dev tools Aide supports:
+Claude Code, GitHub Copilot CLI, OpenAI Codex CLI and OpenCode.
 
 The log is the research feed that drives continuous improvement of Aide.
 It is further distilled into two documents:
@@ -15,6 +15,7 @@ It is further distilled into two documents:
   - [Sources](#sources)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-09-26](#2026-09-26)
   - [2026-09-21](#2026-09-21)
   - [2026-09-14](#2026-09-14)
   - [2026-05-23](#2026-05-23)
@@ -49,7 +50,8 @@ Canonical changelog sources the skill fetches from (since the last review):
 |--------------------|---------------------------------------------------------------------------------------------------|
 | Claude Code        | <https://github.com/anthropics/claude-code/releases> · <https://www.anthropic.com/news>           |
 | GitHub Copilot CLI | <https://github.blog/changelog/label/copilot/> · <https://github.com/github/copilot-cli/releases> |
-| OpenAI Codex CLI   | <https://github.com/openai/codex/releases> · <https://developers.openai.com/codex/changelog/>     |
+| OpenAI Codex CLI   | <https://github.com/openai/codex/releases> · <https://learn.chatgpt.com/docs/changelog>           |
+| OpenCode           | <https://github.com/anomalyco/opencode/releases>                                                  |
 
 ---
 
@@ -67,6 +69,70 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-09-26
+
+Sep 21 – Sep 26, from the scheduled Nyhetssjekk run's report, with OpenCode added by hand (the report's sources did not
+include it yet). New models across the tools; nothing that changes how Aide installs or runs. Three proposals from
+2026-09-21 were never followed up and are carried over below.
+
+**Claude Code (Sep 22 – Sep 25, v2.1.280 → v2.1.283):**
+
+| Date   | Version  | News                                                                                                                                                                                                          | Source                                                                |
+|--------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
+| Sep 22 | —        | Claude Opus 5.5: comparable to Fable 5.1 at 40% lower cost                                                                                                                                                    | [Anthropic news](https://www.anthropic.com/news)                      |
+| Sep 25 | v2.1.283 | Opt-in gateway hint header `x-claude-code-prompt-id` (`CLAUDE_CODE_GATEWAY_HINT_HEADERS=1`); managed settings `availableModelsMatch` and `deniedModels`; MCP tool output saved to files; faster first request | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
+
+Versions v2.1.280–282 were not itemised on the releases page.
+
+**GitHub Copilot CLI (Sep 21 – Sep 25, v1.0.87 → v1.0.89-4):**
+
+| Date   | Version         | News                                                                                                    | Source                                                            |
+|--------|-----------------|---------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
+| Sep 21 | v1.0.87         | Auto routing tier startup defaults with policy; `worktreePathTemplate` setting; Windows sandbox proxy   | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
+| Sep 22 | v1.0.88         | OSC 777 notifications; managed settings apply to ACP and AHP modes; MCP indexed search with glob filter | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
+| Sep 22 | v1.0.89-0 (pre) | Claude Opus 5.5 support                                                                                 | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
+| Sep 23 | v1.0.89-1 (pre) | GPT-6 Sol and Luna support                                                                              | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
+| Sep 25 | v1.0.89-4 (pre) | Auto suggests a routing tier; direct plugin installs can be enabled and disabled                        | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
+| Sep 21 | —               | Grok 4.7 available in Copilot                                                                           | [GitHub Blog](https://github.blog/changelog/label/copilot/)       |
+
+**OpenAI Codex CLI (Sep 22 – Sep 26, v0.156.0 → v0.157.1):**
+
+| Date   | Version  | News                                                                                                                  | Source                                                      |
+|--------|----------|-----------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|
+| Sep 22 | v0.156.0 | Optional fullscreen UI, voice conversations by default, `/usage` dashboard; GPT-6 Sol and Luna rolled out to Codex    | [Codex changelog](https://learn.chatgpt.com/docs/changelog) |
+| Sep 25 | v0.157.0 | GPT-6 Sol/Luna on Amazon Bedrock; fullscreen transcripts by default; background server starts in interactive sessions | [GitHub](https://github.com/openai/codex/releases)          |
+
+**OpenCode (Sep 14 – Sep 21, v1.18.31 → v1.18.32):**
+
+| Date   | Version  | News                                                                                                        | Source                                                            |
+|--------|----------|-------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
+| Sep 14 | v1.18.31 | ACP sessions keep their model, effort and mode on resume and fork; remote config auth errors fail startup   | [GitHub Releases](https://github.com/anomalyco/opencode/releases) |
+| Sep 21 | v1.18.32 | Bedrock image attachments fixed; Together AI usage reporting fixed; Grok 4.7 and DeepSeek V4.1 Flash in Zen | [GitHub Releases](https://github.com/anomalyco/opencode/releases) |
+
+**Relevance for Aide:**
+
+- ⭐ **GPT-6 Sol and Luna in Codex** — added to the board's `modelChoices` as `gpt-6-sol` and `gpt-6-luna` (both answered
+  `codex exec -m` on 0.157.1).
+- ✅ **Claude Opus 5.5** — no change: the board's "Opus" names the `opus` alias, which follows the newest Opus.
+- ℹ **Codex 0.157's background server** starts in interactive sessions only; the runner uses `codex exec`.
+- ℹ **Claude Code `deniedModels`/`availableModelsMatch`** apply to organisation-managed settings, which Aide does not use.
+- ℹ **Copilot `worktreePathTemplate`, plugin toggles, MCP indexing** — the runner does not drive Copilot; no Aide action.
+- ⚠️ **GPT-5.5 retires Oct 14** (from 2026-09-21) — the board still offers `gpt-5.5`. Remove it from `modelChoices`
+  before that date.
+
+**Carried over from 2026-09-21, awaiting approval:**
+
+- Proposed: in `.claude/skills/ai-tools-reference/SKILL.md`, note that Claude Code reads `AGENTS.md` when a project has
+  no `CLAUDE.md` (v2.1.277; not on Bedrock/Vertex/Foundry).
+- Proposed: in `.claude/skills/ai-tools-reference/SKILL.md`, list `syncClaudeAiSkills`/`syncClaudeAiPlugins` under
+  Claude Code's skill discovery (v2.1.275).
+- Proposed: in `docs/AI_SUPPORT_MATRIX.md`, add `include-custom-instructions` to the Copilot agents row after verifying
+  it on the installed CLI (v1.0.86).
+- Done here: the Codex changelog address is now `learn.chatgpt.com/docs/changelog` in the Sources table and in the
+  check-news skill.
+
+---
 
 ### 2026-09-21
 
