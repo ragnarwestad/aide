@@ -58,7 +58,7 @@ export const attrValue = (v: string): string => v.replace(/["\\]/g, "\\$&");
 export const namesForm = (id: string): Element[] =>
   id ? Array.from(document.querySelectorAll(`[form="${attrValue(id)}"]`)) : [];
 
-export type Control = HTMLButtonElement | HTMLInputElement | HTMLSelectElement;
+export type Control = HTMLButtonElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
 
 /** Every control a press has to lock — which is every control on the
  *  ROW, not the submitted form's own.
@@ -87,10 +87,15 @@ export type Control = HTMLButtonElement | HTMLInputElement | HTMLSelectElement;
  *  a neighbour. */
 export function rowControls(form: HTMLFormElement): Control[] {
   const head = form.closest("tr.spechead");
-  // A form that is not on a spec's row at all — the New-spec page, the
-  // Projects panel. Its own button is inside it, and there is nothing
-  // to widen the scope to.
-  if (!head) return Array.from(form.querySelectorAll("button"));
+  // A form that is not on a spec's row — the acceptance criteria under a
+  // row's message, the New-spec page, the Projects panel — locks its own
+  // controls and the ones written outside it that name it with `form=`:
+  // a box ticked while its list is being saved is a change the save
+  // never saw.
+  if (!head) {
+    const own = Array.from(form.querySelectorAll("button, select, textarea, input:not([type=hidden])"));
+    return [...new Set([...own, ...namesForm(form.id)])] as Control[];
+  }
   const runForm = head.querySelector("form.rowrun") as HTMLFormElement | null;
   // Hidden fields are left out: they are not controls anybody can
   // press, and the row's whole point is what a person can still do to
