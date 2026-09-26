@@ -6,7 +6,7 @@
 
 import { NEW_SPEC_ROUTE, PROJECTS_ROUTE, SCHEDULE_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE } from "../render";
 
-/** `/specs/<id>` joins the queue set HERE, never as a special case
+/** `/jobs/<id>` joins the queue set HERE, never as a special case
  *  further down, so `handleRoutes` is what answers it. The retired
  *  `/queue` paths are in it too, for the redirect they answer with. */
 export const isQueuePath = (path: string) =>
@@ -45,6 +45,7 @@ export const isQueuePath = (path: string) =>
   // changes what the server sends and where, guarded like every other.
   path.startsWith("/api/push/") ||
   path.startsWith("/specs/") ||
+  path.startsWith("/jobs/") ||
   // The test board's own Stop control (spec 424, REQ-4) — a POST with
   // real consequences, guarded exactly like every other queue route.
   path === "/api/self-stop" ||

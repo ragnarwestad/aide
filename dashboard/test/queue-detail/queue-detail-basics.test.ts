@@ -40,7 +40,7 @@ async function enqueue(base: string, steps: string[] = ["analyze"]): Promise<str
   return body.job.id;
 }
 
-describe("GET /specs/<id>", () => {
+describe("GET /jobs/<id>", () => {
   // Spec 150: the `## Description` prose left this page for the spec
   // page, where the whole file is one of four. The title stays — a
   // reader still has to know which spec the job is about — and the
@@ -52,7 +52,7 @@ describe("GET /specs/<id>", () => {
       "# Q - Solution\n\n## Steps\n\nSeven files, one route.\n",
     );
     const id = await enqueue(base);
-    const res = await fetch(`${base}/specs/${id}`);
+    const res = await fetch(`${base}/jobs/${id}`);
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/html");
     const html = await res.text();
@@ -134,7 +134,7 @@ describe("the finished steps a job table cannot show (criterion 2)", () => {
   test("the route opens the tab the link asked for", async () => {
     const { base } = start();
     const id = await enqueue(base, ["analyze"]);
-    const html = await (await fetch(`${base}/specs/${id}?tab=steps`)).text();
+    const html = await (await fetch(`${base}/jobs/${id}?tab=steps`)).text();
     expect(html).toMatch(/aria-current="page"[^>]*>Logs/);
     expect(html).toContain("No step has finished yet");
   });

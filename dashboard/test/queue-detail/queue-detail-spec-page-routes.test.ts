@@ -144,11 +144,11 @@ describe("a Codex step's job page", () => {
 // page's own frame (the tab bar, the theme control) stayed English and
 // the choice was never written down from this route.
 
-describe("GET /specs/<id> remembers the reader's language (spec 408)", () => {
+describe("GET /jobs/<id> remembers the reader's language (spec 408)", () => {
   test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
     const { base } = start();
     const id = await enqueue(base);
-    const res = await fetch(`${base}/specs/${id}?lang=nb`);
+    const res = await fetch(`${base}/jobs/${id}?lang=nb`);
     expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
     const html = await res.text();
     expect(html).toContain('<html lang="nb">');
@@ -157,7 +157,7 @@ describe("GET /specs/<id> remembers the reader's language (spec 408)", () => {
 
 // --- spec 150: a page for the SPEC, not for one of its runs ------------------
 //
-// `/specs/<job-id>` is one queue run. `/specs/<project>/<specFolder>` is
+// `/jobs/<job-id>` is one queue run. `/specs/<project>/<specFolder>` is
 // the spec itself: the four files as they stand on this host's checkout,
 // each stamped with its own last commit, plus an Update button that
 // pulls the specs repository so a change pushed a moment ago is on the
@@ -221,12 +221,12 @@ describe("GET /specs/<project>/<specFolder>", () => {
   test("the job route still answers, and neither swallows the other", async () => {
     const { base } = start();
     const id = await enqueue(base);
-    expect((await fetch(`${base}/specs/${id}`)).status).toBe(200);
+    expect((await fetch(`${base}/jobs/${id}`)).status).toBe(200);
     expect((await fetch(`${base}${PATH}`)).status).toBe(200);
     // The job page is about the run; the spec page is about the spec.
     // An analyze job's page carries 3-solution.md, its own phase's
     // file, and none of the other three the spec page lists.
-    const job = await (await fetch(`${base}/specs/${id}`)).text();
+    const job = await (await fetch(`${base}/jobs/${id}`)).text();
     expect(job).not.toContain("1-description.md");
   });
 

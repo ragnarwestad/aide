@@ -1,4 +1,4 @@
-// /specs/<id>: one job, in full (spec 02). Its parts — what the job is,
+// /jobs/<id>: one job, in full (spec 02). Its parts — what the job is,
 // what it has been doing, what it has run — sit behind tabs, because
 // under plain headings they ran together and a reader scrolled past the
 // one they came for.
@@ -149,7 +149,7 @@ export function renderJobDetailPage(
     // `## Description` prose every other page showed.
     (job.phase ? specFilePanel(job.phase, now) : "");
 
-  const tabHref = `/specs/${esc(job.id)}?tab=steps`;
+  const tabHref = `/jobs/${esc(job.id)}?tab=steps`;
   const panel =
     tab === "steps"
       ? stepResults(job.results, job.archiveHeldBack, {
@@ -164,7 +164,7 @@ export function renderJobDetailPage(
 
   const body = tabbedBody(
     banner,
-    tabBar(JOB_TABS, `/specs/${esc(job.id)}`, tab, {
+    tabBar(JOB_TABS, `/jobs/${esc(job.id)}`, tab, {
       steps: job.results.length + (job.runningStep ? 1 : 0),
     }),
     panel,

@@ -95,9 +95,9 @@ describe("spec 435: the language links preserve the page, tab, sort and filter",
       body: JSON.stringify({ project: "aide", specFolder: FOLDER, steps: ["analyze"] }),
     });
     const { job } = (await created.json()) as { job: { id: string } };
-    const res = await fetch(`${base}/specs/${job.id}?tab=steps`);
+    const res = await fetch(`${base}/jobs/${job.id}?tab=steps`);
     const html = await res.text();
-    expect(html).toContain(`href="/specs/${job.id}?tab=steps&amp;lang=en"`);
-    expect(html).toContain(`href="/specs/${job.id}?tab=steps&amp;lang=nb"`);
+    expect(html).toContain(`href="/jobs/${job.id}?tab=steps&amp;lang=en"`);
+    expect(html).toContain(`href="/jobs/${job.id}?tab=steps&amp;lang=nb"`);
   });
 });

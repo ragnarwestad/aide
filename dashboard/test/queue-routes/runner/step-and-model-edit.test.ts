@@ -51,7 +51,7 @@ describe("a job's token count reaches the page", () => {
     const { mirror, id } = await seeded();
     const { base } = start({ queueMirrorPath: mirror });
     const html = await (
-      await fetch(`${base}/specs/${id}?tab=steps`, )
+      await fetch(`${base}/jobs/${id}?tab=steps`, )
     ).text();
     expect(html).toContain('<span class="u-usd">$0.54</span>');
     expect(html).toContain('<span class="u-tok">1.2M</span>');

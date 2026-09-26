@@ -34,7 +34,7 @@ describe("spec 252: the job page's own Back link, read off the Referer header", 
     const { base } = start();
     const id = await jobId(base);
     const html = await (
-      await fetch(`${base}/specs/${id}`, { headers: { referer: `${base}/?state=all&q=archive` } })
+      await fetch(`${base}/jobs/${id}`, { headers: { referer: `${base}/?state=all&q=archive` } })
     ).text();
     expect(html).toContain('<a class="backlink" href="/?state=all&amp;q=archive">← Back</a>');
   });

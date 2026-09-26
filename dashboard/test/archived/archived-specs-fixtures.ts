@@ -204,7 +204,7 @@ export const ALL_VIEW = "?state=all";
 /** The folders the table lists, in the order it lists them. Read off
  *  the row links rather than off the raw HTML: a folder name also
  *  appears inside a href, and `indexOf` on the bare name would compare
- *  two different things. A job's own page is `/specs/<id>` — one
+ *  two different things. A job's own page is `/jobs/<id>` — one
  *  segment — so the two-segment shape here is the SPEC link and nothing
  *  else. */
 export const order = (html: string): string[] =>

@@ -34,7 +34,7 @@ describe("the project page's Wiki tab (AC-1)", () => {
 describe("the Wiki tab shows the latest build", () => {
   test("a running build: its log, Cancel, and no second Build button", () => {
     const html = page({ tab: "wiki", wikiBuild: { id: "j1", state: "running" } });
-    expect(html).toContain('href="/specs/j1?tab=steps"');
+    expect(html).toContain('href="/jobs/j1?tab=steps"');
     expect(html).toContain('action="/api/queue/j1/cancel"');
     expect(html).not.toContain('action="/api/queue/projects/aide/wiki"');
     expect(html).toMatch(/class="rowmsg waiting">.*?<span><span class="badge b-running"[^>]*data-icon="loader"/);
@@ -50,7 +50,7 @@ describe("the Wiki tab shows the latest build", () => {
   test("a failed build says why, in the error's own sentence", () => {
     const html = page({ tab: "wiki", wikiBuild: { id: "j1", state: "failed", error: "the wiki build built nothing" } });
     expect(html).toMatch(/rowmsg failed[^"]*"[^>]*>[\s\S]*the wiki build built nothing/);
-    expect(html).toContain('href="/specs/j1?tab=steps"');
+    expect(html).toContain('href="/jobs/j1?tab=steps"');
   });
 });
 

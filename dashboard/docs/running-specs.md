@@ -79,7 +79,7 @@ A landing merges in a worktree of its own and touches the shared checkout for on
 holds back two things and nothing else: the job being landed, and a second `archive` in the same project.
 
 **The list holds specs, not the machine's whole run history.** An archived spec stays on the list as a row under the
-default **All** filter, and **Active** leaves it out. Nothing is destroyed — `/api/queue` still returns every job and `/specs/<id>` still renders each one. A project whose specs the server cannot read this time keeps the rows it
+default **All** filter, and **Active** leaves it out. Nothing is destroyed — `/api/queue` still returns every job and `/jobs/<id>` still renders each one. A project whose specs the server cannot read this time keeps the rows it
 already had: an empty answer means "we cannot tell", never "everything here is archived".
 
 A job survives a restart: the runner spawns detached in its own process group, and the result file is the

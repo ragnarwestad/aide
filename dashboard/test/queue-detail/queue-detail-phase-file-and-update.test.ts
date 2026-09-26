@@ -51,7 +51,7 @@ describe("a phase job's page shows that phase's file", () => {
     const { base, dir } = start();
     withFiles(dir);
     const id = await enqueue(base, ["analyze"]);
-    const html = await (await fetch(`${base}/specs/${id}`)).text();
+    const html = await (await fetch(`${base}/jobs/${id}`)).text();
     expect(html).toContain("One must-fix.");
     expect(html).toContain("Medium.");
     expect(html).not.toContain("Seven files.");
@@ -62,7 +62,7 @@ describe("a phase job's page shows that phase's file", () => {
     const { base, dir } = start();
     withFiles(dir);
     const id = await enqueue(base, ["implement"]);
-    const html = await (await fetch(`${base}/specs/${id}`)).text();
+    const html = await (await fetch(`${base}/jobs/${id}`)).text();
     expect(html).toContain("Workflow steps completed");
   });
 });

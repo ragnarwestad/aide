@@ -6,7 +6,7 @@
 //                            and the readiness answer
 //   render/specs-list.ts  / — the spec list
 //   render/new-spec-page.ts  /new — the form that makes a spec
-//   render/job-page.ts    /specs/<id> — one job, in full
+//   render/job-page.ts    /jobs/<id> — one job, in full
 //   render/spec-page.ts   /specs/<project>/<spec> — the whole spec
 //   render/shell.ts       the frame they all sit in
 //   render/job-state.ts   what a job looks like to a page

@@ -233,8 +233,8 @@ describe("the job page is split into tabs", () => {
 
   test("every tab is offered as a link back to this job", () => {
     const html = renderJobDetailPage(withParts(), "2026-08-16T10:05:00Z", NAV);
-    expect(html).toContain('href="/specs/job-1234?tab=overview"');
-    expect(html).toContain('href="/specs/job-1234?tab=steps"');
+    expect(html).toContain('href="/jobs/job-1234?tab=overview"');
+    expect(html).toContain('href="/jobs/job-1234?tab=steps"');
   });
 
   test("the open tab is marked, and it is the only one", () => {
@@ -318,7 +318,7 @@ describe("the job page is split into tabs", () => {
 
   test("an empty tab is still offered, and says why it is empty", () => {
     const html = renderJobDetailPage(detail(), "2026-08-16T10:05:00Z", NAV, { tab: "steps" });
-    expect(html).toContain('href="/specs/job-1234?tab=steps"');
+    expect(html).toContain('href="/jobs/job-1234?tab=steps"');
     expect(html).toContain("No step has finished yet");
   });
 });

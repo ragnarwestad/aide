@@ -28,10 +28,10 @@ export async function specsPages(
   }
 
   if (path.startsWith("/queue/")) {
-    return new Response(null, {
-      status: 302,
-      headers: { location: `/specs${path.slice("/queue".length)}${url.search}` },
-    });
+    // One segment is a job, which has its own address; more is a spec.
+    const rest = path.slice("/queue".length);
+    const base = /^\/[A-Za-z0-9-]+$/.test(rest) ? "/jobs" : "/specs";
+    return new Response(null, { status: 302, headers: { location: `${base}${rest}${url.search}` } });
   }
 
   if (path === "/") {

@@ -80,7 +80,7 @@ describe("a wiki build is followed on the Wiki tab, never on the Specs list", ()
     await post(base, "aide");
     const [job] = (await jobs(base)) as unknown as { id: string }[];
     const html = await (await fetch(`${base}/projects/aide?tab=wiki`)).text();
-    expect(html).toContain(`/specs/${job!.id}?tab=steps`);
+    expect(html).toContain(`/jobs/${job!.id}?tab=steps`);
     expect(html).toContain(`action="/api/queue/${job!.id}/cancel"`);
     const cancel = await fetch(`${base}/api/queue/${job!.id}/cancel`, {
       method: "POST", redirect: "manual", headers: { "content-type": "application/x-www-form-urlencoded" },
