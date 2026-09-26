@@ -76,7 +76,7 @@ for _a in "$@"; do
 Usage:
   aide-run-spec --project-dir <path> --command <create|analyze|implement|archive>
                  --spec <arg> [--specs-root P] [--title T] [--description D] [--depends-on D]
-                 [--reason R] [--acceptance-not-required] [--no-ai-formulate]
+                 [--reason R] [--acceptance-not-required] [--no-ai-formulate] [--wiki-refresh]
                  [--prompt-file F] [--timeout-sec S] [--permission-mode M]
                  [--result-file F] [--model M] [--effort E] [--tool T]
                  [--session-id S] [--stream-file F] [--kill-grace-sec S]

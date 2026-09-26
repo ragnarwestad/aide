@@ -212,6 +212,10 @@ export interface Job {
    *  Absent, a reopen keeps the files. Only a job whose steps are
    *  exactly `["reopen"]` has it. */
   resetFiles?: boolean;
+  /** A `wiki` job that rewrites only the pages whose files changed —
+   *  handed to `aide-run-spec` as `--wiki-refresh`. Absent, a wiki job is
+   *  a full build. The board queues one after an archive lands. */
+  wikiRefresh?: boolean;
   /** Set while a finished step's work is being landed on a default
    *  branch — a merge that runs AFTER the step reported success, in this
    *  process, against a shared main checkout no worktree isolates. The

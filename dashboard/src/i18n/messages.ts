@@ -137,14 +137,14 @@ export const MESSAGES = {
   // A wiki build writes generated pages in wiki/ and nothing else
   // (core/scripts/lib/run-spec-wiki-guard.sh): the script's own sentence,
   // naming what was taken back, stays on the job as hover detail.
-  // A wiki build that ended with no wiki/index.md built nothing, however the
-  // session put it (run-spec-wiki-guard.sh).
-  "runner.wikiBuiltNothing": {
-    en: "the wiki build built nothing — no page was written. — The run's log says why. Build the wiki again from the project's Wiki tab once that is fixed.",
-    nb: "wiki-byggingen bygde ingenting — ingen side ble skrevet. — Loggen for kjøringen sier hvorfor; bygg wikien på nytt fra Wiki-fanen på prosjektet når det er rettet.",
-    es: "la generación de la wiki no generó nada — no se escribió ninguna página. — El registro de la ejecución dice por qué; vuelve a generar la wiki desde la pestaña Wiki del proyecto cuando esté corregido.",
-    de: "Der Wiki-Aufbau hat nichts aufgebaut — keine Seite wurde geschrieben. — Das Protokoll des Laufs sagt, warum; baue das Wiki im Tab Wiki des Projekts erneut auf, sobald das behoben ist.",
-    fr: "la construction du wiki n'a rien construit — aucune page n'a été écrite. — Le journal de l'exécution dit pourquoi ; relancez la construction depuis l'onglet Wiki du projet une fois le problème corrigé.",
+  // A wiki build that left pages unwritten, or none written at all
+  // (run-spec-wiki-guard.sh): the run's own log names which.
+  "runner.wikiBuildUnfinished": {
+    en: "the wiki build did not finish — pages it should have written were left as they were, or none was written. — The log below names them. Build the wiki again from the project's Wiki tab.",
+    nb: "wiki-byggingen ble ikke ferdig — sider den skulle skrive, ble stående som før, eller ingen ble skrevet. — Loggen under nevner hvilke. Bygg wikien på nytt fra Wiki-fanen på prosjektet.",
+    es: "la generación de la wiki no terminó — quedaron sin escribir páginas que debía escribir, o no se escribió ninguna. — El registro de abajo las nombra. Vuelve a generar la wiki desde la pestaña Wiki del proyecto.",
+    de: "Der Wiki-Aufbau wurde nicht fertig — Seiten, die er schreiben sollte, blieben unverändert, oder es wurde keine geschrieben. — Das Protokoll unten nennt sie. Baue das Wiki im Tab Wiki des Projekts erneut auf.",
+    fr: "la construction du wiki n'est pas allée au bout — des pages qu'elle devait écrire sont restées telles quelles, ou aucune n'a été écrite. — Le journal ci-dessous les nomme. Relancez la construction depuis l'onglet Wiki du projet.",
     resolve: "Build the wiki again",
   },
   "runner.wikiWroteOutsideItsScope": {

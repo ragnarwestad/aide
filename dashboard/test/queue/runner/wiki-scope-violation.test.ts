@@ -40,7 +40,7 @@ describe("a wiki build that wrote outside its scope", () => {
 
 // A build refused every aide-wiki call read as done; the script now ends a
 // build that left no index `no-progress`, and the board says what that means.
-describe("a wiki build that built nothing", () => {
+describe("a wiki build that did not finish", () => {
   test("is failed with the board's own message, in every language", () => {
     const job = enqueue({ specFolder: "wiki-aide", steps: ["wiki"] });
     const runner = makeRunner({ readResult: () => ({ ...okResult(0.1), ok: false, terminalReason: "no-progress", error: "the wiki build left no wiki" }) });
@@ -48,9 +48,9 @@ describe("a wiki build that built nothing", () => {
     runner.poll();
     const after = store.get(job.id);
     expect(after?.state).toBe("failed");
-    expect(after?.error).toEqual({ key: "runner.wikiBuiltNothing" });
+    expect(after?.error).toEqual({ key: "runner.wikiBuildUnfinished" });
     for (const lang of ["en", "nb", "es", "de", "fr"] as const) {
-      expect((renderSentence(lang, { key: "runner.wikiBuiltNothing" }) ?? "").length).toBeGreaterThan(20);
+      expect((renderSentence(lang, { key: "runner.wikiBuildUnfinished" }) ?? "").length).toBeGreaterThan(20);
     }
   });
 });

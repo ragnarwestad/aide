@@ -133,7 +133,10 @@ if [ "$command_name" = "schedule" ]; then
 $headless_note"
 elif [ "$command_name" = "wiki" ]; then
   # No spec folder: the skill builds the project's wiki, named by the key.
-  prompt="$(skill_call "aide-wiki" "$spec_arg")
+  # A refresh rewrites only the pages whose files changed.
+  wiki_args="$spec_arg"
+  [ "$wiki_refresh" = "yes" ] && wiki_args="$spec_arg refresh"
+  prompt="$(skill_call "aide-wiki" "$wiki_args")
 $headless_note"
 elif [ -n "$spec_folder" ]; then
   # Spec 386: stated to the skill, not just to the harness — a CLI flag

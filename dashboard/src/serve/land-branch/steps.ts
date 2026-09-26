@@ -1,11 +1,13 @@
 // The four thin `Landing` descriptions each workflow step's own landing
 // is built from.
 
-import { isAbsolute, relative } from "node:path";
+import { existsSync } from "node:fs";
+import { isAbsolute, join, relative } from "node:path";
 import { mergeBranchRefs, type BranchRef, type Job, type WorkflowStep } from "../../queue/queue.ts";
 import type { StepOutcome } from "../../queue/runner";
 import { stopTestServer } from "../test-servers/lifecycle.ts";
 import { landBranch, sameRoot } from "./merge.ts";
+import { wikiTrackingKey } from "../../queue/steps.ts";
 import type { LandContext } from "./types.ts";
 
 /** Put a newly created spec where the page can see it (spec 93).
@@ -159,8 +161,22 @@ export async function landArchivedSpec(ctx: LandContext, job: Job, outcome: Part
     // actually landed (never on a held-back refusal, which never
     // reaches `landBranch` at all) — `stopTestServer` itself is a no-op when
     // nothing is tracked for this spec.
-    onLanded: async () => stopTestServer(ctx.testServers, job.project, job.specFolder, "its archive landed"),
+    onLanded: async () => {
+      await stopTestServer(ctx.testServers, job.project, job.specFolder, "its archive landed");
+      queueWikiRefresh(ctx, job.project);
+    },
   });
+}
+
+/** Once an archive has landed, the project's wiki is brought up to date
+ *  with a refresh: a job that rewrites only the pages whose files the
+ *  change moved. Only for a project that has a wiki. A refresh already
+ *  queued or running for the project covers this one too, so the queue's
+ *  refusal of a second is the answer and not a fault. */
+export function queueWikiRefresh(ctx: LandContext, project: string): void {
+  const root = ctx.machinerySpecsRoot(project);
+  if (!root || !existsSync(join(root, "wiki", "index.md"))) return;
+  ctx.queue.enqueue({ project, specFolder: wikiTrackingKey(project), steps: ["wiki"], wikiRefresh: true });
 }
 
 /** Take a closed spec out of the active list, the same way

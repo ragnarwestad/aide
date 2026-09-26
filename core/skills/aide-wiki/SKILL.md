@@ -16,8 +16,16 @@ effort: high
 Build or rebuild the project's wiki. The run is headless: no one answers
 questions, so decide and finish.
 
-**Input:** $ARGUMENTS (the tracking key `wiki-<project>`; the project is
-the current directory and the specs root is named in the prompt)
+**Input:** $ARGUMENTS (the tracking key `wiki-<project>`, then `refresh`
+when the run is a refresh; the project is the current directory and the
+specs root is named in the prompt)
+
+A **build** rewrites every generated page from the code as it is now,
+whether or not its files changed. A **refresh** rewrites only the pages
+`aide-wiki status` marks `changed`, adds a page for a part that has none,
+and leaves every current page as it is. The runner checks the result: a
+build that leaves a page from an older commit, or a refresh that leaves a
+`changed` page, ends unfinished.
 
 The wiki is the folder `wiki/` inside the specs root: `index.md`,
 `schema.md` and one page per part of the system. Every write under
@@ -32,8 +40,9 @@ the project directory; pass them to every call as `--specs-root` and
 
 Run `aide-wiki status --specs-root <root> --project-dir .`. A page whose
 state is `hand-written` belongs to a person: its name is taken, and the
-part it covers is linked to from other pages, not rewritten. Every other
-page is rebuilt below.
+part it covers is linked to from other pages, not rewritten. In a build,
+every other page is rebuilt below; in a refresh, only the `changed` ones
+are, and Step 2 is only about whether a new part needs a page of its own.
 
 ### Step 2: Decide the parts
 
@@ -86,7 +95,9 @@ A page holds no line numbers and no code. It is a map: the code decides.
 ### Step 4: Finish
 
 1. `aide-wiki schema --specs-root <root> --project-dir .`
-2. `aide-wiki prune --specs-root <root> --keep <every page just written>`
+2. `aide-wiki prune --specs-root <root> --keep <every page just written>`,
+   and in a refresh every current page too: only a page whose part is gone
+   goes
 3. `aide-wiki index --specs-root <root> --project-dir .` — last, so a run
    that stops early leaves the previous index in place.
 

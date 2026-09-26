@@ -40,3 +40,18 @@ describe("parseJobRequest — the wiki step", () => {
     }
   });
 });
+
+// The board queues a refresh after an archive lands: a wiki job that
+// rewrites only the pages whose files changed.
+describe("parseJobRequest — a wiki refresh", () => {
+  test("a wiki job keeps wikiRefresh", () => {
+    const r = parseJobRequest({ project: "aide", specFolder: "wiki-aide", steps: ["wiki"], wikiRefresh: true }, { resolve, defaults: DEFAULTS });
+    expect(r.ok && r.job.wikiRefresh).toBe(true);
+  });
+
+  test("any other job never carries it", () => {
+    const r = parseJobRequest({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"], wikiRefresh: true }, { resolve, defaults: DEFAULTS });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.job.wikiRefresh).toBeUndefined();
+  });
+});

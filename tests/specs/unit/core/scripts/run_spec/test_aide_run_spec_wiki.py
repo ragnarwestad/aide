@@ -291,3 +291,68 @@ def test_a_build_that_wrote_no_wiki_ends_as_no_progress_not_as_done(runner, work
     rc, out, _ = wiki(runner, workspace, claude)
     assert out["ok"] is False and out["terminalReason"] == "no-progress", out
     assert "left no wiki" in out["error"], out
+
+
+# --- a build rewrites every page; a refresh rewrites the changed ones ---------
+
+
+def wiki_then_move_the_code(runner, workspace, workspace_root, fake_claude, origin, pages=("queue", "landing")):
+    """A wiki built and landed, then a commit in the project under every page."""
+    rc, first, _ = wiki(runner, workspace, job(fake_claude, build_pages(workspace_root, pages) + FINISHED))
+    assert rc == 0, first
+    specs = workspace["specs"]
+    git(specs, "fetch", "-q", str(origin["specs"]), BRANCH)
+    git(specs, "merge", "-q", "--ff-only", "FETCH_HEAD")
+    git(specs, "push", "-q", "origin", "main")
+    readme = workspace["project"] / "README.md"
+    readme.write_text(readme.read_text() + "\nmoved on\n")
+    git(workspace["project"], "commit", "-qam", "move the code on")
+    git(workspace["project"], "push", "-q", "origin", "main")
+
+
+def keep_only_writing(workspace_root, written, kept):
+    """A session that writes some pages and keeps others it did not write."""
+    wiki = wiki_cmd(workspace_root)
+    lines = [READ_SPECS]
+    for name in written:
+        lines.append(
+            f'printf "# The {name}\\n\\nRuns the {name}.\\n" | {wiki} write --specs-root "$specs" '
+            f'--project-dir "$PWD" --page {name}.md --file README.md >/dev/null\n'
+        )
+    lines.append(f'{wiki} schema --specs-root "$specs" --project-dir "$PWD" >/dev/null\n')
+    lines.append(f'{wiki} prune --specs-root "$specs" --keep {" ".join(f"{n}.md" for n in kept)} >/dev/null\n')
+    lines.append(f'{wiki} index --specs-root "$specs" --project-dir "$PWD" >/dev/null\n')
+    return "".join(lines)
+
+
+def test_a_build_that_leaves_a_page_from_an_older_commit_ends_unfinished_naming_it(
+    runner, workspace, workspace_root, fake_claude, origin
+):
+    """A build rewrites every generated page; the second build on the board
+    rewrote five of twenty-nine and read as done."""
+    wiki_then_move_the_code(runner, workspace, workspace_root, fake_claude, origin)
+    body = keep_only_writing(workspace_root, ("queue",), ("queue", "landing"))
+    rc, out, _ = wiki(runner, workspace, job(fake_claude, body + FINISHED))
+    assert out["ok"] is False and out["terminalReason"] == "no-progress", out
+    assert "landing.md" in out["error"] and "queue.md" not in out["error"], out
+
+
+def test_a_refresh_is_asked_for_by_name_and_may_leave_current_pages_alone(
+    runner, workspace, workspace_root, fake_claude, origin
+):
+    wiki_then_move_the_code(runner, workspace, workspace_root, fake_claude, origin)
+    seen = fake_claude.calls.parent / "prompt-seen.txt"
+    body = keep_only_writing(workspace_root, ("queue", "landing"), ("queue", "landing"))
+    rc, out, _ = wiki(runner, workspace, fake_claude(f"cat > {seen}\n" + body + FINISHED), wiki_refresh=True)
+    assert rc == 0 and out["terminalReason"] == "completed", out
+    assert "wiki-demo refresh" in seen.read_text()
+
+
+def test_a_refresh_that_leaves_a_changed_page_ends_unfinished_naming_it(
+    runner, workspace, workspace_root, fake_claude, origin
+):
+    wiki_then_move_the_code(runner, workspace, workspace_root, fake_claude, origin)
+    body = keep_only_writing(workspace_root, ("queue",), ("queue", "landing"))
+    rc, out, _ = wiki(runner, workspace, job(fake_claude, body + FINISHED), wiki_refresh=True)
+    assert out["ok"] is False and out["terminalReason"] == "no-progress", out
+    assert "landing.md" in out["error"], out

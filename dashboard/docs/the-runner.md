@@ -116,7 +116,9 @@ in the project repository, a change under the specs root outside `wiki/`, and an
 `wiki: generated` mark in its front matter, comparing the specs repository with the default branch's tip.
 `aide-wiki verify` is the only reader of that mark. A run that would otherwise end `completed` ends `scope-violation`
 (`run-spec-wiki-guard.sh`); one that already ended `timeout` keeps that ending. A run that would end `completed` with no
-`wiki/index.md` built nothing, and ends `no-progress`.
+`wiki/index.md` built nothing, and ends `no-progress`; so does a build that leaves a generated page written from an
+older commit, and a refresh (`--wiki-refresh`) that leaves a page `aide-wiki status` marks `changed`. The error names
+the pages.
 
 **A `schedule` step is the exception to all three: it commits nothing and pushes nothing.** A scheduled job produces a
 report and changes no repository, so whatever it leaves in a worktree is dropped with the worktree, and a commit the

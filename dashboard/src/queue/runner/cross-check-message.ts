@@ -27,7 +27,7 @@ export function noProgressMessage(step: WorkflowStep, outcome: Partial<StepOutco
     return { key: "runner.wikiWroteOutsideItsScope" };
   }
   if (outcome.terminalReason !== "no-progress") return undefined;
-  if (step === "wiki") return { key: "runner.wikiBuiltNothing" };
+  if (step === "wiki") return { key: "runner.wikiBuildUnfinished" };
   if (step === "archive") return { key: "runner.noProgressArchive", values: { button: stepButton(step) } };
   if (step === "implement") return { key: "runner.noProgressImplement", values: { button: stepButton(step) } };
   return undefined;

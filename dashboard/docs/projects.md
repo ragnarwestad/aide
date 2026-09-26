@@ -294,7 +294,10 @@ read first when a spec is analyzed. The tab says so and has one **Build wiki** b
 is unfinished, or while its merge is running, is refused on the tab with the queue's own sentence. The build is
 followed on this tab and never on the Specs list: the latest one reads as running (with Cancel), last built on a date,
 or failed with its reason, with that build's steps and their logs below it, and a press or a Cancel comes back here. The
-step runs with Aide's own scripts allowed (`permissionMode.wiki`), since it writes only through `aide-wiki`. A project whose specs folder git ignores inside the project cannot build
+step runs with Aide's own scripts allowed (`permissionMode.wiki`), since it writes only through `aide-wiki`. **Build
+wiki** rewrites every generated page. Once an archive lands in a project that has a wiki, the board queues a refresh by
+itself: the same job with `wikiRefresh`, which rewrites only the pages whose files changed; a refresh already queued
+covers the next archive too. A project whose specs folder git ignores inside the project cannot build
 a wiki: the run is refused, since there is no repository to commit the pages to.
 
 ### How a project's code lands
