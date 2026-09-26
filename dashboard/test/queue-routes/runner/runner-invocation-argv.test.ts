@@ -10,6 +10,7 @@ import { statusSaying } from "../../helpers/queue-server.ts";
 import { scheduleRunOutputDir } from "../../../src/queue/schedule.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 import { runnerArgv } from "../../../src/serve/serve.ts";
+import { analysisSessionToResume } from "../../../src/serve/serve-helpers/runner-argv.ts";
 import type { ServerOptions } from "../../../src/serve/serve.ts";
 
 const { harness } = setupQueueRoutesHarness();
@@ -330,5 +331,51 @@ describe("--wiki-refresh", () => {
   });
   test("a build does not", () => {
     expect(argvFor({})).not.toContain("--wiki-refresh");
+  });
+});
+
+// An implement continues its analysis's own session: the latest finished
+// analysis of the spec, run with the same AI, ended within the hour.
+describe("the analysis session an implement continues", () => {
+  const NOW = Date.parse("2026-09-26T14:00:00Z");
+  const job = (results: Record<string, unknown>[], extra: Record<string, unknown> = {}) =>
+    ({ id: "j", project: "aide", specFolder: "541-x", steps: ["analyze", "implement"], results, ...extra }) as never;
+  const analysis = (at: string, extra: Record<string, unknown> = {}) =>
+    ({ step: "analyze", ok: true, sessionId: "s-analyze", tool: "claude", at, ...extra });
+
+  test("a recent analysis with the same AI is continued", () => {
+    const j = job([analysis("2026-09-26T13:30:00Z")]);
+    expect(analysisSessionToResume(j, [j], "claude", NOW)).toBe("s-analyze");
+  });
+
+  test("one older than an hour, run with another AI, or not finished, is not", () => {
+    for (const r of [
+      analysis("2026-09-26T12:30:00Z"),
+      analysis("2026-09-26T13:30:00Z", { tool: "codex" }),
+      analysis("2026-09-26T13:30:00Z", { ok: false }),
+    ]) {
+      const j = job([r]);
+      expect(analysisSessionToResume(j, [j], "claude", NOW)).toBeUndefined();
+    }
+  });
+
+  test("the analysis may be in an earlier job for the same spec, and the latest one wins", () => {
+    const earlier = job([analysis("2026-09-26T13:10:00Z", { sessionId: "s-old" }), analysis("2026-09-26T13:40:00Z", { sessionId: "s-new" })], { id: "e" });
+    const other = job([analysis("2026-09-26T13:50:00Z", { sessionId: "s-other" })], { id: "o", specFolder: "540-y" });
+    const now = job([], { id: "n", steps: ["implement"] });
+    expect(analysisSessionToResume(now, [earlier, other, now], "claude", NOW)).toBe("s-new");
+  });
+
+  test("only an implement is handed the session", () => {
+    const argvFor = (step: string): string[] =>
+      runnerArgv(
+        {
+          id: "j1", project: "aide", specFolder: "541-x", steps: [step], stepIndex: 0,
+          model: {}, timeoutSec: {}, permissionMode: {}, state: "queued", createdAt: "", results: [],
+        } as unknown as Parameters<typeof runnerArgv>[0],
+        step, "/tmp/r.json", { runnerBin: "/bin/aide-run-spec", projectDir: "/p", push: "branch", resumeSession: "s-analyze" },
+      );
+    expect(argvFor("implement")).toContain("--resume-session");
+    expect(argvFor("archive")).not.toContain("--resume-session");
   });
 });

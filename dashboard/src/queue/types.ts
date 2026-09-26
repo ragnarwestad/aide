@@ -357,6 +357,10 @@ export interface QueueDefaults {
    *  granted. Absent means no choice is offered and naming one is
    *  refused — off by default, like the rest of the queue. */
   modelChoices?: Record<string, ModelChoice>;
+  /** An implement continues its analysis's own AI session when both ran
+   *  with the same AI and the analysis ended within the hour
+   *  (`analysisSessionToResume`). Off unless the host's config says so. */
+  resumeAnalysis?: boolean;
 }
 
 /** Resolves a project NAME to its real spec folders, or null if it is

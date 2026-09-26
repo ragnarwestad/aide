@@ -98,6 +98,36 @@ codex_safety_flags() {
 # skill is NAMED in words instead, and the argument follows in the same
 # sentence. Verified 2026-09-16: a run told to use a skill by name
 # called `skill` with that name and answered from its contents.
+# `argv`, rewritten to continue the session $1 instead of starting one —
+# into $resumed_argv. Claude takes `--resume <id>` in place of
+# `--session-id`; Codex resumes through `codex exec resume <thread> -`
+# (the prompt on stdin, as before), and `resume` takes the bypass flag and
+# the model but neither `--sandbox` nor `--add-dir` (verified on 0.154.0)
+# — the thread keeps what it started with, so those pairs are dropped
+# rather than refused; opencode spells it `--session <id>` (`opencode run
+# --help`, 1.18.31), and its subcommand stays `run`. Used for a red
+# suite's fix turn and for an implement that continues its analysis.
+resume_argv() {
+  local session="$1" arg skip="no" resumes="no"
+  resumed_argv=()
+  for arg in "${argv[@]}"; do
+    if [ "$skip" = "yes" ]; then skip="no"; continue; fi
+    case "$arg" in
+      --session-id|--resume) resumed_argv+=(--resume "$session"); resumes="yes"; skip="yes" ;;
+      --sandbox|--add-dir) skip="yes" ;;
+      exec) resumed_argv+=(exec resume); resumes="yes" ;;
+      *) resumed_argv+=("$arg") ;;
+    esac
+  done
+  if [ "$tool" = "codex" ]; then
+    resumed_argv+=("$session" -)
+  elif [ "$tool" = "opencode" ]; then
+    resumed_argv+=(--session "$session")
+  else
+    [ "$resumes" = "yes" ] || resumed_argv+=(--resume "$session")
+  fi
+}
+
 skill_call() {
   local name="$1" args="$2"
   if [ "$tool" = "opencode" ]; then
@@ -250,6 +280,18 @@ else
   [ -n "$model" ] && argv+=(--model "$model")
   [ -n "$effort" ] && argv+=(--effort "$effort")
   [ -n "$session_id" ] && argv+=(--session-id "$session_id")
+fi
+
+# An implement that continues its analysis's own session (the board passes
+# --resume-session only when both ran with this tool and the analysis ended
+# within the hour): it starts with what the analysis read. The fresh argv
+# is kept for the one case the session cannot be continued.
+fresh_argv=("${argv[@]}")
+if [ -n "${resume_session:-}" ] && [ "$command_name" = "implement" ]; then
+  resume_argv "$resume_session"
+  argv=("${resumed_argv[@]}")
+else
+  resume_session=""
 fi
 
 if [ "$dry_run" = "yes" ]; then

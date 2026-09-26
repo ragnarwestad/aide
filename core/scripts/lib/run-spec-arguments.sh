@@ -90,6 +90,7 @@ no_ai_formulate="no"
 # templates. Without it a reopen keeps every file and runs no model.
 reset_files="no"
 wiki_refresh="no"
+resume_session=""
 # The file whose contents become the prompt VERBATIM, for `--command
 # schedule` alone (spec 259). A schedule entry names no aide skill and
 # no spec folder — its whole "job" is the text at this path, read from
@@ -144,6 +145,7 @@ while [ $# -gt 0 ]; do
     --effort) effort="${2:-}"; shift 2 ;;
     --tool) tool="${2:-}"; shift 2 ;;
     --session-id) session_id="${2:-}"; shift 2 ;;
+    --resume-session) resume_session="${2:-}"; shift 2 ;;
     --stream-file) stream_file="${2:-}"; shift 2 ;;
     --kill-grace-sec) kill_grace_sec="${2:-}"; shift 2 ;;
     --push) push_mode="${2:-}"; push_mode_explicit="yes"; shift 2 ;;

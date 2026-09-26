@@ -295,5 +295,6 @@ export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefa
     permissionMode: table(r.permissionMode, base.permissionMode),
     model: table(r.model, base.model),
     modelChoices: choices(r.modelChoices),
+    ...(r.resumeAnalysis === true || (r.resumeAnalysis === undefined && base.resumeAnalysis) ? { resumeAnalysis: true } : {}),
   };
 }

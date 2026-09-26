@@ -311,3 +311,14 @@ describe("mergeQueueDefaults", () => {
     expect(merged.model).toEqual(DEFAULTS.model);
   });
 });
+
+// Continuing the analysis's session is an experiment, off unless the host's
+// queue-config.json turns it on.
+describe("resumeAnalysis in the queue config", () => {
+  test("off unless the config says true", () => {
+    expect(mergeQueueDefaults(DEFAULTS, {}).resumeAnalysis).toBeUndefined();
+    expect(mergeQueueDefaults(DEFAULTS, { resumeAnalysis: "yes" }).resumeAnalysis).toBeUndefined();
+    expect(mergeQueueDefaults(DEFAULTS, { resumeAnalysis: true }).resumeAnalysis).toBe(true);
+  });
+});
+
