@@ -37,7 +37,7 @@ afterAll(async () => {
  *  share of the table's own width. */
 async function share(width: number, edit = false): Promise<{ value: number; comment: number }> {
   await page.setViewportSize({ width, height: 900 });
-  await withBrowser(page.goto(`${base}/projects/paceup${edit ? "?edit=1" : ""}`), `page.goto at ${width}px`);
+  await withBrowser(page.goto(`${base}/projects/paceup${edit ? "?edit=1" : "?tab=config"}`), `page.goto at ${width}px`);
   return page.evaluate((path) => {
     const cell = [...document.querySelectorAll('td[data-col="setting-value"]')]
       .find((td) => td.textContent?.includes(path) || (td.querySelector("textarea") as HTMLTextAreaElement | null)?.value.includes(path))!;

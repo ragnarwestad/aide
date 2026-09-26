@@ -169,10 +169,10 @@ describe("the project settings form's own Save (spec 486)", () => {
     return { bound, form, location, refusedSlot, fetchCalls, submit };
   };
 
-  test("a successful save reloads the reader's own project path, dropping ?edit=1", async () => {
+  test("a successful save reloads the reader's own project on Config, dropping ?edit=1", async () => {
     const h = buildHarness(() => ({ ok: true, body: { ok: true, results: [] } }));
     await h.submit!({ defaultPrevented: false, preventDefault: () => {} } as unknown as Event);
-    expect(h.location.href).toBe("/projects/aide");
+    expect(h.location.href).toBe("/projects/aide?tab=config");
   });
 
   test("a refusal is written into the form's own .refused slot, and the page stays put", async () => {

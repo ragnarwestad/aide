@@ -13,6 +13,7 @@ const page = (home: "project" | "dashboard" | "shadowed" | "none") =>
   renderProjectPage(view, { hasConfigFile: false, rows: [] }, null, "2026-09-20T00:00:00Z", NAV, {
     worktreeLinkCandidates: [],
     editing: false,
+    tab: "config",
     settingsHome: home,
   });
 

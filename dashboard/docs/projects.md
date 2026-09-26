@@ -200,8 +200,8 @@ from.
 
 ### A project's own page
 
-`/projects/<name>` has three tabs — **Config**, **Deploy** and **Schedule** — chosen with `?tab=` and defaulting to
-Config, which is also where an unrecognised value lands.
+`/projects/<name>` has three tabs — **Deploy**, **Config** and **Schedule** — chosen with `?tab=` and defaulting to
+Deploy, which is also where an unrecognised value lands. `?edit=1`, the settings table's edit state, opens on Config.
 
 #### Config
 

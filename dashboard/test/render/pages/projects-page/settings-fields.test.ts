@@ -23,6 +23,7 @@ const page = (editing: boolean, candidates: string[] = []) =>
   renderProjectPage(project(), { hasConfigFile: true, rows: ROWS }, null, "2026-08-31T00:00:00Z", NAV, {
     worktreeLinkCandidates: candidates,
     editing,
+    tab: "config",
     codeLanding: "merge",
   });
 

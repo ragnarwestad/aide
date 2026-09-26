@@ -159,7 +159,7 @@ function settingsHomeSentence(home: ProjectPageOptions["settingsHome"]): string 
  *
  *  `editing` is server-rendered from the request's own `?edit=1`, never
  *  stored: Edit is a link to it, Cancel and a successful Save's redirect
- *  both go to the plain path. Exactly one `<table>` element exists in
+ *  both go to the Config tab without it. Exactly one `<table>` element exists in
  *  the response either way. */
 export function unifiedSettingsTable(
   settings: ProjectSettingsView,
@@ -217,7 +217,7 @@ export function unifiedSettingsTable(
     // page's siblings (a plain link, not a submit-form pair) —
     // `data-discard-changes` gives unsaved-changes.ts the same
     // exemption by a different marker (spec 438).
-    `<a class="btn" data-discard-changes href="${esc(path)}">Cancel</a></div>` +
+    `<a class="btn" data-discard-changes href="${esc(path)}?tab=config">Cancel</a></div>` +
     // Two sibling rows, not one holding both (spec 531) — `.newspecform
     // .frow` is a flex row, so a single shared frow made the sentence
     // and the table flex children squeezed beside each other instead of

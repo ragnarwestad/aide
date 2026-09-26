@@ -40,7 +40,7 @@ afterAll(async () => {
  *  window at `width` — 0 each when nothing scrolls sideways. */
 async function overflow(width: number, edit: boolean): Promise<{ page: number; table: number }> {
   await page.setViewportSize({ width, height: 900 });
-  await withBrowser(page.goto(`${base}/projects/paceup${edit ? "?edit=1" : ""}`), `page.goto at ${width}px`);
+  await withBrowser(page.goto(`${base}/projects/paceup${edit ? "?edit=1" : "?tab=config"}`), `page.goto at ${width}px`);
   return page.evaluate((w) => {
     const wrap = document.querySelector(".tablewrap");
     return {
@@ -60,7 +60,7 @@ for (const width of [360, 390]) {
 
 test("on a desktop the table keeps its three columns, Value and Comment evenly", async () => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await withBrowser(page.goto(`${base}/projects/paceup`), "page.goto at 1280px");
+  await withBrowser(page.goto(`${base}/projects/paceup?tab=config`), "page.goto at 1280px");
   const widths = await page
     .locator("table.list thead th")
     .evaluateAll((cells) => cells.map((c) => Math.round(c.getBoundingClientRect().width)));

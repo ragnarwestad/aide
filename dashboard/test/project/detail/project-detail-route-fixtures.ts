@@ -89,8 +89,10 @@ export function serve(root: string, git: { run: GitRunner }, driftPollMs?: numbe
   }).base;
 }
 
-export const get = (base: string, name: string, tab?: string) =>
-  fetch(`${base}/projects/${encodeURIComponent(name)}${tab ? `?tab=${tab}` : ""}`);
+/** The project page on one tab — Config unless another is named, since
+ *  most of these tests read the settings table. */
+export const get = (base: string, name: string, tab = "config") =>
+  fetch(`${base}/projects/${encodeURIComponent(name)}?tab=${tab}`);
 
 /** What a checkout on its default branch, `n` commits behind origin,
  *  answers to every call the drift check and the readiness check make —

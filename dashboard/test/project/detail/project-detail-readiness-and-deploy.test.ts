@@ -80,13 +80,13 @@ describe("what the page says about whether a run could start (criteria 4-6, 8)",
   // readiness answer is — never offered, and a stale `?tab=health` link
   // falls back to Config the same silent way `pickTab` already gives
   // every unknown tab name.
-  test("no Health tab ever appears, and ?tab=health falls back to Config (AC5, REQ-1)", async () => {
+  test("no Health tab ever appears, and ?tab=health falls back to Deploy (AC5, REQ-1)", async () => {
     const root = projectsRoot({ aide: null });
     const base = serve(root, settled(root, "aide"));
     const html = await (await get(base, "aide")).text();
     expect(html).not.toMatch(/>Health</);
     const fallback = await (await get(base, "aide", "health")).text();
-    expect(fallback).toMatch(/aria-current="page"[^>]*>Config/);
+    expect(fallback).toMatch(/aria-current="page"[^>]*>Deploy/);
   });
 
   // Read-only, and provably so: a page load that moved a checkout is
@@ -507,13 +507,13 @@ describe("the same tab bar on a gated and an ungated project (REQ-7)", () => {
     return [...subtabs.matchAll(/<a class="tab"[^>]*>([^<]+)<\/a>/g)].map((m) => m[1]!);
   };
 
-  test("both show exactly Config, Deploy, Schedule, in that order", async () => {
+  test("both show exactly Deploy, Config, Schedule, in that order", async () => {
     const gatedRoot = projectsRoot({ aide: INSTALLS });
     const gatedHtml = await (await get(serve(gatedRoot, settled(gatedRoot, "aide")), "aide")).text();
     const ungatedRoot = projectsRoot({ aide: null });
     const ungatedHtml = await (await get(serve(ungatedRoot, settled(ungatedRoot, "aide")), "aide")).text();
-    expect(tabLabels(gatedHtml)).toEqual(["Config", "Deploy", "Schedule"]);
-    expect(tabLabels(ungatedHtml)).toEqual(["Config", "Deploy", "Schedule"]);
+    expect(tabLabels(gatedHtml)).toEqual(["Deploy", "Config", "Schedule"]);
+    expect(tabLabels(ungatedHtml)).toEqual(["Deploy", "Config", "Schedule"]);
   });
 
   test("the ungated project's Deploy tab says why it cannot deploy", async () => {
