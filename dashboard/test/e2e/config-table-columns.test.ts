@@ -136,3 +136,33 @@ test("Enter raises one submit and leaves no line break; a filled break is folded
   await specsField().fill("a\nb");
   expect(await specsField().inputValue()).toBe("a b");
 });
+
+// The button row is the same in view and in edit: the same air above it,
+// both buttons the same height, and the table under it where it was, so
+// pressing Edit moves nothing but the buttons' words.
+test("Edit and Cancel sit where Save and Cancel do, with air above them and one height", async () => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const measure = async (q: string) => {
+    await withBrowser(page.goto(`${base}/projects/paceup${q}`), `page.goto(${q})`);
+    return page.evaluate(() => {
+      const actions = document.querySelector(".configactions")!;
+      const box = actions.getBoundingClientRect();
+      const above = [...document.querySelectorAll(".tabpanel .rowmsg")]
+        .map((m) => m.getBoundingClientRect().bottom)
+        .filter((b) => b <= box.top + 1);
+      return {
+        air: Math.round(box.top - Math.max(...above)),
+        heights: [...actions.querySelectorAll(".btn")].map((b) => Math.round(b.getBoundingClientRect().height)),
+        top: Math.round(box.top),
+        tableTop: Math.round(document.querySelector(".tabpanel table.list")!.getBoundingClientRect().top),
+      };
+    });
+  };
+  const view = await measure("?tab=config");
+  const edit = await measure("?edit=1");
+  expect(view.air).toBeGreaterThanOrEqual(8);
+  expect(view.air).toBe(edit.air);
+  expect(new Set([...view.heights, ...edit.heights]).size).toBe(1);
+  expect(view.top).toBe(edit.top);
+  expect(view.tableTop).toBe(edit.tableTop);
+});

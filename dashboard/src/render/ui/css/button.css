@@ -4,7 +4,7 @@
    sat in. */
 
 .btn { display: inline-flex; align-items: center; gap: var(--sp-2);
-  height: 28px; padding: 0 var(--sp-3); border-radius: var(--r);
+  height: 28px; box-sizing: border-box; padding: 0 var(--sp-3); border-radius: var(--r);
   border: 1px solid var(--line-strong); background: var(--surface);
   color: var(--text); font: 500 var(--fs-m)/1 var(--sans);
   cursor: pointer; white-space: nowrap;

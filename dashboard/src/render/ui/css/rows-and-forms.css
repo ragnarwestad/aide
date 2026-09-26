@@ -101,6 +101,17 @@ td form { margin: 0; display: inline-block; }
    no effect and the div is already full width. */
 .configactions { display: flex; justify-content: flex-end; gap: var(--sp-2);
   flex-basis: 100%; margin-bottom: var(--sp-3); }
+/* View mode puts the row straight in the tab panel, under the notices,
+   with the air the edit form's own gap gives it there; in edit mode that
+   gap also stands below it, so its own margin comes off. Either way the
+   buttons and the table under them stand where they stood. */
+.tabpanel > .configactions { margin-top: var(--sp-3); }
+.projectsettingsform > .configactions { margin-bottom: 0; }
+/* The sentence naming where the settings are kept, between the buttons
+   and the table: the same air on both sides in either mode — its own
+   margins in view mode, the form's gap in edit mode. */
+.tabpanel > .configactions + p { margin-block: var(--sp-3); }
+.projectsettingsform > .frow > p { margin: 0; }
 /* The Settings page's phases form: as wide as its own table and centred
    in the frame. `table.settingstable` is `width: auto`, so it is as wide
    as its content and no wider — and with the form full width, Save and
