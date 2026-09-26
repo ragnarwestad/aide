@@ -41,15 +41,14 @@ export function isFinal(entry: string, final: string): boolean {
   return entry === flat || (entry.endsWith("…") && flat.startsWith(entry.slice(0, -1)));
 }
 
-/** A step's log lines and its final message. The last line is left out
- *  when it only repeats the message, so the message reads once, after the
- *  lines that led to it. */
-export function logAndFinalMessage(
-  text: string,
-  opts: SummarizeOptions = {},
-): { lines: string[]; finalMessage?: string } {
+/** A step's log lines, the last of them the whole final message: a last
+ *  line that only repeats the message is replaced by it, and the message is
+ *  appended when the log did not end on it. */
+export function linesWithFinalMessage(text: string, opts: SummarizeOptions = {}): string[] {
   const lines = summarizeEntries(text, { ...opts, only: undefined }).map((e) => e.text);
   const final = finalMessage(text, opts);
-  if (final && lines.length && isFinal(lines[lines.length - 1]!, final)) lines.pop();
-  return { lines, finalMessage: final };
+  if (!final) return lines;
+  if (lines.length && isFinal(lines[lines.length - 1]!, final)) lines[lines.length - 1] = final;
+  else lines.push(final);
+  return lines;
 }

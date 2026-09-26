@@ -69,7 +69,7 @@ describe("spec 240: resolveOpenStep", () => {
 describe("spec 240: a closed step stays closed across the page's own reload", () => {
   const runningJob = (): JobDetailView =>
     detail({
-      runningStep: { step: "analyze", logs: ["Bash ls"] },
+      runningStep: { step: "analyze", logs: [{ by: "ai", lines: ["Bash ls"] }] },
       results: [
         {
           step: "analyze", ok: true, costUsd: 0.42, costMeasured: true,
@@ -242,7 +242,7 @@ describe("provider-limit presentation", () => {
   test("the Logs summary names the limit under the step's result", () => {
     const html = stepResults(
       [{ step: "analyze", ok: false, costUsd: 1.58, costMeasured: true, terminalReason: "provider-limit",
-        providerLimit: limit, logs: ["Read spec"] }],
+        providerLimit: limit, logs: [{ by: "ai", lines: ["Read spec"] }] }],
       undefined,
       { tabHref: "/specs/aide/479-x?tab=steps", openStep: "0" },
     );
@@ -359,8 +359,7 @@ describe("an opened step's facts", () => {
     costMeasured: true,
     terminalReason: "completed",
     at: "2026-09-13T10:05:00Z",
-    logs: ["Bash bun test"],
-    finalMessage: "All done.",
+    logs: [{ by: "ai" as const, lines: ["Bash bun test", "All done."] }],
     changedFiles: [{ path: "src/queue/runner.ts", added: 4, removed: 1, binary: false }],
   };
   const HREF = "/specs/aide/1-x?tab=steps";
@@ -407,7 +406,7 @@ describe("an opened step's facts", () => {
   });
 
   test("an unfiltered step with an empty log still says nothing was captured", () => {
-    const html = stepResults([{ ...FULL_RESULT, logs: [], finalMessage: undefined }], undefined, { tabHref: HREF, openStep: "0" });
+    const html = stepResults([{ ...FULL_RESULT, logs: [] }], undefined, { tabHref: HREF, openStep: "0" });
 
     expect(html).toContain("Nothing has been captured");
   });

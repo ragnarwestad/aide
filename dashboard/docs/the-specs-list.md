@@ -348,10 +348,13 @@ which is what Update is for.
 
 **An opened step shows its numbers, then three tabs: Log, Changed files and Errors.** The numbers are the row's own
 time, cost, tokens and result, and a step with no log says so. One tab shows at a time, in one box about a hundred
-lines tall that opens at its end. Log holds the log's lines and, last and under its own heading, the step's full final
-message; a last line that only repeats that message is left out, so it reads once. Changed files lists what the step's
+lines tall that opens at its end. Log is one scrolling log of the whole step in the order things happened: Aide's own
+lines (the lock, the fetch, the worktree, the tests, the commit) and the AI's, with a separator line where the writer
+changes ("Aide: preparing", "AI (Claude Sonnet)", "Aide: tests and commit"). The step's full final message is the last
+of the AI's lines, with no heading; a last line that only repeats it is replaced by it, so it reads once. Changed files lists what the step's
 own commit changed with lines added and removed, and the tab's name carries the count (none when the step recorded no
-commit range or is still running). Errors holds the calls the tool itself reported as failed (the last forty), one
+commit range or is still running). Errors holds the error lines of both writers, in one list with no separators:
+Aide's `error:` lines and the calls the tool itself reported as failed (the last forty per AI turn), one
 word for what each CLI names differently, decided where the transcript is read (`src/queue/parse-stream/`). The tab is
 `?steptab=log|files|errors` beside `?step=`, on the job page, the spec page's Logs tab and a project's Wiki tab alike:
 a link rather than a widget, because the tab reloads itself every ten seconds, and pressing one keeps the step open.

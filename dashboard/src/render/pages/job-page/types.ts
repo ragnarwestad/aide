@@ -3,6 +3,7 @@
 import type { QueueRowView } from "../../ui/job-state";
 import type { DiffStatEntry } from "../../../git/diff-stat.ts";
 import type { ProviderLimit } from "../../../queue/queue.ts";
+import type { LogPart } from "../../../queue/parse-stream";
 
 export interface JobStepResultView {
   step?: string;
@@ -26,24 +27,25 @@ export interface JobStepResultView {
   /** Absent while this step's own work is still landing (spec 395) — see
    *  `StepResult.at`, the field this is built from. */
   at?: string;
-  /** This step's OWN transcript, already-escaped (spec 240) — read from
-   *  its own `streamFile` (`queue.ts:143`), never the job's live
-   *  pointer. Absent when the step wrote no transcript of its own (a
-   *  refused run, or one older than the field existing). */
-  logs?: string[];
+  /** This step's Log, already-escaped, as parts in the order things
+   *  happened: Aide's own lines from the run log beside the step's own
+   *  transcript, and the AI's lines from that. Absent when the step wrote
+   *  no transcript of its own (a refused run, or one older than the field
+   *  existing). */
+  logs?: LogPart[];
   /** Which attempt (job) ran this step, oldest = 1 (spec 242). Absent
    *  when the spec this row belongs to has only ever run once — nothing
    *  to disambiguate, so nothing is drawn. This page's own single-job
    *  table never sets this; only `spec-page.ts`'s flattened, multi-job
    *  Steps tab does. */
   attempt?: number;
-  /** The lines of `logs` the tool itself reported as failed commands,
-   *  already-escaped — the Errors tab. Absent exactly when `logs` is. */
+  /** The error lines of both writers, already-escaped, in the order they
+   *  happened — the Errors tab: Aide's `error:` lines and the AI's failed
+   *  commands. Absent exactly when `logs` is. */
   errors?: string[];
-  /** The assistant's own final message, unclipped (spec 452) — Claude's
-   *  `result` event, or Codex's last `agent_message`. Absent when the
-   *  step wrote no transcript, or the transcript has neither. */
-  finalMessage?: string;
+  /** The AI's name in the Log's separator (`Claude Sonnet`). Absent when
+   *  the step ran no AI. */
+  aiModel?: string;
   /** The files this step's own commit(s) touched, with lines added and
    *  removed (spec 452) — `git diff --numstat` between the step's
    *  `headBefore`/`headAfter`. Undefined means "not checked" (no `repos`
@@ -106,7 +108,7 @@ export interface JobDetailView extends QueueRowView {
    *  `JobStepResultView` yet — a step only gets one when it ends — so
    *  it cannot live in `results`, and its transcript is the job's own
    *  live pointer, not a finished step's file. */
-  runningStep?: { step: string; sessionId?: string; logs: string[]; errors?: string[]; attempt?: number };
+  runningStep?: { step: string; sessionId?: string; logs: LogPart[]; errors?: string[]; aiModel?: string; attempt?: number };
   /** Where "← Back" goes (spec 252) — resolved by `serve.ts` from the
    *  request's own `Referer`, same-origin only. Absent falls back to
    *  `/`, today's exact hardcoded destination. */

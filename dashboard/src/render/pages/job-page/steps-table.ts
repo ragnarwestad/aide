@@ -103,7 +103,7 @@ export function resolveOpenStep(query: string | undefined, hasRunning: boolean):
  *  own cells already carry — `css-guard-class-vocabulary.test.ts` fails
  *  any render file that introduces a class outside that vocabulary. */
 function stepFacts(r: JobStepResultView, lang: Language = "en"): string {
-  const hasLog = !!((r.logs && r.logs.length > 0) || r.finalMessage);
+  const hasLog = !!r.logs?.some((part) => part.lines.length > 0);
   const facts =
     `<table class="facts"><tbody>` +
     `<tr><td class="label">${t(lang, "job.stepAt")}</td><td>${r.at ? esc(r.at) : "–"}</td></tr>` +

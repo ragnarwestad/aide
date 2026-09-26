@@ -4,6 +4,7 @@ word — the record on the branch is the runner's own.
 """
 
 import json
+import re
 import subprocess
 from ..conftest import READ_SPECS, git, run, stand_in
 from .run_spec_results import CODEX_STREAM_OK, CODEX_THREAD_ID, RESULT_OK, emits
@@ -406,3 +407,42 @@ def test_a_red_step_reports_nothing_seen_green(runner, workspace, fake_claude):
     rc, out, _ = run(runner, workspace, _implementing_claude(fake_claude), command="implement")
     assert out["terminalReason"] == "tests-red", out
     assert "testedGreen" not in out, out
+
+
+def _stamped(err):
+    return [m.group(1) for m in re.finditer(r"^aide-run-spec \d\d:\d\d:\d\d \+\d+s (.+)$", err, re.M)]
+
+
+def test_the_second_turn_line_names_the_size_the_first_turn_left_AC_3(runner, workspace, fake_claude, tmp_path):
+    with_status(workspace, ["create", "analyze"])
+    _project_with_test_cmd(workspace, "test -f fixed.txt")
+    stream = tmp_path / "job.stream.jsonl"
+    _, out, _, err = run(
+        runner, workspace, _fixing_claude(fake_claude), command="implement",
+        stream_file=str(stream), return_stderr=True,
+    )
+    turns = [s for s in _stamped(err) if s.startswith("model turn started")]
+    first = len(json.dumps(RESULT_OK)) + 1
+    assert turns == ["model turn started (transcript at byte 0)", f"model turn started (transcript at byte {first})"], turns
+
+
+def test_a_green_run_is_a_line_after_the_line_that_says_the_tests_are_running_AC_3(runner, workspace, fake_claude):
+    with_status(workspace, ["create", "analyze"])
+    _project_with_test_cmd(workspace, "true")
+    _, out, _, err = run(runner, workspace, _implementing_claude(fake_claude), command="implement", return_stderr=True)
+    stages = _stamped(err)
+    running = next(i for i, s in enumerate(stages) if s.startswith("running the project's tests"))
+    green = next(i for i, s in enumerate(stages) if s == "the project's tests are green")
+    assert running < green, stages
+
+
+def test_the_red_hand_back_and_a_tests_red_stop_are_error_lines_AC_7(runner, workspace, fake_claude):
+    with_status(workspace, ["create", "analyze"])
+    _project_with_test_cmd(workspace, "test -f fixed.txt")
+    _, out, _, err = run(
+        runner, workspace, _fixing_claude(fake_claude, fix_on_retry=False), command="implement", return_stderr=True
+    )
+    errors = [s for s in _stamped(err) if s.startswith("error: ")]
+    assert errors[0].startswith("error: the tests are red — handing them back"), errors
+    assert errors[-1].startswith("error: the step reported success, but the project's tests are red"), errors
+    assert "\n" not in errors[-1]

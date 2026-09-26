@@ -1,9 +1,10 @@
-// `logAndFinalMessage`: a step's log lines and its final message, with the
-// last line left out when it only repeats the message. The rule is proven
-// here, on the three transcript schemas, and nowhere else.
+// `linesWithFinalMessage`: a step's log lines, the last of them the whole
+// final message. A last line that only repeats the message is replaced by
+// it; otherwise the message is appended. The rule is proven here, on the
+// three transcript schemas, and nowhere else.
 
 import { describe, expect, test } from "bun:test";
-import { logAndFinalMessage } from "../../../src/queue/parse-stream";
+import { linesWithFinalMessage } from "../../../src/queue/parse-stream";
 
 const line = (o: unknown) => JSON.stringify(o);
 
@@ -20,72 +21,69 @@ const codex = (items: unknown[]): string =>
 const opencode = (parts: unknown[]): string =>
   parts.map((part) => line({ type: "text", part })).join("\n");
 
-describe("logAndFinalMessage: a last entry that repeats the final message", () => {
-  test("Claude: the repeat is left out and the message is returned once, whole (AC-3)", () => {
-    const shown = logAndFinalMessage(claude([bash("bun test"), say("All done.")], "All done."));
-    expect(shown.lines).toEqual(["Bash bun test"]);
-    expect(shown.finalMessage).toBe("All done.");
+describe("linesWithFinalMessage: a last entry that repeats the final message", () => {
+  test("Claude: the whole message is the last line and appears once (AC-5)", () => {
+    expect(linesWithFinalMessage(claude([bash("bun test"), say("All done.")], "All done."))).toEqual([
+      "Bash bun test",
+      "All done.",
+    ]);
   });
 
-  test("Codex: the repeat is left out and the message is returned once, whole (AC-3)", () => {
-    const shown = logAndFinalMessage(
+  test("Codex: the whole message is the last line and appears once (AC-5)", () => {
+    const lines = linesWithFinalMessage(
       codex([
         { type: "command_execution", command: "bun test", exit_code: 0 },
         { type: "agent_message", text: "All done." },
       ]),
     );
-    expect(shown.lines).toEqual(["bun test"]);
-    expect(shown.finalMessage).toBe("All done.");
+    expect(lines).toEqual(["bun test", "All done."]);
   });
 
-  test("opencode: the repeat is left out and the message is returned once, whole (AC-3)", () => {
-    const shown = logAndFinalMessage(
-      opencode([{ type: "tool", tool: "read" }, { type: "text", text: "All done." }]),
-    );
-    expect(shown.lines).toEqual(["tool read"]);
-    expect(shown.finalMessage).toBe("All done.");
+  test("opencode: the whole message is the last line and appears once (AC-5)", () => {
+    const lines = linesWithFinalMessage(opencode([{ type: "tool", tool: "read" }, { type: "text", text: "All done." }]));
+    expect(lines).toEqual(["tool read", "All done."]);
   });
 
-  test("escaped characters and a line break do not hide the repeat (AC-3)", () => {
+  test("escaped characters and a line break do not hide the repeat (AC-5)", () => {
     const message = 'Fixed <b> & "c"\nsecond line';
-    const shown = logAndFinalMessage(claude([bash("x"), say(message)], message));
-    expect(shown.lines).toEqual(["Bash x"]);
-    expect(shown.finalMessage).toBe('Fixed &lt;b&gt; &amp; &quot;c&quot;\nsecond line');
+    expect(linesWithFinalMessage(claude([bash("x"), say(message)], message))).toEqual([
+      "Bash x",
+      'Fixed &lt;b&gt; &amp; &quot;c&quot;\nsecond line',
+    ]);
   });
 
-  test("a message longer than the log's cut is still recognised, and returned whole (AC-3)", () => {
+  test("a message longer than the log's cut is recognised, and the last line is whole (AC-5)", () => {
     const message = `${"word ".repeat(80)}end & <done>`;
-    const shown = logAndFinalMessage(claude([bash("x"), say(message)], message));
-    expect(shown.lines).toEqual(["Bash x"]);
-    expect(shown.finalMessage!.length).toBeGreaterThan(300);
-    expect(shown.finalMessage!.endsWith("end &amp; &lt;done&gt;")).toBe(true);
+    const lines = linesWithFinalMessage(claude([bash("x"), say(message)], message));
+    expect(lines).toHaveLength(2);
+    expect(lines[1]!.length).toBeGreaterThan(300);
+    expect(lines[1]!.endsWith("end &amp; &lt;done&gt;")).toBe(true);
   });
 
-  test("a transcript whose only entry is the message has no lines and the message (AC-3)", () => {
-    const shown = logAndFinalMessage(claude([say("Only this.")], "Only this."));
-    expect(shown.lines).toEqual([]);
-    expect(shown.finalMessage).toBe("Only this.");
+  test("a transcript whose only entry is the message is that one line (AC-5)", () => {
+    expect(linesWithFinalMessage(claude([say("Only this.")], "Only this."))).toEqual(["Only this."]);
   });
 });
 
-describe("logAndFinalMessage: a last entry that is not a repeat", () => {
-  test("a last entry that is a tool call stays among the lines (AC-3)", () => {
-    const shown = logAndFinalMessage(claude([say("All done."), bash("bun test")], "All done."));
-    expect(shown.lines).toEqual(["All done.", "Bash bun test"]);
-    expect(shown.finalMessage).toBe("All done.");
+describe("linesWithFinalMessage: a last entry that is not a repeat", () => {
+  test("a last entry that is a tool call stays, and the message is appended (AC-5)", () => {
+    expect(linesWithFinalMessage(claude([say("All done."), bash("bun test")], "All done."))).toEqual([
+      "All done.",
+      "Bash bun test",
+      "All done.",
+    ]);
   });
 
-  test("a last text that differs from the message stays among the lines (AC-3)", () => {
-    const shown = logAndFinalMessage(claude([bash("x"), say("Almost.")], "All done."));
-    expect(shown.lines).toEqual(["Bash x", "Almost."]);
-    expect(shown.finalMessage).toBe("All done.");
+  test("a last text that differs from the message stays, and the message is appended (AC-5)", () => {
+    expect(linesWithFinalMessage(claude([bash("x"), say("Almost.")], "All done."))).toEqual([
+      "Bash x",
+      "Almost.",
+      "All done.",
+    ]);
   });
 
-  test("a transcript with no final message returns the lines and no message (AC-3)", () => {
-    const shown = logAndFinalMessage(
-      [line({ type: "assistant", message: { content: [bash("bun test")] } })].join("\n"),
-    );
-    expect(shown.lines).toEqual(["Bash bun test"]);
-    expect(shown.finalMessage).toBeUndefined();
+  test("a transcript with no final message is its lines alone (AC-5)", () => {
+    const text = [line({ type: "assistant", message: { content: [bash("bun test")] } })].join("\n");
+    expect(linesWithFinalMessage(text)).toEqual(["Bash bun test"]);
   });
 });

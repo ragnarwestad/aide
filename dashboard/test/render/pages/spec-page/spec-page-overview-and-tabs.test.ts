@@ -253,7 +253,7 @@ describe("a spec with a lead job", () => {
   const withLead = (extra: Partial<JobDetailView> = {}) => view({ lead: lead(extra) });
 
   test("the Steps tab's running row is the lead job's, word for word", () => {
-    const html = page(withLead({ runningStep: { step: "analyze", logs: ["Bash ls"] } }), "steps");
+    const html = page(withLead({ runningStep: { step: "analyze", logs: [{ by: "ai" as const, lines: ["Bash ls"] }] } }), "steps");
     expect(html).toContain("Bash ls");
   });
 
@@ -268,9 +268,21 @@ describe("a spec with a lead job", () => {
     expect(html).toContain("$0.42");
   });
 
-  test("an opened step shows the Log, Changed files and Errors strip, in the tab the address names (AC-8)", () => {
+  test("an opened step draws its parts under the separators of the Wiki tab (AC-10)", () => {
+    const logs = [{ by: "aide-before" as const, lines: ["10:45:08 +0s fetching main"] }, { by: "ai" as const, lines: ["Bash ls"] }];
     const results = [
-      { step: "analyze", ok: true, costUsd: 0.42, costMeasured: true, terminalReason: "completed", logs: ["Bash ls"], errors: [] },
+      { step: "analyze", ok: true, costUsd: 0.42, costMeasured: true, terminalReason: "completed", logs, aiModel: "Claude Sonnet" },
+    ];
+    const html = renderSpecPage(view({ lead: lead({ results }), steps: results }), GENERATED, NAV, {
+      tab: "steps", step: "0", now: NOW,
+    });
+    expect(html.match(/— Aide: preparing —/g)).toHaveLength(1);
+    expect(html).toContain("— AI (Claude Sonnet) —");
+  });
+
+  test("an opened step shows the Log, Changed files and Errors strip, in the tab the address names (AC-10)", () => {
+    const results = [
+      { step: "analyze", ok: true, costUsd: 0.42, costMeasured: true, terminalReason: "completed", logs: [{ by: "ai" as const, lines: ["Bash ls"] }], errors: [] },
     ];
     const html = renderSpecPage(view({ lead: lead({ results }), steps: results }), GENERATED, NAV, {
       tab: "steps", step: "0", steptab: "errors", now: NOW,
@@ -282,7 +294,7 @@ describe("a spec with a lead job", () => {
   });
 
   test("the tab counts come from the lead job when nothing is selected, so a reader knows before clicking", () => {
-    const html = page(withLead({ runningStep: { step: "analyze", logs: ["Bash ls"] } }));
+    const html = page(withLead({ runningStep: { step: "analyze", logs: [{ by: "ai" as const, lines: ["Bash ls"] }] } }));
     expect(html).toMatch(/>Logs \(1\)</);
   });
 

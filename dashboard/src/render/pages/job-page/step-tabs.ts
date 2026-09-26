@@ -7,6 +7,7 @@
 import { t, type Language } from "../../../i18n";
 import { pickTab } from "../../ui/tabs.ts";
 import { esc } from "../../ui/html.ts";
+import type { LogPart } from "../../../queue/parse-stream";
 import type { JobStepResultView } from "./types.ts";
 
 const STEP_TABS = ["log", "files", "errors"] as const;
@@ -17,16 +18,27 @@ export const resolveStepTab = (raw: string | undefined): StepTab => pickTab(STEP
 
 /** What the panel draws: a finished step's view already is this, and a
  *  running step's is built from its live log with `running` set. */
-export type StepPanelData = Pick<JobStepResultView, "logs" | "errors" | "finalMessage" | "changedFiles" | "terminalReason"> & {
+export type StepPanelData = Pick<JobStepResultView, "logs" | "errors" | "aiModel" | "changedFiles" | "terminalReason"> & {
   running?: boolean;
 };
 
+/** Each part opens with one separator line naming who writes what follows. */
+function separator(part: LogPart, r: StepPanelData, lang: Language): string {
+  const words = {
+    "aide-before": t(lang, "job.logAideBefore"),
+    "aide-after": t(lang, "job.logAideAfter"),
+    aide: t(lang, "job.logAide"),
+    ai: r.aiModel ? t(lang, "job.logAi", { model: r.aiModel }) : t(lang, "job.logAiPlain"),
+  }[part.by];
+  return `<span class="muted">— ${esc(words)} —</span>`;
+}
+
 function logTab(r: StepPanelData, lang: Language): string {
-  const lines = r.logs && r.logs.length > 0 ? `<pre class="specfile">${r.logs.join("\n")}</pre>` : "";
-  const message = r.finalMessage
-    ? `<h4>${esc(t(lang, "job.finalMessage"))}</h4><pre class="specfile">${r.finalMessage}</pre>`
-    : "";
-  if (lines || message) return lines + message;
+  const parts = (r.logs ?? []).filter((part) => part.lines.length > 0);
+  if (parts.length > 0) {
+    const body = parts.map((part) => `${separator(part, r, lang)}\n${part.lines.join("\n")}`).join("\n");
+    return `<pre class="specfile">${body}</pre>`;
+  }
   if (r.terminalReason === "refused") {
     return `<p class="muted">This step was refused before it started, so nothing ran and no transcript exists.</p>`;
   }

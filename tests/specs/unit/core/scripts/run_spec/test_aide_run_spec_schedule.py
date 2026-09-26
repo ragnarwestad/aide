@@ -6,6 +6,7 @@ branch — in the project or in the specs repository.
 
 import json
 import os
+import re
 import signal
 import subprocess
 
@@ -191,3 +192,10 @@ def test_a_job_that_does_nothing_leaves_no_branch_AC_3(runner, workspace, fake_c
     assert rc == 0, out
     assert out["ok"] is True, out
     assert_nothing_left(workspace, origin)
+
+
+def test_a_scope_violation_is_an_error_line_in_the_log_AC_7(runner, workspace, fake_claude, origin):
+    with_prompt(workspace)
+    _, out, _, err = schedule(runner, workspace, job(fake_claude, COMMIT_IN_PROJECT + FINISHED), return_stderr=True)
+    assert out["terminalReason"] == "scope-violation", out
+    assert re.search(r"^aide-run-spec \d\d:\d\d:\d\d \+\d+s error: a scheduled job cannot change the repository", err, re.M), err

@@ -391,3 +391,10 @@ def test_the_time_limit_must_be_a_number_above_zero(runner, workspace, fake_clau
         assert rc == 0, out
     else:
         assert rc == 2 and out["error"] == f"invalid --timeout-sec: {value}", out
+
+
+def test_a_refusal_is_an_error_line_in_the_log_AC_7(runner, workspace, fake_claude):
+    with_status(workspace, claims=["create"])
+    rc, out, _, err = run(runner, workspace, fake_claude("exit 1"), command="implement", return_stderr=True)
+    assert out["terminalReason"] == "refused", out
+    assert re.search(r"^aide-run-spec \d\d:\d\d:\d\d \+\d+s error: .*/aide-analyze", err, re.M), err

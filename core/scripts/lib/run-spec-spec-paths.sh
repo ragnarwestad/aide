@@ -299,7 +299,11 @@ fi
 # any of this. The transcript is appended to, so every turn of one step
 # is in the one stream the dashboard shows.
 run_model_turn() {
-  stage "model turn started"
+  # The transcript's size says where this turn's output begins: the dashboard
+  # cuts the transcript there to put Aide's own lines between the turns.
+  local turn_at
+  turn_at="$({ wc -c < "$transcript"; } 2>/dev/null | tr -d ' ')"
+  stage "model turn started (transcript at byte ${turn_at:-0})"
   # `set -m` puts the child in its OWN process group, so the deadline can
   # take down claude's children too — a kill that only reaches the parent
   # is not a bound. No pipeline here: with one, $! is the last command and

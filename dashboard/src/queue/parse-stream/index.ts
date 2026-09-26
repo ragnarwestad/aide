@@ -15,4 +15,5 @@ export {
   summarizeOpencodeStream,
   summarizeStream,
 } from "./entries.ts";
-export { finalMessage, isFinal, logAndFinalMessage } from "./final-message.ts";
+export { finalMessage, isFinal, linesWithFinalMessage } from "./final-message.ts";
+export { stepLog, type LogPart } from "./step-log.ts";
