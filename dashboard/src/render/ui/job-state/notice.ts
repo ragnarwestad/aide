@@ -19,6 +19,7 @@ import type { QueueRowView } from "./types.ts";
 export const HELD_BACK_INFO_KEYS = new Set<MessageKey>([
   "runner.landingPause",
   "runner.archiveRunning",
+  "runner.heldForRestart",
   "runner.dependencyNotArchived",
 ]);
 

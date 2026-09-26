@@ -48,6 +48,8 @@ export interface LandContext {
   /** Told whenever the jobs-wait's own answer changes (spec 385) — wired
    *  to the Deploy tab's server-held state. */
   onJobsWaitChange?: (jobs: string[]) => void;
+  /** Told whether a restart is waiting to fire (`restartAfterLanding`). */
+  onRestartWait?: (waiting: boolean) => void;
   /** The checkout this dashboard runs from; a landing anywhere else
    *  never restarts it. */
   dashboardRoot?: string;

@@ -101,6 +101,9 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
     restartPollMs: inputs.restartPollMs,
     restartDeferTimeoutMs: inputs.restartDeferTimeoutMs,
     onJobsWaitChange: (jobs) => setPendingRestart(state, jobs),
+    onRestartWait: (waiting) => {
+      state.restartWaiting = waiting;
+    },
     dashboardRoot: inputs.dashboardRoot,
     landingGate: inputs.landingGate,
     finalizeCreateSpec: inputs.finalizeCreateSpec,

@@ -135,8 +135,7 @@ export class Runner {
     for (const job of this.o.store.list()) {
       if (job.state === "queued" && !job.landing && acceptanceOpen?.has(job.id)) endUntickedArchive(this.o.store, job, this.o.now());
     }
-    // Quick steps before slow ones, oldest first within each group
-    // (REQ-1); list() is newest-first.
+    // Quick steps first, oldest first within each group (REQ-1); list() is newest-first.
     for (const job of queuePriorityOrder([...this.o.store.list()].reverse())) {
       // Every slot is busy. The row says so by its queue position, not
       // by a sentence — but a sentence left from an earlier pass has to
@@ -146,6 +145,7 @@ export class Runner {
         return;
       }
       if (job.state !== "queued") continue;
+      if (this.o.startsHeld?.()) { hold(job, { key: "runner.heldForRestart" }); continue; }
       // A job whose OWN landing is in flight is still not restarted:
       // its own next step waits for its merge, which is what `landing`
       // means. That is one row's own ordering, not a pause on the

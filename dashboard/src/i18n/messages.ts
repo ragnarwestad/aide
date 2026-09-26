@@ -55,6 +55,14 @@ export const MESSAGES = {
     fr: "retenu : un merge est encore en cours — cela démarre une fois terminé",
     resolve: "this starts when it has finished",
   },
+  "runner.heldForRestart": {
+    en: "held back: the board restarts after a deploy once the running phases are done — it starts after that",
+    nb: "holdt tilbake: boardet starter på nytt etter en deploy når fasene som kjører er ferdige — dette starter etterpå",
+    es: "retenido: el tablero se reinicia tras un despliegue cuando terminen las fases en curso — empieza después",
+    de: "zurückgehalten: das Board startet nach einem Deploy neu, sobald die laufenden Phasen fertig sind — das startet danach",
+    fr: "retenu : le tableau redémarre après un déploiement une fois les phases en cours terminées — cela démarre ensuite",
+    resolve: "it starts after that",
+  },
   "runner.archiveRunning": {
     en: "held back: another archive is running in this project — it starts when that one has merged",
     nb: "holdt tilbake: en annen arkivering kjører i dette prosjektet — dette starter når den er merget",

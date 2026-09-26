@@ -97,6 +97,9 @@ export interface StepOutcome {
 
 export interface RunnerOptions {
   store: QueueStore;
+  /** True while a restart waits for running phases to finish: no new
+   *  phase starts, so the wait ends when the running ones do. */
+  startsHeld?: () => boolean;
   /** Where a project's checkout lives on this machine. */
   projectDir: (project: string) => string;
   /** Where a project's SPECS checkout lives, when it is a repository of

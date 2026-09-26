@@ -129,11 +129,15 @@ export async function restartAfterLanding(ctx: {
    *  with `[]` once the wait is over one way or another (spec 385) — the
    *  one signal the Deploy tab's "waiting" sentence is drawn from. */
   onJobsWaitChange?: (jobs: string[]) => void;
+  /** Told `true` while the restart waits and `false` once it fires, so
+   *  the queue starts no new phase for the wait to outlast. */
+  onRestartWait?: (waiting: boolean) => void;
 }): Promise<void> {
   if (!(await ctx.restart.registered())) {
     ctx.onJobsWaitChange?.([]);
     return;
   }
+  ctx.onRestartWait?.(true);
   const pollMs = ctx.restartPollMs ?? RESTART_POLL_MS;
   const running = (): string[] => runningJobNames(ctx.queue, ctx.exceptJobId);
   const deadline = Date.now() + (ctx.restartDeferTimeoutMs ?? RESTART_DEFER_TIMEOUT_MS);
@@ -165,4 +169,5 @@ export async function restartAfterLanding(ctx: {
   console.error("queue: restarting the dashboard to pick up a landed code change");
   ctx.onJobsWaitChange?.([]);
   ctx.restart.fire();
+  ctx.onRestartWait?.(false);
 }

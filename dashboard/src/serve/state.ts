@@ -87,6 +87,9 @@ export interface ServerState {
    *  by running jobs (spec 385) — the Deploy tab's own "waiting" state,
    *  read fresh on every GET the way `servingSha` already is. */
   pendingRestart: { jobs: string[] } | null;
+  /** A restart is waiting for running phases and merges to finish; the
+   *  queue starts no new phase meanwhile (`Runner.tick`'s `startsHeld`). */
+  restartWaiting: boolean;
   /** What a finished deploy left wrong at the top of every page — the
    *  running service is older than the dashboard's own checkout — or
    *  `null`. Lives as long as the process: a restart starts without it,
@@ -120,7 +123,7 @@ export function createServerState(): ServerState {
   setDeployFaultNotice(null);
   const state: ServerState = {
     scan: null, unlanded: [], prOpen: [], notifySoon: null, warming: false, server: null, runner: null,
-    servingSha: null, servingRepoRoot: null, pendingRestart: null, deployFault: null,
+    servingSha: null, servingRepoRoot: null, pendingRestart: null, restartWaiting: false, deployFault: null,
     deployFailures: new Map(),
   };
   noticeOwner = state;

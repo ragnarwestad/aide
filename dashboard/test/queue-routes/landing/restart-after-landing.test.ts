@@ -91,6 +91,21 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
     expect(count()).toBe(1);
   });
 
+  // The queue starts no new phase while this is true (Runner's startsHeld).
+  test("says it is waiting from the start of the wait until it has fired", async () => {
+    const lock = createRootLock();
+    const held = lock.run("/repos/other-project", () => new Promise((r) => setTimeout(r, 20)));
+    const { hook, count } = restartSpy();
+    const seen: boolean[] = [];
+    await restartAfterLanding({
+      mergeLock: lock, restart: hook, restartPollMs: 5, restartDeferTimeoutMs: 500,
+      onRestartWait: (waiting) => seen.push(waiting),
+    });
+    await held;
+    expect(count()).toBe(1);
+    expect(seen).toEqual([true, false]);
+  });
+
   test("fires exactly once, with no further delay, once the held root clears (criterion 2)", async () => {
     const lock = createRootLock();
     const held = lock.run("/repos/other-project", () => new Promise((r) => setTimeout(r, 20)));
