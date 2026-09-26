@@ -914,3 +914,7 @@ tr.specgap > td { height: 10px; padding: 0; border: 0; background: none; }
      message a shut spec shows — gets air above it, and no line. */
   table.speclist > tbody > tr.specstate + tr:not(.specgap) > td { padding-top: var(--sp-2); }
 }
+/* A schedule row opens what its name links to, outside its own controls
+   (`followScheduleRow`, specs-client/schedule-actions.ts). */
+table.list tr[data-row-href] { cursor: pointer; }
+table.list tr[data-row-href]:hover td { background: var(--surface-2); }

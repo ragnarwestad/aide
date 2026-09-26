@@ -47,9 +47,10 @@ describe("a project's Schedule tab", () => {
       scheduleLastRuns: { "nightly-report": { lastState: "done", outputHref: "/schedule/aide/nightly-report#report" } },
     });
 
-  test("each entry's row carries its controls, its last run and a slot for a refused Run now", () => {
+  test("each entry's row opens its own page, and carries its controls, its last run and a slot for a refused Run now", () => {
     const html = page();
-    const row = html.match(/<tr><td><a href="\/schedule\/aide\/nightly-report">[\s\S]*?<\/tr>/)![0];
+    // The whole row opens the entry's own page, as its name does.
+    const row = html.match(/<tr data-row-href="\/schedule\/aide\/nightly-report"><td><a href="\/schedule\/aide\/nightly-report">[\s\S]*?<\/tr>/)![0];
     expect(row).toContain("scheduleenabled");
     expect(row).toContain("schedulerun");
     expect(row).toContain("data-delete-schedule");

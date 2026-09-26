@@ -283,7 +283,8 @@ rewritten.
 
 A scheduled job runs a prompt against this project on a cron expression, with no spec involved — a report, a
 sweep, a check. The tab lists this project's jobs by name, cron expression, prompt, next run and last run, with each
-job's Enabled switch, **Run now**, **Edit** and **Delete** on its row, or says nothing is scheduled. This is where a
+job's Enabled switch, **Run now**, **Edit** and **Delete** on its row, or says nothing is scheduled. A click on a row
+outside those controls opens the job's own page. This is where a
 job is switched, fired, changed and removed; `/schedule` only shows them. **New**, above the list on the right, opens
 the page that creates one in this project. New and Edit open the same page: New starts on defaults, Edit on the job as
 it is saved. A save goes back to the page it was opened from; a refused one stays, with the reason above the form.

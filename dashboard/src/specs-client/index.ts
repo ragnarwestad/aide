@@ -48,7 +48,8 @@ import { bindPushPanel } from "./push.ts";
 import { startReloadWhileIdle } from "./reload-while-idle";
 import { relabelRunButton } from "./row-swap.ts";
 import {
-  bindScheduleDeleteButton, postScheduleEnabled, postScheduleRun, scheduleCronPreview, submitScheduleForm,
+  bindScheduleDeleteButton, followScheduleRow, postScheduleEnabled, postScheduleRun, scheduleCronPreview,
+  submitScheduleForm,
 } from "./schedule-actions.ts";
 import { submitProgress } from "./progress-dialog";
 import { NEW_SPEC_FORM } from "./state.ts";
@@ -262,6 +263,13 @@ for (const el of document.querySelectorAll("form.scheduleform")) {
     if (model) syncAiToModel(model);
   }) as EventListener);
 }
+// A schedule row is one big link to what its name links to, outside its
+// own controls.
+document.addEventListener("click", ((event: MouseEvent) => {
+  followScheduleRow(event, (href) => {
+    location.href = href;
+  });
+}) as EventListener);
 // Delete on a schedule row is a plain button with no href and no
 // confirmation page behind it (spec 528) — its own dialog is opened by
 // script alone.

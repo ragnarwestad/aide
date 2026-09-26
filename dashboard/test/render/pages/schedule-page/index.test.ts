@@ -30,7 +30,7 @@ describe("Schedule page (spec 272, extended spec 276, reworked spec 278)", () =>
     expect(html.match(/<table class="list"/g)?.length ?? 0).toBe(1);
   });
 
-  test("a row's Name cell reads project:name and links to the project's own Schedule tab (criterion 2, spec 468)", () => {
+  test("a row's Name cell reads project:name, and it and the whole row link to the project's own Schedule tab (criterion 2, spec 468)", () => {
     const html = renderSchedulePage(NAV, "2026-08-30T00:00:00Z", {
       rows: [
         {
@@ -43,6 +43,7 @@ describe("Schedule page (spec 272, extended spec 276, reworked spec 278)", () =>
       ],
     });
     expect(html).toContain('href="/projects/aide?tab=schedule">aide:nightly-report</a>');
+    expect(html).toContain('<tr data-row-href="/projects/aide?tab=schedule">');
     expect(html).toContain("done");
     expect(html).toContain('href="/schedule/aide/nightly-report#report"');
     // Deliberately NOT on the list row — it moved to the detail page.

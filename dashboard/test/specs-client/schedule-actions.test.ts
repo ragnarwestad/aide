@@ -6,7 +6,7 @@
 // Acceptance criteria 14, 15, 16.
 import { describe, expect, test } from "bun:test";
 import {
-  bindScheduleDeleteButton, postScheduleEnabled, postScheduleRun, runCronPreview, scheduleCronPreview, submitScheduleForm,
+  bindScheduleDeleteButton, followScheduleRow, postScheduleEnabled, postScheduleRun, runCronPreview, scheduleCronPreview, submitScheduleForm,
 } from "../../src/specs-client/schedule-actions.ts";
 
 function fakeCheckbox(o: { checked: boolean; postTo: string }): HTMLInputElement {
@@ -259,5 +259,28 @@ describe("submitScheduleForm", () => {
     const { loc, slot } = await press({ ok: false, body: { error: "a job named nightly already exists" } });
     expect(slot.textContent).toContain("a job named nightly already exists");
     expect(loc.href).toBe("http://dash.test/schedule/aide/nightly/edit");
+  });
+});
+
+describe("followScheduleRow", () => {
+  /** A click landing on an element inside a row whose target is `/x`;
+   *  `onControl` says whether that element sits in one of the row's controls. */
+  const click = (onControl: boolean, extra: Partial<MouseEvent> = {}) => {
+    const row = { getAttribute: (n: string) => (n === "data-row-href" ? "/x" : null) };
+    const target = { closest: (sel: string) => (sel.startsWith("tr[") ? row : onControl ? {} : null) };
+    return { defaultPrevented: false, button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, target, ...extra } as unknown as MouseEvent;
+  };
+
+  test("a click on the row itself opens what the row links to", () => {
+    const went: string[] = [];
+    expect(followScheduleRow(click(false), (h) => went.push(h))).toBe("/x");
+    expect(went).toEqual(["/x"]);
+  });
+
+  test("a click on one of the row's controls, or with a modifier key, is left to the browser", () => {
+    const went: string[] = [];
+    expect(followScheduleRow(click(true), (h) => went.push(h))).toBeNull();
+    expect(followScheduleRow(click(false, { metaKey: true }), (h) => went.push(h))).toBeNull();
+    expect(went).toEqual([]);
   });
 });

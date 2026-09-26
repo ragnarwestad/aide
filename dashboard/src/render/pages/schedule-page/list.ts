@@ -98,7 +98,8 @@ function row(r: SchedulePageRow, now: Date, o: Pick<ScheduleListOptions, "modelN
   const state = capitalizeFirst(r.lastState ?? "never run");
   const output = r.outputHref ? ` — <a href="${esc(r.outputHref)}">output</a>` : "";
   return (
-    `<tr>` +
+    // The whole row goes where the name does (`followScheduleRow`).
+    `<tr data-row-href="${esc(r.projectScheduleHref)}">` +
     // `project:name`, matching the Specs list's own row format — the
     // list is no longer scoped to one project, so the row has to say
     // which one it belongs to. AC-5 (spec 468): the link goes to the

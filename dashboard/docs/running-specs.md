@@ -362,7 +362,8 @@ reach the repository goes through a spec. A job that commits anyway ends as fail
 branch of it is left locally or on origin. The New and Edit forms say so.
 
 `/schedule` lists every allowed project's entries, flattened into one list (`?q=`, `?sort=` and `?dir=` filter and
-sort it). It shows and links, and changes nothing: whether an entry is enabled is text there, and the Enabled switch,
+sort it). It shows and links, and changes nothing: a click anywhere on a row opens the project's Schedule tab, whether
+an entry is enabled is text there, and the Enabled switch,
 Run now, Edit and Delete are on each row of the project's own Schedule tab, with New above the list.
 `/schedule/<project>/<name>` is one entry's own page (Overview and History tabs). New and Edit open one page,
 `/schedule/new?project=<project>` and `/schedule/<project>/<name>/edit`; a save goes back to the page it was opened

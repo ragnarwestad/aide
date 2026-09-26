@@ -238,7 +238,10 @@ function scheduleSection(project: string, entries: readonly ScheduleEntry[], opt
             const last = opts.scheduleLastRuns?.[e.name];
             const report = last?.outputHref ? ` — <a href="${esc(last.outputHref)}">output</a>` : "";
             return (
-              `<tr><td><a href="${esc(schedulePagePath(project, e.name))}">${esc(e.name)}</a></td>` +
+              // The whole row, outside its controls, goes where the name
+              // does (`followScheduleRow`).
+              `<tr data-row-href="${esc(schedulePagePath(project, e.name))}">` +
+              `<td><a href="${esc(schedulePagePath(project, e.name))}">${esc(e.name)}</a></td>` +
               `<td><code>${esc(e.cron)}</code></td><td>${esc(e.prompt)}</td>` +
               `<td>${next ? esc(next.toISOString()) : `<span class="muted">–</span>`}</td>` +
               `<td><span data-schedule-state>${esc(capitalizeFirst(last?.lastState ?? "never run"))}</span>${report}</td>` +
