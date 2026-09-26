@@ -1,16 +1,14 @@
 // /schedule (spec 272, extended spec 276, reworked spec 278): the list
 // of every allowed project's entries at once, and an entry's own detail
-// page (Overview/History tabs) — composed from schedule-page/*.
+// page (Report/History tabs) — composed from schedule-page/*.
 // Monitoring lives here; making and changing an entry is a page of its
 // own (`edit-page.ts`), reached from the project's own Schedule tab.
 
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import type { Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
-import type { ScheduleFormOptions } from "./form.ts";
 import { renderScheduleHistory, type ScheduleHistoryRow } from "./history.ts";
 import { renderScheduleList, type ScheduleFilter, type SchedulePageRow } from "./list.ts";
-import { renderScheduleOverview } from "./overview.ts";
 import { schedulePagePath, SCHEDULE_TABS, scheduleTabPath, type ScheduleTab } from "./tabs.ts";
 import { pickTab, tabBar, tabbedBody } from "../job-page";
 
@@ -59,12 +57,9 @@ export function renderSchedulePage(nav: NavEntry[], generatedAt: string, opts: S
 export interface ScheduleDetailPageOptions {
   project: string;
   entry: ScheduleEntry;
-  /** The models the queue offers, for the flag on an entry whose own
-   *  model is not one of them. */
-  modelChoices?: ScheduleFormOptions["modelChoices"];
   tab?: string;
   history: readonly ScheduleHistoryRow[];
-  /** The report panel's markup (`renderReportPanel`), shown on top of Overview. */
+  /** The report panel's markup (`renderReportPanel`), the Report tab. */
   reportPanel?: string;
   script?: string;
   backHref?: string;
@@ -81,17 +76,13 @@ export function renderScheduleDetailPage(
   generatedAt: string,
   opts: ScheduleDetailPageOptions,
 ): string {
-  const tab = pickTab(SCHEDULE_TABS, opts.tab, "overview");
+  const tab = pickTab(SCHEDULE_TABS, opts.tab, "report");
   const base = schedulePagePath(opts.project, opts.entry.name);
   const bar = tabBar(SCHEDULE_TABS, base, tab, {});
-  const panel =
-    tab === "history"
-      ? renderScheduleHistory(opts.history)
-      : renderScheduleOverview(opts.project, opts.entry, {
-          modelChoices: opts.modelChoices,
-          lang: opts.lang,
-          reportPanel: opts.reportPanel,
-        });
+  // The page is the entry's runs: the newest report, and every run. What
+  // the entry IS — its cron, prompt and switch — is on its row of the
+  // project's Schedule tab, where it is also changed.
+  const panel = tab === "history" ? renderScheduleHistory(opts.history) : (opts.reportPanel ?? "");
   const body = tabbedBody("", bar, panel, opts.backHref ?? SCHEDULE_ROUTE, opts.entry.name);
   return pageShell(opts.entry.name, nav, base, body, generatedAt, undefined, {
     script: opts.script,

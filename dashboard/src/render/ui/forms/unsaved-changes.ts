@@ -56,7 +56,7 @@
   // listener's preventDefault() is seen by both before either adds its
   // own busy-indicator side effect — the same reasoning
   // cancel-confirm.ts documents for a different pair of listeners.
-  let pendingHref: string | null = null;
+  let pendingLink: HTMLAnchorElement | null = null;
   let dialogWired = false;
 
   document.addEventListener("click", (event: Event) => {
@@ -77,15 +77,19 @@
     if (!dialogWired) {
       dialogWired = true;
       dialog.addEventListener("close", () => {
-        if (dialog.returnValue === "leave" && pendingHref) {
+        // The link itself is pressed again, now that nothing is dirty, so
+        // it leaves the way it always would — `rel="noreferrer"` on Back
+        // included, which an assigned address would lose.
+        const link = pendingLink;
+        pendingLink = null;
+        if (dialog.returnValue === "leave" && link) {
           dirty = false;
-          window.location.href = pendingHref;
+          link.click();
         }
-        pendingHref = null;
       });
     }
     event.preventDefault();
-    pendingHref = href;
+    pendingLink = link;
     dialog.showModal();
   });
 

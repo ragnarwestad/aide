@@ -38,6 +38,9 @@ export interface ProjectPageOptions {
   /** Each entry's most recent run, by entry name: its state, and its
    *  report on the entry's own page when it wrote one. */
   scheduleLastRuns?: Readonly<Record<string, { lastState?: string; outputHref?: string }>>;
+  /** The models the queue offers, for the flag on an entry naming one it
+   *  does not. Absent draws no flag. */
+  scheduleModelNames?: readonly string[];
   worktreeLinkCandidates: string[];
   /** From the request's own `?edit=1` (spec 255) — never stored, so a
    *  page reload with no query string always lands back on the

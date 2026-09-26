@@ -45,7 +45,7 @@ describe("spec 212: one tab per document", () => {
   test("the title sits inside .backhead, right after ← Back, and appears as <h1> exactly once", () => {
     const html = page();
     expect(html).toContain(
-      '<div class="backhead"><a class="backlink" href="/">← Back</a>' +
+      '<div class="backhead"><a class="backlink" rel="noreferrer" href="/">← Back</a>' +
         '<h1><a data-goto href="/projects/aide">aide</a>:150-one-page-shows-the-whole-spec</h1>',
     );
     const h1s = html.match(/<h1>.*?<\/h1>/gs) ?? [];

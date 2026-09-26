@@ -16,7 +16,7 @@ describe("spec 252: the spec page's own Back link, read off the Referer header",
     const html = await (
       await fetch(`${base}/specs/aide/${folder}`, { headers: { referer: `${base}/?state=all&q=archive` } })
     ).text();
-    expect(html).toContain('<a class="backlink" href="/?state=all&amp;q=archive">← Back</a>');
+    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/?state=all&amp;q=archive">← Back</a>');
   });
 
   // A switch between the page's own tabs is not somewhere to go back to.
@@ -25,7 +25,7 @@ describe("spec 252: the spec page's own Back link, read off the Referer header",
     const html = await (
       await fetch(`${base}/specs/aide/${folder}?tab=status`, { headers: { referer: `${base}/specs/aide/${folder}?tab=overview` } })
     ).text();
-    expect(html).toContain('<a class="backlink" href="/">← Back</a>');
+    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/">← Back</a>');
   });
 });
 
@@ -45,7 +45,7 @@ describe("spec 252: the job page's own Back link, read off the Referer header", 
     const html = await (
       await fetch(`${base}/jobs/${id}`, { headers: { referer: `${base}/?state=all&q=archive` } })
     ).text();
-    expect(html).toContain('<a class="backlink" href="/?state=all&amp;q=archive">← Back</a>');
+    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/?state=all&amp;q=archive">← Back</a>');
   });
 
   test("a Referer that is another tab of the same page falls back to the specs list", async () => {
@@ -54,6 +54,6 @@ describe("spec 252: the job page's own Back link, read off the Referer header", 
     const html = await (
       await fetch(`${base}/jobs/${id}?tab=steps`, { headers: { referer: `${base}/jobs/${id}` } })
     ).text();
-    expect(html).toContain('<a class="backlink" href="/">← Back</a>');
+    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/">← Back</a>');
   });
 });

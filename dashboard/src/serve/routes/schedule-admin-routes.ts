@@ -20,6 +20,15 @@ const str = (v: unknown): string => (typeof v === "string" ? v : "");
  *  refused here instead, while a person is looking at the form. */
 const knownModels = (ctx: RoutesContext): string[] => Object.keys(ctx.queue.defaults.modelChoices ?? {});
 
+/** A saved entry's redirect, sending no Referer on to the page it goes
+ *  back to: that page works out its own Back from the Referer, and this
+ *  form's page as its Referer would lead it straight back here. */
+function savedRedirect(location: string): Response {
+  const res = specsRedirect({}, undefined, location);
+  res.headers.set("referrer-policy", "no-referrer");
+  return res;
+}
+
 const NOTIFY_CHOICES: readonly string[] = ["never", "failure", "always"];
 
 /** The fields a create or edit posted, as the form draws them again. */
@@ -147,7 +156,7 @@ export async function handleScheduleAdminRoutes(
       });
     }
     const location = renamedBack(back, project, name, str(body.name) || name);
-    return wantsJson ? json({ ok: true, location }) : specsRedirect({}, undefined, location);
+    return wantsJson ? json({ ok: true, location }) : savedRedirect(location);
   }
 
   // Project-agnostic, like `/api/queue/create` (spec 278): no
@@ -178,7 +187,7 @@ export async function handleScheduleAdminRoutes(
         project, values: postedValues(body), back: location, error: result.error, status: 400,
       });
     }
-    return wantsJson ? json({ ok: true, location }) : specsRedirect({}, undefined, location);
+    return wantsJson ? json({ ok: true, location }) : savedRedirect(location);
   }
 
   return null;

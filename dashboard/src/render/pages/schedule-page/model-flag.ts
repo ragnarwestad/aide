@@ -1,14 +1,13 @@
 // The flag on a schedule entry naming a model the queue does not offer —
-// drawn on the Schedule list and on the entry's own page from one place.
+// drawn on the Schedule list and on the project's Schedule tab from one place.
 import { t, type Language } from "../../../i18n";
 import { listedModelName } from "../../../queue/model-name.ts";
 import { rowMessage, rowMessageParts } from "../../ui/components";
 
 /** One sentence: what is wrong and what resolves it. `offered` undefined
  *  means the page was not told what the queue offers, so nothing is drawn;
- *  an empty list means the queue offers none. `href` is the entry's own
- *  page, passed by the list, whose Name link goes to the project's
- *  Schedule tab instead. */
+ *  an empty list means the queue offers none. `href` is the entry's edit
+ *  page, where another model is chosen. */
 export function modelFlag(
   lang: Language,
   model: string | undefined,

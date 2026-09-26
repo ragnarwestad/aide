@@ -14,7 +14,8 @@ import { t } from "../../../i18n";
 import { pickTab, tabBar, tabbedBody } from "../job-page";
 import { scheduleControlCells } from "../schedule-page/controls.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
-import { scheduleNewPath, schedulePagePath } from "../schedule-page";
+import { scheduleEditPath, scheduleNewPath, schedulePagePath } from "../schedule-page";
+import { modelFlag } from "../schedule-page/model-flag.ts";
 import { deployDialog, STEP_LABEL } from "./deploy-dialog.ts";
 import { projectDescription } from "./overview-list.ts";
 import { PROJECTS_ROUTE, projectPagePath } from "./routes.ts";
@@ -241,7 +242,9 @@ function scheduleSection(project: string, entries: readonly ScheduleEntry[], opt
               // The whole row, outside its controls, goes where the name
               // does (`followScheduleRow`).
               `<tr data-row-href="${esc(schedulePagePath(project, e.name))}">` +
-              `<td><a href="${esc(schedulePagePath(project, e.name))}">${esc(e.name)}</a></td>` +
+              `<td><a href="${esc(schedulePagePath(project, e.name))}">${esc(e.name)}</a>` +
+              modelFlag(lang, e.model, opts.scheduleModelNames, scheduleEditPath(project, e.name)) +
+              `</td>` +
               `<td><code>${esc(e.cron)}</code></td><td>${esc(e.prompt)}</td>` +
               `<td>${next ? esc(next.toISOString()) : `<span class="muted">–</span>`}</td>` +
               `<td><span data-schedule-state>${esc(capitalizeFirst(last?.lastState ?? "never run"))}</span>${report}</td>` +

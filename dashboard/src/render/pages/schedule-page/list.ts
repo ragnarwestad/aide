@@ -9,7 +9,7 @@ import { ICON_CHEVRON, ICON_SEARCH, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { modelFlag } from "./model-flag.ts";
-import { schedulePagePath } from "./tabs.ts";
+import { scheduleEditPath } from "./edit-page.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 
 export interface SchedulePageRow {
@@ -105,7 +105,7 @@ function row(r: SchedulePageRow, now: Date, o: Pick<ScheduleListOptions, "modelN
     // which one it belongs to. AC-5 (spec 468): the link goes to the
     // project's own Schedule tab, not the entry's own detail page.
     `<td><a href="${esc(r.projectScheduleHref)}">${esc(r.project)}:${esc(r.entry.name)}</a>` +
-    modelFlag(o.lang ?? "en", r.entry.model, o.modelNames, schedulePagePath(r.project, r.entry.name)) +
+    modelFlag(o.lang ?? "en", r.entry.model, o.modelNames, scheduleEditPath(r.project, r.entry.name)) +
     `</td>` +
     `<td>${next ? esc(next.toISOString()) : `<span class="muted">–</span>`}</td>` +
     `<td><span data-schedule-state>${esc(state)}</span>${output}</td>` +

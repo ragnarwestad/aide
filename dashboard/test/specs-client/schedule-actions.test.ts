@@ -234,6 +234,7 @@ describe("submitScheduleForm", () => {
       querySelector: (sel: string) => (sel === "[data-scheduleform-error]" ? slot : null),
     };
     const saved = { document: globalThis.document, location: globalThis.location, fetch: globalThis.fetch, FormData: globalThis.FormData };
+    const went: string[] = [];
     const loc = { href: "http://dash.test/schedule/aide/nightly/edit", pathname: "/schedule/aide/nightly/edit", search: "" };
     Object.assign(globalThis, {
       document: { querySelectorAll: () => [] },
@@ -242,23 +243,23 @@ describe("submitScheduleForm", () => {
       FormData: class { forEach(fn: (v: string, k: string) => void) { fn("nightly", "name"); } },
     });
     try {
-      await submitScheduleForm(form as unknown as HTMLFormElement, { defaultPrevented: false, preventDefault() {} } as Event);
+      await submitScheduleForm(form as unknown as HTMLFormElement, { defaultPrevented: false, preventDefault() {} } as Event, (h) => went.push(h));
     } finally {
       Object.assign(globalThis, saved);
     }
-    return { slot, loc };
+    return { slot, went };
   }
 
   test("a save goes where the server says: the page the form was opened from", async () => {
-    const { loc, slot } = await press({ ok: true, body: { ok: true, location: "/projects/aide?tab=schedule" } });
-    expect(loc.href).toBe("/projects/aide?tab=schedule");
+    const { went, slot } = await press({ ok: true, body: { ok: true, location: "/projects/aide?tab=schedule" } });
+    expect(went).toEqual(["/projects/aide?tab=schedule"]);
     expect(slot.textContent).toBe("");
   });
 
   test("a refusal is written into the form's error line, and the page stays", async () => {
-    const { loc, slot } = await press({ ok: false, body: { error: "a job named nightly already exists" } });
+    const { went, slot } = await press({ ok: false, body: { error: "a job named nightly already exists" } });
     expect(slot.textContent).toContain("a job named nightly already exists");
-    expect(loc.href).toBe("http://dash.test/schedule/aide/nightly/edit");
+    expect(went).toEqual([]);
   });
 });
 

@@ -121,16 +121,6 @@ describe("GET /schedule (spec 272)", () => {
 });
 
 describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
-  test("the Overview tab shows the cron and prompt path", async () => {
-    const { base } = start();
-    writeSchedule("aide", [NIGHTLY]);
-    const res = await fetch(`${base}/schedule/aide/nightly-report`, );
-    expect(res.status).toBe(200);
-    const html = await res.text();
-    expect(html).toContain("0 3 * * *");
-    expect(html).toContain("docs/nightly.md");
-  });
-
   // Editing an entry has to offer the same choice creating it did, and
   // show what the entry is actually on — otherwise a Save silently
   // moves a job onto whatever the form happened to draw.
@@ -171,15 +161,15 @@ describe("GET /schedule with a refusal or an unlisted model (spec 494)", () => {
     expect(await (await fetch(`${base}/schedule`)).text()).toContain('<p class="refused" aria-live="polite"></p>');
   });
 
-  test("an entry naming a model the queue does not offer is flagged on the list and on its own page", async () => {
+  test("an entry naming a model the queue does not offer is flagged on the list and on its project's Schedule tab", async () => {
     const { base } = start({ extra: { queueDefaults: DEFAULTS } });
     writeSchedule("aide", withModel("retired"));
     const list = await (await fetch(`${base}/schedule`)).text();
     expect(list).toContain("retired");
     expect(list).toContain("sonnet, codex-fast");
-    const detail = await (await fetch(`${base}/schedule/aide/nightly-report`)).text();
-    expect(detail).toContain("sonnet, codex-fast");
-    expect(detail).toContain("is not one the queue offers");
+    const tab = await (await fetch(`${base}/projects/aide?tab=schedule`)).text();
+    expect(tab).toContain("sonnet, codex-fast");
+    expect(tab).toContain("is not one the queue offers");
   });
 
   test("an entry naming a listed model in another case is not flagged", async () => {
@@ -187,8 +177,8 @@ describe("GET /schedule with a refusal or an unlisted model (spec 494)", () => {
     writeSchedule("aide", withModel("SONNET"));
     const list = await (await fetch(`${base}/schedule`)).text();
     expect(list).not.toContain("is not one the queue offers");
-    const detail = await (await fetch(`${base}/schedule/aide/nightly-report`)).text();
-    expect(detail).not.toContain("is not one the queue offers");
+    const tab = await (await fetch(`${base}/projects/aide?tab=schedule`)).text();
+    expect(tab).not.toContain("is not one the queue offers");
   });
 });
 
@@ -248,14 +238,20 @@ describe("GET /schedule/<project>/<entry> shows a run's report (spec 495)", () =
     expect(html).toContain(`href="/schedule-output/aide/${KEY}/runs/new/index.html"`);
   });
 
-  test("a newest run with no report shows its sentence, never an older run's report, even while it runs", async () => {
+  test("while a newer run is queued or running, the last finished run's report shows, with a line saying so", async () => {
     const { base } = setup([
       { id: "old", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>OLD-TEXT</p>" },
       { id: "new", state: "running", at: "2026-09-02T03:00:00Z" },
     ]);
     const html = await get(base, PAGE);
-    expect(html).toContain("No report from this run (running)");
-    expect(html).not.toContain("OLD-TEXT");
+    expect(html).toContain("OLD-TEXT");
+    expect(html).toContain("A new run is in progress");
+  });
+
+  test("with no finished run, the page says the job is queued rather than that it has no report", async () => {
+    const { base } = setup([{ id: "new", state: "queued", at: "2026-09-02T03:00:00Z" }]);
+    const html = await get(base, PAGE);
+    expect(html).toContain("No report yet: the job is queued.");
     expect(html).not.toContain("<iframe");
   });
 
@@ -362,7 +358,7 @@ describe("the page that makes or changes an entry", () => {
     expect(html).toContain('action="/api/queue/schedule"');
     expect(html).toContain('<input type="hidden" name="project" value="aide">');
     expect(html).toContain('value="0 7 * * *"');
-    expect(html).toContain('<a class="backlink" href="/schedule?q=x">');
+    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/schedule?q=x">');
     expect(html).toContain('<input type="hidden" name="back" value="/schedule?q=x">');
   });
 

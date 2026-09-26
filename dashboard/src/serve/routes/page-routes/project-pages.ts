@@ -265,6 +265,7 @@ export async function projectPages(
         scheduleLastRuns: Object.fromEntries(
           ctx.scheduleStore.list(name).map((entry) => [entry.name, scheduleLastRun(ctx, name, entry.name)]),
         ),
+        scheduleModelNames: Object.keys(ctx.queue.defaults.modelChoices ?? {}),
         worktreeLinkCandidates: gitignoreCandidates(dir),
         editing: url.searchParams.get("edit") === "1",
         error: url.searchParams.get("error") ?? undefined,

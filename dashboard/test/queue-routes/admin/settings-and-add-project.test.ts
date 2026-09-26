@@ -151,7 +151,7 @@ describe("Settings routes (spec 232)", () => {
     const html = await (
       await fetch(`${base}/settings`, { headers: { referer: `${base}/projects/aide` } })
     ).text();
-    expect(html).toContain('<a class="backlink" href="/projects/aide">← Back</a>');
+    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/projects/aide">← Back</a>');
   });
 
   test("a successful save affects later jobs but not an accepted job", async () => {

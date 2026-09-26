@@ -294,9 +294,8 @@ const STRUCTURE = [
   // class on the same page broke the e2e suite's "find the one
   // .specform button" locator.
   "trackingform",
-  // /schedule (spec 276, reworked spec 278): the detail page's
-  // key/value overview and the Cron field's input.
-  "kv", "cron-input",
+  // /schedule (spec 276, reworked spec 278): the Cron field's input.
+  "cron-input",
   // the Config tab's button row (spec 301): always two buttons, right-
   // aligned, with its own margin to the table below.
   "configactions",

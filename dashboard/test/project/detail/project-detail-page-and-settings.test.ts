@@ -15,7 +15,7 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     const name = "aide & co";
     const root = projectsRoot({ [name]: null });
     const html = await (await get(serve(root, settled(root, name)), name)).text();
-    expect(html).toContain('<a class="backlink" href="/projects">← Back</a>');
+    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/projects">← Back</a>');
     expect(html).toContain('<a class="btn primary" href="/projects/aide%20%26%20co?edit=1">Edit</a>');
   });
 
@@ -23,14 +23,14 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     const root = projectsRoot({ aide: null });
     const base = serve(root, settled(root, "aide"));
     const html = await (await fetch(`${base}/projects/aide`, { headers: { referer: `${base}/?open=aide%2F81-x` } })).text();
-    expect(html).toContain('<a class="backlink" href="/?open=aide%2F81-x">← Back</a>');
+    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/?open=aide%2F81-x">← Back</a>');
   });
 
   test("← Back after a switch between the page's own tabs goes to Projects, not the other tab", async () => {
     const root = projectsRoot({ aide: null });
     const base = serve(root, settled(root, "aide"));
     const html = await (await fetch(`${base}/projects/aide?tab=config`, { headers: { referer: `${base}/projects/aide?tab=deploy` } })).text();
-    expect(html).toContain('<a class="backlink" href="/projects">← Back</a>');
+    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/projects">← Back</a>');
   });
 
   test("?edit=1 renders the one table as a form posting to the settings route", async () => {
@@ -49,7 +49,7 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     const res = await get(serve(root, settled(root, "aide")), "aide");
     expect(res.status).toBe(200);
     const html = await res.text();
-    expect(html).toContain('<a class="backlink" href="/projects">← Back</a>');
+    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/projects">← Back</a>');
     expect(html).toMatch(/aria-current="page"[^>]*>Config/);
   });
 
@@ -59,7 +59,7 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     const res = await get(serve(root, settled(root, "aide")), "aide");
     expect(res.status).toBe(200);
     const html = await res.text();
-    expect(html).toContain('<a class="backlink" href="/projects">← Back</a>');
+    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/projects">← Back</a>');
     expect(html).toMatch(/aria-current="page"[^>]*>Config/);
     expect(html).not.toContain("Manifest failed to parse");
   });

@@ -72,11 +72,11 @@ describe("spec 198: the Reopen control", () => {
 describe("spec 252: the spec page's own Back link", () => {
   test("← Back tracks the given backHref", () => {
     const html = page(view({ backHref: "/?state=all&q=archive" }));
-    expect(html).toContain('<a class="backlink" href="/?state=all&amp;q=archive">← Back</a>');
+    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/?state=all&amp;q=archive">← Back</a>');
   });
 
   test("← Back falls back to / when nothing was given", () => {
     const html = page();
-    expect(html).toContain('<a class="backlink" href="/">← Back</a>');
+    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/">← Back</a>');
   });
 });

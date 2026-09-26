@@ -118,7 +118,11 @@ export async function schedulePages(
     // `?run=` is only ever compared with this entry's own job ids, never
     // joined into a path; anything else shows the newest run.
     const runParam = url.searchParams.get("run");
-    const shown = jobs.find((j) => j.id === runParam) ?? jobs[0];
+    // With no run asked for, the newest FINISHED run: a run that is queued
+    // or still going has no report yet, and would hide last week's.
+    const unfinished = (j: (typeof jobs)[number]) => j.state === "queued" || j.state === "running";
+    const pendingJob = runParam ? undefined : jobs.find(unfinished);
+    const shown = jobs.find((j) => j.id === runParam) ?? jobs.find((j) => !unfinished(j));
     let run: Parameters<typeof renderReportPanel>[0]["run"];
     if (shown) {
       const report = readScheduleRunReport(outputRoot, project, key, shown.id);
@@ -136,12 +140,12 @@ export async function schedulePages(
       entry,
       tab: url.searchParams.get("tab") ?? undefined,
       history,
-      reportPanel: renderReportPanel({ lang: langResult.lang, run }),
+      reportPanel: renderReportPanel({
+        lang: langResult.lang, run,
+        ...(pendingJob ? { pending: pendingJob.state as "queued" | "running" } : {}),
+      }),
       script: await specsClientScript(),
-      backHref: resolveBackHref(req.headers.get("referer"), url.origin, SCHEDULE_ROUTE, url.pathname),
-      modelChoices: Object.entries(ctx.queue.defaults.modelChoices ?? {}).map(([name, choice]) => ({
-        name, ...(choice.tool ? { tool: choice.tool } : {}),
-      })),
+      backHref: resolveBackHref(req.headers.get("referer"), url.origin, projectScheduleTab(project), url.pathname),
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
     });

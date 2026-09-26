@@ -68,19 +68,33 @@ export async function postScheduleRun(form: HTMLFormElement, fetchImpl: typeof f
  *  server says where to go next — the page the reader came from — and a
  *  refusal is written into the form's own error line, with everything
  *  typed left where it is. */
-export async function submitScheduleForm(form: HTMLFormElement, event: Event): Promise<void> {
+export async function submitScheduleForm(
+  form: HTMLFormElement,
+  event: Event,
+  go: (href: string) => void = leaveWithoutReferrer,
+): Promise<void> {
   if (event.defaultPrevented) return;
   event.preventDefault();
   const slot = form.querySelector("[data-scheduleform-error]");
   await postForm(
     form,
     (body) => {
-      location.href = body?.location ?? location.href;
+      go(body?.location ?? location.href);
     },
     (why) => {
       if (slot) slot.textContent = why;
     },
   );
+}
+
+/** Goes to `href` sending no Referer, the way "← Back" does: the page
+ *  a save returns to must not take this form as the page to go back to. */
+function leaveWithoutReferrer(href: string): void {
+  const link = document.createElement("a");
+  link.href = href;
+  link.rel = "noreferrer";
+  document.body.appendChild(link);
+  link.click();
 }
 
 /** What a click on a schedule row leaves to the control it landed on. */

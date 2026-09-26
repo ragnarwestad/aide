@@ -184,13 +184,13 @@ describe("Schedule list: the refusal slot and the model flag (spec 494)", () => 
     expect(list({})).toContain('<p class="refused" aria-live="polite"></p>');
   });
 
-  test("the flag sits in the unlisted entry's Name cell and links to the entry's own page", () => {
+  test("the flag sits in the unlisted entry's Name cell and links to the entry's edit page", () => {
     const html = list({ modelNames: ["Sonnet", "Opus"] });
     expect(html.match(/rowmsg failed/g)?.length).toBe(1);
     const cell = html.match(/<td><a href="[^"]*">aide:retired-one<\/a>[\s\S]*?<\/td>/)?.[0] ?? "";
     expect(cell).toContain("retired");
     expect(cell).toContain("Sonnet, Opus");
-    expect(cell).toContain('href="/schedule/aide/retired-one"');
+    expect(cell).toContain('href="/schedule/aide/retired-one/edit"');
   });
 
   test("no model list passed draws no flag", () => {

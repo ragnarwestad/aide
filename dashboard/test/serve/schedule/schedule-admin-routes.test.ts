@@ -156,6 +156,9 @@ describe("POST /api/queue/schedule — create, project read from the body", () =
     const res = await fetch(`${t.base}/api/queue/schedule`, formPost({ ...fields, back: "/schedule?q=night" }));
     expect(res.status).toBe(303);
     expect(res.headers.get("location")).toBe("/schedule?q=night");
+    // Sending no Referer on, so the page it lands on does not take this
+    // form as the page to go back to.
+    expect(res.headers.get("referrer-policy")).toBe("no-referrer");
     const bare = await fetch(`${t.base}/api/queue/schedule`, formPost({ ...fields, name: "other" }));
     expect(bare.headers.get("location")).toBe("/projects/aide?tab=schedule");
     const scripted = await fetch(`${t.base}/api/queue/schedule`, jsonPost({ ...fields, name: "third", back: "/schedule" }));
