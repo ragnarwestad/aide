@@ -13,7 +13,6 @@ import { aiPicker, ALREADY_RUN_REASON, compactModelLabel, compactModelLabelFull,
 import { chosenSteps, offersAnotherRound, runFormId, specBusy } from "./row-state.ts";
 import { stateAction } from "./row-controls.ts";
 import { NO_PULL_REQUEST, prErrorOf, prErrorSentence } from "./row-shared.ts";
-import { headStateBadge } from "./head-row.ts";
 import { phaseHasRun, phaseMessagesFold, phaseMessagesRow } from "./phase-messages";
 
 /** The archive gates' own refusals: nothing was tried, so nothing is
@@ -96,31 +95,28 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
   // deliberately; what this costs is a click, and what it buys is a
   // head line that is only information.
   const action = stateAction(g, opts);
-  // The spec's own state, drawn again on the caption line for a phone
-  // (2026-09-10), inside the action slot so the row keeps its six cells:
-  // hidden on a desktop, where the head row's badge is a column away; on
-  // a phone the head row's badge sits under the name, and this copy
-  // stands over the phases' states, with the action button at the
-  // line's left — narrow.css lays the slot out.
-  const headState = `<span class="headstate">${headStateBadge(g, opts.lang ?? "en")}</span>`;
-  // The row's total beside it, the head row's own figure (spec 496): the
-  // head row's Time cell is hidden on a phone, and this copy stands in
-  // the Time column the phase lines use.
+  // The spec's own totals stand on this line: an open row hides the head
+  // row's second line (list.css), so Time and Cost move here, over the
+  // phases' own figures. A phone lays the line out as a grid inside the
+  // action slot and has no Time column cell of its own on it, so it
+  // reads the total from this copy instead (narrow.css).
   const headTime = `<span class="headtime">${specTotalCell(g)}</span>`;
+  const totals = { started: specTotalCell(g), cost: costCell(g.spentUsd, g.spentTokens, "–", g.done.length > 0) };
   if ((opts.modelChoices ?? []).length) {
     lines.push({
       tag: `<tr class="subrow" data-caption="1">`,
-      cells: phaseCaptionCells(opts, true, action + headState + headTime, opts.lang ?? "en"),
+      cells: phaseCaptionCells(opts, true, action + headTime, opts.lang ?? "en", totals),
     });
-  } else if (action) {
+  } else {
     // No captions to head — one tool configured, nothing to choose
-    // between — and the press still needs a line of its own.
+    // between — and the line is still drawn: it carries the totals, and
+    // the press when there is one.
     lines.push({
       tag: `<tr class="subrow" data-caption="1">`,
       cells:
         `<td class="phasecell" colspan="2"></td><td class="modelcell"></td>` +
-        `<td data-col="state"><span class="actionslot">${action}${headState}${headTime}</span></td>` +
-        `<td data-col="started"></td><td class="num" data-col="cost"></td>`,
+        `<td data-col="state"><span class="actionslot">${action}${headTime}</span></td>` +
+        `<td data-col="started">${totals.started}</td><td class="num" data-col="cost">${totals.cost}</td>`,
     });
   }
   g.phases

@@ -17,18 +17,6 @@ const rows = (open = "") =>
     Date.parse("2026-08-21T12:00:00Z"),
   );
 
-function narrowBlock(css: string): string {
-  const opening = "@media (max-width: 40rem) {";
-  const at = css.indexOf(opening);
-  expect(at).toBeGreaterThan(-1);
-  let depth = 0;
-  for (let i = at + opening.length - 1; i < css.length; i++) {
-    if (css[i] === "{") depth++;
-    else if (css[i] === "}" && --depth === 0) return css.slice(at + opening.length, i);
-  }
-  throw new Error("the narrow-width media query is never closed");
-}
-const NARROW = narrowBlock(CSS);
 const DESKTOP = CSS.slice(0, CSS.indexOf("@media (max-width: 40rem) {"));
 
 describe("the header's second line is pips, then the state", () => {
@@ -43,11 +31,6 @@ describe("the header's second line is pips, then the state", () => {
     const open = rows("aide/155-x");
     const line = open.match(/<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
     expect(line).toContain('data-col="state"');
-  });
-
-  test("a phone drops the whole line when the row is open, not the badge alone", () => {
-    expect(NARROW).toContain('table.list tr.spechead:has(.fold[aria-expanded="true"]) + tr.specstate > td[data-col="state"] { display: none; }');
-    expect(NARROW).not.toMatch(/aria-expanded="true"\]\) \.badgeslot \{ display: none/);
   });
 
 });

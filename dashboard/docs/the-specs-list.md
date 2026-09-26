@@ -57,6 +57,10 @@ repo the spec pushed to, and the state that matters most right now — whatever 
 outcome. It carries no button: the row's one action is on the caption line inside the fold, once per spec rather
 than once per job.
 
+The header is two lines: the title, then the pips, the state and the figures. An open row drops the second line and
+the caption line carries the spec's summed Time and Cost instead, over the phases' own figures. Each phase line says
+its own state, failed, stopped and held back included, so the badge and the pips would only say it twice.
+
 ## The row's controls
 
 An open row adds one line per phase, and a caption line above them. Each phase line carries its own tick box, its

@@ -64,13 +64,11 @@ const capture = () =>
     const cap = document.querySelector('tr.subrow[data-caption="1"]')!;
     const rect = (el: Element | null) => el!.getBoundingClientRect();
     const btn = cap.querySelector(".actionslot > .btn, .actionslot > .actionform");
-    const state = cap.querySelector(".actionslot > .headstate");
     const total = cap.querySelector(".actionslot > .headtime");
     const text = total!.querySelector("span")!;
     return {
-      tops: [rect(btn).top, rect(state).top, rect(total).top],
+      tops: [rect(btn).top, rect(total).top],
       btnLeft: rect(btn).left,
-      stateLeft: rect(state).left,
       // The centre: Time reads centred in its own column here since
       // 2026-09-22, as it does on a wider window.
       totalLeft: rect(text).left + rect(text).width / 2,
@@ -84,7 +82,7 @@ const capture = () =>
   });
 
 for (const lang of ["nb", "en"]) {
-  test(`${lang}: the button, the state and the total share a line, and Time lines up with the phases (AC-1, AC-3)`, async () => {
+  test(`${lang}: the button and the total share a line, and Time lines up with the phases (AC-1, AC-3)`, async () => {
     for (const width of WIDTHS) {
       await open(width, 800, lang);
       const m = await capture();
@@ -110,17 +108,22 @@ test("the total's text changing moves nothing on the line (AC-3)", async () => {
     // now that it is centred, which moves that centre a pixel or two.
     expect(Math.abs(after.totalLeft - before.totalLeft), text).toBeLessThanOrEqual(3);
     expect(after.btnLeft, text).toBe(before.btnLeft);
-    expect(after.stateLeft, text).toBe(before.stateLeft);
     expect(after.capHeight, text).toBe(before.capHeight);
   }
 });
 
-test("a desktop and a phone held sideways show no copy of the total (AC-4)", async () => {
+test("a desktop and a phone held sideways show the total in the caption line's own Time cell, not the copy (AC-4)", async () => {
   for (const [w, h] of [[1280, 800], [844, 390]] as const) {
     await open(w, h);
-    const shown = await page.evaluate(
-      () => document.querySelector('tr.subrow[data-caption="1"] .headtime')!.getClientRects().length > 0,
-    );
-    expect(shown, `${w}x${h}`).toBe(false);
+    const m = await page.evaluate(() => {
+      const cap = document.querySelector('tr.subrow[data-caption="1"]')!;
+      const cell = cap.querySelector('[data-col="started"]') as HTMLElement;
+      return {
+        copy: cap.querySelector(".headtime")!.getClientRects().length > 0,
+        cell: cell.getClientRects().length > 0 ? cell.textContent!.trim() : "",
+      };
+    });
+    expect(m.copy, `${w}x${h}`).toBe(false);
+    expect(m.cell, `${w}x${h}`).not.toBe("");
   }
 });

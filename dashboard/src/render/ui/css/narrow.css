@@ -393,8 +393,7 @@
   table.list tr.specstate > td[data-col="state"] { flex: 0 0 var(--state-w); text-align: center;
     overflow: hidden; }
   table.list tr.specstate > td[data-col="state"] .badgeslot,
-  table.list tr.specstate > td[data-col="state"] .badge,
-  table.list tr.subrow[data-caption="1"] .actionslot > .headstate .badge {
+  table.list tr.specstate > td[data-col="state"] .badge {
     min-width: 100%; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
   /* Time reads centred in its own column too, as it does above 640px:
      a two-character duration under a four-character one otherwise looks
@@ -514,32 +513,25 @@
   /* The button keeps the same air from the left edge as a shut row's
      pips do; the padding comes off the first column again, so the state
      copy still starts over the phases' own state column. */
-  /* The slot fills its column rather than shrinking to its own word:
-     the badge inside takes the slot's width (below), so the caption
-     line's badge is exactly as wide as the phase lines' badges under
-     it — one column of equal chips, not one chip a word wide. */
-    table.list tr.subrow[data-caption="1"] .actionslot > .headstate { display: block; justify-self: stretch; }
   /* The slot holds an empty form (the button points at it by id), the
-     button, and the state copy: the button in the first column at its
-     own width, the state in the second, the form out of the grid. */
+     button, and the total: the button in the first column at its own
+     width, the total in the third, over the phases' times, and the form
+     out of the grid. The second column stays empty, over the phases'
+     states. */
   table.list tr.subrow[data-caption="1"] .actionslot > .rowrun { display: none; }
   table.list tr.subrow[data-caption="1"] .actionslot > .btn { grid-column: 1; grid-row: 1; justify-self: start; }
   /* A running row's one action is Cancel, a form rather than a bare
      button: placed the same way, or it stretches across the column and
      its button sits in the middle of it. */
   table.list tr.subrow[data-caption="1"] .actionslot > .actionform { grid-column: 1; grid-row: 1; justify-self: start; }
-    table.list tr.subrow[data-caption="1"] .actionslot > .headstate { grid-column: 2; grid-row: 1; }
-  /* The row's total, in the Time column the phase lines use (spec 496),
-     and the state copy trimmed to its column. */
+  /* The row's total, in the Time column the phase lines use. The line's
+     own Time cell would land on the line of captions, so it is left out. */
   table.list tr.subrow[data-caption="1"] .actionslot > .headtime { display: block; grid-column: 3; grid-row: 1;
     padding-left: var(--sp-2); text-align: center; white-space: nowrap; }
-  table.list tr.subrow[data-caption="1"] .actionslot > .headstate { min-width: 0; max-width: 100%; overflow: hidden; }
-  table.list tr.subrow[data-caption="1"] .actionslot > .headstate .badge { min-width: 100%; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
-  /* An open row's own second line comes off: the caption line carries
-     the state, over the phases' states, and the phase lines say what the
-     pips say — one state twice on one screen is one too many. A shut
-     row keeps the line under the name. */
-  table.list tr.spechead:has(.fold[aria-expanded="true"]) + tr.specstate > td[data-col="state"] { display: none; }
+  table.list tr.subrow[data-caption="1"] > td[data-col="started"] { display: none; }
+  /* The rows are flex lines here, not table rows, so an open row's
+     second line comes off with `display: none` (list.css collapses it). */
+  table.list tr.spechead:has(.fold[aria-expanded="true"]) + tr.specstate { display: none; }
   table.list tr.subrow[data-caption="1"] > .phasecell { order: 3; }
   table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="ai"] { order: 4; }
   /* Same tier as "ai" (spec 488): a tie in flex `order` falls back to DOM
