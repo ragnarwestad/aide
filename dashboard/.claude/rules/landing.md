@@ -78,7 +78,7 @@ reads what a landing left.
   landing and runs every step with `--push pr`; the two halves are never
   separated. The manifest is a DEFAULT for `--push`, never an override;
   the specs root keeps auto-merging; `errorReason` has no member for it —
-  `prOpen`/`PR_OPEN` split the wording instead.
+  `prOpen` splits the wording instead.
 - **`StepResult.at` is absent until a landing step's merge settles**, not
   from the moment its own process exits — `Runner.complete()` defers the
   stamp so a phase's own duration keeps counting through the merge. Any

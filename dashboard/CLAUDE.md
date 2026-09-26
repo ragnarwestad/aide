@@ -157,7 +157,11 @@ The dashboard's own source keeps these limits, checked by
 
 - A source file under `src/` stays at or under 500 lines. `messages.ts`,
   `en.ts` and `nb.ts` are exempt by filename — the message catalogues
-  grow with every new string.
+  grow with every new string. Four files already over the limit are held
+  at their recorded length instead (`OVER_LINE_LIMIT` in the test):
+  `src/queue/runner/index.ts`, `src/queue/store/index.ts`,
+  `src/git/branch-merge.ts` and
+  `src/render/pages/specs-list/data-model/types.ts`.
 - A test file stays at or under 800 lines.
 - A directory holds at most 15 `.ts` files directly inside it, with no
   exceptions: the six that were over it are grouped into subdirectories

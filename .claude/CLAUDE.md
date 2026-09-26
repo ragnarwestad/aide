@@ -36,7 +36,7 @@ root is pytest and `dashboard/` is bun + TypeScript (see
 .venv/bin/pytest                    # the root's gate — the shared scripts,
                                     # the templates, the rules, the skills
 cd dashboard && make test           # the dashboard's gate: tsc --noEmit, then bun test
-cd dashboard && bun test test/queue.test.ts   # one suite
+cd dashboard && bun test test/queue/schedule-store.test.ts   # one suite
 npx markdownlint-cli2 '**/*.md'     # markdown, from the repo ROOT (the config lives there)
 scripts/check-bash                  # shellcheck over core/scripts and the round's bash — run it when a bash script changed
 scripts/check-docs                  # the tests that read the documentation, about ten seconds — run it when a page changed
@@ -69,8 +69,8 @@ process started by hand with `pkill` + `bun run` is not the service.
 
 ## Reading the documentation
 
-**Grep the long pages; do not read one whole.** `docs/AI_NEWS_LOG.md` is 650 lines and the dashboard's docs
-pages run to 450; they are written to be searched. Where to look:
+**Grep the long pages; do not read one whole.** `docs/AI_NEWS_LOG.md` is 800 lines and the dashboard's docs
+pages run to 550; they are written to be searched. Where to look:
 
 | Question                                                  | Page                                          | Who it's for      |
 |-----------------------------------------------------------|-----------------------------------------------|-------------------|
@@ -100,13 +100,13 @@ pages run to 450; they are written to be searched. Where to look:
 
 ## Important rules
 
-**aide-* are skills (slash commands), not CLI scripts.**
-`/aide-create`, `/aide-analyze`, `/aide-implement` etc. run inside Claude Code or Copilot.
-Only `aide-generate-pdf` and `aide-generate-html` exist as CLI scripts (they run pandoc).
+**The workflow steps are skills (slash commands), not CLI scripts.**
+`/aide-create`, `/aide-analyze`, `/aide-implement` etc. run inside the AI tool.
+`core/scripts/` holds the helper scripts (`aide-*`) those skills and the runner call.
 
 See `.claude/rules/development.md` for the installation overview, the layout
 gotchas and how to add new functionality. The `/ai-tools-reference` skill holds
-the verified config reference for all three tools; `/ai-tools-upgrade` holds the
+the verified config reference for Claude Code, Codex and Copilot (not OpenCode); `/ai-tools-upgrade` holds the
 daily-upgrade setup for a machine.
 
 See `docs/ROADMAP.md` for where the project came from, the architecture

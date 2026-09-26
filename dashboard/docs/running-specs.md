@@ -37,7 +37,7 @@ step that ends either advances the job or ends it, and several jobs run at once 
 ## Making a spec from the page
 
 Every active spec is a row on the list, and every row can be run. A spec that does not exist yet has no row, so
-above the table there is a **New spec** button — a plain link to `/new`. That page is the form and nothing
+above the table there is a **New** button — a plain link to `/new`. That page is the form and nothing
 else: a project, a **Depends on** field naming a spec this one has to wait for, a title, a description, a phase table,
 and two buttons, Create and Cancel. Create posts to `POST /api/queue/create` and returns to the list; Cancel returns having done nothing. A refused
 submission comes back to `/new?error=…`, where what was typed can be corrected.
@@ -78,8 +78,8 @@ the same scheduler pass: there is no number for them to collide over.
 A landing merges in a worktree of its own and touches the shared checkout for one fast-forward at the end, so it
 holds back two things and nothing else: the job being landed, and a second `archive` in the same project.
 
-**The list holds specs, not the machine's whole run history.** An archived spec leaves the page along with the jobs
-it had. Nothing is destroyed — `/api/queue` still returns every job and `/specs/<id>` still renders each one. A project whose specs the server cannot read this time keeps the rows it
+**The list holds specs, not the machine's whole run history.** An archived spec stays on the list as a row under the
+default **All** filter, and **Active** leaves it out. Nothing is destroyed — `/api/queue` still returns every job and `/specs/<id>` still renders each one. A project whose specs the server cannot read this time keeps the rows it
 already had: an empty answer means "we cannot tell", never "everything here is archived".
 
 A job survives a restart: the runner spawns detached in its own process group, and the result file is the
@@ -89,7 +89,7 @@ hits its own time limit is `stopped`, not `failed`. [A job's states](job-states.
 ## Which requests the dashboard answers
 
 The dashboard asks for no sign-in. It refuses requests from other sites instead, with one check in front of every
-route — the static site, `/live` and `POST /api/aide-run` included:
+route — every page, the `/api/queue` actions and `POST /api/aide-run` included:
 
 - **The `Host` must be one of its own names:** `localhost`, `127.0.0.1`, `[::1]`, the machine's own Tailscale name when it has
   one, and any name listed in `allowedHosts` in `queue-config.json`. The port is ignored, since the test boards
@@ -157,7 +157,7 @@ override is checked against each step's OWN ceiling, so a job holding both steps
 naming `implement`. A file still carrying the old flat `"timeoutSec": 1200` is ignored and the built-in defaults stand.
 
 `projects` is the odd one out in that file: it is the only key the server WRITES as well as reads. It is the queue's
-allowlist, and the Projects panel on `/` rewrites it on every Add and Remove — which is what makes those take
+allowlist, and the Add and Remove buttons on `/projects` rewrite it — which is what makes those take
 effect without a restart. The
 `--queue-projects` flag is the seed for a first install where this file does not exist yet; where the file HAS a
 `projects` array, it wins over the flag. A malformed one is ignored entirely and the flag is kept, the same direction
@@ -227,8 +227,7 @@ reach the server at once, though: the model select it fills is recorded the inst
 run yet as much as on one that has (see "A model picked for a phase" below). It is drawn whenever ANY tool has a
 model configured, one included: a lone entry is a statement rather than a choice, and hiding it left the row's first
 select holding a model under a heading a reader takes for the AI. Only a server with no model choices at all draws no
-picker. Filling a model in is a script's job, so with scripting off the pickers and their caption are hidden outright
-(`<noscript>`) and the five model selects underneath stay exactly as usable as they are with one.
+picker.
 
 There is no `Set all…` control: a deployment with one tool and several models of it has no
 one-action way to set every phase at once, and each phase's model select is changed on its own line.
@@ -250,15 +249,14 @@ run of that phase uses it.
 
 The queue, the worktrees, the wall-clock timeout and all the git handling are one path for both tools — **the wall
 clock (`timeoutSec`) is the only thing that stops a runaway step**, for either tool, and it is mandatory for every
-step either way. Two things differ, and both are visible on the page rather than papered over:
+step either way. One thing differs, and it is visible on the page rather than papered over:
 
 - **A Codex step reports tokens, never dollars.** No dollar figure exists anywhere in Codex's output, so the Cost column
   shows the token count and a dash where the money would be — never `$0.00`, which would add up as though the step had
   been free. A job mixing both tools has a
   `spentUsd` covering its Claude steps only.
-- **A Codex step has no "Live right now" panel.** That panel's contents come from `claude-usage`, which watches Claude
-  Code sessions and knows nothing of Codex threads. The Activity tab works for both: the run's transcript is parsed in
-  whichever schema wrote it.
+
+The job page's Logs tab works for both: the run's transcript is parsed in whichever schema wrote it.
 
 Safety modes are stored the same way for both — the queue keeps Claude's own names, per step, config-only.
 `aide-run-spec` translates them for Codex: `bypassPermissions` becomes
@@ -524,7 +522,7 @@ server's own environment (the case above) is left alone, so pointing reporting a
 }
 ```
 
-The address in that block is the HTTPS one; the `:8788` address answers on the serving host itself and nowhere
+The address in that block is the loopback one; the `:8788` address answers on the serving host itself and nowhere
 else.
 
 **`GET /api/aide-runs` is these runs in flight, as JSON.** No page renders it directly: the spec list shows every

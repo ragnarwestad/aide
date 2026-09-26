@@ -190,7 +190,7 @@ project.
 ## Moving the board's own directories
 
 Everything the dashboard owns — its checkouts, projects root, worktrees,
-`site`, `jobs`, `pdf-cache`, `schedule-output`, `round-logs` and the JSON
+`jobs`, `pdf-cache`, `schedule-output`, `round-logs` and the JSON
 mirrors — lives under one directory, `~/.aide/dashboard/`. It used to be
 `~/aide-dashboard/`, a name indistinguishable from the code project's
 own; `.aide` is the name Aide already gives what is configuration, and
@@ -237,11 +237,11 @@ the job — exactly the path every other upgrade already takes.
 
 **A job started anyway, mid-move, does not corrupt anything — it leaves
 a stray, mostly-empty directory behind at whichever old name the code it
-is running still points at.** `ensureDashboardCheckout` treats a missing
-checkout as a first use and clones a fresh one; `run-spec-checkouts.sh`
-treats a missing worktree base as new and `mkdir -p`s it. Neither one
-errors, and neither one touches the data already moved — but that run's
-own checkout or worktree now lives in a directory this procedure is
+is running still points at.** `ensureDashboardCheckout` refuses a
+missing checkout rather than cloning one, so that run fails;
+`run-spec-checkouts.sh` treats a missing worktree base as new and
+`mkdir -p`s it. Neither one touches the data already moved — but that
+run's own worktree now lives in a directory this procedure is
 about to leave behind, so treat it as failed and re-queue it once the
 move is finished, and remove the stray directory by hand.
 

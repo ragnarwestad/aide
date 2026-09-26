@@ -400,8 +400,7 @@ twice over: once to open its confirmation dialog, and once for the press that fo
 - **Close on the spec page asks in a dialog, with no fallback page behind it.** The Close button carries
   `data-close-ask` and a `dialog.confirmdialog` sits beside it, holding the question, a required Reason field (bounded
   and counted), a refusal line, and OK (danger) and Cancel. With script the click opens it; without script, or a
-  browser without `<dialog>`, the button does nothing — Close needs script to do anything at all (`design-system.md`'s
-  "Every control works with script off"). OK posts the same route and stands as "Closing…" the way Reopen's own
+  browser without `<dialog>`, the button does nothing — Close needs script to do anything at all. OK posts the same route and stands as "Closing…" the way Reopen's own
   confirmation does; a refused post is written in the dialog's own line, which stays open with the reason still typed.
 - **Reopen and Close stand behind a dialog.** Their confirmation forms carry `data-progress` (the spec page) and a
   `dialog.confirmdialog` titled "Reopening…" or "Closing…". On submit the script opens it as a modal with no buttons

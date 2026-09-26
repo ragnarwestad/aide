@@ -62,8 +62,9 @@ client.
 So the dashboard keeps clones of its own, under
 `~/.aide/dashboard/checkouts/<project>/` — `code/`, plus `specs/` when the specs root is a separate repository. One per
 project, never one per run;
-`--dashboard-checkouts <dir>` moves them. They are made the first time they are needed, by cloning the user's
-checkout's own `origin`, and reused ever after. Everything that MUTATES goes there: `aide-run-spec
+`--dashboard-checkouts <dir>` moves them. They are made only when a project is added or its settings are saved,
+by cloning the user's checkout's own `origin`, and reused ever after; anything else that finds one missing reports it
+and does not clone. Everything that MUTATES goes there: `aide-run-spec
 --project-dir`, a landing's merge and push, Save, Update, the dependency gate's fetches, the drift poll. The user's
 checkout is read and never written: the project list, the manifests, its `.aide/config`, its `AIDE_SPECS_PATH`,
 the sources its worktree links point at, and the `origin` a clone is made from.
@@ -123,10 +124,9 @@ is built from the repos that were pushed (`branchUrls` in the result; `branchUrl
 one).
 
 **It branches them in `git worktree` checkouts of its own**, under `$HOME/.aide/dashboard/worktrees/`. The path is
-`<basename of --project-dir>/<spec>/<basename of each root>` — and since the dashboard passes its own clone,
-`<base>/<project>/code`, the first segment reads `code` for every project on a serving host, not the project's
-name. A project with no `origin`, which runs in the person's own checkout, is the one case where that segment is
-the project's directory name. The real
+`<project>/<spec>/<basename of each root>`. The first segment is the project's name: for the dashboard's own clone,
+`checkouts/<project>/code`, it is `<project>` (`worktree_project_key` in `run-spec-checkouts.sh`), and for any other
+`--project-dir` it is that directory's basename. The real
 checkouts are put back **onto** their default branch before the worktrees are made and never leave it, so several runs
 can go at once, the dashboard's spec list never describes whatever branch a running job is on, and a user can use the
 checkout meanwhile. Two consequences worth knowing before changing anything here:

@@ -135,7 +135,7 @@ step's OWN landing clears it when it succeeds later; a LATER step's success leav
 
 **Done to stopped** is the same transition for the one landing failure that is nobody's fault. The landing runs the
 project's own suite on the merged result, and a red suite pushes nothing: `landing-held` moves the job to `stopped`
-with `stopReason: "tests-red"`, so the State cell reads `stopped — tests red` and the row's message is amber. The
+with `stopReason: "tests-red"`, so the State cell reads **Stopped** and the row's message line carries an amber "tests red". The
 work is not green yet — run implement again — which is a different thing from a broken agent, and the row says so.
 
 Cancel works while a finished step's work is being merged and tested, though the job already reads `done`: the
@@ -190,8 +190,8 @@ The row's badge is short by design, and what it does not say is on the notice li
 runner picks — or "<phase> queued" when it has no position, or **Held back**. Once nothing is running the badge is
 one word: **Ready**, **Done** or **Stopped**, and `failed`, `cancelled` and `interrupted` are the bare word too.
 
-The longer forms — "stopped — 45 min", "stopped — provider limit", "stopped — tests red" — exist, but on the job's
-own detail page, on the phase lines and in the schedule report, not on the row. `cancelled` is drawn amber like
+The badge is that one word everywhere it appears — the row, the phase lines, the job page's chip and the schedule
+report. Why a job stopped is on the row's message line and in the popover beside the job page's chip. `cancelled` is drawn amber like
 `stopped`, since it is a step somebody stopped by hand rather than a failure; `interrupted` is grouped with
 `failed`. The words themselves live in `src/render/ui/job-state/` and are described on
 [The specs list and the spec page](the-specs-list.md#the-state-column).

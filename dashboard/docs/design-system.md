@@ -25,11 +25,11 @@ through a variable, and a control has one class wherever it appears — never a 
 
 ## Tokens
 
-The stylesheet is the seventeen `.css` files `src/render/ui/css/index.ts` lists in `SECTIONS`, read and joined in
+The stylesheet is the sixteen `.css` files `src/render/ui/css/index.ts` lists in `SECTIONS`, read and joined in
 that order into the one string inlined into every page. `tokens.css` declares every colour, type size, space and radius ONCE, as CSS
 custom properties, between the `tokens:start` and `tokens:end` sentinels. There are four such blocks: `:root`, the
 same ramp read from the other end inside `@media (prefers-color-scheme: dark)`, and one each for
-`:root[data-theme="dark"]` and `:root[data-theme="light"]`. Every rule in the other sixteen files uses `var(--…)`;
+`:root[data-theme="dark"]` and `:root[data-theme="light"]`. Every rule in the other fifteen files uses `var(--…)`;
 none of them may contain a literal. The full set — and the type and space scales a font size or a gap has to come
 from — is `tokens.css` itself; the names below are the ones a reader of the palette needs first.
 
@@ -79,8 +79,7 @@ alone, since the state column there is sized for the word.
 the word a reader sees, with a sibling table per language (`STEP_LABELS_NB` and three more), while `data-phase`, the
 checkbox `value`, the queue step and the skill all keep the technical name regardless.
 
-The brand is `src/render/ui/brand.ts` — the mark, the wordmark and the favicons, all inline SVG and data URIs, because the
-generated site is published as plain files and has to work opened from a folder.
+The brand is `src/render/ui/brand.ts` — the mark, the wordmark and the favicons, all inline SVG and data URIs.
 
 ## The guard
 
@@ -91,7 +90,7 @@ or a `specs-client` file emits that is not one of the components, one of the two
 hooks (`rowrun`, `actionform`, `refused` and the rest), or one of the short list of structural names it writes out in
 full. The same file also fails on a name on those lists that no render or `specs-client` file emits, on a listed name
 that no rule selects and that is neither a script hook nor a state value, and on a stylesheet rule whose every selector
-names a class nothing emits; `filter-pill.css` may not come back. Two groups are exempt from "has a rule": the script
+names a class nothing emits. Two groups are exempt from "has a rule": the script
 hooks (`JS_HOOKS`), which a script or a browser test selects by class, and the state values `default`, `todo` and
 `notverified`, each one value of a family whose other values carry the rules. A marker that only names a role is a
 `data-*` attribute, not a class. `css-guard-layout.test.ts` and `css-guard-select.test.ts` hold the layout rules and the
@@ -126,11 +125,7 @@ that pushes a control to the row's far end, as the New spec button's does, is no
 the rule does not cover it.
 
 `test/design/css-guard/css-guard-layout.test.ts` asserts that `.actionform` declares no
-`margin`. Beside it, that file asserts the stylesheet contains no `data-controls` at all, and that `.row` keeps its
-own unscoped `align-items: center`. There used to be a row that mixed a labelled field with plain buttons and needed
-its own baseline, scoped to a `data-controls` attribute; both are gone, and the guard now keeps them gone — a guard
-still pointing at `tr[data-controls]` would pass for ever while protecting nothing, and `.row`'s unscoped `center` is
-what the filter bar needs.
+`margin`.
 
 ## One busy flag, not a per-step lookup
 
@@ -206,17 +201,13 @@ the question first — or opens one, as the Delete button in the scheduled jobs'
 
 ## Theme choice
 
-The header carries a Dark/Light/Auto control, stored in the browser (`localStorage`), not on the server — the generated
-pages are files with no server in front of them when opened from a folder, so nothing server-computed could carry the
-choice. An explicit pick sets
+The header carries a Dark/Light/Auto control, stored in the browser (`localStorage`), not on the server. An explicit pick sets
 `data-theme` on `<html>`; two extra token blocks in `tokens.css`,
 `:root[data-theme="dark"]` and `:root[data-theme="light"]`, override the `@media (prefers-color-scheme: dark)` block by
 attribute-selector specificity (0-2-0 beats 0-1-0) regardless of source order. Auto needs no rule at all — no attribute
 set falls straight through to the existing OS-driven CSS.
 
-**This is the one deliberate exception to "generated pages carry no page code."** Applying the stored choice before
-first paint (no flash)
-needs a script that runs before body content, on every page — served and generated alike — so `src/render/ui/shell.ts`'s
+Applying the stored choice before first paint (no flash) needs a script that runs before body content, on every page, so `src/render/ui/shell.ts`'s
 `pageShell()` emits exactly one `<script>` tag in `<head>`, unconditional and shared. `theme-script.ts` is what it
 exists for, but the tag carries eleven transpiled files in all — the unit setting, the "…" menu's close-on-outside-click,
 the service worker registration and the rest — each its own IIFE, concatenated into the one tag because the guard test
@@ -286,8 +277,8 @@ from the CLI flag it was started with (`--test-board`), and read directly by `pa
 threaded through every page renderer, the same way `lastInstallWarning()` already reads
 `AIDE_INSTALL_LOG` directly.
 
-The "…" menu is a `<details>`/`<summary>` disclosure, the same pattern `.intro` uses — not a JS-driven popover — so
-it opens and closes with JavaScript off, like every other control on the site. Closing it on an outside click or on
+The "…" menu is a `<details>`/`<summary>` disclosure, the same pattern `.intro` uses — not a JS-driven popover.
+Closing it on an outside click or on
 Escape is its own script, `menu-script.ts`, riding in the head tag with the others.
 
 The two tab bars are separate markup, and neither calls the other: `shell.ts`'s own `tabBar()` writes the page-level

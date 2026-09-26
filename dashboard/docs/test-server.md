@@ -59,8 +59,8 @@ A test server runs on the same machine as this dashboard, on one of six ports, 8
 reach it through this dashboard's own link, on the same address you use for the dashboard itself —
 the `127.0.0.1` address the start-up log prints is the serving machine's own, and means nothing on
 yours. Reaching those ports from another device is a one-off setup on the host, described in
-[tailscale.md](tailscale.md); where it has not been done, the start refuses and names the command
-to run there.
+[tailscale.md](tailscale.md). A host that exposes none of the ports starts test servers as before;
+one that exposes some but not all refuses a port it left out and names the command to run there.
 
 With all six ports in use, the start refuses as well: "N of 6 test servers are already running —
 open Test servers (⋯ menu) and stop one before starting another".

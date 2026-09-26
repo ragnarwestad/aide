@@ -156,11 +156,6 @@ order, stopping at the first that applies:
 | `conflict-open`                | The branch could not be brought up to date with the default branch; the model resolves it       |
 | `not-implemented-yet`          | `implement` is not on the completed line                                                        |
 | `acceptance-criteria-unticked` | A row under `## Acceptance criteria` in `4-status.md` is still open — only a user ticks those   |
-
-The acceptance criteria live in two files, and the difference matters when an archive is held back. The criteria
-themselves — the `AC-n` lines saying what done means — are written in `1-description.md`, and that is the file you
-edit to change one. The tick rows are in `4-status.md`, one per criterion, and that is what the gate reads. You
-tick them on the spec's **Status** tab, or under the › on its row, and press Archive when they are all settled.
 | `archived`                     | Stamped and moved; the landing follows                                                          |
 
 Four of the five outcomes short of `archived` end the step with no model run at all: `refused`,
@@ -168,6 +163,11 @@ Four of the five outcomes short of `archived` end the step with no model run at 
 one, for the conflict and for the documentation feedback respectively. An `acceptance-criteria-unticked` archive
 often never reaches the script: the runner ends a queued one on the spot, with that outcome, no process and no
 cost.
+
+The acceptance criteria live in two files, and the difference matters when an archive is held back. The criteria
+themselves — the `AC-n` lines saying what done means — are written in `1-description.md`, and that is the file you
+edit to change one. The tick rows are in `4-status.md`, one per criterion, and that is what the gate reads. You
+tick them on the spec's **Status** tab, or under the › on its row, and press Archive when they are all settled.
 
 An Acceptance row marked `Not verified` counts as ticked for `acceptance-criteria-unticked`: a check that can only be
 made after deploy does not hold the archive back, and the spec keeps showing it until the row is ticked. A row marked
@@ -207,7 +207,7 @@ An archived or closed spec refuses every step but Reopen, whatever is ticked on 
 
 ## How a hold works
 
-Three of the rows above are holds rather than stops: nothing failed, and the job is still queued.
+Three things hold a job back rather than stop it: nothing failed, and the job is still queued.
 
 - **A dependency.** `Depends on:` in `1-description.md` names other specs. `implement` and `archive` are held back
   while any of them still has a branch on origin carrying commits the default branch does not — which is until that
@@ -216,7 +216,9 @@ Three of the rows above are holds rather than stops: nothing failed, and the job
 - **Another job on the same spec.** Two jobs for one spec never run at once.
 - **That job's own landing.** A job with `landing` set does not start its next step until its merge settles.
   Every other job runs as usual: the landing merges in a worktree of its own.
-- **An archived or closed spec.** The server refuses every step but `reopen` for it (`ARCHIVE_ONLY_STEP`).
+
+An archived or closed spec is refused rather than held: the server refuses every step but `reopen` for it
+(`ARCHIVE_ONLY_STEP`).
 
 ## Where the work is between phases
 
@@ -320,7 +322,7 @@ The row's state is one of: `not-started` (the spec has no job at all), the state
 (`queued`, `running`, `done`, `stopped`, `failed`, `cancelled`, `interrupted`), `archived`, `archived-unlanded`
 (archived with its branch still on origin), or `closed` — except that a job whose branch is still landing reads as
 `running` for this purpose regardless of its own state, so a still-merging spec sits with the ones still going rather
-than the ones waiting on a press. The chips group those — "All" is the default, "Active" is everything not archived
+than the ones waiting on a press. The state filter's dropdown groups those — "All" is the default, "Active" is everything not archived
 and not closed, "Running" only `running` (landing included, `queued` excluded), "Waiting" (`queued` or `done`,
 with no landing in progress), "Stopped", "Failed" (the three other failure states and `archived-unlanded`),
 "Archived" (both archived states), "Closed" and "Not verified".

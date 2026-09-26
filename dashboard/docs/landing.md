@@ -245,13 +245,15 @@ nothing at all would land.
 
 ## A project can ask for its code branch to stay open
 
-`codeLanding: pr` in the COMMITTED `.aide/project.yaml` says this project's code is reviewed before it reaches the
+`codeLanding: pr` in the project's `.aide/project.yaml` — the tracked manifest, or the dashboard's untracked copy of
+its `settings.yaml` — says this project's code is reviewed before it reaches the
 default branch, and it does two things that must never be separated: the dashboard runs every one of that project's
 steps with `--push pr`, so `aide-run-spec` opens the request, and `landBranch` skips `mergeBranchIntoDefault` for the
 CODE root of an `archive` landing. Either half alone is worse than neither — a landing left open with nothing
 describing it, or a pull request merged past moments after it was opened. Four things not to get backwards:
 
-- **The manifest and NOTHING else.** Unlike `worktreeLinks`, there is no `.aide/config` fallback: whether code is
+- **The manifest (tracked, or the dashboard's copy), never `.aide/config`.** Unlike `worktreeLinks`, there is no
+  `.aide/config` fallback: whether code is
   reviewed is a team policy, and `.aide/config` is gitignored — a policy a fresh clone cannot read is not a policy.
   Absent, unrecognized or unparseable all resolve to `merge`.
 - **The manifest is a DEFAULT for `--push`, never an override.** A `--push` typed at a terminal wins;
