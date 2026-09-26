@@ -27,7 +27,7 @@ export const en = {
   "deploy.stepInstall": "Install",
   "deploy.stepRestart": "Restart the service",
   "deploy.stepWait": "Wait for the service to answer",
-  "deploy.stepCheck": "Check that the service runs the newest commit",
+  "deploy.stepCheck": "Check the newest commit runs",
   "deploy.stateWaiting": "waiting",
   "deploy.stateRunning": "running",
   "deploy.stateDone": "done",

@@ -26,7 +26,7 @@ export const de: Record<TranslationKey, string> = {
   "deploy.stepInstall": "Installieren",
   "deploy.stepRestart": "Den Dienst neu starten",
   "deploy.stepWait": "Warten, bis der Dienst antwortet",
-  "deploy.stepCheck": "Prüfen, dass der Dienst den neuesten Commit ausführt",
+  "deploy.stepCheck": "Neuesten Commit prüfen",
   "deploy.stateWaiting": "wartet",
   "deploy.stateRunning": "läuft",
   "deploy.stateDone": "fertig",

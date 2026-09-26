@@ -34,7 +34,7 @@ describe("the Deploy form's dialog", () => {
       { step: "install", state: "waiting", text: "Install waiting" },
       { step: "restart", state: "waiting", text: "Restart the service waiting" },
       { step: "wait", state: "waiting", text: "Wait for the service to answer waiting" },
-      { step: "check", state: "waiting", text: "Check that the service runs the newest commit waiting" },
+      { step: "check", state: "waiting", text: "Check the newest commit runs waiting" },
     ]);
   });
 
@@ -43,7 +43,7 @@ describe("the Deploy form's dialog", () => {
     expect(nb.map((l) => l.step)).toEqual(["fetch", "install", "restart", "wait", "check"]);
     expect(nb.every((l) => l.state === "waiting")).toBe(true);
     expect(nb[0]!.text).toBe("Hent fra origin venter");
-    expect(nb[4]!.text).toContain("nyeste committen");
+    expect(nb[4]!.text).toContain("nyeste commit kjører");
   });
 
   test("sits inside the form, and the form does not ask for the covering layer (AC-1)", () => {

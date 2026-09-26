@@ -157,6 +157,32 @@ describe("the Deploy dialog's size", () => {
     expect(Math.abs(m.dialogBottom - (m.messageBottom + m.pad + m.border))).toBeLessThanOrEqual(1);
   });
 
+  // Every step's name keeps to one line in every language, beside the
+  // widest of the four state words.
+  for (const lang of ["en", "nb", "de", "es", "fr"]) {
+    test(`every step's name stays on one line beside its widest state word in ${lang}`, async () => {
+      const { page } = await deployPage({ lang });
+      await press(page);
+      const wrapped = await page.evaluate(() => {
+        const ol = document.querySelector(".deploysteps") as HTMLElement;
+        const words = ["waiting", "running", "done", "failed"].map((k) => ol.dataset[k]!);
+        const out: string[] = [];
+        for (const li of document.querySelectorAll<HTMLElement>("[data-step]")) {
+          const state = li.querySelector(".deploystate")!;
+          for (const word of words) {
+            state.textContent = word;
+            const r = document.createRange();
+            r.selectNodeContents(li.firstChild!);
+            const lines = new Set([...r.getClientRects()].map((q) => Math.round(q.top))).size;
+            if (lines > 1) out.push(`${li.dataset.step} beside "${word}"`);
+          }
+        }
+        return out;
+      });
+      expect(wrapped).toEqual([]);
+    });
+  }
+
   test("is the same at the press, at every step and when it is done (AC-1)", async () => {
     const { page } = await deployPage();
     await press(page);

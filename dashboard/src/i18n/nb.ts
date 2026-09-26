@@ -26,7 +26,7 @@ export const nb: Record<TranslationKey, string> = {
   "deploy.stepInstall": "Installer",
   "deploy.stepRestart": "Start tjenesten på nytt",
   "deploy.stepWait": "Vent til tjenesten svarer",
-  "deploy.stepCheck": "Sjekk at tjenesten kjører den nyeste committen",
+  "deploy.stepCheck": "Sjekk at nyeste commit kjører",
   "deploy.stateWaiting": "venter",
   "deploy.stateRunning": "kjører",
   "deploy.stateDone": "ferdig",

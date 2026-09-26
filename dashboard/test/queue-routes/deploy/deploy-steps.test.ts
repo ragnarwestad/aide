@@ -190,7 +190,7 @@ describe("a refused step is kept for the Deploy tab until the next deploy starts
     const check = await deployServer(OLDER, noRestart);
     installs(check.paths.project);
     expect((await post(check.base, "aide/deploy/check")).status).toBe(400);
-    expect(keptText(await page(check.base, "/projects/aide?tab=deploy"))).toContain("Check that the service runs the newest commit failed:");
+    expect(keptText(await page(check.base, "/projects/aide?tab=deploy"))).toContain("Check the newest commit runs failed:");
   });
 
   test("the next fetch clears it, and a deploy that then fails elsewhere shows only that one (AC-6)", async () => {
