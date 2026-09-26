@@ -59,7 +59,7 @@ export interface ProjectView {
   specs: SpecView[];
 }
 
-function specFolders(root: string, archived: boolean): SpecRef[] {
+export function specFolders(root: string, archived: boolean): SpecRef[] {
   if (!existsSync(root)) return [];
   const out: SpecRef[] = [];
   for (const entry of readdirSync(root)) {

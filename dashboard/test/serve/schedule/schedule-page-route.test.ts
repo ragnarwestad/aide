@@ -10,6 +10,8 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { scheduleRunOutputDir } from "../../../src/queue/schedule.ts";
+import { writeProposalsRecord } from "../../../src/queue/spec-proposals.ts";
+import { scheduleRunPath } from "../../../src/render";
 import { queueHarness } from "../../helpers/queue-server.ts";
 
 const harness = queueHarness("aide-schedule-page-route-");
@@ -289,6 +291,35 @@ describe("GET /schedule/<project>/<entry> shows a run's report (spec 495)", () =
     const html = await get(base, `${PAGE}?tab=history`);
     expect(html).toContain(`href="${PAGE}?run=r1#report"`);
     expect(html).toContain(`href="${PAGE}?run=r2#report"`);
+  });
+
+  test("a run with a record lists its proposals under the report, and only that run does (AC-3)", async () => {
+    const { base, outputRoot } = setup([
+      { id: "r1", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>a</p>" },
+      { id: "r2", state: "done", at: "2026-09-02T03:00:00Z", report: "<p>b</p>" },
+    ]);
+    writeProposalsRecord(outputRoot, "aide", KEY, "r1", {
+      at: "2026-09-01T03:01:00Z",
+      proposals: [
+        { title: "Made one", result: "created", jobId: "b1" },
+        { title: "Known", result: "skipped", why: { code: "exists", folder: "7-known", kind: "closed" } },
+      ],
+    });
+    const withRecord = await get(base, `${PAGE}?run=r1`);
+    expect(withRecord).toContain('id="proposals"');
+    expect(withRecord).toContain("Made one");
+    expect(withRecord).toContain('href="/jobs/b1"');
+    expect(withRecord).toContain('href="/specs/aide/7-known"');
+    expect(await get(base, `${PAGE}?run=r2`)).not.toContain('id="proposals"');
+  });
+
+  test("the address a source block gives is the one the History row uses, and the page answers it (AC-5)", async () => {
+    const { base } = setup([{ id: "r1", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>REPORT-R1</p>" }]);
+    const path = scheduleRunPath("aide", "nightly-report", "r1");
+    expect(await get(base, `${PAGE}?tab=history`)).toContain(`href="${path}"`);
+    const res = await fetch(`${base}${path.split("#")[0]}`);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain("REPORT-R1");
   });
 
   test("a ?run= naming no job of this entry shows the newest run, and nothing outside the run's directory", async () => {

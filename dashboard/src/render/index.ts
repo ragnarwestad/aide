@@ -60,7 +60,8 @@ export type { TestServerRow, TestServersPageOptions } from "./pages/test-servers
 export {
   renderSchedulePage, renderScheduleDetailPage,
   renderReportPanel, buildReportDocument,
-  SCHEDULE_ROUTE, SCHEDULE_TABS, schedulePagePath, scheduleTabPath,
+  SCHEDULE_ROUTE, SCHEDULE_TABS, schedulePagePath, scheduleRunPath, scheduleTabPath,
+  renderProposalsPanel,
 } from "./pages/schedule-page";
 export type {
   SchedulePageOptions, SchedulePageRow, ScheduleDetailPageOptions,

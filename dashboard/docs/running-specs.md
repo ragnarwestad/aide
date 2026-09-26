@@ -380,6 +380,19 @@ report's own styling, scripts and event attributes are removed and the board's t
 follows the page's Dark/Light/Auto choice through `specs-client/report-frame.ts`. The file on its own is served under
 `/schedule-output/<project>/<key>/runs/<jobId>/index.html`.
 
+**A run's proposed specs.** A run may also leave `proposed-specs.json` beside its report: a JSON list of objects with a
+`title` and a `description`. When the run ends green — and only then — the board queues one Create job per proposal for
+the entry's own project, with no step after Create, so the specs appear on the board created and nothing more; a person
+decides which to analyze and implement. The job itself changes nothing. A proposal is skipped, with the reason on the
+run's page, when its title is the same as a spec of the project (active, archived or closed) or of a Create job already
+queued, running or done — "the same" meaning equal after trimming, collapsing spaces and lowercasing — and when its
+title is empty, runs over more than one line or is longer than 120 characters, or its description does not fit in 5,000
+characters together with the source paragraph the board adds. That paragraph names the entry and the run and links to the
+run's page. Closing a proposed spec with a reason is how it is declined; its title keeps it from being created again. The
+board writes what it did to `proposed-specs-result.json` beside the report, and the entry's Overview tab lists it under the
+report: each title as created (linked to its job) or skipped, and why. A list that cannot be read, or a project whose specs
+the board cannot read, creates nothing and says so there.
+
 `model:` is which of the queue's own `modelChoices` every fire of that entry runs on — one name for the whole entry,
 since a scheduled job is a single `schedule` step and has no phases to tell apart. It is picked on the New-job and Edit
 forms the same way a spec's model is picked on the Specs page, with the AI beside it deriving from it; a name the queue

@@ -16,11 +16,13 @@ import { homedir } from "node:os";
 import { mkdirSync, readFileSync, rmSync } from "node:fs";
 import { Runner } from "../queue/runner";
 import { DEFAULT_SCHEDULE_OUTPUT_ROOT, scheduleRunOutputDir } from "../queue/schedule.ts";
+import { proposeSpecs } from "../queue/propose-specs.ts";
+import { scheduleRunPath } from "../render";
 import type { QueueStore, Job, WorkflowStep } from "../queue/queue.ts";
 import type { StepOutcome } from "../queue/runner";
 import type { Notifier } from "../integrations/notify.ts";
 import { specAcceptanceNotRequired, type CodeLanding } from "../project/discover";
-import { runnerArgv, DEFAULT_QUEUE_CONCURRENCY } from "./serve-helpers";
+import { runnerArgv, DEFAULT_QUEUE_CONCURRENCY, logRefusal } from "./serve-helpers";
 import { analysisSessionToResume, stepTool } from "./serve-helpers/runner-argv.ts";
 import { openRunLog } from "../queue/runner/run-log-path.ts";
 
@@ -315,6 +317,20 @@ export function stepDoneHandler(
       // `refused`) moved nothing, so there is nothing to land.
       if (step === "close") {
         return outcome.terminalReason === "closed" ? ctx.landClosedSpec(job, outcome) : undefined;
+      }
+      // A green scheduled run may have left proposed specs beside its
+      // report: queue a Create job for each. No git and no wait, so no
+      // landing.
+      if (step === "schedule") {
+        proposeSpecs({
+          store: ctx.store,
+          outputRoot: ctx.scheduleOutputRoot ?? DEFAULT_SCHEDULE_OUTPUT_ROOT,
+          specsRoot: ctx.machinerySpecsRoot,
+          reportPath: (name, runId) => scheduleRunPath(job.project, name, runId),
+          now: () => new Date().toISOString(),
+          log: logRefusal,
+        }, job);
+        return undefined;
       }
       // `implement`, `explore` and `manifest` fall through: the first
       // by design, the other two because neither leaves a spec branch

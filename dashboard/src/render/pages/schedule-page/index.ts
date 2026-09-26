@@ -11,12 +11,13 @@ import type { ScheduleFormOptions } from "./form.ts";
 import { renderScheduleHistory, type ScheduleHistoryRow } from "./history.ts";
 import { renderScheduleList, type ScheduleFilter, type SchedulePageRow } from "./list.ts";
 import { renderScheduleOverview } from "./overview.ts";
-import { schedulePagePath, SCHEDULE_TABS, scheduleTabPath, type ScheduleTab } from "./tabs.ts";
+import { schedulePagePath, scheduleRunPath, SCHEDULE_TABS, scheduleTabPath, type ScheduleTab } from "./tabs.ts";
 import { pickTab, tabBar, tabbedBody } from "../job-page";
 
 export { renderReportPanel } from "./report.ts";
 export { buildReportDocument } from "./report-document.ts";
-export { SCHEDULE_TABS, schedulePagePath, scheduleTabPath };
+export { renderProposalsPanel } from "./proposals.ts";
+export { SCHEDULE_TABS, schedulePagePath, scheduleRunPath, scheduleTabPath };
 export type { SchedulePageRow, ScheduleFilter, ScheduleHistoryRow, ScheduleTab };
 
 export const SCHEDULE_ROUTE = "/schedule";
