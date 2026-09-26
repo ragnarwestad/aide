@@ -77,6 +77,45 @@ class TestInstallMiseDeclaredTools:
         assert "use -g npm:markdownlint-cli2@latest" in logged, logged
 
 
+def _run_declared(workspace_root, tmp_path, fake_bin):
+    installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
+    return subprocess.run(
+        ["bash", "-c", f'source "{installer}"; install_mise_declared_tools'],
+        capture_output=True,
+        text=True,
+        env={"PATH": f"{fake_bin}:/usr/bin:/bin", "HOME": str(tmp_path)},
+    )
+
+
+@pytest.mark.validation
+class TestAFailedDeclaration:
+    """A tool mise could not declare is a problem only when it is missing
+    from the machine: the dashboard's banner shows every `[aide tools]`
+    line, so one for a tool already installed some other way (pandoc from
+    brew) is a warning about nothing."""
+
+    def _mise_that_cannot_declare(self, tmp_path):
+        # node is there (`mise which` answers), every `mise use` fails.
+        return _fake_mise(tmp_path, '[ "$1" = "which" ] && exit 0\nexit 1')
+
+    def test_a_tool_already_on_path_is_reported_found_not_warned(self, workspace_root, tmp_path):
+        fake_bin = self._mise_that_cannot_declare(tmp_path)
+        pandoc = fake_bin / "pandoc"
+        pandoc.write_text("#!/usr/bin/env bash\nexit 0\n")
+        pandoc.chmod(0o755)
+        out = _run_declared(workspace_root, tmp_path, fake_bin).stdout
+        assert "Already on PATH: pandoc" in out, out
+        assert not [l for l in out.splitlines() if "[aide tools]" in l and "pandoc" in l], out
+
+    def test_a_missing_tool_is_warned_by_name_not_as_markdown_linting(self, workspace_root, tmp_path):
+        fake_bin = self._mise_that_cannot_declare(tmp_path)
+        out = _run_declared(workspace_root, tmp_path, fake_bin).stdout
+        warned = [l for l in out.splitlines() if "[aide tools]" in l and "pandoc" in l]
+        assert warned, out
+        assert "markdown linting" not in warned[0], warned[0]
+        assert "pandoc is not on PATH" in warned[0], warned[0]
+
+
 def _implementations(workspace_root):
     """Every implementation that has an installer. Derived rather than
     listed: the rules below hold for EVERY tool aide installs, and a

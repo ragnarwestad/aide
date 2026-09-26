@@ -110,12 +110,20 @@ install_mise_declared_tools() {
     echo "   ⚠️  [aide tools] mise has no node installed — skipping $MISE_DECLARED_TOOLS (mise use -g node, then re-run this installer)"
     return 0
   fi
-  local tool
+  local tool bin
   for tool in $MISE_DECLARED_TOOLS; do
     if mise use -g "$tool@latest" &> /dev/null; then
       echo "   ✅ Declared via mise: $tool"
+      continue
+    fi
+    # A tool installed some other way (pandoc from brew) still works: only
+    # one missing from the machine is worth the [aide tools] warning that
+    # the dashboard shows on every page.
+    bin="${tool#npm:}"
+    if command -v "$bin" &> /dev/null; then
+      echo "   ✅ Already on PATH: $bin (mise could not declare it)"
     else
-      echo "   ⚠️  [aide tools] mise use -g $tool@latest failed — markdown linting will be skipped until it is installed"
+      echo "   ⚠️  [aide tools] mise use -g $tool@latest failed and $bin is not on PATH — install it, then re-run this installer"
     fi
   done
 }
