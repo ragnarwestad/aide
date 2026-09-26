@@ -82,12 +82,14 @@ describe("the specs table fits the box that scrolls it", () => {
     // them (`specs-list/data-model/types.ts`).
     // Spec 484: the same four words measured in Chromium for Spanish,
     // German and French, against this same stylesheet.
+    // The French step labels are measured as the page shows them, accents included.
+    // noinspection NonAsciiCharacters
     const MEASURED_PX: Record<string, number> = {
       Create: 38, Analyze: 45, Implement: 60, Archive: 43,
       Opprett: 49, Analyser: 54, Implementer: 78, Arkiver: 45,
       Crear: 35, Analizar: 51, Implementar: 79, Archivar: 52,
       Erstellen: 54, Analysieren: 73, Implementieren: 97, Archivieren: 71,
-      Créer: 35, Implémenter: 79, Archiver: 52,
+      "Créer": 35, "Implémenter": 79, Archiver: 52,
     };
     const shown = PHASE_LINES.flatMap((step) => [
       STEP_LABELS[step], STEP_LABELS_NB[step], STEP_LABELS_ES[step], STEP_LABELS_DE[step], STEP_LABELS_FR[step],

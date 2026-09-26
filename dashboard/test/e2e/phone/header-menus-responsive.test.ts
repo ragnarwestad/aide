@@ -177,7 +177,7 @@ test("AC-5: the separator lies between the unit row and Settings at 600px and at
 
 test("AC-6: choosing Deutsch reloads in German with the menu open, once", async () => {
   await openMore(PHONE);
-  await Promise.all([page.waitForNavigation(), page.locator(`${MORE_MENU} select[data-lang-select]`).selectOption({ label: "🇩🇪 Deutsch" })]);
+  await Promise.all([page.waitForURL(/[?&]lang=de(&|$)/), page.locator(`${MORE_MENU} select[data-lang-select]`).selectOption({ label: "🇩🇪 Deutsch" })]);
   expect(await page.locator("html").getAttribute("lang")).toBe("de");
   expect(await page.locator(MORE_MENU).evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
   expect(await page.locator(`${MORE_MENU} select[data-lang-select] option:checked`).textContent()).toContain("Deutsch");

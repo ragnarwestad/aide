@@ -5,7 +5,7 @@ import { describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import { renderProjectPage } from "../../../src/render";
 import { deployDialog } from "../../../src/render/pages/projects-page/deploy-dialog.ts";
-import { submitDeploy } from "../../../src/specs-client/deploy/index.ts";
+import { submitDeploy } from "../../../src/specs-client/deploy";
 import type { DeployIo, StepAnswer } from "../../../src/specs-client/deploy/run.ts";
 
 function page(withShowModal = true) {

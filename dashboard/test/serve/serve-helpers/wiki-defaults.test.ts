@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { QUEUE_DEFAULTS } from "../../../src/serve/serve-helpers/config.ts";
+import { QUEUE_DEFAULTS } from "../../../src/serve/serve-helpers";
 import { mergeQueueDefaults } from "../../../src/queue/queue.ts";
 
 describe("the wiki step's built-in settings", () => {

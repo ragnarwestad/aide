@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { queueHarness } from "../../helpers/queue-server.ts";
 import { createScheduleStore } from "../../../src/queue/schedule-store.ts";
-import { refreshSchedules, type ScheduleContext } from "../../../src/serve/schedules/index.ts";
+import { refreshSchedules, type ScheduleContext } from "../../../src/serve/schedules";
 
 const harness = queueHarness("aide-schedule-runner-");
 
@@ -287,7 +287,11 @@ describe("refreshSchedules and a refused fire", () => {
       setup([DAILY]);
       writeFileSync(cfg, "{ not json");
       const enqueued: unknown[] = [];
-      ctx = { ...ctx, queue: { list: () => [], enqueue: (r: unknown) => (enqueued.push(r), { ok: true }) } } as unknown as ScheduleContext;
+      const enqueue = (r: unknown) => {
+        enqueued.push(r);
+        return { ok: true };
+      };
+      ctx = { ...ctx, queue: { list: () => [], enqueue } } as unknown as ScheduleContext;
       const lines = [...(await tick()), ...(await tick())];
       expect(enqueued).toEqual([]);
       expect(lines).toHaveLength(1);

@@ -22,9 +22,8 @@ import {
   discoverProjects, manifestInside, specDependsOn, type CodeLanding, type SpecRef,
 } from "../project/discover";
 import {
-  acceptanceRowsOf, acceptanceStillOpen, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, archiveHeldBackReason, parseStatus, reopenedRound,
+  acceptanceRowsOf, acceptanceStillOpen, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, archiveHeldBackReason, failedCount, notVerifiedCount, parseStatus, reopenedRound,
 } from "../project/parse-status";
-import { failedCount, notVerifiedCount } from "../project/parse-status/not-verified.ts";
 import { currentPhase, readSpecState } from "../project/parse-spec-state.ts";
 import type { SpecTarget } from "../render";
 import { resolveDependencyFolder } from "./serve-helpers";

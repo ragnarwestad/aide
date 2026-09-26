@@ -3,7 +3,7 @@
 // push observer, a fake `fetch`.
 import { afterEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { createPush } from "../../src/push/index.ts";
+import { createPush } from "../../src/push";
 import { deviceKeys, fakeFetch, makeStore, openCall, result, tempDir } from "./fixtures.ts";
 
 const cleanups: (() => void)[] = [];

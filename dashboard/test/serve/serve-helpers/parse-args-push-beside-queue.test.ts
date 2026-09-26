@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { parseArgs } from "../../../src/serve/serve-helpers/parse-args.ts";
+import { parseArgs } from "../../../src/serve/serve-helpers";
 
 // A round's board runs with its own queue and no push paths of its own;
 // defaulted under ~/.aide/dashboard, it read prod's subscriptions and

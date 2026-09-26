@@ -50,7 +50,7 @@ function fake(o: { supported?: boolean; permission?: NotificationPermission; sub
       return true;
     },
   };
-  const f: Fake = {
+  return {
     log,
     get subscribed() { return sub; },
     async answer(ok) { settle?.({ ok }); await flush(); },
@@ -78,7 +78,6 @@ function fake(o: { supported?: boolean; permission?: NotificationPermission; sub
       },
     },
   } as Fake;
-  return f;
 }
 
 function mount(f: Fake) {

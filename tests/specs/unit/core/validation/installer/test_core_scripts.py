@@ -233,7 +233,8 @@ class TestCoreScriptsSupportHelp:
     executable file so a script added later with no help arm fails this
     same test, naming itself (AC-3)."""
 
-    def _all_scripts(self, workspace_root):
+    @staticmethod
+    def _all_scripts(workspace_root):
         return (
             _help_checked_scripts(workspace_root / "core" / "scripts")
             + _help_checked_scripts(workspace_root / "scripts")

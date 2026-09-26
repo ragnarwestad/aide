@@ -2,7 +2,7 @@
 // whose rows actually differ, and never a row a press is mid-click on
 // (spec 204).
 
-import { drawLimits } from "./limits/index.ts";
+import { drawLimits } from "./limits";
 import { offerEachToItsTool, syncAiToModel } from "./ai-sync.ts";
 import { AWAITING, chosen, chosenSteps, checkboxKey, press, selectKey } from "./state.ts";
 

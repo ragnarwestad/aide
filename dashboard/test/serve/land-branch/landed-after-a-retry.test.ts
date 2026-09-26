@@ -5,7 +5,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { handedToMerge } from "../../../src/serve/land-branch/handed-to-merge.ts";
-import type { LandContext } from "../../../src/serve/land-branch/types.ts";
+import type { LandContext } from "../../../src/serve/land-branch";
 import type { Job } from "../../../src/queue/queue.ts";
 import { archivedRowNotices } from "../../../src/render/pages/specs-list/row-marks.ts";
 import type { ArchivedSpecView } from "../../../src/render";

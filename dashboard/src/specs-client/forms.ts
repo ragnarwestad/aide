@@ -212,6 +212,8 @@ export function bindOneLineFields(form: HTMLFormElement): void {
     };
     field.addEventListener("keydown", ((event: KeyboardEvent) => {
       if (event.key !== "Enter") return;
+      // keyCode 229 is the only sign of an IME keydown Safari sends with isComposing false.
+      // noinspection JSDeprecatedSymbols
       if (event.isComposing || event.keyCode === 229) return;
       event.preventDefault();
       if (event.repeat) return;

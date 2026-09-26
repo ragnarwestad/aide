@@ -5,7 +5,7 @@
 html { background: var(--bg); color: var(--text); }
 body {
   margin: 0; padding: var(--sp-3);
-  font-family: var(--sans); font-size: var(--fs-m); line-height: var(--lh);
+  font-family: var(--sans), sans-serif; font-size: var(--fs-m); line-height: var(--lh);
   overflow-wrap: anywhere;
 }
 h1, h2, h3, h4, h5, h6 { line-height: 1.2; margin: var(--sp-4) 0 var(--sp-2); }
@@ -17,7 +17,7 @@ p, ul, ol, pre, table, blockquote { margin: 0 0 var(--sp-3); }
 ul, ol { padding-left: var(--sp-5); }
 a { color: var(--link); }
 a:hover { color: var(--link-strong); }
-code, pre { font-family: var(--mono); font-size: var(--fs-s); }
+code, pre { font-family: var(--mono), monospace; font-size: var(--fs-s); }
 code { background: var(--surface-2); border-radius: var(--r-s); padding: 0 var(--sp-1); }
 pre { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); padding: var(--sp-3); overflow-x: auto; }
 pre code { background: none; padding: 0; }

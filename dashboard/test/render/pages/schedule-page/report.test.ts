@@ -1,8 +1,8 @@
 // Spec 495, criteria 1, 3, 11, 13 and 15 as rendering: the panel that shows a
 // run's report on the entry's page.
 import { describe, expect, test } from "bun:test";
-import { renderReportPanel } from "../../../../src/render/pages/schedule-page/report.ts";
-import type { QueueRowView } from "../../../../src/render/ui/job-state";
+import { renderReportPanel } from "../../../../src/render/pages/schedule-page";
+import type { QueueRowView } from "../../../../src/render";
 
 const view = (state: QueueRowView["state"], extra: Partial<QueueRowView> = {}): QueueRowView =>
   ({ state, timeoutSec: 1200, ...extra }) as QueueRowView;

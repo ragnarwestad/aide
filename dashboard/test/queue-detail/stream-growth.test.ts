@@ -65,7 +65,10 @@ describe("the growth check on the two-second tick (AC-3)", () => {
   test("while no subscriber has keys, no file is measured (AC-3)", () => {
     const { ctx } = setup({ none: [] });
     const measured: string[] = [];
-    createStreamGrowth(ctx, () => [running("/t/a")], (f) => (measured.push(f), 5)).tick();
+    createStreamGrowth(ctx, () => [running("/t/a")], (f) => {
+      measured.push(f);
+      return 5;
+    }).tick();
     expect(measured).toEqual([]);
   });
 });

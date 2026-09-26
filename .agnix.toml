@@ -26,3 +26,10 @@ disabled_rules = ["XP-003"]
 [[overrides]]
 paths = ["core/AGENTS.md"]
 disabled_rules = ["AGM-003", "PE-001", "PE-004", "PE-006", "CDX-AG-005"]
+
+# `effort` and `argument-hint` are Claude Code's own skill fields. Every
+# skill in core/skills carries them on purpose: Claude Code uses them, and
+# the other tools ignore a field they do not know (docs/AI_SUPPORT_MATRIX.md).
+[[overrides]]
+paths = ["core/skills/**"]
+disabled_rules = ["XP-SK-001"]

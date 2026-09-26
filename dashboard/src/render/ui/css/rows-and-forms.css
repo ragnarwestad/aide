@@ -385,7 +385,7 @@ details.intro[open] p { position: absolute; right: 0; top: calc(100% + 6px);
   z-index: 20; width: 28rem; max-width: 80vw; margin: 0; padding: var(--sp-3);
   background: var(--surface); border: 1px solid var(--line-strong);
   border-radius: var(--r); box-shadow: var(--overlay-shadow);
-  font-family: var(--sans); font-size: var(--fs-m); font-weight: 400; color: var(--text); }
+  font-family: var(--sans), sans-serif; font-size: var(--fs-m); font-weight: 400; color: var(--text); }
 /* Spec 477: menu-script.ts measures the opened popover and adds this
    class when its default side above would run past the viewport's
    left or right edge — flips it to the other side instead. */

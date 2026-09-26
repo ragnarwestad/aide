@@ -7,8 +7,7 @@
 // run stopped, never whether that still holds.
 
 import { describe, expect, test } from "bun:test";
-import { withFreshness } from "../../../src/serve/land-branch/freshness.ts";
-import type { LandContext } from "../../../src/serve/land-branch/types.ts";
+import { withFreshness, type LandContext } from "../../../src/serve/land-branch";
 import type { SpecTarget } from "../../../src/render";
 
 const FOLDER = "02-selvregistrering-med-provetid";

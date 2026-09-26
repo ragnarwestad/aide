@@ -5,7 +5,7 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { specArchivedDate, specCloseReason, specClosed, specClosedDate } from "../../../src/project/discover/spec-files.ts";
+import { specArchivedDate, specCloseReason, specClosed, specClosedDate } from "../../../src/project/discover";
 
 const dirs: string[] = [];
 function specWith(status: string): string {

@@ -1,7 +1,7 @@
 // A create that ended without a spec is a message at the top of the Specs
 // list, one per failed create (spec 506).
 import { describe, expect, test } from "bun:test";
-import { renderSpecsRows } from "../../../../src/render/pages/specs-list";
+import { renderSpecsRows } from "../../../../src/render";
 import { renderFailedCreateNotices } from "../../../../src/render/pages/specs-list/failed-create-notices.ts";
 import type { FailedCreate } from "../../../../src/push/failed-creates.ts";
 

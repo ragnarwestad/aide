@@ -9,7 +9,7 @@ import json
 import re
 import subprocess
 import pytest
-from ..conftest import STOP_DEADLINE_SEC, git, run
+from ..conftest import git, run
 from .run_spec_fakes import landing_beside_claude, partially_committing_claude, self_committing_claude, specs_only_claude, writing_claude
 from .run_spec_origins import is_ancestor, run_with_gh
 from .run_spec_results import RESULT_OK
@@ -142,8 +142,9 @@ def test_push_pr_opens_a_pull_request_and_reports_its_url(
     assert out["prUrl"] == "https://github.com/example/aide/pull/7"
     assert out.get("prError") is None
 
+@pytest.mark.usefixtures("origin")
 def test_no_pull_request_is_opened_for_a_branch_with_nothing_in_it(
-    runner, workspace, fake_claude, fake_gh, origin
+    runner, workspace, fake_claude, fake_gh
 ):
     """An `analyze` changes the specs repo and nothing else, so the
     project's own branch holds nothing to review — `gh` refuses such a
@@ -166,8 +167,9 @@ def test_no_pull_request_is_opened_for_a_branch_with_nothing_in_it(
 # gh itself puts the link on a line of its own after the colon; the
 # one-line shape is kept so a gh that joins them still reads the same.
 @pytest.mark.parametrize("between", ["\\n", " "], ids=["gh-own-shape", "one-line"])
+@pytest.mark.usefixtures("origin")
 def test_a_pull_request_that_already_exists_is_the_link_not_a_failure(
-    runner, workspace, fake_claude, fake_gh, origin, between
+    runner, workspace, fake_claude, fake_gh, between
 ):
     """One spec calls `gh pr create` on the same branch from more than one
     step, so the second call meets the request the first one opened. `gh`
@@ -187,8 +189,9 @@ def test_a_pull_request_that_already_exists_is_the_link_not_a_failure(
     assert out.get("prError") is None, "the request exists; there is nothing to report"
 
 
+@pytest.mark.usefixtures("origin")
 def test_another_refusals_own_links_are_never_taken_for_the_review(
-    runner, workspace, fake_claude, fake_gh, origin
+    runner, workspace, fake_claude, fake_gh
 ):
     """`gh`'s connection failure prints a status page. Only the phrase
     `gh` uses for a request that already exists names this branch's

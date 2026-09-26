@@ -28,7 +28,7 @@ import type { CheckableTool, SpecTarget } from "../../render";
 import { STATUS_SPEC_FILE } from "../../render";
 import { archiveWithOpenAcceptance, blockedDependencies, blockedForMissingAnalyze } from "./blocked.ts";
 import { stepTool } from "../serve-helpers/runner-argv.ts";
-import { logRefusal } from "../serve-helpers/redirect.ts";
+import { logRefusal } from "../serve-helpers";
 import type { ScheduleStore } from "../../queue/schedule-store.ts";
 
 export { archiveWithOpenAcceptance, blockedDependencies, blockedForMissingAnalyze } from "./blocked.ts";

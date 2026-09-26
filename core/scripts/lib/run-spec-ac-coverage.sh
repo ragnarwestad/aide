@@ -77,14 +77,17 @@ write_ac_coverage() {
   base="$(default_branch "$project_root")"
   base_ref="$base"
   git -C "$project_wt" show-ref --verify --quiet "refs/remotes/origin/$base" && base_ref="origin/$base"
-  ac_coverage_added_lines "$project_wt" "$base_ref" | ac_coverage_refs \
+  if ac_coverage_added_lines "$project_wt" "$base_ref" | ac_coverage_refs \
     | jq -R -s --arg ids "$ids" '
         [split("\n")[] | select(length > 0) | split("\t") | {id: .[0], file: .[1], name: .[2]}] as $refs
         | {acs: ([$ids | split("\n")[] | select(length > 0)]
                  | map(. as $id | {key: $id,
                                    value: ([$refs[] | select(.id == $id) | {file, name}] | unique)})
                  | from_entries)}' \
-      > "$folder/ac-coverage.json.tmp" 2>/dev/null \
-    && mv "$folder/ac-coverage.json.tmp" "$folder/ac-coverage.json" \
-    || rm -f "$folder/ac-coverage.json.tmp"
+      > "$folder/ac-coverage.json.tmp" 2>/dev/null; then
+    mv "$folder/ac-coverage.json.tmp" "$folder/ac-coverage.json" \
+      || rm -f "$folder/ac-coverage.json.tmp"
+  else
+    rm -f "$folder/ac-coverage.json.tmp"
+  fi
 }

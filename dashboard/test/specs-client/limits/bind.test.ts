@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import { bindLimits, drawLimits, refreshLimit } from "../../../src/specs-client/limits/index.ts";
+import { bindLimits, drawLimits, refreshLimit } from "../../../src/specs-client/limits";
 
 type Field = HTMLInputElement | HTMLTextAreaElement;
 

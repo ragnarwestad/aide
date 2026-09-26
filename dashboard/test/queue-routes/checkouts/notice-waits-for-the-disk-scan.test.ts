@@ -10,8 +10,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { renderSpecsRows, type SpecTarget } from "../../../src/render";
-import { withFreshness } from "../../../src/serve/land-branch/freshness.ts";
-import type { LandContext } from "../../../src/serve/land-branch/types.ts";
+import { withFreshness, type LandContext } from "../../../src/serve/land-branch";
 import { targets, type ScanState, type SpecLookupContext } from "../../../src/serve/spec-lookup.ts";
 import { openKeys, row } from "../../render/pages/fixtures.ts";
 

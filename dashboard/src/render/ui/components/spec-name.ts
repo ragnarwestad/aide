@@ -5,7 +5,10 @@
 
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { t, type Language, type TranslationKey } from "../../../i18n";
+// The page barrels import ui/components back, so these two stay direct.
+// noinspection ES6PreferShortImport
 import { projectPagePath } from "../../pages/projects-page/routes.ts";
+// noinspection ES6PreferShortImport
 import { specPagePath } from "../../pages/spec-page/tabs.ts";
 import { esc } from "../html.ts";
 import { isSpecFolder } from "../shell.ts";

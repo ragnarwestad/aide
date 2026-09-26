@@ -1,7 +1,7 @@
 // Spec 518: the two answers of a confirm box are one component, so the
 // order, the Cancel form and its label are written once.
 import { describe, expect, test } from "bun:test";
-import { dialogAnswers } from "../../../src/render/ui/components/index.ts";
+import { dialogAnswers } from "../../../src/render/ui/components";
 import { LANGUAGES } from "../../../src/i18n";
 
 const AFFIRMATIVE = `<form method="dialog"><button class="btn danger" type="submit" value="leave">OK</button></form>`;

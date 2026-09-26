@@ -14,7 +14,6 @@ import { ARCHIVE_RESULT, AUTH, BRANCH, gitFor, runStep, serverWithRunner, settle
 
 describe("Cancel while a finished step's work is merged and tested", () => {
   test("stops the test run and ends the job cancelled", async () => {
-    let specsRoot = "";
     let codeRoot = "";
     const needsRealMerge: string[] = [];
     const inner = gitFor({ needsRealMerge });
@@ -38,7 +37,7 @@ describe("Cancel while a finished step's work is merged and tested", () => {
           : { ok: false, error: `the project's tests are red on this merge — the work is still on ${branch}.` };
       },
     });
-    specsRoot = join(dir, "root", "aide", "specs");
+    const specsRoot = join(dir, "root", "aide", "specs");
     codeRoot = join(dir, "root", "aide");
     needsRealMerge.push(codeRoot);
     const job = await runStep(base, "archive");

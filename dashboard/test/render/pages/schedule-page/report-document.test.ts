@@ -2,7 +2,7 @@
 // the framed document — the board's tokens in, the report's own styling and
 // script out.
 import { describe, expect, test } from "bun:test";
-import { buildReportDocument } from "../../../../src/render/pages/schedule-page/report-document.ts";
+import { buildReportDocument } from "../../../../src/render/pages/schedule-page";
 
 const BASE = "/schedule-output/aide/schedule-nightly/runs/j1/";
 

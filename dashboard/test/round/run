@@ -427,7 +427,7 @@ while [ "$i" -lt "${#FOLDERS[@]}" ]; do
       got_reason="$(printf '%s' "$jobs" | jq -r --arg f "$folder" --arg s "$want_step" \
         '[.jobs[] | select(.specFolder==$f) | .results[]? | select(.step==$s)] | last | .terminalReason // ""')"
       [ "$got_reason" = "$want_reason" ] \
-        && miss="$miss" || miss="$miss $want_step=${got_reason:-never ran}(want $want_reason)"
+        || miss="$miss $want_step=${got_reason:-never ran}(want $want_reason)"
     fi
     [ -z "$miss" ] || { mark="MISMATCH"; fails=$((fails + 1)); }
   fi

@@ -3,7 +3,7 @@
 // case is a transition the queue really makes (AC-2, AC-5).
 import { afterEach, describe, expect, test } from "bun:test";
 import { attentionFor, messageKeyFor } from "../../src/push/attention.ts";
-import { createPush } from "../../src/push/index.ts";
+import { createPush } from "../../src/push";
 import type { ScheduleNotify } from "../../src/queue/schedule.ts";
 import { endUntickedArchive } from "../../src/queue/runner/unticked-archive.ts";
 import type { Job } from "../../src/queue/queue.ts";

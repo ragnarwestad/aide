@@ -124,7 +124,8 @@ describe("the project settings form's own Save (spec 486)", () => {
    *  reply passed in) exactly what it does with the answer. */
   const buildHarness = (reply: () => { ok: boolean; body?: unknown }) => {
     const refusedSlot = { textContent: "" };
-    const bound: [string, EventListener][] = [];
+    // The script's submit handler is async; awaiting it waits for its reply.
+    const bound: [string, (e: Event) => void | Promise<void>][] = [];
     const form = {
       dataset: {} as Record<string, string>,
       className: "newspecform projectsettingsform",
@@ -133,7 +134,7 @@ describe("the project settings form's own Save (spec 486)", () => {
       closest: () => null,
       querySelector: (sel: string) => (sel === ".refused" ? refusedSlot : null),
       querySelectorAll: () => [],
-      addEventListener: (type: string, fn: EventListener) => void bound.push([type, fn]),
+      addEventListener: (type: string, fn: (e: Event) => void | Promise<void>) => void bound.push([type, fn]),
     };
     const document = {
       getElementById: () => null,

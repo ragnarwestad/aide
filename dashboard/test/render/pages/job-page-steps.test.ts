@@ -11,8 +11,7 @@ import {
   type JobDetailView,
 } from "../../../src/render";
 import { stateChip } from "../../../src/render/ui/job-state";
-import { resolveOpenStep, specFilePanel, stepResults } from "../../../src/render/pages/job-page";
-import { landingRefusal } from "../../../src/render/pages/job-page/steps-table.ts";
+import { landingRefusal, resolveOpenStep, specFilePanel, stepResults } from "../../../src/render/pages/job-page";
 import {
   NAV,
   detail,

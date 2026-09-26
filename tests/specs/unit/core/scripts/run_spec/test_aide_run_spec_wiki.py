@@ -27,17 +27,17 @@ def wiki_cmd(workspace_root):
 
 def build_pages(workspace_root, pages=("queue",)):
     """What a session does with the script: pages, the schema, the prune, the index."""
-    wiki = wiki_cmd(workspace_root)
+    wiki_bin = wiki_cmd(workspace_root)
     lines = [READ_SPECS]
     for name in pages:
         lines.append(
-            f'printf "# The {name}\\n\\nRuns the {name}.\\n" | {wiki} write --specs-root "$specs" '
+            f'printf "# The {name}\\n\\nRuns the {name}.\\n" | {wiki_bin} write --specs-root "$specs" '
             f'--project-dir "$PWD" --page {name}.md --file README.md >/dev/null\n'
         )
     keep = " ".join(f"{n}.md" for n in pages)
-    lines.append(f'{wiki} schema --specs-root "$specs" --project-dir "$PWD" >/dev/null\n')
-    lines.append(f'{wiki} prune --specs-root "$specs" --keep {keep} >/dev/null\n')
-    lines.append(f'{wiki} index --specs-root "$specs" --project-dir "$PWD" >/dev/null\n')
+    lines.append(f'{wiki_bin} schema --specs-root "$specs" --project-dir "$PWD" >/dev/null\n')
+    lines.append(f'{wiki_bin} prune --specs-root "$specs" --keep {keep} >/dev/null\n')
+    lines.append(f'{wiki_bin} index --specs-root "$specs" --project-dir "$PWD" >/dev/null\n')
     return "".join(lines)
 
 
@@ -61,7 +61,7 @@ def show(bare, path):
     return git(bare, "show", f"{BRANCH}:{path}")
 
 
-def land_hand_written(workspace, origin, name="notes.md", text=HAND):
+def land_hand_written(workspace, name="notes.md", text=HAND):
     """A page a person wrote, on the specs repository's default branch."""
     specs = workspace["specs"]
     (specs / "wiki").mkdir(exist_ok=True)
@@ -95,7 +95,7 @@ def test_a_build_commits_the_pages_on_its_own_branch_and_touches_nothing_else_AC
 def test_a_second_build_with_a_wiki_on_disk_is_a_wiki_step_and_not_a_spec_AC_1(
     runner, workspace, workspace_root, fake_claude, origin
 ):
-    land_hand_written(workspace, origin)
+    land_hand_written(workspace)
     claude = job(fake_claude, build_pages(workspace_root, ("queue", "landing")) + FINISHED)
     rc, out, _ = wiki(runner, workspace, claude)
     assert rc == 0, out
@@ -177,7 +177,7 @@ FOREIGN = {
 }
 
 
-def assert_taken_back(origin, workspace, kind):
+def assert_taken_back(origin, kind):
     bare = origin["specs"]
     assert show(bare, "wiki/notes.md") == HAND.strip(), "the hand-written page changed on the pushed branch"
     if kind != "outside":
@@ -189,13 +189,13 @@ def assert_taken_back(origin, workspace, kind):
 def test_a_foreign_write_is_taken_back_and_ends_the_build_as_a_scope_violation_AC_4(
     runner, workspace, workspace_root, fake_claude, origin, kind
 ):
-    land_hand_written(workspace, origin)
+    land_hand_written(workspace)
     project_before = heads(origin["project"])
     body = READ_SPECS + FOREIGN[kind] + build_pages(workspace_root) + FINISHED
     rc, out, _ = wiki(runner, workspace, job(fake_claude, body))
     assert out["ok"] is False and out["terminalReason"] == "scope-violation", out
     assert "the wiki build wrote what it may not" in out["error"], out
-    assert_taken_back(origin, workspace, kind)
+    assert_taken_back(origin, kind)
     assert heads(origin["project"]) == project_before
     if BRANCH in heads(origin["specs"]):
         assert "job-note.txt" not in git(origin["specs"], "ls-tree", "-r", "--name-only", BRANCH)
@@ -206,19 +206,19 @@ def test_a_foreign_write_is_taken_back_and_ends_the_build_as_a_scope_violation_A
 def test_a_build_stopped_by_its_clock_takes_foreign_writes_back_and_keeps_its_ending_AC_4(
     runner, workspace, workspace_root, fake_claude, origin, kind
 ):
-    land_hand_written(workspace, origin)
+    land_hand_written(workspace)
     project_before = heads(origin["project"])
     body = READ_SPECS + FOREIGN[kind] + build_pages(workspace_root) + "sleep 120\n"
     rc, out, _ = wiki(runner, workspace, job(fake_claude, body), timeout_sec=STOP_DEADLINE_SEC)
     assert out["terminalReason"] == "timeout", out
-    assert_taken_back(origin, workspace, kind)
+    assert_taken_back(origin, kind)
     assert heads(origin["project"]) == project_before
 
 
 def test_a_cancelled_build_takes_foreign_writes_back_AC_4(
     runner, workspace, workspace_root, fake_claude, origin, tmp_path
 ):
-    land_hand_written(workspace, origin)
+    land_hand_written(workspace)
     ready = tmp_path / "ready"
     body = "cat > /dev/null\n" + READ_SPECS + FOREIGN["edit"] + build_pages(workspace_root) + f"touch {ready}\nsleep 60\n"
     claude = fake_claude(body)
@@ -239,14 +239,14 @@ def test_a_cancelled_build_takes_foreign_writes_back_AC_4(
         if proc.poll() is None:
             proc.kill()
             proc.wait(timeout=10)
-    assert_taken_back(origin, workspace, "edit")
+    assert_taken_back(origin, "edit")
     assert "queue.md" in git(origin["specs"], "ls-tree", "-r", "--name-only", BRANCH)
 
 
 def test_a_foreign_write_a_cancelled_run_left_on_the_branch_is_taken_back_by_the_next_build_AC_4(
     runner, workspace, workspace_root, fake_claude, origin
 ):
-    land_hand_written(workspace, origin)
+    land_hand_written(workspace)
     # An earlier run's branch that already carries a foreign write.
     specs = workspace["specs"]
     git(specs, "checkout", "-q", "-b", BRANCH)
@@ -258,14 +258,14 @@ def test_a_foreign_write_a_cancelled_run_left_on_the_branch_is_taken_back_by_the
     git(specs, "checkout", "-q", "main")
     rc, out, _ = wiki(runner, workspace, job(fake_claude, build_pages(workspace_root) + FINISHED))
     assert out["terminalReason"] == "scope-violation", out
-    assert_taken_back(origin, workspace, "outside")
+    assert_taken_back(origin, "outside")
     assert "job-note.txt" not in git(origin["specs"], "ls-tree", "-r", "--name-only", BRANCH)
 
 
 def test_building_again_rewrites_generated_pages_and_leaves_a_hand_written_one_AC_4(
     runner, workspace, workspace_root, fake_claude, origin
 ):
-    land_hand_written(workspace, origin)
+    land_hand_written(workspace)
     claude = job(fake_claude, build_pages(workspace_root, ("queue", "old")) + FINISHED)
     rc, first, _ = wiki(runner, workspace, claude)
     assert rc == 0, first

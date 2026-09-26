@@ -312,8 +312,10 @@ What the dashboard does that the skills alone do not:
 - **Every job that has run** — a spec's page holds its four files and the record of each job run against it,
   with what it cost
 
+<!--suppress HtmlDeprecatedAttribute, CheckImageSize -->
 <p align="center"><img src="docs/assets/aide-board-specs-list.png" alt="The specs list on the Aide dashboard" width="50%"></p>
 
+<!--suppress HtmlDeprecatedAttribute -->
 <p align="center"><em>The specs list: the phase each spec has reached, what is running now, and the controls that
 start the next phase.</em></p>
 

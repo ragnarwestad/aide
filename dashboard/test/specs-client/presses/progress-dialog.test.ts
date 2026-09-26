@@ -3,7 +3,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import { settled, submitProgress, type ProgressIo } from "../../../src/specs-client/progress-dialog/index.ts";
+import { settled, submitProgress, type ProgressIo } from "../../../src/specs-client/progress-dialog";
 import { NEW_SPEC_FORM } from "../../../src/specs-client/state.ts";
 
 const BACK = "/specs/aide/150-x";

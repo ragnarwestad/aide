@@ -5,7 +5,7 @@
 // per-request render time instead.
 import { describe, expect, test } from "bun:test";
 import { pageShell } from "../../../src/render/ui/shell.ts";
-import { navEntries } from "../../../src/render/pages/projects-page/routes.ts";
+import { navEntries } from "../../../src/render/pages/projects-page";
 
 describe("the Schedule nav tab, in the reader's own language", () => {
   test("reads Kjøring in Norwegian, not Schedule", () => {

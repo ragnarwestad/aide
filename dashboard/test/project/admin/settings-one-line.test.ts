@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { oneLine } from "../../../src/project/project-admin/manifest-io.ts";
-import { updateProjectSettings } from "../../../src/project/project-admin/update-settings.ts";
+import { updateProjectSettings } from "../../../src/project/project-admin";
 
 const dirs: string[] = [];
 afterEach(() => {

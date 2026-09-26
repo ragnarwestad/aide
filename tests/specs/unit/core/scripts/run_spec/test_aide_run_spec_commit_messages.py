@@ -8,6 +8,8 @@ bookkeeping, read back from there alone, and stays there.
 
 import json
 
+import pytest
+
 from ..conftest import READ_SPECS, STOP_DEADLINE_SEC, git
 from ..conftest import run as run_step
 from .run_spec_fakes import partially_committing_claude
@@ -86,7 +88,8 @@ def test_the_prompt_says_where_the_message_goes_and_what_it_leaves_out(runner, w
     assert "Do not mention the spec, the workflow step, Aide, or any AI tool or model." in prompt
 
 
-def test_the_pull_request_says_what_the_commit_says(runner, workspace, fake_claude, fake_gh, origin):
+@pytest.mark.usefixtures("origin")
+def test_the_pull_request_says_what_the_commit_says(runner, workspace, fake_claude, fake_gh):
     claude = message_writing_claude(fake_claude)
     rc, out, _ = run_with_gh(runner, workspace, claude, fake_gh(), push="pr")
     assert rc == 0, out

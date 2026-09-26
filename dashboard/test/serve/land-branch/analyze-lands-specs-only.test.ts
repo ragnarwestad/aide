@@ -14,7 +14,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { landClosedSpec, landStepBranch } from "../../../src/serve/land-branch/steps.ts";
+import { landClosedSpec, landStepBranch } from "../../../src/serve/land-branch";
 import { BRANCH, landCtx, landingGit } from "./landing-fixtures.ts";
 
 const JOB = { id: "job-1", project: "aide", specFolder: "479-spec" };

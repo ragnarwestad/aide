@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { renderSpecsRows, type QueueRowView, type SpecTarget } from "../../../../../src/render";
 import { offersAnotherRound } from "../../../../../src/render/pages/specs-list/row-state.ts";
-import type { SpecGroup } from "../../../../../src/render/pages/specs-list/data-model";
+import type { SpecGroup } from "../../../../../src/render/pages/specs-list";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status";
 import { openKeys, row } from "../../fixtures.ts";
 

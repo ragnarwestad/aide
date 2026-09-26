@@ -167,6 +167,7 @@ step_started_at="$(date +%s)"
 # the checkout's lock, origin, the worktree, the model. A create step
 # stood still for seven minutes before its model started, and nothing
 # said where (2026-09-19).
+# shellcheck disable=SC2329  # called from the lib/ files sourced below
 stage() {
   printf 'aide-run-spec %s +%ss %s\n' "$(date +%H:%M:%S)" "$(( $(date +%s) - step_started_at ))" "$*" >&2
 }

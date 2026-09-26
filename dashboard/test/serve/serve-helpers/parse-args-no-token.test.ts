@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { parseArgs } from "../../../src/serve/serve-helpers/parse-args.ts";
+import { parseArgs } from "../../../src/serve/serve-helpers";
 
 const dirs: string[] = [];
 afterEach(() => {

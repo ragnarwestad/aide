@@ -34,7 +34,7 @@ describe("a cancelled create job without a folder has no row", () => {
 
   // AC-1: with known targets, and in a project the list knows no spec of.
   for (const [name, list] of [["known targets", targets], ["no targets", [] as typeof targets]] as const) {
-    test.each(["failed", "stopped", "interrupted"] as const)(`${"%s"}: no row (${name})`, (state) => {
+    test.each(["failed", "stopped", "interrupted"] as const)(`%s: no row (${name})`, (state) => {
       const groups = groupBySpec([create({ state })], list);
       expect(groups.map((g) => g.specFolder)).not.toContain(key);
     });

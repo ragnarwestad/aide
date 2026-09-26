@@ -2,12 +2,11 @@
 // whether it is busy, what phase it is waiting on, what a press would
 // run.
 
-import { inFlight } from "../../ui/job-state";
+import { inFlight, type QueueRowView } from "../../ui/job-state";
 import { stepButton } from "../../../format/step-label.ts";
 import type { SpecsPageOptions } from "./";
 import { RUN_STEPS, groupKey, type SpecGroup } from "./data-model";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
-import type { QueueRowView } from "../../ui/job-state/types.ts";
 
 /** Whether a job is in flight on this spec — queued, running, or parked
  *  at a gate. ONE rule for the whole row, read off the SPEC and not off

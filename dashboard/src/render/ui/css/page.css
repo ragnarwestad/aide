@@ -104,7 +104,9 @@ header, body > nav.tabbar, main, body > p.rowmsg { max-width: calc(72rem + 2 * v
    a dropdown this page opens (the state filter, the header menus) from
    being clipped if it ever opened near an edge. */
 /* 100dvh after 100vh: a phone's browser bar comes and goes, and 100vh
-   is the height without it — the list's last rows sat under the bar. */
+   is the height without it — the list's last rows sat under the bar.
+   The first height is the fallback for a browser without dvh. */
+/*noinspection CssOverwrittenProperties*/
 body:has(#jobrows) { height: 100vh; height: 100dvh; overflow: hidden; box-sizing: border-box;
   display: flex; flex-direction: column; }
 /* min-height: 0 is the flexbox rule an item needs before it will actually

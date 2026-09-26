@@ -1,8 +1,7 @@
 // The dashboard's one admission rule: a Host that is its own, and — for a
 // request that changes something — an Origin that is its own Host.
 import { describe, expect, test } from "bun:test";
-import { checkRequest } from "../../../src/serve/serve-helpers/request-guard.ts";
-import { createHostAllowlist } from "../../../src/serve/serve-helpers/tailscale-name.ts";
+import { checkRequest, createHostAllowlist } from "../../../src/serve/serve-helpers";
 
 const hosts = createHostAllowlist({ extra: [], lookup: async () => undefined });
 

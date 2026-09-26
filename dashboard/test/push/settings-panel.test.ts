@@ -2,7 +2,7 @@
 // tabs, and its panel carries what the script needs — the server's
 // public key and the language the device is reading in.
 import { describe, expect, test } from "bun:test";
-import { renderSettingsPage, SETTINGS_TABS } from "../../src/render/pages/settings-page/index.ts";
+import { renderSettingsPage, SETTINGS_TABS } from "../../src/render/pages/settings-page";
 
 const page = (over: Record<string, unknown> = {}) =>
   renderSettingsPage([], "2026-09-19T10:00:00Z", {

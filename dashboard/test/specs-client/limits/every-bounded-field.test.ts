@@ -5,7 +5,7 @@ import { renderAddProjectPage, renderNewSpecPage, renderProjectPage } from "../.
 import type { ProjectView } from "../../../src/render";
 import { checkControls } from "../../../src/render/ui/check-controls.ts";
 import { renderScheduleForm } from "../../../src/render/pages/schedule-page/form.ts";
-import { bindLimits } from "../../../src/specs-client/limits/index.ts";
+import { bindLimits } from "../../../src/specs-client/limits";
 
 const NAV = [{ label: "Projects", path: "/projects" }];
 const NOW = "2026-09-20T00:00:00Z";

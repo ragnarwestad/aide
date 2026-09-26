@@ -47,6 +47,8 @@ describe("encrypt() against RFC 8291 (criterion 16)", () => {
   test("a payload too long for one record is refused rather than sent wrong", async () => {
     const device = await deviceKeys();
     const sub = { p256dh: fromB64u(device.p256dh), auth: fromB64u(device.auth) };
+    // bun-types type rejects.toThrow() as void, but it returns a promise that must be awaited.
+    // noinspection ES6RedundantAwait
     await expect(encrypt(new Uint8Array(4100), sub)).rejects.toThrow();
   });
 });

@@ -6,7 +6,7 @@ import { afterEach, expect, spyOn, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createLaunchdRestart } from "../../../src/serve/land-branch/restart.ts";
+import { createLaunchdRestart } from "../../../src/serve/land-branch";
 
 const savedPath = process.env.PATH;
 const empty = mkdtempSync(join(tmpdir(), "no-launchctl-"));

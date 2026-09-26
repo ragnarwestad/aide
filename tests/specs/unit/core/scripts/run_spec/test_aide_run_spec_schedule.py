@@ -9,6 +9,8 @@ import os
 import signal
 import subprocess
 
+import pytest
+
 from ..conftest import READ_SPECS, STOP_DEADLINE_SEC, git
 from .run_spec_invoking import SCHEDULE_KEY, wait_until
 from .run_spec_invoking import schedule as run_schedule
@@ -60,8 +62,9 @@ def assert_nothing_left(workspace, origin):
     assert local_branches(workspace["specs"]) == ""
 
 
+@pytest.mark.usefixtures("origin")
 def test_a_job_that_only_writes_its_report_ends_completed_without_a_branch_AC_1(
-    runner, workspace, fake_claude, origin
+    runner, workspace, fake_claude
 ):
     with_prompt(workspace)
     report = workspace["project"].parent / "report"

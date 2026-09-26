@@ -5,8 +5,7 @@
 // `<dialog>`, it stays closed and the form posts as it always did.
 
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
-import { t, type Language } from "../../../i18n";
-import type { TranslationKey } from "../../../i18n/translations.ts";
+import { t, type Language, type TranslationKey } from "../../../i18n";
 import { esc } from "../../ui/html.ts";
 
 export function progressDialog(lang: Language, titleKey: TranslationKey): string {

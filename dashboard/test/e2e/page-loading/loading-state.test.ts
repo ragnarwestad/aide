@@ -41,7 +41,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   for (const r of held) r();
-  server.stop(true);
+  await server.stop(true);
   await browser.close();
 });
 

@@ -5,8 +5,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { parseManifest, type ManifestResult } from "../parse-manifest.ts";
-import { parseStatus, type StatusInfo } from "../parse-status";
-import { failedCount, notVerifiedCount } from "../parse-status/not-verified.ts";
+import { failedCount, notVerifiedCount, parseStatus, type StatusInfo } from "../parse-status";
 import { readSpecState } from "../parse-spec-state.ts";
 import { configSpecsPath } from "./config.ts";
 import { specDependsOn } from "./depends-on.ts";

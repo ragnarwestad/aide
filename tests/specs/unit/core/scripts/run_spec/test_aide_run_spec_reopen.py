@@ -8,7 +8,7 @@ unchanged and keep their names.
 
 import json
 import pytest
-from ..conftest import READ_SPECS, git, run
+from ..conftest import git, run
 from .run_spec_fakes import specs_only_claude
 from .run_spec_invoking import BRANCH
 from .run_spec_origins import archive_the_spec, has_branch, make_branch, origin

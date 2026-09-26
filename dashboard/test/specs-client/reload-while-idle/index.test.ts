@@ -1,7 +1,7 @@
 // The Steps tab's reload timer: it reloads the page every N seconds, but
 // not while a dialog is open (spec 525).
 import { describe, expect, test } from "bun:test";
-import { reloadTick } from "../../../src/specs-client/reload-while-idle/index.ts";
+import { reloadTick } from "../../../src/specs-client/reload-while-idle";
 
 describe("reloadTick (AC-1)", () => {
   test("reloads the page when no dialog is open (AC-1)", () => {

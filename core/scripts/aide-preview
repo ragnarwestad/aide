@@ -101,6 +101,7 @@ fi
 # the served process ends. A command that failed or never answered
 # left it holding the branch until the next attempt on the same port.
 BOARD_UP=no
+# shellcheck disable=SC2329  # invoked through the EXIT trap below
 remove_worktree() {
   [ "$BOARD_UP" = yes ] && return 0
   git -C "$ROOT" worktree remove --force "$WT" >/dev/null 2>&1 || rm -rf "$WT"

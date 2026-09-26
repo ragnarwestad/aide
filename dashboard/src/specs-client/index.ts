@@ -36,19 +36,19 @@ import {
   submitTestServerStop,
   syncDependsOn,
 } from "./forms.ts";
-import { submitDeploy } from "./deploy/index.ts";
+import { submitDeploy } from "./deploy";
 import { formatElapsed } from "./elapsed.ts";
-import { bindLimits } from "./limits/index.ts";
+import { bindLimits } from "./limits";
 import { connect, onVisibility } from "./live.ts";
 import { navigate } from "./navigation.ts";
 import { postPendingModel } from "./pending-model.ts";
 import { bindReportFrame } from "./report-frame.ts";
 import { postForm } from "./press.ts";
 import { bindPushPanel } from "./push.ts";
-import { startReloadWhileIdle } from "./reload-while-idle/index.ts";
+import { startReloadWhileIdle } from "./reload-while-idle";
 import { relabelRunButton } from "./row-swap.ts";
 import { bindScheduleDeleteButton, postScheduleEnabled, postScheduleRun, scheduleCronPreview } from "./schedule-actions.ts";
-import { submitProgress } from "./progress-dialog/index.ts";
+import { submitProgress } from "./progress-dialog";
 import { NEW_SPEC_FORM } from "./state.ts";
 import { postTailModel, postTailStep } from "./tail-actions.ts";
 import { checkboxKey, chosen, chosenSteps, selectKey } from "./state.ts";

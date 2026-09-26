@@ -4,7 +4,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { createPush } from "../../src/push/index.ts";
+import { createPush } from "../../src/push";
 import { renderMessage } from "../../src/i18n/message.ts";
 import {
   deviceKeys, fakeFetch, makeStore, openCall, result, runningJob, tempDir, SPEC, type Answer,

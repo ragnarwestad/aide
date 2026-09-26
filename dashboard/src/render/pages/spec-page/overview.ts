@@ -7,7 +7,7 @@ import { SPINNER } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { acTestsLine } from "../../ui/ac-tests.ts";
 import { checkColumns, checkControls, checkReadOnlyMark } from "../../ui/check-controls.ts";
-import { failedCount, notVerifiedCount } from "../../../project/parse-status/not-verified.ts";
+import { failedCount, notVerifiedCount } from "../../../project/parse-status";
 import { dependsOnField } from "../new-spec-page.ts";
 import { t, type Language } from "../../../i18n";
 import { CLOSE_SENTENCE, closeAskDialog } from "./close-ask.ts";
