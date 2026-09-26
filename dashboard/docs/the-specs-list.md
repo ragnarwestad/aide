@@ -162,8 +162,9 @@ Status tab, in place of the list.
 ## Not verified, and Failed
 
 **Each acceptance row has two boxes, side by side at the right of its text.** They are offered under the › and on
-the Status tab, in two columns under one heading: "Verified" on the first line, and "Yes" and "Not yet" on the
-second (the heading is drawn once, where the list has a box, and each box's accessible name repeats it). "Not yet"
+the Status tab, in two columns under a one-line heading: "Verified?" at the right of the text's column, and "Yes"
+and "Not yet" each over its own box (the heading is drawn once, where the list has a box, and each box's accessible
+name repeats it). "Not yet"
 is the "Not verified" box. A read-only mark (✅, ☐, "Not verified", "Failed") sits in the same two columns, so the
 text stays at the left of every row. A row marked Not verified counts as done, so archive is not held back by it, but the spec keeps an
 info line `N not verified` on its list row — live and archived, not closed — whose › unfolds the criteria. On a row

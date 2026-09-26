@@ -56,7 +56,7 @@ describe("the heading over the boxes", () => {
   test("Verified on the first line, Yes and Not yet on the second, hidden from a reader (AC-2)", () => {
     const html = checkColumns("en", false);
     expect(html).toMatch(/^<li class="checkcolumns" aria-hidden="true">/);
-    expect(html).toContain('<div class="checkverified">Verified</div>');
+    expect(html).toContain('<div class="checkverified">Verified?</div>');
     expect(html).toContain('<div class="checkyes">Yes</div>');
     expect(html).toContain('<div class="checkother">Not yet</div>');
   });
@@ -69,7 +69,7 @@ describe("the heading over the boxes", () => {
 
   test("the words and a box's name follow the page's language (AC-6)", () => {
     const html = checkColumns("nb", false);
-    expect(html).toContain(">Verifisert<");
+    expect(html).toContain(">Verifisert?<");
     expect(html).toContain(">Ja<");
     expect(html).toContain(">Ikke ennå<");
     expect(checkColumns("nb", true)).toContain(">Feilet<");

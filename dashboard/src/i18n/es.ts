@@ -84,6 +84,7 @@ export const es: Record<TranslationKey, string> = {
   "list.checksSaving": "guardando…",
   "list.checksUnreadable": "No se pudieron leer aquí los criterios de aceptación.",
   "checks.verified": "Verificado",
+  "checks.verifiedQuestion": "¿Verificado?",
   "checks.yes": "Sí",
   "checks.notYet": "Aún no",
   "checks.boxName": "{heading}: {column}",

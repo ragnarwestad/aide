@@ -17,7 +17,7 @@
    written under the two acceptance lists: `.checklist` is also the Settings
    page's per-AI list. Every child of a row is placed here, so the order in
    the markup does not matter. */
-.checks .checklist, .rowchecks .checklist { display: grid;
+.checks .checklist, .rowchecks .checklist { display: grid; margin: 0;
   grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--sp-1) var(--sp-3); }
 .checks .checklist > .checkphase, .rowchecks .checklist > .checkphase { grid-column: 1 / -1; }
 .checklist > .check, .checklist > .checkcolumns { grid-column: 1 / -1; display: grid;
@@ -67,12 +67,12 @@ label.checkbox input { margin: 0; cursor: pointer; }
   background: var(--surface); color: var(--text); font: var(--fs-s)/var(--lh) var(--sans);
   resize: vertical; max-height: calc(10 * var(--fs-s) * var(--lh) + 2 * var(--sp-1) + 2px); }
 
-/* The heading over the two columns: "Verified" over both, and the two names
-   under it, each over its own column. */
+/* The heading over the two columns, on one line: "Verified?" at the right of
+   the text's column, against the boxes, and each name over its own column. */
 .checkcolumns { color: var(--muted); font-size: var(--fs-s); font-weight: 600; text-align: center; }
-.checkcolumns .checkverified { grid-column: 2 / 4; grid-row: 1; }
-.checkcolumns .checkyes { grid-column: 2; grid-row: 2; }
-.checkcolumns .checkother { grid-column: 3; grid-row: 2; }
+.checkcolumns .checkverified { grid-column: 1; grid-row: 1; justify-self: end; text-align: right; }
+.checkcolumns .checkyes { grid-column: 2; grid-row: 1; }
+.checkcolumns .checkother { grid-column: 3; grid-row: 1; }
 
 
 /* The acceptance criteria unfolded on a spec's row (spec 493): the spec

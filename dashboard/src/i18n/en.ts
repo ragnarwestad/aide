@@ -85,6 +85,7 @@ export const en = {
   "list.checksSaving": "saving…",
   "list.checksUnreadable": "The acceptance criteria could not be read here.",
   "checks.verified": "Verified",
+  "checks.verifiedQuestion": "Verified?",
   "checks.yes": "Yes",
   "checks.notYet": "Not yet",
   "checks.boxName": "{heading}: {column}",

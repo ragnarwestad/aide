@@ -73,12 +73,14 @@ export function checkControls(row: CheckControlRow, lang: Language, options: Opt
 }
 
 /** The heading over a list's two columns of boxes, a row of the list itself so
- *  the stylesheet gives it the rows' columns. Drawn once, where the list has a
- *  box. Its words are in each box's name, so it is hidden from a reader. */
+ *  the stylesheet gives it the rows' columns: "Verified?" in the text's column,
+ *  against the boxes, and each box's name over its own. One line. Drawn once,
+ *  where the list has a box. Its words are in each box's name, so it is hidden
+ *  from a reader. */
 export function checkColumns(lang: Language, archived: boolean): string {
   return (
     `<li class="checkcolumns" aria-hidden="true">` +
-    `<div class="checkverified">${esc(t(lang, "checks.verified"))}</div>` +
+    `<div class="checkverified">${esc(t(lang, "checks.verifiedQuestion"))}</div>` +
     `<div class="checkyes">${esc(t(lang, "checks.yes"))}</div>` +
     `<div class="checkother">${esc(t(lang, archived ? "checks.failed" : "checks.notYet"))}</div>` +
     `</li>`

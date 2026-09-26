@@ -145,7 +145,7 @@ describe("the text at the left, the two boxes at the right, in a shared pair of 
 
 describe("the heading over the columns (AC-2)", () => {
   for (const list of LISTS) {
-    test(`${list.name}: Verified over both, Yes and the second name each over their own column`, async () => {
+    test(`${list.name}: one line, Verified? against the boxes, Yes and the second name each over their own column`, async () => {
       await list.open(1100);
       const h = `${list.root} .checkcolumns`;
       expect(await page.locator(h).count()).toBe(1);
@@ -157,12 +157,22 @@ describe("the heading over the columns (AC-2)", () => {
       }, list.root);
       expect(Math.abs(centre(yes) - boxes.a)).toBeLessThanOrEqual(1);
       expect(Math.abs(centre(other) - boxes.b)).toBeLessThanOrEqual(1);
-      expect(Math.abs(centre(verified) - (yes.left + other.right) / 2)).toBeLessThanOrEqual(1);
-      expect(yes.top).toBeGreaterThanOrEqual(verified.bottom - 1);
-      expect(other.top).toBeGreaterThanOrEqual(verified.bottom - 1);
+      expect(verified.right).toBeLessThanOrEqual(yes.left);
+      expect(Math.abs(verified.top - yes.top)).toBeLessThanOrEqual(1);
+      expect(Math.abs(other.top - yes.top)).toBeLessThanOrEqual(1);
       expect(await page.locator(`${h} .checkother`).textContent()).toBe(list.name.includes("archived") ? "Failed" : "Not yet");
     });
   }
+});
+
+describe("the unfolded list starts right under the row's message", () => {
+  test("no margin of the list's own above its heading", async () => {
+    await unfolded(LIVE, 1100);
+    const panel = await box(".rowchecks");
+    const list = await box(".rowchecks .checklist");
+    const pad = await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".rowchecks")!).paddingTop));
+    expect(list.top - panel.top).toBeLessThanOrEqual(pad + 1);
+  });
 });
 
 describe("the boxes save as they did, and one clears the other (AC-3)", () => {
@@ -239,11 +249,11 @@ describe("at a phone's width the boxes and their heading stay at the right (AC-5
         const text = el.querySelector(".checktask")!.getBoundingClientRect();
         const [a, b] = [...el.querySelectorAll("label.checkbox")].map((e) => e.getBoundingClientRect());
         const head = document.querySelector(`${root} .checkcolumns .checkverified`)!.getBoundingClientRect();
-        return { text: { right: text.right, top: text.top }, a: a!, b: b!, head: { left: head.left, right: head.right } };
+        return { text: { right: text.right, top: text.top }, a: a!, b: b!, head: { left: head.left, right: head.right, top: head.top } };
       }, [list.root, BOXROW]);
       expect(row.text.right).toBeLessThanOrEqual(row.a.left);
       expect(Math.abs(row.a.top - row.text.top)).toBeLessThanOrEqual(8);
-      expect(row.head.left).toBeGreaterThanOrEqual(row.text.right - 1);
+      expect(row.head.right).toBeLessThanOrEqual(row.a.left);
       expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
     });
   }
