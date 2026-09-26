@@ -90,6 +90,7 @@ pages run to 550; they are written to be searched. Where to look:
 | Serving it, HTTPS, moving it to another host              | `dashboard/docs/hosting.md`                   | Running the board |
 | Reaching the board from a phone or another computer       | `dashboard/docs/tailscale.md`                 | Running the board |
 | The test server a held-back spec offers                   | `dashboard/docs/test-server.md`               | Using the board   |
+| When the tests run in a spec, and what red means          | `dashboard/docs/tests-in-a-spec.md`           | Both              |
 | Installation layout, what goes where, the gotchas         | `.claude/rules/development.md`                | Changing the code |
 | Where the project came from and what is next              | `docs/ROADMAP.md`                             | Both              |
 | How Aide compares with other spec-driven tools            | `docs/COMPARISON.md`                          | Both              |
