@@ -32,12 +32,15 @@ interface Repo {
 /** A checkout on `branch`, level with origin, that is also the repo this
  *  process runs from: the bare `rev-parse HEAD` is the boot read the
  *  first time it is asked and the checkout's own after that. */
-function deployGit(project: string, repo: Repo) {
+function deployGit(project: string, repo: Repo, fetchGate?: Promise<void>) {
   let headCalls = 0;
   const inner = gitFor();
   const calls: { dir: string; args: string[] }[] = [];
   const run = async (dir: string, args: string[]) => {
     calls.push({ dir, args });
+    // Held here, a fetch keeps the checkout's merge lock the way a
+    // landing running its tests does.
+    if (fetchGate && args[0] === "fetch") await fetchGate;
     const a = args.join(" ");
     if (a === "rev-parse --abbrev-ref HEAD") return { code: 0, stdout: `${repo.branch}\n` };
     if (a === "rev-parse --show-toplevel") return { code: 0, stdout: `${repo.top ?? project}\n` };
@@ -60,10 +63,15 @@ function installFails(project: string): void {
 
 /** A server whose checkout is the dashboard's own, drift poll off so the
  *  origin count is only ever what a step filled. */
-async function deployServer(repo: Repo, restart: { registered: () => Promise<boolean>; fire: () => void }, extra = {}) {
+async function deployServer(
+  repo: Repo,
+  restart: { registered: () => Promise<boolean>; fire: () => void },
+  extra = {},
+  fetchGate?: Promise<void>,
+) {
   const dir = own("aide-deploy-steps-");
   const paths = repos(dir);
-  const git = deployGit(paths.project, repo);
+  const git = deployGit(paths.project, repo, fetchGate);
   const { base } = serverWith(harness, dir, paths, git, {
     dashboardRoot: paths.project,
     driftPollMs: 0,
@@ -103,6 +111,21 @@ describe("POST .../deploy/fetch", () => {
     expect(await answer(res)).toEqual({ ok: true });
     expect(git.calls.some((c) => c.args.join(" ") === "merge -q --ff-only origin/master")).toBe(true);
     expect(existsSync(marker)).toBe(false);
+  });
+
+  test("while a merge holds the checkout, it says so at once instead of hanging", async () => {
+    let release = () => {};
+    const gate = new Promise<void>((r) => (release = r));
+    const { base, paths } = await deployServer(SAME, noRestart, { deployLockWaitMs: 50 }, gate);
+    installs(paths.project);
+    const first = post(base, "aide/deploy/fetch");
+    // Let the first request take the lock before the second asks.
+    await new Promise((r) => setTimeout(r, 200));
+    const res = await post(base, "aide/deploy/fetch");
+    expect(res.status).toBe(400);
+    expect((await answer(res)).error).toContain("press Deploy again once it has landed");
+    release();
+    expect((await first).status).toBe(200);
   });
 
   test("only POST", async () => {

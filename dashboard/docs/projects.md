@@ -216,7 +216,9 @@ Pressing **Deploy** opens one dialog that is as tall as its steps and one line u
 it closes. It lists five steps, each waiting, running,
 done or failed, one running at a time: fetch from origin, install, restart the service, wait for the service to
 answer, and check that the service runs the newest commit. The page runs them one request each
-(`POST .../deploy/<step>`, `http-routes.md`). The restart runs until `/api/version` stops answering or answers a new
+(`POST .../deploy/<step>`, `http-routes.md`). The fetch waits up to three seconds for a merge into the same checkout,
+and fails at once with "a spec is being merged into <project> right now" while a landing holds it through its tests.
+The restart runs until `/api/version` stops answering or answers a new
 `startedAt`, and the wait runs from then until a new `startedAt` answers. The last step counts the checkout against origin on the process that will serve the page, so the page
 that loads next never says the check has not been made. The running step's line is drawn in the accent colour, with
 the spinner the running badges use in front of its state word. When the last step is done the dialog says so in the line under the steps, stays
