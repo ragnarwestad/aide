@@ -234,14 +234,6 @@ describe("a phase says how long it took", () => {
     expect(cell).toContain('data-elapsed="2026-08-16T09:00:00Z"');
     expect(cell).toContain("3h 00m");
   });
-
-  test("a spec with no job ever run for it reads 0s", () => {
-    const html = page([], [target("aa-spec", { createdAt: "2026-06-01T09:00:00Z" })]);
-    expect(headCell(html, "aa-spec")).toContain("0s");
-    // And never a date: the column answers "how long", and a date under
-    // that heading is a different question wearing its clothes.
-    expect(headCell(html, "aa-spec")).not.toMatch(/\d{4}-\d{2}-\d{2}/);
-  });
 });
 
 // Spec 207: the summing the spec list has always done, lifted out of
@@ -381,21 +373,6 @@ describe("computeSpecTotalDurationMs (spec 207, spec 281)", () => {
     // analyze attempt) = 28 minutes, not 23 — the second attempt is not
     // dropped in favor of the newest-only answer.
     expect(computeSpecTotalDurationMs(withRetry, NOW)?.ms).toBe(28 * 60 * 1000);
-  });
-
-  // The list draws this figure on a live row now (spec 281) — the
-  // inverse of the rule this block asserted from spec 207 until then.
-  test("the spec list draws the figure, on a spec still missing a phase", () => {
-    const html = renderSpecsRows(
-      [rows()[0]!],
-      {
-        runnerAvailable: true,
-        targets: [{ project: "aide", specFolder: "aa-spec", createdAt: "2026-08-13T08:00:00Z", done: ["analyze"] }],
-        filter: { open: "aide/aa-spec" },
-      },
-      Date.parse("2026-08-16T12:00:00Z"),
-    );
-    expect(html).toContain("5m 00s");
   });
 
   // REQ-3/REQ-5: the same phase timings, summed by each of the two

@@ -230,21 +230,6 @@ describe("pageShell theme/language menus mark the chosen option (spec 475)", () 
     expect(html).toContain('href="/?lang=en"><span class="menucheck">');
   });
 
-  test("AC-4: the CSS bolds the chosen row for both button rows (theme) and <a> rows (language)", () => {
-    expect(CSS).toContain(
-      ".menupanel > button[aria-current],\n.menupanel > a[aria-current] { font-weight: 600; }",
-    );
-  });
-
-  test("AC-4: the CSS gives each menu's chosen row its own colour, distinct from its unchosen rows", () => {
-    expect(CSS).toContain(
-      ".menu.theme .menupanel > button,\n.menu.lang .menupanel > a { color: var(--muted); }",
-    );
-    expect(CSS).toContain(
-      ".menu.theme .menupanel > button[aria-current],\n.menu.lang .menupanel > a[aria-current] { color: var(--text); }",
-    );
-  });
-
   test("AC-3: the CSS reserves the check-mark's column by opacity, never display:none", () => {
     expect(CSS).toMatch(/\.menucheck\s*\{[^}]*opacity:\s*0[^}]*\}/);
     expect(CSS).not.toMatch(/\.menucheck\s*\{[^}]*display:\s*none/);

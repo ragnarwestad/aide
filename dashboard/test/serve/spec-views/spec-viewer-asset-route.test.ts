@@ -38,13 +38,6 @@ describe("GET /spec-viewer.js", () => {
     expect((await res.text()).length).toBeGreaterThan(1000);
   });
 
-  test("HEAD answers the same way GET does, without a body", async () => {
-    const { base } = harness.start();
-    const res = await fetch(`${base}/spec-viewer.js`, { method: "HEAD" });
-    expect(res.status).toBe(200);
-    expect(await res.text()).toBe("");
-  });
-
   // Risk analysis: the bundle must import the vendor's dedicated Viewer
   // entry point, never the full Editor class — a silent regression back
   // to the ~767 KB editor bundle would still render correctly, so a

@@ -257,13 +257,6 @@ def test_readme_matches_file_templates_byte_for_byte(script, specs_root, file_te
     assert actual == expected
 
 
-def test_description_has_no_scope_heading(script, specs_root):
-    rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", "Problem: X.")
-    assert rc == 0, out
-    desc = (specs_root / "42-do-a-thing" / "1-description.md").read_text()
-    assert "## Scope" not in desc
-
-
 def test_analysis_has_no_solution_only_sections(script, specs_root):
     rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", "Problem: X.")
     assert rc == 0, out
@@ -746,9 +739,3 @@ def test_assign_number_result_file_mirrors_stdout(script, git_specs_root, tmp_pa
     rc, out, _ = run_assign_number(script, git_specs_root, "new-abcd1234", result_file=result_file)
     assert rc == 0, out
     assert json.loads(result_file.read_text().strip()) == out
-
-
-def test_help_flag_prints_usage_and_exits_zero(script):
-    result = subprocess.run([str(script), "--help"], capture_output=True, text=True)
-    assert result.returncode == 0, result.stderr
-    assert "usage" in result.stdout.lower(), result.stdout

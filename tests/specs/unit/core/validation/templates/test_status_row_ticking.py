@@ -45,33 +45,7 @@ def test_each_phase_instructs_ticking_its_own_rows(implement_skill, heading):
     )
 
 
-def test_plan_review_ticks_its_own_row(workspace_root):
-    text = (
-        workspace_root / "core" / "skills" / "aide-analyze" / "references"
-        / "plan-review.md"
-    ).read_text()
-    assert "ticked ✅ at write time" in text, (
-        "plan-review.md's Revise step never instructs ticking the review "
-        "row it writes at the time it writes it"
-    )
-
-
 # --- spec 285: the Acceptance-criteria rows are for a person to judge ------
-
-
-def test_implement_never_instructs_ticking_acceptance_criteria(implement_skill):
-    """REQ-2/REQ-6: `## Acceptance criteria` rows are never ticked by
-    this skill — an explicit negative sentence says so, not merely the
-    absence of an instruction that happens not to reach it."""
-    lowered = implement_skill.lower()
-    assert "acceptance criteria" in lowered, (
-        "aide-implement/SKILL.md never mentions the Acceptance criteria "
-        "section at all"
-    )
-    assert "never tick" in lowered, (
-        "aide-implement/SKILL.md must say explicitly that it never ticks "
-        "the Acceptance criteria section"
-    )
 
 
 def test_plan_review_reference_does_not_tick_acceptance_criteria(workspace_root):

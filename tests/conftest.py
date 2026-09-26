@@ -30,33 +30,6 @@ _atexit.register(shutil.rmtree, _own_tmp, True)
 
 
 @pytest.fixture
-def mock_workspace(tmp_path):
-    """Create a complete mock workspace structure."""
-    workspace = tmp_path / "aide"
-    workspace.mkdir()
-
-    # Create directory structure
-    (workspace / "core" / "templates" / "todo").mkdir(parents=True)
-    (workspace / "core" / "scripts").mkdir(parents=True)
-    (workspace / "specs" / "todo").mkdir(parents=True)
-
-    # Copy templates from actual workspace
-    # Use __file__ to find the actual workspace root (tests/conftest.py -> aide/)
-    actual_workspace = Path(__file__).parent.parent
-
-    # Copy TODO templates if they exist
-    todo_templates = actual_workspace / "core" / "templates" / "todo"
-    if todo_templates.exists():
-        for template_file in todo_templates.glob("*.template"):
-            shutil.copy(template_file, workspace / "core" / "templates" / "todo")
-    else:
-        # Print warning if templates not found
-        print(f"Warning: TODO templates not found at {todo_templates}")
-
-    return workspace
-
-
-@pytest.fixture
 def clean_env(monkeypatch):
     """Clean environment variables before each test."""
     # Store original values

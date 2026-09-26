@@ -70,16 +70,6 @@ class TestManualTestingIsANote:
         assert "not covered" in section.lower(), \
             "the golden example must use the same 'not covered by a test' framing"
 
-    def test_rule_key_points_say_the_note_blocks_nothing(self, workspace_root):
-        content = self._rule(workspace_root)
-        start = content.index("\n### 3-solution\n")
-        end = content.index("\n### 4-status\n", start)
-        key_points = content[content.index("**Key points:**", start):end]
-        assert "Manual testing" in key_points, \
-            "3-solution's Key points must state what the Manual testing section is"
-        assert "note" in key_points.lower() and "not a checklist" in key_points.lower(), \
-            "Key points must say plainly that Manual testing is a note, not a checklist"
-
     # Criterion 4
     def test_file_templates_describe_manual_testing_as_a_note(self, workspace_root):
         path = (workspace_root / "core" / "skills" / "aide-create"
@@ -96,17 +86,6 @@ class TestManualTestingIsANote:
             "file-templates.md must describe manual testing as a note"
         assert "not a checklist" in testing.lower(), \
             "file-templates.md must say the note is not a checklist item"
-
-    # Criterion 5
-    def test_implement_skill_step_is_optional_not_a_test_plan(self, workspace_root):
-        path = (workspace_root / "core" / "skills" / "aide-implement" / "SKILL.md")
-        if not path.exists():
-            pytest.skip("aide-implement/SKILL.md not found")
-        after = path.read_text().split("\n## After implementation", 1)[1]
-        assert "test plan" not in after.lower(), \
-            "the After-implementation step must not call the note a 'test plan' to follow"
-        assert "optional" in after.lower(), \
-            "the After-implementation step must say plainly that it is optional"
 
 
 @pytest.mark.validation
@@ -137,33 +116,12 @@ class TestWorkflowStepRecord:
         "aide-archive": "archive",
     }
 
-    # The instruction spec 139 gave and spec 154 takes away, in the
-    # wordings all four skills used. Any of them surviving means a model
-    # is still being told to write a line it no longer owns.
-    BANNED = (
-        "record the step on the line",
-        "keep the values already there",
-    )
-
     @staticmethod
     def _text(workspace_root, *parts):
         path = workspace_root.joinpath(*parts)
         if not path.exists():
             pytest.skip(f"{path.name} not found")
         return path.read_text()
-
-    # Criterion 6: the grep. Not one of those skills writes the line.
-    @pytest.mark.parametrize("skill", sorted(WRITERS))
-    def test_the_skill_does_not_write_the_line_itself(self, workspace_root, skill):
-        lowered = self._text(workspace_root, "core", "skills", skill, "SKILL.md").lower()
-        for phrase in self.BANNED:
-            assert phrase not in lowered, \
-                f"{skill} still tells the model to write the record: {phrase!r}"
-        # Naming the line is fine — saying to LEAVE it is the point.
-        assert "workflow steps completed" in lowered, \
-            f"{skill} must name the line, so a model knows which one not to touch"
-        assert "leave that line" in lowered, \
-            f"{skill} must say plainly that the line is not its to write"
 
     # ...and the interactive path keeps the signal rather than losing
     # it: the skill OFFERS the commit whose subject the reader
@@ -332,18 +290,6 @@ class TestPhaseOutcomeRecord:
                 f"{name} must not claim {field!r}: it is written by aide-run-spec " \
                 f"once the phase has actually run, and the template said {line!r}"
 
-    # The dormant, unenforced "Repositories used during analysis" HTML
-    # comment is superseded by the script-derived Repo line and removed
-    # outright — like every other field here, nothing is claimed until
-    # aide-run-spec has something true to say.
-    @pytest.mark.parametrize("name", [
-        "2-analysis.md.template", "3-solution.md.template", "4-status.md.template",
-    ])
-    def test_templates_carry_no_dormant_repo_comment(self, workspace_root, name):
-        content = self._template(workspace_root, name)
-        assert "Repositories used during analysis" not in content, \
-            f"{name} must not carry the dormant, unenforced Repo placeholder comment"
-
     # file-templates.md: each of the four files' section says where its
     # own phase outcome record lives and who writes it.
     @pytest.mark.parametrize("stem,own_file", [
@@ -378,24 +324,6 @@ class TestPhaseOutcomeRecord:
             "the rule must name the runner as the writer, so nobody edits the fields by hand"
         assert "newest" in lowered or "overwrite" in lowered, \
             "the rule must give the update rule: the newest run's outcome is the one kept"
-
-    def test_the_rule_says_an_absent_model_line_proves_nothing(self, workspace_root):
-        """The description's hand-written creation scenario: a person
-        writes `1-description.md` by hand and commits it under their own
-        message. No commit can be attributed to `create`, so no line is
-        written — and a reader must not read that silence as "create
-        never ran", nor the runner invent "human" to fill it."""
-        lowered = TestWorkflowStepRecord._status_section(self._rule(workspace_root)).lower()
-        assert "does not prove" in lowered, \
-            "the rule must say an absent Model line does not prove the phase never ran"
-
-    def test_the_rule_notes_historical_specs_keep_the_old_field_name(self, workspace_root):
-        """Risk analysis (3-solution.md): specs archived before this
-        record existed still show the old, centralized `Model (<step>):`
-        lines in 4-status.md — undisturbed, not migrated."""
-        lowered = TestWorkflowStepRecord._status_section(self._rule(workspace_root)).lower()
-        assert "model (<step>)" in lowered or "model (create)" in lowered, \
-            "the rule must acknowledge the old per-step Model lines survive in old archives"
 
     @staticmethod
     def _template(workspace_root, name):

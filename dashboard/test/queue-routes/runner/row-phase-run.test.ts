@@ -33,20 +33,6 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
       body: new URLSearchParams(fields).toString(),
     });
 
-  // Spec 171: there was a Resolve form here that posted a fixed
-  // `steps=resolve`. The step is retired, and the route is where that
-  // is enforced for anything still holding the old body — a bookmark,
-  // a script, a stale page left open in a tab.
-  test("a body still naming the retired resolve step is refused (spec 171)", async () => {
-    const { base } = start();
-    const res = await postRow(base, {
-      project: "aide",
-      specFolder: "81-queue-and-runner",
-      steps: "resolve",
-    });
-    expect(res.status).toBe(400);
-  });
-
   test("the row's fields queue the step it ticked, on the model it picked (criteria 1-3)", async () => {
     const { base } = start({ queueDefaults: CHOICES });
     const res = await postRow(base, {

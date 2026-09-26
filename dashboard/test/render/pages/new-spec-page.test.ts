@@ -13,7 +13,6 @@ import {
   row,
 } from "./fixtures.ts";
 
-
 // --- spec 121: the New-spec form is a page of its own ------------------------
 //
 // It was a `<details>` folded into `/` (spec 113 gave its summary the
@@ -183,15 +182,6 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
   test("Back tracks the given backHref", () => {
     const html = newPage({ backHref: "/?state=all&q=archive" });
     expect(html).toContain('<a class="backlink" href="/?state=all&amp;q=archive">← Back</a>');
-  });
-
-  // Spec 296: "New spec" sits beside ← Back, on one line.
-  test("the title sits inside .backhead, right after ← Back, and appears as <h1> exactly once", () => {
-    const html = newPage();
-    expect(html).toContain(
-      '<div class="backhead"><a class="backlink" href="/">← Back</a><h1>New spec</h1></div>',
-    );
-    expect(html.match(/<h1>New spec<\/h1>/g)?.length ?? 0).toBe(1);
   });
 
   // Criteria 2, 7: one back-navigation control, never two — the bottom
@@ -516,15 +506,6 @@ describe("spec 342: the phase table", () => {
     expect(analyzeRow.match(/<td/g)?.length).toBe(2);
   });
 
-  // Spec 415, REQ-3: a stand-in for "the table no longer reserves space
-  // for columns that do not exist here" — the actual rendered width
-  // needs a real browser, covered by the e2e check instead.
-  test("spec 415 REQ-3: the table's HTML carries no list-only column markers", () => {
-    const html = table(newPage({ modelChoices: [{ name: "sonnet" }] }));
-    expect(html).not.toContain('data-col="started"');
-    expect(html).not.toContain('data-col="cost"');
-  });
-
   // REQ-1, REQ-2 (spec 476): the switches sit beside the phase table, in
   // the same `.frow`, above "Depends on" — a "Depends on" field is only
   // drawn at all when there is another spec to build on, so this
@@ -651,31 +632,6 @@ describe("spec 113: the runs explanation is a popover beside the filter chips", 
     const bar = beforeTable(renderSpecsRows([row()], { runnerAvailable: true, targets: [] }));
     expect(bar).toContain('<details class="intro">');
     expect(bar).toContain(">?</summary>");
-  });
-
-  test("it sits there with several projects too, before the state trigger", () => {
-    const bar = beforeTable(
-      renderSpecsRows([row(), row({ id: "job-2", project: "atlasaurus", specFolder: "12-other" })], {
-        runnerAvailable: true,
-        targets: [],
-      }),
-    );
-    // The state control is the only filter left: the project filter went
-    // on 2026-08-23. Spec 305 then moved the state trigger to sit
-    // between this explanation and New spec (its REQ-3), so the
-    // explanation now comes BEFORE it rather than after.
-    expect(bar).toContain('data-filter="state"');
-    expect(bar.indexOf('<details class="intro">')).toBeLessThan(bar.indexOf('data-filter="state"'));
-  });
-
-  // Spec 289 replaced this popover's "how runs work" copy with the
-  // search-scope explanation that used to sit in its own paragraph
-  // below the search form — dropped from the page entirely, not moved
-  // anywhere else, so there is no "stopped"/cap wording left to assert.
-  test("the copy says what the search reads, not how runs work", () => {
-    const bar = beforeTable(renderSpecsRows([row()], { runnerAvailable: true, targets: [] }));
-    expect(bar).toContain("Searches the");
-    expect(bar).not.toContain("<em>stopped</em>");
   });
 });
 

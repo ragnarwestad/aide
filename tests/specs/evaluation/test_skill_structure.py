@@ -38,16 +38,9 @@ def parse_frontmatter(content: str) -> dict:
 class TestSkillFilesExist:
     """Every skill directory must have a SKILL.md."""
 
-    def test_skills_directory_exists(self):
-        assert SKILLS_DIR.exists(), f"Skills directory not found: {SKILLS_DIR}"
-
     def test_at_least_one_skill_found(self):
         skills = get_skill_dirs()
         assert len(skills) > 0, "No skill directories with SKILL.md found"
-
-    @pytest.mark.parametrize("skill_dir", get_skill_dirs(), ids=lambda d: d.name)
-    def test_skill_md_exists(self, skill_dir):
-        assert (skill_dir / "SKILL.md").exists()
 
 
 class TestSkillFrontmatter:

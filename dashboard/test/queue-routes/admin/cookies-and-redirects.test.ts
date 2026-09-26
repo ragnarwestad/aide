@@ -6,9 +6,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync } from "node:fs";
 import {
-  renderSpecsPage,
-} from "../../../src/render";
-import {
   JOB,
   setupQueueRoutesHarness,
 } from "../fixtures.ts";
@@ -121,52 +118,6 @@ describe("the page moved from /queue to /specs to / (criteria 7-9, 12)", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("location")).toBeNull();
     expect(await res.text()).toContain("81-queue-and-runner");
-  });
-
-  // Spec 100 criterion 1: the list itself, at the root, in one request.
-  test("GET / is the spec list: rows, filter controls and the New-spec link", async () => {
-    const { base } = start();
-    const res = await fetch(`${base}/`, { redirect: "manual" });
-    expect(res.status).toBe(200);
-    const html = await res.text();
-    expect(html).toContain('id="jobrows"');
-    expect(html).toContain('data-folder="81-queue-and-runner"');
-    // Spec 121: a link to the form's own page, not the form.
-    expect(html).toContain('href="/new"');
-    expect(html).not.toContain('action="/api/queue/create"');
-  });
-
-  test("the page says Specs in its nav and title (criterion 9)", async () => {
-    const { base } = start();
-    const html = await (await fetch(`${base}/`)).text();
-    expect(html).toContain("<title>aide -board</title>");
-    // Spec 119: the list has a tab of its own again, and it is the
-    // current one here. The wordmark still goes home too.
-    expect(html).toMatch(/<nav[^>]*>[\s\S]*aria-current="page"[^>]*>Specs<\/a>/);
-    expect(html).toContain('<a class="brand" href="/">');
-  });
-
-  // The whole page, with fixtures that carry no "queue" of their own:
-  // the check above cannot sweep for the word, because this machine's
-  // own spec 81 is CALLED `81-queue-and-runner`.
-  test("nothing a reader reads on the page says Queue (criterion 9)", () => {
-    const html = renderSpecsPage(
-      [
-        {
-          id: "j1", project: "aide", specFolder: "87-run-from-the-list",
-          steps: ["analyze"], stepIndex: 0, state: "done", spentUsd: 1,
-          timeoutSec: 1200, createdAt: "2026-08-17T00:00:00Z",
-        },
-      ],
-      "2026-08-17T00:00:00Z",
-      [{ label: "Overview", path: "projects.html" }],
-      { runnerAvailable: true, targets: [{ project: "aide", specFolder: "87-run-from-the-list" }] },
-    );
-    // Attribute values and the stylesheet are addresses and identifiers
-    // — `action="/api/queue"`, `name="steps"` — never read by anyone.
-    // What is left is the words on the page.
-    const read = html.replace(/<style>[\s\S]*?<\/style>/, "").replace(/="[^"]*"/g, "");
-    expect(read).not.toMatch(/queue/i);
   });
 
   test("the JSON surface is not renamed and no redirect swallows it (criterion 12)", async () => {

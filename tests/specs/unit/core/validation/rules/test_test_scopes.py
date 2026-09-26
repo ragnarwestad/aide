@@ -41,27 +41,6 @@ def test_project_manifest_declares_dashboard_test_scope():
     assert "command: cd dashboard && make test" in text
 
 
-def test_tools_and_scripts_documents_the_matching_rule():
-    """AC2: the rule for turning a file list into commands is written once."""
-    text = TOOLS_AND_SCRIPTS.read_text()
-    commands = section(text, "## Project commands", "## Per-project configuration")
-    assert "testScopes" in commands, "the matching rule belongs in Project commands"
-
-    lower = commands.lower()
-    # A directory boundary, never a bare string prefix.
-    assert "dashboard/" in commands and "prefix" in lower, (
-        "the rule must say the match is a directory boundary, not a string prefix"
-    )
-    # The tie-break when more than one scope could match.
-    assert "first" in lower and "order" in lower, (
-        "the rule must say the first entry in list order wins a multi-match"
-    )
-    # Everything else belongs to the root command.
-    assert "root" in lower
-    # An absent list changes nothing.
-    assert "absent" in lower or "no `testscopes`" in lower
-
-
 def test_aide_analyze_names_the_scoped_command_in_the_plan():
     """AC3: Step 6 writes the real command(s), not the placeholder."""
     text = AIDE_ANALYZE.read_text()

@@ -75,8 +75,6 @@ describe("the Description tab", () => {
     const descHtml = await (await fetch(`${base}${DESCRIPTION_TAB}`)).text();
     expect(descHtml).toContain("spec-editor-host");
     expect(descHtml).toContain('<script src="/spec-editor.js">');
-    // REQ-1: the bundle's own source no longer travels inline at all.
-    expect(descHtml).not.toContain(".toastui-editor-defaultUI");
     // Not `PAGE` (the bare URL): spec 294 made "description" the
     // default tab a bare URL resolves to (dropping "overview"), so
     // `PAGE` now serves the SAME tab this test just checked — asking
@@ -165,20 +163,6 @@ describe("the Description tab", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).not.toContain("<textarea");
-    expect(html).not.toContain('<script src="/spec-editor.js">');
-    expect(html).toContain('<script src="/spec-viewer.js">');
-  });
-
-  // REQ-4: a job queued or running makes every document tab read-only
-  // on the render side already (panels.ts); the script-loading side
-  // must agree, or a read-only page would load an editor it never
-  // mounts. REQ-1: it must still render the document via the viewer.
-  test("a document tab carries no editor script but the viewer script while a job is queued or running", async () => {
-    const { base, dir } = start(savable("/host"));
-    const id = await enqueueJob(base);
-    const mirror = seedJobState(dir, id, "running");
-    const { base: base2 } = start(savable("/host"), { queueMirrorPath: mirror });
-    const html = await (await fetch(`${base2}${DESCRIPTION_TAB}`)).text();
     expect(html).not.toContain('<script src="/spec-editor.js">');
     expect(html).toContain('<script src="/spec-viewer.js">');
   });

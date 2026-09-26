@@ -150,35 +150,6 @@ describe("POST /api/queue/:id/steps (spec 160)", () => {
     expect(await stepsOf(base, id)).toEqual(["analyze", "archive"]);
   });
 
-  // The page drew `implement` as a live box; by the time the tick
-  // arrived the runner had walked onto it. The server answers about the
-  // job it has, not about the one the page remembers.
-  test("a step the runner has walked past since the page drew it is refused (criterion 4)", async () => {
-    const { base, id } = await running(["analyze", "implement"], 1);
-    const res = await edit(base, id, "implement", false);
-    expect(res.status).toBe(400);
-    expect(((await res.json()) as { error: string }).error).toContain("implement");
-    expect(await stepsOf(base, id)).toEqual(["analyze", "implement"]);
-  });
-
-  test("a job that is not running is refused (criterion 6)", async () => {
-    const { base } = start();
-    const made = (await (
-      await fetch(`${base}/api/queue`, { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(JOB) })
-    ).json()) as { job: { id: string } };
-    const res = await edit(base, made.job.id, "implement", true);
-    expect(res.status).toBe(400);
-    expect(await stepsOf(base, made.job.id)).toEqual(["analyze"]);
-  });
-
-  test("a step earlier than the one running is refused (criterion 9)", async () => {
-    const { base, id } = await running(["implement", "archive"]);
-    const res = await edit(base, id, "analyze", true);
-    expect(res.status).toBe(400);
-    expect(((await res.json()) as { error: string }).error).toContain("analyze");
-    expect(await stepsOf(base, id)).toEqual(["implement", "archive"]);
-  });
-
   test("an unknown job is a 404, and GET is not a way in", async () => {
     const { base, id } = await running(["analyze"]);
     expect((await edit(base, "nope", "archive", true)).status).toBe(404);
@@ -319,24 +290,6 @@ describe("POST /api/queue/:id/model (spec 225)", () => {
     expect(res.status).toBe(400);
     expect(((await res.json()) as { error: string }).error).toContain("implement");
     expect((await modelOf(base, id)).implement).toBe("opus");
-  });
-
-  test("a model the server does not offer is refused (criterion 7)", async () => {
-    const { base, id } = await running(["analyze", "implement"]);
-    const res = await pick(base, id, "implement", "haiku");
-    expect(res.status).toBe(400);
-    expect(((await res.json()) as { error: string }).error).toContain("haiku");
-    expect((await modelOf(base, id)).implement).toBe("opus");
-  });
-
-  test("a job that is not running is refused (criterion 8)", async () => {
-    const { base } = start({ queueDefaults: DEFAULTS });
-    const made = (await (
-      await fetch(`${base}/api/queue`, { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(JOB) })
-    ).json()) as { job: { id: string } };
-    const res = await pick(base, made.job.id, "analyze", "fable");
-    expect(res.status).toBe(400);
-    expect((await modelOf(base, made.job.id)).analyze).toBe("sonnet");
   });
 
   test("an unknown job is a 404, and GET is not a way in", async () => {

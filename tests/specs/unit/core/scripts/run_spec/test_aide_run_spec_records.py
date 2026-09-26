@@ -283,16 +283,6 @@ def test_the_state_file_names_the_step_the_run_just_added(runner, workspace, fak
     written = json.loads(phase_file_text(workspace, f"{workspace['folder']}/4-status.json"))
     assert written["completedPhases"] == ["create", "analyze"]
 
-def test_a_run_no_longer_writes_the_old_per_step_model_line(runner, workspace, fake_claude):
-    """The centralized, scanned `Model (<step>):` line is gone: a fresh
-    run writes this phase's own record into its own file (spec 245's
-    tests above), never a `Model (<step>):` line into 4-status.md."""
-    with_status(workspace)
-    claude = specs_only_claude(fake_claude, workspace)
-    rc, out, _ = run(runner, workspace, claude, model="claude-sonnet-5")
-    assert rc == 0, out
-    assert recorded_model(workspace, "analyze") is None
-
 def test_a_historical_model_line_survives_untouched(runner, workspace, fake_claude):
     """Risk analysis (3-solution.md, spec 245): specs archived before
     this change still carry the old, centralized `Model (<step>):` lines

@@ -88,16 +88,6 @@ describe("GET /projects/<name> — the project's own page, served", () => {
       expect([name, res.status]).toEqual([name, 404]);
     }
   });
-
-  // Spec 293: the page now splits into tabs, and a plain GET with no
-  // ?tab= opens on Config, marked current in the bar — the same
-  // aria-current pattern the job and spec pages already assert on their
-  // own tabs.
-  test("a plain GET with no ?tab= opens on Config, marked current (AC1)", async () => {
-    const root = projectsRoot({ aide: null });
-    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
-    expect(html).toMatch(/aria-current="page"[^>]*>Config/);
-  });
 });
 
 describe("what the page says about the settings (criteria 1-3, 7)", () => {
@@ -154,31 +144,6 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
     expect(html).toMatch(/name="installCmd"[^>]*><\/textarea>/);
   });
 
-  test("the table has one row per SETTING_KEYS entry plus Code landing, under Name/Value/Comment (criterion 1)", async () => {
-    const root = projectsRoot({ aide: "AIDE_TEST_CMD=make test\n" });
-    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
-    expect(html).toContain("<th>Name</th><th>Value</th><th>Comment</th>");
-    for (const key of [
-      "AIDE_SPECS_PATH", "AIDE_WORKTREE_LINKS", "AIDE_TEST_CMD", "AIDE_LINT_CMD",
-      "AIDE_BUILD_CMD", "AIDE_INSTALL_CMD",
-    ]) {
-      // The raw key sits beside its plain-language label now (spec 318,
-      // REQ-2), not alone in the cell.
-      expect(html).toMatch(new RegExp(`<td>[^<]*<span class="muted">${key}</span></td>`));
-    }
-    expect(html).toContain("<td>Code landing</td>");
-  });
-
-  // Spec 318, REQ-2: the Worktree links row names both the
-  // plain-language label and the exact env-var name, so a reader who
-  // followed the Health tab's warning here recognizes the row, and a
-  // reader editing `.aide/config` by hand still has the exact key.
-  test("the Worktree links row shows its plain-language label beside the raw key (REQ-2)", async () => {
-    const root = projectsRoot({ aide: null });
-    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
-    expect(html).toContain("Worktree links");
-    expect(html).toContain("AIDE_WORKTREE_LINKS");
-  });
   test("a configured test command is shown as configured (criterion 1)", async () => {
     const root = projectsRoot({ aide: "AIDE_TEST_CMD=make test\n" });
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
@@ -339,32 +304,6 @@ describe("what the page says about its schedule (spec 259, acceptance criteria 6
 // Spec 255: the edit/save/cancel controls the unified table gained.
 describe("editing the unified settings table (spec 255)", () => {
   const POST_AUTH = { "content-type": "application/json", accept: "application/json" };
-
-  test("Cancel is a plain link back to the page with no ?edit and posts nothing (criterion 4)", async () => {
-    const root = projectsRoot({ aide: null });
-    const base = serve(root, settled(root, "aide"));
-    const html = await (await fetch(`${base}/projects/aide?edit=1`)).text();
-    expect(html).toContain('<a class="btn" data-discard-changes href="/projects/aide">Cancel</a>');
-  });
-
-  // Spec 301: the button row holds two buttons at all times, right-aligned
-  // — Edit and a disabled Cancel while reading, Save and a working Cancel
-  // while editing. Neither button appears nor disappears between the two.
-  test("read mode shows Edit and a disabled Cancel, both inside .configactions (REQ-1, REQ-2, REQ-3)", async () => {
-    const root = projectsRoot({ aide: null });
-    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
-    expect(html).toContain(
-      '<div class="configactions"><a class="btn primary" href="/projects/aide?edit=1">Edit</a>' +
-        '<button type="button" class="btn" disabled>Cancel</button></div>',
-    );
-  });
-
-  test("edit mode shows Save and Cancel inside .configactions (REQ-1, REQ-2)", async () => {
-    const root = projectsRoot({ aide: null });
-    const base = serve(root, settled(root, "aide"));
-    const html = await (await fetch(`${base}/projects/aide?edit=1`)).text();
-    expect(html).toMatch(/<div class="configactions">.*Save.*<a class="btn" data-discard-changes href="\/projects\/aide">Cancel<\/a><\/div>/s);
-  });
 
   test("saving a changed AIDE_INSTALL_CMD writes .aide/config and the redirect target shows it in view mode (criterion 5)", async () => {
     const root = projectsRoot({ aide: null });

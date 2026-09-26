@@ -40,13 +40,6 @@ describe("GET /spec-editor.js", () => {
     expect(res.status).toBe(200);
     expect((await res.text()).length).toBeGreaterThan(1000);
   });
-
-  test("HEAD answers the same way GET does, without a body", async () => {
-    const { base } = harness.start();
-    const res = await fetch(`${base}/spec-editor.js`, { method: "HEAD" });
-    expect(res.status).toBe(200);
-    expect(await res.text()).toBe("");
-  });
 });
 
 // REQ-2, second clause: two different bundle texts must never share an

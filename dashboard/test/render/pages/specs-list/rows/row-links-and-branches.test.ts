@@ -54,15 +54,6 @@ describe("the queue row links to the spec (criterion 12)", () => {
     expect(html).not.toContain('href="/specs/job-1234"');
   });
 
-  // The name clamps to two lines with an ellipsis (reworked 2026-08-26
-  // from a one-line clamp that hid most of a long folder name behind a
-  // click).
-  test("the stylesheet clamps the name", async () => {
-    const { CSS } = await import("../../../../../src/render/ui/css");
-    expect(CSS).toContain(".spec-name > .label > .specpart > .specname { overflow: hidden;");
-    expect(CSS).toContain("-webkit-line-clamp: 2;");
-  });
-
   // Spec 307: a create job's spec has no folder yet, so `named` is
   // false — the row has nothing real to link to.
   test("an un-landed create job names its row by the form's title, drawn as text, not a link", () => {

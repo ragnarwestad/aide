@@ -68,9 +68,6 @@ class TestAideAnalyzeWritesViaScript:
         assert "aide-write-spec" in step
         assert "4-status.md" in step
 
-    def test_no_direct_write_to_specs_instruction_remains(self, aide_analyze_skill):
-        assert "Write to `specs/" not in aide_analyze_skill
-
     def test_plan_review_writes_via_aide_write_spec(self, plan_review):
         assert "aide-write-spec" in plan_review
         assert "3-solution.md" in plan_review

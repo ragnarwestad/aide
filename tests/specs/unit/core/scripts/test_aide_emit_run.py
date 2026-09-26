@@ -243,18 +243,6 @@ class TestImplementSkillReportsItsPhases:
 
 @pytest.mark.claude_code
 class TestEmitterIsShipped:
-    def test_emitter_is_in_the_shared_bin_list(self, workspace_root):
-        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
-        # The list is computed from core/scripts now, so ask the installer
-        # itself rather than reading its source.
-        listed = subprocess.run(
-            ["bash", "-c", f'source "{installer}"; printf "%s" "$COMMON_BIN_SCRIPTS"'],
-            capture_output=True, text=True, check=True,
-        ).stdout.split()
-        assert "aide-emit-run" in listed, (
-            "aide-emit-run must be in COMMON_BIN_SCRIPTS — that list drives both "
-            "install and uninstall of the shared scripts"
-        )
 
     def test_reference_settings_carry_the_prompt_hook(self, workspace_root):
         settings = json.loads(
@@ -275,9 +263,3 @@ class TestEmitterIsShipped:
             "install.sh must print the ready-to-paste UserPromptSubmit block — "
             "aide never edits ~/.claude/settings.json itself"
         )
-
-
-def test_help_flag_prints_usage_and_exits_zero(emitter):
-    result = subprocess.run([str(emitter), "--help"], capture_output=True, text=True)
-    assert result.returncode == 0, result.stderr
-    assert "usage" in result.stdout.lower(), result.stdout

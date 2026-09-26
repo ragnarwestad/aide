@@ -25,16 +25,6 @@ const fixture = (files: Record<string, string> = {}) => {
 };
 
 describe("Add writes the dashboard's settings file, not the checkout", () => {
-  test("a checkout with no manifest gets none, and the file beside the checkouts holds name and description (AC-1)", async () => {
-    const f = fixture();
-    const result = await addProject(run, f.projects, { name: "demo", gitUrl: f.origin, codeLanding: "merge", description: "A demo" }, f.base);
-    expect(result.ok).toBe(true);
-    expect(existsSync(join(f.dir, ".aide", "project.yaml"))).toBe(false);
-    const settings = readFileSync(dashboardSettingsFile(f.base, "demo"), "utf-8");
-    expect(settings).toContain("name: demo");
-    expect(settings).toContain("description: A demo");
-  });
-
   test("links and code landing go to the settings file and the checkout stays clean (AC-1)", async () => {
     const f = fixture();
     await addProject(

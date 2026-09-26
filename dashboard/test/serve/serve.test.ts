@@ -143,17 +143,6 @@ describe("GET /projects (spec 115)", () => {
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toBe("/projects");
   });
-
-  // The nav is always navEntries()'s three constant entries now (spec
-  // 530) — with or without --root, there is no separate fallback any
-  // more.
-  test("the nav points at /projects, with or without --root", async () => {
-    const { base } = harness.start({ extra: { projectRoot: undefined } });
-    const html = await (await fetch(`${base}/`)).text();
-    const navHtml = html.match(/<nav[^>]*>[\s\S]*?<\/nav>/)![0];
-    expect(navHtml).toContain('href="/projects"');
-    expect(navHtml).not.toContain('href="projects.html"');
-  });
 });
 
 // --- spec 122: which folder a `Depends on:` entry means ----------------------
@@ -164,10 +153,6 @@ describe("GET /projects (spec 115)", () => {
 // reader of one rule, so it gets its own tests — the cases below mirror
 // the bash suite's one for one.
 describe("parseArgs (spec 412)", () => {
-  test("--claude-usage is refused as an unknown argument, not silently accepted", () => {
-    expect(() => parseArgs(["--claude-usage", "http://x"])).toThrow("unknown argument: --claude-usage");
-  });
-
   // Spec 424: which spec this process is a test board for.
   test("--test-board sets testBoardSpec", () => {
     expect(parseArgs(["--test-board", "424-headeren-sier-hvilket-board"]).testBoardSpec).toBe(

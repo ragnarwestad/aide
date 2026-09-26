@@ -9,7 +9,6 @@
     - [Specific test file](#specific-test-file)
 - [Test structure](#test-structure)
 - [Fixtures](#fixtures)
-    - [`mock_workspace`](#mock_workspace)
     - [`clean_env`](#clean_env)
     - [`workspace_root`](#workspace_root)
     - [`e2e_workspace`](#e2e_workspace)
@@ -174,16 +173,6 @@ tests/
 
 ## Fixtures
 
-### `mock_workspace`
-
-Creates a complete mock workspace structure with templates.
-
-```python
-def test_something(mock_workspace):
-    # mock_workspace is a tmp_path with the full structure
-    assert (mock_workspace / "core" / "templates").exists()
-```
-
 ### `clean_env`
 
 Cleans environment variables before the test (isolation).
@@ -238,7 +227,7 @@ import pytest
 
 
 @pytest.mark.unit
-def test_my_function(mock_workspace):
+def test_my_function(tmp_path):
     """Test that my_function does what it should."""
     # Arrange
     expected_result = "something"

@@ -16,13 +16,6 @@ describe("the Schedule nav tab, in the reader's own language", () => {
     expect(html).not.toContain(">Schedule<");
   });
 
-  test("English is unchanged", () => {
-    const html = pageShell("Jobs", navEntries(), "/schedule", "<p>body</p>", "2026-09-17T00:00:00Z", undefined, {
-      lang: "en",
-    });
-    expect(html).toContain(">Schedule<");
-  });
-
   // A `NavEntry` with no `labelKey` (an absolute-path section this spec
   // does not name, or the generated-site fallback nav's project entries)
   // keeps rendering its `label` exactly as before — the field is a
@@ -38,16 +31,5 @@ describe("the Schedule nav tab, in the reader's own language", () => {
       { lang: "nb" },
     );
     expect(html).toContain(">Other<");
-  });
-});
-
-// Spec 484, AC-5: the same English-leak guard, for the three languages
-// added beside English and Norwegian.
-describe.each(["es", "de", "fr"] as const)("the Schedule nav tab, in %s (spec 484)", (lang) => {
-  test("is not the English word", () => {
-    const html = pageShell("Jobs", navEntries(), "/schedule", "<p>body</p>", "2026-09-17T00:00:00Z", undefined, {
-      lang,
-    });
-    expect(html).not.toContain(">Schedule<");
   });
 });

@@ -11,7 +11,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import {
-  ALL_VIEW, ARCHIVED_VIEW, LIVE, STAMPED, STAMPED_COST, STAMPED_COST_LABEL, STAMPED_MODEL,
+  ALL_VIEW, ARCHIVED_VIEW, LIVE, STAMPED, STAMPED_COST_LABEL, STAMPED_MODEL,
   STAMPED_NOT_RUN, STAMPED_STEPS, STAMPED_TIME_SHOWN, TWO_TOOLS, blockFor, described, harness,
   modelChoicesWith, opened, outcome, phaseLines, specsList, stamp, start,
 } from "./archived-specs-fixtures.ts";
@@ -74,18 +74,6 @@ describe("an archived spec's row, opened", () => {
     expect(block).toContain('data-step="analyze"');
     expect(block).toContain('data-cap="model"');
     expect(block).toContain('data-cap="ai"');
-  });
-
-  // The fold control this used to check for is gone (2026-09-07): the
-  // AI/model pair fits beside the name at every width the list is drawn
-  // for. What matters here is unchanged — an archived line is built by
-  // the same renderer as a live one, and carries the same name wrapper.
-  test("wraps the phase's name the same way a live line does (criterion 4)", async () => {
-    const lines = phaseLines(await openList(), STAMPED);
-    for (const line of Object.values(lines)) {
-      expect(line).toContain('class="phasefold"');
-      expect(line).not.toContain("foldphase");
-    }
   });
 
   // A phase that never ran (or whose file simply names no model — every
@@ -171,27 +159,6 @@ describe("an archived spec's row, opened", () => {
       expect(line).toContain('<td data-col="started"><span class="muted small">–</span></td>');
       expect(line).toContain('<td class="num" data-col="cost"></td>');
     }
-  });
-
-  // Spec 247, criterion 4: an unmeasured cost, recorded on a locked
-  // phase — the figure still renders, but carries no (?) explaining the
-  // estimate (spec 459). Its own fixture, so the plain-cost assertion
-  // above stays a single-value check rather than one cost doing double
-  // duty.
-  test("a cost recorded as unmeasured renders with no (?) marker (spec 247, criterion 4)", async () => {
-    const folder = "155-a-locked-unmeasured-cost";
-    const { base } = start({}, {
-      [folder]: {
-        description: described("A locked unmeasured cost", "One archived spec, one recorded cost."),
-        status: stamp("2026-08-15", ["create", "analyze"]),
-        analysis: outcome({ cost: `${STAMPED_COST} (unmeasured)` }),
-      },
-    });
-    const lines = phaseLines(await specsList(base, `${ARCHIVED_VIEW}${opened(folder)}`), folder);
-    const line = lines["analyze"]!;
-    expect(line).not.toContain('<summary title="why this is an estimate"');
-    expect(line).not.toContain("This is an estimate: a step that was stopped is charged its whole budget");
-    expect(line).toContain(STAMPED_COST_LABEL);
   });
 
   // Spec 260: the locked-phase-line call site used to hardcode

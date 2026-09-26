@@ -304,7 +304,7 @@ describe("the Save form and the Checks tick form ask for the covering layer, loc
     expect(form).toContain('data-overlay="saving…"');
   });
 
-  test("the Checks tab's tick form carries data-overlay=\"saving…\"", () => {
+  test("the Status tab's tick form carries data-overlay=\"saving…\"", () => {
     const v = view({ checks: { rows: [tickableCheck], phase: "Acceptance criteria", baseSha: "abc" } });
     const html = page(v, "status");
     const form = html.match(/<form class="specform"[^>]*>/)?.[0] ?? "";
@@ -317,7 +317,7 @@ describe("the Save form and the Checks tick form ask for the covering layer, loc
     expect(form).toContain('data-overlay="lagrer…"');
   });
 
-  test("in Norwegian (nb), the Checks tab's tick form carries the Norwegian text", () => {
+  test("in Norwegian (nb), the Status tab's tick form carries the Norwegian text", () => {
     const v = view({ checks: { rows: [tickableCheck], phase: "Acceptance criteria", baseSha: "abc" } });
     const html = page(v, "status", "nb");
     const form = html.match(/<form class="specform"[^>]*>/)?.[0] ?? "";

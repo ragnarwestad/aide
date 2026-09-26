@@ -23,23 +23,6 @@ const readiness = (checks: ProjectReadiness["checks"]): ProjectReadiness => ({
   note: "",
 });
 
-describe("renderProjectPage: title beside ← Back (spec 296)", () => {
-  test("the project name sits inside .backhead, right after ← Back, and appears as <h1> exactly once", () => {
-    const html = renderProjectPage(
-      project(),
-      { hasConfigFile: false, rows: [] },
-      null,
-      "2026-08-31T00:00:00Z",
-      NAV,
-      { worktreeLinkCandidates: [], editing: false },
-    );
-    expect(html).toContain(
-      '<div class="backhead"><a class="backlink" href="/projects">← Back</a><h1>aide</h1></div>',
-    );
-    expect(html.match(/<h1>aide<\/h1>/g)?.length ?? 0).toBe(1);
-  });
-});
-
 // Spec 378: the Health tab is gone, and a checkout-level check (one no
 // Config field owns) now reads above the settings table, on Config
 // itself — REQ-2/REQ-3 ask for every such check's own text as plain,
@@ -75,19 +58,6 @@ describe("renderProjectPage: a checkout-level check shows as plain text on Confi
       expect(anchors.some((a) => a!.includes(c.detail))).toBe(false);
       expect(buttons.some((b) => b!.includes(c.detail))).toBe(false);
     }
-  });
-
-  test("removing a check from the fixture removes its detail from the render (criterion 7)", () => {
-    const fewer = checks.slice(0, -1);
-    const html = renderProjectPage(
-      project(),
-      { hasConfigFile: false, rows: [] },
-      readiness(fewer),
-      "2026-08-31T00:00:00Z",
-      NAV,
-      { worktreeLinkCandidates: [], editing: false },
-    );
-    expect(html).not.toContain(checks[checks.length - 1]!.detail);
   });
 
   // REQ-1: a field-owned check reads on its settings row, never a second

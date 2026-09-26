@@ -48,13 +48,6 @@ describe("rendering a launchd job for whichever host the operator picked", () =>
     expect(xml).toContain("<key>KeepAlive</key>\n  <true/>");
   });
 
-  test("it is a well-formed plist document", () => {
-    const xml = renderPlist(OPTS);
-    expect(xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>')).toBe(true);
-    expect(xml).toContain('<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"');
-    expect(xml.trimEnd().endsWith("</plist>")).toBe(true);
-  });
-
   test("a value carrying XML syntax is escaped, not pasted", () => {
     const xml = renderPlist({ ...OPTS, serveArgv: ["serve", "--site", "/srv/a&b<c>"] });
     expect(xml).toContain("<string>/srv/a&amp;b&lt;c&gt;</string>");

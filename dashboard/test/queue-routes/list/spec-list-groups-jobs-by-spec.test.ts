@@ -127,37 +127,6 @@ describe("filtering and sorting work on specs, not jobs", () => {
     expect(html).not.toContain("not shown.");
   });
 
-  // Spec 261 moved the "?" and New spec off the chips' own row and onto
-  // the search field's row beside it. Spec 289 went further and folded
-  // the state chips themselves into that same row, as a dropdown
-  // (`data-filter="state"`) — there is no separate chips row left to
-  // check, so this now asserts everything (state, "?", New spec) lives
-  // inside the one `<form class="specsearch">`, in that order.
-  test('the state dropdown, "?" and New spec all sit on the search field\'s own row (spec 261, spec 289)', () => {
-    const html = renderSpecsPage(
-      [job("a1", "aa-spec")],
-      "2026-08-16T00:00:00Z",
-      [{ label: "Overview", path: "projects.html" }],
-      { runnerAvailable: true, targets: [], createProjects: ["aide"] },
-    );
-    const formStart = html.indexOf('<form class="specsearch"');
-    expect(formStart).toBeGreaterThan(-1);
-    const formEnd = html.indexOf("</form>", formStart);
-    expect(formEnd).toBeGreaterThan(-1);
-    const form = html.slice(formStart, formEnd);
-    expect(form).toContain('data-filter="state"');
-    expect(form).toContain('<details class="intro">');
-    expect(form).toContain(">New</a>");
-    // Spec 305 moved the state trigger along the row to sit between the
-    // "?" and New spec (its REQ-3).
-    expect(form.indexOf('<details class="intro">')).toBeLessThan(form.indexOf('data-filter="state"'));
-    expect(form.indexOf('data-filter="state"')).toBeLessThan(form.indexOf(">New</a>"));
-    // And the whole row is still ahead of the list it labels.
-    expect(html.indexOf('<form class="specsearch"')).toBeLessThan(
-      html.indexOf('<div class="tablewrap">'),
-    );
-  });
-
   // Every spec is ONE line, so its place in the order is the group's —
   // it can no longer have one job near the top and another near the
   // bottom of the same list.

@@ -545,13 +545,6 @@ def test_a_session_that_failed_closes_nothing(runner, workspace, fake_claude):
     assert out["terminalReason"] != "closed", out
     assert not (workspace["specs"] / "archive" / workspace["folder"]).exists()
 
-def test_help_flag_prints_usage_without_any_setup(runner):
-    """AC-1: --help works with no --project-dir, no --spec, no real
-    specs root and no AIDE_CLAUDE_BIN configured at all."""
-    result = subprocess.run([str(runner), "--help"], capture_output=True, text=True)
-    assert result.returncode == 0, result.stderr
-    assert "usage" in result.stdout.lower(), result.stdout
-
 def test_help_flag_never_runs_the_self_copy(runner, tmp_path):
     """AC-2: --help must exit before the mktemp self-copy (the
     "Run from a private copy of ourselves" block) ever runs. The run

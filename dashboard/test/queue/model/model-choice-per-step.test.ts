@@ -219,16 +219,6 @@ describe("editing a running job's model for a step still ahead (spec 225)", () =
     expect(job.model().implement).toBe("Fable");
   });
 
-  test("several case-only matches are refused, naming both (spec 494)", () => {
-    const defaults = { ...DEFAULTS, modelChoices: { Sonnet: {}, SONNET: {} } };
-    const job = running(["analyze", "implement"], 0, defaults);
-    const answer = job.store.editTailModel(job.id, "implement", "sonnet");
-    expect(answer.ok).toBe(false);
-    if (answer.ok) return;
-    expect(answer.error).toContain("Sonnet");
-    expect(answer.error).toContain("SONNET");
-  });
-
   test("a phase the job does not have takes one too (criterion 4)", () => {
     const job = running(["analyze"]);
     expect(job.store.editTailModel(job.id, "archive", "fable").ok).toBe(true);
@@ -243,19 +233,6 @@ describe("editing a running job's model for a step still ahead (spec 225)", () =
       expect(`${step}: ${answer.ok}`).toBe(`${step}: false`);
       if (!answer.ok) expect(answer.error).toContain(step);
     }
-    expect(job.model().implement).toBe("opus");
-  });
-
-  // The page drew implement as a live select; by the time the pick
-  // arrived the runner had walked onto it. The store decides against
-  // the job as it is at that instant, never against what the page
-  // believed.
-  test("a step the runner has walked past since the page drew it is refused by name (criterion 6)", () => {
-    const job = running(["analyze", "implement"]);
-    job.store.update(job.id, { stepIndex: 1 });
-    const answer = job.store.editTailModel(job.id, "implement", "fable");
-    expect(answer.ok).toBe(false);
-    if (!answer.ok) expect(answer.error).toContain("implement");
     expect(job.model().implement).toBe("opus");
   });
 

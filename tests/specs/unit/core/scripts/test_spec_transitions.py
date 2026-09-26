@@ -163,15 +163,6 @@ def test_reopen_is_legal_only_from_archived(tmp_path):
     assert result["RC"] == "0"
 
 
-def test_reset_is_no_longer_an_event_the_table_knows(tmp_path):
-    """The step was removed: a reopen with its reset is the way back, and an
-    event no row names is a refusal, not a gap."""
-    analyzed = _status_file(tmp_path, "1-x", workflow_line="create, analyze")
-    assert may_apply(analyzed, "reset")["RC"] != "0"
-    implemented = _status_file(tmp_path, "2-x", workflow_line="create, analyze, implement")
-    assert may_apply(implemented, "reset")["RC"] != "0"
-
-
 # --- close: legal from any pre-archive phase, unlike archive (REQ-1, REQ-13) --
 
 

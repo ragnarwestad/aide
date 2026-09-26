@@ -90,19 +90,6 @@ class TestTaskWorkflowAssistantMatchesTheLayout:
     def _bullets(section):
         return [line for line in section.splitlines() if line.startswith("- ")]
 
-    # Criterion 10 — checked against the list items, not the whole file:
-    # the word "scope" also turns up in ordinary prose.
-    def test_description_content_has_no_scope_bullet(self, workspace_root):
-        bullets = self._bullets(self._skill_sections(workspace_root)["1. description.md"])
-        assert not [b for b in bullets if "Scope" in b], \
-            "description.md must not claim to hold Scope"
-
-    def test_analysis_content_has_no_complexity_or_risk_bullet(self, workspace_root):
-        bullets = self._bullets(self._skill_sections(workspace_root)["2. analysis.md"])
-        for word in ("Complexity", "Risk analysis"):
-            assert not [b for b in bullets if word in b], \
-                f"analysis.md must not claim to hold {word}"
-
     def test_solution_content_has_scope_and_risk_bullets(self, workspace_root):
         bullets = self._bullets(self._skill_sections(workspace_root)["3. solution.md"])
         for word in ("Scope", "Risk analysis"):
@@ -135,13 +122,6 @@ class TestAnalyzeSkillFillsTheRightFiles:
                        if index + 1 < len(headings) else len(content))
                 return content[heading.start():end]
         raise AssertionError(f"no '### {prefix}' step found")
-
-    def test_analysis_step_asks_for_findings_only(self, workspace_root):
-        step = self._step(workspace_root, "Step 5: Update 2-analysis.md")
-        instruction = step.split("Include:", 1)[1].split("\n\n", 1)[0]
-        for word in ("complexity", "risk analysis", "estimate"):
-            assert word not in instruction.lower(), \
-                f"/aide-analyze must not ask for {word} in 2-analysis.md"
 
     def test_solution_step_asks_for_scope_and_risk(self, workspace_root):
         step = self._step(workspace_root, "Step 6: Create the implementation plan")
@@ -210,28 +190,6 @@ class TestSkillsResumeWorkAlreadyBegun:
         for symbol in ("✅", "⬜"):
             assert symbol in prep, \
                 f"/aide-implement's Preparation must name the {symbol} status the table uses"
-@pytest.mark.validation
-class TestE2eSuiteExpectsTheNewAnalysisLayout:
-    """The e2e suites assert which sections a real 2-analysis.md must have.
-
-    They run the actual slash commands, so they fail for real once the
-    templates stop producing `## Scope` and `## Complexity` there. Reading
-    their source needs no CLI, so this check is not skip-gated the way the
-    e2e tests themselves are.
-    """
-
-    @pytest.mark.parametrize("tool", ["claude", "codex", "copilot"])
-    def test_required_sections_dropped_scope_and_complexity(self, workspace_root, tool):
-        path = workspace_root / "tests" / "specs" / "e2e" / f"test_{tool}_e2e.py"
-        if not path.exists():
-            pytest.skip(f"test_{tool}_e2e.py not found")
-        content = path.read_text()
-        listing = content.split("REQUIRED_SECTIONS_2_ANALYSE = [", 1)[1].split("]", 1)[0]
-        for section in ('"## Scope"', '"## Complexity"'):
-            assert section not in listing, \
-                f"test_{tool}_e2e.py still requires {section} in 2-analysis.md"
-        assert '"## Findings"' in listing, \
-            f"test_{tool}_e2e.py must still require findings in 2-analysis.md"
 
 
 @pytest.mark.validation

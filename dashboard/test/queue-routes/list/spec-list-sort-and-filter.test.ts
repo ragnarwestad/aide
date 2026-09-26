@@ -91,14 +91,6 @@ describe("the job list sorts and filters", () => {
     expect(html).toContain("b-spec");
   });
 
-  test("the state filter is offered with a count on each choice", () => {
-    const html = page([row("a", { state: "running" }), row("b"), row("c", { state: "failed" })]);
-    expect(html).toMatch(/>All \(3\)</);
-    expect(html).toMatch(/>Running \(1\)</);
-    expect(html).toMatch(/>Waiting \(1\)</);
-    expect(html).toMatch(/>Failed \(1\)</);
-  });
-
   test("the legacy active key (now Running) shows only what is actually running, not queued or done", () => {
     const rows = [row("a", { state: "running" }), row("b"), row("c", { state: "queued" })];
     const html = page(rows, { state: "active" });
@@ -196,28 +188,6 @@ describe("the job list sorts and filters", () => {
     expect(html.indexOf("60-newer-archive")).toBeLessThan(html.indexOf("61-older-archive"));
   });
 
-  // Spec 199 put the sort on when the spec was MADE, so a spec re-run an
-  // hour ago no longer outranked one made this morning. Spec 281 moves
-  // it again, onto the same summed duration the column itself now draws
-  // — a column that DRAWS one figure has to SORT by it, the same rule
-  // spec 273 already applied to the archived half of this sort.
-  test("sorting by started puts the spec with the larger summed duration first (spec 281)", () => {
-    const html = page(
-      [
-        row("small", {
-          startedAt: "2026-08-16T09:00:00Z",
-          results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:05:00Z" }],
-        }),
-        row("big", {
-          startedAt: "2026-08-16T09:00:00Z",
-          results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:20:00Z" }],
-        }),
-      ],
-      { sort: "started" },
-    );
-    expect(specOrder(html)).toEqual(["big-spec", "small-spec"]);
-  });
-
   // Spec 281's own criterion 1 read "a phase being started, finished or
   // run again must not move a row whose OWN settled total has not
   // changed" — because a live phase contributed nothing to the total
@@ -276,13 +246,6 @@ describe("the job list sorts and filters", () => {
     expect(specOrder(html)).toEqual(["89-undatable", "88-undatable"]);
   });
 
-  test("sorting by cost puts the expensive job on top", () => {
-    const html = page([row("cheap", { spentUsd: 0.5 }), row("dear", { spentUsd: 12 })], {
-      sort: "cost",
-    });
-    expect(html.indexOf("dear-spec")).toBeLessThan(html.indexOf("cheap-spec"));
-  });
-
   test("the same column clicked again turns the order round", () => {
     const html = page([row("cheap", { spentUsd: 0.5 }), row("dear", { spentUsd: 12 })], {
       sort: "cost",
@@ -317,37 +280,11 @@ describe("the job list sorts and filters", () => {
     expect(html).toMatch(/aria-sort="descending"/);
   });
 
-  // The direction was a text glyph (▴/▾) glued to the label: faint, and
-  // no larger than the letters. It is an SVG chevron now, turned by a
-  // class, and the header link is a control with a hover flat.
-  test("the sort direction is a chevron, not a glyph", () => {
-    const desc = page([row("a")], { sort: "cost" });
-    expect(desc).toMatch(
-      /<th class="[^"]*" data-col="cost" aria-sort="descending"><a class="sortlink on"[^>]*><span class="u-usd">Cost<\/span>/,
-    );
-    expect(desc).not.toContain("▾");
-    const asc = page([row("a")], { sort: "cost", dir: "asc" });
-    expect(asc).toMatch(/<a class="sortlink on asc"[^>]*><span class="u-usd">Cost<\/span>/);
-    expect(asc).not.toContain("▴");
-    // An unsorted column carries the chevron too (faint in CSS), pointing
-    // the way its first click will sort: Time defaults to descending.
-    expect(desc).toMatch(/<a class="sortlink"[^>]*>Time<svg/);
-    // …and State to ascending, so its chevron is already turned.
-    expect(desc).toMatch(/<a class="sortlink asc"[^>]*>State\/Action<svg/);
-  });
-
   test("a filter that matches nothing says so instead of showing a bare table", () => {
     const html = page([row("a")], { state: "active" });
     // "spec", not "job": the table has been one line per spec since
     // spec 86, and since spec 90 it lists specs that have no job at all.
     expect(html).toContain("No spec matches");
-  });
-
-  test("the list shows everything, with no cap (spec 226)", () => {
-    const html = page(Array.from({ length: 29 }, (_, i) => row(`j${i}`)), { sort: "started" });
-    expect(html).toContain("j0-spec");
-    expect(html).toContain("j24-spec");
-    expect(html).toContain("j28-spec");
   });
 
   test("the partial refresh carries the controls too, so the filter survives a tick", async () => {

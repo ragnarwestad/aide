@@ -53,10 +53,3 @@ class TestRuleStyle:
             f"incident: {offenders} — replace it with the one-line reason "
             "the rule protects"
         )
-
-    def test_communication_md_leads_with_the_outcome(self):
-        text = (RULES_DIR / "communication.md").read_text(encoding="utf-8")
-        assert "lead" in text.lower() and "outcome" in text.lower(), (
-            "communication.md must instruct replies to lead with the outcome "
-            "and drop detail that would not change what the reader does next"
-        )

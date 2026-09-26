@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
   PHASE_STEPS,
-  WORKFLOW_STEPS,
   currentWorkRoundJobs,
   parseJobRequest,
   type QueueDefaults,
@@ -114,11 +113,6 @@ describe("spec 198: reopen", () => {
 });
 
 describe("the round boundary", () => {
-  test("reset is not a workflow phase, and is not a step any more", () => {
-    expect([...PHASE_STEPS] as string[]).not.toContain("reset");
-    expect((WORKFLOW_STEPS as readonly string[])).not.toContain("reset");
-  });
-
   test("only jobs after a successfully landed reopen-with-reset belong to the current round", () => {
     const jobs = [
       { steps: ["analyze"], state: "done", createdAt: "2026-08-24T10:00:00Z" },

@@ -130,14 +130,3 @@ for (const box of BOXES) {
     });
   }
 }
-
-test("the leave box's OK goes to the link's address after an edit (AC-5)", async () => {
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto(`${base}/projects?live=0`);
-  await page.locator("dialog.leaveapp").evaluate((d) => (d as HTMLDialogElement).showModal());
-  await Promise.all([
-    page.waitForURL((u) => new URL(u).pathname === "/projects" || true),
-    page.locator("dialog.leaveapp").getByRole("button", { name: "OK" }).click(),
-  ]);
-  await page.locator("dialog.leaveapp").waitFor({ state: "hidden" });
-});

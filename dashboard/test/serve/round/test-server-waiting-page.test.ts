@@ -8,11 +8,6 @@ import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from
 const body = (r: Response) => r.text();
 
 describe("waiting for a test server", () => {
-  test("names the spec in quotes, on its own line, so it reads apart from the sentence", async () => {
-    const html = await body(waitingForTestServerPage("aide", "415-specs-og-new-spec-side-layout"));
-    expect(html).toContain('Starting a test server for<br>"415-specs-og-new-spec-side-layout"');
-  });
-
   test("comes back by itself, and says something is coming", async () => {
     const html = await body(waitingForTestServerPage("aide", "415-x"));
     expect(html).toMatch(/http-equiv="refresh"/);

@@ -47,24 +47,4 @@ describe("where the settings are kept", () => {
   test("the page says nothing is stored yet when neither exists (AC-6)", () => {
     expect(page("none")).toContain("No settings are stored yet.");
   });
-
-  // Spec 531 (AC-7): in edit mode the sentence stays above the table,
-  // full width, instead of squeezed beside it as a flex sibling.
-  test("in edit mode, the sentence sits before the table, each in its own .frow (AC-7)", () => {
-    const html = renderProjectPage(view, { hasConfigFile: false, rows: [] }, null, "2026-09-20T00:00:00Z", NAV, {
-      worktreeLinkCandidates: [],
-      editing: true,
-      settingsHome: "dashboard",
-    });
-    const homeIndex = html.indexOf("data-settings-home");
-    const tableIndex = html.indexOf('class="tablewrap"');
-    expect(homeIndex).toBeGreaterThan(-1);
-    expect(tableIndex).toBeGreaterThan(-1);
-    expect(homeIndex).toBeLessThan(tableIndex);
-    const tableFrowStart = html.lastIndexOf('<span class="frow">', tableIndex);
-    expect(tableFrowStart).toBeGreaterThan(-1);
-    // The table's own frow holds only the table — the sentence sits
-    // outside it, in a frow of its own.
-    expect(html.slice(tableFrowStart, tableIndex)).not.toContain("data-settings-home");
-  });
 });

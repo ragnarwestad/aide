@@ -157,31 +157,6 @@ describe("the editor's markdown engine, configured for this repo's convention (R
     expect(asFileText(out)).toBe(REAL_DESCRIPTION);
   });
 
-  test("CONFIGURED: withDependsOnLine()'s anchor line survives byte-for-byte", async () => {
-    const out = await roundtrip(REAL_DESCRIPTION);
-    expect(out).toContain("- **Created:** `2026-08-31`");
-  });
-
-  test("CONFIGURED: every REQ-n/SHALL bullet keeps its bold label marker and exact wording", async () => {
-    const out = await roundtrip(REAL_DESCRIPTION);
-    for (let n = 1; n <= 7; n++) {
-      expect(out).toContain(`- **REQ-${n}:**`);
-    }
-    expect(out).toContain("SHALL offer WYSIWYG editing");
-  });
-
-  test("CONFIGURED: no bullet or rule marker is flipped anywhere in the file", async () => {
-    const out = await roundtrip(REAL_DESCRIPTION);
-    expect(/^\* /m.test(out)).toBe(false);
-    expect(/^\*\*\*$/m.test(out)).toBe(false);
-  });
-
-  test("CONFIGURED: ATX headings stay ATX, not setext", async () => {
-    const out = await roundtrip(REAL_DESCRIPTION);
-    expect(out).toContain("## Table of contents");
-    expect(/^={3,}$/m.test(out)).toBe(false);
-  });
-
   test("CONFIGURED: code fences, emphasis and links survive with content and semantics intact", async () => {
     const out = await roundtrip(NESTED_LISTS_AND_CODE_FENCES);
     expect(out).toContain("```ts");

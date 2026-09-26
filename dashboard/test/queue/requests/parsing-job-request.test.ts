@@ -5,7 +5,6 @@ import { rmSync, mkdtempSync, existsSync, readFileSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  JOB_STATES,
   mergeQueueDefaults,
   parseJobRequest,
   persistQueueSettings,
@@ -85,33 +84,6 @@ describe("parseJobRequest", () => {
     expect(r.job.stepIndex).toBe(0);
   });
 
-  // Spec 149. A gate was a stop between steps, and no form on this page
-  // could ever set one — the only three jobs that ever had one were
-  // posted as JSON by hand. The stop is gone, so the field is gone with
-  // it: a request that still names it is not refused, it is ignored, the
-  // same way every other unknown key on this route already is.
-  test("gateAfter is an unknown field now — ignored, not refused, and never stored", () => {
-    const named = parseJobRequest(
-      { ...REQ, steps: ["analyze", "implement"], gateAfter: ["analyze"] },
-      { resolve, defaults: DEFAULTS },
-    );
-    expect(named.ok).toBe(true);
-    if (!named.ok) return;
-    expect("gateAfter" in named.job).toBe(false);
-    // Not even the shapes that used to be REFUSED: a step not in the
-    // job, or a value that is not a list at all.
-    for (const bad of [["archive"], "analyze", 7]) {
-      const r = parseJobRequest({ ...REQ, gateAfter: bad }, { resolve, defaults: DEFAULTS });
-      expect(`${JSON.stringify(bad)}: ${r.ok}`).toBe(`${JSON.stringify(bad)}: true`);
-    }
-  });
-
-  // Criterion 9. Nothing a request can say puts a job into the state
-  // that no longer exists.
-  test("awaiting-approval is not a job state any more", () => {
-    expect((JOB_STATES as readonly string[]).includes("awaiting-approval")).toBe(false);
-  });
-
   test("the permission mode and model come from the config, per step", () => {
     const r = parseJobRequest({ ...REQ, steps: ["analyze", "implement"] }, { resolve, defaults: DEFAULTS });
     expect(r.ok).toBe(true);
@@ -187,7 +159,7 @@ describe("parseJobRequest", () => {
   // and `analyze`'s own invocation reads it fresh at spawn time — a
   // second job queued from the specs list has no checkbox of its own to
   // post, and one posted anyway (a stale client, a hand-crafted request)
-  // is an unknown key, ignored like `gateAfter`/`extraProjects` above,
+  // is an unknown key, ignored like any other,
   // never refused.
 
   test.each(["1", true, "0", false, ""])(

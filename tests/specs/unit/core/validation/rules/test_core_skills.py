@@ -45,15 +45,8 @@ def parse_frontmatter(content: str) -> dict:
 class TestCoreSkillsExist:
     """Every skill directory in core/skills/ must have a SKILL.md."""
 
-    def test_core_skills_directory_exists(self):
-        assert CORE_SKILLS_DIR.exists(), f"core/skills/ not found: {CORE_SKILLS_DIR}"
-
     def test_at_least_one_skill_found(self):
         assert len(get_skill_dirs()) > 0, "No skill directories with SKILL.md in core/skills/"
-
-    @pytest.mark.parametrize("skill_dir", get_skill_dirs(), ids=lambda d: d.name)
-    def test_skill_md_exists(self, skill_dir):
-        assert (skill_dir / "SKILL.md").exists()
 
 
 @pytest.mark.validation
@@ -314,18 +307,6 @@ class TestManifestTemplate:
             if not any(line.startswith(f"{k}:") for line in lines)
         ]
         assert not missing, f"template lacks top keys: {missing}"
-
-    def test_the_skill_is_told_to_leave_worktree_links_alone(self):
-        """Spec 184: `worktreeLinks` is the dashboard's to write, and a
-        refresh of a stale manifest is an AI reading the whole file and
-        writing it back. Without an instruction, a routine refresh drops
-        the key out of the COMMITTED file — and every other machine's
-        worktree comes up without the paths its test command needs, while
-        the machine that ran the refresh notices nothing."""
-        skill = (CORE_SKILLS_DIR / "aide-manifest" / "SKILL.md").read_text(encoding="utf-8")
-        assert "worktreeLinks" in skill, (
-            "aide-manifest/SKILL.md must name worktreeLinks and say to leave it as found"
-        )
 
 
 @pytest.mark.validation

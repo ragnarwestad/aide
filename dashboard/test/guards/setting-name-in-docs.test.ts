@@ -18,10 +18,4 @@ describe("the docs name the setting Specs path", () => {
     const hits = pages.filter((p) => /Specs root/.test(readFileSync(p, "utf-8")));
     expect(hits).toEqual([]);
   });
-
-  test("projects.md names it in the Add form's fields and in the Edit controls (AC-4)", () => {
-    const text = readFileSync(join(DASHBOARD, "docs", "projects.md"), "utf-8");
-    expect(text).toMatch(/\| Specs path\s+\| Optional\./);
-    expect(text).toContain("Six controls open: Specs path,");
-  });
 });

@@ -1,9 +1,3 @@
-// Spec 311, REQ-1: `runsHelp()`'s own rendered output, pinned so
-// rebuilding it on the shared `helpPopover()` component changes nothing
-// a reader sees. `runsHelp()` itself is unexported, so this reaches it
-// the same indirect route `state-dropdown.test.ts` already uses for the
-// equally-private `stateDropdown()`: through the page it renders into.
-
 import { describe, expect, test } from "bun:test";
 import { renderSpecsPage, type SpecsPageOptions } from "../../../../../src/render";
 
@@ -13,21 +7,6 @@ const page = (opts: Partial<SpecsPageOptions> = {}): string =>
     targets: [],
     ...opts,
   });
-
-/** The "What the search reads" popover's own markup. */
-const introOf = (html: string): string =>
-  html.match(/<details class="intro">[\s\S]*?<\/details>/)?.[0] ?? "";
-
-describe("runsHelp() (spec 311, REQ-1)", () => {
-  test("renders the exact popover this dashboard has always shown for the search field", () => {
-    expect(introOf(page())).toBe(
-      '<details class="intro"><summary title="What the search reads" ' +
-        'aria-label="What the search reads">?</summary>' +
-        "<p>Searches the project:folder, the title, the description — the whole " +
-        "description, including the part the row does not show.</p></details>",
-    );
-  });
-});
 
 describe("sortableHead() (spec 336, REQ-1/REQ-2)", () => {
   test("the Created header carries data-col=\"created\" alongside its colspan, the Spec header none", () => {

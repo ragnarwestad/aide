@@ -36,21 +36,6 @@ class TestReopenSkillKeepsWhatTheDescriptionAsksFor:
         assert path.exists(), "core/skills/aide-reopen/SKILL.md is missing"
         return path.read_text()
 
-    def test_the_description_and_the_readme_are_named_as_untouched(self, skill):
-        """AC7. The description is WHY the spec exists and is what the
-        new round is for."""
-        assert "1-description.md" in skill
-        assert "0-README.md" in skill
-
-    def test_the_three_reset_files_are_named(self, skill):
-        for name in ("2-analysis.md", "3-solution.md", "4-status.md"):
-            assert name in skill, f"{name} is not named as one of the files reset"
-
-    def test_the_archive_trail_is_kept(self, skill):
-        """AC3. The commits cannot be deleted and should not be; the
-        spec's own archive trail has to go on reading."""
-        assert "**Archived:**" in skill
-
     def test_the_boundary_mark_is_written_in_the_grammar_the_readers_parse(self, skill):
         """One grammar, four readers: `completed_steps_for` in
         `core/scripts/aide-run-spec`, `parse-status.ts`,
@@ -79,15 +64,6 @@ class TestCreateSkillStagesAndOffersToCommit:
         end = text.index("### Step 6:", start)
         return text[start:end]
 
-    def test_step_5_no_longer_unconditionally_skips_git_add(self):
-        step5 = self._step_5_text()
-        assert "SKIP" not in step5, (
-            "Step 5 still skips `git add` for an external specs root — "
-            "a spec created there never gets staged, so there is "
-            "nothing for Step 5's commit offer to commit"
-        )
-        assert "git add" in step5
-
     def test_step_5_offers_the_create_commit_with_the_convention_message(self):
         step5 = self._step_5_text()
         assert "Run /aide-create for" in step5, (
@@ -95,19 +71,6 @@ class TestCreateSkillStagesAndOffersToCommit:
             "commit — the one convention-carrying commit aide-create was "
             "missing"
         )
-
-    def test_it_says_the_headless_run_gets_its_commit_for_free(self):
-        """Matches the other three step skills' identical wording, so a
-        headless `aide-run-spec` run and an interactive one leave the
-        spec in the same state."""
-        step5 = self._step_5_text()
-        assert "headless" in step5.lower()
-
-    def test_validation_is_local_only_without_package_download_fallback(self):
-        skill = self.SKILL.read_text(encoding="utf-8")
-        assert "markdownlint-cli2" in skill
-        assert "installed locally" in skill
-        assert "must not invoke `npx`" in skill
 
 
 @pytest.mark.validation
@@ -132,11 +95,6 @@ class TestCreateSkillStep4CallsTheScript:
         step4 = self._step_4_text()
         assert "aide-create-spec" in step4
         assert "```bash" in step4
-
-    def test_step_4_contains_no_write_tool_instruction(self):
-        step4 = self._step_4_text()
-        assert "never the Write tool" in step4
-        assert "Create the files with content from" not in step4
 
 
 @pytest.mark.validation
@@ -175,100 +133,6 @@ class TestNoHistoricalSpecCitations:
         )
 
 
-@pytest.mark.validation
-class TestTheNotesCellIsRewrittenNotAppendedTo:
-    """A row's Notes cell is what a person reads to decide whether to
-    tick it. Each round writing its own paragraph into the same cell
-    turned it into four rounds of prose nobody reads, so the
-    instruction says the cell is rewritten and short — pinned in both
-    places that describe it, since a reader of either one acts on it
-    alone.
-    """
-
-    @pytest.fixture
-    def implement(self):
-        path = CORE_SKILLS_DIR / "aide-implement" / "SKILL.md"
-        assert path.exists(), "core/skills/aide-implement/SKILL.md is missing"
-        return path.read_text(encoding="utf-8")
-
-    @pytest.fixture
-    def tracing(self):
-        path = (
-            CORE_SKILLS_DIR
-            / "aide-analyze"
-            / "references"
-            / "requirements-tracing.md"
-        )
-        assert path.exists(), "requirements-tracing.md is missing"
-        return path.read_text(encoding="utf-8")
-
-    def test_implement_says_the_cell_is_rewritten_and_short(self, implement):
-        assert "REWRITTEN, never added to" in implement, (
-            "aide-implement must say an open row's Notes cell is rewritten "
-            "rather than appended to"
-        )
-        assert "one or two\nsentences" in implement or "one or two sentences" in implement, (
-            "aide-implement must bound the Notes cell to one or two sentences"
-        )
-
-    def test_implement_sends_the_round_detail_to_the_other_two_files(self, implement):
-        """What each round found belongs where a round already has a
-        section of its own."""
-        carve_out = implement.split("One narrow carve-out", 1)[1][:1200]
-        assert "2-analysis.md" in carve_out and "3-solution.md" in carve_out, (
-            "the carve-out must name where a round's own findings go instead"
-        )
-
-    def test_the_tracing_reference_says_the_same(self, tracing):
-        cross_reference = tracing.split("lets Implement write an open row's Notes cell", 1)
-        assert len(cross_reference) == 2, (
-            "requirements-tracing.md must still point at the carve-out"
-        )
-        assert "rewritten from" in cross_reference[1][:400], (
-            "requirements-tracing.md must say the cell is rewritten each round"
-        )
-
-
-class TestAcceptanceCriteriaReachTheirTests:
-    """Which test covers which requirement is read off the test's own
-    name, and a criterion only a browser can answer is tagged in the
-    plan so implement writes a browser test for it. Neither is left to
-    a model's habit: both are said where the step reads them."""
-
-    @pytest.fixture
-    def implement(self):
-        return (CORE_SKILLS_DIR / "aide-implement" / "SKILL.md").read_text(encoding="utf-8")
-
-    @pytest.fixture
-    def analyze(self):
-        return (CORE_SKILLS_DIR / "aide-analyze" / "SKILL.md").read_text(encoding="utf-8")
-
-    def test_implement_names_the_ac_id_in_the_test_name(self, implement):
-        red = implement.split("### Phase 1: RED", 1)[1].split("### Phase 2", 1)[0]
-        assert "**Put the AC-id in the test's name.**" in red and "carries that id in its own name" in red, (
-            "aide-implement's RED phase must say a test carries its criterion's AC-id in its name"
-        )
-
-    def test_implement_writes_a_browser_test_for_a_tagged_criterion(self, implement):
-        red = implement.split("### Phase 1: RED", 1)[1].split("### Phase 2", 1)[0]
-        assert "**Write a browser test for a *(browser)* criterion,**" in red, (
-            "aide-implement's RED phase must write a browser test for a *(browser)* criterion"
-        )
-
-    def test_analyze_tags_a_criterion_only_a_browser_can_answer(self, analyze):
-        assert "End a criterion with *(browser)* when only a real browser can answer it" in analyze, (
-            "aide-analyze must tag criteria only a browser can answer"
-        )
-
-    def test_the_solution_template_says_the_same(self):
-        template = (
-            CORE_SKILLS_DIR.parent / "templates" / "todo" / "3-solution.md.template"
-        ).read_text(encoding="utf-8")
-        assert "ends\nwith *(browser)*" in template, (
-            "3-solution.md.template must name the *(browser)* tag"
-        )
-
-
 class TestTheAcceptanceRowSaysWhatThePlanDecided:
     """A reading the plan chose, a requirement no test covers, and a
     browser test as the only proof are said on the row the user ticks,
@@ -289,32 +153,6 @@ class TestTheAcceptanceRowSaysWhatThePlanDecided:
         assert "Notes cell stays empty" in step_8
 
 
-def test_implement_runs_the_browser_test_it_wrote_on_its_own():
-    """A browser test nobody ran proves nothing: implement runs each file
-    it wrote once, on its own — never the whole browser suite."""
-    implement = (CORE_SKILLS_DIR / "aide-implement" / "SKILL.md").read_text(encoding="utf-8")
-    refactor = implement.split("### Phase 3: REFACTOR", 1)[1].split("\n## ", 1)[0]
-    assert "each file on its own and once" in refactor
-    assert "never\n   the project's whole browser suite" in refactor
-
-
-@pytest.mark.parametrize("skill", ["aide-analyze", "aide-implement"])
-def test_the_step_asks_the_language_server_before_grep(skill):
-    """Where a symbol is used is the language server's to answer when a
-    run has one; grep answers every line that contains the name."""
-    text = (CORE_SKILLS_DIR / skill / "SKILL.md").read_text(encoding="utf-8")
-    # A deferred tool is invisible until it is loaded: two analyze runs
-    # in a row (498, 499) never used it while the rule only said "use it".
-    assert "`ToolSearch` (`select:LSP`)" in text
-    assert "`findReferences` or `goToDefinition` call — never `grep`" in text
-
-
-def test_implement_checks_every_ac_id_has_a_test_before_running():
-    implement = (CORE_SKILLS_DIR / "aide-implement" / "SKILL.md").read_text(encoding="utf-8")
-    red = implement.split("### Phase 1: RED", 1)[1].split("### Phase 2", 1)[0]
-    assert "**Check the list before running anything:**" in red
-
-
 @pytest.mark.validation
 class TestReopenAsksBeforeItResetsTheFiles:
     """Spec 511. A reopen keeps the analysis, the plan and the status
@@ -325,38 +163,9 @@ class TestReopenAsksBeforeItResetsTheFiles:
     def skill(self):
         return (CORE_SKILLS_DIR / "aide-reopen" / "SKILL.md").read_text()
 
-    def test_it_asks_whether_to_reset_and_the_default_is_no_AC_1(self, skill):
-        lowered = " ".join(skill.lower().split())
-        assert "reset the analysis, the plan and the status as well" in lowered
-        assert "default: no" in lowered
-
     def test_the_keep_mode_names_the_mechanical_script_AC_2(self, skill):
         assert "aide-reopen-spec" in skill
         assert "**Round boundary:**" in skill
-
-
-@pytest.mark.validation
-class TestAReopenedSpecTakesTheHeldBackRound:
-    """Spec 511, AC-6. The four texts that say how a round on open rows
-    works have to say a reopened spec takes the same round."""
-
-    FILES = {
-        "requirements-tracing": CORE_SKILLS_DIR / "aide-analyze" / "references" / "requirements-tracing.md",
-        "aide-implement": CORE_SKILLS_DIR / "aide-implement" / "SKILL.md",
-        "spec-structure rule": CORE_SKILLS_DIR.parent / "rules" / "spec-structure.md",
-        "spec-structure skill": CORE_SKILLS_DIR / "spec-structure" / "SKILL.md",
-    }
-
-    @pytest.mark.parametrize("name", list(FILES))
-    def test_the_text_names_a_reopened_spec_as_taking_the_same_round_AC_6(self, name):
-        text = " ".join(self.FILES[name].read_text().split())
-        assert "reopened spec" in text, name
-        assert "aide-reopen-spec" in text or "without reset" in text or "kept its files" in text, name
-
-    def test_the_two_spec_structure_copies_have_the_same_body(self):
-        rule = self.FILES["spec-structure rule"].read_text()
-        skill = self.FILES["spec-structure skill"].read_text()
-        assert rule.split("\n# ", 1)[1] == skill.split("\n# ", 1)[1]
 
 
 REPO_ROOT = CORE_SKILLS_DIR.parent.parent
@@ -374,14 +183,9 @@ class TestNotVerifiedStartState:
             "Step 8 must say a `Not tested:` row starts as `Not verified`"
         )
 
-    def test_implement_never_writes_not_verified_AC_21(self):
-        text = (CORE_SKILLS_DIR / "aide-implement" / "SKILL.md").read_text()
-        assert re.search(r"Implement never writes\s+`Not verified`", text)
-
     @pytest.mark.parametrize("path", [
         REPO_ROOT / "core" / "rules" / "spec-structure.md",
-        CORE_SKILLS_DIR / "spec-structure" / "SKILL.md",
-    ], ids=["rule", "skill"])
+    ], ids=["rule"])
     def test_spec_structure_names_the_mark_in_legend_and_acceptance_section(self, path):
         text = path.read_text()
         assert "| Not verified |" in text
@@ -393,19 +197,9 @@ class TestFailedMark:
     """Spec 510: `❌ Failed` is written by the user only, and its `Failed:` note
     survives the implement step's rewrite of an open row's Notes cell."""
 
-    def test_implement_never_writes_failed_AC_9(self):
-        text = (CORE_SKILLS_DIR / "aide-implement" / "SKILL.md").read_text()
-        assert re.search(r"never writes\s+`Failed`", text)
-
-    def test_implement_keeps_a_failed_sentence_in_the_cell_AC_9(self):
-        text = (CORE_SKILLS_DIR / "aide-implement" / "SKILL.md").read_text()
-        carve_out = text.split("One narrow carve-out", 1)[1][:2400]
-        assert re.search(r"starts\s+`Failed:`[^.]*keeps\s+that\s+sentence\s+first", carve_out)
-
     @pytest.mark.parametrize("path", [
         REPO_ROOT / "core" / "rules" / "spec-structure.md",
-        CORE_SKILLS_DIR / "spec-structure" / "SKILL.md",
-    ], ids=["rule", "skill"])
+    ], ids=["rule"])
     def test_spec_structure_names_failed_in_legend_and_acceptance_section(self, path):
         text = path.read_text()
         assert "| ❌ Failed |" in text

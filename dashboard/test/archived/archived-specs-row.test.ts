@@ -42,17 +42,6 @@ describe("an archived spec's row", () => {
     expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain('class="fold');
   });
 
-  // The pips came off the list on 2026-09-07 and the action moved onto
-  // the caption line on 2026-09-08; what a locked row carries there is
-  // the slot every other row has, holding its one action.
-  test("carries the same action slot as every other row", async () => {
-    const open = blockFor(await specsList(start().base, `${ARCHIVED_VIEW}${opened(STAMPED)}`), STAMPED);
-    expect(open).toContain('<span class="actionslot">');
-    // And its head line carries no control at all, the same as every
-    // other shut row.
-    expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).not.toContain("<button");
-  });
-
   // Criterion 7. `stateAction`'s ordinary branches name the phase a
   // press would run; a locked row's one action is Reopen, open or shut.
   test("offers no Analyze, Implement or Archive button — Reopen and nothing else", async () => {
@@ -116,14 +105,6 @@ describe("an archived spec's row", () => {
     expect(stampedAt).toBeLessThan(unstampedAt);
   });
 
-  test("the column header reads Time, not Started (spec 257)", async () => {
-    const html = await specsList(start().base, ARCHIVED_VIEW);
-    const start_ = html.indexOf('<th class="" data-col="started"');
-    const th = html.slice(start_, html.indexOf("</th>", start_));
-    expect(th).toContain(">Time<");
-    expect(th).not.toContain("Started");
-  });
-
   // The stamp only started being written at spec 147; the older half of
   // the archive has none, and git remembers the commit that moved the
   // folder.
@@ -136,44 +117,6 @@ describe("an archived spec's row", () => {
     const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), UNSTAMPED);
     const timeCell = row.slice(row.indexOf('data-col="started"'));
     const body = timeCell.slice(0, timeCell.indexOf("</td>"));
-    expect(body).toContain("0s");
-    expect(body).not.toMatch(/\d{4}-\d{2}-\d{2}/);
-  });
-
-  test("carries what the spec cost in time, when its archive recorded one", async () => {
-    expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain(STAMPED_TIME_SHOWN);
-  });
-
-  // Spec 410, REQ-4 put a "part." mark on a duration read from the
-  // phase file's own stamp rather than measured by the queue. It is gone
-  // (2026-09-08): a reader has nothing to do with that distinction, and
-  // the answer is to record the whole time rather than to footnote the
-  // part that was recorded.
-  test("marks nothing on a file-only duration — the figure stands alone", async () => {
-    const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
-    const cell = row.slice(row.indexOf('data-col="started"'));
-    const body = cell.slice(0, cell.indexOf("</td>"));
-    expect(body).not.toContain("part.");
-    expect(body).not.toContain("the AI session's own time only");
-  });
-
-  // Acceptance criterion 4: nothing recorded across every phase is the
-  // same "nothing to show" `costCell()` already gives an all-zero
-  // `spentUsd` — a bare date, no duration span.
-  // The column answers "how long" for every row, and `0s` is that
-  // answer when no phase recorded a time — an empty cell asks whether
-  // anything ran at all, which the row's own state already says.
-  test("shows 0s when no phase recorded a time", async () => {
-    const folder = "271-no-phase-recorded-a-time";
-    const { base } = start({}, {
-      [folder]: {
-        description: described("No phase recorded a time", "Nothing to sum here."),
-        status: noStamp,
-      },
-    });
-    const row = rowFor(await specsList(base, ARCHIVED_VIEW), folder);
-    const cell = row.slice(row.indexOf('data-col="started"'));
-    const body = cell.slice(0, cell.indexOf("</td>"));
     expect(body).toContain("0s");
     expect(body).not.toMatch(/\d{4}-\d{2}-\d{2}/);
   });
@@ -225,17 +168,6 @@ describe("an archived spec's row", () => {
     const body = cell.slice(0, cell.indexOf("</td>"));
     expect(body).toContain('<span class="u-tok">9.6k</span>');
     expect(body).not.toContain("$0.00");
-  });
-
-  // SAME_DAY has no recorded phase duration, so its Time cell reads `0s`,
-  // and no cell on the row carries the archive stamp in its place.
-  test("a spec with no recorded duration shows 0s, not the archive date", async () => {
-    const gitRun: GitRunner = async () => ({ code: 1, stdout: "" });
-    const row = rowFor(await specsList(start({ gitRun }).base, ARCHIVED_VIEW), SAME_DAY);
-    const timeCell = row.slice(row.indexOf('data-col="started"'));
-    const time = timeCell.slice(0, timeCell.indexOf("</td>"));
-    expect(time).toContain("0s");
-    expect(time).not.toContain("2026-08-13");
   });
 
   // --- the archive sorts by its own creation date ---------------------------

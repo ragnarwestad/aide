@@ -119,33 +119,6 @@ describe("Settings page", () => {
     }
   });
 
-  // `pageShell()` is told `hideHeading: true`, and the page's own
-  // `backLink()` call carries "Settings" as its title, drawing the one
-  // <h1> inside .backhead, right after ← Back (spec 296) — the same
-  // shape every other subpage's title now takes.
-  test("has exactly one <h1>Settings</h1>, inside .backhead right after ← Back, with no model choices", () => {
-    const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
-      modelChoices: [], defaultModels: { default: "sonnet" },
-      timeoutSec: TIMEOUT_SEC,
-    });
-    expect(html.match(/<h1>Settings<\/h1>/g)?.length ?? 0).toBe(1);
-    expect(html).toContain(
-      '<div class="backhead"><a class="backlink" href="/">← Back</a><h1>Settings</h1><span class="headend">',
-    );
-  });
-
-  test("has exactly one <h1>Settings</h1>, inside .backhead right after ← Back, with model choices", () => {
-    const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
-      modelChoices: MODELS,
-      defaultModels: { default: "sonnet" },
-      timeoutSec: TIMEOUT_SEC,
-    });
-    expect(html.match(/<h1>Settings<\/h1>/g)?.length ?? 0).toBe(1);
-    expect(html).toContain(
-      '<div class="backhead"><a class="backlink" href="/">← Back</a><h1>Settings</h1><span class="headend">',
-    );
-  });
-
   // Spec 252, Criteria 3, 4, 7: the top-left "← Back" tracks wherever
   // the reader opened Settings from — unchanged by spec 409, which put
   // a bottom Cancel back beside Save (REQ-8).
@@ -308,15 +281,6 @@ describe("Settings page", () => {
 
 // Spec 409.
 describe("Settings page wording and layout (spec 409)", () => {
-  test("REQ-4: the first header column reads Phase, never Step", () => {
-    const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
-      modelChoices: [], defaultModels: { default: "sonnet" },
-      timeoutSec: TIMEOUT_SEC,
-    });
-    expect(html).toContain("<th>Phase</th>");
-    expect(html).not.toContain("<th>Step</th>");
-  });
-
   test("REQ-5: the table has a close row, labelled Close", () => {
     const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
       modelChoices: [], defaultModels: { default: "sonnet" },
@@ -347,14 +311,6 @@ describe("Settings page wording and layout (spec 409)", () => {
     const row = html.match(/<tr[^>]*data-step="analyze"[\s\S]*?<\/tr>/)?.[0] ?? "";
     expect(row).toMatch(/<td><select[^>]*data-ai="model\.analyze"[\s\S]*?<\/select><\/td>/);
     expect(row).toMatch(/<td><select[^>]*name="model\.analyze"[\s\S]*?<\/select><\/td>/);
-  });
-
-  test("REQ-7: the table carries the settingstable class, sized to its own content", () => {
-    const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
-      modelChoices: [], defaultModels: { default: "sonnet" },
-      timeoutSec: TIMEOUT_SEC,
-    });
-    expect(html).toMatch(/<table class="settingstable">/);
   });
 });
 

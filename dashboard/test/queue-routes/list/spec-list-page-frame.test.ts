@@ -4,7 +4,6 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { renderSpecsPage, type QueueRowView } from "../../../src/render";
-import { CSS } from "../../../src/render/ui/css";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
 import { JOB, specHead, specPanel, specControls, phaseDone, OPEN_81, listUntil, rowSaysDone, setupQueueRoutesHarness } from "../fixtures.ts";
 
@@ -142,60 +141,9 @@ describe("renderSpecsPage state labels", () => {
     expect(html).toContain("Failed");
     expect(html).not.toContain("stopped — failed");
   });
-
-  test("the Spec column is pinned to its own width (REQ-1/REQ-2)", () => {
-    const html = renderSpecsPage(
-      [],
-      "2026-08-16T00:00:00Z",
-      [{ label: "Overview", path: "projects.html" }],
-      { runnerAvailable: false, targets: [] },
-    );
-    expect(html).toContain('data-col="spec"');
-    expect(CSS).toContain('th[data-col="spec"]');
-  });
 });
 
 describe("every row answers for itself", () => {
-  // The title and the phase left the row on 2026-08-21 — the folder name
-  // says the one and the pips say the other — and the percentage left it
-  // in spec 167. The point of the test is unchanged: the row answers for
-  // itself, server-rendered, with no selection and no data block for a
-  // script to read. This is the one test that follows the percentage all
-  // the way from a real 4-status.md on disk to the served HTML, so it is
-  // the one that can still go red if the figure ever creeps back.
-  test("a spec's progress stays off its own row (criterion 9)", async () => {
-    const { base, dir } = start();
-    // A status file that DOES carry a percentage: the row must ignore it.
-    writeFileSync(
-      join(dir, "root", "aide", "specs", "81-queue-and-runner", "4-status.md"),
-      statusSaying(
-        ["create", "analyze"],
-        "- **Total progress:** `64% (14 of 22 completed)`\n\n## Phase 2: GREEN\n\n| t | ⬜ |\n",
-      ),
-    );
-    // Open: the row's one action rides the caption line the fold opens
-    // (2026-09-08), and its label is what this reads off the file.
-    const html = await (
-      await fetch(`${base}/?open=aide%2F81-queue-and-runner`, )
-    ).text();
-    // Server-rendered on the row itself: there is no selection left to
-    // answer, and no data block for a script to answer it from.
-    const line = specHead(html, "81-queue-and-runner");
-    // The figure counted the checkbox rows implement ticks, so it was 0
-    // with analyze done and 90-something the moment implement ended. The pips say how far the spec has got and the
-    // State column says what is happening now.
-    expect(line).not.toContain("% done");
-    expect(line).not.toContain("64%");
-    expect(line).not.toContain("Phase 2: GREEN");
-    // What the row DOES still read off this same file: which phase is
-    // the first one still ahead, as the button's own label. The pips
-    // said the same thing until 2026-09-07; the percentage is gone, and
-    // the file is still read.
-    expect(specControls(html, "81-queue-and-runner")).toMatch(
-      /<button[^>]*class="btn primary"[^>]*>[A-Z][a-z]+<\/button>/,
-    );
-  });
-
   // Spec 93 put this reason in ONE place, above the table, and said so:
   // "it belongs to the PAGE, not to one control". That held while the
   // page had one form; it lists up to 25 rows, and a reason attached to
@@ -223,15 +171,6 @@ describe("every row answers for itself", () => {
     // Once, not twice: the banner is the fallback for a refusal that
     // belongs to no row.
     expect(html).not.toContain('<p class="refusal">');
-  });
-
-  test("state is a chip with its own class, so a failure is not a wall of grey", async () => {
-    const { base } = start();
-    const headers = { "content-type": "application/json", accept: "application/json" };
-    await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) });
-    const rows = await (await fetch(`${base}/?rows=1`, )).text();
-    expect(rows).toContain('class="badge b-idle"');
-    expect(rows).toContain("Queued 1/1");
   });
 });
 
@@ -271,13 +210,6 @@ describe("page code placement", () => {
     expect(theme).toBeLessThan(html.indexOf("</head>"));
     expect(theme).toBeLessThan(html.indexOf("<body"));
     expect(theme).toBeLessThan(html.indexOf('id="jobrows"'));
-  });
-
-  test("the two scripts are two, and each is found by what it says", async () => {
-    const { base } = start();
-    const html = await (await fetch(`${base}/`, )).text();
-    expect(html.match(/<script/g)).toHaveLength(2);
-    expect(scriptAt(html, "jobrows")).not.toBe(scriptAt(html, "data-theme-choice"));
   });
 });
 

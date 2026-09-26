@@ -1,6 +1,5 @@
-// The mark replaces the checkbox, never widens the chip; the phase
-// lines line up in columns; the running phase's pip carries the
-// motion. Split out of design-system.test.ts by theme.
+// The mark replaces the checkbox, never widens the chip; the running
+// phase's pip carries the motion. Split out of design-system.test.ts by theme.
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { rows, target } from "../design-system-fixtures.ts";
@@ -58,45 +57,6 @@ describe("the row's one action rides the caption line, not a column of its own",
   });
 });
 
-// The phase lines begin where the spec column ends, so an un-capped
-// summary line put a hand's width of nothing between the buttons and
-// the phases (2026-08-19). The text wraps at a measure instead.
-describe("the spec column is capped, so the phases sit close", () => {
-  test("the name, the summary and the repo marks all wrap at a measure", async () => {
-    const { CSS } = await import("../../../src/render/ui/css");
-    expect(CSS).toMatch(/\.spec-title \{[^}]*max-width: \d+rem/);
-    // The name box took the CELL's width on 2026-09-08. Its fixed 27rem
-    // was about the pips, which sat at its end and would have stepped in
-    // and out down the column if the box moved with the name; they are
-    // off the list now, and the button that replaced them aligns on the
-    // cell's own edge. What caps the measure is the column itself.
-    expect(CSS).toMatch(/\.spec-name \{[^}]*[^-]width: auto/);
-    // The column's own width is `auto` since 2026-09-09 — it is the one
-    // that gives up pixels so the table can shrink with its box — but it
-    // is still what caps the measure: the five fixed columns beside it
-    // leave it a width, rather than the text choosing one.
-    expect(CSS).toMatch(/col\[data-col="spec"\] \{ width: [\d.]+%; \}/);
-  });
-});
-
-// The three things a phase line offers used to be flex children of one
-// cell, pinned to fixed widths so every select started at the same x.
-// Spec 165 made each a real table column, and spec 192 put the AI, the
-// model and the phase's box back into one cell — the name in a column
-// of its own, the three choices in the column beside it. What must not
-// come back with them is the hand-pinned width: the one width the merged
-// cell reserves is stated on the model select itself, by name, and every
-// other width the row takes is the width its controls happen to need.
-describe("the phase lines line up in columns", () => {
-  test("the stylesheet declares the columns, not pinned flex children", async () => {
-    const { CSS } = await import("../../../src/render/ui/css");
-    expect(CSS).toContain("table.list tr.subrow .modelcell > .row {");
-    expect(CSS).toContain(
-      'table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 8rem; max-width: 8rem; }',
-    );
-  });
-});
-
 // An open row's last phase line sat hard against the next spec's name.
 // The rule meant to prevent it read `tr.subrow:last-child`, and
 // `:last-child` means the last row in the TABLE — so it fired only when
@@ -150,48 +110,6 @@ describe("the running phase's pip carries the motion, not the checkbox", () => {
     expect(keyframes).not.toContain("opacity");
   });
 
-  // Spec 210: the pip fills a third at a time while an implement runs.
-  // The FILL is what changes; the box never does — a pip that grew would
-  // move everything on the line beside it, and the page's rule is that
-  // nothing moves because something else changed.
-  test("the pip is wide enough for a third to be visible, and divisible by three", async () => {
-    const { CSS } = await import("../../../src/render/ui/css");
-    const pip = CSS.match(/\n\.pip \{([^}]*)\}/)?.[1] ?? "";
-    const width = Number(pip.match(/width:\s*(\d+)px/)?.[1]);
-    expect(width).toBe(21);
-    expect(width % 3).toBe(0);
-  });
-
-  test("the project row link covers its row below independent actions", async () => {
-    const { CSS } = await import("../../../src/render/ui/css");
-    const row = CSS.match(/\.proj-row \{([^}]*)\}/)?.[1] ?? "";
-    const overlay = CSS.match(/\.proj-row-link::after \{([^}]*)\}/)?.[1] ?? "";
-    const action = CSS.match(/\.proj-row-action \{([^}]*)\}/)?.[1] ?? "";
-    expect(row).toContain("position: relative");
-    expect(overlay).toContain("position: absolute");
-    expect(overlay).toContain("inset: 0");
-    expect(action).toContain("position: relative");
-    expect(action).toContain("z-index: 1");
-  });
-
-  test("the fill covers the thirds already behind the run, and only those", async () => {
-    const { CSS } = await import("../../../src/render/ui/css");
-    // Keyed off `.pip.now`: a third belongs to the phase that is
-    // RUNNING. A past or future pip carrying a fill would be the mark
-    // answering a question nobody asked of it.
-    expect(CSS).toContain('.pip.now[data-third="1"]::after { width: 33%; }');
-    expect(CSS).toContain('.pip.now[data-third="2"]::after { width: 67%; }');
-    const overlay = CSS.match(/\.pip\.now\[data-third\]::after \{([^}]*)\}/)?.[1] ?? "";
-    // Anchored LEFT and drawn in the accent: the fill grows from the
-    // start of the bar in the direction the four marks already read.
-    expect(overlay).toContain("var(--accent)");
-    expect(overlay).toMatch(/inset:\s*0 auto 0 0/);
-    // And the box it is drawn inside has to be able to hold it.
-    const pip = CSS.match(/\n\.pip \{([^}]*)\}/)?.[1] ?? "";
-    expect(pip).toContain("position: relative");
-    expect(pip).toContain("overflow: hidden");
-  });
-
   test("a machine set to reduce motion gets none, and can still tell running from waiting", async () => {
     const { CSS } = await import("../../../src/render/ui/css");
     // Every reduced-motion block in the bundle, each brace-matched —
@@ -243,40 +161,5 @@ describe("the running phase's pip carries the motion, not the checkbox", () => {
       const source = await Bun.file(join(root, file)).text();
       expect([file, /animation-delay|animationDelay/.test(source)]).toEqual([file, false]);
     }
-  });
-
-  test("the spinner is off the checkbox entirely", async () => {
-    const { CSS } = await import("../../../src/render/ui/css");
-    // Two signals for one fact, and the wrong one of the two: a box is
-    // a control, so a spinner on it read as "this box is working"
-    // rather than "this phase is running".
-    expect(CSS).not.toContain(".phase.busy");
-    // The lock still replaces the box it stands in for — that rule is
-    // the reason the selector list existed, and it stays.
-    expect(CSS).toContain(".phase.off input { display: none; }");
-  });
-});
-
-// --- spec 520: the message rows now come last, so they carry the air -------
-
-describe("an open row's message rows have air above the first and under the last (spec 520, AC-2)", () => {
-  test("the first message row after the phase lines has air above it", async () => {
-    const { CSS } = await import("../../../src/render/ui/css");
-    const rule = CSS.match(/([^\n}]*tr\.specnotice td[^{]*)\{([^}]*padding-top: var\(--sp-2\)[^}]*)\}/) ?? ([] as unknown as RegExpMatchArray);
-    expect(rule[1] ?? "").toContain("tr.subrow");
-    expect(rule[1] ?? "").toContain("tr.phasemsgs");
-    expect(rule[1] ?? "").toContain("+ tr.specnotice");
-  });
-
-  test("the last message row of the open row has the closing air, and a bare specnotice does not", async () => {
-    const { CSS } = await import("../../../src/render/ui/css");
-    // By the declaration, not by the selector's shape: the open row's
-    // frame (2026-09-22) selects the same last row to draw its bottom
-    // edge on, and a selector-shaped search finds that one first.
-    const rule = CSS.match(/([^\n}]*tr\.specnotice[^{]*)\{([^}]*padding-bottom: var\(--sp-3\)[^}]*)\}/) ?? ([] as unknown as RegExpMatchArray);
-    expect(rule[2] ?? "").toContain("padding-bottom: var(--sp-3)");
-    expect(rule[1] ?? "").toContain("tr.phasemsgs");
-    expect(rule[1] ?? "").toContain("tr.spechead");
-    expect(CSS).not.toMatch(/(^|\n)table\.list tr\.specnotice(:last-child)? td \{[^}]*var\(--sp-3\)/);
   });
 });

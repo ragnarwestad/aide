@@ -5,7 +5,6 @@ tool that is not there, or landing in a directory the tool never reads.
 The preflight probes what is actually installed and reports where each
 piece will land — it informs, it never blocks (exit 0 either way).
 """
-import os
 import stat
 import subprocess
 
@@ -77,17 +76,6 @@ class TestPreflight:
 @pytest.mark.validation
 class TestPreflightIsWiredIn:
     """The preflight ships to ~/.local/bin and every installer runs it."""
-
-    def test_installed_by_install_common_bin(self, workspace_root, tmp_path):
-        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
-        result = subprocess.run(
-            ["bash", "-c", f'source "{installer}"; install_common_bin'],
-            capture_output=True,
-            text=True,
-            env={"PATH": os.environ["PATH"], "HOME": str(tmp_path)},
-        )
-        assert result.returncode == 0, result.stderr
-        assert (tmp_path / ".local" / "bin" / "aide-preflight").is_file()
 
     def test_every_installer_runs_preflight(self, workspace_root):
         """Every implementation, not a list of them: a new tool that

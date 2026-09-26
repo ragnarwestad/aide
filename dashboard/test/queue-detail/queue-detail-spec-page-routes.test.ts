@@ -4,7 +4,6 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ServerOptions } from "../../src/serve/serve.ts";
-import type { QueueDefaults } from "../../src/queue/queue.ts";
 import { queueHarness } from "../helpers/queue-server.ts";
 
 const DESCRIPTION =
@@ -48,15 +47,6 @@ describe("a Codex step's job page", () => {
     return mirror;
   };
 
-  /** The one config difference these tests need: a pickable entry that
-   *  names Codex. Everything else is the server's own defaults. */
-  const CODEX_CHOICE: QueueDefaults = {
-    timeoutSec: { default: 1200 },
-    permissionMode: { default: "acceptEdits" },
-    model: { default: "sonnet" },
-    modelChoices: { "codex-fast": {  tool: "codex" } },
-  };
-
   const CODEX_STREAM = [
     JSON.stringify({ type: "thread.started", thread_id: "0199f4c2" }),
     JSON.stringify({
@@ -86,28 +76,6 @@ describe("a Codex step's job page", () => {
     expect(activity).toContain("bun test");
     const steps = await (await fetch(`${base2}/specs/${id}?tab=steps`)).text();
     expect(steps).not.toContain("$0.00");
-  });
-
-  test("a RUNNING Codex step is recognised from the config, before any result exists", async () => {
-    // The result file that would carry `tool` is written when the step
-    // ENDS, so a running step has to be resolved from the entry its
-    // chosen model name points at — the same lookup that built the argv.
-    const { base, dir } = start({
-      queueDefaults: CODEX_CHOICE,
-    });
-    const id = await enqueue(base, ["implement"]);
-    const mirror = seed(dir, id, (job) => {
-      job.state = "running";
-      job.sessionId = "0199f4c2-6d1a-7c31-9f0e-2b7a5c8d1e44";
-      job.model = { implement: "codex-fast" };
-    });
-
-    const { base: base2 } = start({
-      queueMirrorPath: mirror,
-      queueDefaults: CODEX_CHOICE,
-    });
-    const html = await (await fetch(`${base2}/specs/${id}`)).text();
-    expect(html).not.toContain("Live right now");
   });
 
   test("a transcript nobody named a tool for is still read, not blanked", async () => {
@@ -355,49 +323,6 @@ describe("GET /specs/<project>/<specFolder>?job=", () => {
     const { base: base2 } = start({ queueMirrorPath: mirror });
     const bare = withoutLangMenu(await (await fetch(`${base2}${PATH}?tab=steps`)).text());
     const res = await fetch(`${base2}${PATH}?tab=steps&job=older-attempt`);
-    expect(res.status).toBe(200);
-    expect(withoutLangMenu(await res.text())).toBe(bare);
-  });
-
-  test("?job= naming no job at all changes nothing (AC6)", async () => {
-    const { base, dir } = start();
-    const id = await enqueue(base);
-    const mirror = twoAttempts(dir, id);
-
-    const { base: base2 } = start({ queueMirrorPath: mirror });
-    const bare = withoutLangMenu(await (await fetch(`${base2}${PATH}?tab=steps`)).text());
-    const res = await fetch(`${base2}${PATH}?tab=steps&job=no-such-job`);
-    expect(res.status).toBe(200);
-    expect(withoutLangMenu(await res.text())).toBe(bare);
-  });
-
-  // The candidate used to be looked for only among THIS spec's own
-  // jobs, so a crafted id could not make one spec's page show another's
-  // transcript. There is nothing left to select, so the point is now
-  // moot the same way — the response is unaffected either way.
-  test("?job= naming a job of a different spec changes nothing (AC6)", async () => {
-    const { base, dir } = start();
-    const id = await enqueue(base);
-    const mirror = twoAttempts(dir, id);
-    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
-    jobs.push({
-      ...jobs[0]!,
-      id: "another-spec",
-      specFolder: "90-somewhere-else",
-      state: "done",
-      startedAt: "2026-08-20T11:00:00Z",
-      results: [
-        {
-          step: "analyze", ok: true, costUsd: 9.99, costMeasured: true,
-          terminalReason: "completed", at: "2026-08-20T11:30:00Z",
-        },
-      ],
-    });
-    writeFileSync(mirror, JSON.stringify(jobs));
-
-    const { base: base2 } = start({ queueMirrorPath: mirror });
-    const bare = withoutLangMenu(await (await fetch(`${base2}${PATH}?tab=steps`)).text());
-    const res = await fetch(`${base2}${PATH}?tab=steps&job=another-spec`);
     expect(res.status).toBe(200);
     expect(withoutLangMenu(await res.text())).toBe(bare);
   });

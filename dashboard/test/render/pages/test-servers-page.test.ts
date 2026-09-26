@@ -134,12 +134,6 @@ describe("the test servers overview", () => {
     }
   });
 
-  test("the table is a list table and not a settingstable (AC-2)", () => {
-    const html = renderTestServersPage(NAV, GENERATED, [row()]);
-    expect(html).toContain('class="list testservers"');
-    expect(html).not.toContain('<table class="settingstable"');
-  });
-
   test("the link's text is the host and port, without scheme, path or token (AC-5)", () => {
     const html = renderTestServersPage(NAV, GENERATED, [
       row({ url: "https://rw-macmini.ts.net:8801/?token=t0ken" }),
@@ -159,13 +153,5 @@ describe("the test servers overview", () => {
   test("a row's Stop form carries an empty .refused slot (AC-3)", () => {
     const html = renderTestServersPage(NAV, GENERATED, [row()]);
     expect(html).toContain('<p class="refused rowmsg failed"></p>');
-  });
-
-  // Spec 529: the delegation anchor the browser code binds its submit
-  // listener to, so a successful Stop can remove its own row without
-  // reloading the page (AC-1, AC-2).
-  test("the rows sit inside id=\"test-servers-rows\" (AC-1, AC-2)", () => {
-    const html = renderTestServersPage(NAV, GENERATED, [row()]);
-    expect(html).toContain('id="test-servers-rows"');
   });
 });

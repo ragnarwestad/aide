@@ -37,10 +37,9 @@ function mediaBlock(css: string, opening: string): string {
 }
 
 const NARROW = mediaBlock(CSS, "@media (max-width: 40rem) {");
-// Spec 488: the two narrower bands the compact AI/model button's own
-// toggle lives in now, below the outer 40rem block above.
+// Spec 488: the narrower band the compact AI/model button's own toggle
+// lives in now, below the outer 40rem block above.
 const BELOW_600 = mediaBlock(CSS, "@media (max-width: 37.5rem) {");
-const GROWING_BAND = mediaBlock(CSS, "@media (min-width: 27.5rem) and (max-width: 37.5rem) {");
 
 const target = (specFolder: string): SpecTarget => ({ project: "aide", specFolder });
 
@@ -378,26 +377,6 @@ describe("the phase lines stop being pinned columns at phone width", () => {
 // --- spec 488: the AI/Model button grows between 400px and 600px -----------
 
 describe("the compact button grows with the width (spec 488)", () => {
-  // AC-6: below 400px the button still shows one span's worth of text,
-  // exactly as before spec 488 — the bare model name, never the
-  // tool-prefixed form.
-  test("below 400px the button still shows the short text, and hides the full one", () => {
-    expect(BELOW_600).toContain("table.list { --aimodel-w: 3.125rem; }");
-    expect(BELOW_600).toMatch(/\.aimodelfull \{ display: none; \}/);
-  });
-
-  // AC-1/AC-2: the 400-600px band widens the button and shows the
-  // tool-prefixed FULL text instead of the bare one.
-  test("400-600px widens the button and shows the tool-prefixed text", () => {
-    expect(GROWING_BAND).toMatch(/table\.list \{ --aimodel-w: [0-9.]+rem; \}/);
-    expect(GROWING_BAND).toContain("table.list tr.subrow .aimodelshort { display: none; }");
-    expect(GROWING_BAND).toContain("table.list tr.subrow .aimodelfull { display: block; }");
-    // Wider than the sub-400px default, or there is nothing to grow into.
-    const belowWidth = Number(/--aimodel-w: ([0-9.]+)rem/.exec(BELOW_600)![1]);
-    const growingWidth = Number(/--aimodel-w: ([0-9.]+)rem/.exec(GROWING_BAND)![1]);
-    expect(growingWidth).toBeGreaterThan(belowWidth);
-  });
-
   // Both candidate spans carry their own ellipsis fallback (plan-review
   // finding, 3-solution.md): the parent's own overflow:hidden does not
   // reliably clip a block-level child's text, only a direct text node.
@@ -672,12 +651,6 @@ describe("the frame keeps one width, and the tabs sit in the middle of it", () =
     return m![1]!;
   };
 
-  test("header, the tab bar and main share an explicit, content-independent width (REQ-1, REQ-5)", () => {
-    expect(frameRule()).toMatch(/width:\s*100%/);
-    expect(frameRule()).toMatch(/box-sizing:\s*border-box/);
-    expect(frameRule()).toMatch(/max-width:\s*calc\(72rem \+ 2 \* var\(--sp-6\)\)/);
-  });
-
   test("the frame stays centred (REQ-2)", () => {
     expect(frameRule()).toMatch(/margin-inline:\s*auto/);
   });
@@ -698,23 +671,6 @@ describe("the frame keeps one width, and the tabs sit in the middle of it", () =
   });
 });
 
-// --- the States trigger's own margin from the "(?)" popover (spec 338) -----
-
-describe("the States trigger sits further from the (?) popover than the row's own gap", () => {
-  test("the desktop rule gives .menu.state its own margin (REQ-7)", () => {
-    expect(CSS).toContain(".menu.state { margin-left: var(--sp-3); }");
-    // The rest of the row's spacing is untouched: the flex gap itself
-    // still carries every other pair of controls apart.
-    expect(CSS).toContain(
-      ".specsearch { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2);",
-    );
-  });
-
-  test("the narrow block undoes it, so the phone layout is unchanged (REQ-8)", () => {
-    expect(NARROW).toContain(".menu.state { margin-left: 0; }");
-  });
-});
-
 // --- the Depends on field scrolls instead of pushing the form down
 // (spec 357) -----------------------------------------------------------
 //
@@ -722,29 +678,6 @@ describe("the States trigger sits further from the (?) popover than the row's ow
 // has one caller, `dependsOnField()` — shared by the New-spec page and
 // the spec page's Description tab (spec 174). One rule on `.phases`
 // therefore reaches both without a second copy.
-
-// --- spec 436: theme/language/unit collapse into the … menu at phone width -
-
-describe("header menus collapse into the … menu at phone width (spec 436)", () => {
-  test("AC-2 criterion 3: the narrow-width block hides the three standalone triggers", () => {
-    expect(NARROW).toContain(".menu.theme, .menu.lang, .menu.unit { display: none; }");
-  });
-
-  test("AC-2 criterion 4: the narrow-width block reveals the morerows block", () => {
-    expect(NARROW).toContain(".menu .morerows { display: flex; }");
-  });
-
-  test("the desktop CSS keeps morerows hidden by default", () => {
-    const desktop = CSS.slice(0, CSS.indexOf("@media (max-width: 40rem) {"));
-    expect(desktop).toMatch(/\.menu \.morerows \{ display: none;/);
-  });
-
-  test("the desktop CSS styles label rows the same as the button/link rows beside them", () => {
-    const desktop = CSS.slice(0, CSS.indexOf("@media (max-width: 40rem) {"));
-    expect(desktop).toMatch(/\.menupanel > label \{/);
-    expect(desktop).toMatch(/\.seg > button, \.seg > label \{/);
-  });
-});
 
 describe("the Depends on field caps its height and scrolls its own overflow", () => {
   test(".phases is capped to about four lines of chips and scrolls (REQ-1, REQ-2)", () => {

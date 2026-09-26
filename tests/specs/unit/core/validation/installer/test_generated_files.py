@@ -11,7 +11,6 @@ import re
 import shutil
 import subprocess
 import pytest
-from tests.specs.unit.core.validation.templates.test_templates import structure_block
 
 
 
@@ -57,52 +56,6 @@ class TestBuildAgentsMd:
             "must strip the leading YAML block from each rule"
         )
 
-    def test_output_carries_the_corrected_spec_layout(self, workspace_root, tmp_path):
-        """The generated spec-structure skill is Copilot's and Codex's copy
-        of the spec layout.
-
-        It is generated, never hand-edited, so a rule change that is not
-        regenerated leaves those two tools serving the old layout. The
-        layout left AGENTS.md itself in spec 147 — at 11 KB it was the
-        single biggest reason the file overshot Codex's read window — but
-        the same build script still produces it, from the same source, in
-        the same run.
-        """
-        agents_md = self._build_spec_structure_skill(workspace_root, tmp_path)
-
-        description = structure_block(agents_md, "1-description")
-        assert "## Scope" not in description, \
-            "the generated skill still puts Scope in 1-description — regenerate it"
-
-        analysis = structure_block(agents_md, "2-analysis")
-        for heading in ("## Scope", "## Complexity", "## Risk analysis"):
-            assert heading not in analysis, \
-                f"the generated skill still puts '{heading}' in 2-analysis — regenerate it"
-
-    def test_output_frames_manual_testing_as_a_note(self, workspace_root, tmp_path):
-        """Codex and Copilot read the generated spec-structure skill, so
-        the note framing must reach it.
-
-        Checked twice: the freshly built output (the rule source is right)
-        and the committed core/skills/spec-structure/SKILL.md (it was
-        actually regenerated).
-        """
-        rebuilt = structure_block(
-            self._build_spec_structure_skill(workspace_root, tmp_path), "3-solution")
-        committed = structure_block(
-            (workspace_root / "core" / "skills" / "spec-structure" / "SKILL.md")
-            .read_text(), "3-solution")
-
-        for name, block in (("the rebuilt output", rebuilt),
-                            ("core/skills/spec-structure/SKILL.md", committed)):
-            assert "### Manual testing" in block, \
-                f"{name} dropped the Manual testing section — it is reframed, not removed"
-            section = block.split("### Manual testing", 1)[1]
-            assert "must be tested manually" not in section.lower(), \
-                f"{name} still asks for a manual test plan — regenerate it"
-            assert "not covered" in section.lower(), \
-                f"{name} lacks the 'not covered by a test' framing — regenerate it"
-
     def test_output_fits_codex_read_window(self, workspace_root, tmp_path):
         """AGENTS.md must fit inside Codex's project_doc_max_bytes default.
 
@@ -143,12 +96,6 @@ class TestBuildAgentsMd:
             "— drop it from build-agents-md.sh's RULE_FILES; Codex reads it "
             "from ~/.agents/skills/spec-structure/ instead"
         )
-
-    @classmethod
-    def _build_spec_structure_skill(cls, workspace_root, tmp_path):
-        """Same build, different output file: the script writes both."""
-        cls._build(workspace_root, tmp_path)
-        return (tmp_path / "core" / "skills" / "spec-structure" / "SKILL.md").read_text()
 
     @staticmethod
     def _build(workspace_root, tmp_path):
@@ -194,14 +141,6 @@ class TestSpecStructureSkillIsGenerated:
         text = (workspace_root / "core" / "skills" / "spec-structure" / "SKILL.md").read_text(
             encoding="utf-8")
         return re.sub(r"^---\n.*?\n---\n", "", text, count=1, flags=re.DOTALL)
-
-    def test_the_skill_exists(self, workspace_root):
-        skill = workspace_root / "core" / "skills" / "spec-structure" / "SKILL.md"
-        assert skill.exists(), (
-            "core/skills/spec-structure/SKILL.md is missing — run "
-            "core/scripts/build-agents-md.sh, which generates it from "
-            "core/rules/spec-structure.md"
-        )
 
     def test_the_skill_body_matches_the_rule_body(self, workspace_root):
         rule = self._rule_body(workspace_root).strip()

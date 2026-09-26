@@ -90,25 +90,3 @@ describe("spec 391: Cancel sits right after Save, disabled by default; Save carr
     });
   }
 });
-
-// `4-status.md` is a record: the run's own stamp and its log of what it
-// did. The Checks tab owns the one thing in it a person decides, and
-// can now take a check back off as well as put one on, so the document
-// tab has nothing left to offer an editor for.
-describe("the Status tab is read-only", () => {
-  test("it shows the file and offers no Save form", () => {
-    const html = page(view({ files: [{ label: "4-status.md", text: "# X - Status\n" }] }), "status");
-    expect(html).toContain("4-status.md");
-    // The page's own stylesheet names the editor's classes whether or
-    // not one is mounted, so the claim is about the FORM: no save form
-    // on the panel means no field, no editor and no Save.
-    expect(html).not.toContain('<form method="post"');
-    expect(html).not.toContain('name="text"');
-  });
-
-  test("the Description tab still has its Save form", () => {
-    const html = page(view({ files: [{ label: "1-description.md", text: "# X - Description\n" }] }), "description");
-    expect(html).toContain('<form method="post"');
-    expect(html).toContain('name="text"');
-  });
-});

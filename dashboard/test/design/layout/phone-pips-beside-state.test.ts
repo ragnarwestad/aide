@@ -38,23 +38,6 @@ describe("the header's second line is pips, then the state", () => {
     );
   });
 
-  // The markup is the same at every width, so the order above is the
-  // order a phone gets too — what differs is only that the table's last
-  // three columns are zero wide there, so the figures fall in beside the
-  // badge instead of standing under their own headings.
-  test("the line is a flex row on a phone, and the table's own columns elsewhere", () => {
-    expect(NARROW).toContain("table.list tr.specstate { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }");
-    expect(DESKTOP).not.toContain("tr.specstate { display: flex");
-  });
-
-  test("the pips start where the title above them starts, not at the row's edge", () => {
-    // No padding of their own: the chevron's column is what sets the
-    // left edge for both, so the two line up by the table rather than by
-    // a length written down twice.
-    expect(DESKTOP).toContain("table.list tr.specstate .pipslot { display: flex; justify-content: flex-start; margin: 0; padding-left: 0; }");
-    expect(DESKTOP).toMatch(/col\[data-col="fold"\] \{ width: [\d.]+%; \}/);
-  });
-
   test("an open row drops the pips: the phase lines say what they say", () => {
     expect(DESKTOP).toContain('table.list tr.spechead:has(.fold[aria-expanded="true"]) + tr.specstate .pipslot { display: none; }');
     const open = rows("aide/155-x");

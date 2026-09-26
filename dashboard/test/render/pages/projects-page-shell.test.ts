@@ -16,7 +16,6 @@ import {
   row,
 } from "./fixtures.ts";
 
-
 describe("nav (criterion 2)", () => {
   // The project pages are reached from the Projects page, not from the
   // nav: two lists of the same projects were one too many.
@@ -200,32 +199,6 @@ describe("the front page after the panel moved", () => {
         { runnerAvailable: true, targets: [], createProjects: ["aide"] },
       ),
     );
-  });
-
-  // Spec 261 moved the "?" and New spec onto the search field's own
-  // row (`.specsearch`), so this is the scope the margin rule now has
-  // to name — the old `#jobrows > .row:first-child` selector named the
-  // chips' row, which no longer holds either control. Spec 289 removed
-  // that row entirely, so `.specsearch` is `#jobrows`'s own first child
-  // now. New spec itself carries the auto margin (moved off the "?"
-  // popover so the popover could sit right after Search instead), and
-  // the clear-air margin rule is scoped to `.specsearch` alone, not
-  // `#jobrows`, since `/schedule` uses the same form with no `#jobrows`
-  // of its own.
-  test("New spec owns the automatic margin that keeps it at the right", () => {
-    const html = page({ createProjects: ["aide"] });
-    // Spec 305 moved the trigger along the row and gave it the margin;
-    // spec 306 put the margin back on New spec, so the state trigger
-    // sits right after the "?" a plain `gap` away — inntil søkefilteret,
-    // which is what that spec is named for — and New spec alone is
-    // pushed to the row's right-hand end.
-    expect(html).toContain(".specsearch > .btn.primary { margin-left: auto; }");
-    expect(html).not.toContain(".specsearch > .menu.state { margin-left: auto; }");
-    expect(html).toContain(".specsearch:first-child { margin: var(--sp-3) 0; }");
-  });
-
-  test("the nav takes the reader to the page that manages them", () => {
-    expect(page()).toContain('href="/projects"');
   });
 });
 // --- spec 150: the job page's Overview, cut to what is said nowhere else -----

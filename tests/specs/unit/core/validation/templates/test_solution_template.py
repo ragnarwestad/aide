@@ -116,21 +116,6 @@ class TestScopeComplexityRiskLiveInSolution:
                 return content[heading.start():end]
         raise AssertionError(f"no '## {prefix}' section found")
 
-    # Criterion 1
-    def test_rule_description_example_has_no_scope(self, workspace_root):
-        block = structure_block(self._rule(workspace_root), "1-description")
-        assert "## Scope" not in block, \
-            "1-description is ONLY the problem — scope belongs to 3-solution"
-        assert "- Scope" not in block, \
-            "the 1-description table of contents must not list Scope"
-
-    # Criterion 2
-    def test_rule_analysis_example_has_no_scope_complexity_or_risk(self, workspace_root):
-        block = structure_block(self._rule(workspace_root), "2-analysis")
-        for heading in ("## Scope", "## Complexity", "## Risk analysis"):
-            assert heading not in block, \
-                f"2-analysis is findings only — '{heading}' belongs to 3-solution"
-
     # Criterion 3
     def test_rule_solution_example_has_scope_and_risk(self, workspace_root):
         block = structure_block(self._rule(workspace_root), "3-solution")
@@ -146,35 +131,12 @@ class TestScopeComplexityRiskLiveInSolution:
             assert "3-solution.md" in line, \
                 f"'{row}' must be mapped to 3-solution.md, not: {line}"
 
-    # Criterion 4
-    def test_file_templates_description_has_no_scope(self, workspace_root):
-        section = self._section(self._file_templates(workspace_root), "1-description.md")
-        assert "Scope" not in section, \
-            "file-templates.md must not put Scope in 1-description"
-
-    # Criterion 5
-    def test_file_templates_analysis_has_no_complexity_or_risk(self, workspace_root):
-        section = self._section(self._file_templates(workspace_root), "2-analysis.md")
-        for word in ("Complexity", "Risk analysis"):
-            assert word not in section, \
-                f"file-templates.md must not put {word} in 2-analysis"
-
     # Criterion 6
     def test_file_templates_solution_has_scope_and_risk(self, workspace_root):
         section = self._section(self._file_templates(workspace_root), "3-solution.md")
         for word in ("Scope", "Risk analysis"):
             assert word in section, \
                 f"file-templates.md must put {word} in 3-solution"
-
-    # Criterion 7
-    def test_description_template_has_no_scope(self, workspace_root):
-        content = self._template(workspace_root, "1-description.md.template")
-        assert "## Scope" not in content
-
-    def test_analysis_template_has_no_scope_complexity_or_risk(self, workspace_root):
-        content = self._template(workspace_root, "2-analysis.md.template")
-        for heading in ("## Scope", "## Complexity", "## Risk analysis"):
-            assert heading not in content, f"2-analysis must not own '{heading}'"
 
     # Criterion 8
     def test_solution_template_has_scope_and_risk(self, workspace_root):

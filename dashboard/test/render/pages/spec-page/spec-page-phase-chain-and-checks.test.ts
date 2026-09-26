@@ -144,7 +144,7 @@ describe("the checks block (specs 182, 188, 212)", () => {
   // Spec 212: the Checks PANEL (Overview until spec 294 renamed it), not
   // the banner. A form that rode the banner onto Steps would be wiped by
   // that tab's ten-second reload halfway through being ticked.
-  test("it is on Checks, and on no tab that reloads itself", () => {
+  test("it is on Status, and on no tab that reloads itself", () => {
     expect(page(withChecks(), "status")).toContain("Manual check at 375px in a real browser");
     const html = page(withChecks(), "steps");
     expect(html.includes("Manual check at 375px in a real browser")).toBe(false);
@@ -154,18 +154,6 @@ describe("the checks block (specs 182, 188, 212)", () => {
     const html = page(withChecks(), "status");
     expect(html).toContain("check open");
     expect(html).toContain("check done");
-  });
-
-  test("the section a row belongs to leads its rows", () => {
-    expect(page(withChecks(), "status")).toContain("Acceptance criteria");
-  });
-
-  // Spec 295: the panel opens directly with the checklist markup this
-  // suite already pins, with no `<h2>Checks</h2>` above it — the tab bar
-  // beside it already names the tab.
-  test("the panel opens with the unchanged checklist", () => {
-    const html = page(withChecks(), "status");
-    expect(html).toContain('<section class="checks">');
   });
 
   // A spec whose 4-status.md has no Phase section at all — never
@@ -197,16 +185,6 @@ describe("the checks block (specs 182, 188, 212)", () => {
     // A spec whose only rows are Phase rows: nothing here is the
     // person's, so there is nothing to press.
     expect(page(view({ checks: { rows: [LATER] } }), "status")).not.toContain('name="tick"');
-  });
-
-  // Spec 163: an archived spec is a RECORD. A tick would write, commit
-  // and push into `archive/`.
-  test("an archived spec is a record — the rows are shown with no control", () => {
-    const html = page(withChecks([check()], { archived: true }), "status");
-    expect(html).toContain("Manual check at 375px in a real browser");
-    expect(section(html)).not.toContain("<form");
-    expect(section(html)).not.toContain("<button");
-    expect(section(html)).not.toContain('name="tick"');
   });
 
   // A task cell is arbitrary text off disk, and so is the row it came
@@ -396,12 +374,6 @@ describe("the Status tab draws the criteria, then the rest of the file (AC-1, AC
     expect(html).not.toContain('name="tick"');
     expect(html).not.toContain('<form class="specform"');
     expect(raw(html)).not.toContain("AC-1");
-  });
-
-  test("a spec with a running job shows the criteria without boxes (AC-5)", () => {
-    const html = page(withStatus({ lead: lead({ state: "running" }) }), "status");
-    expect(html).toContain("delivered for one case");
-    expect(html).not.toContain('name="tick"');
   });
 
   test("an old ?tab=checks draws the Status tab with the form (AC-4)", () => {

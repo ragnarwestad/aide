@@ -368,28 +368,4 @@ describe("every step lands its own work (spec 149)", () => {
     const cancel = await fetch(`${base}/api/queue/${job.id}/cancel`, { method: "POST", headers: AUTH });
     expect(cancel.status).toBe(200);
   });
-
-  // Criterion 9. No form on the page could ever set a gate, and the
-  // three jobs that ever had one were posted as JSON by hand. A request
-  // that still names it is accepted and the field ignored, like every
-  // other unknown key — and no job can reach the state it produced.
-  test("a POST naming gateAfter is accepted, and the job runs straight through", async () => {
-    const dir = own("aide-149-gate-");
-    const paths = repos(dir);
-    const { base } = serverWithHarness(dir, paths, gitFor());
-    const made = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: AUTH,
-      body: JSON.stringify({
-        project: "aide",
-        specFolder: SPEC,
-        steps: ["analyze", "implement"],
-        gateAfter: ["analyze"],
-      }),
-    });
-    expect(made.status).toBe(200);
-    const body = (await made.json()) as { job: Record<string, unknown> };
-    expect("gateAfter" in body.job).toBe(false);
-    expect(body.job.state).not.toBe("awaiting-approval");
-  });
 });

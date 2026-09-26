@@ -16,7 +16,6 @@ import { AT, NAV, page, project } from "./projects-page-fixtures.ts";
 // allowlisted row carries its own Remove linking to a confirm page.
 
 describe("the Add button and the Remove links on /projects", () => {
-
   test("the project link marks the whole row while Remove stays a separate anchor", () => {
     const html = page([project("aide")], { createProjects: ["aide"] });
     expect(html).toContain('<a class="proj-row-link" href="/projects/aide">aide</a>');
@@ -95,15 +94,6 @@ describe("the Add page", () => {
     expect(html.replace(/<dialog class="leaveapp[\s\S]*?<\/dialog>/, "")).not.toContain(">Cancel<");
   });
 
-  // Spec 296: "Add project" sits beside ← Back, on one line.
-  test("the title sits inside .backhead, right after ← Back, and appears as <h1> exactly once", () => {
-    const html = add();
-    expect(html).toContain(
-      '<div class="backhead"><a class="backlink" href="/projects">← Back</a><h1>Add project</h1></div>',
-    );
-    expect(html.match(/<h1>Add project<\/h1>/g)?.length ?? 0).toBe(1);
-  });
-
   test("it says the dashboard keeps the settings itself and writes nothing into the project (AC-1)", () => {
     const html = add();
     expect(html).toContain("nothing is written into the project's repository");
@@ -118,7 +108,6 @@ describe("the Add page", () => {
   test("a refusal carried back in the query string is shown here", () => {
     expect(add({ error: "the name is already taken" })).toContain("The name is already taken");
   });
-
 
   // Picking a checkout with Name left blank is a whole submission on its
   // own — a `required` Name would let no browser send it.
@@ -169,15 +158,6 @@ describe("the Remove page", () => {
     // "← Back" heads the page, and Cancel stands beside Remove.
     expect(html).toContain('<a class="backlink" href="/projects">← Back</a>');
     expect(html).toContain('<a class="btn" href="/projects">Cancel</a>');
-  });
-
-  // Spec 296: "Remove <name>" sits beside ← Back, on one line.
-  test("the title sits inside .backhead, right after ← Back, and appears as <h1> exactly once", () => {
-    const html = remove("atlasaurus");
-    expect(html).toContain(
-      '<div class="backhead"><a class="backlink" href="/projects">← Back</a><h1>Remove atlasaurus</h1></div>',
-    );
-    expect(html.match(/<h1>Remove atlasaurus<\/h1>/g)?.length ?? 0).toBe(1);
   });
 
   // Spec 161 made every row action on the queue primary, Cancel

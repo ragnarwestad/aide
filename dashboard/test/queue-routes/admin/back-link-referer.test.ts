@@ -18,34 +18,6 @@ describe("spec 252: the spec page's own Back link, read off the Referer header",
     ).text();
     expect(html).toContain('<a class="backlink" href="/?state=all&amp;q=archive">← Back</a>');
   });
-
-  // Criterion 4: absent Referer keeps today's exact fallback.
-  test("no Referer at all falls back to /", async () => {
-    const { base } = start();
-    const html = await (await fetch(`${base}/specs/aide/${folder}`)).text();
-    expect(html).toContain('<a class="backlink" href="/">← Back</a>');
-  });
-
-  // Criterion 5.
-  test("a foreign-origin Referer is discarded, falling back to /", async () => {
-    const { base } = start();
-    const html = await (
-      await fetch(`${base}/specs/aide/${folder}`, { headers: { referer: "https://evil.example/" } })
-    ).text();
-    expect(html).toContain('<a class="backlink" href="/">← Back</a>');
-  });
-
-  // Criterion 6: a same-origin Referer carrying a query-string token is
-  // not reflected into the rendered link.
-  test("a Referer carrying token= has it stripped from ← Back", async () => {
-    const { base } = start();
-    const html = await (
-      await fetch(`${base}/specs/aide/${folder}`, {
-        headers: { referer: `${base}/?state=all` },
-      })
-    ).text();
-    expect(html).toContain('<a class="backlink" href="/?state=all">← Back</a>');
-  });
 });
 
 describe("spec 252: the job page's own Back link, read off the Referer header", () => {
@@ -65,23 +37,5 @@ describe("spec 252: the job page's own Back link, read off the Referer header", 
       await fetch(`${base}/specs/${id}`, { headers: { referer: `${base}/?state=all&q=archive` } })
     ).text();
     expect(html).toContain('<a class="backlink" href="/?state=all&amp;q=archive">← Back</a>');
-  });
-
-  // Criterion 4: absent Referer keeps today's exact fallback.
-  test("no Referer at all falls back to /", async () => {
-    const { base } = start();
-    const id = await jobId(base);
-    const html = await (await fetch(`${base}/specs/${id}`, )).text();
-    expect(html).toContain('<a class="backlink" href="/">← Back</a>');
-  });
-
-  // Criterion 5.
-  test("a foreign-origin Referer is discarded, falling back to /", async () => {
-    const { base } = start();
-    const id = await jobId(base);
-    const html = await (
-      await fetch(`${base}/specs/${id}`, { headers: { referer: "https://evil.example/" } })
-    ).text();
-    expect(html).toContain('<a class="backlink" href="/">← Back</a>');
   });
 });

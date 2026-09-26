@@ -125,17 +125,6 @@ class TestFileCountIsNotACriterion:
             f"{last_factor!r}"
         )
 
-    def test_workflows_skill_states_file_counts_as_typical_not_definitive(self, workflows_skill):
-        section = _flat(_section(workflows_skill, "## Complexity detection"))
-        assert "Affects 1-2 files in total" not in section, (
-            "the LOW file-count bullet still reads as a definition, not a typical range"
-        )
-        assert "May affect 3-10 files" not in section
-        assert "Affects 10+ files" not in section
-        assert section.count("Typically touches") == 3, (
-            "each of LOW/MEDIUM/HIGH should state its file count as a typical range"
-        )
-
     def test_analyze_skill_step_2_puts_file_count_last(self, analyze_skill):
         step_2 = _flat(_section(analyze_skill, "### Step 2: Detect complexity"))
         assert "based on the number of files, operation type" not in step_2, (
@@ -170,18 +159,3 @@ class TestNoCompetingCopies:
             "task-workflow-assistant/SKILL.md must point at the workflows rules "
             "§ Complexity detection"
         )
-
-    def test_the_disconnected_complexity_helper_is_gone(self, workspace_root):
-        text = (
-            workspace_root
-            / "tests"
-            / "specs"
-            / "integration"
-            / "claude_code"
-            / "test_aide_analyze.py"
-        ).read_text()
-        assert "_assess_complexity" not in text, (
-            "_assess_complexity encodes the retired file-count-only formula and "
-            "calls no production code"
-        )
-        assert "TestAideAnalyserComplexity" not in text

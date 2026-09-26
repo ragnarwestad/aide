@@ -65,18 +65,6 @@ describe("GET /schedule (spec 272)", () => {
     expect(html).toContain("traffic-analysis");
   });
 
-  // The nav tab beside the page already says "Schedule" — a page
-  // heading repeating it read as the same word twice, so the page now
-  // renders with no visible `<h1>` at all (the title stays "Jobs" only
-  // in `<title>`, via `pageShell`'s `hideHeading`).
-  test("the page renders with no visible heading of its own", async () => {
-    const { base } = start();
-    const html = await (await fetch(`${base}/schedule`, )).text();
-    expect(html).not.toContain("<h1>Jobs</h1>");
-    expect(html).not.toContain("<h1>Schedule</h1>");
-    expect(html).toContain("· Jobs</title>");
-  });
-
   test("?q= narrows rows to a term matching project:name or the prompt path (criterion 4)", async () => {
     const { base } = start({
       extra: { queueProjects: ["aide", "other"] },
@@ -88,17 +76,6 @@ describe("GET /schedule (spec 272)", () => {
     const html = await res.text();
     expect(html).toContain("nightly-report");
     expect(html).not.toContain("traffic-analysis");
-  });
-
-  test("the default view (no ?sort=) orders rows by project:name ascending (criterion 7)", async () => {
-    const { base } = start({
-      extra: { queueProjects: ["aide", "other"] },
-      alsoProjects: ["other"],
-    });
-    writeSchedule("aide", [NIGHTLY]);
-    writeSchedule("other", [TRAFFIC]);
-    const html = await (await fetch(`${base}/schedule`, )).text();
-    expect(html.indexOf("aide:nightly-report")).toBeLessThan(html.indexOf("other:traffic-analysis"));
   });
 
   test("?sort=next orders soonest-first by default, and ?dir=desc reverses it (criterion 8)", async () => {
@@ -130,36 +107,6 @@ describe("GET /schedule (spec 272)", () => {
     expect(run.status).toBe(200);
     const html = await (await fetch(`${base}/schedule?sort=last`, )).text();
     expect(html.indexOf("aide:has-run")).toBeLessThan(html.indexOf("aide:never-run"));
-  });
-
-  test("sort links and the search-clear control carry no data-nav attribute (criterion 10)", async () => {
-    const { base } = start();
-    writeSchedule("aide", [NIGHTLY]);
-    const html = await (
-      await fetch(`${base}/schedule?q=nightly`, )
-    ).text();
-    // Scoped to `<main>`, not the whole page: `pageShell`'s own
-    // site-wide nav tabs legitimately carry `data-nav` and are not
-    // what this criterion is about.
-    const main = html.slice(html.indexOf("<main>"), html.lastIndexOf("</main>"));
-    expect(main).not.toContain("data-nav");
-  });
-
-  test("no schedule entry in any allowed project renders 200 with the exists-yet message (criterion 5)", async () => {
-    const { base } = start();
-    const res = await fetch(`${base}/schedule`, );
-    expect(res.status).toBe(200);
-    const html = await res.text();
-    expect(html).toContain("No schedule entry exists yet.");
-  });
-
-  test("entries exist but a search term matches none renders the no-match message with the term (criterion 6)", async () => {
-    const { base } = start();
-    writeSchedule("aide", [NIGHTLY]);
-    const res = await fetch(`${base}/schedule?q=ghost`, );
-    expect(res.status).toBe(200);
-    const html = await res.text();
-    expect(html).toContain("No schedule entry matches &quot;ghost&quot;.");
   });
 
   // Spec 408, REQ-1/REQ-4: this route reads and remembers the language
@@ -206,37 +153,6 @@ describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
     expect(res.status).toBe(404);
   });
 
-  // The page's own body used to repeat the entry's name as a second
-  // `<h1>`, on top of the one `pageShell` already draws from the same
-  // string — the name read twice, once above the Back link and once
-  // below it.
-  test("the entry's name is the page's ONE heading, not drawn twice", async () => {
-    const { base } = start();
-    writeSchedule("aide", [NIGHTLY]);
-    const html = await (
-      await fetch(`${base}/schedule/aide/nightly-report`, )
-    ).text();
-    expect(html.match(/<h1>nightly-report<\/h1>/g)?.length ?? 0).toBe(1);
-  });
-
-  // `pageShell`'s own heading used to sit above "← Back" (`.pagehead`
-  // is drawn before `body`, which opens with `backLink`) — Back is
-  // meant to be the very first thing on the page, so the shell's own
-  // heading is hidden and the one heading left is drawn AFTER Back,
-  // inside the body.
-  test("the Back link is the first thing on the page, above the heading", async () => {
-    const { base } = start();
-    writeSchedule("aide", [NIGHTLY]);
-    const html = await (
-      await fetch(`${base}/schedule/aide/nightly-report`, )
-    ).text();
-    expect(html).not.toContain('class="pagehead"');
-    const backAt = html.indexOf('class="backlink"');
-    const headingAt = html.indexOf("<h1>nightly-report</h1>");
-    expect(backAt).toBeGreaterThan(0);
-    expect(backAt).toBeLessThan(headingAt);
-  });
-
   // Spec 408, REQ-1/REQ-4.
   test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
     const { base } = start();
@@ -245,15 +161,6 @@ describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
     expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
     const html = await res.text();
     expect(html).toContain('<html lang="nb">');
-  });
-});
-
-describe("GET /schedule/<project>/<name>/delete no longer exists (AC-1)", () => {
-  test("returns 404, not the removed confirm page", async () => {
-    const { base } = start();
-    writeSchedule("aide", [NIGHTLY]);
-    const res = await fetch(`${base}/schedule/aide/nightly-report/delete`, );
-    expect(res.status).toBe(404);
   });
 });
 

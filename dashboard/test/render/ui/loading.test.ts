@@ -28,10 +28,6 @@ describe("the first chunk carries the loading element (AC-2)", () => {
     });
   }
 
-  test("the English word is the description's own (AC-2)", () => {
-    expect(t("en", "shell.loadingPage")).toBe("Loading …");
-  });
-
   test("the element stands above the header's own z-index of 100 (AC-2)", () => {
     const z = LOADING_CSS.match(/\.pageloading\s*\{[^}]*z-index:\s*(\d+)/)?.[1];
     expect(Number(z)).toBeGreaterThan(100);

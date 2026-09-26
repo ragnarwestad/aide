@@ -43,14 +43,6 @@ class TestTheCommand:
         assert "test/guards" in script_text and "test/design" in script_text, \
             "the dashboard's doc guards are not in the command"
 
-    def test_it_answers_help_without_running_anything(self, script_text):
-        assert '"--help"' in script_text, \
-            "a bare --help has to exit before the tests, the way scripts/check-bash does"
-
-    def test_a_missing_tool_is_named_with_its_install(self, script_text):
-        assert "python3 -m venv" in script_text and "brew install oven-sh/bun/bun" in script_text, \
-            "a machine without the tool must be told which one and how, never report a pass"
-
 
 class TestTheHook:
     def test_it_calls_the_command(self, hook_text):

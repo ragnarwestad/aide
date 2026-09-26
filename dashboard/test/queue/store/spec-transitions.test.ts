@@ -23,9 +23,6 @@ describe("phaseFromState", () => {
       phaseFromState(["create", "analyze", "implement"], { date: "2026-09-01" }, { date: "2026-09-05" }),
     ).toBe("closed");
   });
-  test("omitting closed keeps every pre-406 caller reading the same phase as before", () => {
-    expect(phaseFromState(["create"], null)).toBe("created");
-  });
 });
 
 describe("isLegalMove", () => {

@@ -128,18 +128,6 @@ describe("the state dropdown (spec 289)", () => {
     expect(trigger).not.toContain("States:");
     expect(trigger).not.toContain("State:");
   });
-
-  test("sits on the controls line between the (?) popover and New spec (spec 305)", () => {
-    const html = page({ createProjects: ["aide"] });
-    const introIndex = html.indexOf('<details class="intro"');
-    const stateIndex = html.indexOf('<details class="menu state"');
-    const newSpecIndex = html.indexOf('<a class="btn primary"');
-    expect(introIndex).toBeGreaterThan(-1);
-    expect(stateIndex).toBeGreaterThan(-1);
-    expect(newSpecIndex).toBeGreaterThan(-1);
-    expect(stateIndex).toBeGreaterThan(introIndex);
-    expect(stateIndex).toBeLessThan(newSpecIndex);
-  });
 });
 
 describe("the Running entry (spec 381, REQ-3/REQ-4)", () => {

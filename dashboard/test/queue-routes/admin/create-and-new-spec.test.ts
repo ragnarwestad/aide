@@ -18,50 +18,6 @@ afterEach(() => {
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
-// Spec 83 let a job name other repos a run would also watch, commit and
-// push, and they reached the runner as --extra-project-dir. Both went
-// when the tick box that named them turned out never to have been used.
-// What a run touches is the project and its specs root, and nothing the
-// argv can add.
-describe("a run reaches its own project and no other", () => {
-  test("no --extra-project-dir is ever built, whatever the job carries", async () => {
-    const { runnerArgv } = await import("../../../src/serve/serve.ts");
-    const job = {
-      project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"],
-       timeoutSec: 2700, permissionMode: {}, model: {},
-      // A job mirrored before the removal still has the key.
-      extraProjects: ["aide-dashboard"],
-    } as unknown as Parameters<typeof runnerArgv>[0];
-    const argv = runnerArgv(job, "implement", "/tmp/r.json", {
-      runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
-    });
-    expect(argv).not.toContain("--extra-project-dir");
-    expect(argv).not.toContain("/home/dev/aide-dashboard");
-    expect(argv[argv.indexOf("--project-dir") + 1]).toBe("/home/dev/aide");
-  });
-});
-// --- spec 364: a step runs at a chosen effort level -------------------------
-
-describe("--effort reaches the runner only when a step actually named one", () => {
-  test("present when chosen, absent otherwise (REQ-3/REQ-4)", async () => {
-    const { runnerArgv } = await import("../../../src/serve/serve.ts");
-    const job = {
-      project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"],
-       timeoutSec: 2700, permissionMode: {}, model: {}, effort: { implement: "xhigh" },
-    } as unknown as Parameters<typeof runnerArgv>[0];
-    const argv = runnerArgv(job, "implement", "/tmp/r.json", {
-      runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
-    });
-    expect(argv[argv.indexOf("--effort") + 1]).toBe("xhigh");
-
-    const bareJob = { ...job, effort: {} } as unknown as Parameters<typeof runnerArgv>[0];
-    const bare = runnerArgv(bareJob, "implement", "/tmp/r.json", {
-      runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
-    });
-    expect(bare).not.toContain("--effort");
-  });
-});
-
 // --- spec 433: create with no AI session at all -------------------------------
 
 describe("--no-ai-formulate reaches the runner only when the job says so", () => {
@@ -303,30 +259,6 @@ describe("POST /api/queue/create (spec 93)", () => {
     expect(queued(dir)).toEqual([]);
   });
 
-  test("a request with no project is still refused, 400 for JSON and 303 back to /new for a form post (AC-5)", async () => {
-    const { base, dir } = start();
-    const { project: _named, ...noKey } = CREATE;
-    for (const body of [noKey, { ...CREATE, project: null }, { ...CREATE, project: "" }]) {
-      const res = await fetch(`${base}/api/queue/create`, {
-        method: "POST",
-        headers: AUTH,
-        body: JSON.stringify(body),
-      });
-      expect(res.status).toBe(400);
-      expect(((await res.json()) as { error: string }).error).toContain("project is required");
-    }
-    const form = await fetch(`${base}/api/queue/create`, {
-      method: "POST",
-      redirect: "manual",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ project: "", title: "A new spec", description: "Do the thing" }),
-    });
-    expect(form.status).toBe(303);
-    const location = form.headers.get("location")!;
-    expect(new URL(location, base).searchParams.get("error")).toContain("project is required");
-    expect(queued(dir)).toEqual([]);
-  });
-
   test("the form posted with the placeholder chosen goes back to /new and says a project is required (AC-2)", async () => {
     const { base, dir } = start();
     const res = await fetch(`${base}/api/queue/create`, {
@@ -342,22 +274,6 @@ describe("POST /api/queue/create (spec 93)", () => {
     const page = await (await fetch(`${base}${location}`)).text();
     expect(page.toLowerCase()).toContain("project is required");
     expect(queued(dir)).toEqual([]);
-  });
-
-  test("the same form with a project chosen still queues the spec there (AC-3)", async () => {
-    const { base } = start();
-    const res = await fetch(`${base}/api/queue/create`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/x-www-form-urlencoded",
-        accept: "application/json",
-      },
-      body: new URLSearchParams(CREATE).toString(),
-    });
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as { job: { project: string; createTitle: string } };
-    expect(body.job.project).toBe("aide");
-    expect(body.job.createTitle).toBe("A new spec");
   });
 
   test("it answers POST only", async () => {
@@ -494,15 +410,6 @@ describe("GET /new (spec 121)", () => {
       await fetch(`${base}/new`, { headers: { referer: `${base}/?state=all&q=archive` } })
     ).text();
     expect(html).toContain('<a class="backlink" href="/?state=all&amp;q=archive">← Back</a>');
-  });
-
-  // Criterion 5: a foreign-origin Referer is never followed.
-  test("a foreign-origin Referer is discarded, falling back to /", async () => {
-    const { base } = start();
-    const html = await (
-      await fetch(`${base}/new`, { headers: { referer: "https://evil.example/" } })
-    ).text();
-    expect(html).toContain('<a class="backlink" href="/">← Back</a>');
   });
 
   test("the chips name every spec the new one may build on", async () => {

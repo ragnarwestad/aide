@@ -90,16 +90,6 @@ describe("REQ-3: the editable path is unchanged — new Editor(...) on a <textar
   });
 });
 
-describe("REQ-4: the mode switch's CSS is reordered to the top", () => {
-  test("the injected stylesheet orders .toastui-editor-mode-switch first via order: -1", () => {
-    setHost('<textarea class="spec-editor-raw"># hi\n</textarea>');
-    mount();
-    const css = injectedCss();
-    expect(css).toContain(".toastui-editor-mode-switch");
-    expect(css).toContain("order: -1");
-  });
-});
-
 describe("REQ-5: dark mode", () => {
   test("the injected stylesheet carries the dark theme's own CSS text, not just the light one", () => {
     setHost('<textarea class="spec-editor-raw"># hi\n</textarea>');

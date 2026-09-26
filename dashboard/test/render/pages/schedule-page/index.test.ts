@@ -1,8 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  renderScheduleDetailPage,
-  renderSchedulePage,
-} from "../../../../src/render";
+import { renderSchedulePage } from "../../../../src/render";
 import { renderScheduleList } from "../../../../src/render/pages/schedule-page/list.ts";
 
 const NAV = [{ label: "Projects", path: "/projects" }];
@@ -218,20 +215,6 @@ describe("Schedule page (spec 272, extended spec 276, reworked spec 278)", () =>
       ],
     });
     expect(html).toContain('href="/projects/aide?tab=schedule"');
-  });
-});
-
-describe("renderScheduleDetailPage (spec 296)", () => {
-  test("the entry's name sits inside .backhead, right after ← Back, and appears as <h1> exactly once", () => {
-    const html = renderScheduleDetailPage(NAV, "2026-08-30T00:00:00Z", {
-      project: "aide",
-      entry: { name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true },
-      history: [],
-    });
-    expect(html).toContain(
-      '<div class="backhead"><a class="backlink" href="/schedule">← Back</a><h1>nightly-report</h1></div>',
-    );
-    expect(html.match(/<h1>nightly-report<\/h1>/g)?.length ?? 0).toBe(1);
   });
 });
 

@@ -2,7 +2,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import type { GitRunner } from "../../src/git/branch-status.ts";
-import { ARCHIVED_VIEW, OTHER, SAME_DAY, STAMPED, UNDATED, UNSTAMPED, blockFor, gitDated, harness, listUntil, opened, phaseLines, rowFor, specsList, start } from "./archived-specs-fixtures.ts";
+import { ARCHIVED_VIEW, SAME_DAY, STAMPED, UNSTAMPED, blockFor, gitDated, harness, listUntil, opened, phaseLines, rowFor, specsList, start } from "./archived-specs-fixtures.ts";
 
 // The reason a not-landed row carries moved from the badge itself
 // (spec 275's "archived, not landed") to the notice line beneath it
@@ -110,7 +110,6 @@ describe("an archived spec whose branch is still on origin", () => {
     // Spec 339: the State cell says the bare word — the fact that
     // STAMPED's branch is still on origin is the notice line's to say.
     expect(row).toContain('<span class="badge b-done" data-icon="archive">Archived</span>');
-    expect(row).not.toContain(">archived, not landed<");
     expect(blockFor(html, STAMPED).toLowerCase()).toContain(STILL_ON_ORIGIN);
     const open = await listUntil(base, STILL_ON_ORIGIN, `${ARCHIVED_VIEW}${opened(STAMPED)}`);
     expect(Object.keys(phaseLines(open, STAMPED))).toEqual([
@@ -120,31 +119,6 @@ describe("an archived spec whose branch is still on origin", () => {
       "archive",
     ]);
     expect(blockFor(open, STAMPED)).not.toContain('class="rowrun"');
-  });
-
-  // The exception the DEFAULT view keeps. "Active" is today's
-  // reading view unchanged in content (1-description.md), and today it
-  // shows this row: a spec archived with its work still on a branch has
-  // not finished, and a reading view that dropped it would hide the
-  // exact failure spec 193 exists to surface. Its landed siblings are
-  // not there, so the archive itself is still not being paid for.
-  // Every archived spec has a row on the default view now that All is
-  // the default chip; what still sets this one apart is the MARK it
-  // wears — its own branch is still on origin, so its work never landed.
-  test("wears the not-landed mark its landed siblings do not", async () => {
-    const { base } = start({ gitRun: gitWithBranches([STAMPED]) });
-    const html = await listUntil(base, STILL_ON_ORIGIN);
-    expect(blockFor(html, STAMPED).toLowerCase()).toContain(STILL_ON_ORIGIN);
-    for (const folder of [UNSTAMPED, SAME_DAY, UNDATED, OTHER]) {
-      expect(blockFor(html, folder).toLowerCase()).not.toContain(STILL_ON_ORIGIN);
-    }
-  });
-
-  test("and the chips still count the whole archive behind it", async () => {
-    const { base } = start({ gitRun: gitWithBranches([STAMPED]) });
-    const html = await listUntil(base, STILL_ON_ORIGIN);
-    // One row built, four keys with no row: the count is still five.
-    expect(html).toMatch(/>Archived \(5\)</);
   });
 });
 

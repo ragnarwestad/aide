@@ -30,8 +30,7 @@ agents and hooks, and the specs are just one of its outputs.
 
 The documents themselves were renamed from "reports" to "specs" in August
 2026 (spec 72 in aide-specs), following the documents repo's rename to
-aide-specs: they are specifications more than reports. The old technical
-identifiers are banned by `tests/specs/unit/validation/test_spec_vocabulary.py`.
+aide-specs: they are specifications more than reports.
 
 A frozen copy of the original customer workspace exists locally as
 reference only — do not develop there.

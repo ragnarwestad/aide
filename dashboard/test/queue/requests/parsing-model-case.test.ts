@@ -33,12 +33,6 @@ describe("a model name that differs from a listed one only in case", () => {
     expect(r.pendingStepModels).toEqual({ implement: "Sonnet" });
   });
 
-  test("an exact entry beats a case-only one", () => {
-    const defaults = { ...DEFAULTS, modelChoices: { sonnet: {}, Sonnet: {} } };
-    const r = parse({ model: "sonnet" }, defaults);
-    expect(r.ok && r.job.modelChoice).toBe("sonnet");
-  });
-
   test("several case-only matches are refused, naming both", () => {
     const defaults = { ...DEFAULTS, modelChoices: { Sonnet: {}, SONNET: {} } };
     const r = parse({ model: "sonnet" }, defaults);

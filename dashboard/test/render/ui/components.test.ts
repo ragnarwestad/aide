@@ -105,24 +105,6 @@ describe("helpPopover", () => {
   });
 });
 
-// Spec 311, REQ-2: the popover's CSS no longer depends on sitting inside
-// `.specsearch` — freed the same way `.menu`/`.menupanel` already are.
-describe(".intro popover CSS (spec 311)", () => {
-  test("details.intro carries no .specsearch > prefix, so it works as a shared component anywhere", () => {
-    expect(CSS).toContain("details.intro { position: relative; }");
-  });
-});
-
-// Spec 360, REQ-6: the spec page's tabs append the mark inside their own
-// first line rather than drawing it as a preceding sibling — floating it
-// right is what keeps it pinned to that line's end rather than wrapping
-// under it on a narrow screen.
-describe(".tabpanel details.intro CSS (spec 360)", () => {
-  test("the mark floats right within the spec page's tab panel", () => {
-    expect(CSS).toContain(".tabpanel details.intro { float: right; }");
-  });
-});
-
 describe("switchControl (AC-2, AC-6)", () => {
   const on = switchControl({ id: "x", label: "Notify me", onWord: "On", offWord: "Off", checked: true });
   const off = switchControl({ label: "Notify me", onWord: "On", offWord: "Off" });

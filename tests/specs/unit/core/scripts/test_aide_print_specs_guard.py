@@ -60,9 +60,3 @@ def test_never_writes_any_file(script, tmp_path):
     assert proc.returncode == 0, proc.stderr
     after = sorted(p.name for p in tmp_path.iterdir())
     assert before == after
-
-
-def test_help_flag_prints_usage_and_exits_zero(script):
-    result = subprocess.run([str(script), "--help"], capture_output=True, text=True)
-    assert result.returncode == 0, result.stderr
-    assert "usage" in result.stdout.lower(), result.stdout

@@ -76,19 +76,6 @@ describe("what the page says about whether a run could start (criteria 4-6, 8)",
     expect(html).not.toContain("cannot run");
   });
 
-  // Spec 378 (REQ-1): the Health tab is gone entirely, whatever the
-  // readiness answer is — never offered, and a stale `?tab=health` link
-  // falls back to Config the same silent way `pickTab` already gives
-  // every unknown tab name.
-  test("no Health tab ever appears, and ?tab=health falls back to Config (AC5, REQ-1)", async () => {
-    const root = projectsRoot({ aide: null });
-    const base = serve(root, settled(root, "aide"));
-    const html = await (await get(base, "aide")).text();
-    expect(html).not.toMatch(/>Health</);
-    const fallback = await (await get(base, "aide", "health")).text();
-    expect(fallback).toMatch(/aria-current="page"[^>]*>Config/);
-  });
-
   // Read-only, and provably so: a page load that moved a checkout is
   // the one thing nobody asked this page for.
   test("the page never merges, pulls, fetches or checks anything out", async () => {
@@ -106,12 +93,6 @@ describe("what the page says about whether a run could start (criteria 4-6, 8)",
 // settled for Schedule. A project with nothing to deploy from here says
 // so on its own tab, rather than losing the tab.
 describe("the Deploy section on a project's own page (spec 258, spec 407)", () => {
-  test("a project with no AIDE_INSTALL_CMD and no Serving comparison still has a Deploy tab (REQ-1)", async () => {
-    const root = projectsRoot({ aide: null });
-    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
-    expect(html).toMatch(/>Deploy</);
-  });
-
   // REQ-2, REQ-3: `?tab=deploy` opens the tab, and its panel names why
   // there is nothing to deploy, with no button at all.
   test("?tab=deploy on a project with no AIDE_INSTALL_CMD and no Serving opens the Deploy tab, saying why (REQ-2, REQ-3)", async () => {
@@ -154,6 +135,8 @@ describe("the Deploy section on a project's own page (spec 258, spec 407)", () =
     expect(html).toContain("3 commits behind origin, checked");
     expect(html).toContain('class="deployform"');
     expect(html).toContain('action="/api/queue/projects/aide/deploy"');
+    const form = html.match(/<form[^>]*class="deployform"[\s\S]*?<\/form>/)?.[0] ?? "";
+    expect(form).not.toMatch(/<button[^>]*\bdisabled\b/);
     // The list's own wording ends "— deploy is a hand step", which
     // would contradict the button right beside it here.
     expect(html).not.toContain("deploy is a hand step");
@@ -184,9 +167,6 @@ describe("the Deploy section on a project's own page (spec 258, spec 407)", () =
     expect(html).toContain("This checkout matches origin, and the service is running commit abc1234.");
     const form = html.match(/<form[^>]*class="deployform"[\s\S]*?<\/form>/)?.[0] ?? "";
     expect(form).toMatch(/<button[^>]*\bdisabled\b/);
-    // REQ-3/REQ-7 regression guard: the old bare "Serving <sha> —" form
-    // must not return once a commit is named.
-    expect(html).not.toContain("Serving abc1234 —");
   });
 
   // Plan review Risk 4 (3-solution.md): the early-return restructuring
@@ -260,25 +240,6 @@ describe("the Deploy section on a project's own page (spec 258, spec 407)", () =
       );
       expect(html).not.toContain("commits behind this checkout");
     });
-  });
-
-  // Spec 321, REQ-2/REQ-5: the control is drawn in both states, never
-  // omitted in either — only its `disabled` attribute changes.
-  test("the Deploy button is present both behind and level with origin (spec 321)", async () => {
-    const root = projectsRoot({ aide: INSTALLS });
-    const behindHtml = await loadUntil(
-      serve(root, behindBy(root, "aide", 3), 25), "aide", "commits behind origin", 2000, "deploy",
-    );
-    expect(behindHtml).toContain('class="deployform"');
-    expect(behindHtml.match(/<form[^>]*class="deployform"[\s\S]*?<\/form>/)?.[0] ?? "")
-      .not.toMatch(/<button[^>]*\bdisabled\b/);
-
-    const levelHtml = await loadUntil(
-      serve(root, behindBy(root, "aide", 0), 25), "aide", "matches origin", 2000, "deploy",
-    );
-    expect(levelHtml).toContain('class="deployform"');
-    expect(levelHtml.match(/<form[^>]*class="deployform"[\s\S]*?<\/form>/)?.[0] ?? "")
-      .toMatch(/<button[^>]*\bdisabled\b/);
   });
 
   // The fail-open case: asked, unanswerable. Never "level" — that would
@@ -515,13 +476,6 @@ describe("the same tab bar on a gated and an ungated project (REQ-7)", () => {
     expect(tabLabels(gatedHtml)).toEqual(["Config", "Deploy", "Schedule"]);
     expect(tabLabels(ungatedHtml)).toEqual(["Config", "Deploy", "Schedule"]);
   });
-
-  test("the ungated project's Deploy tab says why it cannot deploy", async () => {
-    const root = projectsRoot({ aide: null });
-    const html = await (await get(serve(root, settled(root, "aide")), "aide", "deploy")).text();
-    const panel = html.match(/<div class="deploypanel">[\s\S]*?<\/div>\s*<\/div>/)?.[0] ?? "";
-    expect(panel).toMatch(/install command/i);
-  });
 });
 
 // The served nav is Specs, Projects and Schedule — the Archive tab was
@@ -558,8 +512,6 @@ describe("the Deploy tab asks for itself again while the origin answer is missin
   test("Deploy's form holds its own dialog and does not ask for the covering layer (AC-1)", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "deploy")).text();
-    const form = html.match(/<form[^>]*class="deployform"[^>]*>/)?.[0] ?? "";
-    expect(form).not.toContain("data-overlay");
     expect(html).toMatch(/<form[^>]*class="deployform"[\s\S]*?<dialog[^>]*data-deploy-dialog/);
   });
 

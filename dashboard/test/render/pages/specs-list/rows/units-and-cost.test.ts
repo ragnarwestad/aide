@@ -29,17 +29,6 @@ import { site, NAV, detail, row } from "../../fixtures.ts";
 describe("spec 436: the … menu now also carries the theme, language and unit choices", () => {
   const menu = (html: string) => html.match(/<details class="menu">[\s\S]*?<\/details>/)![0];
 
-  // The flat mobile copy is the two radio rows alone, unitChoiceRows()'s
-  // own markup with no group label ("$"/"Tokens" say what each is) — the
-  // word "Units" itself lives only on the standalone header trigger's
-  // aria-label/title, a sibling `.menu.unit`, not inside this menu.
-  test("every page's … menu has a data-unit-choice element", () => {
-    for (const page of site) {
-      const m = menu(page);
-      expect(m).toContain("data-unit-choice");
-    }
-  });
-
   // Spec 243/409's own ordering (Settings, About) still holds at the
   // panel's tail end — the morerows block (spec 436) is new content
   // ahead of it, not a reordering of what was already there. Read

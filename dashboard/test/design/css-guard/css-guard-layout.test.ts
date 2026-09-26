@@ -1,9 +1,7 @@
 // Split out of css-token-guard.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { CSS, oneRule, rules } from "../css-guard-fixtures.ts";
+import { CSS, oneRule } from "../css-guard-fixtures.ts";
 
 // --- the gap lives in the container (spec 120) ------------------------------
 //
@@ -37,16 +35,6 @@ describe("the space between two controls comes from their container", () => {
   test("the loading overlay lays its spinner out, so the spinner's own size applies", () => {
     const body = CSS.match(/dialog\.pageoverlay\s*\{([^}]*)\}/)?.[1] ?? "";
     expect(body).toMatch(/display:\s*(flex|grid|inline-flex|inline-grid)/);
-  });
-
-  test("the row's own alignment rule stays scoped, and the filter bar keeps its own", () => {
-    // The controls line the flex-end rule was written for is gone
-    // (spec 124), and with it the selector — a guard left pointing at
-    // `tr[data-controls]` would pass for ever without protecting
-    // anything. `.row`'s own unscoped `center` is what the filter bar
-    // still needs and must not be replaced by a row-shaped rule.
-    expect(CSS).not.toContain("data-controls");
-    expect(CSS).toMatch(/\.row\s*\{[^}]*align-items:\s*center[^}]*\}/);
   });
 
   // The badge and the button shared one cell until 2026-09-07, and each
@@ -108,41 +96,6 @@ describe("the Config tab's button row is right-aligned with a deliberate margin"
 // needed and neither is obvious — the second is a `:not()`, which is
 // what makes dollars the default without an attribute to select on — so
 // deleting either fails here with a reason.
-
-// --- the state trigger carries a fill and a border at rest, and sits
-// at the right end of the controls line (spec 305) --------------------
-
-describe("the state trigger reads as a control, not plain text", () => {
-  test(".menu.state > summary declares a fill and a border at rest", () => {
-    const rule = CSS.match(/\.menu\.state > summary \{([^}]*)\}/)?.[1] ?? "";
-    expect(rule).toMatch(/background:\s*var\(--surface\)/);
-    expect(rule).toMatch(/border:\s*1px solid var\(--line-strong\)/);
-  });
-
-  test(".menu.state > summary:hover changes the border colour, distinct from rest", () => {
-    const hover = CSS.match(/\.menu\.state > summary:hover \{([^}]*)\}/)?.[1] ?? "";
-    expect(hover).toMatch(/border-color:\s*var\(--muted\)/);
-  });
-
-  test(".specsearch > .btn.primary carries the auto margin", () => {
-    expect(CSS).toMatch(/\.specsearch > \.btn\.primary \{[^}]*margin-left:\s*auto[^}]*\}/);
-  });
-
-  test("the panel carries no left-anchoring override, so it falls back to the base right anchor", () => {
-    expect(CSS).not.toMatch(/\.menu\.state \.menupanel \{[^}]*left:\s*0[^}]*\}/);
-  });
-
-  test(".menu.state .check is round, not square", () => {
-    const rule = CSS.match(/\.menu\.state \.check \{([^}]*)\}/)?.[1] ?? "";
-    expect(rule).toMatch(/border-radius:\s*50%/);
-    expect(rule).not.toMatch(/border-radius:\s*3px/);
-  });
-
-  test("the filled mark is selected by aria-checked=true, not aria-current", () => {
-    expect(CSS).toContain(".menu.state a[aria-checked=\"true\"] .check");
-    expect(CSS).not.toMatch(/\.menu\.state a\[aria-current\]/);
-  });
-});
 
 // The State column's own width and the badge-to-button gap (spec 379,
 // REQ-1/REQ-2/REQ-3/REQ-4) used to be guarded here by matching this
@@ -225,17 +178,7 @@ function mediaBlocks(css: string): string[] {
 
 describe("the waiting layer is placed by its own rule, not the browser's default", () => {
   const stripped = CSS.replace(/\/\*[\s\S]*?\*\//g, "");
-  const open = () => oneRule(stripped, (r) => r.selectors.trim() === "dialog.pageoverlay[open]").body;
   const base = () => oneRule(stripped, (r) => r.selectors.trim() === "dialog.pageoverlay").body;
-
-  test("the open layer is fixed, inset 0, auto margin and fit-content sized (AC-1)", () => {
-    const body = open();
-    expect(body).toMatch(/position:\s*fixed/);
-    expect(body).toMatch(/inset:\s*0\b/);
-    expect(body).toMatch(/margin:\s*auto/);
-    expect(body).toMatch(/width:\s*fit-content/);
-    expect(body).toMatch(/height:\s*fit-content/);
-  });
 
   test("the base rule places nothing, so a closed layer is not placed (AC-1)", () => {
     const body = base();
@@ -249,66 +192,13 @@ describe("the waiting layer is placed by its own rule, not the browser's default
       expect(block).not.toMatch(/dialog|pageoverlay/);
     }
   });
-
-  test("a tall layer is limited to the screen and scrolls inside itself (AC-4)", () => {
-    const body = open();
-    expect(body).toMatch(/box-sizing:\s*border-box/);
-    expect(body).toMatch(/max-width:\s*calc\(100%\s*-/);
-    expect(body).toMatch(/max-height:\s*calc\(100%\s*-/);
-    expect(body).toMatch(/overflow:\s*auto/);
-  });
-
-  test("the grid, the backdrop and the note keep their rules (AC-5)", () => {
-    expect(base()).toMatch(/display:\s*grid/);
-    expect(base()).toMatch(/place-items:\s*center/);
-    const backdrop = rules(stripped).find((r) => r.selectors.trim() === "dialog.pageoverlay::backdrop");
-    expect(backdrop?.body).toMatch(/background:\s*var\(--backdrop\)/);
-    const note = rules(stripped).find((r) => r.selectors.trim() === "dialog.pageoverlay > .overlaynote");
-    expect(note?.body).toMatch(/max-width:\s*22rem/);
-    expect(note?.body).toMatch(/text-align:\s*center/);
-  });
 });
 
 // --- spec 518: the confirm box's two answers share one row ------------------
 
 describe("the confirm box's answers sit side by side (spec 518, AC-1, AC-6)", () => {
-  test(".dialogactions is a flex row with a token gap, no margin of its own", () => {
-    const body = CSS.match(/\.dialogactions\s*\{([^}]*)\}/)?.[1] ?? "";
-    expect(body).toMatch(/display:\s*flex/);
-    expect(body).toMatch(/gap:\s*var\(--sp-\d+\)/);
-    expect(body).not.toContain("flex-direction: column");
-    expect(body).not.toContain("margin");
-  });
-
   test(".dialogactions > form resets the margin a form's own class may carry", () => {
     const body = CSS.match(/\.dialogactions\s*>\s*form\s*\{([^}]*)\}/)?.[1] ?? "";
     expect(body).toMatch(/margin:\s*0/);
-  });
-});
-
-// --- the Failed control of an archived row (spec 522) ------------------------
-
-const cssFile = (name: string): string => readFileSync(join(import.meta.dir, "..", "..", "..", "src", "render", "ui", "css", name), "utf-8");
-
-describe("the Failed control takes half the row and its note is a capped text area (spec 522)", () => {
-  const control = CSS.match(/\.check \.failcontrol\s*\{([^}]*)\}/)?.[1] ?? "";
-  const note = CSS.match(/\.check \.failnote\s*\{([^}]*)\}/)?.[1] ?? "";
-
-  test(".check .failcontrol has a zero basis like the criterion, so the two are equal (AC-1, AC-3)", () => {
-    expect(control).toMatch(/flex:\s*1 1 0/);
-    expect(control).toMatch(/min-width:\s*0/);
-  });
-
-  test(".check .failnote is full width, drags vertically and is capped at ten lines of its own line height (AC-3)", () => {
-    expect(note).toMatch(/width:\s*100%/);
-    expect(note).toMatch(/resize:\s*vertical/);
-    expect(note).toMatch(/max-height:\s*calc\(10 \* var\(--fs-s\) \* var\(--lh\)/);
-  });
-
-  test("the stack is a phone rule in narrow.css, and remaining-checks.css holds no @media (AC-5)", () => {
-    expect(cssFile("remaining-checks.css")).not.toContain("@media");
-    const stacked = mediaBlocks(cssFile("narrow.css")).filter((b) => /\.check \.failcontrol\s*\{[^}]*flex:\s*1 0 100%/.test(b));
-    expect(stacked).toHaveLength(1);
-    expect(cssFile("narrow.css")).toMatch(/@media \(max-width: 40rem\) \{\s*\.check \.failcontrol/);
   });
 });

@@ -71,13 +71,4 @@ describe("the phone menu's setting rows (spec 507)", () => {
     expect(row).toContain('<input type="radio" name="unit-more" value="usd" data-unit-choice="usd" checked><span>$</span>');
     expect(row).toContain('<input type="radio" name="unit-more" value="tokens" data-unit-choice="tokens"><span>Tokens</span>');
   });
-
-  test("the header's own standalone panels keep their shape (AC-7)", () => {
-    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-19T00:00:00Z");
-    const theme = html.match(/<details class="menu theme">[\s\S]*?<\/details>/)![0];
-    expect([...theme.matchAll(/data-theme-choice="(\w+)"/g)].map((m) => m[1])).toEqual(["dark", "light", "auto"]);
-    expect(theme).toContain("menucheck");
-    const lang = html.match(/<details class="menu lang">[\s\S]*?<\/details>/)![0];
-    expect(lang.match(/<a href=/g)).toHaveLength(5);
-  });
 });

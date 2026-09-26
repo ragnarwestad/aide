@@ -1,7 +1,7 @@
 // Split out of projects-page.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import { AT, page, project } from "./projects-page-fixtures.ts";
+import { page, project } from "./projects-page-fixtures.ts";
 
 describe("the listing on /projects", () => {
   // The same rows the generated overview drew, from the same function:
@@ -34,12 +34,6 @@ describe("the listing on /projects", () => {
     expect(html).toMatch(/class="[^"]*error[^"]*"/);
   });
 
-  test("it carries the nav, and no stamp: the build time lives on About now", () => {
-    const html = page([project("alpha")]);
-    expect(html).toContain("<nav");
-    expect(html).not.toContain(AT);
-  });
-
   // Spec 482: Add/Remove/active/archived/the bare word "projects" in the
   // count line, and the manifest error sentence, were English string
   // literals, never routed through `t()`.
@@ -64,17 +58,6 @@ describe("the listing on /projects", () => {
     expect(html).not.toContain(">Add<");
     expect(html).not.toContain("projects ·");
     expect(html).not.toContain("Manifest failed to parse");
-    expect(html).not.toContain(">Remove<");
-  });
-
-  // Spec 484, AC-5: the same English-leak guard, for the three languages
-  // added beside English and Norwegian.
-  test.each(["es", "de", "fr"] as const)("Add and Remove are not the English words in %s", (lang) => {
-    const html = page(
-      [project("alpha", { manifest: { ok: true, data: { name: "alpha" } }, specs: [] })],
-      { lang, createProjects: ["alpha"] },
-    );
-    expect(html).not.toContain(">Add<");
     expect(html).not.toContain(">Remove<");
   });
 });

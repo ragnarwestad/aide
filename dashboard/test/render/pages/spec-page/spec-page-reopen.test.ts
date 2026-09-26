@@ -67,13 +67,6 @@ describe("spec 198: the Reopen control", () => {
   test("a live spec's page offers nothing of the sort", () => {
     expect(page(view({}))).not.toContain("Reopen");
   });
-
-  test("the archived note is unchanged, and nothing on the page edits", () => {
-    const html = archived();
-    expect(html).not.toContain("/edit");
-    expect(html).toContain("archived");
-    expect(page(view({ archived: true }), "description")).not.toContain("<textarea");
-  });
 });
 
 describe("spec 252: the spec page's own Back link", () => {

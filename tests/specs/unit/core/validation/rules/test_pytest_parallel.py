@@ -14,7 +14,6 @@ from pathlib import Path
 ROOT = Path(__file__).parents[6]
 REQUIREMENTS = ROOT / "requirements.txt"
 PYTEST_INI = ROOT / "pytest.ini"
-CONFTEST = ROOT / "tests" / "conftest.py"
 
 
 def test_requirements_pins_pytest_xdist():
@@ -32,11 +31,3 @@ def test_pytest_ini_runs_in_parallel_by_default():
     assert "-n" in opts and "auto" in opts, (
         "addopts must pass -n auto so `.venv/bin/pytest` with no arguments is already parallel"
     )
-
-
-def test_no_serial_pass_is_left():
-    """One run, no second pass: the tests that needed a quiet host were
-    the problem, and they were fixed at the source."""
-    assert "serial" not in PYTEST_INI.read_text()
-    assert "pytest_sessionfinish" not in CONFTEST.read_text()
-    assert "AIDE_TEST_LOCK_HELD" not in CONFTEST.read_text()

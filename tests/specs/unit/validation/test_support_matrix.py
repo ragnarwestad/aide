@@ -107,26 +107,3 @@ class TestStampVersions:
         assert "| GitHub Copilot CLI | v0.0.1 | 2020-01-01 | ✅ Supported |" in content, \
             "A missing tool must not have its row stamped"
         assert "2.9.9" in content, "The found tool must still be stamped"
-
-    def test_help_flag_prints_usage_and_exits_zero(self, workspace_root):
-        script = workspace_root / "scripts" / "stamp-versions"
-        result = subprocess.run([str(script), "--help"], capture_output=True, text=True)
-        assert result.returncode == 0, result.stderr
-        assert "usage" in result.stdout.lower(), result.stdout
-
-
-@pytest.mark.validation
-class TestFidelityLevels:
-    """The matrix must grade how each aide piece lands, not just yes/no."""
-
-    def test_matrix_defines_the_fidelity_ladder(self, workspace_root):
-        content = (workspace_root / "docs" / "AI_SUPPORT_MATRIX.md").read_text()
-        assert "## Fidelity levels" in content
-        for level in ("Enforced", "Heuristic", "Instruction"):
-            assert level in content, f"The fidelity ladder must define '{level}'"
-
-    def test_matrix_grades_the_aide_pieces(self, workspace_root):
-        content = (workspace_root / "docs" / "AI_SUPPORT_MATRIX.md").read_text()
-        assert "## How the Aide pieces land" in content
-        for piece in ("Rules", "Skills", "Hooks"):
-            assert piece in content

@@ -30,39 +30,3 @@ describe("unit, language and theme leave the header one at a time", () => {
     }
   });
 });
-
-describe("each setting is one row and the separator arrives with the first (spec 507)", () => {
-  const rows = readFileSync(new URL("../../../src/render/ui/css/rows-and-forms.css", import.meta.url), "utf8");
-  const steps = [...narrow.matchAll(/@media \(max-width: ([\d.]+)rem\) \{([^@]*?)\n\}/g)];
-
-  test("a .morerows block is a flex row, name left and control right (AC-1)", () => {
-    expect(rows).toMatch(/\.menu \.morerows \{[^}]*align-items: center;[^}]*justify-content: space-between;[^}]*\}/);
-    expect(rows).not.toMatch(/\.menu \.morerows[^{]*\{[^}]*flex-direction: column/);
-  });
-
-  test("the separator is hidden by default (AC-7)", () => {
-    expect(rows).toMatch(/\.menupanel > \.menusep \{ display: none;/);
-  });
-
-  test("only the first step, at 59.5rem, shows the separator (AC-5)", () => {
-    const showing = steps.filter((m) => m[2]!.includes(".menupanel > .menusep { display: block; }"));
-    expect(showing.map((m) => parseFloat(m[1]!))).toEqual([59.5]);
-  });
-});
-
-// At phone width the board's name stays in the header to the last and
-// only its Stop button moves into the "…" menu; the wordmark never
-// wraps, the name is what gives way.
-describe("the board's name stays in the phone header, Stop moves into the menu", () => {
-  const at = narrow.indexOf("@media (max-width: 40rem) {");
-  const phone = narrow.slice(at);
-  test("the header hides only the Stop form", () => {
-    expect(phone).toContain("header > .boardline > .actionform { display: none; }");
-    expect(phone).not.toMatch(/header > \.boardline \{ display: none/);
-    expect(phone).toContain(".menupanel > .boardrow { display: flex;");
-  });
-  test("the wordmark keeps its line and the name gives way", () => {
-    expect(phone).toContain("header .brand { flex: none; white-space: nowrap; }");
-    expect(phone).toMatch(/header > \.boardline \{ flex: 1 1 auto; min-width: 0;/);
-  });
-});

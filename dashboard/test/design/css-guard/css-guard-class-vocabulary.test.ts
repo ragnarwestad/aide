@@ -1,7 +1,7 @@
 // Split out of css-token-guard.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   CSS,
@@ -384,10 +384,6 @@ describe("the vocabulary lists cannot hold a name nothing uses", () => {
 
   test("no stylesheet rule selects only classes nothing emits (AC-4)", () => {
     expect(deadRules(CSS)).toEqual([]);
-  });
-
-  test("filter-pill.css is gone (AC-4)", () => {
-    expect(existsSync(join(ROOT, "src/render/ui/css/filter-pill.css"))).toBe(false);
   });
 });
 

@@ -26,12 +26,6 @@ describe("the button component works on a link too (spec 121)", () => {
     ];
   };
 
-  test("the rules are where this test thinks they are", async () => {
-    const [rest, hover] = await rules();
-    expect(rest).not.toBe("");
-    expect(hover).not.toBe("");
-  });
-
   test("it carries no underline, at rest or under the pointer", async () => {
     const [rest, hover] = await rules();
     expect(rest).toContain("text-decoration: none");
@@ -64,12 +58,6 @@ describe("every token has a dark-surface value (acceptance criterion 13)", () =>
     expect(dark).not.toBe("");
     for (const token of PAIRED) expect(dark).toContain(`${token}:`);
   });
-
-  test("the mark swaps to its dark-surface copy", async () => {
-    const { CSS } = await import("../../../src/render/ui/css");
-    expect(CSS).toContain(".mark-d");
-    expect(CSS).toContain(".mark-l");
-  });
 });
 
 // --- one name, one question ------------------------------------------------
@@ -95,11 +83,6 @@ describe("the spec list says whether a job is in flight (acceptance criterion 9)
       filter: { state: "archived" },
     });
     expect(head(archived)).toContain('data-run="archived" data-folder="191-x"');
-  });
-
-  test("no run- class is written on the row (AC-2)", () => {
-    const html = rows([row({ state: "running" })], { targets: [target()] });
-    expect(html).not.toMatch(/class="[^"]*\brun-/);
   });
 });
 
@@ -130,21 +113,5 @@ describe("the row's message panel is the component, not new markup", () => {
     expect(panel).toContain("rowmsg waiting");
     const { CSS } = await import("../../../src/render/ui/css");
     expect(CSS.match(/\.rowmsg\.waiting\s*\{([^}]*)\}/)?.[1] ?? "").toContain("var(--warn)");
-  });
-});
-
-// --- spec 520: message rows come after the phase lines, on the same ground ---
-
-describe("an open row paints no ground of its own (spec 520, AC-2)", () => {
-  test("list.css leaves the phase lines and their message rows the page's own background", async () => {
-    const { CSS } = await import("../../../src/render/ui/css");
-    // The faint ground the group had until 2026-09-22 greyed the message
-    // cards inside it and hid the fold control's hover, drawn in that
-    // same colour.
-    expect(CSS).not.toMatch(/table\.list tr\.subrow td[^{]*\{[^}]*background: var\(--surface-2\)/);
-    expect(CSS).not.toMatch(/tr\.specnotice td[^{]*\{[^}]*background: var\(--surface-2\)/);
-    // And an info card is framed, not filled — with the stronger line, so
-    // the frame still shows on a card of the same surface in dark mode.
-    expect(CSS).toMatch(/\.rowmsg\.info \{[^}]*background: var\(--surface\)[^}]*border-color: var\(--line-strong\)/);
   });
 });

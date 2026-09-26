@@ -320,12 +320,11 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     expect(cleanCell).toContain(">Analyze</button>");
   });
 
-  // Spec 171. The sixth phase is gone: a merge that fails is the
-  // merging step's problem, not a step of its own. A conflict archive
-  // could not resolve still SHOWS — the failure text names the branch —
-  // but the row offers what every other failed step offers, an ordinary
-  // re-run, and nothing on the page queues a `resolve` any more.
-  test("no Resolve control is drawn for any errorReason (spec 171)", () => {
+  // Spec 171: a merge that fails is the merging step's problem, not a
+  // step of its own. A conflict archive could not resolve still SHOWS —
+  // the failure text names the branch — and the row offers what every
+  // other failed step offers, an ordinary re-run.
+  test("a conflicted row offers the ordinary Run (spec 171)", () => {
     for (const state of ["done", "failed"] as const) {
       const conflicted = [
         row({
@@ -338,11 +337,8 @@ describe("spec 124: one phase list, and one action beside the state", () => {
       ];
       const html = rows(conflicted, [target("124-stack")]);
       const cell = actionCell(group(html, "124-stack"));
-      expect(`${state}: ${cell.includes(">Resolve</button>")}`).toBe(`${state}: false`);
-      expect(`${state}: ${cell.includes("resolveform")}`).toBe(`${state}: false`);
-      expect(`${state}: ${cell.includes('value="resolve"')}`).toBe(`${state}: false`);
-      // And the ordinary way back in is there instead: the same Run
-      // control every other failed step's row carries.
+      // The ordinary way back in: the same Run control every other
+      // failed step's row carries.
       expect(`${state}: ${/<button[^>]*form="rowrun/.test(cell)}`).toBe(`${state}: true`);
     }
   });

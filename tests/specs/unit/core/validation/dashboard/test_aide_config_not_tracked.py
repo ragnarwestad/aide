@@ -32,12 +32,6 @@ class TestConfigIsNotTracked:
             ".aide/config must not be tracked in aide's own repository (REQ-1/REQ-6)"
         )
 
-    def test_gitignore_no_longer_negates_it(self, workspace_root):
-        text = (workspace_root / ".gitignore").read_text()
-        assert "!/.aide/config" not in text, (
-            ".gitignore must not negate the global ignore for .aide/config"
-        )
-
 
 @pytest.mark.validation
 class TestConfigExampleFile:

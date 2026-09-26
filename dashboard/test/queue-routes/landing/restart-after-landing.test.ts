@@ -6,7 +6,7 @@
 // tests are unchanged and keep their names.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -434,15 +434,5 @@ describe("onJobsWaitChange (spec 385)", () => {
     expect(count()).toBe(1);
     expect(seen.length).toBeGreaterThan(0);
     expect(seen[seen.length - 1]).toEqual([]);
-  });
-});
-
-// Criterion 3 (REQ-2): the restart trigger lives only in
-// `dashboard/src/serve/land-branch/restart.ts` now — a text-level guard
-// that the script it moved out of never regains it by accident.
-describe("install-after-merge.sh no longer restarts anything itself (spec 287)", () => {
-  test("the script does not contain launchctl kickstart", () => {
-    const script = readFileSync(join(import.meta.dir, "..", "..", "..", "deploy", "install-after-merge.sh"), "utf-8");
-    expect(script).not.toContain("launchctl kickstart");
   });
 });

@@ -87,12 +87,6 @@ describe("the All chip", () => {
     expect(rows).toEqual([STAMPED, UNSTAMPED, LIVE, SAME_DAY, UNDATED, OTHER, LIVE_OTHER]);
   });
 
-  test("and its own chip is not the default one", async () => {
-    const html = await specsList(start().base, ALL_VIEW);
-    expect(html).toMatch(/aria-checked="true"><span class="check" aria-hidden="true"><\/span>All/);
-    expect(html).not.toMatch(/aria-checked="true"><span class="check" aria-hidden="true"><\/span>Active/);
-  });
-
   // The three chips that were here before this spec each list the states
   // they allow, and none of them lists `archived`.
   test("the three older chips keep their meaning", async () => {

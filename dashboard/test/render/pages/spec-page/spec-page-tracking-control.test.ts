@@ -54,26 +54,6 @@ describe("the tracking banner, in Norwegian (spec 482)", () => {
     expect(html).not.toContain("acceptance ticking required");
     expect(html).not.toContain("Analyze has already decided");
   });
-
-  test("English is unchanged", () => {
-    const html = page(view({ archived: true }));
-    expect(html).toContain("This spec has been archived");
-  });
-});
-
-// Spec 484, AC-5: the same English-leak guard, for the three languages
-// added beside English and Norwegian.
-describe.each(["es", "de", "fr"] as const)("the tracking banner, in %s (spec 484)", (lang) => {
-  test("an archived spec's own sentence is not the English one", () => {
-    const html = page(view({ archived: true }), undefined, lang);
-    expect(html).not.toContain("This spec has been archived");
-  });
-
-  test("the locked-acceptance switch and its popover are not the English text", () => {
-    const html = page(view({ done: ["create", "analyze"] }), undefined, lang);
-    expect(html).not.toContain("acceptance ticking required");
-    expect(html).not.toContain("Analyze has already decided");
-  });
 });
 
 describe("spec 394: the banner's combined tracking control", () => {

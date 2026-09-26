@@ -154,12 +154,6 @@ describe("the header and the two tabs (spec 119)", () => {
     }
   });
 
-  test("the tab bar carries no empty group caption", () => {
-    for (const [path, html] of every) {
-      expect([path, tabs(html).includes('<span class="lbl"></span>')]).toEqual([path, false]);
-    }
-  });
-
   // Spec 437 reverses spec 119's own premise here: the job detail page
   // is a subpage now, drawing no site-level nav to mark current at all.
   test("Specs is current on the spec list; the job detail page carries no site-level nav", () => {

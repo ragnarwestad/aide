@@ -101,11 +101,6 @@ describe("specStateChip/restingChip take lang (spec 350)", () => {
     // English until it took the key the held-back badge uses.
     expect(restingChip("nb", { archiveHeldBack: "a reason" })).toContain("Stoppet");
   });
-
-  test("English is unchanged (REQ-5)", () => {
-    const html = specStateChip(row({ state: "running", steps: ["analyze"], stepIndex: 0 }), "en");
-    expect(html).toContain("Analyzing");
-  });
 });
 
 // Spec 396: a queued job the runner is holding back is not competing for

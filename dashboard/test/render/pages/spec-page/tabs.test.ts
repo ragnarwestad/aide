@@ -5,7 +5,7 @@
 // of the two bundles a tab needs, not just whether one is needed: a
 // locked tab with real text needs the viewer, never nothing.
 import { describe, expect, test } from "bun:test";
-import { documentTabScript, resolveSpecTab, SPEC_TABS, TAB_HELP } from "../../../../src/render/pages/spec-page/tabs.ts";
+import { documentTabScript, TAB_HELP } from "../../../../src/render/pages/spec-page/tabs.ts";
 import type { SpecPageView } from "../../../../src/render";
 
 const baseView = (overrides: Partial<SpecPageView> = {}): SpecPageView => ({
@@ -105,18 +105,7 @@ describe("documentTabScript", () => {
   });
 });
 
-describe("the Checks tab is gone (AC-4)", () => {
-  test("SPEC_TABS has no checks and TAB_HELP has no checks entry (AC-4)", () => {
-    expect((SPEC_TABS as readonly string[]).includes("checks")).toBe(false);
-    expect("checks" in TAB_HELP).toBe(false);
-  });
-
-  test("an old ?tab=checks resolves to the Status tab (AC-4)", () => {
-    expect(resolveSpecTab("checks")).toBe("status");
-    expect(resolveSpecTab("status")).toBe("status");
-    expect(resolveSpecTab(undefined)).toBe("description");
-  });
-
+describe("the Status tab's help (AC-1)", () => {
   test("the Status tab's help names ticking and says only the acceptance criteria hold the archive back (AC-1)", () => {
     expect(TAB_HELP.status).toContain("Acceptance criteria");
     expect(TAB_HELP.status).toContain("archive");

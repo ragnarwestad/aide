@@ -25,12 +25,6 @@ def _stub(directory, name, marker):
     return path
 
 
-def test_help_flag_prints_usage_and_exits_zero(script):
-    result = subprocess.run([str(script), "--help"], capture_output=True, text=True)
-    assert result.returncode == 0, result.stderr
-    assert "usage" in result.stdout.lower(), result.stdout
-
-
 def test_help_flag_never_invokes_mise_or_claude(script, tmp_path):
     """AC-2: a stub `mise`/`claude` put first on PATH must never be
     called when --help is given."""

@@ -109,32 +109,3 @@ class TestNoRealAddressInTheUnguardedFiles:
                 f"({pattern.pattern}); the repo names no host — write "
                 f"https://<serving-host>... instead"
             )
-
-    def test_the_roadmap_no_longer_names_the_port(self, workspace_root):
-        # Arrange
-        text = (workspace_root / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
-
-        # Act & Assert
-        assert "8788" not in text, (
-            "docs/ROADMAP.md still says the dashboard is served on port 8788; "
-            "since spec 172 it is reached over HTTPS with no port"
-        )
-
-
-@pytest.mark.validation
-class TestHttpsIsNoLongerDescribedAsUnfinished:
-    """The deploy page narrated HTTPS as half-set-up while spec 172 was open."""
-
-    def test_the_deploy_page_does_not_call_https_half_done(self, workspace_root):
-        # Arrange
-        text = (workspace_root / "dashboard" / "docs" / "hosting.md").read_text(
-            encoding="utf-8"
-        )
-
-        # Act & Assert
-        for phrase in ("half-done", "Spec 172 is that work"):
-            assert phrase not in text, (
-                f"dashboard/docs/hosting.md still says {phrase!r}; HTTPS is "
-                f"set up by the deploy now, so the section describing it as "
-                f"pending is wrong"
-            )

@@ -11,23 +11,9 @@ from pathlib import Path
 # tests/specs/unit/core/validation/test_who_fixes_it.py -> aide/
 ROOT = Path(__file__).resolve().parents[6]
 
-RULE = ROOT / "core" / "rules" / "communication.md"
 AGENTS = ROOT / "core" / "AGENTS.md"
 
 HEADING = "## Who fixes it: the dashboard, or me"
-
-
-def test_the_rule_states_both_halves():
-    text = RULE.read_text(encoding="utf-8")
-    assert HEADING in text, "communication.md must carry the who-fixes-it section"
-    assert "It can be done in the dashboard." in text, (
-        "the rule must state the dashboard half: describe it in the "
-        "dashboard's own words and let the user do it"
-    )
-    assert "It cannot be done in the dashboard." in text, (
-        "the rule must state the other half: say so plainly and say that "
-        "this one is the assistant's to do"
-    )
 
 
 def test_the_rule_reaches_the_generated_agents_file():

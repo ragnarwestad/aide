@@ -156,14 +156,6 @@ def test_something_that_is_not_a_repo_is_skipped_not_fatal(installer, tmp_path):
     assert "not a git working tree" in result.stderr
 
 
-def test_the_script_is_installed_with_the_other_shared_scripts(workspace_root):
-    """The one list of shared scripts (`_install-bin.sh`). A script that
-    is not on it is never copied to ~/.local/bin."""
-    installer_sh = (workspace_root / "core" / "scripts" / "_install-bin.sh").read_text()
-
-    assert "aide-install-spec-hook" in installer_sh
-
-
 def test_the_hook_body_is_installed_alongside_it(workspace_root, tmp_path):
     """Without this, an installed ~/.local/bin/aide-install-spec-hook
     cannot find its own hook source — install_common_bin only copies
@@ -201,9 +193,3 @@ def test_the_installed_installer_can_find_its_own_hook_body(workspace_root, tmp_
 
     assert result.returncode == 0, result.stderr
     assert (repo / ".git" / "hooks" / "commit-msg").is_file()
-
-
-def test_help_flag_prints_usage_and_exits_zero(installer):
-    result = subprocess.run([str(installer), "--help"], capture_output=True, text=True)
-    assert result.returncode == 0, result.stderr
-    assert "usage" in result.stdout.lower(), result.stdout

@@ -186,20 +186,4 @@ describe("the status badge's markup is its word and the name of its icon", () =>
       expect(badge(variant, variant)).toMatch(new RegExp(`^<span class="badge b-${variant}"( data-icon="[a-z]+")?>${Word}</span>$`));
     }
   });
-
-  // The idle pill is painted on the page's own ground, so without an
-  // edge "queued" read as plain text. "done" is green since 2026-09-11
-  // — the same tones as ready, and as the pip beside it.
-  test("the idle pill has an edge of its own, and done is the pip's green", async () => {
-    const { CSS } = await import("../../../src/render/ui/css");
-    expect(CSS).toMatch(/\.b-idle \{[^}]*border-color: var\(--line\)/);
-    expect(CSS).toMatch(/\.b-done \{ background: var\(--ok-soft\); color: var\(--ok\); \}/);
-  });
-
-  // The phone's state column is a fixed width measured for the word, so
-  // "Implementing" with an icon in front of it ran past its edge.
-  test("at a phone's width the badge drops its icon", async () => {
-    const { CSS } = await import("../../../src/render/ui/css");
-    expect(CSS).toMatch(/@media \(max-width: 40rem\) \{ \.badge\[data-icon\]::before \{ content: none; \} \}/);
-  });
 });

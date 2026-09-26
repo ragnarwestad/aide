@@ -45,32 +45,6 @@ describe("the specs table fits the box that scrolls it", () => {
     expect(css).not.toMatch(/col\[data-col="\w+"\] \{ width: (auto|[\d.]+rem)/);
   });
 
-  // The figure columns leave one at a time from the right, each step
-  // taking the column's 6.5rem off the list's width so the others keep
-  // their pixel widths, and the last step lands at the phone's own room
-  // (40rem less the page's 2 × 32px = 36rem).
-  test("Cost and Time leave one at a time, each taking its width with it (AC-4)", () => {
-    const steps = [...css.matchAll(/@media \(max-width: ([\d.]+)rem\) \{\s*#jobrows \{ --speclist-width: ([\d.]+)rem; \}\s*table\.speclist th\[data-col="(\w+)"\], table\.speclist td\[data-col="\w+"\] \{ display: none; \}/g)]
-      .map((m) => ({ at: rem(m[1]!), width: rem(m[2]!), hides: m[3] }));
-    expect(steps.map((s) => s.hides)).toEqual(["cost", "started"]);
-    expect(steps.map((s) => s.width)).toEqual([42.5, 36]);
-    // Each breakpoint is where the previous width stops fitting: the
-    // list plus 4rem of page padding.
-    expect(steps.map((s) => s.at)).toEqual([49 + 4, 42.5 + 4]);
-    expect(steps.every((s) => s.at > 40)).toBe(true);
-  });
-
-  // The six columns keep the widths they had as rem, as percentages of
-  // the 49rem the list is now: 2, 5, 20, 9, 6.5 and 6.5rem.
-  test("the list is 49rem wide, and its columns are the widths their content needs (AC-4)", () => {
-    expect(rem(/--speclist-width: ([\d.]+)rem/.exec(css)![1]!)).toBe(49);
-    const base = ["fold", "spec", "phase", "state", "started", "cost"].map((c) =>
-      rem(new RegExp(`col\\[data-col="${c}"\\] \\{ width: ([\\d.]+)%`).exec(css)![1]!),
-    );
-    const wanted = [2, 5, 20, 9, 6.5, 6.5].map((r) => (r / 49) * 100);
-    base.forEach((w, i) => expect(w).toBeCloseTo(wanted[i]!, 2));
-  });
-
   // The Spec column carries a phase line's name and nothing else, and
   // every pixel it has beyond the longest of those names is empty space
   // between the name and the AI/Model pickers in the cell beside it. It

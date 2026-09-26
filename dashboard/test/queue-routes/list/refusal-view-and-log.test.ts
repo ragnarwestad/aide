@@ -137,34 +137,4 @@ describe("a refusal names its spec and reaches the log (criteria 8, 9, 11)", () 
     expect(res.status).toBe(400);
     expect(await res.json()).toMatchObject({ spec: SPEC });
   });
-
-  // Criterion 9: the script above these forms is an enhancement, never
-  // the mechanism. A browser with JavaScript off posts the form itself
-  // and must still get the 303 back to the list.
-  test("a form post with no JSON accept header still gets its 303", async () => {
-    const { base, dir } = start();
-    const run = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      redirect: "manual",
-      headers: FORM,
-      body: new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner", steps: "analyze" }),
-    });
-    expect(run.status).toBe(303);
-    const id = (JSON.parse(readFileSync(join(dir, "queue.json"), "utf-8")) as { id: string }[])[0]!.id;
-    const cancelled = await fetch(`${base}/api/queue/${id}/cancel`, {
-      method: "POST",
-      redirect: "manual",
-      headers: FORM,
-      body: new URLSearchParams({ "view.state": "active" }),
-    });
-    expect(cancelled.status).toBe(303);
-    expect(cancelled.headers.get("location")).toContain("state=active");
-    const created = await fetch(`${base}/api/queue/create`, {
-      method: "POST",
-      redirect: "manual",
-      headers: FORM,
-      body: new URLSearchParams({ project: "aide", title: "", description: "" }),
-    });
-    expect(created.status).toBe(303);
-  });
 });

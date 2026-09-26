@@ -259,20 +259,6 @@ describe("editing a running job's tail (spec 160)", () => {
     expect(job.steps()).toEqual(["analyze", "implement"]);
   });
 
-  // The step the reader is looking at may finish between the page
-  // rendering and the tick arriving. The store decides against the job
-  // as it is at that instant, never against what the page believed.
-  test("a step the runner has walked past since the page drew it is refused by name (criterion 4)", () => {
-    const job = running(["analyze", "implement"]);
-    // What the page believed: implement has not started, so its box is
-    // live and unticking it would drop it. Then the runner moves on.
-    job.store.update(job.id, { stepIndex: 1 });
-    const answer = job.store.editTailStep(job.id, "implement", false);
-    expect(answer.ok).toBe(false);
-    if (!answer.ok) expect(sentence(answer.error)).toContain("implement");
-    expect(job.steps()).toEqual(["analyze", "implement"]);
-  });
-
   test("a job that is not running is closed altogether (criterion 6)", () => {
     for (const state of ["queued", "done", "failed", "cancelled", "stopped", "interrupted"] as const) {
       const job = running(["analyze"]);

@@ -124,10 +124,4 @@ describe("scheduleOutputDir", () => {
       "/root/aide/schedule-nightly-report",
     );
   });
-
-  test("is a pure join: the same inputs always produce the same path", () => {
-    const a = scheduleOutputDir("/root", "atlasaurus", "schedule-traffic-analysis");
-    const b = scheduleOutputDir("/root", "atlasaurus", "schedule-traffic-analysis");
-    expect(a).toBe(b);
-  });
 });

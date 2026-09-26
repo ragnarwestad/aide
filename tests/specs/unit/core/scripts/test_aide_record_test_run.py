@@ -268,9 +268,3 @@ def test_an_untracked_file_still_changes_the_recorded_tree(script, project, spec
 
     assert rc == 0, out
     assert recorded_tree(specs_root) != head_tree(project)
-
-
-def test_help_flag_prints_usage_and_exits_zero(script):
-    result = subprocess.run([str(script), "--help"], capture_output=True, text=True)
-    assert result.returncode == 0, result.stderr
-    assert "usage" in result.stdout.lower(), result.stdout

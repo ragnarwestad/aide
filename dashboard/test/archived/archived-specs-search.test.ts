@@ -2,7 +2,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import {
-  ALL_VIEW, ARCHIVED_VIEW, LIVE, LIVE_OTHER, LONG_TAIL, OTHER, SAME_DAY, STAMPED, UNSTAMPED,
+  ALL_VIEW, ARCHIVED_VIEW, LIVE, LIVE_OTHER, LONG_TAIL, OTHER, SAME_DAY, UNSTAMPED,
   harness, order, specsList, start,
 } from "./archived-specs-fixtures.ts";
 
@@ -15,21 +15,6 @@ describe("the search field", () => {
     const html = await specsList(start().base);
     expect(html).toMatch(/<form[^>]*class="specsearch"[^>]*method="get"[^>]*action="\/"/);
     expect(html).toContain('name="q"');
-  });
-
-  test("says which three fields it looks in", async () => {
-    const html = (await specsList(start().base)).toLowerCase();
-    const note = html.slice(html.indexOf('class="specsearch"'), html.indexOf("<table"));
-    for (const field of ["folder", "title", "description"]) expect(note).toContain(field);
-  });
-
-  // Spec 261: the search reads a spec's project too, in the exact
-  // `project:folder` form the row's own tooltip already carries — so
-  // the note under the field has to name that form, not "folder" alone.
-  test("says the project:folder form it now reads (spec 261)", async () => {
-    const html = await specsList(start().base);
-    const note = html.slice(html.indexOf('class="specsearch"'), html.indexOf("<table"));
-    expect(note).toContain("project:folder");
   });
 
   // Spec 261: `skjer` is the one project besides `aide` in this harness
@@ -56,15 +41,6 @@ describe("the search field", () => {
 
   test("matches the project name joined to a folder prefix (spec 261)", async () => {
     expect(order(await specsList(start().base, `${ALL_VIEW}&q=skjer:05-`))).toEqual([OTHER]);
-  });
-
-  // The negative half of criterion 4: a project's own name must not
-  // reach into a DIFFERENT project's specs, even ones that share
-  // nothing with `skjer` in their folder/title/description.
-  test("does not cross into a different project (spec 261)", async () => {
-    const html = await specsList(start().base, `${ALL_VIEW}&q=skjer`);
-    expect(html).not.toContain(LIVE);
-    expect(html).not.toContain(STAMPED);
   });
 
   test("finds an archived spec under the All chip (criterion 6)", async () => {

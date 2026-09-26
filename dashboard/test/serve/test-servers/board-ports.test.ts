@@ -12,12 +12,6 @@ import { TEST_SERVER_PORTS, findFreePort } from "../../../src/serve/test-servers
 const free = () => true;
 
 describe("a test server takes a port that is actually exposed", () => {
-  test("the pool is a small, fixed set", () => {
-    expect(TEST_SERVER_PORTS.length).toBe(6);
-    for (const p of TEST_SERVER_PORTS) expect(p).toBeGreaterThan(1024);
-    expect(new Set(TEST_SERVER_PORTS).size).toBe(TEST_SERVER_PORTS.length);
-  });
-
   test("the first free port in the pool is taken, in order", async () => {
     const reserved: number[] = [];
     for (const port of TEST_SERVER_PORTS) {

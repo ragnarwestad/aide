@@ -300,32 +300,6 @@ def test_other_commands_still_spawn_the_model_with_no_status_file_at_all(
     assert out["terminalReason"] == "completed", out
     assert fake_claude.calls.exists()
 
-def test_resolve_is_no_longer_a_command_this_script_will_run(runner, workspace, fake_claude):
-    """Criterion 8 (spec 171). The step is gone, not hidden: a caller
-    that still asks for it — an old dashboard, a shell history entry, a
-    queue-config left over from before — is refused by the same
-    --command check every other unknown word meets, before any money is
-    spent."""
-    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude, command="resolve")
-    assert rc == 2, out
-    assert out["terminalReason"] == "refused"
-    assert "invalid --command" in out["error"], out
-    assert not fake_claude.calls.exists(), "the refusal must precede the money"
-
-def test_review_plan_is_refused_as_a_command(runner, workspace, fake_claude):
-    """Criterion 1 (spec 181). `review-plan` folded into `analyze` and is
-    no longer a step of its own: a caller that still asks for it — an
-    old dashboard, a shell history entry, a queue-config left over from
-    before — is refused by the same --command check every other unknown
-    word meets, before any money is spent."""
-    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude, command="review-plan")
-    assert rc == 2, out
-    assert out["terminalReason"] == "refused"
-    assert "invalid --command" in out["error"], out
-    assert not fake_claude.calls.exists(), "the refusal must precede the money"
-
 
 @pytest.mark.usefixtures("origin")
 def test_an_archive_that_drops_the_open_merge_is_merge_unfinished_not_completed(

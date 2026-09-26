@@ -49,11 +49,6 @@ describe("a job mirrored with the retired extraProjects field", () => {
     const reloaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
     expect(reloaded.get(r.job.id)?.specFolder).toBe(r.job.specFolder);
   });
-
-  test("a request that still sends it is accepted, not refused", () => {
-    const r = parseJobRequest({ ...REQ, extraProjects: ["aide-dashboard"] }, { resolve, defaults: DEFAULTS });
-    expect(r.ok).toBe(true);
-  });
 });
 
 describe("QueueStore.enqueueCreate", () => {

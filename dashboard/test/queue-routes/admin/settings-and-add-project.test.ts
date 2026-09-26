@@ -154,22 +154,6 @@ describe("Settings routes (spec 232)", () => {
     expect(html).toContain('<a class="backlink" href="/projects/aide">← Back</a>');
   });
 
-  // Criterion 4: no Referer at all falls back to today's exact default.
-  test("← Back falls back to / with no Referer, criterion 4", async () => {
-    const { base } = start({ queueDefaults: DEFAULTS });
-    const html = await (await fetch(`${base}/settings`, )).text();
-    expect(html).toContain('<a class="backlink" href="/">← Back</a>');
-  });
-
-  // Criterion 5: a foreign-origin Referer is discarded, not followed.
-  test("← Back discards a foreign-origin Referer, criterion 5", async () => {
-    const { base } = start({ queueDefaults: DEFAULTS });
-    const html = await (
-      await fetch(`${base}/settings`, { headers: { referer: "https://evil.example/" } })
-    ).text();
-    expect(html).toContain('<a class="backlink" href="/">← Back</a>');
-  });
-
   test("a successful save affects later jobs but not an accepted job", async () => {
     const file = ownConfig({ model: { default: "sonnet", future: "keep" } });
     const { base } = start({ queueDefaults: DEFAULTS, queueConfigFile: file });

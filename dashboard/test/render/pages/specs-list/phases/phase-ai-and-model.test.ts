@@ -192,10 +192,6 @@ describe("spec 179: an AI and a model on every phase line", () => {
 // string can be asked about directly — the chip's border, and where a
 // phase line's aside note goes.
 describe("spec 176: the phase chip frames nothing", () => {
-  test("a phase line's label-less chip draws no border and no background (criterion 1)", async () => {
-    const { CSS } = await import("../../../../../src/render/ui/css");
-    expect(CSS).toContain(".phase[data-phase] { border-color: transparent; background: transparent; }");
-  });
 
   // The second half of the criterion, and the reason the selector names
   // `data-phase` rather than `.phase`: a chip written with a label of

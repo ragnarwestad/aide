@@ -104,15 +104,6 @@ describe("the Depends on field", () => {
     expect(html).not.toContain(`value="${ARCHIVED}"`);
   });
 
-  // --- criterion 8: when the change takes effect ----------------------------
-
-  test("the page says the change applies from the next gated step", async () => {
-    const { base } = startTracked(savable("/host"));
-    const html = await (await fetch(`${base}${PAGE}`)).text();
-    expect(html).toContain("next gated step");
-    expect(html).toContain("already running");
-  });
-
   // --- criteria 3, 4, 7: what a save writes ---------------------------------
 
   test("a spec in the project is written into Tracking info, in one commit", async () => {

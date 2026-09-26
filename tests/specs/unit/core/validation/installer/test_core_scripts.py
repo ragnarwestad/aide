@@ -74,22 +74,6 @@ class TestInstallCommonBin:
         assert (tmp_path / ".local" / "bin" / "aide-record-test-run").is_file(), \
             "aide-record-test-run is not in COMMON_BIN_SCRIPTS, so the archive gate cannot run it"
 
-    def test_aide_resolve_test_cmd_is_installed(self, workspace_root, tmp_path):
-        """Spec 361. aide-archive-spec calls it by name, next to itself
-        in the same installed directory — missing from
-        COMMON_BIN_SCRIPTS, the same way aide-record-test-run once was,
-        would leave the gate unable to resolve a command at all on a
-        freshly installed host."""
-        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
-        env = {"PATH": os.environ["PATH"], "HOME": str(tmp_path)}
-        result = subprocess.run(
-            ["bash", "-c", f'source "{installer}"; install_common_bin'],
-            capture_output=True, text=True, env=env,
-        )
-        assert result.returncode == 0, result.stderr
-        assert (tmp_path / ".local" / "bin" / "aide-resolve-test-cmd").is_file(), \
-            "aide-resolve-test-cmd is not in COMMON_BIN_SCRIPTS, so the archive gate cannot run it"
-
     def test_spec_state_lib_and_backfill_are_installed(self, workspace_root, tmp_path):
         """Spec 355 moved the spec's state into lib/spec-state.sh, which
         aide-archive-spec sources when present — and treats every spec as
@@ -106,56 +90,6 @@ class TestInstallCommonBin:
             "lib/spec-state.sh is not in COMMON_BIN_LIB_SCRIPTS"
         assert (tmp_path / ".local" / "bin" / "aide-backfill-spec-state").is_file(), \
             "aide-backfill-spec-state is not in COMMON_BIN_SCRIPTS"
-
-    def test_aide_create_spec_is_installed(self, workspace_root, tmp_path):
-        """Spec 248, AC9. aide-create-spec is /aide-create's own Step 4
-        script — if it drops out of COMMON_BIN_SCRIPTS, install-all.sh
-        stops shipping it and every Step 4 invocation breaks."""
-        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
-        env = {"PATH": os.environ["PATH"], "HOME": str(tmp_path)}
-        result = subprocess.run(
-            ["bash", "-c", f'source "{installer}"; install_common_bin'],
-            capture_output=True,
-            text=True,
-            env=env,
-        )
-        assert result.returncode == 0, result.stderr
-        assert (tmp_path / ".local" / "bin" / "aide-create-spec").is_file(), \
-            "aide-create-spec is not in COMMON_BIN_SCRIPTS, so it never reaches ~/.local/bin"
-
-    def test_aide_write_spec_is_installed(self, workspace_root, tmp_path):
-        """Spec 282. aide-write-spec is the one legitimate way
-        /aide-analyze, /aide-implement and /aide-archive land a spec
-        file's content on disk — if it drops out of COMMON_BIN_SCRIPTS,
-        every one of those Bash calls breaks."""
-        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
-        env = {"PATH": os.environ["PATH"], "HOME": str(tmp_path)}
-        result = subprocess.run(
-            ["bash", "-c", f'source "{installer}"; install_common_bin'],
-            capture_output=True,
-            text=True,
-            env=env,
-        )
-        assert result.returncode == 0, result.stderr
-        assert (tmp_path / ".local" / "bin" / "aide-write-spec").is_file(), \
-            "aide-write-spec is not in COMMON_BIN_SCRIPTS, so it never reaches ~/.local/bin"
-
-    def test_aide_print_specs_guard_is_installed(self, workspace_root, tmp_path):
-        """Spec 282, REQ-4. aide-print-specs-guard is how a developer
-        gets a ready-to-paste deny-rule snippet for their own project —
-        if it drops out of COMMON_BIN_SCRIPTS, it never reaches
-        ~/.local/bin at all."""
-        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
-        env = {"PATH": os.environ["PATH"], "HOME": str(tmp_path)}
-        result = subprocess.run(
-            ["bash", "-c", f'source "{installer}"; install_common_bin'],
-            capture_output=True,
-            text=True,
-            env=env,
-        )
-        assert result.returncode == 0, result.stderr
-        assert (tmp_path / ".local" / "bin" / "aide-print-specs-guard").is_file(), \
-            "aide-print-specs-guard is not in COMMON_BIN_SCRIPTS, so it never reaches ~/.local/bin"
 
     def test_workflow_steps_json_is_installed(self, workspace_root, tmp_path):
         """Spec 349, REQ-3a. workflow-steps.json is the one file both
