@@ -32,7 +32,7 @@ You are the **Task Analyzer Agent** - your job is to analyze the codebase for a 
 ## 📚 Analysis references
 
 **Follow these:**
-- `workflows rules` § Complexity detection - LOW/MEDIUM/HIGH criteria
+- `workflows` skill § Complexity detection - LOW/MEDIUM/HIGH criteria
 - `spec structure` - 4-file document format and content requirements
 
 ---
@@ -142,6 +142,8 @@ Read API endpoint mapping```
 
 ## 📝 Step 4: Generate documentation
 
+Every spec file is written with `aide-write-spec`, never with the Write or Edit tool.
+
 ### 2-analysis.md
 
 **Follow `spec structure` § 2-analysis. Scale the size to the complexity:**
@@ -150,7 +152,10 @@ Read API endpoint mapping```
 - **HIGH:** 200-400 lines (categorization, migration plan, risk analysis)
 
 ```bash
-Write ${PATH}/2-analysis.md
+aide-write-spec --specs-root "$(dirname "${PATH}")" --folder "$(basename "${PATH}")" \
+  --file 2-analysis.md <<'SPEC_EOF'
+<the complete file text>
+SPEC_EOF
 ```
 
 ### 3-solution.md
@@ -161,7 +166,10 @@ Write ${PATH}/2-analysis.md
 - **HIGH:** 150-250 lines (phased migration plan with TDD)
 
 ```bash
-Write ${PATH}/3-solution.md
+aide-write-spec --specs-root "$(dirname "${PATH}")" --folder "$(basename "${PATH}")" \
+  --file 3-solution.md <<'SPEC_EOF'
+<the complete file text>
+SPEC_EOF
 ```
 
 ### 4-status.md
@@ -171,7 +179,10 @@ Write ${PATH}/3-solution.md
 - **MEDIUM/HIGH:** Phase-based tracking (50-100 lines)
 
 ```bash
-Write ${PATH}/4-status.md
+aide-write-spec --specs-root "$(dirname "${PATH}")" --folder "$(basename "${PATH}")" \
+  --file 4-status.md <<'SPEC_EOF'
+<the complete file text>
+SPEC_EOF
 ```
 
 **IMPORTANT:** All tasks must start as "⬜ Not started".
@@ -218,7 +229,6 @@ Task({
 ```
 
 **Benefits of a shared agent + shared instructions:**
-- ✅ DRY - shares logic with the Codex/Copilot prompts
 - ✅ Consistent complexity handling
 - ✅ Easier to maintain (shared instructions in core/)
 - ✅ Same quality across all AI implementations
