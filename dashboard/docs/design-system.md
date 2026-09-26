@@ -101,9 +101,8 @@ than add a colour beside them.
 
 **What these guards do not answer is whether the layout holds.** They read the stylesheet as text: that a rule exists,
 that a class is one of the known ones, that no colour sits outside the tokens. A rule can be present and still be
-wrong — `tr.spechead .spec-title { order: 4; flex: 0 0 100%; }` was pinned verbatim by
-`test/design/layout/responsive.test.ts` while the line it described hung 35 px past the row's right edge, because a
-whole width plus a left margin is wider than the row. Whether something fits is measured in a browser, by
+wrong — a rule such as `flex: 0 0 100%` beside a left margin can be pinned verbatim by a test and still hang past the
+row's right edge, because a whole width plus a margin is wider than the row. Whether something fits is measured in a browser, by
 `test/e2e/`, which every merge runs.
 
 A CSS comment's prose reaches the browser as page content: the stylesheet is inlined into every page, so a comment

@@ -220,7 +220,7 @@ that default belongs to the tool, else the first entry `modelChoices` lists for 
 never chooses between a tool's models itself.
 
 The AI picker itself POSTS NOTHING — it carries no `name`, and a press still sends the same five
-`model.<step>` fields it always did. What a phase runs on stays one value on the job and the tool is derived from it, so
+`model.<step>` fields. What a phase runs on stays one value on the job and the tool is derived from it, so
 the picker is read on change (to fill the model in) and written on redraw (to reflect it), never the reverse. Change a
 model select by hand and the AI select beside it follows at once. Picking it — or moving a model select by hand — does
 reach the server at once, though: the model select it fills is recorded the instant it changes, on a phase that has not
@@ -401,8 +401,7 @@ overview names the soonest across a project's entries.
 **An entry saved from the New or Edit form records a `since` timestamp**, the time of that save. Any fire at or before
 `since` counts as already used, the same way a tracked job does — so a freshly created or freshly edited entry's first
 real run is its next fire after the save, not whatever the cron's most recent fire already was. An entry with no
-`since` — written by hand, or saved before this field existed — fires on its very first eligible window, exactly as
-every entry did before. A window whose fire the queue refused made no job, so it is still due: an entry with no
+`since` — one written by hand, for instance — fires on its very first eligible window. A window whose fire the queue refused made no job, so it is still due: an entry with no
 `since` fires for it once the cause is fixed, an entry saved from a form does not.
 
 **A cron expression is evaluated in the SERVING HOST's local timezone**, the same as an ordinary crontab — there is no
@@ -495,8 +494,8 @@ side works with nothing configured.
 
 **The queue's own runner is the producer for anything it queued itself.** When it spawns a step, it hands the child
 `AIDE_RUN_URL` pointing at this server's own `POST /api/aide-run`, derived from the port it actually bound — so a
-headless run's phases reach the row automatically. Before that existed, every phase report from a headless step
-exited silently and the row sat at `phase: null`.
+headless run's phases reach the row automatically. Without it, every phase report from a headless step would
+exit silently and the row would sit at `phase: null`.
 
 **A Claude Code `UserPromptSubmit` hook is the other producer, and it is a user's own, opt-in setting** — for
 reporting an `/aide-*` command run BY HAND, in an interactive terminal, outside the queue entirely. `aide-emit-run`

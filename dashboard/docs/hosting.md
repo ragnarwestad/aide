@@ -75,7 +75,7 @@ Headers some proxies send, for the `header` above:
 - **oauth2-proxy** — `X-Forwarded-Email`
 - **Cloudflare Access** — `Cf-Access-Authenticated-User-Email`
 
-Every caller — the proxy's readers, API callers and the spec 80 emitter — is held to the same rule, whether or not
+Every caller — the proxy's readers, API callers and the `aide-emit-run` emitter — is held to the same rule, whether or not
 `headerAuth` is set.
 
 ## Installing it as an app
@@ -191,11 +191,11 @@ project.
 
 Everything the dashboard owns — its checkouts, projects root, worktrees,
 `jobs`, `pdf-cache`, `schedule-output`, `round-logs` and the JSON
-mirrors — lives under one directory, `~/.aide/dashboard/`. It used to be
-`~/aide-dashboard/`, a name indistinguishable from the code project's
-own; `.aide` is the name Aide already gives what is configuration, and
-`dashboard` says whose it is. Moving an already-running installation is
-a one-time, per-host operation — nothing in a code deploy does it for you.
+mirrors — lives under one directory, `~/.aide/dashboard/`: `.aide` is
+where Aide keeps configuration, and `dashboard` says whose it is. An
+installation whose directory is still at `~/aide-dashboard/` is moved by
+hand, once per host, with the steps below — nothing in a code deploy
+does it for you.
 
 **Do this with the service stopped, not merely with the queue empty.**
 Checking that nothing is `running` or `queued` on the dashboard's own
@@ -208,10 +208,10 @@ worktree of the moved checkout.
 **Move the directory before you deploy the new code, never after.**
 `install-serve` decides whether to `git clone` or `git -C ... pull` by
 whether `MINI_REPO` already has a `.git` in it. Deploy the code first and
-the new default (`.aide/dashboard/checkouts/aide/code`) is empty, so
+the default (`.aide/dashboard/checkouts/aide/code`) is empty, so
 `install-serve` clones fresh there instead of continuing the checkout
 still sitting at the old name. Move first, and `install-serve` finds the
-same checkout, `.git` and all, right where the new default now looks for
+same checkout, `.git` and all, right where the default looks for
 it. Three things inside the directory carry the old absolute path and
 are repaired after the move: the symlinks in `projects/` (one per
 project, into `checkouts/`), git's own record of every worktree cut from
@@ -226,7 +226,7 @@ a moved checkout (`git worktree repair`), and the launchd plist, which
     for r in ~/.aide/dashboard/checkouts/*/code ~/.aide/dashboard/checkouts/*/specs; do git -C "$r" worktree repair >/dev/null 2>&1 || true; git -C "$r" worktree prune; done
 
 Update `.env.deploy` on this machine to match — `ROOT=.aide/dashboard/projects`,
-and drop any `MINI_REPO` override, since the new default already names
+and drop any `MINI_REPO` override, since the default already names
 the moved checkout. Then run the ordinary upgrade:
 
     MINI=<host> make -C dashboard deploy-serve

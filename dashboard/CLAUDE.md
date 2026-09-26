@@ -28,10 +28,10 @@ get them, and reads them by hand.
   does not already hold that tip — never on `changedFiles`, which a step
   that commits its own work leaves at `0`, and never on "moved during
   THIS run" alone: a commit a prior run's failed push left stranded is
-  retried on every later run, not only the run that made it (spec 343).
+  retried on every later run, not only the run that made it.
   A run's own bookkeeping (`Workflow steps completed`) is written and
   pushed as its own confirmed step, so it never lands while that push
-  cannot be confirmed against origin (spec 343).
+  cannot be confirmed against origin.
 - It works in `git worktree` checkouts under
   `$HOME/.aide/dashboard/worktrees/<project>/<spec>/`. The result's `repos[].root` is
   the MAIN checkout; `repos[].worktree` is the throwaway one.
@@ -103,8 +103,8 @@ get them, and reads them by hand.
   (`relative(root, dir)`) then climbs out of the repository and back down
   an absolute path, and `git show <ref>:<that>` finds nothing while
   failing quietly: the read comes back empty and whatever it fed reads as
-  "gone" — an acceptance tick was refused with "that check is not there
-  to change any more" on a row the page had just drawn. `real()` in
+  "gone", so an acceptance tick on a row the page has just drawn is
+  refused as no longer there. `real()` in
   `git/branch-file.ts` and `sameRoot` in `land-branch/merge.ts` are the
   guard; `aide-run-spec` resolves the specs root it is handed for the
   same reason.
@@ -164,8 +164,7 @@ The dashboard's own source keeps these limits, checked by
   `src/render/pages/specs-list/data-model/types.ts`.
 - A test file stays at or under 800 lines.
 - A directory holds at most 15 `.ts` files directly inside it, with no
-  exceptions: the six that were over it are grouped into subdirectories
-  now, and the list of exceptions is gone. A new `.ts` file that would
+  exceptions. A new `.ts` file that would
   take a directory past 15 goes in a subdirectory of it instead, named
   for what those files are about — `test/e2e/phone/`, `test/serve/schedule/`.
   A moved test's own imports gain one `../`.

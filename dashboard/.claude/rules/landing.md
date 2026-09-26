@@ -35,7 +35,7 @@ reads what a landing left.
   on the default branch, names `create, analyze` and no more while a spec
   waits on a tick. `historyDone` is the git-proved list, unlanded
   branches included, and it is what a question like "has implement run"
-  reads (`archiveHeldBackApplies`). Asking `done` alone dropped the
+  reads (`archiveHeldBackApplies`). Asking `done` alone would drop the
   acceptance hold-back from every row waiting on one.
 - **An `onLanded` callback runs before its own job's `landing` flag is
   cleared**, so it cannot trust that one row's flag and must treat it as
@@ -45,8 +45,8 @@ reads what a landing left.
   `acceptance-criteria-unticked`) is `ok` and the job is `done` — the
   row reads "archive held back" from `4-status.md` — but nothing was
   archived, and `already-landed` has nothing left to land. Neither
-  reaches `landArchivedSpec`; landing a refusal merged implement's code
-  branch into main with the spec still active.
+  reaches `landArchivedSpec`: landing a refusal would merge implement's
+  code branch into main with the spec still active.
 - **Two `archive` steps never run at once in one project.** Both branch
   from the code root's main and both land into it; the second is held
   `queued` with the reason on its row until the first has landed — the
@@ -108,7 +108,7 @@ reads what a landing left.
 
 ## Close
 
-A spec whose idea did not hold (spec 406) — a fourth member of the
+A spec whose idea did not hold — a fourth member of the
 archive/reopen family, with its own phase (`closed`) rather than
 reusing `archived`'s. `core/scripts/aide-close-spec` is `aide-archive-spec`'s
 stamp-and-move tail without its `not-implemented-yet`/`acceptance-criteria-
@@ -129,9 +129,9 @@ unticked` gates: Close is legal from every phase Archive would refuse.
   both skip it; a failed branch delete is still recorded through the same
   `branchDeleteError` archived specs already carry.
 - **`closed` reads distinctly from `archived` everywhere a spec's state is
-  shown** (REQ-7): `SpecRef.closed` (off the `**Closed:**` stamp), the
+  shown**: `SpecRef.closed` (off the `**Closed:**` stamp), the
   specs list's own `CLOSED_STATE` (excluded from both the Archived and
   Active filters), and the spec page's `closedLine` in place of
-  `archivedLine`. `isArchivedRow` (specs-list) is widened to include it —
+  `archivedLine`. `isArchivedRow` (specs-list) includes it —
   every caller's real question is "is this row locked", true of a closed
   row the same way.

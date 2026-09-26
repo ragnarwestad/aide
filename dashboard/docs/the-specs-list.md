@@ -181,9 +181,9 @@ works with script off.
 
 The unfolded row lists what the newest attempt that ran the step said AND what it did — its own messages, the
 commands it ran and the files it wrote — at most the last 200, oldest first, each one line clipped at 160
-characters, and a link to that step on the Logs tab. The messages alone were too little to follow a run by: a
-session that works through commands writes a sentence every few minutes, and the row read as frozen while the step
-was busy. Once the phase has finished, the last message is the phase's final message, whole up to 2,000
+characters, and a link to that step on the Logs tab. The commands and files are listed because a session that works
+through commands writes a sentence only every few minutes, and messages alone would leave the row looking frozen
+while the step is busy. Once the phase has finished, the last message is the phase's final message, whole up to 2,000
 characters. A phase whose job the queue has forgotten says no messages are kept and links to the Logs tab itself.
 A phase that is only queued, or that nothing touched, has no ›.
 
@@ -230,10 +230,9 @@ motion at all. The signal is `.pip.now`, the running phase's marker: it already 
 `--accent`), so a lighter band skimming across it left to right, in the direction the four pips already run, adds "and
 it is alive" in the same mark instead of a second element. A pulse was rejected — on a 14×4 bar it reads as an alert,
 not as work in progress. Every running row animates on one shared timing rather than each starting when its row was
-drawn, so several at once move together instead of shimmering at random. `phaseChip`'s `busy` option is gone along with
-`.phase.busy` in
-`css/index.ts` — `SPINNER` itself is used by `btn()`'s busy variant and by `specs-client/index.ts`'s in-flight-press
-spinner, a different fact with a different lifetime (see [what the script adds](#what-the-script-adds)).
+drawn, so several at once move together instead of shimmering at random. `phaseChip` has no `busy` option and
+`css/index.ts` no `.phase.busy` — `SPINNER` is used by `btn()`'s busy variant and by `specs-client/index.ts`'s
+in-flight-press spinner, a different fact with a different lifetime (see [what the script adds](#what-the-script-adds)).
 
 `prefers-reduced-motion` is honoured here: `.pip.now` drops the animation and holds
 `--accent` still, so a machine set to reduce motion still tells a running phase from a waiting one, just without the
@@ -255,7 +254,7 @@ again** and **Dismiss**. Each failed create has its own message, newest first, a
 models and "Depends on" come up at the form's defaults. A project that is no longer offered is left unselected.
 **Dismiss** hides the message; the record stays for the newest 50 dismissed, so an older notification still opens the
 form. A message stays until dismissed, across page loads and restarts, because it is kept in `failed-creates.json` and not
-on the queue job, which the queue drops after 200 jobs. A create that failed before this existed has no message.
+on the queue job, which the queue drops after 200 jobs.
 
 ---
 
@@ -352,8 +351,8 @@ a record.
 
 **The Description tab** is `1-description.md` in a textarea with its own Save. It is the one of the four files a
 user owns: the other three are written by a step, and a hand edit there is overwritten the next time that step
-runs. The `Depends on` picker used to sit on this tab; it moved into the banner above the tab row, since a dependency
-is a fact about the SPEC rather than about this one document.
+runs. The `Depends on` picker sits in the banner above the tab row, not on this tab, since a dependency is a fact
+about the SPEC rather than about this one document.
 
 **The checks on the Status tab** are `4-status.md`'s Tasks rows, every one of them — a list that only ever shrinks says
 nothing about how far the spec got. The ones that are BOXES are the open rows of the CURRENT phase alone (the first
@@ -417,7 +416,7 @@ twice over: once to open its confirmation dialog, and once for the press that fo
   "merging…", "creating…"), read from `data-pending` beside the label. On a row control the same
   press swaps that row's own `.phases` chips for the same spinner, holding their width with
   `style.minWidth` so the buttons beside them do not shift — freed again once the boxes come back. The `finally` block
-  that undoes all of this runs under the same `isConnected` guard the button already had, which matters because
+  that undoes all of this runs under the same `isConnected` guard the button itself uses, which matters because
   `swapRows()` returns without touching
   `#jobrows` when the rows re-fetch itself fails: without that guard a row can get stuck holding a spinner for a request
   that is already over. The `.phases` boxes are Run's own form fields — the ticked checkboxes live there — so the swap
@@ -477,8 +476,8 @@ opens, and the same `open`-redraws-the-rows resync above is what a proxied resta
 A hidden tab closes its connection and
 opens a fresh one when it comes back, which is the
 "the timer already stops for a hidden tab" behaviour applied to a socket. A tab that comes BACK fetches the rows at
-once, before that connection is up: an installed app returning from a phone's lock screen took ten to fifteen seconds
-to show a list that had moved on, because the redraw waited for the stream (2026-09-20). Only a tab that has been
+once, before that connection is up, so an installed app returning from a phone's lock screen shows the current list
+without waiting for the stream. Only a tab that has been
 hidden does it — the first paint is the server's own — and a restore from the browser's back/forward cache
 (`pageshow`) counts as coming back, since Android can bring the app forward that way without the page ever being told
 it was hidden.
@@ -535,8 +534,8 @@ actually spawns it) and carries it onto that step's own result once it ends (`St
 duration is that result's own end minus its own recorded start. A job merely `queued` between two steps — held back
 for a landing, a dependency, an open acceptance row, or a full concurrency slot — has not started its
 next step yet and shows no duration for it at all, however long the previous step's own end sits in the past: none of
-that waiting is ever inside the figure. A result written before this stamp existed falls back to the boundary the
-page always used — the step before it ending, or the job's own start for the first one.
+that waiting is ever inside the figure. A result that carries no `startedAt` falls back to the step before it
+ending, or the job's own start for the first one.
 
 Three things the column then says, by row type:
 

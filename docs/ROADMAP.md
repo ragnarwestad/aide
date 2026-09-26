@@ -52,8 +52,8 @@ reference only — do not develop there.
 - **`core/AGENTS.md` is generated** by `core/scripts/build-agents-md.sh`
   from `core/agents-intro.md` + `core/rules/`. Never edit it by hand.
 - **Individual uninstallers keep the shared `~/.local/bin` scripts.**
-  Only `uninstall-all.sh` removes them (learned the hard way — removing
-  one tool used to break the others and the daily cron job).
+  Only `uninstall-all.sh` removes them, so removing one tool never breaks
+  the others or the daily cron job.
 - **Conventions:** English throughout; commit messages in English
   imperative mood; spec files are `1-description.md`, `2-analysis.md`,
   `3-solution.md`, `4-status.md` with strict content separation.

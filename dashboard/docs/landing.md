@@ -211,8 +211,8 @@ further `archive`.
 ## The tests run on the landing, once
 
 The project's own test suite runs on the merged result before the push — in a throwaway worktree of that merge
-commit rather than the live checkout: a run's own git and a fast-forward of main moved the live checkout under a
-running suite once, so the tests on disk changed while the code they import was already loaded. When
+commit rather than the live checkout, since a run's own git or a fast-forward of main can move the live checkout under
+a running suite, changing the tests on disk while the code they import is already loaded. When
 `git worktree add` itself fails, the gate falls back to the live checkout and says so in its log. The worktree
 carries the project's `worktreeLinks` and its `.aide/config`, and is removed when the gate is over.
 `mergeBranchIntoDefault` hands the merge to the landing gate (`src/serve/land-branch/test-gate.ts`), which asks

@@ -26,12 +26,12 @@ but the two copies still have to be edited by hand together.
 | An untracked `.aide/project.yaml` is copied into a worktree or tree, kept out of the commit and the hash; tracked, or git unable to say, is left alone       | `carry_manifest_into_worktree` and `aide_tree_hash` (bash)                    | `checkoutForGate` in `dashboard/src/serve/land-branch/test-gate.ts`                                              | `tests/fixtures/manifest-carry.json`, read by `test_aide_run_spec_manifest.py` and `gate-carries-manifest.test.ts`                                                                                 |
 | `errorReason` — `"conflict" \| "held-back" \| "tests-red" \| "unlanded"`                                                                                     | —                                                                             | `dashboard/src/queue/types.ts` and `dashboard/src/render/ui/job-state/types.ts`, which do not import each other  | `dashboard/test/queue/requests/parsing-schedule-and-errors.test.ts` reads both as text                                                                                                             |
 | `codeLanding` — whether code is reviewed before it lands                                                                                                     | one anchored `sed` in `aide-run-spec`                                         | `resolveCodeLanding` in `dashboard/src/project/discover/config.ts`                                               | `tests/fixtures/code-landing-precedence.json`                                                                                                                                                      |
-| `AIDE_INSTALL_CMD`/`AIDE_TEST_CMD` precedence — `.aide/config` over the manifest's `installCmd`/`testCmd` (spec 345, the reverse order from `worktreeLinks`) | `aide_resolve_override` in `_aide-spec-lib.sh`                                | `resolveInstallCmd`/`resolveTestCmd` in `dashboard/src/project/discover/config.ts`                               | `tests/fixtures/config-cmd-precedence.json`                                                                                                                                                        |
+| `AIDE_INSTALL_CMD`/`AIDE_TEST_CMD` precedence — `.aide/config` over the manifest's `installCmd`/`testCmd` (the reverse order from `worktreeLinks`)           | `aide_resolve_override` in `_aide-spec-lib.sh`                                | `resolveInstallCmd`/`resolveTestCmd` in `dashboard/src/project/discover/config.ts`                               | `tests/fixtures/config-cmd-precedence.json`                                                                                                                                                        |
 | The status-mark rule — which Status cells count as done                                                                                                      | `status_progress_for` in `core/scripts/lib/status-progress.sh`                | `isDoneMark` in `dashboard/src/project/parse-status/index.ts`                                                    | `tests/fixtures/status-row-counting.json`                                                                                                                                                          |
-| An error sentence says what happened AND what resolves it (spec 352)                                                                                         | `refuse()`'s callers and the provider/tool-failure strings in `aide-run-spec` | `errorSentence()` in `dashboard/src/format/error-sentence.ts`, and every producer that follows its shape by hand | `dashboard/test/render/ui/error-sentence-registry.test.ts` and `tests/specs/unit/core/scripts/run_spec/run_spec_project_state.py`'s `BASH_ERROR_REGISTRY`, each reading its own side's source text |
+| An error sentence says what happened AND what resolves it                                                                                                    | `refuse()`'s callers and the provider/tool-failure strings in `aide-run-spec` | `errorSentence()` in `dashboard/src/format/error-sentence.ts`, and every producer that follows its shape by hand | `dashboard/test/render/ui/error-sentence-registry.test.ts` and `tests/specs/unit/core/scripts/run_spec/run_spec_project_state.py`'s `BASH_ERROR_REGISTRY`, each reading its own side's source text |
 | Which terminal reason lands a step — `close` on `closed`, `archive` on `completed`                                                                           | `terminal_reason` in `aide-run-spec`, from `aide-close-spec`'s own answer     | the per-step branches in `dashboard/src/serve/runner-setup.ts`                                                   | `dashboard/test/queue/close-lands-on-the-word-bash-reports.test.ts`, reading both sides' source text                                                                                               |
-| The push-retry bound — unreachable origin is retried this many times, waited this long, before it is reported (spec 359)                                     | `PUSH_RETRY_WAITS` and `push_with_retry()` in `aide-run-spec`                 | `PUSH_RETRY_WAITS_MS` and `pushWithRetry()` in `dashboard/src/git/branch-merge.ts`                               | `dashboard/test/git/merge/branch-merge-push-retry.test.ts`'s own bound-pinning test, reading both sides' source text                                                                               |
-| Which archive refusals are guards, not attempts — left out of the phase's attempt count (2026-09-11)                                                         | the `case "$terminal_reason"` arm in `core/scripts/lib/run-spec-outcome.sh`   | `GUARD_REFUSALS` in `dashboard/src/render/pages/specs-list/phase-rows.ts`                                        | `dashboard/test/queue/guard-refusals-are-not-attempts.test.ts`, reading both sides' source text                                                                                                    |
+| The push-retry bound — unreachable origin is retried this many times, waited this long, before it is reported                                                | `PUSH_RETRY_WAITS` and `push_with_retry()` in `aide-run-spec`                 | `PUSH_RETRY_WAITS_MS` and `pushWithRetry()` in `dashboard/src/git/branch-merge.ts`                               | `dashboard/test/git/merge/branch-merge-push-retry.test.ts`'s own bound-pinning test, reading both sides' source text                                                                               |
+| Which archive refusals are guards, not attempts — left out of the phase's attempt count                                                                      | the `case "$terminal_reason"` arm in `core/scripts/lib/run-spec-outcome.sh`   | `GUARD_REFUSALS` in `dashboard/src/render/pages/specs-list/phase-rows.ts`                                        | `dashboard/test/queue/guard-refusals-are-not-attempts.test.ts`, reading both sides' source text                                                                                                    |
 
 The done rule accepts `✅`, `completed` and `Not verified`; `Failed` (with or without a symbol) is not done. The awk copies
 need no change for it, only `spec-state.sh` flags it on the Acceptance rows. Only an Acceptance row also carries the separate
@@ -50,7 +50,7 @@ alongside the dashboard.** The dashboard passes `--specs-root` from the
 same answer its own landing uses (`machinerySpecsRoot`), and
 `aide-run-spec` prefers that flag over `AIDE_SPECS_PATH` in
 `.aide/config`. Left out — a run started by hand — the script reads the
-config exactly as it always did.
+config.
 
 The run and the landing have to agree on this one answer: a create that
 makes its folder somewhere the landing does not look can never be given
@@ -70,7 +70,7 @@ and a flag renamed on one side fails neither test.
 
 ## Not a pair: the workflow's own vocabulary
 
-The workflow's own vocabulary is NOT one of these pairs (spec 349):
+The workflow's own vocabulary is NOT one of these pairs:
 `core/scripts/lib/workflow-steps.json` is the one file both sides read —
 `aide-run-spec` with jq, the dashboard by import — for the steps that
 exist, the steps an unarchived dependency holds back, and the four-stage
@@ -84,8 +84,8 @@ invocations blind to the analyst's own reasoning.
 
 ## Not a pair: the effort levels
 
-**The effort levels a step may run at are also not a hand-paired pair**
-(spec 364): `core/scripts/lib/effort-levels.json` is the one file both
+**The effort levels a step may run at are also not a hand-paired pair.**
+`core/scripts/lib/effort-levels.json` is the one file both
 sides read — `aide-run-spec` with jq, the dashboard by import — for the
 `low`/`medium`/`high`/`xhigh`/`max` levels Claude Code's `--effort` flag
 accepts. `ultracode` is deliberately excluded from the list, since it
@@ -97,7 +97,7 @@ disagrees with the shared file.
 ## Not a pair: spec-phase transitions
 
 **Whether a spec may move from one phase to another is also not a
-hand-paired pair (spec 356).** `core/scripts/lib/transitions.json` is the
+hand-paired pair.** `core/scripts/lib/transitions.json` is the
 one table — every `(phase, event)` row, its next phase or refusal, and the
 condition it needs — read by both `core/scripts/lib/spec-transitions.sh`
 (`may_apply_spec_transition` for a read-only check, `apply_spec_transition`

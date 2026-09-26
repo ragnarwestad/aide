@@ -7,8 +7,7 @@ reachable through `git blame`.** `git log --follow -- dashboard/<file>`
 and plain `git log -- dashboard/<file>` stop at the import commit and
 show nothing older — that is how subtree boundaries work, not a sign the
 move went wrong. `git blame dashboard/src/discover.ts` does attribute
-every line to its original pre-merge commit and author. Measured on a
-throwaway repo before the move and confirmed after (spec 85). The
+every line to its original pre-merge commit and author. The
 standalone `aide-dashboard` repo is kept as a fallback but no longer
 carries a manifest, so it is not a project in its own right anymore.
 
@@ -64,7 +63,6 @@ listed once in `core/scripts/_install-bin.sh` and sourced as
 
 ## Adding new functionality
 
-**Moved to the `aide-repo-maintenance` skill** (2026-08-31, /doctor check
-4): adding a skill, updating a shared rule, or changing the spec
-structure only matters when actually doing one of those, not for
-ordinary spec work in this repo — invoke it when you need it.
+Adding a skill, updating a shared rule, or changing the spec structure
+is covered by the `aide-repo-maintenance` skill — invoke it when you
+need it.

@@ -41,10 +41,10 @@ WORKERS=${AIDE_TEST_WORKERS:-$(( CPUS > 3 ? CPUS - 2 : 1 ))}
 BROWSER_WORKERS=${AIDE_TEST_BROWSER_WORKERS:-3}
 
 # With no argument: the suite `make test` runs. Tests live under `src/` too
-# (the message catalogues' own), so both trees are collected, and the two
-# directories that start a real browser and a real board are left out —
-# they have `make test-e2e` and `make test-slow`, which pass their own
-# directory as that argument and get the same workers.
+# (the message catalogues' own), so both trees are collected, browser
+# files included. `test/round/`, which starts a real board, is left out:
+# `make test-slow` runs it. `make test-e2e` runs the browser files alone,
+# passing `test/e2e` as that argument.
 if [ "$#" -gt 0 ]; then
   files=$(find "$@" -name '*.test.ts' | sort)
 else
