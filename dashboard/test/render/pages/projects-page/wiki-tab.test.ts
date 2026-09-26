@@ -72,3 +72,16 @@ describe("the Wiki tab carries the latest build's log", () => {
   });
 });
 
+// A running build's log kept still until the reader reloaded the page.
+describe("the Wiki tab keeps up with a running build by itself", () => {
+  test("while a build runs, the tab reloads itself", () => {
+    const html = page({ tab: "wiki", script: "x", wikiBuild: { id: "j1", state: "running" } });
+    expect(html).toContain("data-reload-every=");
+  });
+
+  test("once the build is over, it holds still", () => {
+    const html = page({ tab: "wiki", script: "x", wikiBuild: { id: "j1", state: "done", finishedAt: "2026-09-26T10:00:00Z" } });
+    expect(html).not.toContain("data-reload-every=");
+  });
+});
+
