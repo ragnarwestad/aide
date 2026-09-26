@@ -19,12 +19,12 @@
 # test command has nothing to run and passes as before.
 #
 # Red does not end the step at once: the failing lines go BACK to the
-# same session (claude: `--resume <session id>`, the step's own
+# same session (claude `--resume <session id>`, codex
+# `exec resume <thread> -`, opencode `--session <id>`; the step's own
 # transcript appended to), which fixes what it broke and runs the suite
 # again — up to AIDE_TEST_FIX_ROUNDS more turns (2), each within what
-# is left of the step's time limit. Codex has no resume the
-# runner drives, so a red run there ends the step at once. The record
-# on the branch is always the runner's last run.
+# is left of the step's time limit. The record on the branch is always
+# the runner's last run.
 #
 # An `archive` runs nothing here, merged or not: its landing runs the
 # suite once on exactly what main is about to become, and a run here too
