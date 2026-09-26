@@ -123,12 +123,12 @@ Versions v2.1.280–282 were not itemised on the releases page.
 
 **Carried over from 2026-09-21, awaiting approval:**
 
-- Proposed: in `.claude/skills/ai-tools-reference/SKILL.md`, note that Claude Code reads `AGENTS.md` when a project has
-  no `CLAUDE.md` (v2.1.277; not on Bedrock/Vertex/Foundry).
-- Proposed: in `.claude/skills/ai-tools-reference/SKILL.md`, list `syncClaudeAiSkills`/`syncClaudeAiPlugins` under
-  Claude Code's skill discovery (v2.1.275).
-- Proposed: in `docs/AI_SUPPORT_MATRIX.md`, add `include-custom-instructions` to the Copilot agents row after verifying
-  it on the installed CLI (v1.0.86).
+- Done: `.claude/skills/ai-tools-reference/SKILL.md` notes that Claude Code reads `AGENTS.md` when a project has no
+  `CLAUDE.md` (v2.1.277; not on Bedrock/Vertex/Foundry).
+- Done: `.claude/skills/ai-tools-reference/SKILL.md` lists `syncClaudeAiSkills`/`syncClaudeAiPlugins` among Claude Code's
+  configuration files (v2.1.275).
+- Proposed, not yet verified: in `docs/AI_SUPPORT_MATRIX.md`, add `include-custom-instructions` to the Copilot agents
+  row once a run on the installed CLI (1.0.88) shows it works; neither its help nor its binary names the field.
 - Done here: the Codex changelog address is now `learn.chatgpt.com/docs/changelog` in the Sources table and in the
   check-news skill.
 

@@ -96,6 +96,10 @@ All tools have a project instruction file that is read automatically:
 **Copilot also reads the others' files** (only in Coding Agent):
 `AGENTS.md` and `CLAUDE.md` in the repo root.
 
+**Claude Code falls back to `AGENTS.md`** (v2.1.277): a project with no
+`CLAUDE.md` has its `AGENTS.md` read instead — not yet on Bedrock, Vertex or
+Foundry. A project that has a `CLAUDE.md` is read as before.
+
 ---
 
 ## Claude Code
@@ -104,17 +108,18 @@ All tools have a project instruction file that is read automatically:
 
 ### Configuration files
 
-| File                | Path                                                        | Purpose                                        |
-|---------------------|-------------------------------------------------------------|------------------------------------------------|
-| CLAUDE.md           | `./CLAUDE.md`, `./.claude/CLAUDE.md`, `~/.claude/CLAUDE.md` | Instructions                                   |
-| settings.json       | `.claude/settings.json`, `~/.claude/settings.json`          | Permissions, hooks, env                        |
-| settings.local.json | `.claude/settings.local.json`                               | Local overrides (gitignored)                   |
-| Skills              | `~/.claude/skills/<name>/SKILL.md`                          | Slash commands                                 |
-| Rules               | `~/.claude/rules/*.md`, `.claude/rules/*.md`                | Automatically loaded rules                     |
-| Agents              | `~/.claude/agents/*.md`, `.claude/agents/*.md`              | Subagent definitions                           |
-| Commands            | `~/.claude/commands/*.md`                                   | Unified with skills (both create `/` commands) |
-| MCP                 | `~/.claude/.mcp.json`, `.claude/.mcp.json`                  | MCP servers                                    |
-| Memory              | `~/.claude/projects/<project>/memory/`                      | Auto-memory                                    |
+| File                | Path                                                         | Purpose                                                                                                                          |
+|---------------------|--------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|
+| CLAUDE.md           | `./CLAUDE.md`, `./.claude/CLAUDE.md`, `~/.claude/CLAUDE.md`  | Instructions                                                                                                                     |
+| settings.json       | `.claude/settings.json`, `~/.claude/settings.json`           | Permissions, hooks, env                                                                                                          |
+| settings.local.json | `.claude/settings.local.json`                                | Local overrides (gitignored)                                                                                                     |
+| Skills              | `~/.claude/skills/<name>/SKILL.md`                           | Slash commands                                                                                                                   |
+| claude.ai sync      | `syncClaudeAiSkills`, `syncClaudeAiPlugins` in settings.json | Skills and plugins enabled on claude.ai appear in terminal sessions beside `~/.claude/skills` (v2.1.275); `false` turns each off |
+| Rules               | `~/.claude/rules/*.md`, `.claude/rules/*.md`                 | Automatically loaded rules                                                                                                       |
+| Agents              | `~/.claude/agents/*.md`, `.claude/agents/*.md`               | Subagent definitions                                                                                                             |
+| Commands            | `~/.claude/commands/*.md`                                    | Unified with skills (both create `/` commands)                                                                                   |
+| MCP                 | `~/.claude/.mcp.json`, `.claude/.mcp.json`                   | MCP servers                                                                                                                      |
+| Memory              | `~/.claude/projects/<project>/memory/`                       | Auto-memory                                                                                                                      |
 
 ### Rules
 
