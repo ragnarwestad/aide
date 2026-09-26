@@ -9,7 +9,7 @@ import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { esc } from "../../ui/html.ts";
 import { inFlight, restingChip } from "../../ui/job-state";
 import type { SpecsPageOptions } from "./";
-import { ARCHIVED_STATE, CLOSED_STATE, isArchivedRow, isWikiGroup, type SpecGroup } from "./data-model";
+import { ARCHIVED_STATE, CLOSED_STATE, isArchivedRow, type SpecGroup } from "./data-model";
 import {
   activeDurationCell,
   archiveDateCell,
@@ -17,7 +17,7 @@ import {
   phasePips,
   stateCell,
 } from "./cell-helpers.ts";
-import { foldControl, wikiCancel } from "./row-controls.ts";
+import { foldControl } from "./row-controls.ts";
 import { LIST_COLUMNS } from "./row-shared.ts";
 import { nextPhase, rowAnchorId, specNumber } from "./row-state.ts";
 
@@ -64,7 +64,6 @@ export function specHeadRow(
   opened: Set<string>,
 ): string {
   const lang = opts.lang ?? "en";
-  if (isWikiGroup(g)) return wikiHeadRow(g, opts, lang);
   // Whether this row is a RECORD rather than a control (spec 224). It
   // is asked once here and consulted wherever the row would otherwise
   // read live-only state, exactly as `busy` already is — the difference
@@ -281,24 +280,3 @@ export function headStateBadge(g: SpecGroup, lang: Language): string {
       : restingChip(lang, { archiveHeldBack: heldBack, readyPhase });
 }
 
-/** A wiki build's two lines: `<project>:wiki`, linking to the job's own page
- *  where its log is, then the job's state, time and cost with Cancel while it
- *  is unfinished. No fold, no phases and no run button: it is a job and not a
- *  spec. */
-function wikiHeadRow(g: SpecGroup, opts: SpecsPageOptions, lang: Language): string {
-  const lead = g.lead!;
-  const project = projectLink(g.project, { className: "muted" });
-  const name =
-    `<span class="label">${project}<a class="specpart" data-goto href="/specs/${esc(lead.id)}?tab=steps">` +
-    `<span class="muted">:</span><span class="specname">wiki</span></a></span>`;
-  return (
-    `<tr class="spechead" id="${esc(rowAnchorId(g))}" data-run="${inFlight(lead) ? "live" : "past"}" data-folder="${esc(g.specFolder)}">` +
-    `<td class="foldcell" rowspan="2" data-col="fold"></td>` +
-    `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name">${name}</div></td></tr>` +
-    `<tr class="specstate" data-folder="${esc(g.specFolder)}"><td colspan="2"></td>` +
-    `<td data-col="state"><span class="badgeslot">${stateCell(lead, lang)}</span>${wikiCancel(g, opts, lang)}</td>` +
-    `<td data-col="started">${activeDurationCell(g)}</td>` +
-    `<td class="num" data-col="cost">${costCell(g.spentUsd, g.spentTokens, "–", false)}</td>` +
-    `</tr>`
-  );
-}

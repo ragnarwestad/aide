@@ -50,7 +50,6 @@ import {
   groupBySpec,
   groupKey,
   isArchivedRow,
-  isWikiGroup,
   sortGroups,
   type ArchivedSpecView,
   type SpecsFilter,
@@ -243,8 +242,7 @@ function groupRows(
       // spec as its head row and everything up to the next) carries it
       // along with the spec it belongs to.
       const gap = `<tr class="specgap" aria-hidden="true"><td colspan="${LIST_COLUMNS}"></td></tr>`;
-      // A wiki build has no phases, whatever `?open=` names.
-      return opened.has(groupKey(g.project, g.specFolder)) && !isWikiGroup(g)
+      return opened.has(groupKey(g.project, g.specFolder))
         ? head + phaseSubRows(g, opts, now) + notice + gap
         : head + notice + gap;
     })

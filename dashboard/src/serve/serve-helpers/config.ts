@@ -32,7 +32,9 @@ export const QUEUE_DEFAULTS: QueueDefaults = {
   // budget for one step is no longer enough for both.
   // `wiki` reads a whole project, so it gets the same ceiling as `analyze`.
   timeoutSec: { default: 1200, implement: 5400, analyze: 2400, wiki: 2400 },
-  permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
+  // `wiki` writes only through aide-wiki, a script of Aide's own that the
+  // cautious default stops at every call with nobody there to allow it.
+  permissionMode: { implement: "bypassPermissions", wiki: "bypassPermissions", default: "acceptEdits" },
   // `archive` falls to `default`, and that is a decision rather than an
   // accident of which key happens to be missing: it may now have a merge
   // conflict to resolve (spec 171), and a merge is not an implement.

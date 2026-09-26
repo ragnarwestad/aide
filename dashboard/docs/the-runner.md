@@ -115,7 +115,8 @@ to prevent. Three conditions decide it (`run-spec-publish.sh`), in this order:
 in the project repository, a change under the specs root outside `wiki/`, and any change to a page without the
 `wiki: generated` mark in its front matter, comparing the specs repository with the default branch's tip.
 `aide-wiki verify` is the only reader of that mark. A run that would otherwise end `completed` ends `scope-violation`
-(`run-spec-wiki-guard.sh`); one that already ended `timeout` keeps that ending.
+(`run-spec-wiki-guard.sh`); one that already ended `timeout` keeps that ending. A run that would end `completed` with no
+`wiki/index.md` built nothing, and ends `no-progress`.
 
 **A `schedule` step is the exception to all three: it commits nothing and pushes nothing.** A scheduled job produces a
 report and changes no repository, so whatever it leaves in a worktree is dropped with the worktree, and a commit the

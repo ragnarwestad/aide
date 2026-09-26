@@ -94,6 +94,10 @@ if (
 
 /** The tracking key a wiki build runs under, in place of a spec folder. The
  *  bare name `wiki` is the folder the build writes and is never a key. */
+/** Whether a job is a wiki build: a job of the project's, never a spec's. */
+export const isWikiBuild = (job: { steps: readonly string[] }): boolean =>
+  job.steps.length === 1 && job.steps[0] === "wiki";
+
 export function wikiTrackingKey(project: string): string {
   return `wiki-${project}`;
 }

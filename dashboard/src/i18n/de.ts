@@ -162,6 +162,10 @@ export const de: Record<TranslationKey, string> = {
   "project.wikiNote":
     "Baut ein Wiki darüber, wie die Teile des Projekts zusammenhängen. Es liegt im Specs-Repository und wird beim Analysieren einer Spec zuerst gelesen. Jeder Aufbau schreibt die generierten Seiten neu und lässt von Hand geschriebene Seiten unverändert.",
   "project.wikiButton": "Wiki aufbauen",
+  "project.wikiRunning": "Ein Wiki-Aufbau läuft.",
+  "project.wikiLastBuilt": "Zuletzt aufgebaut am {date}.",
+  "project.wikiLastEnded": "Der letzte Aufbau endete als {state}.",
+  "project.wikiLog": "Protokoll",
 
   "newSpec.dependsOn": "Hängt ab von",
   "newSpec.select": "Auswählen",

@@ -163,6 +163,10 @@ export const nb: Record<TranslationKey, string> = {
   "project.wikiNote":
     "Bygger en wiki over hvordan delene av prosjektet henger sammen. Den ligger i spec-repoet og leses først når en spec analyseres. Ved ny bygging skrives de genererte sidene på nytt, og sider som er skrevet for hånd blir stående som de er.",
   "project.wikiButton": "Bygg wiki",
+  "project.wikiRunning": "En wiki-bygging kjører.",
+  "project.wikiLastBuilt": "Sist bygget {date}.",
+  "project.wikiLastEnded": "Siste bygging endte som {state}.",
+  "project.wikiLog": "Logg",
 
   "newSpec.dependsOn": "Avhenger av",
   "newSpec.select": "Velg",

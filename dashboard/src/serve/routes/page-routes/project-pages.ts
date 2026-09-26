@@ -18,6 +18,10 @@ import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from
 import { isSpecFolder } from "../../../render/ui/shell.ts";
 import { languageChoice, specsClientScript } from "../../serve-helpers";
 import type { RoutesContext } from "..";
+import { isWikiBuild } from "../../../queue/steps.ts";
+import { renderSentence } from "../../../i18n/message.ts";
+import type { Language } from "../../../i18n";
+import type { Job } from "../../../queue/types.ts";
 
 /** "← Back" on a project's own page: the page the reader came from, or
  *  Projects when that is this same page (a tab switch) or unknown. */
@@ -279,6 +283,7 @@ export async function projectPages(
         drift,
         deployError: url.searchParams.get("deployError") ?? undefined,
         wikiError: url.searchParams.get("wikiError") ?? undefined,
+        wikiBuild: latestWikiBuild(ctx.queue.list(), name, langResult.lang),
         deployFailure: ctx.readDeployFailure(name),
         serving,
         restartWaiting: ctx.readPendingRestart()?.jobs,
@@ -378,4 +383,12 @@ export async function projectPages(
   // failure mode `dashboard/CLAUDE.md` already names six instances of.
 
   return null;
+}
+
+/** The project's latest wiki build for its Wiki tab, its failure already a
+ *  sentence in the reader's language. */
+function latestWikiBuild(jobs: readonly Job[], project: string, lang: Language) {
+  const last = jobs.filter((j) => j.project === project && isWikiBuild(j)).at(-1);
+  if (!last) return undefined;
+  return { id: last.id, state: last.state, finishedAt: last.finishedAt, error: renderSentence(lang, last.error) };
 }

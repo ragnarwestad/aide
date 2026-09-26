@@ -162,6 +162,10 @@ export const es: Record<TranslationKey, string> = {
   "project.wikiNote":
     "Genera una wiki de cómo encajan las partes del proyecto. Se guarda en el repositorio de specs y se lee primero al analizar una spec. Cada generación reescribe las páginas generadas y deja intactas las escritas a mano.",
   "project.wikiButton": "Generar wiki",
+  "project.wikiRunning": "Se está generando la wiki.",
+  "project.wikiLastBuilt": "Generada por última vez el {date}.",
+  "project.wikiLastEnded": "La última generación terminó como {state}.",
+  "project.wikiLog": "Registro",
 
   "newSpec.dependsOn": "Depende de",
   "newSpec.select": "Seleccionar",

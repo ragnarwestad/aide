@@ -29,5 +29,6 @@ export async function handleWikiRoute(
     return new Response(null, { status: 303, headers: { location: back } });
   }
   await ctx.tickRunner();
-  return wantsJson ? json({ ok: true, job: result.job }) : new Response(null, { status: 303, headers: { location: "/" } });
+  const tab = `/projects/${encodeURIComponent(name)}?tab=wiki`;
+  return wantsJson ? json({ ok: true, job: result.job }) : new Response(null, { status: 303, headers: { location: tab } });
 }

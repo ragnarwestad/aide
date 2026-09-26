@@ -162,6 +162,10 @@ export const fr: Record<TranslationKey, string> = {
   "project.wikiNote":
     "Construit un wiki de la façon dont les parties du projet s'articulent. Il est conservé dans le dépôt des specs et lu en premier lors de l'analyse d'une spec. Chaque construction réécrit les pages générées et laisse telles quelles les pages écrites à la main.",
   "project.wikiButton": "Construire le wiki",
+  "project.wikiRunning": "Une construction du wiki est en cours.",
+  "project.wikiLastBuilt": "Dernière construction le {date}.",
+  "project.wikiLastEnded": "La dernière construction s'est terminée ainsi : {state}.",
+  "project.wikiLog": "Journal",
 
   "newSpec.dependsOn": "Dépend de",
   "newSpec.select": "Sélectionner",

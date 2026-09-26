@@ -21,11 +21,11 @@ describe("POST /api/queue/projects/<name>/wiki (AC-1)", () => {
     expect(queued[0]).toMatchObject({ steps: ["wiki"], specFolder: "wiki-aide" });
   });
 
-  test("a browser without script is sent to the Specs list", async () => {
+  test("a browser without script is sent back to the Wiki tab, where the build is followed", async () => {
     const { base } = start();
     const res = await post(base, "aide", { "content-type": "application/x-www-form-urlencoded" });
     expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe("/");
+    expect(res.headers.get("location")).toBe("/projects/aide?tab=wiki");
     expect(await jobs(base)).toHaveLength(1);
   });
 
@@ -58,5 +58,32 @@ describe("POST /api/queue/projects/<name>/wiki (AC-1)", () => {
     const { base } = start();
     const res = await fetch(`${base}/api/queue/projects/aide/wiki`, { headers: JSON_HEADERS });
     expect(res.status).toBe(405);
+  });
+});
+
+// A wiki build is a job of the project's, not a spec: the first one showed on
+// the Specs list as a spec called "aide:wiki".
+describe("a wiki build is followed on the Wiki tab, never on the Specs list", () => {
+  test("the Specs list draws no row for it, the full page or the rows alone", async () => {
+    const { base } = start();
+    await post(base, "aide");
+    for (const path of ["/", "/?rows=1"]) {
+      const html = await (await fetch(`${base}${path}`)).text();
+      expect(html).not.toContain("wiki-aide");
+    }
+  });
+
+  test("the Wiki tab shows it running, with its log and a Cancel that comes back to the tab", async () => {
+    const { base } = start();
+    await post(base, "aide");
+    const [job] = (await jobs(base)) as unknown as { id: string }[];
+    const html = await (await fetch(`${base}/projects/aide?tab=wiki`)).text();
+    expect(html).toContain(`/specs/${job!.id}?tab=steps`);
+    expect(html).toContain(`action="/api/queue/${job!.id}/cancel"`);
+    const cancel = await fetch(`${base}/api/queue/${job!.id}/cancel`, {
+      method: "POST", redirect: "manual", headers: { "content-type": "application/x-www-form-urlencoded" },
+    });
+    expect(cancel.status).toBe(303);
+    expect(cancel.headers.get("location")).toBe("/projects/aide?tab=wiki");
   });
 });

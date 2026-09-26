@@ -137,6 +137,16 @@ export const MESSAGES = {
   // A wiki build writes generated pages in wiki/ and nothing else
   // (core/scripts/lib/run-spec-wiki-guard.sh): the script's own sentence,
   // naming what was taken back, stays on the job as hover detail.
+  // A wiki build that ended with no wiki/index.md built nothing, however the
+  // session put it (run-spec-wiki-guard.sh).
+  "runner.wikiBuiltNothing": {
+    en: "the wiki build built nothing — no page was written. — The run's log says why. Build the wiki again from the project's Wiki tab once that is fixed.",
+    nb: "wiki-byggingen bygde ingenting — ingen side ble skrevet. — Loggen for kjøringen sier hvorfor; bygg wikien på nytt fra Wiki-fanen på prosjektet når det er rettet.",
+    es: "la generación de la wiki no generó nada — no se escribió ninguna página. — El registro de la ejecución dice por qué; vuelve a generar la wiki desde la pestaña Wiki del proyecto cuando esté corregido.",
+    de: "Der Wiki-Aufbau hat nichts aufgebaut — keine Seite wurde geschrieben. — Das Protokoll des Laufs sagt, warum; baue das Wiki im Tab Wiki des Projekts erneut auf, sobald das behoben ist.",
+    fr: "la construction du wiki n'a rien construit — aucune page n'a été écrite. — Le journal de l'exécution dit pourquoi ; relancez la construction depuis l'onglet Wiki du projet une fois le problème corrigé.",
+    resolve: "Build the wiki again",
+  },
   "runner.wikiWroteOutsideItsScope": {
     en: "the wiki build wrote something it may not — that was taken back. — Build the wiki again from the project's Wiki tab; a build writes only generated pages in wiki/.",
     nb: "wiki-byggingen skrev noe den ikke har lov til — det er tatt tilbake. — Bygg wikien på nytt fra Wiki-fanen på prosjektet; en bygging skriver bare genererte sider i wiki/.",

@@ -171,6 +171,10 @@ export const en = {
   "project.wikiNote":
     "Builds a wiki of how this project's parts hang together. It is kept in the specs repository and read first when a spec is analyzed. A build rewrites the pages it generated and leaves any page written by hand as it is.",
   "project.wikiButton": "Build wiki",
+  "project.wikiRunning": "A wiki build is running.",
+  "project.wikiLastBuilt": "Last built {date}.",
+  "project.wikiLastEnded": "The last build ended {state}.",
+  "project.wikiLog": "Log",
 
   "newSpec.dependsOn": "Depends on",
   "newSpec.select": "Select",

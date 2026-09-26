@@ -59,6 +59,10 @@ export interface ProjectPageOptions {
   deployError?: string;
   /** A refused Build wiki press, carried back to the Wiki tab by the route. */
   wikiError?: string;
+  /** The project's latest wiki build, drawn on the Wiki tab: a build is a
+   *  job of the project's, never a row on the Specs list. `error` is its
+   *  sentence already in the page's language. */
+  wikiBuild?: { id: string; state: string; finishedAt?: string; error?: string };
   /** The step the last Deploy failed at and why, kept by the server until
    *  the next deploy starts; ranks ahead of `deployError`. */
   deployFailure?: { step: string; error: string };

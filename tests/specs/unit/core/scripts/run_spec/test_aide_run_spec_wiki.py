@@ -279,3 +279,15 @@ def test_building_again_rewrites_generated_pages_and_leaves_a_hand_written_one_A
     files = git(origin["specs"], "ls-tree", "-r", "--name-only", BRANCH).split()
     assert "wiki/queue.md" in files and "wiki/old.md" not in files
     assert show(origin["specs"], "wiki/notes.md") == HAND.strip()
+
+
+# --- a build that built nothing ----------------------------------------------
+
+
+def test_a_build_that_wrote_no_wiki_ends_as_no_progress_not_as_done(runner, workspace, fake_claude, origin):
+    """The first build on the board was refused every aide-wiki call, said so,
+    and still read as done: a completed run that leaves no index built nothing."""
+    claude = job(fake_claude, "echo 'I could not build the wiki.' >&2\n" + FINISHED)
+    rc, out, _ = wiki(runner, workspace, claude)
+    assert out["ok"] is False and out["terminalReason"] == "no-progress", out
+    assert "left no wiki" in out["error"], out

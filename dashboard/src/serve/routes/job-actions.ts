@@ -11,6 +11,7 @@ import { acceptanceCriteriaUnticked, parseStatus, reopenedRound, roundGate } fro
 import { isLegalMove, phaseFromState } from "../../queue/spec-transitions.ts";
 import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../serve-helpers";
 import type { RoutesContext } from "./";
+import { isWikiBuild } from "../../queue/steps.ts";
 
 // A spec analyzed before spec 355 landed carries no 4-status.json yet —
 // the same gap schedules.ts's own `proseSteps` falls back for
@@ -267,6 +268,11 @@ export async function handleJobActionRoutes(
     // children, and a kill that only reaches the parent is not a
     // bound.
     signalGroup(job.pgid);
+    // A wiki build is followed on its project's Wiki tab, and that is where
+    // its Cancel came from.
+    if (!wantsJson && isWikiBuild(job)) {
+      return new Response(null, { status: 303, headers: { location: `/projects/${encodeURIComponent(job.project)}?tab=wiki` } });
+    }
     return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect(view);
   }
 

@@ -236,8 +236,3 @@ export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
   return runForm + primary;
 }
 
-/** The one control a wiki build's row has: Cancel, while the build is
- *  unfinished. */
-export function wikiCancel(g: SpecGroup, opts: SpecsPageOptions, lang: Language): string {
-  return specBusy(g) ? actionForm(g.lead!, opts.filter, lang) : "";
-}
