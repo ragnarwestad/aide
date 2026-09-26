@@ -253,8 +253,7 @@ export function parseJobRequest(
   const resetFiles =
     steps.length === 1 && steps[0] === "reopen" &&
     (r.resetFiles === true || r.resetFiles === "1" || r.resetFiles === "on");
-  // A wiki job that refreshes rather than builds. Only a job that is
-  // exactly one `wiki` step can carry it.
+  // A wiki job that refreshes rather than builds: a lone `wiki` step only.
   const wikiRefresh = steps.length === 1 && steps[0] === "wiki" && r.wikiRefresh === true;
 
   // Per step, each against its OWN ceiling: an override that would be a
