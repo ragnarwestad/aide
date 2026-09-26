@@ -54,9 +54,16 @@ export function buildNavigation(
   /** The fold's own chevron, on the same delegated listener: the
    *  control that DOES navigate. Without it the button-click tests
    *  would pass against a listener that had stopped working. */
+  const foldAttrs: Record<string, string> = {
+    href: "/?open=aide%2F127-one-ai",
+    "data-fold": "open",
+    "data-key": "aide/127-one-ai",
+  };
   const foldLink = {
-    getAttribute: (n: string) => (n === "href" ? "/?open=aide%2F127-one-ai" : null),
+    getAttribute: (n: string) => foldAttrs[n] ?? null,
     closest: (sel: string) => (sel.includes("data-nav") ? foldLink : null),
+    innerHTML: "<svg></svg>",
+    isConnected: true,
   };
   const clickFold = () => fire("click", foldLink);
   /** A press on any `a[data-nav]` link, by its own href (spec 500: the
@@ -69,7 +76,7 @@ export function buildNavigation(
     return fire("click", link);
   };
 
-  return { submit, submitCreate, click, clickFold, clickHref, fire };
+  return { submit, submitCreate, click, clickFold, clickHref, fire, foldLink };
 }
 
 /** `document.querySelectorAll`, as `harness()`'s fake document answers

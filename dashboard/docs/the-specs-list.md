@@ -38,6 +38,11 @@ but the one that opens it: a chevron in front of the name. Under it sit the row'
 line among them when the spec has one. They belong to the shut row, so a reader sees what went wrong without opening
 it.
 
+A spec's own › — the row's chevron and the criteria's — redraws that spec's rows alone: the page asks for `?rows=1&only=<project>/<spec>`
+and replaces just those rows, since the whole list runs to a megabyte once the archive is on it. The chevron is a
+spinner until they are back. Every other link on the page takes the open rows from the address rather than from its
+own href, which was drawn before the last ›.
+
 Each spec is a card: its rows share one rounded frame on the page's ground, and an empty `tr.specgap` row after the
 group's last row puts the space between two cards. The gap closes a group rather than opening the next, because the
 row refresh treats a spec as its head row and every row up to the next head row — a gap in front of a spec would be

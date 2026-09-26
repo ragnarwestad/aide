@@ -21,6 +21,7 @@ import type { StepOutcome } from "../queue/runner";
 import type { Notifier } from "../integrations/notify.ts";
 import { specAcceptanceNotRequired, type CodeLanding } from "../project/discover";
 import { runnerArgv, DEFAULT_QUEUE_CONCURRENCY } from "./serve-helpers";
+import { analysisSessionToResume, stepTool } from "./serve-helpers/runner-argv.ts";
 
 export interface RunnerSetupContext {
   store: QueueStore;
@@ -202,6 +203,10 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
             model: ctx.store.defaults.model,
             acceptanceNotRequiredForAnalyze:
               step === "analyze" ? acceptanceNotRequiredForAnalyze(ctx, job) : false,
+            resumeSession:
+              step === "implement" && ctx.store.defaults.resumeAnalysis
+                ? analysisSessionToResume(job, ctx.store.list(), stepTool(job, step, ctx.store.defaults), Date.now())
+                : undefined,
           },
           sessionId,
           streamFile,

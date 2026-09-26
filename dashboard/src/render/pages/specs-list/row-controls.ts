@@ -31,7 +31,8 @@ export function foldControl(g: SpecGroup, f: SpecsFilter, opened: Set<string>, l
   const next = shut ? [...opened, key] : [...opened].filter((k) => k !== key);
   const action = t(lang, shut ? "list.foldShow" : "list.foldHide");
   return (
-    `<a class="fold${shut ? " shut" : ""}" data-nav href="${queueHref(f, { open: next.join(",") })}" ` +
+    `<a class="fold${shut ? " shut" : ""}" data-nav data-fold="open" data-key="${esc(key)}" ` +
+    `href="${queueHref(f, { open: next.join(",") })}" ` +
     // The key is never the visible content — anything in `?open=` is
     // attacker-chosen text, and an icon cannot be mistaken for markup.
     `aria-expanded="${shut ? "false" : "true"}" ` +

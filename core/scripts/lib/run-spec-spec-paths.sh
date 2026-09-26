@@ -635,6 +635,14 @@ if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reopen_keep_no_ai" ] \
   fi
 else
   run_model_turn "$work_dir/prompt"
+  # The analysis's session could not be continued — gone, or refused by
+  # the tool: the implement starts afresh, as it would have without it.
+  if [ -n "$resume_session" ] && [ "$terminal_reason" = "cli-error" ]; then
+    echo "aide-run-spec: the analysis session $resume_session could not be continued; starting the implement afresh" >&2
+    argv=("${fresh_argv[@]}"); resume_session=""
+    session_out=""; subtype=""; cost="0"; cost_measured="false"; terminal_reason=""; error_msg=""
+    run_model_turn "$work_dir/prompt"
+  fi
 fi
 
 ok="false"

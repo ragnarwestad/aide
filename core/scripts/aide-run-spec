@@ -79,7 +79,7 @@ Usage:
                  [--reason R] [--acceptance-not-required] [--no-ai-formulate] [--wiki-refresh]
                  [--prompt-file F] [--timeout-sec S] [--permission-mode M]
                  [--result-file F] [--model M] [--effort E] [--tool T]
-                 [--session-id S] [--stream-file F] [--kill-grace-sec S]
+                 [--session-id S] [--resume-session S] [--stream-file F] [--kill-grace-sec S]
                  [--push none|branch|pr] [--worktree-base P] [--pull] [--dry-run]
 USAGE
       exit 0 ;;

@@ -166,37 +166,9 @@ $step_tests_failing"
         fi
         printf '%s\n' "The project's test suite is red on what you delivered. The runner ran it itself; this is what failed:" "" "$step_tests_failing" "" \
           "$step_fix_ask" > "$work_dir/prompt-fix-$step_fix_round"
-        # The same argv, resumed: the dashboard's minted id becomes the
-        # session to continue.
-        # Codex resumes through `codex exec resume <thread> -` (the
-        # prompt on stdin, as before): the thread id is the one its
-        # first turn named, and `resume` takes the bypass flag and the
-        # model but neither `--sandbox` nor `--add-dir` (verified on
-        # 0.154.0) — the thread keeps what it started with, so those
-        # pairs are dropped rather than refused.
-        step_retry_argv=()
-        step_argv_skip="no"
-        step_resumes="no"
-        for step_arg in "${argv[@]}"; do
-          if [ "$step_argv_skip" = "yes" ]; then step_argv_skip="no"; continue; fi
-          case "$step_arg" in
-            --session-id|--resume) step_retry_argv+=(--resume "$session_out"); step_resumes="yes"; step_argv_skip="yes" ;;
-            --sandbox|--add-dir) step_argv_skip="yes" ;;
-            exec) step_retry_argv+=(exec resume); step_resumes="yes" ;;
-            *) step_retry_argv+=("$step_arg") ;;
-          esac
-        done
-        if [ "$tool" = "codex" ]; then
-          step_retry_argv+=("$session_out" -)
-        elif [ "$tool" = "opencode" ]; then
-          # `--session <id>`, not `--resume`: opencode's own spelling
-          # (`opencode run --help`, 1.18.31). The subcommand stays `run`,
-          # so nothing above rewrote it and nothing here has to.
-          step_retry_argv+=(--session "$session_out")
-        else
-          [ "$step_resumes" = "yes" ] || step_retry_argv+=(--resume "$session_out")
-        fi
-        argv=("${step_retry_argv[@]}")
+        # The same argv, resumed: the session the step's own turns ran in.
+        resume_argv "$session_out"
+        argv=("${resumed_argv[@]}")
         run_model_turn "$work_dir/prompt-fix-$step_fix_round"
         step_cost_total="$(jq -n --arg a "$step_cost_total" --arg b "$cost" '(($a|tonumber) + ($b|tonumber))')"
         cost="$step_cost_total"

@@ -49,6 +49,32 @@ export function stepTool(
   return ((choiceName ? o.modelChoices?.[choiceName]?.tool : undefined) ?? "claude") as CheckableTool;
 }
 
+/** How recent an analysis must be for its implement to continue its
+ *  session: past that, the tool's cache of it is gone, and reading the
+ *  whole session back at full price costs more than starting afresh. */
+export const RESUME_ANALYSIS_WITHIN_MS = 60 * 60_000;
+
+/** The session an implement continues: the latest finished analysis of the
+ *  same spec, when it ran with the same AI the implement will and ended
+ *  within the hour. Undefined means the implement starts afresh. */
+export function analysisSessionToResume(
+  job: Job,
+  jobs: readonly Job[],
+  tool: string,
+  now: number,
+): string | undefined {
+  let latest: { sessionId?: string; tool?: string; at?: string } | undefined;
+  for (const j of jobs) {
+    if (j.project !== job.project || j.specFolder !== job.specFolder) continue;
+    for (const r of j.results) {
+      if (r.step !== "analyze" || !r.ok || !r.at) continue;
+      if (!latest || r.at > (latest.at ?? "")) latest = r;
+    }
+  }
+  if (!latest?.sessionId || (latest.tool ?? "claude") !== tool) return undefined;
+  return now - Date.parse(latest.at!) <= RESUME_ANALYSIS_WITHIN_MS ? latest.sessionId : undefined;
+}
+
 export function resolveStepModel(job: Job, step: string, live: Record<string, string>): string | undefined {
   return job.model[step] ?? job.modelChoice ?? live[step] ?? live.default;
 }
@@ -106,6 +132,8 @@ export function runnerArgv(
      *  a fresh read of the spec's own record, never from `job` itself.
      *  Meaningless, and ignored, for every step but `analyze`. */
     acceptanceNotRequiredForAnalyze?: boolean;
+    /** The analysis session an implement continues, when there is one. */
+    resumeSession?: string;
   },
   sessionId?: string,
   streamFile?: string,
@@ -155,6 +183,7 @@ export function runnerArgv(
     // spec 511: only a `reopen` job that asked for it — absent, the
     // runner keeps the analysis, the plan and the status.
     ...(step === "reopen" && job.resetFiles ? ["--reset-files"] : []),
+    ...(step === "implement" && o.resumeSession ? ["--resume-session", o.resumeSession] : []),
     // Only a wiki job the board queued after an archive: rewrite the pages
     // whose files changed, not all of them.
     ...(step === "wiki" && job.wikiRefresh ? ["--wiki-refresh"] : []),

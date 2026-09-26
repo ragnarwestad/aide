@@ -5,7 +5,7 @@
 // Every check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own — which is what lets the
 // three be asked one after another exactly as the chain read before.
-import { NEW_SPEC_ROUTE, renderNewSpecPage, renderSpecsPage, renderSpecsRows, resolveBackHref } from "../../../render";
+import { NEW_SPEC_ROUTE, renderNewSpecPage, renderSpecGroupRows, renderSpecsPage, renderSpecsRows, resolveBackHref } from "../../../render";
 import { languageChoice, specsClientScript, sortChoice, stateChoice } from "../../serve-helpers";
 import { phaseMessagesFor } from "../../spec-views/phase-messages.ts";
 import { isWikiBuild } from "../../../queue/steps.ts";
@@ -176,7 +176,11 @@ export async function specsPages(
       if (chosenSort.setCookie) rowHeaders.append("set-cookie", chosenSort.setCookie);
       if (stateResult.setCookie) rowHeaders.append("set-cookie", stateResult.setCookie);
       if (langResult.setCookie) rowHeaders.append("set-cookie", langResult.setCookie);
-      return new Response(renderSpecsRows(await Promise.all(listed.map(ctx.jobRow)), view), {
+      const rows = await Promise.all(listed.map(ctx.jobRow));
+      // `only`: the one spec a › opened or shut, so the page swaps that
+      // row and not the whole list.
+      const only = url.searchParams.get("only");
+      return new Response(only ? renderSpecGroupRows(rows, view, only) : renderSpecsRows(rows, view), {
         headers: rowHeaders,
       });
     }

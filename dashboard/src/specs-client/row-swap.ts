@@ -295,6 +295,48 @@ function removeGroup(key: string): boolean {
  *  rows afterwards, so the DOM is no longer what the server sent. */
 let lastRows: RowSplit | null = null;
 
+/** What every redraw owes the rows it drew: the limits, the reader's
+ *  own picks put back, and each AI's own models offered. */
+function redrawn(body: Element): void {
+  drawLimits(body);
+  restoreChosen(body);
+  // After the restore, never before: a model put back by hand may
+  // belong to the other tool, and the list has to follow the value
+  // that ends up in the select.
+  offerEachToItsTool(body);
+}
+
+/** One spec's rows, after its own › was pressed: the server draws that
+ *  spec alone and only its rows are replaced. The whole list is a
+ *  megabyte once the archive is on it, and fetching and redrawing all of
+ *  it to open one row took one to three seconds. Anything this cannot
+ *  account for — the spec no longer shown, a failed fetch — redraws the
+ *  whole list the old way. */
+export async function swapSpec(key: string): Promise<void> {
+  const body = document.getElementById("jobrows");
+  if (!body) return;
+  const gen = press.pressGen;
+  const params = new URLSearchParams(location.search);
+  params.set("rows", "1");
+  params.set("only", key);
+  try {
+    const res = await fetch(`/?${params}`, { headers: { accept: "text/html" } });
+    const one = res.ok ? splitGroups(await res.text()) : null;
+    // The same rule as `swapRows`: a press that began meanwhile draws
+    // its own answer.
+    if (press.pressGen !== gen) return;
+    const group = one?.groups.length === 1 ? one.groups[0]! : null;
+    if (!group || !replaceGroup(group)) return swapRows();
+    // Kept level with the page, so the next whole-list diff compares
+    // against what this spec's rows now are.
+    const at = lastRows?.groups.findIndex((g) => g.key === group.key) ?? -1;
+    if (at !== -1) lastRows!.groups[at] = group;
+    redrawn(body);
+  } catch {
+    return swapRows();
+  }
+}
+
 // The filter and the sort live in the address bar, so the refresh has
 // to ask for the same list the reader is looking at — otherwise every
 // tick would quietly throw the filter away.
@@ -335,12 +377,7 @@ export async function swapRows(): Promise<void> {
     lastRows = next;
     const wrap = body.querySelector(".tablewrap") as HTMLElement | null;
     if (wrap) wrap.scrollTop = scrolled;
-    drawLimits(body);
-    restoreChosen(body);
-    // After the restore, never before: a model put back by hand may
-    // belong to the other tool, and the list has to follow the value
-    // that ends up in the select.
-    offerEachToItsTool(body);
+    redrawn(body);
   } catch {
     // offline, server restarting, tailnet hiccup: try again next tick
   } finally {
