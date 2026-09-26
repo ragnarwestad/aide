@@ -234,7 +234,7 @@ command as its placeholder, so a save that never touched it configures nothing. 
 checkout's own top-level `.gitignore` entries under it. The five text fields are as wide as their cell and grow to
 show the whole value; with the board's script on, Enter saves, and a value is always one line — a line break in it is
 folded to a space. Save and Cancel both return to
-`/projects/<name>`, and `/projects/<name>/settings` redirects there too.
+`/projects/<name>?tab=config`, and `/projects/<name>/settings` redirects there too.
 
 Where each value is written is not one rule but two. Specs path and Install command go to `.aide/config`, which is
 never committed. Worktree links, Preview command, Test command and Code landing go to the manifest — the project's
