@@ -89,15 +89,9 @@ def e2e_workspace(tmp_path, workspace_root):
         if src.exists():
             shutil.copytree(src, workspace / d)
 
-    # Create spec directories
-    (workspace / "specs" / "todo").mkdir(parents=True)
+    # The specs root the tests configure; the skills come from what is
+    # installed on the machine, as for a person's own run.
+    (workspace / "specs").mkdir(parents=True)
     (workspace / "test-output").mkdir(parents=True)
-
-    # Copy Claude Code commands (direct sources)
-    claude_commands = workspace_root / "implementations" / "claude-code" / "commands"
-    if claude_commands.exists():
-        target_commands = workspace / ".claude" / "commands"
-        target_commands.mkdir(parents=True)
-        shutil.copytree(claude_commands, target_commands, dirs_exist_ok=True)
 
     return workspace

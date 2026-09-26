@@ -195,16 +195,26 @@ def test_real_workspace(workspace_root):
 
 ### `e2e_workspace`
 
-Creates an isolated workspace for E2E tests with the required structure.
+Creates an isolated workspace for E2E tests: a `tmp_path` with a copy of `core/` and an empty `specs/`. The skills
+come from what is installed on the machine (`./install-all.sh`), as for a person's own run.
+
+The three e2e tests (`tests/specs/e2e/`) share one workflow in that folder's `conftest.py`: the `e2e_env` fixture
+configures the specs root, and `run_workflow` runs `aide-create` then `aide-analyze` and checks the result. Each test
+file only says how its CLI runs a skill:
 
 ```python
 @pytest.mark.e2e
-def test_aide_workflow(e2e_workspace, workspace_root):
-    # e2e_workspace is a tmp_path with core/ and specs/ structure
-    # Environment variables are automatically set to e2e_workspace
-    specs_path = e2e_workspace / "specs"
-    assert specs_path.exists()
+def test_aide_create_then_analyze(e2e_env):
+    workspace, specs, env = e2e_env
+
+    def invoke(skill, argument, timeout):
+        return subprocess.run(["claude", "-p", f"/{skill} {argument}"], ...)
+
+    run_workflow(invoke, specs)
 ```
+
+They call the real CLIs and are billed, so `pytest.ini` leaves them out. Run one with
+`.venv/bin/pytest -m e2e tests/specs/e2e/test_claude_e2e.py`.
 
 ## Adding new tests
 
