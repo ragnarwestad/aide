@@ -9,7 +9,6 @@
 import { describe, expect, test } from "bun:test";
 import {
   finalMessage,
-  summarizeCommands,
   summarizeOpencodeStream,
   summarizeStream,
 } from "../../../src/queue/parse-stream";
@@ -90,10 +89,9 @@ describe("summarizeStream telling the schemas apart", () => {
   });
 });
 
-// The three readers a transcript has, not one: the progress line, the
-// commands table and the run's closing word. Adding opencode to the
-// first alone left the other two reading its transcript as Claude's and
-// finding nothing — empty where it should have been full.
+// The two readers a transcript has, not one: the progress line and the
+// run's closing word. Adding opencode to the first alone left the other
+// reading its transcript as Claude's and finding nothing.
 
 const CMD_STREAM = [
   line({
@@ -129,29 +127,6 @@ const CMD_STREAM = [
   line({ type: "text", sessionID: SESSION, part: { type: "text", text: "half way" } }),
   line({ type: "text", sessionID: SESSION, part: { type: "text", text: "all done" } }),
 ].join("\n");
-
-describe("summarizeCommands for opencode", () => {
-  test("a shell command reaches the table with its exit code and its duration", () => {
-    const commands = summarizeCommands(CMD_STREAM);
-    expect(commands).toEqual([
-      { command: "echo hello-from-shell", outcome: { kind: "exitCode", code: 0 }, durationMs: 250 },
-      { command: "false", outcome: { kind: "exitCode", code: 1 }, durationMs: 10 },
-    ]);
-  });
-
-  test("a tool that is not the shell is not reported as a command", () => {
-    expect(summarizeCommands(CMD_STREAM).some((c) => c.command.includes("read"))).toBe(false);
-  });
-
-  test("an exit code that is not there is never invented", () => {
-    const noExit = line({
-      type: "tool_use",
-      sessionID: SESSION,
-      part: { type: "tool", tool: "bash", state: { input: { command: "still running" } } },
-    });
-    expect(summarizeCommands(noExit)).toEqual([]);
-  });
-});
 
 describe("finalMessage for opencode", () => {
   test("the LAST thing the run said is its closing word", () => {

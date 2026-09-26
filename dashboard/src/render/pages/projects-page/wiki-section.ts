@@ -52,7 +52,7 @@ export function wikiSection(name: string, opts: ProjectPageOptions): string {
         tabHref: esc(`/projects/${encodeURIComponent(name)}?tab=wiki`),
         openStep: opts.wikiLog.step,
         runningStep: opts.wikiLog.runningStep,
-        only: opts.wikiLog.only,
+        steptab: opts.wikiLog.steptab,
         lang,
       })
     : "";

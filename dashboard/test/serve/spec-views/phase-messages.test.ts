@@ -176,7 +176,7 @@ describe("the key it returns is the Logs tab's own (AC-5)", () => {
     const q = queueOf(jobs);
     const view = await specPageView(ctxFor(jobs), "aide", "500-x");
     const steps = view!.steps!;
-    const indexOf = (text: string) => steps.findIndex((s) => (s.logs ?? []).join("\n").includes(text));
+    const indexOf = (text: string) => steps.findIndex((s) => (s.logs ?? []).flatMap((p) => p.lines).join("\n").includes(text));
     expect(phaseMessagesFor(q, ["j1"], "analyze")?.step).toBe(String(indexOf("a1")));
     expect(phaseMessagesFor(q, ["j1"], "implement")?.step).toBe(String(indexOf("i1")));
     expect(phaseMessagesFor(q, ["j2", "j1"], "analyze")?.step).toBe(String(indexOf("a2")));

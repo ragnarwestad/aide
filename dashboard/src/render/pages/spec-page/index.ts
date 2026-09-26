@@ -46,7 +46,6 @@
 // reopen question). `renderSpecPage` itself — the one function
 // that assembles all of them — stays here.
 
-import type { LogFilter } from "../../../queue/parse-stream";
 import { badge, helpPopover, rowMessage } from "../../ui/components";
 import { projectLink } from "../../ui/components/spec-name.ts";
 import { gerund } from "../../../format/gerund.ts";
@@ -76,7 +75,7 @@ export { renderReopenSpecPage } from "./reopen-page.ts";
 interface SpecPageOpts {
   tab?: string;
   step?: string;
-  only?: LogFilter;
+  steptab?: string;
   now?: number;
   script?: string;
   scriptSrc?: string;
@@ -147,7 +146,8 @@ function specPageBody(view: SpecPageView, opts: SpecPageOpts): { body: string; t
           tabHref,
           openStep: opts.step,
           runningStep: lead?.runningStep,
-          only: opts.only,
+          steptab: opts.steptab,
+          lang: opts.lang,
           mark,
           // The same table, so the same answer: a step whose merge was
           // refused must not read "ok" here either.

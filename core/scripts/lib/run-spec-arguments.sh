@@ -165,6 +165,7 @@ refuse() {
   line="$(jq -cn --arg e "$msg" --arg r "$reason" \
     '{ok:false, exitCode:2, terminalReason:"refused", costUsd:0, costMeasured:false, error:$e}
      + (if $r == "" then {} else {errorReason:$r} end)')"
+  stage_error "$msg"
   printf '%s\n' "$line"
   [ -n "$result_file" ] && printf '%s\n' "$line" > "$result_file" 2>/dev/null
   exit 2

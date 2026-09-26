@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { resolveLogFilter, summarizeEntries } from "../../../src/queue/parse-stream";
+import { summarizeEntries } from "../../../src/queue/parse-stream";
 
 // The messages filter (spec 500): only what the model wrote, asked for
 // before the bound, in all three transcript schemas.
@@ -45,9 +45,5 @@ describe("the messages filter", () => {
     for (let i = 1; i <= 10; i++) lines.push(claudeText(`note ${i}`));
     for (let i = 0; i < 40; i++) lines.push(claudeTool("Bash", { command: `cmd ${i}` }));
     expect(texts(lines.join("\n"), "claude")).toHaveLength(10);
-  });
-
-  test("the Logs tab's ?only= still refuses it (AC-2)", () => {
-    expect(resolveLogFilter("messages")).toBeUndefined();
   });
 });

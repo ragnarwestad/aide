@@ -22,6 +22,7 @@ import type { Notifier } from "../integrations/notify.ts";
 import { specAcceptanceNotRequired, type CodeLanding } from "../project/discover";
 import { runnerArgv, DEFAULT_QUEUE_CONCURRENCY } from "./serve-helpers";
 import { analysisSessionToResume, stepTool } from "./serve-helpers/runner-argv.ts";
+import { openRunLog } from "../queue/runner/run-log-path.ts";
 
 export interface RunnerSetupContext {
   store: QueueStore;
@@ -214,9 +215,10 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
         env,
         detached: true,
         // stdout is ignored (the result FILE is the contract), but
-        // stderr goes to a per-job log: when the runner died
-        // mid-job the first time, nothing on this machine said why.
-        stdio: ["ignore", "ignore", Bun.file(`${resultFile}.log`)],
+        // stderr goes to the step's own run log: when the runner died
+        // mid-job the first time, nothing on this machine said why, and
+        // the job page shows it in the step's Log.
+        stdio: ["ignore", "ignore", openRunLog(streamFile)],
       });
       proc.unref();
       return { pid: proc.pid, pgid: proc.pid };

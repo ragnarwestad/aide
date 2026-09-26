@@ -55,7 +55,7 @@ describe("the Wiki tab shows the latest build", () => {
 // The build's log is on this tab, not behind a link to a page of its own
 // that nothing else in the board leads to.
 describe("the Wiki tab carries the latest build's log", () => {
-  const step = { step: "wiki", ok: true, costUsd: 0.1, costMeasured: true, terminalReason: "completed", logs: ["wrote landing.md"] };
+  const step = { step: "wiki", ok: true, costUsd: 0.1, costMeasured: true, terminalReason: "completed", logs: [{ by: "aide", lines: ["wrote landing.md"] }] };
 
   test("its step is listed, and opening it stays on the Wiki tab", () => {
     const html = page({
@@ -65,6 +65,29 @@ describe("the Wiki tab carries the latest build's log", () => {
     });
     expect(html).toContain('href="/projects/aide?tab=wiki&step=');
     expect(html).not.toContain("/jobs/");
+  });
+
+  test("an opened step shows the same strip as the spec page's Logs tab, on the tab the address names (AC-10)", () => {
+    const html = page({
+      tab: "wiki",
+      wikiBuild: { id: "j1", state: "done", finishedAt: "2026-09-26T10:00:00Z" },
+      wikiLog: { results: [step], step: "0", steptab: "files" },
+    });
+    const tabs = (html.match(/<a class="tab"[^>]*>[^<]*<\/a>/g) ?? []).filter((a) => a.includes("steptab="));
+    expect(tabs.map((a) => a.replace(/<[^>]+>/g, ""))).toEqual(["Log", "Changed files", "Errors"]);
+    expect(tabs[1]).toContain('aria-current="true"');
+    expect(tabs[1]).toContain('href="/projects/aide?tab=wiki&step=0&steptab=files"');
+  });
+
+  test("an opened step draws its parts under the separators of the Logs tab (AC-10)", () => {
+    const parts = [{ by: "aide-before", lines: ["10:45:08 +0s fetching main"] }, { by: "ai", lines: ["wrote landing.md"] }];
+    const html = page({
+      tab: "wiki",
+      wikiBuild: { id: "j1", state: "done", finishedAt: "2026-09-26T10:00:00Z" },
+      wikiLog: { results: [{ ...step, logs: parts, aiModel: "Claude Sonnet" }], step: "0" },
+    });
+    expect(html.match(/— Aide: preparing —/g)).toHaveLength(1);
+    expect(html).toContain("— AI (Claude Sonnet) —");
   });
 
   test("with no build yet there is no log", () => {

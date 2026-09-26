@@ -5,20 +5,32 @@
 import { specPhaseFile } from "../../project/discover";
 import type { JobDetailView } from "../../render";
 import type { Job } from "../../queue/queue.ts";
-import { resolveStepModel, tailFile } from "../serve-helpers";
-import { finalMessage, summarizeCommands, summarizeEntries, type LogFilter } from "../../queue/parse-stream";
+import { existsSync } from "node:fs";
+import { resolveStepModel, tailFile, tailFileAt } from "../serve-helpers";
+import { stepLog } from "../../queue/parse-stream";
+import { RUN_LOG_MAX_BYTES, runLogPath } from "../../queue/runner/run-log-path.ts";
 import { diffStatBetween } from "../../git/diff-stat.ts";
 import type { SpecViewsContext } from "./";
 
-/** `only` is the Logs tab's filter, read from the URL. It is applied
- *  HERE rather than in the renderer so the bound is per kind: "the last
- *  40 commands", not "the commands among the last 40 lines" — a step
- *  whose tail is all prose would otherwise answer "no commands" for a
- *  step that ran twenty. */
+/** The AI's name in its separator: the tool and the model choice, each word
+ *  capitalised (`Claude Sonnet`); a choice that starts with the tool's name is
+ *  not prefixed again (`Codex`). Nothing for a step that ran no AI. */
+export function aiLabel(tool: string | undefined, choice: string | undefined): string | undefined {
+  if (!tool || tool === "none") return undefined;
+  const cap = (w: string) => w.charAt(0).toUpperCase() + w.slice(1);
+  const words = choice && !choice.toLowerCase().startsWith(tool.toLowerCase()) ? [tool, choice] : [choice ?? tool];
+  return words.map(cap).join(" ");
+}
+
+/** The step's run log, when it has one. */
+function readRunLog(streamFile: string): string | undefined {
+  const path = runLogPath(streamFile);
+  return existsSync(path) ? tailFile(path, RUN_LOG_MAX_BYTES) : undefined;
+}
+
 export async function jobDetailView(
   ctx: SpecViewsContext,
   job: Job,
-  only?: LogFilter,
 ): Promise<JobDetailView> {
   const target = ctx.targets().find((t) => t.project === job.project && t.specFolder === job.specFolder);
   // Which CLI this page is about (spec 125). A running step's tool is
@@ -39,6 +51,12 @@ export async function jobDetailView(
   const shownStep = step ?? job.steps[job.steps.length - 1];
   const dir = ctx.specDir(job.project, job.specFolder);
   const phase = dir && shownStep ? specPhaseFile(dir, shownStep) : null;
+  // The running step is built from the job's live transcript, with no final message.
+  const liveRunLog = running && step && job.streamFile ? readRunLog(job.streamFile) : undefined; // before the transcript
+  const live =
+    running && step && job.streamFile
+      ? stepLog(tailFileAt(job.streamFile), liveRunLog, { tool: named, final: false })
+      : undefined;
   return {
     ...(await ctx.jobRow(job)),
     tool,
@@ -47,14 +65,18 @@ export async function jobDetailView(
     // Each finished step's OWN transcript (spec 240), read from its
     // own `streamFile` rather than the job's last one — a three-step
     // attempt used to make only its last step's log reachable at all.
-    // Spec 452: the same text also yields the Logs tab's summary —
-    // which commands ran and the assistant's own final message — and
-    // `r.repos` (its own commit range) yields the changed-files list,
-    // via one `git diff --numstat` per repo the step touched.
+    // The same text also yields the log lines, the error lines and the
+    // assistant's own final message, and `r.repos` (its own commit
+    // range) yields the changed-files list, via one `git diff --numstat`
+    // per repo the step touched.
     results: await Promise.all(
       job.results.map(async (r) => {
         const tool = r.tool ?? named;
-        const text = r.streamFile ? tailFile(r.streamFile) : undefined;
+        // The run log first, the transcript second: every offset in the log is then at most
+        // the size the transcript has when it is read, whether or not the step is still running.
+        const runLog = r.streamFile ? readRunLog(r.streamFile) : undefined;
+        const tail = r.streamFile ? tailFileAt(r.streamFile) : undefined;
+        const choice = resolveStepModel(job, r.step, ctx.queue.defaults.model ?? {});
         const changedFiles = r.repos
           ? (
               await Promise.all(
@@ -62,12 +84,13 @@ export async function jobDetailView(
               )
             ).flat()
           : undefined;
+        const shown = tail ? stepLog(tail, runLog, { tool, final: true }) : undefined;
         return {
           ...r,
           tokens: r.tokens?.total,
-          logs: text ? summarizeEntries(text, { tool, only }).map((e) => e.text) : undefined,
-          commands: text ? summarizeCommands(text, { tool }) : undefined,
-          finalMessage: text ? finalMessage(text, { tool }) : undefined,
+          logs: shown?.logs,
+          errors: shown?.errors,
+          aiModel: aiLabel(tool, choice),
           changedFiles,
         };
       }),
@@ -81,9 +104,9 @@ export async function jobDetailView(
         ? {
             step,
             sessionId: job.sessionId,
-            logs: job.streamFile
-              ? summarizeEntries(tailFile(job.streamFile), { tool: named, only }).map((e) => e.text)
-              : [],
+            logs: live?.logs ?? [],
+            errors: live?.errors ?? [],
+            aiModel: aiLabel(tool, resolveStepModel(job, step, ctx.queue.defaults.model ?? {})),
           }
         : undefined,
     archiveHeldBack: target?.archiveHeldBack?.reason,

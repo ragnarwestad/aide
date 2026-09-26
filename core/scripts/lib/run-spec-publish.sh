@@ -304,6 +304,7 @@ EXCLUDES_EOF
     changed="$(git -C "$wt" status --porcelain -- . ${excludes[@]+"${excludes[@]}"} 2>/dev/null | wc -l | tr -d ' ')"
     if [ "$changed" -gt 0 ]; then
       changed_files_per_root[i]=$(( ${changed_files_per_root[i]:-0} + changed ))
+      stage "committing in $root"
       git -C "$wt" add -A -- . ${excludes[@]+"${excludes[@]}"} >/dev/null 2>&1
       head_now="$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "")"
       # Compared against ${head_after_per_root[$i]} — the tip as THIS

@@ -33,7 +33,7 @@ describe("the job page's facts, in Norwegian", () => {
           {
             step: "analyze", ok: true, costUsd: 0.42, costMeasured: true,
             terminalReason: "completed", at: "2026-08-16T10:01:00Z",
-            logs: ["Bash ls"],
+            logs: [{ by: "ai", lines: ["Bash ls"] }],
           },
         ],
       }),

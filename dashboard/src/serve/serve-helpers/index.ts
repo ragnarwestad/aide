@@ -26,7 +26,7 @@ export {
 export {
   specsClientScript, specEditorClientScript, serveSpecEditorAsset,
   SPEC_EDITOR_ASSET_PATH, specViewerClientScript, serveSpecViewerAsset, SPEC_VIEWER_ASSET_PATH,
-  etagFor, STREAM_TAIL_BYTES, tailFile, serveStatic, servePwaAsset,
+  etagFor, STREAM_TAIL_BYTES, tailFile, tailFileAt, serveStatic, servePwaAsset,
 } from "./static.ts";
 
 export { compressResponse } from "./compression.ts";

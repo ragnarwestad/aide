@@ -33,6 +33,7 @@ Two pages sit beside this one:
 - [How a run touches the repositories](#how-a-run-touches-the-repositories)
 - [What counts as a step having run](#what-counts-as-a-step-having-run)
 - [What a finished step publishes](#what-a-finished-step-publishes)
+- [The run log](#the-run-log)
 - [Running a step by hand](#running-a-step-by-hand)
 
 ---
@@ -239,6 +240,26 @@ manifest says `codeLanding: pr`.
 or step, because the project may have nothing to do with Aide: the session writes the message to a file the prompt
 names, the spec's title stands in when it wrote none, and a stopped step's is marked `WIP:`. The pull request takes
 that message's subject as its title and the rest as its description.
+
+## The run log
+
+What `aide-run-spec` prints to stderr is kept per step as `<job id>.<step>.run.log`, beside the transcript
+`<job id>.<step>.stream.jsonl`. `src/queue/runner/run-log-path.ts` names it from the transcript's path and empties it
+before each spawn; the job page reads it (up to 1 MiB) before the transcript and merges the two into the step's Log
+(`src/queue/parse-stream/step-log.ts`). A step run before the file existed has a transcript and no run log, and shows
+the transcript alone. The grammar is the whole contract between the bash script and the page:
+
+```text
+aide-run-spec HH:MM:SS +Ns <text>                                      something the run did
+aide-run-spec HH:MM:SS +Ns error: <text>                               a failure, listed in the Errors tab
+aide-run-spec HH:MM:SS +Ns model turn started (transcript at byte N)   where the AI's next turn begins
+aide-run-spec: <text>                                                  an older, unstamped note
+<anything else>                                                        another script's line on stderr
+```
+
+Every physical line is its own line. Only the `error: ` prefix marks an error and only the turn line marks a turn:
+the transcript is cut at each turn's byte, and Aide's lines go between the turns. The script writes one `error:` line
+for the step's own failure before its result line, and one for a refused run.
 
 ## Running a step by hand
 

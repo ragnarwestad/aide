@@ -78,20 +78,19 @@ export interface SummarizeOptions {
   // type-check regardless.
   tool?: "claude" | "codex" | "opencode" | "fake-claude" | "none";
   /** Keep only the entries a reader asked for, BEFORE the bound above
-   *  is applied: "the last 40 commands", not "the commands among the
-   *  last 40 entries". A step whose tail is all prose would otherwise
-   *  answer "no commands" for a step that ran twenty. */
+   *  is applied: "the last 40 failed commands", not "the failed
+   *  commands among the last 40 entries". A step whose tail is all prose
+   *  would otherwise answer "no errors" for a step that hit twenty. */
   only?: LogFilter;
 }
 /** What a transcript entry IS, kept rather than flattened into its text
- *  so a reader can ask for one kind (spec: the Logs tab's filter). The
+ *  so a reader can ask for one kind. The
  *  three CLIs name these differently — a Claude `tool_use` block named
  *  `Bash`, a Codex `command_execution` item, an opencode `tool` part
  *  named `bash` are one thing — and this is where they become one word.
  *
  *  `failed` rides beside the kind rather than being a kind of its own:
- *  a command that failed is still a command, and a reader asking for
- *  commands wants it in the list. */
+ *  a command that failed is still a command. */
 export type StreamEntryKind = "text" | "tool" | "command" | "file";
 
 export interface StreamEntry {
@@ -104,23 +103,13 @@ export interface StreamEntry {
   failed?: boolean;
 }
 
-/** The answers the Logs tab's filter links can ask for. `all` is the
- *  absence of a filter, spelled out so a link can say it. `messages` (only
- *  what the model wrote) is asked for in code, never from the URL:
- *  `resolveLogFilter` does not accept it. */
-export type LogFilter = "all" | "commands" | "files" | "errors" | "messages";
-
-/** The filter a URL asked for, or nothing when it named none — an
- *  unknown value is nothing, not a refusal: a link someone edited by
- *  hand shows the whole log rather than an error page. */
-export function resolveLogFilter(raw: string | undefined): LogFilter | undefined {
-  return raw === "commands" || raw === "files" || raw === "errors" || raw === "all" ? raw : undefined;
-}
+/** What a reader can ask of a transcript's entries: all of them, the
+ *  ones the tool itself reported as failed (`errors`, the Errors tab), or
+ *  only what the model wrote (`messages`). */
+export type LogFilter = "all" | "errors" | "messages";
 
 export function keepsEntry(entry: StreamEntry, only: LogFilter | undefined): boolean {
   if (!only || only === "all") return true;
-  if (only === "commands") return entry.kind === "command";
-  if (only === "files") return entry.kind === "file";
   if (only === "messages") return entry.kind === "text";
   return entry.failed === true;
 }
@@ -149,8 +138,8 @@ export function* events(text: string): Generator<Record<string, unknown>> {
 
 /** Trimming as we go, not at the end: a long run's transcript should
  *  never be held in memory in full just to throw most of it away. Shared
- *  by the activity list (`string[]`) and the command list (`StepCommand[]`,
- *  spec 452) — the bound is a property of the reader, not of the shape. */
+ *  by the readers of a transcript — the bound is a property of the reader,
+ *  not of the shape. */
 export function trim<T>(out: T[], max: number): void {
   if (out.length > max * 2) out.splice(0, out.length - max);
 }

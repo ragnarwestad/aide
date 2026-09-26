@@ -3,7 +3,6 @@
 import type { SpecView, ProjectView } from "../../../project/discover";
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import type { Language } from "../../../i18n";
-import type { LogFilter } from "../../../queue/parse-stream";
 import type { JobDetailView, JobStepResultView } from "../job-page/types.ts";
 import type { ScheduleFormOptions } from "../schedule-page/form.ts";
 
@@ -70,7 +69,7 @@ export interface ProjectPageOptions {
     results: JobStepResultView[];
     runningStep?: JobDetailView["runningStep"];
     step?: string;
-    only?: LogFilter;
+    steptab?: string;
   };
   /** The step the last Deploy failed at and why, kept by the server until
    *  the next deploy starts; ranks ahead of `deployError`. */

@@ -114,17 +114,17 @@ EOF_CMDS
     step_tests_spared="no"
     if session_record_covers_tree; then
       step_tests_spared="yes"
-      echo "aide-run-spec: the session's own green run covers the delivered tree ($step_tests_folder/test-run.json) — not run again" >&2
+      stage "the session's own green run covers the delivered tree ($step_tests_folder/test-run.json) — not run again"
     fi
     if [ "$step_test_count" -gt 0 ] && [ "$step_tests_spared" = "no" ]; then
       step_fix_rounds="${AIDE_TEST_FIX_ROUNDS:-2}"
       step_fix_round=0
       step_cost_total="$cost"
       while :; do
-        echo "aide-run-spec: running the project's tests on $command_name's result ($step_test_count command(s))" >&2
+        stage "running the project's tests on $command_name's result ($step_test_count command(s))"
         run_step_tests_within_time
         step_tests_rc=$?
-        [ "$step_tests_rc" -ne 0 ] || break
+        if [ "$step_tests_rc" -eq 0 ]; then stage "the project's tests are green"; break; fi
         if [ "$step_tests_rc" -eq 124 ]; then
           terminal_reason="timeout"
           ok="false"
@@ -151,7 +151,7 @@ $step_tests_failing"
           break
         fi
         step_fix_round=$((step_fix_round + 1))
-        echo "aide-run-spec: the tests are red — handing them back to the session (round $step_fix_round of $step_fix_rounds)" >&2
+        stage_error "the tests are red — handing them back to the session (round $step_fix_round of $step_fix_rounds)"
         # The failing tests, then ONE full run: the runner runs the whole
         # suite again after this turn anyway. "Until it is green" sent
         # 486's archive and 491's implement round and round the full
@@ -176,7 +176,7 @@ $step_tests_failing"
         # cli-error): nothing to test.
         [ "$terminal_reason" = "completed" ] || break
         if session_record_covers_tree; then
-          echo "aide-run-spec: the session's own green run after round $step_fix_round covers the delivered tree ($step_tests_folder/test-run.json) — not run again" >&2
+          stage "the session's own green run after round $step_fix_round covers the delivered tree ($step_tests_folder/test-run.json) — not run again"
           break
         fi
       done

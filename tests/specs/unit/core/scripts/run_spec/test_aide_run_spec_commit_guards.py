@@ -42,6 +42,7 @@ def _commit_with_lost_state(root, wt):
 set -uo pipefail
 source "{SCRIPTS}/_aide-spec-lib.sh"
 source "{SCRIPTS}/lib/run-spec-worktree.sh"
+stage() {{ :; }}
 roots=("{root}"); work_roots=("{wt}")
 branch="aide/7-x"; push_mode="none"; command_name="implement"
 commit_label="7-x"; model_suffix=""; suffix=" (stopped: cancelled)"; amend_note=""

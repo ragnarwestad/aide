@@ -3,7 +3,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { extraPathDirs, pathWithToolDirs } from "../../../src/serve/tool-path.ts";
 import { fileOnceWritten } from "../../helpers/file-once-written.ts";
-import { existsSync, rmSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, rmSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { statusSaying } from "../../helpers/queue-server.ts";
@@ -99,6 +99,28 @@ describe("the runner invocation", () => {
     if (!port) throw new Error("the test server never bound a port");
     return { env: await envOf(envFile), port };
   }
+
+  test("what the runner writes to stderr lands in the step's own run log (AC-3)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-queue-run-log-"));
+    ownDirs.push(dir);
+    const bin = join(dir, "fake-run-spec");
+    writeFileSync(bin, `#!/usr/bin/env bash\necho "aide-run-spec 10:45:08 +0s fetching main" >&2\n`, { mode: 0o755 });
+    const jobs = join(dir, "jobs");
+    const { base } = start({ queueRunnerBin: bin, queueResultDir: jobs, queuePush: "branch" });
+    const res = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
+    });
+    expect(res.status).toBe(200);
+    let log = "";
+    for (let i = 0; i < 200 && !log.includes("fetching main"); i++) {
+      const name = existsSync(jobs) ? readdirSync(jobs).find((f) => f.endsWith(".implement.run.log")) : undefined;
+      log = name ? readFileSync(join(jobs, name), "utf-8") : "";
+      if (!log.includes("fetching main")) await Bun.sleep(50);
+    }
+    expect(log).toBe("aide-run-spec 10:45:08 +0s fetching main\n");
+  });
 
   test("the push mode, the permission mode and the model all reach the command line", async () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-queue-spawn-"));

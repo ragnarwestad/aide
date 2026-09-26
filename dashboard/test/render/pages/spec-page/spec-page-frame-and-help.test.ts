@@ -74,7 +74,7 @@ describe("the spec page is a page of this site like any other", () => {
 // facts it renders from the same job data.
 describe("the steps panel renders through the job page's own function", () => {
   const job = lead({
-    runningStep: { step: "analyze", logs: ["Bash ls"] },
+    runningStep: { step: "analyze", logs: [{ by: "ai", lines: ["Bash ls"] }] },
     results: [
       {
         step: "analyze", ok: true, costUsd: 0.42, costMeasured: true,

@@ -102,7 +102,7 @@ describe("renderJobDetailPage", () => {
           {
             step: "analyze", ok: true, costUsd: 0.42, costMeasured: true,
             terminalReason: "completed", at: "2026-08-16T10:01:00Z",
-            logs: ["Bash <code>ls</code>".replace(/</g, "&lt;").replace(/>/g, "&gt;")],
+            logs: [{ by: "ai", lines: ["Bash <code>ls</code>".replace(/</g, "&lt;").replace(/>/g, "&gt;")] }],
           },
         ],
       }),
@@ -221,7 +221,7 @@ describe("the job page is split into tabs", () => {
   const withParts = (extra: Partial<JobDetailView> = {}): JobDetailView =>
     detail({
       title: "A running job is a black box",
-      runningStep: { step: "analyze", logs: ["Bash ls"] },
+      runningStep: { step: "analyze", logs: [{ by: "ai", lines: ["Bash ls"] }] },
       results: [
         {
           step: "analyze", ok: true, costUsd: 0.42, costMeasured: true,

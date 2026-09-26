@@ -172,19 +172,28 @@ export async function serveSpecViewerAsset(req: Request): Promise<Response> {
 export const STREAM_TAIL_BYTES = 256 * 1024;
 
 export function tailFile(path: string, maxBytes = STREAM_TAIL_BYTES): string {
+  return tailFileAt(path, maxBytes).text;
+}
+
+/** The tail and the byte in the file where it begins, measured on the raw
+ *  bytes: the run log's turn lines name byte offsets into the transcript. */
+export function tailFileAt(path: string, maxBytes = STREAM_TAIL_BYTES): { text: string; start: number } {
   let fd: number | null = null;
   try {
     fd = openSync(path, "r");
     const size = fstatSync(fd).size;
-    const start = Math.max(0, size - maxBytes);
-    const length = size - start;
-    if (length === 0) return "";
+    const windowStart = Math.max(0, size - maxBytes);
+    const length = size - windowStart;
+    if (length === 0) return { text: "", start: 0 };
     const buf = Buffer.alloc(length);
-    readSync(fd, buf, 0, length, start);
-    const text = buf.toString("utf-8");
-    return start > 0 ? text.slice(text.indexOf("\n") + 1) : text;
+    readSync(fd, buf, 0, length, windowStart);
+    if (windowStart === 0) return { text: buf.toString("utf-8"), start: 0 };
+    const cut = buf.indexOf(0x0a);
+    // A window with no line break keeps its partial line.
+    if (cut < 0) return { text: buf.toString("utf-8"), start: windowStart };
+    return { text: buf.subarray(cut + 1).toString("utf-8"), start: windowStart + cut + 1 };
   } catch {
-    return ""; // no transcript kept, or not readable — the page says so
+    return { text: "", start: 0 }; // no transcript kept, or not readable — the page says so
   } finally {
     if (fd !== null) {
       try {

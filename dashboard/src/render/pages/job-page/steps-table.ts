@@ -5,13 +5,13 @@
 // hand-paired-lists problem `development.md` already names three times
 // over.
 
-import type { LogFilter } from "../../../queue/parse-stream";
 import { esc, usdOrTokens } from "../../ui/html.ts";
 import { renderSentence } from "../../../i18n/message.ts";
 import { t, type Language } from "../../../i18n";
 import { heldBackReasonText } from "../../ui/job-state/notice.ts";
 import { ICON_CHEVRON, stepLabel } from "../../ui/components";
 import type { JobDetailView, JobStepResultView } from "./types.ts";
+import { stepPanel } from "./step-tabs.ts";
 import { providerLimitSentence } from "../../ui/job-state/provider-limit.ts";
 
 /** A heading that says "Cost" above a column of token counts is the
@@ -91,80 +91,19 @@ export function resolveOpenStep(query: string | undefined, hasRunning: boolean):
   return hasRunning ? "live" : undefined;
 }
 
-/** What a step row's expanded panel shows: its own transcript, or —
- *  when it has none — why not. Subsumes `activityPanel`'s one sentence
- *  for a run the runner refused before it started; every other note
- *  that function carried is already said elsewhere (`job.error` in the
- *  banner, `archiveHeldBack` in this same row's Outcome cell). */
-/** The filter links above a raw log: the whole log, or one kind of line
- *  from it. Links carrying the answer in the URL, the same way the tab
- *  and the open row already do — the page reloads itself every ten
- *  seconds, so a filter held in a widget would snap back to everything
- *  while the reader was still reading.
- *
- *  Absent when there is no `tabHref` to hang them on, and absent for the
- *  running step's own panel, whose log is being written as it is read. */
-function logFilterLinks(tabHref: string, stepKey: string, only: LogFilter | undefined): string {
-  const here = only ?? "all";
-  const link = (value: LogFilter, label: string): string =>
-    value === here
-      ? `<span class="muted small">${label}</span>`
-      : `<a class="small" data-nav href="${tabHref}&step=${esc(stepKey)}` +
-        `${value === "all" ? "" : `&only=${value}`}">${label}</a>`;
-  return (
-    `<p class="small">` +
-    [link("all", "All"), link("commands", "Commands"), link("files", "Files"), link("errors", "Errors")].join(" · ") +
-    `</p>`
-  );
-}
-
-function stepLogPanel(
-  logs: string[] | undefined,
-  terminalReason: string,
-  refusal?: string,
-  filters = "",
-  filtered = false,
-): string {
-  // The merge's own refusal first: it is the newest thing that happened
-  // to this step, and the transcript below it is of the run that
-  // succeeded. Without it the page showed four steps reading "ok" and
-  // no sign of the tests that refused the merge.
-  const merge = refusal ? `<pre class="specfile">${esc(refusal)}</pre>` : "";
-  // In a box about a hundred lines tall that opens at its newest line, and
-  // stays there when a running step's page reloads itself.
-  if (logs && logs.length > 0) return `${merge}${filters}<div class="logbox"><pre class="specfile">${logs.join("\n")}</pre></div>`;
-  if (merge) return merge;
-  // A filter that matched nothing is not an empty transcript: say which
-  // it is, and leave the links up so the reader can get back. Only when
-  // a filter is actually on — an unfiltered step with nothing in it is
-  // the sentence below, exactly as it was.
-  if (filtered && logs) {
-    return `${filters}<p class="muted">No line of this kind is in this step's log.</p>`;
-  }
-  if (terminalReason === "refused") {
-    return (
-      `<p class="muted">This step was refused before it started, so nothing ran and ` +
-      `no transcript exists.</p>`
-    );
-  }
-  return `<p class="muted">Nothing has been captured from this step.</p>`;
-}
-
-/** What a step's raw log cannot show at a glance (spec 452): the files
- *  it touched, the commands it ran, its own final message, and the
- *  numbers already drawn on its row — repeated here from the SAME
- *  fields (`r.at`/`r.costUsd`/`r.tokens`/`r.terminalReason`), never a
- *  second, independently computed copy of them (AC-5). Drawn above
- *  `stepLogPanel`'s output, unconditionally: it carries no fold of its
- *  own, only the raw log beneath it does (AC-6).
+/** What an opened step's tabs do not repeat: the numbers already drawn
+ *  on its row, from the SAME fields (`r.at`/`r.costUsd`/`r.tokens`/
+ *  `r.terminalReason`), never a second, independently computed copy of
+ *  them, and the provider's usage limit that stopped it. A step with no
+ *  log and no final message says so in words.
  *
  *  No class of its own: `table.facts` is the page's existing key/value
  *  component (`job-page.ts`'s `labelled()`), and `specfile`/`muted`/
  *  `small`/`num`/`label` are the same classes the raw log and the row's
  *  own cells already carry — `css-guard-class-vocabulary.test.ts` fails
  *  any render file that introduces a class outside that vocabulary. */
-function stepSummary(r: JobStepResultView, lang: Language = "en"): string {
-  const hasLog = !!(r.logs && r.logs.length > 0);
+function stepFacts(r: JobStepResultView, lang: Language = "en"): string {
+  const hasLog = !!r.logs?.some((part) => part.lines.length > 0);
   const facts =
     `<table class="facts"><tbody>` +
     `<tr><td class="label">${t(lang, "job.stepAt")}</td><td>${r.at ? esc(r.at) : "–"}</td></tr>` +
@@ -175,35 +114,7 @@ function stepSummary(r: JobStepResultView, lang: Language = "en"): string {
     (r.providerLimit ? `<br><span class="muted small">${esc(providerLimitSentence(r.providerLimit, undefined, "en"))}</span>` : "") +
     `</td></tr>` +
     `</tbody></table>`;
-  // AC-7: a step whose transcript is missing shows whatever the job
-  // itself recorded (the facts above) and says so in words, rather than
-  // an empty commands/changed-files list with no explanation.
-  if (!hasLog) {
-    return `${facts}<p class="muted">${t(lang, "job.logMissing")}</p>`;
-  }
-  const files =
-    r.changedFiles && r.changedFiles.length > 0
-      ? `<h4>Changed files</h4><ul>${r.changedFiles
-          .map((f) =>
-            f.binary
-              ? `<li>${esc(f.path)} <span class="muted small">binary</span></li>`
-              : `<li>${esc(f.path)} +${f.added} -${f.removed}</li>`,
-          )
-          .join("")}</ul>`
-      : "";
-  const commands =
-    r.commands && r.commands.length > 0
-      ? `<h4>Commands</h4><ul>${r.commands
-          .map((c) => {
-            const outcome = c.outcome.kind === "exitCode" ? `exit ${c.outcome.code}` : c.outcome.kind;
-            const duration =
-              c.durationMs !== undefined ? ` <span class="muted small">${c.durationMs}ms</span>` : "";
-            return `<li><code>${c.command}</code> — ${outcome}${duration}</li>`;
-          })
-          .join("")}</ul>`
-      : "";
-  const message = r.finalMessage ? `<h4>Final message</h4><pre class="specfile">${r.finalMessage}</pre>` : "";
-  return `${facts}${files}${commands}${message}`;
+  return hasLog ? facts : `${facts}<p class="muted">${t(lang, "job.logMissing")}</p>`;
 }
 
 /** Exported since spec 150: the SPEC page's Steps tab is the lead job's
@@ -231,7 +142,7 @@ export function stepResults(
     runningStep?: JobDetailView["runningStep"];
     mark?: string;
     landingRefused?: LandingRefusal;
-    only?: LogFilter;
+    steptab?: string;
     lang?: Language;
   } = {},
 ): string {
@@ -272,14 +183,11 @@ export function stepResults(
         `<td>${esc(r.terminalReason)}</td>` +
         `<td class="muted small">${esc(r.sessionId ? r.sessionId.slice(0, 8) : "–")}</td>` +
         `<td class="muted small">${r.at ? esc(r.at) : "–"}</td></tr>`;
+      const refusal = opts.landingRefused && r.step === opts.landingRefused.step ? opts.landingRefused.detail : undefined;
       const log = isOpen
-        ? `<tr class="steplog"><td colspan="6">${stepSummary(r, lang)}${stepLogPanel(
-            r.logs,
-            r.terminalReason,
-            opts.landingRefused && r.step === opts.landingRefused.step ? opts.landingRefused.detail : undefined,
-            opts.tabHref ? logFilterLinks(opts.tabHref, key, opts.only) : "",
-            !!opts.only && opts.only !== "all",
-          )}</td></tr>`
+        ? `<tr class="steplog"><td colspan="6">${stepFacts(r, lang)}${stepPanel(r, {
+            tabHref: opts.tabHref, key, steptab: opts.steptab, refusal, lang,
+          })}</td></tr>`
         : "";
       return main + log;
     })
@@ -294,7 +202,10 @@ export function stepResults(
       `<td class="muted small">${esc(opts.runningStep.sessionId ? opts.runningStep.sessionId.slice(0, 8) : "–")}</td>` +
       `<td class="muted small">–</td></tr>`;
     const log = isOpen
-      ? `<tr class="steplog"><td colspan="6">${stepLogPanel(opts.runningStep.logs, "")}</td></tr>`
+      ? `<tr class="steplog"><td colspan="6">${stepPanel(
+          { ...opts.runningStep, running: true, terminalReason: "" },
+          { tabHref: opts.tabHref, key: "live", steptab: opts.steptab, lang },
+        )}</td></tr>`
       : "";
     return main + log;
   })();

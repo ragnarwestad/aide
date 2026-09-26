@@ -49,6 +49,11 @@
 # per line) at PATH instead of discarding it with the working directory.
 # Opt-in: without it, nothing about this script's behaviour changes.
 #
+# The timeline `stage` prints to stderr is the run's own log, which the
+# dashboard keeps beside the transcript and shows in the step's Log. Its
+# line grammar (`error: ` lines, the turn line's transcript offset) is in
+# dashboard/docs/the-runner.md, "The run log".
+#
 # Every run works in a `git worktree` of its own, one per repo it touches
 # (spec 91). The real checkouts are only ever put back ON their default
 # branch and read; nothing switches them to a spec branch. That is what
@@ -171,6 +176,10 @@ step_started_at="$(date +%s)"
 stage() {
   printf 'aide-run-spec %s +%ss %s\n' "$(date +%H:%M:%S)" "$(( $(date +%s) - step_started_at ))" "$*" >&2
 }
+# A failure: the same line, its text starting `error: `. The dashboard's Errors
+# tab lists these; nothing else in the log is read as an error.
+# shellcheck disable=SC2329  # called from the lib/ files sourced below
+stage_error() { stage "error: $*"; }
 
 # --- the vocabulary, the command line, and what they refuse ---
 # shellcheck source=/dev/null
@@ -442,6 +451,9 @@ fi
 # job's spend as if the step had been free.
 cost_json="null"
 [ "$cost_known" = "true" ] && cost_json="$cost"
+
+# The step's own failure, once, as an error line in the log.
+[ -n "$error_msg" ] && stage_error "$(printf '%s' "$error_msg" | tr '\n' ' ')"
 
 line="$(jq -cn \
   --argjson ok "$ok" --argjson exitCode "$exit_code" \

@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { setupQueueRoutesHarness } from "../../fixtures.ts";
 import { latestWikiBuild } from "../../../../src/serve/routes/page-routes/project-pages.ts";
 import type { Job } from "../../../../src/queue/types.ts";
@@ -104,3 +106,22 @@ describe("the Wiki tab's build is the newest one", () => {
   });
 });
 
+
+// The build's step is opened, on its own tab, by the address.
+describe("a step of the wiki build keeps its tab in the address (AC-6)", () => {
+  test("?step=0&steptab=errors opens the finished step on Errors", async () => {
+    const { base, dir } = start();
+    await post(base, "aide");
+    const mirror = join(dir, "queue.json");
+    const queued = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
+    queued[0]!.state = "done";
+    queued[0]!.results = [
+      { step: "wiki", ok: true, costUsd: 0, costMeasured: false, terminalReason: "completed", at: "2026-09-26T10:01:00Z" },
+    ];
+    writeFileSync(mirror, JSON.stringify(queued));
+    const { base: base2 } = start({ queueMirrorPath: mirror });
+
+    const html = await (await fetch(`${base2}/projects/aide?tab=wiki&step=0&steptab=errors`)).text();
+    expect(html.match(/<a class="tab"[^>]*aria-current="true"[^>]*>([^<]*)</)?.[1]).toBe("Errors");
+  });
+});
