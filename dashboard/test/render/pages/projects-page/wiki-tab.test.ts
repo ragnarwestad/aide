@@ -34,7 +34,6 @@ describe("the project page's Wiki tab (AC-1)", () => {
 describe("the Wiki tab shows the latest build", () => {
   test("a running build: its log, Cancel, and no second Build button", () => {
     const html = page({ tab: "wiki", wikiBuild: { id: "j1", state: "running" } });
-    expect(html).toContain('href="/jobs/j1?tab=steps"');
     expect(html).toContain('action="/api/queue/j1/cancel"');
     expect(html).not.toContain('action="/api/queue/projects/aide/wiki"');
     expect(html).toMatch(/class="rowmsg waiting">.*?<span><span class="badge b-running"[^>]*data-icon="loader"/);
@@ -49,8 +48,27 @@ describe("the Wiki tab shows the latest build", () => {
 
   test("a failed build says why, in the error's own sentence", () => {
     const html = page({ tab: "wiki", wikiBuild: { id: "j1", state: "failed", error: "the wiki build built nothing" } });
-    expect(html).toMatch(/rowmsg failed[^"]*"[^>]*>[\s\S]*the wiki build built nothing/);
-    expect(html).toContain('href="/jobs/j1?tab=steps"');
+    expect(html).toMatch(/rowmsg failed[^"]*"[^>]*>[\s\S]*the wiki build built nothing/i);
+  });
+});
+
+// The build's log is on this tab, not behind a link to a page of its own
+// that nothing else in the board leads to.
+describe("the Wiki tab carries the latest build's log", () => {
+  const step = { step: "wiki", ok: true, costUsd: 0.1, costMeasured: true, terminalReason: "completed", logs: ["wrote landing.md"] };
+
+  test("its step is listed, and opening it stays on the Wiki tab", () => {
+    const html = page({
+      tab: "wiki",
+      wikiBuild: { id: "j1", state: "done", finishedAt: "2026-09-26T10:00:00Z" },
+      wikiLog: { results: [step] },
+    });
+    expect(html).toContain('href="/projects/aide?tab=wiki&step=');
+    expect(html).not.toContain("/jobs/");
+  });
+
+  test("with no build yet there is no log", () => {
+    expect(page({ tab: "wiki" })).not.toContain("No step has finished yet");
   });
 });
 

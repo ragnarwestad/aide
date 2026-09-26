@@ -293,7 +293,7 @@ read first when a spec is analyzed. The tab says so and has one **Build wiki** b
 `POST /api/queue/projects/<name>/wiki` and queues one `wiki` job under the key `wiki-<name>`. A press while a build
 is unfinished, or while its merge is running, is refused on the tab with the queue's own sentence. The build is
 followed on this tab and never on the Specs list: the latest one reads as running (with Cancel), last built on a date,
-or failed with its reason, each with a link to the job's page and its log, and a press or a Cancel comes back here. The
+or failed with its reason, with that build's steps and their logs below it, and a press or a Cancel comes back here. The
 step runs with Aide's own scripts allowed (`permissionMode.wiki`), since it writes only through `aide-wiki`. A project whose specs folder git ignores inside the project cannot build
 a wiki: the run is refused, since there is no repository to commit the pages to.
 

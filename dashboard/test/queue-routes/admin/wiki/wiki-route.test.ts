@@ -75,12 +75,12 @@ describe("a wiki build is followed on the Wiki tab, never on the Specs list", ()
     }
   });
 
-  test("the Wiki tab shows it running, with its log and a Cancel that comes back to the tab", async () => {
+  test("the Wiki tab shows it with its log and a Cancel that comes back to the tab", async () => {
     const { base } = start();
     await post(base, "aide");
     const [job] = (await jobs(base)) as unknown as { id: string }[];
     const html = await (await fetch(`${base}/projects/aide?tab=wiki`)).text();
-    expect(html).toContain(`/jobs/${job!.id}?tab=steps`);
+    expect(html).toContain("No step has finished yet");
     expect(html).toContain(`action="/api/queue/${job!.id}/cancel"`);
     const cancel = await fetch(`${base}/api/queue/${job!.id}/cancel`, {
       method: "POST", redirect: "manual", headers: { "content-type": "application/x-www-form-urlencoded" },

@@ -19,6 +19,7 @@ import { isSpecFolder } from "../../../render/ui/shell.ts";
 import { languageChoice, specsClientScript } from "../../serve-helpers";
 import type { RoutesContext } from "..";
 import { isWikiBuild } from "../../../queue/steps.ts";
+import { resolveLogFilter } from "../../../queue/parse-stream";
 import { renderSentence } from "../../../i18n/message.ts";
 import type { Language } from "../../../i18n";
 import type { Job } from "../../../queue/types.ts";
@@ -284,6 +285,7 @@ export async function projectPages(
         deployError: url.searchParams.get("deployError") ?? undefined,
         wikiError: url.searchParams.get("wikiError") ?? undefined,
         wikiBuild: latestWikiBuild(ctx.queue.list(), name, langResult.lang),
+        wikiLog: await wikiLog(ctx, url, name),
         deployFailure: ctx.readDeployFailure(name),
         serving,
         restartWaiting: ctx.readPendingRestart()?.jobs,
@@ -389,8 +391,23 @@ export async function projectPages(
  *  sentence in the reader's language. Latest by when it was queued, not by
  *  its place in the list, which the queue keeps newest first. */
 export function latestWikiBuild(jobs: readonly Job[], project: string, lang: Language) {
-  const builds = jobs.filter((j) => j.project === project && isWikiBuild(j));
-  if (builds.length === 0) return undefined;
-  const last = builds.reduce((a, b) => (b.createdAt > a.createdAt ? b : a));
+  const last = latestWikiJob(jobs, project);
+  if (!last) return undefined;
   return { id: last.id, state: last.state, finishedAt: last.finishedAt, error: renderSentence(lang, last.error) };
+}
+
+function latestWikiJob(jobs: readonly Job[], project: string): Job | undefined {
+  const builds = jobs.filter((j) => j.project === project && isWikiBuild(j));
+  return builds.length === 0 ? undefined : builds.reduce((a, b) => (b.createdAt > a.createdAt ? b : a));
+}
+
+/** The latest build's steps and their logs, for the Wiki tab: the same table
+ *  the spec page's Logs tab draws, read only when that tab is the one open. */
+async function wikiLog(ctx: RoutesContext, url: URL, project: string) {
+  if (url.searchParams.get("tab") !== "wiki") return undefined;
+  const job = latestWikiJob(ctx.queue.list(), project);
+  if (!job) return undefined;
+  const only = resolveLogFilter(url.searchParams.get("only") ?? undefined);
+  const detail = await ctx.jobDetailView(job, only);
+  return { results: detail.results, runningStep: detail.runningStep, step: url.searchParams.get("step") ?? undefined, only };
 }
