@@ -5,7 +5,7 @@
 import { createEndedWithoutSpec } from "../../../../queue/create-failure.ts";
 import { currentWorkRoundJobs } from "../../../../queue/queue.ts";
 import { anyCostUnmeasured, inFlight, type QueueRowView } from "../../../ui/job-state";
-import { activityMs, attemptsPerStep, doneOutsideRound, phasesFor, roundUnderWayIn, totalDurationOf } from "./phases.ts";
+import { activityMs, attemptsPerStep, doneOutsideRound, phaseDuration, phasesFor, roundUnderWayIn, totalDurationOf } from "./phases.ts";
 import {
   ARCHIVED_OPEN_STATE,
   ARCHIVED_STATE,
@@ -83,6 +83,7 @@ function fromTarget(
 }
 
 const isCreate = (r: QueueRowView): boolean => r.steps.includes("create");
+const isWikiBuild = (r: QueueRowView): boolean => r.steps.length === 1 && r.steps[0] === "wiki";
 
 export function groupBySpec(
   rows: QueueRowView[],
@@ -146,7 +147,8 @@ export function groupBySpec(
         // nothing on disk to match. Without this it would be filtered out
         // in exactly the projects that already have specs — so the job the
         // reader just started would render nothing at all.
-        (known.has(key) || !judgeable.has(all[0]!.project) ||
+        // A wiki build names no spec: its row is kept in every project.
+        (known.has(key) || !judgeable.has(all[0]!.project) || all.every(isWikiBuild) ||
           // …unless every job the row would stand for was CANCELLED and
           // the folder never landed (2026-09-10): there is nothing on
           // disk, nothing to press, and the row outlived the spec it
@@ -294,6 +296,8 @@ function jobGroup(all: QueueRowView[], target: SpecTarget | undefined, now: numb
   // it, and the total reads neither.
   const phases = phasesFor(all, target);
   const total = totalDurationOf(phases, now);
+  // A wiki build is no phase, so its time is the job's own span.
+  const wikiSpan = isWikiBuild(lead) ? phaseDuration(lead, "wiki", now) : null;
   return {
     project: lead.project,
     specFolder: lead.specFolder,
@@ -334,8 +338,8 @@ function jobGroup(all: QueueRowView[], target: SpecTarget | undefined, now: numb
     // above (spec 284), not recomputed from `all` — the latter would
     // re-read every not-yet-attempted phase's stamped file a second
     // time.
-    totalDurationMs: total?.ms,
-    totalDurationSince: total?.since,
+    totalDurationMs: wikiSpan ? wikiSpan.ms : total?.ms,
+    totalDurationSince: wikiSpan ? (wikiSpan.live ? wikiSpan.since : undefined) : total?.since,
     ...spec,
     // A create job has no target to read a title off — the spec it is
     // making is not on disk yet — so the job's own title is the row's.

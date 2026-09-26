@@ -266,6 +266,7 @@ export async function projectPages(
         error: url.searchParams.get("error") ?? undefined,
         drift,
         deployError: url.searchParams.get("deployError") ?? undefined,
+        wikiError: url.searchParams.get("wikiError") ?? undefined,
         deployFailure: ctx.readDeployFailure(name),
         serving,
         restartWaiting: ctx.readPendingRestart()?.jobs,

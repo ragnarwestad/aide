@@ -217,7 +217,78 @@ discard_scheduled_commits() {
   return 0
 }
 
+# A wiki build writes generated pages in wiki/ of the specs root and
+# nothing else. Whatever else the session wrote is taken back — on a normal
+# end, a timeout and a Cancel alike, since all three pass through
+# commit_and_push_roots — and named in $wiki_taken. The specs repository is
+# compared with the default branch's tip and not with the run's start: a
+# branch left by a cancelled run already carries that run's writes.
+# Whether a page is hand-written is `aide-wiki verify`'s to say; the mark is
+# read there alone. Idempotent: the second call finds nothing.
+wiki_taken=""
+wiki_take_back() {   # $1 = worktree, $2 = tip, $3 = path from the repository's top
+  if git -C "$1" cat-file -e "$2:$3" 2>/dev/null; then
+    git -C "$1" checkout -q "$2" -- "$3" >/dev/null 2>&1 || true
+  else
+    git -C "$1" rm -rq --cached --ignore-unmatch -f -- "$3" >/dev/null 2>&1 || true
+    rm -rf "${1:?}/${3:?}"
+  fi
+  wiki_taken="${wiki_taken:-}${wiki_taken:+, }$3"
+}
+
+restore_wiki_scope() {
+  local repo_wt="${specs_wt:-${project_wt:-}}" rel wiki_prefix b tip path kind page verdict
+  local excludes=() line
+  [ -n "$repo_wt" ] && [ -n "${specs_root_wt:-}" ] || return 0
+  while IFS= read -r line; do
+    [ -n "$line" ] && excludes+=("$line")
+  done <<EXCLUDES_EOF
+$(link_excludes_for "$project_root")
+EXCLUDES_EOF
+  # 1. A run reaches its project and nothing else: a separate project
+  #    repository goes back to the tip it started from.
+  if [ -n "${specs_wt:-}" ]; then
+    local pwt="${work_roots[0]:-}" ptip="${head_before[0]:-}" ahead dirty
+    if [ -n "$pwt" ] && [ -n "$ptip" ]; then
+      ahead="$(git -C "$pwt" rev-list --count "$ptip"..HEAD 2>/dev/null || echo 0)"
+      dirty="$(git -C "$pwt" status --porcelain --untracked-files=all -- . ${excludes[@]+"${excludes[@]}"} 2>/dev/null | wc -l | tr -d ' ')"
+      if [ "$ahead" -gt 0 ] || [ "$dirty" -gt 0 ]; then
+        git -C "$pwt" checkout -q -f "$branch" >/dev/null 2>&1 || true
+        git -C "$pwt" reset -q --hard "$ptip" >/dev/null 2>&1 || true
+        git -C "$pwt" clean -fdq >/dev/null 2>&1 || true
+        if [ "$ahead" -gt 0 ] && git -C "$project_root" remote get-url origin >/dev/null 2>&1; then
+          git -C "$project_root" push -q origin --delete "$branch" >/dev/null 2>&1 || true
+          git -C "$project_root" update-ref -d "refs/remotes/origin/$branch" >/dev/null 2>&1 || true
+        fi
+        wiki_taken="${wiki_taken:-}${wiki_taken:+, }the project repository"
+      fi
+    fi
+  fi
+  rel="${specs_root_wt#"$repo_wt"}"; rel="${rel#/}"
+  wiki_prefix="${rel:+$rel/}wiki/"
+  b="$(default_branch "$specs_repo")"
+  if git -C "$specs_repo" show-ref --verify --quiet "refs/remotes/origin/$b"; then tip="origin/$b"; else tip="$b"; fi
+  git -C "$repo_wt" rev-parse --verify -q "$tip^{commit}" >/dev/null 2>&1 || return 0
+  # 2. Under the specs root only wiki/ changes.
+  while IFS= read -r path; do
+    [ -z "$path" ] && continue
+    case "$path" in "$wiki_prefix"*) continue ;; esac
+    wiki_take_back "$repo_wt" "$tip" "$path"
+  done < <( { git -C "$repo_wt" status --porcelain --untracked-files=all -- . ${excludes[@]+"${excludes[@]}"} 2>/dev/null \
+                | cut -c4- | sed 's/^.* -> //'; \
+              git -C "$repo_wt" diff --name-only "$tip" -- . ${excludes[@]+"${excludes[@]}"} 2>/dev/null; } | sort -u )
+  # 3. A page with no generated mark is a person's: never changed or
+  #    deleted, and a page the run wrote without the script is taken back.
+  verdict="$("$SCRIPT_DIR/aide-wiki" verify --specs-root "$specs_root_wt" --base-ref "$tip" 2>/dev/null)"
+  while IFS=$'\t' read -r kind page; do
+    [ -n "$page" ] || continue
+    wiki_take_back "$repo_wt" "$tip" "${wiki_prefix}$page"
+  done < <(jq -r '.violations[]? | [.kind, .page] | @tsv' <<<"$verdict" 2>/dev/null)
+  return 0
+}
+
 commit_and_push_roots() {
+  if [ "$command_name" = "wiki" ]; then restore_wiki_scope; fi
   # A scheduled run produces a report and changes no repository: nothing it
   # leaves in a worktree is committed, and nothing is pushed.
   if [ "$command_name" = "schedule" ]; then discard_scheduled_commits; return 0; fi

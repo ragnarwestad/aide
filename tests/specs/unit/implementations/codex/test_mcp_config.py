@@ -6,9 +6,11 @@ implementations/codex/mcp/ to that file, and asks again whenever it cannot
 find the server's own table there.
 """
 import re
-import tomllib
 
 import pytest
+
+# tomllib is in the standard library from Python 3.11; older interpreters skip this file.
+tomllib = pytest.importorskip("tomllib")
 
 SNIPPETS = {
     "browser-testing.toml": ["playwright", "chrome-devtools"],

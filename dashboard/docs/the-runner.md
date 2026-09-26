@@ -109,6 +109,14 @@ to prevent. Three conditions decide it (`run-spec-publish.sh`), in this order:
    rest). A root the run did move is pushed whatever
    the run's terminal reason; a root it did not move is pushed only by a completed run.
 
+**A `wiki` step commits in the specs repository only, and only `wiki/` there.** Its `--spec` is the key
+`wiki-<project>`, never a folder, and the bare name `wiki` is refused for every command. `restore_wiki_scope`
+(`run-spec-publish.sh`) runs at the top of every commit — a normal end, a timeout and a Cancel — and takes back a change
+in the project repository, a change under the specs root outside `wiki/`, and any change to a page without the
+`wiki: generated` mark in its front matter, comparing the specs repository with the default branch's tip.
+`aide-wiki verify` is the only reader of that mark. A run that would otherwise end `completed` ends `scope-violation`
+(`run-spec-wiki-guard.sh`); one that already ended `timeout` keeps that ending.
+
 **A `schedule` step is the exception to all three: it commits nothing and pushes nothing.** A scheduled job produces a
 report and changes no repository, so whatever it leaves in a worktree is dropped with the worktree, and a commit the
 session made is discarded (`discard_scheduled_commits`, `run-spec-publish.sh`): the worktree goes back to the tip the run
@@ -244,7 +252,7 @@ aide-run-spec --project-dir ~/develop/myproject --command analyze --spec 81 \
               --result-file /tmp/step.json
 ```
 
-`--command` takes any of the nine step names in `core/scripts/lib/workflow-steps.json`, not only the four phases,
+`--command` takes any of the ten step names in `core/scripts/lib/workflow-steps.json`, not only the four phases,
 and some of them need one more flag: `--title` and `--description` for a `create` whose `--spec` names no existing
 folder, `--prompt-file` for `schedule`, `--reason` for `close`. Beyond those: `--tool claude|codex|opencode`
 chooses the CLI, `--model` and `--effort` what it runs as, `--push none|branch|pr` what is published,

@@ -30,7 +30,8 @@ export const QUEUE_DEFAULTS: QueueDefaults = {
   // routine that used to be its own `review-plan` step now runs inside
   // `analyze`, so one run does what used to be two, and the default
   // budget for one step is no longer enough for both.
-  timeoutSec: { default: 1200, implement: 5400, analyze: 2400 },
+  // `wiki` reads a whole project, so it gets the same ceiling as `analyze`.
+  timeoutSec: { default: 1200, implement: 5400, analyze: 2400, wiki: 2400 },
   permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
   // `archive` falls to `default`, and that is a decision rather than an
   // accident of which key happens to be missing: it may now have a merge

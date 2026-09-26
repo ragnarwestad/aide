@@ -317,8 +317,8 @@ and shown on the job's own detail page beside its Model row.
 
 ## Global defaults for the AI and model
 
-`/settings` holds the default AI and model per step. It has nine rows: the six that act on a spec — Create,
-Analyze, Implement, Archive, Close and Reopen — then Manifest and Schedule, which do not, and Default, which every
+`/settings` holds the default AI and model per step. It has ten rows: the six that act on a spec — Create,
+Analyze, Implement, Archive, Close and Reopen — then Manifest, Schedule and Wiki, which do not, and Default, which every
 step without a row of its own falls back to. `explore` is deliberately left out: it has no button, no row action
 and no place in Schedule, so a model set for it could not be used. Beside the models the page holds a `timeoutSec`
 table, in minutes. Saving posts to `POST /api/queue/settings`, which validates every model name against

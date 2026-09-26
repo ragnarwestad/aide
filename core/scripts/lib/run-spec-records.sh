@@ -43,7 +43,7 @@
 #
 # The four values the line may name are the workflow's own stages
 # (`WORKFLOW_ARC`, read at the top of this script from
-# workflow-steps.json), and deliberately not the nine steps this script
+# workflow-steps.json), and deliberately not the ten steps this script
 # will run: `explore` and `manifest` are things you can queue, not places
 # a spec gets to. `WORKFLOW_ARC_RETIRED` is a step name retired FROM the
 # arc, kept recognized here when READING old commits (spec 181,

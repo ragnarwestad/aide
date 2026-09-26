@@ -87,9 +87,27 @@ fi
 roots=("$project_root")
 [ -n "$specs_repo" ] && [ "$specs_repo" != "$project_root" ] && roots+=("$specs_repo")
 
+# A wiki build names no spec: its tracking key is `wiki-<project>`, and the
+# bare name `wiki` is the folder the build writes, so no command may resolve
+# it as a spec. The key names only the branch and the worktree — one per
+# project, since several projects share a specs repository.
+[ "$spec_arg" != "wiki" ] || refuse "wiki is reserved — it is the folder a wiki build writes, not a spec; a build is run with --command wiki --spec wiki-<project>"
+if [ "$command_name" = "wiki" ]; then
+  [[ "$spec_arg" =~ ^wiki-[A-Za-z0-9._-]{1,120}$ ]] || refuse "invalid --spec for wiki: $spec_arg (expected wiki-<project>)"
+  [ -x "$SCRIPT_DIR/aide-wiki" ] || refuse "aide-wiki is missing beside aide-run-spec — reinstall aide (implementations/claude-code/install.sh)"
+  # The pages are committed in a repository. A specs folder git ignores inside
+  # the project has no tip to restore from and nothing to commit.
+  if [ -n "$specs_repo" ] && [ "$specs_repo" = "$project_root" ] \
+     && git -C "$project_root" check-ignore -q "$specs_root" 2>/dev/null; then
+    refuse "a wiki is kept in a repository, and $specs_root is a folder git ignores inside the project — put the specs in a repository of their own, or track the folder"
+  fi
+fi
+
 spec_folder=""
 spec_folder_archived="no"
-if [ -d "$specs_root/$spec_arg" ]; then
+if [ "$command_name" = "wiki" ]; then
+  :
+elif [ -d "$specs_root/$spec_arg" ]; then
   spec_folder="$spec_arg"
 else
   for candidate in "$specs_root"/*/; do
@@ -187,6 +205,8 @@ if [ -z "$spec_folder" ] && [ "$command_name" = "create" ]; then
   # argument — a create without these two has nothing to create.
   [ -n "$title" ] || refuse "missing --title (required for create)"
   [ -n "$description" ] || refuse "missing --description (required for create)"
+elif [ "$command_name" = "wiki" ]; then
+  :
 elif [ -z "$spec_folder" ] && [ "$command_name" = "schedule" ]; then
   # A second, unrelated exemption from "the folder must already exist"
   # (spec 259) — not a copy of `create`'s, which is a different shape

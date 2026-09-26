@@ -134,6 +134,17 @@ export const MESSAGES = {
     fr: "une tâche planifiée ne peut pas modifier le dépôt — le commit qu'elle a fait a été écarté. — Réécrivez le prompt de la tâche pour qu'elle n'écrive que son rapport ; un changement qui doit atteindre le dépôt passe par une spec.",
     resolve: "Rewrite the job's prompt",
   },
+  // A wiki build writes generated pages in wiki/ and nothing else
+  // (core/scripts/lib/run-spec-wiki-guard.sh): the script's own sentence,
+  // naming what was taken back, stays on the job as hover detail.
+  "runner.wikiWroteOutsideItsScope": {
+    en: "the wiki build wrote something it may not — that was taken back. — Build the wiki again from the project's Wiki tab; a build writes only generated pages in wiki/.",
+    nb: "wiki-byggingen skrev noe den ikke har lov til — det er tatt tilbake. — Bygg wikien på nytt fra Wiki-fanen på prosjektet; en bygging skriver bare genererte sider i wiki/.",
+    es: "la generación de la wiki escribió algo que no puede — se deshizo. — Vuelve a generar la wiki desde la pestaña Wiki del proyecto; una generación solo escribe páginas generadas en wiki/.",
+    de: "Der Wiki-Aufbau hat etwas geschrieben, das er nicht darf — das wurde zurückgenommen. — Baue das Wiki im Tab Wiki des Projekts erneut auf; ein Aufbau schreibt nur generierte Seiten in wiki/.",
+    fr: "la construction du wiki a écrit quelque chose qu'elle n'a pas le droit d'écrire — cela a été annulé. — Relancez la construction depuis l'onglet Wiki du projet ; une construction n'écrit que des pages générées dans wiki/.",
+    resolve: "Build the wiki again",
+  },
   "runner.mergeUnfinishedArchive": {
     en: "archive reported success, but dropped the merge with main it was handed open — the branch is still behind main, and the same conflict waits at the next merge. — Press {button} again; the session has to finish that merge.",
     nb: "arkivering meldte ferdig, men kastet mergen med main den fikk åpen — grenen ligger fortsatt bak main, og den samme konflikten venter ved neste merge. — Trykk {button} igjen; økta må fullføre mergen.",

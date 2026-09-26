@@ -26,7 +26,8 @@ does nothing for the other: each repo's branch is landed on its own, asked of th
 A project whose specs live inside it has one repo and one branch for both. There, a step that lands no code —
 `analyze`, `reopen`, `close` — copies the spec's own folder, and its `archive/` twin, from the branch onto the
 default branch as one commit, and leaves every other path as it was. The branch stays open for the next step,
-whose run merges the default branch in before it starts; a `close` deletes it afterwards.
+whose run merges the default branch in before it starts; a `close` deletes it afterwards. A `wiki` step copies
+`wiki/` alone and deletes its branch, since nothing follows it.
 
 ### What each step lands
 
@@ -34,7 +35,8 @@ Nothing here is merged by hand. Every step lands its own work as it finishes, an
 Approve button: the step that made the work is what knows it is done. Leaving `archive` unticked is the inspection
 point.
 
-- `create` and `analyze` merge the branch they pushed into that repo's default branch.
+- `create`, `analyze` and `wiki` merge the branch they pushed into that repo's default branch. A `wiki` step leaves the
+  project's code root out.
 - `implement` lands nothing. The code stays on the branch for anyone who wants to read or test it first.
 - `archive` merges every repo it was told about: the roots its own run reported, plus the ones the queue's own
   history recorded for the spec. **The code root goes first and the specs root last.** The specs root carries the

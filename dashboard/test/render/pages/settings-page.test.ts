@@ -101,6 +101,7 @@ describe("Settings page", () => {
     expect(bodies[0]).not.toContain('data-step="manifest"');
     expect(bodies[1]).toContain('data-step="manifest"');
     expect(bodies[1]).toContain('data-step="schedule"');
+    expect(bodies[1]).toContain('data-step="wiki"');
     expect(bodies[1]).not.toContain('data-step="default"');
     expect(bodies[2]).toContain('data-step="default"');
   });

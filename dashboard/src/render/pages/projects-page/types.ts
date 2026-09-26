@@ -54,6 +54,8 @@ export interface ProjectPageOptions {
   /** Why the last Deploy press was refused, or what its install step
    *  reported — carried back in the query string, like `error`. */
   deployError?: string;
+  /** A refused Build wiki press, carried back to the Wiki tab by the route. */
+  wikiError?: string;
   /** The step the last Deploy failed at and why, kept by the server until
    *  the next deploy starts; ranks ahead of `deployError`. */
   deployFailure?: { step: string; error: string };

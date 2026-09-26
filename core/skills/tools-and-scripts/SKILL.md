@@ -32,6 +32,7 @@ Available skills:
 - `/aide-create` - Create a spec
 - `/aide-analyze` - Analyze the codebase, then review the plan (feasibility, scope, coherence)
 - `/aide-manifest` - Draft or refresh the project manifest (.aide/project.yaml)
+- `/aide-wiki` - Build the project's wiki of how its parts hang together (run by the dashboard's Wiki tab)
 - `/aide-implement` - Implement with TDD
 - `/aide-archive` - Resolve any merge conflict on the branch, then archive the spec and feed durable knowledge back into the docs
 - `/aide-to-pdf` - Render the specs to PDF

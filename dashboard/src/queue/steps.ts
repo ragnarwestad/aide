@@ -35,6 +35,11 @@ import effortLevelsData from "../../../core/scripts/lib/effort-levels.json" with
 // the workflow arc: a schedule run is not a stage any spec passes
 // through.
 
+// `wiki` builds a project's wiki into its folder of the specs repository.
+// Its tracking key is `wiki-<project>` (`wikiTrackingKey`): it names only
+// the branch and the worktree, one per project, since several projects
+// share a specs repository. Queueable and not part of the workflow arc.
+
 // TypeScript cannot infer a literal union from a JSON import (an array
 // of strings types as `string[]`), and `WorkflowStep` is consumed as a
 // literal union across thirteen other files — so this one type-level
@@ -45,11 +50,11 @@ import effortLevelsData from "../../../core/scripts/lib/effort-levels.json" with
 // dashboard and every test alike).
 export type WorkflowStep =
   | "explore" | "create" | "analyze" | "implement" | "archive" | "manifest" | "reopen"
-  | "schedule" | "close";
+  | "schedule" | "close" | "wiki";
 
 const KNOWN_STEPS: readonly WorkflowStep[] = [
   "explore", "create", "analyze", "implement", "archive", "manifest", "reopen",
-  "schedule", "close",
+  "schedule", "close", "wiki",
 ];
 
 export const WORKFLOW_STEPS = workflowStepsData.workflowSteps as readonly WorkflowStep[];
@@ -85,6 +90,12 @@ if (
       `core/scripts/lib/effort-levels.json disagree: file has ` +
       `${JSON.stringify(EFFORT_LEVELS)}, union has ${JSON.stringify(KNOWN_EFFORT_LEVELS)}`,
   );
+}
+
+/** The tracking key a wiki build runs under, in place of a spec folder. The
+ *  bare name `wiki` is the folder the build writes and is never a key. */
+export function wikiTrackingKey(project: string): string {
+  return `wiki-${project}`;
 }
 
 /** Keep only jobs after the newest round-discarding job that completed and

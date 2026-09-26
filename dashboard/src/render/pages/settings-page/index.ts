@@ -27,7 +27,7 @@ export const SPEC_STEPS = [
 /** The steps that do not act on a spec. `manifest` updates the
  *  project's manifest; `schedule` runs a job from a prompt file and
  *  names no spec at all. Their own group, below the first. */
-export const OTHER_STEPS = ["manifest", "schedule"] as const;
+export const OTHER_STEPS = ["manifest", "schedule", "wiki"] as const;
 
 /** A step the queue can run that nothing on the board starts. `explore`
  *  has no button, no row action and no place in Schedule, so a model
@@ -92,7 +92,7 @@ export interface SettingsPageOptions {
 const LABELS: Record<(typeof SETTINGS_STEPS)[number], string> = {
   create: "Create", analyze: "Analyze", implement: "Implement",
   archive: "Archive", close: "Close", reopen: "Reopen",
-  manifest: "Manifest", schedule: "Schedule",
+  manifest: "Manifest", schedule: "Schedule", wiki: "Wiki",
 };
 const rowLabel = (step: (typeof SETTINGS_ROWS)[number]): string =>
   step === "default" ? "Default" : LABELS[step];
@@ -116,7 +116,8 @@ const PAGE_HELP =
   "archived spec back." +
   "<br><br>" +
   "<strong>Not on a spec.</strong> Manifest updates the project's own manifest. Schedule runs a " +
-  "job from a prompt file and names no spec at all." +
+  "job from a prompt file and names no spec at all. Wiki builds the project's wiki of how its parts " +
+  "hang together, and names no spec either." +
   "<br><br>" +
   "<strong>Default.</strong> Not a step. It is what a step with no row of its own falls back to." +
   "<br><br>" +

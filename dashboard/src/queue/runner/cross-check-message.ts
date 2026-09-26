@@ -23,6 +23,9 @@ export function noProgressMessage(step: WorkflowStep, outcome: Partial<StepOutco
   if (step === "schedule" && outcome.terminalReason === "scope-violation") {
     return { key: "runner.scheduleChangedRepository" };
   }
+  if (step === "wiki" && outcome.terminalReason === "scope-violation") {
+    return { key: "runner.wikiWroteOutsideItsScope" };
+  }
   if (outcome.terminalReason !== "no-progress") return undefined;
   if (step === "archive") return { key: "runner.noProgressArchive", values: { button: stepButton(step) } };
   if (step === "implement") return { key: "runner.noProgressImplement", values: { button: stepButton(step) } };

@@ -158,6 +158,10 @@ export const es: Record<TranslationKey, string> = {
   "project.testServerUnavailable":
     "Este proyecto no lleva el propio código del dashboard, así que un servidor de prueba no puede arrancar " +
     "desde aquí.",
+  "project.wikiHeading": "Wiki",
+  "project.wikiNote":
+    "Genera una wiki de cómo encajan las partes del proyecto. Se guarda en el repositorio de specs y se lee primero al analizar una spec. Cada generación reescribe las páginas generadas y deja intactas las escritas a mano.",
+  "project.wikiButton": "Generar wiki",
 
   "newSpec.dependsOn": "Depende de",
   "newSpec.select": "Seleccionar",

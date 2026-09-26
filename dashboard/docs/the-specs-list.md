@@ -239,7 +239,9 @@ in-flight-press spinner, a different fact with a different lifetime (see [what t
 movement.
 
 Filtering and sorting work on the spec's grouped jobs. "Active" means the spec has something in flight; sorting by
-cost sorts on the sum. A spec's phase lines are the four and nothing else: a step outside them (`reopen`, `close`,
+cost sorts on the sum. A wiki build is a job and not a spec: it has a row named `<project>:wiki`, in every project, whose name links to the
+job's own page. It shows the job's state, time and cost, offers Cancel while the job is unfinished, and has no fold, no
+phase lines and no run button. A spec's phase lines are the four and nothing else: a step outside them (`reopen`, `close`,
 `explore`, `manifest`, `schedule`) draws no line, and the Logs tab on the spec page lists it. The spec's total time is
 the sum over the four phases, so a step outside them adds nothing to it.
 

@@ -460,7 +460,7 @@ describe('the "Serving" line on a project\'s own page (spec 269)', () => {
 });
 
 // Spec 407 (REQ-4, REQ-7): a gated and an ungated project render the
-// identical tab bar — the same three tabs, in the same order — and the
+// identical tab bar — the same four tabs, in the same order — and the
 // ungated one's Deploy tab names why it has nothing to deploy.
 describe("the same tab bar on a gated and an ungated project (REQ-7)", () => {
   const tabLabels = (html: string): string[] => {
@@ -468,13 +468,13 @@ describe("the same tab bar on a gated and an ungated project (REQ-7)", () => {
     return [...subtabs.matchAll(/<a class="tab"[^>]*>([^<]+)<\/a>/g)].map((m) => m[1]!);
   };
 
-  test("both show exactly Deploy, Config, Schedule, in that order", async () => {
+  test("both show exactly Deploy, Config, Schedule, Wiki, in that order", async () => {
     const gatedRoot = projectsRoot({ aide: INSTALLS });
     const gatedHtml = await (await get(serve(gatedRoot, settled(gatedRoot, "aide")), "aide")).text();
     const ungatedRoot = projectsRoot({ aide: null });
     const ungatedHtml = await (await get(serve(ungatedRoot, settled(ungatedRoot, "aide")), "aide")).text();
-    expect(tabLabels(gatedHtml)).toEqual(["Deploy", "Config", "Schedule"]);
-    expect(tabLabels(ungatedHtml)).toEqual(["Deploy", "Config", "Schedule"]);
+    expect(tabLabels(gatedHtml)).toEqual(["Deploy", "Config", "Schedule", "Wiki"]);
+    expect(tabLabels(ungatedHtml)).toEqual(["Deploy", "Config", "Schedule", "Wiki"]);
   });
 });
 

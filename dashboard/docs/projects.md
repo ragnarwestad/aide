@@ -200,7 +200,7 @@ from.
 
 ### A project's own page
 
-`/projects/<name>` has three tabs — **Deploy**, **Config** and **Schedule** — chosen with `?tab=` and defaulting to
+`/projects/<name>` has four tabs — **Deploy**, **Config**, **Schedule** and **Wiki** — chosen with `?tab=` and defaulting to
 Deploy, which is also where an unrecognised value lands. `?edit=1`, the settings table's edit state, opens on Config.
 
 #### Deploy
@@ -283,6 +283,15 @@ scheduled, and under the list is the form that creates one, with this project al
 [Running a job on a schedule](running-specs.md#running-a-job-on-a-schedule) has what such a job may do and where
 its output goes. The tab is drawn even for a project
 that is not on the allowlist; its submission is then refused, with the reason on the form.
+
+#### Wiki
+
+A wiki is a set of pages about how the project's parts hang together, kept in `wiki/` in the project's specs root and
+read first when a spec is analyzed. The tab says so and has one **Build wiki** button, which posts to
+`POST /api/queue/projects/<name>/wiki` and queues one `wiki` job under the key `wiki-<name>`. A press while a build
+is unfinished, or while its merge is running, is refused on the tab with the queue's own sentence. The build shows on
+the Specs list as a row named `<name>:wiki`. A project whose specs folder git ignores inside the project cannot build
+a wiki: the run is refused, since there is no repository to commit the pages to.
 
 ### How a project's code lands
 

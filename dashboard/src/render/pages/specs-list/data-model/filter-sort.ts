@@ -161,6 +161,11 @@ export function filterShowsArchived(state: string | undefined): boolean {
 export const isArchivedRow = (g: SpecGroup): boolean =>
   g.state === ARCHIVED_STATE || g.state === ARCHIVED_OPEN_STATE || g.state === CLOSED_STATE;
 
+/** Whether a row stands for a wiki build: a job, not a spec. It keeps a row
+ *  of its own that links to the job's page, offers Cancel while unfinished,
+ *  and draws no phases. Its tracking key is not a folder. */
+export const isWikiGroup = (g: SpecGroup): boolean => g.lead?.steps.length === 1 && g.lead.steps[0] === "wiki";
+
 /** Everything the search reads, as one lowercase haystack. The WHOLE
  *  description, not the two lines a row shows: a term found in the
  *  clipped tail still turns up its row, and the note under the field

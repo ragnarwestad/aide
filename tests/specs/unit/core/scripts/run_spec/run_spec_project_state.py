@@ -173,6 +173,16 @@ BASH_ERROR_REGISTRY: list[dict] = [
         "resolve": "Rewrite the job's prompt",
     },
     {
+        "name": "a wiki build wrote what it may not",
+        "pattern": r"the wiki build wrote what it may not.*",
+        "resolve": "press $step_button again",
+    },
+    {
+        "name": "a wiki build in a specs folder git ignores",
+        "pattern": r"a wiki is kept in a repository.*",
+        "resolve": "put the specs in a repository of their own",
+    },
+    {
         "name": "a completed archive left no real progress",
         "pattern": r"the step reported success but left no real progress — the spec folder was never moved to archive/.*",
         "resolve": "Press $step_button again",

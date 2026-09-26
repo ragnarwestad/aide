@@ -152,7 +152,7 @@ need_part() {
 # EVERY phase, before the first one runs. Checked one at a time where
 # each is sourced, a missing late phase was only found after the step had
 # run and the money was spent.
-for _part in run-spec-arguments.sh run-spec-code-landing.sh run-spec-gates.sh run-spec-invocation.sh run-spec-checkouts.sh run-spec-worktree.sh run-spec-branch.sh run-spec-provider-limit.sh run-spec-spec-paths.sh run-spec-cleanup.sh run-spec-records.sh run-spec-status-line.sh run-spec-specs-guard.sh run-spec-boundary.sh run-spec-outcome.sh run-spec-ac-coverage.sh run-spec-publish.sh run-spec-schedule-guard.sh; do need_part "$_part"; done
+for _part in run-spec-arguments.sh run-spec-code-landing.sh run-spec-gates.sh run-spec-invocation.sh run-spec-checkouts.sh run-spec-worktree.sh run-spec-branch.sh run-spec-provider-limit.sh run-spec-spec-paths.sh run-spec-cleanup.sh run-spec-records.sh run-spec-status-line.sh run-spec-specs-guard.sh run-spec-boundary.sh run-spec-outcome.sh run-spec-ac-coverage.sh run-spec-publish.sh run-spec-schedule-guard.sh run-spec-wiki-guard.sh; do need_part "$_part"; done
 # The step's own clock, started before anything it does (2026-09-08).
 # It began beside the AI session and therefore measured the session
 # alone: the checkout, the worktree, the branch, the archive pre-check
@@ -224,6 +224,8 @@ source "$SCRIPT_DIR/lib/run-spec-outcome.sh"
 source "$SCRIPT_DIR/lib/run-spec-publish.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/run-spec-schedule-guard.sh"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/run-spec-wiki-guard.sh"
 
 # --- what a `close` step actually DID, in the script's own word -------------
 # The dashboard lands a close on `closed` alone (runner-setup.ts), and a

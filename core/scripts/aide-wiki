@@ -1,0 +1,294 @@
+#!/usr/bin/env bash
+# aide-wiki — the mechanics of a project's wiki, with no AI in it.
+#
+# The wiki is the folder wiki/ inside the project's specs root: index.md,
+# schema.md and one page per part of the system. A page is GENERATED when
+# its front matter carries `wiki: generated`; every other page is written
+# by hand and is never touched. That mark is read in this script alone.
+# The /aide-wiki skill decides what the parts are and what a page says;
+# everything that can be checked lives here.
+#
+# Prints ONE JSON line to stdout: {ok, exitCode, terminalReason, ...}.
+# Exit 0 on success, 2 on a refusal (with `reason`, a short name, and `error`).
+#
+# Usage:
+#   aide-wiki write  --specs-root R --project-dir P --page NAME.md --file PATH [--file PATH...]
+#                    # the page's body on stdin
+#   aide-wiki schema --specs-root R --project-dir P
+#   aide-wiki index  --specs-root R --project-dir P
+#   aide-wiki prune  --specs-root R --keep NAME.md [NAME.md...]
+#   aide-wiki status --specs-root R --project-dir P
+#   aide-wiki verify --specs-root R --base-ref REF
+
+set -uo pipefail
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  aide-wiki write  --specs-root R --project-dir P --page NAME.md --file PATH [--file PATH...]
+                   (the page's body on stdin)
+  aide-wiki schema --specs-root R --project-dir P
+  aide-wiki index  --specs-root R --project-dir P
+  aide-wiki prune  --specs-root R --keep NAME.md [NAME.md...]
+  aide-wiki status --specs-root R --project-dir P
+  aide-wiki verify --specs-root R --base-ref REF
+USAGE
+}
+
+command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","reason":"no-jq","error":"jq is required"}'; exit 2; }
+
+refuse() {
+  jq -cn --arg r "$1" --arg e "$2" '{ok:false, exitCode:2, terminalReason:"refused", reason:$r, error:$e}'
+  exit 2
+}
+
+case "${1:-}" in
+  -h|--help|"") usage; exit 0 ;;
+esac
+sub="$1"; shift
+
+specs_root=""; project_dir=""; page=""; base_ref=""; files=(); keep=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --specs-root) specs_root="${2:-}"; shift 2 ;;
+    --project-dir) project_dir="${2:-}"; shift 2 ;;
+    --page) page="${2:-}"; shift 2 ;;
+    --base-ref) base_ref="${2:-}"; shift 2 ;;
+    --file) shift; while [ $# -gt 0 ] && [[ "$1" != --* ]]; do files+=("$1"); shift; done ;;
+    --keep) shift; while [ $# -gt 0 ] && [[ "$1" != --* ]]; do keep+=("$1"); shift; done ;;
+    -h|--help) usage; exit 0 ;;
+    *) refuse "unknown-argument" "unknown argument: $1" ;;
+  esac
+done
+
+[ -n "$specs_root" ] || refuse "missing-argument" "missing --specs-root"
+[ -d "$specs_root" ] || refuse "no-specs-root" "no specs root at $specs_root"
+wiki="$specs_root/wiki"
+
+# --- the mark, read here and nowhere else ------------------------------------
+
+# The front matter's lines, without the two `---` fences; empty when the file
+# does not start with one.
+front_matter() {
+  awk 'NR==1 { if ($0 != "---") exit; next } $0 == "---" { exit } { print }' "$1" 2>/dev/null
+}
+
+front_matter_of_text() {
+  awk 'NR==1 { if ($0 != "---") exit; next } $0 == "---" { exit } { print }'
+}
+
+is_generated() {
+  front_matter "$1" | grep -qx 'wiki: generated'
+}
+
+fm_commit() {
+  front_matter "$1" | sed -n 's/^commit: *//p' | head -1
+}
+
+fm_files() {
+  front_matter "$1" | awk '/^files:/ { on = 1; next } on && /^  - / { sub(/^  - /, ""); print; next } { on = 0 }'
+}
+
+# The body: what follows the front matter (all of the file when it has none).
+body_of() {
+  awk 'NR==1 && $0 != "---" { body = 1 } body { print; next } NR>1 && $0 == "---" { body = 1; next }' "$1"
+}
+
+page_title() {
+  local t
+  t="$(body_of "$1" | sed -n 's/^# \{1,\}//p' | head -1)"
+  [ -n "$t" ] || t="$(basename "$1" .md)"
+  printf '%s' "$t"
+}
+
+# The first non-empty line after the `# ` heading.
+page_summary() {
+  body_of "$1" | awk '/^# / && !seen { seen = 1; next } seen && NF { print; exit }'
+}
+
+need_project() {
+  [ -n "$project_dir" ] || refuse "missing-argument" "missing --project-dir"
+  git -C "$project_dir" rev-parse HEAD >/dev/null 2>&1 || refuse "no-project" "$project_dir is not a git repository with a commit"
+  head_sha="$(git -C "$project_dir" rev-parse HEAD)"
+}
+
+# A generated page's text: the mark, the commit, the files, then the body on stdin.
+compose() {
+  local commit="$1"; shift
+  printf -- '---\nwiki: generated\ncommit: %s\n' "$commit"
+  if [ $# -eq 0 ]; then
+    printf 'files: []\n'
+  else
+    printf 'files:\n'
+    local f
+    for f in "$@"; do printf '  - %s\n' "$f"; done
+  fi
+  printf -- '---\n\n'
+  cat
+}
+
+# Overwrite $1 with stdin, but never a hand-written page.
+put_page() {
+  local target="$1" tmp
+  if [ -e "$target" ] && ! is_generated "$target"; then
+    cat >/dev/null
+    refuse "hand-written-page" "$(basename "$target") is written by hand (no wiki: generated mark) and is left as it is"
+  fi
+  mkdir -p "$wiki"
+  tmp="$(mktemp)"
+  cat > "$tmp"
+  mv "$tmp" "$target"
+}
+
+case "$sub" in
+  write)
+    need_project
+    [[ "$page" =~ ^[a-z0-9-]+\.md$ ]] || refuse "bad-page-name" "--page must be lower-case letters, digits and hyphens ending in .md: $page"
+    case "$page" in index.md|schema.md) refuse "reserved-page-name" "$page is written by its own subcommand" ;; esac
+    [ ${#files[@]} -gt 0 ] || refuse "no-file" "a page names the files it was written from: pass --file"
+    body="$(mktemp)"; cat > "$body"
+    [ -s "$body" ] || { rm -f "$body"; refuse "empty-body" "no content on stdin"; }
+    for f in "${files[@]}"; do
+      git -C "$project_dir" cat-file -e "HEAD:$f" 2>/dev/null || { rm -f "$body"; refuse "unknown-file" "$f is not in the project at HEAD"; }
+    done
+    compose "$head_sha" "${files[@]}" < "$body" | put_page "$wiki/$page"
+    [ "${PIPESTATUS[1]}" -eq 0 ] || { rm -f "$body"; exit 2; }
+    rm -f "$body"
+    jq -cn --arg p "$page" --arg c "$head_sha" '{ok:true, exitCode:0, terminalReason:"written", page:$p, commit:$c}'
+    ;;
+
+  schema)
+    need_project
+    if [ -e "$wiki/schema.md" ] && ! is_generated "$wiki/schema.md"; then
+      refuse "hand-written-page" "schema.md is written by hand (no wiki: generated mark) and is left as it is"
+    fi
+    compose "$head_sha" <<'SCHEMA' | put_page "$wiki/schema.md"
+# How this wiki is organised
+
+A map of how the project's parts hang together, kept beside its specs and read before code is searched.
+
+## Layout
+
+The folder `wiki/` holds `index.md`, this page, and one page per part of the system. The index has one line per page.
+
+## Generated and hand-written pages
+
+A generated page starts with front matter that has the key `wiki` set to `generated`, the key `commit` (the project's commit it was written from) and the key `files` (the files and folders it was written from). A page without `wiki: generated` in its front matter is hand-written: it is never changed, deleted or rewritten, and the index lists it like any other page.
+
+## What a page holds
+
+- What the part does, in one line first: the index shows that line as the page's summary.
+- Who it talks to, and over what.
+- What has to change along with it.
+- The words it uses for things.
+
+A page holds no line numbers and no code. It is a map: the code decides.
+
+## Links
+
+Pages link to each other with ordinary markdown links to `page.md`.
+
+## Rebuilding
+
+A build rewrites every generated page from the code as it is, deletes a generated page whose part is gone, and rebuilds the index last. Status shows which pages still match their files.
+SCHEMA
+    [ "${PIPESTATUS[1]}" -eq 0 ] || exit 2
+    jq -cn --arg c "$head_sha" '{ok:true, exitCode:0, terminalReason:"written", page:"schema.md", commit:$c}'
+    ;;
+
+  index)
+    need_project
+    if [ -e "$wiki/index.md" ] && ! is_generated "$wiki/index.md"; then
+      refuse "hand-written-page" "index.md is written by hand (no wiki: generated mark) and is left as it is"
+    fi
+    mkdir -p "$wiki"
+    {
+      printf '# Wiki index\n\nOne line per page of the wiki.\n\n'
+      for f in "$wiki"/*.md; do
+        [ -f "$f" ] || continue
+        n="$(basename "$f")"
+        [ "$n" = "index.md" ] && continue
+        printf -- '- [%s](%s) — %s\n' "$(page_title "$f")" "$n" "$(page_summary "$f")"
+      done
+    } | compose "$head_sha" | put_page "$wiki/index.md"
+    [ "${PIPESTATUS[2]}" -eq 0 ] || exit 2
+    jq -cn --arg c "$head_sha" '{ok:true, exitCode:0, terminalReason:"written", page:"index.md", commit:$c}'
+    ;;
+
+  prune)
+    deleted=()
+    for f in "$wiki"/*.md; do
+      [ -f "$f" ] || continue
+      n="$(basename "$f")"
+      case "$n" in index.md|schema.md) continue ;; esac
+      is_generated "$f" || continue
+      kept=""
+      for k in ${keep[@]+"${keep[@]}"}; do [ "$k" = "$n" ] && kept=1; done
+      [ -n "$kept" ] && continue
+      rm -f "$f"; deleted+=("$n")
+    done
+    jq -cn '{ok:true, exitCode:0, terminalReason:"pruned", deleted:($ARGS.positional)}' --args ${deleted[@]+"${deleted[@]}"}
+    ;;
+
+  status)
+    need_project
+    if [ ! -d "$wiki" ]; then
+      echo '{"ok":true,"wiki":false,"pages":[]}'
+      exit 0
+    fi
+    pages="[]"
+    for f in "$wiki"/*.md; do
+      [ -f "$f" ] || continue
+      n="$(basename "$f")"; gen=false; state="hand-written"; changed=()
+      if is_generated "$f"; then
+        gen=true
+        commit="$(fm_commit "$f")"
+        if [ -z "$commit" ] || ! git -C "$project_dir" cat-file -e "$commit^{commit}" 2>/dev/null; then
+          state="unknown"
+        else
+          fl=(); while IFS= read -r line; do [ -n "$line" ] && fl+=("$line"); done < <(fm_files "$f")
+          if [ ${#fl[@]} -gt 0 ]; then
+            while IFS= read -r line; do [ -n "$line" ] && changed+=("$line"); done \
+              < <(git -C "$project_dir" diff --name-only "$commit" HEAD -- "${fl[@]}" 2>/dev/null)
+          fi
+          if [ ${#changed[@]} -gt 0 ]; then state="changed"; else state="current"; fi
+        fi
+      fi
+      pages="$(jq -c --arg p "$n" --argjson g "$gen" --arg s "$state" \
+        '. + [{page:$p, generated:$g, state:$s, changedFiles:($ARGS.positional)}]' --args ${changed[@]+"${changed[@]}"} <<<"$pages")"
+    done
+    jq -cn --arg c "$head_sha" --argjson p "$pages" '{ok:true, exitCode:0, wiki:true, commit:$c, pages:$p}'
+    ;;
+
+  verify)
+    [ -n "$base_ref" ] || refuse "missing-argument" "missing --base-ref"
+    git -C "$specs_root" rev-parse --show-toplevel >/dev/null 2>&1 || refuse "no-specs-repo" "$specs_root is not inside a git repository"
+    violations="[]"
+    add_violation() { violations="$(jq -c --arg k "$1" --arg p "$2" '. + [{kind:$k, page:$p}]' <<<"$violations")"; }
+    base_pages="$(git -C "$specs_root" ls-tree --name-only "$base_ref" -- wiki/ 2>/dev/null | sed -n 's|^.*wiki/\(.*\.md\)$|\1|p')"
+    base_text() { git -C "$specs_root" show "$base_ref:./wiki/$1" 2>/dev/null; }
+    base_generated() { base_text "$1" | front_matter_of_text | grep -qx 'wiki: generated'; }
+    while IFS= read -r n; do
+      [ -n "$n" ] || continue
+      base_generated "$n" && continue
+      if [ ! -f "$wiki/$n" ]; then
+        add_violation "hand-written-deleted" "$n"
+      elif [ "$(base_text "$n"; echo x)" != "$(cat "$wiki/$n"; echo x)" ]; then
+        add_violation "hand-written-changed" "$n"
+      fi
+    done <<<"$base_pages"
+    for f in "$wiki"/*.md; do
+      [ -f "$f" ] || continue
+      n="$(basename "$f")"
+      is_generated "$f" && continue
+      # No mark now: fine only when it is a hand-written page that was there and is unchanged.
+      if grep -qxF "$n" <<<"$base_pages" && ! base_generated "$n"; then continue; fi
+      add_violation "unmarked-page" "$n"
+    done
+    jq -cn --argjson v "$violations" '{ok:true, exitCode:0, terminalReason:"verified", violations:$v}'
+    ;;
+
+  *)
+    refuse "unknown-subcommand" "unknown subcommand: $sub"
+    ;;
+esac

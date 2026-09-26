@@ -38,6 +38,7 @@ export {
   filterShowsArchived,
   NOT_VERIFIED_KEY,
   isArchivedRow,
+  isWikiGroup,
   matchesSearch,
   applyFilter,
   sortGroups,

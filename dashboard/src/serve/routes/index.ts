@@ -43,6 +43,7 @@ import type { TestServersContext } from "../test-servers/lifecycle.ts";
 import { handlePageRoutes } from "./page-routes";
 import { handleQueueEvents } from "./sse.ts";
 import { handleQueueAdminRoutes } from "./queue-admin.ts";
+import { handleWikiRoute } from "./wiki-route.ts";
 import { handleDeploySteps, type DeployHooks } from "./deploy-steps.ts";
 import { handleJobActionRoutes } from "./job-actions.ts";
 import { handleSpecEditRoutes } from "./spec-edit";
@@ -170,6 +171,7 @@ export async function handleRoutes(ctx: RoutesContext, req: Request, url: URL, p
     failedCreateRoutes(ctx, req, path, wantsJson) ??
     (await handleDeploySteps(ctx, req, path)) ??
     (await handleQueueAdminRoutes(ctx, req, path, wantsJson)) ??
+    (await handleWikiRoute(ctx, req, path, wantsJson)) ??
     (await handlePushRoutes(ctx, req, url, path)) ??
     (await handleJobActionRoutes(ctx, req, path, wantsJson)) ??
     (await handleSpecEditRoutes(ctx, req, url, path, wantsJson)) ??
