@@ -59,7 +59,9 @@ than once per job.
 
 The header is two lines: the title, then the pips, the state and the figures. An open row drops the second line and
 the caption line carries the spec's summed Time and Cost instead, over the phases' own figures. Each phase line says
-its own state, failed, stopped and held back included, so the badge and the pips would only say it twice.
+its own state, failed, stopped and held back included, so the badge and the pips would only say it twice. A phone
+lays the caption line out the same way: the captions, then the row's button in the state column at the phase badges'
+own size, then the total in the Time column.
 
 ## The row's controls
 

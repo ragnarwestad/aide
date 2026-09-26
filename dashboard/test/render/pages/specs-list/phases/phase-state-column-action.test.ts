@@ -489,11 +489,10 @@ describe("spec 161: the row's one action is primary", () => {
 // --- the caption line carries the row's totals -------------------------------
 //
 // An open row hides the head row's second line, so the caption line
-// carries the spec's Time and Cost: in its own cells for a desktop, and
-// Time again in its action slot for a phone (narrow.css lays it out).
-// What breaks silently is a copy drifting from the head row's own
-// figure, or losing the `data-elapsed` the page's one-second clock
-// rewrites.
+// carries the spec's Time and Cost in its own cells, on a desktop and a
+// phone alike. What breaks silently is a copy drifting from the head
+// row's own figure, or losing the `data-elapsed` the page's one-second
+// clock rewrites.
 describe("the caption line carries the row's totals", () => {
   const NOW = "2026-08-16T12:00:00Z";
   const job = (extra: Partial<QueueRowView> = {}): QueueRowView => ({
@@ -528,7 +527,6 @@ describe("the caption line carries the row's totals", () => {
   const captionLine = (html: string) =>
     html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
   const slot = (html: string) => captionLine(html).match(/<span class="actionslot">([\s\S]*?)<\/span><\/td>/)?.[1] ?? "";
-  const headTime = (html: string) => captionLine(html).match(/<span class="headtime">([\s\S]*?)<\/span><\/span>(?=<\/td>)/)?.[1];
   // The header's own Time cell, which sits on the second of its two rows
   // (2026-09-22): the title has the first to itself.
   const headCell = (html: string, col = "started") =>
@@ -556,25 +554,23 @@ describe("the caption line carries the row's totals", () => {
     ["running", [running], [target()]],
   ];
 
-  test("the slot holds the button, then the total, and no copy of the state", () => {
+  test("the slot holds the button and no copy of the state", () => {
     const inner = slot(render([], [target()]));
-    expect(inner.indexOf("<button")).toBeGreaterThan(-1);
-    expect(inner.indexOf('class="headtime"')).toBeGreaterThan(inner.indexOf("<button"));
+    expect(inner).toContain("<button");
     expect(inner).not.toContain('class="badge');
   });
 
   test.each(fixtures)("a %s row's totals are byte-equal to the head row's cells (AC-2)", (_name, list, targets) => {
     const html = render(list, targets);
     expect(headCell(html)).toBeDefined();
-    expect(headTime(html)).toBe(headCell(html));
     expect(captionCell(html, "started")).toBe(headCell(html));
     expect(captionCell(html, "cost")).toBe(headCell(html, "cost"));
   });
 
   test("a running row's copy carries the start the page's clock counts from (AC-2)", () => {
     const html = render([running], [target()]);
-    expect(headTime(html)).toMatch(/data-elapsed="2026-08-16T11:00:00\.000Z"/);
-    expect(headTime(html)).toBe(headCell(html));
+    expect(captionCell(html, "started")).toMatch(/data-elapsed="2026-08-16T11:00:00\.000Z"/);
+    expect(captionCell(html, "started")).toBe(headCell(html));
   });
 
   test("an archived row's total is the head row's own too (AC-2)", () => {
@@ -587,14 +583,12 @@ describe("the caption line carries the row's totals", () => {
       phaseOutcomes: { analyze: { timeSpentMs: 5 * 60 * 1000 }, implement: { timeSpentMs: 7 * 60 * 1000 } },
     };
     const html = render([], [], { archivedSpecs: [archived], filter: { state: "archived", open: "aide/496-total" } });
-    expect(headTime(html)).toBeDefined();
-    expect(headTime(html)).toContain("12m");
-    expect(headTime(html)).toBe(headCell(html));
+    expect(captionCell(html, "started")).toContain("12m");
+    expect(captionCell(html, "started")).toBe(headCell(html));
   });
 
-  test("with no model choices the totals are on the caption line, the phone's copy inside the slot", () => {
+  test("with no model choices the totals are on the caption line", () => {
     const html = render([done], [target({ done: ["analyze", "implement"] })], { modelChoices: [] });
-    expect(slot(html)).toContain('class="headtime"');
     expect(headCell(html)).toBeDefined();
     expect(captionCell(html, "started")).toBe(headCell(html));
   });

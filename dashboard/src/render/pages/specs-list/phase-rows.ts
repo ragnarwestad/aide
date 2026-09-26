@@ -97,15 +97,12 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
   const action = stateAction(g, opts);
   // The spec's own totals stand on this line: an open row hides the head
   // row's second line (list.css), so Time and Cost move here, over the
-  // phases' own figures. A phone lays the line out as a grid inside the
-  // action slot and has no Time column cell of its own on it, so it
-  // reads the total from this copy instead (narrow.css).
-  const headTime = `<span class="headtime">${specTotalCell(g)}</span>`;
+  // phases' own figures.
   const totals = { started: specTotalCell(g), cost: costCell(g.spentUsd, g.spentTokens, "–", g.done.length > 0) };
   if ((opts.modelChoices ?? []).length) {
     lines.push({
       tag: `<tr class="subrow" data-caption="1">`,
-      cells: phaseCaptionCells(opts, true, action + headTime, opts.lang ?? "en", totals),
+      cells: phaseCaptionCells(opts, true, action, opts.lang ?? "en", totals),
     });
   } else {
     // No captions to head — one tool configured, nothing to choose
@@ -115,7 +112,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
       tag: `<tr class="subrow" data-caption="1">`,
       cells:
         `<td class="phasecell" colspan="2"></td><td class="modelcell"></td>` +
-        `<td data-col="state"><span class="actionslot">${action}${headTime}</span></td>` +
+        `<td data-col="state">${action ? `<span class="actionslot">${action}</span>` : ""}</td>` +
         `<td data-col="started">${totals.started}</td><td class="num" data-col="cost">${totals.cost}</td>`,
     });
   }

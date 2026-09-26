@@ -1,8 +1,10 @@
-// The row's total on a phone, as a browser lays it out (spec 496).
+// The caption line of an open row on a phone, as a browser lays it out.
 //
-// Whether the button, the state copy and the total stay on one line, and
-// whether the total's left edge holds still as its text changes, are a
-// grid's and a flex line's answers: no string in the stylesheet says.
+// The captions, the row's action and the spec's total share one line,
+// as on a desktop: the button in the state column at the phase badges'
+// width, the total in the Time column over the phases' times. Whether
+// they stay on one line, and hold still as the total's text changes, is
+// a flex line's answer: no string in the stylesheet says.
 
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -63,14 +65,17 @@ const capture = () =>
   page.evaluate(() => {
     const cap = document.querySelector('tr.subrow[data-caption="1"]')!;
     const rect = (el: Element | null) => el!.getBoundingClientRect();
-    const btn = cap.querySelector(".actionslot > .btn, .actionslot > .actionform");
-    const total = cap.querySelector(".actionslot > .headtime");
-    const text = total!.querySelector("span")!;
+    const caption = cap.querySelector(".phasecell");
+    const btn = cap.querySelector(".actionslot .btn");
+    const text = cap.querySelector('td[data-col="started"] span')!;
+    const phaseState = document.querySelector('tr.subrow[data-step] td[data-col="state"]');
     return {
-      tops: [rect(btn).top, rect(total).top],
+      tops: [rect(caption).top, rect(btn).top, rect(text).top],
       btnLeft: rect(btn).left,
-      // The centre: Time reads centred in its own column here since
-      // 2026-09-22, as it does on a wider window.
+      btnWidth: rect(btn).width,
+      stateLeft: rect(phaseState).left,
+      stateWidth: rect(phaseState).width,
+      // The centre: Time reads centred in its own column.
       totalLeft: rect(text).left + rect(text).width / 2,
       capHeight: rect(cap).height,
       phaseTimeLefts: [...document.querySelectorAll('tr.subrow[data-step] [data-col="started"] span')].map(
@@ -82,11 +87,13 @@ const capture = () =>
   });
 
 for (const lang of ["nb", "en"]) {
-  test(`${lang}: the button and the total share a line, and Time lines up with the phases (AC-1, AC-3)`, async () => {
+  test(`${lang}: the captions, the button and the total share a line, the button in the state column and Time over the phases' times (AC-1, AC-3)`, async () => {
     for (const width of WIDTHS) {
       await open(width, 800, lang);
       const m = await capture();
       expect(Math.max(...m.tops) - Math.min(...m.tops), `at ${width}px`).toBeLessThanOrEqual(12);
+      expect(Math.abs(m.btnLeft - m.stateLeft), `at ${width}px`).toBeLessThanOrEqual(1);
+      expect(Math.abs(m.btnWidth - m.stateWidth), `at ${width}px`).toBeLessThanOrEqual(1);
       expect(m.overflow, `at ${width}px`).toBeLessThanOrEqual(0);
       for (const left of m.phaseTimeLefts) expect(Math.abs(left - m.totalLeft), `at ${width}px`).toBeLessThanOrEqual(1);
       const singleLine = Math.min(...m.phaseHeights);
@@ -100,7 +107,7 @@ test("the total's text changing moves nothing on the line (AC-3)", async () => {
   const before = await capture();
   for (const text of ["9s", "59m 59s", "12h 05m", "100h 05m"]) {
     await page.evaluate((t) => {
-      document.querySelector('tr.subrow[data-caption="1"] .headtime span')!.textContent = t;
+      document.querySelector('tr.subrow[data-caption="1"] td[data-col="started"] span')!.textContent = t;
     }, text);
     const after = await capture();
     // The centre holds, within the rounding of a fractional width — and
@@ -112,18 +119,13 @@ test("the total's text changing moves nothing on the line (AC-3)", async () => {
   }
 });
 
-test("a desktop and a phone held sideways show the total in the caption line's own Time cell, not the copy (AC-4)", async () => {
+test("a desktop and a phone held sideways show the total in the caption line's own Time cell (AC-4)", async () => {
   for (const [w, h] of [[1280, 800], [844, 390]] as const) {
     await open(w, h);
-    const m = await page.evaluate(() => {
-      const cap = document.querySelector('tr.subrow[data-caption="1"]')!;
-      const cell = cap.querySelector('[data-col="started"]') as HTMLElement;
-      return {
-        copy: cap.querySelector(".headtime")!.getClientRects().length > 0,
-        cell: cell.getClientRects().length > 0 ? cell.textContent!.trim() : "",
-      };
+    const cell = await page.evaluate(() => {
+      const el = document.querySelector('tr.subrow[data-caption="1"] [data-col="started"]') as HTMLElement;
+      return el.getClientRects().length > 0 ? el.textContent!.trim() : "";
     });
-    expect(m.copy, `${w}x${h}`).toBe(false);
-    expect(m.cell, `${w}x${h}`).not.toBe("");
+    expect(cell, `${w}x${h}`).not.toBe("");
   }
 });

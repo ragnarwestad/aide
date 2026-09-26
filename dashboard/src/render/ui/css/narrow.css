@@ -340,7 +340,7 @@
      `<td>`, a direct flex child of `tr.subrow`), not a new one. Scoped to
      `tr.subrow[data-step]` (an ordinary phase line's own attribute,
      phase-rows.ts:324) so it never reaches the caption line
-     (`tr.subrow[data-caption="1"]`, its own `flex: 0 0 100%` above) or
+     (`tr.subrow[data-caption="1"]`, which sets its own width below) or
      the spec-head row's state cell (`tr.spechead`, its own grid rule
      above) — neither carries `[data-step]`. Time's own `flex: 0 0 auto`
      rule, already fixed since Round 1, then starts at the same x on
@@ -500,39 +500,23 @@
      and the row's action button where the state stands. The AI and
      Model captions are one box on a phone, so one caption heads it. */
   table.list tr.subrow[data-caption="1"] { display: flex; }
-  /* Two lines: first the action button at the far left and the spec's
-     own state starting where the phases' state column starts (the name,
-     the box, the tick and three gaps), then the captions. The state
-     cell takes the whole first line, which is what puts the captions on
-     the second. */
-  table.list tr.subrow[data-caption="1"] > td[data-col="state"] { order: 1; flex: 0 0 100%; }
-  table.list tr.subrow[data-caption="1"] td[data-col="state"] > .actionslot { display: grid; width: 100%;
-    grid-template-columns: calc(var(--fold-w) + var(--phase-w) + var(--aimodel-w) + var(--tick-w) + 3 * var(--sp-2))
-                           var(--state-w) calc(var(--sp-2) + var(--time-w));
-    align-items: center; padding-left: var(--sp-3); box-sizing: border-box; }
-  /* The button keeps the same air from the left edge as a shut row's
-     pips do; the padding comes off the first column again, so the state
-     copy still starts over the phases' own state column. */
-  /* The slot holds an empty form (the button points at it by id), the
-     button, and the total: the button in the first column at its own
-     width, the total in the third, over the phases' times, and the form
-     out of the grid. The second column stays empty, over the phases'
-     states. */
+  /* One line, as on a desktop and as the phase lines under it: the
+     captions over the name, the box and the tick, the row's action in the
+     state column, and the spec's total in the Time column. The button
+     takes the phase badges' own height, text size and column width, so
+     it fits where they fit, and trims with an ellipsis where they do. */
+  table.list tr.subrow[data-caption="1"] > td[data-col="state"] { order: 6; flex: 0 0 var(--state-w); min-width: 0;
+    text-align: center; }
+  table.list tr.subrow[data-caption="1"] > td[data-col="started"] { order: 7; }
+  table.list tr.subrow[data-caption="1"] td[data-col="state"] > .actionslot,
+  table.list tr.subrow[data-caption="1"] .actionslot > .actionform { display: block; width: 100%; }
   table.list tr.subrow[data-caption="1"] .actionslot > .rowrun { display: none; }
-  table.list tr.subrow[data-caption="1"] .actionslot > .btn { grid-column: 1; grid-row: 1; justify-self: start; }
-  /* A running row's one action is Cancel, a form rather than a bare
-     button: placed the same way, or it stretches across the column and
-     its button sits in the middle of it. */
-  table.list tr.subrow[data-caption="1"] .actionslot > .actionform { grid-column: 1; grid-row: 1; justify-self: start; }
-  /* The row's total, in the Time column the phase lines use. The line's
-     own Time cell would land on the line of captions, so it is left out. */
-  table.list tr.subrow[data-caption="1"] .actionslot > .headtime { display: block; grid-column: 3; grid-row: 1;
-    padding-left: var(--sp-2); text-align: center; white-space: nowrap; }
-  table.list tr.subrow[data-caption="1"] > td[data-col="started"] { display: none; }
+  table.list tr.subrow[data-caption="1"] .actionslot .btn { display: block; width: 100%; height: 20px;
+    padding: 0 var(--sp-1); border-radius: var(--r-s); font-size: var(--fs-s); line-height: 18px;
+    overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; }
   /* The rows are flex lines here, not table rows, so an open row's
      second line comes off with `display: none` (list.css collapses it). */
   table.list tr.spechead:has(.fold[aria-expanded="true"]) + tr.specstate { display: none; }
-  table.list tr.subrow[data-caption="1"] > .phasecell { order: 3; }
   table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="ai"] { order: 4; }
   /* Same tier as "ai" (spec 488): a tie in flex `order` falls back to DOM
      order, and the caption line writes "ai" ahead of "model" — this only
