@@ -109,9 +109,10 @@ def test_reopen_takes_the_branch_off_origin_in_both_roots(
         assert not has_branch(bare, BRANCH), f"{bare} still holds {BRANCH}"
 
 @pytest.mark.parametrize("reset", [False, True], ids=["keep", "reset"])
+@pytest.mark.usefixtures("origin")
 def test_reopen_succeeds_when_the_branches_are_already_gone(
     reset,
-    runner, workspace, fake_claude, origin
+    runner, workspace, fake_claude
 ):
     """Every one of the four deletions tolerates "already gone": a spec
     whose branch was cleaned up by the landing that archived it is the
