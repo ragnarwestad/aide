@@ -19,7 +19,6 @@ import { isSpecFolder } from "../../../render/ui/shell.ts";
 import { languageChoice, specsClientScript } from "../../serve-helpers";
 import type { RoutesContext } from "..";
 import { isWikiBuild } from "../../../queue/steps.ts";
-import { resolveLogFilter } from "../../../queue/parse-stream";
 import { renderSentence } from "../../../i18n/message.ts";
 import type { Language } from "../../../i18n";
 import type { Job } from "../../../queue/types.ts";
@@ -398,7 +397,8 @@ async function wikiLog(ctx: RoutesContext, url: URL, project: string) {
   if (url.searchParams.get("tab") !== "wiki") return undefined;
   const job = latestWikiJob(ctx.queue.list(), project);
   if (!job) return undefined;
-  const only = resolveLogFilter(url.searchParams.get("only") ?? undefined);
-  const detail = await ctx.jobDetailView(job, only);
-  return { results: detail.results, runningStep: detail.runningStep, step: url.searchParams.get("step") ?? undefined, only };
+  const detail = await ctx.jobDetailView(job);
+  return { results: detail.results, runningStep: detail.runningStep, step: url.searchParams.get("step") ?? undefined,
+    steptab: url.searchParams.get("steptab") ?? undefined,
+  };
 }

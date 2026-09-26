@@ -347,11 +347,11 @@ describe("a no-AI create reads distinctly from an AI-run one (spec 433)", () => 
   });
 });
 
-// Spec 452: a summary above each step's own raw log — files, commands,
-// final message and the step's already-existing numbers, repeated from
-// the SAME fields the row itself draws (AC-5), never a second computed
-// copy of them.
-describe("the Logs tab's per-step summary (spec 452)", () => {
+// What an opened step shows above its tabs: the numbers already drawn on
+// its row, repeated from the SAME fields (`r.at`/`r.costUsd`/
+// `r.tokens`/`r.terminalReason`), never a second, independently computed
+// copy of them. The tabs themselves are proven in `job-page/step-tabs.test.ts`.
+describe("an opened step's facts", () => {
   const FULL_RESULT = {
     step: "implement",
     ok: true,
@@ -360,44 +360,23 @@ describe("the Logs tab's per-step summary (spec 452)", () => {
     terminalReason: "completed",
     at: "2026-09-13T10:05:00Z",
     logs: ["Bash bun test"],
-    commands: [{ command: "bun test", outcome: { kind: "ok" as const }, durationMs: 1500 }],
     finalMessage: "All done.",
     changedFiles: [{ path: "src/queue/runner.ts", added: 4, removed: 1, binary: false }],
   };
+  const HREF = "/specs/aide/1-x?tab=steps";
 
-  test("AC-6: neither the summary nor the raw log is in the markup while the row is collapsed", () => {
-    const html = stepResults([FULL_RESULT], undefined, { tabHref: "/specs/aide/1-x?tab=steps" });
+  test("AC-6: neither the facts nor the log are in the markup while the row is collapsed", () => {
+    const html = stepResults([FULL_RESULT], undefined, { tabHref: HREF });
     expect(html).not.toContain("Changed files");
     expect(html).not.toContain("Bash bun test");
+    expect(html).not.toContain("tabbar");
   });
 
-  test("AC-1/AC-2/AC-3/AC-4: the summary renders above the raw log once the row is expanded", () => {
-    const html = stepResults([FULL_RESULT], undefined, { tabHref: "/specs/aide/1-x?tab=steps", openStep: "0" });
-    const summaryAt = html.indexOf("Changed files");
-    const logAt = html.indexOf("Bash bun test");
-    expect(summaryAt).toBeGreaterThan(-1);
-    expect(logAt).toBeGreaterThan(-1);
-    expect(summaryAt).toBeLessThan(logAt);
-    expect(html).toContain("src/queue/runner.ts");
-    expect(html).toContain("bun test");
-    expect(html).toContain("All done.");
-  });
-
-  test("AC-5: the summary's own numbers are exactly the row's costUsd/tokens/terminalReason/at, not a recomputed copy", () => {
-    const html = stepResults([FULL_RESULT], undefined, { tabHref: "/specs/aide/1-x?tab=steps", openStep: "0" });
+  test("AC-5: the numbers are exactly the row's costUsd/tokens/terminalReason/at, not a recomputed copy", () => {
+    const html = stepResults([FULL_RESULT], undefined, { tabHref: HREF, openStep: "0" });
     expect(html).toContain("2026-09-13T10:05:00Z");
     expect(html).toContain("$1.23");
     expect(html).toContain("completed");
-  });
-
-  test("a binary changed file never reads as a false zero", () => {
-    const html = stepResults(
-      [{ ...FULL_RESULT, changedFiles: [{ path: "assets/logo.png", added: 0, removed: 0, binary: true }] }],
-      undefined,
-      { tabHref: "/specs/aide/1-x?tab=steps", openStep: "0" },
-    );
-    expect(html).toContain("assets/logo.png");
-    expect(html).toContain("binary");
   });
 
   test("AC-7: a step with no log states the log is missing, alongside whatever numbers exist", () => {
@@ -409,46 +388,16 @@ describe("the Logs tab's per-step summary (spec 452)", () => {
         },
       ],
       undefined,
-      { tabHref: "/specs/aide/1-x?tab=steps", openStep: "0" },
+      { tabHref: HREF, openStep: "0" },
     );
     expect(html).toContain("log is missing");
     expect(html).toContain("$0.50");
     expect(html).toContain("process-gone");
-    expect(html).not.toContain("Commands");
-    expect(html).not.toContain("Changed files");
-  });
-});
-
-// The Logs tab's filter: four links above an expanded step's raw log.
-// Links rather than a widget, for the reason the open row is a link —
-// the page reloads itself every ten seconds, and anything held only in
-// the browser snaps back to everything while the reader is reading.
-describe("filtering a step's raw log", () => {
-  const RESULT = {
-    step: "implement",
-    ok: true,
-    costUsd: 0.4,
-    costMeasured: true,
-    terminalReason: "completed",
-    at: "2026-09-17T10:05:00Z",
-    logs: ["Bash bun test"],
-  };
-  const HREF = "/specs/aide/1-x?tab=steps";
-
-  test("the links are on the expanded row, and each carries its own answer in the URL", () => {
-    const html = stepResults([RESULT], undefined, { tabHref: HREF, openStep: "0" });
-
-    expect(html).toContain(`href="${HREF}&step=0&only=commands"`);
-    expect(html).toContain(`href="${HREF}&step=0&only=files"`);
-    expect(html).toContain(`href="${HREF}&step=0&only=errors"`);
-    // Unfiltered, "All" is where the reader already is: plain text.
-    expect(html).toContain(">All<");
-    expect(html).not.toContain(`href="${HREF}&step=0"`);
   });
 
   test("the step link is marked by data-steplink, open and closed, and is no steplink class (AC-2)", () => {
     for (const openStep of ["0", "none"]) {
-      const html = stepResults([RESULT], undefined, { tabHref: HREF, openStep });
+      const html = stepResults([FULL_RESULT], undefined, { tabHref: HREF, openStep });
       const link = html.match(/<a class="fold[^"]*" data-nav[^>]*>/)?.[0] ?? "";
       expect(link).toContain(" data-steplink ");
       expect(link).toContain(openStep === "0" ? 'class="fold"' : 'class="fold shut"');
@@ -457,34 +406,9 @@ describe("filtering a step's raw log", () => {
     }
   });
 
-  test("a collapsed row has no filter links at all", () => {
-    const html = stepResults([RESULT], undefined, { tabHref: HREF });
-
-    expect(html).not.toContain("only=commands");
-  });
-
-  test("the filter in force is not a link back to itself", () => {
-    const html = stepResults([RESULT], undefined, { tabHref: HREF, openStep: "0", only: "commands" });
-
-    expect(html).not.toContain("only=commands\"");
-    expect(html).toContain(`href="${HREF}&step=0&only=files"`);
-    // ...and "All" becomes the way back to the whole log.
-    expect(html).toContain(`href="${HREF}&step=0"`);
-  });
-
-  test("a filter that matched nothing says so, and keeps the links up", () => {
-    const html = stepResults([{ ...RESULT, logs: [] }], undefined, {
-      tabHref: HREF, openStep: "0", only: "errors",
-    });
-
-    expect(html).toContain("No line of this kind");
-    expect(html).toContain("only=commands");
-  });
-
   test("an unfiltered step with an empty log still says nothing was captured", () => {
-    const html = stepResults([{ ...RESULT, logs: [] }], undefined, { tabHref: HREF, openStep: "0" });
+    const html = stepResults([{ ...FULL_RESULT, logs: [], finalMessage: undefined }], undefined, { tabHref: HREF, openStep: "0" });
 
     expect(html).toContain("Nothing has been captured");
-    expect(html).not.toContain("No line of this kind");
   });
 });

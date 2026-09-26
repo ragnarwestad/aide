@@ -6,19 +6,13 @@ import { specPhaseFile } from "../../project/discover";
 import type { JobDetailView } from "../../render";
 import type { Job } from "../../queue/queue.ts";
 import { resolveStepModel, tailFile } from "../serve-helpers";
-import { finalMessage, summarizeCommands, summarizeEntries, type LogFilter } from "../../queue/parse-stream";
+import { logAndFinalMessage, summarizeEntries } from "../../queue/parse-stream";
 import { diffStatBetween } from "../../git/diff-stat.ts";
 import type { SpecViewsContext } from "./";
 
-/** `only` is the Logs tab's filter, read from the URL. It is applied
- *  HERE rather than in the renderer so the bound is per kind: "the last
- *  40 commands", not "the commands among the last 40 lines" — a step
- *  whose tail is all prose would otherwise answer "no commands" for a
- *  step that ran twenty. */
 export async function jobDetailView(
   ctx: SpecViewsContext,
   job: Job,
-  only?: LogFilter,
 ): Promise<JobDetailView> {
   const target = ctx.targets().find((t) => t.project === job.project && t.specFolder === job.specFolder);
   // Which CLI this page is about (spec 125). A running step's tool is
@@ -47,10 +41,10 @@ export async function jobDetailView(
     // Each finished step's OWN transcript (spec 240), read from its
     // own `streamFile` rather than the job's last one — a three-step
     // attempt used to make only its last step's log reachable at all.
-    // Spec 452: the same text also yields the Logs tab's summary —
-    // which commands ran and the assistant's own final message — and
-    // `r.repos` (its own commit range) yields the changed-files list,
-    // via one `git diff --numstat` per repo the step touched.
+    // The same text also yields the log lines, the error lines and the
+    // assistant's own final message, and `r.repos` (its own commit
+    // range) yields the changed-files list, via one `git diff --numstat`
+    // per repo the step touched.
     results: await Promise.all(
       job.results.map(async (r) => {
         const tool = r.tool ?? named;
@@ -62,12 +56,13 @@ export async function jobDetailView(
               )
             ).flat()
           : undefined;
+        const shown = text ? logAndFinalMessage(text, { tool }) : undefined;
         return {
           ...r,
           tokens: r.tokens?.total,
-          logs: text ? summarizeEntries(text, { tool, only }).map((e) => e.text) : undefined,
-          commands: text ? summarizeCommands(text, { tool }) : undefined,
-          finalMessage: text ? finalMessage(text, { tool }) : undefined,
+          logs: shown?.lines,
+          finalMessage: shown?.finalMessage,
+          errors: text ? summarizeEntries(text, { tool, only: "errors" }).map((e) => e.text) : undefined,
           changedFiles,
         };
       }),
@@ -81,8 +76,9 @@ export async function jobDetailView(
         ? {
             step,
             sessionId: job.sessionId,
-            logs: job.streamFile
-              ? summarizeEntries(tailFile(job.streamFile), { tool: named, only }).map((e) => e.text)
+            logs: job.streamFile ? summarizeEntries(tailFile(job.streamFile), { tool: named }).map((e) => e.text) : [],
+            errors: job.streamFile
+              ? summarizeEntries(tailFile(job.streamFile), { tool: named, only: "errors" }).map((e) => e.text)
               : [],
           }
         : undefined,

@@ -7,7 +7,7 @@
 // minutes (512's implement: nine in 33 minutes, over 107 commands), so
 // the row looked frozen while the step was busy.
 import type { QueueStore } from "../../queue/queue.ts";
-import { finalMessage, summarizeEntries } from "../../queue/parse-stream";
+import { finalMessage, isFinal, summarizeEntries } from "../../queue/parse-stream";
 import type { PhaseMessages } from "../../render";
 import { tailFile } from "../serve-helpers";
 import { stepKey, workRoundJobs } from "./work-round.ts";
@@ -22,13 +22,6 @@ function cutFinal(text: string): string {
   const head = text.slice(0, FINAL_MAX);
   const amp = head.lastIndexOf("&");
   return `${amp > head.lastIndexOf(";") && FINAL_MAX - amp < 8 ? head.slice(0, amp) : head}…`;
-}
-
-/** Whether a clipped entry (one flat line, at most 160 characters) is the
- *  final message itself. Escaping is per character, so the clip is a prefix. */
-function isFinal(entry: string, final: string): boolean {
-  const flat = final.replace(/\s+/g, " ").trim();
-  return entry === flat || (entry.endsWith("…") && flat.startsWith(entry.slice(0, -1)));
 }
 
 /** `attemptIds` is newest first; the first attempt that ran (or is

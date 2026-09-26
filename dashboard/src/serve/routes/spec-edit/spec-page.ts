@@ -6,7 +6,6 @@ import { refreshTestServerStatus, startTestServer } from "../../test-servers/lif
 import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "./test-server-waiting.ts";
 import { pullFastForward, saveSpecFiles } from "../../../git/specs-pull.ts";
 import { resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
-import { resolveLogFilter } from "../../../queue/parse-stream";
 import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, renderSpecPageFailedRest, renderSpecPageHead, renderSpecPageRest, resolveBackHref, resolveSpecTab, specPagePath, specTabPath } from "../../../render";
 import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, languageChoice, logRefusal, readBounded, specsClientScript, specsRedirect, streamedPage } from "../../serve-helpers";
 
@@ -91,7 +90,6 @@ export async function specPageRoutes(
       }
       return waitingForTestServerPage(project!, specFolder!);
     }
-    const only = resolveLogFilter(url.searchParams.get("only") ?? undefined);
     // The 404 is decided BEFORE anything is sent: once the head has gone the
     // status is fixed, and `specDir` is the only place a spec can be missing.
     if (!ctx.specDir(project!, specFolder!)) return new Response("not found", { status: 404 });
@@ -112,7 +110,6 @@ export async function specPageRoutes(
           project!,
           specFolder!,
           url.searchParams.get("tab") ?? undefined,
-          only,
         );
         if (!view) throw new Error("spec folder disappeared while the page was built");
         return renderSpecPageRest(
@@ -129,7 +126,7 @@ export async function specPageRoutes(
           {
             tab,
             step: url.searchParams.get("step") ?? undefined,
-            only,
+            steptab: url.searchParams.get("steptab") ?? undefined,
             currentUrl: langResult.currentUrl,
             // Close's dialog, the count under its Reason field and the
             // Steps tab's reload timer are all this bundle's (spec 525).

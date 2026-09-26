@@ -1,4 +1,5 @@
 // The assistant's own closing word.
+import { summarizeEntries } from "./entries.ts";
 import { codexKind, esc, events, sniff, type SummarizeOptions } from "./shared.ts";
 
 /** The assistant's own final message, in full — Claude's one `result`
@@ -31,3 +32,24 @@ export function finalMessage(text: string, opts: SummarizeOptions = {}): string 
   return found;
 }
 
+
+/** Whether a clipped entry (one flat line, at most 160 characters) is the
+ *  final message itself. Both are escaped, and escaping is per character,
+ *  so the clip is a prefix. */
+export function isFinal(entry: string, final: string): boolean {
+  const flat = final.replace(/\s+/g, " ").trim();
+  return entry === flat || (entry.endsWith("…") && flat.startsWith(entry.slice(0, -1)));
+}
+
+/** A step's log lines and its final message. The last line is left out
+ *  when it only repeats the message, so the message reads once, after the
+ *  lines that led to it. */
+export function logAndFinalMessage(
+  text: string,
+  opts: SummarizeOptions = {},
+): { lines: string[]; finalMessage?: string } {
+  const lines = summarizeEntries(text, { ...opts, only: undefined }).map((e) => e.text);
+  const final = finalMessage(text, opts);
+  if (final && lines.length && isFinal(lines[lines.length - 1]!, final)) lines.pop();
+  return { lines, finalMessage: final };
+}

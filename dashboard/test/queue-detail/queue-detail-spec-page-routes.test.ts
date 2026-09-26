@@ -101,20 +101,17 @@ describe("a Codex step's job page", () => {
     expect(html).toContain("bun test");
   });
 
-  // The Logs filter is read where the transcript is read, so the bound
-  // is per kind — the route has to carry the answer that far.
-  test("only= in the URL reaches the transcript, not just the links", async () => {
+  // The step's tab is read from the address and carried to the renderer,
+  // so a step keeps its tab when the page reloads itself.
+  test("steptab= in the URL picks the step's tab, and a leftover only= changes nothing (AC-6, AC-7)", async () => {
     const { base, dir } = start();
     const id = await enqueue(base, ["implement"]);
     const stream = join(dir, "filtered.stream.jsonl");
     writeFileSync(stream, [
       JSON.stringify({ type: "thread.started", thread_id: "0199f4c2" }),
       JSON.stringify({ type: "item.completed", item: { id: "i0", item_type: "agent_message", text: "thinking it over" } }),
-      JSON.stringify({ type: "item.completed", item: { id: "i1", item_type: "command_execution", command: "bun test" } }),
-      // The step's own closing word, which the summary above the log
-      // shows whatever the filter says — so the assertion below is
-      // about the LOG, and this is what keeps the two apart.
-      JSON.stringify({ type: "item.completed", item: { id: "i2", item_type: "agent_message", text: "all done" } }),
+      JSON.stringify({ type: "item.completed", item: { id: "i1", item_type: "command_execution", command: "bun test", exit_code: 1 } }),
+      JSON.stringify({ type: "item.completed", item: { id: "i2", item_type: "command_execution", command: "git status", exit_code: 0 } }),
     ].join("\n"));
     const mirror = seed(dir, id, (job) => {
       job.state = "done";
@@ -127,12 +124,35 @@ describe("a Codex step's job page", () => {
     });
 
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const all = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0`)).text();
-    expect(all).toContain("thinking it over");
+    const log = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0`)).text();
+    expect(log).toContain("thinking it over");
 
-    const commands = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0&only=commands`)).text();
-    expect(commands).toContain("bun test");
-    expect(commands).not.toContain("thinking it over");
+    const errors = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0&steptab=errors`)).text();
+    expect(errors).toContain("bun test");
+    expect(errors).not.toContain("thinking it over");
+    expect(errors).not.toContain("git status");
+
+    const old = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0&only=commands`)).text();
+    expect(old).toContain("thinking it over");
+    expect(old).toContain("git status");
+  });
+
+  test("steptab=files opens the step on Changed files, on the spec page's Logs tab too (AC-6)", async () => {
+    const { base, dir } = start();
+    const id = await enqueue(base, ["implement"]);
+    const mirror = seed(dir, id, (job) => {
+      job.state = "done";
+      job.results = [
+        { step: "implement", ok: true, costUsd: 0, costMeasured: false, terminalReason: "completed", at: "2026-09-17T10:01:00Z" },
+      ];
+    });
+    const { base: base2 } = start({ queueMirrorPath: mirror });
+    const current = (html: string) => html.match(/<a class="tab"[^>]*aria-current="true"[^>]*>([^<]*)</)?.[1];
+
+    const job = await (await fetch(`${base2}/jobs/${id}?tab=steps&step=0&steptab=files`)).text();
+    expect(current(job)).toBe("Changed files");
+    const spec = await (await fetch(`${base2}/specs/aide/81-queue-and-runner?tab=steps&step=0&steptab=files`)).text();
+    expect(current(spec)).toBe("Changed files");
   });
 });
 

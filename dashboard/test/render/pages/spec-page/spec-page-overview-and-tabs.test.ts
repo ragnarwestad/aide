@@ -1,8 +1,8 @@
 // Split out of spec-page.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import { type JobDetailView } from "../../../../src/render";
-import { file, lead, page, view } from "../spec-page-fixtures.ts";
+import { renderSpecPage, type JobDetailView } from "../../../../src/render";
+import { GENERATED, NAV, NOW, file, lead, page, view } from "../spec-page-fixtures.ts";
 
 // --- spec 212, criteria 1-3: one tab per document ---------------------------
 //
@@ -266,6 +266,19 @@ describe("a spec with a lead job", () => {
     ];
     const html = page(view({ lead: lead({ results }), steps: results }), "steps");
     expect(html).toContain("$0.42");
+  });
+
+  test("an opened step shows the Log, Changed files and Errors strip, in the tab the address names (AC-8)", () => {
+    const results = [
+      { step: "analyze", ok: true, costUsd: 0.42, costMeasured: true, terminalReason: "completed", logs: ["Bash ls"], errors: [] },
+    ];
+    const html = renderSpecPage(view({ lead: lead({ results }), steps: results }), GENERATED, NAV, {
+      tab: "steps", step: "0", steptab: "errors", now: NOW,
+    });
+    const tabs = html.match(/<a class="tab"[^>]*>[^<]*<\/a>/g) ?? [];
+    const strip = tabs.filter((a) => a.includes("steptab="));
+    expect(strip.map((a) => a.replace(/<[^>]+>/g, ""))).toEqual(["Log", "Changed files", "Errors"]);
+    expect(strip.map((a) => a.includes('aria-current="true"'))).toEqual([false, false, true]);
   });
 
   test("the tab counts come from the lead job when nothing is selected, so a reader knows before clicking", () => {

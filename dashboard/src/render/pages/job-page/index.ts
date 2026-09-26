@@ -12,7 +12,6 @@
 // them a job page. Kept as a barrel at this path because most of the
 // render layer imports from it.
 
-import type { LogFilter } from "../../../queue/parse-stream";
 import { esc, relTime, usdOrTokens } from "../../ui/html.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { renderSentence } from "../../../i18n/message.ts";
@@ -79,7 +78,7 @@ export function renderJobDetailPage(
   job: JobDetailView,
   generatedAt: string,
   entries: NavEntry[],
-  opts: { tab?: string; step?: string; only?: LogFilter; now?: number; lang?: Language; currentUrl?: string } = {},
+  opts: { tab?: string; step?: string; steptab?: string; now?: number; lang?: Language; currentUrl?: string } = {},
 ): string {
   const now = opts.now ?? Date.now();
   const lang: Language = opts.lang ?? "en";
@@ -156,7 +155,7 @@ export function renderJobDetailPage(
           tabHref,
           openStep: opts.step,
           runningStep: job.runningStep,
-          only: opts.only,
+          steptab: opts.steptab,
           landingRefused: landingRefusal(job, lang),
           lang,
         })

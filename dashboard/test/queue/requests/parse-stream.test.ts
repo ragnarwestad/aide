@@ -6,8 +6,6 @@
 import { describe, expect, test } from "bun:test";
 import {
   finalMessage,
-  resolveLogFilter,
-  summarizeCommands,
   summarizeEntries,
   summarizeStream,
 } from "../../../src/queue/parse-stream";
@@ -243,72 +241,7 @@ describe("summarizeCodexStream", () => {
   });
 });
 
-// Spec 452: the Logs tab's summary needs two things the bounded activity
-// list above deliberately drops — which commands a step ran (with
-// whatever outcome/duration its own tool's schema actually carries) and
-// the assistant's own final message, in full. Neither tool's transcript
-// alone carries BOTH a real exit code and a duration for every command
-// (2-analysis.md's stream-format investigation), so the two fixtures
-// below are deliberately NOT symmetric the way the activity-list pair
-// above is.
-const assistantToolUse = (id: string, name: string, input: Record<string, unknown>, timestamp: string) =>
-  line({ type: "assistant", timestamp, message: { content: [{ type: "tool_use", id, name, input }] } });
-
-const userToolResult = (toolUseId: string, isError: boolean, timestamp: string) =>
-  line({ type: "user", timestamp, message: { content: [{ type: "tool_result", tool_use_id: toolUseId, is_error: isError }] } });
-
-describe("summarizeCommands", () => {
-  test("a Claude Bash tool_use/tool_result pair yields one ok command with a computed duration", () => {
-    const stream = [
-      assistantToolUse("t1", "Bash", { command: "bun test" }, "2026-09-13T10:00:00.000Z"),
-      userToolResult("t1", false, "2026-09-13T10:00:02.500Z"),
-    ].join("\n");
-
-    const commands = summarizeCommands(stream, { tool: "claude" });
-
-    expect(commands).toHaveLength(1);
-    expect(commands[0]!.command).toContain("bun test");
-    expect(commands[0]!.outcome).toEqual({ kind: "ok" });
-    expect(commands[0]!.durationMs).toBe(2500);
-  });
-
-  test("an is_error:true result yields a failed outcome — Claude never reports a numeric exit code", () => {
-    const stream = [
-      assistantToolUse("t1", "Bash", { command: "bun test" }, "2026-09-13T10:00:00.000Z"),
-      userToolResult("t1", true, "2026-09-13T10:00:01.000Z"),
-    ].join("\n");
-
-    const commands = summarizeCommands(stream, { tool: "claude" });
-
-    expect(commands[0]!.outcome).toEqual({ kind: "failed" });
-  });
-
-  test("a Codex command_execution item yields a real exit code and no duration — no event in that schema carries a timestamp", () => {
-    const stream = codexLine({
-      type: "item.completed",
-      item: { id: "i1", item_type: "command_execution", command: "bun test", exit_code: 2, status: "completed" },
-    });
-
-    const commands = summarizeCommands(stream, { tool: "codex" });
-
-    expect(commands).toHaveLength(1);
-    expect(commands[0]!.command).toContain("bun test");
-    expect(commands[0]!.outcome).toEqual({ kind: "exitCode", code: 2 });
-    expect(commands[0]!.durationMs).toBeUndefined();
-  });
-
-  test("a non-Bash, non-command_execution tool call yields nothing", () => {
-    const claudeStream = assistantToolUse("t1", "Read", { file_path: "src/queue.ts" }, "2026-09-13T10:00:00.000Z");
-    const codexStream = codexLine({
-      type: "item.completed",
-      item: { id: "i1", item_type: "file_change", changes: [{ path: "src/queue.ts" }] },
-    });
-
-    expect(summarizeCommands(claudeStream, { tool: "claude" })).toEqual([]);
-    expect(summarizeCommands(codexStream, { tool: "codex" })).toEqual([]);
-  });
-});
-
+// The assistant's own final message, in full: what a step concluded.
 describe("finalMessage", () => {
   test("a Claude result event's result field comes back unclipped, past 160 characters", () => {
     const long = "x".repeat(200);
@@ -358,27 +291,16 @@ describe("summarizeEntries", () => {
     ]);
   });
 
-  test("only=commands keeps the commands, failed ones included", () => {
-    expect(summarizeEntries(CLAUDE, { only: "commands" }).map((e) => e.text)).toEqual([
-      "Bash bun test",
-      "Bash git status",
-    ]);
-  });
-
-  test("only=files keeps the writes, not the reads", () => {
-    expect(summarizeEntries(CLAUDE, { only: "files" }).map((e) => e.text)).toEqual(["Write src/queue.ts"]);
-  });
-
   test("only=errors keeps what the tool itself reported as a failure", () => {
     expect(summarizeEntries(CLAUDE, { only: "errors" }).map((e) => e.text)).toEqual(["Bash bun test"]);
   });
 
   test("the bound counts the kept kind, not every line before it", () => {
     const noise = Array.from({ length: 60 }, (_, i) => assistantText(`thinking ${i}`));
-    const stream = [toolUse("Bash", { command: "bun test" }), ...noise].join("\n");
+    const stream = [toolUseId("Bash", { command: "bun test" }, "t1"), toolResult("t1", true), ...noise].join("\n");
 
     expect(summarizeStream(stream)).not.toContain("Bash bun test");
-    expect(summarizeEntries(stream, { only: "commands" }).map((e) => e.text)).toEqual(["Bash bun test"]);
+    expect(summarizeEntries(stream, { only: "errors" }).map((e) => e.text)).toEqual(["Bash bun test"]);
   });
 
   test("a Codex transcript answers with the same words, and its own exit code", () => {
@@ -407,10 +329,5 @@ describe("summarizeEntries", () => {
       ["file", false],
       ["text", false],
     ]);
-  });
-
-  test("an unknown filter in the URL shows the whole log rather than refusing", () => {
-    expect(resolveLogFilter("everything")).toBeUndefined();
-    expect(resolveLogFilter("commands")).toBe("commands");
   });
 });

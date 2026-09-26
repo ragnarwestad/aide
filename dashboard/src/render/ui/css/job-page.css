@@ -16,7 +16,8 @@ tr.steplog td { padding-top: 0; }
    first, so it opens at the newest line and a page that reloads itself
    while the step runs keeps showing the end without a script. */
 .logbox { max-height: 100lh; overflow-y: auto; display: flex; flex-direction: column-reverse; }
-.logbox > .specfile { margin: 0; flex: none; }
+.logbox > div { flex: none; }
+.logbox .specfile { margin: 0; }
 .tabpanel { padding-top: var(--sp-4); }
 .tabpanel > h2:first-child { margin-top: var(--sp-2); }
 

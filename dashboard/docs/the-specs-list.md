@@ -339,19 +339,18 @@ the same work round tags each row `Attempt N` (oldest = 1); a single-attempt spe
 reloads itself**, every ten seconds — by `<meta refresh>` without script, and with script by a timer that skips a
 tick while a dialog is open: it is the one that moves while a step runs, and every other tab
 carries a form a timer would wipe. The price is a page only as fresh as the last time it was asked for,
-which is what Update is for. Each step's raw log now sits behind a summary, drawn above it, never
-behind its own fold: the files that step's own commit changed (with lines added/removed), the
-commands it ran with their outcome, its full final message, and the same time/cost/token/result
-numbers shown elsewhere on the row. A step with no log file says so instead of showing an empty
-summary.
+which is what Update is for.
 
-**Four links above an open step's raw log filter it: All, Commands, Files, Errors** (`?only=`). Commands are what the
-step ran, Files what it wrote, Errors the calls the tool itself reported as failures — one word for what each CLI
-names differently, decided where the transcript is read (`src/queue/parse-stream/`). The filter is applied BEFORE the
-log's own 40-line bound, so "Commands" is the last forty commands rather than the commands among the last forty
-lines, and the summary above the log — changed files, commands, final message — is unfiltered whatever the links say.
-A filter matching nothing says so and leaves the links up; a link rather than a widget, because the tab reloads itself
-every ten seconds.
+**An opened step shows its numbers, then three tabs: Log, Changed files and Errors.** The numbers are the row's own
+time, cost, tokens and result, and a step with no log says so. One tab shows at a time, in one box about a hundred
+lines tall that opens at its end. Log holds the log's lines and, last and under its own heading, the step's full final
+message; a last line that only repeats that message is left out, so it reads once. Changed files lists what the step's
+own commit changed with lines added and removed, and the tab's name carries the count (none when the step recorded no
+commit range or is still running). Errors holds the calls the tool itself reported as failed (the last forty), one
+word for what each CLI names differently, decided where the transcript is read (`src/queue/parse-stream/`). The tab is
+`?steptab=log|files|errors` beside `?step=`, on the job page, the spec page's Logs tab and a project's Wiki tab alike:
+a link rather than a widget, because the tab reloads itself every ten seconds, and pressing one keeps the step open.
+An address with no `steptab`, or an unknown one, shows Log.
 
 **An archived spec has this page too** — the scan records every spec's directory before it drops the archived ones
 from the list. It says it is archived, and its Description tab is read-only with no box to tick anywhere: the spec is

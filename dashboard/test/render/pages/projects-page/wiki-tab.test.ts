@@ -67,6 +67,18 @@ describe("the Wiki tab carries the latest build's log", () => {
     expect(html).not.toContain("/jobs/");
   });
 
+  test("an opened step shows the same strip as the spec page's Logs tab, on the tab the address names (AC-8)", () => {
+    const html = page({
+      tab: "wiki",
+      wikiBuild: { id: "j1", state: "done", finishedAt: "2026-09-26T10:00:00Z" },
+      wikiLog: { results: [step], step: "0", steptab: "files" },
+    });
+    const tabs = (html.match(/<a class="tab"[^>]*>[^<]*<\/a>/g) ?? []).filter((a) => a.includes("steptab="));
+    expect(tabs.map((a) => a.replace(/<[^>]+>/g, ""))).toEqual(["Log", "Changed files", "Errors"]);
+    expect(tabs[1]).toContain('aria-current="true"');
+    expect(tabs[1]).toContain('href="/projects/aide?tab=wiki&step=0&steptab=files"');
+  });
+
   test("with no build yet there is no log", () => {
     expect(page({ tab: "wiki" })).not.toContain("No step has finished yet");
   });

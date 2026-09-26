@@ -3,7 +3,6 @@
 // keeps its name and its home is named after what it reads.
 export {
   keepsEntry,
-  resolveLogFilter,
   type LogFilter,
   type StreamEntry,
   type StreamEntryKind,
@@ -16,5 +15,4 @@ export {
   summarizeOpencodeStream,
   summarizeStream,
 } from "./entries.ts";
-export { summarizeCommands, type StepCommand } from "./commands.ts";
-export { finalMessage } from "./final-message.ts";
+export { finalMessage, isFinal, logAndFinalMessage } from "./final-message.ts";

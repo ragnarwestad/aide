@@ -1,9 +1,7 @@
-// Spec 452: `jobDetailView` is where each finished step's own transcript
+// `jobDetailView` is where each finished step's own transcript
 // (`r.streamFile`) and commit range (`r.repos`) become the Logs tab's
-// summary — commands, the assistant's own final message, and which
-// files the step's commit touched. No test exercised this function
-// directly before this spec (confirmed: `grep -rl "jobDetailView" test/`
-// found nothing) — every case below is new.
+// content: the log lines, the error lines, the assistant's own final
+// message, and which files the step's commit touched.
 
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -73,8 +71,8 @@ function makeCtx(overrides: Partial<SpecViewsContext> = {}): SpecViewsContext {
   };
 }
 
-describe("jobDetailView's per-step summary fields (spec 452)", () => {
-  test("populates commands/finalMessage/changedFiles from the step's own streamFile and repos", async () => {
+describe("jobDetailView's per-step fields", () => {
+  test("populates logs/errors/finalMessage/changedFiles from the step's own streamFile and repos", async () => {
     const streamFile = tempStreamFile([
       { type: "assistant", timestamp: "2026-09-13T10:00:00.000Z", message: { content: [{ type: "tool_use", id: "t1", name: "Bash", input: { command: "bun test" } }] } },
       { type: "user", timestamp: "2026-09-13T10:00:01.000Z", message: { content: [{ type: "tool_result", tool_use_id: "t1", is_error: false }] } },
@@ -96,19 +94,22 @@ describe("jobDetailView's per-step summary fields (spec 452)", () => {
     const view = await jobDetailView(makeCtx({ gitRun: run }), job);
 
     expect(view.results).toHaveLength(1);
-    expect(view.results[0]!.commands).toEqual([{ command: "bun test", outcome: { kind: "ok" }, durationMs: 1000 }]);
+    expect(view.results[0]!.logs).toEqual(["Bash bun test"]);
+    expect(view.results[0]!.errors).toEqual([]);
     expect(view.results[0]!.finalMessage).toBe("All done.");
+    expect("commands" in view.results[0]!).toBe(false);
     expect(view.results[0]!.changedFiles).toEqual([{ path: "src/queue/runner.ts", added: 4, removed: 1, binary: false }]);
   });
 
-  test("a result with no streamFile leaves commands/finalMessage/changedFiles undefined", async () => {
+  test("a result with no streamFile leaves logs/errors/finalMessage/changedFiles undefined", async () => {
     const job = makeJob({
       results: [{ step: "implement", ok: true, costUsd: 1, costMeasured: true, terminalReason: "completed" }],
     });
 
     const view = await jobDetailView(makeCtx(), job);
 
-    expect(view.results[0]!.commands).toBeUndefined();
+    expect(view.results[0]!.logs).toBeUndefined();
+    expect(view.results[0]!.errors).toBeUndefined();
     expect(view.results[0]!.finalMessage).toBeUndefined();
     expect(view.results[0]!.changedFiles).toBeUndefined();
   });
@@ -130,5 +131,45 @@ describe("jobDetailView's per-step summary fields (spec 452)", () => {
 
     expect(view.results[0]!.changedFiles).toEqual([]);
     expect(calls).toHaveLength(0);
+  });
+});
+
+describe("jobDetailView's log and error lines", () => {
+  const twoCommands = (message: string, tail: unknown[] = []) => [
+    { type: "assistant", message: { content: [{ type: "tool_use", id: "t1", name: "Bash", input: { command: "bun test" } }] } },
+    { type: "user", message: { content: [{ type: "tool_result", tool_use_id: "t1", is_error: true }] } },
+    { type: "assistant", message: { content: [{ type: "tool_use", id: "t2", name: "Bash", input: { command: "git status" } }] } },
+    { type: "user", message: { content: [{ type: "tool_result", tool_use_id: "t2", is_error: false }] } },
+    ...tail,
+    { type: "result", subtype: "success", result: message },
+  ];
+  const finished = (streamFile: string) =>
+    makeJob({
+      results: [{ step: "implement", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", streamFile, tool: "claude" }],
+    });
+
+  test("errors holds the failed command and logs holds both (AC-5)", async () => {
+    const view = await jobDetailView(makeCtx(), finished(tempStreamFile(twoCommands("Done."))));
+
+    expect(view.results[0]!.errors).toEqual(["Bash bun test"]);
+    expect(view.results[0]!.logs).toEqual(["Bash bun test", "Bash git status"]);
+  });
+
+  test("logs end before a final message that the last line only repeats (AC-3)", async () => {
+    const said = { type: "assistant", message: { content: [{ type: "text", text: "Done." }] } };
+    const view = await jobDetailView(makeCtx(), finished(tempStreamFile(twoCommands("Done.", [said]))));
+
+    expect(view.results[0]!.logs).toEqual(["Bash bun test", "Bash git status"]);
+    expect(view.results[0]!.finalMessage).toBe("Done.");
+  });
+
+  test("the running step carries its log and its error lines (AC-1)", async () => {
+    const view = await jobDetailView(
+      makeCtx(),
+      makeJob({ state: "running", streamFile: tempStreamFile(twoCommands("x").slice(0, 4)) }),
+    );
+
+    expect(view.runningStep!.logs).toEqual(["Bash bun test", "Bash git status"]);
+    expect(view.runningStep!.errors).toEqual(["Bash bun test"]);
   });
 });

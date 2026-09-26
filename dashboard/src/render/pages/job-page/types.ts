@@ -1,7 +1,6 @@
 // The job page's own view types. Split out of job-page.ts by theme.
 
 import type { QueueRowView } from "../../ui/job-state";
-import type { StepCommand } from "../../../queue/parse-stream";
 import type { DiffStatEntry } from "../../../git/diff-stat.ts";
 import type { ProviderLimit } from "../../../queue/queue.ts";
 
@@ -38,11 +37,9 @@ export interface JobStepResultView {
    *  table never sets this; only `spec-page.ts`'s flattened, multi-job
    *  Steps tab does. */
   attempt?: number;
-  /** The commands this step ran, extracted from its own transcript
-   *  (spec 452) — a real exit code when the tool reports one (Codex),
-   *  "ok"/"failed" from `is_error` when it does not (Claude). Absent
-   *  exactly when `logs` is: no transcript, nothing to extract from. */
-  commands?: StepCommand[];
+  /** The lines of `logs` the tool itself reported as failed commands,
+   *  already-escaped — the Errors tab. Absent exactly when `logs` is. */
+  errors?: string[];
   /** The assistant's own final message, unclipped (spec 452) — Claude's
    *  `result` event, or Codex's last `agent_message`. Absent when the
    *  step wrote no transcript, or the transcript has neither. */
@@ -109,7 +106,7 @@ export interface JobDetailView extends QueueRowView {
    *  `JobStepResultView` yet — a step only gets one when it ends — so
    *  it cannot live in `results`, and its transcript is the job's own
    *  live pointer, not a finished step's file. */
-  runningStep?: { step: string; sessionId?: string; logs: string[]; attempt?: number };
+  runningStep?: { step: string; sessionId?: string; logs: string[]; errors?: string[]; attempt?: number };
   /** Where "← Back" goes (spec 252) — resolved by `serve.ts` from the
    *  request's own `Referer`, same-origin only. Absent falls back to
    *  `/`, today's exact hardcoded destination. */
