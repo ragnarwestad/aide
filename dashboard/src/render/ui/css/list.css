@@ -786,6 +786,9 @@ table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="model"] { 
 .fold:hover { background: var(--surface-2); color: var(--text); }
 .fold svg { transition: transform 120ms ease; }
 .fold.shut svg { transform: rotate(-90deg); }
+/* The spinner a pressed › shows until its rows are back: a span, which
+   takes its size only as an inline block. */
+.fold > .spin { display: inline-block; vertical-align: middle; }
 /* The letter row and the pip row repeat the same 21px width and 3px
    gap per column (matching `.pip`'s own width below) so a letter
    always sits centred over its own pip whatever the viewport — same

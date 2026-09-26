@@ -51,3 +51,32 @@ test("two ›s pressed one after the other leave both rows open and the others u
   expect(asked).toHaveLength(2);
   for (const url of asked) expect(url).toContain("only=");
 });
+
+// The spinner is a span: without a box of its own it draws as a sliver.
+// On a phone the › is exactly as wide as the spinner, so the check
+// allows a pixel of rounding.
+for (const width of [1270, 390]) {
+  test(`the spinner a pressed › shows has its full size and sits inside it, at ${width}px`, async () => {
+    await page.setViewportSize({ width, height: 900 });
+    await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
+    let release: () => void = () => {};
+    const held = new Promise<void>((r) => (release = r));
+    await page.route("**/*only=*", async (route) => {
+      await held;
+      await route.continue();
+    });
+    const link = fold("83-third");
+    await page.click(link);
+    const m = await page.evaluate((sel) => {
+      const a = document.querySelector(sel)!.getBoundingClientRect();
+      const s = document.querySelector(`${sel} > .spin`)!.getBoundingClientRect();
+      return { w: s.width, h: s.height, inside: s.left >= a.left - 1 && s.right <= a.right + 1 && s.top >= a.top - 1 && s.bottom <= a.bottom + 1 };
+    }, link);
+    release();
+    await page.waitForSelector(`${link}[aria-expanded="true"]`);
+    await page.unroute("**/*only=*");
+    expect(m.w).toBeGreaterThanOrEqual(12);
+    expect(m.h).toBeGreaterThanOrEqual(12);
+    expect(m.inside).toBe(true);
+  });
+}
