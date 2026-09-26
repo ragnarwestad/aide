@@ -147,8 +147,8 @@ tests/
 │   ├── unit/                                 # Unit tests (fast, no API calls)
 │   │   ├── core/                             # Core script tests
 │   │   │   ├── validation/                   # Output validation
-│   │   │   │   ├── test_documentation_structure.py
-│   │   │   │   └── test_templates.py
+│   │   │   │   ├── installer/, rules/, state/, dashboard/
+│   │   │   │   └── templates/                    # test_templates.py and the other template tests
 │   │   │
 │   │   └── implementations/                  # Implementation-specific tests
 │   │       ├── claude-code/
@@ -161,7 +161,7 @@ tests/
 │   ├── e2e/                                  # End-to-end tests (excluded from the standard run)
 │   │   ├── test_claude_e2e.py                # Claude Code: Tests slash commands (/aide-create, /aide-analyze)
 │   │   ├── test_codex_e2e.py                 # Codex: Tests prompts via `codex exec --full-auto`
-│   │   └── test_copilot_e2e.py               # Copilot: Tests prompts from implementations/copilot/prompts/
+│   │   └── test_copilot_e2e.py               # Copilot: Tests prompts via `copilot -p`
 │   │
 │   └── evaluation/                           # Prompt evaluation via API (excluded)
 │
@@ -471,25 +471,14 @@ def test_aide_workflow_creates_files(tmp_path, monkeypatch):
 
 ## CI/CD
 
-**Note:** There is currently no CI/CD pipeline configured for this project.
+`.github/workflows/ci.yml` runs on every pull request, not on a push. All
+jobs run on `macos-latest`:
 
-To set up GitHub Actions, create `.github/workflows/test.yml`:
-
-```yaml
-# Example - not implemented yet
-name: Tests
-on: [ push, pull_request ]
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: pip install -r requirements.txt
-      - run: pytest -v --cov=. --cov-report=xml
-```
+- **pytest** — `.venv/bin/pytest`; `pytest.ini` leaves out e2e and evaluation
+- **dashboard** — `make test` (tsc, then bun test), then `make test-slow`
+- **markdownlint** — `npx markdownlint-cli2 '**/*.md'`
+- **shellcheck** — `scripts/check-bash`
+- **biome** — `biome lint src/` in `dashboard/`
 
 ## Goals
 

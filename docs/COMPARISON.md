@@ -72,8 +72,8 @@ dashboard is a web page served on the machine that runs the work, and it keeps a
 from any checkout a person uses.
 
 **Document structure.** A spec is a folder of four files: `1-description.md` states the problem as it was reported,
-`2-analysis.md` records what the code shows, `3-solution.md` holds the plan and the acceptance criteria as
-given/when/then, and `4-status.md` records what happened, including the cost of each step. The folder goes in
+with its acceptance criteria as AC-n SHALL statements, `2-analysis.md` records what the code shows, `3-solution.md`
+holds the plan and a given/when/then case for each AC-id, and `4-status.md` records what happened, including the cost of each step. The folder goes in
 `specs/` in the project, or in a separate specs repository when `AIDE_SPECS_PATH` in the machine's own
 `.aide/config` names one. A finished spec is moved to `archive/`, and the archive step writes what was learned into
 the project's own documentation first.

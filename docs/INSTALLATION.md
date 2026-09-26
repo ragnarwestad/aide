@@ -19,6 +19,7 @@ Complete step-by-step guide for setting up the AI workspace with your preferred 
   - [Install everything at once](#install-everything-at-once)
   - [Claude Code](#claude-code)
   - [GitHub Copilot](#github-copilot)
+  - [Codex](#codex)
   - [OpenCode](#opencode)
   - [Other AI tools](#other-ai-tools)
 - [Verify the setup](#verify-the-setup)
@@ -33,7 +34,7 @@ This workspace supports several AI tools. Choose the one that suits you best:
 | AI tool            | Advantages                             | Best for                                   | Installation documentation                                               |
 |--------------------|----------------------------------------|--------------------------------------------|--------------------------------------------------------------------------|
 | **Claude Code**    | Slash commands, specialized agents     | Complex analyses, cross-cutting tasks      | [claude-code/README.md](../implementations/claude-code/README.md)        |
-| **Codex (OpenAI)** | Prompt templates, manual workflow      | Spec analysis and implementation           | [../implementations/codex/README.md](../implementations/codex/README.md) |
+| **Codex (OpenAI)** | The same skills, in `~/.agents/skills` | Spec analysis and implementation           | [../implementations/codex/README.md](../implementations/codex/README.md) |
 | **GitHub Copilot** | Shares the skills directory with Codex | Quick edits, refactoring, single-file work | [copilot/README.md](../implementations/copilot/README.md)                |
 | **OpenCode**       | One CLI in front of many providers     | Reaching a model no other tool offers      | [opencode/README.md](../implementations/opencode/README.md)              |
 
@@ -297,6 +298,39 @@ The sections below describe what each individual installer does.
 
 ---
 
+### Codex
+
+**Installation and setup:**
+
+1. **Install Codex:**
+   ```bash
+   mise use -g npm:@openai/codex@latest
+   ```
+
+2. **Verify the installation:**
+   ```bash
+   codex --version
+   ```
+
+3. **Run the setup script:**
+   ```bash
+   cd aide/implementations/codex
+   ./install.sh
+   ```
+
+   **The script installs globally:**
+    - ✅ Instructions (`core/AGENTS.md`) → `~/.codex/AGENTS.md`
+    - ✅ Hooks → `~/.codex/hooks.json` + `~/.codex/hooks/aide-*.sh` (the hooks need `jq`)
+    - ✅ Skills (`core/skills/`) → `~/.agents/skills/` (shared with Copilot)
+    - ✅ Scripts → `~/.local/bin/`
+    - ✅ On request: the MCP snippets in `mcp/*.toml` → appended to `~/.codex/config.toml`
+
+**Full documentation:**
+
+- **[implementations/codex/README.md](../implementations/codex/README.md)** - Setup guide and quick start
+
+---
+
 ### OpenCode
 
 OpenCode brings no model of its own. Every model belongs to a provider and is named `provider/model`, and
@@ -351,23 +385,19 @@ model call refused until you do.
 
 ### Other AI tools
 
-**Codex, or other AI tools:**
+**Other AI tools:**
 
-1. **See the Codex implementation:**
-    - **[../implementations/codex/README.md](../implementations/codex/README.md)** - Setup guide for Codex
-    - Run `implementations/codex/install.sh` (custom instructions + shared scripts)
-
-2. **Add new AI tools:**
+1. **Add new AI tools:**
     - Follow the same pattern as Codex/Copilot
     - Create `implementations/<tool>/`
     - Reuse the `core/rules/` rules
 
-3. **Use the generic workflows:**
+2. **Use the generic workflows:**
     - Read `core/skills/workflows/SKILL.md` for the spec workflow
     - Follow `core/rules/testing.md` for TDD
     - Follow `core/rules/git.md` for git operations
 
-4. **Create a spec:**
+3. **Create a spec:**
    ```bash
    # Ask your AI tool to run /aide-create with a title and a description
    # — never write the spec's files by hand
@@ -406,7 +436,7 @@ Regardless of which AI tool you use, test that the setup works:
 **Expected result:**
 
 ```bash
-ls -la specs/<NN>-PROJ-7637-slug/
+ls -la specs/<NN>-a-test-spec/
 # → README.md
 # → 1-description.md (filled in)
 # → 2-analysis.md (empty)

@@ -18,7 +18,7 @@ and which configuration files each tool reads.
 - [GitHub Copilot](#github-copilot)
 - [Codex CLI](#codex-cli)
 - [OpenCode](#opencode)
-- [Installation into target projects](#installation-into-target-projects)
+- [Installation](#installation)
 - [See also](#see-also)
 
 ---
@@ -63,13 +63,13 @@ everyone believed was an E is how rules break silently.
 
 ## How the Aide pieces land
 
-| Aide piece                                                      | Claude Code                                    | Copilot                                              | Codex                                                                                                                                                                                 |
-|-----------------------------------------------------------------|------------------------------------------------|------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Rules (git, testing, workflows, …)                              | **E** — auto-loaded from `~/.claude/rules/`    | **I** — text in `~/.copilot/copilot-instructions.md` | **I** — text in `~/.codex/AGENTS.md`                                                                                                                                                  |
-| Skills (`/aide-create`, `/aide-explore`, …)                     | **H** — native, activated on description match | **H** — read from `~/.agents/skills/`                | **H** — read from `~/.agents/skills/`                                                                                                                                                 |
-| Hooks (markdownlint, `git add .` block, watch-mode block, Stop) | **E** — enforced via `settings.json`           | **—**                                                | **E** — via `~/.codex/hooks.json` (verified live against 0.147.0, 0.154.0 installed; needs one-time hook trust, which `codex exec` keeps through thread start and resume since 0.141) |
-| Agents (task-analyzer)                                          | **H** — invoked via the Agent tool             | **—**                                                | **—**                                                                                                                                                                                 |
-| Spec workflow (explore → create → … → archive)                  | **H** — the skills carry it                    | **H** — the skills carry it                          | **H** — the skills carry it                                                                                                                                                           |
+| Aide piece                                                      | Claude Code                                    | Copilot                                              | Codex                                                                                                                                                                                 | OpenCode                                                       |
+|-----------------------------------------------------------------|------------------------------------------------|------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
+| Rules (git, testing, communication, …)                          | **E** — auto-loaded from `~/.claude/rules/`    | **I** — text in `~/.copilot/copilot-instructions.md` | **I** — text in `~/.codex/AGENTS.md`                                                                                                                                                  | **I** — text in `~/.config/opencode/AGENTS.md`                 |
+| Skills (`/aide-create`, `/aide-explore`, …)                     | **H** — native, activated on description match | **H** — read from `~/.agents/skills/`                | **H** — read from `~/.agents/skills/`                                                                                                                                                 | **H** — scanned in `~/.agents/skills/` and `~/.claude/skills/` |
+| Hooks (markdownlint, `git add .` block, watch-mode block, Stop) | **E** — enforced via `settings.json`           | **—**                                                | **E** — via `~/.codex/hooks.json` (verified live against 0.147.0, 0.154.0 installed; needs one-time hook trust, which `codex exec` keeps through thread start and resume since 0.141) | **—**                                                          |
+| Agents (task-analyzer)                                          | **H** — invoked via the Agent tool             | **—**                                                | **—**                                                                                                                                                                                 | **—**                                                          |
+| Spec workflow (explore → create → … → archive)                  | **H** — the skills carry it                    | **H** — the skills carry it                          | **H** — the skills carry it                                                                                                                                                           | **H** — the skills carry it                                    |
 
 Verified hands-on against Copilot CLI 1.0.79 (`copilot skill list`,
 2026-08-13): personal skills are read from `~/.agents/skills/` — **not**
@@ -264,7 +264,7 @@ implementations/copilot/
 
 ### Features
 
-- **No Aide slash commands** — workflows are driven via the `~/.codex/AGENTS.md` instructions
+- **Aide skills** — read from `~/.agents/skills/`, where the installer puts `core/skills/`
 - **MCP:** Support via `~/.codex/config.toml`
 - **Parallel execution** — can work on several tasks at once
 
@@ -273,8 +273,10 @@ implementations/copilot/
 ```text
 implementations/codex/
 ├── config.toml                 ← sandbox + MCP
-├── install.sh / uninstall.sh   ← global install: ~/.codex/AGENTS.md + shared scripts
-└── mcp/                        ← MCP setup docs
+├── hooks/                      ← hooks.json + aide-*.sh, installed to ~/.codex/
+├── install.sh / uninstall.sh   ← global install: ~/.codex/AGENTS.md, hooks, skills, shared scripts
+├── mcp/                        ← MCP setup docs + *.toml snippets appended to ~/.codex/config.toml
+└── README.md
 ```
 
 ---
@@ -320,30 +322,12 @@ about. A session is continued with `--session <id>`.
 
 ---
 
-## Installation into target projects
+## Installation
 
-When you install Aide into a target project (e.g. my-app):
-
-### Minimum requirements per tool
-
-| Tool        | Required files                                                                 |
-|-------------|--------------------------------------------------------------------------------|
-| Claude Code | `.claude/` (commands, rules, agents, skills), `CLAUDE.md`                      |
-| Copilot     | `.github/copilot-instructions.md` **and** `.claude/` (commands, rules, agents) |
-| Codex       | `~/.codex/AGENTS.md` (from `core/AGENTS.md`)                                   |
-
-### Automated installation
-
-```bash
-# Claude Code
-implementations/claude-code/setup.sh
-
-# Copilot
-implementations/copilot/install.sh
-
-# Codex
-implementations/codex/install.sh (if present)
-```
+Aide installs globally, not into each project: `./install-all.sh` runs
+each `implementations/<ai>/install.sh`, and each one writes under the home
+directory (`~/.claude/`, `~/.copilot/`, `~/.codex/`, `~/.config/opencode/`,
+`~/.agents/skills/`, `~/.local/bin/`).
 
 ---
 

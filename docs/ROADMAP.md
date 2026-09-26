@@ -37,10 +37,12 @@ reference only — do not develop there.
 
 ## Architecture decisions
 
-- **Three supported tools, via shared standards:** Claude Code and GitHub
-  Copilot both read the skills in `~/.claude/skills/`; Copilot and Codex
-  both read the generated `core/AGENTS.md` (installed as
-  `~/.copilot/copilot-instructions.md` and `~/.codex/AGENTS.md`).
+- **Four supported tools, via shared standards:** Claude Code reads the
+  skills in `~/.claude/skills/`; Copilot and Codex read them in
+  `~/.agents/skills/`, and OpenCode scans both. Copilot, Codex and OpenCode
+  read the generated `core/AGENTS.md` (installed as
+  `~/.copilot/copilot-instructions.md`, `~/.codex/AGENTS.md` and
+  `~/.config/opencode/AGENTS.md`).
   Priority: Claude Code > Codex > OpenCode > Copilot. Gemini support and all
   per-tool extras (JetBrains templates, editor tasks, Codex CLI wrappers)
   were deliberately dropped — hand-maintained per-tool adapters were the
@@ -106,9 +108,9 @@ From the comparison with [OpenSpec](https://github.com/Fission-AI/OpenSpec)
       REMOVES in behavior relative to today, distinct from the analysis's
       file scope.
 - [x] **Given/when/then acceptance criteria** in `3-solution.md`. Done
-      August 2026, and the criteria moved OUT of `1-description.md` at the
-      same time (the strict separation says the description is only the
-      problem as reported). The RED phase writes at least one failing test
+      August 2026. `1-description.md` holds the AC-n SHALL statements;
+      `3-solution.md` holds the given/when/then cases, each opening with
+      the AC-id it covers. The RED phase writes at least one failing test
       per criterion — wired into aide-analyze and aide-implement.
 - [x] **Explore step.** Done August 2026: `/aide-explore` — a thinking
       partner that creates nothing (reading the codebase is encouraged,
@@ -198,7 +200,7 @@ is the same position we are in.
       `waiting` with its question on the row, and a reply field on the
       dashboard.
 - [ ] **An append-only event log, not a last-state mirror.**
-      `dashboard/src/queue.ts` writes the current state of every job to a
+      `dashboard/src/queue/store/` writes the current state of every job to a
       JSON file, and `aide-emit-run` posts phase boundaries with
       `curl --max-time 1` in the background — deliberately without any
       guarantee of arrival. So there is no history to replay: a dropped
@@ -207,14 +209,11 @@ is the same position we are in.
       from it, so a reload, a second client and an audit all replay the
       same history. We do not need Postgres for that — a `runs/<id>.jsonl`
       appended to would do.
-- [ ] **The anti-lesson: cap the file size before a barrel grows.**
+- [x] **The anti-lesson: cap the file size before a barrel grows.**
       `packages/db/src/index.ts` is 62 487 lines with 1134 exports, because
       nothing enforces module boundaries and an assistant just appends at
-      the end. Our largest are `dashboard/src/serve.ts` at 1778 lines and
-      `queue.ts` at 744 — not a problem yet, and `serve.ts` is the one that
-      grows the same way. A test that fails when a file under
-      `dashboard/src/` passes a ceiling is the same mechanism that already
-      pins the two duplicated step lists to each other.
+      the end. Done: `dashboard/test/design/code-health-limits.test.ts`
+      fails when a file under `dashboard/src/` passes 500 lines.
 
 ## Phase 5: The dashboard — toward spec-driven, observable runs
 
@@ -227,7 +226,7 @@ projects, running processes, approvals, cost. Three layers: knowledge
 The plan and the backlog live as specs in aide-specs — the detail is
 THERE, not here (we eat our own dog food):
 
-- [x] Stage 0 — plan review step → spec 77 (done August 2026: `/aide-review-plan`)
+- [x] Stage 0 — plan review step → spec 77 (done August 2026: `/aide-review-plan`; that skill is gone since, and the review is part of `/aide-analyze`)
 - [x] Stage 1 — project manifest → spec 78 (done August 2026: `/aide-manifest` + `.aide/project.yaml`)
 - [x] Stage 2 — read-only dashboard → spec 79 (done August 2026: the
       `aide-dashboard` repo — static generator on the laptop reading

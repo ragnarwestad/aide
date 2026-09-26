@@ -68,28 +68,27 @@ aide/
 │   │   ├── testing.md
 │   │   ├── spec-structure.md      # path-scoped: loaded only for spec files
 │   │   └── ...
-│   ├── scripts/                   # CLI scripts: aide-generate-pdf, aide-generate-html
+│   ├── scripts/                   # Shared scripts — installed to ~/.local/bin/
 │   └── templates/                 # Document templates
 │
 ├── dashboard/                     # The aide dashboard — its own toolchain (Bun + TypeScript)
 │   ├── src/                       # Site generator + the Bun server behind /live and /queue
 │   ├── deploy/                    # rsync publish, launchd plist rendering
 │   ├── test/                      # bun test — NOT part of the pytest suite at the root
-│   └── Makefile                   # generate / serve-local / install-serve
+│   └── Makefile                   # test / test-slow / test-e2e / test-all / serve-local / install-serve / deploy-serve / install-local
 │
 ├── implementations/               # AI-SPECIFIC ADAPTATIONS
 │   │
 │   ├── claude-code/
-│   │   ├── CLAUDE.md              # Template — installed to .claude/CLAUDE.md in each project
 │   │   ├── agents/                # Agent definitions — installed to ~/.claude/agents/
 │   │   │   └── task-analyzer.md
 │   │   ├── settings.json          # Claude Code permissions (aide itself)
 │   │   ├── install.sh
 │   │   └── uninstall.sh
 │   │
-│   └── copilot/
-│       ├── .github/
-│       │   └── copilot-instructions.md  # Installed to .github/ in each project
+│   ├── codex/                     # ~/.codex/AGENTS.md, hooks, MCP snippets
+│   ├── opencode/                  # ~/.config/opencode/AGENTS.md
+│   └── copilot/                   # core/AGENTS.md → ~/.copilot/copilot-instructions.md
 │       ├── install.sh
 │       └── uninstall.sh
 │
@@ -125,14 +124,18 @@ git commit -m "Add database-expert skill"
 ### Updating rules
 
 ```bash
-vim core/skills/workflows/SKILL.md
+vim core/rules/testing.md
 cd implementations/claude-code && ./install.sh
 ```
 
 ### Updating Copilot instructions
 
+Copilot, Codex and OpenCode get `core/AGENTS.md`, which is built from
+`core/agents-intro.md` and `core/rules/`:
+
 ```bash
-vim implementations/copilot/.github/copilot-instructions.md
+vim core/agents-intro.md              # or a file in core/rules/
+core/scripts/build-agents-md.sh
 cd implementations/copilot && ./install.sh
 ```
 
@@ -146,6 +149,15 @@ cd implementations/claude-code && ./install.sh
 
 # Copilot
 cd implementations/copilot && ./install.sh
+
+# Codex
+cd implementations/codex && ./install.sh
+
+# OpenCode
+cd implementations/opencode && ./install.sh
+
+# All four
+./install-all.sh
 
 # Uninstall Claude Code
 cd implementations/claude-code && ./uninstall.sh
@@ -164,7 +176,8 @@ cd implementations/claude-code && ./uninstall.sh
 
 ### Core principles
 
-1. **Direct sources:** Instruction files are direct source files — no build step
+1. **Direct sources:** Instruction files are direct source files; the one build step is `core/AGENTS.md`, generated
+   from `core/rules/` by `core/scripts/build-agents-md.sh`
 2. **Separation:** Generic content (`core/`) vs AI-specific (`implementations/`)
 
 ### Installation overview
@@ -175,8 +188,7 @@ cd implementations/claude-code && ./uninstall.sh
 | Scripts              | `core/scripts/`                                           | `~/.local/bin/`                             |
 | Agents               | `implementations/claude-code/agents/`                     | `~/.claude/agents/`                         |
 | Rules                | `core/rules/`                                             | `~/.claude/rules/`                          |
-| CLAUDE.md (template) | `implementations/claude-code/CLAUDE.md`                   | `<project>/.claude/CLAUDE.md`               |
-| Copilot instructions | `implementations/copilot/.github/copilot-instructions.md` | `<project>/.github/copilot-instructions.md` |
+| Copilot instructions | `core/AGENTS.md`                                          | `~/.copilot/copilot-instructions.md`        |
 
 ### Special cases
 
