@@ -248,21 +248,28 @@ which commit it is serving; under it a **Deploy** button, disabled when the chec
 has not been checked yet. A project with no `AIDE_INSTALL_CMD` keeps the heading and a sentence saying there is
 nothing to act on. When drift has not been checked yet, the page asks for itself again after five seconds.
 
-Pressing **Deploy** opens one dialog that keeps its size until it closes. It lists five steps, each waiting, running,
+Pressing **Deploy** opens one dialog that is as tall as its steps and one line under them, and keeps that size until
+it closes. It lists five steps, each waiting, running,
 done or failed, one running at a time: fetch from origin, install, restart the service, wait for the service to
 answer, and check that the service runs the newest commit. The page runs them one request each
 (`POST .../deploy/<step>`, `http-routes.md`), and the wait for the restart ends when `/api/version` answers a new
 `startedAt`. The last step counts the checkout against origin on the process that will serve the page, so the page
-that loads next never says the check has not been made. When the last step is done the dialog says so, stays two
-seconds and closes. A failed step leaves the dialog open with its error in the usual message layout and a Close
-button; the steps after it stay waiting.
+that loads next never says the check has not been made. The running step's line is drawn in the accent colour with
+the spinner the running badges use. When the last step is done the dialog says so in the line under the steps, stays
+two seconds and closes. A failed step is shown as failed for two seconds and the dialog closes by itself; the steps
+after it stay waiting, and Escape closes it at once. The dialog never shows an error of its own: the failure is
+drawn first on the Deploy tab, in the usual message layout, naming the step and the reason. The server keeps the
+failure of a refused step per project until the next deploy of that project starts (a restart of the dashboard
+loses it), so a reload or another tab shows it too. A press removes the error from the tab before the dialog opens.
 
 A restart held back by running jobs, or with nothing on the machine to restart the service, ends the run after the
 restart step: the dialog closes and the page reloads onto the Deploy tab's own sentence. A deploy that leaves the
 dashboard's own service on an older commit than its checkout — the check finds them different, an install fails after
 the checkout moved, or there is nothing to restart with — stores one message that every page shows under the header
 until a later check finds them equal or the service restarts. A service that never answers after the restart cannot
-store anything, so Close puts that message on the page already loaded. A browser without script posts the whole
+store anything, so the page already loaded draws that message, on the Deploy tab and under the header, when the
+dialog closes; a reload removes it. A failure that leaves the board faulty reloads the page instead, so the server
+draws the message under the header. A browser without script posts the whole
 deploy as one request (`POST .../deploy`) and follows its redirect.
 
 The second panel starts a test server for the project, in a new tab. Without a preview command configured, the

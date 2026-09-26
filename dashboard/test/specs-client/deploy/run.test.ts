@@ -126,25 +126,26 @@ describe("runDeploy", () => {
   });
 
   for (const step of ["fetch", "install", "restart", "check"] as const) {
-    test(`a failed ${step} stays open: that line failed, every later line waits, no reload (AC-5)`, async () => {
+    test(`a failed ${step} is shown for two seconds, then the dialog closes; later lines wait, no reload (AC-5)`, async () => {
       const { fakes, io, ui } = harness({ [step]: { ok: false, error: "it broke", faulty: step === "check" } });
       await runDeploy(io, ui);
       const at = STEPS.indexOf(step);
       const after: StepState[] = STEPS.slice(at + 1).map(() => "waiting");
       expect(STEPS.map((s) => fakes.states[s]).slice(at)).toEqual(["failed", ...after]);
       expect(fakes.failures).toEqual([{ step, error: "it broke", faulty: step === "check", silent: false }]);
+      expect(fakes.log.slice(-2)).toEqual(["sleep 2000", "close"]);
       expect(fakes.log).not.toContain("reload");
-      expect(fakes.log).not.toContain("close");
       expect(fakes.log).not.toContain("finished");
     });
   }
 
-  test("a wait in which no probe ever answered fails the wait as silent, and check is never called (AC-5)", async () => {
+  test("a wait in which no probe ever answered fails the wait as silent, pauses, closes, and check is never called (AC-5)", async () => {
     const { fakes, io, ui } = harness({}, [null]);
     await runDeploy(io, ui);
     expect(fakes.failures).toEqual([{ step: "wait", error: "", faulty: false, silent: true }]);
     expect(fakes.states.check).toBe("waiting");
     expect(fakes.log).not.toContain("check");
+    expect(fakes.log.slice(-2)).toEqual(["sleep 2000", "close"]);
   });
 
   test("a request that throws fails its step like an error answer (AC-5)", async () => {
@@ -156,5 +157,6 @@ describe("runDeploy", () => {
     await runDeploy(io, ui);
     expect(fakes.failures.map((f) => f.step)).toEqual(["install"]);
     expect(fakes.states.restart).toBe("waiting");
+    expect(fakes.log.slice(-2)).toEqual(["sleep 2000", "close"]);
   });
 });

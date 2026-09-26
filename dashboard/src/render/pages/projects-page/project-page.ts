@@ -14,7 +14,7 @@ import { t } from "../../../i18n";
 import { pickTab, tabBar, tabbedBody } from "../job-page";
 import { renderScheduleForm } from "../schedule-page/form.ts";
 import { schedulePagePath } from "../schedule-page";
-import { deployDialog } from "./deploy-dialog.ts";
+import { deployDialog, STEP_LABEL } from "./deploy-dialog.ts";
 import { projectDescription } from "./overview-list.ts";
 import { PROJECTS_ROUTE, projectPagePath } from "./routes.ts";
 import { unifiedSettingsTable } from "./settings-table.ts";
@@ -87,7 +87,16 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
   // Shown wherever `drift` is defined — the same scope the original
   // function gave it (never in the ungated branch above, which a
   // deploy press could not have been refused FROM in the first place).
-  const errorLine = opts.deployError ? rowMessage("failed", opts.deployError, { hook: "refusal", tag: "p" }) : "";
+  // The kept failure names its step; the address's error is the no-script
+  // redirect's. Both carry `deploy-error`, the class a press removes.
+  const failure = opts.deployFailure;
+  const kept = failure
+    ? t(opts.lang ?? "en", "deploy.failedAt", { step: t(opts.lang ?? "en", STEP_LABEL[failure.step]!), error: failure.error })
+    : undefined;
+  const errorLine =
+    kept || opts.deployError
+      ? rowMessage("failed", kept ?? opts.deployError!, { hook: "refusal deploy-error", tag: "p" })
+      : "";
   const notYetChecked = drift.checkedAt === null;
   const behind = drift.behind;
   // Only "asked, unanswerable" still bails out with no claim and no

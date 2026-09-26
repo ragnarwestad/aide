@@ -1,7 +1,8 @@
 // The Deploy button's dialog: opens on submit at its final size, moves
 // one step line at a time as the sequence (`run.ts`) reports, and after
-// a failure stays until it is closed. With no `<dialog>` the form posts
-// natively and follows the redirect, as it always did.
+// a failure closes by itself and leaves the error on the Deploy panel.
+// With no `<dialog>` the form posts natively and follows the redirect,
+// as it always did.
 
 import { runDeploy, STEPS, type DeployFailure, type DeployIo, type DeployStep, type PostedStep, type StepAnswer, type StepState } from "./run.ts";
 
@@ -9,8 +10,13 @@ import { runDeploy, STEPS, type DeployFailure, type DeployIo, type DeployStep, t
  *  once however many times it is submitted. */
 interface Standing {
   running: boolean;
-  /** The failure not yet dismissed. */
-  failure: DeployFailure | null;
+  /** The failure not yet handed to the page, with its step's label. */
+  failure: (DeployFailure & { label: string }) | null;
+  /** The newest run: an older run's pause must not close a newer dialog. */
+  run: number;
+  io: DeployIo;
+  /** Closes the dialog and hands a failure to the page; safe to call twice. */
+  dismiss: () => void;
 }
 const standing = new WeakMap<object, Standing>();
 
@@ -44,6 +50,15 @@ function errorMessage(dialog: HTMLDialogElement, text: string): Element | null {
   return message;
 }
 
+/** The deploy errors standing directly on the Deploy panel. */
+const panelErrors = (panel: Element | null): Element[] =>
+  [...(panel?.children ?? [])].filter((child) => child.classList.contains("deploy-error"));
+
+/** The failed-step sentence: `{step}` first, then `{error}`, both by
+ *  function so neither is read for `$` patterns or substituted twice. */
+const failedSentence = (template: string, label: string, error: string): string =>
+  template.replace("{step}", () => label).replace("{error}", () => error);
+
 export async function submitDeploy(form: HTMLFormElement, event: Event, io: DeployIo = browserIo(form)): Promise<void> {
   if (event.defaultPrevented) return;
   const dialog = form.querySelector("dialog[data-deploy-dialog]") as HTMLDialogElement | null;
@@ -53,38 +68,45 @@ export async function submitDeploy(form: HTMLFormElement, event: Event, io: Depl
   const list = dialog.querySelector("ol.deploysteps") as HTMLElement;
   const messageBox = dialog.querySelector(".deploymessage") as HTMLElement;
 
+  const panel = dialog.closest(".deploypanel");
+
   let mine = standing.get(dialog);
   if (!mine) {
-    const fresh: Standing = { running: false, failure: null };
+    const fresh: Standing = { running: false, failure: null, run: 0, io, dismiss: () => {} };
     mine = fresh;
     standing.set(dialog, fresh);
-    // What the reader does about a failure: a stored fault is drawn by
-    // the server, so the page reloads; a silent service can only be
-    // said by the page already loaded.
-    const dismiss = (): void => {
+    // What becomes of a failure once the dialog is gone: a stored fault is
+    // drawn by the server, so the page reloads; anything else is drawn
+    // here, first on the Deploy panel, and a silent service also at the
+    // top of the page, since only the page already loaded can say it.
+    fresh.dismiss = (): void => {
       const failure = fresh.failure;
       fresh.failure = null;
       if (dialog.open) dialog.close();
       if (!failure) return;
       if (failure.faulty) {
-        io.reload();
+        fresh.io.reload();
         return;
       }
+      const noAnswer = dialog.dataset.noAnswer ?? "";
+      const reason = failure.silent ? noAnswer : failure.error || "the request failed";
+      const message = errorMessage(dialog, failedSentence(dialog.dataset.failedAt ?? "{step}: {error}", failure.label, reason));
+      if (message) panel?.prepend(message);
       if (!failure.silent) return;
-      const message = errorMessage(dialog, dialog.dataset.noAnswer ?? "");
-      message?.classList.replace("deploy-error", "deploy-fault");
-      if (message) dialog.ownerDocument.querySelector("main")?.before(message);
+      const top = errorMessage(dialog, noAnswer);
+      top?.classList.replace("deploy-error", "deploy-fault");
+      if (top) dialog.ownerDocument.querySelector("main")?.before(top);
     };
     dialog.addEventListener("cancel", (e) => {
       if (fresh.running) e.preventDefault();
     });
     // A browser can close a modal whose cancel was prevented (a second
-    // Escape): stand again while running, dismiss once it has failed.
+    // Escape): stand again while running, hand over the failure once it
+    // has failed.
     dialog.addEventListener("close", () => {
       if (fresh.running) dialog.showModal();
-      else dismiss();
+      else fresh.dismiss();
     });
-    dialog.querySelector("[data-deploy-close]")?.addEventListener("click", dismiss);
   }
   const state = mine;
 
@@ -97,7 +119,9 @@ export async function submitDeploy(form: HTMLFormElement, event: Event, io: Depl
   };
   for (const step of STEPS) setState(step, "waiting");
   messageBox.replaceChildren();
-  dialog.removeAttribute("data-failed");
+  for (const error of panelErrors(panel)) error.remove();
+  const token = ++state.run;
+  state.io = io;
   state.running = true;
   state.failure = null;
   if (!dialog.open) dialog.showModal();
@@ -106,18 +130,18 @@ export async function submitDeploy(form: HTMLFormElement, event: Event, io: Depl
     state: setState,
     fail: (step, failure) => {
       setState(step, "failed");
-      const message = errorMessage(dialog, failure.silent ? (dialog.dataset.noAnswer ?? "") : failure.error || "the request failed");
-      if (message) messageBox.replaceChildren(message);
+      const named = line(step).cloneNode(true) as HTMLElement;
+      named.querySelector(".deploystate")?.remove();
       state.running = false;
-      state.failure = failure;
-      dialog.setAttribute("data-failed", "");
+      state.failure = { ...failure, label: named.textContent?.trim() ?? step };
     },
     finished: () => {
       messageBox.textContent = dialog.dataset.finished ?? "";
     },
     close: () => {
+      if (token !== state.run) return;
       state.running = false;
-      if (dialog.open) dialog.close();
+      state.dismiss();
     },
   });
 }

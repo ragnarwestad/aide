@@ -33,7 +33,7 @@ export const en = {
   "deploy.stateDone": "done",
   "deploy.stateFailed": "failed",
   "deploy.finished": "Deploy finished",
-  "deploy.close": "Close",
+  "deploy.failedAt": "{step} failed: {error}",
   "shell.overlayResetting": "resetting…",
   "shell.overlayClosing": "closing…",
   "shell.overlayRemoving": "removing…",

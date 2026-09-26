@@ -266,6 +266,7 @@ export async function projectPages(
         error: url.searchParams.get("error") ?? undefined,
         drift,
         deployError: url.searchParams.get("deployError") ?? undefined,
+        deployFailure: ctx.readDeployFailure(name),
         serving,
         restartWaiting: ctx.readPendingRestart()?.jobs,
         // AC-8: the same capability check the spec-page's own

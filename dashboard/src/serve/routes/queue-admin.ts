@@ -320,6 +320,7 @@ export async function handleQueueAdminRoutes(
     if (!ctx.opts.projectRoot || !ctx.allowed.has(name)) {
       return refuse(`"${name}" is not a project this dashboard knows`);
     }
+    ctx.setDeployFailure(name, null);
     const root = ctx.machineryProjectDir(name);
     if (!resolveInstallCmd(root).value) {
       return refuse(`${name} has no ${SETTING_LABELS.AIDE_INSTALL_CMD.toLowerCase()} configured — deploying stays a hand step`);

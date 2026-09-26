@@ -32,7 +32,7 @@ export const fr: Record<TranslationKey, string> = {
   "deploy.stateDone": "terminé",
   "deploy.stateFailed": "échoué",
   "deploy.finished": "Déploiement terminé",
-  "deploy.close": "Fermer",
+  "deploy.failedAt": "{step} a échoué : {error}",
   "shell.overlayResetting": "réinitialisation…",
   "shell.overlayClosing": "fermeture…",
   "shell.overlayRemoving": "suppression…",

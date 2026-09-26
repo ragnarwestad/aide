@@ -162,6 +162,62 @@ describe("the step routes refuse like the combined route (AC-5)", () => {
   });
 });
 
+/** What the Deploy tab draws for a failure a step kept, one per load. */
+const KEPT = /class="refusal deploy-error rowmsg failed"/g;
+const kept = (html: string): string[] => html.match(KEPT) ?? [];
+const keptText = (html: string): string =>
+  html.match(/<p class="refusal deploy-error rowmsg failed">([\s\S]*?)<\/p>/)?.[1]?.replace(/<[^>]*>/g, "") ?? "";
+
+describe("a refused step is kept for the Deploy tab until the next deploy starts (AC-6)", () => {
+  test("a refused fetch names the step and the reason, load after load and with no cookie (AC-6)", async () => {
+    const { base, paths } = await deployServer({ ...SAME, branch: "feature-x" }, noRestart);
+    installs(paths.project);
+    expect((await post(base, "aide/deploy/fetch")).status).toBe(400);
+    for (let load = 0; load < 2; load++) {
+      const html = await page(base, "/projects/aide?tab=deploy");
+      expect(kept(html).length).toBe(1);
+      expect(keptText(html)).toContain("Fetch from origin failed:");
+      expect(keptText(html)).toContain("feature-x");
+    }
+  });
+
+  test("a failed install and a failed check are kept the same way (AC-6)", async () => {
+    const install = await deployServer(SAME, noRestart);
+    installFails(install.paths.project);
+    await post(install.base, "aide/deploy/install");
+    expect(keptText(await page(install.base, "/projects/aide?tab=deploy"))).toContain("Install failed:");
+
+    const check = await deployServer(OLDER, noRestart);
+    installs(check.paths.project);
+    expect((await post(check.base, "aide/deploy/check")).status).toBe(400);
+    expect(keptText(await page(check.base, "/projects/aide?tab=deploy"))).toContain("Check that the service runs the newest commit failed:");
+  });
+
+  test("the next fetch clears it, and a deploy that then fails elsewhere shows only that one (AC-6)", async () => {
+    const { base, paths } = await deployServer(SAME, noRestart);
+    installFails(paths.project);
+    await post(base, "aide/deploy/install");
+    expect(kept(await page(base, "/projects/aide?tab=deploy")).length).toBe(1);
+    expect((await post(base, "aide/deploy/fetch")).status).toBe(200);
+    expect(kept(await page(base, "/projects/aide?tab=deploy")).length).toBe(0);
+    await post(base, "aide/deploy/install");
+    const html = await page(base, "/projects/aide?tab=deploy");
+    expect(kept(html).length).toBe(1);
+    expect(keptText(html)).toContain("Install failed:");
+  });
+
+  test("a kept failure beats a ?deployError= address, which still shows when nothing is kept (AC-6)", async () => {
+    const { base, paths } = await deployServer({ ...SAME, branch: "feature-x" }, noRestart);
+    installs(paths.project);
+    const url = `/projects/aide?tab=deploy&deployError=${encodeURIComponent("from the address")}`;
+    expect(keptText(await page(base, url))).toBe("From the address");
+    await post(base, "aide/deploy/fetch");
+    const html = await page(base, url);
+    expect(html).not.toContain("From the address");
+    expect(keptText(html)).toContain("Fetch from origin failed:");
+  });
+});
+
 describe("POST .../deploy/restart", () => {
   test("with nothing running it answers fired with the old process's startedAt, then fires (AC-2)", async () => {
     let fired = 0;

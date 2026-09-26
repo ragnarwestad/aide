@@ -54,6 +54,9 @@ export interface ProjectPageOptions {
   /** Why the last Deploy press was refused, or what its install step
    *  reported — carried back in the query string, like `error`. */
   deployError?: string;
+  /** The step the last Deploy failed at and why, kept by the server until
+   *  the next deploy starts; ranks ahead of `deployError`. */
+  deployFailure?: { step: string; error: string };
   /** This process's own boot-time commit vs. this checkout's current
    *  HEAD (spec 269) — undefined for every project except the one this
    *  server is actually running from. */

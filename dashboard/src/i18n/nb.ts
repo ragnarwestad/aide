@@ -32,7 +32,7 @@ export const nb: Record<TranslationKey, string> = {
   "deploy.stateDone": "ferdig",
   "deploy.stateFailed": "feilet",
   "deploy.finished": "Deploy er ferdig",
-  "deploy.close": "Lukk",
+  "deploy.failedAt": "{step} feilet: {error}",
   "shell.overlayResetting": "nullstiller…",
   "shell.overlayClosing": "lukker…",
   "shell.overlayRemoving": "fjerner…",

@@ -57,6 +57,7 @@ export async function handleDeploySteps(ctx: RoutesContext, req: Request, path: 
   const lang: Language = languageChoice(new URL(req.url), req).lang;
   const refuse = (error: string, extra: Record<string, unknown> = {}): Response => {
     logRefusal(`project-deploy-${step}`, name, error);
+    if (ctx.allowed.has(name)) ctx.setDeployFailure(name, { step, error });
     return json({ ok: false, error, ...extra }, 400);
   };
   const sentence = (s: Sentence): string => renderSentence(lang, s) ?? "";
@@ -64,6 +65,8 @@ export async function handleDeploySteps(ctx: RoutesContext, req: Request, path: 
   if (!ctx.opts.projectRoot || !ctx.allowed.has(name)) {
     return refuse(`"${name}" is not a project this dashboard knows`);
   }
+  // The first step of a deploy starts it afresh: the last failure is gone.
+  if (step === "fetch") ctx.setDeployFailure(name, null);
   const root = ctx.machineryProjectDir(name);
   if (step !== "check" && !resolveInstallCmd(root).value) {
     return refuse(`${name} has no ${SETTING_LABELS.AIDE_INSTALL_CMD.toLowerCase()} configured — deploying stays a hand step`);

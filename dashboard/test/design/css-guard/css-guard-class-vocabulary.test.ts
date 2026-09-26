@@ -166,8 +166,8 @@ const STRUCTURE = [
   // (spec 377, design-system.md "Spacing lives in the container").
   "deploypanel",
   // the Deploy dialog's step list, each line's state word, and the
-  // fixed-height area its error and finished message are written into
-  // (the dialog keeps one size from the press to the end).
+  // one-line area its finished message is written into (the dialog
+  // keeps one size from the press to the end).
   "deploysteps", "deploystate", "deploymessage",
   // the covering layer a click that leaves the page gets, from the
   // click until the new document arrives (spec 314): the same

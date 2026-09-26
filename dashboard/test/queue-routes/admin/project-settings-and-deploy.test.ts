@@ -384,6 +384,17 @@ describe("POST /api/queue/projects/<name>/deploy (spec 258)", () => {
     expect(res.headers.get("location")).toBe("/projects/aide?tab=deploy");
   });
 
+  test("the combined route clears a failure a step kept for the Deploy tab (AC-6)", async () => {
+    const git = movedOffMain();
+    const { base, dir } = start({ gitRun: git.run });
+    installsOk(projectDir(dir));
+    expect((await fetch(`${base}/api/queue/projects/aide/deploy/fetch`, { method: "POST", headers: AUTH })).status).toBe(400);
+    const tab = async (): Promise<string> => await (await fetch(`${base}/projects/aide?tab=deploy`)).text();
+    expect(await tab()).toContain("refusal deploy-error");
+    await fetch(`${base}/api/queue/projects/aide/deploy`, { method: "POST", headers: AUTH });
+    expect(await tab()).not.toContain("refusal deploy-error");
+  });
+
   test("only POST — the button's route takes no other method", async () => {
     const { base } = start();
     const res = await fetch(`${base}/api/queue/projects/aide/deploy`, { headers: AUTH });

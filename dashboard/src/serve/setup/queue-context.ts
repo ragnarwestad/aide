@@ -5,7 +5,7 @@
 // one stage that reads every other one.
 
 import type { BranchFileStepsChecker } from "../../git/workflow-history.ts";
-import { setDeployFault, setPendingRestart, type ServerState } from "../state.ts";
+import { setDeployFailure, setDeployFault, setPendingRestart, type ServerState } from "../state.ts";
 import { type RoutesContext } from "../routes";
 
 /** Everything `RoutesContext` needs, minus the handful of fields
@@ -15,7 +15,7 @@ import { type RoutesContext } from "../routes";
  *  describes for `readScan`/`invalidateScan`. */
 export type QueueContextInputs = Omit<
   RoutesContext,
-  "readScan" | "invalidateScan" | "forgetBranchFileSteps" | "readServing" | "readPendingRestart" | "setPendingRestart" | "setDeployFault" | "selfStopExit"
+  "readScan" | "invalidateScan" | "forgetBranchFileSteps" | "readServing" | "readPendingRestart" | "setPendingRestart" | "setDeployFault" | "readDeployFailure" | "setDeployFailure" | "selfStopExit"
 > & {
   branchFileSteps: BranchFileStepsChecker;
 };
@@ -63,6 +63,8 @@ export function setupQueueContext(state: ServerState, inputs: QueueContextInputs
     readPendingRestart: () => state.pendingRestart,
     setPendingRestart: (jobs) => setPendingRestart(state, jobs),
     setDeployFault: (fault) => setDeployFault(state, fault),
+    readDeployFailure: (project) => state.deployFailures.get(project),
+    setDeployFailure: (project, failure) => setDeployFailure(state, project, failure),
     pdfCacheDir: inputs.pdfCacheDir,
     pdfGeneratorBin: inputs.pdfGeneratorBin,
     pdfToolAvailable: inputs.pdfToolAvailable,
