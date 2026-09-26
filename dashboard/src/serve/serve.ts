@@ -465,6 +465,7 @@ export function createServer(opts: ServerOptions) {
     // here waits for that — the caller is shutting down — so the promise
     // is dropped on purpose rather than by accident.
     stop: () => {
+      state.stopped = true;
       if (timer) clearInterval(timer);
       if (schedules.driftTimer) clearInterval(schedules.driftTimer);
       if (schedules.specCacheTimer) clearInterval(schedules.specCacheTimer);

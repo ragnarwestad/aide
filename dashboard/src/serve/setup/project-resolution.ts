@@ -112,6 +112,7 @@ export function setupProjectResolution(
     return machinerySpecsRootImpl(projectCheckoutCtx, project);
   }
   function complain(project: string, said: string, banner = true) {
+    if (state.stopped) return;
     return complainImpl(projectCheckoutCtx, project, said, banner);
   }
   const checkoutEnsurer = new CheckoutEnsurer((project, mayClone) =>

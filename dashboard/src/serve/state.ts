@@ -90,6 +90,10 @@ export interface ServerState {
   /** A restart is waiting for running phases and merges to finish; the
    *  queue starts no new phase meanwhile (`Runner.tick`'s `startsHeld`). */
   restartWaiting: boolean;
+  /** Set by `stop()`: a git answer that lands after it belongs to nobody,
+   *  and must not put a checkout fault at the top of pages the process
+   *  draws for another board. */
+  stopped: boolean;
   /** What a finished deploy left wrong at the top of every page — the
    *  running service is older than the dashboard's own checkout — or
    *  `null`. Lives as long as the process: a restart starts without it,
@@ -123,7 +127,7 @@ export function createServerState(): ServerState {
   setDeployFaultNotice(null);
   const state: ServerState = {
     scan: null, unlanded: [], prOpen: [], notifySoon: null, warming: false, server: null, runner: null,
-    servingSha: null, servingRepoRoot: null, pendingRestart: null, restartWaiting: false, deployFault: null,
+    servingSha: null, servingRepoRoot: null, pendingRestart: null, restartWaiting: false, stopped: false, deployFault: null,
     deployFailures: new Map(),
   };
   noticeOwner = state;
