@@ -33,13 +33,14 @@ same ramp read from the other end inside `@media (prefers-color-scheme: dark)`, 
 none of them may contain a literal. The full set — and the type and space scales a font size or a gap has to come
 from — is `tokens.css` itself; the names below are the ones a reader of the palette needs first.
 
-The palette is the brand's: warm neutrals (paper `--bg`, card
-`--surface`, ink `--text`), vermilion `--accent`, a muted blue `--link` for every link (the accent marks action and
-activity, and otherwise only the wordmark's own letter and the current tab's underline, so a page of spec titles
-never reads as a page of failures), and `--danger` set to the darkest bar of
-the mark rather than to a shade of the accent — so
-"running" and "refused" never rest on hue alone. The refused badge is also the only live one with a visible border, and
-the row that carries it carries a `.rowmsg.failed` with its own mark beside the reason.
+The palette is warm neutrals with zinc ink: paper `--bg`, card `--surface`, a second surface `--surface-2` for a
+hover or a table heading, ink `--text`, and vermilion `--accent`, which marks action and activity and otherwise only the
+wordmark's own letter and the current tab's underline. A link is ink too (`--link`), so a page of spec titles never
+reads as a page of failures. The states have three tones each — `--ok`, `--warn` and `--danger`, a `-soft` for a badge
+and a `-ground` for a message box — and dark mode has its own, calmer copy of every one rather than an inverted one.
+"Running" and "refused" never rest on hue alone: a refused row also carries a `.rowmsg.failed` with its own mark beside
+the reason. The idle badge is the one badge with a visible edge, since it has no ground of its own. Corners are
+`--r` (a card, a message) and `--r-s` (a badge, a field, a button).
 
 A row, job-page or project-page message is one of three kinds. The code that knows what happened picks the kind and
 passes it in; nothing passes a colour or an icon: `info` ("what does the reader have to do?" — nothing), `waiting` (something waits
@@ -56,7 +57,7 @@ caller puts on its own link:
 | `btn()`               | bare (secondary), `primary`, `ok`, `danger`, `busy`, disabled, `small`                                                                |
 | `switchControl()`     | on or off, its position and the word beside it drawn from `aria-checked`; moved by `setSwitch()`; disabled                            |
 | `.iconlink`           | a link or control that is its icon alone, no button frame — the spec page's PDF link, whose `.icon-pdf` is `--pdf` red in every theme |
-| `badge()`             | `b-idle`, `b-running`, `b-waiting`, `b-ready`, `b-refused`, `b-done`                                                                  |
+| `badge()`             | `b-idle`, `b-running`, `b-waiting`, `b-ready`, `b-refused`, `b-done`; the state word and its icon                                     |
 | `phaseChip()`         | `default`, `checked`, `done`, `off` (with the reason in `title`)                                                                      |
 | `phases()`            | a group of chips in one wrapper, so the row carries no spacing rule of its own                                                        |
 | `pips()`              | one pip per phase, its first letter above it, the full name in `title`                                                                |
@@ -68,6 +69,11 @@ caller puts on its own link:
 | `dialogAnswers()`     | a confirm box's two answers on one row: the affirmative first, then Cancel (the platform's own close)                                 |
 | `helpPopover()`       | a `details.intro` disclosure holding developer-authored help text                                                                     |
 | `backLink()`          | the link back out of a page, with the page's title beside it rather than below                                                        |
+
+A badge says the state and nothing else: no reason, no count. Its icon comes from the word itself
+(`stateIconName()`, `components/state-icon.ts`) — a tick for Done, a clock for Queued, a spinner for anything running —
+and is drawn by the stylesheet from `data-icon`, so a caller never picks one. At a phone's width the badge is the word
+alone, since the state column there is sized for the word.
 
 `STEP_LABELS` is re-exported from there and lives in `src/format/step-label.ts` — a step's technical name mapped to
 the word a reader sees, with a sibling table per language (`STEP_LABELS_NB` and three more), while `data-phase`, the

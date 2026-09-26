@@ -38,6 +38,11 @@ but the one that opens it: a chevron in front of the name. Under the name sits t
 that, when the spec has one, the `N not verified` line. Both belong to the shut row, so a reader sees what went
 wrong without opening it.
 
+Each spec is a card: its rows share one rounded frame on the page's ground, and an empty `tr.specgap` row after the
+group's last row puts the space between two cards. The gap closes a group rather than opening the next, because the
+row refresh treats a spec as its head row and every row up to the next head row — a gap in front of a spec would be
+swapped away with the spec above it.
+
 Opening is a link, and lives in the query string (`?open=<project>/<folder>,…`). That is what makes it survive
 the table's own row refresh, work with JavaScript switched off, and keep a row the reader just acted on open
 across the redirect that follows their own submit.
