@@ -645,6 +645,9 @@ table.list.testservers tbody tr:first-child td { border-top: none; }
    air between the state line and the first phase line is the state
    line's own. */
 table.list tr.specstate:has(+ tr.subrow) td { padding-bottom: var(--sp-2); }
+/* A message under a shut spec — `N not verified` among them — brings its
+   own box, so the state line leaves it less air than a row edge needs. */
+table.list tr.specstate:has(+ tr.specnotice) td { padding-bottom: 6px; }
 /* The row's message panel (spec 143): part of the row above it, not a
    row of its own. It draws no rule and adds no padding the message's
    own box already brings — the separator a reader sees is still the
