@@ -182,6 +182,7 @@ A generated page starts with front matter that has the key `wiki` set to `genera
 ## What a page holds
 
 - What the part does, in one line first: the index shows that line as the page's summary.
+- Its pieces, one line each, naming the file that holds the piece.
 - Who it talks to, and over what.
 - What has to change along with it: one line per ripple, naming what changes and what must follow, by file or by page, and why.
 - The words it uses for things.

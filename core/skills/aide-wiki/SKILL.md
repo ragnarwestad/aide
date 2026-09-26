@@ -42,6 +42,13 @@ points. A part is something with one job and its own vocabulary, not a
 directory for its own sake. Aim for the pages a reader needs to place a
 change: tens of pages for a large system, a handful for a small one.
 
+A part is small enough when a change to it names its files from the page
+alone. A user interface is not one part: each page or surface a user
+sees — a list, a detail page and its tabs, a dialog, the stylesheets — is
+a part of its own, since that is where changes land. The test of a split:
+given a change described in the user's words, the index points at one
+page, and that page names the files the change will touch.
+
 ### Step 3: Write a page for each part
 
 For each part not covered by a hand-written page, pipe the page's body to
@@ -55,6 +62,10 @@ matter with the mark and the commit.
 
 A page opens with a `# ` heading, then one line saying what the part does
 (the index shows that line), then:
+
+- its pieces, one line each, naming the file that holds the piece:
+  "`specs-client/deploy/run.ts` runs the Deploy dialog's steps", never
+  a piece named with no file behind it
 
 - who it talks to and over what, with ordinary markdown links to
   `other-page.md`
