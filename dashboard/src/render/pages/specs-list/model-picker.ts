@@ -236,6 +236,9 @@ export function phaseCaptionCells(
   // is narrower than `SpecsPageOptions` and carries no `lang` of its own
   // — both call sites already resolve one for other purposes.
   lang: Language = "en",
+  /** The spec's own Time and Cost, for the caption line under an open
+   *  row. */
+  totals: { started: string; cost: string } = { started: "", cost: "" },
 ): string {
   const tools = new Set((opts.modelChoices ?? []).map((m) => m.tool ?? "claude"));
   return (
@@ -260,8 +263,8 @@ export function phaseCaptionCells(
     `</span></td>` +
     (includeListColumns
       ? `<td data-col="state">${action ? `<span class="actionslot">${action}</span>` : ""}</td>` +
-        `<td data-col="started"></td>` +
-        `<td class="num" data-col="cost"></td>`
+        `<td data-col="started">${totals.started}</td>` +
+        `<td class="num" data-col="cost">${totals.cost}</td>`
       : "")
   );
 }

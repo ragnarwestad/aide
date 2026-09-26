@@ -357,10 +357,6 @@ table.list td[data-col="cost"] { text-align: center; }
    stays on the column's midline whatever its label says — which is the
    same promise the fixed width makes on the row above. */
 table.list tr.subrow[data-caption="1"] td[data-col="state"] > .actionslot { width: auto; }
-/* The caption line's copies of the spec's state and total are
-   phone-only (narrow.css): on a desktop the head row's own cells are a
-   column away. */
-table.list tr.subrow[data-caption="1"] .actionslot > :is(.headstate, .headtime) { display: none; }
 table.list thead a { color: var(--muted); }
 /* Every column is pinned to its own content, State included (REQ-1/
    REQ-2/REQ-3, spec 379) — `0`, not the `1%` this used to read
@@ -482,6 +478,13 @@ table.list td.foldcell > .fold { display: block; width: 100%; height: 40px; line
    messages': it opens the whole spec, and is the one a reader hunts for. */
 table.list td.foldcell > .fold > svg { vertical-align: middle; width: 20px; height: 20px; }
 table.list tr.spechead:has(.fold[aria-expanded="true"]) + tr.specstate .pipslot { display: none; }
+/* An open row's second line comes off: the caption line under it
+   carries the totals, and each phase line says its own state, whatever
+   it is, so the badge and the pips would say it twice. `visibility: collapse` rather than `display: none`: the head
+   row's chevron cell spans both lines, and a row taken out with
+   `display: none` hands that span to the caption line, which then
+   starts a column to the right. */
+table.list tr.spechead:has(.fold[aria-expanded="true"]) + tr.specstate { visibility: collapse; }
 /* The two rows are one row to a reader: no border between them, and the
    line's own air sits under the second. */
 table.list tr.spechead > td { padding-bottom: 0; border-bottom: 0; }

@@ -486,14 +486,14 @@ describe("spec 161: the row's one action is primary", () => {
   });
 });
 
-// --- spec 496: the caption line carries the row's total for a phone ---------
+// --- the caption line carries the row's totals -------------------------------
 //
-// The head row's Time cell is hidden on a phone; the caption line draws
-// the same figure in its action slot (narrow.css lays it out), beside
-// the button and the state copy. What breaks silently is the copy
-// drifting from the head row's own figure, or losing the `data-elapsed`
-// the page's one-second clock rewrites.
-describe("spec 496: the caption line's total is the head row's own", () => {
+// An open row hides the head row's second line, so the caption line
+// carries the spec's Time and Cost in its own cells, on a desktop and a
+// phone alike. What breaks silently is a copy drifting from the head
+// row's own figure, or losing the `data-elapsed` the page's one-second
+// clock rewrites.
+describe("the caption line carries the row's totals", () => {
   const NOW = "2026-08-16T12:00:00Z";
   const job = (extra: Partial<QueueRowView> = {}): QueueRowView => ({
     id: "a1",
@@ -527,12 +527,13 @@ describe("spec 496: the caption line's total is the head row's own", () => {
   const captionLine = (html: string) =>
     html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
   const slot = (html: string) => captionLine(html).match(/<span class="actionslot">([\s\S]*?)<\/span><\/td>/)?.[1] ?? "";
-  const headTime = (html: string) => captionLine(html).match(/<span class="headtime">([\s\S]*?)<\/span><\/span>(?=<\/td>)/)?.[1];
   // The header's own Time cell, which sits on the second of its two rows
   // (2026-09-22): the title has the first to itself.
-  const headCell = (html: string) =>
+  const headCell = (html: string, col = "started") =>
     html.match(/<tr class="specstate"[^>]*data-folder="496-total">[\s\S]*?<\/tr>/)?.[0]
-      ?.match(/<td[^>]*data-col="started"[^>]*>([\s\S]*?)<\/td>/)?.[1];
+      ?.match(new RegExp(`<td[^>]*data-col="${col}"[^>]*>([\\s\\S]*?)<\\/td>`))?.[1];
+  const captionCell = (html: string, col: string) =>
+    captionLine(html).match(new RegExp(`<td[^>]*data-col="${col}"[^>]*>([\\s\\S]*?)<\\/td>`))?.[1];
 
   const done = job({
     state: "done",
@@ -553,25 +554,23 @@ describe("spec 496: the caption line's total is the head row's own", () => {
     ["running", [running], [target()]],
   ];
 
-  test("the slot holds the button, the state copy and the total, in that order (AC-1)", () => {
-    const html = render([], [target()]);
-    const inner = slot(html);
-    const at = (needle: string) => inner.indexOf(needle);
-    expect(at("<button")).toBeGreaterThan(-1);
-    expect(at('class="headstate"')).toBeGreaterThan(at("<button"));
-    expect(at('class="headtime"')).toBeGreaterThan(at('class="headstate"'));
+  test("the slot holds the button and no copy of the state", () => {
+    const inner = slot(render([], [target()]));
+    expect(inner).toContain("<button");
+    expect(inner).not.toContain('class="badge');
   });
 
-  test.each(fixtures)("a %s row's total is byte-equal to the head row's cell (AC-2)", (_name, list, targets) => {
+  test.each(fixtures)("a %s row's totals are byte-equal to the head row's cells (AC-2)", (_name, list, targets) => {
     const html = render(list, targets);
     expect(headCell(html)).toBeDefined();
-    expect(headTime(html)).toBe(headCell(html));
+    expect(captionCell(html, "started")).toBe(headCell(html));
+    expect(captionCell(html, "cost")).toBe(headCell(html, "cost"));
   });
 
   test("a running row's copy carries the start the page's clock counts from (AC-2)", () => {
     const html = render([running], [target()]);
-    expect(headTime(html)).toMatch(/data-elapsed="2026-08-16T11:00:00\.000Z"/);
-    expect(headTime(html)).toBe(headCell(html));
+    expect(captionCell(html, "started")).toMatch(/data-elapsed="2026-08-16T11:00:00\.000Z"/);
+    expect(captionCell(html, "started")).toBe(headCell(html));
   });
 
   test("an archived row's total is the head row's own too (AC-2)", () => {
@@ -584,17 +583,28 @@ describe("spec 496: the caption line's total is the head row's own", () => {
       phaseOutcomes: { analyze: { timeSpentMs: 5 * 60 * 1000 }, implement: { timeSpentMs: 7 * 60 * 1000 } },
     };
     const html = render([], [], { archivedSpecs: [archived], filter: { state: "archived", open: "aide/496-total" } });
-    expect(headTime(html)).toBeDefined();
-    expect(headTime(html)).toContain("12m");
-    expect(headTime(html)).toBe(headCell(html));
+    expect(captionCell(html, "started")).toContain("12m");
+    expect(captionCell(html, "started")).toBe(headCell(html));
   });
 
-  test("with no model choices the state copy and the total are inside the slot, not loose in the row (AC-1)", () => {
-    const html = render([], [target()], { modelChoices: [] });
-    const line = captionLine(html);
-    expect(line).toContain('class="headstate"');
-    expect(slot(html)).toContain('class="headstate"');
-    expect(slot(html)).toContain('class="headtime"');
-    expect(line.indexOf('class="headstate"')).toBeLessThan(line.lastIndexOf('<td data-col="started">'));
+  test("with no model choices the totals are on the caption line", () => {
+    const html = render([done], [target({ done: ["analyze", "implement"] })], { modelChoices: [] });
+    expect(headCell(html)).toBeDefined();
+    expect(captionCell(html, "started")).toBe(headCell(html));
+  });
+
+  test("a row with no action and no model choices still draws the caption line, for its totals", () => {
+    const archived = {
+      project: "aide",
+      folder: "496-total",
+      archivedAt: "2026-08-16T09:20:00Z",
+      done: ["analyze", "implement", "archive"],
+      models: {},
+      phaseOutcomes: { analyze: { timeSpentMs: 5 * 60 * 1000 } },
+    };
+    const html = render([], [], { modelChoices: [], archivedSpecs: [archived], filter: { state: "archived", open: "aide/496-total" } });
+    expect(captionLine(html)).not.toBe("");
+    expect(headCell(html)).toContain("5m");
+    expect(captionCell(html, "started")).toBe(headCell(html));
   });
 });
