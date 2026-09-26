@@ -27,5 +27,7 @@ p.rowmsg { margin: 0 0 var(--sp-3); }
    493). The list of acceptance criteria unfolded under the held-back one
    is the second child of the stack. */
 .msgstack { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; }
-/* The › that opens the criteria sits inside the message it belongs to. */
-.rowmsg .fold { margin-right: 0; flex: none; }
+/* The › that opens the criteria sits inside the message it belongs to,
+   reaching into its padding so a message with one stands as tall as one
+   without: the › is taller than a line of the message's text. */
+.rowmsg .fold { margin: -4px 0; flex: none; }

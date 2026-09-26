@@ -48,3 +48,15 @@ test("the state line leaves 6px under its cells when a message follows", async (
   expect(pads.length).toBeGreaterThan(0);
   for (const p of pads) expect(p).toBe("6px");
 });
+
+test("a message with the › that opens its criteria stands as tall as one without", async () => {
+  await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
+  const heights = await page.evaluate(() => {
+    const msg = document.querySelector("tr.specnotice .rowmsg:has(a.fold)") as HTMLElement;
+    const bare = msg.cloneNode(true) as HTMLElement;
+    bare.querySelector("a.fold")!.remove();
+    msg.after(bare);
+    return [msg.getBoundingClientRect().height, bare.getBoundingClientRect().height];
+  });
+  expect(Math.abs(heights[0]! - heights[1]!)).toBeLessThanOrEqual(1);
+});
