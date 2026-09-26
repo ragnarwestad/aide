@@ -363,8 +363,11 @@ branch of it is left locally or on origin. The New and Edit forms say so.
 
 `/schedule` lists every allowed project's entries, flattened into one list (`?q=`, `?sort=` and `?dir=` filter and
 sort it). It shows and links, and changes nothing: whether an entry is enabled is text there, and the Enabled switch,
-Run now and Delete are on each row of the project's own Schedule tab, with the form that makes a new entry under them.
-`/schedule/<project>/<name>` is one entry's own page (Overview and History tabs), where it is edited. The pages post to
+Run now, Edit and Delete are on each row of the project's own Schedule tab, with New above the list.
+`/schedule/<project>/<name>` is one entry's own page (Overview and History tabs). New and Edit open one page,
+`/schedule/new?project=<project>` and `/schedule/<project>/<name>/edit`; a save goes back to the page it was opened
+from (a path on the board, sent with the form as `back`; a rename moves a `back` on the entry's old page to its new
+one), and a refused save stays on the page with the reason and what was typed. The pages post to
 `POST /api/queue/schedule` (create), `POST /api/queue/schedule/<project>/<name>` (edit), and
 `POST .../enabled`, `.../run` and `.../delete` (toggle, fire now, remove); `GET /api/queue/schedule/cron-next`
 previews a cron expression's next fire time for the form.
@@ -382,8 +385,8 @@ follows the page's Dark/Light/Auto choice through `specs-client/report-frame.ts`
 `/schedule-output/<project>/<key>/runs/<jobId>/index.html`.
 
 `model:` is which of the queue's own `modelChoices` every fire of that entry runs on — one name for the whole entry,
-since a scheduled job is a single `schedule` step and has no phases to tell apart. It is picked on the New-job and Edit
-forms the same way a spec's model is picked on the Specs page, with the AI beside it deriving from it; a name the queue
+since a scheduled job is a single `schedule` step and has no phases to tell apart. It is picked on the New and Edit
+page the same way a spec's model is picked on the Specs page, with the AI beside it deriving from it; a name the queue
 config does not grant is refused at the form rather than at 03:00. A name that differs from a listed one only in
 upper and lower case is matched to the listed spelling and stored as that (in a job request, a per-step or pending
 pick, a tail-model edit, the Settings save and this form alike); a name matching several listed spellings that differ

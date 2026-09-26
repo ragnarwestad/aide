@@ -47,7 +47,9 @@ import { postForm } from "./press.ts";
 import { bindPushPanel } from "./push.ts";
 import { startReloadWhileIdle } from "./reload-while-idle";
 import { relabelRunButton } from "./row-swap.ts";
-import { bindScheduleDeleteButton, postScheduleEnabled, postScheduleRun, scheduleCronPreview } from "./schedule-actions.ts";
+import {
+  bindScheduleDeleteButton, postScheduleEnabled, postScheduleRun, scheduleCronPreview, submitScheduleForm,
+} from "./schedule-actions.ts";
 import { submitProgress } from "./progress-dialog";
 import { NEW_SPEC_FORM } from "./state.ts";
 import { postTailModel, postTailStep } from "./tail-actions.ts";
@@ -246,6 +248,7 @@ for (const el of document.querySelectorAll("form.scheduleform")) {
   const cronInput = form.querySelector('input[name="cron"]') as HTMLInputElement | null;
   const target = form.querySelector("[data-cron-next]") as HTMLElement | null;
   if (cronInput && target) cronInput.addEventListener("input", () => scheduleCronPreview(cronInput, target));
+  form.addEventListener("submit", ((event: Event) => submitScheduleForm(form, event)) as EventListener);
   // The AI and model pair, exactly as the New-spec form binds its own:
   // this page has no `#jobrows`, so the delegated listener further up
   // cannot hear these two. Nothing is remembered across a redraw here —

@@ -13,14 +13,14 @@ describe("renderScheduleOverview", () => {
     expect(html).toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
   });
 
-  test("includes an inline Edit form pre-filled with the entry's own values, posting to this entry's own path", () => {
+  test("offers Edit, to the entry's own edit page, and no form of its own", () => {
     const html = renderScheduleOverview(
       "aide",
       { name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true },
       {},
     );
-    expect(html).toContain('action="/api/queue/schedule/aide/nightly"');
-    expect(html).toContain('value="nightly"');
+    expect(html).toContain('<a class="btn" href="/schedule/aide/nightly/edit">');
+    expect(html).not.toContain("<form");
   });
 
   test("states the entry's own model, and states none where the entry names none", () => {

@@ -143,28 +143,36 @@ describe("POST /api/queue/schedule — create, project read from the body", () =
     expect(t.stored()).toEqual([]);
   });
 
-  test("a no-script POST redirects to the project's own Schedule tab on success", async () => {
-    const t = start();
-    const res = await fetch(`${t.base}/api/queue/schedule`, {
-      method: "POST",
-      redirect: "manual",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ project: "aide", name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md" }).toString(),
-    });
-    expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe("/projects/aide?tab=schedule");
+  const formPost = (fields: Record<string, string>) => ({
+    method: "POST",
+    redirect: "manual" as const,
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams(fields).toString(),
   });
 
-  test("a no-script POST that is refused redirects to the project's own Schedule tab, with the reason", async () => {
+  test("a save goes back to the page the form was opened from, or to the project's Schedule tab", async () => {
     const t = start();
-    const res = await fetch(`${t.base}/api/queue/schedule`, {
-      method: "POST",
-      redirect: "manual",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ project: "aide", name: "nightly", cron: "not-a-cron", prompt: "docs-nightly.md" }).toString(),
-    });
+    const fields = { project: "aide", name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md" };
+    const res = await fetch(`${t.base}/api/queue/schedule`, formPost({ ...fields, back: "/schedule?q=night" }));
     expect(res.status).toBe(303);
-    expect(res.headers.get("location")!.startsWith("/projects/aide?tab=schedule&error=")).toBe(true);
+    expect(res.headers.get("location")).toBe("/schedule?q=night");
+    const bare = await fetch(`${t.base}/api/queue/schedule`, formPost({ ...fields, name: "other" }));
+    expect(bare.headers.get("location")).toBe("/projects/aide?tab=schedule");
+    const scripted = await fetch(`${t.base}/api/queue/schedule`, jsonPost({ ...fields, name: "third", back: "/schedule" }));
+    expect(await scripted.json()).toEqual({ ok: true, location: "/schedule" });
+  });
+
+  test("a refused save with no script stays on the page, with the reason and what was typed", async () => {
+    const t = start();
+    const res = await fetch(`${t.base}/api/queue/schedule`, formPost({
+      project: "aide", name: "nightly", cron: "not-a-cron", prompt: "docs-nightly.md", back: "/schedule",
+    }));
+    expect(res.status).toBe(400);
+    const html = await res.text();
+    expect(html).toMatch(/data-scheduleform-error[^>]*>[^<]*not-a-cron/);
+    expect(html).toContain('name="cron" required class="cron-input" value="not-a-cron"');
+    expect(html).toContain('<input type="hidden" name="back" value="/schedule">');
+    expect(t.stored()).toEqual([]);
   });
 });
 
@@ -176,6 +184,15 @@ describe("POST /api/queue/schedule/<project>/<name> — edit", () => {
     expect(t.stored().map((e) => [e.name, e.cron])).toEqual([["nightly", "0 5 * * *"], ["weekly", "0 4 * * 0"]]);
     expect(readFileSync(t.manifest, "utf-8")).toBe("name: aide\n");
     expect(t.wroteToGit()).toBe(false);
+  });
+
+  test("a rename sends a save opened from the entry's own page to its new page, and a back off the board is not followed", async () => {
+    const t = start([nightly()]);
+    const renamed = await fetch(`${t.base}/api/queue/schedule/aide/nightly`,
+      jsonPost(nightly({ name: "renamed", back: "/schedule/aide/nightly?tab=history" })));
+    expect(await renamed.json()).toEqual({ ok: true, location: "/schedule/aide/renamed?tab=history" });
+    const away = await fetch(`${t.base}/api/queue/schedule/aide/renamed`, jsonPost(nightly({ name: "renamed", back: "//evil.example/" })));
+    expect(await away.json()).toEqual({ ok: true, location: "/projects/aide?tab=schedule" });
   });
 
   test("renaming an entry is accepted", async () => {

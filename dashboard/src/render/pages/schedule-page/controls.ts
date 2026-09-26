@@ -1,13 +1,14 @@
 // A schedule entry's controls, as a project's own Schedule tab draws
-// them on the entry's row: the Enabled switch, Run now and Delete. The
+// them on the entry's row: the Enabled switch, Run now, Edit and Delete. The
 // Schedule list only shows and links; changes are made here.
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import { btn, dialogAnswers } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
-import { t } from "../../../i18n";
+import { t, type Language } from "../../../i18n";
+import { scheduleEditPath } from "./edit-page.ts";
 
-/** The three cells, in order: Enabled, Run now, Delete. */
-export function scheduleControlCells(project: string, entry: ScheduleEntry): string {
+/** The four cells, in order: Enabled, Run now, Edit, Delete. */
+export function scheduleControlCells(project: string, entry: ScheduleEntry, lang: Language = "en"): string {
   const base = `/api/queue/schedule/${encodeURIComponent(project)}/${encodeURIComponent(entry.name)}`;
   return (
     // A standalone checkbox with no surrounding form, the same shape
@@ -21,6 +22,8 @@ export function scheduleControlCells(project: string, entry: ScheduleEntry): str
     `<td><form method="post" action="${esc(`${base}/run`)}" class="actionform schedulerun">` +
     btn({ label: "Run now", pending: "running…" }) +
     `</form></td>` +
+    // A link, not a form: Edit only opens the entry's own edit page.
+    `<td><a class="btn" href="${esc(scheduleEditPath(project, entry.name))}">${t(lang, "schedule.edit")}</a></td>` +
     deleteCell(project, entry.name, `${base}/delete`)
   );
 }

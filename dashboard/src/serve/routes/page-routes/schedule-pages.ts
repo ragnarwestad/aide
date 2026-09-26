@@ -1,4 +1,4 @@
-// the Schedule tab: its listing, a new entry, one entry's own page, and a run's recorded output. One of the three route families `handlePageRoutes`
+// the Schedule tab: its listing, one entry's own page, the page that makes or changes an entry, and a run's recorded output. One of the three route families `handlePageRoutes`
 // asks in turn (split 2026-09-04: the file had reached 594 lines,
 // a single function with a chain of route checks in it).
 //
@@ -7,13 +7,14 @@
 // three be asked one after another exactly as the chain read before.
 import { DEFAULT_SCHEDULE_OUTPUT_ROOT, readScheduleRunReport, scheduleTrackingKey } from "../../../queue/schedule.ts";
 import {
-  SCHEDULE_ROUTE, buildReportDocument, projectPagePath, renderReportPanel,
+  NEW_SCHEDULE_DEFAULTS, SCHEDULE_ROUTE, buildReportDocument, projectPagePath, renderReportPanel,
   renderScheduleDetailPage, renderSchedulePage, resolveBackHref, schedulePagePath,
 } from "../../../render";
 import { languageChoice, specsClientScript } from "../../serve-helpers";
 import { serveStatic } from "../../serve-helpers";
 import type { RoutesContext } from "..";
 import { scheduleLastRun } from "./schedule-last-run.ts";
+import { projectScheduleTab, scheduleEditPageResponse } from "./schedule-edit-page.ts";
 
 export async function schedulePages(
   ctx: RoutesContext,
@@ -40,8 +41,8 @@ export async function schedulePages(
         project,
         entry,
         ...scheduleLastRun(ctx, project, entry.name),
-        // The project's own Schedule tab — where the New-job form and
-        // this entry's own controls live.
+        // The project's own Schedule tab — where New and this entry's
+        // own controls live.
         projectScheduleHref: `${projectPagePath(project)}?tab=schedule`,
       })),
     );
@@ -62,6 +63,36 @@ export async function schedulePages(
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
     return new Response(html, { headers });
+  }
+
+  // New and Edit: one page. The project rides as a query on New, since
+  // a second path segment would read as an entry's name.
+  if (path === "/schedule/new") {
+    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    // A project off the allowlist still gets the page, as its Schedule
+    // tab still gets New: the create route refuses it, with the reason.
+    const project = url.searchParams.get("project") ?? "";
+    if (!project) return new Response("not found", { status: 404 });
+    return scheduleEditPageResponse(ctx, req, url, {
+      project,
+      values: NEW_SCHEDULE_DEFAULTS,
+      back: resolveBackHref(req.headers.get("referer"), url.origin, projectScheduleTab(project), url.pathname),
+    });
+  }
+  const scheduleEditPage = path.match(/^\/schedule\/([^/]+)\/([^/]+)\/edit$/);
+  if (scheduleEditPage) {
+    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    const project = decodeURIComponent(scheduleEditPage[1]!);
+    const name = decodeURIComponent(scheduleEditPage[2]!);
+    if (!ctx.allowed.has(project)) return new Response("not found", { status: 404 });
+    const entry = ctx.scheduleStore.list(project).find((e) => e.name === name);
+    if (!entry) return new Response("not found", { status: 404 });
+    return scheduleEditPageResponse(ctx, req, url, {
+      project,
+      editing: name,
+      values: entry,
+      back: resolveBackHref(req.headers.get("referer"), url.origin, projectScheduleTab(project), url.pathname),
+    });
   }
 
   const scheduleDetailPage = path.match(/^\/schedule\/([^/]+)\/([^/]+)$/);
@@ -107,12 +138,10 @@ export async function schedulePages(
       history,
       reportPanel: renderReportPanel({ lang: langResult.lang, run }),
       script: await specsClientScript(),
-      error: url.searchParams.get("error") ?? undefined,
       backHref: resolveBackHref(req.headers.get("referer"), url.origin, SCHEDULE_ROUTE, url.pathname),
       modelChoices: Object.entries(ctx.queue.defaults.modelChoices ?? {}).map(([name, choice]) => ({
         name, ...(choice.tool ? { tool: choice.tool } : {}),
       })),
-      defaultModels: ctx.queue.defaults.model,
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
     });

@@ -31,6 +31,10 @@ export interface ScheduleFormOptions {
    *  off the POST body (`schedule-admin-routes.ts`), so the value still
    *  has to be sent. Never set together with `projects`. */
   fixedProject?: string;
+  /** Where a successful save goes (`page-routes/schedule-edit-page.ts`):
+   *  the page the reader came from, carried in the form so the POST can
+   *  send them back there. */
+  back?: string;
   /** Every model the config lists, and which CLI each starts — the
    *  same view the spec list's phase lines and the New-spec form are
    *  given, built by the same helper in `serve.ts` so no two pages come
@@ -125,6 +129,7 @@ export function renderScheduleForm(opts: ScheduleFormOptions, lang: Language = "
     `<form method="post" action="${esc(opts.action)}" class="scheduleform" id="${SCHEDULE_FORM_ID}" ` +
     `data-cron-preview-url="/api/queue/schedule/cron-next">` +
     (opts.fixedProject ? `<input type="hidden" name="project" value="${esc(opts.fixedProject)}">` : "") +
+    (opts.back ? `<input type="hidden" name="back" value="${esc(opts.back)}">` : "") +
     `<p class="rowmsg failed" data-scheduleform-error aria-live="polite">${opts.error ? esc(opts.error) : ""}</p>` +
     rowMessage("info", t(lang, "schedule.reportOnly"), { tag: "p" }) +
     `<div class="frow">` +

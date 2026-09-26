@@ -4,7 +4,6 @@ import type { SpecView, ProjectView } from "../../../project/discover";
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import type { Language } from "../../../i18n";
 import type { JobDetailView, JobStepResultView } from "../job-page/types.ts";
-import type { ScheduleFormOptions } from "../schedule-page/form.ts";
 
 export type { SpecView, ProjectView };
 
@@ -39,12 +38,6 @@ export interface ProjectPageOptions {
   /** Each entry's most recent run, by entry name: its state, and its
    *  report on the entry's own page when it wrote one. */
   scheduleLastRuns?: Readonly<Record<string, { lastState?: string; outputHref?: string }>>;
-  /** The Schedule tab's own New-job form (spec 468) — the same two
-   *  views the aggregate Schedule page's own routes already build, from
-   *  the same helper in `serve.ts` so no two pages come to offer
-   *  different lists. */
-  modelChoices?: ScheduleFormOptions["modelChoices"];
-  defaultModels?: ScheduleFormOptions["defaultModels"];
   worktreeLinkCandidates: string[];
   /** From the request's own `?edit=1` (spec 255) — never stored, so a
    *  page reload with no query string always lands back on the

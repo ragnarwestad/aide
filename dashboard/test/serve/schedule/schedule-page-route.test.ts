@@ -134,16 +134,14 @@ describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
   // Editing an entry has to offer the same choice creating it did, and
   // show what the entry is actually on — otherwise a Save silently
   // moves a job onto whatever the form happened to draw.
-  test("the Edit form shows the entry's own model, pre-selected", async () => {
+  test("the edit page shows the entry's own model, pre-selected", async () => {
     const { base } = start({ extra: { queueDefaults: DEFAULTS } });
     writeSchedule("aide", [{ ...NIGHTLY, model: "codex-fast" }]);
-    const res = await fetch(`${base}/schedule/aide/nightly-report`, );
+    const res = await fetch(`${base}/schedule/aide/nightly-report/edit`);
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('<select name="model"');
     expect(html).toContain('value="codex-fast" data-tool="codex" selected>codex-fast');
-    // And stated above the form, beside the cron and the prompt file.
-    expect(html).toContain("<dt>Model</dt>");
   });
 
   test("an unknown entry is 404", async () => {
@@ -352,5 +350,36 @@ describe("where the pages read the jobs from", () => {
     } finally {
       rmSync(scratch, { recursive: true, force: true });
     }
+  });
+});
+
+describe("the page that makes or changes an entry", () => {
+  test("New starts on the defaults, posts a create for its project, and goes back where it was opened from", async () => {
+    const { base } = start();
+    const res = await fetch(`${base}/schedule/new?project=aide`, { headers: { referer: `${base}/schedule?q=x` } });
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain('action="/api/queue/schedule"');
+    expect(html).toContain('<input type="hidden" name="project" value="aide">');
+    expect(html).toContain('value="0 7 * * *"');
+    expect(html).toContain('<a class="backlink" href="/schedule?q=x">');
+    expect(html).toContain('<input type="hidden" name="back" value="/schedule?q=x">');
+  });
+
+  test("Edit starts on the entry as saved and posts to the entry; with no page to go back to, it is the project's tab", async () => {
+    const { base } = start();
+    writeSchedule("aide", [NIGHTLY]);
+    const res = await fetch(`${base}/schedule/aide/nightly-report/edit`);
+    const html = await res.text();
+    expect(html).toContain('action="/api/queue/schedule/aide/nightly-report"');
+    expect(html).toContain('value="nightly-report"');
+    expect(html).toContain('<input type="hidden" name="back" value="/projects/aide?tab=schedule">');
+  });
+
+  test("New with no project, or Edit of an entry the board does not have, is 404", async () => {
+    const { base } = start();
+    writeSchedule("aide", [NIGHTLY]);
+    expect((await fetch(`${base}/schedule/new`)).status).toBe(404);
+    expect((await fetch(`${base}/schedule/aide/ghost/edit`)).status).toBe(404);
   });
 });

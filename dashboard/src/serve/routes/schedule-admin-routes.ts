@@ -2,12 +2,14 @@
 // toggle, Run-now, and the live cron-next preview. Modeled on
 // `spec-edit.ts`'s reset route and `queue-admin.ts`'s settings route —
 // refuse before any write, then either a JSON answer (script) or a
-// no-JS redirect back to the list.
+// no-JS redirect. A create or edit goes back to the page the reader
+// came from, and a refused one without script draws its page again,
+// holding what was typed.
 import { createScheduleEntry, deleteScheduleEntry, setScheduleEnabled, updateScheduleEntry } from "../../project/project-admin";
-import { nextFireTime, scheduleTrackingKey } from "../../queue/schedule.ts";
-import { projectPagePath, SCHEDULE_ROUTE } from "../../render";
+import { nextFireTime, scheduleTrackingKey, type ScheduleNotify } from "../../queue/schedule.ts";
 import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../serve-helpers";
 import type { RoutesContext } from "./";
+import { projectScheduleTab, renamedBack, scheduleBackPath, scheduleEditPageResponse } from "./page-routes/schedule-edit-page.ts";
 
 const CRON_NEXT_ROUTE = "/api/queue/schedule/cron-next";
 
@@ -17,6 +19,18 @@ const str = (v: unknown): string => (typeof v === "string" ? v : "");
  *  validated against, so a name the queue would refuse at fire time is
  *  refused here instead, while a person is looking at the form. */
 const knownModels = (ctx: RoutesContext): string[] => Object.keys(ctx.queue.defaults.modelChoices ?? {});
+
+const NOTIFY_CHOICES: readonly string[] = ["never", "failure", "always"];
+
+/** The fields a create or edit posted, as the form draws them again. */
+function postedValues(body: Record<string, unknown>) {
+  const notify = str(body.notify);
+  return {
+    name: str(body.name), cron: str(body.cron), prompt: str(body.prompt),
+    ...(str(body.model) ? { model: str(body.model) } : {}),
+    ...(NOTIFY_CHOICES.includes(notify) ? { notify: notify as ScheduleNotify } : {}),
+  };
+}
 
 async function readJsonBody(req: Request): Promise<{ body: Record<string, unknown> } | { refusal: Response }> {
   const sent = await readBounded(req);
@@ -63,7 +77,7 @@ export async function handleScheduleAdminRoutes(
     const enabled = body.enabled === "1" || body.enabled === true;
     const result = setScheduleEnabled(ctx.scheduleStore, project, name, enabled);
     // Back to the project's own Schedule tab, where the switch is.
-    const back = `${projectPagePath(project)}?tab=schedule`;
+    const back = projectScheduleTab(project);
     if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, back);
     return wantsJson ? json({ ok: true, enabled }) : specsRedirect(body, undefined, back);
   }
@@ -84,7 +98,7 @@ export async function handleScheduleAdminRoutes(
       project, specFolder: scheduleTrackingKey(name), steps: ["schedule"],
       ...(entry?.model ? { model: entry.model } : {}),
     });
-    const back = `${projectPagePath(project)}?tab=schedule`;
+    const back = projectScheduleTab(project);
     if (!result.ok) {
       const error = `Run now was refused for ${project}:${name}: ${result.error}`;
       logRefusal("run now", `${project}/${name}`, result.error);
@@ -107,7 +121,7 @@ export async function handleScheduleAdminRoutes(
     // in a sentence, and the press is the answer. No confirm page to
     // fall back to any more either (spec 528). The answer goes back to
     // the project's own Schedule tab, where Delete is.
-    const back = `${projectPagePath(project)}?tab=schedule`;
+    const back = projectScheduleTab(project);
     const result = deleteScheduleEntry(ctx.scheduleStore, project, name);
     if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, back);
     return wantsJson ? json({ ok: true }) : specsRedirect(body, undefined, back);
@@ -125,9 +139,15 @@ export async function handleScheduleAdminRoutes(
     const result = updateScheduleEntry(ctx.scheduleStore, project, ctx.machineryProjectDir(project), name, {
       name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model), notify: str(body.notify),
     }, knownModels(ctx));
-    const back = SCHEDULE_ROUTE;
-    if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, back);
-    return wantsJson ? json({ ok: true }) : specsRedirect(body, undefined, back);
+    const back = scheduleBackPath(body.back, projectScheduleTab(project));
+    if (!result.ok) {
+      if (wantsJson) return json({ error: result.error }, 400);
+      return scheduleEditPageResponse(ctx, req, url, {
+        project, editing: name, values: postedValues(body), back, error: result.error, status: 400,
+      });
+    }
+    const location = renamedBack(back, project, name, str(body.name) || name);
+    return wantsJson ? json({ ok: true, location }) : specsRedirect({}, undefined, location);
   }
 
   // Project-agnostic, like `/api/queue/create` (spec 278): no
@@ -141,13 +161,9 @@ export async function handleScheduleAdminRoutes(
     if ("refusal" in sent) return sent.refusal;
     const body = sent.body;
     const project = str(body.project);
-    // The form that posts here now lives on the project's own Schedule
-    // tab, not the aggregate page (spec 468) — a no-JS redirect, on
-    // every refusal including this allowlist check, has to land back
-    // where the form is (3-solution.md, Risk 2: a project outside the
-    // allowlist still gets the form, and its refusal surfaces through
-    // the same error line a bad cron or a duplicate name already uses).
-    const back = `${projectPagePath(project)}?tab=schedule`;
+    // A project outside the allowlist has no New page to draw again, so
+    // that refusal goes to the project's own Schedule tab instead.
+    const back = projectScheduleTab(project);
     if (!ctx.allowed.has(project)) {
       const message = `"${project}" is not a project this dashboard knows`;
       return wantsJson ? json({ error: message }, 400) : specsRedirect(body, { error: message }, back);
@@ -155,8 +171,14 @@ export async function handleScheduleAdminRoutes(
     const result = createScheduleEntry(ctx.scheduleStore, project, ctx.machineryProjectDir(project), {
       name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model), notify: str(body.notify),
     }, knownModels(ctx));
-    if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, back);
-    return wantsJson ? json({ ok: true }) : specsRedirect(body, undefined, back);
+    const location = scheduleBackPath(body.back, back);
+    if (!result.ok) {
+      if (wantsJson) return json({ error: result.error }, 400);
+      return scheduleEditPageResponse(ctx, req, url, {
+        project, values: postedValues(body), back: location, error: result.error, status: 400,
+      });
+    }
+    return wantsJson ? json({ ok: true, location }) : specsRedirect({}, undefined, location);
   }
 
   return null;

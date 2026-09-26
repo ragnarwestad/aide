@@ -265,13 +265,6 @@ export async function projectPages(
         scheduleLastRuns: Object.fromEntries(
           ctx.scheduleStore.list(name).map((entry) => [entry.name, scheduleLastRun(ctx, name, entry.name)]),
         ),
-        // The Schedule tab's own New-job form (spec 468) — the same
-        // construction `schedule-pages.ts` already builds for the
-        // aggregate page's own routes.
-        modelChoices: Object.entries(ctx.queue.defaults.modelChoices ?? {}).map(([modelName, choice]) => ({
-          name: modelName, ...(choice.tool ? { tool: choice.tool } : {}),
-        })),
-        defaultModels: ctx.queue.defaults.model,
         worktreeLinkCandidates: gitignoreCandidates(dir),
         editing: url.searchParams.get("edit") === "1",
         error: url.searchParams.get("error") ?? undefined,

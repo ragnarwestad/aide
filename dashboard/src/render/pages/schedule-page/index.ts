@@ -1,8 +1,8 @@
 // /schedule (spec 272, extended spec 276, reworked spec 278): the list
 // of every allowed project's entries at once, and an entry's own detail
 // page (Overview/History tabs) — composed from schedule-page/*.
-// Monitoring and editing live here; creating a job moved to the
-// project's own Schedule tab (spec 468).
+// Monitoring lives here; making and changing an entry is a page of its
+// own (`edit-page.ts`), reached from the project's own Schedule tab.
 
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import type { Language } from "../../../i18n";
@@ -16,6 +16,8 @@ import { pickTab, tabBar, tabbedBody } from "../job-page";
 
 export { renderReportPanel } from "./report.ts";
 export { buildReportDocument } from "./report-document.ts";
+export { NEW_SCHEDULE_DEFAULTS, renderScheduleEditPage, scheduleEditPath, scheduleNewPath } from "./edit-page.ts";
+export type { ScheduleEditPageOptions } from "./edit-page.ts";
 export { SCHEDULE_TABS, schedulePagePath, scheduleTabPath };
 export type { SchedulePageRow, ScheduleFilter, ScheduleHistoryRow, ScheduleTab };
 
@@ -57,16 +59,14 @@ export function renderSchedulePage(nav: NavEntry[], generatedAt: string, opts: S
 export interface ScheduleDetailPageOptions {
   project: string;
   entry: ScheduleEntry;
-  /** The Edit form's own model picker — same two views the New-job form
-   *  below is given, and the same ones `new-spec-page.ts` takes. */
+  /** The models the queue offers, for the flag on an entry whose own
+   *  model is not one of them. */
   modelChoices?: ScheduleFormOptions["modelChoices"];
-  defaultModels?: ScheduleFormOptions["defaultModels"];
   tab?: string;
   history: readonly ScheduleHistoryRow[];
   /** The report panel's markup (`renderReportPanel`), shown on top of Overview. */
   reportPanel?: string;
   script?: string;
-  error?: string;
   backHref?: string;
   /** Spec 408. Absent means English — the same default `pageShell`'s
    *  own `opts.lang` falls back to. */
@@ -88,9 +88,7 @@ export function renderScheduleDetailPage(
     tab === "history"
       ? renderScheduleHistory(opts.history)
       : renderScheduleOverview(opts.project, opts.entry, {
-          error: opts.error,
           modelChoices: opts.modelChoices,
-          defaultModels: opts.defaultModels,
           lang: opts.lang,
           reportPanel: opts.reportPanel,
         });

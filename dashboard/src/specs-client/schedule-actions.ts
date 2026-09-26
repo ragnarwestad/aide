@@ -5,7 +5,7 @@
 // back into the one cell or line it changed, and nothing touches
 // `#jobrows`.
 
-import { refusalText, type ActionResult } from "./press.ts";
+import { postForm, refusalText, type ActionResult } from "./press.ts";
 
 /** The Enabled checkbox on a list row: no form, no confirm — the tick
  *  itself is the press (acceptance criterion 14), the same shape
@@ -62,6 +62,25 @@ export async function postScheduleRun(form: HTMLFormElement, fetchImpl: typeof f
   } finally {
     if (button) button.disabled = false;
   }
+}
+
+/** Save or Create on the page that makes or changes an entry. The
+ *  server says where to go next — the page the reader came from — and a
+ *  refusal is written into the form's own error line, with everything
+ *  typed left where it is. */
+export async function submitScheduleForm(form: HTMLFormElement, event: Event): Promise<void> {
+  if (event.defaultPrevented) return;
+  event.preventDefault();
+  const slot = form.querySelector("[data-scheduleform-error]");
+  await postForm(
+    form,
+    (body) => {
+      location.href = body?.location ?? location.href;
+    },
+    (why) => {
+      if (slot) slot.textContent = why;
+    },
+  );
 }
 
 /** The Delete button on a list row: no href and no confirmation page
