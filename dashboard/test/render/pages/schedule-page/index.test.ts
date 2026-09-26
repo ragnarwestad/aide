@@ -1,6 +1,11 @@
-import { describe, expect, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import { renderSchedulePage } from "../../../../src/render";
+import { clearCheckoutFaults } from "../../../../src/render/ui/checkout-faults.ts";
 import { renderScheduleList } from "../../../../src/render/pages/schedule-page/list.ts";
+
+// The page's header shows the board's checkout faults, which live in the
+// process: a board another test file started in this process can leave one.
+beforeEach(() => clearCheckoutFaults());
 
 const NAV = [{ label: "Projects", path: "/projects" }];
 

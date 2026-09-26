@@ -3,10 +3,15 @@
 // generated static site around it (nav, tabs), never its own heading or
 // Back link.
 
-import { describe, expect, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import { renderProjectPage } from "../../../../src/render";
+import { clearCheckoutFaults } from "../../../../src/render/ui/checkout-faults.ts";
 import type { ProjectReadiness } from "../../../../src/project/project-admin";
 import type { ProjectView } from "../../../../src/render";
+
+// The page's header shows the board's checkout faults, which live in the
+// process: a board another test file started in this process can leave one.
+beforeEach(() => clearCheckoutFaults());
 
 const NAV = [{ label: "Projects", path: "/projects" }];
 
