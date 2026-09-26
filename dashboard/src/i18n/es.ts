@@ -205,7 +205,7 @@ export const es: Record<TranslationKey, string> = {
   "schedule.notifyNever": "Nunca",
   "schedule.notifyFailure": "Solo cuando la ejecución no tuvo éxito",
   "schedule.notifyAlways": "Cada ejecución",
-  "schedule.reportOnly": "Un trabajo programado produce un informe. No puede cambiar el repositorio — un cambio que deba llegar a él pasa por una spec.",
+  "schedule.reportOnly": "Un trabajo programado solo escribe un informe, no puede cambiar el código del proyecto.",
   "schedule.enabled": "Activado",
   "schedule.yes": "sí",
   "schedule.no": "no",

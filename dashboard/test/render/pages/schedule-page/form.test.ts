@@ -3,6 +3,8 @@
 // stable hook to drive (acceptance criterion 16).
 import { describe, expect, test } from "bun:test";
 import { CRON_NEXT_HOOK, renderScheduleForm } from "../../../../src/render/pages/schedule-page/form.ts";
+import { t } from "../../../../src/i18n";
+import { esc } from "../../../../src/render/ui/html.ts";
 
 describe("renderScheduleForm", () => {
   test("a blank form (create) has empty fields and a Create button", () => {
@@ -34,12 +36,9 @@ describe("renderScheduleForm", () => {
     expect(html).toContain("Next run:");
   });
 
-  test("a new entry's form says a scheduled job produces a report and cannot change the repository (AC-4)", () => {
-    const en = renderScheduleForm({ action: "/api/queue/schedule/aide" });
-    expect(en).toContain("A scheduled job produces a report. It cannot change the repository");
-    expect(renderScheduleForm({ action: "/api/queue/schedule/aide" }, "nb")).toContain(
-      "En planlagt jobb lager en rapport. Den kan ikke endre repoet",
-    );
+  test("a new entry's form says a scheduled job only writes a report (AC-4)", () => {
+    const html = renderScheduleForm({ action: "/api/queue/schedule/aide" }, "nb");
+    expect(html).toContain(esc(t("nb", "schedule.reportOnly")));
   });
 
   test("the Edit form says the same (AC-4)", () => {
@@ -48,7 +47,7 @@ describe("renderScheduleForm", () => {
       entry: { name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md" },
       action: "/api/queue/schedule/aide/nightly",
     });
-    expect(html).toContain("A scheduled job produces a report. It cannot change the repository");
+    expect(html).toContain(esc(t("en", "schedule.reportOnly")));
   });
 
   test("an error is shown in the form's own slot", () => {
