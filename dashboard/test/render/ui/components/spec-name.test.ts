@@ -47,6 +47,12 @@ describe("jobsSentence", () => {
     expect(strip(html).toLowerCase()).toBe(text.toLowerCase());
   });
 
+  test("a wiki build is named as the project's wiki, linked to its Wiki tab", () => {
+    const { text, html } = jobsSentence("en", "shell.restartWaiting", {}, ["aide:wiki-aide"]);
+    expect(text).not.toContain("wiki-aide");
+    expect(html).toContain('<a data-goto href="/projects/aide?tab=wiki">');
+  });
+
   test("nothing a job's name holds reaches the page as markup (AC-2)", () => {
     const { html } = jobsSentence("en", "shell.restartWaiting", {}, ['<script>"x"</script>', 'a"b:12-<i>']);
     expect(html).not.toContain("<script>");

@@ -17,6 +17,7 @@ export const es: Record<TranslationKey, string> = {
   "shell.tabSpecs": "Especificaciones",
   "shell.tabProjects": "Proyectos",
   "shell.tabSchedule": "Programación",
+  "shell.wikiJob": "la wiki de {project}",
   "shell.restartWaiting": "El despliegue espera a {jobs}; el servicio se reinicia cuando terminen.",
   "shell.installWarning": "la última instalación de aide encontró un problema: {problem} — la salida completa está en {path}",
   "shell.toolFault": "{tool}: {problems} — abre Settings y pulsa Check en esa pestaña",
