@@ -143,28 +143,39 @@ describe("POST /api/queue/schedule — create, project read from the body", () =
     expect(t.stored()).toEqual([]);
   });
 
-  test("a no-script POST redirects to the project's own Schedule tab on success", async () => {
-    const t = start();
-    const res = await fetch(`${t.base}/api/queue/schedule`, {
-      method: "POST",
-      redirect: "manual",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ project: "aide", name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md" }).toString(),
-    });
-    expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe("/projects/aide?tab=schedule");
+  const formPost = (fields: Record<string, string>) => ({
+    method: "POST",
+    redirect: "manual" as const,
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams(fields).toString(),
   });
 
-  test("a no-script POST that is refused redirects to the project's own Schedule tab, with the reason", async () => {
+  test("a save goes back to the page the form was opened from, or to the project's Schedule tab", async () => {
     const t = start();
-    const res = await fetch(`${t.base}/api/queue/schedule`, {
-      method: "POST",
-      redirect: "manual",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ project: "aide", name: "nightly", cron: "not-a-cron", prompt: "docs-nightly.md" }).toString(),
-    });
+    const fields = { project: "aide", name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md" };
+    const res = await fetch(`${t.base}/api/queue/schedule`, formPost({ ...fields, back: "/schedule?q=night" }));
     expect(res.status).toBe(303);
-    expect(res.headers.get("location")!.startsWith("/projects/aide?tab=schedule&error=")).toBe(true);
+    expect(res.headers.get("location")).toBe("/schedule?q=night");
+    // Sending no Referer on, so the page it lands on does not take this
+    // form as the page to go back to.
+    expect(res.headers.get("referrer-policy")).toBe("no-referrer");
+    const bare = await fetch(`${t.base}/api/queue/schedule`, formPost({ ...fields, name: "other" }));
+    expect(bare.headers.get("location")).toBe("/projects/aide?tab=schedule");
+    const scripted = await fetch(`${t.base}/api/queue/schedule`, jsonPost({ ...fields, name: "third", back: "/schedule" }));
+    expect(await scripted.json()).toEqual({ ok: true, location: "/schedule" });
+  });
+
+  test("a refused save with no script stays on the page, with the reason and what was typed", async () => {
+    const t = start();
+    const res = await fetch(`${t.base}/api/queue/schedule`, formPost({
+      project: "aide", name: "nightly", cron: "not-a-cron", prompt: "docs-nightly.md", back: "/schedule",
+    }));
+    expect(res.status).toBe(400);
+    const html = await res.text();
+    expect(html).toMatch(/data-scheduleform-error[^>]*>[^<]*not-a-cron/);
+    expect(html).toContain('name="cron" required class="cron-input" value="not-a-cron"');
+    expect(html).toContain('<input type="hidden" name="back" value="/schedule">');
+    expect(t.stored()).toEqual([]);
   });
 });
 
@@ -176,6 +187,15 @@ describe("POST /api/queue/schedule/<project>/<name> — edit", () => {
     expect(t.stored().map((e) => [e.name, e.cron])).toEqual([["nightly", "0 5 * * *"], ["weekly", "0 4 * * 0"]]);
     expect(readFileSync(t.manifest, "utf-8")).toBe("name: aide\n");
     expect(t.wroteToGit()).toBe(false);
+  });
+
+  test("a rename sends a save opened from the entry's own page to its new page, and a back off the board is not followed", async () => {
+    const t = start([nightly()]);
+    const renamed = await fetch(`${t.base}/api/queue/schedule/aide/nightly`,
+      jsonPost(nightly({ name: "renamed", back: "/schedule/aide/nightly?tab=history" })));
+    expect(await renamed.json()).toEqual({ ok: true, location: "/schedule/aide/renamed?tab=history" });
+    const away = await fetch(`${t.base}/api/queue/schedule/aide/renamed`, jsonPost(nightly({ name: "renamed", back: "//evil.example/" })));
+    expect(await away.json()).toEqual({ ok: true, location: "/projects/aide?tab=schedule" });
   });
 
   test("renaming an entry is accepted", async () => {
@@ -313,15 +333,15 @@ describe("Run now on an entry the queue refuses", () => {
     expect(logged).toHaveLength(1);
   });
 
-  test("a press with no script is redirected to /schedule carrying the same sentence", async () => {
+  test("a press with no script is redirected to the project's Schedule tab carrying the same sentence", async () => {
     const t = start([nightly({ model: "retired" })], { queueDefaults: DEFAULTS });
     const { value: res } = await withLoggedErrors(() =>
       fetch(`${t.base}/api/queue/schedule/aide/nightly/run`, { method: "POST", headers: {}, redirect: "manual" }),
     );
     expect(res.status).toBe(303);
     const location = res.headers.get("location") ?? "";
-    expect(location.startsWith("/schedule?error=")).toBe(true);
-    expect(decodeURIComponent(location.slice("/schedule?error=".length))).toContain("Run now was refused for aide:nightly:");
+    expect(location.startsWith("/projects/aide?tab=schedule&error=")).toBe(true);
+    expect(decodeURIComponent(location.slice("/projects/aide?tab=schedule&error=".length))).toContain("Run now was refused for aide:nightly:");
   });
 
   test("an entry naming the model in another case runs on the listed spelling", async () => {
@@ -348,7 +368,7 @@ describe("POST /api/queue/schedule/<project>/<name>/delete", () => {
     expect(JSON.parse(readFileSync(t.file, "utf-8")).schedules).not.toHaveProperty("aide");
   });
 
-  test("a no-script POST redirects to /schedule on success", async () => {
+  test("a no-script POST redirects to the project's Schedule tab on success", async () => {
     const t = start([nightly()]);
     const res = await fetch(`${t.base}/api/queue/schedule/aide/nightly/delete`, {
       method: "POST",
@@ -357,13 +377,13 @@ describe("POST /api/queue/schedule/<project>/<name>/delete", () => {
       body: "",
     });
     expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe("/schedule");
+    expect(res.headers.get("location")).toBe("/projects/aide?tab=schedule");
     expect(t.stored()).toEqual([]);
   });
 
-  // AC-3: no confirm page to fall back to any more, so a refusal has to
-  // land on the schedule list, the same as every other route in this file.
-  test("a no-script POST that is refused redirects to /schedule, with the reason", async () => {
+  // AC-3: no confirm page to fall back to any more, so a refusal lands on
+  // the project's Schedule tab, where Delete is.
+  test("a no-script POST that is refused redirects to the project's Schedule tab, with the reason", async () => {
     const t = start([nightly()]);
     const res = await fetch(`${t.base}/api/queue/schedule/aide/ghost/delete`, {
       method: "POST",
@@ -372,7 +392,7 @@ describe("POST /api/queue/schedule/<project>/<name>/delete", () => {
       body: "",
     });
     expect(res.status).toBe(303);
-    expect(res.headers.get("location")!.startsWith("/schedule?error=")).toBe(true);
+    expect(res.headers.get("location")!.startsWith("/projects/aide?tab=schedule&error=")).toBe(true);
   });
 
   // Moved from schedule-page-route.test.ts (spec 528): that file's own

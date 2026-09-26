@@ -216,7 +216,9 @@ Pressing **Deploy** opens one dialog that is as tall as its steps and one line u
 it closes. It lists five steps, each waiting, running,
 done or failed, one running at a time: fetch from origin, install, restart the service, wait for the service to
 answer, and check that the service runs the newest commit. The page runs them one request each
-(`POST .../deploy/<step>`, `http-routes.md`). The restart runs until `/api/version` stops answering or answers a new
+(`POST .../deploy/<step>`, `http-routes.md`). The fetch waits up to three seconds for a merge into the same checkout,
+and fails at once with "a spec is being merged into <project> right now" while a landing holds it through its tests.
+The restart runs until `/api/version` stops answering or answers a new
 `startedAt`, and the wait runs from then until a new `startedAt` answers. The last step counts the checkout against origin on the process that will serve the page, so the page
 that loads next never says the check has not been made. The running step's line is drawn in the accent colour, with
 the spinner the running badges use in front of its state word. When the last step is done the dialog says so in the line under the steps, stays
@@ -282,11 +284,15 @@ rewritten.
 #### Schedule
 
 A scheduled job runs a prompt against this project on a cron expression, with no spec involved — a report, a
-sweep, a check. The tab lists this project's jobs by name, cron expression, prompt and next run, or says nothing is
-scheduled, and under the list is the form that creates one, with this project already filled in.
+sweep, a check. The tab lists this project's jobs by name, cron expression, prompt, next run and last run, with each
+job's Enabled switch, **Run now**, **Edit** and **Delete** on its row, or says nothing is scheduled. A click on a row
+outside those controls opens the job's own page. This is where a
+job is switched, fired, changed and removed; `/schedule` only shows them. **New**, above the list on the right, opens
+the page that creates one in this project. New and Edit open the same page: New starts on defaults, Edit on the job as
+it is saved. A save goes back to the page it was opened from; a refused one stays, with the reason above the form.
 [Running a job on a schedule](running-specs.md#running-a-job-on-a-schedule) has what such a job may do and where
 its output goes. The tab is drawn even for a project
-that is not on the allowlist; its submission is then refused, with the reason on the form.
+that is not on the allowlist; a create there is then refused, with the reason on the form.
 
 #### Wiki
 

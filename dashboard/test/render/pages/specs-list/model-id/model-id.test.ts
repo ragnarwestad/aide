@@ -5,7 +5,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   renderNewSpecPage,
-  renderScheduleDetailPage,
+  renderScheduleEditPage,
   renderSettingsPage,
   renderSpecsRows,
   type ArchivedSpecView,
@@ -114,8 +114,10 @@ describe("the pickers", () => {
   test("the New-spec form, the Schedule form and the Settings page draw the same label (AC-4)", () => {
     const nav = [{ label: "Overview", path: "projects.html" }];
     const newSpec = renderNewSpecPage(nav, "2026-09-26T00:00:00Z", { createProjects: ["aide"], targets: [], modelChoices: CHOICES, defaultModels: { default: "Opus" } });
-    const entry = { name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true };
-    const schedule = renderScheduleDetailPage(nav, "2026-09-26T00:00:00Z", { project: "aide", entry, history: [], modelChoices: CHOICES, defaultModels: { default: "Opus" } });
+    const schedule = renderScheduleEditPage(nav, "2026-09-26T00:00:00Z", {
+      project: "aide", values: { name: "", cron: "0 3 * * *", prompt: "", model: undefined, notify: undefined },
+      backHref: "/projects", modelChoices: CHOICES, defaultModels: { default: "Opus" },
+    });
     const settings = renderSettingsPage(nav, "2026-09-26T00:00:00Z", { modelChoices: CHOICES, defaultModels: { default: "Opus" }, timeoutSec: { default: 1200 } });
     for (const html of [newSpec, schedule, settings]) expect(html).toContain("Opus (claude-opus-5-6)");
   });

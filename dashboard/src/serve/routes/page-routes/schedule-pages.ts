@@ -1,4 +1,4 @@
-// the Schedule tab: its listing, a new entry, one entry's own page, and a run's recorded output. One of the three route families `handlePageRoutes`
+// the Schedule tab: its listing, one entry's own page, the page that makes or changes an entry, and a run's recorded output. One of the three route families `handlePageRoutes`
 // asks in turn (split 2026-09-04: the file had reached 594 lines,
 // a single function with a chain of route checks in it).
 //
@@ -7,12 +7,14 @@
 // three be asked one after another exactly as the chain read before.
 import { DEFAULT_SCHEDULE_OUTPUT_ROOT, readScheduleRunReport, scheduleTrackingKey } from "../../../queue/schedule.ts";
 import {
-  SCHEDULE_ROUTE, buildReportDocument, projectPagePath, renderReportPanel,
+  NEW_SCHEDULE_DEFAULTS, SCHEDULE_ROUTE, buildReportDocument, projectPagePath, renderReportPanel,
   renderScheduleDetailPage, renderSchedulePage, resolveBackHref, schedulePagePath,
 } from "../../../render";
-import { languageChoice, modelChoiceOptions, specsClientScript } from "../../serve-helpers";
+import { languageChoice, specsClientScript } from "../../serve-helpers";
 import { serveStatic } from "../../serve-helpers";
 import type { RoutesContext } from "..";
+import { scheduleLastRun } from "./schedule-last-run.ts";
+import { projectScheduleTab, scheduleEditPageResponse } from "./schedule-edit-page.ts";
 
 export async function schedulePages(
   ctx: RoutesContext,
@@ -30,29 +32,19 @@ export async function schedulePages(
 
   if (path === SCHEDULE_ROUTE) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-    const outputRoot = ctx.opts.scheduleOutputRoot ?? DEFAULT_SCHEDULE_OUTPUT_ROOT;
     // Every allowed project's entries, flattened together (spec 278) —
     // no per-project filter, mirroring how the Specs list's own
     // `listed` array is every allowed project's jobs at once.
     const projects = [...ctx.allowed].sort();
     const rows = projects.flatMap((project) =>
-      ctx.scheduleStore.list(project).map((entry) => {
-        const key = scheduleTrackingKey(entry.name);
-        const jobs = ctx.queue.list().filter((j) => j.project === project && j.specFolder === key);
-        const last = jobs.sort((a, b) => (b.startedAt ?? b.createdAt).localeCompare(a.startedAt ?? a.createdAt))[0];
-        const wroteReport = last ? readScheduleRunReport(outputRoot, project, key, last.id) !== null : false;
-        return {
-          project,
-          entry,
-          lastState: last?.state,
-          lastRunAt: last?.startedAt ?? last?.createdAt,
-          // The report is shown on the entry's own page, not linked bare.
-          outputHref: wroteReport ? `${schedulePagePath(project, entry.name)}#report` : undefined,
-          // AC-5: the project's own Schedule tab — where the New-job
-          // form and this entry's own row both now live (spec 468).
-          projectScheduleHref: `${projectPagePath(project)}?tab=schedule`,
-        };
-      }),
+      ctx.scheduleStore.list(project).map((entry) => ({
+        project,
+        entry,
+        ...scheduleLastRun(ctx, project, entry.name),
+        // The project's own Schedule tab — where New and this entry's
+        // own controls live.
+        projectScheduleHref: `${projectPagePath(project)}?tab=schedule`,
+      })),
     );
     const langResult = languageChoice(url, req);
     const html = renderSchedulePage(ctx.nav(), new Date().toISOString(), {
@@ -71,6 +63,36 @@ export async function schedulePages(
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
     return new Response(html, { headers });
+  }
+
+  // New and Edit: one page. The project rides as a query on New, since
+  // a second path segment would read as an entry's name.
+  if (path === "/schedule/new") {
+    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    // A project off the allowlist still gets the page, as its Schedule
+    // tab still gets New: the create route refuses it, with the reason.
+    const project = url.searchParams.get("project") ?? "";
+    if (!project) return new Response("not found", { status: 404 });
+    return scheduleEditPageResponse(ctx, req, url, {
+      project,
+      values: NEW_SCHEDULE_DEFAULTS,
+      back: resolveBackHref(req.headers.get("referer"), url.origin, projectScheduleTab(project), url.pathname),
+    });
+  }
+  const scheduleEditPage = path.match(/^\/schedule\/([^/]+)\/([^/]+)\/edit$/);
+  if (scheduleEditPage) {
+    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    const project = decodeURIComponent(scheduleEditPage[1]!);
+    const name = decodeURIComponent(scheduleEditPage[2]!);
+    if (!ctx.allowed.has(project)) return new Response("not found", { status: 404 });
+    const entry = ctx.scheduleStore.list(project).find((e) => e.name === name);
+    if (!entry) return new Response("not found", { status: 404 });
+    return scheduleEditPageResponse(ctx, req, url, {
+      project,
+      editing: name,
+      values: entry,
+      back: resolveBackHref(req.headers.get("referer"), url.origin, projectScheduleTab(project), url.pathname),
+    });
   }
 
   const scheduleDetailPage = path.match(/^\/schedule\/([^/]+)\/([^/]+)$/);
@@ -96,7 +118,11 @@ export async function schedulePages(
     // `?run=` is only ever compared with this entry's own job ids, never
     // joined into a path; anything else shows the newest run.
     const runParam = url.searchParams.get("run");
-    const shown = jobs.find((j) => j.id === runParam) ?? jobs[0];
+    // With no run asked for, the newest FINISHED run: a run that is queued
+    // or still going has no report yet, and would hide last week's.
+    const unfinished = (j: (typeof jobs)[number]) => j.state === "queued" || j.state === "running";
+    const pendingJob = runParam ? undefined : jobs.find(unfinished);
+    const shown = jobs.find((j) => j.id === runParam) ?? jobs.find((j) => !unfinished(j));
     let run: Parameters<typeof renderReportPanel>[0]["run"];
     if (shown) {
       const report = readScheduleRunReport(outputRoot, project, key, shown.id);
@@ -114,12 +140,12 @@ export async function schedulePages(
       entry,
       tab: url.searchParams.get("tab") ?? undefined,
       history,
-      reportPanel: renderReportPanel({ lang: langResult.lang, run }),
+      reportPanel: renderReportPanel({
+        lang: langResult.lang, run,
+        ...(pendingJob ? { pending: pendingJob.state as "queued" | "running" } : {}),
+      }),
       script: await specsClientScript(),
-      error: url.searchParams.get("error") ?? undefined,
-      backHref: resolveBackHref(req.headers.get("referer"), url.origin, SCHEDULE_ROUTE, url.pathname),
-      modelChoices: modelChoiceOptions(ctx.queue),
-      defaultModels: ctx.queue.defaults.model,
+      backHref: resolveBackHref(req.headers.get("referer"), url.origin, projectScheduleTab(project), url.pathname),
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
     });

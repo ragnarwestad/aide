@@ -48,6 +48,9 @@ type FakeAnchor = FakeElement & {
   target: string;
   hasAttribute: (attr: string) => boolean;
   getAttribute: (attr: string) => string | null;
+  click: () => void;
+  /** How many times the script pressed the link itself. */
+  clicks: number;
 };
 
 /** A same-document `<a href>`, matched by `closest("a[href]")` the way a
@@ -61,6 +64,10 @@ function anchor(opts: { href?: string; blank?: boolean; download?: boolean } = {
     target: opts.blank ? "_blank" : "",
     hasAttribute: (attr: string) => attr === "download" && !!opts.download,
     getAttribute: (attr: string) => (attr === "href" ? href : null),
+    click: () => {
+      self.clicks += 1;
+    },
+    clicks: 0,
   };
   return self;
 }
@@ -87,7 +94,6 @@ function harness() {
     },
   };
 
-  let locationHref = "";
 
   const document = {
     addEventListener: (type: string, fn: (event: unknown) => void) => {
@@ -101,14 +107,6 @@ function harness() {
   const window = {
     addEventListener: (type: string, fn: (event: unknown) => void) => {
       if (type === "beforeunload") beforeunloadHandler = fn;
-    },
-    location: {
-      set href(v: string) {
-        locationHref = v;
-      },
-      get href() {
-        return locationHref;
-      },
     },
   };
   new Function("document", "window", SOURCE)(document, window);
@@ -163,7 +161,6 @@ function harness() {
         closeHandler?.();
       },
     },
-    locationHref: () => locationHref,
   };
 }
 
@@ -278,12 +275,15 @@ describe("a same-document link click while dirty opens dialog.leaveapp instead o
     });
   }
 
-  test('pressing OK navigates to the link\'s href and disarms the guard', () => {
+  // The link is pressed again rather than its address assigned, so it
+  // leaves as it always would: Back's `rel="noreferrer"` goes with it.
+  test('pressing OK presses the link itself again and disarms the guard', () => {
     const h = harness();
     h.input(element({ classes: ["specform"] }));
-    h.click(anchor({ href: "/other-page" }));
+    const link = anchor({ href: "/other-page" });
+    h.click(link);
     h.dialog.closeWith("leave");
-    expect(h.locationHref()).toBe("/other-page");
+    expect(link.clicks).toBe(1);
     const { prevented } = h.beforeunload();
     expect(prevented).toBe(false);
   });
@@ -291,9 +291,10 @@ describe("a same-document link click while dirty opens dialog.leaveapp instead o
   test('pressing Cancel (or Escape) navigates nowhere and leaves the guard armed', () => {
     const h = harness();
     h.input(element({ classes: ["specform"] }));
-    h.click(anchor({ href: "/other-page" }));
+    const link = anchor({ href: "/other-page" });
+    h.click(link);
     h.dialog.closeWith("");
-    expect(h.locationHref()).toBe("");
+    expect(link.clicks).toBe(0);
     const { prevented } = h.beforeunload();
     expect(prevented).toBe(true);
   });

@@ -12,8 +12,10 @@ import { esc, relTimeLabel } from "../../ui/html.ts";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { t } from "../../../i18n";
 import { pickTab, tabBar, tabbedBody } from "../job-page";
-import { renderScheduleForm } from "../schedule-page/form.ts";
-import { schedulePagePath } from "../schedule-page";
+import { scheduleControlCells } from "../schedule-page/controls.ts";
+import { capitalizeFirst } from "../../../format/error-sentence.ts";
+import { scheduleEditPath, scheduleNewPath, schedulePagePath } from "../schedule-page";
+import { modelFlag } from "../schedule-page/model-flag.ts";
 import { deployDialog, STEP_LABEL } from "./deploy-dialog.ts";
 import { projectDescription } from "./overview-list.ts";
 import { PROJECTS_ROUTE, projectPagePath } from "./routes.ts";
@@ -228,32 +230,38 @@ function scheduleSection(project: string, entries: readonly ScheduleEntry[], opt
       ? `<p class="muted">${t(lang, "schedule.nothingScheduled")}</p>`
       : `<div class="tablewrap"><table class="list"><thead><tr><th>${t(lang, "schedule.colName")}</th>` +
         `<th>${t(lang, "schedule.colCron")}</th><th>${t(lang, "schedule.colPrompt")}</th>` +
-        `<th>${t(lang, "schedule.colNextRun")}</th></tr></thead><tbody>` +
+        `<th>${t(lang, "schedule.colNextRun")}</th><th>${t(lang, "schedule.colLastRun")}</th>` +
+        // Enabled, then three unlabelled columns: Run now, Edit and Delete.
+        `<th>${t(lang, "schedule.enabled")}</th><th></th><th></th><th></th></tr></thead><tbody>` +
         entries
           .map((e) => {
             const next = nextFireTime(e.cron, now);
+            const last = opts.scheduleLastRuns?.[e.name];
+            const report = last?.outputHref ? ` — <a href="${esc(last.outputHref)}">output</a>` : "";
             return (
-              `<tr><td><a href="${esc(schedulePagePath(project, e.name))}">${esc(e.name)}</a></td>` +
+              // The whole row, outside its controls, goes where the name
+              // does (`followScheduleRow`).
+              `<tr data-row-href="${esc(schedulePagePath(project, e.name))}">` +
+              `<td><a href="${esc(schedulePagePath(project, e.name))}">${esc(e.name)}</a>` +
+              modelFlag(lang, e.model, opts.scheduleModelNames, scheduleEditPath(project, e.name)) +
+              `</td>` +
               `<td><code>${esc(e.cron)}</code></td><td>${esc(e.prompt)}</td>` +
-              `<td>${next ? esc(next.toISOString()) : `<span class="muted">–</span>`}</td></tr>`
+              `<td>${next ? esc(next.toISOString()) : `<span class="muted">–</span>`}</td>` +
+              `<td><span data-schedule-state>${esc(capitalizeFirst(last?.lastState ?? "never run"))}</span>${report}</td>` +
+              scheduleControlCells(project, e, lang) +
+              `</tr>`
             );
           })
           .join("") +
         `</tbody></table></div>`;
-  return (
-    table +
-    `<h3>${t(lang, "schedule.newJob")}</h3>` +
-    renderScheduleForm(
-      {
-        action: "/api/queue/schedule",
-        fixedProject: project,
-        error: opts.error,
-        modelChoices: opts.modelChoices,
-        defaultModels: opts.defaultModels,
-      },
-      lang,
-    )
-  );
+  // A refusal of Run now, Enabled or Delete: written here by the browser
+  // code (`schedule-actions.ts`), or by the server when a press with no
+  // script was redirected back with the reason.
+  const slot = `<p class="refused${opts.error ? " rowmsg failed" : ""}" aria-live="polite">${opts.error ? esc(opts.error) : ""}</p>`;
+  // New on the right of the line above the table, as Add is on the
+  // Projects list.
+  const top = `<div class="listtop"><a class="btn primary" href="${esc(scheduleNewPath(project))}">${t(lang, "schedule.new")}</a></div>`;
+  return top + slot + table;
 }
 
 /** The checks no settings row owns that did NOT pass (spec 378, spec

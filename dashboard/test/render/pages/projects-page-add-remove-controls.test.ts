@@ -89,7 +89,7 @@ describe("the Add page", () => {
   test("Save posts, and Back — not a bottom Cancel — is the one way out", () => {
     const html = add();
     expect(html).toContain(">Save</button>");
-    expect(html).toContain('<a class="backlink" href="/projects">← Back</a>');
+    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/projects">← Back</a>');
     // The page-wide leave box (spec 518) carries its own Cancel; the page's controls do not.
     expect(html.replace(/<dialog class="leaveapp[\s\S]*?<\/dialog>/, "")).not.toContain(">Cancel<");
   });
@@ -156,7 +156,7 @@ describe("the Remove page", () => {
     // to change, so a button that waited for one would never enable.
     expect(html).not.toContain("disabled");
     // "← Back" heads the page, and Cancel stands beside Remove.
-    expect(html).toContain('<a class="backlink" href="/projects">← Back</a>');
+    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/projects">← Back</a>');
     expect(html).toContain('<a class="btn" href="/projects">Cancel</a>');
   });
 

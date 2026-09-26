@@ -1,15 +1,15 @@
 // The /schedule list body (spec 276, reworked spec 278): search and
 // sort across every allowed project's entries at once, the same
-// pattern the Specs list already uses — monitoring only, per the
-// description: no cron expression, no Edit action and no History link
-// here, all three live on the detail page instead.
+// pattern the Specs list already uses. It shows and links, and changes
+// nothing: the switch, Run now and Delete are on each project's own
+// Schedule tab, and Edit and History on the entry's own page.
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
-import { ICON_CHEVRON, ICON_SEARCH, btn, dialogAnswers, rowMessage } from "../../ui/components";
+import { ICON_CHEVRON, ICON_SEARCH, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { modelFlag } from "./model-flag.ts";
-import { schedulePagePath } from "./tabs.ts";
+import { scheduleEditPath } from "./edit-page.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 
 export interface SchedulePageRow {
@@ -97,71 +97,22 @@ function row(r: SchedulePageRow, now: Date, o: Pick<ScheduleListOptions, "modelN
   const next = nextFireTime(r.entry.cron, now);
   const state = capitalizeFirst(r.lastState ?? "never run");
   const output = r.outputHref ? ` — <a href="${esc(r.outputHref)}">output</a>` : "";
-  const toggleUrl = `/api/queue/schedule/${encodeURIComponent(r.project)}/${encodeURIComponent(r.entry.name)}/enabled`;
-  const runUrl = `/api/queue/schedule/${encodeURIComponent(r.project)}/${encodeURIComponent(r.entry.name)}/run`;
   return (
-    `<tr>` +
+    // The whole row goes where the name does (`followScheduleRow`).
+    `<tr data-row-href="${esc(r.projectScheduleHref)}">` +
     // `project:name`, matching the Specs list's own row format — the
     // list is no longer scoped to one project, so the row has to say
     // which one it belongs to. AC-5 (spec 468): the link goes to the
     // project's own Schedule tab, not the entry's own detail page.
     `<td><a href="${esc(r.projectScheduleHref)}">${esc(r.project)}:${esc(r.entry.name)}</a>` +
-    modelFlag(o.lang ?? "en", r.entry.model, o.modelNames, schedulePagePath(r.project, r.entry.name)) +
+    modelFlag(o.lang ?? "en", r.entry.model, o.modelNames, scheduleEditPath(r.project, r.entry.name)) +
     `</td>` +
     `<td>${next ? esc(next.toISOString()) : `<span class="muted">–</span>`}</td>` +
     `<td><span data-schedule-state>${esc(state)}</span>${output}</td>` +
-    // A standalone checkbox with no surrounding form, the same shape
-    // `postTailStep`'s own tail-step chip has and for the same reason:
-    // it does nothing without script, and flips the flag immediately —
-    // no confirm — the instant it does (`schedule-actions.ts`).
-    `<td><input type="checkbox" class="scheduleenabled"${r.entry.enabled ? " checked" : ""} ` +
-    `aria-label="Enabled: ${esc(r.entry.name)}" data-post-to="${esc(toggleUrl)}"></td>` +
-    // The page's ordinary button, not a smaller one of its own: this is
-    // the row's action, and it stands beside Delete and under Search and
-    // New job (asked for 2026-08-31).
-    `<td><form method="post" action="${esc(runUrl)}" class="actionform schedulerun">` +
-    btn({ label: "Run now", pending: "running…" }) +
-    `</form></td>` +
-    deleteCell(r) +
+    // Shown, not changed: the switch, Run now and Delete are on the
+    // project's own Schedule tab (`controls.ts`).
+    `<td>${esc(capitalizeFirst(t(o.lang ?? "en", r.entry.enabled ? "schedule.yes" : "schedule.no")))}</td>` +
     `</tr>`
-  );
-}
-
-// Delete, at the far right of the row it deletes (asked for
-// 2026-08-31). It was on the entry's own Edit page, which is the one
-// place a reader goes to CHANGE an entry — reaching it meant opening
-// the thing you had decided to be rid of.
-//
-// The control is a plain button, script-only (spec 528: no confirm page
-// behind it any more). Its click opens the confirmation beside it:
-// `<dialog>`, the platform's own modal, the way the About box in the
-// header is done — Escape and Cancel close it, and nothing is deleted
-// by a stray click on a table row.
-//
-// What it asks is the question itself, in the heading, with the two
-// answers under it. It asked for the entry's exact name, typed back,
-// until 2026-09-08.
-function deleteCell(r: SchedulePageRow): string {
-  const name = r.entry.name;
-  const deleteUrl = `/api/queue/schedule/${encodeURIComponent(r.project)}/${encodeURIComponent(name)}/delete`;
-  return (
-    `<td>` +
-    `<button type="button" class="btn danger" ` +
-    `data-delete-schedule aria-label="Delete ${esc(name)}">Delete</button>` +
-    `<dialog class="confirmdialog"><div class="confirmpanel">` +
-    `<h2>Delete ${esc(r.project)}:${esc(name)}?</h2>` +
-    `<p class="muted">The entry is removed and stops firing. ` +
-    `Its own run history stays in the queue.</p>` +
-    // The dialog's own heading asks the question: the press is the
-    // whole of "yes". This page has no catalogue, so the box keeps to
-    // English.
-    dialogAnswers(
-      "en",
-      `<form method="post" action="${esc(deleteUrl)}" class="scheduledeleteform">` +
-        btn({ label: t("en", "dialog.ok"), variant: "danger", pending: "deleting…" }) +
-        `</form>`,
-    ) +
-    `</div></dialog></td>`
   );
 }
 
@@ -210,10 +161,9 @@ function sortableHead(f: ScheduleFilter): string {
       `${esc(label)}${ICON_CHEVRON}</a></th>`
     );
   };
-  // Two unlabelled columns at the end: Run now, then Delete.
   return (
     `<thead><tr>${th("name", "Name")}${th("next", "Next run")}${th("last", "Last run")}` +
-    `<th>Enabled</th><th></th><th></th></tr></thead>`
+    `<th>Enabled</th></tr></thead>`
   );
 }
 

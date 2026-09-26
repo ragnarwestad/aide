@@ -7,5 +7,5 @@ export const schedulePagePath = (project: string, name: string): string =>
 export const scheduleTabPath = (project: string, name: string, tab: string): string =>
   `${schedulePagePath(project, name)}?tab=${encodeURIComponent(tab)}`;
 
-export const SCHEDULE_TABS = ["overview", "history"] as const;
+export const SCHEDULE_TABS = ["report", "history"] as const;
 export type ScheduleTab = (typeof SCHEDULE_TABS)[number];

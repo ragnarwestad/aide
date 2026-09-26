@@ -90,6 +90,27 @@ export function createRootLock() {
   };
 }
 
+/** How long Deploy's fetch waits for the checkout's merge lock. A save or
+ *  a tick holds it for a moment; a landing holds it through its test run,
+ *  and a request left waiting that long ends as "the request failed". */
+export const DEPLOY_LOCK_WAIT_MS = 3000;
+
+/** Whether nothing holds `root` within `ms`, asked every `pollMs`. It
+ *  only watches: the caller takes the lock itself afterwards. */
+export async function rootFreeWithin(
+  lock: { roots(): string[] },
+  root: string,
+  ms: number,
+  pollMs = 100,
+): Promise<boolean> {
+  const until = Date.now() + ms;
+  while (lock.roots().includes(root)) {
+    if (Date.now() >= until) return false;
+    await new Promise((r) => setTimeout(r, pollMs));
+  }
+  return true;
+}
+
 /** How often `restartAfterLanding()` (spec 287) re-checks `mergeLock`
  *  while it waits for every in-flight merge to clear before restarting
  *  the dashboard server. */

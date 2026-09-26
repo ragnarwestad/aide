@@ -35,6 +35,8 @@ export interface ActionResult {
   readiness?: { canRun?: boolean; note?: string };
   /** The job a queue request started, for a caller that waits for it. */
   job?: { id?: string };
+  /** Where a saved schedule entry goes next: the page it was opened from. */
+  location?: string;
 }
 
 /** Why the server said no, whichever shape it said it in: the project
