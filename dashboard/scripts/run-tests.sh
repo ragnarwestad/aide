@@ -41,14 +41,14 @@ WORKERS=${AIDE_TEST_WORKERS:-$(( CPUS > 3 ? CPUS - 2 : 1 ))}
 BROWSER_WORKERS=${AIDE_TEST_BROWSER_WORKERS:-3}
 
 # With no argument: the suite `make test` runs. Tests live under `src/` too
-# (the message catalogues' own), so both trees are collected, browser
-# files included. `test/round/`, which starts a real board, is left out:
-# `make test-slow` runs it. `make test-e2e` runs the browser files alone,
-# passing `test/e2e` as that argument.
+# (the message catalogues' own), so both trees are collected. Left out:
+# `test/round/`, which starts a real board (`make test-slow`), and the
+# browser files under `test/e2e/` (`make test-e2e`, passing `test/e2e` as
+# that argument), which a landing runs and a step's own run does not.
 if [ "$#" -gt 0 ]; then
   files=$(find "$@" -name '*.test.ts' | sort)
 else
-  files=$(find src test -name '*.test.ts' -not -path 'test/round/*' | sort)
+  files=$(find src test -name '*.test.ts' -not -path 'test/round/*' -not -path 'test/e2e/*' | sort)
 fi
 [ -n "$files" ] || { echo "no test files found"; exit 1; }
 

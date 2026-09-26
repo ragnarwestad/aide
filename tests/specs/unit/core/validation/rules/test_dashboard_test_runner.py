@@ -64,11 +64,14 @@ class TestTheRunnerScript:
         assert "-not -path 'test/round/*'" in runner_script, \
             "test/round must stay out of the command a landing runs"
 
-    def test_it_runs_the_browser_tests(self, runner_script):
-        assert "-not -path 'test/e2e/*'" not in runner_script, \
-            "the browser tests belong to the command a landing runs: they " \
-            "are 19 s over the workers, and a spec that lands with its own " \
-            "browser test red is what leaving them out allowed"
+    def test_a_landing_runs_the_browser_tests_a_step_leaves_out(self, runner_script, makefile, workspace_root):
+        manifest = (workspace_root / ".aide" / "project.yaml").read_text()
+        assert "-not -path 'test/e2e/*'" in runner_script, \
+            "a step's own suite leaves the browser tests out"
+        assert re.search(r"^landingTestCmd: .*make test-e2e", manifest, re.M), \
+            "a spec that lands with its own browser test red is what " \
+            "leaving them out of the landing allowed"
+        assert "test/e2e" in _target(makefile, "test-e2e")
 
     def test_it_collects_the_tests_under_src_as_well(self, runner_script):
         assert re.search(r"find src test ", runner_script), \

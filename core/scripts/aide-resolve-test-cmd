@@ -25,8 +25,12 @@
 # empty, silently-"ok" commands array, so a broken worktree cannot make
 # a caller skip tests without saying so.
 #
+# `--landing` adds the manifest's `landingTestCmd:` (or `.aide/config`'s
+# AIDE_LANDING_TEST_CMD) after those: tests a project runs only when a
+# branch is about to reach its default branch, never in a step's own run.
+#
 # Usage:
-#   aide-resolve-test-cmd --project-dir <path>
+#   aide-resolve-test-cmd --project-dir <path> [--landing]
 
 set -uo pipefail
 
@@ -35,16 +39,18 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 [ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
 
 project_dir=""
+landing=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
     -h|--help)
       cat <<'USAGE'
 Usage:
-  aide-resolve-test-cmd --project-dir <path>
+  aide-resolve-test-cmd --project-dir <path> [--landing]
 USAGE
       exit 0 ;;
     --project-dir) project_dir="${2:-}"; shift 2 ;;
+    --landing) landing=1; shift ;;
     *) printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"unknown argument: %s"}\n' "$1"; exit 2 ;;
   esac
 done
@@ -64,15 +70,21 @@ git -C "$project_dir" rev-parse --is-inside-work-tree >/dev/null 2>&1 \
 declare -f aide_test_scope_commands >/dev/null 2>&1 \
   || refuse "aide_test_scope_commands is not available (missing _aide-spec-lib.sh)"
 
+# The answer, with the landing's own command after the others when asked.
+answer() {
+  if [ -n "$landing" ]; then
+    local extra
+    extra="$(aide_resolve_override AIDE_LANDING_TEST_CMD landingTestCmd "$project_dir")"
+    [ -n "$extra" ] && set -- "$@" "$extra"
+  fi
+  jq -cn --args '{ok:true, commands:$ARGS.positional}' -- "$@"
+}
+
 # --- REQ-6 fast path: no scopes declared, no git needed at all -------------
 first_paths="$(aide_config_get AIDE_TEST_SCOPE_PATHS_1 "$project_dir")"
 if [ -z "$first_paths" ]; then
   legacy="$(aide_resolve_override AIDE_TEST_CMD testCmd "$project_dir")"
-  if [ -n "$legacy" ]; then
-    jq -cn --arg c "$legacy" '{ok:true, commands:[$c]}'
-  else
-    jq -cn '{ok:true, commands:[]}'
-  fi
+  if [ -n "$legacy" ]; then answer "$legacy"; else answer; fi
   exit 0
 fi
 
@@ -94,4 +106,4 @@ while IFS= read -r c; do
   [ -n "$c" ] && commands+=("$c")
 done < <(aide_test_scope_commands "$project_dir" ${changed_files[@]+"${changed_files[@]}"})
 
-jq -cn --args '{ok:true, commands:$ARGS.positional}' -- ${commands[@]+"${commands[@]}"}
+answer ${commands[@]+"${commands[@]}"}

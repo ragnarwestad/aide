@@ -25,6 +25,10 @@ Both can run the tests.
 | archive         | only the tests covering files it touched while resolving a merge conflict | the full suite once, in the landing, on exactly what the default branch is about to become — not when implement's green run covers exactly that code | the whole suite runs once more (not after a timeout). Green then: it lands, marked "merged after a retry". Red twice: nothing reaches the default branch, the spec's branch is kept, and the job stops      |
 | close, reopen   | none                                                                      | none                                                                                                                                                 | —                                                                                                                                                                                                           |
 
+A project may name tests for the landing alone in its manifest, `landingTestCmd:`. The landing runs them after the
+full suite, and a step's own run never does, so implement's green run never stands in for them. Aide's are its
+browser tests: `make test` leaves them out, and `make test-e2e` runs them.
+
 A run that is still going when the step's time limit runs out is stopped, and the step ends on its time limit with
 the work so far committed. The landing is described in full in [landing.md](landing.md).
 

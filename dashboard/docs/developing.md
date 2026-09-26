@@ -7,10 +7,10 @@ in the [README](../README.md#installation).
 and a minimal Linux may not (`sudo apt install make` on Debian and Ubuntu):
 
 ```bash
-make test                           # tsc + bun test, browser tests included
+make test                           # tsc + bun test, without the browser tests
 make test-slow                      # the round's own tests, which start real test servers
-make test-e2e                       # the browser tests alone
-make test-all                       # all three — the browser tests twice, since make test has them
+make test-e2e                       # the browser tests, which a landing and CI run
+make test-all                       # all three
 make serve-local                    # serves the checkout it is started in, no build step, no service
 ```
 

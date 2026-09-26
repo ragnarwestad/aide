@@ -50,6 +50,12 @@ describe("the runner's browser pool", () => {
     expect(missed).toEqual([]);
   });
 
+  // `make test` leaves `test/e2e/` out and a landing runs it: a browser
+  // file anywhere else would run in a step's own suite after all.
+  test("every file that starts a browser lives under test/e2e", () => {
+    expect(browserTests().filter((path) => !path.startsWith("test/e2e/"))).toEqual([]);
+  });
+
   test("there are browser tests to pool in the first place", () => {
     // The guard above passes trivially on an empty list, and the day
     // these tests are all deleted is the day the pool can go too.

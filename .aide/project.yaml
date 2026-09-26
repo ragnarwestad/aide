@@ -19,6 +19,9 @@ stack:
 # scoped form (pytest for core/ and tests/, make test for dashboard/)
 # declares it in its own .aide/config; see .aide/config.example.
 testCmd: export PATH="$HOME/.local/share/mise/shims:$PATH"; .venv/bin/pytest -q && cd dashboard && make test
+# Run by a landing only, after the commands above: the browser tests, which
+# `make test` leaves out.
+landingTestCmd: cd dashboard && make test-e2e
 testScopes:
   - path: dashboard
     command: cd dashboard && make test

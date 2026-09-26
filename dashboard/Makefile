@@ -35,8 +35,9 @@ test:
 	bunx tsc --noEmit
 	bash scripts/run-tests.sh
 
-# The browser tests on their own, for when layout is what changed and the
-# rest would only be noise. `make test` runs them too.
+# The browser tests, which `make test` leaves out: each starts a chromium,
+# and they are what lose to load. A landing runs them (`landingTestCmd:`
+# in the manifest), and so does CI.
 test-e2e:
 	bash scripts/run-tests.sh test/e2e
 

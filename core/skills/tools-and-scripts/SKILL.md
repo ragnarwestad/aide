@@ -92,6 +92,13 @@ bucket's command that has at least one file in it:
 A change reaching both halves runs both commands. Nothing is skipped for
 being slow — only for covering nothing the change touched.
 
+**Tests for the landing alone: `landingTestCmd:`.** A command the
+dashboard runs only when a branch is about to reach the default branch,
+after the commands above — never in a step's own run. For tests too
+heavy to run on every step, such as browser tests. `.aide/config`'s
+`AIDE_LANDING_TEST_CMD` overrides it, and `aide-resolve-test-cmd
+--landing` adds it to what it resolves.
+
 **When to run what:**
 
 - New files created → Run `git add <file>` automatically

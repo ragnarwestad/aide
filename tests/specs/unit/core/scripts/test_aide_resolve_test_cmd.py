@@ -68,9 +68,9 @@ def branch_with_changed_files(project, *rel_paths):
     git(project, "commit", "-qm", "touch " + " ".join(rel_paths))
 
 
-def run(script, project):
+def run(script, project, *extra):
     proc = subprocess.run(
-        [str(script), "--project-dir", str(project)], capture_output=True, text=True,
+        [str(script), "--project-dir", str(project), *extra], capture_output=True, text=True,
     )
     line = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else "{}"
     return proc.returncode, json.loads(line), proc.stdout
@@ -113,6 +113,30 @@ def test_no_config_at_all_resolves_to_an_empty_command_list(script, project):
     assert rc == 0, out
     assert out["ok"] is True
     assert out["commands"] == []
+
+
+def test_a_landing_runs_the_landing_command_after_the_others(script, project):
+    """`landingTestCmd:` is run only when a branch is about to land, so a
+    step's own run never has it and a landing's always does."""
+    write_manifest(project, "testCmd: echo all\nlandingTestCmd: echo browser\n")
+    assert run(script, project)[1]["commands"] == ["echo all"]
+    assert run(script, project, "--landing")[1]["commands"] == ["echo all", "echo browser"]
+
+
+def test_a_landing_adds_its_command_to_the_scoped_ones_too(script, project):
+    write_config(
+        project,
+        "AIDE_TEST_SCOPE_PATHS_1=dashboard\n"
+        "AIDE_TEST_SCOPE_CMD_1=echo dash\n",
+    )
+    write_manifest(project, "landingTestCmd: echo browser\n")
+    branch_with_changed_files(project, "dashboard/x.txt")
+    assert run(script, project, "--landing")[1]["commands"] == ["echo dash", "echo browser"]
+
+
+def test_a_landing_with_no_landing_command_runs_what_a_step_runs(script, project):
+    write_manifest(project, "testCmd: echo all\n")
+    assert run(script, project, "--landing")[1]["commands"] == ["echo all"]
 
 
 def test_single_scope_match_resolves_to_that_scopes_command(script, project):

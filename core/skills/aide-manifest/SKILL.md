@@ -82,6 +82,10 @@ inventing values.
   visibly has a second toolchain in a subdirectory (its own lockfile or
   build file below the root), and confirm the command with the user
   rather than guessing it
+- **A `landingTestCmd:` key is kept as found, and never proposed.** It
+  names tests the landing alone runs (the tools-and-scripts skill,
+  "Project commands"); which tests are too heavy for every step is the
+  project's own call
 
 ### Step 5: Confirm
 
