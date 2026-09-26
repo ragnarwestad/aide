@@ -276,6 +276,9 @@ const STRUCTURE = [
   // spec 510: the note field of an archived row's Failed choice.
   "failcontrol",
   "failnote",
+  // the heading over the two boxes of an acceptance list: "Verified", and
+  // the two columns' names under it.
+  "checkcolumns", "checkverified", "checkyes", "checkother",
   // the tab's head line and its Save/Cancel pair, on the same line (spec
   // 391) — the form's first child on the Checks tab and every document
   // tab, so this is the ONE class the two share for it.

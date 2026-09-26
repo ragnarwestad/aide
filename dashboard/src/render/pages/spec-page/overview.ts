@@ -6,7 +6,7 @@ import { helpPopover, ICON_PDF, rowMessage, saveCancelActions } from "../../ui/c
 import { SPINNER } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { acTestsLine } from "../../ui/ac-tests.ts";
-import { checkControls, checkReadOnlyMark } from "../../ui/check-controls.ts";
+import { checkColumns, checkControls, checkReadOnlyMark } from "../../ui/check-controls.ts";
 import { failedCount, notVerifiedCount } from "../../../project/parse-status/not-verified.ts";
 import { dependsOnField } from "../new-spec-page.ts";
 import { t, type Language } from "../../../i18n";
@@ -298,7 +298,10 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
     `<li class="check ${row.failed ? "failed" : row.notVerified ? "notverified" : row.done ? "done" : "open"}">${control(row)}` +
     `<span class="checktask">${esc(row.task)}</span>${note(row)}${reopen(row)}${acTestsLine(row, lang)}</li>`;
   const group = (g: { phase: string; rows: SpecCheckView[] }): string =>
-    `<li class="checkphase">${esc(g.phase)}</li>` + g.rows.map(item).join("");
+    `<li class="checkphase">${esc(g.phase)}</li>` +
+    // One heading over the boxes, under the caption of the section they belong to.
+    (g.phase === phase && drawnLines.length > 0 ? checkColumns(lang, !!view.archived) : "") +
+    g.rows.map(item).join("");
   const list = `<ul class="checklist">${groups.map(group).join("")}</ul>`;
   // The head line and, when the boxes are tickable, Save/Cancel beside it
   // (spec 391) — one `.panelhead` div, the form's first child, so the

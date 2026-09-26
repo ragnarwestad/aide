@@ -141,17 +141,6 @@ describe("the unit a reader chose is a CSS switch, not a second page", () => {
   });
 });
 
-// A criterion on the Checks tab sits BESIDE its box and wraps inside its
-// own width. Without a flex basis of 0 the text's natural width is the
-// basis; a long criterion is then wider than the line and the row's
-// `flex-wrap` moves the whole text under the box (seen on spec 456's
-// acceptance criteria, 2026-09-14).
-test("a criterion's text takes the room beside its box and wraps inside it", () => {
-  expect(CSS).toMatch(/\.check \.checktask \{[^}]*flex: 1 1 0;[^}]*min-width: 0;[^}]*\}/);
-  // The row still wraps: the note under a criterion depends on it.
-  expect(CSS).toMatch(/\.check \{[^}]*flex-wrap: wrap;[^}]*\}/);
-});
-
 // --- the waiting layer states where it sits (spec 516) ----------------------
 //
 // A modal dialog's centring is the browser's own default, and on a phone

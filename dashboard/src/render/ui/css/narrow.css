@@ -614,19 +614,11 @@
 }
 
 /* The acceptance criteria unfolded on a row (spec 493), at a phone's
-   width: no indent to spend, and the note gives back its margin so the
-   criterion's text keeps every pixel the box leaves it. */
+   width: no indent to spend, so the criterion's text keeps every pixel the
+   boxes leave it. */
 @media (max-width: 40rem) {
   .rowchecks { padding-left: 0; }
-  .rowchecks .check .checknote { margin-left: 0; }
   .checksunread { padding-left: 0; }
-}
-
-/* The Failed control of an archived row (spec 522), at a phone's width: two
-   halves are too narrow for a sentence, so the control takes a line of its own
-   under the criterion. */
-@media (max-width: 40rem) {
-  .check .failcontrol { flex: 1 0 100%; }
 }
 
 /* A phase's messages unfolded under its line (spec 500), at a phone's

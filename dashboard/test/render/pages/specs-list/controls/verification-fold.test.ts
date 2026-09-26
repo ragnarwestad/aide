@@ -66,10 +66,14 @@ describe("an archived row with criteria waiting for a check has a › of its own
     expect(open).not.toContain('name="unverified"');
   });
 
-  test("the Failed box and its note are one block, the note a five-line text area bounded at 500 (AC-2, AC-3, AC-4)", () => {
+  test("the list opens with one heading, Yes and Failed; the note field sits alone in .failcontrol after the boxes (AC-4)", () => {
+    expect(open.match(/class="checkcolumns"/g)).toHaveLength(1);
+    expect(open).toContain('<div class="checkyes">Yes</div><div class="checkother">Failed</div>');
+    expect(open).not.toContain("Not yet");
     const block = /<div class="failcontrol">(.*?)<\/div>/s.exec(open)?.[1] ?? "";
-    expect(block).toMatch(/^<label class="unverified"><input type="checkbox" name="failed"/);
-    expect(block).toMatch(/<\/label><textarea class="failnote" name="failnote-0"[^>]* rows="5" maxlength="500"/);
+    expect(block).toMatch(/^<textarea class="failnote" name="failnote-0"[^>]* rows="5" maxlength="500"/);
+    expect(block).not.toContain("<input");
+    expect(open.indexOf("failcontrol")).toBeGreaterThan(open.indexOf('name="failed"'));
     expect(open).not.toContain('<input type="text" class="failnote"');
   });
 

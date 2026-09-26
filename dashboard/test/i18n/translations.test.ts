@@ -50,4 +50,11 @@ describe("t()", () => {
   test.each(["es", "de", "fr"] as const)("%s substitutes a {param} placeholder", (lang) => {
     expect(t(lang, "list.stateQueuedPosition", { n: 1, total: 2 })).not.toContain("{n}");
   });
+
+  test("the heading over an acceptance criterion's boxes is in Norwegian (AC-6)", () => {
+    expect(t("nb", "checks.verified")).toBe("Verifisert");
+    expect(t("nb", "checks.yes")).toBe("Ja");
+    expect(t("nb", "checks.notYet")).toBe("Ikke ennå");
+    expect(t("nb", "checks.boxName", { heading: "Verifisert", column: "Ja" })).toBe("Verifisert: Ja");
+  });
 });

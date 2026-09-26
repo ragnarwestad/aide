@@ -286,7 +286,7 @@ describe("the criteria unfolded on a row fit a phone (spec 493)", () => {
     expect(rules).not.toMatch(/(^|[^-])width:/);
   });
 
-  test("a phone rule takes the indent and the note's margin off it", () => {
+  test("a phone rule takes the indent off it", () => {
     expect(narrow).toMatch(/@media \(max-width: 40rem\) \{\s*\.rowchecks \{ padding-left: 0; \}/);
   });
 });

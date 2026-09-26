@@ -6,7 +6,7 @@
 import { ICON_CHEVRON, btn, rowMessageParts } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { acTestsLine } from "../../ui/ac-tests.ts";
-import { checkControls, checkReadOnlyMark } from "../../ui/check-controls.ts";
+import { checkColumns, checkControls, checkReadOnlyMark } from "../../ui/check-controls.ts";
 import { t, type Language } from "../../../i18n";
 import { specTabPath } from "../spec-page";
 import { groupKey, isArchivedRow, type SpecGroup, type SpecsFilter } from "./data-model";
@@ -69,7 +69,7 @@ export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language): strin
       `</li>`
     );
   };
-  const list = `<ul class="checklist">${rows.map(item).join("")}</ul>`;
+  const list = `<ul class="checklist">${drawn.length > 0 ? checkColumns(lang, archived) : ""}${rows.map(item).join("")}</ul>`;
   // Nothing to save when no row is a box (an archived spec whose rows are all Failed).
   if (drawn.length === 0) return `<div class="rowchecks">${list}</div>`;
   return (

@@ -117,7 +117,7 @@ describe("the checks block (specs 182, 188, 212)", () => {
     const html = page(withChecks([DONE]), "status");
     expect(html).toContain("Run the full test suite");
     expect(section(html)).toContain('name="tick"');
-    expect(section(html)).toContain(" checked>");
+    expect(section(html)).toContain(" checked aria-label=");
     expect(html).toContain("check done");
   });
 

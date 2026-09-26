@@ -1,10 +1,12 @@
 // The boxes for ONE acceptance row, drawn once for the Status tab and the
-// Specs list's unfolded criteria. A row has two: the tick box (done) and a
-// box labelled "Not verified" (a check that has to wait for something after
-// the deploy). The server reads which of them were checked; with script on,
-// `specs-client` clears the box beside the one just checked. An archived
-// spec's Not verified row has a different set: the tick box, a Failed box and
-// the note saying what did not hold.
+// Specs list's unfolded criteria. A row has two, side by side at the right of
+// its text: the tick box (Yes) and a second box (Not yet: a check that has to
+// wait for something after the deploy). The words are not beside the boxes but
+// in one heading over the list (`checkColumns`), so each box carries them as
+// its accessible name. The server reads which of them were checked; with
+// script on, `specs-client` clears the box beside the one just checked. An
+// archived spec's Not verified row has a different set: the tick box, a Failed
+// box in the second column and the note saying what did not hold.
 
 import { FAIL_NOTE_MAX } from "../../project/parse-status";
 import { esc } from "./html.ts";
@@ -31,35 +33,50 @@ interface Options {
 
 const formAttr = (formId: string | undefined): string => (formId ? ` form="${esc(formId)}"` : "");
 
-/** The hidden twin, the tick box and the Not verified box (an archived row:
- *  the Failed box and its note instead).
+/** A box's accessible name: the heading's two lines, "Verified: Yes". */
+const boxName = (lang: Language, column: string): string =>
+  esc(t(lang, "checks.boxName", { heading: t(lang, "checks.verified"), column }));
+
+/** The hidden twin, the tick box and the second box (an archived row: the
+ *  Failed box, and its note field after them).
  *  The row's verbatim line is every value: the server finds the row by it and
  *  refuses one that has moved. The hidden twin says the row was on the page,
  *  so a box left clear reads as "taken off" and not as a row nobody mentioned.
  *  The tick box is checked for a ✅ row alone; a Not verified row is done too,
- *  and only its own box is checked. */
+ *  and only its own box is checked. `aria-label` is the last attribute of a
+ *  box, so a box ends `checked aria-label="…">`. */
 export function checkControls(row: CheckControlRow, lang: Language, options: Options = {}): string {
   const value = esc(row.line);
   const form = formAttr(options.formId);
-  const tickChecked = row.done && !row.notVerified;
+  const box = (extra: string, name: string, checked: boolean, column: string): string =>
+    `<label class="checkbox${extra}"><input type="checkbox" name="${name}" value="${value}"${form}` +
+    `${checked ? " checked" : ""} aria-label="${boxName(lang, column)}"></label>`;
   const tick =
     `<input type="hidden" name="row" value="${value}"${form}>` +
-    `<label class="checkbox"><input type="checkbox" name="tick" value="${value}"${form}` +
-    `${tickChecked ? " checked" : ""}></label>`;
+    box("", "tick", row.done && !row.notVerified, t(lang, "checks.yes"));
   if (options.archivedIndex !== undefined) {
     return (
       tick +
+      box(" unverified", "failed", false, t(lang, "checks.failed")) +
       `<div class="failcontrol">` +
-      `<label class="unverified"><input type="checkbox" name="failed" value="${value}"${form}> ${esc(t(lang, "checks.failed"))}</label>` +
       `<textarea class="failnote" name="failnote-${options.archivedIndex}"${form} rows="5" maxlength="${FAIL_NOTE_MAX}" autocomplete="off" ` +
       `placeholder="${esc(t(lang, "checks.failNote"))}" aria-label="${esc(t(lang, "checks.failNote"))}"></textarea>` +
       `</div>`
     );
   }
+  return tick + box(" unverified", "unverified", !!row.notVerified, t(lang, "checks.notYet"));
+}
+
+/** The heading over a list's two columns of boxes, a row of the list itself so
+ *  the stylesheet gives it the rows' columns. Drawn once, where the list has a
+ *  box. Its words are in each box's name, so it is hidden from a reader. */
+export function checkColumns(lang: Language, archived: boolean): string {
   return (
-    tick +
-    `<label class="unverified"><input type="checkbox" name="unverified" value="${value}"${form}` +
-    `${row.notVerified ? " checked" : ""}> ${esc(t(lang, "checks.notVerified"))}</label>`
+    `<li class="checkcolumns" aria-hidden="true">` +
+    `<div class="checkverified">${esc(t(lang, "checks.verified"))}</div>` +
+    `<div class="checkyes">${esc(t(lang, "checks.yes"))}</div>` +
+    `<div class="checkother">${esc(t(lang, archived ? "checks.failed" : "checks.notYet"))}</div>` +
+    `</li>`
   );
 }
 

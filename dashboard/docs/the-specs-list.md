@@ -149,16 +149,20 @@ Status tab, in place of the list.
 
 ## Not verified, and Failed
 
-**Each acceptance row has a second box, "Not verified".** It is offered beside the tick box under the › and on the
-Status tab. A row marked Not verified counts as done, so archive is not held back by it, but the spec keeps a
+**Each acceptance row has two boxes, side by side at the right of its text.** They are offered under the › and on
+the Status tab, in two columns under one heading: "Verified" on the first line, and "Yes" and "Not yet" on the
+second (the heading is drawn once, where the list has a box, and each box's accessible name repeats it). "Not yet"
+is the "Not verified" box. A read-only mark (✅, ☐, "Not verified", "Failed") sits in the same two columns, so the
+text stays at the left of every row. A row marked Not verified counts as done, so archive is not held back by it, but the spec keeps a
 small line `N not verified` below the project and name on its list row — live and archived, not closed — linking
 to its Status tab. An archived row that draws the info line under its phase lines says the count there instead, and
 only there. The State filter has a "Not verified" entry that shows only specs with such a row, archived
 ones included.
 
 On an archived spec a Not verified row stays open to change, on the Status tab and under the › of the archived
-row's own line. It can be ticked, or marked Failed with a note saying what did not hold. Those two are the only
-changes an archived spec accepts. Ticking the last Not verified row removes the line and the spec leaves the
+row's own line, under the columns "Yes" and "Failed". It can be ticked, or marked Failed with a note saying what did
+not hold; the note field appears under the criterion while Failed is ticked. Those two are the only changes an
+archived spec accepts. Ticking the last Not verified row removes the line and the spec leaves the
 filter.
 
 **A Failed row keeps the spec in the Not verified filter and carries a Reopen button.** The line under the name

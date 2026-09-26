@@ -100,7 +100,7 @@ describe("the checks on the Overview tab", () => {
       const html = await overview(startWithChecks(savable("/host")).base);
       expect(html).toContain("Run the full test suite");
       expect(html.match(/name="tick"/g)!).toHaveLength(3);
-      expect(html).toContain(`value="${DONE_ROW}" checked>`);
+      expect(html).toContain(`value="${DONE_ROW}" checked aria-label=`);
     });
 
     // A Phase section the workflow has not reached carries the run's own
@@ -131,7 +131,7 @@ describe("the checks on the Overview tab", () => {
       const done = ["# Queue - Status", "", phaseSection(PHASE, [DONE_ROW])].join("\n");
       const html = await overview(startWithChecks(savable("/host"), done).base);
       expect(html.match(/name="tick"/g)!).toHaveLength(1);
-      expect(html).toContain(`value="${DONE_ROW}" checked>`);
+      expect(html).toContain(`value="${DONE_ROW}" checked aria-label=`);
       expect(html).toContain("Run the full test suite");
     });
 
@@ -396,12 +396,39 @@ describe("the Not verified box on the Status tab (spec 509)", () => {
     const html = block(await statusTab(startWithChecks(savable("/host"), withNv).base));
     expect(html.match(/name="tick"/g)).toHaveLength(3);
     expect(html.match(/name="unverified"/g)).toHaveLength(3);
-    expect(html).toContain(`name="unverified" value="${NV_ROW}" checked>`);
-    expect(html).not.toContain(`name="tick" value="${NV_ROW}" checked>`);
-    expect(html).toContain(`name="tick" value="${DONE_ROW}" checked>`);
-    expect(html).not.toContain(`name="unverified" value="${DONE_ROW}" checked>`);
-    expect(html).not.toContain(`name="unverified" value="${OPEN_ROW}" checked>`);
+    expect(html).toContain(`name="unverified" value="${NV_ROW}" checked aria-label=`);
+    expect(html).not.toContain(`name="tick" value="${NV_ROW}" checked aria-label=`);
+    expect(html).toContain(`name="tick" value="${DONE_ROW}" checked aria-label=`);
+    expect(html).not.toContain(`name="unverified" value="${DONE_ROW}" checked aria-label=`);
+    expect(html).not.toContain(`name="unverified" value="${OPEN_ROW}" checked aria-label=`);
     expect(html).toContain('class="check notverified"');
+  });
+
+  test("one heading follows the section's caption: Yes and Not yet on a live spec, Yes and Failed on an archived one (AC-2, AC-4)", async () => {
+    const live = block(await statusTab(startWithChecks(savable("/host"), withNv).base));
+    expect(live.match(/class="checkcolumns"/g)).toHaveLength(1);
+    expect(live).toContain('<div class="checkyes">Yes</div><div class="checkother">Not yet</div>');
+    expect(live.indexOf("checkcolumns")).toBeGreaterThan(live.indexOf("checkphase"));
+    expect(live.indexOf("checkcolumns")).toBeLessThan(live.indexOf('<li class="check '));
+    const { base } = harness.start({
+      description: DESCRIPTION,
+      status: STATUS,
+      archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT, status: NV_STATUS } },
+      extra: { gitRun: savable("/host") },
+    });
+    const archived = block(await statusTab(base, `/specs/aide/${ARCHIVED}`));
+    expect(archived).toContain('<div class="checkyes">Yes</div><div class="checkother">Failed</div>');
+    expect(archived).not.toContain("Not yet");
+  });
+
+  test("a list with no box has no heading (AC-2)", async () => {
+    const { base } = harness.start({
+      description: DESCRIPTION,
+      status: STATUS,
+      archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT, status: STATUS } },
+      extra: { gitRun: savable("/host") },
+    });
+    expect(await statusTab(base, `/specs/aide/${ARCHIVED}`)).not.toContain(`class="checkcolumns"`);
   });
 
   test("a spec whose only non-done rows are Not verified still gets its base sha, and a post built from the page is accepted (AC-1)", async () => {
@@ -426,7 +453,7 @@ describe("the Not verified box on the Status tab (spec 509)", () => {
     const html = await statusTab(base, `/specs/aide/${ARCHIVED}`);
     const form = block(html);
     expect(form.match(/name="tick"/g)).toHaveLength(1);
-    expect(form).toContain(`name="tick" value="${NV_ROW}">`);
+    expect(form).toContain(`name="tick" value="${NV_ROW}" aria-label=`);
     expect(form).not.toContain('name="unverified"');
     expect(form).not.toContain(`value="${DONE_ROW}"`);
     expect(form).toContain(`name="statusBaseSha" value="${FILE_SHA}"`);
@@ -460,10 +487,10 @@ describe("the Failed choice on the Status tab (spec 510)", () => {
 
   test("an archived spec draws tick, Failed and a note field on its Not verified row (AC-4)", async () => {
     const form = block(await statusTab(archivedPage().base, `/specs/aide/${ARCHIVED}`));
-    expect(form).toContain(`name="tick" value="${NV_ROW}">`);
-    expect(form).toContain(`name="failed" value="${NV_ROW}">`);
+    expect(form).toContain(`name="tick" value="${NV_ROW}" aria-label=`);
+    expect(form).toContain(`name="failed" value="${NV_ROW}" aria-label=`);
     expect(form).toContain('<textarea class="failnote" name="failnote-0"');
-    expect(form).toMatch(/<div class="failcontrol"><label class="unverified">/);
+    expect(form).toMatch(/<div class="failcontrol"><textarea class="failnote"/);
     expect(form.match(/name="tick"/g)).toHaveLength(1);
   });
 

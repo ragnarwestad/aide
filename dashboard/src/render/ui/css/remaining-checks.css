@@ -11,24 +11,32 @@
 .checklist .checkphase { color: var(--muted); font-size: var(--fs-s); font-weight: 600;
   margin-top: var(--sp-2); }
 .checklist .checkphase:first-child { margin-top: 0; }
-.check { display: flex; align-items: baseline; gap: var(--sp-2); flex-wrap: wrap; }
-/* The criterion's text takes the room beside the box and wraps INSIDE
-   it. Without a basis of 0 a long criterion's own width is the flex
-   basis, wider than the line, and the wrap moves the whole text under
-   the box instead of breaking it (2026-09-14). */
-.check .checktask { flex: 1 1 0; min-width: 0; }
+/* A row is a grid of the list's three columns: the criterion's text, then
+   the two boxes. Row and heading take the list's columns with `subgrid`, so
+   every box sits in the same place whatever words are in them. The grid is
+   written under the two acceptance lists: `.checklist` is also the Settings
+   page's per-AI list. Every child of a row is placed here, so the order in
+   the markup does not matter. */
+.checks .checklist, .rowchecks .checklist { display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--sp-1) var(--sp-3); }
+.checks .checklist > .checkphase, .rowchecks .checklist > .checkphase { grid-column: 1 / -1; }
+.checklist > .check, .checklist > .checkcolumns { grid-column: 1 / -1; display: grid;
+  grid-template-columns: subgrid; align-items: baseline; }
+.check { row-gap: var(--sp-2); }
+.check .checktask { grid-column: 1; grid-row: 1; min-width: 0; }
+/* The tick box's column, and a read-only ✅ or ☐ in the same one. */
+.check .checkbox { grid-column: 2; grid-row: 1; justify-self: center; }
 .check.done .checktask { color: var(--muted); text-decoration: line-through; }
 /* The run's own note on the row, under the criterion rather than beside
    it: it is a sentence, not a label, and it must not squeeze the text
-   the reader is judging. Its own line, indented past the box so it
-   lines up with that text — and outside `.checktask`, so a done row's
-   strike-through does not run through the one thing on it that is still
-   worth reading. */
-.check .checknote { flex-basis: 100%; margin-left: calc(18px + var(--sp-2));
-  color: var(--muted); font-size: var(--fs-s); }
+   the reader is judging. Its own line in the text's column — and outside
+   `.checktask`, so a done row's strike-through does not run through the one
+   thing on it that is still worth reading. */
+.check .checknote { grid-column: 1; color: var(--muted); font-size: var(--fs-s); }
 /* The tests that prove the row, under its note; amber where none does. */
-.check .checktests { flex-basis: 100%; margin-left: calc(18px + var(--sp-2));
-  color: var(--muted); font-size: var(--fs-s); }
+.check .checktests { grid-column: 1; color: var(--muted); font-size: var(--fs-s); }
+/* The link of a Failed row: a line under the text, not a stretched cell. */
+.check .btn { grid-column: 1; justify-self: start; }
 .check .checktests.untested { color: var(--warn); }
 /* One box-sized slot, whichever of the two things is in it: the mark a
    row on the spec page shows, and the real checkbox the Edit form draws
@@ -40,28 +48,31 @@
 label.checkbox { cursor: pointer; }
 label.checkbox input { margin: 0; cursor: pointer; }
 
-/* The second box of a row, "Not verified": a check that has to wait for
-   something after the deploy. It sits after the criterion's text, on the
-   same line; the note and the tests keep their own lines below. A row
-   marked so is not struck through like a done one, because nobody has
-   checked it. */
-.check .checktask { order: 1; }
-.check .unverified { order: 2; display: inline-flex; align-items: center; gap: var(--sp-1);
-  flex: none; color: var(--muted); font-size: var(--fs-s); }
-.check .unverified input { margin: 0; cursor: pointer; }
+/* The second box of a row, in the third column: "Not yet", a check that has
+   to wait for something after the deploy (an archived row: Failed). Its words
+   are in the heading, and a read-only mark keeps its own. A row marked so is
+   not struck through like a done one, because nobody has checked it. */
+.check .unverified { grid-column: 3; grid-row: 1; justify-self: center; text-align: center;
+  color: var(--muted); font-size: var(--fs-s); }
 .check .unverified.readonly { color: var(--warn); }
 .check .unverified.readonly.failed { color: var(--danger); }
-/* The Failed control of an archived row: the Failed box, and under it the note
-   saying what did not hold. It takes the half of the row the criterion leaves
-   (both have a basis of 0, so the two are equal). The note is a text area of five
-   lines that can be dragged to ten and no further — the cap is in the field's own
-   line height, so a change of the tokens moves it with them. */
-.check .failcontrol { order: 2; flex: 1 1 0; min-width: 0; }
+/* The note of an archived row's Failed choice, under the criterion, only while
+   Failed is ticked (it stays in the form when hidden). A text area of five lines
+   that can be dragged to ten and no further — the cap is in the field's own line
+   height, so a change of the tokens moves it with them. */
+.check .failcontrol { grid-column: 1; grid-row: 2; display: none; min-width: 0; }
+.check:has(input[name="failed"]:checked) .failcontrol { display: block; }
 .check .failnote { display: block; width: 100%; box-sizing: border-box; margin-top: var(--sp-1);
   padding: var(--sp-1) var(--sp-2); border: 1px solid var(--line-strong); border-radius: var(--r-s);
   background: var(--surface); color: var(--text); font: var(--fs-s)/var(--lh) var(--sans);
   resize: vertical; max-height: calc(10 * var(--fs-s) * var(--lh) + 2 * var(--sp-1) + 2px); }
-.check .checknote, .check .checktests { order: 3; }
+
+/* The heading over the two columns: "Verified" over both, and the two names
+   under it, each over its own column. */
+.checkcolumns { color: var(--muted); font-size: var(--fs-s); font-weight: 600; text-align: center; }
+.checkcolumns .checkverified { grid-column: 2 / 4; grid-row: 1; }
+.checkcolumns .checkyes { grid-column: 2; grid-row: 2; }
+.checkcolumns .checkother { grid-column: 3; grid-row: 2; }
 
 
 /* The acceptance criteria unfolded on a spec's row (spec 493): the spec

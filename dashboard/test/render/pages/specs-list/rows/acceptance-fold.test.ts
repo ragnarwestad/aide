@@ -106,6 +106,14 @@ describe("the unfolded list", () => {
     expect(boxes("unverified", ROW_DONE)).not.toContain("checked");
   });
 
+  test("one heading opens the list, and a list with no box has none (AC-2)", () => {
+    expect(html.match(/class="checkcolumns"/g)).toHaveLength(1);
+    expect(html.indexOf('class="checkcolumns"')).toBeLessThan(html.indexOf('<li class="check '));
+    expect(html).toContain('<div class="checkother">Not yet</div>');
+    const failedOnly = notice({ checks: KEY }, target({ acceptance: [{ phase: "Acceptance criteria", line: "| AC-9: it failed | ❌ Failed | |", task: "AC-9: it failed", done: false, failed: true, note: "" }] }));
+    expect(failedOnly).not.toContain(`class="checkcolumns"`);
+  });
+
   test("posts to the tick route as a list press, with the section and the view", () => {
     expect(html).toContain(`action="/api/queue/specs/aide/${FOLDER}/tick?fromList=1"`);
     expect(html).toContain('name="checksPhase" value="Acceptance criteria"');
