@@ -64,8 +64,10 @@ async function failed(io: DeployIo, ui: DeployUi, step: DeployStep, failure: Dep
   ui.close();
 }
 
-/** Runs one posted step. False when it failed, after telling `ui`. */
-async function posted(io: DeployIo, ui: DeployUi, step: PostedStep): Promise<StepAnswer | null> {
+/** Runs one posted step. False when it failed, after telling `ui`.
+ *  `finish` false leaves the step running for the caller to finish:
+ *  the restart's answer only says the restart was set off. */
+async function posted(io: DeployIo, ui: DeployUi, step: PostedStep, finish = true): Promise<StepAnswer | null> {
   ui.state(step, "running");
   let answer: StepAnswer;
   try {
@@ -77,44 +79,59 @@ async function posted(io: DeployIo, ui: DeployUi, step: PostedStep): Promise<Ste
     await failed(io, ui, step, { error: answer.error ?? "", faulty: answer.faulty === true, silent: false });
     return null;
   }
-  ui.state(step, "done");
+  if (finish) ui.state(step, "done");
   return answer;
 }
 
 /** Probes `/api/version` until a process other than `leaving` answers.
- *  Whether anything answered at all is what decides the step: an old
- *  process that never goes away still answers, and the check that
- *  follows reports what it runs. */
-async function waitForNewProcess(io: DeployIo, leaving: string | null | undefined): Promise<boolean> {
+ *  The restart runs until the old process stops answering or a new one
+ *  answers; the wait runs from then until a new one answers. Whether
+ *  anything answered at all is what decides the wait: an old process
+ *  that never goes away still answers, and the check that follows
+ *  reports what it runs. */
+async function waitForNewProcess(io: DeployIo, ui: DeployUi, leaving: string | null | undefined): Promise<boolean> {
+  let restarted = false;
+  const restartDone = (): void => {
+    if (restarted) return;
+    restarted = true;
+    ui.state("restart", "done");
+    ui.state("wait", "running");
+  };
   await io.sleep(FIRST_PROBE_AFTER_MS);
   let answered = false;
   for (let n = 0; n < PROBES; n++) {
     try {
       const { startedAt } = await io.version();
       answered = true;
-      if (startedAt !== leaving) return true;
+      if (startedAt !== leaving) {
+        restartDone();
+        return true;
+      }
     } catch {
-      // Refused or reset while the service is down: keep waiting.
+      // Refused or reset while the service is down: the old process is
+      // gone, and the wait for the new one has begun.
+      restartDone();
     }
     await io.sleep(PROBE_EVERY_MS);
   }
+  restartDone();
   return answered;
 }
 
 export async function runDeploy(io: DeployIo, ui: DeployUi): Promise<void> {
   if (!(await posted(io, ui, "fetch"))) return;
   if (!(await posted(io, ui, "install"))) return;
-  const restarted = await posted(io, ui, "restart");
+  const restarted = await posted(io, ui, "restart", false);
   if (!restarted) return;
   // Held back by running jobs, or nothing to restart with: nothing will
   // answer anew, and the reload shows the Deploy tab's own sentence.
   if (restarted.restart !== "fired") {
+    ui.state("restart", "done");
     ui.close();
     io.reload();
     return;
   }
-  ui.state("wait", "running");
-  if (!(await waitForNewProcess(io, restarted.startedAt))) {
+  if (!(await waitForNewProcess(io, ui, restarted.startedAt))) {
     await failed(io, ui, "wait", { error: "", faulty: false, silent: true });
     return;
   }

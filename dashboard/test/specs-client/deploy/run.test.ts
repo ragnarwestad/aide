@@ -103,6 +103,41 @@ describe("runDeploy", () => {
     expect(fakes.failures).toEqual([]);
   });
 
+  // The restart's own answer only says it was set off: the line runs on
+  // until the old process stops answering, and the wait runs from then.
+  const whenDone = async (probes: (string | null)[]) => {
+    const { fakes, io, ui } = harness({}, probes);
+    const at: Record<string, number> = {};
+    const state = ui.state;
+    ui.state = (step, to) => {
+      if (to !== "waiting") at[`${step} ${to}`] = fakes.log.filter((e) => e === "probe").length;
+      state(step, to);
+    };
+    await runDeploy(io, ui);
+    return at;
+  };
+
+  test("the restart runs while the old process still answers, and is done at the first probe that is refused", async () => {
+    const at = await whenDone(["old", "old", null, "new"]);
+    expect(at["restart running"]).toBe(0);
+    expect(at["restart done"]).toBe(3);
+    expect(at["wait running"]).toBe(3);
+    expect(at["wait done"]).toBe(4);
+  });
+
+  test("a new process answering before any probe is refused ends the restart and the wait together", async () => {
+    const at = await whenDone(["old", "new"]);
+    expect(at["restart done"]).toBe(2);
+    expect(at["wait done"]).toBe(2);
+  });
+
+  test("a restart held back is done at once, with no probe", async () => {
+    const { fakes, io, ui } = harness({ restart: { ok: true, restart: "held" } });
+    await runDeploy(io, ui);
+    expect(fakes.states.restart).toBe("done");
+    expect(fakes.states.wait).toBe("waiting");
+  });
+
   test("every line is in exactly one state, at most one runs, and the ones before it are done (AC-3)", async () => {
     const { fakes, io, ui } = harness({}, [null, "new"]);
     await runDeploy(io, ui);
