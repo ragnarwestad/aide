@@ -133,6 +133,10 @@ export interface ServerOptions {
    *  Omitted, it is the checker's own TTL, which is the window the
    *  answer was already considered current for. */
   driftPollMs?: number;
+  /** How long Deploy's fetch waits for a merge into the same checkout —
+   *  a landing running its tests holds it for minutes — before saying so
+   *  instead. A test seam; omitted, `DEPLOY_LOCK_WAIT_MS`. */
+  deployLockWaitMs?: number;
   /** How often the spec caches are refilled (spec 208). Like
    *  `driftPollMs` it is a SCHEDULE, not a cache window: every page
    *  render reads the last answer and never takes one itself. `0` turns
