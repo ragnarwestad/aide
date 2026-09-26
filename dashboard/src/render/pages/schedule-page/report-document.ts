@@ -24,9 +24,43 @@ function cleanAttributes(el: HTMLRewriterTypes.Element): void {
   }
 }
 
+/** A table cell holding one short word — a date, a version, a link's one
+ *  word — is kept on one line (`data-short`, report-frame.css): a table
+ *  that may break anywhere hands a long cell beside it all the room and
+ *  cuts "2026-09-25" in two. */
+const SHORT_CELL = /^\S{1,24}$/;
+
+/** Which table cells, in document order, hold one short word. A cell's
+ *  text reaches a rewriter only after its start tag has gone, so it is
+ *  read in a pass of its own. */
+async function shortCells(html: string): Promise<boolean[]> {
+  const texts: string[] = [];
+  let open: number[] = [];
+  await new HTMLRewriter()
+    .on("td, th", {
+      element(el) {
+        texts.push("");
+        const i = texts.length - 1;
+        open = [...open, i];
+        el.onEndTag(() => {
+          open = open.filter((j) => j !== i);
+        });
+      },
+      text(t) {
+        const i = open[open.length - 1];
+        if (i !== undefined) texts[i] += t.text;
+      },
+    })
+    .transform(new Response(html))
+    .text();
+  return texts.map((t) => SHORT_CELL.test(t.trim()));
+}
+
 /** `baseHref` is the run's own directory, so a relative link written next
  *  to the report resolves there and opens in a new tab. */
 export async function buildReportDocument(reportHtml: string, baseHref: string): Promise<string> {
+  const short = await shortCells(reportHtml);
+  let cell = 0;
   const body = await new HTMLRewriter()
     .on(REMOVED_WITH_CONTENT, { element: (el) => void el.remove() })
     .on(UNWRAPPED, { element: (el) => void el.removeAndKeepContent() })
@@ -35,6 +69,11 @@ export async function buildReportDocument(reportHtml: string, baseHref: string):
       element(el) {
         el.setAttribute("target", "_blank");
         el.setAttribute("rel", "noopener noreferrer");
+      },
+    })
+    .on("td, th", {
+      element(el) {
+        if (short[cell++]) el.setAttribute("data-short", "");
       },
     })
     .transform(new Response(reportHtml))

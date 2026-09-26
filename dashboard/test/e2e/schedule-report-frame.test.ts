@@ -19,9 +19,13 @@ const KEY = "schedule-nightly-report";
 // page shows THAT run — which has no report. A fixed date made the test
 // pass on the day it was written and rot every day after.
 const NOW = new Date().toISOString();
+const LONG_NEWS = "Opt-in gateway hint header; managed settings; MCP tool output saved to files; faster first request; ".repeat(3);
 const REPORT =
   `<html><body style="background:#ff00ff;color:#00ff00"><h1>Findings</h1>` +
-  `<script>document.title = "script-ran"</script><a href="https://example.com/">link</a></body></html>`;
+  `<script>document.title = "script-ran"</script><a href="https://example.com/">link</a>` +
+  `<table><tr><th>Date</th><th>Version</th><th>News</th><th>Source</th></tr>` +
+  `<tr><td>2026-09-25</td><td>2.1.283</td><td>${LONG_NEWS}</td><td><a href="https://example.com/r">Releases</a></td></tr>` +
+  `</table></body></html>`;
 
 const harness = queueHarness("aide-e2e-report-frame-");
 let browser: Browser;
@@ -100,7 +104,34 @@ test("a script in the report does not run, and a click on its link opens a new t
   await frame.locator("h1").waitFor();
   expect(await page.title()).not.toBe("script-ran");
   const popup = page.waitForEvent("popup");
-  await frame.locator("a").click();
+  await frame.locator('a[href="https://example.com/"]').click();
   const tab = await popup;
   expect(tab.url()).toContain("example.com");
+});
+
+// A short value — a date, a version, one word — keeps to one line beside
+// a long one, and a table wider than a phone scrolls inside itself rather
+// than taking the whole report sideways.
+test("a table's short cells keep to one line, and a table wider than a phone scrolls on its own", async () => {
+  for (const width of [1000, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`${base}/schedule/aide/nightly-report?live=0`);
+    const frame = page.frameLocator("iframe[data-report-frame]");
+    await frame.locator("table").waitFor();
+    const m = await frame.locator("body").evaluate(() => {
+      const lines = (el: Element) => {
+        const r = document.createRange();
+        r.selectNodeContents(el);
+        return new Set([...r.getClientRects()].map((q) => Math.round(q.top))).size;
+      };
+      const cells = [...document.querySelectorAll("tr:last-child td")];
+      return {
+        short: [cells[0]!, cells[1]!, cells[3]!].map(lines),
+        sideways: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      };
+    });
+    expect([width, m.short]).toEqual([width, [1, 1, 1]]);
+    expect([width, m.sideways]).toEqual([width, 0]);
+  }
+  await page.setViewportSize({ width: 1280, height: 800 });
 });

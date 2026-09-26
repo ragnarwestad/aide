@@ -21,8 +21,14 @@ code, pre { font-family: var(--mono), monospace; font-size: var(--fs-s); }
 code { background: var(--surface-2); border-radius: var(--r-s); padding: 0 var(--sp-1); }
 pre { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); padding: var(--sp-3); overflow-x: auto; }
 pre code { background: none; padding: 0; }
-table { border-collapse: collapse; max-width: 100%; }
-th, td { border: 1px solid var(--line); padding: var(--sp-1) var(--sp-2); text-align: left; vertical-align: top; }
+/* A table wider than the frame scrolls on its own, not the report. Its
+   cells break a long word only where they must (`anywhere`, above, lets
+   a column shrink to nothing), and a cell of one short word keeps to one
+   line (`data-short`, report-document.ts). */
+table { border-collapse: collapse; max-width: 100%; display: block; overflow-x: auto; }
+th, td { border: 1px solid var(--line); padding: var(--sp-1) var(--sp-2); text-align: left; vertical-align: top;
+  overflow-wrap: break-word; }
+th[data-short], td[data-short] { white-space: nowrap; }
 th { background: var(--surface-2); }
 blockquote { border-left: var(--sp-1) solid var(--line-strong); padding-left: var(--sp-3); color: var(--muted); }
 hr { border: 0; border-top: 1px solid var(--line); }
