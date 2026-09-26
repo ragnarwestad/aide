@@ -130,7 +130,9 @@ function stepLogPanel(
   // succeeded. Without it the page showed four steps reading "ok" and
   // no sign of the tests that refused the merge.
   const merge = refusal ? `<pre class="specfile">${esc(refusal)}</pre>` : "";
-  if (logs && logs.length > 0) return `${merge}${filters}<pre class="specfile">${logs.join("\n")}</pre>`;
+  // In a box about a hundred lines tall that opens at its newest line, and
+  // stays there when a running step's page reloads itself.
+  if (logs && logs.length > 0) return `${merge}${filters}<div class="logbox"><pre class="specfile">${logs.join("\n")}</pre></div>`;
   if (merge) return merge;
   // A filter that matched nothing is not an empty transcript: say which
   // it is, and leave the links up so the reader can get back. Only when
