@@ -63,9 +63,15 @@ matter with the mark and the commit.
 A page opens with a `# ` heading, then one line saying what the part does
 (the index shows that line), then:
 
-- its pieces, one line each, naming the file that holds the piece:
-  "`specs-client/deploy/run.ts` runs the Deploy dialog's steps", never
-  a piece named with no file behind it
+- its pieces, one line each, naming the file that holds the piece by its
+  full path from the project's root, in backticks:
+  "`dashboard/src/specs-client/deploy/run.ts` runs the Deploy dialog's
+  steps", never a piece named with no file behind it. Every file the
+  text names this way becomes one of the page's sources, so a page that
+  mentions a stylesheet goes stale when that stylesheet changes
+- a link to the page of every shared component it uses (a control, a
+  dialog, the stylesheets), so a change placed on this page finds what
+  it shares with others
 
 - who it talks to and over what, with ordinary markdown links to
   `other-page.md`

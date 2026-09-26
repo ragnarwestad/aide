@@ -155,6 +155,17 @@ case "$sub" in
       [ "$(git -C "$project_dir" cat-file -t "HEAD:$f" 2>/dev/null)" != "tree" ] ||
         { rm -f "$body"; refuse "folder-not-file" "$f is a folder — name the files the page was written from, not the folder they are in"; }
     done
+    # A file the page names in its text is one of its sources too, whether or
+    # not the session passed it: a page that mentions a file and does not
+    # list it would read as current after that file changed.
+    while IFS= read -r named; do
+      [ -n "$named" ] || continue
+      [ "$(git -C "$project_dir" cat-file -t "HEAD:$named" 2>/dev/null)" = "blob" ] || continue
+      case " ${files[*]} " in *" $named "*) continue ;; esac
+      files+=("$named")
+    done <<NAMED
+$(grep -o '`[^` ]*`' "$body" | tr -d '`' | awk '!seen[$0]++')
+NAMED
     compose "$head_sha" "${files[@]}" < "$body" | put_page "$wiki/$page"
     [ "${PIPESTATUS[1]}" -eq 0 ] || { rm -f "$body"; exit 2; }
     rm -f "$body"

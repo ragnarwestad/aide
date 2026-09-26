@@ -113,6 +113,17 @@ def test_a_folder_is_refused_as_a_page_s_source(script, specs_root, project):
     assert write_page(script, specs_root, project, "a.md", ["dir/z.txt"])[1]["ok"] is True
 
 
+def test_a_file_the_page_names_in_its_text_is_one_of_its_sources(script, specs_root, project):
+    """The design-system page named eighteen stylesheets in its text and
+    listed five as sources, so thirteen could change with the page still
+    reading as current."""
+    body = "# The page\n\nDraws with `y.txt` and `dir/z.txt`; `not/there.txt` and `dir` are ignored.\n"
+    rc, out = write_page(script, specs_root, project, "page.md", ["x.txt"], body)
+    assert rc == 0, out
+    text = (specs_root / "wiki" / "page.md").read_text()
+    assert "files:\n  - x.txt\n  - y.txt\n  - dir/z.txt\n---\n" in text
+
+
 def test_a_page_needs_files_a_body_and_a_plain_name_AC_3(script, specs_root, project):
     assert write_page(script, specs_root, project, "a.md", [])[1]["reason"] == "no-file"
     assert write_page(script, specs_root, project, "a.md", ["x.txt"], "")[1]["reason"] == "empty-body"
