@@ -255,9 +255,11 @@ settings row owns, `specsRoot` and `worktreeLinks`, are left out here and carrie
 
 **The settings table**, with a sentence above it saying where this project's settings live: in the dashboard's own
 file, in the project's tracked manifest, in both — where the tracked manifest wins and the dashboard's copy is not
-used — or nowhere yet. The table has a row per recognized `.aide/config` key, each marked configured, worked out
-(naming the lockfile that decided it, hedged as a default rather than a verified command) or not set, plus a **Code
-landing** row, which is not a config key. A row whose readiness check failed carries that check's sentence inline.
+used — or nowhere yet. The table has a row for each of the five settings a run reads — Specs path, Worktree links,
+Test command, Install command and Preview command — each marked configured or not set, plus a **Code landing** row,
+which is not a config key. `AIDE_LINT_CMD` and `AIDE_BUILD_CMD` have no row: the runner never runs them, and the
+implement step's AI works them out from the project's own files unless `.aide/config` sets them. A row whose
+readiness check failed carries that check's sentence inline.
 
 The test command is the one worth knowing: a run and a landing test with a configured command only
 (`aide-resolve-test-cmd`), so an unset one reads "not set — no tests run when a spec lands", with the worked-out
@@ -265,7 +267,7 @@ command beside it as a suggestion.
 
 **Edit** (`?edit=1`) turns the same table into a form — there is only ever one table on the page, in either mode.
 Six controls open: Specs path, Worktree links, Install command, Preview command, Test command and Code landing.
-Lint and build stay read-only, since nothing a run does reads them. The test field is empty with the worked-out
+The test field is empty with the worked-out
 command as its placeholder, so a save that never touched it configures nothing. Worktree links has a line of the
 checkout's own top-level `.gitignore` entries under it. The five text fields are as wide as their cell and grow to
 show the whole value; with the board's script on, Enter saves, and a value is always one line — a line break in it is

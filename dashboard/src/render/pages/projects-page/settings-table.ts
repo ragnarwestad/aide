@@ -1,7 +1,7 @@
 // The project page's unified settings table: view mode and edit mode
 // in one `<table>`.
 
-import { DERIVABLE, type ProjectSettingsView, type SettingRow } from "../../../project/project-settings.ts";
+import type { ProjectSettingsView, SettingRow } from "../../../project/project-settings.ts";
 import { SETTING_LABELS } from "../../../project/setting-labels.ts";
 import { btn, messageSlot, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
@@ -33,8 +33,7 @@ function originText(r: SettingRow, home?: ProjectPageOptions["settingsHome"]): s
     if (r.source === "project.yaml" && home === "dashboard") return "configured, from the dashboard's settings.yaml";
     return r.source ? `configured, from ${esc(CONFIGURED_SOURCE_LABEL[r.source] ?? r.source)}` : "configured";
   }
-  if (r.origin === "unset") return "not set";
-  return `worked out from ${esc(r.source ?? "")} — the usual ${esc(r.toolchain ?? "")} default, not a verified command`;
+  return "not set";
 }
 
 /** The test command's Comment when nothing is configured. A run and a
@@ -69,10 +68,8 @@ export const codeLandingChoices = (defaultBranch: string | null): { value: "merg
 ];
 
 /** Which `SETTING_KEYS` entry posts under which form field name, in
- *  edit mode. Lint and build are absent on purpose — nothing a run does
- *  reads them, so they never become an `<input>`. The test command is
- *  here: it is what a run and a landing test with, saved to the
- *  manifest's `testCmd`. */
+ *  edit mode. The test command is what a run and a landing test with,
+ *  saved to the manifest's `testCmd`. */
 const EDITABLE_FIELD: Record<string, string> = {
   AIDE_SPECS_PATH: "specsPath",
   AIDE_WORKTREE_LINKS: "worktreeLinks",
@@ -81,14 +78,13 @@ const EDITABLE_FIELD: Record<string, string> = {
   AIDE_TEST_CMD: "testCmd",
 };
 
-/** A row's Value cell: plain text in view mode and for lint and build
- *  always (gated on KEY membership, never on the row's current
- *  `origin`); a one-line `<textarea data-oneline>`, pre-filled from the
+/** A row's Value cell: plain text in view mode; a one-line
+ *  `<textarea data-oneline>`, pre-filled from the
  *  row's own current value, otherwise. A textarea wraps a long value,
  *  which an `<input>` cannot; `bindOneLineFields` gives back what the
  *  input did (growth, Enter to save, no line break). */
 function settingValueCell(r: SettingRow, editing: boolean, opts: ProjectPageOptions): string {
-  if (!editing || (r.key in DERIVABLE && !(r.key in EDITABLE_FIELD))) {
+  if (!editing) {
     return r.value === null ? `<span class="muted">–</span>` : esc(r.value);
   }
   // The test command: only a CONFIGURED value fills the field. A
@@ -119,7 +115,7 @@ function settingValueCell(r: SettingRow, editing: boolean, opts: ProjectPageOpti
 /** The Code-landing row (spec 255). Not a `SettingRow` — it has no
  *  `key`/`purpose`/`origin` of its own, only what `resolveCodeLanding()`
  *  answers — so it is built from its own small literal here rather than
- *  coerced into the shape the seven `SETTING_KEYS` rows share. */
+ *  coerced into the shape the five `SETTING_KEYS` rows share. */
 function codeLandingRow(codeLanding: "merge" | "pr", editing: boolean, defaultBranch: string | null): string {
   const choices = codeLandingChoices(defaultBranch);
   const value = editing
@@ -153,7 +149,7 @@ function settingsHomeSentence(home: ProjectPageOptions["settingsHome"]): string 
 
 /** The one settings table (spec 255, replacing `settingsTable()` plus
  *  the separate plain-text summary and `<details>` editor it used to sit
- *  beside): Name/Value/Comment columns, the seven `SETTING_KEYS` rows
+ *  beside): Name/Value/Comment columns, the five `SETTING_KEYS` rows
  *  plus Code landing, and — in edit mode — the whole table wrapped in
  *  one `<form>` so Save posts every changed field together.
  *

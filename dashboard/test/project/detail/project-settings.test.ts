@@ -89,17 +89,9 @@ describe("configured, worked out, or not set", () => {
   });
 
   test("a command key with neither a value nor a lockfile reads not set", () => {
-    const r = row(project(""), "AIDE_BUILD_CMD");
+    const r = row(project(""), "AIDE_TEST_CMD");
     expect(r.origin).toBe("unset");
     expect(r.value).toBeNull();
-  });
-
-  // The toolchain has no lint command in the table at all, so there is
-  // nothing to work out — the row must not claim a derived value.
-  test("a toolchain the table gives no lint command leaves that key not set", () => {
-    const r = row(project("", "go.mod"), "AIDE_LINT_CMD");
-    expect(r.origin).toBe("unset");
-    expect(row(project("", "go.mod"), "AIDE_TEST_CMD").origin).toBe("derived");
   });
 
   for (const key of ["AIDE_INSTALL_CMD", "AIDE_WORKTREE_LINKS", "AIDE_SPECS_PATH"]) {
@@ -227,8 +219,8 @@ describe("a value that does not resolve is marked, in the words readiness alread
 // `DERIVABLE` is now exported so `render/projects-page.ts` can gate edit-mode on
 // key membership rather than a second, hand-duplicated list.
 describe("the Worktree links row is sourced from resolveWorktreeLinks() (spec 255)", () => {
-  test("DERIVABLE's export names exactly the three command keys, and touches no row shape", () => {
-    expect(Object.keys(DERIVABLE).sort()).toEqual(["AIDE_BUILD_CMD", "AIDE_LINT_CMD", "AIDE_TEST_CMD"]);
+  test("DERIVABLE's export names the test command alone, and touches no row shape", () => {
+    expect(Object.keys(DERIVABLE)).toEqual(["AIDE_TEST_CMD"]);
     const view = projectSettings(project(null), null);
     expect(view.rows.map((r) => r.key)).toEqual([...SETTING_KEYS]);
   });

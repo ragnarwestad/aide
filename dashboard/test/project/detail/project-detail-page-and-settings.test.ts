@@ -201,15 +201,6 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
   // The risk the plan named: the table's commands are "the usual
   // defaults, not a promise", so a derived row must READ as a default
   // rather than as a command somebody verified.
-  test("a derived command carries the hedge, not just the command", async () => {
-    const root = projectsRoot({ aide: "" }, ["pnpm-lock.yaml"]);
-    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
-    expect(html).toContain("not a verified command");
-    // The toolchain by name, which is what makes the hedge mean
-    // something: it is pnpm's default, not this project's command.
-    expect(html).toContain("the usual pnpm default");
-  });
-
   // A worked-out test command runs nothing: the runner and a landing
   // read a configured one only. The row said "the project's own test
   // command" over one no run used, and nobody saw that nothing tested.
@@ -232,11 +223,18 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
     expect(html).toMatch(/name="testCmd"[^>]*placeholder="pnpm test -- --run"><\/textarea>/);
   });
 
+  // Nothing a run does reads a lint or a build command, so the page
+  // offers no row for either, even where a lockfile could suggest one.
+  test("the table has no lint or build row", async () => {
+    const root = projectsRoot({ aide: "AIDE_LINT_CMD=make lint\nAIDE_BUILD_CMD=make build\n" }, ["pnpm-lock.yaml"]);
+    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
+    for (const gone of ["AIDE_LINT_CMD", "AIDE_BUILD_CMD", "Lint command", "Build command"]) expect(html).not.toContain(gone);
+  });
+
   test("a key with neither a value nor anything to work it out from reads not set (criterion 7)", async () => {
     const root = projectsRoot({ aide: "" });
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
-    expect(html).toMatch(/AIDE_BUILD_CMD[\s\S]{0,200}not set/);
-    expect(html).not.toContain("not a verified command");
+    expect(html).toMatch(/AIDE_PREVIEW_CMD[\s\S]{0,200}not set/);
   });
 
   // Spec 255's own criterion 7: a regression guard, not a new bug fix —

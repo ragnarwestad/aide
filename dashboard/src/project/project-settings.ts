@@ -1,4 +1,4 @@
-// The seven `.aide/config` keys a project's page shows, each with
+// The five `.aide/config` keys a project's page shows, each with
 // where its value came from (spec 185).
 //
 // The file is personal and gitignored, so the answer differs per
@@ -34,7 +34,7 @@ export type SettingOrigin = "configured" | "derived" | "unset";
 export interface SettingRow {
   key: string;
   /** What the key is FOR, in one line — the purposes from
-   *  `core/skills/tools-and-scripts/SKILL.md`. A page listing seven
+   *  `core/skills/tools-and-scripts/SKILL.md`. A page listing five
    *  screaming-snake-case names and nothing else says what is set
    *  without saying what any of it does. */
   purpose: string;
@@ -81,8 +81,6 @@ export const SETTING_KEYS = [
   "AIDE_SPECS_PATH",
   "AIDE_WORKTREE_LINKS",
   "AIDE_TEST_CMD",
-  "AIDE_LINT_CMD",
-  "AIDE_BUILD_CMD",
   "AIDE_INSTALL_CMD",
   "AIDE_PREVIEW_CMD",
 ] as const;
@@ -91,23 +89,15 @@ const PURPOSE: Record<string, string> = {
   AIDE_SPECS_PATH: "where this project's specs are kept — its own specs/ when unset",
   AIDE_WORKTREE_LINKS: "gitignored paths a run's worktree needs, which git does not carry",
   AIDE_TEST_CMD: "the project's own test command",
-  AIDE_LINT_CMD: "the project's own lint command",
-  AIDE_BUILD_CMD: "the project's own build command",
   AIDE_INSTALL_CMD: "what installing this project means on this machine, run after its code merges",
   AIDE_PREVIEW_CMD: "how to start this project so a spec's branch can be looked at, serving on $PORT",
 };
 
-/** The three keys a lockfile can answer, and which command each is.
- *  Exported so `render/projects-page.ts` can gate a row's edit-mode input on KEY
- *  membership here, rather than on the row's current `origin` — a key
- *  that is momentarily `unset` (no lockfile found yet) must stay
- *  read-only exactly as a `derived` one does, and a second,
- *  hand-duplicated list of these three names would drift from this one
- *  the moment a fourth derivable key is added. */
+/** The keys a lockfile can answer, and which command each is: the test
+ *  command alone. The page shows no lint or build row, since nothing a
+ *  run does reads them. */
 export const DERIVABLE: Record<string, CommandKind> = {
   AIDE_TEST_CMD: "test",
-  AIDE_LINT_CMD: "lint",
-  AIDE_BUILD_CMD: "build",
 };
 
 /** Which readiness check speaks for a key. Only the two path-like keys
