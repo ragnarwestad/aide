@@ -29,7 +29,7 @@ export function specsClientScript(): Promise<string | undefined> {
     format: "iife",
   })
     .then((result) => (result.success ? result.outputs[0]?.text() : undefined))
-    .catch(() => undefined); // the page still works: the noscript refresh takes over
+    .catch(() => undefined); // the page is still drawn, without its script
   return specsScript;
 }
 

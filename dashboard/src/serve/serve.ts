@@ -2,10 +2,8 @@ import { resolve, dirname } from "node:path";
 import { checkAllTools, setConfiguredTools, toolRechecker, type CheckableTool } from "./tool-check.ts";
 import { runProjectSuiteBeforePush } from "./land-branch/test-gate.ts";
 import { assignSpecNumberAfterMerge } from "./land-branch/finalize-create.ts";
-// The aide-dashboard server (spec 80): serves the spec list and project
-// pages, receives aide-run events (POST /api/aide-run), and renders
-// /live through the generator's layout. Replaces the python3 static
-// server on the serving host — same port, same launchd label.
+// The aide-dashboard server: serves every page of the board and its
+// actions, and receives aide-run events (POST /api/aide-run).
 //
 // CLI: serve [--port N] [--mirror FILE]
 //
@@ -389,8 +387,8 @@ export function createServer(opts: ServerOptions) {
     // and a two-repo merge under load takes longer than that.
     idleTimeout: 120,
     async fetch(req) {
-      // One check in front of EVERY route, the static site and /live
-      // included, so no route can be added outside it. First, before
+      // One check in front of EVERY route, so no route can be added
+      // outside it. First, before
       // `new URL(req.url)`, which throws for a request with no Host.
       const refused = await checkRequest(req, hosts);
       if (refused) return compressResponse(req, refused);
