@@ -221,6 +221,7 @@ export const de: Record<TranslationKey, string> = {
   "schedule.colCron": "Cron",
   "schedule.colPrompt": "Prompt",
   "schedule.colNextRun": "Nächster Lauf",
+  "schedule.colLastRun": "Letzter Lauf",
 
   "project.add": "Hinzufügen",
   "project.remove": "Entfernen",

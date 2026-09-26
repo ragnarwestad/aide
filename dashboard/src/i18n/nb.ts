@@ -222,6 +222,7 @@ export const nb: Record<TranslationKey, string> = {
   "schedule.colCron": "Cron",
   "schedule.colPrompt": "Prompt",
   "schedule.colNextRun": "Neste kjøring",
+  "schedule.colLastRun": "Siste kjøring",
 
   "project.add": "Legg til",
   "project.remove": "Fjern",

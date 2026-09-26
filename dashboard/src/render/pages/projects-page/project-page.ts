@@ -13,6 +13,8 @@ import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { t } from "../../../i18n";
 import { pickTab, tabBar, tabbedBody } from "../job-page";
 import { renderScheduleForm } from "../schedule-page/form.ts";
+import { scheduleControlCells } from "../schedule-page/controls.ts";
+import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { schedulePagePath } from "../schedule-page";
 import { deployDialog, STEP_LABEL } from "./deploy-dialog.ts";
 import { projectDescription } from "./overview-list.ts";
@@ -228,19 +230,30 @@ function scheduleSection(project: string, entries: readonly ScheduleEntry[], opt
       ? `<p class="muted">${t(lang, "schedule.nothingScheduled")}</p>`
       : `<div class="tablewrap"><table class="list"><thead><tr><th>${t(lang, "schedule.colName")}</th>` +
         `<th>${t(lang, "schedule.colCron")}</th><th>${t(lang, "schedule.colPrompt")}</th>` +
-        `<th>${t(lang, "schedule.colNextRun")}</th></tr></thead><tbody>` +
+        `<th>${t(lang, "schedule.colNextRun")}</th><th>${t(lang, "schedule.colLastRun")}</th>` +
+        // Enabled, then two unlabelled columns: Run now and Delete.
+        `<th>${t(lang, "schedule.enabled")}</th><th></th><th></th></tr></thead><tbody>` +
         entries
           .map((e) => {
             const next = nextFireTime(e.cron, now);
+            const last = opts.scheduleLastRuns?.[e.name];
+            const report = last?.outputHref ? ` — <a href="${esc(last.outputHref)}">output</a>` : "";
             return (
               `<tr><td><a href="${esc(schedulePagePath(project, e.name))}">${esc(e.name)}</a></td>` +
               `<td><code>${esc(e.cron)}</code></td><td>${esc(e.prompt)}</td>` +
-              `<td>${next ? esc(next.toISOString()) : `<span class="muted">–</span>`}</td></tr>`
+              `<td>${next ? esc(next.toISOString()) : `<span class="muted">–</span>`}</td>` +
+              `<td><span data-schedule-state>${esc(capitalizeFirst(last?.lastState ?? "never run"))}</span>${report}</td>` +
+              scheduleControlCells(project, e) +
+              `</tr>`
             );
           })
           .join("") +
         `</tbody></table></div>`;
+  // Empty until a Run now is refused: the browser code writes the
+  // refusal into it (`schedule-actions.ts`).
+  const slot = `<p class="refused" aria-live="polite"></p>`;
   return (
+    slot +
     table +
     `<h3>${t(lang, "schedule.newJob")}</h3>` +
     renderScheduleForm(

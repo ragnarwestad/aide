@@ -13,6 +13,7 @@ import {
 import { languageChoice, specsClientScript } from "../../serve-helpers";
 import { serveStatic } from "../../serve-helpers";
 import type { RoutesContext } from "..";
+import { scheduleLastRun } from "./schedule-last-run.ts";
 
 export async function schedulePages(
   ctx: RoutesContext,
@@ -30,29 +31,19 @@ export async function schedulePages(
 
   if (path === SCHEDULE_ROUTE) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-    const outputRoot = ctx.opts.scheduleOutputRoot ?? DEFAULT_SCHEDULE_OUTPUT_ROOT;
     // Every allowed project's entries, flattened together (spec 278) —
     // no per-project filter, mirroring how the Specs list's own
     // `listed` array is every allowed project's jobs at once.
     const projects = [...ctx.allowed].sort();
     const rows = projects.flatMap((project) =>
-      ctx.scheduleStore.list(project).map((entry) => {
-        const key = scheduleTrackingKey(entry.name);
-        const jobs = ctx.queue.list().filter((j) => j.project === project && j.specFolder === key);
-        const last = jobs.sort((a, b) => (b.startedAt ?? b.createdAt).localeCompare(a.startedAt ?? a.createdAt))[0];
-        const wroteReport = last ? readScheduleRunReport(outputRoot, project, key, last.id) !== null : false;
-        return {
-          project,
-          entry,
-          lastState: last?.state,
-          lastRunAt: last?.startedAt ?? last?.createdAt,
-          // The report is shown on the entry's own page, not linked bare.
-          outputHref: wroteReport ? `${schedulePagePath(project, entry.name)}#report` : undefined,
-          // AC-5: the project's own Schedule tab — where the New-job
-          // form and this entry's own row both now live (spec 468).
-          projectScheduleHref: `${projectPagePath(project)}?tab=schedule`,
-        };
-      }),
+      ctx.scheduleStore.list(project).map((entry) => ({
+        project,
+        entry,
+        ...scheduleLastRun(ctx, project, entry.name),
+        // The project's own Schedule tab — where the New-job form and
+        // this entry's own controls live.
+        projectScheduleHref: `${projectPagePath(project)}?tab=schedule`,
+      })),
     );
     const langResult = languageChoice(url, req);
     const html = renderSchedulePage(ctx.nav(), new Date().toISOString(), {

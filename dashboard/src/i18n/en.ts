@@ -230,6 +230,7 @@ export const en = {
   "schedule.colCron": "Cron",
   "schedule.colPrompt": "Prompt",
   "schedule.colNextRun": "Next run",
+  "schedule.colLastRun": "Last run",
 
   "project.add": "Add",
   "project.remove": "Remove",

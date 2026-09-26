@@ -62,7 +62,8 @@ export async function handleScheduleAdminRoutes(
     // never refused for missing confirmation.
     const enabled = body.enabled === "1" || body.enabled === true;
     const result = setScheduleEnabled(ctx.scheduleStore, project, name, enabled);
-    const back = SCHEDULE_ROUTE;
+    // Back to the project's own Schedule tab, where the switch is.
+    const back = `${projectPagePath(project)}?tab=schedule`;
     if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, back);
     return wantsJson ? json({ ok: true, enabled }) : specsRedirect(body, undefined, back);
   }
@@ -83,7 +84,7 @@ export async function handleScheduleAdminRoutes(
       project, specFolder: scheduleTrackingKey(name), steps: ["schedule"],
       ...(entry?.model ? { model: entry.model } : {}),
     });
-    const back = SCHEDULE_ROUTE;
+    const back = `${projectPagePath(project)}?tab=schedule`;
     if (!result.ok) {
       const error = `Run now was refused for ${project}:${name}: ${result.error}`;
       logRefusal("run now", `${project}/${name}`, result.error);
@@ -104,11 +105,12 @@ export async function handleScheduleAdminRoutes(
     const body = sent.body;
     // No typed confirmation (2026-09-08): the dialog asks the question
     // in a sentence, and the press is the answer. No confirm page to
-    // fall back to any more either (spec 528): a refusal redirects to
-    // the schedule list, the same as every other route in this file.
+    // fall back to any more either (spec 528). The answer goes back to
+    // the project's own Schedule tab, where Delete is.
+    const back = `${projectPagePath(project)}?tab=schedule`;
     const result = deleteScheduleEntry(ctx.scheduleStore, project, name);
-    if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, SCHEDULE_ROUTE);
-    return wantsJson ? json({ ok: true }) : specsRedirect(body, undefined, SCHEDULE_ROUTE);
+    if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, back);
+    return wantsJson ? json({ ok: true }) : specsRedirect(body, undefined, back);
   }
 
   const editPost = path.match(/^\/api\/queue\/schedule\/([^/]+)\/([^/]+)$/);

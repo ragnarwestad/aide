@@ -282,8 +282,10 @@ rewritten.
 #### Schedule
 
 A scheduled job runs a prompt against this project on a cron expression, with no spec involved — a report, a
-sweep, a check. The tab lists this project's jobs by name, cron expression, prompt and next run, or says nothing is
-scheduled, and under the list is the form that creates one, with this project already filled in.
+sweep, a check. The tab lists this project's jobs by name, cron expression, prompt, next run and last run, with each
+job's Enabled switch, **Run now** and **Delete** on its row, or says nothing is scheduled. This is where a job is
+switched, fired and removed; `/schedule` only shows them. Under the list is the form that creates one, with this
+project already filled in.
 [Running a job on a schedule](running-specs.md#running-a-job-on-a-schedule) has what such a job may do and where
 its output goes. The tab is drawn even for a project
 that is not on the allowlist; its submission is then refused, with the reason on the form.

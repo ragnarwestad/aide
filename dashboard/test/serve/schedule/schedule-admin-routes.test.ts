@@ -313,15 +313,15 @@ describe("Run now on an entry the queue refuses", () => {
     expect(logged).toHaveLength(1);
   });
 
-  test("a press with no script is redirected to /schedule carrying the same sentence", async () => {
+  test("a press with no script is redirected to the project's Schedule tab carrying the same sentence", async () => {
     const t = start([nightly({ model: "retired" })], { queueDefaults: DEFAULTS });
     const { value: res } = await withLoggedErrors(() =>
       fetch(`${t.base}/api/queue/schedule/aide/nightly/run`, { method: "POST", headers: {}, redirect: "manual" }),
     );
     expect(res.status).toBe(303);
     const location = res.headers.get("location") ?? "";
-    expect(location.startsWith("/schedule?error=")).toBe(true);
-    expect(decodeURIComponent(location.slice("/schedule?error=".length))).toContain("Run now was refused for aide:nightly:");
+    expect(location.startsWith("/projects/aide?tab=schedule&error=")).toBe(true);
+    expect(decodeURIComponent(location.slice("/projects/aide?tab=schedule&error=".length))).toContain("Run now was refused for aide:nightly:");
   });
 
   test("an entry naming the model in another case runs on the listed spelling", async () => {
@@ -348,7 +348,7 @@ describe("POST /api/queue/schedule/<project>/<name>/delete", () => {
     expect(JSON.parse(readFileSync(t.file, "utf-8")).schedules).not.toHaveProperty("aide");
   });
 
-  test("a no-script POST redirects to /schedule on success", async () => {
+  test("a no-script POST redirects to the project's Schedule tab on success", async () => {
     const t = start([nightly()]);
     const res = await fetch(`${t.base}/api/queue/schedule/aide/nightly/delete`, {
       method: "POST",
@@ -357,13 +357,13 @@ describe("POST /api/queue/schedule/<project>/<name>/delete", () => {
       body: "",
     });
     expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe("/schedule");
+    expect(res.headers.get("location")).toBe("/projects/aide?tab=schedule");
     expect(t.stored()).toEqual([]);
   });
 
-  // AC-3: no confirm page to fall back to any more, so a refusal has to
-  // land on the schedule list, the same as every other route in this file.
-  test("a no-script POST that is refused redirects to /schedule, with the reason", async () => {
+  // AC-3: no confirm page to fall back to any more, so a refusal lands on
+  // the project's Schedule tab, where Delete is.
+  test("a no-script POST that is refused redirects to the project's Schedule tab, with the reason", async () => {
     const t = start([nightly()]);
     const res = await fetch(`${t.base}/api/queue/schedule/aide/ghost/delete`, {
       method: "POST",
@@ -372,7 +372,7 @@ describe("POST /api/queue/schedule/<project>/<name>/delete", () => {
       body: "",
     });
     expect(res.status).toBe(303);
-    expect(res.headers.get("location")!.startsWith("/schedule?error=")).toBe(true);
+    expect(res.headers.get("location")!.startsWith("/projects/aide?tab=schedule&error=")).toBe(true);
   });
 
   // Moved from schedule-page-route.test.ts (spec 528): that file's own

@@ -36,6 +36,9 @@ export interface ProjectPageOptions {
   /** This project's own recurring jobs (spec 259). Absent or empty
    *  means no Schedule section renders at all. */
   schedule?: readonly ScheduleEntry[];
+  /** Each entry's most recent run, by entry name: its state, and its
+   *  report on the entry's own page when it wrote one. */
+  scheduleLastRuns?: Readonly<Record<string, { lastState?: string; outputHref?: string }>>;
   /** The Schedule tab's own New-job form (spec 468) — the same two
    *  views the aggregate Schedule page's own routes already build, from
    *  the same helper in `serve.ts` so no two pages come to offer

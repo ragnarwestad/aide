@@ -362,8 +362,9 @@ reach the repository goes through a spec. A job that commits anyway ends as fail
 branch of it is left locally or on origin. The New and Edit forms say so.
 
 `/schedule` lists every allowed project's entries, flattened into one list (`?q=`, `?sort=` and `?dir=` filter and
-sort it); `/schedule/new` makes an entry and `/schedule/<project>/<name>` is one entry's own page (Overview and
-History tabs), with `/schedule/<project>/<name>/delete` its delete confirmation. The pages post to
+sort it). It shows and links, and changes nothing: whether an entry is enabled is text there, and the Enabled switch,
+Run now and Delete are on each row of the project's own Schedule tab, with the form that makes a new entry under them.
+`/schedule/<project>/<name>` is one entry's own page (Overview and History tabs), where it is edited. The pages post to
 `POST /api/queue/schedule` (create), `POST /api/queue/schedule/<project>/<name>` (edit), and
 `POST .../enabled`, `.../run` and `.../delete` (toggle, fire now, remove); `GET /api/queue/schedule/cron-next`
 previews a cron expression's next fire time for the form.
@@ -392,7 +393,7 @@ reads the same field, so pressing it tests what the schedule actually does.
 
 An entry whose model the queue config does not offer (the config file was edited by hand, or the queue config changed) is
 flagged in its Name cell on `/schedule` and above the Overview on its own page, naming the model and the ones the queue
-offers. Its runs are refused: Run now writes the queue's reason into the message slot above the list (`Run now was
+offers. Its runs are refused: Run now writes the queue's reason into the message slot above the project's Schedule tab list (`Run now was
 refused for <project>:<entry>: …`, or in `?error=` for a press made without script) and logs `queue: run now refused for
 <project>/<entry> — <reason>`; the timer logs `queue: scheduled fire refused for <project>/<entry> — <reason>` once per
 fire window and reason, not once per tick. The step sends the named file's contents to the model verbatim, with no Aide skill or spec folder
