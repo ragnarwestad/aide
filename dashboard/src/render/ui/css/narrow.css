@@ -108,6 +108,7 @@
   header { padding: var(--sp-3) var(--sp-4) var(--sp-2); }
   body > nav { padding: 0 var(--sp-4) var(--sp-2); }
   main { padding: var(--sp-4); }
+  body > p.rowmsg { width: calc(100% - 2 * var(--sp-4)); }
 
   /* Cost is not what a phone is for on a PHASE line: the reader is
      checking whether a run finished and pressing Run or Cancel, and the

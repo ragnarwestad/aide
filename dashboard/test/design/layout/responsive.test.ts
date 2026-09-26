@@ -637,13 +637,26 @@ describe("the search row also stays on one line above phone width", () => {
 describe("the frame keeps one width, and the tabs sit in the middle of it", () => {
   /** The shared frame rule's own body. */
   const frameRule = (): string => {
-    const m = /header, body > nav\.tabbar, main, body > p\.rowmsg \{([^}]*)\}/.exec(CSS);
+    const m = /header, body > nav\.tabbar, main \{([^}]*)\}/.exec(CSS);
+    expect(m).not.toBeNull();
+    return m![1]!;
+  };
+
+  /** The direct-body notice rule's own body. */
+  const noticeRule = (): string => {
+    const m = /body > p\.rowmsg \{([^}]*)\}/.exec(CSS);
     expect(m).not.toBeNull();
     return m![1]!;
   };
 
   test("the frame stays centred (REQ-2)", () => {
     expect(frameRule()).toMatch(/margin-inline:\s*auto/);
+  });
+
+  test("a page notice uses the frame's content width", () => {
+    expect(noticeRule()).toMatch(/max-width:\s*72rem/);
+    expect(noticeRule()).toMatch(/width:\s*calc\(100% - 2 \* var\(--sp-6\)\)/);
+    expect(noticeRule()).toMatch(/margin-inline:\s*auto/);
   });
 
   test("the top-level tab bar centres its tabs as a rule of its own (REQ-3)", () => {
