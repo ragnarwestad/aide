@@ -27,7 +27,7 @@ describe("pageShell's waiting-Deploy notice", () => {
     const html = render();
     const notice = html.match(/<p class="restart-notice rowmsg waiting">.*?<\/p>/s)?.[0];
     expect(notice).toBeDefined();
-    expect(text(notice!)).toContain("aide:457-a-spec, aide:458-another");
+    expect(text(notice!)).toContain("aide:457, aide:458");
     // Under the header, before the tab bar: the same slot the install
     // warning already has.
     expect(html.indexOf("</header>")).toBeLessThan(html.indexOf("restart-notice"));
@@ -43,7 +43,7 @@ describe("pageShell's waiting-Deploy notice", () => {
   test("the server's own pending-restart writer is what feeds it", () => {
     const state = createServerState();
     setPendingRestart(state, ["aide:457-a-spec"]);
-    expect(text(noticeOf(render()))).toContain("aide:457-a-spec");
+    expect(text(noticeOf(render()))).toContain("aide:457");
     setPendingRestart(state, []);
     expect(render()).not.toContain("restart-notice");
   });
@@ -60,10 +60,10 @@ describe("the jobs the notice names are links (AC-2)", () => {
     setPendingRestartNotice(["aide:457-a-spec", "aide:458-another"]);
     const notice = noticeOf(render());
     expect(notice).toContain(
-      '<a data-goto href="/projects/aide">aide</a><a data-goto href="/specs/aide/457-a-spec">:457-a-spec</a>',
+      '<a data-goto href="/projects/aide">aide</a><a data-goto href="/specs/aide/457-a-spec" title="aide:457-a-spec">:457</a>',
     );
-    expect(notice).toContain('<a data-goto href="/specs/aide/458-another">:458-another</a>');
-    expect(text(notice)).toContain("Deploy is waiting for aide:457-a-spec, aide:458-another; the service restarts");
+    expect(notice).toContain('<a data-goto href="/specs/aide/458-another" title="aide:458-another">:458</a>');
+    expect(text(notice)).toContain("Deploy is waiting for aide:457, aide:458; the service restarts");
   });
 
   test("a short id and a create job's key stay text (AC-2)", () => {
@@ -93,7 +93,7 @@ describe("only the newest server's state writes the notice", () => {
     expect(render()).not.toContain("restart-notice");
     setPendingRestart(newer, ["aide:459-a-spec"]);
     setPendingRestart(older, []);
-    expect(text(noticeOf(render()))).toContain("aide:459-a-spec");
+    expect(text(noticeOf(render()))).toContain("aide:459");
     setPendingRestart(newer, []);
     expect(render()).not.toContain("restart-notice");
   });

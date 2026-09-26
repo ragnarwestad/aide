@@ -33,6 +33,7 @@ const ALLOWED_TITLES: (string | RegExp)[] = [
   /^\$\{esc\(iso\)\}$/, // html.ts relTime — the exact stamp
   /esc\(board\.specFolder\).*esc\(board\.branch\)/, // shell.ts boardTitle
   /esc\(g\.project\).*esc\(g\.specFolder\)/, // head-row.ts spec link
+  /^\$\{esc\(name\)\}$/, // spec-name.ts jobName — the whole spec id beside its number
   /^\$\{attempts\} attempts$/, // cell-helpers.ts — spelled out
 
   // components/index.ts's own generic `title` builders — the regex

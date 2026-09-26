@@ -203,7 +203,7 @@ describe("renderProjectPage: Deploy tab's restart-waiting sentence (spec 431)", 
       NAV,
       deployOpts,
     );
-    expect(html.replace(/<[^>]*>/g, "")).toContain("the restart is waiting for running jobs: aide:070-example");
+    expect(html.replace(/<[^>]*>/g, "")).toContain("the restart is waiting for running jobs: aide:070");
     expect(html).toContain("aaaa111");
     expect(html).toMatch(/rowmsg waiting/);
   });
@@ -217,7 +217,7 @@ describe("renderProjectPage: Deploy tab's restart-waiting sentence (spec 431)", 
       NAV,
       { ...deployOpts, lang: "nb" },
     );
-    expect(html.replace(/<[^>]*>/g, "")).toContain("omstarten venter på disse jobbene: aide:070-example");
+    expect(html.replace(/<[^>]*>/g, "")).toContain("omstarten venter på disse jobbene: aide:070");
   });
 
   test("the job's name is two links, and a job that is no spec stays text (AC-2, AC-4)", () => {
@@ -227,7 +227,7 @@ describe("renderProjectPage: Deploy tab's restart-waiting sentence (spec 431)", 
         restartWaiting,
       });
     expect(render(["aide:070-example"])).toContain(
-      '<a data-goto href="/projects/aide">aide</a><a data-goto href="/specs/aide/070-example">:070-example</a>',
+      '<a data-goto href="/projects/aide">aide</a><a data-goto href="/specs/aide/070-example" title="aide:070-example">:070</a>',
     );
     const plain = render(["ab12cd34", "aide:new-1a2b3c4d", "aide:schedule-nightly"]);
     expect(plain).not.toContain('href="/specs/');

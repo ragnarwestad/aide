@@ -20,10 +20,10 @@ describe("projectLink", () => {
 describe("jobsSentence", () => {
   const names = ["aide:457-a-spec", "ab12cd34", "aide:new-1a2b3c4d", "aide:schedule-nightly"];
 
-  test("a spec's name is two links, anything else is text (AC-2)", () => {
+  test("a spec's name is two links cut to its number, the whole name as the title; anything else is text (AC-2)", () => {
     const { html } = jobsSentence("en", "shell.restartWaiting", {}, names);
     expect(html).toContain(
-      '<a data-goto href="/projects/aide">aide</a><a data-goto href="/specs/aide/457-a-spec">:457-a-spec</a>, ab12cd34, aide:new-1a2b3c4d, aide:schedule-nightly',
+      '<a data-goto href="/projects/aide">aide</a><a data-goto href="/specs/aide/457-a-spec" title="aide:457-a-spec">:457</a>, ab12cd34, aide:new-1a2b3c4d, aide:schedule-nightly',
     );
     expect(html.match(/<a /g)).toHaveLength(2);
   });
@@ -40,10 +40,10 @@ describe("jobsSentence", () => {
     }
   });
 
-  test("values fill the other placeholders, and the text has the names joined (AC-3)", () => {
-    const { text, html } = jobsSentence("en", "project.deployRestartWaiting", { sha: "aaaa111" }, ["aide:070-x"]);
+  test("values fill the other placeholders, and the text has the names joined, a spec cut to its number (AC-3)", () => {
+    const { text, html } = jobsSentence("en", "project.deployRestartWaiting", { sha: "aaaa111" }, ["aide:070-x", "ab12cd34"]);
     expect(text).toContain("aaaa111");
-    expect(text).toContain("aide:070-x");
+    expect(text).toContain("aide:070, ab12cd34");
     expect(strip(html).toLowerCase()).toBe(text.toLowerCase());
   });
 

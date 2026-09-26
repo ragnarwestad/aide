@@ -272,7 +272,7 @@ describe("a landing that installs and asks for a restart", () => {
       }
       // The job's name is two links, so the sentence is read with its tags removed.
       expect(html.replace(/<[^>]*>/g, "")).toContain(
-        `the restart is waiting for running jobs: ${job.project}:${job.specFolder}`,
+        `the restart is waiting for running jobs: ${job.project}:${job.specFolder.split("-")[0]}`,
       );
       expect(html).not.toContain("Deploy restarts it on commit");
       // Spec 392 (REQ-9): the button stays live (a press still retries

@@ -21,10 +21,22 @@ export function projectLink(project: string, o: { className?: string } = {}): st
   return `<a${cls} data-goto href="${esc(projectPagePath(project))}">${esc(project)}</a>`;
 }
 
-/** A job's name as markup: `project:<spec folder>` is two links, the
- *  project's and the spec's (the colon stands in the spec's). Anything
- *  else — a short id, a create job's `new-…` key, a scheduled job's
- *  `schedule-…` key — has no spec page and stays escaped text. */
+/** A job's name as a sentence shows it: `project:<spec folder>` is
+ *  cut to `project:<number>`, so a sentence naming several stays short.
+ *  Anything else — a short id, a create job's `new-…` key, a scheduled
+ *  job's `schedule-…` key — is shown whole. */
+function shortJobName(name: string): string {
+  const colon = name.indexOf(":");
+  if (colon <= 0) return name;
+  const folder = name.slice(colon + 1);
+  if (!isSpecFolder(folder)) return name;
+  return `${name.slice(0, colon)}:${folder.slice(0, folder.indexOf("-"))}`;
+}
+
+/** A job's name as markup: `project:<number>` is two links, the
+ *  project's and the spec's (the colon stands in the spec's), and the
+ *  spec's carries the whole folder as its title. Anything else has no
+ *  spec page and stays escaped text. */
 function jobName(name: string): string {
   const colon = name.indexOf(":");
   if (colon <= 0) return esc(name);
@@ -33,7 +45,8 @@ function jobName(name: string): string {
   if (!isSpecFolder(folder)) return esc(name);
   return (
     projectLink(project) +
-    `<a data-goto href="${esc(specPagePath(project, folder))}">:${esc(folder)}</a>`
+    `<a data-goto href="${esc(specPagePath(project, folder))}" title="${esc(name)}">` +
+    `:${esc(folder.slice(0, folder.indexOf("-")))}</a>`
   );
 }
 
@@ -50,7 +63,7 @@ export function jobsSentence(
   values: Record<string, string | number>,
   names: string[],
 ): { text: string; html: string } {
-  const text = t(lang, key, { ...values, jobs: names.join(", ") });
+  const text = t(lang, key, { ...values, jobs: names.map(shortJobName).join(", ") });
   const pieces = t(lang, key, { ...values, jobs: JOBS_MARK }).split(JOBS_MARK);
   const html = pieces
     .map((piece, i) => esc(i === 0 ? capitalizeFirst(piece) : piece))
