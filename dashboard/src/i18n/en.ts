@@ -174,7 +174,6 @@ export const en = {
   "project.wikiRunning": "A wiki build is running.",
   "project.wikiLastBuilt": "Last built {date}.",
   "project.wikiLastEnded": "The last build ended {state}.",
-  "project.wikiLog": "Log",
 
   "newSpec.dependsOn": "Depends on",
   "newSpec.select": "Select",

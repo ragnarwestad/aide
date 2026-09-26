@@ -165,7 +165,6 @@ export const fr: Record<TranslationKey, string> = {
   "project.wikiRunning": "Une construction du wiki est en cours.",
   "project.wikiLastBuilt": "Dernière construction le {date}.",
   "project.wikiLastEnded": "La dernière construction s'est terminée ainsi : {state}.",
-  "project.wikiLog": "Journal",
 
   "newSpec.dependsOn": "Dépend de",
   "newSpec.select": "Sélectionner",

@@ -165,7 +165,6 @@ export const es: Record<TranslationKey, string> = {
   "project.wikiRunning": "Se está generando la wiki.",
   "project.wikiLastBuilt": "Generada por última vez el {date}.",
   "project.wikiLastEnded": "La última generación terminó como {state}.",
-  "project.wikiLog": "Registro",
 
   "newSpec.dependsOn": "Depende de",
   "newSpec.select": "Seleccionar",

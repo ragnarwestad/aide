@@ -3,6 +3,8 @@
 import type { SpecView, ProjectView } from "../../../project/discover";
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import type { Language } from "../../../i18n";
+import type { LogFilter } from "../../../queue/parse-stream";
+import type { JobDetailView, JobStepResultView } from "../job-page/types.ts";
 import type { ScheduleFormOptions } from "../schedule-page/form.ts";
 
 export type { SpecView, ProjectView };
@@ -63,6 +65,13 @@ export interface ProjectPageOptions {
    *  job of the project's, never a row on the Specs list. `error` is its
    *  sentence already in the page's language. */
   wikiBuild?: { id: string; state: string; finishedAt?: string; error?: string };
+  /** That build's steps and logs, drawn under it on the Wiki tab. */
+  wikiLog?: {
+    results: JobStepResultView[];
+    runningStep?: JobDetailView["runningStep"];
+    step?: string;
+    only?: LogFilter;
+  };
   /** The step the last Deploy failed at and why, kept by the server until
    *  the next deploy starts; ranks ahead of `deployError`. */
   deployFailure?: { step: string; error: string };
