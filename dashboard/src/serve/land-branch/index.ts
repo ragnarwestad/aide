@@ -15,4 +15,4 @@ export {
   landNewSpec, landStepBranch, landStoppedStepBranch, landArchivedSpec, landClosedSpec,
 } from "./steps.ts";
 export { withFreshness } from "./freshness.ts";
-export { createLaunchdRestart, restartAfterLanding, runningJobNames, type RestartHook } from "./restart.ts";
+export { createLaunchdRestart, requeueWikiBuilds, restartAfterLanding, runningJobNames, type RestartHook } from "./restart.ts";

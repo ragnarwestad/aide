@@ -50,6 +50,8 @@ export interface LandContext {
   onJobsWaitChange?: (jobs: string[]) => void;
   /** Told whether a restart is waiting to fire (`restartAfterLanding`). */
   onRestartWait?: (waiting: boolean) => void;
+  /** Called just before a restart fires (`restartAfterLanding`). */
+  beforeRestart?: () => void;
   /** The checkout this dashboard runs from; a landing anywhere else
    *  never restarts it. */
   dashboardRoot?: string;

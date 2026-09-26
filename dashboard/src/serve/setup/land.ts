@@ -28,6 +28,7 @@ import {
   landArchivedSpec as landArchivedSpecImpl,
   landClosedSpec as landClosedSpecImpl,
   installAfterMerge as installAfterMergeImpl,
+  requeueWikiBuilds,
   restartAfterLanding,
   withFreshness as withFreshnessImpl,
   type LandContext,
@@ -104,6 +105,7 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
     onRestartWait: (waiting) => {
       state.restartWaiting = waiting;
     },
+    beforeRestart: () => requeueWikiBuilds(inputs.queue),
     dashboardRoot: inputs.dashboardRoot,
     landingGate: inputs.landingGate,
     finalizeCreateSpec: inputs.finalizeCreateSpec,

@@ -10,6 +10,9 @@
 import { realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { RESTART_DEFER_TIMEOUT_MS, RESTART_POLL_MS, type createRootLock } from "../serve-helpers";
+import { signalGroup } from "../serve-helpers/signal-group.ts";
+import { isWikiBuild } from "../../queue/steps.ts";
+import type { Job, QueueStore } from "../../queue/queue.ts";
 
 export interface RestartHook {
   /** False on a laptop, and in every test: nothing is registered to
@@ -109,14 +112,40 @@ export function isDashboardRoot(ctx: { dashboardRoot?: string }, root: string): 
  *  it lands in — which is what "name the jobs it is waiting for" got
  *  built into on the first pass. A job with neither project nor folder
  *  keeps its id, since something is better than an empty name. */
+/** A wiki build is not among them: it is stopped and queued again at the
+ *  restart instead (`requeueWikiBuilds`), since every archive starts one and a
+ *  Deploy pressed after an archive otherwise waited minutes on it. */
 export function runningJobNames(
-  queue: { list(): { id: string; state: string; project?: string; specFolder?: string }[] } | undefined,
+  queue: { list(): { id: string; state: string; project?: string; specFolder?: string; steps?: readonly string[] }[] } | undefined,
   exceptJobId?: string,
 ): string[] {
   return (queue?.list() ?? [])
-    .filter((j) => j.state === "running" && j.id !== exceptJobId)
+    .filter((j) => j.state === "running" && j.id !== exceptJobId && !(j.steps && isWikiBuild({ steps: j.steps })))
     .map((j) => (j.project && j.specFolder ? `${j.project}:${j.specFolder}` : j.id.slice(0, 8)));
 }
+
+/** Stop every running wiki build and queue it again, so it runs once the
+ *  dashboard is back. A build writes in a worktree of its own and lands
+ *  nothing until it ends, so what is lost is the minutes it had run. */
+export function requeueWikiBuilds(
+  queue: Pick<QueueStore, "list" | "transition" | "enqueue">,
+  signal: (pgid: number | undefined) => void = signalGroup,
+): void {
+  for (const job of queue.list()) {
+    if (job.state !== "running" || !isWikiBuild(job)) continue;
+    const stopped = queue.transition(job.id, "cancel", { finishedAt: new Date().toISOString(), error: undefined, errorReason: undefined });
+    if (!stopped.ok) continue;
+    signal(job.pgid);
+    queue.enqueue(again(job));
+  }
+}
+
+const again = (job: Job) => ({
+  project: job.project,
+  specFolder: job.specFolder,
+  steps: ["wiki"],
+  ...(job.wikiRefresh ? { wikiRefresh: true } : {}),
+});
 
 export async function restartAfterLanding(ctx: {
   mergeLock: ReturnType<typeof createRootLock>;
@@ -132,6 +161,9 @@ export async function restartAfterLanding(ctx: {
   /** Told `true` while the restart waits and `false` once it fires, so
    *  the queue starts no new phase for the wait to outlast. */
   onRestartWait?: (waiting: boolean) => void;
+  /** Called just before the restart fires: what is still running then dies
+   *  with this process. */
+  beforeRestart?: () => void;
 }): Promise<void> {
   if (!(await ctx.restart.registered())) {
     ctx.onJobsWaitChange?.([]);
@@ -168,6 +200,7 @@ export async function restartAfterLanding(ctx: {
   // above already returned before this line.
   console.error("queue: restarting the dashboard to pick up a landed code change");
   ctx.onJobsWaitChange?.([]);
+  ctx.beforeRestart?.();
   ctx.restart.fire();
   ctx.onRestartWait?.(false);
 }
