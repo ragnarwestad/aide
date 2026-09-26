@@ -74,24 +74,21 @@ cd implementations/codex
 ./install.sh
 ```
 
-The script automatically adds Playwright and Chrome DevTools to the MCP configuration.
+The script offers to add Playwright and Chrome DevTools to the MCP configuration, and skips it when nobody is at the
+keyboard to answer.
 
 ### Manual configuration
 
 Add to `~/.codex/config.toml`:
 
 ```toml
-[mcp]
-
 # Playwright MCP Server
-[[mcp.servers]]
-name = "playwright"
+[mcp_servers.playwright]
 command = "npx"
 args = ["@playwright/mcp@latest"]
 
 # Chrome DevTools MCP Server
-[[mcp.servers]]
-name = "chrome-devtools"
+[mcp_servers.chrome-devtools]
 command = "npx"
 args = ["chrome-devtools-mcp@latest"]
 ```
@@ -103,12 +100,10 @@ npm install -g @playwright/mcp chrome-devtools-mcp
 
 And update the config:
 ```toml
-[[mcp.servers]]
-name = "playwright"
+[mcp_servers.playwright]
 command = "playwright-mcp"
 
-[[mcp.servers]]
-name = "chrome-devtools"
+[mcp_servers.chrome-devtools]
 command = "chrome-devtools-mcp"
 ```
 

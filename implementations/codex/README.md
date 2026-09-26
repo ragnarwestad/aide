@@ -129,30 +129,19 @@ the rest without saying so, so the file is kept well inside that budget
 
 ### MCP servers (Model Context Protocol)
 
-Codex supports MCP servers for extended functionality. Configure them in `~/.codex/config.toml`:
+Codex supports MCP servers for extended functionality. Each server is a `[mcp_servers.<name>]` table in
+`~/.codex/config.toml`:
 
 ```toml
-[mcp]
-# Example: Filesystem MCP server
-[[mcp.servers]]
-name = "filesystem"
+[mcp_servers.context7]
 command = "npx"
-args = ["-y", "@anthropic/mcp-filesystem", "/path/to/allowed/dir"]
-
-# Example: GitHub MCP server
-[[mcp.servers]]
-name = "github"
-command = "npx"
-args = ["-y", "@anthropic/mcp-github"]
-env = { GITHUB_TOKEN = "your-token" }
+args = ["-y", "@upstash/context7-mcp"]
 ```
 
-**Available MCP servers:**
+`install.sh` offers two sets, and appends the matching file from `mcp/` when you say yes:
 
-- `@anthropic/mcp-filesystem` - File system access
-- `@anthropic/mcp-github` - GitHub integration
-- `@anthropic/mcp-slack` - Slack integration
-- Custom servers via the MCP protocol
+- `mcp/browser-testing.toml` — Playwright and Chrome DevTools (see `mcp/BROWSER_TESTING_MCP_SETUP.md`)
+- `mcp/context7.toml` — Context7 (see `mcp/CONTEXT7_MCP_SETUP.md`)
 
 ### Execpolicy (command control)
 

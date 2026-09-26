@@ -1,0 +1,5 @@
+
+# Context7 MCP Server
+[mcp_servers.context7]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp"]

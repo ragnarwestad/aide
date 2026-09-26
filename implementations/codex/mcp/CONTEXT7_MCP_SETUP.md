@@ -63,11 +63,8 @@ The script offers to add the Context7 MCP automatically.
 Add to `~/.codex/config.toml`:
 
 ```toml
-[mcp]
-
 # Context7 MCP Server
-[[mcp.servers]]
-name = "context7"
+[mcp_servers.context7]
 command = "npx"
 args = ["-y", "@upstash/context7-mcp"]
 ```

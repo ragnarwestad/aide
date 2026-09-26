@@ -113,7 +113,7 @@ CODEX_CONFIG_FILE="$HOME/.codex/config.toml"
 BROWSER_MCP_INSTALLED=false
 
 if [ -f "$CODEX_CONFIG_FILE" ]; then
-  if grep -q 'name = "playwright"' "$CODEX_CONFIG_FILE" && grep -q 'name = "chrome-devtools"' "$CODEX_CONFIG_FILE"; then
+  if grep -qF '[mcp_servers.playwright]' "$CODEX_CONFIG_FILE" && grep -qF '[mcp_servers.chrome-devtools]' "$CODEX_CONFIG_FILE"; then
     echo "   ✅ Playwright and Chrome DevTools MCP are already configured"
     BROWSER_MCP_INSTALLED=true
   fi
@@ -142,46 +142,8 @@ if [ "$BROWSER_MCP_INSTALLED" = false ]; then
     # Create config.toml if it does not exist
     mkdir -p "$HOME/.codex"
 
-    if [ ! -f "$CODEX_CONFIG_FILE" ]; then
-      cat > "$CODEX_CONFIG_FILE" <<'EOF'
-[mcp]
-
-# Playwright MCP Server
-[[mcp.servers]]
-name = "playwright"
-command = "npx"
-args = ["@playwright/mcp@latest"]
-
-# Chrome DevTools MCP Server
-[[mcp.servers]]
-name = "chrome-devtools"
-command = "npx"
-args = ["chrome-devtools-mcp@latest"]
-EOF
-      echo "   ✅ Created $CODEX_CONFIG_FILE with MCP servers"
-    else
-      # Append to existing config
-      if ! grep -q '\[mcp\]' "$CODEX_CONFIG_FILE"; then
-        echo "" >> "$CODEX_CONFIG_FILE"
-        echo "[mcp]" >> "$CODEX_CONFIG_FILE"
-      fi
-
-      cat >> "$CODEX_CONFIG_FILE" <<'EOF'
-
-# Playwright MCP Server
-[[mcp.servers]]
-name = "playwright"
-command = "npx"
-args = ["@playwright/mcp@latest"]
-
-# Chrome DevTools MCP Server
-[[mcp.servers]]
-name = "chrome-devtools"
-command = "npx"
-args = ["chrome-devtools-mcp@latest"]
-EOF
-      echo "   ✅ Added Playwright and Chrome DevTools to $CODEX_CONFIG_FILE"
-    fi
+    cat "$SCRIPT_DIR/mcp/browser-testing.toml" >> "$CODEX_CONFIG_FILE"
+    echo "   ✅ Added Playwright and Chrome DevTools to $CODEX_CONFIG_FILE"
 
     BROWSER_MCP_INSTALLED=true
     echo ""
@@ -200,7 +162,7 @@ echo "8️⃣  Checking Context7 MCP (Up-to-date documentation)..."
 CONTEXT7_INSTALLED=false
 
 if [ -f "$CODEX_CONFIG_FILE" ]; then
-  if grep -q 'name = "context7"' "$CODEX_CONFIG_FILE"; then
+  if grep -qF '[mcp_servers.context7]' "$CODEX_CONFIG_FILE"; then
     echo "   ✅ Context7 MCP is already configured"
     CONTEXT7_INSTALLED=true
   fi
@@ -228,34 +190,8 @@ if [ "$CONTEXT7_INSTALLED" = false ]; then
     # Create config.toml if it does not exist
     mkdir -p "$HOME/.codex"
 
-    if [ ! -f "$CODEX_CONFIG_FILE" ]; then
-      cat > "$CODEX_CONFIG_FILE" <<'EOF'
-[mcp]
-
-# Context7 MCP Server
-[[mcp.servers]]
-name = "context7"
-command = "npx"
-args = ["-y", "@upstash/context7-mcp"]
-EOF
-      echo "   ✅ Created $CODEX_CONFIG_FILE with Context7"
-    else
-      # Append to existing config
-      if ! grep -q '\[mcp\]' "$CODEX_CONFIG_FILE"; then
-        echo "" >> "$CODEX_CONFIG_FILE"
-        echo "[mcp]" >> "$CODEX_CONFIG_FILE"
-      fi
-
-      cat >> "$CODEX_CONFIG_FILE" <<'EOF'
-
-# Context7 MCP Server
-[[mcp.servers]]
-name = "context7"
-command = "npx"
-args = ["-y", "@upstash/context7-mcp"]
-EOF
-      echo "   ✅ Added Context7 to $CODEX_CONFIG_FILE"
-    fi
+    cat "$SCRIPT_DIR/mcp/context7.toml" >> "$CODEX_CONFIG_FILE"
+    echo "   ✅ Added Context7 to $CODEX_CONFIG_FILE"
 
     CONTEXT7_INSTALLED=true
     echo ""
