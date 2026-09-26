@@ -295,13 +295,13 @@ function configSection(
   return noFile + summary + checkout + unifiedSettingsTable(settings, name, opts.editing, opts);
 }
 
-/** The page's tabs, in the order the description gives them. Default
+/** The page's tabs, in the order they are drawn: Deploy first. Default
  *  capitalization (`tabBar`'s own `t[0].toUpperCase() + t.slice(1)`)
  *  already produces the exact words wanted, so — unlike `JOB_TABS`'s
  *  `steps` → "Logs" — no label override map is needed (spec 293).
  *  Health is gone (spec 378): every check it drew now reads on Config,
  *  either on its own settings row or in the checkout-level section. */
-const PROJECT_TABS = ["config", "deploy", "schedule"] as const;
+const PROJECT_TABS = ["deploy", "config", "schedule"] as const;
 type ProjectTab = (typeof PROJECT_TABS)[number];
 
 /** The served project page: the settings, the readiness answer, the
@@ -325,7 +325,9 @@ export function renderProjectPage(
   // REQ-1, REQ-4): a project with nothing to deploy from here says so on
   // its own tab (`deploySection`'s ungated branch), rather than the tab
   // bar changing shape from project to project.
-  const tab: ProjectTab = pickTab(PROJECT_TABS, opts.tab, "config");
+  // The page opens on Deploy; `?edit=1` is the settings table's edit
+  // state, so it always opens on Config, where that table is.
+  const tab: ProjectTab = pickTab(PROJECT_TABS, opts.tab, opts.editing ? "config" : "deploy");
   const base = projectPagePath(p.name);
   const panel =
     tab === "deploy" ? deploySection(p.name, opts, now) + testServerSection(p.name, opts)

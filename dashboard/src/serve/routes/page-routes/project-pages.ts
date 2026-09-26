@@ -140,7 +140,7 @@ export async function projectPages(
     }
     return new Response(null, {
       status: 302,
-      headers: { location: `/projects/${encodeURIComponent(name)}` },
+      headers: { location: `/projects/${encodeURIComponent(name)}?tab=config` },
     });
   }
 

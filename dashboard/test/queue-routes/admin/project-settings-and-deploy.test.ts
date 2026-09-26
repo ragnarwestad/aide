@@ -71,7 +71,7 @@ describe("a project's settings route (spec 184)", () => {
     git(project, "push", "-q", "-u", "origin", "main");
   };
 
-  test("the legacy form URL redirects to the project detail page", async () => {
+  test("the legacy form URL redirects to the project page's Config tab", async () => {
     const { base, project } = await settled();
     mkdirSync(join(project, ".aide"), { recursive: true });
     writeFileSync(join(project, ".aide", "project.yaml"), "name: aide\nworktreeLinks: node_modules\n");
@@ -81,7 +81,7 @@ describe("a project's settings route (spec 184)", () => {
       headers: {},
     });
     expect(res.status).toBe(302);
-    expect(res.headers.get("location")).toBe("/projects/aide");
+    expect(res.headers.get("location")).toBe("/projects/aide?tab=config");
   });
 
   test("a project the allowlist does not know is a mistyped address", async () => {

@@ -81,7 +81,7 @@ export function answerProjectChange(
   return specsRedirect(
     sent,
     undefined,
-    action === "project-settings" ? `/projects/${encodeURIComponent(project)}` : PROJECTS_ROUTE,
+    action === "project-settings" ? `/projects/${encodeURIComponent(project)}?tab=config` : PROJECTS_ROUTE,
     readiness && { note: readiness.note, ok: readiness.canRun },
   );
 }

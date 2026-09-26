@@ -26,7 +26,7 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     const res = await fetch(`${base}/projects/${encodeURIComponent(name)}?edit=1`);
     const html = await res.text();
     expect(html).toContain('action="/api/queue/projects/aide%20%26%20co/settings"');
-    expect(html).toContain('<a class="btn" data-discard-changes href="/projects/aide%20%26%20co">Cancel</a>');
+    expect(html).toContain('<a class="btn" data-discard-changes href="/projects/aide%20%26%20co?tab=config">Cancel</a>');
     expect(html).toContain(">Save<");
   });
 
@@ -87,6 +87,24 @@ describe("GET /projects/<name> — the project's own page, served", () => {
       const res = await fetch(`${base}/projects/${name}`);
       expect([name, res.status]).toEqual([name, 404]);
     }
+  });
+
+  // A plain GET with no ?tab= opens on Deploy, the first tab, marked
+  // current in the bar — the same aria-current pattern the job and spec
+  // pages already assert on their own tabs.
+  test("a plain GET with no ?tab= opens on Deploy, marked current", async () => {
+    const root = projectsRoot({ aide: null });
+    const html = await (await fetch(`${serve(root, settled(root, "aide"))}/projects/aide`)).text();
+    expect(html).toMatch(/aria-current="page"[^>]*>Deploy/);
+  });
+
+  // ?edit=1 is the settings table's edit state, so it opens on Config
+  // even with no ?tab= — Edit links there, and a refused save returns there.
+  test("?edit=1 with no ?tab= opens on Config, where the settings form is", async () => {
+    const root = projectsRoot({ aide: null });
+    const html = await (await fetch(`${serve(root, settled(root, "aide"))}/projects/aide?edit=1`)).text();
+    expect(html).toMatch(/aria-current="page"[^>]*>Config/);
+    expect(html).toContain("projectsettingsform");
   });
 });
 
@@ -316,7 +334,7 @@ describe("editing the unified settings table (spec 255)", () => {
     });
     expect(res.status).toBe(200);
     expect(readFileSync(join(project, ".aide", "config"), "utf-8")).toContain("AIDE_INSTALL_CMD=make install");
-    const view = await (await fetch(`${base}/projects/aide`)).text();
+    const view = await (await get(base, "aide")).text();
     expect(view).toContain("make install");
     expect(view).not.toContain('name="installCmd"');
   });

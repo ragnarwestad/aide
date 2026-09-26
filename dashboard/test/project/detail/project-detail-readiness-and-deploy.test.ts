@@ -468,13 +468,13 @@ describe("the same tab bar on a gated and an ungated project (REQ-7)", () => {
     return [...subtabs.matchAll(/<a class="tab"[^>]*>([^<]+)<\/a>/g)].map((m) => m[1]!);
   };
 
-  test("both show exactly Config, Deploy, Schedule, in that order", async () => {
+  test("both show exactly Deploy, Config, Schedule, in that order", async () => {
     const gatedRoot = projectsRoot({ aide: INSTALLS });
     const gatedHtml = await (await get(serve(gatedRoot, settled(gatedRoot, "aide")), "aide")).text();
     const ungatedRoot = projectsRoot({ aide: null });
     const ungatedHtml = await (await get(serve(ungatedRoot, settled(ungatedRoot, "aide")), "aide")).text();
-    expect(tabLabels(gatedHtml)).toEqual(["Config", "Deploy", "Schedule"]);
-    expect(tabLabels(ungatedHtml)).toEqual(["Config", "Deploy", "Schedule"]);
+    expect(tabLabels(gatedHtml)).toEqual(["Deploy", "Config", "Schedule"]);
+    expect(tabLabels(ungatedHtml)).toEqual(["Deploy", "Config", "Schedule"]);
   });
 });
 
