@@ -47,6 +47,14 @@ Examples:
 - Read `.aide/project.yaml` in the project root if it exists — the
   project manifest gives deployment, logging and dependency context
   the analysis should use (refresh it with `/aide-manifest`)
+- **Read the project's wiki, when it has one, before anything else —
+  in a later round too, before the earlier round's files.** The specs
+  root is the folder that holds this spec's folder. If `wiki/` is beside
+  it, run `aide-wiki status --specs-root <root> --project-dir .`, read
+  `wiki/index.md`, then the pages that concern the change. A page whose
+  state is `changed` or `unknown` is a map of where to look, and the
+  code decides. When the answer is `"wiki":false`, or `aide-wiki` is not
+  installed, skip this and write nothing about a wiki.
 - Identify: What should change? What is the scope? Migration or single fix?
 - If `1-description.md` has a `## Acceptance criteria` section, extract
   its `AC-n` ids for Steps 5-7 — see `references/requirements-tracing.md`.
@@ -73,13 +81,7 @@ as LOW. See `references/complexity-and-analysis.md` for the criteria.
 
 ### Step 3: Analyze the codebase
 
-**Read the project's wiki first, when it has one.** The specs root is the
-folder that holds this spec's folder. If `wiki/` is beside it, run
-`aide-wiki status --specs-root <root> --project-dir .`, read
-`wiki/index.md`, then the pages that concern the change, before searching
-the code. A page whose state is `changed` or `unknown` is a map of where
-to look, and the code decides. When the answer is `"wiki":false`, or
-`aide-wiki` is not installed, skip this and write nothing about a wiki.
+Search the code from where the wiki pages read in Step 1 point.
 
 Scale the analysis to the complexity:
 - **LOW:** Find the file, read it, check tests. < 15 min.
@@ -142,7 +144,7 @@ the only legitimate path. Follow the spec structure §
 2-analysis. Include: Tracking info, mapping, affected files with
 file:line, API impact, test coverage.
 
-When Step 3 used the wiki, the `## Mapping` section gets a line **Wiki
+When Step 1 read the wiki, the `## Mapping` section gets a line **Wiki
 pages used** listing each page with its state: `current`;
 `changed since its commit — files: <changedFiles>`; `unknown`; or
 `hand-written — freshness not tracked`. Without a wiki, no such line.
