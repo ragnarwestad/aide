@@ -253,20 +253,20 @@ Answered by the files under `src/serve/routes/page-routes/`, `src/serve/routes/s
 Answered by `src/serve/core-routes.ts` and `src/serve/serve-helpers/static.ts`. Only `GET` and `HEAD` reach them; any
 other method gets 405.
 
-| Route                        | Kind | Takes   | Answers                                             | Made for |
-|------------------------------|------|---------|-----------------------------------------------------|----------|
-| `GET /spec-editor.js`        | read | nothing | the spec page's editor script; 304 against its ETag | page     |
-| `GET /spec-viewer.js`        | read | nothing | the spec page's viewer script; 304 against its ETag | page     |
-| `GET /manifest.webmanifest`  | read | nothing | the web app manifest                                | page     |
-| `GET /sw.js`                 | read | nothing | the service worker, with `cache-control: no-cache`  | page     |
-| `GET /icon-192.png`          | read | nothing | the app icon, 192 px                                | page     |
-| `GET /icon-512.png`          | read | nothing | the app icon, 512 px                                | page     |
-| `GET /icon-512-maskable.png` | read | nothing | the maskable app icon                               | page     |
-| `GET /icon-512.svg`          | read | nothing | the app icon as SVG                                 | page     |
-| `GET /icon-512-maskable.svg` | read | nothing | the maskable app icon as SVG                        | page     |
-| `GET /apple-touch-icon.png`  | read | nothing | the icon iOS puts on a home screen                  | page     |
-| `GET /badge-96.png`          | read | nothing | the notification badge: the mark on transparency    | page     |
-| `GET /projects.html`         | read | nothing | 302 to `/projects`, keeping the query string        | page     |
+| Route                        | Kind | Takes   | Answers                                              | Made for |
+|------------------------------|------|---------|------------------------------------------------------|----------|
+| `GET /spec-editor.js`        | read | nothing | the spec page's editor script; 304 against its ETag  | page     |
+| `GET /spec-viewer.js`        | read | nothing | the spec page's viewer script; 304 against its ETag  | page     |
+| `GET /manifest.webmanifest`  | read | nothing | the web app manifest                                 | page     |
+| `GET /sw.js`                 | read | nothing | the service worker, with `cache-control: no-cache`   | page     |
+| `GET /icon-192.png`          | read | nothing | the app icon, 192 px                                 | page     |
+| `GET /icon-512.png`          | read | nothing | the app icon, 512 px                                 | page     |
+| `GET /icon-512-maskable.png` | read | nothing | the maskable app icon                                | page     |
+| `GET /icon-512.svg`          | read | nothing | the app icon as SVG                                  | page     |
+| `GET /icon-512-maskable.svg` | read | nothing | the maskable app icon as SVG                         | page     |
+| `GET /apple-touch-icon.png`  | read | nothing | the icon iOS puts on a home screen                   | page     |
+| `GET /badge-96.png`          | read | nothing | the notification badge: the mark on transparency     | page     |
+| `GET /projects.html`         | read | nothing | 302 to `/projects`, keeping the query string         | page     |
 | `GET /<file>`                | read | nothing | 404 — nothing else answers a path this route reaches | page     |
 
 `GET /<file>` is the fallback: it has no path in the source, since `handleCore` in `src/serve/core-routes.ts` ends in
