@@ -46,6 +46,9 @@ export interface ProjectPageOptions {
    *  page reload with no query string always lands back on the
    *  read-only view. */
   editing: boolean;
+  /** Where "← Back" goes: the page the reader came from, resolved by the
+   *  server from the request's `Referer`. Projects when there is none. */
+  backHref?: string;
   error?: string;
   /** This checkout's last drift answer (spec 258), `undefined` when no
    *  `AIDE_INSTALL_CMD` is configured — the same gate `/projects`' own

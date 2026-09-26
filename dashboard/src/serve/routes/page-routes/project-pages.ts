@@ -19,6 +19,13 @@ import { isSpecFolder } from "../../../render/ui/shell.ts";
 import { languageChoice, specsClientScript } from "../../serve-helpers";
 import type { RoutesContext } from "..";
 
+/** "← Back" on a project's own page: the page the reader came from, or
+ *  Projects when that is this same page (a tab switch) or unknown. */
+export function projectBackHref(referer: string | null, url: URL): string {
+  const back = resolveBackHref(referer, url.origin, PROJECTS_ROUTE);
+  return new URL(back, url.origin).pathname === url.pathname ? PROJECTS_ROUTE : back;
+}
+
 export async function projectPages(
   ctx: RoutesContext,
   req: Request,
@@ -232,6 +239,11 @@ export async function projectPages(
       new Date().toISOString(),
       ctx.nav(),
       {
+        // The page the reader came from, so a project opened from a
+        // spec's row goes back to that row. A switch between this page's
+        // own tabs is not somewhere to go back to, so it falls back to
+        // Projects like a visit with no Referer.
+        backHref: projectBackHref(req.headers.get("referer"), url),
         script: await specsClientScript(),
         // Specs root and Worktree links are no longer read a second
         // time here (spec 255): `projectSettings(dir, readiness)`

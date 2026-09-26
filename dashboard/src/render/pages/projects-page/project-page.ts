@@ -353,7 +353,7 @@ export function renderProjectPage(
   // forms a reload would clear from under someone mid-edit.
   const awaitingDrift = tab === "deploy" && opts.drift?.checkedAt === null;
 
-  const body = tabbedBody(projectDescription(p), tabBar(PROJECT_TABS, base, tab, {}), panel, PROJECTS_ROUTE, p.name);
+  const body = tabbedBody(projectDescription(p), tabBar(PROJECT_TABS, base, tab, {}), panel, opts.backHref ?? PROJECTS_ROUTE, p.name);
   return pageShell(p.name, nav, base, body, generatedAt, awaitingDrift ? AWAITING_DRIFT_REFRESH_SECONDS : undefined, {
     script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,
   });

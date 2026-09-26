@@ -202,6 +202,8 @@ from.
 
 `/projects/<name>` has four tabs — **Deploy**, **Config**, **Schedule** and **Wiki** — chosen with `?tab=` and defaulting to
 Deploy, which is also where an unrecognised value lands. `?edit=1`, the settings table's edit state, opens on Config.
+**← Back** goes to the page the reader came from, such as the spec whose project link was pressed, and to Projects
+when there is none or it was another tab of the same page.
 
 #### Deploy
 
