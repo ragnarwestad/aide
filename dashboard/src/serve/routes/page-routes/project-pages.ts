@@ -386,9 +386,11 @@ export async function projectPages(
 }
 
 /** The project's latest wiki build for its Wiki tab, its failure already a
- *  sentence in the reader's language. */
-function latestWikiBuild(jobs: readonly Job[], project: string, lang: Language) {
-  const last = jobs.filter((j) => j.project === project && isWikiBuild(j)).at(-1);
-  if (!last) return undefined;
+ *  sentence in the reader's language. Latest by when it was queued, not by
+ *  its place in the list, which the queue keeps newest first. */
+export function latestWikiBuild(jobs: readonly Job[], project: string, lang: Language) {
+  const builds = jobs.filter((j) => j.project === project && isWikiBuild(j));
+  if (builds.length === 0) return undefined;
+  const last = builds.reduce((a, b) => (b.createdAt > a.createdAt ? b : a));
   return { id: last.id, state: last.state, finishedAt: last.finishedAt, error: renderSentence(lang, last.error) };
 }

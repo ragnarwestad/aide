@@ -37,6 +37,7 @@ describe("the Wiki tab shows the latest build", () => {
     expect(html).toContain('href="/specs/j1?tab=steps"');
     expect(html).toContain('action="/api/queue/j1/cancel"');
     expect(html).not.toContain('action="/api/queue/projects/aide/wiki"');
+    expect(html).toMatch(/class="rowmsg waiting">.*?<span><span class="badge b-running"[^>]*data-icon="loader"/);
   });
 
   test("a finished build says when, and the button builds again", () => {

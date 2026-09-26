@@ -3,7 +3,7 @@
 // on the Specs list, so this tab is where it is followed. A press, a Cancel
 // and a refusal all come back here.
 
-import { btn, rowMessage } from "../../ui/components";
+import { badge, btn, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import type { ProjectPageOptions } from "./types.ts";
@@ -21,8 +21,11 @@ function latestBuild(b: WikiBuild, lang: Language): string {
       `<form method="post" action="/api/queue/${esc(b.id)}/cancel">` +
       btn({ label: t(lang, "list.cancel") }) +
       `</form>`;
+    // The running badge's own spinner, the one every running row on the
+    // board carries, so the tab reads as work under way at a glance.
     const text = t(lang, "project.wikiRunning");
-    return rowMessage("waiting", text, { html: `${esc(text)} ${log}`, actions: cancel });
+    const spinner = badge("running", t(lang, "state.running"));
+    return rowMessage("waiting", text, { html: `${spinner} ${esc(text)} ${log}`, actions: cancel });
   }
   if (b.state === "done") {
     const date = (b.finishedAt ?? "").slice(0, 10);

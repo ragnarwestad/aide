@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { setupQueueRoutesHarness } from "../../fixtures.ts";
+import { latestWikiBuild } from "../../../../src/serve/routes/page-routes/project-pages.ts";
+import type { Job } from "../../../../src/queue/types.ts";
 
 const { harness, start } = setupQueueRoutesHarness("aide-wiki-route-");
 afterEach(() => harness.cleanup());
@@ -87,3 +89,18 @@ describe("a wiki build is followed on the Wiki tab, never on the Specs list", ()
     expect(cancel.headers.get("location")).toBe("/projects/aide?tab=wiki");
   });
 });
+
+// The queue lists its jobs newest first, and the tab once took the last in
+// that list: a build running now read as the finished one from before it.
+describe("the Wiki tab's build is the newest one", () => {
+  const build = (id: string, state: string, createdAt: string) =>
+    ({ id, project: "aide", specFolder: "wiki-aide", steps: ["wiki"], state, createdAt }) as unknown as Job;
+
+  test("a build queued after a finished one is the one shown, whatever the list's order", () => {
+    const old = build("old", "done", "2026-09-26T10:00:00Z");
+    const now = build("now", "running", "2026-09-26T12:34:42Z");
+    expect(latestWikiBuild([now, old], "aide", "en")?.id).toBe("now");
+    expect(latestWikiBuild([old, now], "aide", "en")?.id).toBe("now");
+  });
+});
+
