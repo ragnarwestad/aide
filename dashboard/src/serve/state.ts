@@ -92,6 +92,16 @@ export interface ServerState {
    *  `null`. Lives as long as the process: a restart starts without it,
    *  which is "until a later deploy or restart fixes it". */
   deployFault: Sentence | null;
+  /** The step a project's last deploy failed at, and why, until the next
+   *  deploy of that project starts: the Deploy tab draws it. Lives as
+   *  long as the process, like `deployFault`. */
+  deployFailures: Map<string, DeployFailure>;
+}
+
+/** What a refused deploy step leaves for the Deploy tab. */
+export interface DeployFailure {
+  step: string;
+  error: string;
 }
 
 /** When this process booted. `/api/version` answers it, so the page
@@ -111,6 +121,7 @@ export function createServerState(): ServerState {
   const state: ServerState = {
     scan: null, unlanded: [], prOpen: [], notifySoon: null, warming: false, server: null, runner: null,
     servingSha: null, servingRepoRoot: null, pendingRestart: null, deployFault: null,
+    deployFailures: new Map(),
   };
   noticeOwner = state;
   return state;
@@ -132,4 +143,10 @@ export function setPendingRestart(state: ServerState, jobs: string[]): void {
 export function setDeployFault(state: ServerState, fault: Sentence | null): void {
   state.deployFault = fault;
   if (state === noticeOwner) setDeployFaultNotice(fault);
+}
+
+/** The one place that keeps or clears a project's failed deploy step. */
+export function setDeployFailure(state: ServerState, project: string, failure: DeployFailure | null): void {
+  if (failure) state.deployFailures.set(project, failure);
+  else state.deployFailures.delete(project);
 }

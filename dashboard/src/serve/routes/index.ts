@@ -38,6 +38,7 @@ import type {
 } from "../../render";
 import type { createRootLock } from "../serve-helpers";
 import type { ServerOptions } from "../options.ts";
+import type { DeployFailure } from "../state.ts";
 import type { TestServersContext } from "../test-servers/lifecycle.ts";
 import { handlePageRoutes } from "./page-routes";
 import { handleQueueEvents } from "./sse.ts";
@@ -131,6 +132,10 @@ export interface RoutesContext {
   /** What a finished deploy left wrong at the top of every page, or
    *  `null` to clear it (see `state.ts`'s `deployFault`). */
   setDeployFault: (fault: Sentence | null) => void;
+  /** The step a project's last deploy failed at, for the Deploy tab;
+   *  `null` clears it (see `state.ts`'s `deployFailures`). */
+  readDeployFailure: (project: string) => DeployFailure | undefined;
+  setDeployFailure: (project: string, failure: DeployFailure | null) => void;
   /** Where `aide-generate-pdf` writes the PDF it makes (spec 358),
    *  outside every checkout (REQ-4). */
   pdfCacheDir: string;

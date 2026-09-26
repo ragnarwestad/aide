@@ -53,10 +53,27 @@ describe("the Deploy form's dialog", () => {
     expect(form).not.toContain("data-overlay");
   });
 
-  test("carries the error's layout, the state words and the silent-service sentence in the page's language (AC-5)", () => {
+  test("carries the state words, the failed-step sentence and the silent-service sentence, and no Close button (AC-5)", () => {
     const dialog = dialogOf(deployPage("nb"));
     expect(dialog).toMatch(/<template data-deploy-error><p class="deploy-error rowmsg failed">/);
     expect(dialog).toContain('data-failed="feilet"');
+    expect(dialog).toContain('data-failed-at="{step} feilet: {error}"');
     expect(dialog).toContain('data-no-answer="tjenesten svarte ikke etter omstarten');
+    expect(dialog).not.toContain("data-deploy-close");
+  });
+
+  test("the Deploy tab draws a kept failure with its step's label in the page's language, ahead of the address's error (AC-6)", () => {
+    const html = renderProjectPage(project, { hasConfigFile: false, rows: [] }, null, "2026-08-31T00:00:00Z", NAV, {
+      worktreeLinkCandidates: [],
+      editing: false,
+      tab: "deploy",
+      drift: { behind: 2, checkedAt: 1735689600000 },
+      deployFailure: { step: "install", error: "kommandoen feilet" },
+      deployError: "fra adressen",
+      lang: "nb",
+    });
+    const shown = html.match(/<p class="refusal deploy-error rowmsg failed">([\s\S]*?)<\/p>/)?.[1]?.replace(/<[^>]*>/g, "");
+    expect(shown).toBe("Installer feilet: kommandoen feilet");
+    expect(html).not.toContain("fra adressen");
   });
 });

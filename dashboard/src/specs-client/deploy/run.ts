@@ -13,6 +13,8 @@ export const STEPS: DeployStep[] = ["fetch", "install", "restart", "wait", "chec
 
 /** How long "Deploy finished" stays before the dialog closes. */
 export const FINISHED_STAYS_MS = 2000;
+/** How long a failed step stays shown before the dialog closes. */
+export const FAILED_STAYS_MS = 2000;
 /** The restart script sleeps a second first, so the first probe would
  *  only ever meet the old process. */
 export const FIRST_PROBE_AFTER_MS = 2000;
@@ -54,6 +56,14 @@ export interface DeployUi {
   close(): void;
 }
 
+/** Marks the step failed, keeps it on show for a couple of seconds, then
+ *  closes the dialog, which hands the failure to the page. */
+async function failed(io: DeployIo, ui: DeployUi, step: DeployStep, failure: DeployFailure): Promise<void> {
+  ui.fail(step, failure);
+  await io.sleep(FAILED_STAYS_MS);
+  ui.close();
+}
+
 /** Runs one posted step. False when it failed, after telling `ui`. */
 async function posted(io: DeployIo, ui: DeployUi, step: PostedStep): Promise<StepAnswer | null> {
   ui.state(step, "running");
@@ -64,7 +74,7 @@ async function posted(io: DeployIo, ui: DeployUi, step: PostedStep): Promise<Ste
     answer = { ok: false };
   }
   if (!answer.ok) {
-    ui.fail(step, { error: answer.error ?? "", faulty: answer.faulty === true, silent: false });
+    await failed(io, ui, step, { error: answer.error ?? "", faulty: answer.faulty === true, silent: false });
     return null;
   }
   ui.state(step, "done");
@@ -105,7 +115,7 @@ export async function runDeploy(io: DeployIo, ui: DeployUi): Promise<void> {
   }
   ui.state("wait", "running");
   if (!(await waitForNewProcess(io, restarted.startedAt))) {
-    ui.fail("wait", { error: "", faulty: false, silent: true });
+    await failed(io, ui, "wait", { error: "", faulty: false, silent: true });
     return;
   }
   ui.state("wait", "done");
