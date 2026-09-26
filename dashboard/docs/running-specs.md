@@ -362,8 +362,13 @@ reach the repository goes through a spec. A job that commits anyway ends as fail
 branch of it is left locally or on origin. The New and Edit forms say so.
 
 `/schedule` lists every allowed project's entries, flattened into one list (`?q=`, `?sort=` and `?dir=` filter and
-sort it); `/schedule/new` makes an entry and `/schedule/<project>/<name>` is one entry's own page (Overview and
-History tabs), with `/schedule/<project>/<name>/delete` its delete confirmation. The pages post to
+sort it). It shows and links, and changes nothing: a click anywhere on a row opens the project's Schedule tab, whether
+an entry is enabled is text there, and the Enabled switch,
+Run now, Edit and Delete are on each row of the project's own Schedule tab, with New above the list.
+`/schedule/<project>/<name>` is one entry's own page: its Report and its History, nothing about how it is set up. New and Edit open one page,
+`/schedule/new?project=<project>` and `/schedule/<project>/<name>/edit`; a save goes back to the page it was opened
+from (a path on the board, sent with the form as `back`; a rename moves a `back` on the entry's old page to its new
+one), and a refused save stays on the page with the reason and what was typed. The pages post to
 `POST /api/queue/schedule` (create), `POST /api/queue/schedule/<project>/<name>` (edit), and
 `POST .../enabled`, `.../run` and `.../delete` (toggle, fire now, remove); `GET /api/queue/schedule/cron-next`
 previews a cron expression's next fire time for the form.
@@ -371,11 +376,12 @@ previews a cron expression's next fire time for the form.
 **A run's report.** Each `schedule` run writes into a directory of its own,
 `<output root>/<project>/<key>/runs/<jobId>/`, named in `AIDE_SCHEDULE_OUTPUT_DIR` and made before the run starts.
 The run's report is its `index.html` there; a missing file, an empty one, whitespace or tags with no text and no
-`<img>` count as no report. The top of an entry's Overview tab shows the newest run's report in a sandboxed frame
+`<img>` count as no report. An entry's Report tab shows the newest finished run's report in a sandboxed frame
 (`sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"`, so nothing in a report runs and its links
-open in a new tab), headed by the run's start time and outcome. A History row opens the same page with that run's
+open in a new tab), headed by the run's outcome and how long ago it started; a newer run still queued or running is
+named in a line above it, and with no finished run at all the tab says the job is queued or running. A History row opens the same page with that run's
 report (`?run=<jobId>`, matched against the entry's own jobs and never used as a path; an unknown value shows the
-newest run). A run that wrote no report shows a sentence with how it ended, and an entry that has not run says so. The
+newest finished run). A run that wrote no report shows a sentence with how it ended, and an entry that has not run says so. The
 report's own styling, scripts and event attributes are removed and the board's tokens put in their place; the frame
 follows the page's Dark/Light/Auto choice through `specs-client/report-frame.ts`. The file on its own is served under
 `/schedule-output/<project>/<key>/runs/<jobId>/index.html`.
@@ -394,8 +400,8 @@ report: each title as created (linked to its job) or skipped, and why. A list th
 the board cannot read, creates nothing and says so there.
 
 `model:` is which of the queue's own `modelChoices` every fire of that entry runs on — one name for the whole entry,
-since a scheduled job is a single `schedule` step and has no phases to tell apart. It is picked on the New-job and Edit
-forms the same way a spec's model is picked on the Specs page, with the AI beside it deriving from it; a name the queue
+since a scheduled job is a single `schedule` step and has no phases to tell apart. It is picked on the New and Edit
+page the same way a spec's model is picked on the Specs page, with the AI beside it deriving from it; a name the queue
 config does not grant is refused at the form rather than at 03:00. A name that differs from a listed one only in
 upper and lower case is matched to the listed spelling and stored as that (in a job request, a per-step or pending
 pick, a tail-model edit, the Settings save and this form alike); a name matching several listed spellings that differ
@@ -404,8 +410,8 @@ and the queue config's own `schedule` default decides. "Run now"
 reads the same field, so pressing it tests what the schedule actually does.
 
 An entry whose model the queue config does not offer (the config file was edited by hand, or the queue config changed) is
-flagged in its Name cell on `/schedule` and above the Overview on its own page, naming the model and the ones the queue
-offers. Its runs are refused: Run now writes the queue's reason into the message slot above the list (`Run now was
+flagged in its Name cell on `/schedule` and on the project's Schedule tab, linking to its Edit page and naming the model and the ones the queue
+offers. Its runs are refused: Run now writes the queue's reason into the message slot above the project's Schedule tab list (`Run now was
 refused for <project>:<entry>: …`, or in `?error=` for a press made without script) and logs `queue: run now refused for
 <project>/<entry> — <reason>`; the timer logs `queue: scheduled fire refused for <project>/<entry> — <reason>` once per
 fire window and reason, not once per tick. The step sends the named file's contents to the model verbatim, with no Aide skill or spec folder

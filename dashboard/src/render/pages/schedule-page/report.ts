@@ -2,8 +2,8 @@
 // report — or says why there is none. This file alone writes the frame's
 // tag and escapes the framed document into its `srcdoc`.
 import { t, type Language } from "../../../i18n";
-import { badge } from "../../ui/components";
-import { esc } from "../../ui/html.ts";
+import { badge, rowMessage } from "../../ui/components";
+import { esc, relTime } from "../../ui/html.ts";
 import { BADGE_VARIANT, stateWord, type QueueRowView } from "../../ui/job-state";
 
 /** No `allow-scripts`: nothing in a report runs. `allow-same-origin` lets
@@ -20,13 +20,26 @@ export interface ReportPanelRun {
   bareHref?: string;
 }
 
-export function renderReportPanel(opts: { lang: Language; run?: ReportPanelRun }): string {
-  const { lang, run } = opts;
-  if (!run) return `<section id="report"><p class="muted">${esc(t(lang, "report.neverRan"))}</p></section>`;
+/** A newer run of the entry that has not finished: the panel still shows
+ *  the last finished run's report, and says this above it. */
+export type PendingRun = "queued" | "running";
+
+export function renderReportPanel(opts: { lang: Language; run?: ReportPanelRun; pending?: PendingRun; now?: number }): string {
+  const { lang, run, pending } = opts;
+  if (!run) {
+    const words = pending ? t(lang, pending === "queued" ? "report.notYetQueued" : "report.notYetRunning") : t(lang, "report.neverRan");
+    return `<section id="report"><p class="muted">${esc(words)}</p></section>`;
+  }
   const label = stateWord(run.view, lang);
+  const note = pending
+    ? rowMessage("info", t(lang, pending === "queued" ? "report.pendingQueued" : "report.pendingRunning"), { tag: "p" })
+    : "";
+  // The time as the board says it everywhere else ("5 d ago"), with the
+  // exact stamp in its tooltip; placed into the sentence after escaping.
+  const MARK = "\u0000";
+  const ran = esc(t(lang, "report.ranAt", { time: MARK })).replace(MARK, relTime(run.startedAt, opts.now ?? Date.now()));
   const head =
-    `<p class="reporthead">${badge(BADGE_VARIANT[run.view.state], label)} ` +
-    `${esc(t(lang, "report.runOf", { time: run.startedAt }))}` +
+    `<p class="reporthead">${badge(BADGE_VARIANT[run.view.state], label)} ${ran}` +
     (run.document !== undefined && run.bareHref
       ? ` · <a href="${esc(run.bareHref)}">${esc(t(lang, "report.openFile"))}</a>`
       : "") +
@@ -36,5 +49,6 @@ export function renderReportPanel(opts: { lang: Language; run?: ReportPanelRun }
       ? `<iframe class="reportframe" data-report-frame sandbox="${REPORT_SANDBOX}" ` +
         `title="${esc(t(lang, "report.frameTitle"))}" srcdoc="${esc(run.document)}"></iframe>`
       : `<p class="muted">${esc(t(lang, "report.none", { state: label }))}</p>`;
-  return `<section id="report" class="reportpanel"><h2>${esc(t(lang, "report.heading"))}</h2>${head}${body}</section>`;
+  // No heading: the tab above already says Report.
+  return `<section id="report" class="reportpanel">${note}${head}${body}</section>`;
 }

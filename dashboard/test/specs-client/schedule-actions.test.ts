@@ -6,7 +6,7 @@
 // Acceptance criteria 14, 15, 16.
 import { describe, expect, test } from "bun:test";
 import {
-  bindScheduleDeleteButton, postScheduleEnabled, postScheduleRun, runCronPreview, scheduleCronPreview,
+  bindScheduleDeleteButton, followScheduleRow, postScheduleEnabled, postScheduleRun, runCronPreview, scheduleCronPreview, submitScheduleForm,
 } from "../../src/specs-client/schedule-actions.ts";
 
 function fakeCheckbox(o: { checked: boolean; postTo: string }): HTMLInputElement {
@@ -215,5 +215,73 @@ describe("runCronPreview / scheduleCronPreview (acceptance criterion 16)", () =>
     await new Promise((r) => setTimeout(r, 40));
     expect(calls).toBe(1);
     expect(target.textContent).toBe("Next run: 2026-08-30T03:00:00.000Z");
+  });
+});
+
+// Save and Create on the page that makes or changes an entry: the
+// globals `postForm` reads are put in place for the one press and taken
+// back after it.
+describe("submitScheduleForm", () => {
+  async function press(answer: { ok: boolean; body: unknown }) {
+    const slot = { textContent: "" };
+    const button = { disabled: false, textContent: "Save", title: "", dataset: {}, classList: { contains: () => false, add() {}, remove() {} }, isConnected: true };
+    const form = {
+      id: "schedule-form",
+      action: "http://dash.test/api/queue/schedule/aide/nightly",
+      dataset: {},
+      closest: () => null,
+      querySelectorAll: () => [button],
+      querySelector: (sel: string) => (sel === "[data-scheduleform-error]" ? slot : null),
+    };
+    const saved = { document: globalThis.document, location: globalThis.location, fetch: globalThis.fetch, FormData: globalThis.FormData };
+    const went: string[] = [];
+    const loc = { href: "http://dash.test/schedule/aide/nightly/edit", pathname: "/schedule/aide/nightly/edit", search: "" };
+    Object.assign(globalThis, {
+      document: { querySelectorAll: () => [] },
+      location: loc,
+      fetch: fakeFetch(() => answer),
+      FormData: class { forEach(fn: (v: string, k: string) => void) { fn("nightly", "name"); } },
+    });
+    try {
+      await submitScheduleForm(form as unknown as HTMLFormElement, { defaultPrevented: false, preventDefault() {} } as Event, (h) => went.push(h));
+    } finally {
+      Object.assign(globalThis, saved);
+    }
+    return { slot, went };
+  }
+
+  test("a save goes where the server says: the page the form was opened from", async () => {
+    const { went, slot } = await press({ ok: true, body: { ok: true, location: "/projects/aide?tab=schedule" } });
+    expect(went).toEqual(["/projects/aide?tab=schedule"]);
+    expect(slot.textContent).toBe("");
+  });
+
+  test("a refusal is written into the form's error line, and the page stays", async () => {
+    const { went, slot } = await press({ ok: false, body: { error: "a job named nightly already exists" } });
+    expect(slot.textContent).toContain("a job named nightly already exists");
+    expect(went).toEqual([]);
+  });
+});
+
+describe("followScheduleRow", () => {
+  /** A click landing on an element inside a row whose target is `/x`;
+   *  `onControl` says whether that element sits in one of the row's controls. */
+  const click = (onControl: boolean, extra: Partial<MouseEvent> = {}) => {
+    const row = { getAttribute: (n: string) => (n === "data-row-href" ? "/x" : null) };
+    const target = { closest: (sel: string) => (sel.startsWith("tr[") ? row : onControl ? {} : null) };
+    return { defaultPrevented: false, button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, target, ...extra } as unknown as MouseEvent;
+  };
+
+  test("a click on the row itself opens what the row links to", () => {
+    const went: string[] = [];
+    expect(followScheduleRow(click(false), (h) => went.push(h))).toBe("/x");
+    expect(went).toEqual(["/x"]);
+  });
+
+  test("a click on one of the row's controls, or with a modifier key, is left to the browser", () => {
+    const went: string[] = [];
+    expect(followScheduleRow(click(true), (h) => went.push(h))).toBeNull();
+    expect(followScheduleRow(click(false, { metaKey: true }), (h) => went.push(h))).toBeNull();
+    expect(went).toEqual([]);
   });
 });

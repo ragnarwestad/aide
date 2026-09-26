@@ -8,7 +8,13 @@ import { CSS } from "../../../src/render/ui/css";
 
 describe("backLink", () => {
   test("a .backlink anchor labelled ← Back, wrapped in the .intro spacing rule", () => {
-    expect(backLink("/projects")).toBe('<p class="intro"><a class="backlink" href="/projects">← Back</a></p>');
+    expect(backLink("/projects")).toBe('<p class="intro"><a class="backlink" rel="noreferrer" href="/projects">← Back</a></p>');
+  });
+
+  // The page Back leads to works out its own Back from the Referer; this
+  // page as its Referer would send the reader straight back here.
+  test("sends no Referer, so two pages never send each other round in a circle", () => {
+    expect(backLink("/projects")).toContain('rel="noreferrer"');
   });
 
   test("escapes its href", () => {
@@ -20,7 +26,7 @@ describe("backLink", () => {
   // its own block-level line.
   test("given a title, draws it beside ← Back in one .backhead row (spec 296)", () => {
     expect(backLink("/projects", "Add project")).toBe(
-      '<div class="backhead"><a class="backlink" href="/projects">← Back</a><h1>Add project</h1></div>',
+      '<div class="backhead"><a class="backlink" rel="noreferrer" href="/projects">← Back</a><h1>Add project</h1></div>',
     );
   });
 

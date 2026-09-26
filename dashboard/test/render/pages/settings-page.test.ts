@@ -130,7 +130,7 @@ describe("Settings page", () => {
       timeoutSec: TIMEOUT_SEC,
       backHref: "/projects/aide",
     });
-    expect(html).toContain('<a class="backlink" href="/projects/aide">← Back</a>');
+    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/projects/aide">← Back</a>');
   });
 
   // Spec 409, REQ-8: Save gets a Cancel to its right, inside the same
@@ -167,7 +167,7 @@ describe("Settings page", () => {
       defaultModels: { default: "sonnet" },
       timeoutSec: TIMEOUT_SEC,
     });
-    expect(html).toContain('<a class="backlink" href="/">← Back</a>');
+    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/">← Back</a>');
   });
 
   // Spec 408, REQ-2/REQ-6: Settings belongs to none of the tabs the

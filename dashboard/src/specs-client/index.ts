@@ -47,7 +47,10 @@ import { postForm } from "./press.ts";
 import { bindPushPanel } from "./push.ts";
 import { startReloadWhileIdle } from "./reload-while-idle";
 import { relabelRunButton } from "./row-swap.ts";
-import { bindScheduleDeleteButton, postScheduleEnabled, postScheduleRun, scheduleCronPreview } from "./schedule-actions.ts";
+import {
+  bindScheduleDeleteButton, followScheduleRow, postScheduleEnabled, postScheduleRun, scheduleCronPreview,
+  submitScheduleForm,
+} from "./schedule-actions.ts";
 import { submitProgress } from "./progress-dialog";
 import { NEW_SPEC_FORM } from "./state.ts";
 import { postTailModel, postTailStep } from "./tail-actions.ts";
@@ -246,6 +249,7 @@ for (const el of document.querySelectorAll("form.scheduleform")) {
   const cronInput = form.querySelector('input[name="cron"]') as HTMLInputElement | null;
   const target = form.querySelector("[data-cron-next]") as HTMLElement | null;
   if (cronInput && target) cronInput.addEventListener("input", () => scheduleCronPreview(cronInput, target));
+  form.addEventListener("submit", ((event: Event) => submitScheduleForm(form, event)) as EventListener);
   // The AI and model pair, exactly as the New-spec form binds its own:
   // this page has no `#jobrows`, so the delegated listener further up
   // cannot hear these two. Nothing is remembered across a redraw here —
@@ -259,6 +263,13 @@ for (const el of document.querySelectorAll("form.scheduleform")) {
     if (model) syncAiToModel(model);
   }) as EventListener);
 }
+// A schedule row is one big link to what its name links to, outside its
+// own controls.
+document.addEventListener("click", ((event: MouseEvent) => {
+  followScheduleRow(event, (href) => {
+    location.href = href;
+  });
+}) as EventListener);
 // Delete on a schedule row is a plain button with no href and no
 // confirmation page behind it (spec 528) — its own dialog is opened by
 // script alone.
