@@ -227,7 +227,7 @@ Answered by the files under `src/serve/routes/page-routes/`, `src/serve/routes/s
 
 | Route                                           | Kind   | Takes                                        | Answers                                                                                                       | Made for |
 |-------------------------------------------------|--------|----------------------------------------------|---------------------------------------------------------------------------------------------------------------|----------|
-| `GET /`                                         | read   | optional filters in the query, `?rows=`      | the specs list; with `?rows=`, the rows alone                                                                 | page     |
+| `GET /`                                         | read   | optional filters in the query, `?rows=`      | the specs list; with `?rows=`, the rows alone; with `?only=` too, one spec's rows                             | page     |
 | `GET /new`                                      | read   | optional `?retry=`, `?error=`                | the New spec form                                                                                             | page     |
 | `GET /queue`                                    | read   | nothing                                      | 302 to `/`, whatever the method                                                                               | page     |
 | `GET /specs`                                    | read   | nothing                                      | 302 to `/`, whatever the method                                                                               | page     |

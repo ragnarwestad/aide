@@ -27,7 +27,8 @@ export function checksFold(g: SpecGroup, f: SpecsFilter, lang: Language): string
   const next = shut ? [...unfolded, key] : [...unfolded].filter((k) => k !== key);
   const action = t(lang, shut ? "list.foldShow" : "list.foldHide");
   return (
-    `<a class="fold${shut ? " shut" : ""}" data-nav href="${queueHref(f, { checks: next.join(",") })}" ` +
+    `<a class="fold${shut ? " shut" : ""}" data-nav data-fold="checks" data-key="${esc(key)}" ` +
+    `href="${queueHref(f, { checks: next.join(",") })}" ` +
     `aria-expanded="${shut ? "false" : "true"}" ` +
     `title="${esc(t(lang, "list.checksFoldTitle", { action, folder: g.specFolder }))}">${ICON_CHEVRON}</a>`
   );

@@ -299,6 +299,18 @@ export function renderSpecsRows(rows: QueueRowView[], opts: SpecsPageOptions, no
   );
 }
 
+/** One spec's rows and nothing else, for a › that opened or shut that
+ *  spec alone: the whole list is a megabyte once the archive is on it,
+ *  and redrawing all of it to change one row took seconds on a phone.
+ *  The table is empty when the filter does not show that spec, and the
+ *  page then redraws the whole list instead. */
+export function renderSpecGroupRows(rows: QueueRowView[], opts: SpecsPageOptions, key: string, now = Date.now()): string {
+  const f = opts.filter ?? {};
+  const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now);
+  const one = applyFilter(groups, f).filter((g) => groupKey(g.project, g.specFolder) === key);
+  return `<table><tbody>${groupRows(one, opts, now, openedSet(f))}</tbody></table>`;
+}
+
 export function renderSpecsPage(
   rows: QueueRowView[],
   generatedAt: string,
