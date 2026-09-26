@@ -17,6 +17,7 @@ Complete step-by-step guide for setting up the AI workspace with your preferred 
   - [Step 1: Clone the AI workspace](#step-1-clone-the-ai-workspace)
 - [AI-tool-specific installation](#ai-tool-specific-installation)
   - [Install everything at once](#install-everything-at-once)
+  - [Check what is installed](#check-what-is-installed)
   - [Claude Code](#claude-code)
   - [GitHub Copilot](#github-copilot)
   - [Codex](#codex)
@@ -205,6 +206,23 @@ implementations/opencode/install.sh
 ```
 
 The sections below describe what each individual installer does.
+
+### Check what is installed
+
+Every installer starts by running `aide-preflight`, which reports for each AI tool whether its CLI is on `PATH`, with
+its version, and where each Aide piece lands: the skills, the rules, the hooks and the shared scripts. It only
+reports. A tool that is missing is listed as not found and the files install anyway; they take effect once the tool
+is installed.
+
+It is installed to `~/.local/bin/` with the other shared scripts, so it can be run on its own at any time:
+
+```bash
+aide-preflight            # every tool
+aide-preflight codex      # one tool: claude, copilot, codex or opencode
+```
+
+The dashboard's **Settings** page runs the same check: each AI tool has its own tab, and its **Check** button shows
+what `aide-preflight` printed on the machine the board runs on.
 
 ### Claude Code
 
