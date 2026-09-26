@@ -188,17 +188,17 @@ self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim(
 self.addEventListener("push", (event) => {
   let n = {};
   try { n = event.data.json(); } catch (e) {}
-  // The mark, not the browser's own stand-in. No backticks in here: this
-  // whole worker is a template literal, and one would end it.
+  // No backticks in here: this whole worker is a template literal, and
+  // one would end it.
   //
-  // The icon is the picture in the notification. The badge is the small
-  // glyph in the status bar, which Android draws as a white silhouette of
-  // whatever is opaque — so it points at the mark on transparency and
-  // never at an app icon, whose background rect would silhouette to a
-  // solid square.
+  // No icon: Android already draws the installed app's icon beside the
+  // notification, and an icon here adds a second, larger copy at its
+  // right edge. The badge is the small glyph in the status bar, which
+  // Android draws as a white silhouette of whatever is opaque, so it
+  // points at the mark on transparency and never at an app icon, whose
+  // background rect would silhouette to a solid square.
   event.waitUntil(self.registration.showNotification(n.title || "aide -board", {
     body: n.body || "",
-    icon: "/icon-192.png",
     badge: "/badge-96.png",
     data: { url: n.url || "/" },
   }));

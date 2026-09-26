@@ -420,13 +420,14 @@ describe("the worker shows every push and opens the spec on a tap (criterion 10)
     expect(w.shown).toEqual([{ title: "aide · 81-x", options: expect.objectContaining({ body: "Implement failed.", data: { url: "/specs/aide/81-x" } }) }]);
   });
 
-  // Without these the phone draws its own generic mark. The badge is the
-  // status-bar glyph, which Android silhouettes off the alpha channel, so
-  // it names the transparent one and never an app icon.
-  test("a notification carries the mark, and the badge is the transparent one", async () => {
+  // The badge is the status-bar glyph, which Android silhouettes off the
+  // alpha channel, so it names the transparent one and never an app icon.
+  // No icon: Android draws the app's own beside the notification, and an
+  // icon would add a second copy at its right edge.
+  test("a notification carries the transparent badge and no second icon", async () => {
     const w = worker(async () => new Response("ok"));
     await w.push(() => ({ title: "aide · 81-x", body: "Implement failed." }));
-    expect(w.shown[0]!.options.icon).toBe("/icon-192.png");
+    expect(w.shown[0]!.options.icon).toBeUndefined();
     expect(w.shown[0]!.options.badge).toBe("/badge-96.png");
   });
 

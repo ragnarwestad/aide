@@ -95,8 +95,9 @@ shortcut, only when the manifest lists raster icons of 192 and 512 pixels and a 
 routes at all; they answer any request with a `Host` of the dashboard's own. The spec page fetches one more thing —
 its own editor or viewer script — and everything else a page needs is carried inline.
 
-**A notification carries the mark.** A push names `/icon-192.png` as its icon — the picture in the notification — and
-`/badge-96.png` as its badge, the small glyph Android draws in the status bar. The badge is the only image here with an
+**A notification carries the mark as its badge only.** A push names `/badge-96.png` as its badge, the small glyph
+Android draws in the status bar, and no icon: Android already shows the installed app's icon beside the notification,
+and an icon would add a second copy at its right edge. The badge is the only image here with an
 alpha channel, and that is the whole reason it exists separately: Android draws a badge as a white silhouette of
 whatever is opaque, so an app icon, whose background covers the canvas, silhouettes to a solid square. `/badge-96.png`
 is the four bars with nothing behind them. Named by the service worker alone — it is not an app icon, so the manifest
