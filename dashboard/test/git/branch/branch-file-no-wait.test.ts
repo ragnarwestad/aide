@@ -5,7 +5,7 @@
 
 import { describe, expect, test } from "bun:test";
 import type { GitRunner } from "../../../src/git/branch-status.ts";
-import { readStatusFromFetchedBranch } from "../../../src/git/branch-file.ts";
+import { readStatusFromFetchedBranch, refreshedRef } from "../../../src/git/branch-file.ts";
 
 const REL_PATH = "aide/specs/541-x/4-status.md";
 
@@ -52,5 +52,27 @@ describe("readStatusFromFetchedBranch", () => {
     const reading = readStatusFromFetchedBranch(g.run, "/r3", "aide/541-x", REL_PATH);
     g.release();
     expect(await reading).toBeNull();
+  });
+});
+
+describe("refreshedRef (AC-6)", () => {
+  test("answers the ref from the last fetch with the fetch still out, and hands back its promise", async () => {
+    const g = held(true);
+    const got = await refreshedRef(g.run, "/r5", "main");
+    expect(got.ref).toBe("refs/remotes/origin/main");
+    expect(g.fetches).toHaveLength(1);
+    let settled = false;
+    void got.refreshed.then(() => (settled = true));
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    g.release();
+    await got.refreshed;
+    expect(settled).toBe(true);
+  });
+
+  test("a ref never fetched waits for the fetch, and is null when it fails", async () => {
+    const g = held(false, 128);
+    g.release();
+    expect((await refreshedRef(g.run, "/r6", "main")).ref).toBeNull();
   });
 });

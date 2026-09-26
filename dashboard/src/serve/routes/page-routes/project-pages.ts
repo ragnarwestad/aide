@@ -16,7 +16,8 @@ import { ADD_PROJECT_ROUTE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, 
 import { MAIN_TEST_SERVER_KEY, refreshTestServerStatus } from "../../test-servers/lifecycle.ts";
 import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "../spec-edit/test-server-waiting.ts";
 import { isSpecFolder } from "../../../render/ui/shell.ts";
-import { languageChoice, specsClientScript } from "../../serve-helpers";
+import { SPEC_VIEWER_ASSET_PATH, languageChoice, specsClientScript } from "../../serve-helpers";
+import { wikiView } from "./wiki-view.ts";
 import type { RoutesContext } from "..";
 import { scheduleLastRun } from "./schedule-last-run.ts";
 import { isWikiBuild } from "../../../queue/steps.ts";
@@ -192,7 +193,9 @@ export async function projectPages(
     // Read-only, like `/projects`' own drift map: `peekDrift` is a
     // cache lookup, never a git call — the page's own "never merges,
     // pulls, fetches or checks anything out" contract
-    // (project-detail-route.test.ts) must hold here too (spec 258).
+    // (project-detail-route.test.ts) must hold here too (spec 258) — on
+    // every tab but Wiki, whose read starts a fetch of the specs
+    // repository's default branch behind it.
     const driftRoot = ctx.machineryProjectDir(name);
     const drift = resolveInstallCmd(driftRoot).value
       ? ctx.branchStatus.peekDrift(driftRoot)
@@ -230,6 +233,10 @@ export async function projectPages(
     const machinery = ctx.machineryProjectDir(name);
     const manifestDir = existsSync(join(machinery, ".aide", "project.yaml")) ? machinery : dir;
     const langResult = languageChoice(url, req);
+    // The one tab that reads git: the wiki's pages off the default branch,
+    // with a fetch started behind the read (the rest of this page never
+    // fetches).
+    const wiki = url.searchParams.get("tab") === "wiki" ? await wikiView(ctx, name, url.searchParams.get("page")).catch(() => undefined) : undefined;
     const html = renderProjectPage(
       view,
       projectSettings(dir, readiness, manifestDir),
@@ -274,6 +281,9 @@ export async function projectPages(
         wikiError: url.searchParams.get("wikiError") ?? undefined,
         wikiBuild: latestWikiBuild(ctx.queue.list(), name, langResult.lang),
         wikiLog: await wikiLog(ctx, url, name),
+        wiki,
+        // The viewer bundle a rendered page needs; the list draws none.
+        scriptSrc: wiki?.open && !("missing" in wiki.open) ? SPEC_VIEWER_ASSET_PATH : undefined,
         deployFailure: ctx.readDeployFailure(name),
         serving,
         restartWaiting: ctx.readPendingRestart()?.jobs,

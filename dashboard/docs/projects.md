@@ -306,6 +306,16 @@ itself: the same job with `wikiRefresh`, which rewrites only the pages whose fil
 covers the next archive too. A project whose specs folder git ignores inside the project cannot build
 a wiki: the run is refused, since there is no repository to commit the pages to.
 
+Above the log the tab lists the wiki's pages, in the order of the wiki's `index.md`, each with its summary and a word
+for its state: **Current**, **Files changed** (a file the page names differs from the project's checkout since the page
+was written), **Unknown** (the commit it was written from is not in the checkout) or **By hand** (no freshness is
+tracked). A page not in the index follows the listed ones. Pressing a page opens it on the tab, rendered as markdown
+with the viewer a locked spec document uses; a link to another page opens that page there, and `?page=<file>.md` in the
+address keeps the open page across a reload and a language change. The pages are read from the specs repository's
+default branch as of its last fetch, never from its working tree, and a fetch of that branch is started behind the read —
+the one place the project page fetches. A tab open on a page does not reload itself while a build runs. A project whose
+default branch has no `wiki/index.md` shows the tab without any of this.
+
 ### How a project's code lands
 
 When a spec is archived, the dashboard lands its code in one of two ways, chosen per project with **Code landing** — in

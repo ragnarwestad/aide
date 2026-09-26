@@ -167,6 +167,13 @@ export const nb: Record<TranslationKey, string> = {
   "project.wikiRunning": "En wiki-bygging kjører.",
   "project.wikiLastBuilt": "Sist bygget {date}.",
   "project.wikiLastEnded": "Siste bygging endte som {state}.",
+  "project.wikiPagesHeading": "Sider",
+  "project.wikiAllPages": "Alle sider",
+  "project.wikiPageMissing": "Den siden finnes ikke i wikien.",
+  "project.wikiStateCurrent": "Oppdatert",
+  "project.wikiStateChanged": "Filer endret",
+  "project.wikiStateUnknown": "Ukjent",
+  "project.wikiStateHand": "Skrevet for hånd",
 
   "newSpec.dependsOn": "Avhenger av",
   "newSpec.select": "Velg",

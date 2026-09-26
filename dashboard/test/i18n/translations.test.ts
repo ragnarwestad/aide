@@ -37,6 +37,11 @@ describe("t()", () => {
     expect(t("nb", "list.colState")).toBe("Tilstand/Aksjon");
   });
 
+  test("the Wiki tab's page states read in the page's language (AC-4)", () => {
+    expect(t("en", "project.wikiStateChanged")).toBe("Files changed");
+    expect(t("nb", "project.wikiStateChanged")).not.toBe("Files changed");
+  });
+
   test("LANGUAGES names all five (spec 484, AC-4)", () => {
     expect(LANGUAGES.sort()).toEqual(["de", "en", "es", "fr", "nb"]);
   });

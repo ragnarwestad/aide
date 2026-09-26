@@ -4,7 +4,8 @@
 # The wiki is the folder wiki/ inside the project's specs root: index.md,
 # schema.md and one page per part of the system. A page is GENERATED when
 # its front matter carries `wiki: generated`; every other page is written
-# by hand and is never touched. That mark is read in this script alone.
+# by hand and is never touched. That mark is read here and in
+# dashboard/src/project/wiki/ (pinned to this script by state.test.ts there).
 # The /aide-wiki skill decides what the parts are and what a page says;
 # everything that can be checked lives here.
 #
@@ -65,7 +66,7 @@ done
 [ -d "$specs_root" ] || refuse "no-specs-root" "no specs root at $specs_root"
 wiki="$specs_root/wiki"
 
-# --- the mark, read here and nowhere else ------------------------------------
+# --- the mark, read here and in dashboard/src/project/wiki/ ------------------
 
 # The front matter's lines, without the two `---` fences; empty when the file
 # does not start with one.

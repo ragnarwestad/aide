@@ -49,6 +49,7 @@ const SECTIONS = [
   "rows-and-forms.css",
   "job-page.css",
   "project-overview.css",
+  "wiki-pages.css",
   "narrow.css",
 ];
 

@@ -8,6 +8,7 @@ import { stepResults } from "../job-page";
 import { RELOAD_SECONDS } from "../spec-page/tabs.ts";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
+import { wikiPages } from "./wiki-pages.ts";
 import type { ProjectPageOptions } from "./types.ts";
 
 type WikiBuild = NonNullable<ProjectPageOptions["wikiBuild"]>;
@@ -59,11 +60,14 @@ export function wikiSection(name: string, opts: ProjectPageOptions): string {
   // While a build runs, the tab reloads itself as the spec page's Logs tab
   // does, so its log keeps up with nobody pressing reload; it stops once
   // the build is over.
-  const live = building && opts.script ? `<span hidden data-reload-every="${RELOAD_SECONDS}"></span>` : "";
+  // Not while a page is open: a reload would remount the viewer and put the
+  // reader back at the top.
+  const live = building && opts.script && !opts.wiki?.open ? `<span hidden data-reload-every="${RELOAD_SECONDS}"></span>` : "";
   return (
     live +
     `<h3>${esc(t(lang, "project.wikiHeading"))}</h3>` +
     `<div class="deploypanel">${refusal}${rowMessage("info", t(lang, "project.wikiNote"))}${latest}${form}</div>` +
+    (opts.wiki ? wikiPages(name, opts.wiki, lang) : "") +
     log
   );
 }

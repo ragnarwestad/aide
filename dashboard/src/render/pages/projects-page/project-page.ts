@@ -363,6 +363,6 @@ export function renderProjectPage(
 
   const body = tabbedBody(projectDescription(p), tabBar(PROJECT_TABS, base, tab, {}), panel, opts.backHref ?? PROJECTS_ROUTE, p.name);
   return pageShell(p.name, nav, base, body, generatedAt, awaitingDrift ? AWAITING_DRIFT_REFRESH_SECONDS : undefined, {
-    script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,
+    script: opts.script, scriptSrc: opts.scriptSrc, hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,
   });
 }

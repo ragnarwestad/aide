@@ -22,7 +22,7 @@ function readOnlyDocument(file: SpecFileView, now: number, mark = ""): string {
 /** Read-only counterpart of editableDocumentForm's mount/textarea
  *  pair — same fallback CSS (field.css), same JS-off/build-failure
  *  fallback (REQ-6), just no `<form>` around it. */
-function viewerPair(text: string): string {
+export function viewerPair(text: string): string {
   return (
     `<div class="spec-editor-mount" id="spec-editor-host"></div>` +
     `<pre class="specfile spec-editor-raw">${esc(text)}</pre>`

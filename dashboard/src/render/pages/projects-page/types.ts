@@ -4,6 +4,7 @@ import type { SpecView, ProjectView } from "../../../project/discover";
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import type { Language } from "../../../i18n";
 import type { JobDetailView, JobStepResultView } from "../job-page/types.ts";
+import type { WikiView } from "../../../project/wiki/types.ts";
 
 export type { SpecView, ProjectView };
 
@@ -63,6 +64,11 @@ export interface ProjectPageOptions {
    *  job of the project's, never a row on the Specs list. `error` is its
    *  sentence already in the page's language. */
   wikiBuild?: { id: string; state: string; finishedAt?: string; error?: string };
+  /** The wiki's pages and the one the address opens, drawn on the Wiki tab.
+   *  Absent for a project with no wiki. */
+  wiki?: WikiView;
+  /** A script the page loads after its own — the viewer, for an open wiki page. */
+  scriptSrc?: string;
   /** That build's steps and logs, drawn under it on the Wiki tab. */
   wikiLog?: {
     results: JobStepResultView[];

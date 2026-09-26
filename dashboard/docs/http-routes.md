@@ -225,53 +225,53 @@ Answered by the files under `src/serve/routes/page-routes/`, `src/serve/routes/s
 `src/serve/routes/spec-pdf.ts`. A page that shows an error or a notice takes it as a query (`?error=`, `?notice=`). Every page route also reads
 `?lang=`, and answers with a year-long `set-cookie` when it is set.
 
-| Route                                           | Kind   | Takes                                        | Answers                                                                                                       | Made for |
-|-------------------------------------------------|--------|----------------------------------------------|---------------------------------------------------------------------------------------------------------------|----------|
-| `GET /`                                         | read   | optional filters in the query, `?rows=`      | the specs list; with `?rows=`, the rows alone; with `?only=` too, one spec's rows                             | page     |
-| `GET /new`                                      | read   | optional `?retry=`, `?error=`                | the New spec form                                                                                             | page     |
-| `GET /queue`                                    | read   | nothing                                      | 302 to `/`, whatever the method                                                                               | page     |
-| `GET /specs`                                    | read   | nothing                                      | 302 to `/`, whatever the method                                                                               | page     |
-| `GET /queue/<rest>`                             | read   | nothing                                      | 302 to `/specs/<rest>`, whatever the method                                                                   | page     |
-| `GET /jobs/<id>`                                | read   | optional `?tab=`, `?step=`, `?steptab=`      | the job's page                                                                                                | page     |
-| `GET /specs/<id>`                               | read   | the same as `/jobs/<id>`                     | a 301 to `/jobs/<id>` with the same query string                                                              | page     |
-| `GET /specs/<project>/<spec>`                   | read   | optional `?tab=`, `?step=`, `?steptab=`      | the spec's page                                                                                               | page     |
-| `GET /specs/<project>/<spec>?startTestServer=1` | action | optional `?retryTestServer=1`                | starts a test server for the spec, then a waiting page, a 303 to it, or a page saying why it could not start  | page     |
-| `GET /specs/<project>/<spec>/reopen`            | read   | optional `?error=`                           | the confirm page for reopening the spec                                                                       | page     |
-| `GET /specs/<project>/<spec>/pdf`               | read   | nothing                                      | `application/pdf`; 503 without md-to-pdf, 502 when the generator fails; writes a cached file when none exists | page     |
-| `GET /settings`                                 | read   | optional `?tab=`, `?error=`                  | the settings page                                                                                             | page     |
-| `GET /test-servers`                             | read   | nothing                                      | the running test servers                                                                                      | page     |
-| `GET /projects`                                 | read   | optional `?notice=`, `?error=`               | the projects list                                                                                             | page     |
-| `GET /projects/new`                             | read   | optional `?error=`                           | the add-project form                                                                                          | page     |
-| `GET /projects/<project>`                       | read   | optional `?tab=`, `?edit=1`, `?deployError=` | the project's page                                                                                            | page     |
-| `GET /projects/<project>?startTestServer=1`     | read   | nothing                                      | a waiting page, a 303 to the test server or back to the deploy tab, or a page saying why it could not start   | page     |
-| `GET /projects/<project>/settings`              | read   | nothing                                      | 302 to the project's Config tab, which carries the form                                                       | page     |
-| `GET /projects/<project>/remove`                | read   | optional `?error=`                           | the confirm page for removing the project                                                                     | page     |
-| `GET /schedule`                                 | read   | optional `?q=`, `?sort=`, `?dir=`            | the schedule list                                                                                             | page     |
-| `GET /schedule/<project>/<name>`                | read   | optional `?tab=`, `?run=`                    | the schedule's page                                                                                           | page     |
-| `GET /schedule/new`                             | read   | `?project=`                                  | the page that makes a schedule entry                                                                          | page     |
-| `GET /schedule/<project>/<name>/edit`           | read   | nothing                                      | the page that changes a schedule entry                                                                        | page     |
-| `GET /schedule-output/<file>`                   | read   | nothing                                      | a file from the schedule output folder                                                                        | page     |
+| Route                                           | Kind   | Takes                                                  | Answers                                                                                                       | Made for |
+|-------------------------------------------------|--------|--------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|----------|
+| `GET /`                                         | read   | optional filters in the query, `?rows=`                | the specs list; with `?rows=`, the rows alone; with `?only=` too, one spec's rows                             | page     |
+| `GET /new`                                      | read   | optional `?retry=`, `?error=`                          | the New spec form                                                                                             | page     |
+| `GET /queue`                                    | read   | nothing                                                | 302 to `/`, whatever the method                                                                               | page     |
+| `GET /specs`                                    | read   | nothing                                                | 302 to `/`, whatever the method                                                                               | page     |
+| `GET /queue/<rest>`                             | read   | nothing                                                | 302 to `/specs/<rest>`, whatever the method                                                                   | page     |
+| `GET /jobs/<id>`                                | read   | optional `?tab=`, `?step=`, `?steptab=`                | the job's page                                                                                                | page     |
+| `GET /specs/<id>`                               | read   | the same as `/jobs/<id>`                               | a 301 to `/jobs/<id>` with the same query string                                                              | page     |
+| `GET /specs/<project>/<spec>`                   | read   | optional `?tab=`, `?step=`, `?steptab=`                | the spec's page                                                                                               | page     |
+| `GET /specs/<project>/<spec>?startTestServer=1` | action | optional `?retryTestServer=1`                          | starts a test server for the spec, then a waiting page, a 303 to it, or a page saying why it could not start  | page     |
+| `GET /specs/<project>/<spec>/reopen`            | read   | optional `?error=`                                     | the confirm page for reopening the spec                                                                       | page     |
+| `GET /specs/<project>/<spec>/pdf`               | read   | nothing                                                | `application/pdf`; 503 without md-to-pdf, 502 when the generator fails; writes a cached file when none exists | page     |
+| `GET /settings`                                 | read   | optional `?tab=`, `?error=`                            | the settings page                                                                                             | page     |
+| `GET /test-servers`                             | read   | nothing                                                | the running test servers                                                                                      | page     |
+| `GET /projects`                                 | read   | optional `?notice=`, `?error=`                         | the projects list                                                                                             | page     |
+| `GET /projects/new`                             | read   | optional `?error=`                                     | the add-project form                                                                                          | page     |
+| `GET /projects/<project>`                       | read   | optional `?tab=`, `?edit=1`, `?deployError=`, `?page=` | the project's page; with `?tab=wiki`, the wiki's pages, or the one `?page=` names                             | page     |
+| `GET /projects/<project>?startTestServer=1`     | read   | nothing                                                | a waiting page, a 303 to the test server or back to the deploy tab, or a page saying why it could not start   | page     |
+| `GET /projects/<project>/settings`              | read   | nothing                                                | 302 to the project's Config tab, which carries the form                                                       | page     |
+| `GET /projects/<project>/remove`                | read   | optional `?error=`                                     | the confirm page for removing the project                                                                     | page     |
+| `GET /schedule`                                 | read   | optional `?q=`, `?sort=`, `?dir=`                      | the schedule list                                                                                             | page     |
+| `GET /schedule/<project>/<name>`                | read   | optional `?tab=`, `?run=`                              | the schedule's page                                                                                           | page     |
+| `GET /schedule/new`                             | read   | `?project=`                                            | the page that makes a schedule entry                                                                          | page     |
+| `GET /schedule/<project>/<name>/edit`           | read   | nothing                                                | the page that changes a schedule entry                                                                        | page     |
+| `GET /schedule-output/<file>`                   | read   | nothing                                                | a file from the schedule output folder                                                                        | page     |
 
 ### Files
 
 Answered by `src/serve/core-routes.ts` and `src/serve/serve-helpers/static.ts`. Only `GET` and `HEAD` reach them; any
 other method gets 405.
 
-| Route                        | Kind | Takes   | Answers                                              | Made for |
-|------------------------------|------|---------|------------------------------------------------------|----------|
-| `GET /spec-editor.js`        | read | nothing | the spec page's editor script; 304 against its ETag  | page     |
-| `GET /spec-viewer.js`        | read | nothing | the spec page's viewer script; 304 against its ETag  | page     |
-| `GET /manifest.webmanifest`  | read | nothing | the web app manifest                                 | page     |
-| `GET /sw.js`                 | read | nothing | the service worker, with `cache-control: no-cache`   | page     |
-| `GET /icon-192.png`          | read | nothing | the app icon, 192 px                                 | page     |
-| `GET /icon-512.png`          | read | nothing | the app icon, 512 px                                 | page     |
-| `GET /icon-512-maskable.png` | read | nothing | the maskable app icon                                | page     |
-| `GET /icon-512.svg`          | read | nothing | the app icon as SVG                                  | page     |
-| `GET /icon-512-maskable.svg` | read | nothing | the maskable app icon as SVG                         | page     |
-| `GET /apple-touch-icon.png`  | read | nothing | the icon iOS puts on a home screen                   | page     |
-| `GET /badge-96.png`          | read | nothing | the notification badge: the mark on transparency     | page     |
-| `GET /projects.html`         | read | nothing | 302 to `/projects`, keeping the query string         | page     |
-| `GET /<file>`                | read | nothing | 404 — nothing else answers a path this route reaches | page     |
+| Route                        | Kind | Takes   | Answers                                                                           | Made for |
+|------------------------------|------|---------|-----------------------------------------------------------------------------------|----------|
+| `GET /spec-editor.js`        | read | nothing | the spec page's editor script; 304 against its ETag                               | page     |
+| `GET /spec-viewer.js`        | read | nothing | the viewer script of the spec page and of an open wiki page; 304 against its ETag | page     |
+| `GET /manifest.webmanifest`  | read | nothing | the web app manifest                                                              | page     |
+| `GET /sw.js`                 | read | nothing | the service worker, with `cache-control: no-cache`                                | page     |
+| `GET /icon-192.png`          | read | nothing | the app icon, 192 px                                                              | page     |
+| `GET /icon-512.png`          | read | nothing | the app icon, 512 px                                                              | page     |
+| `GET /icon-512-maskable.png` | read | nothing | the maskable app icon                                                             | page     |
+| `GET /icon-512.svg`          | read | nothing | the app icon as SVG                                                               | page     |
+| `GET /icon-512-maskable.svg` | read | nothing | the maskable app icon as SVG                                                      | page     |
+| `GET /apple-touch-icon.png`  | read | nothing | the icon iOS puts on a home screen                                                | page     |
+| `GET /badge-96.png`          | read | nothing | the notification badge: the mark on transparency                                  | page     |
+| `GET /projects.html`         | read | nothing | 302 to `/projects`, keeping the query string                                      | page     |
+| `GET /<file>`                | read | nothing | 404 — nothing else answers a path this route reaches                              | page     |
 
 `GET /<file>` is the fallback: it has no path in the source, since `handleCore` in `src/serve/core-routes.ts` ends in
 a plain 404 once every other check above has declined. It is the one row the test does not look for a handler for.

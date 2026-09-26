@@ -88,13 +88,26 @@ export async function readStatusFromFetchedBranch(
   branch: string,
   relPath: string,
 ): Promise<BranchFileRead | null> {
-  const known = await run(root, ["rev-parse", "--verify", "--quiet", `refs/remotes/origin/${branch}`]);
-  if (known.code === 0) {
-    void fetchOnce(run, root, branch);
-  } else if ((await fetchOnce(run, root, branch)).code !== 0) {
-    return null;
-  }
+  const { ref } = await refreshedRef(run, root, branch);
+  if (!ref) return null;
   return readFetched(run, root, branch, relPath);
+}
+
+/** The remote-tracking ref of `branch` as the last fetch left it, with a
+ *  fetch started behind it — the half of `readStatusFromFetchedBranch` that
+ *  any page reading a branch off origin needs. `ref` is null when there is
+ *  none and the fetch failed; `refreshed` settles when the fetch behind the
+ *  read has finished, and only a test waits on it. */
+export async function refreshedRef(
+  run: GitRunner,
+  root: string,
+  branch: string,
+): Promise<{ ref: string | null; refreshed: Promise<unknown> }> {
+  const ref = `refs/remotes/origin/${branch}`;
+  const known = await run(root, ["rev-parse", "--verify", "--quiet", ref]);
+  if (known.code === 0) return { ref, refreshed: fetchOnce(run, root, branch) };
+  const fetched = await fetchOnce(run, root, branch);
+  return { ref: fetched.code === 0 ? ref : null, refreshed: Promise.resolve(fetched) };
 }
 
 export interface BranchWriteResult {
@@ -242,7 +255,7 @@ export interface OpenBranchTarget {
  *  cannot be — the same shape `sameRoot` (land-branch/merge.ts) uses, and
  *  for the same reason: a path that is not there answers as itself rather
  *  than throwing. */
-function real(p: string): string {
+export function real(p: string): string {
   try {
     return realpathSync(p);
   } catch {

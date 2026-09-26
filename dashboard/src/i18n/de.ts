@@ -166,6 +166,13 @@ export const de: Record<TranslationKey, string> = {
   "project.wikiRunning": "Ein Wiki-Aufbau läuft.",
   "project.wikiLastBuilt": "Zuletzt aufgebaut am {date}.",
   "project.wikiLastEnded": "Der letzte Aufbau endete als {state}.",
+  "project.wikiPagesHeading": "Seiten",
+  "project.wikiAllPages": "Alle Seiten",
+  "project.wikiPageMissing": "Diese Seite gibt es im Wiki nicht.",
+  "project.wikiStateCurrent": "Aktuell",
+  "project.wikiStateChanged": "Dateien geändert",
+  "project.wikiStateUnknown": "Unbekannt",
+  "project.wikiStateHand": "Von Hand",
 
   "newSpec.dependsOn": "Hängt ab von",
   "newSpec.select": "Auswählen",

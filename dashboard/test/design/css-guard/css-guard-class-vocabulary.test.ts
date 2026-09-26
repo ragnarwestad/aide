@@ -166,6 +166,9 @@ const STRUCTURE = [
   // spaced apart by this container's gap rather than a component margin
   // (spec 377, design-system.md "Spacing lives in the container").
   "deploypanel",
+  // the Wiki tab's page list, and the wrapper of a rendered wiki page whose
+  // long lines break instead of widening the page.
+  "wikipages", "wikidoc",
   // the Deploy dialog's step list, each line's state word, and the
   // one-line area its finished message is written into (the dialog
   // keeps one size from the press to the end).

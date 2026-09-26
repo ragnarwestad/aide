@@ -175,6 +175,13 @@ export const en = {
   "project.wikiRunning": "A wiki build is running.",
   "project.wikiLastBuilt": "Last built {date}.",
   "project.wikiLastEnded": "The last build ended {state}.",
+  "project.wikiPagesHeading": "Pages",
+  "project.wikiAllPages": "All pages",
+  "project.wikiPageMissing": "That page is not in the wiki.",
+  "project.wikiStateCurrent": "Current",
+  "project.wikiStateChanged": "Files changed",
+  "project.wikiStateUnknown": "Unknown",
+  "project.wikiStateHand": "By hand",
 
   "newSpec.dependsOn": "Depends on",
   "newSpec.select": "Select",
