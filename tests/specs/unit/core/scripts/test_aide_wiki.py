@@ -87,13 +87,13 @@ def test_the_script_answers_help(script):
 
 
 def test_a_written_page_carries_the_mark_the_commit_and_its_files_AC_3(script, specs_root, project):
-    rc, out = write_page(script, specs_root, project, "queue.md", ["x.txt", "dir"], "# The queue\n\nRuns things.\n")
+    rc, out = write_page(script, specs_root, project, "queue.md", ["x.txt", "dir/z.txt"], "# The queue\n\nRuns things.\n")
     assert rc == 0, out
     assert out["ok"] is True and out["terminalReason"] == "written"
     text = (specs_root / "wiki" / "queue.md").read_text()
     assert text.startswith("---\nwiki: generated\n")
     assert f"commit: {head(project)}\n" in text
-    assert "files:\n  - x.txt\n  - dir\n---\n" in text
+    assert "files:\n  - x.txt\n  - dir/z.txt\n---\n" in text
     assert text.endswith("# The queue\n\nRuns things.\n")
 
 
@@ -102,6 +102,15 @@ def test_a_file_that_is_not_in_the_project_is_refused_and_nothing_is_written_AC_
     assert rc == 2
     assert out["reason"] == "unknown-file"
     assert not (specs_root / "wiki" / "queue.md").exists()
+
+
+def test_a_folder_is_refused_as_a_page_s_source(script, specs_root, project):
+    """A page written from a folder reads as stale whenever anything in it
+    changes: the first build named whole folders, and every page did."""
+    rc, out = write_page(script, specs_root, project, "a.md", ["dir"])
+    assert out["reason"] == "folder-not-file", out
+    assert not (specs_root / "wiki" / "a.md").exists()
+    assert write_page(script, specs_root, project, "a.md", ["dir/z.txt"])[1]["ok"] is True
 
 
 def test_a_page_needs_files_a_body_and_a_plain_name_AC_3(script, specs_root, project):
@@ -258,7 +267,7 @@ def test_verify_finds_nothing_when_only_generated_pages_changed_AC_4(script, spe
 def test_status_tells_current_changed_unknown_and_hand_written_apart_AC_5(script, specs_root, project):
     hand_written(specs_root)
     write_page(script, specs_root, project, "steady.md", ["x.txt"])
-    write_page(script, specs_root, project, "moving.md", ["y.txt", "dir"])
+    write_page(script, specs_root, project, "moving.md", ["y.txt", "dir/z.txt"])
     old = (specs_root / "wiki" / "steady.md").read_text().replace(head(project), "0" * 40)
     (specs_root / "wiki" / "lost.md").write_text(old)
     (project / "dir" / "z.txt").write_text("z moved\n")

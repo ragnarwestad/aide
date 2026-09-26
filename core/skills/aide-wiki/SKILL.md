@@ -46,16 +46,22 @@ change: tens of pages for a large system, a handful for a small one.
 
 For each part not covered by a hand-written page, pipe the page's body to
 `aide-wiki write --specs-root <root> --project-dir . --page <name>.md
---file <path> [--file <path>...]`, naming the files and folders the page
-was written from. The script adds the front matter with the mark and the
-commit.
+--file <path> [--file <path>...]`, naming the files the page was written
+from. Files, never folders — the script refuses a folder, since a page
+written from one reads as stale whenever anything in it changes. Name the
+files that carry the part: its entry points, its types, the doc page that
+describes it — not everything in its folder. The script adds the front
+matter with the mark and the commit.
 
 A page opens with a `# ` heading, then one line saying what the part does
 (the index shows that line), then:
 
 - who it talks to and over what, with ordinary markdown links to
   `other-page.md`
-- what has to change along with it
+- what has to change along with it: one line per ripple, in the form
+  "change X, and Y must follow, because …", naming files or pages. A
+  pointer to another document is not a ripple; if that document lists
+  one, say it here
 - the words it uses for things
 
 A page holds no line numbers and no code. It is a map: the code decides.

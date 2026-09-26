@@ -150,6 +150,10 @@ case "$sub" in
     [ -s "$body" ] || { rm -f "$body"; refuse "empty-body" "no content on stdin"; }
     for f in "${files[@]}"; do
       git -C "$project_dir" cat-file -e "HEAD:$f" 2>/dev/null || { rm -f "$body"; refuse "unknown-file" "$f is not in the project at HEAD"; }
+      # A page names files, not folders: one written from a folder reads as
+      # stale whenever anything in that folder changes, whatever it was.
+      [ "$(git -C "$project_dir" cat-file -t "HEAD:$f" 2>/dev/null)" != "tree" ] ||
+        { rm -f "$body"; refuse "folder-not-file" "$f is a folder — name the files the page was written from, not the folder they are in"; }
     done
     compose "$head_sha" "${files[@]}" < "$body" | put_page "$wiki/$page"
     [ "${PIPESTATUS[1]}" -eq 0 ] || { rm -f "$body"; exit 2; }
@@ -173,13 +177,13 @@ The folder `wiki/` holds `index.md`, this page, and one page per part of the sys
 
 ## Generated and hand-written pages
 
-A generated page starts with front matter that has the key `wiki` set to `generated`, the key `commit` (the project's commit it was written from) and the key `files` (the files and folders it was written from). A page without `wiki: generated` in its front matter is hand-written: it is never changed, deleted or rewritten, and the index lists it like any other page.
+A generated page starts with front matter that has the key `wiki` set to `generated`, the key `commit` (the project's commit it was written from) and the key `files` (the files it was written from — files, never folders). A page without `wiki: generated` in its front matter is hand-written: it is never changed, deleted or rewritten, and the index lists it like any other page.
 
 ## What a page holds
 
 - What the part does, in one line first: the index shows that line as the page's summary.
 - Who it talks to, and over what.
-- What has to change along with it.
+- What has to change along with it: one line per ripple, naming what changes and what must follow, by file or by page, and why.
 - The words it uses for things.
 
 A page holds no line numbers and no code. It is a map: the code decides.
