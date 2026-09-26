@@ -124,7 +124,7 @@ export function createServer(opts: ServerOptions) {
   const push = setupPush(opts, { jobs: () => queue.list(), notify: () => watch.notifyQueueChanged(), scheduleStore });
   const queue = new QueueStore({
     mirrorPath: opts.queueMirrorPath,
-    pendingModelsPath: opts.pendingModelsPath,
+    pendingModelsPath: opts.pendingModelsPath, modelIdsPath: opts.modelIdsPath,
     pendingStepsPath: opts.pendingStepsPath,
     defaults: opts.queueDefaults ?? QUEUE_DEFAULTS,
     resolve: resolveProject,

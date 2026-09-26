@@ -191,7 +191,9 @@ starts with a ›. It adds or removes the phase's key, `<project>/<folder>:<step
 every sort and filter link and every redirect after a press the way `?open=` is, and it is a plain link, so it
 works with script off.
 
-The unfolded row lists what the newest attempt that ran the step said AND what it did — its own messages, the
+The unfolded row starts with `Model: <choice> · <model id>` when the step's run reported the id it ran on (a Claude
+Code step; an archived phase reads it from its file's `Model id` line, with the recorded word for the choice), and
+nothing when it reported none. It then lists what the newest attempt that ran the step said AND what it did — its own messages, the
 commands it ran and the files it wrote — at most the last 200, oldest first, each one line clipped at 160
 characters, and a link to that step on the Logs tab. The commands and files are listed because a session that works
 through commands writes a sentence only every few minutes, and messages alone would leave the row looking frozen

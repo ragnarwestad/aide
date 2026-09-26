@@ -225,6 +225,7 @@ function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number): Sp
       cost: outcome?.cost,
       costUnmeasured: outcome?.costUnmeasured,
       tokens: outcome?.tokens,
+      modelId: outcome?.modelId,
       attemptCount: outcome?.attempts,
       fileResult: outcome?.result,
     };

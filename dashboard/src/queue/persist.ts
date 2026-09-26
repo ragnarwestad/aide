@@ -161,11 +161,24 @@ export function parsePendingModels(raw: unknown): Record<string, Record<string, 
   return out;
 }
 
+/** The newest model id each choice ran on, as it is written in
+ *  `model-ids.json`: `{ "<choice name>": "<model id>" }`. `null` for
+ *  anything that is not an object; an entry that is not a non-empty string
+ *  is dropped, the same fail-closed rule `parsePendingModels` follows. */
+export function parseModelIds(raw: unknown): Record<string, string> | null {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const out: Record<string, string> = {};
+  for (const [name, id] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof id === "string" && id) out[name] = id;
+  }
+  return out;
+}
+
 /** Write the whole table back, tmp-then-renamed like every other file
  *  this store writes. No comments to preserve and nothing else in the
  *  file — unlike `queue-config.json` nothing shares it, so there is no
  *  "read the rest back first" step. */
-export function persistPendingModels(file: string, table: Record<string, Record<string, string>>): string | null {
+export function persistPendingModels(file: string, table: Record<string, unknown>): string | null {
   try {
     mkdirSync(dirname(file), { recursive: true });
     const tmp = `${file}.tmp`;

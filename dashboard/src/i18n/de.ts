@@ -96,6 +96,7 @@ export const de: Record<TranslationKey, string> = {
   "list.phaseFoldTitle": "{action} die letzten Meldungen von {phase}",
   "list.phaseNoneKept": "Für diese Phase sind keine Meldungen gespeichert.",
   "list.phaseNoMessages": "Von diesem Schritt wurde noch nichts erfasst.",
+  "list.phaseModel": "Modell: {model}",
   "list.phaseOpenLog": "Das Protokoll dieser Phase öffnen",
   "list.cancel": "Abbrechen",
   "list.cancelling": "wird abgebrochen…",

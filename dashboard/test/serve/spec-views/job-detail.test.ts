@@ -220,4 +220,16 @@ describe("the AI's label", () => {
 
     expect(view.results[0]!.aiModel).toBe("Claude Sonnet");
   });
+
+  test("a step that reported a model id carries it after the label, and one that did not carries the label alone (AC-2, AC-3)", async () => {
+    const step = { step: "implement" as const, ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", streamFile: tempStreamFile(twoCommandsOnly()) };
+    const job = makeJob({
+      model: { implement: "opus" },
+      results: [{ ...step, tool: "claude", modelId: "claude-opus-5-5" }, { ...step, tool: "codex" }],
+    });
+    const view = await jobDetailView(makeCtx(), job);
+
+    expect(view.results[0]!.aiModel).toBe("Claude Opus · claude-opus-5-5");
+    expect(view.results[1]!.aiModel).toBe("Codex Opus");
+  });
 });

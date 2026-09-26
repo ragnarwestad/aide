@@ -97,6 +97,7 @@ export const en = {
   "list.phaseFoldTitle": "{action} the latest messages of {phase}",
   "list.phaseNoneKept": "No messages are kept for this phase.",
   "list.phaseNoMessages": "Nothing has been captured from this step yet.",
+  "list.phaseModel": "Model: {model}",
   "list.phaseOpenLog": "Open this phase's log",
   "list.cancel": "Cancel",
   "list.cancelling": "cancelling…",

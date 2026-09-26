@@ -339,6 +339,9 @@ export interface Phase {
   cost?: number;
   costUnmeasured?: boolean;
   tokens?: number;
+  /** The model id this phase's own file says its run reported — read only
+   *  where the queue has no attempt for the phase, like `cost` above. */
+  modelId?: string;
   /** How many times this phase's own file says it has run (spec 341) —
    *  read regardless of how many queue-job attempts exist, unlike
    *  `timeSpentMs`/`cost`/`tokens` above: those speak for the LATEST

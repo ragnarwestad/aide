@@ -16,7 +16,7 @@ import { ADD_PROJECT_ROUTE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, 
 import { MAIN_TEST_SERVER_KEY, refreshTestServerStatus } from "../../test-servers/lifecycle.ts";
 import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "../spec-edit/test-server-waiting.ts";
 import { isSpecFolder } from "../../../render/ui/shell.ts";
-import { languageChoice, specsClientScript } from "../../serve-helpers";
+import { languageChoice, modelChoiceOptions, specsClientScript } from "../../serve-helpers";
 import type { RoutesContext } from "..";
 import { isWikiBuild } from "../../../queue/steps.ts";
 import { renderSentence } from "../../../i18n/message.ts";
@@ -33,9 +33,7 @@ export async function projectPages(
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     const langResult = languageChoice(url, req);
     const html = renderSettingsPage(ctx.nav(), new Date().toISOString(), {
-      modelChoices: Object.entries(ctx.queue.defaults.modelChoices ?? {}).map(([name, choice]) => ({
-        name, ...(choice.tool ? { tool: choice.tool } : {}),
-      })),
+      modelChoices: modelChoiceOptions(ctx.queue),
       defaultModels: ctx.queue.defaults.model,
       timeoutSec: ctx.queue.defaults.timeoutSec,
       backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/", url.pathname),
@@ -264,9 +262,7 @@ export async function projectPages(
         // The Schedule tab's own New-job form (spec 468) — the same
         // construction `schedule-pages.ts` already builds for the
         // aggregate page's own routes.
-        modelChoices: Object.entries(ctx.queue.defaults.modelChoices ?? {}).map(([modelName, choice]) => ({
-          name: modelName, ...(choice.tool ? { tool: choice.tool } : {}),
-        })),
+        modelChoices: modelChoiceOptions(ctx.queue),
         defaultModels: ctx.queue.defaults.model,
         worktreeLinkCandidates: gitignoreCandidates(dir),
         editing: url.searchParams.get("edit") === "1",

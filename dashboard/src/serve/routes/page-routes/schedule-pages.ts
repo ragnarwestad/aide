@@ -10,7 +10,7 @@ import {
   SCHEDULE_ROUTE, buildReportDocument, projectPagePath, renderReportPanel,
   renderScheduleDetailPage, renderSchedulePage, resolveBackHref, schedulePagePath,
 } from "../../../render";
-import { languageChoice, specsClientScript } from "../../serve-helpers";
+import { languageChoice, modelChoiceOptions, specsClientScript } from "../../serve-helpers";
 import { serveStatic } from "../../serve-helpers";
 import type { RoutesContext } from "..";
 
@@ -118,9 +118,7 @@ export async function schedulePages(
       script: await specsClientScript(),
       error: url.searchParams.get("error") ?? undefined,
       backHref: resolveBackHref(req.headers.get("referer"), url.origin, SCHEDULE_ROUTE, url.pathname),
-      modelChoices: Object.entries(ctx.queue.defaults.modelChoices ?? {}).map(([name, choice]) => ({
-        name, ...(choice.tool ? { tool: choice.tool } : {}),
-      })),
+      modelChoices: modelChoiceOptions(ctx.queue),
       defaultModels: ctx.queue.defaults.model,
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,

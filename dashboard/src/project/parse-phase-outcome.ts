@@ -10,6 +10,9 @@ import { markdownSection, specFileText } from "./discover";
 
 export interface PhaseOutcome {
   model?: string;
+  /** The model id the run's own log named (`claude-opus-5-5`), when it
+   *  named one — "absence over a guess", like `model` above. */
+  modelId?: string;
   /** The effort level this step ran at, when one was chosen (spec 364).
    *  Absent means none was — "absence over a guess", the same rule
    *  `model` above follows. */
@@ -52,6 +55,7 @@ const PHASE_OUTCOME_FILE: Record<string, string> = {
 };
 
 const MODEL_RE = /^- \*\*Model:\*\*[ \t]*(.*)$/m;
+const MODEL_ID_RE = /^- \*\*Model id:\*\*[ \t]*(.*)$/m;
 const EFFORT_RE = /^- \*\*Effort:\*\*[ \t]*(.*)$/m;
 const TIME_SPENT_RE = /^- \*\*Time spent:\*\*[ \t]*(\d+)m(\d{2})s\s*$/m;
 const COST_RE = /^- \*\*Cost:\*\*[ \t]*\$(\d+(?:\.\d+)?)( \(unmeasured\))?\s*$/m;
@@ -70,6 +74,8 @@ export function parsePhaseOutcome(content: string): PhaseOutcome {
   const outcome: PhaseOutcome = {};
   const model = section.match(MODEL_RE)?.[1]?.trim();
   if (model) outcome.model = model;
+  const modelId = section.match(MODEL_ID_RE)?.[1]?.trim();
+  if (modelId) outcome.modelId = modelId;
   const effort = section.match(EFFORT_RE)?.[1]?.trim();
   if (effort) outcome.effort = effort;
   const time = section.match(TIME_SPENT_RE);

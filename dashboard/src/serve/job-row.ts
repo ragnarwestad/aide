@@ -36,6 +36,9 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     state: job.state,
     landing: job.landing,
     model: step ? resolveStepModel(job, step, ctx.queue.defaults.model) : job.modelChoice,
+    // The newest run of this step that named one; a running step has no
+    // result yet and speaks with the id of the attempt before it.
+    modelId: step ? [...job.results].reverse().find((r) => r.step === step && r.modelId)?.modelId : undefined,
     stepModels: job.model,
     effort: step ? resolveStepEffort(job, step) : undefined,
     spentUsd: job.spentUsd,
@@ -72,7 +75,7 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
         ? ctx.store.get(job.sessionId)?.phase
         : undefined,
     results: job.results.map((r) => ({
-      step: r.step, ok: r.ok, tool: r.tool, costUsd: r.costUsd, tokens: r.tokens?.total, terminalReason: r.terminalReason,
+      step: r.step, ok: r.ok, tool: r.tool, costUsd: r.costUsd, tokens: r.tokens?.total, modelId: r.modelId, terminalReason: r.terminalReason,
       providerLimit: r.providerLimit,
       // When the step ENDED (spec 199) — what a phase's own duration
       // is sliced out of, together with its own recorded start below.

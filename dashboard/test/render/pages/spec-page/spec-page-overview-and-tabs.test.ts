@@ -271,13 +271,14 @@ describe("a spec with a lead job", () => {
   test("an opened step draws its parts under the separators of the Wiki tab (AC-10)", () => {
     const logs = [{ by: "aide-before" as const, lines: ["10:45:08 +0s fetching main"] }, { by: "ai" as const, lines: ["Bash ls"] }];
     const results = [
-      { step: "analyze", ok: true, costUsd: 0.42, costMeasured: true, terminalReason: "completed", logs, aiModel: "Claude Sonnet" },
+      { step: "analyze", ok: true, costUsd: 0.42, costMeasured: true, terminalReason: "completed", logs, aiModel: "Claude Sonnet · claude-sonnet-5" },
     ];
     const html = renderSpecPage(view({ lead: lead({ results }), steps: results }), GENERATED, NAV, {
       tab: "steps", step: "0", now: NOW,
     });
     expect(html.match(/— Aide: preparing —/g)).toHaveLength(1);
-    expect(html).toContain("— AI (Claude Sonnet) —");
+    // The id rides in the label, so the spec page's table draws it as the job page does (AC-2).
+    expect(html).toContain("— AI (Claude Sonnet · claude-sonnet-5) —");
   });
 
   test("an opened step shows the Log, Changed files and Errors strip, in the tab the address names (AC-10)", () => {

@@ -103,7 +103,9 @@ export function modelPicker(
     // on this select's own `title`.
     (locked ? " disabled" : "") +
     `>` +
-    modelOptions(models, chosen) +
+    // A select that is a record of what ran carries no alias id: the alias
+    // may have moved on since, and the id that ran is on the phase's own row.
+    modelOptions(archived || alreadyRun || used !== undefined ? models.map(({ ranAs: _ranAs, ...m }) => m) : models, chosen) +
     `</select>`
   );
 }
@@ -162,7 +164,8 @@ export function modelOptions(models: NonNullable<SpecsPageOptions["modelChoices"
               // alone — the per-step dollar figure it used to carry
               // (spec 454) read as a price, and spec 473 dropped it
               // from the config entirely.
-              `${m.name === chosen ? " selected" : ""}>${esc(m.name)}</option>`,
+              // What the alias gives today, when it has run: `Opus (claude-opus-5-5)`.
+              `${m.name === chosen ? " selected" : ""}>${esc(m.ranAs ? `${m.name} (${m.ranAs})` : m.name)}</option>`,
           )
           .join("") +
         `</optgroup>`

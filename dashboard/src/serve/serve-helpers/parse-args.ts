@@ -76,6 +76,7 @@ export function parseArgs(argv: string[]): ServerOptions {
   // prod and wrote its choices into prod's pending files.
   const queueDir = dirname(opts.queueMirrorPath);
   if (!opts.pendingModelsPath) opts.pendingModelsPath = join(queueDir, "pending-models.json");
+  if (!opts.modelIdsPath) opts.modelIdsPath = join(queueDir, "model-ids.json");
   if (!opts.pendingStepsPath) opts.pendingStepsPath = join(queueDir, "pending-steps.json");
   if (!opts.pushSubscriptionsPath) opts.pushSubscriptionsPath = join(queueDir, "push-subscriptions.json");
   if (!opts.failedCreatesPath) opts.failedCreatesPath = join(queueDir, "failed-creates.json");

@@ -37,6 +37,8 @@ export {
   resolveTimeoutSec, resolveStepPermissionMode, resolveStepModel, resolveStepEffort, runnerArgv,
 } from "./runner-argv.ts";
 
+export { modelChoiceOptions } from "./model-choices.ts";
+
 export { resolveDependencyFolder, parseArgs } from "./parse-args.ts";
 
 export { checkRequest } from "./request-guard.ts";

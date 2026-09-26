@@ -32,6 +32,7 @@ def test_an_opencode_run_sums_tokens_and_cost_over_every_step(runner, workspace,
     assert out["tool"] == "opencode"
     assert out["ok"] is True
     assert out["terminalReason"] == "completed"
+    assert "modelId" not in out, "AC-3: no second id beside the one the tool was given"
     assert out["sessionId"] == OPENCODE_SESSION_ID
     assert out["costMeasured"] is True
     assert out["costUsd"] == pytest.approx(OPENCODE_TOTALS["cost"])

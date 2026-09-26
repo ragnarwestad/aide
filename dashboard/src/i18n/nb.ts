@@ -96,6 +96,7 @@ export const nb: Record<TranslationKey, string> = {
   "list.phaseFoldTitle": "{action} de siste meldingene fra {phase}",
   "list.phaseNoneKept": "Ingen meldinger er lagret for denne fasen.",
   "list.phaseNoMessages": "Ingenting er fanget opp fra dette steget ennå.",
+  "list.phaseModel": "Modell: {model}",
   "list.phaseOpenLog": "Åpne loggen for denne fasen",
   "list.cancel": "Avbryt",
   "list.cancelling": "avbryter…",

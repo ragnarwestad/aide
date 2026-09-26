@@ -22,6 +22,21 @@ describe("parsePhaseOutcome", () => {
     expect(parsePhaseOutcome(withTracking("- **Result:** completed")).model).toBeUndefined();
   });
 
+  test("a recorded model id comes back beside the model (AC-2)", () => {
+    const outcome = parsePhaseOutcome(withTracking("- **Model:** claude opus", "- **Model id:** claude-opus-5-5"));
+    expect(outcome.model).toBe("claude opus");
+    expect(outcome.modelId).toBe("claude-opus-5-5");
+  });
+
+  test("no Model id line means no model id (AC-2)", () => {
+    expect(parsePhaseOutcome(withTracking("- **Model:** claude opus")).modelId).toBeUndefined();
+  });
+
+  test("a look-alike Model id bullet outside Tracking info is ignored (AC-2)", () => {
+    const content = ["# 1 - Analysis", "", "## Tracking info", "", "- **Result:** completed", "", "## Risk analysis", "", "- **Model id:** x", ""].join("\n");
+    expect(parsePhaseOutcome(content).modelId).toBeUndefined();
+  });
+
   // Spec 364: the same read as Model, on its own field.
   test("a recorded effort comes back (spec 364, REQ-5)", () => {
     expect(parsePhaseOutcome(withTracking("- **Effort:** high")).effort).toBe("high");

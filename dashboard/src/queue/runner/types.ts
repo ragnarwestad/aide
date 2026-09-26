@@ -77,6 +77,8 @@ export interface StepOutcome {
    *  measure it — there is no over-charge rule for tokens the way there
    *  is for cost, so absent is the only other answer. */
   tokens?: TokenUsage;
+  /** The model id the run's log named; absent when it named none. */
+  modelId?: string;
   providerLimit?: unknown;
   testedGreen?: unknown;
   error?: string;
@@ -234,4 +236,10 @@ export function providerLimit(raw: unknown): ProviderLimit | undefined {
     ...(text(r.plan) ? { plan: text(r.plan) } : {}),
     ...(text(r.credit) ? { credit: text(r.credit) } : {}),
   };
+}
+
+/** The model id a result file names — a non-empty string, or nothing. Another
+ *  process's JSON, so anything else is not a guess but an absence. */
+export function modelIdOf(raw: unknown): string | undefined {
+  return typeof raw === "string" && raw ? raw : undefined;
 }

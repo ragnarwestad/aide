@@ -57,6 +57,29 @@ describe("a step's token usage", () => {
   });
 });
 
+// What the run's own log said it ran on. Another process's JSON, so it is
+// read as a question: a usable id is kept, anything else is nothing.
+describe("a step's model id (AC-1)", () => {
+  const stored = (modelId: unknown) => {
+    const job = enqueue();
+    const runner = makeRunner({ readResult: () => ({ ...okResult(1), modelId }) });
+    runner.tick();
+    runner.poll();
+    return store.get(job.id)?.results[0]?.modelId;
+  };
+
+  test("a result carrying a model id records it on the step (AC-1)", () => {
+    expect(stored("claude-opus-5-5")).toBe("claude-opus-5-5");
+  });
+
+  test.each([["missing", undefined], ["empty", ""], ["a number", 5], ["a list", ["x"]]])(
+    "a model id that is %s leaves the step's undefined (AC-1)",
+    (_name, value) => {
+      expect(stored(value)).toBeUndefined();
+    },
+  );
+});
+
 // The usage limit that stopped a step, as the tool reported it. Another
 // process's JSON, so it is read as a question: a usable limit is kept,
 // a part that is not one is dropped, and a limit naming no tool or

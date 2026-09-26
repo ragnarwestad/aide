@@ -36,6 +36,10 @@
 # measure. Unlike the cost, it is never assumed: a killed run reports a
 # cost of 0 and no token count at all.
 #
+# A Claude Code step whose log names the model it ran on adds `modelId`
+# (the `system`/`init` event's `model`, e.g. "claude-opus-5-5"). Same rule
+# again: absent, never "" or a guess, and never set for another tool.
+#
 # A step a provider's usage limit stopped adds `providerLimit`: {tool,
 # window, resetsAt, windows[{name, usedPercent, resetsAt}], plan, credit},
 # each part present only when the tool said it (lib/run-spec-provider-limit.sh).
@@ -469,6 +473,7 @@ line="$(jq -cn \
   --arg pullError "$pull_error" --arg specFolder "$created_spec_folder" \
   --arg worktreeLinksSource "$links_source" \
   --argjson tokens "${tokens_json:-null}" \
+  --arg modelId "${model_id_out:-}" \
   --argjson providerLimit "${provider_limit_out:-null}" \
   --argjson testedGreen "${tested_green_json:-null}" \
   '{ok:$ok, exitCode:$exitCode, sessionId:$sessionId, tool:$tool,
@@ -491,6 +496,8 @@ line="$(jq -cn \
    # used nothing", which is a claim, and the page shows a dash for a
    # field that is absent.
    + (if $tokens == null then {} else {tokens:$tokens} end)
+   # The same rule for the model the log named: absent, never "".
+   + (if $modelId == "" then {} else {modelId:$modelId} end)
    # And the same rule once more, for the dollar figure itself: a Codex
    # step reports none, and an absent field is the only shape that
    # cannot be added up as if it were a real zero.

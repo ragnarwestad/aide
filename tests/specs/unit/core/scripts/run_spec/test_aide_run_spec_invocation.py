@@ -12,7 +12,7 @@ import pytest
 from ..conftest import STOP_DEADLINE_SEC, git, run
 from .run_spec_fakes import writing_claude
 from .run_spec_invoking import BRANCH, _standalone_runner_copy
-from .run_spec_results import FLAT_USAGE, MODEL_USAGE, RESULT_ERROR, RESULT_OK
+from .run_spec_results import FLAT_USAGE, MODEL_USAGE, RESULT_ERROR, RESULT_OK, init_event, stream_body
 
 def test_the_claude_binary_can_be_named_in_the_projects_own_config(runner, workspace, fake_claude):
     claude = fake_claude("exit 1")  # dry run: must not be called
@@ -206,6 +206,70 @@ def test_a_result_with_no_usage_at_all_records_no_tokens(runner, workspace, fake
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
     assert "tokens" not in out
+
+def test_a_claude_run_reports_the_model_its_log_names_on_init(runner, workspace, fake_claude):
+    """AC-1: the id the alias resolved to is read off the `init` event."""
+    claude = fake_claude(stream_body(RESULT_OK, before=[init_event("claude-opus-5-5")]))
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert out["modelId"] == "claude-opus-5-5"
+
+def test_the_last_init_that_names_a_model_wins(runner, workspace, fake_claude):
+    """AC-1: a resumed turn writes its own `init`; a later one that names
+    no model does not erase the earlier answer."""
+    before = [init_event("claude-opus-5-4"), init_event("claude-opus-5-5"), init_event(None)]
+    claude = fake_claude(stream_body(RESULT_OK, before=before))
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert out["modelId"] == "claude-opus-5-5"
+
+@pytest.mark.parametrize("before", [
+    [],
+    [init_event(None)],
+    [init_event("")],
+    [init_event(5)],
+    [init_event(["claude-opus-5-5"])],
+], ids=["no-init", "no-model", "empty-model", "number", "list"])
+def test_a_log_that_names_no_model_stores_no_model_id(runner, workspace, fake_claude, before):
+    """AC-1: absent — not "", not null — and never taken from `modelUsage`."""
+    result = {**RESULT_OK, "modelUsage": MODEL_USAGE}
+    claude = fake_claude(stream_body(result, before=before))
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert "modelId" not in out
+
+def test_the_model_id_is_the_init_model_not_a_helper_from_model_usage(runner, workspace, fake_claude):
+    """AC-1: `modelUsage` lists helper models too, and its first key is
+    the helper here."""
+    helper_first = {"claude-haiku-4-5": MODEL_USAGE["claude-haiku-4-5"], "claude-opus-5-5": MODEL_USAGE["claude-opus-5"]}
+    result = {**RESULT_OK, "modelUsage": helper_first}
+    claude = fake_claude(stream_body(result, before=[init_event("claude-opus-5-5")]))
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert out["modelId"] == "claude-opus-5-5"
+
+def test_a_run_stopped_at_its_time_limit_keeps_the_model_id_but_no_tokens(runner, workspace, fake_claude):
+    """AC-1: the id is a fact the log states, not a measurement like the
+    tokens a stop throws away."""
+    flushed = {**RESULT_OK, "subtype": "error_during_execution", "is_error": True, "modelUsage": MODEL_USAGE}
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        f"echo {json.dumps(json.dumps(init_event('claude-opus-5-5')))}\n"
+        f"trap 'echo {json.dumps(json.dumps(flushed))}; exit 143' TERM\n"
+        "while true; do sleep 0.2; done"
+    )
+    rc, out, _ = run(runner, workspace, claude, timeout_sec=STOP_DEADLINE_SEC, kill_grace_sec="5")
+    assert out["terminalReason"] == "timeout"
+    assert out["modelId"] == "claude-opus-5-5"
+    assert "tokens" not in out
+
+def test_a_fake_claude_step_reports_no_model_id_even_when_its_stream_names_one(runner, workspace, fake_claude):
+    """AC-1: a scripted stand-in names no real model."""
+    claude = fake_claude(stream_body(RESULT_OK, before=[init_event("claude-opus-5-5")]))
+    rc, out, _ = run(runner, workspace, claude, tool="fake-claude")
+    assert rc == 0, out
+    assert out["tool"] == "fake-claude"
+    assert "modelId" not in out
 
 def test_the_run_happens_inside_the_project_not_the_callers_directory(runner, workspace, fake_claude):
     """A skill resolves the project from its working directory. The

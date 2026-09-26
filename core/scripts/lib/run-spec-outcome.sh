@@ -93,6 +93,7 @@ if [ -n "$phase_file" ]; then
     done
   fi
   [ -n "$model_value" ] && printf -- '- **Model:** %s\n' "$model_value" >> "$work_dir/phase-outcome"
+  [ -n "${model_id_out:-}" ] && printf -- '- **Model id:** %s\n' "$model_id_out" >> "$work_dir/phase-outcome"
   [ -n "$effort" ] && printf -- '- **Effort:** %s\n' "$effort" >> "$work_dir/phase-outcome"
   printf -- '- **Result:** %s\n' "$result_line" >> "$work_dir/phase-outcome"
   printf -- '- **Time spent:** %s\n' "$time_spent_display" >> "$work_dir/phase-outcome"
@@ -114,7 +115,7 @@ if [ -n "$phase_file" ]; then
       next
     }
     in_tracking && /^## / { in_tracking = 0 }
-    in_tracking && /^- \*\*(Repo|Model|Effort|Result|Time spent|Attempts|Cost|Tokens):\*\*/ { next }
+    in_tracking && /^- \*\*(Repo|Model|Model id|Effort|Result|Time spent|Attempts|Cost|Tokens):\*\*/ { next }
     { print }
   ' "$phase_file" > "$work_dir/phase-file-out" 2>/dev/null
   if [ -s "$work_dir/phase-file-out" ] && ! cmp -s "$work_dir/phase-file-out" "$phase_file"; then

@@ -14,7 +14,7 @@ import time
 from ..conftest import READ_SPECS, STOP_DEADLINE_SEC, git, run
 from .run_spec_invoking import CREATE_KEY, create
 from .run_spec_fakes import analyzing_claude
-from .run_spec_results import CODEX_STREAM_FAILED, CODEX_STREAM_OK, CODEX_USAGE, FLAT_USAGE, RESULT_OK, emits
+from .run_spec_results import CODEX_STREAM_FAILED, CODEX_STREAM_OK, CODEX_USAGE, FLAT_USAGE, RESULT_OK, emits, init_event, stream_body
 from .run_spec_status_files import TIME_OF_DAY_RE, TIME_SPENT_RE, already_ran, bullet, phase_file_text, recorded_line, tracking_block, with_analysis, with_analysis_attempts, with_solution, with_status
 
 
@@ -398,3 +398,50 @@ def test_the_step_clock_starts_before_the_run_does_anything():
     assert "time_spent_display" in outcome
     session = (scripts / "lib" / "run-spec-spec-paths.sh").read_text()
     assert 'deadline=$(( started_at +' in session
+
+
+def _analysis_writing_claude(fake_claude, workspace, stream_before):
+    folder = workspace["folder"]
+    return fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'printf "%s\\n" "# Queue - Analysis" "" "## Tracking info" "" '
+        + f'"- **Task:** \\`{folder}/\\`" "- **Last analyzed:** \\`2026-08-01\\`" '
+        + f'> "$specs/{folder}/2-analysis.md"\n'
+        + "".join(f"echo '{json.dumps(e)}'\n" for e in stream_before)
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+
+def test_a_claude_step_writes_the_model_id_directly_after_the_model_line(runner, workspace, fake_claude):
+    """AC-1: the phase's own Tracking info keeps the id, for a spec whose
+    jobs have left the queue."""
+    with_status(workspace)
+    claude = _analysis_writing_claude(fake_claude, workspace, [init_event("claude-opus-5-5")])
+    rc, out, _ = run(runner, workspace, claude, model="opus")
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{workspace['folder']}/2-analysis.md")
+    assert bullet(text, "Model id") == "claude-opus-5-5"
+    assert text.index("- **Model:**") < text.index("- **Model id:**") < text.index("- **Result:**")
+
+def test_a_step_whose_log_names_no_model_writes_no_model_id_line(runner, workspace, fake_claude):
+    """AC-1: absent, not a guess."""
+    with_status(workspace)
+    claude = _analysis_writing_claude(fake_claude, workspace, [init_event(None)])
+    rc, out, _ = run(runner, workspace, claude, model="opus")
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{workspace['folder']}/2-analysis.md")
+    assert "Model id" not in text
+
+def test_a_re_run_replaces_the_model_id_line_rather_than_duplicating_it(runner, workspace, fake_claude):
+    """AC-1: the awk removal list has to name the new bullet, or the
+    first run's id stays beside the newer one."""
+    with_status(workspace)
+    first = _analysis_writing_claude(fake_claude, workspace, [init_event("claude-opus-5-4")])
+    rc, out, _ = run(runner, workspace, first, model="opus")
+    assert rc == 0, out
+    second = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(init_event('claude-opus-5-5'))}'\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, second, model="opus")
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{workspace['folder']}/2-analysis.md")
+    assert text.count("- **Model id:**") == 1, text
+    assert bullet(text, "Model id") == "claude-opus-5-5"

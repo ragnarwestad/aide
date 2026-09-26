@@ -31,6 +31,9 @@ export interface ServerOptions {
    *  mirror. Absent means such a pick is never durable, exactly as
    *  before this existed. */
   pendingModelsPath?: string;
+  /** Where the newest model id each choice ran on survives to — the
+   *  `model-ids.json` sibling of the queue mirror. */
+  modelIdsPath?: string;
   /** Where a phase choice recorded at create time, or at a later Run,
    *  survives to (spec 439) — the `pending-steps.json` sibling of the
    *  queue mirror. Absent means such a choice is never durable, exactly
