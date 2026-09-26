@@ -337,25 +337,25 @@ dialog.pageoverlay > .overlaynote { margin: var(--sp-3) 0 0; max-width: 22rem;
    from the press to the end: a fixed width, and the finished message
    laid out as one empty line from the start, so it grows nothing. A
    failure is shown on the step's own line and left on the Deploy tab,
-   never written into the dialog. Every step line reserves a 12px slot
-   before its name, so the running line's spinner moves no name. */
+   never written into the dialog. Every step's state word reserves a 12px
+   slot in front of it, so the running line's spinner moves no word. */
 dialog[data-deploy-dialog] { width: 26rem; max-width: calc(100% - 2 * var(--sp-4)); }
 .deploysteps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column;
   gap: var(--sp-2); }
 /* Room for two lines each, whatever the language: a longer state word must
    not wrap a label onto a second line and make the box taller. */
 .deploysteps li { display: flex; align-items: center; gap: var(--sp-3); min-height: 3.2em; }
-.deploysteps li::before { content: ""; width: 12px; height: 12px; flex: none; }
 .deploysteps li[data-state="waiting"] { color: var(--muted); }
 .deploysteps li[data-state="failed"] { color: var(--danger); }
-.deploystate { margin-left: auto; color: var(--muted); }
+.deploystate { margin-left: auto; color: var(--muted); display: inline-flex; align-items: center; gap: var(--sp-1); }
+.deploystate::before { content: ""; width: 12px; height: 12px; flex: none; }
 /* The running line takes the running badge's colour and spinner. */
 .deploysteps li[data-state="running"] { color: var(--accent-strong); }
 .deploysteps li[data-state="running"] .deploystate { color: inherit; }
-.deploysteps li[data-state="running"]::before { background-color: currentColor;
+.deploysteps li[data-state="running"] .deploystate::before { background-color: currentColor;
   -webkit-mask: var(--icon-loader) center / contain no-repeat; mask: var(--icon-loader) center / contain no-repeat;
   animation: badgespin 1.1s linear infinite; }
-@media (prefers-reduced-motion: reduce) { .deploysteps li[data-state="running"]::before { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .deploysteps li[data-state="running"] .deploystate::before { animation: none; } }
 .deploymessage { min-height: calc(1em * var(--lh)); }
 
 /* How runs work: a small question mark at the right-hand end of the

@@ -218,8 +218,8 @@ done or failed, one running at a time: fetch from origin, install, restart the s
 answer, and check that the service runs the newest commit. The page runs them one request each
 (`POST .../deploy/<step>`, `http-routes.md`). The restart runs until `/api/version` stops answering or answers a new
 `startedAt`, and the wait runs from then until a new `startedAt` answers. The last step counts the checkout against origin on the process that will serve the page, so the page
-that loads next never says the check has not been made. The running step's line is drawn in the accent colour with
-the spinner the running badges use. When the last step is done the dialog says so in the line under the steps, stays
+that loads next never says the check has not been made. The running step's line is drawn in the accent colour, with
+the spinner the running badges use in front of its state word. When the last step is done the dialog says so in the line under the steps, stays
 two seconds and closes. A failed step is shown as failed for two seconds and the dialog closes by itself; the steps
 after it stay waiting, and Escape closes it at once. The dialog never shows an error of its own: the failure is
 drawn first on the Deploy tab, in the usual message layout, naming the step and the reason. The server keeps the

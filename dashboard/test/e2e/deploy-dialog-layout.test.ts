@@ -100,11 +100,12 @@ const size = async (page: Page): Promise<{ width: number; height: number }> => {
 };
 
 /** What a step line's look is made of, read from computed style: its
- *  text colour, and what its slot before the name paints and animates. */
+ *  text colour, and what the slot before its state word paints and
+ *  animates. */
 const lookOf = (page: Page, step: string) =>
   page.evaluate((s) => {
     const li = document.querySelector(`[data-step="${s}"]`)!;
-    const slot = getComputedStyle(li, "::before");
+    const slot = getComputedStyle(li.querySelector(".deploystate")!, "::before");
     return {
       color: getComputedStyle(li).color,
       mask: slot.getPropertyValue("mask-image") || slot.getPropertyValue("-webkit-mask-image"),
@@ -207,7 +208,7 @@ describe("the Deploy dialog's size", () => {
 });
 
 describe("the step lines", () => {
-  test("the running line is in the accent colour with the running badge's spinner in front of its name (AC-2)", async () => {
+  test("the running line is in the accent colour with the running badge's spinner in front of its state (AC-2)", async () => {
     const { page, release } = await deployPage({ hold: "install" });
     await press(page);
     await page.waitForSelector('[data-step="install"][data-state="running"]', { timeout: 15_000 });
@@ -249,7 +250,7 @@ describe("the step lines", () => {
     expect(look.color).not.toBe((await references(failed.page)).accent);
   });
 
-  test("every line holds the same 12px slot before its name, so a name never moves (AC-2)", async () => {
+  test("every line holds the same 12px slot before its state, so neither a name nor a state word moves (AC-2)", async () => {
     const { page, release } = await deployPage({ hold: "install" });
     await press(page);
     await page.waitForSelector('[data-step="install"][data-state="running"]', { timeout: 15_000 });
@@ -263,6 +264,18 @@ describe("the step lines", () => {
       );
     const running = await nameLeft();
     expect(new Set(running).size).toBe(1);
+    // The slot sits between the name and the state word, and every state
+    // word ends at the same right edge.
+    const edges = await page.evaluate(() =>
+      [...document.querySelectorAll("[data-step]")].map((li) => {
+        const range = document.createRange();
+        range.selectNodeContents(li.firstChild!);
+        const state = li.querySelector(".deploystate")!.getBoundingClientRect();
+        return { nameRight: range.getBoundingClientRect().right, stateLeft: state.left, stateRight: Math.round(state.right) };
+      }),
+    );
+    for (const e of edges) expect(e.stateLeft).toBeGreaterThan(e.nameRight);
+    expect(new Set(edges.map((e) => e.stateRight)).size).toBe(1);
     expect((await lookOf(page, "install")).slotWidth).toBe("12px");
     expect((await lookOf(page, "check")).slotWidth).toBe("12px");
     release();
