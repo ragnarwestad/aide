@@ -12,7 +12,7 @@ import type { Language } from "../../i18n";
 import { resolveInstallCmd } from "../../project/discover";
 import { SETTING_LABELS } from "../../project/setting-labels.ts";
 import { runningJobNames } from "../land-branch";
-import { json, languageChoice, logRefusal } from "../serve-helpers";
+import { DEPLOY_LOCK_WAIT_MS, json, languageChoice, logRefusal, rootFreeWithin } from "../serve-helpers";
 import { STARTED_AT } from "../state.ts";
 import type { RoutesContext } from "./";
 
@@ -75,6 +75,11 @@ export async function handleDeploySteps(ctx: RoutesContext, req: Request, path: 
   if (step === "fetch") {
     const base = await ctx.branchStatus.defaultBranch(root);
     if (!base) return refuse(`cannot work out the default branch in ${root}`);
+    // A landing into this checkout holds it through its test run; waiting
+    // that out left the button hanging until the browser gave up.
+    if (!(await rootFreeWithin(ctx.mergeLock, root, ctx.opts.deployLockWaitMs ?? DEPLOY_LOCK_WAIT_MS))) {
+      return refuse(`a spec is being merged into ${name} right now — press Deploy again once it has landed`);
+    }
     const result = await ctx.mergeLock.run(root, () => fastForwardToOrigin(ctx.gitRun, root, base));
     if (!result.ok) return refuse(sentence(result.error!) || `cannot bring ${root} up to date`);
     return json({ ok: true });
