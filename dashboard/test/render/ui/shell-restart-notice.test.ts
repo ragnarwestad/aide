@@ -8,7 +8,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 
 import { pageShell } from "../../../src/render/ui/shell.ts";
 import { setPendingRestartNotice } from "../../../src/render/ui/pending-restart.ts";
-import { createServerState, setPendingRestart } from "../../../src/serve/state.ts";
+import { createServerState, setPendingRestart, STARTED_AT } from "../../../src/serve/state.ts";
 
 const ENTRIES = [{ label: "Projects", path: "/projects" }];
 const render = (): string => pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-14T00:00:00Z");
@@ -19,13 +19,13 @@ afterEach(() => setPendingRestartNotice([]));
  *  the tests about WHICH jobs are named read what a reader reads. */
 const text = (html: string): string => html.replace(/<[^>]*>/g, "");
 const noticeOf = (html: string): string =>
-  html.match(/<p class="restart-notice rowmsg waiting">.*?<\/p>/s)?.[0] ?? "";
+  html.match(/<p [^>]*class="restart-notice rowmsg waiting">.*?<\/p>/s)?.[0] ?? "";
 
 describe("pageShell's waiting-Deploy notice", () => {
   test("names the jobs the restart waits for, as a warning under the header", () => {
     setPendingRestartNotice(["aide:457-a-spec", "aide:458-another"]);
     const html = render();
-    const notice = html.match(/<p class="restart-notice rowmsg waiting">.*?<\/p>/s)?.[0];
+    const notice = html.match(/<p [^>]*class="restart-notice rowmsg waiting">.*?<\/p>/s)?.[0];
     expect(notice).toBeDefined();
     expect(text(notice!)).toContain("aide:457, aide:458");
     // Under the header, before the tab bar: the same slot the install
@@ -46,6 +46,14 @@ describe("pageShell's waiting-Deploy notice", () => {
     expect(text(noticeOf(render()))).toContain("aide:457");
     setPendingRestart(state, []);
     expect(render()).not.toContain("restart-notice");
+  });
+
+  // The page watches for a process other than this one to answer
+  // (`restart-watch.ts`), so the notice carries when this one started.
+  test("the server's writer stamps the notice with when this process started", () => {
+    const state = createServerState();
+    setPendingRestart(state, ["aide:457-a-spec"]);
+    expect(noticeOf(render())).toContain(`data-started-at="${STARTED_AT}"`);
   });
 
   test("a fresh server state clears a notice left by an earlier process life", () => {

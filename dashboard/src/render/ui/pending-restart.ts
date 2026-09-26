@@ -4,9 +4,17 @@
 // sites. `setPendingRestart` (serve/state.ts) is the one writer.
 
 let jobs: string[] = [];
+let startedAt: string | null = null;
 
-export function setPendingRestartNotice(waiting: string[]): void {
+/** `drawnBy` is when this process started: the page watches for another
+ *  process to answer, which is the restart it is waiting for. */
+export function setPendingRestartNotice(waiting: string[], drawnBy: string | null = null): void {
   jobs = [...waiting];
+  startedAt = drawnBy;
+}
+
+export function getPendingRestartStartedAt(): string | null {
+  return startedAt;
 }
 
 export function getPendingRestartNotice(): string[] {

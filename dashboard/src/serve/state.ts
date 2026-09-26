@@ -141,7 +141,7 @@ export function createServerState(): ServerState {
  *  can never disagree about the shape. */
 export function setPendingRestart(state: ServerState, jobs: string[]): void {
   state.pendingRestart = jobs.length > 0 ? { jobs } : null;
-  if (state === noticeOwner) setPendingRestartNotice(jobs);
+  if (state === noticeOwner) setPendingRestartNotice(jobs, STARTED_AT);
 }
 
 /** The one place that stores what a deploy left wrong — `null` clears

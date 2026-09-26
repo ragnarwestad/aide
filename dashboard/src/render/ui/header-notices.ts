@@ -8,9 +8,10 @@ import { join } from "node:path";
 
 import { checkoutFaults } from "./checkout-faults.ts";
 import { rowMessage } from "./components";
+import { esc } from "./html.ts";
 import { jobsSentence } from "./components/spec-name.ts";
 import { getDeployFaultNotice } from "./faults/deploy-fault.ts";
-import { getPendingRestartNotice } from "./pending-restart.ts";
+import { getPendingRestartNotice, getPendingRestartStartedAt } from "./pending-restart.ts";
 import { t, type Language } from "../../i18n";
 import { renderSentence } from "../../i18n/message.ts";
 import { toolsWithFaults } from "./tool-checks.ts";
@@ -65,7 +66,11 @@ function restartWaitingNotice(lang: Language): string {
   const waiting = getPendingRestartNotice();
   if (waiting.length === 0) return "";
   const { text, html } = jobsSentence(lang, "shell.restartWaiting", {}, waiting);
-  return rowMessage("waiting", text, { tag: "p", hook: "restart-notice", html });
+  const drawnBy = getPendingRestartStartedAt();
+  const notice = rowMessage("waiting", text, { tag: "p", hook: "restart-notice", html });
+  // When this process started, for `restart-watch.ts` to load the page
+  // again once a new one answers.
+  return drawnBy ? notice.replace("<p ", `<p data-started-at="${esc(drawnBy)}" `) : notice;
 }
 
 /** A tool the board checked and found wanting (2026-09-16). Without

@@ -88,6 +88,9 @@ const DEPENDS_LIFT_SCRIPT = transpile("forms/depends-lift.ts");
 // since it rides `beforeunload` rather than intercepting any one of
 // those individually.
 const UNSAVED_CHANGES_SCRIPT = transpile("forms/unsaved-changes.ts");
+// Loads the page again once a Deploy's held restart has happened, so the
+// notice saying it waits does not outlive it.
+const RESTART_WATCH_SCRIPT = transpile("../scripts/restart-watch.ts");
 
 // Relocated from settings-page.ts's own unitsBlock (spec 436), markup
 // unchanged — unit-script.ts's mark() already targets every
@@ -384,7 +387,7 @@ export function shellHead(
 ${ICON_LINKS}
 ${PWA_LINKS}
 <style>${CSS}</style>
-<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${FORM_BUSY_SCRIPT}${UNSAVED_CHANGES_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}${SPEC_FORM_ACTIONS_SCRIPT}${DEPENDS_LIFT_SCRIPT}</script>
+<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${FORM_BUSY_SCRIPT}${UNSAVED_CHANGES_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}${SPEC_FORM_ACTIONS_SCRIPT}${DEPENDS_LIFT_SCRIPT}${RESTART_WATCH_SCRIPT}</script>
 </head>
 <body data-overlay-note="${esc(capitalizeFirst(t(lang, "shell.overlayLoading")))}">`;
 }
