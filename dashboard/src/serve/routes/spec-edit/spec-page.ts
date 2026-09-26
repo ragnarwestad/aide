@@ -122,7 +122,7 @@ export async function specPageRoutes(
             notice: url.searchParams.get("notice")
               ? { note: url.searchParams.get("notice")!, ok: url.searchParams.get("noticeOk") === "1" }
               : undefined,
-            backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/"),
+            backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/", url.pathname),
           },
           new Date().toISOString(),
           ctx.nav(),

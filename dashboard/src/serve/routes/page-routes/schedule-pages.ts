@@ -117,7 +117,7 @@ export async function schedulePages(
       reportPanel: renderReportPanel({ lang: langResult.lang, run }),
       script: await specsClientScript(),
       error: url.searchParams.get("error") ?? undefined,
-      backHref: resolveBackHref(req.headers.get("referer"), url.origin, SCHEDULE_ROUTE),
+      backHref: resolveBackHref(req.headers.get("referer"), url.origin, SCHEDULE_ROUTE, url.pathname),
       modelChoices: Object.entries(ctx.queue.defaults.modelChoices ?? {}).map(([name, choice]) => ({
         name, ...(choice.tool ? { tool: choice.tool } : {}),
       })),

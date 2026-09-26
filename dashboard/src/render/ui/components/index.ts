@@ -412,6 +412,10 @@ export function resolveBackHref(
   referer: string | null,
   requestOrigin: string,
   fallback: string,
+  /** The page's own path. A Referer on that same path is one of the
+   *  page's own tabs, not somewhere to go back to, so it gets the
+   *  fallback too. */
+  here?: string,
 ): string {
   if (!referer) return fallback;
   let refUrl: URL;
@@ -423,6 +427,7 @@ export function resolveBackHref(
     return fallback;
   }
   if (refUrl.host !== ownUrl.host) return fallback;
+  if (here !== undefined && refUrl.pathname === here) return fallback;
   return refUrl.pathname + refUrl.search;
 }
 

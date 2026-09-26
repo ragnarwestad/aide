@@ -24,13 +24,6 @@ import { renderSentence } from "../../../i18n/message.ts";
 import type { Language } from "../../../i18n";
 import type { Job } from "../../../queue/types.ts";
 
-/** "← Back" on a project's own page: the page the reader came from, or
- *  Projects when that is this same page (a tab switch) or unknown. */
-export function projectBackHref(referer: string | null, url: URL): string {
-  const back = resolveBackHref(referer, url.origin, PROJECTS_ROUTE);
-  return new URL(back, url.origin).pathname === url.pathname ? PROJECTS_ROUTE : back;
-}
-
 export async function projectPages(
   ctx: RoutesContext,
   req: Request,
@@ -46,7 +39,7 @@ export async function projectPages(
       })),
       defaultModels: ctx.queue.defaults.model,
       timeoutSec: ctx.queue.defaults.timeoutSec,
-      backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/"),
+      backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/", url.pathname),
       script: await specsClientScript(),
       error: url.searchParams.get("error") ?? undefined,
       notice: url.searchParams.get("notice") ?? undefined,
@@ -93,7 +86,7 @@ export async function projectPages(
       }));
     const langResult = languageChoice(url, req);
     const html = renderTestServersPage(ctx.nav(), new Date().toISOString(), rows, {
-      backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/"),
+      backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/", url.pathname),
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
       script: await specsClientScript(),
@@ -245,10 +238,8 @@ export async function projectPages(
       ctx.nav(),
       {
         // The page the reader came from, so a project opened from a
-        // spec's row goes back to that row. A switch between this page's
-        // own tabs is not somewhere to go back to, so it falls back to
-        // Projects like a visit with no Referer.
-        backHref: projectBackHref(req.headers.get("referer"), url),
+        // spec's row goes back to that row; Projects without one.
+        backHref: resolveBackHref(req.headers.get("referer"), url.origin, PROJECTS_ROUTE, url.pathname),
         script: await specsClientScript(),
         // Specs root and Worktree links are no longer read a second
         // time here (spec 255): `projectSettings(dir, readiness)`

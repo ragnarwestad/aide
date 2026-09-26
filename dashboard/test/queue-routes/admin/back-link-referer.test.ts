@@ -18,6 +18,15 @@ describe("spec 252: the spec page's own Back link, read off the Referer header",
     ).text();
     expect(html).toContain('<a class="backlink" href="/?state=all&amp;q=archive">← Back</a>');
   });
+
+  // A switch between the page's own tabs is not somewhere to go back to.
+  test("a Referer that is another tab of the same page falls back to the specs list", async () => {
+    const { base } = start();
+    const html = await (
+      await fetch(`${base}/specs/aide/${folder}?tab=status`, { headers: { referer: `${base}/specs/aide/${folder}?tab=overview` } })
+    ).text();
+    expect(html).toContain('<a class="backlink" href="/">← Back</a>');
+  });
 });
 
 describe("spec 252: the job page's own Back link, read off the Referer header", () => {
@@ -37,5 +46,14 @@ describe("spec 252: the job page's own Back link, read off the Referer header", 
       await fetch(`${base}/jobs/${id}`, { headers: { referer: `${base}/?state=all&q=archive` } })
     ).text();
     expect(html).toContain('<a class="backlink" href="/?state=all&amp;q=archive">← Back</a>');
+  });
+
+  test("a Referer that is another tab of the same page falls back to the specs list", async () => {
+    const { base } = start();
+    const id = await jobId(base);
+    const html = await (
+      await fetch(`${base}/jobs/${id}?tab=steps`, { headers: { referer: `${base}/jobs/${id}` } })
+    ).text();
+    expect(html).toContain('<a class="backlink" href="/">← Back</a>');
   });
 });

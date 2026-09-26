@@ -204,7 +204,7 @@ export async function specsPages(
     const html = renderNewSpecPage(ctx.nav(), new Date().toISOString(), {
       createProjects: [...ctx.allowed].sort(),
       targets: ctx.withFreshness(ctx.targets()),
-      backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/"),
+      backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/", url.pathname),
       script: await specsClientScript(),
       modelChoices: Object.entries(ctx.queue.defaults.modelChoices ?? {}).map(([name, choice]) => ({
         name,

@@ -34,7 +34,7 @@ export async function handleJobDetailRoute(
     const langResult = languageChoice(url, req);
     const only = resolveLogFilter(url.searchParams.get("only") ?? undefined);
     const html = renderJobDetailPage(
-      { ...(await ctx.jobDetailView(job, only)), backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/") },
+      { ...(await ctx.jobDetailView(job, only)), backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/", url.pathname) },
       new Date().toISOString(),
       ctx.nav(),
       {
