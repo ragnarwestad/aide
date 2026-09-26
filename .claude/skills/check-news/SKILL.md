@@ -1,11 +1,12 @@
 ---
 name: check-news
 description: >-
-  Check AI tool news from Anthropic, GitHub and OpenAI.
+  Check AI tool news for the four tools Aide installs for: Claude Code,
+  GitHub Copilot, OpenAI Codex and OpenCode.
   Fetches changelogs and news from official sources, assesses relevance
   for Aide, and updates the news log.
   Use when: checking AI news, wanting to know what's new in
-  Claude Code/Copilot/Codex, updating the news log.
+  Claude Code/Copilot/Codex/OpenCode, updating the news log.
   Do NOT use for: general questions about AI tools (use web search directly).
 ---
 
@@ -43,6 +44,10 @@ Check these sources for news **since the last review**:
 1. WebFetch: `https://github.com/openai/codex/releases`
 2. WebFetch: `https://developers.openai.com/codex/changelog/`
 
+### OpenCode
+
+1. WebFetch: `https://github.com/anomalyco/opencode/releases`
+
 ## Step 3: Filter and assess
 
 For each news item, assess:
@@ -78,6 +83,11 @@ Format — follow the existing pattern in the file:
 |------|---------|-------|-------|
 
 **OpenAI Codex CLI (period):**
+
+| Date | Version | News | Source |
+|------|---------|-------|-------|
+
+**OpenCode (period):**
 
 | Date | Version | News | Source |
 |------|---------|-------|-------|
