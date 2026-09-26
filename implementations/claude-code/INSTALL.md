@@ -39,7 +39,8 @@ claude
 3. **Installs the shared tools** through mise: markdownlint-cli2, jq, gh, bun, pandoc, md-to-pdf.
 4. **Puts `~/.local/bin` on PATH** in `~/.zshenv` and `~/.bashrc`, so non-interactive shells (ssh,
    launchd) find the scripts too.
-5. **Installs globally** to `~/.claude/`: every skill in `core/skills/` → `skills/`, the agents →
+5. **Installs globally** to `~/.claude/`: every skill in `core/skills/` except `spec-structure` →
+   `skills/`, the agents →
    `agents/`, the always-on rules → `rules/`.
 6. **Installs the LSP plugins** (typescript, kotlin, jdtls) when the `claude` CLI is present.
 
@@ -47,10 +48,11 @@ Run it again to update; it replaces what it installed and removes what it no lon
 
 ### Skills
 
-Every skill in `core/skills/` is installed: the `aide-*` workflow skills (`aide-create`,
+Every skill in `core/skills/` except `spec-structure` is installed (Claude Code gets it as the
+`spec-structure` rule instead): the `aide-*` workflow skills (`aide-create`,
 `aide-analyze`, `aide-implement`, `aide-archive`, `aide-explore`, `aide-manifest`, `aide-reopen`,
 `aide-close`, `aide-to-pdf`) and the expertise skills Claude Code activates by context
-(`tdd-coach`, `task-workflow-assistant`, `documentation`, `markdown-linting`, `spec-structure`,
+(`tdd-coach`, `task-workflow-assistant`, `documentation`, `markdown-linting`,
 `tools-and-scripts`, `unit-tests`, `playwright-e2e`, `workflows`).
 
 ---
@@ -135,6 +137,5 @@ implementations/claude-code/install.sh
 ## Further reading
 
 - `README.md` - Overview
-- `CLAUDE.md` - AI instructions
 - `core/skills/workflows/SKILL.md` - Workflows
 - `core/rules/git.md` - Git rules

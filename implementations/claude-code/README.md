@@ -20,8 +20,6 @@
 This directory contains the Claude Code implementation with configuration files, skills and agents.
 
 **References:**
-- Claude Code instructions: See `CLAUDE.md`
-- Agent documentation: See `agents/README.md`
 - Generic workflows: See `../../core/skills/workflows/SKILL.md`
 
 ---
@@ -56,7 +54,7 @@ The skills let you:
 - ✅ Empty files: 2-analysis.md, 3-solution.md, 4-status.md
 
 **Result of /aide-analyze:**
-- ✅ Codebase analyzed (via @agent-task-analyzer)
+- ✅ Codebase analyzed
 - ✅ All 4 document files updated with analysis and solution proposals
 - ✅ Concrete files and line numbers identified
 
@@ -64,9 +62,9 @@ The skills let you:
 ```text
 /aide-create "<title>" <description> → Creates the spec
     ↓
-/aide-analyze 55 → @agent-task-analyzer
+/aide-analyze 55 → the skill itself
     ↓
-    Analyzes codebase (Explore agent)
+    Analyzes codebase
     ↓
     Updates documentation
     ↓
@@ -173,7 +171,8 @@ Run `./install.sh` again to update after changes.
 
 ### Problem: Documentation already exists
 
-**This is OK!** `/aide-create` can be re-run to update 1-description.md.
+`/aide-create` refuses to overwrite an existing spec folder. Edit the existing spec instead, or
+create a new one.
 
 ### Denying direct Write/Edit against spec files
 
@@ -200,7 +199,7 @@ that file itself).
 ```text
 aide/
 ├── core/                               # Shared (used by all AI tools)
-│   ├── rules/                          # Workflows, git, testing, standards
+│   ├── rules/                          # Communication, git, LLM discipline, spec structure, testing
 │   ├── skills/                         # Skills (SKILL.md)
 │   ├── scripts/                        # CLI scripts (aide-generate-pdf etc.)
 │   └── templates/                      # Document templates
@@ -211,8 +210,7 @@ aide/
     ├── install.sh / uninstall.sh       # Global install/uninstall
     ├── settings.json                   # Template for ~/.claude/settings.json
     └── agents/                         # Agent definitions → ~/.claude/agents/
-        ├── README.md
-        └── *.md                        # Specialized agents
+        └── task-analyzer.md
 ```
 
 ### Runtime files (installed locally, not in git)
@@ -220,7 +218,7 @@ aide/
 ```text
 ~/.local/bin/aide-*                     # Every core/scripts/aide-* script, plus upgrade-ai-tools
 ~/.local/bin/lib/                       # The scripts' shared library
-~/.claude/skills/<skill>/SKILL.md       # Every skill in core/skills/
+~/.claude/skills/<skill>/SKILL.md       # Every skill in core/skills/ except spec-structure
 ~/.claude/agents/*.md                   # The agents
 ~/.claude/rules/*.md                    # The always-on rules
 ```
@@ -251,7 +249,7 @@ aide/specs/
 2. Fills in 1-description.md with the title and the description
 
 **`/aide-analyze <number>`**
-1. Analyzes the codebase with the Explore agent (@agent-task-analyzer)
+1. Analyzes the codebase
 2. Identifies affected files (with line numbers)
 3. Updates all 4 document files
 

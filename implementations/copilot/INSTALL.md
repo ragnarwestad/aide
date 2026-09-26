@@ -78,7 +78,7 @@ cd aide/implementations/copilot
    mise, and puts `~/.local/bin` on PATH
 2. ✅ Installs `core/AGENTS.md` as global Copilot instructions in `~/.copilot/copilot-instructions.md`
 3. ✅ Installs every skill in `core/skills/` to `~/.agents/skills/`
-4. ✅ Verifies PATH and the GitHub Copilot extension
+4. ✅ Verifies PATH and checks that the Copilot CLI is installed
 
 **⚠️ NOTE:** `core/AGENTS.md` is already built (`core/scripts/build-agents-md.sh`) and committed. Regular users do not need to rebuild it.
 
@@ -96,20 +96,22 @@ cd aide/implementations/copilot
    ✅ Installed: ~/.copilot/copilot-instructions.md
 
 3️⃣  Installing skills to ~/.agents/skills/...
-   ✅ Installed: ~/.agents/skills/ (all core/skills/)
+   ✅ Installed: ~/.agents/skills/aide-analyze
+   ✅ Installed: ~/.agents/skills/aide-archive
+   … one line per skill
 
 4️⃣  Verifying PATH...
    ✅ ~/.local/bin is in PATH
 
-5️⃣  Checking GitHub Copilot extension...
-   ✅ GitHub Copilot extension is installed
+5️⃣  Checking Copilot CLI...
+   ✅ Copilot CLI is installed: <version>
 ```
 
 ---
 
 ### Step 2: Slash commands
 
-No extra setup. Copilot CLI reads the same skills as Claude Code, so
+No extra setup. Copilot CLI reads its own copy of the skills in `~/.agents/skills/`, so
 `/aide-create`, `/aide-analyze`, `/aide-implement` and friends work natively in a
 `copilot` session.
 
@@ -175,7 +177,7 @@ core/scripts/build-agents-md.sh
 
 # 3. Commit and push
 git add core/rules/ core/AGENTS.md
-git commit -m "Updated Copilot instructions"
+git commit -m "Update Copilot instructions"
 git push
 ```
 
@@ -204,7 +206,7 @@ See [README.md](./README.md#limitations) for the complete flag reference.
 
 | Feature                     | Claude Code                       | Copilot CLI                                                  |
 |-----------------------------|-----------------------------------|--------------------------------------------------------------|
-| **Slash commands / Skills** | ✅ Native `/aide-create`          | ✅ Native in the CLI (reads `~/.claude/commands/` as skills) |
+| **Slash commands / Skills** | ✅ Native `/aide-create`          | ✅ Native in the CLI (reads `~/.agents/skills/`)             |
 | **Custom instructions**     | ✅ Auto-read CLAUDE.md            | ✅ Auto-read CLAUDE.md + copilot-instructions.md             |
 | **Permissions**             | ✅ Pre-approval via settings.json | ✅ config.json + CLI flags                                   |
 | **Plan mode**               | ✅ Native                         | ✅ Native (Shift+Tab in the CLI)                             |

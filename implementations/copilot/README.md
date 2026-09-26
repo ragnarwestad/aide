@@ -39,7 +39,6 @@ implementations/copilot/
 - ✅ `core/rules/` - Same workflows, git rules, testing rules
 - ✅ `core/templates/` - Same 4-file document structure
 - ✅ `core/scripts/` - Same scripts (aide-generate-pdf, etc.)
-- ✅ `implementations/claude-code/rules/` - Shared rules (git, testing, workflows, documentation)
 
 ---
 
@@ -154,9 +153,8 @@ Copilot will automatically follow these rules when you ask for help.
 
 ### Slash commands in Copilot CLI
 
-Copilot CLI reads the same skills as Claude Code (from `~/.claude/skills/` and
-`~/.claude/commands/`), so slash commands work **natively** — no setup beyond
-`install.sh`:
+Copilot CLI reads the skills `install.sh` puts in `~/.agents/skills/`, so slash
+commands work **natively** — no setup beyond `install.sh`:
 
 | Command           | Function           |
 |-------------------|--------------------|
@@ -288,7 +286,7 @@ Status check:
 - Have you read core/skills/workflows/SKILL.md?
 - Have you followed the 4-file structure?
 - Have you run the tests?
-- Have you updated status.md?
+- Have you updated 4-status.md?
 ```
 
 ### 5. Verify understanding

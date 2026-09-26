@@ -8,7 +8,7 @@
 - [Installation](#installation)
 - [Configuration](#configuration)
   - [MCP servers](#mcp-servers-model-context-protocol)
-  - [Execpolicy](#execpolicy-command-control)
+  - [Rules](#rules-command-control)
   - [AGENTS.md](#agentsmd-persistent-instructions)
   - [Hooks](#hooks)
 - [Usage](#usage)
@@ -143,36 +143,19 @@ args = ["-y", "@upstash/context7-mcp"]
 - `mcp/browser-testing.toml` — Playwright and Chrome DevTools (see `mcp/BROWSER_TESTING_MCP_SETUP.md`)
 - `mcp/context7.toml` — Context7 (see `mcp/CONTEXT7_MCP_SETUP.md`)
 
-### Execpolicy (command control)
+### Rules (command control)
 
-Define rules for which commands Codex may run in `~/.codex/config.toml`:
+Codex decides which commands may run outside the sandbox from rule files in `~/.codex/rules/*.rules`.
+Each rule is a `prefix_rule` that matches the start of a command:
 
-```toml
-[execpolicy]
-# Approved commands (run without confirmation)
-allow = [
-  "pnpm *",
-  "npm *",
-  "npx *",
-  "git status",
-  "git diff *",
-  "git log *"
-]
-
-# Blocked commands (cannot be run)
-deny = [
-  "rm -rf *",
-  "git push --force *",
-  "git commit *"  # Block commits, as in Claude Code
-]
-
-# Require confirmation (default for unknown commands)
-confirm = [
-  "git add *",
-  "curl *",
-  "wget *"
-]
+```text
+prefix_rule(pattern=["git", "status"], decision="allow")
+prefix_rule(pattern=["git", "push", "--force"], decision="forbidden")
+prefix_rule(pattern=["curl"], decision="prompt")
 ```
+
+`decision` is `allow` (run without asking), `prompt` (ask first) or `forbidden` (never run). When you
+approve a command for good during a session, Codex appends a rule to `~/.codex/rules/default.rules`.
 
 ### AGENTS.md (persistent instructions)
 
@@ -336,34 +319,11 @@ Follow the testing rules in core/rules/testing.md
 Follow the project's coding standards"
 ```
 
-### 3. Use parallel tasks
-
-Codex can work on several tasks at the same time:
-
-```bash
-# Start a background task
-codex --background "Analyze all components in src/components/"
-
-# Continue with other work
-codex "Implement a new feature in UserProfile"
-```
-
-### 4. Integrate with GitHub
-
-```bash
-# Preload repository
-codex --github myorg/my-app
-
-# Work on a PR
-codex "Review PR #123 and check whether it follows the project coding standard"
-```
-
 ---
 
 ## Limitations
 
 ### Codex does NOT have:
-- ❌ Native slash commands (uses natural language instead)
 - ❌ Automatic reading of CLAUDE.md at startup (use `AGENTS.md`)
 - ❌ Built-in agents like `@agent-task-analyzer`
 - ❌ A free tier (requires Plus/Pro/Enterprise)
@@ -383,10 +343,9 @@ codex "Review PR #123 and check whether it follows the project coding standard"
 - Rate limits (extra credits can be purchased)
 
 ### Workarounds:
-1. **Slash commands:** Use skills (`~/.agents/skills/`)
-2. **Auto-read CLAUDE.md → AGENTS.md:** Use `AGENTS.md` (installed globally as `~/.codex/AGENTS.md`)
-3. **Agents → Explicit prompts:** Ask Codex to follow specific workflows
-4. **Free → Paid:** Requires a subscription
+1. **Auto-read CLAUDE.md → AGENTS.md:** Use `AGENTS.md` (installed globally as `~/.codex/AGENTS.md`)
+2. **Agents → Explicit prompts:** Ask Codex to follow specific workflows
+3. **Free → Paid:** Requires a subscription
 
 ---
 
@@ -400,7 +359,7 @@ What each tool supports, verified against installed versions, is kept in one pla
 ## Next steps
 
 1. ✅ Install the Codex CLI
-2. ✅ Authenticate with your OpenAI API key
+2. ✅ Sign in with `codex login`
 3. ✅ Copy the custom instructions
 4. ✅ Test with a simple spec
 
@@ -420,7 +379,7 @@ codex exec "Analyze this code and suggest improvements"
 codex exec "List all TypeScript files" --output-last-message result.txt
 
 # JSONL output for programmatic parsing
-codex exec "Run all tests" --format jsonl
+codex exec "Run all tests" --json
 ```
 
 ### E2E testing
@@ -439,7 +398,7 @@ codex exec '/aide-create "A test spec" Just checking that the flow works.'
 |--------------------------------|------------------------------------------------|
 | `exec "prompt"`                | Headless mode - run without the interactive UI |
 | `--output-last-message <file>` | Write the last message to a file               |
-| `--format jsonl`               | JSONL output for parsing                       |
+| `--json`                       | JSONL output for parsing                       |
 
 **Note:** Authentication can be challenging in headless environments (requires an OAuth flow).
 

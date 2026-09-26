@@ -11,7 +11,7 @@ echo ""
 
 # Confirm uninstallation
 echo "⚠️  This will remove:"
-echo "   - Skills from ~/.claude/skills/ (15 named directories)"
+echo "   - Skills from ~/.claude/skills/ (17 named directories)"
 echo "   - Agents from ~/.claude/agents/ (task-analyzer.md)"
 echo "   - Rules from ~/.claude/rules/ (5 named files)"
 echo "   - ~/.claude/docs/ and ~/.claude/api-mapping/ (legacy)"
@@ -55,7 +55,6 @@ SKILLS=(
   "aide-close"
   "aide-explore"
   "aide-reopen"
-  "aide-reset"
   "aide-manifest"
   "aide-implement"
   "aide-create"
