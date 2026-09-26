@@ -11,7 +11,7 @@ import { phasesFor, specPagePath, resolveSpecTab, EDITABLE_SPEC_FILE, STATUS_SPE
 import type { TestServerStatusView } from "../../render/pages/spec-page/types.ts";
 import { currentWorkRoundJobs, landingInProject, type Job } from "../../queue/queue.ts";
 import { lastCommitOf } from "../../git/description-freshness.ts";
-import { readStatusFromBranch, resolveOpenBranchTarget } from "../../git/branch-file.ts";
+import { readStatusFromFetchedBranch, resolveOpenBranchTarget } from "../../git/branch-file.ts";
 import { refreshTestServerStatus } from "../test-servers/lifecycle.ts";
 import { type SpecViewsContext, specFileViews } from "./";
 
@@ -70,8 +70,8 @@ export async function specPageView(
     // still answers for that path while the default branch holds the
     // folder in its active one.
     const branchRead = target
-      ? ((await readStatusFromBranch(ctx.gitRun, target.root, target.branch, target.relPath)) ??
-        (await readStatusFromBranch(ctx.gitRun, target.root, target.branch, target.archivedRelPath)))
+      ? ((await readStatusFromFetchedBranch(ctx.gitRun, target.root, target.branch, target.relPath)) ??
+        (await readStatusFromFetchedBranch(ctx.gitRun, target.root, target.branch, target.archivedRelPath)))
       : null;
     if (branchRead) {
       checksText = branchRead.text;
@@ -127,7 +127,7 @@ export async function specPageView(
   // un-marks, so the form has to carry the file's commit.
   const anyTickable = rows.some((row) => row.notVerified || (!row.done && row.phase === target.acceptancePhase));
   // `branchBaseSha` is already the exact commit that last touched the
-  // file ON THE BRANCH (`readStatusFromBranch`'s own answer) — no
+  // file ON THE BRANCH (`readStatusFromFetchedBranch`'s own answer) — no
   // second git call needed. Off disk, read out of the DASHBOARD's own
   // checkout, like the text beside it (spec 205): the commit stamp a
   // form compares against and the text in the box have to be the same
@@ -150,11 +150,11 @@ export async function specPageView(
   if (fetchForm) {
     const formDir = await ctx.machinerySpecDir(project, found);
     // REQ-4: the same "ask the open branch first" question the Checks
-    // section already asks (above) — but fresh (`true`), because a Save
-    // has to compare against the version IT will write onto, never a
-    // cached answer.
-    const target = await resolveOpenBranchTarget(ctx, formDir, specFolder, formFile!, true);
-    const branchRead = target ? await readStatusFromBranch(ctx.gitRun, target.root, target.branch, target.relPath) : null;
+    // section already asks (above), and as cached: the page is not kept
+    // waiting on origin. A Save compares against the version IT will
+    // write onto by asking afresh itself, and refuses when this was older.
+    const target = await resolveOpenBranchTarget(ctx, formDir, specFolder, formFile!, false);
+    const branchRead = target ? await readStatusFromFetchedBranch(ctx.gitRun, target.root, target.branch, target.relPath) : null;
     if (branchRead) {
       formBaseSha = branchRead.sha;
       formText = branchRead.text;

@@ -47,12 +47,54 @@ export async function readStatusFromBranch(
 ): Promise<BranchFileRead | null> {
   const fetched = await run(root, ["fetch", "--quiet", "origin", branch]);
   if (fetched.code !== 0) return null;
+  return readFetched(run, root, branch, relPath);
+}
+
+/** The path as origin's branch had it at its last fetch into `root`. */
+async function readFetched(run: GitRunner, root: string, branch: string, relPath: string): Promise<BranchFileRead | null> {
   const ref = `refs/remotes/origin/${branch}`;
   const commit = await run(root, ["log", "-1", "--format=%H", ref, "--", relPath]);
   const sha = commit.code === 0 ? commit.stdout.trim() : "";
   if (!sha) return null;
   const shown = await run(root, ["show", `${ref}:${relPath}`]);
   return shown.code === 0 ? { text: shown.stdout, sha } : null;
+}
+
+/** The fetches of a branch still out, by checkout and branch: a page that
+ *  reads two paths of one branch, or two pages opened at once, share one. */
+const fetching = new Map<string, Promise<{ code: number }>>();
+
+function fetchOnce(run: GitRunner, root: string, branch: string): Promise<{ code: number }> {
+  const key = `${root}\0${branch}`;
+  const out = fetching.get(key);
+  if (out) return out;
+  const started = run(root, ["fetch", "--quiet", "origin", branch])
+    .catch(() => ({ code: 1 }))
+    .finally(() => fetching.delete(key));
+  fetching.set(key, started);
+  return started;
+}
+
+/** `readStatusFromBranch` for a page, which must not wait on origin: each
+ *  fetch is a round trip to the git host, and a spec page opened from a
+ *  notification waited six to nine seconds on them. This reads what the
+ *  branch was at its last fetch and fetches again behind it, so the page's
+ *  next reload has it. Only a branch never fetched into `root` waits. A
+ *  save fetches for itself and refuses a stale base, so a page drawn from
+ *  an older read costs a reload, never an edit. */
+export async function readStatusFromFetchedBranch(
+  run: GitRunner,
+  root: string,
+  branch: string,
+  relPath: string,
+): Promise<BranchFileRead | null> {
+  const known = await run(root, ["rev-parse", "--verify", "--quiet", `refs/remotes/origin/${branch}`]);
+  if (known.code === 0) {
+    void fetchOnce(run, root, branch);
+  } else if ((await fetchOnce(run, root, branch)).code !== 0) {
+    return null;
+  }
+  return readFetched(run, root, branch, relPath);
 }
 
 export interface BranchWriteResult {
