@@ -472,30 +472,31 @@ for (const lang of ["en", "nb"]) {
   });
 }
 
-// AC-3 (spec 532): the project's link and the colon touch, and a name
-// that wraps starts its second line at the same left edge as its first,
-// at desktop width and at a phone's.
+// The project's link and the colon touch, and a name too long for its
+// line keeps to one line, cut with an ellipsis inside the cell, at desktop
+// width and at a phone's.
 for (const width of [1280, 375]) {
-  test(`spec 532 AC-3: the project's link and the colon touch, and a wrapped name hangs under itself at ${width}px (browser)`, async () => {
+  test(`the project's link and the colon touch, and a long name keeps to one line at ${width}px (browser)`, async () => {
     await page.setViewportSize({ width, height: 800 });
     await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
     const row = page.locator('tr[data-folder="81-queue-and-runner"]');
     const project = row.locator(".spec-name > .label > a.muted");
     const colon = row.locator(".spec-name > .label > .specpart > .muted");
     const name = row.locator(".spec-name > .label > .specpart > .specname");
-    const [p, c, n] = await Promise.all([
+    const [p, c] = await Promise.all([
       project.evaluate((el) => el.getBoundingClientRect().right),
       colon.evaluate((el) => el.getBoundingClientRect().left),
-      name.evaluate((el) => el.getBoundingClientRect().left),
     ]);
     expect(Math.abs(c - p)).toBeLessThan(1);
-    // The name's box starts where every one of its lines does.
-    const lineLefts = await name.evaluate((el) => {
+    const m = await name.evaluate((el) => {
+      el.textContent = "A spec name long enough to need several lines at any width this page is drawn at, and then some more";
       const r = document.createRange();
       r.selectNodeContents(el);
-      return [...r.getClientRects()].map((q) => Math.round(q.left));
+      const lines = new Set([...r.getClientRects()].map((q) => Math.round(q.top))).size;
+      const cell = el.closest("td")!.getBoundingClientRect();
+      return { lines, cut: el.scrollWidth > el.clientWidth, inside: el.getBoundingClientRect().right <= cell.right + 1 };
     });
-    for (const left of lineLefts) expect(Math.abs(left - n)).toBeLessThan(2);
+    expect(m).toEqual({ lines: 1, cut: true, inside: true });
   });
 }
 

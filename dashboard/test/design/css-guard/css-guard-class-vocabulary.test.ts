@@ -250,7 +250,7 @@ const STRUCTURE = [
   // model name and the always tool-prefixed form — with a media query
   // deciding which one a phone-width screen shows.
   "aimodelshort", "aimodelfull",
-  "spec-name", "spec-title", "spec-notverified",
+  "spec-name", "spec-title",
   // the row's message panel (spec 143): a full-width row of its own, so
   // a sentence out of a status file or a runner's refusal wraps instead
   // of running off the right edge of a cell sized for a word.

@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { renderSpecsRows, type ArchivedSpecView, type SpecsFilter } from "../../../../../src/render";
+import { renderSpecsRows, type ArchivedSpecView, type SpecTarget, type SpecsFilter } from "../../../../../src/render";
+import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status";
+import { row } from "../../fixtures.ts";
 
 // --- spec 510: an archived row unfolds the criteria that wait for a check ------
 
@@ -102,33 +104,30 @@ describe("an archived row says its count once, on the info line (AC-1, AC-2, AC-
     const html = draw(twoNv);
     expect(count(html, "2 not verified")).toBe(1);
     expect(notice(html)).toContain("2 not verified");
-    expect(head(html)).not.toContain("spec-notverified");
+    expect(head(html)).not.toContain("not verified");
   });
 
   test("one not verified and one failed: once, in the info line (AC-1)", () => {
     const html = draw(archived());
     expect(count(html, "1 not verified · 1 failed")).toBe(1);
     expect(notice(html)).toContain("1 not verified · 1 failed");
-    expect(html).not.toContain("spec-notverified");
   });
 
   test("only Failed rows: 3 failed once, in the info line (AC-1)", () => {
     const html = draw(archived({ notVerified: undefined, failed: 3, acceptance: [DONE, FAILED, FAILED, FAILED].map(rowOf) }));
     expect(count(html, "3 failed")).toBe(1);
     expect(notice(html)).toContain("3 failed");
-    expect(html).not.toContain("spec-notverified");
   });
 
-  test("a count with no readable acceptance rows keeps the line under the title (AC-3)", () => {
-    const html = draw(archived({ acceptance: undefined }));
-    expect(head(html)).toContain("spec-notverified");
-    expect(notice(html)).toBe("");
+  test("a count with no readable acceptance rows still gets the info line, whose panel says so (AC-3)", () => {
+    const html = draw(archived({ acceptance: undefined }), { checks: KEY });
+    expect(notice(html)).toContain("1 not verified · 1 failed");
+    expect(notice(html)).toContain('class="checksunread');
   });
 
-  test("a closed spec draws neither (AC-3)", () => {
+  test("a closed spec draws no count (AC-3)", () => {
     const html = draw(archived({ closed: true }));
-    expect(html).not.toContain("spec-notverified");
-    expect(notice(html)).toBe("");
+    expect(html).not.toContain("not verified");
   });
 
   test("open: the first phase line follows the head row, the info line follows the last (AC-2)", () => {
@@ -153,5 +152,63 @@ describe("an archived row says its count once, on the info line (AC-1, AC-2, AC-
     const subrows = [...html.matchAll(/<tr class="subrow/g)].map((m) => m.index!);
     expect(list).toBeGreaterThan(subrows[subrows.length - 1]!);
     expect(list).toBeGreaterThan(html.indexOf('<tr class="specnotice"'));
+  });
+});
+
+// --- every row says its count on the info line, not only an archived one -------
+
+describe("a live row says its count on the info line too", () => {
+  const LIVE = "540-live-spec";
+  const LIVE_KEY = `aide/${LIVE}`;
+  const live = (over: Partial<SpecTarget> = {}): SpecTarget => ({
+    project: "aide",
+    specFolder: LIVE,
+    title: "A live title",
+    done: ["create", "analyze", "implement"],
+    notVerified: 2,
+    acceptance: [DONE, NV, NV].map(rowOf),
+    ...over,
+  });
+  const drawLive = (t: SpecTarget, filter: SpecsFilter = {}, list = [row({ specFolder: LIVE, steps: ["implement"], state: "done" })]) =>
+    renderSpecsRows(list, { runnerAvailable: true, targets: [t], filter });
+  const notices = (html: string) => [...html.matchAll(/<tr class="specnotice"[^>]*>[\s\S]*?<\/tr>/g)].map((m) => m[0]);
+
+  test("the count stands once, on an info line with its ›, and never under the title", () => {
+    const html = drawLive(live());
+    expect(html.split("2 not verified").length - 1).toBe(1);
+    const line = notices(html).find((n) => n.includes("2 not verified")) ?? "";
+    expect(line).toContain(`checks=${encodeURIComponent(LIVE_KEY)}`);
+  });
+
+  test("it reads in Norwegian", () => {
+    const html = renderSpecsRows([], { runnerAvailable: true, targets: [live({ failed: 1 })], lang: "nb" });
+    expect(html).toContain("2 ikke verifisert · 1 feilet");
+  });
+
+  test("a row held back for its criteria has one › for them, on the held-back line; its count stands without one", () => {
+    const html = drawLive(live({ archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE }, acceptanceOpen: true }), {}, [
+      row({ specFolder: LIVE, steps: ["archive"], state: "done" }),
+    ]);
+    const all = notices(html);
+    expect(all.join("").split(`checks=${encodeURIComponent(LIVE_KEY)}`).length - 1).toBe(1);
+    const count = all.find((n) => n.includes("2 not verified")) ?? "";
+    expect(count).not.toBe("");
+    expect(count).not.toContain("checks=");
+  });
+
+  test("while a job runs the unfolded list keeps its boxes, disabled, and nothing to post", () => {
+    const html = drawLive(live(), { checks: LIVE_KEY }, [row({ specFolder: LIVE, steps: ["archive"], state: "running" })]);
+    const line = notices(html).find((n) => n.includes("2 not verified")) ?? "";
+    expect(line).toContain("AC-4: works after the deploy");
+    const boxes = [...line.matchAll(/<input type="checkbox"[^>]*>/g)].map((m) => m[0]);
+    expect(boxes.length).toBeGreaterThan(0);
+    for (const b of boxes) expect(b).toContain(" disabled");
+    expect(line).not.toContain("<form");
+    expect(line).not.toContain('type="hidden"');
+  });
+
+  test("with no job running the same list can be ticked", () => {
+    const line = notices(drawLive(live(), { checks: LIVE_KEY })).find((n) => n.includes("2 not verified")) ?? "";
+    expect(line).toContain('class="actionform rowchecks"');
   });
 });

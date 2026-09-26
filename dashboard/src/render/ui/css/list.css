@@ -500,16 +500,13 @@ table.list tr.specstate > td { padding-top: var(--sp-1); }
      width of its own only left 28px of nothing between the two. */
   width: auto; }
 /* The label is a row of two: the project ("aide:") and the name. The
-   name wraps inside its own span, so its second line starts where its
-   first does — right after the project — instead of running back under
-   "aide:" (asked for 2026-09-10). The two-line clamp sits on the name. */
+   name keeps to one line and is cut with an ellipsis where it does not
+   fit; the whole of it is on the spec's own page. */
 .spec-name > .label { display: flex; align-items: flex-start; min-width: 0; }
 .spec-name > .label > .muted { flex: 0 0 auto; }
 .spec-name > .label > .specpart { display: flex; align-items: flex-start; min-width: 0; }
 .spec-name > .label > .specpart > .muted { flex: 0 0 auto; }
-.spec-name > .label > .specpart > .specname { overflow: hidden;
-  display: -webkit-box; -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2; line-clamp: 2;
+.spec-name > .label > .specpart > .specname { overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
   min-width: 0; }
 /* The summary wraps at a sensible measure instead of dragging the
    whole column wide: the phase lines start where this column ends, so
@@ -522,9 +519,6 @@ table.list tr.specstate > td { padding-top: var(--sp-1); }
    its width, its margin, and the flex gap after it. */
 .spec-title {
   margin-left: calc(24px + var(--sp-1) + var(--sp-2)); }
-.spec-notverified { margin-left: calc(24px + var(--sp-1) + var(--sp-2)); margin-top: 2px;
-  font-size: var(--fs-s); }
-.spec-notverified a { color: var(--muted); }
 .spec-title { color: var(--muted); font-size: var(--fs-s); margin-top: 2px;
   max-width: 27rem; }
 /* The archive's Description column (spec 170). A spec's Description

@@ -18,7 +18,7 @@ import {
   stateCell,
 } from "./cell-helpers.ts";
 import { foldControl, wikiCancel } from "./row-controls.ts";
-import { LIST_COLUMNS, notVerifiedMark } from "./row-shared.ts";
+import { LIST_COLUMNS } from "./row-shared.ts";
 import { nextPhase, rowAnchorId, specNumber } from "./row-state.ts";
 
 // One line about the spec: what NOTHING ELSE on the row says. It used
@@ -202,7 +202,6 @@ export function specHeadRow(
     `<td class="foldcell" rowspan="2" data-col="fold">${foldControl(g, opts.filter ?? {}, opened, lang)}</td>` +
     `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name">${spec}` +
     `</div>` +
-    notVerifiedMark(g, lang) +
     under +
     `</td>` +
     `</tr>` +

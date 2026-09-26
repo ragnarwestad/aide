@@ -124,6 +124,23 @@ describe("the rows the list unfolds", () => {
     expect(target?.acceptance?.map((r) => r.task)).toEqual(["REQ-1: it works"]);
   });
 
+  test("a spec whose rows are all ticked, one of them Not verified, carries them", () => {
+    const { root, specDir } = projectsRoot();
+    writeFileSync(
+      join(specDir, "4-status.md"),
+      "# Queue - Status\n\n## Tracking info\n\n- **Workflow steps completed:** analyze, implement\n\n" +
+        "## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n| REQ-1: it works | Not verified | needs production |\n",
+    );
+    writeFileSync(
+      join(specDir, "4-status.json"),
+      JSON.stringify({ completedPhases: ["analyze", "implement"], archived: null, reopened: null,
+        acceptanceCriteria: [{ task: "REQ-1: it works", done: true, notVerified: true }], phaseCounts: {} }),
+    );
+    const target = targets(lookupCtx(root, undefined)).find((t) => t.specFolder === FOLDER);
+    expect(target?.notVerified).toBe(1);
+    expect(target?.acceptance?.map((r) => r.task)).toEqual(["REQ-1: it works"]);
+  });
+
   test("a spec with no open criterion carries none", async () => {
     const { root, specDir } = projectsRoot();
     const checker = await warmedChecker(specDir, true);

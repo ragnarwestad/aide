@@ -29,6 +29,10 @@ interface Options {
    *  Failed box and the note field, named by this row's place among the rows
    *  the form draws (the route reads the note by that number). */
   archivedIndex?: number;
+  /** Drawn but not to be changed: a job runs on the spec. The boxes show
+   *  their marks, disabled, with no hidden twin and no note field, so
+   *  nothing of them is ever posted. */
+  disabled?: boolean;
 }
 
 const formAttr = (formId: string | undefined): string => (formId ? ` form="${esc(formId)}"` : "");
@@ -48,13 +52,14 @@ const boxName = (lang: Language, column: string): string =>
 export function checkControls(row: CheckControlRow, lang: Language, options: Options = {}): string {
   const value = esc(row.line);
   const form = formAttr(options.formId);
+  const off = options.disabled ? " disabled" : "";
   const box = (extra: string, name: string, checked: boolean, column: string): string =>
     `<label class="checkbox${extra}"><input type="checkbox" name="${name}" value="${value}"${form}` +
-    `${checked ? " checked" : ""} aria-label="${boxName(lang, column)}"></label>`;
+    `${checked ? " checked" : ""}${off} aria-label="${boxName(lang, column)}"></label>`;
   const tick =
-    `<input type="hidden" name="row" value="${value}"${form}>` +
+    (options.disabled ? "" : `<input type="hidden" name="row" value="${value}"${form}>`) +
     box("", "tick", row.done && !row.notVerified, t(lang, "checks.yes"));
-  if (options.archivedIndex !== undefined) {
+  if (options.archivedIndex !== undefined && !options.disabled) {
     return (
       tick +
       box(" unverified", "failed", false, t(lang, "checks.failed")) +

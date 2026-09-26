@@ -34,9 +34,9 @@ The queue behind the rows is on [Running specs](running-specs.md); how a step's 
 
 One row per spec, not per job, and shut by default. A shut row shows the spec's name and title, one status line,
 the phase pips, how long its phases have taken, and what they cost — and carries no control
-but the one that opens it: a chevron in front of the name. Under the name sits the row's notice line, and under
-that, when the spec has one, the `N not verified` line. Both belong to the shut row, so a reader sees what went
-wrong without opening it.
+but the one that opens it: a chevron in front of the name. Under it sit the row's notice lines, the `N not verified`
+line among them when the spec has one. They belong to the shut row, so a reader sees what went wrong without opening
+it.
 
 Each spec is a card: its rows share one rounded frame on the page's ground, and an empty `tr.specgap` row after the
 group's last row puts the space between two cards. The gap closes a group rather than opening the next, because the
@@ -57,7 +57,8 @@ repo the spec pushed to, and the state that matters most right now — whatever 
 outcome. It carries no button: the row's one action is on the caption line inside the fold, once per spec rather
 than once per job.
 
-The header is two lines: the title, then the pips, the state and the figures. An open row drops the second line and
+The header is two lines: the title, kept to one line and cut with an ellipsis where it does not fit, then the pips,
+the state and the figures. An open row drops the second line and
 the caption line carries the spec's summed Time and Cost instead, over the phases' own figures. Each phase line says
 its own state, failed, stopped and held back included, so the badge and the pips would only say it twice. A phone
 lays the caption line out the same way: the captions, then the row's button in the state column at the phase badges'
@@ -159,20 +160,20 @@ Status tab, in place of the list.
 the Status tab, in two columns under one heading: "Verified" on the first line, and "Yes" and "Not yet" on the
 second (the heading is drawn once, where the list has a box, and each box's accessible name repeats it). "Not yet"
 is the "Not verified" box. A read-only mark (✅, ☐, "Not verified", "Failed") sits in the same two columns, so the
-text stays at the left of every row. A row marked Not verified counts as done, so archive is not held back by it, but the spec keeps a
-small line `N not verified` below the project and name on its list row — live and archived, not closed — linking
-to its Status tab. An archived row that draws the info line under its phase lines says the count there instead, and
-only there. The State filter has a "Not verified" entry that shows only specs with such a row, archived
-ones included.
+text stays at the left of every row. A row marked Not verified counts as done, so archive is not held back by it, but the spec keeps an
+info line `N not verified` on its list row — live and archived, not closed — whose › unfolds the criteria. On a row
+held back for unticked criteria the held-back line's › unfolds that list, and the count's line has none of its own.
+While a job runs on the spec the unfolded list is drawn with its boxes disabled and nothing to save. When the rows cannot be read, the unfolded line says so and links to
+the Status tab. The State filter has a "Not verified" entry that shows only specs with such a row, archived ones
+included.
 
-On an archived spec a Not verified row stays open to change, on the Status tab and under the › of the archived
-row's own line, under the columns "Yes" and "Failed". It can be ticked, or marked Failed with a note saying what did
+On an archived spec a Not verified row stays open to change, on the Status tab and under the › of the row's own
+line, under the columns "Yes" and "Failed". It can be ticked, or marked Failed with a note saying what did
 not hold; the note field appears under the criterion while Failed is ticked. Those two are the only changes an
 archived spec accepts. Ticking the last Not verified row removes the line and the spec leaves the
 filter.
 
-**A Failed row keeps the spec in the Not verified filter and carries a Reopen button.** The line under the name
-reads `N not verified · M failed`, each number only when above zero, and the filter matches a spec with at least
+**A Failed row keeps the spec in the Not verified filter and carries a Reopen button.** The info line reads `N not verified · M failed`, each number only when above zero, and the filter matches a spec with at least
 one row of either kind. A Failed row is open for archive and is drawn read-only with its `Failed:` note. The only
 way out of that state is the Reopen button on the row, which opens the same confirmation page as the row's own
 Reopen. Reopen puts the Failed rows back to open and keeps their notes; such a note counts as a changed criterion

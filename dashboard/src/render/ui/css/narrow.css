@@ -237,6 +237,12 @@
   /* The label takes what the fold leaves, and shrinks rather than pushing
      the table wide: `min-width: 0` is what lets its own ellipsis work. */
   table.list tr.spechead .spec-name > .label { flex: 1 1 auto; min-width: 0; }
+  /* And the title's row is a flex line whose title cell shrinks with it.
+     As a table row it sized the table to its content, so a name kept to
+     one line widened the row past the screen instead of taking its
+     ellipsis. */
+  table.list tr.spechead { display: flex; align-items: stretch; }
+  table.list tr.spechead > td:not(.foldcell) { display: block; flex: 1 1 auto; min-width: 0; }
   /* The spec's own summary line, under all three. `order: 3` — the
      badge's own — put it BEFORE the badge: equal orders keep document
      order, and this line is written in the first cell. Taking the whole
@@ -246,8 +252,7 @@
   /* 100% MINUS the indent both lines carry (list.css): a basis of the
      whole width plus a left margin is wider than the row, and the mark
      hung 35 px past its right edge at 375 px. */
-  table.list tr.spechead .spec-title,
-  table.list tr.spechead .spec-notverified {
+  table.list tr.spechead .spec-title {
     order: 4; flex: 0 0 calc(100% - (24px + var(--sp-1) + var(--sp-2))); }
   /* The header line starts further left than the phase lines under it
      (asked for 2026-08-24): the fold+name is the row's MAJOR line, and
@@ -273,11 +278,6 @@
      own edge while the pips, the summary and the message cards did
      not. */
   table.list tr.spechead > td.foldcell { flex: 0 0 auto; padding: var(--sp-2) 0 0 var(--sp-3); }
-  /* The vertical padding moves off the cells and onto the row: each td
-     kept the desktop 10px above and below, and two tds stacked as two
-     flex lines put 10px + the row gap + 10px between the name line and
-     the badge line — read as a hole. The row pads once, at its edges. */
-  table.list tr.spechead { padding-top: 10px; }
   table.list tr.specstate { padding-bottom: 10px; }
   /* The title line's own air above it sits on the CELLS: a phone's head
      row is still a table row, and a table row's padding draws nothing —

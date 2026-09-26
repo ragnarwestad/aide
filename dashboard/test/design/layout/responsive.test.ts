@@ -97,11 +97,10 @@ describe("Started and Cost fold away at phone width", () => {
       "table.list tr.spechead > td.foldcell { flex: 0 0 auto; padding: var(--sp-2) 0 0 var(--sp-3); }",
     );
     expect(NARROW).toContain("table.list tr.spechead > td { padding-top: var(--sp-2); padding-bottom: 0; }");
-    // The summary and the not-verified mark keep the indent both lines
-    // carry: a basis of the whole width plus a left margin hangs past the
-    // row's right edge.
+    // The summary keeps the indent both lines carry: a basis of the whole
+    // width plus a left margin hangs past the row's right edge.
     expect(NARROW).toMatch(
-      /tr\.spechead \.spec-title,\s*\n\s*table\.list tr\.spechead \.spec-notverified \{\s*\n\s*order: 4; flex: 0 0 calc\(100% - \(24px \+ var\(--sp-1\) \+ var\(--sp-2\)\)\); \}/,
+      /tr\.spechead \.spec-title \{\s*\n\s*order: 4; flex: 0 0 calc\(100% - \(24px \+ var\(--sp-1\) \+ var\(--sp-2\)\)\); \}/,
     );
   });
 

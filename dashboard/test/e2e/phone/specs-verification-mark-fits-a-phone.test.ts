@@ -1,11 +1,7 @@
-// Spec 510, AC-5: the `N not verified · M failed` mark under a spec's name on
-// the specs list, in a real browser. The unit tests prove the markup; whether
-// the mark sits under the project line and stays inside its row at phone width
-// is a question only a browser answers.
-//
-// Not run by this round: Aide is not a project where the session runs the
-// e2e suite. Run it with
-// `cd dashboard && bun test --timeout 20000 test/e2e/specs-verification-mark-fits-a-phone.test.ts`.
+// The `N not verified · M failed` info line on a spec's row, in a real
+// browser. The unit tests prove the markup; whether the line stays inside
+// its row at phone width, with the list not scrolling sideways, is a
+// question only a browser answers.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
 import { browserDeadline } from "../../helpers/browser-deadline.ts";
@@ -51,20 +47,17 @@ beforeAll(async () => {
 
 afterAll(async () => { await browser.close(); harness.cleanup(); });
 
-describe("the verification mark at phone width", () => {
-  test("it reads both numbers, sits under the name and stays inside its row", async () => {
+describe("the verification line at phone width", () => {
+  test("it reads both numbers and stays inside its row", async () => {
     await page.goto(`${base}/?live=0&state=all`);
-    const mark = page.locator(`tr.spechead[data-folder="${FOLDER}"] .spec-notverified`);
-    await mark.waitFor();
-    expect(await mark.innerText()).toContain("1 not verified · 1 failed");
-    const box = (await mark.boundingBox())!;
-    // `.label`, not `.spec-name`: the wrapper is `display: contents` at
-    // phone width (narrow.css), so it draws no box at all and has no
-    // position to be under. The line that draws `aide: 81-…` does.
-    const name = (await page.locator(`tr.spechead[data-folder="${FOLDER}"] .label`).boundingBox())!;
-    const row = (await page.locator(`tr.spechead[data-folder="${FOLDER}"]`).boundingBox())!;
-    expect(box.y).toBeGreaterThanOrEqual(name.y + name.height - 1);
-    expect(box.x).toBeGreaterThanOrEqual(row.x);
-    expect(box.x + box.width).toBeLessThanOrEqual(row.x + row.width + 1);
+    const line = page.locator(`tr.specnotice[data-folder="${FOLDER}"]`, { hasText: "not verified" });
+    await line.waitFor();
+    expect(await line.innerText()).toContain("1 not verified · 1 failed");
+    const box = (await line.boundingBox())!;
+    const head = (await page.locator(`tr.spechead[data-folder="${FOLDER}"]`).boundingBox())!;
+    expect(box.x).toBeGreaterThanOrEqual(head.x - 1);
+    expect(box.x + box.width).toBeLessThanOrEqual(head.x + head.width + 1);
+    const sideways = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(sideways).toBeLessThanOrEqual(0);
   });
 });

@@ -10,6 +10,7 @@ import { checkColumns, checkControls, checkReadOnlyMark } from "../../ui/check-c
 import { t, type Language } from "../../../i18n";
 import { specTabPath } from "../spec-page";
 import { groupKey, isArchivedRow, type SpecGroup, type SpecsFilter } from "./data-model";
+import { specBusy } from "./row-state.ts";
 import { queueHref } from "./filter-bar.ts";
 import { drawsChecksLine, filterFields } from "./row-shared.ts";
 
@@ -47,8 +48,11 @@ export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language): strin
   const phase = rows[0]!.phase;
   const formId = `rowchecks-${key}`;
   // An archived spec is a record: only a Not verified row is a box (tick,
-  // Failed and a note), and a Failed row is never one on any spec.
+  // Failed and a note), and a Failed row is never one on any spec. While a
+  // job runs the boxes are drawn disabled and nothing is posted: the run
+  // owns the spec's files until it ends.
   const archived = isArchivedRow(g);
+  const locked = specBusy(g);
   const boxed = (row: (typeof rows)[number]): boolean => !row.failed && (!archived || !!row.notVerified);
   const drawn = rows.filter(boxed).map((row) => row.line);
   const reopen = `<a class="btn" href="/specs/${esc(g.project)}/${esc(g.specFolder)}/reopen">${esc(t(lang, "list.reopen"))}</a>`;
@@ -57,7 +61,7 @@ export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language): strin
   const item = (row: (typeof rows)[number]): string => {
     const state = row.failed ? "failed" : row.notVerified ? "notverified" : row.done ? "done" : "open";
     const control = boxed(row)
-      ? checkControls(row, lang, archived ? { formId, archivedIndex: drawn.indexOf(row.line) } : { formId })
+      ? checkControls(row, lang, locked ? { disabled: true } : archived ? { formId, archivedIndex: drawn.indexOf(row.line) } : { formId })
       : checkReadOnlyMark(row, lang);
     return (
       `<li class="check ${state}">` +
@@ -70,8 +74,9 @@ export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language): strin
     );
   };
   const list = `<ul class="checklist">${drawn.length > 0 ? checkColumns(lang, archived) : ""}${rows.map(item).join("")}</ul>`;
-  // Nothing to save when no row is a box (an archived spec whose rows are all Failed).
-  if (drawn.length === 0) return `<div class="rowchecks">${list}</div>`;
+  // Nothing to save when no row is a box (an archived spec whose rows are
+  // all Failed), or while a job runs.
+  if (drawn.length === 0 || locked) return `<div class="rowchecks">${list}</div>`;
   return (
     `<form class="actionform rowchecks" id="${esc(formId)}" method="post" ` +
     `action="/api/queue/specs/${esc(g.project)}/${esc(g.specFolder)}/tick?fromList=1">` +
@@ -83,11 +88,11 @@ export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language): strin
   );
 }
 
-/** An archived row with a criterion still waiting for a check, or one that
- *  failed, gets a line of its own with the › and the same unfold a held-back
- *  row has: the choice "under ›" belongs on every row a criterion is decided
+/** A row with a criterion still waiting for a check, or one that failed,
+ *  gets a line of its own with the › and the same unfold a held-back row
+ *  has: the choice "under ›" belongs on every row a criterion is decided
  *  on. A closed spec has none, and nothing is drawn without rows to show. */
-export function archivedChecksRow(g: SpecGroup, f: SpecsFilter, lang: Language, columns: number): string {
+export function checksRow(g: SpecGroup, f: SpecsFilter, lang: Language, columns: number, fold = true): string {
   if (!drawsChecksLine(g)) return "";
   const parts = [
     ...((g.notVerified ?? 0) > 0 ? [t(lang, "list.notVerifiedMark", { n: g.notVerified! })] : []),
@@ -95,7 +100,11 @@ export function archivedChecksRow(g: SpecGroup, f: SpecsFilter, lang: Language, 
   ];
   return (
     `<tr class="specnotice" data-folder="${esc(g.specFolder)}"><td colspan="${columns}">` +
-    rowMessageParts("info", [{ text: parts.join(" · "), own: true, lead: checksFold(g, f, lang), after: checksPanel(g, f, lang) }]) +
+    rowMessageParts("info", [
+      fold
+        ? { text: parts.join(" · "), own: true, lead: checksFold(g, f, lang), after: checksPanel(g, f, lang) }
+        : { text: parts.join(" · "), own: true },
+    ]) +
     `</td></tr>`
   );
 }

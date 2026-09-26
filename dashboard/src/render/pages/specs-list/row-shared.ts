@@ -4,8 +4,7 @@
 
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
-import { specPagePath } from "../spec-page";
-import { CLOSED_STATE, FILTER_FIELD_PREFIX, FILTER_KEYS, isArchivedRow, type Phase, type SpecGroup, type SpecsFilter } from "./data-model";
+import { CLOSED_STATE, FILTER_FIELD_PREFIX, FILTER_KEYS, type Phase, type SpecGroup, type SpecsFilter } from "./data-model";
 
 /** The mark a row carries — live or archived — when its code is on a
  *  branch waiting on a pull request (spec 220, spec 335): the same word
@@ -56,28 +55,12 @@ export const prErrorSentence = (lang: Language): string => t(lang, "list.prError
 export const prErrorOf = (p: Phase): string | undefined =>
   (p.attempts[0]?.results ?? []).find((r) => r.step === p.step)?.prError;
 
-/** Whether the row draws the info line with its ›, which says the same
- *  counts `notVerifiedMark` does — so the count is said on one of the two,
- *  never both and never neither. */
+/** Whether the row draws the info line with its ›: a spec with a
+ *  criterion still waiting for a check after deploy, or one that failed.
+ *  A closed spec has none. Rows that cannot be read still get the line:
+ *  its panel says so and links to the Status tab. */
 export const drawsChecksLine = (g: SpecGroup): boolean =>
-  isArchivedRow(g) &&
-  g.state !== CLOSED_STATE &&
-  (g.acceptance ?? []).length > 0 &&
-  (g.notVerified ?? 0) + (g.failed ?? 0) > 0;
-
-/** The small line under a row's name: how many of the spec's Acceptance
- *  rows wait for a check after deploy, linking to the Status tab where
- *  they are ticked or un-marked. Nothing for a count of 0, a closed
- *  spec, or a row whose info line says the count instead. */
-export const notVerifiedMark = (g: SpecGroup, lang: Language): string => {
-  const parts: string[] = [];
-  if ((g.notVerified ?? 0) > 0) parts.push(t(lang, "list.notVerifiedMark", { n: g.notVerified! }));
-  if ((g.failed ?? 0) > 0) parts.push(t(lang, "list.failedMark", { n: g.failed! }));
-  return parts.length > 0 && g.state !== CLOSED_STATE && !drawsChecksLine(g)
-    ? `<div class="spec-notverified"><a data-goto href="${esc(specPagePath(g.project, g.specFolder))}?tab=status">` +
-        `${esc(parts.join(" · "))}</a></div>`
-    : "";
-};
+  g.state !== CLOSED_STATE && (g.notVerified ?? 0) + (g.failed ?? 0) > 0;
 
 /** How many columns the list has. Two rows span the whole table — the
  *  "no spec matches" line and a row's message panel — and a count

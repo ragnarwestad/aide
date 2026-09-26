@@ -136,6 +136,9 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
         // ticked (364, 2026-09-03).
         const branchAnswer = ctx.readBranchFileSteps?.()?.peekFileSteps(s.dir, s.folder).steps;
         const acceptanceOpen = acceptanceStillOpen(branchAnswer?.acceptanceOpen, state?.acceptanceCriteria);
+        const acceptanceRows = branchAnswer?.acceptance ?? state?.acceptanceCriteria ?? [];
+        const notVerified = notVerifiedCount(acceptanceRows) || undefined;
+        const failed = failedCount(acceptanceRows) || undefined;
         const heldBack = statusText
           ? (archiveHeldBackReason(statusText) ?? (acceptanceOpen ? ACCEPTANCE_CRITERIA_UNTICKED_NOTE : null))
           : null;
@@ -146,12 +149,13 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
           reopenedRound: reopenedRound(statusText),
           // The branch's rows first, like `acceptanceOpen`: a mark moved
           // on the open branch is not on disk until archive lands.
-          notVerified:
-            notVerifiedCount(branchAnswer?.acceptance ?? state?.acceptanceCriteria ?? []) || undefined,
-          failed: failedCount(branchAnswer?.acceptance ?? state?.acceptanceCriteria ?? []) || undefined,
+          notVerified,
+          failed,
           // The rows the list unfolds, from the same source order as
           // `acceptanceOpen`: the branch answer's, else the checkout's.
-          acceptance: acceptanceOpen
+          // Carried while a row is open, and while one waits for a check
+          // or failed: the list unfolds them under that count too.
+          acceptance: acceptanceOpen || notVerified || failed
             ? withAcCoverage(branchAnswer?.acceptance ?? acceptanceRowsOf(statusText), readAcCoverage(s.dir))
             : undefined,
           // Where the freshness check runs git. Never rendered — the
