@@ -189,7 +189,10 @@
   /* The desktop chain (page.css's body/main rules, list.css's
      #jobrows/.tablewrap rules) is kept at this width too: the header,
      the tabs and the filter row stay put and the rows scroll under
-     them, as they do held sideways and on a desktop. */
+     them, as they do held sideways and on a desktop. The scrollbar's
+     lane is not: a phone's scrollbar shows only while scrolling, and
+     the rows need the width. */
+  #jobrows .tablewrap { padding-inline: 0; }
 
   /* The spec header line (design handoff, mobile-spec-row): the mock
      puts the fold/name/pips alone on the first line and the badge, the

@@ -47,9 +47,14 @@
    which `box-sizing` does not reach. Measured in Chromium at 1600px:
    936px of columns in a 936px box, 937px of table, one pixel of
    scrollbar; with the two pixels back, 938 and 938 and no bar. */
+/* The inline padding is the scrollbar's own lane. A Mac's overlay
+   scrollbar takes no room and is drawn over whatever is at the box's
+   right edge, which without it is the cards' right border. Padding on
+   both sides, and the same amount added to the box, keeps the table at
+   its width and in line with the search line above it. */
 #jobrows .tablewrap { overflow-y: auto; flex: 1 1 auto; min-height: 0;
-  max-width: calc(var(--speclist-width) + 2px); width: 100%; box-sizing: border-box;
-  margin-inline: auto; padding-bottom: var(--sp-3); }
+  max-width: calc(var(--speclist-width) + 2px + 2 * var(--sp-3)); width: 100%; box-sizing: border-box;
+  margin-inline: auto; padding-inline: var(--sp-3); padding-bottom: var(--sp-3); }
 
 table { border-collapse: collapse; width: 100%; }
 /* REQ-3 (spec 379): only the specs list stops stretching to the frame.

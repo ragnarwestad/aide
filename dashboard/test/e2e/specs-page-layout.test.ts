@@ -94,6 +94,26 @@ for (const viewport of VIEWPORTS) {
       }));
       expect(docHeight).toBeLessThanOrEqual(winHeight);
     });
+
+    // A Mac's overlay scrollbar takes no room and is drawn over whatever
+    // sits at the scroll box's right edge — the cards' right border, when
+    // the table ran all the way to it. The box keeps a lane of --sp-3
+    // (12px) between the table and wherever the scrollbar is drawn.
+    test("the list leaves the scrollbar a lane beside the cards", async () => {
+      await page.setViewportSize(viewport);
+      await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
+      const m = await page.evaluate(() => {
+        const box = document.querySelector("#jobrows .tablewrap") as HTMLElement;
+        const table = box.querySelector("table.speclist")!.getBoundingClientRect();
+        const rect = box.getBoundingClientRect();
+        return {
+          scrolls: box.scrollHeight > box.clientHeight,
+          lane: rect.right - (box.offsetWidth - box.clientWidth) - table.right,
+        };
+      });
+      expect(m.scrolls).toBe(true);
+      expect(m.lane).toBeGreaterThanOrEqual(12);
+    });
   });
 }
 
@@ -206,22 +226,26 @@ test("spec 381 REQ-1/REQ-7: the controls line's right edge matches the table's, 
   await page.setViewportSize({ width: 1270, height: 800 });
 });
 
-// The scroll box holding the list ends where the list does, so its
-// scrollbar sits against the table rather than out at the window's
-// edge. Same shape as the controls line above: `.tablewrap` used to
-// span `main`'s frame while the table inside it stopped at 63rem, and
-// the gap only appeared once the table's width stopped tracking the
-// window. Measured wide, where there IS empty page to the right for
-// the bar to drift into.
-test("the list's scroll box ends where the table does", async () => {
+// The scroll box holding the list ends one scrollbar lane past the
+// list, so its scrollbar sits beside the table rather than out at the
+// window's edge. Same shape as the controls line above: `.tablewrap`
+// used to span `main`'s frame while the table inside it stopped at
+// 63rem, and the gap only appeared once the table's width stopped
+// tracking the window. Measured wide, where there IS empty page to the
+// right for the bar to drift into. The lane itself is pinned above.
+test("the list's scroll box ends one scrollbar lane past the table", async () => {
   await page.setViewportSize({ width: 1920, height: 1080 });
   await withBrowser(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), "page.goto(/) at 1920px");
-  const [wrap, table] = await Promise.all([
-    page.locator("#jobrows .tablewrap").evaluate((el) => el.getBoundingClientRect()),
-    page.locator("table.speclist").evaluate((el) => el.getBoundingClientRect()),
-  ]);
+  const { wrapRight, bar, tableRight } = await page.evaluate(() => {
+    const box = document.querySelector("#jobrows .tablewrap") as HTMLElement;
+    return {
+      wrapRight: box.getBoundingClientRect().right,
+      bar: box.offsetWidth - box.clientWidth,
+      tableRight: box.querySelector("table.speclist")!.getBoundingClientRect().right,
+    };
+  });
 
-  expect(Math.abs(wrap.x + wrap.width - (table.x + table.width))).toBeLessThanOrEqual(1);
+  expect(wrapRight - bar - tableRight).toBeLessThanOrEqual(12 + 1);
 
   await page.setViewportSize({ width: 1270, height: 800 });
 });
