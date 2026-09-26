@@ -89,3 +89,26 @@ test("the phase line's Time shows on the state's line, at 360/390/430px, without
     expect(xs.size).toBe(1);
   }
 });
+
+// The spec's own line keeps its summed Time at phone width, after the
+// state badge and on the same line as it; its Cost stays off the phone.
+test("the spec line's summed Time follows the state at 360/390/430px, and Cost is not shown", async () => {
+  for (const width of WIDTHS) {
+    await page.setViewportSize({ width, height: 900 });
+    await withBrowser(page.goto(`${base}/?live=0`), `page.goto at ${width}px`);
+    const m = await page.locator("table.list tr.specstate").first().evaluate((tr) => {
+      const state = tr.querySelector('[data-col="state"]')!.getBoundingClientRect();
+      const time = tr.querySelector('[data-col="started"]') as HTMLElement;
+      const box = time.getBoundingClientRect();
+      return {
+        timeShown: getComputedStyle(time).display !== "none" && box.width > 0,
+        text: time.textContent!.trim(),
+        after: box.left >= state.right - 1,
+        sameLine: Math.abs(box.top - state.top) < 8,
+        costShown: getComputedStyle(tr.querySelector('[data-col="cost"]')!).display !== "none",
+      };
+    });
+    expect(m).toEqual({ timeShown: true, text: m.text, after: true, sameLine: true, costShown: false });
+    expect(m.text).not.toBe("");
+  }
+});

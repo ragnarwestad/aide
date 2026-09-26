@@ -69,14 +69,6 @@ describe("Started and Cost fold away at phone width", () => {
     );
   });
 
-  // The phone's spec line is the title, then the pips, the button and the
-  // state. A reader there is checking what is happening and pressing the
-  // one control; neither figure is part of either.
-  test("the spec header drops its time and its cost too", () => {
-    expect(NARROW).toContain('table.list tr.specstate [data-col="started"] { display: none; }');
-    expect(NARROW).toContain('table.list tr.specstate [data-col="cost"] { display: none; }');
-  });
-
   // Line 1 is the title alone; line 2 is the pips, the button and the
   // state, in that order. The pips live inside the name box — where a
   // desktop wants them — so both the cell and the box are dissolved to
