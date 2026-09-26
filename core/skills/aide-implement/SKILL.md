@@ -70,7 +70,10 @@ resume it at the first unticked task if it found it in progress.
 
 1. Read "Step 0" and the acceptance criteria from 3-solution.md
 2. Run `aide-emit-run --phase red --spec <ID>` (see [Reporting the phase](#reporting-the-phase))
-3. Create test files — at least one failing test per acceptance criterion
+3. Create test files — at least one failing test per acceptance criterion.
+   A criterion an existing test already proves gets no second test: add
+   the AC-id to that test's name instead (step 4). What a test is for,
+   and what it is not, is the testing rule's "What to test"
 4. **Put the AC-id in the test's name.** A test written for a criterion
    that opens with an AC-id carries that id in its own name, as the
    name's last words: `test("the total keeps counting (AC-2)", ...)`.

@@ -30,6 +30,16 @@ part of the delivery, like the code compiling.
 - **The rule, not the rendering.** What would break silently, in a way nobody sees for weeks. Not the
   markup — a test that restates the HTML raises a number and catches nothing.
 - **A bug fix gets a test for the bug.** The failure that was reported is the test case.
+- **One place per rule.** A rule is proven where it lives — the store, the parser, the helper. A
+  route or page test proves only that it is wired to that rule, once, not every case again.
+- **Layout is measured, not read.** Where a browser test measures a layout claim, no second test
+  reads the stylesheet for the same declarations. A test over the CSS text is for a repo-wide
+  invariant only: one focus style, no colour outside the token block, no unused class.
+- **No wording pins.** A test does not assert a sentence of a rule, skill, doc or help text. It
+  asserts what code depends on: a name a script calls, a format a parser reads, a copy that must
+  equal its source.
+- **One language proves the catalogue.** A test that the page reads a translated word needs one
+  language, not one per language.
 
 ### Prove the test is worth having
 
