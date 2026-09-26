@@ -28,7 +28,7 @@ import {
   tickRunner as tickRunnerImpl,
   type ScheduleContext,
 } from "../schedules";
-import { createRootLock } from "../serve-helpers";
+import { createRootLock, SPEC_CACHE_POLL_MS } from "../serve-helpers";
 import type { ServerState } from "../state.ts";
 import type { ScheduleStore } from "../../queue/schedule-store.ts";
 
@@ -59,19 +59,24 @@ export interface ScheduleSetupInputs {
   recheckTools?: (tools: CheckableTool[]) => Promise<void>;
 }
 
+/** How often the spec caches are refilled, and how long one answer stands.
+ *  The window is never longer than the schedule: a longer one would hand
+ *  the schedule its own old answer (spec 208). It may be shorter, so an
+ *  answer an action asks for between two runs is taken afresh. A poll of
+ *  `0` turns the schedule off, which is a test seam and not a window — the
+ *  checkers keep their own default there, so an answer put in by hand
+ *  still stands. */
+export function specCacheTimes(pollMs = SPEC_CACHE_POLL_MS): { pollMs: number; ttlMs: number } {
+  return { pollMs, ttlMs: pollMs > 0 ? Math.min(pollMs, DEFAULT_TTL_MS) : DEFAULT_TTL_MS };
+}
+
 export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, inputs: ScheduleSetupInputs) {
   const {
     machineryProjectDir, branchStatus, targets, allowed, scheduleStore, ensureCheckout, queue, specRoots, checkoutEnsurer, gitRun,
     notifyQueueChanged, specsRoot, recheckTools,
   } = inputs;
 
-  // How long ONE spec answer stands, and how often it is retaken, are
-  // the same number since spec 208 — because nothing but the schedule
-  // takes them any more. `0` means the schedule is OFF, which is a test
-  // seam and not a window — the checkers keep their own default there,
-  // so an answer put in by hand still stands.
-  const specCachePollMs = opts.specCachePollMs ?? DEFAULT_TTL_MS;
-  const specCacheTtlMs = specCachePollMs > 0 ? specCachePollMs : DEFAULT_TTL_MS;
+  const { pollMs: specCachePollMs, ttlMs: specCacheTtlMs } = specCacheTimes(opts.specCachePollMs);
 
   // One merge at a time per repo. Every spec shares the specs root, and
   // two specs in one project share that repo too, so two presses a few

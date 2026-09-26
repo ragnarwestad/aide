@@ -94,6 +94,11 @@ export function createRootLock() {
  *  while it waits for every in-flight merge to clear before restarting
  *  the dashboard server. */
 export const RESTART_POLL_MS = 250;
+/** How often the spec caches are refilled: every project's checkouts
+ *  fetched and its open branches asked, one round trip to the git host
+ *  each. A board's own actions refresh them at once; this is for what
+ *  arrives from elsewhere, a push from another machine. */
+export const SPEC_CACHE_POLL_MS = 5 * 60_000;
 
 /** How long a restart waits, in all, for running jobs and in-flight
  *  landings to clear — one bound for the one wait. An implement step can
