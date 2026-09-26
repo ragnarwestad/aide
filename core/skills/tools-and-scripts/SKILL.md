@@ -161,8 +161,8 @@ command can legitimately differ on one machine (a `PATH` prefix a shell
 needs, say), while a worktree link cannot. A project whose value never
 changes between machines can commit it once in the manifest and skip
 configuring `.aide/config` for it on every clone. Shell scripts resolve
-this precedence with `aide_resolve_override CONFIG_KEY MANIFEST_KEY
-<project-root>` in `_aide-spec-lib.sh`; the dashboard resolves it with
+this precedence with
+`aide_resolve_override CONFIG_KEY MANIFEST_KEY <project-root>` in `_aide-spec-lib.sh`; the dashboard resolves it with
 `resolveInstallCmd()`/`resolveTestCmd()` in
 `dashboard/src/project/discover/config.ts`.
 

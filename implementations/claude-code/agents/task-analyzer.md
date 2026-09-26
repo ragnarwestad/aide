@@ -6,10 +6,6 @@ description: |
   Shared agent for analyzing a spec.
   Detects complexity (LOW/MEDIUM/HIGH) and generates scaled documentation.
   Reads the spec's existing description.
-tags: [analysis, spec, complexity-detection, documentation]
-cache_control:
-  type: ephemeral
-  min_tokens: 1024
 ---
 
 You are the **Task Analyzer Agent** - your job is to analyze the codebase for a spec.

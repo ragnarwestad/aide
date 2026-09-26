@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# check-agents - Run agnix over the repository's agent configuration:
+# skills, rules, CLAUDE.md, AGENTS.md, agents, hooks and MCP files.
+#
+# CI's agnix job runs this same file. The version is pinned so a new agnix
+# release cannot turn the check red on its own; .agnix.toml at the repo root
+# holds the paths it leaves out and the rules it turns off, each with its
+# reason. Strict: warnings fail as errors do, info messages do not.
+#
+# Usage:
+#   scripts/check-agents
+
+set -e
+
+AGNIX_VERSION=0.54.0
+
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+  echo "usage: scripts/check-agents"
+  exit 0
+fi
+
+if ! command -v npx >/dev/null 2>&1; then
+  echo "npx is not installed — install Node.js (see DEVELOPING.md, \"Tools you need\")" >&2
+  exit 2
+fi
+
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+npx --yes "agnix@$AGNIX_VERSION" --strict .

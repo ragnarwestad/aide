@@ -1,5 +1,9 @@
 # agnix (the IDE's agent-config linter) for this repository.
 
+# The status files under the dashboard's test fixtures are data a test
+# parses, not configuration for any tool.
+exclude = ["dashboard/test/fixtures/**"]
+
 # Two files that belong to different projects by design: .claude/CLAUDE.md
 # steers work on this repo (bun in dashboard/), and core/AGENTS.md is built
 # for the projects Aide is installed into (pnpm in its examples).
@@ -33,3 +37,29 @@ disabled_rules = ["AGM-003", "PE-001", "PE-004", "PE-006", "CDX-AG-005"]
 [[overrides]]
 paths = ["core/skills/**"]
 disabled_rules = ["XP-SK-001"]
+
+# Pages that document where each tool installs, and the dashboard's own
+# CLAUDE.md, name those tools' paths because that is what they describe.
+[[overrides]]
+paths = ["DEVELOPING.md", "implementations/**/*.md", "dashboard/CLAUDE.md"]
+disabled_rules = ["XP-003"]
+
+# The two CLAUDE.md files hold what every session in their directory needs;
+# splitting them with @import loads the same text anyway. Their rules are
+# written as prohibitions on purpose, like core/AGENTS.md's.
+[[overrides]]
+paths = [".claude/CLAUDE.md", "dashboard/CLAUDE.md"]
+disabled_rules = ["CC-MEM-009", "CC-MEM-006", "PE-001"]
+
+# spec-structure is the rule of the same name installed as a skill for the
+# tools that have no rules; it stays whole so the two stay one text. Its
+# "$0.1234" is a cost in an example, not an indexed argument.
+[[overrides]]
+paths = ["core/skills/spec-structure/SKILL.md"]
+disabled_rules = ["AS-012", "CC-SK-016"]
+
+# A prompt hook without $ARGUMENTS gets the hook's input appended to the
+# prompt by Claude Code, which is what the Stop check wants.
+[[overrides]]
+paths = ["implementations/claude-code/settings.json"]
+disabled_rules = ["CC-HK-017"]

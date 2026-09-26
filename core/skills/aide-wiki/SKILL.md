@@ -45,8 +45,8 @@ change: tens of pages for a large system, a handful for a small one.
 ### Step 3: Write a page for each part
 
 For each part not covered by a hand-written page, pipe the page's body to
-`aide-wiki write --specs-root <root> --project-dir . --page <name>.md
---file <path> [--file <path>...]`, naming the files the page was written
+`aide-wiki write --specs-root <root> --project-dir . --page <name>.md --file <path> [--file <path>...]`,
+naming the files the page was written
 from. Files, never folders — the script refuses a folder, since a page
 written from one reads as stale whenever anything in it changes. Name the
 files that carry the part: its entry points, its types, the doc page that

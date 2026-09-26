@@ -88,13 +88,13 @@ class TestCiWorkflow:
     """The workflow must run the gates .claude/CLAUDE.md documents."""
 
     def test_all_jobs_run_on_macos(self, workspace_root):
-        """Criterion 1: five jobs, every one of them on macOS.
+        """Criterion 1: six jobs, every one of them on macOS.
 
         BSD sed and bash 3.2 are what the shell scripts are written for; a
         Linux runner would go green while exercising different code.
         """
         jobs = _jobs(_workflow_text(workspace_root))
-        assert len(jobs) == 5, \
+        assert len(jobs) == 6, \
             f"Expected one job per gate, found {sorted(jobs)}"
         for name, body in jobs.items():
             runners = re.findall(r"^\s*runs-on:\s*(\S+)", body, re.MULTILINE)
@@ -172,6 +172,27 @@ class TestCiWorkflow:
         assert not any(c.strip().startswith("shellcheck ") for c in steps), \
             "The shellcheck job runs shellcheck directly — the list of " \
             "scripts belongs in scripts/check-bash alone"
+
+    def test_agnix_job_runs_check_agents(self, workspace_root):
+        """The agnix job runs scripts/check-agents, the command a person
+        runs, and never agnix directly: the version and the strictness
+        live in that script alone."""
+        jobs = _jobs(_workflow_text(workspace_root))
+        assert "agnix" in jobs, f"No 'agnix' job, found {sorted(jobs)}"
+        steps = _run_commands(jobs["agnix"])
+        assert any(c.strip() == "scripts/check-agents" for c in steps), \
+            "The agnix job never runs scripts/check-agents"
+        assert not any("agnix@" in c for c in steps), \
+            "The agnix job runs agnix directly — the version belongs in scripts/check-agents"
+
+    def test_check_agents_pins_the_version_and_fails_on_warnings(self, workspace_root):
+        """A new agnix release cannot turn the check red on its own, and a
+        warning fails it as an error does."""
+        text = (workspace_root / "scripts" / "check-agents").read_text()
+        assert re.search(r"^AGNIX_VERSION=\d+\.\d+\.\d+$", text, re.M), \
+            "scripts/check-agents must pin agnix to an exact version"
+        assert '"agnix@$AGNIX_VERSION" --strict' in text, \
+            "scripts/check-agents must run the pinned agnix in strict mode"
 
     def test_check_bash_names_every_script_group(self, workspace_root):
         """scripts/check-bash covers every bash script in core/scripts, not

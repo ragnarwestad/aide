@@ -251,8 +251,8 @@ Key sections: `model`, `approval_policy`, `sandbox_mode`,
 ### Headless runs (`codex exec`)
 
 `codex exec --json` reads the prompt from stdin and prints JSONL; the
-`thread.started` event carries the thread id. `codex exec resume <id>
-[prompt]` continues that thread and `codex exec fork <id>` branches it
+`thread.started` event carries the thread id.
+`codex exec resume <id> [prompt]` continues that thread and `codex exec fork <id>` branches it
 (v0.148); both take `--json`, `-m`, `--output-schema` and
 `--dangerously-bypass-approvals-and-sandbox`, but neither `--sandbox`
 nor `--add-dir` (verified on 0.154.0) — a resumed thread keeps what it

@@ -143,9 +143,9 @@ the only legitimate path. Follow the spec structure §
 file:line, API impact, test coverage.
 
 When Step 3 used the wiki, the `## Mapping` section gets a line **Wiki
-pages used** listing each page with its state: `current`; `changed since
-its commit — files: <changedFiles>`; `unknown`; or `hand-written —
-freshness not tracked`. Without a wiki, no such line.
+pages used** listing each page with its state: `current`;
+`changed since its commit — files: <changedFiles>`; `unknown`; or
+`hand-written — freshness not tracked`. Without a wiki, no such line.
 
 Sections already filled in per Step 4 are left untouched.
 

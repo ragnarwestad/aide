@@ -12,6 +12,8 @@ You will help the user **generate a PDF** from a spec.
 
 ## Input
 
+**Input:** $ARGUMENTS (a spec number, a full folder ID, or an issue key its title began with)
+
 The user has run:
 ```bash
 /aide-to-pdf <ISSUE_ID>

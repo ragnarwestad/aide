@@ -66,8 +66,8 @@ at a keyboard, where no worktree stands in the way.
 
 ### Step 3: Move the folder back
 
-**Keep mode:** run `aide-reopen-spec --specs-root <specs-root> --spec
-<NN>`. It does this step and everything the keep mode changes: it moves
+**Keep mode:** run
+`aide-reopen-spec --specs-root <specs-root> --spec <NN>`. It does this step and everything the keep mode changes: it moves
 the folder, leaves `0-README.md`, `1-description.md`, `2-analysis.md`
 and `3-solution.md` byte for byte, takes `archive` off the `Workflow
 steps completed:` line of `4-status.md` and appends one

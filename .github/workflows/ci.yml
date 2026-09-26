@@ -124,6 +124,17 @@ jobs:
       - run: command -v shellcheck >/dev/null || brew install shellcheck
       - run: scripts/check-bash
 
+  agnix:
+    name: agnix (agent configuration)
+    runs-on: macos-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      # The version, the strictness and what is left out live in
+      # scripts/check-agents and .agnix.toml, the same command a person
+      # runs before a merge — so the two cannot drift.
+      - run: scripts/check-agents
+
   biome:
     name: biome (dashboard lint)
     runs-on: macos-latest
