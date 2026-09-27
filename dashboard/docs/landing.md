@@ -93,9 +93,8 @@ A landing merges the spec branch into each repo's default branch and pushes, one
   somebody's own on that branch is refused, loudly, by name.
 - **A code merge can install.** Merged is not deployed: for a project that installs itself somewhere, the default
   branch moving changes nothing on this machine. The command comes from `AIDE_INSTALL_CMD` in the project's
-  `.aide/config`, or from `installCmd:` in its manifest, and is run in that checkout after its code merges — argv,
-  no shell, bounded by a timeout, and reported beside the merge rather than turning a completed merge into a failed
-  one. With neither set, nothing runs and the result says plainly that deploying is still a hand step.
+  `.aide/config`, and is run in that checkout after its code merges — argv, no shell, bounded by a timeout, and
+  reported beside the merge rather than turning a completed merge into a failed one. With it unset, nothing runs and the result says plainly that deploying is still a hand step.
 - **Conflicts are expected.** Two branches touching the same file conflict at merge time, and running several specs
   side by side makes it happen more often. Both sides refuse and name the repo rather than corrupting anything, and
   `archive` settles most of them itself (below).

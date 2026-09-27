@@ -17,6 +17,5 @@
 # AIDE_WORKTREE_LINKS=.venv dashboard/node_modules
 
 # What installing this project means on THIS machine, run by the
-# dashboard after the project's own code is merged. Also readable from
-# the manifest's installCmd: — this file wins when both set it.
+# dashboard after the project's own code is merged.
 # AIDE_INSTALL_CMD=./install.sh
