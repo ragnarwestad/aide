@@ -311,18 +311,14 @@ export async function assessProjectReadiness(
   //    no source is a test command that will fail for a reason that has
   //    nothing to do with the change — the runner refuses it, and so
   //    does this.
-  //    Read from the COMMITTED manifest first and `.aide/config` second
-  //    (spec 184), which is the order `aide-run-spec` itself reads them
-  //    in — a check that looked at only one of the two would report a
-  //    project unconfigured that a run links perfectly well.
+  //    Read from the COMMITTED manifest alone (spec 549), the same file
+  //    `aide-run-spec` itself reads.
   const machineryManifest = machineryDir ? join(machineryDir, ".aide", "project.yaml") : undefined;
-  const { links, source } = resolveWorktreeLinks(
+  const { links } = resolveWorktreeLinks(
     projectDir,
     manifestFile ?? (machineryManifest && existsSync(machineryManifest) ? machineryManifest : undefined),
   );
-  const linkError = links
-    ? worktreeLinksError(links, source === ".aide/config" ? "AIDE_WORKTREE_LINKS" : "worktreeLinks")
-    : null;
+  const linkError = links ? worktreeLinksError(links, "worktreeLinks") : null;
   const missing = links
     ? links.split(/\s+/).filter(Boolean).filter((e) => !existsSync(join(projectRoot, e)))
     : [];

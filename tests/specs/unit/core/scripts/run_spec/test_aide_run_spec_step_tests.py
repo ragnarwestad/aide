@@ -389,10 +389,11 @@ def test_a_green_step_reports_the_tree_and_commands_it_saw_green(runner, workspa
     git(workspace["project"], "worktree", "add", "-q", "--detach", str(checkout), BRANCH)
     lib = runner.parent / "_aide-spec-lib.sh"
     # The links the main checkout names, handed over the way the landing
-    # hands them: a fresh worktree carries no `.aide/config` to read.
+    # hands them: a fresh worktree carries no `.aide/project.yaml` to read
+    # (it is untracked), so the value is read off the main checkout instead.
     hashed = subprocess.run(
         ["/bin/bash", "-c",
-         'source "$1"; aide_tree_hash "$2" "$(aide_config_get AIDE_WORKTREE_LINKS "$3")"',
+         'source "$1"; aide_tree_hash "$2" "$(aide_manifest_get worktreeLinks "$3")"',
          "_", str(lib), str(checkout), str(workspace["project"])],
         capture_output=True, text=True, check=True,
     ).stdout.strip()

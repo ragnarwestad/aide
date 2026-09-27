@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   SPEC_FILES, configValue, gitignoreCandidates, markdownSection,
-  resolveInstallCmd, resolveTestCmd, specFileText,
+  resolveInstallCmd, resolvePreviewCmd, resolveTestCmd, specFileText,
 } from "../../../src/project/discover";
 
 // Spec 96: `AIDE_SPECS_PATH` stopped being the only key this file reads
@@ -47,11 +47,9 @@ describe("one key out of a project's own .aide/config", () => {
   });
 });
 
-// Spec 345: AIDE_INSTALL_CMD/installCmd is readable from EITHER file,
-// `.aide/config` winning when both set a value — the reverse of
-// resolveWorktreeLinks' manifest-wins precedence, because an install
-// command can legitimately differ per machine. The test command is the
-// manifest's alone.
+// Spec 549: AIDE_INSTALL_CMD/installCmd is read from `.aide/config`
+// alone now — a manifest `installCmd:` is never read, even with no
+// `.aide/config` entry. The test command is the manifest's alone.
 describe("resolveInstallCmd / resolveTestCmd", () => {
   const CASES = JSON.parse(
     readFileSync(join(import.meta.dir, "..", "..", "..", "..", "tests", "fixtures", "config-cmd-precedence.json"), "utf-8"),
@@ -78,6 +76,20 @@ describe("resolveInstallCmd / resolveTestCmd", () => {
     expect(resolveTestCmd(project("make test", null, "AIDE_TEST_CMD", "AIDE_TEST_CMD"))).toEqual({ value: null, source: null });
     expect(resolveTestCmd(project(null, "make test", "AIDE_TEST_CMD", "AIDE_TEST_CMD"))).toEqual({
       value: "make test",
+      source: "project.yaml",
+    });
+  });
+
+  // AC-4: the reverse of resolveInstallCmd — the preview command is the
+  // manifest's alone now, and a legacy AIDE_PREVIEW_CMD in .aide/config
+  // is never read.
+  test("the preview command is the manifest's previewCmd alone: .aide/config is not read (AC-4)", () => {
+    expect(resolvePreviewCmd(project("bun run dev", null, "previewCmd", "AIDE_PREVIEW_CMD"))).toEqual({
+      value: null,
+      source: null,
+    });
+    expect(resolvePreviewCmd(project(null, "bun run dev", "previewCmd", "AIDE_PREVIEW_CMD"))).toEqual({
+      value: "bun run dev",
       source: "project.yaml",
     });
   });

@@ -73,10 +73,10 @@ def workspace(tmp_path):
     project is laid out (AIDE_SPECS_PATH in .aide/config).
 
     Since spec 91 the project also carries a gitignored dependency
-    directory and an AIDE_WORKTREE_LINKS line naming it: a worktree
-    checks out TRACKED files only, so anything a test run needs — `.venv`
-    here, `deps/` in the fixture — has to be linked in or it is simply
-    absent.
+    directory and a worktreeLinks: line naming it, in the manifest (spec
+    549: the only file worktree links are read from): a worktree checks
+    out TRACKED files only, so anything a test run needs — `.venv` here,
+    `deps/` in the fixture — has to be linked in or it is simply absent.
     """
     project = init_repo(tmp_path / "proj")
     specs = init_repo(tmp_path / "specs")
@@ -101,12 +101,11 @@ def workspace(tmp_path):
     (project / "deps").mkdir()
     (project / "deps" / "marker.txt").write_text("the dependency tree\n")
     (project / ".aide").mkdir()
-    (project / ".aide" / "config").write_text(
-        f"AIDE_SPECS_PATH={specs}\nAIDE_WORKTREE_LINKS=deps\n"
-    )
-    # The test command: an untracked manifest, carried into each worktree
-    # by the run, so a test can change the command after the commit below.
-    (project / ".aide" / "project.yaml").write_text("AIDE_TEST_CMD: true\n")
+    (project / ".aide" / "config").write_text(f"AIDE_SPECS_PATH={specs}\n")
+    # The test command and the worktree links: an untracked manifest,
+    # carried into each worktree by the run, so a test can change the
+    # command after the commit below.
+    (project / ".aide" / "project.yaml").write_text("AIDE_TEST_CMD: true\nworktreeLinks: deps\n")
     subprocess.run(["git", "-C", str(project), "add", ".gitignore"], check=True)
     subprocess.run(["git", "-C", str(project), "commit", "-qm", "add config"], check=True)
     return {

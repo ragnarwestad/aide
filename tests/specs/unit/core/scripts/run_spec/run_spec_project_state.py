@@ -84,10 +84,12 @@ def _break_default_branch_held_elsewhere(workspace):
 
 
 def _break_worktree_links(workspace):
-    (workspace["project"] / ".aide" / "config").write_text(
-        f"AIDE_SPECS_PATH={workspace['specs']}\nAIDE_WORKTREE_LINKS=nowhere\n"
+    # worktreeLinks is read from the manifest alone (spec 549) — a value
+    # hand-written into `.aide/config` would never be read at all.
+    (workspace["project"] / ".aide" / "project.yaml").write_text(
+        "AIDE_TEST_CMD: true\nworktreeLinks: nowhere\n"
     )
-    git(workspace["project"], "add", "-f", ".aide/config")
+    git(workspace["project"], "add", "-f", ".aide/project.yaml")
     git(workspace["project"], "commit", "-q", "-m", "a link with no source")
 
 

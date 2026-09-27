@@ -107,11 +107,13 @@ td form { margin: 0; display: inline-block; }
    buttons and the table under them stand where they stood. */
 .tabpanel > .configactions { margin-top: var(--sp-3); }
 .projectsettingsform > .configactions { margin-bottom: 0; }
-/* The sentence naming where the settings are kept, between the buttons
-   and the table: the same air on both sides in either mode — its own
-   margins in view mode, the form's gap in edit mode. */
-.tabpanel > .configactions + p { margin-block: var(--sp-3); }
-.projectsettingsform > .frow > p { margin: 0; }
+/* A heading directly ahead of one of these tables carries no margin of
+   its own, so the comment above still holds: `h3`'s own top margin
+   would otherwise collapse into `.configactions`'s bottom margin in view
+   mode's ordinary block flow, but stay trapped inside the flex item
+   `.frow` wraps it in for edit mode, adding a second gap on top of the
+   flex row's own. */
+h3:has(+ .tablewrap) { margin-top: 0; }
 /* The Settings page's phases form: as wide as its own table and centred
    in the frame. `table.settingstable` is `width: auto`, so it is as wide
    as its content and no wider — and with the form full width, Save and

@@ -3,7 +3,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { parseManifest, type ManifestData } from "../parse-manifest.ts";
+import { parseManifest } from "../parse-manifest.ts";
 
 /** One key out of a project's OWN `.aide/config` — the personal,
  *  gitignored file where an operator writes what only their machine
@@ -28,25 +28,24 @@ export function configValue(projectDir: string, key: string): string | null {
 
 export const configSpecsPath = (projectDir: string): string | null => configValue(projectDir, "AIDE_SPECS_PATH");
 
-/** Which of the two files a project's worktree links came out of.
- *  `null` when neither names any. */
-export type WorktreeLinksSource = "project.yaml" | ".aide/config";
+/** Which file a project's worktree links came out of. `null` when the
+ *  manifest names none — `.aide/config`'s older `AIDE_WORKTREE_LINKS` is
+ *  legacy and is never read (spec 549). */
+export type WorktreeLinksSource = "project.yaml";
 
 /** The gitignored paths a run must symlink into its worktree, and where
- *  they were read from (spec 184).
+ *  they were read from (spec 184; manifest-only since spec 549).
  *
- *  `.aide/project.yaml` first: it is COMMITTED, so a checkout that has
+ *  `.aide/project.yaml` alone: it is COMMITTED, so a checkout that has
  *  never been configured on this machine still knows what its own
- *  commands need. `.aide/config`'s older `AIDE_WORKTREE_LINKS` is the
- *  fallback, so a project migrated on one machine keeps running on the
- *  others while both spellings exist.
+ *  commands need. A worktree link is a fact about the project itself, so
+ *  a per-machine override in `.aide/config` has no place to win from.
  *
  *  This is one half of a hand-kept pair: `core/scripts/aide-run-spec`
- *  resolves the same two files in the same order with one anchored
- *  `sed`, and a divergence here would report a project as unconfigured
- *  that a run links perfectly well, or the reverse.
- *  `tests/fixtures/worktree-links-precedence.json` is the table both
- *  sides are checked against. */
+ *  resolves the same file with one anchored `sed`, and a divergence here
+ *  would report a project as unconfigured that a run links perfectly
+ *  well, or the reverse. `tests/fixtures/worktree-links-precedence.json`
+ *  is the table both sides are checked against. */
 export function resolveWorktreeLinks(
   projectDir: string,
   manifestFile: string = join(projectDir, ".aide", "project.yaml"),
@@ -56,8 +55,6 @@ export function resolveWorktreeLinks(
     const fromManifest = parsed.ok ? (parsed.data.worktreeLinks ?? "").trim() : "";
     if (fromManifest) return { links: fromManifest, source: "project.yaml" };
   }
-  const fromConfig = configValue(projectDir, "AIDE_WORKTREE_LINKS");
-  if (fromConfig) return { links: fromConfig, source: ".aide/config" };
   return { links: "", source: null };
 }
 
@@ -89,47 +86,22 @@ export function resolveCodeLanding(projectDir: string): CodeLanding {
   return (parsed.ok ? parsed.data.codeLanding : undefined) ?? "merge";
 }
 
-/** Which of the two files an install/test command came out of. Unlike
- *  `WorktreeLinksSource`, `.aide/config` is the PRIMARY source here, not
- *  the fallback — see `resolveInstallCmd` below. */
+/** Which file an install/test/preview command came out of. */
 export type ConfigOverrideSource = ".aide/config" | "project.yaml";
-
-/** Resolve a key that may be set in either file, `.aide/config` winning
- *  (spec 345) — the reverse of `resolveWorktreeLinks`'s manifest-wins
- *  precedence, because an install/test command legitimately differs per
- *  machine (a PATH prefix a shell needs, say) while a worktree link is a
- *  fact about the project itself and cannot. `null` when neither file
- *  sets the key. */
-function resolveOverride(
-  projectDir: string,
-  configKey: string,
-  manifestValue: (data: ManifestData) => string | undefined,
-): { value: string | null; source: ConfigOverrideSource | null } {
-  const fromConfig = configValue(projectDir, configKey);
-  if (fromConfig) return { value: fromConfig, source: ".aide/config" };
-  const manifestFile = join(projectDir, ".aide", "project.yaml");
-  if (existsSync(manifestFile)) {
-    const parsed = parseManifest(readFileSync(manifestFile, "utf-8"));
-    const fromManifest = parsed.ok ? (manifestValue(parsed.data) ?? "").trim() : "";
-    if (fromManifest) return { value: fromManifest, source: "project.yaml" };
-  }
-  return { value: null, source: null };
-}
 
 /** What installing this project means on this machine, and where that
  *  answer came from (spec 345). `.aide/config`'s `AIDE_INSTALL_CMD`
- *  first, the manifest's `installCmd:` as the fallback — see
- *  `resolveOverride` above for why the precedence is reversed from
- *  `resolveWorktreeLinks`.
+ *  alone (spec 549) — a manifest `installCmd:` is never read, since an
+ *  install command legitimately differs per machine (a PATH prefix a
+ *  shell needs, say).
  *
  *  One half of a hand-kept pair: `core/scripts/_aide-spec-lib.sh`'s
- *  `aide_resolve_override` resolves the same two files in the same
- *  order, and `tests/fixtures/config-cmd-precedence.json` is the table
- *  both sides are checked against. */
-export function resolveInstallCmd(
-  projectDir: string,
-): { value: string | null; source: ConfigOverrideSource | null } {
-  return resolveOverride(projectDir, "AIDE_INSTALL_CMD", (d) => d.installCmd);
+ *  `aide_resolve_override` resolves the same file, and
+ *  `tests/fixtures/config-cmd-precedence.json` is the table both sides
+ *  are checked against. */
+export function resolveInstallCmd(projectDir: string): { value: string | null; source: ".aide/config" | null } {
+  const value = configValue(projectDir, "AIDE_INSTALL_CMD");
+  return value ? { value, source: ".aide/config" } : { value: null, source: null };
 }
 
 /** This project's own test command: the manifest's `AIDE_TEST_CMD:` and
@@ -145,9 +117,13 @@ export function resolveTestCmd(
 }
 
 /** How this project is started for a look at one branch, and where that
- *  came from — the same config-wins precedence as `resolveInstallCmd`. */
-export function resolvePreviewCmd(
-  projectDir: string,
-): { value: string | null; source: ConfigOverrideSource | null } {
-  return resolveOverride(projectDir, "AIDE_PREVIEW_CMD", (d) => d.previewCmd);
+ *  came from — the manifest's `previewCmd:` alone (spec 549), the same
+ *  shape as `resolveTestCmd`: a legacy `AIDE_PREVIEW_CMD` in
+ *  `.aide/config` is never read. */
+export function resolvePreviewCmd(projectDir: string): { value: string | null; source: "project.yaml" | null } {
+  const manifestFile = join(projectDir, ".aide", "project.yaml");
+  if (!existsSync(manifestFile)) return { value: null, source: null };
+  const parsed = parseManifest(readFileSync(manifestFile, "utf-8"));
+  const value = parsed.ok ? (parsed.data.previewCmd ?? "").trim() : "";
+  return value ? { value, source: "project.yaml" } : { value: null, source: null };
 }

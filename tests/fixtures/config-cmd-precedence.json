@@ -1,15 +1,14 @@
 {
   "_comment": [
-    "Spec 345: where AIDE_INSTALL_CMD/installCmd is read from, as the table",
+    "Spec 549: where AIDE_INSTALL_CMD/installCmd is read from, as the table",
     "the dashboard's `resolveInstallCmd` is checked against.",
     "",
-    "Unlike worktree-links-precedence.json, `.aide/config` WINS here when both",
-    "set a value — the reverse order, because an install/test command can",
-    "legitimately differ per machine while a worktree link cannot.",
+    "`.aide/config` is the only source read now: a manifest `installCmd:` is",
+    "never read, even when `.aide/config` sets nothing.",
     "",
-    "`value` is what both sides must resolve to. `source` is what both sides",
-    "report — `.aide/config` or `project.yaml`. null means: the key is not",
-    "written in that file at all."
+    "`value` is what `resolveInstallCmd` must resolve to. `source` is what it",
+    "reports — always `.aide/config` or `null`. null in `config`/`manifest`",
+    "means: the key is not written in that file at all."
   ],
   "cases": [
     {
@@ -20,14 +19,14 @@
       "source": ".aide/config"
     },
     {
-      "name": "manifest-only",
+      "name": "manifest-only-is-not-read",
       "config": null,
       "manifest": "echo manifest",
-      "value": "echo manifest",
-      "source": "project.yaml"
+      "value": null,
+      "source": null
     },
     {
-      "name": "both-set-config-wins",
+      "name": "both-set-manifest-ignored",
       "config": "echo config",
       "manifest": "echo manifest",
       "value": "echo config",

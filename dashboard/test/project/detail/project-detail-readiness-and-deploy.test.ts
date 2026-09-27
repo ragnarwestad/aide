@@ -7,7 +7,7 @@ import { navEntries } from "../../../src/render";
 import { parseArgs } from "../../../src/serve/serve.ts";
 import type { GitRunner } from "../../../src/git/branch-status.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
-import { harness, ownDirs, projectsRoot, settled, stranded, serve, get, behindBy, unanswerable, INSTALLS, loadUntil, setTestCmd } from "./project-detail-route-fixtures.ts";
+import { harness, ownDirs, projectsRoot, settled, stranded, serve, get, behindBy, unanswerable, INSTALLS, loadUntil, setTestCmd, setWorktreeLinks } from "./project-detail-route-fixtures.ts";
 
 afterEach(() => {
   harness.cleanup();
@@ -31,7 +31,8 @@ describe("what the page says about whether a run could start (criteria 4-6, 8)",
   });
 
   test("a worktree link with nothing to link is on the page (criterion 4)", async () => {
-    const root = projectsRoot({ aide: "AIDE_WORKTREE_LINKS=node_modules\n" });
+    const root = projectsRoot({ aide: null });
+    setWorktreeLinks(root, "aide", "node_modules");
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
     expect(html).toContain("A run refuses a worktree link with nothing to link");
   });

@@ -233,12 +233,12 @@ describe("the Worktree links row is sourced from resolveWorktreeLinks() (spec 25
     expect(r.source).toBe("project.yaml");
   });
 
-  test("a legacy value in .aide/config alone still resolves, and the row names that file", () => {
+  test("a legacy .aide/config value alone is not read: the row reads unset (AC-5)", () => {
     const dir = project("AIDE_WORKTREE_LINKS=deps\n");
     const r = row(dir, "AIDE_WORKTREE_LINKS");
-    expect(r.origin).toBe("configured");
-    expect(r.value).toBe("deps");
-    expect(r.source).toBe(".aide/config");
+    expect(r.origin).toBe("unset");
+    expect(r.value).toBeNull();
+    expect(r.source).toBeUndefined();
   });
 
   test("neither file setting it reads unset, same as before", () => {
@@ -250,12 +250,11 @@ describe("the Worktree links row is sourced from resolveWorktreeLinks() (spec 25
   });
 });
 
-// Spec 345: the Install command and Test command rows are sourced from
-// resolveInstallCmd()/resolveTestCmd(), config-wins — the reverse
-// precedence from the Worktree links row above, because a value here can
-// legitimately differ per machine.
+// Spec 549: the Install command row is sourced from resolveInstallCmd(),
+// `.aide/config` alone — a manifest `installCmd:` is never read, because
+// a value here can legitimately differ per machine.
 describe("the Install/Test command rows are sourced from resolveInstallCmd()/resolveTestCmd() (spec 345)", () => {
-  test("the config wins when both files set AIDE_INSTALL_CMD/installCmd, and the row names that file", () => {
+  test("installCmd is read from .aide/config; a manifest installCmd: beside it is not read (AC-3)", () => {
     const dir = project("AIDE_INSTALL_CMD=./from-config.sh\n");
     writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\ninstallCmd: ./from-manifest.sh\n");
     const r = row(dir, "AIDE_INSTALL_CMD");
@@ -264,13 +263,13 @@ describe("the Install/Test command rows are sourced from resolveInstallCmd()/res
     expect(r.source).toBe(".aide/config");
   });
 
-  test("the manifest's installCmd: is the fallback, and the row names that file", () => {
+  test("a manifest installCmd: alone is not read: the row reads unset (AC-3)", () => {
     const dir = project("");
     writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\ninstallCmd: ./from-manifest.sh\n");
     const r = row(dir, "AIDE_INSTALL_CMD");
-    expect(r.origin).toBe("configured");
-    expect(r.value).toBe("./from-manifest.sh");
-    expect(r.source).toBe("project.yaml");
+    expect(r.origin).toBe("unset");
+    expect(r.value).toBeNull();
+    expect(r.source).toBeUndefined();
   });
 
   test("neither file setting AIDE_INSTALL_CMD reads unset", () => {

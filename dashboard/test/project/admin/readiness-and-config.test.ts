@@ -338,11 +338,13 @@ describe("whether a run could start there (spec 138)", () => {
     "a worktree link that escapes the root (%p) blocks and is named",
     async (entry) => {
       const { projectsRoot, dir } = checkout("badlink");
-      // Hand-written into the config, not posted at the form: the form's
-      // own value is refused before it is ever written (below). This is
-      // the file as `aide-run-spec` would find it.
+      // Hand-written into the manifest, not posted at the form: the
+      // form's own value is refused before it is ever written (below).
+      // This is the file as `aide-run-spec` would find it — worktreeLinks
+      // is read from the manifest alone now (spec 549), so a value hand-
+      // written into `.aide/config` would never be read at all.
       const result = await assess(dir, projectsRoot, {}, {}, {
-        files: { ".aide/config": `AIDE_WORKTREE_LINKS=${entry}\n` },
+        files: { ".aide/project.yaml": `name: x\nworktreeLinks: ${entry}\n` },
       });
       expect(result.readiness!.canRun).toBe(false);
       expect(blockers(result)).toContain(entry);
@@ -375,7 +377,7 @@ describe("whether a run could start there (spec 138)", () => {
     async (entry) => {
       const { projectsRoot, dir } = checkout("buildlink");
       const result = await assess(dir, projectsRoot, {}, {}, {
-        files: { [`${entry}/`]: "", ".aide/config": `AIDE_WORKTREE_LINKS=${entry}\n` },
+        files: { [`${entry}/`]: "", ".aide/project.yaml": `name: x\nworktreeLinks: ${entry}\n` },
       });
       expect(result.readiness!.canRun).toBe(false);
       expect(blockers(result)).toContain(entry);

@@ -194,10 +194,10 @@ export async function updateProjectSettings(
       });
     }
   };
-  // Every row is saved back to the file the page says it came from — the
-  // one that answers when both are read. A value in neither file goes to
-  // the row's own file: `.aide/config` for the install command, the
-  // manifest for the rest.
+  // Every setting now belongs to exactly one file (spec 549): the
+  // install command always goes to `.aide/config`, and worktree links,
+  // preview command and test command always go to the manifest —
+  // regardless of which file, if either, a value currently lives in.
   const save = (
     step: ProjectStepName,
     value: string | undefined,
@@ -211,12 +211,9 @@ export async function updateProjectSettings(
     else if (value.trim() !== stored) writeManifest(manifestKey, value.trim(), step);
   };
   const storedLinks = fromManifest(manifestData.worktreeLinks);
-  save("worktreeLinks", req.worktreeLinks, "AIDE_WORKTREE_LINKS", "worktreeLinks", storedLinks,
-    !storedLinks && !!fromConfig("AIDE_WORKTREE_LINKS"));
-  save("installCmd", req.installCmd, "AIDE_INSTALL_CMD", "installCmd", fromManifest(manifestData.installCmd),
-    !!fromConfig("AIDE_INSTALL_CMD") || !fromManifest(manifestData.installCmd));
-  save("previewCmd", req.previewCmd, "AIDE_PREVIEW_CMD", "previewCmd", fromManifest(manifestData.previewCmd),
-    !!fromConfig("AIDE_PREVIEW_CMD"));
+  save("worktreeLinks", req.worktreeLinks, "AIDE_WORKTREE_LINKS", "worktreeLinks", storedLinks, false);
+  save("installCmd", req.installCmd, "AIDE_INSTALL_CMD", "installCmd", "", true);
+  save("previewCmd", req.previewCmd, "AIDE_PREVIEW_CMD", "previewCmd", fromManifest(manifestData.previewCmd), false);
   save("testCmd", req.testCmd, "", "AIDE_TEST_CMD", fromManifest(manifestData.AIDE_TEST_CMD), false);
 
   // Spec 220: `merge` is the default, so choosing it takes the key OUT

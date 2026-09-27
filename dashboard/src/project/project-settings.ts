@@ -1,7 +1,7 @@
-// The five `.aide/config` keys a project's page shows, each with
-// where its value came from (spec 185).
+// The five settings a project's page shows, one row each, grouped by
+// the one file each now belongs to (spec 185, spec 549).
 //
-// The file is personal and gitignored, so the answer differs per
+// `.aide/config` is personal and gitignored, so the answer differs per
 // machine — and until this, the only way to see it was to open it in a
 // terminal on the serving host. A page that shows only what the file
 // SAYS would still be half an answer: a test command is usually worked
@@ -85,6 +85,17 @@ export const SETTING_KEYS = [
   "AIDE_PREVIEW_CMD",
 ] as const;
 
+/** Which file each setting belongs to now that every key has exactly one
+ *  (spec 549) — the Config tab draws one table per file, in this order:
+ *  `.aide/config` (Specs path, Install command), then the manifest
+ *  (Worktree links, Preview command, Test command). A flat `SETTING_KEYS`
+ *  order stays untouched elsewhere; this is only how the renderer groups
+ *  the same rows into two tables. */
+export const SETTING_GROUPS: { file: ".aide/config" | "manifest"; keys: readonly string[] }[] = [
+  { file: ".aide/config", keys: ["AIDE_SPECS_PATH", "AIDE_INSTALL_CMD"] },
+  { file: "manifest", keys: ["AIDE_WORKTREE_LINKS", "AIDE_PREVIEW_CMD", "AIDE_TEST_CMD"] },
+];
+
 const PURPOSE: Record<string, string> = {
   AIDE_SPECS_PATH: "where this project's specs are kept — its own specs/ when unset",
   AIDE_WORKTREE_LINKS: "gitignored paths a run's worktree needs, which git does not carry",
@@ -113,14 +124,12 @@ const RESOLVED_BY: Record<string, ReadinessCheckName> = {
  *  set `RESOLVED_BY` names, rather than a second, hand-copied list. */
 export const FIELD_OWNED_CHECKS: ReadonlySet<ReadinessCheckName> = new Set(Object.values(RESOLVED_BY));
 
-/** What `key`'s file(s) say is configured, and — for the one key with
- *  two possible files — which one answered. `null` when nothing is
- *  configured, exactly as `configValue()` alone used to answer for
- *  every key including this one, before the Worktree links row started
- *  reading `resolveWorktreeLinks()` instead: raw `configValue()` skips
- *  the manifest's `worktreeLinks:` entirely, so on a project where both
- *  files name a value the row could show one a run would never use
- *  (spec 255). */
+/** What `key`'s own file says is configured, and its fixed source (spec
+ *  549: every key has exactly one file now). `null` when nothing is
+ *  configured, exactly as `configValue()` alone used to answer for every
+ *  key including this one, before the Worktree links row started reading
+ *  `resolveWorktreeLinks()` instead: raw `configValue()` skips the
+ *  manifest's `worktreeLinks:` entirely. */
 function configuredValue(
   projectDir: string,
   key: string,
