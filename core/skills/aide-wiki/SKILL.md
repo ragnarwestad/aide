@@ -44,6 +44,9 @@ the run early says `— stopped: <why>` in place of `— done`.
 
 ### Step 1 of 4: See what exists
 
+First write `wiki · Step 1 of 4: See what exists — started`, and when this step ends, `wiki · Step 1 of 4: See what exists — done`.
+
+
 Run `aide-wiki status --specs-root <root> --project-dir .`. A page whose
 state is `hand-written` belongs to a person: its name is taken, and the
 part it covers is linked to from other pages, not rewritten. In a build,
@@ -51,6 +54,9 @@ every other page is rebuilt below; in a refresh, only the `changed` ones
 are, and Step 2 is only about whether a new part needs a page of its own.
 
 ### Step 2 of 4: Decide the parts
+
+First write `wiki · Step 2 of 4: Decide the parts — started`, and when this step ends, `wiki · Step 2 of 4: Decide the parts — done`.
+
 
 Read the project: its README, its layout, its own docs and its entry
 points. A part is something with one job and its own vocabulary, not a
@@ -65,6 +71,9 @@ given a change described in the user's words, the index points at one
 page, and that page names the files the change will touch.
 
 ### Step 3 of 4: Write a page for each part
+
+First write `wiki · Step 3 of 4: Write a page for each part — started`, and when this step ends, `wiki · Step 3 of 4: Write a page for each part — done`.
+
 
 For each part not covered by a hand-written page, pipe the page's body to
 `aide-wiki write --specs-root <root> --project-dir . --page <name>.md --file <path> [--file <path>...]`,
@@ -99,6 +108,9 @@ A page opens with a `# ` heading, then one line saying what the part does
 A page holds no line numbers and no code. It is a map: the code decides.
 
 ### Step 4 of 4: Finish
+
+First write `wiki · Step 4 of 4: Finish — started`, and when this step ends, `wiki · Step 4 of 4: Finish — done`.
+
 
 1. `aide-wiki schema --specs-root <root> --project-dir .`
 2. `aide-wiki prune --specs-root <root> --keep <every page just written>`,

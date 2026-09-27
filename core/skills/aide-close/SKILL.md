@@ -32,6 +32,9 @@ the run early says `— stopped: <why>` in place of `— done`.
 
 ### Step 1 of 3: Run the mechanical script
 
+First write `close · Step 1 of 3: Run the mechanical script — started`, and when this step ends, `close · Step 1 of 3: Run the mechanical script — done`.
+
+
 Resolving the argument to a folder, checking whether a merge is open,
 and stamping-and-moving the folder is a script, the same way archive's
 own equivalent is — this session never reasons about whether the work is
@@ -88,6 +91,9 @@ live in `4-status.md`. Numbers are never reused.
 
 ### Step 2 of 3: Commit
 
+First write `close · Step 2 of 3: Commit — started`, and when this step ends, `close · Step 2 of 3: Commit — done`.
+
+
 The move and the stamp already happened, in the working directory —
 Step 1's script did both. This step is only about getting that onto a
 commit. Unlike `/aide-archive`, there is no documentation-feedback step
@@ -120,6 +126,9 @@ Offer it only after the move actually happened — a `refused`,
 commit here beyond its own decline.
 
 ### Step 3 of 3: Confirm
+
+First write `close · Step 3 of 3: Confirm — started`, and when this step ends, `close · Step 3 of 3: Confirm — done`.
+
 
 ```text
 Closed: 17-a-spec-that-turned-out-wrong

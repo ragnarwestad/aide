@@ -48,6 +48,9 @@ task rows of `4-status.md`'s GREEN tables.
 
 ### Step 1 of 4: Preparation
 
+First write `implement · Step 1 of 4: Preparation — started`, and when this step ends, `implement · Step 1 of 4: Preparation — done`.
+
+
 1. Read `specs/XX-slug/2-analysis.md` (affected files)
 2. Read `specs/XX-slug/3-solution.md` (implementation plan)
 3. If the spec is MEDIUM/HIGH and `3-solution.md` has no "Plan review"
@@ -73,6 +76,9 @@ errors, or the file's language has none), and for text that is not a
 symbol — a message, a config key, a CSS class.
 
 ### Step 2 of 4: RED — Write failing tests
+
+First write `implement · Step 2 of 4: RED — Write failing tests — started`, and when this step ends, `implement · Step 2 of 4: RED — Write failing tests — done`.
+
 
 Skip this step entirely if item 5 of Step 1 found it already done;
 resume it at the first unticked task if it found it in progress.
@@ -103,6 +109,9 @@ resume it at the first unticked task if it found it in progress.
 
 ### Step 3 of 4: GREEN — Implement until tests pass
 
+First write `implement · Step 3 of 4: GREEN — Implement until tests pass — started`, and when this step ends, `implement · Step 3 of 4: GREEN — Implement until tests pass — done`.
+
+
 1. Run `aide-emit-run --phase green --spec <ID>`
 2. Implement each task from 3-solution.md's plan — before writing to a file,
    check its current line count against any limit the project's coding
@@ -116,6 +125,9 @@ resume it at the first unticked task if it found it in progress.
 6. Report the GREEN result briefly and continue to REFACTOR
 
 ### Step 4 of 4: REFACTOR — Quality check
+
+First write `implement · Step 4 of 4: REFACTOR — Quality check — started`, and when this step ends, `implement · Step 4 of 4: REFACTOR — Quality check — done`.
+
 
 The order is fixed: the full suite is run only once every test this
 step wrote is green (Step 3). Red in the full suite is then something
