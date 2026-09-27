@@ -185,15 +185,27 @@ own decline, which the ordinary git-add workflow already covers.
 
 ### Step 4: Confirm
 
+Everything this step did is on the spec's branch. In a headless run the
+landing that follows it runs the test suite on the merge and merges the
+branch into the default branch, so the report ends by saying that is
+next — never "Archive complete", which a reader takes to mean the work
+is on the default branch.
+
 ```text
-Archived: 17-clean-up-console-log
+Archived on its branch: 17-clean-up-console-log
 
 - 4-status.md stamped: Archived: 2026-08-13
 - Moved to: specs/archive/17-clean-up-console-log/
 - Fed back into docs: docs/CONVENTIONS.md (1 addition)
 
+Next: the landing runs the tests on the merge and, when they pass,
+merges the branch into the default branch.
+
 The spec stays findable: /aide-to-pdf 17
 ```
+
+Working interactively, where no landing follows, the "Next:" line says
+instead that the branch still has to be merged.
 
 IMPORTANT:
 - Never delete a spec — archiving is a move, not a removal
