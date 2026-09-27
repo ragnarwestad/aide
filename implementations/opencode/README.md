@@ -1,5 +1,14 @@
 # OpenCode implementation
 
+## Table of contents
+
+- [What is installed](#what-is-installed)
+- [What is not installed, and why](#what-is-not-installed-and-why)
+- [How a model is named](#how-a-model-is-named)
+- [How a step runs](#how-a-step-runs)
+
+---
+
 What aide installs for [OpenCode](https://opencode.ai), and what it
 deliberately does not.
 

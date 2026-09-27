@@ -1,6 +1,6 @@
 # Installation Guide - GitHub Copilot
 
-## Table of Contents
+## Table of contents
 
 - [Overview](#overview)
 - [Quick Start](#quick-start)

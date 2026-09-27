@@ -1,6 +1,6 @@
 # OpenAI Codex - Implementation Guide
 
-## Table of Contents
+## Table of contents
 
 - [Overview](#overview)
 - [What is OpenAI Codex?](#what-is-openai-codex)

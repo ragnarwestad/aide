@@ -35,6 +35,8 @@
 - [Goals](#goals)
 - [Resources](#resources)
 
+---
+
 ## Overview
 
 This test suite verifies the functionality of the Aide tool, including:

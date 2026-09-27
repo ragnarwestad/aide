@@ -1,8 +1,5 @@
 # <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/aide-wordmark-dark.svg"><img src="docs/assets/aide-wordmark-light.svg" alt="Aide" height="40"></picture>
 
-Spec-driven development for AI CLIs: every change starts as a spec, and a dashboard runs it through analysis,
-implementation and archiving.
-
 ## Table of contents
 
 - [What Aide is](#what-aide-is)
@@ -16,6 +13,10 @@ implementation and archiving.
 - [Resources](#resources)
 
 ---
+
+Spec-driven development for AI CLIs: every change starts as a spec, and a dashboard runs it through analysis,
+implementation and archiving.
+
 
 ## What Aide is
 
@@ -151,7 +152,7 @@ The four workflow skills, in the order a spec moves through them:
 |-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `/aide-create`    | Creates the spec's folder and its four files from a title and a description                                                                                           |
 | `/aide-analyze`   | Grades the change LOW, MEDIUM or HIGH and scales the analysis to that grade, maps the affected files with file:line references, and writes the plan implement follows |
-| `/aide-implement` | Writes the code test-first (RED → GREEN → VERIFY), following the analysis and the plan                                                                              |
+| `/aide-implement` | Writes the code test-first (RED → GREEN → VERIFY), following the analysis and the plan                                                                                |
 | `/aide-archive`   | Archives a finished spec, resolves any merge conflict with the default branch, and writes what the change means for the project into the project's own documentation  |
 
 The other skills:

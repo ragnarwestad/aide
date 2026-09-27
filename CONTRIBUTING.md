@@ -8,6 +8,8 @@
 - [Commit messages](#commit-messages)
 - [Pull requests](#pull-requests)
 
+---
+
 ## Before you start
 
 For anything beyond a small fix, open an issue first to discuss the change —

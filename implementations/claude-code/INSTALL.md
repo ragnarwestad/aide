@@ -1,5 +1,19 @@
 # Installation Guide - aide-claude-code
 
+## Table of contents
+
+- [Quick Start](#quick-start)
+- [Prerequisites](#prerequisites)
+- [What does install.sh do?](#what-does-installsh-do)
+- [Per-project configuration](#per-project-configuration)
+- [LSP plugins (semantic code understanding)](#lsp-plugins-semantic-code-understanding)
+- [Available skills](#available-skills)
+- [Troubleshooting](#troubleshooting)
+- [Updating](#updating)
+- [Further reading](#further-reading)
+
+---
+
 ## Quick Start
 
 ```bash

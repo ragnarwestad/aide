@@ -1,5 +1,15 @@
 # Reports
 
+## Table of contents
+
+- [📁 Structure](#-structure)
+- [🎯 Difference between JIRA and TODO](#-difference-between-jira-and-todo)
+- [📚 Documentation standards](#-documentation-standards)
+- [🔄 Workflow](#-workflow)
+- [📍 Where are the tools?](#-where-are-the-tools)
+
+---
+
 This directory contains AI-generated reports and analysis documentation.
 
 ## 📁 Structure

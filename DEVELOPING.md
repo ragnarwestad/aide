@@ -1,7 +1,5 @@
 # Developer guide for Aide
 
-This guide is for you who want to **contribute to or further develop** Aide.
-
 ## Table of contents
 
 - [Tools you need](#tools-you-need)
@@ -15,6 +13,9 @@ This guide is for you who want to **contribute to or further develop** Aide.
 - [Architecture](#architecture)
 
 ---
+
+This guide is for you who want to **contribute to or further develop** Aide.
+
 
 ## Tools you need
 

@@ -1,10 +1,6 @@
 # Context7 MCP Server Setup for Codex
 
-**Up-to-date documentation for libraries and frameworks**
-
----
-
-## Table of Contents
+## Table of contents
 
 - [Overview](#overview)
   - [What is Context7?](#what-is-context7)
@@ -29,6 +25,11 @@
 - [References](#references)
 
 ---
+
+**Up-to-date documentation for libraries and frameworks**
+
+---
+
 
 ## Overview
 

@@ -1,5 +1,14 @@
 # Code of Conduct
 
+## Table of contents
+
+- [Our pledge](#our-pledge)
+- [Our standards](#our-standards)
+- [Enforcement](#enforcement)
+- [Attribution](#attribution)
+
+---
+
 ## Our pledge
 
 We as contributors and maintainers pledge to make participation in this

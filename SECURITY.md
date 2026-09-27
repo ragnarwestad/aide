@@ -1,5 +1,12 @@
 # Security policy
 
+## Table of contents
+
+- [Reporting a vulnerability](#reporting-a-vulnerability)
+- [Supported versions](#supported-versions)
+
+---
+
 ## Reporting a vulnerability
 
 Please do not open a public issue for a security vulnerability. Instead,

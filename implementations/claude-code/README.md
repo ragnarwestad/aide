@@ -1,6 +1,6 @@
 # Claude Code implementation
 
-## Table of Contents
+## Table of contents
 
 - [Overview](#overview)
 - [Setup (first time)](#setup-first-time)

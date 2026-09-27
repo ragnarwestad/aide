@@ -1,6 +1,6 @@
 # GitHub Copilot - Implementation Guide
 
-## Table of Contents
+## Table of contents
 
 - [Overview](#overview)
 - [Quick Start](#quick-start)
@@ -240,8 +240,6 @@ The Copilot CLI follows the TDD cycle from aide's own rules:
 - Implements until tests pass (GREEN)
 - Verifies the full suite, types, lint and build (VERIFY)
 - Iterates automatically on failure
-
----
 
 ---
 

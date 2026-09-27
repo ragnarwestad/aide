@@ -1,8 +1,6 @@
 # Browser Testing MCP Servers Setup for Codex
 
-**Playwright & Chrome DevTools MCP Servers**
-
-## Table of Contents
+## Table of contents
 
 - [Overview](#overview)
 - [Playwright MCP Server](#playwright-mcp-server)
@@ -27,6 +25,9 @@
 - [References](#references)
 
 ---
+
+**Playwright & Chrome DevTools MCP Servers**
+
 
 ## Overview
 
