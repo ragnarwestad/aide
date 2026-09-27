@@ -78,3 +78,27 @@ describe("a phase proved on the spec's branch counts, though main has not got it
     expect((await queue(base, ["archive"])).status).toBe(200);
   });
 });
+
+// Implement starts from main. An analyze that ran but never merged there —
+// its landing failed — is not "not analyzed", and saying so sent people to
+// a run that had happened. The refusal names what did not happen.
+describe("implement on an analysis that never merged into main", () => {
+  test("is refused at the press, saying the merge is what is missing", async () => {
+    const { base, dir } = harness.start({ extra: {}, status: statusSaying(["create"]) });
+    ran(dir, ["create", "analyze"]);
+    await listUntil(base, rowSaysDone("analyze"));
+    const res = await queue(base, ["implement"]);
+    expect(res.status).toBe(400);
+    const error = ((await res.json()) as { error: string }).error;
+    expect(error).toContain("not been merged into main");
+    expect(error).not.toContain("not been analyzed");
+    expect(await queued(base)).toBe(0);
+  });
+
+  test("with analyze in the same press, the job's own analysis merges first and it is accepted", async () => {
+    const { base, dir } = harness.start({ extra: {}, status: statusSaying(["create"]) });
+    ran(dir, ["create", "analyze"]);
+    await listUntil(base, rowSaysDone("analyze"));
+    expect((await queue(base, ["analyze", "implement"])).status).toBe(200);
+  });
+});

@@ -118,11 +118,20 @@ export async function handleJobActionRoutes(
         // (implement queued alone while analyzed) starts from its real
         // phase, unaffected by steps it was not asked to run.
         let phase = phaseFromState(completedPhases, archived, closed);
+        // Implement starts from main: an analysis that ran but never merged
+        // there (its landing failed) is refused as that, not as "not analyzed".
+        const analyzedOnMain = onMain.includes("analyze") || askedFor.steps.includes("analyze");
         // An archived or closed spec answers to the queue's own rules —
         // reopen, or archive again while its branch is still on origin
         // (`parse-request.ts`) — not to the phase table.
         for (const step of archived || closed ? [] : askedFor.steps) {
           if (typeof step !== "string") continue;
+          if (step === "implement" && phase === "analyzed" && !analyzedOnMain && completedPhases.includes("analyze")) {
+            const spec = `${askedFor.project}/${askedFor.specFolder}`;
+            const message = `${askedFor.specFolder}'s analysis has run, but it has not been merged into main, which implement starts from — run Analyze again to merge it.`;
+            logRefusal("run", spec, message);
+            return wantsJson ? json({ error: message, spec }, 400) : specsRedirect(raw, { error: message, spec }, backTo);
+          }
           const move = isLegalMove(phase, step, askedFor.specFolder);
           // Refused here, at the press, with the table's own sentence:
           // a start the runner would refuse — implement before analyze,
