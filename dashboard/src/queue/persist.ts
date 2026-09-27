@@ -34,7 +34,7 @@ export function parseStoredJob(raw: unknown): Job | null {
   return {
     ...(kept as unknown as Job),
     steps: r.steps as WorkflowStep[],
-    results: Array.isArray(r.results) ? (r.results as StepResult[]) : [],
+    results: Array.isArray(r.results) ? settleRestoredLanding(r.results as StepResult[], r) : [],
     spentUsd: typeof r.spentUsd === "number" ? r.spentUsd : 0,
     // Undefined, never 0, when the mirror has no figure: the page shows
     // a dash for a job nothing measured, and a zero is a claim.
@@ -54,6 +54,17 @@ export function parseStoredJob(raw: unknown): Job | null {
     // set — so a restored one would wedge it with nothing left to clear.
     landing: undefined,
   };
+}
+
+/** A step whose landing was still in flight when the process stopped
+ *  never had its `at` stamped, and nothing after a restart would stamp it:
+ *  the step reads as unfinished for good, its phase shows no duration and
+ *  its implement cannot continue the analysis's session. It ends when the
+ *  job did, or at this boot when the job had more steps to run. */
+function settleRestoredLanding(results: StepResult[], r: Record<string, unknown>): StepResult[] {
+  if (!r.landing) return results;
+  const end = typeof r.finishedAt === "string" ? r.finishedAt : new Date().toISOString();
+  return results.map((res) => (res.at === undefined ? { ...res, at: end } : res));
 }
 
 /** The project allowlist, as it is written in `queue-config.json`.
