@@ -529,10 +529,11 @@ one id across several scenarios:
 | AC-2: <requirement text, verbatim from 1-description.md> | ⬜ | |
 ```
 
-A row whose Notes cell carries `Not tested:` starts as `Not verified`
-instead of `⬜`. `Not verified` is a done mark like `✅`: archiving does
-not wait for it, and the user can still tick it later. Only the user
-or the analyze step's own start pass writes it — never `/aide-implement`.
+Every row starts `⬜`, a `Not tested:` row too: a criterion no test
+proves is one the user checks by hand. `Not verified` is a done mark like
+`✅`: archiving does not wait for it, and the user can still tick it
+later. Only the user writes it, when a check can only be made after
+deploy — never a skill.
 
 A `Not verified` row that was checked after the deploy and did not hold is
 marked `❌ Failed`, with a Notes cell that starts `Failed:` and says what did
