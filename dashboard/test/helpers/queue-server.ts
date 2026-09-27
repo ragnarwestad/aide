@@ -127,6 +127,10 @@ export function queueHarness(prefix: string, defaultStatus?: string): QueueHarne
         // both the schedule AND the window: two numbers is how a fast
         // schedule starves, and `serve.ts` keeps them equal.
         specCachePollMs: 40,
+        // The queue's own round — has a step ended, what starts next — every
+        // 2 s in production; here a test walking a job through its steps
+        // does not wait two seconds a step.
+        queuePollMs: 50,
         // Spec 287: without this, a real `AIDE_INSTALL_CMD` succeeding in
         // a test would reach the real `createLaunchdRestart()` — harmless
         // on a machine with no `com.aide-dashboard.serve` job registered,
