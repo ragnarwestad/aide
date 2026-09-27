@@ -87,7 +87,7 @@ The specs path and the install command belong to the machine and are kept in its
 committed. The rest live in the manifest table, headed with the file a save writes to. Four
 states decide which:
 
-| The manifest table is headed        | What it means                                                                        |
+| The manifest table is headed         | What it means                                                                        |
 |--------------------------------------|--------------------------------------------------------------------------------------|
 | `.aide/project.yaml`                 | The repository tracks a manifest, and it travels with the project to any machine     |
 | the dashboard's `settings.yaml`      | The repository tracks no manifest, so this dashboard holds them beside its checkouts |
