@@ -13,16 +13,19 @@ const page = (extra: Record<string, unknown> = {}) =>
   });
 
 const pages = [
-  { page: "charlie.md", title: "Charlie", summary: "Third by name.", state: "current" },
-  { page: "alpha.md", title: "Alpha", summary: "Alpha's summary.", state: "changed" },
-  { page: "bravo.md", title: "Bravo", summary: "", state: "unknown" },
-  { page: "delta.md", title: "Delta", summary: "By hand.", state: "hand-written" },
+  { page: "charlie.md", title: "Charlie", summary: "Third by name.", state: "current", body: "" },
+  { page: "alpha.md", title: "Alpha", summary: "Alpha's summary.", state: "changed", body: "" },
+  { page: "bravo.md", title: "Bravo", summary: "", state: "unknown", body: "" },
+  { page: "delta.md", title: "Delta", summary: "By hand.", state: "hand-written", body: "" },
 ];
 
 describe("the Wiki tab's page list", () => {
   test("has one line per page, in the order given, each linking to its page on the tab (AC-1)", () => {
     const html = page({ wiki: { pages } });
-    const hrefs = [...html.matchAll(/href="(\/projects\/aide\?tab=wiki&amp;page=[a-z-]+\.md)"/g)].map((m) => m[1]);
+    // The graph above the list links to the same pages, so this is scoped
+    // to the list's own `<li>` — otherwise the graph's own links would
+    // double the count.
+    const hrefs = [...html.matchAll(/<li><a href="(\/projects\/aide\?tab=wiki&amp;page=[a-z-]+\.md)"/g)].map((m) => m[1]);
     expect(hrefs).toEqual([
       "/projects/aide?tab=wiki&amp;page=charlie.md", "/projects/aide?tab=wiki&amp;page=alpha.md",
       "/projects/aide?tab=wiki&amp;page=bravo.md", "/projects/aide?tab=wiki&amp;page=delta.md",

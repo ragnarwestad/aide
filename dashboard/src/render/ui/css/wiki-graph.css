@@ -1,0 +1,20 @@
+/* The Wiki tab's graph, above the page list: a box the tab's own width, at
+   most 70% of the viewport tall (so a page can always be scrolled from
+   above or below it). `touch-action: none` and `user-select: none` keep a
+   finger's drag on the graph from also scrolling or selecting the page;
+   the wheel listener that would otherwise scroll the page is bound in
+   script, not here. */
+.wikigraph {
+  display: block;
+  width: 100%;
+  height: min(30rem, 70vh);
+  touch-action: none;
+  user-select: none;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--surface-2);
+}
+.wikiedge { stroke: var(--line-strong); stroke-width: 1; }
+.wikinode circle { fill: var(--accent); }
+.wikinode:hover circle { fill: var(--accent-strong); }
+.wikinode text { fill: var(--text); font-size: var(--fs-s); font-family: var(--sans); }

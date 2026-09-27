@@ -7,6 +7,7 @@ and the layout rules that keep them consistent.
 
 - [Tokens](#tokens)
 - [Components](#components)
+- [The wiki graph](#the-wiki-graph)
 - [The guard](#the-guard)
 - [Spacing lives in the container, not the component](#spacing-lives-in-the-container-not-the-component)
 - [One busy flag, not a per-step lookup](#one-busy-flag-not-a-per-step-lookup)
@@ -25,11 +26,11 @@ through a variable, and a control has one class wherever it appears — never a 
 
 ## Tokens
 
-The stylesheet is the sixteen `.css` files `src/render/ui/css/index.ts` lists in `SECTIONS`, read and joined in
+The stylesheet is the seventeen `.css` files `src/render/ui/css/index.ts` lists in `SECTIONS`, read and joined in
 that order into the one string inlined into every page. `tokens.css` declares every colour, type size, space and radius ONCE, as CSS
 custom properties, between the `tokens:start` and `tokens:end` sentinels. There are four such blocks: `:root`, the
 same ramp read from the other end inside `@media (prefers-color-scheme: dark)`, and one each for
-`:root[data-theme="dark"]` and `:root[data-theme="light"]`. Every rule in the other fifteen files uses `var(--…)`;
+`:root[data-theme="dark"]` and `:root[data-theme="light"]`. Every rule in the other sixteen files uses `var(--…)`;
 none of them may contain a literal. The full set — and the type and space scales a font size or a gap has to come
 from — is `tokens.css` itself; the names below are the ones a reader of the palette needs first.
 
@@ -80,6 +81,17 @@ the word a reader sees, with a sibling table per language (`STEP_LABELS_NB` and 
 checkbox `value`, the queue step and the skill all keep the technical name regardless.
 
 The brand is `src/render/ui/brand.ts` — the mark, the wordmark and the favicons, all inline SVG and data URIs.
+
+## The wiki graph
+
+Above the Wiki tab's page list, one named point per page and one line per linked pair
+(`src/render/pages/projects-page/wiki-graph.ts`, `wiki-graph.css`): `.wikigraph` is the box, sized to the tab's own
+width and at most 70% of the viewport tall so the page can always be scrolled from above or below it; `.wikiedge` is
+a line between two linked points; `.wikinode` is one page's own point and name, a real link to the address the page
+list already opens it at. The server draws a first, settled layout at 720×480 (`src/wiki-graph/layout.ts`); with
+script it is measured and settled again at the box's real size, and script adds drag, pan, wheel and pinch zoom over
+pointer events (`src/specs-client/wiki-graph/`) — none of it is a new dependency, and with script off or failed the
+first layout is what stays drawn. A project with no wiki page besides its own index draws no graph at all.
 
 ## The guard
 

@@ -75,9 +75,21 @@ export function pageSummary(body: string): string {
   return lines.slice(at + 1).find((l) => l.trim() !== "")?.trim() ?? "";
 }
 
+/** A link to another wiki page (`wiki/schema.md`, "Links"): `](name.md)`,
+ *  with or without a `#fragment`. The one form a link between pages takes —
+ *  shared so a second reading of it never disagrees with this one. */
+export const WIKI_LINK = /\]\(([a-z0-9-]+\.md)(#[^)\s]*)?\)/g;
+
 /** A link to another page (`](name.md)`, with or without a `#fragment`)
  *  becomes the address that opens that page on the Wiki tab. */
 export function rewritePageLinks(text: string, project: string): string {
-  return text.replace(/\]\(([a-z0-9-]+\.md)(#[^)\s]*)?\)/g, (_all, page: string, fragment?: string) =>
+  return text.replace(WIKI_LINK, (_all, page: string, fragment?: string) =>
     `](${wikiPagePath(project, page)}${fragment ?? ""})`);
+}
+
+/** Every page a body links to, fragment cut off, in the order the links
+ *  appear — duplicates included, since a caller pairing pages decides what
+ *  to do with more than one link to the same page. */
+export function pageLinks(body: string): string[] {
+  return [...body.matchAll(WIKI_LINK)].map((m) => m[1]!);
 }

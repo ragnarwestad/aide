@@ -16,4 +16,11 @@ describe("reloadTick (AC-1)", () => {
     reloadTick(doc, () => calls.push("reload"));
     expect(calls).toEqual([]);
   });
+
+  test("does not reload while the wiki graph is active (AC-13)", () => {
+    const calls: string[] = [];
+    const doc = { querySelector: (sel: string) => (sel === "[data-wikigraph][data-active]" ? {} : null) } as unknown as Document;
+    reloadTick(doc, () => calls.push("reload"));
+    expect(calls).toEqual([]);
+  });
 });

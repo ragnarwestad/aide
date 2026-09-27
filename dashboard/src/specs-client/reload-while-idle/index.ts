@@ -1,11 +1,13 @@
 // The Steps tab's reload, from script, and the only one a page that ships
 // the script has: every N seconds the page reloads, except that a tick is
 // skipped while a dialog is open, so a reason half-typed in Close's box is
-// not lost.
+// not lost — or while the Wiki tab's own graph is being dragged, panned or
+// pinched, so a reload does not reset it under the reader's finger.
 
-/** One tick: reload unless a dialog is open. */
+/** One tick: reload unless a dialog is open or the wiki graph is active. */
 export function reloadTick(doc: Document, reload: () => void): void {
   if (doc.querySelector("dialog[open]")) return;
+  if (doc.querySelector("[data-wikigraph][data-active]")) return;
   reload();
 }
 

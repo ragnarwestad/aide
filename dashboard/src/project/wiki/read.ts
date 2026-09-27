@@ -50,7 +50,7 @@ export async function readWiki(run: GitRunner, src: WikiSource, requested: strin
   const states = await pageStates(run, src.projectDir, marks);
 
   const line = (page: string, title: string, summary: string): WikiPageLine =>
-    ({ page, title, summary, state: states.get(page) ?? "unknown" });
+    ({ page, title, summary, state: states.get(page) ?? "unknown", body: split.get(page)!.body });
   const listed = parseIndex(split.get("index.md")!.body).filter((e) => split.has(e.page) && e.page !== "index.md");
   const seen = new Set<string>();
   const pages: WikiPageLine[] = [];

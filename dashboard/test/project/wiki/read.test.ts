@@ -79,6 +79,13 @@ describe("the list (AC-1)", () => {
       "charlie.md": "current", "alpha.md": "current", "bravo.md": "hand-written", "delta.md": "hand-written",
     });
   });
+
+  test("each page carries its own body, front matter cut off, for the graph above the list to read links out of", async () => {
+    const v = await view(fixture());
+    const charlie = v!.pages.find((p) => p.page === "charlie.md")!;
+    expect(charlie.body).toContain("[Alpha](alpha.md)");
+    expect(charlie.body).not.toContain("wiki: generated");
+  });
 });
 
 describe("an open page (AC-2, AC-3, AC-5)", () => {

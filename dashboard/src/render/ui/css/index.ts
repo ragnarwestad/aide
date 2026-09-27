@@ -50,6 +50,7 @@ const SECTIONS = [
   "job-page.css",
   "project-overview.css",
   "wiki-pages.css",
+  "wiki-graph.css",
   "narrow.css",
 ];
 

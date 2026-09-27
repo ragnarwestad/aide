@@ -169,6 +169,9 @@ const STRUCTURE = [
   // the Wiki tab's page list, and the wrapper of a rendered wiki page whose
   // long lines break instead of widening the page.
   "wikipages", "wikidoc",
+  // the graph above that list (spec 546): the box, the line between two
+  // linked pages, and the point-and-name pair for one page.
+  "wikigraph", "wikiedge", "wikinode",
   // the Deploy dialog's step list, each line's state word, and the
   // one-line area its finished message is written into (the dialog
   // keeps one size from the press to the end).

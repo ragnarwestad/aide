@@ -5,6 +5,9 @@ export interface WikiPageLine {
   title: string;
   summary: string;
   state: WikiPageState;
+  /** The page's own text, front matter cut off — the graph above the list
+   *  reads its links out of this, so a page read once is read only once. */
+  body: string;
 }
 
 /** The page the address asks for: its text (front matter cut off, links

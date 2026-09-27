@@ -8,6 +8,7 @@ import { stepResults } from "../job-page";
 import { RELOAD_SECONDS } from "../spec-page/tabs.ts";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
+import { wikiGraph } from "./wiki-graph.ts";
 import { wikiPages } from "./wiki-pages.ts";
 import type { ProjectPageOptions } from "./types.ts";
 
@@ -67,6 +68,7 @@ export function wikiSection(name: string, opts: ProjectPageOptions): string {
     live +
     `<h3>${esc(t(lang, "project.wikiHeading"))}</h3>` +
     `<div class="deploypanel">${refusal}${rowMessage("info", t(lang, "project.wikiNote"))}${latest}${form}</div>` +
+    (opts.wiki ? wikiGraph(name, opts.wiki.pages) : "") +
     (opts.wiki ? wikiPages(name, opts.wiki, lang) : "") +
     log
   );
