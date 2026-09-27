@@ -80,7 +80,12 @@ function payloadFor(a: Attention, job: Job, lang: Language): { title: string; bo
   return {
     title: `${job.project} · ${job.specFolder}`,
     body: renderMessage(lang, { key: messageKeyFor(a), values }),
-    url: specPagePath(job.project, job.specFolder),
+    // A held-back archive waits for criteria to be ticked, and they are
+    // ticked on the Specs list: it opens there with this spec's unfolded.
+    url:
+      a.kind === "archive-held-back"
+        ? `/?checks=${encodeURIComponent(`${job.project}/${job.specFolder}`)}`
+        : specPagePath(job.project, job.specFolder),
   };
 }
 

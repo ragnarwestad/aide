@@ -143,9 +143,16 @@ test("a heading and a body cell look like the specs list's (AC-2)", async () => 
   };
   await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
   // A spec's row is two lines (title, then its state): the top edge's
-  // padding belongs to the title line, the bottom edge's to the state line.
+  // padding belongs to the title line, the bottom edge's to the state line
+  // — as it stands with no message under it, since a message takes the
+  // state line's bottom padding down to meet it. The fixture's specs all
+  // carry one, so the first spec's is taken away before it is measured.
+  await page.evaluate(() => {
+    const state = document.querySelector("table.speclist tbody tr.specstate");
+    if (state?.nextElementSibling?.classList.contains("specnotice")) state.nextElementSibling.remove();
+  });
   const rowTop = await look("table.speclist tbody tr.spechead:nth-child(n+2) td:nth-child(2)");
-  const rowBottom = await look('table.speclist tbody tr.specstate:nth-child(n+2) td[data-col="state"]');
+  const rowBottom = await look('table.speclist tbody tr.specstate:not(:has(+ tr.specnotice)) td[data-col="state"]');
   const theirs = {
     head: (await look("table.speclist thead th:nth-child(2)")).slice(1),
     body: [...rowTop.slice(1, 5), rowBottom[5]],
