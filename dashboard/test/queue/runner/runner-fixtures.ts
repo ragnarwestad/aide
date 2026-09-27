@@ -64,9 +64,12 @@ export function makeRunner(opts: {
   projectDir?: (project: string) => string;
   specsRoot?: RunnerOptions["specsRoot"];
   startsHeld?: RunnerOptions["startsHeld"];
+  /** Another store than the harness's own — a board read back from the
+   *  same mirror, as after a restart. */
+  store?: QueueStore;
 } = {}) {
   return new Runner({
-    store,
+    store: opts.store ?? store,
     onStepDone: opts.onStepDone,
     // 1 unless a test says otherwise, so every case written before spec
     // 91 still describes the behaviour it was written for.

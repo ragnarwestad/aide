@@ -649,4 +649,6 @@ def test_the_prompt_asks_for_the_skill_steps_in_the_log(runner, workspace, fake_
     claude = fake_claude("cat > /dev/null\nexit 1")
     rc, out, _ = run(runner, workspace, claude, dry_run=True)
     assert rc == 0
-    assert "`analyze · Step N of X: <title> — started`" in out["prompt"]
+    assert "\nanalyze · Step N of X: <title> — started\n" in out["prompt"]
+    # Shown in backticks, the line came back in backticks in the log.
+    assert "`analyze · Step" not in out["prompt"]

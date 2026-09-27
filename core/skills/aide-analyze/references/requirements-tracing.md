@@ -59,10 +59,10 @@ person ticking the row sees what the plan decided without reading it:
 
 Where more than one applies, the first in this list is the sentence.
 
-A row whose Notes cell carries `Not tested:` starts with Status
-`Not verified` instead of `⬜`: no test will ever prove it, so it is
-already set aside for a check after deploy. `Not verified` counts as
-done for archiving; every other row still starts `⬜`.
+Every row starts `⬜`, a `Not tested:` row too: no test proves it, so
+the person ticking it checks it by hand, and until they have, it holds
+the archive back. `Not verified` is theirs alone to set, when a check
+can only be made after deploy — never this skill's.
 
 These rows are for the user the spec is for to judge and tick from the
 spec's Overview tab — never for `/aide-implement` or `/aide-analyze` to

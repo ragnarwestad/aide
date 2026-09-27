@@ -47,7 +47,7 @@ import { createProjectResolver } from "./setup/resolve-project.ts";
 import { setupSpecViews } from "./setup/spec-views.ts";
 import { setupQueueContext } from "./setup/queue-context.ts";
 import { createLaunchdRestart } from "./land-branch";
-import { createQueueRunner, type RunnerSetupContext } from "./runner-setup.ts";
+import { createQueueRunner, resumeCutLandingsAtBoot, type RunnerSetupContext } from "./runner-setup.ts";
 import { recoverTestServers, sweepDeadTestServers } from "./test-servers/recover.ts";
 import { setBoardInfo } from "../render/ui/board-info.ts";
 import { clearCheckoutFaults } from "../render/ui/checkout-faults.ts";
@@ -269,11 +269,11 @@ export function createServer(opts: ServerOptions) {
   // project's own readiness line, and the server serves either way.
   for (const project of allowed) void ensureCheckout(project);
 
-  // On boot, resolve every job left `running` by the last restart
-  // before anything new is started.
+  // On boot, before anything new starts: every job left `running`, then every landing cut short.
   // Primed first, so the jobs the store already holds are not news.
   push.prime();
   runner?.reconcile();
+  if (runner) resumeCutLandingsAtBoot(runnerSetupCtx);
   const growth = watch.streamGrowth(() => queue.list());
   const timer = runner
     ? setInterval(() => {
