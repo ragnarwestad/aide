@@ -640,3 +640,13 @@ def test_writing_through_a_stand_in_cannot_rewrite_the_shared_file(fake_claude):
         with open(stand_in, "w") as f:
             f.write("#!/bin/sh\nexit 1\n")
     assert open(shared).read() == before
+
+def test_the_prompt_asks_for_the_skill_steps_in_the_log(runner, workspace, fake_claude):
+    """The skills say beside every step heading to log where it starts and
+    ends, and a headless analyze skipped every one of them (547,
+    2026-09-27). The prompt is what the model reads first, so it asks too,
+    in the step's own name."""
+    claude = fake_claude("cat > /dev/null\nexit 1")
+    rc, out, _ = run(runner, workspace, claude, dry_run=True)
+    assert rc == 0
+    assert "`analyze · Step N of X: <title> — started`" in out["prompt"]

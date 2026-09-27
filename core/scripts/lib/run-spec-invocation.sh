@@ -150,6 +150,13 @@ what you would have asked, and finish the step. Never run tests or any
 other work in the background and never end your turn to wait for it:
 the run ends the moment you stop, and nothing resumes you. Run every
 test suite in the foreground and finish the step in this same turn.)"
+# The skill's own numbered steps, marked in the log. The instruction is in
+# each skill, beside every step heading, and a headless run skipped it:
+# the prompt is what the model reads first, so it is said here as well.
+step_log_note="Mark the skill's numbered steps in your output, so whoever reads the log can see how far the run
+has come: before a step's first action write one line \`$command_name · Step N of X: <title> — started\`,
+and when it ends \`$command_name · Step N of X: <title> — done\` (or \`— stopped: <why>\`), taking N, X and
+the title from the step's heading."
 if [ "$command_name" = "schedule" ]; then
   # The prompt is the file's contents, verbatim — no aide skill, no spec
   # id, nothing invented on either side (spec 259). Read from
@@ -167,6 +174,7 @@ elif [ "$command_name" = "wiki" ]; then
   wiki_args="$spec_arg"
   [ "$wiki_refresh" = "yes" ] && wiki_args="$spec_arg refresh"
   prompt="$(skill_call "aide-wiki" "$wiki_args")
+$step_log_note
 $headless_note"
 elif [ -n "$spec_folder" ]; then
   # Spec 386: stated to the skill, not just to the harness — a CLI flag
@@ -183,6 +191,7 @@ Acceptance ticking is not required for this run: per Step 8, do not write the ac
   [ "$command_name" = "close" ] && [ -n "$reason" ] && reason_line="
 Use exactly this reason when closing the spec: $reason"
   prompt="$(skill_call "aide-$command_name" "$spec_id")$acceptance_line$reason_line
+$step_log_note
 $headless_note"
 else
   # `/aide-create TODO-<name> <description>` is the skill's own
@@ -232,6 +241,7 @@ This is a headless run: create the spec folder under exactly this name — $spec
   prompt="$(skill_call "aide-create" "TODO-$title_slug $description")
 
 Use exactly this title for the spec: $title$depends_line$accept_line$folder_line
+$step_log_note
 $headless_note"
 fi
 if [ "$tool" = "codex" ]; then
