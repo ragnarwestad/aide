@@ -48,7 +48,7 @@ function projectsRoot(): { root: string; specDir: string } {
 }
 
 /** A checker that has read the branch copy, where the row IS ticked. */
-async function warmedChecker(specDir: string, done: boolean): Promise<BranchFileStepsChecker> {
+async function warmedChecker(specDir: string, done: boolean, phases = ["analyze", "implement"]): Promise<BranchFileStepsChecker> {
   const target: OpenBranchTarget = {
     root: "/root",
     branch: `aide/${FOLDER}`,
@@ -63,7 +63,7 @@ async function warmedChecker(specDir: string, done: boolean): Promise<BranchFile
       return {
         code: 0,
         stdout:
-          "# Status\n\n## Tracking info\n\n- **Workflow steps completed:** analyze, implement\n\n" +
+          `# Status\n\n## Tracking info\n\n- **Workflow steps completed:** ${phases.join(", ")}\n\n` +
           "## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n" +
           `| REQ-1: it works on the branch | ${done ? "✅" : "⬜"} | |\n`,
       };
@@ -71,7 +71,7 @@ async function warmedChecker(specDir: string, done: boolean): Promise<BranchFile
     if (line.endsWith("4-status.json")) {
       return {
         code: 0,
-        stdout: JSON.stringify({ completedPhases: ["analyze", "implement"], archived: null, reopened: null,
+        stdout: JSON.stringify({ completedPhases: phases, archived: null, reopened: null,
           acceptanceCriteria: [{ task: "REQ-1: it works", done }], phaseCounts: {} }),
       };
     }
@@ -262,6 +262,15 @@ describe("the queue's unticked-archive check", () => {
   test("an unread branch answer decides nothing: the script's own pre-check does", () => {
     const { root } = projectsRoot();
     const checker = new BranchFileStepsChecker({ run: async () => ({ code: 1, stdout: "" }) });
+    expect(archiveWithOpenAcceptance(ctxFor(root, checker)).has("job-3")).toBe(false);
+  });
+
+  // Implement never ran — it was taken out of the job while analyze ran
+  // (550, 2026-09-27). The script says so first; ended here, the row read
+  // "acceptance criteria unticked", true but not the reason.
+  test("a spec implement has not run on is left to the script, which says so", async () => {
+    const { root, specDir } = projectsRoot();
+    const checker = await warmedChecker(specDir, false, ["analyze"]);
     expect(archiveWithOpenAcceptance(ctxFor(root, checker)).has("job-3")).toBe(false);
   });
 
