@@ -95,8 +95,16 @@ label.checkbox input { margin: 0; cursor: pointer; }
 /* A phase's latest messages, unfolded under its line (spec 500). A
    model's sentence is of any length: the list may shrink below its
    content and long words break. Nothing here states a width. */
-.phasemsgs td { padding: var(--sp-1) var(--sp-4) var(--sp-3) var(--sp-6); }
-.phasemsglist { min-width: 0; margin: 0 0 var(--sp-2); padding-left: var(--sp-4); font-size: var(--fs-s);
+.phasemsgs td { padding-top: var(--sp-1); padding-right: var(--sp-4); padding-bottom: var(--sp-3); }
+/* The log's own left edge is the phase name's (spec 550): the same
+   --fold-w list.css's .phasecell reserves, so the two move together at
+   every width that variable is redefined for. A bare `.phasemsgs td`
+   rule loses its own padding-left to `table.list td` (list.css), which
+   names one more class than it does; this repeats the selector with
+   the row's own `tr` added, so `.phasemsgs` is no longer the only
+   class it can be weighed against. */
+table.list tr.phasemsgs td { padding-left: calc(var(--sp-3) + var(--fold-w)); }
+.phasemsglist { min-width: 0; margin: 0 0 var(--sp-2); padding-left: 0; list-style: none; font-size: var(--fs-s);
   overflow-wrap: anywhere; white-space: pre-line; }
 .phasemsgempty { margin: 0 0 var(--sp-2); font-size: var(--fs-s); }
 .phasemsgopen { font-size: var(--fs-s); }

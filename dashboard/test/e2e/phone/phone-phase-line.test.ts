@@ -238,3 +238,27 @@ test("an unfolded phase's messages wrap inside the row at 375px, and the page do
   expect(at.pageWidth).toBeLessThanOrEqual(at.viewport);
   expect(at.rowRight).toBeLessThanOrEqual(at.viewport);
 });
+
+// Spec 550, AC-3/AC-4: the unfolded log starts at the phase name's own
+// edge at a phone's width too, not further left of it.
+test("an unfolded phase's log starts at the phase name's own edge at 375px (AC-3, AC-4)", async () => {
+  await page.setViewportSize({ width: 375, height: 800 });
+  await page.goto(`${base}/?${OPEN}&phases=aide%2F81-queue-and-runner%3Aanalyze&live=0`);
+  const at = await page.evaluate(() => {
+    const line = document.querySelector('tr.subrow[data-step="analyze"]')!;
+    const nameLeft = line.querySelector(".phasefold")!.getBoundingClientRect().left;
+    const cell = document.querySelector("tr.phasemsgs td")!;
+    const lefts = [...cell.querySelectorAll(":scope > p, :scope > a, :scope > ul > li:first-child")].map(
+      (el) => el.getBoundingClientRect().left,
+    );
+    return {
+      nameLeft,
+      lefts,
+      pageWidth: document.documentElement.scrollWidth,
+      viewport: window.innerWidth,
+    };
+  });
+  expect(at.lefts.length).toBeGreaterThan(0);
+  for (const left of at.lefts) expect(Math.abs(left - at.nameLeft)).toBeLessThanOrEqual(1);
+  expect(at.pageWidth).toBeLessThanOrEqual(at.viewport);
+});
