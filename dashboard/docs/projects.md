@@ -270,7 +270,7 @@ project's own files unless `.aide/config` sets them. A row whose readiness check
 sentence inline.
 
 The test command is the one worth knowing: a run and a landing test with a configured command only
-(`aide-resolve-test-cmd`), so an unset one reads "The project's own test command — no tests run when a spec
+(`aide-resolve-test-cmd`), so an unset one reads "The project's own test command — No tests run when a spec
 lands", with the worked-out command beside it as a suggestion.
 
 **Each table has its own Edit**, on the same line as its own heading, opening only that table for editing

@@ -228,9 +228,7 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
     const root = projectsRoot({ aide: "" }, ["pnpm-lock.yaml"]);
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
     const row = html.slice(html.indexOf("AIDE_TEST_CMD"), html.indexOf("</tr>", html.indexOf("AIDE_TEST_CMD")));
-    // Mid-sentence, after the purpose (which now carries AC-7's capital
-    // letter) and its em dash — this fragment itself stays lowercase.
-    expect(row).toContain("no tests run when a spec lands");
+    expect(row).toContain("No tests run when a spec lands");
     expect(row).toContain("<code>pnpm test -- --run</code>");
     expect(row).not.toContain("not a verified command");
   });

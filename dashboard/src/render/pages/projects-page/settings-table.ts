@@ -20,7 +20,7 @@ import type { ProjectPageOptions } from "./types.ts";
  *  so a worked-out one runs nothing: the row says so, and names the
  *  worked-out command as the suggestion Edit offers in the field. */
 function unsetTestComment(r: SettingRow): string {
-  const none = "no tests run when a spec lands";
+  const none = "No tests run when a spec lands";
   if (r.origin !== "derived" || r.value === null) return none;
   return (
     `${none}. Suggested from ${esc(r.source ?? "")}, the usual ${esc(r.toolchain ?? "")} default: ` +
