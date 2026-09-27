@@ -279,6 +279,10 @@
      own edge while the pips, the summary and the message cards did
      not. */
   table.list tr.spechead > td.foldcell { flex: 0 0 auto; padding: var(--sp-2) 0 0 var(--sp-3); }
+  /* The chevron's own width: the cell is as wide as what it holds, and
+     the smaller spinner that replaces the chevron would shrink it and
+     stand off the chevron's centre. */
+  table.list tr.spechead > td.foldcell > .fold { width: 20px; }
   table.list tr.specstate { padding-bottom: 10px; }
   /* The title line's own air above it sits on the CELLS: a phone's head
      row is still a table row, and a table row's padding draws nothing —

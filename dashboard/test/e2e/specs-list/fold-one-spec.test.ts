@@ -54,8 +54,8 @@ test("two ›s pressed one after the other leave both rows open and the others u
 
 // The spinner stands where the chevron stood, opening a row or shutting
 // it, with its full size: a span without a box of its own draws as a
-// sliver. The spinner is smaller than the chevron and sits on its own
-// line box, so the check allows two pixels.
+// sliver. The turning spinner's box moves by a fraction of a pixel, so
+// the check allows one.
 for (const width of [1270, 390]) {
   for (const [how, query, expanded] of [["opening", "", "true"], ["shutting", "&open=aide%2F83-third", "false"]] as const) {
     test(`the spinner stands where the chevron was, ${how} a row at ${width}px`, async () => {
@@ -78,8 +78,8 @@ for (const width of [1270, 390]) {
       expect(spin!.width).toBeGreaterThanOrEqual(12);
       expect(spin!.height).toBeGreaterThanOrEqual(12);
       const [x, y] = centre(spin!);
-      expect(Math.abs(x! - before[0]!)).toBeLessThanOrEqual(2);
-      expect(Math.abs(y! - before[1]!)).toBeLessThanOrEqual(2);
+      expect(Math.abs(x! - before[0]!)).toBeLessThanOrEqual(1);
+      expect(Math.abs(y! - before[1]!)).toBeLessThanOrEqual(1);
     });
   }
 }
