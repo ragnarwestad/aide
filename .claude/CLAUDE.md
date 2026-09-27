@@ -95,6 +95,7 @@ pages run to 550; they are written to be searched. Where to look:
 | Installation layout, what goes where, the gotchas         | `.claude/rules/development.md`                | Changing the code |
 | Where the project came from and what is next              | `docs/ROADMAP.md`                             | Both              |
 | How Aide compares with other spec-driven tools            | `docs/COMPARISON.md`                          | Both              |
+| Sources on writing specs for AI agents, to be analysed    | `docs/SPEC_WRITING_SOURCES.md`                | Changing the code |
 | What each AI tool supports, verified                      | `docs/AI_SUPPORT_MATRIX.md`                   | Changing the code |
 | How to write a skill                                      | `docs/SKILL_GUIDE.md`                         | Changing the code |
 

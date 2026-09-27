@@ -161,10 +161,10 @@ describe("an archive landing asks origin whether anything stayed open", () => {
     );
     const after = await settle(base, made.job.id, (j) => !!j.landingError || j.state === "failed");
 
-    // Queued for implement, with nothing holding it back — the
-    // analyze landing's refusal is a closed record, not a current
-    // wait, and it does not block implement from starting.
-    expect(after.state).toBe("queued");
+    // Queued for implement or already running it, with nothing holding
+    // it back — the analyze landing's refusal is a closed record, not a
+    // current wait, and it does not block implement from starting.
+    expect(["queued", "running"]).toContain(after.state as string);
     expect(sentence(after.error)).toBe("");
     expect(sentence(after.landingError)).toContain(paths.specs);
   }, 20000);

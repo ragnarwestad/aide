@@ -157,6 +157,9 @@ export interface ServerOptions {
    *  timer. Omitted, it is `DEFAULT_TTL_MS`, the same default the other
    *  two schedules share. */
   scheduleCheckMs?: number;
+  /** How often the queue asks the runner whether a step has ended, and
+   *  starts what comes next. A test seam; omitted, 2000. */
+  queuePollMs?: number;
   runnerAvailable?: boolean;
   /** Where `aide-generate-pdf` writes the PDF it makes (spec 358), keyed
    *  by project/specFolder/commit — outside every checkout, so a press

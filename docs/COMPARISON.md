@@ -25,6 +25,9 @@ choices with the advantages and disadvantages of each.
 Every description of another tool comes from that tool's own documentation, linked in its entry. Where a document
 does not state something, the entry says so rather than guessing.
 
+The tools compared here are a selection. A longer list of tools and resources for spec-driven development is kept
+at [awesome-spec-driven-development](https://github.com/Engineering4AI/awesome-spec-driven-development).
+
 
 ## The criteria
 

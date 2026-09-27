@@ -63,7 +63,6 @@ export function makeRunner(opts: {
    *  402's REQ-6), which the default, injective mapping cannot produce. */
   projectDir?: (project: string) => string;
   specsRoot?: RunnerOptions["specsRoot"];
-  startsHeld?: RunnerOptions["startsHeld"];
   /** Another store than the harness's own — a board read back from the
    *  same mirror, as after a restart. */
   store?: QueueStore;
@@ -76,7 +75,6 @@ export function makeRunner(opts: {
     maxConcurrent: opts.maxConcurrent,
     projectDir: opts.projectDir ?? ((p) => join(dir, p)),
     specsRoot: opts.specsRoot,
-    startsHeld: opts.startsHeld,
     runnerBin: "/bin/true",
     resultDir: dir,
     now: () => new Date(now).toISOString(),

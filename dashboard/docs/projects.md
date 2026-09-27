@@ -232,9 +232,9 @@ drawn first on the Deploy tab, in the usual message layout, naming the step and 
 failure of a refused step per project until the next deploy of that project starts (a restart of the dashboard
 loses it), so a reload or another tab shows it too. A press removes the error from the tab before the dialog opens.
 
-A restart held back by running jobs, or with nothing on the machine to restart the service, ends the run after the
+A restart held back by a landing in flight, or with nothing on the machine to restart the service, ends the run after the
 restart step: the dialog closes and the page reloads onto the Deploy tab's own sentence. While a restart is held,
-every page names the jobs it waits for under the header, asks `/api/version` every five seconds, and loads itself again
+every page names the landings it waits for under the header, asks `/api/version` every five seconds, and loads itself again
 once the new service answers, so the line goes when the restart has happened. A deploy that leaves the
 dashboard's own service on an older commit than its checkout — the check finds them different, an install fails after
 the checkout moved, or there is nothing to restart with — stores one message that every page shows under the header

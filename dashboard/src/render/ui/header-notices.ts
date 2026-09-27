@@ -1,6 +1,6 @@
 // The lines under the header every page shares: the install warning
 // (spec 334, REQ-5) and a pressed Deploy whose restart waits for
-// running jobs (spec 385). Both read process-lifetime state directly
+// landings in flight (spec 385). Both read process-lifetime state directly
 // rather than being threaded through `pageShell()`'s call sites.
 
 import { readFileSync } from "node:fs";

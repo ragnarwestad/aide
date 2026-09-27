@@ -146,7 +146,8 @@ September 2026). Elsewhere, ask the user to run it.**
 
 **Aide: run `cd dashboard && make test-e2e` before every push to main**, whatever the change
 touched — about 20 seconds. Otherwise only a landing runs it, and a browser test broken on main
-stops the next spec's archive as if that spec had broken it.
+stops the next spec's archive as if that spec had broken it. The one exception is a push that
+changes only markdown files: no browser test reads them, and `scripts/check-docs` is their check.
 
 The list stays short on purpose: a suite that hangs blocks the session for minutes with nothing to
 show for it. Where a project's suite is fast, that risk is gone; where it still crawls, ask the

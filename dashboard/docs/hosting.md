@@ -140,10 +140,11 @@ drops from the launchd job's plist every option the serve code no longer accepts
 not start again, and the restart takes the job down and loads it from that plist. By hand on the host,
 `launchctl kickstart -k gui/$(id -u)/com.aide-dashboard.serve` restarts it on the arguments it was loaded with; after
 changing the plist, `launchctl bootout` and `launchctl bootstrap` it instead. The button's restart step answers before the restart
-fires; the dialog then waits for a process with a new `startedAt` to answer `/api/version`, checks it, and reloads the page. While jobs are
-running the restart waits for them, for a finished step whose landing has not settled, and for any merge in flight (two hours at most), and every page shows a warning
-line under the header naming them until it fires. Meanwhile the queue starts no new phase — a queued one reads "held
-back" on its row — so the wait ends when the running phases do, and the queue carries on after the restart. Point the job anywhere else and a restart
+fires; the dialog then waits for a process with a new `startedAt` to answer `/api/version`, checks it, and reloads the page. A running step
+does not hold the restart back: it runs detached, in a process group of its own, outlives the restart, and the new
+process reads its result. A landing runs inside the process, so the restart waits for every step whose landing has not
+settled and for any merge in flight (two hours at most), and every page shows a warning line under the header naming
+them until it fires. The queue keeps starting phases meanwhile. Point the job anywhere else and a restart
 reloads code the landing never touched — the served page then sits on old code with every row reporting
 success. `GET /api/version` answers the commit SHA the running process actually booted with, read once at start and
 never refreshed, and `startedAt`, when that process booted — it needs no credential, so a restart check can reach it. The path is written once in the Makefile (`MINI_REPO`) and once in

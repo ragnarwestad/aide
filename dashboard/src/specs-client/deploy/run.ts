@@ -123,7 +123,7 @@ export async function runDeploy(io: DeployIo, ui: DeployUi): Promise<void> {
   if (!(await posted(io, ui, "install"))) return;
   const restarted = await posted(io, ui, "restart", false);
   if (!restarted) return;
-  // Held back by running jobs, or nothing to restart with: nothing will
+  // Held back by landings in flight, or nothing to restart with: nothing will
   // answer anew, and the reload shows the Deploy tab's own sentence.
   if (restarted.restart !== "fired") {
     ui.state("restart", "done");

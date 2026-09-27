@@ -12,7 +12,7 @@ import { join } from "node:path";
 import {
   createRootLock,
 } from "../../../src/serve/serve.ts";
-import { installAfterMerge, restartAfterLanding, runningJobNames, type LandContext, type RestartHook } from "../../../src/serve/land-branch";
+import { installAfterMerge, landingJobNames, restartAfterLanding, type LandContext, type RestartHook } from "../../../src/serve/land-branch";
 import type { RepoMergeResult } from "../../../src/git/branch-merge.ts";
 
 /** The message a landing carries, as text: since spec 380 it is
@@ -91,21 +91,6 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
     expect(count()).toBe(1);
   });
 
-  // The queue starts no new phase while this is true (Runner's startsHeld).
-  test("says it is waiting from the start of the wait until it has fired", async () => {
-    const lock = createRootLock();
-    const held = lock.run("/repos/other-project", () => new Promise((r) => setTimeout(r, 20)));
-    const { hook, count } = restartSpy();
-    const seen: boolean[] = [];
-    await restartAfterLanding({
-      mergeLock: lock, restart: hook, restartPollMs: 5, restartDeferTimeoutMs: 500,
-      onRestartWait: (waiting) => seen.push(waiting),
-    });
-    await held;
-    expect(count()).toBe(1);
-    expect(seen).toEqual([true, false]);
-  });
-
   test("fires exactly once, with no further delay, once the held root clears (criterion 2)", async () => {
     const lock = createRootLock();
     const held = lock.run("/repos/other-project", () => new Promise((r) => setTimeout(r, 20)));
@@ -135,28 +120,20 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
     expect(count()).toBe(1);
   });
 
-  test("waits while another job is running, then fires once it is done", async () => {
-    // A running job's process dies with the server, and the queue keeps
-    // saying "running" about it for hours (00:13, 2026-09-03). The
-    // landing job itself is exempt: it is the one asking.
-    const jobs = [
-      { id: "landing-job", state: "running" },
-      { id: "other-job", state: "running" },
-    ];
+  // A running step is detached in a process group of its own: it
+  // outlives the restart, and the new process reads its result file.
+  test("does not wait for a running step", async () => {
     const { hook, count } = restartSpy();
-    const waiting = restartAfterLanding({
+    const started = Date.now();
+    await restartAfterLanding({
       mergeLock: createRootLock(),
       restart: hook,
       restartPollMs: 5,
-      restartDeferTimeoutMs: 500,
-      queue: { list: () => jobs },
-      exceptJobId: "landing-job",
+      restartDeferTimeoutMs: 2000,
+      queue: { list: () => [{ id: "implementing", state: "running" }] },
     });
-    await assertHoldsFor(30, 5, () => expect(count()).toBe(0));
-
-    jobs[1]!.state = "done";
-    await waiting;
     expect(count()).toBe(1);
+    expect(Date.now() - started).toBeLessThan(1000);
   });
 
   test("waits for a finished step whose landing has not taken the lock yet", async () => {
@@ -176,20 +153,20 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
     expect(count()).toBe(1);
   });
 
-  test("only the landing job running is no reason to wait", async () => {
+  test("only the landing job itself is no reason to wait", async () => {
     const { hook, count } = restartSpy();
     await restartAfterLanding({
       mergeLock: createRootLock(),
       restart: hook,
       restartPollMs: 5,
       restartDeferTimeoutMs: 500,
-      queue: { list: () => [{ id: "landing-job", state: "running" }] },
+      queue: { list: () => [{ id: "landing-job", state: "done", landing: true }] },
       exceptJobId: "landing-job",
     });
     expect(count()).toBe(1);
   });
 
-  test("past the jobs deadline it restarts anyway, naming the job", async () => {
+  test("past the deadline it restarts anyway, naming the landing", async () => {
     const { hook, count } = restartSpy();
     const logged: string[] = [];
     const realError = console.error;
@@ -202,7 +179,7 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
         restart: hook,
         restartPollMs: 5,
         restartDeferTimeoutMs: 30,
-        queue: { list: () => [{ id: "never-done-job", state: "running" }] },
+        queue: { list: () => [{ id: "never-done-job", state: "done", landing: true }] },
       });
     } finally {
       console.error = realError;
@@ -230,7 +207,7 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
     void held;
   });
 
-  test("one bound covers jobs and landings together: a stuck job and a stuck landing wait once, not twice", async () => {
+  test("one bound covers jobs and landings together: a stuck job landing and a held root wait once, not twice", async () => {
     const lock = createRootLock();
     const held = lock.run("/repos/never-clears", () => new Promise(() => {}));
     const { hook, count } = restartSpy();
@@ -243,7 +220,7 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
         restart: hook,
         restartPollMs: 5,
         restartDeferTimeoutMs: 60,
-        queue: { list: () => [{ id: "never-done-job", state: "running" }] },
+        queue: { list: () => [{ id: "never-done-job", state: "done", landing: true }] },
       });
     } finally {
       console.error = realError;
@@ -364,56 +341,30 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
   });
 });
 
-// Spec 385: nothing before this told anything outside `restartAfterLanding`
-// itself when a wait started, changed, or ended — the Deploy tab had no
-// signal to draw a "waiting" sentence from. `onJobsWaitChange` is that
-// signal, and `runningJobIds` is the check both this loop and the deploy
-// route need to make independently, without disagreeing on what a
-// running-job list means.
-describe("runningJobNames (spec 385)", () => {
-  test("names running jobs by their spec, excluding the one named", () => {
+// Spec 385: `landingJobNames` is the check both the restart's wait and
+// the deploy route make, so the two never disagree about what it waits for.
+describe("landingJobNames (spec 385)", () => {
+  test("names the jobs whose landing has not settled, by their spec, excluding the one named", () => {
     const queue = {
       list: () => [
-        { id: "abcdef12-full", state: "running", project: "aide", specFolder: "399-a-spec" },
-        { id: "landing-job", state: "running", project: "aide", specFolder: "400-another" },
+        { id: "abcdef12-full", state: "done", landing: true, project: "aide", specFolder: "399-a-spec" },
+        { id: "landing-job", state: "done", landing: true, project: "aide", specFolder: "400-another" },
+        { id: "running-job", state: "running", project: "aide", specFolder: "402-running" },
         { id: "done-job", state: "done", project: "aide", specFolder: "401-finished" },
       ],
     };
-    expect(runningJobNames(queue, "landing-job")).toEqual(["aide:399-a-spec"]);
-  });
-
-  test("with no exceptJobId, every running job counts", () => {
-    const queue = {
-      list: () => [
-        { id: "job-one", state: "running", project: "woodstack", specFolder: "31-a-spec" },
-        { id: "job-two", state: "queued", project: "woodstack", specFolder: "32-another" },
-      ],
-    };
-    expect(runningJobNames(queue)).toEqual(["woodstack:31-a-spec"]);
+    expect(landingJobNames(queue, "landing-job")).toEqual(["aide:399-a-spec"]);
   });
 
   // A job that names neither keeps its id: an empty name in that
   // sentence would say less than the id it replaced.
   test("a job with no project or folder falls back to its short id", () => {
-    const queue = { list: () => [{ id: "abcdef12-full", state: "running" }] };
-    expect(runningJobNames(queue)).toEqual(["abcdef12"]);
+    const queue = { list: () => [{ id: "abcdef12-full", state: "done", landing: true }] };
+    expect(landingJobNames(queue)).toEqual(["abcdef12"]);
   });
 
-  test("no queue at all is no running jobs", () => {
-    expect(runningJobNames(undefined)).toEqual([]);
-  });
-
-  // A finished step's landing takes the merge lock a moment after the
-  // job reads done: a restart fired in that gap cut 547's analysis off
-  // from the specs repo's main (2026-09-27).
-  test("a finished job whose landing has not settled still counts", () => {
-    const queue = {
-      list: () => [
-        { id: "landing-now", state: "done", landing: true, project: "aide", specFolder: "547-a-spec" },
-        { id: "landed", state: "done", project: "aide", specFolder: "546-landed" },
-      ],
-    };
-    expect(runningJobNames(queue)).toEqual(["aide:547-a-spec"]);
+  test("no queue at all is nothing to wait for", () => {
+    expect(landingJobNames(undefined)).toEqual([]);
   });
 });
 
@@ -431,8 +382,8 @@ describe("onJobsWaitChange (spec 385)", () => {
 
   test("called with the running snapshot the moment a wait starts, and again with [] once it clears", async () => {
     const jobs = [
-      { id: "landing-job", state: "running" },
-      { id: "other-job", state: "running" },
+      { id: "landing-job", state: "done", landing: true },
+      { id: "other-job", state: "done", landing: true },
     ];
     const { hook } = restartSpy();
     const seen: string[][] = [];
@@ -448,7 +399,7 @@ describe("onJobsWaitChange (spec 385)", () => {
     await new Promise((r) => setTimeout(r, 30));
     expect(seen[0]).toEqual(["other-jo"]);
 
-    jobs[1]!.state = "done";
+    jobs[1]!.landing = false;
     await waiting;
     expect(seen[seen.length - 1]).toEqual([]);
   });
@@ -465,7 +416,7 @@ describe("onJobsWaitChange (spec 385)", () => {
     expect(seen).toEqual([[]]);
   });
 
-  test("called with [] right before firing, once the jobs deadline is exceeded with a job still stuck", async () => {
+  test("called with [] right before firing, once the jobs deadline is exceeded with a landing still stuck", async () => {
     const { hook, count } = restartSpy();
     const seen: string[][] = [];
     await restartAfterLanding({
@@ -473,7 +424,7 @@ describe("onJobsWaitChange (spec 385)", () => {
       restart: hook,
       restartPollMs: 5,
       restartDeferTimeoutMs: 30,
-      queue: { list: () => [{ id: "never-done-job", state: "running" }] },
+      queue: { list: () => [{ id: "never-done-job", state: "done", landing: true }] },
       onJobsWaitChange: (j) => seen.push(j),
     });
     expect(count()).toBe(1);

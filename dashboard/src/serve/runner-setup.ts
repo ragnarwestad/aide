@@ -29,8 +29,6 @@ import { openRunLog } from "../queue/runner/run-log-path.ts";
 
 export interface RunnerSetupContext {
   store: QueueStore;
-  /** Whether a restart is waiting, so no new phase starts (`RunnerOptions.startsHeld`). */
-  startsHeld?: () => boolean;
   machineryProjectDir: (project: string) => string;
   /** `machineryProjectDir`'s sibling for the specs root (spec 402) —
    *  `setupLand()` already takes this for the identical reason; passed
@@ -135,7 +133,6 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
     runnerBin,
     resultDir: ctx.queueResultDir ?? join(homedir(), ".aide", "dashboard", "jobs"),
     maxConcurrent: ctx.queueConcurrency ?? DEFAULT_QUEUE_CONCURRENCY,
-    startsHeld: ctx.startsHeld,
     now: () => new Date().toISOString(),
     today: () => new Date().toISOString().slice(0, 10),
     spawn: (job, step, resultFile, sessionId, streamFile) => {

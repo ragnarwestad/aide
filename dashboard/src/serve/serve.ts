@@ -228,7 +228,6 @@ export function createServer(opts: ServerOptions) {
 
   const runnerSetupCtx: RunnerSetupContext = {
     store: queue,
-    startsHeld: () => state.restartWaiting,
     machineryProjectDir: resolution.machineryProjectDir,
     machinerySpecsRoot: resolution.machinerySpecsRoot,
     queueRunnerBin: opts.queueRunnerBin,
@@ -280,7 +279,7 @@ export function createServer(opts: ServerOptions) {
         runner.poll();
         growth.tick();
         void schedules.tickRunner();
-      }, 2000)
+      }, opts.queuePollMs ?? 2000)
     : null;
   timer?.unref?.();
 

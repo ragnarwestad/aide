@@ -101,7 +101,7 @@ export interface ProjectPageOptions {
     behindCount?: number;
   };
   /** Non-empty while a Deploy press's restart is held back by these
-   *  running jobs (spec 385) — undefined everywhere `serving` is. */
+   *  landings in flight (spec 385) — undefined everywhere `serving` is. */
   restartWaiting?: string[];
   /** Whether this project's own machinery checkout carries the
    *  dashboard's source (`ctx.testServers.previewAvailable`) — the same
