@@ -279,3 +279,26 @@ describe("the branch's Not verified rows", () => {
     expect(steps?.acceptanceOpen).toBe(false);
   });
 });
+
+// Implement writes `ac-coverage.json` on the spec's branch, and it reaches
+// the default branch only with archive: the rows a person ticks before
+// that were drawn with no tests under them.
+describe("the branch's record of which test covers which criterion", () => {
+  const COVERAGE_PATH = TARGET.relPath.replace(/4-status\.md$/, "ac-coverage.json");
+
+  test("is read off the branch beside 4-status.md", async () => {
+    const answers = branchFile(["create", "analyze", "implement"]);
+    answers[`log -1 --format=%H refs/remotes/origin/${TARGET.branch} -- ${COVERAGE_PATH}`] = { code: 0, stdout: "abc123\n" };
+    answers[`show refs/remotes/origin/${TARGET.branch}:${COVERAGE_PATH}`] = {
+      code: 0,
+      stdout: JSON.stringify({ acs: { "AC-1": [{ file: "t.test.ts", name: "it works (AC-1)" }] } }),
+    };
+    const steps = await new BranchFileStepsChecker({ run: fake(answers).run }).read(DIR, FOLDER, TARGET);
+    expect(steps?.acCoverage).toEqual({ "AC-1": [{ file: "t.test.ts", name: "it works (AC-1)" }] });
+  });
+
+  test("a branch with none answers none", async () => {
+    const steps = await new BranchFileStepsChecker({ run: fake(branchFile(["create"])).run }).read(DIR, FOLDER, TARGET);
+    expect(steps?.acCoverage).toBeUndefined();
+  });
+});

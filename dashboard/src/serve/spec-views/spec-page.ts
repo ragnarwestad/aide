@@ -2,7 +2,7 @@
 //
 // Split out of spec-views.ts 2026-09-04, where it had grown to 562
 // lines; every function is unchanged and keeps its name.
-import { readAcCoverage, withAcCoverage } from "../../project/ac-coverage.ts";
+import { parseAcCoverage, readAcCoverage, withAcCoverage } from "../../project/ac-coverage.ts";
 import {
   specAcceptanceNotRequired, specCloseReason, specClosedDate, specFileText, stripDependsOnLine,
 } from "../../project/discover";
@@ -60,6 +60,9 @@ export async function specPageView(
   // other spec falls back to the disk read exactly as before REQ-1.
   let checksText = status?.text ?? "";
   let branchBaseSha: string | undefined;
+  // Which test covers which criterion: implement writes the record on the
+  // branch, beside the status file the rows come from.
+  let branchCoverage: ReturnType<typeof parseAcCoverage> = null;
   if (!ref?.archived) {
     // The ordinary CACHED call (never `fresh`): the same tolerance for
     // a few seconds of staleness the Checks section already has for
@@ -76,6 +79,15 @@ export async function specPageView(
     if (branchRead) {
       checksText = branchRead.text;
       branchBaseSha = branchRead.sha;
+      for (const relPath of [target!.relPath, target!.archivedRelPath]) {
+        const coverage = await readStatusFromFetchedBranch(
+          ctx.gitRun, target!.root, target!.branch, relPath.replace(/4-status\.md$/, "ac-coverage.json"),
+        );
+        if (coverage) {
+          branchCoverage = parseAcCoverage(coverage.text);
+          break;
+        }
+      }
     }
   }
   // Which phase's open rows may be TICKED (spec 188, back on Overview
@@ -117,7 +129,7 @@ export async function specPageView(
     phase: parsedStatus.phase ?? undefined,
     acceptancePhase: parsedStatus.acceptancePhase ?? undefined,
   };
-  const rows = withAcCoverage(parsedStatus.checks, readAcCoverage(dir));
+  const rows = withAcCoverage(parsedStatus.checks, branchCoverage ?? readAcCoverage(dir));
   // The Acceptance section alone: the Phase tables are the implement
   // run's own record and the Checks tab no longer offers them (see
   // `checklist`'s own comment), so a spec whose only open rows are

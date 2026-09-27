@@ -36,6 +36,9 @@ export interface StartOptions {
   /** The live spec's 4-status.json, verbatim. Absent writes none. `state`
    *  on an archived spec is the same file for that spec. */
   liveState?: string;
+  /** `queue.json` as the last process left it, written before the server
+   *  starts. Absent starts an empty queue. */
+  queueMirror?: string;
   /** The spec's 1-description.md. A bare heading unless a suite cares. */
   description?: string;
   /** The spec's 4-status.md. Its "Workflow steps completed" line is
@@ -72,6 +75,7 @@ export function queueHarness(prefix: string): QueueHarness {
       // says so with its own `status`.
       status = statusSaying(["create", "analyze", "implement"]),
       liveState,
+      queueMirror,
     } = {}) {
       const dir = mkdtempSync(join(tmpdir(), prefix));
       dirs.push(dir);
@@ -95,6 +99,8 @@ export function queueHarness(prefix: string): QueueHarness {
         if (spec.analysis !== undefined) writeFileSync(join(archived, "2-analysis.md"), spec.analysis);
         if (spec.solution !== undefined) writeFileSync(join(archived, "3-solution.md"), spec.solution);
       }
+      // The queue as the last process left it: a board read back after a restart.
+      if (queueMirror !== undefined) writeFileSync(join(dir, "queue.json"), queueMirror);
       const server = createServer({
         port: 0,
         mirrorPath: join(dir, "runs.json"),

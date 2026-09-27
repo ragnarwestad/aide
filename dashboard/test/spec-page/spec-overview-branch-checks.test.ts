@@ -143,3 +143,28 @@ describe("a tick writes onto the open branch, not onto main (REQ-4a/REQ-4b)", ()
 function MAIN_STATUS_WITH_OPEN_ROWS(): string {
   return ["# Queue - Status", "", phaseSection(PHASE, [DONE_ROW, OPEN_ROW])].join("\n");
 }
+
+// Implement writes which test covers which criterion on the branch, and
+// main has it only once archive lands: the rows a person ticks before
+// then were drawn with nothing under them.
+describe("the tests behind an acceptance row come off the open branch too", () => {
+  test("a row names the test the branch's own record gives it", async () => {
+    const branchStatus = [
+      "# Queue - Status", "", "## Acceptance criteria", "",
+      "| Task | Status | Notes |", "|------|--------|-------|", "| AC-1: The total SHALL show. | ⬜ | |", "",
+    ].join("\n");
+    const coverage = "aide/specs/81-queue-and-runner/ac-coverage.json";
+    const { run } = branchAwareGitRunner({
+      open: true,
+      branchText: branchStatus,
+      extra: {
+        [`show refs/remotes/origin/aide/81-queue-and-runner:${coverage}`]: {
+          code: 0,
+          stdout: JSON.stringify({ acs: { "AC-1": [{ file: "t.test.ts", name: "the total shows (AC-1)" }] } }),
+        },
+      },
+    });
+    const { base } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { gitRun: run } });
+    expect(await overview(base)).toContain("Tests: the total shows (AC-1)");
+  });
+});

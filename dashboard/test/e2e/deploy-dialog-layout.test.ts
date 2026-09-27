@@ -132,6 +132,28 @@ const references = (page: Page) =>
     };
   });
 
+/** A step's state word's colour, and the colour a token resolves to. */
+const wordColour = (page: Page, step: string) =>
+  page.evaluate((s) => getComputedStyle(document.querySelector(`[data-step="${s}"] .deploystate`)!).color, step);
+const tokenColour = (page: Page, token: string) =>
+  page.evaluate((t) => {
+    const probe = document.createElement("i");
+    probe.style.color = `var(${t})`;
+    document.body.append(probe);
+    return getComputedStyle(probe).color;
+  }, token);
+
+describe("the Deploy dialog's state words", () => {
+  test("a done step's word is green and a failed step's red", async () => {
+    const { page } = await deployPage({ fail: "install" });
+    await press(page);
+    await page.waitForSelector('[data-step="install"][data-state="failed"]', { timeout: 15_000 });
+    expect(await wordColour(page, "fetch")).toBe(await tokenColour(page, "--ok"));
+    expect(await wordColour(page, "install")).toBe(await tokenColour(page, "--danger"));
+    expect(await wordColour(page, "restart")).toBe(await tokenColour(page, "--muted"));
+  });
+});
+
 describe("the Deploy dialog's size", () => {
   test("is as tall as its steps and one line, and that line has its height before any step has run (AC-1)", async () => {
     const { page } = await deployPage();

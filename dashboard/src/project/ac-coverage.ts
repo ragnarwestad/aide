@@ -5,6 +5,8 @@
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { readStatusFromBranch } from "../git/branch-file.ts";
+import type { GitRunner } from "../git/branch-status.ts";
 
 export interface AcTest {
   file: string;
@@ -16,7 +18,28 @@ export interface AcTest {
  *  criteria. A record that does not parse reads as none. */
 export function readAcCoverage(dir: string): Record<string, AcTest[]> | null {
   try {
-    const parsed = JSON.parse(readFileSync(join(dir, "ac-coverage.json"), "utf-8"));
+    return parseAcCoverage(readFileSync(join(dir, "ac-coverage.json"), "utf-8"));
+  } catch {
+    return null;
+  }
+}
+
+/** The record on a spec's open branch, beside the `4-status.md` at
+ *  `statusRelPath` — where implement wrote it. */
+export async function branchAcCoverage(
+  run: GitRunner,
+  target: { root: string; branch: string },
+  statusRelPath: string,
+): Promise<Record<string, AcTest[]> | null> {
+  const file = await readStatusFromBranch(run, target.root, target.branch, statusRelPath.replace(/4-status\.md$/, "ac-coverage.json"));
+  return file ? parseAcCoverage(file.text) : null;
+}
+
+/** The same record from its text — the copy on a spec's open branch,
+ *  where implement wrote it and where it stays until archive lands. */
+export function parseAcCoverage(text: string): Record<string, AcTest[]> | null {
+  try {
+    const parsed = JSON.parse(text);
     return parsed && typeof parsed.acs === "object" && parsed.acs ? parsed.acs : null;
   } catch {
     return null;

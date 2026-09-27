@@ -85,7 +85,15 @@ export async function handleJobActionRoutes(
     ) {
       const dir = ctx.specDir(askedFor.project, askedFor.specFolder);
       if (dir) {
-        const completedPhases = readSpecState(dir)?.completedPhases ?? proseSteps(dir);
+        // The default branch's record, and what the spec's own branch and
+        // history prove (the row's `done`): implement lands nothing, so its
+        // step is on the branch alone until archive merges it, and read off
+        // main alone an archive was refused as "not reached implement yet".
+        const onMain = readSpecState(dir)?.completedPhases ?? proseSteps(dir);
+        const row = ctx.withFreshness(
+          ctx.targets().filter((t) => t.project === askedFor.project && t.specFolder === askedFor.specFolder),
+        )[0];
+        const completedPhases = [...new Set([...onMain, ...(row?.done ?? [])])];
         // ctx.specRef, not a fresh **Archived:** prose scan: it is the
         // same resolved answer `backTo`, above, already reads off this
         // request's own project/specFolder, so an archived spec's phase

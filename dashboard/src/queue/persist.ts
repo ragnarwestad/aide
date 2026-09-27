@@ -53,6 +53,8 @@ export function parseStoredJob(raw: unknown): Job | null {
     // it, and the flag holds the whole queue shut for as long as it is
     // set — so a restored one would wedge it with nothing left to clear.
     landing: undefined,
+    // Its landing is run again at boot instead (`Runner.resumeCutLandings`).
+    landingCut: r.landing || r.landingCut ? true : undefined,
   };
 }
 
