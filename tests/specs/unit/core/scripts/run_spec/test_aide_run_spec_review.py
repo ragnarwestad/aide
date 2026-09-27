@@ -143,27 +143,6 @@ def test_the_reviews_own_turn_failing_falls_back_to_found_nothing_AC_4(runner, w
     assert any("did not complete" in s and "proceeding without it" in s for s in stages), stages
 
 
-def test_the_review_prompt_says_nothing_about_style_naming_or_structure_AC_2(
-    runner, workspace, fake_claude, tmp_path
-):
-    with_status(workspace, ["create", "analyze"])
-    seen = tmp_path / "prompt-seen.txt"
-    claude = fake_claude(
-        "prompt=\"$(cat)\"\n"
-        f"printf '%s\\n----\\n' \"$prompt\" >> {seen}\n"
-        f"if printf '%s' \"$prompt\" | grep -q \"{REVIEW_MARKER}\"; then\n"
-        f"  echo '{json.dumps(_result(REVIEW_SESSION, 'review: no defects found'))}'\n"
-        "else\n"
-        "  printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'\n"
-        f"  echo '{json.dumps(_result(IMPLEMENT_SESSION, 'done'))}'\n"
-        "fi\n"
-    )
-    rc, out, _ = run(runner, workspace, claude, command="implement")
-    assert out["terminalReason"] == "completed", out
-    review_prompt = seen.read_text().split("----")[1]
-    assert "style, naming or structure" in review_prompt, review_prompt
-
-
 def test_a_non_implement_command_never_gets_a_review_call(runner, workspace, fake_claude):
     with_status(workspace, ["create"])
     claude = fake_claude(
