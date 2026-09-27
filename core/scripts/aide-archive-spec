@@ -220,7 +220,7 @@ fi
 
 # --- the acceptance-criteria gate (spec 285) --------------------------------
 # Scoped ONLY to the "## Acceptance criteria" section spec 268's own
-# description deferred — never to the ordinary RED/GREEN/REFACTOR rows
+# description deferred — never to the ordinary RED/GREEN/VERIFY rows
 # spec 268 already fixed above. No such section: progress_total is 0 and
 # this check is a no-op, exactly REQ-4's "no Requirements section, no
 # change in behavior." Reuses the same row-shape/done-mark rule

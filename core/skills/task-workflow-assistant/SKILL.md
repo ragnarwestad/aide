@@ -58,7 +58,7 @@ effort: high
 - TDD-based implementation plan
 - Task 0: Write tests (RED phase)
 - Tasks 1-N: Implementation (GREEN phase)
-- Testing strategy (REFACTOR phase)
+- Testing strategy (VERIFY phase)
 - Risk analysis
 - Each task: concrete, testable, with time estimate
 
@@ -82,7 +82,7 @@ effort: high
 - [ ] Update `userApi.ts` (15 min)
 - [ ] Run tests - verify that they pass (10 min)
 
-### Task 3: Refactoring and quality assurance (REFACTOR phase)
+### Task 3: Quality check (VERIFY phase)
 - [ ] TypeScript check: `npx tsc --noEmit` (5 min)
 - [ ] ESLint: `pnpm run eslint` (5 min)
 - [ ] All tests: `pnpm test -- --run` (10 min)

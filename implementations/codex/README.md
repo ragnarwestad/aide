@@ -165,7 +165,7 @@ Codex's instruction file is `AGENTS.md`. Aide generates `core/AGENTS.md` from `c
 # AGENTS.md
 
 ## Project rules
-- Follow the TDD workflow (RED → GREEN → REFACTOR)
+- Follow the TDD workflow (RED → GREEN → VERIFY)
 - Use Norwegian in commit messages
 - Always run the tests before considering a task done
 ```
@@ -267,7 +267,7 @@ GREEN PHASE:
 3. Verify that all tests PASS
 4. Stop and ask for confirmation
 
-REFACTOR PHASE:
+VERIFY PHASE:
 1. Run: pnpm test -- --run (all tests)
 2. Run: npx tsc --noEmit
 3. Run: pnpm run eslint
@@ -281,7 +281,7 @@ Follow the project's coding standard for all code."
 Codex supports the TDD cycle:
 - Writes tests first (RED)
 - Implements until tests pass (GREEN)
-- Refactors and verifies (REFACTOR)
+- Verifies the full suite, types, lint and build (VERIFY)
 - Iterates automatically on failures
 
 ---

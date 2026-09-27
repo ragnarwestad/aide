@@ -59,7 +59,7 @@ def test_aide_implement_names_the_resolver_script():
     prose. A content assertion standing in for runtime equivalence,
     since Phase 3 is AI-run prose and cannot itself be unit-tested."""
     text = AIDE_IMPLEMENT.read_text()
-    assert "aide-resolve-test-cmd" in section(text, "### Step 4 of 4: REFACTOR", "### Reporting RED, GREEN and REFACTOR")
+    assert "aide-resolve-test-cmd" in section(text, "### Step 4 of 4: VERIFY", "### Reporting RED, GREEN and VERIFY")
     assert "aide-resolve-test-cmd" in section(text, "## Quality check", "## After implementation")
     # The status file records what ran and what was left alone.
     assert "left untested" in text

@@ -151,7 +151,7 @@ The four workflow skills, in the order a spec moves through them:
 |-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `/aide-create`    | Creates the spec's folder and its four files from a title and a description                                                                                           |
 | `/aide-analyze`   | Grades the change LOW, MEDIUM or HIGH and scales the analysis to that grade, maps the affected files with file:line references, and writes the plan implement follows |
-| `/aide-implement` | Writes the code test-first (RED → GREEN → REFACTOR), following the analysis and the plan                                                                              |
+| `/aide-implement` | Writes the code test-first (RED → GREEN → VERIFY), following the analysis and the plan                                                                              |
 | `/aide-archive`   | Archives a finished spec, resolves any merge conflict with the default branch, and writes what the change means for the project into the project's own documentation  |
 
 The other skills:

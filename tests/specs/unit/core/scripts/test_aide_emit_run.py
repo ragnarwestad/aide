@@ -190,7 +190,7 @@ class TestPhaseMode:
         assert event["sessionId"] == "abc-123", "print mode has no hook JSON: the id comes from the environment"
         assert event["project"] == "myproj"
 
-    @pytest.mark.parametrize("phase", ["red", "green", "refactor"])
+    @pytest.mark.parametrize("phase", ["red", "green", "verify"])
     def test_every_tdd_phase_is_accepted(self, emitter, listener, git_repo, phase):
         run_phase(emitter, git_repo, "--phase", phase, "--spec", "81", url=listener.url)
         got = listener.wait()
@@ -222,7 +222,7 @@ class TestPhaseMode:
 
     def test_an_unreachable_url_still_exits_zero_silently(self, emitter, git_repo):
         result = run_phase(
-            emitter, git_repo, "--phase", "refactor", "--spec", "81",
+            emitter, git_repo, "--phase", "verify", "--spec", "81",
             url="http://127.0.0.1:9/api/aide-run",
         )
         assert result.returncode == 0
@@ -235,7 +235,7 @@ class TestImplementSkillReportsItsPhases:
         """The events are worth nothing if the skill never sends them —
         spec 81 §2 puts one line in each TDD phase."""
         skill = (workspace_root / "core" / "skills" / "aide-implement" / "SKILL.md").read_text()
-        for phase in ("red", "green", "refactor"):
+        for phase in ("red", "green", "verify"):
             assert f"aide-emit-run --phase {phase}" in skill, (
                 f"the {phase.upper()} phase must report its boundary"
             )

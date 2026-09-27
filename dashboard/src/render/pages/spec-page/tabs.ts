@@ -145,7 +145,7 @@ export const TAB_HELP: Record<SpecTab, string> = {
     "<code>/aide-implement</code> as it runs, shown read-only here. While the spec is active " +
     "and no job is running, the <code>## Acceptance criteria</code> rows at the top can be " +
     "ticked, and Save commits and pushes the ticks; only those rows hold the next archive " +
-    "run back. The Phase tables below them (RED/GREEN/REFACTOR, or a Checklist) are " +
+    "run back. The Phase tables below them (RED/GREEN/VERIFY, or a Checklist) are " +
     "<code>/aide-implement</code>'s own record of that run and are not part of that gate. " +
     "An archived spec, or one with a job in flight, shows the rows without boxes.",
   steps: "Every workflow step this spec's jobs have run — create, analyze, implement, " +

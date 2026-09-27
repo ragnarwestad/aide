@@ -10,7 +10,7 @@
 #     (`/aide-<command> [<spec>]`, tolerating the leading space real
 #     prompts carry), POSTs {host, sessionId, command, spec?, project?,
 #     capturedAt}.
-#   * phase mode (`--phase red|green|refactor [--spec N]`): called from
+#   * phase mode (`--phase red|green|verify [--spec N]`): called from
 #     a line in the aide-implement skill, NOT from a hook — so it never
 #     reads stdin (that would hang the very step it reports from) and
 #     takes the session id from $CLAUDE_SESSION_ID. Same payload plus
@@ -27,7 +27,7 @@
 [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ] && { cat <<'USAGE'
 Usage:
   aide-emit-run                                  # hook mode, reads UserPromptSubmit JSON on stdin
-  aide-emit-run --phase red|green|refactor [--spec N] [--command implement|archive]
+  aide-emit-run --phase red|green|verify [--spec N] [--command implement|archive]
 USAGE
 exit 0; }
 exec >/dev/null 2>&1
@@ -70,7 +70,7 @@ done
 if [ -n "$phase" ]; then
   # Only the three TDD phases. Anything else is a typo, and a typo must
   # not reach the dashboard.
-  case "$phase" in red|green|refactor) ;; *) exit 0 ;; esac
+  case "$phase" in red|green|verify) ;; *) exit 0 ;; esac
 
   # The session id is what joins this event to the run on /live. In
   # print mode there is no hook JSON to read it from.

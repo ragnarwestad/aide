@@ -9,7 +9,7 @@
   - [Tasks](#tasks-1)
 - [Phase 3: GREEN - Verify tests](#phase-3-green---verify-tests)
   - [Tasks](#tasks-2)
-- [Phase 4: REFACTOR - Test suite](#phase-4-refactor---test-suite)
+- [Phase 4: VERIFY - Test suite](#phase-4-verify---test-suite)
   - [Tasks](#tasks-3)
 - [Notation](#notation)
 
@@ -67,7 +67,7 @@
 
 ---
 
-## Phase 4: REFACTOR - Test suite
+## Phase 4: VERIFY - Test suite
 
 **Status:** ⬜ Not started
 

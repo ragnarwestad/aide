@@ -56,7 +56,7 @@ Based on [Anthropic's official guide](https://www.anthropic.com/engineering/clau
 ```text
 - Write tests first (RED)
 - Implement the solution (GREEN)
-- Run regression tests (REFACTOR)
+- Run regression tests (VERIFY)
 ```
 
 **4. Commit (Confirm)**

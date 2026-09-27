@@ -39,6 +39,12 @@ describe("parseAideRun (schema)", () => {
     expect(parseAideRun({ ...valid, phase: "deploy" }).ok).toBe(false);
   });
 
+  test("a legacy 'refactor' report normalizes to 'verify' (AC-5)", () => {
+    const r = parseAideRun({ ...valid, phase: "refactor" });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.run.phase).toBe("verify");
+  });
+
   test("a later phase replaces the row rather than adding one", () => {
     const store = new AideRunStore();
     const red = parseAideRun({ ...valid, phase: "red" });
@@ -99,11 +105,11 @@ describe("AideRunStore", () => {
     test("answers with the LATEST report for a session, not the first", () => {
       // The row is keyed on the session and a later phase replaces the
       // earlier one — which is the whole mechanism the page leans on to
-      // watch a run advance red - green - refactor.
+      // watch a run advance red - green - verify.
       const store = new AideRunStore();
       store.put({ ...valid, phase: "red" as const }, "2026-08-23T10:00:00Z");
-      store.put({ ...valid, phase: "refactor" as const }, "2026-08-23T10:40:00Z");
-      expect(store.get("abc-123")?.phase).toBe("refactor");
+      store.put({ ...valid, phase: "verify" as const }, "2026-08-23T10:40:00Z");
+      expect(store.get("abc-123")?.phase).toBe("verify");
     });
   });
 

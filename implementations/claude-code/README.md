@@ -29,7 +29,7 @@ This directory contains the Claude Code implementation with configuration files,
 The skills let you:
 - Create structured documentation in the `specs/` directory
 - Analyze the codebase and generate solution proposals
-- Implement with a TDD workflow (RED → GREEN → REFACTOR)
+- Implement with a TDD workflow (RED → GREEN → VERIFY)
 
 **📦 Installation:** See **[INSTALL.md](./INSTALL.md)** for the complete guide (5 min)
 
@@ -70,7 +70,7 @@ The skills let you:
     ↓
 /aide-implement 55 → the skill itself
     ↓
-    RED → GREEN → REFACTOR, ending on a green test run
+    RED → GREEN → VERIFY, ending on a green test run
 ```
 
 ---
@@ -255,7 +255,7 @@ aide/specs/
 
 **`/aide-implement <number>`**
 1. Reads 2-analysis.md and 3-solution.md
-2. Implements with TDD (RED → GREEN → REFACTOR)
+2. Implements with TDD (RED → GREEN → VERIFY)
 3. Updates 4-status.md along the way
 
 **`/aide-to-pdf <number>`**

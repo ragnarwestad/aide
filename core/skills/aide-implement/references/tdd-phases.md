@@ -28,13 +28,13 @@ For each step in 3-solution.md:
 5. Repeat for all steps
 
 When all steps are implemented:
-6. Report the result and continue to REFACTOR
+6. Report the result and continue to VERIFY
 
 Show:
 - Number of steps implemented
 - All tests pass
 
-## Phase 3: REFACTOR — Quality check and cleanup
+## Phase 3: VERIFY — Full suite, types, lint and build
 
 ```bash
 # 1. Full test suite (no regressions)
@@ -82,13 +82,13 @@ Implementation completed:
 
 Status: 7/7 tests pass
 
-Continuing to REFACTOR.
+Continuing to VERIFY.
 ```
 
-### After REFACTOR:
+### After VERIFY:
 
 ```text
-PHASE 3: REFACTOR PHASE — DONE
+PHASE 3: VERIFY PHASE — DONE
 
 Full test suite: 134 passed
 TypeScript check: No errors

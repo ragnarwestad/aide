@@ -222,7 +222,7 @@ that covers nothing the change touches.
 Structure the plan with TDD:
 - Task 0: Write tests (RED phase) — at least one failing test per acceptance criterion
 - Task 1-N: Implementation (GREEN phase)
-- Testing strategy (REFACTOR phase)
+- Testing strategy (VERIFY phase)
 
 Call a plan item a task, never a step: a step is what the queue runs, or
 a numbered section of a skill such as this one, and a log that says
