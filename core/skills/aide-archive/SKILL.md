@@ -57,15 +57,10 @@ Branch on the JSON's `terminalReason`:
   script's own JSON also carries a `specFolder` (`aide-run-spec`'s own
   pre-check may have just archived this spec seconds ago, before
   spawning this very session), treat that exactly like a fresh
-  `archived` result below and continue to Step 2. Otherwise the archive
-  commit is already on the spec's branch — usually because an earlier
-  landing of it stopped: say so and stop, after finishing any merge
-  left open, as above.
-
-  Either way, this step sees the spec's branch, not the default branch.
-  Never report the spec as fully archived, finished or with nothing
-  outstanding: say it is archived on its branch, and that the landing
-  after this step merges it into the default branch.
+  `archived` result below and continue to Step 2. Otherwise an earlier
+  run already moved the spec folder on the spec's branch — usually
+  because the merge after it stopped: say so and stop, after finishing
+  any merge left open, as above, in the words Step 4 gives.
 - **`conflict-open`:** the branch would not merge cleanly with the
   default branch. Follow
   [references/resolve-conflict.md](./references/resolve-conflict.md) in
@@ -185,27 +180,37 @@ own decline, which the ordinary git-add workflow already covers.
 
 ### Step 4: Confirm
 
-Everything this step did is on the spec's branch. In a headless run the
-landing that follows it runs the test suite on the merge and merges the
-branch into the default branch, so the report ends by saying that is
-next — never "Archive complete", which a reader takes to mean the work
-is on the default branch.
+A reader takes "archived" or "complete" to mean everything is done, and
+it is not: everything this step did is on the spec's branches, and
+nothing is on the default branch yet. So the report:
+
+- opens by saying the archive STEP is done and nothing is merged yet —
+  never "Archived: 17-clean-up-console-log" or "Archive complete";
+- says for each line whether it is the spec (the specs repository) or
+  the code (the project's repository), and that it is on the branch;
+- ends with what is still to come: in a headless run, the tests run on
+  the merge and, when they pass, the code and the spec go into the
+  default branch; working interactively, that the branches still have
+  to be merged.
 
 ```text
-Archived on its branch: 17-clean-up-console-log
+Archive step done for 17-clean-up-console-log — nothing merged into main yet
 
-- 4-status.md stamped: Archived: 2026-08-13
-- Moved to: specs/archive/17-clean-up-console-log/
-- Fed back into docs: docs/CONVENTIONS.md (1 addition)
+- Spec: 4-status.md stamped (Archived: 2026-08-13) and the folder moved
+  to archive/17-clean-up-console-log/, on the spec's branch
+- Code: docs/CONVENTIONS.md, one addition, on the spec's branch
+- Code: the conflict with main in src/app.ts resolved, merge committed
+  on the spec's branch
 
-Next: the landing runs the tests on the merge and, when they pass,
-merges the branch into the default branch.
+Still to come: the tests run on the merge; when they pass, the code
+and the spec go into main.
 
 The spec stays findable: /aide-to-pdf 17
 ```
 
-Working interactively, where no landing follows, the "Next:" line says
-instead that the branch still has to be merged.
+Name the default branch by its own name (`main` above). A re-run that
+finds the folder already moved says the same, opening with "Archive
+step already done by an earlier run".
 
 IMPORTANT:
 - Never delete a spec — archiving is a move, not a removal
