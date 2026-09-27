@@ -360,6 +360,9 @@ dialog[data-deploy-dialog] { width: 26rem; max-width: calc(100% - 2 * var(--sp-4
 .deploysteps li[data-state="failed"] { color: var(--danger); }
 .deploystate { margin-left: auto; color: var(--muted); display: inline-flex; align-items: center; gap: var(--sp-1); }
 .deploystate::before { content: ""; width: 12px; height: 12px; flex: none; }
+/* A finished step's word says how it went: green done, red failed. */
+.deploysteps li[data-state="done"] .deploystate { color: var(--ok); }
+.deploysteps li[data-state="failed"] .deploystate { color: var(--danger); }
 /* The running line takes the running badge's colour and spinner. */
 .deploysteps li[data-state="running"] { color: var(--accent-strong); }
 .deploysteps li[data-state="running"] .deploystate { color: inherit; }
