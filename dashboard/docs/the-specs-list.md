@@ -166,7 +166,8 @@ the Status tab, in two columns under a one-line heading: "Verified?" at the righ
 and "Not yet" each over its own box (the heading is drawn once, where the list has a box, and each box's accessible
 name repeats it). "Not yet"
 is the "Not verified" box. A read-only mark (✅, ☐, "Not verified", "Failed") sits in the same two columns, so the
-text stays at the left of every row. A row marked Not verified counts as done, so archive is not held back by it, but the spec keeps an
+text stays at the left of every row. Every row starts open, a criterion no test proves as well: Not verified is the
+reader's mark alone, for a check that can only be made after deploy, and no step sets it. A row marked Not verified counts as done, so archive is not held back by it, but the spec keeps an
 info line `N not verified` on its list row — live and archived, not closed — whose › unfolds the criteria. On a row
 held back for unticked criteria the held-back line's › unfolds that list, and the count's line has none of its own.
 While a job runs on the spec the unfolded list is drawn with its boxes disabled and nothing to save. When the rows cannot be read, the unfolded line says so and links to
@@ -206,13 +207,14 @@ A phase that is only queued, or that nothing touched, has no ›.
 
 **Each criterion names the tests that prove it**, here and on the Status tab: the tests whose names carry its
 AC-id, from `ac-coverage.json`, which the runner writes into the spec's folder after a completed implement
-(`core/scripts/lib/run-spec-ac-coverage.sh`). Only lines the branch added count, since `AC-1` is in the tests of
+(`core/scripts/lib/run-spec-ac-coverage.sh`). It is read from the spec's open branch, where implement wrote it, and
+from the default branch once archive has merged it. Only lines the branch added count, since `AC-1` is in the tests of
 many specs. A criterion
 no test names gets an amber line saying so, unless analyze's Notes cell already says `Not tested:` and why.
 
 ## Plain forms first
 
-Every control here is a plain form first. Ticking phases and pressing Run works with JavaScript switched off, and
+Every control here is a plain form first. Ticking phases and pressing the row's button works with JavaScript switched off, and
 so do Cancel and expanding a row — each posts its form and follows a 303 back to the list. `specs-client/` is a
 layer ABOVE that floor, never the mechanism (see [what the script adds](#what-the-script-adds)).
 

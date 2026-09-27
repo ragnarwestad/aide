@@ -128,7 +128,7 @@ export async function handleJobActionRoutes(
           if (typeof step !== "string") continue;
           if (step === "implement" && phase === "analyzed" && !analyzedOnMain && completedPhases.includes("analyze")) {
             const spec = `${askedFor.project}/${askedFor.specFolder}`;
-            const message = `${askedFor.specFolder}'s analysis has run, but it has not been merged into main, which implement starts from — run Analyze again to merge it.`;
+            const message = `${askedFor.specFolder}'s analysis has run, but it has not been merged into main, which implement starts from — press Analyze again to merge it.`;
             logRefusal("run", spec, message);
             return wantsJson ? json({ error: message, spec }, 400) : specsRedirect(raw, { error: message, spec }, backTo);
           }

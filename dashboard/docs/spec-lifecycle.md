@@ -308,8 +308,27 @@ state is shown, and only `reopen` is legal on it afterward — the same one-step
 ## Which button a row offers
 
 The row carries one control at a time, on the caption line inside the fold. While nothing of the spec is running it
-is the run button, **labelled with the phase it would run** — Analyze, Implement, Archive — and greyed out, still
-named, when that phase is unticked. While a step runs it is Cancel instead, and while `create` runs there is no
+is the row's button, **labelled with the phase it would run** — Analyze, Implement, Archive — and greyed out, still
+named, when that phase is unticked.
+
+**Every phase box can be ticked, a phase that has run as well**: running a phase again is the reader's choice. A
+phase that has run starts unticked, so a press runs it only when ticked. `create` is the exception: its box is
+ticked and locked on every row, since the spec's folder exists.
+
+**The server checks a press before anything is queued**, and refuses it at once with the reason on the row:
+
+| Pressed                                                    | Refused because                                                                                |
+|------------------------------------------------------------|------------------------------------------------------------------------------------------------|
+| Implement, before analyze has run                          | "has not been analyzed yet"                                                                    |
+| Implement, when analyze ran but its merge into main failed | "its analysis has run, but it has not been merged into main" — press Analyze again to merge it |
+| Archive, before implement has run                          | "has not reached implement yet"                                                                |
+| create, on a spec that exists                              | "create cannot run again"                                                                      |
+
+What has run is read from the default branch's `4-status`, the spec's own open branch and the git history
+together — the same answer the row's own phase marks give. Implement lands nothing, so its record is on the branch
+alone until archive merges it. Analyze and implement ticked together on one press are accepted: the job's own
+analyze merges before its implement starts. The check is `job-actions.ts`, reading the table in
+`core/scripts/lib/transitions.json`. While a step runs it is Cancel instead, and while `create` runs there is no
 button at all: cancelling it would throw away the title and the description with no spec left to run again from.
 
 An archived or closed row has one control only, **Reopen**, since the server refuses every other step for it.
