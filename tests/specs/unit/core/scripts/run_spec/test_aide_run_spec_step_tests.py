@@ -499,3 +499,27 @@ def test_the_runs_progress_is_in_the_log_between_start_and_end_and_its_output_be
     assert progress[0].startswith("tests: running echo"), stages
     assert "tests: pytest: 3 passed in 0.10s" in progress, stages
     assert "3 passed in 0.10s" in (tmp_path / "job.implement.tests.log").read_text()
+
+
+def test_aides_own_parts_are_marked_started_and_done_around_the_ai_turn(runner, workspace, fake_claude):
+    with_status(workspace, ["create", "analyze"])
+    _project_with_test_cmd(workspace, "true")
+    _, out, _, err = run(runner, workspace, _implementing_claude(fake_claude), command="implement", return_stderr=True)
+    stages = _stamped(err)
+    marks = [s for s in stages if " · Aide: " in s or s.startswith("model turn started")]
+    assert marks[0] == "implement · Aide: preparing — started", stages
+    assert marks[1] == "implement · Aide: preparing — done", stages
+    assert marks[2].startswith("model turn started"), stages
+    assert marks[3] == "implement · Aide: tests and commit — started", stages
+    assert marks[-1] == "implement · Aide: tests and commit — done", stages
+    # The runner's own test run is inside the part that is open.
+    running = next(i for i, s in enumerate(stages) if s.startswith("running the project's tests"))
+    assert stages.index(marks[3]) < running < len(stages) - 1 - stages[::-1].index(marks[-1]), stages
+
+
+def test_a_red_step_ends_its_open_part_stopped_with_the_reason(runner, workspace, fake_claude):
+    with_status(workspace, ["create", "analyze"])
+    _project_with_test_cmd(workspace, "false")
+    _, out, _, err = run(runner, workspace, _implementing_claude(fake_claude), command="implement", return_stderr=True)
+    assert out["terminalReason"] == "tests-red", out
+    assert _stamped(err)[-1] == "implement · Aide: tests and commit — stopped: tests-red", _stamped(err)

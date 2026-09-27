@@ -1,28 +1,17 @@
-// What a phase's unfolded row shows (spec 500): the transcript of the
-// newest attempt that ran the step — what the run said AND what it did —
-// and where that step is on the spec's Logs tab.
+// What a phase's unfolded row shows (spec 500): the Log of the newest
+// attempt that ran the step — the same log the Logs tab shows, Aide's
+// lines and the AI's — and where that step is on the spec's Logs tab.
 //
 // The model's own messages alone were too little to follow a run by: a
 // session that works through commands writes a sentence every few
 // minutes (512's implement: nine in 33 minutes, over 107 commands), so
 // the row looked frozen while the step was busy.
 import type { QueueStore } from "../../queue/queue.ts";
-import { endWithFinalMessage, summarizeEntries } from "../../queue/parse-stream";
+import { stepLog } from "../../queue/parse-stream";
 import type { PhaseMessages } from "../../render";
-import { tailFile } from "../serve-helpers";
+import { tailFileAt } from "../serve-helpers";
+import { readRunLog } from "./job-detail.ts";
 import { stepKey, workRoundJobs } from "./work-round.ts";
-
-const KEPT = 200;
-const FINAL_MAX = 2000;
-
-/** The final message is already escaped, so a cut must not leave half an
- *  entity (`&am`) at its end. */
-function cutFinal(text: string): string {
-  if (text.length <= FINAL_MAX) return text;
-  const head = text.slice(0, FINAL_MAX);
-  const amp = head.lastIndexOf("&");
-  return `${amp > head.lastIndexOf(";") && FINAL_MAX - amp < 8 ? head.slice(0, amp) : head}…`;
-}
 
 /** `attemptIds` is newest first; the first attempt that ran (or is
  *  running) the step is the one read. A newer job only queued for the step
@@ -39,20 +28,15 @@ export function phaseMessagesFor(
     const running = job.state === "running" && job.steps[job.stepIndex] === step;
     if (!result && !running) continue;
     const file = running ? job.streamFile : result?.streamFile;
-    // Whole, not its tail: the step marks from the start of the run are
-    // what says how far it got, and the bound below keeps every one.
-    const text = file ? tailFile(file, Infinity) : "";
-    const tool = result?.tool;
-    const entries = summarizeEntries(text, { tool, only: "all", max: KEPT });
-    const marks = new Set(entries.filter((e) => e.mark).map((e) => e.text));
-    const lines = entries.map((e) => e.text);
-    const messages = running ? lines : endWithFinalMessage(lines, text, { tool }, cutFinal);
-    for (let i = 0; messages.length > KEPT && i < messages.length; ) {
-      if (marks.has(messages[i]!)) i++;
-      else messages.splice(i, 1);
-    }
+    // The step's Log as the Logs tab draws it — Aide's own lines and the
+    // AI's, in the order they happened, every line of it: this row is a
+    // window on that log, not a shorter copy. Aide's lines include the
+    // landing, so the merge step and its test run show here as they go.
+    const transcript = file ? tailFileAt(file, Infinity) : { text: "", start: 0 };
+    const runLog = file ? readRunLog(file) : undefined;
+    const { logs } = stepLog(transcript, runLog, { tool: result?.tool, final: !running });
     return {
-      messages,
+      logs,
       step: stepKey(workRoundJobs(queue, job.project, job.specFolder), job, step),
       running,
     };

@@ -22,15 +22,20 @@ export type StepPanelData = Pick<JobStepResultView, "logs" | "errors" | "aiModel
   running?: boolean;
 };
 
-/** Each part opens with one separator line naming who writes what follows. */
-function separator(part: LogPart, r: StepPanelData, lang: Language): string {
-  const words = {
+/** Who writes the part that follows, as its separator line names them.
+ *  The phase's row under the specs list draws the same words. */
+export function logPartWriter(by: LogPart["by"], aiModel: string | undefined, lang: Language): string {
+  return {
     "aide-before": t(lang, "job.logAideBefore"),
     "aide-after": t(lang, "job.logAideAfter"),
     aide: t(lang, "job.logAide"),
-    ai: r.aiModel ? t(lang, "job.logAi", { model: r.aiModel }) : t(lang, "job.logAiPlain"),
-  }[part.by];
-  return `<span class="muted">— ${esc(words)} —</span>`;
+    ai: aiModel ? t(lang, "job.logAi", { model: aiModel }) : t(lang, "job.logAiPlain"),
+  }[by];
+}
+
+/** Each part opens with one separator line naming who writes what follows. */
+function separator(part: LogPart, r: StepPanelData, lang: Language): string {
+  return `<span class="muted">— ${esc(logPartWriter(part.by, r.aiModel, lang))} —</span>`;
 }
 
 function logTab(r: StepPanelData, lang: Language): string {
