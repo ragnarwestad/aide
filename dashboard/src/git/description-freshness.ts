@@ -18,6 +18,7 @@
 // the merge check beside it, so a re-run clears the badge without
 // anything having to remember it was ever set.
 
+import { basename, dirname, join } from "node:path";
 import type { GitRunner } from "./branch-status.ts";
 
 const DEFAULT_TTL_MS = 30_000;
@@ -387,12 +388,21 @@ export class SpecCreatedAtChecker {
 
   /** The LAST date this checker holds for an archived spec, without
    *  asking git at all — `peekCreatedAt`'s own shape, over the separate
-   *  archived cache. */
+   *  archived cache. A spec archived since the last sweep has no
+   *  archived answer yet, and an archived row with no date sorts as the
+   *  oldest; the date it had while it was live is the same spec's, so it
+   *  stands until the archived lookup has one. */
   peekCreatedAtForArchived(
     dir: string,
     specFolder: string,
   ): { createdAt: string | null; checkedAt: number | null } {
     const hit = this.archivedCache.get(JSON.stringify([dir, specFolder]));
+    if (hit?.createdAt) return { createdAt: hit.createdAt, checkedAt: hit.at };
+    const live =
+      basename(dirname(dir)) === "archive"
+        ? this.cache.get(JSON.stringify([join(dirname(dirname(dir)), specFolder), specFolder]))
+        : undefined;
+    if (live?.createdAt) return { createdAt: live.createdAt, checkedAt: live.at };
     return hit ? { createdAt: hit.createdAt, checkedAt: hit.at } : { createdAt: null, checkedAt: null };
   }
 }

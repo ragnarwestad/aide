@@ -210,6 +210,16 @@ describe("SpecCreatedAtChecker.createdAtForArchived", () => {
 
 describe("SpecCreatedAtChecker.peekCreatedAtForArchived", () => {
   const ARCHIVE_DIR = "/specs/aide/archive/96-merge-button-says-what-it-merges";
+
+  // Archived a moment ago: the archived lookup has not run yet, and a row
+  // with no date sorts as the oldest in the archive.
+  test("a spec just archived keeps the date it had while it was live", async () => {
+    const git = fakeGit({ "log --format=%aI": { code: 0, stdout: "2026-09-26T20:41:20+02:00\n" } });
+    const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    await checker.createdAt(DIR, FOLDER);
+    expect(checker.peekCreatedAtForArchived(ARCHIVE_DIR, FOLDER).createdAt).toBe("2026-09-26T20:41:20+02:00");
+  });
+
   const dated = () =>
     fakeGit({
       "log --follow --format=%aI": { code: 0, stdout: "2026-08-17T09:00:00+02:00\n" },
