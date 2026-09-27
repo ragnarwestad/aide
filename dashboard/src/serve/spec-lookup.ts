@@ -155,7 +155,7 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
           // Carried while a row is open, and while one waits for a check
           // or failed: the list unfolds them under that count too.
           acceptance: acceptanceOpen || notVerified || failed
-            ? withAcCoverage(branchAnswer?.acceptance ?? acceptanceRowsOf(statusText), readAcCoverage(s.dir))
+            ? withAcCoverage(branchAnswer?.acceptance ?? acceptanceRowsOf(statusText), branchAnswer?.acCoverage ?? readAcCoverage(s.dir))
             : undefined,
           // Where the freshness check runs git. Never rendered — the
           // page has no use for an absolute path, and `targets` is

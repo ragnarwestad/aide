@@ -21,6 +21,7 @@
 // lands nothing until `archive` runs, so its commit sits on
 // `aide/<spec-folder>` for as long as the spec takes.
 
+import { branchAcCoverage, type AcTest } from "../project/ac-coverage.ts";
 import type { GitRunner } from "./branch-status.ts";
 import { readStatusFromBranch, type OpenBranchTarget } from "./branch-file.ts";
 import { acceptanceCriteriaUnticked, acceptanceRowsOf, parseStatus, type StatusCheck } from "../project/parse-status";
@@ -276,6 +277,9 @@ export interface FileStepsAnswer {
   /** The Acceptance section's rows off that same file, for the Specs
    *  list's unfold — the row draws them without reading git. */
   acceptance?: StatusCheck[];
+  /** Which test covers which criterion, off the same branch: the
+   *  default branch has it only once archive lands. */
+  acCoverage?: Record<string, AcTest[]>;
   /** When the disk scan read this copy, epoch ms. Set by `targets()` on the disk answer only — the branch
    *  copy's read time is `peekFileSteps().checkedAt` — so an answer that came from the branch has none. */
   readAt?: number;
@@ -390,6 +394,7 @@ export class BranchFileStepsChecker {
           const jsonPath = relPath.replace(/4-status\.md$/, "4-status.json");
           const jsonFile = await readStatusFromBranch(this.run, target.root, target.branch, jsonPath);
           const state = jsonFile ? parseSpecStateText(jsonFile.text) : null;
+          const acCoverage = await branchAcCoverage(this.run, target, relPath);
           steps = {
             proseSteps: parseStatus(file.text).workflowSteps,
             stateSteps: state?.completedPhases,
@@ -397,6 +402,7 @@ export class BranchFileStepsChecker {
               ? state.acceptanceCriteria.some((row) => !row.done)
               : acceptanceCriteriaUnticked(file.text),
             acceptance: acceptanceRowsOf(file.text),
+            ...(acCoverage ? { acCoverage } : {}),
           };
           break;
         }
