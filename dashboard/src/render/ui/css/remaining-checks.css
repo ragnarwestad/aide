@@ -106,5 +106,9 @@ label.checkbox input { margin: 0; cursor: pointer; }
 table.list tr.phasemsgs td { padding-left: calc(var(--sp-3) + var(--fold-w)); }
 .phasemsglist { min-width: 0; margin: 0 0 var(--sp-2); padding-left: 0; list-style: none; font-size: var(--fs-s);
   overflow-wrap: anywhere; white-space: pre-line; }
+/* The phase's log is a window on the step's whole Log, opening at its end:
+   .logbox scrolls, and a phase's row keeps it to twenty lines. */
+.phasemsgs .logbox { max-height: 20lh; margin-bottom: var(--sp-2); }
+.phasemsgs .logbox > .phasemsglist { flex: none; margin-bottom: 0; }
 .phasemsgempty { margin: 0 0 var(--sp-2); font-size: var(--fs-s); }
 .phasemsgopen { font-size: var(--fs-s); }

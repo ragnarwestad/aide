@@ -49,7 +49,7 @@ describe("renderProjectPage: a checkout-level check shows as plain text on Confi
       readiness(checks),
       "2026-08-31T00:00:00Z",
       NAV,
-      { worktreeLinkCandidates: [], editing: false, tab: "config" },
+      { worktreeLinkCandidates: [], editingGroup: null, tab: "config" },
     );
     const failing = checks.filter((c) => !c.ok);
     for (const c of failing) {
@@ -80,7 +80,7 @@ describe("renderProjectPage: a checkout-level check shows as plain text on Confi
       readiness(fieldOwned),
       "2026-08-31T00:00:00Z",
       NAV,
-      { worktreeLinkCandidates: [], editing: false, tab: "config" },
+      { worktreeLinkCandidates: [], editingGroup: null, tab: "config" },
     );
     expect(html.split("field-owned detail text").length - 1).toBe(1);
   });
@@ -97,7 +97,7 @@ describe("renderProjectPage: the project's description heads the page (spec 531)
       null,
       "2026-08-31T00:00:00Z",
       NAV,
-      { worktreeLinkCandidates: [], editing: false, tab: "config" },
+      { worktreeLinkCandidates: [], editingGroup: null, tab: "config" },
     );
     const backheadEnd = html.indexOf("</div>", html.indexOf('class="backhead"')) + "</div>".length;
     const descIndex = html.indexOf('<p class="desc">');
@@ -115,7 +115,7 @@ describe("renderProjectPage: the project's description heads the page (spec 531)
       null,
       "2026-08-31T00:00:00Z",
       NAV,
-      { worktreeLinkCandidates: [], editing: false, tab: "config" },
+      { worktreeLinkCandidates: [], editingGroup: null, tab: "config" },
     );
     expect(html).not.toContain('class="desc"');
   });
@@ -127,7 +127,7 @@ describe("renderProjectPage: the project's description heads the page (spec 531)
       null,
       "2026-08-31T00:00:00Z",
       NAV,
-      { worktreeLinkCandidates: [], editing: false, tab: "config" },
+      { worktreeLinkCandidates: [], editingGroup: null, tab: "config" },
     );
     expect(html).not.toContain('class="desc"');
   });
@@ -145,7 +145,7 @@ describe("renderProjectPage: the Config tab's one readiness line (spec 531)", ()
       readiness(checks),
       "2026-08-31T00:00:00Z",
       NAV,
-      { worktreeLinkCandidates: [], editing: false, tab: "config" },
+      { worktreeLinkCandidates: [], editingGroup: null, tab: "config" },
     );
     expect(html.match(/rowmsg info/g)?.length ?? 0).toBe(1);
     expect(html).not.toMatch(/rowmsg failed/);
@@ -164,7 +164,7 @@ describe("renderProjectPage: the Config tab's one readiness line (spec 531)", ()
       readiness(checks),
       "2026-08-31T00:00:00Z",
       NAV,
-      { worktreeLinkCandidates: [], editing: false, tab: "config" },
+      { worktreeLinkCandidates: [], editingGroup: null, tab: "config" },
     );
     const failedIndex = html.indexOf("rowmsg failed");
     expect(failedIndex).toBeGreaterThan(-1);
@@ -180,7 +180,7 @@ describe("renderProjectPage: the Config tab's one readiness line (spec 531)", ()
       readiness([{ check: "gitRoot", subject: "/repos/aide", ok: false, blocking: true, detail: "no git root here" }]),
       "2026-08-31T00:00:00Z",
       NAV,
-      { worktreeLinkCandidates: [], editing: false, tab: "config" },
+      { worktreeLinkCandidates: [], editingGroup: null, tab: "config" },
     );
     expect(html).not.toContain("<h3>The checkout itself</h3>");
   });
@@ -192,7 +192,7 @@ describe("renderProjectPage: the Config tab's one readiness line (spec 531)", ()
 describe("renderProjectPage: Deploy tab's restart-waiting sentence (spec 431)", () => {
   const deployOpts = {
     worktreeLinkCandidates: [],
-    editing: false,
+    editingGroup: null,
     tab: "deploy",
     drift: { behind: 0, checkedAt: 1735689600000 },
     serving: { sha: "aaaa111bbbb", checkoutHead: "bbbb222cccc", current: false },
@@ -246,7 +246,7 @@ describe("renderProjectPage: Deploy tab's restart-waiting sentence (spec 431)", 
 describe("renderProjectPage: the Deploy tab's two headed sections (spec 441)", () => {
   const deployTab = (extra: Record<string, unknown> = {}) => ({
     worktreeLinkCandidates: [],
-    editing: false,
+    editingGroup: null,
     tab: "deploy",
     ...extra,
   });
@@ -355,7 +355,7 @@ describe("renderProjectPage: no site-level tab bar (spec 437)", () => {
       null,
       "2026-08-31T00:00:00Z",
       NAV,
-      { worktreeLinkCandidates: [], editing: false, tab: "config" },
+      { worktreeLinkCandidates: [], editingGroup: null, tab: "config" },
     );
     expect(html).not.toContain('<nav class="tabbar">');
   });
@@ -373,7 +373,7 @@ describe("renderProjectPage: the settings form carries its own JS hook (spec 486
       null,
       "2026-08-31T00:00:00Z",
       NAV,
-      { worktreeLinkCandidates: [], editing: true },
+      { worktreeLinkCandidates: [], editingGroup: "manifest" },
     );
     expect(html).toContain('class="newspecform projectsettingsform"');
   });
@@ -387,7 +387,7 @@ describe("renderProjectPage: an added project's Code landing select (AC-6)", () 
       null,
       "2026-08-31T00:00:00Z",
       NAV,
-      { worktreeLinkCandidates: [], editing: true, codeLanding: "pr" },
+      { worktreeLinkCandidates: [], editingGroup: "manifest", codeLanding: "pr" },
     );
     const start = html.indexOf('<select name="codeLanding"');
     const options = html.slice(start, html.indexOf("</select>", start)).match(/<option[^>]*>/g) ?? [];

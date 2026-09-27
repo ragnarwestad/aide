@@ -1,7 +1,14 @@
 // The project page's settings tables: one per file (spec 549), view mode
 // and edit mode in the same markup.
 
-import { SETTING_GROUPS, type ProjectSettingsView, type SettingRow } from "../../../project/project-settings.ts";
+import {
+  EDIT_GROUP_PARAM,
+  EDITABLE_FIELD,
+  SETTING_GROUPS,
+  type ProjectSettingsView,
+  type SettingRow,
+  type SettingsGroupFile,
+} from "../../../project/project-settings.ts";
 import { SETTING_LABELS } from "../../../project/setting-labels.ts";
 import { btn, messageSlot, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
@@ -13,7 +20,7 @@ import type { ProjectPageOptions } from "./types.ts";
  *  so a worked-out one runs nothing: the row says so, and names the
  *  worked-out command as the suggestion Edit offers in the field. */
 function unsetTestComment(r: SettingRow): string {
-  const none = "no tests run when a spec lands";
+  const none = "No tests run when a spec lands";
   if (r.origin !== "derived" || r.value === null) return none;
   return (
     `${none}. Suggested from ${esc(r.source ?? "")}, the usual ${esc(r.toolchain ?? "")} default: ` +
@@ -39,24 +46,15 @@ export const codeLandingChoices = (defaultBranch: string | null): { value: "merg
   { value: "pr", label: "Create a pull request" },
 ];
 
-/** Which `SETTING_KEYS` entry posts under which form field name, in
- *  edit mode. The test command is what a run and a landing test with,
- *  saved to the manifest's `AIDE_TEST_CMD`. */
-const EDITABLE_FIELD: Record<string, string> = {
-  AIDE_SPECS_PATH: "specsPath",
-  AIDE_WORKTREE_LINKS: "worktreeLinks",
-  AIDE_INSTALL_CMD: "installCmd",
-  AIDE_PREVIEW_CMD: "previewCmd",
-  AIDE_TEST_CMD: "testCmd",
-};
-
 /** A row's Value cell: plain text in view mode; a one-line
  *  `<textarea data-oneline>`, pre-filled from the
  *  row's own current value, otherwise. A textarea wraps a long value,
  *  which an `<input>` cannot; `bindOneLineFields` gives back what the
- *  input did (growth, Enter to save, no line break). */
-function settingValueCell(r: SettingRow, editing: boolean, opts: ProjectPageOptions): string {
-  if (!editing) {
+ *  input did (growth, Enter to save, no line break). `isEditingThis` is
+ *  whether THIS row's own table is the one being edited (spec 552: each
+ *  table now has its own edit state). */
+function settingValueCell(r: SettingRow, isEditingThis: boolean, opts: ProjectPageOptions): string {
+  if (!isEditingThis) {
     return r.value === null ? `<span class="muted">–</span>` : esc(r.value);
   }
   // The test command: only a CONFIGURED value fills the field. A
@@ -89,9 +87,9 @@ function settingValueCell(r: SettingRow, editing: boolean, opts: ProjectPageOpti
  *  answers — so it is built from its own small literal here rather than
  *  coerced into the shape the five `SETTING_KEYS` rows share. Lives in
  *  the manifest table (spec 549): it is a manifest-only fact already. */
-function codeLandingRow(codeLanding: "merge" | "pr", editing: boolean, defaultBranch: string | null): string {
+function codeLandingRow(codeLanding: "merge" | "pr", isEditingThis: boolean, defaultBranch: string | null): string {
   const choices = codeLandingChoices(defaultBranch);
-  const value = editing
+  const value = isEditingThis
     ? `<select name="codeLanding">${choices.map(
         (o) => `<option value="${o.value}"${codeLanding === o.value ? " selected" : ""}>${esc(o.label)}</option>`,
       ).join("")}</select>`
@@ -112,14 +110,38 @@ function manifestFileHeading(home: ProjectPageOptions["settingsHome"]): string {
   return home === "dashboard" ? "the dashboard's settings.yaml" : ".aide/project.yaml";
 }
 
-/** One `<h3>`-headed table, wrapped for horizontal scroll like every
- *  other list on this page — heading and table together in one element,
- *  so the pair is a single block wherever it is placed (a `.frow`'s own
- *  children lay out side by side, and the heading is not a second column
- *  beside its table). */
-function settingsTableFor(heading: string, rows: string): string {
+/** One table's own Edit, or its Save/Cancel, on the same line as its
+ *  heading (AC-1, AC-2): Save/Cancel while THIS table is being edited,
+ *  Edit — enabled — while nothing is, Edit — disabled — while the OTHER
+ *  table is (AC-4: present in the markup, not removed). */
+function settingsTableActions(file: SettingsGroupFile, editingGroup: SettingsGroupFile | null, path: string): string {
+  if (editingGroup === file) {
+    return (
+      `<span class="factions">${btn({ label: "Save", variant: "primary", pending: "saving…" })}` +
+      // No `${prefix}-cancel` id like the other Cancel controls on this
+      // page's siblings (a plain link, not a submit-form pair) —
+      // `data-discard-changes` gives unsaved-changes.ts the same
+      // exemption by a different marker (spec 438).
+      `<a class="btn" data-discard-changes href="${esc(path)}?tab=config">Cancel</a></span>`
+    );
+  }
+  const disabled = editingGroup !== null;
+  return `<span class="factions">${
+    disabled
+      ? btn({ label: "Edit", type: "button", disabled: true })
+      : `<a class="btn primary" href="${esc(path)}?edit=${EDIT_GROUP_PARAM[file]}">Edit</a>`
+  }</span>`;
+}
+
+/** One heading-and-table block, wrapped for horizontal scroll like every
+ *  other list on this page — heading, its own Edit/Save/Cancel and the
+ *  table together in one element, so the block is a single unit
+ *  wherever it is placed (a `.frow`'s own children lay out side by
+ *  side, and the heading is not a second column beside its table). */
+function settingsTableFor(heading: string, rows: string, actions: string): string {
   return (
-    `<div><h3>${esc(heading)}</h3><div class="tablewrap"><table class="list">` +
+    `<div><div class="panelhead"><h3>${esc(heading)}</h3>${actions}</div>` +
+    `<div class="tablewrap"><table class="list">` +
     `<colgroup><col data-col="setting-name"><col data-col="setting-value"><col data-col="setting-comment"></colgroup>` +
     `<thead><tr><th>Name</th><th>Value</th>` +
     `<th>Comment</th></tr></thead><tbody>${rows}</tbody></table></div></div>`
@@ -128,7 +150,7 @@ function settingsTableFor(heading: string, rows: string): string {
 
 /** One setting's `<tr>` — no Comment cell ever names a file (AC-2): which
  *  file a row belongs to is said once, in its table's own heading. */
-function settingRowHtml(r: SettingRow, editing: boolean, opts: ProjectPageOptions): string {
+function settingRowHtml(r: SettingRow, isEditingThis: boolean, opts: ProjectPageOptions): string {
   // A value that does not resolve is marked where it is shown, in
   // readiness's own sentence — never a second wording of the same fact
   // (`project-settings.ts` reads it verbatim). Blocking-aware (spec
@@ -140,63 +162,46 @@ function settingRowHtml(r: SettingRow, editing: boolean, opts: ProjectPageOption
   return (
     `<tr><td>${esc(SETTING_LABELS[r.key] ?? r.key)} <span class="muted">${esc(r.key)}</span></td>` +
     `<td data-col="setting-value">` +
-    `${unsetTest && !editing ? `<span class="muted">–</span>` : settingValueCell(r, editing, opts)}</td>` +
+    `${unsetTest && !isEditingThis ? `<span class="muted">–</span>` : settingValueCell(r, isEditingThis, opts)}</td>` +
     `<td>${[esc(r.purpose), unsetTest ? unsetTestComment(r) : ""].filter(Boolean).join(" — ")}${problem}</td></tr>`
   );
 }
 
-/** The Config tab's two settings tables (spec 549: one per file, in
- *  place of the single table plus the sentence above it that used to say
- *  which file each row came from), and — in edit mode — both wrapped in
- *  one `<form>` so Save posts every changed field together.
+/** The Config tab's two settings tables (spec 549: one per file; spec
+ *  552: each with its own Edit/Save/Cancel, in place of the single
+ *  button row that used to sit above both) — at most one open for
+ *  editing at a time, and both wrapped in one `<form>` while one is, so
+ *  Save posts only that table's own fields.
  *
- *  `editing` is server-rendered from the request's own `?edit=1`, never
- *  stored: Edit is a link to it, Cancel and a successful Save's redirect
- *  both go to the Config tab without it. Exactly two `<table>` elements
- *  exist in the response either way. */
+ *  `editingGroup` is server-rendered from the request's own `?edit=`,
+ *  never stored: each table's own Edit is a link to it, Cancel and a
+ *  successful Save's redirect both go to the Config tab without it.
+ *  Exactly two `<table>` elements exist in the response either way. */
 export function unifiedSettingsTable(
   settings: ProjectSettingsView,
   name: string,
-  editing: boolean,
+  editingGroup: SettingsGroupFile | null,
   opts: ProjectPageOptions,
 ): string {
   const path = projectPagePath(name);
   const codeLanding = opts.codeLanding ?? "merge";
   const rowFor = (key: string): SettingRow | undefined => settings.rows.find((r) => r.key === key);
   const tables = SETTING_GROUPS.map((group) => {
+    const isEditingThis = editingGroup === group.file;
     const rows = group.keys
       .map((key) => rowFor(key))
       .filter((r): r is SettingRow => r !== undefined)
-      .map((r) => settingRowHtml(r, editing, opts))
+      .map((r) => settingRowHtml(r, isEditingThis, opts))
       .join("");
     const heading = group.file === ".aide/config" ? ".aide/config" : manifestFileHeading(opts.settingsHome);
     const withCodeLanding =
-      group.file === "manifest" ? rows + codeLandingRow(codeLanding, editing, opts.defaultBranch ?? null) : rows;
-    return settingsTableFor(heading, withCodeLanding);
+      group.file === "manifest" ? rows + codeLandingRow(codeLanding, isEditingThis, opts.defaultBranch ?? null) : rows;
+    return settingsTableFor(heading, withCodeLanding, settingsTableActions(group.file, editingGroup, path));
   });
-  if (!editing) {
-    // Two buttons even while reading (spec 301): Cancel sits here too,
-    // visibly disabled, so pressing Edit only swaps the two labels and
-    // enables the second button — nothing appears or disappears.
-    return (
-      `<div class="configactions"><a class="btn primary" href="${esc(path)}?edit=1">Edit</a>` +
-      btn({ label: "Cancel", type: "button", disabled: true }) +
-      `</div>` +
-      tables.join("")
-    );
-  }
+  if (editingGroup === null) return `<div class="configtables">${tables.join("")}</div>`;
   return (
     `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/settings" class="newspecform projectsettingsform">` +
     (opts.error ? rowMessage("failed", opts.error, { hook: "refusal", tag: "p" }) : "") +
-    // `.configactions` carries its own `flex-basis: 100%`, so it stacks
-    // above the tables the same way `.frow` does without needing that
-    // wrapper itself (spec 301).
-    `<div class="configactions">${btn({ label: "Save", variant: "primary", pending: "saving…" })}` +
-    // No `${prefix}-cancel` id like the other Cancel controls on this
-    // page's siblings (a plain link, not a submit-form pair) —
-    // `data-discard-changes` gives unsaved-changes.ts the same
-    // exemption by a different marker (spec 438).
-    `<a class="btn" data-discard-changes href="${esc(path)}?tab=config">Cancel</a></div>` +
     // One `.frow` per table (spec 531's reasoning extends to two): each
     // is its own full-width line in `.newspecform`'s flex-wrap layout, so
     // the two tables stack rather than squeeze onto one row beside it.

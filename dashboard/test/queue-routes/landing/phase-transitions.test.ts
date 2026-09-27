@@ -22,6 +22,18 @@ afterEach(() => {
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
+// A runner that stays alive until the test has written its step's result,
+// as a real one does. `/usr/bin/true` exited at once, and a runner poll
+// that came before the test's write read the step as vanished. Written
+// once for the file: a fresh executable costs seconds on macOS.
+const RUNNER = join(mkdtempSync(join(tmpdir(), "aide-transitions-runner-")), "runner.sh");
+writeFileSync(
+  RUNNER,
+  '#!/bin/sh\nwhile [ $# -gt 0 ]; do [ "$1" = --result-file ] && f="$2"; shift; done\n' +
+    'i=0; while [ ! -f "$f" ] && [ $i -lt 400 ]; do sleep 0.05; i=$((i + 1)); done\n',
+  { mode: 0o755 },
+);
+
 const AUTH = { "content-type": "application/json", accept: "application/json" };
 const SPEC = "81-queue-and-runner";
 const FAULTS = /nothing reached the files|disagree|run it again/;
@@ -118,7 +130,7 @@ describe("a chained job's row between its phases", () => {
         projectRoot: paths.root,
         queueProjectRoot: paths.root,
         gitRun: git.run,
-        queueRunnerBin: "/usr/bin/true",
+        queueRunnerBin: RUNNER,
         queueResultDir: results,
       },
     });

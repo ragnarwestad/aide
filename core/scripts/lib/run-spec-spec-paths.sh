@@ -301,8 +301,11 @@ fi
 run_model_turn() {
   # The transcript's size says where this turn's output begins: the dashboard
   # cuts the transcript there to put Aide's own lines between the turns.
-  local turn_at
+  local turn_at resume_part="$aide_part"
   turn_at="$({ wc -c < "$transcript"; } 2>/dev/null | tr -d ' ')"
+  # The Aide part this turn interrupts ends here, and picks up again
+  # after it — except preparing, which a turn always ends.
+  aide_part_close
   stage "model turn started (transcript at byte ${turn_at:-0})"
   # `set -m` puts the child in its OWN process group, so the deadline can
   # take down claude's children too — a kill that only reaches the parent
@@ -611,6 +614,8 @@ else
   [ -n "$error_msg" ] || error_msg="$tool produced no result JSON (exit $exit_code)"
   error_msg="$error_msg — press $step_button again"
 fi
+[ -n "$resume_part" ] && [ "$resume_part" != "preparing" ] && aide_part_open "$resume_part"
+return 0
 }
 
 if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reopen_keep_no_ai" ] \
@@ -690,6 +695,10 @@ else
     run_model_turn "$work_dir/prompt"
   fi
 fi
+# What Aide does once the AI is done: its own test run, the commit and
+# the push. A step with no AI turn goes straight on from preparing.
+aide_part_close
+aide_part_open "tests and commit"
 
 ok="false"
 [ "$terminal_reason" = "completed" ] && ok="true"

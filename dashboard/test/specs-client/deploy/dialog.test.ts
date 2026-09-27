@@ -271,7 +271,7 @@ describe("submitDeploy", () => {
       [{ label: "Projects", path: "/projects" }],
       {
         worktreeLinkCandidates: [],
-        editing: false,
+        editingGroup: null,
         tab: "deploy",
         drift: { behind: 2, checkedAt: 1735689600000 },
         deployFailure: { step: "install", error: "the install command failed (exit 1)" },

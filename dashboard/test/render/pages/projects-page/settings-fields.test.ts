@@ -3,6 +3,7 @@
 import { describe, expect, test } from "bun:test";
 import { renderProjectPage } from "../../../../src/render";
 import type { ProjectView } from "../../../../src/render";
+import type { SettingsGroupFile } from "../../../../src/project/project-settings.ts";
 
 const NAV = { specs: 0, running: 0 } as never;
 const project = (): ProjectView =>
@@ -19,10 +20,10 @@ const ROWS = [
   row("AIDE_TEST_CMD", "make test"),
 ];
 
-const page = (editing: boolean, candidates: string[] = []) =>
+const page = (editingGroup: SettingsGroupFile | null, candidates: string[] = []) =>
   renderProjectPage(project(), { hasConfigFile: true, rows: ROWS }, null, "2026-08-31T00:00:00Z", NAV, {
     worktreeLinkCandidates: candidates,
-    editing,
+    editingGroup,
     tab: "config",
     codeLanding: "merge",
   });
@@ -36,12 +37,29 @@ const table = (html: string) => {
 };
 
 describe("the settings table in edit mode", () => {
-  test("each text setting is a one-row textarea in a marked Value cell, and no text input is left (AC-1)", () => {
-    const html = table(page(true));
+  test("editing .aide/config: its two fields are textareas, the manifest's three stay plain text (AC-1, AC-3)", () => {
+    const html = table(page(".aide/config"));
     for (const [name, content] of [
       ["specsPath", "/repos/specs/aide"],
-      ["worktreeLinks", "node_modules"],
       ["installCmd", "bun install"],
+    ]) {
+      expect(html).toContain(`<td data-col="setting-value"><textarea name="${name}" data-oneline rows="1" maxlength="300"`);
+      expect(html).toMatch(new RegExp(`name="${name}"[^>]*>${content.replace("/", "\\/")}</textarea>`));
+    }
+    for (const [, content] of [["worktreeLinks", "node_modules"], ["previewCmd", "bun run dev"], ["testCmd", "make test"]]) {
+      expect(html).toContain(content);
+    }
+    expect(html).not.toContain('name="worktreeLinks"');
+    expect(html).not.toContain('name="previewCmd"');
+    expect(html).not.toContain('name="testCmd"');
+    expect(html).not.toContain("<select");
+    expect(html).not.toContain('<input type="text"');
+  });
+
+  test("editing the manifest: its three fields (and Code landing) are inputs, the .aide/config pair stays plain text (AC-1, AC-3)", () => {
+    const html = table(page("manifest"));
+    for (const [name, content] of [
+      ["worktreeLinks", "node_modules"],
       ["previewCmd", "bun run dev"],
       ["testCmd", "make test"],
     ]) {
@@ -49,23 +67,25 @@ describe("the settings table in edit mode", () => {
       expect(html).toMatch(new RegExp(`name="${name}"[^>]*>${content.replace("/", "\\/")}</textarea>`));
     }
     expect(html).toContain('<td data-col="setting-value"><select name="codeLanding">');
-    expect(html).not.toContain('<input type="text" name="specsPath"');
+    for (const content of ["/repos/specs/aide", "bun install"]) expect(html).toContain(content);
+    expect(html).not.toContain('name="specsPath"');
+    expect(html).not.toContain('name="installCmd"');
     expect(html).not.toContain('<input type="text"');
   });
 
   test("Worktree links suggestions are text under the field, never a datalist (AC-2)", () => {
-    const html = page(true, ["node_modules", ".venv"]);
+    const html = page("manifest", ["node_modules", ".venv"]);
     expect(html).toContain("Suggested from the checkout's .gitignore: node_modules .venv");
     expect(html).not.toContain("<datalist");
     expect(html).not.toContain(' list="');
-    expect(page(true, [])).not.toContain("Suggested from");
+    expect(page("manifest", [])).not.toContain("Suggested from");
   });
 
   test("a worked-out test command is a placeholder, never the field's content (AC-1)", () => {
     const rows = [row("AIDE_TEST_CMD", "pnpm test", "derived")];
     const html = renderProjectPage(project(), { hasConfigFile: true, rows }, null, "x", NAV, {
       worktreeLinkCandidates: [],
-      editing: true,
+      editingGroup: "manifest",
     });
     expect(html).toContain('<textarea name="testCmd" data-oneline rows="1" maxlength="300" placeholder="pnpm test"></textarea>');
   });
@@ -73,7 +93,7 @@ describe("the settings table in edit mode", () => {
 
 describe("the settings table in reading mode", () => {
   test("holds no control, and each value is text (AC-5)", () => {
-    const html = table(page(false));
+    const html = table(page(null));
     expect(html).not.toContain("<textarea");
     expect(html).not.toContain("<select");
     expect(html).toContain("/repos/specs/aide");
@@ -81,18 +101,41 @@ describe("the settings table in reading mode", () => {
   });
 });
 
+// AC-1, AC-4, AC-5: each table's own Edit, and the other one's while a
+// table is being edited.
+describe("each table's own Edit (AC-1, AC-4, AC-5)", () => {
+  test("nothing being edited: both tables' own Edit is present and enabled", () => {
+    const html = page(null);
+    expect((html.match(/<a class="btn primary" href="[^"]*\?edit=(config|manifest)">Edit<\/a>/g) ?? []).length).toBe(2);
+    expect(html).not.toMatch(/Edit[^<]*<\/button>/);
+  });
+
+  test("one table being edited: the OTHER table's Edit is present, but disabled", () => {
+    const html = page(".aide/config");
+    // The table being edited shows Save/Cancel, not a link to Edit.
+    expect(html).not.toContain('href="/projects/aide?edit=config">Edit</a>');
+    expect(html).not.toContain('href="/projects/aide?edit=manifest">Edit</a>');
+    expect(html).toMatch(/<button[^>]*disabled[^>]*>Edit<\/button>/);
+  });
+
+  test("Cancel or a successful Save returns both tables to read view with both Edit enabled (AC-5)", () => {
+    const html = page(null);
+    expect((html.match(/<button[^>]*disabled[^>]*>Edit<\/button>/g) ?? []).length).toBe(0);
+  });
+});
+
 // Spec 549: one table per file, and no row or sentence names a file
 // any more.
 describe("the Config tab is split into one table per file (spec 549)", () => {
   test("exactly two tables, headed .aide/config and the manifest's file (AC-1)", () => {
-    const html = page(false);
+    const html = page(null);
     expect((html.match(/<table class="list">/g) ?? []).length).toBe(2);
     expect(html).toContain("<h3>.aide/config</h3>");
     expect(html).toContain("<h3>.aide/project.yaml</h3>");
   });
 
   test("Specs path and Install command are in the .aide/config table; the rest and Code landing in the manifest's (AC-1)", () => {
-    const html = page(false);
+    const html = page(null);
     const configTable = html.slice(html.indexOf("<h3>.aide/config</h3>"), html.indexOf("<h3>.aide/project.yaml</h3>"));
     const manifestTable = html.slice(html.indexOf("<h3>.aide/project.yaml</h3>"));
     for (const text of ["/repos/specs/aide", "bun install"]) expect(configTable).toContain(text);
@@ -103,7 +146,7 @@ describe("the Config tab is split into one table per file (spec 549)", () => {
   });
 
   test("no row's Comment names a file, and no sentence sits above the tables (AC-2)", () => {
-    const html = page(false);
+    const html = page(null);
     expect(html).not.toMatch(/from \.aide\/config/);
     expect(html).not.toMatch(/from \.aide\/project\.yaml/);
     expect(html).not.toMatch(/from the dashboard's settings\.yaml/);

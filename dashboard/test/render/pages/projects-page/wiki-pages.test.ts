@@ -7,7 +7,7 @@ const project: ProjectView = { name: "aide", manifest: { ok: false, error: "no m
 const page = (extra: Record<string, unknown> = {}) =>
   renderProjectPage(project, { hasConfigFile: false, rows: [] }, null, "2026-09-26T00:00:00Z", NAV, {
     worktreeLinkCandidates: [],
-    editing: false,
+    editingGroup: null,
     tab: "wiki",
     ...extra,
   });

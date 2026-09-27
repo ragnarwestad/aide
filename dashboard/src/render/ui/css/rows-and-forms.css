@@ -93,27 +93,38 @@ td form { margin: 0; display: inline-block; }
 .panelhead { display: flex; justify-content: space-between; align-items: baseline;
   flex-basis: 100%; gap: var(--sp-2); margin-bottom: var(--sp-2); }
 .panelhead .factions { display: flex; gap: var(--sp-2); flex: none; }
-/* The Config tab's button row (spec 301): always two buttons, right-
-   aligned, with a deliberate gap to the table below. `flex-basis: 100%`
-   forces it onto its own line inside `.newspecform`'s flex-wrap layout
-   in edit mode, exactly as `.frow`'s does for the table beside it; in
-   view mode the row sits in ordinary block flow, where the property has
-   no effect and the div is already full width. */
+/* The Settings page's own button rows (its Phases form and each tool's
+   Check form): always right-aligned, with a deliberate gap to what is
+   above them. The Config tab drew its own version of this row above
+   both tables until spec 552 gave each table its own `.panelhead`
+   instead. */
 .configactions { display: flex; justify-content: flex-end; gap: var(--sp-2);
   flex-basis: 100%; margin-bottom: var(--sp-3); }
-/* View mode puts the row straight in the tab panel, under the notices,
-   with the air the edit form's own gap gives it there; in edit mode that
-   gap also stands below it, so its own margin comes off. Either way the
-   buttons and the table under them stand where they stood. */
-.tabpanel > .configactions { margin-top: var(--sp-3); }
-.projectsettingsform > .configactions { margin-bottom: 0; }
-/* A heading directly ahead of one of these tables carries no margin of
-   its own, so the comment above still holds: `h3`'s own top margin
-   would otherwise collapse into `.configactions`'s bottom margin in view
-   mode's ordinary block flow, but stay trapped inside the flex item
-   `.frow` wraps it in for edit mode, adding a second gap on top of the
-   flex row's own. */
-h3:has(+ .tablewrap) { margin-top: 0; }
+/* Two independent tables, each with its own heading+actions line (spec
+   552) — the gap between them is declared here, once, never as a margin
+   on settingsTableFor()'s own per-table div (dashboard-design.md,
+   "spacing lives in the container"). Matches the wider gap
+   `.projectsettingsform` gets below in edit mode, so Edit and Cancel do
+   not visibly jump when a save reopens the read-only view. */
+.configtables { display: flex; flex-direction: column; gap: var(--sp-5); }
+/* Matches `.newspecform`'s own margin-top below (AC-2): view mode's
+   plain container needs the same top margin the edit-mode form gets,
+   so the first table's own `.panelhead` sits at the same pixel position
+   in either state. */
+.tabpanel > .configtables { margin-top: var(--sp-3); }
+/* The same gap in edit mode (AC-6): `.newspecform`'s own `gap: var(--sp-3)`
+   is too narrow between the two `.frow`s each wrapping one of these
+   tables, so this form widens it to match `.configtables` above. */
+.projectsettingsform { gap: var(--sp-5); }
+/* `.newspecform .factions` above bottom-aligns a `.frow`'s own Save/
+   Cancel against a taller field beside it (the New-spec form) — a rule
+   that reaches this form's factions too, nested three levels deeper
+   inside its own `.panelhead`, and bottom-aligns Save/Cancel there
+   instead of centring it against the heading the way Edit is in view
+   mode (AC-2: the two states would no longer share one pixel position).
+   Reset back to the ordinary centring here, scoped to these two
+   containers' own panelheads only. */
+.configtables .panelhead .factions, .projectsettingsform .panelhead .factions { align-self: center; }
 /* The Settings page's phases form: as wide as its own table and centred
    in the frame. `table.settingstable` is `width: auto`, so it is as wide
    as its content and no wider — and with the form full width, Save and

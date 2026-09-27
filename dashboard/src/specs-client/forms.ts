@@ -170,7 +170,7 @@ export async function submitProjectChange(form: HTMLFormElement, event: Event): 
 // successful save has nothing further to say beyond what the fresh page
 // already shows: the new values, the form closed, the readiness
 // recomputed — so it goes back to the project's Config tab, dropping
-// `?edit=1`, and lets the server draw that page as it always does on a
+// `?edit=`, and lets the server draw that page as it always does on a
 // GET. A refusal stays exactly where every other form's does, in its
 // own `.refused` slot.
 export async function submitProjectSettings(form: HTMLFormElement, event: Event): Promise<void> {

@@ -13,13 +13,19 @@ import { queueHref } from "../filter-bar.ts";
 import type { SpecsPageOptions } from "../";
 import { phaseKey } from "./keys.ts";
 import { LIST_COLUMNS } from "../row-shared.ts";
+import type { LogPart } from "../../../../queue/parse-stream";
+import { logPartWriter } from "../../job-page/step-tabs.ts";
 
 export { phaseKey, parsePhaseKeys } from "./keys.ts";
 
-/** What the server knows of one phase's messages. */
+/** What the server knows of one phase's log: the step's Log, part by part. */
 export interface PhaseMessages {
-  /** Oldest first, already escaped: printed as given, never escaped again. */
-  messages: string[];
+  /** Oldest first, each part's lines already escaped: printed as given,
+   *  never escaped again. The same parts the step's Log on the Logs tab
+   *  draws, with the same separator line before each. */
+  logs: LogPart[];
+  /** The model the AI's parts name in their separator, when known. */
+  aiModel?: string;
   /** The step's key on the Logs tab (`&step=`), when it has one there. */
   step?: string;
   running: boolean;
@@ -83,9 +89,17 @@ export function phaseMessagesRow(
   const modelLine = modelId ? `<p class="muted small" data-model-id>${esc(t(lang, "list.phaseModel", { model: ranOn ?? "" }))}</p>` : "";
   const body = modelLine + (!found
     ? `<p class="phasemsgempty muted">${esc(t(lang, "list.phaseNoneKept"))}</p>`
-    : found.messages.length === 0
+    : !found.logs.some((part) => part.lines.length > 0)
       ? `<p class="phasemsgempty muted">${esc(t(lang, "list.phaseNoMessages"))}</p>`
-      : `<ul class="phasemsglist">${found.messages.map((m) => `<li>${m}</li>`).join("")}</ul>`);
+      : // The box opens at its end, where the last thing the phase did is.
+        `<div class="logbox"><ul class="phasemsglist">${found.logs
+          .filter((part) => part.lines.length > 0)
+          .map(
+            (part) =>
+              `<li class="muted">— ${esc(logPartWriter(part.by, found.aiModel, lang))} —</li>` +
+              part.lines.map((m) => `<li>${m}</li>`).join(""),
+          )
+          .join("")}</ul></div>`);
   return {
     tag: `<tr class="phasemsgs" data-msgs="${esc(p.step)}">`,
     cells: `<td colspan="${LIST_COLUMNS}">${body}<a class="phasemsgopen" href="${href}">${esc(t(lang, "list.phaseOpenLog"))}</a></td>`,

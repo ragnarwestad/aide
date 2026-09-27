@@ -24,7 +24,7 @@ export function aiLabel(tool: string | undefined, choice: string | undefined): s
 }
 
 /** The step's run log, when it has one. */
-function readRunLog(streamFile: string): string | undefined {
+export function readRunLog(streamFile: string): string | undefined {
   const path = runLogPath(streamFile);
   return existsSync(path) ? tailFile(path, RUN_LOG_MAX_BYTES) : undefined;
 }

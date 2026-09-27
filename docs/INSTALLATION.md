@@ -110,7 +110,7 @@ ls -la ~/develop/
 
 ### Step 2: (Optional) Per-project configuration
 
-Both keys are optional and apply to **all AI tools**.
+Both keys are optional and apply to **all AI tools**. [CONFIGURATION.md](CONFIGURATION.md) lists every key.
 
 #### AIDE_SPECS_PATH (per project, in .aide/config)
 

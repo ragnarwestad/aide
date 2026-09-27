@@ -41,7 +41,7 @@ const render = (list: QueueRowView[], opts: Partial<SpecsPageOptions> = {}) =>
       modelChoices: CHOICES,
       defaultModels: { default: "Opus" },
       filter: { open: KEY, phases: `${KEY}:analyze` },
-      phaseMessages: () => ({ messages: ["said"], running: false }),
+      phaseMessages: () => ({ logs: [{ by: "ai" as const, lines: ["said"] }], running: false }),
       ...opts,
     },
     Date.parse("2026-09-26T12:00:00Z"),
