@@ -164,6 +164,11 @@ export function archiveWithOpenAcceptance(ctx: ScheduleContext): Set<string> {
     if (!spec) continue;
     const peek = ctx.readBranchFileSteps().peekFileSteps(spec.dir, job.specFolder);
     if (peek.checkedAt === null || peek.stale) continue;
+    // Only once implement has run: before that, the script's own refusal —
+    // "not reached implement yet" — is the reason, and this would put the
+    // lesser one on the row.
+    const done = peek.steps?.stateSteps ?? peek.steps?.proseSteps ?? readSpecState(spec.dir)?.completedPhases ?? [];
+    if (!done.includes("implement")) continue;
     if (acceptanceStillOpen(peek.steps?.acceptanceOpen, readSpecState(spec.dir)?.acceptanceCriteria)) open.add(job.id);
   }
   return open;

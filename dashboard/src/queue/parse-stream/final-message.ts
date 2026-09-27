@@ -1,6 +1,6 @@
 // The assistant's own closing word.
 import { summarizeEntries } from "./entries.ts";
-import { codexKind, esc, events, sniff, type SummarizeOptions } from "./shared.ts";
+import { clip, codexKind, esc, events, sniff, splitMarks, type SummarizeOptions } from "./shared.ts";
 
 /** The assistant's own final message, in full — Claude's one `result`
  *  event's `result` field, Codex's LAST `agent_message` item's text, or
@@ -8,6 +8,11 @@ import { codexKind, esc, events, sniff, type SummarizeOptions } from "./shared.t
  *  `summarizeStream` returns: this is the run's own closing word, not a
  *  one-line label for something else. */
 export function finalMessage(text: string, opts: SummarizeOptions = {}): string | undefined {
+  const raw = rawFinalMessage(text, opts);
+  return raw === undefined ? undefined : esc(raw);
+}
+
+function rawFinalMessage(text: string, opts: SummarizeOptions): string | undefined {
   const tool = opts.tool ?? sniff(text);
   let found: string | undefined;
   for (const event of events(text)) {
@@ -17,38 +22,43 @@ export function finalMessage(text: string, opts: SummarizeOptions = {}): string 
       if (item === null || typeof item !== "object" || Array.isArray(item)) continue;
       const r = item as Record<string, unknown>;
       if (codexKind(r) !== "agent_message") continue;
-      if (typeof r.text === "string" && r.text.trim()) found = esc(r.text);
+      if (typeof r.text === "string" && r.text.trim()) found = r.text;
     } else if (tool === "opencode") {
       const part = event.part;
       if (part === null || typeof part !== "object" || Array.isArray(part)) continue;
       const p = part as Record<string, unknown>;
       if (p.type !== "text") continue;
-      if (typeof p.text === "string" && p.text.trim()) found = esc(p.text);
+      if (typeof p.text === "string" && p.text.trim()) found = p.text;
     } else {
       if (event.type !== "result") continue;
-      if (typeof event.result === "string" && event.result.trim()) found = esc(event.result);
+      if (typeof event.result === "string" && event.result.trim()) found = event.result;
     }
   }
   return found;
 }
 
-
-/** Whether a clipped entry (one flat line, at most 160 characters) is the
- *  final message itself. Both are escaped, and escaping is per character,
- *  so the clip is a prefix. */
-export function isFinal(entry: string, final: string): boolean {
-  const flat = final.replace(/\s+/g, " ").trim();
-  return entry === flat || (entry.endsWith("…") && flat.startsWith(entry.slice(0, -1)));
+/** Lines ending on the final message in full. The entries the message
+ *  itself made — its prose clipped, each step mark on its own — are
+ *  replaced when the lines end on them, and the message is appended when
+ *  they do not; its prose is unclipped, its marks stay lines of their own.
+ *  `cut` bounds a prose piece for a reader that shows less. */
+export function endWithFinalMessage(
+  lines: string[],
+  text: string,
+  opts: SummarizeOptions = {},
+  cut: (escaped: string) => string = (t) => t,
+): string[] {
+  const raw = rawFinalMessage(text, opts);
+  if (raw === undefined) return lines;
+  const pieces = splitMarks(raw);
+  const clipped = pieces.map((p) => esc(clip(p.text)));
+  const full = pieces.map((p) => (p.mark ? esc(p.text) : cut(esc(p.text.trim()))));
+  const n = clipped.length;
+  const endsOnIt = n > 0 && n <= lines.length && clipped.every((c, i) => lines[lines.length - n + i] === c);
+  return [...(endsOnIt ? lines.slice(0, lines.length - n) : lines), ...full];
 }
 
-/** A step's log lines, the last of them the whole final message: a last
- *  line that only repeats the message is replaced by it, and the message is
- *  appended when the log did not end on it. */
+/** A step's log lines, the last of them the whole final message. */
 export function linesWithFinalMessage(text: string, opts: SummarizeOptions = {}): string[] {
-  const lines = summarizeEntries(text, { ...opts, only: undefined }).map((e) => e.text);
-  const final = finalMessage(text, opts);
-  if (!final) return lines;
-  if (lines.length && isFinal(lines[lines.length - 1]!, final)) lines[lines.length - 1] = final;
-  else lines.push(final);
-  return lines;
+  return endWithFinalMessage(summarizeEntries(text, { ...opts, only: undefined }).map((e) => e.text), text, opts);
 }

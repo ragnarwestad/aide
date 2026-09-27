@@ -2,7 +2,7 @@
 // run said and what it did, one line each, in the three CLIs' own
 // schemas turned into one shape.
 import {
-  blocksOf, CLAUDE_WRITES, clip, codexKind, esc, events, keepsEntry, sniff, toolSubject, trim,
+  blocksOf, bounded, CLAUDE_WRITES, clip, codexKind, esc, events, keepsEntry, sniff, textEntries, toolSubject, trim,
   type StreamEntry, type StreamEntryKind, type SummarizeOptions,
 } from "./shared.ts";
 
@@ -42,7 +42,7 @@ function claudeEntries(text: string, opts: SummarizeOptions = {}): StreamEntry[]
     if (event.type !== "assistant") continue;
     for (const block of blocksOf(event)) {
       if (block.type === "text" && typeof block.text === "string" && block.text.trim()) {
-        keep({ kind: "text", text: esc(clip(block.text)) });
+        textEntries(block.text).forEach(keep);
       } else if (block.type === "tool_use" && typeof block.name === "string") {
         const subject = toolSubject(block.input);
         const kind: StreamEntryKind =
@@ -56,7 +56,7 @@ function claudeEntries(text: string, opts: SummarizeOptions = {}): StreamEntry[]
     }
     trim(out, max);
   }
-  return out.slice(-max);
+  return bounded(out, max);
 }
 
 /** What a Codex item was about, in the same one-line shape a Claude tool
@@ -129,11 +129,11 @@ function codexEntries(text: string, opts: SummarizeOptions = {}): StreamEntry[] 
     const item = event.item;
     if (item === null || typeof item !== "object" || Array.isArray(item)) continue;
     const { text: said, ...rest } = codexEntry(item as Record<string, unknown>);
-    const entry: StreamEntry = { ...rest, text: esc(clip(said)) };
-    if (said.trim() && keepsEntry(entry, opts.only)) out.push(entry);
+    const entries = rest.kind === "text" ? textEntries(said) : said.trim() ? [{ ...rest, text: esc(clip(said)) }] : [];
+    for (const entry of entries) if (keepsEntry(entry, opts.only)) out.push(entry);
     trim(out, max);
   }
-  return out.slice(-max);
+  return bounded(out, max);
 }
 
 /** What an opencode event was about, in the same one-line shape the
@@ -196,11 +196,11 @@ function opencodeEntries(text: string, opts: SummarizeOptions = {}): StreamEntry
     const part = event.part;
     if (part === null || typeof part !== "object" || Array.isArray(part)) continue;
     const { text: said, ...rest } = opencodeEntry(part as Record<string, unknown>);
-    const entry: StreamEntry = { ...rest, text: esc(clip(said)) };
-    if (said.trim() && keepsEntry(entry, opts.only)) out.push(entry);
+    const entries = rest.kind === "text" ? textEntries(said) : said.trim() ? [{ ...rest, text: esc(clip(said)) }] : [];
+    for (const entry of entries) if (keepsEntry(entry, opts.only)) out.push(entry);
     trim(out, max);
   }
-  return out.slice(-max);
+  return bounded(out, max);
 }
 
 /** The transcript, whichever tool wrote it, as classified entries — the

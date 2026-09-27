@@ -53,10 +53,11 @@ export async function jobDetailView(
   const dir = ctx.specDir(job.project, job.specFolder);
   const phase = dir && shownStep ? specPhaseFile(dir, shownStep) : null;
   // The running step is built from the job's live transcript, with no final message.
+  // The Logs page reads each transcript whole: its Log is the complete step.
   const liveRunLog = running && step && job.streamFile ? readRunLog(job.streamFile) : undefined; // before the transcript
   const live =
     running && step && job.streamFile
-      ? stepLog(tailFileAt(job.streamFile), liveRunLog, { tool: named, final: false })
+      ? stepLog(tailFileAt(job.streamFile, Infinity), liveRunLog, { tool: named, final: false })
       : undefined;
   return {
     ...(await ctx.jobRow(job)),
@@ -76,7 +77,7 @@ export async function jobDetailView(
         // The run log first, the transcript second: every offset in the log is then at most
         // the size the transcript has when it is read, whether or not the step is still running.
         const runLog = r.streamFile ? readRunLog(r.streamFile) : undefined;
-        const tail = r.streamFile ? tailFileAt(r.streamFile) : undefined;
+        const tail = r.streamFile ? tailFileAt(r.streamFile, Infinity) : undefined;
         const choice = resolveStepModel(job, r.step, ctx.queue.defaults.model ?? {});
         const changedFiles = r.repos
           ? (

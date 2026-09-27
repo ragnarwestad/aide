@@ -40,14 +40,13 @@ async function connect(base: string, query = ``): Promise<Stream> {
   return s;
 }
 
-/** The specs-root watch spec 204 opens is a recursive `fs.watch`, and
- *  FSEvents hands a fresh one the changes made in the milliseconds
- *  BEFORE it opened — here, the fixture's own project files, written by
- *  `start()` a moment before the server was made. One `changed` event
- *  at start-up is what that costs, and it costs nothing: a page open at
- *  the time redraws once, and a page opened afterwards never hears it.
- *  A test that asserts SILENCE has to let it pass first, or it is
- *  asserting something about the fixture rather than about the queue. */
+/** A server just started is not yet quiet, and its specs-root watch
+ *  (spec 204) needs a moment before it reports what happens under it:
+ *  under load, a stream read at once heard an event nobody caused, and a
+ *  folder written at once went unreported. A test that asserts silence,
+ *  or waits for an event it causes, lets that moment pass first. What the
+ *  watch was handed from before it opened is dropped by the server
+ *  itself (`isEcho`). */
 const settled = (): Promise<void> => Bun.sleep(600);
 
 async function enqueue(base: string): Promise<string> {
@@ -167,8 +166,6 @@ describe("a spec created outside the dashboard reaches an open page (spec 204)",
 
   test("a folder written straight to disk broadcasts `changed` (criterion 4)", async () => {
     const { base, dir } = harness.start();
-    // Let the start-up echo pass first, so the event read below is the
-    // one this test caused and not the fixture's own.
     await settled();
     const s = await connect(base);
     madeByHand(dir, "205-made-by-hand");

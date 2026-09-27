@@ -3,6 +3,7 @@
 
 import { watch } from "node:fs";
 import { discoverProjects } from "../../project/discover";
+import { isEcho } from "./watch-echo.ts";
 import {
   writeTo as writeToImpl,
   notifyQueueChanged as notifyQueueChangedImpl,
@@ -84,17 +85,16 @@ export function setupWatch(
   // project — the ground moving under the reader constantly, which is
   // the cost spec 189 already removed once.
   //
-  // One echo comes with it, and is deliberately left alone: FSEvents
-  // hands a fresh recursive watcher the changes made in the
-  // milliseconds before it opened, so a server started right after
-  // something wrote in a specs root broadcasts once at start-up. A page
-  // open at that moment redraws once — which a reconnect already does —
-  // and a page opened afterwards never hears it.
+  // A change made before the watch opened is dropped (`isEcho`).
   if (opts.projectRoot) {
     for (const p of discoverProjects(opts.projectRoot)) {
       if (!allowed.has(p.name)) continue;
       try {
-        specWatchers.set(p.name, watch(p.specsRoot, { recursive: true }, scheduleNotify));
+        const openedAt = Date.now();
+        const root = p.specsRoot;
+        specWatchers.set(p.name, watch(root, { recursive: true }, (_event, filename) => {
+          if (!isEcho(root, filename, openedAt)) scheduleNotify();
+        }));
       } catch {
         // A specs root that is missing or cannot be watched: the same
         // fail-open the git checks in this file already keep. The
