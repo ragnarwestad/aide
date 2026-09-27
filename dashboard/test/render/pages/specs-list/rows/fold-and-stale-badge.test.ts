@@ -199,16 +199,12 @@ describe("the description-changed badge (criteria 1, 3)", () => {
     );
     const line = runLine(html, "97-stale");
     expect(line).toMatch(/value="analyze" checked/);
-    // `implement` is done, so its box reads ticked and locked (spec
-    // 267) rather than pre-ticked — never a `name="steps"` field a
-    // press could re-submit.
-    expect(line).not.toMatch(/name="steps" value="implement"/);
-    // `analyze` and `archive` are what is left to run, so both carry a
-    // tickable, named box, and `implement` does not (spec 200).
-    // `create`'s box is ticked too and always is — it is the phase
-    // already behind you, not a phase a press would run — so it is
-    // counted out by its own lack of a field name, exactly as
-    // `implement`'s finished box now is too.
+    // `implement` has run: its box can be ticked for another run, but a
+    // press does not run it again unless the reader ticks it.
+    expect(line).toMatch(/name="steps" value="implement"/);
+    expect(line).not.toMatch(/value="implement" checked/);
+    // `analyze` and `archive` are what is left to run, so both are
+    // pre-ticked (spec 200); `create`'s box carries no field name.
     expect([...line.matchAll(/name="steps" value="[^"]*" checked/g)]).toHaveLength(2);
   });
 });

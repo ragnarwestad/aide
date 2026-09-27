@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { renderSpecsRows, type QueueRowView, type SpecTarget } from "../../../../../src/render";
-import { offersAnotherRound } from "../../../../../src/render/pages/specs-list/row-state.ts";
+import { roundOffered } from "../../../../../src/render/pages/specs-list/row-state.ts";
 import type { SpecGroup } from "../../../../../src/render/pages/specs-list";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status";
 import { openKeys, row } from "../../fixtures.ts";
@@ -116,8 +116,8 @@ describe("a spec whose criteria have all been ticked since archive refused", () 
     expect(box("archive")).toContain("checked");
     expect(box("archive")).not.toContain("disabled");
     // Implement reads as the phase behind it, not as a round to run
-    // again: done, and not a box a press would post.
-    expect(box("implement")).toContain("disabled");
+    // again: its box is not ticked for the press.
+    expect(box("implement")).not.toContain("checked");
   });
 });
 
@@ -147,16 +147,16 @@ describe("a reopened spec at implemented, with every row ticked", () => {
 
   test("a spec that is not reopened, with nothing open, offers no round AC-5", () => {
     const box = boxes(base);
-    expect(box("implement")).toContain("disabled");
+    expect(box("implement")).not.toContain("checked");
   });
 
   test("a spec reopened with reset, later declined on archive, offers none of it AC-5", () => {
     // `reopenedRound` is false for it: a Reopened mark follows the stamp.
-    expect(boxes({ ...base, reopenedRound: false })("implement")).toContain("disabled");
+    expect(boxes({ ...base, reopenedRound: false })("implement")).not.toContain("checked");
   });
 
   test("a reopened spec that is only at analyzed is not offered another round AC-5", () => {
     const g = { done: ["create", "analyze"], reopenedRound: true, phases: [] } as unknown as SpecGroup;
-    expect(offersAnotherRound(g, "analyze")).toBe(false);
+    expect(roundOffered(g)).toBe(false);
   });
 });

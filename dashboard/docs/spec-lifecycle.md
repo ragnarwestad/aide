@@ -107,7 +107,7 @@ stateDiagram-v2
     created --> analyzed: analyze
     analyzed --> analyzed: analyze again
     analyzed --> implemented: implement
-    implemented --> implemented: implement again
+    implemented --> implemented: implement or analyze again
     implemented --> archived: archive
     archived --> created: reopen with reset
     created --> closed: close
@@ -130,10 +130,9 @@ A `create` that ends without a spec (`failed`, `stopped`, `interrupted`, or a fa
 still under its provisional key) has no row. It leaves a message at the top of the specs list and a push notification,
 both offering to try again with what was typed; see [the specs list](the-specs-list.md#a-failed-create).
 
-**`create` to `analyze`.** A spec that has not implemented yet may be analyzed, again and again: `created` and
-`analyzed` both take the move — analyzing an analyzed spec simply leaves it analyzed. An `implemented` spec is refused — "analyze would rewrite
-a landed plan" — unless a round is under way, which is what changing an acceptance criterion opens; the round gate
-is asked first, and a spec that passes it has already moved back before the refusal could apply. The row's boxes
+**`create` to `analyze`.** Analyze may run on any active spec, again and again: `created`, `analyzed` and
+`implemented` all take the move, and running it again leaves the spec where it was. Whether to is the reader's
+choice. `create` itself never runs twice: its box is ticked and locked, and the run route refuses it. The row's boxes
 follow whatever was
 posted from New spec at create time — every phase by default, fewer if the reader unticked one — so an untouched
 create queues analyze, implement and archive as one job. The runner queues each following step the moment the one
@@ -141,8 +140,9 @@ before it completes, and starts it once that step's landing has settled. Until t
 duration read as still going, not as done — see [Beside the state](job-states.md#beside-the-state).
 
 **`analyze` to `implement`.** A spec that has not analyzed is refused — `not-analyzed-yet`, "run /aide-analyze
-first" — by the runner's own gate before the step starts, and by the queue before that, which holds the job
-`queued` with that reason on its row rather than starting it. An `analyzed` or `implemented` spec takes the move,
+first" — by the run route at the press, with that sentence, and by the runner's own gate before the step starts.
+Both read the default branch's `4-status`, so they cannot disagree. Between the steps of one job, the queue holds
+an implement whose analyze has not landed yet. An `analyzed` or `implemented` spec takes the move,
 and running implement on an implemented spec leaves it implemented, so a re-run needs no gate of its own. A dependency that has not archived holds it back
 too — see the next section. Beyond those, nothing is checked: an `implement` run against an empty `3-solution.md`
 is refused by the skill, not by the queue.
@@ -173,7 +173,7 @@ tick them on the spec's **Status** tab, or under the › on its row, and press A
 An Acceptance row marked `Not verified` counts as ticked for `acceptance-criteria-unticked`: a check that can only be
 made after deploy does not hold the archive back, and the spec keeps showing it until the row is ticked. A row marked
 `Failed` is open and does hold it back; Reopen (without reset) sets such rows back to open and leaves their `Failed:`
-notes, which `roundGate` reads as a changed criterion.
+notes.
 
 `acceptance-criteria-unticked` never applies to a spec created with the "acceptance ticking not required" switch.
 The switch itself is a `- **Acceptance:** not required` line in `1-description.md`'s Tracking info; its effect is
@@ -246,11 +246,8 @@ row stay as they are.
   nothing changed in between writes nothing; a later real round appends its own, and the last one is the one read.
 - **The user edits the criteria.** The open `AC-n` rows in `1-description.md` are rewritten to say more precisely what
   was missing, or new ones are added.
-- **Analyze or Implement then runs again on the same active spec — once at least one criterion is new or reworded
-  since the boundary.** The server compares each open row's text in `1-description.md` with its text at the
-  boundary's commit (`roundGate`, `src/project/parse-status/held-back.ts`), and refuses the round only when none has
-  changed and none was added: a round on the same words would give the same result. The other open criteria may stay
-  as they are.
+- **Analyze or Implement then runs again on the same active spec.** Whether the criteria have changed enough is the
+  reader's call; the server does not check it.
 - **The round touches only what is open.** Analyze appends a `## Round N` section to `2-analysis.md` and
   `3-solution.md` for the open and new ids, and `4-status.md` gains a row for each new id; no existing row's text or
   tick changes. A ticked criterion is approved, and nothing in the round traces to it. Implement may rewrite an open

@@ -67,7 +67,10 @@ export function queueHarness(prefix: string): QueueHarness {
       alsoSpecs = [],
       archivedSpecs = {},
       description = "# Queue - Description\n",
-      status = statusSaying(["create"]),
+      // Implemented: every step may be queued from here, since the run
+      // route refuses a start out of order. A test about an earlier phase
+      // says so with its own `status`.
+      status = statusSaying(["create", "analyze", "implement"]),
       liveState,
     } = {}) {
       const dir = mkdtempSync(join(tmpdir(), prefix));

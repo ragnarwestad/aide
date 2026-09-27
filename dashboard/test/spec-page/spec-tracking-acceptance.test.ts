@@ -28,6 +28,7 @@ describe("the acceptance switch on the spec page's tracking route", () => {
   test("REQ-10: the box CLEARED writes the not-required line", async () => {
     const { base, dir } = harness.start({
       description: TRACKED(),
+      status: statusSaying(["create"]),
       extra: { gitRun: savable("/host") },
     });
     const res = await track(base, { acceptanceEditable: "1", baseSha: FILE_SHA });
@@ -39,6 +40,7 @@ describe("the acceptance switch on the spec page's tracking route", () => {
   test("REQ-10: the box TICKED removes an existing not-required line", async () => {
     const { base, dir } = harness.start({
       description: TRACKED(ACCEPT_LINE),
+      status: statusSaying(["create"]),
       extra: { gitRun: savable("/host") },
     });
     const res = await track(base, { acceptanceEditable: "1", acceptanceRequired: "1", baseSha: FILE_SHA });

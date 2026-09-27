@@ -68,44 +68,35 @@ describe("a spec's row runs its own phases", () => {
   const box = (line: string, step: string) =>
     line.match(new RegExp(`<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "";
 
-  // Spec 124 left a done phase unticked, saying "done" only once, in
-  // the State column. Spec 267 reverses that: the box now answers a
-  // different question — has this phase run — so a done phase reads
-  // ticked AND locked, in the same shape `create`'s own line always
-  // has.
-  test("done phases are ticked and locked; the next one stays pre-ticked (spec 267, criterion 1)", () => {
+  // A phase that has run can be run again: its box is tickable, and it
+  // starts unticked, so a press runs it only when the reader asks. The
+  // State column is what says it is done.
+  test("a phase that has run can be ticked again, and starts unticked", () => {
     const html = rows(
       [job("j1", "analyze"), job("j2", "implement")],
       [target("94-row-runs-it", { done: ["analyze", "implement"] })],
     );
     const line = runLine(html, "94-row-runs-it");
-    expect(box(line, "analyze")).toContain("checked disabled");
-    expect(box(line, "implement")).toContain("checked disabled");
-    // Nothing is in flight, so the still-ahead box is not locked. (The
-    // stack's own Approve, Cancel and Merge are disabled — there is no
-    // job to approve and no branch to merge — which is spec 124's
-    // point: they stand there either way.)
+    for (const step of ["analyze", "implement"]) {
+      expect(box(line, step)).toContain(`name="steps" value="${step}"`);
+      expect(box(line, step)).not.toContain("checked");
+      expect(box(line, step)).not.toContain("disabled");
+    }
     expect(box(line, "archive")).toContain('value="archive" checked');
-    expect(box(line, "archive")).not.toContain("disabled");
   });
 
-  // A row that EXISTS is a spec that is not archived (2026-08-21), so
-  // `archive` is never counted as done however the history reads —
-  // which leaves it the one phase still tickable here. The two that
-  // really did run are ticked and locked instead (spec 267).
-  test("with every phase run, only archive stays tickable — the rest are ticked and locked", () => {
-    const line = runLine(
-      rows(
-        [job("j1", "archive")],
-        [target("94-row-runs-it", { done: ["analyze", "implement", "archive"] })],
-      ),
-      "94-row-runs-it",
+  // The choice a row remembers is the one its last press was made with,
+  // and it names phases that have run since. Ticked again, it would run
+  // them a second time on the next press.
+  test("a remembered choice does not tick a phase that has run since", () => {
+    const html = rows(
+      [job("j1", "analyze")],
+      [target("94-row-runs-it", { done: ["analyze"] })],
+      { pendingSteps: { "aide/94-row-runs-it": ["analyze", "implement", "archive"] } },
     );
-    for (const step of ["analyze", "implement"]) {
-      expect(box(line, step)).toContain("checked disabled");
-    }
-    expect(box(line, "archive")).toContain("checked");
-    expect(box(line, "archive")).not.toContain("disabled");
+    const line = runLine(html, "94-row-runs-it");
+    expect(box(line, "analyze")).not.toContain("checked");
+    expect(box(line, "implement")).toContain('value="implement" checked');
   });
 
   // Spec 200: a press takes the spec as far as it can go, so every
@@ -129,12 +120,11 @@ describe("a spec's row runs its own phases", () => {
   test("pre-ticking never re-ticks a phase already done on disk (criterion 2)", () => {
     // Nothing was ever queued for this spec, but its 2-analysis.md is
     // filled in: `done` is read off the files, not off job history.
-    // `analyze` is done, so its box reads ticked and locked (spec 267)
-    // rather than pre-ticked; the two phases after it are pre-ticked
-    // and tickable — every phase that has not run, not the next one
+    // `analyze` is done, so its box is not pre-ticked; the two phases
+    // after it are — every phase that has not run, not the next one
     // only.
     const line = runLine(rows([], [target("94-never-run", { done: ["analyze"] })]), "94-never-run");
-    expect(box(line, "analyze")).toContain("checked disabled");
+    expect(box(line, "analyze")).not.toContain("checked");
     expect(box(line, "implement")).toContain('value="implement" checked');
     expect(box(line, "archive")).toContain('value="archive" checked');
   });
@@ -377,35 +367,6 @@ describe("a spec's row runs its own phases", () => {
     expect(line).toContain(">Analyze</button>");
   });
 
-  // Spec 267: a finished phase reads ticked and locked, not tickable —
-  // the box answers "has this phase run", and `g.done` already proves
-  // it did. Re-running it is `/aide-reset`'s job, not this row's.
-  test("a phase already done is ticked and locked, not offered for a rerun (spec 267)", () => {
-    const line = runLine(
-      rows([job("j1", "analyze")], [target("94-row-runs-it", { done: ["analyze"] })]),
-      "94-row-runs-it",
-    );
-    expect(box(line, "analyze")).toContain(
-      '<label class="phase checked" data-phase="analyze">' +
-        '<input type="checkbox" value="analyze" checked disabled ' +
-        'aria-label="Analyze — already done, and not a step you can run"> ' +
-        "<span></span></label>",
-    );
-    expect(box(line, "analyze")).not.toContain('name="steps"');
-  });
-
-  test("a finished implement is ticked and locked the same way, while analyze stays tickable (spec 267)", () => {
-    const line = runLine(
-      rows([job("j1", "implement")], [target("94-row-runs-it", { done: ["implement"] })]),
-      "94-row-runs-it",
-    );
-    expect(box(line, "implement")).toContain("checked disabled");
-    expect(box(line, "implement")).not.toContain('name="steps"');
-    expect(box(line, "analyze")).toContain('name="steps" value="analyze"');
-    expect(box(line, "analyze")).toContain("checked");
-    expect(box(line, "analyze")).not.toContain("disabled");
-  });
-
   // The held-back-archive exception: `archive` ran and committed but
   // declined to move the folder, so it stays in `g.done` on a row that
   // is still active — and this box must keep the ordinary tickable
@@ -442,24 +403,6 @@ describe("a spec's row runs its own phases", () => {
     expect(box(line, "analyze")).not.toContain("already done");
   });
 
-  // Spec 286: a later phase retrying (e.g. archive, after a failed
-  // landing) must not blank out the boxes of earlier phases the SAME run
-  // already finished — the busy job's own `steps` only names what IT will
-  // run, and `g.done` is still the truthful record of what already ran.
-  test("a done phase keeps its checked box while a later phase in the same run retries (spec 286)", () => {
-    const line = runLine(
-      rows(
-        [job("j1", "archive", { state: "running" })],
-        [target("94-row-runs-it", { done: ["analyze", "implement"] })],
-      ),
-      "94-row-runs-it",
-    );
-    for (const step of ["analyze", "implement"]) {
-      expect(box(line, step)).toContain("checked disabled");
-      expect(box(line, step)).not.toContain('name="steps"');
-    }
-  });
-
 });
 
 // The Select column and the two selects beside it answer the same
@@ -489,11 +432,18 @@ describe("a phase whose box is locked has its AI and model locked too", () => {
   const select = (html: string, attr: string, step: string) =>
     html.match(new RegExp(`<select ${attr}="model\\.${step}"[^>]*>`))?.[0] ?? "";
 
-  test("a phase this row has run offers neither pick", () => {
+  test("a phase this row has run keeps both picks, for the next run of it", () => {
     const analyze = line(render(["analyze"]), "analyze");
-    expect(analyze).toContain("checked disabled");
-    expect(select(analyze, "name", "analyze")).toContain("disabled");
-    expect(select(analyze, "data-ai", "analyze")).toContain("disabled");
+    expect(analyze).not.toContain("disabled");
+    expect(select(analyze, "name", "analyze")).not.toContain("disabled");
+    expect(select(analyze, "data-ai", "analyze")).not.toContain("disabled");
+  });
+
+  // Create never runs twice, however far the spec has got.
+  test("create stays ticked and locked on a row whose phases have all run", () => {
+    const create = line(render(["analyze", "implement"]), "create");
+    expect(create).toContain("checked disabled");
+    expect(select(create, "name", "create")).toContain("disabled");
   });
 
   test("create is drawn the same way, on a row that has run nothing", () => {
@@ -601,15 +551,4 @@ describe("a held-back spec's row offers the round again", () => {
     expect(line).toContain(">Archive</button>");
   });
 
-  test("an archive held back for any other reason leaves them locked", () => {
-    const html = rows(ran, [target({ done, archiveHeldBack: { reason: "the Slack webhook" } })]);
-    const line = runLine(html, "471-another-round");
-    for (const step of done) expect(box(line, step)).toContain("checked disabled");
-  });
-
-  test("an ordinary implemented spec still reads as done (spec 267)", () => {
-    const html = rows(ran, [target({ done })]);
-    const line = runLine(html, "471-another-round");
-    for (const step of done) expect(box(line, step)).toContain("checked disabled");
-  });
 });

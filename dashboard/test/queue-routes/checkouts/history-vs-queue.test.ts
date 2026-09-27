@@ -50,9 +50,8 @@ describe("spec 139: the steps a spec has had say so themselves", () => {
     expect(phaseDone(line, "analyze")).toBe(true);
     expect(phaseDone(line, "implement")).toBe(false);
     expect(line).toMatch(/value="implement" checked/);
-    // analyze is done, so its box is ticked and locked (spec 267) —
-    // never a `name="steps"` box a press could re-submit.
-    expect(line).not.toMatch(/name="steps" value="analyze"/);
+    // analyze has run, so a press does not run it again unticked.
+    expect(line).not.toMatch(/value="analyze" checked/);
   });
 
   // Implement's mark used to be earned from the percentage, which says

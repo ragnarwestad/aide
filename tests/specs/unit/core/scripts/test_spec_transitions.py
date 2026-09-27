@@ -121,14 +121,9 @@ def test_archive_is_legal_from_implemented(tmp_path):
 # --- REQ-9: backward moves are refused, naming the way back ----------------
 
 
-def test_analyze_refused_once_implemented_names_another_round(tmp_path):
+def test_analyze_may_run_again_once_implemented(tmp_path):
     status_file = _status_file(tmp_path, "7-x", workflow_line="create, analyze, implement")
-    result = may_apply(status_file, "analyze")
-    assert result["RC"] == "1"
-    assert result["REASON"] == "already-implemented"
-    # The way back is another round, since the reset step was removed.
-    assert "another round" in result["MESSAGE"]
-    assert "aide-reset" not in result["MESSAGE"]
+    assert may_apply(status_file, "analyze")["RC"] == "0"
 
 
 def test_create_refused_once_analyzed_says_so_without_naming_a_way_back(tmp_path):

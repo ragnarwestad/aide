@@ -10,7 +10,7 @@ import type { SpecsPageOptions } from "./";
 import { RUN_STEPS, groupKey, isArchivedRow, type SpecGroup } from "./data-model";
 import { costCell, phaseDurationCell, phaseWordCell, specTotalCell } from "./cell-helpers.ts";
 import { aiPicker, ALREADY_RUN_REASON, compactModelLabel, compactModelLabelFull, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells } from "./model-picker.ts";
-import { chosenSteps, offersAnotherRound, runFormId, specBusy } from "./row-state.ts";
+import { chosenSteps, runFormId, specBusy } from "./row-state.ts";
 import { stateAction } from "./row-controls.ts";
 import { NO_PULL_REQUEST, prErrorOf, prErrorSentence } from "./row-shared.ts";
 import { phaseHasRun, phaseMessagesFold, phaseMessagesRow } from "./phase-messages";
@@ -20,10 +20,8 @@ import { phaseHasRun, phaseMessagesFold, phaseMessagesRow } from "./phase-messag
 const GUARD_REFUSALS = new Set(["not-implemented-yet", "acceptance-criteria-unticked"]);
 const stepResultOf = (r: QueueRowView, step: string) => (r.results ?? []).find((x) => x.step === step);
 
-// Ticked and locked: the box answers "has this phase run", nothing
-// else. Shared by `create` (always) and by any other phase once
-// `g.done` proves it ran (spec 267) — the two call sites differ only
-// in WHEN they reach here, never in what they draw.
+// Ticked and locked: `create`'s box, the one phase that never runs
+// twice — the folder being on disk is its answer.
 function finishedPhaseChip(step: string): string {
   return phaseChip({
     dataAttr: "data-phase",
@@ -48,13 +46,11 @@ function finishedPhaseChip(step: string): string {
 // a Run button: one press runs whatever is ticked, from the row's one
 // action beside the state.
 //
-// A phase this row's own history proves ran (`g.done`) is ticked and
-// LOCKED, not tickable (spec 267) — the box answers one question only,
-// has this phase run, and the phase's own State column already says
-// "done" beside it. `archive` is excepted (a held-back archive stays
-// offered from this row, see `finished` below), and so is a phase
-// genuinely busy re-running by hand: the busy arm renders that case,
-// with its own reason, and this rule only ever applies while idle.
+// A phase that has run keeps a box that can be ticked: running it again
+// is the reader's choice, and the phase's own State column already says
+// "done" beside it. `create` alone is ticked and locked. A start out of
+// order — implement before analyze, archive before implement — is
+// refused by the run route, with the reason.
 //
 // The leading cell is the phase's NAME, hard left and alone (spec
 // 165). It was the action column's, reserved and never filled, until
@@ -172,44 +168,6 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
       // not reached, which the reader may add to it or drop from it as
       // the run goes.
       const live = editable.has(p.step);
-      // Since spec 267 it is no longer the only phase drawn this way:
-      // `finished` below reaches the same `finishedPhaseChip` once
-      // `g.done` proves a RUN_STEPS phase ran too.
-      //
-      // A phase this row's own history proves ran. `archive` is excluded
-      // on purpose (spec 267): a HELD-BACK archive — one that ran and
-      // committed but declined to move the folder
-      // (`archiveHeldBackReason`, parse-status.ts) — leaves `archive`
-      // in `g.done` on a row that is still active, and stays offered
-      // from this same row exactly as before, so its box keeps the
-      // tickable treatment below.
-      //
-      // Busy excludes only the phase the CURRENT job is itself naming
-      // (spec 286) — not the whole row. A job re-running this exact step
-      // by hand (outside this row) still reports the
-      // older `g.done`, and the busy arm beneath this one already renders
-      // that correctly, with its own reason in the title; this branch
-      // must not shadow it. But a job retrying a LATER phase (e.g.
-      // archive, after an earlier landing failure) does not name an
-      // already-finished earlier phase at all — `g.lead.steps` is fixed
-      // at that job's own creation — and such a phase must keep reading
-      // as done, exactly as it does while the row is idle. Same test the
-      // busy branch's own `checked` uses two lines below, for the same
-      // "did THIS job name this step" question.
-      //
-      // Analyze and Implement are excluded the same way while the
-      // archive is held back on unticked acceptance criteria (spec
-      // 471): the round may be run again from this row, and a locked
-      // box was the one part of that rule with nothing to press. Only
-      // while the row is idle — a press has nowhere to go while it is
-      // busy, and the box would be saying "not run" about a phase that
-      // has run.
-      const finished =
-        RUN_STEPS.includes(p.step) &&
-        p.step !== "archive" &&
-        g.done.includes(p.step) &&
-        !(busy && g.lead?.steps.includes(p.step)) &&
-        !(!busy && offersAnotherRound(g, p.step));
       // What the last run used is not spelled out in text any more —
       // it IS the picker's pre-filled value, in the column the caption
       // calls "Model".
@@ -244,8 +202,6 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
             // be the row saying "archived" a fifth time.
             plain: true,
           })
-        : finished
-        ? finishedPhaseChip(p.step)
         : RUN_STEPS.includes(p.step)
         ? phaseChip({
             // `data-phase`, not `data-step`: the line already carries
@@ -308,11 +264,11 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
       const recordedModel = p.model?.split(" ").slice(1).join(" ") || undefined;
       // The Select box's own answer, read once for the two selects beside
       // it: a phase whose box is drawn ticked and disabled cannot be
-      // given an AI or a model either. `finished` covers a phase this
-      // row has run; a step outside `RUN_STEPS` — `create` above all —
-      // is drawn the same way and is locked for the same reason. The
-      // archived row and the busy one are the pickers' own, already.
-      const alreadyRun = finished || !RUN_STEPS.includes(p.step);
+      // given an AI or a model either. That is `create` alone: a phase
+      // that has run may be run again, and it is the reader's to choose
+      // (the route refuses only a start out of order). The archived row
+      // and the busy one are the pickers' own, already.
+      const alreadyRun = !RUN_STEPS.includes(p.step);
       const pickCell =
         `<td class="modelcell"><span class="row">` +
         // No effort control: the line names the AI and the model, and

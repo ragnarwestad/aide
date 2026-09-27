@@ -425,4 +425,4 @@ export { tickStatusLine, markNotVerifiedStatusLine, untickStatusLine, markFailed
 export { notVerifiedCount, failedCount, cleanFailNote, failNoteTooLong, FAIL_NOTE_MAX, checkStateOf, type CheckState } from "./not-verified.ts";
 
 // What used to live here too, in parts beside this file.
-export { archiveHeldBackReason, acceptanceCriteriaUnticked, acceptanceRowsOf, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, acceptanceStillOpen, archiveHeldBackApplies, clearArchiveHeldBack, roundGate, latestRoundBoundary, reopenedRound } from "./held-back.ts";
+export { archiveHeldBackReason, acceptanceCriteriaUnticked, acceptanceRowsOf, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, acceptanceStillOpen, archiveHeldBackApplies, clearArchiveHeldBack, latestRoundBoundary, reopenedRound } from "./held-back.ts";

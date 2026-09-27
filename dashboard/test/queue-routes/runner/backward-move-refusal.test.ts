@@ -1,13 +1,14 @@
-// Spec 356 (REQ-9): the spec-342 bug — `analyze` (or `create`) requested
-// on a spec that has already reached a later phase must be refused
-// before the job ever reaches the queue, naming the way
-// back. `job-actions.ts` is the one HTTP-reachable path both the
-// spec-page control and the specs-list row's forms post through.
+// What a Run press may start. A phase that has run may be run again —
+// that is the reader's choice — and the route refuses only a start out
+// of order, at the press and with the table's own sentence, before
+// anything reaches the queue: implement before analyze, archive before
+// implement, and create on a spec that exists. `job-actions.ts` is the
+// one HTTP-reachable path both the spec page and the specs-list row
+// post through.
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 import { statusSaying } from "../../helpers/queue-server.ts";
-import { fakeGit } from "../../helpers/fake-git.ts";
 
 const { harness } = setupQueueRoutesHarness();
 
@@ -22,147 +23,44 @@ const queue = (base: string, steps: string[]) =>
     body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps }),
   });
 
-// --- spec 471: a held-back spec's own round-gate exception -----------------
+const queued = async (base: string): Promise<number> =>
+  ((await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as { jobs: unknown[] }).jobs.length;
 
-const BOUNDARY_SHA = "abc1234";
-const heldBackStatus = (acRow: string) =>
-  statusSaying(
-    ["create", "analyze", "implement"],
-    `- **Round boundary:** 2026-09-01 (history before \`${BOUNDARY_SHA}\` does not count)\n\n` +
-      "## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n" +
-      `${acRow}\n`,
-  );
+describe("a phase that has run may be run again", () => {
+  test("analyze on an implemented spec is accepted", async () => {
+    const { base } = harness.start({ extra: {}, status: statusSaying(["create", "analyze", "implement"]) });
+    expect((await queue(base, ["analyze"])).status).toBe(200);
+    expect(await queued(base)).toBe(1);
+  });
 
-describe("spec 471: a held-back spec's round-gate, for BOTH analyze and implement", () => {
-  for (const step of ["analyze", "implement"]) {
-    test(`${step}: no open AC-n row changed since the round boundary is refused, saying so`, async () => {
-      const { run } = fakeGit({ "show abc1234:./1-description.md": { code: 0, stdout: "- **AC-1:** first requirement\n" } });
-      const { base } = harness.start({
-        extra: { gitRun: run },
-        status: heldBackStatus("| AC-1: first requirement | ⬜ | |"),
-        description: "# Queue - Description\n\n- **AC-1:** first requirement\n",
-      });
-      const res = await queue(base, [step]);
-      expect(res.status).toBe(400);
-      const body = (await res.json()) as { error: string };
-      expect(body.error).toContain("no acceptance criterion is new or reworded");
+  test("analyze again on an analyzed spec is accepted", async () => {
+    const { base } = harness.start({ extra: {}, status: statusSaying(["create", "analyze"]) });
+    expect((await queue(base, ["analyze"])).status).toBe(200);
+  });
 
-      const listed = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as { jobs: unknown[] };
-      expect(listed.jobs).toHaveLength(0);
-    });
+  test("implement again on an implemented spec is accepted", async () => {
+    const { base } = harness.start({ extra: {}, status: statusSaying(["create", "analyze", "implement"]) });
+    expect((await queue(base, ["implement"])).status).toBe(200);
+  });
 
-    test(`${step}: an open AC-n row reworded since the round boundary is accepted`, async () => {
-      const { run } = fakeGit({ "show abc1234:./1-description.md": { code: 0, stdout: "- **AC-1:** first requirement\n" } });
-      const { base } = harness.start({
-        extra: { gitRun: run },
-        status: heldBackStatus("| AC-1: first requirement, reworded | ⬜ | |"),
-        description: "# Queue - Description\n\n- **AC-1:** first requirement, reworded\n",
-      });
-      const res = await queue(base, [step]);
-      expect(res.status).toBe(200);
-
-      const listed = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as { jobs: unknown[] };
-      expect(listed.jobs).toHaveLength(1);
-    });
-  }
-});
-
-// --- spec 511: a reopened spec takes the same round --------------------------
-
-const reopenedStatus = (rows: string[]) =>
-  statusSaying(
-    ["create", "analyze", "implement"],
-    "- **Archived:** 2026-09-10\n" +
-      `- **Round boundary:** 2026-09-19 (history before \`${BOUNDARY_SHA}\` does not count)\n\n` +
-      "## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n" +
-      `${rows.join("\n")}\n`,
-  );
-
-describe("spec 511: a reopened spec's round-gate, for BOTH analyze and implement", () => {
-  const atBoundary = { "show abc1234:./1-description.md": { code: 0, stdout: "- **AC-1:** first requirement\n" } };
-  for (const step of ["analyze", "implement"]) {
-    test(`${step}: everything ticked and nothing new is refused, saying to add or reword AC-5`, async () => {
-      const { run } = fakeGit(atBoundary);
-      const { base } = harness.start({
-        extra: { gitRun: run },
-        status: reopenedStatus(["| AC-1: first requirement | ✅ | |"]),
-        description: "# Queue - Description\n\n- **AC-1:** first requirement\n",
-      });
-      const res = await queue(base, [step]);
-      expect(res.status).toBe(400);
-      const body = (await res.json()) as { error: string };
-      expect(body.error).toContain("Add a criterion, or reword one and untick its row");
-    });
-
-    test(`${step}: a new criterion is accepted AC-5`, async () => {
-      const { run } = fakeGit(atBoundary);
-      const { base } = harness.start({
-        extra: { gitRun: run },
-        status: reopenedStatus(["| AC-1: first requirement | ✅ | |"]),
-        description: "# Queue - Description\n\n- **AC-1:** first requirement\n- **AC-2:** brand new\n",
-      });
-      expect((await queue(base, [step])).status).toBe(200);
-    });
-
-    test(`${step}: a reworded criterion with its row unticked is accepted AC-5`, async () => {
-      const { run } = fakeGit(atBoundary);
-      const { base } = harness.start({
-        extra: { gitRun: run },
-        status: reopenedStatus(["| AC-1: first requirement, reworded | ⬜ | |"]),
-        description: "# Queue - Description\n\n- **AC-1:** first requirement, reworded\n",
-      });
-      expect((await queue(base, [step])).status).toBe(200);
-    });
-
-    test(`${step}: a reworded criterion whose row is still ticked is refused AC-5`, async () => {
-      const { run } = fakeGit(atBoundary);
-      const { base } = harness.start({
-        extra: { gitRun: run },
-        status: reopenedStatus(["| AC-1: first requirement, reworded | ✅ | |"]),
-        description: "# Queue - Description\n\n- **AC-1:** first requirement, reworded\n",
-      });
-      expect((await queue(base, [step])).status).toBe(400);
-    });
-  }
-
-  test("a spec never reopened, implemented, every row ticked: analyze refused as before AC-5", async () => {
-    const { base } = harness.start({
-      extra: {},
-      status: statusSaying(["create", "analyze", "implement"],
-        "## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n| AC-1: x | ✅ | |\n"),
-    });
-    const res = await queue(base, ["analyze"]);
-    expect(res.status).toBe(400);
-    expect(((await res.json()) as { error: string }).error).toContain("another round");
+  test("analyze and implement together on a created spec are accepted", async () => {
+    const { base } = harness.start({ extra: {}, status: statusSaying(["create"]) });
+    expect((await queue(base, ["analyze", "implement"])).status).toBe(200);
   });
 });
 
-describe("REQ-9: a backward move is refused before it reaches the queue", () => {
-  test("analyze requested on an already-implemented spec is refused, naming another round", async () => {
-    const { base } = harness.start({
-      extra: {},
-      status: statusSaying(["create", "analyze", "implement"]),
-    });
-
-    const res = await queue(base, ["analyze"]);
+describe("a start out of order is refused at the press, with the reason", () => {
+  const refused = async (done: string[], steps: string[], says: string) => {
+    const { base } = harness.start({ extra: {}, status: statusSaying(done) });
+    const res = await queue(base, steps);
     expect(res.status).toBe(400);
-    const body = (await res.json()) as { error: string };
-    expect(body.error).toContain("another round");
+    expect(((await res.json()) as { error: string }).error).toContain(says);
+    expect(await queued(base)).toBe(0);
+  };
 
-    const listed = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as { jobs: unknown[] };
-    expect(listed.jobs).toHaveLength(0);
-  });
+  test("implement before analyze", () => refused(["create"], ["implement"], "has not been analyzed yet"));
 
-  test("analyze requested again on a spec still analyzed (same phase) is accepted", async () => {
-    const { base } = harness.start({
-      extra: {},
-      status: statusSaying(["create", "analyze"]),
-    });
+  test("archive before implement", () => refused(["create", "analyze"], ["archive"], "has not reached implement yet"));
 
-    const res = await queue(base, ["analyze"]);
-    expect(res.status).toBe(200);
-
-    const listed = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as { jobs: unknown[] };
-    expect(listed.jobs).toHaveLength(1);
-  });
+  test("create on a spec that exists", () => refused(["create", "analyze"], ["create"], "create cannot run again"));
 });

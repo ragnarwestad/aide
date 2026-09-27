@@ -114,6 +114,10 @@ function defaultTicked(g: SpecGroup): Set<string> {
 export function chosenSteps(g: SpecGroup, opts: { pendingSteps?: Record<string, string[]> }): Set<string> {
   const recorded = opts.pendingSteps?.[groupKey(g.project, g.specFolder)];
   const chosen = recorded ? new Set(recorded) : defaultTicked(g);
+  // A phase that has run is run again only when the reader ticks it:
+  // its box is no longer locked, and a choice remembered from before it
+  // ran would otherwise run it a second time on the next press.
+  if (recorded) for (const step of g.done) if (step !== "archive") chosen.delete(step);
   // Held back on its checks: archive is what comes next, and the round
   // offered beside it is a choice the reader makes by ticking. The
   // remembered choice names the chain that has just run, and ticked
@@ -197,10 +201,6 @@ export const rowAnchorId = (g: SpecGroup): string => `spec-${groupKey(g.project,
 export { specNumber } from "../../../project/spec-folder.ts";
 
 // --- spec 471: another round on a spec held back on its checks -------------
-/** The steps another round runs. `archive` is offered from a held-back
- *  row already (`finished` excludes it), and `create` never runs twice. */
-const ROUND_STEPS = new Set(["analyze", "implement"]);
-
 /** The archive step's own refusal, as the RUNNER leaves it: the
  *  mechanical precheck turns the step away before any model is spawned,
  *  and the job it belongs to finishes `done` with no error of its own.
@@ -225,16 +225,7 @@ export function heldBackOnChecks(g: SpecGroup): boolean {
     archive.attempts.some(refusedForChecks);
 }
 
-/** Would a press on this phase's box start the round again? The row
- *  asks only what it can answer without git; whether the round may
- *  actually start — every open criterion new or changed since the round
- *  boundary — is the run route's own gate, and its refusal names the
- *  criterion that has not moved. */
-export function offersAnotherRound(g: SpecGroup, step: string): boolean {
-  return ROUND_STEPS.has(step) && roundOffered(g);
-}
-
-/** The one question both `chosenSteps` and `offersAnotherRound` ask: is
+/** The question `chosenSteps` asks: is
  *  another round offered on this row — held back on its checks, or
  *  reopened with the files kept (spec 511) and at implemented, where
  *  nothing is open by construction. */

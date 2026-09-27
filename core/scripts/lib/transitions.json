@@ -3,9 +3,7 @@
   "rows": [
     { "phase": "created", "event": "analyze", "next": "analyzed", "refusal": null, "condition": null },
     { "phase": "analyzed", "event": "analyze", "next": "analyzed", "refusal": null, "condition": null },
-    { "phase": "implemented", "event": "analyze", "next": null,
-      "refusal": { "reason": "already-implemented", "message": "%s has already implemented — analyze would rewrite a landed plan; change an acceptance criterion and run another round" },
-      "condition": null },
+    { "phase": "implemented", "event": "analyze", "next": "implemented", "refusal": null, "condition": null },
     { "phase": "archived", "event": "analyze", "next": null,
       "refusal": { "reason": "already-archived", "message": "%s is archived — only reopen can be asked for it" },
       "condition": null },

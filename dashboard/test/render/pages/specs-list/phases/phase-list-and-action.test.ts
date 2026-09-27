@@ -233,17 +233,15 @@ describe("spec 124: one phase list, and one action beside the state", () => {
   // phase done" (the State column's job, unchanged) but "has this
   // phase run at all" — which a done phase answers yes to, ticked and
   // locked.
-  test("a done phase's box is ticked and locked; the State column still carries 'done' alone (spec 267, criterion 4)", () => {
+  test("a done phase's box can be ticked again; the State column carries 'done' (criterion 4)", () => {
     const html = rows(
       [row({ id: "j1", specFolder: "124-stack", state: "done" })],
       [target("124-stack", { done: ["analyze"] })],
     );
     for (const step of ["analyze"]) {
       const b = box(subRow(html, step), step);
-      expect(b).toContain("already done");
-      expect(b).toContain("checked disabled");
-      // The State column still says "done" — the box's own accessible
-      // label is what changed, not this cell.
+      expect(b).not.toContain("checked");
+      expect(b).not.toContain("disabled");
       expect(subRow(html, step)).toContain('class="badge b-done"');
     }
     expect(box(subRow(html, "implement"), "implement")).toContain('value="implement" checked');

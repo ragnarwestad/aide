@@ -7,7 +7,7 @@ import { cancelLanding } from "../land-branch/cancel-landing.ts";
 import { join } from "node:path";
 import { FROM_LIST_FIELD, specPagePath } from "../../render";
 import { readSpecState } from "../../project/parse-spec-state.ts";
-import { acceptanceCriteriaUnticked, parseStatus, reopenedRound, roundGate } from "../../project/parse-status";
+import { parseStatus } from "../../project/parse-status";
 import { isLegalMove, phaseFromState } from "../../queue/spec-transitions.ts";
 import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../serve-helpers";
 import type { RoutesContext } from "./";
@@ -26,27 +26,9 @@ function proseSteps(dir: string): string[] {
   }
 }
 
-/** `4-status.md`'s raw text, for the round-gate check (spec 471) —
- *  `""` for a spec with no state file yet, which `acceptanceCriteriaUnticked`
- *  already reads as "nothing open" (no rows to find at all). */
-function proseStatusText(dir: string): string {
-  try {
-    return readFileSync(join(dir, "4-status.md"), "utf-8");
-  } catch {
-    return "";
-  }
-}
-
-/** `1-description.md`'s raw text, for the same check — the CURRENT
- *  wording `criteriaMovedOn` compares against the round
- *  boundary's own git-read copy. */
-function proseDescriptionText(dir: string): string {
-  try {
-    return readFileSync(join(dir, "1-description.md"), "utf-8");
-  } catch {
-    return "";
-  }
-}
+/** The steps a spec's phase moves through: the ones the run route checks
+ *  against the transition table. */
+const PHASE_STEPS = new Set(["create", "analyze", "implement", "archive"]);
 
 export async function handleJobActionRoutes(
   ctx: RoutesContext,
@@ -128,57 +110,26 @@ export async function handleJobActionRoutes(
         // (implement queued alone while analyzed) starts from its real
         // phase, unaffected by steps it was not asked to run.
         let phase = phaseFromState(completedPhases, archived, closed);
-        for (const step of askedFor.steps) {
+        // An archived or closed spec answers to the queue's own rules —
+        // reopen, or archive again while its branch is still on origin
+        // (`parse-request.ts`) — not to the phase table.
+        for (const step of archived || closed ? [] : askedFor.steps) {
           if (typeof step !== "string") continue;
-          // Spec 471: a spec already held back on unticked acceptance
-          // criteria may take another round on Analyze or Implement,
-          // once at least one open AC-n row is new or reworded since
-          // the round that held it back — checked AHEAD of
-          // `isLegalMove`, for both steps, rather than only inside
-          // analyze's own `!move.ok` branch: `implement`'s
-          // `implemented,implement` row is an unconditional self-loop
-          // (transitions.json), so a check placed only in analyze's
-          // refusal branch would never run for a re-run of Implement.
-          // An ordinary implemented spec (not held back at all) falls
-          // straight through to `isLegalMove` below, unchanged.
-          if ((step === "analyze" || step === "implement") && phase === "implemented") {
-            const statusText = proseStatusText(dir);
-            if (acceptanceCriteriaUnticked(statusText) || reopenedRound(statusText)) {
-              const descriptionText = proseDescriptionText(dir);
-              const gate = await roundGate(ctx.gitRun, dir, statusText, descriptionText);
-              if (!("notHeldBack" in gate)) {
-                if (gate.ok) {
-                  phase = step === "analyze" ? "analyzed" : "implemented";
-                  continue;
-                }
-                const spec = `${askedFor.project}/${askedFor.specFolder}`;
-                const message = `${askedFor.specFolder}'s round cannot start — no acceptance criterion is new or reworded since the round began. Add a criterion, or reword one and untick its row.`;
-                logRefusal("run", spec, message);
-                return wantsJson
-                  ? json({ error: message, spec }, 400)
-                  : specsRedirect(raw, { error: message, spec }, backTo);
-              }
-            }
-          }
           const move = isLegalMove(phase, step, askedFor.specFolder);
+          // Refused here, at the press, with the table's own sentence:
+          // a start the runner would refuse — implement before analyze,
+          // archive before implement — used to be queued and fail there,
+          // minutes later and out of sight. The state is the one the
+          // runner reads, the default branch's, so the two cannot differ.
+          // Only the four phases: a step the table has no row for
+          // (explore, manifest, wiki …) is not a phase move at all.
+          if (!move.ok && !PHASE_STEPS.has(step)) continue;
           if (!move.ok) {
-            // Only analyze/create's OWN backward-move refusals are new
-            // here (REQ-9's own two named cases, "already-implemented"/
-            // "already-analyzed"/"already-archived"). implement/archive's
-            // FORWARD gates (not-analyzed-yet, not-implemented-yet) stay
-            // exactly where they already were — checked by the script at
-            // run time, or left queued by blockedDependencies/
-            // blockedForMissingAnalyze — so a job the dashboard has
-            // always accepted into the queue still is; only the
-            // previously-impossible backward request is new.
-            if (step === "analyze" || step === "create") {
-              const spec = `${askedFor.project}/${askedFor.specFolder}`;
-              logRefusal("run", spec, move.message);
-              return wantsJson
-                ? json({ error: move.message, spec }, 400)
-                : specsRedirect(raw, { error: move.message, spec }, backTo);
-            }
-            continue;
+            const spec = `${askedFor.project}/${askedFor.specFolder}`;
+            logRefusal("run", spec, move.message);
+            return wantsJson
+              ? json({ error: move.message, spec }, 400)
+              : specsRedirect(raw, { error: move.message, spec }, backTo);
           }
           phase = move.next;
         }

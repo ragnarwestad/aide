@@ -261,9 +261,8 @@ describe("a description newer than the analysis is shown on the row", () => {
     // from 4-status.md, and nothing here blocks running it.
     expect(phaseDone(line, "implement")).toBe(true);
     expect(line).toMatch(/value="analyze" checked/);
-    // implement is done, so its box is ticked and locked (spec 267) —
-    // never a `name="steps"` box a press could re-submit.
-    expect(line).not.toMatch(/name="steps" value="implement"/);
+    // implement has run, so a press does not run it again unticked.
+    expect(line).not.toMatch(/value="implement" checked/);
   });
 
   // Spec 139, criterion 10: the freshness check is a DISPLAY override,

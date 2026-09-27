@@ -7,8 +7,6 @@
 // status file stays there — this is what a caller ASKS about an
 // archive, and it needs none of that.
 
-import type { GitRunner } from "../../git/branch-status.ts";
-import { acRowsAt, acRowsFromText, criteriaMovedOn } from "../../git/round-boundary.ts";
 import { parseStatusChecks, type StatusCheck } from "./";
 
 // --- spec 108: an archive run that declined -----------------------------------
@@ -186,56 +184,6 @@ export function reopenedRound(content: string): boolean {
     else if (/^\s*[-*]?\s*\*\*round boundary:\*\*/i.test(line)) boundary = i;
   }
   return lastStamp >= 0 && lastMark === lastStamp && boundary > lastStamp;
-}
-
-const AC_ID_RE = /^(AC-\d+):/;
-
-/** Every `AC-n` id whose own `## Acceptance criteria` row is still
- *  open — read the same way `acceptanceCriteriaUnticked` above reads
- *  the section, narrowed to the ids rather than only whether any exist. */
-function openAcceptanceIds(statusText: string): Set<string> {
-  const ids = new Set<string>();
-  for (const check of parseStatusChecks(statusText)) {
-    if (!/^acceptance\b/i.test(check.phase) || check.done) continue;
-    const m = check.task.match(AC_ID_RE);
-    if (m) ids.add(m[1]!);
-  }
-  return ids;
-}
-
-/** Whether a held-back spec's next Analyze/Implement round may start:
- *  once at least one open criterion is new or reworded since the round
- *  that held it back (`criteriaMovedOn`).
- *
- *  `{ notHeldBack: true }` covers both "not held back on acceptance at
- *  all" and "held back, but never actually declined yet" (no boundary
- *  stamp exists) — in both cases the ordinary already-implemented
- *  refusal (or none, if not yet implemented) applies unchanged, exactly
- *  as it did before this spec existed. An open section with every row
- *  already satisfied (no open ids at all — a transient state between a
- *  tick and the next disk read) never blocks a round either: there is
- *  nothing left to have gone stale. */
-export async function roundGate(
-  gitRun: GitRunner,
-  dir: string,
-  statusText: string,
-  descriptionText: string,
-): Promise<{ ok: true } | { ok: false } | { notHeldBack: true }> {
-  const reopened = reopenedRound(statusText);
-  if (!acceptanceCriteriaUnticked(statusText) && !reopened) return { notHeldBack: true };
-  const boundarySha = latestRoundBoundary(statusText);
-  if (!boundarySha) return { notHeldBack: true };
-  // A check that failed after the deploy is the change a new round asks for:
-  // Reopen ticks the row open and leaves its `Failed:` note.
-  if (acceptanceRowsOf(statusText).some((r) => !r.done && /^Failed:/i.test(r.note))) return { ok: true };
-  const openIds = openAcceptanceIds(statusText);
-  // A held-back spec with nothing open has nothing left to go stale. A reopened
-  // one has nothing open by construction, and must still show a new or
-  // changed criterion.
-  if (openIds.size === 0 && !reopened) return { ok: true };
-  const currentRows = acRowsFromText(descriptionText);
-  const boundaryRows = await acRowsAt(gitRun, dir, boundarySha);
-  return criteriaMovedOn(currentRows, openIds, boundaryRows) ? { ok: true } : { ok: false };
 }
 
 /** Spec 190 — `content` with every `## Archive held back` section

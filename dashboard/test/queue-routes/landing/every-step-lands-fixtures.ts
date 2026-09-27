@@ -102,7 +102,7 @@ export function repos(dir: string): {
   writeFileSync(join(project, ".aide", "project.yaml"), "name: aide\n");
   mkdirSync(join(project, "specs", SPEC), { recursive: true });
   writeFileSync(join(project, "specs", SPEC, "1-description.md"), "# 81 - Description\n");
-  writeFileSync(join(project, "specs", SPEC, "4-status.md"), statusSaying(["create", "analyze"]));
+  writeFileSync(join(project, "specs", SPEC, "4-status.md"), statusSaying(["create", "analyze", "implement"]));
   mkdirSync(specs, { recursive: true });
   return {
     root: projectsRoot,

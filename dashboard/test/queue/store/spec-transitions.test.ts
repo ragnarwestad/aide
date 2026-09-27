@@ -42,13 +42,8 @@ describe("isLegalMove", () => {
 
   // REQ-9: the spec-342 bug — analyze/create requested on a spec already
   // past that phase must be refused, naming the way back.
-  test("analyze is refused once a spec has implemented, naming another round", () => {
-    const move = isLegalMove("implemented", "analyze", "342-x");
-    expect(move.ok).toBe(false);
-    if (!move.ok) {
-      expect(move.reason).toBe("already-implemented");
-      expect(move.message).toContain("another round");
-    }
+  test("analyze may run again once a spec has implemented", () => {
+    expect(isLegalMove("implemented", "analyze", "342-x")).toEqual({ ok: true, next: "implemented" });
   });
 
   test("create is refused once a spec has analyzed", () => {
