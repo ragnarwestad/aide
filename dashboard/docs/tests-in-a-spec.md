@@ -61,6 +61,14 @@ name, and none for a criterion an existing test already proves — that test get
 
 ## What you see on the board
 
+- **While the tests run:** when Aide runs them, after implement and in the landing, the step's Log shows how far
+  they have come as it happens, each line starting `tests:`:
+  - the command that started
+  - pytest's percentage every tenth, and its summary
+  - each worker of a spread suite as it ends, and the total
+
+  The whole output is kept beside the step's run log as `<job id>.<step>.tests.log`. A run the AI makes itself
+  shows in the Log only when it has ended.
 - **Implement red:** the step has failed, and the failing test lines are on the spec's row. Press Implement again.
 - **Landing red:** an amber message, not a red one — the change was built and merged locally, and what is missing is
   a green suite. The failing lines are on the row. The usual cause is another spec that landed in the meantime; run

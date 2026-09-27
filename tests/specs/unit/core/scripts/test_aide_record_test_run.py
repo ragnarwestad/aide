@@ -268,3 +268,60 @@ def test_an_untracked_file_still_changes_the_recorded_tree(script, project, spec
 
     assert rc == 0, out
     assert recorded_tree(specs_root) != head_tree(project)
+
+
+# --progress-file: the lines that say how far a run has come, written as
+# they arrive, for the runner and the landing to put into the step's Log.
+FAKE_SUITE = """\
+echo '....                          [  5%]'
+echo '....                          [ 12%]'
+echo '....                          [ 19%]'
+echo '....                          [ 41%]'
+echo '....                          [100%]'
+echo '======= 1512 passed, 1 skipped in 210.76s (0:03:30) ======='
+echo 'bash scripts/run-tests.sh test/e2e'
+echo '--- worker 7  Ran 32 tests across 3 files. [23.57s]  (2 still running)'
+echo '--- worker 3, in full:'
+echo 'an ordinary line'
+echo '... 29 s, 1 worker running'
+echo '--- 244 tests across 12 workers in 43 s'
+echo 'on stderr' >&2
+exit 3
+"""
+
+
+def test_progress_file_gets_the_progress_lines_and_the_output_passes_through_whole(
+    script, project, specs_root, tmp_path
+):
+    (project / "suite.sh").write_text(FAKE_SUITE)
+    progress = tmp_path / "progress"
+    proc = subprocess.run(
+        [str(script), "--project-dir", str(project), "--specs-root", str(specs_root),
+         "--folder", "81-x", "--cmd", "bash suite.sh", "--progress-file", str(progress)],
+        capture_output=True, text=True,
+    )
+    assert proc.returncode == 3
+    assert json.loads(proc.stdout.strip().splitlines()[-1])["exitCode"] == 3
+    assert "an ordinary line" in proc.stdout and "on stderr" in proc.stdout
+    assert progress.read_text().splitlines() == [
+        "running bash suite.sh",
+        "pytest 10%",
+        "pytest 40%",
+        "pytest 100%",
+        "pytest: 1512 passed, 1 skipped in 210.76s (0:03:30)",
+        "starting scripts/run-tests.sh test/e2e",
+        "worker 7  Ran 32 tests across 3 files. [23.57s]  (2 still running)",
+        "29 s, 1 worker running",
+        "244 tests across 12 workers in 43 s",
+    ]
+
+
+def test_without_progress_file_nothing_about_the_output_changes(script, project, specs_root):
+    (project / "suite.sh").write_text(FAKE_SUITE)
+    proc = subprocess.run(
+        [str(script), "--project-dir", str(project), "--specs-root", str(specs_root),
+         "--folder", "81-x", "--cmd", "bash suite.sh"],
+        capture_output=True, text=True,
+    )
+    assert proc.returncode == 3
+    assert "on stderr" in proc.stderr and "on stderr" not in proc.stdout

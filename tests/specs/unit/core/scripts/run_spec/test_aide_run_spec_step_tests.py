@@ -480,3 +480,22 @@ def test_the_red_hand_back_and_a_tests_red_stop_are_error_lines_AC_7(runner, wor
     assert errors[0].startswith("error: the tests are red — handing them back"), errors
     assert errors[-1].startswith("error: the step reported success, but the project's tests are red"), errors
     assert "\n" not in errors[-1]
+
+
+def test_the_runs_progress_is_in_the_log_between_start_and_end_and_its_output_beside_it(
+    runner, workspace, fake_claude, tmp_path
+):
+    with_status(workspace, ["create", "analyze"])
+    _project_with_test_cmd(workspace, 'echo "===== 3 passed in 0.10s ====="')
+    stream = tmp_path / "job.implement.stream.jsonl"
+    _, out, _, err = run(
+        runner, workspace, _implementing_claude(fake_claude), command="implement",
+        stream_file=str(stream), return_stderr=True,
+    )
+    stages = _stamped(err)
+    running = next(i for i, s in enumerate(stages) if s.startswith("running the project's tests"))
+    green = next(i for i, s in enumerate(stages) if s == "the project's tests are green")
+    progress = stages[running + 1:green]
+    assert progress[0].startswith("tests: running echo"), stages
+    assert "tests: pytest: 3 passed in 0.10s" in progress, stages
+    assert "3 passed in 0.10s" in (tmp_path / "job.implement.tests.log").read_text()
