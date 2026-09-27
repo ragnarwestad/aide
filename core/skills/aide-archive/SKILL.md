@@ -57,9 +57,15 @@ Branch on the JSON's `terminalReason`:
   script's own JSON also carries a `specFolder` (`aide-run-spec`'s own
   pre-check may have just archived this spec seconds ago, before
   spawning this very session), treat that exactly like a fresh
-  `archived` result below and continue to Step 2. Otherwise this is a
-  plain re-run against work that was already finished long ago: say so
-  and stop — after finishing any merge left open, as above.
+  `archived` result below and continue to Step 2. Otherwise the archive
+  commit is already on the spec's branch — usually because an earlier
+  landing of it stopped: say so and stop, after finishing any merge
+  left open, as above.
+
+  Either way, this step sees the spec's branch, not the default branch.
+  Never report the spec as fully archived, finished or with nothing
+  outstanding: say it is archived on its branch, and that the landing
+  after this step merges it into the default branch.
 - **`conflict-open`:** the branch would not merge cleanly with the
   default branch. Follow
   [references/resolve-conflict.md](./references/resolve-conflict.md) in

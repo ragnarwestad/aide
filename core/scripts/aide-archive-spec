@@ -155,7 +155,7 @@ fi
 case "$spec_folder" in
   archive/*)
     folder_name="${spec_folder#archive/}"
-    emit_ok "$(jq -cn --arg n "spec $folder_name is already archived — nothing to do" \
+    emit_ok "$(jq -cn --arg n "spec $folder_name is already archived on its branch — the landing merges it into the default branch" \
       --arg f "$spec_folder" \
       '{terminalReason:"already-archived", note:$n, specFolder:$f, needsDocFeedback:true}')"
     ;;
