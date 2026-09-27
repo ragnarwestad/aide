@@ -331,3 +331,10 @@ describe("summarizeEntries", () => {
     ]);
   });
 });
+
+describe("a command over several lines", () => {
+  test("shows where its lines broke, and a backslash-continued line joins with a space", () => {
+    const stream = toolUse("Bash", { command: "cd /repo/dashboard\nsed -n '95,115p' a.css \\\n  b.css\n" });
+    expect(summarizeStream(stream, { tool: "claude" })).toEqual(["Bash cd /repo/dashboard ⏎ sed -n '95,115p' a.css b.css"]);
+  });
+});

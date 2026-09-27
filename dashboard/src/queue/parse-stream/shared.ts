@@ -25,6 +25,19 @@ export function esc(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
+/** A shell command as one line that still shows where its lines broke:
+ *  `cd x ⏎ sed …`, not `cd x sed …`. A line ending in `\` continues onto
+ *  the next, so that break is a plain space. */
+export function commandLine(s: string): string {
+  return s
+    .trim()
+    .replace(/\\\n\s*/g, " ")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .join(" ⏎ ");
+}
+
 export function clip(s: string): string {
   const flat = s.replace(/\s+/g, " ").trim();
   return flat.length > MAX_ENTRY ? `${flat.slice(0, MAX_ENTRY)}…` : flat;
