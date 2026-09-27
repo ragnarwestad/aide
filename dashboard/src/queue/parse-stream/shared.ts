@@ -2,10 +2,11 @@
 //
 // Three properties, and none of them is negotiable:
 //
-//   * BOUNDED. A 25-minute implement run writes tens of thousands of
-//     events; the page shows the tail, because "what is it doing" is a
-//     question about now. Each entry is bounded too — a Write's input is
-//     a whole file.
+//   * BOUNDED where the reader asks for it. A 25-minute implement run
+//     writes tens of thousands of events; a phase's row shows the tail,
+//     because "what is it doing" is a question about now, while the Logs
+//     page asks for every line. No bound drops a skill-step mark. Each
+//     entry is bounded too — a Write's input is a whole file.
 //   * ESCAPED HERE, not at the call site. Every string in a transcript
 //     is arbitrary text a model wrote or a tool was handed. Escaping in
 //     the parser means no renderer can forget to.
@@ -101,6 +102,8 @@ export interface StreamEntry {
    *  can carry it: it is the one entry kind all three schemas report an
    *  outcome for. */
   failed?: boolean;
+  /** A skill-step mark: kept by every bound. */
+  mark?: true;
 }
 
 /** What a reader can ask of a transcript's entries: all of them, the
@@ -140,8 +143,47 @@ export function* events(text: string): Generator<Record<string, unknown>> {
  *  never be held in memory in full just to throw most of it away. Shared
  *  by the readers of a transcript — the bound is a property of the reader,
  *  not of the shape. */
-export function trim<T>(out: T[], max: number): void {
-  if (out.length > max * 2) out.splice(0, out.length - max);
+export function trim(out: StreamEntry[], max: number): void {
+  if (out.length > max * 2) out.splice(0, out.length, ...bounded(out, max));
+}
+
+/** The last `max` entries, and every skill-step mark before them: a mark
+ *  is how a reader sees how far the run got, so no bound drops one. */
+export function bounded(out: StreamEntry[], max: number): StreamEntry[] {
+  let drop = out.filter((e) => !e.mark).length - max;
+  return out.filter((e) => e.mark || drop-- <= 0);
+}
+
+/** A skill-step mark, as `step_log_note` in
+ *  core/scripts/lib/run-spec-invocation.sh asks the model to write it:
+ *  `<command> · Step N of X: <title> — started|done|skipped: …|stopped: …`.
+ *  The ending is read loosely — "done (nothing to keep)" is still a mark. */
+const STEP_MARK = /^[a-z][\w-]* · Step \d+ of \d+: .+ — (?:started|done|skipped|stopped)\b/;
+
+/** A block of model text as the pieces a reader sees: each step mark on
+ *  its own, the prose between marks kept together. Unescaped and
+ *  unclipped; the caller does both. */
+export function splitMarks(text: string): { text: string; mark?: true }[] {
+  const out: { text: string; mark?: true }[] = [];
+  let prose: string[] = [];
+  const flush = () => {
+    if (prose.join("").trim()) out.push({ text: prose.join("\n") });
+    prose = [];
+  };
+  for (const line of text.split("\n")) {
+    const bare = line.trim().replace(/^[`*]+|[`*]+$/g, "");
+    if (STEP_MARK.test(bare)) {
+      flush();
+      out.push({ text: bare, mark: true });
+    } else prose.push(line);
+  }
+  flush();
+  return out;
+}
+
+/** A block of model text as escaped, clipped entries. */
+export function textEntries(text: string): StreamEntry[] {
+  return splitMarks(text).map((p) => ({ kind: "text", text: esc(clip(p.text)), ...(p.mark ? { mark: true } : {}) }));
 }
 /** Which schema this text is in, when nobody said. Codex's events are
  *  the only ones whose `type` is dotted, and opencode's are the only

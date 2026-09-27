@@ -110,6 +110,15 @@ describe("phaseMessagesFor", () => {
     expect(got?.messages.at(-2)).toBe("Bash ls");
   });
 
+  test("a step mark from the start of a long transcript is kept though later lines pass the cap", () => {
+    const mark = "analyze · Step 1 of 9: Read the description — started";
+    const lines: unknown[] = [said(mark)];
+    for (let i = 1; i <= 400; i++) lines.push(said(`m${i} ${"x".repeat(1000)}`));
+    const got = phaseMessagesFor(queueOf([job("a", { results: [finishedStep("analyze", lines)] })]), ["a"], "analyze");
+    expect(got?.messages[0]).toBe(mark);
+    expect(got?.messages).toHaveLength(200);
+  });
+
   test("the final message is shown whole at 500 characters and cut with … past 2,000 (AC-4)", () => {
     const at = (len: number) => phaseMessagesFor(queueOf([job("a", { results: [finishedStep("analyze", [result("x".repeat(len))])] })]), ["a"], "analyze")?.messages.at(-1) ?? "";
     expect(at(500)).toBe("x".repeat(500));

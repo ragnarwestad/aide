@@ -164,11 +164,11 @@ export async function serveSpecViewerAsset(req: Request): Promise<Response> {
   return new Response(built.text, { headers });
 }
 
-// The tail of a file, without reading the rest of it. A 25-minute
-// implement run's transcript is not something a page render should ever
-// pull into memory whole — and the tail is the part that answers "what
-// is it doing". The first line of the window is usually cut in half;
-// parse-stream drops what does not parse, so it costs nothing.
+// The tail of a file, without reading the rest of it — the part that
+// answers "what is it doing". A caller that shows a step's whole Log
+// passes `Infinity` and gets the file from its first byte. The first line
+// of a window is usually cut in half; parse-stream drops what does not
+// parse, so it costs nothing.
 export const STREAM_TAIL_BYTES = 256 * 1024;
 
 export function tailFile(path: string, maxBytes = STREAM_TAIL_BYTES): string {

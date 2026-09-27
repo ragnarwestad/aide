@@ -7,7 +7,7 @@
 // minutes (512's implement: nine in 33 minutes, over 107 commands), so
 // the row looked frozen while the step was busy.
 import type { QueueStore } from "../../queue/queue.ts";
-import { finalMessage, isFinal, summarizeEntries } from "../../queue/parse-stream";
+import { endWithFinalMessage, summarizeEntries } from "../../queue/parse-stream";
 import type { PhaseMessages } from "../../render";
 import { tailFile } from "../serve-helpers";
 import { stepKey, workRoundJobs } from "./work-round.ts";
@@ -39,14 +39,17 @@ export function phaseMessagesFor(
     const running = job.state === "running" && job.steps[job.stepIndex] === step;
     if (!result && !running) continue;
     const file = running ? job.streamFile : result?.streamFile;
-    const text = file ? tailFile(file) : "";
+    // Whole, not its tail: the step marks from the start of the run are
+    // what says how far it got, and the bound below keeps every one.
+    const text = file ? tailFile(file, Infinity) : "";
     const tool = result?.tool;
-    const messages = summarizeEntries(text, { tool, only: "all", max: KEPT }).map((e) => e.text);
-    const final = running ? undefined : finalMessage(text, { tool });
-    if (final) {
-      if (messages.length && isFinal(messages[messages.length - 1]!, final)) messages.pop();
-      messages.push(cutFinal(final));
-      while (messages.length > KEPT) messages.shift();
+    const entries = summarizeEntries(text, { tool, only: "all", max: KEPT });
+    const marks = new Set(entries.filter((e) => e.mark).map((e) => e.text));
+    const lines = entries.map((e) => e.text);
+    const messages = running ? lines : endWithFinalMessage(lines, text, { tool }, cutFinal);
+    for (let i = 0; messages.length > KEPT && i < messages.length; ) {
+      if (marks.has(messages[i]!)) i++;
+      else messages.splice(i, 1);
     }
     return {
       messages,

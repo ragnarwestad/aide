@@ -107,6 +107,23 @@ describe("jobDetailView's per-step fields", () => {
     expect(view.results[0]!.changedFiles).toEqual([{ path: "src/queue/runner.ts", added: 4, removed: 1, binary: false }]);
   });
 
+  // The Logs page is the complete step: a mark written at the start of a
+  // 1 MB transcript, with hundreds of lines after it, is on it.
+  test("a finished step's Log holds every line, from the first byte of its transcript", async () => {
+    const mark = "analyze · Step 1 of 9: Read the description — started";
+    const filler = "x".repeat(1000);
+    const later = Array.from({ length: 400 }, (_, i) => ({ type: "assistant", message: { content: [{ type: "text", text: `${i} ${filler}` }] } }));
+    const streamFile = tempStreamFile([{ type: "assistant", message: { content: [{ type: "text", text: mark }] } }, ...later]);
+    const job = makeJob({
+      results: [{ step: "analyze", ok: true, costUsd: 1, costMeasured: true, terminalReason: "completed", streamFile, tool: "claude" }],
+    });
+
+    const lines = (await jobDetailView(makeCtx(), job)).results[0]!.logs!.flatMap((p) => p.lines);
+
+    expect(lines[0]).toBe(mark);
+    expect(lines).toHaveLength(401);
+  });
+
   test("a result with no streamFile leaves logs/errors/changedFiles undefined", async () => {
     const job = makeJob({
       results: [{ step: "implement", ok: true, costUsd: 1, costMeasured: true, terminalReason: "completed" }],
