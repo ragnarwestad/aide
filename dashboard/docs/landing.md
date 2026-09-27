@@ -230,6 +230,10 @@ more on the default branch alone, without the spec (`redOnDefaultBranch`): red t
 are red on main as well, so the failure is main's and not the spec's, and archive merges the work once main is
 green again.
 
+The landing writes its test run into the step's own Log, under "tests and commit", stamped like the runner's lines:
+when it starts and with how many commands, green or red, the run once more, the run on main, and a run it skipped
+because the step had already seen the same tree green. Red lines are marked as errors.
+
 **A run the step already made is not made again.** A step that ended green reports what it saw green —
 `testedGreen` on its result: the tree, hashed by `aide_tree_hash` with the project's worktree links left out, and
 the commands. Only an `implement` reports one, since it is the one step that runs the suite. When the landing is about to run

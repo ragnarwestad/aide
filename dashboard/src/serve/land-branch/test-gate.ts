@@ -16,6 +16,7 @@ import { LANDING_GATE_TIMEOUT_MS } from "../serve-helpers";
 import { resolveWorktreeLinks } from "../../project/discover";
 import { runScript, scriptFor } from "./run-script.ts";
 import { alreadySeenGreen, type GatedJob } from "./seen-green.ts";
+import { runLogPath } from "../../queue/runner/run-log-path.ts";
 
 /** Resolve the command(s) the merged change calls for, run them through
  *  aide-record-test-run (which keeps the run's output), and say green
@@ -166,6 +167,24 @@ async function redOnDefaultBranch(liveRoot: string, recorder: string, argTail: s
   }
 }
 
+/** A line in the landed step's own run log, stamped the way `aide-run-spec`
+ *  stamps its own, so the step's Log shows the landing's test run under
+ *  "tests and commit". `error` marks a red one. Best effort: a log that
+ *  cannot be written leaves the landing as it was. */
+function stepLogLine(job: GatedJob, text: string, error = false): void {
+  const last = job.results?.at(-1);
+  if (!last?.streamFile) return;
+  const now = new Date();
+  const began = last.startedAt ? Date.parse(last.startedAt) : NaN;
+  const seconds = Number.isNaN(began) ? 0 : Math.max(0, Math.round((now.getTime() - began) / 1000));
+  const clock = now.toTimeString().slice(0, 8);
+  try {
+    appendFileSync(runLogPath(last.streamFile), `aide-run-spec ${clock} +${seconds}s ${error ? "error: " : ""}${text}\n`);
+  } catch {
+    // Nothing to do: the gate log keeps the run either way.
+  }
+}
+
 /** The checkout that owns this repository's working files. For a
  *  worktree, `git rev-parse --git-common-dir` names the main checkout's
  *  own `.git`; for the main checkout it answers `.git` itself, and the
@@ -214,6 +233,7 @@ async function runSuiteIn(
   // landing that ran nothing still leaves its answer where people look.
   const seen = await alreadySeenGreen(root, liveRoot, job, commands, opts);
   if (seen) {
+    stepLogLine(job, "the landing did not run the project's tests: the step already saw them green on this tree");
     try {
       mkdirSync(join(log, ".."), { recursive: true });
       appendFileSync(
@@ -243,6 +263,7 @@ async function runSuiteIn(
       }
       return out;
     };
+    stepLogLine(job, `the landing runs the project's tests on the merge (${commands.length} command(s))`);
     let gate = await runOnce("");
     // A red run gets the WHOLE command once more: a test that lost to a
     // busy host passes the second time, and a real failure fails twice.
@@ -250,17 +271,25 @@ async function runSuiteIn(
     // landing for as long again.
     if (gate.code !== 0 && !gate.timedOut) {
       const first = failingLines(gate.stdout, gate.stderr);
+      stepLogLine(job, "the landing's tests are red — running them once more", true);
       gate = await runOnce(" (retry)");
-      if (gate.code === 0) return { ok: true, retriedAfter: first };
+      if (gate.code === 0) {
+        stepLogLine(job, "the landing's tests are green on the second run");
+        return { ok: true, retriedAfter: first };
+      }
+      stepLogLine(job, "the landing's tests are red again", true);
     }
     if (gate.timedOut) {
+      stepLogLine(job, `the landing's tests did not finish within ${Math.round(LANDING_GATE_TIMEOUT_MS / 60_000)} minutes`, true);
       return {
         ok: false,
         error: `the project's tests did not finish within ${Math.round(LANDING_GATE_TIMEOUT_MS / 60_000)} minutes on the merge — nothing was pushed; the archive step's own log has what they managed to say`,
         detail: failingLines(gate.stdout, gate.stderr),
       };
     }
+    if (gate.code !== 0) stepLogLine(job, "the landing runs the same tests on main alone, without this spec");
     if (gate.code !== 0 && (await redOnDefaultBranch(liveRoot, recorder, argv.slice(3)))) {
+      stepLogLine(job, "the tests are red on main as well — the failure is main's, not this spec's", true);
       return {
         ok: false,
         error:
@@ -270,6 +299,7 @@ async function runSuiteIn(
       };
     }
     if (gate.code !== 0) {
+      stepLogLine(job, "the tests are green on main alone — the failure is this merge's", true);
       return {
         ok: false,
         // One sentence on the row: what happened, and the one move that
@@ -297,6 +327,7 @@ async function runSuiteIn(
           .join("\n"),
       };
     }
+    stepLogLine(job, "the landing's tests are green");
     return { ok: true };
   } finally {
     rmSync(scratch, { recursive: true, force: true });
