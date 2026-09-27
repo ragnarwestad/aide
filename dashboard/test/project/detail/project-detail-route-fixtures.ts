@@ -54,6 +54,13 @@ export function setTestCmd(root: string, name: string, cmd: string): void {
   writeFileSync(file, `${readFileSync(file, "utf-8")}AIDE_TEST_CMD: ${cmd}\n`);
 }
 
+/** Give `name` under `root` its worktree links, in its manifest — the
+ *  only file they are read from (spec 549). */
+export function setWorktreeLinks(root: string, name: string, links: string): void {
+  const file = join(root, name, ".aide", "project.yaml");
+  writeFileSync(file, `${readFileSync(file, "utf-8")}worktreeLinks: ${links}\n`);
+}
+
 /** A queue config file this suite owns, holding `aide`'s scheduled jobs. */
 export function scheduleConfig(entries: Record<string, unknown>[]): string {
   const dir = mkdtempSync(join(tmpdir(), "aide-detail-cfg-"));

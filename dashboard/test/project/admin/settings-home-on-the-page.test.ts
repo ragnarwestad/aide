@@ -1,6 +1,6 @@
 // Spec 512: the project's page says where its settings are kept, in one
-// of four states, and the settings-table row says which file a value came
-// from.
+// of four states — since spec 549, in the manifest table's own heading,
+// not a sentence above a single table.
 
 import { describe, expect, test } from "bun:test";
 import { renderProjectPage } from "../../../src/render";
@@ -28,26 +28,24 @@ describe("where the settings are kept", () => {
     expect(settingsHome(tracked, exists)).toBe(expected);
   });
 
-  test("the page names settings.yaml when the dashboard keeps them (AC-6)", () => {
+  test("the manifest table is headed settings.yaml when the dashboard keeps them (AC-6)", () => {
     const html = page("dashboard");
-    expect(html).toContain('data-settings-home="dashboard"');
-    expect(html).toContain("the rest in the dashboard");
-    expect(html).toContain("settings.yaml");
-    expect(html).toContain(".aide/config");
+    expect(html).toContain("<h3>the dashboard's settings.yaml</h3>");
+    expect(html).toContain("<h3>.aide/config</h3>");
   });
 
-  test("the page names the project's own manifest when it is tracked (AC-6)", () => {
+  test("the manifest table is headed .aide/project.yaml when it is tracked (AC-6)", () => {
     const html = page("project");
-    expect(html).toContain("the rest in the project's own <code>.aide/project.yaml</code>");
-    expect(html).toContain("Specs path and Install command are kept in this machine's <code>.aide/config</code>");
+    expect(html).toContain("<h3>.aide/project.yaml</h3>");
+    expect(html).toContain("<h3>.aide/config</h3>");
     expect(html).not.toContain("settings.yaml");
   });
 
-  test("the page says the dashboard's copy is not used when both exist (AC-6)", () => {
-    expect(page("shadowed")).toContain("is not used");
+  test("the manifest table is headed .aide/project.yaml even when the dashboard's copy is shadowed (AC-6)", () => {
+    expect(page("shadowed")).toContain("<h3>.aide/project.yaml</h3>");
   });
 
-  test("the page says nothing is stored yet when neither exists (AC-6)", () => {
-    expect(page("none")).toContain("No settings are stored yet.");
+  test("the manifest table is headed .aide/project.yaml when neither file exists yet (AC-6)", () => {
+    expect(page("none")).toContain("<h3>.aide/project.yaml</h3>");
   });
 });

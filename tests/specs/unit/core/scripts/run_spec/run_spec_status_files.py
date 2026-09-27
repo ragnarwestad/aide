@@ -84,9 +84,9 @@ def nested_workspace(tmp_path, project_name="aide"):
     (project / "deps").mkdir()
     (project / "deps" / "marker.txt").write_text("the dependency tree\n")
     (project / ".aide").mkdir()
-    (project / ".aide" / "config").write_text(
-        f"AIDE_SPECS_PATH={specs_root}\nAIDE_WORKTREE_LINKS=deps\n"
-    )
+    (project / ".aide" / "config").write_text(f"AIDE_SPECS_PATH={specs_root}\n")
+    # worktreeLinks is read from the manifest alone (spec 549).
+    (project / ".aide" / "project.yaml").write_text("worktreeLinks: deps\n")
     subprocess.run(["git", "-C", str(project), "add", "-f", ".aide/config", ".gitignore"], check=True)
     subprocess.run(["git", "-C", str(project), "commit", "-qm", "add config"], check=True)
     return {

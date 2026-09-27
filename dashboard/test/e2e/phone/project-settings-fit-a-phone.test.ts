@@ -58,11 +58,15 @@ for (const width of [360, 390]) {
   }
 }
 
-test("on a desktop the table keeps its three columns, Value and Comment evenly", async () => {
+// Spec 549 split the Config tab into two tables (one per file); the specs
+// path row this measures lives in the first, `.aide/config`-headed one.
+test("on a desktop each table keeps its three columns, Value and Comment evenly", async () => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await withBrowser(page.goto(`${base}/projects/paceup?tab=config`), "page.goto at 1280px");
   const widths = await page
-    .locator("table.list thead th")
+    .locator("table.list")
+    .first()
+    .locator("thead th")
     .evaluateAll((cells) => cells.map((c) => Math.round(c.getBoundingClientRect().width)));
   expect(widths).toHaveLength(3);
   expect(Math.abs(widths[1]! - widths[2]!)).toBeLessThanOrEqual(8);

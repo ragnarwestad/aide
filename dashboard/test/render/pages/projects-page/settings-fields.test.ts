@@ -27,10 +27,12 @@ const page = (editing: boolean, candidates: string[] = []) =>
     codeLanding: "merge",
   });
 
-/** Only the settings table: the page around it has its own selects. */
+/** Both settings tables (spec 549 split the Config tab into one per
+ *  file): the page around them has its own selects. */
 const table = (html: string) => {
   const from = html.indexOf('<col data-col="setting-name"');
-  return html.slice(from, html.indexOf("</table>", from));
+  const to = html.lastIndexOf("</table>") + "</table>".length;
+  return html.slice(from, to);
 };
 
 describe("the settings table in edit mode", () => {
@@ -76,5 +78,35 @@ describe("the settings table in reading mode", () => {
     expect(html).not.toContain("<select");
     expect(html).toContain("/repos/specs/aide");
     expect(html).toContain("Merge into");
+  });
+});
+
+// Spec 549: one table per file, and no row or sentence names a file
+// any more.
+describe("the Config tab is split into one table per file (spec 549)", () => {
+  test("exactly two tables, headed .aide/config and the manifest's file (AC-1)", () => {
+    const html = page(false);
+    expect((html.match(/<table class="list">/g) ?? []).length).toBe(2);
+    expect(html).toContain("<h3>.aide/config</h3>");
+    expect(html).toContain("<h3>.aide/project.yaml</h3>");
+  });
+
+  test("Specs path and Install command are in the .aide/config table; the rest and Code landing in the manifest's (AC-1)", () => {
+    const html = page(false);
+    const configTable = html.slice(html.indexOf("<h3>.aide/config</h3>"), html.indexOf("<h3>.aide/project.yaml</h3>"));
+    const manifestTable = html.slice(html.indexOf("<h3>.aide/project.yaml</h3>"));
+    for (const text of ["/repos/specs/aide", "bun install"]) expect(configTable).toContain(text);
+    for (const text of ["node_modules", "bun run dev", "make test", "Code landing"]) {
+      expect(manifestTable).toContain(text);
+      expect(configTable).not.toContain(text);
+    }
+  });
+
+  test("no row's Comment names a file, and no sentence sits above the tables (AC-2)", () => {
+    const html = page(false);
+    expect(html).not.toMatch(/from \.aide\/config/);
+    expect(html).not.toMatch(/from \.aide\/project\.yaml/);
+    expect(html).not.toMatch(/from the dashboard's settings\.yaml/);
+    expect(html).not.toContain('data-settings-home=');
   });
 });

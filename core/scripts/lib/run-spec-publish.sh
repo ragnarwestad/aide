@@ -151,7 +151,6 @@ link_excludes_for() {
     return 0
   fi
   declare -f aide_manifest_get >/dev/null 2>&1 && links="$(aide_manifest_get worktreeLinks "$root")"
-  [ -n "$links" ] || { declare -f aide_config_get >/dev/null 2>&1 && links="$(aide_config_get AIDE_WORKTREE_LINKS "$root" 2>/dev/null)"; }
   for entry in $links; do
     printf '%s\n' ":(exclude,top)$entry"
   done

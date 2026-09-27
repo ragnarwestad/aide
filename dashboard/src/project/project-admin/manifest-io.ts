@@ -158,12 +158,11 @@ export const WORKTREE_LINK_DENYLIST = ["build", "target", "dist", ".gradle"] as 
  *  than link. Exported because the readiness check and the write path
  *  ask the same question.
  *
- *  `key` names the SETTING the value came out of, because there are two
- *  spellings of it since spec 184 and a refusal is read as an
- *  instruction to go and edit one of them. Defaults to the manifest's,
- *  which is where everything this dashboard writes goes; the readiness
- *  check passes `AIDE_WORKTREE_LINKS` when it read the legacy file. The
- *  runner does exactly the same, with the same two strings. */
+ *  `key` names the SETTING the value came out of, so a refusal is read
+ *  as an instruction to go and edit it. Defaults to the manifest's,
+ *  which is where every worktree-links value is read from now (spec
+ *  549) — `.aide/config`'s older `AIDE_WORKTREE_LINKS` is legacy and is
+ *  never read, by the dashboard or by a run. */
 export function worktreeLinksError(value: string, key = "worktreeLinks"): string | null {
   for (const entry of value.split(/\s+/).filter(Boolean)) {
     if (entry.startsWith("/")) {
@@ -178,7 +177,7 @@ export function worktreeLinksError(value: string, key = "worktreeLinks"): string
     // build locally has one.
     if ((WORKTREE_LINK_DENYLIST as readonly string[]).includes(entry.split("/").pop()!)) {
       return (
-        `AIDE_WORKTREE_LINKS names a build output, not a dependency cache: ${entry} — ` +
+        `${key} names a build output, not a dependency cache: ${entry} — ` +
         `such a directory is generated per worktree and wants no link at all`
       );
     }

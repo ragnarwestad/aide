@@ -125,7 +125,7 @@ describe("GET /projects/<name> — the project's own page, served", () => {
 });
 
 describe("what the page says about the settings (criteria 1-3, 7)", () => {
-  test("read-only view shows every row's value, and Worktree links names its file (criteria 1, 2)", async () => {
+  test("read-only view shows every row's value, split into two tables by file (criteria 1, 2)", async () => {
     const root = projectsRoot({ aide: "AIDE_SPECS_PATH=/repos/specs/aide\n" }, ["node_modules"]);
     writeFileSync(
       join(root, "aide", ".aide", "project.yaml"),
@@ -140,13 +140,14 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
     // "Create", not "leave it for": the run makes the pull request
     // itself (`gh pr create` in aide-run-spec).
     expect(html).toContain("Create a pull request");
-    // Criterion 2: the manifest's value wins over `.aide/config`'s (there
-    // is none here to conflict with), and the Comment column names which
-    // file it came from.
-    expect(html).toMatch(/node_modules[\s\S]{0,300}from \.aide\/project\.yaml/);
-    // Exactly one settings table (criterion 1) — no leftover second one
-    // from the removed plain-text summary or `<details>` editor.
-    expect((html.match(/<table class="list">/g) ?? []).length).toBe(1);
+    // Spec 549: worktree links are read from the manifest alone, and no
+    // row's Comment names a file any more — which file a setting belongs
+    // to is said once, in its table's own heading.
+    expect(html).not.toMatch(/from \.aide\/project\.yaml/);
+    expect(html).toContain("<h3>.aide/config</h3>");
+    expect(html).toContain("<h3>.aide/project.yaml</h3>");
+    // Exactly two settings tables (AC-1): one per file.
+    expect((html.match(/<table class="list">/g) ?? []).length).toBe(2);
   });
 
   test("?edit=1 pre-fills the editable inputs with the current values (criterion 3)", async () => {
@@ -179,12 +180,12 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
     expect(html).toMatch(/name="installCmd"[^>]*><\/textarea>/);
   });
 
-  test("a configured test command is shown with the file it came from (criterion 1)", async () => {
+  test("a configured test command is shown, in the manifest's own table (criterion 1)", async () => {
     const root = projectsRoot({ aide: "" });
     setTestCmd(root, "aide", "make test");
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
     expect(html).toContain("make test");
-    expect(html).toMatch(/make test[\s\S]{0,200}from \.aide\/project\.yaml/);
+    expect(html).not.toMatch(/make test[\s\S]{0,200}from \.aide\/project\.yaml/);
   });
 
   test("no .aide/config at all is said plainly, not shown as seven silent blanks (criterion 2)", async () => {

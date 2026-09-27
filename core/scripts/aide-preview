@@ -111,17 +111,17 @@ trap remove_worktree EXIT
 
 # A worktree carries TRACKED files only, so the gitignored paths the
 # project's own command needs — its dependencies, its local settings —
-# are linked in, the same list and the same precedence `aide-run-spec`
-# reads (manifest first, .aide/config second). A link that cannot be
-# made is not fatal here: the command below says what it is missing far
-# better than a guess from this script would.
+# are linked in, the same list `aide-run-spec` reads (the manifest
+# alone; `.aide/config`'s older AIDE_WORKTREE_LINKS is legacy and is
+# never read). A link that cannot be made is not fatal here: the command
+# below says what it is missing far better than a guess from this script
+# would.
 links_of() {
   local key="$1" file="$2"
   [ -f "$file" ] || return 0
   sed -n "s/^${key}:[[:space:]]*//p" "$file" | head -1 | sed 's/[[:space:]]*$//'
 }
 LINKS="$(links_of worktreeLinks "$ROOT/.aide/project.yaml")"
-[ -n "$LINKS" ] || LINKS="$(links_of AIDE_WORKTREE_LINKS "$ROOT/.aide/config" | tr -d '"')"
 for entry in $LINKS; do
   case "$entry" in
     /*|*..*) continue ;;

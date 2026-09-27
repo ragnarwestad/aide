@@ -84,15 +84,16 @@ it said is not lost.
 ### Where a project's settings are kept
 
 The specs path and the install command belong to the machine and are kept in its `.aide/config`, which is never
-committed. The rest live in one of two files, and the page says which in a sentence above the table.
-Four states:
+committed. The rest live in the manifest table, headed with the file a save writes to. Four
+states decide which:
 
-| The page says                                  | What it means                                                                        |
-|------------------------------------------------|--------------------------------------------------------------------------------------|
-| Kept in the project's own `.aide/project.yaml` | The repository tracks a manifest, and it travels with the project to any machine     |
-| Kept in the dashboard, in `settings.yaml`      | The repository tracks no manifest, so this dashboard holds them beside its checkouts |
-| … and the dashboard's copy is not used         | Both files exist, and the tracked manifest wins as a whole file                      |
-| No settings are stored yet                     | Neither file exists                                                                  |
+| The manifest table is headed        | What it means                                                                        |
+|--------------------------------------|--------------------------------------------------------------------------------------|
+| `.aide/project.yaml`                 | The repository tracks a manifest, and it travels with the project to any machine     |
+| the dashboard's `settings.yaml`      | The repository tracks no manifest, so this dashboard holds them beside its checkouts |
+
+A tracked manifest wins as a whole file where both exist, and the heading still reads
+`.aide/project.yaml` when neither exists yet — that is the file a save would create.
 
 **Add always leaves a project in the second state**, whatever was typed: the form writes the name,
 the description, the worktree links and the code landing to the dashboard's own settings file and
@@ -259,32 +260,31 @@ asked, and it is recomputed on every visit rather than shown once in a notice th
 `dashboardCheckout`. They are fixed on the machine, not on this page, and the section says so. The two checks a
 settings row owns, `specsRoot` and `worktreeLinks`, are left out here and carried inline on their own rows instead.
 
-**The settings table**, with a sentence above it saying where this project's settings live: in the dashboard's own
-file, in the project's tracked manifest, in both — where the tracked manifest wins and the dashboard's copy is not
-used — or nowhere yet. The table has a row for each of the five settings a run reads — Specs path, Worktree links,
-Test command, Install command and Preview command — each naming the file it came from, plus a **Code landing** row,
-which is not a config key. `AIDE_LINT_CMD` and `AIDE_BUILD_CMD` have no row: the runner never runs them, and the
-implement step's AI works them out from the project's own files unless `.aide/config` sets them. A row whose
-readiness check failed carries that check's sentence inline.
+**Two settings tables, one per file** (every setting belongs to exactly one now): `.aide/config`, holding Specs
+path and Install command, and the manifest — headed `.aide/project.yaml`, or the dashboard's `settings.yaml` when
+the project tracks no manifest — holding Worktree links, Preview command, Test command and a **Code landing** row,
+which is not a config key. No row's Comment names a file: which table a setting is in already says that. `AIDE_LINT_CMD`
+and `AIDE_BUILD_CMD` have no row: the runner never runs them, and the implement step's AI works them out from the
+project's own files unless `.aide/config` sets them. A row whose readiness check failed carries that check's
+sentence inline.
 
 The test command is the one worth knowing: a run and a landing test with a configured command only
 (`aide-resolve-test-cmd`), so an unset one reads "no tests run when a spec lands", with the worked-out
 command beside it as a suggestion.
 
-**Edit** (`?edit=1`) turns the same table into a form — there is only ever one table on the page, in either mode.
-Six controls open: Specs path, Worktree links, Install command, Preview command, Test command and Code landing.
-The test field is empty with the worked-out
+**Edit** (`?edit=1`) turns the same two tables into one form — there are always exactly two `<table>` elements on
+the page, in either mode. Six controls open: Specs path, Worktree links, Install command, Preview command, Test
+command and Code landing. The test field is empty with the worked-out
 command as its placeholder, so a save that never touched it configures nothing. Worktree links has a line of the
 checkout's own top-level `.gitignore` entries under it. The five text fields are as wide as their cell and grow to
 show the whole value; with the board's script on, Enter saves, and a value is always one line — a line break in it is
 folded to a space. Save and Cancel both return to
 `/projects/<name>?tab=config`, and `/projects/<name>/settings` redirects there too.
 
-A save writes each value back to the file its row names. A value in neither file goes to its own: Specs path
-and Install command to `.aide/config`, which is never committed; Worktree links, Preview command, Test command and
-Code landing to the manifest — the project's
-own `.aide/project.yaml` where it is tracked, else the dashboard's `settings.yaml`. Unchanged values are not
-rewritten.
+A save writes each value to the file its table names, and to no other file, regardless of where the value
+currently lives: Specs path and Install command to `.aide/config`, which is never committed; Worktree links,
+Preview command, Test command and Code landing to the manifest — the project's own `.aide/project.yaml` where it
+is tracked, else the dashboard's `settings.yaml`. Unchanged values are not rewritten.
 
 #### Schedule
 
@@ -389,8 +389,8 @@ The asymmetry is recorded in
 `tests/fixtures/project-readiness-prerequisites.json`'s own comment rather than pinned against the runner.
 
 `worktreeLinks` is read from the project's `.aide/project.yaml` (the committed one, else the dashboard's derived copy)
-first and from `.aide/config`'s older `AIDE_WORKTREE_LINKS` second — the same order, and the same winner, as
-`aide-run-spec` itself reads them in.
+alone, the same file `aide-run-spec` itself reads — `.aide/config`'s older `AIDE_WORKTREE_LINKS` is legacy and is
+never read, by either side.
 `tests/fixtures/worktree-links-precedence.json` is the one table both sides are tested against, because the two are
 written independently and nothing else would stop them drifting.
 

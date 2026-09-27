@@ -358,9 +358,9 @@ AIDE_EOF
 # run recorded against one is a run against the other. Built in a
 # throwaway index so the caller's own index is never touched.
 #
-# The project's worktree links (`worktreeLinks`, or `.aide/config`'s
-# AIDE_WORKTREE_LINKS — the same list and precedence a run links in) are
-# left out, committed or not. They are the gitignored paths a run points
+# The project's worktree links (`worktreeLinks`, the same list a run
+# links in — `.aide/config`'s older AIDE_WORKTREE_LINKS is legacy and is
+# never read) are left out, committed or not. They are the gitignored paths a run points
 # at the main checkout, a `node_modules/` ignore rule does not match the
 # symlink that stands in for one, and a session's own `git add -A` can
 # commit it — so counted, the tree a run tested differed from the tree
@@ -384,7 +384,6 @@ aide_tree_hash() {
     git add -A . >/dev/null 2>&1 || exit 1
     links="$given_links"
     [ -n "$links" ] || links="$(aide_manifest_get worktreeLinks .)"
-    [ -n "$links" ] || links="$(aide_config_get AIDE_WORKTREE_LINKS . 2>/dev/null)"
     for link in $links; do
       git rm -r -q --cached --ignore-unmatch -- "$link" >/dev/null 2>&1 || true
     done

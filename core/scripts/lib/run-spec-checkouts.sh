@@ -46,16 +46,12 @@ wt_dir="$worktree_base/$(worktree_project_key "$project_root")/$spec_label"
 # do with the change. Which paths matter cannot be derived without
 # guessing, so the project states them.
 #
-# Two files can say, and the COMMITTED one wins (spec 184).
-# `.aide/project.yaml` travels with the repo, so a checkout that has
-# never been configured on this machine still knows which gitignored
-# paths its commands need; `.aide/config`'s older `AIDE_WORKTREE_LINKS`
-# is read when the manifest names none, so a project migrated on one
-# machine keeps running on the others. Which file was read is REPORTED —
-# to stderr for whoever is watching the run, and in the result blob for
-# whatever reads that — because a value shadowed in the other file is
-# otherwise ignored in silence. The refusals below name the source they
-# actually came from, which is the file to go and edit.
+# The COMMITTED manifest alone (spec 549): `.aide/project.yaml` travels
+# with the repo, so a checkout that has never been configured on this
+# machine still knows which gitignored paths its commands need.
+# `.aide/config`'s older `AIDE_WORKTREE_LINKS` is legacy and is never
+# read. Which file was read is REPORTED — to stderr for whoever is
+# watching the run, and in the result blob for whatever reads that.
 link_paths=()
 links_raw=""
 links_source=""
@@ -65,13 +61,6 @@ if declare -f aide_manifest_get >/dev/null 2>&1; then
   if [ -n "$links_raw" ]; then
     links_source="project.yaml"
     links_key="worktreeLinks"
-  fi
-fi
-if [ -z "$links_raw" ] && declare -f aide_config_get >/dev/null 2>&1; then
-  links_raw="$(aide_config_get AIDE_WORKTREE_LINKS "$project_root")"
-  if [ -n "$links_raw" ]; then
-    links_source=".aide/config"
-    links_key="AIDE_WORKTREE_LINKS"
   fi
 fi
 [ -n "$links_source" ] && echo "Worktree links: read from $links_source" >&2
@@ -87,7 +76,7 @@ for entry in $links_raw; do
   link_base="${entry##*/}"
   for denied in $WORKTREE_LINK_DENYLIST; do
     if [ "$link_base" = "$denied" ]; then
-      refuse "AIDE_WORKTREE_LINKS names a build output, not a dependency cache: $entry — such a directory is generated per worktree and wants no link at all"
+      refuse "$links_key names a build output, not a dependency cache: $entry — such a directory is generated per worktree and wants no link at all"
     fi
   done
   # A named path with nothing to link is refused rather than skipped

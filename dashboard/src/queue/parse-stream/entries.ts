@@ -2,7 +2,7 @@
 // run said and what it did, one line each, in the three CLIs' own
 // schemas turned into one shape.
 import {
-  blocksOf, bounded, CLAUDE_WRITES, clip, codexKind, esc, events, keepsEntry, sniff, textEntries, toolSubject, trim,
+  blocksOf, bounded, CLAUDE_WRITES, clip, codexKind, commandLine, esc, events, keepsEntry, sniff, textEntries, toolSubject, trim,
   type StreamEntry, type StreamEntryKind, type SummarizeOptions,
 } from "./shared.ts";
 
@@ -44,9 +44,9 @@ function claudeEntries(text: string, opts: SummarizeOptions = {}): StreamEntry[]
       if (block.type === "text" && typeof block.text === "string" && block.text.trim()) {
         textEntries(block.text).forEach(keep);
       } else if (block.type === "tool_use" && typeof block.name === "string") {
-        const subject = toolSubject(block.input);
         const kind: StreamEntryKind =
           block.name === "Bash" ? "command" : CLAUDE_WRITES.has(block.name) ? "file" : "tool";
+        const subject = kind === "command" ? commandLine(toolSubject(block.input)) : toolSubject(block.input);
         keep({
           kind,
           text: esc(clip(subject ? `${block.name} ${subject}` : block.name)),
@@ -96,7 +96,7 @@ function codexEntryText(item: Record<string, unknown>): string {
     case "agent_message":
       return str("text");
     case "command_execution":
-      return str("command");
+      return commandLine(str("command"));
     case "file_change": {
       const changes = Array.isArray(item.changes) ? (item.changes as Record<string, unknown>[]) : [];
       const paths = changes.map((c) => (typeof c?.path === "string" ? c.path : "")).filter(Boolean);

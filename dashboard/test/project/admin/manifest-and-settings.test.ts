@@ -182,9 +182,11 @@ describe("where the worktree links are read from (spec 184)", () => {
 });
 
 describe("a refused link names the file it came out of (spec 184)", () => {
-  // Two spellings exist now, and a refusal is read as an instruction to
-  // go and edit one of them. The runner does exactly this, with the same
-  // two strings — `test_aide_run_spec.py` is the other half.
+  // Since spec 549 there is only one spelling to refuse over: the
+  // manifest's `worktreeLinks`. `.aide/config`'s older
+  // `AIDE_WORKTREE_LINKS` is legacy and is never read, so nothing about
+  // it is ever refused either — `test_aide_run_spec.py` is the bash half
+  // of the same rule.
   test("a manifest value is refused in the manifest's own words", async () => {
     const { projectsRoot, dir } = checkoutFor("frommanifest");
     mkdirSync(join(dir, ".aide"), { recursive: true });
@@ -197,14 +199,16 @@ describe("a refused link names the file it came out of (spec 184)", () => {
     expect(projectsRoot).toBeTruthy();
   });
 
-  test("a legacy config value is refused in the config's own words", async () => {
+  test("a legacy config value is not read at all, and so never refused (AC-5)", async () => {
     const { dir } = checkoutFor("fromconfig");
     mkdirSync(join(dir, ".aide"), { recursive: true });
     writeFileSync(join(dir, ".aide", "config"), "AIDE_WORKTREE_LINKS=/etc\n");
     const readiness = await assessProjectReadiness(fakeGit({}).run, dir);
     const check = readiness.checks.find((c) => c.check === "worktreeLinks")!;
-    expect(check.blocking).toBe(true);
-    expect(check.detail).toContain("AIDE_WORKTREE_LINKS must name repo-relative paths");
+    expect(check.blocking).toBe(false);
+    expect(check.ok).toBe(false);
+    expect(check.detail).not.toContain("AIDE_WORKTREE_LINKS must name repo-relative paths");
+    expect(check.detail).toContain("no worktree links are configured");
   });
 });
 
@@ -397,27 +401,28 @@ describe("changing a project's settings after it was added (spec 184)", () => {
     expect(existsSync(join(dir, ".aide", "config"))).toBe(false);
   });
 
-  // A save goes back to the file the page named for the row.
-  test("a links value read from .aide/config is saved back to .aide/config", async () => {
+  // Spec 549 (AC-6): every save now goes to the row's own fixed file,
+  // regardless of where the value currently lives.
+  test("a links value read from .aide/config is saved to the manifest instead", async () => {
     const { dir } = added("legacy");
     mkdirSync(join(dir, "deps"), { recursive: true });
     mkdirSync(join(dir, "vendor"), { recursive: true });
     writeFileSync(join(dir, ".aide", "config"), "AIDE_WORKTREE_LINKS=deps\n");
-    const before = readFileSync(join(dir, ".aide", "project.yaml"), "utf-8");
     const result = await updateProjectSettings(fakeGit({}).run, dir, { worktreeLinks: "deps vendor" });
     expect(result.ok).toBe(true);
-    expect(configValue(dir, "AIDE_WORKTREE_LINKS")).toBe("deps vendor");
-    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).toBe(before);
+    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).toContain("worktreeLinks: deps vendor\n");
+    expect(configValue(dir, "AIDE_WORKTREE_LINKS")).toBe("deps");
   });
 
-  test("an install command read from the manifest is saved back to the manifest", async () => {
+  test("an install command read from the manifest is saved to .aide/config instead", async () => {
     const { dir } = added("from-manifest");
     const file = join(dir, ".aide", "project.yaml");
     writeFileSync(file, `${readFileSync(file, "utf-8")}installCmd: ./old.sh\n`);
+    const before = readFileSync(file, "utf-8");
     const result = await updateProjectSettings(fakeGit({}).run, dir, { installCmd: "./new.sh" });
     expect(result.ok).toBe(true);
-    expect(readFileSync(file, "utf-8")).toContain("installCmd: ./new.sh");
-    expect(configValue(dir, "AIDE_INSTALL_CMD")).toBeNull();
+    expect(configValue(dir, "AIDE_INSTALL_CMD")).toBe("./new.sh");
+    expect(readFileSync(file, "utf-8")).toBe(before);
   });
 });
 

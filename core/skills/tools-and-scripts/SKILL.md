@@ -87,7 +87,7 @@ with `#` comments. Recognized keys:
 |-----------------------|------------------------------------------------------------------------------------------------------------------|
 | `AIDE_LINT_CMD`       | Overrides the detected lint command                                                                              |
 | `AIDE_BUILD_CMD`      | Overrides the detected build command                                                                             |
-| `AIDE_WORKTREE_LINKS` | LEGACY. Read only when `.aide/project.yaml` has no `worktreeLinks:` — see below                                  |
+| `AIDE_WORKTREE_LINKS` | LEGACY. Never read — `.aide/project.yaml`'s `worktreeLinks:` is the only source now, see below                   |
 | `AIDE_INSTALL_CMD`    | What installing this project means on THIS machine — run by the dashboard after the project's own code is merged |
 
 The worktree links live in the project's **manifest**, not here:
@@ -113,9 +113,9 @@ git — so the answer was lost every time the project met a new machine.
 A project that does not track a manifest keeps them in the dashboard's own
 settings file, `checkouts/<name>/settings.yaml`, which reaches a run as an
 untracked, uncommitted `.aide/project.yaml`; a tracked manifest wins.
-`.aide/config`'s older `AIDE_WORKTREE_LINKS` is still read
-when the manifest names none; the manifest wins where both do, and the
-run's own output says which file it read.
+`.aide/config`'s older `AIDE_WORKTREE_LINKS` is legacy and is never
+read any more — the manifest is the only source, and the run's own
+output says so.
 
 `AIDE_INSTALL_CMD` exists because merged is not deployed. For a project
 that installs itself somewhere — Aide puts its scripts in
@@ -129,12 +129,11 @@ deploying is still a hand step. `aide`'s own value is
 `dashboard/deploy/install-after-merge.sh` — it reinstalls the shared
 scripts and refreshes/restarts the dashboard where one runs.
 
-`AIDE_INSTALL_CMD` is also readable from the project's **manifest**
-(`installCmd:`), with `.aide/config` overriding per machine when it sets
-the key — **the reverse of `worktreeLinks`'s precedence**: an install
-command can legitimately differ on one machine, while a worktree link
-cannot. The dashboard resolves it with `resolveInstallCmd()` in
-`dashboard/src/project/discover/config.ts`.
+`AIDE_INSTALL_CMD` is read from `.aide/config` alone — a manifest
+`installCmd:` is never read, **the reverse of `worktreeLinks`'s single
+source**: an install command can legitimately differ on one machine,
+while a worktree link cannot. The dashboard resolves it with
+`resolveInstallCmd()` in `dashboard/src/project/discover/config.ts`.
 
 Everything is optional. Shell scripts read the file via `aide_config_get KEY <project-root>` from
 `_aide-spec-lib.sh`.

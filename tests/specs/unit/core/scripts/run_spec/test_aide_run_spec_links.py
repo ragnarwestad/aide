@@ -37,10 +37,12 @@ def test_a_worktree_base_inside_the_specs_repo_is_refused(runner, workspace, fak
 @pytest.mark.parametrize("entry", ["/etc", "../escape", "deps/../../escape"])
 def test_a_link_that_escapes_the_root_is_refused(runner, workspace, fake_claude, entry):
     claude = fake_claude("exit 1")
-    (workspace["project"] / ".aide" / "config").write_text(
-        f"AIDE_SPECS_PATH={workspace['specs']}\nAIDE_WORKTREE_LINKS={entry}\n"
+    # worktreeLinks is read from the manifest alone (spec 549): a
+    # `.aide/config` value would never be read at all.
+    (workspace["project"] / ".aide" / "project.yaml").write_text(
+        f"AIDE_TEST_CMD: true\nworktreeLinks: {entry}\n"
     )
-    git(workspace["project"], "add", "-f", ".aide/config")
+    git(workspace["project"], "add", "-f", ".aide/project.yaml")
     git(workspace["project"], "commit", "-q", "-m", "a bad link")
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 2, out
@@ -51,10 +53,10 @@ def test_a_link_that_escapes_the_root_is_refused(runner, workspace, fake_claude,
 def test_a_link_naming_a_build_output_is_refused(runner, workspace, fake_claude, entry):
     claude = fake_claude("exit 1")
     (workspace["project"] / entry).mkdir(parents=True)
-    (workspace["project"] / ".aide" / "config").write_text(
-        f"AIDE_SPECS_PATH={workspace['specs']}\nAIDE_WORKTREE_LINKS={entry}\n"
+    (workspace["project"] / ".aide" / "project.yaml").write_text(
+        f"AIDE_TEST_CMD: true\nworktreeLinks: {entry}\n"
     )
-    git(workspace["project"], "add", "-f", ".aide/config")
+    git(workspace["project"], "add", "-f", ".aide/project.yaml")
     git(workspace["project"], "commit", "-q", "-m", "a link into a build output")
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 2, out
@@ -67,11 +69,10 @@ def test_the_dependency_caches_a_build_only_reads_are_not_refused(runner, worksp
     claude = fake_claude("exit 0")
     (workspace["project"] / ".venv").mkdir()
     (workspace["project"] / "dashboard" / "node_modules").mkdir(parents=True)
-    (workspace["project"] / ".aide" / "config").write_text(
-        f"AIDE_SPECS_PATH={workspace['specs']}\n"
-        "AIDE_WORKTREE_LINKS=.venv dashboard/node_modules\n"
+    (workspace["project"] / ".aide" / "project.yaml").write_text(
+        "AIDE_TEST_CMD: true\nworktreeLinks: .venv dashboard/node_modules\n"
     )
-    git(workspace["project"], "add", "-f", ".aide/config")
+    git(workspace["project"], "add", "-f", ".aide/project.yaml")
     git(workspace["project"], "commit", "-q", "-m", "the links this repo uses")
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
@@ -106,10 +107,10 @@ def test_a_link_naming_a_path_that_is_not_there_is_refused(runner, workspace, fa
     worktree with no `node_modules` in it, the project's own test command
     failed, and the step was blamed for it."""
     claude = fake_claude("exit 1")
-    (workspace["project"] / ".aide" / "config").write_text(
-        f"AIDE_SPECS_PATH={workspace['specs']}\nAIDE_WORKTREE_LINKS=deps node_modules\n"
+    (workspace["project"] / ".aide" / "project.yaml").write_text(
+        "AIDE_TEST_CMD: true\nworktreeLinks: deps node_modules\n"
     )
-    git(workspace["project"], "add", "-f", ".aide/config")
+    git(workspace["project"], "add", "-f", ".aide/project.yaml")
     git(workspace["project"], "commit", "-q", "-m", "a link with no source")
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 2, out
@@ -209,18 +210,21 @@ def test_aides_own_two_paths_are_both_linked_from_the_manifest(runner, workspace
     assert sorted(log.read_text().split()) == [".venv", "dashboard/node_modules"], log.read_text()
     assert out["worktreeLinksSource"] == "project.yaml", out
 
-def test_a_config_link_is_still_refused_in_the_configs_own_words(runner, workspace, fake_claude):
-    """The fallback keeps its own wording: a project not yet migrated has
-    nothing in the manifest to go and edit."""
-    claude = fake_claude("exit 1")
+def test_a_legacy_config_only_link_is_never_read(runner, workspace, fake_claude):
+    """AIDE_WORKTREE_LINKS in .aide/config is legacy and is never read at
+    all (spec 549): a value that would once have been refused (an entry
+    with nothing to link) is now simply never looked at, and the run
+    succeeds with nothing linked."""
+    claude = fake_claude("exit 0")
     (workspace["project"] / ".aide" / "config").write_text(
         f"AIDE_SPECS_PATH={workspace['specs']}\nAIDE_WORKTREE_LINKS=deps node_modules\n"
     )
+    (workspace["project"] / ".aide" / "project.yaml").write_text("AIDE_TEST_CMD: true\n")
     git(workspace["project"], "add", "-f", ".aide/config")
-    git(workspace["project"], "commit", "-q", "-m", "a config link with no source")
+    git(workspace["project"], "commit", "-q", "-m", "a legacy-only link")
     rc, out, _ = run(runner, workspace, claude)
-    assert rc == 2, out
-    assert "AIDE_WORKTREE_LINKS" in out["error"], out
+    assert rc == 0, out
+    assert "worktreeLinksSource" not in out, out
 
 @pytest.mark.parametrize(
     "case", READINESS_FIXTURE, ids=[f"{c['check']}: {c['failsWhen']}" for c in READINESS_FIXTURE]
