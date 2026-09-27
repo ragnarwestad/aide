@@ -228,6 +228,10 @@ export interface Job {
    *  a call in flight, and one that survived a restart would hold the
    *  whole queue shut with nothing left to clear it. */
   landing?: boolean;
+  /** Set when the job is read back with `landing` on: the last process
+   *  stopped with this job's landing in flight. `Runner.resumeCutLandings`
+   *  runs it again at boot and clears this. */
+  landingCut?: boolean;
   createdAt: string;
   startedAt?: string;
   finishedAt?: string;

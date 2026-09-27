@@ -9,6 +9,7 @@
 // so the read is never a TDZ error; a plain value captured at
 // construction time would be.
 
+import { resumeCutLandings } from "../queue/runner/cut-landing.ts";
 import { dirname, join } from "node:path";
 import { spawnEnv } from "./tool-path.ts";
 import { scriptArgv } from "../integrations/script-argv.ts";
@@ -108,6 +109,20 @@ export function acceptanceNotRequiredForAnalyze(
   const found = ctx.specDir(job.project, job.specFolder);
   if (!found) return false;
   return specAcceptanceNotRequired(ctx.peekMachinerySpecDir(job.project, found));
+}
+
+/** A step's result file, or null while there is none. */
+function readResultFile(path: string): unknown {
+  try {
+    return JSON.parse(readFileSync(path, "utf-8")) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+/** At boot, after `reconcile`: the landings the last process never finished. */
+export function resumeCutLandingsAtBoot(ctx: RunnerSetupContext): void {
+  resumeCutLandings({ store: ctx.store, readResult: readResultFile, onStepDone: stepDoneHandler(ctx) });
 }
 
 export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
@@ -233,13 +248,7 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
         return false;
       }
     },
-    readResult: (path) => {
-      try {
-        return JSON.parse(readFileSync(path, "utf-8")) as unknown;
-      } catch {
-        return null;
-      }
-    },
+    readResult: readResultFile,
     notify: (event) => ctx.notifier.notify(event),
     // A step's work is invisible to this page until its branch is on
     // the default branch of the checkout the page reads — so every
