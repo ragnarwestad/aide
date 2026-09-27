@@ -61,7 +61,7 @@ type Box = { name: string; url: string; selector: string; lang?: string };
 const BOXES: Box[] = [
   { name: "leave box", url: "/projects?live=0", selector: "dialog.leaveapp" },
   { name: "cancel box", url: `/?live=0&open=aide%2F${FOLDER}`, selector: "dialog.confirmdialog:has(.actionform)" },
-  { name: "delete box", url: "/schedule?live=0", selector: "dialog.confirmdialog:has(.scheduledeleteform)" },
+  { name: "delete box", url: "/projects/aide?tab=schedule&live=0", selector: "dialog.confirmdialog:has(.scheduledeleteform)" },
 ];
 
 async function open(box: Box, lang = ""): Promise<void> {
