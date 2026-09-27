@@ -24,7 +24,7 @@ function world() {
   const clone = join(root, "clone");
   mkdirSync(join(projects, "skjer"), { recursive: true });
   mkdirSync(join(clone, ".aide"), { recursive: true });
-  writeFileSync(join(clone, ".aide", "project.yaml"), "name: skjer\ntestCmd: make check\n");
+  writeFileSync(join(clone, ".aide", "project.yaml"), "name: skjer\npreviewCmd: make check\n");
   return { projects, clone, fallback: manifestInside(() => clone) };
 }
 
@@ -37,11 +37,11 @@ describe("discovery reads the manifest from the dashboard's clone", () => {
     expect(found[0]!.manifestPath).toBe(join(w.clone, ".aide", "project.yaml"));
   });
 
-  test("the settings page shows the test command from the clone (AC-4)", () => {
+  test("the settings page shows the preview command from the clone (AC-4)", () => {
     const w = world();
     const own = join(w.projects, "skjer");
-    const row = projectSettings(own, null, w.clone).rows.find((r) => r.key === "AIDE_TEST_CMD");
+    const row = projectSettings(own, null, w.clone).rows.find((r) => r.key === "AIDE_PREVIEW_CMD");
     expect(row?.value).toBe("make check");
-    expect(projectSettings(own).rows.find((r) => r.key === "AIDE_TEST_CMD")?.origin).not.toBe("configured");
+    expect(projectSettings(own).rows.find((r) => r.key === "AIDE_PREVIEW_CMD")?.origin).not.toBe("configured");
   });
 });

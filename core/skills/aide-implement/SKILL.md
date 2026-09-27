@@ -133,7 +133,7 @@ First write `implement · Step 4 of 4: VERIFY — Full suite, types, lint, build
 The order is fixed: the full suite is run only once every test this
 step wrote is green (Step 3). Red in the full suite is then something
 the change BROKE — an existing test that still expects the old
-behaviour, or a file another scope covers — and it is this step's to
+behaviour — and it is this step's to
 fix, back through Step 3, before anything is reported — running only
 the files that failed until each is green, and recording the full suite
 again once, after the last of them (the testing rule, "A red full run is
@@ -193,8 +193,7 @@ runner's own run on your result is what decides.
    believes the suite passed. Write the result with `aide-write-spec
    --file 4-status.md` (never Write/Edit)
 7. Update 4-status.md — the "Run the full test suite" row's Notes cell
-   names the command(s) that ran, and, when the project has `testScopes`
-   naming a scope nothing changed in, says that scope was left untested.
+   names the command that ran.
    Write it the same way, with `aide-write-spec --file 4-status.md`
 8. Before reporting anything: confirm every row in this step's own
    table now reads ✅. This step is not optional and is not satisfied by
@@ -335,23 +334,11 @@ Example for a Maven/Gradle backend:
 ./gradlew build       # or: mvn verify
 ```
 
-**A run tests what it changed.** `aide-resolve-test-cmd --project-dir .`
-sorts the files this run actually changed (the branch's diff against
-the default branch, not the plan's intentions) into the scopes
-`.aide/config` declares (`AIDE_TEST_SCOPE_PATHS_N` / `AIDE_TEST_SCOPE_CMD_N`,
-the config-file form of the manifest's `testScopes:` — see the
-tools-and-scripts skill) and prints every scope's command that has a
-file in it. A change reaching both halves runs both; a change reaching
-one runs one; a change under no declared scope runs every scope's
-command, never none. A project with no scopes declared gets its one
-`AIDE_TEST_CMD`, exactly as before. Use the script's answer; never
-reason the rule out again in prose.
-
-Then say so in `4-status.md`: the "Run the full test suite" row's Notes
-cell names the command(s) that ran, and — only when `testScopes` names a
-scope this run changed nothing in — names that scope as **left
-untested**, so a reader sees what was not tried instead of assuming
-everything was.
+**A run tests the whole project.** `aide-resolve-test-cmd --project-dir .`
+prints the project's one test command, `.aide/config`'s `AIDE_TEST_CMD`
+(the tools-and-scripts skill, "Project commands"). Use the script's
+answer; an empty answer means the project has no test command, and the
+"Run the full test suite" row says so.
 
 ---
 

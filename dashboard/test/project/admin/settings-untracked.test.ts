@@ -29,26 +29,26 @@ describe("Settings save by whether the manifest is tracked", () => {
     const f = fixture();
     const head = git(f.dir, "rev-parse", "HEAD");
     const originHead = git(f.origin, "rev-parse", "main");
-    const result = await updateProjectSettings(run, f.dir, { testCmd: "make check" }, {
+    const result = await updateProjectSettings(run, f.dir, { previewCmd: "make check" }, {
       saveManifest: saveManifest(f.dir),
       settingsFile: dashboardSettingsFile(f.base, "demo"),
     });
     expect(result.ok).toBe(true);
-    expect(readFileSync(dashboardSettingsFile(f.base, "demo"), "utf-8")).toContain("testCmd: make check");
+    expect(readFileSync(dashboardSettingsFile(f.base, "demo"), "utf-8")).toContain("previewCmd: make check");
     expect(git(f.origin, "rev-parse", "main")).toBe(originHead);
     expect(git(f.dir, "rev-parse", "HEAD")).toBe(head);
     expect(git(f.dir, "status", "--porcelain")).not.toContain("project.yaml");
   });
 
-  test("git cannot say: the testCmd step fails with git's words and the install command still saves (AC-2)", async () => {
+  test("git cannot say: the previewCmd step fails with git's words and the install command still saves (AC-2)", async () => {
     const f = fixture();
     const broken: GitRunner = async (dir, args, timeout) =>
       args.includes("ls-files") ? { code: 128, stdout: "", stderr: "fatal: unable to read the index" } : run(dir, args, timeout);
-    const result = await updateProjectSettings(broken, f.dir, { testCmd: "make check", installCmd: "make setup" }, {
+    const result = await updateProjectSettings(broken, f.dir, { previewCmd: "make check", installCmd: "make setup" }, {
       saveManifest: saveManifest(f.dir),
       settingsFile: dashboardSettingsFile(f.base, "demo"),
     });
-    const test = result.steps.find((s) => s.step === "testCmd");
+    const test = result.steps.find((s) => s.step === "previewCmd");
     expect(test?.ok).toBe(false);
     expect(test?.error).toContain("unable to read the index");
     expect(existsSync(dashboardSettingsFile(f.base, "demo"))).toBe(false);
@@ -58,13 +58,13 @@ describe("Settings save by whether the manifest is tracked", () => {
 
   test("a tracked manifest is committed and pushed, and no settings file appears (AC-3)", async () => {
     const f = fixture({ ".aide/project.yaml": "name: demo\n" });
-    const result = await updateProjectSettings(run, f.dir, { testCmd: "make check" }, {
+    const result = await updateProjectSettings(run, f.dir, { previewCmd: "make check" }, {
       saveManifest: saveManifest(f.dir),
       settingsFile: dashboardSettingsFile(f.base, "demo"),
     });
     expect(result.ok).toBe(true);
-    expect(git(f.origin, "log", "-1", "--format=%s", "main").trim()).toBe("Set testCmd from the dashboard");
-    expect(git(f.origin, "show", "main:.aide/project.yaml")).toContain("testCmd: make check");
+    expect(git(f.origin, "log", "-1", "--format=%s", "main").trim()).toBe("Set previewCmd from the dashboard");
+    expect(git(f.origin, "show", "main:.aide/project.yaml")).toContain("previewCmd: make check");
     expect(existsSync(dashboardSettingsFile(f.base, "demo"))).toBe(false);
   });
 });

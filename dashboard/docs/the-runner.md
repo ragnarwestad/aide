@@ -200,7 +200,7 @@ evidence that the phase happened:
   session first — the failing lines as a follow-up turn, up to two more rounds within what is left of the step's
   time limit (`AIDE_TEST_FIX_ROUNDS`; claude resumes its session, Codex its thread through `codex exec resume`). Still red after
   that, the step ends `tests-red` with the failing lines as its detail, and Implement is the button to press again.
-  A change no test command covers has nothing to run and passes as before. A record the session wrote through
+  A project without `AIDE_TEST_CMD` has nothing to run and passes. A record the session wrote through
   `aide-record-test-run` on exactly the delivered tree (its `tree` hash), green and naming the same commands, is
   accepted as that run; anything the session changed afterwards makes the runner run the suite itself.
 - `archive` runs no suite of its own, merged with main or not: its landing runs the project's tests once, on

@@ -47,10 +47,11 @@ describe("one key out of a project's own .aide/config", () => {
   });
 });
 
-// Spec 345: AIDE_INSTALL_CMD/installCmd and AIDE_TEST_CMD/testCmd are each
-// readable from EITHER file, `.aide/config` winning when both set a value
-// — the reverse of resolveWorktreeLinks' manifest-wins precedence, because
-// an install/test command can legitimately differ per machine.
+// Spec 345: AIDE_INSTALL_CMD/installCmd is readable from EITHER file,
+// `.aide/config` winning when both set a value — the reverse of
+// resolveWorktreeLinks' manifest-wins precedence, because an install
+// command can legitimately differ per machine. The test command is
+// `.aide/config`'s alone.
 describe("resolveInstallCmd / resolveTestCmd", () => {
   const CASES = JSON.parse(
     readFileSync(join(import.meta.dir, "..", "..", "..", "..", "tests", "fixtures", "config-cmd-precedence.json"), "utf-8"),
@@ -71,13 +72,15 @@ describe("resolveInstallCmd / resolveTestCmd", () => {
       expect(result.value).toBe(c.value);
       expect(result.source).toBe(c.source);
     });
-    test(`testCmd ${c.name}`, () => {
-      const dir = project(c.config, c.manifest, "testCmd", "AIDE_TEST_CMD");
-      const result = resolveTestCmd(dir);
-      expect(result.value).toBe(c.value);
-      expect(result.source).toBe(c.source);
-    });
   }
+
+  test("the test command is AIDE_TEST_CMD alone: the manifest is not read", () => {
+    expect(resolveTestCmd(project(null, "make test", "testCmd", "AIDE_TEST_CMD"))).toEqual({ value: null, source: null });
+    expect(resolveTestCmd(project("make test", null, "testCmd", "AIDE_TEST_CMD"))).toEqual({
+      value: "make test",
+      source: ".aide/config",
+    });
+  });
 });
 
 // Spec 140: nothing can DERIVE which gitignored paths a project's own

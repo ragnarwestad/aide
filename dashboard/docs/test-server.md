@@ -176,7 +176,7 @@ other project names a preview command, in one of two places:
 - `previewCmd:` in the committed `.aide/project.yaml` — the Settings table on its project page
   writes it, under the row labelled `AIDE_PREVIEW_CMD`.
 - `AIDE_PREVIEW_CMD` in the machine's own `.aide/config` — a machine that starts the project
-  differently overrides it this way, the same precedence the install and test commands have.
+  differently overrides it this way, the same precedence the install command has.
 
 The command is expected to serve on `$PORT` and keep running until it is stopped, for example
 `pnpm dev --port $PORT --host 127.0.0.1`. It runs in a worktree of the spec's branch, with the

@@ -91,7 +91,7 @@ export function resolveCodeLanding(projectDir: string): CodeLanding {
 
 /** Which of the two files an install/test command came out of. Unlike
  *  `WorktreeLinksSource`, `.aide/config` is the PRIMARY source here, not
- *  the fallback — see `resolveInstallCmd`/`resolveTestCmd` below. */
+ *  the fallback — see `resolveInstallCmd` below. */
 export type ConfigOverrideSource = ".aide/config" | "project.yaml";
 
 /** Resolve a key that may be set in either file, `.aide/config` winning
@@ -132,19 +132,17 @@ export function resolveInstallCmd(
   return resolveOverride(projectDir, "AIDE_INSTALL_CMD", (d) => d.installCmd);
 }
 
-/** This project's own test command, and where it came from (spec 345) —
- *  the same config-wins precedence as `resolveInstallCmd`. Callers that
- *  also want a LOCKFILE-derived fallback (nothing in either file) use
- *  `detect-commands.ts`'s `detectProjectCommands()` once this answers
- *  `null`; this function never guesses one itself. */
+/** This project's own test command: `.aide/config`'s `AIDE_TEST_CMD`
+ *  and nothing else, as `aide-resolve-test-cmd` reads it. */
 export function resolveTestCmd(
   projectDir: string,
 ): { value: string | null; source: ConfigOverrideSource | null } {
-  return resolveOverride(projectDir, "AIDE_TEST_CMD", (d) => d.testCmd);
+  const value = configValue(projectDir, "AIDE_TEST_CMD");
+  return { value, source: value ? ".aide/config" : null };
 }
 
 /** How this project is started for a look at one branch, and where that
- *  came from — the same config-wins precedence as `resolveTestCmd`. */
+ *  came from — the same config-wins precedence as `resolveInstallCmd`. */
 export function resolvePreviewCmd(
   projectDir: string,
 ): { value: string | null; source: ConfigOverrideSource | null } {

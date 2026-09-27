@@ -63,10 +63,7 @@ class TestConfigExampleFile:
         example_text = (workspace_root / ".aide" / "config.example").read_text()
         missing = []
         for key in keys:
-            # A `_N` scope key (AIDE_TEST_SCOPE_PATHS_N) is documented by its
-            # PREFIX in the example, not the literal placeholder `N`.
-            needle = key[:-2] if key.endswith("_N") else key
-            if needle not in example_text:
+            if key not in example_text:
                 missing.append(key)
         assert missing == [], f"config.example does not mention: {missing}"
 

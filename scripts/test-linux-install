@@ -93,10 +93,11 @@ git init -q --bare ~/origin/scratch.git
 git clone -q ~/origin/scratch.git ~/projects/scratch 2>/dev/null
 cd ~/projects/scratch
 mkdir -p .aide
-printf 'name: scratch\ndescription: A throwaway project\ntestCmd: "sh test.sh"\n' > .aide/project.yaml
+printf 'name: scratch\ndescription: A throwaway project\n' > .aide/project.yaml
 printf '#!/bin/sh\necho hello\n' > greet.sh
 printf '#!/bin/sh\n[ "$(sh greet.sh)" = "hello" ]\n' > test.sh
 git add -A && git commit -qm "Start the scratch project" && git push -q origin main
+printf 'AIDE_TEST_CMD=sh test.sh\n' > .aide/config
 check "aide-run-spec starts (dry run)" bash -i -c "aide-run-spec --project-dir ~/projects/scratch \
   --command create --spec new --title Hi --description x --timeout-sec 60 \
   --permission-mode acceptEdits --result-file /tmp/dry.json --push branch --pull --dry-run \

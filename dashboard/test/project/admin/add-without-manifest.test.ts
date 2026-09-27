@@ -40,7 +40,7 @@ describe("Add writes the dashboard's settings file, not the checkout", () => {
   });
 
   test("a tracked manifest is kept byte for byte and the links are written nowhere (AC-1)", async () => {
-    const tracked = "name: demo\ntestCmd: team check\n";
+    const tracked = "name: demo\ninstallCmd: team check\n";
     const f = fixture({ ".aide/project.yaml": tracked });
     const result = await addProject(
       run,
@@ -63,7 +63,7 @@ describe("Add writes the dashboard's settings file, not the checkout", () => {
     const code = join(f.base, "demo", "code");
     git(f.root, "clone", "-q", f.origin, code);
     mkdirSync(join(code, ".aide"));
-    const draft = "name: demo\ndescription: drafted\ntestCmd: make check\n";
+    const draft = "name: demo\ndescription: drafted\ninstallCmd: make check\n";
     writeFileSync(join(code, ".aide", "project.yaml"), draft);
     await addProject(run, f.projects, { name: "demo", gitUrl: f.origin, codeLanding: "merge" }, f.base);
     expect(readFileSync(dashboardSettingsFile(f.base, "demo"), "utf-8")).toBe(draft);
@@ -73,8 +73,8 @@ describe("Add writes the dashboard's settings file, not the checkout", () => {
   test("an existing settings file is not clobbered by a second Add (AC-1)", async () => {
     const f = fixture();
     mkdirSync(join(f.base, "demo"), { recursive: true });
-    writeFileSync(dashboardSettingsFile(f.base, "demo"), "name: demo\ntestCmd: mine\n");
+    writeFileSync(dashboardSettingsFile(f.base, "demo"), "name: demo\ninstallCmd: mine\n");
     await addProject(run, f.projects, { name: "demo", gitUrl: f.origin, codeLanding: "merge", description: "new" }, f.base);
-    expect(readFileSync(dashboardSettingsFile(f.base, "demo"), "utf-8")).toContain("testCmd: mine");
+    expect(readFileSync(dashboardSettingsFile(f.base, "demo"), "utf-8")).toContain("installCmd: mine");
   });
 });

@@ -62,9 +62,9 @@ export async function updateProjectSettings(
      *  still sets `AIDE_PREVIEW_CMD` in its own config by hand, which
      *  keeps winning. */
     previewCmd?: string;
-    /** The command a run and a landing test with — the manifest's
-     *  `testCmd`, read by `aide-resolve-test-cmd`. Gated on presence the
-     *  same way: the Settings page's "Use this" posts it alone. */
+    /** The command a run and a landing test with — `.aide/config`'s
+     *  `AIDE_TEST_CMD`, read by `aide-resolve-test-cmd`. Gated on
+     *  presence the same way. */
     testCmd?: string;
   },
   opts: {
@@ -200,7 +200,7 @@ export async function updateProjectSettings(
   // changed-only-write rule `specsPath` above follows, gated on
   // presence in `req` the way `codeLanding` is above it — a caller
   // that never mentions it must not blank it.
-  const writeConfigField = (step: "installCmd", configKey: string, value: string | undefined): void => {
+  const writeConfigField = (step: "installCmd" | "testCmd", configKey: string, value: string | undefined): void => {
     if (value === undefined) return;
     const trimmed = value.trim();
     if (trimmed === (configValue(projectDir, configKey) ?? "")) return;
@@ -216,6 +216,7 @@ export async function updateProjectSettings(
     }
   };
   writeConfigField("installCmd", "AIDE_INSTALL_CMD", req.installCmd);
+  writeConfigField("testCmd", "AIDE_TEST_CMD", req.testCmd);
 
   // The manifest again, and the same changed-only rule: compared
   // against what the manifest itself says, never the resolved value, so
@@ -230,16 +231,6 @@ export async function updateProjectSettings(
       : "";
     const preview = req.previewCmd.trim();
     if (preview !== storedPreview) writeManifest("previewCmd", preview, "previewCmd");
-  }
-  if (req.testCmd !== undefined) {
-    const storedTest = existsSync(readPath)
-      ? (() => {
-          const parsed = parseManifest(readFileSync(readPath, "utf-8"));
-          return parsed.ok ? (parsed.data.testCmd ?? "").trim() : "";
-        })()
-      : "";
-    const test = req.testCmd.trim();
-    if (test !== storedTest) writeManifest("testCmd", test, "testCmd");
   }
 
   if (settingsFile && settingsEdits.length) {

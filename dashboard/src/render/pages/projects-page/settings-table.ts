@@ -69,7 +69,7 @@ export const codeLandingChoices = (defaultBranch: string | null): { value: "merg
 
 /** Which `SETTING_KEYS` entry posts under which form field name, in
  *  edit mode. The test command is what a run and a landing test with,
- *  saved to the manifest's `testCmd`. */
+ *  saved to `.aide/config`'s `AIDE_TEST_CMD`. */
 const EDITABLE_FIELD: Record<string, string> = {
   AIDE_SPECS_PATH: "specsPath",
   AIDE_WORKTREE_LINKS: "worktreeLinks",

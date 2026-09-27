@@ -400,9 +400,9 @@ and do not run the full suite again for it.
 
 ### Unit tests
 
-Use the project's own test command — take it from `AIDE_TEST_CMD` in `.aide/config` if set,
-otherwise `testCmd` in the committed manifest, otherwise detect it from the lockfile/build files
-(see "Project commands" in the tools-and-scripts rules). Always run it in single-run mode.
+Use the project's own test command: `AIDE_TEST_CMD` in `.aide/config`, and nothing else (see
+"Project commands" in the tools-and-scripts rules). Without it the project has no test command —
+say so rather than guessing one. Always run it in single-run mode.
 
 Example for a pnpm/Vitest project:
 

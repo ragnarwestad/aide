@@ -211,13 +211,10 @@ stylesheet says is not a browser question, and a criterion without the
 tag is tested the ordinary way. `/aide-implement` writes a browser test
 for every tagged criterion.
 
-**Name the test command the Scope's file list actually resolves to.** Run
-that list through the project's `testScopes` (the tools-and-scripts skill,
-"Project commands"): a file matching no scope belongs to the root command,
-and every scope with a file in it contributes its own. Write the resulting
-command(s) into the plan verbatim — never leave the
-`<project test command>` placeholder standing, and never name a command
-that covers nothing the change touches.
+**Name the project's test command.** `aide-resolve-test-cmd --project-dir .`
+prints it (`.aide/config`'s `AIDE_TEST_CMD`, the tools-and-scripts skill,
+"Project commands"). Write it into the plan verbatim — never leave the
+`<project test command>` placeholder standing.
 
 Structure the plan with TDD:
 - Task 0: Write tests (RED phase) — at least one failing test per acceptance criterion

@@ -188,8 +188,7 @@ async function runSuiteIn(
   // Beside the runner first, never PATH alone: see `scriptFor`.
   const resolver = scriptFor("aide-resolve-test-cmd", { beside: opts.scriptDir, override: process.env.AIDE_RESOLVE_TEST_CMD_BIN });
   const recorder = scriptFor("aide-record-test-run", { beside: opts.scriptDir, override: process.env.AIDE_RECORD_TEST_RUN_BIN });
-  // `--landing`: a project may keep tests for this moment alone.
-  const resolved = await runScript([resolver, "--project-dir", root, "--landing"], root, 60_000);
+  const resolved = await runScript([resolver, "--project-dir", root], root, 60_000);
   let commands: string[] = [];
   try {
     const parsed = JSON.parse(resolved.stdout.trim().split("\n").pop() ?? "{}");
@@ -204,9 +203,8 @@ async function runSuiteIn(
     return { ok: false, error: `the landing could not read aide-resolve-test-cmd's answer in ${root}`, detail: resolved.stderr.slice(-400) };
   }
   if (commands.length === 0) {
-    // No test command anywhere (no .aide/config key, no manifest
-    // testCmd:, nothing detected): nothing to run is not red. The
-    // project's readiness check already says so on its page.
+    // No AIDE_TEST_CMD: nothing to run is not red. The project's page
+    // says there is no test command.
     return { ok: true };
   }
   const log = process.env.AIDE_TEST_GATE_LOG ?? join(process.env.HOME || homedir(), "Library", "Logs", "aide-dashboard", "test-gate.log");

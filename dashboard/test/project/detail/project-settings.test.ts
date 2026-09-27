@@ -274,15 +274,6 @@ describe("the Install/Test command rows are sourced from resolveInstallCmd()/res
     expect(r.source).toBe("project.yaml");
   });
 
-  test("the manifest's testCmd: is the fallback, and the row names that file", () => {
-    const dir = project("");
-    writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\ntestCmd: make check\n");
-    const r = row(dir, "AIDE_TEST_CMD");
-    expect(r.origin).toBe("configured");
-    expect(r.value).toBe("make check");
-    expect(r.source).toBe("project.yaml");
-  });
-
   test("neither file setting AIDE_INSTALL_CMD reads unset", () => {
     const dir = project("");
     const r = row(dir, "AIDE_INSTALL_CMD");

@@ -14,13 +14,12 @@ and a minimal Linux may not (`sudo apt install make` on Debian and Ubuntu):
 ```bash
 make test                           # tsc + bun test, without the browser tests
 make test-slow                      # the round's own tests, which start real test servers
-make test-e2e                       # the browser tests, which a landing and CI run
+make test-e2e                       # the browser tests, part of aide's AIDE_TEST_CMD, and run by CI
 make test-all                       # all three
 make serve-local                    # serves the checkout it is started in, no build step, no service
 ```
 
-`make test` is what a step and a landing run for a change that stays inside `dashboard/` — the manifest scopes
-that directory to this command alone, so pytest does not run for it. It deals the test files out to one bun process per core, leaving two cores free for whatever else the
+`make test` is part of aide's `AIDE_TEST_CMD`, which a step and a landing run whatever the change touched. It deals the test files out to one bun process per core, leaving two cores free for whatever else the
 machine is doing, and the whole of it takes about a minute on a 14-core machine. It leaves out the round's own tests
 alone: each starts a real test server, and they lose to load on a busy machine without a fault in the change.
 

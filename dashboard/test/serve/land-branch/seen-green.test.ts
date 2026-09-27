@@ -56,13 +56,13 @@ function hashOf(dir: string): string {
 
 /** A resolver answering `true`, and a recorder that leaves a mark when
  *  it is run at all. */
-function scripts(): { ran: string; log: string; asked: string } {
+function scripts(): { ran: string; log: string } {
   const bin = mkdtempSync(join(tmpdir(), "aide-seen-green-bin-"));
   dirs.push(bin);
   const ran = join(bin, "ran");
   writeFileSync(
     join(bin, "resolve"),
-    `#!/bin/sh\necho "$@" > ${join(bin, "asked")}\nprintf '{"ok":true,"commands":["true"]}\\n'\n`,
+    `#!/bin/sh\nprintf '{"ok":true,"commands":["true"]}\\n'\n`,
     { mode: 0o755 },
   );
   writeFileSync(join(bin, "record"), `#!/bin/sh\necho ran > ${ran}\n`, { mode: 0o755 });
@@ -70,7 +70,7 @@ function scripts(): { ran: string; log: string; asked: string } {
   process.env.AIDE_RECORD_TEST_RUN_BIN = join(bin, "record");
   process.env.AIDE_TEST_GATE_LOG = join(bin, "gate.log");
   process.env.AIDE_SPEC_LIB = LIB;
-  return { ran, log: join(bin, "gate.log"), asked: join(bin, "asked") };
+  return { ran, log: join(bin, "gate.log") };
 }
 
 const job = (testedGreen?: StepResult["testedGreen"]) => ({
@@ -109,17 +109,6 @@ describe("the landing skips a run a step has already made", () => {
     await runProjectSuiteBeforePush(root, job({ tree: hashOf(root), commands: ["make test"] }), "aide/81-x");
 
     expect(existsSync(ran)).toBe(true);
-  });
-
-  // A project may keep tests for the landing alone (`landingTestCmd:`),
-  // and those are what a step's own green never covered.
-  test("the landing asks for its own commands as well as a step's", async () => {
-    const root = project();
-    const { asked } = scripts();
-
-    await runProjectSuiteBeforePush(root, job(), "aide/81-x");
-
-    expect(readFileSync(asked, "utf-8")).toContain("--landing");
   });
 
   test("a step that reported nothing green runs as before", async () => {

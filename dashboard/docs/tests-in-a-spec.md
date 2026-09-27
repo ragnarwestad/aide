@@ -26,11 +26,6 @@ Both can run the tests.
 | archive         | only the tests covering files it touched while resolving a merge conflict | the full suite once, in the landing, on exactly what the default branch is about to become — not when implement's green run covers exactly that code | the whole suite runs once more (not after a timeout). Green then: it lands, marked "merged after a retry". Red twice: nothing reaches the default branch, the spec's branch is kept, and the job stops      |
 | close, reopen   | none                                                                      | none                                                                                                                                                 | —                                                                                                                                                                                                           |
 
-A project may name tests for the landing in its manifest, `landingTestCmd:`. The landing runs them after the full
-suite. A step runs them too when its change touches a directory listed in `landingTestPaths:`, so a step that wrote
-or changed a browser test sees it red while it can still fix it. Aide's are its browser tests: `make test` leaves
-them out, `make test-e2e` runs them, and `landingTestPaths:` names the tests, the page scripts and the stylesheets.
-
 A run that is still going when the step's time limit runs out is stopped, and the step ends on its time limit with
 the work so far committed. The landing is described in full in [landing.md](landing.md).
 
@@ -38,14 +33,11 @@ the work so far committed. The landing is described in full in [landing.md](land
 
 ## Which tests run
 
-Aide runs the project's own test command, never one it guesses: `testCmd` in the project's manifest, or
-`AIDE_TEST_CMD` in its `.aide/config`, or one detected from its lockfile. A project whose parts have their own
-toolchains declares `testScopes:` — a directory and the command for it — and a change then runs the commands for the
-directories its files fall under, and only those. Aide itself has one: a change under `dashboard/` runs
-`cd dashboard && make test`, and any other change runs the root's `pytest`. The rule is in the `tools-and-scripts`
-skill, under "Project commands".
+Aide runs one command, the same in implement and in the landing: `AIDE_TEST_CMD` in the project's `.aide/config`,
+set from the project's Settings. Nothing else is read and nothing is guessed. It runs the project's whole suite
+whatever the change touched; aide's own runs pytest, `make test` and the browser tests (`make test-e2e`).
 
-A project whose change falls under no test command has nothing to run, and passes.
+A project without `AIDE_TEST_CMD` has nothing to run, and passes. Its page says there is no test command.
 
 ---
 

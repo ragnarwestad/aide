@@ -43,65 +43,32 @@ Available skills:
 ## Project commands
 
 Run the project's own test/lint/build commands **automatically** without asking
-the user. Detect them — never assume a toolchain:
+the user.
 
-1. **Config first:** if `.aide/config` in the project root sets `AIDE_TEST_CMD`,
-   `AIDE_LINT_CMD` or `AIDE_BUILD_CMD`, use those.
-2. **Otherwise detect** from what the project ships:
+**The test command is `.aide/config`'s `AIDE_TEST_CMD`, and nothing else.**
+One command that runs the project's whole suite — a step, the landing and
+`/aide-implement` all run exactly it, through `aide-resolve-test-cmd
+--project-dir <path>`. It is never guessed: a project without the key has
+no test command, and the dashboard says so on the project's page. Say so
+too, rather than detecting one.
 
-| Found in the project root       | Toolchain | Typical commands                                        |
-|---------------------------------|-----------|---------------------------------------------------------|
-| `pnpm-lock.yaml`                | pnpm      | `pnpm test -- --run`, `pnpm run lint`, `pnpm run build` |
-| `package-lock.json`             | npm       | `npm test`, `npm run lint`, `npm run build`             |
-| `yarn.lock`                     | yarn      | `yarn test`, `yarn lint`, `yarn build`                  |
-| `gradlew`                       | Gradle    | `./gradlew test`, `./gradlew build`                     |
-| `pom.xml`                       | Maven     | `mvn test`, `mvn verify`                                |
-| `pytest.ini` / `pyproject.toml` | pytest    | `python -m pytest` (prefer the project's venv)          |
-| `go.mod`                        | Go        | `go test ./...`, `go build ./...`                       |
-| `Cargo.toml`                    | Cargo     | `cargo test`, `cargo build`                             |
+**Lint and build:** `AIDE_LINT_CMD` / `AIDE_BUILD_CMD` in `.aide/config`
+when set; otherwise detect them from what the project ships — never assume
+a toolchain:
+
+| Found in the project root       | Toolchain | Typical commands                        |
+|---------------------------------|-----------|-----------------------------------------|
+| `pnpm-lock.yaml`                | pnpm      | `pnpm run lint`, `pnpm run build`       |
+| `package-lock.json`             | npm       | `npm run lint`, `npm run build`         |
+| `yarn.lock`                     | yarn      | `yarn lint`, `yarn build`               |
+| `gradlew`                       | Gradle    | `./gradlew build`                       |
+| `pom.xml`                       | Maven     | `mvn verify`                            |
+| `go.mod`                        | Go        | `go build ./...`                        |
+| `Cargo.toml`                    | Cargo     | `cargo build`                           |
 
 For JS/TS projects, read `package.json` `scripts` for the exact names — the
 table's commands are the usual defaults, not a promise. Test runners must run
 in single-run mode, never watch mode (see the testing rules).
-
-**A subdirectory with its own toolchain: `testScopes`.** Detection reads the
-project ROOT, so it finds ONE command for the whole repository. A project
-whose subdirectory has a toolchain of its own says so in its manifest:
-
-```yaml
-# <project>/.aide/project.yaml
-testScopes:
-  - path: dashboard
-    command: cd dashboard && make test
-```
-
-Given the files a change touches, sort them into buckets and run every
-bucket's command that has at least one file in it:
-
-- A file matches a scope when it **is** the scope's `path` or lies under it
-  as a directory — `dashboard` itself, or `dashboard/src/serve.ts`. It is a
-  directory boundary, never a bare string prefix: `dashboard-notes.md` at
-  the root matches nothing and belongs to the root command.
-- When a file could match more than one scope, the **first** entry in the
-  manifest's own list order wins.
-- A file matching no scope belongs to the **root** command — whatever
-  `AIDE_TEST_CMD` or the table above resolves to.
-- An absent `testScopes:` list changes nothing: one command covers
-  everything, exactly as before.
-
-A change reaching both halves runs both commands. Nothing is skipped for
-being slow — only for covering nothing the change touched.
-
-**Tests for the landing: `landingTestCmd:`.** A command the dashboard
-runs when a branch is about to reach the default branch, after the
-commands above. For tests too heavy to run on every step, such as
-browser tests. `.aide/config`'s `AIDE_LANDING_TEST_CMD` overrides it,
-and `aide-resolve-test-cmd --landing` adds it to what it resolves.
-
-A step runs it too when its change touches a directory listed in
-`landingTestPaths:` (space-separated, overridden by
-`AIDE_LANDING_TEST_PATHS`), so the step that wrote a browser test is the
-one that sees it red.
 
 **When to run what:**
 
@@ -115,15 +82,13 @@ one that sees it red.
 Optional file in the project root: `.aide/config`, plain `KEY=value` lines
 with `#` comments. Recognized keys:
 
-| Key                       | Purpose                                                                                                                                                                                                                                                                                                                      |
-|---------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `AIDE_TEST_CMD`           | Overrides the detected test command                                                                                                                                                                                                                                                                                          |
-| `AIDE_TEST_SCOPE_PATHS_N` | Space-separated repo-relative directories of scope `N` (1-based) — the config-file form of the manifest's `testScopes:` rule, matched on directory boundaries. With scope 1 declared, `aide-resolve-test-cmd` runs the scopes a change's files fall under and only those; a change under no scope runs every scope's command |
-| `AIDE_TEST_SCOPE_CMD_N`   | The full test command for scope `N` — the pair replaces `AIDE_TEST_CMD` for the archive gate and `/aide-implement`'s own run                                                                                                                                                                                                 |
-| `AIDE_LINT_CMD`           | Overrides the detected lint command                                                                                                                                                                                                                                                                                          |
-| `AIDE_BUILD_CMD`          | Overrides the detected build command                                                                                                                                                                                                                                                                                         |
-| `AIDE_WORKTREE_LINKS`     | LEGACY. Read only when `.aide/project.yaml` has no `worktreeLinks:` — see below                                                                                                                                                                                                                                              |
-| `AIDE_INSTALL_CMD`        | What installing this project means on THIS machine — run by the dashboard after the project's own code is merged                                                                                                                                                                                                             |
+| Key                   | Purpose                                                                                                                                       |
+|-----------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| `AIDE_TEST_CMD`       | The project's test command — the whole suite, run by a step, the landing and `/aide-implement`. Never read from anywhere else, never detected |
+| `AIDE_LINT_CMD`       | Overrides the detected lint command                                                                                                           |
+| `AIDE_BUILD_CMD`      | Overrides the detected build command                                                                                                          |
+| `AIDE_WORKTREE_LINKS` | LEGACY. Read only when `.aide/project.yaml` has no `worktreeLinks:` — see below                                                               |
+| `AIDE_INSTALL_CMD`    | What installing this project means on THIS machine — run by the dashboard after the project's own code is merged                              |
 
 The worktree links live in the project's **manifest**, not here:
 
@@ -164,20 +129,14 @@ deploying is still a hand step. `aide`'s own value is
 `dashboard/deploy/install-after-merge.sh` — it reinstalls the shared
 scripts and refreshes/restarts the dashboard where one runs.
 
-`AIDE_INSTALL_CMD` and `AIDE_TEST_CMD` are also readable from the
-project's **manifest** (`installCmd:` / `testCmd:`), with
-`.aide/config` overriding per machine when it sets the key —
-**the reverse of `worktreeLinks`'s precedence**: an install or test
-command can legitimately differ on one machine (a `PATH` prefix a shell
-needs, say), while a worktree link cannot. A project whose value never
-changes between machines can commit it once in the manifest and skip
-configuring `.aide/config` for it on every clone. Shell scripts resolve
-this precedence with
-`aide_resolve_override CONFIG_KEY MANIFEST_KEY <project-root>` in `_aide-spec-lib.sh`; the dashboard resolves it with
-`resolveInstallCmd()`/`resolveTestCmd()` in
+`AIDE_INSTALL_CMD` is also readable from the project's **manifest**
+(`installCmd:`), with `.aide/config` overriding per machine when it sets
+the key — **the reverse of `worktreeLinks`'s precedence**: an install
+command can legitimately differ on one machine, while a worktree link
+cannot. The dashboard resolves it with `resolveInstallCmd()` in
 `dashboard/src/project/discover/config.ts`.
 
-Everything is optional: commands fall back to detection. Shell scripts read the file via `aide_config_get KEY <project-root>` from
+Everything is optional. Shell scripts read the file via `aide_config_get KEY <project-root>` from
 `_aide-spec-lib.sh`.
 
 **The project manifest is the config's team-owned sibling:**

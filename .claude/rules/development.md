@@ -13,9 +13,9 @@ carries a manifest, so it is not a project in its own right anymore.
 
 **Two toolchains, deliberately separate.** The repo root is pytest
 (`pytest.ini`, no lockfile); `dashboard/` is bun + TypeScript
-(`dashboard/bun.lock`). Project-command detection reads the ROOT only, so
-Aide's test command stays `pytest` — a `package.json` at the root would
-silently redirect it, which
+(`dashboard/bun.lock`). Aide's test command is its `AIDE_TEST_CMD`, which
+runs both suites and the browser tests. Lint/build detection reads the
+ROOT only — a `package.json` at the root would silently redirect it, which
 `tests/specs/unit/core/validation/dashboard/test_dashboard_merge.py` guards
 against. Run the dashboard's own suite from inside `dashboard/` with `make test`:
 it type-checks first, then spreads the test files over one bun process per

@@ -279,8 +279,8 @@ show the whole value; with the board's script on, Enter saves, and a value is al
 folded to a space. Save and Cancel both return to
 `/projects/<name>?tab=config`, and `/projects/<name>/settings` redirects there too.
 
-Where each value is written is not one rule but two. Specs path and Install command go to `.aide/config`, which is
-never committed. Worktree links, Preview command, Test command and Code landing go to the manifest — the project's
+Where each value is written is not one rule but two. Specs path, Install command and Test command go to
+`.aide/config`, which is never committed. Worktree links, Preview command and Code landing go to the manifest — the project's
 own `.aide/project.yaml` where it is tracked, else the dashboard's `settings.yaml`. Unchanged values are not
 rewritten.
 

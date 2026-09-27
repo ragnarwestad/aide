@@ -268,29 +268,29 @@ class TestManifestGet:
         assert out == "deps"
 
     def test_a_double_quoted_value_is_read_without_its_quotes(self, workspace_root, tmp_path):
-        """`testCmd: "sh test.sh"` is the YAML string `sh test.sh`, as the
+        """`installCmd: "sh test.sh"` is the YAML string `sh test.sh`, as the
         dashboard reads it. Read with its quotes, the runner ran a command
         named `"sh test.sh"` and reported the tests red (2026-09-19)."""
-        self._manifest(tmp_path, 'testCmd: "sh test.sh"\n')
-        out = _call(workspace_root, f'aide_manifest_get "testCmd" "{tmp_path}"')
+        self._manifest(tmp_path, 'installCmd: "sh test.sh"\n')
+        out = _call(workspace_root, f'aide_manifest_get "installCmd" "{tmp_path}"')
         assert out == "sh test.sh"
 
     def test_escapes_inside_double_quotes_are_undone(self, workspace_root, tmp_path):
-        self._manifest(tmp_path, 'testCmd: "echo \\"a\\" \\\\ b"\n')
-        out = _call(workspace_root, f'aide_manifest_get "testCmd" "{tmp_path}"')
+        self._manifest(tmp_path, 'installCmd: "echo \\"a\\" \\\\ b"\n')
+        out = _call(workspace_root, f'aide_manifest_get "installCmd" "{tmp_path}"')
         assert out == 'echo "a" \\ b'
 
     def test_a_single_quoted_value_is_read_without_its_quotes(self, workspace_root, tmp_path):
-        self._manifest(tmp_path, "testCmd: 'it''s here'\n")
-        out = _call(workspace_root, f'aide_manifest_get "testCmd" "{tmp_path}"')
+        self._manifest(tmp_path, "installCmd: 'it''s here'\n")
+        out = _call(workspace_root, f'aide_manifest_get "installCmd" "{tmp_path}"')
         assert out == "it's here"
 
     def test_quotes_inside_an_unquoted_value_are_kept(self, workspace_root, tmp_path):
-        """aide's own testCmd: quotes in the middle of a plain scalar are
+        """A command's quotes in the middle of a plain scalar are
         part of the command."""
         line = 'export PATH="$HOME/bin:$PATH"; make test'
-        self._manifest(tmp_path, f"testCmd: {line}\n")
-        out = _call(workspace_root, f"aide_manifest_get testCmd '{tmp_path}'")
+        self._manifest(tmp_path, f"installCmd: {line}\n")
+        out = _call(workspace_root, f"aide_manifest_get installCmd '{tmp_path}'")
         assert out == line
 
     def test_a_nested_key_of_the_same_name_is_not_read(self, workspace_root, tmp_path):
@@ -310,38 +310,6 @@ class TestManifestGet:
 
 
 @pytest.mark.validation
-class TestResolveOverride:
-    """aide_resolve_override CONFIG_KEY MANIFEST_KEY [project-root] (spec
-    345): `.aide/config` wins when it sets the key, `.aide/project.yaml`
-    is the fallback — the reverse of `aide_manifest_get`'s own
-    manifest-wins precedence for `worktreeLinks`, because an install/test
-    command legitimately differs per machine while a worktree link does
-    not."""
-
-    def test_config_only(self, workspace_root, tmp_path):
-        (tmp_path / ".aide").mkdir()
-        (tmp_path / ".aide" / "config").write_text("AIDE_TEST_CMD=echo from-config\n")
-        out = _call(workspace_root, f'aide_resolve_override AIDE_TEST_CMD testCmd "{tmp_path}"')
-        assert out == "echo from-config"
-
-    def test_manifest_only(self, workspace_root, tmp_path):
-        (tmp_path / ".aide").mkdir()
-        (tmp_path / ".aide" / "project.yaml").write_text("testCmd: echo from-manifest\n")
-        out = _call(workspace_root, f'aide_resolve_override AIDE_TEST_CMD testCmd "{tmp_path}"')
-        assert out == "echo from-manifest"
-
-    def test_both_set_config_wins(self, workspace_root, tmp_path):
-        (tmp_path / ".aide").mkdir()
-        (tmp_path / ".aide" / "config").write_text("AIDE_TEST_CMD=echo from-config\n")
-        (tmp_path / ".aide" / "project.yaml").write_text("testCmd: echo from-manifest\n")
-        out = _call(workspace_root, f'aide_resolve_override AIDE_TEST_CMD testCmd "{tmp_path}"')
-        assert out == "echo from-config"
-
-    def test_neither_is_empty(self, workspace_root, tmp_path):
-        out = _call(workspace_root, f'aide_resolve_override AIDE_TEST_CMD testCmd "{tmp_path}"')
-        assert out == ""
-
-
 @pytest.mark.validation
 class TestSpecDependencies:
     """aide_spec_dependencies reads the optional `Depends on:` line from a

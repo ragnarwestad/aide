@@ -22,7 +22,7 @@ from .run_spec_fakes import probing_claude
 ROWS = json.loads(
     (pathlib.Path(__file__).resolve().parents[5] / "fixtures" / "manifest-carry.json").read_text()
 )["rows"]
-MANIFEST = "name: proj\ntestCmd: make it\n"
+MANIFEST = "name: proj\ninstallCmd: make it\n"
 
 
 def _project_with(workspace, row, excluded=True):
@@ -52,7 +52,7 @@ def _run_probing(runner, workspace, fake_claude, lib):
             'echo "written by the step" > "$PWD/new-code.txt"\n'
             f'echo "analysis" > "$specs/{workspace["folder"]}/2-analysis.md"\n'
             f'if [ -f "$PWD/.aide/project.yaml" ]; then\n'
-            f'  bash -c \'source "{lib}"; aide_manifest_get testCmd "$PWD"\' > {seen}\n'
+            f'  bash -c \'source "{lib}"; aide_manifest_get installCmd "$PWD"\' > {seen}\n'
             f'else echo MISSING > {seen}; fi\n'
         ),
     )

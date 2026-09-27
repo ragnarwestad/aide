@@ -1,40 +1,19 @@
 #!/usr/bin/env bash
-# aide-resolve-test-cmd — the single rule that turns a changeset's
-# touched files into the test command(s) that cover them (spec 361).
-# Both `aide-archive-spec`'s test-record gate and `/aide-implement`'s
-# own Phase 3/Quality check call this literal script, so the gate and a
-# person's own run agree on "the tests" by construction, not by two
-# independent prose descriptions of the same rule.
+# aide-resolve-test-cmd — the project's test command, the one place it is
+# read. A step's own run, the landing and `/aide-implement` all call this
+# literal script, so they agree on "the tests" by construction.
 #
-# No scopes declared in `.aide/config` (no AIDE_TEST_SCOPE_PATHS_1 key):
-# resolves to the single legacy AIDE_TEST_CMD — or the manifest's
-# `testCmd:` when `.aide/config` sets neither (spec 345) — unconditionally,
-# WITHOUT ever touching git — REQ-6, byte for byte what a plain project
-# does today.
-#
-# Scopes declared: diffs `git diff --name-only <base-ref>...HEAD`
-# (base-ref from aide_test_scope_base_ref, origin-preferring) and
-# resolves the file list through aide_test_scope_commands (see
-# _aide-spec-lib.sh for the four-step matching rule).
+# The command is `.aide/config`'s AIDE_TEST_CMD and nothing else, read in
+# --project-dir or, when that is a worktree without its own `.aide/config`,
+# in the main checkout it belongs to: `.aide/config` is never tracked, so
+# a worktree carries it only when the run copied it in.
 #
 # Prints ONE JSON line to stdout:
-#   {"ok":true,"commands":["<cmd1>", ...]}   (commands may be empty)
+#   {"ok":true,"commands":["<cmd>"]}   (empty when AIDE_TEST_CMD is unset)
 #   {"ok":false,"exitCode":2,"terminalReason":"refused","error":"..."}
 #
-# A diff/branch-resolution failure is a REFUSAL (exitCode 2) — never an
-# empty, silently-"ok" commands array, so a broken worktree cannot make
-# a caller skip tests without saying so.
-#
-# `--landing` adds the manifest's `landingTestCmd:` (or `.aide/config`'s
-# AIDE_LANDING_TEST_CMD) after those: tests a project runs when a branch
-# is about to reach its default branch. A step's own run adds it too when
-# its change touches one of the manifest's `landingTestPaths:` (or
-# AIDE_LANDING_TEST_PATHS), space-separated directories: the tests only
-# the landing ran were first run, red, after the step that could still
-# fix them had ended.
-#
 # Usage:
-#   aide-resolve-test-cmd --project-dir <path> [--landing]
+#   aide-resolve-test-cmd --project-dir <path>
 
 set -uo pipefail
 
@@ -43,18 +22,16 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 [ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
 
 project_dir=""
-landing=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
     -h|--help)
       cat <<'USAGE'
 Usage:
-  aide-resolve-test-cmd --project-dir <path> [--landing]
+  aide-resolve-test-cmd --project-dir <path>
 USAGE
       exit 0 ;;
     --project-dir) project_dir="${2:-}"; shift 2 ;;
-    --landing) landing=1; shift ;;
     *) printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"unknown argument: %s"}\n' "$1"; exit 2 ;;
   esac
 done
@@ -62,81 +39,24 @@ done
 command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"jq is required"}'; exit 2; }
 
 refuse() {
-  local msg="$1"
-  jq -cn --arg e "$msg" '{ok:false, exitCode:2, terminalReason:"refused", error:$e}'
+  jq -cn --arg e "$1" '{ok:false, exitCode:2, terminalReason:"refused", error:$e}'
   exit 2
 }
 
 [ -n "$project_dir" ] || refuse "missing --project-dir"
 [ -d "$project_dir" ] || refuse "no such --project-dir: $project_dir"
-git -C "$project_dir" rev-parse --is-inside-work-tree >/dev/null 2>&1 \
-  || refuse "not a git repository: $project_dir"
-declare -f aide_test_scope_commands >/dev/null 2>&1 \
-  || refuse "aide_test_scope_commands is not available (missing _aide-spec-lib.sh)"
+declare -f aide_config_get >/dev/null 2>&1 \
+  || refuse "aide_config_get is not available (missing _aide-spec-lib.sh)"
 
-# The files this branch changed against its base, one per line. Called
-# in a command substitution, where a refusal is captured rather than
-# printed: the caller prints it and exits (`|| { echo "$x"; exit 2; }`).
-changed_since_base() {
-  local base_ref out
-  base_ref="$(aide_test_scope_base_ref "$project_dir")"
-  [ -n "$base_ref" ] || refuse "could not resolve a base ref for $project_dir"
-  out="$(git -C "$project_dir" diff --name-only "${base_ref}...HEAD" 2>&1)" \
-    || refuse "git diff against $base_ref failed: $out"
-  printf '%s\n' "$out"
-}
-
-# True when one of the changed files ($1, one per line) is under a
-# directory in $2 (space-separated).
-under_any() {
-  local file dir
-  while IFS= read -r file; do
-    [ -n "$file" ] || continue
-    for dir in $2; do
-      dir="${dir%/}"
-      case "$file" in "$dir"/*) return 0 ;; esac
-    done
-  done <<< "$1"
-  return 1
-}
-
-# The answer, with the landing's own command after the others when asked,
-# or when the change touches a directory its tests cover.
-answer() {
-  local extra paths changed
-  extra="$(aide_resolve_override AIDE_LANDING_TEST_CMD landingTestCmd "$project_dir")"
-  if [ -n "$extra" ] && [ -z "$landing" ]; then
-    paths="$(aide_resolve_override AIDE_LANDING_TEST_PATHS landingTestPaths "$project_dir")"
-    if [ -n "$paths" ]; then
-      changed="$(changed_since_base)" || { printf '%s\n' "$changed"; exit 2; }
-      under_any "$changed" "$paths" || extra=""
-    else
-      extra=""
-    fi
-  fi
-  [ -n "$extra" ] && set -- "$@" "$extra"
-  jq -cn --args '{ok:true, commands:$ARGS.positional}' -- "$@"
-}
-
-# --- REQ-6 fast path: no scopes declared, no git needed at all -------------
-first_paths="$(aide_config_get AIDE_TEST_SCOPE_PATHS_1 "$project_dir")"
-if [ -z "$first_paths" ]; then
-  legacy="$(aide_resolve_override AIDE_TEST_CMD testCmd "$project_dir")"
-  if [ -n "$legacy" ]; then answer "$legacy"; else answer; fi
-  exit 0
+config_dir="$project_dir"
+if [ ! -f "$project_dir/.aide/config" ]; then
+  common="$(git -C "$project_dir" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
+  case "$common" in */.git) config_dir="${common%/.git}" ;; esac
 fi
 
-# --- scoped path: resolve the changed-file list, then the commands ---------
-changed_output="$(changed_since_base)" || { printf '%s\n' "$changed_output"; exit 2; }
-
-changed_files=()
-while IFS= read -r line; do
-  [ -n "$line" ] && changed_files+=("$line")
-done <<< "$changed_output"
-
-commands=()
-while IFS= read -r c; do
-  [ -n "$c" ] && commands+=("$c")
-done < <(aide_test_scope_commands "$project_dir" ${changed_files[@]+"${changed_files[@]}"})
-
-answer ${commands[@]+"${commands[@]}"}
+cmd="$(aide_config_get AIDE_TEST_CMD "$config_dir")"
+if [ -n "$cmd" ]; then
+  jq -cn --arg c "$cmd" '{ok:true, commands:[$c]}'
+else
+  jq -cn '{ok:true, commands:[]}'
+fi

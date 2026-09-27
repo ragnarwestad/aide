@@ -377,42 +377,6 @@ def test_the_implement_present_check_reads_the_state_file_not_the_prose(script, 
     assert out["terminalReason"] != "not-implemented-yet", out
 
 
-# --- scoped test commands (spec 361, REQ-8) ---------------------------------
-#
-# The gate no longer reads a single `AIDE_TEST_CMD` string — it resolves
-# through `aide-resolve-test-cmd` and runs every command that resolves,
-# each one its own marker-file `touch`, the same style the fixtures above
-# already use for "did the gate actually run this command".
-
-
-def scoped_configure(project, specs, marker_core, marker_dash):
-    (project / ".aide").mkdir(exist_ok=True)
-    (project / ".aide" / "config").write_text(
-        f"AIDE_SPECS_PATH={specs}\n"
-        f"AIDE_TEST_SCOPE_PATHS_1=core\n"
-        f"AIDE_TEST_SCOPE_CMD_1=touch {marker_core}\n"
-        f"AIDE_TEST_SCOPE_PATHS_2=dashboard\n"
-        f"AIDE_TEST_SCOPE_CMD_2=touch {marker_dash}\n"
-    )
-
-
-def branch_with_change(project, *rel_paths):
-    """Off `init_repo`'s own `main` — see aide_test_scope_base_ref: no
-    origin configured in these fixtures, so it falls back to the local
-    `main` branch, and a feature branch gives the resolver's own
-    `git diff` real content to read."""
-    git(project, "switch", "-q", "-c", "feature")
-    for rel in rel_paths:
-        p = project / rel
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text("change\n")
-    git(project, "add", "-A")
-    git(project, "commit", "-qm", "touch " + " ".join(rel_paths))
-
-
-
-
-
 def test_a_spec_with_no_state_file_yet_answers_correctly_from_prose(script, project, specs):
     """A spec that predates spec 355 has no 4-status.json at all — the
     gate must still answer correctly, derived from the prose, not refuse

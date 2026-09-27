@@ -1,6 +1,6 @@
-"""Tests for core/scripts/aide-resolve-test-cmd (spec 361): the single
-resolver both the archive gate and `/aide-implement` call to turn a
-changeset's touched files into the test command(s) that cover them.
+"""Tests for core/scripts/aide-resolve-test-cmd: the one place a
+project's test command is read, called by a step's own run, the landing
+and `/aide-implement` alike.
 
 No AI is involved anywhere in this file: the whole point of the script
 is that the gate and a person's own run agree on "the tests" by
@@ -76,229 +76,58 @@ def run(script, project, *extra):
     return proc.returncode, json.loads(line), proc.stdout
 
 
-def test_no_scopes_configured_falls_back_to_the_plain_test_cmd(script, project):
-    """REQ-6: a project with only the legacy `AIDE_TEST_CMD` resolves to
-    that single command, unconditionally — never consults changed files
-    or branch resolution at all."""
-    write_config(project, "AIDE_TEST_CMD=echo legacy\n")
-    rc, out, _ = run(script, project)
-    assert rc == 0, out
-    assert out["ok"] is True
-    assert out["commands"] == ["echo legacy"]
-
-
-def test_manifest_test_cmd_is_used_when_config_sets_none(script, project):
-    """REQ-2: no scopes, no `AIDE_TEST_CMD` in `.aide/config` — the
-    manifest's `testCmd:` is the fallback, not silence."""
-    write_manifest(project, "testCmd: echo from-manifest\n")
-    rc, out, _ = run(script, project)
-    assert rc == 0, out
-    assert out["commands"] == ["echo from-manifest"]
-
-
-def test_config_test_cmd_wins_over_manifest(script, project):
-    """REQ-2: `.aide/config` overrides the manifest when both set the
-    legacy key — a command can legitimately differ per machine."""
-    write_config(project, "AIDE_TEST_CMD=echo from-config\n")
-    write_manifest(project, "testCmd: echo from-manifest\n")
-    rc, out, _ = run(script, project)
-    assert rc == 0, out
-    assert out["commands"] == ["echo from-config"]
-
-
-def test_no_config_at_all_resolves_to_an_empty_command_list(script, project):
-    """No `.aide/config` at all is the same as no test command
-    configured — an empty (never missing) `commands` array, `ok:true`."""
-    rc, out, _ = run(script, project)
-    assert rc == 0, out
-    assert out["ok"] is True
-    assert out["commands"] == []
-
-
-def test_a_landing_runs_the_landing_command_after_the_others(script, project):
-    """`landingTestCmd:` is run only when a branch is about to land, so a
-    step's own run never has it and a landing's always does."""
-    write_manifest(project, "testCmd: echo all\nlandingTestCmd: echo browser\n")
-    assert run(script, project)[1]["commands"] == ["echo all"]
-    assert run(script, project, "--landing")[1]["commands"] == ["echo all", "echo browser"]
-
-
-def test_a_landing_adds_its_command_to_the_scoped_ones_too(script, project):
-    write_config(
-        project,
-        "AIDE_TEST_SCOPE_PATHS_1=dashboard\n"
-        "AIDE_TEST_SCOPE_CMD_1=echo dash\n",
+def resolve(script, project_dir, *extra):
+    out = subprocess.run(
+        [str(script), "--project-dir", str(project_dir), *extra], capture_output=True, text=True,
     )
-    write_manifest(project, "landingTestCmd: echo browser\n")
-    branch_with_changed_files(project, "dashboard/x.txt")
-    assert run(script, project, "--landing")[1]["commands"] == ["echo dash", "echo browser"]
+    return out.returncode, json.loads(out.stdout.strip().splitlines()[-1])
 
 
-def test_a_landing_with_no_landing_command_runs_what_a_step_runs(script, project):
-    write_manifest(project, "testCmd: echo all\n")
-    assert run(script, project, "--landing")[1]["commands"] == ["echo all"]
+def write_config(repo, text):
+    (repo / ".aide").mkdir(exist_ok=True)
+    (repo / ".aide" / "config").write_text(text)
 
 
-# `landingTestPaths:` — a step whose change touches one of these paths runs
-# the landing's tests too, so tests only the landing ran (browser tests) are
-# red in the step that can still fix them, not first at the landing.
-LANDING = "testCmd: echo all\nlandingTestCmd: echo browser\nlandingTestPaths: web/e2e web/client\n"
+def test_the_command_is_aide_test_cmd(script, project):
+    write_config(project, "AIDE_TEST_CMD=make test\n")
+    assert resolve(script, project) == (0, {"ok": True, "commands": ["make test"]})
 
 
-def test_a_step_touching_a_landing_path_runs_the_landing_command_too(script, project):
-    write_manifest(project, LANDING)
-    branch_with_changed_files(project, "web/client/graph.ts")
-    assert run(script, project)[1]["commands"] == ["echo all", "echo browser"]
+def test_no_aide_test_cmd_resolves_to_no_command(script, project):
+    assert resolve(script, project) == (0, {"ok": True, "commands": []})
 
 
-def test_a_step_touching_no_landing_path_leaves_the_landing_command_out(script, project):
-    write_manifest(project, LANDING)
-    branch_with_changed_files(project, "server/api.ts")
-    assert run(script, project)[1]["commands"] == ["echo all"]
+def test_the_manifest_is_not_read(script, project):
+    (project / ".aide").mkdir()
+    (project / ".aide" / "project.yaml").write_text("testCmd: echo manifest\nlandingTestCmd: echo e2e\n")
+    assert resolve(script, project) == (0, {"ok": True, "commands": []})
 
 
-def test_a_landing_path_matches_whole_directories_only(script, project):
-    write_manifest(project, LANDING)
-    branch_with_changed_files(project, "web/e2e-notes.md")
-    assert run(script, project)[1]["commands"] == ["echo all"]
+def test_other_test_keys_are_not_read(script, project):
+    write_config(project, "AIDE_TEST_SCOPE_PATHS_1=core\nAIDE_TEST_SCOPE_CMD_1=pytest\nAIDE_LANDING_TEST_CMD=e2e\n")
+    assert resolve(script, project) == (0, {"ok": True, "commands": []})
 
 
-def test_config_landing_paths_win_over_the_manifest(script, project):
-    write_manifest(project, LANDING)
-    write_config(project, "AIDE_LANDING_TEST_PATHS=server\n")
-    branch_with_changed_files(project, "server/api.ts")
-    assert run(script, project)[1]["commands"] == ["echo all", "echo browser"]
+def test_a_worktree_without_its_own_config_reads_the_main_checkout(script, project, tmp_path):
+    write_config(project, "AIDE_TEST_CMD=make test\n")
+    wt = tmp_path / "wt"
+    git(project, "worktree", "add", "-q", "-b", "spec", str(wt))
+    assert resolve(script, wt) == (0, {"ok": True, "commands": ["make test"]})
 
 
-def test_a_landing_touching_a_landing_path_runs_the_landing_command_once(script, project):
-    write_manifest(project, LANDING)
-    branch_with_changed_files(project, "web/e2e/graph.test.ts")
-    assert run(script, project, "--landing")[1]["commands"] == ["echo all", "echo browser"]
-
-
-def test_single_scope_match_resolves_to_that_scopes_command(script, project):
-    write_config(
-        project,
-        "AIDE_TEST_SCOPE_PATHS_1=dashboard\n"
-        "AIDE_TEST_SCOPE_CMD_1=echo dash\n",
-    )
-    branch_with_changed_files(project, "dashboard/x.txt")
-    rc, out, _ = run(script, project)
-    assert rc == 0, out
-    assert out["commands"] == ["echo dash"]
-
-
-def test_a_change_reaching_two_scopes_runs_the_union_of_both(script, project):
-    """REQ-2: different files, each matching their own declared scope,
-    is a union — every matched scope's command, in declaration order."""
-    write_config(
-        project,
-        "AIDE_TEST_SCOPE_PATHS_1=core tests\n"
-        "AIDE_TEST_SCOPE_CMD_1=echo root\n"
-        "AIDE_TEST_SCOPE_PATHS_2=dashboard\n"
-        "AIDE_TEST_SCOPE_CMD_2=echo dash\n",
-    )
-    branch_with_changed_files(project, "core/x.py", "dashboard/y.ts")
-    rc, out, _ = run(script, project)
-    assert rc == 0, out
-    assert out["commands"] == ["echo root", "echo dash"]
-
-
-def test_a_single_file_matching_two_overlapping_scopes_picks_the_first_declared(script, project):
-    """REQ-2: one file matching more than one scope's OWN declared path
-    (nested scope declarations) is a tie-break, not a union — the first
-    declared scope wins, distinct from the two-file union case above."""
-    write_config(
-        project,
-        "AIDE_TEST_SCOPE_PATHS_1=core\n"
-        "AIDE_TEST_SCOPE_CMD_1=echo outer\n"
-        "AIDE_TEST_SCOPE_PATHS_2=core/sub\n"
-        "AIDE_TEST_SCOPE_CMD_2=echo inner\n",
-    )
-    branch_with_changed_files(project, "core/sub/x.py")
-    rc, out, _ = run(script, project)
-    assert rc == 0, out
-    assert out["commands"] == ["echo outer"]
-
-
-def test_a_file_matching_no_declared_scope_runs_every_scope(script, project):
-    """REQ-3: doubt is resolved towards running everything, never towards
-    an empty list."""
-    write_config(
-        project,
-        "AIDE_TEST_SCOPE_PATHS_1=core\n"
-        "AIDE_TEST_SCOPE_CMD_1=echo root\n"
-        "AIDE_TEST_SCOPE_PATHS_2=dashboard\n"
-        "AIDE_TEST_SCOPE_CMD_2=echo dash\n",
-    )
-    branch_with_changed_files(project, "README.md")
-    rc, out, _ = run(script, project)
-    assert rc == 0, out
-    assert out["commands"] == ["echo root", "echo dash"]
-
-
-def test_one_matched_file_and_one_unmatched_file_still_runs_every_scope(script, project):
-    """The whole-changeset rule (not per file in isolation): a single
-    unmatched file in an otherwise-matched changeset still tips the
-    whole resolution to "run everything"."""
-    write_config(
-        project,
-        "AIDE_TEST_SCOPE_PATHS_1=core\n"
-        "AIDE_TEST_SCOPE_CMD_1=echo root\n"
-        "AIDE_TEST_SCOPE_PATHS_2=dashboard\n"
-        "AIDE_TEST_SCOPE_CMD_2=echo dash\n",
-    )
-    branch_with_changed_files(project, "core/x.py", "notes.txt")
-    rc, out, _ = run(script, project)
-    assert rc == 0, out
-    assert out["commands"] == ["echo root", "echo dash"]
-
-
-def test_scoped_keys_win_even_alongside_an_unused_legacy_cmd(script, project):
-    """AC1: a coexisting (unused) `AIDE_TEST_CMD` line must not error or
-    leak into the resolved commands once scopes are declared."""
-    write_config(
-        project,
-        "AIDE_TEST_CMD=echo should-never-run\n"
-        "AIDE_TEST_SCOPE_PATHS_1=dashboard\n"
-        "AIDE_TEST_SCOPE_CMD_1=echo dash\n",
-    )
-    branch_with_changed_files(project, "dashboard/x.txt")
-    rc, out, _ = run(script, project)
-    assert rc == 0, out
-    assert out["commands"] == ["echo dash"]
-    assert "should-never-run" not in out["commands"]
-
-
-def test_refuses_rather_than_silently_resolving_when_the_repo_is_broken(script, tmp_path):
-    """Risk analysis: a diff/branch-resolution failure must be a REFUSAL
-    (exitCode 2), never an empty, silently-"ok" command list — a broken
-    worktree must not make the gate skip tests without saying so."""
-    not_a_repo = tmp_path / "not-a-repo"
-    not_a_repo.mkdir()
-    proc = subprocess.run(
-        [str(script), "--project-dir", str(not_a_repo)], capture_output=True, text=True,
-    )
-    out = json.loads(proc.stdout.strip())
-    assert proc.returncode == 2, out
-    assert out["ok"] is False
-    assert out["terminalReason"] == "refused"
+def test_a_worktree_with_its_own_config_reads_that(script, project, tmp_path):
+    write_config(project, "AIDE_TEST_CMD=make test\n")
+    wt = tmp_path / "wt"
+    git(project, "worktree", "add", "-q", "-b", "spec", str(wt))
+    write_config(wt, "AIDE_TEST_CMD=make wt-test\n")
+    assert resolve(script, wt) == (0, {"ok": True, "commands": ["make wt-test"]})
 
 
 def test_refuses_without_project_dir(script):
-    proc = subprocess.run([str(script)], capture_output=True, text=True)
-    out = json.loads(proc.stdout.strip())
-    assert proc.returncode == 2
-    assert out["terminalReason"] == "refused"
+    code, answer = resolve(script, "")
+    assert code == 2 and answer["ok"] is False
 
 
-def test_landing_paths_refuse_when_the_change_cannot_be_read(script, tmp_path):
-    """Whether the landing's tests run depends on the diff, so a diff that
-    fails is a refusal — never a quiet answer without them."""
-    empty = tmp_path / "empty"
-    empty.mkdir()
-    subprocess.run(["git", "-C", str(empty), "init", "-q", "-b", "main"], check=True)
-    write_manifest(empty, LANDING)
-    rc, out, _ = run(script, empty)
-    assert rc == 2, out
-    assert out["terminalReason"] == "refused"
+def test_refuses_an_unknown_argument(script, project):
+    code, answer = resolve(script, project, "--landing")
+    assert code == 2 and "unknown argument" in answer["error"]

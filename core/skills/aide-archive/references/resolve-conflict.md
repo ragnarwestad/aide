@@ -110,10 +110,7 @@ pushes anything: a second full run here was the same suite twice per
 archive. To find the right tests, use the project's own test command,
 narrowed to those files, in single-run mode:
 
-1. `AIDE_TEST_CMD` from `.aide/config` in the project root if it is set
-2. otherwise `testCmd` from the committed `.aide/project.yaml` if it is set
-3. otherwise detect it from what the project ships (the lockfile or
-   build file), exactly as `/aide-implement` does
+`AIDE_TEST_CMD`, as `aide-resolve-test-cmd --project-dir .` prints it.
 
 Run it in the worktree you are standing in, once, in the foreground —
 never in the background to poll, and never a second run while one is
@@ -122,12 +119,6 @@ when run on its own is the machine's load, not a fault: do not run the
 suite again for it; say so in the report. If the project has no test
 command at all, say so plainly in the report — that is a real fact about
 the resolution's confidence, not a detail to leave out.
-
-If the project's manifest has a `testScopes:` list, pick the scope each
-touched file falls under (the tools-and-scripts skill gives the rule)
-and run that scope's command narrowed to those files. Name the
-command(s) that ran in the report, as this step already names the
-absence of one.
 
 **The landing is the gate the whole design rests on.** A machine
 resolving a conflict unattended and then landing it is defensible

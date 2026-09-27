@@ -47,23 +47,21 @@ export interface ManifestData {
    *  word it has never heard means. */
   codeLanding?: "merge" | "pr";
   /** What installing this project means, and its own test command —
-   *  both read the same way as `worktreeLinks` (spec 345):
-   *  `.aide/config`'s `AIDE_INSTALL_CMD`/`AIDE_TEST_CMD` override these
-   *  per machine when set, but a fresh clone that has never been
-   *  configured locally still knows both, because they are usually the
-   *  same on every machine the project runs on. Unlike `worktreeLinks`
-   *  the config file wins here, not the manifest — an install/test
-   *  command can legitimately differ on one machine (a PATH prefix a
-   *  shell needs, say) in a way a worktree link cannot. */
+   *  read the same way as `worktreeLinks` (spec 345):
+   *  `.aide/config`'s `AIDE_INSTALL_CMD` overrides it per machine when
+   *  set, but a fresh clone that has never been configured locally still
+   *  knows it. Unlike `worktreeLinks` the config file wins here, not the
+   *  manifest — an install command can legitimately differ on one
+   *  machine (a PATH prefix a shell needs, say) in a way a worktree link
+   *  cannot. */
   installCmd?: string;
-  testCmd?: string;
   /** How to start this project so a person can LOOK at a spec's branch
    *  before its checks are ticked (spec: previews beyond aide). The
    *  dashboard runs it in a worktree of that branch, on a port from its
    *  own pool, and the command is expected to serve on `$PORT` and keep
    *  running until it is stopped.
    *
-   *  Read like `installCmd` and `testCmd`: `.aide/config`'s
+   *  Read like `installCmd`: `.aide/config`'s
    *  `AIDE_PREVIEW_CMD` overrides it per machine, because how an app is
    *  started locally can legitimately differ on one machine. A project
    *  that carries `dashboard/test/round/run` (aide itself) needs none —
@@ -135,7 +133,6 @@ export function parseManifest(text: string): ManifestResult {
   if (r.docs != null) data.docs = toList(r.docs);
   if (r.worktreeLinks != null) data.worktreeLinks = toStr(r.worktreeLinks);
   if (r.installCmd != null) data.installCmd = toStr(r.installCmd);
-  if (r.testCmd != null) data.testCmd = toStr(r.testCmd);
   if (r.previewCmd != null) data.previewCmd = toStr(r.previewCmd);
   // The one field here that is VALIDATED rather than normalized: it is a
   // two-value enum, and an unrecognized spelling has to fail toward the

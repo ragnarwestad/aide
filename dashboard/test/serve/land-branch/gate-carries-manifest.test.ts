@@ -1,8 +1,7 @@
 // Spec 512: the landing gate's tree is cut from the merge commit, which
 // carries tracked files only. A project whose manifest is not tracked
-// keeps its settings in an untracked copy, and a tree without it finds no
-// test command — "nothing to run is not red", so a landing merged
-// untested and said nothing.
+// keeps its settings in an untracked copy, and a tree without it had no
+// worktree links, so the suite ran without what it needs.
 //
 // The rule is the runner's, stated once in tests/fixtures/manifest-carry.json
 // and tested on the bash side by test_aide_run_spec_manifest.py.
@@ -16,7 +15,7 @@ import { runProjectSuiteBeforePush } from "../../../src/serve/land-branch/test-g
 const ROWS = JSON.parse(readFileSync(join(import.meta.dir, "../../../../tests/fixtures/manifest-carry.json"), "utf-8"))
   .rows as { name: string; sourceHasManifest: boolean; trackedInTree: boolean; copied: boolean }[];
 const RESOLVER = join(import.meta.dir, "../../../../core/scripts/aide-resolve-test-cmd");
-const MANIFEST = "name: demo\ntestCmd: make it\nworktreeLinks: deps\n";
+const MANIFEST = "name: demo\nworktreeLinks: deps\n";
 
 const dirs: string[] = [];
 afterEach(() => {
@@ -40,6 +39,7 @@ async function gate(row: (typeof ROWS)[number]): Promise<{ ran: boolean; manifes
   writeFileSync(join(root, ".gitignore"), "deps/\n.aide/config\n");
   writeFileSync(join(root, "README.md"), "# demo\n");
   mkdirSync(join(root, ".aide"));
+  writeFileSync(join(root, ".aide", "config"), "AIDE_TEST_CMD=make it\n");
   if (row.sourceHasManifest && row.trackedInTree) writeFileSync(join(root, ".aide", "project.yaml"), MANIFEST);
   git(root, "init", "-q", "-b", "main");
   git(root, "config", "user.name", "Test");
@@ -75,11 +75,11 @@ describe("the landing gate carries the manifest by the rule in the table", () =>
   for (const row of ROWS) {
     test(`${row.name} (AC-5)`, async () => {
       const seen = await gate(row);
-      // A manifest in the tree, tracked or copied, gives the gate its
-      // command and its links; without one there is nothing to run.
-      expect(seen.ran).toBe(row.sourceHasManifest);
+      // The command is the main checkout's AIDE_TEST_CMD; a manifest in
+      // the tree, tracked or copied, gives the gate its links.
+      expect(seen.ran).toBe(true);
       if (row.sourceHasManifest) {
-        expect(seen.manifest).toContain("testCmd: make it");
+        expect(seen.manifest).toContain("worktreeLinks: deps");
         expect(seen.deps).toBe("installed");
       }
     });

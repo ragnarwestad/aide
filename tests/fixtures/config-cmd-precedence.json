@@ -1,11 +1,7 @@
 {
   "_comment": [
-    "Spec 345: where AIDE_INSTALL_CMD/installCmd and AIDE_TEST_CMD/testCmd are",
-    "read from, as one table both implementations are checked against.",
-    "`_aide-spec-lib.sh`'s `aide_resolve_override` (bash) and the dashboard's",
-    "`resolveInstallCmd`/`resolveTestCmd` (TypeScript) resolve this",
-    "independently — the pair is hand-kept, like `worktreeLinks`, so the",
-    "agreement is asserted rather than assumed.",
+    "Spec 345: where AIDE_INSTALL_CMD/installCmd is read from, as the table",
+    "the dashboard's `resolveInstallCmd` is checked against.",
     "",
     "Unlike worktree-links-precedence.json, `.aide/config` WINS here when both",
     "set a value — the reverse order, because an install/test command can",
