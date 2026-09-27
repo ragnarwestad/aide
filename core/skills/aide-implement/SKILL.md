@@ -41,7 +41,7 @@ The steps below are this skill's own, inside the queue's `implement`
 step. Mark each one in the log, so a reader can follow the run: when it
 starts, write one line `implement · Step N of 4: <title> — started`, and
 when it ends, one line `implement · Step N of 4: <title> — done`. A step
-that ends the run early says `— stopped: <why>` in place of `— done`.
+that ends the run early says `— stopped: <why>` in place of `— done`, and one that does not apply to this run `— skipped: <why>`.
 Step 3 also marks each task it takes from the plan, as it finishes it:
 `implement · Step 3 of 4, task K of M: <task> — done`, where M counts the
 task rows of `4-status.md`'s GREEN tables.

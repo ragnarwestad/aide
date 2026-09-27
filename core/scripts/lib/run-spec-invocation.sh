@@ -153,12 +153,15 @@ test suite in the foreground and finish the step in this same turn.)"
 # The skill's own numbered steps, marked in the log. The instruction is in
 # each skill, beside every step heading, and a headless run skipped it:
 # the prompt is what the model reads first, so it is said here as well.
-step_log_note="Mark the skill's numbered steps in your output, so whoever reads the log can see how far the run
-has come. Before a step's first action, write this line on its own, as plain text with no backticks or other
-formatting:
+step_log_note="Mark every one of the skill's numbered steps in your output, in order and none left out, so whoever
+reads the log can see how far the run has come. Each mark is a line of its own — a line break before it and after
+it, never joined to other text — as plain text with no backticks or other formatting. Before a step's first action:
 $command_name · Step N of X: <title> — started
-When the step ends, write the same line ending in — done, or in — stopped: <why>. N, X and the title come from
-the step's heading."
+When the step ends, the same line ending in one of these:
+— done
+— skipped: <why> (the step does not apply to this run)
+— stopped: <why> (the run ends here)
+N, X and the title come from the step's heading."
 if [ "$command_name" = "schedule" ]; then
   # The prompt is the file's contents, verbatim — no aide skill, no spec
   # id, nothing invented on either side (spec 259). Read from

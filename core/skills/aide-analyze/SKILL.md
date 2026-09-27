@@ -45,7 +45,7 @@ The steps below are this skill's own, inside the queue's `analyze` step.
 Mark each one in the log, so a reader can follow the run: when it
 starts, write one line `analyze · Step N of X: <title> — started`, and when
 it ends, one line `analyze · Step N of X: <title> — done`. A step that ends
-the run early says `— stopped: <why>` in place of `— done`.
+the run early says `— stopped: <why>` in place of `— done`, and one that does not apply to this run `— skipped: <why>`.
 
 ### Step 1 of 9: Read the description
 
