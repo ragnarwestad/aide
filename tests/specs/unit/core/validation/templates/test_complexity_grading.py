@@ -126,7 +126,7 @@ class TestFileCountIsNotACriterion:
         )
 
     def test_analyze_skill_step_2_puts_file_count_last(self, analyze_skill):
-        step_2 = _flat(_section(analyze_skill, "### Step 2: Detect complexity"))
+        step_2 = _flat(_section(analyze_skill, "### Step 2 of 9: Detect complexity"))
         assert "based on the number of files, operation type" not in step_2, (
             "Step 2 still lists the number of files as the first classification factor"
         )

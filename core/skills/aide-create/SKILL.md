@@ -54,7 +54,7 @@ Examples:
 
 ## Workflow
 
-### Step 1: Find the specs root
+### Step 1 of 6: Find the specs root
 
 - Before anything else, run `date +%s` and keep the printed number as
   this phase's start time — Step 5 uses it, for an interactive run only,
@@ -67,7 +67,7 @@ Examples:
   number and Step 5's commit both work from whatever is on disk right
   now, not from whatever it was when this session last looked.
 
-### Step 2: Find the next available number
+### Step 2 of 6: Find the next available number
 
 **Headless, with a literal folder name stated:** skip this step entirely
 — see "A headless run states its own folder name" below Step 4.
@@ -81,7 +81,7 @@ Examples:
   `ls | sort` puts `99-…` above `431-…`, and `aide-create-spec` refuses
   a number that is not above every number already there
 
-### Step 3: Generate a slug from the title
+### Step 3 of 6: Generate a slug from the title
 
 **Headless, with a literal folder name stated:** skip this step
 entirely, for the same reason as Step 2.
@@ -94,7 +94,7 @@ entirely, for the same reason as Step 2.
   `_aide-spec-lib.sh` for exactly this rule — read it there if this
   description and that function ever need to be checked against each other.
 
-### Step 4: Create the directory and 5 files
+### Step 4 of 6: Create the directory and 5 files
 
 **A headless run states its own folder name.** A prompt that says
 "create the spec folder under exactly this name — `<name>` — do not
@@ -224,7 +224,7 @@ permission-layer ambiguity this change removes, and folding it in would add an
 external-tool dependency to a script whose only other dependencies are `bash`
 and `jq`, for no reduction in that ambiguity.
 
-### Step 5: Stage in git
+### Step 5 of 6: Stage in git
 
 Working interactively, before staging, run:
 
@@ -285,7 +285,7 @@ never guesses. A user writing `1-description.md` by hand and
 committing it under their own message leaves no such commit at all, and
 no `Model (create)` line is written — an absence, never a guess.
 
-### Step 6: Confirm
+### Step 6 of 6: Confirm
 
 Show a summary and the next step, built from Step 4's `specFolder` and
 `files` — not assumed. Never preview the composed description text

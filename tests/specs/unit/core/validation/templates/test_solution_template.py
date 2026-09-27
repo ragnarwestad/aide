@@ -334,7 +334,7 @@ class TestRequirementsTracingIsDocumented:
 
     # Criterion 5
     def test_create_step_4_asks_before_guessing(self, workspace_root):
-        step = self._step(self._skill(workspace_root, "aide-create"), "Step 4:")
+        step = self._step(self._skill(workspace_root, "aide-create"), "Step 4 of 6:")
         lowered = step.lower()
         assert "ac-n" in lowered, \
             "aide-create Step 4 must instruct formulating AC-n statements"
@@ -343,7 +343,7 @@ class TestRequirementsTracingIsDocumented:
 
     # Criterion 6
     def test_create_step_6_states_no_preview_and_review_responsibility(self, workspace_root):
-        step = self._step(self._skill(workspace_root, "aide-create"), "Step 6:")
+        step = self._step(self._skill(workspace_root, "aide-create"), "Step 6 of 6:")
         lowered = step.lower()
         assert "never preview" in lowered or "not preview" in lowered, \
             "aide-create Step 6 must state the composed description is never previewed in chat"
@@ -359,8 +359,8 @@ class TestRequirementsTracingIsDocumented:
     # Criterion 8
     def test_analyze_steps_point_at_the_reference_file_without_inline_mechanics(self, workspace_root):
         content = self._skill(workspace_root, "aide-analyze")
-        for prefix in ("Step 1:", "Step 5: Update 2-analysis.md",
-                       "Step 6: Create the implementation plan", "Step 7:"):
+        for prefix in ("Step 1 of 9:", "Step 5 of 9: Update 2-analysis.md",
+                       "Step 6 of 9: Create the implementation plan", "Step 7 of 9:"):
             step = self._step(content, prefix)
             assert "requirements-tracing.md" in step, \
                 f"aide-analyze {prefix!r} must point at references/requirements-tracing.md"

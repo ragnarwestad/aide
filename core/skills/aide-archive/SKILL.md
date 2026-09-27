@@ -21,7 +21,7 @@ project's living documentation.
 
 ## Workflow
 
-### Step 1: Run the mechanical script
+### Step 1 of 4: Run the mechanical script
 
 Everything mechanical — resolving the argument to a folder, checking
 whether a merge is open, reading `4-status.md`'s tables, and (when the
@@ -97,7 +97,7 @@ archive again, not by talking a session into skipping the check.
 The folder keeps its `NN-slug` name once moved — the date lives in
 `4-status.md`. Numbers are never reused.
 
-### Step 2: Close the loop
+### Step 2 of 4: Close the loop
 
 First, what should NOT outlive it. **If this spec replaced behaviour, the
 tests for the behaviour it replaced are deleted here, before the commit
@@ -140,7 +140,7 @@ has already archived the folder in Step 1 regardless, reports success,
 and leaves only the doc-feedback proposal unrecorded rather than the
 whole spec unmoved.
 
-### Step 3: Commit
+### Step 3 of 4: Commit
 
 The move and this step's own write both already happened, in the
 working directory — Step 1's script did the stamp-and-move, and Step 2
@@ -178,7 +178,7 @@ Offer it only after the move actually happened — a `not-implemented-yet`
 or `held-back` decline in Step 1 has nothing to commit here beyond its
 own decline, which the ordinary git-add workflow already covers.
 
-### Step 4: Confirm
+### Step 4 of 4: Confirm
 
 A reader takes "archived" or "complete" to mean everything is done, and
 it is not: everything this step did is on the spec's branches, and

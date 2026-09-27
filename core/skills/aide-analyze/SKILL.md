@@ -41,7 +41,7 @@ Examples:
 
 ## Workflow
 
-### Step 1: Read the description
+### Step 1 of 9: Read the description
 
 - Read `specs/XX-slug/1-description.md`
 - Read `.aide/project.yaml` in the project root if it exists — the
@@ -72,14 +72,14 @@ stop anyway: applying it is `/aide-implement`'s job, in its own turn, not
 something this skill does on its behalf because it happens to be
 possible in the same session.
 
-### Step 2: Detect complexity
+### Step 2 of 9: Detect complexity
 
 Classify as LOW/MEDIUM/HIGH: Operation, Keywords and API impact decide the
 grade, and the grade is the highest band any of them reaches. The number of
 files is a signal read last — it never raises a grade the other three read
 as LOW. See `references/complexity-and-analysis.md` for the criteria.
 
-### Step 3: Analyze the codebase
+### Step 3 of 9: Analyze the codebase
 
 Search the code from where the wiki pages read in Step 1 point.
 
@@ -100,7 +100,7 @@ Fall back to `grep` only when the language server gives no answer (it
 errors, or the file's language has none), and for text that is not a
 symbol — a message, a config key, a CSS class.
 
-### Step 4: Check for work already begun
+### Step 4 of 9: Check for work already begun
 
 A step stopped by its own time limit still commits what it wrote, and
 that work is landed on the default branch rather than left on a branch
@@ -128,7 +128,7 @@ written from an earlier round, holding no placeholder at all, and this
 round APPENDS a new `## Round N` subsection to each instead of leaving
 them untouched — see `references/requirements-tracing.md`.
 
-### Step 5: Update 2-analysis.md
+### Step 5 of 9: Update 2-analysis.md
 
 Assemble the complete new text of `2-analysis.md` (sections already
 filled in per Step 4 copied verbatim; placeholder sections replaced with
@@ -157,7 +157,7 @@ analysis belong to 3-solution.md (spec structure § Separation of content).
 When AC-n ids exist, see `references/requirements-tracing.md` for how
 findings are prefixed with the AC-id(s) they support.
 
-### Step 6: Create the implementation plan (3-solution.md)
+### Step 6 of 9: Create the implementation plan (3-solution.md)
 
 Assemble the complete new text of `3-solution.md` the same way as Step 5,
 then write it with `aide-write-spec --file 3-solution.md` (never
@@ -200,7 +200,7 @@ Structure the plan with TDD:
 - Step 1-N: Implementation (GREEN phase)
 - Testing strategy (REFACTOR phase)
 
-### Step 7: Review the plan
+### Step 7 of 9: Review the plan
 
 Attack the plan while the mistake is still cheap, before any test is
 written: reviewers with distinct perspectives (feasibility, scope,
@@ -215,7 +215,7 @@ nothing was written in Step 6 to review.
 When AC-n ids exist, see `references/requirements-tracing.md` for the
 must-fix check on missing coverage.
 
-### Step 8: Update 4-status.md
+### Step 8 of 9: Update 4-status.md
 
 Assemble the complete new text of `4-status.md` the same way as Step 5,
 then write it with `aide-write-spec --file 4-status.md` (never
@@ -253,7 +253,7 @@ never guesses.
 Offer it only when the analysis actually completed; one that failed, or
 that you stopped part-way, has nothing to record.
 
-### Step 9: Confirm
+### Step 9 of 9: Confirm
 
 Show a summary with complexity, number of affected files, the plan
 review's verdict (counts of must-fix/should-fix, what was revised), and

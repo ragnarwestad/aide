@@ -24,7 +24,7 @@ asked are the analysis, the plan and the status reset as well.
 
 ## Workflow
 
-### Step 1: Find the spec
+### Step 1 of 7: Find the spec
 
 Resolve `$ARGUMENTS` to a folder, looking under `archive/` — that is
 where the spec is. `aide_resolve_spec` in `_aide-spec-lib.sh` already
@@ -40,7 +40,7 @@ mode. A headless run never reaches this skill at all: the runner runs
 `aide-reopen-spec` itself, and for `--reset-files` `aide-reset-spec`
 after it. This skill is the keyboard's path to the same two scripts.
 
-### Step 2: Remove the branch the earlier round left behind
+### Step 2 of 7: Remove the branch the earlier round left behind
 
 `aide/<NN>-slug` can be in four places, and the one that is missed is
 the one the next run refuses on:
@@ -64,7 +64,7 @@ and an origin that cannot be reached is not a reason to stop either.
 when there is nothing to do. This step exists for `/aide-reopen` typed
 at a keyboard, where no worktree stands in the way.
 
-### Step 3: Move the folder back
+### Step 3 of 7: Move the folder back
 
 **Keep mode:** run
 `aide-reopen-spec --specs-root <specs-root> --spec <NN>`. It does this step and everything the keep mode changes: it moves
@@ -81,7 +81,7 @@ Step 6.
 otherwise. The folder keeps its `NN-slug` name — numbers are never
 reused, and the spec is the same spec.
 
-### Step 4: Reset three files, keep two (reset mode only)
+### Step 4 of 7: Reset three files, keep two (reset mode only)
 
 **Run `aide-reset-spec --specs-root <specs-root> --spec <NN-slug>`** over
 the folder Step 3 moved back. It writes `2-analysis.md`, `3-solution.md`
@@ -92,7 +92,7 @@ and `4-status.md` from the templates itself, which is the same writer
 The description is why the spec exists, and it is what the new round is
 for. Rewriting it would delete the one thing the reopen is keeping.
 
-### Step 5: Carry over the `**Archived:**` line (reset mode only)
+### Step 5 of 7: Carry over the `**Archived:**` line (reset mode only)
 
 Copy the `**Archived:**` line (with every earlier one it already had)
 verbatim from the file being replaced into the regenerated
@@ -110,7 +110,7 @@ not count)` — the one grammar `completed_steps_for` in
 `core/scripts/aide-run-spec`, `parse-status.ts`, `workflow-history.ts`
 and `description-freshness.ts` all parse.
 
-### Step 6: Commit
+### Step 6 of 7: Commit
 
 A headless run gets its commit for free — this session does not run
 `git commit` or `git push` itself, headless or not. Working
@@ -125,7 +125,7 @@ boundary sha, in a commit of its own right after this step finishes — it
 is not part of what this session commits. In keep mode the
 `**Round boundary:**` line is already written by `aide-reopen-spec`.
 
-### Step 7: Confirm
+### Step 7 of 7: Confirm
 
 ```text
 Reopened: 17-clean-up-console-log

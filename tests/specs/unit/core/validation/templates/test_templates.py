@@ -124,7 +124,7 @@ class TestAnalyzeSkillFillsTheRightFiles:
         raise AssertionError(f"no '### {prefix}' step found")
 
     def test_solution_step_asks_for_scope_and_risk(self, workspace_root):
-        step = self._step(workspace_root, "Step 6: Create the implementation plan")
+        step = self._step(workspace_root, "Step 6 of 9: Create the implementation plan")
         for marker in ("**Scope:**", "**Risk analysis:**"):
             assert marker in step, \
                 f"/aide-analyze must ask for {marker} in 3-solution.md"
@@ -151,10 +151,10 @@ class TestSkillsResumeWorkAlreadyBegun:
 
     def test_analyze_checks_for_work_already_begun_before_writing(self, workspace_root):
         content = self._skill(workspace_root, "aide-analyze")
-        headings = [m.group(1) for m in re.finditer(r"^### (Step \d+): (.*)$", content, re.M)]
+        headings = [m.group(1) for m in re.finditer(r"^### (Step \d+ of \d+): (.*)$", content, re.M)]
         assert headings, "aide-analyze/SKILL.md has no numbered workflow steps"
         check = [h for h, title in
-                 [(m.group(1), m.group(2)) for m in re.finditer(r"^### (Step \d+): (.*)$", content, re.M)]
+                 [(m.group(1), m.group(2)) for m in re.finditer(r"^### (Step \d+ of \d+): (.*)$", content, re.M)]
                  if "already begun" in title.lower()]
         assert check, \
             "/aide-analyze must have a step that checks for work already begun"
@@ -163,7 +163,7 @@ class TestSkillsResumeWorkAlreadyBegun:
         order = headings.index(check[0])
         for writes in ("2-analysis.md", "3-solution.md", "4-status.md"):
             writing = [h for h, title in
-                       [(m.group(1), m.group(2)) for m in re.finditer(r"^### (Step \d+): (.*)$", content, re.M)]
+                       [(m.group(1), m.group(2)) for m in re.finditer(r"^### (Step \d+ of \d+): (.*)$", content, re.M)]
                        if writes in title]
             assert writing, f"/aide-analyze must still have a step that writes {writes}"
             assert order < headings.index(writing[0]), \
@@ -171,7 +171,7 @@ class TestSkillsResumeWorkAlreadyBegun:
 
     def test_analyze_names_the_placeholder_rule_not_the_headings(self, workspace_root):
         content = self._skill(workspace_root, "aide-analyze")
-        step = content.split("### Step 4: Check for work already begun", 1)[1].split("\n### ", 1)[0]
+        step = content.split("### Step 4 of 9: Check for work already begun", 1)[1].split("\n### ", 1)[0]
         # The literal placeholder text is the signal, named outright.
         assert "[not analyzed yet]" in step and "[not started]" in step, \
             "the check must name the template's own placeholder text"

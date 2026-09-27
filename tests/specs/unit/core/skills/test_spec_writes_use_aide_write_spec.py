@@ -54,17 +54,17 @@ def aide_archive_skill(workspace_root):
 
 class TestAideAnalyzeWritesViaScript:
     def test_step_5_writes_analysis_via_aide_write_spec(self, aide_analyze_skill):
-        step = _section(aide_analyze_skill, "### Step 5:")
+        step = _section(aide_analyze_skill, "### Step 5 of 9:")
         assert "aide-write-spec" in step
         assert "2-analysis.md" in step
 
     def test_step_6_writes_solution_via_aide_write_spec(self, aide_analyze_skill):
-        step = _section(aide_analyze_skill, "### Step 6:")
+        step = _section(aide_analyze_skill, "### Step 6 of 9:")
         assert "aide-write-spec" in step
         assert "3-solution.md" in step
 
     def test_step_8_writes_status_via_aide_write_spec(self, aide_analyze_skill):
-        step = _section(aide_analyze_skill, "### Step 8:")
+        step = _section(aide_analyze_skill, "### Step 8 of 9:")
         assert "aide-write-spec" in step
         assert "4-status.md" in step
 
@@ -97,7 +97,7 @@ class TestAideImplementWritesViaScript:
 
 class TestAideArchiveWritesViaScript:
     def test_headless_step_2_writes_via_aide_write_spec(self, aide_archive_skill):
-        step = _section(aide_archive_skill, "### Step 2:")
+        step = _section(aide_archive_skill, "### Step 2 of 4:")
         assert "aide-write-spec" in step
         assert "4-status.md" in step
 
