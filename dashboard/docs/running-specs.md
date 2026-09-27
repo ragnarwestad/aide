@@ -475,7 +475,8 @@ The dashboard also sends a push notification to each device that turned them on,
 - a step **failed**, ran out of **time**, hit the AI's **usage limit**, or was **cut off** (its process vanished, or the
   server restarted under it) — the job entered `failed`, `stopped` or `interrupted`;
 - a step finished and its merge into main **did not finish**, or its **tests went red** on the merge;
-- an **archive is held back** on unticked acceptance criteria;
+- an **archive is held back** on unticked acceptance criteria — a tap opens the Specs list with that spec's criteria
+  unfolded, where they are ticked;
 - a **create ends without a spec**: it failed, stopped, was interrupted, or its own merge failed.
 
 Nothing is sent for a step that finishes normally, an archive that merges, or a job someone cancels. A create that is
