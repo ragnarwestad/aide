@@ -36,6 +36,12 @@ the project directory; pass them to every call as `--specs-root` and
 
 ## Workflow
 
+The steps below are this skill's own, inside the queue's `wiki` step.
+Mark each one in the log, so a reader can follow the run: when it
+starts, write one line `wiki · Step N of X: <title> — started`, and when
+it ends, one line `wiki · Step N of X: <title> — done`. A step that ends
+the run early says `— stopped: <why>` in place of `— done`.
+
 ### Step 1 of 4: See what exists
 
 Run `aide-wiki status --specs-root <root> --project-dir .`. A page whose

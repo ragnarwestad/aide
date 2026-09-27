@@ -4,13 +4,14 @@ A spec moves through four phases. This page says what moves it from one to the n
 and what has to be true for the move to count. This is the level above [A job's states](job-states.md): a job is one
 run of one or more steps, and its `queued`/`running`/`done` says nothing about how far the spec has got.
 
-**Three words, and they are not the same.**
+**Four words, and they are not the same.**
 
-| Word      | What it is                                                                                                                    | Where it is decided                                                                 |
-|-----------|-------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
-| **Step**  | Anything the queue can run: `create`, `analyze`, `implement`, `archive`, `explore`, `manifest`, `schedule`, `reopen`, `close` | `workflowSteps` in `core/scripts/lib/workflow-steps.json`                           |
-| **Phase** | The four steps a spec passes through — `create`, `analyze`, `implement`, `archive`                                            | `workflowArc` in the same file, "deliberately narrower … not places a spec gets to" |
-| **State** | Where the spec stands now, in the past tense: `created`, `analyzed`, `implemented`, `archived`, `closed`                      | the `phase` column of `core/scripts/lib/transitions.json`                           |
+| Word           | What it is                                                                                                                                                                                     | Where it is decided                                                                 |
+|----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
+| **Step**       | Anything the queue can run: `create`, `analyze`, `implement`, `archive`, `explore`, `manifest`, `schedule`, `reopen`, `close`, `wiki`. A job is a list of steps, and each step has its own log | `workflowSteps` in `core/scripts/lib/workflow-steps.json`                           |
+| **Phase**      | The four steps a spec passes through — `create`, `analyze`, `implement`, `archive`                                                                                                             | `workflowArc` in the same file, "deliberately narrower … not places a spec gets to" |
+| **State**      | Where the spec stands now, in the past tense: `created`, `analyzed`, `implemented`, `archived`, `closed`                                                                                       | the `phase` column of `core/scripts/lib/transitions.json`                           |
+| **Skill step** | A numbered section of the skill a step runs, `Step N of X`; its log lines, `analyze · Step 3 of 9: … — started`, say how far the step has got                                                  | the `### Step N of X:` headings in `core/skills/aide-<step>/SKILL.md`               |
 
 `close` and `reopen` are steps, not phases: a spec that is `closed` has left the arc rather than reached a fifth
 stage of it. Two things about that table are worth knowing before reading it: its column is named `phase` and

@@ -24,6 +24,12 @@ asked are the analysis, the plan and the status reset as well.
 
 ## Workflow
 
+The steps below are this skill's own, inside the queue's `reopen` step.
+Mark each one in the log, so a reader can follow the run: when it
+starts, write one line `reopen · Step N of X: <title> — started`, and when
+it ends, one line `reopen · Step N of X: <title> — done`. A step that ends
+the run early says `— stopped: <why>` in place of `— done`.
+
 ### Step 1 of 7: Find the spec
 
 Resolve `$ARGUMENTS` to a folder, looking under `archive/` — that is

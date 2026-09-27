@@ -98,7 +98,7 @@ export const de: Record<TranslationKey, string> = {
   "list.phaseNoneKept": "Für diese Phase sind keine Meldungen gespeichert.",
   "list.phaseNoMessages": "Von diesem Schritt wurde noch nichts erfasst.",
   "list.phaseModel": "Modell: {model}",
-  "list.phaseOpenLog": "Das Protokoll dieser Phase öffnen",
+  "list.phaseOpenLog": "Das Protokoll dieses Schritts öffnen",
   "list.cancel": "Abbrechen",
   "list.cancelling": "wird abgebrochen…",
   "list.cancelConfirmTitle": "{step} abbrechen?",
