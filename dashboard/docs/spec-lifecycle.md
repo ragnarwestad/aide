@@ -336,14 +336,27 @@ An archived or closed row has one control only, **Reopen**, since the server ref
 
 ## What the list makes of it
 
-The row's state is one of: `not-started` (the spec has no job at all), the state of its most recent or in-flight job
-(`queued`, `running`, `done`, `stopped`, `failed`, `cancelled`, `interrupted`), `archived`, `archived-unlanded`
-(archived with its branch still on origin), or `closed` — except that a job whose branch is still landing reads as
-`running` for this purpose regardless of its own state, so a still-merging spec sits with the ones still going rather
-than the ones waiting on a press. The state filter's dropdown groups those — "All" is the default, "Active" is everything not archived
-and not closed, "Running" only `running` (landing included, `queued` excluded), "Waiting" (`queued` or `done`,
-with no landing in progress), "Stopped", "Failed" (the three other failure states and `archived-unlanded`),
-"Archived" (both archived states), "Closed" and "Not verified".
+A row's state is one of these:
+
+- `not-started` — the spec has no job at all.
+- The state of its most recent or in-flight job: `queued`, `running`, `done`, `stopped`, `failed`, `cancelled` or
+  `interrupted`. A job whose branch is still landing reads as `running`, whatever its own state, so a spec still
+  merging sits with the ones still going.
+- `archived`.
+- `archived-unlanded` — archived, with its branch still on origin.
+- `closed`.
+
+The State filter groups them:
+
+- **All** — every row; the default.
+- **Active** — everything not archived and not closed.
+- **Running** — `running`, a landing included, `queued` not.
+- **Waiting** — `queued` or `done`, with no landing in progress.
+- **Stopped** — `stopped`.
+- **Failed** — `failed`, `cancelled`, `interrupted` and `archived-unlanded`.
+- **Archived** — `archived` and `archived-unlanded`.
+- **Closed** — `closed`.
+- **Not verified** — specs with an acceptance row marked Not verified, archived ones included.
 
 **That list is a job's state, not the spec's.** `archived` and `closed` appear in both vocabularies and mean the
 same thing; the rest — `queued`, `running`, `done`, `stopped`, `failed`, `cancelled`, `interrupted` — belong to the
