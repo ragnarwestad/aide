@@ -163,7 +163,14 @@ function onMove(state: Bound, event: PointerEvent): void {
 
 function endGesture(state: BoundWithWindow, next: GestureState): void {
   state.gesture = next;
-  if (isActive(state.gesture)) return;
+  if (isActive(state.gesture)) {
+    // A pinch left with one finger pans from where that finger is now: the
+    // last point was set by the other finger's press, and moving on from it
+    // jumped the view by the distance between the two.
+    const [left] = state.gesture.pointers.values();
+    if (left) state.lastPoint = left;
+    return;
+  }
   state.svg.removeAttribute("data-active");
   state.lastPinchDistance = undefined;
   window.removeEventListener("pointermove", state.onWindowMove);

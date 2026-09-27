@@ -247,6 +247,42 @@ describe("two fingers zoom about their midpoint (AC-3)", () => {
   });
 });
 
+describe("two fingers becoming one", () => {
+  // The finger left down pans from where it is, not from where the other
+  // one went down: the view moves by what that finger moves, with no jump.
+  // A browser's touch input cannot lift one finger of two on its own, so
+  // the pointer events a pinch makes are sent to the graph directly.
+  test("lifting one finger of a pinch and moving the other pans by that finger's own move", async () => {
+    const p = await openGraph({ width: 375, height: 700 }, { isMobile: true, hasTouch: true });
+    const moves = await p.evaluate(() => {
+      const svg = document.querySelector("svg[data-wikigraph]")!;
+      const r = svg.getBoundingClientRect();
+      const mx = r.left + r.width / 2;
+      const my = r.top + r.height / 2;
+      const send = (target: EventTarget, type: string, pointerId: number, x: number) =>
+        target.dispatchEvent(
+          new PointerEvent(type, { pointerId, clientX: x, clientY: my, pointerType: "touch", isPrimary: pointerId === 1, bubbles: true }),
+        );
+      const translate = () => {
+        const m = /translate\(([-\d.]+) ([-\d.]+)\)/.exec(document.querySelector("[data-viewport]")!.getAttribute("transform") ?? "")!;
+        return { x: Number(m[1]), y: Number(m[2]) };
+      };
+      send(svg, "pointerdown", 1, mx - 10);
+      send(svg, "pointerdown", 2, mx + 10);
+      send(window, "pointermove", 1, mx - 40);
+      send(window, "pointermove", 2, mx + 40);
+      send(window, "pointerup", 2, mx + 40);
+      const before = translate();
+      send(window, "pointermove", 1, mx - 35);
+      const after = translate();
+      send(window, "pointerup", 1, mx - 35);
+      return { dx: after.x - before.x, dy: after.y - before.y };
+    });
+    expect(Math.abs(moves.dx - 5)).toBeLessThanOrEqual(1);
+    expect(Math.abs(moves.dy)).toBeLessThanOrEqual(1);
+  });
+});
+
 describe("pointing at a point with the mouse fades everything but its own neighbourhood (AC-8)", () => {
   test("hovering a point keeps it, its own edges and the pages they lead to at full strength, and fades the rest", async () => {
     const p = await openGraph();
