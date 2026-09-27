@@ -89,18 +89,42 @@ function rectsIntersect(
   return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
 }
 
-// AC-1: the switches sit beside the phase table, not among its rows or
-// on a full-width line below it.
-test("AC-1: the acceptance switches' column sits beside the phase table, not below it", async () => {
+// Spec 553: the switches moved off the phase table's own row and onto
+// the Project field's — this is the one field every popover/geometry
+// case below now measures against instead of the table.
+const PROJECT_FIELD = '#new-spec-form .frow .field:has(select[name="project"])';
+
+// AC-2: the switches sit beside the Project field, not among the phase
+// table's rows or on a full-width line below it.
+test("AC-2: the acceptance switches' column sits beside the Project field, not below it", async () => {
   await page.setViewportSize({ width: 1270, height: 900 });
   await withBrowser(page.goto(`${base}/new?live=0`), "page.goto(/new)");
-  const [table, col] = await Promise.all([
-    page.locator("#new-spec-form table.list").evaluate((el) => el.getBoundingClientRect()),
+  const [projectField, col] = await Promise.all([
+    page.locator(PROJECT_FIELD).evaluate((el) => el.getBoundingClientRect()),
     page.locator(".acceptance-col").evaluate((el) => el.getBoundingClientRect()),
   ]);
-  expect(col.left).toBeGreaterThanOrEqual(table.right - 1);
+  expect(col.left).toBeGreaterThanOrEqual(projectField.right - 1);
   // Beside it, not far below where a full-width line would have put it.
-  expect(col.top).toBeLessThan(table.bottom);
+  expect(col.top).toBeLessThan(projectField.bottom);
+});
+
+// AC-1/AC-7: Create sits on the Project label's own line, at every
+// width — including phone width, where nothing may run past the edge.
+test("AC-1/AC-7: Create shares the Project label's line, and nothing overflows at phone width", async () => {
+  await page.setViewportSize({ width: 760, height: 900 });
+  await withBrowser(page.goto(`${base}/new?live=0`), "page.goto(/new)");
+  const [label, create] = await Promise.all([
+    page.locator(`${PROJECT_FIELD} .fieldhead span`).first().evaluate((el) => el.getBoundingClientRect()),
+    page.locator("#new-spec-form").getByRole("button", { name: "Create" }).evaluate((el) => el.getBoundingClientRect()),
+  ]);
+  // "Same line" means their vertical ranges overlap — not equal tops,
+  // which the button's own padding always throws off by a few pixels.
+  expect(label.top).toBeLessThan(create.bottom);
+  expect(label.bottom).toBeGreaterThan(create.top);
+  const rowRights = await page.locator("#new-spec-form .frow, #new-spec-form > .field").evaluateAll(
+    (els) => els.map((el) => el.getBoundingClientRect().right),
+  );
+  for (const right of rowRights) expect(right).toBeLessThanOrEqual(760);
 });
 
 for (const viewport of [
@@ -112,14 +136,14 @@ for (const viewport of [
   // Spec 477: the 640/40rem wrap breakpoint and 1270px laptop width
   // below had no coverage between them — the width range most likely
   // to reproduce the reported overflow, since `.acceptance-col` sits
-  // beside the phase table without wrapping there.
+  // beside its neighbor without wrapping there.
   { name: "narrow", width: 900, height: 900 },
   { name: "laptop", width: 1270, height: 900 },
   { name: "wide", width: 1920, height: 1080 },
 ]) {
   describe(`at ${viewport.name} width (${viewport.width}px)`, () => {
-    // AC-3: each popover stays fully on screen when opened from its new
-    // position beside the phase table.
+    // AC-3: each popover stays fully on screen when opened from its
+    // position beside the Project field (spec 553).
     test("AC-3: the acceptance switch's popover stays within the viewport", async () => {
       await page.setViewportSize(viewport);
       await withBrowser(page.goto(`${base}/new?live=0`), "page.goto(/new)");
@@ -162,33 +186,34 @@ for (const viewport of [
   });
 }
 
-// AC-4: opened alone, neither popover reaches the other switch or the
-// phase table.
-test("AC-4: the acceptance switch's popover does not overlap the AI-formulate switch or the phase table", async () => {
+// AC-4 (spec 553): opened alone, neither popover reaches the other
+// switch or the Project field — its new neighbor, since the phase table
+// moved to the end of the page and is no longer beside the column.
+test("AC-4: the acceptance switch's popover does not overlap the AI-formulate switch or the Project field", async () => {
   await page.setViewportSize({ width: 1270, height: 900 });
   await withBrowser(page.goto(`${base}/new?live=0`), "page.goto(/new)");
   await page.locator(ACCEPT_SUMMARY).click();
   await settle(page);
-  const [popover, table, formulateLabel] = await Promise.all([
+  const [popover, projectField, formulateLabel] = await Promise.all([
     page.locator(ACCEPT_POPOVER).evaluate((el) => el.getBoundingClientRect()),
-    page.locator("#new-spec-form table.list").evaluate((el) => el.getBoundingClientRect()),
+    page.locator(PROJECT_FIELD).evaluate((el) => el.getBoundingClientRect()),
     page.locator('label[data-ai-formulate="1"]').evaluate((el) => el.getBoundingClientRect()),
   ]);
-  expect(rectsIntersect(popover, table)).toBe(false);
+  expect(rectsIntersect(popover, projectField)).toBe(false);
   expect(rectsIntersect(popover, formulateLabel)).toBe(false);
 });
 
-test("AC-4: the AI-formulate switch's popover does not overlap the acceptance switch or the phase table", async () => {
+test("AC-4: the AI-formulate switch's popover does not overlap the acceptance switch or the Project field", async () => {
   await page.setViewportSize({ width: 1270, height: 900 });
   await withBrowser(page.goto(`${base}/new?live=0`), "page.goto(/new)");
   await page.locator(FORMULATE_SUMMARY).click();
   await settle(page);
-  const [popover, table, acceptLabel] = await Promise.all([
+  const [popover, projectField, acceptLabel] = await Promise.all([
     page.locator(FORMULATE_POPOVER).evaluate((el) => el.getBoundingClientRect()),
-    page.locator("#new-spec-form table.list").evaluate((el) => el.getBoundingClientRect()),
+    page.locator(PROJECT_FIELD).evaluate((el) => el.getBoundingClientRect()),
     page.locator('label[data-acceptance="1"]').evaluate((el) => el.getBoundingClientRect()),
   ]);
-  expect(rectsIntersect(popover, table)).toBe(false);
+  expect(rectsIntersect(popover, projectField)).toBe(false);
   expect(rectsIntersect(popover, acceptLabel)).toBe(false);
 });
 

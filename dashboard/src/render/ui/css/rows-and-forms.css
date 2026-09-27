@@ -60,21 +60,24 @@ td form { margin: 0; display: inline-block; }
 .newspecform, .scheduledeleteform { display: flex; gap: var(--sp-3); align-items: flex-end;
   flex-wrap: wrap; margin-top: var(--sp-3); }
 .newspecform .refused { flex-basis: 100%; }
-/* The /new form's three lines. Each row takes the full width of the
-   wrapping flex; the first top-aligns its two fields so Project and
-   Depends on share a label line, the last bottom-aligns Create and
-   Cancel with the Description box they act on. */
+/* Spec 553: the /new form's rows, read top to bottom — Project (with
+   Create on its own label line) beside the two acceptance switches,
+   then Title, then Description, then Depends on, then the phase table.
+   Each row takes the full width of the wrapping flex; the first
+   top-aligns its two fields so Project and the switches share a label
+   line. */
 .newspecform .frow, .scheduledeleteform .frow { display: flex; gap: var(--sp-4); align-items: flex-start;
   flex-basis: 100%; }
 .newspecform .frow .field.wide { flex: 1 1 0; }
-/* Spec 476: the acceptance switches' own column, beside the phase
-   table inside its `.frow` (`#new-spec-form table.list { width: auto; }`,
-   list.css, is what leaves the rest of that row's line free). Stacked,
-   never side by side, so opening one switch's "(?)" cannot land on the
-   other. */
+/* Spec 476: the acceptance switches' own column, beside their neighbor
+   inside its `.frow`. Stacked, never side by side, so opening one
+   switch's "(?)" cannot land on the other. Spec 553 moved that neighbor
+   from the phase table to the Project field
+   (`#new-spec-form table.list { width: auto; }`, list.css, was what left
+   the rest of the table's own row free — no longer needed for this, but
+   the table still draws at its natural width now that it is alone). */
 .newspecform .acceptance-col { display: flex; flex-direction: column;
   gap: var(--sp-2); min-width: 0; }
-.newspecform .factions { display: flex; gap: var(--sp-2); align-self: flex-end; }
 /* The Add-project form reads to the same width its own fields do: a
    `.field.wide` stops at 48rem, so a row that splits its width between
    two fields has to stop there too, or the halves above reach past the
@@ -87,9 +90,8 @@ td form { margin: 0; display: inline-block; }
    `.newspecform.specform` (the flex-wrap row above) — `flex-basis: 100%`
    forces this onto its own line in the second case and does nothing in
    the first, where the div is already the width of its block-level
-   parent. `.factions` gets its own `display: flex` here rather than
-   relying on `.newspecform .factions` above, which only reaches the
-   document tabs' shape. */
+   parent. `.factions` carries no layout of its own — each container that
+   draws it gives it `display: flex` for its own shape. */
 .panelhead { display: flex; justify-content: space-between; align-items: baseline;
   flex-basis: 100%; gap: var(--sp-2); margin-bottom: var(--sp-2); }
 .panelhead .factions { display: flex; gap: var(--sp-2); flex: none; }

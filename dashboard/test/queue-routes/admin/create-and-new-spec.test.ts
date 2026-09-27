@@ -107,6 +107,67 @@ describe("a chosen dependency reaches the runner and the page", () => {
   });
 });
 
+// --- spec 553: reordering the page must not change what a create posts ------
+//
+// The New-spec page's fields are read by NAME (parse-request.ts), never
+// by position, so moving Create onto the Project field's own line and
+// moving Title/Description ahead of Depends on and the phase table is a
+// pure layout change. This is the regression check for that claim: the
+// reordered page still carries every field name a create needs, and a
+// request built from them still parses to the same job it would have
+// before the reorder.
+describe("spec 553: a request built from the reordered form's own field names (AC-6)", () => {
+  test("project, title, description, dependencies, acceptance settings and steps all still parse", async () => {
+    const { base } = start({ queueProjects: ["aide"] });
+    const html = await (await fetch(`${base}/new`)).text();
+    for (const name of [
+      'name="project"',
+      'name="title"',
+      'name="description"',
+      'name="dependsOn"',
+      'name="acceptanceRequired"',
+      'name="aiFormulateAcceptance"',
+      'name="steps"',
+    ]) {
+      expect(html).toContain(name);
+    }
+    const body = new URLSearchParams();
+    body.set("project", "aide");
+    body.set("title", "A new spec");
+    body.set("description", "Do the thing");
+    body.set("dependsOn", "81-queue-and-runner");
+    body.set("acceptanceRequired", "1");
+    body.set("aiFormulateAcceptance", "1");
+    for (const step of ["analyze", "implement", "archive"]) body.append("steps", step);
+    const res = await fetch(`${base}/api/queue/create`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
+      body: body.toString(),
+    });
+    expect(res.status).toBe(200);
+    const parsed = (await res.json()) as {
+      ok: boolean;
+      job: {
+        project: string;
+        createTitle: string;
+        createDescription: string;
+        createDependsOn: string[];
+        steps: string[];
+        acceptanceNotRequired?: boolean;
+        createNoAiFormulate?: boolean;
+      };
+    };
+    expect(parsed.ok).toBe(true);
+    expect(parsed.job.project).toBe("aide");
+    expect(parsed.job.createTitle).toBe("A new spec");
+    expect(parsed.job.createDescription).toBe("Do the thing");
+    expect(parsed.job.createDependsOn).toEqual(["81-queue-and-runner"]);
+    expect(parsed.job.steps).toEqual(["create", "analyze", "implement", "archive"]);
+    expect(parsed.job.acceptanceNotRequired).toBeUndefined();
+    expect(parsed.job.createNoAiFormulate).toBeUndefined();
+  });
+});
+
 describe("the New-spec form offers what the spec may build on (criterion 7)", () => {
   // On its own page since spec 121 — the chips, their order and their
   // scoping are unchanged, only the page that draws them.

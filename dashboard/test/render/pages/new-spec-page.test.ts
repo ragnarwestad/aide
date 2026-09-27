@@ -60,77 +60,126 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
     for (const createProjects of [["aide", "aide-dashboard"], ["aide"]]) {
       const html = newPage({ createProjects });
       const select = html.slice(
-        html.indexOf('<select name="project" required>'),
-        html.indexOf("</select>", html.indexOf('<select name="project" required>')),
+        html.indexOf('<select name="project" id="new-spec-project" required>'),
+        html.indexOf("</select>", html.indexOf('<select name="project" id="new-spec-project" required>')),
       );
-      expect(select.startsWith('<select name="project" required><option value="" selected>Choose a project…</option>')).toBe(true);
+      expect(select.startsWith('<select name="project" id="new-spec-project" required><option value="" selected>Choose a project…</option>')).toBe(true);
       expect(select.match(/selected/g)!.length).toBe(1);
       for (const p of createProjects) expect(select).toContain(`<option value="${p}">${p}</option>`);
     }
   });
 
-  // Criterion 3: the whole field order, and the per-project scoping
-  // the chips carry so the browser can narrow them. Reworked 2026-08-19:
-  // Project and Depends on share the first row, Title has a line of its
-  // own, and Create/Cancel sit at the RIGHT of the Description box —
-  // which in the markup means after it. Reworked again by spec 228:
-  // Project shares its row with the Model choice instead, and Depends
-  // on drops to a full-width row of its own.
-  test("the page carries Project, Depends on, Title, Description, Create — in that order", () => {
-    const html = newPage({
-      targets: [
-        { project: "aide", specFolder: "92-a-spec-can-depend" },
-        { project: "aide-dashboard", specFolder: "01-first" },
-      ],
+  // Spec 553: what is used every time — Project (with Create on its own
+  // label line), Title, Description — comes first; Depends on and the
+  // phase table, seldom touched, come last. Reworked 2026-08-19: Project
+  // and Depends on shared the first row, Title had a line of its own,
+  // and Create/Cancel sat at the RIGHT of the Description box. Reworked
+  // again by spec 228 (Project shared its row with the Model choice) and
+  // spec 476 (the switches moved beside the phase table). Spec 553 moves
+  // Create onto the Project label's own line and puts Title/Description
+  // ahead of Depends on and the table.
+  describe("spec 553: Project+Create, the switches, Title, Description, Depends on, the table — in that order", () => {
+    const orderedPage = () =>
+      newPage({
+        targets: [
+          { project: "aide", specFolder: "92-a-spec-can-depend" },
+          { project: "aide-dashboard", specFolder: "01-first" },
+        ],
+      });
+
+    test("the whole row order holds, Project first and the table last", () => {
+      const html = orderedPage();
+      const at = (needle: string) => {
+        const i = html.indexOf(needle);
+        expect([needle, i > -1]).toEqual([needle, true]);
+        return i;
+      };
+      const order = [
+        '<span>Project</span>',
+        "Create</button>",
+        '<select name="project" id="new-spec-project" required>',
+        'name="acceptanceRequired"',
+        'name="aiFormulateAcceptance"',
+        '<input type="text" name="title"',
+        '<textarea name="description"',
+        'name="dependsOn"',
+        '<table class="list">',
+      ].map(at);
+      expect(order).toEqual([...order].sort((a, b) => a - b));
+      // Each chip says which project it belongs to.
+      expect(html).toMatch(/data-project="aide-dashboard"[^]*?value="01-first"/);
+      // No `.factions` wrapper left on the page: Create moved into the
+      // Project field's own `actions` slot.
+      expect(html).not.toContain('<span class="factions">');
     });
-    const at = (needle: string) => {
-      const i = html.indexOf(needle);
-      expect([needle, i > -1]).toEqual([needle, true]);
-      return i;
-    };
-    const order = [
-      '<select name="project" required>',
-      '<table class="list">',
-      'name="dependsOn"',
-      '<input type="text" name="title"',
-      '<textarea name="description"',
-      "Create</button>",
-    ].map(at);
-    expect(order).toEqual([...order].sort((a, b) => a - b));
-    // The rows themselves: Project leads the first, Description+actions
-    // the last, Title and Depends on each on a line of their own between
-    // them.
-    expect(html).toMatch(/<span class="frow"><label class="field"><span>Project<\/span>/);
-    expect(html).toMatch(/<span class="frow"><label class="field wide"><span>Description<\/span>/);
-    // Spec 342: the phase table has replaced Project's row's own
-    // hand-rolled AI/Model pair (criterion 8, spec 228) as what sits
-    // between Project's row and Depends on. Spec 476 moved the two
-    // acceptance switches beside the phase table, in a shared `.frow` —
-    // the frow this assertion now finds between Project's row and the
-    // table is that shared one, opening just ahead of the table.
-    const betweenProjectAndTable = html.slice(
-      html.indexOf('<select name="project" required>'),
-      html.indexOf('<table class="list">'),
-    );
-    expect(betweenProjectAndTable.endsWith('</select></label></span><span class="frow">')).toBe(true);
-    const betweenTableAndDepends = html.slice(
-      html.indexOf("</table>"),
-      html.indexOf('<span class="lbl">Depends on</span>'),
-    );
-    // Spec 476: the switches' column, stacked, closing the table's own
-    // `.frow`, then Depends on's own `.frow` opens. Spec 472: each
-    // switch's own line still carries the `field`/`fieldhead`/`fieldend`
-    // shell "Depends on" already uses, so its "(?)" stays on screen —
-    // it no longer carries `wide`, since the column beside the table (not
-    // a full-width line) is now what sizes it. Spec 474: Depends on's own
-    // shell is `field wide depends-pair` around two `.depends-col`s, the
-    // first one opening with `.fieldhead` (its "(?)") and its `.lbl` label.
-    expect(betweenTableAndDepends).toMatch(
-      /^<\/table><span class="acceptance-col"><span class="field"><span class="fieldhead"><label class="phase[^>]*data-acceptance="1"[\s\S]*?<\/label><span class="fieldend">(<details class="intro">[\s\S]*?<\/details>)?<\/span><\/span><\/span><span class="field"><span class="fieldhead"><label class="phase[^>]*data-ai-formulate="1"[\s\S]*?<\/label><span class="fieldend">(<details class="intro">[\s\S]*?<\/details>)?<\/span><\/span><\/span><\/span><\/span><span class="frow"><span class="field wide depends-pair"><span class="depends-col"><span class="fieldhead">$/,
-    );
-    expect(html).toMatch(/<span class="factions"><button[^>]*>Create<\/button>/);
-    // Each chip says which project it belongs to.
-    expect(html).toMatch(/data-project="aide-dashboard"[^]*?value="01-first"/);
+
+    // AC-1: Create sits on the Project label's own line, above the
+    // picker. The field stays a real `<label>` — an explicit `for`
+    // points it at the `<select>`'s own `id`, so a click on the word
+    // "Project" still focuses the picker rather than being resolved to
+    // the Create button that now shares the label's head line.
+    test("Create sits on the Project label's own line, above the picker (AC-1)", () => {
+      const html = orderedPage();
+      expect(html).toMatch(
+        /<label class="field" for="new-spec-project"><span class="fieldhead"><span>Project<\/span><span class="fieldend"><button[^>]*>Create<\/button><\/span><\/span><select name="project" id="new-spec-project" required>/,
+      );
+    });
+
+    // AC-2: the switches share the Project field's own `.frow`, in the
+    // same `.acceptance-col` spec 476 already drew beside the table.
+    test("the switches sit right after the project picker, in one shared row (AC-2)", () => {
+      const html = orderedPage();
+      const betweenProjectAndSwitches = html.slice(
+        html.indexOf('<select name="project" id="new-spec-project" required>'),
+        html.indexOf('name="acceptanceRequired"'),
+      );
+      expect(betweenProjectAndSwitches).toContain('</select></label><span class="acceptance-col">');
+    });
+
+    // AC-3: Title comes directly after the Project row, Description
+    // directly after Title — nothing else drawn between them.
+    test("Title comes right after the Project row, Description right after Title (AC-3)", () => {
+      const html = orderedPage();
+      const betweenSwitchesAndTitle = html.slice(
+        html.indexOf("</details>", html.indexOf('name="aiFormulateAcceptance"')),
+        html.indexOf('<input type="text" name="title"'),
+      );
+      expect(betweenSwitchesAndTitle).toBe(
+        '</details></span></span></span></span></span><label class="field wide"><span>Title</span>',
+      );
+      const betweenTitleAndDescription = html.slice(
+        html.indexOf('<input type="text" name="title"'),
+        html.indexOf('<textarea name="description"'),
+      );
+      expect(
+        betweenTitleAndDescription.endsWith(
+          '</label><span class="frow"><label class="field wide"><span>Description</span>',
+        ),
+      ).toBe(true);
+    });
+
+    // AC-4: Depends on comes after Description.
+    test("Depends on comes after Description (AC-4)", () => {
+      const html = orderedPage();
+      const betweenDescriptionAndDepends = html.slice(
+        html.indexOf('<textarea name="description"'),
+        html.indexOf('<span class="lbl">Depends on</span>'),
+      );
+      expect(betweenDescriptionAndDepends).toContain("</textarea></label></span>");
+    });
+
+    // AC-5: the phase table is last, with no `.acceptance-col` beside it.
+    test("the phase table is the last part of the form, with no switches beside it (AC-5)", () => {
+      const html = orderedPage();
+      const betweenDependsAndTable = html.slice(
+        html.indexOf('<span class="lbl">Depends on</span>'),
+        html.indexOf('<table class="list">'),
+      );
+      expect(betweenDependsAndTable).not.toContain("acceptance-col");
+      expect(html.indexOf('<table class="list">')).toBeGreaterThan(
+        html.indexOf('<span class="lbl">Depends on</span>'),
+      );
+    });
   });
 
   // AC-1: 10 lines by default, not 4 — the box a spec author gets before
@@ -506,34 +555,43 @@ describe("spec 342: the phase table", () => {
     expect(analyzeRow.match(/<td/g)?.length).toBe(2);
   });
 
-  // REQ-1, REQ-2 (spec 476): the switches sit beside the phase table, in
-  // the same `.frow`, above "Depends on" — a "Depends on" field is only
-  // drawn at all when there is another spec to build on, so this
-  // exercises that case rather than the bare page.
-  test("spec 476: the acceptance switches sit beside the phase table, in its own .frow, above Depends on", () => {
+  // REQ-1, REQ-2 (spec 553, AC-2/AC-5): the switches sit beside the
+  // Project field now, not the phase table — the table is last on the
+  // page, alone in its own `.frow`, with no `.acceptance-col` beside it.
+  // A "Depends on" field is only drawn at all when there is another spec
+  // to build on, so this exercises that case rather than the bare page.
+  test("spec 553: the acceptance switches sit beside the Project field, and the phase table is last, alone (AC-2/AC-5)", () => {
     const html = newPage({ targets: [{ project: "aide", specFolder: "80-earlier" }] });
-    const tableIdx = html.indexOf('<table class="list">');
+    const projectIdx = html.indexOf('<select name="project" id="new-spec-project" required>');
     const acceptIdx = html.indexOf('name="acceptanceRequired"');
     const formulateIdx = html.indexOf('name="aiFormulateAcceptance"');
     const dependsIdx = html.indexOf('<span class="lbl">Depends on</span>');
-    expect(tableIdx).toBeGreaterThan(-1);
-    expect(acceptIdx).toBeGreaterThan(tableIdx);
+    const tableIdx = html.indexOf('<table class="list">');
+    expect(projectIdx).toBeGreaterThan(-1);
+    expect(acceptIdx).toBeGreaterThan(projectIdx);
     expect(formulateIdx).toBeGreaterThan(acceptIdx);
     expect(dependsIdx).toBeGreaterThan(formulateIdx);
-    // The table and both switches share the one `.frow` that opens just
-    // ahead of the table — no `.frow` of their own each, unlike Depends
-    // on's, which opens its own further down.
-    const tableFrowStart = html.lastIndexOf('<span class="frow">', tableIdx);
+    expect(tableIdx).toBeGreaterThan(dependsIdx);
+    // The Project field and both switches share the one `.frow` that
+    // opens ahead of Project — no `.frow` of their own each, unlike
+    // Depends on's and the table's, which each open their own further
+    // down.
+    const projectFrowStart = html.lastIndexOf('<span class="frow">', projectIdx);
     const acceptFrowStart = html.lastIndexOf('<span class="frow">', acceptIdx);
     const dependsFrowStart = html.lastIndexOf('<span class="frow">', dependsIdx);
-    expect(tableFrowStart).toBeGreaterThan(-1);
-    expect(acceptFrowStart).toBe(tableFrowStart);
-    expect(dependsFrowStart).toBeGreaterThan(tableFrowStart);
-    // Both switches sit in one shared column, beside the table rather
-    // than among its rows.
+    const tableFrowStart = html.lastIndexOf('<span class="frow">', tableIdx);
+    expect(projectFrowStart).toBeGreaterThan(-1);
+    expect(acceptFrowStart).toBe(projectFrowStart);
+    expect(dependsFrowStart).toBeGreaterThan(projectFrowStart);
+    expect(tableFrowStart).toBeGreaterThan(dependsFrowStart);
+    // Both switches sit in one shared column, beside Project rather than
+    // among the table's rows.
     const colStart = html.indexOf('<span class="acceptance-col">');
-    expect(colStart).toBeGreaterThan(tableIdx);
+    expect(colStart).toBeGreaterThan(projectIdx);
     expect(colStart).toBeLessThan(acceptIdx);
+    // AC-5: nothing named `acceptance-col` sits in the table's own row.
+    const tableRow = html.slice(tableFrowStart, html.indexOf("</table>", tableIdx) + "</table>".length);
+    expect(tableRow).not.toContain("acceptance-col");
   });
 });
 
