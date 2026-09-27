@@ -36,6 +36,12 @@ def test_the_turn_line_says_where_the_transcript_stood_and_the_commit_comes_afte
     )
     stages = _stamped(err)
     turns = [s for s in stages if s.startswith("model turn started")]
-    assert turns == ["model turn started (transcript at byte 0)"], stages
+    # implement, then the review that follows it — same reply, so the
+    # same length.
+    first = len(json.dumps(RESULT_OK)) + 1
+    assert turns == [
+        "model turn started (transcript at byte 0)",
+        f"model turn started (transcript at byte {first})",
+    ], stages
     commit = next(i for i, s in enumerate(stages) if s.startswith("committing in "))
     assert commit > stages.index(turns[-1]), stages

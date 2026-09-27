@@ -53,9 +53,12 @@ def message_writing_claude(fake_claude, message=MESSAGE):
 
 
 def silent_claude(fake_claude, then="", prompt_seen="/dev/null"):
-    """A step that changes the code and writes no message at all."""
+    """A step that changes the code and writes no message at all.
+    Appends rather than overwrites `prompt_seen`: an implement step's own
+    turn is followed by a review turn, so more than one prompt reaches
+    this same fake."""
     return fake_claude(
-        f"cat > {prompt_seen}\n" + READ_SPECS + WRITE_CODE + then + f"echo '{json.dumps(RESULT_OK)}'"
+        f"cat >> {prompt_seen}\n" + READ_SPECS + WRITE_CODE + then + f"echo '{json.dumps(RESULT_OK)}'"
     )
 
 

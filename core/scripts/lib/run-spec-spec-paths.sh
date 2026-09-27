@@ -345,6 +345,11 @@ run_model_turn() {
 
 # --- reading what came back --------------------------------------------------
 session_out=""; subtype=""; cost="0"; cost_measured="false"; terminal_reason=""; error_msg=""
+# The turn's own final text — the one piece of "what came back" nothing
+# reads today. Reset here, unconditionally like the globals above, for
+# `set -u` safety: a caller reading it on a path where no branch below
+# sets it would abort the whole run.
+turn_message=""
 # The tokens the step actually metered, as a JSON object — or empty,
 # which is what makes the field ABSENT rather than zero (spec 118).
 tokens_json=""
@@ -388,6 +393,17 @@ if [ "$tool" = "codex" ]; then
   # closing event — so it is picked out of its own event.
   session_out="$(jq -Rr 'fromjson? | select(type == "object" and .type == "thread.started") | .thread_id // empty' \
     "$transcript" 2>/dev/null | tail -n 1)"
+  # The turn's own final text: the last `item.completed` event whose item
+  # is an agent_message — a shape nothing else in this branch reads today.
+  # Selected as a whole EVENT first (compact, so `tail -n 1` counts events
+  # rather than lines) and only THEN read for `.item.text`: that text can
+  # carry its own embedded newlines, which `-r`'s raw output would split
+  # across several lines and `tail -n 1` would then truncate to the last
+  # one alone.
+  turn_message_json="$(jq -Rc 'fromjson? | select(type == "object" and .type == "item.completed" and .item.item_type == "agent_message")' \
+    "$transcript" 2>/dev/null | tail -n 1)"
+  turn_message=""
+  [ -n "$turn_message_json" ] && turn_message="$(jq -r '.item.text // empty' <<<"$turn_message_json" 2>/dev/null)"
   if [ -n "$result_json" ]; then
     have_result="true"
     case "$(jq -r '.type' <<<"$result_json")" in
@@ -433,6 +449,15 @@ elif [ "$tool" = "opencode" ]; then
   # before any step finished.
   session_out="$(jq -Rr 'fromjson? | select(type == "object") | .sessionID // empty' \
     "$transcript" 2>/dev/null | head -n 1)"
+  # The turn's own final text: the last `text` part — a shape nothing
+  # else in this branch reads today. Selected as a whole event first,
+  # same reason as codex's own read above: the text can carry embedded
+  # newlines that raw (`-r`) output would split across lines before
+  # `tail -n 1` ever saw them.
+  turn_message_json="$(jq -Rc 'fromjson? | select(type == "object" and .part.type == "text")' \
+    "$transcript" 2>/dev/null | tail -n 1)"
+  turn_message=""
+  [ -n "$turn_message_json" ] && turn_message="$(jq -r '.part.text // empty' <<<"$turn_message_json" 2>/dev/null)"
   steps_json="$(jq -Rsc '
     [splits("\n") | select(length > 0) | fromjson?
      | select(type == "object" and .type == "step_finish") | .part]
@@ -500,6 +525,9 @@ if [ -n "$result_json" ]; then
   subtype="$(jq -r '.subtype // empty' <<<"$result_json")"
   cost="$(jq -r '.total_cost_usd // 0' <<<"$result_json")"
   cost_measured="true"
+  # The turn's own final text: the same result event already parsed for
+  # session_id/cost above — free, no new scan of $transcript.
+  turn_message="$(jq -r '.result // empty' <<<"$result_json")"
   # What the plan actually meters. On a subscription the dollar figure is
   # notional and this is the number that counts, so it is recorded beside
   # the cost rather than instead of it.

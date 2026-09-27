@@ -261,7 +261,11 @@ def test_a_main_checkout_on_the_spec_branch_is_healed_not_refused(runner, worksp
     rc, out, _ = run(runner, workspace, claude, command="implement")
     assert rc == 0, out
     assert out["terminalReason"] == "completed"
-    assert log.read_text().split() == ["main", "main"], "healed before the worktree was made"
+    # An implement's own turn is followed by a review turn, so the probe
+    # (once per call) may run more than once — every one of them must
+    # still read "main", never the spec branch.
+    probed = log.read_text().split()
+    assert probed and set(probed) == {"main"}, "healed before the worktree was made"
     assert "new-code.txt" in git(workspace["project"], "show", "--name-only", "--pretty=", BRANCH)
 
 def test_a_failed_fetch_refuses_rather_than_creating_a_branch_from_a_stale_tip(

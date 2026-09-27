@@ -68,14 +68,19 @@ def test_an_implement_whose_tests_are_green_carries_the_runners_record_on_the_br
 def _fixing_claude(fake_claude, fix_on_retry=True):
     """First turn: implements, leaving the tests red (fixed.txt missing).
     A follow-up turn — the prompt names the red suite — writes fixed.txt
-    when `fix_on_retry`, so the runner's next run is green."""
+    when `fix_on_retry`, so the runner's next run is green.
+
+    The review turn in between takes the same "else" branch (its own
+    prompt names no red suite either) — quieted with `|| true` so a
+    second, no-op commit's own "nothing to commit" text does not land in
+    the transcript."""
     fix = "printf 'fixed\\n' > fixed.txt && git add -A && git commit -q -m 'the fix'\n" if fix_on_retry else ":\n"
     return fake_claude(
         "prompt=\"$(cat)\"\n"
         "if printf '%s' \"$prompt\" | grep -q 'test suite is red'; then\n"
         f"  {fix}"
         "else\n"
-        "  printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'\n"
+        "  printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step' >/dev/null 2>&1 || true\n"
         "fi\n"
         f"echo '{json.dumps(RESULT_OK)}'"
     )
@@ -94,8 +99,12 @@ def test_a_red_suite_goes_back_to_the_session_and_a_fix_ends_the_step_completed(
     assert rc == 0, out
     assert out["terminalReason"] == "completed", out
     calls = fake_claude.calls.read_text().splitlines()
-    assert len(calls) == 2, calls
-    assert "--resume" in calls[1] and "--session-id" not in calls[1], calls[1]
+    # implement, then the review (fresh — the fake's own prompt does not
+    # say "test suite is red" either, so it takes the same "else" branch
+    # and reports no defects), then the resumed fix turn.
+    assert len(calls) == 3, calls
+    assert "--resume" not in calls[1] and "--session-id" not in calls[1], calls[1]
+    assert "--resume" in calls[2] and "--session-id" not in calls[2], calls[2]
     record = json.loads(git(workspace["specs"], "show", f"{BRANCH}:{workspace['folder']}/test-run.json"))
     assert record["exitCode"] == 0, record
 
@@ -125,22 +134,28 @@ def test_a_red_suite_goes_back_to_a_codex_thread_too(runner, workspace, fake_cod
     assert rc == 0, out
     assert out["terminalReason"] == "completed", out
     calls = fake_codex.calls.read_text().splitlines()
-    assert len(calls) == 2, calls
-    assert calls[1].startswith("exec resume ") and calls[1].endswith(f" {CODEX_THREAD_ID} -"), calls[1]
-    assert "--json" in calls[1], calls[1]
-    assert "--sandbox" not in calls[1] and "--add-dir" not in calls[1], calls[1]
+    # implement, then the review (fresh — no "test suite is red" in its
+    # own prompt either, so it takes the same "else" branch and reports
+    # no defects), then the resumed fix turn.
+    assert len(calls) == 3, calls
+    assert "resume" not in calls[1], calls[1]
+    assert calls[2].startswith("exec resume ") and calls[2].endswith(f" {CODEX_THREAD_ID} -"), calls[2]
+    assert "--json" in calls[2], calls[2]
+    assert "--sandbox" not in calls[2] and "--add-dir" not in calls[2], calls[2]
     record = json.loads(git(workspace["specs"], "show", f"{BRANCH}:{workspace['folder']}/test-run.json"))
     assert record["exitCode"] == 0, record
 
 
 def test_a_suite_still_red_after_the_rounds_ends_tests_red(runner, workspace, fake_claude):
     """Two follow-up turns and no fix: the cap holds, the step ends
-    tests-red, and the session was asked exactly 1 + 2 times."""
+    tests-red, and the session was asked exactly 1 (implement) + 1
+    (review, which finds nothing to report here) + 2 (fix rounds)
+    times."""
     with_status(workspace, ["create", "analyze"])
     _project_with_test_cmd(workspace, "test -f fixed.txt")
     rc, out, _ = run(runner, workspace, _fixing_claude(fake_claude, fix_on_retry=False), command="implement")
     assert out["terminalReason"] == "tests-red", out
-    assert len(fake_claude.calls.read_text().splitlines()) == 3
+    assert len(fake_claude.calls.read_text().splitlines()) == 4
 
 
 
@@ -266,7 +281,10 @@ def test_the_fix_turn_asks_for_the_failing_tests_not_a_full_suite_until_green(
     )
     rc, out, _ = run(runner, workspace, claude, command="implement")
     assert out["terminalReason"] == "tests-red", out
-    fix_turn = seen.read_text().split("----")[1]
+    # index 0: implement's own turn. index 1: the review, which reports
+    # nothing here (this fake does not distinguish it). index 2: the
+    # first real fix turn — the one whose own wording this test checks.
+    fix_turn = seen.read_text().split("----")[2]
     assert "until it is green" not in fix_turn, fix_turn
     assert "the tests that failed" in fix_turn, fix_turn
     assert "at most once" in fix_turn, fix_turn
@@ -280,10 +298,19 @@ def _recording_claude(fake_claude, runner, record_cmd, after_record=""):
     """Implements, then records a run of `record_cmd` through the real
     aide-record-test-run (the runner's own sibling script), then commits.
     `after_record` runs after the record — a change that makes the
-    delivered tree differ from the recorded one."""
+    delivered tree differ from the recorded one.
+
+    The review turn that follows is matched by its own prompt and
+    answered with nothing more than "no defects" — it must not run the
+    record command a second time, which is exactly what a real review
+    session's own "read and report only" instruction rules out."""
     record = runner.parent / "aide-record-test-run"
     return fake_claude(
-        "cat > /dev/null\n"
+        "prompt=\"$(cat)\"\n"
+        "if printf '%s' \"$prompt\" | grep -q \"Read this spec's own description\"; then\n"
+        f"  echo '{json.dumps(RESULT_OK)}'\n"
+        "  exit 0\n"
+        "fi\n"
         "printf 'real work\\n' > implemented.txt\n"
         + 'specs="$(sed -n "s|^AIDE_SPECS_PATH=||p" "$PWD/.aide/config" | head -1)"\n'
         + f'"{record}" --project-dir . --specs-root "$specs" --folder 81-queue-and-runner --cmd "{record_cmd}" > /dev/null\n'
@@ -423,8 +450,14 @@ def test_the_second_turn_line_names_the_size_the_first_turn_left_AC_3(runner, wo
         stream_file=str(stream), return_stderr=True,
     )
     turns = [s for s in _stamped(err) if s.startswith("model turn started")]
+    # implement (byte 0), then the review (same reply, so the same
+    # length), then the resumed fix turn.
     first = len(json.dumps(RESULT_OK)) + 1
-    assert turns == ["model turn started (transcript at byte 0)", f"model turn started (transcript at byte {first})"], turns
+    assert turns == [
+        "model turn started (transcript at byte 0)",
+        f"model turn started (transcript at byte {first})",
+        f"model turn started (transcript at byte {first * 2})",
+    ], turns
 
 
 def test_a_green_run_is_a_line_after_the_line_that_says_the_tests_are_running_AC_3(runner, workspace, fake_claude):

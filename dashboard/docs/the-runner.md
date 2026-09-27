@@ -16,7 +16,7 @@ What a run does to the repositories it touches: the clones the dashboard keeps o
 checkouts a step works in, what a finished step publishes — and, last, how to run one step by hand.
 
 **Where the code is.** `core/scripts/aide-run-spec` is the entry point and holds little else; the mechanics are in
-`core/scripts/lib/run-spec-*.sh`, nineteen files named for what they do. The ones this page describes:
+`core/scripts/lib/run-spec-*.sh`, twenty-one files named for what they do. The ones this page describes:
 
 | For a change to                                     | Open                         |
 |-----------------------------------------------------|------------------------------|
@@ -27,6 +27,7 @@ checkouts a step works in, what a finished step publishes — and, last, how to 
 | Committing and pushing afterwards                   | `run-spec-publish.sh`        |
 | A scheduled run that committed anyway               | `run-spec-schedule-guard.sh` |
 | Whether a step counts as having run                 | `run-spec-status-line.sh`    |
+| The review that follows an implement's own turn     | `run-spec-review.sh`         |
 | The test gate an implement ends on                  | `run-spec-step-tests.sh`     |
 | Where the specs root comes from, and the model turn | `run-spec-spec-paths.sh`     |
 
@@ -194,8 +195,16 @@ evidence that the phase happened:
 - `implement` counts only if the project's HEAD moved, its tree changed, or its branch differs from the default
   branch — the third catches a re-pressed implement that finds an earlier run's code already on the branch and
   writes nothing itself. Otherwise the step ends `no-progress` and
-  the line is not extended. It also ends only on a green test run the runner made ITSELF
-  (`run-spec-step-tests.sh`): the same `aide-resolve-test-cmd` and `aide-record-test-run` the landing's gate calls run
+  the line is not extended. Once past that check, a second, fresh AI session — same model, effort and tool as the
+  step, never resumed — reads the spec's own description and a diff of what the step changed, and looks for
+  defects against the description; it never comments on style, naming or structure (`run-spec-review.sh`). One or
+  more found go back to the ORIGINAL implement session as one follow-up turn that fixes them, and that turn's own
+  failure stands as the step's outcome; the review's own turn is best-effort, and any outcome other than a clean
+  "no defects" — a verdict it cannot parse, or its own turn failing to complete — falls back to "found nothing"
+  rather than failing an already-successful, already-committed implement over the added safety net's own hiccup.
+  The step ends only on a green test run the runner made ITSELF
+  (`run-spec-step-tests.sh`), which always follows the review: the same `aide-resolve-test-cmd` and
+  `aide-record-test-run` the landing's gate calls run
   on the step's result in its worktree, and the record on the branch is the runner's. Red goes back to the same
   session first — the failing lines as a follow-up turn, up to two more rounds within what is left of the step's
   time limit (`AIDE_TEST_FIX_ROUNDS`; claude resumes its session, Codex its thread through `codex exec resume`). Still red after

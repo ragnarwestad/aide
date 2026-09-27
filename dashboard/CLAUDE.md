@@ -50,9 +50,25 @@ get them, and reads them by hand.
 - The script runs from a private copy of itself — an `implement` step
   reinstalls it under bash's feet — and `/bin/bash` here is 3.2: no
   `mapfile`, build arrays with `array+=(...)`.
+- **An `implement` whose own turn ends `completed` is reviewed before
+  its tests decide anything** (`run-spec-review.sh`, sourced between
+  `run-spec-status-line.sh` and `run-spec-step-tests.sh`): a second,
+  fresh AI session — same model, effort and tool, never resumed — reads
+  the spec's description and a diff of what changed, and looks for
+  defects against the description alone, never style, naming or
+  structure. Defects found go back to the ORIGINAL implement session as
+  one follow-up turn that fixes them, and that turn's own failure stands
+  as the step's outcome; the review's own turn is best-effort, so a
+  verdict it cannot parse, or its own turn failing to complete, both
+  fall back to "found nothing" rather than failing an
+  already-successful, already-committed implement over it. Either way,
+  the step's reported cost is the sum of every turn this ran, and its
+  `sessionId` still names the implement session, never the review's own
+  throwaway one.
 - **An `implement` ends only on a green test run the runner made itself**
-  (`run-spec-step-tests.sh`): the session's own record is never what
-  decides. Red goes back to the same session first, as a follow-up turn
+  (`run-spec-step-tests.sh`), which runs after the review above: the
+  session's own record is never what decides. Red goes back to the same
+  session first, as a follow-up turn
   with the failing lines — at most `AIDE_TEST_FIX_ROUNDS` (2) more, each
   within what is left of the step's time limit — claude through
   `-p --resume`, codex through `codex exec resume <thread> -`.
