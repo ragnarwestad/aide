@@ -21,6 +21,12 @@ in the project root. It is TEAM knowledge and belongs in git — unlike
 
 ## Workflow
 
+The steps below are this skill's own, inside the queue's `manifest` step.
+Mark each one in the log, so a reader can follow the run: when it
+starts, write one line `manifest · Step N of X: <title> — started`, and when
+it ends, one line `manifest · Step N of X: <title> — done`. A step that ends
+the run early says `— stopped: <why>` in place of `— done`.
+
 ### Step 1 of 5: Establish the state
 
 - Project root: the git toplevel of the argument or of the current

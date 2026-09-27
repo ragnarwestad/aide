@@ -99,7 +99,7 @@ export const en = {
   "list.phaseNoneKept": "No messages are kept for this phase.",
   "list.phaseNoMessages": "Nothing has been captured from this step yet.",
   "list.phaseModel": "Model: {model}",
-  "list.phaseOpenLog": "Open this phase's log",
+  "list.phaseOpenLog": "Open this step's log",
   "list.cancel": "Cancel",
   "list.cancelling": "cancelling…",
   "list.cancelConfirmTitle": "Cancel {step}?",
