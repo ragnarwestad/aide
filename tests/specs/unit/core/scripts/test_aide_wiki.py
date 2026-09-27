@@ -371,3 +371,43 @@ def test_affected_resolves_a_non_main_default_branch_via_origin_head(script, tmp
     (project / "x.txt").write_text("changed\n")
     commit_all(project, "touch x")
     assert affected(script, specs_root, project)["pages"] == [{"page": "p.md", "files": ["x.txt"]}]
+
+
+def test_affected_drops_a_file_the_diff_deleted_but_keeps_the_pages_others_AC_1(
+    script, specs_root, project
+):
+    """A page naming two files where the spec deletes one is still
+    affected, but the deleted file is dropped from what `affected`
+    hands back — `aide-wiki write` refuses any file no longer at HEAD,
+    so passing it straight through would break the rewrite."""
+    write_page(script, specs_root, project, "p.md", ["x.txt", "y.txt"])
+    git(project, "checkout", "-q", "-b", "feature")
+    (project / "x.txt").unlink()
+    commit_all(project, "delete x")
+    assert affected(script, specs_root, project)["pages"] == [{"page": "p.md", "files": ["y.txt"]}]
+
+
+def test_affected_omits_a_page_whose_only_named_file_the_diff_deleted_AC_1(
+    script, specs_root, project
+):
+    """A page with nothing left to rewrite it from is left out entirely,
+    rather than handed to `aide-wiki write` with an empty --file list."""
+    write_page(script, specs_root, project, "p.md", ["x.txt"])
+    git(project, "checkout", "-q", "-b", "feature")
+    (project / "x.txt").unlink()
+    commit_all(project, "delete x")
+    assert affected(script, specs_root, project)["pages"] == []
+
+
+def test_write_accepts_the_file_list_affected_returns_after_a_deletion_AC_1(
+    script, specs_root, project
+):
+    """End to end: the archive step passes `affected`'s own file list
+    straight to `write`, which must not refuse it as unknown-file."""
+    write_page(script, specs_root, project, "p.md", ["x.txt", "y.txt"])
+    git(project, "checkout", "-q", "-b", "feature")
+    (project / "x.txt").unlink()
+    commit_all(project, "delete x")
+    surviving = affected(script, specs_root, project)["pages"][0]["files"]
+    rc, out = write_page(script, specs_root, project, "p.md", surviving, "# Title\n\nRewritten.\n")
+    assert rc == 0, out

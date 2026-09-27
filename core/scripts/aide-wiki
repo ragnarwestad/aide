@@ -319,13 +319,23 @@ SCHEMA
       n="$(basename "$f")"
       case "$n" in index.md|schema.md) continue ;; esac
       is_generated "$f" || continue
+      declared=(); while IFS= read -r pf; do [ -n "$pf" ] && declared+=("$pf"); done < <(fm_files "$f")
       hit=()
-      while IFS= read -r pf; do
-        [ -n "$pf" ] || continue
-        for cf in ${changed[@]+"${changed[@]}"}; do [ "$pf" = "$cf" ] && hit+=("$pf"); done
-      done < <(fm_files "$f")
+      for pf in ${declared[@]+"${declared[@]}"}; do
+        for cf in ${changed[@]+"${changed[@]}"}; do [ "$pf" = "$cf" ] && { hit+=("$pf"); break; }; done
+      done
       [ ${#hit[@]} -gt 0 ] || continue
-      pages="$(jq -c --arg p "$n" '. + [{page:$p, files:$ARGS.positional}]' --args "${hit[@]}" <<<"$pages")"
+      # The page's own sources still at HEAD — a file this spec's diff
+      # deleted is dropped here, never handed to `aide-wiki write`, which
+      # refuses any file no longer in the project. A page whose every
+      # named file is gone has nothing left to rewrite it from and is
+      # left out entirely: a wiki build or refresh prunes it once stale.
+      current=()
+      for pf in ${declared[@]+"${declared[@]}"}; do
+        git -C "$project_dir" cat-file -e "HEAD:$pf" 2>/dev/null && current+=("$pf")
+      done
+      [ ${#current[@]} -gt 0 ] || continue
+      pages="$(jq -c --arg p "$n" '. + [{page:$p, files:$ARGS.positional}]' --args "${current[@]}" <<<"$pages")"
     done
     jq -cn --argjson p "$pages" '{ok:true, exitCode:0, terminalReason:"listed", pages:$p}'
     ;;

@@ -129,14 +129,21 @@ aide-wiki affected --specs-root <specs root> --project-dir <project root>
 
 — which answers with the generated (never hand-written) pages whose
 declared files overlap the diff between the project's default branch and
-this spec's own code, each with the files of its own that overlapped.
+this spec's own code, each already narrowed to the files of its own that
+still exist at HEAD — a file this spec's own diff deleted is dropped from
+that list, never handed to `aide-wiki write`, which refuses any file no
+longer in the project. A page whose every named file this spec deleted
+has nothing left to rewrite it from and is not named at all: it is left
+exactly as it is, for a wiki build or refresh to prune once it goes
+stale.
 **No pages named:** report that none needed rewriting and continue to
 Step 3.
 
 **One or more pages named:** for each, read the files it names as they
 are now — after this spec's own changes, in this session's own worktree
 — and rewrite the page's body the same way the wiki skill's own Step 3
-does, through the script, never by hand:
+does, through the script, never by hand, passing exactly the files
+`affected` named for that page:
 
 ```bash
 aide-wiki write --specs-root <specs root> --project-dir <project root> \
@@ -144,10 +151,8 @@ aide-wiki write --specs-root <specs root> --project-dir <project root> \
                  # the page's new body on stdin
 ```
 
-Pass every file the page named, whether or not this spec touched all of
-them — a page keeps naming its whole source, not only the part that
-changed. Rewrite only the pages `affected` named: a page covering no file
-this spec changed is left exactly as it is, however stale it may be for
+Rewrite only the pages `affected` named: a page covering no file this
+spec changed is left exactly as it is, however stale it may be for
 another reason — a wiki build or refresh still covers those. Report
 which pages were rewritten, or that none were.
 
