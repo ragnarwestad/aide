@@ -159,6 +159,23 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
     expect(count()).toBe(1);
   });
 
+  test("waits for a finished step whose landing has not taken the lock yet", async () => {
+    const jobs: { id: string; state: string; landing?: boolean }[] = [{ id: "analyzed", state: "done", landing: true }];
+    const { hook, count } = restartSpy();
+    const waiting = restartAfterLanding({
+      mergeLock: createRootLock(),
+      restart: hook,
+      restartPollMs: 5,
+      restartDeferTimeoutMs: 500,
+      queue: { list: () => jobs },
+    });
+    await assertHoldsFor(30, 5, () => expect(count()).toBe(0));
+
+    jobs[0]!.landing = undefined;
+    await waiting;
+    expect(count()).toBe(1);
+  });
+
   test("only the landing job running is no reason to wait", async () => {
     const { hook, count } = restartSpy();
     await restartAfterLanding({
@@ -384,6 +401,19 @@ describe("runningJobNames (spec 385)", () => {
 
   test("no queue at all is no running jobs", () => {
     expect(runningJobNames(undefined)).toEqual([]);
+  });
+
+  // A finished step's landing takes the merge lock a moment after the
+  // job reads done: a restart fired in that gap cut 547's analysis off
+  // from the specs repo's main (2026-09-27).
+  test("a finished job whose landing has not settled still counts", () => {
+    const queue = {
+      list: () => [
+        { id: "landing-now", state: "done", landing: true, project: "aide", specFolder: "547-a-spec" },
+        { id: "landed", state: "done", project: "aide", specFolder: "546-landed" },
+      ],
+    };
+    expect(runningJobNames(queue)).toEqual(["aide:547-a-spec"]);
   });
 });
 

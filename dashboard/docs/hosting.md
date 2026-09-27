@@ -140,7 +140,7 @@ not start again, and the restart takes the job down and loads it from that plist
 `launchctl kickstart -k gui/$(id -u)/com.aide-dashboard.serve` restarts it on the arguments it was loaded with; after
 changing the plist, `launchctl bootout` and `launchctl bootstrap` it instead. The button's restart step answers before the restart
 fires; the dialog then waits for a process with a new `startedAt` to answer `/api/version`, checks it, and reloads the page. While jobs are
-running the restart waits for them and for any merge in flight (two hours at most), and every page shows a warning
+running the restart waits for them, for a finished step whose landing has not settled, and for any merge in flight (two hours at most), and every page shows a warning
 line under the header naming them until it fires. Meanwhile the queue starts no new phase — a queued one reads "held
 back" on its row — so the wait ends when the running phases do, and the queue carries on after the restart. Point the job anywhere else and a restart
 reloads code the landing never touched — the served page then sits on old code with every row reporting

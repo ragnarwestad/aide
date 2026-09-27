@@ -116,11 +116,16 @@ export function isDashboardRoot(ctx: { dashboardRoot?: string }, root: string): 
  *  restart instead (`requeueWikiBuilds`), since every archive starts one and a
  *  Deploy pressed after an archive otherwise waited minutes on it. */
 export function runningJobNames(
-  queue: { list(): { id: string; state: string; project?: string; specFolder?: string; steps?: readonly string[] }[] } | undefined,
+  queue:
+    | { list(): { id: string; state: string; landing?: boolean; project?: string; specFolder?: string; steps?: readonly string[] }[] }
+    | undefined,
   exceptJobId?: string,
 ): string[] {
+  // A finished step whose landing has not settled counts too: the job
+  // reads done a moment before its landing takes the merge lock, and a
+  // restart in that gap leaves the step's work on its branch.
   return (queue?.list() ?? [])
-    .filter((j) => j.state === "running" && j.id !== exceptJobId && !(j.steps && isWikiBuild({ steps: j.steps })))
+    .filter((j) => (j.state === "running" || !!j.landing) && j.id !== exceptJobId && !(j.steps && isWikiBuild({ steps: j.steps })))
     .map((j) => (j.project && j.specFolder ? `${j.project}:${j.specFolder}` : j.id.slice(0, 8)));
 }
 
@@ -152,7 +157,7 @@ export async function restartAfterLanding(ctx: {
   restart: RestartHook;
   restartPollMs?: number;
   restartDeferTimeoutMs?: number;
-  queue?: { list(): { id: string; state: string }[] };
+  queue?: { list(): { id: string; state: string; landing?: boolean }[] };
   exceptJobId?: string;
   /** Called with the current running-job list whenever it changes, and
    *  with `[]` once the wait is over one way or another (spec 385) — the
