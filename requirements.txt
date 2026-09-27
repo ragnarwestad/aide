@@ -3,5 +3,5 @@
 # same gate. There is nothing else here: aide is a configuration repo, not
 # a Python application, and the test suite imports only the standard
 # library.
-pytest==8.4.2
+pytest==9.1.1
 pytest-xdist==3.8.0
