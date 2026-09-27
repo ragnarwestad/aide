@@ -30,6 +30,13 @@ while read -r _local_ref _local_sha remote_ref _remote_sha; do
 done
 [ -n "$pushing_main" ] || exit 0
 
+# Git names the repository it runs this hook for in GIT_DIR and its
+# kin. A guard that makes a scratch repository with `git -C <scratch>`
+# would inherit them and work on this clone instead, so the guards start
+# without them.
+# shellcheck disable=SC2046
+unset $(git rev-parse --local-env-vars)
+
 echo "pre-push: the doc guards (scripts/check-docs)" >&2
 if ! "$root/scripts/check-docs"; then
   echo "pre-push: refused — a guard that reads a page is red. Fix it, or push with AIDE_SKIP_PRE_PUSH=1." >&2
