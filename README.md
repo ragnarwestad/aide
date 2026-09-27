@@ -14,8 +14,8 @@
 
 ---
 
-Spec-driven development for AI CLIs: every change starts as a spec, and a dashboard runs it through analysis,
-implementation and archiving.
+Spec-driven development for Claude Code, Codex, OpenCode and GitHub Copilot: every change starts as a spec, and a
+dashboard runs it through analysis, implementation and archiving.
 
 
 ## What Aide is
