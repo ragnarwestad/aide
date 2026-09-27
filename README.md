@@ -241,6 +241,7 @@ file, `.aide/project.yaml`, describes the project itself: the command that runs 
 needs that git does not track (`node_modules`, `.env` and the like), and whether its code is merged or left open
 as a pull request. It does not have to be there at all — the dashboard keeps those settings in its own state,
 outside the project — and the dashboard writes the file only in a project that already tracks one.
+[docs/CONFIGURATION.md](docs/CONFIGURATION.md) lists every key in both files.
 
 ---
 
