@@ -8,7 +8,8 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
-import { statusSaying } from "../../helpers/queue-server.ts";
+import { ran, statusSaying } from "../../helpers/queue-server.ts";
+import { listUntil, rowSaysDone } from "../fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
 
@@ -63,4 +64,17 @@ describe("a start out of order is refused at the press, with the reason", () => 
   test("archive before implement", () => refused(["create", "analyze"], ["archive"], "has not reached implement yet"));
 
   test("create on a spec that exists", () => refused(["create", "analyze"], ["create"], "create cannot run again"));
+});
+
+// Implement lands nothing: its record is on the spec's branch until
+// archive merges it, and main still says "analyzed". The route reads what
+// the row reads — the branch and the history as well as main — or every
+// archive is refused as "not reached implement yet".
+describe("a phase proved on the spec's branch counts, though main has not got it", () => {
+  test("archive after an implement main does not show yet is accepted", async () => {
+    const { base, dir } = harness.start({ extra: {}, status: statusSaying(["create", "analyze"]) });
+    ran(dir, ["create", "analyze", "implement"]);
+    await listUntil(base, rowSaysDone("implement"));
+    expect((await queue(base, ["archive"])).status).toBe(200);
+  });
 });
