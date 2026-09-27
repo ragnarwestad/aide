@@ -56,11 +56,11 @@ effort: high
 **Content:**
 - Scope (files to change, complexity, estimate)
 - TDD-based implementation plan
-- Step 0: Write tests (RED phase)
-- Steps 1-N: Implementation (GREEN phase)
+- Task 0: Write tests (RED phase)
+- Tasks 1-N: Implementation (GREEN phase)
 - Testing strategy (REFACTOR phase)
 - Risk analysis
-- Each step: concrete, testable, with time estimate
+- Each task: concrete, testable, with time estimate
 
 **Structure:** Follow the `spec structure` § 3-solution
 
@@ -68,21 +68,21 @@ effort: high
 ```markdown
 ## Implementation plan
 
-### Step 0: Write tests (RED phase)
+### Task 0: Write tests (RED phase)
 - [ ] `UserProfile.test.tsx` - Test new validation (30 min)
 - [ ] `UserController.test.kt` - Test new endpoint (30 min)
 
-### Step 1: Implement backend (GREEN phase)
+### Task 1: Implement backend (GREEN phase)
 - [ ] Add field to `User.kt` (15 min)
 - [ ] Update `UserController.kt` (30 min)
 - [ ] Run tests - verify that they pass (10 min)
 
-### Step 2: Implement frontend (GREEN phase)
+### Task 2: Implement frontend (GREEN phase)
 - [ ] Update `UserProfile.tsx` (45 min)
 - [ ] Update `userApi.ts` (15 min)
 - [ ] Run tests - verify that they pass (10 min)
 
-### Step 3: Refactoring and quality assurance (REFACTOR phase)
+### Task 3: Refactoring and quality assurance (REFACTOR phase)
 - [ ] TypeScript check: `npx tsc --noEmit` (5 min)
 - [ ] ESLint: `pnpm run eslint` (5 min)
 - [ ] All tests: `pnpm test -- --run` (10 min)

@@ -83,7 +83,8 @@ First write `implement · Step 2 of 4: RED — Write failing tests — started`,
 Skip this step entirely if item 5 of Step 1 found it already done;
 resume it at the first unticked task if it found it in progress.
 
-1. Read "Step 0" and the acceptance criteria from 3-solution.md
+1. Read "Task 0" (the tests the plan asks for) and the acceptance
+   criteria from 3-solution.md
 2. Run `aide-emit-run --phase red --spec <ID>` (see [Reporting RED, GREEN and REFACTOR](#reporting-red-green-and-refactor))
 3. Create test files — at least one failing test per acceptance criterion.
    A criterion an existing test already proves gets no second test: add

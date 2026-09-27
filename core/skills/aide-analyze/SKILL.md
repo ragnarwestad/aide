@@ -220,9 +220,13 @@ command(s) into the plan verbatim — never leave the
 that covers nothing the change touches.
 
 Structure the plan with TDD:
-- Step 0: Write tests (RED phase) — at least one failing test per acceptance criterion
-- Step 1-N: Implementation (GREEN phase)
+- Task 0: Write tests (RED phase) — at least one failing test per acceptance criterion
+- Task 1-N: Implementation (GREEN phase)
 - Testing strategy (REFACTOR phase)
+
+Call a plan item a task, never a step: a step is what the queue runs, or
+a numbered section of a skill such as this one, and a log that says
+"Step 8" must mean one of those.
 
 ### Step 7 of 9: Review the plan
 

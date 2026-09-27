@@ -6,7 +6,7 @@ tools-and-scripts rules).
 
 ## Phase 1: RED — Write failing tests
 
-1. Read "Step 0" from 3-solution.md
+1. Read "Task 0" (the tests the plan asks for) from 3-solution.md
 2. Identify all tests to be written
 3. Create the test files (follow the testing rules and the frontend coding standard)
 4. Run: `pnpm test -- --run <test file>`
