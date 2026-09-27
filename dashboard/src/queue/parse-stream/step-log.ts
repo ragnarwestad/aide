@@ -47,7 +47,7 @@ export function stepLog(
   runLog: string | undefined,
   o: { tool?: SummarizeOptions["tool"]; final: boolean },
 ): { logs: LogPart[]; errors: string[] } {
-  const opts = { tool: o.tool, max: Infinity }; // the Log is the whole step, every line of it
+  const opts = { tool: o.tool, max: Infinity, whole: true }; // the Log is the whole step, every line of it in full
   const built: Built[] = [];
   const aide = (by: LogPart["by"], lines: RunLine[]) => {
     const own = lines.filter((l): l is Extract<RunLine, { text: string }> => !l.turn);

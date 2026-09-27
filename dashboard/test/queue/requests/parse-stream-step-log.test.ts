@@ -95,7 +95,7 @@ describe("stepLog: the order of the parts", () => {
 });
 
 describe("stepLog: the final message", () => {
-  test("only the last turn's last line is the whole message (AC-5)", () => {
+  test("every turn's message is shown whole, and the final one once (AC-5)", () => {
     const long = `${"word ".repeat(60)}end`;
     const one = [say(long)].join("\n") + "\n";
     const two = [bash("a", "x"), say("All done.")].join("\n") + "\n" + result("All done.");
@@ -103,8 +103,14 @@ describe("stepLog: the final message", () => {
     const { logs } = read(one + two, runLog);
     const ai = logs.filter((p) => p.by === "ai");
 
-    expect(ai[0]!.lines[0]!.endsWith("…")).toBe(true);
+    expect(ai[0]!.lines[0]).toBe(long);
     expect(ai[1]!.lines).toEqual(["Bash x", "All done."]);
+  });
+
+  test("a message over several paragraphs keeps its line breaks, and a step mark in it stays a line of its own", () => {
+    const message = "First paragraph.\n\nSecond paragraph.\nanalyze · Step 2 of 10: Detect complexity — started";
+    const { logs } = read([say(message), bash("a", "x")].join("\n") + "\n", undefined, { final: false });
+    expect(logs[0]!.lines).toEqual(["First paragraph.\n\nSecond paragraph.", "analyze · Step 2 of 10: Detect complexity — started", "Bash x"]);
   });
 });
 

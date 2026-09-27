@@ -1,6 +1,6 @@
 // The assistant's own closing word.
 import { summarizeEntries } from "./entries.ts";
-import { clip, codexKind, esc, events, sniff, splitMarks, type SummarizeOptions } from "./shared.ts";
+import { codexKind, esc, events, prose, sniff, splitMarks, type SummarizeOptions } from "./shared.ts";
 
 /** The assistant's own final message, in full — Claude's one `result`
  *  event's `result` field, Codex's LAST `agent_message` item's text, or
@@ -51,7 +51,7 @@ export function endWithFinalMessage(
   const raw = rawFinalMessage(text, opts);
   if (raw === undefined) return lines;
   const pieces = splitMarks(raw);
-  const clipped = pieces.map((p) => esc(clip(p.text)));
+  const clipped = pieces.map((p) => esc(prose(p.text, !!opts.whole && !p.mark)));
   const full = pieces.map((p) => (p.mark ? esc(p.text) : cut(esc(p.text.trim()))));
   const n = clipped.length;
   const endsOnIt = n > 0 && n <= lines.length && clipped.every((c, i) => lines[lines.length - n + i] === c);

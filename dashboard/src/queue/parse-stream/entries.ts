@@ -42,7 +42,7 @@ function claudeEntries(text: string, opts: SummarizeOptions = {}): StreamEntry[]
     if (event.type !== "assistant") continue;
     for (const block of blocksOf(event)) {
       if (block.type === "text" && typeof block.text === "string" && block.text.trim()) {
-        textEntries(block.text).forEach(keep);
+        textEntries(block.text, opts.whole).forEach(keep);
       } else if (block.type === "tool_use" && typeof block.name === "string") {
         const kind: StreamEntryKind =
           block.name === "Bash" ? "command" : CLAUDE_WRITES.has(block.name) ? "file" : "tool";
@@ -129,7 +129,7 @@ function codexEntries(text: string, opts: SummarizeOptions = {}): StreamEntry[] 
     const item = event.item;
     if (item === null || typeof item !== "object" || Array.isArray(item)) continue;
     const { text: said, ...rest } = codexEntry(item as Record<string, unknown>);
-    const entries = rest.kind === "text" ? textEntries(said) : said.trim() ? [{ ...rest, text: esc(clip(said)) }] : [];
+    const entries = rest.kind === "text" ? textEntries(said, opts.whole) : said.trim() ? [{ ...rest, text: esc(clip(said)) }] : [];
     for (const entry of entries) if (keepsEntry(entry, opts.only)) out.push(entry);
     trim(out, max);
   }
@@ -196,7 +196,7 @@ function opencodeEntries(text: string, opts: SummarizeOptions = {}): StreamEntry
     const part = event.part;
     if (part === null || typeof part !== "object" || Array.isArray(part)) continue;
     const { text: said, ...rest } = opencodeEntry(part as Record<string, unknown>);
-    const entries = rest.kind === "text" ? textEntries(said) : said.trim() ? [{ ...rest, text: esc(clip(said)) }] : [];
+    const entries = rest.kind === "text" ? textEntries(said, opts.whole) : said.trim() ? [{ ...rest, text: esc(clip(said)) }] : [];
     for (const entry of entries) if (keepsEntry(entry, opts.only)) out.push(entry);
     trim(out, max);
   }
