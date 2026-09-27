@@ -3,7 +3,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { harness, ownDirs, projectsRoot, scheduleConfig, settled, serve, get } from "./project-detail-route-fixtures.ts";
+import { harness, ownDirs, projectsRoot, scheduleConfig, settled, serve, get, setTestCmd } from "./project-detail-route-fixtures.ts";
 
 afterEach(() => {
   harness.cleanup();
@@ -45,7 +45,8 @@ describe("GET /projects/<name> — the project's own page, served", () => {
   });
 
   test("a known project answers 200 with actions and settings", async () => {
-    const root = projectsRoot({ aide: "AIDE_TEST_CMD=make test\n" });
+    const root = projectsRoot({ aide: "" });
+    setTestCmd(root, "aide", "make test");
     const res = await get(serve(root, settled(root, "aide")), "aide");
     expect(res.status).toBe(200);
     const html = await res.text();
@@ -54,7 +55,8 @@ describe("GET /projects/<name> — the project's own page, served", () => {
   });
 
   test("a project whose manifest fails to parse still 200s with actions and settings, no error paragraph", async () => {
-    const root = projectsRoot({ aide: "AIDE_TEST_CMD=make test\n" });
+    const root = projectsRoot({ aide: "" });
+    setTestCmd(root, "aide", "make test");
     writeFileSync(join(root, "aide", ".aide", "project.yaml"), "not: [a, mapping");
     const res = await get(serve(root, settled(root, "aide")), "aide");
     expect(res.status).toBe(200);
@@ -141,7 +143,7 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
     // Criterion 2: the manifest's value wins over `.aide/config`'s (there
     // is none here to conflict with), and the Comment column names which
     // file it came from.
-    expect(html).toMatch(/node_modules[\s\S]{0,300}configured, from \.aide\/project\.yaml/);
+    expect(html).toMatch(/node_modules[\s\S]{0,300}from \.aide\/project\.yaml/);
     // Exactly one settings table (criterion 1) — no leftover second one
     // from the removed plain-text summary or `<details>` editor.
     expect((html.match(/<table class="list">/g) ?? []).length).toBe(1);
@@ -163,7 +165,8 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
   test("?edit=1 keeps lint and build read-only, even when one is unset, and fills a configured test command (criterion 3)", async () => {
     // No lockfile at all: AIDE_LINT_CMD, a DERIVABLE key, is `unset` —
     // the gate must read key membership, not the row's current origin.
-    const root = projectsRoot({ aide: "AIDE_TEST_CMD=make test\n" });
+    const root = projectsRoot({ aide: "" });
+    setTestCmd(root, "aide", "make test");
     const base = serve(root, settled(root, "aide"));
     const html = await (await fetch(`${base}/projects/aide?edit=1`)).text();
     expect(html).not.toContain('name="AIDE_TEST_CMD"');
@@ -176,18 +179,18 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
     expect(html).toMatch(/name="installCmd"[^>]*><\/textarea>/);
   });
 
-  test("a configured test command is shown as configured (criterion 1)", async () => {
-    const root = projectsRoot({ aide: "AIDE_TEST_CMD=make test\n" });
+  test("a configured test command is shown with the file it came from (criterion 1)", async () => {
+    const root = projectsRoot({ aide: "" });
+    setTestCmd(root, "aide", "make test");
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
     expect(html).toContain("make test");
-    expect(html).toMatch(/make test[\s\S]{0,200}configured/);
+    expect(html).toMatch(/make test[\s\S]{0,200}from \.aide\/project\.yaml/);
   });
 
   test("no .aide/config at all is said plainly, not shown as seven silent blanks (criterion 2)", async () => {
     const root = projectsRoot({ aide: null });
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
     expect(html).toContain("no .aide/config");
-    expect(html).toContain("not set");
     expect(html).toContain("AIDE_INSTALL_CMD");
   });
 
@@ -208,7 +211,7 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
     const root = projectsRoot({ aide: "" }, ["pnpm-lock.yaml"]);
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
     const row = html.slice(html.indexOf("AIDE_TEST_CMD"), html.indexOf("</tr>", html.indexOf("AIDE_TEST_CMD")));
-    expect(row).toContain("not set — no tests run when a spec lands");
+    expect(row).toContain("no tests run when a spec lands");
     expect(row).toContain("<code>pnpm test -- --run</code>");
     expect(row).not.toContain("not a verified command");
   });
@@ -231,10 +234,10 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
     for (const gone of ["AIDE_LINT_CMD", "AIDE_BUILD_CMD", "Lint command", "Build command"]) expect(html).not.toContain(gone);
   });
 
-  test("a key with neither a value nor anything to work it out from reads not set (criterion 7)", async () => {
+  test("a key with neither a value nor anything to work it out from shows a dash (criterion 7)", async () => {
     const root = projectsRoot({ aide: "" });
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
-    expect(html).toMatch(/AIDE_PREVIEW_CMD[\s\S]{0,200}not set/);
+    expect(html).toMatch(/AIDE_PREVIEW_CMD<\/span><\/td><td data-col="setting-value"><span class="muted">–<\/span>/);
   });
 
   // Spec 255's own criterion 7: a regression guard, not a new bug fix —

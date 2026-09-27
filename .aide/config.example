@@ -1,17 +1,12 @@
 # Copy to .aide/config (gitignored — personal, per-machine) and fill in
-# what this checkout needs. Every key but AIDE_TEST_CMD falls back to
-# detection or to the committed manifest.
+# what this checkout needs. The test command is not here: it is the
+# manifest's AIDE_TEST_CMD, the same for every checkout.
 #
 # The full description of each key is core/skills/tools-and-scripts/SKILL.md,
 # "Per-project configuration (.aide/config)".
 
 # Where this project's specs are kept, if not <project>/specs.
 # AIDE_SPECS_PATH=/somewhere/central-specs
-
-# The project's test command: the whole suite, run by a step, the
-# landing and /aide-implement. Read from this file and nowhere else, and
-# never guessed — without it the project has no test command.
-# AIDE_TEST_CMD=pytest -q
 
 # Overrides the detected lint/build commands.
 # AIDE_LINT_CMD=ruff check .

@@ -79,7 +79,7 @@ Done in August 2026:
 - [x] **Issue keys need no configuration.** Skills and scripts recognize
       any issue key by pattern (`[A-Z][A-Z0-9]*-[0-9]+`) instead of the
       `PROJ-` example prefix. `PROJ-` remains in illustrative examples only.
-- [x] **Project-agnostic commands.** The test command is `.aide/config`'s
+- [x] **Project-agnostic commands.** The test command is the manifest's
       `AIDE_TEST_CMD`; lint/build commands are detected
       from what the project ships (lockfiles, gradlew, pom.xml, …) — see
       "Project commands" in `core/skills/tools-and-scripts/SKILL.md`. The pnpm

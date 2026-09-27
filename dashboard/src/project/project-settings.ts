@@ -137,7 +137,7 @@ function configuredValue(
     return value ? { value, source: source ?? undefined } : null;
   }
   const value = configValue(projectDir, key);
-  return value !== null ? { value } : null;
+  return value !== null ? { value, source: ".aide/config" } : null;
 }
 
 /** One row per recognized key, for `projectDir`.

@@ -62,7 +62,7 @@ export async function updateProjectSettings(
      *  still sets `AIDE_PREVIEW_CMD` in its own config by hand, which
      *  keeps winning. */
     previewCmd?: string;
-    /** The command a run and a landing test with — `.aide/config`'s
+    /** The command a run and a landing test with — the manifest's
      *  `AIDE_TEST_CMD`, read by `aide-resolve-test-cmd`. Gated on
      *  presence the same way. */
     testCmd?: string;
@@ -128,11 +128,6 @@ export async function updateProjectSettings(
     }
   }
 
-  // Against the MANIFEST'S own value, never the resolved one: a project
-  // still carrying its links in `.aide/config` shows them on the form,
-  // and saving is what brings them across to the file that travels with
-  // the repo. Compared against the resolved value, that save would find
-  // nothing changed and the migration would never happen.
   const manifest = join(projectDir, ".aide", "project.yaml");
   // Spec 512: where the manifest keys go depends on whether the project
   // tracks its own manifest. Tracked, it is the team's and is committed
@@ -143,7 +138,7 @@ export async function updateProjectSettings(
   const home = opts.settingsFile ? await manifestTracked(run, projectDir) : { tracked: true as boolean | null };
   const settingsFile = home.tracked === false ? opts.settingsFile : undefined;
   const readPath = settingsFile ? (existsSync(settingsFile) ? settingsFile : manifest) : manifest;
-  const settingsEdits: { key: string; value: string }[] = [];
+  const settingsEdits: { key: string; value: string; step: ProjectStepName }[] = [];
   // Where a manifest edit goes: into the file here, or — when the
   // caller commits it (the Settings route, into the dashboard's own
   // checkout) — gathered and handed over once at the end, so three keys
@@ -155,7 +150,7 @@ export async function updateProjectSettings(
       return;
     }
     if (settingsFile) {
-      settingsEdits.push({ key, value });
+      settingsEdits.push({ key, value, step });
       steps.push({ step, ok: true });
       return;
     }
@@ -174,36 +169,20 @@ export async function updateProjectSettings(
       });
     }
   };
-  const stored = existsSync(readPath)
+  const manifestData = existsSync(readPath)
     ? (() => {
         const parsed = parseManifest(readFileSync(readPath, "utf-8"));
-        return parsed.ok ? (parsed.data.worktreeLinks ?? "").trim() : "";
+        return parsed.ok ? parsed.data : {};
       })()
-    : "";
-  if (req.worktreeLinks !== undefined && links !== stored) writeManifest("worktreeLinks", links, "worktreeLinks");
+    : {};
+  const fromManifest = (v: string | undefined): string => (v ?? "").trim();
+  const fromConfig = (key: string): string => configValue(projectDir, key) ?? "";
 
-  // Spec 220, and the same rule again: compared against what the
-  // MANIFEST says, and written only when it differs. `merge` is the
-  // default, so choosing it takes the key OUT rather than spelling
-  // today's behaviour into every project's manifest — which is exactly
-  // what `upsertManifestScalar` does with an empty value.
-  const storedLanding = existsSync(readPath)
-    ? (() => {
-        const parsed = parseManifest(readFileSync(readPath, "utf-8"));
-        return parsed.ok ? (parsed.data.codeLanding ?? "") : "";
-      })()
-    : "";
-  const wanted = landing === "merge" ? "" : landing;
-  if (req.codeLanding !== undefined && wanted !== storedLanding) writeManifest("codeLanding", wanted, "codeLanding");
-
-  // One more `.aide/config` key, spec 255: same file, same
-  // changed-only-write rule `specsPath` above follows, gated on
-  // presence in `req` the way `codeLanding` is above it — a caller
-  // that never mentions it must not blank it.
-  const writeConfigField = (step: "installCmd" | "testCmd", configKey: string, value: string | undefined): void => {
-    if (value === undefined) return;
+  // Changed-only, like `specsPath` above, and gated on presence in `req`:
+  // a caller that never mentions a field must not blank it.
+  const writeConfigField = (step: ProjectStepName, configKey: string, value: string): void => {
     const trimmed = value.trim();
-    if (trimmed === (configValue(projectDir, configKey) ?? "")) return;
+    if (trimmed === fromConfig(configKey)) return;
     try {
       writeAideConfig(projectDir, { [configKey]: trimmed });
       steps.push({ step, ok: true });
@@ -215,30 +194,46 @@ export async function updateProjectSettings(
       });
     }
   };
-  writeConfigField("installCmd", "AIDE_INSTALL_CMD", req.installCmd);
-  writeConfigField("testCmd", "AIDE_TEST_CMD", req.testCmd);
+  // Every row is saved back to the file the page says it came from — the
+  // one that answers when both are read. A value in neither file goes to
+  // the row's own file: `.aide/config` for the install command, the
+  // manifest for the rest.
+  const save = (
+    step: ProjectStepName,
+    value: string | undefined,
+    configKey: string,
+    manifestKey: string,
+    stored: string,
+    inConfig: boolean,
+  ): void => {
+    if (value === undefined) return;
+    if (inConfig) writeConfigField(step, configKey, value);
+    else if (value.trim() !== stored) writeManifest(manifestKey, value.trim(), step);
+  };
+  const storedLinks = fromManifest(manifestData.worktreeLinks);
+  save("worktreeLinks", req.worktreeLinks, "AIDE_WORKTREE_LINKS", "worktreeLinks", storedLinks,
+    !storedLinks && !!fromConfig("AIDE_WORKTREE_LINKS"));
+  save("installCmd", req.installCmd, "AIDE_INSTALL_CMD", "installCmd", fromManifest(manifestData.installCmd),
+    !!fromConfig("AIDE_INSTALL_CMD") || !fromManifest(manifestData.installCmd));
+  save("previewCmd", req.previewCmd, "AIDE_PREVIEW_CMD", "previewCmd", fromManifest(manifestData.previewCmd),
+    !!fromConfig("AIDE_PREVIEW_CMD"));
+  save("testCmd", req.testCmd, "", "AIDE_TEST_CMD", fromManifest(manifestData.AIDE_TEST_CMD), false);
 
-  // The manifest again, and the same changed-only rule: compared
-  // against what the manifest itself says, never the resolved value, so
-  // a machine whose `.aide/config` shadows it does not rewrite the
-  // manifest on every save.
-  if (req.previewCmd !== undefined) {
-    const storedPreview = existsSync(readPath)
-      ? (() => {
-          const parsed = parseManifest(readFileSync(readPath, "utf-8"));
-          return parsed.ok ? (parsed.data.previewCmd ?? "").trim() : "";
-        })()
-      : "";
-    const preview = req.previewCmd.trim();
-    if (preview !== storedPreview) writeManifest("previewCmd", preview, "previewCmd");
+  // Spec 220: `merge` is the default, so choosing it takes the key OUT
+  // rather than spelling today's behaviour into every project's
+  // manifest — which is exactly what `upsertManifestScalar` does with an
+  // empty value.
+  const wanted = landing === "merge" ? "" : landing;
+  if (req.codeLanding !== undefined && wanted !== (manifestData.codeLanding ?? "")) {
+    writeManifest("codeLanding", wanted, "codeLanding");
   }
 
   if (settingsFile && settingsEdits.length) {
     try {
-      applySettingsEdits(settingsFile, settingsEdits, [manifest]);
+      applySettingsEdits(settingsFile, settingsEdits.map(({ key, value }) => ({ key, value })), [manifest]);
     } catch (err) {
       for (const edit of settingsEdits) {
-        const failed = steps.find((st) => st.ok && st.step === (edit.key as ProjectStepName));
+        const failed = steps.find((st) => st.ok && st.step === edit.step);
         if (failed) Object.assign(failed, { ok: false, error: `could not write ${settingsFile}: ${err instanceof Error ? err.message : String(err)}` });
       }
     }

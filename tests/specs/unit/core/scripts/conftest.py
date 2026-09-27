@@ -97,16 +97,16 @@ def workspace(tmp_path):
     # (spec 345: no project's .aide/config is tracked, aide's own
     # included) rather than relying on the machine's own global ignore,
     # so the fixture stays hermetic.
-    (project / ".gitignore").write_text("/deps/\n.aide/config\n")
+    (project / ".gitignore").write_text("/deps/\n.aide/config\n.aide/project.yaml\n")
     (project / "deps").mkdir()
     (project / "deps" / "marker.txt").write_text("the dependency tree\n")
     (project / ".aide").mkdir()
-    # AIDE_TEST_CMD=true: the archive gate (spec 329) runs the project's
-    # test command when no passing record is on file, and a fixture with
-    # no command at all would be refused before anything under test ran.
     (project / ".aide" / "config").write_text(
-        f"AIDE_SPECS_PATH={specs}\nAIDE_WORKTREE_LINKS=deps\nAIDE_TEST_CMD=true\n"
+        f"AIDE_SPECS_PATH={specs}\nAIDE_WORKTREE_LINKS=deps\n"
     )
+    # The test command: an untracked manifest, carried into each worktree
+    # by the run, so a test can change the command after the commit below.
+    (project / ".aide" / "project.yaml").write_text("AIDE_TEST_CMD: true\n")
     subprocess.run(["git", "-C", str(project), "add", ".gitignore"], check=True)
     subprocess.run(["git", "-C", str(project), "commit", "-qm", "add config"], check=True)
     return {

@@ -7,7 +7,7 @@ import { navEntries } from "../../../src/render";
 import { parseArgs } from "../../../src/serve/serve.ts";
 import type { GitRunner } from "../../../src/git/branch-status.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
-import { harness, ownDirs, projectsRoot, settled, stranded, serve, get, behindBy, unanswerable, INSTALLS, loadUntil } from "./project-detail-route-fixtures.ts";
+import { harness, ownDirs, projectsRoot, settled, stranded, serve, get, behindBy, unanswerable, INSTALLS, loadUntil, setTestCmd } from "./project-detail-route-fixtures.ts";
 
 afterEach(() => {
   harness.cleanup();
@@ -57,7 +57,8 @@ describe("what the page says about whether a run could start (criteria 4-6, 8)",
   // reader came for the project's page, and an unreachable git is no
   // reason to withhold the half of it that needs no git.
   test("a git that answers nothing still leaves the page standing (criterion 8)", async () => {
-    const root = projectsRoot({ aide: "AIDE_TEST_CMD=make test\n" });
+    const root = projectsRoot({ aide: "" });
+    setTestCmd(root, "aide", "make test");
     const res = await get(serve(root, fakeGit({})), "aide");
     expect(res.status).toBe(200);
     const html = await res.text();
@@ -65,7 +66,8 @@ describe("what the page says about whether a run could start (criteria 4-6, 8)",
   });
 
   test("a git that THROWS still leaves the page standing, with no readiness section", async () => {
-    const root = projectsRoot({ aide: "AIDE_TEST_CMD=make test\n" });
+    const root = projectsRoot({ aide: "" });
+    setTestCmd(root, "aide", "make test");
     const run: GitRunner = async () => {
       throw new Error("git is not on this machine");
     };

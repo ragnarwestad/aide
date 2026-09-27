@@ -150,7 +150,7 @@ def test_a_specs_folder_git_ignores_inside_the_project_is_refused_and_says_what_
     (project / ".gitignore").write_text("/specs/\n.aide/config\n")
     (project / "specs").mkdir()
     (project / ".aide").mkdir()
-    (project / ".aide" / "config").write_text("AIDE_TEST_CMD=true\n")
+    (project / ".aide" / "project.yaml").write_text("AIDE_TEST_CMD: true\n")
     git(project, "add", ".gitignore")
     git(project, "commit", "-qm", "ignore specs")
     workspace = {"project": project, "specs": project / "specs", "folder": "x", "wtbase": tmp_path / "wt"}

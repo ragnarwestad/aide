@@ -55,6 +55,10 @@ export interface ManifestData {
    *  machine (a PATH prefix a shell needs, say) in a way a worktree link
    *  cannot. */
   installCmd?: string;
+  /** The project's test command: the whole suite, run by a step, the
+   *  landing and `/aide-implement` (`aide-resolve-test-cmd`). Read here
+   *  and nowhere else, so every checkout runs the same command. */
+  AIDE_TEST_CMD?: string;
   /** How to start this project so a person can LOOK at a spec's branch
    *  before its checks are ticked (spec: previews beyond aide). The
    *  dashboard runs it in a worktree of that branch, on a port from its
@@ -133,6 +137,7 @@ export function parseManifest(text: string): ManifestResult {
   if (r.docs != null) data.docs = toList(r.docs);
   if (r.worktreeLinks != null) data.worktreeLinks = toStr(r.worktreeLinks);
   if (r.installCmd != null) data.installCmd = toStr(r.installCmd);
+  if (r.AIDE_TEST_CMD != null) data.AIDE_TEST_CMD = toStr(r.AIDE_TEST_CMD);
   if (r.previewCmd != null) data.previewCmd = toStr(r.previewCmd);
   // The one field here that is VALIDATED rather than normalized: it is a
   // two-value enum, and an unrecognized spelling has to fail toward the

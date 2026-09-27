@@ -30,10 +30,10 @@ function originText(r: SettingRow, home?: ProjectPageOptions["settingsHome"]): s
     // The manifest a run reads is a copy of the dashboard's own file
     // when the project tracks none, and the page names the file a
     // person would change.
-    if (r.source === "project.yaml" && home === "dashboard") return "configured, from the dashboard's settings.yaml";
-    return r.source ? `configured, from ${esc(CONFIGURED_SOURCE_LABEL[r.source] ?? r.source)}` : "configured";
+    if (r.source === "project.yaml" && home === "dashboard") return "from the dashboard's settings.yaml";
+    return r.source ? `from ${esc(CONFIGURED_SOURCE_LABEL[r.source] ?? r.source)}` : "";
   }
-  return "not set";
+  return "";
 }
 
 /** The test command's Comment when nothing is configured. A run and a
@@ -41,7 +41,7 @@ function originText(r: SettingRow, home?: ProjectPageOptions["settingsHome"]): s
  *  so a worked-out one runs nothing: the row says so, and names the
  *  worked-out command as the suggestion Edit offers in the field. */
 function unsetTestComment(r: SettingRow): string {
-  const none = "not set — no tests run when a spec lands";
+  const none = "no tests run when a spec lands";
   if (r.origin !== "derived" || r.value === null) return none;
   return (
     `${none}. Suggested from ${esc(r.source ?? "")}, the usual ${esc(r.toolchain ?? "")} default: ` +
@@ -69,7 +69,7 @@ export const codeLandingChoices = (defaultBranch: string | null): { value: "merg
 
 /** Which `SETTING_KEYS` entry posts under which form field name, in
  *  edit mode. The test command is what a run and a landing test with,
- *  saved to `.aide/config`'s `AIDE_TEST_CMD`. */
+ *  saved to the manifest's `AIDE_TEST_CMD`. */
 const EDITABLE_FIELD: Record<string, string> = {
   AIDE_SPECS_PATH: "specsPath",
   AIDE_WORKTREE_LINKS: "worktreeLinks",
@@ -116,30 +116,48 @@ function settingValueCell(r: SettingRow, editing: boolean, opts: ProjectPageOpti
  *  `key`/`purpose`/`origin` of its own, only what `resolveCodeLanding()`
  *  answers — so it is built from its own small literal here rather than
  *  coerced into the shape the five `SETTING_KEYS` rows share. */
-function codeLandingRow(codeLanding: "merge" | "pr", editing: boolean, defaultBranch: string | null): string {
+function codeLandingRow(
+  codeLanding: "merge" | "pr",
+  editing: boolean,
+  defaultBranch: string | null,
+  home?: ProjectPageOptions["settingsHome"],
+): string {
   const choices = codeLandingChoices(defaultBranch);
   const value = editing
     ? `<select name="codeLanding">${choices.map(
         (o) => `<option value="${o.value}"${codeLanding === o.value ? " selected" : ""}>${esc(o.label)}</option>`,
       ).join("")}</select>`
     : esc(choices.find((o) => o.value === codeLanding)!.label);
-  return `<tr><td>Code landing</td><td data-col="setting-value">${value}</td><td>What happens to code when a spec is archived</td></tr>`;
+  // `merge` is written as no key at all, so it comes from no file.
+  const from =
+    codeLanding === "merge"
+      ? "the default"
+      : home === "dashboard"
+        ? "from the dashboard's settings.yaml"
+        : "from .aide/project.yaml";
+  return (
+    `<tr><td>Code landing</td><td data-col="setting-value">${value}</td>` +
+    `<td>What happens to code when a spec is archived — ${from}</td></tr>`
+  );
 }
 
 /** Where the settings are kept, in one sentence above the table (spec
  *  512). Empty when the page was built with no answer. */
 function settingsHomeSentence(home: ProjectPageOptions["settingsHome"]): string {
   const say = (text: string) => `<p class="muted" data-settings-home="${home}">${text}</p>`;
+  // Two files, never one: the specs path and the install command belong
+  // to this machine and stay out of git; the rest travels with the project.
+  const local = "Specs path and Install command are kept in this machine's <code>.aide/config</code>";
   if (home === "dashboard") {
     return say(
-      "These settings are kept in the dashboard, in <code>settings.yaml</code> beside its checkouts — " +
+      `${local}; the rest in the dashboard, in <code>settings.yaml</code> beside its checkouts — ` +
         "nothing of them is in the project's repository.",
     );
   }
-  if (home === "project") return say("These settings are kept in the project's own <code>.aide/project.yaml</code>.");
+  if (home === "project") return say(`${local}; the rest in the project's own <code>.aide/project.yaml</code>.`);
   if (home === "shadowed") {
     return say(
-      "These settings are kept in the project's own <code>.aide/project.yaml</code>. " +
+      `${local}; the rest in the project's own <code>.aide/project.yaml</code>. ` +
         "The dashboard's copy, <code>settings.yaml</code>, is not used.",
     );
   }
@@ -180,10 +198,10 @@ export function unifiedSettingsTable(
           `<tr><td>${esc(SETTING_LABELS[r.key] ?? r.key)} <span class="muted">${esc(r.key)}</span></td>` +
           `<td data-col="setting-value">` +
           `${unsetTest && !editing ? `<span class="muted">–</span>` : settingValueCell(r, editing, opts)}</td>` +
-          `<td>${esc(r.purpose)} — ${unsetTest ? unsetTestComment(r) : originText(r, opts.settingsHome)}${problem}</td></tr>`
+          `<td>${[esc(r.purpose), unsetTest ? unsetTestComment(r) : originText(r, opts.settingsHome)].filter(Boolean).join(" — ")}${problem}</td></tr>`
         );
       })
-      .join("") + codeLandingRow(codeLanding, editing, opts.defaultBranch ?? null);
+      .join("") + codeLandingRow(codeLanding, editing, opts.defaultBranch ?? null, opts.settingsHome);
   const homeSentence = settingsHomeSentence(opts.settingsHome);
   const tableBody =
     `<div class="tablewrap"><table class="list">` +

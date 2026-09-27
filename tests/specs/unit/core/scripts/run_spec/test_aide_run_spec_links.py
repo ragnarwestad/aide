@@ -351,7 +351,7 @@ def test_an_untracked_aide_config_is_copied_into_the_worktree(runner, workspace,
     """.aide/config is never tracked, in any project including aide's own
     (spec 345) — so a worktree, which checks out tracked files only, has
     no config at all unless it is copied in. Without that copy
-    AIDE_SPECS_PATH and AIDE_TEST_CMD would simply vanish for the step."""
+    AIDE_SPECS_PATH would simply vanish for the step."""
     project = workspace["project"]
     assert git(project, "status", "--porcelain") == ""
 

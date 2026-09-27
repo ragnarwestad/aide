@@ -49,9 +49,8 @@ describe("updateProjectSettings folds line breaks", () => {
     const { config, manifest } = files(dir);
     expect(config).toContain(`AIDE_SPECS_PATH=${specs}\n`);
     expect(config).toContain("AIDE_INSTALL_CMD=bun install\n");
-    expect(config).toContain("AIDE_TEST_CMD=make test\n");
     expect(manifest).not.toMatch(/\r/);
-    for (const line of ["worktreeLinks: node_modules .venv", "previewCmd: bun run dev"]) {
+    for (const line of ["worktreeLinks: node_modules .venv", "previewCmd: bun run dev", "AIDE_TEST_CMD: make test"]) {
       expect(manifest).toContain(line);
     }
     expect(config.split("\n").every((l) => l === "" || /^[A-Z_]+=/.test(l))).toBe(true);
@@ -64,8 +63,9 @@ describe("updateProjectSettings folds line breaks", () => {
     const before = files(dir);
     await updateProjectSettings(run, dir, { testCmd: "make\ntest" });
     const after = files(dir);
-    expect(after.config).toBe(`${before.config}AIDE_TEST_CMD=make test\n`);
-    expect(after.manifest).toBe(before.manifest);
+    expect(after.config).toBe(before.config);
+    expect(after.manifest).toContain("worktreeLinks: node_modules");
+    expect(after.manifest).toContain("AIDE_TEST_CMD: make test");
   });
 
   test("values with no break write what they always did, and an unchanged value is not rewritten (AC-3)", async () => {

@@ -335,7 +335,7 @@ Example for a Maven/Gradle backend:
 ```
 
 **A run tests the whole project.** `aide-resolve-test-cmd --project-dir .`
-prints the project's one test command, `.aide/config`'s `AIDE_TEST_CMD`
+prints the project's one test command, the manifest's `AIDE_TEST_CMD`
 (the tools-and-scripts skill, "Project commands"). Use the script's
 answer; an empty answer means the project has no test command, and the
 "Run the full test suite" row says so.

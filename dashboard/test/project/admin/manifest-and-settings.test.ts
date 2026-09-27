@@ -324,14 +324,14 @@ describe("changing a project's settings after it was added (spec 184)", () => {
 
   // A save that read the fields it never sent as empty cleared the
   // specs path and the links along with it.
-  test("a test command saved alone lands in .aide/config as AIDE_TEST_CMD and touches nothing else", async () => {
+  test("a test command saved alone lands in the manifest as AIDE_TEST_CMD and touches nothing else", async () => {
     const { dir } = added("testcmd", { specsPath: "/kept/specs" });
     mkdirSync(join(dir, "node_modules"), { recursive: true });
     await updateProjectSettings(fakeGit({}).run, dir, { worktreeLinks: "node_modules" });
     const result = await updateProjectSettings(fakeGit({}).run, dir, { testCmd: "pnpm test" });
     expect(result.ok).toBe(true);
-    expect(configValue(dir, "AIDE_TEST_CMD")).toBe("pnpm test");
-    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).not.toContain("testCmd");
+    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).toContain("AIDE_TEST_CMD: pnpm test\n");
+    expect(configValue(dir, "AIDE_TEST_CMD")).toBeNull();
     expect(configValue(dir, "AIDE_SPECS_PATH")).toBe("/kept/specs");
     expect(resolveWorktreeLinks(dir).links).toBe("node_modules");
   });
@@ -397,17 +397,27 @@ describe("changing a project's settings after it was added (spec 184)", () => {
     expect(existsSync(join(dir, ".aide", "config"))).toBe(false);
   });
 
-  // A project migrated the old way is brought across by a save: the
-  // manifest has nothing, the config does, and what the page showed is
-  // what gets written where it now belongs.
-  test("a legacy links value saved from the form moves into the manifest", async () => {
+  // A save goes back to the file the page named for the row.
+  test("a links value read from .aide/config is saved back to .aide/config", async () => {
     const { dir } = added("legacy");
     mkdirSync(join(dir, "deps"), { recursive: true });
+    mkdirSync(join(dir, "vendor"), { recursive: true });
     writeFileSync(join(dir, ".aide", "config"), "AIDE_WORKTREE_LINKS=deps\n");
-    expect(resolveWorktreeLinks(dir).source).toBe(".aide/config");
-    const result = await updateProjectSettings(fakeGit({}).run, dir, { worktreeLinks: "deps", specsPath: "" });
+    const before = readFileSync(join(dir, ".aide", "project.yaml"), "utf-8");
+    const result = await updateProjectSettings(fakeGit({}).run, dir, { worktreeLinks: "deps vendor" });
     expect(result.ok).toBe(true);
-    expect(resolveWorktreeLinks(dir).source).toBe("project.yaml");
+    expect(configValue(dir, "AIDE_WORKTREE_LINKS")).toBe("deps vendor");
+    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).toBe(before);
+  });
+
+  test("an install command read from the manifest is saved back to the manifest", async () => {
+    const { dir } = added("from-manifest");
+    const file = join(dir, ".aide", "project.yaml");
+    writeFileSync(file, `${readFileSync(file, "utf-8")}installCmd: ./old.sh\n`);
+    const result = await updateProjectSettings(fakeGit({}).run, dir, { installCmd: "./new.sh" });
+    expect(result.ok).toBe(true);
+    expect(readFileSync(file, "utf-8")).toContain("installCmd: ./new.sh");
+    expect(configValue(dir, "AIDE_INSTALL_CMD")).toBeNull();
   });
 });
 

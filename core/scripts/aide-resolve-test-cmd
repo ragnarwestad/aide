@@ -3,10 +3,11 @@
 # read. A step's own run, the landing and `/aide-implement` all call this
 # literal script, so they agree on "the tests" by construction.
 #
-# The command is `.aide/config`'s AIDE_TEST_CMD and nothing else, read in
-# --project-dir or, when that is a worktree without its own `.aide/config`,
-# in the main checkout it belongs to: `.aide/config` is never tracked, so
-# a worktree carries it only when the run copied it in.
+# The command is the manifest's `AIDE_TEST_CMD:` and nothing else, read in
+# --project-dir's `.aide/project.yaml` or, when that is a worktree without
+# one, in the main checkout it belongs to. The manifest is committed (or,
+# for a project that tracks none, the dashboard's settings file copied in
+# as one), so every checkout of the project runs the same command.
 #
 # Prints ONE JSON line to stdout:
 #   {"ok":true,"commands":["<cmd>"]}   (empty when AIDE_TEST_CMD is unset)
@@ -45,16 +46,16 @@ refuse() {
 
 [ -n "$project_dir" ] || refuse "missing --project-dir"
 [ -d "$project_dir" ] || refuse "no such --project-dir: $project_dir"
-declare -f aide_config_get >/dev/null 2>&1 \
-  || refuse "aide_config_get is not available (missing _aide-spec-lib.sh)"
+declare -f aide_manifest_get >/dev/null 2>&1 \
+  || refuse "aide_manifest_get is not available (missing _aide-spec-lib.sh)"
 
-config_dir="$project_dir"
-if [ ! -f "$project_dir/.aide/config" ]; then
+manifest_dir="$project_dir"
+if [ ! -f "$project_dir/.aide/project.yaml" ]; then
   common="$(git -C "$project_dir" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
-  case "$common" in */.git) config_dir="${common%/.git}" ;; esac
+  case "$common" in */.git) manifest_dir="${common%/.git}" ;; esac
 fi
 
-cmd="$(aide_config_get AIDE_TEST_CMD "$config_dir")"
+cmd="$(aide_manifest_get AIDE_TEST_CMD "$manifest_dir")"
 if [ -n "$cmd" ]; then
   jq -cn --arg c "$cmd" '{ok:true, commands:[$c]}'
 else

@@ -160,8 +160,7 @@ def test_unticked_acceptance_criteria_blocks_before_the_test_command_runs(script
     reaching the unticked row."""
     configure(project, specs)
     marker = tmp_path / "marker"
-    (project / ".aide" / "config").write_text(
-        f"AIDE_SPECS_PATH={specs}\nAIDE_TEST_CMD=touch {marker}\n")
+    (project / ".aide" / "project.yaml").write_text(f"AIDE_TEST_CMD: touch {marker}\n")
     body = status_md(
         "create, analyze, implement",
         phase("Phase 1: RED", ["| a | ✅ | |"]) + acceptance(["| REQ-1: does the thing | ⬜ | |"]),

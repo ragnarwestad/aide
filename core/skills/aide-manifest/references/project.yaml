@@ -39,3 +39,6 @@ docs:
 # WRITTEN BY THE DASHBOARD, not by /aide-manifest. Leave a worktreeLinks
 # key exactly as found: never propose one, never remove one.
 worktreeLinks: node_modules
+# The project's test command — the only one a run reads. Set from the
+# dashboard's Settings; kept exactly as found, never proposed.
+AIDE_TEST_CMD: pnpm test -- --run

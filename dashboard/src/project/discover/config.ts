@@ -132,13 +132,16 @@ export function resolveInstallCmd(
   return resolveOverride(projectDir, "AIDE_INSTALL_CMD", (d) => d.installCmd);
 }
 
-/** This project's own test command: `.aide/config`'s `AIDE_TEST_CMD`
- *  and nothing else, as `aide-resolve-test-cmd` reads it. */
+/** This project's own test command: the manifest's `AIDE_TEST_CMD:` and
+ *  nothing else, as `aide-resolve-test-cmd` reads it. */
 export function resolveTestCmd(
   projectDir: string,
 ): { value: string | null; source: ConfigOverrideSource | null } {
-  const value = configValue(projectDir, "AIDE_TEST_CMD");
-  return { value, source: value ? ".aide/config" : null };
+  const manifestFile = join(projectDir, ".aide", "project.yaml");
+  if (!existsSync(manifestFile)) return { value: null, source: null };
+  const parsed = parseManifest(readFileSync(manifestFile, "utf-8"));
+  const value = parsed.ok ? (parsed.data.AIDE_TEST_CMD ?? "").trim() : "";
+  return value ? { value, source: "project.yaml" } : { value: null, source: null };
 }
 
 /** How this project is started for a look at one branch, and where that

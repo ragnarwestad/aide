@@ -92,6 +92,9 @@ First write `manifest · Step 4 of 5: Write and stamp — started`, and when thi
   time they pull, while this one carries on working — a manifest is
   committed, and this key is the one thing in it that a refresh has no
   way to derive back
+- **Leave an `AIDE_TEST_CMD:` key exactly as found — never propose one,
+  never remove one.** It is the project's test command, the only one a
+  run reads, set from the dashboard's Settings
 
 ### Step 5 of 5: Confirm
 

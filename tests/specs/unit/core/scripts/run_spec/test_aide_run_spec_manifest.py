@@ -28,6 +28,7 @@ MANIFEST = "name: proj\ninstallCmd: make it\n"
 def _project_with(workspace, row, excluded=True):
     """The main checkout in the state a row of the table names."""
     project = workspace["project"]
+    (project / ".aide" / "project.yaml").unlink()
     if row["sourceHasManifest"]:
         (project / ".aide" / "project.yaml").write_text(MANIFEST)
         if row["trackedInTree"]:

@@ -18,8 +18,8 @@ def _project_with_test_cmd(workspace, cmd):
     way a real project's does, so the command the runner resolves there
     is this one."""
     project = workspace["project"]
-    config = project / ".aide" / "config"
-    config.write_text(config.read_text().replace("AIDE_TEST_CMD=true", f"AIDE_TEST_CMD={cmd}"))
+    manifest = project / ".aide" / "project.yaml"
+    manifest.write_text(manifest.read_text().replace("AIDE_TEST_CMD: true", f"AIDE_TEST_CMD: {cmd}"))
 
 
 def _implementing_claude(fake_claude):

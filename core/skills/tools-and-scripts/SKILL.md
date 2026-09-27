@@ -45,7 +45,8 @@ Available skills:
 Run the project's own test/lint/build commands **automatically** without asking
 the user.
 
-**The test command is `.aide/config`'s `AIDE_TEST_CMD`, and nothing else.**
+**The test command is `AIDE_TEST_CMD` in `.aide/project.yaml`, and nothing
+else.** Committed with the project, so every checkout runs the same one.
 One command that runs the project's whole suite — a step, the landing and
 `/aide-implement` all run exactly it, through `aide-resolve-test-cmd
 --project-dir <path>`. It is never guessed: a project without the key has
@@ -82,13 +83,12 @@ in single-run mode, never watch mode (see the testing rules).
 Optional file in the project root: `.aide/config`, plain `KEY=value` lines
 with `#` comments. Recognized keys:
 
-| Key                   | Purpose                                                                                                                                       |
-|-----------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
-| `AIDE_TEST_CMD`       | The project's test command — the whole suite, run by a step, the landing and `/aide-implement`. Never read from anywhere else, never detected |
-| `AIDE_LINT_CMD`       | Overrides the detected lint command                                                                                                           |
-| `AIDE_BUILD_CMD`      | Overrides the detected build command                                                                                                          |
-| `AIDE_WORKTREE_LINKS` | LEGACY. Read only when `.aide/project.yaml` has no `worktreeLinks:` — see below                                                               |
-| `AIDE_INSTALL_CMD`    | What installing this project means on THIS machine — run by the dashboard after the project's own code is merged                              |
+| Key                   | Purpose                                                                                                          |
+|-----------------------|------------------------------------------------------------------------------------------------------------------|
+| `AIDE_LINT_CMD`       | Overrides the detected lint command                                                                              |
+| `AIDE_BUILD_CMD`      | Overrides the detected build command                                                                             |
+| `AIDE_WORKTREE_LINKS` | LEGACY. Read only when `.aide/project.yaml` has no `worktreeLinks:` — see below                                  |
+| `AIDE_INSTALL_CMD`    | What installing this project means on THIS machine — run by the dashboard after the project's own code is merged |
 
 The worktree links live in the project's **manifest**, not here:
 

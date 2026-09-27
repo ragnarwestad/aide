@@ -83,8 +83,9 @@ it said is not lost.
 
 ### Where a project's settings are kept
 
-A project's settings live in one of two files, and the page says which in a sentence above the table.
-Four states, in the page's own words:
+The specs path and the install command belong to the machine and are kept in its `.aide/config`, which is never
+committed. The rest live in one of two files, and the page says which in a sentence above the table.
+Four states:
 
 | The page says                                  | What it means                                                                        |
 |------------------------------------------------|--------------------------------------------------------------------------------------|
@@ -261,13 +262,13 @@ settings row owns, `specsRoot` and `worktreeLinks`, are left out here and carrie
 **The settings table**, with a sentence above it saying where this project's settings live: in the dashboard's own
 file, in the project's tracked manifest, in both — where the tracked manifest wins and the dashboard's copy is not
 used — or nowhere yet. The table has a row for each of the five settings a run reads — Specs path, Worktree links,
-Test command, Install command and Preview command — each marked configured or not set, plus a **Code landing** row,
+Test command, Install command and Preview command — each naming the file it came from, plus a **Code landing** row,
 which is not a config key. `AIDE_LINT_CMD` and `AIDE_BUILD_CMD` have no row: the runner never runs them, and the
 implement step's AI works them out from the project's own files unless `.aide/config` sets them. A row whose
 readiness check failed carries that check's sentence inline.
 
 The test command is the one worth knowing: a run and a landing test with a configured command only
-(`aide-resolve-test-cmd`), so an unset one reads "not set — no tests run when a spec lands", with the worked-out
+(`aide-resolve-test-cmd`), so an unset one reads "no tests run when a spec lands", with the worked-out
 command beside it as a suggestion.
 
 **Edit** (`?edit=1`) turns the same table into a form — there is only ever one table on the page, in either mode.
@@ -279,8 +280,9 @@ show the whole value; with the board's script on, Enter saves, and a value is al
 folded to a space. Save and Cancel both return to
 `/projects/<name>?tab=config`, and `/projects/<name>/settings` redirects there too.
 
-Where each value is written is not one rule but two. Specs path, Install command and Test command go to
-`.aide/config`, which is never committed. Worktree links, Preview command and Code landing go to the manifest — the project's
+A save writes each value back to the file its row names. A value in neither file goes to its own: Specs path
+and Install command to `.aide/config`, which is never committed; Worktree links, Preview command, Test command and
+Code landing to the manifest — the project's
 own `.aide/project.yaml` where it is tracked, else the dashboard's `settings.yaml`. Unchanged values are not
 rewritten.
 

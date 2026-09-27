@@ -212,7 +212,7 @@ tag is tested the ordinary way. `/aide-implement` writes a browser test
 for every tagged criterion.
 
 **Name the project's test command.** `aide-resolve-test-cmd --project-dir .`
-prints it (`.aide/config`'s `AIDE_TEST_CMD`, the tools-and-scripts skill,
+prints it (the manifest's `AIDE_TEST_CMD`, the tools-and-scripts skill,
 "Project commands"). Write it into the plan verbatim — never leave the
 `<project test command>` placeholder standing.
 

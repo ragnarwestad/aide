@@ -161,9 +161,10 @@ class TestWriterOutputAgreesWithProse:
             sp.run(["git", "-C", str(repo), "config", "user.name", "Test"], check=True)
             sp.run(["git", "-C", str(repo), "config", "user.email", "t@example.com"], check=True)
         (project / ".aide").mkdir()
-        (project / ".aide" / "config").write_text(f"AIDE_SPECS_PATH={specs}\nAIDE_TEST_CMD=true\n")
+        (project / ".aide" / "config").write_text(f"AIDE_SPECS_PATH={specs}\n")
+        (project / ".aide" / "project.yaml").write_text("AIDE_TEST_CMD: true\n")
         # -f: the user's global gitignore covers .aide/config.
-        sp.run(["git", "-C", str(project), "add", "-f", ".aide/config"], check=True)
+        sp.run(["git", "-C", str(project), "add", "-f", ".aide/config", ".aide/project.yaml"], check=True)
         sp.run(["git", "-C", str(project), "commit", "-qm", "init"], check=True)
 
         folder = "42-example"

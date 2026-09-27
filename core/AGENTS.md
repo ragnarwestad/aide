@@ -400,7 +400,7 @@ and do not run the full suite again for it.
 
 ### Unit tests
 
-Use the project's own test command: `AIDE_TEST_CMD` in `.aide/config`, and nothing else (see
+Use the project's own test command: `AIDE_TEST_CMD` in `.aide/project.yaml`, and nothing else (see
 "Project commands" in the tools-and-scripts rules). Without it the project has no test command —
 say so rather than guessing one. Always run it in single-run mode.
 

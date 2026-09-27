@@ -19,8 +19,8 @@ BRANCH = "aide/81-queue-and-runner"
 
 
 def _test_cmd(workspace, cmd):
-    config = workspace["project"] / ".aide" / "config"
-    config.write_text(config.read_text().replace("AIDE_TEST_CMD=true", f"AIDE_TEST_CMD={cmd}"))
+    manifest = workspace["project"] / ".aide" / "project.yaml"
+    manifest.write_text(manifest.read_text().replace("AIDE_TEST_CMD: true", f"AIDE_TEST_CMD: {cmd}"))
 
 
 def test_the_runners_own_test_run_stops_at_the_steps_time_limit(runner, workspace, fake_claude):

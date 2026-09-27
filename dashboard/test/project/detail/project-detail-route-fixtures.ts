@@ -18,7 +18,7 @@
 // hedged as a default rather than shown as a promise, and that a git
 // which cannot answer leaves a page behind rather than a stack trace.
 
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { GitRunner } from "../../../src/git/branch-status.ts";
@@ -46,6 +46,12 @@ export function projectsRoot(projects: Record<string, string | null>, files: str
     for (const f of files) writeFileSync(join(project, f), "");
   }
   return dir;
+}
+
+/** Give `name` under `root` the test command, in its manifest. */
+export function setTestCmd(root: string, name: string, cmd: string): void {
+  const file = join(root, name, ".aide", "project.yaml");
+  writeFileSync(file, `${readFileSync(file, "utf-8")}AIDE_TEST_CMD: ${cmd}\n`);
 }
 
 /** A queue config file this suite owns, holding `aide`'s scheduled jobs. */

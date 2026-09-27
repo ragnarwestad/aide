@@ -69,13 +69,12 @@ describe("every recognized key gets a row, in one order", () => {
 
 describe("configured, worked out, or not set", () => {
   test("a configured command wins over the lockfile beside it", () => {
-    const r = row(project("AIDE_TEST_CMD=make test\n", "pnpm-lock.yaml"), "AIDE_TEST_CMD");
+    const dir = project("", "pnpm-lock.yaml");
+    writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\nAIDE_TEST_CMD: make test\n");
+    const r = row(dir, "AIDE_TEST_CMD");
     expect(r.origin).toBe("configured");
     expect(r.value).toBe("make test");
-    // Spec 345: AIDE_TEST_CMD is now resolved through resolveTestCmd(),
-    // which names which file answered, exactly as the Worktree links
-    // row already does.
-    expect(r.source).toBe(".aide/config");
+    expect(r.source).toBe("project.yaml");
   });
 
   test("an unconfigured command is worked out from the lockfile, and says which", () => {

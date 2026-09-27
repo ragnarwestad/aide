@@ -33,8 +33,8 @@ the work so far committed. The landing is described in full in [landing.md](land
 
 ## Which tests run
 
-Aide runs one command, the same in implement and in the landing: `AIDE_TEST_CMD` in the project's `.aide/config`,
-set from the project's Settings. Nothing else is read and nothing is guessed. It runs the project's whole suite
+Aide runs one command, the same in implement and in the landing: `AIDE_TEST_CMD` in the project's
+`.aide/project.yaml`, set from the project's Settings. Nothing else is read and nothing is guessed. It runs the project's whole suite
 whatever the change touched; aide's own runs pytest, `make test` and the browser tests (`make test-e2e`).
 
 A project without `AIDE_TEST_CMD` has nothing to run, and passes. Its page says there is no test command.

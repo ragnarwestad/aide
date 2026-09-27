@@ -31,13 +31,15 @@ describe("where the settings are kept", () => {
   test("the page names settings.yaml when the dashboard keeps them (AC-6)", () => {
     const html = page("dashboard");
     expect(html).toContain('data-settings-home="dashboard"');
-    expect(html).toContain("kept in the dashboard");
+    expect(html).toContain("the rest in the dashboard");
     expect(html).toContain("settings.yaml");
+    expect(html).toContain(".aide/config");
   });
 
   test("the page names the project's own manifest when it is tracked (AC-6)", () => {
     const html = page("project");
-    expect(html).toContain("kept in the project's own");
+    expect(html).toContain("the rest in the project's own <code>.aide/project.yaml</code>");
+    expect(html).toContain("Specs path and Install command are kept in this machine's <code>.aide/config</code>");
     expect(html).not.toContain("settings.yaml");
   });
 
