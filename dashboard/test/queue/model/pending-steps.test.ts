@@ -14,7 +14,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { QueueStore, type QueueDefaults } from "../../../src/queue/queue.ts";
-import { queueHarness } from "../../helpers/queue-server.ts";
+import { queueHarness, IMPLEMENTED } from "../../helpers/queue-server.ts";
 
 const DEFAULTS: QueueDefaults = {
   timeoutSec: { default: 1200 },
@@ -159,7 +159,7 @@ describe("what records a phase choice, and what must not (spec 439)", () => {
 // here through a real server the way `row-phase-run.test.ts` already
 // does for the rest of that route's behaviour.
 describe("POST /api/queue records the row's own choice (spec 439)", () => {
-  const harness = queueHarness("aide-pending-steps-route-");
+  const harness = queueHarness("aide-pending-steps-route-", IMPLEMENTED);
   afterEach(() => harness.cleanup());
 
   const openQuery = "open=" + encodeURIComponent("aide/81-queue-and-runner");

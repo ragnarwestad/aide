@@ -1,5 +1,6 @@
 // Split out of runner-invocation.test.ts by theme.
 
+import { IMPLEMENTED } from "../../helpers/queue-server.ts";
 import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -7,7 +8,7 @@ import { join } from "node:path";
 import { parseQueueConcurrency } from "../../../src/serve/serve.ts";
 import { JOB, specHead, setupQueueRoutesHarness } from "../fixtures.ts";
 
-const { harness, start } = setupQueueRoutesHarness();
+const { harness, start } = setupQueueRoutesHarness(undefined, IMPLEMENTED);
 
 /** Temp directories this suite makes for itself, outside the harness. */
 const ownDirs: string[] = [];

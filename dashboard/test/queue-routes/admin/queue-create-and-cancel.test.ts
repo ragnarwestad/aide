@@ -1,10 +1,11 @@
 import { afterEach, expect, test } from "bun:test";
+import { IMPLEMENTED } from "../../helpers/queue-server.ts";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { JOB, setupQueueRoutesHarness } from "../fixtures.ts";
 
-const { harness, start } = setupQueueRoutesHarness();
+const { harness, start } = setupQueueRoutesHarness(undefined, IMPLEMENTED);
 
 /** Temp directories this suite makes for itself, outside the harness. */
 const ownDirs: string[] = [];

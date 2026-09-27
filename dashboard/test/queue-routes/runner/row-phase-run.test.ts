@@ -3,10 +3,10 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { ran, statusSaying } from "../../helpers/queue-server.ts";
+import { ran, statusSaying, IMPLEMENTED } from "../../helpers/queue-server.ts";
 import { specControls, OPEN_81, listUntil, rowSaysDone, setupQueueRoutesHarness } from "../fixtures.ts";
 
-const { harness, start } = setupQueueRoutesHarness();
+const { harness, start } = setupQueueRoutesHarness(undefined, IMPLEMENTED);
 
 afterEach(() => harness.cleanup());
 

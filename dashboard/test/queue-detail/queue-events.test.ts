@@ -11,12 +11,12 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { queueHarness, statusSaying } from "../helpers/queue-server.ts";
+import { queueHarness, statusSaying, IMPLEMENTED } from "../helpers/queue-server.ts";
 import { connect as connectStream, type Stream } from "../helpers/sse.ts";
 import { flippingGit } from "../helpers/fake-git.ts";
 
 
-const harness = queueHarness("aide-queue-events-");
+const harness = queueHarness("aide-queue-events-", IMPLEMENTED);
 
 /** Every stream this suite opened, closed before the servers are, so a
  *  reader is never left holding a socket into the next file. */

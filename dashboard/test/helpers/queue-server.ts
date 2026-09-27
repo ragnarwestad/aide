@@ -59,7 +59,10 @@ export interface QueueHarness {
   cleanup(): void;
 }
 
-export function queueHarness(prefix: string): QueueHarness {
+/** `defaultStatus` is the spec's 4-status.md when a start names none. A
+ *  suite that queues implement or archive through the run route starts
+ *  from `IMPLEMENTED`: the route refuses a start out of order. */
+export function queueHarness(prefix: string, defaultStatus?: string): QueueHarness {
   const servers: { stop: () => void }[] = [];
   const dirs: string[] = [];
 
@@ -70,10 +73,7 @@ export function queueHarness(prefix: string): QueueHarness {
       alsoSpecs = [],
       archivedSpecs = {},
       description = "# Queue - Description\n",
-      // Implemented: every step may be queued from here, since the run
-      // route refuses a start out of order. A test about an earlier phase
-      // says so with its own `status`.
-      status = statusSaying(["create", "analyze", "implement"]),
+      status = defaultStatus ?? statusSaying(["create"]),
       liveState,
       queueMirror,
     } = {}) {
@@ -204,6 +204,9 @@ function git(cwd: string, ...args: string[]): void {
  *  spell it differently. */
 export const statusSaying = (steps: string[], rest = ""): string =>
   `# Queue - Status\n\n## Tracking info\n\n- **Workflow steps completed:** ${steps.join(", ")}\n${rest}`;
+
+/** A spec implement has run on: any step may be queued for it. */
+export const IMPLEMENTED = statusSaying(["create", "analyze", "implement"]);
 
 // One manifest and one spec: the least a project needs to be discovered.
 function project(root: string, name: string, specFolder: string, description: string, status: string): void {

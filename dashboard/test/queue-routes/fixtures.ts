@@ -9,8 +9,8 @@ import { queueHarness } from "../helpers/queue-server.ts";
 
 export const JOB = { project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] };
 
-export function setupQueueRoutesHarness(prefix = "aide-queue-routes-") {
-  const harness = queueHarness(prefix);
+export function setupQueueRoutesHarness(prefix = "aide-queue-routes-", defaultStatus?: string) {
+  const harness = queueHarness(prefix, defaultStatus);
   const start = (
     extra: Partial<ServerOptions> = {},
     alsoProjects: string[] = [],

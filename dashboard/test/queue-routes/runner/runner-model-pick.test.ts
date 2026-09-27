@@ -1,10 +1,11 @@
 // Split out of runner-invocation.test.ts by theme.
 
+import { IMPLEMENTED } from "../../helpers/queue-server.ts";
 import { afterEach, describe, expect, test } from "bun:test";
 import { renderSpecsPage } from "../../../src/render";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 
-const { harness, start } = setupQueueRoutesHarness();
+const { harness, start } = setupQueueRoutesHarness(undefined, IMPLEMENTED);
 
 afterEach(() => harness.cleanup());
 

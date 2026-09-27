@@ -4,7 +4,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ServerOptions } from "../../src/serve/serve.ts";
-import { queueHarness } from "../helpers/queue-server.ts";
+import { queueHarness, IMPLEMENTED } from "../helpers/queue-server.ts";
 
 const DESCRIPTION =
   "# A running job is a black box - Description\n\n" +
@@ -13,7 +13,7 @@ const DESCRIPTION =
   "what the job IS, and nothing about what it is doing.\n\n---\n\n" +
   "## Related documents\n\n- [2-analysis.md](./2-analysis.md)\n";
 
-const harness = queueHarness("aide-queue-detail-");
+const harness = queueHarness("aide-queue-detail-", IMPLEMENTED);
 
 const start = (extra: Partial<ServerOptions> = {}) =>
   harness.start({ description: DESCRIPTION, extra: { ...extra } });

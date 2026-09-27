@@ -1,12 +1,13 @@
 // Split out of step-and-dependency-routes.test.ts by theme.
 
+import { IMPLEMENTED } from "../../helpers/queue-server.ts";
 import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { JOB, specControls, OPEN_81, setupQueueRoutesHarness } from "../fixtures.ts";
 
-const { harness, start } = setupQueueRoutesHarness();
+const { harness, start } = setupQueueRoutesHarness(undefined, IMPLEMENTED);
 
 afterEach(() => harness.cleanup());
 

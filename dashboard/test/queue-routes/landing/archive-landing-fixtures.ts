@@ -4,6 +4,7 @@
 //
 // Split out of archive-landing.test.ts 2026-09-04 (777 lines).
 
+import { IMPLEMENTED } from "../../helpers/queue-server.ts";
 import { repoOf } from "./every-step-lands-fixtures.ts";
 import { afterEach } from "bun:test";
 import { rmSync, mkdtempSync } from "node:fs";
@@ -23,7 +24,7 @@ export function sentence(s: unknown): string {
 
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 
-export const { harness, start } = setupQueueRoutesHarness();
+export const { harness, start } = setupQueueRoutesHarness(undefined, IMPLEMENTED);
 
 /** Temp directories this suite makes for itself, outside the harness. */
 export const ownDirs: string[] = [];
