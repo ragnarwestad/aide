@@ -23,8 +23,8 @@ project's living documentation.
 
 The steps below are this skill's own, inside the queue's `archive` step.
 Mark each one in the log, so a reader can follow the run: when it
-starts, write one line `archive · Step N of X: <title> — started`, and when
-it ends, one line `archive · Step N of X: <title> — done`. A step that ends
+starts, write one line `--- Step N of X: <title> — started`, and when
+it ends, one line `--- Step N of X: <title> — done`. A step that ends
 the run early says `— stopped: <why>` in place of `— done`, and one that does not apply to this run `— skipped: <why>`.
 
 Step 6, the merge into the default branch, is Aide's, after this
@@ -33,7 +33,7 @@ it is done.
 
 ### Step 1 of 6: Run the mechanical script
 
-First write `archive · Step 1 of 6: Run the mechanical script — started`, and when this step ends, `archive · Step 1 of 6: Run the mechanical script — done`.
+First write `--- Step 1 of 6: Run the mechanical script — started`, and when this step ends, `--- Step 1 of 6: Run the mechanical script — done`.
 
 
 Everything mechanical — resolving the argument to a folder, checking
@@ -112,7 +112,7 @@ The folder keeps its `NN-slug` name once moved — the date lives in
 
 ### Step 2 of 6: Rewrite the wiki pages the spec touched
 
-First write `archive · Step 2 of 6: Rewrite the wiki pages the spec touched — started`, and when this step ends, `archive · Step 2 of 6: Rewrite the wiki pages the spec touched — done`.
+First write `--- Step 2 of 6: Rewrite the wiki pages the spec touched — started`, and when this step ends, `--- Step 2 of 6: Rewrite the wiki pages the spec touched — done`.
 
 ```bash
 aide-wiki status --specs-root <specs root> --project-dir <project root>
@@ -158,7 +158,7 @@ which pages were rewritten, or that none were.
 
 ### Step 3 of 6: Close the loop
 
-First write `archive · Step 3 of 6: Close the loop — started`, and when this step ends, `archive · Step 3 of 6: Close the loop — done`.
+First write `--- Step 3 of 6: Close the loop — started`, and when this step ends, `--- Step 3 of 6: Close the loop — done`.
 
 
 First, what should NOT outlive it. **If this spec replaced behaviour, the
@@ -204,7 +204,7 @@ whole spec unmoved.
 
 ### Step 4 of 6: Commit
 
-First write `archive · Step 4 of 6: Commit — started`, and when this step ends, `archive · Step 4 of 6: Commit — done`.
+First write `--- Step 4 of 6: Commit — started`, and when this step ends, `--- Step 4 of 6: Commit — done`.
 
 
 The move and this step's own write both already happened, in the
@@ -246,7 +246,7 @@ own decline, which the ordinary git-add workflow already covers.
 
 ### Step 5 of 6: Confirm
 
-First write `archive · Step 5 of 6: Confirm — started`, and when this step ends, `archive · Step 5 of 6: Confirm — done`.
+First write `--- Step 5 of 6: Confirm — started`, and when this step ends, `--- Step 5 of 6: Confirm — done`.
 
 
 The archive is not finished until the code and the spec are merged into
@@ -286,7 +286,7 @@ merge is still to come.
 
 ### Step 6 of 6: Merge into main
 
-Aide writes `archive · Step 6 of 6: Merge into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
+Aide writes `--- Step 6 of 6: Merge into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
 
 Not this session's step, and it writes no mark for it. In a headless
 run Aide merges the spec's branches into the default branch once this

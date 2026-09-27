@@ -43,8 +43,8 @@ Examples:
 
 The steps below are this skill's own, inside the queue's `analyze` step.
 Mark each one in the log, so a reader can follow the run: when it
-starts, write one line `analyze · Step N of X: <title> — started`, and when
-it ends, one line `analyze · Step N of X: <title> — done`. A step that ends
+starts, write one line `--- Step N of X: <title> — started`, and when
+it ends, one line `--- Step N of X: <title> — done`. A step that ends
 the run early says `— stopped: <why>` in place of `— done`, and one that does not apply to this run `— skipped: <why>`.
 
 Step 10, the merge into the default branch, is Aide's, after this
@@ -53,7 +53,7 @@ done.
 
 ### Step 1 of 10: Read the description
 
-First write `analyze · Step 1 of 10: Read the description — started`, and when this step ends, `analyze · Step 1 of 10: Read the description — done`.
+First write `--- Step 1 of 10: Read the description — started`, and when this step ends, `--- Step 1 of 10: Read the description — done`.
 
 
 - Read `specs/XX-slug/1-description.md`
@@ -87,7 +87,7 @@ possible in the same session.
 
 ### Step 2 of 10: Detect complexity
 
-First write `analyze · Step 2 of 10: Detect complexity — started`, and when this step ends, `analyze · Step 2 of 10: Detect complexity — done`.
+First write `--- Step 2 of 10: Detect complexity — started`, and when this step ends, `--- Step 2 of 10: Detect complexity — done`.
 
 
 Classify as LOW/MEDIUM/HIGH: Operation, Keywords and API impact decide the
@@ -97,7 +97,7 @@ as LOW. See `references/complexity-and-analysis.md` for the criteria.
 
 ### Step 3 of 10: Analyze the codebase
 
-First write `analyze · Step 3 of 10: Analyze the codebase — started`, and when this step ends, `analyze · Step 3 of 10: Analyze the codebase — done`.
+First write `--- Step 3 of 10: Analyze the codebase — started`, and when this step ends, `--- Step 3 of 10: Analyze the codebase — done`.
 
 
 Search the code from where the wiki pages read in Step 1 point.
@@ -121,7 +121,7 @@ symbol — a message, a config key, a CSS class.
 
 ### Step 4 of 10: Check for work already begun
 
-First write `analyze · Step 4 of 10: Check for work already begun — started`, and when this step ends, `analyze · Step 4 of 10: Check for work already begun — done`.
+First write `--- Step 4 of 10: Check for work already begun — started`, and when this step ends, `--- Step 4 of 10: Check for work already begun — done`.
 
 
 A step stopped by its own time limit still commits what it wrote, and
@@ -152,7 +152,7 @@ them untouched — see `references/requirements-tracing.md`.
 
 ### Step 5 of 10: Update 2-analysis.md
 
-First write `analyze · Step 5 of 10: Update 2-analysis.md — started`, and when this step ends, `analyze · Step 5 of 10: Update 2-analysis.md — done`.
+First write `--- Step 5 of 10: Update 2-analysis.md — started`, and when this step ends, `--- Step 5 of 10: Update 2-analysis.md — done`.
 
 
 Assemble the complete new text of `2-analysis.md` (sections already
@@ -184,7 +184,7 @@ findings are prefixed with the AC-id(s) they support.
 
 ### Step 6 of 10: Create the implementation plan (3-solution.md)
 
-First write `analyze · Step 6 of 10: Create the implementation plan (3-solution.md) — started`, and when this step ends, `analyze · Step 6 of 10: Create the implementation plan (3-solution.md) — done`.
+First write `--- Step 6 of 10: Create the implementation plan (3-solution.md) — started`, and when this step ends, `--- Step 6 of 10: Create the implementation plan (3-solution.md) — done`.
 
 
 Assemble the complete new text of `3-solution.md` the same way as Step 5,
@@ -231,7 +231,7 @@ a numbered section of a skill such as this one, and a log that says
 
 ### Step 7 of 10: Review the plan
 
-First write `analyze · Step 7 of 10: Review the plan — started`, and when this step ends, `analyze · Step 7 of 10: Review the plan — done`.
+First write `--- Step 7 of 10: Review the plan — started`, and when this step ends, `--- Step 7 of 10: Review the plan — done`.
 
 
 Attack the plan while the mistake is still cheap, before any test is
@@ -249,7 +249,7 @@ must-fix check on missing coverage.
 
 ### Step 8 of 10: Update 4-status.md
 
-First write `analyze · Step 8 of 10: Update 4-status.md — started`, and when this step ends, `analyze · Step 8 of 10: Update 4-status.md — done`.
+First write `--- Step 8 of 10: Update 4-status.md — started`, and when this step ends, `--- Step 8 of 10: Update 4-status.md — done`.
 
 
 Assemble the complete new text of `4-status.md` the same way as Step 5,
@@ -290,7 +290,7 @@ that you stopped part-way, has nothing to record.
 
 ### Step 9 of 10: Confirm
 
-First write `analyze · Step 9 of 10: Confirm — started`, and when this step ends, `analyze · Step 9 of 10: Confirm — done`.
+First write `--- Step 9 of 10: Confirm — started`, and when this step ends, `--- Step 9 of 10: Confirm — done`.
 
 In a headless run nothing of this is on the default branch yet: the
 analyze is finished only once Step 10, the merge into main, is done. So the
@@ -304,7 +304,7 @@ the next step.
 
 ### Step 10 of 10: Merge into main
 
-Aide writes `analyze · Step 10 of 10: Merge into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
+Aide writes `--- Step 10 of 10: Merge into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
 
 Not this session's step, and it writes no mark for it. In a headless
 run Aide merges what this session committed on the spec's branch into

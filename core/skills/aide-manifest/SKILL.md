@@ -23,13 +23,13 @@ in the project root. It is TEAM knowledge and belongs in git — unlike
 
 The steps below are this skill's own, inside the queue's `manifest` step.
 Mark each one in the log, so a reader can follow the run: when it
-starts, write one line `manifest · Step N of X: <title> — started`, and when
-it ends, one line `manifest · Step N of X: <title> — done`. A step that ends
+starts, write one line `--- Step N of X: <title> — started`, and when
+it ends, one line `--- Step N of X: <title> — done`. A step that ends
 the run early says `— stopped: <why>` in place of `— done`, and one that does not apply to this run `— skipped: <why>`.
 
 ### Step 1 of 5: Establish the state
 
-First write `manifest · Step 1 of 5: Establish the state — started`, and when this step ends, `manifest · Step 1 of 5: Establish the state — done`.
+First write `--- Step 1 of 5: Establish the state — started`, and when this step ends, `--- Step 1 of 5: Establish the state — done`.
 
 
 - Project root: the git toplevel of the argument or of the current
@@ -41,7 +41,7 @@ First write `manifest · Step 1 of 5: Establish the state — started`, and when
 
 ### Step 2 of 5: Derive what the codebase can tell
 
-First write `manifest · Step 2 of 5: Derive what the codebase can tell — started`, and when this step ends, `manifest · Step 2 of 5: Derive what the codebase can tell — done`.
+First write `--- Step 2 of 5: Derive what the codebase can tell — started`, and when this step ends, `--- Step 2 of 5: Derive what the codebase can tell — done`.
 
 
 Read the project and fill in what is derivable:
@@ -58,7 +58,7 @@ Read the project and fill in what is derivable:
 
 ### Step 3 of 5: Ask about what it cannot
 
-First write `manifest · Step 3 of 5: Ask about what it cannot — started`, and when this step ends, `manifest · Step 3 of 5: Ask about what it cannot — done`.
+First write `--- Step 3 of 5: Ask about what it cannot — started`, and when this step ends, `--- Step 3 of 5: Ask about what it cannot — done`.
 
 
 Log locations, statistics dashboards, report links (e.g. a Claude
@@ -75,7 +75,7 @@ inventing values.
 
 ### Step 4 of 5: Write and stamp
 
-First write `manifest · Step 4 of 5: Write and stamp — started`, and when this step ends, `manifest · Step 4 of 5: Write and stamp — done`.
+First write `--- Step 4 of 5: Write and stamp — started`, and when this step ends, `--- Step 4 of 5: Write and stamp — done`.
 
 
 - Write `.aide/project.yaml` with `generated: <today>` (the staleness
@@ -98,7 +98,7 @@ First write `manifest · Step 4 of 5: Write and stamp — started`, and when thi
 
 ### Step 5 of 5: Confirm
 
-First write `manifest · Step 5 of 5: Confirm — started`, and when this step ends, `manifest · Step 5 of 5: Confirm — done`.
+First write `--- Step 5 of 5: Confirm — started`, and when this step ends, `--- Step 5 of 5: Confirm — done`.
 
 
 ```text

@@ -108,9 +108,9 @@ describe("stepLog: the final message", () => {
   });
 
   test("a message over several paragraphs keeps its line breaks, and a step mark in it stays a line of its own", () => {
-    const message = "First paragraph.\n\nSecond paragraph.\nanalyze · Step 2 of 10: Detect complexity — started";
+    const message = "First paragraph.\n\nSecond paragraph.\n--- Step 2 of 10: Detect complexity — started";
     const { logs } = read([say(message), bash("a", "x")].join("\n") + "\n", undefined, { final: false });
-    expect(logs[0]!.lines).toEqual(["First paragraph.\n\nSecond paragraph.", "analyze · Step 2 of 10: Detect complexity — started", "Bash x"]);
+    expect(logs[0]!.lines).toEqual(["First paragraph.\n\nSecond paragraph.", "--- Step 2 of 10: Detect complexity — started", "Bash x"]);
   });
 });
 

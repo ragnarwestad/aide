@@ -172,9 +172,11 @@ export function bounded(out: StreamEntry[], max: number): StreamEntry[] {
 
 /** A skill-step mark, as `step_log_note` in
  *  core/scripts/lib/run-spec-invocation.sh asks the model to write it:
- *  `<command> · Step N of X: <title> — started|done|skipped: …|stopped: …`.
+ *  `--- Step N of X: <title> — started|done|skipped: …|stopped: …`.
  *  The ending is read loosely — "done (nothing to keep)" is still a mark. */
-const STEP_MARK = /^[a-z][\w-]* · Step \d+ of \d+: .+ — (?:started|done|skipped|stopped)\b/;
+// A log written before the `--- Step` prefix read `analyze · Step 3 of 10: …`,
+// and is still read as a mark.
+const STEP_MARK = /^(?:--- |[a-z][\w-]* · )Step \d+ of \d+: .+ — (?:started|done|skipped|stopped)\b/;
 
 /** A block of model text as the pieces a reader sees: each step mark on
  *  its own, the prose between marks kept together. Unescaped and

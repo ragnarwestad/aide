@@ -190,17 +190,17 @@ stage_line() {
 }
 # The parts of a step Aide runs itself — preparing before the AI's first
 # turn, tests and commit after it — marked in the log the way a skill's
-# own steps are: `<step> · Aide: <part> — started`, then `— done` or
+# own steps are: `--- Step Aide: <part> — started`, then `— done` or
 # `— stopped: <why>`. A model turn closes the part it interrupts
 # (run_model_turn), so the log reads as one sequence of marked parts.
 aide_part=""; aide_part_seen=""
 aide_part_open() {   # <part>
   aide_part="$1"
-  stage_line "${command_name:-step} · Aide: $1 — started"
+  stage_line "--- Step Aide: $1 — started"
 }
 aide_part_close() {  # [<ending>, default done]
   [ -n "$aide_part" ] || return 0
-  stage_line "${command_name:-step} · Aide: $aide_part — ${1:-done}"
+  stage_line "--- Step Aide: $aide_part — ${1:-done}"
   aide_part=""
 }
 # A failure: the same line, its text starting `error: `. The dashboard's Errors

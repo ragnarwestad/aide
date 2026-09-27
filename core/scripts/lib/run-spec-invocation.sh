@@ -156,7 +156,7 @@ test suite in the foreground and finish the step in this same turn.)"
 step_log_note="Mark every one of the skill's numbered steps in your output, in order and none left out, so whoever
 reads the log can see how far the run has come. Each mark is a line of its own — a line break before it and after
 it, never joined to other text — as plain text with no backticks or other formatting. Before a step's first action:
-$command_name · Step N of X: <title> — started
+--- Step N of X: <title> — started
 When the step ends, the same line ending in one of these:
 — done
 — skipped: <why> (the step does not apply to this run)

@@ -267,8 +267,8 @@ aide-run-spec: <text>                                                  an older,
 <anything else>                                                        another script's line on stderr
 ```
 
-The script marks the parts it runs itself the way a skill's steps are marked: `<step> · Aide: preparing — started` on
-its first line, `— done` just before the AI's first turn; `<step> · Aide: tests and commit — started` after the AI,
+The script marks the parts it runs itself the way a skill's steps are marked: `--- Step Aide: preparing — started` on
+its first line, `— done` just before the AI's first turn; `--- Step Aide: tests and commit — started` after the AI,
 ending `— done`, or `— stopped: <why>` for a step that failed. A model turn closes the part it interrupts and a fix
 turn opens it again after itself, so the log reads as one sequence of marked parts (`aide_part_open`,
 `aide_part_close`).

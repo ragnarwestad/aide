@@ -110,7 +110,7 @@ describe("jobDetailView's per-step fields", () => {
   // The Logs page is the complete step: a mark written at the start of a
   // 1 MB transcript, with hundreds of lines after it, is on it.
   test("a finished step's Log holds every line, from the first byte of its transcript", async () => {
-    const mark = "analyze · Step 1 of 9: Read the description — started";
+    const mark = "--- Step 1 of 9: Read the description — started";
     const filler = "x".repeat(1000);
     const later = Array.from({ length: 400 }, (_, i) => ({ type: "assistant", message: { content: [{ type: "text", text: `${i} ${filler}` }] } }));
     const streamFile = tempStreamFile([{ type: "assistant", message: { content: [{ type: "text", text: mark }] } }, ...later]);

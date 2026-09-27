@@ -218,12 +218,12 @@ export async function landClosedSpec(ctx: LandContext, job: Job, outcome: Partia
  *  the step's Log marks it in the skill's own words, the heading of that
  *  skill's last step in `core/skills/aide-<step>/SKILL.md`. */
 export const MERGE_STEP: Partial<Record<WorkflowStep, string>> = {
-  create: "create · Step 7 of 7: Merge into main",
-  analyze: "analyze · Step 10 of 10: Merge into main",
-  reopen: "reopen · Step 8 of 8: Merge into main",
-  wiki: "wiki · Step 5 of 5: Merge into main",
-  archive: "archive · Step 6 of 6: Merge into main",
-  close: "close · Step 4 of 4: Merge into main",
+  create: "--- Step 7 of 7: Merge into main",
+  analyze: "--- Step 10 of 10: Merge into main",
+  reopen: "--- Step 8 of 8: Merge into main",
+  wiki: "--- Step 5 of 5: Merge into main",
+  archive: "--- Step 6 of 6: Merge into main",
+  close: "--- Step 4 of 4: Merge into main",
 };
 
 /** Runs a landing as that merge step: started, then done when it merged

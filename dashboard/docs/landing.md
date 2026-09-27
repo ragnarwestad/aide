@@ -50,7 +50,7 @@ point.
 The landing is the last step of the step's own skill, and the step is not finished until it is. The step's Log marks
 it the way the AI marks the skill's other steps, in the words of that skill's last heading:
 
-- `archive · Step 6 of 6: Merge into main — started` when the landing begins
+- `--- Step 6 of 6: Merge into main — started` when the landing begins
 - `— done` when every repo merged
 - `— stopped: <why> — the archive is not finished`, an error line, when it did not
 

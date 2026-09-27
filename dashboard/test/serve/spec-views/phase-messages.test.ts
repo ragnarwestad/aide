@@ -108,10 +108,10 @@ describe("phaseMessagesFor", () => {
     writeFileSync(
       streamFile.replace(/\.stream\.jsonl$/, ".run.log"),
       [
-        "aide-run-spec 10:00:00 +0s archive · Aide: preparing — started",
-        "aide-run-spec 10:00:02 +2s archive · Aide: preparing — done",
+        "aide-run-spec 10:00:00 +0s --- Step Aide: preparing — started",
+        "aide-run-spec 10:00:02 +2s --- Step Aide: preparing — done",
         "aide-run-spec 10:00:02 +2s model turn started (transcript at byte 0)",
-        "aide-run-spec 10:01:00 +60s archive · Step 5 of 5: Merge into main — started",
+        "aide-run-spec 10:01:00 +60s --- Step 5 of 5: Merge into main — started",
         "aide-run-spec 10:02:00 +120s tests: pytest 50%",
       ].join("\n") + "\n",
     );
@@ -119,10 +119,10 @@ describe("phaseMessagesFor", () => {
     const got = phaseMessagesFor(queueOf([j]), ["a"], "archive");
     expect(got?.logs.map((part) => part.by)).toEqual(["aide-before", "ai", "aide-after"]);
     expect(lines(got)).toEqual([
-      "10:00:00 +0s archive · Aide: preparing — started",
-      "10:00:02 +2s archive · Aide: preparing — done",
+      "10:00:00 +0s --- Step Aide: preparing — started",
+      "10:00:02 +2s --- Step Aide: preparing — done",
       "archiving",
-      "10:01:00 +60s archive · Step 5 of 5: Merge into main — started",
+      "10:01:00 +60s --- Step 5 of 5: Merge into main — started",
       "10:02:00 +120s tests: pytest 50%",
     ]);
   });

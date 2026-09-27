@@ -38,8 +38,8 @@ the project directory; pass them to every call as `--specs-root` and
 
 The steps below are this skill's own, inside the queue's `wiki` step.
 Mark each one in the log, so a reader can follow the run: when it
-starts, write one line `wiki · Step N of X: <title> — started`, and when
-it ends, one line `wiki · Step N of X: <title> — done`. A step that ends
+starts, write one line `--- Step N of X: <title> — started`, and when
+it ends, one line `--- Step N of X: <title> — done`. A step that ends
 the run early says `— stopped: <why>` in place of `— done`, and one that does not apply to this run `— skipped: <why>`.
 
 Step 5, the merge into the default branch, is Aide's, after this
@@ -48,7 +48,7 @@ done.
 
 ### Step 1 of 5: See what exists
 
-First write `wiki · Step 1 of 5: See what exists — started`, and when this step ends, `wiki · Step 1 of 5: See what exists — done`.
+First write `--- Step 1 of 5: See what exists — started`, and when this step ends, `--- Step 1 of 5: See what exists — done`.
 
 
 Run `aide-wiki status --specs-root <root> --project-dir .`. A page whose
@@ -59,7 +59,7 @@ are, and Step 2 is only about whether a new part needs a page of its own.
 
 ### Step 2 of 5: Decide the parts
 
-First write `wiki · Step 2 of 5: Decide the parts — started`, and when this step ends, `wiki · Step 2 of 5: Decide the parts — done`.
+First write `--- Step 2 of 5: Decide the parts — started`, and when this step ends, `--- Step 2 of 5: Decide the parts — done`.
 
 
 Read the project: its README, its layout, its own docs and its entry
@@ -76,7 +76,7 @@ page, and that page names the files the change will touch.
 
 ### Step 3 of 5: Write a page for each part
 
-First write `wiki · Step 3 of 5: Write a page for each part — started`, and when this step ends, `wiki · Step 3 of 5: Write a page for each part — done`.
+First write `--- Step 3 of 5: Write a page for each part — started`, and when this step ends, `--- Step 3 of 5: Write a page for each part — done`.
 
 
 For each part not covered by a hand-written page, pipe the page's body to
@@ -113,7 +113,7 @@ A page holds no line numbers and no code. It is a map: the code decides.
 
 ### Step 4 of 5: Finish
 
-First write `wiki · Step 4 of 5: Finish — started`, and when this step ends, `wiki · Step 4 of 5: Finish — done`.
+First write `--- Step 4 of 5: Finish — started`, and when this step ends, `--- Step 4 of 5: Finish — done`.
 
 In a headless run nothing of this is on the default branch yet: the
 wiki is finished only once Step 5, the merge into main, is done. So the
@@ -132,7 +132,7 @@ Then report the pages written in one line each.
 
 ### Step 5 of 5: Merge into main
 
-Aide writes `wiki · Step 5 of 5: Merge into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
+Aide writes `--- Step 5 of 5: Merge into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
 
 Not this session's step, and it writes no mark for it. In a headless
 run Aide merges what this session committed on the spec's branch into

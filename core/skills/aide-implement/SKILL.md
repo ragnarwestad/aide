@@ -39,16 +39,16 @@ Usage:
 
 The steps below are this skill's own, inside the queue's `implement`
 step. Mark each one in the log, so a reader can follow the run: when it
-starts, write one line `implement · Step N of 4: <title> — started`, and
-when it ends, one line `implement · Step N of 4: <title> — done`. A step
+starts, write one line `--- Step N of 4: <title> — started`, and
+when it ends, one line `--- Step N of 4: <title> — done`. A step
 that ends the run early says `— stopped: <why>` in place of `— done`, and one that does not apply to this run `— skipped: <why>`.
 Step 3 also marks each task it takes from the plan, as it finishes it:
-`implement · Step 3 of 4, task K of M: <task> — done`, where M counts the
+`--- Step 3 of 4, task K of M: <task> — done`, where M counts the
 task rows of `4-status.md`'s GREEN tables.
 
 ### Step 1 of 4: Preparation
 
-First write `implement · Step 1 of 4: Preparation — started`, and when this step ends, `implement · Step 1 of 4: Preparation — done`.
+First write `--- Step 1 of 4: Preparation — started`, and when this step ends, `--- Step 1 of 4: Preparation — done`.
 
 
 1. Read `specs/XX-slug/2-analysis.md` (affected files)
@@ -77,7 +77,7 @@ symbol — a message, a config key, a CSS class.
 
 ### Step 2 of 4: RED — Write failing tests
 
-First write `implement · Step 2 of 4: RED — Write failing tests — started`, and when this step ends, `implement · Step 2 of 4: RED — Write failing tests — done`.
+First write `--- Step 2 of 4: RED — Write failing tests — started`, and when this step ends, `--- Step 2 of 4: RED — Write failing tests — done`.
 
 
 Skip this step entirely if item 5 of Step 1 found it already done;
@@ -110,7 +110,7 @@ resume it at the first unticked task if it found it in progress.
 
 ### Step 3 of 4: GREEN — Implement until tests pass
 
-First write `implement · Step 3 of 4: GREEN — Implement until tests pass — started`, and when this step ends, `implement · Step 3 of 4: GREEN — Implement until tests pass — done`.
+First write `--- Step 3 of 4: GREEN — Implement until tests pass — started`, and when this step ends, `--- Step 3 of 4: GREEN — Implement until tests pass — done`.
 
 
 1. Run `aide-emit-run --phase green --spec <ID>`
@@ -127,7 +127,7 @@ First write `implement · Step 3 of 4: GREEN — Implement until tests pass — 
 
 ### Step 4 of 4: VERIFY — Full suite, types, lint, build
 
-First write `implement · Step 4 of 4: VERIFY — Full suite, types, lint, build — started`, and when this step ends, `implement · Step 4 of 4: VERIFY — Full suite, types, lint, build — done`.
+First write `--- Step 4 of 4: VERIFY — Full suite, types, lint, build — started`, and when this step ends, `--- Step 4 of 4: VERIFY — Full suite, types, lint, build — done`.
 
 
 The order is fixed: the full suite is run only once every test this

@@ -373,8 +373,8 @@ lines tall that opens at its end. The three tabs:
 - **Log** — one scrolling log of the whole step in the order things happened: Aide's own lines (the lock, the fetch,
   the worktree, the tests, the commit) and the AI's, with a separator line where the writer changes ("Aide:
   preparing", "AI (Claude Sonnet)", "Aide: tests and commit"). It is complete: every line, from the first byte of
-  the transcript, and every message of the AI's in full, line breaks and all. A command written over several lines shows each break as `⏎`. Each skill-step mark (`analyze · Step 1 of 9: … — started`) is a line of its own, and so
-  are the marks of Aide's own parts around the AI (`implement · Aide: preparing — started`, then `— done`, and
+  the transcript, and every message of the AI's in full, line breaks and all. A command written over several lines shows each break as `⏎`. Each skill-step mark (`--- Step 1 of 9: … — started`) is a line of its own, and so
+  are the marks of Aide's own parts around the AI (`--- Step Aide: preparing — started`, then `— done`, and
   `Aide: tests and commit` after the AI, ending `— done` or `— stopped: <why>`). The step's full final message is
   the last of the AI's lines, with no heading; a last line that only repeats it is replaced by it, so it reads once.
 - **Changed files** — lists what the step's own commit changed with lines added and removed, and the tab's name

@@ -56,8 +56,8 @@ Examples:
 
 The steps below are this skill's own, inside the queue's `create` step.
 Mark each one in the log, so a reader can follow the run: when it
-starts, write one line `create · Step N of X: <title> — started`, and when
-it ends, one line `create · Step N of X: <title> — done`. A step that ends
+starts, write one line `--- Step N of X: <title> — started`, and when
+it ends, one line `--- Step N of X: <title> — done`. A step that ends
 the run early says `— stopped: <why>` in place of `— done`, and one that does not apply to this run `— skipped: <why>`.
 
 Step 7, the merge into the default branch, is Aide's, after this
@@ -66,7 +66,7 @@ done.
 
 ### Step 1 of 7: Find the specs root
 
-First write `create · Step 1 of 7: Find the specs root — started`, and when this step ends, `create · Step 1 of 7: Find the specs root — done`.
+First write `--- Step 1 of 7: Find the specs root — started`, and when this step ends, `--- Step 1 of 7: Find the specs root — done`.
 
 
 - Before anything else, run `date +%s` and keep the printed number as
@@ -82,7 +82,7 @@ First write `create · Step 1 of 7: Find the specs root — started`, and when t
 
 ### Step 2 of 7: Find the next available number
 
-First write `create · Step 2 of 7: Find the next available number — started`, and when this step ends, `create · Step 2 of 7: Find the next available number — done`.
+First write `--- Step 2 of 7: Find the next available number — started`, and when this step ends, `--- Step 2 of 7: Find the next available number — done`.
 
 
 **Headless, with a literal folder name stated:** skip this step entirely
@@ -99,7 +99,7 @@ First write `create · Step 2 of 7: Find the next available number — started`,
 
 ### Step 3 of 7: Generate a slug from the title
 
-First write `create · Step 3 of 7: Generate a slug from the title — started`, and when this step ends, `create · Step 3 of 7: Generate a slug from the title — done`.
+First write `--- Step 3 of 7: Generate a slug from the title — started`, and when this step ends, `--- Step 3 of 7: Generate a slug from the title — done`.
 
 
 **Headless, with a literal folder name stated:** skip this step
@@ -115,7 +115,7 @@ entirely, for the same reason as Step 2.
 
 ### Step 4 of 7: Create the directory and 5 files
 
-First write `create · Step 4 of 7: Create the directory and 5 files — started`, and when this step ends, `create · Step 4 of 7: Create the directory and 5 files — done`.
+First write `--- Step 4 of 7: Create the directory and 5 files — started`, and when this step ends, `--- Step 4 of 7: Create the directory and 5 files — done`.
 
 
 **A headless run states its own folder name.** A prompt that says
@@ -248,7 +248,7 @@ and `jq`, for no reduction in that ambiguity.
 
 ### Step 5 of 7: Stage in git
 
-First write `create · Step 5 of 7: Stage in git — started`, and when this step ends, `create · Step 5 of 7: Stage in git — done`.
+First write `--- Step 5 of 7: Stage in git — started`, and when this step ends, `--- Step 5 of 7: Stage in git — done`.
 
 
 Working interactively, before staging, run:
@@ -312,7 +312,7 @@ no `Model (create)` line is written — an absence, never a guess.
 
 ### Step 6 of 7: Confirm
 
-First write `create · Step 6 of 7: Confirm — started`, and when this step ends, `create · Step 6 of 7: Confirm — done`.
+First write `--- Step 6 of 7: Confirm — started`, and when this step ends, `--- Step 6 of 7: Confirm — done`.
 
 In a headless run nothing of this is on the default branch yet: the
 create is finished only once Step 7, the merge into main, is done. So the
@@ -343,7 +343,7 @@ Next step: /aide-analyze 55
 
 ### Step 7 of 7: Merge into main
 
-Aide writes `create · Step 7 of 7: Merge into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
+Aide writes `--- Step 7 of 7: Merge into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
 
 Not this session's step, and it writes no mark for it. In a headless
 run Aide merges what this session committed on the spec's branch into
