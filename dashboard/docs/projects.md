@@ -204,7 +204,8 @@ from.
 ### A project's own page
 
 `/projects/<name>` has four tabs — **Deploy**, **Config**, **Schedule** and **Wiki** — chosen with `?tab=` and defaulting to
-Deploy, which is also where an unrecognised value lands. `?edit=1`, the settings table's edit state, opens on Config.
+Deploy, which is also where an unrecognised value lands. `?edit=config` or `?edit=manifest`, a settings table's own
+edit state, opens on Config.
 **← Back** goes to the page the reader came from, such as the spec whose project link was pressed, and to Projects
 when there is none or it was another tab of the same page.
 
@@ -269,16 +270,17 @@ project's own files unless `.aide/config` sets them. A row whose readiness check
 sentence inline.
 
 The test command is the one worth knowing: a run and a landing test with a configured command only
-(`aide-resolve-test-cmd`), so an unset one reads "no tests run when a spec lands", with the worked-out
-command beside it as a suggestion.
+(`aide-resolve-test-cmd`), so an unset one reads "The project's own test command — no tests run when a spec
+lands", with the worked-out command beside it as a suggestion.
 
-**Edit** (`?edit=1`) turns the same two tables into one form — there are always exactly two `<table>` elements on
-the page, in either mode. Six controls open: Specs path, Worktree links, Install command, Preview command, Test
-command and Code landing. The test field is empty with the worked-out
-command as its placeholder, so a save that never touched it configures nothing. Worktree links has a line of the
-checkout's own top-level `.gitignore` entries under it. The five text fields are as wide as their cell and grow to
-show the whole value; with the board's script on, Enter saves, and a value is always one line — a line break in it is
-folded to a space. Save and Cancel both return to
+**Each table has its own Edit**, on the same line as its own heading, opening only that table for editing
+(`?edit=config` or `?edit=manifest`) — at most one is open at a time. While one is, the other table's Edit stays on
+the page, disabled, rather than disappearing. Opening `.aide/config` turns on two controls, Specs path and Install
+command; opening the manifest turns on four, Worktree links, Preview command, Test command and Code landing. The
+test field is empty with the worked-out command as its placeholder, so a save that never touched it configures
+nothing. Worktree links has a line of the checkout's own top-level `.gitignore` entries under it. Each open field
+is as wide as its cell and grows to show the whole value; with the board's script on, Enter saves, and a value is
+always one line — a line break in it is folded to a space. Save and Cancel both return to
 `/projects/<name>?tab=config`, and `/projects/<name>/settings` redirects there too.
 
 A save writes each value to the file its table names, and to no other file, regardless of where the value

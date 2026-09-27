@@ -96,12 +96,48 @@ export const SETTING_GROUPS: { file: ".aide/config" | "manifest"; keys: readonly
   { file: "manifest", keys: ["AIDE_WORKTREE_LINKS", "AIDE_PREVIEW_CMD", "AIDE_TEST_CMD"] },
 ];
 
+export type SettingsGroupFile = (typeof SETTING_GROUPS)[number]["file"];
+
+/** The `?edit=` value each group opens under, and the reverse lookup a
+ *  GET reads it back with (spec 552: each of the Config tab's two tables
+ *  gets its own edit state, in place of one shared `?edit=1`). */
+export const EDIT_GROUP_PARAM: Record<SettingsGroupFile, string> = {
+  ".aide/config": "config",
+  manifest: "manifest",
+};
+
+export function groupForEditParam(param: string | null): SettingsGroupFile | null {
+  const found = (Object.entries(EDIT_GROUP_PARAM) as [SettingsGroupFile, string][]).find(([, v]) => v === param);
+  return found?.[0] ?? null;
+}
+
+/** Which `SETTING_KEYS` entry posts under which form field name, in
+ *  edit mode. The test command is what a run and a landing test with,
+ *  saved to the manifest's `AIDE_TEST_CMD`. */
+export const EDITABLE_FIELD: Record<string, string> = {
+  AIDE_SPECS_PATH: "specsPath",
+  AIDE_WORKTREE_LINKS: "worktreeLinks",
+  AIDE_INSTALL_CMD: "installCmd",
+  AIDE_PREVIEW_CMD: "previewCmd",
+  AIDE_TEST_CMD: "testCmd",
+};
+
+/** Which group a POSTED field belongs to (spec 552): every posted field
+ *  name already belongs to exactly one group, so a refused save's
+ *  redirect can classify itself off `sent` without a second,
+ *  hand-written list that could drift out of step with `SETTING_GROUPS`. */
+export function groupForPostedField(field: string): SettingsGroupFile | null {
+  if (field === "codeLanding") return "manifest";
+  const key = Object.entries(EDITABLE_FIELD).find(([, f]) => f === field)?.[0];
+  return key ? (SETTING_GROUPS.find((g) => g.keys.includes(key))?.file ?? null) : null;
+}
+
 const PURPOSE: Record<string, string> = {
-  AIDE_SPECS_PATH: "where this project's specs are kept — its own specs/ when unset",
-  AIDE_WORKTREE_LINKS: "gitignored paths a run's worktree needs, which git does not carry",
-  AIDE_TEST_CMD: "the project's own test command",
-  AIDE_INSTALL_CMD: "what installing this project means on this machine, run after its code merges",
-  AIDE_PREVIEW_CMD: "how to start this project so a spec's branch can be looked at, serving on $PORT",
+  AIDE_SPECS_PATH: "Where this project's specs are kept — its own specs/ when unset",
+  AIDE_WORKTREE_LINKS: "Gitignored paths a run's worktree needs, which git does not carry",
+  AIDE_TEST_CMD: "The project's own test command",
+  AIDE_INSTALL_CMD: "What installing this project means on this machine, run after its code merges",
+  AIDE_PREVIEW_CMD: "How to start this project so a spec's branch can be looked at, serving on $PORT",
 };
 
 /** The keys a lockfile can answer, and which command each is: the test

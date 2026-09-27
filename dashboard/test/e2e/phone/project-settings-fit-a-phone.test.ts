@@ -40,7 +40,9 @@ afterAll(async () => {
  *  window at `width` — 0 each when nothing scrolls sideways. */
 async function overflow(width: number, edit: boolean): Promise<{ page: number; table: number }> {
   await page.setViewportSize({ width, height: 900 });
-  await withBrowser(page.goto(`${base}/projects/paceup${edit ? "?edit=1" : "?tab=config"}`), `page.goto at ${width}px`);
+  // The long specs path this measures lives in the `.aide/config` table
+  // (spec 552), so that is the one opened for editing here.
+  await withBrowser(page.goto(`${base}/projects/paceup${edit ? "?edit=config" : "?tab=config"}`), `page.goto at ${width}px`);
   return page.evaluate((w) => {
     const wrap = document.querySelector(".tablewrap");
     return {

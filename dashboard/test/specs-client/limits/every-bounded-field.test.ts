@@ -32,7 +32,7 @@ const PAGES: Record<string, () => string> = {
       null,
       NOW,
       NAV,
-      { worktreeLinkCandidates: [], editing: true },
+      { worktreeLinkCandidates: [], editingGroup: "manifest" },
     ),
   "Failed note": () =>
     `<body>${checkControls({ line: "| AC-1: x | Not verified | |", done: true, notVerified: true }, "en", { archivedIndex: 0 })}</body>`,

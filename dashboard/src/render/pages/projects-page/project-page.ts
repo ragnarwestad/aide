@@ -310,7 +310,7 @@ function configSection(
     : rowMessage("info", "There is no .aide/config in this checkout, so nothing below was configured on this machine.");
   const summary = readiness ? readinessSummary(readiness) : "";
   const checkout = readiness ? checkoutChecks(readiness) : "";
-  return noFile + summary + checkout + unifiedSettingsTable(settings, name, opts.editing, opts);
+  return noFile + summary + checkout + unifiedSettingsTable(settings, name, opts.editingGroup, opts);
 }
 
 /** The page's tabs, in the order they are drawn: Deploy first. Default
@@ -343,9 +343,9 @@ export function renderProjectPage(
   // REQ-1, REQ-4): a project with nothing to deploy from here says so on
   // its own tab (`deploySection`'s ungated branch), rather than the tab
   // bar changing shape from project to project.
-  // The page opens on Deploy; `?edit=1` is the settings table's edit
+  // The page opens on Deploy; `?edit=` names a settings table's own edit
   // state, so it always opens on Config, where that table is.
-  const tab: ProjectTab = pickTab(PROJECT_TABS, opts.tab, opts.editing ? "config" : "deploy");
+  const tab: ProjectTab = pickTab(PROJECT_TABS, opts.tab, opts.editingGroup ? "config" : "deploy");
   const base = projectPagePath(p.name);
   const panel =
     tab === "deploy" ? deploySection(p.name, opts, now) + testServerSection(p.name, opts)

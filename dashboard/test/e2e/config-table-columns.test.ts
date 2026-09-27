@@ -37,7 +37,8 @@ afterAll(async () => {
  *  share of the table's own width. */
 async function share(width: number, edit = false): Promise<{ value: number; comment: number }> {
   await page.setViewportSize({ width, height: 900 });
-  await withBrowser(page.goto(`${base}/projects/paceup${edit ? "?edit=1" : "?tab=config"}`), `page.goto at ${width}px`);
+  // The long path this measures lives in the `.aide/config` table (spec 552).
+  await withBrowser(page.goto(`${base}/projects/paceup${edit ? "?edit=config" : "?tab=config"}`), `page.goto at ${width}px`);
   return page.evaluate((path) => {
     const cell = [...document.querySelectorAll('td[data-col="setting-value"]')]
       .find((td) => td.textContent?.includes(path) || (td.querySelector("textarea") as HTMLTextAreaElement | null)?.value.includes(path))!;
@@ -63,34 +64,41 @@ for (const width of [1280, 820]) {
 
 const LONG_VALUE = `${LONG_PATH}${LONG_PATH}`;
 
-async function openEdit(width: number): Promise<void> {
+async function openEdit(width: number, group: "config" | "manifest" = "config"): Promise<void> {
   await page.setViewportSize({ width, height: 900 });
-  await withBrowser(page.goto(`${base}/projects/paceup?edit=1`), `edit page.goto at ${width}px`);
+  await withBrowser(page.goto(`${base}/projects/paceup?edit=${group}`), `edit page.goto at ${width}px`);
 }
 
 const specsField = () => page.locator('textarea[name="specsPath"]');
 
-for (const width of [1280, 820, 390]) {
-  test(`at ${width}px every settings field is as wide as its cell (AC-1)`, async () => {
-    await openEdit(width);
-    const gaps = await page.evaluate(() =>
-      [...document.querySelectorAll('td[data-col="setting-value"] :is(textarea, select)')].map((el) => {
-        const cell = el.closest("td")!;
-        const cs = getComputedStyle(cell);
-        const inner = cell.getBoundingClientRect().width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-        return Math.abs(el.getBoundingClientRect().width - inner);
-      }),
-    );
-    expect(gaps.length).toBe(6);
-    expect(gaps.every((g) => g <= 1)).toBe(true);
-    if (width > 390) {
-      const { value, comment } = await share(width, true);
-      expect([comment > 0.35, Math.abs(value - comment) < 0.05]).toEqual([true, true]);
-    }
-  });
+// AC-1: every field, in either table, is as wide as its own cell — 2
+// fields when `.aide/config` is being edited, 4 (including the Code
+// landing select) when the manifest is.
+for (const [group, count] of [["config", 2], ["manifest", 4]] as const) {
+  for (const width of [1280, 820, 390]) {
+    test(`editing ${group} at ${width}px, every settings field is as wide as its cell (AC-1)`, async () => {
+      await openEdit(width, group);
+      const gaps = await page.evaluate(() =>
+        [...document.querySelectorAll('td[data-col="setting-value"] :is(textarea, select)')].map((el) => {
+          const cell = el.closest("td")!;
+          const cs = getComputedStyle(cell);
+          const inner = cell.getBoundingClientRect().width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+          return Math.abs(el.getBoundingClientRect().width - inner);
+        }),
+      );
+      expect(gaps.length).toBe(count);
+      expect(gaps.every((g) => g <= 1)).toBe(true);
+      if (group === "config" && width > 390) {
+        const { value, comment } = await share(width, true);
+        expect([comment > 0.35, Math.abs(value - comment) < 0.05]).toEqual([true, true]);
+      }
+    });
+  }
+}
 
+for (const width of [1280, 820, 390]) {
   test(`at ${width}px a long specs path is shown whole, wrapped (AC-2)`, async () => {
-    await openEdit(width);
+    await openEdit(width, "config");
     await specsField().fill(LONG_VALUE);
     const m = await specsField().evaluate((el) => {
       const f = el as HTMLTextAreaElement;
@@ -101,7 +109,7 @@ for (const width of [1280, 820, 390]) {
 }
 
 test("a field follows a resize, more typing and a cut back (AC-2)", async () => {
-  await openEdit(1280);
+  await openEdit(1280, "config");
   await specsField().fill(LONG_VALUE);
   const clipped = () => specsField().evaluate((el) => el.scrollHeight > el.clientHeight);
   await page.setViewportSize({ width: 820, height: 900 });
@@ -120,7 +128,7 @@ test("a field follows a resize, more typing and a cut back (AC-2)", async () => 
 });
 
 test("Enter raises one submit and leaves no line break; a filled break is folded (AC-3)", async () => {
-  await openEdit(1280);
+  await openEdit(1280, "config");
   await page.evaluate(() => {
     (window as unknown as { __submits: number }).__submits = 0;
     document.querySelector("form.projectsettingsform")!.addEventListener("submit", (e) => {
@@ -137,32 +145,45 @@ test("Enter raises one submit and leaves no line break; a filled break is folded
   expect(await specsField().inputValue()).toBe("a b");
 });
 
-// The button row is the same in view and in edit: the same air above it,
-// both buttons the same height, and the table under it where it was, so
-// pressing Edit moves nothing but the buttons' words.
-test("Edit and Cancel sit where Save and Cancel do, with air above them and one height", async () => {
-  await page.setViewportSize({ width: 1280, height: 900 });
-  const measure = async (q: string) => {
+// Each table's own Edit sits where its own Save/Cancel do, on the same
+// line as its own heading (AC-2): the same `.panelhead` position across
+// the read-only load and that table's own edit load.
+for (const [group, index] of [["config", 0], ["manifest", 1]] as const) {
+  test(`${group} table: its own Edit sits where Save and Cancel do, same height and position (AC-2)`, async () => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const measure = async (q: string) => {
+      await withBrowser(page.goto(`${base}/projects/paceup${q}`), `page.goto(${q})`);
+      return page.evaluate((i) => {
+        const panelhead = document.querySelectorAll(".panelhead")[i]!;
+        const actions = panelhead.querySelector(".factions")!;
+        const box = actions.getBoundingClientRect();
+        return {
+          top: Math.round(box.top),
+          heights: [...actions.querySelectorAll(".btn, a.btn")].map((b) => Math.round(b.getBoundingClientRect().height)),
+          panelheadTop: Math.round(panelhead.getBoundingClientRect().top),
+        };
+      }, index);
+    };
+    const view = await measure("?tab=config");
+    const edit = await measure(`?edit=${group}`);
+    expect(view.top).toBe(edit.top);
+    expect(view.panelheadTop).toBe(edit.panelheadTop);
+    expect(new Set([...view.heights, ...edit.heights]).size).toBe(1);
+  });
+}
+
+// AC-6: the second table's own heading and buttons read as clearly apart
+// from the first table — a measured gap of at least double today's
+// var(--sp-3) (12px), i.e. >= 24px, in either state.
+for (const q of ["?tab=config", "?edit=config", "?edit=manifest"]) {
+  test(`the gap between the two tables is at least 24px (${q}) (AC-6)`, async () => {
+    await page.setViewportSize({ width: 1280, height: 900 });
     await withBrowser(page.goto(`${base}/projects/paceup${q}`), `page.goto(${q})`);
-    return page.evaluate(() => {
-      const actions = document.querySelector(".configactions")!;
-      const box = actions.getBoundingClientRect();
-      const above = [...document.querySelectorAll(".tabpanel .rowmsg")]
-        .map((m) => m.getBoundingClientRect().bottom)
-        .filter((b) => b <= box.top + 1);
-      return {
-        air: Math.round(box.top - Math.max(...above)),
-        heights: [...actions.querySelectorAll(".btn")].map((b) => Math.round(b.getBoundingClientRect().height)),
-        top: Math.round(box.top),
-        tableTop: Math.round(document.querySelector(".tabpanel table.list")!.getBoundingClientRect().top),
-      };
+    const gap = await page.evaluate(() => {
+      const tables = [...document.querySelectorAll(".tablewrap")];
+      const panelheads = [...document.querySelectorAll(".panelhead")];
+      return panelheads[1]!.getBoundingClientRect().top - tables[0]!.getBoundingClientRect().bottom;
     });
-  };
-  const view = await measure("?tab=config");
-  const edit = await measure("?edit=1");
-  expect(view.air).toBeGreaterThanOrEqual(8);
-  expect(view.air).toBe(edit.air);
-  expect(new Set([...view.heights, ...edit.heights]).size).toBe(1);
-  expect(view.top).toBe(edit.top);
-  expect(view.tableTop).toBe(edit.tableTop);
-});
+    expect(gap).toBeGreaterThanOrEqual(24);
+  });
+}

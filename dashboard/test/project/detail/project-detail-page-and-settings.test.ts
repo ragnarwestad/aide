@@ -16,7 +16,8 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     const root = projectsRoot({ [name]: null });
     const html = await (await get(serve(root, settled(root, name)), name)).text();
     expect(html).toContain('<a class="backlink" rel="noreferrer" href="/projects">← Back</a>');
-    expect(html).toContain('<a class="btn primary" href="/projects/aide%20%26%20co?edit=1">Edit</a>');
+    expect(html).toContain('<a class="btn primary" href="/projects/aide%20%26%20co?edit=config">Edit</a>');
+    expect(html).toContain('<a class="btn primary" href="/projects/aide%20%26%20co?edit=manifest">Edit</a>');
   });
 
   test("← Back goes to the page the reader came from, such as a spec's row on the specs list", async () => {
@@ -33,11 +34,11 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     expect(html).toContain('<a class="backlink" rel="noreferrer" href="/projects">← Back</a>');
   });
 
-  test("?edit=1 renders the one table as a form posting to the settings route", async () => {
+  test("?edit=config renders the .aide/config table as a form posting to the settings route", async () => {
     const name = "aide & co";
     const root = projectsRoot({ [name]: null });
     const base = serve(root, settled(root, name));
-    const res = await fetch(`${base}/projects/${encodeURIComponent(name)}?edit=1`);
+    const res = await fetch(`${base}/projects/${encodeURIComponent(name)}?edit=config`);
     const html = await res.text();
     expect(html).toContain('action="/api/queue/projects/aide%20%26%20co/settings"');
     expect(html).toContain('<a class="btn" data-discard-changes href="/projects/aide%20%26%20co?tab=config">Cancel</a>');
@@ -114,11 +115,11 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     expect(html).toMatch(/aria-current="page"[^>]*>Deploy/);
   });
 
-  // ?edit=1 is the settings table's edit state, so it opens on Config
+  // ?edit=<group> is a settings table's edit state, so it opens on Config
   // even with no ?tab= — Edit links there, and a refused save returns there.
-  test("?edit=1 with no ?tab= opens on Config, where the settings form is", async () => {
+  test("?edit=config with no ?tab= opens on Config, where the settings form is", async () => {
     const root = projectsRoot({ aide: null });
-    const html = await (await fetch(`${serve(root, settled(root, "aide"))}/projects/aide?edit=1`)).text();
+    const html = await (await fetch(`${serve(root, settled(root, "aide"))}/projects/aide?edit=config`)).text();
     expect(html).toMatch(/aria-current="page"[^>]*>Config/);
     expect(html).toContain("projectsettingsform");
   });
@@ -150,33 +151,48 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
     expect((html.match(/<table class="list">/g) ?? []).length).toBe(2);
   });
 
-  test("?edit=1 pre-fills the editable inputs with the current values (criterion 3)", async () => {
+  test("?edit=config pre-fills the .aide/config field with its current value (criterion 3)", async () => {
     const root = projectsRoot({ aide: "AIDE_SPECS_PATH=/repos/specs/aide\n" }, ["node_modules"]);
     writeFileSync(
       join(root, "aide", ".aide", "project.yaml"),
       "name: aide\ndescription: the aide project\nworktreeLinks: node_modules\ncodeLanding: pr\n",
     );
     const base = serve(root, settled(root, "aide"));
-    const html = await (await fetch(`${base}/projects/aide?edit=1`)).text();
+    const html = await (await fetch(`${base}/projects/aide?edit=config`)).text();
     expect(html).toMatch(/name="specsPath"[^>]*>\/repos\/specs\/aide<\/textarea>/);
+  });
+
+  test("?edit=manifest pre-fills the manifest's editable inputs with the current values (criterion 3)", async () => {
+    const root = projectsRoot({ aide: "AIDE_SPECS_PATH=/repos/specs/aide\n" }, ["node_modules"]);
+    writeFileSync(
+      join(root, "aide", ".aide", "project.yaml"),
+      "name: aide\ndescription: the aide project\nworktreeLinks: node_modules\ncodeLanding: pr\n",
+    );
+    const base = serve(root, settled(root, "aide"));
+    const html = await (await fetch(`${base}/projects/aide?edit=manifest`)).text();
     expect(html).toMatch(/name="worktreeLinks"[^>]*>node_modules<\/textarea>/);
     expect(html).toMatch(/value="pr"[^>]*selected|selected[^>]*value="pr"/);
   });
 
-  test("?edit=1 keeps lint and build read-only, even when one is unset, and fills a configured test command (criterion 3)", async () => {
+  test("?edit=manifest keeps lint and build read-only, even when one is unset, and fills a configured test command (criterion 3)", async () => {
     // No lockfile at all: AIDE_LINT_CMD, a DERIVABLE key, is `unset` —
     // the gate must read key membership, not the row's current origin.
     const root = projectsRoot({ aide: "" });
     setTestCmd(root, "aide", "make test");
     const base = serve(root, settled(root, "aide"));
-    const html = await (await fetch(`${base}/projects/aide?edit=1`)).text();
+    const html = await (await fetch(`${base}/projects/aide?edit=manifest`)).text();
     expect(html).not.toContain('name="AIDE_TEST_CMD"');
     expect(html).not.toContain('name="AIDE_LINT_CMD"');
     expect(html).not.toContain('name="AIDE_BUILD_CMD"');
     // The test command is what runs use, so it is an input, holding the
     // configured value.
     expect(html).toMatch(/name="testCmd"[^>]*>make test<\/textarea>/);
-    // Meanwhile a non-derivable, currently-unset key does become an input.
+  });
+
+  test("?edit=config gives a non-derivable, currently-unset key an empty input", async () => {
+    const root = projectsRoot({ aide: "" });
+    const base = serve(root, settled(root, "aide"));
+    const html = await (await fetch(`${base}/projects/aide?edit=config`)).text();
     expect(html).toMatch(/name="installCmd"[^>]*><\/textarea>/);
   });
 
@@ -212,6 +228,8 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
     const root = projectsRoot({ aide: "" }, ["pnpm-lock.yaml"]);
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
     const row = html.slice(html.indexOf("AIDE_TEST_CMD"), html.indexOf("</tr>", html.indexOf("AIDE_TEST_CMD")));
+    // Mid-sentence, after the purpose (which now carries AC-7's capital
+    // letter) and its em dash — this fragment itself stays lowercase.
     expect(row).toContain("no tests run when a spec lands");
     expect(row).toContain("<code>pnpm test -- --run</code>");
     expect(row).not.toContain("not a verified command");
@@ -220,10 +238,10 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
   // Edit offers the worked-out command as a placeholder, never as the
   // field's value: a save that never touched the row must not configure
   // a command nobody chose.
-  test("?edit=1 leaves an unset test command's field empty, with the suggestion as its placeholder", async () => {
+  test("?edit=manifest leaves an unset test command's field empty, with the suggestion as its placeholder", async () => {
     const root = projectsRoot({ aide: "" }, ["pnpm-lock.yaml"]);
     const base = serve(root, settled(root, "aide"));
-    const html = await (await fetch(`${base}/projects/aide?edit=1`)).text();
+    const html = await (await fetch(`${base}/projects/aide?edit=manifest`)).text();
     expect(html).toMatch(/name="testCmd"[^>]*placeholder="pnpm test -- --run"><\/textarea>/);
   });
 
@@ -375,9 +393,36 @@ describe("editing the unified settings table (spec 255)", () => {
     });
     expect(res.status).toBe(303);
     const location = res.headers.get("location")!;
-    expect(location.startsWith("/projects/aide?edit=1")).toBe(true);
+    // worktreeLinks belongs to the manifest table (spec 552).
+    expect(location.startsWith("/projects/aide?edit=manifest")).toBe(true);
     const refusalHtml = await (await fetch(`${base}${location}`)).text();
     expect(refusalHtml).toContain("/etc");
     expect(refusalHtml).toContain(">Save<");
+  });
+
+  // AC-4: the table NOT being edited stays in the markup, disabled.
+  test("while one table is being edited, the other table's Edit is present in the markup, disabled", async () => {
+    const root = projectsRoot({ aide: null });
+    const base = serve(root, settled(root, "aide"));
+    const html = await (await fetch(`${base}/projects/aide?edit=config`)).text();
+    expect(html).toMatch(/<button[^>]*disabled[^>]*>Edit<\/button>/);
+    expect(html).not.toContain('href="/projects/aide?edit=manifest">Edit</a>');
+  });
+
+  // AC-5: a successful Save returns both tables to read view, both Edit
+  // buttons enabled.
+  test("a successful save returns both tables to read view, with both Edit buttons enabled", async () => {
+    const root = projectsRoot({ aide: null });
+    const base = serve(root, settled(root, "aide"));
+    const res = await fetch(`${base}/api/queue/projects/aide/settings`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ installCmd: "make install", specsPath: "", worktreeLinks: "" }),
+    });
+    expect(res.status).toBe(303);
+    const html = await (await fetch(`${base}${res.headers.get("location")}`)).text();
+    expect((html.match(/<a class="btn primary" href="[^"]*\?edit=(config|manifest)">Edit<\/a>/g) ?? []).length).toBe(2);
+    expect(html).not.toMatch(/<button[^>]*disabled[^>]*>Edit<\/button>/);
   });
 });
