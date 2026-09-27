@@ -40,13 +40,10 @@ async function connect(base: string, query = ``): Promise<Stream> {
   return s;
 }
 
-/** A server just started is not yet quiet, and its specs-root watch
- *  (spec 204) needs a moment before it reports what happens under it:
- *  under load, a stream read at once heard an event nobody caused, and a
- *  folder written at once went unreported. A test that asserts silence,
- *  or waits for an event it causes, lets that moment pass first. What the
- *  watch was handed from before it opened is dropped by the server
- *  itself (`isEcho`). */
+/** A server just started is not yet quiet: under load, a stream read at
+ *  once heard an event nobody caused. A test that asserts silence lets
+ *  that moment pass first. What the specs-root watch was handed from
+ *  before it opened is dropped by the server itself (`isEcho`). */
 const settled = (): Promise<void> => Bun.sleep(600);
 
 async function enqueue(base: string): Promise<string> {
@@ -157,6 +154,27 @@ async function enqueueOther(base: string): Promise<string> {
 // so nothing was told. Each allowed project's specs root is watched for
 // exactly that.
 describe("a spec created outside the dashboard reaches an open page (spec 204)", () => {
+  /** The specs-root watch reports only what happens once macOS has
+   *  started it, and under load that is later than `watch()` returning:
+   *  a folder written 600 ms after the server started went unreported in
+   *  5 runs of 14. So a test writes a file of its own until the watch
+   *  answers, and only then writes what it asserts on. Each try waits out
+   *  the server's 300 ms coalescing, which a faster write would keep
+   *  pushing back. */
+  async function watching(s: Stream, dir: string): Promise<void> {
+    const probe = join(dir, "root", "aide", "specs", ".watch-probe");
+    for (let n = 0; n < 15; n++) {
+      writeFileSync(probe, String(n));
+      try {
+        await s.next(600);
+        return;
+      } catch {
+        // Not started yet; write again.
+      }
+    }
+    throw new Error("the specs-root watch never answered");
+  }
+
   const madeByHand = (dir: string, folder: string): void => {
     const at = join(dir, "root", "aide", "specs", folder);
     mkdirSync(at, { recursive: true });
@@ -166,11 +184,11 @@ describe("a spec created outside the dashboard reaches an open page (spec 204)",
 
   test("a folder written straight to disk broadcasts `changed` (criterion 4)", async () => {
     const { base, dir } = harness.start();
-    await settled();
     const s = await connect(base);
+    await watching(s, dir);
     madeByHand(dir, "205-made-by-hand");
     expect(await s.next()).toContain("event: changed");
-  });
+  }, 20000);
 
   // The event alone is not the promise. The page answers it by asking
   // for the rows, and the scan behind those rows is cached for five
@@ -180,8 +198,8 @@ describe("a spec created outside the dashboard reaches an open page (spec 204)",
   // before it speaks.
   test("the rows the page then asks for hold the new spec (criterion 4)", async () => {
     const { base, dir } = harness.start();
-    await settled();
     const s = await connect(base);
+    await watching(s, dir);
     // Draw the page once, so the five-second scan is warm and stale.
     const first = await fetch(`${base}/?rows=1`);
     expect(first.status).toBe(200);
@@ -192,7 +210,7 @@ describe("a spec created outside the dashboard reaches an open page (spec 204)",
 
     const again = await fetch(`${base}/?rows=1`);
     expect(await again.text()).toContain("206-made-by-hand");
-  });
+  }, 20000);
 
   // A watcher nobody closes is a handle held for the life of the
   // process — and `cleanup()` removes the very directories these point

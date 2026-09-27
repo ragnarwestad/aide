@@ -26,6 +26,10 @@ export async function connect(base: string, query: string): Promise<Stream> {
   const decoder = new TextDecoder();
   let buf = "";
   let ended = false;
+  // A read that lost the race to a timeout is still waiting on the
+  // socket, and whatever it gets is the next chunk: kept for the next
+  // call, never started again beside it, or that chunk is dropped.
+  let pending: ReturnType<typeof reader.read> | null = null;
 
   const frame = async (ms: number): Promise<string | null> => {
     for (;;) {
@@ -36,11 +40,13 @@ export async function connect(base: string, query: string): Promise<Stream> {
         return out;
       }
       if (ended) return null;
+      pending ??= reader.read();
       const got = await Promise.race([
-        reader.read(),
+        pending,
         Bun.sleep(ms).then(() => "timeout" as const),
       ]);
       if (got === "timeout") return null;
+      pending = null;
       if (got.done) {
         ended = true;
         return null;
