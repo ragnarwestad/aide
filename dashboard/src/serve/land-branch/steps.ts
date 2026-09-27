@@ -7,6 +7,8 @@ import { mergeBranchRefs, type BranchRef, type Job, type WorkflowStep } from "..
 import type { StepOutcome } from "../../queue/runner";
 import { stopTestServer } from "../test-servers/lifecycle.ts";
 import { landBranch, sameRoot } from "./merge.ts";
+import { stepLogLine } from "./test-gate.ts";
+import { renderSentence } from "../../i18n/message.ts";
 import { wikiTrackingKey } from "../../queue/steps.ts";
 import type { LandContext } from "./types.ts";
 
@@ -20,8 +22,9 @@ import type { LandContext } from "./types.ts";
  *  somebody noticed and merged it by hand would not be the feature
  *  with one extra click — it would be the feature not working. */
 export async function landNewSpec(ctx: LandContext, job: Job, outcome: Partial<StepOutcome>): Promise<void> {
-  return landBranch(ctx, job, outcome, {
+  return asMergeStep(ctx, job, "create", (onMerged) => landBranch(ctx, job, outcome, {
     step: "create",
+    onLanded: async () => onMerged(),
     // No `landed` here any more (spec 453): the real folder name is not
     // known until the finalize step runs, under the specs repo's own
     // merge lock — `landBranch` fills `landed.specFolder` in dynamically
@@ -32,7 +35,7 @@ export async function landNewSpec(ctx: LandContext, job: Job, outcome: Partial<S
     // raw text of whatever exception `landBranch` caught, and it never
     // becomes part of the sentence — the caller keeps it as `errorDetail`.
     failedNote: () => ({ key: "landing.createLandingFailed" }),
-  });
+  }));
 }
 
 /** Land the work a middle-of-the-workflow step produced (spec 149).
@@ -64,13 +67,14 @@ export async function landStepBranch(
   step: WorkflowStep,
   outcome: Partial<StepOutcome>,
 ): Promise<void> {
-  return landBranch(ctx, job, outcome, {
+  return asMergeStep(ctx, job, step, (onMerged) => landBranch(ctx, job, outcome, {
     step,
     repos: specsRootsOnly(ctx, job, outcome),
     // `why` (spec 352, REQ-5) stays out of the sentence — see landNewSpec's
     // own note above.
     failedNote: () => ({ key: "landing.stepLandingFailed", values: { step } }),
-  });
+    onLanded: async () => onMerged(),
+  }));
 }
 
 /** The roots a step's run pushed, minus the project's code root — or
@@ -135,7 +139,7 @@ export async function landStoppedStepBranch(
  *  the branch on the row and leaves the spec in the list: the old
  *  behaviour is the fallback, not the thing being removed. */
 export async function landArchivedSpec(ctx: LandContext, job: Job, outcome: Partial<StepOutcome>): Promise<void> {
-  return landBranch(ctx, job, outcome, {
+  return asMergeStep(ctx, job, "archive", (onMerged) => landBranch(ctx, job, outcome, {
     step: "archive",
     // The ONE landing that reads past its own outcome (spec 149).
     // `implement` deliberately never lands, so the project's code
@@ -162,10 +166,11 @@ export async function landArchivedSpec(ctx: LandContext, job: Job, outcome: Part
     // reaches `landBranch` at all) — `stopTestServer` itself is a no-op when
     // nothing is tracked for this spec.
     onLanded: async () => {
+      onMerged();
       await stopTestServer(ctx.testServers, job.project, job.specFolder, "its archive landed");
       queueWikiRefresh(ctx, job.project);
     },
-  });
+  }));
 }
 
 /** Once an archive has landed, the project's wiki is brought up to date
@@ -193,7 +198,7 @@ export function queueWikiRefresh(ctx: LandContext, project: string): void {
  *  the code root is not guaranteed — `branchesFor` is the record that
  *  still has it, from whichever earlier `implement` step pushed it. */
 export async function landClosedSpec(ctx: LandContext, job: Job, outcome: Partial<StepOutcome>): Promise<void> {
-  return landBranch(ctx, job, outcome, {
+  return asMergeStep(ctx, job, "close", (onMerged) => landBranch(ctx, job, outcome, {
     step: "close",
     repos: mergeBranchRefs(ctx.queue.branchesFor(job.project, job.specFolder), outcome.branchUrls ?? []),
     // `why` (spec 352, REQ-5) stays out of the sentence — see landNewSpec's
@@ -201,6 +206,45 @@ export async function landClosedSpec(ctx: LandContext, job: Job, outcome: Partia
     failedNote: () => ({ key: "landing.closeLandingFailed" }),
     // Spec 388, REQ-7's own reasoning: a board running this spec's code
     // branch has nothing left to serve once that branch is gone.
-    onLanded: async () => stopTestServer(ctx.testServers, job.project, job.specFolder, "its close landed"),
+    onLanded: async () => {
+      onMerged();
+      await stopTestServer(ctx.testServers, job.project, job.specFolder, "its close landed");
+    },
+  }));
+}
+
+/** The merge into the default branch is the last step of every skill
+ *  whose work lands, and the phase is finished only when the merge is:
+ *  the step's Log marks it in the skill's own words, the heading of that
+ *  skill's last step in `core/skills/aide-<step>/SKILL.md`. */
+export const MERGE_STEP: Partial<Record<WorkflowStep, string>> = {
+  create: "create · Step 7 of 7: Merge into main",
+  analyze: "analyze · Step 10 of 10: Merge into main",
+  reopen: "reopen · Step 8 of 8: Merge into main",
+  wiki: "wiki · Step 5 of 5: Merge into main",
+  archive: "archive · Step 5 of 5: Merge into main",
+  close: "close · Step 4 of 4: Merge into main",
+};
+
+/** Runs a landing as that merge step: started, then done when it merged
+ *  or stopped with the landing's own reason when it did not. */
+async function asMergeStep(
+  ctx: LandContext,
+  job: Job,
+  step: WorkflowStep,
+  land: (onMerged: () => void) => Promise<void>,
+): Promise<void> {
+  const title = MERGE_STEP[step];
+  const mark = (end: string, error = false) => {
+    if (title) stepLogLine(ctx.queue.get(job.id) ?? job, `${title} — ${end}`, error);
+  };
+  let merged = false;
+  mark("started");
+  await land(() => {
+    merged = true;
   });
+  if (merged) return mark("done");
+  const error = ctx.queue.get(job.id)?.landingError;
+  const why = Array.isArray(error) ? error[0] : error;
+  mark(`stopped: ${(why && renderSentence("en", why)) || "nothing was merged"} — the ${step} is not finished`, true);
 }

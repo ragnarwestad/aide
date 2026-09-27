@@ -60,8 +60,8 @@ class TestCreateSkillStagesAndOffersToCommit:
 
     def _step_5_text(self) -> str:
         text = self.SKILL.read_text(encoding="utf-8")
-        start = text.index("### Step 5 of 6:")
-        end = text.index("### Step 6 of 6:", start)
+        start = text.index("### Step 5 of 7:")
+        end = text.index("### Step 6 of 7:", start)
         return text[start:end]
 
     def test_step_5_offers_the_create_commit_with_the_convention_message(self):
@@ -87,8 +87,8 @@ class TestCreateSkillStep4CallsTheScript:
 
     def _step_4_text(self) -> str:
         text = self.SKILL.read_text(encoding="utf-8")
-        start = text.index("### Step 4 of 6:")
-        end = text.index("### Step 5 of 6:", start)
+        start = text.index("### Step 4 of 7:")
+        end = text.index("### Step 5 of 7:", start)
         return text[start:end]
 
     def test_step_4_invokes_the_script_over_bash(self):

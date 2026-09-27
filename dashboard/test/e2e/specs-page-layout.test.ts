@@ -336,6 +336,42 @@ test("spec 460: New sits beside the search field at 800px width", async () => {
   await page.setViewportSize({ width: 1270, height: 800 });
 });
 
+// Spec 550, AC-1/AC-2/AC-4: the unfolded phase log's Model line, message
+// list and open-log link all start at the phase name's own edge, not
+// further left of it. Built with the app's own CSS bundle and the real
+// markup shape `phase-rows.ts`/`phase-messages/index.ts` emit (same
+// technique as the REQ-1 fixture above), rather than the live queue
+// harness: no fixture spec in it has an unfolded phase to measure
+// without a job run, and adding one would change what the harness's
+// other tests in this file see of that same spec's row.
+test("spec 550: the unfolded log's Model line, message list and open-log link all start at the phase name's own edge", async () => {
+  const html =
+    `<!doctype html><html><head><style>${CSS}</style></head><body>` +
+    `<table class="list speclist"><tbody>` +
+    `<tr class="subrow" data-step="analyze"><td class="phasecell" colspan="2">` +
+    `<a class="fold shut" data-nav href="#" aria-expanded="false"></a>` +
+    `<span class="phasefold">Analyze</span></td></tr>` +
+    `<tr class="phasemsgs" data-msgs="analyze"><td colspan="6">` +
+    `<p class="muted small" data-model-id>Ran on Sonnet</p>` +
+    `<ul class="phasemsglist"><li>First message</li><li>Second message</li></ul>` +
+    `<a class="phasemsgopen" href="#">Open the log</a>` +
+    `</td></tr>` +
+    `</tbody></table></body></html>`;
+  const fixturePage = await browser.newPage();
+  await withBrowser(fixturePage.setContent(html), "fixturePage.setContent(unfolded phase log)");
+  const at = await fixturePage.evaluate(() => {
+    const nameLeft = document.querySelector(".phasefold")!.getBoundingClientRect().left;
+    const cell = document.querySelector("tr.phasemsgs td")!;
+    const lefts = [...cell.querySelectorAll(":scope > p, :scope > a, :scope > ul > li")].map(
+      (el) => el.getBoundingClientRect().left,
+    );
+    return { nameLeft, lefts };
+  });
+  await fixturePage.close();
+  expect(at.lefts.length).toBeGreaterThan(0);
+  for (const left of at.lefts) expect(Math.abs(left - at.nameLeft)).toBeLessThanOrEqual(1);
+});
+
 // REQ-1: the worst-case badge/button pairing — the longest text this
 // column can draw ("updating the manifest for queued", the `manifest`
 // step's gerund, 2-analysis.md's Findings) beside a Cancel button, the

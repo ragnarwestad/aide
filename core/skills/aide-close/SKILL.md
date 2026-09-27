@@ -30,9 +30,13 @@ starts, write one line `close · Step N of X: <title> — started`, and when
 it ends, one line `close · Step N of X: <title> — done`. A step that ends
 the run early says `— stopped: <why>` in place of `— done`, and one that does not apply to this run `— skipped: <why>`.
 
-### Step 1 of 3: Run the mechanical script
+Step 4, the merge into the default branch, is Aide's, after this
+session: Aide writes its marks, and the close is finished only when it is
+done.
 
-First write `close · Step 1 of 3: Run the mechanical script — started`, and when this step ends, `close · Step 1 of 3: Run the mechanical script — done`.
+### Step 1 of 4: Run the mechanical script
+
+First write `close · Step 1 of 4: Run the mechanical script — started`, and when this step ends, `close · Step 1 of 4: Run the mechanical script — done`.
 
 
 Resolving the argument to a folder, checking whether a merge is open,
@@ -89,9 +93,9 @@ reason — the same "the check decides, not a conversation" rule
 The folder keeps its `NN-slug` name once moved — the date and the reason
 live in `4-status.md`. Numbers are never reused.
 
-### Step 2 of 3: Commit
+### Step 2 of 4: Commit
 
-First write `close · Step 2 of 3: Commit — started`, and when this step ends, `close · Step 2 of 3: Commit — done`.
+First write `close · Step 2 of 4: Commit — started`, and when this step ends, `close · Step 2 of 4: Commit — done`.
 
 
 The move and the stamp already happened, in the working directory —
@@ -125,9 +129,9 @@ Offer it only after the move actually happened — a `refused`,
 `already-closed` or `already-archived` outcome in Step 1 has nothing to
 commit here beyond its own decline.
 
-### Step 3 of 3: Confirm
+### Step 3 of 4: Confirm
 
-First write `close · Step 3 of 3: Confirm — started`, and when this step ends, `close · Step 3 of 3: Confirm — done`.
+First write `close · Step 3 of 4: Confirm — started`, and when this step ends, `close · Step 3 of 4: Confirm — done`.
 
 
 ```text
@@ -139,6 +143,16 @@ Closed: 17-a-spec-that-turned-out-wrong
 
 The spec stays findable: /aide-to-pdf 17
 ```
+
+### Step 4 of 4: Merge into main
+
+Aide writes `close · Step 4 of 4: Merge into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
+
+Not this session's step, and it writes no mark for it. In a headless
+run Aide merges what this session committed on the spec's branch into
+the default branch once the session has ended, and the close is finished
+when that merge is, not before. Working interactively there is no such
+step: the steps above say what reaches the default branch.
 
 IMPORTANT:
 - Never delete a spec — closing is a move, not a removal

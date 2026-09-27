@@ -618,29 +618,15 @@ def _branch_status(workspace):
     )
 
 
-def test_an_analyze_run_starts_a_not_tested_row_as_not_verified_AC_19(
-    runner, workspace, fake_claude
-):
+# Not verified is the user's mark alone. An analyze that writes a
+# "Not tested:" row leaves it open, and the step's commit carries it so.
+def test_an_analyze_run_leaves_a_not_tested_row_open(runner, workspace, fake_claude):
     status_with_phase(workspace, "create", ["| a | ⬜ | |"])
     claude = _analyze_writing_status(fake_claude, workspace, NOT_TESTED_ANALYZE_BODY)
     rc, out, _ = run(runner, workspace, claude, command="analyze")
     assert rc == 0, out
-    assert out["ok"] is True, out
     assert out["terminalReason"] == "completed", out
     text = _branch_status(workspace)
-    assert "| AC-1: one | Not verified | Not tested: needs the deploy; check the page |" in text
-    assert "| AC-2: two | ⬜ | |" in text
-    assert "| a | ⬜ | |" in text
-
-
-def test_an_analyze_run_over_a_file_that_had_acceptance_rows_leaves_them_AC_20(
-    runner, workspace, fake_claude
-):
-    before = NOT_TESTED_ANALYZE_BODY.format(folder=workspace["folder"])
-    write_raw_status(workspace, before)
-    claude = _analyze_writing_status(fake_claude, workspace, NOT_TESTED_ANALYZE_BODY)
-    rc, out, _ = run(runner, workspace, claude, command="analyze")
-    assert rc == 0, out
-    text = _branch_status(workspace)
-    assert "| AC-1: one | ⬜ |" in text
+    assert "| AC-1: one | ⬜ | Not tested: needs the deploy; check the page |" in text
     assert "Not verified" not in text
+

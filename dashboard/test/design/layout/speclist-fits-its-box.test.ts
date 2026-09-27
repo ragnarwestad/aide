@@ -314,7 +314,8 @@ describe("the messages unfolded under a phase fit a phone (spec 500)", () => {
     expect(rules).not.toMatch(/(^|[^-])width:/);
   });
 
-  test("a phone rule takes the indent off the row", () => {
-    expect(narrow).toMatch(/\.phasemsgs td \{ padding-left: /);
+  test("the row's own indent reads --fold-w, the phase name's own formula, and the phone-only override that never won it is gone", () => {
+    expect(css).toMatch(/table\.list tr\.phasemsgs td \{ padding-left: calc\(var\(--sp-3\) \+ var\(--fold-w\)\); \}/);
+    expect(narrow).not.toMatch(/\.phasemsgs td \{ padding-left: /);
   });
 });
