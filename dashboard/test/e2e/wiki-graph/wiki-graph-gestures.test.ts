@@ -8,7 +8,7 @@
 // e2e suite. CI runs it (`make test-e2e`), and by hand:
 // `cd dashboard && bun test --timeout 30000 test/e2e/wiki-graph/wiki-graph-gestures.test.ts`.
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test";
-import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
+import { chromium, type Browser, type BrowserContext, type CDPSession, type Page } from "playwright";
 import { browserDeadline } from "../../helpers/browser-deadline.ts";
 import { cleanupBoards, untilTab, wikiBoard } from "../../queue-routes/admin/wiki/wiki-pages-fixtures.ts";
 
@@ -50,7 +50,11 @@ async function openGraph(viewport = { width: 1000, height: 800 }, extra: Record<
   context = await browser.newContext({ viewport, ...extra });
   page = await context.newPage();
   await page.goto(`${base}/projects/aide?tab=wiki`);
-  await page.locator("svg[data-wikigraph]").waitFor();
+  const graph = page.locator("svg[data-wikigraph]");
+  await graph.waitFor();
+  // The graph sits below the page list's intro and can start past the
+  // viewport's bottom edge, where a pointer or a touch reaches nothing.
+  await graph.scrollIntoViewIfNeeded();
   return page;
 }
 
@@ -181,11 +185,20 @@ describe("data-active (AC-3)", () => {
   });
 });
 
+/** One page's CDP session. A touch the browser has started lives in the
+ *  session that started it, so a move or an end sent through a second
+ *  session has no touch to belong to. */
+const sessions = new WeakMap<Page, CDPSession>();
+
 /** One touch, dispatched through the CDP session Playwright's own API has
  *  no higher-level call for — its `Locator.tap()` only taps, and there is
  *  no `touchmove`. */
 async function touch(p: Page, points: { x: number; y: number }[], type: "touchStart" | "touchMove" | "touchEnd") {
-  const session = await context.newCDPSession(p);
+  let session = sessions.get(p);
+  if (!session) {
+    session = await context.newCDPSession(p);
+    sessions.set(p, session);
+  }
   await session.send("Input.dispatchTouchEvent", {
     type,
     touchPoints: type === "touchEnd" ? [] : points.map(({ x, y }) => ({ x, y })),
