@@ -8,16 +8,14 @@
 // while a pointer is down is heard on `window`, and the click that follows a
 // drag is swallowed by hand (`gesture.ts`'s own `swallowClick`).
 
-import { settle, startPositions, type Point } from "../../wiki-graph/layout.ts";
-import type { WikiGraphPair } from "../../wiki-graph/links.ts";
+import { declutterLabels, labelSide, LABEL_GAP, settle, startPositions, type Point } from "../../wiki-graph/layout.ts";
+import { neighbors, type WikiGraphPair } from "../../wiki-graph/links.ts";
 import { keepInSight, panBy, pinch as pinchZoom, zoomAt, type View } from "../../wiki-graph/view.ts";
 import {
   idleGesture, isActive, pointerCancel, pointerDown, pointerMove, pointerUp, type GestureState, type GestureTarget,
 } from "./gesture.ts";
 
 const ZOOM_STEP = 1.1;
-/** The same offset the server draws a name at (`wiki-graph.ts`'s own `LABEL_GAP`). */
-const LABEL_GAP = 9;
 
 interface NodeEl {
   a: SVGAElement;
@@ -72,8 +70,14 @@ function applyPositions(state: Bound): void {
     const p = state.positions[i]!;
     circle.setAttribute("cx", String(p.x));
     circle.setAttribute("cy", String(p.y));
-    const side = text.getAttribute("text-anchor") === "end" ? -LABEL_GAP : LABEL_GAP;
-    text.setAttribute("x", String(p.x + side));
+    // The point's side can flip between the server's fixed 720px layout and
+    // the box's own real width (a point near the old middle, at a phone's
+    // narrower one) — read fresh off the CURRENT width every time, rather
+    // than trusting the `text-anchor` the server happened to draw, which a
+    // flip would leave stale and pointing the label the wrong way.
+    const side = labelSide(p, state.width);
+    text.setAttribute("text-anchor", side);
+    text.setAttribute("x", String(p.x + (side === "start" ? LABEL_GAP : -LABEL_GAP)));
     text.setAttribute("y", String(p.y));
   });
   for (const { line, a, b } of state.edges) {
@@ -98,7 +102,9 @@ function resettle(state: Bound): void {
   state.width = rect.width;
   state.height = rect.height;
   state.svg.setAttribute("viewBox", `0 0 ${rect.width} ${rect.height}`);
-  state.positions = settle(startPositions(state.nodes.length, rect.width, rect.height), state.pairs, rect.width, rect.height);
+  const titles = state.nodes.map((n) => n.text.textContent ?? "");
+  const settled = settle(startPositions(state.nodes.length, rect.width, rect.height), state.pairs, rect.width, rect.height);
+  state.positions = declutterLabels(settled, titles, rect.width, rect.height);
   state.view = { x: 0, y: 0, scale: 1 };
   applyPositions(state);
   applyView(state);
@@ -237,6 +243,22 @@ export function bindWikiGraph(svg: SVGSVGElement): void {
     resizeTimer = setTimeout(() => {
       if (!isActive(state.gesture)) resettle(state);
     }, 150);
+  });
+
+  // AC-8: pointing at a point with the MOUSE picks out its own edges and
+  // the pages they lead to, fading the rest — `mouseenter`/`mouseleave`
+  // rather than `pointerenter`/`pointerleave` so a touch tap never fires
+  // this (and so never has to un-fire it on a phone that has no hover).
+  state.nodes.forEach((node, i) => {
+    node.a.addEventListener("mouseenter", () => {
+      const near = neighbors(i, state.pairs);
+      state.nodes.forEach((n, j) => n.a.toggleAttribute("data-dim", j !== i && !near.has(j)));
+      state.edges.forEach((e) => e.line.toggleAttribute("data-dim", e.a !== i && e.b !== i));
+    });
+    node.a.addEventListener("mouseleave", () => {
+      state.nodes.forEach((n) => n.a.removeAttribute("data-dim"));
+      state.edges.forEach((e) => e.line.removeAttribute("data-dim"));
+    });
   });
 }
 

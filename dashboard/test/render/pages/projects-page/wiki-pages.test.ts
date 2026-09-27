@@ -42,20 +42,21 @@ describe("the Wiki tab's page list", () => {
     expect(page({ wiki: { pages } })).not.toContain("spec-editor-host");
   });
 
-  test("the build's status, its button and its log stay beside the list (AC-7)", () => {
+  test("the build's status, its button and its log are on the Build tab, not beside the list (AC-3)", () => {
     const step = { step: "wiki", ok: true, costUsd: 0.1, costMeasured: true, terminalReason: "completed", logs: [{ by: "aide", lines: ["wrote"] }] };
     const html = page({
       wiki: { pages },
       wikiBuild: { id: "j1", state: "done", finishedAt: "2026-09-26T10:00:00Z" },
       wikiLog: { results: [step] },
     });
-    expect(html).toContain("Last built 2026-09-26.");
-    expect(html).toContain('action="/api/queue/projects/aide/wiki"');
-    expect(html).toContain('href="/projects/aide?tab=wiki&step=');
+    expect(html).not.toContain('action="/api/queue/projects/aide/wiki"');
+    expect(html).not.toContain('href="/projects/aide?tab=wiki&step=');
   });
 
-  test("a list keeps reloading itself while a build runs (AC-7)", () => {
-    expect(page({ wiki: { pages }, script: "x", wikiBuild: { id: "j1", state: "running" } })).toContain("data-reload-every=");
+  test("the Pages panel never carries the self-reload marker, running build or not, page open or not (AC-3)", () => {
+    expect(page({ wiki: { pages }, script: "x", wikiBuild: { id: "j1", state: "running" } })).not.toContain("data-reload-every=");
+    const open = { page: "alpha.md", state: "changed", text: "# Alpha\n" };
+    expect(page({ wiki: { pages, open }, script: "x", wikiBuild: { id: "j1", state: "running" } })).not.toContain("data-reload-every=");
   });
 
   test("without a wiki the tab draws no pages block at all (AC-8)", () => {
@@ -82,10 +83,9 @@ describe("an open page", () => {
     expect(html).not.toContain("Third by name.");
   });
 
-  test("does not reload itself while a build runs, so the reader keeps their place (AC-7)", () => {
+  test("an open page carries no Build-tab action, cancel included (AC-3)", () => {
     const html = page({ wiki: { pages, open }, script: "x", wikiBuild: { id: "j1", state: "running" } });
-    expect(html).not.toContain("data-reload-every=");
-    expect(html).toContain('action="/api/queue/j1/cancel"');
+    expect(html).not.toContain('action="/api/queue/j1/cancel"');
   });
 
   test("a page that is not on the branch says so and keeps the list (AC-5)", () => {

@@ -21,12 +21,12 @@ const TAB = "/projects/aide?tab=wiki";
 const listed = (h: string) => h.includes("How a branch lands.");
 
 describe("the Wiki tab lists and opens the wiki's pages (AC-1, AC-2, AC-5)", () => {
-  test("?tab=wiki lists the pages in the index's order, with the build panel beside them (AC-1)", async () => {
+  test("?tab=wiki opens on Pages and lists the pages in the index's order, with none of the Build panel beside them (AC-1)", async () => {
     const { base } = await board(WIKI);
     const html = await untilTab(base, TAB, listed);
     expect(html.indexOf("Landing")).toBeLessThan(html.indexOf("Skills"));
     expect(html).toContain("The slash commands.");
-    expect(html).toContain('action="/api/queue/projects/aide/wiki"');
+    expect(html).not.toContain('action="/api/queue/projects/aide/wiki"');
     expect(html).not.toContain("/spec-viewer.js");
   });
 

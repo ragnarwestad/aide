@@ -25,10 +25,10 @@ export async function handleWikiRoute(
   if (!result.ok) {
     logRefusal("build wiki", name, result.error);
     if (wantsJson) return json({ error: result.error }, 400);
-    const back = `/projects/${encodeURIComponent(name)}?tab=wiki&wikiError=${encodeURIComponent(result.error)}`;
+    const back = `/projects/${encodeURIComponent(name)}?tab=wiki&wikitab=build&wikiError=${encodeURIComponent(result.error)}`;
     return new Response(null, { status: 303, headers: { location: back } });
   }
   await ctx.tickRunner();
-  const tab = `/projects/${encodeURIComponent(name)}?tab=wiki`;
+  const tab = `/projects/${encodeURIComponent(name)}?tab=wiki&wikitab=build`;
   return wantsJson ? json({ ok: true, job: result.job }) : new Response(null, { status: 303, headers: { location: tab } });
 }

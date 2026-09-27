@@ -162,6 +162,9 @@ export const fr: Record<TranslationKey, string> = {
     "Ce projet ne contient pas le code source du tableau de bord, donc un serveur de test ne peut pas " +
     "démarrer d'ici.",
   "project.wikiHeading": "Wiki",
+  "project.wikiTabPages": "Pages",
+  "project.wikiTabGraph": "Graphe",
+  "project.wikiTabBuild": "Construction",
   "project.wikiNote":
     "Construit un wiki de la façon dont les parties du projet s'articulent. Il est conservé dans le dépôt des specs et lu en premier lors de l'analyse d'une spec. Chaque construction réécrit les pages générées et laisse telles quelles les pages écrites à la main.",
   "project.wikiButton": "Construire le wiki",

@@ -289,6 +289,7 @@ export async function projectPages(
         // test-server link already gates on.
         testServerAvailable: ctx.testServers.previewAvailable(name),
         tab: url.searchParams.get("tab") ?? undefined,
+        wikiTab: url.searchParams.get("wikitab") ?? undefined,
         lang: langResult.lang,
         currentUrl: langResult.currentUrl,
       },

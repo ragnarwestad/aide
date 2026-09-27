@@ -171,6 +171,9 @@ export const en = {
   "project.testServerUnavailable":
     "This project does not carry the dashboard's own source, so a test server cannot start from here.",
   "project.wikiHeading": "Wiki",
+  "project.wikiTabPages": "Pages",
+  "project.wikiTabGraph": "Graph",
+  "project.wikiTabBuild": "Build",
   "project.wikiNote":
     "Builds a wiki of how this project's parts hang together. It is kept in the specs repository and read first when a spec is analyzed. A build rewrites the pages it generated and leaves any page written by hand as it is.",
   "project.wikiButton": "Build wiki",

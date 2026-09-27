@@ -32,6 +32,17 @@ export interface WikiGraph {
   pairs: WikiGraphPair[];
 }
 
+/** Every point index linked to `index`, directly — what AC-8's hover
+ *  highlight calls "its own lines and the pages at their other ends". */
+export function neighbors(index: number, pairs: readonly WikiGraphPair[]): Set<number> {
+  const out = new Set<number>();
+  for (const { a, b } of pairs) {
+    if (a === index) out.add(b);
+    else if (b === index) out.add(a);
+  }
+  return out;
+}
+
 /** The graph the tab draws: one point per page, one pair per linked couple.
  *  A link to a page not among `pages`, or to the page's own name, adds no
  *  pair; a link with a `#fragment` counts as a link to the page it names. */

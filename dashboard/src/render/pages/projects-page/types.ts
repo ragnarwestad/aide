@@ -113,6 +113,12 @@ export interface ProjectPageOptions {
    *  tab held only in client state would snap back to the default on
    *  every reload. */
   tab?: string;
+  /** Which of the Wiki tab's own Pages/Graph/Build panels is open, off
+   *  `?wikitab=` — nested one level under `tab` the same way a job
+   *  step's own Log/Files/Errors strip reads `?steptab=` under `?step=`.
+   *  Absent means Pages, except an open wiki page (`wiki.open`) always
+   *  wins over whatever this says. */
+  wikiTab?: string;
   /** Spec 408. Absent means English — the same default `pageShell`'s
    *  own `opts.lang` falls back to. */
   lang?: Language;

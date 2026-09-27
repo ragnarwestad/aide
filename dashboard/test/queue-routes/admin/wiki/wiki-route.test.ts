@@ -25,11 +25,11 @@ describe("POST /api/queue/projects/<name>/wiki (AC-1)", () => {
     expect(queued[0]).toMatchObject({ steps: ["wiki"], specFolder: "wiki-aide" });
   });
 
-  test("a browser without script is sent back to the Wiki tab, where the build is followed", async () => {
+  test("a browser without script is sent back to the Wiki tab's Build tab, where the build is followed", async () => {
     const { base } = start();
     const res = await post(base, "aide", { "content-type": "application/x-www-form-urlencoded" });
     expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe("/projects/aide?tab=wiki");
+    expect(res.headers.get("location")).toBe("/projects/aide?tab=wiki&wikitab=build");
     expect(await jobs(base)).toHaveLength(1);
   });
 
@@ -48,7 +48,7 @@ describe("POST /api/queue/projects/<name>/wiki (AC-1)", () => {
     const again = await post(base, "aide", { "content-type": "application/x-www-form-urlencoded" });
     expect(again.status).toBe(303);
     const location = again.headers.get("location") ?? "";
-    expect(location.startsWith("/projects/aide?tab=wiki&wikiError=")).toBe(true);
+    expect(location.startsWith("/projects/aide?tab=wiki&wikitab=build&wikiError=")).toBe(true);
   });
 
   test("a project that is not allowed is refused and nothing is queued", async () => {
@@ -77,18 +77,18 @@ describe("a wiki build is followed on the Wiki tab, never on the Specs list", ()
     }
   });
 
-  test("the Wiki tab shows it with its log and a Cancel that comes back to the tab", async () => {
+  test("the Wiki tab's Build tab shows it with its log and a Cancel that comes back to the Build tab", async () => {
     const { base } = start();
     await post(base, "aide");
     const [job] = (await jobs(base)) as unknown as { id: string }[];
-    const html = await (await fetch(`${base}/projects/aide?tab=wiki`)).text();
+    const html = await (await fetch(`${base}/projects/aide?tab=wiki&wikitab=build`)).text();
     expect(html).toContain("No step has finished yet");
     expect(html).toContain(`action="/api/queue/${job!.id}/cancel"`);
     const cancel = await fetch(`${base}/api/queue/${job!.id}/cancel`, {
       method: "POST", redirect: "manual", headers: { "content-type": "application/x-www-form-urlencoded" },
     });
     expect(cancel.status).toBe(303);
-    expect(cancel.headers.get("location")).toBe("/projects/aide?tab=wiki");
+    expect(cancel.headers.get("location")).toBe("/projects/aide?tab=wiki&wikitab=build");
   });
 });
 
@@ -121,7 +121,7 @@ describe("a step of the wiki build keeps its tab in the address (AC-6)", () => {
     writeFileSync(mirror, JSON.stringify(queued));
     const { base: base2 } = start({ queueMirrorPath: mirror });
 
-    const html = await (await fetch(`${base2}/projects/aide?tab=wiki&step=0&steptab=errors`)).text();
+    const html = await (await fetch(`${base2}/projects/aide?tab=wiki&wikitab=build&step=0&steptab=errors`)).text();
     expect(html.match(/<a class="tab"[^>]*aria-current="true"[^>]*>([^<]*)</)?.[1]).toBe("Errors");
   });
 });

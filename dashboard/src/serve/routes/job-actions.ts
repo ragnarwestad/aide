@@ -222,7 +222,10 @@ export async function handleJobActionRoutes(
     // A wiki build is followed on its project's Wiki tab, and that is where
     // its Cancel came from.
     if (!wantsJson && isWikiBuild(job)) {
-      return new Response(null, { status: 303, headers: { location: `/projects/${encodeURIComponent(job.project)}?tab=wiki` } });
+      return new Response(null, {
+        status: 303,
+        headers: { location: `/projects/${encodeURIComponent(job.project)}?tab=wiki&wikitab=build` },
+      });
     }
     return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect(view);
   }

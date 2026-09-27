@@ -163,6 +163,9 @@ export const nb: Record<TranslationKey, string> = {
   "project.testServerUnavailable":
     "Dette prosjektet inneholder ikke dashbordets egen kode, så en testserver kan ikke starte herfra.",
   "project.wikiHeading": "Wiki",
+  "project.wikiTabPages": "Sider",
+  "project.wikiTabGraph": "Graf",
+  "project.wikiTabBuild": "Bygg",
   "project.wikiNote":
     "Bygger en wiki over hvordan delene av prosjektet henger sammen. Den ligger i spec-repoet og leses først når en spec analyseres. Ved ny bygging skrives de genererte sidene på nytt, og sider som er skrevet for hånd blir stående som de er.",
   "project.wikiButton": "Bygg wiki",

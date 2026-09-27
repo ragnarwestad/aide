@@ -34,7 +34,7 @@ beforeAll(async () => {
   const board = await wikiBoard({ "index.md": INDEX, "alpha.md": ALPHA, "bravo.md": BRAVO, "charlie.md": CHARLIE });
   base = board.base;
   stop = board.stop;
-  await untilTab(base, "/projects/aide?tab=wiki", (h) => h.includes("data-wikigraph"));
+  await untilTab(base, "/projects/aide?tab=wiki&wikitab=graph", (h) => h.includes("data-wikigraph"));
 });
 
 afterAll(async () => {
@@ -49,7 +49,7 @@ let page: Page;
 async function openGraph(viewport = { width: 1000, height: 800 }, extra: Record<string, unknown> = {}): Promise<Page> {
   context = await browser.newContext({ viewport, ...extra });
   page = await context.newPage();
-  await page.goto(`${base}/projects/aide?tab=wiki`);
+  await page.goto(`${base}/projects/aide?tab=wiki&wikitab=graph`);
   const graph = page.locator("svg[data-wikigraph]");
   await graph.waitFor();
   // The graph sits below the page list's intro and can start past the
@@ -244,5 +244,38 @@ describe("two fingers zoom about their midpoint (AC-3)", () => {
     const transform = (await viewportTransform(p)) ?? "";
     const scale = Number(transform.match(/scale\(([\d.]+)\)/)?.[1] ?? "1");
     expect(scale).toBeGreaterThan(1);
+  });
+});
+
+describe("pointing at a point with the mouse fades everything but its own neighbourhood (AC-8)", () => {
+  test("hovering a point keeps it, its own edges and the pages they lead to at full strength, and fades the rest", async () => {
+    const p = await openGraph();
+    const nodes = await nodeBoxes(p);
+    // Alpha (0) links to Bravo (1); Charlie (2) stands alone (fixture above).
+    await p.mouse.move(nodes[0]!.x, nodes[0]!.y);
+    await p.waitForFunction(() => document.querySelectorAll(".wikinode[data-dim]").length > 0);
+    const dimmed = await p.locator(".wikinode[data-dim]").count();
+    expect(dimmed).toBe(1); // Charlie alone fades; Alpha and Bravo do not
+    expect(await p.locator(".wikiedge[data-dim]").count()).toBe(0); // the one edge is Alpha-Bravo's own
+  });
+
+  test("moving off the point brings everything back", async () => {
+    const p = await openGraph();
+    const nodes = await nodeBoxes(p);
+    await p.mouse.move(nodes[0]!.x, nodes[0]!.y);
+    await p.waitForFunction(() => document.querySelectorAll(".wikinode[data-dim]").length > 0);
+    const box = (await p.locator("svg[data-wikigraph]").boundingBox())!;
+    // Off every node and every label, so no other node's mouseenter fires.
+    await p.mouse.move(box.x + box.width - 4, box.y + 4);
+    await p.waitForFunction(() => document.querySelectorAll(".wikinode[data-dim]").length === 0);
+    expect(await p.locator("[data-dim]").count()).toBe(0);
+  });
+
+  test("hovering does not fire from a touch tap, so it never has to be un-fired on a phone", async () => {
+    const p = await openGraph({ width: 375, height: 700 }, { isMobile: true, hasTouch: true });
+    const nodes = await nodeBoxes(p);
+    await touch(p, [{ x: nodes[0]!.x, y: nodes[0]!.y }], "touchStart");
+    await touch(p, [], "touchEnd");
+    expect(await p.locator("[data-dim]").count()).toBe(0);
   });
 });

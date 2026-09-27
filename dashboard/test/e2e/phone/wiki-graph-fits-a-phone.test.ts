@@ -1,6 +1,8 @@
-// The Wiki tab's graph on a phone (AC-5, criterion 16): a wiki the size of
-// this project's own (28 pages) fits the tab's own width at 360 and 390 px,
-// the page never scrolls sideways, and every point lands inside the box.
+// The Wiki tab's Graph panel on a phone (AC-5, criterion 16 of an earlier
+// round; AC-7 and AC-9 of this one): a wiki the size of this project's own
+// (28 pages) fits the panel's own width at 360 and 390 px, the page never
+// scrolls sideways, every point lands inside the box, and no two rendered
+// names overlap.
 //
 // Not run by the session: Aide is not a project where the session runs the
 // e2e suite. CI runs it (`make test-e2e`), and by hand:
@@ -34,7 +36,7 @@ beforeAll(async () => {
   const board = await wikiBoard(pages);
   base = board.base;
   stop = board.stop;
-  await untilTab(base, "/projects/aide?tab=wiki", (h) => h.includes("data-wikigraph"));
+  await untilTab(base, "/projects/aide?tab=wiki&wikitab=graph", (h) => h.includes("data-wikigraph"));
 });
 
 afterAll(async () => {
@@ -46,13 +48,25 @@ afterAll(async () => {
 async function open(width: number, height: number): Promise<Page> {
   const context = await browser.newContext({ viewport: { width, height }, isMobile: true, hasTouch: true });
   const page = await context.newPage();
-  await page.goto(`${base}/projects/aide?tab=wiki`);
+  await page.goto(`${base}/projects/aide?tab=wiki&wikitab=graph`);
   await page.locator("svg[data-wikigraph]").waitFor();
   return page;
 }
 
+/** Whether any two of a list of rectangles overlap — the same AABB test
+ *  `test/wiki-graph/layout.test.ts` uses on the algorithm's own estimated
+ *  boxes; here it runs on the browser's REAL rendered ones (AC-7). */
+function anyOverlap(boxes: { x: number; y: number; width: number; height: number }[]): boolean {
+  for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+    const a = boxes[i]!;
+    const b = boxes[j]!;
+    if (a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height) return true;
+  }
+  return false;
+}
+
 for (const width of [360, 390]) {
-  test(`the graph fits a ${width}px screen and the page does not scroll sideways (AC-5)`, async () => {
+  test(`the graph fits a ${width}px screen and the page does not scroll sideways (AC-9)`, async () => {
     const page = await open(width, 800);
     const overflow = await page.evaluate(() => ({
       page: document.documentElement.scrollWidth,
@@ -60,7 +74,7 @@ for (const width of [360, 390]) {
     }));
     expect(overflow.page).toBeLessThanOrEqual(overflow.screen);
 
-    const tabBox = (await page.locator(".deploypanel").boundingBox())!;
+    const tabBox = (await page.locator(".tabpanel").boundingBox())!;
     const graphBox = (await page.locator("svg[data-wikigraph]").boundingBox())!;
     expect(Math.abs(graphBox.width - tabBox.width)).toBeLessThanOrEqual(2);
     expect(graphBox.height).toBeLessThanOrEqual(800 * 0.7 + 1);
@@ -74,4 +88,40 @@ for (const width of [360, 390]) {
     }
     await page.context().close();
   });
+
+  test(`no two page names overlap, and none is drawn against the graph's edge, at ${width}px (AC-7)`, async () => {
+    const page = await open(width, 800);
+    const graphBox = (await page.locator("svg[data-wikigraph]").boundingBox())!;
+    const labels = await page.locator(".wikinode text").all();
+    expect(labels).toHaveLength(PAGE_COUNT);
+    const boxes = await Promise.all(labels.map((l) => l.boundingBox()));
+    for (const box of boxes) {
+      expect(box).not.toBeNull();
+      expect(box!.x).toBeGreaterThanOrEqual(graphBox.x - 1);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(graphBox.x + graphBox.width + 1);
+      expect(box!.y).toBeGreaterThanOrEqual(graphBox.y - 1);
+      expect(box!.y + box!.height).toBeLessThanOrEqual(graphBox.y + graphBox.height + 1);
+    }
+    expect(anyOverlap(boxes as { x: number; y: number; width: number; height: number }[])).toBe(false);
+    await page.context().close();
+  });
 }
+
+test("no two page names overlap, and none is drawn against the graph's edge, at a desktop width (AC-7)", async () => {
+  const context = await browser.newContext({ viewport: { width: 1000, height: 800 } });
+  const page = await context.newPage();
+  await page.goto(`${base}/projects/aide?tab=wiki&wikitab=graph`);
+  await page.locator("svg[data-wikigraph]").waitFor();
+  const graphBox = (await page.locator("svg[data-wikigraph]").boundingBox())!;
+  const labels = await page.locator(".wikinode text").all();
+  const boxes = await Promise.all(labels.map((l) => l.boundingBox()));
+  for (const box of boxes) {
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(graphBox.x - 1);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(graphBox.x + graphBox.width + 1);
+    expect(box!.y).toBeGreaterThanOrEqual(graphBox.y - 1);
+    expect(box!.y + box!.height).toBeLessThanOrEqual(graphBox.y + graphBox.height + 1);
+  }
+  expect(anyOverlap(boxes as { x: number; y: number; width: number; height: number }[])).toBe(false);
+  await context.close();
+});

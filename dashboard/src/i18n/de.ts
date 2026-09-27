@@ -162,6 +162,9 @@ export const de: Record<TranslationKey, string> = {
     "Dieses Projekt enthält nicht den eigenen Quellcode des Dashboards, daher kann von hier aus kein " +
     "Testserver gestartet werden.",
   "project.wikiHeading": "Wiki",
+  "project.wikiTabPages": "Seiten",
+  "project.wikiTabGraph": "Graph",
+  "project.wikiTabBuild": "Aufbau",
   "project.wikiNote":
     "Baut ein Wiki darüber, wie die Teile des Projekts zusammenhängen. Es liegt im Specs-Repository und wird beim Analysieren einer Spec zuerst gelesen. Jeder Aufbau schreibt die generierten Seiten neu und lässt von Hand geschriebene Seiten unverändert.",
   "project.wikiButton": "Wiki aufbauen",

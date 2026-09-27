@@ -157,3 +157,109 @@ export type LabelSide = "start" | "end";
 export function labelSide(point: Point, width: number): LabelSide {
   return point.x < width / 2 ? "start" : "end";
 }
+
+/** How far a label's text starts from its own point — the render
+ *  (`wiki-graph.ts`) and the browser script (`specs-client/wiki-graph/index.ts`)
+ *  both import this rather than keeping their own copy, so a name's box here
+ *  is the box actually drawn. */
+export const LABEL_GAP = 9;
+
+/** Half a label's own line height: an ascender or a descender on a 12px
+ *  sans body (`--fs-s`) never clips past this from the point's own y — a
+ *  hair over the font's own metrics (a real browser's rendered `<text>`
+ *  box, measured in `test/e2e/phone/wiki-graph-fits-a-phone.test.ts`, runs
+ *  right up against a tighter number), so the margin holds with room to
+ *  spare rather than by a fraction of a pixel. */
+export const LABEL_HALF_HEIGHT = 12;
+
+/** An estimate of a title's rendered width — wider than `--fs-s` actually
+ *  renders on purpose (decision in 3-solution.md): the estimate only has to
+ *  be conservative, and a real browser's own layout (AC-7's own test)
+ *  measures what was actually drawn, not this number. */
+const CHAR_WIDTH = 7;
+export function labelWidth(title: string): number {
+  return title.length * CHAR_WIDTH;
+}
+
+/** No two points' label boxes settle closer than this many passes'
+ *  worth of pushing apart — `declutterLabels`'s own cap, the same role
+ *  `SETTLE_CAP` plays for `settle()`. */
+const LABEL_PASSES = 60;
+
+interface LabelBox {
+  x0: number;
+  x1: number;
+  y0: number;
+  y1: number;
+}
+
+function labelBox(p: Point, title: string, width: number): LabelBox {
+  const side = labelSide(p, width);
+  const w = labelWidth(title);
+  const [x0, x1] = side === "start" ? [p.x + LABEL_GAP, p.x + LABEL_GAP + w] : [p.x - LABEL_GAP - w, p.x - LABEL_GAP];
+  return { x0, x1, y0: p.y - LABEL_HALF_HEIGHT, y1: p.y + LABEL_HALF_HEIGHT };
+}
+
+function boxOverlap(a: LabelBox, b: LabelBox): { dx: number; dy: number } | undefined {
+  const dx = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0);
+  const dy = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0);
+  return dx > 0 && dy > 0 ? { dx, dy } : undefined;
+}
+
+/** A point's own label never crosses the frame's edge, and never crosses
+ *  the vertical middle — crossing it would flip `labelSide`'s own answer
+ *  and could see-saw the point back and forth across passes. Kept inside
+ *  whichever half the point already sits in. */
+function clampToLabelFrame(p: Point, title: string, width: number, height: number): Point {
+  const side = labelSide(p, width);
+  const w = labelWidth(title);
+  const mid = width / 2;
+  const lo = side === "start" ? MARGIN : Math.max(MARGIN + w + LABEL_GAP, mid);
+  const hi = side === "start" ? Math.min(width - MARGIN - w - LABEL_GAP, mid) : width - MARGIN;
+  return {
+    x: Math.min(Math.max(lo, hi), Math.max(Math.min(lo, hi), p.x)),
+    y: Math.min(height - LABEL_HALF_HEIGHT, Math.max(LABEL_HALF_HEIGHT, p.y)),
+  };
+}
+
+/** After `settle()`: push apart any two points whose LABEL boxes — not
+ *  just their circles — still overlap, and keep every label's own box,
+ *  not only the point, inside the frame (AC-7, AC-9). Runs strictly after
+ *  `settle()` returns and never re-invokes `tick()`, so it cannot fight
+ *  that pass's own forces: a separate, capped pass over already-settled
+ *  points, the same relationship `separate()` already has inside one
+ *  `tick()` call. */
+export function declutterLabels(points: readonly Point[], titles: readonly string[], width: number, height: number): Point[] {
+  let current = points.map((p) => ({ ...p }));
+  for (let pass = 0; pass < LABEL_PASSES; pass++) {
+    let moved = false;
+    const boxes = current.map((p, i) => labelBox(p, titles[i]!, width));
+    for (let i = 0; i < current.length; i++) {
+      for (let j = i + 1; j < current.length; j++) {
+        const hit = boxOverlap(boxes[i]!, boxes[j]!);
+        if (!hit) continue;
+        moved = true;
+        // Separate along whichever axis has the smaller overlap — the
+        // ordinary AABB push-apart heuristic, so a small nudge resolves
+        // it rather than one axis always winning.
+        if (hit.dy <= hit.dx) {
+          const push = hit.dy / 2 + 1;
+          const down = current[i]!.y <= current[j]!.y;
+          current[i]!.y += down ? -push : push;
+          current[j]!.y += down ? push : -push;
+        } else {
+          const push = hit.dx / 2 + 1;
+          const left = current[i]!.x <= current[j]!.x;
+          current[i]!.x += left ? -push : push;
+          current[j]!.x += left ? push : -push;
+        }
+        current[i] = clampToLabelFrame(current[i]!, titles[i]!, width, height);
+        current[j] = clampToLabelFrame(current[j]!, titles[j]!, width, height);
+        boxes[i] = labelBox(current[i]!, titles[i]!, width);
+        boxes[j] = labelBox(current[j]!, titles[j]!, width);
+      }
+    }
+    if (!moved) break;
+  }
+  return current.map((p, i) => clampToLabelFrame(p, titles[i]!, width, height));
+}

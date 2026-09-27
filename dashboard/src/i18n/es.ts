@@ -162,6 +162,9 @@ export const es: Record<TranslationKey, string> = {
     "Este proyecto no lleva el propio código del dashboard, así que un servidor de prueba no puede arrancar " +
     "desde aquí.",
   "project.wikiHeading": "Wiki",
+  "project.wikiTabPages": "Páginas",
+  "project.wikiTabGraph": "Grafo",
+  "project.wikiTabBuild": "Generación",
   "project.wikiNote":
     "Genera una wiki de cómo encajan las partes del proyecto. Se guarda en el repositorio de specs y se lee primero al analizar una spec. Cada generación reescribe las páginas generadas y deja intactas las escritas a mano.",
   "project.wikiButton": "Generar wiki",

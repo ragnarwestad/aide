@@ -44,7 +44,7 @@ function jobName(lang: Language, name: string): string {
   const project = name.slice(0, colon);
   const folder = name.slice(colon + 1);
   if (folder === wikiTrackingKey(project)) {
-    const href = `${projectPagePath(project)}?tab=wiki`;
+    const href = `${projectPagePath(project)}?tab=wiki&wikitab=build`;
     return `<a data-goto href="${esc(href)}">${esc(jobText(lang, name))}</a>`;
   }
   if (!isSpecFolder(folder)) return esc(name);

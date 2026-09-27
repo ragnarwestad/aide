@@ -18,3 +18,8 @@
 .wikinode circle { fill: var(--accent); }
 .wikinode:hover circle { fill: var(--accent-strong); }
 .wikinode text { fill: var(--text); font-size: var(--fs-s); font-family: var(--sans); }
+/* AC-8: everything but the hovered point's own neighbourhood fades — set
+   by script (`specs-client/wiki-graph/index.ts`) on `mouseenter`/`mouseleave`,
+   a plain attribute rather than a class so this needs no class-vocabulary
+   entry of its own (`field.css`'s `[data-limit="near"]` is the same pattern). */
+.wikinode[data-dim], .wikiedge[data-dim] { opacity: 0.25; transition: opacity 120ms ease; }
