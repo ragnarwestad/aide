@@ -229,7 +229,7 @@ describe("the AI's label", () => {
     });
     const view = await jobDetailView(makeCtx(), job);
 
-    expect(view.results[0]!.aiModel).toBe("Claude Opus · claude-opus-5-5");
+    expect(view.results[0]!.aiModel).toBe("Claude Opus 5.5");
     expect(view.results[1]!.aiModel).toBe("Codex Opus");
   });
 });

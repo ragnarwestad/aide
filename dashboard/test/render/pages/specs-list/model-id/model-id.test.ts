@@ -54,7 +54,7 @@ const modelSelect = (html: string, step: string) => line(html, step).match(new R
 describe("a phase's unfolded row", () => {
   test("starts with the model line from the queue's result (AC-2)", () => {
     const body = unfolded(render([ran({}, { modelId: "claude-opus-5-5" })]));
-    expect(body).toContain('<p class="muted small" data-model-id>Model: Opus · claude-opus-5-5</p>');
+    expect(body).toContain('<p class="muted small" data-model-id>Model: Opus 5.5</p>');
     expect(body.indexOf("data-model-id")).toBeLessThan(body.indexOf("said"));
   });
 
@@ -67,7 +67,7 @@ describe("a phase's unfolded row", () => {
       phaseOutcomes: { analyze: { model: "claude opus", modelId: "claude-opus-5-5" } },
     };
     const html = render([], { targets: [], archivedSpecs: [archived], filter: { state: "archived", open: "aide/50-old", phases: "aide/50-old:analyze" } });
-    expect(unfolded(html)).toContain("Model: opus · claude-opus-5-5");
+    expect(unfolded(html)).toContain("Model: Opus 5.5");
   });
 
   test("a phase with no stored id has no model line (AC-2)", () => {
@@ -94,7 +94,7 @@ describe("the pickers", () => {
     expect(modelSelect(html, "analyze")).toContain(">Opus</option>");
     expect(modelSelect(html, "analyze")).not.toContain("claude-opus-5-6");
     // implement has not run: its select is open, and offers today's answer.
-    expect(modelSelect(html, "implement")).toContain(">Opus (claude-opus-5-6)</option>");
+    expect(modelSelect(html, "implement")).toContain(">Opus 5.6</option>");
     // A Codex or OpenCode choice reads as its name.
     expect(modelSelect(html, "implement")).toContain(">zen-free</option>");
   });
@@ -107,7 +107,7 @@ describe("the pickers", () => {
 
   test("modelOptions labels only an option that carries ranAs (AC-4)", () => {
     const html = modelOptions([{ name: "Opus", ranAs: "claude-opus-5-5" }, { name: "Sonnet" }]);
-    expect(html).toContain('value="Opus" data-tool="claude">Opus (claude-opus-5-5)</option>');
+    expect(html).toContain('value="Opus" data-tool="claude">Opus 5.5</option>');
     expect(html).toContain('>Sonnet</option>');
   });
 
@@ -119,6 +119,6 @@ describe("the pickers", () => {
       backHref: "/projects", modelChoices: CHOICES, defaultModels: { default: "Opus" },
     });
     const settings = renderSettingsPage(nav, "2026-09-26T00:00:00Z", { modelChoices: CHOICES, defaultModels: { default: "Opus" }, timeoutSec: { default: 1200 } });
-    for (const html of [newSpec, schedule, settings]) expect(html).toContain("Opus (claude-opus-5-6)");
+    for (const html of [newSpec, schedule, settings]) expect(html).toContain(">Opus 5.6<");
   });
 });

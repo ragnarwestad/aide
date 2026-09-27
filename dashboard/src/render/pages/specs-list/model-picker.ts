@@ -1,5 +1,6 @@
 import { esc } from "../../ui/html.ts";
 import { durationLabel } from "../../ui/job-state";
+import { aliasLabel } from "../../ui/components/model-label.ts";
 import { t, type Language } from "../../../i18n";
 import type { SpecsPageOptions } from "./";
 import { groupKey, isArchivedRow, type SpecGroup } from "./data-model";
@@ -164,8 +165,8 @@ export function modelOptions(models: NonNullable<SpecsPageOptions["modelChoices"
               // alone — the per-step dollar figure it used to carry
               // (spec 454) read as a price, and spec 473 dropped it
               // from the config entirely.
-              // What the alias gives today, when it has run: `Opus (claude-opus-5-5)`.
-              `${m.name === chosen ? " selected" : ""}>${esc(m.ranAs ? `${m.name} (${m.ranAs})` : m.name)}</option>`,
+              // What the alias gives today, when it has run: `Opus 5.5`.
+              `${m.name === chosen ? " selected" : ""}>${esc(aliasLabel(m.name, m.ranAs))}</option>`,
           )
           .join("") +
         `</optgroup>`
