@@ -93,3 +93,51 @@ def test_what_the_session_left_running_is_stopped_when_its_turn_ends(runner, wor
     run(runner, workspace, claude, command="implement")
     time.sleep(0.3)
     assert not _alive(int(pid_file.read_text()))
+
+
+def test_a_cancelled_steps_commit_waits_for_the_checkout_lock(runner, workspace, fake_claude, tmp_path):
+    """A wiki build stopped at a restart was committing into its worktree
+    while the re-queued build was cutting a fresh one at the same path, and
+    the commit caught half of main's new files (2026-09-27). The commit and
+    the worktree's removal now hold the checkout's lock, which the next run
+    takes before it cuts its worktree."""
+    with_status(workspace, ["create", "analyze"])
+    ready = tmp_path / "ready"
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        "printf 'half done\\n' > cancelled-work.txt\n"
+        f"touch {ready}\n"
+        "sleep 60\n"
+    )
+    env = {**os.environ, "AIDE_CLAUDE_BIN": str(claude)}
+    proc = subprocess.Popen(
+        [
+            str(runner),
+            "--project-dir", str(workspace["project"]),
+            "--command", "implement",
+            "--spec", workspace["folder"],
+            "--timeout-sec", "120",
+            "--permission-mode", "acceptEdits",
+            "--result-file", str(tmp_path / "result.json"),
+            "--worktree-base", str(workspace["wtbase"]),
+        ],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env,
+    )
+    lock = workspace["project"] / ".git" / "aide-run-spec-worktree.lock"
+    try:
+        wait_until(ready.exists, 60, "the step never started writing")
+        # Another run holds the checkout: this process, alive.
+        lock.mkdir()
+        (lock / "pid").write_text(str(os.getpid()))
+        proc.send_signal(signal.SIGTERM)
+        time.sleep(3)
+        assert proc.poll() is None, "the cancelled step did not wait for the lock"
+        assert "cancelled-work.txt" not in git(workspace["project"], "ls-tree", "-r", "--name-only", BRANCH)
+        (lock / "pid").unlink()
+        lock.rmdir()
+        proc.wait(timeout=60)
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait(timeout=10)
+    assert git(workspace["project"], "show", f"{BRANCH}:cancelled-work.txt") == "half done"

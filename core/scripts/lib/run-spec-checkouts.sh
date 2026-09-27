@@ -203,7 +203,32 @@ keep_stream() {
   fi
   return 0
 }
-trap 'keep_stream; remove_worktrees; delete_empty_branches; release_worktree_lock; rm -rf "$work_dir"' EXIT
+# The checkout locks a cancelled step holds through its commit and the
+# removal of its worktrees (on_signal): released after both, in the EXIT
+# trap, so a run on the same branch waits for them.
+signal_locks=()
+release_signal_locks() {
+  local lock
+  for lock in ${signal_locks[@]+"${signal_locks[@]}"}; do rm -rf "$lock" 2>/dev/null || true; done
+  signal_locks=()
+}
+# Waits for one checkout's lock, as acquire_worktree_lock does, but never
+# refuses: a lock still held after two minutes is left, and the commit goes
+# ahead without it, as it always did.
+take_signal_lock() {
+  local lock="$1/.git/aide-run-spec-worktree.lock" deadline owner
+  [ "$lock" = "${worktree_lock:-}" ] && return 0
+  deadline=$(( $(date +%s) + 120 ))
+  while ! mkdir "$lock" 2>/dev/null; do
+    owner="$(cat "$lock/pid" 2>/dev/null || true)"
+    if [ -n "$owner" ] && ! kill -0 "$owner" 2>/dev/null; then rm -rf "$lock" 2>/dev/null || true; continue; fi
+    [ "$(date +%s)" -ge "$deadline" ] && return 0
+    sleep 0.2
+  done
+  echo $$ > "$lock/pid" 2>/dev/null || true
+  signal_locks+=("$lock")
+}
+trap 'keep_stream; remove_worktrees; release_signal_locks; delete_empty_branches; release_worktree_lock; rm -rf "$work_dir"' EXIT
 # TERM and INT get a handler of their own, and NOT because the EXIT trap
 # is skipped without one — measured, bash 3.2.57 runs the EXIT trap on an
 # untrapped SIGTERM. The reason is the opposite: with an explicit handler
@@ -230,6 +255,10 @@ on_signal() {
   # this path never set from ending the handler before the commit.
   if [ -n "${work_roots[*]:-}" ]; then
     set +u
+    # Under each checkout's lock, held until the worktrees are gone: a run
+    # started on the same branch meanwhile — a wiki build re-queued at a
+    # restart — cuts its worktree only after this commit, never during it.
+    for root in ${roots[@]+"${roots[@]}"}; do take_signal_lock "$root"; done
     suffix=" (stopped: cancelled)"
     commit_label="${commit_label:-$spec_label}"
     declare -f commit_and_push_roots >/dev/null 2>&1 \
