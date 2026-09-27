@@ -182,11 +182,11 @@ class TestSkillsResumeWorkAlreadyBegun:
 
     def test_implement_reads_the_phase_table_before_starting_red(self, workspace_root):
         content = self._skill(workspace_root, "aide-implement")
-        prep = content.split("### Preparation", 1)[1].split("\n### ", 1)[0]
+        prep = content.split("### Step 1 of 4: Preparation", 1)[1].split("\n### ", 1)[0]
         assert "4-status.md" in prep, \
             "/aide-implement's Preparation must read 4-status.md"
-        assert "phase" in prep.lower(), \
-            "/aide-implement's Preparation must name the phase table it reads"
+        assert "task tables" in prep, \
+            "/aide-implement's Preparation must name the task tables it reads"
         for symbol in ("✅", "⬜"):
             assert symbol in prep, \
                 f"/aide-implement's Preparation must name the {symbol} status the table uses"

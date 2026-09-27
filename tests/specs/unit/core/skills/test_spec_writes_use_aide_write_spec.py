@@ -76,17 +76,17 @@ class TestAideAnalyzeWritesViaScript:
 
 class TestAideImplementWritesViaScript:
     def test_red_phase_ticks_via_aide_write_spec(self, aide_implement_skill):
-        phase = _section(aide_implement_skill, "### Phase 1: RED")
+        phase = _section(aide_implement_skill, "### Step 2 of 4: RED")
         assert "aide-write-spec" in phase
         assert "4-status.md" in phase
 
     def test_green_phase_ticks_via_aide_write_spec(self, aide_implement_skill):
-        phase = _section(aide_implement_skill, "### Phase 2: GREEN")
+        phase = _section(aide_implement_skill, "### Step 3 of 4: GREEN")
         assert "aide-write-spec" in phase
         assert "4-status.md" in phase
 
     def test_refactor_phase_ticks_via_aide_write_spec(self, aide_implement_skill):
-        phase = _section(aide_implement_skill, "### Phase 3: REFACTOR")
+        phase = _section(aide_implement_skill, "### Step 4 of 4: REFACTOR")
         assert "aide-write-spec" in phase
         assert "4-status.md" in phase
 
