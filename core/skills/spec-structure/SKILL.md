@@ -47,7 +47,7 @@ specs/<NN>-slug/          # flat structure
 3. **3-solution.md** - Scope, behavior delta, acceptance criteria, risk and implementation plan with a TDD approach
 4. **4-status.md** - Living document: Progress and status
 
-`/aide-implement`'s REFACTOR phase adds a fifth, non-markdown file next
+`/aide-implement`'s VERIFY phase adds a fifth, non-markdown file next
 to these four: `test-run.json`, written by `core/scripts/aide-record-test-run`
 and read by `core/scripts/aide-archive-spec`'s test-record gate — never
 written or read by a model. `aide-archive-spec`'s move step already
@@ -302,7 +302,7 @@ Number, created date, expected duration
 
 ## Implementation plan
 
-### TDD approach (Red-Green-Refactor)
+### TDD approach (Red-Green-Verify)
 
 ### Phase 1: Write tests (RED)
 - [ ] Task 1
@@ -312,7 +312,7 @@ Number, created date, expected duration
 - [ ] Task 1
 - [ ] Task 2
 
-### Phase 3: Verify (REFACTOR)
+### Phase 3: VERIFY
 - [ ] Run the full test suite
 - [ ] Check for regressions
 
@@ -353,7 +353,7 @@ Number, created date, expected duration
   current behavior — not just which files change
 - Acceptance criteria as given/when/then scenarios; the RED phase writes
   at least one failing test per criterion
-- TDD approach with RED-GREEN-REFACTOR phases
+- TDD approach with RED-GREEN-VERIFY phases
 - Manual testing is a NOTE, not a checklist: it names what no test
   covers and why. Nothing under it is a task, and nothing under it
   blocks archiving — 4-status has no row for it
@@ -547,7 +547,7 @@ No Acceptance criteria section: `4-status.md` looks exactly as it does
 today — no such section, no change to archiving.
 
 **These rows start unticked, and no skill ever ticks one.** Unlike the
-RED/GREEN/REFACTOR rows above, an acceptance-criteria row names a
+RED/GREEN/VERIFY rows above, an acceptance-criteria row names a
 judgment only the user the spec is for can make — ticking it is the
 same one-click Overview-tab action any other recognized row offers.
 Placing the section after the last implementation phase means it only

@@ -185,7 +185,7 @@ export function closedLine(view: SpecPageView, lang: Language = "en"): string {
  *  every row. */
 /** This page shows ONE section: `## Acceptance criteria`.
  *
- *  The Phase tables (RED/GREEN/REFACTOR, and a LOW spec's `## Checklist`)
+ *  The Phase tables (RED/GREEN/VERIFY, and a LOW spec's `## Checklist`)
  *  are the implement RUN's own record of its work, and nothing anywhere
  *  gates on them — archive's only gate is the Acceptance section, and
  *  has been since spec 268. Drawing them as boxes therefore asked a

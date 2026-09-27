@@ -421,7 +421,7 @@ factors, estimate.)*
 
 ## Implementation plan
 
-*(Filled in by /aide-analyze: TDD Red-Green-Refactor, 4 phases.)*
+*(Filled in by /aide-analyze: TDD Red-Green-Verify, 4 phases.)*
 
 ---
 
@@ -442,7 +442,7 @@ Estimate: [X hours/days]
 2. [Phase 1: RED](#phase-1-red)
 3. [Phase 2: GREEN](#phase-2-green)
 4. [Phase 3: GREEN](#phase-3-green)
-5. [Phase 4: REFACTOR](#phase-4-refactor)
+5. [Phase 4: VERIFY](#phase-4-verify)
 6. [Notation](#notation)
 
 ## Tracking info
@@ -465,7 +465,7 @@ Estimate: [X hours/days]
 | Task | Status | Notes |
 |------|--------|-------|
 
-## Phase 4: REFACTOR
+## Phase 4: VERIFY
 
 | Task | Status | Notes |
 |------|--------|-------|

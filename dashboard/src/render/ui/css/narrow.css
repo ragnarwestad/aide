@@ -66,7 +66,7 @@
      is a direct flex child of `tr.subrow` (phase-rows.ts:329). Without
      it, Time's left edge (already fixed, Round 1's own --aimodel-w
      work) trails a state cell whose own width still varies with its
-     content: a run phase's badge label ("Done", "Running (refactor)")
+     content: a run phase's badge label ("Done", "Running (verify)")
      or a not-yet-run phase's bare dash, neither reserving the other's
      width. VALUE MEASURED against a real/headless browser (Round 2
      Implementation plan Step 1), the same way --aimodel-w's was. */

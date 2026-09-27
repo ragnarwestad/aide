@@ -16,11 +16,11 @@
 - [Acceptance criteria](#acceptance-criteria)
 - [Risk analysis](#risk-analysis)
 - [Implementation plan](#implementation-plan)
-  - [TDD approach (Red-Green-Refactor)](#tdd-approach-red-green-refactor)
+  - [TDD approach (Red-Green-Verify)](#tdd-approach-red-green-verify)
   - [Phase 1: Write tests that identify the problem (RED)](#phase-1-write-tests-that-identify-the-problem-red)
   - [Phase 2: Implement the solution (GREEN)](#phase-2-implement-the-solution-green)
   - [Phase 3: Verify that the tests pass (GREEN)](#phase-3-verify-that-the-tests-pass-green)
-  - [Phase 4: Run the full test suite (REFACTOR)](#phase-4-run-the-full-test-suite-refactor)
+  - [Phase 4: Run the full test suite (VERIFY)](#phase-4-run-the-full-test-suite-verify)
 - [Testing](#testing)
   - [Unit tests](#unit-tests)
   - [Integration tests](#integration-tests)
@@ -161,7 +161,7 @@ with *(browser)*.
 
 ## Implementation plan
 
-### TDD approach (Red-Green-Refactor)
+### TDD approach (Red-Green-Verify)
 
 The implementation follows Test-Driven Development principles to ensure quality and prevent regressions.
 
@@ -200,7 +200,7 @@ test('should [description]', () => {
 - [ ] Run integration tests if relevant
 - [ ] Verify that all new tests are green
 
-### Phase 4: Run the full test suite (REFACTOR)
+### Phase 4: Run the full test suite (VERIFY)
 
 **Goal:** Ensure that no existing functionality was broken.
 

@@ -66,7 +66,7 @@ specs/05-class-to-functional/
 2. Follows a TDD approach:
    - **RED**: Writes tests that prove the problem (should fail)
    - **GREEN**: Implements the solution (the tests should pass)
-   - **REFACTOR**: Runs regression tests (verifies nothing broke)
+   - **VERIFY**: Runs regression tests (verifies nothing broke)
 3. Runs all three through, reporting each one's result — stops only
    when genuinely blocked
 4. Updates `4-status.md` along the way

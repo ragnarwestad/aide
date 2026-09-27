@@ -15,7 +15,7 @@ export type AideCommand = (typeof AIDE_COMMANDS)[number];
 
 // The three TDD phases and nothing else: a typo must not reach the
 // page as if it were a phase (spec 81, criterion 10).
-export const TDD_PHASES = ["red", "green", "refactor"] as const;
+export const TDD_PHASES = ["red", "green", "verify"] as const;
 export type TddPhase = (typeof TDD_PHASES)[number];
 
 const HOST_RE = /^[A-Za-z0-9._-]{1,64}$/;
@@ -69,10 +69,14 @@ export function parseAideRun(raw: unknown): ParseResult {
   if (project instanceof Error) return { ok: false, error: project.message };
   let phase: TddPhase | undefined;
   if (r.phase !== undefined && r.phase !== null) {
-    if (typeof r.phase !== "string" || !(TDD_PHASES as readonly string[]).includes(r.phase)) {
+    if (typeof r.phase !== "string") return { ok: false, error: "invalid phase" };
+    // An installation whose own aide-emit-run has not been upgraded still
+    // reports the old name — treated as this phase's new one (AC-5).
+    const reported = r.phase === "refactor" ? "verify" : r.phase;
+    if (!(TDD_PHASES as readonly string[]).includes(reported)) {
       return { ok: false, error: "invalid phase" };
     }
-    phase = r.phase as TddPhase;
+    phase = reported as TddPhase;
   }
   let capturedAt: string | undefined;
   if (r.capturedAt !== undefined && r.capturedAt !== null) {

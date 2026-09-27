@@ -65,7 +65,7 @@ The Copilot CLI is the autonomous half of Copilot, and the only half aide uses:
 - ✅ Analyzes the whole codebase for context
 - ✅ Plans and carries out multi-step solutions
 - ✅ Runs commands and tests
-- ✅ Iterates until the solution is right (RED → GREEN → REFACTOR)
+- ✅ Iterates until the solution is right (RED → GREEN → VERIFY)
 - ✅ Fixes its own errors along the way
 
 It reads aide's skills from `~/.agents/skills/`, the same directory Codex reads.
@@ -224,7 +224,7 @@ GREEN PHASE:
 3. Verify that all tests PASS
 4. Stop and ask for confirmation
 
-REFACTOR PHASE:
+VERIFY PHASE:
 1. Run: pnpm test -- --run (all tests)
 2. Run: npx tsc --noEmit
 3. Run: pnpm run eslint
@@ -238,7 +238,7 @@ Follow the project's coding standard for all code.
 The Copilot CLI follows the TDD cycle from aide's own rules:
 - Writes tests first (RED)
 - Implements until tests pass (GREEN)
-- Refactors and verifies (REFACTOR)
+- Verifies the full suite, types, lint and build (VERIFY)
 - Iterates automatically on failure
 
 ---
@@ -276,7 +276,7 @@ Follow the project's coding standards
 Do this step by step. Stop after each phase and ask for confirmation:
 1. RED phase → Stop
 2. GREEN phase → Stop
-3. REFACTOR phase → Stop
+3. VERIFY phase → Stop
 ```
 
 ### 4. Use checkpoint prompts
@@ -335,7 +335,7 @@ copilot --yolo                            # Allow everything without prompts
 - ✅ Autonomous multi-step tasks, headless or in a session
 - ✅ Codebase analysis
 - ✅ Command execution
-- ✅ Test iteration (RED → GREEN → REFACTOR)
+- ✅ Test iteration (RED → GREEN → VERIFY)
 - ✅ Tool calling (can run Python scripts)
 - ✅ MCP server support (built-in GitHub MCP + custom)
 - ✅ Permanent permissions via `config.json` and CLI flags

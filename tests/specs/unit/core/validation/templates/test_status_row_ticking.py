@@ -2,7 +2,7 @@
 
 AC1: `core/skills/aide-implement/SKILL.md` instructs ticking a phase's
 own Task rows as that phase's work finishes, in EACH of Step 2 (RED),
-Step 3 (GREEN) and Step 4 (REFACTOR) — one assertion per step, so an
+Step 3 (GREEN) and Step 4 (VERIFY) — one assertion per step, so an
 edit to only one of the three phases still fails the other two.
 
 AC2: `core/skills/aide-analyze/references/plan-review.md` instructs
@@ -35,7 +35,7 @@ def implement_skill(workspace_root):
 
 @pytest.mark.parametrize(
     "heading",
-    ["### Step 2 of 4: RED", "### Step 3 of 4: GREEN", "### Step 4 of 4: REFACTOR"],
+    ["### Step 2 of 4: RED", "### Step 3 of 4: GREEN", "### Step 4 of 4: VERIFY"],
 )
 def test_each_phase_instructs_ticking_its_own_rows(implement_skill, heading):
     block = phase_block(implement_skill, heading)

@@ -225,12 +225,12 @@ describe("spec 210: a running implement says which third it is in", () => {
   });
 
   // Criterion 3.
-  test("a running implement in REFACTOR reads (refactor) and fills two thirds", () => {
+  test("a running implement in VERIFY reads (verify) and fills two thirds", () => {
     const html = rows(
-      [row({ id: "impl", specFolder: "210-ref", steps: ["implement"], state: "running", tddPhase: "refactor" })],
+      [row({ id: "impl", specFolder: "210-ref", steps: ["implement"], state: "running", tddPhase: "verify" })],
       [target("210-ref")],
     );
-    expect(subRow(html, "implement")).toContain("Running (refactor)");
+    expect(subRow(html, "implement")).toContain("Running (verify)");
   });
 
   // Criterion 4: zero thirds complete renders identically to "no report
@@ -272,7 +272,7 @@ describe("spec 210: a running implement says which third it is in", () => {
 
   // A job WAITING to start is in no TDD phase at all. Its own trap:
   // `inFlight` — what the phase word branches on — is queued OR
-  // running, so a leftover report would have read "queued (refactor)".
+  // running, so a leftover report would have read "queued (verify)".
   test("a queued implement carrying a phase still reads plain queued", () => {
     const html = rows(
       [row({ id: "impl", specFolder: "210-waiting", steps: ["implement"], state: "queued", tddPhase: "green" })],
@@ -288,10 +288,10 @@ describe("spec 210: a running implement says which third it is in", () => {
   test("an implement that is NOT running ignores a leftover phase", () => {
     for (const state of ["queued", "done", "failed", "stopped", "cancelled", "interrupted"] as const) {
       const html = rows(
-        [row({ id: "impl", specFolder: "210-over", steps: ["implement"], state, tddPhase: "refactor" })],
+        [row({ id: "impl", specFolder: "210-over", steps: ["implement"], state, tddPhase: "verify" })],
         [target("210-over")],
       );
-      expect(subRow(html, "implement")).not.toContain("(refactor)");
+      expect(subRow(html, "implement")).not.toContain("(verify)");
     }
   });
 });

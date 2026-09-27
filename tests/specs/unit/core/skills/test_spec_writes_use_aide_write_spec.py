@@ -85,8 +85,8 @@ class TestAideImplementWritesViaScript:
         assert "aide-write-spec" in phase
         assert "4-status.md" in phase
 
-    def test_refactor_phase_ticks_via_aide_write_spec(self, aide_implement_skill):
-        phase = _section(aide_implement_skill, "### Step 4 of 4: REFACTOR")
+    def test_verify_phase_ticks_via_aide_write_spec(self, aide_implement_skill):
+        phase = _section(aide_implement_skill, "### Step 4 of 4: VERIFY")
         assert "aide-write-spec" in phase
         assert "4-status.md" in phase
 

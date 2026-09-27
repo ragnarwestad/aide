@@ -57,6 +57,16 @@ describe("what a notification says (criterion 9)", () => {
     expect(sent.url).toBe(`/specs/aide/${SPEC}`);
   });
 
+  test("a held-back archive opens the Specs list with the spec's criteria unfolded", async () => {
+    const b = await board();
+    const d = await b.device(1);
+    const job = runningJob(b.store, ["archive"]);
+    b.store.transition(job.id, "step-succeeded-last", { results: [result("archive", "acceptance-criteria-unticked")] });
+    await b.push.idle();
+    const sent = await openCall(b.sent.calls[0]!, d);
+    expect(sent.url).toBe(`/?checks=${encodeURIComponent(`aide/${SPEC}`)}`);
+  });
+
   test("the body is in the language stored with the subscription", async () => {
     const b = await board();
     const en = await b.device(1, "en");

@@ -32,8 +32,9 @@ itself, reading the two files — no dashboard, no pytest.
 ## Step 8 (4-status.md, Acceptance criteria section)
 
 Add a `## Acceptance criteria` section to `4-status.md`, placed after
-the last implementation phase (e.g. `## Phase 4: REFACTOR`) and before
-`## Notation`, with exactly one row per AC-n id from `1-description.md`,
+the last implementation phase (e.g. `## Phase 4: VERIFY`, or
+`## Phase 4: REFACTOR` on a spec whose status file predates that rename)
+and before `## Notation`, with exactly one row per AC-n id from `1-description.md`,
 in ascending id order, starting unticked:
 
 ```markdown

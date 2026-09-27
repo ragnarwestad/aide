@@ -2,7 +2,7 @@
 name: aide-implement
 description: >-
   Implement the solution for a spec with Test-Driven
-  Development (RED → GREEN → REFACTOR). Reads the existing analysis and plan,
+  Development (RED → GREEN → VERIFY). Reads the existing analysis and plan,
   writes tests first, implements, and runs the quality check.
   Use when: implementing a solution with TDD, having a completed analysis and
   implementation plan, coding based on 3-solution.md.
@@ -85,7 +85,7 @@ resume it at the first unticked task if it found it in progress.
 
 1. Read "Task 0" (the tests the plan asks for) and the acceptance
    criteria from 3-solution.md
-2. Run `aide-emit-run --phase red --spec <ID>` (see [Reporting RED, GREEN and REFACTOR](#reporting-red-green-and-refactor))
+2. Run `aide-emit-run --phase red --spec <ID>` (see [Reporting RED, GREEN and VERIFY](#reporting-red-green-and-verify))
 3. Create test files — at least one failing test per acceptance criterion.
    A criterion an existing test already proves gets no second test: add
    the AC-id to that test's name instead (step 4). What a test is for,
@@ -123,11 +123,11 @@ First write `implement · Step 3 of 4: GREEN — Implement until tests pass — 
 5. Tick this step's task rows in `4-status.md` as each one's tests turn
    green. Write the result with `aide-write-spec --file 4-status.md`
    (never Write/Edit)
-6. Report the GREEN result briefly and continue to REFACTOR
+6. Report the GREEN result briefly and continue to VERIFY
 
-### Step 4 of 4: REFACTOR — Quality check
+### Step 4 of 4: VERIFY — Full suite, types, lint, build
 
-First write `implement · Step 4 of 4: REFACTOR — Quality check — started`, and when this step ends, `implement · Step 4 of 4: REFACTOR — Quality check — done`.
+First write `implement · Step 4 of 4: VERIFY — Full suite, types, lint, build — started`, and when this step ends, `implement · Step 4 of 4: VERIFY — Full suite, types, lint, build — done`.
 
 
 The order is fixed: the full suite is run only once every test this
@@ -158,7 +158,7 @@ suite again for it. Leave the full-suite row unticked, name the test and
 that it passed on its own in the row's Notes cell, and report done — the
 runner's own run on your result is what decides.
 
-1. Run `aide-emit-run --phase refactor --spec <ID>`
+1. Run `aide-emit-run --phase verify --spec <ID>`
 2. Resolve the full-suite command(s) with `aide-resolve-test-cmd
    --project-dir .` — the same script the archive gate calls, so the
    two agree on what "the tests" means for this commit by construction
@@ -204,12 +204,14 @@ runner's own run on your result is what decides.
 9. Show a summary — ready for commit
 
 **Find a table in `4-status.md` by its HEADING TEXT, never by its
-number.** This skill's RED, GREEN and REFACTOR are its Steps 2-4;
+number.** This skill's RED, GREEN and VERIFY are its Steps 2-4;
 `4-status.md` has four tables for them, because its GREEN work is split
 into implementing and verifying. So RED is `## Phase 1: RED`
 there, this skill's GREEN covers BOTH `## Phase 2: GREEN - Implement`
-and `## Phase 3: GREEN - Verify tests`, and REFACTOR is
-`## Phase 4: REFACTOR`. A tick placed by matching a number in this
+and `## Phase 3: GREEN - Verify tests`, and this skill's VERIFY phase is
+`## Phase 4: VERIFY` — or, on a spec whose `4-status.md` was created
+before this table was renamed, `## Phase 4: REFACTOR`, the same table
+under its old heading. A tick placed by matching a number in this
 skill to a number there lands in the wrong table.
 
 In a Tasks table's Status cell, write the SYMBOL its Notation section
@@ -258,7 +260,7 @@ writes this phase's `Repo`/`Model`/`Result`/`Time spent`/`Cost` block
 into `3-solution.md`'s own Tracking info — leave those lines alone too.
 
 The percentage above it is still yours: it says how far
-RED, GREEN and REFACTOR got, which is the field for partial work.
+RED, GREEN and VERIFY got, which is the field for partial work.
 
 A headless run gets its commit for free — this session does not run
 `git commit` or `git push` itself, headless or not. Working
@@ -285,7 +287,7 @@ Offer it only once the verification in Step 4 has passed. A red
 suite, a failing build or a step of this skill you could not finish is not a step
 that completed.
 
-### Reporting RED, GREEN and REFACTOR
+### Reporting RED, GREEN and VERIFY
 
 One Bash call at the start of Steps 2, 3 and 4, with the spec's ID:
 

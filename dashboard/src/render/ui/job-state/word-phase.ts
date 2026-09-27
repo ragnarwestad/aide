@@ -168,7 +168,7 @@ function decidePhase(
         //
         // The state, not `running` above: that flag is `inFlight`, which
         // is queued OR running, and a job WAITING to start is in no TDD
-        // phase at all. "queued (refactor)" would be the row reading a
+        // phase at all. "queued (verify)" would be the row reading a
         // leftover report as if it were live.
         label:
           attempt!.tddPhase && attempt!.state === "running"
