@@ -84,12 +84,9 @@ export interface ServerState {
   servingSha: string | null;
   servingRepoRoot: string | null;
   /** Non-null exactly while a Deploy press's restart is being held back
-   *  by running jobs (spec 385) — the Deploy tab's own "waiting" state,
+   *  by landings in flight (spec 385) — the Deploy tab's own "waiting" state,
    *  read fresh on every GET the way `servingSha` already is. */
   pendingRestart: { jobs: string[] } | null;
-  /** A restart is waiting for running phases and merges to finish; the
-   *  queue starts no new phase meanwhile (`Runner.tick`'s `startsHeld`). */
-  restartWaiting: boolean;
   /** Set by `stop()`: a git answer that lands after it belongs to nobody,
    *  and must not put a checkout fault at the top of pages the process
    *  draws for another board. */
@@ -127,7 +124,7 @@ export function createServerState(): ServerState {
   setDeployFaultNotice(null);
   const state: ServerState = {
     scan: null, unlanded: [], prOpen: [], notifySoon: null, warming: false, server: null, runner: null,
-    servingSha: null, servingRepoRoot: null, pendingRestart: null, restartWaiting: false, stopped: false, deployFault: null,
+    servingSha: null, servingRepoRoot: null, pendingRestart: null, stopped: false, deployFault: null,
     deployFailures: new Map(),
   };
   noticeOwner = state;

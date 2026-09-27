@@ -161,7 +161,7 @@ export const en = {
 
   "project.deployRestartWaiting":
     "This checkout matches origin, but the service is still running commit {sha} — " +
-    "the restart is waiting for running jobs: {jobs}.",
+    "the restart is waiting for merges in progress: {jobs}.",
   "project.deployHeading": "Deploy for prod",
   "project.testServerHeading": "Test server with the test specs",
   "project.testServerNote":

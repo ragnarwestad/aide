@@ -121,12 +121,12 @@ export const RESTART_POLL_MS = 250;
  *  arrives from elsewhere, a push from another machine. */
 export const SPEC_CACHE_POLL_MS = 5 * 60_000;
 
-/** How long a restart waits, in all, for running jobs and in-flight
- *  landings to clear — one bound for the one wait. An implement step can
- *  take an hour and a half, and a landing after it is minutes. Bounded,
- *  not indefinite — a restart that waited forever for a job or a landing
- *  that will never finish would just trade one silent failure for a
- *  dashboard that never comes back. */
+/** How long a restart waits, in all, for the landings in flight to
+ *  clear — one bound for the one wait. A landing runs the project's
+ *  suite, and waits for the machine's test lock first. Bounded, not
+ *  indefinite — a restart that waited forever for a landing that will
+ *  never finish would just trade one silent failure for a dashboard that
+ *  never comes back. */
 export const RESTART_DEFER_TIMEOUT_MS = 2 * 60 * 60_000;
 /** The landing's test gate: both of aide's suites take about ten minutes
  *  on the serving host, plus the wait for the machine's test lock. */

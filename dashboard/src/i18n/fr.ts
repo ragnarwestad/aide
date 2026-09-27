@@ -151,7 +151,7 @@ export const fr: Record<TranslationKey, string> = {
 
   "project.deployRestartWaiting":
     "Ce checkout correspond à origin, mais le service exécute encore le commit {sha} — " +
-    "le redémarrage attend les jobs en cours : {jobs}.",
+    "le redémarrage attend les fusions en cours : {jobs}.",
   "project.deployHeading": "Déployer pour la prod",
   "project.testServerHeading": "Serveur de test avec les specs de test",
   "project.testServerNote":

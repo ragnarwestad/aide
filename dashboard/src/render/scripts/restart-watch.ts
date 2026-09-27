@@ -1,4 +1,4 @@
-// While the page says a Deploy is waiting for running jobs before it
+// While the page says a Deploy is waiting for landings in flight before it
 // restarts the service, ask `/api/version` every few seconds and load
 // the page again once another process answers: the notice was drawn by
 // the process that is about to go, and nothing else would take it down.

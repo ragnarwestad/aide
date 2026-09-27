@@ -6,12 +6,12 @@
 // are unchanged and keep their names.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { pickRefusal } from "../../../src/serve/land-branch/merge.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 
-import { AUTH, createOwnDirs, gitFor, repos, installs, runStep, serverWith, settle, merges, stepWithResult, repoOf } from "./every-step-lands-fixtures.ts";
+import { AUTH, createOwnDirs, gitFor, repos, installs, serverWith, merges, stepWithResult, repoOf } from "./every-step-lands-fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
 const { own, cleanup: cleanupOwnDirs } = createOwnDirs();
@@ -195,97 +195,6 @@ describe("a landing that installs and asks for a restart", () => {
     for (let i = 0; i < 60 && fired === 0; i++) await Bun.sleep(25);
     expect(fired).toBe(1);
     expect(firedAt).toBeGreaterThanOrEqual(answeredAt);
-  });
-
-  // Spec 385 (REQ-1, REQ-2, REQ-3): a Deploy press whose install succeeds
-  // while another job is running must not claim the dashboard is
-  // restarting — it names the job the restart is waiting for instead,
-  // both in the press's own answer and, for as long as the wait lasts,
-  // on the project's own Deploy tab.
-  test("Deploy waits for a running job, says so in its answer and on the tab (REQ-1, REQ-2, REQ-3)", async () => {
-    const dir = own("aide-deploy-waiting-");
-    const paths = repos(dir);
-    const goFile = join(dir, "go");
-    const fakeRunner = join(dir, "fake-run-spec");
-    // Bounded for the reason the concurrency suite's own stand-in is:
-    // the directory holding the go file is removed when the test ends,
-    // and a stand-in still waiting on it would wait forever.
-    writeFileSync(
-      fakeRunner,
-      `#!/bin/sh\nn=0\nwhile [ ! -f ${goFile} ] && [ $n -lt 400 ]; do sleep 0.05; n=$((n+1)); done\n`,
-      { mode: 0o755 },
-    );
-    let headCalls = 0;
-    const inner = gitFor();
-    const git = {
-      calls: inner.calls,
-      run: async (d: string, args: string[]) => {
-        const a = args.join(" ");
-        if (a === "rev-parse --abbrev-ref HEAD") return { code: 0, stdout: "master\n" };
-        if (a === "rev-parse --show-toplevel") return { code: 0, stdout: `${paths.project}\n` };
-        if (a === "rev-parse HEAD") {
-          headCalls += 1;
-          return { code: 0, stdout: `${headCalls === 1 ? "abc1234deadbeef" : "9999999cafefeed"}\n` };
-        }
-        // Level with origin: the deploy tab's "stale" sentence (the one
-        // REQ-3 changes) is only reached once `behind` is a real 0, not
-        // the unanswerable-null gitFor()'s own fallback would otherwise
-        // leave it at.
-        if (a.startsWith("rev-list --count")) return { code: 0, stdout: "0\n" };
-        return inner.run(d, args);
-      },
-    };
-    let fired = 0;
-    const { base } = serverWithHarness(dir, paths, git, {
-      dashboardRoot: paths.project,
-      queueRunnerBin: fakeRunner,
-      restart: {
-        registered: async () => true,
-        fire: () => {
-          fired += 1;
-        },
-      },
-    });
-    installs(paths.project);
-
-    try {
-      const job = await runStep(base, "analyze");
-      await settle(base, job.id, (j) => j.state === "running");
-
-      const res = await fetch(`${base}/api/queue/projects/aide/deploy`, { method: "POST", headers: AUTH });
-      expect(res.status).toBe(200);
-      const body = (await res.json()) as { ok: boolean; restarting?: boolean; restartWaiting?: string[] };
-      expect(body.ok).toBe(true);
-      expect(body.restarting).toBe(false);
-      // Named by its spec, not its id: the sentence this lands in is read
-      // by a person, and a short id names nothing to them.
-      expect(body.restartWaiting).toEqual([`${job.project}:${job.specFolder}`]);
-      // The restart hook never fires within this test's own window — the
-      // wait is bounded by RESTART_DEFER_TIMEOUT_MS (two hours) by default.
-      expect(fired).toBe(0);
-
-      const deadline = Date.now() + 15_000;
-      let html = await (await fetch(`${base}/projects/aide?tab=deploy`, { headers: AUTH })).text();
-      while (!html.includes("the restart is waiting for running jobs") && Date.now() < deadline) {
-        await new Promise((r) => setTimeout(r, 25));
-        html = await (await fetch(`${base}/projects/aide?tab=deploy`, { headers: AUTH })).text();
-      }
-      // The job's name is two links, so the sentence is read with its tags removed.
-      expect(html.replace(/<[^>]*>/g, "")).toContain(
-        `the restart is waiting for running jobs: ${job.project}:${job.specFolder.split("-")[0]}`,
-      );
-      expect(html).not.toContain("Deploy restarts it on commit");
-      // Spec 392 (REQ-9): the button stays live (a press still retries
-      // the install), but its title says a press will not restart the
-      // service sooner.
-      const form = html.match(/<form[^>]*class="deployform"[\s\S]*?<\/form>/)?.[0] ?? "";
-      expect(form).not.toMatch(/<button[^>]*\bdisabled\b/);
-      expect(form).toContain(
-        'title="Pressing again only repeats the pull and install — it does not restart the service sooner."',
-      );
-    } finally {
-      writeFileSync(goFile, "");
-    }
   });
 
   test("a landing into a project that is not the dashboard's own never restarts it", async () => {

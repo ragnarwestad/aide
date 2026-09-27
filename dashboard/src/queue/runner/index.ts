@@ -146,7 +146,6 @@ export class Runner {
         return;
       }
       if (job.state !== "queued") continue;
-      if (this.o.startsHeld?.()) { hold(job, { key: "runner.heldForRestart" }); continue; }
       // A job whose OWN landing is in flight is still not restarted:
       // its own next step waits for its merge, which is what `landing`
       // means. That is one row's own ordering, not a pause on the

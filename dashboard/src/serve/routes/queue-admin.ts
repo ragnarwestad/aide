@@ -9,7 +9,7 @@ import { fastForwardToOrigin } from "../../git/branch-merge.ts";
 import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardSettingsFile } from "../../git/dashboard-checkout.ts";
 import { MAIN_TEST_SERVER_KEY, restartMainTestServer, stopTestServer } from "../test-servers/lifecycle.ts";
 import { testServerFailedPage } from "./spec-edit/test-server-waiting.ts";
-import { runningJobNames } from "../land-branch";
+import { landingJobNames } from "../land-branch";
 import { resolveInstallCmd } from "../../project/discover";
 import { SETTING_LABELS } from "../../project/setting-labels.ts";
 import { listedModelName } from "../../queue/model-name.ts";
@@ -341,7 +341,7 @@ export async function handleQueueAdminRoutes(
     // the service to come back before it reloads; `restartWaiting`
     // (spec 385) names the jobs holding that restart back instead, when
     // there are any — the two never both appear.
-    const restartWaiting = after.restart ? runningJobNames(ctx.queue) : [];
+    const restartWaiting = after.restart ? landingJobNames(ctx.queue) : [];
     if (restartWaiting.length > 0) ctx.setPendingRestart(restartWaiting);
     const restarting = !!after.restart && restartWaiting.length === 0;
     let response: Response;

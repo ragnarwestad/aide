@@ -151,7 +151,7 @@ export const de: Record<TranslationKey, string> = {
 
   "project.deployRestartWaiting":
     "Dieser Checkout stimmt mit origin überein, aber der Dienst läuft noch auf Commit {sha} — " +
-    "der Neustart wartet auf laufende Jobs: {jobs}.",
+    "der Neustart wartet auf laufende Merges: {jobs}.",
   "project.deployHeading": "Für Prod deployen",
   "project.testServerHeading": "Testserver mit den Test-Specs",
   "project.testServerNote":

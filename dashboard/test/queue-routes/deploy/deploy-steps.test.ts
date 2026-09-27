@@ -253,7 +253,9 @@ describe("POST .../deploy/restart", () => {
     expect(fired).toBe(1);
   });
 
-  test("with a job running it answers held and does not fire (AC-2)", async () => {
+  // A running step is detached in a process group of its own and outlives
+  // the restart, so only a landing in flight holds it back.
+  test("with a step running it fires at once", async () => {
     const dir = own("aide-deploy-held-");
     const paths = repos(dir);
     const goFile = join(dir, "go");
@@ -275,8 +277,9 @@ describe("POST .../deploy/restart", () => {
     try {
       const job = await runStep(base, "analyze");
       await settle(base, job.id, (j) => j.state === "running");
-      expect(await answer(await post(base, "aide/deploy/restart"))).toEqual({ ok: true, restart: "held" });
-      expect(fired).toBe(0);
+      expect((await answer(await post(base, "aide/deploy/restart"))).restart).toBe("fired");
+      for (let i = 0; i < 80 && fired === 0; i++) await Bun.sleep(25);
+      expect(fired).toBe(1);
     } finally {
       writeFileSync(goFile, "");
     }

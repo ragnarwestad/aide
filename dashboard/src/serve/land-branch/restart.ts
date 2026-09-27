@@ -10,9 +10,6 @@
 import { realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { RESTART_DEFER_TIMEOUT_MS, RESTART_POLL_MS, type createRootLock } from "../serve-helpers";
-import { signalGroup } from "../serve-helpers/signal-group.ts";
-import { isWikiBuild } from "../../queue/steps.ts";
-import type { Job, QueueStore } from "../../queue/queue.ts";
 
 export interface RestartHook {
   /** False on a laptop, and in every test: nothing is registered to
@@ -96,91 +93,48 @@ export function isDashboardRoot(ctx: { dashboardRoot?: string }, root: string): 
   return real(ctx.dashboardRoot) === real(root);
 }
 
-/** A running job's process is a child of this server: killing the server
- *  kills the job, and the queue goes on saying "running" about a step
- *  nothing is running any more (four jobs, 2026-09-03 00:13). So the
- *  restart waits until no job but the landing one is running AND no
- *  landing is in flight — in one loop, under one bound
- *  (`restartDeferTimeoutMs`), so a landing that starts while the jobs
- *  drain is covered by the same wait and never by a second one. */
-/** Every job the restart is waiting on, by short id — the one check both
- *  this loop and the deploy route (spec 385) need to make, so the two
- *  can never disagree about what "running" means. */
-/** What a restart is waiting for, named the way a reader knows it:
- *  `project:folder`, not the job's own id. A short id identifies the
- *  job to the machinery and nothing to the person reading the sentence
- *  it lands in — which is what "name the jobs it is waiting for" got
- *  built into on the first pass. A job with neither project nor folder
- *  keeps its id, since something is better than an empty name. */
-/** A wiki build is not among them: it is stopped and queued again at the
- *  restart instead (`requeueWikiBuilds`), since every archive starts one and a
- *  Deploy pressed after an archive otherwise waited minutes on it. */
-export function runningJobNames(
+/** What a restart waits for: every job whose landing has not settled,
+ *  named `project:folder` the way a reader knows it (its short id when
+ *  it has neither). A landing runs inside this process, so a restart
+ *  under it cuts a merge, a test run or a push short. A running step
+ *  does not count: it runs detached, in a process group of its own, so
+ *  it outlives the restart, and the new process reads its result file.
+ *  The one check both the wait below and the deploy route make, so the
+ *  two never disagree. A finished step whose landing has not taken the
+ *  merge lock yet counts too: the job reads done a moment before. */
+export function landingJobNames(
   queue:
-    | { list(): { id: string; state: string; landing?: boolean; project?: string; specFolder?: string; steps?: readonly string[] }[] }
+    | { list(): { id: string; landing?: boolean; project?: string; specFolder?: string }[] }
     | undefined,
   exceptJobId?: string,
 ): string[] {
-  // A finished step whose landing has not settled counts too: the job
-  // reads done a moment before its landing takes the merge lock, and a
-  // restart in that gap leaves the step's work on its branch.
   return (queue?.list() ?? [])
-    .filter((j) => (j.state === "running" || !!j.landing) && j.id !== exceptJobId && !(j.steps && isWikiBuild({ steps: j.steps })))
+    .filter((j) => !!j.landing && j.id !== exceptJobId)
     .map((j) => (j.project && j.specFolder ? `${j.project}:${j.specFolder}` : j.id.slice(0, 8)));
 }
-
-/** Stop every running wiki build and queue it again, so it runs once the
- *  dashboard is back. A build writes in a worktree of its own and lands
- *  nothing until it ends, so what is lost is the minutes it had run. */
-export function requeueWikiBuilds(
-  queue: Pick<QueueStore, "list" | "transition" | "enqueue">,
-  signal: (pgid: number | undefined) => void = signalGroup,
-): void {
-  for (const job of queue.list()) {
-    if (job.state !== "running" || !isWikiBuild(job)) continue;
-    const stopped = queue.transition(job.id, "cancel", { finishedAt: new Date().toISOString(), error: undefined, errorReason: undefined });
-    if (!stopped.ok) continue;
-    signal(job.pgid);
-    queue.enqueue(again(job));
-  }
-}
-
-const again = (job: Job) => ({
-  project: job.project,
-  specFolder: job.specFolder,
-  steps: ["wiki"],
-  ...(job.wikiRefresh ? { wikiRefresh: true } : {}),
-});
 
 export async function restartAfterLanding(ctx: {
   mergeLock: ReturnType<typeof createRootLock>;
   restart: RestartHook;
   restartPollMs?: number;
   restartDeferTimeoutMs?: number;
-  queue?: { list(): { id: string; state: string; landing?: boolean }[] };
+  queue?: { list(): { id: string; landing?: boolean }[] };
   exceptJobId?: string;
   /** Called with the current running-job list whenever it changes, and
    *  with `[]` once the wait is over one way or another (spec 385) — the
    *  one signal the Deploy tab's "waiting" sentence is drawn from. */
   onJobsWaitChange?: (jobs: string[]) => void;
-  /** Told `true` while the restart waits and `false` once it fires, so
-   *  the queue starts no new phase for the wait to outlast. */
-  onRestartWait?: (waiting: boolean) => void;
-  /** Called just before the restart fires: what is still running then dies
-   *  with this process. */
-  beforeRestart?: () => void;
 }): Promise<void> {
   if (!(await ctx.restart.registered())) {
     ctx.onJobsWaitChange?.([]);
     return;
   }
-  ctx.onRestartWait?.(true);
   const pollMs = ctx.restartPollMs ?? RESTART_POLL_MS;
-  const running = (): string[] => runningJobNames(ctx.queue, ctx.exceptJobId);
+  const running = (): string[] => landingJobNames(ctx.queue, ctx.exceptJobId);
   const deadline = Date.now() + (ctx.restartDeferTimeoutMs ?? RESTART_DEFER_TIMEOUT_MS);
   let waiting = running();
   if (waiting.length > 0) {
-    console.error(`queue: a code change landed; the restart waits for running jobs: ${waiting.join(", ")}`);
+    console.error(`queue: a code change landed; the restart waits for landings: ${waiting.join(", ")}`);
     ctx.onJobsWaitChange?.(waiting);
   }
   while ((waiting.length > 0 || ctx.mergeLock.size > 0) && Date.now() < deadline) {
@@ -190,7 +144,7 @@ export async function restartAfterLanding(ctx: {
   }
   if (waiting.length > 0) {
     console.error(
-      `queue: restarting the dashboard while jobs are still running: ${waiting.join(", ")} — they will have to be run again`,
+      `queue: restarting the dashboard while landings are still in flight: ${waiting.join(", ")} — verify those branches reached their default branch by hand`,
     );
   }
   if (ctx.mergeLock.size > 0) {
@@ -205,7 +159,5 @@ export async function restartAfterLanding(ctx: {
   // above already returned before this line.
   console.error("queue: restarting the dashboard to pick up a landed code change");
   ctx.onJobsWaitChange?.([]);
-  ctx.beforeRestart?.();
   ctx.restart.fire();
-  ctx.onRestartWait?.(false);
 }

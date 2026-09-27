@@ -208,7 +208,7 @@ describe("renderProjectPage: Deploy tab's restart-waiting sentence (spec 431)", 
       NAV,
       deployOpts,
     );
-    expect(html.replace(/<[^>]*>/g, "")).toContain("the restart is waiting for running jobs: aide:070");
+    expect(html.replace(/<[^>]*>/g, "")).toContain("the restart is waiting for merges in progress: aide:070");
     expect(html).toContain("aaaa111");
     expect(html).toMatch(/rowmsg waiting/);
   });

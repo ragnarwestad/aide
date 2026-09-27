@@ -11,7 +11,7 @@ import { renderSentence, type Sentence } from "../../i18n/message.ts";
 import type { Language } from "../../i18n";
 import { resolveInstallCmd } from "../../project/discover";
 import { SETTING_LABELS } from "../../project/setting-labels.ts";
-import { runningJobNames } from "../land-branch";
+import { landingJobNames } from "../land-branch";
 import { DEPLOY_LOCK_WAIT_MS, json, languageChoice, logRefusal, rootFreeWithin } from "../serve-helpers";
 import { STARTED_AT } from "../state.ts";
 import type { RoutesContext } from "./";
@@ -27,7 +27,7 @@ export interface DeployHooks {
   installCheckout: (result: RepoMergeResult) => Promise<boolean>;
   /** Whether anything on this machine restarts the service. */
   restartRegistered: () => Promise<boolean>;
-  /** Waits for running jobs and landings, then restarts the service. */
+  /** Waits for landings in flight, then restarts the service. */
   restartDashboard: () => void;
 }
 
@@ -108,7 +108,7 @@ export async function handleDeploySteps(ctx: RoutesContext, req: Request, path: 
       ctx.setDeployFault({ key: "landing.deployNoRestart", values: older });
       return json({ ok: true, restart: "none", faulty: true });
     }
-    const jobs = runningJobNames(ctx.queue);
+    const jobs = landingJobNames(ctx.queue);
     if (jobs.length > 0 || ctx.mergeLock.size > 0) {
       ctx.setPendingRestart(jobs);
       const held = json({ ok: true, restart: "held" });

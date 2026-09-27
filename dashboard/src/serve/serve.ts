@@ -228,7 +228,6 @@ export function createServer(opts: ServerOptions) {
 
   const runnerSetupCtx: RunnerSetupContext = {
     store: queue,
-    startsHeld: () => state.restartWaiting,
     machineryProjectDir: resolution.machineryProjectDir,
     machinerySpecsRoot: resolution.machinerySpecsRoot,
     queueRunnerBin: opts.queueRunnerBin,
