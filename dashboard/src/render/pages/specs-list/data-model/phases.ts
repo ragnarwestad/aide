@@ -40,6 +40,8 @@ function attemptFor(r: QueueRowView, step: string): QueueRowView | null {
       // or last step, and spread whole it named the last step's model on
       // every line of a multi-step job (2026-09-15).
       model: r.stepModels?.[step] ?? r.model,
+      // This step's own result's id, not the row's (which speaks for the running or last step).
+      modelId: res.modelId,
       error: res.ok && !landingFell ? undefined : r.error,
       // The job's `landing` flag belongs to the ONE step whose branch is
       // being merged, never to the steps behind it. Spread whole, it
@@ -52,7 +54,7 @@ function attemptFor(r: QueueRowView, step: string): QueueRowView | null {
   // Not yet run, while an EARLIER step of the same job is landing: a
   // chained job has already moved its `stepIndex` on to this step when
   // the one before it starts merging. The landing is that step's.
-  if (r.landing && landingStep(r) !== step) return { ...r, landing: undefined };
+  if (r.landing && landingStep(r) !== step) return { ...r, landing: undefined, modelId: undefined };
   // What the finished steps did not account for. A job's `spentUsd` is
   // the sum over its steps, so the step in flight owns the remainder.
   const counted = (r.results ?? []).reduce((sum, x) => sum + x.costUsd, 0);
@@ -62,6 +64,7 @@ function attemptFor(r: QueueRowView, step: string): QueueRowView | null {
   const countedTokens = (r.results ?? []).reduce((sum, x) => sum + (x.tokens ?? 0), 0);
   return {
     ...r,
+    modelId: undefined,
     spentUsd: Math.max(0, r.spentUsd - counted),
     spentTokens: r.spentTokens === undefined ? undefined : Math.max(0, r.spentTokens - countedTokens),
   };
@@ -275,6 +278,7 @@ function specPhases(all: QueueRowView[], dir?: string): Phase[] {
       cost: outcome?.cost,
       costUnmeasured: outcome?.costUnmeasured,
       tokens: outcome?.tokens,
+      modelId: outcome?.modelId,
       // Read regardless of `attempts.length` (spec 341) — the one field
       // here that has to be merged with the queue's own count rather
       // than only fall back to it.

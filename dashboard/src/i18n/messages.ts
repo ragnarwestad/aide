@@ -142,6 +142,33 @@ export const MESSAGES = {
     fr: "une tâche planifiée ne peut pas modifier le dépôt — le commit qu'elle a fait a été écarté. — Réécrivez le prompt de la tâche pour qu'elle n'écrive que son rapport ; un changement qui doit atteindre le dépôt passe par une spec.",
     resolve: "Rewrite the job's prompt",
   },
+  // A green scheduled run's proposed specs (queue/propose-specs.ts): what went
+  // wrong with the run's list as a whole; what was decided before it is listed
+  // on the run's page under it.
+  "proposals.unreadable": {
+    en: "the run left a list of proposed specs that could not be read ({detail}) — Rewrite the job's prompt so it writes a JSON list of objects with a title and a description, then run the job again.",
+    nb: "kjøringen la igjen en liste med foreslåtte specs som ikke kunne leses ({detail}) — Skriv om jobbens prompt slik at den skriver en JSON-liste med objekter som har tittel og beskrivelse, og kjør jobben på nytt.",
+    es: "la ejecución dejó una lista de specs propuestas que no se pudo leer ({detail}) — Reescribe el prompt del trabajo para que escriba una lista JSON de objetos con título y descripción, y ejecuta el trabajo de nuevo.",
+    de: "der Lauf hat eine Liste vorgeschlagener Specs hinterlassen, die sich nicht lesen ließ ({detail}) — Schreibe den Prompt des Jobs so um, dass er eine JSON-Liste von Objekten mit Titel und Beschreibung schreibt, und führe den Job erneut aus.",
+    fr: "l'exécution a laissé une liste de specs proposées illisible ({detail}) — Réécrivez le prompt de la tâche pour qu'elle écrive une liste JSON d'objets avec un titre et une description, puis relancez la tâche.",
+    resolve: "then run the job again",
+  },
+  "proposals.noSpecsRoot": {
+    en: "the board could not read this project's specs, so it created none of the proposed specs — Look for a checkout problem at the top of the project's page, then run the job again.",
+    nb: "brettet kunne ikke lese prosjektets specs, så det laget ingen av de foreslåtte specs-ene — Se etter et problem med utsjekken øverst på prosjektets side, og kjør jobben på nytt.",
+    es: "el tablero no pudo leer las specs de este proyecto, así que no creó ninguna de las propuestas — Busca un problema de checkout en la parte superior de la página del proyecto y ejecuta el trabajo de nuevo.",
+    de: "das Board konnte die Specs dieses Projekts nicht lesen und hat deshalb keine der vorgeschlagenen Specs erstellt — Suche oben auf der Projektseite nach einem Checkout-Problem und führe den Job erneut aus.",
+    fr: "le tableau n'a pas pu lire les specs de ce projet et n'a donc créé aucune des specs proposées — Cherchez un problème de checkout en haut de la page du projet, puis relancez la tâche.",
+    resolve: "then run the job again",
+  },
+  "proposals.failed": {
+    en: "the board failed while creating the proposed specs ({detail}); what it had done is listed below — Read serve.log on the serving host, then run the job again.",
+    nb: "brettet feilet mens det laget de foreslåtte specs-ene ({detail}); det det rakk å gjøre står under — Les serve.log på serveren, og kjør jobben på nytt.",
+    es: "el tablero falló al crear las specs propuestas ({detail}); lo que había hecho aparece abajo — Lee serve.log en el servidor y ejecuta el trabajo de nuevo.",
+    de: "das Board ist beim Erstellen der vorgeschlagenen Specs gescheitert ({detail}); was es bis dahin getan hat, steht unten — Lies serve.log auf dem Server und führe den Job erneut aus.",
+    fr: "le tableau a échoué en créant les specs proposées ({detail}) ; ce qu'il avait fait figure ci-dessous — Lisez serve.log sur le serveur, puis relancez la tâche.",
+    resolve: "then run the job again",
+  },
   // A wiki build writes generated pages in wiki/ and nothing else
   // (core/scripts/lib/run-spec-wiki-guard.sh): the script's own sentence,
   // naming what was taken back, stays on the job as hover detail.

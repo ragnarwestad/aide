@@ -13,6 +13,7 @@
 // render layer imports from it.
 
 import { esc, relTime, usdOrTokens } from "../../ui/html.ts";
+import { withModelId } from "../../ui/components/model-label.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { renderSentence } from "../../../i18n/message.ts";
 import { t, type Language } from "../../../i18n";
@@ -137,7 +138,7 @@ export function renderJobDetailPage(
             ? ' <span class="muted small">est.</span>'
             : ""),
       ],
-      [t(lang, "job.model"), esc(job.model ?? "as configured")],
+      [t(lang, "job.model"), esc(withModelId(job.model, job.modelId) ?? "as configured")],
       // Spec 364, REQ-5: beside Model, on the same terms — added during
       // plan review so this page does not show Model with no Effort
       // beside it for a step that ran with one.

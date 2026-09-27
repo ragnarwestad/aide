@@ -4,6 +4,7 @@
 // lines; every function is unchanged and keeps its name.
 import { specPhaseFile } from "../../project/discover";
 import type { JobDetailView } from "../../render";
+import { withModelId } from "../../render/ui/components/model-label.ts";
 import type { Job } from "../../queue/queue.ts";
 import { existsSync } from "node:fs";
 import { resolveStepModel, tailFile, tailFileAt } from "../serve-helpers";
@@ -90,7 +91,7 @@ export async function jobDetailView(
           tokens: r.tokens?.total,
           logs: shown?.logs,
           errors: shown?.errors,
-          aiModel: aiLabel(tool, choice),
+          aiModel: withModelId(aiLabel(tool, choice), r.modelId),
           changedFiles,
         };
       }),

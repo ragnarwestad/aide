@@ -83,6 +83,9 @@ export interface QueueRowView {
   /** What this job ran on. Shown next to the cost, because a figure
    *  without its model cannot be compared with the next one. */
   model?: string;
+  /** The model id the run of that step reported (`claude-opus-5-5`), when
+   *  it reported one — shown beside `model`. */
+  modelId?: string;
   /** The job's own per-step model choices, so an attempt built for one
    *  step can carry THAT step's model rather than the row's (which is
    *  the running or last step's). */
@@ -136,6 +139,8 @@ export interface StepResultView {
    *  one. Per STEP, because a phase line speaks for its own attempt and
    *  not for the job's running total. */
   tokens?: number;
+  /** The model id this step's own log named, when it named one. */
+  modelId?: string;
   /** The usage limit that stopped this step, as the tool reported it —
    *  present only on such a step. */
   providerLimit?: ProviderLimit;

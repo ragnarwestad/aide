@@ -3,6 +3,7 @@
 // out of serve-helpers.ts by theme (split serve-helpers.ts by theme).
 
 import type { Job, ModelChoice } from "../../queue/queue.ts";
+import { resolveStepModel } from "../../queue/model-name.ts";
 import type { CheckableTool } from "../../render";
 
 /** This step's wall clock. The field is a per-step table since spec 152,
@@ -75,9 +76,7 @@ export function analysisSessionToResume(
   return now - Date.parse(latest.at!) <= RESUME_ANALYSIS_WITHIN_MS ? latest.sessionId : undefined;
 }
 
-export function resolveStepModel(job: Job, step: string, live: Record<string, string>): string | undefined {
-  return job.model[step] ?? job.modelChoice ?? live[step] ?? live.default;
-}
+export { resolveStepModel };
 
 /** The effort level a step runs at (spec 364) — `job.effort[step]` and
  *  nothing else. No config-default tier, unlike `resolveStepModel`'s

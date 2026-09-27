@@ -34,8 +34,9 @@ import type { NotifyEvent } from "../../integrations/notify.ts";
 import type { BoardMessage } from "../../i18n/message.ts";
 import { stepButton } from "../../format/step-label.ts";
 import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from "../queue.ts";
-import { providerLimit, stepRepoRanges, testedGreen, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
+import { modelIdOf, providerLimit, stepRepoRanges, testedGreen, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
 import { asResultTool } from "../steps.ts";
+import { resolveStepModel } from "../model-name.ts";
 import { stepFailure } from "../../format/tool-failure.ts";
 import { endUntickedArchive } from "./unticked-archive.ts";
 
@@ -356,6 +357,7 @@ export class Runner {
     // missing stays missing. There is nothing to default it to.
     const tokens = tokenUsage(outcome.tokens);
     if (tokens) this.addSpentTokensToday(tokens.total);
+    const modelId = modelIdOf(outcome.modelId);
     // BEFORE `results` is built: whether this step's own `at` is written
     // now or deferred until its landing settles (spec 395) is known
     // while the entry is constructed. BEFORE the state transitions
@@ -386,7 +388,7 @@ export class Runner {
         // "codex" — and must not be silently collapsed into "claude".
         // Checked against the one list rather than a copy of it.
         tool: asResultTool(outcome.tool) ?? "claude",
-        tokens, providerLimit: providerLimit(outcome.providerLimit), testedGreen: testedGreen(outcome.testedGreen),
+        tokens, modelId, providerLimit: providerLimit(outcome.providerLimit), testedGreen: testedGreen(outcome.testedGreen),
         costMeasured: outcome.costMeasured !== false,
         terminalReason: outcome.terminalReason ?? "no reason recorded",
         subtype: outcome.subtype,
@@ -409,6 +411,8 @@ export class Runner {
         startedAt: job.stepStartedAt,
       },
     ];
+    // Against the choice the step ran on: what the pickers say an alias gives today.
+    if (modelId) this.o.store.recordModelId(resolveStepModel(job, step, this.o.store.defaults.model), modelId);
     if (landingWork) {
       // Runs once, whichever way the landing settles — the same
       // "always clear the flag" shape already used below, extended to

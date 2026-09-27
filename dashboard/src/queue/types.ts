@@ -65,6 +65,10 @@ export interface StepResult {
    *  a killed step, whose cost is over-charged by rule but whose token
    *  count has nothing to assume from. The page shows a dash. */
   tokens?: TokenUsage;
+  /** The model id the run's own log named — Claude Code's `init` event,
+   *  e.g. `claude-opus-5-5` for the `opus` alias. Absent when the log
+   *  named none (never a guess), and for every other tool. */
+  modelId?: string;
   costMeasured: boolean;
   terminalReason: string;
   /** Present only on a step a provider's usage limit stopped. */

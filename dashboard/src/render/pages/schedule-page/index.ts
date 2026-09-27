@@ -9,14 +9,15 @@ import type { Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { renderScheduleHistory, type ScheduleHistoryRow } from "./history.ts";
 import { renderScheduleList, type ScheduleFilter, type SchedulePageRow } from "./list.ts";
-import { schedulePagePath, SCHEDULE_TABS, scheduleTabPath, type ScheduleTab } from "./tabs.ts";
+import { schedulePagePath, scheduleRunPath, SCHEDULE_TABS, scheduleTabPath, type ScheduleTab } from "./tabs.ts";
 import { pickTab, tabBar, tabbedBody } from "../job-page";
 
 export { renderReportPanel } from "./report.ts";
 export { buildReportDocument } from "./report-document.ts";
+export { renderProposalsPanel } from "./proposals.ts";
 export { NEW_SCHEDULE_DEFAULTS, renderScheduleEditPage, scheduleEditPath, scheduleNewPath } from "./edit-page.ts";
 export type { ScheduleEditPageOptions } from "./edit-page.ts";
-export { SCHEDULE_TABS, schedulePagePath, scheduleTabPath };
+export { SCHEDULE_TABS, schedulePagePath, scheduleRunPath, scheduleTabPath };
 export type { SchedulePageRow, ScheduleFilter, ScheduleHistoryRow, ScheduleTab };
 
 export const SCHEDULE_ROUTE = "/schedule";

@@ -348,6 +348,9 @@ session_out=""; subtype=""; cost="0"; cost_measured="false"; terminal_reason="";
 # The tokens the step actually metered, as a JSON object — or empty,
 # which is what makes the field ABSENT rather than zero (spec 118).
 tokens_json=""
+# The model id the run's own log names (`system`/`init`), or empty, which
+# makes the result's `modelId` ABSENT rather than a guess.
+model_id_out=""
 # The provider's own account of a usage limit that stopped this turn, in
 # the one shape `run-spec-provider-limit.sh` writes for every tool — or
 # empty, which leaves `providerLimit` out of the result.
@@ -459,6 +462,16 @@ elif [ "$tool" = "opencode" ]; then
 else
 result_json="$(jq -Rc 'fromjson? | select(type == "object" and .type == "result")' \
   "$transcript" 2>/dev/null | tail -n 1)"
+# The model the CLI says it started on: the `init` event, not `modelUsage`,
+# which lists helper models too. The last `init` that names one wins, like
+# the last `result` (a resumed turn writes its own). A stand-in names no
+# real model, so `fake-claude` reads nothing.
+if [ "$tool" = "claude" ]; then
+  model_id_out="$(jq -Rr 'fromjson?
+    | select(type == "object" and .type == "system" and .subtype == "init")
+    | .model | select(type == "string" and length > 0)' \
+    "$transcript" 2>/dev/null | tail -n 1)"
+fi
 # `status: rejected` alone is NOT a stop: it says the subscription
 # window is spent, and the very same event says whether purchased
 # credit is carrying the request anyway. Measured 2026-08-25, when
@@ -580,6 +593,7 @@ if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reopen_keep_no_ai" ] \
   # the same reason — a decline costs nothing.
   stopped=""; exit_code=0; duration=0
   session_out=""; subtype=""; cost="0"; cost_measured="false"; tokens_json=""
+  model_id_out=""
   cost_known="true"; error_msg=""
   if [ -n "$create_no_ai" ]; then
     # Spec 453: this path is reached only from aide-run-spec, headless by

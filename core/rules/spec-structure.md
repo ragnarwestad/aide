@@ -476,6 +476,7 @@ one, the date already exists, only the time of day is new
 ```markdown
 - **Repo:** `repo-name/branch @ sha`
 - **Model:** claude claude-sonnet-5
+- **Model id:** claude-sonnet-5
 - **Result:** completed
 - **Time spent:** 4m12s
 - **Cost:** $0.1234
@@ -483,7 +484,9 @@ one, the date already exists, only the time of day is new
 
 `Repo` is one line per repo root; it is absent for `create`, since
 nothing has been analyzed against yet. `Result` is `completed`, or
-`stopped (<reason>)` with a one-line error summary. `Cost` is absent
+`stopped (<reason>)` with a one-line error summary. `Model id` is the model
+Claude Code's own log named for the run, so an alias shows what it ran on;
+it is absent when the log names none. `Cost` is absent
 for a tool that reports no cost (codex) — absence means unknown, never
 zero.
 

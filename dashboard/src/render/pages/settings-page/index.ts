@@ -60,7 +60,7 @@ export const SETTINGS_STEPS = [...SPEC_STEPS, ...OTHER_STEPS] as const;
 export const SETTINGS_ROWS = [...SETTINGS_STEPS, "default"] as const;
 
 export interface SettingsPageOptions {
-  modelChoices: { name: string; tool?: "claude" | "codex" | "opencode" | "fake-claude" }[];
+  modelChoices: { name: string; tool?: "claude" | "codex" | "opencode" | "fake-claude"; ranAs?: string }[];
   defaultModels: Record<string, string>;
   timeoutSec: Record<string, number>;
   script?: string;

@@ -38,6 +38,10 @@ export interface QueueOptions {
    *  Absent means the table is in-memory only, for the tests and any
    *  caller that has no disk to give it. */
   pendingModelsPath?: string;
+  /** Where the newest model id each choice ran on survives to — the
+   *  `model-ids.json` sibling of the queue mirror. Absent means the table
+   *  is in-memory only, as `pendingModelsPath` absent. */
+  modelIdsPath?: string;
   /** Where a phase choice recorded at create time, or at a later Run,
    *  survives to (spec 439) — the `pending-steps.json` sibling of the
    *  queue mirror. Absent means the table is in-memory only, the same

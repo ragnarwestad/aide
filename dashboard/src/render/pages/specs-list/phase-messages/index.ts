@@ -5,6 +5,7 @@
 
 import { ICON_CHEVRON, stepLabel } from "../../../ui/components";
 import { esc } from "../../../ui/html.ts";
+import { withModelId } from "../../../ui/components/model-label.ts";
 import { t } from "../../../../i18n";
 import { specTabPath } from "../../spec-page";
 import type { Phase, SpecGroup } from "../data-model";
@@ -73,11 +74,18 @@ export function phaseMessagesRow(
   );
   const tab = specTabPath(g.project, g.specFolder, "steps");
   const href = esc(found?.step ? `${tab}&step=${encodeURIComponent(found.step)}` : tab);
-  const body = !found
+  // The model this phase ran on, first: from the newest attempt's result
+  // while the queue remembers one, else from the phase's own file (an
+  // archived phase names the recorded word, `opus`).
+  const newest = p.attempts[0];
+  const modelId = newest ? newest.modelId : p.modelId;
+  const ranOn = withModelId(newest ? newest.model : p.model?.split(" ").slice(1).join(" ") || undefined, modelId);
+  const modelLine = modelId ? `<p class="muted small" data-model-id>${esc(t(lang, "list.phaseModel", { model: ranOn ?? "" }))}</p>` : "";
+  const body = modelLine + (!found
     ? `<p class="phasemsgempty muted">${esc(t(lang, "list.phaseNoneKept"))}</p>`
     : found.messages.length === 0
       ? `<p class="phasemsgempty muted">${esc(t(lang, "list.phaseNoMessages"))}</p>`
-      : `<ul class="phasemsglist">${found.messages.map((m) => `<li>${m}</li>`).join("")}</ul>`;
+      : `<ul class="phasemsglist">${found.messages.map((m) => `<li>${m}</li>`).join("")}</ul>`);
   return {
     tag: `<tr class="phasemsgs" data-msgs="${esc(p.step)}">`,
     cells: `<td colspan="${LIST_COLUMNS}">${body}<a class="phasemsgopen" href="${href}">${esc(t(lang, "list.phaseOpenLog"))}</a></td>`,

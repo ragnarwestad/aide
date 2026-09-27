@@ -38,6 +38,7 @@ import {
 import { gerund, landingStepIndex } from "../../format/gerund.ts";
 
 
+import { loadModelIds, recordModelId } from "./model-ids.ts";
 import type { PendingModelResult, PendingStepsResult, QueueOptions, TransitionResult } from "./types.ts";
 
 export class QueueStore {
@@ -45,6 +46,7 @@ export class QueueStore {
   private readonly cap: number;
   private readonly mirrorPath?: string;
   private readonly pendingModelsPath?: string;
+  private readonly modelIdsPath?: string;
   private readonly pendingStepsPath?: string;
   readonly defaults: QueueDefaults;
   /** A model picked for a phase before any job exists (spec 308), keyed
@@ -60,6 +62,9 @@ export class QueueStore {
    *  `setPendingSteps()` is allowed to write it; the render layer reads
    *  it straight off, the way it already reads its two siblings. */
   readonly pendingSteps: Record<string, string[]> = {};
+  /** The model id the newest run of each choice reported (`Opus` →
+   *  `claude-opus-5-5`); outlives the 200 jobs the queue keeps. */
+  readonly modelIds: Record<string, string> = {};
   private readonly resolve: ProjectResolver;
   private readonly allowCreateProject: CreateProjectAllower;
   private readonly onChange: () => void;
@@ -68,6 +73,7 @@ export class QueueStore {
     this.cap = opts.cap ?? 200;
     this.mirrorPath = opts.mirrorPath;
     this.pendingModelsPath = opts.pendingModelsPath;
+    this.modelIdsPath = opts.modelIdsPath;
     this.pendingStepsPath = opts.pendingStepsPath;
     this.defaults = opts.defaults;
     this.resolve = opts.resolve;
@@ -78,6 +84,7 @@ export class QueueStore {
     // store finding out what it already was.
     this.load();
     this.loadPendingModels();
+    loadModelIds(this.modelIdsPath, this.modelIds);
     this.loadPendingSteps();
   }
 
@@ -526,6 +533,11 @@ export class QueueStore {
     } catch {
       // mirroring is best effort
     }
+  }
+
+  /** The newest run of a choice wins; see `model-ids.ts`. */
+  recordModelId(choice: string | undefined, modelId: string): void {
+    recordModelId(this.modelIdsPath, this.modelIds, choice, modelId);
   }
 
   private loadPendingModels(): void {

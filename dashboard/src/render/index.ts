@@ -61,7 +61,8 @@ export {
   renderSchedulePage, renderScheduleDetailPage, renderScheduleEditPage,
   NEW_SCHEDULE_DEFAULTS, scheduleEditPath, scheduleNewPath,
   renderReportPanel, buildReportDocument,
-  SCHEDULE_ROUTE, SCHEDULE_TABS, schedulePagePath, scheduleTabPath,
+  SCHEDULE_ROUTE, SCHEDULE_TABS, schedulePagePath, scheduleRunPath, scheduleTabPath,
+  renderProposalsPanel,
 } from "./pages/schedule-page";
 export type {
   SchedulePageOptions, SchedulePageRow, ScheduleDetailPageOptions,

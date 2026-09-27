@@ -102,6 +102,15 @@ STREAM_NOISE = [
 ]
 
 
+def init_event(model="claude-opus-5-5"):
+    """The `system`/`init` event Claude Code writes first in every run; its
+    `model` is the id the alias resolved to (read off a real log)."""
+    event = {"type": "system", "subtype": "init", "cwd": "/x", "session_id": "s"}
+    if model is not None:
+        event["model"] = model
+    return event
+
+
 def stream_body(result, before=STREAM_NOISE, after=None, exit_code=0):
     """A fake claude that emits NDJSON the way --output-format
     stream-json does: many events, the result among them."""

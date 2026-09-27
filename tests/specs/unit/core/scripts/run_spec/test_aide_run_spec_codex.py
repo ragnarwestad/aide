@@ -25,6 +25,7 @@ def test_a_codex_run_records_tool_and_tokens_but_no_cost(runner, workspace, fake
     assert "costUsd" not in out, "a Codex step has no dollar figure to report"
     assert out["costMeasured"] is False
     # Codex's own thread id, read back the way Claude's session id is.
+    assert "modelId" not in out, "AC-3: no second id beside the one the tool was given"
     assert out["sessionId"] == CODEX_THREAD_ID
     tokens = out["tokens"]
     u = CODEX_USAGE

@@ -6,7 +6,7 @@
 // `null` for a path that is not its own — which is what lets the
 // three be asked one after another exactly as the chain read before.
 import { NEW_SPEC_ROUTE, renderNewSpecPage, renderSpecGroupRows, renderSpecsPage, renderSpecsRows, resolveBackHref } from "../../../render";
-import { languageChoice, specsClientScript, sortChoice, stateChoice } from "../../serve-helpers";
+import { languageChoice, modelChoiceOptions, specsClientScript, sortChoice, stateChoice } from "../../serve-helpers";
 import { phaseMessagesFor } from "../../spec-views/phase-messages.ts";
 import { isWikiBuild } from "../../../queue/steps.ts";
 import type { RoutesContext } from "..";
@@ -86,13 +86,7 @@ export async function specsPages(
       failedCreates: ctx.push.failedCreates.list(),
       archivedSpecs,
       script: await specsClientScript(),
-      modelChoices: Object.entries(ctx.queue.defaults.modelChoices ?? {}).map(([name, c]) => ({
-        name,
-        // Carried so the option can SAY which CLI it starts: two
-        // entries that differ only in that would otherwise be two
-        // identical-looking names in the same dropdown.
-        ...(c.tool ? { tool: c.tool } : {}),
-      })),
+      modelChoices: modelChoiceOptions(ctx.queue),
       defaultModels: ctx.queue.defaults.model,
       // A model picked for a phase before any job exists (spec 308).
       // Only this view — the `/` page and its `?rows=1` poll — draws a
@@ -210,10 +204,7 @@ export async function specsPages(
       targets: ctx.withFreshness(ctx.targets()),
       backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/", url.pathname),
       script: await specsClientScript(),
-      modelChoices: Object.entries(ctx.queue.defaults.modelChoices ?? {}).map(([name, choice]) => ({
-        name,
-        ...(choice.tool ? { tool: choice.tool } : {}),
-      })),
+      modelChoices: modelChoiceOptions(ctx.queue),
       defaultModels: ctx.queue.defaults.model,
       // "Try again" on a failed create's message (spec 506): what was typed.
       prefill: prefillFor(ctx, url.searchParams.get("retry")),
