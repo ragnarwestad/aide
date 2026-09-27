@@ -157,6 +157,11 @@ is not part of what this session commits. In keep mode the
 
 First write `reopen · Step 7 of 8: Confirm — started`, and when this step ends, `reopen · Step 7 of 8: Confirm — done`.
 
+In a headless run nothing of this is on the default branch yet: the
+reopen is finished only once Step 8, the merge into main, is done. So the
+report's first line ends `— not finished, the merge into main is next
+(Step 8)`, and the report never calls the reopen done or complete.
+
 
 ```text
 Reopened: 17-clean-up-console-log

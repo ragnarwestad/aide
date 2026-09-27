@@ -292,6 +292,11 @@ that you stopped part-way, has nothing to record.
 
 First write `analyze · Step 9 of 10: Confirm — started`, and when this step ends, `analyze · Step 9 of 10: Confirm — done`.
 
+In a headless run nothing of this is on the default branch yet: the
+analyze is finished only once Step 10, the merge into main, is done. So the
+report's first line ends `— not finished, the merge into main is next
+(Step 10)`, and the report never calls the analyze done or complete.
+
 
 Show a summary with complexity, number of affected files, the plan
 review's verdict (counts of must-fix/should-fix, what was revised), and

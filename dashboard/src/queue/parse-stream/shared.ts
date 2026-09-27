@@ -91,6 +91,9 @@ export interface SummarizeOptions {
   // the caller's own `tool` reads off the same widened field and has to
   // type-check regardless.
   tool?: "claude" | "codex" | "opencode" | "fake-claude" | "none";
+  /** The model's own text in full, as it wrote it, rather than one
+   *  clipped line per block: what the Logs page shows. */
+  whole?: boolean;
   /** Keep only the entries a reader asked for, BEFORE the bound above
    *  is applied: "the last 40 failed commands", not "the failed
    *  commands among the last 40 entries". A step whose tail is all prose
@@ -194,9 +197,16 @@ export function splitMarks(text: string): { text: string; mark?: true }[] {
   return out;
 }
 
-/** A block of model text as escaped, clipped entries. */
-export function textEntries(text: string): StreamEntry[] {
-  return splitMarks(text).map((p) => ({ kind: "text", text: esc(clip(p.text)), ...(p.mark ? { mark: true } : {}) }));
+/** A block of model text as escaped entries: clipped to one line each,
+ *  or `whole` — each piece of prose as the model wrote it, line breaks
+ *  and all. */
+export function textEntries(text: string, whole = false): StreamEntry[] {
+  return splitMarks(text).map((p) => ({ kind: "text", text: esc(prose(p.text, whole && !p.mark)), ...(p.mark ? { mark: true } : {}) }));
+}
+
+/** A piece of model text as a Log shows it: whole, or clipped. */
+export function prose(text: string, whole: boolean): string {
+  return whole ? text.trim() : clip(text);
 }
 /** Which schema this text is in, when nobody said. Codex's events are
  *  the only ones whose `type` is dotted, and opencode's are the only

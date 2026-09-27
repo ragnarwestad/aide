@@ -78,3 +78,18 @@ test("a red run says so as an error, and says it runs them once more", async () 
   expect(log).toMatch(/\+\d+s error: the landing's tests are red — running them once more$/m);
   expect(log).toMatch(/\+\d+s error: the landing's tests are red again$/m);
 }, 30_000);
+
+test("the run's progress is in the Log between its start and its end, and its whole output beside the run log", async () => {
+  const root = repo();
+  scripts(
+    'while [ $# -gt 0 ]; do [ "$1" = --progress-file ] && p="$2"; shift; done\n' +
+      'echo "running make test" >> "$p"\necho "pytest 50%" >> "$p"\necho "the whole output"\nexit 0',
+  );
+  const { job: j, runLog } = job(root);
+  await runProjectSuiteBeforePush(root, j, "aide/81-x");
+  const lines = readFileSync(runLog, "utf-8").split("\n").map((l) => l.replace(/^aide-run-spec \S+ \+\d+s /, ""));
+  const start = lines.findIndex((l) => l.startsWith("the landing runs the project's tests"));
+  const end = lines.indexOf("the landing's tests are green");
+  expect(lines.slice(start + 1, end)).toEqual(["tests: running make test", "tests: pytest 50%"]);
+  expect(readFileSync(runLog.replace(/\.run\.log$/, ".tests.log"), "utf-8")).toContain("the whole output");
+}, 30_000);

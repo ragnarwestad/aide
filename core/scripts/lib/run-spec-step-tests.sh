@@ -34,17 +34,34 @@
 # run still going when it runs out is stopped (124), and the step ends
 # on its time limit with the work committed, like a session that ran
 # out. `child` is this run while it lasts, so Cancel stops it too.
+# The run's progress (aide-record-test-run --progress-file) into the Log
+# as it comes: every line written since the last call, stamped.
+step_tests_progress_seen=0
+stage_test_progress() {
+  local file="$work_dir/step-test-progress" total
+  [ -f "$file" ] || return 0
+  total="$(wc -l < "$file" | tr -d ' ')"
+  [ "$total" -gt "$step_tests_progress_seen" ] || return 0
+  while IFS= read -r line; do stage "tests: $line"; done \
+    < <(sed -n "$((step_tests_progress_seen + 1)),${total}p" "$file")
+  step_tests_progress_seen="$total"
+}
+
 run_step_tests_within_time() {
   local deadline tests_pid
   deadline=$(( started_at + ${timeout_sec%.*} ))
+  : > "$work_dir/step-test-progress"
+  step_tests_progress_seen=0
   set -m
   "$SCRIPT_DIR/aide-record-test-run" --project-dir "$project_wt" --specs-root "$specs_root_wt" \
     --folder "$step_tests_folder" "${step_test_args[@]}" \
+    --progress-file "$work_dir/step-test-progress" \
     --result-file "$work_dir/step-test-run.json" > "$work_dir/step-test-run.log" 2>&1 &
   tests_pid=$!
   set +m
   child="$tests_pid"
   while kill -0 "$tests_pid" 2>/dev/null; do
+    stage_test_progress
     if [ "$(date +%s)" -ge "$deadline" ]; then
       kill -TERM "-$tests_pid" 2>/dev/null || kill -TERM "$tests_pid" 2>/dev/null
       sleep 2
@@ -57,6 +74,12 @@ run_step_tests_within_time() {
   done
   wait "$tests_pid"
   local rc=$?
+  stage_test_progress
+  # The whole output, kept beside the step's own run log: the Log shows
+  # its progress, this file what the tests actually said.
+  if [ -n "${stream_file:-}" ]; then
+    cat "$work_dir/step-test-run.log" >> "${stream_file%.stream.jsonl}.tests.log" 2>/dev/null || true
+  fi
   # What the suite left running goes with it (see run_model_turn).
   kill -TERM "-$tests_pid" 2>/dev/null || true
   child=""

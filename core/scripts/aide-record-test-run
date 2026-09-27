@@ -34,7 +34,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=_aide-spec-lib.sh
 [ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
 
-project_dir=""; specs_root=""; folder=""; result_file=""
+project_dir=""; specs_root=""; folder=""; result_file=""; progress_file=""
 cmds=()
 
 while [ $# -gt 0 ]; do
@@ -44,7 +44,7 @@ while [ $# -gt 0 ]; do
 Usage:
   aide-record-test-run --project-dir <path> --specs-root <path> \
     --folder <NN-slug> --cmd "<command, or empty for none found>" \
-    [--cmd "<command>" ...] [--result-file <path>]
+    [--cmd "<command>" ...] [--result-file <path>] [--progress-file <path>]
 USAGE
       exit 0 ;;
     --project-dir) project_dir="${2:-}"; shift 2 ;;
@@ -52,6 +52,7 @@ USAGE
     --folder) folder="${2:-}"; shift 2 ;;
     --cmd) cmds+=("${2:-}"); shift 2 ;;
     --result-file) result_file="${2:-}"; shift 2 ;;
+    --progress-file) progress_file="${2:-}"; shift 2 ;;
     *) printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"unknown argument: %s"}\n' "$1"; exit 2 ;;
   esac
 done
@@ -82,6 +83,33 @@ tree=""
 declare -f aide_tree_hash >/dev/null 2>&1 && tree="$(aide_tree_hash "$project_dir" 2>/dev/null || echo "")"
 record_file="$target_dir/test-run.json"
 
+# One command, run in the project. With --progress-file its output (both
+# streams) still passes through whole, and the lines that say how far it
+# has come are written to the file as they arrive.
+run_cmd() {   # <command>
+  if [ -z "$progress_file" ]; then
+    ( cd "$project_dir" && bash -c "$1" )
+    return
+  fi
+  printf 'running %s\n' "$1" >> "$progress_file"
+  ( cd "$project_dir" && bash -c "$1" ) 2>&1 | LC_ALL=C awk -v out="$progress_file" '
+    function note(s) { print s >> out; fflush(out) }
+    { print; fflush() }
+    /\[ *[0-9]+%\][ \t]*$/ {
+      if (match($0, /[0-9]+%\][ \t]*$/)) {
+        b = int((substr($0, RSTART) + 0) / 10) * 10
+        if (b > last) { last = b; note("pytest " b "%") }
+      }
+    }
+    /^=+ .*[0-9]+ (passed|failed|errors?)/ { s = $0; gsub(/^=+ +| +=+$/, "", s); note("pytest: " s); last = 0 }
+    /^bash scripts\/run-tests\.sh/ { note("starting " substr($0, 6)) }
+    /^--- / && !/in full:$/ { note(substr($0, 5)) }
+    /^\.\.\. [0-9]+ s, / { note(substr($0, 5)) }
+    /^red: / { note($0) }
+  '
+  return "${PIPESTATUS[0]}"
+}
+
 if [ "${#cmds[@]}" -le 1 ]; then
   # --- today's exact single-command shape (REQ-6, byte for byte) ---------
   cmd="${cmds[0]:-}"
@@ -89,7 +117,7 @@ if [ "${#cmds[@]}" -le 1 ]; then
     exit_code=""
     note="no test command configured or detectable for this project"
   else
-    ( cd "$project_dir" && bash -c "$cmd" )
+    run_cmd "$cmd"
     exit_code=$?
     note=""
   fi
@@ -119,7 +147,7 @@ fi
 results_json="[]"
 agg_exit=0
 for c in "${cmds[@]}"; do
-  ( cd "$project_dir" && bash -c "$c" )
+  run_cmd "$c"
   ec=$?
   [ "$ec" -ne 0 ] && agg_exit="$ec"
   results_json="$(jq -cn --argjson prev "$results_json" --arg cmd "$c" --argjson ec "$ec" \

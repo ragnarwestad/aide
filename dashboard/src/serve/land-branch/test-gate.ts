@@ -9,7 +9,7 @@
 // one change. Here it runs exactly once per landing, on exactly what
 // main is about to become.
 
-import { appendFileSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
+import { appendFileSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, isAbsolute, join } from "node:path";
 import { LANDING_GATE_TIMEOUT_MS } from "../serve-helpers";
@@ -178,7 +178,7 @@ async function redOnDefaultBranch(liveRoot: string, recorder: string, argTail: s
  *  own only for a landing resumed at boot, when that pointer is gone. */
 export function stepLogLine(job: GatedJob, text: string, error = false): void {
   const last = job.results?.at(-1);
-  const streamFile = job.streamFile ?? last?.streamFile;
+  const streamFile = stepStreamFile(job);
   if (!streamFile) return;
   const now = new Date();
   const startedAt = job.streamFile ? job.stepStartedAt : last?.startedAt;
@@ -189,6 +189,48 @@ export function stepLogLine(job: GatedJob, text: string, error = false): void {
     appendFileSync(runLogPath(streamFile), `aide-run-spec ${clock} +${seconds}s ${error ? "error: " : ""}${text}\n`);
   } catch {
     // Nothing to do: the gate log keeps the run either way.
+  }
+}
+
+/** The transcript of the step this landing merges (see `stepLogLine`). */
+function stepStreamFile(job: GatedJob): string | undefined {
+  return job.streamFile ?? job.results?.at(-1)?.streamFile;
+}
+
+/** The test run's progress (`aide-record-test-run --progress-file`) into
+ *  the step's Log as it comes, every two seconds and once more at the end. */
+function followProgress(job: GatedJob, file: string): { stop: () => void } {
+  let seen = 0;
+  const drain = () => {
+    let lines: string[];
+    try {
+      lines = readFileSync(file, "utf-8").split("\n");
+    } catch {
+      return;
+    }
+    const complete = lines.slice(0, -1); // the last is empty, or a line still being written
+    for (const line of complete.slice(seen)) if (line.trim()) stepLogLine(job, `tests: ${line}`);
+    seen = Math.max(seen, complete.length);
+  };
+  const timer = setInterval(drain, 2000);
+  return {
+    stop: () => {
+      clearInterval(timer);
+      drain();
+    },
+  };
+}
+
+/** The whole output of the landing's test run, kept beside the step's run
+ *  log as `<job>.<step>.tests.log`: the Log shows its progress, this file
+ *  what the tests said. */
+function keepStepOutput(job: GatedJob, output: string): void {
+  const streamFile = stepStreamFile(job);
+  if (!streamFile) return;
+  try {
+    appendFileSync(`${streamFile.replace(/\.stream\.jsonl$/, "")}.tests.log`, output);
+  } catch {
+    // The shared gate log keeps it either way.
   }
 }
 
@@ -259,7 +301,11 @@ async function runSuiteIn(
     const argv = [recorder, "--project-dir", root, "--specs-root", scratch, "--folder", job.specFolder];
     for (const c of commands) argv.push("--cmd", c);
     const runOnce = async (label: string) => {
-      const out = await runScript(argv, root, LANDING_GATE_TIMEOUT_MS, job.id);
+      const progress = join(scratch, `progress${label.replace(/\W+/g, "-")}`);
+      writeFileSync(progress, "");
+      const follow = followProgress(job, progress);
+      const out = await runScript([...argv, "--progress-file", progress], root, LANDING_GATE_TIMEOUT_MS, job.id).finally(follow.stop);
+      keepStepOutput(job, `${out.stdout}${out.stderr}`);
       // The run's own output, kept where the archive step used to keep
       // it, under the same header a reader already knows.
       try {

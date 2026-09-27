@@ -115,6 +115,11 @@ A page holds no line numbers and no code. It is a map: the code decides.
 
 First write `wiki · Step 4 of 5: Finish — started`, and when this step ends, `wiki · Step 4 of 5: Finish — done`.
 
+In a headless run nothing of this is on the default branch yet: the
+wiki is finished only once Step 5, the merge into main, is done. So the
+report's first line ends `— not finished, the merge into main is next
+(Step 5)`, and the report never calls the wiki done or complete.
+
 
 1. `aide-wiki schema --specs-root <root> --project-dir .`
 2. `aide-wiki prune --specs-root <root> --keep <every page just written>`,
