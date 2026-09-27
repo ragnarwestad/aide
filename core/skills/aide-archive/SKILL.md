@@ -27,9 +27,13 @@ starts, write one line `archive · Step N of X: <title> — started`, and when
 it ends, one line `archive · Step N of X: <title> — done`. A step that ends
 the run early says `— stopped: <why>` in place of `— done`, and one that does not apply to this run `— skipped: <why>`.
 
-### Step 1 of 4: Run the mechanical script
+Step 5, the merge into the default branch, is Aide's, after this
+session: Aide writes its marks, and the archive is finished only when
+it is done.
 
-First write `archive · Step 1 of 4: Run the mechanical script — started`, and when this step ends, `archive · Step 1 of 4: Run the mechanical script — done`.
+### Step 1 of 5: Run the mechanical script
+
+First write `archive · Step 1 of 5: Run the mechanical script — started`, and when this step ends, `archive · Step 1 of 5: Run the mechanical script — done`.
 
 
 Everything mechanical — resolving the argument to a folder, checking
@@ -106,9 +110,9 @@ archive again, not by talking a session into skipping the check.
 The folder keeps its `NN-slug` name once moved — the date lives in
 `4-status.md`. Numbers are never reused.
 
-### Step 2 of 4: Close the loop
+### Step 2 of 5: Close the loop
 
-First write `archive · Step 2 of 4: Close the loop — started`, and when this step ends, `archive · Step 2 of 4: Close the loop — done`.
+First write `archive · Step 2 of 5: Close the loop — started`, and when this step ends, `archive · Step 2 of 5: Close the loop — done`.
 
 
 First, what should NOT outlive it. **If this spec replaced behaviour, the
@@ -152,9 +156,9 @@ has already archived the folder in Step 1 regardless, reports success,
 and leaves only the doc-feedback proposal unrecorded rather than the
 whole spec unmoved.
 
-### Step 3 of 4: Commit
+### Step 3 of 5: Commit
 
-First write `archive · Step 3 of 4: Commit — started`, and when this step ends, `archive · Step 3 of 4: Commit — done`.
+First write `archive · Step 3 of 5: Commit — started`, and when this step ends, `archive · Step 3 of 5: Commit — done`.
 
 
 The move and this step's own write both already happened, in the
@@ -193,17 +197,18 @@ Offer it only after the move actually happened — a `not-implemented-yet`
 or `held-back` decline in Step 1 has nothing to commit here beyond its
 own decline, which the ordinary git-add workflow already covers.
 
-### Step 4 of 4: Confirm
+### Step 4 of 5: Confirm
 
-First write `archive · Step 4 of 4: Confirm — started`, and when this step ends, `archive · Step 4 of 4: Confirm — done`.
+First write `archive · Step 4 of 5: Confirm — started`, and when this step ends, `archive · Step 4 of 5: Confirm — done`.
 
 
-A reader takes "archived" or "complete" to mean everything is done, and
-it is not: everything this step did is on the spec's branches, and
-nothing is on the default branch yet. So the report:
+The archive is not finished until the code and the spec are merged into
+the default branch, and that is Step 5, after this session. Everything
+this session did is on the spec's branches. So the report:
 
-- opens by saying the archive STEP is done and nothing is merged yet —
-  never "Archived: 17-clean-up-console-log" or "Archive complete";
+- opens by saying the archive is not finished and the merge is next —
+  never "Archived: 17-clean-up-console-log", "Archive complete" or
+  "archive step done";
 - says for each line whether it is the spec (the specs repository) or
   the code (the project's repository), and that it is on the branch;
 - ends with what is still to come: in a headless run, the tests run on
@@ -212,7 +217,7 @@ nothing is on the default branch yet. So the report:
   to be merged.
 
 ```text
-Archive step done for 17-clean-up-console-log — nothing merged into main yet
+Archive of 17-clean-up-console-log not finished — the merge into main is next (Step 5)
 
 - Spec: 4-status.md stamped (Archived: 2026-08-13) and the folder moved
   to archive/17-clean-up-console-log/, on the spec's branch
@@ -220,16 +225,27 @@ Archive step done for 17-clean-up-console-log — nothing merged into main yet
 - Code: the conflict with main in src/app.ts resolved, merge committed
   on the spec's branch
 
-Still to come: the tests run on the merge; when they pass, the code
-and the spec go into main.
+Still to come, Step 5: the tests run on the merge; when they pass, the
+code and the spec go into main, and only then is the archive finished.
 
 The spec stays findable: /aide-to-pdf 17
 ```
 
 Name the default branch by its own name (`main` above). An
-`already-archived` answer in Step 1 is reported the same way, as done by
-this step: the move usually happened seconds before this session, in
-the same run.
+`already-archived` answer in Step 1 is reported the same way: the move
+usually happened seconds before this session, in the same run, and the
+merge is still to come.
+
+### Step 5 of 5: Merge into main
+
+Aide writes `archive · Step 5 of 5: Merge into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
+
+Not this session's step, and it writes no mark for it. In a headless
+run Aide merges the spec's branches into the default branch once this
+session has ended: it runs the project's tests on the merge, and only
+when they pass do the code and the spec reach the default branch.
+Working interactively, the branches are merged by hand. Either way the
+archive is finished when the merge is, and not before.
 
 IMPORTANT:
 - Never delete a spec — archiving is a move, not a removal

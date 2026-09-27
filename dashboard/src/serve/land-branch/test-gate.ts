@@ -171,7 +171,7 @@ async function redOnDefaultBranch(liveRoot: string, recorder: string, argTail: s
  *  stamps its own, so the step's Log shows the landing's test run under
  *  "tests and commit". `error` marks a red one. Best effort: a log that
  *  cannot be written leaves the landing as it was. */
-function stepLogLine(job: GatedJob, text: string, error = false): void {
+export function stepLogLine(job: GatedJob, text: string, error = false): void {
   const last = job.results?.at(-1);
   if (!last?.streamFile) return;
   const now = new Date();

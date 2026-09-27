@@ -47,6 +47,16 @@ point.
 - A step that was stopped by its own time limit, or by a provider limit, still lands what it pushed outside the
   code root.
 
+The landing is the last step of the step's own skill, and the step is not finished until it is. The step's Log marks
+it the way the AI marks the skill's other steps, in the words of that skill's last heading:
+
+- `archive · Step 5 of 5: Merge into main — started` when the landing begins
+- `— done` when every repo merged
+- `— stopped: <why> — the archive is not finished`, an error line, when it did not
+
+The titles are `MERGE_STEP` in `src/serve/land-branch/steps.ts`, one per step that lands (`create`, `analyze`,
+`reopen`, `wiki`, `archive`, `close`); a test reads each skill's last heading against it.
+
 Code reaches the default branch through `archive` alone. The loop can only merge what it knows about, which is why
 it asks origin afterwards — see
 [Origin decides whether a landing finished](#origin-decides-whether-a-landing-finished).

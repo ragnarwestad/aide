@@ -124,7 +124,7 @@ class TestAnalyzeSkillFillsTheRightFiles:
         raise AssertionError(f"no '### {prefix}' step found")
 
     def test_solution_step_asks_for_scope_and_risk(self, workspace_root):
-        step = self._step(workspace_root, "Step 6 of 9: Create the implementation plan")
+        step = self._step(workspace_root, "Step 6 of 10: Create the implementation plan")
         for marker in ("**Scope:**", "**Risk analysis:**"):
             assert marker in step, \
                 f"/aide-analyze must ask for {marker} in 3-solution.md"
@@ -171,7 +171,7 @@ class TestSkillsResumeWorkAlreadyBegun:
 
     def test_analyze_names_the_placeholder_rule_not_the_headings(self, workspace_root):
         content = self._skill(workspace_root, "aide-analyze")
-        step = content.split("### Step 4 of 9: Check for work already begun", 1)[1].split("\n### ", 1)[0]
+        step = content.split("### Step 4 of 10: Check for work already begun", 1)[1].split("\n### ", 1)[0]
         # The literal placeholder text is the signal, named outright.
         assert "[not analyzed yet]" in step and "[not started]" in step, \
             "the check must name the template's own placeholder text"

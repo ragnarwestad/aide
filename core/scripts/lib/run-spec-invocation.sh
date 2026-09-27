@@ -161,7 +161,8 @@ When the step ends, the same line ending in one of these:
 — done
 — skipped: <why> (the step does not apply to this run)
 — stopped: <why> (the run ends here)
-N, X and the title come from the step's heading."
+N, X and the title come from the step's heading. A step whose text says Aide writes its marks is not yours
+to mark: leave it out."
 if [ "$command_name" = "schedule" ]; then
   # The prompt is the file's contents, verbatim — no aide skill, no spec
   # id, nothing invented on either side (spec 259). Read from

@@ -47,9 +47,13 @@ starts, write one line `analyze · Step N of X: <title> — started`, and when
 it ends, one line `analyze · Step N of X: <title> — done`. A step that ends
 the run early says `— stopped: <why>` in place of `— done`, and one that does not apply to this run `— skipped: <why>`.
 
-### Step 1 of 9: Read the description
+Step 10, the merge into the default branch, is Aide's, after this
+session: Aide writes its marks, and the analyze is finished only when it is
+done.
 
-First write `analyze · Step 1 of 9: Read the description — started`, and when this step ends, `analyze · Step 1 of 9: Read the description — done`.
+### Step 1 of 10: Read the description
+
+First write `analyze · Step 1 of 10: Read the description — started`, and when this step ends, `analyze · Step 1 of 10: Read the description — done`.
 
 
 - Read `specs/XX-slug/1-description.md`
@@ -81,9 +85,9 @@ stop anyway: applying it is `/aide-implement`'s job, in its own turn, not
 something this skill does on its behalf because it happens to be
 possible in the same session.
 
-### Step 2 of 9: Detect complexity
+### Step 2 of 10: Detect complexity
 
-First write `analyze · Step 2 of 9: Detect complexity — started`, and when this step ends, `analyze · Step 2 of 9: Detect complexity — done`.
+First write `analyze · Step 2 of 10: Detect complexity — started`, and when this step ends, `analyze · Step 2 of 10: Detect complexity — done`.
 
 
 Classify as LOW/MEDIUM/HIGH: Operation, Keywords and API impact decide the
@@ -91,9 +95,9 @@ grade, and the grade is the highest band any of them reaches. The number of
 files is a signal read last — it never raises a grade the other three read
 as LOW. See `references/complexity-and-analysis.md` for the criteria.
 
-### Step 3 of 9: Analyze the codebase
+### Step 3 of 10: Analyze the codebase
 
-First write `analyze · Step 3 of 9: Analyze the codebase — started`, and when this step ends, `analyze · Step 3 of 9: Analyze the codebase — done`.
+First write `analyze · Step 3 of 10: Analyze the codebase — started`, and when this step ends, `analyze · Step 3 of 10: Analyze the codebase — done`.
 
 
 Search the code from where the wiki pages read in Step 1 point.
@@ -115,9 +119,9 @@ Fall back to `grep` only when the language server gives no answer (it
 errors, or the file's language has none), and for text that is not a
 symbol — a message, a config key, a CSS class.
 
-### Step 4 of 9: Check for work already begun
+### Step 4 of 10: Check for work already begun
 
-First write `analyze · Step 4 of 9: Check for work already begun — started`, and when this step ends, `analyze · Step 4 of 9: Check for work already begun — done`.
+First write `analyze · Step 4 of 10: Check for work already begun — started`, and when this step ends, `analyze · Step 4 of 10: Check for work already begun — done`.
 
 
 A step stopped by its own time limit still commits what it wrote, and
@@ -146,9 +150,9 @@ written from an earlier round, holding no placeholder at all, and this
 round APPENDS a new `## Round N` subsection to each instead of leaving
 them untouched — see `references/requirements-tracing.md`.
 
-### Step 5 of 9: Update 2-analysis.md
+### Step 5 of 10: Update 2-analysis.md
 
-First write `analyze · Step 5 of 9: Update 2-analysis.md — started`, and when this step ends, `analyze · Step 5 of 9: Update 2-analysis.md — done`.
+First write `analyze · Step 5 of 10: Update 2-analysis.md — started`, and when this step ends, `analyze · Step 5 of 10: Update 2-analysis.md — done`.
 
 
 Assemble the complete new text of `2-analysis.md` (sections already
@@ -178,9 +182,9 @@ analysis belong to 3-solution.md (spec structure § Separation of content).
 When AC-n ids exist, see `references/requirements-tracing.md` for how
 findings are prefixed with the AC-id(s) they support.
 
-### Step 6 of 9: Create the implementation plan (3-solution.md)
+### Step 6 of 10: Create the implementation plan (3-solution.md)
 
-First write `analyze · Step 6 of 9: Create the implementation plan (3-solution.md) — started`, and when this step ends, `analyze · Step 6 of 9: Create the implementation plan (3-solution.md) — done`.
+First write `analyze · Step 6 of 10: Create the implementation plan (3-solution.md) — started`, and when this step ends, `analyze · Step 6 of 10: Create the implementation plan (3-solution.md) — done`.
 
 
 Assemble the complete new text of `3-solution.md` the same way as Step 5,
@@ -225,9 +229,9 @@ Call a plan item a task, never a step: a step is what the queue runs, or
 a numbered section of a skill such as this one, and a log that says
 "Step 8" must mean one of those.
 
-### Step 7 of 9: Review the plan
+### Step 7 of 10: Review the plan
 
-First write `analyze · Step 7 of 9: Review the plan — started`, and when this step ends, `analyze · Step 7 of 9: Review the plan — done`.
+First write `analyze · Step 7 of 10: Review the plan — started`, and when this step ends, `analyze · Step 7 of 10: Review the plan — done`.
 
 
 Attack the plan while the mistake is still cheap, before any test is
@@ -243,9 +247,9 @@ nothing was written in Step 6 to review.
 When AC-n ids exist, see `references/requirements-tracing.md` for the
 must-fix check on missing coverage.
 
-### Step 8 of 9: Update 4-status.md
+### Step 8 of 10: Update 4-status.md
 
-First write `analyze · Step 8 of 9: Update 4-status.md — started`, and when this step ends, `analyze · Step 8 of 9: Update 4-status.md — done`.
+First write `analyze · Step 8 of 10: Update 4-status.md — started`, and when this step ends, `analyze · Step 8 of 10: Update 4-status.md — done`.
 
 
 Assemble the complete new text of `4-status.md` the same way as Step 5,
@@ -284,14 +288,24 @@ never guesses.
 Offer it only when the analysis actually completed; one that failed, or
 that you stopped part-way, has nothing to record.
 
-### Step 9 of 9: Confirm
+### Step 9 of 10: Confirm
 
-First write `analyze · Step 9 of 9: Confirm — started`, and when this step ends, `analyze · Step 9 of 9: Confirm — done`.
+First write `analyze · Step 9 of 10: Confirm — started`, and when this step ends, `analyze · Step 9 of 10: Confirm — done`.
 
 
 Show a summary with complexity, number of affected files, the plan
 review's verdict (counts of must-fix/should-fix, what was revised), and
 the next step.
+
+### Step 10 of 10: Merge into main
+
+Aide writes `analyze · Step 10 of 10: Merge into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
+
+Not this session's step, and it writes no mark for it. In a headless
+run Aide merges what this session committed on the spec's branch into
+the default branch once the session has ended, and the analyze is finished
+when that merge is, not before. Working interactively there is no such
+step: the steps above say what reaches the default branch.
 
 IMPORTANT:
 - ALWAYS use the file:line format for references
