@@ -141,8 +141,12 @@ pnpm run test:coverage
 ### E2E tests (Playwright)
 
 **Run the e2e suite where the project's own run is quick and reliable. Keep that list explicit —
-on this machine it is currently Atlasaurus (since 3 August 2026) and PaceUp. Elsewhere, ask the
-user to run it.**
+on this machine it is currently Atlasaurus (since 3 August 2026), PaceUp and Aide (since 27
+September 2026). Elsewhere, ask the user to run it.**
+
+**Aide: run `cd dashboard && make test-e2e` before every push to main**, whatever the change
+touched — about 20 seconds. Otherwise only a landing runs it, and a browser test broken on main
+stops the next spec's archive as if that spec had broken it.
 
 The list stays short on purpose: a suite that hangs blocks the session for minutes with nothing to
 show for it. Where a project's suite is fast, that risk is gone; where it still crawls, ask the
