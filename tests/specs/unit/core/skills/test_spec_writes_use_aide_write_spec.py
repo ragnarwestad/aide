@@ -96,8 +96,8 @@ class TestAideImplementWritesViaScript:
 
 
 class TestAideArchiveWritesViaScript:
-    def test_headless_step_2_writes_via_aide_write_spec(self, aide_archive_skill):
-        step = _section(aide_archive_skill, "### Step 2 of 5:")
+    def test_headless_step_3_writes_via_aide_write_spec(self, aide_archive_skill):
+        step = _section(aide_archive_skill, "### Step 3 of 6:")
         assert "aide-write-spec" in step
         assert "4-status.md" in step
 

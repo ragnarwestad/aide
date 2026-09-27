@@ -20,6 +20,7 @@
 #   aide-wiki prune  --specs-root R --keep NAME.md [NAME.md...]
 #   aide-wiki status --specs-root R --project-dir P
 #   aide-wiki verify --specs-root R --base-ref REF
+#   aide-wiki affected --specs-root R --project-dir P
 
 set -uo pipefail
 
@@ -33,6 +34,7 @@ Usage:
   aide-wiki prune  --specs-root R --keep NAME.md [NAME.md...]
   aide-wiki status --specs-root R --project-dir P
   aide-wiki verify --specs-root R --base-ref REF
+  aide-wiki affected --specs-root R --project-dir P
 USAGE
 }
 
@@ -139,6 +141,24 @@ put_page() {
   tmp="$(mktemp)"
   cat > "$tmp"
   mv "$tmp" "$target"
+}
+
+# The project's default branch, resolved the same way
+# core/scripts/lib/run-spec-gates.sh's own default_branch() does — that
+# function lives in a bash-runner-internal library neither a plain script
+# call nor the archive skill's own session (a separate AI-CLI process)
+# can reach, so this is its own small copy of the same fallback.
+default_branch_of() {
+  local root="$1" ref candidate
+  ref="$(git -C "$root" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)"
+  if [ -n "$ref" ]; then
+    echo "${ref#origin/}"
+    return
+  fi
+  for candidate in main master; do
+    git -C "$root" show-ref --verify --quiet "refs/heads/$candidate" && { echo "$candidate"; return; }
+  done
+  git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null
 }
 
 case "$sub" in
@@ -275,6 +295,39 @@ SCHEMA
         '. + [{page:$p, generated:$g, state:$s, changedFiles:($ARGS.positional)}]' --args ${changed[@]+"${changed[@]}"} <<<"$pages")"
     done
     jq -cn --arg c "$head_sha" --argjson p "$pages" '{ok:true, exitCode:0, wiki:true, commit:$c, pages:$p}'
+    ;;
+
+  # Which generated (non-hand-written) pages does THIS file set — a
+  # spec's own diff against its default branch — touch. `status` above
+  # starts from a PAGE and asks about ITS OWN recorded commit; this
+  # starts from the diff and answers which pages it reaches, for a
+  # caller (the archive step) that never recorded one.
+  affected)
+    need_project
+    if [ ! -d "$wiki" ]; then
+      jq -cn '{ok:true, exitCode:0, terminalReason:"listed", pages:[]}'
+      exit 0
+    fi
+    base="$(default_branch_of "$project_dir")"
+    since="$(git -C "$project_dir" merge-base "origin/$base" HEAD 2>/dev/null || git -C "$project_dir" merge-base "$base" HEAD 2>/dev/null)"
+    [ -n "$since" ] || refuse "no-merge-base" "could not find a merge-base with $base in $project_dir"
+    changed=(); while IFS= read -r line; do [ -n "$line" ] && changed+=("$line"); done \
+      < <(git -C "$project_dir" diff --name-only "$since" HEAD -- . 2>/dev/null)
+    pages="[]"
+    for f in "$wiki"/*.md; do
+      [ -f "$f" ] || continue
+      n="$(basename "$f")"
+      case "$n" in index.md|schema.md) continue ;; esac
+      is_generated "$f" || continue
+      hit=()
+      while IFS= read -r pf; do
+        [ -n "$pf" ] || continue
+        for cf in ${changed[@]+"${changed[@]}"}; do [ "$pf" = "$cf" ] && hit+=("$pf"); done
+      done < <(fm_files "$f")
+      [ ${#hit[@]} -gt 0 ] || continue
+      pages="$(jq -c --arg p "$n" '. + [{page:$p, files:$ARGS.positional}]' --args "${hit[@]}" <<<"$pages")"
+    done
+    jq -cn --argjson p "$pages" '{ok:true, exitCode:0, terminalReason:"listed", pages:$p}'
     ;;
 
   verify)

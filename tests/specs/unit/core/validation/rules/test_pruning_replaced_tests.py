@@ -2,7 +2,7 @@
 
 Two files carry it, and they are only useful together: `core/rules/testing.md`
 states it, and `core/skills/aide-archive/SKILL.md` is where it is acted on —
-Step 2, before the commit in Step 3. A rule nothing invokes is a rule
+Step 3, before the commit in Step 4. A rule nothing invokes is a rule
 nobody applies, so these tests read both sides.
 """
 from pathlib import Path
@@ -42,6 +42,6 @@ class TestTheArchiveStep:
             "the step must name the rule, so the wording lives in one place"
 
     def test_it_happens_before_the_commit(self, skill_text):
-        step2 = skill_text.split("### Step 2", 1)[1].split("### Step 3", 1)[0]
-        assert "Step 3" in step2 and "delete" in step2.lower(), \
-            "the deletion belongs in Step 2, before Step 3 commits"
+        step3 = skill_text.split("### Step 3", 1)[1].split("### Step 4", 1)[0]
+        assert "Step 4" in step3 and "delete" in step3.lower(), \
+            "the deletion belongs in Step 3, before Step 4 commits"
