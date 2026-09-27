@@ -280,7 +280,7 @@ export function createServer(opts: ServerOptions) {
         runner.poll();
         growth.tick();
         void schedules.tickRunner();
-      }, 2000)
+      }, opts.queuePollMs ?? 2000)
     : null;
   timer?.unref?.();
 

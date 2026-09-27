@@ -120,6 +120,7 @@ describe("a chained job's row between its phases", () => {
         gitRun: git.run,
         queueRunnerBin: "/usr/bin/true",
         queueResultDir: results,
+        queuePollMs: 50,
       },
     });
     const page = async () =>
