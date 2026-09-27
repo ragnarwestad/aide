@@ -6,8 +6,9 @@
 // `null` for a path that is not its own — which is what lets the
 // three be asked one after another exactly as the chain read before.
 import { DEFAULT_SCHEDULE_OUTPUT_ROOT, readScheduleRunReport, scheduleTrackingKey } from "../../../queue/schedule.ts";
+import { readProposalsRecord } from "../../../queue/spec-proposals.ts";
 import {
-  NEW_SCHEDULE_DEFAULTS, SCHEDULE_ROUTE, buildReportDocument, projectPagePath, renderReportPanel,
+  NEW_SCHEDULE_DEFAULTS, SCHEDULE_ROUTE, buildReportDocument, projectPagePath, renderProposalsPanel, renderReportPanel,
   renderScheduleDetailPage, renderSchedulePage, resolveBackHref, schedulePagePath,
 } from "../../../render";
 import { languageChoice, specsClientScript } from "../../serve-helpers";
@@ -140,10 +141,16 @@ export async function schedulePages(
       entry,
       tab: url.searchParams.get("tab") ?? undefined,
       history,
-      reportPanel: renderReportPanel({
-        lang: langResult.lang, run,
-        ...(pendingJob ? { pending: pendingJob.state as "queued" | "running" } : {}),
-      }),
+      reportPanel:
+        renderReportPanel({
+          lang: langResult.lang, run,
+          ...(pendingJob ? { pending: pendingJob.state as "queued" | "running" } : {}),
+        }) +
+        renderProposalsPanel({
+          lang: langResult.lang,
+          project,
+          record: shown ? readProposalsRecord(outputRoot, project, key, shown.id) : null,
+        }),
       script: await specsClientScript(),
       backHref: resolveBackHref(req.headers.get("referer"), url.origin, projectScheduleTab(project), url.pathname),
       lang: langResult.lang,

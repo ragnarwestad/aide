@@ -151,7 +151,8 @@ rides with the last of them, and the permanent records of a landing attempt — 
   promise settles. It holds back that job alone — its own next step waits for its merge — and nothing else on the
   board: the landing merges in a worktree of its own and touches the shared checkout for one fast-forward at the
   end. It is never restored from the persisted mirror: a flag that survived a restart would hold that job shut with
-  nothing left to clear it. **An `onLanded` callback runs before its own job's flag is
+  nothing left to clear it. The step it was landing gets the end its landing never stamped: the job's own end, or
+  the boot that reads it back when the job had steps left. **An `onLanded` callback runs before its own job's flag is
   cleared.** `Runner.complete()` in `src/queue/runner/index.ts` is synchronous: it starts the landing work (`onStepDone`,
   e.g. `landArchivedSpec` for `archive`), writes `landing: true` onto the job's own store row, and only clears that
   flag in a `.then()` once the WHOLE landing promise settles — including whatever `onLanded` itself does. So a callback
