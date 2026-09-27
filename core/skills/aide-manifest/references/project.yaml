@@ -46,6 +46,8 @@ worktreeLinks: node_modules
 testScopes:
   - path: dashboard
     command: cd dashboard && make test
-# Run only when a branch is about to land, after the commands above: tests
-# too heavy for every step. Kept as found, never proposed.
+# Run when a branch is about to land, after the commands above: tests too
+# heavy for every step. A step whose change touches one of landingTestPaths
+# runs them too. Both kept as found, never proposed.
 landingTestCmd: cd dashboard && make test-e2e
+landingTestPaths: dashboard/test/e2e dashboard/src/specs-client

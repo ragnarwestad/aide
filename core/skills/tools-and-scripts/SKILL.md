@@ -92,12 +92,16 @@ bucket's command that has at least one file in it:
 A change reaching both halves runs both commands. Nothing is skipped for
 being slow — only for covering nothing the change touched.
 
-**Tests for the landing alone: `landingTestCmd:`.** A command the
-dashboard runs only when a branch is about to reach the default branch,
-after the commands above — never in a step's own run. For tests too
-heavy to run on every step, such as browser tests. `.aide/config`'s
-`AIDE_LANDING_TEST_CMD` overrides it, and `aide-resolve-test-cmd
---landing` adds it to what it resolves.
+**Tests for the landing: `landingTestCmd:`.** A command the dashboard
+runs when a branch is about to reach the default branch, after the
+commands above. For tests too heavy to run on every step, such as
+browser tests. `.aide/config`'s `AIDE_LANDING_TEST_CMD` overrides it,
+and `aide-resolve-test-cmd --landing` adds it to what it resolves.
+
+A step runs it too when its change touches a directory listed in
+`landingTestPaths:` (space-separated, overridden by
+`AIDE_LANDING_TEST_PATHS`), so the step that wrote a browser test is the
+one that sees it red.
 
 **When to run what:**
 

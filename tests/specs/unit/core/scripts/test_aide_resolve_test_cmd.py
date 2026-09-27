@@ -139,6 +139,43 @@ def test_a_landing_with_no_landing_command_runs_what_a_step_runs(script, project
     assert run(script, project, "--landing")[1]["commands"] == ["echo all"]
 
 
+# `landingTestPaths:` — a step whose change touches one of these paths runs
+# the landing's tests too, so tests only the landing ran (browser tests) are
+# red in the step that can still fix them, not first at the landing.
+LANDING = "testCmd: echo all\nlandingTestCmd: echo browser\nlandingTestPaths: web/e2e web/client\n"
+
+
+def test_a_step_touching_a_landing_path_runs_the_landing_command_too(script, project):
+    write_manifest(project, LANDING)
+    branch_with_changed_files(project, "web/client/graph.ts")
+    assert run(script, project)[1]["commands"] == ["echo all", "echo browser"]
+
+
+def test_a_step_touching_no_landing_path_leaves_the_landing_command_out(script, project):
+    write_manifest(project, LANDING)
+    branch_with_changed_files(project, "server/api.ts")
+    assert run(script, project)[1]["commands"] == ["echo all"]
+
+
+def test_a_landing_path_matches_whole_directories_only(script, project):
+    write_manifest(project, LANDING)
+    branch_with_changed_files(project, "web/e2e-notes.md")
+    assert run(script, project)[1]["commands"] == ["echo all"]
+
+
+def test_config_landing_paths_win_over_the_manifest(script, project):
+    write_manifest(project, LANDING)
+    write_config(project, "AIDE_LANDING_TEST_PATHS=server\n")
+    branch_with_changed_files(project, "server/api.ts")
+    assert run(script, project)[1]["commands"] == ["echo all", "echo browser"]
+
+
+def test_a_landing_touching_a_landing_path_runs_the_landing_command_once(script, project):
+    write_manifest(project, LANDING)
+    branch_with_changed_files(project, "web/e2e/graph.test.ts")
+    assert run(script, project, "--landing")[1]["commands"] == ["echo all", "echo browser"]
+
+
 def test_single_scope_match_resolves_to_that_scopes_command(script, project):
     write_config(
         project,
@@ -252,4 +289,16 @@ def test_refuses_without_project_dir(script):
     proc = subprocess.run([str(script)], capture_output=True, text=True)
     out = json.loads(proc.stdout.strip())
     assert proc.returncode == 2
+    assert out["terminalReason"] == "refused"
+
+
+def test_landing_paths_refuse_when_the_change_cannot_be_read(script, tmp_path):
+    """Whether the landing's tests run depends on the diff, so a diff that
+    fails is a refusal — never a quiet answer without them."""
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    subprocess.run(["git", "-C", str(empty), "init", "-q", "-b", "main"], check=True)
+    write_manifest(empty, LANDING)
+    rc, out, _ = run(script, empty)
+    assert rc == 2, out
     assert out["terminalReason"] == "refused"

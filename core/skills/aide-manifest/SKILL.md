@@ -100,8 +100,9 @@ First write `manifest · Step 4 of 5: Write and stamp — started`, and when thi
   visibly has a second toolchain in a subdirectory (its own lockfile or
   build file below the root), and confirm the command with the user
   rather than guessing it
-- **A `landingTestCmd:` key is kept as found, and never proposed.** It
-  names tests the landing alone runs (the tools-and-scripts skill,
+- **`landingTestCmd:` and `landingTestPaths:` are kept as found, and
+  never proposed.** They name tests the landing runs, and the
+  directories whose change makes a step run them too (the tools-and-scripts skill,
   "Project commands"); which tests are too heavy for every step is the
   project's own call
 
