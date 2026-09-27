@@ -49,6 +49,9 @@ the run early says `— stopped: <why>` in place of `— done`.
 
 ### Step 1 of 9: Read the description
 
+First write `analyze · Step 1 of 9: Read the description — started`, and when this step ends, `analyze · Step 1 of 9: Read the description — done`.
+
+
 - Read `specs/XX-slug/1-description.md`
 - Read `.aide/project.yaml` in the project root if it exists — the
   project manifest gives deployment, logging and dependency context
@@ -80,12 +83,18 @@ possible in the same session.
 
 ### Step 2 of 9: Detect complexity
 
+First write `analyze · Step 2 of 9: Detect complexity — started`, and when this step ends, `analyze · Step 2 of 9: Detect complexity — done`.
+
+
 Classify as LOW/MEDIUM/HIGH: Operation, Keywords and API impact decide the
 grade, and the grade is the highest band any of them reaches. The number of
 files is a signal read last — it never raises a grade the other three read
 as LOW. See `references/complexity-and-analysis.md` for the criteria.
 
 ### Step 3 of 9: Analyze the codebase
+
+First write `analyze · Step 3 of 9: Analyze the codebase — started`, and when this step ends, `analyze · Step 3 of 9: Analyze the codebase — done`.
+
 
 Search the code from where the wiki pages read in Step 1 point.
 
@@ -107,6 +116,9 @@ errors, or the file's language has none), and for text that is not a
 symbol — a message, a config key, a CSS class.
 
 ### Step 4 of 9: Check for work already begun
+
+First write `analyze · Step 4 of 9: Check for work already begun — started`, and when this step ends, `analyze · Step 4 of 9: Check for work already begun — done`.
+
 
 A step stopped by its own time limit still commits what it wrote, and
 that work is landed on the default branch rather than left on a branch
@@ -136,6 +148,9 @@ them untouched — see `references/requirements-tracing.md`.
 
 ### Step 5 of 9: Update 2-analysis.md
 
+First write `analyze · Step 5 of 9: Update 2-analysis.md — started`, and when this step ends, `analyze · Step 5 of 9: Update 2-analysis.md — done`.
+
+
 Assemble the complete new text of `2-analysis.md` (sections already
 filled in per Step 4 copied verbatim; placeholder sections replaced with
 real content), then write it with:
@@ -164,6 +179,9 @@ When AC-n ids exist, see `references/requirements-tracing.md` for how
 findings are prefixed with the AC-id(s) they support.
 
 ### Step 6 of 9: Create the implementation plan (3-solution.md)
+
+First write `analyze · Step 6 of 9: Create the implementation plan (3-solution.md) — started`, and when this step ends, `analyze · Step 6 of 9: Create the implementation plan (3-solution.md) — done`.
+
 
 Assemble the complete new text of `3-solution.md` the same way as Step 5,
 then write it with `aide-write-spec --file 3-solution.md` (never
@@ -208,6 +226,9 @@ Structure the plan with TDD:
 
 ### Step 7 of 9: Review the plan
 
+First write `analyze · Step 7 of 9: Review the plan — started`, and when this step ends, `analyze · Step 7 of 9: Review the plan — done`.
+
+
 Attack the plan while the mistake is still cheap, before any test is
 written: reviewers with distinct perspectives (feasibility, scope,
 coherence) attack `3-solution.md`, findings become must-fix/should-fix,
@@ -222,6 +243,9 @@ When AC-n ids exist, see `references/requirements-tracing.md` for the
 must-fix check on missing coverage.
 
 ### Step 8 of 9: Update 4-status.md
+
+First write `analyze · Step 8 of 9: Update 4-status.md — started`, and when this step ends, `analyze · Step 8 of 9: Update 4-status.md — done`.
+
 
 Assemble the complete new text of `4-status.md` the same way as Step 5,
 then write it with `aide-write-spec --file 4-status.md` (never
@@ -260,6 +284,9 @@ Offer it only when the analysis actually completed; one that failed, or
 that you stopped part-way, has nothing to record.
 
 ### Step 9 of 9: Confirm
+
+First write `analyze · Step 9 of 9: Confirm — started`, and when this step ends, `analyze · Step 9 of 9: Confirm — done`.
+
 
 Show a summary with complexity, number of affected files, the plan
 review's verdict (counts of must-fix/should-fix, what was revised), and

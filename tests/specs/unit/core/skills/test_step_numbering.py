@@ -26,3 +26,13 @@ def test_every_step_counts_the_same_total_in_order(skill):
     steps = [(int(n), int(x)) for n, x in STEP.findall(skill.read_text())]
     total = len(steps)
     assert steps == [(i, total) for i in range(1, total + 1)]
+
+
+@pytest.mark.parametrize("skill", _numbered_skills(), ids=lambda p: p.parent.name)
+def test_every_step_opens_with_its_own_log_lines(skill):
+    """The line under a heading is what the model writes to the log; a
+    renumbered heading with its old line under it logs the wrong step."""
+    step = skill.parent.name.removeprefix("aide-")
+    for m in re.finditer(r"^#+ Step (\d+ of \d+):.*\n\n(.*)$", skill.read_text(), re.M):
+        assert m.group(2).startswith(f"First write `{step} · Step {m.group(1)}:"), m.group(0)
+        assert f"`{step} · Step {m.group(1)}:" in m.group(2).split("and when this step ends")[1], m.group(0)

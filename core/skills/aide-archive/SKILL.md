@@ -29,6 +29,9 @@ the run early says `— stopped: <why>` in place of `— done`.
 
 ### Step 1 of 4: Run the mechanical script
 
+First write `archive · Step 1 of 4: Run the mechanical script — started`, and when this step ends, `archive · Step 1 of 4: Run the mechanical script — done`.
+
+
 Everything mechanical — resolving the argument to a folder, checking
 whether a merge is open, reading `4-status.md`'s tables, and (when the
 work is done) stamping and moving the folder — is a script now, not
@@ -105,6 +108,9 @@ The folder keeps its `NN-slug` name once moved — the date lives in
 
 ### Step 2 of 4: Close the loop
 
+First write `archive · Step 2 of 4: Close the loop — started`, and when this step ends, `archive · Step 2 of 4: Close the loop — done`.
+
+
 First, what should NOT outlive it. **If this spec replaced behaviour, the
 tests for the behaviour it replaced are deleted here, before the commit
 in Step 3** (`core/rules/testing.md`, "Replaced behaviour takes its tests
@@ -148,6 +154,9 @@ whole spec unmoved.
 
 ### Step 3 of 4: Commit
 
+First write `archive · Step 3 of 4: Commit — started`, and when this step ends, `archive · Step 3 of 4: Commit — done`.
+
+
 The move and this step's own write both already happened, in the
 working directory — Step 1's script did the stamp-and-move, and Step 2
 either wrote the docs directly or appended the deferred-feedback
@@ -186,6 +195,9 @@ own decline, which the ordinary git-add workflow already covers.
 
 ### Step 4 of 4: Confirm
 
+First write `archive · Step 4 of 4: Confirm — started`, and when this step ends, `archive · Step 4 of 4: Confirm — done`.
+
+
 A reader takes "archived" or "complete" to mean everything is done, and
 it is not: everything this step did is on the spec's branches, and
 nothing is on the default branch yet. So the report:
@@ -214,12 +226,15 @@ and the spec go into main.
 The spec stays findable: /aide-to-pdf 17
 ```
 
-Name the default branch by its own name (`main` above). A re-run that
-finds the folder already moved says the same, opening with "Archive
-step already done by an earlier run".
+Name the default branch by its own name (`main` above). An
+`already-archived` answer in Step 1 is reported the same way, as done by
+this step: the move usually happened seconds before this session, in
+the same run.
 
 IMPORTANT:
 - Never delete a spec — archiving is a move, not a removal
+- Never run the project's full test suite: the landing after this step
+  runs it once, on exactly the merge
 - If the specs root lies outside the project root, do NOT run
   `git add`/`git mv` in the project's repo for spec files (they live in
   another repo — use the specs repo's git if it has one)

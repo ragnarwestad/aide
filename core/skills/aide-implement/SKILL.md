@@ -37,7 +37,19 @@ Usage:
 
 ## Workflow
 
-### Preparation
+The steps below are this skill's own, inside the queue's `implement`
+step. Mark each one in the log, so a reader can follow the run: when it
+starts, write one line `implement · Step N of 4: <title> — started`, and
+when it ends, one line `implement · Step N of 4: <title> — done`. A step
+that ends the run early says `— stopped: <why>` in place of `— done`.
+Step 3 also marks each task it takes from the plan, as it finishes it:
+`implement · Step 3 of 4, task K of M: <task> — done`, where M counts the
+task rows of `4-status.md`'s GREEN tables.
+
+### Step 1 of 4: Preparation
+
+First write `implement · Step 1 of 4: Preparation — started`, and when this step ends, `implement · Step 1 of 4: Preparation — done`.
+
 
 1. Read `specs/XX-slug/2-analysis.md` (affected files)
 2. Read `specs/XX-slug/3-solution.md` (implementation plan)
@@ -45,13 +57,13 @@ Usage:
    section: suggest re-running `/aide-analyze` first (proceed if the
    user declines)
 4. Read the relevant coding standard (frontend or backend)
-5. Read `specs/XX-slug/4-status.md`'s phase table. A step
+5. Read `specs/XX-slug/4-status.md`'s task tables. A step
    stopped by its time limit commits what it wrote, and that work is
    landed rather than left on a branch — so an earlier run may already
-   have finished some of the phases below. A phase whose tasks are all
-   ✅ is done: skip it. A phase marked 🔄, with some tasks ✅ and some
-   ⬜: keep the ✅ ones and resume at the first ⬜. Start at Phase 1
-   only when every phase is still ⬜ Not started.
+   have finished some of the steps below. A step whose task rows are
+   all ✅ is done: skip it. A step whose table is marked 🔄, with some
+   rows ✅ and some ⬜: keep the ✅ ones and resume at the first ⬜.
+   Start at Step 2 only when every row is still ⬜ Not started.
 
 **Where a symbol is used or defined, ask the language server first.**
 When an `LSP` tool is listed, it is usually deferred: load it once with
@@ -63,13 +75,16 @@ Fall back to `grep` only when the language server gives no answer (it
 errors, or the file's language has none), and for text that is not a
 symbol — a message, a config key, a CSS class.
 
-### Phase 1: RED — Write failing tests
+### Step 2 of 4: RED — Write failing tests
 
-Skip this phase entirely if Preparation step 5 found it already done;
+First write `implement · Step 2 of 4: RED — Write failing tests — started`, and when this step ends, `implement · Step 2 of 4: RED — Write failing tests — done`.
+
+
+Skip this step entirely if item 5 of Step 1 found it already done;
 resume it at the first unticked task if it found it in progress.
 
 1. Read "Step 0" and the acceptance criteria from 3-solution.md
-2. Run `aide-emit-run --phase red --spec <ID>` (see [Reporting the phase](#reporting-the-phase))
+2. Run `aide-emit-run --phase red --spec <ID>` (see [Reporting RED, GREEN and REFACTOR](#reporting-red-green-and-refactor))
 3. Create test files — at least one failing test per acceptance criterion.
    A criterion an existing test already proves gets no second test: add
    the AC-id to that test's name instead (step 4). What a test is for,
@@ -87,32 +102,38 @@ resume it at the first unticked task if it found it in progress.
    `3-solution.md`'s Acceptance criteria appears in at least one test
    name from steps 3-5. An id with none gets its test now
 7. Run the tests — verify that they FAIL
-8. Tick this phase's task rows in `4-status.md` — ✅ once a row's test is
+8. Tick this step's task rows in `4-status.md` — ✅ once a row's test is
    written and confirmed to fail, not merely planned. Write the result
    with `aide-write-spec --file 4-status.md` (never Write/Edit)
 9. Report the RED result briefly and continue to GREEN
 
-### Phase 2: GREEN — Implement until tests pass
+### Step 3 of 4: GREEN — Implement until tests pass
+
+First write `implement · Step 3 of 4: GREEN — Implement until tests pass — started`, and when this step ends, `implement · Step 3 of 4: GREEN — Implement until tests pass — done`.
+
 
 1. Run `aide-emit-run --phase green --spec <ID>`
-2. Implement each step from 3-solution.md — before writing to a file,
+2. Implement each task from 3-solution.md's plan — before writing to a file,
    check its current line count against any limit the project's coding
    standard states (e.g. dashboard/CLAUDE.md's "Code health" section),
    and split by responsibility instead of appending past it
-3. Run the tests after each step
+3. Run the tests after each task, and log the task as done
 4. Verify that the tests PASS
-5. Tick this phase's task rows in `4-status.md` as each one's tests turn
+5. Tick this step's task rows in `4-status.md` as each one's tests turn
    green. Write the result with `aide-write-spec --file 4-status.md`
    (never Write/Edit)
 6. Report the GREEN result briefly and continue to REFACTOR
 
-### Phase 3: REFACTOR — Quality check
+### Step 4 of 4: REFACTOR — Quality check
+
+First write `implement · Step 4 of 4: REFACTOR — Quality check — started`, and when this step ends, `implement · Step 4 of 4: REFACTOR — Quality check — done`.
+
 
 The order is fixed: the full suite is run only once every test this
-step wrote is green (Phase 2). Red in the full suite is then something
+step wrote is green (Step 3). Red in the full suite is then something
 the change BROKE — an existing test that still expects the old
 behaviour, or a file another scope covers — and it is this step's to
-fix, back through Phase 2, before anything is reported — running only
+fix, back through Step 3, before anything is reported — running only
 the files that failed until each is green, and recording the full suite
 again once, after the last of them (the testing rule, "A red full run is
 fixed file by file"). Never tick the
@@ -158,14 +179,14 @@ runner's own run on your result is what decides.
    A browser test this step wrote for a *(browser)* criterion is run
    too, each file on its own and once, after the full suite — never
    the project's whole browser suite, which a project may keep out of
-   its full-suite command. Red is fixed back through Phase 2 like any
+   its full-suite command. Red is fixed back through Step 3 like any
    red test. A file that could not start at all (no browser on the
    machine) is named in the full-suite row's Notes cell, never passed
    over in silence.
 3. TypeScript check
 4. ESLint
 5. Build
-6. Tick this phase's task rows in `4-status.md` as each check above
+6. Tick this step's task rows in `4-status.md` as each check above
    passes — the full-suite row ticks ✅ only once
    `aide-record-test-run`'s own exit code is 0, never because the model
    believes the suite passed. Write the result with `aide-write-spec
@@ -174,20 +195,21 @@ runner's own run on your result is what decides.
    names the command(s) that ran, and, when the project has `testScopes`
    naming a scope nothing changed in, says that scope was left untested.
    Write it the same way, with `aide-write-spec --file 4-status.md`
-8. Before reporting anything: confirm every row in this phase's own
+8. Before reporting anything: confirm every row in this step's own
    table now reads ✅. This step is not optional and is not satisfied by
    the checks above having passed — it is a separate, required write,
-   the last one this phase makes, and it is the one step reported "done"
+   the last one this step makes, and it is the one step reported "done"
    without it having actually happened.
 9. Show a summary — ready for commit
 
-**Find a phase's table by its HEADING TEXT, never by its number.** This
-skill has three phases; `4-status.md` has four, because its GREEN work
-is split into implementing and verifying. So RED is `## Phase 1: RED`
+**Find a table in `4-status.md` by its HEADING TEXT, never by its
+number.** This skill's RED, GREEN and REFACTOR are its Steps 2-4;
+`4-status.md` has four tables for them, because its GREEN work is split
+into implementing and verifying. So RED is `## Phase 1: RED`
 there, this skill's GREEN covers BOTH `## Phase 2: GREEN - Implement`
 and `## Phase 3: GREEN - Verify tests`, and REFACTOR is
-`## Phase 4: REFACTOR`. A tick placed by matching "Phase 3" to this
-skill's third phase lands in the wrong table.
+`## Phase 4: REFACTOR`. A tick placed by matching a number in this
+skill to a number there lands in the wrong table.
 
 In a Tasks table's Status cell, write the SYMBOL its Notation section
 gives — `✅`, `⬜`, `🔄` — never the word beside it, and never both
@@ -196,7 +218,7 @@ wrong). The dashboard reads both forms, but a file that spells the
 same state two ways is a file whose own legend has stopped describing
 it.
 
-None of the three phases above ever ticks a row under a `## Acceptance
+None of Steps 2-4 above ever ticks a row under a `## Acceptance
 criteria` heading, if `4-status.md` has one — never tick that section,
 and never touch a TICKED row's Notes cell either. Implement never writes
 `Not verified` to any Status cell: the mark counts as done, so writing
@@ -235,7 +257,7 @@ writes this phase's `Repo`/`Model`/`Result`/`Time spent`/`Cost` block
 into `3-solution.md`'s own Tracking info — leave those lines alone too.
 
 The percentage above it is still yours: it says how far
-the TDD phases got, which is the field for partial work.
+RED, GREEN and REFACTOR got, which is the field for partial work.
 
 A headless run gets its commit for free — this session does not run
 `git commit` or `git push` itself, headless or not. Working
@@ -258,13 +280,13 @@ its own context, so it can write `claude claude-opus-5`; an assistant
 that cannot name itself offers the bare subject without the suffix and
 never guesses.
 
-Offer it only once the verification in this phase has passed. A red
-suite, a failing build or a phase you could not finish is not a step
+Offer it only once the verification in Step 4 has passed. A red
+suite, a failing build or a step of this skill you could not finish is not a step
 that completed.
 
-### Reporting the phase
+### Reporting RED, GREEN and REFACTOR
 
-One Bash call at the start of each phase, with the spec's ID:
+One Bash call at the start of Steps 2, 3 and 4, with the spec's ID:
 
 ```bash
 aide-emit-run --phase red --spec 81
@@ -272,18 +294,18 @@ aide-emit-run --phase red --spec 81
 
 It is a fire-and-forget report, not a gate: it prints nothing, never
 asks anything, always exits 0, and does nothing at all unless
-`AIDE_RUN_URL` is set. A run that reports its phases can be followed
-from the dashboard while it works; the three phases still run through
-without stopping.
+`AIDE_RUN_URL` is set. A run that reports them can be followed from
+the dashboard while it works; the steps still run through without
+stopping.
 
 See `references/tdd-phases.md` for the detailed workflow with commands
 and expected output per phase.
 
 IMPORTANT:
-- Run all three phases through WITHOUT stopping to ask for
-  confirmation — report each phase's result as you pass it. Stop only
+- Run all four steps through WITHOUT stopping to ask for
+  confirmation — report each step's result as you pass it. Stop only
   when genuinely blocked (a decision only the user can make, or a
-  phase that cannot be completed)
+  step that cannot be completed)
 - NEVER skip tests
 - Follow the coding standard strictly
 - Code blocks ALWAYS end with just ` ``` `

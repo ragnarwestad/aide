@@ -1,5 +1,5 @@
-"""Content checks for core/skills/aide-implement/SKILL.md's Phase 3
-(spec 329).
+"""Content checks for core/skills/aide-implement/SKILL.md's REFACTOR
+step (spec 329).
 
 REQ-2 requires the full-suite step to call `aide-record-test-run`
 instead of running the command directly and self-reporting the result
@@ -9,8 +9,8 @@ copy of that mechanism; the skill is the only call site.
 """
 
 
-def test_phase_3_calls_the_record_script(workspace_root):
+def test_refactor_step_calls_the_record_script(workspace_root):
     text = (workspace_root / "core" / "skills" / "aide-implement" / "SKILL.md").read_text()
-    phase_3 = text.split("### Phase 3: REFACTOR")[1].split("\n### ")[0]
+    phase_3 = text.split("### Step 4 of 4: REFACTOR")[1].split("\n### ")[0]
     assert "aide-record-test-run" in phase_3, phase_3
     assert "never run it directly and self-report the result" in phase_3, phase_3

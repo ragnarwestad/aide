@@ -26,8 +26,12 @@
 # a caller skip tests without saying so.
 #
 # `--landing` adds the manifest's `landingTestCmd:` (or `.aide/config`'s
-# AIDE_LANDING_TEST_CMD) after those: tests a project runs only when a
-# branch is about to reach its default branch, never in a step's own run.
+# AIDE_LANDING_TEST_CMD) after those: tests a project runs when a branch
+# is about to reach its default branch. A step's own run adds it too when
+# its change touches one of the manifest's `landingTestPaths:` (or
+# AIDE_LANDING_TEST_PATHS), space-separated directories: the tests only
+# the landing ran were first run, red, after the step that could still
+# fix them had ended.
 #
 # Usage:
 #   aide-resolve-test-cmd --project-dir <path> [--landing]
@@ -70,13 +74,47 @@ git -C "$project_dir" rev-parse --is-inside-work-tree >/dev/null 2>&1 \
 declare -f aide_test_scope_commands >/dev/null 2>&1 \
   || refuse "aide_test_scope_commands is not available (missing _aide-spec-lib.sh)"
 
-# The answer, with the landing's own command after the others when asked.
+# The files this branch changed against its base, one per line. Called
+# in a command substitution, where a refusal is captured rather than
+# printed: the caller prints it and exits (`|| { echo "$x"; exit 2; }`).
+changed_since_base() {
+  local base_ref out
+  base_ref="$(aide_test_scope_base_ref "$project_dir")"
+  [ -n "$base_ref" ] || refuse "could not resolve a base ref for $project_dir"
+  out="$(git -C "$project_dir" diff --name-only "${base_ref}...HEAD" 2>&1)" \
+    || refuse "git diff against $base_ref failed: $out"
+  printf '%s\n' "$out"
+}
+
+# True when one of the changed files ($1, one per line) is under a
+# directory in $2 (space-separated).
+under_any() {
+  local file dir
+  while IFS= read -r file; do
+    [ -n "$file" ] || continue
+    for dir in $2; do
+      dir="${dir%/}"
+      case "$file" in "$dir"/*) return 0 ;; esac
+    done
+  done <<< "$1"
+  return 1
+}
+
+# The answer, with the landing's own command after the others when asked,
+# or when the change touches a directory its tests cover.
 answer() {
-  if [ -n "$landing" ]; then
-    local extra
-    extra="$(aide_resolve_override AIDE_LANDING_TEST_CMD landingTestCmd "$project_dir")"
-    [ -n "$extra" ] && set -- "$@" "$extra"
+  local extra paths changed
+  extra="$(aide_resolve_override AIDE_LANDING_TEST_CMD landingTestCmd "$project_dir")"
+  if [ -n "$extra" ] && [ -z "$landing" ]; then
+    paths="$(aide_resolve_override AIDE_LANDING_TEST_PATHS landingTestPaths "$project_dir")"
+    if [ -n "$paths" ]; then
+      changed="$(changed_since_base)" || { printf '%s\n' "$changed"; exit 2; }
+      under_any "$changed" "$paths" || extra=""
+    else
+      extra=""
+    fi
   fi
+  [ -n "$extra" ] && set -- "$@" "$extra"
   jq -cn --args '{ok:true, commands:$ARGS.positional}' -- "$@"
 }
 
@@ -89,12 +127,7 @@ if [ -z "$first_paths" ]; then
 fi
 
 # --- scoped path: resolve the changed-file list, then the commands ---------
-base_ref="$(aide_test_scope_base_ref "$project_dir")"
-[ -n "$base_ref" ] || refuse "could not resolve a base ref for $project_dir"
-
-changed_output="$(git -C "$project_dir" diff --name-only "${base_ref}...HEAD" 2>&1)"
-diff_status=$?
-[ "$diff_status" -eq 0 ] || refuse "git diff against $base_ref failed: $changed_output"
+changed_output="$(changed_since_base)" || { printf '%s\n' "$changed_output"; exit 2; }
 
 changed_files=()
 while IFS= read -r line; do

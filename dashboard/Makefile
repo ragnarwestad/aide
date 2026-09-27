@@ -37,7 +37,8 @@ test:
 
 # The browser tests, which `make test` leaves out: each starts a chromium,
 # and they are what lose to load. A landing runs them (`landingTestCmd:`
-# in the manifest), and so does CI.
+# in the manifest), a step whose change touches `landingTestPaths:` does
+# too, and so does CI.
 test-e2e:
 	bash scripts/run-tests.sh test/e2e
 

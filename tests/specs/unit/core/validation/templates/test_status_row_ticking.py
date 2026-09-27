@@ -1,8 +1,8 @@
 """Pin tests for spec 268: implement and analyze tick their own rows.
 
 AC1: `core/skills/aide-implement/SKILL.md` instructs ticking a phase's
-own Task rows as that phase's work finishes, in EACH of Phase 1 (RED),
-Phase 2 (GREEN) and Phase 3 (REFACTOR) — one assertion per phase, so an
+own Task rows as that phase's work finishes, in EACH of Step 2 (RED),
+Step 3 (GREEN) and Step 4 (REFACTOR) — one assertion per step, so an
 edit to only one of the three phases still fails the other two.
 
 AC2: `core/skills/aide-analyze/references/plan-review.md` instructs
@@ -13,7 +13,7 @@ import re
 
 import pytest
 
-TICK_MARKER = "tick this phase's task rows"
+TICK_MARKER = "tick this step's task rows"
 
 
 def phase_block(text, heading):
@@ -35,13 +35,13 @@ def implement_skill(workspace_root):
 
 @pytest.mark.parametrize(
     "heading",
-    ["### Phase 1: RED", "### Phase 2: GREEN", "### Phase 3: REFACTOR"],
+    ["### Step 2 of 4: RED", "### Step 3 of 4: GREEN", "### Step 4 of 4: REFACTOR"],
 )
 def test_each_phase_instructs_ticking_its_own_rows(implement_skill, heading):
     block = phase_block(implement_skill, heading)
     assert TICK_MARKER in block.lower(), (
         f"{heading} in core/skills/aide-implement/SKILL.md never instructs "
-        "ticking that phase's own Task rows in 4-status.md"
+        "ticking that step's own Task rows in 4-status.md"
     )
 
 

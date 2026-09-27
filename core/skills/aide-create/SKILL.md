@@ -62,6 +62,9 @@ the run early says `— stopped: <why>` in place of `— done`.
 
 ### Step 1 of 6: Find the specs root
 
+First write `create · Step 1 of 6: Find the specs root — started`, and when this step ends, `create · Step 1 of 6: Find the specs root — done`.
+
+
 - Before anything else, run `date +%s` and keep the printed number as
   this phase's start time — Step 5 uses it, for an interactive run only,
   to record how long this phase actually took.
@@ -74,6 +77,9 @@ the run early says `— stopped: <why>` in place of `— done`.
   now, not from whatever it was when this session last looked.
 
 ### Step 2 of 6: Find the next available number
+
+First write `create · Step 2 of 6: Find the next available number — started`, and when this step ends, `create · Step 2 of 6: Find the next available number — done`.
+
 
 **Headless, with a literal folder name stated:** skip this step entirely
 — see "A headless run states its own folder name" below Step 4.
@@ -89,6 +95,9 @@ the run early says `— stopped: <why>` in place of `— done`.
 
 ### Step 3 of 6: Generate a slug from the title
 
+First write `create · Step 3 of 6: Generate a slug from the title — started`, and when this step ends, `create · Step 3 of 6: Generate a slug from the title — done`.
+
+
 **Headless, with a literal folder name stated:** skip this step
 entirely, for the same reason as Step 2.
 
@@ -101,6 +110,9 @@ entirely, for the same reason as Step 2.
   description and that function ever need to be checked against each other.
 
 ### Step 4 of 6: Create the directory and 5 files
+
+First write `create · Step 4 of 6: Create the directory and 5 files — started`, and when this step ends, `create · Step 4 of 6: Create the directory and 5 files — done`.
+
 
 **A headless run states its own folder name.** A prompt that says
 "create the spec folder under exactly this name — `<name>` — do not
@@ -232,6 +244,9 @@ and `jq`, for no reduction in that ambiguity.
 
 ### Step 5 of 6: Stage in git
 
+First write `create · Step 5 of 6: Stage in git — started`, and when this step ends, `create · Step 5 of 6: Stage in git — done`.
+
+
 Working interactively, before staging, run:
 
 ```bash
@@ -292,6 +307,9 @@ committing it under their own message leaves no such commit at all, and
 no `Model (create)` line is written — an absence, never a guess.
 
 ### Step 6 of 6: Confirm
+
+First write `create · Step 6 of 6: Confirm — started`, and when this step ends, `create · Step 6 of 6: Confirm — done`.
+
 
 Show a summary and the next step, built from Step 4's `specFolder` and
 `files` — not assumed. Never preview the composed description text

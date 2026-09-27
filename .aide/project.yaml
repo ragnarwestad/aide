@@ -22,6 +22,7 @@ testCmd: export PATH="$HOME/.local/share/mise/shims:$PATH"; .venv/bin/pytest -q 
 # Run by a landing only, after the commands above: the browser tests, which
 # `make test` leaves out.
 landingTestCmd: cd dashboard && make test-e2e
+landingTestPaths: dashboard/test/e2e dashboard/src/specs-client dashboard/src/render/scripts dashboard/src/render/ui/css
 testScopes:
   - path: dashboard
     command: cd dashboard && make test
