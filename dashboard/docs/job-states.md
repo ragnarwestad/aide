@@ -1,5 +1,14 @@
 # A job's states
 
+## Table of contents
+
+- [The seven states](#the-seven-states)
+- [The transitions](#the-transitions)
+- [Beside the state](#beside-the-state)
+- [What the page makes of it](#what-the-page-makes-of-it)
+
+---
+
 A job carries a `state`, and only the queue's own state machine moves it. This page says what that state can be,
 which piece of code moves it and when, and which fields beside it behave like a state without being one.
 
@@ -15,14 +24,6 @@ Three pages sit beside this one:
 - [A spec's lifecycle](spec-lifecycle.md) — the level above: which of the four phases a SPEC has reached
 - [Error sentences](error-sentences.md) — the one rule a job's own `error` sentence follows
 
-## Table of contents
-
-- [The seven states](#the-seven-states)
-- [The transitions](#the-transitions)
-- [Beside the state](#beside-the-state)
-- [What the page makes of it](#what-the-page-makes-of-it)
-
----
 
 ## The seven states
 

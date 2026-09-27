@@ -1,5 +1,17 @@
 # The runner and its checkouts
 
+## Table of contents
+
+- [What a run does, in order](#what-a-run-does-in-order)
+- [The dashboard's own checkouts](#the-dashboards-own-checkouts)
+- [How a run touches the repositories](#how-a-run-touches-the-repositories)
+- [What counts as a step having run](#what-counts-as-a-step-having-run)
+- [What a finished step publishes](#what-a-finished-step-publishes)
+- [The run log](#the-run-log)
+- [Running a step by hand](#running-a-step-by-hand)
+
+---
+
 What a run does to the repositories it touches: the clones the dashboard keeps of its own, the `git worktree`
 checkouts a step works in, what a finished step publishes — and, last, how to run one step by hand.
 
@@ -26,17 +38,6 @@ Two pages sit beside this one:
 - [Running specs](running-specs.md) — the queue that starts these runs
 - [Branches and landing](landing.md) — how a step's branch is merged afterwards
 
-## Table of contents
-
-- [What a run does, in order](#what-a-run-does-in-order)
-- [The dashboard's own checkouts](#the-dashboards-own-checkouts)
-- [How a run touches the repositories](#how-a-run-touches-the-repositories)
-- [What counts as a step having run](#what-counts-as-a-step-having-run)
-- [What a finished step publishes](#what-a-finished-step-publishes)
-- [The run log](#the-run-log)
-- [Running a step by hand](#running-a-step-by-hand)
-
----
 
 ## What a run does, in order
 

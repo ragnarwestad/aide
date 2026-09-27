@@ -1,10 +1,5 @@
 # Error sentences
 
-The one rule every error the board shows follows: a mark's sentence, a job's `error`, a landing's refusal, a queue
-refusal. The producers themselves are spread across [A job's states](job-states.md), [Branches and landing](landing.md)
-and [The specs list and the spec page](the-specs-list.md) — this page is the convention all of them share, so the
-next sentence is written the same way.
-
 ## Table of contents
 
 - [The three parts](#the-three-parts)
@@ -13,6 +8,12 @@ next sentence is written the same way.
 - [Words the reader does not use](#words-the-reader-does-not-use)
 
 ---
+
+The one rule every error the board shows follows: a mark's sentence, a job's `error`, a landing's refusal, a queue
+refusal. The producers themselves are spread across [A job's states](job-states.md), [Branches and landing](landing.md)
+and [The specs list and the spec page](the-specs-list.md) — this page is the convention all of them share, so the
+next sentence is written the same way.
+
 
 ## The three parts
 

@@ -1,9 +1,5 @@
 # Branches and landing
 
-How each step's branch is merged into the default branch, what `archive` does when that merge conflicts, how origin
-decides whether a landing finished, and how a project keeps its code branch open for review. The queue that makes the branches is on [Running specs](running-specs.md). What a landing refusal has to say is the one rule on
-[Error sentences](error-sentences.md).
-
 ## Table of contents
 
 - [Branches, and merging them](#branches-and-merging-them)
@@ -14,6 +10,11 @@ decides whether a landing finished, and how a project keeps its code branch open
 - [A project can ask for its code branch to stay open](#a-project-can-ask-for-its-code-branch-to-stay-open)
 
 ---
+
+How each step's branch is merged into the default branch, what `archive` does when that merge conflicts, how origin
+decides whether a landing finished, and how a project keeps its code branch open for review. The queue that makes the branches is on [Running specs](running-specs.md). What a landing refusal has to say is the one rule on
+[Error sentences](error-sentences.md).
+
 
 ## Branches, and merging them
 

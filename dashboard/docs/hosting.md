@@ -1,17 +1,5 @@
 # Hosting the dashboard
 
-Where the dashboard is served from, how HTTPS is put in front of it, how to stand one up on a second machine or
-run the whole thing on one, and what the host does on its own once it is there.
-
-Moving an EXISTING board is not one operation: it is a fresh install on the new machine, plus carrying over the
-directories [Moving the board's own directories](#moving-the-boards-own-directories) lists, plus stopping the old
-machine's launchd job. Nothing here automates that.
-
-Two pages sit beside this one:
-
-- [The dashboard's README](../README.md#installation) — installing it in the first place
-- [Tailscale](tailscale.md) — the optional way to reach it from a phone or another computer
-
 ## Table of contents
 
 - [HTTPS and other devices](#https-and-other-devices)
@@ -27,6 +15,19 @@ Two pages sit beside this one:
 - [Known gaps](#known-gaps)
 
 ---
+
+Where the dashboard is served from, how HTTPS is put in front of it, how to stand one up on a second machine or
+run the whole thing on one, and what the host does on its own once it is there.
+
+Moving an EXISTING board is not one operation: it is a fresh install on the new machine, plus carrying over the
+directories [Moving the board's own directories](#moving-the-boards-own-directories) lists, plus stopping the old
+machine's launchd job. Nothing here automates that.
+
+Two pages sit beside this one:
+
+- [The dashboard's README](../README.md#installation) — installing it in the first place
+- [Tailscale](tailscale.md) — the optional way to reach it from a phone or another computer
+
 
 ## HTTPS and other devices
 

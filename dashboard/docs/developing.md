@@ -1,5 +1,10 @@
 # Developing the dashboard
 
+## Table of contents
+
+
+---
+
 The commands for working on the dashboard itself: its tests, and running it from a checkout. Installing it for use is
 in the [README](../README.md#installation).
 

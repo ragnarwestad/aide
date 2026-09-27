@@ -1,11 +1,5 @@
 # Projects
 
-How a project is added to the dashboard, what decides whether a run can start there, and what its own page shows. The
-queue that runs its specs is on [Running specs](running-specs.md).
-
-The page has two parts. [Using it](#using-it) is for someone adding and running projects on the board.
-[How it works inside](#how-it-works-inside) is for someone changing the code that does it.
-
 ## Table of contents
 
 - [Using it](#using-it)
@@ -27,6 +21,13 @@ The page has two parts. [Using it](#using-it) is for someone adding and running 
     - [A server started with no projects root](#a-server-started-with-no-projects-root)
 
 ---
+
+How a project is added to the dashboard, what decides whether a run can start there, and what its own page shows. The
+queue that runs its specs is on [Running specs](running-specs.md).
+
+The page has two parts. [Using it](#using-it) is for someone adding and running projects on the board.
+[How it works inside](#how-it-works-inside) is for someone changing the code that does it.
+
 
 ## Using it
 

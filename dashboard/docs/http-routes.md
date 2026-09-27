@@ -1,10 +1,5 @@
 # The dashboard's HTTP routes
 
-Every path the dashboard's server answers, with its method, whether it reads or acts, what it takes, what it answers and
-who it is made for. The feature pages mention the routes beside their own feature; this page is the whole set in one
-place, and `test/guards/http-routes-page.test.ts` fails when a route in the source has no row here, or a row here has no
-route in the source.
-
 ## Table of contents
 
 - [How to read this page](#how-to-read-this-page)
@@ -22,6 +17,12 @@ route in the source.
   - [Files](#files)
 
 ---
+
+Every path the dashboard's server answers, with its method, whether it reads or acts, what it takes, what it answers and
+who it is made for. The feature pages mention the routes beside their own feature; this page is the whole set in one
+place, and `test/guards/http-routes-page.test.ts` fails when a route in the source has no row here, or a row here has no
+route in the source.
+
 
 ## How to read this page
 

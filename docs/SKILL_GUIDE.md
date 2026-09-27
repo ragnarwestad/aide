@@ -1,9 +1,5 @@
 # Guide: Writing good skills
 
-Internal guide. Combines Anthropic's official recommendations with
-practical experience from large skill collections (30+ skills in
-production use).
-
 ## Table of contents
 
 - [Official sources](#official-sources)
@@ -19,6 +15,11 @@ production use).
 - [Examples to study](#examples-to-study)
 
 ---
+
+Internal guide. Combines Anthropic's official recommendations with
+practical experience from large skill collections (30+ skills in
+production use).
+
 
 ## Official sources
 

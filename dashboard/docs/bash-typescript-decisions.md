@@ -1,9 +1,5 @@
 # The hand-paired bash/TypeScript pairs
 
-`core/scripts/aide-run-spec` and the dashboard make several of the same
-decisions with no shared source. `CLAUDE.md` states the rule; this page
-carries the detail.
-
 ## Table of contents
 
 - [The pairs](#the-pairs)
@@ -13,6 +9,11 @@ carries the detail.
 - [Not a pair: spec-phase transitions](#not-a-pair-spec-phase-transitions)
 
 ---
+
+`core/scripts/aide-run-spec` and the dashboard make several of the same
+decisions with no shared source. `CLAUDE.md` states the rule; this page
+carries the detail.
+
 
 ## The pairs
 

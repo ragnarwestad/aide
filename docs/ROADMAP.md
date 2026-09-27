@@ -1,8 +1,5 @@
 # Roadmap
 
-Where Aide came from, what has been decided, and what comes next.
-New contributors (human or AI): read this first.
-
 ## Table of contents
 
 - [Background](#background)
@@ -16,6 +13,10 @@ New contributors (human or AI): read this first.
   - [Parked: one project, several code repositories](#parked-one-project-several-code-repositories)
 
 ---
+
+Where Aide came from, what has been decided, and what comes next.
+New contributors (human or AI): read this first.
+
 
 ## Background
 

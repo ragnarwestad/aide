@@ -1,9 +1,5 @@
 # Tailscale (optional)
 
-The dashboard answers on the machine it runs on alone, at `http://127.0.0.1:8788`. Reaching it from a phone or another
-computer, over HTTPS, is an add-on: this page sets it up with [Tailscale](https://tailscale.com). Nothing in the
-install depends on it, and nothing here is done by an install.
-
 ## Table of contents
 
 - [What it gives you](#what-it-gives-you)
@@ -14,6 +10,11 @@ install depends on it, and nothing here is done by an install.
 - [Removing it](#removing-it)
 
 ---
+
+The dashboard answers on the machine it runs on alone, at `http://127.0.0.1:8788`. Reaching it from a phone or another
+computer, over HTTPS, is an add-on: this page sets it up with [Tailscale](https://tailscale.com). Nothing in the
+install depends on it, and nothing here is done by an install.
+
 
 ## What it gives you
 

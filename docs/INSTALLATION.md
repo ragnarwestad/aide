@@ -1,15 +1,5 @@
 # Installation - Aide
 
-> **📝 Note:** For AI-specific installation, primarily see:
-> - **Claude Code:** [implementations/claude-code/INSTALL.md](../implementations/claude-code/INSTALL.md)
-> - **Copilot:** [implementations/copilot/INSTALL.md](../implementations/copilot/INSTALL.md)
->
-> This guide provides a high-level overview.
-
-Complete step-by-step guide for setting up the AI workspace with your preferred AI tool.
-
----
-
 ## Table of contents
 
 - [Choose your AI tool](#choose-your-ai-tool)
@@ -27,6 +17,17 @@ Complete step-by-step guide for setting up the AI workspace with your preferred 
 - [Troubleshooting](#troubleshooting)
 
 ---
+
+> **📝 Note:** For AI-specific installation, primarily see:
+> - **Claude Code:** [implementations/claude-code/INSTALL.md](../implementations/claude-code/INSTALL.md)
+> - **Copilot:** [implementations/copilot/INSTALL.md](../implementations/copilot/INSTALL.md)
+>
+> This guide provides a high-level overview.
+
+Complete step-by-step guide for setting up the AI workspace with your preferred AI tool.
+
+---
+
 
 ## Choose your AI tool
 

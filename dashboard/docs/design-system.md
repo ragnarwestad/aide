@@ -1,8 +1,5 @@
 # How it looks
 
-The design system the pages are built from: tokens, components, the class vocabulary guard,
-and the layout rules that keep them consistent.
-
 ## Table of contents
 
 - [Tokens](#tokens)
@@ -20,6 +17,10 @@ and the layout rules that keep them consistent.
 - [Header and tab bar, not a sidebar](#header-and-tab-bar-not-a-sidebar)
 
 ---
+
+The design system the pages are built from: tokens, components, the class vocabulary guard,
+and the layout rules that keep them consistent.
+
 
 One design foundation, and nothing outside it: every colour, type size, space and radius is declared once and reached
 through a variable, and a control has one class wherever it appears — never a version per form it sits in.

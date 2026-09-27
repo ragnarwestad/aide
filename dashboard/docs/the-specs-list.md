@@ -1,10 +1,5 @@
 # The specs list and the spec page
 
-What a row on `/` says, what its controls do, what a spec's own page shows, and how the page keeps itself current.
-The queue behind the rows is on [Running specs](running-specs.md); how a step's branch lands is on
-[Branches and landing](landing.md). What a row's own error sentence has to say is the one rule on
-[Error sentences](error-sentences.md).
-
 ## Table of contents
 
 - [The row, open and shut](#the-row-open-and-shut)
@@ -29,6 +24,12 @@ The queue behind the rows is on [Running specs](running-specs.md); how a step's 
 - [A spec's date does not move, and a phase says how long it took](#a-specs-date-does-not-move-and-a-phase-says-how-long-it-took)
 
 ---
+
+What a row on `/` says, what its controls do, what a spec's own page shows, and how the page keeps itself current.
+The queue behind the rows is on [Running specs](running-specs.md); how a step's branch lands is on
+[Branches and landing](landing.md). What a row's own error sentence has to say is the one rule on
+[Error sentences](error-sentences.md).
+
 
 ## The row, open and shut
 

@@ -1,14 +1,5 @@
 # AI Dev Tools — News Log
 
-Living changelog for the four AI dev tools Aide supports:
-Claude Code, GitHub Copilot CLI, OpenAI Codex CLI and OpenCode.
-
-The log is the research feed that drives continuous improvement of Aide.
-It is further distilled into two documents:
-
-- [AI_SUPPORT_MATRIX.md](./AI_SUPPORT_MATRIX.md) — distilled current state (versions, mechanisms, follow-up items)
-- [`.claude/skills/ai-tools-reference/SKILL.md`](../.claude/skills/ai-tools-reference/SKILL.md) — verified config reference, loaded on demand
-
 ## Table of contents
 
 - [Maintenance](#maintenance)
@@ -30,6 +21,16 @@ It is further distilled into two documents:
   - [2025-11-29](#2025-11-29)
 
 ---
+
+Living changelog for the four AI dev tools Aide supports:
+Claude Code, GitHub Copilot CLI, OpenAI Codex CLI and OpenCode.
+
+The log is the research feed that drives continuous improvement of Aide.
+It is further distilled into two documents:
+
+- [AI_SUPPORT_MATRIX.md](./AI_SUPPORT_MATRIX.md) — distilled current state (versions, mechanisms, follow-up items)
+- [`.claude/skills/ai-tools-reference/SKILL.md`](../.claude/skills/ai-tools-reference/SKILL.md) — verified config reference, loaded on demand
+
 
 ## Maintenance
 

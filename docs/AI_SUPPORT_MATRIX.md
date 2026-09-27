@@ -1,10 +1,5 @@
 # AI Support Matrix
 
-Overview of which AI tools we support, which versions have been verified,
-and which configuration files each tool reads.
-
-**Update this document** when you upgrade a tool or discover new/changed config support.
-
 ## Table of contents
 
 - [Supported versions](#supported-versions)
@@ -22,6 +17,12 @@ and which configuration files each tool reads.
 - [See also](#see-also)
 
 ---
+
+Overview of which AI tools we support, which versions have been verified,
+and which configuration files each tool reads.
+
+**Update this document** when you upgrade a tool or discover new/changed config support.
+
 
 ## Supported versions
 

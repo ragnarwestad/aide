@@ -1,13 +1,5 @@
 # Comparison with other spec-driven tools
 
-Aide and the other tools for spec-driven development — writing down what is to be built, and how, before an AI
-writes the code — compared on the same seven criteria. The criteria are defined first, five
-of them are summarised in a table, and then all seven are answered one tool at a time. The last chapter lists Aide's own design
-choices with the advantages and disadvantages of each.
-
-Every description of another tool comes from that tool's own documentation, linked in its entry. Where a document
-does not state something, the entry says so rather than guessing.
-
 ## Table of contents
 
 - [The criteria](#the-criteria)
@@ -24,6 +16,15 @@ does not state something, the entry says so rather than guessing.
 - [Aide's design choices](#aides-design-choices)
 
 ---
+
+Aide and the other tools for spec-driven development — writing down what is to be built, and how, before an AI
+writes the code — compared on the same seven criteria. The criteria are defined first, five
+of them are summarised in a table, and then all seven are answered one tool at a time. The last chapter lists Aide's own design
+choices with the advantages and disadvantages of each.
+
+Every description of another tool comes from that tool's own documentation, linked in its entry. Where a document
+does not state something, the entry says so rather than guessing.
+
 
 ## The criteria
 

@@ -1,11 +1,5 @@
 # Test server
 
-When a spec's `archive` step is held back because its acceptance criteria still need reviewing —
-someone has to go through the Status tab and tick each requirement off before it can be archived —
-the specs list offers that reviewer a link to start a test server: a running copy of the project,
-built from that spec's own branch, on the same machine as this dashboard. Open it and click through
-the change instead of reading the diff again.
-
 ## Table of contents
 
 - [Where you find it](#where-you-find-it)
@@ -21,6 +15,13 @@ the change instead of reading the diff again.
 - [Under the hood](#under-the-hood)
 
 ---
+
+When a spec's `archive` step is held back because its acceptance criteria still need reviewing —
+someone has to go through the Status tab and tick each requirement off before it can be archived —
+the specs list offers that reviewer a link to start a test server: a running copy of the project,
+built from that spec's own branch, on the same machine as this dashboard. Open it and click through
+the change instead of reading the diff again.
+
 
 ## Where you find it
 

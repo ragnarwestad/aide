@@ -1,17 +1,5 @@
 # Running specs
 
-How a spec becomes a run: the form that makes one, who the dashboard answers, what decides a step's time limit, AI
-and model, how many run at once, and what it tells you while they do.
-
-Six pages sit beside this one:
-
-- [The runner and its checkouts](the-runner.md) — what a run does to the repositories it touches
-- [A spec's lifecycle](spec-lifecycle.md) — the four phases, and what moves a spec between them
-- [A job's states](job-states.md) — the job's state machine, in one place
-- [The specs list and the spec page](the-specs-list.md) — what a row says, and what its controls do
-- [Projects](projects.md) — adding one, and whether a run can start there
-- [Branches and landing](landing.md) — how each step's branch is merged, and what stops one from landing
-
 ## Table of contents
 
 - [Making a spec from the page](#making-a-spec-from-the-page)
@@ -28,6 +16,19 @@ Six pages sit beside this one:
 - [Live runs](#live-runs)
 
 ---
+
+How a spec becomes a run: the form that makes one, who the dashboard answers, what decides a step's time limit, AI
+and model, how many run at once, and what it tells you while they do.
+
+Six pages sit beside this one:
+
+- [The runner and its checkouts](the-runner.md) — what a run does to the repositories it touches
+- [A spec's lifecycle](spec-lifecycle.md) — the four phases, and what moves a spec between them
+- [A job's states](job-states.md) — the job's state machine, in one place
+- [The specs list and the spec page](the-specs-list.md) — what a row says, and what its controls do
+- [Projects](projects.md) — adding one, and whether a run can start there
+- [Branches and landing](landing.md) — how each step's branch is merged, and what stops one from landing
+
 
 The spec list runs Aide's workflow steps headless on this machine: each step is a
 `claude -p "/aide-<step> <spec>"` process started by Aide's `aide-run-spec`. A job is an ordered list of steps; a

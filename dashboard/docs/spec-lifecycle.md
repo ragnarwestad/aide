@@ -1,5 +1,22 @@
 # A spec's lifecycle
 
+## Table of contents
+
+- [The four phases](#the-four-phases)
+- [One spec, from first to last](#one-spec-from-first-to-last)
+- [What "has had a phase" means](#what-has-had-a-phase-means)
+- [The transitions](#the-transitions)
+- [When a spec stops, and what moves it on](#when-a-spec-stops-and-what-moves-it-on)
+- [How a hold works](#how-a-hold-works)
+- [Where the work is between phases](#where-the-work-is-between-phases)
+- [Another round on the same spec](#another-round-on-the-same-spec)
+- [Going backwards: reopen](#going-backwards-reopen)
+- [Closing: a different terminal move from archive](#closing-a-different-terminal-move-from-archive)
+- [Which button a row offers](#which-button-a-row-offers)
+- [What the list makes of it](#what-the-list-makes-of-it)
+
+---
+
 A spec moves through four phases. This page says what moves it from one to the next, who records that it moved,
 and what has to be true for the move to count. This is the level above [A job's states](job-states.md): a job is one
 run of one or more steps, and its `queued`/`running`/`done` says nothing about how far the spec has got.
@@ -26,22 +43,6 @@ The code is `transitions.json`, read in bash by `may_apply_spec_transition`
 `core/scripts/lib/run-spec-records.sh` and `run-spec-status-line.sh`; the gates in
 `core/scripts/aide-archive-spec`; and the landing in `src/serve/land-branch/`.
 
-## Table of contents
-
-- [The four phases](#the-four-phases)
-- [One spec, from first to last](#one-spec-from-first-to-last)
-- [What "has had a phase" means](#what-has-had-a-phase-means)
-- [The transitions](#the-transitions)
-- [When a spec stops, and what moves it on](#when-a-spec-stops-and-what-moves-it-on)
-- [How a hold works](#how-a-hold-works)
-- [Where the work is between phases](#where-the-work-is-between-phases)
-- [Another round on the same spec](#another-round-on-the-same-spec)
-- [Going backwards: reopen](#going-backwards-reopen)
-- [Closing: a different terminal move from archive](#closing-a-different-terminal-move-from-archive)
-- [Which button a row offers](#which-button-a-row-offers)
-- [What the list makes of it](#what-the-list-makes-of-it)
-
----
 
 ## The four phases
 

@@ -1,8 +1,5 @@
 # Tests in a spec
 
-When a project's tests run while a spec goes through the board, who runs them, and what happens when they are red.
-The same holds for every project the board runs; the last section is about Aide's own suite.
-
 ## Table of contents
 
 - [When the tests run](#when-the-tests-run)
@@ -12,6 +9,10 @@ The same holds for every project the board runs; the last section is about Aide'
 - [Aide's own suite](#aides-own-suite)
 
 ---
+
+When a project's tests run while a spec goes through the board, who runs them, and what happens when they are red.
+The same holds for every project the board runs; the last section is about Aide's own suite.
+
 
 ## When the tests run
 
