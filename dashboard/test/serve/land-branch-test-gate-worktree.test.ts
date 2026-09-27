@@ -125,9 +125,15 @@ describe("the landing's test gate", () => {
     const record = join(root, "..", `gate-red-${Date.now()}.txt`);
     dirs.push(record);
     fakeScripts(record);
-    // The recorder exits non-zero: a red suite, as far as the gate is
-    // concerned.
-    writeFileSync(process.env.AIDE_RECORD_TEST_RUN_BIN!, "#!/bin/sh\necho 'FAILED test_x'\nexit 1\n", { mode: 0o755 });
+    // Red on the merge, both runs; green on main alone (the third run), so
+    // the failure is this merge's.
+    const runs = join(root, "..", `gate-red-runs-${Date.now()}.txt`);
+    dirs.push(runs);
+    writeFileSync(
+      process.env.AIDE_RECORD_TEST_RUN_BIN!,
+      `#!/bin/sh\necho run >> ${runs}\n[ $(wc -l < ${runs}) -gt 2 ] && exit 0\necho 'FAILED test_x'\nexit 1\n`,
+      { mode: 0o755 },
+    );
 
     const verdict = await runProjectSuiteBeforePush(root, { project: "aide", specFolder: "81-x" }, "aide/81-x");
 
@@ -178,7 +184,7 @@ describe("the landing's test gate", () => {
     expect(readFileSync(process.env.AIDE_TEST_GATE_LOG!, "utf-8")).toContain("(retry)");
   });
 
-  test("a suite red twice stays red, and runs no third time", async () => {
+  test("a suite red twice stays red, and runs no third time on the merge", async () => {
     const root = project();
     const record = join(root, "..", `gate-red-twice-${Date.now()}.txt`);
     dirs.push(record);
@@ -191,6 +197,7 @@ describe("the landing's test gate", () => {
 
     expect(verdict.ok).toBe(false);
     expect(verdict.retriedAfter).toBeUndefined();
-    expect(readFileSync(count, "utf-8").trim().split("\n")).toHaveLength(2);
+    // Twice on the merge, and once on main alone to ask whose failure it is.
+    expect(readFileSync(count, "utf-8").trim().split("\n")).toHaveLength(3);
   });
 });

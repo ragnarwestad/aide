@@ -73,6 +73,8 @@ name, and none for a criterion an existing test already proves — that test get
 - **Landing red:** an amber message, not a red one — the change was built and merged locally, and what is missing is
   a green suite. The failing lines are on the row. The usual cause is another spec that landed in the meantime; run
   Implement again, then Archive.
+- **Red on main as well:** the landing ran the same tests on the default branch without the spec, and they were red
+  there too. The failure is main's; nothing about the spec needs changing. Press Archive again once main is green.
 - **Merged after a retry:** the landing's first run was red and the second green. The job keeps the lines that
   failed the first time, so a test that fails now and then can be found.
 

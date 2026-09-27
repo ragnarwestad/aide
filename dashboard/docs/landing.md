@@ -225,7 +225,10 @@ green on that second run lands like any green one, with the archived row reading
 job keeping the lines the first run failed on (`testsGreenOnRetry`). Green pushes. Red on both runs drops the local merge with `reset --hard
 origin/<base>`, nothing reaches origin, the branch stays where the step left it, and the job STOPS with
 `errorReason: tests-red`, `stopReason: tests-red` and the sentence that says what to do — amber, not red: the step
-ran and the merge was built, and what is missing is a green suite.
+ran and the merge was built, and what is missing is a green suite. Red on both runs, the same commands run once
+more on the default branch alone, without the spec (`redOnDefaultBranch`): red there too, the sentence says the tests
+are red on main as well, so the failure is main's and not the spec's, and archive merges the work once main is
+green again.
 
 **A run the step already made is not made again.** A step that ended green reports what it saw green —
 `testedGreen` on its result: the tree, hashed by `aide_tree_hash` with the project's worktree links left out, and

@@ -80,9 +80,9 @@ export async function runProjectSuiteBeforePush(
  *  them for a run, and `.aide/config` copied so the test command
  *  resolves. Falls back to the live checkout when a worktree cannot be
  *  made, saying so in the log. */
-async function checkoutForGate(root: string): Promise<{ dir: string; remove: () => Promise<void> }> {
+async function checkoutForGate(root: string, ref = "HEAD"): Promise<{ dir: string; remove: () => Promise<void> }> {
   const dir = mkdtempSync(join(tmpdir(), "aide-landing-gate-tree-"));
-  const added = await runScript(["git", "worktree", "add", "--detach", "--quiet", dir, "HEAD"], root, 60_000);
+  const added = await runScript(["git", "worktree", "add", "--detach", "--quiet", dir, ref], root, 60_000);
   if (added.code !== 0) {
     rmSync(dir, { recursive: true, force: true });
     console.error(`queue: the landing's test run could not make a worktree in ${root} — testing in the live checkout: ${(added.stderr ?? "").trim().slice(-200)}`);
@@ -135,6 +135,35 @@ async function checkoutForGate(root: string): Promise<{ dir: string; remove: () 
       rmSync(dir, { recursive: true, force: true });
     },
   };
+}
+
+/** The default branch as origin has it, or the local one where there is
+ *  no origin: main without the spec being landed. */
+async function defaultBranchRef(root: string): Promise<string | null> {
+  const head = await runScript(["git", "symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"], root, 30_000);
+  const candidates = [head.stdout.trim(), "refs/remotes/origin/main", "refs/remotes/origin/master", "refs/heads/main", "refs/heads/master"];
+  for (const ref of candidates.filter(Boolean)) {
+    if ((await runScript(["git", "show-ref", "--verify", "--quiet", ref], root, 30_000)).code === 0) return ref;
+  }
+  return null;
+}
+
+/** Whether the same commands are red on the default branch alone — run
+ *  after a landing's own run and its retry were both red, so the row can
+ *  say a failure main already had is not the spec's. `recorder` and
+ *  `argTail` are the landing's own run, less its `--project-dir <root>`. Anything that stops
+ *  the question being answered reads as "no": the ordinary sentence. */
+async function redOnDefaultBranch(liveRoot: string, recorder: string, argTail: string[]): Promise<boolean> {
+  const ref = await defaultBranchRef(liveRoot);
+  if (!ref) return false;
+  const tree = await checkoutForGate(liveRoot, ref);
+  if (tree.dir === liveRoot) return false;
+  try {
+    const out = await runScript([recorder, "--project-dir", tree.dir, ...argTail], tree.dir, LANDING_GATE_TIMEOUT_MS);
+    return out.code !== 0 && !out.timedOut;
+  } finally {
+    await tree.remove();
+  }
 }
 
 /** The checkout that owns this repository's working files. For a
@@ -230,6 +259,15 @@ async function runSuiteIn(
       return {
         ok: false,
         error: `the project's tests did not finish within ${Math.round(LANDING_GATE_TIMEOUT_MS / 60_000)} minutes on the merge — nothing was pushed; the archive step's own log has what they managed to say`,
+        detail: failingLines(gate.stdout, gate.stderr),
+      };
+    }
+    if (gate.code !== 0 && (await redOnDefaultBranch(liveRoot, recorder, argv.slice(3)))) {
+      return {
+        ok: false,
+        error:
+          `the project's tests are red on main as well, without this spec's change — nothing was pushed, and the work is still on ${branch}. ` +
+          "Once main is green again, archive merges the work.",
         detail: failingLines(gate.stdout, gate.stderr),
       };
     }
