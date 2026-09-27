@@ -231,9 +231,13 @@ Since we already have skills in `.claude/skills/`, Copilot picks them up automat
 
 ### Installation into target projects
 
-`install.sh` installs globally — `AGENTS.md` becomes `~/.copilot/copilot-instructions.md`,
-the skills go to `~/.agents/skills/` (shared with Codex), and the shared scripts end up in
-`~/.local/bin/`. The projects therefore need no Copilot config of their own.
+`install.sh` installs globally:
+
+- `AGENTS.md` — becomes `~/.copilot/copilot-instructions.md`.
+- The skills — go to `~/.agents/skills/` (shared with Codex).
+- The shared scripts — end up in `~/.local/bin/`.
+
+The projects therefore need no Copilot config of their own.
 
 ### Implementation
 
@@ -317,9 +321,12 @@ command — which is why a headless step names its skill in words.
 ### Headless use
 
 `opencode run --format json` reads the prompt from stdin and prints one
-JSON event per line. `--agent plan` is read-only; `--agent build` is the
-default and `--auto` additionally answers what it would otherwise ask
-about. A session is continued with `--session <id>`.
+JSON event per line. Its flags:
+
+- `--agent plan` — read-only.
+- `--agent build` — the default.
+- `--auto` — additionally answers what it would otherwise ask about.
+- `--session <id>` — continues a session.
 
 ---
 

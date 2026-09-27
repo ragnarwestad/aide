@@ -265,10 +265,13 @@ step either way. One thing differs, and it is visible on the page rather than pa
 The job page's Logs tab works for both: the run's transcript is parsed in whichever schema wrote it.
 
 Safety modes are stored the same way for both — the queue keeps Claude's own names, per step, config-only.
-`aide-run-spec` translates them for Codex: `bypassPermissions` becomes
-`--dangerously-bypass-approvals-and-sandbox`, `acceptEdits` becomes
-`--sandbox workspace-write`, and `plan`/`default` become `--sandbox
-read-only`. A mode with no entry in that table refuses the run rather than being guessed at. (`codex exec` is
+`aide-run-spec` translates them for Codex:
+
+- `bypassPermissions` — becomes `--dangerously-bypass-approvals-and-sandbox`.
+- `acceptEdits` — becomes `--sandbox workspace-write`.
+- `plan`/`default` — become `--sandbox read-only`.
+
+A mode with no entry in that table refuses the run rather than being guessed at. (`codex exec` is
 non-interactive and has no
 `--ask-for-approval` flag at all — that one belongs to the interactive command — so the sandbox mode is the whole of
 what there is to say.)
@@ -289,9 +292,11 @@ One function rather than one per caller, because the failure the two-copy versio
 check reporting a CLI as missing while every real run found it.
 
 `AIDE_CLAUDE_BIN`, `AIDE_CODEX_BIN` and `AIDE_OPENCODE_BIN` point a run at a particular binary instead, and win
-over the `PATH` search entirely. All three are read from the environment; `AIDE_CLAUDE_BIN` alone is also read from
-the project's `.aide/config`, which is how a project points its runs at a stand-in binary. A value written there
-for either of the other two does nothing.
+over the `PATH` search entirely. All three are read from the environment:
+
+- `AIDE_CLAUDE_BIN` — the only one also read from the project's `.aide/config`, which is how a project points its runs
+  at a stand-in binary.
+- `AIDE_CODEX_BIN` and `AIDE_OPENCODE_BIN` — a value written in `.aide/config` for either of them does nothing.
 
 The tool checks run when the board starts, when Check is pressed, and again for the tool a queued job's next step
 will run on — at most once a minute per tool — before the runner looks at the queue. A check that finds something
@@ -353,8 +358,13 @@ An entry may also carry `"notify": "never" | "failure" | "always"`, set on its N
 A fresh install has no scheduled jobs, whatever the projects it serves contain. A project's own files never carry a
 schedule; a job belongs to the installation that fires it.
 
-Each entry is a name (becomes the job's `schedule-<name>` tracking key, never a spec folder), a standard five-field cron
-expression, and a prompt file's path, relative to the project's own root. A background poll checks every project's
+Each entry is:
+
+- `name` — becomes the job's `schedule-<name>` tracking key, never a spec folder.
+- `cron` — a standard five-field cron expression.
+- `prompt` — a prompt file's path, relative to the project's own root.
+
+A background poll checks every project's
 entries and enqueues a `schedule` step through the same queue, runner and worktree machinery every other step uses
 whenever an entry is due and nothing is already queued or running for it.
 
@@ -369,10 +379,15 @@ Run now, Edit and Delete are on each row of the project's own Schedule tab, with
 `/schedule/<project>/<name>` is one entry's own page: its Report and its History, nothing about how it is set up. New and Edit open one page,
 `/schedule/new?project=<project>` and `/schedule/<project>/<name>/edit`; a save goes back to the page it was opened
 from (a path on the board, sent with the form as `back`; a rename moves a `back` on the entry's old page to its new
-one), and a refused save stays on the page with the reason and what was typed. The pages post to
-`POST /api/queue/schedule` (create), `POST /api/queue/schedule/<project>/<name>` (edit), and
-`POST .../enabled`, `.../run` and `.../delete` (toggle, fire now, remove); `GET /api/queue/schedule/cron-next`
-previews a cron expression's next fire time for the form.
+one), and a refused save stays on the page with the reason and what was typed. The pages post to:
+
+- `POST /api/queue/schedule` — create.
+- `POST /api/queue/schedule/<project>/<name>` — edit.
+- `POST .../enabled` — toggle.
+- `POST .../run` — fire now.
+- `POST .../delete` — remove.
+
+`GET /api/queue/schedule/cron-next` previews a cron expression's next fire time for the form.
 
 **A run's report.** Each `schedule` run writes into a directory of its own,
 `<output root>/<project>/<key>/runs/<jobId>/`, named in `AIDE_SCHEDULE_OUTPUT_DIR` and made before the run starts.
@@ -484,9 +499,14 @@ Nothing is sent for a step that finishes normally, an archive that merges, or a 
 still under way, including one whose merge is running, sends nothing until it is over.
 
 A **scheduled job** notifies by its own choice, not by the rules above: when a run ends, the entry's `notify` says
-whether to send. `never` sends nothing, `failure` sends when the run ended `failed`, `stopped` or `interrupted`, and
-`always` sends for every run, including one that succeeded. An entry that names none is read as `failure`, so a job that
-already exists notifies when a run does not succeed. A run someone cancels sends nothing whatever the choice, and neither
+whether to send:
+
+- `never` — sends nothing.
+- `failure` — sends when the run ended `failed`, `stopped` or `interrupted`. An entry that names none is read as
+  `failure`, so a job that already exists notifies when a run does not succeed.
+- `always` — sends for every run, including one that succeeded.
+
+A run someone cancels sends nothing whatever the choice, and neither
 does a run whose entry has since been deleted or renamed. The choice is read when the run ends, so an edit made while it
 runs applies to it. The title names the project and the job, the sentence says how the run ended, and a tap opens
 `/schedule/<project>/<name>`, where the newest run's report stands.
@@ -501,15 +521,24 @@ push support says so beside a switch that stays off, and so does a site the brow
 time the Notifications tab is opened, and one whose push service reports it gone (404 or 410) is removed at the next
 send.
 
-**What is sent.** A title with the project and the spec folder, one sentence in the language the device had chosen when
-it turned notifications on (it keeps that language until it is turned off and on again), and the spec's page path, which
-a tap opens (for a failed create: its title and reason, and New spec filled in). It leaves the machine as an encrypted message to the device's own push service (Google, Apple, Mozilla or
+**What is sent.**
+
+- A title — with the project and the spec folder; for a failed create, its title.
+- One sentence — in the language the device had chosen when it turned notifications on (it keeps that language until
+  it is turned off and on again); for a failed create, its reason.
+- The spec's page path — which a tap opens; for a failed create, New spec filled in.
+
+It leaves the machine as an encrypted message to the device's own push service (Google, Apple, Mozilla or
 Microsoft) and is never in the clear there.
 
 **What is kept.** Three files under `~/.aide/dashboard/`, neither in a repo:
-`push-subscriptions.json` (one entry per device), `push-key.json` (the server's own key pair, mode 0600, made the
-first time it is needed) and `failed-creates.json` (the creates that ended without a spec: project, title, description,
-reason; a dismissed one stays for the newest 50 so an old notification still opens the form). If the key file is lost a new pair is made, and every device turns notifications on again.
+
+- `push-subscriptions.json` — one entry per device.
+- `push-key.json` — the server's own key pair, mode 0600, made the first time it is needed. If the key file is lost a
+  new pair is made, and every device turns notifications on again.
+- `failed-creates.json` — the creates that ended without a spec: project, title, description, reason; a dismissed one
+  stays for the newest 50 so an old notification still opens the form.
+
 The Slack `notifyCommand` above is separate and unchanged.
 
 ## Live runs

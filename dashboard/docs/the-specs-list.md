@@ -128,10 +128,13 @@ both read "0% done". The spec's own page shows it in full.
 
 ## The State column
 
-The State column carries the spec's own state and nothing else. A job in flight reads **Running**. A job waiting
-for a slot reads **Queued 3/11** — third of eleven queued — or, when it names the phase instead, "analyzing
-queued". A job the runner is holding back reads **Held back**. Once nothing is running the column is one word:
-**Ready**, **Done**, or **Stopped**.
+The State column carries the spec's own state and nothing else:
+
+- **Running** — a job in flight.
+- **Queued 3/11** — a job waiting for a slot, third of eleven queued — or, when it names the phase instead,
+  "analyzing queued".
+- **Held back** — a job the runner is holding back.
+- **Ready**, **Done**, or **Stopped** — once nothing is running the column is one word.
 
 Nothing more goes in the column. Why a spec stopped, and what it is held back on, is the row's notice line
 underneath; which phase a press would run is on the button, which is labelled with it.
@@ -280,11 +283,19 @@ on the queue job, which the queue drops after 200 jobs.
 ## Filtering and searching the list
 
 The state filter is one axis, and `?state=` is where it lives. It is a dropdown: a trigger showing the chosen
-entry and its count, over a panel of radio links. The nine entries are "All" (the default), "Active" (everything
-not archived and not closed), "Running" (only `running`, or a job whose branch is still landing), "Waiting"
-(`queued` — in queue or held back — or `done` with no landing in progress), "Stopped", "Failed" (`failed`,
-`interrupted`, `cancelled`, or an archived spec whose branch still exists on origin), "Archived", "Closed" and
-"Not verified". The default is `STATE_FILTERS[0]` and nothing else — moving an entry to the front changes the
+entry and its count, over a panel of radio links. The nine entries are:
+
+- **All** — the default.
+- **Active** — everything not archived and not closed.
+- **Running** — only `running`, or a job whose branch is still landing.
+- **Waiting** — `queued` (in queue or held back), or `done` with no landing in progress.
+- **Stopped**.
+- **Failed** — `failed`, `interrupted`, `cancelled`, or an archived spec whose branch still exists on origin.
+- **Archived**.
+- **Closed**.
+- **Not verified**.
+
+The default is `STATE_FILTERS[0]` and nothing else — moving an entry to the front changes the
 default for every reader. Every entry, including "All", carries its own `state=` value explicitly, so choosing one
 always overrides whatever is remembered (see below).
 
@@ -316,9 +327,13 @@ small file reads, Aide alone has archived well over a hundred specs, and this pa
 event on every open tab — so a view that cannot show an archived row builds nothing for one (a closed spec's folder
 is under `archive/` too, so Closed opens the same walk). ONE exception: an archived spec whose own branch is still
 on origin is built whatever the filter says, because it has NOT finished and the reading view is where that has to
-be seen. That is also why there are two archived pseudo-states, `archived` and `archived-unlanded`: the second is
-archived to the Archived entry, failed to the Failed entry, and not-archived to the entry defined by excluding
-archived specs, and all three fall out of the filter tables rather than out of an exception inside the filter.
+be seen. That is also why there are two archived pseudo-states, `archived` and `archived-unlanded`. The second is:
+
+- archived to the Archived entry;
+- failed to the Failed entry;
+- not-archived to the entry defined by excluding archived specs.
+
+All three fall out of the filter tables rather than out of an exception inside the filter.
 
 **`?q=` is a plain search**, a GET form carrying the rest of the view as hidden fields, matching the folder, the title
 and the WHOLE description — including the part the clamp does not show, which the note under the field says out loud.
@@ -354,14 +369,19 @@ which is what Update is for.
 
 **An opened step shows its numbers, then three tabs: Log, Changed files and Errors.** The numbers are the row's own
 time, cost, tokens and result, and a step with no log says so. One tab shows at a time, in one box about a hundred
-lines tall that opens at its end. Log is one scrolling log of the whole step in the order things happened: Aide's own
-lines (the lock, the fetch, the worktree, the tests, the commit) and the AI's, with a separator line where the writer
-changes ("Aide: preparing", "AI (Claude Sonnet)", "Aide: tests and commit"). The step's full final message is the last
-of the AI's lines, with no heading; a last line that only repeats it is replaced by it, so it reads once. Changed files lists what the step's
-own commit changed with lines added and removed, and the tab's name carries the count (none when the step recorded no
-commit range or is still running). Errors holds the error lines of both writers, in one list with no separators:
-Aide's `error:` lines and the calls the tool itself reported as failed (the last forty per AI turn), one
-word for what each CLI names differently, decided where the transcript is read (`src/queue/parse-stream/`). The tab is
+lines tall that opens at its end. The three tabs:
+
+- **Log** — one scrolling log of the whole step in the order things happened: Aide's own lines (the lock, the fetch,
+  the worktree, the tests, the commit) and the AI's, with a separator line where the writer changes ("Aide:
+  preparing", "AI (Claude Sonnet)", "Aide: tests and commit"). The step's full final message is the last of the AI's
+  lines, with no heading; a last line that only repeats it is replaced by it, so it reads once.
+- **Changed files** — lists what the step's own commit changed with lines added and removed, and the tab's name
+  carries the count (none when the step recorded no commit range or is still running).
+- **Errors** — holds the error lines of both writers, in one list with no separators: Aide's `error:` lines and the
+  calls the tool itself reported as failed (the last forty per AI turn), one word for what each CLI names
+  differently, decided where the transcript is read (`src/queue/parse-stream/`).
+
+The tab is
 `?steptab=log|files|errors` beside `?step=`, on the job page, the spec page's Logs tab and a project's Wiki tab alike:
 a link rather than a widget, because the tab reloads itself every ten seconds, and pressing one keeps the step open.
 An address with no `steptab`, or an unknown one, shows Log.
@@ -395,18 +415,24 @@ requires acceptance ticking, both merged into `1-description.md`'s Tracking info
 `POST /api/queue/specs/<project>/<spec>/tick` is the same for the checks form: `4-status.md` alone, its own
 commit, back to the Status tab. It is a route of its own so that ticking a box does not mean opening the description's editor. A
 tick's new text is computed on the server from the row it verified against the file on disk and never taken from the
-body, so no byte of `4-status.md` outside a Status cell can move. Two guards, not one: the file's `baseSha` as it was
-read at, and each ticked row's own exact text posted back — a row that no longer reads as it did is refused even when
-the sha still matches, which is what tells a second press apart from a first. One bad row refuses every box in the
+body, so no byte of `4-status.md` outside a Status cell can move. Two guards, not one:
+
+- `baseSha` — the file's, as it was read at.
+- Each ticked row's own exact text, posted back — a row that no longer reads as it did is refused even when the sha
+  still matches, which is what tells a second press apart from a first.
+
+One bad row refuses every box in the
 same press; a `text` field posted to `/tick` is read by nothing, and `tick` fields posted to `/save` are read by
 nothing.
 
 Both routes refuse, with nothing written, when the checkout is dirty, on another branch, diverged or unreachable; a
 commit whose push fails is reset away, because an unpushed commit in the one shared specs checkout breaks the next
-fast-forward for every project in it. `/save` refuses an ARCHIVED spec, whose files are history — server-side, not by
-hiding a control. `/tick` refuses a CLOSED spec whole, and an archived one row by row: the one move it allows
-there is settling a row that was marked Not verified. `/save` is the only route that accepts a body over 4096 bytes — a description is not an action post
-— and its own cap is 64 KiB.
+fast-forward for every project in it. Beyond that:
+
+- `/save` — refuses an ARCHIVED spec, whose files are history — server-side, not by hiding a control. It is the only
+  route that accepts a body over 4096 bytes — a description is not an action post — and its own cap is 64 KiB.
+- `/tick` — refuses a CLOSED spec whole, and an archived one row by row: the one move it allows there is settling a
+  row that was marked Not verified.
 
 The two routes these replaced, `GET /specs/<project>/<spec>/edit` and `POST .../status/tick`, answer 404: a retired
 route is removed, not redirected.
@@ -468,11 +494,15 @@ dashboard's own, like every other route, and `EventSource` needs no cookie for i
 already knows how to fetch a fresh `#jobrows`, so
 `renderSpecsRows` stays the one place a row is described and there is no second format to keep in step with it.
 
-Two things broadcast, because two independent stores feed a row.
-`QueueStore`'s `onChange` hook covers every write to a job — the runner's step transitions, the page's presses, the
-API's enqueues — because `insert`, `editTailStep` and `update` are the only three ways in. `POST /api/aide-run`
-broadcasts separately: cost, subagent count and live state arrive there and are invisible to the queue's store, so a
-push driven by the store alone would let those numbers sit still for the whole of a long step. A write that was REFUSED
+Two things broadcast, because two independent stores feed a row:
+
+- `QueueStore`'s `onChange` hook — covers every write to a job (the runner's step transitions, the page's presses,
+  the API's enqueues), because `insert`, `editTailStep` and `update` are the only three ways in.
+- `POST /api/aide-run` — broadcasts separately: cost, subagent count and live state arrive there and are invisible
+  to the queue's store, so a push driven by the store alone would let those numbers sit still for the whole of a
+  long step.
+
+A write that was REFUSED
 broadcasts nothing.
 
 A step writes its transcript straight to a file, so nothing above fires while it runs. A tab that unfolded a phase
@@ -503,11 +533,14 @@ hidden does it — the first paint is the server's own — and a restore from th
 (`pageshow`) counts as coming back, since Android can bring the app forward that way without the page ever being told
 it was hidden.
 
-Two things this deliberately does NOT do. There is no periodic server-side broadcast to reconcile drift — an idle page
-must issue no requests and redraw not at all, which is the whole point; the transcript check above is the one exception,
-and only for a tab that unfolded the running phase — so a spec file hand-edited outside the
-dashboard leaves its staleness badge behind until some real change happens nearby. And the runner's own two-second poll
-is not made faster: "about a second" means about a second after the SERVER notices, not after the step really moved.
+Two things this deliberately does NOT do:
+
+- There is no periodic server-side broadcast to reconcile drift — an idle page must issue no requests and redraw not
+  at all, which is the whole point — so a spec file hand-edited outside the dashboard leaves its staleness badge behind
+  until some real change happens nearby. The transcript check above is the one exception, and only for a tab that
+  unfolded the running phase.
+- The runner's own two-second poll is not made faster: "about a second" means about a second after the SERVER
+  notices, not after the step really moved.
 
 What arrives from elsewhere — a spec pushed from another machine, a branch deleted on the git host — shows within
 five minutes. That is how often the board fetches every project's checkouts and asks which `aide/*` branches origin

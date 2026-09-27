@@ -31,17 +31,25 @@ run of one or more steps, and its `queued`/`running`/`done` says nothing about h
 | **Skill step** | A numbered section of the skill a step runs, `Step N of X`; its log lines, `analyze · Step 3 of 9: … — started`, say how far the step has got                                                  | the `### Step N of X:` headings in `core/skills/aide-<step>/SKILL.md`               |
 
 `close` and `reopen` are steps, not phases: a spec that is `closed` has left the arc rather than reached a fifth
-stage of it. Two things about that table are worth knowing before reading it: its column is named `phase` and
-holds states, and its `next` value names what the move is allowed to reach, not what the spec then reads as. **A
-spec's state is never stored — it is derived from its own files** every time it is asked for: a `**Closed:**`
-stamp in effect makes it `closed`, an `**Archived:**` stamp `archived`, and otherwise the `Workflow steps
-completed:` line decides between `implemented`, `analyzed` and `created`.
+stage of it. Two things about that table are worth knowing before reading it:
 
-The code is `transitions.json`, read in bash by `may_apply_spec_transition`
-(`core/scripts/lib/spec-transitions.sh`) and in TypeScript by `isLegalMove`
-(`dashboard/src/queue/spec-transitions.ts`); `completed_steps_for` and the post-step checks in
-`core/scripts/lib/run-spec-records.sh` and `run-spec-status-line.sh`; the gates in
-`core/scripts/aide-archive-spec`; and the landing in `src/serve/land-branch/`.
+- `phase` — the column's name; it holds states.
+- `next` — names what the move is allowed to reach, not what the spec then reads as.
+
+**A spec's state is never stored — it is derived from its own files** every time it is asked for:
+
+- `**Closed:**` — a stamp in effect makes it `closed`.
+- `**Archived:**` — a stamp in effect makes it `archived`.
+- `Workflow steps completed:` — otherwise, this line decides between `implemented`, `analyzed` and `created`.
+
+The code is in these places:
+
+- `transitions.json` — read in bash by `may_apply_spec_transition` (`core/scripts/lib/spec-transitions.sh`) and in
+  TypeScript by `isLegalMove` (`dashboard/src/queue/spec-transitions.ts`).
+- `completed_steps_for` and the post-step checks — in `core/scripts/lib/run-spec-records.sh` and
+  `run-spec-status-line.sh`.
+- The gates — in `core/scripts/aide-archive-spec`.
+- The landing — in `src/serve/land-branch/`.
 
 
 ## The four phases
@@ -88,8 +96,13 @@ One line in the Tracking info of `4-status.md` is the whole record:
 ```
 
 **The runner writes it, not the model**, and it writes a step onto the line only once the step's work is there to
-see: code that actually changed for an implement, a folder actually under `archive/` for an archive, nothing
-outside its own spec folder for an analyze. A step that ended `stopped` or `failed` is not counted. A spec made by
+see:
+
+- `implement` — code that actually changed.
+- `archive` — a folder actually under `archive/`.
+- `analyze` — nothing outside its own spec folder.
+
+A step that ended `stopped` or `failed` is not counted. A spec made by
 hand, with no runner commit behind it, has no line and reads as having had nothing.
 
 The checks themselves, and what each one refuses, are in
@@ -162,7 +175,12 @@ order, stopping at the first that applies:
 
 Four of the five outcomes short of `archived` end the step with no model run at all: `refused`,
 `already-archived`, `not-implemented-yet` and `acceptance-criteria-unticked`. `conflict-open` and `archived` spawn
-one, for the conflict and for the documentation feedback respectively. An `acceptance-criteria-unticked` archive
+one:
+
+- `conflict-open` — for the conflict.
+- `archived` — for the documentation feedback.
+
+An `acceptance-criteria-unticked` archive
 often never reaches the script: the runner ends a queued one on the spot, with that outcome, no process and no
 cost.
 

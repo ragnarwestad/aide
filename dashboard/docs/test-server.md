@@ -171,10 +171,12 @@ checked out in a worktree there, which means a test server is running on it: tha
 
 Any project that says how to start itself. Aide is its own case: its checkout carries the
 dashboard's source and the round script, and a test server there is that round left running. Every
-other project names a preview command — the Settings table on its project page writes it, under the
-row labelled `AIDE_PREVIEW_CMD`, as `previewCmd:` in the committed `.aide/project.yaml`, and a
-machine that starts the project differently overrides it with `AIDE_PREVIEW_CMD` in its own
-`.aide/config`, the same precedence the install and test commands have.
+other project names a preview command, in one of two places:
+
+- `previewCmd:` in the committed `.aide/project.yaml` — the Settings table on its project page
+  writes it, under the row labelled `AIDE_PREVIEW_CMD`.
+- `AIDE_PREVIEW_CMD` in the machine's own `.aide/config` — a machine that starts the project
+  differently overrides it this way, the same precedence the install and test commands have.
 
 The command is expected to serve on `$PORT` and keep running until it is stopped, for example
 `pnpm dev --port $PORT --host 127.0.0.1`. It runs in a worktree of the spec's branch, with the
@@ -203,18 +205,28 @@ same script, told to leave the result running (`--keep`) instead of finishing an
 wrapped in `src/serve/test-servers/lifecycle.ts`. The queue it drives runs against the throwaway
 project alone (`--queue-projects aide-test`), with `claude-stub` in place of the model.
 
-Each sample spec is a pair in `dashboard/test/round/specs/`: `<NN-slug>.md` is the description the
-spec is created from, and `<NN-slug>.json` says which steps it runs and how it must come out —
-`expected` (`archived` or `not-archived`), and optionally `expect`, what its row on the board must
-show at the end: the job's `state`, its `stopReason`, and its `message` (the message key when the
-board wrote one, `runner.notAnalyzed`, or a piece of the sentence when the runner script's own
-English is the text), and `stepReason`, the `terminalReason` a named step's own result must carry.
-That last one is what a fixture whose point is a REFUSAL says: a step the archive gates turned away
-ends the job `done` with nothing archived, which is the same end state a step that never ran at all
-leaves behind, so `state` and `expected` cannot tell the two apart. A fixture can also tighten its
-own time limit with `timeoutSec`, which is how there is a row the clock stopped. The script grades
-every field and names the one that was off, so a message that changes on the board is caught here
-before anyone reads it on the real one.
+Each sample spec is a pair in `dashboard/test/round/specs/`:
+
+- `<NN-slug>.md` — the description the spec is created from.
+- `<NN-slug>.json` — says which steps it runs and how it must come out.
+
+The `.json` carries these fields:
+
+- `expected` — `archived` or `not-archived`.
+- `expect` — optional; what its row on the board must show at the end:
+  - `state` — the job's.
+  - `stopReason` — the job's.
+  - `message` — the message key when the board wrote one, `runner.notAnalyzed`, or a piece of the
+    sentence when the runner script's own English is the text.
+  - `stepReason` — the `terminalReason` a named step's own result must carry. That is what a
+    fixture whose point is a REFUSAL says: a step the archive gates turned away ends the job `done`
+    with nothing archived, which is the same end state a step that never ran at all leaves behind,
+    so `state` and `expected` cannot tell the two apart.
+- `timeoutSec` — a fixture can also tighten its own time limit with it, which is how there is a row
+  the clock stopped.
+
+The script grades every field and names the one that was off, so a message that changes on the board
+is caught here before anyone reads it on the real one.
 
 A sample spec's description is the real thing, not a sketch: where a fixture is about acceptance
 criteria, its `.md` carries a `## Acceptance criteria` section with `- **AC-n:**` bullets, and

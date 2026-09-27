@@ -216,10 +216,12 @@ the default (`.aide/dashboard/checkouts/aide/code`) is empty, so
 still sitting at the old name. Move first, and `install-serve` finds the
 same checkout, `.git` and all, right where the default looks for
 it. Three things inside the directory carry the old absolute path and
-are repaired after the move: the symlinks in `projects/` (one per
-project, into `checkouts/`), git's own record of every worktree cut from
-a moved checkout (`git worktree repair`), and the launchd plist, which
-`install-serve` rewrites.
+are repaired after the move:
+
+- The symlinks in `projects/` — one per project, into `checkouts/`.
+- Git's own record of every worktree cut from a moved checkout —
+  `git worktree repair`.
+- The launchd plist — which `install-serve` rewrites.
 
     set -e
     mkdir -p ~/.aide
@@ -284,13 +286,22 @@ from and which somebody working on the host edits. `aide-pull-specs` is the unat
 aide-pull-specs ~/develop/aide-specs [~/develop/other-specs ...]
 ```
 
-Two cases make it worth a cron entry. A project with no `origin` has no clone of its own, so the board reads that
-checkout directly and a stale one is a stale list. And anyone working on the host — over ssh, or at the screen —
-wants it current for the same reason they would on a laptop.
+Two cases make it worth a cron entry:
 
-Each repo is pulled only when it is safe to do so with nobody watching: a git working tree, no uncommitted changes
-to TRACKED files — an untracked scratch file is no obstacle to a fast-forward and does not stop it — sitting on its
-own default branch, and a fast-forward. Anything else is skipped with a reason on stdout, and the repos beside it
+- A project with no `origin` — has no clone of its own, so the board reads that checkout directly and a stale one is
+  a stale list.
+- Anyone working on the host, over ssh or at the screen — wants it current for the same reason they would on a
+  laptop.
+
+Each repo is pulled only when it is safe to do so with nobody watching:
+
+- a git working tree;
+- no uncommitted changes to TRACKED files — an untracked scratch file is no obstacle to a fast-forward and does not
+  stop it;
+- sitting on its own default branch;
+- a fast-forward.
+
+Anything else is skipped with a reason on stdout, and the repos beside it
 are still pulled. Nothing is ever committed, merged or reset. A repo already up to date prints nothing, so a cron
 entry mails only when something happened.
 

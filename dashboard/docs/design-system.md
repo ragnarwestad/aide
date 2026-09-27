@@ -29,25 +29,42 @@ through a variable, and a control has one class wherever it appears — never a 
 
 The stylesheet is the seventeen `.css` files `src/render/ui/css/index.ts` lists in `SECTIONS`, read and joined in
 that order into the one string inlined into every page. `tokens.css` declares every colour, type size, space and radius ONCE, as CSS
-custom properties, between the `tokens:start` and `tokens:end` sentinels. There are four such blocks: `:root`, the
-same ramp read from the other end inside `@media (prefers-color-scheme: dark)`, and one each for
-`:root[data-theme="dark"]` and `:root[data-theme="light"]`. Every rule in the other sixteen files uses `var(--…)`;
-none of them may contain a literal. The full set — and the type and space scales a font size or a gap has to come
+custom properties, between the `tokens:start` and `tokens:end` sentinels. There are four such blocks:
+
+- `:root`.
+- `@media (prefers-color-scheme: dark)` — the same ramp read from the other end.
+- `:root[data-theme="dark"]`.
+- `:root[data-theme="light"]`.
+
+Every rule in the other sixteen files uses `var(--…)`; none of them may contain a literal. The full set — and the type and space scales a font size or a gap has to come
 from — is `tokens.css` itself; the names below are the ones a reader of the palette needs first.
 
-The palette is warm neutrals with zinc ink: paper `--bg`, card `--surface`, a second surface `--surface-2` for a
-hover or a table heading, ink `--text`, and vermilion `--accent`, which marks action and activity and otherwise only the
-wordmark's own letter and the current tab's underline. A link is ink too (`--link`), so a page of spec titles never
-reads as a page of failures. The states have three tones each — `--ok`, `--warn` and `--danger`, a `-soft` for a badge
-and a `-ground` for a message box — and dark mode has its own, calmer copy of every one rather than an inverted one.
+The palette is warm neutrals with zinc ink:
+
+- `--bg` — paper.
+- `--surface` — card.
+- `--surface-2` — a second surface, for a hover or a table heading.
+- `--text` — ink.
+- `--accent` — vermilion, which marks action and activity and otherwise only the wordmark's own letter and the
+  current tab's underline.
+- `--link` — a link is ink too, so a page of spec titles never reads as a page of failures.
+- `--ok`, `--warn` and `--danger` — the states, with three tones each: the token, a `-soft` for a badge and a
+  `-ground` for a message box. Dark mode has its own, calmer copy of every one rather than an inverted one.
+
 "Running" and "refused" never rest on hue alone: a refused row also carries a `.rowmsg.failed` with its own mark beside
-the reason. The idle badge is the one badge with a visible edge, since it has no ground of its own. Corners are
-`--r` (a card, a message) and `--r-s` (a badge, a field, a button).
+the reason. The idle badge is the one badge with a visible edge, since it has no ground of its own. Corners are:
+
+- `--r` — a card, a message.
+- `--r-s` — a badge, a field, a button.
 
 A row, job-page or project-page message is one of three kinds. The code that knows what happened picks the kind and
-passes it in; nothing passes a colour or an icon: `info` ("what does the reader have to do?" — nothing), `waiting` (something waits
-on a user or on time; nothing is broken), and `failed` (a step, a landing or a request failed and a user has to
-act). `rowMessage()` and `rowMessageParts()` turn a kind into a colour and an icon — never at the call site.
+passes it in; nothing passes a colour or an icon:
+
+- `info` — "what does the reader have to do?" — nothing.
+- `waiting` — something waits on a user or on time; nothing is broken.
+- `failed` — a step, a landing or a request failed and a user has to act.
+
+`rowMessage()` and `rowMessageParts()` turn a kind into a colour and an icon — never at the call site.
 
 ## Components
 
@@ -96,18 +113,20 @@ first layout is what stays drawn. A project with no wiki page besides its own in
 
 ## The guard
 
-The guard is four files in `test/design/css-guard/`. `css-guard-tokens.test.ts` fails the suite on a colour literal
-or an off-scale font size anywhere in the stylesheet outside the token blocks, and holds the report frame's and the
-loading page's own CSS to the same rule. `css-guard-class-vocabulary.test.ts` fails it on any CSS class a render file
-or a `specs-client` file emits that is not one of the components, one of the two dozen named `specs-client` selector
-hooks (`rowrun`, `actionform`, `refused` and the rest), or one of the short list of structural names it writes out in
-full. The same file also fails on a name on those lists that no render or `specs-client` file emits, on a listed name
-that no rule selects and that is neither a script hook nor a state value, and on a stylesheet rule whose every selector
-names a class nothing emits. Two groups are exempt from "has a rule": the script
-hooks (`JS_HOOKS`), which a script or a browser test selects by class, and the state values `default`, `todo` and
-`notverified`, each one value of a family whose other values carry the rules. A marker that only names a role is a
-`data-*` attribute, not a class. `css-guard-layout.test.ts` and `css-guard-select.test.ts` hold the layout rules and the
-select control.
+The guard is four files in `test/design/css-guard/`:
+
+- `css-guard-tokens.test.ts` — fails the suite on a colour literal or an off-scale font size anywhere in the
+  stylesheet outside the token blocks, and holds the report frame's and the loading page's own CSS to the same rule.
+- `css-guard-class-vocabulary.test.ts` — fails it on any CSS class a render file or a `specs-client` file emits that
+  is not one of the components, one of the two dozen named `specs-client` selector hooks (`rowrun`, `actionform`,
+  `refused` and the rest), or one of the short list of structural names it writes out in full. The same file also
+  fails on a name on those lists that no render or `specs-client` file emits, on a listed name that no rule selects
+  and that is neither a script hook nor a state value, and on a stylesheet rule whose every selector names a class
+  nothing emits. Two groups are exempt from "has a rule": the script hooks (`JS_HOOKS`), which a script or a browser
+  test selects by class, and the state values `default`, `todo` and `notverified`, each one value of a family whose
+  other values carry the rules. A marker that only names a role is a `data-*` attribute, not a class.
+- `css-guard-layout.test.ts` — holds the layout rules.
+- `css-guard-select.test.ts` — holds the select control.
 
 So a spec that wants a look it cannot build from the tokens has to change the TOKENS — visibly, in `tokens.css` — rather
 than add a colour beside them.
@@ -153,9 +172,14 @@ One narrowing, and only one: the boxes for phases a RUNNING job has not reached 
 more at minute ten than at minute zero can add a phase to the run or drop one it has not started. Which those are
 is not re-derived by the row — the server puts them on it (`editableSteps`, from `tailEdits()` in `queue/steps.ts`, the same
 function the edit route refuses against), so a box is never drawn live for an edit the store would say no to. Otherwise
-the row is locked as before: the running step and every step behind it stay locked, a job merely `queued` between two steps locks
-the whole row, and a live box posts to `POST /api/queue/<id>/steps` on the tick itself rather than to the Run form,
-which while busy would be asking for a second job. A live box is the one `phaseChip` that does nothing with script off —
+the row is locked as before:
+
+- The running step and every step behind it — stay locked.
+- A job merely `queued` between two steps — locks the whole row.
+- A live box — posts to `POST /api/queue/<id>/steps` on the tick itself rather than to the Run form, which while busy
+  would be asking for a second job.
+
+A live box is the one `phaseChip` that does nothing with script off —
 it belongs to no form — and that is a known limitation, not an oversight.
 
 ## A structural marker with no CSS rule uses data-*, not a class
@@ -172,8 +196,12 @@ styling later is not a reason to convert it into a class.
 
 Every text input and textarea that carries `maxlength`, and any that carries `data-maxlength` (a bound the server holds
 but the browser is not to apply, such as the Close reason), gets two spans from `specs-client/limits` after it:
-`data-limit="ok|near"`, the count, marked `near` from 90% of the bound; and `data-limit-note`, a `role="status"` line
-that names how many characters a paste or a drop lost, and is empty otherwise. The server draws neither, so a page with
+
+- `data-limit="ok|near"` — the count, marked `near` from 90% of the bound.
+- `data-limit-note` — a `role="status"` line that names how many characters a paste or a drop lost, and is empty
+  otherwise.
+
+The server draws neither, so a page with
 script off is unchanged. A bounded field added later is covered by the selector alone only if it is a `textarea` or an
 `input type="text"`: the selector names that one type, so a bounded `search`, `email`, `url` or `number` field would
 get no count until the selector is widened.
@@ -196,10 +224,12 @@ literal containment.
 
 Where a field must ride inside the form for event bubbling but must never itself mark the form dirty
 (a display-only preference, not a saved field), exclude it from the shared listener with a
-`closest("[data-*]")` guard rather than moving it back outside the form. `unsaved-changes.ts` is the one
-place that does this, skipping `[data-unit-choice]`; `spec-form-actions.ts`'s own `bind()` listens on the
-form with no guard at all, and `specs-client/index.ts`'s `closest("select[data-ai]")` is the opposite —
-it picks a control out rather than leaving one alone.
+`closest("[data-*]")` guard rather than moving it back outside the form:
+
+- `unsaved-changes.ts` — the one place that does this, skipping `[data-unit-choice]`.
+- `spec-form-actions.ts` — its own `bind()` listens on the form with no guard at all.
+- `specs-client/index.ts` — its `closest("select[data-ai]")` is the opposite: it picks a control out
+  rather than leaving one alone.
 
 ## What a button's variant means
 
@@ -249,9 +279,12 @@ Each row is labelled with that language's own native name — "English", "Norsk"
 whichever of the five languages the reader has chosen. `LANGUAGE_NATIVE_NAMES` in `header-controls.ts` is the
 one place these five names live.
 
-`src/i18n/translations.ts` is the one source of truth every N-way language choice reads from: the `Language`
-union, the `translations` registry (`{ en, nb, es, de, fr }`), and `LANGUAGES` — the list the header menu and
-`serve-helpers/http.ts`'s `?lang=`/cookie validation both iterate, so neither has to name a language by hand.
+`src/i18n/translations.ts` is the one source of truth every N-way language choice reads from:
+
+- `Language` — the union.
+- `translations` — the registry (`{ en, nb, es, de, fr }`).
+- `LANGUAGES` — the list the header menu and `serve-helpers/http.ts`'s `?lang=`/cookie validation both iterate, so
+  neither has to name a language by hand.
 Every other file that needs a per-language answer (`provider-limit.ts`'s locale table,
 `format/gerund.ts` and `format/step-label.ts`'s verb/name tables) is a `Record<Language, …>` lookup, with an
 English fallback for the two of those that are not required to cover every language.
@@ -283,8 +316,13 @@ theme, language and unit controls, and a "…" menu — and its own `tabBar()`, 
 There is no sidebar, and no reserved column standing empty for one. A page that passes `hideTabBar` draws no bar at
 all: the spec page, a project's page and Settings.
 
-The board line reads "*machine* - Prod" on the prod board, and "*machine* - Test - *spec number*"
-plus a Stop button on a test server, with the spec's folder and branch in the line's `title` — `board-info.ts` holds which one this process is, set once at boot
+The board line reads:
+
+- "*machine* - Prod" — on the prod board.
+- "*machine* - Test - *spec number*" plus a Stop button — on a test server, with the spec's folder and branch in the
+  line's `title`.
+
+`board-info.ts` holds which one this process is, set once at boot
 from the CLI flag it was started with (`--test-board`), and read directly by `pageHeader()` rather than
 threaded through every page renderer, the same way `lastInstallWarning()` already reads
 `AIDE_INSTALL_LOG` directly.
