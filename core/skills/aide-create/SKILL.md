@@ -314,6 +314,11 @@ no `Model (create)` line is written — an absence, never a guess.
 
 First write `create · Step 6 of 7: Confirm — started`, and when this step ends, `create · Step 6 of 7: Confirm — done`.
 
+In a headless run nothing of this is on the default branch yet: the
+create is finished only once Step 7, the merge into main, is done. So the
+report's first line ends `— not finished, the merge into main is next
+(Step 7)`, and the report never calls the create done or complete.
+
 
 Show a summary and the next step, built from Step 4's `specFolder` and
 `files` — not assumed. Never preview the composed description text

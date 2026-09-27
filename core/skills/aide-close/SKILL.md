@@ -133,6 +133,11 @@ commit here beyond its own decline.
 
 First write `close · Step 3 of 4: Confirm — started`, and when this step ends, `close · Step 3 of 4: Confirm — done`.
 
+In a headless run nothing of this is on the default branch yet: the
+close is finished only once Step 4, the merge into main, is done. So the
+report's first line ends `— not finished, the merge into main is next
+(Step 4)`, and the report never calls the close done or complete.
+
 
 ```text
 Closed: 17-a-spec-that-turned-out-wrong
