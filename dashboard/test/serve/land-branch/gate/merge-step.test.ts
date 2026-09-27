@@ -14,11 +14,17 @@ const ARCHIVE_MERGE_STEP = MERGE_STEP.archive!;
 import { BRANCH, landCtx, landingGit, REPOS } from "../landing-fixtures.ts";
 import type { Answer } from "../../../helpers/fake-git.ts";
 
-async function archive(over: Record<string, Answer> = {}, step: "archive" | "analyze" = "archive"): Promise<string[]> {
+async function archive(over: Record<string, Answer> = {}, step: "archive" | "analyze" = "archive", resumed = false): Promise<string[]> {
   const dir = mkdtempSync(join(tmpdir(), "archive-merge-step-"));
   const streamFile = join(dir, `job.${step}.stream.jsonl`);
   writeFileSync(streamFile, "");
-  const job = { id: "j", project: "aide", specFolder: "150-spec", results: [{ step, streamFile }] };
+  // As the landing is handed it: the step that just ran is the job's own
+  // `streamFile`, and its result is not stored yet — the results end on
+  // the step before, or are empty (a job queued for archive alone). A
+  // landing resumed at boot has the result and no pointer.
+  const job = resumed
+    ? { id: "j", project: "aide", specFolder: "150-spec", results: [{ step, streamFile }] }
+    : { id: "j", project: "aide", specFolder: "150-spec", streamFile, results: [] };
   const { ctx } = landCtx(landingGit(over).run, {
     queue: {
       get: () => job,
@@ -49,6 +55,10 @@ describe("the archive's merge is its Step 5 in the log", () => {
     expect(got[1]).toStartWith(`error: ${ARCHIVE_MERGE_STEP} — stopped: `);
     expect(got[1]).toEndWith("the archive is not finished");
     expect(got).toHaveLength(2);
+  });
+
+  test("a landing resumed at boot marks the step it lands too", async () => {
+    expect(marks(await archive({}, "archive", true))).toEqual([`${ARCHIVE_MERGE_STEP} — started`, `${ARCHIVE_MERGE_STEP} — done`]);
   });
 
   test("an analysis merged into main is marked the same way, as analyze's own last step", async () => {

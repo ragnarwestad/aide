@@ -35,17 +35,25 @@ function scripts(recorderBody: string): void {
   process.env.AIDE_TEST_GATE_LOG = join(bin, "gate.log");
 }
 
-/** A job whose archive step logged to `dir`, and the run log it wrote. */
+/** A job as the landing is handed it: the archive step that just ran is
+ *  the job's own `streamFile`, and its results still end on the implement
+ *  step before it — the runner stores the archive's result after the
+ *  landing has begun. */
 function job(dir: string) {
   const streamFile = join(dir, "j1.archive.stream.jsonl");
   const runLog = join(dir, "j1.archive.run.log");
+  const implementLog = join(dir, "j1.implement.run.log");
   writeFileSync(runLog, "aide-run-spec 10:00:00 +0s model turn started (transcript at byte 0)\n");
+  writeFileSync(implementLog, "");
   return {
     runLog,
+    implementLog,
     job: {
       project: "aide",
       specFolder: "81-x",
-      results: [{ step: "archive" as const, ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", streamFile, startedAt: new Date().toISOString() }],
+      streamFile,
+      stepStartedAt: new Date().toISOString(),
+      results: [{ step: "implement" as const, ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", streamFile: join(dir, "j1.implement.stream.jsonl") }],
     },
   };
 }
@@ -53,9 +61,10 @@ function job(dir: string) {
 test("a green run says when it started, with how many commands, and that it ended green", async () => {
   const root = repo();
   scripts("exit 0");
-  const { job: j, runLog } = job(root);
+  const { job: j, runLog, implementLog } = job(root);
   await runProjectSuiteBeforePush(root, j, "aide/81-x");
   const log = readFileSync(runLog, "utf-8");
+  expect(readFileSync(implementLog, "utf-8")).toBe("");
   expect(log).toMatch(/^aide-run-spec \d\d:\d\d:\d\d \+\d+s the landing runs the project's tests on the merge \(2 command\(s\)\)$/m);
   expect(log).toMatch(/^aide-run-spec \d\d:\d\d:\d\d \+\d+s the landing's tests are green$/m);
 }, 30_000);

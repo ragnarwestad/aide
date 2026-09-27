@@ -236,7 +236,7 @@ async function asMergeStep(
 ): Promise<void> {
   const title = MERGE_STEP[step];
   const mark = (end: string, error = false) => {
-    if (title) stepLogLine(ctx.queue.get(job.id) ?? job, `${title} — ${end}`, error);
+    if (title) stepLogLine(job, `${title} — ${end}`, error);
   };
   let merged = false;
   mark("started");
