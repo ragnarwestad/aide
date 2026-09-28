@@ -183,9 +183,18 @@ describe("spec 108: one rule per phase", () => {
   // completion commit for the step exists anywhere in git
   // (`historyDone`).
   test("REQ-1: a finished implement job whose commit is on the branch says archiving merges it in (criterion 8)", () => {
-    const html = rows(
-      [row({ id: "lagging", specFolder: "108-lagging", steps: ["implement"], state: "done" })],
-      [target("108-lagging", { done: ["analyze"], historyDone: ["implement"] })],
+    // Spec 557: this fixture's own `historyDone` is exactly what now also
+    // triggers the test-server-link mark, which outranks this phase's
+    // disagreement sentence in the row's one panel — unrelated to what
+    // this test proves, so the project is read as incapable of a test
+    // server here, the same as `renderSpecsRows`'s other callers that
+    // never opted in.
+    const list = [row({ id: "lagging", specFolder: "108-lagging", steps: ["implement"], state: "done" })];
+    const targets = [target("108-lagging", { done: ["analyze"], historyDone: ["implement"] })];
+    const html = renderSpecsRows(
+      list,
+      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) }, testServerAvailable: () => false },
+      Date.parse("2026-08-19T12:00:00Z"),
     );
     const implement = subRow(html, "implement");
     // Green: the step did its work, and the commit proves it. Only a
