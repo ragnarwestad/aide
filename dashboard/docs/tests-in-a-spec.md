@@ -40,8 +40,8 @@ whatever the change touched; aide's own runs pytest, `make test` and the browser
 The one exception is a change to Markdown files and nothing else, compared with the default branch: it runs the
 project's `scripts/check-docs` when it has one, and nothing when it does not. A paragraph cannot turn the suite red.
 
-An implement's own run asks for four workers (`AIDE_TEST_WORKERS`, and `PYTEST_XDIST_AUTO_NUM_WORKERS` for pytest's
-`-n auto`), so two specs' suites can share the machine with the board.
+An implement's own run and a landing's run both ask for four workers (`AIDE_TEST_WORKERS`, and
+`PYTEST_XDIST_AUTO_NUM_WORKERS` for pytest's `-n auto`), so two suites can share the machine with the board.
 
 A project without `AIDE_TEST_CMD` has nothing to run, and passes. Its page says there is no test command.
 
@@ -96,8 +96,11 @@ row, usually after trying the change on a [test server](test-server.md).
 For whoever changes Aide itself.
 
 - `make test` under `dashboard/` type-checks first, then deals the test files out over one bun process per core
-  (`scripts/run-tests.sh`). A process stopped by a signal with no failing test is run once more; only a second
-  failure turns the suite red.
+  (`scripts/run-tests.sh`). A process stopped by a signal with no failing test is run once more, and a file with a
+  failing test is run once more on its own; only a second failure turns the suite red.
+- The root's pytest suite runs through `scripts/test-python` in Aide's test command, which runs the failing tests
+  once more on their own (`--lf`) in the same way. A test that lost to a busy host then costs seconds, and the
+  landing runs the whole command a second time only for a failure that held twice.
 - Every `bun test` process and every pytest process works in a temp directory of its own, removed when it ends, so
   a test that forgets its directory leaves nothing in the machine's shared one.
 - `test/round/run` starts a throwaway board from the round's own sample specs. It stays out of `make test`
