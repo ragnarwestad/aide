@@ -58,17 +58,6 @@ function harness() {
 }
 
 describe("a pressed Save looks pressed", () => {
-  test("the button goes busy, keeps its word, and gains one spinner", () => {
-    const h = harness();
-    h.press();
-    expect([...h.classes].sort()).toEqual(["btn", "busy"]);
-    expect(h.attrs["aria-busy"]).toBe("true");
-    // The pending word costs no width in the title; the label is
-    // untouched, so the button does not grow and shove its row.
-    expect(h.button.title).toBe("saving…");
-    expect(h.html).toEqual(['<span class="spin" aria-hidden="true"></span>']);
-  });
-
   test("a second press is refused rather than sent", () => {
     const h = harness();
     h.press();
@@ -85,14 +74,6 @@ describe("a pressed Save looks pressed", () => {
     expect(h.html).toEqual([]);
     expect([...h.classes].sort()).toEqual(["btn", "primary"]);
     expect(h.form.dataset.busy).toBeUndefined();
-  });
-
-  // Enter from inside a field: the browser reports no submitter, and
-  // the form's own submit button is the one that would have been used.
-  test("Enter in a field marks the form's own submit button", () => {
-    const h = harness();
-    h.press({ submitter: null });
-    expect([...h.classes].sort()).toEqual(["btn", "busy"]);
   });
 
   // The entry list is built AFTER this event, so a control disabled

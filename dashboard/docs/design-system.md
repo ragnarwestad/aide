@@ -5,7 +5,7 @@
 - [Tokens](#tokens)
 - [Components](#components)
 - [The wiki graph](#the-wiki-graph)
-- [The guard](#the-guard)
+- [The class vocabulary](#the-class-vocabulary)
 - [Spacing lives in the container, not the component](#spacing-lives-in-the-container-not-the-component)
 - [One busy flag, not a per-step lookup](#one-busy-flag-not-a-per-step-lookup)
 - [A structural marker with no CSS rule uses data-*, not a class](#a-structural-marker-with-no-css-rule-uses-data--not-a-class)
@@ -18,7 +18,7 @@
 
 ---
 
-The design system the pages are built from: tokens, components, the class vocabulary guard,
+The design system the pages are built from: tokens, components, the class vocabulary,
 and the layout rules that keep them consistent.
 
 
@@ -111,31 +111,31 @@ script it is measured and settled again at the box's real size, and script adds 
 pointer events (`src/specs-client/wiki-graph/`) — none of it is a new dependency, and with script off or failed the
 first layout is what stays drawn. A project with no wiki page besides its own index draws no graph at all.
 
-## The guard
+## The class vocabulary
 
-The guard is four files in `test/design/css-guard/`:
+Four rules hold for every stylesheet and render file. No test reads the markup or the stylesheet for them — the
+testing rule leaves layout out of the suites — so each change keeps them itself:
 
-- `css-guard-tokens.test.ts` — fails the suite on a colour literal or an off-scale font size anywhere in the
-  stylesheet outside the token blocks, and holds the report frame's and the loading page's own CSS to the same rule.
-- `css-guard-class-vocabulary.test.ts` — fails it on any CSS class a render file or a `specs-client` file emits that
-  is not one of the components, one of the two dozen named `specs-client` selector hooks (`rowrun`, `actionform`,
-  `refused` and the rest), or one of the short list of structural names it writes out in full. The same file also
-  fails on a name on those lists that no render or `specs-client` file emits, on a listed name that no rule selects
-  and that is neither a script hook nor a state value, and on a stylesheet rule whose every selector names a class
-  nothing emits. Two groups are exempt from "has a rule": the script hooks (`JS_HOOKS`), which a script or a browser
-  test selects by class, and the state values `default`, `todo` and `notverified`, each one value of a family whose
-  other values carry the rules. A marker that only names a role is a `data-*` attribute, not a class.
-- `css-guard-layout.test.ts` — holds the layout rules.
-- `css-guard-select.test.ts` — holds the select control.
+- **Tokens.** No colour literal and no off-scale font size anywhere in the stylesheet outside the token blocks, and
+  the report frame's and the loading page's own CSS are held to the same rule.
+- **A closed class vocabulary.** A CSS class a render file or a `specs-client` file emits is one of the components,
+  one of the two dozen named `specs-client` selector hooks (`rowrun`, `actionform`, `refused` and the rest), or one
+  of the short list of structural names written out in full. A name on those lists is emitted by some render or
+  `specs-client` file, and has a rule that selects it unless it is a script hook, which a script or a browser test
+  selects by class, or one of the state values `default`, `todo` and `notverified`, each one value of a family whose
+  other values carry the rules. No stylesheet rule selects only classes nothing emits. A marker that only names a
+  role is a `data-*` attribute, not a class.
+- **Layout.** Spacing lives in the container (see
+  [Spacing lives in the container, not the component](#spacing-lives-in-the-container-not-the-component)).
+- **The select control.** A `<select>` is drawn by us: `appearance` reset, our own chevron per theme, one
+  `:focus-visible` rule in the accent colour, and a disabled look.
 
 So a spec that wants a look it cannot build from the tokens has to change the TOKENS — visibly, in `tokens.css` — rather
 than add a colour beside them.
 
-**What these guards do not answer is whether the layout holds.** They read the stylesheet as text: that a rule exists,
-that a class is one of the known ones, that no colour sits outside the tokens. A rule can be present and still be
-wrong — a rule such as `flex: 0 0 100%` beside a left margin can be pinned verbatim by a test and still hang past the
-row's right edge, because a whole width plus a margin is wider than the row. Whether something fits is measured in a browser, by
-`test/e2e/`, which every merge runs.
+Whether something fits is measured in a browser, by `test/e2e/`, and only where the behaviour exists only in a
+browser — never by reading the stylesheet as text. A rule can be present and still be wrong: `flex: 0 0 100%` beside
+a left margin hangs past the row's right edge, because a whole width plus a margin is wider than the row.
 
 A CSS comment's prose reaches the browser as page content: the stylesheet is inlined into every page, so a comment
 is read by whoever views source, not just by the next editor. It is also why a test looking for an English word in a
@@ -153,10 +153,7 @@ One control is an exception, and its CSS says so: the specs list's state filter,
 `margin-left: var(--sp-3)` on a desktop screen — more room from the "(?)" beside it than the row's gap gives, because
 the two are easy to mis-click together — and `narrow.css` sets it back to 0 at phone width. A `margin-left: auto`
 that pushes a control to the row's far end, as the New spec button's does, is not a gap between two controls, and
-the rule does not cover it.
-
-`test/design/css-guard/css-guard-layout.test.ts` asserts that `.actionform` declares no
-`margin`.
+the rule does not cover it. `.actionform` declares no `margin`.
 
 ## One busy flag, not a per-step lookup
 
@@ -184,12 +181,12 @@ it belongs to no form — and that is a known limitation, not an oversight.
 
 ## A structural marker with no CSS rule uses data-*, not a class
 
-`test/design/css-guard/css-guard-class-vocabulary.test.ts` holds render files to a closed class vocabulary (see [The guard](#the-guard)). A render
+Render files keep to a closed class vocabulary (see [The class vocabulary](#the-class-vocabulary)). A render
 change that needs to mark up a structural role — nothing to style, just something a test or a future render pass needs
 to find — should not grow that vocabulary for a class that carries no CSS rule. The per-phase caption row
 (`Phase` / `Model` above the phase lines' pickers) is marked `data-caption="1"` for exactly this reason. It has since
 grown rules of its own — two dozen of them, in `list.css` and `narrow.css` — and stays a `data-*` regardless: the
-vocabulary guard reads the classes a render file emits, so CSS may select on an attribute freely. A marker that gains
+vocabulary covers the classes a render file emits, so CSS may select on an attribute freely. A marker that gains
 styling later is not a reason to convert it into a class.
 
 ## The length count under a bounded text field
@@ -252,8 +249,8 @@ set falls straight through to the existing OS-driven CSS.
 Applying the stored choice before first paint (no flash) needs a script that runs before body content, on every page, so `src/render/ui/shell.ts`'s
 `pageShell()` emits exactly one `<script>` tag in `<head>`, unconditional and shared. `theme-script.ts` is what it
 exists for, but the tag carries eleven transpiled files in all — the unit setting, the "…" menu's close-on-outside-click,
-the service worker registration and the rest — each its own IIFE, concatenated into the one tag because the guard test
-counts tags rather than what is inside them. Every file in it is transpiled raw by `Bun.Transpiler`, so none of them
+the service worker registration and the rest — each its own IIFE, concatenated into the one tag rather than one tag per
+file. Every file in it is transpiled raw by `Bun.Transpiler`, so none of them
 may `import` or `export`; `specs-client/index.ts` may, because it is bundled by `Bun.build({ format: "iife" })`
 instead. Both are tested the same way: transpile the file and run it against a fake DOM.
 
@@ -262,7 +259,7 @@ need it. A served page carries two `<script>` tags where its route passes one, s
 first occurrence will silently grab the wrong one; find each by a substring unique to its content.
 
 A scheduled run's report is shown in an `<iframe sandbox srcdoc>`, which is its own document. Its stylesheet is
-`css/report-frame.css` — element rules, tokens only, held to the same guard — placed in the framed document after
+`css/report-frame.css` — element rules, tokens only, held to the same rule — placed in the framed document after
 `tokens.css`. It is not one of the page's `SECTIONS`. `specs-client/report-frame.ts` copies the page's `data-theme`
 into the frame's `<html>` (and removes it when the page has none, the Auto choice) and sizes the frame to its content.
 Without script the frame keeps a fixed height and follows the operating system's dark/light setting.

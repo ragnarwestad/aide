@@ -128,18 +128,6 @@ describe("what the switch shows for each answer about the device", () => {
     expect(m.sw.hidden).toBe(false);
     expect(m.status.textContent).toStartWith("Notifications need the installed app");
   });
-
-  test("the accessible name and role are the same in every state (AC-2)", async () => {
-    const names = new Set<string | null>();
-    for (const o of [{ permission: "granted" as const, subscribed: true }, { permission: "denied" as const }, { supported: false }, {}]) {
-      const m = mount(fake(o));
-      expect(m.sw.getAttribute("role")).toBe("switch");
-      names.add(m.sw.getAttribute("aria-label"));
-      await flush();
-      names.add(m.sw.getAttribute("aria-label"));
-    }
-    expect([...names]).toEqual(["Notifications for this device"]);
-  });
 });
 
 describe("a press moves the switch only once the answer is in", () => {

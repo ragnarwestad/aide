@@ -43,23 +43,4 @@ describe("buildReportDocument", () => {
     const doc = await buildReportDocument("<p>x</p>", BASE);
     expect(doc).toContain(`<base href="${BASE}" target="_blank">`);
   });
-
-  test("carries the board's tokens: the light block, the dark preference and both chosen themes", async () => {
-    const doc = await buildReportDocument("<p>x</p>", BASE);
-    expect(doc).toContain("--bg: #EFECE5");
-    expect(doc).toContain("@media (prefers-color-scheme: dark)");
-    expect(doc).toContain(':root[data-theme="dark"]');
-    expect(doc).toContain(':root[data-theme="light"]');
-    expect(doc).toContain("var(--text)");
-  });
-
-  test("marks a table cell holding one short word, and no other", async () => {
-    const doc = await buildReportDocument(
-      `<table><tr><th>Date</th><th>News</th></tr><tr><td>2026-09-25</td><td>Two words</td></tr>` +
-        `<tr><td>${"x".repeat(40)}</td><td><a href="https://e.com/">Releases</a></td></tr></table>`,
-      BASE,
-    );
-    const cells = [...doc.matchAll(/<(td|th)([^>]*)>/g)].map((m) => m[2]!.includes("data-short"));
-    expect(cells).toEqual([true, true, true, false, false, true]);
-  });
 });

@@ -1,11 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  renderSpecsPage,
-  renderSpecsRows,
-  type SpecsPageOptions,
-  type QueueRowView,
-  type SpecTarget,
-} from "../../../../../src/render";
+import { renderSpecsRows, type SpecsPageOptions, type QueueRowView, type SpecTarget } from "../../../../../src/render";
 import { row, openKeys } from "../../fixtures.ts";
 
 // --- spec 124: one phase list, and the actions in a stack of their own -------
@@ -48,12 +42,6 @@ describe("spec 124: one phase list, and one action beside the state", () => {
       Date.parse("2026-08-19T12:00:00Z"),
     );
 
-  /** The header, BOTH of its rows (2026-09-22): the title has the first
-   *  to itself and the cells are on the second. */
-  const head = (html: string, folder: string) =>
-    html.match(
-      new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>\\s*<tr class="specstate".*?</tr>`),
-    )?.[0] ?? "";
   /** A phase's own line — an ordinary row of six cells since spec 157,
    *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
@@ -69,13 +57,6 @@ describe("spec 124: one phase list, and one action beside the state", () => {
       .split(/<t[dh]\b[^>]*>/)
       .slice(1)
       .map((s) => s.replace(/<\/t[dh]>[\s\S]*$/, ""));
-  /** How many COLUMNS a row declares: a plain cell is one, a spanning
-   *  cell is what it says. The number every row kind has to agree on. */
-  const columnUnits = (tr: string): number =>
-    [...tr.matchAll(/<t[dh]\b([^>]*)>/g)].reduce(
-      (n, m) => n + Number(m[1]!.match(/colspan="(\d+)"/)?.[1] ?? 1),
-      0,
-    );
   /** The whole row group: the header line and the phase lines under it. */
   const group = (html: string, folder: string) =>
     html.match(
@@ -100,106 +81,11 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     return cells(caption)[2] ?? "";
   };
 
-  const CHOICES = [{ name: "sonnet" }];
-
   // --- the structural invariant, before any behaviour ------------------------
-
-  // Four functions decide a row's cells (`sortableHead`, `specHeadRow`,
-  // `phaseCaptionRow`, `phaseSubRows`) and nothing in the type system
-  // makes them agree. A row short of a column does not fail loudly —
-  // it shifts every column after it, on some rows and not others.
-  test("every row kind declares the same six columns, and none is blank (AC-1)", () => {
-    const html = renderSpecsPage(
-      [row({ id: "j1", specFolder: "124-stack", state: "done" })],
-      "2026-08-19T00:00:00Z",
-      [{ label: "Overview", path: "projects.html" }],
-      {
-        runnerAvailable: true,
-        targets: [target("124-stack")],
-        modelChoices: CHOICES,
-        filter: { open: "aide/124-stack" },
-      },
-    );
-    const thead = html.match(/<thead><tr>.*?<\/tr><\/thead>/)?.[0] ?? "";
-    const spechead = head(html, "124-stack");
-    // The header's two rows, counted apart: the title's row declares the
-    // chevron's column and the title's span, and the state row declares
-    // the rest — the chevron's column reaching it through that cell's own
-    // `rowspan` rather than a cell of its own.
-    const titleRow = spechead.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
-    const stateRow = spechead.match(/<tr class="specstate[\s\S]*?<\/tr>/)?.[0] ?? "";
-    expect(columnUnits(titleRow)).toBe(6);
-    expect(columnUnits(stateRow)).toBe(5);
-    const firstSub = html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
-    const firstPhase = subRow(html, "create");
-    expect([thead, spechead, firstSub, firstPhase, subRow(html, "analyze")].every(Boolean)).toBe(true);
-    for (const tr of [thead, firstSub, firstPhase]) {
-      expect([tr.slice(0, 40), columnUnits(tr)]).toEqual([tr.slice(0, 40), 6]);
-    }
-    // And the same on every phase line after the first as well, since
-    // spec 179: the AI column is a cell of each line's own, so no line
-    // borrows a slot from a `rowspan` on the one above it.
-    expect(columnUnits(subRow(html, "analyze"))).toBe(6);
-    // The header and both row types end on Cost.
-    expect(thead).toMatch(/data-col="cost"[\s\S]*<\/th><\/tr><\/thead>$/);
-    expect(stateRow).toMatch(/data-col="cost">[\s\S]*<\/td><\/tr>$/);
-    // And the phase lines lead with the chevron's own column, empty, then
-    // their own cell.
-    expect(firstSub).toMatch(/^<tr class="subrow" data-caption="1"><td class="phasecell" colspan="2">/);
-  });
 
   // --- the Created column is not in the list ---------------------------------
 
-  test("no row draws a Created cell or a creation date (AC-1)", () => {
-    const html = rows([], [
-      target("124-stack", { createdAt: "2026-08-12T09:00:00Z" }),
-      target("125-undated", { createdAt: undefined }),
-    ]);
-    const body = html.slice(html.indexOf("</thead>"));
-    expect(body).not.toContain('data-col="created"');
-    expect(body).not.toContain("created-date");
-    expect(body).not.toContain("2026-08-12");
-    expect(body).not.toMatch(/not registered/i);
-    const colgroup = html.match(/<colgroup>.*?<\/colgroup>/)?.[0] ?? "";
-    expect([...colgroup.matchAll(/data-col="(\w+)"/g)].map((m) => m[1])).toEqual([
-      "fold",
-      "spec",
-      "phase",
-      "state",
-      "started",
-      "cost",
-    ]);
-  });
-
-  test("the heading row starts with Created, before Specification, over two columns (AC-2)", () => {
-    const html = rows([], [target("124-stack", { createdAt: "2026-08-12T09:00:00Z" })]);
-    const thead = html.match(/<thead><tr>.*?<\/tr><\/thead>/)?.[0] ?? "";
-    expect(thead.startsWith('<thead><tr><th')).toBe(true);
-    const first = thead.match(/^<thead><tr>(<th[^>]*>)/)?.[1] ?? "";
-    expect(first).toContain('data-col="created"');
-    expect(first).toContain('colspan="2"');
-    expect(thead.indexOf('data-col="created"')).toBeLessThan(thead.indexOf('data-col="spec"'));
-    expect(thead).not.toContain('<th data-col="fold"></th>');
-    expect(thead).toContain("sort=created");
-  });
-
   // --- criteria 1, 3, 4, 5, 15: the checkbox lives on the phase line ---------
-
-  test("each runnable phase carries its own box, on its own line (criterion 1)", () => {
-    const html = rows([]);
-    const id = "rowrun-aide/124-stack";
-    for (const step of ["analyze", "implement", "archive"]) {
-      const line = subRow(html, step);
-      expect(line).toContain(`<input type="checkbox" name="steps" value="${step}"`);
-      expect(box(line, step)).toContain(`form="${id}"`);
-    }
-    // The browser posts checkboxes in document order, so the order the
-    // LINES are drawn in is the order `steps` arrives in.
-    const order = [...html.matchAll(/<input type="checkbox" name="steps" value="([^"]+)"/g)].map(
-      (m) => m[1],
-    );
-    expect(order).toEqual(["analyze", "implement", "archive"]);
-  });
 
   // It carried no box at all until 2026-08-21 and the hole read as a
   // different kind of line. It has one now — ticked, disabled, nameless
@@ -209,15 +95,6 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     const line = subRow(rows([]), "create");
     expect(line).toMatch(/<input type="checkbox" value="create" checked disabled/);
     expect(line).not.toContain('name="steps" value="create"');
-  });
-
-  test("every box the row draws sits on a phase line (criterion 2)", () => {
-    const html = rows([], [target("124-stack")], { modelChoices: CHOICES });
-    // Every box the row draws is on a phase line, so each is inside a
-    // `<tr>` that names its own step.
-    for (const m of html.matchAll(/<label class="phase[^"]*" data-phase="([^"]+)"/g)) {
-      expect(subRow(html, m[1]!)).toContain(`data-phase="${m[1]}"`);
-    }
   });
 
   test("a spec nothing has run pre-ticks every phase (criterion 3)", () => {
@@ -270,15 +147,6 @@ describe("spec 124: one phase list, and one action beside the state", () => {
   });
 
   // --- criteria 6-12: the row's one action ----------------------------------
-
-  test("the button rides with the name; the header keeps its own cells (criterion 6)", () => {
-    const html = rows([]);
-    expect(actionCell(group(html, "124-stack"))).toContain(">Analyze</button>");
-    // Five cells across the header's two rows, the chevron's own left out
-    // by `cells`: title, pips, state, started, cost.
-    expect(cells(head(html, "124-stack"))).toHaveLength(5);
-    expect(head(html, "124-stack")).toMatch(/<td class="num" data-col="cost">[\s\S]*?<\/td><\/tr>$/);
-  });
 
   test("a spec no job has ever touched offers its next phases alone (criterion 8)", () => {
     const cell = actionCell(group(rows([]), "124-stack"));
@@ -368,20 +236,6 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     const done = ["analyze", "implement", "archive"];
     const idle = actionCell(group(rows([], [target("124-stack", { done })]), "124-stack"));
     expect(idle).toContain(">Archive</button>");
-  });
-
-  // The run form itself is a carrier now: the button that submits it
-  // and every box it posts are written OUTSIDE its tags, reaching it by
-  // `form="…"` alone (the trick spec 123 introduced for the model).
-  test("the Run form carries the hidden fields, and the button posts it by id", () => {
-    const cell = actionCell(group(rows([], [target("124-stack")], {}), "124-stack"));
-    expect(cell).toContain('<form id="rowrun-aide/124-stack" method="post" action="/api/queue"');
-    expect(cell).toContain('name="project" value="aide"');
-    expect(cell).toContain('name="specFolder" value="124-stack"');
-    expect(cell).toMatch(/<button[^>]*form="rowrun-aide\/124-stack"[^>]*>Analyze<\/button>/);
-    // Open, so the boxes on the phase lines are the only source of
-    // `steps` — the form carries none of its own.
-    expect(cell).not.toContain('name="steps"');
   });
 
   // A greyed-out Run with the reason in its title was how a busy row

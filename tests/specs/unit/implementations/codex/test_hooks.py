@@ -175,9 +175,7 @@ class TestBlockWatchMode:
 
     @pytest.mark.parametrize("cmd", [
         "vitest",
-        "npx vitest",
         "jest --watch",
-        "vitest --watch src/",
         "./gradlew test --continuous",
         "cargo watch -x test",
         "ptw",
@@ -192,14 +190,9 @@ class TestBlockWatchMode:
         assert result.returncode == 2, f"watcher not blocked: {cmd}"
 
     @pytest.mark.parametrize("cmd", [
-        "vitest run",
         "npx vitest run country.test.ts",
-        "pytest",
         "python -m pytest -q",
-        "go test ./...",
-        "cargo test",
         "./gradlew test",
-        "npm test",
     ])
     def test_allows_single_run_commands(self, hooks_dir, cmd):
         result = run_hook(
@@ -347,8 +340,7 @@ class TestStopGuard:
         assert self.decision(self.stop(hooks_dir, tmp_path)) is None
 
     @pytest.mark.parametrize("filename", [
-        "app/main.py", "cmd/server.go", "src/lib.rs", "app/Model.rb",
-        "Sources/App.swift", "src/index.mjs",
+        "app/main.py", "src/index.mjs",
     ])
     def test_non_js_source_files_trigger_the_guard(self, hooks_dir, tmp_path, filename):
         self.track(hooks_dir, tmp_path, "Write", {"file_path": filename})

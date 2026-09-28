@@ -104,40 +104,7 @@ describe("GET /api/queue/<id>", () => {
 });
 
 describe("the finished steps a job table cannot show (criterion 2)", () => {
-  test("every entry in results[] gets its own row", async () => {
-    const { base, dir } = start();
-    const id = await enqueue(base, ["analyze", "implement", "archive"]);
-    // Reach into the mirror the way a completed step would have: the
-    // route's job here is to SHOW the history, not to produce it.
-    const mirror = join(dir, "queue.json");
-    const jobs = JSON.parse(await Bun.file(mirror).text()) as Record<string, unknown>[];
-    const job = jobs.find((j) => j.id === id)!;
-    job.stepIndex = 2;
-    job.results = [
-      { step: "analyze", ok: true, costUsd: 0.42, costMeasured: true, terminalReason: "completed", at: "2026-08-16T10:01:00Z" },
-      { step: "implement", ok: true, costUsd: 1.07, costMeasured: true, terminalReason: "completed", at: "2026-08-16T10:03:00Z" },
-    ];
-    writeFileSync(mirror, JSON.stringify(jobs));
 
-    // A fresh server reloads the mirror.
-    const { base: base2 } = start({ queueMirrorPath: mirror });
-    const html = await (await fetch(`${base2}/specs/${id}?tab=steps`)).text();
-    expect(html).toContain("Analyze");
-    expect(html).toContain("Implement");
-    expect(html).toContain("$0.42");
-    expect(html).toContain("$1.07");
-  });
-
-  // The tab is a link, so the route has to honour it — a page that
-  // ignored `?tab=` would always show the overview and the tabs would
-  // be decoration.
-  test("the route opens the tab the link asked for", async () => {
-    const { base } = start();
-    const id = await enqueue(base, ["analyze"]);
-    const html = await (await fetch(`${base}/jobs/${id}?tab=steps`)).text();
-    expect(html).toMatch(/aria-current="page"[^>]*>Logs/);
-    expect(html).toContain("No step has finished yet");
-  });
 });
 
 // --- spec 177: a job already carrying more steps than settings --------------

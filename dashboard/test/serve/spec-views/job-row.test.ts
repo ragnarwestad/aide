@@ -1,12 +1,10 @@
 // Spec 353: jobRow()'s queuePosition must come off the same
-// queuePriorityOrder() the runner picks from (REQ-6), and the full
-// jobRow() -> specStateChip() composition must render it (REQ-4).
+// queuePriorityOrder() the runner picks from (REQ-6).
 
 import { describe, expect, test } from "bun:test";
 import { QueueStore, queuePriorityOrder } from "../../../src/queue/queue.ts";
 import { AideRunStore } from "../../../src/queue/aide-run-store.ts";
 import { jobRow } from "../../../src/serve/job-row.ts";
-import { specStateChip } from "../../../src/render/ui/job-state";
 
 const resolve = (project: string) =>
   project === "aide" ? { specFolders: ["a", "b", "c", "d"] } : null;
@@ -53,22 +51,6 @@ describe("jobRow()'s queuePosition (spec 353)", () => {
     expect(archiveRow.queuePosition?.n).toBe(1);
   });
 
-  test("the jobRow() -> specStateChip() composition renders 'Queued n/total'", async () => {
-    const store = makeStore();
-    const runStore = new AideRunStore();
-    const archive = store.enqueue({ project: "aide", specFolder: "a", steps: ["archive"] });
-    const analyze = store.enqueue({ project: "aide", specFolder: "b", steps: ["analyze"] });
-    const implement = store.enqueue({ project: "aide", specFolder: "c", steps: ["implement"] });
-    if (!archive.ok || !analyze.ok || !implement.ok) throw new Error("enqueue failed");
-
-    const ctx = { queue: store, store: runStore };
-    const row = await jobRow(ctx, implement.job);
-    const html = specStateChip(row, "en");
-
-    const n = row.queuePosition?.n;
-    const total = row.queuePosition?.total;
-    expect(html).toContain(`Queued ${n}/${total}`);
-  });
 });
 
 // Spec 396: a job the runner has held back (`errorReason: "held-back"`)

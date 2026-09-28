@@ -1,6 +1,5 @@
 // The words a board message may not use, and what to say instead (REQ-5,
-// spec 399) — read by banned-words.test.ts (REQ-6) so a new message
-// reaching for one of these fails on sight rather than shipping.
+// spec 399).
 export interface BannedWord {
   /** What a message should never say. */
   word: string;

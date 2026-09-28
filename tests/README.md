@@ -150,7 +150,7 @@ tests/
 │   │   ├── core/                             # Core script tests
 │   │   │   ├── validation/                   # Output validation
 │   │   │   │   ├── installer/, rules/, state/, dashboard/
-│   │   │   │   └── templates/                    # test_templates.py and the other template tests
+│   │   │   │   └── templates/                    # test_templates.py
 │   │   │
 │   │   └── implementations/                  # Implementation-specific tests
 │   │       ├── claude-code/

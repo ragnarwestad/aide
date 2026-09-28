@@ -52,7 +52,7 @@ nav.tabbar.subtabs > .row { margin-left: auto; flex: 0 0 auto; flex-wrap: nowrap
 /* The Settings page alone: its tab row and each tab's own content sit in
    the middle of the frame, over the phases form `.settingsform` already
    centres. The hook is the bar's own hrefs rather than a class of its
-   own — the class vocabulary is closed (css-guard-class-vocabulary), and
+   own — the class vocabulary is closed, and
    `:has()` is how `narrow.css` already scopes a rule to the page it is
    about. Every other page's tab bar is untouched: the spec page's own
    actions ride at its right end. */

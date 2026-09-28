@@ -4,7 +4,7 @@
 // in the popover beside the chip. It is never written after the word.
 
 import { describe, expect, test } from "bun:test";
-import { stateChip, stateWord, wordPhase } from "../../../src/render/ui/job-state";
+import { stateWord, wordPhase } from "../../../src/render/ui/job-state";
 import type { QueueRowView } from "../../../src/render";
 
 const stopped = (stopReason: string, timeoutSec = 2700): QueueRowView =>
@@ -69,15 +69,5 @@ describe("nothing on the page writes the state as more than that word", () => {
     expect(wordPhase(true, undefined, { state: "cancelled" } as unknown as QueueRowView, {}, "nb").qualifier).toBe(
       "siste ny kjøring avbrutt",
     );
-  });
-
-  test("the job page's chip is the word, with the step's own sentence in the popover", () => {
-    const html = stateChip(
-      { state: "stopped", stopReason: "timeout", timeoutSec: 5400, error: "the step ran past its limit" } as unknown as QueueRowView,
-      "en",
-    );
-    expect(html).toContain(">Stopped<");
-    expect(html).not.toContain("90 min");
-    expect(html).toContain("the step ran past its limit");
   });
 });

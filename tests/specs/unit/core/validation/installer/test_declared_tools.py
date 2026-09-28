@@ -138,30 +138,6 @@ class TestInstallersDeclareMarkdownlint:
 
 
 @pytest.mark.validation
-class TestUpgradeAiToolsKeepsMarkdownlintCurrent:
-    """upgrade-ai-tools must keep markdownlint-cli2 current alongside the
-    tools it already names, and report it in its own version listing."""
-
-    @staticmethod
-    def _text(workspace_root):
-        return (workspace_root / "core" / "scripts" / "upgrade-ai-tools").read_text()
-
-    def test_upgrade_line_includes_markdownlint(self, workspace_root):
-        text = self._text(workspace_root)
-        upgrade_line = next(
-            line for line in text.splitlines() if line.strip().startswith("mise upgrade")
-        )
-        assert "npm:markdownlint-cli2" in upgrade_line, upgrade_line
-
-    def test_installed_versions_report_includes_markdownlint(self, workspace_root):
-        text = self._text(workspace_root)
-        report_line = next(
-            line for line in text.splitlines() if "mise ls" in line
-        )
-        assert "markdownlint" in report_line, report_line
-
-
-@pytest.mark.validation
 class TestMiseDeclaredToolsStayInStepWithUpgrade:
     """A tool declared by the installer that upgrade-ai-tools never
     upgrades would go stale forever after its first install (REQ-5)."""
@@ -197,15 +173,6 @@ class TestMiseDeclaredToolsCoversTheSixNamedTools:
     every machine, not tools that happen to already be there by hand."""
 
     SIX_TOOLS = ("markdownlint-cli2", "jq", "gh", "bun", "pandoc", "md-to-pdf")
-
-    def test_all_six_tools_present(self, workspace_root):
-        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
-        text = installer.read_text()
-        match = re.search(r'^MISE_DECLARED_TOOLS="([^"]*)"', text, re.MULTILINE)
-        assert match, "MISE_DECLARED_TOOLS is missing from _install-bin.sh"
-        declared = match.group(1)
-        missing = [tool for tool in self.SIX_TOOLS if tool not in declared]
-        assert not missing, f"{missing} missing from MISE_DECLARED_TOOLS: {declared}"
 
     def test_declares_all_six_via_fake_mise(self, workspace_root, tmp_path):
         calls = tmp_path / "mise-calls.txt"

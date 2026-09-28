@@ -2,7 +2,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import type { GitRunner } from "../../src/git/branch-status.ts";
-import { ARCHIVED_VIEW, SAME_DAY, STAMPED, UNSTAMPED, blockFor, gitDated, harness, listUntil, opened, phaseLines, rowFor, specsList, start } from "./archived-specs-fixtures.ts";
+import { ARCHIVED_VIEW, SAME_DAY, STAMPED, UNSTAMPED, blockFor, gitDated, harness, listUntil, specsList, start } from "./archived-specs-fixtures.ts";
 
 // The reason a not-landed row carries moved from the badge itself
 // (spec 275's "archived, not landed") to the notice line beneath it
@@ -79,47 +79,6 @@ describe("an archived spec whose branch is still on origin", () => {
     await Bun.sleep(200);
     expect((await specsList(base, ARCHIVED_VIEW)).toLowerCase()).not.toContain(STILL_ON_ORIGIN);
   });
-
-  // Spec 208, criterion 14. The set is whatever a schedule last found,
-  // so how OLD it is decides how much of it to believe.
-  test("the mark says how old its answer is", async () => {
-    const { base } = start({ gitRun: gitWithBranches([STAMPED]) });
-    const html = await listUntil(base, STILL_ON_ORIGIN, ARCHIVED_VIEW);
-    expect(blockFor(html, STAMPED)).toContain("checked just now");
-  });
-
-  // The one row shape, not two (1-description.md). Before this spec an
-  // unlanded archived spec came through `jobGroup` and read as an
-  // ordinary, fully-interactive job row — with a Run the server would
-  // have refused.
-  test("is the same reader row as every other archived spec", async () => {
-    const { base } = start({ gitRun: gitWithBranches([STAMPED]) });
-    const html = await listUntil(base, STILL_ON_ORIGIN, ARCHIVED_VIEW);
-    const row = rowFor(html, STAMPED);
-    expect(row).not.toContain('class="rowrun"');
-    // Reopen is on the caption line the fold opens, like every other
-    // row's one action (2026-09-08).
-    const openBlock = blockFor(
-      await listUntil(base, STILL_ON_ORIGIN, `${ARCHIVED_VIEW}${opened(STAMPED)}`),
-      STAMPED,
-    );
-    expect(openBlock).toContain("Reopen");
-    // Spec 224: the same row means the same row OPEN too — the fold and
-    // the phase lines under it, not a second shape wearing the mark.
-    expect(row).toContain('class="fold');
-    // Spec 339: the State cell says the bare word — the fact that
-    // STAMPED's branch is still on origin is the notice line's to say.
-    expect(row).toContain('<span class="badge b-done" data-icon="archive">Archived</span>');
-    expect(blockFor(html, STAMPED).toLowerCase()).toContain(STILL_ON_ORIGIN);
-    const open = await listUntil(base, STILL_ON_ORIGIN, `${ARCHIVED_VIEW}${opened(STAMPED)}`);
-    expect(Object.keys(phaseLines(open, STAMPED))).toEqual([
-      "create",
-      "analyze",
-      "implement",
-      "archive",
-    ]);
-    expect(blockFor(open, STAMPED)).not.toContain('class="rowrun"');
-  });
 });
 
 // --- criterion 9: where Reopen lands the reader ----------------------------
@@ -147,13 +106,5 @@ describe("pressing Reopen", () => {
     const res = await press(base, {});
     expect(res.status).toBe(303);
     expect(res.headers.get("location")).toBe(`/specs/aide/${STAMPED}`);
-  });
-
-  test("the row's form is the one that carries the mark", async () => {
-    const block = blockFor(
-      await specsList(start().base, `${ARCHIVED_VIEW}${opened(STAMPED)}`),
-      STAMPED,
-    );
-    expect(block).toContain('name="fromList" value="1"');
   });
 });

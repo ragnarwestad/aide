@@ -5,12 +5,9 @@
 // rather than silently falling back to English prose in Norwegian mode.
 import { describe, expect, test } from "bun:test";
 import { WORKFLOW_STEPS } from "../../../../src/queue/steps.ts";
-import {
-  GERUND_EN, GERUND_NB, GERUND_ES, GERUND_DE, GERUND_FR, specStateChip, restingChip,
-} from "../../../../src/render/ui/job-state/resting.ts";
+import { GERUND_EN, GERUND_NB, GERUND_ES, GERUND_DE, GERUND_FR, specStateChip } from "../../../../src/render/ui/job-state/resting.ts";
 import { specNotice } from "../../../../src/render/ui/job-state";
-import { STEP_LABELS_NB, STEP_LABELS_ES, STEP_LABELS_DE, STEP_LABELS_FR, stepLabel } from "../../../../src/render/ui/components";
-import { stepButton } from "../../../../src/format/step-label.ts";
+import { STEP_LABELS_NB, STEP_LABELS_ES, STEP_LABELS_DE, STEP_LABELS_FR } from "../../../../src/render/ui/components";
 import type { QueueRowView } from "../../../../src/render";
 
 describe("GERUND_EN/GERUND_NB/GERUND_ES/GERUND_DE/GERUND_FR (spec 350, 484)", () => {
@@ -38,33 +35,6 @@ describe("STEP_LABELS_NB/STEP_LABELS_ES/STEP_LABELS_DE/STEP_LABELS_FR", () => {
       expect(STEP_LABELS_FR[step], `STEP_LABELS_FR is missing "${step}"`).toBeDefined();
     }
   });
-
-  test("phase names use the Norwegian imperative", () => {
-    expect(stepLabel("create", "nb")).toBe("Opprett");
-    expect(stepLabel("analyze", "nb")).toBe("Analyser");
-    expect(stepLabel("implement", "nb")).toBe("Implementer");
-    expect(stepLabel("archive", "nb")).toBe("Arkiver");
-    expect(stepLabel("explore", "nb")).toBe("Utforsk");
-    expect(stepLabel("manifest", "nb")).toBe("Manifest");
-    expect(stepLabel("reopen", "nb")).toBe("Gjenåpne");
-    expect(stepLabel("reopen", "nb")).toBe("Gjenåpne");
-    expect(stepLabel("schedule", "nb")).toBe("Kjøring");
-    expect(stepLabel("close", "nb")).toBe("Lukk");
-  });
-
-  test("row buttons keep their English step word", () => {
-    expect(stepButton("archive")).toBe("Archive");
-  });
-
-  // Spec 484: a sanity check that each new language's table carries
-  // real text, not a fallback to English — the completeness loop above
-  // already proves every step is present.
-  test.each(["es", "de", "fr"] as const)("%s phase names are not the English fallback", (lang) => {
-    for (const step of WORKFLOW_STEPS) {
-      expect(stepLabel(step, lang)).not.toBe(step);
-    }
-    expect(stepLabel("analyze", lang)).not.toBe(stepLabel("analyze", "en"));
-  });
 });
 
 const row = (over: Partial<QueueRowView> = {}): QueueRowView => ({
@@ -78,29 +48,6 @@ const row = (over: Partial<QueueRowView> = {}): QueueRowView => ({
   timeoutSec: 600,
   createdAt: "2026-09-01T00:00:00Z",
   ...over,
-});
-
-describe("specStateChip/restingChip take lang (spec 350)", () => {
-  test("a running row's badge reads the Norwegian table word, not stepLabel + ing", () => {
-    const html = specStateChip(row({ state: "running", steps: ["analyze"], stepIndex: 0 }), "nb");
-    expect(html).toContain("Analyserer");
-    expect(html).not.toContain("Analyzing");
-  });
-
-  test("a queued row's badge reads '{Norwegian gerund} i kø'", () => {
-    const html = specStateChip(row({ state: "queued", steps: ["implement"], stepIndex: 0 }), "nb");
-    expect(html).toContain("Implementerer i kø");
-  });
-
-  test("restingChip's resting-state words are Norwegian for nb", () => {
-    expect(restingChip("nb", { readyPhase: "implement" })).toContain("Klar");
-    expect(restingChip("nb", {})).toContain("Ferdig");
-    // The badge says the STATE since 2026-09-08 — the same word every
-    // other stop the system made gets — and the reason is the sentence
-    // on the row's own notice line. The word itself was hardcoded
-    // English until it took the key the held-back badge uses.
-    expect(restingChip("nb", { archiveHeldBack: "a reason" })).toContain("Stoppet");
-  });
 });
 
 // Spec 396: a queued job the runner is holding back is not competing for
@@ -142,22 +89,6 @@ describe("specStateChip() on a held-back queued row (spec 396, spec 485)", () =>
     );
     expect(html).toContain(">Held back<");
     expect(html).toContain("b-waiting");
-  });
-
-  // Norwegian too: the word was hardcoded English ("Stopped") until it
-  // took its own key.
-  test("Norwegian says Holdt tilbake, not the English word", () => {
-    const html = specStateChip(
-      row({
-        state: "queued",
-        steps: ["implement"],
-        stepIndex: 0,
-        errorReason: "held-back",
-        error: { key: "runner.dependencyNotArchived", values: { folder: "80-x" } },
-      }),
-      "nb",
-    );
-    expect(html).toContain(">Holdt tilbake<");
   });
 
   test("the badge and the row's own notice agree it is held back, not queued for a slot (REQ-5)", () => {

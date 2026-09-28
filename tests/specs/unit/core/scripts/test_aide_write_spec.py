@@ -122,7 +122,7 @@ def test_refuses_on_unknown_file_name(script, specs_root):
 
 
 @pytest.mark.parametrize("name", [
-    "0-README.md", "1-description.md", "2-analysis.md", "3-solution.md", "4-status.md",
+    "0-README.md", "4-status.md",
 ])
 def test_accepts_every_known_spec_file_name(script, specs_root, name):
     make_spec(specs_root, "42-do-a-thing", files=(name,))

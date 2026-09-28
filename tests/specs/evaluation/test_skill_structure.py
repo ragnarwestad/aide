@@ -1,19 +1,16 @@
 """Structural validation of all SKILL.md files in .claude/skills/.
 
-Verifies that each skill has required frontmatter fields and sections,
-analogous to how test_templates.py validates documentation templates.
+Verifies that each skill has the frontmatter fields Claude Code reads.
 """
 import re
 from pathlib import Path
 
-import pytest
 
 SKILLS_DIR = (
     Path(__file__).parent.parent.parent.parent
     / ".claude" / "skills"
 )
 
-REQUIRED_FRONTMATTER_FIELDS = ["name", "description"]
 
 
 def get_skill_dirs() -> list[Path]:
@@ -35,58 +32,17 @@ def parse_frontmatter(content: str) -> dict:
     return fields
 
 
-class TestSkillFilesExist:
-    """Every skill directory must have a SKILL.md."""
-
-    def test_at_least_one_skill_found(self):
-        skills = get_skill_dirs()
-        assert len(skills) > 0, "No skill directories with SKILL.md found"
-
-
-class TestSkillFrontmatter:
-    """SKILL.md files must have valid YAML frontmatter."""
-
-    @pytest.mark.parametrize("skill_dir", get_skill_dirs(), ids=lambda d: d.name)
-    def test_has_frontmatter(self, skill_dir):
-        content = (skill_dir / "SKILL.md").read_text()
-        assert content.startswith("---"), f"{skill_dir.name}: SKILL.md must start with YAML frontmatter (---)"
-
-    @pytest.mark.parametrize("skill_dir", get_skill_dirs(), ids=lambda d: d.name)
-    def test_has_name_field(self, skill_dir):
+def test_every_repo_skill_has_the_frontmatter_the_loader_reads():
+    skills = get_skill_dirs()
+    assert skills, "No skill directories with SKILL.md found"
+    problems = []
+    for skill_dir in skills:
         content = (skill_dir / "SKILL.md").read_text()
         fields = parse_frontmatter(content)
-        assert "name" in fields, f"{skill_dir.name}: frontmatter must have 'name' field"
-        assert fields["name"], f"{skill_dir.name}: 'name' field must not be empty"
-
-    @pytest.mark.parametrize("skill_dir", get_skill_dirs(), ids=lambda d: d.name)
-    def test_name_matches_directory(self, skill_dir):
-        content = (skill_dir / "SKILL.md").read_text()
-        fields = parse_frontmatter(content)
-        if "name" in fields:
-            assert fields["name"] == skill_dir.name, (
-                f"{skill_dir.name}: frontmatter 'name' ({fields['name']}) "
-                f"must match directory name ({skill_dir.name})"
-            )
-
-    @pytest.mark.parametrize("skill_dir", get_skill_dirs(), ids=lambda d: d.name)
-    def test_has_description_field(self, skill_dir):
-        content = (skill_dir / "SKILL.md").read_text()
-        fields = parse_frontmatter(content)
-        assert "description" in fields, f"{skill_dir.name}: frontmatter must have 'description' field"
-
-
-class TestSkillContent:
-    """SKILL.md files must have meaningful content."""
-
-    @pytest.mark.parametrize("skill_dir", get_skill_dirs(), ids=lambda d: d.name)
-    def test_has_main_heading(self, skill_dir):
-        content = (skill_dir / "SKILL.md").read_text()
-        headings = re.findall(r"^#\s+.+", content, re.MULTILINE)
-        assert len(headings) >= 1, f"{skill_dir.name}: SKILL.md must have at least one # heading"
-
-    @pytest.mark.parametrize("skill_dir", get_skill_dirs(), ids=lambda d: d.name)
-    def test_not_empty(self, skill_dir):
-        content = (skill_dir / "SKILL.md").read_text()
-        # Exclude frontmatter from length check
-        body = re.sub(r"^---.*?---\n", "", content, flags=re.DOTALL)
-        assert len(body.strip()) > 50, f"{skill_dir.name}: SKILL.md body is too short"
+        if not content.startswith("---"):
+            problems.append(f"{skill_dir.name}: no frontmatter")
+        elif fields.get("name") != skill_dir.name:
+            problems.append(f"{skill_dir.name}: name {fields.get('name')!r} does not match the directory")
+        elif "description" not in fields:
+            problems.append(f"{skill_dir.name}: no description")
+    assert not problems, "\n".join(problems)

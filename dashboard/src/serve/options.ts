@@ -8,6 +8,7 @@ import type { QueueDefaults } from "../queue/queue.ts";
 import type { GitRunner } from "../git/branch-status.ts";
 import type { RestartHook } from "./land-branch";
 import type { PortProbe, Spawner } from "./test-servers/lifecycle.ts";
+import type { watch } from "node:fs";
 
 export interface ServerOptions {
   port: number;
@@ -96,6 +97,9 @@ export interface ServerOptions {
   /** How the merge check runs git. A test seam: the real one spawns a
    *  subprocess, which no test should. */
   gitRun?: GitRunner;
+  /** How each specs root is watched. A test seam: the real one is
+   *  node:fs `watch`, whose events arrive when the OS gets round to it. */
+  specsWatch?: typeof watch;
   /** How long the project's own install command may run after its code
    *  merged. A test seam above all — the default is a bound, not a
    *  setting anybody is expected to tune. */

@@ -14,8 +14,7 @@
 // browser and switches with no reload.
 //
 // Like `specs-client.ts`, this file can neither import nor export
-// anything. `test/unit-script.test.ts` runs it against a fake document
-// for the same reason that file exists.
+// anything.
 
 (() => {
   const KEY = "unit";

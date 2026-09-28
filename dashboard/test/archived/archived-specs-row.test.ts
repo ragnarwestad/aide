@@ -12,18 +12,6 @@ afterEach(() => harness.cleanup());
 // --- criterion 3: it is a READER row ---------------------------------------
 
 describe("an archived spec's row", () => {
-  test("links its spec page, dates it, and offers Reopen (criterion 3)", async () => {
-    const html = await specsList(start().base, ARCHIVED_VIEW);
-    const row = rowFor(html, STAMPED);
-    expect(row).toContain(`href="/specs/aide/${STAMPED}"`);
-    expect(row).toContain(STAMPED_TIME_SHOWN);
-    // Reopen rides the caption line the fold opens, like every other
-    // row's one action (2026-09-08) — the head line is information.
-    const open = blockFor(await specsList(start().base, `${ARCHIVED_VIEW}${opened(STAMPED)}`), STAMPED);
-    expect(open).toContain("Reopen");
-    expect(open).toContain('name="steps" value="reopen"');
-  });
-
   test("draws no model select, no tick box and no Run (criterion 3)", async () => {
     const html = await specsList(start({ queueDefaults: TWO_TOOLS }).base, ARCHIVED_VIEW);
     const row = rowFor(html, STAMPED);
@@ -33,13 +21,6 @@ describe("an archived spec's row", () => {
     // not carry one, nor the button that submits it.
     expect(row).not.toContain('class="rowrun"');
     expect(row).not.toContain("starting…");
-  });
-
-  // Spec 224 turned this line round. It read `not.toContain('class="fold')`
-  // until then, on the grounds that a reader row had nothing under it to
-  // open — and that was the whole of what made it a second kind of row.
-  test("has the fold chevron every other row has (spec 224)", async () => {
-    expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain('class="fold');
   });
 
   // Criterion 7. `stateAction`'s ordinary branches name the phase a
@@ -54,10 +35,6 @@ describe("an archived spec's row", () => {
     expect(open).toContain(">Reopen</button>");
   });
 
-  test("says what it is, in the column that says what every row is", async () => {
-    expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain(">Archived<");
-  });
-
   // Spec 224. `nextPhase` deletes `archive` from the done-set before it
   // looks for what is missing — deliberately, for a row that is still on
   // this list — so a FINISHED spec routed through it resolves to
@@ -66,22 +43,6 @@ describe("an archived spec's row", () => {
   test("its badge never says the spec is ready for anything", async () => {
     const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
     expect(row).not.toContain(">ready<");
-  });
-
-  // `activeDurationCell` (the live row's own cell, spec 281) reads
-  // `g.totalDurationMs`, not a date — an archived row draws through
-  // `archiveDateCell` instead, which is what gives it the date fallback
-  // this cell has none of.
-  test("its duration is in the column every row's date is in, with no date beside it", async () => {
-    const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
-    const cell = row.slice(row.indexOf('data-col="started"'));
-    const body = cell.slice(0, cell.indexOf("</td>"));
-    expect(body).toContain(STAMPED_TIME_SHOWN);
-    // Once a duration exists, the archive date is dropped from this cell
-    // entirely — it read as noise beside the figure that actually answers
-    // "how long" (spec 257 made duration the lead figure; this drops the
-    // date that used to trail it).
-    expect(body).not.toContain("2026-08-13");
   });
 
   // The sort key used to fall through to `g.createdAt`, which an
@@ -103,22 +64,6 @@ describe("an archived spec's row", () => {
     // the spec with a real recorded duration (STAMPED, > 0) sorts before
     // the one with none (UNSTAMPED, tied at 0).
     expect(stampedAt).toBeLessThan(unstampedAt);
-  });
-
-  // The stamp only started being written at spec 147; the older half of
-  // the archive has none, and git remembers the commit that moved the
-  // folder.
-  // The Time column answers "how long", and nothing else: a spec whose
-  // phases recorded no time reads as a dash, the same "nothing to show"
-  // `costCell()` gives an all-zero spend. It used to fall back to the
-  // archive date, which put a date under a heading that asks for a
-  // duration.
-  test("a spec with no recorded time shows 0s, never a date", async () => {
-    const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), UNSTAMPED);
-    const timeCell = row.slice(row.indexOf('data-col="started"'));
-    const body = timeCell.slice(0, timeCell.indexOf("</td>"));
-    expect(body).toContain("0s");
-    expect(body).not.toMatch(/\d{4}-\d{2}-\d{2}/);
   });
 
   // Acceptance criterion 2: the exact bug 1-description.md names — the

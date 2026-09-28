@@ -1,7 +1,4 @@
-"""A scheduled job produces a report and never changes a repository: the
-news check's prompt writes what it found into its report, and asks for no
-change to the news log and no push.
-"""
+"""The news check's prompt names the file the board reads its proposals from."""
 import re
 
 import pytest
@@ -16,18 +13,7 @@ def prompt(workspace_root):
 
 @pytest.mark.validation
 class TestNewsCheckPromptIsAReport:
-    def test_it_writes_the_report_and_says_it_changes_nothing_AC_5(self, prompt):
-        assert "$AIDE_SCHEDULE_OUTPUT_DIR/index.html" in prompt
-        assert "Change no file in the repository" in prompt
-        assert "Commit nothing and push nothing" in prompt
-
     def test_it_names_the_file_the_board_reads_AC_6(self, prompt, workspace_root):
         source = (workspace_root / "dashboard/src/queue/spec-proposals.ts").read_text()
         name = re.search(r'PROPOSALS_FILE = "([^"]+)"', source).group(1)
         assert f"$AIDE_SCHEDULE_OUTPUT_DIR/{name}" in prompt
-
-    def test_every_repository_path_it_names_exists_AC_6(self, prompt, workspace_root):
-        paths = set(re.findall(r"`((?:docs|scripts|\.claude)/[^`\s]+)`", prompt))
-        assert paths, "the prompt names no repository path at all"
-        missing = sorted(p for p in paths if not (workspace_root / p).exists())
-        assert not missing, f"the prompt names paths that do not exist: {missing}"

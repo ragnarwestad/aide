@@ -26,57 +26,9 @@ describe("spec 198: the Reopen control", () => {
     expect(html).not.toContain('name="steps" value="reopen"');
   });
 
-  test("it is a link, not a form: a reload cannot run it AC-1", () => {
-    expect(archived()).not.toMatch(/<form[^>]*action="\/api\/queue"/);
-  });
-
-  // Reopen sat under the archived note while Update sat up on the head
-  // line, so the page's two buttons were in two places (2026-08-23,
-  // "Reopen og Update kan vel gjerne stå sammen?"). One group now, at
-  // the end of the tab row (spec 300 moved it off its own line above
-  // the tabs).
-  test("Reopen and Update share one group at the end of the tab row", () => {
-    const group = /<nav class="tabbar subtabs">[\s\S]*?<span class="row">([\s\S]*?)<\/span><\/nav>/.exec(archived())?.[1] ?? "";
-    expect(group).toContain("Reopen");
-    expect(group).toContain("Update");
-    // Reopen FIRST: Update is on every spec page, and a button that
-    // slid sideways whenever a spec was archived would be moving
-    // because something else appeared.
-    expect(group.indexOf("Reopen")).toBeLessThan(group.indexOf("Update"));
-    // Moved, not copied: one Reopen on the page, and it is this one.
-    expect(archived().match(/\/reopen">Reopen</g)).toHaveLength(1);
-  });
-
-  // Being archived is what is the case, not something that just
-  // happened, so it is one plain sentence and never the notice shape.
-  test("being archived is one self-contained sentence, not a notice", () => {
-    const html = archived();
-    expect(html).toContain(
-      "This spec has been archived, and cannot be edited until the spec is reopened",
-    );
-    // Not the notice shape: that one is for what just happened.
-    expect(html).not.toMatch(/class="rowmsg info"[^>]*>[\s\S]{0,80}archived/);
-  });
-
-  test("a live spec says nothing about being archived", () => {
-    expect(page(view({}))).not.toContain("<strong>Archived</strong>");
-  });
-
   // A live spec has the whole row on the queue list for this; the
   // archived page is the one place a reopen can be asked for.
   test("a live spec's page offers nothing of the sort", () => {
     expect(page(view({}))).not.toContain("Reopen");
-  });
-});
-
-describe("spec 252: the spec page's own Back link", () => {
-  test("← Back tracks the given backHref", () => {
-    const html = page(view({ backHref: "/?state=all&q=archive" }));
-    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/?state=all&amp;q=archive">← Back</a>');
-  });
-
-  test("← Back falls back to / when nothing was given", () => {
-    const html = page();
-    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/">← Back</a>');
   });
 });

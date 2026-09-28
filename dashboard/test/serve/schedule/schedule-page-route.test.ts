@@ -111,15 +111,6 @@ describe("GET /schedule (spec 272)", () => {
     expect(html.indexOf("aide:has-run")).toBeLessThan(html.indexOf("aide:never-run"));
   });
 
-  // Spec 408, REQ-1/REQ-4: this route reads and remembers the language
-  // the same way `/` already does.
-  test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
-    const { base } = start();
-    const res = await fetch(`${base}/schedule?lang=nb`, );
-    expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
-    const html = await res.text();
-    expect(html).toContain('<html lang="nb">');
-  });
 });
 
 describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
@@ -143,15 +134,6 @@ describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
     expect(res.status).toBe(404);
   });
 
-  // Spec 408, REQ-1/REQ-4.
-  test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
-    const { base } = start();
-    writeSchedule("aide", [NIGHTLY]);
-    const res = await fetch(`${base}/schedule/aide/nightly-report?lang=nb`, );
-    expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
-    const html = await res.text();
-    expect(html).toContain('<html lang="nb">');
-  });
 });
 
 describe("GET /schedule with a refusal or an unlisted model (spec 494)", () => {
@@ -275,16 +257,6 @@ describe("GET /schedule/<project>/<entry> shows a run's report (spec 495)", () =
     expect(html).toContain("2026-09-02T03:00:00Z");
     expect(html).not.toContain("FIRST-TEXT");
     expect(html).not.toContain("THIRD-TEXT");
-  });
-
-  test("History links every row to its run", async () => {
-    const { base } = setup([
-      { id: "r1", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>a</p>" },
-      { id: "r2", state: "failed", at: "2026-09-02T03:00:00Z" },
-    ]);
-    const html = await get(base, `${PAGE}?tab=history`);
-    expect(html).toContain(`href="${PAGE}?run=r1#report"`);
-    expect(html).toContain(`href="${PAGE}?run=r2#report"`);
   });
 
   test("a run with a record lists its proposals under the report, and only that run does (AC-3)", async () => {

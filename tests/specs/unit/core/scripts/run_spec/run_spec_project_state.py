@@ -134,8 +134,8 @@ def configure_code_landing(workspace, manifest, config):
 #
 # `aide-run-spec`'s own error strings reach the board unrewritten
 # (`runner.ts`'s `outcome.error ?? outcome.terminalReason` passthrough), so
-# this file's registry checks the SAME rule the TypeScript one does
-# (`dashboard/test/render/ui/error-sentence-registry.test.ts`) against the
+# this file's registry checks the rule `errorSentence()` builds
+# (`dashboard/src/format/error-sentence.ts`) against the
 # script's own source text, the same "read both sides as text" pattern the
 # other hand-paired bash/TypeScript decisions already use
 # (`dashboard/CLAUDE.md`, "The hand-paired bash/TypeScript pairs").

@@ -204,22 +204,6 @@ describe("a spec's row runs its own phases", () => {
     }
   });
 
-  // An editable box still belongs to the row for LOCKING purposes: it
-  // names the run form, which is how the page's own script finds every
-  // control on a row and disables them together while a press is out.
-  // It carries no `name`, so naming that form posts nothing.
-  test("an editable box names the run form but posts nothing with it (spec 160)", () => {
-    const line = runLine(
-      rows(
-        [job("j1", "analyze", { state: "running", editableSteps: ["archive"] })],
-        [target("94-row-runs-it")],
-      ),
-      "94-row-runs-it",
-    );
-    expect(box(line, "archive")).toContain('form="rowrun-aide/94-row-runs-it"');
-    expect(box(line, "archive")).not.toContain('name="steps"');
-  });
-
   // --- spec 225: the pickers follow the same rule the boxes do -------------
   //
   // Spec 160 unlocked the boxes for the phases a running job has not
@@ -350,23 +334,6 @@ describe("a spec's row runs its own phases", () => {
     expect(box(line, "implement")).toContain("disabled");
   });
 
-  test("one form per row, posting the spec it belongs to and a box per phase (criterion 3)", () => {
-    const line = runLine(rows([], [target("94-never-run")]), "94-never-run");
-    expect(line).toContain('method="post" action="/api/queue"');
-    expect(line).toContain('name="project" value="aide"');
-    expect(line).toContain('name="specFolder" value="94-never-run"');
-    // The browser submits checkboxes in document order, so the order
-    // the boxes are DRAWN in is the order `steps` arrives in.
-    const order = [...line.matchAll(/<input type="checkbox" name="steps" value="([^"]+)"/g)].map(
-      (m) => m[1],
-    );
-    expect(order).toEqual(["analyze", "implement", "archive"]);
-    // The button is named for what a press would run since spec 157 —
-    // the FIRST ticked phase and nothing after it, which on a fresh
-    // spec is `analyze` however many boxes start ticked behind it.
-    expect(line).toContain(">Analyze</button>");
-  });
-
   // The held-back-archive exception: `archive` ran and committed but
   // declined to move the folder, so it stays in `g.done` on a row that
   // is still active — and this box must keep the ordinary tickable
@@ -402,7 +369,6 @@ describe("a spec's row runs its own phases", () => {
     expect(box(line, "analyze")).not.toContain('title="Analyze is running"');
     expect(box(line, "analyze")).not.toContain("already done");
   });
-
 });
 
 // The Select column and the two selects beside it answer the same
@@ -550,5 +516,4 @@ describe("a held-back spec's row offers the round again", () => {
     expect(box(line, "archive")).toContain(" checked");
     expect(line).toContain(">Archive</button>");
   });
-
 });

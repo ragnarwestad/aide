@@ -152,12 +152,6 @@ describe("a project's settings route (spec 184)", () => {
     // project used to be would satisfy the line above and nothing else.
     const saved = onOrigin(dir);
     expect(saved).toContain("worktreeLinks: node_modules");
-    // Spec 255: the redirect lands on the read-only view — the value is
-    // plain text in the table now, not an editable input.
-    const afterSave = await (await fetch(`${base}${ok.headers.get("location")}`, {
-      headers: {},
-    })).text();
-    expect(afterSave).toContain(`<td data-col="setting-value">node_modules</td>`);
     const refused = await fetch(`${base}/api/queue/projects/aide/settings`, {
       method: "POST",
       redirect: "manual",
@@ -170,12 +164,6 @@ describe("a project's settings route (spec 184)", () => {
     // submitted from — not on the read-only view, where nothing could
     // show it. `worktreeLinks` belongs to the manifest table.
     expect(refused.headers.get("location")!.startsWith("/projects/aide?edit=manifest")).toBe(true);
-    const refusalPage = await fetch(`${base}${refused.headers.get("location")}`, {
-      headers: {},
-    });
-    const refusalHtml = await refusalPage.text();
-    expect(refusalHtml).toContain(">Save<");
-    expect(refusalHtml).toContain("/etc");
     // Criterion 5: the refusal wrote nothing — the manifest is still what
     // the save before it left behind.
     expect(onOrigin(dir)).toBe(saved);

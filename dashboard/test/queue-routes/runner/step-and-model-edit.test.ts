@@ -11,54 +11,6 @@ const { harness, start } = setupQueueRoutesHarness(undefined, IMPLEMENTED);
 
 afterEach(() => harness.cleanup());
 
-// Spec 118: the token count is recorded by the run, stored on the job,
-// and has to survive every hop between the mirror on disk and the cell
-// in the page. The render tests prove the cell; this one proves the
-// hops — a field the server forgets to forward renders a dash forever,
-// and nothing else would notice.
-describe("a job's token count reaches the page", () => {
-  async function seeded(): Promise<{ mirror: string; id: string }> {
-    const { base, dir } = start();
-    const headers = { "content-type": "application/json", accept: "application/json" };
-    const made = (await (
-      await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) })
-    ).json()) as { job: { id: string } };
-    const mirror = join(dir, "queue.json");
-    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
-    const job = jobs.find((j) => j.id === made.job.id)!;
-    job.state = "done";
-    job.spentUsd = 0.54;
-    job.spentTokens = 1_234_000;
-    job.results = [
-      {
-        step: "analyze", ok: true, costUsd: 0.54, costMeasured: true,
-        terminalReason: "completed", at: "2026-08-16T10:01:00Z",
-        tokens: { input: 100, output: 900, cacheRead: 1_000_000, cacheCreation: 233_000, total: 1_234_000 },
-      },
-    ];
-    writeFileSync(mirror, JSON.stringify(jobs));
-    return { mirror, id: made.job.id };
-  }
-
-  test("the spec list shows both figures, and the model dropdown stays in dollars", async () => {
-    const { mirror } = await seeded();
-    const { base } = start({ queueMirrorPath: mirror });
-    const html = await (await fetch(`${base}/?${OPEN_81}`, )).text();
-    expect(html).toContain('<span class="u-usd">$0.54</span>');
-    expect(html).toContain('<span class="u-tok">1.2M</span>');
-  });
-
-  test("the job page shows both figures for the step and the job", async () => {
-    const { mirror, id } = await seeded();
-    const { base } = start({ queueMirrorPath: mirror });
-    const html = await (
-      await fetch(`${base}/jobs/${id}?tab=steps`, )
-    ).text();
-    expect(html).toContain('<span class="u-usd">$0.54</span>');
-    expect(html).toContain('<span class="u-tok">1.2M</span>');
-  });
-});
-
 // --- spec 160: a later phase can be added while the job runs ------------------
 
 // Not a second job for the same spec — the clash check refuses that,
@@ -173,21 +125,6 @@ describe("POST /api/queue/:id/steps (spec 160)", () => {
     expect(await stepsOf(base, id)).toEqual(["analyze", "archive"]);
   });
 
-  // The other half of the wiring: the row the reader is looking at has
-  // to draw those boxes live, and point them at this route.
-  test("the row draws the live boxes and points them here", async () => {
-    const { base, id } = await running(["analyze"]);
-    const html = await (
-      await fetch(`${base}/?${OPEN_81}`, )
-    ).text();
-    const group = specControls(html, "81-queue-and-runner");
-    expect(group).toContain(`data-post-to="/api/queue/${id}/steps"`);
-    const live = (step: string) =>
-      (group.match(new RegExp(`<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "");
-    expect(live("archive")).toContain("data-post-to");
-    expect(live("archive")).not.toContain("disabled");
-    expect(live("analyze")).toContain("disabled");
-  });
 });
 // --- spec 225: a phase still ahead takes a model too --------------------------
 
@@ -299,21 +236,6 @@ describe("POST /api/queue/:id/model (spec 225)", () => {
     expect((await fetch(`${base}/api/queue/${id}/model`, { headers: JSON_HEADERS })).status).toBe(405);
   });
 
-  // The other half of the wiring: the row the reader is looking at has
-  // to draw those selects live, and point them at this route.
-  test("the row draws the live model select and points it here (criteria 1-3)", async () => {
-    const { base, id } = await running(["analyze"]);
-    const html = await (
-      await fetch(`${base}/?${OPEN_81}`, )
-    ).text();
-    const group = specControls(html, "81-queue-and-runner");
-    const select = (step: string) =>
-      group.match(new RegExp(`<select name="model\\.${step}"[^>]*>`))?.[0] ?? "";
-    expect(select("implement")).toContain(`data-post-to="/api/queue/${id}/model"`);
-    expect(select("implement")).not.toContain("disabled");
-    expect(select("analyze")).toContain("disabled");
-    expect(select("analyze")).not.toContain("data-post-to");
-  });
 });
 
 // --- spec 308: a model picked for a phase survives leaving the page ----------

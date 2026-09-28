@@ -18,12 +18,6 @@ import {
 // browser with no script. Staying left Save live under a line saying it
 // worked, offering to add the same project a second time.
 describe("a successful Add goes to the list, and takes its answer along", () => {
-  const READY = {
-    ok: true,
-    project: "skjer",
-    results: [{ step: "name", ok: true }],
-    readiness: { canRun: true, note: "skjer added — ready to run", checks: [] },
-  };
   const BLOCKED = {
     ok: true,
     project: "skjer",
@@ -46,15 +40,6 @@ describe("a successful Add goes to the list, and takes its answer along", () => 
     expect(url.searchParams.get("notice")).toContain(".aide/");
     expect(url.searchParams.get("notice")).toContain("/repos/skjer/specs");
     expect(url.searchParams.get("noticeOk")).toBe(null);
-  });
-
-  test("a project that CAN run says so, and says it in the ready colour", async () => {
-    const h = harness(() => ({ ok: true, body: READY }));
-    await h.submitAdd();
-    const url = new URL(h.location.href, "http://dash.test");
-    expect(url.pathname).toBe("/projects");
-    expect(url.searchParams.get("notice")).toContain("ready to run");
-    expect(url.searchParams.get("noticeOk")).toBe("1");
   });
 
   // A refusal is not a success: it stays on the form, where the fields

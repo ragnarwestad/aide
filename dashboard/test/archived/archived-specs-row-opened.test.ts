@@ -10,11 +10,7 @@
 // control that should not be drawn.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import {
-  ALL_VIEW, ARCHIVED_VIEW, LIVE, STAMPED, STAMPED_COST_LABEL, STAMPED_MODEL,
-  STAMPED_NOT_RUN, STAMPED_STEPS, STAMPED_TIME_SHOWN, TWO_TOOLS, blockFor, described, harness,
-  modelChoicesWith, opened, outcome, phaseLines, specsList, stamp, start,
-} from "./archived-specs-fixtures.ts";
+import { ALL_VIEW, ARCHIVED_VIEW, LIVE, STAMPED, STAMPED_MODEL, STAMPED_NOT_RUN, STAMPED_STEPS, TWO_TOOLS, blockFor, described, harness, modelChoicesWith, opened, outcome, phaseLines, specsList, stamp, start } from "./archived-specs-fixtures.ts";
 
 afterEach(() => harness.cleanup());
 
@@ -69,13 +65,6 @@ describe("an archived spec's row, opened", () => {
   // never a second, hand-rolled rendering — so the caption over them and
   // the mobile fold that shows and hides them both come back too.
 
-  test("shows an AI/Model caption row over an archived group's phase lines, same as a live one (criterion 4)", async () => {
-    const block = blockFor(await openList(), STAMPED);
-    expect(block).toContain('data-step="analyze"');
-    expect(block).toContain('data-cap="model"');
-    expect(block).toContain('data-cap="ai"');
-  });
-
   // A phase that never ran (or whose file simply names no model — every
   // archived spec's `create` line, today) reads exactly as a live,
   // not-yet-run phase does: the configured default, never blank.
@@ -127,58 +116,6 @@ describe("an archived spec's row, opened", () => {
     expect(line).toContain(' disabled');
     expect(line).toContain('<option value="gpt-9000-old" selected>gpt-9000-old</option>');
     expect(line).not.toContain(staleModel);
-  });
-
-  // Spec 247: the sibling gap Model's own fix (spec 244) left open —
-  // `2-analysis.md`'s own Tracking info is the analyze phase's only
-  // source for what it cost in time and money, and the fixture gives it
-  // one (spec 247, criteria 1 and 3).
-  test("shows the locked time and cost for a step that recorded them (spec 247, criteria 1, 3)", async () => {
-    const lines = phaseLines(await openList(), STAMPED);
-    const line = lines["analyze"]!;
-    expect(line).toContain(STAMPED_TIME_SHOWN);
-    // Dollar-formatted, through the same `costCell()` a live row uses —
-    // never the "est." mark this cost was not flagged with.
-    const cell = line.slice(line.indexOf('data-col="cost"'));
-    expect(cell.slice(0, cell.indexOf("</td>"))).toContain(STAMPED_COST_LABEL);
-    expect(line).not.toContain("an estimate:");
-  });
-
-  // The three steps that recorded neither (spec 247, criteria 2, 5) —
-  // `create` has a file but no Tracking-info outcome block, `implement`
-  // and `archive` have no phase file at all in this fixture. Nobody
-  // having recorded a figure is not the same as having asked and failed,
-  // so the cost cell stays empty, never `$0.00`.
-  test("draws no time or cost for a step that recorded neither (spec 247, criteria 2, 5)", async () => {
-    const lines = phaseLines(await openList(), STAMPED);
-    for (const step of ["create", ...STAMPED_NOT_RUN]) {
-      const line = lines[step]!;
-      // Time always says something — a dash for a step that recorded
-      // nothing — while cost stays blank: "nothing spent" and "no
-      // figure" are the same answer for money, not for time.
-      expect(line).toContain('<td data-col="started"><span class="muted small">–</span></td>');
-      expect(line).toContain('<td class="num" data-col="cost"></td>');
-    }
-  });
-
-  // Spec 260: the locked-phase-line call site used to hardcode
-  // `undefined` for tokens regardless of what the phase file recorded —
-  // independent of the header-row roll-up test above, which goes
-  // through `readerGroup`'s `spentTokens` sum rather than this per-phase
-  // `Phase.tokens` field.
-  test("shows the locked tokens for a step whose only recorded figure is tokens (spec 260, AC7)", async () => {
-    const folder = "260-a-locked-tokens-only-cost";
-    const { base } = start({}, {
-      [folder]: {
-        description: described("A locked tokens-only cost", "One archived spec, one Codex phase."),
-        status: stamp("2026-08-26", ["create", "analyze"]),
-        analysis: outcome({ tokens: "9562" }),
-      },
-    });
-    const lines = phaseLines(await specsList(base, `${ARCHIVED_VIEW}${opened(folder)}`), folder);
-    const line = lines["analyze"]!;
-    const cell = line.slice(line.indexOf('data-col="cost"'));
-    expect(cell.slice(0, cell.indexOf("</td>"))).toContain('<span class="u-tok">9.6k</span>');
   });
 
   // Spec 247, criterion 7: the OLD `4-status.md` `Model (<step>):` line

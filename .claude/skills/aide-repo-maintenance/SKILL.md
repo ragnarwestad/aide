@@ -71,12 +71,12 @@ Spec 82 found them the hard way: fixing the templates alone left
 5. `core/skills/spec-structure/SKILL.md` — generated from item 1 by
    `core/scripts/build-agents-md.sh`; the spec layout left `core/AGENTS.md`
    in spec 147, so this file is where Codex and Copilot read it now
-6. `tests/specs/unit/core/validation/test_templates.py` plus the three
-   e2e files, which assert the layout
+6. `tests/specs/unit/core/validation/templates/test_templates.py`, which
+   checks the placeholders the script fills and that a fresh spec claims
+   no step or phase outcome
 
-`test_templates.py` enforces items 1-4, so a partial change fails the
-suite rather than escaping quietly. Change all six, regenerate,
-reinstall.
+No test reads items 1-4 against each other, so a partial change escapes
+quietly. Change all six, regenerate, reinstall.
 
 ## install.sh and uninstall.sh
 

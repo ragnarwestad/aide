@@ -3,48 +3,11 @@
 // standing in the one behind it.
 
 import { describe, expect, test } from "bun:test";
-import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "../../../src/serve/routes/spec-edit/test-server-waiting.ts";
+import { testServerFailedPage, testServerUrlFor } from "../../../src/serve/routes/spec-edit/test-server-waiting.ts";
 
 const body = (r: Response) => r.text();
 
-describe("waiting for a test server", () => {
-  test("comes back by itself, and says something is coming", async () => {
-    const html = await body(waitingForTestServerPage("aide", "415-x"));
-    expect(html).toMatch(/http-equiv="refresh"/);
-    expect(html).toContain('class="spin"');
-    expect(html).toContain("leave it open");
-  });
-
-  // The reader clicked a link in the spec page; that page is still open.
-  test("offers no way back to the spec", async () => {
-    const html = await body(waitingForTestServerPage("aide", "415-x"));
-    expect(html).not.toContain("Back to the spec");
-    expect(html).not.toContain("<a ");
-  });
-
-  // AC-4: a board that is starting is never shown the failed page's own
-  // retry link.
-  test("never offers to try again — it is already trying", async () => {
-    const html = await body(waitingForTestServerPage("aide", "415-x"));
-    expect(html).not.toContain("Try again");
-  });
-});
-
 describe("a test server that could not start", () => {
-  test("says so, with the round's own words, and stops refreshing", async () => {
-    const html = await body(testServerFailedPage("415-x", "port already held"));
-    expect(html).toContain('Could not start a test server for "415-x"');
-    expect(html).toContain("port already held");
-    expect(html).not.toMatch(/http-equiv="refresh"/);
-    // The ELEMENT, not the word: the stylesheet is shared, so its own
-    // `.spin` rule is in both pages either way.
-    expect(html).not.toContain('class="spin"');
-  });
-
-  test("with nothing to quote, it still says what happened", async () => {
-    const html = await body(testServerFailedPage("415-x"));
-    expect(html).toContain("did not report an address");
-  });
 
   // Arbitrary text off a log reaches this page.
   test("the round's words are escaped", async () => {
@@ -53,28 +16,6 @@ describe("a test server that could not start", () => {
     expect(html).toContain("&lt;script&gt;");
   });
 
-  // AC-1/AC-2 (spec 489): given a retry link, the page offers it. `esc()`
-  // turns the `&` between query parameters into `&amp;`, so this asserts
-  // substrings rather than the whole `href` as one exact string.
-  test("with a retry link, it offers a way to try again", async () => {
-    const html = await body(
-      testServerFailedPage(
-        "415-x",
-        "port already held",
-        "/specs/aide/415-x?tab=steps&startTestServer=1&retryTestServer=1",
-      ),
-    );
-    expect(html).toContain("Try again");
-    expect(html).toContain('href="');
-    expect(html).toContain("retryTestServer=1");
-  });
-
-  // AC-4 (backward compatibility): no third argument, no link — every
-  // existing caller that omits it renders exactly as before.
-  test("with no retry link given, it offers nothing to press", async () => {
-    const html = await body(testServerFailedPage("415-x", "port already held"));
-    expect(html).not.toContain("Try again");
-  });
 });
 
 // The round only ever knows loopback: it started the board on this

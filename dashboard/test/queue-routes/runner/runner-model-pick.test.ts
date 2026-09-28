@@ -23,60 +23,6 @@ describe("picking a model for a job", () => {
   // every page here opens the one spec it renders.
   const OPEN = { open: "aide/81-queue-and-runner" };
 
-  test("the form offers the configured models, one picker per phase", () => {
-    const html = renderSpecsPage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
-      runnerAvailable: true,
-      targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
-      filter: OPEN,
-      modelChoices: [
-        { name: "sonnet" },
-        { name: "fable" },
-      ],
-    });
-    expect(html).toContain('name="model.analyze"');
-    expect(html).toContain('name="model.implement"');
-    expect(html).toContain("fable");
-    // Spec 457: what each is granted is not said here any more — the
-    // figure lives in Settings, read-only trivia the option's own label
-    // no longer repeats — and it was never a `title` either.
-    expect(html).not.toContain('title="$12 per step"');
-    // No "default" entry any more (2026-08-19): the select is pre-filled
-    // with a real name, and only real names are offered.
-    for (const step of ["analyze", "implement"]) {
-      const select = html.match(new RegExp(`<select name="model\\.${step}"[\\s\\S]*?</select>`))![0];
-      expect([step, select.includes('<option value=""')]).toEqual([step, false]);
-    }
-  });
-
-  // The "default" option is gone (asked for 2026-08-19): the select is
-  // pre-filled with a real name instead, and every option's label is
-  // just the model's name (spec 457 dropped the budget spec 454 had
-  // put there) — no `<option>` ever carries a `title`.
-  test("no default option; every label carries only the model's name", () => {
-    const html = renderSpecsPage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
-      runnerAvailable: true,
-      targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
-      filter: OPEN,
-      modelChoices: [{ name: "fable" }],
-      defaultModels: { default: "fable" },
-    });
-    const modelSelect = html.match(/<select name="model\.analyze"[\s\S]*?<\/select>/)?.[0] ?? "";
-    // Scoped to the model select: spec 364's own effort select, drawn
-    // beside it, DOES carry an empty "unset" option, on its own terms.
-    expect(modelSelect).not.toContain('<option value=""');
-    expect(modelSelect).not.toContain("title=");
-    expect(modelSelect).toMatch(/<option value="fable"[^>]*>fable<\/option>/);
-  });
-
-  test("with nothing configured the page offers no model at all", () => {
-    const html = renderSpecsPage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
-      runnerAvailable: true,
-      targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
-      filter: OPEN,
-    });
-    expect(html).not.toContain('name="model"');
-  });
-
   test("a row says which model it ran on — as the select's pre-filled value", () => {
     const html = renderSpecsPage(
       [

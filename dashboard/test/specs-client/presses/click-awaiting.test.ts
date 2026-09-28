@@ -9,30 +9,6 @@ import { harness } from "../fixtures.ts";
 // list. A real navigation — a spec's own name, a tab bar link — is
 // `nav-busy.ts`'s own since spec 312, tested in
 // `test/render/ui/nav-busy.test.ts`.
-describe("a click that leaves the page waiting says so at once (spec 208)", () => {
-  // Criterion 12. The sort and filter links go through `navigate()`,
-  // which swaps the rows in place: the page stays, so the container is
-  // what carries the look.
-  test("a sort link marks the rows as waiting before its fetch resolves, and clears it after", async () => {
-    let release = (): void => {};
-    const held = new Promise<void>((r) => (release = r));
-    const h = harness((url) => (url.includes("rows=1") ? { ok: true, hold: held } : { ok: true }));
-    const swapping = h.clickHref("/?sort=cost");
-    // Synchronously — the click has not yielded to the network yet.
-    expect(h.rows.classList.contains("awaiting")).toBe(true);
-    release();
-    await swapping;
-    await new Promise((r) => setTimeout(r, 0));
-    expect(h.rows.classList.contains("awaiting")).toBe(false);
-  });
-
-  test("a fetch that fails still takes the waiting look off", async () => {
-    const h = harness((url) => (url.includes("rows=1") ? { ok: true, throws: true } : { ok: true }));
-    await h.clickHref("/?sort=cost");
-    await new Promise((r) => setTimeout(r, 0));
-    expect(h.rows.classList.contains("awaiting")).toBe(false);
-  });
-});
 
 // A spec's own › redraws that spec alone, and its chevron is what says
 // it is working: a busy mouse pointer is nothing on a phone.
@@ -42,23 +18,6 @@ describe("a spec's own › swaps that spec alone", () => {
     h.clickFold();
     await new Promise((r) => setTimeout(r, 0));
     expect(h.requests[0]!.url).toContain("only=aide%2F127-one-ai");
-  });
-
-  test("the chevron is a spinner until the answer, and the list is not dimmed", async () => {
-    let release = (): void => {};
-    const held = new Promise<void>((r) => (release = r));
-    const h = harness((url) => (url.includes("rows=1") ? { ok: true, hold: held } : { ok: true }));
-    h.clickFold();
-    expect(h.foldLink.innerHTML).toContain('class="spin"');
-    expect(h.rows.classList.contains("awaiting")).toBe(false);
-    release();
-  });
-
-  test("the chevron comes back when no answer drew the row again", async () => {
-    const h = harness((url) => (url.includes("rows=1") ? { ok: true, throws: true } : { ok: true }));
-    h.clickFold();
-    for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0));
-    expect(h.foldLink.innerHTML).toBe("<svg></svg>");
   });
 
   // After a › swapped its own spec, every other link on the page still

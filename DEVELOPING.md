@@ -34,10 +34,11 @@ pull request:
 `scripts/check-bash` refuses with the install command when shellcheck is
 missing, so a machine without it never reports a bash change as checked.
 
-**A change to the documentation has its own command.** Fourteen tests read a page rather than the code — the table in
-`.claude/CLAUDE.md`, the lifecycle diagram against `transitions.json`, the rules, the skills, the templates, the
-dashboard's own docs guards — and they sit in both suites. `scripts/check-docs` runs exactly those, in about ten
-seconds against the four minutes both full suites take.
+**A change to the documentation has its own command.** `scripts/check-docs` runs the tests that read a page where code
+depends on its text — the lifecycle diagram against `transitions.json`, the skills' frontmatter, step headings and the
+script names they call, the templates' placeholders — with `tests/specs/unit/core/validation` and
+`tests/specs/unit/core/skills`, and the dashboard's own guards with `test/guards` and `test/design`. That takes about
+ten seconds against the four minutes both full suites take.
 
 `.githooks/pre-push` runs it before a push that moves `main`, and nothing on a push to a working branch. Turn it on
 once per clone:

@@ -1,13 +1,7 @@
 // Split out of phase-rules.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import {
-  renderSpecsRows,
-  type ArchivedSpecView,
-  type SpecsPageOptions,
-  type QueueRowView,
-  type SpecTarget,
-} from "../../../../../src/render";
+import { renderSpecsRows, type SpecsPageOptions, type QueueRowView, type SpecTarget } from "../../../../../src/render";
 import {
   row,
   openKeys,
@@ -143,34 +137,6 @@ describe("spec 116: create is the first phase line", () => {
     // so without a picker the line simply says nothing about it.
     expect(line).not.toContain("last ran");
     expect(line).toContain("$0.42");
-  });
-
-  // Spec 433: a genuinely-$0 finished step reads as done, not blank —
-  // the ambiguity cell-helpers.ts's own costCell already named
-  // (documented at its own :142-150), generalized here rather than
-  // special-cased to create alone.
-  test("a settled create job with spentUsd 0 reads $0.00, not blank", () => {
-    const html = rows([createJob("116-free", { spentUsd: 0 })], []);
-    const line = subRow(html, "create");
-    expect(line).toContain("$0.00");
-  });
-
-  test("an archived create phase whose file says it ran for $0 reads $0.00, not a dash", () => {
-    const archived: ArchivedSpecView = {
-      project: "aide",
-      folder: "116-archived-free",
-      done: ["create", "analyze", "implement", "archive"],
-      models: {},
-      phaseOutcomes: { create: { cost: 0, timeSpentMs: 1000 } },
-    };
-    const html = renderSpecsRows([], {
-      runnerAvailable: true,
-      targets: [],
-      archivedSpecs: [archived],
-      filter: { open: "aide/116-archived-free" },
-    });
-    const line = subRow(html, "create");
-    expect(line).toContain("$0.00");
   });
 
   // --- criterion 5: a fifth pip, past because the spec exists ----------------

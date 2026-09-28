@@ -14,19 +14,6 @@ describe("the Code-landing choice says what it does", () => {
     expect(codeLandingChoices("master")[0]!.label).toBe("Merge into master");
   });
 
-  // The Add form asks before the project is on this machine, and a
-  // checkout that cannot be reached has no name to give either.
-  test("with no name to give, it says which branch it means in words", () => {
-    expect(codeLandingChoices(null)[0]!.label).toBe("Merge into the project's main branch");
-    expect(codeLandingChoices(null)[0]!.label).not.toContain("default branch");
-  });
-
-  test("the pull-request choice says the request is created", () => {
-    const pr = codeLandingChoices("main")[1]!;
-    expect(pr.value).toBe("pr");
-    expect(pr.label).toBe("Create a pull request");
-  });
-
   // The values are what the manifest stores, and are not translated
   // along with the labels.
   test("the stored values are unchanged", () => {

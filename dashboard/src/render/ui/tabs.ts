@@ -115,10 +115,8 @@ export function tabbedBody(
   // the frame's width while the open tab's text stopped well short of
   // it (2026-08-23).
   return (
-    // Both spellings written out rather than built by hand: the class
-    // guard reads the literal the class attribute holds, and a ternary
-    // in there is a class name it cannot check
-    // (css-guard-class-vocabulary).
+    // Both spellings written out rather than built by hand, so each
+    // class name stands in the source as the literal the attribute holds.
     (formFields ? `<div class="doc formdoc">` : `<div class="doc">`) +
     backLink(backHref, title, headTrailing) +
     banner +

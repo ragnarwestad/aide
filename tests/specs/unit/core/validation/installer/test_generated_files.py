@@ -56,6 +56,22 @@ class TestBuildAgentsMd:
             "must strip the leading YAML block from each rule"
         )
 
+    def test_the_committed_file_is_what_the_generator_writes(self, workspace_root, tmp_path):
+        """core/AGENTS.md is what Codex and Copilot read; a rule edited
+        without regenerating it never reaches them."""
+        core = tmp_path / "core"
+        (core / "scripts").mkdir(parents=True)
+        shutil.copy(workspace_root / "core" / "scripts" / "build-agents-md.sh",
+                    core / "scripts" / "build-agents-md.sh")
+        shutil.copy(workspace_root / "core" / "agents-intro.md", core / "agents-intro.md")
+        shutil.copytree(workspace_root / "core" / "rules", core / "rules")
+        result = subprocess.run(["bash", str(core / "scripts" / "build-agents-md.sh")],
+                                capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr
+        assert (core / "AGENTS.md").read_text() == (workspace_root / "core" / "AGENTS.md").read_text(), (
+            "core/AGENTS.md is stale — run core/scripts/build-agents-md.sh"
+        )
+
     def test_output_fits_codex_read_window(self, workspace_root, tmp_path):
         """AGENTS.md must fit inside Codex's project_doc_max_bytes default.
 

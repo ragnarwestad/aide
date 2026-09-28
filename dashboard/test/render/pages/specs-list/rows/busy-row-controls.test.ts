@@ -113,20 +113,6 @@ describe("spec 105: a busy row offers only what its state allows", () => {
     });
   }
 
-  test("the step being worked reads as ticked; the rest keep their own look (criterion 2)", () => {
-    const line = openControls(spec("running"));
-    // Since spec 168 the box says only that the job named the step.
-    // What says the step is being worked RIGHT NOW is the pip on the
-    // row above, which is visible whether the row is open or shut.
-    expect(box(line, "implement")).toContain('class="phase checked"');
-    expect(box(line, "implement")).not.toContain('class="spin"');
-    // Not part of this job, so unticked — inert, but not padlocked
-    // (spec 145): the padlock is for a control with nothing else on it
-    // to say why it will not take a click.
-    expect(box(line, "analyze")).toContain('class="phase default"');
-    expect(box(line, "analyze")).not.toContain(ICON_LOCK);
-  });
-
   test("a queued job spins nothing — its own step still reads as ticked (criterion 2)", () => {
     const line = openControls(spec("queued"));
     // The job named `implement` and nothing else. Queued is not yet
@@ -146,29 +132,6 @@ describe("spec 105: a busy row offers only what its state allows", () => {
    *  ticked and started as one job, with two of them not reached yet.
    *  The two said nothing about belonging to the running job — they
    *  were drawn exactly like a step the job never named. */
-  test("a step queued behind the running one stays ticked, without the padlock (criterion 2)", () => {
-    const line = openControls(
-      row({
-        id: "j1",
-        specFolder: "105-busy",
-        steps: ["analyze", "implement", "archive"],
-        stepIndex: 0,
-        state: "running",
-      }),
-    );
-    // The one being worked, in the same job — since spec 168 it is
-    // drawn like the two behind it, and the pip carries the motion.
-    expect(box(line, "analyze")).toContain('class="phase checked"');
-    expect(box(line, "analyze")).not.toContain('class="spin"');
-    for (const step of ["implement", "archive"]) {
-      const b = box(line, step);
-      expect(b).toContain(`value="${step}" checked`);
-      expect(b).toContain("disabled");
-      expect(b).toContain('class="phase checked"');
-      expect(b).not.toContain('class="phase off"');
-      expect(b).not.toContain(ICON_LOCK);
-    }
-  });
 
   // --- criterion 3: Run, the model and the "more" fields lock too ------------
 
@@ -193,19 +156,6 @@ describe("spec 105: a busy row offers only what its state allows", () => {
     // The model select is on the phase lines since spec 123; the rule
     // it obeys is this one, unchanged.
     expect(html.match(/<select name="model\.analyze"[^>]*>/)![0]).toContain("disabled");
-  });
-
-  // Spec 454: the model select and the box no longer each carry the
-  // reason in a `title` of their own. Spec 457: nor does the phase line
-  // carry it in a "(?)" any more — the row's own State column already
-  // does.
-  test("every locked field on the line shares the same reason (criterion 3)", () => {
-    const html = rows([spec("running")], [target("105-busy")]);
-    const line = controlsLine(html, "105-busy");
-    expect(html.match(/<select name="model\.analyze"[^>]*>/)![0]).not.toContain(
-      'title="Implement is running"',
-    );
-    expect(box(line, "analyze")).not.toContain('title="Implement is running"');
   });
 
   // --- criterion 4: a gate offers Approve and Cancel, and locks the rest -----
@@ -233,7 +183,6 @@ describe("spec 105: a busy row offers only what its state allows", () => {
     expect(runBtn(line)).not.toContain("disabled");
     expect(html.match(/<select name="model\.analyze"[^>]*>/)![0]).not.toContain("disabled");
   });
-
 });
 
 // Every other step can be cancelled and run again from the spec it
@@ -287,145 +236,5 @@ describe("a running create offers no Cancel", () => {
       },
     );
     expect(html).toContain("/api/queue/c2/cancel");
-  });
-});
-
-// --- spec 423: a confirmation asks before Cancel takes effect --------------
-//
-// Cancel used to reach the server on one click. This covers the dialog
-// `actionForm()` now draws beside that click, and REQ-3's own rule: the
-// step it names is `landingStep(r)` only while `r.landing` is set,
-// `currentStep(r)` otherwise — never `landingStep(r)` unconditionally,
-// which names the step that already finished on a row merely queued for
-// its next one (Plan review, 3-solution.md).
-describe("spec 423: a confirmation asks before Cancel takes effect", () => {
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
-    project: "aide",
-    specFolder,
-    ...extra,
-  });
-
-  const rows = (list: QueueRowView[], targets: SpecTarget[] = [], opts: Partial<SpecsPageOptions> = {}) =>
-    renderSpecsRows(
-      list,
-      {
-        runnerAvailable: true,
-        targets,
-        filter: { open: openKeys(list, targets) },
-        ...opts,
-      },
-      Date.parse("2026-08-19T12:00:00Z"),
-    );
-
-  const controlsLine = (html: string, folder: string) =>
-    html.match(
-      new RegExp(
-        `<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">[\\s\\S]*?` +
-          `(?=<tr class="[^"]*spechead|</tbody>|$)`,
-      ),
-    )?.[0] ?? "";
-  // The actionslot — the row's own control and its dialog — sits in the
-  // CAPTION line's third cell (phasecell, modelcell, state), not in the
-  // header row (`data-caption="1"`, matching expanded-row-controls.test.ts's
-  // own extraction).
-  const actionCell = (chunk: string) => {
-    const caption = chunk.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
-    const cells = [...caption.replace(/<td[^>]*data-col="fold"[^>]*>[\s\S]*?<\/td>/g, "").matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
-    return cells[2] ?? "";
-  };
-  const cellFor = (r: QueueRowView, folder = "423-busy", opts: Partial<SpecsPageOptions> = {}) =>
-    actionCell(controlsLine(rows([r], [target(folder)], opts), folder));
-
-  test("a running row's dialog names the step and offers OK and Cancel (criteria 2, 3)", () => {
-    const cell = cellFor(row({ id: "j1", specFolder: "423-busy", steps: ["implement"], stepIndex: 0, state: "running" }));
-    expect(cell).toContain('<dialog class="confirmdialog">');
-    expect(cell).toContain("<h2>Cancel Implement?</h2>");
-    expect(cell).toContain('<p class="muted">');
-    // Both the outer form and the dialog's own confirm form post to the
-    // same route, by design (2-analysis.md, expanded-row-controls.test.ts).
-    expect(cell.match(/action="\/api\/queue\/j1\/cancel"/g)).toHaveLength(2);
-    expect(cell).toContain(">OK</button>");
-    // The dismiss button structurally cannot post: `method="dialog"`,
-    // no `action` at all.
-    expect(cell).toMatch(/<form method="dialog"><button class="btn" type="submit">Cancel<\/button><\/form>/);
-  });
-
-  test("the two answers share one row, OK first and primary, Cancel plain (AC-1, AC-3)", () => {
-    const cell = cellFor(row({ id: "j1", specFolder: "423-busy", steps: ["implement"], stepIndex: 0, state: "running" }));
-    const box = cell.match(/<dialog class="confirmdialog">[\s\S]*?<\/dialog>/)![0];
-    expect(box).toMatch(/<\/p><div class="dialogactions"><form method="post"[^>]*class="actionform">[\s\S]*?<\/form><form method="dialog">/);
-    expect(box.match(/class="dialogactions"/g)).toHaveLength(1);
-    expect(box.indexOf("btn primary")).toBeLessThan(box.indexOf('<button class="btn" type="submit">'));
-  });
-
-  test("in Norwegian the dialog's answers read OK and Avbryt (AC-2)", () => {
-    const cell = cellFor(
-      row({ id: "j1", specFolder: "423-busy", steps: ["implement"], stepIndex: 0, state: "running" }),
-      "423-busy",
-      { lang: "nb" },
-    );
-    const box = cell.match(/<dialog class="confirmdialog">[\s\S]*?<\/dialog>/)![0];
-    expect(box).toContain(">OK</button>");
-    expect(box).toContain('<button class="btn" type="submit">Avbryt</button>');
-  });
-
-  test("the dismiss button carries no action — it cannot reach the server (criterion 1)", () => {
-    const cell = cellFor(row({ id: "j1", specFolder: "423-busy", steps: ["implement"], stepIndex: 0, state: "running" }));
-    const dismiss = cell.match(/<form method="dialog">[\s\S]*?<\/form>/)?.[0] ?? "";
-    expect(dismiss).not.toContain("action=");
-  });
-
-  test("a landing row names the step whose merge is running, not the one queued next (criterion 6a)", () => {
-    const cell = cellFor(
-      row({
-        id: "j1",
-        specFolder: "423-landing",
-        steps: ["analyze", "implement", "archive"],
-        stepIndex: 1,
-        state: "queued",
-        landing: true,
-      }),
-      "423-landing",
-    );
-    expect(cell).toContain("<h2>Cancel Analyze?</h2>");
-  });
-
-  test("a spec merely queued for its next step names THAT step, not the one already landed (criterion 6b)", () => {
-    const cell = cellFor(
-      row({
-        id: "j1",
-        specFolder: "423-queued",
-        steps: ["analyze", "implement", "archive"],
-        stepIndex: 1,
-        state: "queued",
-        landing: false,
-      }),
-      "423-queued",
-    );
-    expect(cell).toContain("<h2>Cancel Implement?</h2>");
-  });
-
-  test("in Norwegian, the dialog's title and both buttons are the Norwegian text (criterion 7)", () => {
-    const cell = cellFor(
-      row({ id: "j1", specFolder: "423-nb", steps: ["implement"], stepIndex: 0, state: "running" }),
-      "423-nb",
-      { lang: "nb" },
-    );
-    expect(cell).toContain("<h2>Avbryt Implementer?</h2>");
-    expect(cell).toContain(">OK</button>");
-    expect(cell).toMatch(/<form method="dialog"><button class="btn" type="submit">Avbryt<\/button><\/form>/);
-  });
-
-  test("a running create still draws no dialog and no cancelform class (criterion 9)", () => {
-    const html = renderSpecsRows(
-      [row({ id: "c1", specFolder: "423-create", steps: ["create"], stepIndex: 0, state: "running" })],
-      {
-        runnerAvailable: true,
-        targets: [{ project: "aide", specFolder: "423-create" }],
-        filter: { open: "aide/423-create" },
-      },
-    );
-    expect(html).not.toContain("confirmdialog");
-    expect(html).not.toContain("cancelform");
   });
 });

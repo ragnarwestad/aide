@@ -83,9 +83,7 @@
   // `querySelectorAll`: this combined script sits in `<head>` (shell.ts),
   // which runs before `<body>` — and its elements with it — exist, so
   // that up-front lookup always found zero elements and the flip never
-  // ran anywhere (found only once a real page's own "(?)" popovers were
-  // tested, not the fake DOM in menu-script.test.ts, which builds its
-  // elements before running the script). Capture still reaches the
+  // ran anywhere. Capture still reaches the
   // target regardless of whether "toggle" itself bubbles.
   document.addEventListener(
     "toggle",

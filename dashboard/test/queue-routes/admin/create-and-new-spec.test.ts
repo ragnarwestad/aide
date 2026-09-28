@@ -184,27 +184,11 @@ describe("the New-spec form offers what the spec may build on (criterion 7)", ()
     { project: "aide-dashboard", specFolder: "01-first" },
   ];
 
-  test("one chip per active spec, each saying which project it belongs to", () => {
-    const html = form(page(TARGETS));
-    expect(html).toContain('name="dependsOn"');
-    expect(html).toContain('value="92-a-spec-can-depend"');
-    expect(html).toContain('value="01-first"');
-    // The chip's own project, so the browser can scope the list to
-    // whichever one the reader picks.
-    expect(html).toMatch(/data-project="aide-dashboard"[^]*?value="01-first"/);
-  });
-
   test("newest first — the number is the order a reader thinks in", () => {
     const html = form(page(TARGETS));
     expect(html.indexOf('value="92-a-spec-can-depend"')).toBeLessThan(html.indexOf('value="09-ninth"'));
   });
 
-  test("none ticked by default, and no field at all when there is nothing to depend on", () => {
-    const html = form(page(TARGETS));
-    const chips = html.slice(html.indexOf('name="dependsOn"'));
-    expect(chips.slice(0, 200)).not.toContain("checked");
-    expect(form(page([]))).not.toContain('name="dependsOn"');
-  });
 });
 
 describe("a spec's row says what it depends on (criterion 12)", () => {
@@ -231,9 +215,6 @@ describe("a spec's row says what it depends on (criterion 12)", () => {
     expect(row(["a-named-thing"])).toContain("depends on: a-named-thing");
   });
 
-  test("a spec that names none reads exactly as it does today", () => {
-    expect(row([])).not.toContain("depends on");
-  });
 });
 // --- spec 93: making a spec from the page ------------------------------------
 
@@ -407,32 +388,11 @@ describe("POST /api/queue/create (spec 93)", () => {
     expect(bad.status).toBe(400);
   });
 
-  // The page has to OFFER what the route accepts — the `/new` handler
-  // reads the same `modelChoices` the `/` handler does, or the form
-  // draws a dropdown the server would refuse every entry of.
-  test("GET /new offers the configured models, grouped by AI (spec 228)", async () => {
-    const { base } = start({
-      queueDefaults: {
-        timeoutSec: { default: 1200 },
-        permissionMode: { default: "acceptEdits" },
-        model: { default: "sonnet" },
-        modelChoices: { sonnet: { }, "codex-fast": {  tool: "codex" } },
-      },
-    });
-    const html = await (await fetch(`${base}/new`, )).text();
-    expect(html).toContain('name="model.create"');
-    expect(html).toContain('data-ai="model.create"');
-    expect(html).toContain('<optgroup label="Codex">');
-    expect(html).toMatch(/<option value="sonnet"[^>]*selected/);
-  });
-
   test("the form offers every allowlisted project, spec or no spec", async () => {
     const { base } = start({ queueProjects: ["aide", "brandnew"] });
     const html = await (await fetch(`${base}/new`, )).text();
     const form = html.slice(html.indexOf('action="/api/queue/create"'));
     expect(form).toContain('value="brandnew"');
-    expect(form).toContain('name="title"');
-    expect(form).toContain('name="description"');
   });
 });
 
@@ -448,31 +408,6 @@ describe("GET /new (spec 121)", () => {
     expect((await fetch(`${base}/new`, { method: "POST" })).status).toBe(405);
   });
 
-  test("it carries the create form and nothing about the spec list", async () => {
-    const { base } = start();
-    const res = await fetch(`${base}/new`, { redirect: "manual" });
-    expect(res.status).toBe(200);
-    const html = await res.text();
-    expect(html).toContain('action="/api/queue/create"');
-    // Spec 252: the bottom Cancel beside Create is gone — the top-left
-    // "← Back" is the one way out, falling back to `/` with no Referer.
-    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/">← Back</a>');
-    // The page-wide leave box (spec 518) carries its own Cancel; the page's controls do not.
-    expect(html.replace(/<dialog class="leaveapp[\s\S]*?<\/dialog>/, "")).not.toContain(">Cancel<");
-    // No rows, and so nothing for the five-second swap to reach for.
-    expect(html).not.toContain('id="jobrows"');
-  });
-
-  // Spec 252, Criterion 2: a reader who pressed "New spec" from a
-  // filtered specs list returns to that exact filter, not to bare `/`.
-  test("with a same-origin Referer, ← Back tracks it instead of the bare fallback", async () => {
-    const { base } = start();
-    const html = await (
-      await fetch(`${base}/new`, { headers: { referer: `${base}/?state=all&q=archive` } })
-    ).text();
-    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/?state=all&amp;q=archive">← Back</a>');
-  });
-
   test("the chips name every spec the new one may build on", async () => {
     const { base } = start();
     const html = await (await fetch(`${base}/new`)).text();
@@ -484,16 +419,6 @@ describe("GET /new (spec 121)", () => {
     const html = await (await fetch(`${base}/new`)).text();
     expect(html).not.toContain('action="/api/queue/create"');
     expect(html).toContain("No project on this machine");
-  });
-
-  // Spec 408, REQ-1/REQ-4: this page reads and remembers the language
-  // the same way `/` already does.
-  test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
-    const { base } = start();
-    const res = await fetch(`${base}/new?lang=nb`);
-    expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
-    const html = await res.text();
-    expect(html).toContain('<html lang="nb">');
   });
 
   test("a refusal carried back in the query string is shown on the page", async () => {

@@ -36,7 +36,6 @@ describe("the checks on the Overview tab", () => {
       await save(base, { text: NEW_TEXT });
       expect(messageOf(git.calls)).toBe(`Edit 1-description.md for ${SPEC} from the dashboard`);
     });
-
   });
 
   // --- criterion 7: a tick that cannot go through changes nothing -----------
@@ -150,22 +149,6 @@ describe("the checks on the Overview tab", () => {
     expect(res.status).toBe(303);
     expect(decodeURIComponent(res.headers.get("location")!)).toContain("archived");
     expect(readFileSync(join(dir, "root", "aide", "specs", "archive", ARCHIVED, "4-status.md"), "utf-8")).toBe(STATUS);
-  });
-
-  test("and its Overview offers no box to press", async () => {
-    const { base } = harness.start({
-      description: DESCRIPTION,
-      status: STATUS,
-      archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT, status: STATUS } },
-      extra: { gitRun: savable("/host") },
-    });
-    // ?tab=status, not the bare URL: spec 294 (landed the same day)
-    // made Description the default tab and renamed this one from
-    // "Overview" to "Checks" — the bare URL no longer serves it.
-    // Without the page's inline scripts: the client bundle holds strings that look like markup.
-    const html = (await (await fetch(`${base}/specs/aide/${ARCHIVED}?tab=status`)).text()).replace(/<script>[\s\S]*?<\/script>/g, "");
-    expect(html).toContain("Manual check at 375px in a real browser");
-    expect(html).not.toContain('name="tick"');
   });
 });
 

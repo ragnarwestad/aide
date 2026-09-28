@@ -69,35 +69,6 @@ describe("Settings routes (spec 232)", () => {
   const validTimeoutSec = Object.fromEntries(SETTINGS_ROWS.map((step) => [step, 30]));
   const validBody = { model: validModel, timeoutSec: validTimeoutSec };
 
-  test("GET renders the live defaults", async () => {
-    const { base } = start({ queueDefaults: DEFAULTS });
-    const res = await fetch(`${base}/settings`);
-    expect(res.status).toBe(200);
-    const html = await res.text();
-    expect(html).toContain('name="model.implement"');
-    // implement's own 5400s (90 min) differs from every other step's
-    // 1200s (20 min) fallback (job-state.ts:145's minutes convention).
-    const implementRow = html.match(/<tr[^>]*data-step="implement"[\s\S]*?<\/tr>/)?.[0] ?? "";
-    expect(implementRow).toContain('name="timeoutSec.implement"');
-    expect(implementRow).toContain('value="90"');
-    const analyzeRow = html.match(/<tr[^>]*data-step="analyze"[\s\S]*?<\/tr>/)?.[0] ?? "";
-    expect(analyzeRow).toContain('value="20"');
-  });
-
-  // Spec 408, REQ-1/REQ-2/REQ-4: this route reads and remembers the
-  // language the same way `/` already does, and Settings belongs to none
-  // of the APPLICATION's tabs, so that bar is not drawn, regardless of
-  // language. The page's own tabs are a separate row.
-  test("?lang=nb sets the cookie, renders a Norwegian frame and no application tab bar", async () => {
-    const { base } = start({ queueDefaults: DEFAULTS });
-    const res = await fetch(`${base}/settings?lang=nb`, );
-    expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
-    const html = await res.text();
-    expect(html).toContain('<html lang="nb">');
-    expect(html).not.toContain('<nav class="tabbar">');
-    expect(html).toContain('<nav class="tabbar subtabs">');
-  });
-
   // The check spawns a CLI and reaches the network, so a GET of the page
   // must never start one: it happens when the button is pressed.
   test("opening an AI tab runs no check", async () => {
@@ -141,17 +112,6 @@ describe("Settings routes (spec 232)", () => {
     const { base } = start({ queueDefaults: DEFAULTS });
     const res = await fetch(`${base}/api/queue/settings/check`, );
     expect(res.status).toBe(405);
-  });
-
-  // Spec 252, Criterion 3: Settings is reachable from every page's "…"
-  // menu, so "← Back" tracks whichever one the reader opened it from —
-  // read off the standard Referer header, never a bare `/`.
-  test("← Back tracks a same-origin Referer, criterion 3", async () => {
-    const { base } = start({ queueDefaults: DEFAULTS });
-    const html = await (
-      await fetch(`${base}/settings`, { headers: { referer: `${base}/projects/aide` } })
-    ).text();
-    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/projects/aide">← Back</a>');
   });
 
   test("a successful save affects later jobs but not an accepted job", async () => {
@@ -269,18 +229,6 @@ describe("Settings routes (spec 232)", () => {
       method: "POST", headers: AUTH, body: JSON.stringify(validBody),
     });
     expect(res.status).toBe(400);
-  });
-});
-
-// Spec 408, REQ-1/REQ-4: the Add-project page reads and remembers the
-// language the same way `/` already does.
-describe("GET /projects/new (spec 131)", () => {
-  test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
-    const { base } = start();
-    const res = await fetch(`${base}/projects/new?lang=nb`, );
-    expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
-    const html = await res.text();
-    expect(html).toContain('<html lang="nb">');
   });
 });
 

@@ -167,8 +167,7 @@ export const LABEL_GAP = 9;
 /** Half a label's own line height: an ascender or a descender on a 12px
  *  sans body (`--fs-s`) never clips past this from the point's own y — a
  *  hair over the font's own metrics (a real browser's rendered `<text>`
- *  box, measured in `test/e2e/phone/wiki-graph-fits-a-phone.test.ts`, runs
- *  right up against a tighter number), so the margin holds with room to
+ *  box runs right up against a tighter number), so the margin holds with room to
  *  spare rather than by a fraction of a pixel. */
 export const LABEL_HALF_HEIGHT = 12;
 

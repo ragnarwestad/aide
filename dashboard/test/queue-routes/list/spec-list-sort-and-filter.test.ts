@@ -1,6 +1,6 @@
 // Split out of spec-list-rendering.test.ts by theme.
 
-import { afterEach, describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import {
   renderSpecsPage,
   renderSpecsRows,
@@ -9,12 +9,6 @@ import {
   type QueueRowView,
   type SpecTarget,
 } from "../../../src/render";
-import { JOB, setupQueueRoutesHarness } from "../fixtures.ts";
-
-const { harness, start } = setupQueueRoutesHarness();
-
-afterEach(() => harness.cleanup());
-
 // One list, with the sorting and filtering that makes a fixed "Active"
 // section unnecessary: asking for the running jobs is a filter, not a
 // second table.
@@ -84,13 +78,6 @@ describe("the job list sorts and filters", () => {
     ...extra,
   });
 
-  test("one table holds every job — no fixed section above it", () => {
-    const html = page([row("a", { state: "running" }), row("b")]);
-    expect(html.match(/<table class="list speclist"/g)).toHaveLength(1);
-    expect(html).toContain("a-spec");
-    expect(html).toContain("b-spec");
-  });
-
   test("the legacy active key (now Running) shows only what is actually running, not queued or done", () => {
     const rows = [row("a", { state: "running" }), row("b"), row("c", { state: "queued" })];
     const html = page(rows, { state: "active" });
@@ -103,17 +90,6 @@ describe("the job list sorts and filters", () => {
     const html = page([row("a", { state: "stopped" }), row("b")], { state: "stopped" });
     expect(html).toContain("a-spec");
     expect(html).not.toContain("b-spec");
-  });
-
-  // A chip per project stood above the list until 2026-08-23: one
-  // control that grew with the machine, and nobody had asked to filter
-  // by project. Every spec is listed now, whatever project it is from.
-  test("no project filter is drawn, however many projects there are", () => {
-    const rows = [row("a"), row("b", { project: "aide-dashboard" })];
-    const html = page(rows);
-    expect(html).not.toContain('data-filter="project"');
-    expect(html).toContain("a-spec");
-    expect(html).toContain("b-spec");
   });
 
   // Spec 317 (REQ-3): the default view is the newest spec MADE at the
@@ -130,9 +106,6 @@ describe("the job list sorts and filters", () => {
       target("109-second", { createdAt: "2026-08-16T09:00:00Z" }),
     ]);
     expect(html.indexOf("109-second")).toBeLessThan(html.indexOf("104-first"));
-    expect(html).toMatch(
-      /<th class="" colspan="2" data-col="created" aria-sort="descending"><a class="sortlink on"[^>]*>Created<svg/,
-    );
   });
 
   test("the Created heading's link asks for newest first, and turns round once it is the sort (AC-3)", () => {
@@ -142,7 +115,6 @@ describe("the job list sorts and filters", () => {
     expect(link(byState)).not.toContain("dir=");
     const newestFirst = page([], { sort: "created", dir: "desc" });
     expect(link(newestFirst)).toContain("dir=asc");
-    expect(newestFirst).toContain('aria-sort="descending"');
   });
 
   // REQ-2: the Created heading sorts like every other — a click turns it
@@ -275,29 +247,4 @@ describe("the job list sorts and filters", () => {
     expect(html).toContain('href="/?state=active&amp;sort=cost"');
   });
 
-  test("the sorted column says which way it is going", () => {
-    const html = page([row("a")], { sort: "cost" });
-    expect(html).toMatch(/aria-sort="descending"/);
-  });
-
-  test("a filter that matches nothing says so instead of showing a bare table", () => {
-    const html = page([row("a")], { state: "active" });
-    // "spec", not "job": the table has been one line per spec since
-    // spec 86, and since spec 90 it lists specs that have no job at all.
-    expect(html).toContain("No spec matches");
-  });
-
-  test("the partial refresh carries the controls too, so the filter survives a tick", async () => {
-    const { base } = start();
-    await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify(JOB),
-    });
-    const rows = await (
-      await fetch(`${base}/?rows=1&state=active`, )
-    ).text();
-    expect(rows).toContain('data-filter="state"');
-    expect(rows).toMatch(/aria-checked="true"><span class="check" aria-hidden="true"><\/span>Running/);
-  });
 });

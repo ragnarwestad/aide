@@ -3,7 +3,6 @@
 
 import { describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import { renderProjectPage } from "../../../src/render";
 import { deployDialog } from "../../../src/render/pages/projects-page/deploy-dialog.ts";
 import { submitDeploy } from "../../../src/specs-client/deploy";
 import type { DeployIo, StepAnswer } from "../../../src/specs-client/deploy/run.ts";
@@ -135,10 +134,6 @@ describe("submitDeploy", () => {
     expect(io.reloads).toBe(0);
   });
 
-  test("the dialog holds no Close button (AC-5)", () => {
-    expect(page().dialog.querySelector("[data-deploy-close]")).toBeNull();
-  });
-
   test("a failure that was not faulty draws one error first on the Deploy panel, naming the step and the reason (AC-6)", async () => {
     const { panel, errors, submit } = page();
     const io = fakeIo({ install: { ok: false, error: "the install command failed (exit 1)" } });
@@ -260,29 +255,6 @@ describe("submitDeploy", () => {
     expect(shown?.classList.contains("deploy-fault")).toBe(true);
     expect(textOf((shown ?? undefined) as unknown as Element | undefined)).toContain("did not answer");
     expect(io.reloads).toBe(0);
-  });
-
-  test("the script and the server draw the same failure with the same text (AC-6)", async () => {
-    const html = renderProjectPage(
-      { name: "aide", manifest: { ok: false, error: "no manifest" }, specs: [] },
-      { hasConfigFile: false, rows: [] },
-      null,
-      "2026-08-31T00:00:00Z",
-      [{ label: "Projects", path: "/projects" }],
-      {
-        worktreeLinkCandidates: [],
-        editingGroup: null,
-        tab: "deploy",
-        drift: { behind: 2, checkedAt: 1735689600000 },
-        deployFailure: { step: "install", error: "the install command failed (exit 1)" },
-        lang: "en",
-      },
-    );
-    const served = html.match(/<p class="[^"]*deploy-error[^"]*">([\s\S]*?)<\/p>/)?.[1]?.replace(/<[^>]*>/g, "").trim();
-    const { errors, submit } = page();
-    await submit(fakeIo({ install: { ok: false, error: "the install command failed (exit 1)" } })).done;
-    expect(served).toBe("Install failed: the install command failed (exit 1)");
-    expect(textOf(errors()[0])).toBe(served!);
   });
 
   test("with no showModal the form posts natively (AC-1)", async () => {

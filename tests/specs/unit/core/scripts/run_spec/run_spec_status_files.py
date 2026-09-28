@@ -6,8 +6,6 @@ Split out of conftest.py 2026-09-04. Every builder is unchanged and
 keeps its name.
 """
 
-import json
-import pathlib
 import re
 import subprocess
 import time
@@ -369,12 +367,6 @@ def write_raw_status(workspace, content):
     (workspace["specs"] / workspace["folder"] / "4-status.md").write_text(content)
     subprocess.run(["git", "-C", str(workspace["specs"]), "add", "-A"], check=True)
     subprocess.run(["git", "-C", str(workspace["specs"]), "commit", "-qm", "add status"], check=True)
-
-
-STATUS_ROW_COUNTING = json.loads(
-    (pathlib.Path(__file__).resolve().parents[5] / "fixtures" / "status-row-counting.json")
-    .read_text()
-)["cases"]
 
 
 def status_with_phase(workspace, claims, rows, heading="## Phase 1: RED"):

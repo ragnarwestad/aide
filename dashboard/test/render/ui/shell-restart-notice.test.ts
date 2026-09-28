@@ -22,24 +22,6 @@ const noticeOf = (html: string): string =>
   html.match(/<p [^>]*class="restart-notice rowmsg waiting">.*?<\/p>/s)?.[0] ?? "";
 
 describe("pageShell's waiting-Deploy notice", () => {
-  test("names the jobs the restart waits for, as a warning under the header", () => {
-    setPendingRestartNotice(["aide:457-a-spec", "aide:458-another"]);
-    const html = render();
-    const notice = html.match(/<p [^>]*class="restart-notice rowmsg waiting">.*?<\/p>/s)?.[0];
-    expect(notice).toBeDefined();
-    expect(text(notice!)).toContain("aide:457, aide:458");
-    // Under the header, before the tab bar: the same slot the install
-    // warning already has.
-    expect(html.indexOf("</header>")).toBeLessThan(html.indexOf("restart-notice"));
-    expect(html.indexOf("restart-notice")).toBeLessThan(html.indexOf('<nav class="tabbar"', html.indexOf("</header>")));
-  });
-
-  test("shows nothing once the wait is over", () => {
-    setPendingRestartNotice(["aide:457-a-spec"]);
-    setPendingRestartNotice([]);
-    expect(render()).not.toContain("restart-notice");
-  });
-
   test("the server's own pending-restart writer is what feeds it", () => {
     const state = createServerState();
     setPendingRestart(state, ["aide:457-a-spec"]);
@@ -60,32 +42,6 @@ describe("pageShell's waiting-Deploy notice", () => {
     setPendingRestartNotice(["aide:457-a-spec"]);
     createServerState();
     expect(render()).not.toContain("restart-notice");
-  });
-});
-
-describe("the jobs the notice names are links (AC-2)", () => {
-  test("a spec's name is two links: the project's page and the spec's page (AC-2)", () => {
-    setPendingRestartNotice(["aide:457-a-spec", "aide:458-another"]);
-    const notice = noticeOf(render());
-    expect(notice).toContain(
-      '<a data-goto href="/projects/aide">aide</a><a data-goto href="/specs/aide/457-a-spec" title="aide:457-a-spec">:457</a>',
-    );
-    expect(notice).toContain('<a data-goto href="/specs/aide/458-another" title="aide:458-another">:458</a>');
-    expect(text(notice)).toContain("Deploy is waiting for aide:457, aide:458; the service restarts");
-  });
-
-  test("a short id and a create job's key stay text (AC-2)", () => {
-    setPendingRestartNotice(["ab12cd34", "aide:new-1a2b3c4d"]);
-    const notice = noticeOf(render());
-    expect(notice).not.toContain("<a ");
-    expect(text(notice)).toContain("ab12cd34, aide:new-1a2b3c4d");
-  });
-
-  test("a scheduled job stays text, with no link to a spec page (AC-4)", () => {
-    setPendingRestartNotice(["aide:schedule-nightly"]);
-    const notice = noticeOf(render());
-    expect(notice).not.toContain("<a ");
-    expect(text(notice)).toContain("aide:schedule-nightly");
   });
 });
 

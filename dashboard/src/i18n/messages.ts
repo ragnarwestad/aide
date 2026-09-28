@@ -9,8 +9,7 @@
 // English. `nb` is written fresh, in ordinary Norwegian: `push`/`origin`
 // keep their current spelling as loanwords, and `merge`/`spec` join them
 // (spec 399). `src/i18n/banned-words.ts` lists the words that do NOT
-// belong here and what to say instead; `banned-words.test.ts` is what
-// keeps a later message from reaching for one of them again.
+// belong here and what to say instead.
 
 export interface MessageEntry {
   en: string;

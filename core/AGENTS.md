@@ -311,9 +311,11 @@ part of the delivery, like the code compiling.
 - **A bug fix gets a test for the bug.** The failure that was reported is the test case.
 - **One place per rule.** A rule is proven where it lives — the store, the parser, the helper. A
   route or page test proves only that it is wired to that rule, once, not every case again.
-- **Layout is measured, not read.** Where a browser test measures a layout claim, no second test
-  reads the stylesheet for the same declarations. A test over the CSS text is for a repo-wide
-  invariant only: one focus style, no colour outside the token block, no unused class.
+- **No layout tests.** A test does not check how a page looks or where a component sits: no markup,
+  no CSS, no class names, no element order, no widths or positions, in unit tests or browser tests
+  alike. What a page computes — which state a row is in, which action it offers — is logic, and is
+  tested on the function that decides it, not on the HTML it renders. A browser test is for
+  behaviour that only a browser has: a click that starts an action, a live update that arrives.
 - **No wording pins.** A test does not assert a sentence of a rule, skill, doc or help text. It
   asserts what code depends on: a name a script calls, a format a parser reads, a copy that must
   equal its source.
@@ -420,8 +422,13 @@ pnpm run test:coverage
 ### E2E tests (Playwright)
 
 **Run the e2e suite where the project's own run is quick and reliable. Keep that list explicit —
-on this machine it is currently Atlasaurus (since 3 August 2026) and PaceUp. Elsewhere, ask the
-user to run it.**
+on this machine it is currently Atlasaurus (since 3 August 2026), PaceUp and Aide (since 27
+September 2026). Elsewhere, ask the user to run it.**
+
+**Aide: run `cd dashboard && make test-e2e` before every push to main**, whatever the change
+touched — about 20 seconds. Otherwise only a landing runs it, and a browser test broken on main
+stops the next spec's archive as if that spec had broken it. The one exception is a push that
+changes only markdown files: no browser test reads them, and `scripts/check-docs` is their check.
 
 The list stays short on purpose: a suite that hangs blocks the session for minutes with nothing to
 show for it. Where a project's suite is fast, that risk is gone; where it still crawls, ask the

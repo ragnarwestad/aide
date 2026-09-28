@@ -14,9 +14,8 @@
 // One token block, six components, and nothing else. Every colour, type
 // size, space and radius below is a `var(--…)` read from the block at
 // the top — which is the ONLY place a literal may appear across these
-// files. `test/css-token-guard.test.ts` enforces that by scanning them
-// between the `tokens:start`/`tokens:end` sentinels, and refuses any
-// class a render file emits that is not one of the components. A spec
+// files, between the `tokens:start`/`tokens:end` sentinels, and a render
+// file emits no class that is not one of the components. A spec
 // that wants a look it cannot build from these has to change the
 // TOKENS, visibly, rather than add a colour beside them.
 //

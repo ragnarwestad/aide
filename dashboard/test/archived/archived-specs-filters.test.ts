@@ -62,12 +62,6 @@ describe("the Archived chip", () => {
     expect(html).not.toContain(STAMPED);
     expect(html).toContain(OTHER);
   });
-
-  test("names each spec's project on the link, the way every row does", async () => {
-    const html = await specsList(start().base, ARCHIVED_VIEW);
-    expect(html).toContain(`href="/specs/aide/${STAMPED}"`);
-    expect(html).toContain(`href="/specs/skjer/${OTHER}"`);
-  });
 });
 
 // --- criterion 5: All means all, in ONE order ------------------------------

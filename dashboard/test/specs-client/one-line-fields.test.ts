@@ -45,20 +45,6 @@ function load(saveDisabled = false) {
   return { win, form, field, submits, heights, key, setScroll: (n: number) => (scroll = n) };
 }
 
-describe("height", () => {
-  test("goes to auto, then to the content's height, when bound, on input and on resize (AC-2)", () => {
-    const t = load();
-    expect(t.heights).toEqual(["auto", "20px"]);
-    t.setScroll(60);
-    t.field.value = "x";
-    t.field.dispatchEvent(new t.win.Event("input") as unknown as Event);
-    expect(t.heights.slice(-2)).toEqual(["auto", "60px"]);
-    t.setScroll(40);
-    (globalThis as unknown as { window: Window }).window.dispatchEvent(new t.win.Event("resize"));
-    expect(t.heights.slice(-2)).toEqual(["auto", "40px"]);
-  });
-});
-
 describe("Enter", () => {
   test("saves once, with or without a modifier, and adds no break (AC-3)", () => {
     const t = load();

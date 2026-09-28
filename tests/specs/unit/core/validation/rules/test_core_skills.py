@@ -41,43 +41,40 @@ def parse_frontmatter(content: str) -> dict:
     return fields
 
 
+# The frontmatter contract: the Agent Skills spec's fields plus the Claude
+# Code extras aide accepts because they degrade additively. The loaders
+# read `name` (it must match the directory) and `description`; `effort`
+# is set deliberately per skill.
+SPEC_FRONTMATTER_FIELDS = {
+    "name", "description", "license", "compatibility", "metadata",
+    "allowed-tools",
+}
+ACCEPTED_CLAUDE_CODE_EXTRAS = {"effort", "argument-hint"}
+ALLOWED_FRONTMATTER_FIELDS = SPEC_FRONTMATTER_FIELDS | ACCEPTED_CLAUDE_CODE_EXTRAS
+
+
 @pytest.mark.validation
-class TestCoreSkillsExist:
-    """Every skill directory in core/skills/ must have a SKILL.md."""
-
-    def test_at_least_one_skill_found(self):
-        assert len(get_skill_dirs()) > 0, "No skill directories with SKILL.md in core/skills/"
-
-
-@pytest.mark.validation
-class TestCoreSkillFrontmatter:
-    """SKILL.md files in core/skills/ must have valid YAML frontmatter."""
-
-    @pytest.mark.parametrize("skill_dir", get_skill_dirs(), ids=lambda d: d.name)
-    def test_has_frontmatter(self, skill_dir):
+def test_every_core_skill_has_the_frontmatter_the_loaders_read():
+    skills = get_skill_dirs()
+    assert skills, "No skill directories with SKILL.md in core/skills/"
+    problems = []
+    for skill_dir in skills:
         content = (skill_dir / "SKILL.md").read_text()
-        assert content.startswith("---"), (
-            f"{skill_dir.name}: SKILL.md must start with YAML frontmatter (---)"
-        )
-
-    @pytest.mark.parametrize("skill_dir", get_skill_dirs(), ids=lambda d: d.name)
-    def test_has_name_field(self, skill_dir):
-        fields = parse_frontmatter((skill_dir / "SKILL.md").read_text())
-        assert fields.get("name"), f"{skill_dir.name}: frontmatter must have a non-empty 'name' field"
-
-    @pytest.mark.parametrize("skill_dir", get_skill_dirs(), ids=lambda d: d.name)
-    def test_name_matches_directory(self, skill_dir):
-        fields = parse_frontmatter((skill_dir / "SKILL.md").read_text())
-        if "name" in fields:
-            assert fields["name"] == skill_dir.name, (
-                f"{skill_dir.name}: frontmatter 'name' ({fields['name']}) "
-                f"must match the directory name ({skill_dir.name})"
-            )
-
-    @pytest.mark.parametrize("skill_dir", get_skill_dirs(), ids=lambda d: d.name)
-    def test_has_description_field(self, skill_dir):
-        fields = parse_frontmatter((skill_dir / "SKILL.md").read_text())
-        assert "description" in fields, f"{skill_dir.name}: frontmatter must have a 'description' field"
+        fields = parse_frontmatter(content)
+        name = skill_dir.name
+        if not content.startswith("---"):
+            problems.append(f"{name}: no frontmatter")
+            continue
+        if fields.get("name") != name:
+            problems.append(f"{name}: name {fields.get('name')!r} does not match the directory")
+        if "description" not in fields:
+            problems.append(f"{name}: no description")
+        if fields.get("effort") not in VALID_EFFORT_LEVELS:
+            problems.append(f"{name}: effort {fields.get('effort')!r} not in {sorted(VALID_EFFORT_LEVELS)}")
+        rogue = set(fields) - ALLOWED_FRONTMATTER_FIELDS
+        if rogue:
+            problems.append(f"{name}: fields outside the allowlist: {sorted(rogue)}")
+    assert not problems, "\n".join(problems)
 
 
 @pytest.mark.validation
@@ -208,85 +205,6 @@ class TestUninstallReadsTheManifest:
 
 
 @pytest.mark.validation
-class TestCoreSkillEffort:
-    """The effort field controls reasoning level per skill (Claude Code)."""
-
-    @pytest.mark.parametrize("skill_dir", get_skill_dirs(), ids=lambda d: d.name)
-    def test_effort_value_is_valid_when_present(self, skill_dir):
-        fields = parse_frontmatter((skill_dir / "SKILL.md").read_text())
-        if "effort" in fields:
-            assert fields["effort"] in VALID_EFFORT_LEVELS, (
-                f"{skill_dir.name}: 'effort' ({fields['effort']!r}) must be one of "
-                f"{sorted(VALID_EFFORT_LEVELS)}"
-            )
-
-    @pytest.mark.parametrize("skill_dir", get_skill_dirs(), ids=lambda d: d.name)
-    def test_has_effort_field(self, skill_dir):
-        fields = parse_frontmatter((skill_dir / "SKILL.md").read_text())
-        assert "effort" in fields, (
-            f"{skill_dir.name}: frontmatter must have an 'effort' field "
-            f"(one of {sorted(VALID_EFFORT_LEVELS)}) — set the reasoning level deliberately per skill"
-        )
-
-
-# The frontmatter contract (report 71 in aide-specs): the Agent Skills spec's
-# six fields, plus the Claude Code extras aide accepts because they degrade
-# additively — a tool that ignores them loses a nicety, never a guarantee.
-# Behavior-critical fields (disable-model-invocation, user-invocable, context,
-# hooks, ...) are banned by default; extending this list is a deliberate
-# policy decision, not a formality.
-SPEC_FRONTMATTER_FIELDS = {
-    "name", "description", "license", "compatibility", "metadata",
-    "allowed-tools",
-}
-ACCEPTED_CLAUDE_CODE_EXTRAS = {"effort", "argument-hint"}
-ALLOWED_FRONTMATTER_FIELDS = SPEC_FRONTMATTER_FIELDS | ACCEPTED_CLAUDE_CODE_EXTRAS
-
-
-@pytest.mark.validation
-class TestCoreSkillFrontmatterAllowlist:
-    """No skill may carry a frontmatter field outside the allowlist."""
-
-    @pytest.mark.parametrize("skill_dir", get_skill_dirs(), ids=lambda d: d.name)
-    def test_skill_uses_only_allowed_fields(self, skill_dir):
-        fields = parse_frontmatter((skill_dir / "SKILL.md").read_text())
-        rogue = set(fields) - ALLOWED_FRONTMATTER_FIELDS
-        assert not rogue, (
-            f"{skill_dir.name}: field(s) {sorted(rogue)} are outside the "
-            f"frontmatter allowlist. aide only accepts the Agent Skills spec "
-            f"fields plus additive Claude Code extras "
-            f"({sorted(ACCEPTED_CLAUDE_CODE_EXTRAS)}) — see report 71."
-        )
-
-    def test_a_rogue_field_is_detected(self, tmp_path):
-        (tmp_path / "SKILL.md").write_text(
-            "---\nname: rogue\ndescription: x\ncontext: fork\n---\n\nBody.\n"
-        )
-        fields = parse_frontmatter((tmp_path / "SKILL.md").read_text())
-        assert set(fields) - ALLOWED_FRONTMATTER_FIELDS == {"context"}
-
-
-@pytest.mark.validation
-class TestCoreSkillInvocation:
-    """Skills must be invocable both by the user and by the model.
-
-    disable-model-invocation blocked "ask the assistant in prose" (decided
-    removed 2026-08-13 — the field was inherited from the commands era).
-    It is also Claude Code-only: Copilot and Codex ignore it, so it made
-    the same skill stricter in one tool than the others.
-    """
-
-    @pytest.mark.parametrize("skill_dir", get_skill_dirs(), ids=lambda d: d.name)
-    def test_model_invocation_is_not_disabled(self, skill_dir):
-        fields = parse_frontmatter((skill_dir / "SKILL.md").read_text())
-        assert "disable-model-invocation" not in fields, (
-            f"{skill_dir.name}: remove 'disable-model-invocation' — aide skills "
-            "must work when the user asks for them in prose, and the field is "
-            "ignored by Copilot/Codex anyway"
-        )
-
-
-@pytest.mark.validation
 class TestManifestTemplate:
     """The example manifest ships with the skill and carries every
     documented top key (spec 78). String-based on purpose: no YAML
@@ -392,13 +310,3 @@ class TestInstallRetiresTheRulesThatBecameSkills:
                      "markdown-linting"):
             assert (skills / name / "SKILL.md").is_file(), \
                 f"~/.claude/skills/{name}/SKILL.md was not installed"
-
-
-# Three classes retired here (spec 251): TestArchiveHeldBackBulletSaysWhereToCloseIt,
-# TestStep3DecidesOnMarksNotProse and TestStep3DistinguishesOrdinaryProgressFromHeldBack
-# pinned exact wording in SKILL.md's old Step 3, because a model reading vague
-# prose was the thing that could get the done/not-done decision wrong. That
-# decision is a script now (core/scripts/aide-archive-spec), and its own test
-# file — tests/specs/unit/core/scripts/test_aide_archive_spec.py — asserts the
-# same rules directly against the code that makes them, not against prose a
-# session merely follows.

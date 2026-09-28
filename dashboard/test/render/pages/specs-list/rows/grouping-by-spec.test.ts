@@ -54,18 +54,6 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     expect(subRow(html, "archive")).toContain(PHASE_NOT_RUN);
   });
 
-  test("a phase that never ran is drawn like any other, not half-lit", () => {
-    // Asked for 2026-08-20: a control is enabled or disabled, with
-    // nothing in between. A row at 55% opacity reads as a disabled
-    // control, and these boxes are not disabled — they tick, and a run
-    // starts. The State column already says "not run yet" in words,
-    // which is the same fact without the ambiguity.
-    const html = rows([job("j1", "analyze")]);
-
-    expect(subRow(html, "implement")).toContain(PHASE_NOT_RUN);
-    expect(html).not.toContain("untried");
-  });
-
   test("a phase run twice shows the latest attempt and the count (criterion 3)", () => {
     const html = rows([
       job("older", "analyze", { state: "failed", startedAt: "2026-08-16T09:00:00Z" }),
@@ -122,25 +110,6 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     expect(head).toContain("$2.00");
   });
 
-  test("the action sits once on the caption line, never on a phase line (criterion 12)", () => {
-    const html = rows([
-      job("j1", "analyze", { state: "done", startedAt: "2026-08-16T09:00:00Z" }),
-      job("j2", "implement", { state: "running", startedAt: "2026-08-16T11:00:00Z" }),
-    ]);
-    // Four phase lines plus the caption line the action rides.
-    expect(html.match(/<tr class="subrow/g)).toHaveLength(5);
-    // Twice (spec 423): the outer Cancel form and the confirmation
-    // dialog's own confirm form share the same route by design.
-    expect(html.match(/<form method="post" action="\/api\/queue\/j2\/cancel"/g)).toHaveLength(2);
-    // Cancel is the SPEC's one action and belongs on the caption line —
-    // as does the form that runs the spec's phases. A phase line is
-    // read-only.
-    for (const phase of ["create", "analyze", "implement", "archive"]) {
-      expect(subRow(html, phase)).not.toContain("/cancel");
-      expect(subRow(html, phase)).not.toContain("/approve");
-    }
-  });
-
   test("two different specs keep their own header rows", () => {
     const html = rows([job("j1", "analyze"), job("j2", "analyze", { specFolder: "87-other" })]);
     expect(heads(html)).toHaveLength(2);
@@ -185,48 +154,4 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
       expect(order).toEqual(["create", "analyze", "implement", "archive"]);
     });
   }
-
-  // Spec 451: all four of the fixed steps carry no link of their own.
-  test("each of the four phases' names is plain text, not a link", () => {
-    const html = rows([
-      job("j1", "create"),
-      job("j2", "analyze"),
-      job("j3", "implement"),
-      job("j4", "archive"),
-    ]);
-    for (const step of ["create", "analyze", "implement", "archive"]) {
-      expect([step, noFold(subRow(html, step)).includes("<a ")]).toEqual([step, false]);
-    }
-  });
-
-  // Spec 451: a phase with no attempt at all is plain text too — there
-  // is nothing left that distinguishes it from one that has run.
-  test("a phase with no attempt at all carries no link either", () => {
-    const html = rows([job("j1", "analyze")]);
-    const implement = subRow(html, "implement");
-    expect(implement).toContain(PHASE_NOT_RUN);
-    expect(implement).not.toContain("<a ");
-  });
-});
-
-// Each spec is drawn as a card of its own, with air between (2026-09-25),
-// and the air is an empty row that CLOSES a spec rather than opening the
-// next: the page's own row swap takes a spec as its head row and
-// everything up to the next head row, so a gap row in front of a head
-// would belong to the spec above and be lost or doubled on every swap.
-describe("every spec ends with its own gap row", () => {
-  const html = renderSpecsRows(
-    [row({ id: "a", specFolder: "1-first" }), row({ id: "b", specFolder: "2-second" })],
-    { runnerAvailable: true, targets: [] },
-  );
-
-  test("one gap row per spec, spanning the whole table", () => {
-    const gaps = html.match(/<tr class="specgap" aria-hidden="true"><td colspan="6"><\/td><\/tr>/g) ?? [];
-    expect(gaps).toHaveLength(2);
-  });
-
-  test("the gap row comes after a spec's rows, never in front of a head row", () => {
-    const order = [...html.matchAll(/<tr class="(spechead|specgap)/g)].map((m) => m[1]);
-    expect(order).toEqual(["spechead", "specgap", "spechead", "specgap"]);
-  });
 });

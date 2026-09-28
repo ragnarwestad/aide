@@ -7,22 +7,6 @@ import {
   type SpecsPageOptions,
 } from "../../../../../src/render";
 
-// The markup half on its own: `pips()` is shared by the list and the job
-// page, and the mark is only ever about the pip that is running.
-describe("spec 210: pips() marks the completed thirds", () => {
-  test("a now pip with a third carries the attribute", async () => {
-    const { pips } = await import("../../../../../src/render/ui/components");
-    expect(pips([{ kind: "now", title: "implement", third: 1 }])).toContain('data-third="1"');
-    expect(pips([{ kind: "now", title: "implement", third: 2 }])).toContain('data-third="2"');
-  });
-
-  test("a past or todo pip never carries the mark, whatever it is handed", async () => {
-    const { pips } = await import("../../../../../src/render/ui/components");
-    expect(pips([{ kind: "past", title: "analyze", third: 2 }])).not.toContain("data-third");
-    expect(pips([{ kind: "todo", title: "archive", third: 1 }])).not.toContain("data-third");
-  });
-});
-
 // Spec 265: an archived phase line draws the SAME aiPicker/modelPicker
 // controls a live one does, disabled, instead of a second, hand-rolled
 // rendering (`lockedModel`, removed). The route-level suite

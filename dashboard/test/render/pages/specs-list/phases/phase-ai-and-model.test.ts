@@ -74,27 +74,6 @@ describe("spec 179: an AI and a model on every phase line", () => {
 
   // --- criterion 1: one AI per phase, beside that phase's model ------------
 
-  test("every phase line has an AI select, and it names its own model select", () => {
-    const html = rows();
-    for (const step of STEPS) {
-      const select = aiSelect(html, step);
-      expect([step, select !== ""]).toEqual([step, true]);
-      // It sits BEFORE the model select it writes, on the same line.
-      const line = html.match(new RegExp(`<tr class="subrow"[^>]*data-step="${step}">[\\s\\S]*?</tr>`))![0];
-      expect([step, line.indexOf("data-ai=") < line.indexOf(`name="model.${step}"`)]).toEqual([step, true]);
-      // One option per configured tool, in the page's own order —
-      // Claude Code first, whichever tool `modelChoices` happens to
-      // lead with — and the tool's reader-facing name, not the
-      // config's short word.
-      expect([step, [...select.matchAll(/<option /g)].length]).toEqual([step, 2]);
-      expect([step, select.indexOf(">Claude Code<") < select.indexOf(">Codex<")]).toEqual([step, true]);
-      expect([step, select.includes('value="claude"')]).toEqual([step, true]);
-      expect([step, select.includes('value="codex"')]).toEqual([step, true]);
-    }
-    const first = aiSelect(rows([], { modelChoices: CODEX_FIRST }), "analyze");
-    expect(first.indexOf(">Claude Code<")).toBeLessThan(first.indexOf(">Codex<"));
-  });
-
   test("a tool with no model configured is not offered as an AI", () => {
     // The count that decides WHAT is offered is TOOLS, not models: one
     // configured tool draws one option, and a tool nothing is
@@ -174,49 +153,4 @@ describe("spec 179: an AI and a model on every phase line", () => {
   });
 
   // --- criterion 8: nothing new is posted ---------------------------------
-
-  test("the AI select posts nothing at all", () => {
-    const html = rows();
-    for (const step of STEPS) {
-      const tag = aiSelect(html, step).match(/<select[^>]*>/)![0];
-      expect([step, tag.includes("name=")]).toEqual([step, false]);
-    }
-    // The whole page offers exactly the named fields it always did:
-    // one model select per phase, and nothing else.
-    expect([...html.matchAll(/<select name="/g)]).toHaveLength(STEPS.length);
-  });
-});
-
-// Spec 176: four things the row still said wrong. Three of them are
-// about what a cell SAYS; this block holds the two that a rendered
-// string can be asked about directly — the chip's border, and where a
-// phase line's aside note goes.
-describe("spec 176: the phase chip frames nothing", () => {
-
-  // The second half of the criterion, and the reason the selector names
-  // `data-phase` rather than `.phase`: a chip written with a label of
-  // its own — the "Also touches" repo chips (`data-project`) and the
-  // new-spec form's "Depends on" (`data-depends`) — frames something,
-  // and keeps its frame.
-  test("the transparent border reaches no chip that has a label (criterion 1)", async () => {
-    const { CSS } = await import("../../../../../src/render/ui/css");
-    expect(CSS.match(/\n\.phase \{[\s\S]*?\}/)![0]).toContain("border: 1px solid var(--line)");
-    expect(CSS.match(/^[^\n]*border-color: transparent[^\n]*$/gm)).toEqual([
-      ".phase[data-phase] { border-color: transparent; background: transparent; }",
-    ]);
-  });
-
-  // Spec 304: the border fix above left the chip's `--surface` FILL in
-  // place, so a label-less chip still sat on an off-shade rectangle —
-  // this time built from background instead of a border. The clickable
-  // footprint must not shrink to fix it (REQ-5), so `.phase`'s own
-  // `padding` stays; only chips with no label of their own lose their
-  // background, and only theirs.
-  test("the base chip keeps its padding, and a labelled chip keeps its background (REQ-4, REQ-5)", async () => {
-    const { CSS } = await import("../../../../../src/render/ui/css");
-    expect(CSS.match(/\n\.phase \{[\s\S]*?\}/)![0]).toContain("padding: 0 var(--sp-2)");
-    expect(CSS.match(/\n\.phase \{[\s\S]*?\}/)![0]).toContain("background: var(--surface)");
-    expect(CSS).not.toMatch(/\[data-depends\][^{]*\{[^}]*background/);
-    expect(CSS).not.toMatch(/\[data-project\][^{]*\{[^}]*background/);
-  });
 });

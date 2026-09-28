@@ -252,13 +252,14 @@ def test_write_spec_state_returns_nonzero_when_status_file_is_missing(tmp_path, 
 FIXTURE_CASES = json.loads(FIXTURE.read_text())["cases"]
 
 
-@pytest.mark.parametrize("case", FIXTURE_CASES, ids=[c["name"] for c in FIXTURE_CASES])
-def test_phase_counts_summed_agree_with_the_shared_row_counting_fixture(tmp_path, case):
-    content = "# Spec - Status\n\n" + case["body"]
-    state = write_state(tmp_path, content)
-    done = sum(c["done"] for c in state["phaseCounts"].values())
-    total = sum(c["total"] for c in state["phaseCounts"].values())
-    assert (done, total) == (case["done"], case["total"]), case["name"]
+def test_phase_counts_summed_agree_with_the_shared_row_counting_fixture(tmp_path):
+    for n, case in enumerate(FIXTURE_CASES):
+        spec = tmp_path / str(n)
+        spec.mkdir()
+        state = write_state(spec, "# Spec - Status\n\n" + case["body"])
+        done = sum(c["done"] for c in state["phaseCounts"].values())
+        total = sum(c["total"] for c in state["phaseCounts"].values())
+        assert (done, total) == (case["done"], case["total"]), case["name"]
 
 
 # --- spec 511: archived/closed follow the order rule -----------------------

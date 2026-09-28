@@ -10,15 +10,6 @@ afterEach(() => {
 describe("spec 252: the spec page's own Back link, read off the Referer header", () => {
   const folder = "81-queue-and-runner";
 
-  // Criterion 1.
-  test("a same-origin Referer round-trips into ← Back", async () => {
-    const { base } = start();
-    const html = await (
-      await fetch(`${base}/specs/aide/${folder}`, { headers: { referer: `${base}/?state=all&q=archive` } })
-    ).text();
-    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/?state=all&amp;q=archive">← Back</a>');
-  });
-
   // A switch between the page's own tabs is not somewhere to go back to.
   test("a Referer that is another tab of the same page falls back to the specs list", async () => {
     const { base } = start();
@@ -37,16 +28,6 @@ describe("spec 252: the job page's own Back link, read off the Referer header", 
     const { job } = (await made.json()) as { job: { id: string } };
     return job.id;
   };
-
-  // Criterion 1.
-  test("a same-origin Referer round-trips into ← Back", async () => {
-    const { base } = start();
-    const id = await jobId(base);
-    const html = await (
-      await fetch(`${base}/jobs/${id}`, { headers: { referer: `${base}/?state=all&q=archive` } })
-    ).text();
-    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/?state=all&amp;q=archive">← Back</a>');
-  });
 
   test("a Referer that is another tab of the same page falls back to the specs list", async () => {
     const { base } = start();

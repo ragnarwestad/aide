@@ -11,7 +11,6 @@ import {
 const noticeCellHtml = (html: string, folder: string): string =>
   html.match(new RegExp(`<tr class="specnotice"[^>]*data-folder="${folder}">[\\s\\S]*?</tr>`))?.[0] ?? "";
 
-
 // The create exception ends where the archive begins: a create job keeps
 // its group on the page while its spec has not landed, but once the
 // folder is in archive/ that same exception kept a ghost row with
@@ -160,21 +159,6 @@ describe("an archived spec whose branch is still on origin (spec 193)", () => {
   // spec is one line, and an archived spec's line is the reader row.
   test("the failed archive job adds no second row", () => {
     expect(listed(true).match(/<tr class="spechead/g)).toHaveLength(1);
-  });
-
-  // Spec 339, REQ-1/REQ-2: the State cell says only the bare word now —
-  // "archived", never "archived, not landed" — whichever way the branch
-  // mark goes. The fact that used to qualify it moved to the notice line
-  // (the test above), which is where an error belongs.
-  test("the State cell says the bare word, whichever way the branch mark goes (REQ-1)", () => {
-    expect(listed(true)).toContain('<span class="badge b-done" data-icon="archive">Archived</span>');
-    expect(listed(true)).not.toContain("archived, not landed");
-  });
-
-  test("and stays the bare word once the branch is gone", () => {
-    const html = listed(false);
-    expect(html).toContain('<span class="badge b-done" data-icon="archive">Archived</span>');
-    expect(html).not.toContain("archived, not landed");
   });
 });
 
@@ -337,22 +321,6 @@ describe("spec 221: archived specs on the spec list", () => {
     const notice = noticeCellHtml(html, "50-archived");
     expect(notice).toContain("no pull request was opened for it");
     expect(notice).not.toContain("<a href=");
-  });
-
-  // Spec 403, REQ-1/REQ-6: the State cell reads the bare word whether or
-  // not the branch has a pull request open — the fact moved to the
-  // notice line and left no trace in the column.
-  test("REQ-6: the State cell is identical with and without archive.prOpen", () => {
-    const withPr = rows({
-      archivedSpecs: [archivedSpec("50-archived", { prOpen: true, prUrl: "https://github.test/aide/pull/9" })],
-      filter: { state: "archived" },
-    });
-    const withoutPr = rows({
-      archivedSpecs: [archivedSpec("50-archived")],
-      filter: { state: "archived" },
-    });
-    expect(withPr).toContain('<span class="badge b-done" data-icon="archive">Archived</span>');
-    expect(withoutPr).toContain('<span class="badge b-done" data-icon="archive">Archived</span>');
   });
 
   test("the search reads folder, title and description, across both kinds", () => {

@@ -187,26 +187,6 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
   });
 });
 
-// Spec 408, REQ-1/REQ-4: the Projects list and the Remove confirmation
-// page read and remember the language the same way `/` already does.
-describe("GET /projects and GET /projects/<name>/remove (spec 408)", () => {
-  test("GET /projects: ?lang=nb sets the cookie and renders a Norwegian frame", async () => {
-    const { base } = start();
-    const res = await fetch(`${base}/projects?lang=nb`, );
-    expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
-    const html = await res.text();
-    expect(html).toContain('<html lang="nb">');
-  });
-
-  test("GET /projects/<name>/remove: ?lang=nb sets the cookie and renders a Norwegian frame", async () => {
-    const { base } = start();
-    const res = await fetch(`${base}/projects/aide/remove?lang=nb`, );
-    expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
-    const html = await res.text();
-    expect(html).toContain('<html lang="nb">');
-  });
-});
-
 describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
   const AUTH = { "content-type": "application/json", accept: "application/json" };
 

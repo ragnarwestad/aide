@@ -416,7 +416,6 @@ def run(runner, ws, claude=None, codex=None, opencode=None, return_stderr=False,
 # The spec files the tests build, kept beside this one.
 from .run_spec.run_spec_status_files import (  # noqa: E402,F401
     REOPEN_BOUNDARY_DATE,
-    STATUS_ROW_COUNTING,
     TIME_OF_DAY_RE,
     TIME_SPENT_RE,
     add_spec,

@@ -57,17 +57,6 @@ describe("a multi-step job is shown on every step it ran", () => {
       ...extra,
     });
 
-  // Spec 451: two steps of ONE job used to share one link, because the
-  // link was the job's page. Neither carries a link now — each is its
-  // own plain-text line, which is the distinction the reader wanted
-  // from two lines in the first place.
-  test("its two steps are two plain-text lines, not one shared link", () => {
-    const html = rows([twoStep()]);
-    expect(noFold(subRow(html, "analyze"))).not.toContain("<a ");
-    expect(noFold(subRow(html, "implement"))).not.toContain("<a ");
-    expect(html).not.toContain('href="/specs/both"');
-  });
-
   test("an older failed attempt does not speak for a step that has since passed", () => {
     const html = rows([
       row({

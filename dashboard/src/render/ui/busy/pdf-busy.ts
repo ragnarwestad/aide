@@ -11,9 +11,7 @@
 // showing), but cosmetic only: the link and the PDF are unaffected
 // either way.
 //
-// Like its siblings, this file can neither import nor export anything;
-// test/render/ui/pdf-busy.test.ts runs it against a fake document AND a
-// fake window.
+// Like its siblings, this file can neither import nor export anything.
 
 (() => {
   const SPINNER = '<span class="spin" aria-hidden="true"></span>';

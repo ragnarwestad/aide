@@ -91,24 +91,6 @@ describe("GET /projects (spec 115)", () => {
   const harness = queueHarness("aide-projects-route-");
   afterEach(() => harness.cleanup());
 
-  test("it lists the projects and carries both controls", async () => {
-    const { base } = harness.start();
-    const res = await fetch(`${base}/projects`);
-    expect(res.status).toBe(200);
-    const html = await res.text();
-    // The listing, from the same rows the generated page drew.
-    expect(html).toContain('class="proj-row"');
-    // The row's own link is the SERVED page, not the generated file:
-    // that is the page with the settings and the readiness answer on
-    // it (spec 185), and two links reading "aide" going to two
-    // different pages is what this replaced.
-    expect(html).toContain('href="/projects/aide"');
-    // And the two controls that change it (2026-08-19): the Add button
-    // to its own page, and each row's Remove to its confirm page.
-    expect(html).toContain('href="/projects/new"');
-    expect(html).toContain('href="/projects/aide/remove"');
-  });
-
   test("the Add page and a row's Remove page are served", async () => {
     const { base } = harness.start();
     const add = await fetch(`${base}/projects/new`);

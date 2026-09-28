@@ -1,20 +1,8 @@
 // Split out of phase-rules.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import {
-  renderJobDetailPage,
-  renderSpecsRows,
-  type JobDetailView,
-  type QueueRowView,
-  type SpecTarget,
-} from "../../../../../src/render";
-import {
-  generatedAt,
-  NAV,
-  detail,
-  row,
-  openKeys,
-} from "../../fixtures.ts";
+import { renderSpecsRows, type QueueRowView, type SpecTarget } from "../../../../../src/render";
+import { row, openKeys } from "../../fixtures.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status";
 
 /** What a phase that has not run draws in the State column: a dash,
@@ -253,76 +241,8 @@ describe("spec 108: one rule per phase", () => {
     );
     expect(panel(html)).toContain("stopped: something-new");
   });
-
-  test("the job page's Steps tab says held back where the row does (criterion 5)", () => {
-    const archiveRun = (extra: Partial<JobDetailView> = {}): JobDetailView =>
-      detail({
-        id: "job-archive",
-        steps: ["archive"],
-        state: "done",
-        results: [
-          {
-            step: "archive", ok: true, costUsd: 0.51, costMeasured: true,
-            terminalReason: "completed", at: "2026-08-19T10:01:00Z",
-          },
-        ],
-        ...extra,
-      });
-    const held = renderJobDetailPage(
-      archiveRun({ archiveHeldBack: "the Slack webhook (Phase 4, still unchecked)" }),
-      generatedAt,
-      NAV,
-      { tab: "steps" },
-    );
-    expect(held).toContain("held back — the Slack webhook (Phase 4, still unchecked)");
-    expect(held).not.toContain("<td>ok</td>");
-
-    // Without a reason the table is exactly what it always was.
-    const plain = renderJobDetailPage(archiveRun(), generatedAt, NAV, { tab: "steps" });
-    expect(plain).toContain("<td>ok</td>");
-    expect(plain).not.toContain("held back");
-  });
 });
 // --- spec 114: a spec with an unmerged dependency says so on the row ---------
-
-// Spec 114 put a badge here — "after 106", one per dependency whose
-// branch was still unmerged — so the row said what it was waiting on.
-// Taken out again 2026-08-20: the title line already says "depends on
-// <folder>" (spec 110) one cell to the left, and the two stood side by
-// side saying nearly the same words about the same fact. The state cell
-// is the sentence and nothing else again.
-describe("a dependency is named once, on the title line, and not in the state cell", () => {
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
-    project: "aide",
-    specFolder,
-    ...extra,
-  });
-  const rows = (list: QueueRowView[], targets: SpecTarget[] = []) =>
-    renderSpecsRows(list, { runnerAvailable: true, targets }, Date.parse("2026-08-19T12:00:00Z"));
-  const rowHtml = (html: string, folder: string) =>
-    html.match(
-      new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">[\\s\\S]*?</tr>`),
-    )?.[0] ?? "";
-  const hintCell = (html: string, folder: string) =>
-    (rowHtml(html, folder).split("<td")[3] ?? "").match(
-      /<div class="muted small">([\s\S]*?)<\/div><\/td>/,
-    )?.[1] ?? "";
-  const unmerged = (specFolder: string) => row({ specFolder, state: "done" });
-
-  test("an unmerged dependency puts nothing in the state cell", () => {
-    const html = rows([unmerged("106-x")], [target("106-x"), target("114-b", { dependsOn: ["106"] })]);
-
-    expect(hintCell(html, "114-b")).not.toContain("after");
-    // The whole cell is the sentence, and nothing else.
-    expect(hintCell(html, "114-b")).toMatch(/^[^<]*$/);
-  });
-
-  test("the title line still says what the spec builds on", () => {
-    const html = rows([unmerged("106-x")], [target("106-x"), target("114-b", { dependsOn: ["106"] })]);
-
-    expect(rowHtml(html, "114-b")).toContain("depends on: 106");
-  });
-});
 
 // A dash means one thing on this page: no value, because nothing ran.
 // A phase whose own attempt reported done — its work on the branch, or

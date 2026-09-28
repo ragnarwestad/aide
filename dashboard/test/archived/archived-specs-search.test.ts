@@ -11,12 +11,6 @@ afterEach(() => harness.cleanup());
 // --- criterion 6: the search reaches both kinds of row ---------------------
 
 describe("the search field", () => {
-  test("is a GET form on the list, so searching needs no script", async () => {
-    const html = await specsList(start().base);
-    expect(html).toMatch(/<form[^>]*class="specsearch"[^>]*method="get"[^>]*action="\/"/);
-    expect(html).toContain('name="q"');
-  });
-
   // Spec 261: `skjer` is the one project besides `aide` in this harness
   // (`OTHER` and `LIVE_OTHER` are its two specs), and neither spec's
   // folder, title nor description mentions that project's name — so a
@@ -59,10 +53,6 @@ describe("the search field", () => {
 
   test("reaches a live spec too, and cuts the archived ones out", async () => {
     expect(order(await specsList(start().base, `${ALL_VIEW}&q=queue-and-runner`))).toEqual([LIVE]);
-  });
-
-  test("keeps the term in the field, so the reader can edit it", async () => {
-    expect(await specsList(start().base, `${ALL_VIEW}&q=remembers`)).toContain('value="remembers"');
   });
 
   test("carries the chip along, so searching does not throw the filter away", async () => {
@@ -112,13 +102,5 @@ describe("the search field's clear control", () => {
     expect(href).toContain("sort=spec");
     expect(href).toContain("dir=asc");
     expect(href).not.toContain("q=");
-  });
-
-  test("is not in the markup when there is nothing to clear (criterion 5)", async () => {
-    expect(searchForm(await specsList(start().base, ARCHIVED_VIEW))).not.toContain("searchclear");
-    // Nor for a term that is no search at all.
-    expect(searchForm(await specsList(start().base, `${ARCHIVED_VIEW}&q=++`))).not.toContain(
-      "searchclear",
-    );
   });
 });

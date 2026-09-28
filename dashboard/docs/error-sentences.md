@@ -49,11 +49,10 @@ lower-level helper deep in a call chain (`branch-merge.ts`'s `refuse()`, `aide-r
 call the builder — it keeps returning a plain string — but follows the same `what — resolve` shape by hand, so a
 reader sees one convention regardless of which layer wrote the words.
 
-`dashboard/test/render/ui/error-sentence-registry.test.ts` (and its bash-side counterpart in
-`tests/specs/unit/core/scripts/run_spec/run_spec_project_state.py`, checked by
-`run_spec/test_aide_run_spec_no_progress.py`) is the registry: every sentence the board can show is listed
-there with the resolution phrase its own current text must contain, or the reason it is exempt. It grows as each
-sentence is migrated to this convention — an entry is added once a sentence is fixed, not before.
+`BASH_ERROR_REGISTRY` in `tests/specs/unit/core/scripts/run_spec/run_spec_project_state.py`, checked by
+`run_spec/test_aide_run_spec_no_progress.py`, is the registry for the sentences `aide-run-spec` writes: each is
+listed there with the resolution phrase its own current text must contain, or the reason it is exempt. It grows as
+each sentence is migrated to this convention — an entry is added once a sentence is fixed, not before.
 
 ## An error that has resolved itself
 
@@ -64,6 +63,4 @@ one set, for exactly this reason: an older job's failed push must not outlive a 
 ## Words the reader does not use
 
 `src/i18n/banned-words.ts` lists the words a message may not use, in either language, and what to say instead —
-"landing" for a merge, "spesifikasjon" for a spec, "sammenslåing"/"slå ... sammen" for a merge. `banned-words.test.ts`
-reads every entry in `messages.ts`, `en.ts` and `nb.ts` against that list, so a new message reaching for one of them
-fails on sight.
+"landing" for a merge, "spesifikasjon" for a spec, "sammenslåing"/"slå ... sammen" for a merge.

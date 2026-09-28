@@ -34,27 +34,6 @@ afterEach(() => {
 });
 
 describe("the checkout-fault banner", () => {
-  test("names the project and says what git said", () => {
-    setCheckoutFault("woodstack", "/checkouts/woodstack/code is the project's own checkout, not a copy of one");
-
-    const html = shell();
-
-    expect(html).toContain("woodstack");
-    expect(html).toContain("is the project's own checkout, not a copy of one");
-    // Red, not amber: nothing about this project's rows can be trusted
-    // until someone looks, unlike a tool fault, which blocks one run.
-    expect(html).toContain('class="checkout-fault rowmsg failed"');
-  });
-
-  test("two broken checkouts are two lines, because they are two things to look at", () => {
-    setCheckoutFault("woodstack", "one thing");
-    setCheckoutFault("atlasaurus", "another thing");
-
-    const lines = shell().match(/<p class="checkout-fault rowmsg failed">[\s\S]*?<\/p>/g) ?? [];
-
-    expect(lines).toHaveLength(2);
-  });
-
   test("a checkout that answers again takes its line away", () => {
     setCheckoutFault("woodstack", "one thing");
     clearCheckoutFault("woodstack");

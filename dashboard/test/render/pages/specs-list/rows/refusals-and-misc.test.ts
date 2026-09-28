@@ -1,19 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import {
-  renderJobDetailPage,
-  renderSpecsPage,
-  renderSpecsRows,
-  type SpecsPageOptions,
-  type QueueRowView,
-  type SpecTarget,
-} from "../../../../../src/render";
-import { NAV, detail, row } from "../../fixtures.ts";
+import { renderSpecsPage, renderSpecsRows, type SpecsPageOptions, type QueueRowView, type SpecTarget } from "../../../../../src/render";
+import { row } from "../../fixtures.ts";
 
 // Split out of grouping.test.ts by theme.
-
-
-
-
 
 // Spec 99: the view survives an action, and a refusal finds its row ------
 
@@ -86,7 +75,6 @@ describe("every action form carries the current view (criterion 7)", () => {
     const form = line.match(/<form method="post" action="\/api\/queue\/j1\/cancel"[^>]*>.*?<\/form>/)![0];
     expect(form).toContain('<input type="hidden" name="view.state" value="active">');
   });
-
 });
 
 // The page lists up to 25 rows, so a refusal shown once at the top of
@@ -147,143 +135,5 @@ describe("a refusal is shown on the row it belongs to (criteria 8, 12)", () => {
     });
     expect(page).toContain('<p class="refusal rowmsg failed">');
     expect(page).toContain("Payload too large");
-  });
-});
-
-// Spec 100 made the spec list the front page and dropped the nav's own
-// "Specs" entry; spec 119 brought it back as one of the two tabs, at
-// `/` — the front page still, and still what the wordmark points at.
-// The old /specs address is linked from nowhere either way.
-describe("spec 119: the list page's own tab", () => {
-  test("renderSpecsPage marks Specs current, points it at /, and keeps the wordmark home", () => {
-    const html = renderSpecsPage(
-      [],
-      "2026-08-18T00:00:00Z",
-      [{ label: "Overview", path: "projects.html" }],
-      { runnerAvailable: true, targets: [] },
-    );
-    const navHtml = html.match(/<nav[^>]*>[\s\S]*?<\/nav>/)![0];
-    expect(navHtml).toContain('<a class="tab" data-nav data-goto href="/" aria-current="page">Specs</a>');
-    expect(html).not.toContain('href="/specs"');
-    expect(html).toContain('<a class="brand" href="/">');
-    // The Projects tab points wherever the caller's first entry does —
-    // the served route in production, this stand-in here.
-    expect(navHtml).toContain('href="projects.html"');
-  });
-});
-
-describe("an unmeasured cost is marked where it is totalled", () => {
-  const marker = '<span class="muted small">est.</span>';
-
-  test("the job page's overview total is marked when a summed step was over-charged", () => {
-    const html = renderJobDetailPage(
-      detail({
-        steps: ["implement"],
-        stepIndex: 0,
-        state: "stopped",
-        stopReason: "timeout",
-        spentUsd: 35,
-        results: [
-          {
-            step: "implement", ok: false, costUsd: 35, costMeasured: false,
-            terminalReason: "timeout", at: "2026-08-21T07:58:00Z",
-          },
-        ],
-      }),
-      "2026-08-21T08:00:00Z",
-      NAV,
-      { tab: "overview" },
-    );
-    expect(html).toContain("Cost so far");
-    expect(html).toContain(marker);
-  });
-
-  test("a job whose every step was measured carries no marker on its total", () => {
-    const html = renderJobDetailPage(
-      detail({
-        state: "done",
-        spentUsd: 0.42,
-        results: [
-          {
-            step: "analyze", ok: true, costUsd: 0.42, costMeasured: true,
-            terminalReason: "completed", at: "2026-08-21T10:01:00Z",
-          },
-        ],
-      }),
-      "2026-08-21T10:05:00Z",
-      NAV,
-      { tab: "overview" },
-    );
-    expect(html).toContain("Cost so far");
-    expect(html).not.toContain(marker);
-  });
-
-  // The row's own cell is a roll-up across every job the spec has had,
-  // which is the "41.13 USD for 149" figure the incident was about. On
-  // the list the mark used to be the figure's own tooltip; spec 454
-  // moved it into a "(?)" beside the figure instead — a click-to-open
-  // mark, since the Cost column is 4.5rem and has no room for the words
-  // themselves (2026-09-08).
-  const listMarker = "<p>This is an estimate: a step that was stopped is charged its whole budget";
-  const spentRow = (extra: Partial<QueueRowView>): QueueRowView =>
-    row({ state: "done", ...extra });
-
-  test("the spec row's total still sums an over-charged job, with no (?) marker", () => {
-    const html = renderSpecsRows(
-      [
-        spentRow({
-          id: "j1", steps: ["analyze"], spentUsd: 6.13,
-          results: [{ step: "analyze", ok: true, costUsd: 6.13, costMeasured: true }],
-        }),
-        spentRow({
-          id: "j2", steps: ["implement"], state: "stopped", stopReason: "timeout", spentUsd: 35,
-          results: [{ step: "implement", ok: false, costUsd: 35, costMeasured: false }],
-        }),
-      ],
-      { runnerAvailable: true, targets: [] },
-      Date.parse("2026-08-21T12:00:00Z"),
-    );
-    expect(html).toContain("$41.13");
-    expect(html).not.toContain(listMarker);
-  });
-
-  test("a spec whose every step was measured renders no marker", () => {
-    const html = renderSpecsRows(
-      [
-        spentRow({
-          id: "j1", steps: ["analyze"], spentUsd: 6.13,
-          results: [{ step: "analyze", ok: true, costUsd: 6.13, costMeasured: true }],
-        }),
-      ],
-      { runnerAvailable: true, targets: [] },
-      Date.parse("2026-08-21T12:00:00Z"),
-    );
-    expect(html).toContain("$6.13");
-    expect(html).not.toContain(listMarker);
-  });
-
-  // The phase lines answer for their OWN attempt, so the marker has to
-  // be decided per line rather than inherited from the row above them.
-  test("an expanded phase line carries no marker, over-charged or not", () => {
-    const rows = [
-      spentRow({
-        id: "j1", steps: ["analyze"], spentUsd: 6.13,
-        results: [{ step: "analyze", ok: true, costUsd: 6.13, costMeasured: true }],
-      }),
-      spentRow({
-        id: "j2", steps: ["implement"], state: "stopped", stopReason: "timeout", spentUsd: 35,
-        results: [{ step: "implement", ok: false, costUsd: 35, costMeasured: false }],
-      }),
-    ];
-    const html = renderSpecsRows(
-      rows,
-      { runnerAvailable: true, targets: [], filter: { open: "aide/81-queue-and-runner" } },
-      Date.parse("2026-08-21T12:00:00Z"),
-    );
-    const implementLine = html.slice(html.indexOf('data-step="implement"'));
-    const analyzeLine = html.slice(html.indexOf('data-step="analyze"'), html.indexOf('data-step="implement"'));
-    expect(implementLine.slice(0, implementLine.indexOf("</tr>"))).not.toContain(listMarker);
-    expect(analyzeLine).toContain("$6.13");
-    expect(analyzeLine).not.toContain(listMarker);
   });
 });

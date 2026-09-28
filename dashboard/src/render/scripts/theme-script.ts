@@ -9,8 +9,6 @@
 //
 // Like `specs-client.ts`, this file can neither import nor export
 // anything: `shell.ts` transpiles it into an inline classic <script>.
-// `test/theme-script.test.ts` runs it against a fake document for the
-// same reason that file exists.
 //
 // It runs in <head>, which is the opposite of where `opts.script` goes
 // and for the opposite reason: the theme must be on the html element

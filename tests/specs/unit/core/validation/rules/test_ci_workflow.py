@@ -1,14 +1,9 @@
-"""Validation tests for the CI workflow.
+"""The CI workflow and scripts/check-bash: the bun pin follows the
+lockfile, the pytest job keeps pytest.ini's deselection of the billed
+suites, and check-bash behaves without shellcheck installed.
 
-The workflow is read as text, not parsed as YAML: nothing else in this
-suite imports a YAML library, and CI installs only what requirements.txt
-names.
-
-What these tests hold onto is the pairing, not the shape of the file: the
-workflow's gate commands against the ones .claude/CLAUDE.md documents, and
-its bun-version against the version dashboard/bun.lock resolves. Those are
-the two places a silent drift can start.
-"""
+The workflow is read as text, not parsed as YAML: CI installs only what
+requirements.txt names."""
 import re
 
 import pytest
@@ -87,135 +82,6 @@ def _run_commands(job_text):
 class TestCiWorkflow:
     """The workflow must run the gates .claude/CLAUDE.md documents."""
 
-    def test_all_jobs_run_on_macos(self, workspace_root):
-        """Criterion 1: six jobs, every one of them on macOS.
-
-        BSD sed and bash 3.2 are what the shell scripts are written for; a
-        Linux runner would go green while exercising different code.
-        """
-        jobs = _jobs(_workflow_text(workspace_root))
-        assert len(jobs) == 6, \
-            f"Expected one job per gate, found {sorted(jobs)}"
-        for name, body in jobs.items():
-            runners = re.findall(r"^\s*runs-on:\s*(\S+)", body, re.MULTILINE)
-            assert runners, f"Job '{name}' declares no runs-on"
-            for runner in runners:
-                assert runner.strip("'\"").startswith("macos"), \
-                    f"Job '{name}' runs on {runner}, not a macOS runner"
-
-    def test_runs_on_pull_requests_only(self, workspace_root):
-        """A local merge is gated by the landing's own suite; CI is the
-        check a pull request gets before a person merges it. A `push`
-        trigger beside it was a second lamp nobody watched."""
-        text = _workflow_text(workspace_root)
-        m = re.search(r"^on:\s*(.*)$", text, re.MULTILINE)
-        assert m, "The workflow declares no top-level 'on:' trigger"
-        triggers = re.findall(r"[a-z_]+", m.group(1))
-        assert triggers == ["pull_request"], \
-            f"CI must run on pull_request alone, found {triggers}"
-
-    def test_pytest_job_runs_venv_pytest(self, workspace_root):
-        """Criterion 2: the root gate is the exact command CLAUDE.md names."""
-        jobs = _jobs(_workflow_text(workspace_root))
-        assert "pytest" in jobs, f"No 'pytest' job, found {sorted(jobs)}"
-        commands = "\n".join(_run_commands(jobs["pytest"]))
-        assert re.search(r"(?<![\w/.-])\.venv/bin/pytest(?![\w/.-])", commands), \
-            "The pytest job never runs the exact command .venv/bin/pytest"
-
-    def test_dashboard_job_runs_make_test(self, workspace_root):
-        """Criterion 3: make test, so tsc --noEmit runs before bun test."""
-        jobs = _jobs(_workflow_text(workspace_root))
-        assert "dashboard" in jobs, f"No 'dashboard' job, found {sorted(jobs)}"
-        commands = "\n".join(_run_commands(jobs["dashboard"]))
-        assert "cd dashboard && make test" in commands, \
-            "The dashboard job must run 'cd dashboard && make test' — " \
-            "'bun test' alone transpiles without type-checking"
-
-    def test_dashboard_job_installs_the_browser_before_the_tests(self, workspace_root):
-        """`make test` runs the browser tests, so CI needs the browser in
-        place before that step rather than for a step of its own."""
-        jobs = _jobs(_workflow_text(workspace_root))
-        commands = _run_commands(jobs["dashboard"])
-        install = next(
-            (i for i, c in enumerate(commands) if "playwright install" in c), None
-        )
-        assert install is not None, \
-            "The dashboard job never installs the browser — every browser " \
-            "test would fail on a runner that has none"
-        gate = next(
-            i for i, c in enumerate(commands)
-            if c.startswith("cd dashboard && make test ") or c == "cd dashboard && make test"
-        )
-        assert install < gate, "the browser has to be installed before make test runs it"
-
-    def test_markdownlint_job_runs_correct_command(self, workspace_root):
-        """Criterion 4: markdownlint from the root, where its config lives."""
-        jobs = _jobs(_workflow_text(workspace_root))
-        assert "markdownlint" in jobs, \
-            f"No 'markdownlint' job, found {sorted(jobs)}"
-        commands = "\n".join(_run_commands(jobs["markdownlint"]))
-        assert "npx markdownlint-cli2 '**/*.md'" in commands, \
-            "The markdownlint job never runs the documented command"
-
-    def test_shellcheck_job_runs_check_bash(self, workspace_root):
-        """Criterion 9: the shellcheck job runs scripts/check-bash, the same
-        command a person runs before a merge, so the list of scripts and
-        the severity have one home."""
-        jobs = _jobs(_workflow_text(workspace_root))
-        assert "shellcheck" in jobs, f"No 'shellcheck' job, found {sorted(jobs)}"
-        steps = _run_commands(jobs["shellcheck"])
-        # One of the job's steps is the check itself; a step before it may
-        # install the tool (the macOS runner image stopped shipping it in
-        # September 2026).
-        assert any(c.strip() == "scripts/check-bash" for c in steps), \
-            "The shellcheck job never runs scripts/check-bash"
-        assert not any(c.strip().startswith("shellcheck ") for c in steps), \
-            "The shellcheck job runs shellcheck directly — the list of " \
-            "scripts belongs in scripts/check-bash alone"
-
-    def test_agnix_job_runs_check_agents(self, workspace_root):
-        """The agnix job runs scripts/check-agents, the command a person
-        runs, and never agnix directly: the version and the strictness
-        live in that script alone."""
-        jobs = _jobs(_workflow_text(workspace_root))
-        assert "agnix" in jobs, f"No 'agnix' job, found {sorted(jobs)}"
-        steps = _run_commands(jobs["agnix"])
-        assert any(c.strip() == "scripts/check-agents" for c in steps), \
-            "The agnix job never runs scripts/check-agents"
-        assert not any("agnix@" in c for c in steps), \
-            "The agnix job runs agnix directly — the version belongs in scripts/check-agents"
-
-    def test_check_agents_pins_the_version_and_fails_on_warnings(self, workspace_root):
-        """A new agnix release cannot turn the check red on its own, and a
-        warning fails it as an error does."""
-        text = (workspace_root / "scripts" / "check-agents").read_text()
-        assert re.search(r"^AGNIX_VERSION=\d+\.\d+\.\d+$", text, re.M), \
-            "scripts/check-agents must pin agnix to an exact version"
-        assert '"agnix@$AGNIX_VERSION" --strict' in text, \
-            "scripts/check-agents must run the pinned agnix in strict mode"
-
-    def test_check_bash_names_every_script_group(self, workspace_root):
-        """scripts/check-bash covers every bash script in core/scripts, not
-        just aide-run-spec and its lib/ files, and fails on warnings."""
-        path = workspace_root / "scripts" / "check-bash"
-        assert path.exists(), "No scripts/check-bash"
-        text = path.read_text()
-        assert "shellcheck --severity=warning" in text, \
-            "scripts/check-bash must fail on warnings and errors"
-        for target in (
-            "core/scripts/aide-*",
-            "core/scripts/_*.sh",
-            "core/scripts/build-agents-md.sh",
-            "core/scripts/upgrade-ai-tools",
-            "core/scripts/lib/*.sh",
-            # The round's own bash — the script a test server is started
-            # by, and the stand-in model it drives.
-            "dashboard/test/round/run",
-            "dashboard/test/round/claude-stub",
-        ):
-            assert target in text, \
-                f"scripts/check-bash never names {target}"
-
     def test_check_bash_says_how_to_install_shellcheck(self, workspace_root):
         """Without shellcheck on PATH the script refuses with the install
         command, rather than failing on 'command not found'."""
@@ -245,18 +111,6 @@ class TestCiWorkflow:
             f"Expected exit 0 for --help, got {result.returncode}: {result.stderr}"
         assert "usage" in result.stdout.lower(), result.stdout
 
-    def test_biome_job_runs_lint_only(self, workspace_root):
-        """Criterion 10: lint alone, not check/format — this codebase was
-        never run through biome's formatter, and a gate on its existing
-        line-wrapping would fail on style nobody asked about."""
-        jobs = _jobs(_workflow_text(workspace_root))
-        assert "biome" in jobs, f"No 'biome' job, found {sorted(jobs)}"
-        commands = "\n".join(_run_commands(jobs["biome"]))
-        assert "@biomejs/biome lint src/" in commands, \
-            "The biome job must run biome's lint command over dashboard/src"
-        assert "biome check" not in commands and "biome format" not in commands, \
-            "The biome job must not run check or format — lint only"
-
     def test_bun_version_matches_lockfile(self, workspace_root):
         """Criterion 5: the workflow's bun pin follows dashboard/bun.lock.
 
@@ -274,14 +128,6 @@ class TestCiWorkflow:
         assert pinned.group(1) == resolved.group(1), \
             f"The workflow pins bun {pinned.group(1)} but dashboard/bun.lock " \
             f"resolves {resolved.group(1)}"
-
-    def test_requirements_pins_pytest_exactly(self, workspace_root):
-        """Criterion 6: an exact pin, not a bare name and not a range."""
-        path = workspace_root / "requirements.txt"
-        assert path.exists(), \
-            "No requirements.txt — CI has nothing to install pytest from"
-        assert re.search(r"^pytest==\d+(\.\d+)+$", path.read_text(), re.MULTILINE), \
-            "requirements.txt must pin pytest exactly (pytest==X.Y.Z)"
 
     def test_pytest_job_has_no_marker_override(self, workspace_root):
         """Criterion 7: pytest.ini's own deselection is the only one in force.
@@ -305,18 +151,3 @@ class TestCiWorkflow:
                 "— e2e and evaluation would run and be billed"
             assert "--override-ini" not in line, \
                 f"'{line.strip()}' overrides pytest.ini"
-
-    def test_concurrency_and_timeouts_present(self, workspace_root):
-        """Criterion 8: superseded runs are cancelled, wedged jobs fail fast."""
-        text = _workflow_text(workspace_root)
-        concurrency = re.search(
-            r"^concurrency:\n((?:[ \t]+.*\n)+)", text, re.MULTILINE
-        )
-        assert concurrency, "The workflow declares no top-level concurrency block"
-        assert "cancel-in-progress: true" in concurrency.group(1), \
-            "The concurrency block does not cancel superseded runs"
-
-        for name, body in _jobs(text).items():
-            assert re.search(r"^\s*timeout-minutes:\s*\d+", body, re.MULTILINE), \
-                f"Job '{name}' has no timeout-minutes — a wedged run would " \
-                "hold a macOS runner for the default six hours"

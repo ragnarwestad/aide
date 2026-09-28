@@ -130,7 +130,7 @@ export function specHeadRow(
       `<span class="muted">:</span><span class="specname">${esc(specName)}</span></a></span>`
     // No `title` attribute here: the whole name is already on the line,
     // and a tooltip repeating it would put the spec's title on the page
-    // twice (`row-links-and-branches.test.ts`). There is no spec page to
+    // twice. There is no spec page to
     // open yet, so only the project is a link.
     : `<span class="label">${project}<span class="specpart"><span class="muted">:</span><span class="specname">${esc(specName)}</span></span></span>`;
   // A pull request open for this row's branch is a fact about the work,

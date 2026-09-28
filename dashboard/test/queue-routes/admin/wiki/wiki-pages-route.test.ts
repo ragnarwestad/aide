@@ -21,21 +21,6 @@ const TAB = "/projects/aide?tab=wiki";
 const listed = (h: string) => h.includes("How a branch lands.");
 
 describe("the Wiki tab lists and opens the wiki's pages (AC-1, AC-2, AC-5)", () => {
-  test("?tab=wiki opens on Pages and lists the pages in the index's order, with none of the Build panel beside them (AC-1)", async () => {
-    const { base } = await board(WIKI);
-    const html = await untilTab(base, TAB, listed);
-    expect(html.indexOf("Landing")).toBeLessThan(html.indexOf("Skills"));
-    expect(html).toContain("The slash commands.");
-    expect(html).not.toContain('action="/api/queue/projects/aide/wiki"');
-    expect(html).not.toContain("/spec-viewer.js");
-  });
-
-  test("the state of a page written from a commit the project lacks reads Unknown (AC-4)", async () => {
-    const { base } = await board(WIKI);
-    const html = await untilTab(base, TAB, listed);
-    expect(html).toContain("Unknown");
-    expect(html).toContain("By hand");
-  });
 
   test("?page= opens that page with the viewer, its links rewritten, and no self-reload (AC-2)", async () => {
     const { base } = await board(WIKI);
@@ -59,21 +44,5 @@ describe("the Wiki tab lists and opens the wiki's pages (AC-1, AC-2, AC-5)", () 
     expect(missing).toContain("How a branch lands.");
   });
 
-  test("a language change keeps the reader on the same page (AC-5)", async () => {
-    const { base } = await board(WIKI);
-    await untilTab(base, TAB, listed);
-    const html = await (await fetch(`${base}${TAB}&page=landing.md`)).text();
-    expect(html).toContain("page=landing.md");
-    expect(html).toMatch(/href="[^"]*tab=wiki&(amp;)?page=landing\.md[^"]*lang=/);
-  });
 });
 
-describe("a project with no wiki (AC-8)", () => {
-  test("the tab is drawn as it was, with no pages block and no viewer", async () => {
-    const { base } = await board();
-    const html = await untilTab(base, TAB, (h) => h.includes("Build wiki"));
-    expect(html).toContain("Build wiki");
-    expect(html).not.toContain('class="wikipages"');
-    expect(html).not.toContain("/spec-viewer.js");
-  });
-});

@@ -75,8 +75,7 @@ export interface NewSpecPageOptions {
 // The chip's own project rides on a WRAPPER, not on the chip: `phaseChip`
 // ties its `data-` attribute to its form value, and the value here has
 // to be the folder. A bare `<span>` with a data attribute needs no class,
-// so the closed component vocabulary (`css-token-guard.test.ts`) is
-// untouched.
+// so the closed component vocabulary is untouched.
 //
 // On THIS page every project's chips are rendered, and the browser
 // scopes them to the chosen one (`specs-client.ts`). Without script they

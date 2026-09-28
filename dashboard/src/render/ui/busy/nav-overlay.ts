@@ -12,13 +12,7 @@
 // all, when the reader presses Back into it. `pageshow` with
 // `persisted` true is the signal that happened, and closes it.
 //
-// Like nav-busy.ts, this file can neither import nor export anything;
-// test/render/ui/nav-overlay.test.ts runs it against a fake document
-// AND a fake window — unlike nav-busy.ts/form-busy.ts, which only ever
-// need the former, this file's pageshow listener needs `window` passed
-// in as its own argument too, or the transpiled IIFE throws
-// ReferenceError the moment it runs (there is no global `window` under
-// `bun test`).
+// Like nav-busy.ts, this file can neither import nor export anything.
 
 (() => {
   const DELAY_MS = 150;

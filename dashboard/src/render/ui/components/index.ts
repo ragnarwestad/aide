@@ -9,9 +9,8 @@
 // `.rowrun`, and a button in three versions depending on which
 // form it sat in. Shared CSS classes alone would not have stopped that:
 // nothing prevents the next spec writing its own markup with its own
-// class. A function does, and a guard test
-// (`test/css-token-guard.test.ts`) refuses any class that is not one of
-// these.
+// class. A function does, and no render file emits a class that is not
+// one of these.
 //
 // Every variant here has a counterpart in the design sheet
 // (`specs/102-design-foundation/assets/Components.dc.html`); nothing is

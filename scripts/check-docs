@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # check-docs - The guards that read the documentation, and nothing else.
 #
-# Fourteen tests read a page rather than the code: the table in
-# `.claude/CLAUDE.md` (every page has a row, and answers what the row
-# promises), the lifecycle diagram against `core/scripts/lib/transitions.json`,
-# the rules, the skills, the templates, and the dashboard's own docs
-# guards. They live in both suites, which is why a doc change has no
-# obvious command to run — this is that command.
+# The tests that read a page rather than the code, where code depends on
+# the text: the lifecycle diagram against `core/scripts/lib/transitions.json`,
+# the skills' frontmatter, step headings and the script names they call,
+# the templates' placeholders, and the dashboard's own docs guards. They
+# live in both suites, which is why a doc change has no obvious command
+# to run — this is that command.
 #
 # About ten seconds, against four minutes for both full suites. A change that
 # also touches `dashboard/src` or `core/scripts` needs those:
@@ -27,7 +27,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 status=0
 
 if [ -x .venv/bin/pytest ]; then
-  .venv/bin/pytest -q tests/specs/unit/core/validation || status=1
+  .venv/bin/pytest -q tests/specs/unit/core/validation tests/specs/unit/core/skills || status=1
 else
   echo "no .venv/bin/pytest — python3 -m venv .venv && .venv/bin/pip install -r requirements.txt" >&2
   status=1

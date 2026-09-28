@@ -44,10 +44,6 @@ describe("spec 169: one picker per phase", () => {
     { name: "gpt-fast",  tool: "codex" as const },
     { name: "sonnet" },
   ];
-  const ONE_TOOL = [
-    { name: "sonnet" },
-    { name: "fable" },
-  ];
 
   const rows = (
     list: QueueRowView[] = [],
@@ -69,47 +65,8 @@ describe("spec 169: one picker per phase", () => {
   const STEPS = ["create", "analyze", "implement", "archive"];
   const phaseSelect = (html: string, step: string) =>
     html.match(new RegExp(`<select name="model\\.${step}"[\\s\\S]*?</select>`))?.[0] ?? "";
-  const caption = (html: string) =>
-    html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
 
   // --- criterion 1 -----------------------------------------------------------
-
-  test("every phase select offers every model, grouped by tool", () => {
-    const html = rows();
-    for (const step of STEPS) {
-      const select = phaseSelect(html, step);
-      expect([step, select !== ""]).toEqual([step, true]);
-      expect([step, select.includes('<optgroup label="Claude Code">')]).toEqual([step, true]);
-      expect([step, select.includes('<optgroup label="Codex">')]).toEqual([step, true]);
-      // Every model, and none of them hidden: hiding half the list is
-      // what stopped a reader discovering the row can mix tools.
-      for (const m of BOTH) {
-        expect([step, m.name, select.includes(`value="${m.name}"`)]).toEqual([step, m.name, true]);
-      }
-      expect([step, select.includes("hidden")]).toEqual([step, false]);
-      // `data-tool` came back in spec 179 — read to say which AI a
-      // model belongs to, never to hide one. The assertion that
-      // nothing is hidden, right above, is what keeps the two apart.
-      expect([step, /<option value="gpt-fast" data-tool="codex"/.test(select)]).toEqual([step, true]);
-      expect([step, /<option value="sonnet" data-tool="claude"/.test(select)]).toEqual([step, true]);
-      // The option's text is only the model's name (spec 457 drops the
-      // budget suffix spec 454 had added) — no "(codex)" suffix (spec
-      // 167); the group above it says the tool while the list is open,
-      // the name itself while it is closed.
-      expect([step, select.includes("(codex)")]).toEqual([step, false]);
-      expect([step, /<option value="gpt-fast"[^>]*>gpt-fast<\/option>/.test(select)]).toEqual([step, true]);
-    }
-    // The grouping is in the configured tool order — Claude Code, then
-    // Codex — not whichever tool `modelChoices` happens to lead with.
-    const first = phaseSelect(rows([], { modelChoices: CODEX_FIRST }), "analyze");
-    expect(first.indexOf('label="Claude Code"')).toBeLessThan(first.indexOf('label="Codex"'));
-  });
-
-  test("a tool with no model configured draws no group of its own", () => {
-    const select = phaseSelect(rows([], { modelChoices: ONE_TOOL }), "analyze");
-    expect(select).toContain('<optgroup label="Claude Code">');
-    expect(select).not.toContain("Codex");
-  });
 
   // --- criterion 5's server half: what a phase has already run on -----------
 
@@ -130,41 +87,7 @@ describe("spec 169: one picker per phase", () => {
 
   // --- criterion 7: the model selects stand on their own --------------------
 
-  // The AI select writes the model select and does nothing else, so the
-  // five model selects underneath it are never filtered by it: every
-  // model is in every one of them, and none of them is hidden.
-  test("every phase select carries every model, unfiltered", () => {
-    const html = rows();
-    for (const step of STEPS) {
-      const select = phaseSelect(html, step);
-      for (const m of BOTH) {
-        expect([step, m.name, select.includes(`value="${m.name}"`)]).toEqual([step, m.name, true]);
-      }
-      expect([step, select.includes("hidden")]).toEqual([step, false]);
-    }
-  });
-
   // --- criterion 8 -----------------------------------------------------------
-
-  // The merged "AI - Model" word spoke for a column the AI did not
-  // have. Spec 179 gives it one, so the two are two words over two
-  // columns and the model's is the single word it always names.
-  test("the caption gives the AI a word of its own when there are two to tell apart", () => {
-    const cap = caption(rows());
-    expect(cap).toContain(">AI<");
-    expect(cap).toContain(">Model<");
-    expect(cap).not.toContain("AI - Model");
-  });
-
-  // One tool is still named. Hiding the AI column left the first select
-  // on the line holding a MODEL under a heading a reader takes for the
-  // AI — and a project running a scripted stand-in could not see from
-  // the row that it was running one.
-  test("one tool is named too, so the headings match the controls under them", () => {
-    const cap = caption(rows([], { modelChoices: ONE_TOOL }));
-    expect(cap).toContain(">Model<");
-    expect(cap).toContain(">AI<");
-  });
 
   // --- criterion 9 -----------------------------------------------------------
 

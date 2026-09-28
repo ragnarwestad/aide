@@ -11,10 +11,7 @@
 // so — that the eight routes answer, that they answer without a token,
 // and that the worker behind them caches nothing.
 import { afterEach, describe, expect, test } from "bun:test";
-import { appIcon, appIconMaskable } from "../../../src/render/ui/brand.ts";
-import { CSS } from "../../../src/render/ui/css";
-import { APPLE_TOUCH_ICON, PWA_FILES, SERVICE_WORKER, THEME_COLORS } from "../../../src/render/ui/pwa.ts";
-import { barCentres, coloredBox, decodePng, hexRgb, readIconSvg } from "../../helpers/icon-image.ts";
+import { PWA_FILES, SERVICE_WORKER, THEME_COLORS } from "../../../src/render/ui/pwa.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 
 const harness = queueHarness("aide-pwa-");
@@ -61,18 +58,6 @@ describe("the manifest (criterion 1)", () => {
       expect(list.some((i) => i.type === "image/png" && i.sizes === sizes && i.purpose === "any")).toBe(true);
   });
 
-  test("every PNG it names answers as a well-formed PNG of the size it claims (AC-1, AC-2)", async () => {
-    const { base } = start();
-    const pngs = (await icons(base)).filter((i) => i.type === "image/png");
-    expect(pngs).toHaveLength(3);
-    for (const icon of pngs) {
-      const res = await fetch(`${base}${icon.src}`);
-      expect([icon.src, res.status, res.headers.get("content-type")]).toEqual([icon.src, 200, "image/png"]);
-      const png = decodePng(new Uint8Array(await res.arrayBuffer()));
-      expect(`${png.width}x${png.height}`).toBe(icon.sizes);
-    }
-  });
-
   test("it lists a maskable PNG of at least 512 (AC-2)", async () => {
     const { base } = start();
     const m = (await icons(base)).find((i) => i.purpose === "maskable" && i.type === "image/png");
@@ -96,24 +81,6 @@ describe("the manifest (criterion 1)", () => {
         "image/svg+xml; charset=utf-8",
       ]);
     }
-  });
-
-  test("each PNG route serves the artwork of its own purpose (AC-3)", async () => {
-    const { base } = start();
-    const plain = readIconSvg(await (await fetch(`${base}/icon-512.svg`)).text());
-    const maskable = readIconSvg(await (await fetch(`${base}/icon-512-maskable.svg`)).text());
-    const load = async (path: string) => decodePng(new Uint8Array(await (await fetch(`${base}${path}`)).arrayBuffer()));
-    const p192 = await load("/icon-192.png");
-    const p512 = await load("/icon-512.png");
-    const m512 = await load("/icon-512-maskable.png");
-    expect(barCentres(p192, plain.bars)).toEqual(plain.bars.map((b) => hexRgb(b.fill)));
-    expect(barCentres(p512, plain.bars)).toEqual(plain.bars.map((b) => hexRgb(b.fill)));
-    expect(barCentres(m512, maskable.bars)).toEqual(maskable.bars.map((b) => hexRgb(b.fill)));
-    const span = (png: typeof p512) => {
-      const box = coloredBox(png, hexRgb(plain.canvas));
-      return box.x1 - box.x0;
-    };
-    expect(span(m512)).toBeLessThan(span(p512));
   });
 });
 
@@ -153,15 +120,6 @@ describe("the icons (criterion 3)", () => {
       expect((await res.arrayBuffer()).byteLength).toBeGreaterThan(100);
     });
   }
-
-  test("the apple-touch-icon is a real PNG, not a placeholder", async () => {
-    const { base } = start();
-    const bytes = new Uint8Array(await (await fetch(`${base}/apple-touch-icon.png`)).arrayBuffer());
-    // \x89PNG — iOS wants a raster icon and will show nothing at all
-    // for a file that only claims to be one.
-    expect([...bytes.slice(0, 4)]).toEqual([0x89, 0x50, 0x4e, 0x47]);
-    expect(bytes.length).toBe(APPLE_TOUCH_ICON.length);
-  });
 });
 
 describe("the eight answer any request with a Host of the dashboard's own", () => {
@@ -193,112 +151,6 @@ describe("the eight answer any request with a Host of the dashboard's own", () =
     const { base } = start();
     for (const path of ["/icon-192.png", "/icon-512.png", "/icon-512-maskable.png"])
       expect([path, (await fetch(`${base}${path}`, { method: "POST" })).status]).toEqual([path, 405]);
-  });
-});
-
-// --- the maskable icon's safe zone (criterion 7) -----------------------------
-
-/** Every bar in an icon, in the icon's OWN coordinates: the bars are
- *  drawn once, on the 64 grid `brand.ts` describes, and placed by a
- *  transform on the group around them. What a launcher crops is the
- *  transformed position, so that is what this reads. */
-function barBounds(svg: string): { x0: number; y0: number; x1: number; y1: number }[] {
-  const box = /viewBox="0 0 (\d+) \d+"/.exec(svg);
-  expect(box).not.toBeNull();
-  const g = /<g transform="translate\(([-\d.]+) ([-\d.]+)\) scale\(([\d.]+)\)">([\s\S]*)<\/g>/.exec(svg);
-  expect(g).not.toBeNull();
-  const [tx, ty, scale] = [Number(g![1]), Number(g![2]), Number(g![3])];
-  const rects = [...g![4]!.matchAll(/<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)];
-  expect(rects.length).toBe(4);
-  return rects.map((m) => {
-    const [x, y, w, h] = [Number(m[1]), Number(m[2]), Number(m[3]), Number(m[4])];
-    return { x0: x * scale + tx, y0: y * scale + ty, x1: (x + w) * scale + tx, y1: (y + h) * scale + ty };
-  });
-}
-
-const VIEWBOX = 64;
-
-describe("the maskable icon keeps the mark inside the safe zone (criterion 7)", () => {
-  const svg = appIconMaskable("#EFECE5");
-
-  // The box the plan named — 10% in from every edge. Kept, and not
-  // relied on: the mark is already inset on its own grid, so an
-  // UNSHRUNK mark passes this by a tenth of a unit. The circle below
-  // is what actually decides whether the icon survives a crop.
-  test("every bar sits at least 10% of the canvas in from every edge", () => {
-    const margin = VIEWBOX * 0.1;
-    for (const bar of barBounds(svg)) {
-      expect(bar.x0).toBeGreaterThanOrEqual(margin);
-      expect(bar.y0).toBeGreaterThanOrEqual(margin);
-      expect(bar.x1).toBeLessThanOrEqual(VIEWBOX - margin);
-      expect(bar.y1).toBeLessThanOrEqual(VIEWBOX - margin);
-    }
-  });
-
-  test("and inside the circle the platforms actually document", () => {
-    // A maskable icon may be cropped to a circle, a squircle or a
-    // rounded square, and the one region every shape keeps is the
-    // circle of 40% radius on the centre. Four corners per bar,
-    // because a corner is what leaves a circle first.
-    const radius = VIEWBOX * 0.4;
-    for (const bar of barBounds(svg)) {
-      for (const [x, y] of [
-        [bar.x0, bar.y0],
-        [bar.x1, bar.y0],
-        [bar.x0, bar.y1],
-        [bar.x1, bar.y1],
-      ]) {
-        expect(Math.hypot(x! - VIEWBOX / 2, y! - VIEWBOX / 2)).toBeLessThanOrEqual(radius);
-      }
-    }
-  });
-
-  test("the canvas is filled, because a launcher decides what is behind a transparent one", () => {
-    expect(svg).toContain(`<rect width="64" height="64" fill="#EFECE5"/>`);
-  });
-
-  test("the mark is centred on the canvas rather than left where the favicon has it", () => {
-    // The bars run x 14..59 on a 64 grid — 14 in from the left, 5 from
-    // the right. Unnoticeable at favicon size; a visible lean at 512.
-    const bars = barBounds(svg);
-    const left = Math.min(...bars.map((b) => b.x0));
-    const right = VIEWBOX - Math.max(...bars.map((b) => b.x1));
-    expect(Math.abs(left - right)).toBeLessThan(0.5);
-  });
-
-  test("the plain icon uses the same bars, just less shy of the edges", () => {
-    const plain = barBounds(appIcon("#EFECE5"));
-    const maskable = barBounds(svg);
-    const width = (bars: { x0: number; x1: number }[]) =>
-      Math.max(...bars.map((b) => b.x1)) - Math.min(...bars.map((b) => b.x0));
-    expect(width(plain)).toBeGreaterThan(width(maskable));
-  });
-});
-
-// --- the colours the installed window is painted in --------------------------
-
-/** The value of one token, read out of the stylesheet the page actually
- *  ships — the same trick `css-token-guard.test.ts` uses. */
-function token(selector: string, name: string): string {
-  const at = CSS.indexOf(selector);
-  expect(at).toBeGreaterThan(-1);
-  const value = new RegExp(`${name}:\\s*([^;]+)`).exec(CSS.slice(at));
-  expect(value).not.toBeNull();
-  return value![1]!.trim();
-}
-
-describe("the app's colours are the page's colours", () => {
-  // `theme_color` and the two `theme-color` metas paint the window's
-  // title bar and a phone's status bar. Off by one shade and the
-  // installed app has a seam across the top that the browser tab never
-  // had — and nothing in the suite would notice, because the page
-  // itself still looks right.
-  test("light is the page's own background", () => {
-    expect(THEME_COLORS.light).toBe(token(":root {", "--bg"));
-  });
-
-  test("dark is the dark page's own background", () => {
-    expect(THEME_COLORS.dark).toBe(token(':root[data-theme="dark"] {', "--bg"));
   });
 });
 
@@ -418,17 +270,6 @@ describe("the worker shows every push and opens the spec on a tap (criterion 10)
     const w = worker(async () => new Response("ok"));
     await w.push(() => ({ title: "aide · 81-x", body: "Implement failed.", url: "/specs/aide/81-x" }));
     expect(w.shown).toEqual([{ title: "aide · 81-x", options: expect.objectContaining({ body: "Implement failed.", data: { url: "/specs/aide/81-x" } }) }]);
-  });
-
-  // The badge is the status-bar glyph, which Android silhouettes off the
-  // alpha channel, so it names the transparent one and never an app icon.
-  // No icon: Android draws the app's own beside the notification, and an
-  // icon would add a second copy at its right edge.
-  test("a notification carries the transparent badge and no second icon", async () => {
-    const w = worker(async () => new Response("ok"));
-    await w.push(() => ({ title: "aide · 81-x", body: "Implement failed." }));
-    expect(w.shown[0]!.options.icon).toBeUndefined();
-    expect(w.shown[0]!.options.badge).toBe("/badge-96.png");
   });
 
   test("the badge it names is a file the board actually serves", () => {

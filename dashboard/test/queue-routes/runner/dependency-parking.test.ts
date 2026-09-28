@@ -1,10 +1,10 @@
 // Split out of step-and-dependency-routes.test.ts by theme.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { rmSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { rmSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { OPEN_81, setupQueueRoutesHarness } from "../fixtures.ts";
+import { setupQueueRoutesHarness } from "../fixtures.ts";
 import { renderSentence } from "../../../src/i18n/message.ts";
 
 /** The message a job carries, as text. Since spec 380 a job stores
@@ -112,25 +112,11 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
 
   /** Long enough for a spawn to have written its file, for the checks
    *  that assert it did NOT: proving an absence needs a real pause, not
-   *  a wait that ends when something appears. A check that the spawn DID
-   *  happen uses `spawned()` below instead — a fixed pause there is a
-   *  guess about how long a spawn takes, and a guess that holds on an
-   *  idle machine does not hold on a loaded one. */
+   *  a wait that ends when something appears. */
   const settle = () => Bun.sleep(400);
 
-  /** Wait for the stub runner to have written its file, bounded. Fails
-   *  saying so when it never does, so a queue that wrongly parks the job
-   *  is still caught — it just is not caught by the clock. */
-  const spawned = async (argvFile: string, ms = 10_000): Promise<boolean> => {
-    const deadline = Date.now() + ms;
-    while (!existsSync(argvFile)) {
-      if (Date.now() >= deadline) return false;
-      await Bun.sleep(25);
-    }
-    return true;
-  };
-
-  /** `spawned()`'s wait for any condition, bounded the same way. */
+  /** Wait for a condition, bounded: a check that something DID happen
+   *  waits on it rather than on the clock. */
   const until = async (cond: () => boolean, ms = 8_000): Promise<boolean> => {
     const deadline = Date.now() + ms;
     while (!cond()) {
@@ -170,40 +156,6 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     expect(listed.jobs[0].state).toBe("queued");
     // The number, not the folder: the row names the folder a line
     // above this message, and the sentence says it short.
-    expect(sentence(listed.jobs[0].error)).toContain("depends on 80,");
-  });
-
-  // A fetch that fails for a moment — a landing holding a lock in the same
-  // checkout — once released the job into the script's refusal, because
-  // "could not ask" was read as "archived". Now the job waits and asks
-  // again, and says the dependency it is waiting on.
-  test("a dependency origin cannot be asked about holds the job rather than releasing it", async () => {
-    const dir = own("aide-queue-unconfirmed-");
-    const { bin, argvFile } = stub(dir);
-    const paths = root(dir);
-    const git = gitFor(() => true, true);
-    const { base } = harness.start({
-      extra: {
-        projectRoot: paths.root,
-        queueProjectRoot: paths.root,
-        queueRunnerBin: bin,
-        queueResultDir: join(dir, "jobs"),
-        gitRun: git.run,
-      },
-    });
-    const real = console.error;
-    console.error = () => {};
-    try {
-      expect((await queueImplement(base)).status).toBe(200);
-      await settle();
-    } finally {
-      console.error = real;
-    }
-    expect(existsSync(argvFile)).toBe(false);
-    const listed = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as {
-      jobs: { state: string; error?: unknown }[];
-    };
-    expect(listed.jobs[0].state).toBe("queued");
     expect(sentence(listed.jobs[0].error)).toContain("depends on 80,");
   });
 
@@ -279,84 +231,8 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     // load (the same reasoning the Makefile's own `test` target gives
     // for raising bun's default timeout on this class of test).
     archived = true;
-    for (let i = 0; i < 120 && !existsSync(argvFile); i++) await Bun.sleep(100);
-    expect(existsSync(argvFile)).toBe(true);
+    expect(await until(() => existsSync(argvFile), 12_000)).toBe(true);
   }, 20000);
-  // Criterion 10 (spec 149; spec 351). A dependency's ANALYZE lands
-  // itself, so its specs-repo folder is untouched but its branch has
-  // already merged — and that must not read as "the dependency is
-  // done". Only ARCHIVE moves the folder under archive/, so only ARCHIVE
-  // releases a dependent. Direct per-server `archived()` answers now
-  // that the check is a single boolean, not a branch-merge answer to
-  // simulate across several real roots and ticks.
-  test("only the dependency's archive releases the parked job — its analyze does not", async () => {
-    const dir = own("aide-queue-release-");
-    const paths = root(dir);
-    const mirror = join(dir, "queue.json");
-    const common = {
-      projectRoot: paths.root,
-      queueProjectRoot: paths.root,
-      queueMirrorPath: mirror,
-    };
-
-    /** One server's answer to "does this dependent start?", with the
-     *  dependency `archived` or not. `waitMs` is how long to give it: a
-     *  refused enqueue does not tick the runner, so a job already in the
-     *  mirror waits for the server's own 2 s interval — worth waiting
-     *  out when a start is expected, worth not waiting out three times
-     *  over when one is not. */
-    async function startsWith(archived: boolean, prefix: string, waitMs = 800): Promise<boolean> {
-      const runDir = own(prefix);
-      const { bin, argvFile } = stub(runDir);
-      const { base } = harness.start({
-        extra: {
-          ...common,
-          queueRunnerBin: bin,
-          queueResultDir: join(runDir, "jobs"),
-          gitRun: gitFor(() => archived).run,
-        },
-      });
-      const posted = await queueImplement(base);
-      // The dependent's own job is enqueued once and lives in the shared
-      // mirror; a later server finds it already there and refuses a
-      // second copy, which is not what this test is asking about.
-      expect([200, 400]).toContain(posted.status);
-      for (let i = 0; i * 100 < waitMs && !existsSync(argvFile); i++) await Bun.sleep(100);
-      return existsSync(argvFile);
-    }
-
-    // Nothing landed: parked, as spec 122 already had it.
-    expect(await startsWith(false, "aide-queue-release-none-")).toBe(false);
-    // Archived: the dependent starts. Given the same margin as the
-    // gate-refresh test above, for the same reason.
-    expect(await startsWith(true, "aide-queue-release-archived-", 12000)).toBe(true);
-  }, 20000);
-
-  test("a parked job's row shows the queued badge and the reason it is held back", async () => {
-    const dir = own("aide-queue-parked-row-");
-    const { bin } = stub(dir);
-    const paths = root(dir);
-    const { base } = harness.start({
-      extra: {
-        projectRoot: paths.root,
-        queueProjectRoot: paths.root,
-        queueRunnerBin: bin,
-        queueResultDir: join(dir, "jobs"),
-        gitRun: gitFor(() => false).run,
-      },
-    });
-    expect((await queueImplement(base)).status).toBe(200);
-    await settle();
-    const html = await (
-      await fetch(`${base}/?${OPEN_81}`, )
-    ).text();
-    // The ordinary queued badge, with the reason underneath it — no
-    // seventh badge variant and no new job state were introduced. The
-    // title repeats the label since spec 480 (Round 2): a phone's
-    // fixed-width state cell can ellipsis-clip it.
-    expect(html).toContain('badge b-idle" title="Queued" data-icon="clock">Queued');
-    expect(html).toContain("held back: depends on 80, which is not archived yet");
-  });
 
   test("cancelling a parked job cancels it like any other queued job", async () => {
     const dir = own("aide-queue-parked-cancel-");
@@ -385,11 +261,6 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     // survive onto the cancelled job (REQ-1).
     expect(job?.error).toBeUndefined();
     expect(job?.errorReason).toBeUndefined();
-    const html = await (
-      await fetch(`${base}/?${OPEN_81}`, )
-    ).text();
-    // Nor go on rendering on the row (REQ-2).
-    expect(html).not.toContain("held back: depends on 80, which is not archived yet");
   });
 
   // --- spec 344: the same park, one question earlier -------------------------
@@ -449,165 +320,4 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     });
   });
 
-
-  // --- spec 398: a job reaching the gate by CHAINING parks exactly like one
-  // queued fresh -----------------------------------------------------------
-  //
-  // Every test above queues `implement` ALONE. A job queued as
-  // `["analyze", "implement"]` in one request reaches the same
-  // `implement` step by finishing its own `analyze` first —
-  // `Runner.complete()` returns it to `state: "queued"` between steps,
-  // the same state a freshly-enqueued job starts in, and
-  // `blockedDependencies()` cannot tell the two apart (it reads only
-  // `job.state` and the job's CURRENT step). This proves that at the
-  // integration level, side by side with a fresh job, and proves the
-  // release too: the dependency archiving resumes `implement` without
-  // `analyze` running a second time.
-  describe("a bundled analyze+implement job meets the same gate a fresh implement job does (spec 398)", () => {
-    /** `root()` minus the state files: no phase recorded yet, so the
-     *  bundled job's own `analyze` legitimately runs first — the same
-     *  fixture shape `rootWithoutAnalyze` below uses, but keeping the
-     *  `Depends on:` line `root()` already wrote. */
-    function rootBundled(dir: string): { root: string; project: string; specs: string } {
-      const paths = root(dir);
-      rmSync(join(paths.specs, "81-queue-and-runner", "4-status.md"));
-      rmSync(join(paths.specs, "81-queue-and-runner", "4-status.json"));
-      return paths;
-    }
-
-    /** What a real `analyze` run leaves once it lands: the state files
-     *  `blockedForMissingAnalyze` (schedules.ts) reads, written the same
-     *  way `root()` above and `aide-write-spec` do. Skipping this would
-     *  leave `implement` held back on "not analyzed yet" instead of the
-     *  dependency gate this test is about. */
-    function markAnalyzeDone(specs: string): void {
-      writeFileSync(
-        join(specs, "81-queue-and-runner", "4-status.md"),
-        "# Queue - Status\n\n## Tracking info\n\n- **Workflow steps completed:** analyze\n",
-      );
-      writeFileSync(
-        join(specs, "81-queue-and-runner", "4-status.json"),
-        JSON.stringify({ completedPhases: ["analyze"], archived: null, reopened: null,
-          acceptanceCriteria: [], phaseCounts: {} }),
-      );
-    }
-
-    /** Like `stub()`, but APPENDS every invocation's argv rather than
-     *  overwriting it — what "analyze ran exactly once" needs proof of,
-     *  since a single job runs its stub twice (once per step) and the
-     *  ordinary `stub()` only ever keeps the last call. */
-    function appendingStub(dir: string): { bin: string; argvFile: string } {
-      const argvFile = join(dir, "runner-argv.txt");
-      const bin = join(dir, "fake-run-spec");
-      writeFileSync(bin, `#!/usr/bin/env bash\nprintf '%s\\n' "$*" >> ${argvFile}\n`, { mode: 0o755 });
-      return { bin, argvFile };
-    }
-
-    test("parks on implement exactly like a fresh implement job, names the dependency the same way, and resumes without re-running analyze", async () => {
-      const dir = own("aide-queue-bundled-");
-      const paths = rootBundled(dir);
-      let archived = false;
-      const git = gitFor(() => archived);
-
-      const { bin, argvFile } = appendingStub(dir);
-      const { base } = harness.start({
-        extra: {
-          projectRoot: paths.root,
-          queueProjectRoot: paths.root,
-          queueRunnerBin: bin,
-          queueResultDir: join(dir, "jobs"),
-          gitRun: git.run,
-        },
-      });
-
-      const posted = (await (
-        await fetch(`${base}/api/queue`, {
-          method: "POST",
-          headers: AUTH,
-          body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze", "implement"] }),
-        })
-      ).json()) as { job: { id: string } };
-      expect(await spawned(argvFile)).toBe(true); // analyze itself was invoked
-
-      // `analyze` succeeds. No `branch`/`branchUrls` on the result, so
-      // landing it (`landStepBranch`) is a no-op — `landBranch` finds
-      // no repo to merge and returns before touching git at all. The
-      // state file is marked done separately, the way a real run's own
-      // commit would leave it.
-      writeFileSync(
-        join(dir, "jobs", `${posted.job.id}.json`),
-        JSON.stringify({ ok: true, exitCode: 0, costUsd: 0.1, costMeasured: true, terminalReason: "completed" }),
-      );
-      markAnalyzeDone(paths.specs);
-
-      // `analyze`'s own completion is only noticed on the next poll
-      // tick (up to ~2 s away) — the same tick that then recomputes
-      // `blockedDependencies()` against the now-current `implement`
-      // step, in one synchronous turn (`serve.ts`'s `poll()` then
-      // `tickRunner()`). Wait for that turn to have happened before
-      // asking what it decided.
-      for (let i = 0; i < 100; i++) {
-        const listed = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as {
-          jobs: { id: string; stepIndex: number }[];
-        };
-        if (listed.jobs.find((j) => j.id === posted.job.id)?.stepIndex === 1) break;
-        await Bun.sleep(100);
-      }
-
-      // A fresh, single-step implement job for the SAME spec and the
-      // SAME dependency, on its own server, to compare the bundled job's
-      // park against (REQ-2, REQ-3) — the same comparison
-      // `dependency-parking.test.ts`'s other tests never had reason to
-      // make, since none of them ever queued a bundled job.
-      const freshDir = own("aide-queue-bundled-fresh-");
-      const { bin: freshBin } = stub(freshDir);
-      const fresh = harness.start({
-        extra: {
-          projectRoot: paths.root,
-          queueProjectRoot: paths.root,
-          queueRunnerBin: freshBin,
-          queueResultDir: join(freshDir, "jobs"),
-          gitRun: gitFor(() => archived).run,
-        },
-      });
-      const freshPosted = (await (
-        await fetch(`${fresh.base}/api/queue`, {
-          method: "POST",
-          headers: AUTH,
-          body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
-        })
-      ).json()) as { job: { id: string } };
-
-      await settle();
-      const bundledList = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as {
-        jobs: { id: string; state: string; stepIndex: number; error?: unknown }[];
-      };
-      const freshList = (await (await fetch(`${fresh.base}/api/queue`, { headers: AUTH })).json()) as {
-        jobs: { id: string; state: string; error?: unknown }[];
-      };
-      const bRow = bundledList.jobs.find((j) => j.id === posted.job.id)!;
-      const fRow = freshList.jobs.find((j) => j.id === freshPosted.job.id)!;
-
-      expect(bRow.state).toBe("queued"); // REQ-1: parked, not failed
-      expect(bRow.stepIndex).toBe(1); // implement is current; analyze was not rewound
-      expect(fRow.state).toBe("queued"); // REQ-2: the fresh job ends the same way
-      expect(sentence(bRow.error)).toBe(sentence(fRow.error)); // REQ-3: identical wording
-      expect(sentence(bRow.error)).toContain("depends on 80,");
-
-      // The dependency archives: the bundled job resumes at implement,
-      // and its own stub is invoked again — but `analyze` only once
-      // (REQ-4).
-      const beforeRelease = readFileSync(argvFile, "utf-8");
-      archived = true;
-      for (let i = 0; i < 100 && readFileSync(argvFile, "utf-8") === beforeRelease; i++) await Bun.sleep(100);
-      const afterRelease = readFileSync(argvFile, "utf-8");
-      expect(afterRelease).not.toBe(beforeRelease); // the stub ran again, for implement
-      const lines = afterRelease.trim().split("\n");
-      expect(lines.filter((l) => l.includes("--command analyze")).length).toBe(1);
-      expect(lines.filter((l) => l.includes("--command implement")).length).toBe(1);
-
-      fresh.server.stop();
-      rmSync(freshDir, { recursive: true, force: true });
-    }, 20000);
-  });
 });

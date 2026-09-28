@@ -123,3 +123,20 @@ def test_not_verified_with_its_symbol_is_still_a_start_state(tmp_path):
         "| AC-2 | Not verified | |\n"
     )
     assert advanced_count(tmp_path, content) == 0
+
+
+def test_status_progress_for_agrees_with_the_shared_row_counting_fixture(tmp_path):
+    """`tests/fixtures/status-row-counting.json` is the table the
+    dashboard's parse-status test reads for the TypeScript half; the
+    runner's `Total progress` line is counted by this function."""
+    import json
+    fixture = Path(__file__).resolve().parents[4] / "fixtures" / "status-row-counting.json"
+    status_file = tmp_path / "4-status.md"
+    for case in json.loads(fixture.read_text())["cases"]:
+        status_file.write_text("# Queue - Status\n\n" + case["body"])
+        proc = subprocess.run(
+            ["bash", "-c", f'source "{LIB}"\nstatus_progress_for "{status_file}"\n'
+             'echo "$progress_done $progress_total"'],
+            capture_output=True, text=True, check=True,
+        )
+        assert proc.stdout.split() == [str(case["done"]), str(case["total"])], case["name"]

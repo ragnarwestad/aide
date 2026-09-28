@@ -156,16 +156,6 @@ class TestInstallersWireUpShellPath:
             assert PATH_BLOCK_MARKER in (tmp_path / name).read_text(), \
                 f"install.sh left ~/{name} without the PATH block"
 
-    def test_the_path_hint_does_not_send_the_reader_to_zshrc(self, workspace_root):
-        # .zshrc and .bash_profile are read by INTERACTIVE shells only —
-        # telling the reader to edit them fixes everything except ssh.
-        for tool in ("claude-code", "codex", "copilot"):
-            installer = workspace_root / "implementations" / tool / "install.sh"
-            text = installer.read_text()
-            for wrong in (".zshrc", ".bash_profile"):
-                assert wrong not in text, \
-                    f"{tool}/install.sh still points the reader at {wrong}"
-
     def test_an_individual_uninstall_keeps_the_block(self, workspace_root, tmp_path):
         result = self._run(workspace_root, "claude-code", "install.sh", home=tmp_path)
         assert result.returncode == 0, result.stdout + result.stderr

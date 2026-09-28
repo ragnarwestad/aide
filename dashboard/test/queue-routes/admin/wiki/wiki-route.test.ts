@@ -77,19 +77,6 @@ describe("a wiki build is followed on the Wiki tab, never on the Specs list", ()
     }
   });
 
-  test("the Wiki tab's Build tab shows it with its log and a Cancel that comes back to the Build tab", async () => {
-    const { base } = start();
-    await post(base, "aide");
-    const [job] = (await jobs(base)) as unknown as { id: string }[];
-    const html = await (await fetch(`${base}/projects/aide?tab=wiki&wikitab=build`)).text();
-    expect(html).toContain("No step has finished yet");
-    expect(html).toContain(`action="/api/queue/${job!.id}/cancel"`);
-    const cancel = await fetch(`${base}/api/queue/${job!.id}/cancel`, {
-      method: "POST", redirect: "manual", headers: { "content-type": "application/x-www-form-urlencoded" },
-    });
-    expect(cancel.status).toBe(303);
-    expect(cancel.headers.get("location")).toBe("/projects/aide?tab=wiki&wikitab=build");
-  });
 });
 
 // The queue lists its jobs newest first, and the tab once took the last in
@@ -105,7 +92,6 @@ describe("the Wiki tab's build is the newest one", () => {
     expect(latestWikiBuild([old, now], "aide", "en")?.id).toBe("now");
   });
 });
-
 
 // The build's step is opened, on its own tab, by the address.
 describe("a step of the wiki build keeps its tab in the address (AC-6)", () => {

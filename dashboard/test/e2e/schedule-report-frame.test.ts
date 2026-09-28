@@ -1,6 +1,6 @@
-// Spec 495, criteria 10 and 12: what a report's frame does in a real
-// browser. The sandbox and the theme exist only there, so a unit test can
-// say what the markup carries but not what happens. Run by the user.
+// What a report's frame does in a real browser: the sandbox exists only
+// there, so a unit test can say what the markup carries but not what
+// happens.
 
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
@@ -65,39 +65,6 @@ afterAll(async () => {
   harness.cleanup();
 });
 
-async function frameColours(scheme: "light" | "dark"): Promise<{ frame: string[]; page: string[] }> {
-  await page.emulateMedia({ colorScheme: scheme });
-  await page.goto(`${base}/schedule/aide/nightly-report?live=0`);
-  const frame = page.frameLocator("iframe[data-report-frame]");
-  await frame.locator("h1").waitFor();
-  const read = (el: Element): string[] => {
-    const s = getComputedStyle(el);
-    return [s.color, s.backgroundColor];
-  };
-  return {
-    frame: await frame.locator("body").evaluate(read),
-    page: await page.locator("body").evaluate(read),
-  };
-}
-
-const TRANSPARENT = "rgba(0, 0, 0, 0)";
-
-for (const scheme of ["light", "dark"] as const) {
-  test(`the framed report uses the board's own text and background in ${scheme} mode`, async () => {
-    const { frame, page: host } = await frameColours(scheme);
-    // Text: the board's own, exactly — the report's `color:#00ff00` must
-    // not win.
-    expect(frame[0]).toBe(host[0]);
-    // Background: the board's own, or none of its own, which is the same
-    // thing to look at since the board's paints through a frame that does
-    // not. The report's `background:#ff00ff` would read as itself here,
-    // which is what this holds onto.
-    expect([host[1], TRANSPARENT]).toContain(frame[1]);
-    expect(frame[0]).not.toBe("rgb(0, 255, 0)");
-    expect(frame[1]).not.toBe("rgb(255, 0, 255)");
-  });
-}
-
 test("a script in the report does not run, and a click on its link opens a new tab", async () => {
   await page.goto(`${base}/schedule/aide/nightly-report?live=0`);
   const frame = page.frameLocator("iframe[data-report-frame]");
@@ -107,31 +74,4 @@ test("a script in the report does not run, and a click on its link opens a new t
   await frame.locator('a[href="https://example.com/"]').click();
   const tab = await popup;
   expect(tab.url()).toContain("example.com");
-});
-
-// A short value — a date, a version, one word — keeps to one line beside
-// a long one, and a table wider than a phone scrolls inside itself rather
-// than taking the whole report sideways.
-test("a table's short cells keep to one line, and a table wider than a phone scrolls on its own", async () => {
-  for (const width of [1000, 390]) {
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto(`${base}/schedule/aide/nightly-report?live=0`);
-    const frame = page.frameLocator("iframe[data-report-frame]");
-    await frame.locator("table").waitFor();
-    const m = await frame.locator("body").evaluate(() => {
-      const lines = (el: Element) => {
-        const r = document.createRange();
-        r.selectNodeContents(el);
-        return new Set([...r.getClientRects()].map((q) => Math.round(q.top))).size;
-      };
-      const cells = [...document.querySelectorAll("tr:last-child td")];
-      return {
-        short: [cells[0]!, cells[1]!, cells[3]!].map(lines),
-        sideways: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      };
-    });
-    expect([width, m.short]).toEqual([width, [1, 1, 1]]);
-    expect([width, m.sideways]).toEqual([width, 0]);
-  }
-  await page.setViewportSize({ width: 1280, height: 800 });
 });

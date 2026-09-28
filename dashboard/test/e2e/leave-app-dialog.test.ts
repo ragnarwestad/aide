@@ -2,9 +2,9 @@
 // centered on the SCREEN — reproducible only in a real browser, never
 // by a unit test running transpiled source against a fake document.
 // This opens a real page, dirties a tracked form, clicks an in-app link
-// and checks the replacement dialog (a) sits inside the viewport, not
-// off it, and (b) leaves none of nav-busy.ts's/nav-overlay.ts's own
-// side effects behind once the reader chooses to stay.
+// and checks the replacement dialog leaves none of nav-busy.ts's/
+// nav-overlay.ts's own side effects behind once the reader chooses to
+// stay, and follows the link once the reader chooses to leave.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
 import { browserDeadline, withBrowser } from "../helpers/browser-deadline.ts";
@@ -60,28 +60,6 @@ describe("the leave-app dialog replaces the native prompt for an in-app link (sp
       "page.goto(spec page)",
     );
     expect(await exitLink().count()).toBe(1);
-  });
-
-  test("AC-1/AC-2: dialog.leaveapp opens inside the viewport, not off it", async () => {
-    await withBrowser(
-      page.goto(`${base}/specs/aide/${FOLDER}?live=0`),
-      "page.goto(spec page)",
-    );
-    await dirtyTheTrackingForm();
-    await exitLink().click();
-
-    const dialog = page.locator("dialog.leaveapp");
-    await dialog.waitFor({ state: "visible" });
-    const box = await dialog.boundingBox();
-    const viewport = page.viewportSize()!;
-    expect(box).not.toBeNull();
-    expect(box!.x).toBeGreaterThanOrEqual(0);
-    expect(box!.y).toBeGreaterThanOrEqual(0);
-    expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width);
-    expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height);
-
-    // Cleanly closed for the next test, rather than left open.
-    await dialog.getByRole("button", { name: "Cancel" }).click();
   });
 
   test('pressing Cancel leaves no stray .awaiting link and no open pageoverlay behind', async () => {

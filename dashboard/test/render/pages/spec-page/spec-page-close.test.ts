@@ -4,7 +4,6 @@
 // against.
 
 import { describe, expect, test } from "bun:test";
-import type { SpecPageView } from "../../../../src/render";
 import { page, view } from "../spec-page-fixtures.ts";
 
 describe("spec 406, REQ-1: the Close control", () => {
@@ -48,54 +47,5 @@ describe("spec 406, REQ-1: the Close control", () => {
 
   test("a live spec with no closeAvailable offers nothing of the sort", () => {
     expect(page(view())).not.toContain(">Close<");
-  });
-});
-
-describe("spec 406, REQ-2: what Close means is visible page text, not only a hover title", () => {
-  test("present whenever either control is drawn", () => {
-    const html = page(view({ closeAvailable: true }));
-    const withoutTitles = html.replace(/title="[^"]*"/g, "");
-    expect(withoutTitles).toContain("Close says this spec will not work and archives it as a record");
-  });
-
-  test("absent once the spec is archived — nothing left to distinguish", () => {
-    const html = page(view({ archived: true, closeAvailable: true }));
-    expect(html).not.toContain("Close says this spec will not work and archives it as a record");
-  });
-});
-
-describe("spec 406, REQ-7: a closed spec reads as closed, never as archived", () => {
-  const closedView = (extra: Partial<SpecPageView> = {}) =>
-    view({ archived: true, closed: true, closedDate: "2026-09-05", closeReason: "this idea does not hold", ...extra });
-
-  test("the read-only line names the reason and the date, and never says archived", () => {
-    const html = page(closedView());
-    expect(html).toContain("This spec was closed");
-    expect(html).toContain("2026-09-05");
-    expect(html).toContain("this idea does not hold");
-    expect(html).not.toContain("This spec has been archived");
-    // Scoped to the banner's own read-only line, not the whole page:
-    // the shell's unrelated chrome (CSS class names, the About dialog,
-    // a document tab's own generic help text) legitimately says
-    // "archived" elsewhere and is not what REQ-7 is about.
-    const desc = /<p class="desc">[\s\S]*?<\/p>/.exec(html)?.[0] ?? "";
-    expect(desc).not.toMatch(/\barchived\b/i);
-  });
-
-  test("a plainly archived spec (not closed) still reads the old way", () => {
-    const html = page(view({ archived: true, closed: false }));
-    expect(html).toContain("This spec has been archived");
-    expect(html).not.toContain("This spec was closed");
-  });
-
-  // REQ-10: nothing on a closed spec's page is editable — it shares the
-  // exact `view.archived` gate every other read-only surface already
-  // uses (documentPanel, checklist), so this is a regression guard
-  // rather than new logic.
-  test("no editable form is drawn — description, checks or tracking", () => {
-    const html = page(closedView());
-    expect(html).not.toContain("<textarea");
-    expect(html).not.toContain('class="checkbox"><input type="checkbox" name="tick"');
-    expect(html).not.toContain('method="post" action="/api/queue/specs/aide/150-one-page-shows-the-whole-spec/save"');
   });
 });

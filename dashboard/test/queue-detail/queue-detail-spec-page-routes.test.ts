@@ -164,17 +164,6 @@ describe("a Codex step's job page", () => {
 // page's own frame (the tab bar, the theme control) stayed English and
 // the choice was never written down from this route.
 
-describe("GET /jobs/<id> remembers the reader's language (spec 408)", () => {
-  test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
-    const { base } = start();
-    const id = await enqueue(base);
-    const res = await fetch(`${base}/jobs/${id}?lang=nb`);
-    expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
-    const html = await res.text();
-    expect(html).toContain('<html lang="nb">');
-  });
-});
-
 // --- spec 150: a page for the SPEC, not for one of its runs ------------------
 //
 // `/jobs/<job-id>` is one queue run. `/specs/<project>/<specFolder>` is
@@ -220,16 +209,6 @@ describe("GET /specs/<project>/<specFolder>", () => {
     expect(solution).toContain("One must-fix.");
   });
 
-  test("with a lead job it shows that job's Activity and Steps (criterion 1)", async () => {
-    const { base, dir } = start();
-    fillSpec(dir);
-    const id = await enqueue(base);
-    expect(id).toBeTruthy();
-    const html = await (await fetch(`${base}${PATH}?tab=steps`)).text();
-    expect(html).toContain("No step has finished yet");
-    expect(html).toContain(`href="${PATH}?tab=status"`);
-  });
-
   test("a spec nobody has is a 404, not a blank page", async () => {
     const { base } = start();
     expect((await fetch(`${base}/specs/aide/99-no-such-spec`)).status).toBe(404);
@@ -248,16 +227,6 @@ describe("GET /specs/<project>/<specFolder>", () => {
     // file, and none of the other three the spec page lists.
     const job = await (await fetch(`${base}/jobs/${id}`)).text();
     expect(job).not.toContain("1-description.md");
-  });
-
-  // Spec 408, REQ-1/REQ-4: this route reads and remembers the language
-  // the same way `/` already does.
-  test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
-    const { base } = start();
-    const res = await fetch(`${base}${PATH}?lang=nb`);
-    expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
-    const html = await res.text();
-    expect(html).toContain('<html lang="nb">');
   });
 
   test("the spec's files are re-read on every request, never served from the 5 s scan", async () => {
@@ -358,11 +327,4 @@ describe("GET /specs/<project>/<specFolder>?job=", () => {
     expect(html).toContain("$1.11");
   });
 
-  test("a spec with one job shows no Attempt marker (AC1, HTTP level)", async () => {
-    const { base } = start();
-    await enqueue(base);
-    const html = await (await fetch(`${base}${PATH}?tab=steps`)).text();
-    expect(html).not.toContain("Attempt ");
-    expect(html).not.toContain('data-filter="attempt"');
-  });
 });

@@ -147,8 +147,7 @@ table.settingstable tbody:first-of-type tr.settingsgroup th { padding-top: 0; }
    so it cannot take table.speclist's or table.settingstable's own
    class without inheriting rules meant for a different table. Scoped
    by the page's existing form id instead: no new class, so the closed
-   class vocabulary (css-guard-class-vocabulary.test.ts) and the exact
-   table-tag string match in new-spec-page.test.ts both stay untouched. */
+   class vocabulary stays untouched. */
 #new-spec-form table.list { width: auto; }
 /* Measured in a browser against the widest thing each column can draw,
    plus the cell's own padding (--sp-3 on each side): Spec is
@@ -162,8 +161,7 @@ table.settingstable tbody:first-of-type tr.settingsgroup th { padding-top: 0; }
    The Norwegian names are longer — "implementering", and
    "manifestoppdatering" longest of all — and a name wider than its
    column spills into the cell beside it. 10rem holds every label in
-   both catalogues (`STEP_LABELS`/`STEP_LABELS_NB`, ui/components.ts),
-   and `speclist-fits-its-box.test.ts` fails if a new one outgrows it.
+   both catalogues (`STEP_LABELS`/`STEP_LABELS_NB`, ui/components.ts).
    The width comes out of the list's own total rather than off a
    neighbouring column: the head row's name cell spans this column and
    Phase beside it, so it simply gets the room too. */

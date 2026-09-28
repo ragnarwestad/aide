@@ -1,11 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  CONTROLS,
-  harness,
-  OK_ACTION,
-  swapUrl,
-} from "../fixtures.ts";
-
+import { harness, OK_ACTION, swapUrl } from "../fixtures.ts";
 
 describe("a row button posts from the page (criteria 10-12)", () => {
   test("it asks for JSON on the form's own route", async () => {
@@ -14,26 +8,6 @@ describe("a row button posts from the page (criteria 10-12)", () => {
     const posted = h.requests.find((r) => r.url.includes("/cancel"))!;
     expect(posted.init.method).toBe("POST");
     expect((posted.init.headers as Record<string, string>).accept).toBe("application/json");
-  });
-
-  // Spec 104: it says so by CHANGING, not by changing its word. The
-  // pending wording is still the server's, and still shown — as the
-  // button's `title`, where it costs no width.
-  test("the button says so at once, instead of looking untouched (criterion 10)", async () => {
-    let seenBusy = false;
-    let seenTitle = "";
-    const h = harness((url) => {
-      if (url.includes("/cancel")) {
-        seenBusy = h.button.classList.contains("busy");
-        seenTitle = h.button.title;
-      }
-      return { ok: true, body: OK_ACTION };
-    });
-    await h.submit();
-    expect(seenBusy).toBe(true);
-    expect(seenTitle).toBe("cancelling…");
-    // And the page stayed where the reader was.
-    expect(h.location.href).toBe("http://dash.test/");
   });
 
   test("the rows are swapped as soon as the answer arrives, not on the next tick (criterion 11)", async () => {
@@ -161,24 +135,6 @@ describe("every action button says it was pressed (criteria 4, 5)", () => {
   const OK = { ok: true, job: { id: "job-1" } };
 
   for (const formClass of ["rowrun", "actionform"] as const) {
-    test(`${formClass} changes its button before the answer arrives`, async () => {
-      let seen = false;
-      const h = harness(
-        (url) => {
-          if (url.includes("/api/queue")) seen = h.button.classList.contains("busy");
-          return { ok: true, body: OK };
-        },
-        formClass,
-      );
-      await h.submit();
-      expect(seen).toBe(true);
-      // And it is put back when the request is over, in case the swap
-      // left this very button standing.
-      expect(h.button.textContent).toBe(CONTROLS[formClass]!.label);
-      expect(h.button.classList.contains("busy")).toBe(false);
-      expect(h.button.disabled).toBe(false);
-    });
-
     test(`${formClass} swaps the rows in place instead of navigating`, async () => {
       const h = harness(() => ({ ok: true, body: OK }), formClass);
       await h.submit();

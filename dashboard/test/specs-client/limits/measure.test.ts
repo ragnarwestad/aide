@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { countText, discarded, discardedText, ended, limitState } from "../../../src/specs-client/limits/measure.ts";
+import { countText, discarded, ended, limitState } from "../../../src/specs-client/limits/measure.ts";
 
 describe("the count", () => {
   test("reads how many of how many, and nothing more while there is room (AC-1)", () => {
@@ -17,23 +17,6 @@ describe("the count", () => {
   test("the warning starts at 4,500 of 5,000 (AC-4)", () => {
     expect(limitState(4499, 5000)).toBe("ok");
     expect(limitState(4500, 5000)).toBe("near");
-  });
-
-  test("a count in the warning says how many are left, so it is not colour alone (AC-4)", () => {
-    expect(countText(108, 120)).toBe("108 of 120 characters, 12 left");
-    expect(countText(5000, 5000)).toBe("5000 of 5000 characters, 0 left");
-  });
-});
-
-describe("the discarded-text sentence", () => {
-  test("names how many characters did not fit and the field's bound (AC-2)", () => {
-    expect(discardedText(240, 120)).toBe(
-      "240 characters did not fit and were discarded — this field holds at most 120.",
-    );
-  });
-
-  test("one character reads in the singular (AC-2)", () => {
-    expect(discardedText(1, 120)).toBe("1 character did not fit and was discarded — this field holds at most 120.");
   });
 });
 

@@ -29,7 +29,7 @@ export interface WatchSetup {
 }
 
 export function setupWatch(
-  opts: { projectRoot?: string },
+  opts: { projectRoot?: string; specsWatch?: typeof watch },
   allowed: Set<string>,
   state: ServerState,
 ): WatchSetup {
@@ -92,7 +92,7 @@ export function setupWatch(
       try {
         const openedAt = Date.now();
         const root = p.specsRoot;
-        specWatchers.set(p.name, watch(root, { recursive: true }, (_event, filename) => {
+        specWatchers.set(p.name, (opts.specsWatch ?? watch)(root, { recursive: true }, (_event, filename) => {
           if (!isEcho(root, filename, openedAt)) scheduleNotify();
         }));
       } catch {

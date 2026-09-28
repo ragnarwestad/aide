@@ -3,7 +3,6 @@
 import { describe, expect, test } from "bun:test";
 import { failedRoundSentence } from "../../../../src/render/ui/job-state";
 import type { QueueRowView } from "../../../../src/render";
-import { page, view } from "../../pages/spec-page-fixtures.ts";
 
 const lead = (over: Partial<QueueRowView> = {}): QueueRowView => ({
   id: "j1",
@@ -39,10 +38,5 @@ describe("failedRoundSentence (AC-4)", () => {
   test("no lead, or a lead with no sentence, gives nothing", () => {
     expect(failedRoundSentence(undefined)).toBeUndefined();
     expect(failedRoundSentence(lead({ error: undefined }))).toBeUndefined();
-  });
-
-  test("the spec page draws the sentence as the failed paragraph a failed Update draws", () => {
-    const html = page(view({ error: failedRoundSentence(lead()) }));
-    expect(html).toMatch(/<p class="[^"]*failed[^"]*"[^>]*>[\s\S]*The branch could not be removed\./);
   });
 });

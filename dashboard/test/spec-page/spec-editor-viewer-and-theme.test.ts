@@ -77,56 +77,6 @@ function setHost(rawMarkup: string): HTMLElement {
   return document.getElementById("spec-editor-host")!;
 }
 
-function injectedCss(): string {
-  return [...document.head.querySelectorAll("style")].map((s) => s.textContent).join("\n");
-}
-
-describe("REQ-3: the editable path is unchanged — new Editor(...) on a <textarea> sibling", () => {
-  test("still mounts the full toolbar", () => {
-    const host = setHost('<textarea class="spec-editor-raw"># hi\n</textarea>');
-    mount();
-    expect(host.dataset.mounted).toBe("true");
-    expect(host.querySelector(".toastui-editor-toolbar")).not.toBeNull();
-  });
-});
-
-describe("REQ-5: dark mode", () => {
-  test("the injected stylesheet carries the dark theme's own CSS text, not just the light one", () => {
-    setHost('<textarea class="spec-editor-raw"># hi\n</textarea>');
-    mount();
-    // A selector this dashboard's OWN css/field.css never writes, and
-    // the light stylesheet carries no `.toastui-editor-dark` rule at
-    // all (2-analysis.md, checked directly) — its presence proves the
-    // SEPARATE dark stylesheet was actually imported and injected, not
-    // just the class toggled with nothing on the page to style it.
-    expect(injectedCss()).toContain(".toastui-editor-dark .toastui-editor-contents");
-  });
-
-  test("an explicit dark choice classes the editable editor's own root, not the mount host", () => {
-    document.documentElement.dataset.theme = "dark";
-    const host = setHost('<textarea class="spec-editor-raw"># hi\n</textarea>');
-    mount();
-    expect(host.classList.contains("toastui-editor-dark")).toBe(false);
-    expect(host.querySelector(".toastui-editor-defaultUI")?.classList.contains("toastui-editor-dark")).toBe(true);
-  });
-
-  test("light (the default, no stored choice, no system preference) carries no dark class", () => {
-    const host = setHost('<textarea class="spec-editor-raw"># hi\n</textarea>');
-    mount();
-    expect(host.querySelector(".toastui-editor-defaultUI")?.classList.contains("toastui-editor-dark")).toBe(false);
-  });
-
-  test("a live theme change re-themes the mounted editable editor with no reload", async () => {
-    const host = setHost('<textarea class="spec-editor-raw"># hi\n</textarea>');
-    mount();
-    const themedEl = host.querySelector(".toastui-editor-defaultUI")!;
-    expect(themedEl.classList.contains("toastui-editor-dark")).toBe(false);
-    document.documentElement.dataset.theme = "dark";
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(themedEl.classList.contains("toastui-editor-dark")).toBe(true);
-  });
-});
-
 // Spec 391: spec-form-actions.ts's Cancel handler resets the hidden raw
 // textarea from outside and asks a mounted editor to redraw from it —
 // the only way in, since the WYSIWYG view is a separate DOM tree this

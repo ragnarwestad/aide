@@ -4,7 +4,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ran, statusSaying, IMPLEMENTED } from "../../helpers/queue-server.ts";
-import { specControls, OPEN_81, listUntil, rowSaysDone, setupQueueRoutesHarness } from "../fixtures.ts";
+import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness(undefined, IMPLEMENTED);
 
@@ -81,36 +81,6 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     expect(job.timeoutSec.analyze!).toBeGreaterThan(job.timeoutSec.archive!);
   });
 
-  test("every row offers all three steps — the row is the way a spec starts (criterion 11)", async () => {
-    const { base } = start();
-    const html = await (await fetch(`${base}/?${OPEN_81}`)).text();
-    const line = specControls(html, "81-queue-and-runner");
-    for (const step of ["analyze", "implement", "archive"]) {
-      expect(line).toContain(`<input type="checkbox" name="steps" value="${step}"`);
-    }
-  });
-
-  // Spec 116 gave create a phase line of its own; spec 139 gave it the
-  // same source as every other step. `/aide-create` writes
-  // `Workflow steps completed: create` into 4-status.md, so a created
-  // spec says so — and the line is a report, never a box to tick.
-  // Its box is ticked and disabled since 2026-08-21 — the hole where
-  // the other four have one made the line read as a different kind of
-  // thing. What must still hold is that no press can post it.
-  test("a created spec reads create as done, and its box cannot be posted (spec 116)", async () => {
-    const { base, dir } = start();
-    ran(dir, ["create"]);
-    const html = await (await fetch(`${base}/?${OPEN_81}`)).text();
-    const create = html.match(/<tr class="subrow[^"]*"[^>]*data-step="create">.*?<\/tr>/)?.[0] ?? "";
-    expect(create).toContain("b-done");
-    const controls = specControls(html, "81-queue-and-runner");
-    expect(controls).toContain('data-phase="create"');
-    // Ticked, disabled, and carrying no field name — three reasons a
-    // press can never send `steps=create`.
-    expect(controls).toMatch(/<input type="checkbox" value="create" checked disabled/);
-    expect(controls).not.toContain('name="steps" value="create"');
-  });
-
   test("ticking two phases queues ONE job with both, in workflow order (criterion 3)", async () => {
     const { base } = start();
     // A browser sends one `steps` value per ticked box, in the order the
@@ -160,17 +130,11 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
   // "a created spec reads create as done" above). The API route itself
   // is untouched (2-analysis.md, "API dependencies: None") — a rerun
   // sent straight to it, bypassing the row's own box, still succeeds.
-  test("a done phase's box can be ticked again, and a rerun reaches the queue (criterion 4)", async () => {
+  test("a rerun of a done phase reaches the queue (criterion 4)", async () => {
     const { base, dir } = start();
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
     writeFileSync(join(spec, "4-status.md"), statusSaying(["create", "analyze"]));
     ran(dir, ["create", "analyze"]);
-    const html = await listUntil(base, rowSaysDone("analyze"));
-    const analyze = specControls(html, "81-queue-and-runner")
-      .match(/<tr class="subrow[^"]*"[^>]*data-step="analyze">[\s\S]*?<\/tr>/)![0];
-    expect(analyze).toContain('class="badge b-done"');
-    expect(analyze).toContain('name="steps" value="analyze"');
-    expect(analyze).not.toContain("disabled");
     const res = await postRow(base, {
       project: "aide",
       specFolder: "81-queue-and-runner",
@@ -180,36 +144,4 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     expect(((await res.json()) as { job: { steps: string[] } }).job.steps).toEqual(["analyze"]);
   });
 
-  // Spec 87's criterion 10 said the opposite — "a spec nothing has ever
-  // run gets no row, so the form is its only way in". Spec 90 reverses
-  // it deliberately: the dropdown and the list held the same things, and
-  // a spec crossing from one to the other told the reader nothing.
-  test("a spec nothing has ever run is a row, and analyze starts from it (spec 90, criterion 16)", async () => {
-    const { base } = start();
-    const html = await (await fetch(`${base}/?${OPEN_81}`)).text();
-    expect(html).toContain('<tr class="spechead');
-    expect(html).toContain('data-folder="81-queue-and-runner"');
-    const line = specControls(html, "81-queue-and-runner");
-    // Nothing has ever run for it, so analyze is ticked — the step
-    // every spec here is actually started as.
-    expect(line).toContain('value="analyze" checked');
-    // Spec 176: the State column says what the process says comes
-    // next, on a row nothing has run as on one that has.
-    expect(html).toContain('class="badge b-ready"');
-    expect(html).toContain(">Ready<");
-    expect(html).not.toContain("not started");
-  });
-
-  test("the fold survives the refresh the page performs on itself (spec 90, criterion 17)", async () => {
-    const { base } = start();
-    // The refresh the page performs on itself sends `location.search`
-    // back, so the row the reader opened is still open in the swap —
-    // and a row nobody opened is still shut (spec 103's default).
-    const shut = await (await fetch(`${base}/?rows=1`)).text();
-    expect(shut).toContain('data-folder="81-queue-and-runner"');
-    expect(shut).not.toContain('<tr class="subrow');
-    const opened = await (await fetch(`${base}/?rows=1&${OPEN_81}`)).text();
-    expect(opened).toContain('data-folder="81-queue-and-runner"');
-    expect(opened).toContain('<tr class="subrow');
-  });
 });

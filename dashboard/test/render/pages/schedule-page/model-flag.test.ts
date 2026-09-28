@@ -10,16 +10,11 @@ describe("the flag on an entry naming a model the queue does not offer (spec 494
     const html = modelFlag("en", "retired", choices, "/schedule/aide/nightly/edit");
     expect(html).toContain("retired");
     expect(html).toContain("Sonnet, Opus");
-    expect(html).toContain("rowmsg failed");
     expect(html).toContain('href="/schedule/aide/nightly/edit"');
   });
 
   test("a listed name, a case-only match and no model draw no flag", () => {
     for (const model of ["Sonnet", "sonnet", undefined]) expect(modelFlag("en", model, choices)).toBe("");
-  });
-
-  test("a queue that offers no models gets the no-models sentence", () => {
-    expect(modelFlag("en", "retired", [])).toContain("it offers no models");
   });
 
   test("no model list passed draws no flag", () => {

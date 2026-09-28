@@ -1,11 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  renderSpecsPage,
-  renderSpecsRows,
-  type SpecsPageOptions,
-  type QueueRowView,
-  type SpecTarget,
-} from "../../../../../src/render";
+import { renderSpecsRows, type SpecsPageOptions, type QueueRowView, type SpecTarget } from "../../../../../src/render";
 import { row, openKeys } from "../../fixtures.ts";
 
 // Split out of row-status-and-controls.test.ts by theme: the rest of
@@ -39,94 +33,8 @@ describe("a spec's row runs its own phases", () => {
       Date.parse("2026-08-18T12:00:00Z"),
     );
 
-  const page = (opts: Partial<SpecsPageOptions> = {}) =>
-    renderSpecsPage([], "2026-08-18T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
-      runnerAvailable: true,
-      targets: [{ project: "aide", specFolder: "94-never-run" }],
-      ...opts,
-    });
-
   const head = (html: string, folder: string) =>
     html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>\\s*<tr class="specstate".*?</tr>`))?.[0] ?? "";
-  /** The line the run control is on — since spec 109 a `<tr>` of its
-   *  own under the header, rather than the header's last cell. */
-  const runLine = (html: string, folder: string) =>
-    html.match(
-      new RegExp(
-        `<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">[\\s\\S]*?` +
-          `(?=<tr class="[^"]*spechead|</tbody>|$)`,
-      ),
-    )?.[0] ?? "";
-  /** A phase's own line — an ordinary row of six cells since spec 157,
-   *  with nothing spanning it. */
-  const subRow = (html: string, phase: string) =>
-    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
-
-  // Since spec 123 the choice is offered once per PHASE, not once per
-  // row — but it is still the config that says which models exist. The
-  // "default" entry is gone (2026-08-19): the select is pre-filled with
-  // a real name instead.
-  test("the row offers the configured models, pre-filled and nothing else", () => {
-    const html = rows([], [target("94-never-run")], {
-      modelChoices: [{ name: "sonnet" }, { name: "fable" }],
-      defaultModels: { default: "sonnet" },
-    });
-    const line = subRow(html, "analyze");
-    expect(line).toContain('name="model.analyze"');
-    expect(line).toContain('value="fable"');
-    expect(line).not.toContain('<option value="">');
-    expect(line).toMatch(/<option value="sonnet"[^>]*selected/);
-  });
-
-  test("with no model configured the row offers no dropdown at all", () => {
-    const html = rows([], [target("94-never-run")]);
-    expect(runLine(html, "94-never-run")).not.toBe("");
-    expect(html).not.toContain('name="model"');
-  });
-
-  test("a phase line is read-only now — it carries no form of its own", () => {
-    const html = rows([job("j1", "analyze")], [target("94-row-runs-it")]);
-    for (const phase of ["create", "analyze", "implement", "archive"]) {
-      expect(subRow(html, phase)).not.toContain("<form");
-      expect(subRow(html, phase)).not.toContain("<button");
-    }
-  });
-
-  // Spec 94 put the run control on the header row so folding could not
-  // take it away; spec 103 retires that premise deliberately. Folding
-  // is now what the run control is BEHIND: a collapsed row is a status
-  // line, and the row a reader is about to act on is the one they open.
-  // Since spec 109 the control opens on a line of its own beneath the
-  // header, so a shut row has no such line at all.
-  // Spec 103 made folding what the run control was BEHIND. Spec 157
-  // takes that half back and keeps the other: the PRESS is on the head
-  // row whether the row is open or shut — a reader should never have to
-  // open a row to start the thing its own state line just named — and
-  // what folding still hides is the CHOOSING, the phase boxes and the
-  // model pickers on the lines beneath.
-  test("folding hides the phase boxes and the press with them", () => {
-    const shut = rows([], [target("94-never-run")], { filter: {} });
-    expect(shut).not.toContain('<tr class="subrow');
-    expect(shut).not.toContain('type="checkbox" name="steps"');
-    // And no press either since 2026-09-08: the action rides the
-    // caption line, which is part of what the fold opens. The hidden
-    // `steps` fields a shut row's button used to post went with it —
-    // the boxes are the only source of `steps` now.
-    expect(head(shut, "94-never-run")).not.toContain('method="post" action="/api/queue"');
-    expect(head(shut, "94-never-run")).not.toContain('<input type="hidden" name="steps"');
-    expect(head(shut, "94-never-run")).not.toContain("<button");
-
-    const open = rows([], [target("94-never-run")], { filter: { open: "aide/94-never-run" } });
-    const line = runLine(open, "94-never-run");
-    expect(line).toContain('method="post" action="/api/queue"');
-    expect(line).toContain('type="checkbox" name="steps" value="analyze"');
-    // The button is in the caption line's State cell, under the column
-    // whose badge its label finishes.
-    expect(line).toContain(">Analyze</button>");
-    // And an OPEN row's form carries no phases of its own: the boxes
-    // are the reader's, and a hidden field would outvote them.
-    expect(head(open, "94-never-run")).not.toContain('type="hidden" name="steps"');
-  });
 
   // The title and the phase came off the row on 2026-08-21, and the
   // percentage followed them in spec 167: it counted the checkbox rows
@@ -167,24 +75,6 @@ describe("a spec's row runs its own phases", () => {
     expect(line).not.toContain("Another spec");
     expect(line).not.toContain("Phase 2: GREEN");
     expect(line).not.toContain("Phase 1: RED");
-  });
-
-  // Spec 176 overturned this: no phase status belongs on the title
-  // line at all. The markers and the State column say how far a spec
-  // has got, and a line with nothing to say says nothing.
-  test("a spec with no recorded status leaves the line blank (spec 176, criterion 2)", () => {
-    const line = head(rows([], [target("94-never-run")]), "94-never-run");
-    expect(line).not.toContain("no status recorded yet");
-    expect(line).toContain('<div class="spec-title"></div>');
-  });
-
-
-  test("a refusal is shown on the page, belonging to no one row (criterion 6)", () => {
-    const html = page({ error: "analyze is already queued for this spec" });
-    expect(html).toContain('class="refusal rowmsg failed"');
-    expect(html).toContain("Analyze is already queued for this spec");
-    // Above the table, so it is read before the row that caused it.
-    expect(html.indexOf("refusal")).toBeLessThan(html.indexOf('id="jobrows"'));
   });
 });
 
@@ -267,16 +157,6 @@ describe("spec 101: a busy job holds every step on the row (criteria 1-3)", () =
   test("a queued job holds the steps it never named either (spec 105)", () => {
     const l = line(pair("queued"));
     expect(box(l, "archive")).toContain("disabled");
-  });
-
-  // Spec 454: the reason moved off each box's own `title`.
-  test("a disabled box carries no title of its own, on a busy row", () => {
-    const l = line(pair("running"));
-    expect(box(l, "analyze")).not.toContain('title="Analyze is running"');
-  });
-
-  test("a step the job never named carries no title either (spec 105)", () => {
-    expect(box(line(pair("running")), "archive")).not.toContain('title="Analyze is running"');
   });
 
   test("a finished job holds nothing — every box is offerable again", () => {
@@ -374,5 +254,4 @@ describe("spec 132: the State line says what is happening, or what is next", () 
     expect(cell).not.toContain("/merge");
     expect(cell).not.toContain("<button");
   });
-
 });

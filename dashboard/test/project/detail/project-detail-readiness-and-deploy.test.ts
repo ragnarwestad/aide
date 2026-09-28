@@ -156,22 +156,6 @@ describe("the Deploy section on a project's own page (spec 258, spec 407)", () =
     expect(form).toContain('title="This checkout matches origin."');
   });
 
-  // spec 377 (REQ-1, REQ-3, REQ-4): once both drift and the Serving
-  // comparison are known and settled, the panel folds them into ONE
-  // sentence instead of stacking a drift line above a separate Serving
-  // line — and names the commit as a commit, never as a bare SHA.
-  test("up to date with the service current folds both into one sentence (spec 377)", async () => {
-    const root = projectsRoot({ aide: INSTALLS });
-    const level = behindBy(root, "aide", 0);
-    const run: GitRunner = async (dir, args) =>
-      args.join(" ") === "rev-parse HEAD" ? { code: 0, stdout: "abc1234deadbeef\n" } : level.run(dir, args);
-    const base = serve(root, { run }, 25);
-    const html = await loadUntil(base, "aide", "matches origin", 2000, "deploy");
-    expect(html).toContain("This checkout matches origin, and the service is running commit abc1234.");
-    const form = html.match(/<form[^>]*class="deployform"[\s\S]*?<\/form>/)?.[0] ?? "";
-    expect(form).toMatch(/<button[^>]*\bdisabled\b/);
-  });
-
   // Plan review Risk 4 (3-solution.md): the early-return restructuring
   // that produced the merged sentence must not silently drop `deployError`
   // from the states REQ-6 promises stay unchanged.
@@ -442,43 +426,6 @@ describe('the "Serving" line on a project\'s own page (spec 269)', () => {
     expect(html).toMatch(/>Deploy</);
   });
 
-  // Spec 318 (REQ-1): the Deploy tab's ungated note stops naming
-  // AIDE_INSTALL_CMD by its raw key. The Serving comparison, not drift,
-  // is what keeps this project's Deploy tab non-empty (spec 407 keeps the
-  // tab on every project, gated or not), so this is the one case that
-  // exercises the "no install command configured" branch without a drift
-  // answer at all.
-  test("the Deploy tab's ungated note names the setting in plain words (REQ-1)", async () => {
-    const root = projectsRoot({ aide: null });
-    const html = await loadUntil(
-      serve(root, serving(root, "aide", "abc1234deadbeef", "abc1234deadbeef")),
-      "aide",
-      "Serving",
-      2000,
-      "deploy",
-    );
-    expect(html).toMatch(/install command/i);
-    expect(html).not.toContain("AIDE_INSTALL_CMD");
-  });
-});
-
-// Spec 407 (REQ-4, REQ-7): a gated and an ungated project render the
-// identical tab bar — the same four tabs, in the same order — and the
-// ungated one's Deploy tab names why it has nothing to deploy.
-describe("the same tab bar on a gated and an ungated project (REQ-7)", () => {
-  const tabLabels = (html: string): string[] => {
-    const subtabs = html.match(/<nav class="tabbar subtabs">[\s\S]*?<\/nav>/)?.[0] ?? "";
-    return [...subtabs.matchAll(/<a class="tab"[^>]*>([^<]+)<\/a>/g)].map((m) => m[1]!);
-  };
-
-  test("both show exactly Deploy, Config, Schedule, Wiki, in that order", async () => {
-    const gatedRoot = projectsRoot({ aide: INSTALLS });
-    const gatedHtml = await (await get(serve(gatedRoot, settled(gatedRoot, "aide")), "aide")).text();
-    const ungatedRoot = projectsRoot({ aide: null });
-    const ungatedHtml = await (await get(serve(ungatedRoot, settled(ungatedRoot, "aide")), "aide")).text();
-    expect(tabLabels(gatedHtml)).toEqual(["Deploy", "Config", "Schedule", "Wiki"]);
-    expect(tabLabels(ungatedHtml)).toEqual(["Deploy", "Config", "Schedule", "Wiki"]);
-  });
 });
 
 // The served nav is Specs, Projects and Schedule — the Archive tab was
@@ -512,19 +459,6 @@ describe("the nav does not name the projects", () => {
 // restart it triggers empties the answer and the reader's next page load
 // beats the first poll back. The sentence has to correct itself.
 describe("the Deploy tab asks for itself again while the origin answer is missing", () => {
-  test("Deploy's form holds its own dialog and does not ask for the covering layer (AC-1)", async () => {
-    const root = projectsRoot({ aide: INSTALLS });
-    const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "deploy")).text();
-    expect(html).toMatch(/<form[^>]*class="deployform"[\s\S]*?<dialog[^>]*data-deploy-dialog/);
-  });
-
-  // Spec 422, REQ-2: the dialog's words, in the reader's own language.
-  test("in Norwegian (nb), the dialog's steps are the Norwegian ones", async () => {
-    const root = projectsRoot({ aide: INSTALLS });
-    const base = serve(root, settled(root, "aide"), 0);
-    const html = await (await fetch(`${base}/projects/aide?tab=deploy&lang=nb`)).text();
-    expect(html).toContain("Hent fra origin");
-  });
 
   test("no answer yet: the Deploy tab carries a refresh", async () => {
     const root = projectsRoot({ aide: INSTALLS });

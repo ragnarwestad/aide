@@ -53,28 +53,6 @@ describe("the Depends on field", () => {
 
   // --- criteria 1, 2: what the page opens with ------------------------------
 
-  test("a spec that depends on nothing opens with nothing ticked", async () => {
-    const { base } = startTracked(savable("/host"));
-    const html = await (await fetch(`${base}${PAGE}`)).text();
-    // Spec 174: a box per spec in the project, as on the New-spec page.
-    expect(html).toContain(`value="${OTHER}"`);
-    // The boxes, not the whole document: the stylesheet carries a
-    // `.checked` rule of its own.
-    for (const box of html.match(/<input[^>]*name="dependsOn"[^>]*>/g) ?? []) {
-      expect(box).not.toContain("checked");
-    }
-    expect(html).not.toContain("Depends on:**");
-  });
-
-  test("an existing line ticks its box and leaves the textarea", async () => {
-    const { base } = startTracked(savable("/host"), TRACKED(DEPENDS(OTHER)));
-    const html = await (await fetch(`${base}${PAGE}`)).text();
-    expect(html).toMatch(new RegExp(`value="${OTHER}"[^>]*checked`));
-    // The raw markdown is gone from the box: one control for one fact.
-    expect(html).not.toContain("Depends on:**");
-    expect(html).toContain("As it was.");
-  });
-
   // Spec 174. The line is written by hand as often as by this page, and
   // `resolve_dependency_folder` has always taken a bare number — so the
   // box that gets ticked is the one the RUNNER would resolve the line

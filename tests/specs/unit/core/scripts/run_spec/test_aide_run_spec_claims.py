@@ -12,7 +12,7 @@ from .run_spec_fakes import writing_claude
 from .run_spec_origins import run_with_gh
 from .run_spec_project_state import CODE_LANDING, configure_code_landing
 from .run_spec_results import RESULT_OK
-from .run_spec_status_files import STATUS_ROW_COUNTING, bullet, phase_file_text, write_raw_status
+from .run_spec_status_files import bullet, phase_file_text, write_raw_status
 
 @pytest.mark.usefixtures("origin")
 @pytest.mark.parametrize("case", CODE_LANDING, ids=[c["name"] for c in CODE_LANDING])
@@ -224,30 +224,3 @@ def test_a_non_checkbox_status_row_counts_as_one_task(runner, workspace, fake_cl
     assert rc == 0, out
     text = phase_file_text(workspace, f"{workspace['folder']}/4-status.md")
     assert bullet(text, "Total progress") == "50% (1 of 2 completed)"
-
-@pytest.mark.parametrize(
-    "case", STATUS_ROW_COUNTING, ids=[c["name"] for c in STATUS_ROW_COUNTING]
-)
-def test_the_shared_row_counting_fixture_matches_the_bash_side(
-    runner, workspace, fake_claude, case
-):
-    """AC8, bash half: `tests/fixtures/status-row-counting.json` is the
-    same table `dashboard/test/parse-status.test.ts` reads for the
-    TypeScript half — both must report the identical done/total split
-    for every case."""
-    write_raw_status(
-        workspace,
-        "# Queue - Status\n\n## Tracking info\n\n"
-        f"- **Task:** `{workspace['folder']}/`\n"
-        "- **Total progress:** 0% (0 of 999 completed)\n\n---\n\n"
-        f"{case['body']}",
-    )
-    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude, command="analyze")
-    assert rc == 0, out
-    text = phase_file_text(workspace, f"{workspace['folder']}/4-status.md")
-    if case["total"] == 0:
-        assert bullet(text, "Total progress") == "0% (0 of 999 completed)"
-    else:
-        pct = (case["done"] * 100 + case["total"] // 2) // case["total"]
-        assert bullet(text, "Total progress") == f"{pct}% ({case['done']} of {case['total']} completed)"

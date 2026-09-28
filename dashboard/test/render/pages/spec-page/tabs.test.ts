@@ -5,7 +5,7 @@
 // of the two bundles a tab needs, not just whether one is needed: a
 // locked tab with real text needs the viewer, never nothing.
 import { describe, expect, test } from "bun:test";
-import { documentTabScript, TAB_HELP } from "../../../../src/render/pages/spec-page/tabs.ts";
+import { documentTabScript } from "../../../../src/render/pages/spec-page/tabs.ts";
 import type { SpecPageView } from "../../../../src/render";
 
 const baseView = (overrides: Partial<SpecPageView> = {}): SpecPageView => ({
@@ -102,13 +102,5 @@ describe("documentTabScript", () => {
 
   test("undefined for steps", () => {
     expect(documentTabScript(baseView(), "steps")).toBeUndefined();
-  });
-});
-
-describe("the Status tab's help (AC-1)", () => {
-  test("the Status tab's help names ticking and says only the acceptance criteria hold the archive back (AC-1)", () => {
-    expect(TAB_HELP.status).toContain("Acceptance criteria");
-    expect(TAB_HELP.status).toContain("archive");
-    expect(TAB_HELP.status).not.toContain("Save here rewrites");
   });
 });

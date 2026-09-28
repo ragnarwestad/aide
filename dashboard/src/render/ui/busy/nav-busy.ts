@@ -13,8 +13,7 @@
 // wrong was that the click was invisible.
 //
 // Like `form-busy.ts`, this file can neither import nor export
-// anything; `test/render/ui/nav-busy.test.ts` runs it against a fake
-// document.
+// anything.
 
 (() => {
   document.addEventListener("click", (event: Event) => {

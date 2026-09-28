@@ -56,19 +56,6 @@ describe("the count", () => {
     expect(count(h.title).textContent).toBe("5 of 120 characters");
   });
 
-  test("carries ok and near as the field fills (AC-4)", () => {
-    const h = load();
-    type(h.win, h.title, "x".repeat(107));
-    expect(count(h.title).dataset.limit).toBe("ok");
-    type(h.win, h.title, "x".repeat(108));
-    expect(count(h.title).dataset.limit).toBe("near");
-    expect(count(h.title).textContent).toBe("108 of 120 characters, 12 left");
-    type(h.win, h.description, "x".repeat(4499));
-    expect(count(h.description).dataset.limit).toBe("ok");
-    type(h.win, h.description, "x".repeat(4500));
-    expect(count(h.description).dataset.limit).toBe("near");
-  });
-
   test("a field bounded by data-maxlength gets that bound applied (AC-6)", () => {
     const h = load();
     expect(h.reason.maxLength).toBe(5000);

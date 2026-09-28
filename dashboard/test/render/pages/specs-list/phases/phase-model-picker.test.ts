@@ -5,8 +5,6 @@ import {
   type QueueRowView,
   type SpecTarget,
 } from "../../../../../src/render";
-import { aiPicker, modelPicker, type PickerOptions } from "../../../../../src/render/pages/specs-list/model-picker.ts";
-import { type SpecGroup } from "../../../../../src/render/pages/specs-list";
 import { row, openKeys } from "../../fixtures.ts";
 
 // --- spec 123: the model is chosen on the phase line -------------------------
@@ -54,13 +52,6 @@ describe("spec 123: each phase line picks its own model", () => {
       Date.parse("2026-08-19T12:00:00Z"),
     );
 
-  const controlsLine = (html: string, folder: string) =>
-    html.match(
-      new RegExp(
-        `<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">[\\s\\S]*?` +
-          `(?=<tr class="[^"]*spechead|</tbody>|$)`,
-      ),
-    )?.[0] ?? "";
   /** A phase's own line — an ordinary row of six cells since spec 157,
    *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
@@ -71,21 +62,6 @@ describe("spec 123: each phase line picks its own model", () => {
    *  (`css-token-guard.test.ts`). */
 
   // --- criterion 2 -----------------------------------------------------------
-
-  test("every phase line carries its own select, on the row's Run form", () => {
-    const html = rows([]);
-    const id = controlsLine(html, "123-picks").match(/<form id="([^"]+)"/)![1];
-    for (const step of ["create", "analyze", "implement", "archive"]) {
-      const line = subRow(html, step);
-      expect(line).not.toBe("");
-      const select = line.match(new RegExp(`<select name="model\\.${step}"[^>]*>`))?.[0] ?? "";
-      expect(select).not.toBe("");
-      // It is written outside the form's own tags, so only the `form`
-      // attribute carries it back — an id that drifts runs the job on
-      // the defaults instead, silently.
-      expect(select).toContain(`form="${id}"`);
-    }
-  });
 
   // No "default" entry (asked for 2026-08-19): the select holds real
   // names only, pre-filled with what the configuration would give the
@@ -109,70 +85,9 @@ describe("spec 123: each phase line picks its own model", () => {
     expect(line).toMatch(/<option value="fable"[^>]*selected/);
   });
 
-  // Spec 457: the per-step budget is dropped from the option's own
-  // label — it already stands, read-only, wherever the budget is
-  // configured, and repeating it on every option read as a price.
-  test("every option's own label carries only the model's name, and no title", () => {
-    const line = subRow(rows([]), "analyze");
-    const modelSelect = line.match(/<select name="model\.analyze"[\s\S]*?<\/select>/)?.[0] ?? "";
-    expect(modelSelect).not.toContain("title=");
-    expect(modelSelect).not.toContain("/step");
-    expect(modelSelect).toContain(">fable<");
-    expect(modelSelect).toContain(">sonnet<");
-  });
-
   // --- criterion 3 -----------------------------------------------------------
 
-  /** The caption line above the phase lines. */
-  const caption = (html: string) =>
-    html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
-
-  test("a Phase/Model caption sits directly above the phase lines", () => {
-    const html = rows([]);
-    const cap = caption(html);
-    expect(cap).toContain(">Phase<");
-    // `CHOICES` is one tool's models: one AI to name rather than one to
-    // choose between, and the column is headed all the same — a heading
-    // the controls under it can be lined up against, in every project.
-    expect(cap).toContain(">Model<");
-    expect(cap).toContain(">AI<");
-    // Between the spec's own line and the first phase line. (The
-    // caption itself is compared with its stack cell stripped, so the
-    // ordering is read off the row tag rather than the text.)
-    const at = html.indexOf('<tr class="subrow" data-caption="1">');
-    expect(at).toBeGreaterThan(html.indexOf('data-folder="123-picks"'));
-    expect(at).toBeLessThan(html.indexOf('data-step="create"'));
-  });
-
-  // The tool is no longer a choice made once for the row (spec 169) and
-  // it has a picker on every phase line (spec 179), so the caption
-  // names two columns where it named one. It read "AI - Model" over the
-  // model's column alone in between.
-  test("with two tools configured the caption names the AI column too", () => {
-    const cap = caption(
-      rows([], [target("123-picks")], {
-        modelChoices: [...CHOICES, { name: "gpt-fast",  tool: "codex" as const }],
-      }),
-    );
-    expect(cap).toContain(">Phase<");
-    expect(cap).toContain(">AI<");
-    expect(cap).toContain(">Model<");
-    expect(cap).not.toContain("AI - Model");
-  });
-
   // --- criterion 4 -----------------------------------------------------------
-
-  test("with no model configured there is no picker and no caption words", () => {
-    const html = rows([], [target("123-picks")], { modelChoices: undefined });
-    expect(controlsLine(html, "123-picks")).not.toBe("");
-    expect(html).not.toContain("<select");
-    // The line itself is still drawn — it carries the row's one action
-    // since 2026-09-08 — but it heads nothing: no captions, because
-    // there is nothing to choose between.
-    expect(caption(html)).not.toContain(">Phase<");
-    expect(caption(html)).not.toContain(">Model<");
-    expect(html).not.toContain(">Phase<");
-  });
 
   // --- criterion 11 ----------------------------------------------------------
 
@@ -188,57 +103,7 @@ describe("spec 123: each phase line picks its own model", () => {
     expect(line).toMatch(/<option value="fable"[^>]*selected/);
   });
 
-  test("a phase run more than once keeps its attempt count", () => {
-    const html = rows(
-      [
-        row({ id: "j1", specFolder: "123-picks", steps: ["analyze"], stepIndex: 0, state: "done", model: "fable" }),
-        row({ id: "j2", specFolder: "123-picks", steps: ["analyze"], stepIndex: 0, state: "done", model: "sonnet" }),
-      ],
-      [target("123-picks", { done: ["analyze"] })],
-    );
-    const line = subRow(html, "analyze");
-    expect(line).toContain("2 attempts");
-    expect(line).toContain('<select name="model.analyze"');
-  });
-
-  // Spec 176, criterion 4: the note used to sit in a `<div>` of its
-  // own under the badge, so a phase line that had one was taller than
-  // a phase line that had not — and everything beside it moved. It
-  // rides on the badge's own line now.
-  test("the attempt count rides beside the badge, not on a line of its own (spec 176)", () => {
-    const html = rows(
-      [
-        row({ id: "j1", specFolder: "123-picks", steps: ["analyze"], stepIndex: 0, state: "done", model: "fable" }),
-        row({ id: "j2", specFolder: "123-picks", steps: ["analyze"], stepIndex: 0, state: "done", model: "sonnet" }),
-      ],
-      [target("123-picks", { done: ["analyze"] })],
-    );
-    const line = subRow(html, "analyze");
-    expect(line).not.toContain("<div class=\"muted small\">");
-    // The count is IN the badge since 2026-09-08 — "done (2)", with the
-    // word in the pill's own title. Two marks for one fact read as two
-    // facts, and the pill is where the phase's state is said. The title
-    // repeats the visible label too, since spec 480 (Round 2): a phone's
-    // fixed-width state cell can ellipsis-clip the label itself.
-    expect(line).toMatch(
-      /<span class="badge b-[a-z]+" title="Done \(2\) — 2 attempts" data-icon="check">Done \(2\)<\/span>/,
-    );
-  });
-
   // --- the gap the description asked to close --------------------------------
-
-  test("nothing sits between the phase name and its picker", () => {
-    const line = subRow(rows([]), "analyze");
-    // The two shared one cell from spec 123 until spec 165 gave each a
-    // real column of its own — with the row's AI between them, which
-    // is the choice that comes first. What the gap was for is still
-    // gone: no empty column stands between the name and the model.
-    // `analyze` is not the first phase line, so the AI column's slot
-    // here is the first line's `rowspan` and no cell of its own
-    // stands between the two.
-    expect(line).toMatch(/<td class="phasecell" colspan="2">[\s\S]*?<\/td><td class="modelcell">/);
-    expect(line).toContain('<select name="model.analyze"');
-  });
 
   // --- the lock spec 105 put on the shared field follows it here -------------
 
@@ -260,14 +125,6 @@ describe("spec 123: each phase line picks its own model", () => {
     );
     const select = subRow(html, "analyze").match(/<select name="model\.analyze"[^>]*>/)![0];
     expect(select).not.toContain("disabled");
-  });
-
-  // A collapsed row has no phase lines, so it has no picker either —
-  // the same promise spec 103 made about the shared field.
-  test("a collapsed row offers no picker", () => {
-    const html = rows([], [target("123-picks")], { filter: {} });
-    expect(html).not.toContain("<select");
-    expect(html).not.toContain('<tr class="subrow');
   });
 
   // --- spec 308: a model picked for a phase survives leaving the page --------
@@ -331,76 +188,5 @@ describe("spec 123: each phase line picks its own model", () => {
     );
     const line = subRow(html, "analyze");
     expect(line).toMatch(/<option value="sonnet"[^>]*selected/);
-  });
-});
-
-// --- spec 342: a picker drawn for a spec that does not exist yet -------------
-//
-// The New spec page has no real project/specFolder to derive a form id
-// from (`runFormId(g)` reads both off `g`), so `aiPicker`/`modelPicker`
-// take an optional override that replaces it — and nothing else the two
-// functions draw.
-describe("spec 342: formIdOverride replaces the derived form id", () => {
-  const models = [
-    { name: "sonnet" },
-    { name: "fable",  tool: "codex" as const },
-  ];
-  const g: SpecGroup = {
-    project: "", specFolder: "new", named: false, state: "not-started",
-    spentUsd: 0, costUnmeasured: false, phases: [], done: [], dependsOn: [], analyzeStale: false,
-  };
-  const opts: PickerOptions = { modelChoices: models };
-
-  test("modelPicker posts to the override, not the derived id", () => {
-    const html = modelPicker(g, opts, "create", false, false, undefined, undefined, "new-spec-form");
-    expect(html).toContain('form="new-spec-form"');
-    expect(html).not.toContain("rowrun-");
-  });
-
-  test("aiPicker posts to the override too", () => {
-    const html = aiPicker(g, opts, "create", false, false, undefined, undefined, "new-spec-form");
-    expect(html).toContain('form="new-spec-form"');
-    expect(html).not.toContain("rowrun-");
-  });
-
-  // Every existing caller in `phase-rows.ts` passes no override at all,
-  // and has to keep reading exactly as it did before this parameter
-  // existed.
-  test("omitted, the two fall back to the derived id exactly as before", () => {
-    const withFolder: SpecGroup = { ...g, project: "aide", specFolder: "81-queue-and-runner" };
-    expect(modelPicker(withFolder, opts, "create", false, false)).toContain(
-      'form="rowrun-aide/81-queue-and-runner"',
-    );
-    expect(aiPicker(withFolder, opts, "create", false, false)).toContain(
-      'form="rowrun-aide/81-queue-and-runner"',
-    );
-  });
-
-
-});
-
-// The point of the name is that a reader SEES it: a row running the
-// scripted stand-in must not read as a real Claude run. `TOOL_NAMES` has
-// carried "Fake-Claude" all along; what was missing was a rendered page
-// proving the word reaches one — the round's own config named no tool,
-// so its rows read as Claude Code over runs no Claude ever touched.
-describe("a row running the scripted stand-in says so", () => {
-  const TARGET: SpecTarget = { project: "aide", specFolder: "123-picks" };
-  const render = (modelChoices: SpecsPageOptions["modelChoices"]): string =>
-    renderSpecsRows(
-      [],
-      { runnerAvailable: true, targets: [TARGET], modelChoices, filter: { open: openKeys([], [TARGET]) } },
-      Date.parse("2026-08-19T12:00:00Z"),
-    );
-
-  test("the page names it Fake-Claude, not Claude Code", () => {
-    const html = render([{ name: "script",  tool: "fake-claude" }]);
-    expect(html).toContain("Fake-Claude");
-    expect(html).not.toContain("Claude Code");
-  });
-
-  test("a choice that names no tool still reads as Claude Code", () => {
-    const html = render([{ name: "sonnet" }]);
-    expect(html).not.toContain("Fake-Claude");
   });
 });

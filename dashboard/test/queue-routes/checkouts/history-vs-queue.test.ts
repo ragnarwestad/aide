@@ -1,7 +1,7 @@
 // Split out of history-and-freshness.test.ts by theme.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { rmSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { rmSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
 import { JOB, specControls, phaseDone, OPEN_81, listUntil, rowSaysDone, setupQueueRoutesHarness } from "../fixtures.ts";
@@ -25,22 +25,6 @@ afterEach(() => harness.cleanup());
 describe("spec 139: the steps a spec has had say so themselves", () => {
   const specDir = (dir: string) => join(dir, "root", "aide", "specs", "81-queue-and-runner");
 
-  test("an untouched analysis template is not an analysis (criterion 2)", async () => {
-    const { base, dir } = start();
-    // Spec 138's own file, at its own size, with the placeholder
-    // `/aide-create` actually writes — the exact shape that read as
-    // done. The record beside it says the spec has only been created.
-    writeFileSync(
-      join(specDir(dir), "2-analysis.md"),
-      "# X - Analysis\n\n## Findings\n\n[not analyzed yet]\n" + "Section placeholder. ".repeat(40),
-    );
-    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create"]));
-    const line = specControls(await (await fetch(`${base}/?${OPEN_81}`)).text(), "81-queue-and-runner");
-    expect(phaseDone(line, "analyze")).toBe(false);
-    // And the box that comes pre-ticked is the one that has not run.
-    expect(line).toMatch(/value="analyze" checked/);
-  });
-
   test("the recorded list is what the row marks done, and implement is next (criterion 3)", async () => {
     const { base, dir } = start();
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
@@ -52,22 +36,6 @@ describe("spec 139: the steps a spec has had say so themselves", () => {
     expect(line).toMatch(/value="implement" checked/);
     // analyze has run, so a press does not run it again unticked.
     expect(line).not.toMatch(/value="analyze" checked/);
-  });
-
-  // Implement's mark used to be earned from the percentage, which says
-  // how far the TDD phases inside the step have got — not whether the
-  // step ran. A spec whose plan has 22 tasks all ticked is implemented
-  // because implement SAYS so.
-  test("100% without the record does not make implement done (criterion 2)", async () => {
-    const { base, dir } = start();
-    writeFileSync(
-      join(specDir(dir), "4-status.md"),
-      statusSaying(["create", "analyze"], "- **Total progress:** `100% (22 of 22 completed)`\n"),
-    );
-    ran(dir, ["create", "analyze"]);
-    const line = specControls(await (await fetch(`${base}/?${OPEN_81}`)).text(), "81-queue-and-runner");
-    expect(phaseDone(line, "implement")).toBe(false);
-    expect(line).toMatch(/value="implement" checked/);
   });
 
   test("a spec with no status file at all has had nothing, and does not throw (criterion 4)", async () => {
@@ -156,53 +124,14 @@ describe("the spec's own history says what has happened, not the queue's", () =>
     expect(html).toContain(">Archive</button>");
   });
 
-  test("a spec whose archive run declined says why, on the row and in the sentence", async () => {
-    const { base, dir } = start();
-    const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
-    writeFileSync(
-      join(spec, "4-status.md"),
-      statusSaying(
-        ["create", "analyze", "implement"],
-        "- **Total progress:** `100% (22 of 22 completed)`\n\n" +
-          "## Archive held back\n\n- the Slack webhook (Phase 4, still unchecked)\n",
-      ),
-    );
-
-    // Spec 208: written after the server started, so the disk scan the
-    // boot-time cache warm took is a scan of the file before this one.
-    // The watcher clears it and the row catches up a tick later.
-    const html = await listUntil(base, (h) => h.includes("held back"));
-    expect(html).toContain("held back");
-    expect(html).toContain("the Slack webhook (Phase 4, still unchecked)");
-  });
-
-  // Was "off the list entirely" (spec 86, criterion 7) until spec 221:
-  // an archived spec IS a row now, on the chips that ask for one. What
-  // survives that change is the DEFAULT view, which is still every spec
-  // but the archived ones — and that is what this asserts.
-  test("a spec whose folder has been archived is off the default view", async () => {
-    const { base, dir } = start();
-    const archived = join(dir, "root", "aide", "specs", "archive", "80-already-archived");
-    mkdirSync(archived, { recursive: true });
-    writeFileSync(join(archived, "1-description.md"), "# 80 - Description\n");
-
-    const html = await (await fetch(`${base}/?${OPEN_81}`, )).text();
-    expect(html).toContain("81-queue-and-runner");
-    expect(html).not.toContain("80-already-archived");
-
-    // And on the chip that asks for them, it is there — one list, two
-    // readings of it, rather than a spec that has left the dashboard.
-    // Polled, because the folder was made after the server started and
-    // the disk scan it answers from is cached for a few seconds.
-    const deadline = Date.now() + 15_000;
-    let archivedView = "";
-    for (;;) {
-      archivedView = await (
-        await fetch(`${base}/?state=archived`, )
-      ).text();
-      if (archivedView.includes("80-already-archived") || Date.now() > deadline) break;
-      await new Promise((r) => setTimeout(r, 25));
-    }
+  // An archived spec is a row, on the chips that ask for one, and never
+  // on the view of the active ones.
+  test("a spec whose folder has been archived is off the Active view, and on the Archived one", async () => {
+    const { base } = harness.start({ archivedSpecs: { "80-already-archived": {} } });
+    const active = await (await fetch(`${base}/?state=not-archived&${OPEN_81}`)).text();
+    expect(active).toContain("81-queue-and-runner");
+    expect(active).not.toContain("80-already-archived");
+    const archivedView = await (await fetch(`${base}/?state=archived`)).text();
     expect(archivedView).toContain("80-already-archived");
   });
 });

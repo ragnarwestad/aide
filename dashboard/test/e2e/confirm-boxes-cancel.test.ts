@@ -1,0 +1,88 @@
+// The three confirm boxes close with Cancel and with Escape, and neither
+// navigates nor posts anything.
+
+import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:test";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { chromium, type Browser, type Page } from "playwright";
+import { browserDeadline } from "../helpers/browser-deadline.ts";
+import { queueHarness } from "../helpers/queue-server.ts";
+
+browserDeadline();
+
+const FOLDER = "81-queue-and-runner";
+const harness = queueHarness("aide-e2e-confirm-boxes-");
+let browser: Browser;
+let page: Page;
+let base: string;
+
+beforeAll(async () => {
+  const scratch = mkdtempSync(join(tmpdir(), "aide-e2e-confirm-"));
+  writeFileSync(
+    join(scratch, "queue.json"),
+    JSON.stringify([
+      {
+        id: "run1", project: "aide", specFolder: FOLDER, steps: ["analyze"], stepIndex: 0, state: "running",
+        timeoutSec: {}, permissionMode: {}, model: {}, createdAt: "2026-09-18T03:00:00Z", startedAt: "2026-09-18T03:00:00Z",
+      },
+    ]),
+  );
+  const queueConfigFile = join(scratch, "queue-config.json");
+  writeFileSync(
+    queueConfigFile,
+    JSON.stringify({ schedules: { aide: [{ name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md" }] } }),
+  );
+  base = harness.start({ extra: { queueMirrorPath: join(scratch, "queue.json"), queueConfigFile } }).base;
+  browser = await chromium.launch();
+});
+
+// A page of its own per test, rather than one shared by all of them. Every
+// test here opens a modal, and several measure it without closing it — run
+// in sequence on one page, the first test of the second box hung on its own
+// click until the 30 s limit killed it, and the killed browser failed the
+// nine tests behind it. Alone, every one of them passes.
+beforeEach(async () => {
+  page = await browser.newPage();
+});
+
+afterEach(async () => {
+  await page.close();
+});
+
+afterAll(async () => {
+  await browser.close();
+  harness.cleanup();
+});
+
+type Box = { name: string; url: string; selector: string; lang?: string };
+const BOXES: Box[] = [
+  { name: "leave box", url: "/projects?live=0", selector: "dialog.leaveapp" },
+  { name: "cancel box", url: `/?live=0&open=aide%2F${FOLDER}`, selector: "dialog.confirmdialog:has(.actionform)" },
+  { name: "delete box", url: "/projects/aide?tab=schedule&live=0", selector: "dialog.confirmdialog:has(.scheduledeleteform)" },
+];
+
+async function open(box: Box, lang = ""): Promise<void> {
+  const sep = box.url.includes("?") ? "&" : "?";
+  await page.goto(`${base}${box.url}${lang ? `${sep}lang=${lang}` : ""}`);
+  await page.locator(box.selector).first().evaluate((d) => (d as HTMLDialogElement).showModal());
+}
+
+for (const box of BOXES) {
+  for (const how of ["Cancel", "Escape"] as const) {
+    test(`${box.name}: ${how} closes it, navigates nowhere and posts nothing (AC-5)`, async () => {
+      await open(box);
+      const posts: string[] = [];
+      page.on("request", (r) => {
+        if (r.method() === "POST") posts.push(r.url());
+      });
+      const before = page.url();
+      const dlg = page.locator(box.selector).first();
+      if (how === "Cancel") await dlg.getByRole("button", { name: "Cancel" }).click();
+      else await page.keyboard.press("Escape");
+      await dlg.waitFor({ state: "hidden" });
+      expect(page.url()).toBe(before);
+      expect(posts).toEqual([]);
+    });
+  }
+}

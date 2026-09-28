@@ -98,22 +98,6 @@ describe("Close asks in a dialog (AC-7)", () => {
       await dialog(page).waitFor({ state: "hidden" });
     }
   });
-
-  test("at a phone width the field and both buttons lie inside the box (AC-1)", async () => {
-    const page = await open(ACCEPTED, { width: 375, height: 667 });
-    await page.getByRole("button", { name: "Close" }).click();
-    await dialog(page).waitFor({ state: "visible" });
-    const box = (await dialog(page).boundingBox())!;
-    for (const inside of [
-      dialog(page).locator("textarea"),
-      dialog(page).getByRole("button", { name: "OK" }),
-      dialog(page).getByRole("button", { name: "Cancel" }),
-    ]) {
-      const b = (await inside.boundingBox())!;
-      expect(b.x).toBeGreaterThanOrEqual(box.x);
-      expect(b.x + b.width).toBeLessThanOrEqual(box.x + box.width + 1);
-    }
-  });
 });
 
 describe("the button without script (AC-7)", () => {

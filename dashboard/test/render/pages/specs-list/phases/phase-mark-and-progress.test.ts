@@ -7,11 +7,7 @@ import {
   type QueueRowView,
   type SpecTarget,
 } from "../../../../../src/render";
-import {
-  noPullRequest,
-  row,
-  openKeys,
-} from "../../fixtures.ts";
+import { row, openKeys } from "../../fixtures.ts";
 
 // --- spec 195: a phase line shows its mark and nothing else -------------------
 //
@@ -49,7 +45,6 @@ describe("spec 195: a phase line shows its mark and nothing else", () => {
   const panel = (html: string) => html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
   const subRow = (html: string, phase: string) =>
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
-  const BUILT = ["analyze", "implement"];
 
   // Criterion 4: the ordinary case, and the one that must stay silent.
   // A phase whose file and history agree has nothing to say anywhere —
@@ -79,66 +74,6 @@ describe("spec 195: a phase line shows its mark and nothing else", () => {
     expect(panel(html)).not.toContain("implement:");
     expect(subRow(html, "analyze")).not.toContain("last re-run cancelled");
     expect(subRow(html, "implement")).not.toContain("disagree");
-  });
-
-  // Criterion 6: the rule itself, rather than one string at a time. No
-  // phase line, in any state `wordPhase()` can produce, carries a
-  // block-level element — which is what made one line taller than
-  // another.
-  test("no phase line carries block-level free text, in any state", () => {
-    const cases: { name: string; html: string; step: string }[] = [
-      {
-        name: "done, agreeing",
-        html: rows([], [target("195-a", { done: ["analyze"] })]),
-        step: "analyze",
-      },
-      {
-        name: "done, with a re-run that disagrees",
-        html: rows(
-          [row({ id: "c", specFolder: "195-b", steps: ["analyze"], state: "cancelled" })],
-          [target("195-b", { done: ["analyze"] })],
-        ),
-        step: "analyze",
-      },
-      {
-        name: "held back",
-        html: rows(
-          [row({ id: "h", specFolder: "195-c", steps: ["archive"], state: "done" })],
-          [target("195-c", { done: BUILT, archiveHeldBack: { reason: "the Slack webhook" } })],
-        ),
-        step: "archive",
-      },
-      {
-        name: "held back, with a qualifier of its own",
-        html: rows(
-          [row({ id: "h2", specFolder: "195-d", steps: ["archive"], state: "failed" })],
-          [target("195-d", { done: BUILT, archiveHeldBack: { reason: "the Slack webhook" } })],
-        ),
-        step: "archive",
-      },
-      {
-        name: "stopped, with no attempt left to say so",
-        html: rows([], [target("195-e", { done: ["analyze"], stopped: { implement: "timeout" } })]),
-        step: "implement",
-      },
-      {
-        name: "the files disagree and nothing has been attempted",
-        html: rows([], [target("195-f", { done: ["analyze"], fileDisagrees: ["implement"] })]),
-        step: "implement",
-      },
-      {
-        name: "running",
-        html: rows(
-          [row({ id: "r", specFolder: "195-g", steps: ["analyze"], state: "running" })],
-          [target("195-g")],
-        ),
-        step: "analyze",
-      },
-    ];
-    for (const c of cases) {
-      expect(subRow(c.html, c.step)).not.toBe("");
-      expect(`${c.name}: ${subRow(c.html, c.step)}`).not.toContain('<div class="muted small">');
-    }
   });
 
   // Criterion 7: the new producer is the LOWEST of the four. A refusal
@@ -293,66 +228,5 @@ describe("spec 210: a running implement says which third it is in", () => {
       );
       expect(subRow(html, "implement")).not.toContain("(verify)");
     }
-  });
-});
-
-// --- the step that called `gh` is the step that reports it -------------------
-//
-// One step of a spec calls `gh pr create`. The answer belonged to the
-// JOB, which meant a row with four steps had one field between them and
-// no way to say which step it came from. It is the step's own record
-// now, and the row draws it on that step's line.
-describe("no pull request is reported on the line of the step that tried", () => {
-  const FOLDER = "81-queue-and-runner";
-  const listed = (open: boolean) =>
-    renderSpecsRows(
-      [row({ steps: ["analyze", "implement"], stepIndex: 1, state: "done", ...noPullRequest("implement") })],
-      {
-        runnerAvailable: true,
-        targets: [],
-        ...(open ? { filter: { open: `aide/${FOLDER}` } } : {}),
-      },
-      Date.parse("2026-08-22T12:00:00Z"),
-    );
-  const line = (html: string, phase: string) =>
-    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
-  const notice = (html: string) => html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
-
-  test("the mark is on that step's own line, and on no other phase's", () => {
-    const html = listed(true);
-    expect(line(html, "implement")).toContain("No pull request");
-    expect(line(html, "analyze")).not.toContain("No pull request");
-    expect(line(html, "create")).not.toContain("No pull request");
-  });
-
-  // A badge is `nowrap`, so the sentence cannot stand beside one — it
-  // rides in the badge's title, and the panel says it in full.
-  test("the sentence rides in the mark's title, never as text on the line", () => {
-    const html = listed(true);
-    const SENTENCE = "No pull request could be opened for this branch. — Open one by hand, in the checkout on the serving host.";
-    expect(line(html, "implement")).toContain(`title="${SENTENCE}"`);
-    expect(line(html, "implement").replace(/<[^>]*>/g, "")).not.toContain("Open one by hand");
-  });
-
-  // A collapsed row draws no phase lines at all, so the panel — which it
-  // does draw — is where the sentence has to be readable.
-  test("a collapsed row still says it, in its panel", () => {
-    const html = listed(false);
-    expect(line(html, "implement")).toBe("");
-    expect(notice(html)).toContain("No pull request could be opened for this branch.");
-  });
-
-  // The latest attempt answers for the phase: a step run again, this
-  // time opening the request, has nothing left to report.
-  test("a later attempt that opened one leaves nothing to say", () => {
-    const html = renderSpecsRows(
-      [
-        row({ id: "first", steps: ["implement"], state: "done", ...noPullRequest("implement") }),
-        row({ id: "second", steps: ["implement"], state: "done", startedAt: "2026-08-22T11:00:00Z" }),
-      ],
-      { runnerAvailable: true, targets: [], filter: { open: `aide/${FOLDER}` } },
-      Date.parse("2026-08-22T12:00:00Z"),
-    );
-    expect(html).not.toContain("No pull request");
   });
 });

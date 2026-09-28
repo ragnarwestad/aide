@@ -27,13 +27,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { specWriteInFlight } from "../../src/serve/routes/spec-edit";
 import type { GitRunner } from "../../src/git/branch-status.ts";
-import { PAGE, TICK, SAVE, FILE_SHA, DESCRIPTION, NEW_TEXT, ARCHIVED, ARCHIVED_TEXT, createSpecSaveHarness, descriptionPath, savable } from "./spec-save-fixtures.ts";
-import {
-  PHASE, OPEN_ROW, SECOND_OPEN_ROW, DONE_ROW, EARLIER_DONE_ROW, WORDED, CHECKLIST_PHASE,
-  CHECKLIST_OPEN_ROW, CHECKLIST_STATUS, STATUS, HELD_BACK_REASON, ticked, phaseSection,
-  heldBack, statusPath, startWithChecks as start, tick, save, recording, NV_ROW, NV_STATUS,
-  ACCEPTANCE_PHASE, ACCEPTANCE_OPEN_ROW, STATUS_WITH_OPEN_ACCEPTANCE, TDD_OPEN_ROW,
-} from "./spec-checks-fixtures.ts";
+import { PAGE, TICK, SAVE, FILE_SHA, DESCRIPTION, NEW_TEXT, createSpecSaveHarness, descriptionPath, savable } from "./spec-save-fixtures.ts";
+import { PHASE, OPEN_ROW, SECOND_OPEN_ROW, DONE_ROW, EARLIER_DONE_ROW, WORDED, CHECKLIST_PHASE, CHECKLIST_OPEN_ROW, CHECKLIST_STATUS, STATUS, HELD_BACK_REASON, ticked, heldBack, statusPath, startWithChecks as start, tick, save, recording, NV_ROW, NV_STATUS, ACCEPTANCE_PHASE, ACCEPTANCE_OPEN_ROW, STATUS_WITH_OPEN_ACCEPTANCE, TDD_OPEN_ROW } from "./spec-checks-fixtures.ts";
 
 /** The page's markup, without its inline scripts: the client bundle the spec
  *  page carries holds strings that look like the markup these tests count. */
@@ -71,38 +66,6 @@ describe("the checks on the Overview tab", () => {
       expect(html).toContain(ACCEPTANCE_PHASE);
     });
 
-    test("an old ?tab=checks link opens the Status tab, tick form and all (AC-4)", async () => {
-      const { base } = startWithChecks(savable("/host"));
-      const html = await fetch(`${base}${PAGE}?tab=checks`).then(pageText);
-      expect(html).toContain('name="tick"');
-    });
-
-    test("the current phase's open rows are boxes in a form of their own", async () => {
-      const { base } = startWithChecks(savable("/host"));
-      const html = await overview(base);
-      expect(html).toContain("Manual check at 375px in a real browser");
-      expect(html).toContain("Read the whole diff once");
-      expect(html).toContain('name="tick"');
-      // One shared hidden phase, not one per row: every box on this form
-      // belongs to the same phase by construction.
-      expect(html).toContain(`name="checksPhase"`);
-      expect(html).toContain(`name="statusBaseSha"`);
-      // Its own action, not the description's: two forms, two commits.
-      expect(html).toContain(`action="/api/queue/specs/aide/81-queue-and-runner/tick"`);
-      // The Close dialog beside the page's actions has its own Reason field.
-      expect(html.replace(/<dialog[\s\S]*?<\/dialog>/g, "")).not.toContain("<textarea");
-    });
-
-    // A check already made is a box too, and a ticked one. It used to be
-    // static text — which made a mis-click final, with `4-status.md` and
-    // a markdown table the only way back.
-    test("a row already done in the current phase is a ticked box, not static text", async () => {
-      const html = await overview(startWithChecks(savable("/host")).base);
-      expect(html).toContain("Run the full test suite");
-      expect(html.match(/name="tick"/g)!).toHaveLength(3);
-      expect(html).toContain(`value="${DONE_ROW}" checked aria-label=`);
-    });
-
     // A Phase section the workflow has not reached carries the run's own
     // rows, so it is not on this page at all.
     test("an open row in a later phase is not on the page", async () => {
@@ -121,27 +84,6 @@ describe("the checks on the Overview tab", () => {
       expect(html).toContain("Manual check at 375px in a real browser");
       expect(html).toContain("Read the whole diff once");
       expect(html.match(/name="tick"/g)!).toHaveLength(3);
-    });
-
-    // Every row done is not a section with nothing to do: taking a check
-    // back off is the thing this page is now for as much as putting one
-    // on, and a spec whose boxes were all ticked by mistake had no way
-    // back at all.
-    test("a spec whose every row is done still offers its boxes, ticked", async () => {
-      const done = ["# Queue - Status", "", phaseSection(PHASE, [DONE_ROW])].join("\n");
-      const html = await overview(startWithChecks(savable("/host"), done).base);
-      expect(html.match(/name="tick"/g)!).toHaveLength(1);
-      expect(html).toContain(`value="${DONE_ROW}" checked aria-label=`);
-      expect(html).toContain("Run the full test suite");
-    });
-
-    // A spec never analysed: no phase sections at all is a real answer,
-    // not an error.
-    test("a status file with no phase sections at all opens all the same", async () => {
-      const { base } = startWithChecks(savable("/host"), "# Queue - Status\n\n- [ ] something\n");
-      const res = await fetch(`${base}${PAGE}`);
-      expect(res.status).toBe(200);
-      expect(await pageText(res)).not.toContain('name="tick"');
     });
 
     // Spec 266 gave a LOW-complexity spec's `## Checklist` the same box a
@@ -390,46 +332,6 @@ describe("the checks on the Overview tab", () => {
 describe("the Not verified box on the Status tab (spec 509)", () => {
   const statusTab = (base: string, path = PAGE) => fetch(`${base}${path}?tab=status`).then(pageText);
   const block = (html: string): string => html.match(/<section class="checks">[\s\S]*?<\/section>/)?.[0] ?? "";
-  const withNv = STATUS.replace(SECOND_OPEN_ROW, NV_ROW);
-
-  test("each row carries a tick box and a Not verified box; the flagged row has only the second checked (AC-1)", async () => {
-    const html = block(await statusTab(startWithChecks(savable("/host"), withNv).base));
-    expect(html.match(/name="tick"/g)).toHaveLength(3);
-    expect(html.match(/name="unverified"/g)).toHaveLength(3);
-    expect(html).toContain(`name="unverified" value="${NV_ROW}" checked aria-label=`);
-    expect(html).not.toContain(`name="tick" value="${NV_ROW}" checked aria-label=`);
-    expect(html).toContain(`name="tick" value="${DONE_ROW}" checked aria-label=`);
-    expect(html).not.toContain(`name="unverified" value="${DONE_ROW}" checked aria-label=`);
-    expect(html).not.toContain(`name="unverified" value="${OPEN_ROW}" checked aria-label=`);
-    expect(html).toContain('class="check notverified"');
-  });
-
-  test("one heading follows the section's caption: Yes and Not yet on a live spec, Yes and Failed on an archived one (AC-2, AC-4)", async () => {
-    const live = block(await statusTab(startWithChecks(savable("/host"), withNv).base));
-    expect(live.match(/class="checkcolumns"/g)).toHaveLength(1);
-    expect(live).toContain('<div class="checkyes">Yes</div><div class="checkother">Not yet</div>');
-    expect(live.indexOf("checkcolumns")).toBeGreaterThan(live.indexOf("checkphase"));
-    expect(live.indexOf("checkcolumns")).toBeLessThan(live.indexOf('<li class="check '));
-    const { base } = harness.start({
-      description: DESCRIPTION,
-      status: STATUS,
-      archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT, status: NV_STATUS } },
-      extra: { gitRun: savable("/host") },
-    });
-    const archived = block(await statusTab(base, `/specs/aide/${ARCHIVED}`));
-    expect(archived).toContain('<div class="checkyes">Yes</div><div class="checkother">Failed</div>');
-    expect(archived).not.toContain("Not yet");
-  });
-
-  test("a list with no box has no heading (AC-2)", async () => {
-    const { base } = harness.start({
-      description: DESCRIPTION,
-      status: STATUS,
-      archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT, status: STATUS } },
-      extra: { gitRun: savable("/host") },
-    });
-    expect(await statusTab(base, `/specs/aide/${ARCHIVED}`)).not.toContain(`class="checkcolumns"`);
-  });
 
   test("a spec whose only non-done rows are Not verified still gets its base sha, and a post built from the page is accepted (AC-1)", async () => {
     const { base, dir } = startWithChecks(savable("/host"), NV_STATUS);
@@ -442,32 +344,6 @@ describe("the Not verified box on the Status tab (spec 509)", () => {
     expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(NV_STATUS.replace(NV_ROW, NV_ROW.replace("Not verified", "✅")));
   });
-
-  test("an archived spec draws the tick box alone on its Not verified row, and nothing on the rest (AC-5)", async () => {
-    const { base } = harness.start({
-      description: DESCRIPTION,
-      status: STATUS,
-      archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT, status: NV_STATUS } },
-      extra: { gitRun: savable("/host") },
-    });
-    const html = await statusTab(base, `/specs/aide/${ARCHIVED}`);
-    const form = block(html);
-    expect(form.match(/name="tick"/g)).toHaveLength(1);
-    expect(form).toContain(`name="tick" value="${NV_ROW}" aria-label=`);
-    expect(form).not.toContain('name="unverified"');
-    expect(form).not.toContain(`value="${DONE_ROW}"`);
-    expect(form).toContain(`name="statusBaseSha" value="${FILE_SHA}"`);
-  });
-
-  test("an archived spec with no Not verified row draws no form at all (AC-5)", async () => {
-    const { base } = harness.start({
-      description: DESCRIPTION,
-      status: STATUS,
-      archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT, status: STATUS } },
-      extra: { gitRun: savable("/host") },
-    });
-    expect(await statusTab(base, `/specs/aide/${ARCHIVED}`)).not.toContain('name="tick"');
-  });
 });
 
 // --- spec 510: the Failed choice on an archived spec, and a Failed row --------
@@ -476,41 +352,6 @@ describe("the Failed choice on the Status tab (spec 510)", () => {
   const statusTab = (base: string, path = PAGE) => fetch(`${base}${path}?tab=status`).then(pageText);
   const block = (html: string): string => html.match(/<section class="checks">[\s\S]*?<\/section>/)?.[0] ?? "";
   const FAILED_ROW = "| AC-6: failed earlier | ❌ Failed | Failed: it did not hold |";
-  const withFailed = NV_STATUS.replace(NV_ROW, `${NV_ROW}\n${FAILED_ROW}`);
-  const archivedPage = () =>
-    harness.start({
-      description: DESCRIPTION,
-      status: STATUS,
-      archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT, status: withFailed } },
-      extra: { gitRun: savable("/host") },
-    });
-
-  test("an archived spec draws tick, Failed and a note field on its Not verified row (AC-4)", async () => {
-    const form = block(await statusTab(archivedPage().base, `/specs/aide/${ARCHIVED}`));
-    expect(form).toContain(`name="tick" value="${NV_ROW}" aria-label=`);
-    expect(form).toContain(`name="failed" value="${NV_ROW}" aria-label=`);
-    expect(form).toContain('<textarea class="failnote" name="failnote-0"');
-    expect(form).toMatch(/<div class="failcontrol"><textarea class="failnote"/);
-    expect(form.match(/name="tick"/g)).toHaveLength(1);
-  });
-
-  test("an archived Failed row is drawn read-only with its note and a Reopen link outside the boxes (AC-4, AC-8)", async () => {
-    const form = block(await statusTab(archivedPage().base, `/specs/aide/${ARCHIVED}`));
-    expect(form).toContain('class="check failed"');
-    expect(form).toContain("Failed: it did not hold");
-    expect(form).not.toContain(`value="${FAILED_ROW}"`);
-    expect(form).toContain(`href="/specs/aide/${ARCHIVED}/reopen"`);
-  });
-
-  test("a live spec's Failed row is read-only, counted, and has no Reopen (AC-4, AC-8)", async () => {
-    const live = STATUS.replace(SECOND_OPEN_ROW, FAILED_ROW);
-    const html = block(await statusTab(startWithChecks(savable("/host"), live).base));
-    expect(html).toContain('class="check failed"');
-    expect(html).not.toContain(`value="${FAILED_ROW}"`);
-    expect(html).not.toContain("/reopen");
-    expect(html).toContain("1 failed");
-    expect(html.match(/name="tick"/g)).toHaveLength(2);
-  });
 
   test("a Failed row is not counted as open, and the page still offers the form (AC-5)", async () => {
     const live = STATUS.replace(SECOND_OPEN_ROW, FAILED_ROW);

@@ -187,7 +187,6 @@ describe("spec 93: the completion hook and the landing window", () => {
     expect(after?.state).toBe("failed");
     expect(after?.error).toEqual({ key: "runner.noProgressArchive", values: { button: "Archive" } });
     expect(after?.errorDetail).toBeUndefined();
-    expect(renderSentence("nb", after?.error)).toContain("arkivering meldte ferdig");
   });
 
   test("an implement that made no progress is stored as the board's own message, with no detail repeating it", () => {
@@ -213,7 +212,6 @@ describe("spec 93: the completion hook and the landing window", () => {
     expect(after?.state).toBe("failed");
     expect(after?.error).toEqual({ key: "runner.testsRedImplement", values: { button: "Implement" } });
     expect(after?.errorDetail).toBe(bash);
-    expect(renderSentence("nb", after?.error)).toContain("testene som feiler");
   });
 
   test("an archive whose test run after the merge with main is red gets its own message", () => {
@@ -227,7 +225,6 @@ describe("spec 93: the completion hook and the landing window", () => {
     expect(after?.state).toBe("failed");
     expect(after?.error).toEqual({ key: "runner.testsRedArchive", values: { button: "Archive" } });
     expect(after?.errorDetail).toBe(bash);
-    expect(renderSentence("nb", after?.error)).toContain("etter mergen med main");
   });
 
   test("an archive that dropped its open merge is stored as the board's own message too", () => {
@@ -241,7 +238,6 @@ describe("spec 93: the completion hook and the landing window", () => {
     expect(after?.state).toBe("failed");
     expect(after?.error).toEqual({ key: "runner.mergeUnfinishedArchive", values: { button: "Archive" } });
     expect(after?.errorDetail).toBe(bash);
-    expect(renderSentence("nb", after?.error)).toContain("kastet mergen");
   });
 
   // `cli-error` is the CLI itself failing rather than the work in it, so

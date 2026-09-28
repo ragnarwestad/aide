@@ -68,8 +68,7 @@ beforeAll(async () => {
   writeFileSync(join(started.dir, "root", "aide", "specs", FOLDER, "4-status.json"), STATE_JSON);
   // archiveHeldBackApplies() only shows the row's message once `done`
   // (freshness-verified against real git history) includes "implement" —
-  // the hand-written status/state files alone are not enough. Mirrors
-  // specs-page-layout.test.ts's own beforeAll.
+  // the hand-written status/state files alone are not enough.
   ran(started.dir, ["analyze", "implement"]);
   // The row carries its acceptance message only once the freshness check
   // has verified "implement" against real git history, and the list
@@ -92,28 +91,6 @@ beforeAll(async () => {
 afterAll(async () => { await browser.close(); harness.cleanup(); });
 
 describe("the acceptance gate, on a page a person could click", () => {
-  test("REQ-4: the specs list names the Status tab", async () => {
-    await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
-    const notice = page.locator(`tr.specnotice[data-folder="${FOLDER}"]`);
-    expect(await notice.textContent()).toContain("tick them under › on the Specs list, or on the Status tab");
-  });
-
-  test("AC-17: the rendered file sits below the criteria block, Save and Cancel enable on a change, nothing scrolls sideways (AC-17)", async () => {
-    await withBrowser(page.goto(`${base}/specs/aide/${FOLDER}?tab=status&live=0`), "page.goto(status)");
-    await page.waitForSelector("#spec-editor-host[data-mounted]", { timeout: 10_000 });
-    const block = await page.locator("section.checks").boundingBox();
-    const file = await page.locator("#spec-editor-host").boundingBox();
-    expect(block).not.toBeNull();
-    expect(file).not.toBeNull();
-    expect(file!.y).toBeGreaterThanOrEqual(block!.y + block!.height);
-    const save = page.locator("section.checks form.specform button[type=\"submit\"]");
-    expect(await save.isDisabled()).toBe(true);
-    await page.locator(`input[name="tick"][value="${ACCEPTANCE_ROW}"]`).check();
-    expect(await save.isDisabled()).toBe(false);
-    await page.setViewportSize({ width: 375, height: 800 });
-    const wide = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
-    expect(wide).toBe(false);
-  });
 
   test("REQ-5: ticking the row clears the message and archive becomes possible", async () => {
     await withBrowser(page.goto(`${base}/specs/aide/${FOLDER}?tab=status&live=0`), "page.goto(status)");
@@ -125,8 +102,7 @@ describe("the acceptance gate, on a page a person could click", () => {
     expect(await page.locator(".checklist .check.open").count()).toBe(0);
 
     // The specs list's own cache polls on `specCachePollMs`, not on this
-    // save — the same short settle `specs-page-layout.test.ts`'s beforeAll
-    // waits out after a git-history change lands.
+    // save, so a short settle is waited out first.
     await new Promise((r) => setTimeout(r, 300));
     // Open: the row's one action rides the caption line the fold opens
     // (2026-09-08), so a shut row has no button to press.

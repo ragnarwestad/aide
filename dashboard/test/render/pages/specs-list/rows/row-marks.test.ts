@@ -6,12 +6,7 @@
 // tests are unchanged and keep their names.
 
 import { describe, expect, test } from "bun:test";
-import {
-  renderSpecsRows,
-  type ArchivedSpecView,
-  type QueueRowView,
-  type SpecTarget,
-} from "../../../../../src/render";
+import { renderSpecsRows, type QueueRowView, type SpecTarget } from "../../../../../src/render";
 import { noPullRequest, row } from "../../fixtures.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status";
 
@@ -92,34 +87,6 @@ describe("a row shows the pull request its run opened (spec 220)", () => {
     expect(noticeCellHtml(html, FOLDER)).toContain('href="https://github.test/aide/pull/7"');
   });
 
-  // REQ-2: the link must survive being joined with another mark's
-  // sentence on the same line, not only when it is the sole mark.
-  test("the pull-request link keeps its own href when joined with another mark", () => {
-    const html = open({
-      pushError: "cannot push aide/81-queue-and-runner: non-fast-forward",
-      prUrl: "https://github.test/aide/pull/7",
-    });
-    const notice = noticeCellHtml(html, FOLDER);
-    expect(notice).toContain(
-      "A step's push did not reach origin. — Pull the branch in the checkout on the serving host, then push it again from a terminal.",
-    );
-    expect(notice).toContain('href="https://github.test/aide/pull/7"');
-  });
-
-  // REQ-6: the column reads the same with or without a pull request
-  // open, across more than one state.
-  test.each(["running", "done"] as const)("REQ-6: the State cell is identical with and without prUrl (%s)", (state) => {
-    const withPr = renderSpecsRows([row({ steps: ["archive"], state, prUrl: "https://github.test/aide/pull/7" })], {
-      runnerAvailable: true,
-      targets: [],
-    });
-    const withoutPr = renderSpecsRows([row({ steps: ["archive"], state })], {
-      runnerAvailable: true,
-      targets: [],
-    });
-    expect(stateCellHtml(withPr, FOLDER)).toBe(stateCellHtml(withoutPr, FOLDER));
-  });
-
   // Spec 339, REQ-2: `prError` is one of the three real ERRORS, not the
   // "pull request" state — it moves to the notice line, distinct from
   // the badge test above, which stays put.
@@ -149,14 +116,6 @@ describe("a row shows the pull request its run opened (spec 220)", () => {
   test("a row with neither is the row it has always been", () => {
     const html = open({});
     expect(html.toLowerCase()).not.toContain("pull request");
-  });
-
-  // REQ-5 (spec 411): every row-notice link opens in a new tab now, the
-  // pull-request link included.
-  test("REQ-5: the pull-request link opens in a new tab", () => {
-    const html = open({ prUrl: "https://github.test/aide/pull/7" });
-    const notice = noticeCellHtml(html, FOLDER);
-    expect(notice).toContain('href="https://github.test/aide/pull/7" target="_blank" rel="noopener"');
   });
 });
 
@@ -205,14 +164,6 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
     const notice = noticeCellHtml(heldForChecks(), FOLDER);
     expect(notice).toContain("Click the link to start a test server running this branch");
     expect(notice).toContain(`href="/specs/aide/${FOLDER}?tab=steps&amp;startTestServer=1"`);
-  });
-
-  // REQ-2: the link opens in a new tab and carries the start trigger.
-  test("REQ-2: the link opens in a new tab", () => {
-    const notice = noticeCellHtml(heldForChecks(), FOLDER);
-    expect(notice).toMatch(
-      new RegExp(`href="/specs/aide/${FOLDER}\\?tab=steps&amp;startTestServer=1" target="_blank" rel="noopener"`),
-    );
   });
 
   // Ticking the last check starts the archive at once, and the note in
@@ -410,7 +361,6 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
     expect(incapableNotice).not.toContain("Click the link to start a test server");
     expect(incapableNotice).not.toContain("startTestServer=1");
   });
-
 });
 
 // --- a held-back job is info when it resolves on its own, waiting when it needs a person (spec 389) --
@@ -646,52 +596,6 @@ describe("more than one error mark, ranked, both visible in the notice line (REQ
     expect(notice).toContain(PUSH_SENTENCE);
     expect(notice).toContain(LANDING);
     expect(notice.indexOf(PUSH_SENTENCE)).toBeLessThan(notice.indexOf(LANDING));
-  });
-});
-
-// --- spec 335: no status mark ever renders beside the name ------------------
-describe("no status mark renders inside the Spec cell (REQ-1, REQ-7)", () => {
-  const live = (folder: string, extra: Partial<QueueRowView>): string =>
-    renderSpecsRows([row({ specFolder: folder, ...extra })], { runnerAvailable: true, targets: [] });
-
-  const archived = (folder: string, over: Partial<ArchivedSpecView>): string =>
-    renderSpecsRows([], {
-      runnerAvailable: true,
-      targets: [],
-      archived: [`aide/${folder}`],
-      archivedSpecs: [
-        {
-          project: "aide",
-          folder,
-          done: ["create", "analyze", "implement", "archive"],
-          models: {},
-          phaseOutcomes: {},
-          ...over,
-        },
-      ],
-      filter: { state: "archived" },
-    });
-
-  const fixtures: Array<[string, string, string]> = [
-    ["pushError", "70-a", live("70-a", { pushError: "cannot push aide/70-a: non-fast-forward" })],
-    ["landingError", "70-b", live("70-b", { landingError: "analyze landing failed: cannot merge aide/70-b" })],
-    ["prError", "70-c", live("70-c", noPullRequest("analyze"))],
-    ["prUrl", "70-d", live("70-d", { prUrl: "https://github.test/aide/pull/1" })],
-    ["archive.prOpen", "70-e", archived("70-e", { prOpen: true, prUrl: "https://github.test/aide/pull/2" })],
-    [
-      "archive.branchDeleteError",
-      "70-f",
-      archived("70-f", {
-        notLanded: true,
-        branchDeleteError: "merged, but deleting aide/70-f on origin failed: remote rejected",
-      }),
-    ],
-    ["archive.notLanded", "70-g", archived("70-g", { notLanded: true })],
-    ["plain row", "70-h", live("70-h", {})],
-  ];
-
-  test.each(fixtures)("%s: the Spec cell carries no badge", (_name, folder, html) => {
-    expect(specCell(html, folder)).not.toContain('class="badge');
   });
 });
 

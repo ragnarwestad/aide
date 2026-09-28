@@ -100,8 +100,8 @@ export function resolveOpenStep(query: string | undefined, hasRunning: boolean):
  *  No class of its own: `table.facts` is the page's existing key/value
  *  component (`job-page.ts`'s `labelled()`), and `specfile`/`muted`/
  *  `small`/`num`/`label` are the same classes the raw log and the row's
- *  own cells already carry — `css-guard-class-vocabulary.test.ts` fails
- *  any render file that introduces a class outside that vocabulary. */
+ *  own cells already carry — no render file introduces a class outside
+ *  that vocabulary. */
 function stepFacts(r: JobStepResultView, lang: Language = "en"): string {
   const hasLog = !!r.logs?.some((part) => part.lines.length > 0);
   const facts =
@@ -128,9 +128,8 @@ function stepFacts(r: JobStepResultView, lang: Language = "en"): string {
  *  step's own `streamFile` rather than the job's last one), and a step
  *  currently running gets a row of its own — `opts.runningStep` — since
  *  it has no `JobStepResultView` yet. `opts.tabHref` is absent only for
- *  a caller that wants the bare table with no expand control at all
- *  (`responsive.test.ts`'s wrap check, which asserts markup nothing
- *  here changes). `opts.mark` (spec 360) is the spec page's own "(?)"
+ *  a caller that wants the bare table with no expand control at all.
+ *  `opts.mark` (spec 360) is the spec page's own "(?)"
  *  help popover, appended inside this table's own first line — this
  *  page draws none of its own, so it stays absent here. */
 export function stepResults(

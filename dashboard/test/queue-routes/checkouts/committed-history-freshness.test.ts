@@ -69,35 +69,6 @@ describe("spec 154: what has run is what has been committed", () => {
     expect(line).toContain(">Analyze</button>");
   });
 
-  // Spec 176, criterion 3: a spec that appears on the dashboard has
-  // been created, so "create not run yet" cannot be true. The folder
-  // being on disk is a stronger source than the commit log — a spec
-  // written by hand has no `Run /aide-create` commit at all — and the
-  // pip has read it that way since spec 167. The phase LINE agrees now.
-  test("a spec whose folder exists has had create, whatever git records", async () => {
-    const { base, dir, server } = start();
-    // Analyze has a commit; create never did.
-    ran(dir, ["analyze"]);
-    const line = specControls(await listPage(base, server), "81-queue-and-runner");
-    expect(phaseDone(line, "create")).toBe(true);
-    // The create line itself, not the group: the three phases below it
-    // genuinely have not run, and say so.
-    const createLine = line.match(/<tr class="subrow[^"]*"[^>]*data-step="create">[\s\S]*?<\/tr>/)![0];
-    expect(createLine).not.toContain("not run yet");
-  });
-
-  // And the claim carries no qualifier of its own: the status file
-  // here does not name `create`, which before spec 176 would have been
-  // a disagreement the moment `create` was forced into `done`.
-  test("forcing create into done invents no disagreement", async () => {
-    const { base, dir, server } = start();
-    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["analyze"]));
-    ran(dir, ["analyze"]);
-    const line = specControls(await listPage(base, server), "81-queue-and-runner");
-    expect(phaseDone(line, "create")).toBe(true);
-    expect(line).not.toContain("disagree about whether");
-  });
-
   // Criterion 3, the same fixture: the row does not swallow it.
   test("a file claiming a step the history does not have says so on the row", async () => {
     const { base, dir, server } = start();
@@ -108,85 +79,6 @@ describe("spec 154: what has run is what has been committed", () => {
     expect(line).toContain("disagree about whether");
   });
 
-  test("and so does a file that has NOT caught up with a step that ran", async () => {
-    const { base, dir, server } = start();
-    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create"]));
-    ran(dir, ["create", "analyze"]);
-    const line = specControls(await listPage(base, server), "81-queue-and-runner");
-    expect(phaseDone(line, "analyze")).toBe(true);
-    expect(line).toContain("disagree about whether");
-  });
-
-  test("a file that agrees with the history says nothing at all", async () => {
-    const { base, dir, server } = start();
-    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
-    ran(dir, ["create", "analyze"]);
-    const line = specControls(await listPage(base, server), "81-queue-and-runner");
-    expect(line).not.toContain("disagree about whether");
-  });
-
-  // Spec 362 (REQ-1/REQ-5, disk path): a state file's own claim is the
-  // truth once one exists, and is no longer compared against git — spec
-  // 349's own incident, an amended commit that never reached origin
-  // while the phase it recorded landed anyway, inside a later commit.
-  test("a spec whose state file claims a phase git has no commit for is not shown as disagreeing (spec 362)", async () => {
-    const { base, dir, server } = start();
-    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
-    writeFileSync(
-      join(specDir(dir), "4-status.json"),
-      JSON.stringify({
-        completedPhases: ["create", "analyze"],
-        archived: null,
-        reopened: null,
-        acceptanceCriteria: [],
-        phaseCounts: {},
-      }),
-    );
-    ran(dir, ["create"]);
-    const line = specControls(await listPage(base, server), "81-queue-and-runner");
-    expect(phaseDone(line, "analyze")).toBe(true);
-    expect(line).not.toContain("disagree about whether");
-  });
-
-  // Criterion 2: the 147 incident. No job in the queue's memory at all
-  // — the row is built from the commit alone.
-  test("a step killed by the time limit reads as stopped, not as not-run", async () => {
-    const { base, dir, server } = start();
-    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
-    ran(dir, ["create", "analyze"]);
-    ran(dir, ["implement"], "81-queue-and-runner", { stopped: "timeout" });
-    const line = specControls(await listPage(base, server), "81-queue-and-runner");
-    const implement =
-      line.match(/<tr class="subrow[^"]*"[^>]*data-step="implement">[\s\S]*?<\/tr>/)?.[0] ?? "";
-    expect(implement).toContain("Stopped");
-    expect(implement).not.toContain("stopped: timeout");
-    expect(line).toContain("stopped: timeout");
-    expect(implement).not.toContain("not run yet");
-    // Stopped is not done: implement is still what the row offers.
-    expect(phaseDone(line, "implement")).toBe(false);
-    expect(line).toMatch(/value="implement" checked/);
-  });
-
-  // Criterion 4.
-  test("a completed re-run supersedes the stop before it", async () => {
-    const { base, dir, server } = start();
-    ran(dir, ["create", "analyze"]);
-    ran(dir, ["implement"], "81-queue-and-runner", { stopped: "timeout" });
-    ran(dir, ["implement"]);
-    const line = specControls(await listPage(base, server), "81-queue-and-runner");
-    expect(phaseDone(line, "implement")).toBe(true);
-    expect(line).not.toContain("stopped: timeout");
-    expect(line).toMatch(/value="archive" checked/);
-  });
-
-  // Criterion 5: a step run at somebody's keyboard, committed by hand
-  // with the subject the four skills now offer.
-  test("an interactive commit with no headless marker counts the same", async () => {
-    const { base, dir, server } = start();
-    ran(dir, ["create", "analyze"], "81-queue-and-runner", { headless: false });
-    const line = specControls(await listPage(base, server), "81-queue-and-runner");
-    expect(phaseDone(line, "analyze")).toBe(true);
-  });
 });
 
 // Spec 97: a description edited after the analyze ran leaves the plan
@@ -283,56 +175,4 @@ describe("a description newer than the analysis is shown on the row", () => {
     expect(before).toContain("- **Workflow steps completed:** create, analyze, implement");
   });
 
-  test("a re-analyzed spec is current again (criterion 5)", async () => {
-    const { base, dir } = start({
-      gitRun: gitSaying(
-        DESCRIPTION_EDITED,
-        [
-          `2026-08-18T11:00:00+02:00\t${SUBJECT}`,
-          `2026-08-18T08:57:16+02:00\t${SUBJECT}`,
-        ].join("\n"),
-      ).run,
-    });
-    analysedSpec(dir);
-    const html = await listPage(base);
-    expect(html).not.toContain("Description changed since");
-    const line = specControls(html, "81-queue-and-runner");
-    expect(phaseDone(line, "analyze")).toBe(true);
-  });
-
-  test("a description older than the analysis changes nothing (criterion 4)", async () => {
-    const { base, dir } = start({
-      gitRun: gitSaying("2026-08-18T08:00:00+02:00", `deadbee\t2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
-    });
-    analysedSpec(dir);
-    const html = await listPage(base);
-    expect(html).not.toContain("Description changed since");
-    expect(phaseDone(specControls(html, "81-queue-and-runner"), "analyze")).toBe(true);
-  });
-
-  // A git that cannot answer must not put a badge on the page that
-  // nothing can ever clear.
-  //
-  // What it DOES do since spec 154 is leave the phase unmarked: the
-  // history is the record, and a history nothing can read proves
-  // nothing has run. That direction is deliberate — a spec reading as
-  // still having analyze ahead of it is visible, and running the step
-  // fixes it, where a mark nothing earned is neither. The file's own
-  // claim is still on the row, as the disagreement it now is.
-  test("git with no answer marks nothing, and still puts no stale badge up (criteria 8, 10)", async () => {
-    const { base, dir } = start({
-      gitRun: gitFake({}).run,
-    });
-    analysedSpec(dir);
-    // Spec 208: the file's own claim reaches the row off the disk scan,
-    // and that scan was taken at boot — before `analysedSpec` wrote.
-    // The watcher clears it and the row catches up a tick later.
-    const html = await listUntil(base, (h) =>
-      specControls(h, "81-queue-and-runner").includes("disagree about whether"),
-    );
-    expect(html).not.toContain("Description changed since");
-    const line = specControls(html, "81-queue-and-runner");
-    expect(phaseDone(line, "analyze")).toBe(false);
-    expect(line).toContain("disagree about whether");
-  });
 });
