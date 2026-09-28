@@ -122,6 +122,14 @@ in the project repository, a change under the specs root outside `wiki/`, and an
 older commit, and a refresh (`--wiki-refresh`) that leaves a page `aide-wiki status` marks `changed`. The error names
 the pages.
 
+**An `archive` step may write three things under `wiki/`, and `run-spec-wiki-guard.sh` takes back anything else.** It
+recomputes them from git, never from what the session says it wrote: the generated pages `aide-wiki affected` names
+(the pages covering files the spec's own code changed), and what `aide-wiki decision-scope` allows. That is a new
+decision page whose `spec:` is this spec and that links to a generated page whose `## Decisions` section links back,
+`index.md` when at least one such page exists, and each page such a decision links to whose text differs from the
+default branch's copy in its `## Decisions` section alone. A page taken back ends the run `scope-violation`; the stage
+lines `wiki pages rewritten:` and `wiki decisions recorded:` name what stayed.
+
 **A `schedule` step commits and pushes exactly like any other command** — the project repository and the specs root,
 the same two roots every other step reaches. Its own report and any proposed specs live outside both, under
 `$AIDE_SCHEDULE_OUTPUT_DIR`, so a run that also commits still writes its report. Once the step ends, the board lands

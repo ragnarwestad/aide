@@ -202,6 +202,21 @@ def test_a_foreign_write_is_taken_back_and_ends_the_build_as_a_scope_violation_A
         assert "loose.md" not in git(origin["specs"], "ls-tree", "-r", "--name-only", BRANCH)
 
 
+def test_a_build_keeps_a_decision_page_written_by_hand_and_lists_it_under_its_own_heading_AC_3(
+    runner, workspace, workspace_root, fake_claude, origin
+):
+    decision = "---\nwiki: decision\nspec: 01-first\n---\n\n# By hand\n\nKeep pages.\n\n## Concerns\n\n- [Queue](queue.md)\n"
+    land_hand_written(workspace, "decision-hand.md", decision)
+    claude = job(fake_claude, build_pages(workspace_root) + FINISHED)
+    rc, out, _ = wiki(runner, workspace, claude)
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed", out
+    assert show(origin["specs"], "wiki/decision-hand.md") == decision.strip()
+    index = show(origin["specs"], "wiki/index.md").splitlines()
+    assert index.index("## Decisions") < index.index("- [By hand](decision-hand.md) — Keep pages.")
+    assert "](decision-hand.md)" in show(origin["specs"], "wiki/queue.md")
+
+
 def test_a_spec_pushed_to_main_while_the_build_runs_is_not_the_builds_write_AC_4(
     runner, workspace, workspace_root, fake_claude, origin
 ):
