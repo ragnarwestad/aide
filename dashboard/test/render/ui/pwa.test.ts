@@ -157,8 +157,7 @@ describe("the eight answer any request with a Host of the dashboard's own", () =
 // --- the worker itself -------------------------------------------------------
 
 /** The worker script, run against a fake global scope. It is a SCRIPT
- *  — no imports, no exports — so it can be run the way
- *  `theme-script.test.ts` runs the theme switcher: as a function of the
+ *  — no imports, no exports — so it is run as a function of the
  *  globals it uses. */
 function worker(networkAnswer: () => Promise<Response>) {
   const listeners: Record<string, (event: unknown) => void> = {};

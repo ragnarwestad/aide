@@ -202,6 +202,23 @@ def test_a_foreign_write_is_taken_back_and_ends_the_build_as_a_scope_violation_A
         assert "loose.md" not in git(origin["specs"], "ls-tree", "-r", "--name-only", BRANCH)
 
 
+def test_a_spec_pushed_to_main_while_the_build_runs_is_not_the_builds_write_AC_4(
+    runner, workspace, workspace_root, fake_claude, origin
+):
+    """Another spec's own step pushes its folder to the default branch
+    while the build is running. The build's branch still has the older
+    folder, which is main moving on, not the build writing it."""
+    specs = workspace["specs"]
+    moved = (
+        f'mkdir -p "{specs}/80-neighbour" && echo "# 80" > "{specs}/80-neighbour/1-description.md"\n'
+        f'git -C "{specs}" add -A && git -C "{specs}" commit -qm "another spec\'s step"\n'
+        f'git -C "{specs}" push -q origin main\n'
+    )
+    claude = job(fake_claude, moved + build_pages(workspace_root) + FINISHED)
+    rc, out, _ = wiki(runner, workspace, claude)
+    assert out["terminalReason"] == "completed", out.get("error")
+
+
 @pytest.mark.parametrize("kind", ["edit", "project"])
 def test_a_build_stopped_by_its_clock_takes_foreign_writes_back_and_keeps_its_ending_AC_4(
     runner, workspace, workspace_root, fake_claude, origin, kind

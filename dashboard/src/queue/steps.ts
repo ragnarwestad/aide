@@ -131,9 +131,8 @@ export function currentWorkRoundJobs<T extends {
  *  `manifest` is not part of the workflow's order at all.
  *
  *  `queue-list.ts` keeps the same list, because the render layer does
- *  not import this module; the two are hand-paired and compared by
- *  `queue.test.ts`, exactly as `WORKFLOW_STEPS` is compared with the
- *  bash copy in `aide-run-spec`. */
+ *  not import this module; the two are hand-paired: change one and
+ *  change the other. */
 export const PHASE_STEPS = ["analyze", "implement", "archive"] as const;
 
 /** The steps quick enough to jump a queued job ahead of a slower one

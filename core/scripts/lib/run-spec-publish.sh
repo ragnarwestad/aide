@@ -244,9 +244,12 @@ EXCLUDES_EOF
     [ -z "$path" ] && continue
     case "$path" in "$wiki_prefix"*) continue ;; esac
     wiki_take_back "$repo_wt" "$tip" "$path"
+  # The branch's own changes since it left main (`tip...HEAD`), never a
+  # plain diff against the tip: a path another spec pushed to main while
+  # the build ran differs from the tip, but the build never touched it.
   done < <( { git -C "$repo_wt" status --porcelain --untracked-files=all -- . ${excludes[@]+"${excludes[@]}"} 2>/dev/null \
                 | cut -c4- | sed 's/^.* -> //'; \
-              git -C "$repo_wt" diff --name-only "$tip" -- . ${excludes[@]+"${excludes[@]}"} 2>/dev/null; } | sort -u )
+              git -C "$repo_wt" diff --name-only "$tip...HEAD" -- . ${excludes[@]+"${excludes[@]}"} 2>/dev/null; } | sort -u )
   # 3. A page with no generated mark is a person's: never changed or
   #    deleted, and a page the run wrote without the script is taken back.
   verdict="$("$SCRIPT_DIR/aide-wiki" verify --specs-root "$specs_root_wt" --base-ref "$tip" 2>/dev/null)"

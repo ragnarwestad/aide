@@ -191,7 +191,7 @@ export async function projectPages(
     // Read-only, like `/projects`' own drift map: `peekDrift` is a
     // cache lookup, never a git call — the page's own "never merges,
     // pulls, fetches or checks anything out" contract
-    // (project-detail-route.test.ts) must hold here too (spec 258) — on
+    // (project-detail-readiness-and-deploy.test.ts) must hold here too (spec 258) — on
     // every tab but Wiki, whose read starts a fetch of the specs
     // repository's default branch behind it.
     const driftRoot = ctx.machineryProjectDir(name);

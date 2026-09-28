@@ -71,8 +71,8 @@ export interface QueueRowView {
    *  the Merge button's refusal used to.
    *
    *  Hand-paired with the same union on `Job` in `queue.ts` — the two
-   *  layers deliberately do not import each other, so `queue.test.ts`
-   *  reads both declarations and asserts they name the same members. */
+   *  layers deliberately do not import each other, so change one and
+   *  change the other. */
   errorReason?: "conflict" | "held-back" | "tests-red" | "unlanded";
   /** The job's own persisted landing failure (spec 327), independent of
    *  `state`/`error` — see `Job.landingError`. */

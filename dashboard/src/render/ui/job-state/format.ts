@@ -64,9 +64,7 @@ export function durationLabel(ms: number): string {
 // colour is never the only signal.
 //
 // Ten states, six badge variants. Five of them had an example on the
-// design sheet; the other four are decided here and asserted by name in
-// `test/design-system.test.ts`, because a mapping nobody drew is a
-// mapping nobody checked:
+// design sheet; the other four are decided here:
 //
 //   stopped     — a cap-stop is a common, healthy outcome (see
 //                 `stateLabel` above), so it takes the same amber as

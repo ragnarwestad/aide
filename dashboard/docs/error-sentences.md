@@ -62,5 +62,6 @@ one set, for exactly this reason: an older job's failed push must not outlive a 
 
 ## Words the reader does not use
 
-`src/i18n/banned-words.ts` lists the words a message may not use, in either language, and what to say instead —
-"landing" for a merge, "spesifikasjon" for a spec, "sammenslåing"/"slå ... sammen" for a merge.
+A message does not use these words, in either language: "landing" (say merge), "spesifikasjon" (say spec),
+"sammenslåing"/"slå ... sammen" (say merge), "gate" (say test, test log or test run), and "Run again" (name the
+phase's own button: "{button} again").

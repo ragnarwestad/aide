@@ -7,8 +7,7 @@ import { harness } from "../fixtures.ts";
 // synchronously on the press, before the answer exists. This file
 // covers the in-place case: opening a row, folding or sorting the
 // list. A real navigation — a spec's own name, a tab bar link — is
-// `nav-busy.ts`'s own since spec 312, tested in
-// `test/render/ui/nav-busy.test.ts`.
+// `nav-busy.ts`'s own.
 
 // A spec's own › redraws that spec alone, and its chevron is what says
 // it is working: a busy mouse pointer is nothing on a phone.

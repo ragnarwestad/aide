@@ -5,8 +5,7 @@
 // transpiles it into the same inline classic <script> the theme
 // switcher rides in — so it cannot be imported the way every other
 // module here is. It CAN be transpiled and run, which is what this file
-// does, against a `navigator` small enough to state in full. The same
-// shape `theme-script.test.ts` uses, for the same reason.
+// does, against a `navigator` small enough to state in full.
 //
 // The case that matters is the one with NO service worker at all: this
 // script goes on every page the shell renders, including the generated

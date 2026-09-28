@@ -8,8 +8,7 @@
 // this spec moves WHERE the words live, never what they say in
 // English. `nb` is written fresh, in ordinary Norwegian: `push`/`origin`
 // keep their current spelling as loanwords, and `merge`/`spec` join them
-// (spec 399). `src/i18n/banned-words.ts` lists the words that do NOT
-// belong here and what to say instead.
+// (spec 399).
 
 export interface MessageEntry {
   en: string;

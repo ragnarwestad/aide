@@ -309,8 +309,8 @@ export interface Job {
    *  refusal carries beside the sentence a person reads — the sentence
    *  is joined across repos before any page sees it, so nothing may
    *  match on it. Paired by hand with the same union in
-   *  `render/job-state.ts`, which does not import this module; the two
-   *  are read side by side by `queue.test.ts`.
+   *  `render/ui/job-state/types.ts`, which does not import this module:
+   *  change one and change the other.
    *
    *  `"held-back"` (spec 372) is a different lifecycle point from the
    *  other three: they say why a LANDING was refused, after a step ran;

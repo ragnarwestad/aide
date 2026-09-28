@@ -5,8 +5,7 @@
 // than a second concern folded into it: a unit is not a colour, and the
 // file next door was written narrow on purpose. The two are transpiled
 // into the SAME inline <script> by `shell.ts` — the page still carries
-// exactly one, which is the promise a guard test holds it to — so this
-// costs a file, not a script tag.
+// exactly one — so this costs a file, not a script tag.
 //
 // Why it exists at all: on a subscription plan the dollar figure is
 // notional and the token count is what the plan meters. Which of the two
