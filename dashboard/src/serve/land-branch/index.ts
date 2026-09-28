@@ -12,7 +12,7 @@ export type { LandContext } from "./types.ts";
 export { installAfterMerge } from "./install.ts";
 export { landBranch } from "./merge.ts";
 export {
-  landNewSpec, landStepBranch, landStoppedStepBranch, landArchivedSpec, landClosedSpec,
+  landNewSpec, landStepBranch, landStoppedStepBranch, landArchivedSpec, landClosedSpec, landScheduleRun,
 } from "./steps.ts";
 export { withFreshness } from "./freshness.ts";
 export { createLaunchdRestart, landingJobNames, restartAfterLanding, type RestartHook } from "./restart.ts";

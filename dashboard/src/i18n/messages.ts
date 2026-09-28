@@ -123,16 +123,17 @@ export const MESSAGES = {
     fr: "archive a signalé un succès, mais les tests du projet sont au rouge après le merge avec main — le runner les a lancés lui-même, et les tests en échec sont listés ci-dessous. — Cliquez de nouveau sur {button} ; l'étape ne se termine que sur une exécution au vert.",
     resolve: "Press {button} again; the step ends only on a green run.",
   },
-  // A scheduled job produces a report and changes no repository
-  // (core/scripts/lib/run-spec-schedule-guard.sh): the script's own
-  // sentence, naming the repositories, stays on the job as hover detail.
-  "runner.scheduleChangedRepository": {
-    en: "a scheduled job cannot change the repository — the commit it made was discarded. — Rewrite the job's prompt so it only writes its report; a change that should reach the repository goes through a spec.",
-    nb: "en planlagt jobb kan ikke endre repoet — commiten den gjorde ble forkastet. — Skriv om jobbens prompt slik at den bare skriver rapporten; en endring som skal inn i repoet går gjennom en spec.",
-    es: "un trabajo programado no puede cambiar el repositorio — el commit que hizo se descartó. — Reescribe el prompt del trabajo para que solo escriba su informe; un cambio que deba llegar al repositorio pasa por una spec.",
-    de: "Ein geplanter Job darf das Repository nicht ändern — der Commit, den er gemacht hat, wurde verworfen. — Schreibe den Prompt des Jobs so um, dass er nur seinen Bericht schreibt; eine Änderung, die ins Repository gelangen soll, läuft über eine Spec.",
-    fr: "une tâche planifiée ne peut pas modifier le dépôt — le commit qu'elle a fait a été écarté. — Réécrivez le prompt de la tâche pour qu'elle n'écrive que son rapport ; un changement qui doit atteindre le dépôt passe par une spec.",
-    resolve: "Rewrite the job's prompt",
+  // A schedule job never starts while anything else for its project is
+  // running or merging (spec 558, AC-6) — the same shape as
+  // `runner.archiveRunning` above, but one-directional: only the
+  // schedule job itself ever waits for this.
+  "runner.scheduleWaitsOnProject": {
+    en: "held back: another job is running or merging in this project — it starts when that one has finished",
+    nb: "holdt tilbake: en annen jobb kjører eller merges i dette prosjektet — dette starter når den er ferdig",
+    es: "retenido: otro trabajo está en curso o mergeándose en este proyecto — esto empieza cuando ese haya terminado",
+    de: "zurückgehalten: in diesem Projekt läuft oder mergt bereits ein anderer Job — das startet, sobald der fertig ist",
+    fr: "retenu : une autre tâche est en cours ou en train de merger dans ce projet — cela démarre une fois celle-là terminée",
+    resolve: "it starts when that one has finished",
   },
   // A green scheduled run's proposed specs (queue/propose-specs.ts): what went
   // wrong with the run's list as a whole; what was decided before it is listed
@@ -275,6 +276,16 @@ export const MESSAGES = {
     es: "la spec se cerró, pero el merge falló. — Revisa el checkout del servidor, y luego intenta ejecutar el paso de nuevo.",
     de: "die Spec wurde geschlossen, aber der Merge ist fehlgeschlagen. — Prüfe den Checkout auf dem Server, und versuche dann, den Schritt erneut auszuführen.",
     fr: "la spec a été fermée, mais le merge a échoué. — Vérifiez le checkout sur le serveur, puis essayez de relancer l'étape.",
+    resolve: "Check the checkout on the serving host",
+  },
+  "landing.scheduleLandingFailed": {
+    en: "the scheduled job finished, but the merge failed. — Check the checkout on the serving host, " +
+      "then try running the job again.",
+    nb: "den planlagte jobben ble ferdig, men mergen feilet. — Sjekk det lokale repoet på serveren, " +
+      "og prøv å kjøre jobben igjen.",
+    es: "el trabajo programado terminó, pero el merge falló. — Revisa el checkout del servidor, y luego intenta ejecutar el trabajo de nuevo.",
+    de: "der geplante Job ist fertig, aber der Merge ist fehlgeschlagen. — Prüfe den Checkout auf dem Server, und versuche dann, den Job erneut auszuführen.",
+    fr: "la tâche planifiée s'est terminée, mais le merge a échoué. — Vérifiez le checkout sur le serveur, puis essayez de relancer la tâche.",
     resolve: "Check the checkout on the serving host",
   },
   "landing.noInstallCommand": {

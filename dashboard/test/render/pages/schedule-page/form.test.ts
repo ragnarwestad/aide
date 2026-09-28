@@ -36,12 +36,12 @@ describe("renderScheduleForm", () => {
     expect(html).toContain("Next run:");
   });
 
-  test("a new entry's form says a scheduled job only writes a report (AC-4)", () => {
+  test("a new entry's form says what a scheduled job may commit to", () => {
     const html = renderScheduleForm({ action: "/api/queue/schedule/aide" }, "nb");
     expect(html).toContain(esc(t("nb", "schedule.reportOnly")));
   });
 
-  test("the Edit form says the same (AC-4)", () => {
+  test("the Edit form says the same", () => {
     const html = renderScheduleForm({
       entryName: "nightly",
       entry: { name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md" },

@@ -305,6 +305,54 @@ describe("several jobs at once", () => {
 
 });
 
+// Spec 558, AC-6: a schedule job never starts while anything else for its
+// project is running or landing — the same shape as the `archiveRunning`
+// hold above, but wider (any step, not only archive) and one-directional
+// (only the schedule job itself ever waits).
+describe("a schedule job holds while other work runs in its project (AC-6)", () => {
+  test("waits while a spec's own step is running (AC-6)", () => {
+    const a = enqueue({ steps: ["implement"] });
+    const b = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
+    const runner = makeRunner({ maxConcurrent: 2 });
+    runner.tick();
+    expect(store.get(a.id)?.state).toBe("running");
+    const held = store.get(b.id)!;
+    expect(held.state).toBe("queued");
+    expect(sentence(held.error)).toContain("another job");
+  });
+
+  test("waits while another job's landing is in flight (AC-6)", () => {
+    const a = enqueue({ steps: ["analyze"] });
+    store.update(a.id, { state: "done", landing: true });
+    const b = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
+    const runner = makeRunner({ maxConcurrent: 2 });
+    runner.tick();
+    expect(spawns.length).toBe(0);
+    expect(store.get(b.id)?.state).toBe("queued");
+  });
+
+  test("starts on a later tick once the project is free, the same night (AC-6)", () => {
+    const a = enqueue({ steps: ["implement"] });
+    const b = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
+    const runner = makeRunner({ maxConcurrent: 2, readResult: () => okResult(1) });
+    runner.tick();
+    runner.poll();
+    expect(store.get(a.id)?.state).toBe("done");
+    runner.tick();
+    expect(store.get(b.id)?.state).toBe("running");
+  });
+
+  test("one-directional: a spec's own step is never held back for a queued schedule job (AC-6)", () => {
+    const a = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
+    const runner = makeRunner({ maxConcurrent: 2 });
+    runner.tick();
+    expect(store.get(a.id)?.state).toBe("running");
+    const b = enqueue({ steps: ["analyze"] });
+    runner.tick();
+    expect(store.get(b.id)?.state).toBe("running");
+  });
+});
+
 // Spec 353: a quick step (create/archive) jumps a queued slow step
 // (analyze/implement), whatever the age of either.
 describe("quick steps before slow ones", () => {

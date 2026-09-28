@@ -1,44 +1,71 @@
-// A scheduled job produces a report and never changes a repository: the
-// script ends a run that committed as `scope-violation`, and the board
-// says so in the reader's language.
+// A scheduled job's own commits are landed the way create/archive's are
+// (spec 558): `stepDoneHandler` calls `landScheduleRun` once the run
+// ended `completed` and pushed a branch, and does nothing when it did
+// not — the same `if (outcome.ok)` wrapper every other step's own
+// landing dispatch already sits inside.
 
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { enqueue, makeRunner, okResult, resetHarness, cleanupHarness, store } from "./runner-fixtures.ts";
-import { renderSentence, type BoardMessage } from "../../../src/i18n/message.ts";
-import { noProgressMessage } from "../../../src/queue/runner/cross-check-message.ts";
+import { describe, expect, test } from "bun:test";
+import type { Job } from "../../../src/queue/queue.ts";
+import { stepDoneHandler } from "../../../src/serve/runner-setup.ts";
 
-beforeEach(resetHarness);
-afterEach(cleanupHarness);
+const job = (over: Partial<Job> = {}): Job =>
+  ({
+    id: "run-1",
+    project: "aide",
+    specFolder: "schedule-nightly",
+    steps: ["schedule"],
+    stepIndex: 0,
+    state: "running",
+    createdAt: "2026-09-28T03:00:00Z",
+    results: [],
+    spentUsd: 0,
+    ...over,
+  }) as Job;
 
-const SCRIPT_SENTENCE =
-  "a scheduled job cannot change the repository — it committed in proj, and that commit was discarded. Rewrite the job's prompt so it writes its findings into the report only; a change that should reach the repository goes through a spec.";
+let landed: { job: Job; outcome: unknown }[];
 
-const scopeViolation = () => ({ ...okResult(0.1), ok: false, terminalReason: "scope-violation", error: SCRIPT_SENTENCE });
+const handler = () =>
+  stepDoneHandler({
+    store: { list: () => [] },
+    scheduleOutputRoot: "/tmp/aide-schedule-dispatch-test-does-not-exist",
+    machinerySpecsRoot: () => undefined,
+    specDir: () => undefined,
+    peekMachinerySpecDir: (_p: string, d: string) => d,
+    machineryProjectDir: () => "/repos/aide-code",
+    forgetSpecCaches: () => {},
+    rereadSpecCaches: () => {},
+    landScheduleRun: (j: Job, outcome: unknown) => {
+      landed.push({ job: j, outcome });
+      return Promise.resolve();
+    },
+  } as unknown as Parameters<typeof stepDoneHandler>[0]);
 
-describe("a scheduled job that changed the repository", () => {
-  test("is failed with the board's own message, the script's sentence kept as detail (AC-2)", () => {
-    const job = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
-    const runner = makeRunner({ readResult: scopeViolation });
-    runner.tick();
-    runner.poll();
-    const after = store.get(job.id);
-    expect(after?.state).toBe("failed");
-    expect(after?.error).toEqual({ key: "runner.scheduleChangedRepository" });
-    expect(after?.errorDetail).toBe(SCRIPT_SENTENCE);
+describe("a scheduled job's own commits are landed", () => {
+  test("a completed run that pushed to the specs root is landed (AC-1)", () => {
+    landed = [];
+    const outcome = { ok: true, terminalReason: "completed", branchUrls: [{ root: "/repos/aide-specs", url: "" }] };
+    handler()(job(), "schedule", outcome);
+    expect(landed.length).toBe(1);
+    expect(landed[0]!.outcome).toBe(outcome);
   });
 
-  test("the message renders in every language with no placeholder left (AC-2)", () => {
-    const message: BoardMessage = { key: "runner.scheduleChangedRepository" };
-    for (const lang of ["en", "nb", "es", "de", "fr"] as const) {
-      const text = renderSentence(lang, message) ?? "";
-      expect(text.length).toBeGreaterThan(20);
-      expect(text).not.toMatch(/\{[a-zA-Z]+\}/);
-    }
-    expect(renderSentence("en", message)).toContain("a scheduled job cannot change the repository");
-    expect(renderSentence("nb", message)).toContain("planlagt jobb");
+  test("a completed run that pushed to the project repository is landed (AC-2)", () => {
+    landed = [];
+    const outcome = { ok: true, terminalReason: "completed", branchUrls: [{ root: "/repos/aide-code", url: "" }] };
+    handler()(job(), "schedule", outcome);
+    expect(landed.length).toBe(1);
   });
 
-  test("a scope-violation for any other step keeps its own sentence (AC-2)", () => {
-    expect(noProgressMessage("analyze", { terminalReason: "scope-violation" })).toBeUndefined();
+  test("a completed run that pushed nothing is not landed — report only, as today (AC-5)", () => {
+    landed = [];
+    const outcome = { ok: true, terminalReason: "completed", branchUrls: [] };
+    expect(handler()(job(), "schedule", outcome)).toBeUndefined();
+    expect(landed.length).toBe(0);
+  });
+
+  test("a completed run with no branchUrls field at all is not landed (AC-5)", () => {
+    landed = [];
+    expect(handler()(job(), "schedule", { ok: true, terminalReason: "completed" })).toBeUndefined();
+    expect(landed.length).toBe(0);
   });
 });

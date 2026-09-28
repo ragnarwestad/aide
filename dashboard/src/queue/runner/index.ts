@@ -188,6 +188,26 @@ export class Runner {
         hold(job, { key: "runner.archiveRunning" });
         continue;
       }
+      // A schedule job never starts while anything else for its project
+      // is running or landing (spec 558, AC-6) — the same shape as the
+      // archive hold above, but wider (any step, not only archive) and
+      // one-directional: only the schedule job itself ever waits for
+      // this, nothing holds a spec's own step or landing back for a
+      // queued schedule job.
+      if (
+        job.steps[job.stepIndex] === "schedule" &&
+        this.o.store
+          .list()
+          .some(
+            (r) =>
+              r.project === job.project &&
+              r.id !== job.id &&
+              (r.state === "running" || r.landing === true),
+          )
+      ) {
+        hold(job, { key: "runner.scheduleWaitsOnProject" });
+        continue;
+      }
       // Cheaper and more fundamental than the dependency question below —
       // checked first, and it needs no network call (spec 344).
       if (notAnalyzed?.has(job.id)) {

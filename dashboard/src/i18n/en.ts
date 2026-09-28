@@ -226,7 +226,7 @@ export const en = {
   "schedule.notifyNever": "Never",
   "schedule.notifyFailure": "Only when the run did not succeed",
   "schedule.notifyAlways": "Every run",
-  "schedule.reportOnly": "A scheduled job only writes a report, it cannot change the project's code.",
+  "schedule.reportOnly": "A scheduled job may commit to the project and its specs — the same repositories a spec's step reaches. Once it ends, the board merges the work.",
   "schedule.enabled": "Enabled",
   "schedule.yes": "yes",
   "schedule.no": "no",

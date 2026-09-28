@@ -173,7 +173,7 @@ fi
 # what it changed and the runner does not, so the session writes it; the
 # file sits in the run's own work directory, outside every repository.
 commit_message_file="$work_dir/commit-message"
-if [ "$command_name" != "create" ] && [ "$command_name" != "schedule" ] && [ "$command_name" != "wiki" ]; then
+if [ "$command_name" != "create" ] && [ "$command_name" != "wiki" ]; then
   prompt="$prompt
 If this step changes files outside the specs root, write the commit message for that change to $commit_message_file (do not commit): a subject line in the imperative mood, a blank line, then what changed and why. Write it as a developer on this project would. Do not mention the spec, the workflow step, Aide, or any AI tool or model."
 fi
@@ -577,7 +577,7 @@ if [ -n "$stopped" ]; then
   # separately (`nextActionHint`); this sentence only has to say why
   # and that nothing was lost.
   error_msg="stopped at its own ${timeout_sec}s time limit for this step"
-  [ "$command_name" = "schedule" ] || error_msg="$error_msg — work up to that point is committed to the branch"
+  error_msg="$error_msg — work up to that point is committed to the branch"
 # "Did the tool say how it went", not "was a cost measured" — the two
 # are the same question for claude and different for codex, which
 # finishes perfectly well without ever naming a dollar figure.

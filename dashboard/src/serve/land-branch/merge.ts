@@ -98,9 +98,15 @@ export async function landBranch(
     // root's own landing is confirmed — so for `archive` specifically,
     // code is attempted FIRST, and the loop below stops on a failed
     // code root before the specs root is ever attempted.
+    //
+    // `schedule` needs the same guarantee, for the same reason (spec
+    // 558, AC-4): a schedule run that pushed to both roots must never
+    // have its specs-root commit land while the code root's own gated
+    // merge can still fail — nothing may reach main out of a landing
+    // that as a whole did not succeed.
     const codeRoot = ctx.machineryProjectDir(job.project);
     const codeRoots = { has: (root: string) => sameRoot(root, codeRoot) };
-    const codeFirst = what.step === "archive";
+    const codeFirst = what.step === "archive" || what.step === "schedule";
     const repos = [...(what.repos ?? outcome.branchUrls ?? [])].sort((a, b) => {
       const av = Number(codeRoots.has(a.root));
       const bv = Number(codeRoots.has(b.root));
@@ -276,11 +282,10 @@ export async function landBranch(
         if (result.detail) failureDetails.push(result.detail);
         if (result.reason === "conflict") reason = "conflict";
         if (result.reason === "tests-red") reason = "tests-red";
-        // spec 280: a code root that fails to land during an archive
-        // landing stops the loop here — the specs root's own merge,
-        // which stamps 4-status.md as archived, has not run yet
-        // (code-first order, above) and must never run now that the
-        // code side failed.
+        // spec 280 (archive) and spec 558 (schedule): a code root that
+        // fails to land stops the loop here — the specs root's own
+        // merge has not run yet (code-first order, above) and must
+        // never run now that the code side failed.
         if (codeFirst && codeRoots.has(repo.root)) break;
       }
     }

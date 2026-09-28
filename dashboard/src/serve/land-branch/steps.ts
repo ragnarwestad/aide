@@ -213,6 +213,25 @@ export async function landClosedSpec(ctx: LandContext, job: Job, outcome: Partia
   }));
 }
 
+/** Land what a scheduled job committed to the project repository and/or
+ *  the specs root (spec 558) — the same argument as `landNewSpec`/
+ *  `landStepBranch`, extended to a step whose commits are not scoped to
+ *  one spec folder at all. No `repos` filter: every root the run
+ *  pushed lands, whichever repository (or both) it actually touched.
+ *
+ *  No `MERGE_STEP` entry and no `asMergeStep` wrap: a schedule prompt is
+ *  free-form text, not one of the numbered skills, so there is no
+ *  "Step N of X: Merge into main" heading for a landing mark to quote —
+ *  the same reason `landStoppedStepBranch` calls `landBranch` directly. */
+export async function landScheduleRun(ctx: LandContext, job: Job, outcome: Partial<StepOutcome>): Promise<void> {
+  return landBranch(ctx, job, outcome, {
+    step: "schedule",
+    // `why` (spec 352, REQ-5) stays out of the sentence — see landNewSpec's
+    // own note above.
+    failedNote: () => ({ key: "landing.scheduleLandingFailed" }),
+  });
+}
+
 /** The merge into the default branch is the last step of every skill
  *  whose work lands, and the phase is finished only when the merge is:
  *  the step's Log marks it in the skill's own words, the heading of that

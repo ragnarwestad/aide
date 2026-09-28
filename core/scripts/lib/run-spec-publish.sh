@@ -187,35 +187,6 @@ code_commit_message() {
   printf '%s\n' "$msg"
 }
 
-# A scheduled run produces a report and changes no repository, so what a
-# session committed is thrown away: each worktree goes back to the tip the
-# run started from, and a branch the session pushed is removed from origin.
-# Names the roots that had commits in $schedule_committed, a scalar (an
-# empty array fails under bash 3.2 with `set -u`), read as
-# ${schedule_committed:-} because the cancel handler reaches this before
-# the guard has initialised it and runs under `set +u`. Idempotent: after
-# the reset there is nothing left to find. A root whose worktree or start
-# tip is not known yet is skipped — `git -C ""` would act on the current
-# directory.
-discard_scheduled_commits() {
-  local i=0 root wt tip
-  for root in ${roots[@]+"${roots[@]}"}; do
-    wt="${work_roots[$i]:-}"
-    tip="${head_before[$i]:-}"
-    i=$(( i + 1 ))
-    [ -n "$wt" ] && [ -n "$tip" ] || continue
-    [ "$(git -C "$wt" rev-list --count "$tip"..HEAD 2>/dev/null || echo 0)" -gt 0 ] || continue
-    git -C "$wt" checkout -q -f "$branch" >/dev/null 2>&1 || true
-    git -C "$wt" reset -q --hard "$tip" >/dev/null 2>&1 || true
-    if git -C "$root" remote get-url origin >/dev/null 2>&1; then
-      git -C "$root" push -q origin --delete "$branch" >/dev/null 2>&1 || true
-      git -C "$root" update-ref -d "refs/remotes/origin/$branch" >/dev/null 2>&1 || true
-    fi
-    schedule_committed="${schedule_committed:-}${schedule_committed:+, }$(basename "$root")"
-  done
-  return 0
-}
-
 # A wiki build writes generated pages in wiki/ of the specs root and
 # nothing else. Whatever else the session wrote is taken back — on a normal
 # end, a timeout and a Cancel alike, since all three pass through
@@ -288,9 +259,6 @@ EXCLUDES_EOF
 
 commit_and_push_roots() {
   if [ "$command_name" = "wiki" ]; then restore_wiki_scope; fi
-  # A scheduled run produces a report and changes no repository: nothing it
-  # leaves in a worktree is committed, and nothing is pushed.
-  if [ "$command_name" = "schedule" ]; then discard_scheduled_commits; return 0; fi
   local i=0 root wt changed head_now amend_source=() excludes=() line
   for root in "${roots[@]}"; do
     wt="${work_roots[$i]:-}"

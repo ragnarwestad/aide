@@ -25,7 +25,6 @@ checkouts a step works in, what a finished step publishes — and, last, how to 
 | Branching each root, and the per-root lock it takes | `run-spec-branch.sh`         |
 | The gates before a step starts, and the lock itself | `run-spec-gates.sh`          |
 | Committing and pushing afterwards                   | `run-spec-publish.sh`        |
-| A scheduled run that committed anyway               | `run-spec-schedule-guard.sh` |
 | Whether a step counts as having run                 | `run-spec-status-line.sh`    |
 | The review that follows an implement's own turn     | `run-spec-review.sh`         |
 | The test gate an implement ends on                  | `run-spec-step-tests.sh`     |
@@ -123,12 +122,13 @@ in the project repository, a change under the specs root outside `wiki/`, and an
 older commit, and a refresh (`--wiki-refresh`) that leaves a page `aide-wiki status` marks `changed`. The error names
 the pages.
 
-**A `schedule` step is the exception to all three: it commits nothing and pushes nothing.** A scheduled job produces a
-report and changes no repository, so whatever it leaves in a worktree is dropped with the worktree, and a commit the
-session made is discarded (`discard_scheduled_commits`, `run-spec-publish.sh`): the worktree goes back to the tip the run
-started from and a branch the session pushed is deleted from origin. A run that would otherwise end `completed` ends
-`failed` with `terminalReason` `scope-violation` (`run-spec-schedule-guard.sh`); a run that already ended `timeout`
-keeps that ending. Cancelling a scheduled run discards its commits the same way.
+**A `schedule` step commits and pushes exactly like any other command** — the project repository and the specs root,
+the same two roots every other step reaches. Its own report and any proposed specs live outside both, under
+`$AIDE_SCHEDULE_OUTPUT_DIR`, so a run that also commits still writes its report. Once the step ends, the board lands
+what it pushed the way an archive's own landing does (`landScheduleRun`, `dashboard/src/serve/land-branch/steps.ts`):
+the project repository's commit only after that repository's own test command is green on the merge, the specs root
+directly. A run stopped by its own timeout or a cancel keeps whatever it had already committed, on its branch, the
+same as any other command.
 
 The third condition is what lets a later run retry a commit whose push failed in an earlier one: a rule that asked
 only "did THIS run move it" would strand that commit, since no later run would ever pick it up. **It is never

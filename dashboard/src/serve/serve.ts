@@ -245,6 +245,7 @@ export function createServer(opts: ServerOptions) {
     landArchivedSpec: land.landArchivedSpec,
     landClosedSpec: land.landClosedSpec,
     landStoppedStepBranch: land.landStoppedStepBranch,
+    landScheduleRun: land.landScheduleRun,
     specDir: resolution.specDir,
     peekMachinerySpecDir: resolution.peekMachinerySpecDir,
     forgetSpecCaches: (dir, folder) => {

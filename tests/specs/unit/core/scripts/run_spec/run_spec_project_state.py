@@ -170,11 +170,6 @@ BASH_ERROR_REGISTRY: list[dict] = [
         "resolve": "Press $step_button again",
     },
     {
-        "name": "a scheduled job committed to a repository",
-        "pattern": r"a scheduled job cannot change the repository.*",
-        "resolve": "Rewrite the job's prompt",
-    },
-    {
         "name": "a wiki build wrote what it may not",
         "pattern": r"the wiki build wrote what it may not.*",
         "resolve": "press $step_button again",

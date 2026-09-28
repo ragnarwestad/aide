@@ -368,9 +368,11 @@ A background poll checks every project's
 entries and enqueues a `schedule` step through the same queue, runner and worktree machinery every other step uses
 whenever an entry is due and nothing is already queued or running for it.
 
-**A scheduled job produces a report and never changes a repository.** It may read the project; a change that should
-reach the repository goes through a spec. A job that commits anyway ends as failed, its commit is discarded and no
-branch of it is left locally or on origin. The New and Edit forms say so.
+**A scheduled job may commit to the project repository and the specs root, the same two repositories a spec's step
+reaches.** Its own report is written separately, to a directory of its own outside both (below) — a run that also
+commits still writes it. Once the run ends, the board lands what it pushed the way an archive's own landing does: the
+project repository's commit only once that repository's own test command is green on the merge, the specs root
+directly. The New and Edit forms say what a scheduled job may commit to.
 
 `/schedule` lists every allowed project's entries, flattened into one list (`?q=`, `?sort=` and `?dir=` filter and
 sort it). It shows and links, and changes nothing: a click anywhere on a row opens the project's Schedule tab, whether

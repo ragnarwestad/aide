@@ -217,7 +217,7 @@ export const fr: Record<TranslationKey, string> = {
   "schedule.notifyNever": "Jamais",
   "schedule.notifyFailure": "Seulement quand l'exécution n'a pas réussi",
   "schedule.notifyAlways": "À chaque exécution",
-  "schedule.reportOnly": "Une tâche planifiée écrit seulement un rapport, elle ne peut pas modifier le code du projet.",
+  "schedule.reportOnly": "Une tâche planifiée peut committer dans le projet et ses specs — les mêmes dépôts qu'atteint l'étape d'une spec. Une fois terminée, le tableau de bord merge le travail.",
   "schedule.enabled": "Activé",
   "schedule.yes": "oui",
   "schedule.no": "non",

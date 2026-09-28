@@ -51,6 +51,7 @@ export interface RunnerSetupContext {
   landArchivedSpec: (job: Job, outcome: Partial<StepOutcome>) => Promise<void>;
   landClosedSpec: (job: Job, outcome: Partial<StepOutcome>) => Promise<void>;
   landStoppedStepBranch: (job: Job, step: WorkflowStep, outcome: Partial<StepOutcome>) => Promise<void>;
+  landScheduleRun: (job: Job, outcome: Partial<StepOutcome>) => Promise<void>;
   /** The spec's own on-disk folder (spec 394) — the same `specDir` →
    *  `peekMachinerySpecDir` chain `spec-views/spec-page.ts` already uses
    *  to reach it, added here so `analyze`'s own spawn can read the
@@ -325,8 +326,10 @@ export function stepDoneHandler(
         return outcome.terminalReason === "closed" ? ctx.landClosedSpec(job, outcome) : undefined;
       }
       // A green scheduled run may have left proposed specs beside its
-      // report: queue a Create job for each. No git and no wait, so no
-      // landing.
+      // report: queue a Create job for each. Independent of landing —
+      // the report and any proposed specs live outside every repository
+      // ($AIDE_SCHEDULE_OUTPUT_DIR), so this runs whether or not the
+      // same job also committed anything (spec 558).
       if (step === "schedule") {
         proposeSpecs({
           store: ctx.store,
@@ -336,7 +339,8 @@ export function stepDoneHandler(
           now: () => new Date().toISOString(),
           log: logRefusal,
         }, job);
-        return undefined;
+        const pushed = outcome.branchUrls ?? [];
+        return pushed.length > 0 ? ctx.landScheduleRun(job, outcome) : undefined;
       }
       // `implement`, `explore` and `manifest` fall through: the first
       // by design, the other two because neither leaves a spec branch
