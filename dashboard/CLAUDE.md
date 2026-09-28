@@ -79,15 +79,13 @@ get them, and reads them by hand.
   appends to the same transcript. An `archive` runs no suite of its own,
   merged with main or not: its landing runs the suite once, on exactly
   what main is about to become, and that is the one run an archive
-  gets. A green
-  `test-run.json` whose `tree` (`aide_tree_hash`, `_aide-spec-lib.sh`)
-  is the delivered tree's, naming the resolved commands, IS the runner's
-  run — the suite is not run again for it, before the first run or after
-  a fix turn; a record without a tree is the session's word and never
-  counts. The tree hash leaves the project's worktree links out, so it is
-  the tree the commit carries, and a landing about to run the same
-  commands on the same tree skips its own run (`testedGreen`,
-  `land-branch/seen-green.ts`).
+  gets. The session never runs the whole suite — only the tests covering
+  its change — and the runner's run is the only one that counts: a green
+  one ticks the spec's "Run the full test suite" row. The tree it saw
+  green (`aide_tree_hash`, `_aide-spec-lib.sh`) leaves the project's
+  worktree links out, so it is the tree the commit carries, and a landing
+  about to run the same commands on the same tree skips its own run
+  (`testedGreen`, `land-branch/seen-green.ts`).
 - Every move of a shared checkout — the pull (switch, fetch,
   fast-forward) and the worktree add — runs under the per-root lock
   `$root/.git/aide-run-spec-worktree.lock` (`acquire_worktree_lock`,
