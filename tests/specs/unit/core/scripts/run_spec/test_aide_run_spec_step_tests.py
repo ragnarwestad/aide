@@ -549,3 +549,14 @@ def test_an_implement_that_changed_only_markdown_runs_the_docs_check_not_the_sui
     assert out["terminalReason"] == "completed", out
     record = json.loads(git(workspace["specs"], "show", f"{BRANCH}:{workspace['folder']}/test-run.json"))
     assert record["exitCode"] == 0 and record["command"] == "scripts/check-docs", record
+
+
+def test_the_runners_own_run_asks_for_four_workers(runner, workspace, fake_claude, tmp_path):
+    """Two steps' suites at one worker per core each ran the git-backed
+    tests out of time on load alone."""
+    with_status(workspace, ["create", "analyze"])
+    seen = tmp_path / "workers.txt"
+    _project_with_test_cmd(workspace, f'echo "$AIDE_TEST_WORKERS $PYTEST_XDIST_AUTO_NUM_WORKERS" > {seen}')
+    rc, out, _ = run(runner, workspace, _implementing_claude(fake_claude), command="implement")
+    assert out["terminalReason"] == "completed", out
+    assert seen.read_text().strip() == "4 4"

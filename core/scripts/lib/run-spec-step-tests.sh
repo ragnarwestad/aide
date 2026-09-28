@@ -53,6 +53,11 @@ run_step_tests_within_time() {
   : > "$work_dir/step-test-progress"
   step_tests_progress_seen=0
   set -m
+  # Four workers, not one per core: two steps' suites share the machine
+  # with the board and each other, and at eight apiece the git-backed
+  # tests ran out of time on load alone. Both of Aide's runners read one:
+  # run-tests.sh AIDE_TEST_WORKERS, pytest-xdist's `-n auto` this.
+  AIDE_TEST_WORKERS="${AIDE_TEST_WORKERS:-4}" PYTEST_XDIST_AUTO_NUM_WORKERS="${PYTEST_XDIST_AUTO_NUM_WORKERS:-4}" \
   "$SCRIPT_DIR/aide-record-test-run" --project-dir "$project_wt" --specs-root "$specs_root_wt" \
     --folder "$step_tests_folder" "${step_test_args[@]}" \
     --progress-file "$work_dir/step-test-progress" \

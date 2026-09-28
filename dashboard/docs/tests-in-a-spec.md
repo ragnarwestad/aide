@@ -40,6 +40,9 @@ whatever the change touched; aide's own runs pytest, `make test` and the browser
 The one exception is a change to Markdown files and nothing else, compared with the default branch: it runs the
 project's `scripts/check-docs` when it has one, and nothing when it does not. A paragraph cannot turn the suite red.
 
+An implement's own run asks for four workers (`AIDE_TEST_WORKERS`, and `PYTEST_XDIST_AUTO_NUM_WORKERS` for pytest's
+`-n auto`), so two specs' suites can share the machine with the board.
+
 A project without `AIDE_TEST_CMD` has nothing to run, and passes. Its page says there is no test command.
 
 ---
