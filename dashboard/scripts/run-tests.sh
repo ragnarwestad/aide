@@ -85,6 +85,12 @@ done
 # cap is what would slow them down, so it is lifted.
 [ -z "$rest" ] && BROWSER_WORKERS="$WORKERS"
 [ -z "$browser" ] && BROWSER_WORKERS=0
+# No more browser workers than browser files: a worker kept for a browser
+# file that is not there leaves the rest of the suite fewer processes, and
+# with four workers and `make test`'s one browser file, one process ran
+# every other test.
+n_browser=$(echo $browser | wc -w | tr -d ' ')
+[ "$n_browser" -lt "$BROWSER_WORKERS" ] && BROWSER_WORKERS="$n_browser"
 [ "$BROWSER_WORKERS" -ge "$WORKERS" ] && [ -n "$rest" ] && BROWSER_WORKERS=$(( WORKERS - 1 ))
 
 i=0

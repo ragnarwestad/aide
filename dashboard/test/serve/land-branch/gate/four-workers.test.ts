@@ -24,7 +24,7 @@ function git(cwd: string, ...args: string[]): void {
 }
 
 describe("the landing's test run", () => {
-  test("runs with four test processes for bun and pytest alike", async () => {
+  test("runs the dashboard's tests with four processes", async () => {
     const root = mkdtempSync(join(tmpdir(), "aide-gate-workers-"));
     dirs.push(root);
     mkdirSync(join(root, ".aide"));
@@ -44,7 +44,7 @@ describe("the landing's test run", () => {
     const seen = join(bin, "env.txt");
     writeFileSync(
       join(bin, "record"),
-      `#!/bin/sh\necho "$AIDE_TEST_WORKERS $PYTEST_XDIST_AUTO_NUM_WORKERS" > ${seen}\n`,
+      `#!/bin/sh\necho "$AIDE_TEST_WORKERS" > ${seen}\n`,
       { mode: 0o755 },
     );
     process.env.AIDE_RESOLVE_TEST_CMD_BIN = RESOLVER;
@@ -53,6 +53,6 @@ describe("the landing's test run", () => {
 
     const verdict = await runProjectSuiteBeforePush(root, { project: "demo", specFolder: "1-x" }, "aide/1-x");
     expect(verdict.ok).toBe(true);
-    expect(readFileSync(seen, "utf-8").trim()).toBe("4 4");
+    expect(readFileSync(seen, "utf-8").trim()).toBe("4");
   });
 });

@@ -72,7 +72,10 @@ elif [ "$command_name" = "archive" ] && [ "$terminal_reason" = "completed" ] \
   else
     archive_wiki_tip="$archive_default_branch"
   fi
-  archive_wiki_allowed="$("$SCRIPT_DIR/aide-wiki" affected --specs-root "$specs_root_wt" --project-dir "$project_wt" 2>/dev/null | jq -r '.pages[]?.page')"
+  # The pages as the default branch has them: the session's own rewrite
+  # drops a file this spec deleted from a page's list, and asked after it
+  # that page would no longer be one this spec reaches.
+  archive_wiki_allowed="$("$SCRIPT_DIR/aide-wiki" affected --specs-root "$specs_root_wt" --project-dir "$project_wt" --base-ref "$archive_wiki_tip" 2>/dev/null | jq -r '.pages[]?.page')"
   archive_wiki_excludes=()
   while IFS= read -r archive_wiki_line; do
     [ -n "$archive_wiki_line" ] && archive_wiki_excludes+=("$archive_wiki_line")

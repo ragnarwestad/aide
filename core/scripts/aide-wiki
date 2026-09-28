@@ -20,7 +20,7 @@
 #   aide-wiki prune  --specs-root R --keep NAME.md [NAME.md...]
 #   aide-wiki status --specs-root R --project-dir P
 #   aide-wiki verify --specs-root R --base-ref REF
-#   aide-wiki affected --specs-root R --project-dir P
+#   aide-wiki affected --specs-root R --project-dir P [--base-ref REF]
 
 set -uo pipefail
 
@@ -34,7 +34,7 @@ Usage:
   aide-wiki prune  --specs-root R --keep NAME.md [NAME.md...]
   aide-wiki status --specs-root R --project-dir P
   aide-wiki verify --specs-root R --base-ref REF
-  aide-wiki affected --specs-root R --project-dir P
+  aide-wiki affected --specs-root R --project-dir P [--base-ref REF]
 USAGE
 }
 
@@ -304,6 +304,16 @@ SCHEMA
   # caller (the archive step) that never recorded one.
   affected)
     need_project
+    # With --base-ref, the pages as the specs repo has them at REF: a
+    # caller asking after the pages were rewritten gets the answer they
+    # had before, when a file the spec deleted was still on their lists.
+    if [ -n "$base_ref" ]; then
+      at="$(mktemp -d)"; trap 'rm -rf "$at"' EXIT
+      while IFS= read -r n; do
+        [ -n "$n" ] && git -C "$specs_root" show "$base_ref:./wiki/$n" > "$at/$n" 2>/dev/null
+      done < <(git -C "$specs_root" ls-tree --name-only "$base_ref" -- wiki/ 2>/dev/null | sed -n 's|^.*wiki/\([^/]*\.md\)$|\1|p')
+      wiki="$at"
+    fi
     if [ ! -d "$wiki" ]; then
       jq -cn '{ok:true, exitCode:0, terminalReason:"listed", pages:[]}'
       exit 0
