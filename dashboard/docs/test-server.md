@@ -16,19 +16,21 @@
 
 ---
 
-When a spec's `archive` step is held back because its acceptance criteria still need reviewing —
-someone has to go through the Status tab and tick each requirement off before it can be archived —
-the specs list offers that reviewer a link to start a test server: a running copy of the project,
-built from that spec's own branch, on the same machine as this dashboard. Open it and click through
-the change instead of reading the diff again.
+From the moment a spec's `implement` step has completed until the spec is archived, the specs list
+offers a link to start a test server: a running copy of the project, built from that spec's own
+branch, on the same machine as this dashboard. Open it and click through the change instead of
+reading the diff again.
 
 
 ## Where you find it
 
-On the specs list, a spec waiting only on that requirements review gets a second note on its row,
-beside the "archive held back" one: **"Click the link to start a test server running this
-branch."** The branch has to be on origin — a test server is built from what origin has, so work
-that is still only on your own machine is refused with "no such branch on origin".
+On the specs list, a spec whose implement has completed carries a note on its row: **"Click the
+link to start a test server running this branch."** It stays there for as long as the spec is not
+archived — with every acceptance criterion ticked and saved, beside an "archive held back" note for
+an unrelated reason, or on its own — and is hidden only while analyze, implement or archive is
+actually running for that spec, back once that step ends without archiving it. The branch has to be
+on origin — a test server is built from what origin has, so work that is still only on your own
+machine is refused with "no such branch on origin".
 
 A project's own page has a second entry point, on its Deploy tab: beside "Deploy for prod", a
 "Test server with the test specs" section with its own "Start test server" button. It starts a test

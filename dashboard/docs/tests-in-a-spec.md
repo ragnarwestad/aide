@@ -59,6 +59,8 @@ project. In short:
 - A change that replaces behaviour deletes the tests for what it replaced.
 - A red full run is fixed file by file, running only the file at hand, and the full suite runs again once, when
   every file is green. A test that fails in the full run and passes on its own is the machine's load, not a fault.
+- In implement the AI runs the tests it wrote and the tests covering its change, never the whole suite. The runner
+  runs the whole suite once on the result, and a green run ticks the spec's "Run the full test suite" row.
 
 `/aide-implement` adds its own: at least one test per acceptance criterion, with the criterion's AC-id in the test's
 name, and none for a criterion an existing test already proves — that test gets the id in its name instead.

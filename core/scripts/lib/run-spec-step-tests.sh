@@ -91,6 +91,26 @@ run_step_tests_within_time() {
   return "$rc"
 }
 
+# The full-suite row of the spec's own 4-status.md is the runner's: its
+# run is the one that decides, so a green one ticks the row and names the
+# command in the row's Notes. The session runs the tests covering its
+# change and never the whole suite. Found by its task text, in whichever
+# table carries it; a spec without the row is left as it is.
+tick_full_suite_row() {   # $1 = what ran
+  local tmp
+  status_file_for "$step_tests_folder"
+  [ -n "$status_file" ] || return 0
+  tmp="$(mktemp)" || return 0
+  awk -v note="$1" '
+    /^\| *Run the full test suite *\|/ && !done {
+      n = split($0, c, "|")
+      gsub(/\|/, "\\|", note)
+      if (n >= 5) { c[3] = " ✅ "; c[4] = " " note " "; line = c[1]; for (i = 2; i <= n; i++) line = line "|" c[i]; print line; done = 1; next }
+    }
+    { print }
+  ' "$status_file" > "$tmp" && mv "$tmp" "$status_file" || rm -f "$tmp"
+}
+
 step_tests_folder=""
 if [ "$terminal_reason" = "completed" ]; then
   case "$command_name" in
@@ -122,37 +142,7 @@ if [ -n "$step_tests_folder" ]; then
     done <<EOF_CMDS
 $(printf '%s' "$step_tests_resolved" | jq -r '.commands[]?' 2>/dev/null)
 EOF_CMDS
-    # The session was told to run these same commands through
-    # aide-record-test-run, and that script writes the hash of the tree
-    # it ran against into the record. A green record for EXACTLY the
-    # tree the step delivered, naming exactly the commands resolved
-    # here, is a run of this result — running it again would cost the
-    # suite's whole duration to learn nothing. Anything else — no
-    # record, a record without a tree (written by hand), another tree
-    # (the session changed something after the run), other commands,
-    # red — and the runner runs.
-    step_record="$specs_root_wt/$step_tests_folder/test-run.json"
-    # Asked twice: before the runner's first run, and again after every
-    # turn the session is handed red lines to fix — it may run the suite
-    # once through aide-record-test-run, and
-    # running it once more ourselves on the very tree it just recorded
-    # green cost a whole suite for nothing (spec 480's archive ran it
-    # four times, 2026-09-18).
-    session_record_covers_tree() {
-      [ -f "$step_record" ] && declare -f aide_tree_hash >/dev/null 2>&1 || return 1
-      local tree
-      tree="$(aide_tree_hash "$project_wt" 2>/dev/null || echo "")"
-      [ -n "$tree" ] && jq -e --arg tree "$tree" --argjson resolved "$step_tests_resolved" '
-           .exitCode == 0 and .tree == $tree
-           and (((.commands // [{command: .command}]) | map(.command) | sort) == ($resolved.commands | sort))
-         ' "$step_record" >/dev/null 2>&1
-    }
-    step_tests_spared="no"
-    if session_record_covers_tree; then
-      step_tests_spared="yes"
-      stage "the session's own green run covers the delivered tree ($step_tests_folder/test-run.json) — not run again"
-    fi
-    if [ "$step_test_count" -gt 0 ] && [ "$step_tests_spared" = "no" ]; then
+    if [ "$step_test_count" -gt 0 ]; then
       step_fix_rounds="${AIDE_TEST_FIX_ROUNDS:-2}"
       step_fix_round=0
       step_cost_total="$cost"
@@ -160,7 +150,11 @@ EOF_CMDS
         stage "running the project's tests on $command_name's result ($step_test_count command(s))"
         run_step_tests_within_time
         step_tests_rc=$?
-        if [ "$step_tests_rc" -eq 0 ]; then stage "the project's tests are green"; break; fi
+        if [ "$step_tests_rc" -eq 0 ]; then
+          stage "the project's tests are green"
+          tick_full_suite_row "\`$(printf '%s' "$step_tests_resolved" | jq -r '.commands | join(" && ")')\` — the runner's own run"
+          break
+        fi
         if [ "$step_tests_rc" -eq 124 ]; then
           terminal_reason="timeout"
           ok="false"
@@ -194,11 +188,11 @@ $step_tests_failing"
         # suite under the load of five jobs, rerunning for timing tests
         # that passed on their own, until both hit their time limit with
         # the change long done (2026-09-18).
-        step_fix_how="Run the tests that failed, and the tests covering your fix, until they pass. Then run the full suite at most once, through aide-record-test-run, in the foreground — never start a second run while one is going. A failing test that has nothing to do with this change and passes on its own is load on the machine, not a fault: do not run the suite again for it — say so, and report done. The runner runs the suite itself after this turn."
+        step_fix_how="Run the tests that failed, and the tests covering your fix, until they pass. Do not run the whole suite: the runner runs it itself after this turn, and its run is the one that counts. A failing test that has nothing to do with this change and passes on its own is load on the machine, not a fault: say so, and report done."
         if [ "$command_name" = "archive" ]; then
           step_fix_ask="Fix it — the merge with main, or what that merge broke. $step_fix_how Round $step_fix_round of $step_fix_rounds."
         else
-          step_fix_ask="Fix it — your own tests and any existing test the change broke. $step_fix_how Tick the row if that full run is green, then report done. Round $step_fix_round of $step_fix_rounds."
+          step_fix_ask="Fix it — your own tests and any existing test the change broke. $step_fix_how Then report done. Round $step_fix_round of $step_fix_rounds."
         fi
         printf '%s\n' "The project's test suite is red on what you delivered. The runner ran it itself; this is what failed:" "" "$step_tests_failing" "" \
           "$step_fix_ask" > "$work_dir/prompt-fix-$step_fix_round"
@@ -211,10 +205,6 @@ $step_tests_failing"
         # A turn that did not end cleanly keeps its own verdict (timeout,
         # cli-error): nothing to test.
         [ "$terminal_reason" = "completed" ] || break
-        if session_record_covers_tree; then
-          stage "the session's own green run after round $step_fix_round covers the delivered tree ($step_tests_folder/test-run.json) — not run again"
-          break
-        fi
       done
     fi
     # What was seen green, for the landing: the tree (links left out, the
