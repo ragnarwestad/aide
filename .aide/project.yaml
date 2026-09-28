@@ -10,7 +10,7 @@ stack:
   database: none
 # The project's test command: the whole suite, run by a step, the landing
 # and /aide-implement. Read here and nowhere else.
-AIDE_TEST_CMD: export PATH="$HOME/.local/share/mise/shims:$PATH"; .venv/bin/pytest -q && cd dashboard && make test && make test-e2e
+AIDE_TEST_CMD: export PATH="$HOME/.local/share/mise/shims:$PATH"; scripts/test-python && cd dashboard && make test && make test-e2e
 dependencies:
   - pandoc (aide-generate-pdf / aide-generate-html)
   - mise (keeps the Codex/Copilot CLIs updated, daily cron)

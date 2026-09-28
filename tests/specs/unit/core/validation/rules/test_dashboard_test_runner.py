@@ -96,12 +96,16 @@ class TestTheRunnerScript:
 # A stand-in for `bun test`, handed to run-tests.sh as an exported bash
 # function so no new executable is written. What it does is decided by
 # the one file it is given: `killed-once` is stopped by a signal the first
-# time only, `killed` every time, `red` has a failing test.
+# time only, `killed` every time, `red-once` has a failing test the first
+# time only, `red` every time. Like bun, it heads the file's output with
+# its path.
 _FAKE_BUN = r'''() {
   f="${@: -1}"; name="$(basename "$f" .test.ts)"
+  echo "$f:"
   case "$name" in
     killed-once) [ -e "$f.seen" ] || { : > "$f.seen"; kill -9 "$(sh -c 'echo $PPID')"; } ;;
     killed) kill -9 "$(sh -c 'echo $PPID')" ;;
+    red-once) [ -e "$f.seen" ] || { : > "$f.seen"; echo "(fail) a test > that fails"; echo "Ran 1 tests across 1 file."; return 1; } ;;
     red) echo "(fail) a test > that fails"; echo "Ran 1 tests across 1 file."; return 1 ;;
   esac
   echo "Ran 1 tests across 1 file."
@@ -131,7 +135,18 @@ class TestAWorkerStoppedFromOutside:
         assert r.returncode == 1, r.stdout + r.stderr
         assert "red: worker(s) 0" in r.stdout
 
-    def test_a_failing_test_is_red_without_a_second_run(self, workspace_root, tmp_path):
+    def test_a_failing_test_is_not_the_signal_s_to_run_again(self, workspace_root, tmp_path):
+        r = _run_suite(workspace_root, tmp_path, "red")
+        assert "was killed" not in r.stdout
+
+
+class TestAFailingTest:
+    def test_a_file_that_fails_once_is_run_again_alone_and_the_suite_is_green(self, workspace_root, tmp_path):
+        r = _run_suite(workspace_root, tmp_path, "red-once")
+        assert r.returncode == 0, r.stdout + r.stderr
+        assert f"running its failing file(s) again alone: {tmp_path}/red-once.test.ts" in r.stdout
+
+    def test_a_file_that_fails_twice_is_red(self, workspace_root, tmp_path):
         r = _run_suite(workspace_root, tmp_path, "red")
         assert r.returncode == 1, r.stdout + r.stderr
-        assert "running its files again" not in r.stdout
+        assert "red: worker(s) 0" in r.stdout

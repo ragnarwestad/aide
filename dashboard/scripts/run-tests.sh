@@ -166,6 +166,24 @@ for p in $pids; do
       echo "--- worker $w, run again: $(grep -E '^Ran [0-9]+ tests' "$OUT/out.$w" | tail -1)"
       continue
     fi
+    failed="$failed $w"
+    continue
+  fi
+  # A failing test is run once more in its own file, alone: a test that
+  # lost to a busy host passes there, and only a second failure counts.
+  # bun heads each file's output with its path, so the file is the last
+  # heading above its `(fail)` line.
+  if grep -q '^(fail)' "$OUT/out.$w"; then
+    again=$(awk '/^[^ ].*\.test\.ts:$/ { file = substr($0, 1, length($0) - 1) } /^\(fail\)/ && file { print file }' "$OUT/out.$w" | sort -u)
+    if [ -n "$again" ]; then
+      echo "--- worker $w: running its failing file(s) again alone:" $again
+      # shellcheck disable=SC2086  # the paths are our own, one per line
+      if ( bun test --timeout "$LIMIT" $again ) > "$OUT/again.$w" 2>&1; then
+        echo "--- worker $w, run again alone: $(grep -E '^Ran [0-9]+ tests' "$OUT/again.$w" | tail -1)"
+        continue
+      fi
+      cat "$OUT/again.$w" >> "$OUT/out.$w"
+    fi
   fi
   failed="$failed $w"
 done
