@@ -6,6 +6,7 @@ Split out of conftest.py 2026-09-04. Every builder is unchanged and
 keeps its name.
 """
 
+import json
 import re
 import subprocess
 import time
@@ -256,6 +257,16 @@ def recorded_line(workspace, branch="aide/81-queue-and-runner", path=None):
         if line.startswith("- **Workflow steps completed:**"):
             return line.split(":**", 1)[1].strip()
     return None
+
+
+def branch_file(root, name, workspace, branch="aide/81-queue-and-runner"):
+    """One file of the spec as `branch` holds it in `root`."""
+    return git(root, "show", f"{branch}:{workspace['folder']}/{name}")
+
+
+def state_of(workspace):
+    """The spec's `4-status.json` as the run's own branch has it."""
+    return json.loads(branch_file(workspace["specs"], "4-status.json", workspace))
 
 
 def recorded_model(workspace, step, branch="aide/81-queue-and-runner", path=None):

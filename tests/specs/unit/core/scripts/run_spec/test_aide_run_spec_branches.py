@@ -15,6 +15,7 @@ from ..conftest import READ_SPECS, git, run
 from .run_spec_fakes import conflicting_race_claude, project_only_claude, race_pushing_claude, self_pushing_claude, specs_only_claude, writing_claude
 from .run_spec_origins import fetchable_origin, fetchable_origin_both_roots, is_ancestor, origin
 from .run_spec_results import RESULT_OK
+from .run_spec_status_files import already_ran, with_status
 
 
 def test_a_reused_branch_is_brought_up_to_the_default_branch(runner, workspace, fake_claude):
@@ -44,6 +45,38 @@ def test_a_reused_branch_is_brought_up_to_the_default_branch(runner, workspace, 
     assert "saw-it.txt" in git(project, "show", "--name-only", "--pretty=", branch), \
         "the step must see what landed on main after the branch was made"
     assert is_ancestor(project, "main", branch), "the branch must contain main"
+
+def test_the_code_an_earlier_implement_wrote_outlives_a_new_analysis_and_starts_the_next_implement_AC_3(
+    runner, workspace, fake_claude
+):
+    """The new analysis resets what has RUN, never the branch: the code an
+    earlier implement committed is still an ancestor after it, and the
+    implement that follows works on top of it."""
+    with_status(workspace, ["create", "analyze", "implement"])
+    already_ran(workspace, ["create", "analyze", "implement"])
+    project = workspace["project"]
+    branch = "aide/81-queue-and-runner"
+    git(project, "switch", "-q", "-c", branch)
+    (project / "from-the-earlier-implement.txt").write_text("implement wrote this\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "an earlier implement")
+    earlier = git(project, "rev-parse", "HEAD")
+    git(project, "switch", "-q", "main")
+
+    rc, out, _ = run(runner, workspace, specs_only_claude(fake_claude, workspace))
+    assert rc == 0, out
+    assert is_ancestor(project, earlier, branch), "the analysis left the earlier code alone"
+
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + 'test -f "$PWD/from-the-earlier-implement.txt" && echo yes > "$PWD/saw-it.txt"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert "saw-it.txt" in git(project, "show", "--name-only", "--pretty=", branch), \
+        "the implement must find the earlier code in its worktree"
+    assert is_ancestor(project, earlier, branch)
 
 def test_a_reused_branch_keeps_its_own_work(runner, workspace, fake_claude):
     """Bringing the branch up to date must not throw away the previous

@@ -44,6 +44,11 @@ describe("a phase that has run may be run again", () => {
     expect((await queue(base, ["implement"])).status).toBe(200);
   });
 
+  test("analyze, implement and archive together on an implemented spec are accepted (AC-2)", async () => {
+    const { base } = harness.start({ extra: {}, status: statusSaying(["create", "analyze", "implement"]) });
+    expect((await queue(base, ["analyze", "implement", "archive"])).status).toBe(200);
+  });
+
   test("analyze and implement together on a created spec are accepted", async () => {
     const { base } = harness.start({ extra: {}, status: statusSaying(["create"]) });
     expect((await queue(base, ["analyze", "implement"])).status).toBe(200);
@@ -64,6 +69,11 @@ describe("a start out of order is refused at the press, with the reason", () => 
   test("archive before implement", () => refused(["create", "analyze"], ["archive"], "has not reached implement yet"));
 
   test("create on a spec that exists", () => refused(["create", "analyze"], ["create"], "create cannot run again"));
+
+  // A new analysis takes the spec back to analyzed, so an archive queued
+  // behind it in the same press starts out of order.
+  test("archive in the same press as a new analysis (AC-2)", () =>
+    refused(["create", "analyze", "implement"], ["analyze", "archive"], "has not reached implement yet"));
 });
 
 // Implement lands nothing: its record is on the spec's branch until

@@ -98,7 +98,8 @@ describe("a description newer than the analysis is shown on the row", () => {
       // specific one — the table's first matching prefix wins.
       "log --all --format=%s": {
         code: 0,
-        stdout: ["create", "analyze", "implement"]
+        // git prints newest first: the implement is the latest commit.
+        stdout: ["implement", "analyze", "create"]
           .map((step) => `Run /aide-${step} for 81-queue-and-runner (headless)`)
           .join("\n"),
       },

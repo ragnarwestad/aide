@@ -339,6 +339,7 @@ function endedSinceRead(step: string, t: SpecTarget | undefined, latest: QueueRo
  *  hand-copied-list shape `development.md` already names six of. */
 export function phasesFor(all: QueueRowView[], target: SpecTarget | undefined): Phase[] {
   const round = roundUnderWayIn(all);
+  const analyzedAtMs = lastAnalyzeEndedMs(all);
   return specPhases(all, target?.dir).map((phase) => {
     const joined = {
       ...phase,
@@ -346,8 +347,35 @@ export function phasesFor(all: QueueRowView[], target: SpecTarget | undefined): 
       ...historyFor(phase.step, target, phase.attempts[0]),
     };
     if (round && comesAfterRoundStart(phase.step, round)) return phaseInRound(joined, round);
-    return phase.step === "archive" && refusalAnswered(joined, target) ? { step: phase.step, attempts: [], history: {} } : joined;
+    if (phase.step === "archive" && refusalAnswered(joined, target)) return { step: phase.step, attempts: [], history: {} };
+    return supersededByAnalysis(joined, target, analyzedAtMs);
   });
+}
+
+/** When the newest analyze the queue remembers finishing ended, epoch ms. */
+function lastAnalyzeEndedMs(all: QueueRowView[]): number | undefined {
+  const ends = all.flatMap((r) =>
+    (r.results ?? []).filter((x) => x.step === "analyze" && x.ok && x.at).map((x) => Date.parse(x.at!)),
+  );
+  return ends.length ? Math.max(...ends) : undefined;
+}
+
+/** A phase a completed analysis cancelled: git names it in
+ *  `target.superseded` and the state file no longer counts it done. The
+ *  queue's memory of the earlier run and the phase file's stamped result
+ *  are that round's, not a run of the phase — so the line keeps no attempt
+ *  and no file record, and reads as not run, until an attempt is in flight
+ *  or ended after the analysis (the new round's own, which keeps every
+ *  attempt). With no analysis the queue remembers, an attempt cannot be
+ *  shown to precede one and is kept. */
+function supersededByAnalysis(phase: Phase, target: SpecTarget | undefined, analyzedAtMs: number | undefined): Phase {
+  if (!target?.superseded?.includes(phase.step) || target.done?.includes(phase.step)) return phase;
+  const newer = (a: QueueRowView): boolean => {
+    const endedAt = a.results?.find((r) => r.step === phase.step)?.at;
+    return inFlight(a) || analyzedAtMs === undefined || !endedAt || Date.parse(endedAt) > analyzedAtMs;
+  };
+  if (phase.attempts.some(newer)) return phase;
+  return { step: phase.step, attempts: [], history: phase.history, ...(phase.heldBack ? { heldBack: phase.heldBack } : {}) };
 }
 
 /** Archive's last attempt only refused over open criteria, and every
@@ -367,9 +395,10 @@ export const roundUnderWayIn = (all: QueueRowView[]): QueueRowView | undefined =
 /** The steps the spec's own files say are done, less every one a round
  *  under way has made history of and not yet run again itself. The file
  *  keeps "implement" in its Workflow steps completed through a round
- *  started at analyze, and a row reading that as done ticked and locked
- *  the very step the round exists to run again. A step the round has
- *  finished is this round's own, and done. */
+ *  started at analyze, until that analysis completes and takes it off,
+ *  and a row reading that as done ticked and locked the very step the
+ *  round exists to run again. A step the round has finished is this
+ *  round's own, and done. */
 export function doneOutsideRound(done: string[], round: QueueRowView | undefined): string[] {
   return round ? done.filter((step) => !comesAfterRoundStart(step, round) || roundFinished(step, round)) : done;
 }

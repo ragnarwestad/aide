@@ -37,6 +37,14 @@
 #   `provider-limit`, …). Such a step has RUN but is not DONE.
 # - The newest commit for a step is the one that speaks for it: a
 #   re-run supersedes whatever the attempt before it said.
+# - A completed `analyze` is newer than every `implement` and `archive`
+#   before it, and those no longer count: the plan they were made from
+#   has been replaced. The log is read newest first (`--date-order`, so a
+#   commit is never listed before one made on top of it), and an
+#   `implement` or `archive` below a completed `analyze` is skipped. A
+#   stopped `analyze` supersedes nothing. The twin spells the steps as
+#   the ones after `analyze` in `HISTORY_STEPS`; this side spells them
+#   out (`implement|archive`), so a change to the arc has to touch both.
 # - Anything else with the same words in it — a revert, a merge, a
 #   subject with more after it — is not a step. The match is the whole
 #   subject or nothing.
@@ -162,6 +170,7 @@ kept_round_boundary_in() {   # sets $kept_round_sha
 completed_steps_for() {   # sets $completed_steps
   local folder="$1" dir="$2" subject step reason seen completed re re_archive
   local existing_line existing_step archive_counts="yes"
+  local analyzed_since="" reset_by_this_run=""
   local boundary_args=()
   completed_steps=""
   # `--not <sha>` excludes every commit REACHABLE from the mark — exactly
@@ -193,26 +202,36 @@ ARCHIVE_SCAN
   case " $WORKFLOW_ARC " in
     *" $command_name "*)
       seen="|$command_name|"
-      [ "$terminal_reason" = "completed" ] && completed="|$command_name|"
+      if [ "$terminal_reason" = "completed" ]; then
+        completed="|$command_name|"
+        # A completed analyze cancels the implement and archive before it.
+        [ "$command_name" = "analyze" ] && { analyzed_since="yes"; reset_by_this_run="yes"; }
+      fi
       ;;
   esac
   re="^Run /aide-([a-z][a-z-]*) for ${folder}( \(headless\))?( \(model: ([^)]+)\))?( \(stopped: (.+)\))?$"
   # --all, not HEAD: `implement` deliberately lands nothing until
   # `archive` runs, so its commit sits on this spec's own branch for as
   # long as the spec takes. Newest first, which is what makes the first
-  # sighting of a step the one that speaks for it.
+  # sighting of a step the one that speaks for it — and `--date-order`
+  # keeps it so: without it a commit dated earlier than the one it was
+  # made on top of can be listed after it, and an implement would read as
+  # newer than the analysis above it.
   while IFS= read -r subject; do
     [ -n "$subject" ] || continue
     [[ "$subject" =~ $re ]] || continue
     step="${BASH_REMATCH[1]}"
     reason="${BASH_REMATCH[6]}"
     case " $WORKFLOW_ARC $WORKFLOW_ARC_RETIRED " in *" $step "*) ;; *) continue ;; esac
+    # Newest first: everything below a completed analyze is older than it.
+    [ "$step" = "analyze" ] && [ -z "$reason" ] && analyzed_since="yes"
+    case "$step" in implement|archive) [ -n "$analyzed_since" ] && continue ;; esac
     [ "$step" = "archive" ] && [ -z "$archive_counts" ] && continue
     case "$seen" in *"|$step|"*) continue ;; esac
     seen="$seen$step|"
     [ -n "$reason" ] || completed="$completed$step|"
   done <<EOF
-$(git -C "$dir" log --all ${boundary_args[@]+"${boundary_args[@]}"} --format=%s --fixed-strings \
+$(git -C "$dir" log --all --date-order ${boundary_args[@]+"${boundary_args[@]}"} --format=%s --fixed-strings \
     --grep="Run /aide-" --grep=" for $folder" --all-match 2>/dev/null)
 EOF
   # A step the line already names stays named, whatever the scan found
@@ -223,9 +242,12 @@ EOF
   # wrote `analyze, archive` over `analyze, implement`, which is the only
   # record there is that implement ran. So the line is a THIRD source
   # here, alongside this run's own outcome and the scan: added to, never
-  # subtracted from. `aide-reopen` is the one place a step comes off it,
-  # and it does that by regenerating `4-status.md` without the line at
-  # all — so there is nothing here to special-case.
+  # subtracted from. Two places take a step off it: `aide-reopen`, which
+  # regenerates `4-status.md` without the line at all, and this run's own
+  # completed analyze, which takes `implement` and `archive` off (below).
+  # No other run subtracts: a step committed under a descriptive subject
+  # is the case this source exists for, and a later run cannot tell it
+  # from a step a new analysis has cancelled.
   #
   # Tokens are filtered through the same arc lists the scan filters
   # through, so a placeholder or a typo left on the line by hand does not
@@ -252,6 +274,7 @@ EOF
   fi
   for existing_step in $(printf '%s' "$existing_line" | tr ',' ' '); do
     [ "$existing_step" = "archive" ] && [ -z "$archive_counts" ] && continue
+    case "$existing_step" in implement|archive) [ -n "$reset_by_this_run" ] && continue ;; esac
     case " $WORKFLOW_ARC $WORKFLOW_ARC_RETIRED " in
       *" $existing_step "*) completed="$completed$existing_step|" ;;
     esac

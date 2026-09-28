@@ -6,36 +6,29 @@ in conftest.py beside them.
 """
 
 import json
+import os
 import re
 import subprocess
 from ..conftest import READ_SPECS, STOP_DEADLINE_SEC, git, run
 from .run_spec_invoking import CREATE_KEY, create
 from .run_spec_fakes import project_only_claude, specs_only_claude, writing_claude
 from .run_spec_results import RESULT_OK
-from .run_spec_status_files import already_ran, bullet, phase_file_text, recorded_line, recorded_model, subject, with_status
+from .run_spec_status_files import already_ran, bullet, phase_file_text, recorded_line, recorded_model, state_of, subject, with_status
 
 def test_a_copied_status_line_is_no_longer_corrected_by_the_step_that_runs(
     runner, workspace, fake_claude
 ):
-    """Spec 153: four files copied from a sibling whose analyze had
-    landed, so a folder minutes old claimed three steps. Nothing was
-    committed for any of them, and the first real step used to write the
-    claim back down to what history could prove.
-
-    Spec 214 reverses that, deliberately: the two cases are the same
-    case seen from opposite sides — a line naming a step no commit can
-    corroborate is either a copied lie (153) or the only surviving
-    record of a step that committed under its own subject (214). The
-    scan cannot tell them apart, and 214's description settles which
-    way to be wrong: "A step already named in the line is never removed,
-    whatever the computation finds", with `aide-reopen` named as the one
-    place a step comes off the line. A copied line therefore stands
-    until someone edits the file or reopens the spec — the price of
-    never erasing a step that really ran.
+    """A line naming a step no commit can corroborate is either a copied
+    lie (four files copied from a sibling whose analyze had landed) or the
+    only surviving record of a step that committed under its own subject.
+    The scan cannot tell them apart, so a step already named on the line
+    stays named when a step runs, and only `aide-reopen` or a completed
+    analysis takes one off. A copied line therefore stands until someone
+    edits the file, reopens the spec or analyzes it again.
     """
     with_status(workspace, ["create", "analyze", "implement"])
-    claude = specs_only_claude(fake_claude, workspace)
-    rc, out, _ = run(runner, workspace, claude)
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="implement")
     assert rc == 0, out
     assert recorded_line(workspace) == "create, analyze, implement"
 
@@ -293,6 +286,113 @@ def test_a_historical_model_line_survives_untouched(runner, workspace, fake_clau
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
     assert recorded_model(workspace, "create") == "claude claude-opus-5"
+
+def test_a_completed_analysis_takes_implement_off_the_line_and_the_state_AC_1(
+    runner, workspace, fake_claude
+):
+    with_status(workspace, ["create", "analyze", "implement"])
+    already_ran(workspace, ["create", "analyze", "implement"])
+    claude = specs_only_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert recorded_line(workspace) == "create, analyze"
+    assert state_of(workspace)["completedPhases"] == ["create", "analyze"]
+
+def _specs_changed(out, workspace):
+    return {r["root"]: r for r in out["repos"]}[str(workspace["specs"])]["changedFiles"]
+
+def test_a_step_that_ends_after_the_analysis_does_not_bring_implement_back_AC_1(
+    runner, workspace, fake_claude
+):
+    """The analysis reset the line to `create, analyze`. A later run that
+    stops finds the earlier implement commit in the log, and used to write
+    `implement` onto the line again; the run's commit for the line carries
+    nothing when the analysis is newer than that commit."""
+    with_status(workspace, ["create", "analyze"])
+    already_ran(workspace, ["create", "analyze", "implement", "analyze"])
+    claude = project_only_claude(fake_claude)  # an analyze that touches the code: scope-violation
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert out["terminalReason"] == "scope-violation", out
+    assert _specs_changed(out, workspace) == 0
+
+def test_an_implement_that_completes_after_the_analysis_names_implement_again_AC_2(
+    runner, workspace, fake_claude
+):
+    with_status(workspace, ["create", "analyze"])
+    already_ran(workspace, ["create", "analyze", "implement", "analyze"])
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert recorded_line(workspace) == "create, analyze, implement"
+
+def test_an_implement_that_ends_without_completing_leaves_the_reset_line_alone_AC_2(
+    runner, workspace, fake_claude
+):
+    with_status(workspace, ["create", "analyze"])
+    already_ran(workspace, ["create", "analyze", "implement", "analyze"])
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert out["terminalReason"] == "no-progress", out
+    assert _specs_changed(out, workspace) == 0
+
+def test_an_analysis_on_a_spec_that_never_implemented_changes_nothing_about_implement_AC_4(
+    runner, workspace, fake_claude
+):
+    with_status(workspace, ["create", "analyze"])
+    already_ran(workspace, ["create", "analyze"])
+    claude = specs_only_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert recorded_line(workspace) == "create, analyze"
+    assert state_of(workspace)["completedPhases"] == ["create", "analyze"]
+
+def test_an_analysis_that_ends_without_completing_leaves_implement_on_the_line_AC_5(
+    runner, workspace, fake_claude
+):
+    with_status(workspace, ["create", "analyze", "implement"])
+    already_ran(workspace, ["create", "analyze", "implement"])
+    claude = project_only_claude(fake_claude)
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert out["terminalReason"] == "scope-violation", out
+    assert _specs_changed(out, workspace) == 0
+
+def test_a_stopped_analysis_above_an_implement_does_not_take_it_off_AC_5(
+    runner, workspace, fake_claude
+):
+    """Both scans, not the line: the line here names no `implement`, so
+    only the commit above an analyze that stopped can bring it back."""
+    with_status(workspace, ["create", "analyze"])
+    already_ran(workspace, ["create", "analyze", "implement"])
+    already_ran(workspace, ["analyze"], stopped="timeout")
+    claude = project_only_claude(fake_claude)
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert out["terminalReason"] == "scope-violation", out
+    assert recorded_line(workspace) == "create, analyze, implement"
+
+def test_an_analysis_made_on_top_of_an_implement_with_an_earlier_date_still_wins_AC_1(
+    runner, workspace, fake_claude
+):
+    """The log's default order can list a commit before one made on top of
+    it: the implement is dated later than the analysis above it, and a
+    second ref points at it. `--date-order` never does."""
+    with_status(workspace, ["create", "analyze"])
+    already_ran(workspace, ["create"])
+
+    def commit_dated(step, date):
+        env = {**os.environ, "GIT_AUTHOR_DATE": date, "GIT_COMMITTER_DATE": date}
+        subprocess.run(
+            ["git", "-C", str(workspace["specs"]), "commit", "-q", "--allow-empty",
+             "-m", subject(step, workspace["folder"])],
+            check=True, env=env,
+        )
+
+    commit_dated("implement", "2026-09-10T12:00:00")
+    git(workspace["specs"], "branch", "second-ref-at-the-implement")
+    commit_dated("analyze", "2026-09-01T12:00:00")
+    claude = project_only_claude(fake_claude)
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert out["terminalReason"] == "scope-violation", out
+    assert _specs_changed(out, workspace) == 0
 
 def test_the_two_copies_of_the_commit_subject_grammar_agree(workspace_root, run_spec_source):
     """Risk 1, and AC7's structural half. The grammar exists once in

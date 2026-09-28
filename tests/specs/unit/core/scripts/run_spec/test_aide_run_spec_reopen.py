@@ -9,12 +9,12 @@ unchanged and keep their names.
 import json
 import pytest
 from ..conftest import git, run
-from .run_spec_fakes import specs_only_claude
+from .run_spec_fakes import specs_only_claude, writing_claude
 from .run_spec_invoking import BRANCH
 from .run_spec_origins import archive_the_spec, has_branch, make_branch, origin
 from .run_spec_results import RESULT_OK
 from .run_spec_status_files import (
-    already_ran, recorded_line, reopen_line, reset_line, subject, with_status, write_raw_status,
+    already_ran, branch_file, recorded_line, reopen_line, reset_line, state_of, subject, with_status, write_raw_status,
 )
 
 
@@ -216,10 +216,10 @@ def test_a_spec_that_has_never_been_reopened_counts_everything(
 ):
     """The boundary is OPTIONAL everywhere it is added: a spec with no
     mark — the overwhelming majority — takes the path it took before."""
-    already_ran(workspace, ["create", "implement"])
-    with_status(workspace)
-    claude = specs_only_claude(fake_claude, workspace)
-    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    already_ran(workspace, ["create", "analyze"])
+    with_status(workspace, ["analyze"])
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="implement")
     assert rc == 0, out
     assert recorded_line(workspace) == "create, analyze, implement"
 
@@ -248,10 +248,6 @@ def archived_with_files(workspace):
     git(workspace["specs"], "add", "-A")
     git(workspace["specs"], "commit", "-qm", "a finished round")
     archive_the_spec(workspace)
-
-
-def branch_file(root, name, workspace):
-    return git(root, "show", f"{BRANCH}:{workspace['folder']}/{name}")
 
 
 def test_a_reopen_without_reset_files_runs_no_model_and_keeps_the_files_AC_2(
@@ -345,10 +341,6 @@ def keep_reopened(workspace, steps_line="create, analyze, implement"):
     return boundary
 
 
-def state_of(workspace):
-    return json.loads(branch_file(workspace["specs"], "4-status.json", workspace))
-
-
 def test_archive_does_not_come_back_on_a_later_step_of_a_reopened_round_AC_2(
     runner, workspace, fake_claude
 ):
@@ -356,18 +348,30 @@ def test_archive_does_not_come_back_on_a_later_step_of_a_reopened_round_AC_2(
     claude = specs_only_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, command="analyze")
     assert rc == 0, out
-    assert recorded_line(workspace) == "create, analyze, implement"
+    assert recorded_line(workspace) == "create, analyze"
     assert "archive" not in state_of(workspace)["completedPhases"]
 
 
 def test_archive_counts_again_after_a_new_archive_commit_AC_2(runner, workspace, fake_claude):
     keep_reopened(workspace)
     already_ran(workspace, ["archive"])
-    claude = specs_only_claude(fake_claude, workspace)
-    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="implement")
     assert rc == 0, out
     assert recorded_line(workspace) == "create, analyze, implement, archive"
     assert "archive" in state_of(workspace)["completedPhases"]
+
+
+def test_a_new_analysis_takes_implement_and_a_newer_archive_off_the_line_and_the_state_AC_1(
+    runner, workspace, fake_claude
+):
+    keep_reopened(workspace)
+    already_ran(workspace, ["archive"])
+    claude = specs_only_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert recorded_line(workspace) == "create, analyze"
+    assert state_of(workspace)["completedPhases"] == ["create", "analyze"]
 
 
 def test_a_spec_never_reopened_keeps_archive_on_its_line_AC_2(runner, workspace, fake_claude):
@@ -378,7 +382,7 @@ def test_a_spec_never_reopened_keeps_archive_on_its_line_AC_2(runner, workspace,
         "- **Task:** `81-queue-and-runner/`\n"
         "- **Workflow steps completed:** create, analyze, implement, archive\n",
     )
-    claude = specs_only_claude(fake_claude, workspace)
-    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="implement")
     assert rc == 0, out
     assert recorded_line(workspace) == "create, analyze, implement, archive"

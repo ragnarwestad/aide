@@ -239,13 +239,25 @@ describe("resolveWorkflowState", () => {
   // REQ-3: with a state file present, the one disagreement still
   // reported is prose claiming a phase the state file lacks — proven
   // here by git DISAGREEING with the state file too (git has
-  // `implement`), so the assertion cannot pass by prose-vs-git
-  // coincidentally agreeing.
+  // `implement`, newer than the analysis), so the assertion cannot pass
+  // by prose-vs-git coincidentally agreeing.
   test("REQ-3: flags a phase the prose claims that the branch's own state file lacks", async () => {
-    const history = await warmedHistory(subject("create"), subject("analyze"), subject("implement"));
+    const history = await warmedHistory(subject("implement"), subject("analyze"), subject("create"));
     const branchFileSteps = await warmedBranchSteps(["create", "analyze", "implement"], ["create", "analyze"]);
     const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
     expect(resolved!.fileDisagrees).toEqual(["implement"]);
+  });
+
+  // A completed analyze cancels the implement before it: the state file no
+  // longer names it, and neither does git's own answer — which says so in
+  // `superseded`, so the row can tell "cancelled" from "never ran".
+  test("AC-1: an implement older than a completed analysis is in neither done nor historyDone", async () => {
+    const history = await warmedHistory(subject("analyze"), subject("implement"), subject("analyze"), subject("create"));
+    const branchFileSteps = await warmedBranchSteps(["create", "analyze"], ["create", "analyze"]);
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
+    expect(resolved!.done).toEqual(["create", "analyze"]);
+    expect(resolved!.historyDone).toEqual(["create", "analyze"]);
+    expect(resolved!.superseded).toEqual(["implement"]);
   });
 
   // Spec 418: `historyDone` carries the RAW git answer (`h.done`), never
@@ -367,7 +379,7 @@ describe("WorkflowHistoryChecker boundary against real git", () => {
       "create", "analyze", "implement", "archive",
     ]);
     // Reopened: nothing has run in the new round.
-    expect(await checker.read(specDir, FOLDER, boundary)).toEqual({ done: [], stopped: {} });
+    expect(await checker.read(specDir, FOLDER, boundary)).toEqual({ done: [], stopped: {}, superseded: [] });
 
     // And the new round's own analyze, made after the mark, still counts.
     gitIn(repo, "commit", "-q", "--allow-empty", "-m", subject("analyze"));

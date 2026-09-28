@@ -54,6 +54,10 @@ export interface SpecTarget extends HasNotVerified {
    *  What tells "the work is on the branch, unlanded" apart from
    *  "nothing was written" for `wordPhase.lastRunDisagrees*`. */
   historyDone?: string[];
+  /** Steps a completed analyze cancelled, as git proves it (`superseded`
+   *  of the workflow history) — an earlier implement's queue attempts and
+   *  stamped file are not a run of the phase while it is named here. */
+  superseded?: string[];
   /** Where the spec's folder is on this machine. Server-side only — it
    *  is what the freshness check runs git in, and an absolute path has
    *  no business on a page. */

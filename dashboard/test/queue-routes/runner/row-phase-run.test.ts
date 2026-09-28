@@ -74,7 +74,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
       headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze", "archive"] }),
+      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze", "implement", "archive"] }),
     });
     expect(res.status).toBe(200);
     const { job } = (await res.json()) as { job: { timeoutSec: Record<string, number> } };

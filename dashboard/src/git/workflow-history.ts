@@ -21,14 +21,12 @@
 // lands nothing until `archive` runs, so its commit sits on
 // `aide/<spec-folder>` for as long as the spec takes.
 
-import { branchAcCoverage, type AcTest } from "../project/ac-coverage.ts";
 import type { GitRunner } from "./branch-status.ts";
-import { readStatusFromBranch, type OpenBranchTarget } from "./branch-file.ts";
-import { acceptanceCriteriaUnticked, acceptanceRowsOf, parseStatus, type StatusCheck } from "../project/parse-status";
-import { parseSpecStateText } from "../project/parse-spec-state.ts";
+import { DEFAULT_TTL_MS, type BranchFileStepsChecker, type FileStepsAnswer } from "./branch-file-steps.ts";
 import workflowStepsData from "../../../core/scripts/lib/workflow-steps.json" with { type: "json" };
 
-const DEFAULT_TTL_MS = 30_000;
+export { BranchFileStepsChecker } from "./branch-file-steps.ts";
+export type { BranchFileStepsOptions, FileStepsAnswer } from "./branch-file-steps.ts";
 
 /** The four stages a spec passes through, in workflow order — the same
  *  list `parse-status.ts` reads off the file, and deliberately NOT the
@@ -53,6 +51,11 @@ export const HISTORY_STEPS: readonly string[] = workflowStepsData.workflowArc;
  *  `core/scripts/aide-run-spec` reads the same value from
  *  `workflow-steps.json`'s `workflowArcRetired`. */
 export const HISTORY_STEPS_RETIRED: readonly string[] = workflowStepsData.workflowArcRetired;
+
+/** The steps after `analyze` in the arc: a completed analyze cancels the
+ *  ones before it. `core/scripts/lib/run-spec-records.sh` spells the same
+ *  two out (`implement|archive`), so a change to the arc touches both. */
+const AFTER_ANALYZE: readonly string[] = HISTORY_STEPS.slice(HISTORY_STEPS.indexOf("analyze") + 1);
 
 // --- the commit-subject grammar ---------------------------------------------
 //
@@ -83,6 +86,12 @@ export const HISTORY_STEPS_RETIRED: readonly string[] = workflowStepsData.workfl
 //   `provider-limit`, …). Such a step has RUN but is not DONE.
 // - The newest commit for a step is the one that speaks for it: a
 //   re-run supersedes whatever the attempt before it said.
+// - A completed `analyze` is newer than every `implement` and `archive`
+//   before it, and those no longer count: the plan they were made from
+//   has been replaced. The log is read newest first (`--date-order`, so a
+//   commit is never listed before one made on top of it), and an
+//   `implement` or `archive` below a completed `analyze` is skipped and
+//   reported in `superseded`. A stopped `analyze` supersedes nothing.
 // - Anything else with the same words in it — a revert, a merge, a
 //   subject with more after it — is not a step. The match is the whole
 //   subject or nothing.
@@ -102,9 +111,13 @@ export interface WorkflowHistory {
    *  run gave. A step here is not in `done`: it ran, and did not
    *  finish. */
   stopped: Record<string, string>;
+  /** Steps a completed analyze cancelled: an implement or archive
+   *  commit sits below it, and none newer stands above. Not done, not
+   *  stopped — the record says they have not run in this round. */
+  superseded: string[];
 }
 
-const EMPTY: WorkflowHistory = { done: [], stopped: {} };
+const EMPTY: WorkflowHistory = { done: [], stopped: {}, superseded: [] };
 
 /** What to ask git. `--all` because an `implement` commit has not
  *  landed and will not until `archive` runs — a HEAD-only log is blind
@@ -132,6 +145,9 @@ export function workflowLogArgs(specFolder: string, boundarySha?: string): strin
     // parameter existed.
     ...(boundarySha ? ["--not", boundarySha] : []),
     "--format=%s",
+    // A commit is never listed before one made on top of it, whatever
+    // their dates say: the rule compares the order of two steps' commits.
+    "--date-order",
     "--fixed-strings",
     `--grep=Run /aide-`,
     `--grep= for ${specFolder}`,
@@ -150,13 +166,22 @@ export function readWorkflowSubjects(subjects: string[], specFolder: string): Wo
   // therefore the one that speaks for it — every later line for the
   // same step is an attempt it superseded.
   const seen = new Map<string, string | null>();
+  let analyzedSince = false;
+  const cancelled = new Set<string>();
   for (const line of subjects) {
     const m = line.trim().match(pattern);
     if (!m) continue;
     const step = m[1]!;
-    if ((!HISTORY_STEPS.includes(step) && !HISTORY_STEPS_RETIRED.includes(step)) || seen.has(step)) continue;
+    if (!HISTORY_STEPS.includes(step) && !HISTORY_STEPS_RETIRED.includes(step)) continue;
     // m[2] is the model, which nothing on this side reads; m[3] is the
-    // stop reason.
+    // stop reason. Newest first: everything below a completed analyze is
+    // older than it.
+    if (step === "analyze" && m[3] === undefined) analyzedSince = true;
+    if (seen.has(step)) continue;
+    if (analyzedSince && AFTER_ANALYZE.includes(step)) {
+      cancelled.add(step);
+      continue;
+    }
     seen.set(step, m[3] ?? null);
   }
   const stopped: Record<string, string> = {};
@@ -167,6 +192,7 @@ export function readWorkflowSubjects(subjects: string[], specFolder: string): Wo
   return {
     done: [...HISTORY_STEPS, ...HISTORY_STEPS_RETIRED].filter((step) => seen.get(step) === null),
     stopped,
+    superseded: AFTER_ANALYZE.filter((step) => cancelled.has(step)),
   };
 }
 
@@ -257,34 +283,6 @@ export class WorkflowHistoryChecker {
   }
 }
 
-/** What a spec's own files claim, kept apart by source (spec 362) — the
- *  prose's own line, and the state file's `completedPhases` when this
- *  copy of the spec (disk or branch) has one. */
-export interface FileStepsAnswer {
-  /** What `4-status.md`'s own `Workflow steps completed` line claims. */
-  proseSteps: string[];
-  /** `4-status.json`'s own `completedPhases` — `undefined` when this
-   *  copy of the spec's files has no state file yet (spec 355 REQ-10),
-   *  the cue to keep comparing `proseSteps` against git (REQ-2). */
-  stateSteps: string[] | undefined;
-  /** Whether the file has an acceptance row nobody has ticked — read
-   *  off the same branch copy as the steps, since a tick on a spec
-   *  with an open branch is written THERE (spec-edit.ts, REQ-4) and the
-   *  default branch's copy stays unticked until archive lands. The
-   *  row's "archive held back" and the queue's archive hold-back read
-   *  this before the disk copy; absent when the answer came off disk. */
-  acceptanceOpen?: boolean;
-  /** The Acceptance section's rows off that same file, for the Specs
-   *  list's unfold — the row draws them without reading git. */
-  acceptance?: StatusCheck[];
-  /** Which test covers which criterion, off the same branch: the
-   *  default branch has it only once archive lands. */
-  acCoverage?: Record<string, AcTest[]>;
-  /** When the disk scan read this copy, epoch ms. Set by `targets()` on the disk answer only — the branch
-   *  copy's read time is `peekFileSteps().checkedAt` — so an answer that came from the branch has none. */
-  readAt?: number;
-}
-
 /** The steps `4-status.md`'s own line and the history do not agree
  *  about.
  *
@@ -320,7 +318,7 @@ export interface FileStepsAnswer {
  *  spec (REQ-2, unchanged); once one exists, the one thing still worth
  *  a qualifier is the prose claiming a phase the state file does not
  *  have (REQ-1, REQ-3). */
-export function stepsFileDisagreesOn(fileSteps: FileStepsAnswer, history: WorkflowHistory): string[] {
+export function stepsFileDisagreesOn(fileSteps: FileStepsAnswer, history: Omit<WorkflowHistory, "superseded">): string[] {
   // `create` is left out of the comparison since spec 176: the queue
   // takes it as done for every spec whose folder exists, whatever git
   // holds, so comparing it against a status file would report a
@@ -332,117 +330,6 @@ export function stepsFileDisagreesOn(fileSteps: FileStepsAnswer, history: Workfl
     return relevant.filter((step) => claimed.has(step) && !known.has(step));
   }
   return relevant.filter((step) => claimed.has(step) !== history.done.includes(step));
-}
-
-export interface BranchFileStepsOptions {
-  run: GitRunner;
-  ttlMs?: number;
-  now?: () => number;
-}
-
-/** A spec's own claims as committed on its own open `aide/<folder>`
- *  branch (spec 298) — the file half of `stepsFileDisagreesOn`'s
- *  comparison, read from the same point in the graph the history half
- *  (`WorkflowHistoryChecker`, `git log --all`) already answers from,
- *  rather than from the default branch's stale copy. Both
- *  `4-status.md`'s prose and, alongside it, `4-status.json`'s own
- *  `completedPhases` when the branch has one (spec 362) — the state
- *  file is what a gate reads there too, and a branch mid-`implement`
- *  must not keep comparing it against git once it exists. Shaped
- *  exactly like `WorkflowHistoryChecker`: async `read`, TTL-cached, and
- *  a `peekFileSteps` a render may call without ever spawning git.
- *
- *  `null` means "no open branch, or the branch's copy could not be
- *  read" — the caller's own cue to fall back to the disk read, which is
- *  what every spec without an open branch keeps doing unchanged
- *  (REQ-3). */
-export class BranchFileStepsChecker {
-  private readonly run: GitRunner;
-  private readonly ttlMs: number;
-  private readonly now: () => number;
-  private readonly cache = new Map<string, { at: number; steps: FileStepsAnswer | null; stale?: boolean }>();
-
-  constructor(opts: BranchFileStepsOptions) {
-    this.run = opts.run;
-    this.ttlMs = opts.ttlMs ?? DEFAULT_TTL_MS;
-    this.now = opts.now ?? Date.now;
-  }
-
-  /** `target` is `null` for a spec with no open branch — the caller
-   *  (`warmSpec`) has already asked `resolveOpenBranchTarget`, so this
-   *  class never resolves a branch itself. */
-  async read(dir: string, specFolder: string, target: OpenBranchTarget | null): Promise<FileStepsAnswer | null> {
-    const key = JSON.stringify([dir, specFolder]);
-    const hit = this.cache.get(key);
-    const at = this.now();
-    if (hit && !hit.stale && at - hit.at < this.ttlMs) return hit.steps;
-
-    let steps: FileStepsAnswer | null = null;
-    if (target) {
-      try {
-        // Wherever the folder is ON the branch: `archive` moves it to
-        // `archive/<folder>` and commits that there, so a branch whose
-        // archive has run but not landed answers nothing for the active
-        // path while the default branch still holds the folder in it.
-        for (const relPath of [target.relPath, target.archivedRelPath]) {
-          const file = await readStatusFromBranch(this.run, target.root, target.branch, relPath);
-          if (!file) continue;
-          // spec 362: the branch's own sibling `4-status.json`, at the
-          // same place `4-status.md` sits — read alongside the prose,
-          // never in its place, so `stateSteps` can stay `undefined` for
-          // a branch that has none yet (REQ-2).
-          const jsonPath = relPath.replace(/4-status\.md$/, "4-status.json");
-          const jsonFile = await readStatusFromBranch(this.run, target.root, target.branch, jsonPath);
-          const state = jsonFile ? parseSpecStateText(jsonFile.text) : null;
-          const acCoverage = await branchAcCoverage(this.run, target, relPath);
-          steps = {
-            proseSteps: parseStatus(file.text).workflowSteps,
-            stateSteps: state?.completedPhases,
-            acceptanceOpen: state
-              ? state.acceptanceCriteria.some((row) => !row.done)
-              : acceptanceCriteriaUnticked(file.text),
-            acceptance: acceptanceRowsOf(file.text),
-            ...(acCoverage ? { acCoverage } : {}),
-          };
-          break;
-        }
-      } catch {
-        steps = null;
-      }
-    }
-    this.cache.set(key, { at, steps });
-    return steps;
-  }
-
-  /** Drop one spec's cached answer, so the next `read` goes to git.
-   *  The Checks tab's tick writes the very file this caches, onto the
-   *  same branch it reads: without this the row went on saying "held
-   *  back: the Acceptance criteria are not all ticked yet" for the rest
-   *  of the TTL after a Save that ticked the last row (337,
-   *  2026-09-04). */
-  forget(dir: string, specFolder: string): void {
-    // Marked due for a fresh read, NOT dropped: the row keeps answering
-    // from it until `read` has replaced it. Dropped, the row fell back
-    // to the default branch's copy of the file for as long as the
-    // re-read took, and that copy still says what it said before
-    // implement ran — so a tick on the Checks tab made the row announce
-    // that the files disagree (425, 2026-09-09).
-    const key = JSON.stringify([dir, specFolder]);
-    const hit = this.cache.get(key);
-    if (hit) this.cache.set(key, { ...hit, stale: true });
-  }
-
-  /** No git spawn, ever — what `withFreshness` calls. `steps: null`
-   *  covers two different truths the caller does not need to tell
-   *  apart: no open branch, and "not warmed yet" — both mean "fall back
-   *  to the disk read" (REQ-3's own behavior, unchanged). */
-  peekFileSteps(
-    dir: string,
-    specFolder: string,
-  ): { steps: FileStepsAnswer | null; checkedAt: number | null; stale?: boolean } {
-    const hit = this.cache.get(JSON.stringify([dir, specFolder]));
-    return hit ? { steps: hit.steps, checkedAt: hit.at, stale: hit.stale } : { steps: null, checkedAt: null };
-  }
 }
 
 export interface ResolvedWorkflowState {
@@ -457,6 +344,10 @@ export interface ResolvedWorkflowState {
    *  "the work is on the branch" apart from "nothing was written"
    *  (spec 418). */
   historyDone: string[];
+  /** Steps git proves a completed analyze cancelled (`h.superseded`) —
+   *  what tells "cancelled by a new analysis" from "never ran", for a
+   *  row whose queue and stamped files still remember the earlier run. */
+  superseded: string[];
   /** When the two answers above were read, as epoch ms — the oldest of
    *  the history's, the branch copy's and, when the disk copy is the
    *  file source, the disk scan's. */
@@ -494,6 +385,7 @@ export function resolveWorkflowState(
     fileDisagrees: stepsFileDisagreesOn(answer, h),
     fileSteps: answer.proseSteps,
     historyDone: h.done,
+    superseded: h.superseded,
     checkedAt: Math.min(...reads),
   };
 }

@@ -431,9 +431,10 @@ step skills offer exactly that commit, and ask first.
 **The line is added to, never subtracted from.** A step it already
 names stays even when no commit currently corroborates it — a copied
 claim (a spec's four files copied from a sibling) stands the same way,
-since the scan cannot tell it from a real one. A reopen that resets the
-files is the only place a step comes off, by regenerating the file
-without the line at all.
+since the scan cannot tell it from a real one. Two things take a step
+off: a reopen that resets the files, by regenerating the file without the
+line at all, and a completed analysis, which takes `implement` and
+`archive` off because the plan they were made from has been replaced.
 
 The dashboard reads the same commits, live, to mark a spec's phases
 done — a `4-status.md` that disagrees with them is said out loud on the

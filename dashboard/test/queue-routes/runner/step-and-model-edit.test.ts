@@ -96,11 +96,11 @@ describe("POST /api/queue/:id/steps (spec 160)", () => {
   });
 
   test("the running step is refused, by name (criterion 3)", async () => {
-    const { base, id } = await running(["analyze", "archive"], 1);
+    const { base, id } = await running(["analyze", "implement", "archive"], 2);
     const res = await edit(base, id, "archive", false);
     expect(res.status).toBe(400);
     expect(((await res.json()) as { error: string }).error).toContain("archive");
-    expect(await stepsOf(base, id)).toEqual(["analyze", "archive"]);
+    expect(await stepsOf(base, id)).toEqual(["analyze", "implement", "archive"]);
   });
 
   test("an unknown job is a 404, and GET is not a way in", async () => {

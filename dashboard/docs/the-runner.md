@@ -185,7 +185,10 @@ not evidence that the phase happened. What the line is FOR is on
 `core/scripts/lib/run-spec-records.sh`
 rebuilds the line from the specs repo's own history: the commits whose subject reads `Run /aide-<step> for <folder>`
 since the current work round began, plus the step that has just completed. A step that ended `stopped` or `failed`
-is committed with the reason in its subject (`(stopped: timeout)`) and is not counted. A spec made by hand, with no runner commit behind it, has no line and
+is committed with the reason in its subject (`(stopped: timeout)`) and is not counted. A completed `analyze` is newer
+than every `implement` and `archive` before it, and those no longer count: the scan reads the log newest first
+(`--date-order`) and skips them, and the run's own completed analyze takes them off the line as well. The
+TypeScript twin (`readWorkflowSubjects`) applies the same rule and names the steps it skipped. A spec made by hand, with no runner commit behind it, has no line and
 reads as having had nothing — deliberately, because a spec that reads as unfinished is fixed by running the step, where
 a guess is not.
 

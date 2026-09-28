@@ -105,6 +105,11 @@ see:
 A step that ended `stopped` or `failed` is not counted. A spec made by
 hand, with no runner commit behind it, has no line and reads as having had nothing.
 
+**A completed analysis cancels the `implement` and `archive` before it.** The plan they were made from has been
+replaced, so the line, the state file and the row read them as not run until they run again after it. The code an
+earlier implement committed stays on `aide/<folder>`, and the next implement starts from it. An analysis that ends
+without completing cancels nothing.
+
 The checks themselves, and what each one refuses, are in
 [The runner and its checkouts](the-runner.md#what-counts-as-a-step-having-run).
 
@@ -121,7 +126,8 @@ stateDiagram-v2
     created --> analyzed: analyze
     analyzed --> analyzed: analyze again
     analyzed --> implemented: implement
-    implemented --> implemented: implement or analyze again
+    implemented --> implemented: implement again
+    implemented --> analyzed: analyze again
     implemented --> archived: archive
     archived --> created: reopen with reset
     created --> closed: close
@@ -145,8 +151,9 @@ still under its provisional key) has no row. It leaves a message at the top of t
 both offering to try again with what was typed; see [the specs list](the-specs-list.md#a-failed-create).
 
 **`create` to `analyze`.** Analyze may run on any active spec, again and again: `created`, `analyzed` and
-`implemented` all take the move, and running it again leaves the spec where it was. Whether to is the reader's
-choice. `create` itself never runs twice: its box is ticked and locked, and the run route refuses it. The row's boxes
+`implemented` all take the move. An `analyzed` spec stays `analyzed`, and an `implemented` one goes back to
+`analyzed`: Implement is next, and Archive is refused until implement has completed again. Whether to is the
+reader's choice. `create` itself never runs twice: its box is ticked and locked, and the run route refuses it. The row's boxes
 follow whatever was
 posted from New spec at create time — every phase by default, fewer if the reader unticked one — so an untouched
 create queues analyze, implement and archive as one job. The runner queues each following step the moment the one
@@ -266,7 +273,8 @@ row stay as they are.
 - **The user edits the criteria.** The open `AC-n` rows in `1-description.md` are rewritten to say more precisely what
   was missing, or new ones are added.
 - **Analyze or Implement then runs again on the same active spec.** Whether the criteria have changed enough is the
-  reader's call; the server does not check it.
+  reader's call; the server does not check it. A round that starts with Analyze ends with Implement next, since the
+  analysis cancels the implement before it.
 - **The round touches only what is open.** Analyze appends a `## Round N` section to `2-analysis.md` and
   `3-solution.md` for the open and new ids, and `4-status.md` gains a row for each new id; no existing row's text or
   tick changes. A ticked criterion is approved, and nothing in the round traces to it. Implement may rewrite an open

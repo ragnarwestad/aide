@@ -74,6 +74,7 @@ export function withFreshness(ctx: LandContext, list: SpecTarget[]): SpecTarget[
       stopped: stillStopped(resolved.stopped, t),
       fileDisagrees: resolved.fileDisagrees,
       historyDone: resolved.historyDone,
+      superseded: resolved.superseded,
       sourcesCheckedAt: new Date(resolved.checkedAt).toISOString(),
       // What the "Started" column holds (spec 199). Null when git
       // could not answer — a shallow clone, a folder moved without
