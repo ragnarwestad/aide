@@ -94,7 +94,16 @@ describe("the files-disagree notice waits for the disk scan", () => {
     });
     return renderSpecsRows(
       [implemented],
-      { runnerAvailable: true, targets: resolved, filter: { open: openKeys([implemented], resolved) } },
+      {
+        runnerAvailable: true,
+        targets: resolved,
+        filter: { open: openKeys([implemented], resolved) },
+        // Spec 557: implement's own historyDone, resolved above, is now
+        // also what shows the test-server-link mark, which would outrank
+        // the files-disagree sentence this test is about — read as
+        // test-server-incapable so that unrelated mark stays out of it.
+        testServerAvailable: () => false,
+      },
       at + 5000,
     );
   };

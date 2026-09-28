@@ -20,10 +20,10 @@ import { roundUnderWay } from "./row-state.ts";
  *  fact from a reader's chair. */
 const waitingOnReviewSentence = (lang: Language): string => t(lang, "list.waitingOnReview");
 
-/** The sentence a LIVE row carries when its archive step is held back
- *  specifically for unticked acceptance criteria (spec 411) — the same
- *  shape `waitingOnReviewSentence` has, for a fact this dashboard
- *  already knows how to act on (the round the checks are waiting on). */
+/** The sentence a LIVE row carries once implement has completed and the
+ *  spec is not yet archived (spec 411, broadened by spec 557) — the same
+ *  shape `waitingOnReviewSentence` has, for a fact this dashboard already
+ *  knows how to act on (a board on the spec's own branch). */
 const testServerStartLinkSentence = (lang: Language): string => t(lang, "list.testServerStartLink");
 
 /** The sentence a LIVE row carries when a push never reached origin
@@ -116,15 +116,26 @@ function liveMarks(g: SpecGroup, lang: Language, testServerAvailable: (project: 
   const quiet = archiveRunning || roundUnderWay(g);
   if (heldBackReason === ACCEPTANCE_CRITERIA_UNTICKED_NOTE && !quiet) {
     marks.push({ variant: "waiting", label: t(lang, "list.archiveHeldBackWord", { step: stepLabel("archive", lang) }), sentence: heldBackReasonText(lang, heldBackReason), own: true, kind: "acceptance-hold" });
-    if (testServerAvailable(g.project)) {
-      marks.push({
-        variant: "waiting",
-        label: TEST_SERVER(lang),
-        sentence: testServerStartLinkSentence(lang),
-        own: true,
-        href: `${specPagePath(g.project, g.specFolder)}?tab=steps&startTestServer=1`,
-      });
-    }
+  }
+  // Spec 557: independent of WHY archive has not run — implement's own
+  // git-proved history (`historyDone`, never `g.done`: implement lands
+  // nothing, so a live row's `done` never names it) is the one fact that
+  // decides. True from the first completed implement until the spec is
+  // archived, since archive is the only step that ever merges implement's
+  // branch — a row this function runs for is never an archived one
+  // (`notice-row.ts`'s `isArchivedRow` gate), so nothing here has to ask
+  // that question again. `quiet` already reads as "a step of this spec is
+  // running" across all three run steps (above) — reused as-is, not
+  // redefined, so the two marks agree on what "running" means.
+  const implementDone = g.phases.find((p) => p.step === "implement")?.history.historyDone === true;
+  if (implementDone && !quiet && testServerAvailable(g.project)) {
+    marks.push({
+      variant: "waiting",
+      label: TEST_SERVER(lang),
+      sentence: testServerStartLinkSentence(lang),
+      own: true,
+      href: `${specPagePath(g.project, g.specFolder)}?tab=steps&startTestServer=1`,
+    });
   }
   if (g.prUrl) {
     marks.push({ variant: "waiting", label: PULL_REQUEST(lang), sentence: waitingOnReviewSentence(lang), href: g.prUrl });

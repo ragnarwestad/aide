@@ -21,6 +21,7 @@ describe("a round under way silences the held-back marks", () => {
     project: "aide",
     specFolder: FOLDER,
     done: ["analyze", "implement"],
+    historyDone: ["analyze", "implement"],
     archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
     ...extra,
   });

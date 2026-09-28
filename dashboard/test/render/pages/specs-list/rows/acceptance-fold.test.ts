@@ -19,6 +19,7 @@ const target = (extra: Partial<SpecTarget> = {}): SpecTarget => ({
   project: "aide",
   specFolder: FOLDER,
   done: ["analyze", "implement"],
+  historyDone: ["analyze", "implement"],
   archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
   acceptanceOpen: true,
   acceptance: rows,
@@ -157,9 +158,11 @@ describe("the held-back message and the test server's each stand on a line of th
   });
 
   test("a row with a failed push and a pull request and no hold is still one joined box", () => {
-    const html = notice({}, target({ archiveHeldBack: undefined, acceptanceOpen: false, acceptance: undefined }), [
-      row({ specFolder: FOLDER, steps: ["archive"], state: "done", pushError: "rejected", prUrl: "https://github.test/aide/pull/7" }),
-    ]);
+    const html = notice(
+      {},
+      target({ archiveHeldBack: undefined, historyDone: undefined, acceptanceOpen: false, acceptance: undefined }),
+      [row({ specFolder: FOLDER, steps: ["archive"], state: "done", pushError: "rejected", prUrl: "https://github.test/aide/pull/7" })],
+    );
     expect(html.match(/class="rowmsg /g)?.length).toBe(1);
     expect(html).not.toContain("msgstack");
     expect(html).toContain(" · ");

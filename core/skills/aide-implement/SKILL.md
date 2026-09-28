@@ -130,78 +130,37 @@ First write `--- Step 3 of 4: GREEN — Implement until tests pass — started`,
 First write `--- Step 4 of 4: VERIFY — Full suite, types, lint, build — started`, and when this step ends, `--- Step 4 of 4: VERIFY — Full suite, types, lint, build — done`.
 
 
-The order is fixed: the full suite is run only once every test this
-step wrote is green (Step 3). Red in the full suite is then something
-the change BROKE — an existing test that still expects the old
-behaviour — and it is this step's to
-fix, back through Step 3, before anything is reported — running only
-the files that failed until each is green, and recording the full suite
-again once, after the last of them (the testing rule, "A red full run is
-fixed file by file"). Never tick the
-full-suite row with a red run on the record: `aide-run-spec` runs the
-same commands itself on the step's result afterwards. A red run there
-comes back to this session as a follow-up turn with the failing lines —
-fix them — and only a run still red after that ends the step
-`tests-red`, with `implement` not recorded as run. The runner accepts
-your own green record instead of running again when it was made on
-exactly the tree you deliver — so run the suite LAST, after every edit
-and before the commit; a file touched after the run means the whole
-suite runs twice.
-
-**One full run, in the foreground.** Start it once and wait for it where
-you started it — never in the background to poll, and never a second run
-while one is going. Several steps run their suites at once on the
-machine that runs them, and two runs from one step fight each other as
-well. A red test that has nothing to do with this change and passes when
-run on its own is the machine's load, not a fault: do not run the whole
-suite again for it. Leave the full-suite row unticked, name the test and
-that it passed on its own in the row's Notes cell, and report done — the
-runner's own run on your result is what decides.
+**The whole suite is the runner's, not yours.** `aide-run-spec` runs the
+project's test command once on what you deliver, and that run is the one
+that decides: a green one ticks the "Run the full test suite" row, and a
+red one comes back to this session as a follow-up turn with the failing
+lines. Never run the whole suite yourself — not through
+`aide-record-test-run`, not directly. Under load it takes ten minutes and
+decides nothing.
 
 1. Run `aide-emit-run --phase verify --spec <ID>`
-2. Resolve the full-suite command(s) with `aide-resolve-test-cmd
-   --project-dir . --changed-from origin/<default branch>` — the same
-   script the runner and the archive gate call, so the
-   two agree on what "the tests" means for this commit by construction
-   (see [Quality check](#quality-check)). It prints one JSON line whose
-   `commands` array holds every command the changed files fall under.
-   Hand each of them to the script that runs and records them —
-   never run it directly and self-report the result:
-
-   ```bash
-   aide-record-test-run --project-dir . --specs-root <specs-root> \
-     --folder <NN-slug> --cmd "<command 1>" [--cmd "<command 2>" ...]
-   ```
-
-   A missing command (nothing configured, nothing detected) is passed as
-   `--cmd ""` — the script still writes a record, naming the gap in
-   plain words rather than silently passing, and the step reports that
-   gap to whoever is watching.
+2. Run the tests that cover the change: every test file this step wrote
+   or changed, and the existing test files for the source files it
+   changed — each file once. Red is fixed back through Step 3. A test that
+   fails and has nothing to do with the change is the machine's load, not
+   a fault: name it in the step's summary and go on.
 
    A browser test this step wrote for a *(browser)* criterion is run
-   too, each file on its own and once, after the full suite — never
-   the project's whole browser suite, which a project may keep out of
-   its full-suite command. Red is fixed back through Step 3 like any
-   red test. A file that could not start at all (no browser on the
-   machine) is named in the full-suite row's Notes cell, never passed
-   over in silence.
+   too, each file on its own and once — never the project's whole
+   browser suite. Red is fixed back through Step 3 like any red test. A
+   file that could not start at all (no browser on the machine) is named
+   in the step's summary, never passed over in silence.
 3. TypeScript check
 4. ESLint
 5. Build
 6. Tick this step's task rows in `4-status.md` as each check above
-   passes — the full-suite row ticks ✅ only once
-   `aide-record-test-run`'s own exit code is 0, never because the model
-   believes the suite passed. Write the result with `aide-write-spec
-   --file 4-status.md` (never Write/Edit)
-7. Update 4-status.md — the "Run the full test suite" row's Notes cell
-   names the command that ran.
-   Write it the same way, with `aide-write-spec --file 4-status.md`
-8. Before reporting anything: confirm every row in this step's own
-   table now reads ✅. This step is not optional and is not satisfied by
-   the checks above having passed — it is a separate, required write,
-   the last one this step makes, and it is the one step reported "done"
-   without it having actually happened.
-9. Show a summary — ready for commit
+   passes. Leave "Run the full test suite" as it is: the runner ticks it.
+   Write the result with `aide-write-spec --file 4-status.md` (never
+   Write/Edit)
+7. Before reporting anything: confirm every row in this step's own table
+   reads ✅, the full-suite row apart. This is a separate, required
+   write, the last one this step makes.
+8. Show a summary — ready for commit
 
 **Find a table in `4-status.md` by its HEADING TEXT, never by its
 number.** This skill's RED, GREEN and VERIFY are its Steps 2-4;
@@ -335,13 +294,10 @@ Example for a Maven/Gradle backend:
 ./gradlew build       # or: mvn verify
 ```
 
-**A run tests the whole project.** `aide-resolve-test-cmd --project-dir .`
-prints the project's one test command, the manifest's `AIDE_TEST_CMD`
-(the tools-and-scripts skill, "Project commands"). Use the script's
-answer; an empty answer means the project has no test command, and the
-"Run the full test suite" row says so. A change to Markdown files alone
-resolves to the project's documentation check instead (`docsOnly`), and
-that is the run the row records.
+**The project's test command is the runner's to run.** It is the
+manifest's `AIDE_TEST_CMD` (the tools-and-scripts skill, "Project
+commands"), and `aide-run-spec` runs it on the step's result. A change to
+Markdown files alone runs the project's documentation check instead.
 
 ---
 
