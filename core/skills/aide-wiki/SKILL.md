@@ -53,7 +53,9 @@ First write `--- Step 1 of 5: See what exists — started`, and when this step e
 
 Run `aide-wiki status --specs-root <root> --project-dir .`. A page whose
 state is `hand-written` belongs to a person: its name is taken, and the
-part it covers is linked to from other pages, not rewritten. In a build,
+part it covers is linked to from other pages, not rewritten. A decision
+page (`wiki: decision`) is such a page too, whoever wrote it: it is never
+rewritten, and `aide-wiki index` lists it under its own heading. In a build,
 every other page is rebuilt below; in a refresh, only the `changed` ones
 are, and Step 2 is only about whether a new part needs a page of its own.
 
@@ -110,6 +112,10 @@ A page opens with a `# ` heading, then one line saying what the part does
 - the words it uses for things
 
 A page holds no line numbers and no code. It is a map: the code decides.
+
+A page a decision concerns ends with a `## Decisions` section that the
+script writes on every `aide-wiki write`. Leave it out of the body you
+pipe in.
 
 ### Step 4 of 5: Finish
 

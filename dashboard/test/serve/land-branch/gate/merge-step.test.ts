@@ -44,7 +44,7 @@ async function archive(over: Record<string, Answer> = {}, step: "archive" | "ana
 
 const marks = (lines: string[], title = ARCHIVE_MERGE_STEP) => lines.map((l) => l.replace(/^aide-run-spec \S+ \+\d+s /, "")).filter((l) => l.includes(title));
 
-describe("the archive's merge is its Step 5 in the log", () => {
+describe("the archive's merge is its last step in the log", () => {
   test("a merge that went through is started, then done", async () => {
     expect(marks(await archive())).toEqual([`${ARCHIVE_MERGE_STEP} — started`, `${ARCHIVE_MERGE_STEP} — done`]);
   });
