@@ -27,6 +27,24 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" != "create" ] && [ 
   own_prefix="${specs_root_rel:+$specs_root_rel/}$spec_folder/"
   archive_prefix="${specs_root_rel:+$specs_root_rel/}archive/$spec_folder/"
   root_prefix="${specs_root_rel:+$specs_root_rel/}"
+  # A path the default branch already holds as HEAD has it came in with a
+  # merge of that branch — another spec archived meanwhile, a wiki build —
+  # and is not this step's own write.
+  specs_guard_branch="$(default_branch "$specs_repo_wt")"
+  if git -C "$specs_repo_wt" show-ref --verify --quiet "refs/remotes/origin/$specs_guard_branch"; then
+    specs_guard_tip="origin/$specs_guard_branch"
+  else
+    specs_guard_tip="$specs_guard_branch"
+  fi
+  specs_guard_own_commits() {
+    [ -n "${specs_ref_before:-}" ] || return 0
+    if git -C "$specs_repo_wt" rev-parse -q --verify "$specs_guard_tip^{commit}" >/dev/null 2>&1; then
+      git -C "$specs_repo_wt" diff --name-only "$specs_ref_before" HEAD -- . 2>/dev/null \
+        | grep -Fx -f <(git -C "$specs_repo_wt" diff --name-only "$specs_guard_tip" HEAD -- . 2>/dev/null)
+    else
+      git -C "$specs_repo_wt" diff --name-only "$specs_ref_before" HEAD -- . 2>/dev/null
+    fi
+  }
   foreign_paths=""
   while IFS= read -r changed_path; do
     [ -z "$changed_path" ] && continue
@@ -38,7 +56,7 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" != "create" ] && [ 
   done <<EOF_PATHS
 $( { git -C "$specs_repo_wt" status --porcelain --untracked-files=all -- . ${git_add_excludes[@]+"${git_add_excludes[@]}"} 2>/dev/null \
       | cut -c4- | sed 's/^.* -> //'; \
-     [ -n "${specs_ref_before:-}" ] && git -C "$specs_repo_wt" diff --name-only "$specs_ref_before" HEAD -- . 2>/dev/null; } | sort -u)
+     specs_guard_own_commits; } | sort -u)
 EOF_PATHS
   if [ -n "$foreign_paths" ]; then
     # Back to what the run started from: a tracked path is restored, an

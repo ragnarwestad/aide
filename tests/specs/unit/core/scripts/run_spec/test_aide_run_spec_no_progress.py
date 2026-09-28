@@ -445,6 +445,32 @@ def test_a_run_that_deletes_another_spec_folder_is_downgraded_and_the_folder_res
     tree = git(workspace["specs"], "ls-tree", "-r", "--name-only", "aide/81-queue-and-runner")
     assert "80-neighbour/1-description.md" in tree, tree
 
+def test_a_neighbour_archived_on_main_and_merged_in_is_not_the_steps_own_write(
+    runner, workspace, fake_claude
+):
+    """Another spec is archived on the default branch while this step
+    runs, and the step merges that branch in: the neighbour's move comes
+    with the merge, and is the default branch's, not this step's."""
+    other = workspace["specs"] / "80-neighbour"
+    other.mkdir()
+    (other / "1-description.md").write_text("# 80\n")
+    git(workspace["specs"], "add", "-A")
+    git(workspace["specs"], "commit", "-qm", "add a neighbour")
+    status_with_phase(workspace, "create, analyze", ["| a | ⬜ | |"])
+    main_specs = workspace["specs"]
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + 'echo "written by the step" > "$PWD/new-code.txt"\n'
+        + f'mkdir -p "{main_specs}/archive" && git -C "{main_specs}" mv 80-neighbour archive/80-neighbour\n'
+        + f'git -C "{main_specs}" commit -qm "archive the neighbour"\n'
+        + 'git -C "$specs" merge -q --no-edit main\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed", out
+
 def test_a_run_that_writes_only_its_own_folder_is_not_a_scope_violation(runner, workspace, fake_claude):
     status_with_phase(workspace, "create", ["| a | ⬜ | |"])
     folder = workspace["folder"]
