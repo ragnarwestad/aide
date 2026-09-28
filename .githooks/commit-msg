@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# A commit message names no tool (~/.claude/rules/git.md, "No tool in a
+# project's history"): no Co-Authored-By trailer for an AI, and no
+# Claude-Session line. A session's own defaults add both, and the rule
+# alone has not kept them out, so this refuses the commit instead.
+#
+# Installed with the other hooks in this directory, once per clone:
+#   git config core.hooksPath .githooks
+set -uo pipefail
+message="$1"
+
+found="$(grep -n -i -E '^[[:space:]]*(co-authored-by|claude-session):' "$message" 2>/dev/null || true)"
+[ -z "$found" ] && exit 0
+
+echo "commit-msg: refused — the message names a tool in these lines:" >&2
+printf '%s\n' "$found" | sed 's/^/  /' >&2
+echo "Remove them and commit again." >&2
+exit 1

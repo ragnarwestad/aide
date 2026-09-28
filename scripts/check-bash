@@ -40,4 +40,5 @@ shellcheck --severity=warning \
   scripts/check-agents \
   scripts/check-bash \
   scripts/check-docs \
-  .githooks/pre-push
+  .githooks/pre-push \
+  .githooks/commit-msg
