@@ -28,7 +28,7 @@ run of one or more steps, and its `queued`/`running`/`done` says nothing about h
 | **Step**       | Anything the queue can run: `create`, `analyze`, `implement`, `archive`, `explore`, `manifest`, `schedule`, `reopen`, `close`, `wiki`. A job is a list of steps, and each step has its own log | `workflowSteps` in `core/scripts/lib/workflow-steps.json`                           |
 | **Phase**      | The four steps a spec passes through — `create`, `analyze`, `implement`, `archive`                                                                                                             | `workflowArc` in the same file, "deliberately narrower … not places a spec gets to" |
 | **State**      | Where the spec stands now, in the past tense: `created`, `analyzed`, `implemented`, `archived`, `closed`                                                                                       | the `phase` column of `core/scripts/lib/transitions.json`                           |
-| **Skill step** | A numbered section of the skill a step runs, `Step N of X`; its log lines, `analyze · Step 3 of 9: … — started`, say how far the step has got                                                  | the `### Step N of X:` headings in `core/skills/aide-<step>/SKILL.md`               |
+| **Skill step** | A numbered section of the skill a step runs, `Step N of X`; its log lines, `--- Step 3 of 9: … — started`, say how far the step has got                                                        | the `### Step N of X:` headings in `core/skills/aide-<step>/SKILL.md`               |
 
 `close` and `reopen` are steps, not phases: a spec that is `closed` has left the arc rather than reached a fifth
 stage of it. Two things about that table are worth knowing before reading it:

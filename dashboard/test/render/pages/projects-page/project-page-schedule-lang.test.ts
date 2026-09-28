@@ -17,7 +17,7 @@ describe("a project's own Schedule tab, in Norwegian", () => {
   test("the empty state and the New button read Norwegian, not English", () => {
     const html = renderProjectPage(project(), { hasConfigFile: false, rows: [] }, null, "2026-09-17T00:00:00Z", NAV, {
       worktreeLinkCandidates: [],
-      editing: false,
+      editingGroup: null,
       tab: "schedule",
       lang: "nb",
     });
@@ -29,7 +29,7 @@ describe("a project's own Schedule tab, in Norwegian", () => {
   test("the entries table header reads Norwegian, not English", () => {
     const html = renderProjectPage(project(), { hasConfigFile: false, rows: [] }, null, "2026-09-17T00:00:00Z", NAV, {
       worktreeLinkCandidates: [],
-      editing: false,
+      editingGroup: null,
       tab: "schedule",
       lang: "nb",
       schedule: [{ name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true }],

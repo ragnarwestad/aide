@@ -5,6 +5,7 @@ import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import type { Language } from "../../../i18n";
 import type { JobDetailView, JobStepResultView } from "../job-page/types.ts";
 import type { WikiView } from "../../../project/wiki/types.ts";
+import type { SettingsGroupFile } from "../../../project/project-settings.ts";
 
 export type { SpecView, ProjectView };
 
@@ -43,10 +44,11 @@ export interface ProjectPageOptions {
    *  does not. Absent draws no flag. */
   scheduleModelNames?: readonly string[];
   worktreeLinkCandidates: string[];
-  /** From the request's own `?edit=1` (spec 255) — never stored, so a
-   *  page reload with no query string always lands back on the
-   *  read-only view. */
-  editing: boolean;
+  /** From the request's own `?edit=` (spec 255; spec 552: names one of
+   *  the Config tab's two tables instead of a shared boolean) — never
+   *  stored, so a page reload with no query string always lands back on
+   *  the read-only view. */
+  editingGroup: SettingsGroupFile | null;
   /** Where "← Back" goes: the page the reader came from, resolved by the
    *  server from the request's `Referer`. Projects when there is none. */
   backHref?: string;

@@ -71,7 +71,7 @@ describe("the archive's merge is its Step 5 in the log", () => {
       const skill = readFileSync(join(import.meta.dir, `../../../../../core/skills/aide-${step}/SKILL.md`), "utf-8");
       const last = [...skill.matchAll(/^### (Step (\d+) of (\d+): .+)$/gm)].at(-1)!;
       expect(last[2]).toBe(last[3]);
-      expect(`${step} · ${last[1]}`).toBe(title!);
+      expect(`--- ${last[1]}`, step).toBe(title!);
     }
   });
 });

@@ -52,7 +52,7 @@ describe("the › on a phase line", () => {
 
   test("open: aria-expanded true, an href that removes only its own key, one message row after the line (AC-1)", () => {
     const other = `${KEY}:implement`;
-    const html = render(list, { phases: `${KEY}:analyze,${other}` }, [target()], { phaseMessages: () => ({ messages: ["hi"], running: false }) });
+    const html = render(list, { phases: `${KEY}:analyze,${other}` }, [target()], { phaseMessages: () => ({ logs: [{ by: "ai" as const, lines: ["hi"] }], running: false }) });
     const link = foldLink(firstCell(html, "analyze"));
     expect(link).toContain('aria-expanded="true"');
     expect(link).toContain(`phases=${encodeURIComponent(other)}`);
@@ -92,7 +92,7 @@ describe("the › on a phase line", () => {
   test("no › on a phase nothing has touched or one only queued, and no row for such a key (AC-6)", () => {
     const queued = row({ id: "job-q", specFolder: FOLDER, steps: ["analyze", "implement"], stepIndex: 0, state: "queued" });
     const html = render([queued], { phases: `${KEY}:analyze,${KEY}:implement,${KEY}:nonsense` }, [target()], {
-      phaseMessages: () => ({ messages: ["never"], running: false }),
+      phaseMessages: () => ({ logs: [{ by: "ai" as const, lines: ["never"] }], running: false }),
     });
     expect(foldLink(firstCell(html, "analyze"))).toBe("");
     expect(foldLink(firstCell(html, "implement"))).toBe("");

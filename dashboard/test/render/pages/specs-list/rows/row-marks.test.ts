@@ -166,7 +166,7 @@ describe("a row shows the pull request its run opened (spec 220)", () => {
 // nothing on the row offered it. Gives the held-for-Checks message the
 // same shape the pull-request mark already has: a sentence that carries
 // a link.
-describe("a spec held for Checks carries a link to a board on its branch (spec 411)", () => {
+describe("a spec held for Checks, or with implement done, carries a link to a board on its branch (spec 411, spec 557)", () => {
   const FOLDER = "101-b";
   const target = (extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
@@ -176,7 +176,14 @@ describe("a spec held for Checks carries a link to a board on its branch (spec 4
   const heldForChecks = (targetExtra: Partial<SpecTarget> = {}) =>
     renderSpecsRows([row({ specFolder: FOLDER, steps: ["archive"], state: "done" })], {
       runnerAvailable: true,
-      targets: [target({ done: ["implement"], archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE }, ...targetExtra })],
+      targets: [
+        target({
+          done: ["implement"],
+          historyDone: ["analyze", "implement"],
+          archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
+          ...targetExtra,
+        }),
+      ],
     });
 
   // The shape the BOARD actually has in this state, which every test in
@@ -234,26 +241,137 @@ describe("a spec held for Checks carries a link to a board on its branch (spec 4
     expect(notice).not.toContain("The link to start one appears once");
   });
 
-  // REQ-6: every other held-back reason carries no link.
-  test("REQ-6: a row held back for a different reason carries no link", () => {
+  // Spec 557: the reason archive has not run no longer matters once
+  // implement is proven done — the link is independent of `heldBackReason`.
+  test("spec 557: a row held back for an unrelated reason still shows the link once implement is done", () => {
     const notice = noticeCellHtml(
       renderSpecsRows([row({ specFolder: FOLDER, steps: ["archive"], state: "done" })], {
         runnerAvailable: true,
-        targets: [target({ archiveHeldBack: { reason: "the Slack webhook" } })],
+        targets: [target({ historyDone: ["analyze", "implement"], archiveHeldBack: { reason: "the Slack webhook" } })],
       }),
       FOLDER,
     );
-    expect(notice).not.toContain("Click the link to start a test server");
-    expect(notice).not.toContain("startTestServer=1");
+    expect(notice).toContain("Click the link to start a test server");
+    expect(notice).toContain("startTestServer=1");
   });
 
-  // REQ-6: a row not held back at all carries no link either.
-  test("REQ-6: a row not held back at all carries no link", () => {
+  // AC-5: what this proves now is not "held back at all" but that
+  // implement's own `historyDone` is unset — no `targets` entry means no
+  // `historyDone`, so the row carries no link regardless of held-back
+  // state.
+  test("AC-5: a row with no historyDone for implement carries no link", () => {
     const notice = noticeCellHtml(
       renderSpecsRows([row({ specFolder: FOLDER, state: "done" })], { runnerAvailable: true, targets: [] }),
       FOLDER,
     );
     expect(notice).not.toContain("startTestServer=1");
+  });
+
+  // AC-1: implement done, archive not yet run at all — no live job for
+  // this spec, so the link stands alone with no held-back mark beside it.
+  test("AC-1: implement done, archive not yet run, shows the link with no held-back mark", () => {
+    const notice = noticeCellHtml(
+      renderSpecsRows([], {
+        runnerAvailable: true,
+        targets: [target({ historyDone: ["analyze", "implement"] })],
+      }),
+      FOLDER,
+    );
+    expect(notice).toContain("Click the link to start a test server");
+    expect(notice).not.toContain("Acceptance criteria are not all ticked");
+  });
+
+  // AC-2: the criteria were held back, then every one was ticked and
+  // saved — the acceptance-hold mark clears, and the link, which never
+  // read that reason, stays through the transition.
+  test("AC-2: criteria held back, then ticked and saved, link stays through the transition", () => {
+    const heldTarget = target({
+      historyDone: ["analyze", "implement"],
+      archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
+    });
+    const beforeNotice = noticeCellHtml(
+      renderSpecsRows([row({ specFolder: FOLDER, steps: ["archive"], state: "done" })], {
+        runnerAvailable: true,
+        targets: [heldTarget],
+      }),
+      FOLDER,
+    );
+    expect(beforeNotice).toContain("Acceptance criteria are not all ticked");
+    expect(beforeNotice).toContain("Click the link to start a test server");
+
+    const tickedTarget = target({ historyDone: ["analyze", "implement"] });
+    const afterNotice = noticeCellHtml(
+      renderSpecsRows([], {
+        runnerAvailable: true,
+        targets: [tickedTarget],
+      }),
+      FOLDER,
+    );
+    expect(afterNotice).not.toContain("Acceptance criteria are not all ticked");
+    expect(afterNotice).toContain("Click the link to start a test server");
+  });
+
+  // AC-3: a step already in flight hides the link even when implement's
+  // own historyDone was already true from an earlier round — proving
+  // `quiet`'s own effect, not merely that historyDone is unset (which
+  // AC-5 already covers). Modeled on round-quiets-the-hold.test.ts's own
+  // precedent, not on the archive-running test above.
+  test("AC-3: a step in flight hides the link even when implement is already proven done, and it returns once that step ends", () => {
+    const already = target({ historyDone: ["analyze", "implement"] });
+    const noticeFor = (steps: string[], stepIndex: number, state: QueueRowView["state"]) =>
+      noticeCellHtml(
+        renderSpecsRows([row({ specFolder: FOLDER, steps, stepIndex, state })], {
+          runnerAvailable: true,
+          targets: [already],
+        }),
+        FOLDER,
+      );
+
+    // Analyze or implement running or queued for it hides the link.
+    expect(noticeFor(["analyze", "implement", "archive"], 0, "running")).not.toContain(
+      "Click the link to start a test server",
+    );
+    expect(noticeFor(["analyze", "implement", "archive"], 1, "running")).not.toContain(
+      "Click the link to start a test server",
+    );
+    // Archive actually running hides it too.
+    expect(noticeFor(["archive"], 0, "running")).not.toContain("Click the link to start a test server");
+    // Archive merely QUEUED never counts (row-marks.ts's own asymmetry):
+    // a job queued behind another archive's landing, or behind unticked
+    // criteria, leaves this spec's own branch untouched.
+    expect(noticeFor(["archive"], 0, "queued")).toContain("Click the link to start a test server");
+
+    // The step has ended without archiving the spec, with no job left in
+    // flight: the link is back.
+    const idle = noticeCellHtml(
+      renderSpecsRows([], {
+        runnerAvailable: true,
+        targets: [already],
+      }),
+      FOLDER,
+    );
+    expect(idle).toContain("Click the link to start a test server");
+  });
+
+  // AC-4: an archived row never carries the test-server link — proved
+  // directly rather than only inferred from `isArchivedRow`'s routing.
+  test("AC-4: an archived row carries no test-server link", () => {
+    const html = renderSpecsRows([], {
+      runnerAvailable: true,
+      targets: [],
+      archived: [`aide/${FOLDER}`],
+      archivedSpecs: [
+        {
+          project: "aide",
+          folder: FOLDER,
+          done: ["create", "analyze", "implement", "archive"],
+          models: {},
+          phaseOutcomes: {},
+        },
+      ],
+      filter: { state: "archived" },
+    });
+    expect(noticeCellHtml(html, FOLDER)).not.toContain("startTestServer=1");
   });
 
   // Spec 466, AC-1/AC-3 (runtime-testable half): the row's decision is
@@ -272,11 +390,11 @@ describe("a spec held for Checks carries a link to a board on its branch (spec 4
       {
         runnerAvailable: true,
         targets: [
-          target({ done: ["implement"], archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE } }),
+          target({ historyDone: ["analyze", "implement"], archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE } }),
           target({
             project: "woodstack",
             specFolder: OTHER_FOLDER,
-            done: ["implement"],
+            historyDone: ["analyze", "implement"],
             archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
           }),
         ],

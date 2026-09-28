@@ -17,7 +17,15 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ProjectReadiness, ReadinessCheck } from "../../../src/project/project-admin";
-import { DERIVABLE, SETTING_KEYS, projectSettings } from "../../../src/project/project-settings.ts";
+import {
+  DERIVABLE,
+  EDIT_GROUP_PARAM,
+  SETTING_KEYS,
+  groupForEditParam,
+  groupForPostedField,
+  projectSettings,
+  type SettingsGroupFile,
+} from "../../../src/project/project-settings.ts";
 
 const dirs: string[] = [];
 
@@ -278,5 +286,48 @@ describe("the Install/Test command rows are sourced from resolveInstallCmd()/res
     expect(r.origin).toBe("unset");
     expect(r.value).toBeNull();
     expect(r.source).toBeUndefined();
+  });
+});
+
+// Spec 552: the `?edit=` value <-> group mapping, and the posted-field ->
+// group lookup the refusal redirect needs, both read off SETTING_GROUPS
+// rather than a second hand-written list.
+describe("groupForEditParam and groupForPostedField (spec 552)", () => {
+  test("groupForEditParam round-trips every EDIT_GROUP_PARAM value", () => {
+    for (const [group, param] of Object.entries(EDIT_GROUP_PARAM) as [SettingsGroupFile, string][]) {
+      expect(groupForEditParam(param)).toBe(group);
+    }
+  });
+
+  test("groupForEditParam returns null for the old boolean-shaped '1', for garbage, and for null", () => {
+    expect(groupForEditParam("1")).toBeNull();
+    expect(groupForEditParam("garbage")).toBeNull();
+    expect(groupForEditParam(null)).toBeNull();
+  });
+
+  test("groupForPostedField finds the right group for every EDITABLE_FIELD value and for codeLanding", () => {
+    expect(groupForPostedField("specsPath")).toBe(".aide/config");
+    expect(groupForPostedField("installCmd")).toBe(".aide/config");
+    expect(groupForPostedField("worktreeLinks")).toBe("manifest");
+    expect(groupForPostedField("previewCmd")).toBe("manifest");
+    expect(groupForPostedField("testCmd")).toBe("manifest");
+    expect(groupForPostedField("codeLanding")).toBe("manifest");
+  });
+
+  test("groupForPostedField returns null for an unknown field", () => {
+    expect(groupForPostedField("notAField")).toBeNull();
+  });
+});
+
+// AC-7: every row's Comment-column purpose text starts with a capital
+// letter — the source text `settingRowHtml` lists first, before any
+// appended note.
+describe("every row's purpose starts with a capital letter (AC-7)", () => {
+  test("all five keys", () => {
+    const dir = project(null);
+    for (const key of SETTING_KEYS) {
+      const purpose = row(dir, key).purpose;
+      expect(purpose[0]).toBe(purpose[0]!.toUpperCase());
+    }
   });
 });

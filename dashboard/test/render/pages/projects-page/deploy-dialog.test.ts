@@ -13,7 +13,7 @@ const project: ProjectView = { name: "aide", manifest: { ok: false, error: "no m
 const deployPage = (lang: Language): string =>
   renderProjectPage(project, { hasConfigFile: false, rows: [] }, null, "2026-08-31T00:00:00Z", NAV, {
     worktreeLinkCandidates: [],
-    editing: false,
+    editingGroup: null,
     tab: "deploy",
     drift: { behind: 2, checkedAt: 1735689600000 },
     lang,
@@ -65,7 +65,7 @@ describe("the Deploy form's dialog", () => {
   test("the Deploy tab draws a kept failure with its step's label in the page's language, ahead of the address's error (AC-6)", () => {
     const html = renderProjectPage(project, { hasConfigFile: false, rows: [] }, null, "2026-08-31T00:00:00Z", NAV, {
       worktreeLinkCandidates: [],
-      editing: false,
+      editingGroup: null,
       tab: "deploy",
       drift: { behind: 2, checkedAt: 1735689600000 },
       deployFailure: { step: "install", error: "kommandoen feilet" },

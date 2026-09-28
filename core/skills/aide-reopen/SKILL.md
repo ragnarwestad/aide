@@ -26,8 +26,8 @@ asked are the analysis, the plan and the status reset as well.
 
 The steps below are this skill's own, inside the queue's `reopen` step.
 Mark each one in the log, so a reader can follow the run: when it
-starts, write one line `reopen · Step N of X: <title> — started`, and when
-it ends, one line `reopen · Step N of X: <title> — done`. A step that ends
+starts, write one line `--- Step N of X: <title> — started`, and when
+it ends, one line `--- Step N of X: <title> — done`. A step that ends
 the run early says `— stopped: <why>` in place of `— done`, and one that does not apply to this run `— skipped: <why>`.
 
 Step 8, the merge into the default branch, is Aide's, after this
@@ -36,7 +36,7 @@ done.
 
 ### Step 1 of 8: Find the spec
 
-First write `reopen · Step 1 of 8: Find the spec — started`, and when this step ends, `reopen · Step 1 of 8: Find the spec — done`.
+First write `--- Step 1 of 8: Find the spec — started`, and when this step ends, `--- Step 1 of 8: Find the spec — done`.
 
 
 Resolve `$ARGUMENTS` to a folder, looking under `archive/` — that is
@@ -55,7 +55,7 @@ after it. This skill is the keyboard's path to the same two scripts.
 
 ### Step 2 of 8: Remove the branch the earlier round left behind
 
-First write `reopen · Step 2 of 8: Remove the branch the earlier round left behind — started`, and when this step ends, `reopen · Step 2 of 8: Remove the branch the earlier round left behind — done`.
+First write `--- Step 2 of 8: Remove the branch the earlier round left behind — started`, and when this step ends, `--- Step 2 of 8: Remove the branch the earlier round left behind — done`.
 
 
 `aide/<NN>-slug` can be in four places, and the one that is missed is
@@ -82,7 +82,7 @@ at a keyboard, where no worktree stands in the way.
 
 ### Step 3 of 8: Move the folder back
 
-First write `reopen · Step 3 of 8: Move the folder back — started`, and when this step ends, `reopen · Step 3 of 8: Move the folder back — done`.
+First write `--- Step 3 of 8: Move the folder back — started`, and when this step ends, `--- Step 3 of 8: Move the folder back — done`.
 
 
 **Keep mode:** run
@@ -102,7 +102,7 @@ reused, and the spec is the same spec.
 
 ### Step 4 of 8: Reset three files, keep two (reset mode only)
 
-First write `reopen · Step 4 of 8: Reset three files, keep two (reset mode only) — started`, and when this step ends, `reopen · Step 4 of 8: Reset three files, keep two (reset mode only) — done`.
+First write `--- Step 4 of 8: Reset three files, keep two (reset mode only) — started`, and when this step ends, `--- Step 4 of 8: Reset three files, keep two (reset mode only) — done`.
 
 
 **Run `aide-reset-spec --specs-root <specs-root> --spec <NN-slug>`** over
@@ -116,7 +116,7 @@ for. Rewriting it would delete the one thing the reopen is keeping.
 
 ### Step 5 of 8: Carry over the `**Archived:**` line (reset mode only)
 
-First write `reopen · Step 5 of 8: Carry over the **Archived:** line (reset mode only) — started`, and when this step ends, `reopen · Step 5 of 8: Carry over the **Archived:** line (reset mode only) — done`.
+First write `--- Step 5 of 8: Carry over the **Archived:** line (reset mode only) — started`, and when this step ends, `--- Step 5 of 8: Carry over the **Archived:** line (reset mode only) — done`.
 
 
 Copy the `**Archived:**` line (with every earlier one it already had)
@@ -137,7 +137,7 @@ and `description-freshness.ts` all parse.
 
 ### Step 6 of 8: Commit
 
-First write `reopen · Step 6 of 8: Commit — started`, and when this step ends, `reopen · Step 6 of 8: Commit — done`.
+First write `--- Step 6 of 8: Commit — started`, and when this step ends, `--- Step 6 of 8: Commit — done`.
 
 
 A headless run gets its commit for free — this session does not run
@@ -155,7 +155,7 @@ is not part of what this session commits. In keep mode the
 
 ### Step 7 of 8: Confirm
 
-First write `reopen · Step 7 of 8: Confirm — started`, and when this step ends, `reopen · Step 7 of 8: Confirm — done`.
+First write `--- Step 7 of 8: Confirm — started`, and when this step ends, `--- Step 7 of 8: Confirm — done`.
 
 In a headless run nothing of this is on the default branch yet: the
 reopen is finished only once Step 8, the merge into main, is done. So the
@@ -178,7 +178,7 @@ Next: /aide-analyze 17
 
 ### Step 8 of 8: Merge into main
 
-Aide writes `reopen · Step 8 of 8: Merge into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
+Aide writes `--- Step 8 of 8: Merge into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
 
 Not this session's step, and it writes no mark for it. In a headless
 run Aide merges what this session committed on the spec's branch into

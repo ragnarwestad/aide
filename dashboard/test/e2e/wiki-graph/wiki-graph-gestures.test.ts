@@ -245,6 +245,22 @@ describe("two fingers zoom about their midpoint (AC-3)", () => {
     const scale = Number(transform.match(/scale\(([\d.]+)\)/)?.[1] ?? "1");
     expect(scale).toBeGreaterThan(1);
   });
+
+  test("a resize that leaves the graph's size as it was keeps the zoom", async () => {
+    // A phone fires `resize` as its address bar comes and goes; re-laying
+    // the graph then reset the reader's zoom a moment after a pinch.
+    const p = await openGraph({ width: 375, height: 700 }, { isMobile: true, hasTouch: true });
+    const box = (await p.locator("svg[data-wikigraph]").boundingBox())!;
+    const midX = box.x + box.width / 2;
+    const midY = box.y + box.height / 2;
+    await touch(p, [{ x: midX - 10, y: midY }, { x: midX + 10, y: midY }], "touchStart");
+    await touch(p, [{ x: midX - 40, y: midY }, { x: midX + 40, y: midY }], "touchMove");
+    await touch(p, [], "touchEnd");
+    const zoomed = await viewportTransform(p);
+    await p.evaluate(() => window.dispatchEvent(new Event("resize")));
+    await p.waitForTimeout(400);
+    expect(await viewportTransform(p)).toBe(zoomed);
+  });
 });
 
 describe("two fingers becoming one", () => {

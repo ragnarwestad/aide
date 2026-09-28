@@ -15,6 +15,11 @@
 # a scope violation naming them. Untracked files are listed one by one:
 # collapsed, a specs root not yet committed reads as the one path
 # `specs/`, outside every folder.
+#
+# `archive` alone may also touch `wiki/`: it rewrites the wiki pages that
+# cover the files its own spec changed. run-spec-wiki-guard.sh checks
+# that precisely — this guard only keeps `wiki/` from being written by
+# any OTHER step, which would otherwise widen every step's own scope.
 if [ "$terminal_reason" = "completed" ] && [ "$command_name" != "create" ] && [ -n "$spec_folder" ]; then
   specs_repo_wt="${specs_wt:-$project_wt}"
   specs_root_rel="${specs_root_wt#"$specs_repo_wt"}"
@@ -27,6 +32,7 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" != "create" ] && [ 
     [ -z "$changed_path" ] && continue
     case "$changed_path" in
       "$own_prefix"*|"$archive_prefix"*) ;;
+      "${root_prefix}wiki/"*) [ "$command_name" = "archive" ] || foreign_paths="${foreign_paths}${changed_path}"$'\n' ;;
       "$root_prefix"*) foreign_paths="${foreign_paths}${changed_path}"$'\n' ;;
     esac
   done <<EOF_PATHS

@@ -248,6 +248,11 @@ export function bindWikiGraph(svg: SVGSVGElement): void {
   window.addEventListener("resize", () => {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
+      // Only when the box itself changed size: a phone fires `resize` as its
+      // address bar comes and goes, and re-laying the graph then threw away
+      // the reader's zoom and pan for nothing.
+      const rect = state.svg.getBoundingClientRect();
+      if (rect.width === state.width && rect.height === state.height) return;
       if (!isActive(state.gesture)) resettle(state);
     }, 150);
   });

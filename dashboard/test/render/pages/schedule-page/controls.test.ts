@@ -40,7 +40,7 @@ describe("a project's Schedule tab", () => {
   const page = (error?: string) =>
     renderProjectPage(view, { hasConfigFile: false, rows: [] }, null, "2026-09-26T00:00:00Z", [], {
       worktreeLinkCandidates: [],
-      editing: false,
+      editingGroup: null,
       tab: "schedule",
       ...(error ? { error } : {}),
       schedule: [entry()],

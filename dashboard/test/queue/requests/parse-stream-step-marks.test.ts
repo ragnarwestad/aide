@@ -13,8 +13,8 @@ const bash = (command: string) =>
   line({ type: "assistant", message: { content: [{ type: "tool_use", id: "t", name: "Bash", input: { command } }] } });
 const result = (text: string) => line({ type: "result", subtype: "success", result: text });
 
-const START = "analyze · Step 1 of 9: Read the description — started";
-const DONE = "analyze · Step 1 of 9: Read the description — done";
+const START = "--- Step 1 of 9: Read the description — started";
+const DONE = "--- Step 1 of 9: Read the description — done";
 
 describe("a mark is a line of its own", () => {
   test("a text block with two marks and prose between them gives three lines, not one", () => {
@@ -30,13 +30,17 @@ describe("a mark is a line of its own", () => {
   });
 
   test("a done with a note after it, and a skipped with its reason, are marks", () => {
-    const text = "analyze · Step 4 of 9: Check for work already begun — done (nothing to keep)\nanalyze · Step 5 of 9: Update — skipped: nothing to update";
+    const text = "--- Step 4 of 9: Check for work already begun — done (nothing to keep)\n--- Step 5 of 9: Update — skipped: nothing to update";
     expect(summarizeEntries(say(text), { tool: "claude" }).every((e) => e.mark)).toBe(true);
   });
 
   test("a codex agent message is split the same way", () => {
     const item = line({ type: "item.completed", item: { type: "agent_message", text: `${START}\nReading.\n${DONE}` } });
     expect(summarizeStream(item, { tool: "codex" })).toEqual([START, "Reading.", DONE]);
+  });
+
+  test("a mark from a log written before the prefix is still a mark", () => {
+    expect(summarizeEntries(say("analyze · Step 1 of 9: Read the description — done"), { tool: "claude" })[0]!.mark).toBe(true);
   });
 
   test("prose that only mentions a step is not a mark", () => {
@@ -54,12 +58,12 @@ describe("no bound drops a mark", () => {
 
 describe("a final message holding marks", () => {
   test("its marks and prose are not repeated after the lines they already made", () => {
-    const message = `analyze · Step 9 of 9: Confirm — started\nAnalysis written.\nanalyze · Step 9 of 9: Confirm — done`;
+    const message = `--- Step 9 of 9: Confirm — started\nAnalysis written.\n--- Step 9 of 9: Confirm — done`;
     expect(linesWithFinalMessage([bash("x"), say(message), result(message)].join("\n"), { tool: "claude" })).toEqual([
       "Bash x",
-      "analyze · Step 9 of 9: Confirm — started",
+      "--- Step 9 of 9: Confirm — started",
       "Analysis written.",
-      "analyze · Step 9 of 9: Confirm — done",
+      "--- Step 9 of 9: Confirm — done",
     ]);
   });
 });
@@ -71,11 +75,11 @@ describe("the prompt's own format is what the parser reads", () => {
   test("each line step_log_note asks for is a mark", () => {
     const script = readFileSync(join(import.meta.dir, "../../../../core/scripts/lib/run-spec-invocation.sh"), "utf-8");
     const note = script.slice(script.indexOf('step_log_note="'), script.indexOf('"\n', script.indexOf('step_log_note="')));
-    const template = note.split("\n").find((l) => l.startsWith("$command_name · "))!;
+    const template = note.split("\n").find((l) => l.startsWith("--- Step "))!;
     const endings = note.split("\n").filter((l) => l.startsWith("— ")).map((l) => l.replace(/ \(.*\)$/, "").replace("<why>", "no tests"));
     expect(template).toBeDefined();
     expect(endings.length).toBeGreaterThanOrEqual(3);
-    const head = template.replace("$command_name", "implement").replace("Step N of X", "Step 2 of 4").replace("<title>", "GREEN").replace(/ — started$/, "");
+    const head = template.replace("Step N of X", "Step 2 of 4").replace("<title>", "GREEN").replace(/ — started$/, "");
     for (const ending of ["— started", ...endings]) {
       expect(summarizeEntries(say(`${head} ${ending}`), { tool: "claude" })[0]!.mark).toBe(true);
     }

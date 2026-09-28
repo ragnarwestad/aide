@@ -199,12 +199,11 @@ works with script off.
 
 The unfolded row starts with `Model: <choice> · <model id>` when the step's run reported the id it ran on (a Claude
 Code step; an archived phase reads it from its file's `Model id` line, with the recorded word for the choice), and
-nothing when it reported none. It then lists what the newest attempt that ran the step said AND what it did — its own messages, the
-commands it ran and the files it wrote — at most the last 200, oldest first, each one line clipped at 160
-characters, and a link to that step on the Logs tab. The commands and files are listed because a session that works
-through commands writes a sentence only every few minutes, and messages alone would leave the row looking frozen
-while the step is busy. Once the phase has finished, the last message is the phase's final message, whole up to 2,000
-characters. A phase whose job the queue has forgotten says no messages are kept and links to the Logs tab itself.
+nothing when it reported none. It then shows the step's Log — the same log the Logs tab shows for the newest attempt
+that ran the step, part by part and every line of it — in a box twenty lines tall that opens at its end and scrolls
+back to the start, and a link to that step on the Logs tab. The row is a window on that one log, not a shorter copy:
+Aide's own lines are in it in their place, so a landing's merge step and its test run show there while they go on.
+A phase whose job the queue has forgotten says no messages are kept and links to the Logs tab itself.
 A phase that is only queued, or that nothing touched, has no ›.
 
 ## Which tests prove a criterion
@@ -374,8 +373,9 @@ lines tall that opens at its end. The three tabs:
 - **Log** — one scrolling log of the whole step in the order things happened: Aide's own lines (the lock, the fetch,
   the worktree, the tests, the commit) and the AI's, with a separator line where the writer changes ("Aide:
   preparing", "AI (Claude Sonnet)", "Aide: tests and commit"). It is complete: every line, from the first byte of
-  the transcript, and every message of the AI's in full, line breaks and all. A command written over several lines shows each break as `⏎`. Each skill-step mark (`analyze · Step 1 of 9: … — started`) is a line of its own, and a
-  phase's unfolded row, which shows only its last two hundred lines, keeps every mark as well. The step's full final message is
+  the transcript, and every message of the AI's in full, line breaks and all. A command written over several lines shows each break as `⏎`. Each skill-step mark (`--- Step 1 of 9: … — started`) is a line of its own, and so
+  are the marks of Aide's own parts around the AI (`--- Step Aide: preparing — started`, then `— done`, and
+  `Aide: tests and commit` after the AI, ending `— done` or `— stopped: <why>`). The step's full final message is
   the last of the AI's lines, with no heading; a last line that only repeats it is replaced by it, so it reads once.
 - **Changed files** — lists what the step's own commit changed with lines added and removed, and the tab's name
   carries the count (none when the step recorded no commit range or is still running).

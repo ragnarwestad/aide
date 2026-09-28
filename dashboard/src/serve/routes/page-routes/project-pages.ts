@@ -8,7 +8,7 @@
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { buildProjectViews, manifestInside, gitignoreCandidates, resolveCodeLanding, resolveInstallCmd } from "../../../project/discover";
-import { projectSettings } from "../../../project/project-settings.ts";
+import { groupForEditParam, projectSettings } from "../../../project/project-settings.ts";
 import { lastChecks } from "../../tool-check.ts";
 import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardSettingsFile } from "../../../git/dashboard-checkout.ts";
 import { assessProjectReadiness, manifestTracked, settingsHome } from "../../../project/project-admin";
@@ -272,7 +272,7 @@ export async function projectPages(
         ),
         scheduleModelNames: Object.keys(ctx.queue.defaults.modelChoices ?? {}),
         worktreeLinkCandidates: gitignoreCandidates(dir),
-        editing: url.searchParams.get("edit") === "1",
+        editingGroup: groupForEditParam(url.searchParams.get("edit")),
         error: url.searchParams.get("error") ?? undefined,
         drift,
         deployError: url.searchParams.get("deployError") ?? undefined,

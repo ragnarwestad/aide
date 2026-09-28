@@ -303,8 +303,13 @@ const STRUCTURE = [
   // /schedule (spec 276, reworked spec 278): the Cron field's input.
   "cron-input",
   // the Config tab's button row (spec 301): always two buttons, right-
-  // aligned, with its own margin to the table below.
+  // aligned, with its own margin to the table below. Kept for the
+  // unrelated /settings page, which still uses it (spec 552 retired it
+  // from the Config tab itself).
   "configactions",
+  // the Config tab's own container for its two tables (spec 552): the
+  // gap between them is declared here, once.
+  "configtables",
   // the Settings page's own table (spec 409): sized to its own content
   // rather than stretching to the frame, the same idea as "speclist"
   // scoped to this one table.

@@ -26,8 +26,8 @@ plus the reason the user closing it typed)
 
 The steps below are this skill's own, inside the queue's `close` step.
 Mark each one in the log, so a reader can follow the run: when it
-starts, write one line `close · Step N of X: <title> — started`, and when
-it ends, one line `close · Step N of X: <title> — done`. A step that ends
+starts, write one line `--- Step N of X: <title> — started`, and when
+it ends, one line `--- Step N of X: <title> — done`. A step that ends
 the run early says `— stopped: <why>` in place of `— done`, and one that does not apply to this run `— skipped: <why>`.
 
 Step 4, the merge into the default branch, is Aide's, after this
@@ -36,7 +36,7 @@ done.
 
 ### Step 1 of 4: Run the mechanical script
 
-First write `close · Step 1 of 4: Run the mechanical script — started`, and when this step ends, `close · Step 1 of 4: Run the mechanical script — done`.
+First write `--- Step 1 of 4: Run the mechanical script — started`, and when this step ends, `--- Step 1 of 4: Run the mechanical script — done`.
 
 
 Resolving the argument to a folder, checking whether a merge is open,
@@ -95,7 +95,7 @@ live in `4-status.md`. Numbers are never reused.
 
 ### Step 2 of 4: Commit
 
-First write `close · Step 2 of 4: Commit — started`, and when this step ends, `close · Step 2 of 4: Commit — done`.
+First write `--- Step 2 of 4: Commit — started`, and when this step ends, `--- Step 2 of 4: Commit — done`.
 
 
 The move and the stamp already happened, in the working directory —
@@ -131,7 +131,7 @@ commit here beyond its own decline.
 
 ### Step 3 of 4: Confirm
 
-First write `close · Step 3 of 4: Confirm — started`, and when this step ends, `close · Step 3 of 4: Confirm — done`.
+First write `--- Step 3 of 4: Confirm — started`, and when this step ends, `--- Step 3 of 4: Confirm — done`.
 
 In a headless run nothing of this is on the default branch yet: the
 close is finished only once Step 4, the merge into main, is done. So the
@@ -151,7 +151,7 @@ The spec stays findable: /aide-to-pdf 17
 
 ### Step 4 of 4: Merge into main
 
-Aide writes `close · Step 4 of 4: Merge into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
+Aide writes `--- Step 4 of 4: Merge into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
 
 Not this session's step, and it writes no mark for it. In a headless
 run Aide merges what this session committed on the spec's branch into

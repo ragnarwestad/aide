@@ -45,35 +45,25 @@ const finishedStep = (step: string, lines: unknown[]) =>
 const queueOf = (jobs: Job[]) =>
   ({ get: (id: string) => jobs.find((j) => j.id === id), list: () => jobs, defaults: {} }) as never;
 
+const lines = (got: { logs: { lines: string[] }[] } | undefined) => got?.logs.flatMap((part) => part.lines) ?? [];
+
 describe("phaseMessagesFor", () => {
   // Spec 500 kept the model's own messages alone. A session that works
   // through commands writes a sentence every few minutes, so the row read
   // as frozen while the step was busy: what it DID belongs here too.
   test("Claude: what the run said and what it did, oldest first", () => {
-    const lines: unknown[] = [];
-    for (let i = 1; i <= 3; i++) lines.push(said(`m${i}`), ran(`cmd ${i}`));
-    const j = job("a", { results: [finishedStep("analyze", lines)] });
+    const out: unknown[] = [];
+    for (let i = 1; i <= 3; i++) out.push(said(`m${i}`), ran(`cmd ${i}`));
+    const j = job("a", { results: [finishedStep("analyze", out)] });
     const got = phaseMessagesFor(queueOf([j]), ["a"], "analyze");
-    expect(got?.messages).toEqual(["m1", "Bash cmd 1", "m2", "Bash cmd 2", "m3", "Bash cmd 3"]);
+    expect(lines(got)).toEqual(["m1", "Bash cmd 1", "m2", "Bash cmd 2", "m3", "Bash cmd 3"]);
     expect(got?.running).toBe(false);
   });
 
   test("a file a step wrote is a line of its own", () => {
     const wrote = { type: "assistant", message: { content: [{ type: "tool_use", id: "w1", name: "Write", input: { file_path: "/x/2-analysis.md" } }] } };
     const j = job("a", { results: [finishedStep("analyze", [wrote])] });
-    expect(phaseMessagesFor(queueOf([j]), ["a"], "analyze")?.messages).toEqual(["Write /x/2-analysis.md"]);
-  });
-
-  // The last 200, so a long implement keeps its newest lines and the row
-  // cannot grow without bound.
-  test("the last 200 lines are kept, newest last", () => {
-    const lines: unknown[] = [];
-    for (let i = 1; i <= 250; i++) lines.push(ran(`cmd ${i}`));
-    const j = job("a", { results: [finishedStep("analyze", lines)] });
-    const got = phaseMessagesFor(queueOf([j]), ["a"], "analyze")?.messages ?? [];
-    expect(got).toHaveLength(200);
-    expect(got[0]).toBe("Bash cmd 51");
-    expect(got[got.length - 1]).toBe("Bash cmd 250");
+    expect(lines(phaseMessagesFor(queueOf([j]), ["a"], "analyze"))).toEqual(["Write /x/2-analysis.md"]);
   });
 
   test("a newer job only queued for the step does not hide the older one that ran it; two finished jobs give the newer (AC-2)", () => {
@@ -81,8 +71,8 @@ describe("phaseMessagesFor", () => {
     const newer = job("new", { createdAt: "2026-09-19T10:00:00Z", results: [finishedStep("analyze", [said("from new")])] });
     const queued = job("queued", { createdAt: "2026-09-19T11:00:00Z", state: "queued" });
     const q = queueOf([older, newer, queued]);
-    expect(phaseMessagesFor(q, ["queued", "old"], "analyze")?.messages).toEqual(["from old"]);
-    expect(phaseMessagesFor(q, ["queued", "new", "old"], "analyze")?.messages).toEqual(["from new"]);
+    expect(lines(phaseMessagesFor(q, ["queued", "old"], "analyze"))).toEqual(["from old"]);
+    expect(lines(phaseMessagesFor(q, ["queued", "new", "old"], "analyze"))).toEqual(["from new"]);
   });
 
   test("nothing to read gives undefined (AC-5)", () => {
@@ -92,40 +82,49 @@ describe("phaseMessagesFor", () => {
 
   test("a message with markup is returned escaped once (AC-2)", () => {
     const j = job("a", { results: [finishedStep("analyze", [said('<b>x</b> & "y"')])] });
-    expect(phaseMessagesFor(queueOf([j]), ["a"], "analyze")?.messages).toEqual(["&lt;b&gt;x&lt;/b&gt; &amp; &quot;y&quot;"]);
+    expect(lines(phaseMessagesFor(queueOf([j]), ["a"], "analyze"))).toEqual(["&lt;b&gt;x&lt;/b&gt; &amp; &quot;y&quot;"]);
   });
 
   test("a finished phase ends with its final message, replacing a last entry that is the same (AC-4)", () => {
     const j = job("a", { results: [finishedStep("analyze", [said("first"), said("Analysis complete: 12 files affected"), result("Analysis complete: 12 files affected")])] });
-    expect(phaseMessagesFor(queueOf([j]), ["a"], "analyze")?.messages).toEqual(["first", "Analysis complete: 12 files affected"]);
+    expect(lines(phaseMessagesFor(queueOf([j]), ["a"], "analyze"))).toEqual(["first", "Analysis complete: 12 files affected"]);
   });
 
-  test("a transcript that ends after a tool call gets the final message appended, and the list stays at its cap (AC-4)", () => {
-    const lines: unknown[] = [];
-    for (let i = 1; i <= 200; i++) lines.push(said(`m${i}`));
-    lines.push(ran("ls"), result("The end"));
-    const got = phaseMessagesFor(queueOf([job("a", { results: [finishedStep("analyze", lines)] })]), ["a"], "analyze");
-    expect(got?.messages).toHaveLength(200);
-    expect(got?.messages.at(-1)).toBe("The end");
-    expect(got?.messages.at(-2)).toBe("Bash ls");
+  test("every line of the step is in the row, however long: the row is a window on the Log", () => {
+    const out: unknown[] = [];
+    for (let i = 1; i <= 250; i++) out.push(ran(`cmd ${i}`));
+    out.push(result("The end"));
+    const got = lines(phaseMessagesFor(queueOf([job("a", { results: [finishedStep("analyze", out)] })]), ["a"], "analyze"));
+    expect(got).toHaveLength(251);
+    expect(got[0]).toBe("Bash cmd 1");
+    expect(got.at(-1)).toBe("The end");
   });
 
-  test("a step mark from the start of a long transcript is kept though later lines pass the cap", () => {
-    const mark = "analyze · Step 1 of 9: Read the description — started";
-    const lines: unknown[] = [said(mark)];
-    for (let i = 1; i <= 400; i++) lines.push(said(`m${i} ${"x".repeat(1000)}`));
-    const got = phaseMessagesFor(queueOf([job("a", { results: [finishedStep("analyze", lines)] })]), ["a"], "analyze");
-    expect(got?.messages[0]).toBe(mark);
-    expect(got?.messages).toHaveLength(200);
-  });
-
-  test("the final message is shown whole at 500 characters and cut with … past 2,000 (AC-4)", () => {
-    const at = (len: number) => phaseMessagesFor(queueOf([job("a", { results: [finishedStep("analyze", [result("x".repeat(len))])] })]), ["a"], "analyze")?.messages.at(-1) ?? "";
-    expect(at(500)).toBe("x".repeat(500));
-    expect(at(2500)).toBe(`${"x".repeat(2000)}…`);
-    // the cut backs off rather than leaving half an entity
-    const cut = phaseMessagesFor(queueOf([job("a", { results: [finishedStep("analyze", [result(`${"x".repeat(1999)}&${"y".repeat(50)}`)])] })]), ["a"], "analyze")?.messages.at(-1) ?? "";
-    expect(cut).toBe(`${"x".repeat(1999)}…`);
+  // What Aide does around the AI — preparing, and after it the landing's
+  // merge and its test run — is in the row too, in its place: an archive's
+  // row went quiet for the landing's whole test run.
+  test("Aide's own lines from the step's run log stand before and after the AI's, in order", () => {
+    const streamFile = stream([said("archiving")]);
+    writeFileSync(
+      streamFile.replace(/\.stream\.jsonl$/, ".run.log"),
+      [
+        "aide-run-spec 10:00:00 +0s --- Step Aide: preparing — started",
+        "aide-run-spec 10:00:02 +2s --- Step Aide: preparing — done",
+        "aide-run-spec 10:00:02 +2s model turn started (transcript at byte 0)",
+        "aide-run-spec 10:01:00 +60s --- Step 5 of 5: Merge into main — started",
+        "aide-run-spec 10:02:00 +120s tests: pytest 50%",
+      ].join("\n") + "\n",
+    );
+    const j = job("a", { results: [{ step: "archive", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", tool: "claude", streamFile } as never] });
+    const got = phaseMessagesFor(queueOf([j]), ["a"], "archive");
+    expect(got?.logs.map((part) => part.by)).toEqual(["aide-before", "ai", "aide-after"]);
+    expect(lines(got)).toEqual([
+      "10:00:00 +0s --- Step Aide: preparing — started",
+      "10:00:02 +2s --- Step Aide: preparing — done",
+      "archiving",
+      "10:01:00 +60s --- Step 5 of 5: Merge into main — started",
+      "10:02:00 +120s tests: pytest 50%",
+    ]);
   });
 
   test("a running phase reads the job's live transcript, with no final-message rule (AC-4)", () => {
@@ -133,7 +132,7 @@ describe("phaseMessagesFor", () => {
     const j = job("r", { state: "running", steps: ["analyze"], stepIndex: 0, streamFile: live });
     const got = phaseMessagesFor(queueOf([j]), ["r"], "analyze");
     expect(got?.running).toBe(true);
-    expect(got?.messages).toEqual(["working"]);
+    expect(lines(got)).toEqual(["working"]);
     expect(got?.step).toBe("live");
   });
 });

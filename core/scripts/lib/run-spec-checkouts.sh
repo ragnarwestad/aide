@@ -254,6 +254,7 @@ on_signal() {
       || source "$SCRIPT_DIR/lib/run-spec-publish.sh" >/dev/null 2>&1
     commit_and_push_roots >/dev/null 2>&1 || true
   fi
+  aide_part_close "stopped: cancelled"
   exit 143
 }
 trap on_signal TERM INT

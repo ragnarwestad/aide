@@ -165,10 +165,11 @@ describe("a project's settings route (spec 184)", () => {
       body: new URLSearchParams({ worktreeLinks: "/etc" }),
     });
     expect(refused.status).toBe(303);
-    // Spec 255: `?edit=1` carries the reader back into edit mode, so the
-    // refusal is shown on the form it was submitted from — not on the
-    // read-only view, where nothing could show it.
-    expect(refused.headers.get("location")!.startsWith("/projects/aide?edit=1")).toBe(true);
+    // Spec 552: `?edit=manifest` carries the reader back into that
+    // table's edit mode, so the refusal is shown on the form it was
+    // submitted from — not on the read-only view, where nothing could
+    // show it. `worktreeLinks` belongs to the manifest table.
+    expect(refused.headers.get("location")!.startsWith("/projects/aide?edit=manifest")).toBe(true);
     const refusalPage = await fetch(`${base}${refused.headers.get("location")}`, {
       headers: {},
     });
@@ -196,7 +197,8 @@ describe("a project's settings route (spec 184)", () => {
     const owned = join(dir, "owned", "aide", "code");
     if (existsSync(join(owned, ".git"))) Bun.spawnSync(["git", "pull", "-q", "--ff-only"], { cwd: owned });
     // Spec 255: Code landing's `<select>` only exists in edit mode now.
-    const form = await (await fetch(`${base}/projects/aide?edit=1`, )).text();
+    // It lives in the manifest table (spec 552).
+    const form = await (await fetch(`${base}/projects/aide?edit=manifest`, )).text();
     expect(form).toContain('name="codeLanding"');
     expect(form).toMatch(/value="pr"[^>]*selected|selected[^>]*value="pr"/);
 

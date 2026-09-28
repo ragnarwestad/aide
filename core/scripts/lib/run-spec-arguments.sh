@@ -166,6 +166,7 @@ refuse() {
     '{ok:false, exitCode:2, terminalReason:"refused", costUsd:0, costMeasured:false, error:$e}
      + (if $r == "" then {} else {errorReason:$r} end)')"
   stage_error "$msg"
+  aide_part_close "stopped: refused"
   printf '%s\n' "$line"
   [ -n "$result_file" ] && printf '%s\n' "$line" > "$result_file" 2>/dev/null
   exit 2
@@ -188,6 +189,7 @@ already_landed() {
   printf '%s\n' "$line"
   [ -n "$result_file" ] && printf '%s\n' "$line" > "$result_file" 2>/dev/null
   echo "aide-run-spec: $note" >&2
+  aide_part_close "skipped: already landed"
   exit 0
 }
 

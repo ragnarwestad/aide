@@ -5,6 +5,7 @@
 import { persistQueueProjects } from "../queue/queue.ts";
 import type { ProjectReadiness, ProjectStep } from "../project/project-admin";
 import { ADD_PROJECT_ROUTE, PROJECTS_ROUTE } from "../render";
+import { EDIT_GROUP_PARAM, groupForPostedField, type SettingsGroupFile } from "../project/project-settings.ts";
 import { json, logRefusal, specsRedirect } from "./serve-helpers";
 
 export interface ProjectActionsContext {
@@ -66,11 +67,19 @@ export function answerProjectChange(
     action === "add-project"
       ? ADD_PROJECT_ROUTE
       : action === "project-settings"
-        // `?edit=1`: the settings table's edit state is server-rendered
-        // (spec 255), so a refused save that dropped it would reopen on
-        // the read-only view with the error attached to a form that is
-        // no longer there.
-        ? `/projects/${encodeURIComponent(project)}?edit=1`
+        // `?edit=<group>`: each settings table's edit state is
+        // server-rendered (spec 255; spec 552 split it in two), so a
+        // refused save that dropped it would reopen on the read-only
+        // view with the error attached to a form that is no longer
+        // there. Which group was being edited is read off the posted
+        // body itself — every posted field name already belongs to
+        // exactly one group.
+        ? (() => {
+            const postedGroup = Object.keys((sent ?? {}) as Record<string, unknown>)
+              .map(groupForPostedField)
+              .find((g): g is SettingsGroupFile => g !== null);
+            return `/projects/${encodeURIComponent(project)}${postedGroup ? `?edit=${EDIT_GROUP_PARAM[postedGroup]}` : "?tab=config"}`;
+          })()
         : `/projects/${encodeURIComponent(project)}/remove`;
   if (summary) return specsRedirect(sent, { error: summary }, formPage);
   // A browser with no script gets the readiness answer the only way a

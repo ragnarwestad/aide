@@ -6,6 +6,7 @@
   - [Sources](#sources)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-09-28](#2026-09-28)
   - [2026-09-26](#2026-09-26)
   - [2026-09-21](#2026-09-21)
   - [2026-09-14](#2026-09-14)
@@ -70,6 +71,41 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-09-28
+
+Sep 26 – Sep 28. No new Claude Code or stable Codex CLI release. The one finding that matters for Aide: **Copilot CLI
+v1.0.89-5 adds `.claude/rules` support**, confirming the row `docs/AI_SUPPORT_MATRIX.md` has carried as unverified.
+
+**Claude Code (Sep 26 – Sep 28):**
+
+| Date | Version | News                                                   | Source                                                                |
+|------|---------|--------------------------------------------------------|-----------------------------------------------------------------------|
+| —    | —       | No new release since v2.1.283 (Sep 25, already logged) | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
+
+**GitHub Copilot CLI (Sep 27, v1.0.89-4 → v1.0.89-5):**
+
+| Date   | Version   | News                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Source                                                            |
+|--------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
+| Sep 27 | v1.0.89-5 | Add support for Claude Code rule files in `.claude/rules` as custom instructions; ask_user/elicitation form inputs focus on left-click; sessions sidebar shows a blue dot for an unopened finished turn; extensions no longer fail to load while managed MCP policy is still applying; fixed Git failures in apps launched from CLI shells with empty environment variables dropped (Git 2.36+); sessions sidebar saves opened/closed tabs as they change; sandboxed agent shell commands can access session files and logs | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
+
+**OpenAI Codex CLI (Sep 26 – Sep 28):**
+
+| Date | Version | News                                                                                                                   | Source                                                      |
+|------|---------|------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|
+| —    | —       | No new stable release since v0.157.1 (Sep 26, already logged); only 0.158.0/0.159.0 alpha builds with no release notes | [GitHub Releases](https://github.com/openai/codex/releases) |
+
+**OpenCode (Sep 28, v1.18.32 → v1.18.33):**
+
+| Date   | Version  | News                                                                                                                                                                                                                                                                                                                                | Source                                                            |
+|--------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
+| Sep 28 | v1.18.33 | Cloudflare AI Gateway models now honor provider response and stream timeouts; MCP browser launch failures reported when the launcher exits immediately; debug configuration output redacts credentials and sensitive headers; Gemini thinking defaults and effort options now match the supported controls across model generations | [GitHub Releases](https://github.com/anomalyco/opencode/releases) |
+
+**Relevance for Aide:**
+
+- ⭐ **Copilot CLI v1.0.89-5 adds `.claude/rules` support** — confirms the row `docs/AI_SUPPORT_MATRIX.md` carried as
+  unverified; see the separate spec proposing the matrix update.
+- ℹ Codex 0.158.0/0.159.0 alphas, OpenCode v1.18.33, and Copilot's other v1.0.89-5 items — no Aide action.
 
 ### 2026-09-26
 
