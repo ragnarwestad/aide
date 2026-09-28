@@ -293,7 +293,11 @@ commit_and_push_roots() {
   if [ "$command_name" = "schedule" ]; then discard_scheduled_commits; return 0; fi
   local i=0 root wt changed head_now amend_source=() excludes=() line
   for root in "${roots[@]}"; do
-    wt="${work_roots[$i]}"
+    wt="${work_roots[$i]:-}"
+    # A Cancel that lands before a root's worktree is cut reaches this with
+    # no worktree for it, and `git -C ""` acts on the current directory:
+    # the checkout the runner was started from, whatever that holds.
+    if [ -z "$wt" ]; then i=$(( i + 1 )); continue; fi
     excludes=()
     while IFS= read -r line; do
       [ -n "$line" ] && excludes+=("$line")
@@ -362,8 +366,8 @@ EXCLUDES_EOF
   if [ "$push_mode" != "none" ]; then
     i=0
     for root in "${roots[@]}"; do
-      wt="${work_roots[$i]}"
-      head_was="${head_before[$i]}"
+      wt="${work_roots[$i]:-}"
+      head_was="${head_before[$i]:-}"
       head_is="${head_after_per_root[$i]}"
       amended_sha="${amend_source[$i]:-}"
       idx=$i
@@ -378,6 +382,7 @@ EXCLUDES_EOF
       # same way, and the two disagreeing is what reported an untouched
       # root as unpushed work.
       i=$(( i + 1 ))
+      [ -n "$wt" ] || continue
       tip_has_nothing_of_its_own "$root" "$head_is" && continue
       # REQ-4: a root this run did not move ($head_was = $head_is) is
       # STILL a candidate — but only when this run itself ended

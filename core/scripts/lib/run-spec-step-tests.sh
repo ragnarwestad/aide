@@ -53,6 +53,11 @@ run_step_tests_within_time() {
   : > "$work_dir/step-test-progress"
   step_tests_progress_seen=0
   set -m
+  # Four workers, not one per core: two steps' suites share the machine
+  # with the board and each other, and at eight apiece the git-backed
+  # tests ran out of time on load alone. Both of Aide's runners read one:
+  # run-tests.sh AIDE_TEST_WORKERS, pytest-xdist's `-n auto` this.
+  AIDE_TEST_WORKERS="${AIDE_TEST_WORKERS:-4}" PYTEST_XDIST_AUTO_NUM_WORKERS="${PYTEST_XDIST_AUTO_NUM_WORKERS:-4}" \
   "$SCRIPT_DIR/aide-record-test-run" --project-dir "$project_wt" --specs-root "$specs_root_wt" \
     --folder "$step_tests_folder" "${step_test_args[@]}" \
     --progress-file "$work_dir/step-test-progress" \
@@ -93,7 +98,15 @@ if [ "$terminal_reason" = "completed" ]; then
   esac
 fi
 if [ -n "$step_tests_folder" ]; then
-  step_tests_resolved="$("$SCRIPT_DIR/aide-resolve-test-cmd" --project-dir "$project_wt" 2>"$work_dir/resolve-test-cmd.err" | tail -1)"
+  # Compared with the default branch, so a change to Markdown files alone
+  # is tested by the project's documentation check, not its whole suite
+  # (aide-resolve-test-cmd --changed-from).
+  step_tests_base="$(default_branch "$project_root")"
+  git -C "$project_wt" rev-parse --verify --quiet "origin/$step_tests_base" >/dev/null && step_tests_base="origin/$step_tests_base"
+  step_tests_resolved="$("$SCRIPT_DIR/aide-resolve-test-cmd" --project-dir "$project_wt" --changed-from "$step_tests_base" 2>"$work_dir/resolve-test-cmd.err" | tail -1)"
+  if printf '%s' "$step_tests_resolved" | jq -e '.docsOnly == true' >/dev/null 2>&1; then
+    stage "only Markdown files changed — running the documentation check, not the whole suite"
+  fi
   if ! printf '%s' "$step_tests_resolved" | jq -e '.ok == true' >/dev/null 2>&1; then
     terminal_reason="tests-red"
     ok="false"

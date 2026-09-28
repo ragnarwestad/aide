@@ -160,7 +160,8 @@ runner's own run on your result is what decides.
 
 1. Run `aide-emit-run --phase verify --spec <ID>`
 2. Resolve the full-suite command(s) with `aide-resolve-test-cmd
-   --project-dir .` — the same script the archive gate calls, so the
+   --project-dir . --changed-from origin/<default branch>` — the same
+   script the runner and the archive gate call, so the
    two agree on what "the tests" means for this commit by construction
    (see [Quality check](#quality-check)). It prints one JSON line whose
    `commands` array holds every command the changed files fall under.
@@ -338,7 +339,9 @@ Example for a Maven/Gradle backend:
 prints the project's one test command, the manifest's `AIDE_TEST_CMD`
 (the tools-and-scripts skill, "Project commands"). Use the script's
 answer; an empty answer means the project has no test command, and the
-"Run the full test suite" row says so.
+"Run the full test suite" row says so. A change to Markdown files alone
+resolves to the project's documentation check instead (`docsOnly`), and
+that is the run the row records.
 
 ---
 

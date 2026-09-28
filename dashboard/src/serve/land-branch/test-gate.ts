@@ -256,7 +256,10 @@ async function runSuiteIn(
   // Beside the runner first, never PATH alone: see `scriptFor`.
   const resolver = scriptFor("aide-resolve-test-cmd", { beside: opts.scriptDir, override: process.env.AIDE_RESOLVE_TEST_CMD_BIN });
   const recorder = scriptFor("aide-record-test-run", { beside: opts.scriptDir, override: process.env.AIDE_RECORD_TEST_RUN_BIN });
-  const resolved = await runScript([resolver, "--project-dir", root], root, 60_000);
+  // Against the default branch, so a Markdown-only change is tested by
+  // the documentation check alone, as the step's own run was.
+  const base = await defaultBranchRef(root);
+  const resolved = await runScript([resolver, "--project-dir", root, ...(base ? ["--changed-from", base] : [])], root, 60_000);
   let commands: string[] = [];
   try {
     const parsed = JSON.parse(resolved.stdout.trim().split("\n").pop() ?? "{}");
