@@ -37,12 +37,14 @@ export async function runScript(
   timeoutMs: number,
   /** The job this script runs for, so Cancel can reach it. */
   owner?: string,
+  /** Added to the step's own environment. */
+  extraEnv: Record<string, string> = {},
 ): Promise<{ code: number; stdout: string; stderr: string; timedOut: boolean }> {
   // The same PATH a step's own spawn gets (`tool-path.ts`). Without it
   // this server, under launchd, cannot see `~/.local/bin` — where aide's
   // scripts and Claude Code itself live — so a script run from here
   // would report a CLI missing that a real run finds.
-  const env = spawnEnv();
+  const env = { ...spawnEnv(), ...extraEnv };
   // A group of its own, so what it leaves running when it ends — a test
   // suite's board, a decoy server — can be stopped with it without
   // touching this server. Left alive, those held the output pipes open
