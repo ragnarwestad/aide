@@ -160,11 +160,21 @@ async function redOnDefaultBranch(liveRoot: string, recorder: string, argTail: s
   const tree = await checkoutForGate(liveRoot, ref);
   if (tree.dir === liveRoot) return false;
   try {
-    const out = await runScript([recorder, "--project-dir", tree.dir, ...argTail], tree.dir, LANDING_GATE_TIMEOUT_MS);
+    const out = await runScript([recorder, "--project-dir", tree.dir, ...argTail], tree.dir, LANDING_GATE_TIMEOUT_MS, undefined, testWorkers());
     return out.code !== 0 && !out.timedOut;
   } finally {
     await tree.remove();
   }
+}
+
+/** Four test processes, as the step's own run uses (run-spec-step-tests.sh):
+ *  a landing runs while specs are running, and a suite on every core
+ *  starves them. */
+function testWorkers(): Record<string, string> {
+  return {
+    AIDE_TEST_WORKERS: process.env.AIDE_TEST_WORKERS ?? "4",
+    PYTEST_XDIST_AUTO_NUM_WORKERS: process.env.PYTEST_XDIST_AUTO_NUM_WORKERS ?? "4",
+  };
 }
 
 /** A line in the landed step's own run log, stamped the way `aide-run-spec`
@@ -307,7 +317,7 @@ async function runSuiteIn(
       const progress = join(scratch, `progress${label.replace(/\W+/g, "-")}`);
       writeFileSync(progress, "");
       const follow = followProgress(job, progress);
-      const out = await runScript([...argv, "--progress-file", progress], root, LANDING_GATE_TIMEOUT_MS, job.id).finally(follow.stop);
+      const out = await runScript([...argv, "--progress-file", progress], root, LANDING_GATE_TIMEOUT_MS, job.id, testWorkers()).finally(follow.stop);
       keepStepOutput(job, `${out.stdout}${out.stderr}`);
       // The run's own output, kept where the archive step used to keep
       // it, under the same header a reader already knows.

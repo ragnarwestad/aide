@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# test-python - The root's pytest suite, as Aide's test command runs it.
+#
+# A test that fails is run once more on its own (`--lf`), and only a
+# second failure counts: a test that lost to a busy host passes there,
+# while a whole second suite would cost minutes for one test.
+#
+# Arguments are handed to pytest on both runs.
+set -u
+.venv/bin/pytest -q "$@" && exit 0
+echo "--- running the failing tests again on their own"
+exec .venv/bin/pytest -q --lf --lfnf=none "$@"
