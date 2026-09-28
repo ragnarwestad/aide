@@ -53,11 +53,11 @@ run_step_tests_within_time() {
   : > "$work_dir/step-test-progress"
   step_tests_progress_seen=0
   set -m
-  # Four workers, not one per core: two steps' suites share the machine
-  # with the board and each other, and at eight apiece the git-backed
-  # tests ran out of time on load alone. Both of Aide's runners read one:
-  # run-tests.sh AIDE_TEST_WORKERS, pytest-xdist's `-n auto` this.
-  AIDE_TEST_WORKERS="${AIDE_TEST_WORKERS:-4}" PYTEST_XDIST_AUTO_NUM_WORKERS="${PYTEST_XDIST_AUTO_NUM_WORKERS:-4}" \
+  # Four bun workers, not one per core: two steps' suites share the
+  # machine with the board and each other, and at eight apiece the
+  # git-backed tests ran out of time on load alone. pytest keeps one per
+  # core: at four its suite took two and a half times as long.
+  AIDE_TEST_WORKERS="${AIDE_TEST_WORKERS:-4}" \
   "$SCRIPT_DIR/aide-record-test-run" --project-dir "$project_wt" --specs-root "$specs_root_wt" \
     --folder "$step_tests_folder" "${step_test_args[@]}" \
     --progress-file "$work_dir/step-test-progress" \
@@ -166,7 +166,7 @@ EOF_CMDS
         # markers, never a bare "Error:" inside a line a PASSING test
         # echoed — then the tail, so a suite that prints nothing of
         # that shape still shows what it said last.
-        step_tests_failing="$(grep -E '^\(fail\)|^FAILED|^ERROR' "$work_dir/step-test-run.log" 2>/dev/null | head -8)"
+        step_tests_failing="$(grep -E '^\(fail\)|^FAILED|^ERROR' "$work_dir/step-test-run.log" 2>/dev/null | awk '!seen[$0]++' | head -8)"
         [ -n "$step_tests_failing" ] || step_tests_failing="$(tail -c 600 "$work_dir/step-test-run.log" 2>/dev/null)"
         # Another turn, or the end: the cap, a session the runner cannot
         # resume, and what the step has left of its time.

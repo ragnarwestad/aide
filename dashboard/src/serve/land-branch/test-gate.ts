@@ -39,7 +39,9 @@ import { runLogPath } from "../../queue/runner/run-log-path.ts";
 export function failingLines(stdout: string, stderr: string, budget = 600): string {
   const lines = `${stdout}\n${stderr}`.split("\n");
   const named = lines.filter((l) => /^\(fail\)|^\s*\d+ fail\b|^error(:| TS)/.test(l.trim()) || /^\s*\d+ fail\b/.test(l));
-  const picked = named.length ? named : lines;
+  // Once each: the dashboard's runner prints a failing test as it fails
+  // and again in the red worker's full output.
+  const picked = named.length ? [...new Set(named)] : lines;
   const out = picked.join("\n").trim();
   // The END of the picked lines, not the start: a suite with many
   // failures ends with the summary, and the summary is the line that
@@ -167,14 +169,11 @@ async function redOnDefaultBranch(liveRoot: string, recorder: string, argTail: s
   }
 }
 
-/** Four test processes, as the step's own run uses (run-spec-step-tests.sh):
- *  a landing runs while specs are running, and a suite on every core
- *  starves them. */
+/** Four bun test processes, as the step's own run uses
+ *  (run-spec-step-tests.sh): a landing runs while specs are running, and a
+ *  suite on every core starves them. */
 function testWorkers(): Record<string, string> {
-  return {
-    AIDE_TEST_WORKERS: process.env.AIDE_TEST_WORKERS ?? "4",
-    PYTEST_XDIST_AUTO_NUM_WORKERS: process.env.PYTEST_XDIST_AUTO_NUM_WORKERS ?? "4",
-  };
+  return { AIDE_TEST_WORKERS: process.env.AIDE_TEST_WORKERS ?? "4" };
 }
 
 /** A line in the landed step's own run log, stamped the way `aide-run-spec`

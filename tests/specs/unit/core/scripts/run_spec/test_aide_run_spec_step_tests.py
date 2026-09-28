@@ -492,7 +492,30 @@ def test_the_runners_own_run_asks_for_four_workers(runner, workspace, fake_claud
     tests out of time on load alone."""
     with_status(workspace, ["create", "analyze"])
     seen = tmp_path / "workers.txt"
-    _project_with_test_cmd(workspace, f'echo "$AIDE_TEST_WORKERS $PYTEST_XDIST_AUTO_NUM_WORKERS" > {seen}')
+    _project_with_test_cmd(workspace, f'echo "$AIDE_TEST_WORKERS" > {seen}')
     rc, out, _ = run(runner, workspace, _implementing_claude(fake_claude), command="implement")
     assert out["terminalReason"] == "completed", out
-    assert seen.read_text().strip() == "4 4"
+    assert seen.read_text().strip() == "4"
+
+
+def test_a_failing_test_the_output_names_twice_is_reported_once(runner, workspace, fake_claude, tmp_path):
+    """The dashboard's runner prints a failing test as it fails and again
+    in the red worker's full output; the step's error names it once."""
+    with_status(workspace, ["create", "analyze"])
+    suite = tmp_path / "suite.sh"
+    stand_in(
+        suite,
+        "#!/bin/sh\n"
+        "echo '(fail) the one that failed'\n"
+        "echo '--- worker 0, in full:'\n"
+        "echo '(fail) the one that failed'\n"
+        "exit 1\n"
+    )
+    _project_with_test_cmd(workspace, str(suite))
+    claude = fake_claude(
+        "printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step' 2>/dev/null\n"
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert out["terminalReason"] == "tests-red", out
+    assert out["error"].count("(fail) the one that failed") == 1, out["error"]

@@ -309,7 +309,9 @@ export function field(
   // `actions` is a form's own Save/Cancel pair, put on that same line
   // after the "(?)" when the field IS the form's only control, so the
   // buttons sit where the eye already is instead of below a tall list.
-  o: { wide?: boolean; group?: boolean; help?: string; actions?: string } = {},
+  // `for`: the control's own `id` — needed once `actions` is a button, or
+  // a label click resolves to it (the first labelable descendant) instead.
+  o: { wide?: boolean; group?: boolean; help?: string; actions?: string; for?: string } = {},
 ): string {
   const tag = o.group ? "span" : "label";
   const trail = `${o.help ?? ""}${o.actions ?? ""}`;
@@ -317,7 +319,8 @@ export function field(
     ? `<span class="fieldhead"><span>${esc(label)}</span>` +
       `<span class="fieldend">${trail}</span></span>`
     : `<span>${esc(label)}</span>`;
-  return `<${tag} class="field${o.wide ? " wide" : ""}">${head}${control}</${tag}>`;
+  const forAttr = !o.group && o.for ? ` for="${esc(o.for)}"` : "";
+  return `<${tag} class="field${o.wide ? " wide" : ""}"${forAttr}>${head}${control}</${tag}>`;
 }
 
 // --- switch ----------------------------------------------------------------------

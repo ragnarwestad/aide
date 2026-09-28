@@ -847,3 +847,36 @@ def test_an_archive_in_a_project_with_no_wiki_is_unaffected_AC_5(
     assert out["terminalReason"] == "completed", out
     assert not (workspace["specs"] / "wiki").exists()
 
+
+
+def test_an_archive_rewrites_a_page_covering_a_file_it_deleted_AC_1(
+    runner, workspace, workspace_root, fake_claude
+):
+    """The rewrite drops the deleted file from the page's own list, so the
+    page no longer names anything the spec changed once it is rewritten.
+    What the page named before the rewrite is what lets it stay."""
+    status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
+    project, specs = workspace["project"], workspace["specs"]
+    (project / "gone.txt").write_text("gone\n")
+    (project / "kept.txt").write_text("kept\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-qm", "add two files")
+    _write_wiki_page(workspace_root, specs, project, "r.md", ["gone.txt", "kept.txt"])
+    git(specs, "add", "-A")
+    git(specs, "commit", "-qm", "seed the wiki")
+    git(project, "switch", "-q", "-c", ARCHIVE_BRANCH)
+    git(project, "rm", "-q", "gone.txt")
+    git(project, "commit", "-q", "-m", "implement")
+    git(project, "switch", "-q", "main")
+    wiki = _wiki_bin(workspace_root)
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'printf "# R\\n\\nRewritten.\\n" | {wiki} write --specs-root "$specs" '
+        + '--project-dir "$PWD" --page r.md --file kept.txt >/dev/null\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _, err = run(runner, workspace, claude, command="archive", return_stderr=True)
+    assert out["terminalReason"] == "completed", out
+    assert "Rewritten." in _wiki_page(workspace, ARCHIVE_BRANCH, "r.md")
+    assert "wiki pages rewritten: r.md" in err

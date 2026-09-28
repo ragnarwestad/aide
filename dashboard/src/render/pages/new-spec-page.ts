@@ -334,10 +334,10 @@ function aiFormulateAcceptanceField(formId: string): string {
 function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
   const formId = "new-spec-form";
   const chosen = projects.find((p) => p === opts.prefill?.project);
-  // Four lines, read top to bottom: Project on its own, the phase table
-  // beneath it with the two acceptance switches stacked beside it,
-  // Depends on next, Title next, then Description with Create and
-  // Cancel at its right-hand side. Each `.frow` is a full-width row
+  // Spec 553: what is used every time comes first — Project, with
+  // Create on its own label line, and the two acceptance switches beside
+  // the picker; then Title; then Description. Depends on and the phase
+  // table, seldom touched, come last. Each `.frow` is a full-width row
   // inside the same wrapping flex the Add form shares, so the shared
   // `.newspecform` look is untouched.
   return (
@@ -348,34 +348,33 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
       // Nothing is chosen for the reader: the first project in the list was
       // where every untouched form used to land. `required` is what makes the
       // browser refuse the empty placeholder at the field, as it does for the
-      // title and the description below.
-      `<select name="project" required>` +
+      // title and the description below. `id` is what `for` below points
+      // at, so a click on the label keeps focusing this `<select>` rather
+      // than the Create button that now shares the label's head line.
+      `<select name="project" id="new-spec-project" required>` +
         `<option value=""${chosen ? "" : " selected"}>Choose a project…</option>` +
         projects.map((p) => `<option value="${esc(p)}"${p === chosen ? " selected" : ""}>${esc(p)}</option>`).join("") +
         `</select>`,
+      // `for: "new-spec-project"`: with Create in the label's own head,
+      // an implicit label/control association would resolve to the
+      // `<button>` — a labelable element sitting first in tree order —
+      // instead of the `<select>` that follows it, and clicking "Project"
+      // would activate Create rather than focus the picker. The explicit
+      // `for` overrides that: every field keeps clicking its label to
+      // reach its own control, exactly as before this page's fields moved.
+      { for: "new-spec-project", actions: btn({ label: "Create", variant: "primary", pending: "creating…" }) },
     ) +
-    `</span>` +
-    // Spec 476: the two switches moved off their own full-width lines
-    // (spec 426) into a column beside the table, in the table's own
-    // `.frow` — pairing one beside "Depends on" instead (spec 394,
-    // REQ-3) is what put the chip up against that field's own "(?)"
-    // popover the first time, so `.acceptance-col`'s own CSS opens its
-    // popovers away from the table rather than repeating that.
-    `<span class="frow">` +
-    newSpecPhaseTable(opts, formId) +
+    // Spec 476: the two switches sit in a column beside their neighbor
+    // rather than on their own full-width lines (spec 426) — pairing one
+    // beside "Depends on" instead (spec 394, REQ-3) is what put the chip
+    // up against that field's own "(?)" popover the first time, so
+    // `.acceptance-col`'s own CSS opens its popovers away from its
+    // neighbor rather than repeating that. Spec 553 moves the neighbor
+    // from the phase table to the Project field.
     `<span class="acceptance-col">` +
     acceptanceField(formId) +
     aiFormulateAcceptanceField(formId) +
     `</span>` +
-    `</span>` +
-    `<span class="frow">` +
-    dependsOnField(opts.targets ?? [], new Set(), {
-      wide: true,
-      sideBySide: {
-        dependsOnLabel: t(opts.lang ?? "en", "newSpec.dependsOn"),
-        selectLabel: t(opts.lang ?? "en", "newSpec.select"),
-      },
-    }) +
     `</span>` +
     field(
       "Title",
@@ -391,9 +390,19 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
         `placeholder="the problem, and what you want instead">${esc(opts.prefill?.description ?? "")}</textarea>`,
       { wide: true },
     ) +
-    `<span class="factions">` +
-    btn({ label: "Create", variant: "primary", pending: "creating…" }) +
-    `</span></span>` +
+    `</span>` +
+    `<span class="frow">` +
+    dependsOnField(opts.targets ?? [], new Set(), {
+      wide: true,
+      sideBySide: {
+        dependsOnLabel: t(opts.lang ?? "en", "newSpec.dependsOn"),
+        selectLabel: t(opts.lang ?? "en", "newSpec.select"),
+      },
+    }) +
+    `</span>` +
+    `<span class="frow">` +
+    newSpecPhaseTable(opts, formId) +
+    `</span>` +
     // The slot a refusal is written into. A rejected create names a spec
     // that was never made, so there is no row for the reason to land on
     // the way there is for every other action. Empty until something
