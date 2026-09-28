@@ -67,3 +67,37 @@ def test_the_worktree_links_stay_out_of_the_commit(tmp_path):
     root, wt = _repo_with_a_run(tmp_path)
     _commit_with_lost_state(root, wt)
     assert _git(wt, "ls-tree", "--name-only", "HEAD", "deps") == "", "the worktree's link was committed"
+
+
+def test_a_root_with_no_worktree_yet_commits_nothing_where_the_runner_stands(tmp_path):
+    """A Cancel that lands before the worktrees are cut reaches the commit
+    with none for its roots. `git -C ""` is the current directory, so the
+    run committed whatever was uncommitted in the checkout it was started
+    from — a test's run, started from a spec's own worktree, committed that
+    spec's work under the test's own subject (555, 2026-09-28)."""
+    root, _wt = _repo_with_a_run(tmp_path)
+    here = tmp_path / "here"
+    subprocess.run(["git", "init", "-q", "-b", "main", str(here)], check=True)
+    for k, v in (("user.name", "t"), ("user.email", "t@t")):
+        _git(here, "config", k, v)
+    (here / "README").write_text("started here\n")
+    _git(here, "add", "-A")
+    _git(here, "commit", "-q", "-m", "The checkout the runner was started from")
+    (here / "README").write_text("someone's unfinished work\n")
+    before = _git(here, "rev-parse", "HEAD")
+    script = f"""
+set -uo pipefail
+source "{SCRIPTS}/_aide-spec-lib.sh"
+source "{SCRIPTS}/lib/run-spec-worktree.sh"
+stage() {{ :; }}
+roots=("{root}"); work_roots=()
+branch="aide/7-x"; push_mode="none"; command_name="implement"
+commit_label="7-x"; model_suffix=""; suffix=" (stopped: cancelled)"; amend_note=""
+set +u
+source "{SCRIPTS}/lib/run-spec-publish.sh"
+unset head_before head_after_per_root git_add_excludes
+commit_and_push_roots
+"""
+    subprocess.run(["bash", "-c", script], cwd=here, capture_output=True, text=True)
+    assert _git(here, "rev-parse", "HEAD") == before, "nothing is committed in the checkout the runner stood in"
+    assert _git(here, "status", "--porcelain") == "M README", "and its unfinished work is left as it was"
