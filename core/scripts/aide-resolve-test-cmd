@@ -9,8 +9,16 @@
 # for a project that tracks none, the dashboard's settings file copied in
 # as one), so every checkout of the project runs the same command.
 #
+# With --changed-from <ref>, a change that touches Markdown files and
+# nothing else runs the project's documentation check instead: its
+# `scripts/check-docs` when it has one, otherwise nothing. The change is
+# what the checkout holds beyond its merge base with <ref>, committed or
+# not. No other file can make a suite go red over prose, and the whole
+# suite for a changed paragraph was an hour of runs and fix turns.
+#
 # Prints ONE JSON line to stdout:
 #   {"ok":true,"commands":["<cmd>"]}   (empty when AIDE_TEST_CMD is unset)
+#   {"ok":true,"commands":[...],"docsOnly":true}   (a Markdown-only change)
 #   {"ok":false,"exitCode":2,"terminalReason":"refused","error":"..."}
 #
 # Usage:
@@ -23,16 +31,18 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 [ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
 
 project_dir=""
+changed_from=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
     -h|--help)
       cat <<'USAGE'
 Usage:
-  aide-resolve-test-cmd --project-dir <path>
+  aide-resolve-test-cmd --project-dir <path> [--changed-from <ref>]
 USAGE
       exit 0 ;;
     --project-dir) project_dir="${2:-}"; shift 2 ;;
+    --changed-from) changed_from="${2:-}"; shift 2 ;;
     *) printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"unknown argument: %s"}\n' "$1"; exit 2 ;;
   esac
 done
@@ -56,6 +66,37 @@ if [ ! -f "$project_dir/.aide/project.yaml" ]; then
 fi
 
 cmd="$(aide_manifest_get AIDE_TEST_CMD "$manifest_dir")"
+
+# Every file the checkout holds beyond its merge base with $1, one per
+# line; nothing when git cannot say. `.aide/` is the project's settings,
+# which a worktree may carry as an untracked copy, and the worktree links
+# are the main checkout's own directories linked in: neither is a change.
+changed_files() {
+  local base links link
+  base="$(git -C "$project_dir" merge-base HEAD "$1" 2>/dev/null)" || return 0
+  links="$(aide_manifest_get worktreeLinks "$manifest_dir")"
+  [ -n "$links" ] || { declare -f aide_config_get >/dev/null 2>&1 && links="$(aide_config_get AIDE_WORKTREE_LINKS "$manifest_dir" 2>/dev/null)"; }
+  {
+    git -C "$project_dir" diff --name-only "$base" 2>/dev/null
+    git -C "$project_dir" ls-files --others --exclude-standard 2>/dev/null
+  } | grep -v '^\.aide/' | while IFS= read -r path; do
+    for link in $links; do
+      case "$path" in "${link%/}"|"${link%/}"/*) continue 2 ;; esac
+    done
+    printf '%s\n' "$path"
+  done | sort -u
+}
+if [ -n "$cmd" ] && [ -n "$changed_from" ]; then
+  changed="$(changed_files "$changed_from")"
+  if [ -n "$changed" ] && ! printf '%s\n' "$changed" | grep -qv '\.md$'; then
+    if [ -x "$project_dir/scripts/check-docs" ]; then
+      jq -cn '{ok:true, commands:["scripts/check-docs"], docsOnly:true}'
+    else
+      jq -cn '{ok:true, commands:[], docsOnly:true}'
+    fi
+    exit 0
+  fi
+fi
 if [ -n "$cmd" ]; then
   jq -cn --arg c "$cmd" '{ok:true, commands:[$c]}'
 else

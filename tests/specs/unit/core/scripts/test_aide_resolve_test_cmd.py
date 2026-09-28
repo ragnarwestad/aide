@@ -89,3 +89,45 @@ def test_refuses_without_project_dir(script):
 def test_refuses_an_unknown_argument(script, project):
     code, answer = resolve(script, project, "--landing")
     assert code == 2 and "unknown argument" in answer["error"]
+
+
+def _docs_check(repo):
+    (repo / "scripts").mkdir(exist_ok=True)
+    (repo / "scripts" / "check-docs").write_text("#!/bin/sh\nexit 0\n")
+    (repo / "scripts" / "check-docs").chmod(0o755)
+    git(repo, "add", "scripts/check-docs")
+    git(repo, "commit", "-qm", "docs check")
+
+
+def test_a_markdown_only_change_runs_the_docs_check_instead(script, project):
+    write_manifest(project, "AIDE_TEST_CMD: make test\n")
+    _docs_check(project)
+    git(project, "switch", "-q", "-c", "spec")
+    (project / "README.md").write_text("changed prose\n")
+    git(project, "commit", "-qam", "Reword the readme")
+    (project / "NOTES.md").write_text("new, not committed yet\n")
+    assert resolve(script, project, "--changed-from", "main") == (
+        0, {"ok": True, "commands": ["scripts/check-docs"], "docsOnly": True})
+
+
+def test_a_markdown_only_change_with_no_docs_check_runs_nothing(script, project):
+    write_manifest(project, "AIDE_TEST_CMD: make test\n")
+    git(project, "switch", "-q", "-c", "spec")
+    (project / "README.md").write_text("changed prose\n")
+    assert resolve(script, project, "--changed-from", "main") == (
+        0, {"ok": True, "commands": [], "docsOnly": True})
+
+
+def test_a_change_that_touches_anything_else_runs_the_test_command(script, project):
+    write_manifest(project, "AIDE_TEST_CMD: make test\n")
+    _docs_check(project)
+    git(project, "switch", "-q", "-c", "spec")
+    (project / "README.md").write_text("changed prose\n")
+    (project / "app.py").write_text("print(1)\n")
+    assert resolve(script, project, "--changed-from", "main") == (0, {"ok": True, "commands": ["make test"]})
+
+
+def test_no_change_at_all_runs_the_test_command(script, project):
+    write_manifest(project, "AIDE_TEST_CMD: make test\n")
+    _docs_check(project)
+    assert resolve(script, project, "--changed-from", "main") == (0, {"ok": True, "commands": ["make test"]})

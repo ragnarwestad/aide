@@ -93,7 +93,15 @@ if [ "$terminal_reason" = "completed" ]; then
   esac
 fi
 if [ -n "$step_tests_folder" ]; then
-  step_tests_resolved="$("$SCRIPT_DIR/aide-resolve-test-cmd" --project-dir "$project_wt" 2>"$work_dir/resolve-test-cmd.err" | tail -1)"
+  # Compared with the default branch, so a change to Markdown files alone
+  # is tested by the project's documentation check, not its whole suite
+  # (aide-resolve-test-cmd --changed-from).
+  step_tests_base="$(default_branch "$project_root")"
+  git -C "$project_wt" rev-parse --verify --quiet "origin/$step_tests_base" >/dev/null && step_tests_base="origin/$step_tests_base"
+  step_tests_resolved="$("$SCRIPT_DIR/aide-resolve-test-cmd" --project-dir "$project_wt" --changed-from "$step_tests_base" 2>"$work_dir/resolve-test-cmd.err" | tail -1)"
+  if printf '%s' "$step_tests_resolved" | jq -e '.docsOnly == true' >/dev/null 2>&1; then
+    stage "only Markdown files changed — running the documentation check, not the whole suite"
+  fi
   if ! printf '%s' "$step_tests_resolved" | jq -e '.ok == true' >/dev/null 2>&1; then
     terminal_reason="tests-red"
     ok="false"

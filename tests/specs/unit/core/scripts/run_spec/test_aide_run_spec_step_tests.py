@@ -523,3 +523,29 @@ def test_a_red_step_ends_its_open_part_stopped_with_the_reason(runner, workspace
     _, out, _, err = run(runner, workspace, _implementing_claude(fake_claude), command="implement", return_stderr=True)
     assert out["terminalReason"] == "tests-red", out
     assert _stamped(err)[-1] == "--- Step Aide: tests and commit — stopped: tests-red", _stamped(err)
+
+
+def test_an_implement_that_changed_only_markdown_runs_the_docs_check_not_the_suite(
+    runner, workspace, fake_claude
+):
+    """A change to Markdown files alone cannot turn the suite red, and the
+    whole suite for a changed paragraph was an hour of runs and fix turns
+    (555, 556). The runner runs the project's documentation check."""
+    with_status(workspace, ["create", "analyze"])
+    _project_with_test_cmd(workspace, "false")
+    project = workspace["project"]
+    (project / "scripts").mkdir()
+    (project / "scripts" / "check-docs").write_text("#!/bin/sh\nexit 0\n")
+    (project / "scripts" / "check-docs").chmod(0o755)
+    git(project, "add", "scripts/check-docs")
+    git(project, "commit", "-q", "-m", "docs check")
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        "printf 'reworded\\n' > NOTES.md\n"
+        "git add -A && git commit -q -m 'the step'\n"
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert out["terminalReason"] == "completed", out
+    record = json.loads(git(workspace["specs"], "show", f"{BRANCH}:{workspace['folder']}/test-run.json"))
+    assert record["exitCode"] == 0 and record["command"] == "scripts/check-docs", record
