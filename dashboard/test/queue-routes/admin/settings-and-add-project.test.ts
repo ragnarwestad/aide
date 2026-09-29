@@ -464,3 +464,97 @@ describe("POST /api/queue/projects (spec 112)", () => {
     expect(written.join("\n")).toContain("add-project refused");
   });
 });
+
+describe("Settings' Process tab: how many steps may run at once", () => {
+  const JSON_HEADERS = { "content-type": "application/json", accept: "application/json" };
+  const FORM = { "content-type": "application/x-www-form-urlencoded" };
+
+  /** A server with a runner. No job is queued in these tests, so the
+   *  runner bin is never spawned. */
+  function withRunner(extra: Partial<ServerOptions> = {}) {
+    const own = mkdtempSync(join(tmpdir(), "aide-process-tab-"));
+    ownDirs.push(own);
+    return start({ queueRunnerBin: "/usr/bin/true", queueResultDir: join(own, "jobs"), ...extra });
+  }
+
+  /** The value the Process tab's field opens on. */
+  async function shownCount(base: string): Promise<string | undefined> {
+    const html = await (await fetch(`${base}/settings?tab=process`)).text();
+    return html.match(/<input[^>]*name="concurrency"[^>]*>/)?.[0].match(/value="(\d+)"/)?.[1];
+  }
+
+  test("the tab opens on the count the running queue uses (AC-1)", async () => {
+    const { base } = withRunner({ queueConcurrency: 3 });
+    expect(await shownCount(base)).toBe("3");
+  });
+
+  test("with no value saved, the tab shows the built-in 2 (AC-5)", async () => {
+    const { base } = withRunner();
+    expect(await shownCount(base)).toBe("2");
+  });
+
+  test("a form post with no script saves, lands on Process, and the tab shows the new count (AC-2)", async () => {
+    const file = ownConfig({ concurrency: 2 });
+    const { base } = withRunner({ queueConcurrency: 2, queueConfigFile: file });
+    const res = await fetch(`${base}/api/queue/settings/concurrency`, {
+      method: "POST", headers: FORM, body: "concurrency=4", redirect: "manual",
+    });
+    expect(res.status).toBe(303);
+    const location = res.headers.get("location") ?? "";
+    expect(location).toContain("tab=process");
+    expect(location).toContain("notice=");
+    expect((JSON.parse(readFileSync(file, "utf-8")) as { concurrency: number }).concurrency).toBe(4);
+    expect(await shownCount(base)).toBe("4");
+  });
+
+  test("a count outside 1 to 8 is refused with a message and nothing is saved (AC-3)", async () => {
+    const file = ownConfig({ concurrency: 2 });
+    const before = readFileSync(file, "utf-8");
+    const { base } = withRunner({ queueConcurrency: 2, queueConfigFile: file });
+    for (const body of [{ concurrency: 0 }, { concurrency: 9 }, { concurrency: 2.5 }, { concurrency: "abc" }, {}]) {
+      const res = await fetch(`${base}/api/queue/settings/concurrency`, {
+        method: "POST", headers: JSON_HEADERS, body: JSON.stringify(body),
+      });
+      expect(res.status).toBe(400);
+      expect(((await res.json()) as { error: string }).error.length).toBeGreaterThan(0);
+    }
+    expect(readFileSync(file, "utf-8")).toBe(before);
+    expect(await shownCount(base)).toBe("2");
+  });
+
+  test("a refused form post with no script lands on Process saying why (AC-3)", async () => {
+    const file = ownConfig({ concurrency: 2 });
+    const before = readFileSync(file, "utf-8");
+    const { base } = withRunner({ queueConcurrency: 2, queueConfigFile: file });
+    for (const body of ["concurrency=abc", "concurrency="]) {
+      const res = await fetch(`${base}/api/queue/settings/concurrency`, {
+        method: "POST", headers: FORM, body, redirect: "manual",
+      });
+      expect(res.status).toBe(303);
+      const location = res.headers.get("location") ?? "";
+      expect(location).toContain("tab=process");
+      expect(location).toContain("error=");
+    }
+    expect(readFileSync(file, "utf-8")).toBe(before);
+  });
+
+  test("a server with no queue, or whose config file is missing, saves nothing (AC-3)", async () => {
+    const file = ownConfig({ concurrency: 2 });
+    const before = readFileSync(file, "utf-8");
+    const noRunner = start({ queueConfigFile: file });
+    const refused = await fetch(`${noRunner.base}/api/queue/settings/concurrency`, {
+      method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ concurrency: 3 }),
+    });
+    expect(refused.status).toBe(400);
+    expect(readFileSync(file, "utf-8")).toBe(before);
+
+    const missing = join(ownDirs[ownDirs.length - 1]!, "missing.json");
+    const noFile = withRunner({ queueConcurrency: 2, queueConfigFile: missing });
+    const res = await fetch(`${noFile.base}/api/queue/settings/concurrency`, {
+      method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ concurrency: 3 }),
+    });
+    expect(res.status).toBe(400);
+    expect(existsSync(missing)).toBe(false);
+    expect(await shownCount(noFile.base)).toBe("2");
+  });
+});

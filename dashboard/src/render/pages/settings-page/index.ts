@@ -3,6 +3,7 @@ import { esc } from "../../ui/html.ts";
 import { backLink, btn, helpPopover } from "../../ui/components";
 import { pickTab, tabBar } from "../../ui/tabs.ts";
 import { notificationsPanel } from "./notifications.ts";
+import { processPanel, type ProcessSettings } from "./process.ts";
 import { TOOL_TABS, toolPanel } from "./tools.ts";
 import type { CheckableTool, ToolCheck } from "./tools.ts";
 import type { Language } from "../../../i18n";
@@ -36,9 +37,6 @@ export function resolveSettingsTab(raw: string | undefined): { group: SettingsGr
   if (tab === "process" || tab === "notifications") return { group: tab, panel: tab };
   return { group: "ai", panel: tab };
 }
-
-const PROCESS_PANEL =
-  `<section class="toolpanel"><p class="muted">There are no settings here yet.</p></section>`;
 
 /** The steps that act on a spec: what a reader presses on a row of the
  *  specs list. They are one group because that is the one thing they
@@ -105,6 +103,9 @@ export interface SettingsPageOptions {
   /** The server's public key for push, which the Notifications tab's
    *  script subscribes a device with (spec 501). */
   pushPublicKey?: string;
+  /** What the Process tab shows. The `/settings` route always gives it;
+   *  a caller that never opens Process may leave it out. */
+  process?: ProcessSettings;
 }
 
 const LABELS: Record<(typeof SETTINGS_STEPS)[number], string> = {
@@ -223,7 +224,7 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
     : open === "notifications"
       ? notificationsPanel(opts.pushPublicKey, opts.lang ?? "en")
       : open === "process"
-        ? PROCESS_PANEL
+        ? (opts.process ? processPanel(opts.process, { error: opts.error, notice: opts.notice }) : "")
         : toolPanel(open, opts.checks?.[open]);
   // `pageShell` wraps the body in `<main>`: a second one inside it takes
   // the frame's padding twice. Both rows sit directly in it, so page.css's

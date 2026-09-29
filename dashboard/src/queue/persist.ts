@@ -237,9 +237,12 @@ export function persistPendingSteps(file: string, table: Record<string, string[]
   }
 }
 
+/** Each part optional: a save writes only what it names. */
 export interface QueueSettingsUpdate {
-  model: Record<string, string>;
-  timeoutSec: Record<string, number>;
+  model?: Record<string, string>;
+  timeoutSec?: Record<string, number>;
+  /** The top-level `concurrency`: how many steps may run at once. */
+  concurrency?: number;
 }
 
 /** Atomically replace the dashboard-owned workflow defaults while leaving
@@ -254,11 +257,14 @@ export function persistQueueSettings(file: string, next: QueueSettingsUpdate): s
       return `could not write ${file}: invalid JSONC configuration`;
     }
     const opts = { formattingOptions: { insertSpaces: true, tabSize: 2 } };
-    for (const [step, model] of Object.entries(next.model)) {
+    for (const [step, model] of Object.entries(next.model ?? {})) {
       source = applyEdits(source, modify(source, ["model", step], model, opts));
     }
-    for (const [step, sec] of Object.entries(next.timeoutSec)) {
+    for (const [step, sec] of Object.entries(next.timeoutSec ?? {})) {
       source = applyEdits(source, modify(source, ["timeoutSec", step], sec, opts));
+    }
+    if (next.concurrency !== undefined) {
+      source = applyEdits(source, modify(source, ["concurrency"], next.concurrency, opts));
     }
     mkdirSync(dirname(file), { recursive: true });
     const tmp = `${file}.tmp`;

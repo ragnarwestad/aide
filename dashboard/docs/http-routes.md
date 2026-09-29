@@ -154,14 +154,16 @@ Answered by the files under `src/serve/routes/spec-edit/`.
 
 ### Projects and settings
 
-Answered by `src/serve/routes/queue-admin.ts`, except the four `deploy/<step>` rows, which `src/serve/routes/deploy-steps.ts`
-answers. The page script posts those four one after the other; the combined `deploy` route does the same work in one
-request for a form posted without script.
+Answered by `src/serve/routes/queue-admin.ts`, except `settings/concurrency`, which
+`src/serve/routes/settings-concurrency.ts` answers, and the four `deploy/<step>` rows, which
+`src/serve/routes/deploy-steps.ts` answers. The page script posts those four one after the other; the combined `deploy`
+route does the same work in one request for a form posted without script.
 
 | Route                                                 | Kind   | Takes                               | Answers                                                                                              | Made for |
 |-------------------------------------------------------|--------|-------------------------------------|------------------------------------------------------------------------------------------------------|----------|
 | `POST /api/queue/settings`                            | action | model and timeout defaults per step | `{ ok }`; 400 `{ error }` for an unknown step or model                                               | form     |
 | `POST /api/queue/settings/check`                      | action | tool: the AI tool to check          | the check's result; 400 for a tool it cannot check                                                   | form     |
+| `POST /api/queue/settings/concurrency`                | action | concurrency: a whole number, 1 to 8 | `{ ok, concurrency }`; 400 `{ error }` for a number outside 1 to 8 or a server with no queue         | form     |
 | `POST /api/queue/projects`                            | action | name, git URL and Code landing      | `{ ok, … }` with the steps taken, or a 303                                                           | form     |
 | `POST /api/queue/projects/<project>/settings`         | action | the project's settings              | `{ ok, … }` with the steps taken, or a 303                                                           | form     |
 | `POST /api/queue/projects/<project>/deploy`           | action | nothing                             | `{ ok, restarting, installError? }`, or a 303; fast-forwards a checkout and runs the install command | form     |

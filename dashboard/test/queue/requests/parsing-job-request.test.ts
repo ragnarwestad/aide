@@ -68,6 +68,20 @@ describe("persistQueueSettings", () => {
     for (const step of Object.keys(timeoutSec)) expect(after).toContain(`"${step}": 1800`);
     expect(existsSync(`${file}.tmp`)).toBe(false);
   });
+
+  test("a save of the count alone rewrites concurrency and keeps the rest (AC-2)", () => {
+    const file = join(dir, "queue-config.json");
+    writeFileSync(file, `{\n  // keep this comment\n  "concurrency": 2,\n  "model": { "analyze": "old" }\n}\n`);
+    expect(persistQueueSettings(file, { concurrency: 4 })).toBeNull();
+    const after = readFileSync(file, "utf-8");
+    expect(after).toContain("// keep this comment");
+    expect(after).toContain('"concurrency": 4');
+    expect(after).toContain('"analyze": "old"');
+
+    writeFileSync(file, `{ "model": { "analyze": "old" } }\n`);
+    expect(persistQueueSettings(file, { concurrency: 3 })).toBeNull();
+    expect((JSON.parse(readFileSync(file, "utf-8")) as { concurrency: number }).concurrency).toBe(3);
+  });
 });
 
 describe("parseJobRequest", () => {

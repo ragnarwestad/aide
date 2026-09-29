@@ -533,3 +533,63 @@ describe("a result file that left fields out", () => {
     expect(store.get(job.id)?.results[0]?.tokens).toBeUndefined();
   });
 });
+
+// Settings' Process tab changes the count on the running queue: `tick()`
+// reads it on every pass, so the next tick is the next step it starts.
+// Three jobs for three different specs, so the per-spec hold-back cannot
+// be what keeps the third one queued.
+describe("the count changes on a live runner", () => {
+  const three = () => [
+    enqueue(),
+    enqueue({ specFolder: "91-parallel-spec-runs" }),
+    enqueue({ project: "other-project" }),
+  ];
+
+  test("raising it starts more from the next tick, and no more than that (AC-2)", () => {
+    const [a, b, c] = three();
+    const runner = makeRunner({ maxConcurrent: 1 });
+    runner.tick();
+    expect(spawns.length).toBe(1);
+    runner.setConcurrency(2);
+    expect(runner.concurrency).toBe(2);
+    runner.tick();
+    expect(spawns.length).toBe(2);
+    expect(store.get(a!.id)?.state).toBe("running");
+    expect(store.get(b!.id)?.state).toBe("running");
+    expect(store.get(c!.id)?.state).toBe("queued");
+  });
+
+  test("a count that is not a whole number above 0 is ignored (AC-2)", () => {
+    const runner = makeRunner({ maxConcurrent: 2 });
+    for (const bad of [0, 2.5, Number.NaN, -1]) {
+      runner.setConcurrency(bad);
+      expect(runner.concurrency).toBe(2);
+    }
+  });
+
+  test("lowering it stops nothing, and nothing starts until fewer than the new count run (AC-4)", () => {
+    const [a, b, c] = three();
+    const finished = new Set<string>();
+    const runner = makeRunner({
+      maxConcurrent: 2,
+      readResult: (path) => (finished.has(path) ? okResult(1) : null),
+    });
+    runner.tick();
+    expect(store.get(a!.id)?.state).toBe("running");
+    expect(store.get(b!.id)?.state).toBe("running");
+    runner.setConcurrency(1);
+    runner.tick();
+    expect(store.get(a!.id)?.state).toBe("running");
+    expect(store.get(b!.id)?.state).toBe("running");
+    expect(store.get(c!.id)?.state).toBe("queued");
+    finished.add(join(dir, `${a!.id}.json`));
+    runner.poll();
+    runner.tick();
+    expect(store.get(a!.id)?.state).toBe("done");
+    expect(store.get(c!.id)?.state).toBe("queued");
+    finished.add(join(dir, `${b!.id}.json`));
+    runner.poll();
+    runner.tick();
+    expect(store.get(c!.id)?.state).toBe("running");
+  });
+});

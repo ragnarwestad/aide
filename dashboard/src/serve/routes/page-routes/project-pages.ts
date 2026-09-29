@@ -16,7 +16,7 @@ import { ADD_PROJECT_ROUTE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, 
 import { MAIN_TEST_SERVER_KEY, refreshTestServerStatus } from "../../test-servers/lifecycle.ts";
 import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "../spec-edit/test-server-waiting.ts";
 import { isSpecFolder } from "../../../render/ui/shell.ts";
-import { SPEC_VIEWER_ASSET_PATH, languageChoice, modelChoiceOptions, specsClientScript } from "../../serve-helpers";
+import { SPEC_VIEWER_ASSET_PATH, languageChoice, modelChoiceOptions, processSettings, specsClientScript } from "../../serve-helpers";
 import { wikiView } from "./wiki-view.ts";
 import type { RoutesContext } from "..";
 import { scheduleLastRun } from "./schedule-last-run.ts";
@@ -49,6 +49,7 @@ export async function projectPages(
       // this page was opened.
       checks: lastChecks(),
       pushPublicKey: await ctx.push.publicKey(),
+      process: processSettings(ctx.runner, ctx.opts.queueConcurrency),
     });
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);

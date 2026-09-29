@@ -200,6 +200,9 @@ export function bodyToObject(text: string, contentType: string | null): unknown 
       if (Object.keys(picked).length) out.timeoutSec = picked;
     }
     if (typeof out.timeoutSec === "string") out.timeoutSec = Number(out.timeoutSec);
+    // Settings' Process tab: `Number("")` is 0 and `Number("abc")` NaN,
+    // and the route's 1-8 check refuses both.
+    if (typeof out.concurrency === "string") out.concurrency = Number(out.concurrency);
     return out;
   }
   return JSON.parse(text) as unknown;

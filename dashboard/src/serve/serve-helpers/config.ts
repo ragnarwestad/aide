@@ -1,6 +1,8 @@
 // Server-wide constants and the per-repo merge lock.
 
+import { availableParallelism } from "node:os";
 import type { QueueDefaults } from "../../queue/queue.ts";
+import type { ProcessSettings } from "../../render/pages/settings-page/process.ts";
 import workflowStepsData from "../../../../core/scripts/lib/workflow-steps.json" with { type: "json" };
 
 export const MAX_BODY = 4096;
@@ -134,18 +136,39 @@ export const LANDING_GATE_TIMEOUT_MS = 60 * 60_000;
 /** How many steps may run at once, from the queue config's
  *  `concurrency`. FALLS BACK, it does not clamp: `mergeQueueDefaults`
  *  already ignores what it does not understand and keeps the built-in
- *  value, and one rule beats two. The upper bound of 4 is the only thing
+ *  value, and one rule beats two. The upper bound of 8 is the only thing
  *  standing between a typo in a config file and sixteen `claude`
  *  sessions on the serving host. */
 export const DEFAULT_QUEUE_CONCURRENCY = 2;
+export const QUEUE_CONCURRENCY_MIN = 1;
+export const QUEUE_CONCURRENCY_MAX = 8;
 
-export function parseQueueConcurrency(raw: unknown): number {
+/** The 1-8 rule as a yes or no: the file reader falls back on a no,
+ *  Settings' save refuses it. */
+export function isQueueConcurrency(raw: unknown): raw is number {
   // 1..8: six is what the serving host runs now that a landing runs the
   // suite once and the timing tests tolerate a busy host (2026-09-03).
-  if (typeof raw !== "number" || !Number.isInteger(raw) || raw < 1 || raw > 8) {
-    return DEFAULT_QUEUE_CONCURRENCY;
-  }
-  return raw;
+  return typeof raw === "number" && Number.isInteger(raw) &&
+    raw >= QUEUE_CONCURRENCY_MIN && raw <= QUEUE_CONCURRENCY_MAX;
+}
+
+export function parseQueueConcurrency(raw: unknown): number {
+  return isQueueConcurrency(raw) ? raw : DEFAULT_QUEUE_CONCURRENCY;
+}
+
+/** What Settings' Process tab shows: the count the running queue uses
+ *  (the start-up value on a server with no runner), and this machine's
+ *  cores as a guide. */
+export function processSettings(
+  runner: { concurrency: number } | null,
+  startedWith: number | undefined,
+): ProcessSettings {
+  return {
+    concurrency: runner?.concurrency ?? startedWith ?? DEFAULT_QUEUE_CONCURRENCY,
+    cores: availableParallelism(),
+    min: QUEUE_CONCURRENCY_MIN,
+    max: QUEUE_CONCURRENCY_MAX,
+  };
 }
 
 /** The steps a dependency actually holds back (spec 122): the ones that

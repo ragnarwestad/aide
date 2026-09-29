@@ -161,9 +161,10 @@ read instead of reading it again. It applies only when both steps run with the s
 model may differ) and the analysis ended within the hour; past that the tool's cache of the session is gone and reading it
 back costs more than starting afresh. A session that cannot be continued starts the implement afresh. Off unless set.
 
-`projects` is the odd one out in that file: it is the only key the server WRITES as well as reads. It is the queue's
-allowlist, and the Add and Remove buttons on `/projects` rewrite it — which is what makes those take
-effect without a restart. The
+The server WRITES some of that file's keys as well as reading them, each from one page: `projects` from the Add and
+Remove buttons on `/projects`, `schedules` from a project's Schedule tab, and `model`, `timeoutSec` and `concurrency`
+from Settings. A write keeps the file's comments and every other key. `projects` is the queue's allowlist, and
+rewriting it is what makes Add and Remove take effect without a restart. The
 `--queue-projects` flag is the seed for a first install where this file does not exist yet; where the file HAS a
 `projects` array, it wins over the flag. A malformed one is ignored entirely and the flag is kept, the same direction
 every other key here fails in.
@@ -468,9 +469,12 @@ when the file is read, and a malformed `cron` drops that one entry — never the
 `concurrency`, two by default. **1 to 8 is accepted and anything else — missing, non-numeric, out of range — falls
 back to two**; it does not clamp, because `concurrency: 9` would otherwise have to be both 8 and 2 depending on
 which rule you read. The upper bound is the only thing between a typo in this file and a host full of `claude`
-sessions. The serving host runs six.
+sessions.
 
-`1` runs one job at a time, so backing out of concurrent runs is a config edit and a restart.
+The Process tab on Settings shows the number the queue is using, with the machine's number of cores beside it as a
+guide, and saves a new one into this file. A number outside 1 to 8 is refused with the reason on the tab, and nothing
+is written. A saved number is used from the next step the queue starts, with no restart. Lowering it stops no step
+that is running: the queue starts nothing new until fewer than the new number run. `1` runs one job at a time.
 
 Two jobs for the same spec are never started at the same time — analyze and implement for one spec are ordered by
 nature. Nor are two `archive` steps in the same project: both land into the code root's main, and the second is held

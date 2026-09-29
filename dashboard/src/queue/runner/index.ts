@@ -44,7 +44,7 @@ export type { SpawnResult, Spawner, StepOutcome, RunnerOptions } from "./types.t
 
 export class Runner {
   private readonly o: RunnerOptions;
-  private readonly maxConcurrent: number;
+  private maxConcurrent: number;
   private day: string;
   private spentTokens = 0;
 
@@ -52,6 +52,18 @@ export class Runner {
     this.o = opts;
     this.maxConcurrent = opts.maxConcurrent && opts.maxConcurrent > 0 ? opts.maxConcurrent : 1;
     this.day = opts.today();
+  }
+
+  /** How many steps may run at once, as the queue uses it right now. */
+  get concurrency(): number {
+    return this.maxConcurrent;
+  }
+
+  /** Settings' Save, used from the next tick: a running step is never
+   *  stopped for it. Anything but a whole number above 0 is ignored,
+   *  since NaN here would let every queued job start. */
+  setConcurrency(n: number): void {
+    if (Number.isInteger(n) && n > 0) this.maxConcurrent = n;
   }
 
   // --- the day's total ------------------------------------------------------

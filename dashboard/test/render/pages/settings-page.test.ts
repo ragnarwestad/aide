@@ -122,11 +122,7 @@ describe("the Settings tabs", () => {
     expect(notifications.current).toEqual(new Set(["notifications"]));
   });
 
-  test("Process is its own group and holds no settings (AC-5)", () => {
+  test("Process is its own group (AC-5)", () => {
     expect(resolveSettingsTab("process")).toEqual({ group: "process", panel: "process" });
-    const html = render("process");
-    expect(html).not.toContain("data-settings-form");
-    expect(html).not.toContain("data-tool=");
-    expect(html).not.toContain("data-push-panel");
   });
 });
