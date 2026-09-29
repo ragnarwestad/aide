@@ -21,9 +21,9 @@ export {
   specClosed, specClosedDate, specCloseReason,
 } from "./spec-files.ts";
 
-export { specDependsOn, stripDependsOnLine, withDependsOnLine } from "./depends-on.ts";
+export { dependsOnIn, specDependsOn, stripDependsOnLine, withDependsOnLine } from "./depends-on.ts";
 
-export { specAcceptanceNotRequired, stripAcceptanceLine, withAcceptanceLine } from "./acceptance.ts";
+export { acceptanceNotRequiredIn, specAcceptanceNotRequired, stripAcceptanceLine, withAcceptanceLine } from "./acceptance.ts";
 
 export {
   discoverProjects, manifestInside, gitignoreCandidates, buildProjectViews, specFolders,

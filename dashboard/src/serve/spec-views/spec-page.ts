@@ -4,7 +4,8 @@
 // lines; every function is unchanged and keeps its name.
 import { parseAcCoverage, readAcCoverage, withAcCoverage } from "../../project/ac-coverage.ts";
 import {
-  specAcceptanceNotRequired, specCloseReason, specClosedDate, specFileText, stripDependsOnLine,
+  acceptanceNotRequiredIn, dependsOnIn, specAcceptanceNotRequired, specCloseReason, specClosedDate, specFileText,
+  stripDependsOnLine,
 } from "../../project/discover";
 import { acceptanceSectionUnreadable, parseStatus } from "../../project/parse-status";
 import { phasesFor, specPagePath, resolveSpecTab, EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, TAB_FILES, type SpecPageView } from "../../render";
@@ -14,6 +15,7 @@ import { lastCommitOf } from "../../git/description-freshness.ts";
 import { readStatusFromFetchedBranch, resolveOpenBranchTarget } from "../../git/branch-file.ts";
 import { refreshTestServerStatus } from "../test-servers/lifecycle.ts";
 import { type SpecViewsContext, specFileViews } from "./";
+import { type BranchCopy, readBranchCopy } from "./branch-copy.ts";
 
 import { jobDetailView } from "./job-detail.ts";
 
@@ -159,22 +161,32 @@ export async function specPageView(
   const fetchForm = Boolean(formFile) && !ref?.archived;
   let formBaseSha: string | undefined;
   let formText: string | null = null;
+  let formCopy: BranchCopy | null = null;
   if (fetchForm) {
     const formDir = await ctx.machinerySpecDir(project, found);
     // REQ-4: the same "ask the open branch first" question the Checks
     // section already asks (above), and as cached: the page is not kept
     // waiting on origin. A Save compares against the version IT will
     // write onto by asking afresh itself, and refuses when this was older.
-    const target = await resolveOpenBranchTarget(ctx, formDir, specFolder, formFile!, false);
-    const branchRead = target ? await readStatusFromFetchedBranch(ctx.gitRun, target.root, target.branch, target.relPath) : null;
-    if (branchRead) {
-      formBaseSha = branchRead.sha;
-      formText = branchRead.text;
+    formCopy = await readBranchCopy(ctx, formDir, specFolder, formFile!);
+    if (formCopy) {
+      formBaseSha = formCopy.sha;
+      formText = formCopy.text;
     } else {
       formBaseSha = (await lastCommitOf(ctx.gitRun, formDir, formFile!))?.sha;
       formText = specFileText(formDir, formFile!);
     }
   }
+  // The description the banner speaks for, from where a Save writes it:
+  // the open tab's own read when that is the description, else the same
+  // read through the peeked `dir` (as the Checks read above), so a tab
+  // with no form never waits on a clone. None for an archived spec, whose
+  // description is on disk.
+  const descriptionCopy = ref?.archived
+    ? null
+    : fetchForm && formFile === EDITABLE_SPEC_FILE
+      ? formCopy
+      : await readBranchCopy(ctx, dir, specFolder, EDITABLE_SPEC_FILE);
   const jobRows = await Promise.all(jobs.map(ctx.jobRow));
   const jobDetails = await Promise.all(jobs.map((job) => jobDetailView(ctx, job)));
   // jobs is newest-first; oldest = attempt 1. Only tagged when there is
@@ -245,10 +257,13 @@ export async function specPageView(
     // it; Overview shows what it resolves to, read-only.
     files: files.map((f) => {
       if (!fetchForm || f.label !== formFile) return f;
+      // The stamp names the version the text is: the branch's commit when
+      // the text came off the branch.
+      const stamp = formCopy ? { sha: formCopy.sha, at: formCopy.at, checking: false } : {};
       if (f.label === EDITABLE_SPEC_FILE) {
-        return formText === null ? { ...f, text: formText } : { ...f, text: stripDependsOnLine(formText) };
+        return formText === null ? { ...f, ...stamp, text: formText } : { ...f, ...stamp, text: stripDependsOnLine(formText) };
       }
-      return { ...f, text: formText };
+      return { ...f, ...stamp, text: formText };
     }),
     checks: {
       rows,
@@ -261,15 +276,15 @@ export async function specPageView(
     // hand-written line usually is one — matching the raw string
     // against a folder would leave a real dependency unticked, and
     // the next Save would then silently drop it.
-    dependsOn: ctx.dependencyFolders(project, dir),
+    dependsOn: ctx.dependencyFolders(project, dir, descriptionCopy ? dependsOnIn(descriptionCopy.text) : undefined),
     // Spec 174: the New-spec page's picker, fed this project's own
     // active specs. Self excluded — the one box that could only ever
     // earn spec 166's "cannot depend on itself" refusal.
     dependsOnOptions: ctx.targets().filter((t) => t.project === project && t.specFolder !== specFolder),
-    // Spec 394: read off the same on-disk directory `dependsOn` above
-    // comes from — a fresh read, since the banner is drawn once per page
+    // Spec 394: read off the same description `dependsOn` above comes
+    // from — a fresh read, since the banner is drawn once per page
     // load and this fact only changes via the banner's own Save.
-    acceptanceNotRequired: specAcceptanceNotRequired(dir),
+    acceptanceNotRequired: descriptionCopy ? acceptanceNotRequiredIn(descriptionCopy.text) : specAcceptanceNotRequired(dir),
     phases: phasesFor(jobRows, target),
     // `targets()` deliberately drops an archived spec (serve.ts:792-796),
     // so `target` — and `target?.done` — is always empty for one. The

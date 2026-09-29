@@ -5,7 +5,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  discoverProjects, specDependsOn, specDescription, stripDependsOnLine, withDependsOnLine,
+  dependsOnIn, discoverProjects, specDependsOn, specDescription, stripDependsOnLine, withDependsOnLine,
 } from "../../../src/project/discover";
 import { useDiscoverRoot } from "./discover-fixtures.ts";
 
@@ -110,6 +110,13 @@ describe("specDependsOn", () => {
     expect(specDependsOn(spec("03-none", TRACKING("")))).toEqual([]);
     expect(specDependsOn(spec("04-empty", TRACKING("- **Depends on:**")))).toEqual([]);
     expect(specDependsOn(join(dir, "nowhere"))).toEqual([]);
+  });
+
+  test("dependsOnIn reads a description's text the way specDependsOn reads its file (AC-1)", () => {
+    for (const line of ["- **Depends on:** `105`, `92-a-spec-can-depend`", "- **Depends on:** `105`", "- **Depends on:**", ""]) {
+      expect(dependsOnIn(TRACKING(line))).toEqual(specDependsOn(spec(`in-${line.length}`, TRACKING(line))));
+    }
+    expect(dependsOnIn(TRACKING("- **Depends on:** `105`, `92-a-spec-can-depend`"))).toEqual(["105", "92-a-spec-can-depend"]);
   });
 
   test("discoverProjects carries it alongside the title and the description", () => {
