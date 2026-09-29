@@ -43,8 +43,11 @@ export function renderReopenSpecPage(
     `<input type="hidden" name="project" value="${esc(project)}">` +
     `<input type="hidden" name="specFolder" value="${esc(specFolder)}">` +
     `<input type="hidden" name="steps" value="reopen">` +
-    `<p><label class="checkbox"><input type="checkbox" name="resetFiles" value="1"> ` +
-    `Also reset the analysis, the plan and the status</label></p>` +
+    // A line of its own (`.frow`), the box and its words side by side
+    // (`.row`). Never `.checkbox`: that is the fixed 18px square an
+    // acceptance row draws, and it squeezed the words into eighteen pixels.
+    `<div class="frow"><label class="row"><input type="checkbox" name="resetFiles" value="1">` +
+    `<span>Also reset the analysis, the plan and the status</span></label></div>` +
     `<span class="factions">` +
     btn({ label: "Reopen", variant: "primary", pending: "reopening…" }) +
     `<a class="btn" href="${esc(back)}">Cancel</a>` +
