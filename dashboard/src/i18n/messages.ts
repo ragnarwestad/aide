@@ -105,6 +105,17 @@ export const MESSAGES = {
     fr: "archive a signalé un succès mais n'a laissé aucun progrès réel — le dossier de la spec n'a jamais été déplacé vers archive/. — Cliquez de nouveau sur {button}.",
     resolve: "Press {button} again.",
   },
+  // The model's own refusal to go on (`stop_reason: "refusal"` on Claude
+  // Code's result), said for the step it stopped: no login or install
+  // advice, since the AI itself answered.
+  "runner.modelRefused": {
+    en: "{button} stopped: the model declined to continue. — Press {button} again, or choose another model for this step.",
+    nb: "{button} stoppet: modellen ville ikke fortsette. — Trykk {button} igjen, eller velg en annen modell for dette steget.",
+    es: "{button} se detuvo: el modelo se negó a continuar. — Pulsa {button} de nuevo, o elige otro modelo para este paso.",
+    de: "{button} angehalten: das Modell hat sich geweigert fortzufahren. — Klicke erneut auf {button} oder wähle für diesen Schritt ein anderes Modell.",
+    fr: "{button} interrompu : le modèle a refusé de continuer. — Cliquez de nouveau sur {button}, ou choisissez un autre modèle pour cette étape.",
+    resolve: "Press {button} again, or choose another model for this step.",
+  },
   "runner.testsRedImplement": {
     en: "implement reported success, but the project's tests are red on its result — the runner ran them itself, and the failing tests are listed below. — Press {button} again; the step ends only on a green run.",
     nb: "implementering meldte ferdig, men prosjektets tester er røde på resultatet — runneren kjørte dem selv, og testene som feiler står under. — Trykk {button} igjen; steget ender bare på en grønn kjøring.",
@@ -583,6 +594,14 @@ export const MESSAGES = {
     de: "das Nutzungslimit der KI wurde erreicht — führe es erneut aus, sobald das Limit zurückgesetzt ist",
     fr: "la limite d'utilisation de l'IA a été atteinte — relancez-le une fois la limite réinitialisée",
     resolve: "run it again once the limit resets",
+  },
+  "wordPhase.stopModelRefused": {
+    en: "the model declined to continue — run it again, or choose another model",
+    nb: "modellen ville ikke fortsette — kjør på nytt, eller velg en annen modell",
+    es: "el modelo se negó a continuar — ejecútalo de nuevo, o elige otro modelo",
+    de: "das Modell hat sich geweigert fortzufahren — führe es erneut aus oder wähle ein anderes Modell",
+    fr: "le modèle a refusé de continuer — relancez-le, ou choisissez un autre modèle",
+    resolve: "run it again",
   },
   "wordPhase.filesDisagree": {
     // The spec's files and the run record (the state file, or git where

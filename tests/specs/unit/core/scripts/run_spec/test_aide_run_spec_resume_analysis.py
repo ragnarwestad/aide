@@ -61,3 +61,24 @@ def test_a_session_that_cannot_be_continued_starts_the_implement_afresh(runner, 
     assert len(calls) >= 2, calls
     assert "--resume" in calls[0] and "--resume" not in calls[1], calls
     assert out["terminalReason"] != "cli-error", out
+
+
+def test_a_refused_session_starts_the_implement_afresh(runner, workspace, fake_claude):
+    """A refusal on the resumed session is not the implement's own: it runs
+    again as it would have without the flag, as it does for `cli-error`."""
+    refused = {**RESULT_OK, "is_error": True, "stop_reason": "refusal", "terminal_reason": "api_error"}
+    claude = fake_claude(
+        'case "$*" in *--resume*)\n'
+        "  cat > /dev/null\n"
+        f"  echo '{json.dumps(refused)}'\n"
+        "  exit 1 ;;\n"
+        "esac\n"
+        "cat > /dev/null\n"
+        'echo "written by the step" > "$PWD/new-code.txt"\n'
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement", resume_session=SESSION)
+    calls = fake_claude.calls.read_text().splitlines()
+    assert len(calls) >= 2, calls
+    assert "--resume" in calls[0] and "--resume" not in calls[1], calls
+    assert out["terminalReason"] != "model-refused", out

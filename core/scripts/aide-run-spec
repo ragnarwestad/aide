@@ -47,7 +47,7 @@
 #
 # terminalReason is this script's own vocabulary, not the CLI's:
 #   completed | timeout | provider-limit | refused | spawn-failed | cli-error
-#   | already-landed
+#   | model-refused | already-landed
 #
 # --stream-file PATH keeps the claude transcript (stream-json, one event
 # per line) at PATH instead of discarding it with the working directory.

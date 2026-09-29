@@ -7,6 +7,7 @@ import type { Language } from "../../../i18n";
 import { t } from "../../../i18n";
 import { stepButton } from "../../../format/step-label.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
+import { isFailedStop } from "../../../format/stop-reason.ts";
 import { BADGE_VARIANT, inFlight, stateWord } from "./format.ts";
 import type { QueueRowView } from "./types.ts";
 
@@ -23,6 +24,7 @@ const STOP_SENTENCES: Record<string, MessageKey> = {
   "already-archived": "wordPhase.stopAlreadyArchived",
   "conflict-open": "wordPhase.stopConflictOpen",
   "provider-limit": "wordPhase.stopProviderLimit",
+  "model-refused": "wordPhase.stopModelRefused",
 };
 
 export const stopSentence = (reason: string, lang: Language = "en"): string => {
@@ -190,6 +192,17 @@ function decidePhase(
       qualifier: attemptQualifier(attempt, lang),
     };
   }
+  // This phase's own newest run ended failed: it speaks for the phase over
+  // an earlier Done. Its OWN result is read, not the job's state, so a step
+  // that succeeded and whose merge then failed is left to the branch above.
+  const ownResult = history.step ? attempt?.results?.find((r) => r.step === history.step) : undefined;
+  if (happened && attempt && !running && attempt.state === "failed" && ownResult?.ok === false) {
+    return {
+      pip: "todo",
+      badge: { variant: BADGE_VARIANT[attempt.state], label: capitalizeFirst(stateWord(attempt, lang)) },
+      qualifier: filesDisagree,
+    };
+  }
   if (happened) {
     return {
       pip: running ? "now" : "past",
@@ -231,6 +244,10 @@ function decidePhase(
   // "last run reported done, but the files disagree" — alarming, and
   // wrong, about a run that said exactly what happened.
   if (history.stopped) {
+    // A failure reads red and Failed, as the job's own state does; the
+    // queue's two limits and a cancel stay amber and Stopped.
+    const failed = isFailedStop(history.stopped);
+    const word = t(lang, failed ? "state.failed" : "state.stopped");
     return {
       // Amber, the same variant a stopped JOB takes (BADGE_VARIANT) —
       // notice, not alarm: the work is committed and the step can be
@@ -239,8 +256,8 @@ function decidePhase(
       // The word alone in the badge; the reason is the row's error line
       // (spec 339: the State column says where a spec stands, errors go
       // in the error line).
-      badge: { variant: "waiting", label: capitalizeFirst(t(lang, "state.stopped")) },
-      qualifier: `${t(lang, "state.stopped")}: ${stopSentence(history.stopped, lang)}`,
+      badge: { variant: failed ? BADGE_VARIANT.failed : "waiting", label: capitalizeFirst(word) },
+      qualifier: `${word}: ${stopSentence(history.stopped, lang)}`,
     };
   }
   // The queue has no job for this phase, and the git-verified history
