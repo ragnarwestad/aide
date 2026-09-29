@@ -26,7 +26,7 @@ checkouts a step works in, what a finished step publishes — and, last, how to 
 | The gates before a step starts, and the lock itself | `run-spec-gates.sh`          |
 | Committing and pushing afterwards                   | `run-spec-publish.sh`        |
 | Whether a step counts as having run                 | `run-spec-status-line.sh`    |
-| The review that follows an implement's own turn     | `run-spec-review.sh`         |
+| The two reviews' lines in the log, and the review   | `run-spec-review.sh`         |
 | The test gate an implement ends on                  | `run-spec-step-tests.sh`     |
 | Where the specs root comes from, and the model turn | `run-spec-spec-paths.sh`     |
 
@@ -293,6 +293,14 @@ turn opens it again after itself, so the log reads as one sequence of marked par
 Every physical line is its own line. Only the `error: ` prefix marks an error and only the turn line marks a turn:
 the transcript is cut at each turn's byte, and Aide's lines go between the turns. The script writes one `error:` line
 for the step's own failure before its result line, and one for a refused run.
+
+**What the two reviews found** is written in the `tests and commit` part. A completed analyze gets one line, read from
+the `**Findings:**` line that opens the plan's Plan review section (`plan_review_line`, `run-spec-review.sh`):
+`plan review: 2 must-fix, 3 should-fix, 4 acted on — the findings are under Plan review in the plan (3-solution.md)`,
+or that the plan has no Plan review section, or that the section gives no counts. Code blocks are skipped, and after a
+`## Round N` heading only that round's review counts. An implement's code review writes
+`the review found no defects`, or an `error:` line with the count, one `review: <line>` per line of the reviewer's
+list, and `the defect(s) went back to the implement session to be fixed` before the fix turn.
 
 ## Running a step by hand
 

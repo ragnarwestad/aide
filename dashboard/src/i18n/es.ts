@@ -124,6 +124,11 @@ export const es: Record<TranslationKey, string> = {
   "list.branchLeftBehind":
     "Esta spec se mergeó, pero su branch no se pudo borrar en origin. — " +
     "Bórrala a mano, en el checkout del servidor.",
+  "list.branchStillOnOrigin":
+    "Esta spec se mergeó, pero su branch sigue en origin. — " +
+    "Pulsa Borrar branch para borrarla allí.",
+  "list.deleteBranch": "Borrar branch",
+  "list.deletingBranch": "borrando…",
   "list.noPullRequestOpened":
     "su código está en una branch y no se abrió ninguna pull request para ella. — Ábrela a mano, " +
     "en el checkout del servidor.",

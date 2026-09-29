@@ -216,7 +216,8 @@ table, and a section with no row is not one this gate can find open.
 **`archive`'s landing** merges the specs repo, then the code root, runs `AIDE_INSTALL_CMD` after a code root, and then
 asks origin whether `aide/<folder>` is still there. A root that still holds it is a landing that did not finish: the
 job goes `failed` with `errorReason: "unlanded"`, and the spec keeps a row on the default view wearing "not landed"
-until `archive` is run again — see [Branches and landing](landing.md).
+until `archive` is run again — see [Branches and landing](landing.md). A branch the landing merged but could not
+delete is the exception: the spec is archived, and its row offers Delete branch.
 
 ## When a spec stops, and what moves it on
 
@@ -234,7 +235,8 @@ is the whole set:
 | stopped: scope-violation              | The step wrote outside its own spec folder, or claimed a step it did not run       | Press the same button again                                         |
 | stopped: tests-red                    | The project's suite is red, after the runner gave the session two more turns at it | Make the suite green, then press Implement                          |
 | stopped: timeout                      | The step reached its own time limit                                                | Press the same button again; the work it committed is on the branch |
-| not landed                            | Archive finished, but the spec's branch is still on origin                         | Run Archive again                                                   |
+| not landed                            | Archive finished, but the spec's branch is still on origin, not merged             | Run Archive again                                                   |
+| branch still on origin                | The branch merged, but deleting it on origin failed                                | Press Delete branch                                                 |
 | conflict                              | A merge conflict no machine could settle                                           | Resolve it yourself, with the diff in front of you                  |
 
 An archived or closed spec refuses every step but Reopen, whatever is ticked on its row.
@@ -379,7 +381,8 @@ A row's state is one of these:
   `interrupted`. A job whose branch is still landing reads as `running`, whatever its own state, so a spec still
   merging sits with the ones still going.
 - `archived`.
-- `archived-unlanded` — archived, with its branch still on origin.
+- `archived-unlanded` — archived, with its branch still on origin and not merged. A branch that merged leaves the
+  row `archived`.
 - `closed`.
 
 The State filter groups them:

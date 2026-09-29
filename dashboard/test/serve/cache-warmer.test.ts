@@ -552,3 +552,78 @@ describe("the code checkout's branches are asked for a live spec", () => {
     expect(lsRemotes(calls)).toHaveLength(0);
   });
 });
+
+// An archived spec whose branch is still on origin may have merged: a
+// landing whose delete failed. The row peeks git's merged answer, and
+// this sweep is what keeps that answer warm — for the few archived specs
+// whose branch is open, never for the rest of the archive.
+describe("refreshSpecCaches asks whether an open archived branch is merged", () => {
+  const ROOT = "/fake/root/aide";
+  const OPEN = "aide/77-old-thing";
+
+  function mergedCtx() {
+    const ancestor = { code: 0 };
+    const calls: GitCall[] = [];
+    const run: GitRunner = async (dir, args) => {
+      calls.push({ dir, args });
+      if (args[0] === "ls-remote") return { code: 0, stdout: `sha\trefs/heads/${OPEN}\n` };
+      if (args[0] === "symbolic-ref") return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (args[0] === "merge-base") return { code: ancestor.code, stdout: "" };
+      if (args[0] === "fetch") return { code: 0, stdout: "" };
+      return { code: 1, stdout: "" };
+    };
+    let warming = false;
+    let notifyCount = 0;
+    const branchStatus = new BranchStatusChecker({ run, ttlMs: 0 });
+    const ctx: ScheduleContext = {
+      projectRoot: undefined,
+      machineryProjectDir: (p) => `/fake/${p}`,
+      scheduleStore: createScheduleStore(undefined),
+      branchStatus,
+      readWorkflowHistory: () => ({}) as unknown as WorkflowHistoryChecker,
+      readFreshness: () => ({}) as unknown as DescriptionFreshnessChecker,
+      readSpecCreatedAt: () => ({}) as unknown as SpecCreatedAtChecker,
+      readSpecFileCommits: () => ({}) as unknown as SpecFileCommitChecker,
+      specsRoot: async (dir) => dir,
+      readBranchFileSteps: () => ({}) as unknown as BranchFileStepsChecker,
+      targets: () => [],
+      // 78's branch is gone from origin: nothing about it is asked.
+      readScan: () => ({ archived: ["aide/77-old-thing", "aide/78-gone"], dirs: new Map() }),
+      allowed: new Set(),
+      ensureCheckout: async () => undefined,
+      getWarming: () => warming,
+      setWarming: (v) => {
+        warming = v;
+      },
+      queue: {} as unknown as QueueStore,
+      specRoots: () => [ROOT],
+      readRunner: () => null,
+      checkoutEnsurer: {} as unknown as CheckoutEnsurer,
+      notifyQueueChanged: () => {
+        notifyCount += 1;
+      },
+    };
+    return { ctx, ancestor, calls, branchStatus, notifyCount: () => notifyCount };
+  }
+
+  test("for an archived spec whose branch is open, and not for one whose branch is gone (AC-1)", async () => {
+    const { ctx, calls, branchStatus } = mergedCtx();
+    expect(branchStatus.peekMerged(ROOT, OPEN)).toBeNull();
+    await refreshSpecCaches(ctx);
+    const asked = calls.filter((c) => c.args[0] === "merge-base").map((c) => c.args[2]);
+    expect(asked).toEqual([`refs/remotes/origin/${OPEN}`]);
+    expect(branchStatus.peekMerged(ROOT, OPEN)).toBe(true);
+    expect(branchStatus.peekMerged(ROOT, "aide/78-gone")).toBeNull();
+  });
+
+  test("a merged answer that flips sends exactly one change event (AC-1)", async () => {
+    const { ctx, ancestor, notifyCount } = mergedCtx();
+    await refreshSpecCaches(ctx); // discovery: the open set moved
+    expect(notifyCount()).toBe(1);
+    await refreshSpecCaches(ctx); // nothing moved
+    expect(notifyCount()).toBe(1);
+    ancestor.code = 1; // the open set is the same; only the merged answer moved
+    await refreshSpecCaches(ctx);
+    expect(notifyCount()).toBe(2);
+  });
+});

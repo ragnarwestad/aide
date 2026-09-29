@@ -3,6 +3,7 @@
 import { testServerControlRoutes } from "./test-server-controls.ts";
 import { checkRoutes } from "./checks.ts";
 import { closeControlRoutes } from "./close-controls.ts";
+import { branchControlRoutes } from "./branch-controls.ts";
 import { runControlRoutes } from "./run-controls.ts";
 import { specPageRoutes } from "./spec-page.ts";
 import { trackingRoutes } from "./tracking.ts";
@@ -24,6 +25,7 @@ export async function handleSpecEditRoutes(
   return (
     (await runControlRoutes(ctx, req, url, path, wantsJson)) ??
     (await closeControlRoutes(ctx, req, path, wantsJson)) ??
+    (await branchControlRoutes(ctx, req, path, wantsJson)) ??
     (await testServerControlRoutes(ctx, req, path, wantsJson)) ??
     (await specPageRoutes(ctx, req, url, path, wantsJson)) ??
     (await trackingRoutes(ctx, req, url, path, wantsJson)) ??

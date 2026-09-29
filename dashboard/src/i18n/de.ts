@@ -124,6 +124,11 @@ export const de: Record<TranslationKey, string> = {
   "list.branchLeftBehind":
     "Diese Spec wurde gemergt, aber ihr Branch konnte auf origin nicht gelöscht werden. — " +
     "Lösche ihn von Hand, im Checkout auf dem Server.",
+  "list.branchStillOnOrigin":
+    "Diese Spec wurde gemergt, aber ihr Branch liegt noch auf origin. — " +
+    "Drücke Branch löschen, um ihn dort zu löschen.",
+  "list.deleteBranch": "Branch löschen",
+  "list.deletingBranch": "wird gelöscht…",
   "list.noPullRequestOpened":
     "der Code liegt auf einem Branch, und es wurde kein Pull Request dafür geöffnet. — " +
     "Öffne einen von Hand, im Checkout auf dem Server.",

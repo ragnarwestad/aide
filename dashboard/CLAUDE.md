@@ -64,7 +64,9 @@ get them, and reads them by hand.
   already-successful, already-committed implement over it. Either way,
   the step's reported cost is the sum of every turn this ran, and its
   `sessionId` still names the implement session, never the review's own
-  throwaway one.
+  throwaway one. A completed `analyze` gets its plan-review line from the
+  same file: the counts from the `**Findings:**` line of the plan's Plan
+  review section, never counted by the runner itself.
 - **An `implement` ends only on a green test run the runner made itself**
   (`run-spec-step-tests.sh`), which runs after the review above: the
   session's own record is never what decides. Red goes back to the same

@@ -49,6 +49,19 @@ export function rememberUnderRoots(
   for (const r of cacheRootsWithin(ctx, project, root)) ctx.branchStatus.rememberOpenSpecBranch(r, branch);
 }
 
+/** The same roots, for the other half of that answer: a merge whose delete
+ *  failed left a branch that is part of the default branch already, and
+ *  the archived row reads it as merged rather than as a landing that did
+ *  not finish. */
+export function rememberMergedUnderRoots(
+  ctx: Pick<LandContext, "machineryProjectDir" | "machinerySpecsRoot" | "branchStatus">,
+  project: string,
+  root: string,
+  branch: string,
+): void {
+  for (const r of cacheRootsWithin(ctx, project, root)) ctx.branchStatus.rememberMerged(r, branch);
+}
+
 export function handedToMerge(
   ctx: LandContext,
   job: Job,

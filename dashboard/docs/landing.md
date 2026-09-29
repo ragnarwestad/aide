@@ -203,6 +203,15 @@ land is not finished, and its row has to say so.**
   never the job's `errorReason`: a spec can reach this state with no reason recorded at all, and a stale reason on an
   old job would resurrect a row
   for a spec that is genuinely finished.
+- **A branch that merged is a cleanup, not a failure.** When git says the open `aide/<folder>` is an ancestor of
+  origin's default branch in every root that holds it — a merge whose delete failed, most often — the spec is
+  archived: off Active and Failed, with an amber note that its branch is still on origin and a Delete branch button.
+  The row peeks that merged answer (`peekMerged`); the landing records it the moment its delete fails, and the
+  background sweep asks it for archived specs whose branch is open. An answer not in yet, or "not merged", reads "not
+  landed" as above. A closed spec's branch was never meant to merge, and its row is left as it was.
+- **Delete branch asks origin itself.** `POST /api/queue/specs/<project>/<spec>/delete-branch` asks each root fresh
+  whether it holds the branch and whether it is merged, deletes nothing if any root is not merged, and deletes once per
+  repository. A closed spec, a spec that is not archived, a landing in the project or a job for the spec is refused.
 - **The way out is the step that already exists.** `archive` can be enqueued again for such a spec: `aide-run-spec`
   hands it the open merge, `/aide-archive`'s Step 1 resolves it, Step 2 still runs — `already-archived`
   carries the same `needsDocFeedback` a fresh archive does — and the landing that follows merges cleanly. A set that has not been refreshed yet is empty, so the enqueue fails closed.

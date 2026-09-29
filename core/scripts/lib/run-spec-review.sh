@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # run-spec-review.sh — a second pair of eyes on what implement changed,
-# before the runner's own test run decides the step (spec 551).
+# before the runner's own test run decides the step (spec 551), and the
+# log line that says what an analyze's own plan review found.
 #
 # Sourced by aide-run-spec between run-spec-status-line.sh (which can
 # still downgrade terminal_reason away from "completed" for a step with
@@ -27,6 +28,50 @@
 # a clean "no defects" falls back to "found nothing" instead of failing
 # an otherwise-successful, already-committed implement over an added
 # safety net's own hiccup.
+#
+# A completed analyze gets one line of its own instead: the plan review's
+# counts, read from the `**Findings:**` line the analyze skill opens its
+# Plan review section with (core/skills/aide-analyze/references/
+# plan-review.md), and where the findings are. The runner never counts
+# the lists itself: a section without that line is logged as giving no
+# counts.
+
+# The counts of the newest Plan review section in <3-solution.md>, as
+# `<n> must-fix, <n> should-fix, <n> acted on`; `nocounts` for a section
+# without a whole Findings line; nothing when there is no section. Fenced
+# blocks are examples, not the section, and a `## Round N` heading starts
+# over, so a held-back round's own review is the one read.
+plan_review_line() {  # <3-solution.md>
+  [ -f "$1" ] || return 0
+  awk '
+    function n(line, word) { return match(line, "[0-9]+ " word) ? substr(line, RSTART, RLENGTH) : "" }
+    /^(```|~~~)/ { fence = !fence; next }
+    fence { next }
+    /^## Round [0-9]/ { found = 0; inside = 0; counts = "" }
+    /^##/ {
+      match($0, /^#+/); level = RLENGTH
+      if (inside && level <= at) inside = 0
+      if (!inside && tolower($0) ~ /plan review/) { found = 1; inside = 1; at = level; counts = "" }
+      next
+    }
+    inside && counts == "" && /^\*\*Findings:\*\*/ { counts = $0 }
+    END {
+      if (!found) exit
+      m = n(counts, "must-fix"); s = n(counts, "should-fix"); a = n(counts, "acted on")
+      if (m == "" || s == "" || a == "") print "nocounts"; else print m ", " s ", " a
+    }
+  ' "$1"
+}
+
+if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ]; then
+  plan_review_counts="$(plan_review_line "$specs_root_wt/$spec_label/3-solution.md")"
+  case "$plan_review_counts" in
+    "") stage "plan review: the plan (3-solution.md) has no Plan review section" ;;
+    nocounts) stage "plan review: the Plan review section in the plan (3-solution.md) gives no counts — the findings are there" ;;
+    *) stage "plan review: $plan_review_counts — the findings are under Plan review in the plan (3-solution.md)" ;;
+  esac
+fi
+
 if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ]; then
   implement_session="$session_out"
   running_cost="$cost"
@@ -88,6 +133,7 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ]; th
       while IFS= read -r review_defect_line; do
         [ -n "$review_defect_line" ] && stage "review: $review_defect_line"
       done <<<"$review_defects"
+      stage "the defect(s) went back to the implement session to be fixed"
 
       printf '%s\n' \
         "A review of what you changed found the following defect(s), against the spec's description — not the runner's tests, which have not run yet:" \

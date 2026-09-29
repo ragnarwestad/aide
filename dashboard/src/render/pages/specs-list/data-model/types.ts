@@ -159,13 +159,13 @@ export interface ArchivedSpecView extends HasNotVerified {
    *  count. Absent for a row carrying no mark, and for one whose answer
    *  has never been taken. */
   notLandedCheckedAt?: number;
-  /** A landing merged this spec's branch but left it on origin because
-   *  the delete failed (spec 319) — the reason `notLanded` is true, when
-   *  it is known. `undefined` means either the branch is not open at all,
-   *  or it is open for a reason no landing recorded (a spec whose branch
-   *  genuinely never merged). Takes precedence over the bare `NOT_LANDED`
-   *  wording for the same reason `prOpen` takes precedence over it. */
+  /** Why a landing left the branch of a `notLanded` row on origin (spec
+   *  319), when one recorded it: its delete failed. Takes precedence over
+   *  the bare `NOT_LANDED` wording, as `prOpen` does. */
   branchDeleteError?: Sentence | Sentence[];
+  /** Its branch is still on origin but merged in every root that holds
+   *  it: archived, with only a Delete branch left. Never with `notLanded`. */
+  branchLeftBehind?: boolean;
   /** Landed on its suite's one retry: the lines the first run failed on. */
   testsGreenOnRetry?: string;
   /** When the spec was made, from BEFORE the archive step's own `git

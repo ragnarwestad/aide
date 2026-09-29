@@ -10,7 +10,7 @@
 // separate theme, split out to schedules/blocked.ts; `tickRunner` below
 // is where the two meet.
 
-import type { BranchStatusChecker } from "../../git/branch-status.ts";
+import { specBranch, type BranchStatusChecker } from "../../git/branch-status.ts";
 import type {
   DescriptionFreshnessChecker, SpecCreatedAtChecker, SpecFileCommitChecker,
 } from "../../git/description-freshness.ts";
@@ -248,6 +248,7 @@ export async function refreshSpecCaches(ctx: ScheduleContext): Promise<void> {
       // project whose origin is unreachable costs one complaint, once.
       ...[...ctx.allowed].map((project) => ctx.ensureCheckout(project)),
     ]);
+    const mergedMoved = await refreshMergedAnswers(ctx, archivedKeys);
     // Spec 275: only a root whose answer MOVED tells anyone, and only
     // once per tick, however many roots moved — a tick that finds
     // nothing new stays silent, exactly as spec 189 already promises
@@ -255,10 +256,28 @@ export async function refreshSpecCaches(ctx: ScheduleContext): Promise<void> {
     const moved = [...roots].some(
       (root) => !sameOpenSet(before.get(root) ?? null, ctx.branchStatus.peekOpenSpecBranches(root).open),
     );
-    if (moved) ctx.notifyQueueChanged();
+    if (moved || mergedMoved) ctx.notifyQueueChanged();
   } finally {
     ctx.setWarming(false);
   }
+}
+
+/** Whether each archived spec whose branch a root still holds is merged
+ *  there — a merge whose delete failed, or a landing that never finished.
+ *  Asked only for those, normally none, after the open sets are in; the
+ *  archived row peeks the answer. True when a row's reading moved. */
+async function refreshMergedAnswers(ctx: ScheduleContext, archivedKeys: string[]): Promise<boolean> {
+  const asks: { root: string; branch: string; was: boolean }[] = [];
+  for (const key of archivedKeys) {
+    const cut = key.indexOf("/");
+    const branch = specBranch(key.slice(cut + 1));
+    for (const root of ctx.specRoots(key.slice(0, cut))) {
+      if (!ctx.branchStatus.peekOpenSpecBranches(root).open?.has(branch)) continue;
+      asks.push({ root, branch, was: ctx.branchStatus.peekMerged(root, branch) === true });
+    }
+  }
+  const now = await Promise.all(asks.map((a) => ctx.branchStatus.isMerged(a.root, a.branch)));
+  return asks.some((a, i) => a.was !== now[i]);
 }
 
 function sameOpenSet(a: Set<string> | null, b: Set<string> | null): boolean {

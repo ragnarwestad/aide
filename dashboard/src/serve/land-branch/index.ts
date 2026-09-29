@@ -15,4 +15,5 @@ export {
   landNewSpec, landStepBranch, landStoppedStepBranch, landArchivedSpec, landClosedSpec, landScheduleRun,
 } from "./steps.ts";
 export { withFreshness } from "./freshness.ts";
+export { deleteLeftBehindBranch, type DeleteLeftBehindResult } from "./left-behind/delete-branch.ts";
 export { createLaunchdRestart, landingJobNames, restartAfterLanding, type RestartHook } from "./restart.ts";

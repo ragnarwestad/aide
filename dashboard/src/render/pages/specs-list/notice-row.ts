@@ -16,6 +16,7 @@ import { isArchivedRow, type SpecGroup, type SpecsFilter } from "./data-model";
 import { checksRow, checksFold, checksPanel } from "./row-checks.ts";
 import { nextPhase, specBusy } from "./row-state.ts";
 import { LIST_COLUMNS } from "./row-shared.ts";
+import { deleteBranchForm } from "./row-controls.ts";
 
 /** The one phase whose own record disagrees with the files, worded for
  *  the panel (spec 195). The sentence used to be drawn under that
@@ -85,10 +86,13 @@ export function specNoticeRow(
   if (!notice) return checks;
   // The held-back part is led by the › and carries the unfolded list
   // directly under its own box.
+  // Delete branch sits in its own note's box.
   const parts: MessagePart[] = (notice.parts ?? [{ text: notice.text }]).map((p) =>
     "kind" in p && p.kind === "acceptance-hold"
       ? { ...p, lead: checksFold(g, filter, lang), after: checksPanel(g, filter, lang) }
-      : p,
+      : "kind" in p && p.kind === "branch-left-behind"
+        ? { ...p, after: deleteBranchForm(g, filter, lang) }
+        : p,
   );
   const detail = notice.title ? helpPopover("more detail", esc(notice.title)) : "";
   return (

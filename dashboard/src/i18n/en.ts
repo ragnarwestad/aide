@@ -125,6 +125,11 @@ export const en = {
   "list.branchLeftBehind":
     "This spec merged, but its branch could not be deleted on origin. — " +
     "Delete it by hand, in the checkout on the serving host.",
+  "list.branchStillOnOrigin":
+    "This spec merged, but its branch is still on origin. — " +
+    "Press Delete branch to delete it there.",
+  "list.deleteBranch": "Delete branch",
+  "list.deletingBranch": "deleting…",
   "list.noPullRequestOpened":
     "its code is on a branch and no pull request was opened for it. — Open one by hand, " +
     "in the checkout on the serving host.",

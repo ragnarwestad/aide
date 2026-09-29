@@ -6,6 +6,13 @@ import {
   type QueueRowView,
   type SpecTarget,
 } from "../../../../../src/render";
+import {
+  ARCHIVED_OPEN_STATE,
+  ARCHIVED_STATE,
+  groupBySpec,
+} from "../../../../../src/render/pages/specs-list/data-model";
+import { archivedRowNotices } from "../../../../../src/render/pages/specs-list/row-marks.ts";
+import { t } from "../../../../../src/i18n";
 
 // The row's own message panel (spec 143), where REQ-2's errors move to.
 const noticeCellHtml = (html: string, folder: string): string =>
@@ -450,5 +457,56 @@ describe("spec 483: an archived spec's row does not warn about an earlier cancel
       Date.parse("2026-09-17T12:00:00Z"),
     );
     expect(noticeCellHtml(html, "480-locked")).toContain("last re-run");
+  });
+});
+
+// A spec whose branch merged but could not be deleted on origin has
+// landed: it is archived, and only a cleanup is left. A spec whose open
+// branch never merged still reads "not landed", as spec 193 made it.
+describe("an archived spec whose merged branch is still on origin", () => {
+  const NOW = Date.parse("2026-09-29T12:00:00Z");
+  const spec = (over: Partial<ArchivedSpecView>): ArchivedSpecView => ({
+    project: "aide",
+    folder: "570-x",
+    done: ["create", "analyze", "implement", "archive"],
+    models: {},
+    phaseOutcomes: {},
+    ...over,
+  });
+  const listed = (s: ArchivedSpecView, state: string): string =>
+    renderSpecsRows([], { runnerAvailable: true, targets: [], archivedSpecs: [s], filter: { state } }, NOW);
+  const DELETE_ACTION = 'action="/api/queue/specs/aide/570-x/delete-branch"';
+
+  test("is archived, and the Active and Failed chips cut it (AC-1)", () => {
+    const left = spec({ branchLeftBehind: true });
+    expect(groupBySpec([], [], undefined, [left], NOW)[0]?.state).toBe(ARCHIVED_STATE);
+    expect(listed(left, "not-archived")).not.toContain('data-folder="570-x"');
+    expect(listed(left, "failed")).not.toContain('data-folder="570-x"');
+    expect(listed(left, "archived")).toContain('data-folder="570-x"');
+  });
+
+  test("its note says the branch is still on origin, on a line of its own, and offers Delete branch (AC-2)", () => {
+    expect(archivedRowNotices(spec({ branchLeftBehind: true }), NOW, "en")).toEqual([
+      { variant: "waiting", text: t("en", "list.branchStillOnOrigin"), own: true, kind: "branch-left-behind" },
+    ]);
+    expect(noticeCellHtml(listed(spec({ branchLeftBehind: true }), "archived"), "570-x")).toContain(DELETE_ACTION);
+  });
+
+  test("a branch that never merged keeps the re-run-archive note, and no Delete branch (AC-4)", () => {
+    const open = spec({ notLanded: true, notLandedCheckedAt: NOW });
+    expect(groupBySpec([], [], undefined, [open], NOW)[0]?.state).toBe(ARCHIVED_OPEN_STATE);
+    const html = listed(open, "not-archived");
+    expect(noticeCellHtml(html, "570-x")).toContain("Its branch is still on origin — re-run archive");
+    expect(html).not.toContain(DELETE_ACTION);
+  });
+
+  test("a closed row whose delete failed keeps its by-hand sentence, and no Delete branch (AC-4)", () => {
+    const closed = spec({
+      closed: true,
+      notLanded: true,
+      branchDeleteError: { key: "landing.branchDeleteFailed", values: {} } as never,
+    });
+    expect(archivedRowNotices(closed, NOW, "en")).toEqual([{ variant: "failed", text: t("en", "list.branchLeftBehind") }]);
+    expect(listed(closed, "all")).not.toContain(DELETE_ACTION);
   });
 });

@@ -303,15 +303,14 @@ export function createServer(opts: ServerOptions) {
     return persistAllowlistImpl(projectActionsCtx, what);
   }
 
-  // Built once, from the same locals the view builders in spec-views.ts
-  // used to close over directly — `readPrOpen`/`readScan` ride as
-  // getters because `state.prOpen`/`state.scan` are reassigned after
-  // this context is built.
+  // `readPrOpen`/`readScan` ride as getters because `state.prOpen`/
+  // `state.scan` are reassigned after this context is built.
   const specViewsCtx: SpecViewsContext = {
     projectRoot: opts.projectRoot,
     targets,
     peekUnlanded: resolution.peekUnlanded,
     peekUnlandedCheckedAt: resolution.peekUnlandedCheckedAt,
+    peekMergedOnOrigin: resolution.peekMergedOnOrigin,
     readPrOpen: () => state.prOpen,
     readScan: () => state.scan,
     queue,
@@ -364,6 +363,7 @@ export function createServer(opts: ServerOptions) {
     serverPort: currentPort,
     jobRow: land.jobRow,
     deploy: land.deploy,
+    deleteLeftBehindBranch: land.deleteLeftBehindBranch,
     persistAllowlist,
     answerProjectChange,
     archivedSpecRows,

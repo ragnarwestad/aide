@@ -38,6 +38,7 @@ import type {
 import type { createRootLock } from "../serve-helpers";
 import type { ServerOptions } from "../options.ts";
 import type { DeployFailure } from "../state.ts";
+import type { DeleteLeftBehindResult } from "../land-branch";
 import type { TestServersContext } from "../test-servers/lifecycle.ts";
 import { handlePageRoutes } from "./page-routes";
 import { handleQueueEvents } from "./sse.ts";
@@ -109,6 +110,11 @@ export interface RoutesContext {
   jobRow: (job: ReturnType<QueueStore["list"]>[number]) => Promise<QueueRowView>;
   /** What a Deploy press asks of the landing code (see `deploy-steps.ts`). */
   deploy: DeployHooks;
+  /** Delete branch on an archived row: deletes a merged branch its landing
+   *  left on origin (`land-branch/left-behind/delete-branch.ts`). */
+  deleteLeftBehindBranch: (project: string, folder: string) => Promise<DeleteLeftBehindResult>;
+  /** Tell every open tab to ask for its rows again. */
+  notifyQueueChanged: () => void;
   persistAllowlist: (what: string) => ProjectStep;
   answerProjectChange: (
     action: string,

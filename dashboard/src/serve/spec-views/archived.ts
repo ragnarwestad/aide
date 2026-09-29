@@ -114,20 +114,26 @@ export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefine
     // 220), so the deliberate one wins outright rather than both being
     // set and the renderer picking.
     const prWaiting = reviewing.has(key);
-    const notLanded = open.has(key) && !prWaiting;
+    const cut = key.indexOf("/");
+    const project = key.slice(0, cut);
+    const ref = scan?.refs.get(key);
+    const branchOpen = open.has(key) && !prWaiting;
+    // Merged in every root that holds it: the work landed and only a
+    // cleanup is left, so the spec is archived. A closed spec's branch
+    // was never meant to merge, and its row reads as before.
+    const branchLeftBehind = branchOpen && !ref?.closed && ctx.peekMergedOnOrigin(project, key.slice(cut + 1));
+    const notLanded = branchOpen && !branchLeftBehind;
     // The gate, and it is BEFORE the two file reads under it — after
     // them it would be a filter, not a gate, and would cost the
     // default view exactly what it exists to save. A PR waiting on
     // review is not the failure this gate exists to surface, so it
     // does not bypass it the way `notLanded` does.
     if (!everyOne && !notLanded) continue;
-    const ref = scan?.refs.get(key);
     if (!ref) continue;
     // The Not verified entry builds only the rows it lists — the count is
     // on the ref, so the rest of the archive costs no file read. A row
     // that is built anyway (its branch is still open) is not skipped.
     if (state === NOT_VERIFIED_KEY && !notLanded && !(ref.notVerified ?? 0) && !(ref.failed ?? 0)) continue;
-    const project = key.slice(0, key.indexOf("/"));
     // Spec 319: the newest landing's own reason its delete failed, when
     // there is one — read off the job store rather than re-derived, so
     // this can never disagree with what `mergeBranchIntoDefault` itself
@@ -147,6 +153,7 @@ export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefine
       notLanded,
       notLandedCheckedAt: notLanded ? (openCheckedAt ?? undefined) : undefined,
       branchDeleteError,
+      branchLeftBehind,
       testsGreenOnRetry: retried.get(key),
       prOpen: prWaiting,
       // Off the newest job that reported one. The queue keeps two

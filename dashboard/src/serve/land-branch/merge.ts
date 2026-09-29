@@ -37,7 +37,7 @@ import { specFileText } from "../../project/discover";
 import { STATUS_SPEC_FILE } from "../../render";
 import { isGoneHistoryRoot, logSkippedRoot } from "./gone-root.ts";
 import { installAfterMerge } from "./install.ts";
-import { handedToMerge, rememberUnderRoots } from "./handed-to-merge.ts";
+import { handedToMerge, rememberMergedUnderRoots, rememberUnderRoots } from "./handed-to-merge.ts";
 import { isDashboardRoot } from "./restart.ts";
 import type { LandContext, Landing } from "./types.ts";
 import { clearsLandingError, firstLandingError as firstOf, keepsItsStopReason } from "./stopped-reason.ts";
@@ -211,6 +211,11 @@ export async function landBranch(
         // so it is taken back here, and spec 319's own sentence for that
         // case is written from `deleteErrors` below.
         if (result.branchDeleteError) rememberUnderRoots(ctx, job.project, repo.root, branch);
+        // Merged, so only a cleanup is left — never for a close's discarded
+        // branch or a folder copied alone, whose branch did not merge.
+        if (result.branchDeleteError && !result.discarded && !handed.specOnly) {
+          rememberMergedUnderRoots(ctx, job.project, repo.root, branch);
+        }
         // spec 406: a discarded root never merged anything — nothing to
         // install. The block below is `mergeBranchIntoDefault`'s own
         // success handling, which `deleteBranchOnly` never earns.

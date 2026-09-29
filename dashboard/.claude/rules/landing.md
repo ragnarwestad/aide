@@ -66,9 +66,11 @@ reads what a landing left.
   a landing that did not finish. The check is `archive`'s alone, by the
   literal step name; a failed landing moves the job to `failed` and ONLY
   from `done`; an unanswerable `ls-remote` is `null` and claims nothing;
-  the "not landed" row is filtered on the BRANCH, never on `errorReason`;
-  and it adds its sentence only when the merge loop reported no failure
-  of its own — one reason per row.
+  the "not landed" row is filtered on the BRANCH and on git's merged
+  answer (`peekMerged`), never on `errorReason` or a job record — an open
+  branch merged in every root that holds it is an archived row with
+  Delete branch; and it adds its sentence only when the merge loop
+  reported no failure of its own — one reason per row.
 - **A landing the project's suite refused STOPS the job, it does not fail
   it.** `errorReason: tests-red` takes the `landing-held` transition to
   `stopped` with `stopReason: tests-red`, and the row's mark is amber and
