@@ -86,16 +86,20 @@ does the opposite on every point below.
 round files and carries a `**Round boundary:**` line after its
 `**Archived:**` or `**Closed:**` line. It has no open row, so its scope
 is what changed since that boundary: an id newly added to
-`1-description.md`, or a criterion reworded whose row is still `⬜`. A
+`1-description.md`, or a criterion reworded, ticked or not. A
 reopened spec with nothing new or reworded is refused on Analyze and
 Implement like a held-back one. Every rule below applies unchanged;
 `## Round N` starts at 2.
 
 **Scope.** Work out which `AC-n` ids are IN SCOPE before Step 5: every
-id whose `4-status.md` row is still `⬜`, plus any id newly added to
+id whose `4-status.md` row is still `⬜`, any id newly added to
 `1-description.md` since the last round (an id `4-status.md` has no row
-for at all). A TICKED id (`✅`) is approved, and this round changes
-nothing behind it — no finding, no scenario, no file edit traces to it.
+for at all), and any id whose text in `1-description.md` changed since
+the round boundary, ticked or not. A TICKED id (`✅`) whose text is
+unchanged is not planned again: the earlier round's code and tests for
+it stay on the branch, and no finding, no scenario, no file edit traces
+to it. The runner clears its tick when the analysis completes, and the
+person checks it against the new code when they tick it again.
 
 **Step 5 (2-analysis.md).** Append a `## Round N` subsection (N = one
 more than the highest existing round subsection, or 2 if this is the
@@ -113,14 +117,16 @@ criterion for an id outside this round's scope must not appear in it.
 (below) is scoped to this round's own ids: every in-scope id from the
 Scope step above must appear in the NEW round's own Acceptance criteria
 subsection — an out-of-scope id appearing there is itself a must-fix
-(scope creep onto a ticked or not-yet-reached criterion).
+(scope creep onto an unchanged ticked or not-yet-reached criterion).
 
 **Step 8 (4-status.md, Acceptance criteria section).** The table is
 never regenerated. Append a new unticked row for each genuinely NEW id
 (numbered after the highest existing one, per `spec-structure.md`'s own
 numbering convention) — never for an id that already has a row. Every
 existing row's Status cell and Task-cell text are left byte-for-byte as
-found, ticked or not. This is also the one exception to
+found, ticked or not: after a completed analysis of an implemented spec
+the runner rebuilds the table from `1-description.md` itself, every row
+unticked, and the session writes none of it. This is also the one exception to
 `aide-implement`'s own "never touch the Acceptance criteria section"
 rule: see `core/skills/aide-implement/SKILL.md` for the narrow carve-out
 that lets Implement write an open row's Notes cell — rewritten from

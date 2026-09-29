@@ -441,6 +441,11 @@ since the scan cannot tell it from a real one. Two things take a step
 off: a reopen that resets the files, by regenerating the file without the
 line at all, and a completed analysis, which takes `implement` and
 `archive` off because the plan they were made from has been replaced.
+A completed analysis of a spec that stood at `implemented` also clears
+every row of `## Acceptance criteria` (a `Not verified` one too) and
+rebuilds the table from the criteria in `1-description.md` as they read
+now, one open row per `AC-n`; a row keeps its Notes cell only while its
+criterion's text is unchanged.
 
 The dashboard reads the same commits, live, to mark a spec's phases
 done — a `4-status.md` that disagrees with them is said out loud on the
@@ -564,11 +569,14 @@ archives exactly as it did before this section existed.
 `/aide-analyze` and `/aide-implement` may run again on a spec whose
 archive is held back this way — a THIRD kind of restart, distinct
 from a reopen that resets the files, which regenerates this table from
-its template. A held-back round instead APPENDS: a ticked row's Status
-and Notes cells are left exactly as they are; only an OPEN row's Notes
-cell may gain text naming what the round still finds missing; and a
-genuinely new `AC-n` id, numbered after the highest one already
-written, may be appended as a new unticked row. The round may start
+its template. A held-back round instead APPENDS while the session
+works: it never rewrites the table, only an OPEN row's Notes cell may
+gain text naming what the round still finds missing, and a genuinely
+new `AC-n` id, numbered after the highest one already written, may be
+appended as a new unticked row. When the analysis completes, the runner
+then clears every tick and rebuilds the rows from the description, so
+the person ticks each criterion again against the new code; a round
+that starts with Implement keeps its ticks. The round may start
 once at least one open row's own requirement text has changed since the
 round that held it back, or a new `AC-n` id has been added — when none
 has, the spec stays held back on Analyze and Implement alike, not only

@@ -395,3 +395,61 @@ def status_with_phase(workspace, claims, rows, heading="## Phase 1: RED"):
         "| Task | Status | Notes |\n|------|--------|-------|\n"
         f"{row_lines}\n",
     )
+
+
+def acceptance_section(rows):
+    """An `## Acceptance criteria` section with the given raw table rows."""
+    return (
+        "\n## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n"
+        + "\n".join(rows) + "\n"
+    )
+
+
+def with_acceptance(workspace, section, criteria):
+    """Append `section` (the raw text of an acceptance section: a table,
+    or the one sentence) to the committed `4-status.md`, and give the
+    description `criteria` (`{id: text}`) as `- **AC-n:** text` lines.
+    """
+    folder = workspace["specs"] / workspace["folder"]
+    with (folder / "4-status.md").open("a") as f:
+        f.write(section)
+    lines = "".join(f"- **AC-{n}:** {text}\n" for n, text in criteria.items())
+    with (folder / "1-description.md").open("a") as f:
+        f.write(f"\n## Acceptance criteria\n\n{lines}" if lines else "")
+    subprocess.run(["git", "-C", str(workspace["specs"]), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(workspace["specs"]), "commit", "-qm", "add acceptance"], check=True)
+
+
+def section_of(text, heading):
+    """The lines of the first `## ` section whose heading starts with `heading`."""
+    lines = text.split("\n")
+    start = next(i for i, ln in enumerate(lines) if ln.startswith(heading))
+    end = next((i for i in range(start + 1, len(lines)) if lines[i].startswith("## ")), len(lines))
+    return "\n".join(lines[start:end])
+
+
+def acceptance_cells(text):
+    """The (task, status, notes) cells of each row of the acceptance
+    table in `text`, header and separator left out."""
+    rows = []
+    for line in section_of(text, "## Acceptance").split("\n"):
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) == 3 and cells[0] != "Task" and not set(cells[0]) <= {"-"}:
+            rows.append(tuple(cells))
+    return rows
+
+
+def status_on_main(workspace, name="4-status.md"):
+    """The file as the specs repo's default branch has it."""
+    return git(workspace["specs"], "show", f"main:{workspace['folder']}/{name}")
+
+
+def status_on_branch_or_main(workspace, name="4-status.md", branch="aide/81-queue-and-runner"):
+    """The file off the spec's branch when the run left one, else off the
+    default branch: a run that changed nothing deletes its branch."""
+    try:
+        return branch_file(workspace["specs"], name, workspace, branch)
+    except subprocess.CalledProcessError:
+        return status_on_main(workspace, name)

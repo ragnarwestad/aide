@@ -267,6 +267,89 @@ untick_failed_acceptance_rows() {
   rm -f "$tmp"
 }
 
+# rebuild_acceptance_rows($status_file, $description_file) — the tick list
+# after a new analysis: the first table under the first `## Acceptance`
+# heading becomes one row per `- **AC-n:**` line of the description
+# (ascending, the first line of an id wins), every Status `⬜`. A row keeps
+# its Notes cell only while its criterion's text is unchanged. Every other
+# line stays byte for byte.
+#
+# Two things it leaves alone on purpose: a section with no table (there is
+# nothing to tick), and, when the description has no criterion line the
+# pattern can read, the rows' text and Notes — only their Status cells are
+# cleared, so an unreadable description never empties the table and lets
+# an archive through unchecked. The criterion pattern is the one
+# run-spec-ac-coverage.sh reads, so both count the same ids.
+rebuild_acceptance_rows() {
+  local status_file="$1" description="${2:-/dev/null}" tmp
+  [ -f "$status_file" ] || return 0
+  [ -f "$description" ] || description="/dev/null"
+  tmp="$(mktemp)"
+  LC_ALL=C awk -v desc="$description" '
+    function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
+    function flush(   i, j, n, cells, task, note, oid, mark, pl, pr) {
+      in_table = 0; table_done = 1
+      if (nid == 0) {
+        for (i = 1; i <= ntbl; i++) {
+          n = split(tbl[i], cells, "|")
+          if (i <= 2 || n != 5) { print tbl[i]; continue }
+          mark = trim(cells[3])
+          pl = cells[3]; sub(/[^ \t].*$/, "", pl)
+          pr = cells[3]; sub(/^.*[^ \t]/, "", pr)
+          if (mark == "") { pl = " "; pr = " " }
+          print cells[1] "|" cells[2] "|" pl "⬜" pr "|" cells[4] "|" cells[5]
+        }
+        return
+      }
+      for (i = 3; i <= ntbl; i++) {
+        n = split(tbl[i], cells, "|")
+        task = trim(cells[2])
+        if (n == 5 && match(task, /^AC-[0-9]+/)) {
+          oid = substr(task, 4, RLENGTH - 3) + 0
+          oldtask[oid] = task; oldnote[oid] = trim(cells[4])
+        }
+      }
+      print "| Task | Status | Notes |"
+      print "|------|--------|-------|"
+      for (i = 1; i <= nid; i++) {
+        task = "AC-" ids[i] ": " text[ids[i]]
+        note = (oldtask[ids[i]] == task) ? oldnote[ids[i]] : ""
+        if (note == "") print "| " task " | ⬜ | |"
+        else print "| " task " | ⬜ | " note " |"
+      }
+    }
+    FILENAME == desc {
+      if ($0 !~ /^- \*\*AC-[0-9]+/) next
+      line = $0; sub(/\r$/, "", line)
+      match(line, /AC-[0-9]+/)
+      id = substr(line, RSTART + 3, RLENGTH - 3) + 0
+      if (id in seen) next
+      rest = substr(line, RSTART + RLENGTH)
+      sub(/^(:\*\*|\*\*:|\*\*|:)/, "", rest)
+      seen[id] = 1; text[id] = trim(rest)
+      for (j = ++nid; j > 1 && ids[j - 1] + 0 > id; j--) ids[j] = ids[j - 1]
+      ids[j] = id
+      next
+    }
+    /^## / {
+      if (in_table) flush()
+      in_acc = (!acc_seen && tolower($0) ~ /^## acceptance/) ? 1 : 0
+      if (in_acc) acc_seen = 1
+      print; next
+    }
+    in_acc && !table_done {
+      if ($0 ~ /^\|/) { in_table = 1; tbl[++ntbl] = $0; next }
+      if (in_table) flush()
+    }
+    { print }
+    END { if (in_table) flush() }
+  ' "$description" "$status_file" > "$tmp" 2>/dev/null
+  if [ -s "$tmp" ] && ! cmp -s "$tmp" "$status_file"; then
+    cat "$tmp" > "$status_file"
+  fi
+  rm -f "$tmp"
+}
+
 # apply_spec_transition($status_file, $event, $value) — the convenience
 # wrapper for the single-path case: reopen and reset, the only two
 # events where the stamp write and the state-file mirror happen at the

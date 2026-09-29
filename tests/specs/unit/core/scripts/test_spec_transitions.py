@@ -405,3 +405,108 @@ def test_reopen_keep_without_a_failed_row_changes_no_row_AC_9(tmp_path):
     body = _FAILED_STATUS.replace("❌ Failed", "✅").replace("| Failed |", "| ✅ |")
     status_file = _reopen_keep(tmp_path, body)
     assert body in status_file.read_text()
+
+
+# --- rebuild_acceptance_rows: the tick list follows the description ---------
+
+_TABLE_HEAD = "| Task | Status | Notes |\n|------|--------|-------|\n"
+
+
+def _rebuild(tmp_path, status_body, description_body):
+    folder = tmp_path / "81-x"
+    folder.mkdir()
+    status_file = folder / "4-status.md"
+    status_file.write_text(status_body)
+    (folder / "1-description.md").write_text(description_body)
+    script = (
+        f'source "{LIB}"\n'
+        f'rebuild_acceptance_rows "{status_file}" "{folder}/1-description.md"\n'
+        'echo "RC=$?"\n'
+    )
+    proc = _run(script)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    return status_file
+
+
+def test_rebuild_acceptance_rows_writes_one_unticked_row_per_criterion_AC_2(tmp_path):
+    status_file = _rebuild(
+        tmp_path,
+        "# X\n\n## Acceptance criteria\n\n" + _TABLE_HEAD
+        + "| AC-1: old | ✅ | Read as: x |\n| AC-9: gone | Not verified | |\n",
+        "- **AC-2:** second\n- **AC-1:** old\n",
+    )
+    assert status_file.read_text() == (
+        "# X\n\n## Acceptance criteria\n\n" + _TABLE_HEAD
+        + "| AC-1: old | ⬜ | Read as: x |\n| AC-2: second | ⬜ | |\n"
+    )
+
+
+def test_rebuild_acceptance_rows_a_second_call_changes_nothing_AC_2(tmp_path):
+    status_file = _rebuild(
+        tmp_path,
+        "# X\n\n## Acceptance criteria\n\n" + _TABLE_HEAD + "| AC-1: old | ✅ | |\n",
+        "- **AC-1:** new\n",
+    )
+    first = status_file.read_text()
+    script = f'source "{LIB}"\nrebuild_acceptance_rows "{status_file}" "{status_file.parent}/1-description.md"\n'
+    assert _run(script).returncode == 0
+    assert status_file.read_text() == first
+
+
+def test_rebuild_acceptance_rows_replaces_only_the_first_table_under_the_first_heading_AC_2(tmp_path):
+    body = (
+        "# X\n\n## Phase 1: RED\n\n" + _TABLE_HEAD + "| a task | ✅ | |\n\n"
+        "## Acceptance criteria\n\n" + _TABLE_HEAD + "| AC-1: old | ✅ | |\n\n"
+        "A later table:\n\n" + _TABLE_HEAD + "| AC-1: kept | ✅ | |\n"
+    )
+    text = _rebuild(tmp_path, body, "- **AC-1:** new\n").read_text()
+    assert "| a task | ✅ | |" in text
+    assert "| AC-1: new | ⬜ | |" in text
+    assert "| AC-1: old |" not in text
+    assert "| AC-1: kept | ✅ | |" in text
+
+
+def test_rebuild_acceptance_rows_takes_the_first_line_of_a_duplicated_id_AC_2(tmp_path):
+    text = _rebuild(
+        tmp_path,
+        "# X\n\n## Acceptance criteria\n\n" + _TABLE_HEAD + "| AC-1: old | ✅ | |\n",
+        "- **AC-1:** first\n- **AC-1:** second\n",
+    ).read_text()
+    assert "| AC-1: first | ⬜ | |" in text
+    assert "second" not in text
+
+
+def test_rebuild_acceptance_rows_reads_the_misplaced_colon_form_AC_2(tmp_path):
+    text = _rebuild(
+        tmp_path,
+        "# X\n\n## Acceptance criteria\n\n" + _TABLE_HEAD + "| AC-1: old | ✅ | |\n",
+        "- **AC-1**: the wording\n",
+    ).read_text()
+    assert "| AC-1: the wording | ⬜ | |" in text
+
+
+def test_rebuild_acceptance_rows_keeps_a_note_only_while_the_wording_is_unchanged_AC_2(tmp_path):
+    text = _rebuild(
+        tmp_path,
+        "# X\n\n## Acceptance criteria\n\n" + _TABLE_HEAD
+        + "| AC-1: same | ✅ | Not tested: needs a deploy |\n| AC-2: before | ✅ | Read as: old |\n",
+        "- **AC-1:** same\n- **AC-2:** after\n",
+    ).read_text()
+    assert "| AC-1: same | ⬜ | Not tested: needs a deploy |" in text
+    assert "| AC-2: after | ⬜ | |" in text
+
+
+def test_rebuild_acceptance_rows_leaves_a_section_without_a_table_alone_AC_1(tmp_path):
+    body = "# X\n\n## Acceptance criteria\n\nAcceptance ticking was not required for this run.\n"
+    assert _rebuild(tmp_path, body, "- **AC-1:** one\n").read_text() == body
+
+
+def test_rebuild_acceptance_rows_without_a_criterion_line_only_clears_the_status_AC_3(tmp_path):
+    text = _rebuild(
+        tmp_path,
+        "# X\n\n## Acceptance criteria\n\n" + _TABLE_HEAD
+        + "| AC-1: one | ✅ | a note |\n| AC-2: two | Not verified | |\n",
+        "# Description\n\nNo criteria written the way the reader expects.\n",
+    ).read_text()
+    assert "| AC-1: one | ⬜ | a note |" in text
+    assert "| AC-2: two | ⬜ | |" in text
