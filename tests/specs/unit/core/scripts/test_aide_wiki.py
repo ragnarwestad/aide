@@ -6,7 +6,9 @@ No AI is involved: the model decides what the parts are and what a page
 says; this script decides everything that can be checked.
 """
 import json
+import re
 import subprocess
+import textwrap
 
 import pytest
 
@@ -291,6 +293,63 @@ def test_status_tells_current_changed_unknown_and_hand_written_apart_AC_5(script
     assert pages["notes.md"]["state"] == "hand-written"
     assert pages["notes.md"]["generated"] is False
     assert status(script, specs_root, project)["commit"] == head(project)
+
+
+QUOTES_THE_MARK = "# Decisions\n\nA decision page has `wiki: decision` in its front matter.\n\nwiki: decision\n"
+
+
+def test_status_says_a_generated_page_that_quotes_the_decision_mark_is_no_decision_AC_1(script, specs_root, project):
+    write_page(script, specs_root, project, "a.md", ["x.txt"], QUOTES_THE_MARK)
+    page = {p["page"]: p for p in status(script, specs_root, project)["pages"]}["a.md"]
+    assert page["generated"] is True
+    assert page["decision"] is False
+    assert page["state"] == "current"
+
+
+def test_status_names_a_decision_page_from_its_front_matter_alone_AC_2(script, specs_root, project):
+    write_page(script, specs_root, project, "b.md", ["x.txt"])
+    assert decide(script, specs_root, concerns=("b.md",))[0] == 0
+    hand_written(specs_root, "decision-hand.md", HAND_DECISION.replace("p.md", "b.md"))
+    hand_written(specs_root, "notes.md", "# Notes\n\nA decision has `wiki: decision` in its front matter.\n\nwiki: decision\n")
+    pages = {p["page"]: p for p in status(script, specs_root, project)["pages"]}
+    for name in ("decision-x.md", "decision-hand.md"):
+        assert pages[name]["generated"] is False, name
+        assert pages[name]["decision"] is True, name
+        assert pages[name]["state"] == "hand-written", name
+    assert pages["notes.md"]["decision"] is False
+
+
+def prompt_filters(workspace_root):
+    """The two fenced jq blocks of the weekly check's prompt: the pages to
+    check, then the pages to skip."""
+    text = (workspace_root / "docs" / "prompts" / "wiki-check.md").read_text()
+    blocks = re.findall(r"^[ ]*```jq\n(.*?)^[ ]*```", text, re.S | re.M)
+    assert len(blocks) == 2, "the prompt must give exactly two fenced jq blocks: the pages to check, then the pages to skip"
+    return [textwrap.dedent(b) for b in blocks]
+
+
+def run_filter(flt, answer):
+    proc = subprocess.run(["jq", "-r", flt], input=json.dumps(answer), capture_output=True, text=True)
+    assert proc.returncode == 0, proc.stderr
+    return proc.stdout.split()
+
+
+def test_the_weekly_check_picks_its_pages_with_the_filters_its_prompt_gives_AC_1_AC_2_AC_3(
+    script, specs_root, project, workspace_root
+):
+    write_page(script, specs_root, project, "a.md", ["x.txt"], QUOTES_THE_MARK)
+    write_page(script, specs_root, project, "b.md", ["y.txt"])
+    assert decide(script, specs_root, concerns=("b.md",))[0] == 0
+    hand_written(specs_root)
+    assert call(script, "schema", "--specs-root", specs_root, "--project-dir", project)[0] == 0
+    assert build_index(script, specs_root, project)[0] == 0
+    answer = status(script, specs_root, project)
+    check_filter, skip_filter = prompt_filters(workspace_root)
+    checked, skipped = run_filter(check_filter, answer), run_filter(skip_filter, answer)
+    assert sorted(checked) == ["a.md", "b.md", "index.md", "schema.md"]
+    assert skipped == ["decision-x.md"]
+    for page in (p["page"] for p in answer["pages"] if p["generated"]):
+        assert (page in checked) != (page in skipped), page
 
 
 def test_status_of_a_project_with_no_wiki_says_so_AC_6(script, specs_root, project):
