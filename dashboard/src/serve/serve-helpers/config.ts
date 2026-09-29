@@ -35,10 +35,9 @@ export const QUEUE_DEFAULTS: QueueDefaults = {
   // `wiki` writes only through aide-wiki, a script of Aide's own that the
   // cautious default stops at every call with nobody there to allow it.
   permissionMode: { implement: "bypassPermissions", wiki: "bypassPermissions", default: "acceptEdits" },
-  // `archive` falls to `default`, and that is a decision rather than an
-  // accident of which key happens to be missing: it may now have a merge
-  // conflict to resolve (spec 171), and a merge is not an implement.
-  model: { implement: "opus", default: "sonnet" },
+  // Every step runs on Claude Code's Opus until Settings saves another
+  // choice for it.
+  model: { default: "opus" },
 };
 
 /** One repo, one merge at a time. Pressing Merge on two specs a few

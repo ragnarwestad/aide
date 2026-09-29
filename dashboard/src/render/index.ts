@@ -42,7 +42,7 @@ export type { NavEntry } from "./ui/shell.ts";
 export { backLink, resolveBackHref } from "./ui/components";
 
 export {
-  OTHER_STEPS, renderSettingsPage, SETTINGS_ROUTE, SETTINGS_ROWS, SETTINGS_STEPS, SETTINGS_TABS,
+  OTHER_STEPS, renderSettingsPage, SETTINGS_ROUTE, SETTINGS_STEPS, SETTINGS_TABS, settingsRowChoice,
   SPEC_STEPS, UNROWED_STEPS,
 } from "./pages/settings-page";
 export type { SettingsPageOptions } from "./pages/settings-page";

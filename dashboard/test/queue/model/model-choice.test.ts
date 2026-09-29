@@ -8,6 +8,7 @@ import {
   type QueueDefaults,
 } from "../../../src/queue/queue.ts";
 import { RUNNABLE_TOOLS } from "../../../src/queue/steps.ts";
+import { QUEUE_DEFAULTS } from "../../../src/serve/serve-helpers";
 
 const DEFAULTS: QueueDefaults = {
   // Per step since spec 152: an implement is not an analyze, and one
@@ -168,5 +169,32 @@ describe("a model choice may name its tool", () => {
     // The NAME is what is stored and posted, exactly as before — the
     // real `--model` value is resolved where the argv is built.
     expect(r.job.model).toEqual({ analyze: "codex-fast" });
+  });
+});
+
+// The built-in `opus` means the choice a host lists under that name in any
+// case; a name the file saves is left as the file wrote it.
+describe("the built-in model names take the host's spelling", () => {
+  test("a single case-only match is spelled as listed (AC-3)", () => {
+    const merged = mergeQueueDefaults(QUEUE_DEFAULTS, { modelChoices: { Fable: {}, Opus: {}, Sonnet: {} } });
+    expect(merged.model.default).toBe("Opus");
+  });
+
+  test("an exact match is kept as it is (AC-3)", () => {
+    const merged = mergeQueueDefaults(QUEUE_DEFAULTS, { modelChoices: { opus: {} } });
+    expect(merged.model.default).toBe("opus");
+  });
+
+  test("several case-only matches leave the built-in name alone (AC-3)", () => {
+    const merged = mergeQueueDefaults(QUEUE_DEFAULTS, { modelChoices: { Opus: {}, OPUS: {} } });
+    expect(merged.model.default).toBe("opus");
+  });
+
+  test("a name the file saves is kept as written (AC-3)", () => {
+    const merged = mergeQueueDefaults(QUEUE_DEFAULTS, {
+      modelChoices: { Opus: {}, Sonnet: {} }, model: { analyze: "sonnet" },
+    });
+    expect(merged.model.analyze).toBe("sonnet");
+    expect(merged.model.default).toBe("Opus");
   });
 });

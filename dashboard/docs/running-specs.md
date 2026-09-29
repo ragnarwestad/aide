@@ -130,8 +130,7 @@ limit is checked BEFORE a step starts — a cap that only stops a step afterward
     "default": "acceptEdits"
   },
   "model": {
-    "implement": "opus",
-    "default": "sonnet"
+    "implement": "opus"
   },
   "push": "branch",
   "concurrency": 2,
@@ -328,10 +327,16 @@ and shown on the job's own detail page beside its Model row.
 
 ## Global defaults for the AI and model
 
-`/settings` holds the default AI and model per step. It has ten rows: the six that act on a spec — Create,
-Analyze, Implement, Archive, Close and Reopen — then Manifest, Schedule and Wiki, which do not, and Default, which every
-step without a row of its own falls back to. `explore` is deliberately left out: it has no button, no row action
-and no place in Schedule, so a model set for it could not be used. Beside the models the page holds a `timeoutSec`
+`/settings` holds the default AI and model per step. It has nine rows: the six that act on a spec — Create,
+Analyze, Implement, Archive, Close and Reopen — then Manifest, Schedule and Wiki, which do not. `explore` is
+deliberately left out: it has no button, no row action and no place in Schedule, so a model set for it could not be
+used.
+
+A step nothing has been saved for runs on Claude Code's Opus, and its row shows that. The built-in name `opus` is
+matched to the host's own choices in any case, so a host that lists `Opus` runs and shows that choice. A
+`model.default` in the config file, when present, is a saved choice for every step without one of its own, and is what
+such a row shows. On a host whose choices hold no Opus, the row shows the first listed choice while the runner hands
+`--model opus` to Claude Code. Beside the models the page holds a `timeoutSec`
 table, in minutes. Saving posts to `POST /api/queue/settings`, which validates every model name against
 `modelChoices`,
 updates `queue-config.json` atomically while retaining comments and unrelated values, and changes the live defaults

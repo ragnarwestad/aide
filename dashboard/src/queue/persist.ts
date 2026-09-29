@@ -9,6 +9,7 @@ import { applyEdits, modify, parse } from "jsonc-parser";
 import { JOB_STATES, WORKFLOW_STEPS, type WorkflowStep } from "./steps.ts";
 import { mergeBranchRefs, type BranchRef, type Job, type ModelChoice, type QueueDefaults, type StepResult } from "./types.ts";
 import { FOLDER_RE, NAME_RE } from "./parse-request.ts";
+import { listedModelName } from "./model-name.ts";
 
 // A job read back from the mirror. Looser than a request (it carries
 // id/state/results), but still validated: a corrupt row is dropped, not
@@ -316,11 +317,19 @@ export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefa
     return Object.keys(out).length > 0 ? out : undefined;
   };
 
+  // The built-in `opus` means whichever choice this host lists under
+  // that name in any case; the file's own names are left as written.
+  const modelChoices = choices(r.modelChoices);
+  const listed = Object.keys(modelChoices ?? {});
+  const builtIn = Object.fromEntries(Object.entries(base.model).map(([step, name]) => {
+    const match = listedModelName(listed, name);
+    return [step, "name" in match ? match.name : name];
+  }));
   return {
     timeoutSec: numTable(r.timeoutSec, base.timeoutSec),
     permissionMode: table(r.permissionMode, base.permissionMode),
-    model: table(r.model, base.model),
-    modelChoices: choices(r.modelChoices),
+    model: table(r.model, builtIn),
+    modelChoices,
     ...(r.resumeAnalysis === true || (r.resumeAnalysis === undefined && base.resumeAnalysis) ? { resumeAnalysis: true } : {}),
   };
 }

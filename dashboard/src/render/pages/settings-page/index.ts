@@ -53,11 +53,6 @@ if (
 }
 
 export const SETTINGS_STEPS = [...SPEC_STEPS, ...OTHER_STEPS] as const;
-// "default" is the fallback every un-rowed lookup already reads
-// (parse-request.ts's perStep, runner-argv.ts's resolveStepModel) — its
-// own row, not a workflow step, so it rides beside SETTINGS_STEPS
-// rather than inside it.
-export const SETTINGS_ROWS = [...SETTINGS_STEPS, "default"] as const;
 
 export interface SettingsPageOptions {
   modelChoices: { name: string; tool?: "claude" | "codex" | "opencode" | "fake-claude"; ranAs?: string }[];
@@ -94,8 +89,18 @@ const LABELS: Record<(typeof SETTINGS_STEPS)[number], string> = {
   archive: "Archive", close: "Close", reopen: "Reopen",
   manifest: "Manifest", schedule: "Schedule", wiki: "Wiki",
 };
-const rowLabel = (step: (typeof SETTINGS_ROWS)[number]): string =>
-  step === "default" ? "Default" : LABELS[step];
+
+/** What a Settings row shows: the step's saved choice, else the default
+ *  one, and the AI that choice belongs to. `models` is never empty here:
+ *  a server with no choices draws no AI or Model column at all. */
+export function settingsRowChoice(
+  models: SettingsPageOptions["modelChoices"],
+  defaultModels: Record<string, string>,
+  step: string,
+): { model: string; tool: string } {
+  const model = resolveChosenModel(models, defaultModels[step] ?? defaultModels.default, undefined);
+  return { model, tool: models.find((m) => m.name === model)?.tool ?? "claude" };
+}
 
 // The only other place this codebase already displays a timeout
 // (render/job-state.ts:145) shows it in minutes, not seconds.
@@ -119,7 +124,8 @@ const PAGE_HELP =
   "job from a prompt file and names no spec at all. Wiki builds the project's wiki of how its parts " +
   "hang together, and names no spec either." +
   "<br><br>" +
-  "<strong>Default.</strong> Not a step. It is what a step with no row of its own falls back to." +
+  "A row nothing has been saved for shows what its step runs on: Claude Code on Opus, unless the " +
+  "server's config file names another default." +
   "<br><br>" +
   "<strong>AI and Model.</strong> The AI is which command line runs the step; the model is which " +
   "model it is given. Picking an AI fills in that AI's own model, and the two always belong " +
@@ -139,16 +145,15 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
   // timeoutSec is meaningful and already enforced (runner.ts) even on a
   // server with no modelChoices configured — only the AI/model columns
   // depend on a choice actually being offered.
-  const renderRow = (step: (typeof SETTINGS_ROWS)[number]): string => {
+  const renderRow = (step: (typeof SETTINGS_STEPS)[number]): string => {
     const timeout = opts.timeoutSec[step] ?? opts.timeoutSec.default ?? 1200;
-    const timeoutCell = `<td><input type="number" min="1" max="360" aria-label="Timeout in minutes for ${rowLabel(step)}" ` +
+    const timeoutCell = `<td><input type="number" min="1" max="360" aria-label="Timeout in minutes for ${LABELS[step]}" ` +
       `form="settings-form" name="timeoutSec.${step}" value="${toMinutes(timeout)}"></td>`;
     if (!models.length) {
-      return `<tr data-step="${step}"><th scope="row">${rowLabel(step)}</th>${timeoutCell}</tr>`;
+      return `<tr data-step="${step}"><th scope="row">${LABELS[step]}</th>${timeoutCell}</tr>`;
     }
     const configured = opts.defaultModels[step] ?? opts.defaultModels.default;
-    const chosen = resolveChosenModel(models, configured, undefined);
-    const tool = models.find((model) => model.name === chosen)?.tool ?? "claude";
+    const { model: chosen, tool } = settingsRowChoice(models, opts.defaultModels, step);
     const tools = [...new Set(models.map((model) => model.tool ?? "claude"))];
     const ai = tools.map((name) => {
       // `TOOL_NAMES` is where a tool's own name lives. This line used to
@@ -159,23 +164,22 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
       const preferred = defaultModelForTool(models, name, configured);
       return `<option value="${name}" data-default="${esc(preferred ?? "")}"${name === tool ? " selected" : ""}>${label}</option>`;
     }).join("");
-    return `<tr data-step="${step}"><th scope="row">${rowLabel(step)}</th>` +
-      `<td><select aria-label="AI for ${rowLabel(step)}" form="settings-form" data-ai="model.${step}">${ai}</select></td>` +
-      `<td><select aria-label="Model for ${rowLabel(step)}" form="settings-form" name="model.${step}">${modelOptions(models, chosen)}</select></td>` +
+    return `<tr data-step="${step}"><th scope="row">${LABELS[step]}</th>` +
+      `<td><select aria-label="AI for ${LABELS[step]}" form="settings-form" data-ai="model.${step}">${ai}</select></td>` +
+      `<td><select aria-label="Model for ${LABELS[step]}" form="settings-form" name="model.${step}">${modelOptions(models, chosen)}</select></td>` +
       `${timeoutCell}</tr>`;
   };
   // One <tbody> per group, which is what makes the grouping structural
   // rather than a styled blank row: a reader of the markup, and anything
-  // that walks the table, sees three bodies rather than one run of rows.
+  // that walks the table, sees two bodies rather than one run of rows.
   const columns = models.length ? 4 : 2;
-  const group = (label: string, steps: readonly (typeof SETTINGS_ROWS)[number][]): string =>
+  const group = (label: string, steps: readonly (typeof SETTINGS_STEPS)[number][]): string =>
     `<tbody><tr class="settingsgroup"><th scope="rowgroup" colspan="${columns}">${esc(label)}</th></tr>` +
     steps.map(renderRow).join("") +
     `</tbody>`;
   const rows =
     group("On a spec", SPEC_STEPS) +
-    group("Not on a spec", OTHER_STEPS) +
-    group("Fallback", ["default"]);
+    group("Not on a spec", OTHER_STEPS);
   const message = opts.error ?? opts.notice ?? "";
   const modelHeaders = models.length ? "<th>AI</th><th>Model</th>" : "";
   const noModelsNote = models.length ? "" : `<p class="muted">No model choices are configured on this server.</p>`;

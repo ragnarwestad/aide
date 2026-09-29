@@ -5,7 +5,7 @@ import { rmSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type ServerOptions } from "../../../src/serve/serve.ts";
-import { SETTINGS_ROWS } from "../../../src/render";
+import { SETTINGS_STEPS } from "../../../src/render";
 import { JOB, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
@@ -65,8 +65,8 @@ describe("Settings routes (spec 232)", () => {
     modelChoices: { sonnet: {}, "codex-fast": { tool: "codex" as const } },
   };
   const AUTH = { "content-type": "application/json", accept: "application/json" };
-  const validModel = Object.fromEntries(SETTINGS_ROWS.map((step) => [step, "sonnet"]));
-  const validTimeoutSec = Object.fromEntries(SETTINGS_ROWS.map((step) => [step, 30]));
+  const validModel = Object.fromEntries(SETTINGS_STEPS.map((step) => [step, "sonnet"]));
+  const validTimeoutSec = Object.fromEntries(SETTINGS_STEPS.map((step) => [step, 30]));
   const validBody = { model: validModel, timeoutSec: validTimeoutSec };
 
   // The check spawns a CLI and reaches the network, so a GET of the page
@@ -114,14 +114,14 @@ describe("Settings routes (spec 232)", () => {
     expect(res.status).toBe(405);
   });
 
-  test("a successful save affects later jobs but not an accepted job", async () => {
+  test("a successful save affects later jobs but not an accepted job (AC-4)", async () => {
     const file = ownConfig({ model: { default: "sonnet", future: "keep" } });
     const { base } = start({ queueDefaults: DEFAULTS, queueConfigFile: file });
     const accepted = await fetch(`${base}/api/queue`, {
       method: "POST", headers: AUTH, body: JSON.stringify(JOB),
     });
     const first = (await accepted.json()) as { job: { model: Record<string, string> } };
-    const model = Object.fromEntries(SETTINGS_ROWS.map((step) => [step, "codex-fast"]));
+    const model = Object.fromEntries(SETTINGS_STEPS.map((step) => [step, "codex-fast"]));
     const saved = await fetch(`${base}/api/queue/settings`, {
       method: "POST", headers: AUTH, body: JSON.stringify({ model, timeoutSec: validTimeoutSec }),
     });
@@ -141,46 +141,36 @@ describe("Settings routes (spec 232)", () => {
     expect(readFileSync(file, "utf-8")).toContain('"future": "keep"');
   });
 
-  // REQ-2, criterion 4: a save that includes model.default and
-  // timeoutSec.default persists them like any other row's values.
-  test("a save with model.default and timeoutSec.default persists them", async () => {
+  // Settings has no Fallback row, so the route saves the step rows only:
+  // a `default` posted beside them is an unknown step, and nothing on
+  // disk changes; the step rows alone save.
+  test("a save naming model.default is refused and changes nothing (AC-2)", async () => {
     const file = ownConfig({ model: { default: "sonnet" } });
     const { base } = start({ queueDefaults: DEFAULTS, queueConfigFile: file });
-    const res = await fetch(`${base}/api/queue/settings`, {
+    const refused = await fetch(`${base}/api/queue/settings`, {
       method: "POST", headers: AUTH,
-      body: JSON.stringify({ ...validBody, model: { ...validModel, default: "codex-fast" }, timeoutSec: { ...validTimeoutSec, default: 45 } }),
+      body: JSON.stringify({ ...validBody, model: { ...validModel, default: "codex-fast" } }),
     });
-    expect(res.status).toBe(200);
-    const saved = JSON.parse(readFileSync(file, "utf-8")) as { model: Record<string, string>; timeoutSec: Record<string, number> };
-    expect(saved.model.default).toBe("codex-fast");
-    expect(saved.timeoutSec.default).toBe(45 * 60);
-  });
-
-  // REQ-4, criterion 7: a save whose model object is missing the
-  // "default" key is refused, and nothing on disk changes.
-  test("a save missing model.default is refused and changes nothing", async () => {
-    const file = ownConfig({ model: { default: "sonnet" } });
-    const { base } = start({ queueDefaults: DEFAULTS, queueConfigFile: file });
-    const modelWithoutDefault = Object.fromEntries(Object.entries(validModel).filter(([step]) => step !== "default"));
-    const res = await fetch(`${base}/api/queue/settings`, {
-      method: "POST", headers: AUTH,
-      body: JSON.stringify({ ...validBody, model: modelWithoutDefault }),
-    });
-    expect(res.status).toBe(400);
+    expect(refused.status).toBe(400);
+    expect(((await refused.json()) as { error: string }).error).toContain("unknown workflow step: default");
     expect(readFileSync(file, "utf-8")).toEqual(JSON.stringify({ model: { default: "sonnet" } }, null, 2));
+    const saved = await fetch(`${base}/api/queue/settings`, {
+      method: "POST", headers: AUTH, body: JSON.stringify(validBody),
+    });
+    expect(saved.status).toBe(200);
   });
 
-  // Spec 494: a default typed in a different case is stored as listed.
-  test("a differently-cased default is saved under the listed spelling", async () => {
+  // Spec 494: a model typed in a different case is stored as listed.
+  test("a differently-cased model is saved under the listed spelling", async () => {
     const file = ownConfig({ model: { default: "sonnet" } });
     const { base } = start({ queueDefaults: DEFAULTS, queueConfigFile: file });
     const res = await fetch(`${base}/api/queue/settings`, {
       method: "POST", headers: AUTH,
-      body: JSON.stringify({ ...validBody, model: { ...validModel, default: "CODEX-FAST" } }),
+      body: JSON.stringify({ ...validBody, model: { ...validModel, analyze: "CODEX-FAST" } }),
     });
     expect(res.status).toBe(200);
     const saved = JSON.parse(readFileSync(file, "utf-8")) as { model: Record<string, string> };
-    expect(saved.model.default).toBe("codex-fast");
+    expect(saved.model.analyze).toBe("codex-fast");
   });
 
   test("several case-only matches are refused, naming both, and nothing is written", async () => {
@@ -189,7 +179,7 @@ describe("Settings routes (spec 232)", () => {
     const { base } = start({ queueDefaults: defaults, queueConfigFile: file });
     const res = await fetch(`${base}/api/queue/settings`, {
       method: "POST", headers: AUTH,
-      body: JSON.stringify({ ...validBody, model: { ...validModel, default: "sonnet" } }),
+      body: JSON.stringify({ ...validBody, model: { ...validModel, analyze: "sonnet" } }),
     });
     expect(res.status).toBe(400);
     const error = ((await res.json()) as { error: string }).error;
@@ -203,8 +193,8 @@ describe("Settings routes (spec 232)", () => {
     const { base } = start({ queueDefaults: DEFAULTS, queueConfigFile: file });
     for (const model of [
       { analyze: "sonnet" },
-      { ...Object.fromEntries(SETTINGS_ROWS.map((step) => [step, "sonnet"])), extra: "sonnet" },
-      Object.fromEntries(SETTINGS_ROWS.map((step) => [step, step === "archive" ? "missing" : "sonnet"])),
+      { ...Object.fromEntries(SETTINGS_STEPS.map((step) => [step, "sonnet"])), extra: "sonnet" },
+      Object.fromEntries(SETTINGS_STEPS.map((step) => [step, step === "archive" ? "missing" : "sonnet"])),
     ]) {
       const res = await fetch(`${base}/api/queue/settings`, {
         method: "POST", headers: AUTH, body: JSON.stringify({ ...validBody, model }),

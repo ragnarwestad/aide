@@ -15,7 +15,7 @@ import { SETTING_LABELS } from "../../project/setting-labels.ts";
 import { listedModelName } from "../../queue/model-name.ts";
 import { persistQueueSettings } from "../../queue/queue.ts";
 import { addProject, assessProjectReadiness, commitManifestEdits, projectNameError, removeProject, updateProjectSettings } from "../../project/project-admin";
-import { NEW_SPEC_ROUTE, SETTINGS_ROUTE, SETTINGS_ROWS, resolveBackHref } from "../../render";
+import { NEW_SPEC_ROUTE, SETTINGS_ROUTE, SETTINGS_STEPS, resolveBackHref } from "../../render";
 import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../serve-helpers";
 import { CHECKABLE_TOOLS, checkTool, isCheckableTool, recordCheck } from "../tool-check.ts";
 import type { RoutesContext } from "./";
@@ -101,10 +101,10 @@ export async function handleQueueAdminRoutes(
     if (!ctx.opts.queueConfigFile) return refuse("this server has no queue config file");
     if (!models || typeof models !== "object" || Array.isArray(models)) return refuse("model defaults are missing");
     const table = models as Record<string, unknown>;
-    const unknown = Object.keys(table).find((step) => !(SETTINGS_ROWS as readonly string[]).includes(step));
+    const unknown = Object.keys(table).find((step) => !(SETTINGS_STEPS as readonly string[]).includes(step));
     if (unknown) return refuse(`unknown workflow step: ${unknown}`);
     const next: Record<string, string> = {};
-    for (const step of SETTINGS_ROWS) {
+    for (const step of SETTINGS_STEPS) {
       const value = table[step];
       if (Array.isArray(value)) return refuse(`duplicate model value for ${step}`);
       if (typeof value !== "string" || !value) return refuse(`missing model for ${step}`);
@@ -131,7 +131,7 @@ export async function handleQueueAdminRoutes(
     }
     const minutesTable = askedTimeout as Record<string, unknown>;
     const timeoutSec: Record<string, number> = {};
-    for (const step of SETTINGS_ROWS) {
+    for (const step of SETTINGS_STEPS) {
       // Minutes on this route (matching the form and the existing
       // render/job-state.ts:145 display convention) — converted to
       // seconds, the unit every reader of `queue.defaults.timeoutSec`
