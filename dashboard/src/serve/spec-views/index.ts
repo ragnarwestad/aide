@@ -23,6 +23,9 @@ export interface SpecViewsContext {
   targets: () => SpecTarget[];
   peekUnlanded: () => string[];
   peekUnlandedCheckedAt: () => number | null;
+  /** Whether an archived spec's open branch is merged wherever it is
+   *  still held — a peek (`spec-lookup.ts`). */
+  peekMergedOnOrigin: (project: string, folder: string) => boolean;
   readPrOpen: () => string[];
   readScan: () => { archived: string[]; refs: Map<string, SpecRef> } | null;
   queue: QueueStore;

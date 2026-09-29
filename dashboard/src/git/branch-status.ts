@@ -443,6 +443,20 @@ export class BranchStatusChecker {
     this.openCache.set(root, { at: hit.at, open: hit.open });
   }
 
+  /** The last `isMerged` answer for `projectDir`/`branch`, without asking
+   *  git — `null` where nothing has asked. What the archived row reads to
+   *  tell a merged branch left on origin from a landing that never
+   *  finished; the background sweep keeps it warm. */
+  peekMerged(projectDir: string, branch: string): boolean | null {
+    return this.cache.get(JSON.stringify([projectDir, branch]))?.merged ?? null;
+  }
+
+  /** A merge this process just made proves the answer: record `true`
+   *  without asking git, so the row reads it on its very next draw. */
+  rememberMerged(projectDir: string, branch: string): void {
+    this.remember(JSON.stringify([projectDir, branch]), this.now(), true);
+  }
+
   /** Drop one cached answer. A merge performed by this process changes
    *  the answer it just cached, and a reader who presses Merge and
    *  reloads must not be told "not merged" for the rest of the TTL. */

@@ -349,7 +349,7 @@ describe("the row for a branch left behind after a successful merge (spec 319)",
     }
   };
 
-  test("carries BRANCH_LEFT_BEHIND's sentence in the notice line, distinct from NOT_LANDED's", async () => {
+  test("is archived with a Delete branch note, while an unmerged sibling stays not landed (AC-1, AC-2, AC-4)", async () => {
     // Matched by PATH SHAPE, not by comparing against a `dir` read off
     // `harness.start()`'s return value: the background schedule's very
     // first sweep runs SYNCHRONOUSLY inside `createServer`, before
@@ -380,6 +380,9 @@ describe("the row for a branch left behind after a successful merge (spec 319)",
       if (isSpecsRoot(dir) && a === `push -q origin --delete ${BRANCH}`) {
         return { code: 1, stdout: "", stderr: "remote rejected: hook declined" };
       }
+      // FOLDER's branch is part of origin's default branch; the
+      // sibling's never landed, so git says it is not an ancestor.
+      if (a.startsWith(`merge-base --is-ancestor refs/remotes/origin/${SIBLING_BRANCH} `)) return { code: 1, stdout: "" };
       if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
       if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
       if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
@@ -416,22 +419,26 @@ describe("the row for a branch left behind after a successful merge (spec 319)",
     const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
     expect(landed.error).toBeFalsy();
 
-    const html = await listUntil(base, "could not be deleted on origin", ARCHIVED_VIEW);
+    // Merged, so archived: the spec is not on the Active list, and its
+    // Archived row says the branch is still on origin and offers Delete
+    // branch.
+    const html = await listUntil(base, "its branch is still on origin. — Press Delete branch", ARCHIVED_VIEW);
     const row = rowFor(html, FOLDER);
     expect(row).not.toContain("branch left behind");
-    expect(row).toContain(BRANCH);
     const block = blockFor(html, FOLDER);
-    // REQ-3: git's own stderr — the actual `git push --delete` failure
-    // reason — never reaches the row; a fixed sentence for a person
-    // takes its place.
+    // git's own stderr never reaches the row; a fixed sentence takes its place.
     expect(block).not.toContain("remote rejected: hook declined");
-    expect(block).toContain("This spec merged, but its branch could not be deleted on origin. — Delete it by hand, in the checkout on the serving host.");
+    expect(block).toContain("This spec merged, but its branch is still on origin. — Press Delete branch to delete it there.");
+    expect(block).toContain(`action="/api/queue/specs/aide/${FOLDER}/delete-branch"`);
+    expect(block).not.toContain("re-run archive");
+    const active = await (await fetch(`${base}/?state=not-archived`)).text();
+    expect(active).not.toContain(`data-folder="${FOLDER}"`);
+    expect(landed.state).toBe("done");
 
-    // REQ-3: a sibling whose branch never landed at all still reads
-    // exactly as it always has — no reason recorded for it, so it falls
-    // through to the plain mark rather than picking up FOLDER's.
-    const siblingBlock = blockFor(html, SIBLING);
+    // A sibling whose branch never merged still reads exactly as it
+    // always has, on the Active list, with no Delete branch.
+    const siblingBlock = blockFor(active, SIBLING);
     expect(siblingBlock).toContain("Its branch is still on origin — re-run archive");
-    expect(siblingBlock).not.toContain("This spec merged, but its branch could not be deleted");
+    expect(siblingBlock).not.toContain("delete-branch");
   }, 15000);
 });

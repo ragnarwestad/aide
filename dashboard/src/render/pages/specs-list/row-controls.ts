@@ -130,6 +130,18 @@ function reopenForm(g: SpecGroup, opts: SpecsPageOptions, lang: Language): strin
   );
 }
 
+/** The press an archived row's "still on origin" note carries: a POST
+ *  that deletes the merged branch on origin. The filter rides along so a
+ *  no-script press comes back to the same view. */
+export function deleteBranchForm(g: SpecGroup, filter: SpecsFilter, lang: Language): string {
+  return (
+    `<form method="post" action="/api/queue/specs/${esc(g.project)}/${esc(g.specFolder)}/delete-branch" class="actionform">` +
+    filterFields(filter) +
+    btn({ label: t(lang, "list.deleteBranch"), pending: t(lang, "list.deletingBranch"), small: true }) +
+    `</form>`
+  );
+}
+
 // The one thing the row asks of the reader, beside the sentence that
 // says why (spec 157). Run or Cancel — never both, and nothing at all
 // when there is nothing to run: the two are never the right press at the

@@ -37,6 +37,7 @@ import {
   rootsStillHolding as rootsStillHoldingImpl,
   peekUnlanded as peekUnlandedImpl,
   peekUnlandedCheckedAt as peekUnlandedCheckedAtImpl,
+  peekMergedOnOrigin as peekMergedOnOriginImpl,
   specDir as specDirImpl,
   specRef as specRefImpl,
   dependencyFolders as dependencyFoldersImpl,
@@ -194,6 +195,9 @@ export function setupProjectResolution(
   function peekUnlandedCheckedAt() {
     return peekUnlandedCheckedAtImpl(specLookupCtx);
   }
+  function peekMergedOnOrigin(project: string, folder: string) {
+    return peekMergedOnOriginImpl(specLookupCtx, project, folder);
+  }
   function specDir(project: string, specFolder: string) {
     return specDirImpl(specLookupCtx, project, specFolder);
   }
@@ -219,7 +223,7 @@ export function setupProjectResolution(
     },
     checkoutEnsurer, ensureCheckout, gitRun, branchStatus,
     displayProjectDir, machineryProjectDir, codeLanding, promptFileFor, ownedSpecsRoot, machinerySpecsRoot,
-    targets, specRoots, rootsStillHolding, peekUnlanded, peekUnlandedCheckedAt,
+    targets, specRoots, rootsStillHolding, peekUnlanded, peekUnlandedCheckedAt, peekMergedOnOrigin,
     specDir, specRef, dependencyFolders, specsRoot, machinerySpecDir, peekMachinerySpecDir,
   };
 }

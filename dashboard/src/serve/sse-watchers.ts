@@ -44,8 +44,11 @@ export function writeTo(ctx: SseWatchersContext, c: ReadableStreamDefaultControl
  *  row reads, and the second is invisible to the first. A copy of the
  *  set is walked because `writeTo` removes from it. */
 export function notifyQueueChanged(ctx: SseWatchersContext): void {
-  for (const c of [...ctx.watchers]) writeTo(ctx, c, "event: changed\ndata: {}\n\n");
+  for (const c of [...ctx.watchers]) writeTo(ctx, c, CHANGED_EVENT);
 }
+
+/** The signal itself: it carries nothing, and the page asks for its rows. */
+export const CHANGED_EVENT = "event: changed\ndata: {}\n\n";
 
 // --- spec 204: a spec is a folder, and a folder changes no job -----------
 //

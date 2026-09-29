@@ -37,9 +37,15 @@ export function landingGit(over: Record<string, Answer> = {}) {
 export function landCtx(
   gitRun: ReturnType<typeof landingGit>["run"],
   extra: Record<string, unknown> = {},
-): { ctx: Record<string, unknown>; forgotten: { root: string; branch: string }[]; remembered: { root: string; branch: string }[] } {
+): {
+  ctx: Record<string, unknown>;
+  forgotten: { root: string; branch: string }[];
+  remembered: { root: string; branch: string }[];
+  merged: { root: string; branch: string }[];
+} {
   const forgotten: { root: string; branch: string }[] = [];
   const remembered: { root: string; branch: string }[] = [];
+  const merged: { root: string; branch: string }[] = [];
   const ctx: Record<string, unknown> = {
     queue: {
       get: () => undefined,
@@ -63,10 +69,11 @@ export function landCtx(
       invalidate: () => {},
       forgetOpenSpecBranch: (root: string, branch: string) => void forgotten.push({ root, branch }),
       rememberOpenSpecBranch: (root: string, branch: string) => void remembered.push({ root, branch }),
+      rememberMerged: (root: string, branch: string) => void merged.push({ root, branch }),
     },
     ...extra,
   };
-  return { ctx, forgotten, remembered };
+  return { ctx, forgotten, remembered, merged };
 }
 
 export const REPOS = [{ root: ROOT, url: "" }];

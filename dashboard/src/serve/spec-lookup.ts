@@ -223,7 +223,7 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
  *  both; the dependency gate (spec 351) asks only the LAST one, the
  *  specs root, since "archived" is a fact about one folder in one
  *  repository. */
-export function specRoots(ctx: SpecLookupContext, project: string): string[] {
+export function specRoots(ctx: Pick<SpecLookupContext, "machineryProjectDir" | "machinerySpecsRoot">, project: string): string[] {
   const code = ctx.machineryProjectDir(project);
   const specs = ctx.machinerySpecsRoot(project);
   const both = specs && resolve(specs) !== resolve(code) ? [code, specs] : [code];
@@ -302,6 +302,16 @@ export function peekUnlanded(ctx: SpecLookupContext): { unlanded: string[]; prOp
     }
   }
   return { unlanded: found, prOpen: reviewing };
+}
+
+/** Whether an archived spec's open branch is merged in every root that
+ *  still holds it: only a cleanup is left. A root never asked, or one
+ *  that answered "not merged", makes it false, and the row reads "not
+ *  landed" as before. Peeks only, like `peekUnlanded`. */
+export function peekMergedOnOrigin(ctx: SpecLookupContext, project: string, folder: string): boolean {
+  const branch = specBranch(folder);
+  const holding = specRoots(ctx, project).filter((r) => ctx.branchStatus.peekOpenSpecBranches(r).open?.has(branch));
+  return holding.length > 0 && holding.every((r) => ctx.branchStatus.peekMerged(r, branch) === true);
 }
 
 /** When the set was last taken, for the archive page's own label: an

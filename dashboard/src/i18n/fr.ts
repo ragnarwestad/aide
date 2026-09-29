@@ -124,6 +124,11 @@ export const fr: Record<TranslationKey, string> = {
   "list.branchLeftBehind":
     "Cette spec a été mergée, mais sa branch n'a pas pu être supprimée sur origin. — " +
     "Supprimez-la à la main, dans le checkout sur le serveur.",
+  "list.branchStillOnOrigin":
+    "Cette spec a été mergée, mais sa branch est encore sur origin. — " +
+    "Appuyez sur Supprimer la branch pour l'y supprimer.",
+  "list.deleteBranch": "Supprimer la branch",
+  "list.deletingBranch": "suppression…",
   "list.noPullRequestOpened":
     "son code est sur une branch et aucune pull request n'a été ouverte pour elle. — " +
     "Ouvrez-en une à la main, dans le checkout sur le serveur.",

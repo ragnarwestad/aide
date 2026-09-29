@@ -6,6 +6,7 @@
 
 import type { BranchFileStepsChecker } from "../../git/workflow-history.ts";
 import { setDeployFailure, setDeployFault, setPendingRestart, type ServerState } from "../state.ts";
+import { CHANGED_EVENT } from "../sse-watchers.ts";
 import { type RoutesContext } from "../routes";
 
 /** Everything `RoutesContext` needs, minus the handful of fields
@@ -15,7 +16,7 @@ import { type RoutesContext } from "../routes";
  *  describes for `readScan`/`invalidateScan`. */
 export type QueueContextInputs = Omit<
   RoutesContext,
-  "readScan" | "invalidateScan" | "forgetBranchFileSteps" | "readServing" | "readPendingRestart" | "setPendingRestart" | "setDeployFault" | "readDeployFailure" | "setDeployFailure" | "selfStopExit"
+  "readScan" | "invalidateScan" | "notifyQueueChanged" | "forgetBranchFileSteps" | "readServing" | "readPendingRestart" | "setPendingRestart" | "setDeployFault" | "readDeployFailure" | "setDeployFailure" | "selfStopExit"
 > & {
   branchFileSteps: BranchFileStepsChecker;
 };
@@ -29,6 +30,10 @@ export function setupQueueContext(state: ServerState, inputs: QueueContextInputs
     readScan: () => state.scan,
     invalidateScan: () => {
       state.scan = null;
+    },
+    // Off the same watchers and writer the page's event stream uses.
+    notifyQueueChanged: () => {
+      for (const c of [...inputs.watchers]) inputs.writeTo(c, CHANGED_EVENT);
     },
     forgetBranchFileSteps: (dir, specFolder) => inputs.branchFileSteps.forget(dir, specFolder),
     rereadSpec: inputs.rereadSpec,
@@ -54,6 +59,7 @@ export function setupQueueContext(state: ServerState, inputs: QueueContextInputs
     serverPort: inputs.serverPort,
     jobRow: inputs.jobRow,
     deploy: inputs.deploy,
+    deleteLeftBehindBranch: inputs.deleteLeftBehindBranch,
     persistAllowlist: inputs.persistAllowlist,
     answerProjectChange: inputs.answerProjectChange,
     archivedSpecRows: inputs.archivedSpecRows,

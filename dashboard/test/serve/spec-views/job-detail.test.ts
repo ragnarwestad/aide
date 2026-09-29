@@ -56,6 +56,7 @@ function makeCtx(overrides: Partial<SpecViewsContext> = {}): SpecViewsContext {
     targets: () => [],
     peekUnlanded: () => [],
     peekUnlandedCheckedAt: () => null,
+    peekMergedOnOrigin: () => false,
     readPrOpen: () => [],
     readScan: () => null,
     queue: { defaults: {} } as never,

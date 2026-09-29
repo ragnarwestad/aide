@@ -126,6 +126,11 @@ export const nb: Record<TranslationKey, string> = {
   "list.branchLeftBehind":
     "Denne specen ble merget, men grenen kunne ikke slettes på origin. — " +
     "Slett den for hånd, i det lokale repoet på serveren.",
+  "list.branchStillOnOrigin":
+    "Denne specen ble merget, men grenen ligger fortsatt på origin. — " +
+    "Trykk Slett gren for å slette den der.",
+  "list.deleteBranch": "Slett gren",
+  "list.deletingBranch": "sletter…",
   "list.noPullRequestOpened":
     "koden ligger på en gren, og det ble ikke opprettet noen pull-forespørsel for den. — " +
     "Opprett en for hånd, i det lokale repoet på serveren.",

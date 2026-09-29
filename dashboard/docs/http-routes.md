@@ -149,6 +149,7 @@ Answered by the files under `src/serve/routes/spec-edit/`.
 | `POST /api/queue/specs/<project>/<spec>/save`             | action | which of the four files, its text, and the sha it was read at          | a redirect; 400 for a malformed body                  | form      |
 | `POST /api/queue/specs/<project>/<spec>/model`            | action | step and model                                                         | `{ ok }`, or a 303 to the specs list                  | form      |
 | `POST /api/queue/specs/<project>/<spec>/close`            | action | a reason                                                               | `{ ok, job }`, or a 303; 400 without a reason         | form      |
+| `POST /api/queue/specs/<project>/<spec>/delete-branch`    | action | nothing; deletes an archived spec's merged branch on origin            | `{ ok }`, or a 303 to the specs list; 400 if refused  | form      |
 | `POST /api/queue/specs/<project>/<spec>/test-server`      | action | nothing                                                                | `{ ok, testServer }`, or a 303 to the spec page       | interface |
 | `POST /api/queue/specs/<project>/<spec>/test-server/stop` | action | nothing                                                                | `{ ok }`, or a 303 back to the page it was pressed on | form      |
 

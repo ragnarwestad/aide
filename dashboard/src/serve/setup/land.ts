@@ -31,6 +31,7 @@ import {
   installAfterMerge as installAfterMergeImpl,
   restartAfterLanding,
   withFreshness as withFreshnessImpl,
+  deleteLeftBehindBranch as deleteLeftBehindBranchImpl,
   type LandContext,
   type RestartHook,
 } from "../land-branch";
@@ -154,9 +155,13 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
   function withFreshness(list: SpecTarget[]) {
     return withFreshnessImpl(landCtx, list);
   }
+  /** The row's Delete branch: a merged branch its landing left on origin. */
+  function deleteLeftBehindBranch(project: string, folder: string) {
+    return deleteLeftBehindBranchImpl(landCtx, project, folder);
+  }
 
   return {
     jobRow, landNewSpec, landStepBranch, landStoppedStepBranch, landArchivedSpec, landClosedSpec, landScheduleRun,
-    deploy, withFreshness,
+    deploy, withFreshness, deleteLeftBehindBranch,
   };
 }

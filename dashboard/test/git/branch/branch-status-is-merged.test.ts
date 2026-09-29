@@ -285,3 +285,39 @@ describe("BranchStatusChecker.isMerged: origin has forgotten the branch", () => 
     expect(git.calls.some((c) => c.args[0] === "merge-base")).toBe(true);
   });
 });
+
+// The specs list never asks git while drawing: it peeks the answer the
+// background sweep or a landing left, the same way it peeks the open set.
+describe("BranchStatusChecker.peekMerged", () => {
+  test("is null before any ask, then the last answer isMerged took (AC-1)", async () => {
+    let ancestor = 1;
+    const run: GitRunner = async (_dir, args) => {
+      if (args[0] === "symbolic-ref") return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (args[0] === "merge-base") return { code: ancestor, stdout: "" };
+      return { code: 0, stdout: "" };
+    };
+    const checker = new BranchStatusChecker({ run, now: () => 1000 });
+    expect(checker.peekMerged("/repo", "aide/570-x")).toBeNull();
+    await checker.isMerged("/repo", "aide/570-x");
+    expect(checker.peekMerged("/repo", "aide/570-x")).toBe(false);
+    ancestor = 0;
+    await checker.isMerged("/repo", "aide/570-x", true);
+    expect(checker.peekMerged("/repo", "aide/570-x")).toBe(true);
+    // A peek spawns nothing.
+    const git = fakeGit({});
+    const quiet = new BranchStatusChecker({ run: git.run });
+    quiet.peekMerged("/repo", "aide/570-x");
+    expect(git.calls).toEqual([]);
+  });
+
+  test("rememberMerged records true without asking git, and invalidate drops it (AC-1)", () => {
+    const git = fakeGit({});
+    const checker = new BranchStatusChecker({ run: git.run, now: () => 1000 });
+    checker.rememberMerged("/repo", "aide/570-x");
+    expect(checker.peekMerged("/repo", "aide/570-x")).toBe(true);
+    expect(checker.peekMerged("/other", "aide/570-x")).toBeNull();
+    expect(git.calls).toEqual([]);
+    checker.invalidate("/repo", "aide/570-x");
+    expect(checker.peekMerged("/repo", "aide/570-x")).toBeNull();
+  });
+});

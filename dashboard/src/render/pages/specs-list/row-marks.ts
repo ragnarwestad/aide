@@ -7,7 +7,7 @@ import { stepLabel, type BadgeVariant, type MessageVariant } from "../../ui/comp
 import { t, type Language } from "../../../i18n";
 import { renderSentence } from "../../../i18n/message.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
-import { heldBackReasonText } from "../../ui/job-state/notice.ts";
+import { heldBackReasonText, type NoticePart } from "../../ui/job-state/notice.ts";
 import { specPagePath } from "../spec-page";
 import { type ArchivedSpecView, type SpecGroup } from "./data-model";
 import { LANDING_FAILED, NO_PULL_REQUEST, NOT_PUSHED, prErrorOf, prErrorSentence, PULL_REQUEST, TEST_SERVER, TESTS_RED } from "./row-shared.ts";
@@ -156,7 +156,7 @@ export interface RowMarkNotice {
   text: string;
   href?: string;
   own?: boolean;
-  kind?: "acceptance-hold";
+  kind?: NoticePart["kind"];
 }
 
 /** The four things a LIVE row's own fields can say, ranked exactly as
@@ -206,6 +206,12 @@ export function archivedRowNotices(a: ArchivedSpecView | undefined, now: number,
       text: a.prUrl ? waitingOnReviewSentence(lang) : t(lang, "list.noPullRequestOpened"),
       href: a.prUrl,
     }];
+  }
+  // Merged, so archived: what is left is one press, not a failure.
+  // Amber, departing from spec 372's red, which told of a push that did
+  // not reach origin; a line of its own, since it carries the button.
+  if (a.branchLeftBehind) {
+    return [{ variant: "waiting", text: t(lang, "list.branchStillOnOrigin"), own: true, kind: "branch-left-behind" }];
   }
   const title = lockedStateTitle(a, now, lang);
   if (title) return [{ variant: "failed", text: title }];
