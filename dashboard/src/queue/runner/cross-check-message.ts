@@ -6,11 +6,15 @@ import type { StepOutcome } from "./types.ts";
 /** The bash cross-check's verdicts (run-spec-status-line.sh,
  *  run-spec-step-tests.sh) — a step that made `no-progress`, an
  *  implement or archive whose own test run came back red, or an archive
- *  that left its open merge unfinished — as the board's own message for the step it was about,
+ *  that left its open merge unfinished, or a step whose model declined to
+ *  continue — as the board's own message for the step it was about,
  *  so the row reads it in the reader's language rather than in the
  *  script's English. Every other failure keeps the sentence the script
  *  wrote. */
 export function noProgressMessage(step: WorkflowStep, outcome: Partial<StepOutcome>): BoardMessage | undefined {
+  if (outcome.terminalReason === "model-refused") {
+    return { key: "runner.modelRefused", values: { button: stepButton(step) } };
+  }
   if (outcome.terminalReason === "tests-red" && step === "implement") {
     return { key: "runner.testsRedImplement", values: { button: stepButton(step) } };
   }

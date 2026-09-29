@@ -109,6 +109,8 @@ queued `create`, `archive` or `close` step â€” the ones that do no model work â€
   `error` in place: it is the reason the step stopped, not a fault the landing resolved.
 - Any other failure gives `failed`, with `error` and, when the runner found a merge conflict at step start,
   `errorReason: "conflict"`.
+  A result whose `stop_reason` is `refusal` ends `model-refused`: the model itself declined, so the error names the
+  step and says so, and gives no advice about installing or logging in.
 - Success on the last step gives `done`. Success with steps left gives `queued` again, with `stepIndex` advanced.
   There is no stop between steps: every step lands its own work.
 

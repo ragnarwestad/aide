@@ -275,6 +275,39 @@ describe("resolveWorkflowState", () => {
     expect(resolved!.done).toEqual(["create", "analyze"]);
     expect(resolved!.historyDone).toEqual(["create"]);
   });
+
+  // The state file keeps naming what an earlier run finished; the newest
+  // run says how the step stands now.
+  test("a step whose newest run failed is not done, though the state file names it (AC-1)", async () => {
+    const history = await warmedHistory(subject("analyze", { stopped: "model-refused" }), subject("analyze"), subject("create"));
+    const branchFileSteps = await warmedBranchSteps(["create", "analyze"], ["create", "analyze"]);
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
+    expect(resolved!.done).toEqual(["create"]);
+    expect(resolved!.stopped).toEqual({ analyze: "model-refused" });
+  });
+
+  test("a later run that completes puts the step back in done with no stop (AC-5)", async () => {
+    const history = await warmedHistory(subject("analyze"), subject("analyze", { stopped: "model-refused" }), subject("create"));
+    const branchFileSteps = await warmedBranchSteps(["create", "analyze"], ["create", "analyze"]);
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
+    expect(resolved!.done).toEqual(["create", "analyze"]);
+    expect(resolved!.stopped).toEqual({});
+  });
+
+  // The two limits the queue keeps as stopped leave the earlier run standing.
+  test("a step whose newest run stopped at its time limit stays done", async () => {
+    const history = await warmedHistory(subject("analyze", { stopped: "timeout" }), subject("analyze"), subject("create"));
+    const branchFileSteps = await warmedBranchSteps(["create", "analyze"], ["create", "analyze"]);
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
+    expect(resolved!.done).toEqual(["create", "analyze"]);
+  });
+
+  test("create is never taken out of done by a failed stop", async () => {
+    const history = await warmedHistory(subject("create", { stopped: "cli-error" }));
+    const branchFileSteps = await warmedBranchSteps(["create"], ["create"]);
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
+    expect(resolved!.done).toEqual(["create"]);
+  });
 });
 
 // --- what only real git can prove -------------------------------------------

@@ -589,7 +589,11 @@ elif [ -n "${provider_limit_out:-}" ]; then
   [ -n "$reset_at" ] && error_msg="$error_msg; resets $reset_at"
 elif [ "$have_result" = "true" ]; then
   is_error="$(jq -r '.is_error // false' <<<"$result_json")"
-  if [ "$is_error" = "true" ]; then
+  if [ "$is_error" = "true" ] && [ "$(jq -r '.stop_reason // empty' <<<"$result_json")" = "refusal" ]; then
+    # The model's own stop, not the CLI failing: the result's `stop_reason` says so.
+    terminal_reason="model-refused"
+    error_msg="$step_button stopped: the model declined to continue — press $step_button again, or choose another model for this step"
+  elif [ "$is_error" = "true" ]; then
     terminal_reason="cli-error"
     error_msg="$(jq -r '(.errors // []) | join("; ")' <<<"$result_json")"
     [ -n "$error_msg" ] || error_msg="provider reported an error"
@@ -688,7 +692,7 @@ else
   run_model_turn "$work_dir/prompt"
   # The analysis's session could not be continued — gone, or refused by
   # the tool: the implement starts afresh, as it would have without it.
-  if [ -n "$resume_session" ] && [ "$terminal_reason" = "cli-error" ]; then
+  if [ -n "$resume_session" ] && { [ "$terminal_reason" = "cli-error" ] || [ "$terminal_reason" = "model-refused" ]; }; then
     echo "aide-run-spec: the analysis session $resume_session could not be continued; starting the implement afresh" >&2
     argv=("${fresh_argv[@]}"); resume_session=""
     session_out=""; subtype=""; cost="0"; cost_measured="false"; terminal_reason=""; error_msg=""

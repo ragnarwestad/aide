@@ -23,6 +23,7 @@
 
 import type { GitRunner } from "./branch-status.ts";
 import { DEFAULT_TTL_MS, type BranchFileStepsChecker, type FileStepsAnswer } from "./branch-file-steps.ts";
+import { isFailedStop } from "../format/stop-reason.ts";
 import workflowStepsData from "../../../core/scripts/lib/workflow-steps.json" with { type: "json" };
 
 export { BranchFileStepsChecker } from "./branch-file-steps.ts";
@@ -378,7 +379,10 @@ export function resolveWorkflowState(
   // and the done list read too, once one exists — git's own
   // `history.done` only when there is no state file for this spec yet.
   const doneSource = answer.stateSteps ?? h.done;
-  const done = doneSource.includes("create") ? doneSource : ["create", ...doneSource];
+  const named = doneSource.includes("create") ? doneSource : ["create", ...doneSource];
+  // The state file keeps naming what an earlier run finished; the newest
+  // run says how the step stands now.
+  const done = named.filter((step) => step === "create" || !isFailedStop(h.stopped[step]));
   return {
     done,
     stopped: h.stopped,

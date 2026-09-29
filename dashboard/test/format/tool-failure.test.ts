@@ -42,6 +42,20 @@ describe("toolFailureSentence", () => {
     expect(s.text).toContain("the tab for this model's AI");
   });
 
+  // The shape Claude Code writes when it is not logged in: an error result
+  // with no error list, so the script's fallback sentence stands.
+  test("a login failure from Claude Code still sends the reader to Settings (AC-4)", () => {
+    const s = toolFailureSentence({
+      tool: "claude",
+      model: "Sonnet",
+      error: "provider reported an error \u2014 press Analyze again",
+      terminalReason: "cli-error",
+    })!;
+    expect(s.text).toContain("Settings");
+    expect(s.text).toContain("Claude Code tab");
+    expect(s.text).toContain("Check");
+  });
+
   test("a tool with no model still names the tool", () => {
     expect(toolFailureSentence({ tool: "claude", terminalReason: "cli-error" })!.text).toContain("Claude Code");
   });

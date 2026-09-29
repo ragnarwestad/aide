@@ -217,7 +217,7 @@ export function phasePips(phases: Phase[], done: string[]): string {
             ? createRunning
               ? "now"
               : "past"
-            : wordPhase(done.includes(p.step), p.heldBack, attempt, p.history).pip,
+            : wordPhase(done.includes(p.step), p.heldBack, attempt, { ...p.history, step: p.step }).pip,
         title: stepLabel(p.step),
         // How much of a running implement is behind it (spec 210). The
         // fallback above is the latest attempt whatever became of it,
