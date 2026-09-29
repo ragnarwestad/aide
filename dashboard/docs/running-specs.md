@@ -327,10 +327,10 @@ and shown on the job's own detail page beside its Model row.
 
 ## Global defaults for the AI and model
 
-`/settings` holds the default AI and model per step. It has nine rows: the six that act on a spec — Create,
-Analyze, Implement, Archive, Close and Reopen — then Manifest, Schedule and Wiki, which do not. `explore` is
-deliberately left out: it has no button, no row action and no place in Schedule, so a model set for it could not be
-used.
+`/settings` holds the default AI and model per step, on its AI tab under Models per phase. The table has nine rows:
+the six that act on a spec — Create, Analyze, Implement, Archive, Close and Reopen — then Manifest, Schedule and
+Wiki, which do not. `explore` is deliberately left out: it has no button, no row action and no place in Schedule, so
+a model set for it could not be used.
 
 A step nothing has been saved for runs on Claude Code's Opus, and its row shows that. The built-in name `opus` is
 matched to the host's own choices in any case, so a host that lists `Opus` runs and shows that choice. A
