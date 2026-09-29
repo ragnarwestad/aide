@@ -2,7 +2,7 @@
 // though an earlier run finished it. The rule is proven in
 // job-state/word-phase-failed.test.ts; this proves the row is wired to it.
 import { describe, expect, test } from "bun:test";
-import { phasePips, phasesFor, renderSpecsRows, type SpecTarget } from "../../../../../src/render";
+import { renderSpecsRows, type SpecTarget } from "../../../../../src/render";
 import { openKeys, row } from "../../fixtures.ts";
 
 const FOLDER = "564-a-refused-analysis";
@@ -30,11 +30,6 @@ describe("a failed newest run is drawn as failed (AC-1)", () => {
     expect(analyzeLine(html)).toContain(">Failed<");
     expect(html).toMatch(/class="btn primary"[^>]*>Analyze<\/button>/);
     expect(box(html, "analyze")).toContain("checked");
-  });
-
-  test("the spec page's pip for the phase is red (AC-1)", () => {
-    const phases = phasesFor([], refused);
-    expect(phasePips(phases, refused.done!)).toContain("pip refused");
   });
 
   test("a failed job over an analysis the files name as done draws Failed on the line (AC-1)", () => {

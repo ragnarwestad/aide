@@ -8,7 +8,7 @@ const attemptOf = (state: string, ok: boolean, extra: Record<string, unknown> = 
   ({ state, results: [{ step: "analyze", ok, costUsd: 0 }], ...extra }) as unknown as QueueRowView;
 
 describe("a failed newest run speaks for the phase", () => {
-  test("a done phase whose newest attempt failed on its own step reads Failed, badge and pip red (AC-1)", () => {
+  test("a done phase whose newest attempt failed on its own step reads Failed, in the refused state (AC-1)", () => {
     const w = wordPhase(true, undefined, attemptOf("failed", false), { step: "analyze" });
     expect(w.badge).toEqual({ variant: "refused", label: "Failed" });
     expect(w.pip).toBe("refused");
