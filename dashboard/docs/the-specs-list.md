@@ -197,9 +197,10 @@ starts with a ›. It adds or removes the phase's key, `<project>/<folder>:<step
 every sort and filter link and every redirect after a press the way `?open=` is, and it is a plain link, so it
 works with script off.
 
-The unfolded row starts with `Model: <choice> · <model id>` when the step's run reported the id it ran on (a Claude
-Code step; an archived phase reads it from its file's `Model id` line, with the recorded word for the choice), and
-nothing when it reported none. It then shows the step's Log — the same log the Logs tab shows for the newest attempt
+The unfolded row starts with a `Model:` line when the step's run reported the id it ran on (a Claude Code step; an
+archived phase reads it from its file's `Model id` line, with the recorded word for the choice), and nothing when it
+reported none. A Claude id is read as its model's name and takes the family word's place, so `Opus` that ran on
+`claude-opus-5-5` reads `Model: Opus 5.5`; any other id follows the choice, as `Model: Opus · <model id>`. It then shows the step's Log — the same log the Logs tab shows for the newest attempt
 that ran the step, part by part and every line of it — in a box twenty lines tall that opens at its end and scrolls
 back to the start, and a link to that step on the Logs tab. The row is a window on that one log, not a shorter copy:
 Aide's own lines are in it in their place, so a landing's merge step and its test run show there while they go on.
