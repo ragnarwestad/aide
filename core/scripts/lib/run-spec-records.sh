@@ -167,6 +167,16 @@ kept_round_boundary_in() {   # sets $kept_round_sha
   return 0
 }
 
+# Whether the spec stood at `implemented` before this step's session: its
+# state at the pre-session ref, read the way the gates read it.
+analysis_follows_implement() {   # $1 = status file, $2 = pre-session ref
+  local state_json="" state_json_found=""
+  [ -n "${2:-}" ] || return 1
+  read_spec_state_at_ref "$(dirname "$1")" "$2" "$(basename "$1")"
+  [ "$state_json_found" = "yes" ] || return 1
+  [ "$(current_phase_from "$state_json")" = "implemented" ]
+}
+
 completed_steps_for() {   # sets $completed_steps
   local folder="$1" dir="$2" subject step reason seen completed re re_archive
   local existing_line existing_step archive_counts="yes"

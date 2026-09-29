@@ -205,6 +205,11 @@ BASH_ERROR_REGISTRY: list[dict] = [
         "resolve": "press $step_button again",
     },
     {
+        "name": "the model declined to continue (a refusal)",
+        "pattern": r'error_msg="\$step_button stopped: the model declined to continue — press \$step_button again, or choose another model[^"]*"',
+        "resolve": "press $step_button again",
+    },
+    {
         "name": "the tool exited non-zero with no result JSON error",
         "pattern": r'error_msg="\$tool exit \$exit_code — press \$step_button again"',
         "resolve": "press $step_button again",

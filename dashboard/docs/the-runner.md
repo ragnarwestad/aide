@@ -196,7 +196,13 @@ since the current work round began, plus the step that has just completed. A ste
 is committed with the reason in its subject (`(stopped: timeout)`) and is not counted. A completed `analyze` is newer
 than every `implement` and `archive` before it, and those no longer count: the scan reads the log newest first
 (`--date-order`) and skips them, and the run's own completed analyze takes them off the line as well. The
-TypeScript twin (`readWorkflowSubjects`) applies the same rule and names the steps it skipped. A spec made by hand, with no runner commit behind it, has no line and
+TypeScript twin (`readWorkflowSubjects`) applies the same rule and names the steps it skipped.
+
+**A completed analyze of a spec that stood at `implemented` before the session also rebuilds the acceptance table.**
+`analysis_follows_implement` (same file) reads the state at the ref taken before the session, and
+`rebuild_acceptance_rows` (`core/scripts/lib/spec-transitions.sh`) rewrites the table from `1-description.md`, every
+row open, before Total progress and the state file are derived, so all three ride in the step's own commit. Any other
+ending, or a spec that was not implemented, leaves the table alone. A spec made by hand, with no runner commit behind it, has no line and
 reads as having had nothing — deliberately, because a spec that reads as unfinished is fixed by running the step, where
 a guess is not.
 

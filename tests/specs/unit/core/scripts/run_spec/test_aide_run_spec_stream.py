@@ -10,7 +10,7 @@ import os
 import subprocess
 import time
 import pytest
-from ..conftest import STOP_DEADLINE_SEC, run
+from ..conftest import READ_SPECS, STOP_DEADLINE_SEC, git, run
 from .run_spec_results import RESULT_OK, STREAM_NOISE, stream_body
 
 def test_the_kept_stream_survives_the_work_dir_cleanup(runner, workspace, fake_claude, tmp_path):
@@ -91,6 +91,56 @@ def test_is_error_prevents_a_success_subtype_from_completing(runner, workspace, 
     assert out["ok"] is False
     assert out["terminalReason"] == "cli-error"
     assert "provider request failed" in out["error"]
+
+# What Claude Code writes when the model declines to go on, read off the
+# stream of a real refused analysis: a system event, an assistant event that
+# carries the stop, and a result event that is an error with no `errors`.
+REFUSAL_EVENTS = [
+    {"type": "system", "subtype": "model_refusal_no_fallback",
+     "api_refusal_category": "reasoning_extraction",
+     "api_refusal_explanation": "the request was flagged"},
+    {"type": "assistant", "error": "invalid_request",
+     "message": {"stop_reason": "refusal", "content": []}},
+]
+RESULT_REFUSED = {
+    **RESULT_OK, "is_error": True, "stop_reason": "refusal",
+    "terminal_reason": "api_error", "result": "API Error: safeguards flagged this message",
+}
+RESULT_NOT_LOGGED_IN = {
+    **RESULT_OK, "is_error": True, "terminal_reason": "api_error",
+    "result": "Not logged in \u00b7 Please run /login",
+}
+
+def test_a_refusal_ends_model_refused_and_the_commit_says_so_AC_2_AC_3(runner, workspace, fake_claude):
+    """A refused step is a step that stopped: the reason is the model's own,
+    read off the result's `stop_reason`, and it reaches the commit subject,
+    the only record that outlives the queue."""
+    body = stream_body(RESULT_REFUSED, before=REFUSAL_EVENTS)
+    claude = fake_claude(
+        body.replace(
+            "cat > /dev/null\n",
+            "cat > /dev/null\n" + READ_SPECS
+            + f'echo "analysis" > "$specs/{workspace["folder"]}/2-analysis.md"\n',
+            1,
+        )
+    )
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert out["ok"] is False, out
+    assert out["terminalReason"] == "model-refused", out
+    assert "Analyze" in out["error"] and "declined" in out["error"], out["error"]
+    assert "provider reported an error" not in out["error"], out["error"]
+    subject_line = git(workspace["specs"], "log", "-1", "--pretty=%s", "aide/81-queue-and-runner")
+    assert subject_line.endswith("(stopped: model-refused)"), subject_line
+
+def test_a_login_failure_stays_a_cli_error_AC_4(runner, workspace, fake_claude):
+    """The refusal is told from the login problem by `stop_reason`; a
+    result that carries none keeps today's reason, so the board still
+    sends the reader to Settings."""
+    claude = fake_claude(stream_body(RESULT_NOT_LOGGED_IN))
+    _, out, _ = run(runner, workspace, claude)
+    assert out["ok"] is False
+    assert out["terminalReason"] == "cli-error"
 
 def test_nonzero_exit_prevents_a_success_subtype_from_completing(runner, workspace, fake_claude):
     claude = fake_claude(stream_body(RESULT_OK, exit_code=1))

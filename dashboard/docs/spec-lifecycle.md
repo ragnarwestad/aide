@@ -110,6 +110,13 @@ replaced, so the line, the state file and the row read them as not run until the
 earlier implement committed stays on `aide/<folder>`, and the next implement starts from it. An analysis that ends
 without completing cancels nothing.
 
+**A completed analysis of an implemented spec also clears its acceptance ticks.** A tick says someone checked the
+criterion against the code that will land, and the new round replaces that code. The runner rewrites the table under
+`## Acceptance criteria` from the criteria in `1-description.md` as they read now: one row per `AC-n`, every one open
+(`Not verified` included), so a reworded criterion shows its new wording and a removed one is gone. A row keeps its
+Notes cell only while its criterion's text is unchanged. Archive then stops for the criteria as it does in a spec's
+first round. An analysis of a spec that never reached `implemented` leaves the rows as they are.
+
 The checks themselves, and what each one refuses, are in
 [The runner and its checkouts](the-runner.md#what-counts-as-a-step-having-run).
 
@@ -263,8 +270,8 @@ root's branch open through `archive` too, as the pull request; the specs root st
 ## Another round on the same spec
 
 A spec whose acceptance criteria are not all ticked, or that was reopened with its files kept, can take another round of analysis or implementation without being
-reopened. It is the one way back that keeps everything: the analysis, the plan, the status and every ticked
-row stay as they are.
+reopened. It is the one way back that keeps the files: the analysis, the plan and the status stay as they are. A round
+that starts with Analyze clears the ticks (below); a round that starts with Implement keeps them.
 
 - **The round begins where archive declines.** `aide-archive-spec` refuses an archive while any row under
   `## Acceptance criteria` in `4-status.md` is open, and at that moment writes
@@ -275,10 +282,13 @@ row stay as they are.
 - **Analyze or Implement then runs again on the same active spec.** Whether the criteria have changed enough is the
   reader's call; the server does not check it. A round that starts with Analyze ends with Implement next, since the
   analysis cancels the implement before it.
-- **The round touches only what is open.** Analyze appends a `## Round N` section to `2-analysis.md` and
-  `3-solution.md` for the open and new ids, and `4-status.md` gains a row for each new id; no existing row's text or
-  tick changes. A ticked criterion is approved, and nothing in the round traces to it. Implement may rewrite an open
-  row's Notes cell with what is still missing. No skill ticks a row.
+- **The round plans what is open, new or reworded.** Analyze appends a `## Round N` section to `2-analysis.md` and
+  `3-solution.md` for every open id, every new id and every id whose text in `1-description.md` changed since the round
+  boundary, ticked or not. The session appends a row to `4-status.md` for each new id and changes no other row; the
+  runner then rebuilds the table from the description, every row open. A ticked criterion whose text is unchanged is not
+  planned again: the earlier round's code and tests for it stay on the branch, and the user checks it against the new
+  code when they tick it again. Implement may rewrite an open row's Notes cell with what is still missing. No skill
+  ticks a row.
 - **On the specs list**, a spec held back this way offers Analyze and Implement unticked beside a ticked Archive: a
   plain press archives, and another round is a choice made by ticking it.
 

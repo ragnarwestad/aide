@@ -8,12 +8,29 @@ in conftest.py beside them.
 import json
 import os
 import re
+import signal
 import subprocess
 from ..conftest import READ_SPECS, STOP_DEADLINE_SEC, git, run
-from .run_spec_invoking import CREATE_KEY, create
+from .run_spec_invoking import CREATE_KEY, create, wait_until
 from .run_spec_fakes import project_only_claude, specs_only_claude, writing_claude
 from .run_spec_results import RESULT_OK
-from .run_spec_status_files import already_ran, bullet, phase_file_text, recorded_line, recorded_model, state_of, subject, with_status
+from .run_spec_status_files import (
+    acceptance_cells,
+    acceptance_section,
+    already_ran,
+    branch_file,
+    bullet,
+    phase_file_text,
+    recorded_line,
+    recorded_model,
+    section_of,
+    state_of,
+    status_on_branch_or_main,
+    status_on_main,
+    subject,
+    with_acceptance,
+    with_status,
+)
 
 def test_a_copied_status_line_is_no_longer_corrected_by_the_step_that_runs(
     runner, workspace, fake_claude
@@ -471,3 +488,174 @@ def test_a_line_naming_something_that_is_not_a_step_drops_it(
     rc, out, _ = run(runner, workspace, claude, command="implement")
     assert rc == 0, out
     assert recorded_line(workspace) == "analyze, implement"
+
+
+# --- a new analysis of an implemented spec clears the acceptance ticks ------
+
+BRANCH = "aide/81-queue-and-runner"
+STEPS = ["create", "analyze", "implement"]
+NOTE = "Not tested: needs a deploy; check the log"
+
+
+def _implemented_with_acceptance(workspace, rows, criteria, section=None, done=False):
+    with_status(workspace, STEPS, done=done)
+    with_acceptance(workspace, section or acceptance_section(rows), criteria)
+    already_ran(workspace, STEPS)
+
+
+def _statuses(text):
+    return [status for _, status, _ in acceptance_cells(text)]
+
+
+def test_a_completed_analysis_unticks_every_acceptance_row_and_the_state_AC_1(
+    runner, workspace, fake_claude
+):
+    _implemented_with_acceptance(
+        workspace,
+        ["| AC-1: first | ✅ | |", "| AC-2: second | Not verified | |", "| AC-3: third | ⬜ | |"],
+        {1: "first", 2: "second", 3: "third"},
+    )
+    rc, out, _ = run(runner, workspace, specs_only_claude(fake_claude, workspace), command="analyze")
+    assert rc == 0, out
+    assert _statuses(branch_file(workspace["specs"], "4-status.md", workspace)) == ["⬜", "⬜", "⬜"]
+    criteria = state_of(workspace)["acceptanceCriteria"]
+    assert len(criteria) == 3
+    assert all(not c["done"] and "notVerified" not in c for c in criteria), criteria
+
+def test_a_completed_analysis_leaves_the_phase_rows_alone_AC_1(runner, workspace, fake_claude):
+    _implemented_with_acceptance(
+        workspace, ["| AC-1: first | ✅ | |"], {1: "first"}, done=True
+    )
+    rc, out, _ = run(runner, workspace, specs_only_claude(fake_claude, workspace), command="analyze")
+    assert rc == 0, out
+    after = branch_file(workspace["specs"], "4-status.md", workspace)
+    assert "| already done | ✅ | |" in section_of(after, "## Phase 1")
+    assert section_of(after, "## Phase 1") == section_of(status_on_main(workspace), "## Phase 1")
+
+def test_a_section_without_a_table_is_left_as_it_is_AC_1(runner, workspace, fake_claude):
+    sentence = "\n## Acceptance criteria\n\nAcceptance ticking was not required for this run.\n"
+    _implemented_with_acceptance(workspace, None, {1: "first"}, section=sentence)
+    rc, out, _ = run(runner, workspace, specs_only_claude(fake_claude, workspace), command="analyze")
+    assert rc == 0, out
+    after = branch_file(workspace["specs"], "4-status.md", workspace)
+    assert section_of(after, "## Acceptance") == section_of(status_on_main(workspace), "## Acceptance")
+
+def test_the_tick_list_takes_the_descriptions_wording_after_the_analysis_AC_2(
+    runner, workspace, fake_claude
+):
+    _implemented_with_acceptance(
+        workspace,
+        [
+            "| AC-1: The old wording | ✅ | Read as: the list page |",
+            "| AC-2: A removed criterion | Not verified | |",
+            f"| AC-3: Unchanged | ✅ | {NOTE} |",
+        ],
+        {1: "The new wording", 3: "Unchanged", 4: "A new criterion"},
+    )
+    rc, out, _ = run(runner, workspace, specs_only_claude(fake_claude, workspace), command="analyze")
+    assert rc == 0, out
+    assert acceptance_cells(branch_file(workspace["specs"], "4-status.md", workspace)) == [
+        ("AC-1: The new wording", "⬜", ""),
+        ("AC-3: Unchanged", "⬜", NOTE),
+        ("AC-4: A new criterion", "⬜", ""),
+    ]
+    assert [c["task"] for c in state_of(workspace)["acceptanceCriteria"]] == [
+        "AC-1: The new wording", "AC-3: Unchanged", "AC-4: A new criterion",
+    ]
+
+def test_a_description_without_criterion_lines_keeps_the_rows_and_clears_the_ticks_AC_3(
+    runner, workspace, fake_claude
+):
+    _implemented_with_acceptance(
+        workspace, ["| AC-1: first | ✅ | a note |", "| AC-2: second | Not verified | |"], {}
+    )
+    rc, out, _ = run(runner, workspace, specs_only_claude(fake_claude, workspace), command="analyze")
+    assert rc == 0, out
+    assert acceptance_cells(branch_file(workspace["specs"], "4-status.md", workspace)) == [
+        ("AC-1: first", "⬜", "a note"),
+        ("AC-2: second", "⬜", ""),
+    ]
+
+def test_archive_stops_for_the_criteria_a_new_analysis_cleared_AC_3(runner, workspace, fake_claude):
+    _implemented_with_acceptance(
+        workspace,
+        ["| AC-1: first | ✅ | |", "| AC-2: second | Not verified | |"],
+        {1: "first", 2: "second"},
+    )
+    rc, out, _ = run(runner, workspace, specs_only_claude(fake_claude, workspace), command="analyze")
+    assert rc == 0, out
+    specs = workspace["specs"]
+    git(specs, "merge", "-q", "--ff-only", BRANCH)
+    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace), command="implement")
+    assert rc == 0, out
+    git(specs, "merge", "-q", "--ff-only", BRANCH)
+    rc, out, _ = run(runner, workspace, fake_claude("cat > /dev/null\n"), command="archive")
+    assert out["terminalReason"] == "acceptance-criteria-unticked", out
+    assert (specs / workspace["folder"]).exists()
+    assert not (specs / "archive" / workspace["folder"]).exists()
+
+def test_an_analysis_of_a_spec_never_implemented_keeps_its_ticks_AC_4(
+    runner, workspace, fake_claude
+):
+    with_status(workspace, ["create", "analyze"])
+    with_acceptance(
+        workspace,
+        acceptance_section(["| AC-1: old wording | ✅ | |", "| AC-2: second | Not verified | |"]),
+        {1: "new wording", 2: "second"},
+    )
+    already_ran(workspace, ["create", "analyze"])
+    rc, out, _ = run(runner, workspace, specs_only_claude(fake_claude, workspace), command="analyze")
+    assert rc == 0, out
+    assert _statuses(branch_file(workspace["specs"], "4-status.md", workspace)) == ["✅", "Not verified"]
+    first, second = state_of(workspace)["acceptanceCriteria"]
+    assert first["done"] and "notVerified" not in first
+    assert second.get("notVerified") is True
+
+def test_an_analysis_the_scope_check_stopped_keeps_the_ticks_AC_5(runner, workspace, fake_claude):
+    _implemented_with_acceptance(
+        workspace, ["| AC-1: first | ✅ | |", "| AC-2: second | Not verified | |"], {1: "first", 2: "second"}
+    )
+    rc, out, _ = run(runner, workspace, project_only_claude(fake_claude), command="analyze")
+    assert out["terminalReason"] == "scope-violation", out
+    assert section_of(status_on_branch_or_main(workspace), "## Acceptance") == section_of(
+        status_on_main(workspace), "## Acceptance"
+    )
+
+def test_a_cancelled_analysis_keeps_the_ticks_AC_5(runner, workspace, fake_claude, tmp_path):
+    _implemented_with_acceptance(
+        workspace, ["| AC-1: first | ✅ | |", "| AC-2: second | Not verified | |"], {1: "first", 2: "second"}
+    )
+    ready = tmp_path / "ready"
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'echo "analysis" > "$specs/{workspace["folder"]}/2-analysis.md"\n'
+        + f"touch {ready}\n"
+        + "sleep 60\n"
+    )
+    proc = subprocess.Popen(
+        [
+            str(runner),
+            "--project-dir", str(workspace["project"]),
+            "--command", "analyze",
+            "--spec", workspace["folder"],
+            "--timeout-sec", "120",
+            "--permission-mode", "acceptEdits",
+            "--result-file", str(tmp_path / "result.json"),
+            "--worktree-base", str(workspace["wtbase"]),
+        ],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        env={**os.environ, "AIDE_CLAUDE_BIN": str(claude)},
+    )
+    try:
+        wait_until(ready.exists, 60, "the step never started writing")
+        proc.send_signal(signal.SIGTERM)
+        proc.wait(timeout=60)
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait(timeout=10)
+    assert branch_file(workspace["specs"], "2-analysis.md", workspace) == "analysis"
+    assert section_of(branch_file(workspace["specs"], "4-status.md", workspace), "## Acceptance") == section_of(
+        status_on_main(workspace), "## Acceptance"
+    )

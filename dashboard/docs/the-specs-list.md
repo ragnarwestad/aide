@@ -121,6 +121,11 @@ run sends the next step off an empty template. A status file carrying no such li
 page is concerned: a spec that reads as unfinished is visible and is fixed by running the step, where a silent
 guess is neither.
 
+A step whose newest run failed is not done, whatever an earlier run left in that line: the row reads Failed and
+offers the step again, and it reads Done once a later run of that step completes. A stop counts as a failure by
+`FAILED_STOPS` (`src/format/stop-reason.ts`); `timeout`, `provider-limit` and a cancel leave the earlier Done as it
+was. The state file itself is not rewritten, so the gates that read it are unchanged.
+
 The percentage keeps its own job. It says how far the TDD phases INSIDE implement have got, which is a different
 question from whether implement ran. It is not shown on the row — implement is ONE step, so the figure reads 0
 until implement finishes and 90-something after, never anything between, and two specs of entirely different sizes

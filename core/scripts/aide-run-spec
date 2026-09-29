@@ -47,7 +47,7 @@
 #
 # terminalReason is this script's own vocabulary, not the CLI's:
 #   completed | timeout | provider-limit | refused | spawn-failed | cli-error
-#   | already-landed
+#   | model-refused | already-landed
 #
 # --stream-file PATH keeps the claude transcript (stream-json, one event
 # per line) at PATH instead of discarding it with the working directory.
@@ -335,6 +335,16 @@ elif [ -n "$status_file" ]; then
   # it owns.
   if declare -f write_phase_stamp >/dev/null 2>&1; then
     write_phase_stamp "$status_file" "workflow-line" "$completed_steps"
+  fi
+
+  # A completed analysis of an implemented spec clears every acceptance
+  # tick and rebuilds the rows from the description: the code the ticks
+  # judged is about to be replaced. Before Total progress and the state
+  # file, which both count these rows.
+  if [ "$command_name" = "analyze" ] && [ "$terminal_reason" = "completed" ] && \
+     declare -f rebuild_acceptance_rows >/dev/null 2>&1 && \
+     analysis_follows_implement "$status_file" "$specs_ref_before"; then
+    rebuild_acceptance_rows "$status_file" "$(dirname "$status_file")/1-description.md"
   fi
 
   # Nothing derived leaves the file alone: a fresh spec whose Phase
