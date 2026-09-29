@@ -73,7 +73,10 @@ export const LIST_COLUMNS = 6;
  *  answers with can only carry forward what the POST itself received,
  *  so the fields have to leave the browser on the same request. */
 export const filterFields = (f?: SpecsFilter): string =>
-  FILTER_KEYS.map((k) => {
-    const v = f?.[k];
-    return v ? `<input type="hidden" name="${FILTER_FIELD_PREFIX}${k}" value="${esc(v)}">` : "";
-  }).join("");
+  Object.entries(filterValues(f))
+    .map(([name, value]) => `<input type="hidden" name="${name}" value="${esc(value)}">`)
+    .join("");
+
+/** The same fields as names and raw values, for a caller that draws them itself. */
+export const filterValues = (f?: SpecsFilter): Record<string, string> =>
+  Object.fromEntries(FILTER_KEYS.flatMap((k) => (f?.[k] ? [[`${FILTER_FIELD_PREFIX}${k}`, f[k]!]] : [])));

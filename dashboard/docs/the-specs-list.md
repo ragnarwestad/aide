@@ -191,7 +191,7 @@ filter.
 
 **A Failed row keeps the spec in the Not verified filter and carries a Reopen button.** The info line reads `N not verified · M failed`, each number only when above zero, and the filter matches a spec with at least
 one row of either kind. A Failed row is open for archive and is drawn read-only with its `Failed:` note. The only
-way out of that state is the Reopen button on the row, which opens the same confirmation page as the row's own
+way out of that state is the Reopen button on the row, which opens the same dialog as the row's own
 Reopen. Reopen puts the Failed rows back to open and keeps their notes; such a note counts as a changed criterion
 for the rule that a new round needs at least one.
 
@@ -313,9 +313,9 @@ link, a bookmark, the back button — falls back to that cookie instead of alway
 **An archived spec is a row on this list**, and nowhere else — there is no separate archive page. Its row is a READER
 row: its name as two links — the project to its page and the rest to its own `/specs/<project>/<spec>` page — under a two-line clamp, what its phases came to in
 time, and Reopen. It draws no description — a locked row's description stays searchable but is not shown — and no
-archive date: the Time column holds a duration and never a date. Reopen is a link to a confirmation page
-(`/specs/<project>/<spec>/reopen`) that asks whether to reset the analysis, the plan and the status as well; the
-answer comes back to the list, filter and all. No model select, no tick box and no Run — the server
+archive date: the Time column holds a duration and never a date. Reopen opens a dialog over the list that asks
+whether to reset the analysis, the plan and the status as well; once the reopen has started the reader comes back
+to the list, filter and all. No model select, no tick box and no Run — the server
 refuses every step but `reopen` for an archived spec (`ARCHIVE_ONLY_STEP`), and a control that would be refused is a
 control that should not be drawn. The list shows no creation date on any row; the spec's page does, as the
 Created line of its description's Tracking info.
@@ -454,20 +454,24 @@ The page's own browser code does one thing to the controls: it keeps the reader 
 Run and Cancel — are real `<form>`s that work on their own, and the script only intercepts. Cancel is intercepted
 twice over: once to open its confirmation dialog, and once for the press that follows.
 
-- **Close on the spec page asks in a dialog, with no fallback page behind it.** The Close button carries
-  `data-close-ask` and a `dialog.confirmdialog` sits beside it, holding the question, a required Reason field (bounded
-  and counted), a refusal line, and OK (danger) and Cancel. With script the click opens it; without script, or a
-  browser without `<dialog>`, the button does nothing — Close needs script to do anything at all. OK posts the same route and stands as "Closing…" the way Reopen's own
-  confirmation does; a refused post is written in the dialog's own line, which stays open with the reason still typed.
-- **Reopen and Close stand behind a dialog.** Their confirmation forms carry `data-progress` (the spec page) and a
-  `dialog.confirmdialog` titled "Reopening…" or "Closing…". On submit the script opens it as a modal with no buttons
-  (Escape does not dismiss it, and a back/forward-cache restore closes it), posts the form, and polls
-  `GET /api/queue/<id>` once a second, at most 120 times, until the job has settled and, for a `done` job, its landing
-  is over. A job that is `done` takes the reader to the list; any other end, a job the queue has forgotten and a wait
-  that runs out take them to the spec page, whose error line says why a `failed`, `stopped` or `interrupted` reopen or
-  close ended (`failedRoundSentence`). A refused post closes the dialog and goes to the spec page with the reason.
-  With no script, or a browser without `<dialog>`, Reopen's form posts natively and follows its redirect — Close has
-  no such fallback: nothing without script ever opens its dialog to post from.
+- **Close and Reopen ask in a dialog, with no fallback page behind either.** One function draws the dialog for
+  both (`askDialog`, `ask-dialog.ts`): a `dialog.confirmdialog` with the question, the sentence that says what the
+  action does, its own control — Close's required Reason field (bounded and counted), Reopen's unticked box that also
+  resets the analysis, the plan and the status — a refusal line, and OK and Cancel. Its button carries
+  `data-ask="<dialog id>"`, and one click listener opens whichever dialog a button names, so a Reopen beside a Failed
+  criterion, inside the checks' own form, opens a dialog drawn outside it. Close is on the spec page; Reopen is on an
+  archived spec's page and over the list, on the row and beside a Failed criterion under the ›. Without script, or a
+  browser without `<dialog>`, the buttons do nothing — both need script to do anything at all.
+- **OK stands the dialog until the job has settled.** The dialog's posting form carries `data-progress`, and one
+  submit listener on `body` hands its OK to the wait: the dialog shows "Reopening…" or "Closing…" alone (Escape does
+  not dismiss it, and a back/forward-cache restore closes it), posts the form, and polls `GET /api/queue/<id>` once a
+  second, at most 120 times, until the job has settled and, for a `done` job, its landing is over. A job that is
+  `done` goes to `data-progress-done`, or the list's front page when the form has none; any other end, a job the
+  queue has forgotten and a wait that runs out go to `data-progress` — the spec page, whose error line says why a
+  `failed`, `stopped` or `interrupted` reopen or close ended (`failedRoundSentence`). A dialog over the list carries
+  the list's own address, filter and all, in both. A refused post is written in the dialog's own line, which stays
+  open with whatever was typed or ticked. While a Reopen dialog is open on the list, the live redraw waits, so the
+  rows do not take it away.
 - **A press changes the button at once, without changing its width.**
   It disables, gains the `busy` look and a spinner ahead of its own label — the label itself stays put, only
   the `title` carries the pending word ("starting…", "cancelling…", "queueing…",

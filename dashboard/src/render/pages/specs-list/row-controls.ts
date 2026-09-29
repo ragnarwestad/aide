@@ -15,8 +15,9 @@ import {
   type SpecsFilter,
   type SpecGroup,
 } from "./data-model";
-import { queueHref } from "./filter-bar.ts";
-import { filterFields } from "./row-shared.ts";
+import { askButton, reopenAskDialog } from "../spec-page/ask-dialog.ts";
+import { queueHref, queuePath } from "./filter-bar.ts";
+import { filterFields, filterValues } from "./row-shared.ts";
 import { actionState, runFormId, specBusy } from "./row-state.ts";
 
 // The fold is a LINK, not a button, and the state is in the URL. That
@@ -109,25 +110,27 @@ function actionForm(
 // `isCodeRepo` existed only so the button's own sentence could say
 // whether it would land the plan or the code.
 
+/** Reopen's dialog over the list, `id` being the one its button names.
+ *  Whether the job ends done or not, the reader comes back to the list as
+ *  it was: the list's own address is where the script goes either way.
+ *  `FROM_LIST_FIELD` and the filter ride along as on every form here, and
+ *  tell the handler the press came from a row rather than from the spec's
+ *  page. */
+export function listReopenDialog(g: SpecGroup, filter: SpecsFilter | undefined, lang: Language, id: string): string {
+  const list = queuePath(filter ?? {});
+  return reopenAskDialog(g.project, g.specFolder, lang, {
+    id,
+    back: list,
+    done: list,
+    hidden: { ...filterValues(filter), [FROM_LIST_FIELD]: "1" },
+  });
+}
+
 /** The one action an archived spec offers (spec 198, on its row since
- *  spec 221). A GET form to the confirmation page (spec 511), which
- *  hands its fields on to the `POST /api/queue` it draws.
- *
- *  `FROM_LIST_FIELD` is what tells the handler the press came from a row
- *  rather than from the spec's page, and therefore which page to answer
- *  on. A no-script form POST gets one redirect and no second chance to
- *  ask, so the marker and the filter ride along to the page. */
-function reopenForm(g: SpecGroup, opts: SpecsPageOptions, lang: Language): string {
-  return (
-    `<form method="get" action="/specs/${esc(g.project)}/${esc(g.specFolder)}/reopen" class="actionform">` +
-    filterFields(opts.filter) +
-    `<input type="hidden" name="project" value="${esc(g.project)}">` +
-    `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +
-    `<input type="hidden" name="steps" value="reopen">` +
-    `<input type="hidden" name="${FROM_LIST_FIELD}" value="1">` +
-    btn({ label: t(lang, "list.reopen"), pending: t(lang, "list.reopening"), variant: "primary" }) +
-    `</form>`
-  );
+ *  spec 221): a button, and the dialog it opens beside it. */
+function reopenAsk(g: SpecGroup, opts: SpecsPageOptions, lang: Language): string {
+  const id = `reopenask-${groupKey(g.project, g.specFolder)}`;
+  return askButton(t(lang, "list.reopen"), id, "primary") + listReopenDialog(g, opts.filter, lang, id);
 }
 
 /** The press an archived row's "still on origin" note carries: a POST
@@ -177,7 +180,7 @@ export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
   // answer "what would run next" for a spec whose workflow is over by
   // falling back to ticking `archive` alone (`defaultTicked`, spec 439's
   // own fallback for a spec with no recorded choice).
-  if (isArchivedRow(g)) return reopenForm(g, opts, lang);
+  if (isArchivedRow(g)) return reopenAsk(g, opts, lang);
   const busy = specBusy(g);
   // A conflict used to draw a Resolve control of its own here, off the
   // job's stored `errorReason`. Spec 171 took it away: `archive`

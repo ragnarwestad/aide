@@ -123,7 +123,6 @@ export {
   renderSpecPageHead,
   renderSpecPageRest,
   renderSpecPageFailedRest,
-  renderReopenSpecPage,
   specPagePath,
   specTabPath,
 } from "./pages/spec-page";

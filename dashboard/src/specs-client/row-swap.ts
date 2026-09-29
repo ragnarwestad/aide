@@ -356,6 +356,11 @@ export async function swapRows(): Promise<void> {
     // must not happen is this one landing on top of what the press just
     // drew.
     if (press.pressGen !== gen) return;
+    // A Reopen dialog open on a row — not yet answered, or kept open by a
+    // refusal — would go with the rows it sits in. Only that kind: Cancel's
+    // plain confirm relies on this redraw to go away after its OK. The
+    // next change once it is closed draws what this one would have.
+    if (body.querySelector("dialog[open][data-progress-dialog]")) return;
     // Spec 226: how far down the list is scrolled, kept across the
     // redraw the way `restoreChosen` keeps a reader's own picks. The
     // wholesale replace below builds `.tablewrap` afresh, and a new

@@ -42,9 +42,9 @@
 // types.ts (the view types), tabs.ts (paths, tabs, file/phase maps),
 // overview.ts (the banner's own facts — archived read-only, the
 // depends-on/acceptance tracking control editable — the checklist,
-// Reopen), panels.ts (the document tabs) and reopen-page.ts (the
-// reopen question). `renderSpecPage` itself — the one function
-// that assembles all of them — stays here.
+// Reopen), panels.ts (the document tabs) and ask-dialog.ts (the
+// dialog Close and Reopen ask in). `renderSpecPage` itself — the one
+// function that assembles all of them — stays here.
 
 import { badge, helpPopover, rowMessage } from "../../ui/components";
 import { projectLink } from "../../ui/components/spec-name.ts";
@@ -70,7 +70,6 @@ export {
   EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, FILE_TABS, resolveSpecTab, TAB_FILES,
   documentTabScript, specPagePath, specTabPath,
 } from "./tabs.ts";
-export { renderReopenSpecPage } from "./reopen-page.ts";
 
 interface SpecPageOpts {
   tab?: string;
@@ -127,7 +126,7 @@ function specPageBody(view: SpecPageView, opts: SpecPageOpts): { body: string; t
   // reads as belonging to the one before it.
   const actions =
     actionsHelp(view) +
-    (view.archived ? reopenControl(view) : "") +
+    (view.archived ? reopenControl(view, opts.lang ?? "en") : "") +
     closeControl(view, opts.lang ?? "en") +
     // A GET would let a reload re-run the pull, so this is a form and
     // not a link, exactly as every other action on this dashboard is.

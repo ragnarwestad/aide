@@ -33,12 +33,17 @@ import { capitalizeFirst } from "../../../format/error-sentence.ts";
 // page's own code intercepts the click to avoid reloading a form
 // someone is half-way through.
 export function queueHref(f: SpecsFilter, patch: SpecsFilter): string {
+  return esc(queuePath(f, patch));
+}
+
+/** The same address unescaped, for a caller that escapes it itself. */
+export function queuePath(f: SpecsFilter, patch: SpecsFilter = {}): string {
   const merged = { ...f, ...patch };
   const q = Object.entries(merged)
     .filter(([, v]) => v)
     .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`)
     .join("&");
-  return esc(q ? `/?${q}` : "/");
+  return q ? `/?${q}` : "/";
 }
 
 // What the page used to say in a separate paragraph under the search

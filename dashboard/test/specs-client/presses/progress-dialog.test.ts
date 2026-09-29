@@ -1,9 +1,9 @@
-// The wait behind the Reopen and Close confirmation forms: a modal dialog
-// opens on submit and stands until the queued job has settled.
+// The wait behind the Reopen and Close dialogs: the dialog stands on OK
+// until the queued job has settled, and one opener shows either.
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import { settled, submitProgress, type ProgressIo } from "../../../src/specs-client/progress-dialog";
+import { openAsk, settled, submitProgress, type ProgressIo } from "../../../src/specs-client/progress-dialog";
 import { NEW_SPEC_FORM } from "../../../src/specs-client/state.ts";
 
 const BACK = "/specs/aide/150-x";
@@ -27,17 +27,6 @@ function fakeDialog(withShowModal = true) {
     ...(withShowModal ? { showModal() { dialog.shows += 1; } } : {}),
   };
   return dialog;
-}
-
-function fakeForm(dialog: ReturnType<typeof fakeDialog>) {
-  return {
-    action: "http://dash.test/api/queue",
-    id: "",
-    dataset: { progress: BACK } as Record<string, string>,
-    querySelector: (sel: string) => (sel.includes("data-progress-dialog") ? dialog : null),
-    querySelectorAll: () => [],
-    closest: () => null,
-  } as unknown as HTMLFormElement;
 }
 
 interface Io extends ProgressIo {
@@ -92,110 +81,21 @@ const submit = () => {
   return e as unknown as Event;
 };
 
-describe("submitProgress", () => {
-  test("opens the dialog once, posts for JSON, and goes to the list only when the job is done (AC-2)", async () => {
-    const requests = stubPost(200, { ok: true, job: { id: "j1" } });
-    const dialog = fakeDialog();
-    const io = fakeIo([{ job: { state: "queued" } }, { job: { state: "running" } }, { job: { state: "done" } }]);
-    const event = submit();
-    await submitProgress(fakeForm(dialog), event, io);
-    expect(event.defaultPrevented).toBe(true);
-    expect(dialog.shows).toBe(1);
-    expect(requests[0]!.headers.accept).toBe("application/json");
-    expect(io.polls).toBe(3);
-    expect(io.gone).toEqual(["/"]);
-    expect(dialog.closes).toBe(0);
-  });
-
-  test("a done job that is still landing keeps the dialog standing (AC-2)", async () => {
-    stubPost(200, { ok: true, job: { id: "j1" } });
-    const io = fakeIo([
-      { job: { state: "done", landing: true } },
-      { job: { state: "done", landing: true } },
-      { job: { state: "done" } },
-    ]);
-    await submitProgress(fakeForm(fakeDialog()), submit(), io);
-    expect(io.polls).toBe(3);
-    expect(io.gone).toEqual(["/"]);
-  });
-
-  test("a post answered with no job id goes to the spec page (AC-2)", async () => {
-    stubPost(200, { ok: true });
-    const io = fakeIo([{ job: { state: "done" } }]);
-    await submitProgress(fakeForm(fakeDialog()), submit(), io);
-    expect(io.polls).toBe(0);
-    expect(io.gone).toEqual([BACK]);
-  });
-
-  test("Escape is default-prevented, and a browser that closes the dialog anyway gets it stood up again (AC-2)", async () => {
-    stubPost(200, { ok: true, job: { id: "j1" } });
-    const dialog = fakeDialog();
-    const io = fakeIo([{ job: { state: "running" } }]);
-    io.sleep = async () => {
-      expect(dialog.fire("cancel").defaultPrevented).toBe(true);
-      dialog.fire("close");
-      // Never settles on its own: end the wait from here.
-      if (io.polls >= 2) io.get = async () => ({ status: 200, job: { state: "done" } });
-    };
-    await submitProgress(fakeForm(dialog), submit(), io);
-    expect(dialog.shows).toBeGreaterThan(1);
-  });
-
-  test("a close after the wait is over is left alone (AC-2)", async () => {
-    stubPost(200, { ok: true, job: { id: "j1" } });
-    const dialog = fakeDialog();
-    await submitProgress(fakeForm(dialog), submit(), fakeIo([{ job: { state: "done" } }]));
-    const shown = dialog.shows;
-    dialog.fire("close");
-    expect(dialog.shows).toBe(shown);
-  });
-
-  test("a page restored from the back/forward cache closes the dialog (AC-2)", async () => {
-    stubPost(200, { ok: true, job: { id: "j1" } });
-    const dialog = fakeDialog();
-    const io = fakeIo([{ job: { state: "done" } }]);
-    await submitProgress(fakeForm(dialog), submit(), io);
-    io.restore!();
-    expect(dialog.closes).toBe(1);
-  });
-
-  test("a job that settles failed takes the page to the spec page, not the list (AC-4)", async () => {
-    stubPost(200, { ok: true, job: { id: "j1" } });
-    const io = fakeIo([{ job: { state: "running" } }, { job: { state: "failed" } }]);
-    await submitProgress(fakeForm(fakeDialog()), submit(), io);
-    expect(io.gone).toEqual([BACK]);
-  });
-
-  test("a refused post closes the dialog and goes to the spec page with the reason (AC-4)", async () => {
-    stubPost(400, { error: "Only an archived spec can be reopened." });
-    const dialog = fakeDialog();
-    const io = fakeIo([{ job: { state: "done" } }]);
-    await submitProgress(fakeForm(dialog), submit(), io);
-    expect(dialog.closes).toBe(1);
-    expect(io.gone).toEqual([`${BACK}?error=${encodeURIComponent("Only an archived spec can be reopened.")}`]);
-  });
-
-  test("a dialog with no showModal leaves the submit alone, so the form posts as it does today (AC-3)", async () => {
-    const dialog = fakeDialog(false);
-    const event = submit();
-    const io = fakeIo([]);
-    await submitProgress(fakeForm(dialog), event, io);
-    expect(event.defaultPrevented).toBe(false);
-    expect(io.gone).toEqual([]);
-  });
-});
-
-/** The close ask: a dialog the posting form sits INSIDE, with a line for a refusal. */
-function fakeAsk() {
-  const base = fakeDialog();
+/** The ask: a dialog the posting form sits INSIDE, with a line for a refusal. */
+function fakeAsk(withShowModal = true) {
+  const base = fakeDialog(withShowModal);
   const attrs = new Set<string>();
   const line = { textContent: "" };
   const ask = Object.assign(base, {
     open: false,
-    showModal() {
-      ask.shows += 1;
-      ask.open = true;
-    },
+    ...(withShowModal
+      ? {
+          showModal() {
+            ask.shows += 1;
+            ask.open = true;
+          },
+        }
+      : {}),
     close() {
       ask.closes += 1;
       ask.open = false;
@@ -216,8 +116,96 @@ function fakeAsk() {
   return { ask, form, line, standing: () => attrs.has("data-standing") };
 }
 
-describe("submitProgress from inside the close ask (spec 525)", () => {
-  test("the dialog is found from the form's ancestor and is not opened again when it is open (AC-5)", async () => {
+describe("submitProgress from inside the ask", () => {
+  test("posts for JSON, polls until the job settles, and goes to the list only then", async () => {
+    const requests = stubPost(200, { ok: true, job: { id: "j1" } });
+    const a = fakeAsk();
+    const io = fakeIo([{ job: { state: "queued" } }, { job: { state: "running" } }, { job: { state: "done" } }]);
+    const event = submit();
+    await submitProgress(a.form, event, io);
+    expect(event.defaultPrevented).toBe(true);
+    expect(a.ask.shows).toBe(1);
+    expect(requests[0]!.headers.accept).toBe("application/json");
+    expect(io.polls).toBe(3);
+    expect(io.gone).toEqual(["/"]);
+    expect(a.ask.closes).toBe(0);
+  });
+
+  test("a done job that is still landing keeps the dialog standing", async () => {
+    stubPost(200, { ok: true, job: { id: "j1" } });
+    const io = fakeIo([
+      { job: { state: "done", landing: true } },
+      { job: { state: "done", landing: true } },
+      { job: { state: "done" } },
+    ]);
+    await submitProgress(fakeAsk().form, submit(), io);
+    expect(io.polls).toBe(3);
+    expect(io.gone).toEqual(["/"]);
+  });
+
+  test("a post answered with no job id goes to data-progress", async () => {
+    stubPost(200, { ok: true });
+    const io = fakeIo([{ job: { state: "done" } }]);
+    await submitProgress(fakeAsk().form, submit(), io);
+    expect(io.polls).toBe(0);
+    expect(io.gone).toEqual([BACK]);
+  });
+
+  test("a browser that closes the standing dialog anyway gets it stood up again", async () => {
+    stubPost(200, { ok: true, job: { id: "j1" } });
+    const a = fakeAsk();
+    const io = fakeIo([{ job: { state: "running" } }]);
+    io.sleep = async () => {
+      expect(a.ask.fire("cancel").defaultPrevented).toBe(true);
+      a.ask.fire("close");
+      // Never settles on its own: end the wait from here.
+      if (io.polls >= 2) io.get = async () => ({ status: 200, job: { state: "done" } });
+    };
+    await submitProgress(a.form, submit(), io);
+    expect(a.ask.shows).toBeGreaterThan(1);
+  });
+
+  test("a close after the wait is over is left alone", async () => {
+    stubPost(200, { ok: true, job: { id: "j1" } });
+    const a = fakeAsk();
+    await submitProgress(a.form, submit(), fakeIo([{ job: { state: "done" } }]));
+    const shown = a.ask.shows;
+    a.ask.fire("close");
+    expect(a.ask.shows).toBe(shown);
+  });
+
+  test("a dialog with no showModal leaves the submit alone, so the form posts natively", async () => {
+    const a = fakeAsk(false);
+    const event = submit();
+    const io = fakeIo([]);
+    await submitProgress(a.form, event, io);
+    expect(event.defaultPrevented).toBe(false);
+    expect(io.gone).toEqual([]);
+  });
+
+  test("a done job goes to data-progress-done when the form carries it, and to / when not (AC-4)", async () => {
+    const LIST = "/?state=archived";
+    stubPost(200, { ok: true, job: { id: "j1" } });
+    const listed = fakeAsk();
+    listed.form.dataset.progressDone = LIST;
+    const io = fakeIo([{ job: { state: "done" } }]);
+    await submitProgress(listed.form, submit(), io);
+    expect(io.gone).toEqual([LIST]);
+    const bare = fakeIo([{ job: { state: "done" } }]);
+    await submitProgress(fakeAsk().form, submit(), bare);
+    expect(bare.gone).toEqual(["/"]);
+  });
+
+  test("any other end goes to data-progress, data-progress-done or not (AC-4)", async () => {
+    stubPost(200, { ok: true, job: { id: "j1" } });
+    const listed = fakeAsk();
+    listed.form.dataset.progressDone = "/?state=archived";
+    const io = fakeIo([{ job: { state: "failed" } }]);
+    await submitProgress(listed.form, submit(), io);
+    expect(io.gone).toEqual([BACK]);
+  });
+
+  test("the dialog is found from the form's ancestor and is not opened again when it is open", async () => {
     stubPost(200, { ok: true, job: { id: "j1" } });
     const a = fakeAsk();
     a.ask.open = true;
@@ -225,7 +213,7 @@ describe("submitProgress from inside the close ask (spec 525)", () => {
     expect(a.ask.shows).toBe(0);
   });
 
-  test("it stands while waiting and goes to the list when the job is done (AC-6)", async () => {
+  test("it stands while waiting and goes to the list when the job is done (AC-3)", async () => {
     stubPost(200, { ok: true, job: { id: "j1" } });
     const a = fakeAsk();
     const io = fakeIo([{ job: { state: "running" } }, { job: { state: "done" } }]);
@@ -240,14 +228,14 @@ describe("submitProgress from inside the close ask (spec 525)", () => {
     expect(io.gone).toEqual(["/"]);
   });
 
-  test("any other end takes the reader to the spec page (AC-6)", async () => {
+  test("any other end takes the reader to the spec page", async () => {
     stubPost(200, { ok: true, job: { id: "j1" } });
     const io = fakeIo([{ job: { state: "failed" } }]);
     await submitProgress(fakeAsk().form, submit(), io);
     expect(io.gone).toEqual([BACK]);
   });
 
-  test("a refusal is written in the box, which stays open, is not standing, and nothing navigates (AC-5)", async () => {
+  test("a refusal is written in the box, which stays open, is not standing, and nothing navigates (AC-3)", async () => {
     stubPost(400, { error: "Give a reason." });
     const a = fakeAsk();
     const io = fakeIo([]);
@@ -258,7 +246,7 @@ describe("submitProgress from inside the close ask (spec 525)", () => {
     expect(io.gone).toEqual([]);
   });
 
-  test("Escape is prevented only while a job is waited for, and again after a second press (AC-5)", async () => {
+  test("Escape is prevented only while a job is waited for, and again after a second press (AC-3)", async () => {
     stubPost(400, { error: "no" });
     const a = fakeAsk();
     const io = fakeIo([]);
@@ -274,7 +262,7 @@ describe("submitProgress from inside the close ask (spec 525)", () => {
     expect(during).toBe(true);
   });
 
-  test("a second press does not stack listeners: one cancel prevention per event, one stand-up per close (AC-5)", async () => {
+  test("a second press does not stack listeners: one cancel prevention per event, one stand-up per close", async () => {
     stubPost(400, { error: "no" });
     const a = fakeAsk();
     await submitProgress(a.form, submit(), fakeIo([]));
@@ -284,7 +272,7 @@ describe("submitProgress from inside the close ask (spec 525)", () => {
     expect(a.ask.shows).toBe(shown);
   });
 
-  test("a restore from the cache closes the box and clears the standing state and the line (AC-6)", async () => {
+  test("a restore from the cache closes the box and clears the standing state and the line", async () => {
     stubPost(200, { ok: true, job: { id: "j1" } });
     const a = fakeAsk();
     a.line.textContent = "old";
@@ -299,19 +287,19 @@ describe("submitProgress from inside the close ask (spec 525)", () => {
 });
 
 describe("settled", () => {
-  test("gives up after the polls it was given and says so with undefined (AC-2)", async () => {
+  test("gives up after the polls it was given and says so with undefined", async () => {
     const io = fakeIo([{ job: { state: "running" } }]);
     expect(await settled("j1", io, 3)).toBeUndefined();
     expect(io.polls).toBe(3);
   });
 
-  test("a job the queue no longer remembers ends the wait (AC-2)", async () => {
+  test("a job the queue no longer remembers ends the wait", async () => {
     const io = fakeIo([{ status: 404 }]);
     expect(await settled("j1", io, 5)).toBeUndefined();
     expect(io.polls).toBe(1);
   });
 
-  test("a failed poll is retried, not fatal (AC-2)", async () => {
+  test("a failed poll is retried, not fatal", async () => {
     let calls = 0;
     const io = fakeIo([]);
     io.get = async () => {
@@ -322,18 +310,60 @@ describe("settled", () => {
   });
 });
 
-describe("which forms the New-spec handler binds (AC-3)", () => {
-  test("neither confirmation form matches, and the New-spec form still does", async () => {
+describe("which forms the New-spec handler binds", () => {
+  test("neither the Add nor the Settings form matches, and the New-spec form still does", async () => {
     const win = new Window();
     win.document.write(
       `<form id="new" class="newspecform"></form>` +
         `<form id="add" class="newspecform addprojectform"></form>` +
-        `<form id="settings" class="newspecform projectsettingsform"></form>` +
-        `<form id="reopen" class="newspecform" data-progress="${BACK}"></form>` +
-        `<form id="close" class="newspecform specform" data-progress="${BACK}"></form>`,
+        `<form id="settings" class="newspecform projectsettingsform"></form>`,
     );
     const ids = [...win.document.querySelectorAll(NEW_SPEC_FORM)].map((f) => f.id);
     await win.happyDOM.close();
     expect(ids).toEqual(["new"]);
+  });
+});
+
+describe("openAsk", () => {
+  const page = () => {
+    const win = new Window();
+    win.document.write(
+      `<button type="button" id="b" data-ask="x">Reopen</button>` +
+        `<button type="button" id="gone" data-ask="nowhere">Close</button>` +
+        `<button type="button" id="plain">Update</button>` +
+        `<dialog id="x"><form method="dialog"><button>Cancel</button></form></dialog>`,
+    );
+    return win;
+  };
+  const click = (el: unknown) => ({ target: el }) as unknown as Event;
+
+  test("a click on a button[data-ask] shows the dialog it names as a modal (AC-5)", async () => {
+    const win = page();
+    const doc = win.document;
+    openAsk(click(doc.getElementById("b")));
+    const open = (doc.getElementById("x") as unknown as HTMLDialogElement).open;
+    await win.happyDOM.close();
+    expect(open).toBe(true);
+  });
+
+  test("a click inside the button reaches it too (AC-5)", async () => {
+    const win = page();
+    const doc = win.document;
+    doc.getElementById("b")!.innerHTML = "<span>Reopen</span>";
+    openAsk(click(doc.querySelector("#b span")));
+    const open = (doc.getElementById("x") as unknown as HTMLDialogElement).open;
+    await win.happyDOM.close();
+    expect(open).toBe(true);
+  });
+
+  test("a click outside such a button, or on one naming a missing dialog, opens nothing (AC-5)", async () => {
+    const win = page();
+    const doc = win.document;
+    openAsk(click(doc.getElementById("plain")));
+    openAsk(click(doc.getElementById("gone")));
+    openAsk(click(null));
+    const open = (doc.getElementById("x") as unknown as HTMLDialogElement).open;
+    await win.happyDOM.close();
+    expect(open).toBe(false);
   });
 });

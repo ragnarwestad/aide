@@ -301,10 +301,10 @@ When the user is satisfied, they tick the rows on the spec's Status tab and pres
 Reopen keeps the spec, and discards a work round when it is asked to. It is a skill (`/aide-reopen`) at a keyboard and a
 queue step the dashboard presses, never a step the runner decides on its own.
 
-- **Reopen** takes an archived or closed spec back to the active list and asks one question on its own page
-  (`/specs/<project>/<spec>/reopen`, reached from the Reopen link on the spec page and from the list row): also reset
-  the analysis, the plan and the status? The box is unticked, and the job carries `resetFiles` only when it is ticked.
-  Pressing Reopen opens a "Reopening…" dialog that stands until the job has settled.
+- **Reopen** takes an archived or closed spec back to the active list and asks one question in a dialog, opened
+  from the Reopen button on the spec page and on the list row: also reset the analysis, the plan and the status? The
+  box is unticked, and the job carries `resetFiles` only when it is ticked. Pressing OK makes the dialog stand as
+  "Reopening…" until the job has settled.
   It deletes the branch the earlier round left behind in both modes.
   - **Keep (the default, also a bare `steps=reopen`).** `core/scripts/aide-reopen-spec` moves the folder out of
     `archive/` and runs no model. `0-README.md` to `3-solution.md` are untouched; in `4-status.md` `archive` leaves the

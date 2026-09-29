@@ -1,7 +1,7 @@
-// The wait behind the Reopen and Close confirmation forms: a modal dialog
-// opens on submit and stands until the queued job has settled, then the
-// page leaves. The dialog has no buttons, so Escape and the browser's
-// own ways of closing it are answered here.
+// The dialog Reopen and Close ask in (`render/pages/spec-page/ask-dialog.ts`):
+// opened from the button that names it, and on OK it stands until the
+// queued job has settled, then the page leaves. While it stands, Escape
+// and the browser's own ways of closing it are answered here.
 
 import { postForm } from "../press.ts";
 
@@ -65,63 +65,64 @@ function say(ask: HTMLDialogElement, why: string): void {
   if (line) line.textContent = why;
 }
 
+/** A click on any `button[data-ask]` opens the dialog it names. One
+ *  listener for every such button, bound where rows drawn later reach it
+ *  too, and a button inside a form reaches a dialog drawn outside it. */
+export function openAsk(event: Event): void {
+  const button = (event.target as Element | null)?.closest?.("button[data-ask]") as HTMLButtonElement | null;
+  const id = button?.dataset.ask;
+  const box = id ? (button!.ownerDocument.getElementById(id) as HTMLDialogElement | null) : null;
+  if (box && typeof box.showModal === "function") box.showModal();
+}
+
 export async function submitProgress(form: HTMLFormElement, event: Event, io: ProgressIo = browserIo): Promise<void> {
   if (event.defaultPrevented) return;
-  // The close ask holds its form inside the dialog; the Reopen and Close
-  // pages hold the dialog inside the form.
+  // The ask holds its posting form.
   const ask = form.closest("dialog[data-progress-dialog]") as HTMLDialogElement | null;
-  const dialog = ask ?? (form.querySelector("dialog[data-progress-dialog]") as HTMLDialogElement | null);
   // No `<dialog>` here: the form posts natively and follows the redirect.
-  if (!dialog || typeof dialog.showModal !== "function") return;
+  if (!ask || typeof ask.showModal !== "function") return;
   event.preventDefault();
   const back = form.dataset.progress ?? "/";
-  let state = states.get(dialog);
+  const done = form.dataset.progressDone ?? "/";
+  let state = states.get(ask);
   if (!state) {
     const fresh = { waiting: false };
     state = fresh;
-    states.set(dialog, fresh);
-    dialog.addEventListener("cancel", (e) => {
+    states.set(ask, fresh);
+    ask.addEventListener("cancel", (e) => {
       if (fresh.waiting) e.preventDefault();
     });
     // A browser can close a modal whose cancel was prevented (a second Escape): stand again.
-    dialog.addEventListener("close", () => {
-      if (fresh.waiting) dialog.showModal();
+    ask.addEventListener("close", () => {
+      if (fresh.waiting) ask.showModal();
     });
     io.onRestore(() => {
       fresh.waiting = false;
-      if (ask) {
-        ask.removeAttribute("data-standing");
-        say(ask, "");
-      }
-      dialog.close();
+      ask.removeAttribute("data-standing");
+      say(ask, "");
+      ask.close();
     });
   }
   const mine = state;
   mine.waiting = true;
-  if (ask) {
-    ask.setAttribute("data-standing", "");
-    say(ask, "");
-  }
-  if (!dialog.open) dialog.showModal();
+  ask.setAttribute("data-standing", "");
+  say(ask, "");
+  if (!ask.open) ask.showModal();
   await postForm(
     form,
     async (answer) => {
       const id = answer?.job?.id;
       const job = id ? await settled(id, io) : undefined;
       mine.waiting = false;
-      // The spec page says what a failed job did; the list shows what a done one changed.
-      io.go(job?.state === "done" ? "/" : back);
+      // The spec page says what a failed job did; the list shows what a done
+      // one changed. A dialog over the list comes back to it either way.
+      io.go(job?.state === "done" ? done : back);
     },
     (why) => {
       mine.waiting = false;
-      // The ask stays open with the reason still typed; the pages' dialog is only a wait.
-      if (ask) {
-        ask.removeAttribute("data-standing");
-        say(ask, why);
-        return;
-      }
-      dialog.close();
-      io.go(`${back}?error=${encodeURIComponent(why)}`);
+      // The ask stays open with the reason still typed.
+      ask.removeAttribute("data-standing");
+      say(ask, why);
     },
   );
 }

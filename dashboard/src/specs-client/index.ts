@@ -51,7 +51,7 @@ import {
   bindScheduleDeleteButton, followScheduleRow, postScheduleEnabled, postScheduleRun, scheduleCronPreview,
   submitScheduleForm,
 } from "./schedule-actions.ts";
-import { submitProgress } from "./progress-dialog";
+import { openAsk, submitProgress } from "./progress-dialog";
 import { NEW_SPEC_FORM } from "./state.ts";
 import { postTailModel, postTailStep } from "./tail-actions.ts";
 import { bindWikiGraphs } from "./wiki-graph";
@@ -203,11 +203,18 @@ newSpec?.addEventListener("change", ((event: Event) => {
   const model = target?.closest?.('select[name^="model."]') as HTMLSelectElement | null;
   if (model) syncAiToModel(model);
 }) as EventListener);
-// Reopen and Close: bound directly, as the New-spec form is, so the
-// submit is theirs before any delegated listener sees it.
-for (const form of document.querySelectorAll("form[data-progress]")) {
-  form.addEventListener("submit", ((event: Event) => submitProgress(form as HTMLFormElement, event)) as EventListener);
-}
+// Reopen and Close ask in a dialog (spec 527: no fallback page behind
+// either): one click listener opens whichever a button names, and one
+// submit listener hands its OK to the wait. Delegated, so a list row
+// drawn by a later redraw is reached too — and on `body`, never
+// `document`: the shell's form-busy listener is on `document`, registered
+// first, and marks any form not yet default-prevented as busy; bubbling
+// reaches `body` before it. `?.` since a stand-in document may have no body.
+document.body?.addEventListener("click", openAsk as EventListener);
+document.body?.addEventListener("submit", ((event: Event) => {
+  const form = (event.target as Element | null)?.closest?.("form[data-progress]") as HTMLFormElement | null;
+  if (form) return submitProgress(form, event);
+}) as EventListener);
 syncDependsOn();
 newSpec?.querySelector("select[name=project]")?.addEventListener("change", syncDependsOn);
 
@@ -276,13 +283,6 @@ document.addEventListener("click", ((event: MouseEvent) => {
 // script alone.
 for (const el of document.querySelectorAll("button[data-delete-schedule]")) {
   bindScheduleDeleteButton(el as HTMLButtonElement);
-}
-// Close's button has no fallback page either (spec 527): it only ever
-// opens its own dialog, so no href to preserve and nothing to preventDefault().
-for (const el of document.querySelectorAll("button[data-close-ask]")) {
-  const button = el as HTMLButtonElement;
-  const box = button.parentElement?.querySelector("dialog") as HTMLDialogElement | null;
-  if (box && typeof box.showModal === "function") button.addEventListener("click", () => box.showModal());
 }
 // The spec page's Steps tab reloads from here, and waits while a dialog is open.
 startReloadWhileIdle(document);

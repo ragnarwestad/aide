@@ -10,7 +10,9 @@ import { checkColumns, checkControls, checkReadOnlyMark } from "../../ui/check-c
 import { failedCount, notVerifiedCount } from "../../../project/parse-status";
 import { dependsOnField } from "../new-spec-page.ts";
 import { t, type Language } from "../../../i18n";
-import { CLOSE_SENTENCE, closeAskDialog } from "./close-ask.ts";
+import {
+  CLOSE_ASK_ID, CLOSE_SENTENCE, REOPEN_ASK_ID, askButton, closeAskDialog, reopenAskDialog,
+} from "./ask-dialog.ts";
 import { specPagePath } from "./tabs.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
@@ -282,9 +284,12 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
     tickable(row)
       ? checkControls(row, lang, view.archived ? { archivedIndex: drawnLines.indexOf(row.line) } : {})
       : checkReadOnlyMark(row, lang);
-  // Reopen from the row that failed: the spec's own control, on an archived
-  // spec that is not closed. A live spec has its actions on its queue row.
-  const reopen = (row: SpecCheckView): string => (row.failed && view.archived && !view.closed ? reopenControl(view) : "");
+  // Reopen from the row that failed: a button opening the action row's own
+  // dialog, on an archived spec that is not closed — the dialog itself
+  // cannot be drawn here, inside the checks' form, since the parser drops
+  // a nested form. A live spec has its actions on its queue row.
+  const reopen = (row: SpecCheckView): string =>
+    row.failed && view.archived && !view.closed ? askButton("Reopen", REOPEN_ASK_ID) : "";
   // The Notes cell, on its own line under the criterion. It is the one
   // thing on the row a reader cannot work out from the criterion itself:
   // what the run actually delivered against it, and any limit on that —
@@ -338,17 +343,22 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
  *  operation rather than two implementations that have to be kept
  *  agreeing.
  *
- *  A link to the confirmation page (`/specs/<project>/<spec>/reopen`),
- *  which asks whether to reset the analysis, the plan and the status as
- *  well and posts the job. Opening the page changes nothing, so a plain
- *  GET is right here.
+ *  A button and the dialog it opens (`ask-dialog.ts`, the one Close asks
+ *  in too), which asks whether to reset the analysis, the plan and the
+ *  status as well and posts the job. Like Close, it needs script.
  *
  *  Nothing ELSE about an archived spec changes — no textarea on the
  *  Description tab, the same read-only note above this, the checks shown
  *  but not tickable. And nothing here is drawn for a live spec: its own
  *  row on the queue list is where its actions are. */
-export function reopenControl(view: SpecPageView): string {
-  return `<a class="btn" href="${esc(specPagePath(view.project, view.specFolder))}/reopen">Reopen</a>`;
+export function reopenControl(view: SpecPageView, lang: Language = "en"): string {
+  return (
+    askButton("Reopen", REOPEN_ASK_ID) +
+    reopenAskDialog(view.project, view.specFolder, lang, {
+      id: REOPEN_ASK_ID,
+      back: specPagePath(view.project, view.specFolder),
+    })
+  );
 }
 
 /** The PDF button (spec 358): opens `GET .../pdf` in a new tab, where
@@ -446,10 +456,7 @@ export function closeControl(view: SpecPageView, lang: Language = "en"): string 
   // Close has no fallback page behind it (spec 527) — this button needs
   // script to do anything, joining design-system.md's list of controls
   // that do.
-  return (
-    `<button type="button" class="btn" data-close-ask>Close</button>` +
-    closeAskDialog(view.project, view.specFolder, lang)
-  );
+  return askButton("Close", CLOSE_ASK_ID) + closeAskDialog(view.project, view.specFolder, lang);
 }
 
 /** One "(?)" for the whole action row (spec 457), replacing what used
@@ -457,7 +464,7 @@ export function closeControl(view: SpecPageView, lang: Language = "en"): string 
  *  reason, what Close means (REQ-2 — a reader meets Close only in a
  *  `title` attribute otherwise, which REQ-2 explicitly says is not
  *  enough; shares its exact wording with the close dialog's own prose,
- *  `CLOSE_SENTENCE` in close-ask.ts, so the two places can never say it
+ *  `CLOSE_SENTENCE` in ask-dialog.ts, so the two places can never say it
  *  differently), and Update's own. Drawn once, before the row's own
  *  buttons — covering what each button does and, where one will not
  *  take a click right now, why. */

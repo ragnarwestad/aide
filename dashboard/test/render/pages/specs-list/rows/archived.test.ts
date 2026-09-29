@@ -13,6 +13,7 @@ import {
 } from "../../../../../src/render/pages/specs-list/data-model";
 import { archivedRowNotices } from "../../../../../src/render/pages/specs-list/row-marks.ts";
 import { t } from "../../../../../src/i18n";
+import { REOPEN_SENTENCE } from "../../../../../src/render/pages/spec-page/ask-dialog.ts";
 
 // The row's own message panel (spec 143), where REQ-2's errors move to.
 const noticeCellHtml = (html: string, folder: string): string =>
@@ -282,14 +283,62 @@ describe("spec 221: archived specs on the spec list", () => {
       filter: { state: "archived", open: "aide/50-archived" },
     });
     expect(open).toContain("Reopen");
-    // Spec 511: the press leads to the confirmation page, as a GET form
-    // that keeps the return-to-list marker and the filter (AC-1).
-    const form = open.match(/<form[^>]*method="get"[^>]*action="\/specs\/aide\/50-archived\/reopen"[^>]*>[\s\S]*?<\/form>/)?.[0] ?? "";
-    expect(form).toContain('name="fromList" value="1"');
-    expect(form).toContain('name="view.state" value="archived"');
-    expect(open).not.toContain('action="/api/queue"><input type="hidden" name="view.state"');
     expect(open).not.toContain("<select");
     expect(open).not.toContain('class="rowrun"');
+  });
+
+  const openFilter = { state: "archived", open: "aide/50-archived" };
+  const dialogById = (html: string, id: string): string =>
+    html.match(new RegExp(`<dialog[^>]*id="${id}"[^>]*>[\\s\\S]*?</dialog>`))?.[0] ?? "";
+  /** What both of the list's Reopen dialogs carry, so either answers on the
+   *  list: `list` is the list's own address, as an attribute holds it —
+   *  escaped once, never twice. */
+  const expectListParts = (dialog: string, list: string): void => {
+    expect(dialog).toContain("<h2>Reopen 50-archived?</h2>");
+    expect(dialog).toContain(REOPEN_SENTENCE);
+    const form = dialog.match(/<form id="([^"]+)" method="post" action="\/api\/queue"[^>]*>[\s\S]*?<\/form>/);
+    expect(form).not.toBeNull();
+    expect(form![0]).toContain(`data-progress="${list}"`);
+    expect(form![0]).toContain(`data-progress-done="${list}"`);
+    expect(form![0]).toContain('name="fromList" value="1"');
+    expect(form![0]).toContain('name="view.state" value="archived"');
+    expect(form![0]).toContain('name="steps" value="reopen"');
+    expect(dialog).toMatch(new RegExp(`<input type="checkbox" name="resetFiles" value="1" form="${form![1]}">`));
+    expect(dialog).toContain(">OK</button>");
+    expect(dialog).toContain(">Cancel</button>");
+  };
+
+  test("an open archived row's Reopen names a dialog over the list that answers on the list (AC-4)", () => {
+    const open = rows({ archivedSpecs: [archivedSpec("50-archived")], filter: openFilter });
+    const id = open.match(/<button type="button" class="btn primary" data-ask="([^"]+)">Reopen<\/button>/)?.[1];
+    expect(id).toBeDefined();
+    expectListParts(dialogById(open, id!), "/?state=archived&amp;open=aide%2F50-archived");
+  });
+
+  test("a Failed criterion's Reopen in the unfolded checks names a dialog outside the panel's form (AC-4)", () => {
+    const failed = { phase: "Acceptance criteria", task: "AC-1", line: "| AC-1 | ❌ Failed | |", note: "", done: false, failed: true };
+    const waiting = { phase: "Acceptance criteria", task: "AC-2", line: "| AC-2 | Not verified | |", note: "", done: true, notVerified: true };
+    const html = rows({
+      archivedSpecs: [archivedSpec("50-archived", { failed: 1, notVerified: 1, acceptance: [failed, waiting] })],
+      filter: { state: "archived", checks: "aide/50-archived" },
+    });
+    const panel = html.match(/<form class="actionform rowchecks"[\s\S]*?<\/form>/)?.[0] ?? "";
+    const id = panel.match(/data-ask="([^"]+)">Reopen</)?.[1];
+    expect(id).toBeDefined();
+    expect(panel).not.toContain("<dialog");
+    const dialog = dialogById(html, id!);
+    expectListParts(dialog, "/?state=archived&amp;checks=aide%2F50-archived");
+    expect(dialog).toContain('name="view.checks" value="aide/50-archived"');
+  });
+
+  test("no archived row leads to a Reopen page (AC-6)", () => {
+    const failed = { phase: "Acceptance criteria", task: "AC-1", line: "| AC-1 | ❌ Failed | |", note: "", done: false, failed: true };
+    const html = rows({
+      archivedSpecs: [archivedSpec("50-archived", { failed: 1, acceptance: [failed] })],
+      filter: { state: "archived", open: "aide/50-archived", checks: "aide/50-archived" },
+    });
+    expect(html).toContain("Reopen");
+    expect(html).not.toContain("/specs/aide/50-archived/reopen");
   });
 
   test("and carries the not-landed mark when its branch is still open", () => {

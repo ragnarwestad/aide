@@ -13,6 +13,8 @@ import { groupKey, isArchivedRow, type SpecGroup, type SpecsFilter } from "./dat
 import { specBusy } from "./row-state.ts";
 import { queueHref } from "./filter-bar.ts";
 import { drawsChecksLine, filterFields } from "./row-shared.ts";
+import { askButton } from "../spec-page/ask-dialog.ts";
+import { listReopenDialog } from "./row-controls.ts";
 
 /** The keys named in `?checks=`: the specs whose criteria are unfolded. */
 export const unfoldedKeys = (f: SpecsFilter): Set<string> =>
@@ -56,7 +58,11 @@ export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language): strin
   const locked = specBusy(g);
   const boxed = (row: (typeof rows)[number]): boolean => !row.failed && (!archived || !!row.notVerified);
   const drawn = rows.filter(boxed).map((row) => row.line);
-  const reopen = `<a class="btn" href="/specs/${esc(g.project)}/${esc(g.specFolder)}/reopen">${esc(t(lang, "list.reopen"))}</a>`;
+  // A Failed row's Reopen opens a dialog drawn after the panel, never
+  // inside its form: the parser drops a nested form.
+  const reopenId = `reopenask-checks-${key}`;
+  const reopen = askButton(t(lang, "list.reopen"), reopenId);
+  const reopenDialog = archived && rows.some((row) => row.failed) ? listReopenDialog(g, f, lang, reopenId) : "";
   // The boxes name the form with `form=`, so they can sit in the list
   // while the row's own table stays outside any form.
   const item = (row: (typeof rows)[number]): string => {
@@ -77,7 +83,7 @@ export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language): strin
   const list = `<ul class="checklist">${drawn.length > 0 ? checkColumns(lang, archived) : ""}${rows.map(item).join("")}</ul>`;
   // Nothing to save when no row is a box (an archived spec whose rows are
   // all Failed), or while a job runs.
-  if (drawn.length === 0 || locked) return `<div class="rowchecks">${list}</div>`;
+  if (drawn.length === 0 || locked) return `<div class="rowchecks">${list}</div>${reopenDialog}`;
   return (
     `<form class="actionform rowchecks" id="${esc(formId)}" method="post" ` +
     `action="/api/queue/specs/${esc(g.project)}/${esc(g.specFolder)}/tick?fromList=1">` +
@@ -85,7 +91,8 @@ export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language): strin
     `<input type="hidden" name="checksPhase" value="${esc(phase)}">` +
     list +
     btn({ label: t(lang, "list.checksSave"), pending: t(lang, "list.checksSaving"), variant: "primary" }) +
-    `</form>`
+    `</form>` +
+    reopenDialog
   );
 }
 

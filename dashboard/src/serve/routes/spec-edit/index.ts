@@ -23,7 +23,7 @@ export async function handleSpecEditRoutes(
   wantsJson: boolean,
 ): Promise<Response | null> {
   return (
-    (await runControlRoutes(ctx, req, url, path, wantsJson)) ??
+    (await runControlRoutes(ctx, req, path, wantsJson)) ??
     (await closeControlRoutes(ctx, req, path, wantsJson)) ??
     (await branchControlRoutes(ctx, req, path, wantsJson)) ??
     (await testServerControlRoutes(ctx, req, path, wantsJson)) ??
