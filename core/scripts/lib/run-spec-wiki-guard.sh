@@ -87,12 +87,14 @@ elif [ "$command_name" = "archive" ] && [ "$terminal_reason" = "completed" ] \
 $(link_excludes_for "$project_root")
 ARCHIVE_WIKI_EXCLUDES_EOF
   archive_wiki_named=""; archive_wiki_rewritten=""; archive_wiki_recorded=""
-  # Every path this run left dirty or untracked, or that differs from the
-  # default branch's tip — never a glob of what is on disk NOW, which
-  # would miss a brand-new untracked page (`git diff` alone is silent
-  # about one) and a page the run deleted (absent from any glob of
-  # what remains). The same enumeration restore_wiki_scope's own step 2
-  # uses for the `wiki` command.
+  # Every path this run left dirty or untracked, or that the branch
+  # changed since it left the default branch (`tip...HEAD`, so a page
+  # main changed while the archive ran is not read as the archive's) —
+  # never a glob of what is on disk NOW, which would miss a brand-new
+  # untracked page (`git diff` alone is silent about one) and a page the
+  # run deleted (absent from any glob of what remains). The same
+  # enumeration restore_wiki_scope's own step 2 uses for the `wiki`
+  # command.
   while IFS= read -r archive_wiki_path; do
     [ -z "$archive_wiki_path" ] && continue
     case "$archive_wiki_path" in "$archive_wiki_prefix"*) ;; *) continue ;; esac
@@ -111,7 +113,7 @@ ARCHIVE_WIKI_EXCLUDES_EOF
     archive_wiki_named="${archive_wiki_named:+$archive_wiki_named, }$archive_wiki_n"
   done < <( { git -C "$archive_repo_wt" status --porcelain --untracked-files=all -- . ${archive_wiki_excludes[@]+"${archive_wiki_excludes[@]}"} 2>/dev/null \
                 | cut -c4- | sed 's/^.* -> //'; \
-              git -C "$archive_repo_wt" diff --name-only "$archive_wiki_tip" -- . ${archive_wiki_excludes[@]+"${archive_wiki_excludes[@]}"} 2>/dev/null; } | sort -u )
+              git -C "$archive_repo_wt" diff --name-only "$archive_wiki_tip...HEAD" -- . ${archive_wiki_excludes[@]+"${archive_wiki_excludes[@]}"} 2>/dev/null; } | sort -u )
   stage "wiki pages rewritten: ${archive_wiki_rewritten:-none}"
   stage "wiki decisions recorded: ${archive_wiki_recorded:-none}"
   if [ -n "$archive_wiki_named" ]; then

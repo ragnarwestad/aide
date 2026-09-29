@@ -747,6 +747,28 @@ def test_an_archive_that_touches_no_wiki_page_leaves_it_unchanged_AC_2_AC_4(
     assert "wiki pages rewritten: none" in err
 
 
+def test_a_page_main_changed_while_the_archive_ran_is_not_the_archives_write(
+    runner, workspace, workspace_root, fake_claude, origin
+):
+    """Another run lands a new `schema.md` on the default branch while
+    this archive runs — a page an archive may never write. The archive's
+    branch still has the older wiki, which is main moving on, not the
+    archive writing it."""
+    status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
+    _archive_wiki_workspace(workspace, workspace_root)
+    specs = workspace["specs"]
+    git(specs, "push", "-q", "origin", "main")
+    moved = (
+        f'echo "# Schema" > "{specs}/wiki/schema.md"\n'
+        f'git -C "{specs}" add wiki/schema.md\n'
+        f'git -C "{specs}" commit -qm "another run\'s wiki refresh"\n'
+        f'git -C "{specs}" push -q origin main\n'
+    )
+    claude = fake_claude("cat > /dev/null\n" + moved + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="archive")
+    assert out["terminalReason"] == "completed", out.get("error")
+
+
 def test_an_archive_that_writes_a_page_outside_its_own_diff_is_taken_back_AC_2_AC_4(
     runner, workspace, workspace_root, fake_claude
 ):
