@@ -9,7 +9,7 @@
 # A DECISION page (`wiki: decision`, `spec: <folder>`) is a page a spec
 # recorded, or a person wrote, saying what was decided and why. To the
 # dashboard and to every check above it is hand-written; only `index`,
-# `write`, `decision`, `decisions` and `decision-scope` tell it apart.
+# `write`, `status`, `decision`, `decisions` and `decision-scope` tell it apart.
 # The /aide-wiki skill decides what the parts are and what a page says;
 # everything that can be checked lives here.
 #
@@ -381,7 +381,7 @@ SCHEMA
     pages="[]"
     for f in "$wiki"/*.md; do
       [ -f "$f" ] || continue
-      n="$(basename "$f")"; gen=false; state="hand-written"; changed=()
+      n="$(basename "$f")"; gen=false; dec=false; state="hand-written"; changed=()
       if is_generated "$f"; then
         gen=true
         commit="$(fm_commit "$f")"
@@ -395,9 +395,11 @@ SCHEMA
           fi
           if [ ${#changed[@]} -gt 0 ]; then state="changed"; else state="current"; fi
         fi
+      elif is_decision "$f"; then
+        dec=true
       fi
-      pages="$(jq -c --arg p "$n" --argjson g "$gen" --arg s "$state" \
-        '. + [{page:$p, generated:$g, state:$s, changedFiles:($ARGS.positional)}]' --args ${changed[@]+"${changed[@]}"} <<<"$pages")"
+      pages="$(jq -c --arg p "$n" --argjson g "$gen" --argjson d "$dec" --arg s "$state" \
+        '. + [{page:$p, generated:$g, decision:$d, state:$s, changedFiles:($ARGS.positional)}]' --args ${changed[@]+"${changed[@]}"} <<<"$pages")"
     done
     jq -cn --arg c "$head_sha" --argjson p "$pages" '{ok:true, exitCode:0, wiki:true, commit:$c, pages:$p}'
     ;;

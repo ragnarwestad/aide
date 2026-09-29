@@ -7,8 +7,22 @@ so do not fix anything and do not commit: report, and stop.
    is the folder `wiki/` inside it. If there is no `wiki/`, say so in the
    report (step 4) and stop.
 2. Run `aide-wiki status --specs-root <specs root> --project-dir .` to list
-   the pages. Check only the generated ones: never a hand-written page, a
-   decision page (front matter `wiki: decision`), `index.md` or `schema.md`.
+   the pages. It says of each page whether it is `generated` and whether it is
+   a `decision` page. Take both from that answer, never from a page's text: a
+   generated page that describes decision pages quotes their front matter in
+   its body and is still generated. Run each of these with `jq -r` over the
+   answer. The pages to check:
+
+   ```jq
+   .pages[] | select(.generated) | .page
+   ```
+
+   The pages to skip, and only these:
+
+   ```jq
+   .pages[] | select(.decision) | .page
+   ```
+
 3. For each generated page, read the files it names in its `files:` list as
    they are now, and every page under `docs/` it links to or names. Judge only
    what the page states as fact: what a file does, a name, an order of steps, a
@@ -19,13 +33,15 @@ so do not fix anything and do not commit: report, and stop.
 4. Write the result to `$AIDE_SCHEDULE_OUTPUT_DIR/index.html` — that
    directory is this run's own directory, and the file is what the entry's
    page shows as the run's report. Plain HTML, no styling:
-   - a first line saying how many generated pages disagree, or that nothing
-     disagrees, and how many pages were checked,
+   - a first line saying how many of the pages checked disagree, or that
+     nothing disagrees, and how many pages were checked (the pages to check
+     less the ones you could not check),
    - for each page that disagrees: the page's name, then what the page says
      and what the code or the doc says, each quoted word for word with the
      path of the file or the doc it comes from,
    - the pages you could not check, each with why (a named file is missing, a
      file could not be read), listed apart from the ones that agree, so a page
-     you did not check never reads as agreeing.
+     you did not check never reads as agreeing,
+   - the pages skipped: the decision pages the second filter printed.
 5. Change no file in this repository or in the specs repository, and commit
    nothing.
