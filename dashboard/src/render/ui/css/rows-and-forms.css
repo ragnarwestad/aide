@@ -60,24 +60,14 @@ td form { margin: 0; display: inline-block; }
 .newspecform, .scheduledeleteform { display: flex; gap: var(--sp-3); align-items: flex-end;
   flex-wrap: wrap; margin-top: var(--sp-3); }
 .newspecform .refused { flex-basis: 100%; }
-/* Spec 553: the /new form's rows, read top to bottom — Project (with
-   Create on its own label line) beside the two acceptance switches,
-   then Title, then Description, then Depends on, then the phase table.
-   Each row takes the full width of the wrapping flex; the first
-   top-aligns its two fields so Project and the switches share a label
-   line. */
+/* Spec 553: the /new form's rows, read top to bottom — Project (one
+   wide field, Create at the far end of its label line and the two
+   acceptance switches on the picker's line), then Title, then
+   Description, then Depends on, then the phase table. Every row but
+   the first takes the full width of the wrapping flex as a `.frow`. */
 .newspecform .frow, .scheduledeleteform .frow { display: flex; gap: var(--sp-4); align-items: flex-start;
   flex-basis: 100%; }
 .newspecform .frow .field.wide { flex: 1 1 0; }
-/* Spec 476: the acceptance switches' own column, beside their neighbor
-   inside its `.frow`. Stacked, never side by side, so opening one
-   switch's "(?)" cannot land on the other. Spec 553 moved that neighbor
-   from the phase table to the Project field
-   (`#new-spec-form table.list { width: auto; }`, list.css, was what left
-   the rest of the table's own row free — no longer needed for this, but
-   the table still draws at its natural width now that it is alone). */
-.newspecform .acceptance-col { display: flex; flex-direction: column;
-  gap: var(--sp-2); min-width: 0; }
 /* The Add-project form reads to the same width its own fields do: a
    `.field.wide` stops at 48rem, so a row that splits its width between
    two fields has to stop there too, or the halves above reach past the
@@ -419,16 +409,6 @@ details.intro[open] p { position: absolute; right: 0; top: calc(100% + 6px);
    class when its default side above would run past the viewport's
    left or right edge — flips it to the other side instead. */
 details.intro.intro-flip[open] p { right: auto; left: 0; }
-/* Spec 476: opened from beside the phase table, the default leftward
-   drop runs straight back over it (the same collision spec 394/426
-   already hit once, from a different placement) — this one opens
-   rightward instead, and narrower, into the free space the column
-   itself does not use. */
-.acceptance-col details.intro[open] p { left: 0; right: auto; width: 18rem; }
-/* Spec 477: this instance's own default (above) is already flipped
-   rightward — when THAT runs off the right edge instead, fall back to
-   the plain leftward default every other popover uses. */
-.acceptance-col details.intro.intro-flip[open] p { left: auto; right: 0; }
 /* Spec 360: the spec page's tabs append this mark INSIDE their own first
    line (the file/commit stamp, the checklist's head line, the Logs
    table's header row) rather than drawing it as a preceding sibling —

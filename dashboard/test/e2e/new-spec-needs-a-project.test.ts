@@ -65,3 +65,28 @@ test("with everything empty Create focuses the project field first (AC-2)", asyn
   const { focused } = await pressCreate({ title: false });
   expect(focused).toBe("project");
 });
+
+// Create shares the Project label's line, so a click on the word must
+// reach the picker, never the button — which, with the form filled in,
+// would send it.
+test("a click on the word Project focuses the picker and sends nothing (spec 553, AC-1)", async () => {
+  await withBrowser(page.goto(`${base}/new?live=0`), "page.goto(/new)");
+  let requests = 0;
+  const count = (r: { url(): string }) => {
+    if (r.url().includes("/api/queue/create")) requests++;
+  };
+  page.on("request", count);
+  try {
+    const form = page.locator("#new-spec-form");
+    await form.locator('select[name="project"]').selectOption({ index: 1 });
+    await form.locator('input[name="title"]').fill("A title");
+    await form.locator('textarea[name="description"]').fill("A description");
+    await form.getByText("Project", { exact: true }).click();
+    await settle(page);
+    const focused = await page.evaluate(() => (document.activeElement as HTMLElement | null)?.getAttribute("name") ?? null);
+    expect(focused).toBe("project");
+    expect(requests).toBe(0);
+  } finally {
+    page.off("request", count);
+  }
+});
