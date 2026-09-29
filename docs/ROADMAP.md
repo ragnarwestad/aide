@@ -11,6 +11,7 @@
   - [From OpenGeni](#from-opengeni)
 - [Phase 5: The dashboard — toward spec-driven, observable runs](#phase-5-the-dashboard--toward-spec-driven-observable-runs)
   - [Parked: one project, several code repositories](#parked-one-project-several-code-repositories)
+  - [Parked: how specs are written](#parked-how-specs-are-written)
 
 ---
 
@@ -274,3 +275,32 @@ The agreed shape:
   on origin, and names the repositories still waiting.
 - No merge across repositories at once is needed: the order and the
   review are the team's.
+
+### Parked: how specs are written
+
+A comparison of Aide's specs with 25 sources on writing specs for AI
+agents (`docs/SPEC_WRITING_SOURCES.md`) found:
+
+- `1-description.md` is what the sources call the spec, and its size is
+  within what they recommend (median about 355 words and six criteria).
+- Every plan rewrites the acceptance criteria as Given/When/Then that
+  nobody approves, and a few change how many there are.
+- `core/rules/spec-structure.md` describes an older form (the problem as
+  reported, SHALL, a scope section); the specs are written as Problem,
+  Solution and plain criteria.
+- Plans list tests the testing rules do not allow: markup checks, and one
+  rule tested on several layers.
+- The plan review finds real defects on LOW specs too, so it stays for
+  every complexity.
+
+The options, to be chosen together:
+
+- a. An optional "Must not change" part in the description.
+- b. `core/rules/spec-structure.md` says how specs are written now.
+- c. The plan review checks that each Given/When/Then says what its
+  criterion says, raises its own readings as open questions, and checks
+  the plan's test list against the testing rules: one test per rule, on
+  the function that decides it, no markup or CSS.
+- d. A lighter plan for LOW specs (not recommended: see the last finding).
+
+Recommended: b and c as one spec.
