@@ -220,6 +220,33 @@ def test_a_hand_written_index_or_schema_is_left_as_it_is_and_the_subcommand_refu
         assert (specs_root / "wiki" / name).read_text() == text
 
 
+def test_an_index_and_schema_whose_text_is_unchanged_are_left_as_they_are(script, specs_root, project):
+    """Two runs that each restamp the index with their own commit collide
+    on that one line when both land, though neither changed a page."""
+    write_page(script, specs_root, project, "a.md", ["x.txt"])
+    call(script, "schema", "--specs-root", specs_root, "--project-dir", project)
+    build_index(script, specs_root, project)
+    before = {n: (specs_root / "wiki" / n).read_text() for n in ("index.md", "schema.md")}
+    (project / "x.txt").write_text("moved\n")
+    commit_all(project, "the code moved")
+    call(script, "schema", "--specs-root", specs_root, "--project-dir", project)
+    build_index(script, specs_root, project)
+    for name, text in before.items():
+        assert (specs_root / "wiki" / name).read_text() == text, name
+
+
+def test_an_index_whose_pages_changed_is_written_from_the_new_commit(script, specs_root, project):
+    write_page(script, specs_root, project, "a.md", ["x.txt"])
+    build_index(script, specs_root, project)
+    (project / "x.txt").write_text("moved\n")
+    commit_all(project, "the code moved")
+    write_page(script, specs_root, project, "b.md", ["y.txt"], "# Bee\n\nThe b part.\n")
+    build_index(script, specs_root, project)
+    text = (specs_root / "wiki" / "index.md").read_text()
+    assert f"commit: {head(project)}\n" in text
+    assert "](b.md)" in text
+
+
 def test_building_again_rewrites_generated_pages_from_the_new_commit_and_keeps_hand_written_ones_AC_4(
     script, specs_root, project
 ):

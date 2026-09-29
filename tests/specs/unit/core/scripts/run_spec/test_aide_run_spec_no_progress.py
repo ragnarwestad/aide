@@ -889,6 +889,29 @@ def test_an_archive_that_records_a_decision_lands_its_page_its_link_back_and_the
     assert "wiki decisions recorded: decision-x.md" in err
 
 
+def test_a_decision_on_a_page_main_rewrote_while_the_archive_ran_is_kept(
+    runner, workspace, workspace_root, fake_claude, origin
+):
+    """A wiki refresh lands a rewrite of `q.md` on the default branch while
+    this archive records a decision about it. The archive's branch still
+    has the older `q.md` body under its new `## Decisions` section, which
+    is main moving on, not the archive rewriting the page."""
+    status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
+    branch = _archive_wiki_workspace(workspace, workspace_root)
+    specs = workspace["specs"]
+    git(specs, "push", "-q", "origin", "main")
+    git(workspace["project"], "push", "-q", "origin", "main")
+    moved = (
+        f'sed -i "" "s/About q.md./Rewritten on main./" "{specs}/wiki/q.md"\n'
+        f'git -C "{specs}" commit -qam "a wiki refresh"\n'
+        f'git -C "{specs}" push -q origin main\n'
+    )
+    claude = fake_claude(moved + _records_a_decision(workspace_root, workspace["folder"]))
+    rc, out, _ = run(runner, workspace, claude, command="archive")
+    assert out["terminalReason"] == "completed", out.get("error")
+    assert "](decision-x.md)" in _wiki_page(workspace, branch, "q.md")
+
+
 def test_an_archive_whose_decision_page_names_another_spec_is_taken_back_AC_1(
     runner, workspace, workspace_root, fake_claude
 ):

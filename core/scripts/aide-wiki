@@ -224,6 +224,25 @@ put_page() {
   mv "$tmp" "$target"
 }
 
+# put_page for the index and the schema, which name no files: their
+# commit stamp says nothing about them, so a text that is the same but
+# for that stamp leaves the page as it is — two runs restamping it would
+# otherwise collide on that one line when both land.
+put_page_unless_same() {
+  local target="$1" tmp
+  tmp="$(mktemp)"
+  cat > "$tmp"
+  if [ -f "$target" ] && is_generated "$target" \
+     && [ "$(grep -v '^commit: ' "$target")" = "$(grep -v '^commit: ' "$tmp")" ]; then
+    rm -f "$tmp"
+    return 0
+  fi
+  put_page "$target" < "$tmp"
+  local rc=$?
+  rm -f "$tmp"
+  return $rc
+}
+
 # The project's default branch, resolved the same way
 # core/scripts/lib/run-spec-gates.sh's own default_branch() does — that
 # function lives in a bash-runner-internal library neither a plain script
@@ -291,7 +310,7 @@ NAMED
     if [ -e "$wiki/schema.md" ] && ! is_generated "$wiki/schema.md"; then
       refuse "hand-written-page" "schema.md is written by hand (no wiki: generated mark) and is left as it is"
     fi
-    compose "$head_sha" <<'SCHEMA' | put_page "$wiki/schema.md"
+    compose "$head_sha" <<'SCHEMA' | put_page_unless_same "$wiki/schema.md"
 # How this wiki is organised
 
 A map of how the project's parts hang together, kept beside its specs and read before code is searched.
@@ -352,7 +371,7 @@ SCHEMA
           printf -- '- [%s](%s) — %s\n' "$(page_title "$f")" "$(basename "$f")" "$(page_summary "$f")"
         done
       fi
-    } | compose "$head_sha" | put_page "$wiki/index.md"
+    } | compose "$head_sha" | put_page_unless_same "$wiki/index.md"
     [ "${PIPESTATUS[2]}" -eq 0 ] || exit 2
     jq -cn --arg c "$head_sha" '{ok:true, exitCode:0, terminalReason:"written", page:"index.md", commit:$c}'
     ;;

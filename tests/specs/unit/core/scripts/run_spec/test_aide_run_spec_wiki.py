@@ -369,6 +369,17 @@ def test_a_build_that_leaves_a_page_from_an_older_commit_ends_unfinished_naming_
     assert "landing.md" in out["error"] and "queue.md" not in out["error"], out
 
 
+def test_a_build_that_rewrites_every_page_but_leaves_an_unchanged_index_is_done(
+    runner, workspace, workspace_root, fake_claude, origin
+):
+    """The index and the schema name no files, and one whose text did not
+    change is left with its older commit: that is not a page left behind."""
+    wiki_then_move_the_code(runner, workspace, workspace_root, fake_claude, origin)
+    body = keep_only_writing(workspace_root, ("queue", "landing"), ("queue", "landing"))
+    rc, out, _ = wiki(runner, workspace, job(fake_claude, body + FINISHED))
+    assert out["terminalReason"] == "completed", out.get("error")
+
+
 def test_a_refresh_is_asked_for_by_name_and_may_leave_current_pages_alone(
     runner, workspace, workspace_root, fake_claude, origin
 ):

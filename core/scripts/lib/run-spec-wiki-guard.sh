@@ -42,6 +42,9 @@ if [ "$command_name" = "wiki" ]; then
       wiki_head="$(git -C "$project_wt" rev-parse HEAD 2>/dev/null)"
       for wiki_page in "$specs_root_wt"/wiki/*.md; do
         [ -f "$wiki_page" ] || continue
+        # The index and the schema name no files: aide-wiki leaves one
+        # whose text did not change with the commit it was written from.
+        case "$(basename "$wiki_page")" in index.md|schema.md) continue ;; esac
         grep -q '^wiki: generated$' "$wiki_page" || continue
         grep -q "^commit: $wiki_head\$" "$wiki_page" && continue
         wiki_left="${wiki_left:+$wiki_left, }$(basename "$wiki_page")"
@@ -78,8 +81,11 @@ elif [ "$command_name" = "archive" ] && [ "$terminal_reason" = "completed" ] \
   # that page would no longer be one this spec reaches.
   archive_wiki_allowed="$("$SCRIPT_DIR/aide-wiki" affected --specs-root "$specs_root_wt" --project-dir "$project_wt" --base-ref "$archive_wiki_tip" 2>/dev/null | jq -r '.pages[]?.page')"
   # The decision pages this spec recorded, the index that lists them and
-  # the `## Decisions` section of the pages they concern.
-  archive_wiki_decision_scope="$("$SCRIPT_DIR/aide-wiki" decision-scope --specs-root "$specs_root_wt" --base-ref "$archive_wiki_tip" --spec "$spec_folder" 2>/dev/null | jq -r '.allowed[]?')"
+  # the `## Decisions` section of the pages they concern — each page read
+  # as the branch left the default branch, so a page main rewrote since
+  # is not read as this archive rewriting it.
+  archive_wiki_fork="$(git -C "$archive_repo_wt" merge-base "$archive_wiki_tip" HEAD 2>/dev/null || echo "$archive_wiki_tip")"
+  archive_wiki_decision_scope="$("$SCRIPT_DIR/aide-wiki" decision-scope --specs-root "$specs_root_wt" --base-ref "$archive_wiki_fork" --spec "$spec_folder" 2>/dev/null | jq -r '.allowed[]?')"
   archive_wiki_excludes=()
   while IFS= read -r archive_wiki_line; do
     [ -n "$archive_wiki_line" ] && archive_wiki_excludes+=("$archive_wiki_line")
