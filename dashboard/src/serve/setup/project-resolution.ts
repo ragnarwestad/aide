@@ -200,8 +200,8 @@ export function setupProjectResolution(
   function specRef(project: string, specFolder: string) {
     return specRefImpl(specLookupCtx, project, specFolder);
   }
-  function dependencyFolders(project: string, dir: string) {
-    return dependencyFoldersImpl(specLookupCtx, project, dir);
+  function dependencyFolders(project: string, dir: string, idsRead?: string[]) {
+    return dependencyFoldersImpl(specLookupCtx, project, dir, idsRead);
   }
   function specsRoot(dir: string) {
     return specsRootImpl(specLookupCtx, dir);

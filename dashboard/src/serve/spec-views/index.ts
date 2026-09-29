@@ -30,7 +30,7 @@ export interface SpecViewsContext {
   specRef: (project: string, specFolder: string) => SpecRef | undefined;
   peekMachinerySpecDir: (project: string, dir: string) => string;
   machinerySpecDir: (project: string, dir: string) => Promise<string>;
-  dependencyFolders: (project: string, dir: string) => string[];
+  dependencyFolders: (project: string, dir: string, idsRead?: string[]) => string[];
   gitRun: GitRunner;
   withFreshness: (list: SpecTarget[]) => SpecTarget[];
   jobRow: (job: Job) => Promise<QueueRowView>;

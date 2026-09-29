@@ -27,6 +27,11 @@ export function specAcceptanceNotRequired(dir: string): boolean {
   } catch {
     return false;
   }
+  return acceptanceNotRequiredIn(text);
+}
+
+/** The same reading, off a description's text instead of a directory. */
+export function acceptanceNotRequiredIn(text: string): boolean {
   return ACCEPTANCE_LINE.test(text);
 }
 

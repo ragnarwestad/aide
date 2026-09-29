@@ -26,6 +26,12 @@ export function specDependsOn(dir: string): string[] {
   } catch {
     return [];
   }
+  return dependsOnIn(text);
+}
+
+/** The same reading, off a description's text instead of a directory —
+ *  for a page that has the text from somewhere other than the disk. */
+export function dependsOnIn(text: string): string[] {
   const m = text.match(DEPENDS_ON_LINE);
   if (!m) return [];
   return m[1]

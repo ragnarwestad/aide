@@ -50,6 +50,20 @@ export async function readStatusFromBranch(
   return readFetched(run, root, branch, relPath);
 }
 
+/** When a commit was authored, as the ISO time `lastCommitOf` gives the
+ *  default branch's stamp, or `null` when git cannot say — an unknown sha,
+ *  a directory that is not a repository. Never throws: a page drawn with no
+ *  git at all must still draw. */
+export async function commitTimeOf(run: GitRunner, root: string, sha: string): Promise<string | null> {
+  try {
+    const shown = await run(root, ["show", "-s", "--format=%aI", sha]);
+    const at = shown.code === 0 ? shown.stdout.trim() : "";
+    return at || null;
+  } catch {
+    return null;
+  }
+}
+
 /** The path as origin's branch had it at its last fetch into `root`. */
 async function readFetched(run: GitRunner, root: string, branch: string, relPath: string): Promise<BranchFileRead | null> {
   const ref = `refs/remotes/origin/${branch}`;

@@ -349,7 +349,9 @@ with one in flight it answers with the clash refusal.
 ## The spec page
 
 `/specs/<project>/<spec>` is the whole SPEC, as it stands now, in five tabs: one per document (Description,
-Analysis, Solution, Status — each stamped with the commit that last changed it) and Logs for its runs. The Status tab
+Analysis, Solution, Status — each stamped with the commit that last changed it) and Logs for its runs. The open
+tab's file, its stamp and the banner's two facts about the description are read off the spec's own `aide/<folder>`
+branch where one is open, as of its last fetch, and off the specs checkout where none is. The Status tab
 draws the acceptance criteria first, as real boxes with a Save of their own (each with its note and the tests that
 name it), then the rest of `4-status.md` rendered read-only; an archived spec, or one with a job in flight, shows the
 same criteria without boxes. An old `?tab=checks` link opens the Status tab. Update, which pulls the specs
@@ -395,7 +397,8 @@ a record.
 **The Description tab** is `1-description.md` in a textarea with its own Save. It is the one of the four files a
 user owns: the other three are written by a step, and a hand edit there is overwritten the next time that step
 runs. The `Depends on` picker sits in the banner above the tab row, not on this tab, since a dependency is a fact
-about the SPEC rather than about this one document.
+about the SPEC rather than about this one document. Its text and its stamp are the branch's, where the spec has
+one, so a Save shows at once and a second Save from the page starts from the first.
 
 **The checks on the Status tab** are `4-status.md`'s Tasks rows, every one of them — a list that only ever shrinks says
 nothing about how far the spec got. The ones that are BOXES are the open rows of the CURRENT phase alone (the first

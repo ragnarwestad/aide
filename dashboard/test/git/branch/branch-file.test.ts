@@ -16,7 +16,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { GitRunner } from "../../../src/git/branch-status.ts";
 import { createGitRunner } from "../../../src/git/branch-status.ts";
-import { readStatusFromBranch, writeStatusToBranch } from "../../../src/git/branch-file.ts";
+import { commitTimeOf, readStatusFromBranch, writeStatusToBranch } from "../../../src/git/branch-file.ts";
 
 const BRANCH = "aide/291-example-spec";
 const REL_PATH = "aide/291-example-spec/4-status.md";
@@ -328,5 +328,21 @@ describe("branch-file real-repo suite (real git, no fakes)", () => {
     );
 
     expect(result.ok).toBe(false);
+  });
+
+  test("commitTimeOf gives a commit's author time, and null for a sha the repository does not know (AC-1)", async () => {
+    const where = tmp("aide-branch-file-");
+    const { origin, clone } = makeRepo(where);
+    const branch = "aide/291-example";
+    const relPath = "aide/291-example/4-status.md";
+    pushBranch(origin, where, branch, relPath, "# Status\n\nreal content\n");
+    const run = createGitRunner();
+    const read = await readStatusFromBranch(run, clone, branch, relPath);
+
+    const at = await commitTimeOf(run, clone, read!.sha);
+
+    expect(at).toBe(git(clone, "log", "-1", "--format=%aI", read!.sha).trim());
+    expect(await commitTimeOf(run, clone, "0".repeat(40))).toBeNull();
+    expect(await commitTimeOf(run, join(where, "not-there"), read!.sha)).toBeNull();
   });
 });

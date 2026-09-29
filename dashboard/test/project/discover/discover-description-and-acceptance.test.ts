@@ -7,7 +7,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  specAcceptanceNotRequired, stripAcceptanceLine, withAcceptanceLine,
+  acceptanceNotRequiredIn, specAcceptanceNotRequired, stripAcceptanceLine, withAcceptanceLine,
 } from "../../../src/project/discover";
 
 describe("specAcceptanceNotRequired", () => {
@@ -39,6 +39,14 @@ describe("specAcceptanceNotRequired", () => {
   test("no line, an empty file, or no file at all is false — never a throw", () => {
     expect(specAcceptanceNotRequired(spec("02-none", TRACKING("")))).toBe(false);
     expect(specAcceptanceNotRequired(join(dir, "nowhere"))).toBe(false);
+  });
+
+  test("acceptanceNotRequiredIn reads a description's text the way specAcceptanceNotRequired reads its file (AC-1)", () => {
+    for (const line of ["- **Acceptance:** not required", ""]) {
+      expect(acceptanceNotRequiredIn(TRACKING(line))).toBe(specAcceptanceNotRequired(spec(`in-${line.length}`, TRACKING(line))));
+    }
+    expect(acceptanceNotRequiredIn(TRACKING("- **Acceptance:** not required"))).toBe(true);
+    expect(acceptanceNotRequiredIn(TRACKING(""))).toBe(false);
   });
 
   const DESC = (line = "") =>

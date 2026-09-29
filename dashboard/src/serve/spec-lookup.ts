@@ -354,9 +354,14 @@ export function specRef(ctx: SpecLookupContext, project: string, specFolder: str
  *  Not `targets()`: an entry may name an already-archived spec, which
  *  that scan drops. Such an entry ticks no box either — the picker
  *  offers live specs only — but it must not be mistaken for one that
- *  resolves to a live one. */
-export function dependencyFolders(ctx: SpecLookupContext, project: string, dir: string): string[] {
-  const ids = specDependsOn(dir);
+ *  resolves to a live one.
+ *
+ *  `idsRead` is the line as the caller already read it, when the
+ *  description it comes from is not the one on disk in `dir`. */
+export function dependencyFolders(ctx: SpecLookupContext, project: string, dir: string, idsRead?: string[]): string[] {
+  // `??`, never `||`: a description read off the branch that names nothing
+  // is a real answer, and must not fall back to the directory's line.
+  const ids = idsRead ?? specDependsOn(dir);
   if (ids.length === 0 || !ctx.projectRoot) return [];
   const discovered = discoverProjects(ctx.projectRoot, undefined, manifestInside(ctx.machineryProjectDir)).find((p) => p.name === project);
   if (!discovered) return [];
