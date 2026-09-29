@@ -34,6 +34,11 @@ export function pickTab<T extends string>(
  *  reader sees changes, not the concept. */
 const TAB_LABELS: Record<string, string> = {
   steps: "Logs",
+  // Settings' top row: "AI" is two capitals, which capitalising the key
+  // cannot give.
+  ai: "AI",
+  // Settings' models table keeps its old key as its route.
+  phases: "Models per phase",
   // The Settings page's own AI tabs: two of the four tools spell their
   // name with a word the key cannot carry ("Claude Code") or a capital
   // in the middle ("OpenCode"), and capitalising the key would give
@@ -41,6 +46,9 @@ const TAB_LABELS: Record<string, string> = {
   claude: "Claude Code",
   opencode: "OpenCode",
 };
+
+/** The word a tab key shows. */
+export const tabLabel = (key: string): string => TAB_LABELS[key] ?? key[0]!.toUpperCase() + key.slice(1);
 
 /** The tab bar, over a BASE PATH rather than a job (spec 150). It used
  *  to build its hrefs from `job.id`, which is the one assumption a
@@ -78,7 +86,7 @@ export function tabBar<T extends string>(
     `<nav class="tabbar subtabs">` +
     tabs
       .map((t) => {
-        const label = TAB_LABELS[t] ?? t[0]!.toUpperCase() + t.slice(1);
+        const label = tabLabel(t);
         const n = counts[t] || undefined;
         return (
           // data-goto (spec 312): a real page load, same as the top

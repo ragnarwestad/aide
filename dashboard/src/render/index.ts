@@ -42,10 +42,10 @@ export type { NavEntry } from "./ui/shell.ts";
 export { backLink, resolveBackHref } from "./ui/components";
 
 export {
-  OTHER_STEPS, renderSettingsPage, SETTINGS_ROUTE, SETTINGS_STEPS, SETTINGS_TABS, settingsRowChoice,
-  SPEC_STEPS, UNROWED_STEPS,
+  AI_TABS, OTHER_STEPS, renderSettingsPage, resolveSettingsTab, SETTINGS_GROUPS, SETTINGS_ROUTE, SETTINGS_STEPS,
+  SETTINGS_TABS, settingsRowChoice, SPEC_STEPS, UNROWED_STEPS,
 } from "./pages/settings-page";
-export type { SettingsPageOptions } from "./pages/settings-page";
+export type { SettingsGroup, SettingsPageOptions, SettingsPanel } from "./pages/settings-page";
 export { CHECKABLE_TOOLS, TOOL_TABS, toolPanel } from "./pages/settings-page/tools.ts";
 export type { CheckableTool, ExtraCheck, ToolCheck } from "./pages/settings-page/tools.ts";
 

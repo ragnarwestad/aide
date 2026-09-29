@@ -80,6 +80,12 @@ describe("Settings routes (spec 232)", () => {
     expect(html).toContain("Not checked yet.");
   });
 
+  test("the old Phases link still serves the models form (AC-4)", async () => {
+    const { base } = start({ queueDefaults: DEFAULTS });
+    const html = await (await fetch(`${base}/settings?tab=phases`)).text();
+    expect(html).toContain("data-settings-form");
+  });
+
   test("the check route refuses a tool it does not know", async () => {
     const { base } = start({ queueDefaults: DEFAULTS });
     const res = await fetch(`${base}/api/queue/settings/check`, {

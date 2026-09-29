@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { OTHER_STEPS, renderSettingsPage, settingsRowChoice, SETTINGS_STEPS, SPEC_STEPS, UNROWED_STEPS } from "../../../src/render";
+import {
+  AI_TABS, OTHER_STEPS, renderSettingsPage, resolveSettingsTab, settingsRowChoice, SETTINGS_GROUPS, SETTINGS_STEPS,
+  SPEC_STEPS, UNROWED_STEPS,
+} from "../../../src/render";
+import { tabLabel } from "../../../src/render/ui/tabs.ts";
 import { WORKFLOW_STEPS } from "../../../src/queue/steps.ts";
 import { mergeQueueDefaults } from "../../../src/queue/queue.ts";
 import { QUEUE_DEFAULTS } from "../../../src/serve/serve-helpers";
@@ -66,5 +70,63 @@ describe("what a Settings row shows", () => {
     });
     expect(settingsRowChoice(HOST_MODELS, model, "implement")).toEqual({ model: "codex-fast", tool: "codex" });
     expect(settingsRowChoice(HOST_MODELS, model, "analyze")).toEqual({ model: "Opus", tool: "claude" });
+  });
+});
+
+describe("the Settings tabs", () => {
+  const render = (tab: string) =>
+    renderSettingsPage([], "2026-08-24T00:00:00Z", {
+      modelChoices: MODELS, defaultModels: { default: "sonnet" }, timeoutSec: TIMEOUT_SEC, tab,
+    });
+  /** The keys the page links to, and the ones marked as open. */
+  const links = (html: string) => {
+    const all = [...html.matchAll(/href="\/settings\?tab=([^"]+)"([^>]*)>/g)];
+    return {
+      keys: new Set(all.map((m) => m[1])),
+      current: new Set(all.filter((m) => m[2]!.includes("aria-current")).map((m) => m[1])),
+    };
+  };
+
+  test("the top row is AI, Process and Notifications (AC-1)", () => {
+    expect([...SETTINGS_GROUPS]).toEqual(["ai", "process", "notifications"]);
+    expect(SETTINGS_GROUPS.map(tabLabel)).toEqual(["AI", "Process", "Notifications"]);
+  });
+
+  test("AI's row is the models table, then one tab per AI (AC-2)", () => {
+    expect([...AI_TABS]).toEqual(["phases", "claude", "codex", "copilot", "opencode"]);
+    expect(AI_TABS.map(tabLabel)).toEqual(["Models per phase", "Claude Code", "Codex", "Copilot", "OpenCode"]);
+  });
+
+  test("AI opens on Models per phase, as does no tab or an unknown one (AC-2)", () => {
+    for (const raw of ["ai", undefined, "nope"]) {
+      expect(resolveSettingsTab(raw)).toEqual({ group: "ai", panel: "phases" });
+    }
+  });
+
+  test("every old tab opens its own panel in its new place (AC-4)", () => {
+    for (const old of AI_TABS) {
+      expect(resolveSettingsTab(old)).toEqual({ group: "ai", panel: old });
+    }
+    expect(resolveSettingsTab("notifications")).toEqual({ group: "notifications", panel: "notifications" });
+    for (const raw of [...AI_TABS, ...SETTINGS_GROUPS, undefined, "nope"]) {
+      expect(SETTINGS_GROUPS as readonly string[]).toContain(resolveSettingsTab(raw).group);
+    }
+  });
+
+  test("the page offers the AI row only under AI (AC-1, AC-2)", () => {
+    const claude = links(render("claude"));
+    expect(claude.keys).toEqual(new Set([...SETTINGS_GROUPS, ...AI_TABS]));
+    expect(claude.current).toEqual(new Set(["ai", "claude"]));
+    const notifications = links(render("notifications"));
+    expect(notifications.keys).toEqual(new Set(SETTINGS_GROUPS));
+    expect(notifications.current).toEqual(new Set(["notifications"]));
+  });
+
+  test("Process is its own group and holds no settings (AC-5)", () => {
+    expect(resolveSettingsTab("process")).toEqual({ group: "process", panel: "process" });
+    const html = render("process");
+    expect(html).not.toContain("data-settings-form");
+    expect(html).not.toContain("data-tool=");
+    expect(html).not.toContain("data-push-panel");
   });
 });

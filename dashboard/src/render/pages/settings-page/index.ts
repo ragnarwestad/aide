@@ -11,11 +11,34 @@ import { WORKFLOW_STEPS } from "../../../queue/steps.ts";
 
 export const SETTINGS_ROUTE = "/settings";
 
-/** The page's own tabs. "phases" is the table this page has always been;
- *  four are one AI each; "notifications" is the device's own. They are a
- *  row INSIDE the page, not the application's own tab bar, which this
- *  page hides. */
-export const SETTINGS_TABS = ["phases", ...TOOL_TABS, "notifications"] as const;
+/** The page's top row. It is a row INSIDE the page, not the
+ *  application's own tab bar, which this page hides. */
+export const SETTINGS_GROUPS = ["ai", "process", "notifications"] as const;
+export type SettingsGroup = (typeof SETTINGS_GROUPS)[number];
+
+/** AI's own row: the models-per-phase table, then one tab per AI. The
+ *  table keeps the key it had as the page's first tab, so `?tab=phases`
+ *  still opens it. */
+export const AI_TABS = ["phases", ...TOOL_TABS] as const;
+
+/** Every value `?tab=` can name: a group, or a tab inside AI. The tool
+ *  keys, `phases` and `notifications` are the page's old tabs, so a link
+ *  made before the groups opens the same panel in its new place. */
+export const SETTINGS_TABS = [...SETTINGS_GROUPS, ...AI_TABS] as const;
+
+export type SettingsPanel = Exclude<(typeof SETTINGS_TABS)[number], "ai">;
+
+/** Which group is open and which panel it draws, off `?tab=`. AI opens on
+ *  its models table, and an unknown or absent value opens AI. */
+export function resolveSettingsTab(raw: string | undefined): { group: SettingsGroup; panel: SettingsPanel } {
+  const tab = pickTab(SETTINGS_TABS, raw, "ai");
+  if (tab === "ai") return { group: "ai", panel: "phases" };
+  if (tab === "process" || tab === "notifications") return { group: tab, panel: tab };
+  return { group: "ai", panel: tab };
+}
+
+const PROCESS_PANEL =
+  `<section class="toolpanel"><p class="muted">There are no settings here yet.</p></section>`;
 
 /** The steps that act on a spec: what a reader presses on a row of the
  *  specs list. They are one group because that is the one thing they
@@ -72,8 +95,8 @@ export interface SettingsPageOptions {
   /** Spec 435. The request's own address, threaded to `pageShell` so its
    *  language links keep the reader on this same page. */
   currentUrl?: string;
-  /** Which tab is open, off `?tab=`. Absent opens the phases table,
-   *  which is what this page was before it had tabs. */
+  /** Which tab is open, off `?tab=`: a group, or a tab inside AI.
+   *  Absent opens AI on its models-per-phase table. */
   tab?: string;
   /** The last answer obtained for each tool, keyed by tool. A check runs
    *  only when its button is pressed, so a tool with no entry has simply
@@ -192,16 +215,20 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
     btn({ id: "settingsform-save", label: "Save", variant: "primary", pending: "saving…" }) +
     btn({ id: "settingsform-cancel", label: "Cancel", type: "button", disabled: true }) +
     `</div></form>`;
-  const current = pickTab(SETTINGS_TABS, opts.tab, "phases");
-  const bar = tabBar(SETTINGS_TABS, SETTINGS_ROUTE, current, {});
-  const panel = current === "phases"
+  const { group: openGroup, panel: open } = resolveSettingsTab(opts.tab);
+  const top = tabBar(SETTINGS_GROUPS, SETTINGS_ROUTE, openGroup, {});
+  const aiRow = openGroup === "ai" ? tabBar(AI_TABS, SETTINGS_ROUTE, open as (typeof AI_TABS)[number], {}) : "";
+  const panel = open === "phases"
     ? phasesPanel
-    : current === "notifications"
+    : open === "notifications"
       ? notificationsPanel(opts.pushPublicKey, opts.lang ?? "en")
-      : toolPanel(current as CheckableTool, opts.checks?.[current as CheckableTool]);
+      : open === "process"
+        ? PROCESS_PANEL
+        : toolPanel(open, opts.checks?.[open]);
   // `pageShell` wraps the body in `<main>`: a second one inside it takes
-  // the frame's padding twice.
-  const body = `${back}${bar}${panel}`;
+  // the frame's padding twice. Both rows sit directly in it, so page.css's
+  // Settings rule centres them, and the panel after them, as it did one row.
+  const body = `${back}${top}${aiRow}${panel}`;
   return pageShell("Settings", entries, SETTINGS_ROUTE, body, generatedAt, undefined, {
     script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,
   });

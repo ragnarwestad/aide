@@ -49,7 +49,7 @@ nav.tabbar.subtabs { display: flex; flex-wrap: wrap; align-items: center; gap: v
    elsewhere on this site. Wraps to its own line, still right-aligned on
    it, once the row no longer fits both groups side by side. */
 nav.tabbar.subtabs > .row { margin-left: auto; flex: 0 0 auto; flex-wrap: nowrap; }
-/* The Settings page alone: its tab row and each tab's own content sit in
+/* The Settings page alone: its tab rows and each tab's own content sit in
    the middle of the frame, over the phases form `.settingsform` already
    centres. The hook is the bar's own hrefs rather than a class of its
    own — the class vocabulary is closed, and
