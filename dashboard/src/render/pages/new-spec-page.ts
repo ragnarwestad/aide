@@ -258,10 +258,9 @@ function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
 // `newSpecPhaseTable`) split this pair across the phase table. Spec 426
 // then gave the switch its own line, above "Depends on" — spec 394's
 // REQ-3 had put it beside that field instead, in one row, which pushed
-// the chip up against "Depends on"'s own "(?)" popover. Spec 476 moved
-// it again, into the column beside the phase table (`newSpecForm`,
-// above) — its own `.acceptance-col` CSS is what keeps this switch's
-// popover clear of the table this time.
+// the chip up against "Depends on"'s own "(?)" popover. It now sits on
+// the project picker's own line (`newSpecForm`, below), and its popover
+// opens with the board's default rule.
 //
 // Said the POSITIVE way, and checked by default. It read "acceptance
 // ticking not required", unticked, which meant "it IS required" — a
@@ -334,47 +333,36 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
   const formId = "new-spec-form";
   const chosen = projects.find((p) => p === opts.prefill?.project);
   // Spec 553: what is used every time comes first — Project, with
-  // Create on its own label line, and the two acceptance switches beside
-  // the picker; then Title; then Description. Depends on and the phase
-  // table, seldom touched, come last. Each `.frow` is a full-width row
-  // inside the same wrapping flex the Add form shares, so the shared
-  // `.newspecform` look is untouched.
+  // Create at the far right of its label line and the two acceptance
+  // switches on the picker's own line; then Title; then Description.
+  // Depends on and the phase table, seldom touched, come last. Each
+  // `.frow` is a full-width row inside the same wrapping flex the Add
+  // form shares, so the shared `.newspecform` look is untouched.
   return (
     `<form method="post" action="/api/queue/create" class="newspecform" id="${formId}">` +
-    `<span class="frow">` +
     field(
       "Project",
-      // Nothing is chosen for the reader: the first project in the list was
-      // where every untouched form used to land. `required` is what makes the
-      // browser refuse the empty placeholder at the field, as it does for the
-      // title and the description below. `id` is what `for` below points
-      // at, so a click on the label keeps focusing this `<select>` rather
-      // than the Create button that now shares the label's head line.
-      `<select name="project" id="new-spec-project" required>` +
+      // One line: the picker, then the two check boxes after it, wrapping
+      // onto the lines below where the screen has no room for all three.
+      `<span class="row">` +
+        // Nothing is chosen for the reader: the first project in the list was
+        // where every untouched form used to land. `required` is what makes the
+        // browser refuse the empty placeholder at the field, as it does for the
+        // title and the description below. `id` is what `for` below points at.
+        `<select name="project" id="new-spec-project" required>` +
         `<option value=""${chosen ? "" : " selected"}>Choose a project…</option>` +
         projects.map((p) => `<option value="${esc(p)}"${p === chosen ? " selected" : ""}>${esc(p)}</option>`).join("") +
-        `</select>`,
-      // `for: "new-spec-project"`: with Create in the label's own head,
-      // an implicit label/control association would resolve to the
-      // `<button>` — a labelable element sitting first in tree order —
-      // instead of the `<select>` that follows it, and clicking "Project"
-      // would activate Create rather than focus the picker. The explicit
-      // `for` overrides that: every field keeps clicking its label to
-      // reach its own control, exactly as before this page's fields moved.
-      { for: "new-spec-project", actions: btn({ label: "Create", variant: "primary", pending: "creating…" }) },
+        `</select>` +
+        acceptanceField(formId) +
+        aiFormulateAcceptanceField(formId) +
+        `</span>`,
+      // `wide` makes the head as wide as the Title box, so Create ends at
+      // that box's right edge. `for` makes the word "Project" alone the
+      // label for the picker, so the head can hold Create and the control
+      // can hold the check boxes' own labels without nesting either inside
+      // a label, and a click on the word reaches the picker, never Create.
+      { wide: true, for: "new-spec-project", actions: btn({ label: "Create", variant: "primary", pending: "creating…" }) },
     ) +
-    // Spec 476: the two switches sit in a column beside their neighbor
-    // rather than on their own full-width lines (spec 426) — pairing one
-    // beside "Depends on" instead (spec 394, REQ-3) is what put the chip
-    // up against that field's own "(?)" popover the first time, so
-    // `.acceptance-col`'s own CSS opens its popovers away from its
-    // neighbor rather than repeating that. Spec 553 moves the neighbor
-    // from the phase table to the Project field.
-    `<span class="acceptance-col">` +
-    acceptanceField(formId) +
-    aiFormulateAcceptanceField(formId) +
-    `</span>` +
-    `</span>` +
     field(
       "Title",
       `<input type="text" name="title" maxlength="${TITLE_MAX}" required ` +
