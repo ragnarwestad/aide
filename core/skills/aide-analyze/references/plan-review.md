@@ -52,6 +52,20 @@ unbuildable), **should-fix** (weakness, worth fixing now), **notes**
    what was changed in response. Assemble the complete new file text and
    write it with `aide-write-spec --file 3-solution.md` (never
    Write/Edit — spec 282).
+
+   The section opens with one Findings line, right under its heading:
+
+   ```markdown
+   **Findings:** 2 must-fix, 3 should-fix, 4 acted on
+   ```
+
+   The first two numbers are the lengths of the must-fix and should-fix
+   lists below it; the third is how many of those the plan was revised
+   for (a should-fix declined with a reason is not acted on). A review
+   with nothing to fix writes `0 must-fix, 0 should-fix, 0 acted on`. A
+   held-back round's own review opens with its own Findings line. The
+   runner reads the three numbers into the step's log; a section without
+   the line is logged as giving no counts.
 2. **REVISE the plan for every must-fix** — the sections of
    `3-solution.md` are updated, not just commented on, the same way.
    Should-fix items are revised or explicitly declined with a reason.

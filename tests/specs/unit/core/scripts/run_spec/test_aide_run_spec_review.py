@@ -16,6 +16,7 @@ from .run_spec_status_files import with_status
 
 REVIEW_MARKER = "Read this spec's own description"
 FIX_MARKER = "A review of what you changed found"
+WENT_BACK = "the defect(s) went back to the implement session to be fixed"
 
 IMPLEMENT_SESSION = "ee80227f-510c-45e9-bfbf-c5124f7761c0"
 REVIEW_SESSION = "review-throwaway-session-id"
@@ -51,7 +52,7 @@ def _reviewing_claude(fake_claude, review_reply, implement_cost=0.10, review_cos
     )
 
 
-def test_a_review_with_no_defects_costs_two_calls_and_the_runners_test_run_still_happens_AC_1_AC_4(
+def test_a_review_with_no_defects_costs_two_calls_and_the_runners_test_run_still_happens_AC_5(
     runner, workspace, fake_claude
 ):
     """No defects: exactly one extra, fresh (no --resume/--session-id
@@ -74,9 +75,11 @@ def test_a_review_with_no_defects_costs_two_calls_and_the_runners_test_run_still
     assert "testedGreen" in out, out
     stages = _stamped(err)
     assert "the review found no defects" in stages, stages
+    assert not any(s.startswith("review:") for s in stages), stages
+    assert WENT_BACK not in stages, stages
 
 
-def test_defects_found_hand_to_a_third_turn_the_fix_never_a_second_review_AC_1_AC_3_AC_5(
+def test_defects_found_are_listed_then_handed_to_a_third_turn_the_fix_never_a_second_review_AC_4(
     runner, workspace, fake_claude
 ):
     """Two defects: a third turn, resumed on the ORIGINAL implement
@@ -106,8 +109,11 @@ def test_defects_found_hand_to_a_third_turn_the_fix_never_a_second_review_AC_1_A
     assert REVIEW_SESSION not in calls[2], calls[2]
     assert abs(out["costUsd"] - 0.35) < 1e-6, out
     stages = _stamped(err)
-    assert any(s == "review: 1. First defect" for s in stages), stages
-    assert any(s == "review: 2. Second defect" for s in stages), stages
+    count = stages.index("error: the review found 2 defect(s) — handing them to the session")
+    assert stages[count + 1:count + 4] == [
+        "review: 1. First defect", "review: 2. Second defect", WENT_BACK,
+    ], stages
+    assert any(s.startswith("model turn started") for s in stages[count + 4:]), stages
 
 
 def test_a_verdict_with_no_review_line_counts_as_no_defects_AC_4(runner, workspace, fake_claude):
