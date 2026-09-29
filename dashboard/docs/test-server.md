@@ -29,8 +29,11 @@ link to start a test server running this branch."** It stays there for as long a
 archived — with every acceptance criterion ticked and saved, beside an "archive held back" note for
 an unrelated reason, or on its own — and is hidden only while analyze, implement or archive is
 actually running for that spec, back once that step ends without archiving it. The branch has to be
-on origin — a test server is built from what origin has, so work that is still only on your own
-machine is refused with "no such branch on origin".
+on origin — a test server is built from what origin has — so the row offers the note only while the
+project's code checkout finds `aide/<spec>` there. A reopened spec whose branch archive deleted has no
+note until an implement pushes the branch again; work that is still only on your own machine is
+refused with "no such branch on origin" if the address is opened by hand. Where a project's specs
+live inside the project, the reopen puts the branch back on origin, so the note stays.
 
 A project's own page has a second entry point, on its Deploy tab: beside "Deploy for prod", a
 "Test server with the test specs" section with its own "Start test server" button. It starts a test

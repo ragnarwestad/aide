@@ -54,7 +54,7 @@ export function specNoticeRow(
   refusal: string | undefined,
   now: number,
   lang: Language,
-  testServerAvailable: (project: string) => boolean,
+  testServerAvailable: (project: string, specFolder: string) => boolean,
   /** The view the row is drawn in: what the unfolded acceptance
    *  criteria (spec 493) need to keep. */
   view: { filter?: SpecsFilter } = {},

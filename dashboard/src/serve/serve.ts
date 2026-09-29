@@ -256,7 +256,7 @@ export function createServer(opts: ServerOptions) {
     // after this is asked for, and a read stamped before that write
     // would never count as having seen the step.
     rereadSpecCaches: (dir, folder) => {
-      setTimeout(() => void schedules.rereadSpec(dir, folder).catch(() => {}), 0);
+      setTimeout(() => void schedules.rereadSpec(dir, folder, { askOrigin: true }).catch(() => {}), 0);
     },
   };
   const runner = createQueueRunner(runnerSetupCtx);

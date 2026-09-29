@@ -361,6 +361,44 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
     expect(incapableNotice).not.toContain("Click the link to start a test server");
     expect(incapableNotice).not.toContain("startTestServer=1");
   });
+
+  // The predicate is asked per spec too: a reopened spec whose code branch is
+  // gone (archive deleted it) has implement done in its history and no
+  // branch to start a test server from.
+  describe("the predicate is asked about the spec's own branch", () => {
+    const GONE = "101-gone";
+    const renderBoth = () =>
+      renderSpecsRows(
+        [
+          row({ specFolder: GONE, steps: ["archive"], state: "done" }),
+          row({ specFolder: FOLDER, steps: ["archive"], state: "done" }),
+        ],
+        {
+          runnerAvailable: true,
+          targets: [
+            target({
+              specFolder: GONE,
+              historyDone: ["analyze", "implement"],
+              archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
+            }),
+            target({ historyDone: ["analyze", "implement"], archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE } }),
+          ],
+          testServerAvailable: (_project, specFolder) => specFolder !== GONE,
+        },
+      );
+
+    test("a spec whose branch is gone has no link, and keeps its other sentence (AC-1)", () => {
+      const notice = noticeCellHtml(renderBoth(), GONE);
+      expect(notice).not.toContain("startTestServer=1");
+      expect(notice).toContain("Acceptance criteria are not all ticked");
+    });
+
+    test("a spec whose branch exists keeps the link at its address (AC-2)", () => {
+      expect(noticeCellHtml(renderBoth(), FOLDER)).toContain(
+        `href="/specs/aide/${FOLDER}?tab=steps&amp;startTestServer=1"`,
+      );
+    });
+  });
 });
 
 // --- a held-back job is info when it resolves on its own, waiting when it needs a person (spec 389) --

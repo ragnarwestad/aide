@@ -145,10 +145,20 @@ export async function warmSpec(
  *  until the next pass of the schedule below, and the row drew that gap
  *  as a fault. The target's own boundary is used, since the history is
  *  cached per boundary and a warm without it fills a key no row reads. */
-export async function rereadSpec(ctx: ScheduleContext, dir: string, specFolder: string): Promise<void> {
+export async function rereadSpec(
+  ctx: ScheduleContext,
+  dir: string,
+  specFolder: string,
+  opts: { askOrigin?: boolean } = {},
+): Promise<void> {
   const same = ctx.targets().filter((t) => t.specFolder === specFolder);
   const t = same.find((x) => x.dir === dir) ?? same[0];
-  await warmSpec(ctx, { dir, specFolder, reopenedAfter: t?.reopenedAfter });
+  await Promise.all([
+    warmSpec(ctx, { dir, specFolder, reopenedAfter: t?.reopenedAfter }),
+    // Only for a step that has just ended: implement's push is what makes the branch exist. A criteria save
+    // calls this too and must not wait on origin.
+    opts.askOrigin && t ? ctx.branchStatus.openSpecBranches(ctx.machineryProjectDir(t.project), true) : undefined,
+  ]);
   ctx.notifyQueueChanged();
 }
 
@@ -166,7 +176,9 @@ export async function rereadSpec(ctx: ScheduleContext, dir: string, specFolder: 
  *
  *  - Every LIVE spec, in full. That set is bounded by what is on the
  *    board, and it is the set every row of `/` draws from.
- *  - Every root that holds an archived spec, for the one network
+ *  - Every root that holds an archived spec, and every root of a
+ *    project with a live spec (the list offers a test server only for a
+ *    branch origin holds in the code checkout), for the one network
  *    question (`openSpecBranches`), plus the archive DATE of an
  *    archived spec whose `4-status.md` carries no stamp — a small and
  *    shrinking set, since the archive step has written the stamp
@@ -194,6 +206,8 @@ export async function refreshSpecCaches(ctx: ScheduleContext): Promise<void> {
     const scan = ctx.readScan();
     const archivedKeys = scan?.archived ?? [];
     const roots = new Set<string>();
+    // A live spec's code checkout too: the specs list offers a test server only for a branch origin holds there.
+    for (const t of live) for (const root of ctx.specRoots(t.project)) roots.add(root);
     // Spec 317, REQ-6: every archived dir. There is no write-time stamp
     // for Created to short-circuit against, so this is the whole archive
     // on the first sweep that reaches it. `createdAtForArchived`'s

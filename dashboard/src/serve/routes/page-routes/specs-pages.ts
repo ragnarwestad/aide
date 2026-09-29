@@ -8,6 +8,7 @@
 import { NEW_SPEC_ROUTE, renderNewSpecPage, renderSpecGroupRows, renderSpecsPage, renderSpecsRows, resolveBackHref } from "../../../render";
 import { languageChoice, modelChoiceOptions, specsClientScript, sortChoice, stateChoice } from "../../serve-helpers";
 import { phaseMessagesFor } from "../../spec-views/phase-messages.ts";
+import { codeBranchOnOrigin } from "../../test-servers/branch-on-origin.ts";
 import { isWikiBuild } from "../../../queue/steps.ts";
 import type { RoutesContext } from "..";
 
@@ -111,10 +112,12 @@ export async function specsPages(
       // other list on this page stays derived, because every other
       // control is about a spec that already exists.
       createProjects: [...ctx.allowed].sort(),
-      // Spec 466, AC-3: the bare function reference, the same one
-      // `spec-page.ts:198` and `project-pages.ts:280` already call —
-      // never a wrapper or a re-derived copy.
-      testServerAvailable: ctx.testServers.previewAvailable,
+      // The same capability check `spec-page.ts` and `project-pages.ts` call,
+      // and the cached answer of whether origin holds the spec's branch in the
+      // checkout the start route asks.
+      testServerAvailable: (project: string, specFolder: string) =>
+        ctx.testServers.previewAvailable(project) &&
+        codeBranchOnOrigin(ctx.branchStatus, ctx.testServers.aideCheckout(project), specFolder),
       // Spec 500: the messages of a phase the address unfolded. Called
       // only for those, so a redraw reads no transcript for a phase nobody
       // opened.

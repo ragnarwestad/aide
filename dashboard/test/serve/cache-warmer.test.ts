@@ -20,7 +20,7 @@ import { queueHarness } from "../helpers/queue-server.ts";
 import { type GitCall } from "../helpers/fake-git.ts";
 import type { GitRunner } from "../../src/git/branch-status.ts";
 import { BranchStatusChecker } from "../../src/git/branch-status.ts";
-import { refreshSpecCaches, type ScheduleContext } from "../../src/serve/schedules";
+import { refreshSpecCaches, rereadSpec, type ScheduleContext } from "../../src/serve/schedules";
 import { createScheduleStore } from "../../src/queue/schedule-store.ts";
 import type { QueueStore } from "../../src/queue/queue.ts";
 import type { CheckoutEnsurer } from "../../src/git/checkout-ensurer.ts";
@@ -478,5 +478,77 @@ describe("refreshSpecCaches tells an open tab when its answer changes", () => {
     // one per root.
     expect(notifyCount).toBe(2);
     expect(calls.filter((c) => c.args[0] === "ls-remote")).toHaveLength(4);
+  });
+});
+
+// The specs list offers a test server only for a branch origin holds in the
+// project's code checkout, read from the cached set these two calls fill.
+describe("the code checkout's branches are asked for a live spec", () => {
+  const CODE = "/fake/code/aide";
+  const SPECS = "/fake/specs/aide";
+  const FOLDER = "562-live";
+
+  /** One live spec with no `dir` (so `warmSpec` reads nothing), no archived
+   *  spec, and a code checkout apart from the specs root. `originHas` is
+   *  what `ls-remote` reports. */
+  function liveCtx() {
+    const originHas = { value: false };
+    const calls: GitCall[] = [];
+    const run: GitRunner = async (dir, args) => {
+      calls.push({ dir, args });
+      if (args[0] === "ls-remote") {
+        return { code: 0, stdout: originHas.value ? `sha\trefs/heads/aide/${FOLDER}\n` : "" };
+      }
+      return { code: 1, stdout: "" };
+    };
+    let warming = false;
+    const ctx: ScheduleContext = {
+      projectRoot: undefined,
+      machineryProjectDir: () => CODE,
+      scheduleStore: createScheduleStore(undefined),
+      branchStatus: new BranchStatusChecker({ run, ttlMs: 0 }),
+      readWorkflowHistory: () => ({}) as unknown as WorkflowHistoryChecker,
+      readFreshness: () => ({}) as unknown as DescriptionFreshnessChecker,
+      readSpecCreatedAt: () => ({}) as unknown as SpecCreatedAtChecker,
+      readSpecFileCommits: () => ({}) as unknown as SpecFileCommitChecker,
+      specsRoot: async (dir) => dir,
+      readBranchFileSteps: () => ({}) as unknown as BranchFileStepsChecker,
+      targets: () => [{ project: "aide", specFolder: FOLDER }],
+      readScan: () => ({ archived: [], dirs: new Map() }),
+      allowed: new Set(),
+      ensureCheckout: async () => undefined,
+      getWarming: () => warming,
+      setWarming: (v) => {
+        warming = v;
+      },
+      queue: {} as unknown as QueueStore,
+      specRoots: () => [CODE, SPECS],
+      readRunner: () => null,
+      checkoutEnsurer: {} as unknown as CheckoutEnsurer,
+      notifyQueueChanged: () => {},
+    };
+    return { ctx, originHas, calls };
+  }
+
+  test("a project with a live spec and no archived spec has its code checkout asked (AC-2, AC-3)", async () => {
+    const { ctx, originHas, calls } = liveCtx();
+    originHas.value = true;
+    await refreshSpecCaches(ctx);
+    expect(lsRemotes(calls).map((c) => c.dir)).toContain(CODE);
+    expect(ctx.branchStatus.peekOpenSpecBranches(CODE).open?.has(`aide/${FOLDER}`)).toBe(true);
+  });
+
+  test("a step's end asks origin again, so a branch implement just pushed is there at once (AC-3)", async () => {
+    const { ctx, originHas } = liveCtx();
+    await refreshSpecCaches(ctx); // the sweep found origin without the branch
+    originHas.value = true;
+    await rereadSpec(ctx, "", FOLDER, { askOrigin: true });
+    expect(ctx.branchStatus.peekOpenSpecBranches(CODE).open?.has(`aide/${FOLDER}`)).toBe(true);
+  });
+
+  test("a re-read without the option asks origin nothing (AC-3)", async () => {
+    const { ctx, calls } = liveCtx();
+    await rereadSpec(ctx, "", FOLDER);
+    expect(lsRemotes(calls)).toHaveLength(0);
   });
 });

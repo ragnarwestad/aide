@@ -64,7 +64,11 @@ interface LiveMark {
  *  failure, which itself means a completed step's merge never finished
  *  and so outranks the three review-related marks, which are about
  *  process, not correctness, and least urgent of the group. */
-function liveMarks(g: SpecGroup, lang: Language, testServerAvailable: (project: string) => boolean): LiveMark[] {
+function liveMarks(
+  g: SpecGroup,
+  lang: Language,
+  testServerAvailable: (project: string, specFolder: string) => boolean,
+): LiveMark[] {
   const marks: LiveMark[] = [];
   if (g.pushError) marks.push({ variant: "refused", label: NOT_PUSHED(lang), sentence: pushErrorSentence(lang) });
   // A landing the project's own suite refused is the one that is not a
@@ -128,7 +132,7 @@ function liveMarks(g: SpecGroup, lang: Language, testServerAvailable: (project: 
   // running" across all three run steps (above) — reused as-is, not
   // redefined, so the two marks agree on what "running" means.
   const implementDone = g.phases.find((p) => p.step === "implement")?.history.historyDone === true;
-  if (implementDone && !quiet && testServerAvailable(g.project)) {
+  if (implementDone && !quiet && testServerAvailable(g.project, g.specFolder)) {
     marks.push({
       variant: "waiting",
       label: TEST_SERVER(lang),
@@ -168,7 +172,7 @@ export interface RowMarkNotice {
 export function errorMarkNotices(
   g: SpecGroup,
   lang: Language,
-  testServerAvailable: (project: string) => boolean,
+  testServerAvailable: (project: string, specFolder: string) => boolean,
 ): RowMarkNotice[] {
   const marks = liveMarks(g, lang, testServerAvailable);
   // The mark's own variant decides the colour: every one of these is a

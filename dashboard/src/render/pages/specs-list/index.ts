@@ -157,15 +157,13 @@ export interface SpecsPageOptions {
    *  make has nothing on disk yet, so it appears in no other list on
    *  this page. Empty or absent means the form is not offered at all. */
   createProjects?: string[];
-  /** Which projects can run a test server — the exact capability check
-   *  `ctx.testServers.previewAvailable` already gates the spec page's own
-   *  start link on (`spec-page.ts:198`, one conjunct of that page's own
-   *  three-way AND — the other two are per-spec, not per-project) and the
-   *  project page's Deploy tab on (`project-pages.ts:280`), passed
-   *  straight through rather than re-derived (spec 466, AC-3). Absent
-   *  treats every project as capable, unchanged from before this existed
-   *  — real traffic always supplies it (`specs-pages.ts`). */
-  testServerAvailable?: (project: string) => boolean;
+  /** Whether a spec's row may offer a test server: the project can run one
+   *  (the capability check `ctx.testServers.previewAvailable` gates the spec
+   *  page's own start link and the project page's Deploy tab on) and the
+   *  spec's code branch is on origin, since the start refuses a branch that
+   *  is not there. Absent treats every spec as capable — real traffic always
+   *  supplies it (`specs-pages.ts`). */
+  testServerAvailable?: (project: string, specFolder: string) => boolean;
   /** The messages of one unfolded phase, for the attempts that may have
    *  run it (newest first) — called only for a phase the address names
    *  in `phases` (spec 500). Undefined: nothing is kept to read. */

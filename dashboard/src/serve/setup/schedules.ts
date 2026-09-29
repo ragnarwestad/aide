@@ -128,8 +128,8 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
   function warmSpec(t: { dir?: string; specFolder: string; reopenedAfter?: string }) {
     return warmSpecImpl(scheduleCtx, t);
   }
-  function rereadSpec(dir: string, specFolder: string) {
-    return rereadSpecImpl(scheduleCtx, dir, specFolder);
+  function rereadSpec(dir: string, specFolder: string, opts?: { askOrigin?: boolean }) {
+    return rereadSpecImpl(scheduleCtx, dir, specFolder, opts);
   }
   function refreshSpecCaches() {
     return refreshSpecCachesImpl(scheduleCtx);
