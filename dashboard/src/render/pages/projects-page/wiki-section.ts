@@ -6,11 +6,11 @@
 // the Specs list, so the Build panel is where it is followed — a press, a
 // Cancel and a refusal all come back there.
 
-import { badge, btn, rowMessage } from "../../ui/components";
+import { badge, buttonForm, rowMessage } from "../../ui/components";
 import { stepResults } from "../job-page";
 import { RELOAD_SECONDS } from "../spec-page/tabs.ts";
 import { esc } from "../../ui/html.ts";
-import { pickTab } from "../../ui/tabs.ts";
+import { pickTab, tabBar } from "../../ui/tabs.ts";
 import { t, type Language } from "../../../i18n";
 import { wikiGraph } from "./wiki-graph.ts";
 import { wikiPages } from "./wiki-pages.ts";
@@ -26,10 +26,7 @@ type WikiSubTab = (typeof WIKI_TABS)[number];
  *  log is drawn below it, on the Build panel. */
 function latestBuild(b: WikiBuild, lang: Language): string {
   if (UNFINISHED.has(b.state)) {
-    const cancel =
-      `<form method="post" action="/api/queue/${esc(b.id)}/cancel">` +
-      btn({ label: t(lang, "list.cancel") }) +
-      `</form>`;
+    const cancel = buttonForm({ action: `/api/queue/${b.id}/cancel`, button: { label: t(lang, "list.cancel") } });
     // The running badge's own spinner, the one every running row on the
     // board carries, so the tab reads as work under way at a glance.
     const text = t(lang, "project.wikiRunning");
@@ -51,13 +48,15 @@ function buildPanel(name: string, opts: ProjectPageOptions, lang: Language, buil
   const refusal = opts.wikiError ? rowMessage("failed", opts.wikiError, { hook: "refusal wiki-error", tag: "p" }) : "";
   const form = building
     ? ""
-    : `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/wiki" data-wikiform>` +
-      btn({ label: t(lang, "project.wikiButton"), variant: "primary" }) +
-      `</form>`;
+    : buttonForm({
+        action: `/api/queue/projects/${encodeURIComponent(name)}/wiki`,
+        data: { wikiform: "" },
+        button: { label: t(lang, "project.wikiButton"), variant: "primary" },
+      });
   const latest = opts.wikiBuild ? latestBuild(opts.wikiBuild, lang) : "";
   const log = opts.wikiLog
     ? stepResults(opts.wikiLog.results, undefined, {
-        tabHref: esc(`/projects/${encodeURIComponent(name)}?tab=wiki&wikitab=build`),
+        tabHref: `/projects/${encodeURIComponent(name)}?tab=wiki&wikitab=build`,
         openStep: opts.wikiLog.step,
         runningStep: opts.wikiLog.runningStep,
         steptab: opts.wikiLog.steptab,
@@ -75,21 +74,15 @@ function buildPanel(name: string, opts: ProjectPageOptions, lang: Language, buil
  *  outer project tab bar (Deploy/Config/Schedule/Wiki), which carries the
  *  same two classes one level up. */
 function wikiSubTabBar(name: string, current: WikiSubTab, building: boolean, lang: Language): string {
-  const base = `/projects/${esc(encodeURIComponent(name))}?tab=wiki`;
   const label: Record<WikiSubTab, string> = {
     pages: t(lang, "project.wikiTabPages"),
     graph: t(lang, "project.wikiTabGraph"),
     build: `${t(lang, "project.wikiTabBuild")}${building ? ` (${t(lang, "state.running")})` : ""}`,
   };
-  return (
-    `<nav class="tabbar subtabs" data-wikisubtabs>` +
-    WIKI_TABS.map(
-      (tab) =>
-        `<a class="tab" data-nav data-goto href="${base}&wikitab=${tab}"` +
-        `${tab === current ? ` aria-current="page"` : ""}>${esc(label[tab])}</a>`,
-    ).join("") +
-    `</nav>`
-  );
+  return tabBar(WIKI_TABS, (tab) => `/projects/${encodeURIComponent(name)}?tab=wiki&wikitab=${tab}`, current, {}, "", {
+    label: (tab) => label[tab],
+    data: { wikisubtabs: "" },
+  });
 }
 
 export function wikiSection(name: string, opts: ProjectPageOptions): string {

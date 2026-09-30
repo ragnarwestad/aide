@@ -14,7 +14,7 @@
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { t, type Language } from "../../../i18n";
 import { esc } from "../html.ts";
-import { btn } from "./button.ts";
+import { btn, buttonForm, type BtnOptions, type FormHook } from "./button.ts";
 import { messageSlot } from "./message.ts";
 
 /** What one confirmation has of its own. Every value is raw: the dialog
@@ -42,7 +42,7 @@ export interface ConfirmParts {
   post?: {
     action: string;
     /** The class the page script finds the posting form by. */
-    hook?: string;
+    hook?: FormHook;
     hidden?: Record<string, string>;
     /** Where Close's and Reopen's wait goes: any end but a done job to
      *  `back`, a done job to `done` (the script goes to `/` without it). */
@@ -53,44 +53,37 @@ export interface ConfirmParts {
 }
 
 export function confirmDialog(lang: Language, parts: ConfirmParts): string {
-  const formId = esc(`${parts.id}-form`);
-  const ok = btn({
+  const formId = `${parts.id}-form`;
+  const ok: BtnOptions = {
     label: t(lang, "dialog.ok"),
     variant: parts.ok.variant,
     pending: parts.ok.pending,
     value: parts.ok.value,
-  });
+  };
+  const post = parts.post;
   return (
     `<dialog class="confirmdialog" id="${esc(parts.id)}"${parts.standing ? " data-progress-dialog" : ""}>` +
     `<div class="confirmpanel">` +
     `<h2>${esc(parts.title)}</h2>` +
     (parts.standing ? `<h2 class="standingtitle">${esc(capitalizeFirst(parts.standing))}</h2>` : "") +
     (parts.sentence ? `<p class="muted">${esc(parts.sentence)}</p>` : "") +
-    (parts.control?.(formId) ?? "") +
+    (parts.control?.(esc(formId)) ?? "") +
     (parts.refusal ? messageSlot("refused") : "") +
     dialogAnswers(
       lang,
-      parts.post
-        ? `<form id="${formId}" method="post" action="${esc(parts.post.action)}"${postAttrs(parts.post)}>` +
-            hiddenFields(parts.post.hidden) +
-            ok +
-            `</form>`
-        : `<form id="${formId}" method="dialog">${ok}</form>`,
+      post
+        ? buttonForm({ id: formId, action: post.action, hook: post.hook, hidden: post.hidden, data: postData(post), button: ok })
+        : buttonForm({ id: formId, method: "dialog", button: ok }),
     ) +
     `</div></dialog>`
   );
 }
 
-const postAttrs = (post: NonNullable<ConfirmParts["post"]>): string =>
-  (post.hook ? ` class="${esc(post.hook)}"` : "") +
-  (post.progress ? ` data-progress="${esc(post.progress.back)}"` : "") +
-  (post.progress?.done ? ` data-progress-done="${esc(post.progress.done)}"` : "") +
-  (post.overlay ? ` data-overlay="${esc(post.overlay)}"` : "");
-
-const hiddenFields = (hidden: Record<string, string> = {}): string =>
-  Object.entries(hidden)
-    .map(([name, value]) => `<input type="hidden" name="${esc(name)}" value="${esc(value)}">`)
-    .join("");
+const postData = (post: NonNullable<ConfirmParts["post"]>): Record<string, string> => ({
+  ...(post.progress ? { progress: post.progress.back } : {}),
+  ...(post.progress?.done ? { "progress-done": post.progress.done } : {}),
+  ...(post.overlay ? { overlay: post.overlay } : {}),
+});
 
 /** The two answers, on one row: `affirmative` (a whole form) first, then
  *  Cancel. Cancel is the platform's own close, a `method="dialog"` form
@@ -99,7 +92,7 @@ const hiddenFields = (hidden: Record<string, string> = {}): string =>
 function dialogAnswers(lang: Language, affirmative: string): string {
   return (
     `<div class="dialogactions">${affirmative}` +
-    `<form method="dialog">${btn({ label: t(lang, "dialog.cancel") })}</form>` +
+    buttonForm({ method: "dialog", button: { label: t(lang, "dialog.cancel") } }) +
     `</div>`
   );
 }

@@ -3,7 +3,7 @@
 // Save. The state is in the URL (`?checks=`), like the row's own fold, so
 // it survives the live redraw and works with script off.
 
-import { ICON_CHEVRON, askButton, btn, rowMessageParts } from "../../ui/components";
+import { askButton, btn, foldArrow, rowMessageParts } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { acTestsLine } from "../../ui/ac-tests.ts";
 import { checkColumns, checkControls, checkReadOnlyMark } from "../../ui/check-controls.ts";
@@ -11,7 +11,7 @@ import { t, type Language } from "../../../i18n";
 import { specTabPath } from "../spec-page";
 import { groupKey, isArchivedRow, type SpecGroup, type SpecsFilter } from "./data-model";
 import { specBusy } from "./row-state.ts";
-import { queueHref } from "./filter-bar.ts";
+import { queuePath } from "./filter-bar.ts";
 import { drawsChecksLine, filterFields } from "./row-shared.ts";
 import { listReopenDialog } from "./row-controls.ts";
 
@@ -26,13 +26,14 @@ export function checksFold(g: SpecGroup, f: SpecsFilter, lang: Language): string
   const unfolded = unfoldedKeys(f);
   const shut = !unfolded.has(key);
   const next = shut ? [...unfolded, key] : [...unfolded].filter((k) => k !== key);
-  const action = t(lang, shut ? "list.foldShow" : "list.foldHide");
-  return (
-    `<a class="fold${shut ? " shut" : ""}" data-nav data-fold="checks" data-key="${esc(key)}" ` +
-    `href="${queueHref(f, { checks: next.join(",") })}" ` +
-    `aria-expanded="${shut ? "false" : "true"}" ` +
-    `title="${esc(t(lang, "list.checksFoldTitle", { action, folder: g.specFolder }))}">${ICON_CHEVRON}</a>`
-  );
+  return foldArrow({
+    href: queuePath(f, { checks: next.join(",") }),
+    open: !shut,
+    lang,
+    title: "list.checksFoldTitle",
+    params: { folder: g.specFolder },
+    data: { fold: "checks", key },
+  });
 }
 
 /** The list under the message, or nothing while it is folded. */

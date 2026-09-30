@@ -2,7 +2,7 @@
 // them on the entry's row: the Enabled switch, Run now, Edit and Delete. The
 // Schedule list only shows and links; changes are made here.
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
-import { askButton, btn, btnLink, confirmDialog } from "../../ui/components";
+import { askButton, btnLink, buttonForm, confirmDialog } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { scheduleEditPath } from "./edit-page.ts";
@@ -19,9 +19,7 @@ export function scheduleControlCells(project: string, entry: ScheduleEntry, lang
     `aria-label="Enabled: ${esc(entry.name)}" data-post-to="${esc(`${base}/enabled`)}"></td>` +
     // The page's ordinary button: this is the row's action, and it
     // stands beside Delete.
-    `<td><form method="post" action="${esc(`${base}/run`)}" class="actionform schedulerun">` +
-    btn({ label: "Run now", pending: "running…" }) +
-    `</form></td>` +
+    `<td>${buttonForm({ action: `${base}/run`, hook: "actionform schedulerun", button: { label: "Run now", pending: "running…" } })}</td>` +
     // A link, not a form: Edit only opens the entry's own edit page.
     `<td>${btnLink({ href: scheduleEditPath(project, entry.name), label: t(lang, "schedule.edit") })}</td>` +
     deleteCell(project, entry.name, `${base}/delete`)

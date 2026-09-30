@@ -207,6 +207,7 @@ export const en = {
   "job.stepResult": "Result",
   "job.attempt": "Attempt {n}",
   "job.logMissing": "The log is missing for this step.",
+  "job.stepFoldTitle": "{action} this step's own log",
   "job.tabLog": "Log",
   "job.tabFiles": "Changed files",
   "job.tabErrors": "Errors",

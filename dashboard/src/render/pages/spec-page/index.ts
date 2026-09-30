@@ -46,7 +46,7 @@
 // dialog Close and Reopen ask in). `renderSpecPage` itself — the one
 // function that assembles all of them — stays here.
 
-import { badge, btn, helpPopover, rowMessage } from "../../ui/components";
+import { badge, buttonForm, helpPopover, rowMessage } from "../../ui/components";
 import { projectLink } from "../../ui/components/spec-name.ts";
 import { gerund } from "../../../format/gerund.ts";
 import { esc } from "../../ui/html.ts";
@@ -130,8 +130,7 @@ function specPageBody(view: SpecPageView, opts: SpecPageOpts): { body: string; t
     closeControl(view, opts.lang ?? "en") +
     // A GET would let a reload re-run the pull, so this is a form and
     // not a link, exactly as every other action on this dashboard is.
-    `<form class="actionform" method="post" action="${esc(view.updateAction)}">` +
-    btn({ label: "Update" }) + `</form>`;
+    buttonForm({ action: view.updateAction, hook: "actionform", button: { label: "Update" } });
 
   const tabHref = specTabPath(view.project, view.specFolder, "steps");
   // Every tab says what it is for (spec 311): a "(?)" at the right end of

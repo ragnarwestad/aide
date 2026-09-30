@@ -50,15 +50,21 @@ const TAB_LABELS: Record<string, string> = {
 /** The word a tab key shows. */
 export const tabLabel = (key: string): string => TAB_LABELS[key] ?? key[0]!.toUpperCase() + key.slice(1);
 
-/** The tab bar, over a BASE PATH rather than a job (spec 150). It used
- *  to build its hrefs from `job.id`, which is the one assumption a
- *  spec-scoped page could not share — and copying the bar into the new
- *  page would have been two renderings of "Logs (12)" that nothing
- *  keeps in step. */
+/** Every tab strip on the board: a page's own tabs, a strip nested under
+ *  one (a step's Log/Changed files/Errors, the Wiki tab's Pages/Graph/
+ *  Build) and the header's Specs/Projects/Schedule row. It used to build
+ *  its hrefs from `job.id`, which is the one assumption a spec-scoped page
+ *  could not share — and a copy of the bar beside it is two renderings of
+ *  "Logs (12)" that nothing keeps in step. */
 export function tabBar<T extends string>(
   tabs: readonly T[],
-  basePath: string,
-  current: T,
+  /** A base path the key is added to as `?tab=`, or a function giving a
+   *  tab's whole address, unescaped — undefined draws the tab as text with
+   *  no link. */
+  link: string | ((key: T) => string | undefined),
+  /** Undefined when no tab is the page: the header's row on a page none of
+   *  its tabs leads to. */
+  current: T | undefined,
   /** How much is behind a tab, for the tabs that have a figure at all.
    *  Partial rather than one entry per tab: Description, Analysis,
    *  Solution and Status count nothing, and a tab with no entry renders
@@ -70,6 +76,16 @@ export function tabBar<T extends string>(
    *  Update (spec 300), right-aligned by the shared ".row" class.
    *  Absent for every caller but the spec page. */
   trailing = "",
+  o: {
+    /** The word a tab shows, for a caller whose words are in the
+     *  catalogue; `tabLabel()` otherwise. */
+    label?: (key: T) => string;
+    /** Each key written as `data-<key>` on the `<nav>`: a hook, like
+     *  `wikisubtabs`. */
+    data?: Record<string, string>;
+    /** The header's own row: `tabbar` without `subtabs`. */
+    site?: boolean;
+  } = {},
 ): string {
   // A real tab bar, the same one the site's own two tabs are: the row
   // sits ON a hairline and the open tab is marked by an underline in
@@ -82,19 +98,26 @@ export function tabBar<T extends string>(
   //
   // The count rides in the label — "Logs (12)" — rather than in a
   // badge sitting on it, because it is part of the sentence.
+  //
+  // The open tab is `aria-current="page"` on every strip, a nested one
+  // included: each is the current page within its own `<nav>`.
+  const href = typeof link === "string" ? (t: T) => `${link}?tab=${t}` : link;
+  const data = Object.entries(o.data ?? {})
+    .map(([key, value]) => ` data-${key}${value ? `="${esc(value)}"` : ""}`)
+    .join("");
   return (
-    `<nav class="tabbar subtabs">` +
+    (o.site ? `<nav class="tabbar"${data}>` : `<nav class="tabbar subtabs"${data}>`) +
     tabs
       .map((t) => {
-        const label = tabLabel(t);
+        const label = o.label ? o.label(t) : tabLabel(t);
         const n = counts[t] || undefined;
-        return (
-          // data-goto (spec 312): a real page load, same as the top
-          // row's own tabs (shell.ts) — nav-busy.ts marks it waiting.
-          `<a class="tab" data-nav data-goto href="${esc(basePath)}?tab=${t}"` +
-          `${t === current ? ` aria-current="page"` : ""}>` +
-          `${esc(label)}${n === undefined ? "" : ` (${n})`}</a>`
-        );
+        const to = href(t);
+        const here = t === current ? ` aria-current="page"` : "";
+        const text = `${esc(label)}${n === undefined ? "" : ` (${n})`}`;
+        // data-goto (spec 312): a real page load — nav-busy.ts marks it waiting.
+        return to === undefined
+          ? `<span class="tab"${here}>${text}</span>`
+          : `<a class="tab" data-nav data-goto href="${esc(to)}"${here}>${text}</a>`;
       })
       .join("") +
     (trailing ? `<span class="row">${trailing}</span>` : "") +

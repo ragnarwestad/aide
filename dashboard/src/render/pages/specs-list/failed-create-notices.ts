@@ -6,7 +6,7 @@
 import { t, type Language } from "../../../i18n";
 import { renderSentence } from "../../../i18n/message.ts";
 import type { FailedCreate } from "../../../push/failed-creates.ts";
-import { btn, btnLink, rowMessage } from "../../ui/components";
+import { btnLink, buttonForm, rowMessage } from "../../ui/components";
 
 /** The address that opens New spec filled in from a failed create. */
 export const retryHref = (id: string): string => `/new?retry=${encodeURIComponent(id)}`;
@@ -21,8 +21,11 @@ export function renderFailedCreateNotices(records: FailedCreate[], lang: Languag
       });
       const actions =
         btnLink({ href: retryHref(r.id), label: t(lang, "list.createTryAgain"), variant: "primary", small: true }) +
-        `<form class="actionform" method="post" action="/api/queue/failed-creates/${encodeURIComponent(r.id)}/dismiss">` +
-        btn({ label: t(lang, "list.createDismiss"), small: true }) + `</form>`;
+        buttonForm({
+          action: `/api/queue/failed-creates/${encodeURIComponent(r.id)}/dismiss`,
+          hook: "actionform",
+          button: { label: t(lang, "list.createDismiss"), small: true },
+        });
       return rowMessage("failed", text, { hook: "failedcreate", actions });
     })
     .join("\n");

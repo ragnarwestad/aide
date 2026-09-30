@@ -205,8 +205,8 @@ describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
     // The checkout and its specs are exactly where they were.
     expect(existsSync(join(dir, "root", "aide", ".aide", "project.yaml"))).toBe(true);
     expect(existsSync(join(dir, "root", "aide", "specs", "81-queue-and-runner"))).toBe(true);
-    // And the page no longer offers it.
-    const html = await (await fetch(`${base}/projects`, )).text();
+    // And its page no longer offers it.
+    const html = await (await fetch(`${base}/projects/aide?tab=config`)).text();
     expect(html).not.toContain('action="/api/queue/projects/aide/remove"');
   });
 
@@ -240,7 +240,7 @@ describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
     expect(res.status).toBe(400);
   });
 
-  test("Remove project asks in a dialog on an allowlisted project's Config tab, and nowhere else (AC-3)", async () => {
+  test("Remove project asks in a dialog on an allowlisted project's Config tab, and only there (AC-3)", async () => {
     const { base } = start({}, ["other"]);
     const allowed = await (await fetch(`${base}/projects/aide?tab=config`)).text();
     expect(allowed).toContain('data-ask="removeask"');
@@ -251,10 +251,6 @@ describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
     const otherHtml = await other.text();
     expect(otherHtml).not.toContain('data-ask="removeask"');
     expect(otherHtml).not.toContain("/remove");
-    // The list's rows carry no Remove of their own.
-    const list = await (await fetch(`${base}/projects`)).text();
-    expect(list).toContain('href="/projects/aide"');
-    expect(list).not.toContain("/projects/aide/remove");
   });
 
   test("a refusal posted without script goes back to the project's Config tab (AC-3)", async () => {

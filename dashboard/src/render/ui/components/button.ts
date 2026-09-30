@@ -4,7 +4,7 @@
 
 import { esc } from "../html.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
-import { SPINNER } from "./icons.ts";
+import { ICON_CLOSE, SPINNER } from "./icons.ts";
 
 // --- button -------------------------------------------------------------------
 
@@ -15,7 +15,7 @@ import { SPINNER } from "./icons.ts";
  *  this dashboard now, an action a mistake cannot undo. */
 export type BtnVariant = "" | "primary" | "ok" | "danger" | "busy";
 
-export function btn(o: {
+export interface BtnOptions {
   label: string;
   variant?: BtnVariant;
   /** `submit` unless said otherwise: every control on this page is a
@@ -47,7 +47,9 @@ export function btn(o: {
   /** The name a screen reader reads, for a button whose label alone does
    *  not say what it acts on — one Delete per schedule entry. */
   ariaLabel?: string;
-}): string {
+}
+
+export function btn(o: BtnOptions): string {
   const cls = ["btn", o.variant || "", o.small ? "small" : ""].filter(Boolean).join(" ");
   const attrs =
     (o.id ? `id="${esc(o.id)}" ` : "") +
@@ -65,10 +67,57 @@ export function btn(o: {
   return `<button ${attrs}>${spin}${esc(o.label)}</button>`;
 }
 
-const dataAttrs = (data: Record<string, string> = {}): string =>
+/** Each key written as ` data-<key>="<value>"`, the value escaped. */
+export const dataAttrs = (data: Record<string, string> = {}): string =>
   Object.entries(data)
     .map(([key, value]) => ` data-${key}="${esc(value)}"`)
     .join("");
+
+/** The class a script or the stylesheet selects a one-button form by:
+ *  `actionform` is posted by script (`press.ts`), `schedulerun`,
+ *  `deployform` and `removeform` have their own listeners, and
+ *  `configactions` lines the button up at the row's end. */
+export type FormHook = "actionform" | "actionform schedulerun" | "deployform" | "removeform" | "configactions";
+
+/** A form whose only control is one button: hidden fields, a message line
+ *  or a dialog inside it are not controls. Every value is raw and escaped
+ *  here once. Its attributes come in one order: `id`, `method`, `action`,
+ *  `class`, `data-*`, `target`. */
+export function buttonForm(o: {
+  /** A `btn()`, or the close cross in a dialog's corner, which is its icon
+   *  alone and says what it does in `aria-label` (the About box's). */
+  button: BtnOptions | { cross: string };
+  /** Where it posts, unescaped; absent for `method: "dialog"`. */
+  action?: string;
+  /** The platform's own close of the dialog the form is in; a post otherwise. */
+  method?: "dialog";
+  hook?: FormHook;
+  id?: string;
+  /** Fields posted with the press. */
+  hidden?: Record<string, string>;
+  data?: Record<string, string>;
+  /** A new tab for what the post answers with — and so never a script hook,
+   *  which would post it in the page instead. */
+  target?: "_blank";
+  /** Trusted markup after the button, inside the form: a message line, a dialog. */
+  after?: string;
+}): string {
+  const attrs =
+    (o.id ? `id="${esc(o.id)}" ` : "") +
+    `method="${o.method ?? "post"}"` +
+    (o.action !== undefined ? ` action="${esc(o.action)}"` : "") +
+    (o.hook ? ` class="${o.hook}"` : "") +
+    dataAttrs(o.data) +
+    (o.target ? ` target="${o.target}"` : "");
+  const hidden = Object.entries(o.hidden ?? {})
+    .map(([name, value]) => `<input type="hidden" name="${esc(name)}" value="${esc(value)}">`)
+    .join("");
+  const button =
+    "cross" in o.button
+      ? `<button class="aboutclose" aria-label="${esc(o.button.cross)}">${ICON_CLOSE}</button>`
+      : btn(o.button);
+  return `<form ${attrs}>${hidden}${button}${o.after ?? ""}</form>`;
+}
 
 /** A link drawn as a button: somewhere to GO, where a button does
  *  something — New spec, Edit, Try again. A link that cannot be followed

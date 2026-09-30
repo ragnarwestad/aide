@@ -6,7 +6,7 @@
 
 import { t, type Language } from "../../../i18n";
 import { DESCRIPTION_MAX } from "../../../queue/parse-request.ts";
-import { confirmDialog, field } from "../../ui/components";
+import { confirmDialog, field, labelledCheckbox } from "../../ui/components";
 import { specPagePath } from "./tabs.ts";
 
 /** The one sentence stated wherever a reader meets Close (REQ-2): in this
@@ -53,13 +53,17 @@ export function closeAskDialog(project: string, specFolder: string, lang: Langua
   });
 }
 
-// A line of its own (`.frow`), the box and its words side by side
-// (`.row`). Never `.checkbox`: that is the fixed 18px square an
-// acceptance row draws, and it squeezed the words into eighteen pixels.
-// Unticked: resetting throws the analysis, the plan and the status away.
+// A line of its own (`.frow`). Unticked: resetting throws the analysis,
+// the plan and the status away. `formId` is raw: the box escapes it.
 const resetBox = (formId: string): string =>
-  `<div class="frow"><label class="row"><input type="checkbox" name="resetFiles" value="1" form="${formId}">` +
-  `<span>Also reset the analysis, the plan and the status</span></label></div>`;
+  `<div class="frow">` +
+  labelledCheckbox({
+    label: "Also reset the analysis, the plan and the status",
+    name: "resetFiles",
+    value: "1",
+    form: formId,
+  }) +
+  `</div>`;
 
 /** Reopen's dialog. `where` says which dialog it is and where the reader
  *  goes once the job is posted: the spec page draws one, the list one per
@@ -76,7 +80,7 @@ export function reopenAskDialog(
     title: `Reopen ${specFolder}?`,
     standing: t(lang, "list.reopening"),
     sentence: REOPEN_SENTENCE,
-    control: resetBox,
+    control: () => resetBox(`${where.id}-form`),
     refusal: true,
     ok: { variant: "primary", pending: t(lang, "list.reopening") },
     post: {

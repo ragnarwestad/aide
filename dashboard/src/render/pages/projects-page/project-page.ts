@@ -6,7 +6,7 @@ import type { ProjectReadiness } from "../../../project/project-admin";
 import { FIELD_OWNED_CHECKS, type ProjectSettingsView } from "../../../project/project-settings.ts";
 import { SETTING_LABELS } from "../../../project/setting-labels.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
-import { askButton, btn, btnLink, confirmDialog, messageSlot, rowMessage } from "../../ui/components";
+import { askButton, btnLink, buttonForm, confirmDialog, messageSlot, rowMessage } from "../../ui/components";
 import { jobsSentence } from "../../ui/components/spec-name.ts";
 import { esc, relTimeLabel } from "../../ui/html.ts";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
@@ -164,9 +164,10 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
         ? "Pressing again only repeats the pull and install — it does not restart the service sooner."
         : undefined;
 
-  const button =
-    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/deploy" class="deployform">` +
-    btn({
+  const button = buttonForm({
+    action: `/api/queue/projects/${encodeURIComponent(name)}/deploy`,
+    hook: "deployform",
+    button: {
       label: "Deploy",
       variant: "primary",
       pending: "deploying…",
@@ -175,10 +176,9 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
       // hover hint names WHY the button is off, not the whole state.
       ...(disabled ? { disabled: true } : {}),
       ...(title ? { title } : {}),
-    }) +
-    messageSlot("refused") +
-    deployDialog(opts.lang ?? "en") +
-    `</form>`;
+    },
+    after: messageSlot("refused") + deployDialog(opts.lang ?? "en"),
+  });
   return heading + panel(errorLine + rowMessage(notYetChecked || behind! > 0 || stale ? "waiting" : "info", sentence, { html: sentenceHtml }) + button);
 }
 
@@ -199,11 +199,12 @@ function testServerSection(name: string, opts: ProjectPageOptions): string {
   // (`specs-client/forms.ts`/`press.ts`), which silently defeats
   // `target="_blank"` and breaks AC-5. `.deploypanel`'s own flex `gap`
   // spaces this form's children with no CSS of its own needed.
-  const button =
-    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/test-server" ` +
-    `target="_blank" data-testserverform>` +
-    btn({ label: t(lang, "project.testServerButton"), variant: "primary" }) +
-    `</form>`;
+  const button = buttonForm({
+    action: `/api/queue/projects/${encodeURIComponent(name)}/test-server`,
+    data: { testserverform: "" },
+    target: "_blank",
+    button: { label: t(lang, "project.testServerButton"), variant: "primary" },
+  });
   return heading + panel(rowMessage("info", t(lang, "project.testServerNote")) + button);
 }
 

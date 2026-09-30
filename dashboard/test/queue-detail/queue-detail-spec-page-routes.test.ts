@@ -137,7 +137,7 @@ describe("a Codex step's job page", () => {
     expect(old).toContain("git status");
   });
 
-  test("steptab=files opens the step on Changed files, on the spec page's Logs tab too (AC-6)", async () => {
+  test("steptab=files opens the step on Changed files, marked as the page's own tab bar marks its tab, on the spec page's Logs tab too (AC-2)", async () => {
     const { base, dir } = start();
     const id = await enqueue(base, ["implement"]);
     const mirror = seed(dir, id, (job) => {
@@ -147,7 +147,7 @@ describe("a Codex step's job page", () => {
       ];
     });
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const current = (html: string) => html.match(/<a class="tab"[^>]*aria-current="true"[^>]*>([^<]*)</)?.[1];
+    const current = (html: string) => html.match(/<a class="tab"[^>]*href="[^"]*steptab=[^"]*"[^>]*aria-current="page"[^>]*>([^<]*)</)?.[1];
 
     const job = await (await fetch(`${base2}/jobs/${id}?tab=steps&step=0&steptab=files`)).text();
     expect(current(job)).toBe("Changed files");
