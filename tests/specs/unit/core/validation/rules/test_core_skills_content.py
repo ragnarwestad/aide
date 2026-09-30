@@ -5,6 +5,7 @@ import re
 
 import pytest
 
+from . import test_core_skills
 from .test_core_skills import CORE_SKILLS_DIR
 
 REPO_ROOT = CORE_SKILLS_DIR.parent.parent
@@ -37,3 +38,18 @@ def test_the_reopen_boundary_is_written_in_the_grammar_the_readers_parse():
     skill = (CORE_SKILLS_DIR / "aide-reopen" / "SKILL.md").read_text()
     assert "**Reopened:**" in skill
     assert "history before" in skill
+
+
+@pytest.mark.validation
+def test_analyze_reads_the_reuse_key_and_its_plan_and_review_share_the_parts_lines_AC_2_AC_3_AC_4():
+    """The manifest documents `reuse`, the analyze skill reads it, and
+    the plan step writes the Parts lines the plan review checks (AC-2,
+    AC-3, AC-4)."""
+    analyze = CORE_SKILLS_DIR / "aide-analyze"
+    skill = (analyze / "SKILL.md").read_text(encoding="utf-8")
+    review = (analyze / "references" / "plan-review.md").read_text(encoding="utf-8")
+    assert "reuse" in test_core_skills.TestManifestTemplate.TOP_KEYS
+    assert "`reuse`" in skill
+    for form in ("Reused:", "New, because", "None —"):
+        assert form in skill, f"the plan step does not write {form!r}"
+        assert form in review, f"the plan review does not check {form!r}"

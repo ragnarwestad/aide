@@ -214,10 +214,10 @@ class TestManifestTemplate:
     TOP_KEYS = [
         "name", "description", "generated", "stack", "dependencies",
         "deployment", "logging", "statistics", "reports", "docs",
-        "worktreeLinks",
+        "worktreeLinks", "reuse",
     ]
 
-    def test_template_has_every_documented_top_key(self):
+    def test_template_has_every_documented_top_key_AC_1(self):
         assert self.TEMPLATE.exists(), f"missing: {self.TEMPLATE}"
         lines = self.TEMPLATE.read_text(encoding="utf-8").splitlines()
         missing = [

@@ -75,6 +75,13 @@ First write `--- Step 1 of 10: Read the description — started`, and when this 
   When the answer is `"wiki":false`, or `aide-wiki` is not installed, or
   it answers `unknown-subcommand`, skip this and write nothing about a
   wiki.
+- **Read what the manifest's `reuse` key names, after the wiki and
+  before Step 3.** The key lists the files and folders where the project
+  keeps its reusable parts and the rules for using them, each a path from
+  the project root. Read a file whole, and a folder file by file. Note
+  each path as `read`, or `missing` when it does not exist, for Step 5.
+  A project without the key has nothing named to read, and Step 3's
+  search runs all the same.
 - Identify: What should change? What is the scope? Migration or single fix?
 - If `1-description.md` has a `## Acceptance criteria` section, extract
   its `AC-n` ids for Steps 5-7 — see `references/requirements-tracing.md`.
@@ -115,6 +122,13 @@ Scale the analysis to the complexity:
 - **HIGH:** Search broadly, categorize files, create a migration plan. 1-3 hours.
 
 See `references/complexity-and-analysis.md` for detailed steps per level.
+
+**Look for what the project already has.** List every part the change
+needs that it does not have yet: a component, a dialog, a form, a
+helper, a script, a parser, a style rule, a test fixture. For each, look
+in what the `reuse` key named (Step 1) and search the code for one that
+already does the same, or would with a small change. Keep what you find,
+with file:line, for the plan's Parts (Step 6).
 
 **Where a symbol is used or defined, ask the language server first.**
 When an `LSP` tool is listed, it is usually deferred: load it once with
@@ -183,6 +197,10 @@ pages used** listing each page with its state: `current`;
 the same way, as `decision — from spec <its spec's folder>`. Without a
 wiki, no such line.
 
+When Step 1 read what the `reuse` key names, the `## Mapping` section
+gets a line **Reuse paths read** listing each path with `read` or
+`missing`. Without the key, no such line.
+
 Sections already filled in per Step 4 are left untouched.
 
 Nothing that judges the solution goes here — complexity, estimate and risk
@@ -208,6 +226,16 @@ it, and the estimate for manual and AI-assisted development.
 **Behavior delta:** state what the chosen solution ADDS / MODIFIES / REMOVES
 in behavior, relative to how the system works today — not just which files
 change (those are listed under Scope).
+
+**Parts:** a `### Parts` subsection under Recommended solution, with one
+line for every part the change needs that it does not have yet (Step 3):
+
+    - **<the part>** — Reused: <what, with file:line>
+    - **<the part>** — New, because <why nothing existing does it>
+
+A New reason names what was looked at and why it does not do the job. A
+change that needs no part of its own writes the one line
+`- None — <why>`, so an empty list is never mistaken for a forgotten one.
 
 **Risk analysis:** the risks the chosen solution carries, each with
 consequence, probability and mitigation.

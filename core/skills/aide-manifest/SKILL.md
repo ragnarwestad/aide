@@ -95,6 +95,10 @@ First write `--- Step 4 of 5: Write and stamp — started`, and when this step e
 - **Leave an `AIDE_TEST_CMD:` key exactly as found — never propose one,
   never remove one.** It is the project's test command, the only one a
   run reads, set from the dashboard's Settings
+- **Leave a `reuse:` key exactly as found — never propose one, never
+  remove one.** It names where the project keeps its reusable parts,
+  which `/aide-analyze` reads before it plans; which parts count is the
+  team's choice, and nothing in the code says it
 
 ### Step 5 of 5: Confirm
 

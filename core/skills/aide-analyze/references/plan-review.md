@@ -11,7 +11,9 @@ The property that made a standalone step worth having is unaffected by
 where it is invoked from: the reviewer(s) below are spawned as separate
 Agent invocations (subagents), blind to the analyst's own reasoning —
 they read only the four spec files on disk, never the conversation that
-produced them.
+produced them. The Feasibility reviewer reads the project's own files as
+well, from the project root the analyst hands it, since whether a part
+exists is not in the spec.
 
 ## Review — scaled to complexity
 
@@ -28,7 +30,15 @@ questions, with file:line references into the spec:
 
 1. **Feasibility** — can this be built as described? Are the steps in
    an order that works? Are the estimates honest? Does the plan depend
-   on anything that does not exist (files, tools, config)?
+   on anything that does not exist (files, tools, config)? Does it
+   build anything that already exists? Read every file the manifest's
+   `reuse` key names and search the code, then check the Parts list
+   under Recommended solution. Each of these is a must-fix, given with
+   the file:line that shows it: no Parts list; a part with no line of
+   the three forms, `Reused:`, `New, because` or the single `None —`;
+   a `Reused:` line whose part does not do the job; a `New, because`
+   reason that names something the project already has; a `None —`
+   line on a plan that does build a part.
 2. **Scope guardian** — does the plan do MORE than `1-description.md`
    asks? Flag every planned change that is not traceable to the
    description. Flag missing pieces too: what does the description ask

@@ -275,6 +275,11 @@ Number, created date, expected duration
 [new code]
 ```
 
+### Parts
+
+- **[the part]** — Reused: [what, with file:line]
+- **[the part]** — New, because [why nothing existing does it]
+
 ---
 
 ## Behavior delta
@@ -349,6 +354,9 @@ Number, created date, expected duration
   means saying so in `1-description.md` and analysing again
   (change an acceptance criterion, then `/aide-analyze` again)
 - Before/After in SEPARATE code blocks (avoids redeclaration errors)
+- Parts: one line per part the change needs that it does not have yet,
+  `Reused:` or `New, because`, or the single `None — [why]` when it needs
+  none
 - Behavior delta: what the solution ADDS / MODIFIES / REMOVES relative to
   current behavior — not just which files change
 - Acceptance criteria as given/when/then scenarios; the RED phase writes

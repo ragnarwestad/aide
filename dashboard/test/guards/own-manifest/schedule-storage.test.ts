@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 
-const ROOT = join(import.meta.dir, "..", "..");
+const ROOT = join(import.meta.dir, "..", "..", "..");
 
 test("this repository's .aide/project.yaml has no schedule key (AC-4)", () => {
   const manifest = parse(readFileSync(join(ROOT, "..", ".aide", "project.yaml"), "utf-8")) as Record<string, unknown>;
