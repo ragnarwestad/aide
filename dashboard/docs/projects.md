@@ -111,8 +111,9 @@ project is in.
 
 Remove takes the project off the allowlist and off this dashboard, and that is all it does: the checkout and the
 specs root stay on disk, untouched. Remove project is at the foot of the project's Config tab, for a project on the
-allowlist, and asks in a dialog; OK is the answer, nothing is typed back, and a refusal is written in the dialog.
-Success lands on the projects list.
+allowlist, and asks in a dialog; OK is the answer, nothing is typed back. While the request is out the dialog shows
+"Removing…" alone, and Escape and a click outside do not close it; a refusal is written in the dialog's own line, with
+OK ready to press again. Success lands on the projects list.
 
 ### Whether a run can start there
 
@@ -217,8 +218,8 @@ which commit it is serving; under it a **Deploy** button, disabled when the chec
 has not been checked yet. A project with no `AIDE_INSTALL_CMD` keeps the heading and a sentence saying there is
 nothing to act on. When drift has not been checked yet, the page asks for itself again after five seconds.
 
-Pressing **Deploy** opens one dialog that is as tall as its steps and one line under them, and keeps that size until
-it closes. It lists five steps, each waiting, running,
+Pressing **Deploy** opens the board's progress dialog: "Deploying…", its steps and one line under them, at one size
+while the steps run. Escape and a click outside do not close it while a step runs. It lists five steps, each waiting, running,
 done or failed, one running at a time: fetch from origin, install, restart the service, wait for the service to
 answer, and check that the service runs the newest commit. The page runs them one request each
 (`POST .../deploy/<step>`, `http-routes.md`). The fetch waits up to three seconds for a merge into the same checkout,
@@ -227,9 +228,9 @@ The restart runs until `/api/version` stops answering or answers a new
 `startedAt`, and the wait runs from then until a new `startedAt` answers. The last step counts the checkout against origin on the process that will serve the page, so the page
 that loads next never says the check has not been made. The running step's line is drawn in the accent colour, with
 the spinner the running badges use in front of its state word. When the last step is done the dialog says so in the line under the steps, stays
-two seconds and closes. A failed step is shown as failed for two seconds and the dialog closes by itself; the steps
-after it stay waiting, and Escape closes it at once. The dialog never shows an error of its own: the failure is
-drawn first on the Deploy tab, in the usual message layout, naming the step and the reason. The server keeps the
+two seconds and closes. A failed step is shown as failed, with the step and the reason in the dialog's own line,
+for two seconds, and the dialog closes by itself; the steps after it stay waiting, and Escape closes it at once. The
+failure is then drawn first on the Deploy tab, in the usual message layout, naming the step and the reason. The server keeps the
 failure of a refused step per project until the next deploy of that project starts (a restart of the dashboard
 loses it), so a reload or another tab shows it too. A press removes the error from the tab before the dialog opens.
 

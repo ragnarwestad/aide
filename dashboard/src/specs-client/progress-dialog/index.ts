@@ -1,7 +1,9 @@
-// The wait behind the dialog Reopen and Close ask in
-// (`render/pages/spec-page/ask-dialog.ts`): on OK it stands until the
-// queued job has settled, then the page leaves. While it stands, Escape
-// and the browser's own ways of closing it are answered here.
+// The one hold every progress dialog (`render/ui/components/progress-dialog.ts`)
+// is kept open by while its job runs — Close, Reopen, Remove project and
+// Deploy — and the wait behind Close and Reopen: on OK the dialog stands
+// until the queued job has settled, then the page leaves. While a dialog
+// is held, Escape and the browser's own ways of closing it are answered
+// here, and nowhere else.
 
 import { postForm, writeLine } from "../press.ts";
 
@@ -35,7 +37,12 @@ const browserIo: ProgressIo = {
   go: (url) => {
     location.href = url;
   },
-  onRestore: (fn) => window.addEventListener("pageshow", (e) => (e as PageTransitionEvent).persisted && fn()),
+  // `typeof`: the unit harness runs the page script with no window at all.
+  onRestore: (fn) => {
+    if (typeof window !== "undefined") {
+      window.addEventListener("pageshow", (e) => (e as PageTransitionEvent).persisted && fn());
+    }
+  },
 };
 
 /** Polls the job until it is neither queued nor running nor a done job
@@ -55,63 +62,88 @@ export async function settled(id: string, io: ProgressIo, attempts = SETTLE_POLL
   return undefined;
 }
 
-/** What a dialog is doing, kept per dialog so its listeners are attached
- *  once however many times it is submitted. */
-const states = new WeakMap<object, { waiting: boolean }>();
+/** Whether a dialog is held, kept per dialog so its listeners are attached
+ *  once however many times it is held. */
+const holds = new WeakMap<object, { held: boolean }>();
 
-/** The ask's line for a refusal: empty when `why` is. */
-function say(ask: HTMLDialogElement, why: string): void {
-  writeLine(ask.querySelector(".refused"), why);
+/** The dialog's line for a refusal: empty when `why` is. */
+function say(dialog: HTMLDialogElement, why: string): void {
+  writeLine(dialog.querySelector(".refused"), why);
+}
+
+/** False for a browser without `<dialog>`: the caller leaves the submit
+ *  alone and the form posts natively. */
+export function canStand(dialog: HTMLDialogElement | null): dialog is HTMLDialogElement {
+  return !!dialog && typeof dialog.showModal === "function";
+}
+
+/** Whether `dialog` is held right now. */
+export function isStanding(dialog: HTMLDialogElement): boolean {
+  return holds.get(dialog)?.held === true;
+}
+
+/** Opens `dialog` as a modal, standing, and keeps it open until `release`:
+ *  Escape and the browser's own close do nothing meanwhile, and a restore
+ *  from the back/forward cache closes it. `release(why)` writes `why` in
+ *  the dialog's own line. */
+export function standOpen(
+  dialog: HTMLDialogElement,
+  io: Pick<ProgressIo, "onRestore"> = browserIo,
+): { release(why?: string): void } {
+  let hold = holds.get(dialog);
+  if (!hold) {
+    const fresh = { held: false };
+    hold = fresh;
+    holds.set(dialog, fresh);
+    dialog.addEventListener("cancel", (e) => {
+      if (fresh.held) e.preventDefault();
+    });
+    // A browser can close a modal whose cancel was prevented (a second Escape): stand again.
+    dialog.addEventListener("close", () => {
+      if (fresh.held) dialog.showModal();
+    });
+    io.onRestore(() => {
+      fresh.held = false;
+      dialog.removeAttribute("data-standing");
+      say(dialog, "");
+      dialog.close();
+    });
+  }
+  const mine = hold;
+  mine.held = true;
+  dialog.setAttribute("data-standing", "");
+  say(dialog, "");
+  if (!dialog.open) dialog.showModal();
+  return {
+    release: (why) => {
+      mine.held = false;
+      dialog.removeAttribute("data-standing");
+      if (why !== undefined) say(dialog, why);
+    },
+  };
 }
 
 export async function submitProgress(form: HTMLFormElement, event: Event, io: ProgressIo = browserIo): Promise<void> {
   if (event.defaultPrevented) return;
-  // The ask holds its posting form.
-  const ask = form.closest("dialog[data-progress-dialog]") as HTMLDialogElement | null;
+  // The dialog holds its posting form.
+  const dialog = form.closest("dialog[data-progress-dialog]") as HTMLDialogElement | null;
   // No `<dialog>` here: the form posts natively and follows the redirect.
-  if (!ask || typeof ask.showModal !== "function") return;
+  if (!canStand(dialog)) return;
   event.preventDefault();
   const back = form.dataset.progress ?? "/";
   const done = form.dataset.progressDone ?? "/";
-  let state = states.get(ask);
-  if (!state) {
-    const fresh = { waiting: false };
-    state = fresh;
-    states.set(ask, fresh);
-    ask.addEventListener("cancel", (e) => {
-      if (fresh.waiting) e.preventDefault();
-    });
-    // A browser can close a modal whose cancel was prevented (a second Escape): stand again.
-    ask.addEventListener("close", () => {
-      if (fresh.waiting) ask.showModal();
-    });
-    io.onRestore(() => {
-      fresh.waiting = false;
-      ask.removeAttribute("data-standing");
-      say(ask, "");
-      ask.close();
-    });
-  }
-  const mine = state;
-  mine.waiting = true;
-  ask.setAttribute("data-standing", "");
-  say(ask, "");
-  if (!ask.open) ask.showModal();
+  const hold = standOpen(dialog, io);
   await postForm(
     form,
     async (answer) => {
       const id = answer?.job?.id;
       const job = id ? await settled(id, io) : undefined;
-      mine.waiting = false;
       // The spec page says what a failed job did; the list shows what a done
-      // one changed. A dialog over the list comes back to it either way.
+      // one changed. A dialog over the list comes back to it either way. It
+      // stands until the next page has replaced this one.
       io.go(job?.state === "done" ? done : back);
     },
-    (why) => {
-      mine.waiting = false;
-      // The ask stays open with the reason still typed.
-      ask.removeAttribute("data-standing");
-      say(ask, why);
-    },
+    // The dialog stays open with the reason still typed.
+    (why) => hold.release(why),
   );
 }

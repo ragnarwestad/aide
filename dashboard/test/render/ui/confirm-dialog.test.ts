@@ -1,10 +1,9 @@
-// Every confirmation on the board is drawn by `confirmDialog()`: each
-// caller's dialog carries the id its button names and the affirmative's
-// form `<id>-form`, and only Close and Reopen stand while their job runs.
-// Ids and attributes the page script depends on, not layout.
+// Every confirmation on the board asks in a dialog whose question and
+// answers the confirmation component draws: each caller's dialog carries
+// the id its button names and the affirmative's form `<id>-form`. Ids and
+// attributes the page script depends on, not layout.
 import { describe, expect, test } from "bun:test";
 import { renderProjectPage, renderSpecsRows, type ProjectView } from "../../../src/render";
-import { closeAskDialog, reopenAskDialog } from "../../../src/render/pages/spec-page/ask-dialog.ts";
 import { scheduleControlCells } from "../../../src/render/pages/schedule-page/controls.ts";
 import { pageShell } from "../../../src/render/ui/shell.ts";
 import { openKeys, row } from "../pages/fixtures.ts";
@@ -17,11 +16,12 @@ const expectAsk = (html: string, id: string): string => {
   const box = dialog(html, id);
   expect(box).not.toBe("");
   expect(box).toContain(`id="${id}-form"`);
+  expect(box).toContain(`class="dialogactions"`);
   return box;
 };
 
 describe("each confirmation is drawn by the shared function", () => {
-  test("Cancel on a running list row names its dialog, which does not stand (AC-1)", () => {
+  test("Cancel on a running list row names its dialog, which does not stand (AC-1, AC-5)", () => {
     const r = row({ id: "j1", specFolder: "105-busy", steps: ["implement"], stepIndex: 0, state: "running" });
     const targets = [{ project: "aide", specFolder: "105-busy" }];
     const html = renderSpecsRows(
@@ -35,7 +35,7 @@ describe("each confirmation is drawn by the shared function", () => {
     expect(box).not.toContain("data-progress-dialog");
   });
 
-  test("Delete on a schedule row names its dialog (AC-1)", () => {
+  test("Delete on a schedule row names its dialog (AC-1, AC-5)", () => {
     const html = scheduleControlCells("aide", { name: "nightly", cron: "0 3 * * *", prompt: "x", enabled: true });
     const box = expectAsk(html, "deleteask-aide/nightly");
     expect(html).toContain(`data-ask="deleteask-aide/nightly"`);
@@ -43,7 +43,7 @@ describe("each confirmation is drawn by the shared function", () => {
     expect(box).not.toContain("data-progress-dialog");
   });
 
-  test("the question before leaving a page answers with its value and posts nothing (AC-1)", () => {
+  test("the question before leaving a page answers with its value and posts nothing (AC-1, AC-5)", () => {
     const html = pageShell("Projects", [{ label: "Projects", path: "/projects" }], "/projects", "<p>x</p>", "2026-09-01T00:00:00Z");
     const box = expectAsk(html, "leaveapp");
     expect(box).toContain(`value="leave"`);
@@ -64,10 +64,4 @@ describe("each confirmation is drawn by the shared function", () => {
     expect(box).toContain(`class="removeform"`);
   });
 
-  test("Close and Reopen name theirs, and stand while their job runs (AC-1)", () => {
-    const close = expectAsk(closeAskDialog("aide", "150-x", "en"), "closeask");
-    const reopen = expectAsk(reopenAskDialog("aide", "150-x", "en", { id: "reopenask", back: "/specs/aide/150-x" }), "reopenask");
-    expect(close).toContain("data-progress-dialog");
-    expect(reopen).toContain("data-progress-dialog");
-  });
 });

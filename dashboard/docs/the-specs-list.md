@@ -453,11 +453,13 @@ route is removed, not redirected.
 The page's own browser code does one thing to the controls: it keeps the reader where they are. Run is a real
 `<form>` that works on its own, and the script only intercepts it; Cancel's OK is one too, posted the same way.
 
-- **Every confirmation asks in the one shared dialog, with no fallback page behind it.** One function draws it
-  (`confirmDialog()`, `render/ui/components/confirm-dialog.ts`): a `dialog.confirmdialog` with the question, the
-  sentence that says what the action does, any control of its own, a refusal line where the action can be refused,
-  and OK and Cancel. Close's control is its required Reason field (bounded and counted), Reopen's an unticked box that
-  also resets the analysis, the plan and the status. Its button (`askButton()`) carries `data-ask="<dialog id>"`, and
+- **Every confirmation asks the one shared question, with no fallback page behind it.** One function draws the
+  question and its answers (`askParts()`, `render/ui/components/confirm-dialog.ts`): the question, the sentence that
+  says what the action does, any control of its own, and OK and Cancel. Cancel's is asked in a `dialog.confirmdialog`
+  (`confirmDialog()`); Close's and Reopen's in the progress dialog they then stand in (`progressDialog()`,
+  `render/ui/components/progress-dialog.ts`), a `dialog.progressdialog` that also holds a refusal line and the word
+  it shows while its job runs. Close's control is its required Reason field (bounded and counted), Reopen's an
+  unticked box that also resets the analysis, the plan and the status. Its button (`askButton()`) carries `data-ask="<dialog id>"`, and
   one click listener on `body` (`openAsk`, `specs-client/ask.ts`) opens whichever dialog a button names — on a row a
   later redraw drew too, and a Reopen beside a Failed criterion, inside the checks' own form, opens a dialog drawn
   outside it. Close is on the spec page; Reopen is on an archived spec's page and over the list, on the row and beside
@@ -465,8 +467,9 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   buttons do nothing. The question before leaving a page with unsaved changes is the same dialog, opened by the
   unsaved-changes guard from the link that was clicked rather than from a button.
 - **OK stands the dialog until the job has settled.** The dialog's posting form carries `data-progress`, and one
-  submit listener on `body` hands its OK to the wait: the dialog shows "Reopening…" or "Closing…" alone (Escape does
-  not dismiss it, and a back/forward-cache restore closes it), posts the form, and polls `GET /api/queue/<id>` once a
+  submit listener on `body` hands its OK to the wait: the dialog shows "Reopening…" or "Closing…" alone, held open by
+  the one hold every progress dialog has (`standOpen()`, `specs-client/progress-dialog/`: Escape and a click outside
+  do not dismiss it, and a back/forward-cache restore closes it), posts the form, and polls `GET /api/queue/<id>` once a
   second, at most 120 times, until the job has settled and, for a `done` job, its landing is over. A job that is
   `done` goes to `data-progress-done`, or the list's front page when the form has none; any other end, a job the
   queue has forgotten and a wait that runs out go to `data-progress` — the spec page, whose error line says why a

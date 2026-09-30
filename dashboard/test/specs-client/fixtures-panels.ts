@@ -84,15 +84,26 @@ export function buildProjectsPanel(tokenInput: { value: string }, on: Record<str
     querySelector: (sel: string) => (sel.includes("input") ? confirmInput : removeButton),
   };
   const removeSlot = { textContent: "" };
-  // Remove project asks in a dialog: the refusal line is the dialog's,
-  // outside the posting form, as `confirmDialog()` draws it.
+  // Remove project asks in a progress dialog, open since its button was
+  // pressed: the refusal line is the dialog's, outside the posting form,
+  // and the dialog stands while the request is out.
+  const attrs = new Set<string>();
   const removeDialog = {
     open: true,
     closes: 0,
+    shows: 0,
     close() {
       removeDialog.open = false;
       removeDialog.closes += 1;
     },
+    showModal() {
+      removeDialog.open = true;
+      removeDialog.shows += 1;
+    },
+    addEventListener: () => {},
+    setAttribute: (name: string) => void attrs.add(name),
+    removeAttribute: (name: string) => void attrs.delete(name),
+    hasAttribute: (name: string) => attrs.has(name),
     querySelector: (sel: string) => (sel.includes("refused") ? removeSlot : null),
   };
   const addButton = {
@@ -137,7 +148,7 @@ export function buildProjectsPanel(tokenInput: { value: string }, on: Record<str
         : sel.includes("token")
           ? tokenInput
           : null,
-    closest: (sel: string) => (sel === "dialog" ? removeDialog : null),
+    closest: (sel: string) => (sel.startsWith("dialog") ? removeDialog : null),
     addEventListener: (type: string, fn: Listener) => void (on[`remove:${type}`] = fn),
   };
   let typed: (() => void) | undefined;

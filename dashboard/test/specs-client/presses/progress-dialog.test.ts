@@ -1,8 +1,9 @@
-// The wait behind the Reopen and Close dialogs: the dialog stands on OK
+// The hold every progress dialog is kept open by while its job runs, and
+// the wait behind the Reopen and Close dialogs: the dialog stands on OK
 // until the queued job has settled.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { settled, submitProgress, type ProgressIo } from "../../../src/specs-client/progress-dialog";
+import { canStand, isStanding, settled, standOpen, submitProgress, type ProgressIo } from "../../../src/specs-client/progress-dialog";
 
 const BACK = "/specs/aide/150-x";
 
@@ -14,6 +15,8 @@ function fakeDialog(withShowModal = true) {
     shows: 0,
     closes: 0,
     addEventListener: (type: string, fn: Listener) => (listeners[type] ??= []).push(fn),
+    /** How many listeners of `type` are attached. */
+    count: (type: string) => (listeners[type] ?? []).length,
     close() {
       dialog.closes += 1;
     },
@@ -149,29 +152,6 @@ describe("submitProgress from inside the ask", () => {
     expect(io.gone).toEqual([BACK]);
   });
 
-  test("a browser that closes the standing dialog anyway gets it stood up again", async () => {
-    stubPost(200, { ok: true, job: { id: "j1" } });
-    const a = fakeAsk();
-    const io = fakeIo([{ job: { state: "running" } }]);
-    io.sleep = async () => {
-      expect(a.ask.fire("cancel").defaultPrevented).toBe(true);
-      a.ask.fire("close");
-      // Never settles on its own: end the wait from here.
-      if (io.polls >= 2) io.get = async () => ({ status: 200, job: { state: "done" } });
-    };
-    await submitProgress(a.form, submit(), io);
-    expect(a.ask.shows).toBeGreaterThan(1);
-  });
-
-  test("a close after the wait is over is left alone", async () => {
-    stubPost(200, { ok: true, job: { id: "j1" } });
-    const a = fakeAsk();
-    await submitProgress(a.form, submit(), fakeIo([{ job: { state: "done" } }]));
-    const shown = a.ask.shows;
-    a.ask.fire("close");
-    expect(a.ask.shows).toBe(shown);
-  });
-
   test("a dialog with no showModal leaves the submit alone, so the form posts natively", async () => {
     const a = fakeAsk(false);
     const event = submit();
@@ -244,43 +224,96 @@ describe("submitProgress from inside the ask", () => {
     expect(io.gone).toEqual([]);
   });
 
-  test("Escape is prevented only while a job is waited for, and again after a second press (AC-3)", async () => {
-    stubPost(400, { error: "no" });
-    const a = fakeAsk();
-    const io = fakeIo([]);
-    await submitProgress(a.form, submit(), io);
-    expect(a.ask.fire("cancel").defaultPrevented).toBe(false);
-    stubPost(200, { ok: true, job: { id: "j1" } });
-    let during: boolean | undefined;
-    const io2 = fakeIo([{ job: { state: "running" } }, { job: { state: "done" } }]);
-    io2.sleep = async () => {
-      during = a.ask.fire("cancel").defaultPrevented;
-    };
-    await submitProgress(a.form, submit(), io2);
-    expect(during).toBe(true);
-  });
+});
 
-  test("a second press does not stack listeners: one cancel prevention per event, one stand-up per close", async () => {
-    stubPost(400, { error: "no" });
-    const a = fakeAsk();
-    await submitProgress(a.form, submit(), fakeIo([]));
-    await submitProgress(a.form, submit(), fakeIo([]));
-    const shown = a.ask.shows;
-    a.ask.fire("close");
-    expect(a.ask.shows).toBe(shown);
-  });
+describe("standOpen, the one hold", () => {
+  const restoring = () => {
+    const io = { restore: undefined as (() => void) | undefined, onRestore: (fn: () => void) => void (io.restore = fn) };
+    return io;
+  };
 
-  test("a restore from the cache closes the box and clears the standing state and the line", async () => {
-    stubPost(200, { ok: true, job: { id: "j1" } });
+  test("opens the dialog as a modal, marks it standing and empties its line (AC-2)", () => {
     const a = fakeAsk();
     a.line.textContent = "old";
-    const io = fakeIo([{ job: { state: "done" } }]);
-    await submitProgress(a.form, submit(), io);
-    a.ask.setAttribute("data-standing");
+    standOpen(a.ask as unknown as HTMLDialogElement, restoring());
+    expect(a.ask.shows).toBe(1);
+    expect(a.standing()).toBe(true);
+    expect(isStanding(a.ask as unknown as HTMLDialogElement)).toBe(true);
+    expect(a.line.textContent).toBe("");
+  });
+
+  test("a dialog already open is not opened again (AC-2)", () => {
+    const a = fakeAsk();
+    a.ask.open = true;
+    standOpen(a.ask as unknown as HTMLDialogElement, restoring());
+    expect(a.ask.shows).toBe(0);
+  });
+
+  test("Escape is prevented while it is held, and not once it is released (AC-2)", () => {
+    const a = fakeAsk();
+    const hold = standOpen(a.ask as unknown as HTMLDialogElement, restoring());
+    expect(a.ask.fire("cancel").defaultPrevented).toBe(true);
+    hold.release();
+    expect(a.ask.fire("cancel").defaultPrevented).toBe(false);
+    expect(isStanding(a.ask as unknown as HTMLDialogElement)).toBe(false);
+  });
+
+  test("a browser that closes the held dialog anyway gets it shown again, and a close after release is left alone (AC-2)", () => {
+    const a = fakeAsk();
+    const hold = standOpen(a.ask as unknown as HTMLDialogElement, restoring());
+    a.ask.close();
+    a.ask.fire("close");
+    expect(a.ask.shows).toBe(2);
+    expect(a.ask.open).toBe(true);
+    hold.release();
+    a.ask.close();
+    a.ask.fire("close");
+    expect(a.ask.shows).toBe(2);
+    expect(a.ask.open).toBe(false);
+  });
+
+  test("two holds of one dialog attach one listener of each kind (AC-2)", () => {
+    const a = fakeAsk();
+    const io = restoring();
+    let restores = 0;
+    const counting = { onRestore: (fn: () => void) => { restores += 1; io.onRestore(fn); } };
+    standOpen(a.ask as unknown as HTMLDialogElement, counting).release();
+    standOpen(a.ask as unknown as HTMLDialogElement, counting);
+    expect(a.ask.count("cancel")).toBe(1);
+    expect(a.ask.count("close")).toBe(1);
+    expect(restores).toBe(1);
+  });
+
+  test("a restore from the cache closes it, releases it and empties its line (AC-2)", () => {
+    const a = fakeAsk();
+    const io = restoring();
+    standOpen(a.ask as unknown as HTMLDialogElement, io);
+    a.line.textContent = "old";
     io.restore!();
     expect(a.ask.closes).toBe(1);
+    expect(a.ask.open).toBe(false);
     expect(a.standing()).toBe(false);
     expect(a.line.textContent).toBe("");
+    expect(a.ask.fire("cancel").defaultPrevented).toBe(false);
+  });
+
+  test("release with a reason writes it in the dialog's own line; release without one leaves the line (AC-3)", () => {
+    const a = fakeAsk();
+    standOpen(a.ask as unknown as HTMLDialogElement, restoring()).release("Not on the allowlist.");
+    expect(a.line.textContent).toBe("Not on the allowlist.");
+    expect(a.standing()).toBe(false);
+    expect(a.ask.open).toBe(true);
+    const b = fakeAsk();
+    const hold = standOpen(b.ask as unknown as HTMLDialogElement, restoring());
+    b.line.textContent = "kept";
+    hold.release();
+    expect(b.line.textContent).toBe("kept");
+  });
+
+  test("canStand is false for a dialog with no showModal, and for no dialog at all (AC-2)", () => {
+    expect(canStand(fakeAsk().ask as unknown as HTMLDialogElement)).toBe(true);
+    expect(canStand(fakeAsk(false).ask as unknown as HTMLDialogElement)).toBe(false);
+    expect(canStand(null)).toBe(false);
   });
 });
 

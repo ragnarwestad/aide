@@ -13,6 +13,7 @@
 // to.
 
 import { ACTIONS, postForm, writeLine } from "./press.ts";
+import { canStand, standOpen } from "./progress-dialog";
 import { swapRows } from "./row-swap.ts";
 import { showRefusal } from "./tail-actions.ts";
 import { clearChosenSteps, NEW_SPEC_FORM } from "./state.ts";
@@ -71,11 +72,8 @@ export async function submitTestServerStop(event: Event): Promise<void> {
 // goes beside the form that was refused instead — where the reader is
 // still looking, and not in a banner above a disclosure that may well
 // be shut.
-//
-// A form that is a dialog's affirmative (Remove project) has its line in
-// the dialog, outside the form, and the dialog stays open to show it.
 export function formNote(form: HTMLFormElement, text: string): void {
-  writeLine((form.closest("dialog") ?? form).querySelector(".refused"), text);
+  writeLine(form.querySelector(".refused"), text);
 }
 
 /** A Settings save's answer, in the one of the form's two lines it
@@ -137,15 +135,19 @@ export async function submitCreate(form: HTMLFormElement, event: Event): Promise
 //
 // No refusal here has a row to land on: an Add names a project that was
 // never added, and a Remove that failed leaves the project exactly where
-// the reader can already see it. Both go into the form's own `.refused`
-// slot, like New spec's.
+// the reader can already see it. An Add's goes into the form's own
+// `.refused` slot, like New spec's. Remove asks in a progress dialog,
+// which stands while the request is out and takes a refusal in its own
+// line.
 export async function submitProjectChange(form: HTMLFormElement, event: Event): Promise<void> {
   if (event.defaultPrevented) return;
   event.preventDefault();
+  const dialog = form.closest("dialog[data-progress-dialog]") as HTMLDialogElement | null;
+  const hold = canStand(dialog) ? standOpen(dialog) : null;
   await postForm(
     form,
     async (body) => {
-      formNote(form, "");
+      if (!hold) formNote(form, "");
       // Both endings are the same page now (2026-09-23): the list the
       // press changed. Staying on the Add form left Save live under a
       // "it worked" line, offering to add the same project again.
@@ -177,7 +179,7 @@ export async function submitProjectChange(form: HTMLFormElement, event: Event): 
       document.dispatchEvent(new Event("aide-changes-discarded"));
       location.href = query ? `/projects?${query}` : "/projects";
     },
-    (why) => formNote(form, why),
+    (why) => (hold ? hold.release(why) : formNote(form, why)),
   );
 }
 

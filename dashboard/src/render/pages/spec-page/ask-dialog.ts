@@ -1,12 +1,12 @@
 // What Close and Reopen ask, on the spec page and over the specs list,
 // with no fallback page behind either: their words, their controls and
 // where their wait goes. The dialog itself is the board's one
-// `confirmDialog()`; these two are the ones that stand while their job
-// runs (`submitProgress`), and write a refusal in its `.refused` line.
+// `progressDialog()`, which asks their question and then stands while
+// their job runs (`submitProgress`), a refusal written in its own line.
 
 import { t, type Language } from "../../../i18n";
 import { DESCRIPTION_MAX } from "../../../queue/parse-request.ts";
-import { confirmDialog, field, labelledCheckbox } from "../../ui/components";
+import { field, labelledCheckbox, progressDialog } from "../../ui/components";
 import { specPagePath } from "./tabs.ts";
 
 /** The one sentence stated wherever a reader meets Close (REQ-2): in this
@@ -37,19 +37,21 @@ export const REOPEN_ASK_ID = "reopenask";
 
 export function closeAskDialog(project: string, specFolder: string, lang: Language): string {
   const back = specPagePath(project, specFolder);
-  return confirmDialog(lang, {
+  return progressDialog(lang, {
     id: CLOSE_ASK_ID,
-    title: `Close ${specFolder}?`,
-    standing: t(lang, "shell.overlayClosing"),
-    sentence: CLOSE_WORDING,
-    control: (formId) =>
-      field(
-        "Reason",
-        `<textarea name="reason" form="${formId}" rows="4" required data-maxlength="${DESCRIPTION_MAX}"></textarea>`,
-      ),
-    refusal: true,
-    ok: { variant: "danger", pending: t(lang, "shell.overlayClosing") },
-    post: { action: `/api/queue${back}/close`, progress: { back } },
+    title: t(lang, "shell.overlayClosing"),
+    ask: {
+      title: `Close ${specFolder}?`,
+      sentence: CLOSE_WORDING,
+      control: (formId) =>
+        field(
+          "Reason",
+          `<textarea name="reason" form="${formId}" rows="4" required data-maxlength="${DESCRIPTION_MAX}"></textarea>`,
+        ),
+      ok: { variant: "danger", pending: t(lang, "shell.overlayClosing") },
+      post: { action: `/api/queue${back}/close` },
+      wait: { back },
+    },
   });
 }
 
@@ -75,18 +77,19 @@ export function reopenAskDialog(
   lang: Language,
   where: { id: string; back: string; done?: string; hidden?: Record<string, string> },
 ): string {
-  return confirmDialog(lang, {
+  return progressDialog(lang, {
     id: where.id,
-    title: `Reopen ${specFolder}?`,
-    standing: t(lang, "list.reopening"),
-    sentence: REOPEN_SENTENCE,
-    control: () => resetBox(`${where.id}-form`),
-    refusal: true,
-    ok: { variant: "primary", pending: t(lang, "list.reopening") },
-    post: {
-      action: "/api/queue",
-      hidden: { ...where.hidden, project, specFolder, steps: "reopen" },
-      progress: { back: where.back, done: where.done },
+    title: t(lang, "list.reopening"),
+    ask: {
+      title: `Reopen ${specFolder}?`,
+      sentence: REOPEN_SENTENCE,
+      control: () => resetBox(`${where.id}-form`),
+      ok: { variant: "primary", pending: t(lang, "list.reopening") },
+      post: {
+        action: "/api/queue",
+        hidden: { ...where.hidden, project, specFolder, steps: "reopen" },
+      },
+      wait: { back: where.back, done: where.done },
     },
   });
 }

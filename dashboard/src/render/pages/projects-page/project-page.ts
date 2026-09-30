@@ -6,7 +6,7 @@ import type { ProjectReadiness } from "../../../project/project-admin";
 import { FIELD_OWNED_CHECKS, type ProjectSettingsView } from "../../../project/project-settings.ts";
 import { SETTING_LABELS } from "../../../project/setting-labels.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
-import { askButton, btnLink, buttonForm, confirmDialog, messageSlot, rowMessage } from "../../ui/components";
+import { askButton, btnLink, buttonForm, messageSlot, progressDialog, rowMessage } from "../../ui/components";
 import { jobsSentence } from "../../ui/components/spec-name.ts";
 import { esc, relTimeLabel } from "../../ui/html.ts";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
@@ -294,25 +294,27 @@ const REMOVE_ASK_ID = "removeask";
 
 /** Remove project, at the foot of the Config tab and outside the
  *  settings form: the allowlist entry it takes away is part of how this
- *  board knows the project. A button and the dialog it opens; a refusal
- *  is written in the dialog's own line, and success goes to the list. */
+ *  board knows the project. A button and the dialog it opens, which
+ *  stands as "Removing…" while the request is out; a refusal is written
+ *  in the dialog's own line, and success goes to the list. */
 function removeProject(name: string, opts: ProjectPageOptions): string {
   if (!opts.removable) return "";
   const lang = opts.lang ?? "en";
   return (
     `<p>${askButton({ label: t(lang, "project.remove"), dialogId: REMOVE_ASK_ID, variant: "danger" })}</p>` +
-    confirmDialog(lang, {
+    progressDialog(lang, {
       id: REMOVE_ASK_ID,
-      title: `Remove ${name}?`,
-      sentence:
-        `Removing ${name} takes it off the allowlist and off this dashboard. ` +
-        `Its checkout and its specs stay on disk, untouched. This cannot be undone.`,
-      refusal: true,
-      ok: { variant: "danger", pending: "removing…" },
-      post: {
-        action: `/api/queue/projects/${encodeURIComponent(name)}/remove`,
-        hook: "removeform",
-        overlay: t(lang, "shell.overlayRemoving"),
+      title: t(lang, "shell.overlayRemoving"),
+      ask: {
+        title: `Remove ${name}?`,
+        sentence:
+          `Removing ${name} takes it off the allowlist and off this dashboard. ` +
+          `Its checkout and its specs stay on disk, untouched. This cannot be undone.`,
+        ok: { variant: "danger", pending: "removing…" },
+        post: {
+          action: `/api/queue/projects/${encodeURIComponent(name)}/remove`,
+          hook: "removeform",
+        },
       },
     })
   );

@@ -1,40 +1,29 @@
-// The one dialog every confirmation on the board asks in — Close, Reopen,
+// The question every confirmation on the board asks — Close, Reopen,
 // Cancel on a list row, Delete on a schedule, Remove project and the
 // question before leaving a page with unsaved changes — and the button
-// that opens it. A button carrying `data-ask="<dialog id>"` names its
-// dialog, and one piece of script opens any of them (`openAsk`,
+// that opens its dialog. A button carrying `data-ask="<dialog id>"` names
+// its dialog, and one piece of script opens any of them (`openAsk`,
 // specs-client/ask.ts); only the leave question has no button, and is
 // opened by the unsaved-changes guard instead.
 //
-// What differs between them is handed in: a control under the sentence,
-// a line for a refusal, the word the dialog stands on while its job runs
-// (Close and Reopen, which `submitProgress` waits behind), and whether OK
-// posts a form or only answers the dialog.
+// `confirmDialog()` draws the dialog of a confirmation that runs no step
+// of its own: Cancel, Delete and the leave question. Close, Reopen and
+// Remove project ask the same question in the progress dialog they then
+// stand in (`progress-dialog.ts`), which draws it through `askParts()`.
 
-import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { t, type Language } from "../../../i18n";
 import { esc } from "../html.ts";
 import { btn, buttonForm, type BtnOptions, type FormHook } from "./button.ts";
-import { messageSlot } from "./message.ts";
 
-/** What one confirmation has of its own. Every value is raw: the dialog
+/** What one question has of its own. Every value is raw: the dialog
  *  escapes each once. */
-export interface ConfirmParts {
-  /** The dialog's id, which its button names. The affirmative's form is
-   *  always `<id>-form`, whether it posts or only answers the dialog. */
-  id: string;
+export interface AskParts {
   title: string;
   sentence?: string;
   /** A field or box under the sentence, tied to the posting form by
    *  `form=` so it is not in the answers row and cannot stop Cancel.
    *  Handed the form's id, escaped. */
   control?: (formId: string) => string;
-  /** A line a refusal is written into (Close, Reopen, Remove project). */
-  refusal?: boolean;
-  /** The word shown alone while the queued job runs: marks the dialog
-   *  `data-progress-dialog` (Close and Reopen). Absent, the dialog never
-   *  stands — a list row's Cancel is closed by the row's own redraw. */
-  standing?: string;
   /** Every affirmative says OK; `value` is what a `method="dialog"`
    *  answer hands back to the script that opened the dialog. */
   ok: { variant: "primary" | "danger"; pending?: string; value?: string };
@@ -44,16 +33,23 @@ export interface ConfirmParts {
     /** The class the page script finds the posting form by. */
     hook?: FormHook;
     hidden?: Record<string, string>;
-    /** Where Close's and Reopen's wait goes: any end but a done job to
-     *  `back`, a done job to `done` (the script goes to `/` without it). */
-    progress?: { back: string; done?: string };
-    /** The page cover asked for while the request is out. */
-    overlay?: string;
   };
 }
 
-export function confirmDialog(lang: Language, parts: ConfirmParts): string {
-  const formId = `${parts.id}-form`;
+export interface ConfirmParts extends AskParts {
+  /** The dialog's id, which its button names. The affirmative's form is
+   *  always `<id>-form`, whether it posts or only answers the dialog. */
+  id: string;
+}
+
+/** The question — its heading, its sentence and its control — and the
+ *  answers row, with OK's form as `formId`; `data` goes on that form. */
+export function askParts(
+  lang: Language,
+  parts: AskParts,
+  formId: string,
+  data?: Record<string, string>,
+): { question: string; answers: string } {
   const ok: BtnOptions = {
     label: t(lang, "dialog.ok"),
     variant: parts.ok.variant,
@@ -61,29 +57,24 @@ export function confirmDialog(lang: Language, parts: ConfirmParts): string {
     value: parts.ok.value,
   };
   const post = parts.post;
-  return (
-    `<dialog class="confirmdialog" id="${esc(parts.id)}"${parts.standing ? " data-progress-dialog" : ""}>` +
-    `<div class="confirmpanel">` +
-    `<h2>${esc(parts.title)}</h2>` +
-    (parts.standing ? `<h2 class="standingtitle">${esc(capitalizeFirst(parts.standing))}</h2>` : "") +
-    (parts.sentence ? `<p class="muted">${esc(parts.sentence)}</p>` : "") +
-    (parts.control?.(esc(formId)) ?? "") +
-    (parts.refusal ? messageSlot("refused") : "") +
-    dialogAnswers(
+  return {
+    question:
+      `<h2>${esc(parts.title)}</h2>` +
+      (parts.sentence ? `<p class="muted">${esc(parts.sentence)}</p>` : "") +
+      (parts.control?.(esc(formId)) ?? ""),
+    answers: dialogAnswers(
       lang,
       post
-        ? buttonForm({ id: formId, action: post.action, hook: post.hook, hidden: post.hidden, data: postData(post), button: ok })
-        : buttonForm({ id: formId, method: "dialog", button: ok }),
-    ) +
-    `</div></dialog>`
-  );
+        ? buttonForm({ id: formId, action: post.action, hook: post.hook, hidden: post.hidden, data, button: ok })
+        : buttonForm({ id: formId, method: "dialog", data, button: ok }),
+    ),
+  };
 }
 
-const postData = (post: NonNullable<ConfirmParts["post"]>): Record<string, string> => ({
-  ...(post.progress ? { progress: post.progress.back } : {}),
-  ...(post.progress?.done ? { "progress-done": post.progress.done } : {}),
-  ...(post.overlay ? { overlay: post.overlay } : {}),
-});
+export function confirmDialog(lang: Language, parts: ConfirmParts): string {
+  const { question, answers } = askParts(lang, parts, `${parts.id}-form`);
+  return `<dialog class="confirmdialog" id="${esc(parts.id)}"><div class="confirmpanel">${question}${answers}</div></dialog>`;
+}
 
 /** The two answers, on one row: `affirmative` (a whole form) first, then
  *  Cancel. Cancel is the platform's own close, a `method="dialog"` form

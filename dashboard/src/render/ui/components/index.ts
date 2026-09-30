@@ -31,6 +31,10 @@ export {
 
 export { confirmDialog, askButton, type ConfirmParts } from "./confirm-dialog.ts";
 
+// --- progress dialog -------------------------------------------------------------
+
+export { progressDialog, type ProgressParts } from "./progress-dialog.ts";
+
 // --- fold arrow ------------------------------------------------------------------
 
 export { foldArrow, type FoldTitle } from "./fold-arrow.ts";

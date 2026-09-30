@@ -75,7 +75,7 @@ describe("Close asks in a dialog (AC-7)", () => {
     expect(await dialog(page).isVisible()).toBe(false);
   });
 
-  test("an accepted post stands as Closing… through two presses of Escape (AC-6)", async () => {
+  test("an accepted post stands as Closing… through two presses of Escape and a click outside (AC-6, AC-2)", async () => {
     const page = await open(ACCEPTED);
     await page.getByRole("button", { name: "Close" }).click();
     await dialog(page).locator("textarea").fill("It will not work.");
@@ -84,6 +84,7 @@ describe("Close asks in a dialog (AC-7)", () => {
     expect(await dialog(page).locator("textarea").isVisible()).toBe(false);
     await page.keyboard.press("Escape");
     await page.keyboard.press("Escape");
+    await page.mouse.click(4, 4);
     await page.waitForTimeout(500);
     expect(await dialog(page).isVisible()).toBe(true);
     expect(await dialog(page).evaluate((el) => (el as HTMLDialogElement).matches(":modal"))).toBe(true);

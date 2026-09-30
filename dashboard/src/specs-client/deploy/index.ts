@@ -1,15 +1,16 @@
-// The Deploy button's dialog: opens on submit at its final size, moves
-// one step line at a time as the sequence (`run.ts`) reports, and after
-// a failure closes by itself and leaves the error on the Deploy panel.
-// With no `<dialog>` the form posts natively and follows the redirect,
-// as it always did.
+// The Deploy button's dialog: opens on submit at its final size, held
+// open by the one hold every progress dialog has (`standOpen`), moves one
+// step line at a time as the sequence (`run.ts`) reports, and after a
+// failure writes its reason in the dialog's own line, closes by itself
+// and leaves the error on the Deploy panel. With no `<dialog>` the form
+// posts natively and follows the redirect, as it always did.
 
+import { canStand, isStanding, standOpen } from "../progress-dialog";
 import { runDeploy, STEPS, type DeployFailure, type DeployIo, type DeployStep, type PostedStep, type StepAnswer, type StepState } from "./run.ts";
 
-/** What a dialog is doing, kept per dialog so its listeners are attached
+/** What a dialog is doing, kept per dialog so its listener is attached
  *  once however many times it is submitted. */
 interface Standing {
-  running: boolean;
   /** The failure not yet handed to the page, with its step's label. */
   failure: (DeployFailure & { label: string }) | null;
   /** The newest run: an older run's pause must not close a newer dialog. */
@@ -59,11 +60,20 @@ const panelErrors = (panel: Element | null): Element[] =>
 const failedSentence = (template: string, label: string, error: string): string =>
   template.replace("{step}", () => label).replace("{error}", () => error);
 
+/** What went wrong, in the dialog's own words: the dialog's line and the
+ *  panel say the same sentence. */
+const failureSentence = (dialog: HTMLDialogElement, failure: DeployFailure & { label: string }): string =>
+  failedSentence(
+    dialog.dataset.failedAt ?? "{step}: {error}",
+    failure.label,
+    failure.silent ? (dialog.dataset.noAnswer ?? "") : failure.error || "the request failed",
+  );
+
 export async function submitDeploy(form: HTMLFormElement, event: Event, io: DeployIo = browserIo(form)): Promise<void> {
   if (event.defaultPrevented) return;
   const dialog = form.querySelector("dialog[data-deploy-dialog]") as HTMLDialogElement | null;
   // No `<dialog>` here: the form posts natively and follows the redirect.
-  if (!dialog || typeof dialog.showModal !== "function") return;
+  if (!canStand(dialog)) return;
   event.preventDefault();
   const list = dialog.querySelector("ol.deploysteps") as HTMLElement;
   const messageBox = dialog.querySelector(".deploymessage") as HTMLElement;
@@ -72,7 +82,7 @@ export async function submitDeploy(form: HTMLFormElement, event: Event, io: Depl
 
   let mine = standing.get(dialog);
   if (!mine) {
-    const fresh: Standing = { running: false, failure: null, run: 0, io, dismiss: () => {} };
+    const fresh: Standing = { failure: null, run: 0, io, dismiss: () => {} };
     mine = fresh;
     standing.set(dialog, fresh);
     // What becomes of a failure once the dialog is gone: a stored fault is
@@ -89,23 +99,17 @@ export async function submitDeploy(form: HTMLFormElement, event: Event, io: Depl
         return;
       }
       const noAnswer = dialog.dataset.noAnswer ?? "";
-      const reason = failure.silent ? noAnswer : failure.error || "the request failed";
-      const message = errorMessage(dialog, failedSentence(dialog.dataset.failedAt ?? "{step}: {error}", failure.label, reason));
+      const message = errorMessage(dialog, failureSentence(dialog, failure));
       if (message) panel?.prepend(message);
       if (!failure.silent) return;
       const top = errorMessage(dialog, noAnswer);
       top?.classList.replace("deploy-error", "deploy-fault");
       if (top) dialog.ownerDocument.querySelector("main")?.before(top);
     };
-    dialog.addEventListener("cancel", (e) => {
-      if (fresh.running) e.preventDefault();
-    });
-    // A browser can close a modal whose cancel was prevented (a second
-    // Escape): stand again while running, hand over the failure once it
-    // has failed.
+    // Closed once the hold has let it go: hand over the failure. While
+    // held, the hold shows it again.
     dialog.addEventListener("close", () => {
-      if (fresh.running) dialog.showModal();
-      else fresh.dismiss();
+      if (!isStanding(dialog)) fresh.dismiss();
     });
   }
   const state = mine;
@@ -122,9 +126,8 @@ export async function submitDeploy(form: HTMLFormElement, event: Event, io: Depl
   for (const error of panelErrors(panel)) error.remove();
   const token = ++state.run;
   state.io = io;
-  state.running = true;
   state.failure = null;
-  if (!dialog.open) dialog.showModal();
+  const hold = standOpen(dialog);
 
   await runDeploy(io, {
     state: setState,
@@ -132,15 +135,15 @@ export async function submitDeploy(form: HTMLFormElement, event: Event, io: Depl
       setState(step, "failed");
       const named = line(step).cloneNode(true) as HTMLElement;
       named.querySelector(".deploystate")?.remove();
-      state.running = false;
       state.failure = { ...failure, label: named.textContent?.trim() ?? step };
+      if (token === state.run) hold.release(failureSentence(dialog, state.failure));
     },
     finished: () => {
       messageBox.textContent = dialog.dataset.finished ?? "";
     },
     close: () => {
       if (token !== state.run) return;
-      state.running = false;
+      hold.release();
       state.dismiss();
     },
   });

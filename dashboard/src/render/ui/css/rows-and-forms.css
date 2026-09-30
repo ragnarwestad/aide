@@ -272,31 +272,34 @@ dialog.about::backdrop { background: var(--backdrop); }
 .aboutclose:hover { background: var(--surface-2); color: var(--text); }
 
 /* A confirmation asked OVER the list rather than on a page of its own
-   (2026-08-31, the schedule row's Delete). The same box the About
-   dialog is — same border, surface, shadow and backdrop — because it is
-   the same kind of thing: something laid over the page until it is
-   answered. Narrower, since what it holds is one sentence, one field
-   and two buttons. */
-dialog.confirmdialog { padding: 0; border: 1px solid var(--line-strong); border-radius: var(--r);
-  background: var(--surface); color: var(--text); max-width: 26rem;
+   (2026-08-31, the schedule row's Delete), and the progress dialog a
+   running step stands in. The same box the About dialog is — same
+   border, surface, shadow and backdrop — because it is the same kind of
+   thing: something laid over the page until it is answered. Narrower,
+   since what it holds is one sentence, one field and two buttons. */
+dialog.confirmdialog, dialog.progressdialog { padding: 0; border: 1px solid var(--line-strong);
+  border-radius: var(--r); background: var(--surface); color: var(--text); max-width: 26rem;
   box-shadow: var(--overlay-shadow); }
-dialog.confirmdialog::backdrop { background: var(--backdrop); }
-.confirmpanel { padding: var(--sp-5) var(--sp-6); display: flex; flex-direction: column;
+dialog.confirmdialog::backdrop, dialog.progressdialog::backdrop { background: var(--backdrop); }
+.confirmpanel, .progresspanel { padding: var(--sp-5) var(--sp-6); display: flex; flex-direction: column;
   gap: var(--sp-3); }
-.confirmpanel h2 { margin: 0; font-size: var(--fs-l); font-weight: 600; }
-.confirmpanel p { margin: 0; }
+.confirmpanel h2, .progresspanel h2 { margin: 0; font-size: var(--fs-l); font-weight: 600; }
+.confirmpanel p, .progresspanel p { margin: 0; }
 /* The two answers of a confirm box on one row (`dialogAnswers()`): the
    affirmative belongs to the form it submits, Cancel to the
    `method="dialog"` form beside it, so the row is made by this wrapper.
    A form's own class may carry a margin, which the row resets. */
 .dialogactions { display: flex; gap: var(--sp-2); }
-/* A dialog that stands while its job runs (`data-standing`, set by
-   `submitProgress`): the heading that says so is the only thing in the
-   panel. Drawn for every reader only in that state. */
-.confirmpanel .standingtitle { display: none; }
-dialog[data-standing] .confirmpanel > :not(.standingtitle) { display: none; }
-dialog[data-standing] .confirmpanel .standingtitle { display: block; }
-.confirmpanel textarea { width: 100%; box-sizing: border-box; }
+/* The progress dialog's two faces. Its running face — the heading that
+   says what it is doing, and Deploy's steps — is a column spaced like the
+   panel. A dialog that asks first (`data-asks`) shows its question, its
+   refusal line and its answers until OK; while it stands (`data-standing`,
+   set by `standOpen`) the running face is the only thing in it. Every rule
+   is on the panel's own children, so no mark inside the body can match. */
+.progresspanel > [data-running-face] { display: flex; flex-direction: column; gap: var(--sp-3); }
+dialog[data-asks]:not([data-standing]) > .progresspanel > [data-running-face] { display: none; }
+dialog[data-standing] > .progresspanel > :not([data-running-face]) { display: none; }
+.confirmpanel textarea, .progresspanel textarea { width: 100%; box-sizing: border-box; }
 .dialogactions > form { margin: 0; }
 .confirmpanel [data-confirm] { display: flex; flex-direction: column; gap: var(--sp-2);
   align-items: flex-start; }
@@ -338,16 +341,17 @@ dialog.pageoverlay[open] { position: fixed; inset: 0; margin: auto;
   max-width: calc(100% - 2 * var(--sp-4)); max-height: calc(100% - 2 * var(--sp-4));
   overflow: auto; }
 dialog.pageoverlay::backdrop { background: var(--backdrop); }
-/* A navigation shows the spinner alone; a press that takes the page away
-   without one hands the layer a line of text. */
+/* The line of text under the spinner: the page's own word for a
+   navigation, or the one a Save form hands the layer. */
 dialog.pageoverlay > .overlaynote { margin: var(--sp-3) 0 0; max-width: 22rem;
   color: var(--muted); text-align: center; }
 
 /* The Deploy dialog is its steps and one line under them, the same box
-   from the press to the end: a fixed width, and the finished message
-   laid out as one empty line from the start, so it grows nothing. A
-   failure is shown on the step's own line and left on the Deploy tab,
-   never written into the dialog. Every step's state word reserves a 12px
+   from the press to the end of the run: a fixed width, and the finished
+   message laid out as one empty line from the start, so it grows nothing
+   while a step moves. A failure is shown on the step's own line, its
+   reason in the dialog's refusal line for the pause before it closes,
+   and then on the Deploy tab. Every step's state word reserves a 12px
    slot in front of it, so the running line's spinner moves no word. */
 dialog[data-deploy-dialog] { width: 26rem; max-width: calc(100% - 2 * var(--sp-4)); }
 .deploysteps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column;

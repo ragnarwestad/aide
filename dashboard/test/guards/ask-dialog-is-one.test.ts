@@ -1,14 +1,19 @@
-// Every confirmation on the board asks in the same dialog, drawn by one
-// function and opened by one piece of script. A second copy of either — a
-// dialog written out by hand beside the shared one, or an opener bound per
-// button — is how they drift apart, so the sources are scanned for one of
-// each. Comment lines are left out: a comment that names a hook draws nothing.
+// Every confirmation on the board asks in the same question and answers,
+// drawn by one function; every step it shows running is shown in one
+// progress dialog, drawn by another; one piece of script opens any of them
+// from its button, and one holds a running one open. A second copy of any
+// — a dialog written out by hand beside the shared one, an opener bound per
+// button, a hold written again for one dialog — is how they drift apart, so
+// the sources are scanned for one of each. Comment lines are left out: a
+// comment that names a hook draws nothing.
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = join(import.meta.dir, "..", "..");
 const DIALOG = "src/render/ui/components/confirm-dialog.ts";
+const PROGRESS = "src/render/ui/components/progress-dialog.ts";
+const HOLD = "src/specs-client/progress-dialog/index.ts";
 
 const code = (text: string): string =>
   text
@@ -33,30 +38,37 @@ describe("one ask dialog, one opener", () => {
     expect(client.length).toBeGreaterThan(15);
   });
 
-  test("only the shared function writes the dialog, its answers row and the standing mark (AC-1)", () => {
+  test("only the confirmation writes its dialog class and its answers row (AC-5)", () => {
     const all = [...render, ...client, ...serve];
-    // The page script reads the standing mark; only markup writes it.
-    expect(writing([...render, ...serve], "data-progress-dialog")).toEqual([DIALOG]);
     expect(writing(all, "dialogactions")).toEqual([DIALOG]);
     expect(writing(all, "dialogAnswers(")).toEqual([DIALOG]);
-    // Deploy's dialog borrows the look, but asks nothing and has no answers row.
-    expect(writing(all, `class="confirmdialog`)).toEqual([
-      "src/render/pages/projects-page/deploy-dialog.ts",
-      DIALOG,
-    ]);
+    expect(writing(all, `class="confirmdialog`)).toEqual([DIALOG]);
   });
 
-  test("one script file opens every dialog from its button, and no per-kind hook is left (AC-2)", () => {
+  test("only the progress dialog writes its class, its standing mark and its running word (AC-1)", () => {
+    // The page script reads the standing mark; only markup writes it.
+    expect(writing([...render, ...serve], "data-progress-dialog")).toEqual([PROGRESS]);
+    expect(writing([...render, ...serve], `class="progressdialog`)).toEqual([PROGRESS]);
+    expect(writing([...render, ...serve], "standingtitle")).toEqual([PROGRESS]);
+  });
+
+  test("one script file opens every dialog from its button, one holds a running one, and no per-kind hook is left (AC-2)", () => {
     expect(writing(client, "data-ask")).toEqual(["src/specs-client/ask.ts"]);
-    expect(writing(client, "showModal")).toEqual([
-      "src/specs-client/ask.ts",
-      "src/specs-client/deploy/index.ts",
-      "src/specs-client/progress-dialog/index.ts",
-    ]);
+    expect(writing(client, "showModal")).toEqual(["src/specs-client/ask.ts", HOLD]);
+    expect(writing(client, `"cancel"`)).toEqual([HOLD]);
     const all = [...render, ...client, ...serve];
     expect(writing(all, "data-close-ask")).toEqual([]);
     expect(writing(all, "delete-schedule")).toEqual([]);
     expect(writing(all, "cancelform")).toEqual([]);
+  });
+
+  test("no step asks for the cover over the whole page (AC-4)", () => {
+    const all = [...render, ...client, ...serve];
+    expect(writing(all, "aide-overlay-open")).toEqual([]);
+    expect(writing(all, "aide-overlay-close")).toEqual([]);
+    const components = render.filter((f) => f.file === DIALOG || f.file === PROGRESS);
+    expect(components.map((f) => f.file).sort()).toEqual([DIALOG, PROGRESS]);
+    expect(writing(components, "overlay")).toEqual([]);
   });
 
   test("only the New-spec form wears the New-spec form's class (AC-5)", () => {

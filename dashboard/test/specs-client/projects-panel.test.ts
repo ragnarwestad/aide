@@ -51,6 +51,34 @@ describe("Remove", () => {
     expect(h.dispatched).not.toContain("aide-changes-discarded");
   });
 
+  test("the dialog stands while the removal is out, and stays standing as the page goes (AC-1, AC-4)", async () => {
+    let standingWhileOut = false;
+    const h = harness(
+      (url) => {
+        if (url.includes("/remove")) standingWhileOut = h.removeDialog.hasAttribute("data-standing");
+        return { ok: true, body: { ok: true, results: [] } };
+      },
+      "actionform",
+      "",
+      { pathname: "/projects/atlasaurus" },
+    );
+    await h.submitRemove();
+    expect(standingWhileOut).toBe(true);
+    expect(h.removeDialog.open).toBe(true);
+    expect(h.removeDialog.hasAttribute("data-standing")).toBe(true);
+  });
+
+  test("a refusal releases the dialog with its words in the dialog's own line (AC-3)", async () => {
+    const h = harness(() => ({
+      ok: false,
+      body: { ok: false, results: [{ step: "allowlist", error: "not on the allowlist" }] },
+    }));
+    await h.submitRemove();
+    expect(h.removeDialog.hasAttribute("data-standing")).toBe(false);
+    expect(h.removeSlot.textContent).toContain("Not on the allowlist");
+    expect(h.removeDialog.open).toBe(true);
+  });
+
   test("a refusal is written in the dialog's own line, the dialog stays open and the page stays put (AC-3)", async () => {
     const h = harness(() => ({
       ok: false,

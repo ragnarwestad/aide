@@ -3,19 +3,28 @@
 
 import { describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import { deployDialog } from "../../../src/render/pages/projects-page/deploy-dialog.ts";
+import { renderProjectPage, type ProjectView } from "../../../src/render";
 import { submitDeploy } from "../../../src/specs-client/deploy";
 import type { DeployIo, StepAnswer } from "../../../src/specs-client/deploy/run.ts";
 
+/** The Deploy form as the project page's Deploy tab draws it, for a
+ *  checkout behind origin. */
+const deployForm = (): string => {
+  const project: ProjectView = { name: "aide", manifest: { ok: false, error: "no manifest" }, specs: [] };
+  const html = renderProjectPage(project, { hasConfigFile: false, rows: [] }, null, "2026-09-20T00:00:00Z", [], {
+    worktreeLinkCandidates: [],
+    editingGroup: null,
+    tab: "deploy",
+    drift: { behind: 2, checkedAt: Date.parse("2026-09-20T00:00:00Z") },
+  });
+  return html.match(/<form[^>]*class="deployform"[\s\S]*?<\/form>/)![0];
+};
+
 function page(withShowModal = true) {
   const window = new Window();
-  const events: string[] = [];
-  window.document.addEventListener("aide-overlay-open", () => events.push("aide-overlay-open"));
-  window.document.body.innerHTML =
-    `<main><div class="deploypanel"><form class="deployform" action="http://dash.test/api/queue/projects/aide/deploy">` +
-    `<button>Deploy</button>${deployDialog("en")}</form></div></main>`;
+  window.document.body.innerHTML = `<main><div class="deploypanel">${deployForm()}</div></main>`;
   const form = window.document.querySelector("form") as unknown as HTMLFormElement;
-  const dialog = window.document.querySelector("dialog") as unknown as HTMLDialogElement;
+  const dialog = window.document.querySelector("dialog[data-deploy-dialog]") as unknown as HTMLDialogElement;
   if (!withShowModal) (dialog as { showModal?: unknown }).showModal = undefined;
   const state = (step: string): string | undefined =>
     (window.document.querySelector(`[data-step="${step}"]`) as HTMLElement | null)?.dataset.state;
@@ -26,7 +35,7 @@ function page(withShowModal = true) {
   const panel = window.document.querySelector(".deploypanel") as unknown as HTMLElement;
   /** The deploy errors standing directly on the panel: what a reader sees. */
   const errors = (): Element[] => [...panel.children].filter((c) => c.classList.contains("deploy-error"));
-  return { window, form, dialog, events, state, submit, panel, errors };
+  return { window, form, dialog, state, submit, panel, errors };
 }
 
 /** An io whose posts answer from `answers`, and whose `fetch` can be
@@ -75,8 +84,8 @@ const cancel = (window: Window, dialog: HTMLDialogElement): boolean => {
 };
 
 describe("submitDeploy", () => {
-  test("opens the dialog as a modal and raises no overlay event (AC-1)", async () => {
-    const { dialog, events, submit } = page();
+  test("opens the dialog as a modal (AC-1)", async () => {
+    const { dialog, submit } = page();
     const io = fakeIo();
     io.hold = true;
     const { event, done } = submit(io);
@@ -84,7 +93,6 @@ describe("submitDeploy", () => {
     expect(dialog.open).toBe(true);
     io.release();
     await done;
-    expect(events).toEqual([]);
   });
 
   test("a step's line says running while it runs, and every state word is the page's own (AC-3)", async () => {
@@ -116,24 +124,23 @@ describe("submitDeploy", () => {
     expect(openAtReload).toBe(false);
   });
 
-  test("a failure marks its line, keeps the dialog free of any error text, and closes it after the pause (AC-5)", async () => {
-    const { dialog, state, submit } = page();
+  test("a failure marks its line, writes its reason in the dialog's own line, and closes it after the pause (AC-3)", async () => {
+    const { dialog, state, submit, errors } = page();
     const io = fakeIo({ install: { ok: false, error: "the install command failed (exit 1)" } });
     io.holdSleep = true;
     const { done } = submit(io);
     await untilPaused(io);
     expect(dialog.open).toBe(true);
+    expect(dialog.hasAttribute("data-standing")).toBe(false);
     expect(state("install")).toBe("failed");
     expect(state("restart")).toBe("waiting");
-    expect(dialog.querySelector(".rowmsg")).toBeNull();
-    expect(dialog.querySelector(".deploymessage")?.textContent).toBe("");
-    expect(dialog.hasAttribute("data-failed")).toBe(false);
+    expect(textOf(dialog.querySelector(".refused") ?? undefined)).toBe("Install failed: the install command failed (exit 1)");
     io.releaseSleep();
     await done;
     expect(dialog.open).toBe(false);
+    expect(errors().length).toBe(1);
     expect(io.reloads).toBe(0);
   });
-
   test("a failure that was not faulty draws one error first on the Deploy panel, naming the step and the reason (AC-6)", async () => {
     const { panel, errors, submit } = page();
     const io = fakeIo({ install: { ok: false, error: "the install command failed (exit 1)" } });
