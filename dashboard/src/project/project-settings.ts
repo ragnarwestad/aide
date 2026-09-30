@@ -122,16 +122,6 @@ export const EDITABLE_FIELD: Record<string, string> = {
   AIDE_TEST_CMD: "testCmd",
 };
 
-/** Which group a POSTED field belongs to (spec 552): every posted field
- *  name already belongs to exactly one group, so a refused save's
- *  redirect can classify itself off `sent` without a second,
- *  hand-written list that could drift out of step with `SETTING_GROUPS`. */
-export function groupForPostedField(field: string): SettingsGroupFile | null {
-  if (field === "codeLanding") return "manifest";
-  const key = Object.entries(EDITABLE_FIELD).find(([, f]) => f === field)?.[0];
-  return key ? (SETTING_GROUPS.find((g) => g.keys.includes(key))?.file ?? null) : null;
-}
-
 const PURPOSE: Record<string, string> = {
   AIDE_SPECS_PATH: "Where this project's specs are kept — its own specs/ when unset",
   AIDE_WORKTREE_LINKS: "Gitignored paths a run's worktree needs, which git does not carry",
