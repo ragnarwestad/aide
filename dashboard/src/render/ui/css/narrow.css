@@ -366,9 +366,12 @@
      button beside it, and the centred line put "Archive" above the
      rest of its own line. */
   table.list tr.subrow:last-child > td,
-  table.list tr.subrow:has(+ tr.spechead) > td { padding-bottom: 2px; }
+  table.list tr.subrow:has(+ tr.spechead) > td,
+  table.list tr.subrow:has(+ tr.specgap) > td { padding-bottom: 2px; }
   table.list tr.subrow:last-child,
   table.list tr.subrow:has(+ tr.spechead) { padding-bottom: var(--sp-3); }
+  /* A card ends on the same 10px a closed spec's state line does. */
+  table.list tr.subrow:has(+ tr.specgap) { padding-bottom: 10px; }
   /* The badge's own text still needs to give way inside that fixed box —
      `min-width: 0` above lets it shrink, but with no cap it would keep
      its full content width and force the CELL's own `overflow: hidden`

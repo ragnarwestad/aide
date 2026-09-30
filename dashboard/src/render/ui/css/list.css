@@ -669,6 +669,11 @@ table.list tr.subrow td { border-bottom: none; padding-top: 2px; padding-bottom:
    way for a spacing detail to degrade. */
 table.list tr.subrow:last-child td,
 table.list tr.subrow:has(+ tr.spechead) td { padding-bottom: var(--sp-3); }
+/* On the spec list each spec is a card with a gap row after it, so the
+   row that ends an open spec is followed by that gap, not the next head. */
+table.list tr.subrow:has(+ tr.specgap) td,
+table.list :is(tr.subrow, tr.phasemsgs) + tr.specnotice:has(+ tr.specgap) td,
+table.list :is(tr.subrow, tr.phasemsgs) + tr.specnotice + tr.specnotice:has(+ tr.specgap) td { padding-bottom: var(--sp-3); }
 /* An open row's message rows come after its phase lines: air above the
    first, and the closing air the last phase line had under the last.
    Each selector is tied to the row before it, so a collapsed row's
