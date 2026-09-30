@@ -249,9 +249,8 @@ script, from the answer to the press that made it. Every page route also reads
 | `GET /projects/<project>?startTestServer=1`     | read   | nothing                                 | a waiting page, a 303 to the test server or back to the deploy tab, or a page saying why it could not start   | page     |
 | `GET /projects/<project>/settings`              | read   | nothing                                 | 302 to the project's Config tab, which carries the form                                                       | page     |
 | `GET /schedule`                                 | read   | optional `?q=`, `?sort=`, `?dir=`       | the schedule list                                                                                             | page     |
-| `GET /schedule/<project>/<name>`                | read   | optional `?tab=`, `?run=`               | the schedule's page                                                                                           | page     |
+| `GET /schedule/<project>/<name>`                | read   | optional `?tab=`, `?run=`, `?edit=`     | the schedule's page; with `?tab=settings&edit=1`, its Settings tab as a form                                  | page     |
 | `GET /schedule/new`                             | read   | `?project=`                             | the page that makes a schedule entry                                                                          | page     |
-| `GET /schedule/<project>/<name>/edit`           | read   | nothing                                 | the page that changes a schedule entry                                                                        | page     |
 | `GET /schedule-output/<file>`                   | read   | nothing                                 | a file from the schedule output folder                                                                        | page     |
 
 ### Files

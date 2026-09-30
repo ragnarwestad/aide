@@ -6,8 +6,8 @@ import { rowMessage, rowMessageParts } from "../../ui/components";
 
 /** One sentence: what is wrong and what resolves it. `offered` undefined
  *  means the page was not told what the queue offers, so nothing is drawn;
- *  an empty list means the queue offers none. `href` is the entry's edit
- *  page, where another model is chosen. */
+ *  an empty list means the queue offers none. `href` is the entry's
+ *  Settings tab, where another model is chosen. */
 export function modelFlag(
   lang: Language,
   model: string | undefined,

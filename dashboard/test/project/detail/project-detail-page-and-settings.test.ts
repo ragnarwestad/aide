@@ -92,13 +92,10 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
 describe("what the page says about its schedule (spec 259, acceptance criteria 6-7)", () => {
   const NIGHTLY = { name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md" };
 
-  test("the queue config's jobs for the project show each one's fields (AC-5)", async () => {
+  test("the queue config's jobs for the project are listed, each linking to its own page (AC-5)", async () => {
     const root = projectsRoot({ aide: null });
     const html = await (await get(serve(root, settled(root, "aide"), undefined, scheduleConfig([NIGHTLY])), "aide", "schedule")).text();
-    expect(html).toContain("Schedule");
-    expect(html).toContain("nightly-report");
-    expect(html).toContain("0 3 * * *");
-    expect(html).toContain("docs/nightly.md");
+    expect(html).toContain('<a href="/schedule/aide/nightly-report">nightly-report</a>');
   });
 
   test("a manifest's own schedule: list is not shown — only the config's jobs are (AC-2)", async () => {

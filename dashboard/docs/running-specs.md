@@ -358,7 +358,7 @@ under a `schedules` key keyed by project name:
 }
 ```
 
-An entry may also carry `"notify": "never" | "failure" | "always"`, set on its New-job and Edit forms and read as
+An entry may also carry `"notify": "never" | "failure" | "always"`, set on its New-job page and Settings tab and read as
 `failure` when absent (see [Push notifications](#push-notifications-on-a-phone-or-laptop)).
 
 A fresh install has no scheduled jobs, whatever the projects it serves contain. A project's own files never carry a
@@ -378,16 +378,19 @@ whenever an entry is due and nothing is already queued or running for it.
 reaches.** Its own report is written separately, to a directory of its own outside both (below) — a run that also
 commits still writes it. Once the run ends, the board lands what it pushed the way an archive's own landing does: the
 project repository's commit only once that repository's own test command is green on the merge, the specs root
-directly. The New and Edit forms say what a scheduled job may commit to.
+directly. The New page and the Settings tab's Edit say what a scheduled job may commit to.
 
 `/schedule` lists every allowed project's entries, flattened into one list (`?q=`, `?sort=` and `?dir=` filter and
 sort it). It shows and links, and changes nothing: a click anywhere on a row opens the project's Schedule tab, whether
-an entry is enabled is text there, and the Enabled switch,
-Run now, Edit and Delete are on each row of the project's own Schedule tab, with New above the list.
-`/schedule/<project>/<name>` is one entry's own page: its Report and its History, nothing about how it is set up. New and Edit open one page,
-`/schedule/new?project=<project>` and `/schedule/<project>/<name>/edit`; a save goes back to the page it was opened
-from (a path on the board, sent with the form as `back`; a rename moves a `back` on the entry's old page to its new
-one), and a refused save stays on the page with the reason and what was typed. The pages post to:
+an entry is enabled is text there. The project's own Schedule tab lists its entries by Name, Next run, the Enabled
+switch, Run now and Delete, with New above the list; a click on a row opens the entry's own page.
+`/schedule/<project>/<name>` is one entry's own page, with three tabs: Report, History and Settings. Settings shows
+every field of the entry — name, cron, prompt file, model and notify — with the Enabled switch, Run now and Delete;
+Delete there goes to the project's Schedule tab once it has gone through. Edit on Settings (`?tab=settings&edit=1`)
+draws the same fields as New as inputs on the tab, with Save and Cancel. New is a page of its own,
+`/schedule/new?project=<project>`. A save goes back to the page it was opened from (a path on the board, sent with the
+form as `back`; a rename moves a `back` on the entry's old page to its new one), and a refused save stays on the page
+with the reason and what was typed. The pages post to:
 
 - `POST /api/queue/schedule` — create.
 - `POST /api/queue/schedule/<project>/<name>` — edit.
@@ -424,8 +427,8 @@ report: each title as created (linked to its job) or skipped, and why. A list th
 the board cannot read, creates nothing and says so there.
 
 `model:` is which of the queue's own `modelChoices` every fire of that entry runs on — one name for the whole entry,
-since a scheduled job is a single `schedule` step and has no phases to tell apart. It is picked on the New and Edit
-page the same way a spec's model is picked on the Specs page, with the AI beside it deriving from it; a name the queue
+since a scheduled job is a single `schedule` step and has no phases to tell apart. It is picked on the New page and
+the Settings tab's Edit the same way a spec's model is picked on the Specs page, with the AI beside it deriving from it; a name the queue
 config does not grant is refused at the form rather than at 03:00. A name that differs from a listed one only in
 upper and lower case is matched to the listed spelling and stored as that (in a job request, a per-step or pending
 pick, a tail-model edit, the Settings save and this form alike); a name matching several listed spellings that differ
@@ -434,7 +437,7 @@ and the queue config's own `schedule` default decides. "Run now"
 reads the same field, so pressing it tests what the schedule actually does.
 
 An entry whose model the queue config does not offer (the config file was edited by hand, or the queue config changed) is
-flagged in its Name cell on `/schedule` and on the project's Schedule tab, linking to its Edit page and naming the model and the ones the queue
+flagged in its Name cell on `/schedule` and on the project's Schedule tab, linking to its Settings tab and naming the model and the ones the queue
 offers. Its runs are refused: Run now writes the queue's reason into the message slot above the project's Schedule tab list (`Run now was
 refused for <project>:<entry>: …`) and logs `queue: run now refused for
 <project>/<entry> — <reason>`; the timer logs `queue: scheduled fire refused for <project>/<entry> — <reason>` once per
@@ -443,10 +446,10 @@ involved at all; write it the way you would write a prompt by hand.
 
 **Due is computed from the most recent fire time alone — there is no backfill.** If the dashboard is down across a whole
 scheduled window, that occurrence simply does not happen; nothing catches up retroactively the next time the poll runs.
-A project's own page shows each entry's name, cron expression, prompt path and next computed fire time, and the projects
-overview names the soonest across a project's entries.
+A project's own page shows each entry's name and next computed fire time, and the projects overview names the soonest
+across a project's entries.
 
-**An entry saved from the New or Edit form records a `since` timestamp**, the time of that save. Any fire at or before
+**An entry saved from New or from its Settings tab records a `since` timestamp**, the time of that save. Any fire at or before
 `since` counts as already used, the same way a tracked job does — so a freshly created or freshly edited entry's first
 real run is its next fire after the save, not whatever the cron's most recent fire already was. An entry with no
 `since` — one written by hand, for instance — fires on its very first eligible window. A window whose fire the queue refused made no job, so it is still due: an entry with no

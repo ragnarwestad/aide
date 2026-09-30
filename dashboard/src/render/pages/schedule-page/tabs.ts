@@ -11,5 +11,9 @@ export const scheduleRunPath = (project: string, name: string, runId: string): s
 export const scheduleTabPath = (project: string, name: string, tab: string): string =>
   `${schedulePagePath(project, name)}?tab=${encodeURIComponent(tab)}`;
 
-export const SCHEDULE_TABS = ["report", "history"] as const;
+/** The entry's Settings tab; `edit` draws its fields as inputs. */
+export const scheduleSettingsPath = (project: string, name: string, edit = false): string =>
+  `${scheduleTabPath(project, name, "settings")}${edit ? "&edit=1" : ""}`;
+
+export const SCHEDULE_TABS = ["report", "history", "settings"] as const;
 export type ScheduleTab = (typeof SCHEDULE_TABS)[number];

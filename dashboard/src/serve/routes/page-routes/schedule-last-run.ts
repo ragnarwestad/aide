@@ -1,5 +1,4 @@
-// A schedule entry's most recent run, as both pages that list entries
-// show it: the Schedule list and a project's own Schedule tab.
+// A schedule entry's most recent run, as the Schedule list shows it.
 import { DEFAULT_SCHEDULE_OUTPUT_ROOT, readScheduleRunReport, scheduleTrackingKey } from "../../../queue/schedule.ts";
 import { schedulePagePath } from "../../../render";
 import type { RoutesContext } from "..";

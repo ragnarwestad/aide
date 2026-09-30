@@ -31,25 +31,21 @@ export async function postScheduleEnabled(box: HTMLInputElement, fetchImpl: type
   }
 }
 
-/** The Run-now button's carrier form (acceptance criterion 15). The
- *  answer's own job state is written into the row's "Last run" cell —
- *  found by `data-schedule-state` on the same `<tr>` — so the row shows
- *  the new job without a full page navigation or a fetch of the whole
- *  list. A refusal, or a request that did not get through, is written
- *  into the page's `.refused` slot instead (spec 494), and the next
+/** The Run-now button's carrier form (acceptance criterion 15). It posts
+ *  without leaving the page; the entry's Report tab says a run is queued
+ *  or running. A refusal, or a request that did not get through, is
+ *  written into the page's `.refused` slot (spec 494), and the next
  *  accepted press empties it again. */
 export async function postScheduleRun(form: HTMLFormElement, fetchImpl: typeof fetch = fetch): Promise<void> {
   const button = form.querySelector("button") as HTMLButtonElement | null;
-  const stateCell = form.closest("tr")?.querySelector("[data-schedule-state]") as HTMLElement | null;
   const slot = form.closest("main")?.querySelector(".refused") as HTMLElement | null;
   const say = (text: string): void => writeLine(slot, text);
   if (button) button.disabled = true;
   try {
     const res = await fetchImpl(form.action, { method: "POST", headers: { accept: "application/json" } });
-    const body = (await res.json().catch(() => null)) as (ActionResult & { job?: { state?: string } }) | null;
+    const body = (await res.json().catch(() => null)) as ActionResult | null;
     if (res.ok && body?.ok) {
       say("");
-      if (stateCell) stateCell.textContent = body.job?.state ?? "queued";
     } else {
       say(refusalText(body));
     }

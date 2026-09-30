@@ -13,6 +13,7 @@ import { scheduleRunOutputDir } from "../../../src/queue/schedule.ts";
 import { writeProposalsRecord } from "../../../src/queue/spec-proposals.ts";
 import { scheduleRunPath } from "../../../src/render";
 import { queueHarness } from "../../helpers/queue-server.ts";
+import { Window } from "happy-dom";
 
 const harness = queueHarness("aide-schedule-page-route-");
 afterEach(() => harness.cleanup());
@@ -37,6 +38,13 @@ function writeSchedule(project: string, entries: Entry[]): void {
     // no file yet
   }
   writeFileSync(cfg, JSON.stringify({ schedules: { ...schedules, [project]: entries } }));
+}
+
+/** A page's markup as a document. */
+function parse(html: string): Document {
+  const window = new Window();
+  window.document.body.innerHTML = html;
+  return window.document as unknown as Document;
 }
 
 const start = (opts: Parameters<typeof harness.start>[0] = {}) =>
@@ -117,14 +125,56 @@ describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
   // Editing an entry has to offer the same choice creating it did, and
   // show what the entry is actually on — otherwise a Save silently
   // moves a job onto whatever the form happened to draw.
-  test("the edit page shows the entry's own model, pre-selected", async () => {
+  test("Edit on the Settings tab shows the entry's own model, pre-selected (AC-5)", async () => {
     const { base } = start({ extra: { queueDefaults: DEFAULTS } });
     writeSchedule("aide", [{ ...NIGHTLY, model: "codex-fast" }]);
-    const res = await fetch(`${base}/schedule/aide/nightly-report/edit`);
+    const res = await fetch(`${base}/schedule/aide/nightly-report?tab=settings&edit=1`);
     expect(res.status).toBe(200);
     const html = await res.text();
+    expect(html).toContain('action="/api/queue/schedule/aide/nightly-report"');
     expect(html).toContain('<select name="model"');
-    expect(html).toContain('value="codex-fast" data-tool="codex" selected>codex-fast');
+    expect(html).toContain('value="codex-fast" data-tool="codex" selected>');
+  });
+
+  test("a row on the project's Schedule tab opens the entry's page on Report (AC-2)", async () => {
+    const { base } = start();
+    writeSchedule("aide", [NIGHTLY]);
+    const tab = await (await fetch(`${base}/projects/aide?tab=schedule`)).text();
+    const href = tab.match(/<tr data-row-href="([^"]+)"/)![1]!.replaceAll("&amp;", "&");
+    const res = await fetch(`${base}${href}`);
+    expect(res.status).toBe(200);
+    const doc = parse(await res.text());
+    expect(doc.querySelector('nav.subtabs a[aria-current="page"]')?.textContent).toBe("Report");
+    expect(doc.querySelector("section#report") !== null).toBe(true);
+  });
+
+  test("Settings' Delete goes to the project's Schedule tab, and an entry with no model shows the schedule step's default (AC-4)", async () => {
+    const { base } = start({ extra: { queueDefaults: { ...DEFAULTS, model: { default: "sonnet", schedule: "codex-fast" } } } });
+    writeSchedule("aide", [NIGHTLY]);
+    const doc = parse(await (await fetch(`${base}/schedule/aide/nightly-report?tab=settings`)).text());
+    const ok = doc.querySelector('form[action="/api/queue/schedule/aide/nightly-report/delete"]');
+    expect(ok?.getAttribute("data-done")).toBe("/projects/aide?tab=schedule");
+    const model = [...doc.querySelectorAll("table.facts tr")].find((tr) => tr.children[0]!.textContent === "Model");
+    expect(model?.children[1]!.textContent).toBe("codex-fast");
+  });
+
+  test("a save from Settings that renames the entry lands on its Settings tab with the saved values (AC-5)", async () => {
+    const { base, dir } = start();
+    mkdirSync(join(dir, "root", "aide", "docs"), { recursive: true });
+    writeFileSync(join(dir, "root", "aide", "docs", "nightly.md"), "# nightly\n");
+    writeSchedule("aide", [{ ...NIGHTLY, name: "nightly" }]);
+    const save = await fetch(`${base}/api/queue/schedule/aide/nightly`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
+      body: new URLSearchParams({
+        name: "renamed", cron: "0 5 * * *", prompt: "docs/nightly.md", back: "/schedule/aide/nightly?tab=settings",
+      }).toString(),
+    });
+    const { location } = (await save.json()) as { location: string };
+    const doc = parse(await (await fetch(`${base}${location}`)).text());
+    const values = [...doc.querySelectorAll("table.facts tr")].map((tr) => tr.children[1]!.textContent);
+    expect(values).toContain("renamed");
+    expect(values).toContain("0 5 * * *");
   });
 
   test("an unknown entry is 404", async () => {
@@ -147,6 +197,16 @@ describe("GET /schedule with an unlisted model (spec 494)", () => {
     const tab = await (await fetch(`${base}/projects/aide?tab=schedule`)).text();
     expect(tab).toContain("sonnet, codex-fast");
     expect(tab).toContain("is not one the queue offers");
+  });
+
+  test("the flag on the list and on the Schedule tab links to the entry's Settings tab, and nothing links to /edit (AC-6)", async () => {
+    const { base } = start({ extra: { queueDefaults: DEFAULTS } });
+    writeSchedule("aide", withModel("retired"));
+    for (const path of ["/schedule", "/projects/aide?tab=schedule"]) {
+      const hrefs = [...parse(await (await fetch(`${base}${path}`)).text()).querySelectorAll("a")].map((a) => a.getAttribute("href")!);
+      expect(hrefs).toContain("/schedule/aide/nightly-report?tab=settings");
+      expect(hrefs.filter((h) => h.endsWith("/edit"))).toEqual([]);
+    }
   });
 
   test("an entry naming a listed model in another case is not flagged", async () => {
@@ -345,7 +405,7 @@ describe("where the pages read the jobs from", () => {
   });
 });
 
-describe("the page that makes or changes an entry", () => {
+describe("the page that makes an entry", () => {
   test("New starts on the defaults, posts a create for its project, and goes back where it was opened from", async () => {
     const { base } = start();
     const res = await fetch(`${base}/schedule/new?project=aide`, { headers: { referer: `${base}/schedule?q=x` } });
@@ -358,20 +418,14 @@ describe("the page that makes or changes an entry", () => {
     expect(html).toContain('<input type="hidden" name="back" value="/schedule?q=x">');
   });
 
-  test("Edit starts on the entry as saved and posts to the entry; with no page to go back to, it is the project's tab", async () => {
+  test("New with no project is 404", async () => {
     const { base } = start();
-    writeSchedule("aide", [NIGHTLY]);
-    const res = await fetch(`${base}/schedule/aide/nightly-report/edit`);
-    const html = await res.text();
-    expect(html).toContain('action="/api/queue/schedule/aide/nightly-report"');
-    expect(html).toContain('value="nightly-report"');
-    expect(html).toContain('<input type="hidden" name="back" value="/projects/aide?tab=schedule">');
+    expect((await fetch(`${base}/schedule/new`)).status).toBe(404);
   });
 
-  test("New with no project, or Edit of an entry the board does not have, is 404", async () => {
+  test("the separate edit page is gone: its address is 404 (AC-6)", async () => {
     const { base } = start();
     writeSchedule("aide", [NIGHTLY]);
-    expect((await fetch(`${base}/schedule/new`)).status).toBe(404);
-    expect((await fetch(`${base}/schedule/aide/ghost/edit`)).status).toBe(404);
+    expect((await fetch(`${base}/schedule/aide/nightly-report/edit`)).status).toBe(404);
   });
 });

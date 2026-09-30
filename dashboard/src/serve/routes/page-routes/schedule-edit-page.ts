@@ -1,12 +1,13 @@
-// The page that makes or changes a schedule entry, as a response to its
-// own GET. Also where a save goes back to afterwards.
+// The page that makes a schedule entry, as a response to its own GET.
+// Also where a save goes back to afterwards.
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
-import { projectPagePath, renderScheduleEditPage, schedulePagePath } from "../../../render";
-import { languageChoice, specsClientScript } from "../../serve-helpers";
+import { projectPagePath, renderScheduleNewPage, schedulePagePath } from "../../../render";
+import { languageChoice, modelChoiceOptions, specsClientScript } from "../../serve-helpers";
 import type { RoutesContext } from "..";
 
-/** The project's own Schedule tab: where New and Edit are pressed, and
- *  where a save goes when nothing better is known. */
+/** The project's own Schedule tab: where New is pressed, where Delete on
+ *  an entry's own page goes, and where a save goes when nothing better is
+ *  known. */
 export const projectScheduleTab = (project: string): string => `${projectPagePath(project)}?tab=schedule`;
 
 /** The `back` a form sent, if it is a path on this board; the fallback
@@ -28,26 +29,22 @@ export function renamedBack(back: string, project: string, from: string, to: str
   return back;
 }
 
-export async function scheduleEditPageResponse(
+export async function scheduleNewPageResponse(
   ctx: RoutesContext,
   req: Request,
   url: URL,
   page: {
     project: string;
-    editing?: string;
     values: Pick<ScheduleEntry, "name" | "cron" | "prompt" | "model" | "notify">;
     back: string;
   },
 ): Promise<Response> {
   const langResult = languageChoice(url, req);
-  const html = renderScheduleEditPage(ctx.nav(), new Date().toISOString(), {
+  const html = renderScheduleNewPage(ctx.nav(), new Date().toISOString(), {
     project: page.project,
-    ...(page.editing ? { editing: page.editing } : {}),
     values: page.values,
     backHref: page.back,
-    modelChoices: Object.entries(ctx.queue.defaults.modelChoices ?? {}).map(([name, choice]) => ({
-      name, ...(choice.tool ? { tool: choice.tool } : {}),
-    })),
+    modelChoices: modelChoiceOptions(ctx.queue),
     defaultModels: ctx.queue.defaults.model,
     script: await specsClientScript(),
     lang: langResult.lang,

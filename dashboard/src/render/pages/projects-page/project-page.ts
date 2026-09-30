@@ -13,8 +13,7 @@ import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { t } from "../../../i18n";
 import { pickTab, tabBar, tabbedBody } from "../job-page";
 import { SCHEDULE_REFUSED_LINE, scheduleControlCells } from "../schedule-page/controls.ts";
-import { capitalizeFirst } from "../../../format/error-sentence.ts";
-import { scheduleEditPath, scheduleNewPath, schedulePagePath } from "../schedule-page";
+import { scheduleNewPath, schedulePagePath, scheduleSettingsPath } from "../schedule-page";
 import { modelFlag } from "../schedule-page/model-flag.ts";
 import { deployDialog, STEP_LABEL } from "./deploy-dialog.ts";
 import { projectDescription } from "./overview-list.ts";
@@ -212,10 +211,10 @@ function testServerSection(name: string, opts: ProjectPageOptions): string {
 }
 
 /** The Schedule section (spec 259, extended spec 468): each entry's
- *  name (linking to its own detail page), cron expression, prompt path
- *  and next fire time, and — since spec 468 moved the New-job form here
- *  from the aggregate `/schedule` page — the form to create one for
- *  THIS project. The tab itself is always present (spec 378, REQ-6) —
+ *  name (linking to its own detail page), next fire time, its Enabled
+ *  switch, Run now and Delete — what fits on one line; the rest of what
+ *  an entry is set to is on its own Settings tab — and New, which makes
+ *  one for THIS project. The tab itself is always present (spec 378, REQ-6) —
  *  a project with nothing scheduled says so in a sentence, rather than
  *  the tab bar changing shape from project to project.
  *
@@ -233,26 +232,21 @@ function scheduleSection(project: string, entries: readonly ScheduleEntry[], opt
     entries.length === 0
       ? `<p class="muted">${t(lang, "schedule.nothingScheduled")}</p>`
       : `<div class="tablewrap"><table class="list"><thead><tr><th>${t(lang, "schedule.colName")}</th>` +
-        `<th>${t(lang, "schedule.colCron")}</th><th>${t(lang, "schedule.colPrompt")}</th>` +
-        `<th>${t(lang, "schedule.colNextRun")}</th><th>${t(lang, "schedule.colLastRun")}</th>` +
-        // Enabled, then three unlabelled columns: Run now, Edit and Delete.
-        `<th>${t(lang, "schedule.enabled")}</th><th></th><th></th><th></th></tr></thead><tbody>` +
+        `<th>${t(lang, "schedule.colNextRun")}</th>` +
+        // Enabled, then two unlabelled columns: Run now and Delete.
+        `<th>${t(lang, "schedule.enabled")}</th><th></th><th></th></tr></thead><tbody>` +
         entries
           .map((e) => {
             const next = nextFireTime(e.cron, now);
-            const last = opts.scheduleLastRuns?.[e.name];
-            const report = last?.outputHref ? ` — <a href="${esc(last.outputHref)}">output</a>` : "";
             return (
               // The whole row, outside its controls, goes where the name
               // does (`followScheduleRow`).
               `<tr data-row-href="${esc(schedulePagePath(project, e.name))}">` +
               `<td><a href="${esc(schedulePagePath(project, e.name))}">${esc(e.name)}</a>` +
-              modelFlag(lang, e.model, opts.scheduleModelNames, scheduleEditPath(project, e.name)) +
+              modelFlag(lang, e.model, opts.scheduleModelNames, scheduleSettingsPath(project, e.name)) +
               `</td>` +
-              `<td><code>${esc(e.cron)}</code></td><td>${esc(e.prompt)}</td>` +
               `<td>${next ? esc(next.toISOString()) : `<span class="muted">–</span>`}</td>` +
-              `<td><span data-schedule-state>${esc(capitalizeFirst(last?.lastState ?? "never run"))}</span>${report}</td>` +
-              scheduleControlCells(project, e, lang) +
+              scheduleControlCells(project, e) +
               `</tr>`
             );
           })

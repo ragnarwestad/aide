@@ -19,7 +19,6 @@ import { isSpecFolder } from "../../../render/ui/shell.ts";
 import { SPEC_VIEWER_ASSET_PATH, languageChoice, modelChoiceOptions, processSettings, specsClientScript } from "../../serve-helpers";
 import { wikiView } from "./wiki-view.ts";
 import type { RoutesContext } from "..";
-import { scheduleLastRun } from "./schedule-last-run.ts";
 import { isWikiBuild } from "../../../queue/steps.ts";
 import { renderSentence } from "../../../i18n/message.ts";
 import type { Language } from "../../../i18n";
@@ -246,9 +245,6 @@ export async function projectPages(
         // the choice falls back to the general word.
         defaultBranch: (await ctx.branchStatus.defaultBranch(dir).catch(() => null)) ?? undefined,
         schedule: ctx.scheduleStore.list(name),
-        scheduleLastRuns: Object.fromEntries(
-          ctx.scheduleStore.list(name).map((entry) => [entry.name, scheduleLastRun(ctx, name, entry.name)]),
-        ),
         scheduleModelNames: Object.keys(ctx.queue.defaults.modelChoices ?? {}),
         worktreeLinkCandidates: gitignoreCandidates(dir),
         editingGroup: groupForEditParam(url.searchParams.get("edit")),

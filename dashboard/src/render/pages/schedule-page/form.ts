@@ -6,7 +6,7 @@
 // `GET /api/queue/schedule/cron-next` patches this element's text as
 // the field changes.
 import { nextFireTime, scheduleNotifyOf, type ScheduleNotify } from "../../../queue/schedule.ts";
-import { btn, field, messageSlot, rowMessage } from "../../ui/components";
+import { btn, btnLink, field, messageSlot, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { defaultModelForTool, modelOptions, resolveChosenModel, TOOL_NAMES, type SpecsPageOptions } from "../specs-list";
@@ -44,6 +44,9 @@ export interface ScheduleFormOptions {
    *  entry (or the table's `default`) can matter here: a scheduled job
    *  runs that one step. */
   defaultModels?: SpecsPageOptions["defaultModels"];
+  /** Draws Cancel beside Save, back to this address: the Settings tab
+   *  the form was opened on. */
+  cancelHref?: string;
 }
 
 /** The form's own id. Both selects are written INSIDE the form, so the
@@ -103,16 +106,20 @@ function modelFields(opts: ScheduleFormOptions, lang: Language = "en"): string {
   );
 }
 
+/** Each notify value and the catalogue key of its word, in the order the
+ *  select offers them. */
+export const NOTIFY_WORDS = [
+  ["never", "schedule.notifyNever"],
+  ["failure", "schedule.notifyFailure"],
+  ["always", "schedule.notifyAlways"],
+] as const satisfies readonly (readonly [ScheduleNotify, string])[];
+
 /** When a run sends a push: its own line under the model, drawn whether
  *  or not the queue offers a model. Starts on what an entry naming no
  *  choice is read as. */
 function notifyField(opts: ScheduleFormOptions, lang: Language): string {
   const chosen = scheduleNotifyOf(opts.entry ?? {});
-  const options = ([
-    ["never", "schedule.notifyNever"],
-    ["failure", "schedule.notifyFailure"],
-    ["always", "schedule.notifyAlways"],
-  ] as const)
+  const options = NOTIFY_WORDS
     .map(([value, key]) => `<option value="${value}"${value === chosen ? " selected" : ""}>${esc(t(lang, key))}</option>`)
     .join("");
   return `<div class="schedulenotify">${field(t(lang, "schedule.notify"), `<select name="notify">${options}</select>`)}</div>`;
@@ -160,7 +167,11 @@ export function renderScheduleForm(opts: ScheduleFormOptions, lang: Language = "
     // separately again; this row is one item, in the first column.
     models +
     notifyField(opts, lang) +
-    `<div class="factions">${btn({ label: opts.entryName ? "Save" : "Create", variant: "primary" })}</div>` +
+    `<div class="factions">${btn({ label: opts.entryName ? "Save" : "Create", variant: "primary" })}` +
+    // A link, as the Config tab's Cancel is: it loads the tab as saved,
+    // and `data-discard-changes` lets it past the leave question.
+    (opts.cancelHref ? btnLink({ href: opts.cancelHref, label: "Cancel", data: { "discard-changes": "" } }) : "") +
+    `</div>` +
     `</form>`
   );
 }

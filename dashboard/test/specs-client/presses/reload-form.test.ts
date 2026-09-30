@@ -57,8 +57,13 @@ function fakeForm(o: { dataset?: Record<string, string>; inDialog?: boolean } = 
     closest: (sel: string) => (sel.includes("dialog") && o.inDialog ? dialog : null),
   } as unknown as HTMLFormElement;
   const reloads: number[] = [];
-  const io: ReloadIo = { reload: () => void reloads.push(1), line: (id) => (named[id] ?? null) as unknown as Element | null };
-  return { form, own, named, dialog, reloads, io, button };
+  const went: string[] = [];
+  const io: ReloadIo = {
+    reload: () => void reloads.push(1),
+    go: (href) => void went.push(href),
+    line: (id) => (named[id] ?? null) as unknown as Element | null,
+  };
+  return { form, own, named, dialog, reloads, went, io, button };
 }
 
 const submit = () => {
@@ -116,6 +121,23 @@ describe("submitReloadForm", () => {
     await submitReloadForm(f.form, submit(), f.io);
     expect(f.dialog.closes).toBe(1);
     expect(f.named["spec-refused"]!.textContent).toBe("No such entry");
+  });
+
+  test("a form naming where to go goes there on success instead of loading the page again (AC-4)", async () => {
+    stubPost(200, { ok: true });
+    const f = fakeForm({ dataset: { done: "/projects/aide?tab=schedule" } });
+    await submitReloadForm(f.form, submit(), f.io);
+    expect(f.went).toEqual(["/projects/aide?tab=schedule"]);
+    expect(f.reloads).toHaveLength(0);
+  });
+
+  test("a form naming where to go stays put on a refusal, with the reason in its line (AC-4)", async () => {
+    stubPost(400, { error: "no such entry" });
+    const f = fakeForm({ dataset: { done: "/projects/aide?tab=schedule", line: "spec-refused" } });
+    await submitReloadForm(f.form, submit(), f.io);
+    expect(f.named["spec-refused"]!.textContent).toBe("No such entry");
+    expect(f.went).toEqual([]);
+    expect(f.reloads).toHaveLength(0);
   });
 
   test("a submit another listener already took is left alone (AC-6)", async () => {

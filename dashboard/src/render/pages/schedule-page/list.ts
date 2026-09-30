@@ -2,14 +2,14 @@
 // sort across every allowed project's entries at once, the same
 // pattern the Specs list already uses. It shows and links, and changes
 // nothing: the switch, Run now and Delete are on each project's own
-// Schedule tab, and Edit and History on the entry's own page.
+// Schedule tab, and Settings and History on the entry's own page.
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
 import { btn, ICON_CHEVRON, ICON_SEARCH, messageSlot, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { modelFlag } from "./model-flag.ts";
-import { scheduleEditPath } from "./edit-page.ts";
+import { scheduleSettingsPath } from "./tabs.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 
 export interface SchedulePageRow {
@@ -102,7 +102,7 @@ function row(r: SchedulePageRow, now: Date, o: Pick<ScheduleListOptions, "modelN
     // which one it belongs to. AC-5 (spec 468): the link goes to the
     // project's own Schedule tab, not the entry's own detail page.
     `<td><a href="${esc(r.projectScheduleHref)}">${esc(r.project)}:${esc(r.entry.name)}</a>` +
-    modelFlag(o.lang ?? "en", r.entry.model, o.modelNames, scheduleEditPath(r.project, r.entry.name)) +
+    modelFlag(o.lang ?? "en", r.entry.model, o.modelNames, scheduleSettingsPath(r.project, r.entry.name)) +
     `</td>` +
     `<td>${next ? esc(next.toISOString()) : `<span class="muted">–</span>`}</td>` +
     `<td><span data-schedule-state>${esc(state)}</span>${output}</td>` +

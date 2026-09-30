@@ -93,11 +93,11 @@ select[name^="model."] {
    same x in both rows without forcing either column wider than its
    own content needs. `max-width: 100%` keeps a track from outgrowing
    the form itself; the narrow breakpoint (narrow.css) collapses back
-   to one column, covering this form's two embeddings — a project's own
-   Schedule tab (spec 468) and a detail page's Edit heading — without
-   two different markups. */
+   to one column, covering this form's two embeddings — the New page
+   and an entry's Settings tab — without two different markups. Save and
+   Cancel on the Settings tab are spaced as `.trackingform`'s pair is. */
 .scheduleform { display: grid; grid-template-columns: max-content max-content; gap: var(--sp-3) var(--sp-4); align-items: start; max-width: 100%; }
-.scheduleform .factions { grid-column: 1 / -1; margin-top: var(--sp-1); }
+.scheduleform .factions { grid-column: 1 / -1; margin-top: var(--sp-1); display: flex; gap: var(--sp-2); }
 .scheduleform .rowmsg { grid-column: 1 / -1; }
 .scheduleform .schedulenotify { grid-column: 1 / -1; }
 .cron-input { font-family: var(--mono), monospace; }

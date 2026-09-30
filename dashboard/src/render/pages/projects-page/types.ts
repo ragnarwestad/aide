@@ -37,9 +37,6 @@ export interface ProjectPageOptions {
   /** This project's own recurring jobs (spec 259). Absent or empty
    *  means no Schedule section renders at all. */
   schedule?: readonly ScheduleEntry[];
-  /** Each entry's most recent run, by entry name: its state, and its
-   *  report on the entry's own page when it wrote one. */
-  scheduleLastRuns?: Readonly<Record<string, { lastState?: string; outputHref?: string }>>;
   /** The models the queue offers, for the flag on an entry naming one it
    *  does not. Absent draws no flag. */
   scheduleModelNames?: readonly string[];

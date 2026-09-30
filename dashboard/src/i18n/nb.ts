@@ -253,13 +253,9 @@ export const nb: Record<TranslationKey, string> = {
   "schedule.newJob": "Ny jobb",
   "schedule.new": "Ny",
   "schedule.edit": "Endre",
-  "schedule.editTitle": "Endre {name}",
   "schedule.nothingScheduled": "Ingenting er planlagt for dette prosjektet.",
   "schedule.colName": "Navn",
-  "schedule.colCron": "Cron",
-  "schedule.colPrompt": "Prompt",
   "schedule.colNextRun": "Neste kjøring",
-  "schedule.colLastRun": "Siste kjøring",
 
   "project.add": "Legg til",
   "project.remove": "Fjern",

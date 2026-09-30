@@ -2,7 +2,9 @@
 // Update, Save, banner and Status tab tick, Stop test server, a test
 // board's Run, Build wiki and its Cancel, an AI's Check and a schedule
 // entry's Delete. What the press changed is drawn by the server, so the
-// page loads again once it has gone through; a refusal stays on the page.
+// page loads again once it has gone through — or goes where the form
+// names, when the press took away the page it was on; a refusal stays on
+// the page.
 
 import { postForm, writeLine } from "../press.ts";
 
@@ -11,18 +13,22 @@ export const RELOAD_FORM = "form.reloadform";
 
 export interface ReloadIo {
   reload(): void;
+  go(href: string): void;
   line(id: string): Element | null;
 }
 
 const browserIo: ReloadIo = {
   reload: () => location.reload(),
+  go: (href) => {
+    location.href = href;
+  },
   line: (id) => document.getElementById(id),
 };
 
 /** Posts the form. A refusal goes into the line the form names with
  *  `data-line`, or its own `.refused` line; an answer that changed nothing
  *  leaves its note in the line the form names with `data-note`, instead of
- *  loading the page again. */
+ *  loading the page again. A form with `data-done` goes there on success. */
 export async function submitReloadForm(form: HTMLFormElement, event: Event, io: ReloadIo = browserIo): Promise<void> {
   if (event.defaultPrevented) return;
   event.preventDefault();
@@ -36,7 +42,8 @@ export async function submitReloadForm(form: HTMLFormElement, event: Event, io: 
         writeLine(note, answer.note ?? "");
         return;
       }
-      io.reload();
+      if (form.dataset.done) io.go(form.dataset.done);
+      else io.reload();
     },
     (why) => {
       // A confirm dialog's OK: the refusal is written behind it.

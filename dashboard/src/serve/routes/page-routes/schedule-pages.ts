@@ -1,4 +1,4 @@
-// the Schedule tab: its listing, one entry's own page, the page that makes or changes an entry, and a run's recorded output. One of the three route families `handlePageRoutes`
+// the Schedule tab: its listing, one entry's own page, the page that makes an entry, and a run's recorded output. One of the three route families `handlePageRoutes`
 // asks in turn (split 2026-09-04: the file had reached 594 lines,
 // a single function with a chain of route checks in it).
 //
@@ -11,11 +11,11 @@ import {
   NEW_SCHEDULE_DEFAULTS, SCHEDULE_ROUTE, buildReportDocument, projectPagePath, renderProposalsPanel, renderReportPanel,
   renderScheduleDetailPage, renderSchedulePage, resolveBackHref, schedulePagePath,
 } from "../../../render";
-import { languageChoice, specsClientScript } from "../../serve-helpers";
+import { languageChoice, modelChoiceOptions, specsClientScript } from "../../serve-helpers";
 import { serveStatic } from "../../serve-helpers";
 import type { RoutesContext } from "..";
 import { scheduleLastRun } from "./schedule-last-run.ts";
-import { projectScheduleTab, scheduleEditPageResponse } from "./schedule-edit-page.ts";
+import { projectScheduleTab, scheduleNewPageResponse } from "./schedule-edit-page.ts";
 
 export async function schedulePages(
   ctx: RoutesContext,
@@ -65,32 +65,17 @@ export async function schedulePages(
     return new Response(html, { headers });
   }
 
-  // New and Edit: one page. The project rides as a query on New, since
-  // a second path segment would read as an entry's name.
+  // New: the project rides as a query, since a second path segment would
+  // read as an entry's name. An entry is changed on its Settings tab.
   if (path === "/schedule/new") {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     // A project off the allowlist still gets the page, as its Schedule
     // tab still gets New: the create route refuses it, with the reason.
     const project = url.searchParams.get("project") ?? "";
     if (!project) return new Response("not found", { status: 404 });
-    return scheduleEditPageResponse(ctx, req, url, {
+    return scheduleNewPageResponse(ctx, req, url, {
       project,
       values: NEW_SCHEDULE_DEFAULTS,
-      back: resolveBackHref(req.headers.get("referer"), url.origin, projectScheduleTab(project), url.pathname),
-    });
-  }
-  const scheduleEditPage = path.match(/^\/schedule\/([^/]+)\/([^/]+)\/edit$/);
-  if (scheduleEditPage) {
-    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-    const project = decodeURIComponent(scheduleEditPage[1]!);
-    const name = decodeURIComponent(scheduleEditPage[2]!);
-    if (!ctx.allowed.has(project)) return new Response("not found", { status: 404 });
-    const entry = ctx.scheduleStore.list(project).find((e) => e.name === name);
-    if (!entry) return new Response("not found", { status: 404 });
-    return scheduleEditPageResponse(ctx, req, url, {
-      project,
-      editing: name,
-      values: entry,
       back: resolveBackHref(req.headers.get("referer"), url.origin, projectScheduleTab(project), url.pathname),
     });
   }
@@ -135,10 +120,17 @@ export async function schedulePages(
           : {}),
       };
     }
+    const tab = url.searchParams.get("tab") ?? undefined;
     const html = renderScheduleDetailPage(ctx.nav(), new Date().toISOString(), {
       project,
       entry,
-      tab: url.searchParams.get("tab") ?? undefined,
+      tab,
+      // Settings' edit state, from the address alone: a reload without it
+      // lands back on what is saved.
+      editing: tab === "settings" && url.searchParams.get("edit") === "1",
+      modelChoices: modelChoiceOptions(ctx.queue),
+      defaultModels: ctx.queue.defaults.model,
+      deleteDone: projectScheduleTab(project),
       history,
       reportPanel:
         renderReportPanel({

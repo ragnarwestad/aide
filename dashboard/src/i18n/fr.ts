@@ -252,13 +252,9 @@ export const fr: Record<TranslationKey, string> = {
   "schedule.newJob": "Nouveau job",
   "schedule.new": "Nouveau",
   "schedule.edit": "Modifier",
-  "schedule.editTitle": "Modifier {name}",
   "schedule.nothingScheduled": "Rien n'est planifié pour ce projet.",
   "schedule.colName": "Nom",
-  "schedule.colCron": "Cron",
-  "schedule.colPrompt": "Prompt",
   "schedule.colNextRun": "Prochaine exécution",
-  "schedule.colLastRun": "Dernière exécution",
 
   "project.add": "Ajouter",
   "project.remove": "Retirer",

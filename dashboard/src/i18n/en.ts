@@ -261,13 +261,9 @@ export const en = {
   "schedule.newJob": "New job",
   "schedule.new": "New",
   "schedule.edit": "Edit",
-  "schedule.editTitle": "Edit {name}",
   "schedule.nothingScheduled": "Nothing is scheduled for this project.",
   "schedule.colName": "Name",
-  "schedule.colCron": "Cron",
-  "schedule.colPrompt": "Prompt",
   "schedule.colNextRun": "Next run",
-  "schedule.colLastRun": "Last run",
 
   "project.add": "Add",
   "project.remove": "Remove",

@@ -7,10 +7,10 @@ describe("the flag on an entry naming a model the queue does not offer (spec 494
   const choices = ["Sonnet", "Opus"];
 
   test("names the model and the choices, and links to where another is chosen", () => {
-    const html = modelFlag("en", "retired", choices, "/schedule/aide/nightly/edit");
+    const html = modelFlag("en", "retired", choices, "/schedule/aide/nightly?tab=settings");
     expect(html).toContain("retired");
     expect(html).toContain("Sonnet, Opus");
-    expect(html).toContain('href="/schedule/aide/nightly/edit"');
+    expect(html).toContain('href="/schedule/aide/nightly?tab=settings"');
   });
 
   test("a listed name, a case-only match and no model draw no flag", () => {
