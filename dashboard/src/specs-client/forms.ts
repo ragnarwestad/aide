@@ -71,8 +71,11 @@ export async function submitTestServerStop(event: Event): Promise<void> {
 // goes beside the form that was refused instead — where the reader is
 // still looking, and not in a banner above a disclosure that may well
 // be shut.
+//
+// A form that is a dialog's affirmative (Remove project) has its line in
+// the dialog, outside the form, and the dialog stays open to show it.
 export function formNote(form: HTMLFormElement, text: string): void {
-  writeLine(form.querySelector(".refused"), text);
+  writeLine((form.closest("dialog") ?? form).querySelector(".refused"), text);
 }
 
 /** A Settings save's answer, in the one of the form's two lines it
@@ -158,12 +161,20 @@ export async function submitProjectChange(form: HTMLFormElement, event: Event): 
       params.delete("errorSpec");
       params.delete("notice");
       params.delete("noticeOk");
+      // Remove project is pressed on the project's own Config tab.
+      params.delete("tab");
       const note = body?.readiness?.note;
       if (note) {
         params.set("notice", note);
         if (body?.readiness?.canRun) params.set("noticeOk", "1");
       }
       const query = params.toString();
+      // The press has done what it was for, and the page goes with it:
+      // edits left open beside it (a settings table on the Config tab
+      // Remove project sits on) are not a reason to ask before leaving.
+      // The guard is a head script with nothing to import, so it hears
+      // an event (`unsaved-changes.ts`).
+      document.dispatchEvent(new Event("aide-changes-discarded"));
       location.href = query ? `/projects?${query}` : "/projects";
     },
     (why) => formNote(form, why),

@@ -28,9 +28,7 @@ export {
   projectPagePath, renderProjectPage,
   renderProjectsPage,
   renderAddProjectPage,
-  renderRemoveProjectPage,
   ADD_PROJECT_ROUTE,
-  removeProjectRoute,
 } from "./pages/projects-page";
 export type { ProjectPageOptions, ProjectView, SpecView, ProjectsPageOptions, ProjectDrift } from "./pages/projects-page";
 

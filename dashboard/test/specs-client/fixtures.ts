@@ -228,7 +228,7 @@ export function harness(
   // Spec 510: an archived criterion's third box.
   const failedBoxes = [failedCheckbox(TICK_FORM, TICK_ROW, false, firstLi)];
   const tailBoxEl = tailBox(ROW_FORM);
-  const { removeButton, confirmInput, removeSlot, addButton, addSlot, addForm, removeForm, getTyped } =
+  const { removeButton, confirmInput, removeSlot, removeDialog, addButton, addSlot, addForm, removeForm, getTyped } =
     buildProjectsPanel(tokenInput, on);
 
   const inserted: { id: string; className: string; textContent: string }[] = [];
@@ -326,6 +326,8 @@ export function harness(
    *  proves the clock survives `#jobrows` being swapped out under it. */
   const elapsed: { dataset: { elapsed: string }; textContent: string }[] = [];
 
+  /** The type of every event the script dispatches on the document. */
+  const dispatched: string[] = [];
   const document = {
     // Spec 204: a row's own anchor id resolves too. `rowAnchorId()` is
     // already on every head row for the sake of `href="#..."`, and the
@@ -357,6 +359,7 @@ export function harness(
     // closes the page's connection now, so a fake that swallowed it
     // could not tell a tab going quiet from one that never connected.
     addEventListener: (type: string, fn: (e: unknown) => void) => void (on[`doc:${type}`] = fn),
+    dispatchEvent: (e: { type: string }) => void dispatched.push(e.type),
     visibilityState: "hidden",
   };
   const fetchStub = async (url: unknown, init: Record<string, unknown> = {}) => {
@@ -447,7 +450,7 @@ export function harness(
     replaced, slot, resets, document, phases, otherPhases, rowQueries, tick,
     sources: sourcesMade, live, visibility, intervals, ticks, timeouts, elapsed, clock,
     projectSelect, chips,
-    removeButton, removeSlot, confirmInput,
+    removeButton, removeSlot, removeDialog, confirmInput, dispatched,
     addButton, addSlot,
     submitRemove: (extra: Partial<{ defaultPrevented: boolean }> = {}) =>
       fire("remove:submit", removeButton, extra),

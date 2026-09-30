@@ -337,9 +337,9 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
   // switches on the picker's own line; then Title; then Description.
   // Depends on and the phase table, seldom touched, come last. Each
   // `.frow` is a full-width row inside the same wrapping flex the Add
-  // form shares, so the shared `.newspecform` look is untouched.
+  // form shares, so the shared `.pageform` look is untouched.
   return (
-    `<form method="post" action="/api/queue/create" class="newspecform" id="${formId}">` +
+    `<form method="post" action="/api/queue/create" class="pageform newspecform" id="${formId}">` +
     field(
       "Project",
       // One line: the picker, then the two check boxes after it, wrapping

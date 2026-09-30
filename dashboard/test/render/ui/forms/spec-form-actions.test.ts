@@ -59,7 +59,7 @@ function checksForm(): { form: HTMLFormElement; tick: HTMLInputElement } {
  *  (spec-editor-viewer-and-theme.test.ts). */
 function documentForm(initialText: string): { form: HTMLFormElement; raw: HTMLTextAreaElement } {
   document.body.innerHTML =
-    `<form method="post" class="newspecform specform">` +
+    `<form method="post" class="pageform specform">` +
     `<input type="hidden" name="file" value="2-analysis.md">` +
     `<textarea name="text" class="spec-editor-raw">${initialText}</textarea>` +
     `<button id="specform-save" type="submit">Save</button>` +

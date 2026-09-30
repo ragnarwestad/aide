@@ -1,7 +1,7 @@
 // The `/projects` list: the counts, then one row per project. Split
 // out of projects-page.ts by theme.
 
-import { btnLink, ICON_WARN, rowMessage } from "../../ui/components";
+import { ICON_WARN, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import type { ProjectView } from "./types.ts";
@@ -15,23 +15,16 @@ export function projectDescription(p: ProjectView): string {
     : "";
 }
 
-// `removeHref` only on the served page: a generated file has no server
-// behind it, so its rows carry no control (asked for 2026-08-19 —
-// Remove lives ON the row, at the right of the description).
 function overviewRow(
   p: ProjectView,
   path: string,
-  removeHref?: string,
   note?: string,
   warnHref?: string,
   lang: Language = "en",
 ): string {
-  const remove = removeHref
-    ? btnLink({ href: removeHref, label: t(lang, "project.remove"), small: true, hook: "proj-row-action" })
-    : "";
   // Spec 369: the readiness sentence itself moved to the project's own
-  // page — this is only a pointer to it, so it needs the same escape
-  // from the row's stretched-link overlay `.proj-row-action` uses.
+  // page — this is only a pointer to it, so it rises above the row's
+  // stretched-link overlay.
   const warn = warnHref
     ? `<a class="proj-row-warn" href="${esc(warnHref)}" title="cannot run yet — see the project's page" aria-label="cannot run yet">${ICON_WARN}</a>`
     : "";
@@ -44,7 +37,7 @@ function overviewRow(
   if (!p.manifest.ok) {
     return (
       `<div class="proj-row error"><div>${projectLink}` +
-      `<p class="error-text">${esc(t(lang, "project.manifestFailed", { error: p.manifest.error }))}</p>${drift}</div>${warn}${remove}</div>`
+      `<p class="error-text">${esc(t(lang, "project.manifestFailed", { error: p.manifest.error }))}</p>${drift}</div>${warn}</div>`
     );
   }
   const active = p.specs.filter((s) => !s.archived).length;
@@ -55,7 +48,7 @@ function overviewRow(
     `<span class="counts">${active} ${t(lang, "project.active")} · ${archived} ${t(lang, "project.archived")}</span>` +
     desc +
     drift +
-    `</div>${warn}${remove}</div>`
+    `</div>${warn}</div>`
   );
 }
 
@@ -89,15 +82,14 @@ export function projectListBody(
      *  (spec 185). There is no other project page to link — the
      *  generated per-project files went on 2026-08-22. */
     pageHref: (name: string) => string;
-    removeHref?: (name: string) => string | undefined;
     /** Spec 142: what to say on a project's row about its checkout, if
-     *  anything. A callback like `removeHref`, and for the same reason:
-     *  `ProjectView` is a pure disk scan the static generator shares,
-     *  and a live git answer does not belong on it. */
+     *  anything. A callback, because `ProjectView` is a pure disk scan
+     *  the static generator shares, and a live git answer does not
+     *  belong on it. */
     note?: (name: string) => string | undefined;
     /** Spec 369: where the row's warning mark points, or undefined for
-     *  no mark at all — a third callback of the same shape as `note`
-     *  and `removeHref`, not a change to how the row is composed. */
+     *  no mark at all — a callback of the same shape as `note`, not a
+     *  change to how the row is composed. */
     warnHref?: (name: string) => string | undefined;
     lang?: Language;
   },
@@ -109,7 +101,6 @@ export function projectListBody(
         overviewRow(
           p,
           opts.pageHref(p.name),
-          opts.removeHref?.(p.name),
           opts.note?.(p.name),
           opts.warnHref?.(p.name),
           opts.lang ?? "en",

@@ -1,15 +1,12 @@
-// The one dialog Close and Reopen ask their question in, on the spec page
-// and over the specs list, with no fallback page behind it: a button
-// carrying `data-ask="<dialog id>"` names it, and only script opens it
-// (`openAsk`, specs-client/progress-dialog). The box is the dialog
-// `submitProgress` stands behind: on OK it shows `.standingtitle` while the
-// job runs, and a refusal is written in its `.refused` line.
+// What Close and Reopen ask, on the spec page and over the specs list,
+// with no fallback page behind either: their words, their controls and
+// where their wait goes. The dialog itself is the board's one
+// `confirmDialog()`; these two are the ones that stand while their job
+// runs (`submitProgress`), and write a refusal in its `.refused` line.
 
-import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { t, type Language } from "../../../i18n";
 import { DESCRIPTION_MAX } from "../../../queue/parse-request.ts";
-import { btn, dialogAnswers, field, messageSlot } from "../../ui/components";
-import { esc } from "../../ui/html.ts";
+import { confirmDialog, field } from "../../ui/components";
 import { specPagePath } from "./tabs.ts";
 
 /** The one sentence stated wherever a reader meets Close (REQ-2): in this
@@ -38,63 +35,9 @@ export const REOPEN_SENTENCE =
 export const CLOSE_ASK_ID = "closeask";
 export const REOPEN_ASK_ID = "reopenask";
 
-/** What one ask has of its own. Every value is raw: `askDialog()` escapes
- *  each once. */
-export interface AskParts {
-  /** The dialog's id, which its button names; the posting form is `<id>-form`. */
-  id: string;
-  title: string;
-  /** The word shown alone while the job runs. */
-  standing: string;
-  sentence: string;
-  /** The control under the sentence, tied to the posting form by `form=`
-   *  so it is not in the button row and cannot stop Cancel. Handed the
-   *  form's id, escaped. */
-  control: (formId: string) => string;
-  /** Where OK posts. */
-  action: string;
-  hidden?: Record<string, string>;
-  /** Where any end but a done job goes. */
-  back: string;
-  /** Where a done job goes; the script goes to `/` when absent. */
-  done?: string;
-  ok: { variant: "primary" | "danger"; pending: string };
-}
-
-export function askDialog(lang: Language, parts: AskParts): string {
-  const formId = esc(`${parts.id}-form`);
-  const hidden = Object.entries(parts.hidden ?? {})
-    .map(([name, value]) => `<input type="hidden" name="${esc(name)}" value="${esc(value)}">`)
-    .join("");
-  return (
-    `<dialog class="confirmdialog" id="${esc(parts.id)}" data-progress-dialog><div class="confirmpanel">` +
-    `<h2>${esc(parts.title)}</h2>` +
-    `<h2 class="standingtitle">${esc(capitalizeFirst(parts.standing))}</h2>` +
-    `<p class="muted">${esc(parts.sentence)}</p>` +
-    parts.control(formId) +
-    messageSlot("refused") +
-    dialogAnswers(
-      lang,
-      `<form id="${formId}" method="post" action="${esc(parts.action)}" data-progress="${esc(parts.back)}"` +
-        (parts.done ? ` data-progress-done="${esc(parts.done)}"` : "") +
-        `>` +
-        hidden +
-        btn({ label: t(lang, "dialog.ok"), variant: parts.ok.variant, pending: parts.ok.pending }) +
-        `</form>`,
-    ) +
-    `</div></dialog>`
-  );
-}
-
-/** The button that opens the dialog with id `dialogId`. It does nothing
- *  without script, and needs no form: it can sit inside one. */
-export function askButton(label: string, dialogId: string, variant?: "primary"): string {
-  return btn({ label, type: "button", variant, data: { ask: dialogId } });
-}
-
 export function closeAskDialog(project: string, specFolder: string, lang: Language): string {
   const back = specPagePath(project, specFolder);
-  return askDialog(lang, {
+  return confirmDialog(lang, {
     id: CLOSE_ASK_ID,
     title: `Close ${specFolder}?`,
     standing: t(lang, "shell.overlayClosing"),
@@ -104,9 +47,9 @@ export function closeAskDialog(project: string, specFolder: string, lang: Langua
         "Reason",
         `<textarea name="reason" form="${formId}" rows="4" required data-maxlength="${DESCRIPTION_MAX}"></textarea>`,
       ),
-    action: `/api/queue${back}/close`,
-    back,
+    refusal: true,
     ok: { variant: "danger", pending: t(lang, "shell.overlayClosing") },
+    post: { action: `/api/queue${back}/close`, progress: { back } },
   });
 }
 
@@ -128,16 +71,18 @@ export function reopenAskDialog(
   lang: Language,
   where: { id: string; back: string; done?: string; hidden?: Record<string, string> },
 ): string {
-  return askDialog(lang, {
+  return confirmDialog(lang, {
     id: where.id,
     title: `Reopen ${specFolder}?`,
     standing: t(lang, "list.reopening"),
     sentence: REOPEN_SENTENCE,
     control: resetBox,
-    action: "/api/queue",
-    hidden: { ...where.hidden, project, specFolder, steps: "reopen" },
-    back: where.back,
-    done: where.done,
+    refusal: true,
     ok: { variant: "primary", pending: t(lang, "list.reopening") },
+    post: {
+      action: "/api/queue",
+      hidden: { ...where.hidden, project, specFolder, steps: "reopen" },
+      progress: { back: where.back, done: where.done },
+    },
   });
 }

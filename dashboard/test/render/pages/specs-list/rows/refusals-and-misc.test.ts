@@ -72,7 +72,8 @@ describe("every action form carries the current view (criterion 7)", () => {
       rows([running], [target("99-x")], { filter: { state: "active", open: "aide/99-x" } }),
       "99-x",
     );
-    const form = line.match(/<form method="post" action="\/api\/queue\/j1\/cancel"[^>]*>.*?<\/form>/)![0];
+    // The form is the OK of Cancel's dialog.
+    const form = line.match(/<form [^>]*action="\/api\/queue\/j1\/cancel"[^>]*>.*?<\/form>/)![0];
     expect(form).toContain('<input type="hidden" name="view.state" value="active">');
   });
 });

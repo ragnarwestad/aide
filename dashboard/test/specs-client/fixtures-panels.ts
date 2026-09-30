@@ -84,6 +84,17 @@ export function buildProjectsPanel(tokenInput: { value: string }, on: Record<str
     querySelector: (sel: string) => (sel.includes("input") ? confirmInput : removeButton),
   };
   const removeSlot = { textContent: "" };
+  // Remove project asks in a dialog: the refusal line is the dialog's,
+  // outside the posting form, as `confirmDialog()` draws it.
+  const removeDialog = {
+    open: true,
+    closes: 0,
+    close() {
+      removeDialog.open = false;
+      removeDialog.closes += 1;
+    },
+    querySelector: (sel: string) => (sel.includes("refused") ? removeSlot : null),
+  };
   const addButton = {
     textContent: "Save",
     title: "",
@@ -125,10 +136,8 @@ export function buildProjectsPanel(tokenInput: { value: string }, on: Record<str
         ? confirmWrap
         : sel.includes("token")
           ? tokenInput
-          : sel.includes("refused")
-            ? removeSlot
-            : null,
-    closest: () => null,
+          : null,
+    closest: (sel: string) => (sel === "dialog" ? removeDialog : null),
     addEventListener: (type: string, fn: Listener) => void (on[`remove:${type}`] = fn),
   };
   let typed: (() => void) | undefined;
@@ -136,7 +145,7 @@ export function buildProjectsPanel(tokenInput: { value: string }, on: Record<str
     if (type === "input") typed = fn;
   };
   return {
-    removeButton, confirmInput, confirmWrap, removeSlot,
+    removeButton, confirmInput, confirmWrap, removeSlot, removeDialog,
     addButton, addSlot, addForm, removeForm,
     getTyped: () => typed,
   };

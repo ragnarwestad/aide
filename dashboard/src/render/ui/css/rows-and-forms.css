@@ -57,17 +57,17 @@ td form { margin: 0; display: inline-block; }
    container gap does not absorb it. "actionform" has no rule at all —
    "td form" above gives it everything it had, and the conflict form's
    rule went with the control it belonged to (spec 171). */
-.newspecform, .scheduledeleteform { display: flex; gap: var(--sp-3); align-items: flex-end;
+.pageform { display: flex; gap: var(--sp-3); align-items: flex-end;
   flex-wrap: wrap; margin-top: var(--sp-3); }
-.newspecform .refused { flex-basis: 100%; }
+.pageform .refused { flex-basis: 100%; }
 /* Spec 553: the /new form's rows, read top to bottom — Project (one
    wide field, Create at the far end of its label line and the two
    acceptance switches on the picker's line), then Title, then
    Description, then Depends on, then the phase table. Every row but
    the first takes the full width of the wrapping flex as a `.frow`. */
-.newspecform .frow, .scheduledeleteform .frow { display: flex; gap: var(--sp-4); align-items: flex-start;
+.pageform .frow { display: flex; gap: var(--sp-4); align-items: flex-start;
   flex-basis: 100%; }
-.newspecform .frow .field.wide { flex: 1 1 0; }
+.pageform .frow .field.wide { flex: 1 1 0; }
 /* The Add-project form reads to the same width its own fields do: a
    `.field.wide` stops at 48rem, so a row that splits its width between
    two fields has to stop there too, or the halves above reach past the
@@ -77,7 +77,7 @@ td form { margin: 0; display: inline-block; }
    the right of it (spec 391) — the form's first child, ahead of the
    field it saves. One rule for both shapes: the Checks tab's plain
    `.specform` (an ordinary block-flow form) and a document tab's
-   `.newspecform.specform` (the flex-wrap row above) — `flex-basis: 100%`
+   `.pageform.specform` (the flex-wrap row above) — `flex-basis: 100%`
    forces this onto its own line in the second case and does nothing in
    the first, where the div is already the width of its block-level
    parent. `.factions` carries no layout of its own — each container that
@@ -99,16 +99,16 @@ td form { margin: 0; display: inline-block; }
    `.projectsettingsform` gets below in edit mode, so Edit and Cancel do
    not visibly jump when a save reopens the read-only view. */
 .configtables { display: flex; flex-direction: column; gap: var(--sp-5); }
-/* Matches `.newspecform`'s own margin-top below (AC-2): view mode's
+/* Matches `.pageform`'s own margin-top below (AC-2): view mode's
    plain container needs the same top margin the edit-mode form gets,
    so the first table's own `.panelhead` sits at the same pixel position
    in either state. */
 .tabpanel > .configtables { margin-top: var(--sp-3); }
-/* The same gap in edit mode (AC-6): `.newspecform`'s own `gap: var(--sp-3)`
+/* The same gap in edit mode (AC-6): `.pageform`'s own `gap: var(--sp-3)`
    is too narrow between the two `.frow`s each wrapping one of these
    tables, so this form widens it to match `.configtables` above. */
 .projectsettingsform { gap: var(--sp-5); }
-/* `.newspecform .factions` above bottom-aligns a `.frow`'s own Save/
+/* `.pageform .factions` above bottom-aligns a `.frow`'s own Save/
    Cancel against a taller field beside it (the New-spec form) — a rule
    that reaches this form's factions too, nested three levels deeper
    inside its own `.panelhead`, and bottom-aligns Save/Cancel there
@@ -135,12 +135,6 @@ td form { margin: 0; display: inline-block; }
    for a `flex-wrap` fallback to act on — narrow.css collapses the grid
    itself to one column instead. */
 .scheduleform .frow { display: contents; }
-/* The Remove confirmation, on a page of its own since 2026-08-19 (the
-   panel these rules used to scope under is gone). "addprojectform" and
-   "removeform" are what specs-client.ts selects on — laid out here,
-   coloured nowhere. "scheduledeleteform" is the same shape for a
-   schedule entry's own Delete confirmation (spec 277). */
-.removeform [data-confirm], .scheduledeleteform [data-confirm] { display: flex; gap: var(--sp-2); align-items: flex-end; }
 /* The "…" menu (spec 119): Units, Settings and About, behind one
    disclosure at the right-hand end of the header. A POPOVER like
    .intro below — an open menu must lay over the page, not push the

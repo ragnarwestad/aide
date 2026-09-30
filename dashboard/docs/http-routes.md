@@ -175,7 +175,7 @@ route does the same work in one request for a form posted without script.
 | `POST /api/queue/projects/<project>/wiki`             | action | nothing                             | `{ ok, job }`, or a 303 to `?tab=wiki`; a refusal is 400 `{ error }` or a 303 there with the reason  | form     |
 | `POST /api/queue/projects/<project>/test-server`      | action | nothing                             | a 303 or an HTML page, never JSON                                                                    | form     |
 | `POST /api/queue/projects/<project>/test-server/stop` | action | nothing                             | `{ ok }`, or a 303 back to the page it was pressed on                                                | form     |
-| `POST /api/queue/projects/<project>/remove`           | action | nothing                             | `{ ok }`, or a 303 to the projects list                                                              | form     |
+| `POST /api/queue/projects/<project>/remove`           | action | nothing                             | `{ ok }`, or a 303 to the projects list, or to the Config tab when refused                           | form     |
 
 ### Schedule
 
@@ -248,7 +248,6 @@ Answered by the files under `src/serve/routes/page-routes/`, `src/serve/routes/s
 | `GET /projects/<project>`                       | read   | optional `?tab=`, `?edit=`, `?deployError=`, `?page=`  | the project's page; with `?tab=wiki`, the wiki's pages, or the one `?page=` names                             | page     |
 | `GET /projects/<project>?startTestServer=1`     | read   | nothing                                                | a waiting page, a 303 to the test server or back to the deploy tab, or a page saying why it could not start   | page     |
 | `GET /projects/<project>/settings`              | read   | nothing                                                | 302 to the project's Config tab, which carries the form                                                       | page     |
-| `GET /projects/<project>/remove`                | read   | optional `?error=`                                     | the confirm page for removing the project                                                                     | page     |
 | `GET /schedule`                                 | read   | optional `?q=`, `?sort=`, `?dir=`                      | the schedule list                                                                                             | page     |
 | `GET /schedule/<project>/<name>`                | read   | optional `?tab=`, `?run=`                              | the schedule's page                                                                                           | page     |
 | `GET /schedule/new`                             | read   | `?project=`                                            | the page that makes a schedule entry                                                                          | page     |

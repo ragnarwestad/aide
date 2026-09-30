@@ -25,7 +25,7 @@
 // form's own `change` listener is added, for instance).
 
 import { applyAiPick, MODEL_SELECTS, offerEachToItsTool, refreshAiModelBox, syncAiToModel } from "./ai-sync.ts";
-import { interceptCancelSubmit } from "./cancel-confirm.ts";
+import { openAsk } from "./ask.ts";
 import {
   bindOneLineFields,
   settingsAnswer,
@@ -48,10 +48,9 @@ import { bindPushPanel } from "./push.ts";
 import { startReloadWhileIdle } from "./reload-while-idle";
 import { relabelRunButton } from "./row-swap.ts";
 import {
-  bindScheduleDeleteButton, followScheduleRow, postScheduleEnabled, postScheduleRun, scheduleCronPreview,
-  submitScheduleForm,
+  followScheduleRow, postScheduleEnabled, postScheduleRun, scheduleCronPreview, submitScheduleForm,
 } from "./schedule-actions.ts";
-import { openAsk, submitProgress } from "./progress-dialog";
+import { submitProgress } from "./progress-dialog";
 import { NEW_SPEC_FORM } from "./state.ts";
 import { postTailModel, postTailStep } from "./tail-actions.ts";
 import { bindWikiGraphs } from "./wiki-graph";
@@ -104,10 +103,6 @@ settingsForm?.addEventListener("submit", (async (event: Event) => {
 // with the rows on every redraw — a listener on the links themselves
 // would last until the next one.
 document.getElementById("jobrows")?.addEventListener("click", navigate as EventListener);
-// Cancel's own confirmation (spec 423) is registered BEFORE
-// `submitAction`: its `preventDefault()` on the outer form has to reach
-// `submitAction`'s own `if (event.defaultPrevented) return;` guard.
-document.getElementById("jobrows")?.addEventListener("submit", interceptCancelSubmit as EventListener);
 document.getElementById("jobrows")?.addEventListener("submit", submitAction as EventListener);
 // And the row's selects and boxes, for the same reason: the rows are
 // replaced wholesale on every redraw, so a listener bound to a control
@@ -207,13 +202,15 @@ newSpec?.addEventListener("change", ((event: Event) => {
   const model = target?.closest?.('select[name^="model."]') as HTMLSelectElement | null;
   if (model) syncAiToModel(model);
 }) as EventListener);
-// Reopen and Close ask in a dialog (spec 527: no fallback page behind
-// either): one click listener opens whichever a button names, and one
-// submit listener hands its OK to the wait. Delegated, so a list row
-// drawn by a later redraw is reached too — and on `body`, never
-// `document`: the shell's form-busy listener is on `document`, registered
-// first, and marks any form not yet default-prevented as busy; bubbling
-// reaches `body` before it. `?.` since a stand-in document may have no body.
+// Every confirmation asks in a dialog its button names: one click
+// listener opens whichever it is, Cancel on a list row, Delete on a
+// schedule entry and Remove project as well as Reopen and Close. One
+// submit listener hands Reopen's and Close's OK to the wait. Delegated,
+// so a list row drawn by a later redraw is reached too — and on `body`,
+// never `document`: the shell's form-busy listener is on `document`,
+// registered first, and marks any form not yet default-prevented as busy;
+// bubbling reaches `body` before it. `?.` since a stand-in document may
+// have no body.
 document.body?.addEventListener("click", openAsk as EventListener);
 document.body?.addEventListener("submit", ((event: Event) => {
   const form = (event.target as Element | null)?.closest?.("form[data-progress]") as HTMLFormElement | null;
@@ -282,12 +279,6 @@ document.addEventListener("click", ((event: MouseEvent) => {
     location.href = href;
   });
 }) as EventListener);
-// Delete on a schedule row is a plain button with no href and no
-// confirmation page behind it (spec 528) — its own dialog is opened by
-// script alone.
-for (const el of document.querySelectorAll("button[data-delete-schedule]")) {
-  bindScheduleDeleteButton(el as HTMLButtonElement);
-}
 // The spec page's Steps tab reloads from here, and waits while a dialog is open.
 startReloadWhileIdle(document);
 // The Wiki tab's own graph, above the page list — bound wherever one is on

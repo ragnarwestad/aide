@@ -110,8 +110,9 @@ project is in.
 ### Removing a project
 
 Remove takes the project off the allowlist and off this dashboard, and that is all it does: the checkout and the
-specs root stay on disk, untouched. `/projects/<name>/remove` asks the question in a sentence and the press is the
-answer; nothing is typed back.
+specs root stay on disk, untouched. Remove project is at the foot of the project's Config tab, for a project on the
+allowlist, and asks in a dialog; OK is the answer, nothing is typed back, and a refusal is written in the dialog.
+Success lands on the projects list.
 
 ### Whether a run can start there
 

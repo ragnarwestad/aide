@@ -11,7 +11,7 @@ import { CSS } from "./css";
 import { ICON_LINKS, WORDMARK } from "./brand.ts";
 import { PWA_LINKS } from "./pwa.ts";
 import { esc } from "./html.ts";
-import { btn, dialogAnswers } from "./components";
+import { btn, confirmDialog } from "./components";
 import { capitalizeFirst } from "../../format/error-sentence.ts";
 import { themeControl, languageControl, menuSettingRows } from "./header-controls.ts";
 import { getBoardInfo, isRoundBoard } from "./board-info.ts";
@@ -157,24 +157,21 @@ function aboutDialog(): string {
   );
 }
 
-// The same confirmdialog shape row-controls.ts/list.ts already use for
-// every other "are you sure" on this dashboard — one dialog, written
-// once per page like About, rather than stamped out per row: this
-// guard is a property of the whole app, not of any one row (spec 478).
-// A real <dialog>, unlike the native beforeunload prompt it replaces
-// for an in-app link, is positioned by the browser inside the
-// document's own viewport — always the app window, never the screen.
+// The board's one confirmation dialog, written once per page like About
+// rather than stamped out per row: this guard is a property of the whole
+// app, not of any one row (spec 478). It has no button — the
+// unsaved-changes guard opens it from a dirty page's link click, finds it
+// by id, and reads OK's `leave` as its answer. A real <dialog>, unlike the
+// native beforeunload prompt it replaces for an in-app link, is positioned
+// by the browser inside the document's own viewport — always the app
+// window, never the screen.
 function leaveAppDialog(lang: Language): string {
-  return (
-    `<dialog class="leaveapp confirmdialog"><div class="confirmpanel">` +
-    `<h2>${esc(t(lang, "shell.leaveAppTitle"))}</h2>` +
-    `<p class="muted">${esc(t(lang, "shell.leaveAppBody"))}</p>` +
-    dialogAnswers(
-      lang,
-      `<form method="dialog">${btn({ label: t(lang, "dialog.ok"), variant: "danger", value: "leave" })}</form>`,
-    ) +
-    `</div></dialog>`
-  );
+  return confirmDialog(lang, {
+    id: "leaveapp",
+    title: t(lang, "shell.leaveAppTitle"),
+    sentence: t(lang, "shell.leaveAppBody"),
+    ok: { variant: "danger", value: "leave" },
+  });
 }
 
 // Which board this page is served from, and — on a test board — the

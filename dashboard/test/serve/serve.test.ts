@@ -91,17 +91,12 @@ describe("GET /projects (spec 115)", () => {
   const harness = queueHarness("aide-projects-route-");
   afterEach(() => harness.cleanup());
 
-  test("the Add page and a row's Remove page are served", async () => {
+  test("the Add page is served, and Remove project has no page of its own (AC-3)", async () => {
     const { base } = harness.start();
     const add = await fetch(`${base}/projects/new`);
     expect(add.status).toBe(200);
     expect(await add.text()).toContain('action="/api/queue/projects"');
-    const remove = await fetch(`${base}/projects/aide/remove`);
-    expect(remove.status).toBe(200);
-    expect(await remove.text()).toContain('action="/api/queue/projects/aide/remove"');
-    // A name the allowlist does not know is a mistyped address.
-    const nosuch = await fetch(`${base}/projects/nosuch/remove`);
-    expect(nosuch.status).toBe(404);
+    expect((await fetch(`${base}/projects/aide/remove`)).status).toBe(404);
   });
 
   // With no --root there is no project set to list, and an empty listing

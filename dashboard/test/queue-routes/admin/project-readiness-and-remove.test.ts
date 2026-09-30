@@ -225,10 +225,9 @@ describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
     expect(res.status).toBe(400);
     const body = (await res.json()) as StepBody;
     expect(body.results.find((r) => r.step === "allowlist")!.ok).toBe(false);
-    const html = await (await fetch(`${base}/projects`, )).text();
-    // The row still stands, its Remove link with it (the form itself
-    // lives on the row's own confirm page since 2026-08-19).
-    expect(html).toContain('href="/projects/aide/remove"');
+    // The project still stands, its Remove with it.
+    const html = await (await fetch(`${base}/projects/aide?tab=config`)).text();
+    expect(html).toContain('action="/api/queue/projects/aide/remove"');
   });
 
   test("a project that was never on the allowlist is refused", async () => {
@@ -239,6 +238,36 @@ describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
       body: JSON.stringify({ confirm: "nosuch" }),
     });
     expect(res.status).toBe(400);
+  });
+
+  test("Remove project asks in a dialog on an allowlisted project's Config tab, and nowhere else (AC-3)", async () => {
+    const { base } = start({}, ["other"]);
+    const allowed = await (await fetch(`${base}/projects/aide?tab=config`)).text();
+    expect(allowed).toContain('data-ask="removeask"');
+    expect(allowed).toContain('action="/api/queue/projects/aide/remove"');
+    // Discovered, but never on the allowlist: nothing to remove it from.
+    const other = await fetch(`${base}/projects/other?tab=config`);
+    expect(other.status).toBe(200);
+    const otherHtml = await other.text();
+    expect(otherHtml).not.toContain('data-ask="removeask"');
+    expect(otherHtml).not.toContain("/remove");
+    // The list's rows carry no Remove of their own.
+    const list = await (await fetch(`${base}/projects`)).text();
+    expect(list).toContain('href="/projects/aide"');
+    expect(list).not.toContain("/projects/aide/remove");
+  });
+
+  test("a refusal posted without script goes back to the project's Config tab (AC-3)", async () => {
+    const { base } = start();
+    const res = await fetch(`${base}/api/queue/projects/never-added/remove`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: "",
+      redirect: "manual",
+    });
+    expect(res.status).toBe(303);
+    expect(new URL(res.headers.get("location")!, base).pathname + new URL(res.headers.get("location")!, base).search)
+      .toStartWith("/projects/never-added?tab=config");
   });
 
   // Criterion 4, for the second route.

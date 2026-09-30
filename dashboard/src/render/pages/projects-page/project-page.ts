@@ -6,7 +6,7 @@ import type { ProjectReadiness } from "../../../project/project-admin";
 import { FIELD_OWNED_CHECKS, type ProjectSettingsView } from "../../../project/project-settings.ts";
 import { SETTING_LABELS } from "../../../project/setting-labels.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
-import { btn, btnLink, messageSlot, rowMessage } from "../../ui/components";
+import { askButton, btn, btnLink, confirmDialog, messageSlot, rowMessage } from "../../ui/components";
 import { jobsSentence } from "../../ui/components/spec-name.ts";
 import { esc, relTimeLabel } from "../../ui/html.ts";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
@@ -289,6 +289,34 @@ function readinessSummary(readiness: ProjectReadiness): string {
   return rowMessage("failed", `a run cannot start here yet: ${reasons.join("; ")}`);
 }
 
+const REMOVE_ASK_ID = "removeask";
+
+/** Remove project, at the foot of the Config tab and outside the
+ *  settings form: the allowlist entry it takes away is part of how this
+ *  board knows the project. A button and the dialog it opens; a refusal
+ *  is written in the dialog's own line, and success goes to the list. */
+function removeProject(name: string, opts: ProjectPageOptions): string {
+  if (!opts.removable) return "";
+  const lang = opts.lang ?? "en";
+  return (
+    `<p>${askButton({ label: t(lang, "project.remove"), dialogId: REMOVE_ASK_ID, variant: "danger" })}</p>` +
+    confirmDialog(lang, {
+      id: REMOVE_ASK_ID,
+      title: `Remove ${name}?`,
+      sentence:
+        `Removing ${name} takes it off the allowlist and off this dashboard. ` +
+        `Its checkout and its specs stay on disk, untouched. This cannot be undone.`,
+      refusal: true,
+      ok: { variant: "danger", pending: "removing…" },
+      post: {
+        action: `/api/queue/projects/${encodeURIComponent(name)}/remove`,
+        hook: "removeform",
+        overlay: t(lang, "shell.overlayRemoving"),
+      },
+    })
+  );
+}
+
 /** The Config tab: the settings table, plus — since the Health tab went
  *  away (spec 378) — whether a run can start at all, and the checks no
  *  settings row owns. `readiness` is `null` where git could not be
@@ -310,7 +338,7 @@ function configSection(
     : rowMessage("info", "There is no .aide/config in this checkout, so nothing below was configured on this machine.");
   const summary = readiness ? readinessSummary(readiness) : "";
   const checkout = readiness ? checkoutChecks(readiness) : "";
-  return noFile + summary + checkout + unifiedSettingsTable(settings, name, opts.editingGroup, opts);
+  return noFile + summary + checkout + unifiedSettingsTable(settings, name, opts.editingGroup, opts) + removeProject(name, opts);
 }
 
 /** The page's tabs, in the order they are drawn: Deploy first. Default

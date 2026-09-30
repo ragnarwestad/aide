@@ -2,7 +2,7 @@
 // the compare links, reopen, and the one Run/Cancel control the State
 // column carries.
 
-import { ICON_CHEVRON, btn, dialogAnswers, stepLabel } from "../../ui/components";
+import { ICON_CHEVRON, askButton, btn, confirmDialog, stepLabel } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { currentStep, type QueueRowView } from "../../ui/job-state";
@@ -15,7 +15,7 @@ import {
   type SpecsFilter,
   type SpecGroup,
 } from "./data-model";
-import { askButton, reopenAskDialog } from "../spec-page/ask-dialog.ts";
+import { reopenAskDialog } from "../spec-page/ask-dialog.ts";
 import { queueHref, queuePath } from "./filter-bar.ts";
 import { filterFields, filterValues } from "./row-shared.ts";
 import { actionState, runFormId, specBusy } from "./row-state.ts";
@@ -58,47 +58,37 @@ export function foldControl(g: SpecGroup, f: SpecsFilter, opened: Set<string>, l
 // gone, and a row draws exactly one control now — an inert Cancel
 // beside a live Run is the "two controls" this spec removes.
 //
-// `actionform` is what the page's own code selects on, and
-// `data-pending` is what the button says while the request is out —
-// written here, beside the label it replaces, rather than as a verb
-// table in the script.
+// A button, and the confirmation it opens over the row (spec 423): the
+// reader never leaves the row they are watching. The dialog's OK is the
+// row's `actionform`, which the page's own code posts; it does not stand
+// while the job stops — the row's redraw after the post replaces it,
+// dialog and all. It needs script, as Close and Reopen do.
 function actionForm(
   r: QueueRowView,
   filter: SpecsFilter | undefined,
   lang: Language,
 ): string {
-  const hidden = filterFields(filter);
   // Gated on `r.landing`, exactly like `specStateChip`/`busyReason`
   // already do (spec 423, REQ-3): `landingStep(r)` alone answers the
   // wrong question on an ordinary row queued for its NEXT step with no
   // landing in progress.
   const step = stepLabel(r.landing ? landingStep(r) : currentStep(r), lang);
+  const id = `cancelask-${r.id}`;
   return (
-    `<form method="post" action="/api/queue/${esc(r.id)}/cancel" class="actionform cancelform">${hidden}` +
     // Primary, like every row's one action (spec 161): `danger` was
     // supposed to set it apart, but in dark mode `--danger` and
     // `--accent` sit close enough in hue that an outlined Cancel and a
     // filled button beside it said nothing different to the eye. And a
     // cancelled run can be started again, so it was never what `danger`
     // is for.
-    btn({ label: t(lang, "list.cancel"), pending: t(lang, "list.cancelling"), variant: "primary" }) +
-    `</form>` +
-    // A confirmation over the row (spec 423), the same `<dialog>` shape
-    // the schedule list's own Delete uses: the reader never leaves the
-    // row they are watching. `cancel-confirm.ts` opens it, from a
-    // delegated listener on `#jobrows` — the dialog's own inner form
-    // carries no second class, since that listener only ever matches
-    // the OUTER form's `cancelform` class.
-    `<dialog class="confirmdialog"><div class="confirmpanel">` +
-    `<h2>${esc(t(lang, "list.cancelConfirmTitle", { step }))}</h2>` +
-    `<p class="muted">${esc(t(lang, "list.cancelConfirmBody", { step }))}</p>` +
-    dialogAnswers(
-      lang,
-      `<form method="post" action="/api/queue/${esc(r.id)}/cancel" class="actionform">${hidden}` +
-        btn({ label: t(lang, "dialog.ok"), variant: "primary", pending: t(lang, "list.cancelling") }) +
-        `</form>`,
-    ) +
-    `</div></dialog>`
+    askButton({ label: t(lang, "list.cancel"), dialogId: id, variant: "primary" }) +
+    confirmDialog(lang, {
+      id,
+      title: t(lang, "list.cancelConfirmTitle", { step }),
+      sentence: t(lang, "list.cancelConfirmBody", { step }),
+      ok: { variant: "primary", pending: t(lang, "list.cancelling") },
+      post: { action: `/api/queue/${r.id}/cancel`, hook: "actionform", hidden: filterValues(filter) },
+    })
   );
 }
 
@@ -130,7 +120,7 @@ export function listReopenDialog(g: SpecGroup, filter: SpecsFilter | undefined, 
  *  spec 221): a button, and the dialog it opens beside it. */
 function reopenAsk(g: SpecGroup, opts: SpecsPageOptions, lang: Language): string {
   const id = `reopenask-${groupKey(g.project, g.specFolder)}`;
-  return askButton(t(lang, "list.reopen"), id, "primary") + listReopenDialog(g, opts.filter, lang, id);
+  return askButton({ label: t(lang, "list.reopen"), dialogId: id, variant: "primary" }) + listReopenDialog(g, opts.filter, lang, id);
 }
 
 /** The press an archived row's "still on origin" note carries: a POST

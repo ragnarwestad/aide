@@ -87,7 +87,8 @@ hand — `test/guards/one-button-one-link-one-line.test.ts` fails when one does:
 | `messageSlot()`       | a message the page's script writes into: its icon, announced, and empty or starting with a text — with no words it takes no room      |
 | `field()`             | label above any control, one height and one radius                                                                                    |
 | `saveCancelActions()` | a form's Save and Cancel pair; Save submits the form, Cancel renders disabled because it needs script                                 |
-| `dialogAnswers()`     | a confirm box's two answers on one row: the affirmative first, then Cancel (the platform's own close)                                 |
+| `confirmDialog()`     | every confirmation: the question, OK first and Cancel beside it (the platform's own close)                                            |
+| `askButton()`         | the button that names a dialog by `data-ask`; one listener on `body` opens any of them                                                |
 | `helpPopover()`       | a `details.intro` disclosure holding developer-authored help text                                                                     |
 | `backLink()`          | the link back out of a page, with the page's title beside it rather than below                                                        |
 
@@ -122,7 +123,8 @@ testing rule leaves layout out of the suites — so each change keeps them itsel
   the report frame's and the loading page's own CSS are held to the same rule.
 - **A closed class vocabulary.** A CSS class a render file or a `specs-client` file emits is one of the components,
   one of the two dozen named `specs-client` selector hooks (`rowrun`, `actionform`, `refused` and the rest), or one
-  of the short list of structural names written out in full. A name on those lists is emitted by some render or
+  of the short list of structural names written out in full, such as `pageform`: the look every page-sized form
+  shares, so no form borrows another's hook for it. A name on those lists is emitted by some render or
   `specs-client` file, and has a rule that selects it unless it is a script hook, which a script or a browser test
   selects by class, or one of the state values `default`, `todo` and `notverified`, each one value of a family whose
   other values carry the rules. No stylesheet rule selects only classes nothing emits. A marker that only names a
@@ -237,8 +239,8 @@ specs list carries a column of them on purpose. Bare is secondary: every control
 the Cancel beside a Save.
 
 `danger` means one thing only: an action a mistake cannot undo — removing a project, deleting a scheduled job,
-leaving a page with its edits unsaved. Every `danger` control either sits on a confirm step — a page or a dialog asking
-the question first — or opens one, as the Delete button in the scheduled jobs' list does. A job's Cancel is `primary` and not `danger`, because a cancelled run can be started again.
+leaving a page with its edits unsaved. Every `danger` control is either the OK of a dialog asking the question first,
+or the button that opens one, as Delete in the scheduled jobs' list and Remove project do. A job's Cancel is `primary` and not `danger`, because a cancelled run can be started again.
 
 ## Theme choice
 

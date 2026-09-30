@@ -7,11 +7,11 @@
 .proj-row { background: var(--surface); border: 1px solid var(--line);
   border-radius: var(--r); padding: var(--sp-3) var(--sp-4); margin: var(--sp-3) 0;
   display: flex; align-items: center; gap: var(--sp-4); position: relative; }
-/* The row's text fills the line; the Remove keeps to the right of it. */
+/* The row's text fills the line; the warning mark keeps to the right of it. */
 .proj-row > div:first-child { flex: 1; min-width: 0; }
 .proj-row-link::after { content: ""; position: absolute; inset: 0; }
-.proj-row-action { position: relative; z-index: 1; }
-/* Spec 369: same escape as .proj-row-action, for the row's warning mark. */
+/* Spec 369: the row's warning mark rises above the row-wide link, so it
+   is a link of its own. */
 .proj-row-warn { position: relative; z-index: 1; display: inline-flex; color: var(--warn); }
 .proj-row-warn svg { width: 18px; height: 18px; }
 .proj-row.error { border-color: var(--danger); }

@@ -1,12 +1,11 @@
-// The dashboard's Projects page: the listing every reader came for, an
-// Add button above it, and a Remove on every row.
+// The dashboard's Projects page: the listing every reader came for, and
+// an Add button above it.
 //
 // The listing (`projects-page/overview-list.ts`) is served, not
-// generated — adding and removing a project is a mutating action, which
-// needs a server behind it. The controls follow the New-spec pattern
-// (2026-08-19): Add is a real button at the top right of the list that
-// opens a page of its own with Save and Cancel, and each project row
-// carries its own Remove.
+// generated — adding a project is a mutating action, which needs a
+// server behind it. Add follows the New-spec pattern (2026-08-19): a real
+// button at the top right of the list that opens a page of its own with
+// Save and Cancel. Remove project is on the project's own Config tab.
 //
 // Split by theme into projects-page/: types.ts (the view types),
 // routes.ts (nav and paths), overview-list.ts (the `/projects` list
@@ -51,16 +50,10 @@ export {
   renderProjectPage,
 };
 
-/** Where a project is added (its own page, like `/new`), and where one
- *  is removed — the confirm page each row's Remove links to. */
+/** Where a project is added: its own page, like `/new`. */
 export const ADD_PROJECT_ROUTE = "/projects/new";
-export const removeProjectRoute = (name: string): string =>
-  `/projects/${encodeURIComponent(name)}/remove`;
 
 export interface ProjectsPageOptions {
-  /** Every project the queue may run — the RAW allowlist, which is what
-   *  the Add and Remove pages exist to change. */
-  createProjects?: string[];
   /** The page's browser code, compiled from `specs-client.ts` by the
    *  server: the typed-confirmation gate and the inline refusals. Every
    *  control works without it, one page load at a time. */
@@ -137,7 +130,6 @@ export function renderProjectsPage(
   entries: NavEntry[],
   opts: ProjectsPageOptions,
 ): string {
-  const allowed = new Set(opts.createProjects ?? []);
   const lang = opts.lang ?? "en";
   const body =
     // A refusal first, or it is read after the thing it refused.
@@ -156,11 +148,9 @@ export function renderProjectsPage(
     // (2026-08-21).
     `<div class="listtop">${projectSummary(projects, lang)}` +
     `${btnLink({ href: ADD_PROJECT_ROUTE, label: t(lang, "project.add"), variant: "primary" })}</div>\n` +
-    // Remove rides on each row the allowlist knows — a discovered
-    // project that was never allowlisted has nothing to be removed FROM.
+    // Remove project is on each project's own Config tab.
     projectListBody(projects, {
       pageHref: (name) => projectPagePath(name),
-      removeHref: (name) => (allowed.has(name) ? removeProjectRoute(name) : undefined),
       lang,
       // Spec 369: the sentence itself lives on the Config tab now (moved
       // off the Health tab by spec 378) — the list carries only a link
@@ -208,7 +198,7 @@ export function renderAddProjectPage(
         "into the project's repository.",
       { tag: "p" },
     ) +
-    `<form method="post" action="/api/queue/projects" class="newspecform addprojectform">` +
+    `<form method="post" action="/api/queue/projects" class="pageform addprojectform">` +
     `<span class="frow">` +
     field(
       "Name",
@@ -280,45 +270,6 @@ export function renderAddProjectPage(
     `</form>`;
   return pageShell("Add project", entries, "/projects", body, generatedAt, undefined, {
     docTitle: "aide -board — add project",
-    script: opts.script,
-    hideHeading: true,
-    lang: opts.lang,
-    currentUrl: opts.currentUrl,
-  });
-}
-
-// The Remove confirmation, on a page of its own: what removal means,
-// the typed confirmation, and a Cancel that does nothing. The server
-// refuses a mismatched name either way — the page is the half that
-// means nobody has to be refused to find out.
-export function renderRemoveProjectPage(
-  name: string,
-  entries: NavEntry[],
-  generatedAt: string,
-  opts: ProjectsPageOptions,
-): string {
-  const body =
-    backLink("/projects", `Remove ${name}`) +
-    (opts.error ? rowMessage("failed", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
-    rowMessage(
-      "info",
-      `Removing ${name} takes it off the allowlist and off this dashboard. ` +
-        `Its checkout and its specs stay on disk, untouched.`,
-      { tag: "p" },
-    ) +
-    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/remove" class="newspecform removeform" ` +
-      `data-overlay="${t(opts.lang ?? "en", "shell.overlayRemoving")}">` +
-    rowMessage("waiting", `Are you sure you want to remove ${name}? This cannot be undone.`, {
-      tag: "p",
-    }) +
-    `<span class="factions">` +
-    btn({ label: "Remove", variant: "danger", pending: "removing…" }) +
-    btnLink({ href: "/projects", label: "Cancel" }) +
-    `</span>` +
-    messageSlot("refused") +
-    `</form>`;
-  return pageShell(`Remove ${name}`, entries, "/projects", body, generatedAt, undefined, {
-    docTitle: `aide -board — remove ${name}`,
     script: opts.script,
     hideHeading: true,
     lang: opts.lang,

@@ -21,7 +21,7 @@
 // transpiled source against a fake document and window.
 
 (() => {
-  const TRACKED = ".specform, .trackingform, .settingsform, .newspecform, .scheduleform";
+  const TRACKED = ".specform, .trackingform, .settingsform, .pageform, .scheduleform";
   let dirty = false;
 
   const markDirty = (event: Event): void => {
@@ -49,13 +49,13 @@
   // An in-app link click while dirty (spec 478) is the one exit path a
   // page's own script CAN intercept — Back/Forward, a closed tab and a
   // typed address still fall to the native beforeunload prompt below.
-  // `dialog.leaveapp` (shell.ts) is a real <dialog>, always positioned
+  // The `leaveapp` dialog (shell.ts) is a real <dialog>, always positioned
   // inside the document's own viewport rather than by the OS, unlike
   // that native prompt. Registered before NAV_BUSY_SCRIPT/
   // NAV_OVERLAY_SCRIPT in shell.ts's own script concatenation, so this
   // listener's preventDefault() is seen by both before either adds its
-  // own busy-indicator side effect — the same reasoning
-  // cancel-confirm.ts documents for a different pair of listeners.
+  // own busy-indicator side effect: same-type listeners on one element
+  // run in the order they were added.
   let pendingLink: HTMLAnchorElement | null = null;
   let dialogWired = false;
 
@@ -72,7 +72,7 @@
     if (!link || link.target === "_blank" || link.hasAttribute("download")) return;
     const href = link.getAttribute("href") || "";
     if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) return;
-    const dialog = document.querySelector("dialog.leaveapp") as HTMLDialogElement | null;
+    const dialog = document.getElementById("leaveapp") as HTMLDialogElement | null;
     if (!dialog || typeof dialog.showModal !== "function") return;
     if (!dialogWired) {
       dialogWired = true;
@@ -91,6 +91,14 @@
     event.preventDefault();
     pendingLink = link;
     dialog.showModal();
+  });
+
+  // A press that takes the whole page away on purpose — Remove project,
+  // whose form is not one of the tracked ones — says so with this event
+  // once it has succeeded (`submitProjectChange`, specs-client/forms.ts),
+  // so the edits it leaves behind raise no question on the way out.
+  document.addEventListener("aide-changes-discarded", () => {
+    dirty = false;
   });
 
   window.addEventListener("beforeunload", (event: BeforeUnloadEvent) => {

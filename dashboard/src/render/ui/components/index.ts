@@ -23,7 +23,11 @@ export { STEP_LABELS, STEP_LABELS_NB, STEP_LABELS_ES, STEP_LABELS_DE, STEP_LABEL
 
 // --- button ----------------------------------------------------------------
 
-export { btn, btnLink, saveCancelActions, dialogAnswers, type BtnVariant } from "./button.ts";
+export { btn, btnLink, saveCancelActions, type BtnVariant } from "./button.ts";
+
+// --- confirm dialog --------------------------------------------------------------
+
+export { confirmDialog, askButton, type ConfirmParts } from "./confirm-dialog.ts";
 
 // --- status badge --------------------------------------------------------------
 

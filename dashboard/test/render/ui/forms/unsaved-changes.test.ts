@@ -78,6 +78,7 @@ function harness() {
   let submitHandler: ((event: unknown) => void) | undefined;
   let clickHandler: ((event: unknown) => void) | undefined;
   let beforeunloadHandler: ((event: unknown) => void) | undefined;
+  let discardedHandler: ((event: unknown) => void) | undefined;
 
   let showModalCalled = false;
   let closeHandler: (() => void) | undefined;
@@ -101,8 +102,9 @@ function harness() {
       else if (type === "change") changeHandler = fn;
       else if (type === "submit") submitHandler = fn;
       else if (type === "click") clickHandler = fn;
+      else if (type === "aide-changes-discarded") discardedHandler = fn;
     },
-    querySelector: (sel: string) => (sel === "dialog.leaveapp" ? dialog : null),
+    getElementById: (id: string) => (id === "leaveapp" ? dialog : null),
   };
   const window = {
     addEventListener: (type: string, fn: (event: unknown) => void) => {
@@ -148,9 +150,12 @@ function harness() {
     return { prevented, returnValue };
   };
 
+  const discarded = () => discardedHandler!({});
+
   return {
     input,
     change,
+    discarded,
     submit,
     click,
     beforeunload,
@@ -171,7 +176,7 @@ describe("a page with an unsaved edit warns before it is left (spec 438)", () =>
     expect(prevented).toBe(false);
   });
 
-  for (const cls of ["specform", "trackingform", "settingsform", "newspecform", "scheduleform"]) {
+  for (const cls of ["specform", "trackingform", "settingsform", "pageform", "scheduleform"]) {
     test(`an input inside .${cls} arms the guard (AC-1/AC-2)`, () => {
       const h = harness();
       h.input(element({ classes: [cls] }));
@@ -219,9 +224,17 @@ describe("a page with an unsaved edit warns before it is left (spec 438)", () =>
     expect(prevented).toBe(false);
   });
 
+  test("a press that took the page away on purpose disarms it (AC-3, Remove project beside an open settings table)", () => {
+    const h = harness();
+    h.input(element({ classes: ["pageform"] }));
+    h.discarded();
+    const { prevented } = h.beforeunload();
+    expect(prevented).toBe(false);
+  });
+
   test("clicking a [data-discard-changes] control disarms it (AC-5, project settings' Cancel link)", () => {
     const h = harness();
-    h.input(element({ classes: ["newspecform"] }));
+    h.input(element({ classes: ["pageform"] }));
     h.click(element({ discardChanges: true }));
     const { prevented } = h.beforeunload();
     expect(prevented).toBe(false);
@@ -235,7 +248,7 @@ describe("a page with an unsaved edit warns before it is left (spec 438)", () =>
 // positions inside the document's own viewport (AC-1/AC-2). Back/
 // Forward, a closed tab and a typed address still fall to the
 // unchanged native prompt above.
-describe("a same-document link click while dirty opens dialog.leaveapp instead of navigating (spec 478)", () => {
+describe("a same-document link click while dirty opens the leaveapp dialog instead of navigating (spec 478)", () => {
   test("dirty + a same-document link click: preventDefault and showModal both fire (AC-1/AC-2)", () => {
     const h = harness();
     h.input(element({ classes: ["specform"] }));

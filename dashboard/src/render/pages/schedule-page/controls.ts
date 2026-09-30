@@ -2,7 +2,7 @@
 // them on the entry's row: the Enabled switch, Run now, Edit and Delete. The
 // Schedule list only shows and links; changes are made here.
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
-import { btn, btnLink, dialogAnswers } from "../../ui/components";
+import { askButton, btn, btnLink, confirmDialog } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { scheduleEditPath } from "./edit-page.ts";
@@ -34,32 +34,28 @@ export function scheduleControlCells(project: string, entry: ScheduleEntry, lang
 // the thing you had decided to be rid of.
 //
 // The control is a plain button, script-only (spec 528: no confirm page
-// behind it any more). Its click opens the confirmation beside it:
-// `<dialog>`, the platform's own modal, the way the About box in the
-// header is done — Escape and Cancel close it, and nothing is deleted
+// behind it any more). Its click opens the board's one confirmation
+// dialog beside it — Escape and Cancel close it, and nothing is deleted
 // by a stray click on a table row.
 //
 // What it asks is the question itself, in the heading, with the two
 // answers under it. It asked for the entry's exact name, typed back,
 // until 2026-09-08.
 function deleteCell(project: string, name: string, deleteUrl: string): string {
+  const id = `deleteask-${project}/${name}`;
   return (
     `<td>` +
-    btn({ label: "Delete", type: "button", variant: "danger", data: { "delete-schedule": "" }, ariaLabel: `Delete ${name}` }) +
-    `<dialog class="confirmdialog"><div class="confirmpanel">` +
-    `<h2>Delete ${esc(project)}:${esc(name)}?</h2>` +
-    `<p class="muted">The entry is removed and stops firing. ` +
-    `Its own run history stays in the queue.</p>` +
+    askButton({ label: "Delete", dialogId: id, variant: "danger", ariaLabel: `Delete ${name}` }) +
     // The dialog's own heading asks the question: the press is the
     // whole of "yes". This page has no catalogue, so the box keeps to
     // English.
-    dialogAnswers(
-      "en",
-      `<form method="post" action="${esc(deleteUrl)}" class="scheduledeleteform">` +
-        btn({ label: t("en", "dialog.ok"), variant: "danger", pending: "deleting…" }) +
-        `</form>`,
-    ) +
-    `</div></dialog></td>`
+    confirmDialog("en", {
+      id,
+      title: `Delete ${project}:${name}?`,
+      sentence: "The entry is removed and stops firing. Its own run history stays in the queue.",
+      ok: { variant: "danger", pending: "deleting…" },
+      post: { action: deleteUrl },
+    }) +
+    `</td>`
   );
 }
-

@@ -57,15 +57,6 @@ describe("spec 105: a busy row offers only what its state allows", () => {
           `(?=<tr class="[^"]*spechead|</tbody>|$)`,
       ),
     )?.[0] ?? "";
-  /** Where a row's one button is: the State cell — the head row's
-   *  THIRD — since spec 157, open or shut alike. It was the header's
-   *  last cell for a shut row and a spanning `stackcell` for an open
-   *  one, which is why this used to need the whole row group. */
-  const actionCell = (chunk: string) => {
-    const headRow = chunk.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? chunk;
-    const cells = [...headRow.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
-    return cells[1] ?? "";
-  };
   const box = (line: string, step: string) =>
     line.match(new RegExp(`<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "";
   /** The Run button itself, with whatever attributes it carries. */
@@ -81,9 +72,9 @@ describe("spec 105: a busy row offers only what its state allows", () => {
 
   // --- criterion 1: running or queued, Cancel and only Cancel ---------------
 
-  /** One button of the action stack, from its own form. */
+  /** A posting form on the open row, by the verb it posts to. */
   const control = (cell: string, verb: string) =>
-    cell.match(new RegExp(`<form method="post" action="/api/queue/j1/${verb}"[\\s\\S]*?</form>`))?.[0] ?? "";
+    cell.match(new RegExp(`<form [^>]*action="/api/queue/j1/${verb}"[\\s\\S]*?</form>`))?.[0] ?? "";
 
   for (const state of ["queued", "running"] as const) {
     test(`a ${state} spec's opened row offers Cancel, and nothing else it can press (criterion 1)`, () => {
@@ -92,8 +83,12 @@ describe("spec 105: a busy row offers only what its state allows", () => {
       // will take a click. Since spec 149 Cancel is the only one in it
       // at all: Approve went with the stop between steps, Merge with
       // the hand merge.
-      const cell = actionCell(openControls(spec(state)));
-      expect(control(cell, "cancel")).not.toContain("disabled");
+      const cell = openControls(spec(state));
+      // Cancel is a button naming its dialog, whose OK posts the cancel.
+      const cancel = cell.match(/<button [^>]*data-ask="cancelask-j1"[^>]*>/)?.[0] ?? "";
+      expect(cancel).not.toBe("");
+      expect(cancel).not.toContain("disabled");
+      expect(control(cell, "cancel")).not.toBe("");
       expect(control(cell, "approve")).toBe("");
       expect(control(cell, "merge")).toBe("");
     });

@@ -1,9 +1,8 @@
-// The button, the link drawn as one, and the two rows of buttons every
-// form and every confirm box carries.
+// The button, the link drawn as one, and the Save/Cancel row every
+// document form carries. A confirm box's answers are `confirm-dialog.ts`'s.
 // `index.ts` re-exports every name here; the pages import it from there.
 
 import { esc } from "../html.ts";
-import { t, type Language } from "../../../i18n";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { SPINNER } from "./icons.ts";
 
@@ -43,7 +42,7 @@ export function btn(o: {
    *  leave dialog's OK closes it with `returnValue` "leave". */
   value?: string;
   /** Each key written as `data-<key>="<value>"`: the hook a script finds
-   *  this button by (`data-ask`, `data-delete-schedule`). */
+   *  this button by (`data-ask`). */
   data?: Record<string, string>;
   /** The name a screen reader reads, for a button whose label alone does
    *  not say what it acts on — one Delete per schedule entry. */
@@ -82,7 +81,7 @@ export function btnLink(o: {
    *  `nav-busy.ts`, not by the link. */
   variant?: Exclude<BtnVariant, "busy">;
   small?: boolean;
-  /** A class a script or a layout rule selects on (`proj-row-action`). */
+  /** A class a script or a layout rule selects on. */
   hook?: string;
   data?: Record<string, string>;
 }): string {
@@ -107,17 +106,5 @@ export function saveCancelActions(prefix = "specform", o: { variant?: BtnVariant
     btn({ id: `${prefix}-save`, label: "Save", variant: o.variant ?? "primary", pending: "saving…" }) +
     btn({ id: `${prefix}-cancel`, label: "Cancel", type: "button", disabled: true }) +
     `</span>`
-  );
-}
-
-/** The two answers a confirm box asks for, on one row: `affirmative` (a whole form — one posts, one returns a
- *  value to the script that opened the box) first, then Cancel. Cancel is the platform's own close, a
- *  `method="dialog"` form with no action and no id: it works with no script, and an id ending `-cancel` would
- *  disarm the leave guard (`unsaved-changes.ts`). */
-export function dialogAnswers(lang: Language, affirmative: string): string {
-  return (
-    `<div class="dialogactions">${affirmative}` +
-    `<form method="dialog">${btn({ label: t(lang, "dialog.cancel") })}</form>` +
-    `</div>`
   );
 }

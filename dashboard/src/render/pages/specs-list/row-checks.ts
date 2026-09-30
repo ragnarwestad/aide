@@ -3,7 +3,7 @@
 // Save. The state is in the URL (`?checks=`), like the row's own fold, so
 // it survives the live redraw and works with script off.
 
-import { ICON_CHEVRON, btn, rowMessageParts } from "../../ui/components";
+import { ICON_CHEVRON, askButton, btn, rowMessageParts } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { acTestsLine } from "../../ui/ac-tests.ts";
 import { checkColumns, checkControls, checkReadOnlyMark } from "../../ui/check-controls.ts";
@@ -13,7 +13,6 @@ import { groupKey, isArchivedRow, type SpecGroup, type SpecsFilter } from "./dat
 import { specBusy } from "./row-state.ts";
 import { queueHref } from "./filter-bar.ts";
 import { drawsChecksLine, filterFields } from "./row-shared.ts";
-import { askButton } from "../spec-page/ask-dialog.ts";
 import { listReopenDialog } from "./row-controls.ts";
 
 /** The keys named in `?checks=`: the specs whose criteria are unfolded. */
@@ -61,7 +60,7 @@ export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language): strin
   // A Failed row's Reopen opens a dialog drawn after the panel, never
   // inside its form: the parser drops a nested form.
   const reopenId = `reopenask-checks-${key}`;
-  const reopen = askButton(t(lang, "list.reopen"), reopenId);
+  const reopen = askButton({ label: t(lang, "list.reopen"), dialogId: reopenId });
   const reopenDialog = archived && rows.some((row) => row.failed) ? listReopenDialog(g, f, lang, reopenId) : "";
   // The boxes name the form with `form=`, so they can sit in the list
   // while the row's own table stays outside any form.

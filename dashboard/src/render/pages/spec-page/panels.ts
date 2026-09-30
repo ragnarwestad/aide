@@ -68,7 +68,7 @@ function editableDocumentForm(
   extra = "",
 ): string {
   return (
-    `<form method="post" action="${esc(view.saveAction)}" class="newspecform specform" ` +
+    `<form method="post" action="${esc(view.saveAction)}" class="pageform specform" ` +
       `data-overlay="${t(lang, "shell.overlaySaving")}">` +
     // Which file this Save is about (REQ-2) — the allowlist the route
     // checks it against.

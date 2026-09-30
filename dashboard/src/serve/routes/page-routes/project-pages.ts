@@ -12,7 +12,7 @@ import { groupForEditParam, projectSettings } from "../../../project/project-set
 import { lastChecks } from "../../tool-check.ts";
 import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardSettingsFile } from "../../../git/dashboard-checkout.ts";
 import { assessProjectReadiness, manifestTracked, settingsHome } from "../../../project/project-admin";
-import { ADD_PROJECT_ROUTE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderRemoveProjectPage, renderSettingsPage, renderTestServersPage, resolveBackHref, specPagePath, type TestServerRow } from "../../../render";
+import { ADD_PROJECT_ROUTE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderSettingsPage, renderTestServersPage, resolveBackHref, specPagePath, type TestServerRow } from "../../../render";
 import { MAIN_TEST_SERVER_KEY, refreshTestServerStatus } from "../../test-servers/lifecycle.ts";
 import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "../spec-edit/test-server-waiting.ts";
 import { isSpecFolder } from "../../../render/ui/shell.ts";
@@ -105,27 +105,6 @@ export async function projectPages(
     }
     const langResult = languageChoice(url, req);
     const html = renderAddProjectPage(ctx.nav(), new Date().toISOString(), {
-      script: await specsClientScript(),
-      error: url.searchParams.get("error") ?? undefined,
-      lang: langResult.lang,
-      currentUrl: langResult.currentUrl,
-    });
-    const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
-    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
-    return new Response(html, { headers });
-  }
-
-  const removePage = path.match(/^\/projects\/([^/]+)\/remove$/);
-  if (removePage) {
-    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-    const name = decodeURIComponent(removePage[1]!);
-    // Only a project the allowlist knows has anything to be removed
-    // from — everything else is a mistyped address.
-    if (!ctx.opts.projectRoot || !ctx.allowed.has(name)) {
-      return new Response("no such project\n", { status: 404 });
-    }
-    const langResult = languageChoice(url, req);
-    const html = renderRemoveProjectPage(name, ctx.nav(), new Date().toISOString(), {
       script: await specsClientScript(),
       error: url.searchParams.get("error") ?? undefined,
       lang: langResult.lang,
@@ -246,6 +225,8 @@ export async function projectPages(
         // The page the reader came from, so a project opened from a
         // spec's row goes back to that row; Projects without one.
         backHref: resolveBackHref(req.headers.get("referer"), url.origin, PROJECTS_ROUTE, url.pathname),
+        // Only a project the allowlist knows has anything to be removed from.
+        removable: !!ctx.opts.projectRoot && ctx.allowed.has(name),
         script: await specsClientScript(),
         // Specs root and Worktree links are no longer read a second
         // time here (spec 255): `projectSettings(dir, readiness)`
@@ -355,9 +336,6 @@ export async function projectPages(
       ctx.nav(),
       {
         readinessByProject,
-        // The RAW allowlist, like the New-spec dropdown: a project
-        // with no spec yet is exactly what this page is for.
-        createProjects: [...ctx.allowed].sort(),
         script: await specsClientScript(),
         error: url.searchParams.get("error") ?? undefined,
         // What the Add that landed the reader here found out (spec

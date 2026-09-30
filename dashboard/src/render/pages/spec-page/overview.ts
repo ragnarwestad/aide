@@ -2,7 +2,7 @@
 // archived) drawn in the banner on every tab, the Status tab's
 // criteria checklist, and the Reopen and Close controls.
 
-import { btn, helpPopover, ICON_PDF, rowMessage, saveCancelActions } from "../../ui/components";
+import { askButton, btn, helpPopover, ICON_PDF, rowMessage, saveCancelActions } from "../../ui/components";
 import { SPINNER } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { acTestsLine } from "../../ui/ac-tests.ts";
@@ -11,7 +11,7 @@ import { failedCount, notVerifiedCount } from "../../../project/parse-status";
 import { dependsOnField } from "../new-spec-page.ts";
 import { t, type Language } from "../../../i18n";
 import {
-  CLOSE_ASK_ID, CLOSE_SENTENCE, REOPEN_ASK_ID, askButton, closeAskDialog, reopenAskDialog,
+  CLOSE_ASK_ID, CLOSE_SENTENCE, REOPEN_ASK_ID, closeAskDialog, reopenAskDialog,
 } from "./ask-dialog.ts";
 import { specPagePath } from "./tabs.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
@@ -289,7 +289,7 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
   // cannot be drawn here, inside the checks' form, since the parser drops
   // a nested form. A live spec has its actions on its queue row.
   const reopen = (row: SpecCheckView): string =>
-    row.failed && view.archived && !view.closed ? askButton("Reopen", REOPEN_ASK_ID) : "";
+    row.failed && view.archived && !view.closed ? askButton({ label: "Reopen", dialogId: REOPEN_ASK_ID }) : "";
   // The Notes cell, on its own line under the criterion. It is the one
   // thing on the row a reader cannot work out from the criterion itself:
   // what the run actually delivered against it, and any limit on that —
@@ -353,7 +353,7 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
  *  row on the queue list is where its actions are. */
 export function reopenControl(view: SpecPageView, lang: Language = "en"): string {
   return (
-    askButton("Reopen", REOPEN_ASK_ID) +
+    askButton({ label: "Reopen", dialogId: REOPEN_ASK_ID }) +
     reopenAskDialog(view.project, view.specFolder, lang, {
       id: REOPEN_ASK_ID,
       back: specPagePath(view.project, view.specFolder),
@@ -456,7 +456,7 @@ export function closeControl(view: SpecPageView, lang: Language = "en"): string 
   // Close has no fallback page behind it (spec 527) — this button needs
   // script to do anything, joining design-system.md's list of controls
   // that do.
-  return askButton("Close", CLOSE_ASK_ID) + closeAskDialog(view.project, view.specFolder, lang);
+  return askButton({ label: "Close", dialogId: CLOSE_ASK_ID }) + closeAskDialog(view.project, view.specFolder, lang);
 }
 
 /** One "(?)" for the whole action row (spec 457), replacing what used

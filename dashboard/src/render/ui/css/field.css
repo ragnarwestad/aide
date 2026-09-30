@@ -67,14 +67,14 @@ select[name^="model."] {
    to whatever stands beside it (seen against Create, 2026-08-19). */
 .field textarea { height: auto; padding: var(--sp-2); line-height: var(--lh);
   min-height: 84px; resize: vertical; width: 100%; box-sizing: border-box; }
-.newspecform textarea { overflow-x: auto; }
+.pageform textarea { overflow-x: auto; }
 /* The banner's own tracking form (spec 394), under its own class rather
    than `.specform` itself — the Checks tab's tick form already carries
    that class, and a second form sharing it on the same page would be
    two `.specform button[type="submit"]`s for anything that ever has to
    find one. Its Save sits below its own fields, unlike `.specform`'s
    (spec 391, rows-and-forms.css's `.panelhead`), so it keeps this gap. */
-/* The same row `.panelhead` and `.newspecform` give their own pair:
+/* The same row `.panelhead` and `.pageform` give their own pair:
    `.factions` carries no spacing of its own, so Save and Cancel sat
    edge to edge here. No top margin: this pair rides on the "Depends on"
    label line, and the fallback pair below the switch sits in a `.field`

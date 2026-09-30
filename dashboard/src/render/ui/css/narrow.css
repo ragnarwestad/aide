@@ -555,7 +555,7 @@
   table.list tr.subrow .modelcell > .row > .phase[data-phase] { min-width: 0; max-width: none; }
 
   /* Two fields side by side become two lines. */
-  .newspecform .frow { flex-wrap: wrap; }
+  .pageform .frow { flex-wrap: wrap; }
 
   /* Same, for the schedule form's two-column grid (field.css):
      one column, so Project/Cron and Name/Prompt file path each drop

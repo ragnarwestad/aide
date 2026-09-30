@@ -3,14 +3,10 @@
 // specs-client.ts still says why each piece of state exists; this file
 // only carries the declarations.
 
-/** The New-spec form, and never the Add-project or Settings-save ones.
- *  All three wear `newspecform` — the Add and Settings forms borrow the
- *  look — and live on different pages: the real one is the whole of
- *  `/new` (spec 121), and `/projects`/`/projects/<name>` have only the
- *  other two, which would otherwise answer in its place — bound twice,
- *  two POSTs for one press (spec 486, the same collision spec 115 fixed
- *  for the Add form). */
-export const NEW_SPEC_FORM = "form.newspecform:not(.addprojectform):not(.projectsettingsform)";
+/** The New-spec form, the whole of `/new` (spec 121). Its class is its
+ *  own: the other page-sized forms share its look through `pageform`,
+ *  so none of them can answer in its place and be bound as a create. */
+export const NEW_SPEC_FORM = "form.newspecform";
 
 /** The look a control wears between the click and the answer (spec
  *  208). One class for both kinds of waiting — an in-page swap and a

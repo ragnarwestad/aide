@@ -1,5 +1,5 @@
-// The dialog Reopen and Close ask in (`render/pages/spec-page/ask-dialog.ts`):
-// opened from the button that names it, and on OK it stands until the
+// The wait behind the dialog Reopen and Close ask in
+// (`render/pages/spec-page/ask-dialog.ts`): on OK it stands until the
 // queued job has settled, then the page leaves. While it stands, Escape
 // and the browser's own ways of closing it are answered here.
 
@@ -62,16 +62,6 @@ const states = new WeakMap<object, { waiting: boolean }>();
 /** The ask's line for a refusal: empty when `why` is. */
 function say(ask: HTMLDialogElement, why: string): void {
   writeLine(ask.querySelector(".refused"), why);
-}
-
-/** A click on any `button[data-ask]` opens the dialog it names. One
- *  listener for every such button, bound where rows drawn later reach it
- *  too, and a button inside a form reaches a dialog drawn outside it. */
-export function openAsk(event: Event): void {
-  const button = (event.target as Element | null)?.closest?.("button[data-ask]") as HTMLButtonElement | null;
-  const id = button?.dataset.ask;
-  const box = id ? (button!.ownerDocument.getElementById(id) as HTMLDialogElement | null) : null;
-  if (box && typeof box.showModal === "function") box.showModal();
 }
 
 export async function submitProgress(form: HTMLFormElement, event: Event, io: ProgressIo = browserIo): Promise<void> {

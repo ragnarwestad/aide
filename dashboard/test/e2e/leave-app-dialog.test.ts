@@ -69,7 +69,7 @@ describe("the leave-app dialog replaces the native prompt for an in-app link (sp
     );
     await dirtyTheTrackingForm();
     await exitLink().click();
-    const dialog = page.locator("dialog.leaveapp");
+    const dialog = page.locator("#leaveapp");
     await dialog.waitFor({ state: "visible" });
 
     await dialog.getByRole("button", { name: "Cancel" }).click();
@@ -87,7 +87,7 @@ describe("the leave-app dialog replaces the native prompt for an in-app link (sp
     );
     await dirtyTheTrackingForm();
     await exitLink().click();
-    const dialog = page.locator("dialog.leaveapp");
+    const dialog = page.locator("#leaveapp");
     await dialog.waitFor({ state: "visible" });
 
     await Promise.all([

@@ -36,13 +36,30 @@ describe("Remove", () => {
     expect(h.location.href).toBe("/projects?state=running&sort=cost");
   });
 
-  test("a refusal is written beside the form, and the page stays put", async () => {
+  test("a removal tells the unsaved-changes guard the page's edits are left behind (AC-3)", async () => {
+    const h = harness(() => ({ ok: true, body: { ok: true, results: [] } }), "actionform", "?tab=config", {
+      pathname: "/projects/atlasaurus",
+    });
+    await h.submitRemove();
+    expect(h.dispatched).toContain("aide-changes-discarded");
+    expect(h.location.href).toBe("/projects");
+  });
+
+  test("a refused removal leaves the guard armed (AC-3)", async () => {
+    const h = harness(() => ({ ok: false, body: { ok: false, results: [{ step: "allowlist", error: "no" }] } }));
+    await h.submitRemove();
+    expect(h.dispatched).not.toContain("aide-changes-discarded");
+  });
+
+  test("a refusal is written in the dialog's own line, the dialog stays open and the page stays put (AC-3)", async () => {
     const h = harness(() => ({
       ok: false,
-      body: { ok: false, results: [{ step: "confirm", error: 'type the project name exactly' }] },
+      body: { ok: false, results: [{ step: "allowlist", error: "not on the allowlist" }] },
     }));
     await h.submitRemove();
-    expect(h.removeSlot.textContent).toContain("Type the project name exactly");
+    expect(h.removeSlot.textContent).toContain("Not on the allowlist");
+    expect(h.removeDialog.open).toBe(true);
+    expect(h.removeDialog.closes).toBe(0);
     expect(h.location.href).toBe("http://dash.test/");
     expect(h.replaced).toHaveLength(0);
   });
@@ -50,12 +67,10 @@ describe("Remove", () => {
 
 // --- spec 115: the same code on a page with no spec list ---------------------
 //
-// The Add form wears `newspecform` for its looks, and on `/` that was
-// harmless: the real New-spec form came first in the document, so
-// `querySelector` found it. On `/projects` there is no New-spec form at
-// all — the Add form would answer in its place and be bound twice, once
-// as a project change and once as a spec create, sending two POSTs for
-// one press.
+// The Add form shares the New-spec form's look (`pageform`), never its
+// class: on `/projects` there is no New-spec form at all, and a form
+// answering in its place would be bound twice, once as a project change
+// and once as a spec create, sending two POSTs for one press.
 describe("on /projects, where there is no New-spec form", () => {
   /** Enough of a matcher for the two selectors the file uses: every
    *  `.class` in the compound has to be on the element, and none of the
@@ -71,7 +86,7 @@ describe("on /projects, where there is no New-spec form", () => {
     const bound: string[] = [];
     const addForm = {
       dataset: {} as Record<string, string>,
-      className: "newspecform addprojectform",
+      className: "pageform addprojectform",
       querySelector: () => null,
       querySelectorAll: () => [],
       addEventListener: (type: string) => void bound.push(type),
@@ -109,11 +124,10 @@ describe("on /projects, where there is no New-spec form", () => {
 
 // --- spec 486: the project settings form's own Save ---------------------------
 //
-// The Save form borrows `newspecform` for its look, exactly the way the
-// Add form does, and on `/projects/<name>?edit=config` there is no New-spec
-// form either — so before this fix `NEW_SPEC_FORM`'s selector picked the
-// settings form up and bound it to `submitCreate`, whose success always
-// runs `location.href = "/"`. `submitProjectSettings` (forms.ts) is its
+// The Save form shares the look (`pageform`), exactly the way the Add
+// form does, and on `/projects/<name>?edit=config` there is no New-spec
+// form either — bound as one, its success would run `submitCreate`'s
+// `location.href = "/"`. `submitProjectSettings` (forms.ts) is its
 // own handler, bound to `form.projectsettingsform`: a successful save
 // reloads the reader's own project path, dropping `?edit=config`; a refusal
 // writes into the form's own `.refused` slot and leaves the page put.
@@ -128,7 +142,7 @@ describe("the project settings form's own Save (spec 486)", () => {
     const bound: [string, (e: Event) => void | Promise<void>][] = [];
     const form = {
       dataset: {} as Record<string, string>,
-      className: "newspecform projectsettingsform",
+      className: "pageform projectsettingsform",
       action: "http://dash.test/api/queue/projects/aide/settings",
       fields: [] as [string, string][],
       closest: () => null,

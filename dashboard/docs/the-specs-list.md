@@ -81,8 +81,8 @@ The caption line carries the row's action, and the row draws one at a time. Whil
 running it is the run button, **labelled with the phase it would run** — "Implement", not "Run" — and disabled,
 still named, when that phase is unticked. Pressing it queues everything ticked as a single job in the workflow's
 order: the browser submits checkboxes in the order they are drawn, so ticking `implement` before `analyze` still
-queues analyze first. While something is running it is **Cancel** instead, which the page's script fronts with a
-confirmation dialog; with the script off the form posts directly. While `create` is the running step there is no
+queues analyze first. While something is running it is **Cancel** instead, a button that opens a confirmation
+dialog whose OK posts the cancel; like Close and Reopen, it needs script. While `create` is the running step there is no
 button at all: cancelling it would throw away the title and the description with no spec left to run again from.
 
 A reader who wants to stop between steps runs one phase at a time.
@@ -450,18 +450,20 @@ route is removed, not redirected.
 
 ## What the script adds
 
-The page's own browser code does one thing to the controls: it keeps the reader where they are. Both of them —
-Run and Cancel — are real `<form>`s that work on their own, and the script only intercepts. Cancel is intercepted
-twice over: once to open its confirmation dialog, and once for the press that follows.
+The page's own browser code does one thing to the controls: it keeps the reader where they are. Run is a real
+`<form>` that works on its own, and the script only intercepts it; Cancel's OK is one too, posted the same way.
 
-- **Close and Reopen ask in a dialog, with no fallback page behind either.** One function draws the dialog for
-  both (`askDialog`, `ask-dialog.ts`): a `dialog.confirmdialog` with the question, the sentence that says what the
-  action does, its own control — Close's required Reason field (bounded and counted), Reopen's unticked box that also
-  resets the analysis, the plan and the status — a refusal line, and OK and Cancel. Its button carries
-  `data-ask="<dialog id>"`, and one click listener opens whichever dialog a button names, so a Reopen beside a Failed
-  criterion, inside the checks' own form, opens a dialog drawn outside it. Close is on the spec page; Reopen is on an
-  archived spec's page and over the list, on the row and beside a Failed criterion under the ›. Without script, or a
-  browser without `<dialog>`, the buttons do nothing — both need script to do anything at all.
+- **Every confirmation asks in the one shared dialog, with no fallback page behind it.** One function draws it
+  (`confirmDialog()`, `render/ui/components/confirm-dialog.ts`): a `dialog.confirmdialog` with the question, the
+  sentence that says what the action does, any control of its own, a refusal line where the action can be refused,
+  and OK and Cancel. Close's control is its required Reason field (bounded and counted), Reopen's an unticked box that
+  also resets the analysis, the plan and the status. Its button (`askButton()`) carries `data-ask="<dialog id>"`, and
+  one click listener on `body` (`openAsk`, `specs-client/ask.ts`) opens whichever dialog a button names — on a row a
+  later redraw drew too, and a Reopen beside a Failed criterion, inside the checks' own form, opens a dialog drawn
+  outside it. Close is on the spec page; Reopen is on an archived spec's page and over the list, on the row and beside
+  a Failed criterion under the ›; Cancel is on a running row. Without script, or a browser without `<dialog>`, the
+  buttons do nothing. The question before leaving a page with unsaved changes is the same dialog, opened by the
+  unsaved-changes guard from the link that was clicked rather than from a button.
 - **OK stands the dialog until the job has settled.** The dialog's posting form carries `data-progress`, and one
   submit listener on `body` hands its OK to the wait: the dialog shows "Reopening…" or "Closing…" alone (Escape does
   not dismiss it, and a back/forward-cache restore closes it), posts the form, and polls `GET /api/queue/<id>` once a

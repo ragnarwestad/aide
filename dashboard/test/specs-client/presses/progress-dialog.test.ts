@@ -1,10 +1,8 @@
 // The wait behind the Reopen and Close dialogs: the dialog stands on OK
-// until the queued job has settled, and one opener shows either.
+// until the queued job has settled.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { Window } from "happy-dom";
-import { openAsk, settled, submitProgress, type ProgressIo } from "../../../src/specs-client/progress-dialog";
-import { NEW_SPEC_FORM } from "../../../src/specs-client/state.ts";
+import { settled, submitProgress, type ProgressIo } from "../../../src/specs-client/progress-dialog";
 
 const BACK = "/specs/aide/150-x";
 
@@ -307,63 +305,5 @@ describe("settled", () => {
       return { status: 200, job: { state: "done" } };
     };
     expect((await settled("j1", io, 5))?.state).toBe("done");
-  });
-});
-
-describe("which forms the New-spec handler binds", () => {
-  test("neither the Add nor the Settings form matches, and the New-spec form still does", async () => {
-    const win = new Window();
-    win.document.write(
-      `<form id="new" class="newspecform"></form>` +
-        `<form id="add" class="newspecform addprojectform"></form>` +
-        `<form id="settings" class="newspecform projectsettingsform"></form>`,
-    );
-    const ids = [...win.document.querySelectorAll(NEW_SPEC_FORM)].map((f) => f.id);
-    await win.happyDOM.close();
-    expect(ids).toEqual(["new"]);
-  });
-});
-
-describe("openAsk", () => {
-  const page = () => {
-    const win = new Window();
-    win.document.write(
-      `<button type="button" id="b" data-ask="x">Reopen</button>` +
-        `<button type="button" id="gone" data-ask="nowhere">Close</button>` +
-        `<button type="button" id="plain">Update</button>` +
-        `<dialog id="x"><form method="dialog"><button>Cancel</button></form></dialog>`,
-    );
-    return win;
-  };
-  const click = (el: unknown) => ({ target: el }) as unknown as Event;
-
-  test("a click on a button[data-ask] shows the dialog it names as a modal (AC-5)", async () => {
-    const win = page();
-    const doc = win.document;
-    openAsk(click(doc.getElementById("b")));
-    const open = (doc.getElementById("x") as unknown as HTMLDialogElement).open;
-    await win.happyDOM.close();
-    expect(open).toBe(true);
-  });
-
-  test("a click inside the button reaches it too (AC-5)", async () => {
-    const win = page();
-    const doc = win.document;
-    doc.getElementById("b")!.innerHTML = "<span>Reopen</span>";
-    openAsk(click(doc.querySelector("#b span")));
-    const open = (doc.getElementById("x") as unknown as HTMLDialogElement).open;
-    await win.happyDOM.close();
-    expect(open).toBe(true);
-  });
-
-  test("a click outside such a button, or on one naming a missing dialog, opens nothing (AC-5)", async () => {
-    const win = page();
-    const doc = win.document;
-    openAsk(click(doc.getElementById("plain")));
-    openAsk(click(doc.getElementById("gone")));
-    openAsk(click(null));
-    const open = (doc.getElementById("x") as unknown as HTMLDialogElement).open;
-    await win.happyDOM.close();
-    expect(open).toBe(false);
   });
 });

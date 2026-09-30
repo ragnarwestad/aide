@@ -61,8 +61,9 @@ export function answerProjectChange(
     return json({ ok, project, results: steps, ...(readiness ? { readiness } : {}) }, ok ? 200 : 400);
   }
   const summary = steps.map((s) => s.error).filter(Boolean).join("; ");
-  // A refusal goes back to the page the FORM is on — the Add page or
-  // the row's own Remove page (2026-08-19) — a success to the list.
+  // A refusal goes back to the page the FORM is on — the Add page, or
+  // the project's own Config tab for its settings and its Remove — a
+  // success to the list.
   const formPage =
     action === "add-project"
       ? ADD_PROJECT_ROUTE
@@ -80,7 +81,7 @@ export function answerProjectChange(
               .find((g): g is SettingsGroupFile => g !== null);
             return `/projects/${encodeURIComponent(project)}${postedGroup ? `?edit=${EDIT_GROUP_PARAM[postedGroup]}` : "?tab=config"}`;
           })()
-        : `/projects/${encodeURIComponent(project)}/remove`;
+        : `/projects/${encodeURIComponent(project)}?tab=config`;
   if (summary) return specsRedirect(sent, { error: summary }, formPage);
   // A browser with no script gets the readiness answer the only way a
   // redirect can carry one: in the query string of the page it lands

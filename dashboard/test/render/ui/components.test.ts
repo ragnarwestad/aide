@@ -53,12 +53,12 @@ describe("btn()", () => {
       variant: "danger",
       form: 'rowrun-a"b',
       value: "le<ave",
-      data: { "delete-schedule": "", ask: 'x"y' },
+      data: { hook: "", ask: 'x"y' },
       ariaLabel: 'Delete "nightly"',
     });
     expect(html).toBe(
       '<button type="button" class="btn danger" form="rowrun-a&quot;b" value="le&lt;ave" ' +
-        'data-delete-schedule="" data-ask="x&quot;y" aria-label="Delete &quot;nightly&quot;">Delete</button>',
+        'data-hook="" data-ask="x&quot;y" aria-label="Delete &quot;nightly&quot;">Delete</button>',
     );
   });
 
