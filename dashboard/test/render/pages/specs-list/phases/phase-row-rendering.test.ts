@@ -64,8 +64,8 @@ describe("a spec's row runs its own phases", () => {
       ],
     );
     const line = head(html, "94-row-runs-it");
-    expect(line).toContain("depends on: 165");
-    expect(line).not.toContain("depends on: 12");
+    expect(line).toContain("Depends on: 165");
+    expect(line).not.toContain("Depends on: 12");
     // No percentage on the row at all any more — neither this spec's
     // nor another's.
     expect(line).not.toContain("% done");

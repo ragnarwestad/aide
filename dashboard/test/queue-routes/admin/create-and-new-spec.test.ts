@@ -207,12 +207,12 @@ describe("a spec's row says what it depends on (criterion 12)", () => {
   // what a reader recognises and is unambiguous — a spec number is never
   // reused. A dependency written as a bare number already reads the same.
   test("named by number, however the dependency itself was written", () => {
-    expect(row(["105-busy-row"])).toContain("depends on: 105");
-    expect(row(["105-busy-row", "92-a-spec-can-depend"])).toContain("depends on: 105, 92");
-    expect(row(["105"])).toContain("depends on: 105");
+    expect(row(["105-busy-row"])).toContain("Depends on: 105");
+    expect(row(["105-busy-row", "92-a-spec-can-depend"])).toContain("Depends on: 105, 92");
+    expect(row(["105"])).toContain("Depends on: 105");
     // Anything that does not open with a number is shown whole rather
     // than silently truncated.
-    expect(row(["a-named-thing"])).toContain("depends on: a-named-thing");
+    expect(row(["a-named-thing"])).toContain("Depends on: a-named-thing");
   });
 
 });

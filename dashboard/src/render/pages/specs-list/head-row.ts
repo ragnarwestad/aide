@@ -49,7 +49,7 @@ function specSummary(g: SpecGroup): string {
   // whole folder; the number is what a reader recognises, it is
   // unambiguous because a number is never reused, and the folder name
   // made the line longer than the row it sits in.
-  if (g.dependsOn.length) bits.push(`depends on: ${g.dependsOn.map((d) => esc(specNumber(d))).join(", ")}`);
+  if (g.dependsOn.length) bits.push(`Depends on: ${g.dependsOn.map((d) => esc(specNumber(d))).join(", ")}`);
   return bits.join(" · ");
 }
 
