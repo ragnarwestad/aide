@@ -5,7 +5,7 @@
 import { describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import {
-  btn, btnLink, buttonForm, facts, foldArrow, helpPopover, ICON_FAILED, labelledCheckbox, messageSlot, resolveBackHref,
+  btn, btnLink, buttonForm, facts, foldArrow, helpPopover, labelledCheckbox, messageSlot, resolveBackHref,
 } from "../../../src/render/ui/components";
 import { esc } from "../../../src/render/ui/html.ts";
 import { t } from "../../../src/i18n";
@@ -50,42 +50,67 @@ describe("resolveBackHref", () => {
 
 // --- the button, the button link and the message line -----------------------
 
+/** The first element `selector` finds in the markup, parsed. */
+const first = (html: string, selector: string): Element => parsed(html).querySelector(selector)!;
+
+/** An element's attributes by name, in any order, as the browser reads them. */
+const attrs = (el: Element): Record<string, string> =>
+  Object.fromEntries([...el.attributes].map((a) => [a.name, a.value]));
+
+/** The same, with the class list sorted: which classes, not their order. */
+const shape = (el: Element): Record<string, string> => ({ ...attrs(el), class: el.className.split(" ").sort().join(" ") });
+
 describe("btn()", () => {
   test("carries the form it belongs to, a value, data attributes and a spoken name, every value escaped (AC-1)", () => {
-    const html = btn({
-      label: "Delete",
+    const el = first(
+      btn({
+        label: "Delete",
+        type: "button",
+        variant: "danger",
+        form: 'rowrun-a"b',
+        value: "le<ave",
+        data: { hook: "", ask: 'x"y' },
+        ariaLabel: 'Delete "nightly"',
+      }),
+      "button",
+    );
+    // Each value comes back whole: an unescaped quote would have cut it short.
+    expect(shape(el)).toEqual({
       type: "button",
-      variant: "danger",
+      class: "btn danger",
       form: 'rowrun-a"b',
       value: "le<ave",
-      data: { hook: "", ask: 'x"y' },
-      ariaLabel: 'Delete "nightly"',
+      "data-hook": "",
+      "data-ask": 'x"y',
+      "aria-label": 'Delete "nightly"',
     });
-    expect(html).toBe(
-      '<button type="button" class="btn danger" form="rowrun-a&quot;b" value="le&lt;ave" ' +
-        'data-hook="" data-ask="x&quot;y" aria-label="Delete &quot;nightly&quot;">Delete</button>',
-    );
+    expect(el.textContent).toBe("Delete");
   });
 
   // Characterisation: the options above change nothing for a call without them.
   test("without the new options draws what it always drew, and the ask button as its tests pin it (AC-1)", () => {
-    expect(btn({ id: "f-save", label: "Save", variant: "primary", pending: "saving…", title: "t", disabled: true })).toBe(
-      '<button id="f-save" type="submit" class="btn primary" data-pending="Saving…" title="t" disabled>Save</button>',
-    );
-    expect(btn({ label: "Close", type: "button", data: { ask: "closeask" } })).toBe(
-      '<button type="button" class="btn" data-ask="closeask">Close</button>',
-    );
+    const save = first(btn({ id: "f-save", label: "Save", variant: "primary", pending: "saving…", title: "t", disabled: true }), "button");
+    expect(shape(save)).toEqual({
+      id: "f-save",
+      type: "submit",
+      class: "btn primary",
+      "data-pending": "Saving…",
+      title: "t",
+      disabled: "",
+    });
+    const close = first(btn({ label: "Close", type: "button", data: { ask: "closeask" } }), "button");
+    expect(attrs(close)).toEqual({ type: "button", class: "btn", "data-ask": "closeask" });
   });
 
   // Characterisation: the component already capitalises; the hand-written copies did not.
   test("writes its pending word with a capital first letter (AC-5)", () => {
-    expect(btn({ label: "Run", pending: "starting…" })).toContain('data-pending="Starting…"');
+    expect(first(btn({ label: "Run", pending: "starting…" }), "button").getAttribute("data-pending")).toBe("Starting…");
   });
 });
 
 describe("btnLink()", () => {
   test("draws a link in a button's variant, size and hook, every value escaped (AC-2)", () => {
-    expect(
+    const el = first(
       btnLink({
         href: "/projects/a?x=1&y=2",
         label: "Remove <it>",
@@ -94,28 +119,52 @@ describe("btnLink()", () => {
         hook: "proj-row-action",
         data: { "discard-changes": "" },
       }),
-    ).toBe(
-      '<a class="btn primary small proj-row-action" href="/projects/a?x=1&amp;y=2" data-discard-changes="">' +
-        "Remove &lt;it&gt;</a>",
+      "a",
     );
+    expect(el.className.split(" ").sort()).toEqual(["btn", "primary", "proj-row-action", "small"]);
+    expect(el.getAttribute("href")).toBe("/projects/a?x=1&y=2");
+    expect(el.getAttribute("data-discard-changes")).toBe("");
+    expect(el.textContent).toBe("Remove <it>");
   });
 
   test("with nothing but an href and a label is a plain button link (AC-2)", () => {
-    expect(btnLink({ href: "/new", label: "New spec" })).toBe('<a class="btn" href="/new">New spec</a>');
+    const el = first(btnLink({ href: "/new", label: "New spec" }), "a");
+    expect(attrs(el)).toEqual({ class: "btn", href: "/new" });
+    expect(el.textContent).toBe("New spec");
   });
 });
 
 describe("messageSlot()", () => {
+  /** What the page script and a screen reader find in a line. */
+  const line = (html: string) => {
+    const p = first(html, "p");
+    return {
+      id: p.getAttribute("id"),
+      classes: p.className.split(" ").sort(),
+      live: p.getAttribute("aria-live"),
+      icon: p.querySelector("svg") !== null,
+      words: p.querySelector("span")?.textContent,
+    };
+  };
+
   test("an id names it, for a form elsewhere on the page to write into (AC-6)", () => {
-    expect(messageSlot("refused", "failed", { id: "spec-refused" })).toBe(
-      `<p id="spec-refused" class="refused rowmsg failed" aria-live="polite">${ICON_FAILED}<span></span></p>`,
-    );
+    expect(line(messageSlot("refused", "failed", { id: "spec-refused" }))).toEqual({
+      id: "spec-refused",
+      classes: ["failed", "refused", "rowmsg"],
+      live: "polite",
+      icon: true,
+      words: "",
+    });
   });
 
   test("with no text keeps its icon and an empty place for the words (AC-3)", () => {
-    expect(messageSlot("refused")).toBe(
-      `<p class="refused rowmsg failed" aria-live="polite">${ICON_FAILED}<span></span></p>`,
-    );
+    expect(line(messageSlot("refused"))).toEqual({
+      id: null,
+      classes: ["failed", "refused", "rowmsg"],
+      live: "polite",
+      icon: true,
+      words: "",
+    });
   });
 });
 

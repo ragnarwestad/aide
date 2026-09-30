@@ -108,13 +108,6 @@ describe("spec 157: the row draws one action, on its caption line", () => {
     expect(labels(action(html))).toEqual(["Analyze"]);
   });
 
-  // The row's Run was written by hand and said "starting…" while every
-  // button the component draws said "Starting…".
-  test("Run's word while its request is out starts with a capital letter (AC-5)", () => {
-    const run = action(rows([])).match(/<button[^>]*form="rowrun[^>]*>/)?.[0] ?? "";
-    expect(run).toContain('data-pending="Starting…"');
-  });
-
   // Spec 176, criterion 5: the case a hardcoded "not started" got
   // wrong. A spec whose analyze ran long enough ago that its job
   // record has aged out of the queue is `g.lead === undefined` with

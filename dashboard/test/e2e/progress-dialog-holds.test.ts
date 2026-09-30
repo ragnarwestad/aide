@@ -53,7 +53,7 @@ async function tryToClose(page: Page): Promise<void> {
 }
 
 describe("a running step stands in its progress dialog", () => {
-  test("Remove project shows Removing… and not its question while its request is out (AC-1)", async () => {
+  test("Remove project shows Removing… and not its question while its request is out, through Escape and a click outside (AC-1, AC-2)", async () => {
     const page = await open("config", "/remove");
     await page.locator('button[data-ask="removeask"]').click();
     const box = page.locator("dialog#removeask");
@@ -61,22 +61,13 @@ describe("a running step stands in its progress dialog", () => {
     await box.getByRole("heading", { name: "Removing…" }).waitFor({ state: "visible", timeout: 5000 });
     expect(await box.getByText("takes it off the allowlist").isVisible()).toBe(false);
     expect(await box.getByRole("button", { name: "Cancel" }).isVisible()).toBe(false);
-    await page.close();
-  });
-
-  test("Remove project's dialog stays open through Escape and a click outside (AC-2)", async () => {
-    const page = await open("config", "/remove");
-    await page.locator('button[data-ask="removeask"]').click();
-    const box = page.locator("dialog#removeask");
-    await box.getByRole("button", { name: "OK" }).click();
-    await box.getByRole("heading", { name: "Removing…" }).waitFor({ state: "visible", timeout: 5000 });
     await tryToClose(page);
     expect(await box.isVisible()).toBe(true);
     expect(await modal(box)).toBe(true);
     await page.close();
   });
 
-  test("Deploy shows Deploying… and its five steps while a step runs (AC-1)", async () => {
+  test("Deploy shows Deploying… and its five steps while a step runs, through Escape and a click outside (AC-1, AC-2)", async () => {
     const page = await open("deploy", "/deploy/fetch");
     await page.locator("form.deployform").getByRole("button", { name: "Deploy" }).click();
     const box = page.locator("dialog[data-deploy-dialog]");
@@ -84,14 +75,6 @@ describe("a running step stands in its progress dialog", () => {
     const steps = box.locator("li[data-step]");
     expect(await steps.count()).toBe(5);
     for (let i = 0; i < 5; i++) expect(await steps.nth(i).isVisible()).toBe(true);
-    await page.close();
-  });
-
-  test("Deploy's dialog stays open through Escape and a click outside (AC-2)", async () => {
-    const page = await open("deploy", "/deploy/fetch");
-    await page.locator("form.deployform").getByRole("button", { name: "Deploy" }).click();
-    const box = page.locator("dialog[data-deploy-dialog]");
-    await box.getByRole("heading", { name: "Deploying…" }).waitFor({ state: "visible", timeout: 5000 });
     await tryToClose(page);
     expect(await box.isVisible()).toBe(true);
     expect(await modal(box)).toBe(true);

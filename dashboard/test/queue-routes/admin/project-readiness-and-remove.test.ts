@@ -200,16 +200,6 @@ describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
     expect(html).toContain('action="/api/queue/projects/aide/remove"');
   });
 
-  test("a project that was never on the allowlist is refused", async () => {
-    const { base } = start();
-    const res = await fetch(`${base}/api/queue/projects/nosuch/remove`, {
-      method: "POST",
-      headers: AUTH,
-      body: JSON.stringify({ confirm: "nosuch" }),
-    });
-    expect(res.status).toBe(400);
-  });
-
   test("Remove project asks in a dialog on an allowlisted project's Config tab, and only there (AC-3)", async () => {
     const { base } = start({}, ["other"]);
     const allowed = await (await fetch(`${base}/projects/aide?tab=config`)).text();

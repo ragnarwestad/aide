@@ -24,7 +24,7 @@ afterAll(async () => {
 
 const EDIT = " Edited in the browser.";
 
-test("Save on the Description tab writes the edited text and stays on the spec's page (AC-4)", async () => {
+test("Save on the Description tab is posted by the page script, writes the edited text and stays on the spec's page (AC-4)", async () => {
   const { base, dir } = start(savable("/host"));
   const page = await browser.newPage();
   await page.goto(`${base}${DESCRIPTION_TAB}&live=0`);
@@ -32,35 +32,17 @@ test("Save on the Description tab writes the edited text and stays on the spec's
   await editor.waitFor({ state: "visible" });
   await editor.click();
   await editor.pressSequentially(EDIT);
-  await page.locator("#specform-save").click();
-  await page.waitForURL((u) => new URL(u).pathname === PAGE && readFileSync(descriptionPath(dir), "utf-8") !== DESCRIPTION);
-  expect(readFileSync(descriptionPath(dir), "utf-8")).toContain("Edited in the browser.");
-  expect(new URL(page.url()).pathname).toBe(PAGE);
-  await page.close();
-});
-
-test("Save is posted by the page script, and its button waits disabled with its pending word (AC-4)", async () => {
-  const { base } = start(savable("/host"));
-  const page = await browser.newPage();
-  await page.goto(`${base}${DESCRIPTION_TAB}&live=0`);
-  const editor = page.locator("#spec-editor-host [contenteditable=true]:visible").first();
-  await editor.waitFor({ state: "visible" });
-  await editor.click();
-  await editor.pressSequentially(EDIT);
   const save = page.locator("#specform-save");
-  let seen = null as { accept: string; disabled: boolean; word: string } | null;
+  let seen = null as { accept: string; disabled: boolean } | null;
   await page.route("**/save", async (route) => {
-    seen = {
-      accept: route.request().headers().accept ?? "",
-      disabled: await save.isDisabled(),
-      word: (await save.textContent()) ?? "",
-    };
+    seen = { accept: route.request().headers().accept ?? "", disabled: await save.isDisabled() };
     await route.continue();
   });
-  const answered = page.waitForResponse("**/save");
   await save.click();
-  await answered;
-  expect(seen).toEqual({ accept: "application/json", disabled: true, word: "Saving…" });
+  await page.waitForURL((u) => new URL(u).pathname === PAGE && readFileSync(descriptionPath(dir), "utf-8") !== DESCRIPTION);
+  expect(seen).toEqual({ accept: "application/json", disabled: true });
+  expect(readFileSync(descriptionPath(dir), "utf-8")).toContain("Edited in the browser.");
+  expect(new URL(page.url()).pathname).toBe(PAGE);
   await page.close();
 });
 

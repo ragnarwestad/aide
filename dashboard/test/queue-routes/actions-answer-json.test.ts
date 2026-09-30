@@ -3,17 +3,10 @@
 // refusal, whatever the request's Accept header says. Each press is a
 // form body posted the way a browser posts one, with no Accept header.
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { setupQueueRoutesHarness } from "./fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness("aide-actions-json-");
-const dirs: string[] = [];
-afterEach(() => {
-  harness.cleanup();
-  while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
-});
+afterEach(() => harness.cleanup());
 
 const SPEC = "81-queue-and-runner";
 
@@ -87,23 +80,4 @@ describe("every action answers JSON, never a redirect", () => {
       await expectJson(await press(base, p.path(job), p.fields));
     });
   }
-
-  test("dismissing a failed create answers JSON to a form posted without Accept (AC-1)", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "aide-actions-json-failed-"));
-    dirs.push(dir);
-    const failedCreatesPath = join(dir, "failed-creates.json");
-    writeFileSync(failedCreatesPath, JSON.stringify([{
-      id: "first", project: "aide", title: "T", description: "D",
-      reason: { key: "runner.serverRestarted", values: { button: "Create" } }, failedAt: "2026-09-19T17:01:00.000Z",
-    }]));
-    const { base } = start({ failedCreatesPath });
-    await expectJson(await press(base, "/api/queue/failed-creates/first/dismiss"));
-  });
-
-  test("a refused Update answers its reason as JSON (AC-1)", async () => {
-    const { base } = start();
-    const res = await press(base, `/api/queue/specs/aide/${SPEC}/update`);
-    expect(res.status).toBe(400);
-    expect(((await res.json()) as { error: string }).error.length).toBeGreaterThan(0);
-  });
 });

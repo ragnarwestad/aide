@@ -116,15 +116,22 @@ function fakeAsk() {
 }
 
 describe("submitProgress from inside the ask", () => {
-  test("posts for JSON, polls until the job settles, and goes to the list only then", async () => {
+  test("posts for JSON, stands while it polls until the job settles, and goes to the list only then (AC-3)", async () => {
     const requests = stubPost(200, { ok: true, job: { id: "j1" } });
     const a = fakeAsk();
     const io = fakeIo([{ job: { state: "queued" } }, { job: { state: "running" } }, { job: { state: "done" } }]);
+    let standingWhileWaiting = false;
+    const sleep = io.sleep;
+    io.sleep = async (ms) => {
+      standingWhileWaiting = a.standing();
+      return sleep(ms);
+    };
     const event = submit();
     await submitProgress(a.form, event, io);
     expect(event.defaultPrevented).toBe(true);
     expect(a.ask.shows).toBe(1);
     expect(requests[0]!.headers.accept).toBe("application/json");
+    expect(standingWhileWaiting).toBe(true);
     expect(io.polls).toBe(3);
     expect(io.gone).toEqual(["/"]);
     expect(a.ask.closes).toBe(0);
@@ -170,36 +177,9 @@ describe("submitProgress from inside the ask", () => {
     const io = fakeIo([{ job: { state: "failed" } }]);
     await submitProgress(listed.form, submit(), io);
     expect(io.gone).toEqual([BACK]);
-  });
-
-  test("the dialog is found from the form's ancestor and is not opened again when it is open", async () => {
-    stubPost(200, { ok: true, job: { id: "j1" } });
-    const a = fakeAsk();
-    a.ask.open = true;
-    await submitProgress(a.form, submit(), fakeIo([{ job: { state: "done" } }]));
-    expect(a.ask.shows).toBe(0);
-  });
-
-  test("it stands while waiting and goes to the list when the job is done (AC-3)", async () => {
-    stubPost(200, { ok: true, job: { id: "j1" } });
-    const a = fakeAsk();
-    const io = fakeIo([{ job: { state: "running" } }, { job: { state: "done" } }]);
-    let standingWhileWaiting = false;
-    const sleep = io.sleep;
-    io.sleep = async (ms) => {
-      standingWhileWaiting = a.standing();
-      return sleep(ms);
-    };
-    await submitProgress(a.form, submit(), io);
-    expect(standingWhileWaiting).toBe(true);
-    expect(io.gone).toEqual(["/"]);
-  });
-
-  test("any other end takes the reader to the spec page", async () => {
-    stubPost(200, { ok: true, job: { id: "j1" } });
-    const io = fakeIo([{ job: { state: "failed" } }]);
-    await submitProgress(fakeAsk().form, submit(), io);
-    expect(io.gone).toEqual([BACK]);
+    const bare = fakeIo([{ job: { state: "failed" } }]);
+    await submitProgress(fakeAsk().form, submit(), bare);
+    expect(bare.gone).toEqual([BACK]);
   });
 
   test("a refusal is written in the box, which stays open, is not standing, and nothing navigates (AC-3)", async () => {

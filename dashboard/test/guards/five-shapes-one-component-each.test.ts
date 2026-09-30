@@ -4,10 +4,8 @@
 // an English title where every other arrow's was translated — so the sources
 // are scanned for markup only the component may write.
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { read } from "./source.ts";
 
-const ROOT = join(import.meta.dir, "..", "..");
 const FOLD = "src/render/ui/components/fold-arrow.ts";
 const TABS = "src/render/ui/tabs.ts";
 const FACTS = "src/render/ui/components/facts.ts";
@@ -15,17 +13,6 @@ const BUTTON = "src/render/ui/components/button.ts";
 const CHECKBOX = "src/render/ui/components/checkbox.ts";
 // The phase chip is a component of its own, with its own lock and tick.
 const PHASE_CHIP = "src/render/ui/components/phase-chip.ts";
-
-/** A source's code, with its comment lines left out: a comment that names
- *  `class="fold"` draws nothing. */
-const code = (text: string): string =>
-  text
-    .split("\n")
-    .filter((line) => !/^\s*(\/\/|\/\*|\*)/.test(line))
-    .join("\n");
-
-const read = (glob: string): { file: string; text: string }[] =>
-  [...new Bun.Glob(glob).scanSync(ROOT)].map((file) => ({ file, text: code(readFileSync(join(ROOT, file), "utf8")) }));
 
 const matching = (files: { file: string; text: string }[], hit: (text: string) => boolean, except: string[]): string[] =>
   files.filter((f) => !except.includes(f.file) && hit(f.text)).map((f) => f.file);

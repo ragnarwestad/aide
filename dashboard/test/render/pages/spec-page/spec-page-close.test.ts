@@ -11,7 +11,9 @@ describe("spec 406, REQ-1: the Close control", () => {
   test("present and enabled beside Reset when both actions are offered", () => {
     const html = page(view({ closeAvailable: true }));
     const group = /<nav class="tabbar subtabs">[\s\S]*?<span class="row">([\s\S]*?)<\/span><\/nav>/.exec(html)?.[1] ?? "";
-    expect(group).toContain('<button type="button" class="btn" data-ask="closeask">Close</button>');
+    const close = group.match(/<button\b[^>]*\sdata-ask="closeask"[^>]*>Close<\/button>/)?.[0] ?? "";
+    expect(close).not.toBe("");
+    expect(close).not.toContain("disabled");
     expect(group.indexOf("Reset")).toBeLessThan(group.indexOf("Close"));
   });
 
@@ -22,7 +24,7 @@ describe("spec 406, REQ-1: the Close control", () => {
   // `done` steps at all still gets the control.
   test("present even when no phase has completed yet", () => {
     const html = page(view({ closeAvailable: true, done: [] }));
-    expect(html).toContain('<button type="button" class="btn" data-ask="closeask">Close</button>');
+    expect(html).toMatch(/<button\b[^>]*\sdata-ask="closeask"[^>]*>Close<\/button>/);
   });
 
   test("absent for an archived spec", () => {

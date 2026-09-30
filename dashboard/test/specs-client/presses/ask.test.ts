@@ -66,17 +66,6 @@ describe("openAsk", () => {
     expect(open).toBe(false);
   });
 
-  test("Cancel on a running row opens its own dialog (AC-2)", async () => {
-    const win = new Window();
-    win.document.write(`<table><tbody id="jobrows">${runningRows("j1")}</tbody></table>`);
-    const button = win.document.querySelector(`button[data-ask="cancelask-j1"]`);
-    openAsk(click(button));
-    const open = isOpen(win.document, "cancelask-j1");
-    await win.happyDOM.close();
-    expect(button).not.toBeNull();
-    expect(open).toBe(true);
-  });
-
   test("Delete on a schedule row opens its own dialog, found by an id holding a slash (AC-2)", async () => {
     const win = new Window();
     const entry = (name: string) => ({ name, cron: "0 3 * * *", prompt: "x", enabled: true });

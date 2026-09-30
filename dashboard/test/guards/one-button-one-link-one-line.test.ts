@@ -4,22 +4,9 @@
 // "Starting…" — so the sources are scanned for markup only the component
 // may write.
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { read } from "./source.ts";
 
-const ROOT = join(import.meta.dir, "..", "..");
 const MESSAGE = "src/render/ui/components/message.ts";
-
-/** A source's code, with its comment lines left out: a comment that names
- *  `rowmsg` or `class="btn"` draws nothing. */
-const code = (text: string): string =>
-  text
-    .split("\n")
-    .filter((line) => !/^\s*(\/\/|\/\*|\*)/.test(line))
-    .join("\n");
-
-const read = (glob: string): { file: string; text: string }[] =>
-  [...new Bun.Glob(glob).scanSync(ROOT)].map((file) => ({ file, text: code(readFileSync(join(ROOT, file), "utf8")) }));
 
 const matching = (files: { file: string; text: string }[], needle: RegExp, except?: string): string[] =>
   files.filter((f) => f.file !== except && needle.test(f.text)).map((f) => f.file);

@@ -160,8 +160,7 @@ export function harness(
     // tell the two orders apart.
     get fields(): [string, string][] {
       const live = phases.innerHTML.includes("phase") && !stepBoxes.some((b) => b.disabled);
-      const ticked: [string, string][] = live ? [["steps", "analyze"]] : [];
-      return [...ticked, ["view.state", "active"]];
+      return live ? [["steps", "analyze"]] : [];
     },
     // Empty for the run form, and that is the markup: its button is
     // written after its closing tag and reaches it by `form="…"`, so

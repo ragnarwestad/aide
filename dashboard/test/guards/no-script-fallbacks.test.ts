@@ -28,6 +28,19 @@ describe("no message rides the address", () => {
     expect(hits(["src/serve", "src/specs-client"], literal)).toEqual([]);
     expect(hits(["src/serve", "src/specs-client"], set)).toEqual([]);
   });
+
+  // A page reads its address only as `searchParams.get("<name>")`, so a
+  // scan for the names is a scan of every read: a read by a key held in a
+  // variable, a walk over every parameter or a second parse of the query
+  // would slip past it, and is refused on its own.
+  test("no page reads a message from its address (AC-2)", () => {
+    const named = new RegExp(`\\.get\\(\\s*["'\`](?:${MESSAGES})["'\`]\\s*\\)`);
+    expect(hits(["src/serve", "src/render"], named)).toEqual([]);
+    expect(hits(["src/render"], new RegExp(`[?&"'\`](?:${MESSAGES})=`))).toEqual([]);
+    expect(hits(["src/serve", "src/render"], /searchParams(?!\.get\(\s*["'`][\w.-]+["'`]\s*\))/)).toEqual([]);
+    // The form-body parser is the one other reader of an encoded query.
+    expect(hits(["src/serve", "src/render"], /URLSearchParams\(/)).toEqual(["src/serve/serve-helpers/http.ts"]);
+  });
 });
 
 describe("no page reloads itself by a meta refresh", () => {

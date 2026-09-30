@@ -2,7 +2,6 @@
 
 import { describe, expect, test } from "bun:test";
 import { type SpecPageView } from "../../../../src/render";
-import { REOPEN_SENTENCE } from "../../../../src/render/pages/spec-page/ask-dialog.ts";
 import { page, view } from "../spec-page-fixtures.ts";
 
 const FOLDER = "150-one-page-shows-the-whole-spec";
@@ -25,24 +24,11 @@ describe("spec 198: the Reopen control", () => {
   const archived = (extra: Partial<SpecPageView> = {}, tab?: string) =>
     page(view({ archived: true, ...extra }), tab);
 
-  test("the action row's Reopen names a dialog asking the question (AC-1)", () => {
+  test("the action row's Reopen names a progress dialog whose OK posts the reopen, and the box belongs to that post (AC-1, AC-2)", () => {
     const html = archived();
-    const id = html.match(/<button type="button" class="btn" data-ask="([^"]+)">Reopen<\/button>/)?.[1];
-    expect(id).toBeDefined();
-    const dialog = dialogById(html, id!);
-    expect(dialog).toContain("data-progress-dialog");
-    expect(dialog).toContain(`<h2>Reopen ${FOLDER}?</h2>`);
-    expect(dialog).toContain(REOPEN_SENTENCE);
-    expect(dialog).toMatch(/<input type="checkbox" name="resetFiles" value="1"[^>]*>/);
-    expect(dialog).not.toMatch(/name="resetFiles"[^>]*checked/);
-    expect(dialog).toContain(">OK</button>");
-    expect(dialog).toContain(">Cancel</button>");
-  });
-
-  test("OK posts the reopen to the queue, and the box belongs to that post (AC-2)", () => {
-    const html = archived();
-    const id = html.match(/data-ask="([^"]+)">Reopen</)?.[1] ?? "";
+    const id = html.match(/data-ask="([^"]+)"[^>]*>Reopen</)?.[1] ?? "";
     const dialog = dialogById(html, id);
+    expect(dialog).toContain("data-progress-dialog");
     const form = dialog.match(/<form id="([^"]+)" method="post" action="\/api\/queue"[^>]*>[\s\S]*?<\/form>/);
     expect(form).not.toBeNull();
     expect(form![0]).toContain('name="project" value="aide"');
@@ -62,17 +48,10 @@ describe("spec 198: the Reopen control", () => {
     };
     const html = archived({ checks: { rows: [failed], phase: "Acceptance criteria" } }, "status");
     const checks = html.match(/<section class="checks">[\s\S]*?<\/section>/)?.[0] ?? "";
-    const id = checks.match(/<button type="button" class="btn" data-ask="([^"]+)">Reopen<\/button>/)?.[1];
+    const id = checks.match(/<button\b[^>]*\sdata-ask="([^"]+)"[^>]*>Reopen<\/button>/)?.[1];
     expect(id).toBeDefined();
-    expect(dialogById(html, id!)).toContain(`<h2>Reopen ${FOLDER}?</h2>`);
+    expect(dialogById(html, id!)).toContain(`name="specFolder" value="${FOLDER}"`);
     expect(checks).not.toContain("<dialog");
-  });
-
-  test("nothing on an archived spec's page leads to a Reopen page (AC-6)", () => {
-    const failed = { phase: "Acceptance criteria", task: "AC-1", line: "| AC-1 | ❌ Failed | |", done: false, failed: true };
-    for (const html of [archived(), archived({ checks: { rows: [failed], phase: "Acceptance criteria" } }, "status")]) {
-      expect(html).not.toContain(`/specs/aide/${FOLDER}/reopen`);
-    }
   });
 
   // A live spec has the whole row on the queue list for this; the

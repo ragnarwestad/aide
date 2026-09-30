@@ -1,5 +1,7 @@
-// Every confirmation on the board opens from its button as a modal, and
-// closes with Cancel and with Escape, navigating nowhere and posting nothing.
+// A confirmation opens from its button as a modal, and closes with Cancel
+// and with Escape, navigating nowhere and posting nothing. Every dialog is
+// drawn by one of two components, so one of each is asked: Cancel's plain
+// confirmation and Close's progress dialog.
 
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:test";
 import { mkdtempSync, writeFileSync } from "node:fs";
@@ -8,7 +10,6 @@ import { join } from "node:path";
 import { chromium, type Browser, type Page } from "playwright";
 import { browserDeadline } from "../helpers/browser-deadline.ts";
 import { queueHarness } from "../helpers/queue-server.ts";
-import { ARCHIVED, STAMPED } from "../archived/archived-specs-fixtures.ts";
 
 browserDeadline();
 
@@ -31,16 +32,7 @@ beforeAll(async () => {
       },
     ]),
   );
-  const queueConfigFile = join(scratch, "queue-config.json");
-  writeFileSync(
-    queueConfigFile,
-    JSON.stringify({ schedules: { aide: [{ name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md" }] } }),
-  );
-  base = harness.start({
-    alsoSpecs: [IDLE],
-    archivedSpecs: { [STAMPED]: ARCHIVED[STAMPED] },
-    extra: { queueMirrorPath: join(scratch, "queue.json"), queueConfigFile },
-  }).base;
+  base = harness.start({ alsoSpecs: [IDLE], extra: { queueMirrorPath: join(scratch, "queue.json") } }).base;
   browser = await chromium.launch();
 });
 
@@ -62,32 +54,21 @@ afterAll(async () => {
   harness.cleanup();
 });
 
-/** `id` is the dialog's; a box with no button (the leave question) is opened by hand. */
-type Box = { name: string; url: string; id: string; button: boolean };
+type Box = { name: string; url: string; id: string };
 const BOXES: Box[] = [
-  { name: "leave box", url: "/projects?live=0", id: "leaveapp", button: false },
-  { name: "cancel box", url: `/?live=0&open=aide%2F${FOLDER}`, id: "cancelask-run1", button: true },
-  { name: "delete box", url: "/projects/aide?tab=schedule&live=0", id: "deleteask-aide/nightly-report", button: true },
-  { name: "remove box", url: "/projects/aide?tab=config&live=0", id: "removeask", button: true },
-  { name: "close box", url: `/specs/aide/${IDLE}?live=0`, id: "closeask", button: true },
-  { name: "reopen box", url: `/specs/aide/${STAMPED}?live=0`, id: "reopenask", button: true },
+  { name: "cancel box", url: `/?live=0&open=aide%2F${FOLDER}`, id: "cancelask-run1" },
+  { name: "close box", url: `/specs/aide/${IDLE}?live=0`, id: "closeask" },
 ];
 
-/** By attribute, since an id holding a `/` is no CSS `#…` selector. */
+/** By attribute, since an id may hold a `/`, which no CSS `#…` selector takes. */
 const dialog = (box: Box) => page.locator(`dialog[id="${box.id}"]`);
 
+/** Opens the box from its button, and checks it came up as a modal. */
 async function open(box: Box): Promise<void> {
   await page.goto(`${base}${box.url}`);
-  if (box.button) await page.locator(`button[data-ask="${box.id}"]`).click();
-  else await dialog(box).evaluate((d) => (d as HTMLDialogElement).showModal());
+  await page.locator(`button[data-ask="${box.id}"]`).click();
   await dialog(box).waitFor({ state: "visible" });
-}
-
-for (const box of BOXES.filter((b) => b.button)) {
-  test(`${box.name}: its button opens it over the page (AC-2)`, async () => {
-    await open(box);
-    expect(await dialog(box).evaluate((d) => (d as HTMLDialogElement).matches(":modal"))).toBe(true);
-  });
+  expect(await dialog(box).evaluate((d) => (d as HTMLDialogElement).matches(":modal"))).toBe(true);
 }
 
 for (const box of BOXES) {

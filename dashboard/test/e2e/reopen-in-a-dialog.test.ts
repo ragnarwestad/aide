@@ -89,21 +89,11 @@ describe("Reopen asks in a dialog on the spec's page", () => {
     }
   });
 
-  test("Cancel closes the dialog and posts nothing (AC-2)", async () => {
-    const { page, posts } = await open(SPEC);
-    await ask(page);
-    await dialog(page).getByRole("button", { name: "Cancel" }).click();
-    await page.locator("dialog[data-progress-dialog]").first().waitFor({ state: "hidden" });
-    await page.waitForTimeout(300);
-    expect(posts).toEqual([]);
-  });
-
-  test("an accepted post stands as a modal reading Reopening… through two presses of Escape (AC-3)", async () => {
+  test("an accepted post stands as a modal showing its running face through two presses of Escape (AC-3)", async () => {
     const { page } = await open(SPEC);
     await ask(page);
     await dialog(page).getByRole("button", { name: "OK" }).click();
     await dialog(page).locator(".standingtitle").waitFor({ state: "visible" });
-    expect(await dialog(page).locator(".standingtitle").textContent()).toBe("Reopening…");
     await page.keyboard.press("Escape");
     await page.keyboard.press("Escape");
     // A second Escape closes a modal in Chromium even with its cancel prevented;

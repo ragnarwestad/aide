@@ -1,7 +1,9 @@
 // Every confirmation on the board asks in a dialog whose question and
 // answers the confirmation component draws: each caller's dialog carries
 // the id its button names and the affirmative's form `<id>-form`. Ids and
-// attributes the page script depends on, not layout.
+// attributes the page script depends on, not layout. Which button opens
+// which dialog, and where OK posts, is proven in the browser
+// (test/e2e/confirm-boxes-ok.test.ts) and by the opener (ask.test.ts).
 import { describe, expect, test } from "bun:test";
 import { renderProjectPage, renderSpecsRows, type ProjectView } from "../../../src/render";
 import { scheduleControlCells } from "../../../src/render/pages/schedule-page/controls.ts";
@@ -20,28 +22,6 @@ const expectAsk = (html: string, id: string): string => {
 };
 
 describe("each confirmation is drawn by the shared function", () => {
-  test("Cancel on a running list row names its dialog, which does not stand (AC-1, AC-5)", () => {
-    const r = row({ id: "j1", specFolder: "105-busy", steps: ["implement"], stepIndex: 0, state: "running" });
-    const targets = [{ project: "aide", specFolder: "105-busy" }];
-    const html = renderSpecsRows(
-      [r],
-      { runnerAvailable: true, targets, filter: { open: openKeys([r], targets) }, modelChoices: [{ name: "sonnet" }] },
-      Date.parse("2026-08-19T12:00:00Z"),
-    );
-    const box = expectAsk(html, "cancelask-j1");
-    expect(html).toContain(`data-ask="cancelask-j1"`);
-    expect(box).toContain(`action="/api/queue/j1/cancel"`);
-    expect(box).not.toContain("data-progress-dialog");
-  });
-
-  test("Delete on a schedule row names its dialog (AC-1, AC-5)", () => {
-    const html = scheduleControlCells("aide", { name: "nightly", cron: "0 3 * * *", prompt: "x", enabled: true });
-    const box = expectAsk(html, "deleteask-aide/nightly");
-    expect(html).toContain(`data-ask="deleteask-aide/nightly"`);
-    expect(box).toContain(`action="/api/queue/schedule/aide/nightly/delete"`);
-    expect(box).not.toContain("data-progress-dialog");
-  });
-
   test("the question before leaving a page answers with its value and posts nothing (AC-1, AC-5)", () => {
     const html = pageShell("Projects", [{ label: "Projects", path: "/projects" }], "/projects", "<p>x</p>", "2026-09-01T00:00:00Z");
     const box = expectAsk(html, "leaveapp");
@@ -49,7 +29,20 @@ describe("each confirmation is drawn by the shared function", () => {
     expect(box).not.toContain(`method="post"`);
   });
 
-  test("Remove project on an allowlisted project's Config tab names its dialog (AC-1)", () => {
+  test("Cancel on a running row and Delete on a schedule row ask without standing (AC-5)", () => {
+    const r = row({ id: "j1", specFolder: "105-busy", steps: ["implement"], stepIndex: 0, state: "running" });
+    const targets = [{ project: "aide", specFolder: "105-busy" }];
+    const list = renderSpecsRows(
+      [r],
+      { runnerAvailable: true, targets, filter: { open: openKeys([r], targets) }, modelChoices: [{ name: "sonnet" }] },
+      Date.parse("2026-08-19T12:00:00Z"),
+    );
+    const schedule = scheduleControlCells("aide", { name: "nightly", cron: "0 3 * * *", prompt: "x", enabled: true });
+    expect(expectAsk(list, "cancelask-j1")).not.toContain("data-progress-dialog");
+    expect(expectAsk(schedule, "deleteask-aide/nightly")).not.toContain("data-progress-dialog");
+  });
+
+  test("Remove project's form carries the hook the page script binds its submit by (AC-1)", () => {
     const view: ProjectView = { name: "aide", manifest: { ok: false, error: "no manifest" }, specs: [] };
     const html = renderProjectPage(view, { hasConfigFile: false, rows: [] }, null, "2026-09-20T00:00:00Z", [], {
       worktreeLinkCandidates: [],
@@ -57,11 +50,6 @@ describe("each confirmation is drawn by the shared function", () => {
       tab: "config",
       removable: true,
     });
-    const box = expectAsk(html, "removeask");
-    expect(html).toContain(`data-ask="removeask"`);
-    expect(box).toContain(`action="/api/queue/projects/aide/remove"`);
-    // The hook the page script binds Remove's submit by.
-    expect(box).toMatch(/class="[^"]*\bremoveform\b/);
+    expect(expectAsk(html, "removeask")).toMatch(/class="[^"]*\bremoveform\b/);
   });
-
 });

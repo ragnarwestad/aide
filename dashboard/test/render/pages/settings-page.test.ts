@@ -144,17 +144,22 @@ describe("the Settings answer lines", () => {
   const words = (f: HTMLFormElement, hook: string): string => f.querySelector(`.${hook} span`)?.textContent ?? "?";
 
   // A refusal and "Defaults saved" each have a line of their own, so the
-  // script never has to turn one kind into the other.
-  test("Models per phase and Process each hold a line for a save's answer and one for its refusal (AC-3)", () => {
+  // script never has to turn one kind into the other, and each answer
+  // empties the other kind's line.
+  test("Models per phase and Process each hold a line for a save's answer and one for its refusal, each emptying the other (AC-3)", () => {
     for (const tab of ["phases", "process"]) {
-      const saved = settingsForm(render(tab));
-      settingsAnswer(saved, "Defaults saved", true);
-      const refused = settingsForm(render(tab));
-      settingsAnswer(refused, "timeout must be a number", false);
-      expect({ tab, notice: words(saved, "notice"), refused: words(refused, "refused") }).toEqual({
+      const f = settingsForm(render(tab));
+      settingsAnswer(f, "timeout must be a number", false);
+      const refused = { notice: words(f, "notice"), refused: words(f, "refused") };
+      settingsAnswer(f, "Defaults saved", true);
+      const saved = { notice: words(f, "notice"), refused: words(f, "refused") };
+      settingsAnswer(f, "timeout must be a number", false);
+      const refusedAgain = { notice: words(f, "notice"), refused: words(f, "refused") };
+      expect({ tab, refused, saved, refusedAgain }).toEqual({
         tab,
-        notice: "Defaults saved",
-        refused: "Timeout must be a number",
+        refused: { notice: "", refused: "Timeout must be a number" },
+        saved: { notice: "Defaults saved", refused: "" },
+        refusedAgain: { notice: "", refused: "Timeout must be a number" },
       });
     }
   });

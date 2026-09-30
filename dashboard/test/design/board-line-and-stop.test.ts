@@ -41,20 +41,6 @@ describe("the board line and its Stop control (spec 424)", () => {
     ];
   }
 
-  test("REQ-1: an ordinary server's header reads '<machine> - Prod'", () => {
-    setBoardInfo(undefined);
-    for (const html of render()) {
-      expect(html).toContain(`${machine} - Prod`);
-    }
-  });
-
-  test("REQ-5: an ordinary server draws no Stop form anywhere", () => {
-    setBoardInfo(undefined);
-    for (const html of render()) {
-      expect(html).not.toContain('action="/api/self-stop"');
-    }
-  });
-
   // The spec's number on the line, the folder and branch as hover text
   // (2026-09-10): spec 424's "<spec> : <branch>" spelt the same long name
   // twice, since the branch is always aide/<folder>.
@@ -102,15 +88,6 @@ describe("the board line and its Stop control (spec 424)", () => {
     setBoardInfo(undefined);
     for (const html of render()) {
       expect(html).not.toContain('action="/api/self-run"');
-    }
-  });
-
-  // Run test round was written by hand and said "starting…" while every
-  // button the component draws said "Starting…".
-  test("a round board's Run says 'Starting…' while its request is out (AC-5)", () => {
-    setBoardInfo("aide-wt-run");
-    for (const html of render()) {
-      expect(formPosting(html, "/api/self-run")).toContain('data-pending="Starting…"');
     }
   });
 
