@@ -6,6 +6,7 @@
   - [Sources](#sources)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-09-30](#2026-09-30)
   - [2026-09-28](#2026-09-28)
   - [2026-09-26](#2026-09-26)
   - [2026-09-21](#2026-09-21)
@@ -71,6 +72,56 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-09-30
+
+Sep 28 – Sep 30. **GPT-6.1 Sol is Codex's new default model** (v0.159.1), and it is not yet one of the board's model
+choices. Claude Sonnet 5.5 became the default Sonnet (Claude Code v2.1.284), which the board's "Sonnet" already
+follows. Copilot CLI v1.0.89 made the `.claude/rules` support stable.
+
+**Claude Code (Sep 28 – Sep 30, v2.1.283 → v2.1.286):**
+
+| Date   | Version  | News                                                                                                                                                                                                                                                                                                                                                                       | Source                                                                |
+|--------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
+| Sep 28 | v2.1.284 | Claude Sonnet 5.5 (`claude-sonnet-5-5`) added and made the default Sonnet on the Anthropic API — 1M context, $2/$10 per Mtok, $0.20/Mtok cache reads; fixes for damaged response streams and errors after a thinking block now retried; a rule symlinked into `.claude/rules` from outside the project now asks for the external-imports approval instead of being skipped | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
+| Sep 29 | v2.1.285 | `CLAUDE_CODE_DISABLE_WEB_FETCH`; `claude --desktop`; `claude plugin configure`; `allowedProviders` managed setting; in `claude -p`, a forked subagent's Agent call runs in the foreground and a background subagent's permission request reaches `--permission-prompt-tool`                                                                                                | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
+| Sep 30 | v2.1.286 | When the API refuses the model an alias resolves to, Claude Code retries once on the previous model of the same tier; `--resume`/`--continue` no longer lose turns after a batch of parallel tool calls in a crashed session; several secret-redaction fixes in logs and transcripts                                                                                       | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
+
+**GitHub Copilot CLI (Sep 28 – Sep 30, v1.0.89-5 → v1.0.89, and v1.0.90 pre-releases):**
+
+| Date            | Version        | News                                                                                                                                                                                                                                                | Source                                                            |
+|-----------------|----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
+| Sep 28          | v1.0.89        | Stable release of the v1.0.89 line: `.claude/rules` support as custom instructions, GPT-6 Sol and Luna in the model picker, Claude Opus 5.5 support, PR creation follows repository pull request templates, Esc Esc takes back an unanswered prompt | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
+| Sep 28 – Sep 30 | v1.0.90-0 … -7 | Pre-releases with no notes beyond "Fixes and changes"                                                                                                                                                                                               | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
+| Sep 28 / 29     | —              | Claude Sonnet 5.5 and GPT-6.1 Sol available in GitHub Copilot                                                                                                                                                                                       | [GitHub Changelog](https://github.blog/changelog/label/copilot/)  |
+
+**OpenAI Codex CLI (Sep 28 – Sep 30, v0.157.1 → v0.159.2):**
+
+| Date   | Version  | News                                                                                                                                                                                                         | Source                                                                                                              |
+|--------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------|
+| Sep 28 | v0.158.0 | Copy-on-select in the fullscreen TUI; MCP servers with pre-registered OAuth client secrets; bearer tokens for exec-server WebSocket connections; terminal input approval on by default for elevated commands | [GitHub Releases](https://github.com/openai/codex/releases)                                                         |
+| Sep 29 | v0.159.0 | Opt-in `instant_interrupt`; compact welcome screen; `.aws` protected under writable roots; the `tui.prompt_suggestions` setting and the bundled `plugin-creator` skill removed                               | [GitHub Releases](https://github.com/openai/codex/releases)                                                         |
+| Sep 29 | v0.159.1 | **GPT-6.1 Sol is the default model** in the bundled catalog and the Amazon Bedrock catalogs — "near-Astra performance for complex work at a lower cost than Astra"                                           | [GitHub Releases](https://github.com/openai/codex/releases) · [Changelog](https://learn.chatgpt.com/docs/changelog) |
+| Sep 29 | v0.159.2 | Windows console windows no longer flash for background and sandboxed commands                                                                                                                                | [GitHub Releases](https://github.com/openai/codex/releases)                                                         |
+
+**OpenCode (Sep 28 – Sep 30):**
+
+| Date | Version | News                                                   | Source                                                            |
+|------|---------|--------------------------------------------------------|-------------------------------------------------------------------|
+| —    | —       | No new release since v1.18.33 (Sep 28, already logged) | [GitHub Releases](https://github.com/anomalyco/opencode/releases) |
+
+**Relevance for Aide:**
+
+- ⭐ **GPT-6.1 Sol is Codex's default model** — added to the board's `modelChoices` as `gpt-6.1-sol` (it answered
+  `codex exec -m` on 0.159.0, already on the serving host). A Codex step with no model named now runs on it.
+- ✅ **Claude Sonnet 5.5 is the default Sonnet** — no change: the board's "Sonnet" names the `sonnet` alias, and the
+  runs since Sep 28 already report `claude-sonnet-5-5`.
+- ✅ **Claude Code v2.1.286 retries once on the previous model of the same tier** when an alias's model is refused — an
+  unattended step no longer fails outright on such a refusal.
+- ✅ **Copilot CLI v1.0.89 is stable** with the `.claude/rules` support 556 recorded in the matrix; the matrix's
+  version stamp picks it up at the next `scripts/stamp-versions`.
+- ℹ Claude Code v2.1.285's `claude -p` subagent and permission-prompt fixes, Codex's `instant_interrupt` and removed
+  `plugin-creator` skill, and Copilot's v1.0.90 pre-releases — no Aide action.
 
 ### 2026-09-28
 
