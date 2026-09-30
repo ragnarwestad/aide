@@ -39,6 +39,7 @@ import { asResultTool } from "../steps.ts";
 import { resolveStepModel } from "../model-name.ts";
 import { stepFailure } from "../../format/tool-failure.ts";
 import { endUntickedArchive } from "./unticked-archive.ts";
+import { dependencyHold, NOT_CHECKED, type DependencyHolds } from "./dependency-hold.ts";
 
 export type { SpawnResult, Spawner, StepOutcome, RunnerOptions } from "./types.ts";
 
@@ -116,7 +117,7 @@ export class Runner {
    *  job in it gets the identical fixed sentence, unlike a dependency's
    *  own folder name. `acceptanceOpen` names the queued archives
    *  `aide-archive-spec` would only refuse (`archiveWithOpenAcceptance`). */
-  tick(blocked?: Map<string, string>, notAnalyzed?: Set<string>, acceptanceOpen?: Set<string>): void {
+  tick(blocked?: DependencyHolds, notAnalyzed?: Set<string>, acceptanceOpen?: Set<string>): void {
     // Every sentence this pass writes, by job id. What is NOT in it is
     // no longer held for anything, and `clearStaleHolds` takes its
     // sentence off the row: a hold-back reason is only ever the reason
@@ -226,11 +227,10 @@ export class Runner {
         hold(job, { key: "runner.notAnalyzed" });
         continue;
       }
-      // Held back, not failed: the reason is written, the state is left
-      // alone, no slot is taken, and the next tick tries again. It used
-      // to start, be refused by `aide-run-spec` and land in `failed`,
-      // which nothing retries.
-      const dependency = blocked?.get(job.id);
+      // Held back, not failed: the reason is written, the state is left alone, no slot is
+      // taken, and the next tick tries again — as does a job the answer never looked at.
+      const dependency = dependencyHold(blocked, job.id);
+      if (dependency === NOT_CHECKED) continue;
       if (dependency !== undefined) {
         // The NUMBER, not the folder: the row already says "depends on:
         // 393" a line above this message, from the same helper, and a

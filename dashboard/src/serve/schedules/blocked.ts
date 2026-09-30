@@ -8,6 +8,7 @@ import { discoverProjects, manifestInside } from "../../project/discover";
 import { readSpecState } from "../../project/parse-spec-state.ts";
 import { acceptanceStillOpen, parseStatus } from "../../project/parse-status";
 import { GATED, resolveDependencyFolder } from "../serve-helpers";
+import type { DependencyHolds } from "../../queue/runner/dependency-hold.ts";
 import type { ScheduleContext } from "./";
 
 /** Which queued jobs are waiting on a dependency that is not archived
@@ -39,9 +40,12 @@ export const UNCONFIRMED_HOLD_MS = 10 * 60_000;
 /** When each job's dependency first could not be confirmed, by job id. */
 const unconfirmedSince = new Map<string, number>();
 
-export async function blockedDependencies(ctx: ScheduleContext): Promise<Map<string, string>> {
-  const blocked = new Map<string, string>();
+export async function blockedDependencies(ctx: ScheduleContext): Promise<DependencyHolds> {
+  const blocked: DependencyHolds = new Map<string, string>();
   if (!ctx.projectRoot) return blocked;
+  // Every job queued as the question is asked: one queued while origin is
+  // being asked is left for the next tick (`dependency-hold.ts`).
+  blocked.checked = new Set(ctx.queue.list().filter((job) => job.state === "queued").map((job) => job.id));
   const waiting = ctx.queue.list().filter((job) => {
     if (job.state !== "queued") return false;
     const step = job.steps[job.stepIndex];

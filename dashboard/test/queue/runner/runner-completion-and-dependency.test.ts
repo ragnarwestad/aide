@@ -370,6 +370,22 @@ describe("parked on a dependency (spec 122)", () => {
     expect(store.get(parked.id)?.state).toBe("queued");
   });
 
+  // The answer is worked out before the tick and asking origin takes
+  // time: a job queued meanwhile is not in it. Read as "free", it started
+  // and was refused by the script instead of waiting (575-577, 30 Sep).
+  test("a job the answer did not look at waits for the next tick, with no reason written", () => {
+    const earlier = enqueue({ steps: ["implement"] });
+    const late = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze"] });
+    const runner = makeRunner({ maxConcurrent: 2 });
+    const answer = Object.assign(new Map<string, string>(), { checked: new Set([earlier.id]) });
+    runner.tick(answer);
+    expect(spawns.map((s) => s.jobId)).toEqual([earlier.id]);
+    expect(store.get(late.id)?.state).toBe("queued");
+    expect(store.get(late.id)?.error).toBeUndefined();
+    runner.tick(Object.assign(new Map<string, string>(), { checked: new Set([late.id]) }));
+    expect(spawns.map((s) => s.jobId)).toEqual([earlier.id, late.id]);
+  });
+
   test("no map at all is exactly today's behaviour", () => {
     const job = enqueue({ steps: ["implement"] });
     const runner = makeRunner();
