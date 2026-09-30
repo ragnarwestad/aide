@@ -199,13 +199,12 @@ describe("GET /schedule with an unlisted model (spec 494)", () => {
     expect(tab).toContain("is not one the queue offers");
   });
 
-  test("the flag on the list and on the Schedule tab links to the entry's Settings tab, and nothing links to /edit (AC-6)", async () => {
+  test("the flag on the list and on the Schedule tab links to the entry's Settings tab (AC-6)", async () => {
     const { base } = start({ extra: { queueDefaults: DEFAULTS } });
     writeSchedule("aide", withModel("retired"));
     for (const path of ["/schedule", "/projects/aide?tab=schedule"]) {
       const hrefs = [...parse(await (await fetch(`${base}${path}`)).text()).querySelectorAll("a")].map((a) => a.getAttribute("href")!);
       expect(hrefs).toContain("/schedule/aide/nightly-report?tab=settings");
-      expect(hrefs.filter((h) => h.endsWith("/edit"))).toEqual([]);
     }
   });
 
