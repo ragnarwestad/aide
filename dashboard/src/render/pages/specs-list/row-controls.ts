@@ -224,10 +224,6 @@ export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
     // apart and nothing left for the colour to say except that the
     // action is here.
     //
-    // Built by hand rather than through `btn()`: it needs `form="…"`,
-    // an attribute that helper's signature does not carry — the same
-    // reason `modelPicker` builds its own `<select>`.
-    //
     // One button, whichever way `active` reads (spec 439) — never a
     // second element for the disabled case. It still carries `form="…"`
     // disabled or not: that is what lets `relabelRunButton()`
@@ -236,11 +232,7 @@ export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
     // and `type="submit"` throughout is what makes that re-enabling
     // actually able to submit, rather than a live control a script can
     // turn on but never press.
-    return (
-      `<button type="submit" form="${esc(runFormId(g))}" class="btn primary" data-pending="starting…"` +
-      (action.active ? "" : " disabled") +
-      `>${esc(action.label)}</button>`
-    );
+    return btn({ label: action.label, variant: "primary", form: runFormId(g), pending: "starting…", disabled: !action.active });
   })();
   // "Also touches" stood here until nobody could point at a press it
   // had ever served: 0 of the queue's 200 jobs named an extra repo, and

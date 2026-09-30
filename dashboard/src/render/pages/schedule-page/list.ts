@@ -5,7 +5,7 @@
 // Schedule tab, and Edit and History on the entry's own page.
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
-import { ICON_CHEVRON, ICON_SEARCH, rowMessage } from "../../ui/components";
+import { btn, ICON_CHEVRON, ICON_SEARCH, messageSlot, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { modelFlag } from "./model-flag.ts";
@@ -136,7 +136,7 @@ function searchForm(f: ScheduleFilter): string {
       : "") +
     `</span>` +
     keep +
-    `<button class="btn" type="submit">Search</button>` +
+    btn({ label: "Search" }) +
     `</form>`
   );
 }
@@ -183,6 +183,6 @@ export function renderScheduleList(opts: ScheduleListOptions): string {
   // Always drawn, empty when there is nothing to say: the browser code
   // writes a refused Run now into it, and a press made without script
   // arrives with the sentence in `?error=`.
-  const slot = `<p class="refused${opts.error ? " rowmsg failed" : ""}" aria-live="polite">${esc(opts.error ?? "")}</p>`;
+  const slot = messageSlot("refused", "failed", { text: opts.error });
   return searchForm(f) + slot + table;
 }

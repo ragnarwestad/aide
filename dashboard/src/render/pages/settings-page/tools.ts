@@ -8,7 +8,7 @@
 // questions are answerable for which tool, and why.
 
 import { esc } from "../../ui/html.ts";
-import { btn } from "../../ui/components";
+import { btn, rowMessage } from "../../ui/components";
 
 export const TOOL_TABS = ["claude", "codex", "copilot", "opencode"] as const;
 
@@ -100,7 +100,7 @@ function stamp(at: string): string {
 
 function resultBlock(check: ToolCheck): string {
   if (check.error) {
-    return `<p class="rowmsg failed">${esc(check.error)}</p>`;
+    return rowMessage("failed", check.error, { tag: "p" });
   }
   const extra = check.extra.length
     ? `<ul class="checklist">` +

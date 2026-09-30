@@ -3,7 +3,7 @@
 // queued job has settled, then the page leaves. While it stands, Escape
 // and the browser's own ways of closing it are answered here.
 
-import { postForm } from "../press.ts";
+import { postForm, writeLine } from "../press.ts";
 
 /** A poll a second, at most this many: a modal with no buttons must not
  *  stand for ever behind a job that waits on slow jobs of other specs. */
@@ -61,8 +61,7 @@ const states = new WeakMap<object, { waiting: boolean }>();
 
 /** The ask's line for a refusal: empty when `why` is. */
 function say(ask: HTMLDialogElement, why: string): void {
-  const line = ask.querySelector(".refused");
-  if (line) line.textContent = why;
+  writeLine(ask.querySelector(".refused"), why);
 }
 
 /** A click on any `button[data-ask]` opens the dialog it names. One

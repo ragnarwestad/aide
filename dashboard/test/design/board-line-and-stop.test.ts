@@ -95,6 +95,16 @@ describe("the board line and its Stop control (spec 424)", () => {
     }
   });
 
+  // Run test round was written by hand and said "starting…" while every
+  // button the component draws said "Starting…".
+  test("a round board's Run says 'Starting…' while its request is out (AC-5)", () => {
+    setBoardInfo("aide-wt-run");
+    for (const html of render()) {
+      const run = html.match(/action="\/api\/self-run">[\s\S]*?<\/form>/)?.[0] ?? "";
+      expect(run).toContain('data-pending="Starting…"');
+    }
+  });
+
   // Risk (3-solution.md): a module-level singleton must never leak a
   // prior test's board across `createServer()`/render calls in the same
   // `bun test` process.

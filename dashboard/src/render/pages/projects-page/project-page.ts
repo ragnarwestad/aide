@@ -6,7 +6,7 @@ import type { ProjectReadiness } from "../../../project/project-admin";
 import { FIELD_OWNED_CHECKS, type ProjectSettingsView } from "../../../project/project-settings.ts";
 import { SETTING_LABELS } from "../../../project/setting-labels.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
-import { btn, messageSlot, rowMessage } from "../../ui/components";
+import { btn, btnLink, messageSlot, rowMessage } from "../../ui/components";
 import { jobsSentence } from "../../ui/components/spec-name.ts";
 import { esc, relTimeLabel } from "../../ui/html.ts";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
@@ -257,10 +257,10 @@ function scheduleSection(project: string, entries: readonly ScheduleEntry[], opt
   // A refusal of Run now, Enabled or Delete: written here by the browser
   // code (`schedule-actions.ts`), or by the server when a press with no
   // script was redirected back with the reason.
-  const slot = `<p class="refused${opts.error ? " rowmsg failed" : ""}" aria-live="polite">${opts.error ? esc(opts.error) : ""}</p>`;
+  const slot = messageSlot("refused", "failed", { text: opts.error });
   // New on the right of the line above the table, as Add is on the
   // Projects list.
-  const top = `<div class="listtop"><a class="btn primary" href="${esc(scheduleNewPath(project))}">${t(lang, "schedule.new")}</a></div>`;
+  const top = `<div class="listtop">${btnLink({ href: scheduleNewPath(project), label: t(lang, "schedule.new"), variant: "primary" })}</div>`;
   return top + slot + table;
 }
 

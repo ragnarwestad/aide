@@ -1,9 +1,9 @@
-// The things this dashboard is built from: a button, a switch, a status
-// badge, a phase chip, a row-level message, a field, a filter pill and
-// a back link.
+// The things this dashboard is built from: a button, a link drawn as a
+// button, a switch, a status badge, a phase chip, a row-level message, a
+// field, a filter pill and a back link.
 //
-// They live in ONE file with one call site each, because the problem
-// they solve was not that the stylesheet was ugly — it was that every
+// They live in this folder, every one reached through this file, because
+// the problem they solve was not that the stylesheet was ugly — it was that every
 // spec added a class for its own control. `.stepbox`, `.chip`,
 // `.state`, `.pip`, `.tick`, `.branch`, `.refusal`,
 // `.rowrun`, and a button in three versions depending on which
@@ -17,73 +17,13 @@
 // invented at this layer.
 
 import { esc } from "../html.ts";
-import { t, type Language } from "../../../i18n";
-import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { STEP_LABELS, STEP_LABELS_NB, STEP_LABELS_ES, STEP_LABELS_DE, STEP_LABELS_FR, stepLabel } from "../../../format/step-label.ts";
 
 export { STEP_LABELS, STEP_LABELS_NB, STEP_LABELS_ES, STEP_LABELS_DE, STEP_LABELS_FR, stepLabel };
 
-// --- button -------------------------------------------------------------------
+// --- button ----------------------------------------------------------------
 
-/** Bare is secondary — the default for a control that is NOT the one
- *  thing a page wants pressed: the escape-hatch Cancel link beside a
- *  primary Create or Save. A spec row's own action is never bare, and
- *  since spec 161 never `danger` either — `danger` means one thing on
- *  this dashboard now, an action a mistake cannot undo. */
-export type BtnVariant = "" | "primary" | "ok" | "danger" | "busy";
-
-export function btn(o: {
-  label: string;
-  variant?: BtnVariant;
-  /** `submit` unless said otherwise: every control on this page is a
-   *  real form, which is what makes it work with script off. */
-  type?: "submit" | "button";
-  /** What the button says while its request is out. `specs-client.ts`
-   *  reads it, so it belongs beside the label it replaces. */
-  pending?: string;
-  title?: string;
-  disabled?: boolean;
-  /** The override next to a disabled Merge: deliberately not a second
-   *  button of the same size. */
-  small?: boolean;
-  /** A stable id for a script to find this exact button directly
-   *  (`spec-form-actions.ts`'s Save/Cancel pair) rather than by
-   *  position — most buttons need none, since a form-level submit
-   *  listener finds them by `closest()`/`querySelector` instead. */
-  id?: string;
-}): string {
-  const cls = ["btn", o.variant || "", o.small ? "small" : ""].filter(Boolean).join(" ");
-  const attrs =
-    (o.id ? `id="${esc(o.id)}" ` : "") +
-    `type="${o.type ?? "submit"}" class="${cls}"` +
-    (o.pending ? ` data-pending="${esc(capitalizeFirst(o.pending))}"` : "") +
-    (o.title ? ` title="${esc(o.title)}"` : "") +
-    (o.disabled ? " disabled" : "");
-  // The spinner sits INSIDE the button, before the label, so a busy
-  // control reads as busy without a second element beside it.
-  const spin = o.variant === "busy" ? SPINNER : "";
-  return `<button ${attrs}>${spin}${esc(o.label)}</button>`;
-}
-
-/** The Save/Cancel pair every `.specform` carries (spec 391), on the
- *  same line as the tab's own help mark rather than below the field it
- *  saves. Save renders enabled — REQ-7 needs it to keep working with
- *  scripting off — and `spec-form-actions.ts` disables both the instant
- *  it runs, only re-enabling them once the form has seen an edit.
- *  Cancel renders `disabled` from the start: nothing asks it to work
- *  without that script, so there is nothing wrong with it needing one.
- *
- *  `o.variant` is for the one form whose submit cannot be undone — Close
- *  deletes the spec's code branch without merging it — so it carries
- *  `danger` the way every other irreversible control does. */
-export function saveCancelActions(prefix = "specform", o: { variant?: BtnVariant } = {}): string {
-  return (
-    `<span class="factions">` +
-    btn({ id: `${prefix}-save`, label: "Save", variant: o.variant ?? "primary", pending: "saving…" }) +
-    btn({ id: `${prefix}-cancel`, label: "Cancel", type: "button", disabled: true }) +
-    `</span>`
-  );
-}
+export { btn, btnLink, saveCancelActions, dialogAnswers, type BtnVariant } from "./button.ts";
 
 // --- status badge --------------------------------------------------------------
 
@@ -179,117 +119,11 @@ export function phaseChip(o: {
 export const phases = (chips: string, cls?: string): string =>
   `<span class="${["phases", cls].filter(Boolean).join(" ")}">${chips}</span>`;
 
-// --- row-level message ----------------------------------------------------------
+// --- row-level message --------------------------------------------------------
 
-/** The three kinds a row, job-page or project-page message can be — and
- *  the only three. A call site picks the KIND; the colour and the icon
- *  are decided here, once, from it — never guessed from the text. */
-export type MessageVariant = "info" | "waiting" | "failed";
-
-/** The mark on an info message — a fact, nothing to do. Distinct from
- *  the warning triangle: a reader who cannot tell red from amber must
- *  still be able to tell "nothing to do" from "something waits". */
-export const ICON_INFO =
-  `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" ` +
-  `stroke-linecap="round" aria-hidden="true">` +
-  `<circle cx="8" cy="8" r="6.5"></circle><path d="M8 7v4M8 5h.01"></path></svg>`;
-
-/** The mark on a failed message — a step, a landing or a request
- *  failed and a person has to act. Distinct from the warning triangle
- *  `waiting` keeps: a filled cross in a circle, not a triangle, so the
- *  two never rely on colour alone to tell apart. */
-export const ICON_FAILED =
-  `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" ` +
-  `stroke-linecap="round" aria-hidden="true">` +
-  `<circle cx="8" cy="8" r="6.5"></circle><path d="M5.8 5.8l4.4 4.4M10.2 5.8l-4.4 4.4"></path></svg>`;
-
-const MESSAGE_ICON: Record<MessageVariant, string> = {
-  info: ICON_INFO,
-  waiting: ICON_WARN,
-  failed: ICON_FAILED,
-};
-
-/** Why the button you just pressed did nothing, on the row you pressed
- *  it on. `hook` is the class `specs-client.ts` selects on — it carries
- *  no styling of its own, and renaming one silently breaks the browser
- *  code with no type error to catch it. */
-export function rowMessage(
-  variant: MessageVariant,
-  text: string,
-  o: { hook?: string; tag?: "div" | "p"; actions?: string; html?: string } = {},
-): string {
-  const tag = o.tag ?? "div";
-  const cls = [o.hook, "rowmsg", variant].filter(Boolean).join(" ");
-  // `actions` is markup drawn inside the box after the text: controls
-  // the message offers (a link to try again, a form that dismisses it).
-  return `<${tag} class="${cls}">${MESSAGE_ICON[variant]}<span>${o.html ?? esc(capitalizeFirst(text))}</span>${o.actions ?? ""}</${tag}>`;
-}
-
-/** One sentence of a row's message, and how it is drawn. `own` stands it
- *  on a box of its own; `lead` is a control drawn inside that box before
- *  its icon, and `after` is content drawn directly under it. */
-export interface MessagePart {
-  text: string;
-  href?: string;
-  variant?: MessageVariant;
-  own?: boolean;
-  lead?: string;
-  after?: string;
-}
-
-/** `rowMessage()` for more than one ranked part, each keeping its own
- *  link (REQ-2, spec 403) rather than flattening to one string first —
- *  a link lives inside a part's own sentence, so it survives being
- *  joined with another part's sentence on the same line, unlike `title`
- *  (notice.ts), which cannot be attributed once more than one part
- *  joins and is dropped instead.
- *
- *  Every link opens in a new tab (spec 411): what it points to — a pull
- *  request, a board this row's own link just started — is somewhere
- *  else, and a reader who follows one wants the row still open behind
- *  it. */
-export function rowMessageParts(
-  variant: MessageVariant,
-  parts: MessagePart[],
-  o: { hook?: string; tag?: "div" | "p" } = {},
-): string {
-  const tag = o.tag ?? "div";
-  const link = (p: MessagePart): string =>
-    p.href
-      ? `<a href="${esc(p.href)}" target="_blank" rel="noopener">${esc(capitalizeFirst(p.text))}</a>`
-      : esc(capitalizeFirst(p.text));
-  // What a part unfolds (`after`) goes INSIDE its own box, under the
-  // words: the message grows to hold it, rather than the unfolded list
-  // hanging below a box it belongs to (2026-09-25).
-  const box = (v: MessageVariant, body: string, lead = "", hook = o.hook, after = ""): string =>
-    `<${tag} class="${[hook, "rowmsg", v].filter(Boolean).join(" ")}">${lead}${MESSAGE_ICON[v]}<span>${body}</span>${after}</${tag}>`;
-  if (!parts.some((p) => p.own)) return box(variant, parts.map(link).join(" · "));
-  // A part that asks for a line of its own is its own box; the parts
-  // between two of them still join with " · " into one, as they always did.
-  const boxes: string[] = [];
-  let joined: MessagePart[] = [];
-  const flush = (): void => {
-    if (joined.length) boxes.push(box(joined[0]!.variant ?? variant, joined.map(link).join(" · "), "", boxes.length ? undefined : o.hook));
-    joined = [];
-  };
-  for (const p of parts) {
-    if (!p.own) {
-      joined.push(p);
-      continue;
-    }
-    flush();
-    boxes.push(box(p.variant ?? variant, link(p), p.lead, boxes.length ? undefined : o.hook, p.after ?? ""));
-  }
-  flush();
-  return `<div class="msgstack">${boxes.join("")}</div>`;
-}
-
-/** The slot a refusal is WRITTEN into by the browser code, as opposed
- *  to one the server rendered. It must stay empty until then —
- *  `.rowmsg:empty` draws nothing — so it gets no icon: `textContent`
- *  would wipe one anyway. */
-export const messageSlot = (hook: string, variant: MessageVariant = "failed"): string =>
-  `<p class="${hook} rowmsg ${variant}"></p>`;
+export {
+  ICON_INFO, ICON_FAILED, rowMessage, rowMessageParts, messageSlot, type MessageVariant, type MessagePart,
+} from "./message.ts";
 
 // --- field -----------------------------------------------------------------------
 
@@ -481,19 +315,8 @@ export const pips = (items: { kind: PipKind; title: string; third?: 1 | 2 }[]): 
   `</div>` +
   `</div>`;
 
-import { ICON_CHECK, ICON_LOCK, ICON_WARN, SPINNER } from "./icons.ts";
+import { ICON_CHECK, ICON_LOCK } from "./icons.ts";
 
 // What used to live here too, in a part beside this file.
 export { ICON_CHECK, ICON_LOCK, ICON_WARN, SPINNER, ICON_PDF, ICON_CHEVRON, ICON_SEARCH, ICON_THEME_DARK, ICON_THEME_LIGHT, ICON_THEME_AUTO, CHECKING } from "./icons.ts";
 
-/** The two answers a confirm box asks for, on one row: `affirmative` (a whole form — one posts, one returns a
- *  value to the script that opened the box) first, then Cancel. Cancel is the platform's own close, a
- *  `method="dialog"` form with no action and no id: it works with no script, and an id ending `-cancel` would
- *  disarm the leave guard (`unsaved-changes.ts`). */
-export function dialogAnswers(lang: Language, affirmative: string): string {
-  return (
-    `<div class="dialogactions">${affirmative}` +
-    `<form method="dialog"><button class="btn" type="submit">${esc(t(lang, "dialog.cancel"))}</button></form>` +
-    `</div>`
-  );
-}

@@ -12,7 +12,7 @@
 // stays a real form rather than a button this code has to give meaning
 // to.
 
-import { ACTIONS, postForm } from "./press.ts";
+import { ACTIONS, postForm, writeLine } from "./press.ts";
 import { swapRows } from "./row-swap.ts";
 import { showRefusal } from "./tail-actions.ts";
 import { clearChosenSteps, NEW_SPEC_FORM } from "./state.ts";
@@ -72,8 +72,15 @@ export async function submitTestServerStop(event: Event): Promise<void> {
 // still looking, and not in a banner above a disclosure that may well
 // be shut.
 export function formNote(form: HTMLFormElement, text: string): void {
-  const slot = form.querySelector(".refused");
-  if (slot) slot.textContent = text;
+  writeLine(form.querySelector(".refused"), text);
+}
+
+/** A Settings save's answer, in the one of the form's two lines it
+ *  belongs in: "Defaults saved" in the `notice` line, a refusal in the
+ *  `refused` one — and the other emptied, so the page never says both. */
+export function settingsAnswer(form: HTMLFormElement, text: string, saved: boolean): void {
+  writeLine(form.querySelector(".notice"), saved ? text : "");
+  writeLine(form.querySelector(".refused"), saved ? "" : text);
 }
 
 // A dependency is resolved inside ONE specs root — `aide-run-spec`

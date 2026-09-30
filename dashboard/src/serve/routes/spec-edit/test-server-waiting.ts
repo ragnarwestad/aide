@@ -11,6 +11,7 @@
 // like, and it works with JavaScript switched off.
 
 import { esc } from "../../../render/ui/html.ts";
+import { btnLink } from "../../../render/ui/components";
 
 /** The board's address as the READER can reach it. The round only ever
  *  knows loopback — it started the board on this machine and says
@@ -55,7 +56,7 @@ export function testServerFailedPage(specFolder: string, why?: string, retryHref
   return htmlPage(
     `Could not start a test server for "${esc(specFolder)}"`,
     (why ? `<p>${esc(why)}</p>` : "<p>The round did not report an address.</p>") +
-      (retryHref ? `<p><a class="btn" href="${esc(retryHref)}">Try again</a></p>` : ""),
+      (retryHref ? `<p>${btnLink({ href: retryHref, label: "Try again" })}</p>` : ""),
     { refresh: false },
   );
 }

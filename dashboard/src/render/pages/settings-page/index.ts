@@ -1,6 +1,6 @@
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { esc } from "../../ui/html.ts";
-import { backLink, btn, helpPopover } from "../../ui/components";
+import { backLink, btn, helpPopover, messageSlot } from "../../ui/components";
 import { pickTab, tabBar } from "../../ui/tabs.ts";
 import { notificationsPanel } from "./notifications.ts";
 import { processPanel, type ProcessSettings } from "./process.ts";
@@ -204,12 +204,12 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
   const rows =
     group("On a spec", SPEC_STEPS) +
     group("Not on a spec", OTHER_STEPS);
-  const message = opts.error ?? opts.notice ?? "";
   const modelHeaders = models.length ? "<th>AI</th><th>Model</th>" : "";
   const noModelsNote = models.length ? "" : `<p class="muted">No model choices are configured on this server.</p>`;
   const phasesPanel =
     `<form id="settings-form" class="settingsform" data-settings-form method="post" action="/api/queue/settings">` +
-    `<p class="refused${opts.error ? " rowmsg failed" : ""}" aria-live="polite">${esc(message)}</p>` +
+    messageSlot("refused", "failed", { text: opts.error }) +
+    messageSlot("notice", "info", { text: opts.notice }) +
     noModelsNote +
     `<table class="settingstable"><thead><tr><th>Phase</th>${modelHeaders}<th>Timeout (min)</th></tr></thead>${rows}</table>` +
     `<div class="configactions">` +

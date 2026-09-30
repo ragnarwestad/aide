@@ -18,6 +18,7 @@
 import {
   backLink,
   btn,
+  btnLink,
   field,
   messageSlot,
   rowMessage,
@@ -154,7 +155,7 @@ export function renderProjectsPage(
     // floating between two titles rather than sitting on the list
     // (2026-08-21).
     `<div class="listtop">${projectSummary(projects, lang)}` +
-    `<a class="btn primary" href="${ADD_PROJECT_ROUTE}">${t(lang, "project.add")}</a></div>\n` +
+    `${btnLink({ href: ADD_PROJECT_ROUTE, label: t(lang, "project.add"), variant: "primary" })}</div>\n` +
     // Remove rides on each row the allowlist knows — a discovered
     // project that was never allowlisted has nothing to be removed FROM.
     projectListBody(projects, {
@@ -312,7 +313,7 @@ export function renderRemoveProjectPage(
     }) +
     `<span class="factions">` +
     btn({ label: "Remove", variant: "danger", pending: "removing…" }) +
-    `<a class="btn" href="/projects">Cancel</a>` +
+    btnLink({ href: "/projects", label: "Cancel" }) +
     `</span>` +
     messageSlot("refused") +
     `</form>`;

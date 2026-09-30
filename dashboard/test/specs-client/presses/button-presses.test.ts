@@ -181,7 +181,7 @@ describe("the New-spec form answers for itself (criteria 7, 8)", () => {
   test("a refusal is written beside the form, and the reader stays on the page", async () => {
     const h = harness(() => ({ ok: false, body: { error: "no such project: nope" } }));
     await h.submitCreate();
-    expect(h.slot.textContent).toContain("no such project");
+    expect(h.slot.textContent).toContain("No such project");
     // Still on `/new`, with everything typed still typed.
     expect(h.location.href).toBe("http://dash.test/");
     expect(h.resets).toHaveLength(0);

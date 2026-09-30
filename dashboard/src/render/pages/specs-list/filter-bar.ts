@@ -4,7 +4,7 @@
 // draws the rows themselves.
 
 import { NEW_SPEC_ROUTE } from "../projects-page";
-import { helpPopover, ICON_CHEVRON, ICON_SEARCH } from "../../ui/components";
+import { btn, btnLink, helpPopover, ICON_CHEVRON, ICON_SEARCH } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import {
@@ -220,7 +220,7 @@ function searchForm(f: SpecsFilter, opts: SpecsPageOptions, state: string, lang:
       : "") +
     `</span>` +
     keep +
-    `<button class="btn" type="submit">${t(lang, "list.search")}</button>` +
+    btn({ label: t(lang, "list.search") }) +
     runsHelp(lang) +
     state +
     newSpecLink(opts, lang) +
@@ -323,6 +323,6 @@ export function sortableHead(f: SpecsFilter, lang: Language = "en"): string {
 // made in it, exactly as the panel was not.
 function newSpecLink(opts: SpecsPageOptions, lang: Language): string {
   if ((opts.createProjects ?? []).length === 0) return "";
-  return `<a class="btn primary" href="${NEW_SPEC_ROUTE}">${t(lang, "list.newSpec")}</a>`;
+  return btnLink({ href: NEW_SPEC_ROUTE, label: t(lang, "list.newSpec"), variant: "primary" });
 }
 

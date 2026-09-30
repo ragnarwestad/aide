@@ -11,7 +11,7 @@ import { CSS } from "./css";
 import { ICON_LINKS, WORDMARK } from "./brand.ts";
 import { PWA_LINKS } from "./pwa.ts";
 import { esc } from "./html.ts";
-import { dialogAnswers } from "./components";
+import { btn, dialogAnswers } from "./components";
 import { capitalizeFirst } from "../../format/error-sentence.ts";
 import { themeControl, languageControl, menuSettingRows } from "./header-controls.ts";
 import { getBoardInfo, isRoundBoard } from "./board-info.ts";
@@ -171,8 +171,7 @@ function leaveAppDialog(lang: Language): string {
     `<p class="muted">${esc(t(lang, "shell.leaveAppBody"))}</p>` +
     dialogAnswers(
       lang,
-      `<form method="dialog"><button class="btn danger" type="submit" value="leave">` +
-        `${esc(t(lang, "dialog.ok"))}</button></form>`,
+      `<form method="dialog">${btn({ label: t(lang, "dialog.ok"), variant: "danger", value: "leave" })}</form>`,
     ) +
     `</div></dialog>`
   );
@@ -233,7 +232,7 @@ function runForm(lang: Language): string {
   if (!isRoundBoard()) return "";
   return (
     `<form class="actionform" method="post" action="/api/self-run">` +
-    `<button class="btn" type="submit" data-pending="starting…">${t(lang, "shell.runTestRound")}</button></form>`
+    `${btn({ label: t(lang, "shell.runTestRound"), pending: "starting…" })}</form>`
   );
 }
 
@@ -242,7 +241,7 @@ function stopForm(lang: Language): string {
   if (!getBoardInfo()) return "";
   return (
     `<form class="actionform" method="post" action="/api/self-stop">` +
-    `<button class="btn" type="submit">${t(lang, "shell.stopTestServer")}</button></form>`
+    `${btn({ label: t(lang, "shell.stopTestServer") })}</form>`
   );
 }
 

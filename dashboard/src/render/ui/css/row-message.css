@@ -17,9 +17,12 @@
    leaves, and a path with no spaces in it breaks rather than pushing the
    page sideways at phone width. */
 .rowmsg > span { min-width: 0; overflow-wrap: anywhere; }
-/* The slot the browser code writes a refusal into. Nothing to draw
-   until it does. */
-.rowmsg:empty { display: none; }
+/* A line with no words yet — the slot the page's script writes a
+   refusal into. It takes no room and shows nothing, but is not
+   display: none: that would take it out of what a screen reader hears
+   fill. */
+.rowmsg:has(> span:empty) { position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap; padding: 0; border: 0; margin: 0; }
 p.rowmsg { margin: 0 0 var(--sp-3); }
 
 

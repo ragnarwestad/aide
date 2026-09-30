@@ -42,7 +42,7 @@ describe("Remove", () => {
       body: { ok: false, results: [{ step: "confirm", error: 'type the project name exactly' }] },
     }));
     await h.submitRemove();
-    expect(h.removeSlot.textContent).toContain("type the project name exactly");
+    expect(h.removeSlot.textContent).toContain("Type the project name exactly");
     expect(h.location.href).toBe("http://dash.test/");
     expect(h.replaced).toHaveLength(0);
   });
@@ -183,7 +183,7 @@ describe("the project settings form's own Save (spec 486)", () => {
     }));
     await h.submit!({ defaultPrevented: false, preventDefault: () => {} } as unknown as Event);
     expect(h.location.href).toBe("http://dash.test/projects/aide?edit=config");
-    expect(h.refusedSlot.textContent).toContain("not a directory");
+    expect(h.refusedSlot.textContent).toContain("Not a directory");
   });
 
   test("the settings form is bound exactly once, as its own handler", () => {

@@ -172,7 +172,7 @@ describe("POST /api/queue/schedule — create, project read from the body", () =
     }));
     expect(res.status).toBe(400);
     const html = await res.text();
-    expect(html).toMatch(/data-scheduleform-error[^>]*>[^<]*not-a-cron/);
+    expect(html).toMatch(/<p class="refused rowmsg failed"[^>]*>(?:<svg[\s\S]*?<\/svg>)<span>[^<]*not-a-cron/);
     expect(html).toContain('name="cron" required class="cron-input" value="not-a-cron"');
     expect(html).toContain('<input type="hidden" name="back" value="/schedule">');
     expect(t.stored()).toEqual([]);

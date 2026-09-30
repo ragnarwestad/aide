@@ -4,8 +4,7 @@
 // models table — the page draws one panel at a time, so the two never
 // share a page.
 
-import { btn } from "../../ui/components";
-import { esc } from "../../ui/html.ts";
+import { btn, messageSlot } from "../../ui/components";
 
 /** What the tab shows. `min` and `max` travel with it because this layer
  *  may not import the rule from `src/serve`, where it lives. */
@@ -19,10 +18,10 @@ export interface ProcessSettings {
 }
 
 export function processPanel(s: ProcessSettings, message: { error?: string; notice?: string }): string {
-  const text = message.error ?? message.notice ?? "";
   return (
     `<form id="settings-form" class="settingsform" data-settings-form method="post" action="/api/queue/settings/concurrency">` +
-    `<p class="refused${message.error ? " rowmsg failed" : ""}" aria-live="polite">${esc(text)}</p>` +
+    messageSlot("refused", "failed", { text: message.error }) +
+    messageSlot("notice", "info", { text: message.notice }) +
     `<p><label for="process-concurrency">Steps that may run at once</label> ` +
     `<input id="process-concurrency" type="number" name="concurrency" min="${s.min}" max="${s.max}" step="1" value="${s.concurrency}"></p>` +
     `<p class="muted">This machine has ${s.cores} cores. A saved number is used from the next step the queue ` +

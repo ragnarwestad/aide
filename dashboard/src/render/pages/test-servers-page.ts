@@ -6,7 +6,7 @@
 // table of rows", and reached the same way Settings is: the "…" menu.
 
 import { isSpecFolder, pageShell, type NavEntry } from "../ui/shell.ts";
-import { backLink, messageSlot } from "../ui/components";
+import { backLink, btn, messageSlot } from "../ui/components";
 import { esc } from "../ui/html.ts";
 import type { Language } from "../../i18n";
 
@@ -76,7 +76,7 @@ const row = (r: TestServerRow): string => {
     `<td data-col="ts-status">${esc(r.status)}</td>` +
     `<td data-col="ts-address">${address}</td>` +
     `<td data-col="ts-stop"><form class="actionform" method="post" action="${esc(r.stopAction)}">` +
-    `<button class="btn" type="submit">Stop</button>${messageSlot("refused")}</form></td>` +
+    btn({ label: "Stop" }) + `${messageSlot("refused")}</form></td>` +
     `</tr>`
   );
 };

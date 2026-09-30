@@ -68,12 +68,14 @@ passes it in; nothing passes a colour or an icon:
 
 ## Components
 
-`src/render/ui/components/index.ts` builds the markup for every one of these but `.iconlink`, which is a class a
-caller puts on its own link:
+`src/render/ui/components/` builds the markup for every one of these but `.iconlink`, which is a class a caller puts
+on its own link; its `index.ts` exports them all. No page writes a button or a link with `.btn`, or a message line, by
+hand — `test/guards/one-button-one-link-one-line.test.ts` fails when one does:
 
 | Component             | Variants                                                                                                                              |
 |-----------------------|---------------------------------------------------------------------------------------------------------------------------------------|
-| `btn()`               | bare (secondary), `primary`, `ok`, `danger`, `busy`, disabled, `small`                                                                |
+| `btn()`               | bare (secondary), `primary`, `ok`, `danger`, `busy`, disabled, `small`; `form`, `value`, `data-*` and `aria-label` when asked         |
+| `btnLink()`           | a link that looks like a button: every `btn()` variant but `busy`, and `small`; never disabled — that is a disabled `btn()`           |
 | `switchControl()`     | on or off, its position and the word beside it drawn from `aria-checked`; moved by `setSwitch()`; disabled                            |
 | `.iconlink`           | a link or control that is its icon alone, no button frame — the spec page's PDF link, whose `.icon-pdf` is `--pdf` red in every theme |
 | `badge()`             | `b-idle`, `b-running`, `b-waiting`, `b-ready`, `b-refused`, `b-done`; the state word and its icon                                     |
@@ -82,7 +84,7 @@ caller puts on its own link:
 | `pips()`              | one pip per phase, its first letter above it, the full name in `title`                                                                |
 | `rowMessage()`        | `info`, `waiting`, `failed`                                                                                                           |
 | `rowMessageParts()`   | the same three kinds built from parts rather than one string; every link in one opens in a new tab                                    |
-| `messageSlot()`       | an empty message the browser code writes into later — it draws nothing until it does                                                  |
+| `messageSlot()`       | a message the page's script writes into: its icon, announced, and empty or starting with a text — with no words it takes no room      |
 | `field()`             | label above any control, one height and one radius                                                                                    |
 | `saveCancelActions()` | a form's Save and Cancel pair; Save submits the form, Cancel renders disabled because it needs script                                 |
 | `dialogAnswers()`     | a confirm box's two answers on one row: the affirmative first, then Cancel (the platform's own close)                                 |

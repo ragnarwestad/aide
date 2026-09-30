@@ -4,6 +4,7 @@
 // against.
 
 import { describe, expect, test } from "bun:test";
+import { btn } from "../../../../src/render/ui/components";
 import { page, view } from "../spec-page-fixtures.ts";
 
 describe("spec 406, REQ-1: the Close control", () => {
@@ -33,11 +34,10 @@ describe("spec 406, REQ-1: the Close control", () => {
     expect(html).not.toContain("data-ask=\"closeask\"");
   });
 
-  test("disabled with its reason while busy, rather than absent or silently inert (REQ-11)", () => {
+  test("disabled with its reason while busy, rather than absent or silently inert (REQ-11, AC-4)", () => {
     const html = page(view({ closeAvailable: true, closeUnavailableReason: "a job is running" }));
-    expect(html).toContain("Close");
     expect(html).not.toContain("data-ask=\"closeask\"");
-    expect(html).toContain('aria-disabled="true"');
+    expect(html).toContain(btn({ label: "Close", type: "button", disabled: true }));
     // Spec 454: the reason is not a `title`. Spec 457: nor is it Close's
     // own "(?)" any more — it is one sentence inside the action row's
     // single shared mark, naming Close by name.

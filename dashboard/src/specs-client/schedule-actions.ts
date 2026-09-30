@@ -5,7 +5,7 @@
 // back into the one cell or line it changed, and nothing touches
 // `#jobrows`.
 
-import { postForm, refusalText, type ActionResult } from "./press.ts";
+import { postForm, refusalText, writeLine, type ActionResult } from "./press.ts";
 
 /** The Enabled checkbox on a list row: no form, no confirm — the tick
  *  itself is the press (acceptance criterion 14), the same shape
@@ -42,11 +42,7 @@ export async function postScheduleRun(form: HTMLFormElement, fetchImpl: typeof f
   const button = form.querySelector("button") as HTMLButtonElement | null;
   const stateCell = form.closest("tr")?.querySelector("[data-schedule-state]") as HTMLElement | null;
   const slot = form.closest("main")?.querySelector(".refused") as HTMLElement | null;
-  const say = (text: string): void => {
-    if (!slot) return;
-    slot.textContent = text;
-    slot.className = text ? "refused rowmsg failed" : "refused";
-  };
+  const say = (text: string): void => writeLine(slot, text);
   if (button) button.disabled = true;
   try {
     const res = await fetchImpl(form.action, { method: "POST", headers: { accept: "application/json" } });
@@ -75,15 +71,13 @@ export async function submitScheduleForm(
 ): Promise<void> {
   if (event.defaultPrevented) return;
   event.preventDefault();
-  const slot = form.querySelector("[data-scheduleform-error]");
+  const slot = form.querySelector(".refused");
   await postForm(
     form,
     (body) => {
       go(body?.location ?? location.href);
     },
-    (why) => {
-      if (slot) slot.textContent = why;
-    },
+    (why) => writeLine(slot, why),
   );
 }
 

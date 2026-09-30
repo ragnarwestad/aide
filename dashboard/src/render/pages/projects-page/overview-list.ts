@@ -1,7 +1,7 @@
 // The `/projects` list: the counts, then one row per project. Split
 // out of projects-page.ts by theme.
 
-import { ICON_WARN, rowMessage } from "../../ui/components";
+import { btnLink, ICON_WARN, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import type { ProjectView } from "./types.ts";
@@ -27,7 +27,7 @@ function overviewRow(
   lang: Language = "en",
 ): string {
   const remove = removeHref
-    ? `<a class="btn small proj-row-action" href="${esc(removeHref)}">${t(lang, "project.remove")}</a>`
+    ? btnLink({ href: removeHref, label: t(lang, "project.remove"), small: true, hook: "proj-row-action" })
     : "";
   // Spec 369: the readiness sentence itself moved to the project's own
   // page — this is only a pointer to it, so it needs the same escape

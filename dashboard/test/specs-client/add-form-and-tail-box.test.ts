@@ -47,7 +47,7 @@ describe("a successful Add goes to the list, and takes its answer along", () => 
   test("a refused Add stays on the form, with the reason beside it", async () => {
     const h = harness(() => ({ ok: false, body: { ok: false, results: [{ step: "name", error: "that name is taken" }] } }));
     await h.submitAdd();
-    expect(h.addSlot.textContent).toContain("that name is taken");
+    expect(h.addSlot.textContent).toContain("That name is taken");
     expect(h.location.href).toBe("http://dash.test/");
   });
 

@@ -49,7 +49,7 @@ export const CONTROLS: Record<
   { label: string; pending: string; action: string; formClass: string; variant: string }
 > = {
   rowrun: {
-    label: "Run", pending: "starting…", formClass: "rowrun", variant: "primary",
+    label: "Run", pending: "Starting…", formClass: "rowrun", variant: "primary",
     action: "http://dash.test/api/queue",
   },
   actionform: {
@@ -122,7 +122,7 @@ export function harness(
   // that cell. The scope is `tr.spechead` now, which is the same
   // element open or shut — a collapsed row had no stack cell at all,
   // and this fake had to model that as "no scope".
-  const runButton = formClass === "rowrun" ? button : makeButton("Run", "starting…", "primary", ROW_FORM);
+  const runButton = formClass === "rowrun" ? button : makeButton("Run", "Starting…", "primary", ROW_FORM);
   const cancelButton = formClass === "actionform" ? button : makeButton("Cancel", "cancelling…", "danger");
   const headControls = [...new Set([runButton, cancelButton, button])];
   /** The run form as the State cell holds it: hidden fields only, and

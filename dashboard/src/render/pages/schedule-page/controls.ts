@@ -2,7 +2,7 @@
 // them on the entry's row: the Enabled switch, Run now, Edit and Delete. The
 // Schedule list only shows and links; changes are made here.
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
-import { btn, dialogAnswers } from "../../ui/components";
+import { btn, btnLink, dialogAnswers } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { scheduleEditPath } from "./edit-page.ts";
@@ -23,7 +23,7 @@ export function scheduleControlCells(project: string, entry: ScheduleEntry, lang
     btn({ label: "Run now", pending: "running…" }) +
     `</form></td>` +
     // A link, not a form: Edit only opens the entry's own edit page.
-    `<td><a class="btn" href="${esc(scheduleEditPath(project, entry.name))}">${t(lang, "schedule.edit")}</a></td>` +
+    `<td>${btnLink({ href: scheduleEditPath(project, entry.name), label: t(lang, "schedule.edit") })}</td>` +
     deleteCell(project, entry.name, `${base}/delete`)
   );
 }
@@ -45,8 +45,7 @@ export function scheduleControlCells(project: string, entry: ScheduleEntry, lang
 function deleteCell(project: string, name: string, deleteUrl: string): string {
   return (
     `<td>` +
-    `<button type="button" class="btn danger" ` +
-    `data-delete-schedule aria-label="Delete ${esc(name)}">Delete</button>` +
+    btn({ label: "Delete", type: "button", variant: "danger", data: { "delete-schedule": "" }, ariaLabel: `Delete ${name}` }) +
     `<dialog class="confirmdialog"><div class="confirmpanel">` +
     `<h2>Delete ${esc(project)}:${esc(name)}?</h2>` +
     `<p class="muted">The entry is removed and stops firing. ` +

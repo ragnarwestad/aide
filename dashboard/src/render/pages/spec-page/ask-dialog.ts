@@ -89,7 +89,7 @@ export function askDialog(lang: Language, parts: AskParts): string {
 /** The button that opens the dialog with id `dialogId`. It does nothing
  *  without script, and needs no form: it can sit inside one. */
 export function askButton(label: string, dialogId: string, variant?: "primary"): string {
-  return `<button type="button" class="btn${variant ? ` ${variant}` : ""}" data-ask="${esc(dialogId)}">${esc(label)}</button>`;
+  return btn({ label, type: "button", variant, data: { ask: dialogId } });
 }
 
 export function closeAskDialog(project: string, specFolder: string, lang: Language): string {

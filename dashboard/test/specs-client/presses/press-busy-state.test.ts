@@ -67,7 +67,21 @@ describe("a press locks every control on its row (spec 151)", () => {
       return { ok: true, body: OK };
     }, "rowrun");
     await h.submit();
-    expect(seen).toEqual({ disabled: true, busy: true, title: "starting…" });
+    expect(seen).toEqual({ disabled: true, busy: true, title: "Starting…" });
+  });
+
+  // A form with no row whose button has no word of its own falls back to
+  // one — and like every word the component writes, it starts with a
+  // capital letter.
+  test("a button with no pending word of its own says 'Working…' (AC-5)", async () => {
+    let seen = "";
+    const h = harness((url) => {
+      if (url.includes("/create")) seen = h.createButton.textContent;
+      return { ok: true, body: { ok: true } };
+    });
+    h.createButton.dataset.pending = "";
+    await h.submitCreate();
+    expect(seen).toBe("Working…");
   });
 
   // Not "until the answer arrives" — until the row that reflects it is

@@ -66,7 +66,7 @@ function fakeStateCell(): HTMLElement {
 }
 
 function fakeSlot(): HTMLElement {
-  return { textContent: "", className: "refused" } as unknown as HTMLElement;
+  return { textContent: "" } as unknown as HTMLElement;
 }
 
 /** Answers `closest("tr")` and `closest("main")` by selector, and `querySelector` by what is asked for. */
@@ -97,8 +97,7 @@ describe("postScheduleRun (acceptance criterion 15)", () => {
     const fetchImpl = fakeFetch(() => ({ ok: false, body: { error: "refused" } }));
     await postScheduleRun(form, fetchImpl);
     expect(stateCell.textContent).toBe("never run");
-    expect(slot.textContent).toBe("refused");
-    expect(slot.className).toBe("refused rowmsg failed");
+    expect(slot.textContent).toBe("Refused");
   });
 
   test("a later accepted press empties the slot (spec 494)", async () => {
@@ -108,7 +107,6 @@ describe("postScheduleRun (acceptance criterion 15)", () => {
     await postScheduleRun(form, fakeFetch(() => ({ ok: false, body: { error: "refused" } })));
     await postScheduleRun(form, fakeFetch(() => ({ ok: true, body: { ok: true, job: { state: "queued" } } })));
     expect(slot.textContent).toBe("");
-    expect(slot.className).toBe("refused");
     expect(stateCell.textContent).toBe("queued");
   });
 
@@ -116,7 +114,7 @@ describe("postScheduleRun (acceptance criterion 15)", () => {
     const slot = fakeSlot();
     const form = fakeRunForm("/x", fakeStateCell(), slot);
     await postScheduleRun(form, (async () => { throw new Error("offline"); }) as unknown as typeof fetch);
-    expect(slot.textContent).toBe("the request failed");
+    expect(slot.textContent).toBe("The request failed");
   });
 });
 
@@ -231,7 +229,7 @@ describe("submitScheduleForm", () => {
       dataset: {},
       closest: () => null,
       querySelectorAll: () => [button],
-      querySelector: (sel: string) => (sel === "[data-scheduleform-error]" ? slot : null),
+      querySelector: (sel: string) => (sel === ".refused" ? slot : null),
     };
     const saved = { document: globalThis.document, location: globalThis.location, fetch: globalThis.fetch, FormData: globalThis.FormData };
     const went: string[] = [];
@@ -258,7 +256,7 @@ describe("submitScheduleForm", () => {
 
   test("a refusal is written into the form's error line, and the page stays", async () => {
     const { went, slot } = await press({ ok: false, body: { error: "a job named nightly already exists" } });
-    expect(slot.textContent).toContain("a job named nightly already exists");
+    expect(slot.textContent).toContain("A job named nightly already exists");
     expect(went).toEqual([]);
   });
 });

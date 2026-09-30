@@ -2,7 +2,7 @@
 // archived) drawn in the banner on every tab, the Status tab's
 // criteria checklist, and the Reopen and Close controls.
 
-import { helpPopover, ICON_PDF, rowMessage, saveCancelActions } from "../../ui/components";
+import { btn, helpPopover, ICON_PDF, rowMessage, saveCancelActions } from "../../ui/components";
 import { SPINNER } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { acTestsLine } from "../../ui/ac-tests.ts";
@@ -438,7 +438,7 @@ export function testServerStatus(view: SpecPageView): string {
     `<span class="muted">— it runs the code from ${where}. The specs shown are from the test ` +
     `suite, not the ones on the prod dashboard.</span></span>` +
     `<form class="actionform" method="post" action="${esc(view.testServerStopAction ?? "")}">` +
-    `<button class="btn" type="submit">Stop test server</button></form>` +
+    btn({ label: "Stop test server" }) + `</form>` +
     `</div>`
   );
 }
@@ -452,7 +452,7 @@ export function closeControl(view: SpecPageView, lang: Language = "en"): string 
   if (!view.closeAvailable || view.archived) return "";
   // The reason itself is `actionsHelp()`'s, the row's one shared mark —
   // this button carries no popover of its own.
-  if (view.closeUnavailableReason) return `<span class="btn" aria-disabled="true">Close</span>`;
+  if (view.closeUnavailableReason) return btn({ label: "Close", type: "button", disabled: true });
   // Close has no fallback page behind it (spec 527) — this button needs
   // script to do anything, joining design-system.md's list of controls
   // that do.

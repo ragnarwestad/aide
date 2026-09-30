@@ -20,7 +20,7 @@ describe("an archived spec's row", () => {
     // The Run form is a carrier with an id of its own; a reader row must
     // not carry one, nor the button that submits it.
     expect(row).not.toContain('class="rowrun"');
-    expect(row).not.toContain("starting…");
+    expect(row).not.toContain("Starting…");
   });
 
   // Criterion 7. `stateAction`'s ordinary branches name the phase a

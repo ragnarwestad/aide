@@ -126,3 +126,23 @@ describe("the Settings tabs", () => {
     expect(resolveSettingsTab("process")).toEqual({ group: "process", panel: "process" });
   });
 });
+
+describe("the Settings answer lines", () => {
+  const PROCESS = { concurrency: 2, cores: 8, min: 1, max: 16 };
+  const render = (tab: string) =>
+    renderSettingsPage([], "2026-08-24T00:00:00Z", {
+      modelChoices: MODELS, defaultModels: { default: "sonnet" }, timeoutSec: TIMEOUT_SEC, tab, process: PROCESS,
+    });
+  /** How many message lines the page draws with this hook first in its class. */
+  const lines = (html: string, hook: string): number =>
+    [...html.matchAll(new RegExp(`<p class="${hook} rowmsg `, "g"))].length;
+
+  // A refusal and "Defaults saved" each have a line of their own, so the
+  // script never has to turn one kind into the other.
+  test("Models per phase and Process each draw one refusal line and one notice line (AC-3)", () => {
+    for (const tab of ["phases", "process"]) {
+      const html = render(tab);
+      expect({ tab, refused: lines(html, "refused"), notice: lines(html, "notice") }).toEqual({ tab, refused: 1, notice: 1 });
+    }
+  });
+});

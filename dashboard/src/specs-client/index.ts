@@ -28,7 +28,7 @@ import { applyAiPick, MODEL_SELECTS, offerEachToItsTool, refreshAiModelBox, sync
 import { interceptCancelSubmit } from "./cancel-confirm.ts";
 import {
   bindOneLineFields,
-  formNote,
+  settingsAnswer,
   submitAction,
   submitCreate,
   submitProjectChange,
@@ -93,7 +93,11 @@ settingsForm?.addEventListener("change", ((event: Event) => {
 settingsForm?.addEventListener("submit", (async (event: Event) => {
   if (event.defaultPrevented) return;
   event.preventDefault();
-  await postForm(settingsForm, async () => formNote(settingsForm, "Defaults saved"), (why) => formNote(settingsForm, why));
+  await postForm(
+    settingsForm,
+    async () => settingsAnswer(settingsForm, "Defaults saved", true),
+    (why) => settingsAnswer(settingsForm, why, false),
+  );
 }) as EventListener);
 
 // Delegated from the container, because the controls are replaced along

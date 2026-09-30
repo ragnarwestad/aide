@@ -45,6 +45,16 @@ export function refusalText(body: ActionResult | null): string {
   return perStep || body?.error || "the request failed";
 }
 
+/** Writes `text` into a message line `messageSlot()` drew: into its
+ *  words, so the icon the server drew stays, first letter capitalised as
+ *  the server writes it. An empty text empties the line, which then
+ *  draws nothing. */
+export function writeLine(line: Element | null | undefined, text: string): void {
+  if (!line) return;
+  const words = line.querySelector?.("span") ?? line;
+  words.textContent = text ? text.charAt(0).toUpperCase() + text.slice(1) : "";
+}
+
 /** A value quoted inside an attribute selector. The ids it is used on
  *  are `rowrun-<project>/<specFolder>`, which needs no escaping at all
  *  — but a quote in a folder name would end the selector early, and
@@ -190,7 +200,7 @@ export async function postForm(
     if (!row) {
       // The New-spec form: no row to shove, no boxes to lend. It keeps
       // the word swap it has always had.
-      primary.textContent = primary.dataset?.pending || "working…";
+      primary.textContent = primary.dataset?.pending || "Working…";
       return;
     }
     if (variant) primary.classList.remove(variant);

@@ -10,7 +10,7 @@ import {
   type SettingsGroupFile,
 } from "../../../project/project-settings.ts";
 import { SETTING_LABELS } from "../../../project/setting-labels.ts";
-import { btn, messageSlot, rowMessage } from "../../ui/components";
+import { btn, btnLink, messageSlot, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { projectPagePath } from "./routes.ts";
 import type { ProjectPageOptions } from "./types.ts";
@@ -122,14 +122,14 @@ function settingsTableActions(file: SettingsGroupFile, editingGroup: SettingsGro
       // page's siblings (a plain link, not a submit-form pair) —
       // `data-discard-changes` gives unsaved-changes.ts the same
       // exemption by a different marker (spec 438).
-      `<a class="btn" data-discard-changes href="${esc(path)}?tab=config">Cancel</a></span>`
+      `${btnLink({ href: `${path}?tab=config`, label: "Cancel", data: { "discard-changes": "" } })}</span>`
     );
   }
   const disabled = editingGroup !== null;
   return `<span class="factions">${
     disabled
       ? btn({ label: "Edit", type: "button", disabled: true })
-      : `<a class="btn primary" href="${esc(path)}?edit=${EDIT_GROUP_PARAM[file]}">Edit</a>`
+      : btnLink({ href: `${path}?edit=${EDIT_GROUP_PARAM[file]}`, label: "Edit", variant: "primary" })
   }</span>`;
 }
 
