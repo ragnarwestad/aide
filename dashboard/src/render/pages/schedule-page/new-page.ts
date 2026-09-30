@@ -6,7 +6,7 @@ import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import { t, type Language } from "../../../i18n";
 import { backLink } from "../../ui/components";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
-import { PROJECTS_ROUTE } from "../projects-page/routes.ts";
+import { PROJECTS_ROUTE } from "../projects-page";
 import { renderScheduleForm, type ScheduleFormOptions } from "./form.ts";
 
 /** Where New goes: the project rides as a query, since the page's path

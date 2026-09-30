@@ -9,9 +9,9 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { QueueRowView, SpecTarget } from "../../../../../src/render";
-import { groupBySpec, phasesFor } from "../../../../../src/render/pages/specs-list/data-model/index.ts";
+import { groupBySpec, phasesFor } from "../../../../../src/render/pages/specs-list/data-model";
 import { actionState, nextPhase } from "../../../../../src/render/pages/specs-list/row-state.ts";
-import { wordPhase } from "../../../../../src/render/ui/job-state/index.ts";
+import { wordPhase } from "../../../../../src/render/ui/job-state";
 import { row } from "../../fixtures.ts";
 
 const ANALYZED_AT = "2026-09-20T12:00:00Z";

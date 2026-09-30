@@ -6,7 +6,7 @@ import { renderMessage } from "../../../i18n/message.ts";
 import type { InvalidWhat, ProposalResult, ProposalsProblem, ProposalsRecord, SkipWhy } from "../../../queue/spec-proposals.ts";
 import { badge } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
-import { specPagePath } from "../spec-page/tabs.ts";
+import { specPagePath } from "../spec-page";
 
 const INVALID_KEY: Record<InvalidWhat, Parameters<typeof t>[1]> = {
   "not-an-object": "proposals.invalidNotObject",

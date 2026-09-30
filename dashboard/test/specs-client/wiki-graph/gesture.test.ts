@@ -67,9 +67,9 @@ describe("active from the first pointer down to the last up or cancelled (AC-3)"
   });
 
   test("a cancel clears every pointer, with nothing left to swallow", () => {
-    let state = pointerDown(idleGesture(), 1, { x: 0, y: 0 }, { type: "point", index: 0 });
-    state = pointerMove(state, 1, { x: 40, y: 0 });
-    state = pointerCancel();
+    const dragging = pointerMove(pointerDown(idleGesture(), 1, { x: 0, y: 0 }, { type: "point", index: 0 }), 1, { x: 40, y: 0 });
+    expect(isActive(dragging)).toBe(true);
+    const state = pointerCancel();
     expect(isActive(state)).toBe(false);
     expect(state.swallowClick).toBe(false);
   });

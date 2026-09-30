@@ -89,7 +89,7 @@ done
 # file that is not there leaves the rest of the suite fewer processes, and
 # with four workers and `make test`'s one browser file, one process ran
 # every other test.
-n_browser=$(echo $browser | wc -w | tr -d ' ')
+n_browser=$(echo "$browser" | wc -w | tr -d ' ')
 [ "$n_browser" -lt "$BROWSER_WORKERS" ] && BROWSER_WORKERS="$n_browser"
 [ "$BROWSER_WORKERS" -ge "$WORKERS" ] && [ -n "$rest" ] && BROWSER_WORKERS=$(( WORKERS - 1 ))
 
@@ -182,7 +182,7 @@ for p in $pids; do
   if grep -q '^(fail)' "$OUT/out.$w"; then
     again=$(awk '/^[^ ].*\.test\.ts:$/ { file = substr($0, 1, length($0) - 1) } /^\(fail\)/ && file { print file }' "$OUT/out.$w" | sort -u)
     if [ -n "$again" ]; then
-      echo "--- worker $w: running its failing file(s) again alone:" $again
+      echo "--- worker $w: running its failing file(s) again alone: $(tr '\n' ' ' <<<"$again")"
       # shellcheck disable=SC2086  # the paths are our own, one per line
       if ( bun test --timeout "$LIMIT" $again ) > "$OUT/again.$w" 2>&1; then
         echo "--- worker $w, run again alone: $(grep -E '^Ran [0-9]+ tests' "$OUT/again.$w" | tail -1)"

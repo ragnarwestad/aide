@@ -217,8 +217,9 @@ def test_a_build_keeps_a_decision_page_written_by_hand_and_lists_it_under_its_ow
     assert "](decision-hand.md)" in show(origin["specs"], "wiki/queue.md")
 
 
+@pytest.mark.usefixtures("origin")
 def test_a_spec_pushed_to_main_while_the_build_runs_is_not_the_builds_write_AC_4(
-    runner, workspace, workspace_root, fake_claude, origin
+    runner, workspace, workspace_root, fake_claude
 ):
     """Another spec's own step pushes its folder to the default branch
     while the build is running. The build's branch still has the older
@@ -316,7 +317,8 @@ def test_building_again_rewrites_generated_pages_and_leaves_a_hand_written_one_A
 # --- a build that built nothing ----------------------------------------------
 
 
-def test_a_build_that_wrote_no_wiki_ends_as_no_progress_not_as_done(runner, workspace, fake_claude, origin):
+@pytest.mark.usefixtures("origin")
+def test_a_build_that_wrote_no_wiki_ends_as_no_progress_not_as_done(runner, workspace, fake_claude):
     """The first build on the board was refused every aide-wiki call, said so,
     and still read as done: a completed run that leaves no index built nothing."""
     claude = job(fake_claude, "echo 'I could not build the wiki.' >&2\n" + FINISHED)
@@ -344,16 +346,16 @@ def wiki_then_move_the_code(runner, workspace, workspace_root, fake_claude, orig
 
 def keep_only_writing(workspace_root, written, kept):
     """A session that writes some pages and keeps others it did not write."""
-    wiki = wiki_cmd(workspace_root)
+    script = wiki_cmd(workspace_root)
     lines = [READ_SPECS]
     for name in written:
         lines.append(
-            f'printf "# The {name}\\n\\nRuns the {name}.\\n" | {wiki} write --specs-root "$specs" '
+            f'printf "# The {name}\\n\\nRuns the {name}.\\n" | {script} write --specs-root "$specs" '
             f'--project-dir "$PWD" --page {name}.md --file README.md >/dev/null\n'
         )
-    lines.append(f'{wiki} schema --specs-root "$specs" --project-dir "$PWD" >/dev/null\n')
-    lines.append(f'{wiki} prune --specs-root "$specs" --keep {" ".join(f"{n}.md" for n in kept)} >/dev/null\n')
-    lines.append(f'{wiki} index --specs-root "$specs" --project-dir "$PWD" >/dev/null\n')
+    lines.append(f'{script} schema --specs-root "$specs" --project-dir "$PWD" >/dev/null\n')
+    lines.append(f'{script} prune --specs-root "$specs" --keep {" ".join(f"{n}.md" for n in kept)} >/dev/null\n')
+    lines.append(f'{script} index --specs-root "$specs" --project-dir "$PWD" >/dev/null\n')
     return "".join(lines)
 
 

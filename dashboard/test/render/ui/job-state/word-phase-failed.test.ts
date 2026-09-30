@@ -2,7 +2,7 @@
 // and reads Done again once a later run completes.
 import { describe, expect, test } from "bun:test";
 import { wordPhase } from "../../../../src/render/ui/job-state";
-import type { QueueRowView } from "../../../../src/render/ui/job-state/types.ts";
+import type { QueueRowView } from "../../../../src/render/ui/job-state";
 
 const attemptOf = (state: string, ok: boolean, extra: Record<string, unknown> = {}) =>
   ({ state, results: [{ step: "analyze", ok, costUsd: 0 }], ...extra }) as unknown as QueueRowView;

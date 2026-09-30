@@ -167,7 +167,7 @@ export async function landArchivedSpec(ctx: LandContext, job: Job, outcome: Part
     // nothing is tracked for this spec.
     onLanded: async () => {
       onMerged();
-      await stopTestServer(ctx.testServers, job.project, job.specFolder, "its archive landed");
+      stopTestServer(ctx.testServers, job.project, job.specFolder, "its archive landed");
       queueWikiRefresh(ctx, job.project);
     },
   }));
@@ -208,7 +208,7 @@ export async function landClosedSpec(ctx: LandContext, job: Job, outcome: Partia
     // branch has nothing left to serve once that branch is gone.
     onLanded: async () => {
       onMerged();
-      await stopTestServer(ctx.testServers, job.project, job.specFolder, "its close landed");
+      stopTestServer(ctx.testServers, job.project, job.specFolder, "its close landed");
     },
   }));
 }

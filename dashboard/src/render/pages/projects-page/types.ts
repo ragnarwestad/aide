@@ -3,7 +3,7 @@
 import type { SpecView, ProjectView } from "../../../project/discover";
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import type { Language } from "../../../i18n";
-import type { JobDetailView, JobStepResultView } from "../job-page/types.ts";
+import type { JobDetailView, JobStepResultView } from "../job-page";
 import type { WikiView } from "../../../project/wiki/types.ts";
 import type { SettingsGroupFile } from "../../../project/project-settings.ts";
 

@@ -94,7 +94,8 @@ class TestAFailedDeclaration:
     line, so one for a tool already installed some other way (pandoc from
     brew) is a warning about nothing."""
 
-    def _mise_that_cannot_declare(self, tmp_path):
+    @staticmethod
+    def _mise_that_cannot_declare(tmp_path):
         # node is there (`mise which` answers), every `mise use` fails.
         return _fake_mise(tmp_path, '[ "$1" = "which" ] && exit 0\nexit 1')
 

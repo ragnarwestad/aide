@@ -6,7 +6,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { queueWikiRefresh } from "../../../../src/serve/land-branch/steps.ts";
-import type { LandContext } from "../../../../src/serve/land-branch/types.ts";
+import type { LandContext } from "../../../../src/serve/land-branch";
 
 let root = "";
 afterEach(() => { if (root) rmSync(root, { recursive: true, force: true }); });

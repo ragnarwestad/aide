@@ -1,7 +1,7 @@
 // Deploy's fetch asks whether a checkout's merge lock is free before it
 // queues behind it: a landing holds that lock through its test run.
 import { describe, expect, test } from "bun:test";
-import { createRootLock, rootFreeWithin } from "../../../src/serve/serve-helpers/config.ts";
+import { createRootLock, rootFreeWithin } from "../../../src/serve/serve-helpers";
 
 describe("rootFreeWithin", () => {
   test("a root nothing holds is free at once", async () => {

@@ -108,7 +108,8 @@ tick_full_suite_row() {   # $1 = what ran
       if (n >= 5) { c[3] = " ✅ "; c[4] = " " note " "; line = c[1]; for (i = 2; i <= n; i++) line = line "|" c[i]; print line; done = 1; next }
     }
     { print }
-  ' "$status_file" > "$tmp" && mv "$tmp" "$status_file" || rm -f "$tmp"
+  ' "$status_file" > "$tmp" || { rm -f "$tmp"; return 0; }
+  mv "$tmp" "$status_file" || rm -f "$tmp"
 }
 
 step_tests_folder=""

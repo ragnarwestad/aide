@@ -5,10 +5,9 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import { renderJobDetailPage, renderProjectPage, type ProjectView } from "../../../src/render";
+import { renderJobDetailPage, renderProjectPage, toolPanel, type ProjectView } from "../../../src/render";
 import { pageShell } from "../../../src/render/ui/shell.ts";
 import { setBoardInfo } from "../../../src/render/ui/board-info.ts";
-import { toolPanel } from "../../../src/render/pages/settings-page/tools.ts";
 import { waitingForTestServerPage } from "../../../src/serve/routes/spec-edit/test-server-waiting.ts";
 import { AWAITING_DRIFT_REFRESH_SECONDS } from "../../../src/render/pages/projects-page/project-page.ts";
 import { page, view } from "./spec-page-fixtures.ts";

@@ -284,6 +284,7 @@ case "$sub" in
     # A file the page names in its text is one of its sources too, whether or
     # not the session passed it: a page that mentions a file and does not
     # list it would read as current after that file changed.
+    # shellcheck disable=SC2016  # the backticks are the Markdown the pattern matches, not a command
     while IFS= read -r named; do
       [ -n "$named" ] || continue
       [ "$(git -C "$project_dir" cat-file -t "HEAD:$named" 2>/dev/null)" = "blob" ] || continue
@@ -533,6 +534,7 @@ SCHEMA
       [ -z "$(tail -c1 "$reason")" ] || echo
       printf '\n## Concerns\n\n'
       for c in "${named[@]}"; do printf -- '- [%s](%s)\n' "$(page_title "$wiki/$c")" "$c"; done
+      # shellcheck disable=SC2016  # the backticks are Markdown in the page, not a command
       printf '\n## Source\n\nDecided in spec `%s`.\n' "$spec"
     } > "$tmp"
     mv "$tmp" "$wiki/$page"; rm -f "$reason"
@@ -552,12 +554,12 @@ SCHEMA
       d="$(basename "$f")"
       [ -z "$spec" ] || [ "$(fm_spec "$f")" = "$spec" ] || continue
       if [ ${#from_pages[@]} -gt 0 ]; then
-        hit=""
+        linked=""
         for p in "${from_pages[@]}"; do
           p="$(basename "$p")"
-          if links_to "$f" "$p" || { [ -f "$wiki/$p" ] && links_to "$wiki/$p" "$d"; }; then hit=1; break; fi
+          if links_to "$f" "$p" || { [ -f "$wiki/$p" ] && links_to "$wiki/$p" "$d"; }; then linked=1; break; fi
         done
-        [ -n "$hit" ] || continue
+        [ -n "$linked" ] || continue
       fi
       found="$(jq -c --arg p "$d" --arg t "$(page_title "$f")" --arg s "$(fm_spec "$f")" --arg m "$(page_summary "$f")" \
         '. + [{page:$p, title:$t, spec:$s, summary:$m}]' <<<"$found")"

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { modelChoiceOptions } from "../../../src/serve/serve-helpers/model-choices.ts";
+import { modelChoiceOptions } from "../../../src/serve/serve-helpers";
 
 const queue = (modelChoices: Record<string, { tool?: "claude" | "codex" | "opencode" | "fake-claude" }>, modelIds: Record<string, string>) =>
   ({ defaults: { modelChoices }, modelIds }) as Parameters<typeof modelChoiceOptions>[0];

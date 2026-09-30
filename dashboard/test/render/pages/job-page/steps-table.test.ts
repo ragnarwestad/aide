@@ -1,7 +1,7 @@
 // The Steps table's fold arrow: the same component every other arrow on the
 // board is drawn by, so its title is in the page's language.
 import { describe, expect, test } from "bun:test";
-import { stepResults } from "../../../../src/render/pages/job-page/steps-table.ts";
+import { stepResults } from "../../../../src/render/pages/job-page";
 import { esc } from "../../../../src/render/ui/html.ts";
 import { t } from "../../../../src/i18n";
 

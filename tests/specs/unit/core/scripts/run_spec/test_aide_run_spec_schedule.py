@@ -187,7 +187,8 @@ def test_a_job_that_does_nothing_leaves_no_branch(runner, workspace, fake_claude
     assert BRANCH not in heads(origin["specs"]), heads(origin["specs"])
 
 
-def test_no_scope_violation_error_line_is_written_for_an_ordinary_commit(runner, workspace, fake_claude, origin):
+@pytest.mark.usefixtures("origin")
+def test_no_scope_violation_error_line_is_written_for_an_ordinary_commit(runner, workspace, fake_claude):
     with_prompt(workspace)
     _, out, _, err = schedule(runner, workspace, job(fake_claude, COMMIT_IN_PROJECT + FINISHED), return_stderr=True)
     assert out["ok"] is True, out

@@ -17,7 +17,7 @@
 .wikiedge { stroke: var(--line-strong); stroke-width: 1; }
 .wikinode circle { fill: var(--accent); }
 .wikinode:hover circle { fill: var(--accent-strong); }
-.wikinode text { fill: var(--text); font-size: var(--fs-s); font-family: var(--sans); }
+.wikinode text { fill: var(--text); font-size: var(--fs-s); font-family: var(--sans), sans-serif; }
 /* AC-8: everything but the hovered point's own neighbourhood fades — set
    by script (`specs-client/wiki-graph/index.ts`) on `mouseenter`/`mouseleave`,
    a plain attribute rather than a class so this needs no class-vocabulary
