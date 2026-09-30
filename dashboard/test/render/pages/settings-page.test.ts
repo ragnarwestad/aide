@@ -7,6 +7,8 @@ import { tabLabel } from "../../../src/render/ui/tabs.ts";
 import { WORKFLOW_STEPS } from "../../../src/queue/steps.ts";
 import { mergeQueueDefaults } from "../../../src/queue/queue.ts";
 import { QUEUE_DEFAULTS } from "../../../src/serve/serve-helpers";
+import { settingsAnswer } from "../../../src/specs-client/forms.ts";
+import { Window } from "happy-dom";
 
 const MODELS = [
   { name: "sonnet", tool: "claude" as const },
@@ -133,16 +135,27 @@ describe("the Settings answer lines", () => {
     renderSettingsPage([], "2026-08-24T00:00:00Z", {
       modelChoices: MODELS, defaultModels: { default: "sonnet" }, timeoutSec: TIMEOUT_SEC, tab, process: PROCESS,
     });
-  /** How many message lines the page draws with this hook first in its class. */
-  const lines = (html: string, hook: string): number =>
-    [...html.matchAll(new RegExp(`<p class="${hook} rowmsg `, "g"))].length;
+  /** The tab's Settings form, parsed, as the page's script finds it. */
+  const settingsForm = (html: string): HTMLFormElement => {
+    const window = new Window();
+    window.document.body.innerHTML = html;
+    return window.document.querySelector("form[data-settings-form]") as unknown as HTMLFormElement;
+  };
+  const words = (f: HTMLFormElement, hook: string): string => f.querySelector(`.${hook} span`)?.textContent ?? "?";
 
   // A refusal and "Defaults saved" each have a line of their own, so the
   // script never has to turn one kind into the other.
-  test("Models per phase and Process each draw one refusal line and one notice line (AC-3)", () => {
+  test("Models per phase and Process each hold a line for a save's answer and one for its refusal (AC-3)", () => {
     for (const tab of ["phases", "process"]) {
-      const html = render(tab);
-      expect({ tab, refused: lines(html, "refused"), notice: lines(html, "notice") }).toEqual({ tab, refused: 1, notice: 1 });
+      const saved = settingsForm(render(tab));
+      settingsAnswer(saved, "Defaults saved", true);
+      const refused = settingsForm(render(tab));
+      settingsAnswer(refused, "timeout must be a number", false);
+      expect({ tab, notice: words(saved, "notice"), refused: words(refused, "refused") }).toEqual({
+        tab,
+        notice: "Defaults saved",
+        refused: "Timeout must be a number",
+      });
     }
   });
 });

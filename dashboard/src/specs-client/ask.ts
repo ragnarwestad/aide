@@ -1,6 +1,8 @@
-// The one opener every confirmation on the board shares (`confirmDialog()`,
-// render/ui/components): a button carrying `data-ask="<dialog id>"` names
-// its dialog, and a click on it opens that dialog as a modal. Bound once,
+// The one opener every question on the board shares, whether its dialog
+// is a confirmation (`confirmDialog()`) or a progress dialog that asks
+// first (`progressDialog()`, render/ui/components): a button carrying
+// `data-ask="<dialog id>"` names its dialog, and a click on it opens that
+// dialog as a modal. Bound once,
 // on `body`, so a list row drawn by a later redraw reaches it too.
 
 /** A click on any `button[data-ask]` opens the dialog it names. The id

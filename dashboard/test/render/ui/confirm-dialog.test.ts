@@ -16,7 +16,6 @@ const expectAsk = (html: string, id: string): string => {
   const box = dialog(html, id);
   expect(box).not.toBe("");
   expect(box).toContain(`id="${id}-form"`);
-  expect(box).toContain(`class="dialogactions"`);
   return box;
 };
 
@@ -61,7 +60,8 @@ describe("each confirmation is drawn by the shared function", () => {
     const box = expectAsk(html, "removeask");
     expect(html).toContain(`data-ask="removeask"`);
     expect(box).toContain(`action="/api/queue/projects/aide/remove"`);
-    expect(box).toContain(`class="removeform"`);
+    // The hook the page script binds Remove's submit by.
+    expect(box).toMatch(/class="[^"]*\bremoveform\b/);
   });
 
 });

@@ -33,7 +33,7 @@ export const isQueuePath = (path: string) =>
   path === SCHEDULE_ROUTE ||
   // An entry's own detail page and the New-job page (spec 276) — both
   // carry real forms (the Edit section, the create form), guarded per
-  // request exactly as the Add/Remove project pages are.
+  // request exactly as the Add project page is.
   path.startsWith("/schedule/") ||
   path.startsWith("/schedule-output/") ||
   path === "/queue" ||

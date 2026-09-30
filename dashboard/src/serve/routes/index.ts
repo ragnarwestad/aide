@@ -1,6 +1,6 @@
 // The route handler for every /queue and /api/queue path, and the
-// pages that live beside it ("New spec", Settings, Add/Remove
-// project, a spec's own save/tick/reset routes). Extracted from
+// pages that live beside it ("New spec", Settings, Add project, a
+// spec's own save/tick/reset routes). Extracted from
 // `createServer` (spec: split serve.ts, step 2) — it is the single
 // largest piece of that closure, and unlike `serve-helpers.ts` it is
 // NOT closure-free: everything it used to read off `createServer`'s

@@ -1,6 +1,6 @@
 // Full-page GET routes and their redirects: the list, New spec,
-// Settings, Add/Remove project, a project's own page, and the
-// Projects listing. Extracted from routes.ts (split of split
+// Settings, Add project, a project's own page, and the Projects
+// listing. Extracted from routes.ts (split of split
 // serve.ts step 2).
 import type { RoutesContext } from "..";
 import { specsPages } from "./specs-pages.ts";

@@ -4,7 +4,7 @@
 import { describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import { renderProjectPage, type ProjectView } from "../../../src/render";
-import { submitDeploy } from "../../../src/specs-client/deploy";
+import { deployStepUrl, submitDeploy } from "../../../src/specs-client/deploy";
 import type { DeployIo, StepAnswer } from "../../../src/specs-client/deploy/run.ts";
 
 /** The Deploy form as the project page's Deploy tab draws it, for a
@@ -261,5 +261,13 @@ describe("submitDeploy", () => {
     expect(shown?.classList.contains("deploy-fault")).toBe(true);
     expect(textOf((shown ?? undefined) as unknown as Element | undefined)).toContain("did not answer");
     expect(io.reloads).toBe(0);
+  });
+});
+
+describe("where a step posts", () => {
+  test("each step goes under the base the page wrote on the Deploy form", () => {
+    const { form } = page();
+    expect(deployStepUrl(form, "fetch")).toBe("/api/queue/projects/aide/deploy/fetch");
+    expect(deployStepUrl(form, "restart")).toBe("/api/queue/projects/aide/deploy/restart");
   });
 });

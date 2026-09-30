@@ -22,10 +22,15 @@ const standing = new WeakMap<object, Standing>();
 
 const capitalize = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
 
+/** Where one step of the sequence posts: under the base the server
+ *  wrote on the Deploy form. */
+export const deployStepUrl = (form: HTMLFormElement, step: PostedStep): string =>
+  `${form.dataset.deployBase}/${step}`;
+
 function browserIo(form: HTMLFormElement): DeployIo {
   return {
     post: async (step: PostedStep) => {
-      const res = await fetch(`${form.action}/${step}`, { method: "POST", headers: { accept: "application/json" } });
+      const res = await fetch(deployStepUrl(form, step), { method: "POST", headers: { accept: "application/json" } });
       const body = (await res.json().catch(() => null)) as StepAnswer | null;
       return { ...body, ok: res.ok && body?.ok === true };
     },

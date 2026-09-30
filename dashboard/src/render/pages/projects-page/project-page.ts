@@ -165,9 +165,11 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
         ? "Pressing again only repeats the pull and install — it does not restart the service sooner."
         : undefined;
 
+  // No action: the script posts each step to `<data-deploy-base>/<step>`
+  // (`specs-client/deploy/`), and nothing answers at the base itself.
   const button = buttonForm({
-    action: `/api/queue/projects/${encodeURIComponent(name)}/deploy`,
     hook: "deployform",
+    data: { "deploy-base": `/api/queue/projects/${encodeURIComponent(name)}/deploy` },
     button: {
       label: "Deploy",
       variant: "primary",
@@ -304,7 +306,7 @@ function removeProject(name: string, opts: ProjectPageOptions): string {
     `<p>${askButton({ label: t(lang, "project.remove"), dialogId: REMOVE_ASK_ID, variant: "danger" })}</p>` +
     progressDialog(lang, {
       id: REMOVE_ASK_ID,
-      title: t(lang, "shell.overlayRemoving"),
+      title: t(lang, "dialog.removing"),
       ask: {
         title: `Remove ${name}?`,
         sentence:

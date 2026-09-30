@@ -1,8 +1,9 @@
 /* --- rows and forms ----------------------------------------------------- */
-/* "rowrun", "actionform", "newspecform", "refused" and
-   "refusal" are what specs-client.ts selects on. They are
-   laid out here and coloured nowhere: a rename breaks the browser code
-   with no type error to catch it. */
+/* "rowrun", "actionform" and "refused" are classes specs-client
+   selects on. What of them is laid out is laid out here and coloured
+   nowhere: a rename breaks the browser code with no type error to catch
+   it. The New spec form's own hook, "newspecform", has no rule — its
+   layout is "pageform"'s. */
 
 .row { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
 /* The spec banner's test-server line: a sentence and the button that
@@ -299,12 +300,8 @@ dialog.confirmdialog::backdrop, dialog.progressdialog::backdrop { background: va
 .progresspanel > [data-running-face] { display: flex; flex-direction: column; gap: var(--sp-3); }
 dialog[data-asks]:not([data-standing]) > .progresspanel > [data-running-face] { display: none; }
 dialog[data-standing] > .progresspanel > :not([data-running-face]) { display: none; }
-.confirmpanel textarea, .progresspanel textarea { width: 100%; box-sizing: border-box; }
+.progresspanel textarea { width: 100%; box-sizing: border-box; }
 .dialogactions > form { margin: 0; }
-.confirmpanel [data-confirm] { display: flex; flex-direction: column; gap: var(--sp-2);
-  align-items: flex-start; }
-.confirmpanel [data-confirm] .field { width: 100%; }
-.confirmpanel [data-confirm] input { width: 100%; }
 
 /* The Deploy panel's own state sentence, button and refusal line,
    spaced apart the way `.confirmpanel` already spaces its own parts —

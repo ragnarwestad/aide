@@ -8,7 +8,6 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = join(import.meta.dir, "..", "..");
-const BUTTON = "src/render/ui/components/button.ts";
 const MESSAGE = "src/render/ui/components/message.ts";
 
 /** A source's code, with its comment lines left out: a comment that names
@@ -38,16 +37,18 @@ describe("one button, one button link, one message line", () => {
     expect(client.length).toBeGreaterThan(15);
   });
 
-  test("no file but the button component writes a button with the btn class (AC-1)", () => {
-    expect(matching(all, /<button\b[^>]*class=\\?"btn\b/, BUTTON)).toEqual([]);
+  // AC-1 and AC-2 as well: the button component builds its class list
+  // rather than writing the attribute, so no file is excepted, and a
+  // hand-written `<button>` or `<a>` with the class is caught here too.
+  test("no element anywhere is given the btn class by hand, so none is made to look like a button (AC-1, AC-2, AC-4)", () => {
+    // `btn` anywhere in a class attribute's value, in either quote, not
+    // only first; `btn-…` or `…-btn` is another class.
+    expect(matching(all, /class=\\?(["'])[^"'>]*(?<![\w-])btn(?![\w-])/)).toEqual([]);
   });
 
-  test("no file but the button component writes a link with the btn class (AC-2)", () => {
-    expect(matching(all, /<a\b[^>]*class=\\?"btn\b/, BUTTON)).toEqual([]);
-  });
-
-  test("no element anywhere is given the btn class by hand, so none is made to look like a button (AC-4)", () => {
-    expect(matching(all, /class=\\?"btn\b/)).toEqual([]);
+  test("no client script gives an element the btn class (AC-4)", () => {
+    expect(matching(client, /classList\.(add|toggle)\([^)]*["'`]btn["'`]/)).toEqual([]);
+    expect(matching(client, /className\s*=\s*["'`]([^"'`]*\s)?btn(?![\w-])/)).toEqual([]);
   });
 
   test("no file but the message component writes a message line (AC-3)", () => {

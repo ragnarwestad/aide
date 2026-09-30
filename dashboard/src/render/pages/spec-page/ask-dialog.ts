@@ -39,7 +39,7 @@ export function closeAskDialog(project: string, specFolder: string, lang: Langua
   const back = specPagePath(project, specFolder);
   return progressDialog(lang, {
     id: CLOSE_ASK_ID,
-    title: t(lang, "shell.overlayClosing"),
+    title: t(lang, "dialog.closing"),
     ask: {
       title: `Close ${specFolder}?`,
       sentence: CLOSE_WORDING,
@@ -48,7 +48,7 @@ export function closeAskDialog(project: string, specFolder: string, lang: Langua
           "Reason",
           `<textarea name="reason" form="${formId}" rows="4" required data-maxlength="${DESCRIPTION_MAX}"></textarea>`,
         ),
-      ok: { variant: "danger", pending: t(lang, "shell.overlayClosing") },
+      ok: { variant: "danger", pending: t(lang, "dialog.closing") },
       post: { action: `/api/queue${back}/close` },
       wait: { back },
     },

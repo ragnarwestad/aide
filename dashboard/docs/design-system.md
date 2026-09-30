@@ -91,7 +91,7 @@ of facts, a form holding one button or a checkbox with its words beside it, whic
 | `pips()`              | one pip per phase, its first letter above it, the full name in `title`                                                                |
 | `rowMessage()`        | `info`, `waiting`, `failed`                                                                                                           |
 | `rowMessageParts()`   | the same three kinds built from parts rather than one string; every link in one opens in a new tab                                    |
-| `messageSlot()`       | a message the page's script writes into: its icon, announced, and empty or starting with a text — with no words it takes no room      |
+| `messageSlot()`       | a message the page's script writes into: its icon, announced, and always drawn empty — with no words it takes no room                 |
 | `field()`             | label above any control, one height and one radius                                                                                    |
 | `saveCancelActions()` | a form's Save and Cancel pair; Save submits the form, Cancel renders disabled because it needs script                                 |
 | `confirmDialog()`     | a confirmation that runs no step: the question, OK first and Cancel beside it (the platform's own close)                              |

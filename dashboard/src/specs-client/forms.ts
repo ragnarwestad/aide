@@ -130,10 +130,9 @@ export async function submitCreate(form: HTMLFormElement, event: Event): Promise
   );
 }
 
-// The Projects panel (spec 112): an Add form, and one Remove per
-// allowlisted project. Bound directly rather than by delegation, and
-// for the same reason the New-spec form is — the panel sits OUTSIDE
-// #jobrows so a half-typed git URL survives the five-second swap.
+// Adding and removing a project: the Add project page's form, and the
+// Remove on a project's Config tab. Both are bound directly, like the
+// New-spec form.
 //
 // No refusal here has a row to land on: an Add names a project that was
 // never added, and a Remove that failed leaves the project exactly where

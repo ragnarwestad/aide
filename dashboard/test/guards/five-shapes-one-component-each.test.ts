@@ -14,7 +14,7 @@ const FACTS = "src/render/ui/components/facts.ts";
 const BUTTON = "src/render/ui/components/button.ts";
 const CHECKBOX = "src/render/ui/components/checkbox.ts";
 // The phase chip is a component of its own, with its own lock and tick.
-const COMPONENTS = "src/render/ui/components/index.ts";
+const PHASE_CHIP = "src/render/ui/components/phase-chip.ts";
 
 /** A source's code, with its comment lines left out: a comment that names
  *  `class="fold"` draws nothing. */
@@ -125,7 +125,7 @@ describe("one fold arrow, one tab strip, one table of facts, one one-button form
   });
 
   test("no file but the checkbox component writes a checkbox with its words beside it (AC-5)", () => {
-    expect(matching(all, writesLabelledCheckbox, [CHECKBOX, COMPONENTS])).toEqual([]);
+    expect(matching(all, writesLabelledCheckbox, [CHECKBOX, PHASE_CHIP])).toEqual([]);
   });
 
   test("the labelled-checkbox rule flags a hand-written line and passes the model picker's box (AC-5)", () => {

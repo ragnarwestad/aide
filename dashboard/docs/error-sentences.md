@@ -25,7 +25,7 @@ An error sentence has up to three parts, in order:
 3. **Optional detail** — git/tool output MAY follow, as hover detail on the sentence, never as the sentence itself.
 
 A sentence carries part 2 unless there is genuinely nothing to resolve — the fact is stated and that is the whole
-answer (`ARCHIVED_REFUSAL` in `src/serve/serve-helpers/redirect.ts` is the model case: editing an archived spec is
+answer (`ARCHIVED_REFUSAL` in `src/serve/serve-helpers/edit-sentences.ts` is the model case: editing an archived spec is
 intentionally impossible, not a gap).
 
 The row's own text starts with an uppercase letter. That happens once, at render time, in `rowMessage`/

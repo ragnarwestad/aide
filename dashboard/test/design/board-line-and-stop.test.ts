@@ -12,6 +12,13 @@ import {
 import { getBoardInfo, setBoardInfo } from "../../src/render/ui/board-info.ts";
 import { AT } from "./row-fixtures.ts";
 
+/** The whole form that posts to `action`, or "" when there is none. */
+const formPosting = (html: string, action: string): string =>
+  html.match(new RegExp(`<form\\b[^>]*\\saction="${action}"[^>]*>[\\s\\S]*?</form>`))?.[0] ?? "";
+
+/** The hooks on that form's class, which the page script selects on. */
+const hooksOf = (form: string): string[] => form.match(/^<form\b[^>]*\sclass="([^"]*)"/)?.[1]?.split(" ") ?? [];
+
 // --- the board line and its Stop control (spec 424) --------------------------
 //
 // Which board a page is served from — a process-lifetime value read
@@ -66,7 +73,9 @@ describe("the board line and its Stop control (spec 424)", () => {
   test("REQ-3: a test board's header carries a Stop form beside the line", () => {
     setBoardInfo("424-headeren-sier-hvilket-board-du-er-pa-og-testserveren-kan-stoppes-derfra");
     for (const html of render()) {
-      expect(html).toContain('<form method="post" action="/api/self-stop" class="actionform">');
+      const stop = formPosting(html, "/api/self-stop");
+      expect(stop).toContain('method="post"');
+      expect(hooksOf(stop)).toEqual(["actionform"]);
     }
   });
 
@@ -79,9 +88,10 @@ describe("the board line and its Stop control (spec 424)", () => {
     setBoardInfo("aide-wt-run");
     for (const html of render()) {
       expect(html).toContain(`${machine} - Test - round<`);
-      expect(html).toMatch(
-        /action="\/api\/self-stop" class="actionform">[\s\S]*?<\/form><form method="post" action="\/api\/self-run" class="actionform reloadform">/,
-      );
+      expect(formPosting(html, "/api/self-stop")).not.toBe("");
+      const run = formPosting(html, "/api/self-run");
+      expect(run).toContain('method="post"');
+      expect(hooksOf(run).sort()).toEqual(["actionform", "reloadform"]);
     }
     // Started from a spec's branch: a preview of that spec, never re-run.
     setBoardInfo("424-headeren-sier-hvilket-board-du-er-pa-og-testserveren-kan-stoppes-derfra");
@@ -100,8 +110,7 @@ describe("the board line and its Stop control (spec 424)", () => {
   test("a round board's Run says 'Starting…' while its request is out (AC-5)", () => {
     setBoardInfo("aide-wt-run");
     for (const html of render()) {
-      const run = html.match(/action="\/api\/self-run" class="actionform reloadform">[\s\S]*?<\/form>/)?.[0] ?? "";
-      expect(run).toContain('data-pending="Starting…"');
+      expect(formPosting(html, "/api/self-run")).toContain('data-pending="Starting…"');
     }
   });
 

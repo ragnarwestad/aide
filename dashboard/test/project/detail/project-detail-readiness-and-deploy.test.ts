@@ -137,7 +137,7 @@ describe("the Deploy section on a project's own page (spec 258, spec 407)", () =
     const html = await loadUntil(base, "aide", "commits behind origin", 2000, "deploy");
     expect(html).toContain("3 commits behind origin, checked");
     expect(html).toContain('class="deployform"');
-    expect(html).toContain('action="/api/queue/projects/aide/deploy"');
+    expect(html).toContain('data-deploy-base="/api/queue/projects/aide/deploy"');
     const form = html.match(/<form[^>]*class="deployform"[\s\S]*?<\/form>/)?.[0] ?? "";
     expect(form).not.toMatch(/<button[^>]*\bdisabled\b/);
     // The list's own wording ends "— deploy is a hand step", which

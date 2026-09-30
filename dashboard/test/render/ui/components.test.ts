@@ -3,8 +3,9 @@
 // standard `Referer` header. No render file had a test of its own for
 // either shape before this.
 import { describe, expect, test } from "bun:test";
+import { Window } from "happy-dom";
 import {
-  btn, btnLink, buttonForm, foldArrow, ICON_FAILED, messageSlot, resolveBackHref,
+  btn, btnLink, buttonForm, facts, foldArrow, helpPopover, ICON_FAILED, labelledCheckbox, messageSlot, resolveBackHref,
 } from "../../../src/render/ui/components";
 import { esc } from "../../../src/render/ui/html.ts";
 import { t } from "../../../src/i18n";
@@ -143,29 +144,80 @@ describe("foldArrow()", () => {
   });
 });
 
+/** The value of `name` on the first tag in `html` that opens with `tag`. */
+const attrOf = (html: string, tag: string, name: string): string | undefined =>
+  html.match(new RegExp(`<${tag}\\b[^>]*\\s${name}="([^"]*)"`))?.[1];
+
+/** Each hidden field's name and its (escaped) value, in any attribute order. */
+const hiddenFields = (html: string): Record<string, string> =>
+  Object.fromEntries(
+    [...html.matchAll(/<input\b[^>]*type="hidden"[^>]*>/g)].map((m) => [
+      attrOf(m[0], "input", "name") ?? "",
+      attrOf(m[0], "input", "value") ?? "",
+    ]),
+  );
+
 describe("buttonForm()", () => {
-  test("puts its hidden fields and its button inside the form, which carries the hook the script selects on (AC-4)", () => {
+  test("posts to its escaped action, carries the hook the script selects on, and its hidden fields (AC-4)", () => {
     const html = buttonForm({
       action: "/api/queue/j1/cancel?a=1&b=2",
       hook: "actionform",
       hidden: { f_state: 'all"' },
       button: { label: "Cancel" },
     });
-    expect(html.startsWith('<form method="post" action="/api/queue/j1/cancel?a=1&amp;b=2" class="actionform">')).toBe(true);
-    expect(html).toContain('<input type="hidden" name="f_state" value="all&quot;">');
+    expect(attrOf(html, "form", "method")).toBe("post");
+    expect(attrOf(html, "form", "action")).toBe("/api/queue/j1/cancel?a=1&amp;b=2");
+    expect(attrOf(html, "form", "class")?.split(" ")).toContain("actionform");
+    expect(hiddenFields(html)).toEqual({ f_state: "all&quot;" });
     expect(html).toContain(btn({ label: "Cancel" }));
-    expect(html.endsWith("</form>")).toBe(true);
   });
 
   test("closes a dialog with no action when its method is the dialog's own (AC-4)", () => {
     const html = buttonForm({ method: "dialog", button: { label: "OK", value: "leave" } });
-    expect(html).toBe(`<form method="dialog">${btn({ label: "OK", value: "leave" })}</form>`);
+    expect(attrOf(html, "form", "method")).toBe("dialog");
+    expect(attrOf(html, "form", "action")).toBeUndefined();
+    expect(attrOf(html, "button", "value")).toBe("leave");
   });
 
   test("draws a dialog's close cross, named for a screen reader, as its one button (AC-4)", () => {
     const html = buttonForm({ method: "dialog", button: { cross: "Close" } });
-    expect(html.startsWith('<form method="dialog"><button')).toBe(true);
-    expect(html).toContain('aria-label="Close"');
-    expect(html).not.toContain("action=");
+    expect(attrOf(html, "form", "method")).toBe("dialog");
+    expect(attrOf(html, "form", "action")).toBeUndefined();
+    expect(attrOf(html, "button", "aria-label")).toBe("Close");
+  });
+});
+
+/** The markup parsed into a document's body. */
+function parsed(html: string): HTMLElement {
+  const window = new Window();
+  window.document.body.innerHTML = html;
+  return window.document.body as unknown as HTMLElement;
+}
+
+describe("facts()", () => {
+  test("marks a row's value as a figure only when the row asks for it", () => {
+    const body = parsed(facts([{ label: "Cost", value: "$1.20", num: true }, { label: "Model", value: "opus" }]));
+    const values = [...body.querySelectorAll("tr")].map((tr) => tr.children[1]!.classList.contains("num"));
+    expect(values).toEqual([true, false]);
+  });
+});
+
+describe("labelledCheckbox()", () => {
+  test("open, a click on its words ticks the box: both sit in one label", () => {
+    const box = parsed(labelledCheckbox({ label: "Reset", name: "resetFiles", value: "1" })).querySelector("input")!;
+    expect(box.closest("label")?.textContent).toBe("Reset");
+  });
+
+  test("disabled, its help popover is never inside a label, and the box is off", () => {
+    const body = parsed(labelledCheckbox({ label: "Reset", disabled: true, help: helpPopover("Why", "Because.") }));
+    expect(body.querySelector("details")?.closest("label")).toBeNull();
+    expect(body.querySelector("input")?.disabled).toBe(true);
+  });
+
+  test("neither variant takes the acceptance row's squeezed checkbox class", () => {
+    for (const disabled of [false, true]) {
+      const body = parsed(labelledCheckbox({ label: "Reset", disabled }));
+      expect(body.querySelector(".checkbox")).toBeNull();
+    }
   });
 });

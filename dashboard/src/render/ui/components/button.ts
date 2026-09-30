@@ -85,7 +85,6 @@ export type FormHook =
   | "reloadform"
   | "deployform"
   | "removeform"
-  | "configactions"
   | "configactions reloadform";
 
 /** A form whose only control is one button: hidden fields, a message line

@@ -13,13 +13,13 @@ import { view } from "../pages/spec-page-fixtures.ts";
 const dialogWith = (html: string, mark: string): string =>
   html.match(new RegExp(`<dialog[^>]*${mark}[^>]*>[\\s\\S]*?</dialog>`))?.[0] ?? "";
 
-const standingTitle = (box: string): string => box.match(/<h2 class="standingtitle">([^<]*)<\/h2>/)?.[1] ?? "";
+/** The heading of the dialog's running face: what it says while it stands. */
+const runningWord = (box: string): string => box.match(/data-running-face[^>]*><h2[^>]*>([^<]*)<\/h2>/)?.[1] ?? "";
 
 const expectProgress = (box: string, word: string): void => {
   expect(box).not.toBe("");
-  expect(box).toMatch(/^<dialog class="progressdialog"/);
   expect(box).toContain("data-progress-dialog");
-  expect(standingTitle(box)).toBe(word);
+  expect(runningWord(box)).toBe(word);
 };
 
 const project: ProjectView = { name: "aide", manifest: { ok: false, error: "no manifest" }, specs: [] };
@@ -74,12 +74,11 @@ describe("every running step is drawn by the progress dialog", () => {
     expect([...box.matchAll(/<li data-step="/g)].length).toBe(5);
   });
 
-  test("Deploy's dialog, which asks nothing, carries none of the confirmation's classes (AC-5)", () => {
+  test("Deploy's dialog, which asks nothing, stands from the moment it opens (AC-5)", () => {
     const html = projectPage({ tab: "deploy", drift: { behind: 2, checkedAt: Date.parse("2026-09-20T00:00:00Z") } });
     const box = dialogWith(html, "data-deploy-dialog");
-    expect(box).not.toBe("");
-    expect(box).not.toContain("confirmdialog");
-    expect(box).not.toContain("confirmpanel");
-    expect(box).not.toContain("dialogactions");
+    expect(box).toContain("data-progress-dialog");
+    expect(box).not.toContain("data-asks");
+    expect(box).not.toContain(`method="dialog"`);
   });
 });
