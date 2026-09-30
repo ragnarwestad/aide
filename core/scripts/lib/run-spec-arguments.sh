@@ -11,8 +11,9 @@
 # imported by the dashboard — see core/scripts/lib/workflow-steps.json's
 # own comment for what each list is and why it is shaped the way it is
 # (WORKFLOW_STEPS is the names --command accepts; DEPENDENCY_GATED_STEPS
-# is narrower, since analyze and create write only the spec's own folder
-# in the specs repo and conflict with nothing). A missing or unparsable
+# is narrower: create writes only the spec's own folder and needs nothing
+# merged, while analyze plans against code a dependency may still change).
+# A missing or unparsable
 # file refuses loudly rather than leaving these names unset under `set -u`.
 _workflow_steps_file="$SCRIPT_DIR/lib/workflow-steps.json"
 [ -f "$_workflow_steps_file" ] \

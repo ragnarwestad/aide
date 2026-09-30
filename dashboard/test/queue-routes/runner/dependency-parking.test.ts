@@ -103,12 +103,13 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     return { run, calls };
   }
 
-  const queueImplement = (base: string) =>
+  const queueStep = (base: string, step: string) =>
     fetch(`${base}/api/queue`, {
       method: "POST",
       headers: AUTH,
-      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
+      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: [step] }),
     });
+  const queueImplement = (base: string) => queueStep(base, "implement");
 
   /** Long enough for a spawn to have written its file, for the checks
    *  that assert it did NOT: proving an absence needs a real pause, not
@@ -156,6 +157,31 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     expect(listed.jobs[0].state).toBe("queued");
     // The number, not the folder: the row names the folder a line
     // above this message, and the sentence says it short.
+    expect(sentence(listed.jobs[0].error)).toContain("depends on 80,");
+  });
+
+  // A plan made before the dependency lands is a plan for code that is
+  // about to change: analyze waits with implement and archive.
+  test("an analyze job whose dependency is not archived waits too", async () => {
+    const dir = own("aide-queue-parked-analyze-");
+    const { bin, argvFile } = stub(dir);
+    const paths = root(dir);
+    const { base } = harness.start({
+      extra: {
+        projectRoot: paths.root,
+        queueProjectRoot: paths.root,
+        queueRunnerBin: bin,
+        queueResultDir: join(dir, "jobs"),
+        gitRun: gitFor(() => false).run,
+      },
+    });
+    expect((await queueStep(base, "analyze")).status).toBe(200);
+    await settle();
+    expect(existsSync(argvFile)).toBe(false);
+    const listed = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as {
+      jobs: { state: string; error?: unknown }[];
+    };
+    expect(listed.jobs[0].state).toBe("queued");
     expect(sentence(listed.jobs[0].error)).toContain("depends on 80,");
   });
 

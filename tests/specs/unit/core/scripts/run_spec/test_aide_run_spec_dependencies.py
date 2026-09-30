@@ -53,6 +53,20 @@ def test_refuses_while_a_named_dependency_is_still_unmerged(
     assert not fake_claude.calls.exists(), "the refusal must precede the money"
     assert not workspace["wtbase"].exists(), "and leave no worktree behind"
 
+def test_analyze_waits_for_the_dependency_too(runner, workspace, fake_claude, local_origins):
+    """A plan made before the dependency lands is a plan for code that is
+    about to change, so analyze is held back with implement and archive."""
+    add_spec(workspace, "80-dependency")
+    leave_unmerged_branch_on_origin(workspace, "aide/80-dependency")
+    set_depends_on(workspace, "80")
+
+    claude = fake_claude("exit 1")
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 2
+    assert out["terminalReason"] == "refused"
+    assert "80-dependency" in out["error"]
+    assert not fake_claude.calls.exists()
+
 def test_a_dependency_merged_but_not_archived_still_refuses(
     runner, workspace, fake_claude, local_origins
 ):

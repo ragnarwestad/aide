@@ -245,10 +245,11 @@ An archived or closed spec refuses every step but Reopen, whatever is ticked on 
 
 Three things hold a job back rather than stop it: nothing failed, and the job is still queued.
 
-- **A dependency.** `Depends on:` in `1-description.md` names other specs. `implement` and `archive` are held back
+- **A dependency.** `Depends on:` in `1-description.md` names other specs. `analyze`, `implement` and `archive` are held back
   while any of them still has a branch on origin carrying commits the default branch does not — which is until that
   spec's own `archive` lands. The dashboard leaves the job `queued` with the reason on its row and tries again on
-  every pass of the runner; a run started by hand is refused. `create` and `analyze` run regardless.
+  every pass of the runner; a run started by hand is refused. `create` runs regardless. `analyze` waits too,
+  because a plan made before the dependency lands is a plan for code that is about to change.
 - **Another job on the same spec.** Two jobs for one spec never run at once.
 - **That job's own landing.** A job with `landing` set does not start its next step until its merge settles.
   Every other job runs as usual: the landing merges in a worktree of its own.

@@ -58,25 +58,11 @@ def test_archive_keeps_its_own_gate(runner, workspace, fake_claude):
     assert not fake_claude.calls.exists()
 
 @pytest.mark.usefixtures("local_origins")
-def test_analyze_proceeds_despite_an_unmerged_dependency(
-    runner, workspace, fake_claude
-):
-    add_spec(workspace, "80-dependency")
-    leave_unmerged_branch_on_origin(workspace, "aide/80-dependency")
-    set_depends_on(workspace, "80")
-
-    rc, out, _ = run(
-        runner, workspace, specs_only_claude(fake_claude, workspace), command="analyze"
-    )
-    assert rc == 0, out
-    assert out["terminalReason"] == "completed"
-
-@pytest.mark.usefixtures("local_origins")
 def test_create_proceeds_despite_an_unmerged_dependency(
     runner, workspace, fake_claude
 ):
-    """Criterion 2: what holds for analyze holds for create, the other
-    step that only writes the spec's own folder."""
+    """Create writes only the spec's own folder and plans nothing, so an
+    unmerged dependency does not hold it back."""
     add_spec(workspace, "80-dependency")
     leave_unmerged_branch_on_origin(workspace, "aide/80-dependency")
     set_depends_on(workspace, "80")
@@ -259,7 +245,7 @@ def test_workflow_steps_json_holds_the_known_lists(workspace_root):
     assert data["workflowSteps"] == [
         "explore", "create", "analyze", "implement", "archive", "manifest", "reopen", "schedule", "close", "wiki",
     ]
-    assert data["dependencyGatedSteps"] == ["implement", "archive"]
+    assert data["dependencyGatedSteps"] == ["analyze", "implement", "archive"]
     assert data["workflowArc"] == ["create", "analyze", "implement", "archive"]
     assert data["workflowArcRetired"] == ["review-plan"]
 
