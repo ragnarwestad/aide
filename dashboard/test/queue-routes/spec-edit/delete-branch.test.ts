@@ -104,20 +104,6 @@ describe("Delete branch deletes a merged branch left on origin (AC-3)", () => {
     expect(await archivedBlock(base)).not.toContain(NOTE);
   });
 
-  test("a press with no script is sent back to the list, with the view kept (AC-3)", async () => {
-    const { base, git } = startWith({ has: new Set([BRANCH]) });
-    await listUntil(base, NOTE, ARCHIVED_VIEW);
-    const res = await fetch(`${base}/api/queue/specs/aide/${FOLDER}/delete-branch`, {
-      method: "POST",
-      redirect: "manual",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: "view.state=archived",
-    });
-    expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe("/?state=archived");
-    expect(git.deletes()).toHaveLength(1);
-  });
-
   test("a branch origin no longer holds deletes nothing and answers ok (AC-3)", async () => {
     const origin: Origin = { has: new Set([BRANCH]) };
     const { base, git } = startWith(origin);

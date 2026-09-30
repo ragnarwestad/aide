@@ -4,7 +4,7 @@
 // overlaps with the exact-string routes handled elsewhere (e.g.
 // /api/queue/create) — it MUST be tried last, after every other
 // theme, exactly as it sat last in the original dispatcher.
-import { json, languageChoice } from "../serve-helpers";
+import { json, languageChoice, specsClientScript } from "../serve-helpers";
 import { renderJobDetailPage, resolveBackHref } from "../../render";
 import type { RoutesContext } from "./";
 
@@ -41,6 +41,8 @@ export async function handleJobDetailRoute(
         steptab: url.searchParams.get("steptab") ?? undefined,
         lang: langResult.lang,
         currentUrl: langResult.currentUrl,
+        // The page script: it reloads the page every ten seconds.
+        script: await specsClientScript(),
       },
     );
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });

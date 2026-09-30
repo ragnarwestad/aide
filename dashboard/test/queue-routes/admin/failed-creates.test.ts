@@ -30,10 +30,10 @@ function served(records: unknown[]) {
 }
 
 const home = async (base: string) => await (await fetch(`${base}/`)).text();
-const dismiss = (base: string, id: string, json = true) =>
+const dismiss = (base: string, id: string) =>
   fetch(`${base}/api/queue/failed-creates/${id}/dismiss`, {
     method: "POST",
-    headers: json ? { accept: "application/json" } : {},
+    headers: { accept: "application/json" },
     redirect: "manual",
   });
 
@@ -79,13 +79,13 @@ describe("a failed create on the Specs list", () => {
     expect(after).toContain("Title of first");
   });
 
-  test("dismissing twice still answers ok; the no-script answer is a 303 to / (AC-5)", async () => {
+  test("dismissing twice still answers ok, with or without an Accept header (AC-5)", async () => {
     const s = served([record("first")]);
     expect(await (await dismiss(s.base, "first")).json()).toEqual({ ok: true });
     expect(await (await dismiss(s.base, "first")).json()).toEqual({ ok: true });
-    const plain = await dismiss(s.base, "first", false);
-    expect(plain.status).toBe(303);
-    expect(plain.headers.get("location")).toBe("/");
+    const plain = await fetch(`${s.base}/api/queue/failed-creates/first/dismiss`, { method: "POST", redirect: "manual" });
+    expect(plain.status).toBe(200);
+    expect(await plain.json()).toEqual({ ok: true });
     expect((await dismiss(s.base, "nothing")).status).toBe(404);
   });
 

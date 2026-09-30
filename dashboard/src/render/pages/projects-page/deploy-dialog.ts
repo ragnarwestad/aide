@@ -2,8 +2,7 @@
 // service runs the newest commit: the board's one progress dialog, with
 // the five steps, already in the reader's language, each in the state
 // `waiting`. The script (`specs-client/deploy/`) opens it on submit and
-// moves one line at a time. With no script, or no `<dialog>`, it stays
-// closed and the form posts as it always did.
+// moves one line at a time.
 
 import { renderSentence } from "../../../i18n/message.ts";
 import { t, type Language, type TranslationKey } from "../../../i18n";

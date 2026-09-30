@@ -100,11 +100,10 @@ afterEach(() => {
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
-// A refusal has to land where the person who pressed the button can
-// read it. Answering a form post with a JSON body puts the reason on a
-// blank page with no way back.
-describe("a refused form post says so on the page", () => {
-  test("a duplicate returns to / carrying the reason, and the page shows it", async () => {
+// A duplicate press is refused with its reason, however it was posted,
+// and makes no second job.
+describe("a refused duplicate press", () => {
+  test("a form post answers 400 with the reason, and only one job is made", async () => {
     const { base } = start();
     const post = () =>
       fetch(`${base}/api/queue`, {
@@ -113,26 +112,18 @@ describe("a refused form post says so on the page", () => {
         headers: { "content-type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({ target: "aide/81-queue-and-runner", steps: "analyze" }),
       });
-    expect((await post()).status).toBe(303);
+    expect((await post()).status).toBe(200);
 
     const again = await post();
-    expect(again.status).toBe(303);
-    const location = again.headers.get("location") ?? "";
-    expect(location.startsWith("/?")).toBe(true);
-    expect(decodeURIComponent(location)).toContain("already queued");
-
-    const html = await (
-      await fetch(`${base}${location}`, )
-    ).text();
-    expect(html).toContain("already queued");
-    // And only one job was made.
+    expect(again.status).toBe(400);
+    expect(((await again.json()) as { error: string }).error).toContain("already queued");
     const listed = (await (
       await fetch(`${base}/api/queue`, )
     ).json()) as { jobs: unknown[] };
     expect(listed.jobs.length).toBe(1);
   });
 
-  test("a JSON caller still gets a 400 with the reason, not a redirect", async () => {
+  test("a JSON caller gets a 400 with the reason", async () => {
     const { base } = start();
     const post = () =>
       fetch(`${base}/api/queue`, {

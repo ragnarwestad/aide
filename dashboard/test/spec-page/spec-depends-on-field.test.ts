@@ -12,7 +12,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import type { GitRunner } from "../../src/git/branch-status.ts";
-import { SPEC, PAGE, TRACKING, FILE_SHA, DESCRIPTION, ARCHIVED, ARCHIVED_TEXT, createSpecSaveHarness, descriptionPath, savable, post } from "./spec-save-fixtures.ts";
+import { SPEC, PAGE, TRACKING, FILE_SHA, DESCRIPTION, ARCHIVED, ARCHIVED_TEXT, createSpecSaveHarness, descriptionPath, savable, post, answer } from "./spec-save-fixtures.ts";
 
 const { harness } = createSpecSaveHarness();
 afterEach(() => harness.cleanup());
@@ -87,9 +87,9 @@ describe("the Depends on field", () => {
   test("a spec in the project is written into Tracking info, in one commit", async () => {
     const commits: string[] = [];
     const { base, dir } = startTracked(counting(commits));
-    const res = await track(base, { dependsOn: OTHER, baseSha: FILE_SHA });
-    expect(res.status).toBe(303);
-    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    const { status, body } = await answer(await track(base, { dependsOn: OTHER, baseSha: FILE_SHA }));
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(DEPENDS(OTHER)));
     expect(commits).toHaveLength(1);
   });
@@ -98,9 +98,9 @@ describe("the Depends on field", () => {
   // finished work, so an archived dependency is a satisfied one.
   test("an archived spec is a legitimate dependency, not an unknown one", async () => {
     const { base, dir } = startTracked(savable("/host"));
-    const res = await track(base, { dependsOn: ARCHIVED, baseSha: FILE_SHA });
-    expect(res.status).toBe(303);
-    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    const { status, body } = await answer(await track(base, { dependsOn: ARCHIVED, baseSha: FILE_SHA }));
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(DEPENDS(ARCHIVED)));
   });
 
@@ -108,9 +108,9 @@ describe("the Depends on field", () => {
   // gate resolves — save-time validation has to accept the same shapes.
   test("a bare number resolves the same way the gate resolves it", async () => {
     const { base, dir } = startTracked(savable("/host"));
-    const res = await track(base, { dependsOn: "99", baseSha: FILE_SHA });
-    expect(res.status).toBe(303);
-    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    const { status, body } = await answer(await track(base, { dependsOn: "99", baseSha: FILE_SHA }));
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(DEPENDS("99")));
   });
 
@@ -130,22 +130,22 @@ describe("the Depends on field", () => {
       ["dependsOn", OTHER],
       ["dependsOn", THIRD],
     ]);
-    const res = await fetch(`${base}${TRACKING}`, {
+    const { status, body: answered } = await answer(await fetch(`${base}${TRACKING}`, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
       redirect: "manual",
       body: body.toString(),
-    });
-    expect(res.status).toBe(303);
-    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    }));
+    expect(status).toBe(200);
+    expect(answered.ok).toBe(true);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(`${DEPENDS(OTHER)}, \`${THIRD}\``));
   });
 
   test("emptying the field removes the line", async () => {
     const { base, dir } = startTracked(savable("/host"), TRACKED(DEPENDS(OTHER)));
-    const res = await track(base, { dependsOn: "", baseSha: FILE_SHA });
-    expect(res.status).toBe(303);
-    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    const { status, body } = await answer(await track(base, { dependsOn: "", baseSha: FILE_SHA }));
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED());
   });
 
@@ -153,22 +153,18 @@ describe("the Depends on field", () => {
 
   test("a spec nobody has is refused by name, and nothing is written", async () => {
     const { base, dir } = startTracked(savable("/host"), TRACKED(DEPENDS(OTHER)));
-    const res = await track(base, { dependsOn: "77-no-such-spec", baseSha: FILE_SHA });
-    expect(res.status).toBe(303);
-    const location = decodeURIComponent(res.headers.get("location")!);
-    expect(location.startsWith(PAGE)).toBe(true);
-    expect(location).toContain("77-no-such-spec");
+    const { status, body } = await answer(await track(base, { dependsOn: "77-no-such-spec", baseSha: FILE_SHA }));
+    expect(status).toBe(400);
+    expect(body.error).toContain("77-no-such-spec");
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(DEPENDS(OTHER)));
   });
 
   test("a spec cannot depend on itself, by folder or by number", async () => {
     for (const id of [SPEC, "81"]) {
       const { base, dir } = startTracked(savable("/host"));
-      const res = await track(base, { dependsOn: id, baseSha: FILE_SHA });
-      expect(res.status).toBe(303);
-      const location = decodeURIComponent(res.headers.get("location")!);
-      expect(location.startsWith(PAGE)).toBe(true);
-      expect(location).toContain("itself");
+      const { status, body } = await answer(await track(base, { dependsOn: id, baseSha: FILE_SHA }));
+      expect(status).toBe(400);
+      expect(body.error).toContain("itself");
       expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED());
     }
   });
@@ -177,9 +173,9 @@ describe("the Depends on field", () => {
   // same discipline every other list-shaped field here keeps.
   test("one unknown entry in a list refuses the whole save", async () => {
     const { base, dir } = startTracked(savable("/host"));
-    const res = await track(base, { dependsOn: `${OTHER}, 77-no-such`, baseSha: FILE_SHA });
-    expect(res.status).toBe(303);
-    expect(decodeURIComponent(res.headers.get("location")!)).toContain("77-no-such");
+    const { status, body } = await answer(await track(base, { dependsOn: `${OTHER}, 77-no-such`, baseSha: FILE_SHA }));
+    expect(status).toBe(400);
+    expect(body.error).toContain("77-no-such");
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED());
   });
 
@@ -187,11 +183,9 @@ describe("the Depends on field", () => {
   // has nowhere for the line to go, and a guess would be worse.
   test("no Created line to place it after is refused, not guessed at", async () => {
     const { base, dir } = startTracked(savable("/host"), DESCRIPTION);
-    const res = await track(base, { dependsOn: OTHER, baseSha: FILE_SHA });
-    expect(res.status).toBe(303);
-    const location = decodeURIComponent(res.headers.get("location")!);
-    expect(location.startsWith(PAGE)).toBe(true);
-    expect(location).toContain("Created");
+    const { status, body } = await answer(await track(base, { dependsOn: OTHER, baseSha: FILE_SHA }));
+    expect(status).toBe(400);
+    expect(body.error).toContain("Created");
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
   });
 });

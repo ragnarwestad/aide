@@ -2,9 +2,8 @@
 // three marks a row can carry, the column count, and the hidden fields
 // every form on this page repeats.
 
-import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
-import { CLOSED_STATE, FILTER_FIELD_PREFIX, FILTER_KEYS, type Phase, type SpecGroup, type SpecsFilter } from "./data-model";
+import { CLOSED_STATE, type Phase, type SpecGroup } from "./data-model";
 
 /** The mark a row carries — live or archived — when its code is on a
  *  branch waiting on a pull request (spec 220, spec 335): the same word
@@ -67,16 +66,3 @@ export const drawsChecksLine = (g: SpecGroup): boolean =>
  *  written twice is a count that drifts the next time a column moves. */
 export const LIST_COLUMNS = 6;
 
-// --- what every form on this page needs ------------------------------------
-
-/** The current view, sent along with the press. The redirect the server
- *  answers with can only carry forward what the POST itself received,
- *  so the fields have to leave the browser on the same request. */
-export const filterFields = (f?: SpecsFilter): string =>
-  Object.entries(filterValues(f))
-    .map(([name, value]) => `<input type="hidden" name="${name}" value="${esc(value)}">`)
-    .join("");
-
-/** The same fields as names and raw values, for a caller that draws them itself. */
-export const filterValues = (f?: SpecsFilter): Record<string, string> =>
-  Object.fromEntries(FILTER_KEYS.flatMap((k) => (f?.[k] ? [[`${FILTER_FIELD_PREFIX}${k}`, f[k]!]] : [])));

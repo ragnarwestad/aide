@@ -14,7 +14,7 @@
 // split, not just papered over.
 
 export { LIST_COLUMNS } from "./row-shared.ts";
-export { refusalFor, runFormId } from "./row-state.ts";
+export { runFormId } from "./row-state.ts";
 export { foldControl } from "./row-controls.ts";
 export { phasePips } from "./cell-helpers.ts";
 export { specHeadRow } from "./head-row.ts";

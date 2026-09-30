@@ -5,13 +5,11 @@ import { readFileSync } from "node:fs";
 import { signalGroup } from "../serve-helpers/signal-group.ts";
 import { cancelLanding } from "../land-branch/cancel-landing.ts";
 import { join } from "node:path";
-import { FROM_LIST_FIELD, specPagePath } from "../../render";
 import { readSpecState } from "../../project/parse-spec-state.ts";
 import { parseStatus } from "../../project/parse-status";
 import { isLegalMove, phaseFromState } from "../../queue/spec-transitions.ts";
-import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../serve-helpers";
+import { bodyToObject, json, logRefusal, readBounded } from "../serve-helpers";
 import type { RoutesContext } from "./";
-import { isWikiBuild } from "../../queue/steps.ts";
 
 // A spec analyzed before spec 355 landed carries no 4-status.json yet —
 // the same gap schedules.ts's own `proseSteps` falls back for
@@ -34,7 +32,6 @@ export async function handleJobActionRoutes(
   ctx: RoutesContext,
   req: Request,
   path: string,
-  wantsJson: boolean,
 ): Promise<Response | null> {
   if (path === "/api/queue") {
     if (req.method === "GET") {
@@ -49,33 +46,14 @@ export async function handleJobActionRoutes(
     } catch {
       return json({ error: "malformed body" }, 400);
     }
-    // Where a no-script form POST comes back to: the page the press
-    // came FROM, because a redirect is the only answer such a form
-    // gets and a reader dropped somewhere else cannot tell whether the
-    // button did anything (spec 157).
-    //
-    // Reopen is the one control offered in two places (spec 198, and
-    // spec 221 for the row). An archived spec's own page still gets
-    // its answer there; a press on the list's own reader row says so
-    // with `FROM_LIST_FIELD` and is answered on the list, filter and
-    // all — `specsRedirect` rebuilds the view from the `view.*` fields
-    // the same form carries. The marker is what decides it, never a
-    // destination taken from the browser.
     const askedFor = raw as Record<string, unknown> | null;
-    const backTo =
-      askedFor?.[FROM_LIST_FIELD] !== "1" &&
-      typeof askedFor?.project === "string" &&
-      typeof askedFor?.specFolder === "string" &&
-      ctx.specRef(askedFor.project, askedFor.specFolder)?.archived
-        ? specPagePath(askedFor.project, askedFor.specFolder)
-        : "/";
     // REQ-9 (spec 356): a backward move — `analyze` or `create`
     // requested on a spec that has already reached a later phase — is
     // refused before the job ever reaches the queue, naming `reset` (or
     // `reopen`, for an archived spec) as the way back. This is the one
     // HTTP-reachable path both the spec-page Reopen control and the
     // specs-list row's Run/Reopen forms post through, and `ctx.specDir`
-    // is the same resolver `backTo`, above, already uses — no new
+    // is the resolver the rest of this route reads — no new
     // resolver plumbing. A spec with no state file yet reads as
     // `created`, which the table refuses nothing forward-legal from.
     if (
@@ -94,11 +72,8 @@ export async function handleJobActionRoutes(
           ctx.targets().filter((t) => t.project === askedFor.project && t.specFolder === askedFor.specFolder),
         )[0];
         const completedPhases = [...new Set([...onMain, ...(row?.done ?? [])])];
-        // ctx.specRef, not a fresh **Archived:** prose scan: it is the
-        // same resolved answer `backTo`, above, already reads off this
-        // request's own project/specFolder, so an archived spec's phase
-        // here can never disagree with what `backTo` decided a request
-        // for it was answered on.
+        // ctx.specRef, not a fresh **Archived:** prose scan: the one
+        // resolved answer for this request's own project/specFolder.
         const archived = ctx.specRef(askedFor.project, askedFor.specFolder)?.archived
           ? { date: "" }
           : null;
@@ -130,7 +105,7 @@ export async function handleJobActionRoutes(
             const spec = `${askedFor.project}/${askedFor.specFolder}`;
             const message = `${askedFor.specFolder}'s analysis has run, but it has not been merged into main, which implement starts from — press Analyze again to merge it.`;
             logRefusal("run", spec, message);
-            return wantsJson ? json({ error: message, spec }, 400) : specsRedirect(raw, { error: message, spec }, backTo);
+            return json({ error: message, spec }, 400);
           }
           const move = isLegalMove(phase, step, askedFor.specFolder);
           // Refused here, at the press, with the table's own sentence:
@@ -144,9 +119,7 @@ export async function handleJobActionRoutes(
           if (!move.ok) {
             const spec = `${askedFor.project}/${askedFor.specFolder}`;
             logRefusal("run", spec, move.message);
-            return wantsJson
-              ? json({ error: move.message, spec }, 400)
-              : specsRedirect(raw, { error: move.message, spec }, backTo);
+            return json({ error: move.message, spec }, 400);
           }
           phase = move.next;
         }
@@ -176,17 +149,13 @@ export async function handleJobActionRoutes(
           ? `${asked.project}/${asked.specFolder}`
           : undefined;
       logRefusal("run", spec, result.error);
-      // A person who pressed a button gets the reason on the page
-      // they pressed it from; an API caller gets a status code.
       // `spec` for the same reason merge's answer carries it: the page
-      // shows a refusal on the row it belongs to and no longer
-      // navigates to find out which, so the answer has to say.
-      return wantsJson
-        ? json({ error: result.error, spec }, 400)
-        : specsRedirect(raw, { error: result.error, spec }, backTo);
+      // shows a refusal on the row it belongs to, so the answer has to
+      // say which.
+      return json({ error: result.error, spec }, 400);
     }
     await ctx.tickRunner();
-    return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect(raw, undefined, backTo);
+    return json({ ok: true, job: result.job });
   }
 
   const action = path.match(/^\/api\/queue\/([A-Za-z0-9-]+)\/cancel$/);
@@ -195,18 +164,10 @@ export async function handleJobActionRoutes(
     const [, id] = action;
     const job = ctx.queue.get(id);
     if (!job) return json({ error: "no such job" }, 404);
-    // The body is read for ONE thing: the view the press came from,
-    // so the redirect can put the reader back on it. A JSON caller
-    // sends no body at all, and an unparseable one is not a reason to
-    // refuse an action that needs nothing from it.
+    // Cancel needs nothing from the body; it is read only so its size
+    // is bounded like every other request's.
     const sent = await readBounded(req);
     if ("refusal" in sent) return sent.refusal;
-    let view: unknown = {};
-    try {
-      if (sent.text) view = bodyToObject(sent.text, req.headers.get("content-type"));
-    } catch {
-      view = {};
-    }
     // Only a job that still owns its work can be cancelled. A finished
     // job's state is history — done, failed, stopped — and writing
     // "cancelled" over it would say someone ended a run that had
@@ -224,27 +185,19 @@ export async function handleJobActionRoutes(
     // under way: Cancel stops that, and the job ends cancelled.
     if (!result.ok && job.state === "done" && job.landing) {
       cancelLanding(id);
-      return wantsJson ? json({ ok: true, job }) : specsRedirect(view);
+      return json({ ok: true, job });
     }
     if (!result.ok) {
       const spec = `${job.project}/${job.specFolder}`;
       const reason = `the job is already ${result.state}; only a queued or running job can be cancelled`;
       logRefusal("cancel", spec, reason);
-      return wantsJson ? json({ error: reason, spec }, 409) : specsRedirect(view, { error: reason, spec });
+      return json({ error: reason, spec }, 409);
     }
     // SIGTERM to the GROUP, never a bare pid: claude spawns
     // children, and a kill that only reaches the parent is not a
     // bound.
     signalGroup(job.pgid);
-    // A wiki build is followed on its project's Wiki tab, and that is where
-    // its Cancel came from.
-    if (!wantsJson && isWikiBuild(job)) {
-      return new Response(null, {
-        status: 303,
-        headers: { location: `/projects/${encodeURIComponent(job.project)}?tab=wiki&wikitab=build` },
-      });
-    }
-    return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect(view);
+    return json({ ok: true, job: result.job });
   }
 
   const tailEdit = path.match(/^\/api\/queue\/([A-Za-z0-9-]+)\/steps$/);
@@ -273,14 +226,12 @@ export async function handleJobActionRoutes(
     const result = ctx.queue.editTailStep(id!, step, add);
     if (!result.ok) {
       logRefusal("steps", spec, result.error);
-      return wantsJson
-        ? json({ error: result.error, spec }, 400)
-        : specsRedirect(body, { error: result.error, spec });
+      return json({ error: result.error, spec }, 400);
     }
     // Now, not on the next two-second timer: a step added in the
     // instant the running one finishes would otherwise wait for it.
     await ctx.tickRunner();
-    return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect(body);
+    return json({ ok: true, job: result.job });
   }
 
   const tailModelEdit = path.match(/^\/api\/queue\/([A-Za-z0-9-]+)\/model$/);
@@ -303,15 +254,13 @@ export async function handleJobActionRoutes(
     const result = ctx.queue.editTailModel(id!, step, model);
     if (!result.ok) {
       logRefusal("model", spec, result.error);
-      return wantsJson
-        ? json({ error: result.error, spec }, 400)
-        : specsRedirect(body, { error: result.error, spec });
+      return json({ error: result.error, spec }, 400);
     }
     // A step this job was not queued with is a choice about a job still
     // to come: kept on this job alone, it went when the job ended, and
     // the next run of the step was back on the default.
     if (!(job.steps as string[]).includes(step)) ctx.queue.setPendingModel(job.project, job.specFolder, step, model);
-    return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect(body);
+    return json({ ok: true, job: result.job });
   }
 
   return null;

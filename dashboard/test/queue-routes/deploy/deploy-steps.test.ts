@@ -1,7 +1,7 @@
 // The Deploy button one request per step (`serve/routes/deploy-steps.ts`):
-// what each step refuses and answers, that it refuses like the combined
-// route, and what the finished deploy leaves on the pages — the origin
-// count `check` fills and the message a faulty service leaves at the top.
+// what each step refuses and answers, that the one-request route is gone,
+// and what the finished deploy leaves on the pages — the origin count
+// `check` fills and the message a faulty service leaves at the top.
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
@@ -155,33 +155,29 @@ describe("POST .../deploy/install", () => {
   });
 });
 
-describe("the step routes refuse like the combined route (AC-5)", () => {
-  test("an unknown project, no install command and another branch say the same thing in both", async () => {
-    const other = await deployServer({ ...SAME, branch: "feature-x" }, noRestart);
-    for (const project of ["nosuch", "aide"]) {
-      const combined = await answer(await post(other.base, `${project}/deploy`));
-      const step = await answer(await post(other.base, `${project}/deploy/fetch`));
-      expect(step.error).toBe(combined.error);
-      expect(combined.ok).toBe(false);
-    }
-    installs(other.paths.project);
-    const combined = await answer(await post(other.base, "aide/deploy"));
-    const step = await answer(await post(other.base, "aide/deploy/fetch"));
-    expect(String(combined.error)).toContain("feature-x");
-    expect(step.error).toBe(combined.error);
+describe("what a step refuses before it moves anything (AC-5)", () => {
+  test("an unknown project, no install command and another branch are each refused with their own sentence", async () => {
+    const { base, git, paths } = await deployServer({ ...SAME, branch: "feature-x" }, noRestart);
+    const unknown = await post(base, "nosuch/deploy/fetch");
+    expect(unknown.status).toBe(400);
+    expect(String((await answer(unknown)).error)).toContain('"nosuch" is not a project this dashboard knows');
+    const noInstall = await post(base, "aide/deploy/fetch");
+    expect(noInstall.status).toBe(400);
+    const noInstallError = String((await answer(noInstall)).error);
+    expect(noInstallError).toContain("install command");
+    expect(noInstallError).not.toContain("AIDE_INSTALL_CMD");
+    expect(git.calls.some((c) => c.args[0] === "fetch" || c.args[0] === "pull")).toBe(false);
+    installs(paths.project);
+    const branch = await post(base, "aide/deploy/fetch");
+    expect(branch.status).toBe(400);
+    expect(String((await answer(branch)).error)).toContain("feature-x");
   });
 
-  test("a browser with no script still posts the combined route and follows its redirect", async () => {
+  test("the one-request deploy route is gone (AC-3)", async () => {
     const { base, paths } = await deployServer(SAME, noRestart);
     installs(paths.project);
-    const res = await fetch(`${base}/api/queue/projects/aide/deploy`, {
-      method: "POST",
-      redirect: "manual",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: "",
-    });
-    expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe("/projects/aide?tab=deploy");
+    expect((await post(base, "aide/deploy")).status).toBe(404);
+    expect((await post(base, "aide/deploy/fetch")).status).toBe(200);
   });
 });
 
@@ -227,17 +223,6 @@ describe("a refused step is kept for the Deploy tab until the next deploy starts
     const html = await page(base, "/projects/aide?tab=deploy");
     expect(kept(html).length).toBe(1);
     expect(keptText(html)).toContain("Install failed:");
-  });
-
-  test("a kept failure beats a ?deployError= address, which still shows when nothing is kept (AC-6)", async () => {
-    const { base, paths } = await deployServer({ ...SAME, branch: "feature-x" }, noRestart);
-    installs(paths.project);
-    const url = `/projects/aide?tab=deploy&deployError=${encodeURIComponent("from the address")}`;
-    expect(keptText(await page(base, url))).toBe("From the address");
-    await post(base, "aide/deploy/fetch");
-    const html = await page(base, url);
-    expect(html).not.toContain("From the address");
-    expect(keptText(html)).toContain("Fetch from origin failed:");
   });
 });
 

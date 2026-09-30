@@ -3,7 +3,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { fakeGit as gitFake } from "../../helpers/fake-git.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
@@ -132,10 +131,9 @@ describe("a project's settings route (spec 184)", () => {
     expect(res.status).toBe(400);
   });
 
-  // A browser with no script gets its answer the only way a redirect
-  // can carry one — the same handover the Add form has had since spec
-  // 138, back to the page the form is ON when it was refused.
-  test("a no-script save and refusal return to the inline editor", async () => {
+  // A form post with no Accept header gets the same JSON a script's
+  // press gets: a save lands on origin, a refusal writes nothing.
+  test("a form-encoded save and refusal answer JSON whatever the Accept header says", async () => {
     const { base, dir, project } = await settled();
     mkdirSync(join(project, "node_modules"), { recursive: true });
     const FORM = { "content-type": "application/x-www-form-urlencoded" };
@@ -145,11 +143,8 @@ describe("a project's settings route (spec 184)", () => {
       headers: FORM,
       body: new URLSearchParams({ worktreeLinks: "node_modules", specsPath: "" }),
     });
-    expect(ok.status).toBe(303);
-    expect(ok.headers.get("location")!.split("?")[0]).toBe("/projects/aide");
-    // Criterion 3: the page the save lands on is the page the new value
-    // is on. A redirect to the right address that then renders what the
-    // project used to be would satisfy the line above and nothing else.
+    expect(ok.status).toBe(200);
+    expect(((await ok.json()) as StepBody).ok).toBe(true);
     const saved = onOrigin(dir);
     expect(saved).toContain("worktreeLinks: node_modules");
     const refused = await fetch(`${base}/api/queue/projects/aide/settings`, {
@@ -158,14 +153,10 @@ describe("a project's settings route (spec 184)", () => {
       headers: FORM,
       body: new URLSearchParams({ worktreeLinks: "/etc" }),
     });
-    expect(refused.status).toBe(303);
-    // Spec 552: `?edit=manifest` carries the reader back into that
-    // table's edit mode, so the refusal is shown on the form it was
-    // submitted from — not on the read-only view, where nothing could
-    // show it. `worktreeLinks` belongs to the manifest table.
-    expect(refused.headers.get("location")!.startsWith("/projects/aide?edit=manifest")).toBe(true);
-    // Criterion 5: the refusal wrote nothing — the manifest is still what
-    // the save before it left behind.
+    expect(refused.status).toBe(400);
+    const body = (await refused.json()) as StepBody;
+    expect(body.ok).toBe(false);
+    expect(body.results.find((r) => r.step === "worktreeLinks")!.error).toContain("/etc");
     expect(onOrigin(dir)).toBe(saved);
   });
 
@@ -211,183 +202,5 @@ describe("a project's settings route (spec 184)", () => {
     });
     expect(res.status).toBe(400);
     expect(readFileSync(join(project, ".aide", "project.yaml"), "utf-8")).not.toContain("codeLanding");
-  });
-});
-
-// --- spec 258: the button behind the drift note --------------------------
-//
-// Everything below it already exists: the fast-forward is
-// `fastForwardToOrigin`, the install is `installAfterMerge`, and the lock
-// is `mergeLock`. This route is the wiring that puts a button on top of
-// them — see `deploySection` in `site.ts` for the markup it answers to.
-describe("POST /api/queue/projects/<name>/deploy (spec 258)", () => {
-  const AUTH = { "content-type": "application/json", accept: "application/json" };
-
-  /** A checkout that answers `main` for both `defaultBranch`'s own
-   *  `symbolic-ref` and `fastForwardToOrigin`'s `rev-parse` check, then
-   *  the fast-forward and (unless told otherwise) reports level with
-   *  origin afterwards — the state criterion 6 asks the next page load
-   *  to show. */
-  const onMain = (behindAfter = 0) =>
-    gitFake({
-      "symbolic-ref": { code: 0, stdout: "refs/remotes/origin/main\n" },
-      "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "main\n" },
-      fetch: { code: 0 },
-      "merge -q --ff-only origin/": { code: 0 },
-      "rev-list --count": { code: 0, stdout: `${behindAfter}\n` },
-    });
-
-  const movedOffMain = () =>
-    gitFake({
-      "symbolic-ref": { code: 0, stdout: "refs/remotes/origin/main\n" },
-      "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "feature-x\n" },
-    });
-
-  const projectDir = (dir: string): string => join(dir, "root", "aide");
-
-  /** The install the project runs once its checkout is current — a
-   *  `touch`, so the test can ask whether it ran by asking the
-   *  filesystem, exactly the pattern `installs()` uses elsewhere in
-   *  this file. */
-  function installsOk(project: string): string {
-    const marker = join(project, "installed");
-    mkdirSync(join(project, ".aide"), { recursive: true });
-    writeFileSync(join(project, ".aide", "config"), `AIDE_INSTALL_CMD=/usr/bin/touch ${marker}\n`);
-    return marker;
-  }
-
-  function installFails(project: string): void {
-    mkdirSync(join(project, ".aide"), { recursive: true });
-    writeFileSync(join(project, ".aide", "config"), "AIDE_INSTALL_CMD=/bin/false\n");
-  }
-
-  test("success: the checkout moves, the install runs, and the very next load shows level (criterion 6)", async () => {
-    const git = onMain(0);
-    const { base, dir } = start({ gitRun: git.run });
-    const project = projectDir(dir);
-    const marker = installsOk(project);
-    const res = await fetch(`${base}/api/queue/projects/aide/deploy`, { method: "POST", headers: AUTH });
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as { ok: boolean; installError?: string };
-    expect(body.ok).toBe(true);
-    expect(body.installError).toBeUndefined();
-    expect(existsSync(marker)).toBe(true);
-    const page = await (
-      await fetch(`${base}/projects/aide?tab=deploy`, )
-    ).text();
-    expect(page).toContain("This checkout matches origin.");
-  });
-
-  test("refuses, naming both branches, when the checkout moved off its default branch (criterion 7)", async () => {
-    const git = movedOffMain();
-    const { base, dir } = start({ gitRun: git.run });
-    const project = projectDir(dir);
-    const marker = installsOk(project);
-    const res = await fetch(`${base}/api/queue/projects/aide/deploy`, { method: "POST", headers: AUTH });
-    expect(res.status).toBe(400);
-    const body = (await res.json()) as { ok: boolean; error?: string };
-    expect(body.ok).toBe(false);
-    expect(body.error).toContain("feature-x");
-    expect(body.error).toContain("main");
-    expect(existsSync(marker)).toBe(false);
-    for (const forbidden of ["fetch", "pull"]) {
-      expect(git.calls.some((c) => c.args[0] === forbidden)).toBe(false);
-    }
-  });
-
-  test("an install failure is reported as installError, distinct from a pull refusal (criterion 8)", async () => {
-    const git = onMain(0);
-    const { base, dir } = start({ gitRun: git.run });
-    const project = projectDir(dir);
-    installFails(project);
-    const res = await fetch(`${base}/api/queue/projects/aide/deploy`, { method: "POST", headers: AUTH });
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as { ok: boolean; error?: string; installError?: string };
-    expect(body.ok).toBe(true);
-    expect(body.error).toBeUndefined();
-    expect(body.installError).toBeDefined();
-    // The checkout DID move, so the drift count is refreshed either way.
-    const page = await (
-      await fetch(`${base}/projects/aide?tab=deploy`, )
-    ).text();
-    expect(page).toContain("This checkout matches origin.");
-  });
-
-  test("refuses when no AIDE_INSTALL_CMD is configured — deploying stays a hand step", async () => {
-    const git = onMain(0);
-    const { base } = start({ gitRun: git.run });
-    const res = await fetch(`${base}/api/queue/projects/aide/deploy`, { method: "POST", headers: AUTH });
-    expect(res.status).toBe(400);
-    const body = (await res.json()) as { ok: boolean; error?: string };
-    expect(body.ok).toBe(false);
-    // Spec 318 (REQ-1): the refusal names the setting in plain words,
-    // not the raw env-var key.
-    expect(body.error).toContain("install command");
-    expect(body.error).not.toContain("AIDE_INSTALL_CMD");
-    for (const forbidden of ["fetch", "pull"]) {
-      expect(git.calls.some((c) => c.args[0] === forbidden)).toBe(false);
-    }
-  });
-
-  test("refuses for a project this dashboard does not know", async () => {
-    const { base } = start();
-    const res = await fetch(`${base}/api/queue/projects/nosuch/deploy`, { method: "POST", headers: AUTH });
-    expect(res.status).toBe(400);
-    const body = (await res.json()) as { ok: boolean; error?: string };
-    expect(body.ok).toBe(false);
-  });
-
-  // AC8: `deployError=` stays first — `&tab=deploy` is appended after
-  // it — so the resulting page opens on the Deploy tab and the message
-  // it carries is visible, instead of landing on the new default
-  // (Config) tab where it would go unseen without an extra click.
-  test("a no-script press gets the answer as a redirect carrying deployError, opening the Deploy tab (AC8)", async () => {
-    const git = movedOffMain();
-    const { base, dir } = start({ gitRun: git.run });
-    installsOk(projectDir(dir));
-    const res = await fetch(`${base}/api/queue/projects/aide/deploy`, {
-      method: "POST",
-      redirect: "manual",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: "",
-    });
-    expect(res.status).toBe(303);
-    const location = res.headers.get("location")!;
-    expect(location.startsWith("/projects/aide?deployError=")).toBe(true);
-    expect(location.endsWith("&tab=deploy")).toBe(true);
-    expect(decodeURIComponent(location)).toContain("feature-x");
-  });
-
-  // AC9: a successful no-script deploy redirects to the Deploy tab too,
-  // so the refreshed drift state is what the browser lands on.
-  test("a successful no-script press redirects to the Deploy tab (AC9)", async () => {
-    const git = onMain(0);
-    const { base, dir } = start({ gitRun: git.run });
-    installsOk(projectDir(dir));
-    const res = await fetch(`${base}/api/queue/projects/aide/deploy`, {
-      method: "POST",
-      redirect: "manual",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: "",
-    });
-    expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe("/projects/aide?tab=deploy");
-  });
-
-  test("the combined route clears a failure a step kept for the Deploy tab (AC-6)", async () => {
-    const git = movedOffMain();
-    const { base, dir } = start({ gitRun: git.run });
-    installsOk(projectDir(dir));
-    expect((await fetch(`${base}/api/queue/projects/aide/deploy/fetch`, { method: "POST", headers: AUTH })).status).toBe(400);
-    const tab = async (): Promise<string> => await (await fetch(`${base}/projects/aide?tab=deploy`)).text();
-    expect(await tab()).toContain("refusal deploy-error");
-    await fetch(`${base}/api/queue/projects/aide/deploy`, { method: "POST", headers: AUTH });
-    expect(await tab()).not.toContain("refusal deploy-error");
-  });
-
-  test("only POST — the button's route takes no other method", async () => {
-    const { base } = start();
-    const res = await fetch(`${base}/api/queue/projects/aide/deploy`, { headers: AUTH });
-    expect(res.status).toBe(405);
   });
 });

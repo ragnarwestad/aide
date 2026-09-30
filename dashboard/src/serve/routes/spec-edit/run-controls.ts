@@ -3,7 +3,7 @@
 // in turn (split 2026-09-04: the file had reached 567 lines). Every
 // check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own.
-import { ARCHIVED_REFUSAL, bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../../serve-helpers";
+import { ARCHIVED_REFUSAL, bodyToObject, json, logRefusal, readBounded } from "../../serve-helpers";
 
 import type { RoutesContext } from "..";
 
@@ -11,7 +11,6 @@ export async function runControlRoutes(
   ctx: RoutesContext,
   req: Request,
   path: string,
-  wantsJson: boolean,
 ): Promise<Response | null> {
   // Spec 308: a model picked for a phase before any job exists — the
   // spec-scoped sibling of `POST /api/queue/:id/model` (job-actions.ts),
@@ -33,16 +32,16 @@ export async function runControlRoutes(
     }
     if (ref.archived) {
       logRefusal("model", spec, ARCHIVED_REFUSAL);
-      return wantsJson ? json({ error: ARCHIVED_REFUSAL, spec }, 400) : specsRedirect(body, { error: ARCHIVED_REFUSAL, spec });
+      return json({ error: ARCHIVED_REFUSAL, spec }, 400);
     }
     const step = typeof body.step === "string" ? body.step : "";
     const model = typeof body.model === "string" ? body.model : "";
     const result = ctx.queue.setPendingModel(project!, specFolder!, step, model);
     if (!result.ok) {
       logRefusal("model", spec, result.error);
-      return wantsJson ? json({ error: result.error, spec }, 400) : specsRedirect(body, { error: result.error, spec });
+      return json({ error: result.error, spec }, 400);
     }
-    return wantsJson ? json({ ok: true }) : specsRedirect(body);
+    return json({ ok: true });
   }
 
   return null;

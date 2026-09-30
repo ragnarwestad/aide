@@ -63,65 +63,34 @@ describe("a row button posts from the page (criteria 10-12)", () => {
     expect(h.button.textContent).toBe("Cancel");
   });
 });
-// --- spec 99/101: the view survives the press, and the row gets the reason ---
+// --- spec 99/101: a refused press keeps the page, and says why -------------
 
-// Merging from the page goes through this file, not through the form
-// POST — so the server's redirect fix reaches nobody with JavaScript on
-// unless what this file does carries the same two things. Spec 101 took
-// the navigation itself out: the query the server would have redirected
-// to is written with `history.replaceState` and the rows are swapped, so
-// the reader keeps the page, the scroll position and the form they were
-// filling in.
-describe("a refused action keeps the view and names its spec (criteria 7, 8)", () => {
-  // One sentence, not a list: the route that answered per repo was the
-  // merge route, and it went with the button (spec 149).
-  const REFUSED = {
-    ok: false,
-    spec: "aide/99-merge-leaves-nothing-behind",
-    error: "the tree is dirty in /repos/aide-specs",
-  };
-
-  test("the current filter and sort come along", async () => {
+// A refusal does not navigate: the page keeps the reader's view, the
+// scroll position and the form they were filling in, and the rows are
+// asked for again in that same view. The page script keeps the sentence
+// itself (`row-refusal/`); where it is drawn is `row-refusal.test.ts`'s.
+describe("a refused action keeps the view and says why (criteria 7, 8)", () => {
+  test("the rows are asked for again in the reader's own view, with the address left as it is (AC-2)", async () => {
+    const refused = { ok: false, spec: "aide/99-x", error: "the tree is dirty in /repos/aide-specs" };
     const h = harness(
-      (url) => (url.includes("/cancel") ? { ok: true, body: REFUSED } : { ok: true }),
+      (url) => (url.includes("/cancel") ? { ok: true, body: refused } : { ok: true }),
       "actionform",
       "?state=active&sort=cost",
     );
     await h.submit();
-    const to = new URL(h.replaced[0]!, "http://dash.test");
-    expect(to.pathname).toBe("/");
-    expect(to.searchParams.get("state")).toBe("active");
-    expect(to.searchParams.get("sort")).toBe("cost");
+    const asked = new URL(swapUrl(h), "http://dash.test");
+    expect(asked.searchParams.get("state")).toBe("active");
+    expect(asked.searchParams.get("sort")).toBe("cost");
+    expect(h.replaced).toEqual([]);
+    expect(h.location.href).toBe("http://dash.test/");
   });
 
-  test("the spec the server named rides along, so the row can show it", async () => {
-    const h = harness((url) => (url.includes("/cancel") ? { ok: true, body: REFUSED } : { ok: true }));
-    await h.submit();
-    const to = new URL(h.replaced[0]!, "http://dash.test");
-    expect(to.searchParams.get("errorSpec")).toBe("aide/99-merge-leaves-nothing-behind");
-    expect(to.searchParams.get("error")).toContain("the tree is dirty");
-  });
-
-  test("a refusal the server did not attribute still says the reason", async () => {
+  test("a refusal the server did not attribute is written in the list's own line (AC-6)", async () => {
     const h = harness((url) =>
       url.includes("/cancel") ? { ok: true, body: { ok: false, error: "the tree is dirty" } } : { ok: true },
     );
     await h.submit();
-    const to = new URL(h.replaced[0]!, "http://dash.test");
-    expect(to.searchParams.get("error")).toContain("the tree is dirty");
-    expect(to.searchParams.get("errorSpec")).toBeNull();
-  });
-
-  // Spec 101, criterion 6: the message lands on the row without the
-  // page moving. The rows are re-fetched with the same query the
-  // address bar now holds, so the reason comes back rendered on the
-  // spec it belongs to — and nothing scrolled.
-  test("the page does not navigate, and the rows are re-asked with the reason", async () => {
-    const h = harness((url) => (url.includes("/cancel") ? { ok: true, body: REFUSED } : { ok: true }));
-    await h.submit();
-    expect(h.location.href).toBe("http://dash.test/");
-    expect(decodeURIComponent(swapUrl(h))).toContain("errorSpec=aide/99-merge-leaves-nothing-behind");
-    expect(h.rows.innerHTML).toBe("<tr></tr>");
+    expect(h.listRefused.textContent).toBe("The tree is dirty");
   });
 });
 // --- spec 101: every control answers the press ------------------------------
@@ -152,9 +121,7 @@ describe("every action button says it was pressed (criteria 4, 5)", () => {
         formClass,
       );
       await h.submit();
-      const to = new URL(h.replaced[0]!, "http://dash.test");
-      expect(to.searchParams.get("error")).toContain("already running");
-      expect(to.searchParams.get("errorSpec")).toBe("aide/101-x");
+      expect(swapUrl(h)).toContain("rows=1");
       expect(h.location.href).toBe("http://dash.test/");
       expect(h.rows.innerHTML).toBe("<tr></tr>");
     });

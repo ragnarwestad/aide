@@ -14,7 +14,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import {
   PHASE, EARLIER_PHASE, OPEN_ROW, DONE_ROW, EARLIER_DONE_ROW, phaseSection,
-  statusPath, tick, BRANCH_FILE_SHA, branchAwareGitRunner,
+  statusPath, tick, answer, BRANCH_FILE_SHA, branchAwareGitRunner,
 } from "./spec-checks-fixtures.ts";
 import { STATUS_TAB, createSpecSaveHarness } from "./spec-save-fixtures.ts";
 
@@ -100,10 +100,10 @@ describe("a tick writes onto the open branch, not onto main (REQ-4a/REQ-4b)", ()
     const { run, calls } = branchAwareGitRunner({ open: true, branchText: MAIN_STATUS_WITH_OPEN_ROWS() });
     const { base, dir } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { gitRun: run } });
 
-    const res = await tick(base, { ticks: [OPEN_ROW], statusBaseSha: BRANCH_FILE_SHA });
+    const { status, body } = await answer(await tick(base, { ticks: [OPEN_ROW], statusBaseSha: BRANCH_FILE_SHA }));
 
-    expect(res.status).toBe(303);
-    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
     const push = calls.find((c) => c.args[0] === "push");
     expect(push?.args.some((a) => a.includes("refs/heads/aide/81-queue-and-runner"))).toBe(true);
     // Never the ordinary `saveSpecFiles` commit-onto-HEAD sequence: no
@@ -117,14 +117,14 @@ describe("a tick writes onto the open branch, not onto main (REQ-4a/REQ-4b)", ()
     const { run } = branchAwareGitRunner({ open: true, branchText: MAIN_STATUS_WITH_OPEN_ROWS(), pushFails: true });
     const { base, dir } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { gitRun: run } });
 
-    const res = await tick(base, { ticks: [OPEN_ROW], statusBaseSha: BRANCH_FILE_SHA });
+    const { status, body } = await answer(await tick(base, { ticks: [OPEN_ROW], statusBaseSha: BRANCH_FILE_SHA }));
 
-    expect(res.status).toBe(303);
+    expect(status).toBe(409);
     // The exact race wording, not just any refusal: proves this went
     // through the branch's own non-force push and was rejected there,
     // rather than merely falling back to `saveSpecFiles`'s own,
     // differently worded baseSha refusal for an unrelated reason.
-    expect(decodeURIComponent(res.headers.get("location")!)).toContain("changed on origin while this was being saved");
+    expect(body.error).toContain("changed on origin while this was being saved");
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(MAIN_ONLY_STATUS);
   });
 
@@ -132,10 +132,10 @@ describe("a tick writes onto the open branch, not onto main (REQ-4a/REQ-4b)", ()
     const { run, calls } = branchAwareGitRunner({ open: true, branchText: MAIN_STATUS_WITH_OPEN_ROWS() });
     const { base } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { gitRun: run } });
 
-    const res = await tick(base, { ticks: [OPEN_ROW], statusBaseSha: "some-other-stale-sha" });
+    const { status, body } = await answer(await tick(base, { ticks: [OPEN_ROW], statusBaseSha: "some-other-stale-sha" }));
 
-    expect(res.status).toBe(303);
-    expect(decodeURIComponent(res.headers.get("location")!)).toContain("changed since you opened it");
+    expect(status).toBe(409);
+    expect(body.error).toContain("changed since you opened it");
     expect(calls.some((c) => c.args[0] === "push")).toBe(false);
   });
 });

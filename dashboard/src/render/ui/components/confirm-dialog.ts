@@ -33,6 +33,8 @@ export interface AskParts {
     /** The class the page script finds the posting form by. */
     hook?: FormHook;
     hidden?: Record<string, string>;
+    /** Each written as `data-<key>` on the posting form. */
+    data?: Record<string, string>;
   };
 }
 
@@ -65,7 +67,7 @@ export function askParts(
     answers: dialogAnswers(
       lang,
       post
-        ? buttonForm({ id: formId, action: post.action, hook: post.hook, hidden: post.hidden, data, button: ok })
+        ? buttonForm({ id: formId, action: post.action, hook: post.hook, hidden: post.hidden, data: { ...post.data, ...data }, button: ok })
         : buttonForm({ id: formId, method: "dialog", data, button: ok }),
     ),
   };

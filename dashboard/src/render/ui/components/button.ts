@@ -19,7 +19,7 @@ export interface BtnOptions {
   label: string;
   variant?: BtnVariant;
   /** `submit` unless said otherwise: every control on this page is a
-   *  real form, which is what makes it work with script off. */
+   *  real form, whose own fields are what the page script posts. */
   type?: "submit" | "button";
   /** What the button says while its request is out. `specs-client.ts`
    *  reads it, so it belongs beside the label it replaces. */
@@ -74,10 +74,19 @@ export const dataAttrs = (data: Record<string, string> = {}): string =>
     .join("");
 
 /** The class a script or the stylesheet selects a one-button form by:
- *  `actionform` is posted by script (`press.ts`), `schedulerun`,
- *  `deployform` and `removeform` have their own listeners, and
- *  `configactions` lines the button up at the row's end. */
-export type FormHook = "actionform" | "actionform schedulerun" | "deployform" | "removeform" | "configactions";
+ *  `actionform` is posted by script (`press.ts`), `reloadform` is posted
+ *  by script and the page loaded again on success (`specs-client/reload-form/`),
+ *  `schedulerun`, `deployform` and `removeform` have their own listeners,
+ *  and `configactions` lines the button up at the row's end. */
+export type FormHook =
+  | "actionform"
+  | "actionform schedulerun"
+  | "actionform reloadform"
+  | "reloadform"
+  | "deployform"
+  | "removeform"
+  | "configactions"
+  | "configactions reloadform";
 
 /** A form whose only control is one button: hidden fields, a message line
  *  or a dialog inside it are not controls. Every value is raw and escaped

@@ -76,19 +76,6 @@ describe("spec 195: a phase line shows its mark and nothing else", () => {
     expect(subRow(html, "implement")).not.toContain("disagree");
   });
 
-  // Criterion 7: the new producer is the LOWEST of the four. A refusal
-  // answers a button the reader just pressed, and a job's own error says
-  // why the row is not moving — both outrank a standing disagreement.
-  test("a refusal outranks a phase's disagreement in the panel", () => {
-    const html = rows(
-      [row({ id: "impl", specFolder: "195-refused", steps: ["implement"], state: "done" })],
-      [target("195-refused", { done: ["analyze"] })],
-      { errorSpec: "aide/195-refused", error: "a job is already queued for this spec" },
-    );
-    expect(panel(html)).toContain("A job is already queued for this spec");
-    expect(panel(html)).not.toContain("the files disagree");
-  });
-
   test("a job's own error outranks a phase's disagreement in the panel", () => {
     const html = rows(
       [

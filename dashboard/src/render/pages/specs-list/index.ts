@@ -29,7 +29,6 @@
 // one function that has to know about both a filtered/sorted list AND
 // a single row's markup.
 
-import { rowMessage } from "../../ui/components";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import type { QueueRowView } from "../../ui/job-state";
 import { t, type Language } from "../../../i18n";
@@ -60,9 +59,7 @@ import {
 // model straight off this file's own historical path — some, like
 // `PHASE_LINES` and `Phase`, only for that; nothing here reads them.
 export {
-  FILTER_FIELD_PREFIX,
   FILTER_KEYS,
-  FROM_LIST_FIELD,
   PHASE_LINES,
   RUN_STEPS,
   computeSpecTotalDurationMs,
@@ -78,7 +75,8 @@ export {
   type SpecTarget,
   type SpecGroup,
 };
-import { LIST_COLUMNS, phaseSubRows, phasePips, refusalFor, specHeadRow, specNoticeRow } from "./cells.ts";
+import { LIST_COLUMNS, phaseSubRows, phasePips, specHeadRow, specNoticeRow } from "./cells.ts";
+import { listRefusalLine, refusalRowTemplate } from "./notice-row.ts";
 // Re-exported for `spec-page.ts`, which draws a spec's phase pip strip
 // on its own Overview tab.
 export { phasePips };
@@ -168,15 +166,6 @@ export interface SpecsPageOptions {
    *  run it (newest first) — called only for a phase the address names
    *  in `phases` (spec 500). Undefined: nothing is kept to read. */
   phaseMessages?: (attemptIds: string[], step: string) => PhaseMessages | undefined;
-  /** Why the last attempt was refused. Shown on the form, because the
-   *  person who pressed the button is the one who needs to read it. */
-  error?: string;
-  /** Which spec that refusal belongs to, as `<project>/<specFolder>` —
-   *  the same key the fold state already uses. The page lists up to 25
-   *  rows, so a reason with no row attached says nothing about which
-   *  button was pressed. Derived server-side from the job, never taken
-   *  from the browser. */
-  errorSpec?: string;
   /** How the list is cut and ordered, straight from the query string.
    *  Anything unrecognised falls back to the default rather than
    *  emptying the page. */
@@ -231,7 +220,7 @@ function groupRows(
       // the detail the chevron opens sits directly under the row, and
       // every message keeps that one place.
       const head = specHeadRow(g, opts, opened);
-      const notice = specNoticeRow(g, refusalFor(g, opts), now, opts.lang ?? "en", testServerAvailable, {
+      const notice = specNoticeRow(g, now, opts.lang ?? "en", testServerAvailable, {
         filter: opts.filter,
       });
       // Each spec ends with an empty row the stylesheet turns into the air
@@ -322,22 +311,19 @@ export function renderSpecsPage(
   const notice = opts.runnerAvailable ? "" : `<p class="muted">${t(lang, "list.noRunner")}</p>\n`;
   const body =
     notice +
-    // The fallback, and only that. A refusal that names its spec is
-    // shown in that spec's own panel (`specNoticeRow`) — the page lists up
-    // to 25 of them, so the banner said nothing about which button was
-    // pressed. One that names no spec has nowhere else to go, and
-    // dropping it silently is worse than a banner.
-    (opts.error && !opts.errorSpec
-      ? rowMessage("failed", opts.error, { hook: "refusal", tag: "p" }) + "\n"
-      : "") +
+    // Where the page script writes a refused press: the list's own line,
+    // and after the rows the row it copies under the spec the press was
+    // for. Outside `#jobrows`, so no redraw of the rows replaces either.
+    listRefusalLine() +
     // The New spec link rides on the filter row now (right-hand end,
     // after the (?)): it is a plain link since spec 121, so the
     // five-second swap of `#jobrows` holds no half-typed state to lose.
-    table;
+    table +
+    refusalRowTemplate();
   // The front page IS the board: the tab says only that — and the
   // heading said it a second time right under the Specs tab, so it is
   // gone (2026-08-19). The title still names the page for the shell.
-  return pageShell("Specs", entries, "/", body, generatedAt, opts.script ? undefined : 10, {
+  return pageShell("Specs", entries, "/", body, generatedAt, {
     docTitle: "aide -board",
     hideHeading: true,
     script: opts.script,

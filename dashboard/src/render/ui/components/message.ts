@@ -111,13 +111,11 @@ export function rowMessageParts(
 }
 
 /** The line a refusal or a notice is WRITTEN into by the page's script,
- *  drawn whether or not it has words yet: the kind's icon and a `<span>`
- *  for the words, which is all the script writes (`writeLine()`,
- *  `specs-client/press.ts`), so a line it fills carries the same icon as
- *  one the server filled. `text` is what it starts with — a refusal the
- *  server redirected back with, for a page with no script. A line with
+ *  drawn empty: the kind's icon and a `<span>` for the words, which is all
+ *  the script writes (`writeLine()`, `specs-client/press.ts`). A line with
  *  no words takes no room and shows nothing (`row-message.css`), but
- *  stays where a screen reader hears it fill. */
-export const messageSlot = (hook: string, variant: MessageVariant = "failed", o: { text?: string } = {}): string =>
-  `<p class="${hook} rowmsg ${variant}" aria-live="polite">` +
-  `${MESSAGE_ICON[variant]}<span>${o.text ? esc(capitalizeFirst(o.text)) : ""}</span></p>`;
+ *  stays where a screen reader hears it fill. `id` names it for a form
+ *  elsewhere on the page that writes into it (`data-line`). */
+export const messageSlot = (hook: string, variant: MessageVariant = "failed", o: { id?: string } = {}): string =>
+  `<p${o.id ? ` id="${esc(o.id)}"` : ""} class="${hook} rowmsg ${variant}" aria-live="polite">` +
+  `${MESSAGE_ICON[variant]}<span></span></p>`;

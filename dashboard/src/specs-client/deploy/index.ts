@@ -2,10 +2,9 @@
 // open by the one hold every progress dialog has (`standOpen`), moves one
 // step line at a time as the sequence (`run.ts`) reports, and after a
 // failure writes its reason in the dialog's own line, closes by itself
-// and leaves the error on the Deploy panel. With no `<dialog>` the form
-// posts natively and follows the redirect, as it always did.
+// and leaves the error on the Deploy panel.
 
-import { canStand, isStanding, standOpen } from "../progress-dialog";
+import { isStanding, standOpen } from "../progress-dialog";
 import { runDeploy, STEPS, type DeployFailure, type DeployIo, type DeployStep, type PostedStep, type StepAnswer, type StepState } from "./run.ts";
 
 /** What a dialog is doing, kept per dialog so its listener is attached
@@ -71,10 +70,9 @@ const failureSentence = (dialog: HTMLDialogElement, failure: DeployFailure & { l
 
 export async function submitDeploy(form: HTMLFormElement, event: Event, io: DeployIo = browserIo(form)): Promise<void> {
   if (event.defaultPrevented) return;
-  const dialog = form.querySelector("dialog[data-deploy-dialog]") as HTMLDialogElement | null;
-  // No `<dialog>` here: the form posts natively and follows the redirect.
-  if (!canStand(dialog)) return;
   event.preventDefault();
+  // The form holds its dialog.
+  const dialog = form.querySelector("dialog[data-deploy-dialog]") as HTMLDialogElement;
   const list = dialog.querySelector("ol.deploysteps") as HTMLElement;
   const messageBox = dialog.querySelector(".deploymessage") as HTMLElement;
 

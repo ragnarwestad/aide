@@ -24,7 +24,7 @@ export { STEP_LABELS, STEP_LABELS_NB, STEP_LABELS_ES, STEP_LABELS_DE, STEP_LABEL
 // --- button ----------------------------------------------------------------
 
 export {
-  btn, btnLink, buttonForm, saveCancelActions, type BtnOptions, type BtnVariant, type FormHook,
+  btn, btnLink, buttonForm, dataAttrs, saveCancelActions, type BtnOptions, type BtnVariant, type FormHook,
 } from "./button.ts";
 
 // --- confirm dialog --------------------------------------------------------------

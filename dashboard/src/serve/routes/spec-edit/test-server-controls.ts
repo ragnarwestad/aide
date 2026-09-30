@@ -1,17 +1,15 @@
 // The board's own start/stop routes (spec 388) — the family
 // `run-controls.ts` beside this file already established: a project/
-// specFolder path, `ctx.specRef` for the archived refusal, a redirect
-// back to the spec page for a no-JS form POST.
-import { resolveBackHref, specPagePath } from "../../../render";
+// specFolder path, `ctx.specRef` for the archived refusal, a JSON answer
+// for the page script.
 import { startTestServer, stopTestServer } from "../../test-servers/lifecycle.ts";
-import { ARCHIVED_REFUSAL, json, logRefusal, readBounded, specsRedirect } from "../../serve-helpers";
+import { ARCHIVED_REFUSAL, json, logRefusal, readBounded } from "../../serve-helpers";
 import type { RoutesContext } from "..";
 
 export async function testServerControlRoutes(
   ctx: RoutesContext,
   req: Request,
   path: string,
-  wantsJson: boolean,
 ): Promise<Response | null> {
   const startMatch = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/test-server$/);
   if (startMatch) {
@@ -24,18 +22,14 @@ export async function testServerControlRoutes(
     if ("refusal" in sent) return sent.refusal;
     if (ref.archived) {
       logRefusal("test-server", spec, ARCHIVED_REFUSAL);
-      return wantsJson ? json({ error: ARCHIVED_REFUSAL, spec }, 400) : specsRedirect({}, { error: ARCHIVED_REFUSAL, spec }, specPagePath(project!, specFolder!));
+      return json({ error: ARCHIVED_REFUSAL, spec }, 400);
     }
     const result = await startTestServer(ctx.testServers, project!, specFolder!);
     if (!result.ok) {
       logRefusal("test-server", spec, result.error);
-      return wantsJson
-        ? json({ error: result.error, spec }, 400)
-        : specsRedirect({}, { error: result.error, spec }, specPagePath(project!, specFolder!));
+      return json({ error: result.error, spec }, 400);
     }
-    return wantsJson
-      ? json({ ok: true, testServer: result.entry })
-      : specsRedirect({}, undefined, specPagePath(project!, specFolder!));
+    return json({ ok: true, testServer: result.entry });
   }
 
   const stopMatch = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/test-server\/stop$/);
@@ -47,17 +41,7 @@ export async function testServerControlRoutes(
     const sent = await readBounded(req);
     if ("refusal" in sent) return sent.refusal;
     stopTestServer(ctx.testServers, project!, specFolder!, "the Stop button on the spec row");
-    // Back to the page the form was posted from: this route is the Stop
-    // button on the Test servers list as well as on the spec's own page,
-    // and a fixed target took a reader off the list they pressed it on.
-    // Same-origin `Referer` only, falling back to the spec page.
-    return wantsJson
-      ? json({ ok: true })
-      : specsRedirect(
-          {},
-          undefined,
-          resolveBackHref(req.headers.get("referer"), new URL(req.url).origin, specPagePath(project!, specFolder!)),
-        );
+    return json({ ok: true });
   }
 
   return null;

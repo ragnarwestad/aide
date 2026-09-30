@@ -1,9 +1,6 @@
 // The Deploy button, one request per step (fetch, install, restart,
 // check), for the page script that draws each step's state as it
-// happens. `POST /api/queue/projects/<name>/deploy` in queue-admin.ts
-// does the same work in one request for a form posted without script;
-// the guard, fast-forward and install sequence is written in both places
-// and `deploy-steps.test.ts` pins that they refuse alike.
+// happens.
 
 import { resolve } from "node:path";
 import { fastForwardToOrigin, type RepoMergeResult } from "../../git/branch-merge.ts";

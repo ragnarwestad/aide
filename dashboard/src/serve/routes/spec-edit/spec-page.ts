@@ -6,8 +6,8 @@ import { refreshTestServerStatus, startTestServer } from "../../test-servers/lif
 import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "./test-server-waiting.ts";
 import { pullFastForward, saveSpecFiles } from "../../../git/specs-pull.ts";
 import { resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
-import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, renderSpecPageFailedRest, renderSpecPageHead, renderSpecPageRest, resolveBackHref, resolveSpecTab, specPagePath, specTabPath } from "../../../render";
-import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, languageChoice, logRefusal, readBounded, specsClientScript, specsRedirect, streamedPage } from "../../serve-helpers";
+import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, renderSpecPageFailedRest, renderSpecPageHead, renderSpecPageRest, resolveBackHref, resolveSpecTab, specTabPath } from "../../../render";
+import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, languageChoice, logRefusal, readBounded, specsClientScript, streamedPage } from "../../serve-helpers";
 
 import { failedRoundSentence } from "../../../render/ui/job-state";
 import type { RoutesContext } from "..";
@@ -17,7 +17,6 @@ export async function specPageRoutes(
   req: Request,
   url: URL,
   path: string,
-  _wantsJson: boolean,
 ): Promise<Response | null> {
   const specPage = path.match(/^\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)$/);
   if (specPage) {
@@ -70,7 +69,7 @@ export async function specPageRoutes(
       // this same URL, and the branch above carries it to the board the
       // moment there is one. REQ-4.
       if (!capable) {
-        return specsRedirect({}, undefined, specTabPath(project!, specFolder!, "steps"));
+        return new Response(null, { status: 303, headers: { location: specTabPath(project!, specFolder!, "steps") } });
       }
       if (!already || (already.status === "failed" && retry)) {
         const result = await startTestServer(ctx.testServers, project!, specFolder!);
@@ -115,10 +114,7 @@ export async function specPageRoutes(
         return renderSpecPageRest(
           {
             ...view,
-            error: url.searchParams.get("error") ?? failedRoundSentence(view.lead, langResult.lang),
-            notice: url.searchParams.get("notice")
-              ? { note: url.searchParams.get("notice")!, ok: url.searchParams.get("noticeOk") === "1" }
-              : undefined,
+            error: failedRoundSentence(view.lead, langResult.lang),
             backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/", url.pathname),
           },
           new Date().toISOString(),
@@ -157,7 +153,6 @@ export async function specPageRoutes(
     const found = ctx.specDir(project!, specFolder!);
     if (!found) return new Response("not found", { status: 404 });
     const dir = await ctx.machinerySpecDir(project!, found);
-    const back = specPagePath(project!, specFolder!);
     // The same lock a merge takes, and for the same hazard: every
     // spec shares the specs root, so two presses — or a press racing
     // the `aide-pull-specs` cron — would be two git sequences in one
@@ -167,9 +162,11 @@ export async function specPageRoutes(
     );
     if (!result.ok) {
       logRefusal("update", `${project}/${specFolder}`, result.note);
-      return specsRedirect({}, { error: result.note }, back);
+      return json({ error: result.note }, 400);
     }
-    return specsRedirect({}, undefined, back, { note: result.note, ok: true });
+    // `changed` says whether the page has anything new to show: an Update
+    // that moved nothing leaves its sentence instead of loading again.
+    return json({ ok: true, note: result.note, changed: result.moved });
   }
 
   const save = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/save$/);
@@ -183,7 +180,7 @@ export async function specPageRoutes(
     // pushes, and an archived spec's folder is in `archive/`.
     if (ctx.specRef(project!, specFolder!)?.archived) {
       logRefusal("save", `${project}/${specFolder}`, ARCHIVED_REFUSAL);
-      return specsRedirect({}, { error: ARCHIVED_REFUSAL }, specPagePath(project!, specFolder!));
+      return json({ error: ARCHIVED_REFUSAL }, 400);
     }
     const sent = await readBounded(req, MAX_SAVE_BODY);
     if ("refusal" in sent) return sent.refusal;
@@ -208,20 +205,9 @@ export async function specPageRoutes(
     if (file === STATUS_SPEC_FILE) {
       const reason = `${STATUS_SPEC_FILE} is written by the run — tick and untick the acceptance criteria on the Status tab instead`;
       logRefusal("save", `${project}/${specFolder}`, reason);
-      return specsRedirect({}, { error: reason }, specTabPath(project!, specFolder!, "status"));
+      return json({ error: reason }, 400);
     }
-    const tab = FILE_TABS[file];
-    if (!tab) {
-      return specsRedirect(
-        {},
-        { error: `unknown spec file: ${file} — nothing was saved` },
-        specPagePath(project!, specFolder!),
-      );
-    }
-    // The tab the form was on, which is where the textarea is (spec
-    // 212). A refusal has to land where the form was, holding what is
-    // actually on disk.
-    const back = specTabPath(project!, specFolder!, tab);
+    if (!FILE_TABS[file]) return json({ error: `unknown spec file: ${file} — nothing was saved` }, 400);
     // REQ-6: the same job-state gate the tick route already applies —
     // a run works in a worktree branched when it started, so a hand
     // edit cannot corrupt it, but REQ-4 below now writes onto that same
@@ -234,15 +220,13 @@ export async function specPageRoutes(
     if (activeJob) {
       const reason = "another job for this spec is still running — nothing was saved";
       logRefusal("save", `${project}/${specFolder}`, reason);
-      return specsRedirect({}, { error: reason }, back);
+      return json({ error: reason }, 409);
     }
     // An EMPTY textarea is a legitimate save — the terminal-edit path
     // this matches has never stopped anyone deleting the lot. A body
     // with no field at all is not: it is a request that never came
     // from this form, and writing it would empty the file.
-    if (typeof body.text !== "string") {
-      return specsRedirect({}, { error: "no text was submitted — nothing was saved" }, back);
-    }
+    if (typeof body.text !== "string") return json({ error: "no text was submitted — nothing was saved" }, 400);
     // REQ-1 (spec 394): the "Depends on" picker moved out of the
     // Description tab's own form into the banner above the tab row, so
     // this route no longer merges a posted `dependsOn` field at all —
@@ -282,13 +266,11 @@ export async function specPageRoutes(
         );
     if (!result.ok) {
       logRefusal("save", `${project}/${specFolder}`, result.note);
-      return specsRedirect({}, { error: result.note }, back);
+      return json({ error: result.note }, 400);
     }
-    // Back to the tab the form is on, where the file now carries its
-    // new commit stamp. Not the Overview tab it used to land on: since
-    // spec 212 the editor IS a tab of this page, and a reader who has
-    // just saved is as likely to keep editing.
-    return specsRedirect({}, undefined, back, { note: result.note, ok: true });
+    // The page loads again on its own tab, where the file now carries its
+    // new commit stamp — unless nothing was committed, which it says.
+    return json({ ok: true, note: result.note, changed: (result as { committed?: boolean }).committed !== false });
   }
 
   return null;

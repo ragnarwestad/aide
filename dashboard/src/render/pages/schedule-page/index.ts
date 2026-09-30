@@ -33,8 +33,6 @@ export interface SchedulePageOptions {
   /** Spec 435. The request's own address, threaded to `pageShell` so its
    *  language links keep the reader on this same page. */
   currentUrl?: string;
-  /** A refusal for the slot above the list (spec 494). */
-  error?: string;
   /** The model names the queue offers; absent draws no flag. */
   modelNames?: readonly string[];
 }
@@ -47,7 +45,7 @@ export function renderSchedulePage(nav: NavEntry[], generatedAt: string, opts: S
   // "Schedule"; repeating it as a visible page heading read as the same
   // word twice in a row, so the heading is hidden and "Jobs" survives
   // only as the browser tab's title.
-  return pageShell("Jobs", nav, SCHEDULE_ROUTE, body, generatedAt, undefined, {
+  return pageShell("Jobs", nav, SCHEDULE_ROUTE, body, generatedAt, {
     script: opts.script,
     hideHeading: true,
     lang: opts.lang,
@@ -85,7 +83,7 @@ export function renderScheduleDetailPage(
   // project's Schedule tab, where it is also changed.
   const panel = tab === "history" ? renderScheduleHistory(opts.history) : (opts.reportPanel ?? "");
   const body = tabbedBody("", bar, panel, opts.backHref ?? SCHEDULE_ROUTE, opts.entry.name);
-  return pageShell(opts.entry.name, nav, base, body, generatedAt, undefined, {
+  return pageShell(opts.entry.name, nav, base, body, generatedAt, {
     script: opts.script,
     hideHeading: true,
     lang: opts.lang,

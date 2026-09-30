@@ -3,7 +3,7 @@
 // 391) — `spec-form-actions.ts` can neither import nor export anything,
 // so, like its siblings under ui/, it is transpiled and run here.
 //
-// Unlike form-busy.ts/nav-busy.ts/nav-overlay.ts, this script reads
+// Unlike nav-busy.ts/nav-overlay.ts, this script reads
 // `form.elements`, snapshots real field values and relies on real
 // event bubbling from a field up to its form — behaviour a hand-rolled
 // fake document would have to reimplement faithfully, which is itself a

@@ -3,13 +3,13 @@
 // until the queued job has settled.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { canStand, isStanding, settled, standOpen, submitProgress, type ProgressIo } from "../../../src/specs-client/progress-dialog";
+import { isStanding, settled, standOpen, submitProgress, type ProgressIo } from "../../../src/specs-client/progress-dialog";
 
 const BACK = "/specs/aide/150-x";
 
 type Listener = (e: { preventDefault(): void; defaultPrevented: boolean }) => void;
 
-function fakeDialog(withShowModal = true) {
+function fakeDialog() {
   const listeners: Record<string, Listener[]> = {};
   const dialog = {
     shows: 0,
@@ -25,7 +25,9 @@ function fakeDialog(withShowModal = true) {
       for (const fn of listeners[type] ?? []) fn(e);
       return e;
     },
-    ...(withShowModal ? { showModal() { dialog.shows += 1; } } : {}),
+    showModal() {
+      dialog.shows += 1;
+    },
   };
   return dialog;
 }
@@ -83,20 +85,16 @@ const submit = () => {
 };
 
 /** The ask: a dialog the posting form sits INSIDE, with a line for a refusal. */
-function fakeAsk(withShowModal = true) {
-  const base = fakeDialog(withShowModal);
+function fakeAsk() {
+  const base = fakeDialog();
   const attrs = new Set<string>();
   const line = { textContent: "" };
   const ask = Object.assign(base, {
     open: false,
-    ...(withShowModal
-      ? {
-          showModal() {
-            ask.shows += 1;
-            ask.open = true;
-          },
-        }
-      : {}),
+    showModal() {
+      ask.shows += 1;
+      ask.open = true;
+    },
     close() {
       ask.closes += 1;
       ask.open = false;
@@ -150,15 +148,6 @@ describe("submitProgress from inside the ask", () => {
     await submitProgress(fakeAsk().form, submit(), io);
     expect(io.polls).toBe(0);
     expect(io.gone).toEqual([BACK]);
-  });
-
-  test("a dialog with no showModal leaves the submit alone, so the form posts natively", async () => {
-    const a = fakeAsk(false);
-    const event = submit();
-    const io = fakeIo([]);
-    await submitProgress(a.form, event, io);
-    expect(event.defaultPrevented).toBe(false);
-    expect(io.gone).toEqual([]);
   });
 
   test("a done job goes to data-progress-done when the form carries it, and to / when not (AC-4)", async () => {
@@ -308,12 +297,6 @@ describe("standOpen, the one hold", () => {
     b.line.textContent = "kept";
     hold.release();
     expect(b.line.textContent).toBe("kept");
-  });
-
-  test("canStand is false for a dialog with no showModal, and for no dialog at all (AC-2)", () => {
-    expect(canStand(fakeAsk().ask as unknown as HTMLDialogElement)).toBe(true);
-    expect(canStand(fakeAsk(false).ask as unknown as HTMLDialogElement)).toBe(false);
-    expect(canStand(null)).toBe(false);
   });
 });
 

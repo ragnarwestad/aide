@@ -10,10 +10,10 @@ import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import type { GitRunner } from "../../src/git/branch-status.ts";
-import { SPEC, TICK, PAGE, FILE_SHA, DESCRIPTION, NEW_TEXT, createSpecSaveHarness, ARCHIVED, ARCHIVED_TEXT, savable } from "./spec-save-fixtures.ts";
+import { SPEC, TICK, FILE_SHA, DESCRIPTION, NEW_TEXT, createSpecSaveHarness, ARCHIVED, ARCHIVED_TEXT, savable } from "./spec-save-fixtures.ts";
 import {
   PHASE, OPEN_ROW, DONE_ROW, STATUS, ticked, statusPath, startWithChecks as start, tick, save,
-  recording, messageOf, branchAwareGitRunner, NV_ROW, NV_STATUS, marked, SECOND_OPEN_ROW,
+  recording, messageOf, branchAwareGitRunner, NV_ROW, NV_STATUS, marked, SECOND_OPEN_ROW, answer,
 } from "./spec-checks-fixtures.ts";
 import { afterTick } from "../../src/serve/routes/spec-edit/checks.ts";
 
@@ -42,11 +42,9 @@ describe("the checks on the Overview tab", () => {
 
   test("a 4-status.md that moved under the reader refuses the tick", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const res = await tick(base, { ticks: [OPEN_ROW], statusBaseSha: "0000000ffffff" });
-    expect(res.status).toBe(303);
-    const location = decodeURIComponent(res.headers.get("location")!);
-    expect(location.startsWith(PAGE)).toBe(true);
-    expect(location).toContain("changed since");
+    const { status, body } = await answer(await tick(base, { ticks: [OPEN_ROW], statusBaseSha: "0000000ffffff" }));
+    expect(status).toBe(409);
+    expect(body.error).toContain("changed since");
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
   });
 
@@ -54,13 +52,11 @@ describe("the checks on the Overview tab", () => {
   // reader sat on the page while a step rewrote the table around it.
   test("a tick naming a row that no longer reads as it did is refused", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const res = await tick(base, {
+    const { status, body } = await answer(await tick(base, {
       ticks: ["| Manual check at 375px in a real browser | ⬜ | as it once was |"],
-    });
-    expect(res.status).toBe(303);
-    const location = decodeURIComponent(res.headers.get("location")!);
-    expect(location.startsWith(PAGE)).toBe(true);
-    expect(location).toContain("error=");
+    }));
+    expect(status).toBe(409);
+    expect(body.error).toBeTruthy();
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
   });
 
@@ -68,8 +64,9 @@ describe("the checks on the Overview tab", () => {
   // it included — never applied silently while one of them is dropped.
   test("one bad row refuses every box in the same press", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const res = await tick(base, { ticks: [OPEN_ROW, "| No such row | ⬜ | |"] });
-    expect(decodeURIComponent(res.headers.get("location")!)).toContain("error=");
+    const { status, body } = await answer(await tick(base, { ticks: [OPEN_ROW, "| No such row | ⬜ | |"] }));
+    expect(status).toBe(409);
+    expect(body.error).toBeTruthy();
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
   });
 
@@ -79,8 +76,10 @@ describe("the checks on the Overview tab", () => {
   // and clears another is one ordinary press.
   test("a row left exactly as it was commits nothing, and is not an error", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const res = await tick(base, { ticks: [DONE_ROW] });
-    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    const { status, body } = await answer(await tick(base, { ticks: [DONE_ROW] }));
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.changed).toBe(false);
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
   });
 
@@ -88,8 +87,9 @@ describe("the checks on the Overview tab", () => {
   // comes back off here, not by editing the markdown table by hand.
   test("a done row the reader left CLEAR goes back to ⬜, and is committed", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const res = await tick(base, { ticks: [], rows: [DONE_ROW] });
-    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    const { status, body } = await answer(await tick(base, { ticks: [], rows: [DONE_ROW] }));
+    expect(status).toBe(200);
+    expect(body.changed).toBe(true);
     const after = readFileSync(statusPath(dir), "utf-8");
     expect(after).not.toBe(STATUS);
     expect(after).toContain(DONE_ROW.replace("✅", "⬜"));
@@ -101,15 +101,17 @@ describe("the checks on the Overview tab", () => {
   // new one on the reader's behalf.
   test("a row the press did not carry is left exactly as it was", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const res = await tick(base, { ticks: [OPEN_ROW], rows: [OPEN_ROW] });
-    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    const { status, body } = await answer(await tick(base, { ticks: [OPEN_ROW], rows: [OPEN_ROW] }));
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
     expect(readFileSync(statusPath(dir), "utf-8")).toContain(DONE_ROW);
   });
 
   test("a phase the file does not have is refused", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const res = await tick(base, { ticks: [OPEN_ROW], phase: "Phase 9: NOTHING" });
-    expect(decodeURIComponent(res.headers.get("location")!)).toContain("error=");
+    const { status, body } = await answer(await tick(base, { ticks: [OPEN_ROW], phase: "Phase 9: NOTHING" }));
+    expect(status).toBe(409);
+    expect(body.error).toBeTruthy();
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
   });
 
@@ -117,13 +119,14 @@ describe("the checks on the Overview tab", () => {
   // that never came from this form.
   test("ticks with no phase named are refused rather than guessed at", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const res = await fetch(`${base}${TICK}`, {
+    const { status, body } = await answer(await fetch(`${base}${TICK}`, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
       redirect: "manual",
       body: new URLSearchParams([["statusBaseSha", FILE_SHA], ["tick", OPEN_ROW]]).toString(),
-    });
-    expect(decodeURIComponent(res.headers.get("location")!)).toContain("error=");
+    }));
+    expect(status).toBe(409);
+    expect(body.error).toBeTruthy();
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
   });
 
@@ -136,7 +139,7 @@ describe("the checks on the Overview tab", () => {
       archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT, status: STATUS } },
       extra: { gitRun: savable("/host") },
     });
-    const res = await fetch(`${base}/api/queue/specs/aide/${ARCHIVED}/tick`, {
+    const { status, body } = await answer(await fetch(`${base}/api/queue/specs/aide/${ARCHIVED}/tick`, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
       redirect: "manual",
@@ -145,9 +148,9 @@ describe("the checks on the Overview tab", () => {
         ["statusBaseSha", FILE_SHA],
         ["tick", OPEN_ROW],
       ]).toString(),
-    });
-    expect(res.status).toBe(303);
-    expect(decodeURIComponent(res.headers.get("location")!)).toContain("archived");
+    }));
+    expect(status).toBe(409);
+    expect(body.error).toContain("archived");
     expect(readFileSync(join(dir, "root", "aide", "specs", "archive", ARCHIVED, "4-status.md"), "utf-8")).toBe(STATUS);
   });
 });
@@ -160,15 +163,14 @@ describe("the checks on the Overview tab", () => {
 describe("4-status.md cannot be saved as a document", () => {
   test("a Save of it is refused, and the file is untouched", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const res = await fetch(`${base}/api/queue/specs/aide/81-queue-and-runner/save`, {
+    const { status, body } = await answer(await fetch(`${base}/api/queue/specs/aide/81-queue-and-runner/save`, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
       redirect: "manual",
       body: new URLSearchParams([["file", "4-status.md"], ["text", "# rewritten\n"], ["baseSha", FILE_SHA]]).toString(),
-    });
-    const where = decodeURIComponent(res.headers.get("location")!);
-    expect(where).toContain("error=");
-    expect(where).toContain("Status tab");
+    }));
+    expect(status).toBe(400);
+    expect(body.error).toContain("Status tab");
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
   });
 });
@@ -231,8 +233,18 @@ describe("after a tick is saved", () => {
 // --- spec 509: the Not verified mark through the tick route --------------------
 
 describe("the tick route and the Not verified mark (spec 509)", () => {
-  const ok = (res: Response) => expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
-  const refused = (res: Response) => expect(decodeURIComponent(res.headers.get("location")!)).toContain("error=");
+  const ok = async (res: Response) => {
+    const { status, body } = await answer(res);
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
+    return body;
+  };
+  const refused = async (res: Response) => {
+    const { status, body } = await answer(res);
+    expect(status).toBe(409);
+    expect(body.error).toBeTruthy();
+    return body;
+  };
   const stateOf = (dir: string) => JSON.parse(readFileSync(join(dirname(statusPath(dir)), "4-status.json"), "utf-8"));
   const NV_FILE = STATUS.replace(SECOND_OPEN_ROW, NV_ROW);
   const asNv = (row: string) => marked(row);
@@ -240,7 +252,7 @@ describe("the tick route and the Not verified mark (spec 509)", () => {
   test("the Not verified box alone marks an open row, in one commit with the state (AC-1)", async () => {
     const git = recording();
     const { base, dir } = startWithChecks(git.run);
-    ok(await tick(base, { unverified: [OPEN_ROW] }));
+    await ok(await tick(base, { unverified: [OPEN_ROW] }));
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS.replace(OPEN_ROW, asNv(OPEN_ROW)));
     const row = stateOf(dir).acceptanceCriteria.find((r: { task: string }) => r.task.startsWith("Manual check"));
     expect(row).toEqual({ task: "Manual check at 375px in a real browser", done: true, notVerified: true });
@@ -252,44 +264,44 @@ describe("the tick route and the Not verified mark (spec 509)", () => {
 
   test("both boxes on a done row make it Not verified (AC-1)", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    ok(await tick(base, { ticks: [DONE_ROW], unverified: [DONE_ROW] }));
+    await ok(await tick(base, { ticks: [DONE_ROW], unverified: [DONE_ROW] }));
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS.replace(DONE_ROW, asNv(DONE_ROW)));
   });
 
   test("both boxes on an open row make it done (AC-1)", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    ok(await tick(base, { ticks: [OPEN_ROW], unverified: [OPEN_ROW] }));
+    await ok(await tick(base, { ticks: [OPEN_ROW], unverified: [OPEN_ROW] }));
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS.replace(OPEN_ROW, ticked(OPEN_ROW)));
   });
 
   test("both boxes on a Not verified row make it done (AC-1)", async () => {
     const { base, dir } = startWithChecks(savable("/host"), NV_FILE);
-    ok(await tick(base, { ticks: [NV_ROW], unverified: [NV_ROW] }));
+    await ok(await tick(base, { ticks: [NV_ROW], unverified: [NV_ROW] }));
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(NV_FILE.replace(NV_ROW, NV_ROW.replace("Not verified", "✅")));
   });
 
   test("the tick box alone on a Not verified row makes it done, not skipped as already made (AC-1)", async () => {
     const { base, dir } = startWithChecks(savable("/host"), NV_FILE);
-    ok(await tick(base, { ticks: [NV_ROW] }));
+    await ok(await tick(base, { ticks: [NV_ROW] }));
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(NV_FILE.replace(NV_ROW, NV_ROW.replace("Not verified", "✅")));
   });
 
   test("no box on a Not verified row sends it back to open (AC-1)", async () => {
     const { base, dir } = startWithChecks(savable("/host"), NV_FILE);
-    ok(await tick(base, { rows: [NV_ROW] }));
+    await ok(await tick(base, { rows: [NV_ROW] }));
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(NV_FILE.replace(NV_ROW, NV_ROW.replace("Not verified", "⬜")));
   });
 
   test("a Not verified row left as it was commits nothing (AC-1)", async () => {
     const git = recording();
     const { base } = startWithChecks(git.run, NV_FILE);
-    ok(await tick(base, { unverified: [NV_ROW] }));
+    expect((await ok(await tick(base, { unverified: [NV_ROW] }))).changed).toBe(false);
     expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(0);
   });
 
   test("ticking the last Not verified row leaves no notVerified row in the state (AC-6)", async () => {
     const { base, dir } = startWithChecks(savable("/host"), NV_STATUS);
-    ok(await tick(base, { ticks: [DONE_ROW, NV_ROW] }));
+    await ok(await tick(base, { ticks: [DONE_ROW, NV_ROW] }));
     const rows: { done: boolean; notVerified?: boolean }[] = stateOf(dir).acceptanceCriteria;
     expect(rows.every((r) => r.done && !("notVerified" in r))).toBe(true);
   });
@@ -305,9 +317,8 @@ describe("the tick route and the Not verified mark (spec 509)", () => {
     try {
       const git = recording();
       const { base, dir } = startWithChecks(git.run);
-      const res = await tick(base, { unverified: [OPEN_ROW] });
-      refused(res);
-      expect(decodeURIComponent(res.headers.get("location")!)).toContain("older than the dashboard");
+      const body = await refused(await tick(base, { unverified: [OPEN_ROW] }));
+      expect(body.error).toContain("older than the dashboard");
       expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
       expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(0);
     } finally {
@@ -334,7 +345,7 @@ describe("the tick route and the Not verified mark (spec 509)", () => {
     test("the Not verified row can be completed, and 4-status.md and 4-status.json are committed (AC-5)", async () => {
       const git = recording();
       const { base, dir } = start(ARCHIVED_STATUS, git.run);
-      ok(await tickArchived(base, { ticks: [NV_ROW] }));
+      await ok(await tickArchived(base, { ticks: [NV_ROW] }));
       expect(readFileSync(fileOf(dir), "utf-8")).toBe(ARCHIVED_STATUS.replace(NV_ROW, NV_ROW.replace("Not verified", "✅")));
       const rows: { notVerified?: boolean }[] = JSON.parse(readFileSync(fileOf(dir, "4-status.json"), "utf-8")).acceptanceCriteria;
       expect(rows.some((r) => r.notVerified)).toBe(false);
@@ -344,7 +355,7 @@ describe("the tick route and the Not verified mark (spec 509)", () => {
     test("it writes to the specs repository's default branch even when a branch of that name is open (AC-5)", async () => {
       const open = branchAwareGitRunner({ folder: ARCHIVED, branchText: ARCHIVED_STATUS });
       const { base, dir } = start(ARCHIVED_STATUS, open.run);
-      ok(await tickArchived(base, { ticks: [NV_ROW] }));
+      await ok(await tickArchived(base, { ticks: [NV_ROW] }));
       expect(readFileSync(fileOf(dir), "utf-8")).toContain(NV_ROW.replace("Not verified", "✅"));
       expect(open.calls.some((c) => c.args[0] === "commit-tree")).toBe(false);
     });
@@ -357,9 +368,8 @@ describe("the tick route and the Not verified mark (spec 509)", () => {
       for (const over of tries) {
         const git = recording();
         const { base, dir } = start(ARCHIVED_STATUS, git.run);
-        const res = await tickArchived(base, over);
-        refused(res);
-        expect(decodeURIComponent(res.headers.get("location")!)).toContain("archived");
+        const body = await refused(await tickArchived(base, over));
+        expect(body.error).toContain("archived");
         expect(readFileSync(fileOf(dir), "utf-8")).toBe(ARCHIVED_STATUS);
         expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(0);
         harness.cleanup();
@@ -369,8 +379,7 @@ describe("the tick route and the Not verified mark (spec 509)", () => {
     test("a closed spec refuses every change (AC-5)", async () => {
       const closed = `${NV_STATUS}\n- **Closed:** 2026-09-01\n`;
       const { base, dir } = start(closed);
-      const res = await tickArchived(base, { ticks: [NV_ROW] });
-      refused(res);
+      await refused(await tickArchived(base, { ticks: [NV_ROW] }));
       expect(readFileSync(fileOf(dir), "utf-8")).toBe(closed);
     });
   });

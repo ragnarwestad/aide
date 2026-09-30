@@ -100,15 +100,15 @@ export function failedRoundSentence(lead: QueueRowView | undefined, lang: Langua
   return renderSentence(lang, lead.error);
 }
 
-/** Which of the five applies, if any. The order is the row's own: the
- *  queue's refusal of the press just made comes first, then a job that
+/** Which applies, if any. The order is the row's own: a job that
  *  failed saying why it failed, then the spec's standing note about an
  *  archive that declined, and last a phase whose own record disagrees
- *  with the files.
+ *  with the files. A refusal of the press just made is not one of them:
+ *  the page script draws it in a row of its own under the spec
+ *  (`specs-client/row-refusal/`).
  *
- *  That fourth one is the newest (spec 195) and ranks lowest because it
- *  is the least specific: a refusal answers a button the reader just
- *  pressed, an error says why the row is not moving, and a held-back
+ *  The disagreement (spec 195) ranks lowest because it
+ *  is the least specific: an error says why the row is not moving, and a held-back
  *  note names a decision — a disagreement is a standing condition that
  *  was true before any of them and will still be true after. It reaches
  *  this function already worded with its phase's name (`analyze: …`),
@@ -123,18 +123,6 @@ export function failedRoundSentence(lead: QueueRowView | undefined, lang: Langua
  *  both be true of the same phase: archive is held back and its own
  *  last re-run failed. First-match-wins would drop one of two true
  *  things silently, so that pair is joined into one message instead.
- *
- *  The refusal is the third producer, added by spec 151 and the only
- *  one that belongs to no job: the queue returns it at enqueue time,
- *  before a job exists to carry it, so it reaches the page on the
- *  query string (`errorSpec`/`error`) instead. It was left drawing
- *  itself inside the name cell when spec 143 built this panel — where
- *  it pushed the branch marks and the title around, on the one row the
- *  reader had just pressed a button on. It outranks both of the
- *  others because it answers that press, and for the same reason it is
- *  said even while a job is running: a clash refusal is a refusal
- *  BECAUSE something is running, and gating it on "nothing in flight"
- *  would silence exactly the case it exists for.
  *
  *  Requirement 3 of 1-description.md — the panel cleared when a new
  *  action starts on the row — is already answered by each of them, in
@@ -167,7 +155,6 @@ export function failedRoundSentence(lead: QueueRowView | undefined, lang: Langua
 export function specNotice(
   lead: QueueRowView | undefined,
   archiveHeldBack?: string,
-  refusal?: string,
   /** A phase's own qualifier, worded with that phase's name by the
    *  caller — this file knows nothing about a spec's phase list. */
   disagreement?: string,
@@ -187,7 +174,6 @@ export function specNotice(
    *  comment for its rank. */
   readyToArchive?: boolean,
 ): RowNotice | undefined {
-  if (refusal) return { variant: "failed", text: refusal, hook: "refused" };
   const parts: (NoticePart & { variant: MessageVariant; title?: string })[] = [];
   // A failed landing writes the same sentence twice on the job: as its
   // `error` and, prefixed with the step, as its `landingError`. Said

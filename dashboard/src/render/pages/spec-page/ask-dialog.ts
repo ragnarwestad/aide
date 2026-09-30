@@ -69,13 +69,12 @@ const resetBox = (formId: string): string =>
 
 /** Reopen's dialog. `where` says which dialog it is and where the reader
  *  goes once the job is posted: the spec page draws one, the list one per
- *  place a Reopen is pressed, each with the list's own fields in `hidden`
- *  as every form on the list carries them. */
+ *  place a Reopen is pressed. */
 export function reopenAskDialog(
   project: string,
   specFolder: string,
   lang: Language,
-  where: { id: string; back: string; done?: string; hidden?: Record<string, string> },
+  where: { id: string; back: string; done?: string },
 ): string {
   return progressDialog(lang, {
     id: where.id,
@@ -87,7 +86,7 @@ export function reopenAskDialog(
       ok: { variant: "primary", pending: t(lang, "list.reopening") },
       post: {
         action: "/api/queue",
-        hidden: { ...where.hidden, project, specFolder, steps: "reopen" },
+        hidden: { project, specFolder, steps: "reopen" },
       },
       wait: { back: where.back, done: where.done },
     },

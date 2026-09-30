@@ -8,7 +8,7 @@
 // questions are answerable for which tool, and why.
 
 import { esc } from "../../ui/html.ts";
-import { buttonForm, rowMessage } from "../../ui/components";
+import { buttonForm, messageSlot, rowMessage } from "../../ui/components";
 
 export const TOOL_TABS = ["claude", "codex", "copilot", "opencode"] as const;
 
@@ -137,12 +137,15 @@ export function toolPanel(tool: CheckableTool, check: ToolCheck | undefined): st
     `<p>${esc(note.what)}</p>` +
     `<p class="muted">The check tells you ${esc(note.canCheck)}.</p>` +
     cannot +
+    // Posted by the page script, which loads the tab again with the
+    // answer drawn below; a refusal stays in the form's own line.
     buttonForm({
       id: `check-${tool}`,
       action: "/api/queue/settings/check",
-      hook: "configactions",
+      hook: "configactions reloadform",
       hidden: { tool },
       button: { id: `check-${tool}-run`, label: "Check", variant: "primary", pending: "checking…" },
+      after: messageSlot("refused"),
     }) +
     (check ? resultBlock(check) : `<p class="muted">Not checked yet.</p>`) +
     `</section>`

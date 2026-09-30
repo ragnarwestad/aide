@@ -11,14 +11,13 @@
 // this page is the whole form, and it has the two actions a form on its
 // own page has to have: Create, which queues the job and returns to the
 // list where the new spec's row shows its progress, and Cancel, which
-// returns having done nothing. Both work with no script at all — a
-// link and a form POST — and there is no `#jobrows` here for the
+// returns having done nothing. There is no `#jobrows` here for the
 // five-second swap to reach for.
 //
 // Modelled on `projects-page.ts`, which is the other served page with
 // real forms on it: same shell, same guard, same top-of-page refusal.
 
-import { backLink, btn, field, messageSlot, phaseChip, phases, rowMessage, stepLabel, helpPopover} from "../ui/components";
+import { backLink, btn, field, messageSlot, phaseChip, phases, stepLabel, helpPopover} from "../ui/components";
 import { DESCRIPTION_MAX, TITLE_MAX } from "../../queue/parse-request.ts";
 import { esc } from "../ui/html.ts";
 import { t, type Language } from "../../i18n";
@@ -43,10 +42,6 @@ export interface NewSpecPageOptions {
    *  server: the inline refusal and the Depends-on scoping. Everything
    *  here works without it, one page load at a time. */
   script?: string;
-  /** Why the last attempt was refused, carried back in the query string
-   *  after a no-JS form POST. It goes at the top: the spec it named was
-   *  never made, so there is no row for it to land on. */
-  error?: string;
   /** Every model the config lists, and which CLI each starts — the
    *  same view the spec list's phase lines are given, built by the same
    *  helper in `serve.ts` so the two pages cannot come to offer
@@ -407,8 +402,6 @@ export function renderNewSpecPage(
   const projects = opts.createProjects ?? [];
   const body =
     backLink(opts.backHref ?? "/", "New spec") +
-    // A refusal first, or it is read after the thing it refused.
-    (opts.error ? rowMessage("failed", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
     (projects.length
       ? newSpecForm(opts, projects)
       : // The link on `/` is simply not offered when there is nothing to
@@ -421,9 +414,9 @@ export function renderNewSpecPage(
   // two AREAS of the site, and making a spec is part of the spec list's
   // — the same answer `job-page.ts` gives for a job's detail page.
   //
-  // No meta refresh, for the reason `/projects` has none: this page is
+  // No reload of its own, for the reason `/projects` has none: this page is
   // a form, and a blunt refresh wipes a half-typed description.
-  return pageShell("New spec", entries, "/", body, generatedAt, undefined, {
+  return pageShell("New spec", entries, "/", body, generatedAt, {
     docTitle: "aide -board — new spec",
     script: opts.script,
     hideHeading: true,

@@ -40,8 +40,6 @@ export async function projectPages(
       timeoutSec: ctx.queue.defaults.timeoutSec,
       backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/", url.pathname),
       script: await specsClientScript(),
-      error: url.searchParams.get("error") ?? undefined,
-      notice: url.searchParams.get("notice") ?? undefined,
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
       tab: url.searchParams.get("tab") ?? undefined,
@@ -106,7 +104,6 @@ export async function projectPages(
     const langResult = languageChoice(url, req);
     const html = renderAddProjectPage(ctx.nav(), new Date().toISOString(), {
       script: await specsClientScript(),
-      error: url.searchParams.get("error") ?? undefined,
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
     });
@@ -255,10 +252,7 @@ export async function projectPages(
         scheduleModelNames: Object.keys(ctx.queue.defaults.modelChoices ?? {}),
         worktreeLinkCandidates: gitignoreCandidates(dir),
         editingGroup: groupForEditParam(url.searchParams.get("edit")),
-        error: url.searchParams.get("error") ?? undefined,
         drift,
-        deployError: url.searchParams.get("deployError") ?? undefined,
-        wikiError: url.searchParams.get("wikiError") ?? undefined,
         wikiBuild: latestWikiBuild(ctx.queue.list(), name, langResult.lang),
         wikiLog: await wikiLog(ctx, url, name),
         wiki,
@@ -337,12 +331,6 @@ export async function projectPages(
       {
         readinessByProject,
         script: await specsClientScript(),
-        error: url.searchParams.get("error") ?? undefined,
-        // What the Add that landed the reader here found out (spec
-        // 138). Straight from the query string, like the refusal
-        // beside it, and rendered as text and nothing else.
-        notice: url.searchParams.get("notice") ?? undefined,
-        noticeOk: url.searchParams.get("noticeOk") === "1",
         lang: langResult.lang,
         currentUrl: langResult.currentUrl,
       },

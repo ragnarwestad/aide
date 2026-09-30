@@ -38,7 +38,6 @@ export const en = {
   "shell.overlayResetting": "resetting…",
   "shell.overlayClosing": "closing…",
   "shell.overlayRemoving": "removing…",
-  "shell.overlaySaving": "saving…",
   "shell.overlayLoading": "loading…",
   "shell.loadingPage": "Loading …",
   "shell.pageFailed": "Something went wrong while the page was being built. Reload the page; if it keeps failing, look in the dashboard's log on the serving host.",

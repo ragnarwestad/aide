@@ -211,13 +211,12 @@ describe("a swap older than the press is discarded, not applied (spec 129)", () 
       spec: "aide/129-the-merge-button-answers-the-press",
       error: "cannot fast-forward main in /repos/aide — resolve it first",
     };
+    // The tick asks for the rows first and is held; the refusal's own
+    // redraw asks after it, and its answer is the one that must survive.
+    let asked = 0;
     const h = harness((url) => {
       if (url.includes("/cancel")) return { ok: true, body: REFUSED };
-      // The refusal's OWN swap asks with the reason in the query
-      // string (`showRefusal` put it there): that answer is the current
-      // one, and it is the one that must survive.
-      if (url.includes("errorSpec")) return { ok: true, text: FRESH };
-      return { ok: true, text: STALE, hold: tickHeld };
+      return asked++ === 0 ? { ok: true, text: STALE, hold: tickHeld } : { ok: true, text: FRESH };
     });
     h.document.visibilityState = "visible";
     h.tick();

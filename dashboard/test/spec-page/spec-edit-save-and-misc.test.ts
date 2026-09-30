@@ -5,7 +5,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { FILE_SHA, DESCRIPTION, NEW_TEXT, createSpecSaveHarness, descriptionPath, post, savable } from "./spec-save-fixtures.ts";
+import { FILE_SHA, DESCRIPTION, NEW_TEXT, createSpecSaveHarness, descriptionPath, post, answer, savable } from "./spec-save-fixtures.ts";
 import { statusSaying } from "../helpers/queue-server.ts";
 
 const { harness, start } = createSpecSaveHarness();
@@ -42,10 +42,9 @@ describe("AC-1 (spec 471): a held-back spec's description stays editable", () =>
       status: heldBackStatus,
       extra: { gitRun: savable("/host") },
     });
-    const res = await post(base, { text: NEW_TEXT, baseSha: FILE_SHA });
-    expect(res.status).toBe(303);
-    const location = decodeURIComponent(res.headers.get("location")!);
-    expect(location).not.toContain("error=");
+    const { status, body } = await answer(await post(base, { text: NEW_TEXT, baseSha: FILE_SHA }));
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(NEW_TEXT);
   });
 });

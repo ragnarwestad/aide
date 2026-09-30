@@ -66,12 +66,12 @@ describe("specNotice's held-back branch tells self-resolving reasons from ones a
 // last, so every existing producer here still outranks it.
 describe("specNotice's readyToArchive case (spec 467)", () => {
   test("readyToArchive alone renders the ready-to-archive sentence", () => {
-    const notice = specNotice(undefined, undefined, undefined, undefined, [], "en", true);
+    const notice = specNotice(undefined, undefined, undefined, [], "en", true);
     expect(notice).toEqual({ variant: "waiting", text: "All checks ticked — press Archive to merge it" });
   });
 
   test("a held-back reason still wins over readyToArchive", () => {
-    const notice = specNotice(undefined, "the Slack webhook", undefined, undefined, [], "en", true);
+    const notice = specNotice(undefined, "the Slack webhook", undefined, [], "en", true);
     expect(notice?.text).toContain("held back");
     expect(notice?.text).not.toContain("All checks ticked");
   });

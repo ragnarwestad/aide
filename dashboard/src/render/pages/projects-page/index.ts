@@ -68,21 +68,9 @@ export interface ProjectsPageOptions {
    *  before anything is picked, so scoping the list to one of them
    *  would mean knowing which, and that is what script would be for. */
   worktreeLinkCandidates?: string[];
-  /** Why the last attempt was refused, carried back in the query string
-   *  after a no-JS form POST. Nothing on this page has a row for it to
-   *  land on — an Add names a project that was never added — so it goes
-   *  at the top, the way `/`'s spec-less refusals do. */
+  /** Why the list has nothing to show: a board started with no projects
+   *  root. Drawn at the top of the list. */
   error?: string;
-  /** What an Add that SUCCEEDED had to say: whether a run can start in
-   *  the project just added, and every reason it cannot (spec 138).
-   *  Carried in the query string the same way a refusal is, because a
-   *  browser with no script gets this answer by redirect and it would
-   *  otherwise die in a response body nobody sees. */
-  notice?: string;
-  /** And whether that answer was a yes. It decides the look and nothing
-   *  else: a project that CAN run must not be reported in the same
-   *  colour as one that cannot. */
-  noticeOk?: boolean;
   /** Whether a run could start in each project, recomputed per request
    *  (spec 184). The Add flow used to say this exactly once, in the
    *  query string of the redirect it landed on, and never again — so an
@@ -132,14 +120,7 @@ export function renderProjectsPage(
 ): string {
   const lang = opts.lang ?? "en";
   const body =
-    // A refusal first, or it is read after the thing it refused.
     (opts.error ? rowMessage("failed", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
-    // And what a successful Add had to say. Never `failed`: the project IS
-    // added either way, and the colour says only whether a run can
-    // start — `waiting` where something still has to be done about it.
-    (opts.notice
-      ? rowMessage(opts.noticeOk ? "info" : "waiting", opts.notice, { hook: "notice", tag: "p" }) + "\n"
-      : "") +
     // One line above the list: the counts on the left, Add on the right
     // — the same shape the spec list's filter row has, where its own
     // count sits beside New spec. Add used to stand alone here, between
@@ -159,7 +140,7 @@ export function renderProjectsPage(
       warnHref: (name) =>
         opts.readinessByProject?.[name] === false ? `${projectPagePath(name)}?tab=config` : undefined,
     });
-  // No meta refresh: a served page a reader may leave mid-thought needs
+  // No reload of its own: a served page a reader may leave mid-thought needs
   // no blunt reload. The tagline rides on the tab here, the way it did
   // on the generated overview — this is still the page that is about
   // aide itself.
@@ -167,7 +148,7 @@ export function renderProjectsPage(
   // — an <h1> from the shell and an <h2> over the list (2026-08-21).
   // The spec list has hidden its own for the same reason since
   // 2026-08-19.
-  return pageShell("Projects", entries, "/projects", body, generatedAt, undefined, {
+  return pageShell("Projects", entries, "/projects", body, generatedAt, {
     hideHeading: true,
     docTitle: "aide -board — from spec to merge",
     script: opts.script,
@@ -177,8 +158,8 @@ export function renderProjectsPage(
 }
 
 // The Add form, on a page of its own (asked for 2026-08-19, New spec as
-// the pattern): Save queues the add and returns to the list, Cancel
-// returns having done nothing. Both work with no script at all.
+// the pattern): Save adds the project and goes to its Config tab, Cancel
+// returns having done nothing.
 export function renderAddProjectPage(
   entries: NavEntry[],
   generatedAt: string,
@@ -186,7 +167,6 @@ export function renderAddProjectPage(
 ): string {
   const body =
     backLink("/projects", "Add project") +
-    (opts.error ? rowMessage("failed", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
     // Where what this form collects is kept, before the form rather
     // than in a doc nobody has open. It says nothing about a project's
     // stack, deployment or docs: the dashboard neither asks for those
@@ -268,7 +248,7 @@ export function renderAddProjectPage(
     `</span></span>` +
     messageSlot("refused") +
     `</form>`;
-  return pageShell("Add project", entries, "/projects", body, generatedAt, undefined, {
+  return pageShell("Add project", entries, "/projects", body, generatedAt, {
     docTitle: "aide -board — add project",
     script: opts.script,
     hideHeading: true,

@@ -120,8 +120,6 @@ export interface RoutesContext {
     action: string,
     project: string,
     steps: ProjectStep[],
-    sent: unknown,
-    wantsJson: boolean,
     readiness?: ProjectReadiness,
   ) => Response;
   archivedSpecRows: (state: string | undefined) => ArchivedSpecView[];
@@ -167,23 +165,21 @@ export interface RoutesContext {
 }
 
 export async function handleRoutes(ctx: RoutesContext, req: Request, url: URL, path: string): Promise<Response> {
-  const wantsJson = (req.headers.get("accept") ?? "").includes("application/json");
-
   return (
     selfStopRoute(ctx, req, path) ??
     selfRunRoute(ctx, req, path) ??
     (await handlePageRoutes(ctx, req, url, path)) ??
     handleQueueEvents(ctx, req, path) ??
-    failedCreateRoutes(ctx, req, path, wantsJson) ??
+    failedCreateRoutes(ctx, req, path) ??
     (await handleDeploySteps(ctx, req, path)) ??
-    (await handleQueueAdminRoutes(ctx, req, path, wantsJson)) ??
-    (await handleSettingsConcurrencyRoute(ctx, req, path, wantsJson)) ??
-    (await handleWikiRoute(ctx, req, path, wantsJson)) ??
+    (await handleQueueAdminRoutes(ctx, req, path)) ??
+    (await handleSettingsConcurrencyRoute(ctx, req, path)) ??
+    (await handleWikiRoute(ctx, req, path)) ??
     (await handlePushRoutes(ctx, req, url, path)) ??
-    (await handleJobActionRoutes(ctx, req, path, wantsJson)) ??
-    (await handleSpecEditRoutes(ctx, req, url, path, wantsJson)) ??
+    (await handleJobActionRoutes(ctx, req, path)) ??
+    (await handleSpecEditRoutes(ctx, req, url, path)) ??
     (await handleSpecPdfRoute(ctx, req, path)) ??
-    (await handleScheduleAdminRoutes(ctx, req, url, path, wantsJson)) ??
+    (await handleScheduleAdminRoutes(ctx, req, url, path)) ??
     (await handleJobDetailRoute(ctx, req, url, path)) ??
     new Response("not found", { status: 404 })
   );

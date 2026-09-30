@@ -28,7 +28,7 @@ import { readFileSync } from "node:fs";
 import { specWriteInFlight } from "../../src/serve/routes/spec-edit";
 import type { GitRunner } from "../../src/git/branch-status.ts";
 import { PAGE, TICK, SAVE, FILE_SHA, DESCRIPTION, NEW_TEXT, createSpecSaveHarness, descriptionPath, savable } from "./spec-save-fixtures.ts";
-import { PHASE, OPEN_ROW, SECOND_OPEN_ROW, DONE_ROW, EARLIER_DONE_ROW, WORDED, CHECKLIST_PHASE, CHECKLIST_OPEN_ROW, CHECKLIST_STATUS, STATUS, HELD_BACK_REASON, ticked, heldBack, statusPath, startWithChecks as start, tick, save, recording, NV_ROW, NV_STATUS, ACCEPTANCE_PHASE, ACCEPTANCE_OPEN_ROW, STATUS_WITH_OPEN_ACCEPTANCE, TDD_OPEN_ROW } from "./spec-checks-fixtures.ts";
+import { PHASE, OPEN_ROW, SECOND_OPEN_ROW, DONE_ROW, EARLIER_DONE_ROW, WORDED, CHECKLIST_PHASE, CHECKLIST_OPEN_ROW, CHECKLIST_STATUS, STATUS, HELD_BACK_REASON, ticked, heldBack, statusPath, startWithChecks as start, tick, save, answer, recording, NV_ROW, NV_STATUS, ACCEPTANCE_PHASE, ACCEPTANCE_OPEN_ROW, STATUS_WITH_OPEN_ACCEPTANCE, TDD_OPEN_ROW } from "./spec-checks-fixtures.ts";
 
 /** The page's markup, without its inline scripts: the client bundle the spec
  *  page carries holds strings that look like the markup these tests count. */
@@ -102,9 +102,9 @@ describe("the checks on the Overview tab", () => {
   test("a tick commits 4-status.md alone, and never the description", async () => {
     const git = recording();
     const { base, dir } = startWithChecks(git.run);
-    const res = await tick(base, { ticks: [OPEN_ROW] });
-    expect(res.status).toBe(303);
-    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    const { status, body } = await answer(await tick(base, { ticks: [OPEN_ROW] }));
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS.replace(OPEN_ROW, ticked(OPEN_ROW)));
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
     expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(1);
@@ -118,9 +118,9 @@ describe("the checks on the Overview tab", () => {
   test("a ## Checklist row's tick flips it to done on disk through the real /tick route", async () => {
     const git = recording();
     const { base, dir } = startWithChecks(git.run, CHECKLIST_STATUS);
-    const res = await tick(base, { ticks: [CHECKLIST_OPEN_ROW], phase: CHECKLIST_PHASE });
-    expect(res.status).toBe(303);
-    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    const { status, body } = await answer(await tick(base, { ticks: [CHECKLIST_OPEN_ROW], phase: CHECKLIST_PHASE }));
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(
       CHECKLIST_STATUS.replace(CHECKLIST_OPEN_ROW, ticked(CHECKLIST_OPEN_ROW)),
     );
@@ -133,9 +133,9 @@ describe("the checks on the Overview tab", () => {
   test("an Acceptance criteria row ticks through the real /tick route while its TDD phase is still open", async () => {
     const git = recording();
     const { base, dir } = startWithChecks(git.run, STATUS_WITH_OPEN_ACCEPTANCE);
-    const res = await tick(base, { ticks: [ACCEPTANCE_OPEN_ROW], phase: ACCEPTANCE_PHASE });
-    expect(res.status).toBe(303);
-    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    const { status, body } = await answer(await tick(base, { ticks: [ACCEPTANCE_OPEN_ROW], phase: ACCEPTANCE_PHASE }));
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(
       STATUS_WITH_OPEN_ACCEPTANCE.replace(ACCEPTANCE_OPEN_ROW, ticked(ACCEPTANCE_OPEN_ROW)),
     );
@@ -156,9 +156,9 @@ describe("the checks on the Overview tab", () => {
       body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
     });
     expect(queued.status).toBe(200);
-    const res = await tick(base, { ticks: [OPEN_ROW] });
-    expect(res.status).toBe(303);
-    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("still running");
+    const { status, body } = await answer(await tick(base, { ticks: [OPEN_ROW] }));
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS.replace(OPEN_ROW, ticked(OPEN_ROW)));
   });
 
@@ -172,9 +172,9 @@ describe("the checks on the Overview tab", () => {
   test("a description save commits 1-description.md alone, and never the status", async () => {
     const git = recording();
     const { base, dir } = startWithChecks(git.run);
-    const res = await save(base, { text: NEW_TEXT });
-    expect(res.status).toBe(303);
-    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    const { status, body } = await answer(await save(base, { text: NEW_TEXT }));
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
     expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(1);
     expect(git.calls.find((c) => c[0] === "add")!.join(" ")).not.toContain("4-status.md");
@@ -186,8 +186,8 @@ describe("the checks on the Overview tab", () => {
   test("a tick and a description edit are two commits, each of one file", async () => {
     const git = recording();
     const { base, dir } = startWithChecks(git.run);
-    expect((await save(base, { text: NEW_TEXT })).status).toBe(303);
-    expect((await tick(base, { ticks: [OPEN_ROW] })).status).toBe(303);
+    expect((await answer(await save(base, { text: NEW_TEXT }))).status).toBe(200);
+    expect((await answer(await tick(base, { ticks: [OPEN_ROW] }))).status).toBe(200);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(NEW_TEXT);
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS.replace(OPEN_ROW, ticked(OPEN_ROW)));
     expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(2);
@@ -210,7 +210,7 @@ describe("the checks on the Overview tab", () => {
         ["tick", OPEN_ROW],
       ]).toString(),
     });
-    expect(res.status).toBe(303);
+    expect((await answer(res)).status).toBe(200);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
   });
 
@@ -230,18 +230,8 @@ describe("the checks on the Overview tab", () => {
         ["tick", OPEN_ROW],
       ]).toString(),
     });
-    expect(res.status).toBe(303);
+    expect((await answer(res)).status).toBe(200);
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
-  });
-
-  // Spec 294 renamed Overview to Checks and made Description the
-  // page's default tab — a redirect to the bare page path (with no
-  // `?tab=` at all) now lands on Description instead, not "the same
-  // page" as it used to before that default existed.
-  test("the tick route lands the reader back on Checks, not the default Description tab", async () => {
-    const { base } = startWithChecks(savable("/host"));
-    const res = await tick(base, { ticks: [OPEN_ROW] });
-    expect(decodeURIComponent(res.headers.get("location")!)).toContain(`${PAGE}?tab=status`);
   });
 
   test("it is a POST like every other writing route here", async () => {
@@ -261,9 +251,9 @@ describe("the checks on the Overview tab", () => {
 
   test("two boxes ticked in one press both flip", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const res = await tick(base, { ticks: [OPEN_ROW, SECOND_OPEN_ROW] });
-    expect(res.status).toBe(303);
-    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    const { status, body } = await answer(await tick(base, { ticks: [OPEN_ROW, SECOND_OPEN_ROW] }));
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(
       STATUS.replace(OPEN_ROW, ticked(OPEN_ROW)).replace(SECOND_OPEN_ROW, ticked(SECOND_OPEN_ROW)),
     );
@@ -274,8 +264,9 @@ describe("the checks on the Overview tab", () => {
   test("Save pressed with no box ticked writes nothing", async () => {
     const git = recording();
     const { base, dir } = startWithChecks(git.run);
-    const res = await tick(base);
-    expect(res.status).toBe(303);
+    const { status, body } = await answer(await tick(base));
+    expect(status).toBe(200);
+    expect(body.changed).toBe(false);
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
     expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(0);
   });
@@ -285,18 +276,18 @@ describe("the checks on the Overview tab", () => {
   test("ticking a word-written row flips it to ✅ and commits like any other", async () => {
     const { base, dir } = startWithChecks(savable("/host"), WORDED);
     const row = "| Manual check at 375px in a real browser | Waiting | still outstanding |";
-    const res = await tick(base, { ticks: [row] });
-    expect(res.status).toBe(303);
-    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    const { status, body } = await answer(await tick(base, { ticks: [row] }));
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(WORDED.replace(row, ticked(OPEN_ROW)));
   });
 
   test("ticking the last open check anywhere in the file clears the hold-back section", async () => {
     const status = heldBack([DONE_ROW, OPEN_ROW]);
     const { base, dir } = startWithChecks(savable("/host"), status);
-    const res = await tick(base, { ticks: [OPEN_ROW] });
-    expect(res.status).toBe(303);
-    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    const { status: code, body } = await answer(await tick(base, { ticks: [OPEN_ROW] }));
+    expect(code).toBe(200);
+    expect(body.ok).toBe(true);
     const written = readFileSync(statusPath(dir), "utf-8");
     expect(written).toContain(ticked(OPEN_ROW));
     expect(written).not.toContain("## Archive held back");
@@ -309,9 +300,9 @@ describe("the checks on the Overview tab", () => {
   test("a spec still carrying open work keeps its hold-back section", async () => {
     const status = heldBack([DONE_ROW, OPEN_ROW, SECOND_OPEN_ROW]);
     const { base, dir } = startWithChecks(savable("/host"), status);
-    const res = await tick(base, { ticks: [OPEN_ROW] });
-    expect(res.status).toBe(303);
-    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    const { status: code, body } = await answer(await tick(base, { ticks: [OPEN_ROW] }));
+    expect(code).toBe(200);
+    expect(body.ok).toBe(true);
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(status.replace(OPEN_ROW, ticked(OPEN_ROW)));
   });
 
@@ -321,8 +312,7 @@ describe("the checks on the Overview tab", () => {
   test("a description edit alone leaves the hold-back section where it is", async () => {
     const status = heldBack([DONE_ROW, OPEN_ROW]);
     const { base, dir } = startWithChecks(savable("/host"), status);
-    const res = await save(base, { text: NEW_TEXT });
-    expect(res.status).toBe(303);
+    expect((await answer(await save(base, { text: NEW_TEXT }))).status).toBe(200);
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(status);
   });
 });
@@ -340,8 +330,9 @@ describe("the Not verified box on the Status tab (spec 509)", () => {
     expect(block(html)).toContain("1 not verified");
     expect(block(html)).not.toContain("all done");
     const sha = html.match(/name="statusBaseSha" value="([^"]*)"/)![1]!;
-    const res = await tick(base, { ticks: [DONE_ROW, NV_ROW], statusBaseSha: sha });
-    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    const { status, body } = await answer(await tick(base, { ticks: [DONE_ROW, NV_ROW], statusBaseSha: sha }));
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(NV_STATUS.replace(NV_ROW, NV_ROW.replace("Not verified", "✅")));
   });
 });

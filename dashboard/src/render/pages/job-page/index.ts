@@ -21,6 +21,7 @@ import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { completedThirds, stateChip } from "../../ui/job-state";
 import { CHECKING, facts, pips, stepLabel, type PipKind } from "../../ui/components";
 import { pickTab, tabBar, tabbedBody } from "../../ui/tabs.ts";
+import { reloadMarker } from "../spec-page/tabs.ts";
 import { landingRefusal, stepResults, unitLabel } from "./steps-table.ts";
 import type { JobDetailView, SpecFileView } from "./types.ts";
 
@@ -68,7 +69,16 @@ export function renderJobDetailPage(
   job: JobDetailView,
   generatedAt: string,
   entries: NavEntry[],
-  opts: { tab?: string; step?: string; steptab?: string; now?: number; lang?: Language; currentUrl?: string } = {},
+  opts: {
+    tab?: string;
+    step?: string;
+    steptab?: string;
+    now?: number;
+    lang?: Language;
+    currentUrl?: string;
+    /** The page script, which reloads the page every ten seconds. */
+    script?: string;
+  } = {},
 ): string {
   const now = opts.now ?? Date.now();
   const lang: Language = opts.lang ?? "en";
@@ -163,11 +173,13 @@ export function renderJobDetailPage(
   );
 
   // `/`, not this page's own address: the nav entry it belongs under is
-  // the spec list, and that is where the list lives now.
-  return pageShell(job.specFolder, entries, "/", body, generatedAt, 10, {
+  // the spec list, and that is where the list lives now. The page follows
+  // a job, so it reloads itself from the page script's timer.
+  return pageShell(job.specFolder, entries, "/", reloadMarker() + body, generatedAt, {
     hideHeading: true,
     hideTabBar: true,
     lang,
     currentUrl: opts.currentUrl,
+    script: opts.script,
   });
 }

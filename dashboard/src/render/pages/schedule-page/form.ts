@@ -18,7 +18,6 @@ export interface ScheduleFormOptions {
   entryName?: string;
   entry?: { name: string; cron: string; prompt: string; model?: string; notify?: ScheduleNotify };
   action: string;
-  error?: string;
   /** Every allowed project (spec 278): draws a `<select name="project">`
    *  the same way the New-spec form's own Project field is
    *  (`new-spec-page.ts`). Mutually exclusive with `fixedProject`
@@ -130,7 +129,7 @@ export function renderScheduleForm(opts: ScheduleFormOptions, lang: Language = "
     `data-cron-preview-url="/api/queue/schedule/cron-next">` +
     (opts.fixedProject ? `<input type="hidden" name="project" value="${esc(opts.fixedProject)}">` : "") +
     (opts.back ? `<input type="hidden" name="back" value="${esc(opts.back)}">` : "") +
-    messageSlot("refused", "failed", { text: opts.error }) +
+    messageSlot("refused", "failed") +
     rowMessage("info", t(lang, "schedule.reportOnly"), { tag: "p" }) +
     `<div class="frow">` +
     (opts.projects

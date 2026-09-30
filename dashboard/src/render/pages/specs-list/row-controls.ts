@@ -9,7 +9,6 @@ import { currentStep, type QueueRowView } from "../../ui/job-state";
 import { landingStep } from "../../ui/job-state/resting.ts";
 import type { SpecsPageOptions } from "./";
 import {
-  FROM_LIST_FIELD,
   groupKey,
   isArchivedRow,
   type SpecsFilter,
@@ -17,7 +16,6 @@ import {
 } from "./data-model";
 import { reopenAskDialog } from "../spec-page/ask-dialog.ts";
 import { queuePath } from "./filter-bar.ts";
-import { filterFields, filterValues } from "./row-shared.ts";
 import { actionState, runFormId, specBusy } from "./row-state.ts";
 
 // The fold is a LINK, not a button, and the state is in the URL. That
@@ -62,11 +60,7 @@ export function foldControl(g: SpecGroup, f: SpecsFilter, opened: Set<string>, l
 // row's `actionform`, which the page's own code posts; it does not stand
 // while the job stops — the row's redraw after the post replaces it,
 // dialog and all. It needs script, as Close and Reopen do.
-function actionForm(
-  r: QueueRowView,
-  filter: SpecsFilter | undefined,
-  lang: Language,
-): string {
+function actionForm(r: QueueRowView, lang: Language): string {
   // Gated on `r.landing`, exactly like `specStateChip`/`busyReason`
   // already do (spec 423, REQ-3): `landingStep(r)` alone answers the
   // wrong question on an ordinary row queued for its NEXT step with no
@@ -86,7 +80,7 @@ function actionForm(
       title: t(lang, "list.cancelConfirmTitle", { step }),
       sentence: t(lang, "list.cancelConfirmBody", { step }),
       ok: { variant: "primary", pending: t(lang, "list.cancelling") },
-      post: { action: `/api/queue/${r.id}/cancel`, hook: "actionform", hidden: filterValues(filter) },
+      post: { action: `/api/queue/${r.id}/cancel`, hook: "actionform" },
     })
   );
 }
@@ -101,17 +95,13 @@ function actionForm(
 
 /** Reopen's dialog over the list, `id` being the one its button names.
  *  Whether the job ends done or not, the reader comes back to the list as
- *  it was: the list's own address is where the script goes either way.
- *  `FROM_LIST_FIELD` and the filter ride along as on every form here, and
- *  tell the handler the press came from a row rather than from the spec's
- *  page. */
+ *  it was: the list's own address is where the script goes either way. */
 export function listReopenDialog(g: SpecGroup, filter: SpecsFilter | undefined, lang: Language, id: string): string {
   const list = queuePath(filter ?? {});
   return reopenAskDialog(g.project, g.specFolder, lang, {
     id,
     back: list,
     done: list,
-    hidden: { ...filterValues(filter), [FROM_LIST_FIELD]: "1" },
   });
 }
 
@@ -123,13 +113,11 @@ function reopenAsk(g: SpecGroup, opts: SpecsPageOptions, lang: Language): string
 }
 
 /** The press an archived row's "still on origin" note carries: a POST
- *  that deletes the merged branch on origin. The filter rides along so a
- *  no-script press comes back to the same view. */
-export function deleteBranchForm(g: SpecGroup, filter: SpecsFilter, lang: Language): string {
+ *  that deletes the merged branch on origin. */
+export function deleteBranchForm(g: SpecGroup, lang: Language): string {
   return buttonForm({
     action: `/api/queue/specs/${g.project}/${g.specFolder}/delete-branch`,
     hook: "actionform",
-    hidden: filterValues(filter),
     button: { label: t(lang, "list.deleteBranch"), pending: t(lang, "list.deletingBranch"), small: true },
   });
 }
@@ -193,7 +181,6 @@ export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
   // has to lock with it (`rowControls`, spec 151).
   const runForm =
     `<form id="${esc(runFormId(g))}" method="post" action="/api/queue" class="rowrun">` +
-    filterFields(opts.filter) +
     `<input type="hidden" name="project" value="${esc(g.project)}">` +
     `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +
     `</form>`;
@@ -204,7 +191,7 @@ export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
     // and the description with nothing left on the board to run again
     // from. The step's own timeout is what ends a create that hangs.
     if (busy && currentStep(g.lead!) === "create") return "";
-    if (busy) return actionForm(g.lead!, opts.filter, lang);
+    if (busy) return actionForm(g.lead!, lang);
     if (!action) return "";
     // Primary, like every row's one action (spec 161). It was
     // secondary until then, on the argument that a column of primary

@@ -46,12 +46,12 @@
 // dialog Close and Reopen ask in). `renderSpecPage` itself — the one
 // function that assembles all of them — stays here.
 
-import { badge, buttonForm, helpPopover, rowMessage } from "../../ui/components";
+import { badge, buttonForm, helpPopover, messageSlot, rowMessage } from "../../ui/components";
 import { projectLink } from "../../ui/components/spec-name.ts";
 import { gerund } from "../../../format/gerund.ts";
 import { esc } from "../../ui/html.ts";
 import type { Language } from "../../../i18n";
-import { pageShell, refreshMeta, shellHead, shellRest, type NavEntry } from "../../ui/shell.ts";
+import { pageShell, shellHead, shellRest, type NavEntry } from "../../ui/shell.ts";
 import { LOADING_HIDE_RULE, loadingBlock } from "../../ui/loading.ts";
 import { t } from "../../../i18n";
 import { landingRefusal, stepResults, tabBar, tabbedBody } from "../job-page";
@@ -61,7 +61,7 @@ import {
 } from "./overview.ts";
 import { descriptionPanel, documentPanel } from "./panels.ts";
 import {
-  RELOAD_SECONDS, RELOADING_TABS, resolveSpecTab, SPEC_TABS, specPagePath, specTabPath, TAB_FILES, TAB_HELP, type SpecTab,
+  RELOADING_TABS, reloadMarker, resolveSpecTab, SPEC_LINES, SPEC_NOTICE_LINE, SPEC_REFUSED_LINE, SPEC_TABS, specPagePath, specTabPath, TAB_FILES, TAB_HELP, type SpecTab,
 } from "./tabs.ts";
 import type { SpecPageView } from "./types.ts";
 
@@ -110,12 +110,14 @@ function specPageBody(view: SpecPageView, opts: SpecPageOpts): { body: string; t
     // What a board asked for is doing, in words. Its button lives in
     // the tab row below, which holds buttons only.
     testServerStatus(view) +
-    // With script the Steps tab reloads from a timer that waits while a
-    // dialog is open; the marker tells it how often, and the page asks for
-    // no meta refresh of its own.
-    (opts.script && RELOADING_TABS.includes(tab) ? `<span hidden data-reload-every="${RELOAD_SECONDS}"></span>` : "") +
+    // The Steps tab reloads from the page script's timer, which waits
+    // while a dialog is open; the marker tells it how often.
+    (RELOADING_TABS.includes(tab) ? reloadMarker() : "") +
     (view.error ? rowMessage("failed", view.error, { tag: "p" }) : "") +
-    (view.notice ? rowMessage(view.notice.ok ? "info" : "waiting", view.notice.note, { tag: "p" }) : "");
+    // Where the page script writes what a press on this page answered:
+    // Update, Save, the banner, the Status tab's tick, Stop test server.
+    messageSlot("refused", "failed", { id: SPEC_REFUSED_LINE }) +
+    messageSlot("notice", "info", { id: SPEC_NOTICE_LINE });
 
   // The spec's own actions, at the end of the tab row (spec 300; sat on
   // a line of its own above the tabs until then). Reopen goes BEFORE
@@ -130,7 +132,7 @@ function specPageBody(view: SpecPageView, opts: SpecPageOpts): { body: string; t
     closeControl(view, opts.lang ?? "en") +
     // A GET would let a reload re-run the pull, so this is a form and
     // not a link, exactly as every other action on this dashboard is.
-    buttonForm({ action: view.updateAction, hook: "actionform", button: { label: "Update" } });
+    buttonForm({ action: view.updateAction, hook: "reloadform", data: SPEC_LINES, button: { label: "Update", pending: "updating…" } });
 
   const tabHref = specTabPath(view.project, view.specFolder, "steps");
   // Every tab says what it is for (spec 311): a "(?)" at the right end of
@@ -199,23 +201,15 @@ export function renderSpecPage(
   entries: NavEntry[],
   opts: SpecPageOpts = {},
 ): string {
-  const { body, tab } = specPageBody(view, opts);
-  return pageShell(
-    view.specFolder,
-    entries,
-    "/",
-    body,
-    generatedAt,
-    !opts.script && RELOADING_TABS.includes(tab) ? RELOAD_SECONDS : undefined,
-    {
-      script: opts.script,
-      scriptSrc: opts.scriptSrc,
-      hideHeading: true,
-      hideTabBar: true,
-      lang: opts.lang,
-      currentUrl: opts.currentUrl,
-    },
-  );
+  const { body } = specPageBody(view, opts);
+  return pageShell(view.specFolder, entries, "/", body, generatedAt, {
+    script: opts.script,
+    scriptSrc: opts.scriptSrc,
+    hideHeading: true,
+    hideTabBar: true,
+    lang: opts.lang,
+    currentUrl: opts.currentUrl,
+  });
 }
 
 /** The spec page's first chunk (spec 515): the document up to `<body>`, the
@@ -227,15 +221,14 @@ export function renderSpecPageHead(specFolder: string, lang: Language): string {
 
 /** The second chunk: the same document `renderSpecPage` draws, from the
  *  header on, with the rule that hides the loading element right after
- *  `</main>`. The Steps tab's meta refresh starts it, since the 10 seconds
- *  count from when the page is complete. */
+ *  `</main>`. */
 export function renderSpecPageRest(
   view: SpecPageView,
   _generatedAt: string,
   entries: NavEntry[],
   opts: SpecPageOpts = {},
 ): string {
-  const { body, tab } = specPageBody(view, opts);
+  const { body } = specPageBody(view, opts);
   return shellRest(entries, "/", view.specFolder, body, {
     script: opts.script,
     scriptSrc: opts.scriptSrc,
@@ -243,7 +236,6 @@ export function renderSpecPageRest(
     hideTabBar: true,
     lang: opts.lang,
     currentUrl: opts.currentUrl,
-    refresh: refreshMeta(!opts.script && RELOADING_TABS.includes(tab) ? RELOAD_SECONDS : undefined),
     afterMain: LOADING_HIDE_RULE,
   });
 }

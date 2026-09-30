@@ -301,7 +301,7 @@ describe("POST /api/queue/create (spec 93)", () => {
     expect(queued(dir)).toEqual([]);
   });
 
-  test("the form posted with the placeholder chosen goes back to /new and says a project is required (AC-2)", async () => {
+  test("the form posted with the placeholder chosen is refused, saying a project is required (AC-2)", async () => {
     const { base, dir } = start();
     const res = await fetch(`${base}/api/queue/create`, {
       method: "POST",
@@ -309,12 +309,8 @@ describe("POST /api/queue/create (spec 93)", () => {
       headers: { "content-type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ project: "", title: "A new spec", description: "Do the thing" }),
     });
-    expect(res.status).toBe(303);
-    const location = res.headers.get("location")!;
-    expect(location.startsWith("/new?error=")).toBe(true);
-    expect(new URL(location, base).searchParams.get("error")).toContain("project is required");
-    const page = await (await fetch(`${base}${location}`)).text();
-    expect(page.toLowerCase()).toContain("project is required");
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toContain("project is required");
     expect(queued(dir)).toEqual([]);
   });
 
@@ -323,36 +319,8 @@ describe("POST /api/queue/create (spec 93)", () => {
     expect((await fetch(`${base}/api/queue/create`, { headers: AUTH })).status).toBe(405);
   });
 
-  // Spec 100 criterion 7: the form posts here without an `accept:
-  // application/json`, so the answer is a redirect rather than JSON.
-  // Spec 121 split the two destinations: a success goes to the list,
-  // where the new spec's row is; a refusal goes back to the page the
-  // form is ON (`/new`), where the reader can read the reason and try
-  // again — the same rule `/projects`' own forms follow.
-  test("a form submit lands on /new when refused and / when accepted", async () => {
-    const { base } = start();
-    const FORM = { "content-type": "application/x-www-form-urlencoded" };
-    const refused = await fetch(`${base}/api/queue/create`, {
-      method: "POST",
-      redirect: "manual",
-      headers: FORM,
-      body: new URLSearchParams({ project: "someone-elses", title: "t", description: "d" }),
-    });
-    expect(refused.status).toBe(303);
-    expect(refused.headers.get("location")!.startsWith("/new?error=")).toBe(true);
-
-    const ok = await fetch(`${base}/api/queue/create`, {
-      method: "POST",
-      redirect: "manual",
-      headers: FORM,
-      body: new URLSearchParams(CREATE),
-    });
-    expect(ok.status).toBe(303);
-    expect(ok.headers.get("location")).toBe("/");
-  });
-
   // Spec 228: the model the create step runs on, chosen on the form
-  // itself. Posted form-encoded, which is the no-JS path and the one
+  // itself. Posted form-encoded, as the form posts it, which is the body
   // `bodyToObject` folds `model.create` into the per-step shape on.
   test("a model picked on the form reaches the stored job (spec 228)", async () => {
     const { base } = start({
@@ -419,14 +387,6 @@ describe("GET /new (spec 121)", () => {
     const html = await (await fetch(`${base}/new`)).text();
     expect(html).not.toContain('action="/api/queue/create"');
     expect(html).toContain("No project on this machine");
-  });
-
-  test("a refusal carried back in the query string is shown on the page", async () => {
-    const { base } = start();
-    const html = await (
-      await fetch(`${base}/new?error=${encodeURIComponent("no such project: nope")}`)
-    ).text();
-    expect(html).toContain("No such project: nope");
   });
 
 });

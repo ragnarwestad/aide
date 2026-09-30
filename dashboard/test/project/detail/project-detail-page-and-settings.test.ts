@@ -114,9 +114,8 @@ describe("what the page says about its schedule (spec 259, acceptance criteria 6
 
   // Spec 468, Risk 2: a project outside the queue's own allowlist is
   // still reachable from /projects and still gets the New page — its
-  // submission is refused by the create route, and the refusal shows on
-  // the project's Schedule tab.
-  test("a project outside the queue's allowlist still gets the New page, and a submission is refused on its tab (Risk 2)", async () => {
+  // submission is refused by the create route.
+  test("a project outside the queue's allowlist still gets the New page, and a submission is refused (Risk 2)", async () => {
     const root = projectsRoot({ aide: null, other: null });
     const base = serve(root, settled(root, "aide"));
     const html = await (await fetch(`${base}/schedule/new?project=other`)).text();
@@ -129,11 +128,8 @@ describe("what the page says about its schedule (spec 259, acceptance criteria 6
         project: "other", name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md",
       }).toString(),
     });
-    expect(res.status).toBe(303);
-    const location = res.headers.get("location")!;
-    expect(location.startsWith("/projects/other?tab=schedule&error=")).toBe(true);
-    const refusalHtml = await (await fetch(`${base}${location}`)).text();
-    expect(refusalHtml).toContain("is not a project this dashboard knows");
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toContain("is not a project this dashboard knows");
   });
 });
 
@@ -175,25 +171,6 @@ describe("editing the unified settings table (spec 255)", () => {
     const body = (await res.json()) as { results: { step: string }[] };
     expect(body.results.map((r) => r.step)).not.toContain("installCmd");
     expect(readFileSync(join(project, ".aide", "config"), "utf-8")).toBe(before);
-  });
-
-  test("a no-script save that is refused reopens the edit state, not the read-only view", async () => {
-    const root = projectsRoot({ aide: null });
-    const base = serve(root, settled(root, "aide"));
-    const FORM = { "content-type": "application/x-www-form-urlencoded" };
-    const res = await fetch(`${base}/api/queue/projects/aide/settings`, {
-      method: "POST",
-      redirect: "manual",
-      headers: FORM,
-      body: new URLSearchParams({ worktreeLinks: "/etc" }),
-    });
-    expect(res.status).toBe(303);
-    const location = res.headers.get("location")!;
-    // worktreeLinks belongs to the manifest table (spec 552).
-    expect(location.startsWith("/projects/aide?edit=manifest")).toBe(true);
-    const refusalHtml = await (await fetch(`${base}${location}`)).text();
-    expect(refusalHtml).toContain("/etc");
-    expect(refusalHtml).toContain(">Save<");
   });
 
 });

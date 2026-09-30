@@ -1,82 +1,10 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { JOB, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
 afterEach(() => {
   harness.cleanup();
-});
-
-// "All" + "Spec, descending" survived the five-second refresh but not an
-// action: every POST answered 303 to the bare list address, so pressing any
-// button dropped the reader back into the default view.
-describe("an action keeps the page's view (criterion 7)", () => {
-  const FORM = { "content-type": "application/x-www-form-urlencoded" };
-  const VIEW = { "view.state": "active", "view.sort": "cost", "view.dir": "desc" };
-
-  const post = (base: string, path: string, fields: Record<string, string>) =>
-    fetch(`${base}${path}`, {
-      method: "POST",
-      redirect: "manual",
-      headers: FORM,
-      body: new URLSearchParams(fields),
-    });
-
-  /** One job in the mirror, in the state the test needs it. */
-  async function seededJob(state: string): Promise<{ mirror: string; id: string }> {
-    const { base, dir } = start();
-    const made = (await (
-      await fetch(`${base}/api/queue`, {
-        method: "POST",
-        headers: { "content-type": "application/json", accept: "application/json" },
-        body: JSON.stringify(JOB),
-      })
-    ).json()) as { job: { id: string } };
-    const mirror = join(dir, "queue.json");
-    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
-    jobs.find((j) => j.id === made.job.id)!.state = state;
-    writeFileSync(mirror, JSON.stringify(jobs));
-    return { mirror, id: made.job.id };
-  }
-
-  test("Run carries the view forward on success", async () => {
-    const { base } = start();
-    const res = await post(base, "/api/queue", {
-      project: "aide",
-      specFolder: "81-queue-and-runner",
-      steps: "analyze",
-      ...VIEW,
-    });
-    expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe("/?state=active&sort=cost&dir=desc");
-  });
-
-  test("Run carries the view forward on a refusal too", async () => {
-    const { base } = start();
-    const res = await post(base, "/api/queue", { project: "nope", specFolder: "x", steps: "analyze", ...VIEW });
-    expect(res.status).toBe(303);
-    const location = res.headers.get("location")!;
-    expect(location.startsWith("/?state=active&sort=cost&dir=desc&error=")).toBe(true);
-  });
-
-  test("Cancel carries the view forward", async () => {
-    const { mirror, id } = await seededJob("running");
-    const { base } = start({ queueMirrorPath: mirror });
-    const res = await post(base, `/api/queue/${id}/cancel`, VIEW);
-    expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe("/?state=active&sort=cost&dir=desc");
-  });
-
-  // The exact assertion spec 81 wrote: with nothing to carry, the
-  // redirect is `/` and not `/?`.
-  test("with no view submitted the redirect stays exactly /", async () => {
-    const { mirror, id } = await seededJob("running");
-    const { base } = start({ queueMirrorPath: mirror });
-    const res = await post(base, `/api/queue/${id}/cancel`, {});
-    expect(res.headers.get("location")).toBe("/");
-  });
 });
 
 // A refusal landed on the page that followed the redirect, at the top,
@@ -117,8 +45,8 @@ describe("a refusal names its spec and reaches the log (criteria 8, 9, 11)", () 
         body: new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner", steps: "nonsense" }),
       }),
     );
-    expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toContain(`errorSpec=${encodeURIComponent(SPEC)}`);
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ spec: SPEC });
     expect(lines.join("\n")).toContain(SPEC);
   });
 

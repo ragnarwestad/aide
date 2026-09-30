@@ -77,7 +77,7 @@ describe("pageShell language (spec 350)", () => {
   // language keeps the reader on the page, tab, sort and filter they
   // were already on — reversing spec 408's "always /?lang=..." choice.
   test("the language control's link targets currentUrl with lang swapped", () => {
-    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z", undefined, {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z", {
       lang: "nb",
       currentUrl: "/specs/aide/435-x?tab=solution",
     });
@@ -86,7 +86,7 @@ describe("pageShell language (spec 350)", () => {
   });
 
   test("no currentUrl falls back to /?lang=..., the same as every caller had before this field existed", () => {
-    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z", undefined, {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z", {
       lang: "nb",
     });
     expect(html).toContain('href="/?lang=en"');

@@ -21,7 +21,7 @@
 // un-debounced re-dispatch rather than a call to its own
 // `getMarkdown()` on every edit.
 //
-// Like `form-busy.ts`, this file can neither import nor export
+// Like `nav-busy.ts`, this file can neither import nor export
 // anything; test/render/ui/spec-form-actions.test.ts runs the
 // transpiled source against a real DOM.
 

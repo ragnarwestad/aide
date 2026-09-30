@@ -6,14 +6,11 @@
 // first (spec 96); spec 101 gave Run, Cancel and Create the same
 // treatment and took the navigation out of the REFUSAL path too.
 //
-// Same request, same route, same answer; only the waiting and the jump
-// are gone. Everything here degrades: without this file the forms still
-// submit themselves and the 303 still works, which is why the markup
-// stays a real form rather than a button this code has to give meaning
-// to.
+// Same request, same route; the answer is JSON, read here, and the
+// markup stays a real form so the fields it posts are the form's own.
 
 import { ACTIONS, postForm, writeLine } from "./press.ts";
-import { canStand, standOpen } from "./progress-dialog";
+import { standOpen } from "./progress-dialog";
 import { swapRows } from "./row-swap.ts";
 import { showRefusal } from "./tail-actions.ts";
 import { clearChosenSteps, NEW_SPEC_FORM } from "./state.ts";
@@ -36,7 +33,12 @@ export async function submitAction(event: Event): Promise<void> {
       // the reader already is.
       await swapRows();
     },
-    showRefusal,
+    (why, spec) => {
+      // A row's Cancel is posted from its confirm dialog, and the
+      // refusal is written under the row, behind it.
+      (form.closest("dialog[open]") as HTMLDialogElement | null)?.close();
+      return showRefusal(why, spec);
+    },
   );
 }
 
@@ -68,7 +70,7 @@ export async function submitTestServerStop(event: Event): Promise<void> {
 // a delegated listener to hang off.
 //
 // Its refusal has no row to land on: the spec it named was never made,
-// so the server has no `errorSpec` to give and never will. The reason
+// so the server has no spec to name and never will. The reason
 // goes beside the form that was refused instead — where the reader is
 // still looking, and not in a banner above a disclosure that may well
 // be shut.
@@ -143,40 +145,30 @@ export async function submitProjectChange(form: HTMLFormElement, event: Event): 
   if (event.defaultPrevented) return;
   event.preventDefault();
   const dialog = form.closest("dialog[data-progress-dialog]") as HTMLDialogElement | null;
-  const hold = canStand(dialog) ? standOpen(dialog) : null;
+  const hold = dialog ? standOpen(dialog) : null;
   await postForm(
     form,
     async (body) => {
       if (!hold) formNote(form, "");
-      // Both endings are the same page now (2026-09-23): the list the
-      // press changed. Staying on the Add form left Save live under a
-      // "it worked" line, offering to add the same project again.
-      //
-      // Spec 138's answer is not lost by going: an Add that succeeded
-      // has something to SAY — whether a run can start in the project
-      // just registered, and every reason it cannot — and it rides to
-      // the list in the query string, exactly as it already does for a
-      // browser with no script (`answerProjectChange`). Dropping it is
-      // what hid Skjer's missing specs root until someone pressed Run.
-      const params = new URLSearchParams(location.search);
-      params.delete("error");
-      params.delete("errorSpec");
-      params.delete("notice");
-      params.delete("noticeOk");
-      // Remove project is pressed on the project's own Config tab.
-      params.delete("tab");
-      const note = body?.readiness?.note;
-      if (note) {
-        params.set("notice", note);
-        if (body?.readiness?.canRun) params.set("noticeOk", "1");
-      }
-      const query = params.toString();
       // The press has done what it was for, and the page goes with it:
       // edits left open beside it (a settings table on the Config tab
       // Remove project sits on) are not a reason to ask before leaving.
       // The guard is a head script with nothing to import, so it hears
       // an event (`unsaved-changes.ts`).
       document.dispatchEvent(new Event("aide-changes-discarded"));
+      // An Add lands on the new project's Config tab, which says whether
+      // a run can start there and every reason it cannot (spec 138): what
+      // hid Skjer's missing specs root until someone pressed Run. A
+      // Remove — the press that asks in a dialog — lands on the list the
+      // project has left, in the reader's own view; `tab` is the Config
+      // tab Remove is pressed on.
+      if (!dialog && body?.project) {
+        location.href = `/projects/${encodeURIComponent(body.project)}?tab=config`;
+        return;
+      }
+      const params = new URLSearchParams(location.search);
+      params.delete("tab");
+      const query = params.toString();
       location.href = query ? `/projects?${query}` : "/projects";
     },
     (why) => (hold ? hold.release(why) : formNote(form, why)),

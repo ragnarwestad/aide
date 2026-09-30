@@ -11,13 +11,10 @@ import {
 // project just added, and every reason it cannot — must reach the
 // reader. It was thrown away once (Skjer, 2026-08-20: added, looked
 // added, and the reasons it could not run were in a response body
-// nobody ever saw), and the fix then was to keep the page put.
-//
-// Since 2026-09-23 the page goes to the list instead, and the answer
-// rides with it in the query string — the same way it already reached a
-// browser with no script. Staying left Save live under a line saying it
-// worked, offering to add the same project a second time.
-describe("a successful Add goes to the list, and takes its answer along", () => {
+// nobody ever saw). The page goes to the new project's Config tab, which
+// the server draws with that answer in full; staying left Save live
+// under a line saying it worked, offering to add the same project again.
+describe("a successful Add goes to the new project's Config tab", () => {
   const BLOCKED = {
     ok: true,
     project: "skjer",
@@ -31,15 +28,10 @@ describe("a successful Add goes to the list, and takes its answer along", () => 
     },
   };
 
-  test("every blocker in the answer travels to the list, uncoloured as a success", async () => {
+  test("the page goes to the project it added, on the tab that says whether it can run (AC-2)", async () => {
     const h = harness(() => ({ ok: true, body: BLOCKED }));
     await h.submitAdd();
-    const url = new URL(h.location.href, "http://dash.test");
-    expect(url.pathname).toBe("/projects");
-    expect(url.searchParams.get("notice")).toContain("cannot run yet");
-    expect(url.searchParams.get("notice")).toContain(".aide/");
-    expect(url.searchParams.get("notice")).toContain("/repos/skjer/specs");
-    expect(url.searchParams.get("noticeOk")).toBe(null);
+    expect(h.location.href).toBe("/projects/skjer?tab=config");
   });
 
   // A refusal is not a success: it stays on the form, where the fields
@@ -51,9 +43,8 @@ describe("a successful Add goes to the list, and takes its answer along", () => 
     expect(h.location.href).toBe("http://dash.test/");
   });
 
-  // A Remove carries no readiness — there is nothing to be ready — so it
-  // returns to the list with nothing to say.
-  test("a removal returns to the list with no notice on it", async () => {
+  // A Remove has no project left to go to, so it returns to the list.
+  test("a removal returns to the list", async () => {
     const h = harness(
       () => ({ ok: true, body: { ok: true, results: [{ step: "confirm", ok: true }] } }),
       "actionform",
@@ -136,7 +127,7 @@ describe("a tail box's tick posts itself (spec 160)", () => {
     // Put back BEFORE the row is re-asked for, so a redraw that never
     // comes still leaves the box telling the truth.
     expect(checkedWhenRedrawn).toBe(false);
-    expect(h.replaced.join("")).toContain(encodeURIComponent("not an editable step"));
+    expect(h.listRefused.textContent).toBe("Archive is not an editable step on this job");
     // And the row is live again.
     expect(h.tailBox.disabled).toBe(false);
     expect(h.runButton.disabled).toBe(false);

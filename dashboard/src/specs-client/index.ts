@@ -51,6 +51,7 @@ import {
   followScheduleRow, postScheduleEnabled, postScheduleRun, scheduleCronPreview, submitScheduleForm,
 } from "./schedule-actions.ts";
 import { submitProgress } from "./progress-dialog";
+import { RELOAD_FORM, submitReloadForm } from "./reload-form";
 import { NEW_SPEC_FORM } from "./state.ts";
 import { postTailModel, postTailStep } from "./tail-actions.ts";
 import { bindWikiGraphs } from "./wiki-graph";
@@ -205,16 +206,19 @@ newSpec?.addEventListener("change", ((event: Event) => {
 // Every confirmation asks in a dialog its button names: one click
 // listener opens whichever it is, Cancel on a list row, Delete on a
 // schedule entry and Remove project as well as Reopen and Close. One
-// submit listener hands Reopen's and Close's OK to the wait. Delegated,
-// so a list row drawn by a later redraw is reached too — and on `body`,
-// never `document`: the shell's form-busy listener is on `document`,
-// registered first, and marks any form not yet default-prevented as busy;
-// bubbling reaches `body` before it. `?.` since a stand-in document may
-// have no body.
+// submit listener hands Reopen's and Close's OK to the wait, and posts
+// every form the page loads again after (`reload-form/`). Delegated,
+// so a list row drawn by a later redraw is reached too; on `body`, where
+// bubbling reaches it before the spec editor's copy on `document` would —
+// which is why that copy runs in the capture phase. `?.` since a
+// stand-in document may have no body.
 document.body?.addEventListener("click", openAsk as EventListener);
 document.body?.addEventListener("submit", ((event: Event) => {
-  const form = (event.target as Element | null)?.closest?.("form[data-progress]") as HTMLFormElement | null;
-  if (form) return submitProgress(form, event);
+  const target = event.target as Element | null;
+  const progress = target?.closest?.("form[data-progress]") as HTMLFormElement | null;
+  if (progress) return submitProgress(progress, event);
+  const reload = target?.closest?.(RELOAD_FORM) as HTMLFormElement | null;
+  if (reload) return submitReloadForm(reload, event);
 }) as EventListener);
 syncDependsOn();
 newSpec?.querySelector("select[name=project]")?.addEventListener("change", syncDependsOn);

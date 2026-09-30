@@ -2,7 +2,7 @@
 // archived) drawn in the banner on every tab, the Status tab's
 // criteria checklist, and the Reopen and Close controls.
 
-import { askButton, btn, buttonForm, helpPopover, ICON_PDF, labelledCheckbox, rowMessage, saveCancelActions } from "../../ui/components";
+import { askButton, btn, buttonForm, dataAttrs, helpPopover, ICON_PDF, labelledCheckbox, rowMessage, saveCancelActions } from "../../ui/components";
 import { SPINNER } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { acTestsLine } from "../../ui/ac-tests.ts";
@@ -13,7 +13,7 @@ import { t, type Language } from "../../../i18n";
 import {
   CLOSE_ASK_ID, CLOSE_SENTENCE, REOPEN_ASK_ID, closeAskDialog, reopenAskDialog,
 } from "./ask-dialog.ts";
-import { specPagePath } from "./tabs.ts";
+import { SPEC_LINES, SPEC_REFUSED_LINE, specPagePath } from "./tabs.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 
@@ -97,7 +97,7 @@ export function trackingControl(view: SpecPageView, lang: Language = "en"): stri
   // alone (`dashboard/test/e2e/acceptance-gate-status-tab.test.ts`,
   // spec 382).
   return (
-    `<form class="trackingform" method="post" action="${esc(view.trackingAction)}">` +
+    `<form class="trackingform reloadform" method="post" action="${esc(view.trackingAction)}"${dataAttrs(SPEC_LINES)}>` +
     (picker ? `<span class="frow">${picker}</span>` : "") +
     note +
     // Not `.factions`: the switch is a FIELD, not an action, and the
@@ -312,8 +312,7 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
   // The boxes sit INSIDE the one form, and Save closes it — no id
   // plumbing, because there is only ever one form to belong to.
   const body = canTick
-    ? `<form class="specform" method="post" action="${esc(view.tickAction)}" ` +
-        `data-overlay="${t(lang, "shell.overlaySaving")}">` +
+    ? `<form class="specform reloadform" method="post" action="${esc(view.tickAction)}"${dataAttrs(SPEC_LINES)}>` +
       `<input type="hidden" name="checksPhase" value="${esc(phase)}">` +
       // Empty rather than absent for a file git has never committed —
       // the same answer the description's own field gives.
@@ -432,7 +431,12 @@ export function testServerStatus(view: SpecPageView): string {
     `<a href="${esc(view.testServerOpenHref ?? view.testServer.url ?? "")}" target="_blank" rel="noopener">Open the test server</a> ` +
     `<span class="muted">— it runs the code from ${where}. The specs shown are from the test ` +
     `suite, not the ones on the prod dashboard.</span></span>` +
-    buttonForm({ action: view.testServerStopAction ?? "", hook: "actionform", button: { label: "Stop test server" } }) +
+    buttonForm({
+      action: view.testServerStopAction ?? "",
+      hook: "reloadform",
+      data: { line: SPEC_REFUSED_LINE },
+      button: { label: "Stop test server", pending: "stopping…" },
+    }) +
     `</div>`
   );
 }

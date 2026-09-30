@@ -12,7 +12,7 @@ import { ICON_LINKS, WORDMARK } from "./brand.ts";
 import { PWA_LINKS } from "./pwa.ts";
 import { esc } from "./html.ts";
 import { tabBar } from "./tabs.ts";
-import { buttonForm, confirmDialog } from "./components";
+import { buttonForm, confirmDialog, messageSlot } from "./components";
 import { capitalizeFirst } from "../../format/error-sentence.ts";
 import { themeControl, languageControl, menuSettingRows } from "./header-controls.ts";
 import { getBoardInfo, isRoundBoard } from "./board-info.ts";
@@ -57,10 +57,6 @@ const MENU_SCRIPT = transpile("../scripts/menu-script.ts");
 // page. It shares the one <script> tag for the reason UNIT_SCRIPT
 // does.
 const SW_REGISTER_SCRIPT = transpile("../scripts/sw-register.ts");
-// The fifth: a pressed Save that looks pressed on the pages that post a
-// real form and wait — the spec editor's takes two or three seconds to
-// commit and push. Same tag as the others, for the same reason.
-const FORM_BUSY_SCRIPT = transpile("busy/form-busy.ts");
 // The sixth: a link that leaves the page says so the moment it is
 // clicked, on every page (spec 312) — `specs-client.ts` used to own
 // this for the one page it loads on.
@@ -70,8 +66,8 @@ const NAV_BUSY_SCRIPT = transpile("busy/nav-busy.ts");
 // still over the link (spec 314).
 const NAV_OVERLAY_SCRIPT = transpile("busy/nav-overlay.ts");
 // The eighth (spec 358): the PDF button opens a NEW tab, which neither
-// form-busy.ts (no form) nor nav-busy.ts/nav-overlay.ts (both decline a
-// target="_blank" link, since this document is never replaced) cover.
+// nav-busy.ts nor nav-overlay.ts covers (both decline a target="_blank"
+// link, since this document is never replaced).
 const PDF_BUSY_SCRIPT = transpile("busy/pdf-busy.ts");
 // The ninth (spec 391): Save and Cancel enable together the instant a
 // spec form has an edit, and disable together again once Cancel puts it
@@ -222,13 +218,15 @@ function boardText(lang: Language): string {
  *  on this same board (self-run.ts), the server left as it is. Only on
  *  a board started from a checkout — never on one started from a spec's
  *  branch, which previews that spec and is not re-run — and nothing on
- *  a prod board. */
+ *  a prod board. The page script posts it and loads the page again;
+ *  `actionform` is what the phone layout hides the header's copy by. */
 function runForm(lang: Language): string {
   if (!isRoundBoard()) return "";
   return buttonForm({
     action: "/api/self-run",
-    hook: "actionform",
+    hook: "actionform reloadform",
     button: { label: t(lang, "shell.runTestRound"), pending: "starting…" },
+    after: messageSlot("refused"),
   });
 }
 
@@ -356,46 +354,36 @@ export interface PageShellOpts {
   hideTabBar?: boolean;
 }
 
-/** The meta refresh, as the text a head (or, for a streamed page, the
- *  start of its second half) carries. A meta refresh is fine on a page you
- *  only read. On a page with a FORM it is hostile: it wipes what you were
- *  half-way through filling in. A page that ships the script asks for no
- *  seconds at all, since the script reloads it; a page served without the
- *  script asks for them and is refreshed by this. */
-export function refreshMeta(refreshSeconds?: number): string {
-  return refreshSeconds ? `\n<meta http-equiv="refresh" content="${refreshSeconds}">` : "";
-}
-
 /** The document up to and including `<body …>`: what a streamed page can
  *  send before it knows anything about its content (spec 515). */
 export function shellHead(
   title: string,
-  opts: { lang?: Language; docTitle?: string; refresh?: string } = {},
+  opts: { lang?: Language; docTitle?: string } = {},
 ): string {
   const lang = opts.lang ?? "en";
   return `<!doctype html>
 <html lang="${lang}">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">${opts.refresh ?? ""}
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(opts.docTitle ?? `aide -board · ${title}`)}</title>
 ${ICON_LINKS}
 ${PWA_LINKS}
 <style>${CSS}</style>
-<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${FORM_BUSY_SCRIPT}${UNSAVED_CHANGES_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}${SPEC_FORM_ACTIONS_SCRIPT}${DEPENDS_LIFT_SCRIPT}${RESTART_WATCH_SCRIPT}</script>
+<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${UNSAVED_CHANGES_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}${SPEC_FORM_ACTIONS_SCRIPT}${DEPENDS_LIFT_SCRIPT}${RESTART_WATCH_SCRIPT}</script>
 </head>
 <body data-overlay-note="${esc(capitalizeFirst(t(lang, "shell.overlayLoading")))}">`;
 }
 
-/** The rest of the document, from the header to `</html>`. `refresh` is
- *  written at its very start and `afterMain` right after `</main>`, both
- *  for a streamed page's second half; `pageShell` passes neither. */
+/** The rest of the document, from the header to `</html>`. `afterMain` is
+ *  written right after `</main>`, for a streamed page's second half;
+ *  `pageShell` passes none. */
 export function shellRest(
   entries: NavEntry[],
   currentPath: string,
   title: string,
   body: string,
-  opts: PageShellOpts & { refresh?: string; afterMain?: string } = {},
+  opts: PageShellOpts & { afterMain?: string } = {},
 ): string {
   const lang = opts.lang ?? "en";
   const currentUrl = opts.currentUrl ?? "/";
@@ -409,7 +397,7 @@ export function shellRest(
   const script = opts.script ? `\n<script>${opts.script}</script>` : "";
   const scriptSrc = opts.scriptSrc ? `\n<script src="${esc(opts.scriptSrc)}"></script>` : "";
   const tabs = opts.hideTabBar ? "" : siteTabs(entries, currentPath, lang);
-  return `${opts.refresh ?? ""}
+  return `
 ${pageHeader(lang, currentUrl, tabs)}
 ${headerNotices(lang)}
 ${aboutDialog()}
@@ -432,14 +420,7 @@ export function pageShell(
   // to the About page (2026-08-19) — an unlabelled ISO timestamp in the
   // corner of every page read as noise.
   _generatedAt: string,
-  refreshSeconds?: number,
   opts: PageShellOpts = {},
 ): string {
-  return (
-    shellHead(title, {
-      lang: opts.lang,
-      docTitle: opts.docTitle,
-      refresh: refreshMeta(refreshSeconds),
-    }) + shellRest(entries, currentPath, title, body, opts)
-  );
+  return shellHead(title, { lang: opts.lang, docTitle: opts.docTitle }) + shellRest(entries, currentPath, title, body, opts);
 }

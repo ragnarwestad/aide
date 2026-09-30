@@ -15,7 +15,7 @@ afterEach(() => {
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
-test("a form POST answers 303 to /; a JSON caller gets JSON", async () => {
+test("a form POST and a JSON caller both get JSON", async () => {
   const { base } = start();
   const form = await fetch(`${base}/api/queue`, {
     method: "POST",
@@ -23,8 +23,8 @@ test("a form POST answers 303 to /; a JSON caller gets JSON", async () => {
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner", steps: "analyze" }),
   });
-  expect(form.status).toBe(303);
-  expect(form.headers.get("location")).toBe("/");
+  expect(form.status).toBe(200);
+  expect(((await form.json()) as { ok: boolean }).ok).toBe(true);
 
   const json = await fetch(`${base}/api/queue`, {
     method: "POST",

@@ -80,8 +80,6 @@ export interface SettingsPageOptions {
   defaultModels: Record<string, string>;
   timeoutSec: Record<string, number>;
   script?: string;
-  error?: string;
-  notice?: string;
   /** Where "← Back" goes (spec 252) — resolved by `serve.ts` from the
    *  request's own `Referer`, same-origin only. Absent falls back to
    *  `/`, today's exact hardcoded destination. Settings is reachable
@@ -208,8 +206,8 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
   const noModelsNote = models.length ? "" : `<p class="muted">No model choices are configured on this server.</p>`;
   const phasesPanel =
     `<form id="settings-form" class="settingsform" data-settings-form method="post" action="/api/queue/settings">` +
-    messageSlot("refused", "failed", { text: opts.error }) +
-    messageSlot("notice", "info", { text: opts.notice }) +
+    messageSlot("refused", "failed") +
+    messageSlot("notice", "info") +
     noModelsNote +
     `<table class="settingstable"><thead><tr><th>Phase</th>${modelHeaders}<th>Timeout (min)</th></tr></thead>${rows}</table>` +
     `<div class="configactions">` +
@@ -224,13 +222,13 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
     : open === "notifications"
       ? notificationsPanel(opts.pushPublicKey, opts.lang ?? "en")
       : open === "process"
-        ? (opts.process ? processPanel(opts.process, { error: opts.error, notice: opts.notice }) : "")
+        ? (opts.process ? processPanel(opts.process) : "")
         : toolPanel(open, opts.checks?.[open]);
   // `pageShell` wraps the body in `<main>`: a second one inside it takes
   // the frame's padding twice. Both rows sit directly in it, so page.css's
   // Settings rule centres them, and the panel after them, as it did one row.
   const body = `${back}${top}${aiRow}${panel}`;
-  return pageShell("Settings", entries, SETTINGS_ROUTE, body, generatedAt, undefined, {
+  return pageShell("Settings", entries, SETTINGS_ROUTE, body, generatedAt, {
     script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,
   });
 }

@@ -100,11 +100,6 @@ export async function specsPages(
       // — recorded so a fresh render shows that choice instead of
       // re-deriving one from history alone (spec 439).
       pendingSteps: ctx.queue.pendingSteps,
-      error: url.searchParams.get("error") ?? undefined,
-      // Which row the refusal belongs to. It rides in the query
-      // string with the reason itself, so it survives the
-      // five-second row swap the same way the filter does.
-      errorSpec: url.searchParams.get("errorSpec") ?? undefined,
       // The raw allowlist, not the discovered set: a project whose
       // FIRST spec this form exists to make has nothing on disk to be
       // discovered from, so deriving these from `targets()` would
@@ -211,9 +206,6 @@ export async function specsPages(
       defaultModels: ctx.queue.defaults.model,
       // "Try again" on a failed create's message (spec 506): what was typed.
       prefill: prefillFor(ctx, url.searchParams.get("retry")),
-      // Why the last submission was refused, carried back here by the
-      // create route's own redirect.
-      error: url.searchParams.get("error") ?? undefined,
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
     });

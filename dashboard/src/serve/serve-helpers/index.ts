@@ -1,8 +1,8 @@
 // Stand-alone pieces of the aide-dashboard server: no dependency on
 // `createServer`'s closure (spec: split serve.ts, step 1). Split by
 // theme into serve-helpers/config.ts (constants and the merge lock),
-// http.ts (request/response plumbing), redirect.ts (form-POST
-// redirects and commit messages), static.ts (the site, the PWA assets,
+// http.ts (request/response plumbing), redirect.ts (refusal and
+// commit-message sentences), static.ts (the site, the PWA assets,
 // the bundled specs-client script), runner-argv.ts (a job's argv),
 // parse-args.ts (the CLI and dependency-folder resolution) and
 // compression.ts (the server-wide gzip wrapper, spec 315) — kept as a
@@ -21,7 +21,7 @@ export {
 } from "./http.ts";
 
 export {
-  ARCHIVED_REFUSAL, editMessage, tickMessage, specsRedirect, logRefusal,
+  ARCHIVED_REFUSAL, editMessage, tickMessage, logRefusal,
 } from "./redirect.ts";
 
 export {

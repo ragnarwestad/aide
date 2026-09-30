@@ -3,11 +3,8 @@
 // `handleSpecEditRoutes` asks in turn. Split out on its own rather than
 // folded into run-controls.ts, so that file stays the size its own
 // header comment already notes a 2026-09-04 split at. Has no fallback
-// page behind it (spec 527): the POST's refusal redirects to the spec
-// page like every other outcome, following the shape
-// test-server-controls.ts's own start route already uses.
-import { specPagePath } from "../../../render";
-import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../../serve-helpers";
+// page behind it (spec 527): the dialog's page script reads the answer.
+import { bodyToObject, json, logRefusal, readBounded } from "../../serve-helpers";
 
 import { landingInProject } from "../../../queue/queue.ts";
 import type { RoutesContext } from "..";
@@ -16,13 +13,11 @@ export async function closeControlRoutes(
   ctx: RoutesContext,
   req: Request,
   path: string,
-  wantsJson: boolean,
 ): Promise<Response | null> {
   const closePost = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/close$/);
   if (closePost) {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
     const [, project, specFolder] = closePost;
-    const back = specPagePath(project!, specFolder!);
     const sent = await readBounded(req);
     if ("refusal" in sent) return sent.refusal;
     let body: Record<string, unknown> = {};
@@ -31,8 +26,7 @@ export async function closeControlRoutes(
     } catch {
       return json({ error: "malformed body" }, 400);
     }
-    const refuseClose = (error: string): Response =>
-      wantsJson ? json({ error }, 400) : specsRedirect({}, { error }, back);
+    const refuseClose = (error: string): Response => json({ error }, 400);
     // REQ-3: a reason is the one thing this form requires — trimmed, so
     // whitespace alone reads exactly as empty does.
     const reason = typeof body.reason === "string" ? body.reason.trim() : "";
@@ -52,9 +46,7 @@ export async function closeControlRoutes(
       return refuseClose(result.error);
     }
     await ctx.tickRunner();
-    return wantsJson
-      ? json({ ok: true, job: result.job })
-      : specsRedirect({}, undefined, specPagePath(project!, specFolder!));
+    return json({ ok: true, job: result.job });
   }
 
   return null;

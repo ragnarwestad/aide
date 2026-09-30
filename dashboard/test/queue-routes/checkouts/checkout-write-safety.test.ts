@@ -127,7 +127,8 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
           }),
         },
       );
-      expect(res.status).toBe(303);
+      expect(res.status).toBe(200);
+      expect(((await res.json()) as { ok?: boolean }).ok).toBe(true);
       // The dashboard's own copy carries the edit...
       const saved = join(owned, "aide", "code", "specs", "81-queue-and-runner", "1-description.md");
       expect(readFileSync(saved, "utf-8")).toContain("Saved by the dashboard");

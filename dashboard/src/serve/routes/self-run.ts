@@ -123,8 +123,7 @@ export function selfRunRoute(ctx: RoutesContext, req: Request, path: string): Re
   // the next fixture can name it as a dependency), so the answer is
   // "started", at once; `GET /api/self-run` says how far it has come.
   void runRound(ctx);
-  const wantsJson = (req.headers.get("accept") ?? "").includes("application/json");
-  return wantsJson ? json({ ok: true, stage: "resetting" }) : new Response(null, { status: 303, headers: { location: "/" } });
+  return json({ ok: true, stage: "resetting" });
 }
 
 async function runRound(ctx: RoutesContext): Promise<void> {

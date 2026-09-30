@@ -7,6 +7,10 @@ import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { scheduleEditPath } from "./edit-page.ts";
 
+/** The Schedule tab's refusal line, which Delete's OK names: the dialog
+ *  it is posted from is closed before the refusal is written. */
+export const SCHEDULE_REFUSED_LINE = "schedule-refused";
+
 /** The four cells, in order: Enabled, Run now, Edit, Delete. */
 export function scheduleControlCells(project: string, entry: ScheduleEntry, lang: Language = "en"): string {
   const base = `/api/queue/schedule/${encodeURIComponent(project)}/${encodeURIComponent(entry.name)}`;
@@ -34,7 +38,8 @@ export function scheduleControlCells(project: string, entry: ScheduleEntry, lang
 // The control is a plain button, script-only (spec 528: no confirm page
 // behind it any more). Its click opens the board's one confirmation
 // dialog beside it — Escape and Cancel close it, and nothing is deleted
-// by a stray click on a table row.
+// by a stray click on a table row. The page script posts its OK and
+// loads the tab again.
 //
 // What it asks is the question itself, in the heading, with the two
 // answers under it. It asked for the entry's exact name, typed back,
@@ -52,7 +57,7 @@ function deleteCell(project: string, name: string, deleteUrl: string): string {
       title: `Delete ${project}:${name}?`,
       sentence: "The entry is removed and stops firing. Its own run history stays in the queue.",
       ok: { variant: "danger", pending: "deleting…" },
-      post: { action: deleteUrl },
+      post: { action: deleteUrl, hook: "reloadform", data: { line: SCHEDULE_REFUSED_LINE } },
     }) +
     `</td>`
   );

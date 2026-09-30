@@ -10,10 +10,10 @@ import {
   discoverProjects, manifestInside, specFileText, withAcceptanceLine, withDependsOnLine,
 } from "../../../project/discover";
 import { parseStatus } from "../../../project/parse-status";
-import { EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, specPagePath } from "../../../render";
+import { EDITABLE_SPEC_FILE, STATUS_SPEC_FILE } from "../../../render";
 import {
   ARCHIVED_REFUSAL, MAX_SAVE_BODY, bodyToObject, editMessage, json, logRefusal, readBounded,
-  resolveDependencyFolder, specsRedirect,
+  resolveDependencyFolder,
 } from "../../serve-helpers";
 
 import type { RoutesContext } from "..";
@@ -21,9 +21,7 @@ import type { RoutesContext } from "..";
 export async function trackingRoutes(
   ctx: RoutesContext,
   req: Request,
-  _url: URL,
   path: string,
-  _wantsJson: boolean,
 ): Promise<Response | null> {
   const m = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/tracking$/);
   if (!m) return null;
@@ -32,14 +30,14 @@ export async function trackingRoutes(
   const found = ctx.specDir(project!, specFolder!);
   if (!found) return new Response("not found", { status: 404 });
   const dir = await ctx.machinerySpecDir(project!, found);
-  const back = specPagePath(project!, specFolder!);
+  const refuse = (error: string): Response => json({ error }, 400);
 
   // Before the body is even read: this one WRITES, commits and pushes,
   // and an archived spec's folder is in `archive/` — the same refusal
   // `/save` makes before reading its own body.
   if (ctx.specRef(project!, specFolder!)?.archived) {
     logRefusal("tracking", `${project}/${specFolder}`, ARCHIVED_REFUSAL);
-    return specsRedirect({}, { error: ARCHIVED_REFUSAL }, back);
+    return refuse(ARCHIVED_REFUSAL);
   }
   // The same job-state gate `/save` applies (REQ-6 of spec 310): a run
   // works in a worktree branched when it started, but a hand edit
@@ -52,7 +50,7 @@ export async function trackingRoutes(
   if (activeJob) {
     const reason = "another job for this spec is still running — nothing was saved";
     logRefusal("tracking", `${project}/${specFolder}`, reason);
-    return specsRedirect({}, { error: reason }, back);
+    return json({ error: reason }, 409);
   }
 
   const sent = await readBounded(req, MAX_SAVE_BODY);
@@ -75,7 +73,7 @@ export async function trackingRoutes(
   const currentSha = branchRead ? branchRead.sha : (await lastCommitOf(ctx.gitRun, dir, EDITABLE_SPEC_FILE))?.sha ?? null;
   const currentText = branchRead ? branchRead.text : specFileText(dir, EDITABLE_SPEC_FILE);
   if (currentText === null) {
-    return specsRedirect({}, { error: "1-description.md could not be read — nothing was saved" }, back);
+    return refuse("1-description.md could not be read — nothing was saved");
   }
 
   // This form carries no `baseSha` of its own — it is not one document's
@@ -86,11 +84,7 @@ export async function trackingRoutes(
   // refuse, because a real sha never equals null.
   const sentSha = typeof body.baseSha === "string" && body.baseSha ? body.baseSha : null;
   if (sentSha !== null && sentSha !== currentSha) {
-    return specsRedirect(
-      {},
-      { error: "the description changed since you opened this page — reload and try again" },
-      back,
-    );
+    return refuse("the description changed since you opened this page — reload and try again");
   }
   // What the write compares against: what this route just read, when the
   // form sent nothing to compare. A branch that moves between that read
@@ -112,24 +106,20 @@ export async function trackingRoutes(
     const discovered = ctx.opts.projectRoot
       ? discoverProjects(ctx.opts.projectRoot, undefined, manifestInside(ctx.machineryProjectDir)).find((p) => p.name === project)
       : undefined;
-    if (!discovered) return specsRedirect({}, { error: "unknown project — nothing was saved" }, back);
+    if (!discovered) return refuse("unknown project — nothing was saved");
     for (const id of ids) {
       const dep = resolveDependencyFolder(discovered, id);
       if (!dep) {
-        return specsRedirect({}, { error: `no such spec in this project: ${id} — nothing was saved` }, back);
+        return refuse(`no such spec in this project: ${id} — nothing was saved`);
       }
       if (dep.folder === specFolder) {
-        return specsRedirect({}, { error: `a spec cannot depend on itself: ${id} — nothing was saved` }, back);
+        return refuse(`a spec cannot depend on itself: ${id} — nothing was saved`);
       }
     }
   }
   let text = withDependsOnLine(currentText, ids);
   if (text === null) {
-    return specsRedirect(
-      {},
-      { error: `nowhere to put "Depends on" — Tracking info has no Created line — nothing was saved` },
-      back,
-    );
+    return refuse(`nowhere to put "Depends on" — Tracking info has no Created line — nothing was saved`);
   }
 
   // Acceptance — REQ-6: only touched when the form was actually drawn
@@ -147,11 +137,7 @@ export async function trackingRoutes(
     const statusText = statusRead ? statusRead.text : (specFileText(dir, STATUS_SPEC_FILE) ?? "");
     const analyzeDone = parseStatus(statusText).workflowSteps.includes("analyze");
     if (analyzeDone) {
-      return specsRedirect(
-        {},
-        { error: "analyze has already decided whether to write the acceptance-criteria table — this cannot change now" },
-        back,
-      );
+      return refuse("analyze has already decided whether to write the acceptance-criteria table — this cannot change now");
     }
     // The box says what it means: ticked is required. Absent is a
     // cleared box, which is "not required" — and `acceptanceEditable`
@@ -161,11 +147,7 @@ export async function trackingRoutes(
     const acceptanceNotRequired = !acceptanceRequired;
     const withAccept = withAcceptanceLine(text, acceptanceNotRequired);
     if (withAccept === null) {
-      return specsRedirect(
-        {},
-        { error: `nowhere to put "Acceptance" — Tracking info has no Created line — nothing was saved` },
-        back,
-      );
+      return refuse(`nowhere to put "Acceptance" — Tracking info has no Created line — nothing was saved`);
     }
     text = withAccept;
   }
@@ -188,7 +170,7 @@ export async function trackingRoutes(
       );
   if (!result.ok) {
     logRefusal("tracking", `${project}/${specFolder}`, result.note);
-    return specsRedirect({}, { error: result.note }, back);
+    return refuse(result.note);
   }
-  return specsRedirect({}, undefined, back, { note: result.note, ok: true });
+  return json({ ok: true, note: result.note, changed: (result as { committed?: boolean }).committed !== false });
 }

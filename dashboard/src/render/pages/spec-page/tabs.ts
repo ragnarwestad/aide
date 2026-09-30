@@ -51,9 +51,23 @@ export function resolveSpecTab(raw: string | undefined): SpecTab {
  *  half-typed or half-ticked. */
 export const RELOADING_TABS: readonly SpecTab[] = ["steps"];
 
-/** How often a reloading tab reloads, whether by the page's meta refresh or
- *  by the client script's timer. */
+/** How often a page that follows a running step reloads itself. */
 export const RELOAD_SECONDS = 10;
+
+/** The marker the page script's timer reloads a page by
+ *  (`specs-client/reload-while-idle`), waiting while a dialog is open. */
+export const reloadMarker = (seconds: number = RELOAD_SECONDS): string =>
+  `<span hidden data-reload-every="${seconds}"></span>`;
+
+/** The spec page's two lines under the banner, which the page script
+ *  writes a press's answer into: a refusal, and the note of one that
+ *  went through and changed nothing. */
+export const SPEC_REFUSED_LINE = "spec-refused";
+export const SPEC_NOTICE_LINE = "spec-notice";
+
+/** What a form on the spec page names those two lines by (`data-line`,
+ *  `data-note`, read by `specs-client/reload-form/`). */
+export const SPEC_LINES: Record<string, string> = { line: SPEC_REFUSED_LINE, note: SPEC_NOTICE_LINE };
 
 /** The one file of the four a person owns (spec 162). `2-analysis.md`
  *  and `3-solution.md` are the analyze step's output —

@@ -232,20 +232,5 @@ describe("an archive landing asks origin whether anything stayed open", () => {
       expect(res.status).toBeGreaterThan(399);
       expect(String((await res.json() as { error?: string }).error)).toContain("archived");
     });
-
-    // A no-script form POST gets a redirect and nothing else, and the
-    // specs list has no row for an archived spec to put the answer on.
-    // The reader comes back to the page the button is on.
-    test("a form press comes back to the spec's own page", async () => {
-      const { base } = await archivedServer("aide-198-reopen-back-", false);
-      const res = await fetch(`${base}/api/queue`, {
-        method: "POST",
-        headers: { "content-type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ project: "aide", specFolder: SPEC, steps: "reopen" }),
-        redirect: "manual",
-      });
-      expect(res.status).toBeGreaterThanOrEqual(300);
-      expect(res.headers.get("location")).toContain(`/specs/aide/${SPEC}`);
-    });
   });
 });

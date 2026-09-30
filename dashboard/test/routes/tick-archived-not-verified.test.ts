@@ -166,7 +166,7 @@ describe("a live spec: a Failed row is never moved by a press (AC-4)", () => {
   test("the failed field is ignored, and a post naming a Failed row is refused", async () => {
     const live = startWithChecks(harness, savable("/host"), WITH_FAILED);
     const ignored = await tick(live.base, { rows: [NV_ROW], unverified: [NV_ROW] });
-    expect(ignored.status).toBe(303);
+    expect(ignored.status).toBe(200);
     const res = await fetch(`${live.base}${TICK}`, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },

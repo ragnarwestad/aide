@@ -1,7 +1,5 @@
-// The page that makes or changes a schedule entry, as a response: drawn
-// for its own GET, and drawn again by the save routes when a save with
-// no script is refused, holding what was typed and the reason. Also where
-// a save goes back to afterwards.
+// The page that makes or changes a schedule entry, as a response to its
+// own GET. Also where a save goes back to afterwards.
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import { projectPagePath, renderScheduleEditPage, schedulePagePath } from "../../../render";
 import { languageChoice, specsClientScript } from "../../serve-helpers";
@@ -39,8 +37,6 @@ export async function scheduleEditPageResponse(
     editing?: string;
     values: Pick<ScheduleEntry, "name" | "cron" | "prompt" | "model" | "notify">;
     back: string;
-    error?: string;
-    status?: number;
   },
 ): Promise<Response> {
   const langResult = languageChoice(url, req);
@@ -49,7 +45,6 @@ export async function scheduleEditPageResponse(
     ...(page.editing ? { editing: page.editing } : {}),
     values: page.values,
     backHref: page.back,
-    error: page.error,
     modelChoices: Object.entries(ctx.queue.defaults.modelChoices ?? {}).map(([name, choice]) => ({
       name, ...(choice.tool ? { tool: choice.tool } : {}),
     })),
@@ -60,5 +55,5 @@ export async function scheduleEditPageResponse(
   });
   const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
   if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
-  return new Response(html, { status: page.status ?? 200, headers });
+  return new Response(html, { headers });
 }

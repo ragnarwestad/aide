@@ -4,11 +4,12 @@
 // beside `steptab`). A project with no wiki draws no bar at all and shows
 // the Build panel alone. A build is a job of the project's, never a row on
 // the Specs list, so the Build panel is where it is followed — a press, a
-// Cancel and a refusal all come back there.
+// Cancel and a refusal all come back there, posted by the page script
+// (`specs-client/reload-form/`) and the panel loaded again.
 
-import { badge, buttonForm, rowMessage } from "../../ui/components";
+import { badge, buttonForm, messageSlot, rowMessage } from "../../ui/components";
 import { stepResults } from "../job-page";
-import { RELOAD_SECONDS } from "../spec-page/tabs.ts";
+import { reloadMarker } from "../spec-page/tabs.ts";
 import { esc } from "../../ui/html.ts";
 import { pickTab, tabBar } from "../../ui/tabs.ts";
 import { t, type Language } from "../../../i18n";
@@ -18,6 +19,9 @@ import type { ProjectPageOptions } from "./types.ts";
 
 type WikiBuild = NonNullable<ProjectPageOptions["wikiBuild"]>;
 
+/** The Build panel's refusal line, which Build wiki and Cancel name. */
+const WIKI_REFUSED_LINE = "wiki-refused";
+
 const UNFINISHED = new Set(["queued", "running"]);
 const WIKI_TABS = ["pages", "graph", "build"] as const;
 type WikiSubTab = (typeof WIKI_TABS)[number];
@@ -26,7 +30,12 @@ type WikiSubTab = (typeof WIKI_TABS)[number];
  *  log is drawn below it, on the Build panel. */
 function latestBuild(b: WikiBuild, lang: Language): string {
   if (UNFINISHED.has(b.state)) {
-    const cancel = buttonForm({ action: `/api/queue/${b.id}/cancel`, button: { label: t(lang, "list.cancel") } });
+    const cancel = buttonForm({
+      action: `/api/queue/${b.id}/cancel`,
+      hook: "reloadform",
+      data: { line: WIKI_REFUSED_LINE },
+      button: { label: t(lang, "list.cancel"), pending: t(lang, "list.cancelling") },
+    });
     // The running badge's own spinner, the one every running row on the
     // board carries, so the tab reads as work under way at a glance.
     const text = t(lang, "project.wikiRunning");
@@ -45,13 +54,14 @@ function latestBuild(b: WikiBuild, lang: Language): string {
 /** The Build panel: what the wiki is, the button, the latest build and its
  *  log — today's whole tab, before Pages and Graph grew beside it. */
 function buildPanel(name: string, opts: ProjectPageOptions, lang: Language, building: boolean): string {
-  const refusal = opts.wikiError ? rowMessage("failed", opts.wikiError, { hook: "refusal wiki-error", tag: "p" }) : "";
+  const refusal = messageSlot("refused", "failed", { id: WIKI_REFUSED_LINE });
   const form = building
     ? ""
     : buttonForm({
         action: `/api/queue/projects/${encodeURIComponent(name)}/wiki`,
-        data: { wikiform: "" },
-        button: { label: t(lang, "project.wikiButton"), variant: "primary" },
+        hook: "reloadform",
+        data: { line: WIKI_REFUSED_LINE },
+        button: { label: t(lang, "project.wikiButton"), variant: "primary", pending: "building…" },
       });
   const latest = opts.wikiBuild ? latestBuild(opts.wikiBuild, lang) : "";
   const log = opts.wikiLog
@@ -107,7 +117,7 @@ export function wikiSection(name: string, opts: ProjectPageOptions): string {
   // and Graph never carry this: nothing on either changes while a build
   // runs elsewhere, and a reload would only interrupt a drag or a hover on
   // the graph, or remount an open page's viewer and lose the reader's place.
-  const live = current === "build" && building && opts.script ? `<span hidden data-reload-every="${RELOAD_SECONDS}"></span>` : "";
+  const live = current === "build" && building ? reloadMarker() : "";
 
   return live + (hasWiki ? wikiSubTabBar(name, current, building, lang) : "") + panel;
 }

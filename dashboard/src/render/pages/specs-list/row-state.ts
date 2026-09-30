@@ -4,7 +4,6 @@
 
 import { inFlight, type QueueRowView } from "../../ui/job-state";
 import { stepButton } from "../../../format/step-label.ts";
-import type { SpecsPageOptions } from "./";
 import { RUN_STEPS, groupKey, type SpecGroup } from "./data-model";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
 
@@ -179,18 +178,6 @@ export function actionState(
 // line, and `form="<id>"` is what makes the browser post them with it
 // anyway.
 export const runFormId = (g: SpecGroup): string => `rowrun-${groupKey(g.project, g.specFolder)}`;
-
-// Why the button you just pressed did nothing, and whether it was
-// pressed on THIS row. The same key the fold state is written in, so
-// no second format for "which spec" is invented.
-//
-// It is drawn in the row's panel and no longer in the name cell (spec
-// 151): the sentence is a whole one — "analyze on 150-… is already
-// running (job 03238f57) — cancel that one first if you want to start
-// over" — and the name cell is sized for a folder name, so it pushed
-// the branch marks and the title around underneath it.
-export const refusalFor = (g: SpecGroup, opts: SpecsPageOptions): string | undefined =>
-  opts.errorSpec && opts.errorSpec === groupKey(g.project, g.specFolder) ? opts.error : undefined;
 
 // The row's own anchor. `id`, not `data-folder`: a badge pointing at
 // another spec's row needs something `href="#..."` can find with no

@@ -4,11 +4,12 @@
 // address for themselves — this holds the tab they opened and carries
 // them to the board the moment it has one.
 //
-// A meta refresh, not a script: it reloads onto the SAME `?startTestServer=1`
-// URL, and that route redirects to the board as soon as the round has
-// reported it. So the waiting and the arriving are the same request,
-// asked again — nothing here has to know what a board's address looks
-// like, and it works with JavaScript switched off.
+// A few lines of script of its own reload it onto the SAME
+// `?startTestServer=1` URL, and that route redirects to the board as soon
+// as the round has reported it. So the waiting and the arriving are the
+// same request, asked again — nothing here has to know what a board's
+// address looks like. It is a page outside the shell, so it carries no
+// page script bundle.
 
 import { esc } from "../../../render/ui/html.ts";
 import { btnLink } from "../../../render/ui/components";
@@ -44,6 +45,12 @@ export function testServerUrlFor(reader: Request, testServerUrl: string): string
 }
 
 const EVERY_SECONDS = 5;
+
+/** The page reloading itself every `data-reload-every` seconds, the
+ *  marker the board's own page script reads too. */
+const RELOAD_SCRIPT =
+  `<script>(() => { const s = Number(document.querySelector("[data-reload-every]")?.getAttribute("data-reload-every")); ` +
+  `if (s) setTimeout(() => location.reload(), s * 1000); })();</script>`;
 
 /** One page, two states. Waiting refreshes onto the same URL until the
  *  board is there; a board that failed to start says so and STOPS —
@@ -92,7 +99,6 @@ function htmlPage(heading: string, body: string, o: { refresh: boolean }): Respo
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-${o.refresh ? `<meta http-equiv="refresh" content="${EVERY_SECONDS}">` : ""}
 <title>aide -board · ${o.refresh ? "starting a test server" : "test server"}</title>
 <style>
   :root { color-scheme: light dark; }
@@ -117,6 +123,7 @@ ${o.refresh ? `<meta http-equiv="refresh" content="${EVERY_SECONDS}">` : ""}
   <h1>${heading}</h1>
   ${body}
 </div>
+${o.refresh ? `<span hidden data-reload-every="${EVERY_SECONDS}"></span>${RELOAD_SCRIPT}` : ""}
 </body>
 </html>
 `;

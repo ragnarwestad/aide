@@ -14,10 +14,9 @@ import { landingRefusal, resolveOpenStep } from "../../../src/render/pages/job-p
 //
 // Approach A (a bare `<details>` per row) was rejected in `3-solution.md`
 // for the exact reason `specs-list.ts` already rejected it for its own
-// row-fold: both pages reload themselves every 10 seconds via a real
-// `<meta http-equiv="refresh">`, a full navigation rather than a DOM
-// patch, so a `<details open>` set by a click is gone on the very next
-// refresh. The open row has to be a property of the URL instead.
+// row-fold: both pages reload themselves every 10 seconds, a full
+// navigation rather than a DOM patch, so a `<details open>` set by a
+// click is gone on the very next reload. The open row has to be a property of the URL instead.
 // The raw words behind a landing failure are kept on the job beside the
 // sentence (2026-09-20): `errorDetail` belongs to what the row waits for
 // now, and a job that has moved on has already overwritten it.

@@ -300,8 +300,6 @@ describe("spec 221: archived specs on the spec list", () => {
     expect(form).not.toBeNull();
     expect(form![0]).toContain(`data-progress="${list}"`);
     expect(form![0]).toContain(`data-progress-done="${list}"`);
-    expect(form![0]).toContain('name="fromList" value="1"');
-    expect(form![0]).toContain('name="view.state" value="archived"');
     expect(form![0]).toContain('name="steps" value="reopen"');
     expect(dialog).toMatch(new RegExp(`<input type="checkbox" name="resetFiles" value="1" form="${form![1]}">`));
     expect(dialog).toContain(">OK</button>");
@@ -328,7 +326,6 @@ describe("spec 221: archived specs on the spec list", () => {
     expect(panel).not.toContain("<dialog");
     const dialog = dialogById(html, id!);
     expectListParts(dialog, "/?state=archived&amp;checks=aide%2F50-archived");
-    expect(dialog).toContain('name="view.checks" value="aide/50-archived"');
   });
 
   test("no archived row leads to a Reopen page (AC-6)", () => {

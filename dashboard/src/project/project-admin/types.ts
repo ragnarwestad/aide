@@ -68,11 +68,9 @@ export interface ReadinessCheck {
 export interface ProjectReadiness {
   canRun: boolean;
   checks: ReadinessCheck[];
-  /** The whole answer in one line, for the two places it is shown: the
-   *  form's own slot with script, and the query string a no-JS redirect
-   *  carries to `/projects`. Built here so both modes say the same
-   *  words — a second copy in the browser code would be a second copy
-   *  of the wording. */
+  /** The whole answer in one line, built here so every place that shows
+   *  it says the same words — a second copy in the browser code would be
+   *  a second copy of the wording. */
   note: string;
 }
 

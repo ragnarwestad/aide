@@ -160,17 +160,10 @@ describe("a landing that installs and asks for a restart", () => {
   // The Deploy button's restart used to be awaited inside the route: the
   // kickstart landed before the answer went out, and the page read "the
   // request failed" for a deploy that had succeeded (2026-09-03).
-  test("Deploy answers before its restart fires, and says the service is restarting", async () => {
+  test("Deploy's restart step answers before its restart fires, and says it fired", async () => {
     const dir = own("aide-deploy-answers-first-");
     const paths = repos(dir);
-    // The landing fixture's git never answers which branch the checkout
-    // is on; the deploy route asks, so answer it here.
-    const inner = gitFor();
-    const git = {
-      calls: inner.calls,
-      run: async (d: string, args: string[]) =>
-        args.join(" ") === "rev-parse --abbrev-ref HEAD" ? { code: 0, stdout: "master\n" } : inner.run(d, args),
-    };
+    const git = gitFor();
     let fired = 0;
     let firedAt = 0;
     const { base } = serverWithHarness(dir, paths, git, {
@@ -186,12 +179,12 @@ describe("a landing that installs and asks for a restart", () => {
       },
     });
     installs(paths.project);
-    const res = await fetch(`${base}/api/queue/projects/aide/deploy`, { method: "POST", headers: AUTH });
+    const res = await fetch(`${base}/api/queue/projects/aide/deploy/restart`, { method: "POST", headers: AUTH });
     const answeredAt = Date.now();
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { ok: boolean; restarting?: boolean };
+    const body = (await res.json()) as { ok: boolean; restart?: string };
     expect(body.ok).toBe(true);
-    expect(body.restarting).toBe(true);
+    expect(body.restart).toBe("fired");
     for (let i = 0; i < 60 && fired === 0; i++) await Bun.sleep(25);
     expect(fired).toBe(1);
     expect(firedAt).toBeGreaterThanOrEqual(answeredAt);

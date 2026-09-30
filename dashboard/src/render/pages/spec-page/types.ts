@@ -159,11 +159,9 @@ export interface SpecPageView {
    *  drawn per request). Absent for a file git has never committed,
    *  which is not a mismatch. */
   formBaseSha?: string;
-  /** Why the last pull changed nothing, and what it did when it did —
-   *  both off the query string, the same round-trip Approve, Cancel and
-   *  Merge already use. */
+  /** Why the spec's last round ended, when a Reopen or a Close failed
+   *  (`failedRoundSentence`) — read from the spec's own state. */
   error?: string;
-  notice?: { note: string; ok: boolean };
   /** Where "← Back" goes (spec 252) — resolved by `serve.ts` from the
    *  request's own `Referer`, same-origin only. Absent falls back to
    *  `/`, today's exact hardcoded destination. */

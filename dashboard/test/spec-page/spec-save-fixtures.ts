@@ -16,9 +16,8 @@ export const SAVE = `/api/queue/specs/aide/${SPEC}/save`;
 export const TRACKING = `/api/queue/specs/aide/${SPEC}/tracking`;
 export const TICK = `/api/queue/specs/aide/${SPEC}/tick`;
 export const DESCRIPTION_TAB = `/specs/aide/${SPEC}?tab=description`;
-// REQ-2: the three read-only document tabs, alongside DESCRIPTION_TAB.
+// REQ-2: two of the other document tabs, alongside DESCRIPTION_TAB.
 export const ANALYSIS_TAB = `/specs/aide/${SPEC}?tab=analysis`;
-export const SOLUTION_TAB = `/specs/aide/${SPEC}?tab=solution`;
 export const STATUS_TAB = `/specs/aide/${SPEC}?tab=status`;
 export const PAGE = `/specs/aide/${SPEC}`;
 export const FILE_SHA = "a3f9c21aaaaaaa";
@@ -111,3 +110,9 @@ export const post = (base: string, body: Record<string, string>, path = SAVE) =>
     redirect: "manual",
     body: new URLSearchParams(body).toString(),
   });
+
+/** What an action route answers: every one of them answers JSON,
+ *  whatever the request's Accept header says. */
+export type ActionAnswer = { ok?: boolean; error?: string; note?: string; changed?: boolean; spec?: string };
+
+export const answer = async (res: Response) => ({ status: res.status, body: (await res.json()) as ActionAnswer });

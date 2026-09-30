@@ -124,15 +124,19 @@ if (host && raw) {
     true,
   );
 
-  // No preventDefault(): form-busy.ts's shared submit listener must
-  // still see this submit as untouched, or the Save button loses its
-  // busy state.
-  document.addEventListener("submit", (event) => {
-    // `unescapeMarkdown` is what keeps a pasted `## Requirements` a
-    // heading rather than `\#\# Requirements` — see that file for why
-    // the editor writes it that way and why these files want it back.
-    if (event.target === raw.form) raw.value = unescapeMarkdown(instance.getMarkdown());
-  });
+  // In the capture phase, so the text is in the form before the page
+  // script's own submit listener on `body` reads it and posts the Save.
+  // No preventDefault(): posting it is that listener's.
+  document.addEventListener(
+    "submit",
+    (event) => {
+      // `unescapeMarkdown` is what keeps a pasted `## Requirements` a
+      // heading rather than `\#\# Requirements` — see that file for why
+      // the editor writes it that way and why these files want it back.
+      if (event.target === raw.form) raw.value = unescapeMarkdown(instance.getMarkdown());
+    },
+    true,
+  );
 
   // spec-form-actions.ts's dirty latch listens for "input"/"change" on
   // the FORM, which this editor's own contenteditable surface never

@@ -14,8 +14,6 @@ export {
   isFinishedGroup,
   type SpecsFilter,
   FILTER_KEYS,
-  FILTER_FIELD_PREFIX,
-  FROM_LIST_FIELD,
   RUN_STEPS,
   PHASE_LINES,
   type Phase,

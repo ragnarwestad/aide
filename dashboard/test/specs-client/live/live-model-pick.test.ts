@@ -96,7 +96,7 @@ describe("a live model pick posts itself (spec 225)", () => {
         : { ok: true },
     );
     await h.changeModel(LIVE, "fable");
-    expect(h.replaced.join("")).toContain(encodeURIComponent("not a step this run can still be given"));
+    expect(h.listRefused.textContent).toBe("Archive is not a step this run can still be given");
     // Not remembered either: the swap put the server's own value back,
     // and nothing replays the refused one over it.
     expect(h.modelSelects[LIVE]!.value).toBe("sonnet");

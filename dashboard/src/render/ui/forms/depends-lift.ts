@@ -8,7 +8,7 @@
 // page came back — the reader ticked a box and the page said nothing
 // had happened.
 //
-// Like nav-busy.ts and form-busy.ts, this file can neither import nor
+// Like nav-busy.ts, this file can neither import nor
 // export anything: the shell transpiles it into the same inline classic
 // <script>, which runs before the body is parsed. ONE listener on
 // `document`, for the same reason — there are no boxes yet to attach to.

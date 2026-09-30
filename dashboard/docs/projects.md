@@ -161,12 +161,10 @@ Nothing in the assessment mutates anything: no branch is switched, no directory 
 why the answer can go stale. A default branch resolvable when the project was added is one somebody can delete or park a
 second worktree on a minute later, and Run says so at the time — this is a preflight check, not a promise.
 
-An Add's result is shown where Save was pressed. With script it goes into the form's own slot and the page stays
-put, because the Specs path and Worktree links fields are usually what fixes it and saving again re-assesses.
-Without script the redirect carries the same sentence to `/projects` in the query string, where the page renders
-it. The sentence is built once, on the server, so the two modes cannot drift apart. A Settings save is the gap: a successful one shows no readiness line at
-all. Its redirect carries the sentence to `/projects/<name>`, which reads only an error from the query string, so
-the sentence is dropped. Reload the project page to see where the save left things.
+A refused Add is shown in the form's own slot and the page stays put, because the Specs path and Worktree links fields
+are usually what fixes it and saving again re-assesses. An Add that went through lands on the new project's Config tab,
+which states from the server's own reading whether a run can start there and every reason it cannot. A successful
+Settings save lands on the same tab, drawn again.
 
 ### What Add finishes itself
 
@@ -243,8 +241,7 @@ the checkout moved, or there is nothing to restart with — stores one message t
 until a later check finds them equal or the service restarts. A service that never answers after the restart cannot
 store anything, so the page already loaded draws that message, on the Deploy tab and under the header, when the
 dialog closes; a reload removes it. A failure that leaves the board faulty reloads the page instead, so the server
-draws the message under the header. A browser without script posts the whole
-deploy as one request (`POST .../deploy`) and follows its redirect.
+draws the message under the header.
 
 The second panel starts a test server for the project, in a new tab. Without a preview command configured, the
 heading stays with a sentence saying it is unavailable.

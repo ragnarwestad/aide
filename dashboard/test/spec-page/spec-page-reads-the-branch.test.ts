@@ -8,7 +8,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { queueHarness } from "../helpers/queue-server.ts";
 import { onOrigin, rootWithOrigin, specBranchAhead, specRelPath, type BranchFixture } from "../helpers/branch-fixture.ts";
-import { DESCRIPTION_TAB, ANALYSIS_TAB, SAVE, SPEC, TRACKING, descriptionPath, post } from "./spec-save-fixtures.ts";
+import { DESCRIPTION_TAB, ANALYSIS_TAB, SAVE, SPEC, TRACKING, descriptionPath, post, answer } from "./spec-save-fixtures.ts";
 
 const OTHER = "82-another-spec";
 const harness = queueHarness("aide-spec-page-branch-");
@@ -48,7 +48,10 @@ const inputTag = (html: string, name: string, value?: string) =>
 const acceptanceRequiredShown = (html: string) => inputTag(html, "acceptanceRequired")!.includes(" checked");
 const dependencyShown = (html: string, folder: string) => inputTag(html, "dependsOn", folder)?.includes(" checked") ?? false;
 
-const failed = (res: Response) => decodeURIComponent(res.headers.get("location") ?? "").includes("error=");
+const failed = async (res: Response) => {
+  const { status, body } = await answer(res);
+  return status !== 200 || body.ok !== true;
+};
 const branchTip = (fx: BranchFixture) => git(fx.origin, "rev-parse", fx.branch);
 const lastTouch = (fx: BranchFixture, ref: string, file = "1-description.md") =>
   git(fx.origin, "log", "-1", "--format=%H", ref, "--", specRelPath(SPEC, file));
@@ -75,7 +78,7 @@ describe("a spec with a branch of its own", () => {
     const first = await draw(base, DESCRIPTION_TAB);
 
     const firstSave = await post(base, { text: `${textareaText(first)}First change.\n`, baseSha: baseShaOf(first) });
-    expect(failed(firstSave)).toBe(false);
+    expect(await failed(firstSave)).toBe(false);
 
     const second = await draw(base, DESCRIPTION_TAB);
     expect(textareaText(second)).toContain("First change.");
@@ -83,7 +86,7 @@ describe("a spec with a branch of its own", () => {
     expect(stampedSha7(second)).not.toBe(stampedSha7(first));
 
     const secondSave = await post(base, { text: `${textareaText(second)}Second change.\n`, baseSha: baseShaOf(second) });
-    expect(failed(secondSave)).toBe(false);
+    expect(await failed(secondSave)).toBe(false);
     const onBranch = onOrigin(fx, fx.branch, SPEC, "1-description.md");
     expect(onBranch).toContain("As the branch has it.");
     expect(onBranch).toContain("First change.");
@@ -96,7 +99,7 @@ describe("a spec with a branch of its own", () => {
     expect(acceptanceRequiredShown(await draw(base, ANALYSIS_TAB))).toBe(true);
 
     const saved = await post(base, { acceptanceEditable: "1" }, TRACKING);
-    expect(failed(saved)).toBe(false);
+    expect(await failed(saved)).toBe(false);
 
     expect(acceptanceRequiredShown(await draw(base, ANALYSIS_TAB))).toBe(false);
     expect(acceptanceRequiredShown(await draw(base, DESCRIPTION_TAB))).toBe(false);
@@ -105,7 +108,7 @@ describe("a spec with a branch of its own", () => {
   test("a second banner Save, with the switch as the page shows it, keeps the Acceptance line (AC-2)", async () => {
     const { base, fx } = withBranch(tracked("As the branch has it."));
     await draw(base, ANALYSIS_TAB);
-    expect(failed(await post(base, { acceptanceEditable: "1" }, TRACKING))).toBe(false);
+    expect(await failed(await post(base, { acceptanceEditable: "1" }, TRACKING))).toBe(false);
 
     const page = await draw(base, ANALYSIS_TAB);
     const again = await post(
@@ -114,7 +117,7 @@ describe("a spec with a branch of its own", () => {
       TRACKING,
     );
 
-    expect(failed(again)).toBe(false);
+    expect(await failed(again)).toBe(false);
     expect(onOrigin(fx, fx.branch, SPEC, "1-description.md")).toContain("- **Acceptance:** not required");
   });
 
@@ -138,7 +141,7 @@ describe("a spec with no branch of its own", () => {
     expect(acceptanceRequiredShown(html)).toBe(false);
 
     const saved = await post(base, { text: `${textareaText(html)}Saved on main.\n`, baseSha: baseShaOf(html) }, SAVE);
-    expect(failed(saved)).toBe(false);
+    expect(await failed(saved)).toBe(false);
     expect(git(fx.origin, "show", `main:${specRelPath(SPEC, "1-description.md")}`)).toContain("Saved on main.");
     expect(readFileSync(descriptionPath(dir), "utf-8")).toContain("Saved on main.");
   });

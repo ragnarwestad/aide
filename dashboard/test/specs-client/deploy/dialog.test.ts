@@ -20,12 +20,11 @@ const deployForm = (): string => {
   return html.match(/<form[^>]*class="deployform"[\s\S]*?<\/form>/)![0];
 };
 
-function page(withShowModal = true) {
+function page() {
   const window = new Window();
   window.document.body.innerHTML = `<main><div class="deploypanel">${deployForm()}</div></main>`;
   const form = window.document.querySelector("form") as unknown as HTMLFormElement;
   const dialog = window.document.querySelector("dialog[data-deploy-dialog]") as unknown as HTMLDialogElement;
-  if (!withShowModal) (dialog as { showModal?: unknown }).showModal = undefined;
   const state = (step: string): string | undefined =>
     (window.document.querySelector(`[data-step="${step}"]`) as HTMLElement | null)?.dataset.state;
   const submit = (io: DeployIo) => {
@@ -262,12 +261,5 @@ describe("submitDeploy", () => {
     expect(shown?.classList.contains("deploy-fault")).toBe(true);
     expect(textOf((shown ?? undefined) as unknown as Element | undefined)).toContain("did not answer");
     expect(io.reloads).toBe(0);
-  });
-
-  test("with no showModal the form posts natively (AC-1)", async () => {
-    const { submit } = page(false);
-    const { event, done } = submit(fakeIo());
-    await done;
-    expect(event.defaultPrevented).toBe(false);
   });
 });

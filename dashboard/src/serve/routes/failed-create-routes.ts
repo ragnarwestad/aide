@@ -6,7 +6,7 @@ import type { RoutesContext } from "./";
 
 const DISMISS = /^\/api\/queue\/failed-creates\/([^/]+)\/dismiss$/;
 
-export function failedCreateRoutes(ctx: RoutesContext, req: Request, path: string, wantsJson: boolean): Response | null {
+export function failedCreateRoutes(ctx: RoutesContext, req: Request, path: string): Response | null {
   const m = DISMISS.exec(path);
   if (!m) return null;
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
@@ -17,5 +17,5 @@ export function failedCreateRoutes(ctx: RoutesContext, req: Request, path: strin
     return json({ ok: false, error: "no such message" }, 404);
   }
   if (!ctx.push.failedCreates.dismiss(id)) return json({ ok: false, error: "no such message" }, 404);
-  return wantsJson ? json({ ok: true }) : new Response(null, { status: 303, headers: { location: "/" } });
+  return json({ ok: true });
 }

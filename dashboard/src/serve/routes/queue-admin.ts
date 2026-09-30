@@ -1,22 +1,17 @@
 // The queue-creation and project-admin API routes: create, the
-// queue's model defaults, and add/settings/deploy/remove
+// queue's model defaults, and add/settings/remove
 // for a project. Extracted from routes.ts (split of split
 // serve.ts step 2).
 import { realpathSync } from "node:fs";
 import { join } from "node:path";
-import { renderSentence } from "../../i18n/message.ts";
-import { fastForwardToOrigin } from "../../git/branch-merge.ts";
 import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardSettingsFile } from "../../git/dashboard-checkout.ts";
 import { MAIN_TEST_SERVER_KEY, restartMainTestServer, stopTestServer } from "../test-servers/lifecycle.ts";
 import { testServerFailedPage } from "./spec-edit/test-server-waiting.ts";
-import { landingJobNames } from "../land-branch";
-import { resolveInstallCmd } from "../../project/discover";
-import { SETTING_LABELS } from "../../project/setting-labels.ts";
 import { listedModelName } from "../../queue/model-name.ts";
 import { persistQueueSettings } from "../../queue/queue.ts";
 import { addProject, assessProjectReadiness, commitManifestEdits, projectNameError, removeProject, updateProjectSettings } from "../../project/project-admin";
-import { NEW_SPEC_ROUTE, SETTINGS_ROUTE, SETTINGS_STEPS, resolveBackHref } from "../../render";
-import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../serve-helpers";
+import { SETTINGS_STEPS } from "../../render";
+import { bodyToObject, json, readBounded } from "../serve-helpers";
 import { CHECKABLE_TOOLS, checkTool, isCheckableTool, recordCheck } from "../tool-check.ts";
 import type { RoutesContext } from "./";
 
@@ -24,7 +19,6 @@ export async function handleQueueAdminRoutes(
   ctx: RoutesContext,
   req: Request,
   path: string,
-  wantsJson: boolean,
 ): Promise<Response | null> {
   if (path === "/api/queue/create") {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
@@ -37,18 +31,9 @@ export async function handleQueueAdminRoutes(
       return json({ error: "malformed body" }, 400);
     }
     const result = ctx.queue.enqueueCreate(raw);
-    // The two no-JS answers go to different pages on purpose (spec
-    // 121). A refusal goes back to the page the form is ON, where
-    // what was typed can be corrected — the same rule the Projects
-    // panel's own routes follow. A success goes to the list, because
-    // the thing the reader asked for is a row on it.
-    if (!result.ok) {
-      return wantsJson
-        ? json({ error: result.error }, 400)
-        : specsRedirect(raw, { error: result.error }, NEW_SPEC_ROUTE);
-    }
+    if (!result.ok) return json({ error: result.error }, 400);
     await ctx.tickRunner();
-    return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect(raw, undefined, "/");
+    return json({ ok: true, job: result.job });
   }
 
   // Asking one tool whether it is usable on this host. A GET never runs
@@ -63,13 +48,7 @@ export async function handleQueueAdminRoutes(
     catch { return json({ error: "malformed body" }, 400); }
     const tool = (raw as Record<string, unknown> | null)?.tool;
     if (!isCheckableTool(tool)) {
-      const error = `unknown tool: the checkable ones are ${CHECKABLE_TOOLS.join(", ")}`;
-      return wantsJson
-        ? json({ error }, 400)
-        : new Response(null, {
-            status: 303,
-            headers: { location: `${SETTINGS_ROUTE}?error=${encodeURIComponent(error)}` },
-          });
+      return json({ error: `unknown tool: the checkable ones are ${CHECKABLE_TOOLS.join(", ")}` }, 400);
     }
     // Only this tool's own models: asking OpenCode whether a Claude
     // model is in its list would report every one of them missing.
@@ -79,9 +58,7 @@ export async function handleQueueAdminRoutes(
       .filter((model): model is string => typeof model === "string" && model.length > 0);
     const check = await checkTool(tool, { configuredModels });
     recordCheck(check);
-    return wantsJson
-      ? json({ ok: true, check })
-      : new Response(null, { status: 303, headers: { location: `${SETTINGS_ROUTE}?tab=${tool}` } });
+    return json({ ok: true, check });
   }
 
   // Matched by string equality, so it and the check route above cannot
@@ -95,9 +72,7 @@ export async function handleQueueAdminRoutes(
     catch { return json({ error: "malformed body" }, 400); }
     const asked = raw as Record<string, unknown> | null;
     const models = asked?.model;
-    const refuse = (error: string) => wantsJson
-      ? json({ error }, 400)
-      : new Response(null, { status: 303, headers: { location: `${SETTINGS_ROUTE}?error=${encodeURIComponent(error)}` } });
+    const refuse = (error: string) => json({ error }, 400);
     if (!ctx.opts.queueConfigFile) return refuse("this server has no queue config file");
     if (!models || typeof models !== "object" || Array.isArray(models)) return refuse("model defaults are missing");
     const table = models as Record<string, unknown>;
@@ -146,9 +121,7 @@ export async function handleQueueAdminRoutes(
     if (error) return refuse(error);
     ctx.queue.defaults.model = merged;
     ctx.queue.defaults.timeoutSec = { ...ctx.queue.defaults.timeoutSec, ...timeoutSec };
-    return wantsJson
-      ? json({ ok: true, model: next, timeoutSec })
-      : new Response(null, { status: 303, headers: { location: `${SETTINGS_ROUTE}?notice=${encodeURIComponent("Defaults saved")}` } });
+    return json({ ok: true, model: next, timeoutSec });
   }
 
   if (path === "/api/queue/projects") {
@@ -176,8 +149,6 @@ export async function handleQueueAdminRoutes(
         "add-project",
         name,
         [{ step: "name", ok: false, error: "this server was started without --root, so it has no projects root to add to" }],
-        raw,
-        wantsJson,
       );
     }
     const result = await addProject(ctx.gitRun, ctx.opts.projectRoot, {
@@ -222,7 +193,7 @@ export async function handleQueueAdminRoutes(
     // nothing to assess in a clone that never happened, and a
     // readiness answer about a project that was not added would be an
     // answer about somebody else's directory.
-    return ctx.answerProjectChange("add-project", name, steps, raw, wantsJson, readiness);
+    return ctx.answerProjectChange("add-project", name, steps, readiness);
   }
 
   const settingsPost = path.match(/^\/api\/queue\/projects\/([^/]+)\/settings$/);
@@ -242,8 +213,6 @@ export async function handleQueueAdminRoutes(
         "project-settings",
         name,
         [{ step: "name", ok: false, error: `"${name}" is not a project this dashboard knows` }],
-        raw,
-        wantsJson,
       );
     }
     const asked = (raw ?? {}) as Record<string, unknown>;
@@ -297,75 +266,7 @@ export async function handleQueueAdminRoutes(
           ),
         )
       : result.readiness;
-    return ctx.answerProjectChange("project-settings", name, result.steps, raw, wantsJson, readiness);
-  }
-
-  const deployPost = path.match(/^\/api\/queue\/projects\/([^/]+)\/deploy$/);
-  if (deployPost) {
-    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-    const name = decodeURIComponent(deployPost[1]!);
-    const body = await readBounded(req);
-    if ("refusal" in body) return body.refusal;
-    const refuse = (error: string): Response => {
-      logRefusal("project-deploy", name, error);
-      return wantsJson
-        ? json({ ok: false, error }, 400)
-        : new Response(null, {
-            status: 303,
-            headers: {
-              location: `/projects/${encodeURIComponent(name)}?deployError=${encodeURIComponent(error)}&tab=deploy`,
-            },
-          });
-    };
-    if (!ctx.opts.projectRoot || !ctx.allowed.has(name)) {
-      return refuse(`"${name}" is not a project this dashboard knows`);
-    }
-    ctx.setDeployFailure(name, null);
-    const root = ctx.machineryProjectDir(name);
-    if (!resolveInstallCmd(root).value) {
-      return refuse(`${name} has no ${SETTING_LABELS.AIDE_INSTALL_CMD.toLowerCase()} configured — deploying stays a hand step`);
-    }
-    const base = await ctx.branchStatus.defaultBranch(root);
-    if (!base) return refuse(`cannot work out the default branch in ${root}`);
-    const result = await ctx.mergeLock.run(root, () => fastForwardToOrigin(ctx.gitRun, root, base));
-    if (!result.ok) return refuse(renderSentence("en", result.error) ?? `cannot bring ${root} up to date`);
-    const after = await ctx.deploy.installAfterMerge(result);
-    // Fresh, not cached: the checkout just moved, and the next reader
-    // of this project's page must not see the old count for up to
-    // driftPollMs longer.
-    await ctx.branchStatus.commitsBehindOrigin(root, true);
-    // The answer is composed first and the restart fired after it: a
-    // restart awaited in here landed before the answer went out, and
-    // the page read "the request failed" for a deploy that had
-    // succeeded (2026-09-03). `restarting` tells the page to wait for
-    // the service to come back before it reloads; `restartWaiting`
-    // (spec 385) names the jobs holding that restart back instead, when
-    // there are any — the two never both appear.
-    const restartWaiting = after.restart ? landingJobNames(ctx.queue) : [];
-    if (restartWaiting.length > 0) ctx.setPendingRestart(restartWaiting);
-    const restarting = !!after.restart && restartWaiting.length === 0;
-    let response: Response;
-    if (result.installError) {
-      const installErrorText = renderSentence("en", result.installError)!;
-      console.error(`queue: deploy ${name} in ${root} — ${installErrorText}`);
-      response = wantsJson
-        ? json({ ok: true, installError: installErrorText, restarting, ...(restartWaiting.length > 0 && { restartWaiting }) })
-        : new Response(null, {
-            status: 303,
-            headers: {
-              location: `/projects/${encodeURIComponent(name)}?deployError=${encodeURIComponent(installErrorText)}&tab=deploy`,
-            },
-          });
-    } else {
-      response = wantsJson
-        ? json({ ok: true, restarting, ...(restartWaiting.length > 0 && { restartWaiting }) })
-        : new Response(null, {
-            status: 303,
-            headers: { location: `/projects/${encodeURIComponent(name)}?tab=deploy` },
-          });
-    }
-    after.restart?.();
-    return response;
+    return ctx.answerProjectChange("project-settings", name, result.steps, readiness);
   }
 
   // AC-3/AC-5/AC-6: the Deploy tab's "Testserver med testspecene" button.
@@ -401,9 +302,7 @@ export async function handleQueueAdminRoutes(
   // under `MAIN_TEST_SERVER_KEY` — it has no real spec to be scoped to, so it
   // cannot reach `board-controls.ts`'s spec-scoped route. That row's form
   // carries `class="actionform"` (test-servers-page.ts), which IS posted
-  // through `specs-client.ts`'s XHR — unlike the start route above — so
-  // this one answers `wantsJson` the same way `board-controls.ts`'s own
-  // stop route does, rather than always redirecting.
+  // through `specs-client.ts`'s XHR — unlike the start route above.
   const testServerStop = path.match(/^\/api\/queue\/projects\/([^/]+)\/test-server\/stop$/);
   if (testServerStop) {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
@@ -414,25 +313,7 @@ export async function handleQueueAdminRoutes(
       return new Response("no such project\n", { status: 404 });
     }
     stopTestServer(ctx.testServers, name, MAIN_TEST_SERVER_KEY, "the Stop button on the Deploy tab");
-    // Back to the page the form was posted from, not to a fixed one:
-    // the Test servers list posts this same route with no script, and a
-    // reader who stopped a board there was taken off the page they were
-    // standing on. `resolveBackHref` follows a same-origin `Referer`
-    // only — a reflected redirect is an open-redirect surface — and
-    // falls back to the Deploy tab, where this route's only other
-    // caller lives.
-    return wantsJson
-      ? json({ ok: true })
-      : new Response(null, {
-          status: 303,
-          headers: {
-            location: resolveBackHref(
-              req.headers.get("referer"),
-              new URL(req.url).origin,
-              `/projects/${encodeURIComponent(name)}?tab=deploy`,
-            ),
-          },
-        });
+    return json({ ok: true });
   }
 
   const removal = path.match(/^\/api\/queue\/projects\/([^/]+)\/remove$/);
@@ -441,15 +322,14 @@ export async function handleQueueAdminRoutes(
     const name = decodeURIComponent(removal[1]!);
     const body = await readBounded(req);
     if ("refusal" in body) return body.refusal;
-    let raw: unknown;
     try {
-      raw = bodyToObject(body.text, req.headers.get("content-type"));
+      bodyToObject(body.text, req.headers.get("content-type"));
     } catch {
       return json({ error: "malformed body" }, 400);
     }
     const nameError = projectNameError(name);
     if (nameError) {
-      return ctx.answerProjectChange("remove-project", name, [{ step: "name", ok: false, error: nameError }], raw, wantsJson);
+      return ctx.answerProjectChange("remove-project", name, [{ step: "name", ok: false, error: nameError }]);
     }
     const result = removeProject(ctx.allowed, { name });
     const steps = [...result.steps];
@@ -460,7 +340,7 @@ export async function handleQueueAdminRoutes(
       // write, rather than reporting the one thing twice.
       steps[steps.length - 1] = ctx.persistAllowlist("removed from the allowlist");
     }
-    return ctx.answerProjectChange("remove-project", name, steps, raw, wantsJson);
+    return ctx.answerProjectChange("remove-project", name, steps);
   }
 
   return null;

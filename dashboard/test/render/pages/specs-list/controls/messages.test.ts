@@ -79,41 +79,6 @@ describe("spec 143: a long message gets a panel row of its own", () => {
       expect(wholeRow(html)).not.toContain("the specs tree is dirty");
     }
   });
-
-  // --- spec 151: the third producer ------------------------------------------
-  //
-  // The queue's own refusal of a press ("analyze on 150-… is already
-  // running (job 03238f57) — cancel that one first"). It is returned at
-  // enqueue time, before any job exists to carry it, so it reaches the
-  // page on the query string instead — and spec 143 left it behind in
-  // the name cell, where it pushed the branch marks and the title
-  // around.
-  const REFUSAL =
-    "analyze on 150-one-page-shows-the-whole-spec is already running (job 03238f57) — " +
-    "cancel that one first if you want to start over";
-
-  test("the refusal outranks the spec's own held-back note", () => {
-    const html = rows([], [target("150-one-page", { done: BUILT, archiveHeldBack: { reason: REASON } })], true, {
-      error: REFUSAL,
-      errorSpec: "aide/150-one-page",
-    });
-    expect(panel(html)).toContain("is already running (job 03238f57)");
-    expect(panel(html)).not.toContain("hand ticks survive");
-  });
-
-  // A refused press on a row whose job is RUNNING is the whole of the
-  // incident: the panel is otherwise blank while something is in
-  // flight, and blanking this would put the reader back where they
-  // started — a press that said nothing.
-  test("a running job does not swallow the refusal", () => {
-    const html = rows(
-      [row({ id: "live", specFolder: "150-one-page", steps: ["analyze"], state: "running" })],
-      [target("150-one-page")],
-      true,
-      { error: REFUSAL, errorSpec: "aide/150-one-page" },
-    );
-    expect(panel(html)).toContain("is already running (job 03238f57)");
-  });
 });
 
 // --- spec 143: the held-back note belongs to the archive row alone -----------

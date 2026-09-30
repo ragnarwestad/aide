@@ -1,5 +1,5 @@
-// Spec 500: the rows carry an unfolded phase's messages, follow the
-// transcript as it grows, and every press keeps the fold in the address.
+// Spec 500: the rows carry an unfolded phase's messages and follow the
+// transcript as it grows.
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
@@ -44,19 +44,5 @@ describe("GET /?rows=1&phases=…", () => {
     const second = await (await fetch(url)).text();
     expect(second.indexOf("second message")).toBeGreaterThan(second.indexOf("first message"));
     expect(second).toMatch(/<a class="fold[^"]*"[^>]*aria-expanded="true"/);
-  });
-});
-
-describe("a press on the row keeps the fold (AC-3)", () => {
-  test("a form that carries view.phases is redirected to an address with phases= (AC-3)", async () => {
-    const { base } = harness.start();
-    const res = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      redirect: "manual",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ project: "aide", specFolder: FOLDER, steps: "analyze", "view.phases": KEY }).toString(),
-    });
-    const location = res.headers.get("location") ?? "";
-    expect(location).toContain(`phases=${encodeURIComponent(KEY)}`);
   });
 });

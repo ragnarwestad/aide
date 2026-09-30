@@ -139,7 +139,7 @@ export function languageChoice(
   return { lang: stored && (LANGUAGES as string[]).includes(stored) ? (stored as Language) : "en", currentUrl };
 }
 
-// A body may arrive as JSON (API) or urlencoded (a no-JS form).
+// A body may arrive as JSON (API) or urlencoded (a form the page posts).
 export function bodyToObject(text: string, contentType: string | null): unknown {
   if ((contentType ?? "").includes("application/x-www-form-urlencoded")) {
     const params = new URLSearchParams(text);
@@ -162,7 +162,7 @@ export function bodyToObject(text: string, contentType: string | null): unknown 
     // posts one field per phase — `model.<step>`. A urlencoded body
     // cannot carry a nested object, and this is the one seam every form
     // on the page passes through (`postForm` in specs-client.ts always
-    // urlencodes, and the no-JS fallback does too), so the dotted keys
+    // urlencodes), so the dotted keys
     // are folded back into one object here.
     //
     // A select left on "default" posts an EMPTY value, which every

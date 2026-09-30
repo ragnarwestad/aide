@@ -328,13 +328,17 @@ export function harness(
 
   /** The type of every event the script dispatches on the document. */
   const dispatched: string[] = [];
+  /** The list's own line above the rows, where a refusal naming no spec
+   *  on the list is written (`row-refusal/`); its words are the span. */
+  const listRefused = { textContent: "" };
+  const listRefusedLine = { querySelector: (sel: string) => (sel === "span" ? listRefused : null) };
   const document = {
     // Spec 204: a row's own anchor id resolves too. `rowAnchorId()` is
     // already on every head row for the sake of `href="#..."`, and the
     // per-group diff reaches a group through it — so a fake that
     // answered only `"jobrows"` could not run the code under test at
     // all.
-    getElementById: (id: string) => (id === "jobrows" ? rows : table.byId(id)),
+    getElementById: (id: string) => (id === "jobrows" ? rows : id === "list-refused" ? listRefusedLine : table.byId(id)),
     // `.phases` answers with ANOTHER row's boxes on purpose: a press
     // must reach its own row's boxes and no others, so a document-wide
     // lookup has to be visibly wrong rather than accidentally right.
@@ -435,6 +439,8 @@ export function harness(
   );
 
   return {
+    /** The words in the list's own refusal line. */
+    listRefused,
     /** The row node wearing that anchor id, right now (spec 204). The
      *  same object across a redraw is what proves the redraw left it
      *  alone; a different one proves it was replaced. */

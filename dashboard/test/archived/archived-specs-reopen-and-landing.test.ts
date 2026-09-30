@@ -12,22 +12,6 @@ const STILL_ON_ORIGIN = "its branch is still on origin — re-run archive";
 
 afterEach(() => harness.cleanup());
 
-// --- spec 224: a Reopen the server turns down --------------------------------
-
-describe("a failed Reopen", () => {
-  // The old flat row bypassed `specNoticeRow` altogether, so a refusal
-  // had nowhere on the list to be read. Routed through the shared row
-  // body, an archived row gets the panel every other row has.
-  test("says why, on the row it was pressed on", async () => {
-    const key = `aide/${STAMPED}`;
-    const html = await specsList(
-      start().base,
-      `${ARCHIVED_VIEW}&error=${encodeURIComponent("already reopened")}&errorSpec=${encodeURIComponent(key)}`,
-    );
-    expect(blockFor(html, STAMPED)).toContain("Already reopened");
-  });
-});
-
 // --- criterion 4: spec 193's mark carries over ------------------------------
 //
 // Three specs reached the archive with their code still on a branch,
@@ -78,33 +62,5 @@ describe("an archived spec whose branch is still on origin", () => {
     // guess at how long a tick takes, and the weakest wait in this file.
     await Bun.sleep(200);
     expect((await specsList(base, ARCHIVED_VIEW)).toLowerCase()).not.toContain(STILL_ON_ORIGIN);
-  });
-});
-
-// --- criterion 9: where Reopen lands the reader ----------------------------
-
-describe("pressing Reopen", () => {
-  /** The row's own form, submitted the way a browser with no script
-   *  would submit it: url-encoded, and no redirect followed. */
-  const press = (base: string, fields: Record<string, string>) =>
-    fetch(`${base}/api/queue`, {
-      method: "POST",
-      redirect: "manual",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ project: "aide", specFolder: STAMPED, steps: "reopen", ...fields }),
-    });
-
-  test("from the list lands back on the list, filter kept (criterion 9)", async () => {
-    const { base } = start();
-    const res = await press(base, { fromList: "1", "view.state": "archived" });
-    expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe("/?state=archived");
-  });
-
-  test("from the spec's own page still lands there", async () => {
-    const { base } = start();
-    const res = await press(base, {});
-    expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe(`/specs/aide/${STAMPED}`);
   });
 });

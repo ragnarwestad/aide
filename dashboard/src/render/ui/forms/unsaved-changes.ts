@@ -34,9 +34,8 @@
   document.addEventListener("input", markDirty);
   document.addEventListener("change", markDirty);
 
-  // Save: any submit of a tracked form, whether AJAX-intercepted
-  // (settings-page.ts) or left to the browser's own 303 redirect (the
-  // document tabs).
+  // Save: any submit of a tracked form, which the page script posts
+  // (settings-page.ts, the document tabs).
   document.addEventListener("submit", (event: Event) => {
     const form = event.target as Element | null;
     if (form?.closest?.(TRACKED)) dirty = false;

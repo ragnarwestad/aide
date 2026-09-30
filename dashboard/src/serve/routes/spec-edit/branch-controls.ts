@@ -1,9 +1,8 @@
 // Delete branch: the one control an archived row carries when its spec's
 // branch merged but is still on origin — one of the families
 // `handleSpecEditRoutes` asks in turn, shaped like close-controls.ts.
-// JSON for the page script, a redirect back to the list for a form with
-// no script.
-import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../../serve-helpers";
+// JSON for the page script.
+import { bodyToObject, json, logRefusal, readBounded } from "../../serve-helpers";
 
 import { landingInProject } from "../../../queue/queue.ts";
 import type { RoutesContext } from "..";
@@ -12,7 +11,6 @@ export async function branchControlRoutes(
   ctx: RoutesContext,
   req: Request,
   path: string,
-  wantsJson: boolean,
 ): Promise<Response | null> {
   const deletePost = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/delete-branch$/);
   if (!deletePost) return null;
@@ -20,16 +18,15 @@ export async function branchControlRoutes(
   const [, project, specFolder] = deletePost;
   const sent = await readBounded(req);
   if ("refusal" in sent) return sent.refusal;
-  let body: unknown = {};
   try {
-    if (sent.text) body = bodyToObject(sent.text, req.headers.get("content-type"));
+    if (sent.text) bodyToObject(sent.text, req.headers.get("content-type"));
   } catch {
     return json({ error: "malformed body" }, 400);
   }
   const spec = `${project}/${specFolder}`;
   const refuse = (error: string): Response => {
     logRefusal("delete-branch", spec, error);
-    return wantsJson ? json({ error, spec }, 400) : specsRedirect(body, { error, spec });
+    return json({ error, spec }, 400);
   };
   const ref = ctx.specRef(project!, specFolder!);
   if (!ref) return new Response("not found", { status: 404 });
@@ -47,5 +44,5 @@ export async function branchControlRoutes(
   ctx.invalidateScan();
   ctx.notifyQueueChanged();
   if (!result.ok) return refuse(result.error);
-  return wantsJson ? json({ ok: true }) : specsRedirect(body);
+  return json({ ok: true });
 }

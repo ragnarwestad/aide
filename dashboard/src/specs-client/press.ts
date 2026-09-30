@@ -1,6 +1,7 @@
 // Post a form as JSON-wanting XHR and lock the row while it is out —
 // the one press mechanism every button and select on this page shares.
 
+import { clearRefusal } from "./row-refusal";
 import { press } from "./state.ts";
 
 /** Every form in `#jobrows` this file speaks for. They differ in what
@@ -28,14 +29,20 @@ export interface ActionResult {
    *  the same shape, per repo, until spec 149 removed it. */
   results?: { error?: string }[];
   /** An Add that SUCCEEDED and still has something to say: whether a
-   *  run can start in the project it just registered (spec 138). The
-   *  server writes the sentence — the same one its own redirect carries
-   *  for a browser with no script — so there is one wording, not two. */
+   *  run can start in the project it just registered (spec 138). */
   readiness?: { canRun?: boolean; note?: string };
+  /** The project a project route answered for (`answerProjectChange`). */
+  project?: string;
   /** The job a queue request started, for a caller that waits for it. */
   job?: { id?: string };
   /** Where a saved schedule entry goes next: the page it was opened from. */
   location?: string;
+  /** What a press that went through says about itself ("saved
+   *  1-description.md", "already up to date"). */
+  note?: string;
+  /** False for a press that went through and changed nothing, so the
+   *  page has nothing new to load. */
+  changed?: boolean;
 }
 
 /** Why the server said no, whichever shape it said it in: the project
@@ -123,9 +130,7 @@ export function rowControls(form: HTMLFormElement): Control[] {
  *  has to change something the instant it happens.
  *
  *  The form's own fields go with it. Cancel needs none — but Run IS its
- *  fields (the phases ticked, the model, the other repos), and
- *  the hidden view fields are what the server rebuilds the reader's
- *  filter from on the no-JS path. */
+ *  fields (the phases ticked, the model, the other repos). */
 export async function postForm(
   form: HTMLFormElement,
   onOk: (body: ActionResult | null) => Promise<void> | void,
@@ -153,6 +158,8 @@ export async function postForm(
    *  holds them, and re-enabling those would offer a choice the server
    *  has already refused. */
   const before = controls.map((el) => [el, el.disabled] as const);
+  // A new press: whatever the last one on the list was refused for is over.
+  clearRefusal();
   press.inFlight += 1;
   press.pressGen += 1;
   // SOMETHING has to change the moment it is pressed. The work behind

@@ -12,7 +12,7 @@ import { esc, relTimeLabel } from "../../ui/html.ts";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { t } from "../../../i18n";
 import { pickTab, tabBar, tabbedBody } from "../job-page";
-import { scheduleControlCells } from "../schedule-page/controls.ts";
+import { SCHEDULE_REFUSED_LINE, scheduleControlCells } from "../schedule-page/controls.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { scheduleEditPath, scheduleNewPath, schedulePagePath } from "../schedule-page";
 import { modelFlag } from "../schedule-page/model-flag.ts";
@@ -21,6 +21,7 @@ import { projectDescription } from "./overview-list.ts";
 import { PROJECTS_ROUTE, projectPagePath } from "./routes.ts";
 import { unifiedSettingsTable } from "./settings-table.ts";
 import { wikiSection } from "./wiki-section.ts";
+import { reloadMarker } from "../spec-page/tabs.ts";
 import type { ProjectPageOptions, ProjectView } from "./types.ts";
 
 /** The drift sentence's own ending (spec 258), naming the Deploy button
@@ -32,7 +33,7 @@ import type { ProjectPageOptions, ProjectView } from "./types.ts";
  *  in the seconds before the first poll returns — a restart's own first
  *  page load, every time. Long enough for a `git fetch` to finish,
  *  short enough that nobody reads the stale sentence twice. */
-const AWAITING_DRIFT_REFRESH_SECONDS = 5;
+export const AWAITING_DRIFT_REFRESH_SECONDS = 5;
 
 /** Shared by `deploySection` and `testServerSection`: the Deploy tab's own
  *  panel wrapper, empty content drawing nothing at all. */
@@ -90,16 +91,16 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
   // Shown wherever `drift` is defined — the same scope the original
   // function gave it (never in the ungated branch above, which a
   // deploy press could not have been refused FROM in the first place).
-  // The kept failure names its step; the address's error is the no-script
-  // redirect's. Both carry `deploy-error`, the class a press removes.
+  // The kept failure names its step, and carries `deploy-error`, the
+  // class a press removes.
   const failure = opts.deployFailure;
-  const kept = failure
-    ? t(opts.lang ?? "en", "deploy.failedAt", { step: t(opts.lang ?? "en", STEP_LABEL[failure.step]!), error: failure.error })
-    : undefined;
-  const errorLine =
-    kept || opts.deployError
-      ? rowMessage("failed", kept ?? opts.deployError!, { hook: "refusal deploy-error", tag: "p" })
-      : "";
+  const errorLine = failure
+    ? rowMessage(
+        "failed",
+        t(opts.lang ?? "en", "deploy.failedAt", { step: t(opts.lang ?? "en", STEP_LABEL[failure.step]!), error: failure.error }),
+        { hook: "refusal deploy-error", tag: "p" },
+      )
+    : "";
   const notYetChecked = drift.checkedAt === null;
   const behind = drift.behind;
   // Only "asked, unanswerable" still bails out with no claim and no
@@ -255,10 +256,9 @@ function scheduleSection(project: string, entries: readonly ScheduleEntry[], opt
           })
           .join("") +
         `</tbody></table></div>`;
-  // A refusal of Run now, Enabled or Delete: written here by the browser
-  // code (`schedule-actions.ts`), or by the server when a press with no
-  // script was redirected back with the reason.
-  const slot = messageSlot("refused", "failed", { text: opts.error });
+  // A refusal of Run now, Enabled or Delete, written here by the page
+  // script (`schedule-actions.ts`, `reload-form/`).
+  const slot = messageSlot("refused", "failed", { id: SCHEDULE_REFUSED_LINE });
   // New on the right of the line above the table, as Add is on the
   // Projects list.
   const top = `<div class="listtop">${btnLink({ href: scheduleNewPath(project), label: t(lang, "schedule.new"), variant: "primary" })}</div>`;
@@ -392,8 +392,10 @@ export function renderProjectPage(
   // forms a reload would clear from under someone mid-edit.
   const awaitingDrift = tab === "deploy" && opts.drift?.checkedAt === null;
 
-  const body = tabbedBody(projectDescription(p), tabBar(PROJECT_TABS, base, tab, {}), panel, opts.backHref ?? PROJECTS_ROUTE, p.name);
-  return pageShell(p.name, nav, base, body, generatedAt, awaitingDrift ? AWAITING_DRIFT_REFRESH_SECONDS : undefined, {
+  const body =
+    (awaitingDrift ? reloadMarker(AWAITING_DRIFT_REFRESH_SECONDS) : "") +
+    tabbedBody(projectDescription(p), tabBar(PROJECT_TABS, base, tab, {}), panel, opts.backHref ?? PROJECTS_ROUTE, p.name);
+  return pageShell(p.name, nav, base, body, generatedAt, {
     script: opts.script, scriptSrc: opts.scriptSrc, hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,
   });
 }

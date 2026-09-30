@@ -2,13 +2,13 @@
 // Status. The first three share the editor, Save and JS-off fallback;
 // Status is read-only under its acceptance-criteria form.
 
-import { field, saveCancelActions } from "../../ui/components";
+import { dataAttrs, field, saveCancelActions } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { fileStamp, specFilePanel, type SpecFileView } from "../job-page";
-import { t, type Language } from "../../../i18n";
+import type { Language } from "../../../i18n";
 import { withoutAcceptanceSections } from "../../../project/parse-status";
 import { checklist, drawnAcceptanceRows } from "./overview.ts";
-import { activeJob, EDITABLE_SPEC_FILE, STATUS_SPEC_FILE } from "./tabs.ts";
+import { activeJob, EDITABLE_SPEC_FILE, SPEC_LINES, STATUS_SPEC_FILE } from "./tabs.ts";
 import type { SpecPageView } from "./types.ts";
 
 /** The read-only shape every document tab falls back to: archived, a
@@ -55,21 +55,19 @@ function statusPanel(
  *  future tab that needs one.
  *
  *  Modelled on `new-spec-page.ts`, which is the other page here that is
- *  nothing but a form: same `field()` helper. The
- *  Save-busy behaviour and the Save/Cancel enable-disable both come from
- *  the shell's own head scripts (`form-busy.ts`, `spec-form-actions.ts`),
- *  which listen on `document`, so nothing here has to wire either up. */
+ *  nothing but a form: same `field()` helper. The page script posts it
+ *  (`reloadform`), and the Save/Cancel enable-disable comes from the
+ *  shell's own head script (`spec-form-actions.ts`), so nothing here has
+ *  to wire either up. */
 function editableDocumentForm(
   view: SpecPageView,
   label: string,
   headingHtml: string,
   text: string,
-  lang: Language = "en",
   extra = "",
 ): string {
   return (
-    `<form method="post" action="${esc(view.saveAction)}" class="pageform specform" ` +
-      `data-overlay="${t(lang, "shell.overlaySaving")}">` +
+    `<form method="post" action="${esc(view.saveAction)}" class="pageform specform reloadform"${dataAttrs(SPEC_LINES)}>` +
     // Which file this Save is about (REQ-2) — the allowlist the route
     // checks it against.
     `<input type="hidden" name="file" value="${esc(label)}">` +
@@ -119,7 +117,7 @@ export function documentPanel(
   if (label === STATUS_SPEC_FILE) return statusPanel(view, file, now, lang, mark);
   if (view.archived || activeJob(view)) return readOnlyDocument(file, now, mark);
   const heading = `<h2>${esc(file.label)}${fileStamp(file, now)}${mark}</h2>`;
-  return editableDocumentForm(view, label, heading, file.text, lang);
+  return editableDocumentForm(view, label, heading, file.text);
 }
 
 /** The Description tab (spec 162, moved onto this page by spec 212).
@@ -141,5 +139,5 @@ export function descriptionPanel(view: SpecPageView, now: number, lang: Language
   if (view.archived || activeJob(view)) return documentPanel(view, EDITABLE_SPEC_FILE, now, lang, mark);
   const heading =
     `<h2>${esc(EDITABLE_SPEC_FILE)}${fileStamp(file ?? { label: EDITABLE_SPEC_FILE, text: null }, now)}${mark}</h2>`;
-  return editableDocumentForm(view, EDITABLE_SPEC_FILE, heading, file?.text ?? "", lang);
+  return editableDocumentForm(view, EDITABLE_SPEC_FILE, heading, file?.text ?? "");
 }

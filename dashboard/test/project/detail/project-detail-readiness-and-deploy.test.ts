@@ -156,20 +156,6 @@ describe("the Deploy section on a project's own page (spec 258, spec 407)", () =
     expect(form).toContain('title="This checkout matches origin."');
   });
 
-  // Plan review Risk 4 (3-solution.md): the early-return restructuring
-  // that produced the merged sentence must not silently drop `deployError`
-  // from the states REQ-6 promises stay unchanged.
-  test("a deployError still shows beside an unchecked drift state (REQ-6)", async () => {
-    const root = projectsRoot({ aide: INSTALLS });
-    const base = serve(root, settled(root, "aide"), 0);
-    const html = await (
-      await fetch(`${base}/projects/aide?deployError=${encodeURIComponent("could not deploy")}&tab=deploy`, {
-      })
-    ).text();
-    expect(html).toContain("Could not deploy");
-    expect(html).toContain("Whether this checkout is behind origin has not been checked yet.");
-  });
-
   // Spec 392 (REQ-1, REQ-7): the one state where the panel names what the
   // served commit actually is — how far behind it is, and what the newest
   // change was — rather than a bare hash, because origin itself is still
@@ -460,31 +446,31 @@ describe("the nav does not name the projects", () => {
 // beats the first poll back. The sentence has to correct itself.
 describe("the Deploy tab asks for itself again while the origin answer is missing", () => {
 
-  test("no answer yet: the Deploy tab carries a refresh", async () => {
+  test("no answer yet: the Deploy tab carries the reload marker (AC-5)", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     // Poll off, so the answer never arrives: the same state a page drawn
     // in the seconds after a restart is in.
     const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "deploy")).text();
     expect(html).toContain("has not been checked yet");
-    expect(html).toContain('<meta http-equiv="refresh"');
+    expect(html).toContain("data-reload-every=");
   });
 
   test("no answer yet, but on Config: no refresh, because its forms would be cleared mid-edit", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "config")).text();
-    expect(html).not.toContain('<meta http-equiv="refresh"');
+    expect(html).not.toContain("data-reload-every=");
   });
 
   test("once the answer is there, the Deploy tab stops refreshing", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     const base = serve(root, behindBy(root, "aide", 0), 25);
     const html = await loadUntil(base, "aide", "matches origin", 2000, "deploy");
-    expect(html).not.toContain('<meta http-equiv="refresh"');
+    expect(html).not.toContain("data-reload-every=");
   });
 
   test("a project with no install command has nothing to wait for, so no refresh", async () => {
     const root = projectsRoot({ aide: null });
     const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "deploy")).text();
-    expect(html).not.toContain('<meta http-equiv="refresh"');
+    expect(html).not.toContain("data-reload-every=");
   });
 });

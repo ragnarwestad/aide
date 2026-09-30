@@ -201,7 +201,6 @@ export function unifiedSettingsTable(
   if (editingGroup === null) return `<div class="configtables">${tables.join("")}</div>`;
   return (
     `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/settings" class="pageform projectsettingsform">` +
-    (opts.error ? rowMessage("failed", opts.error, { hook: "refusal", tag: "p" }) : "") +
     // One `.frow` per table (spec 531's reasoning extends to two): each
     // is its own full-width line in `.pageform`'s flex-wrap layout, so
     // the two tables stack rather than squeeze onto one row beside it.

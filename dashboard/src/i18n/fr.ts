@@ -37,7 +37,6 @@ export const fr: Record<TranslationKey, string> = {
   "shell.overlayResetting": "réinitialisation…",
   "shell.overlayClosing": "fermeture…",
   "shell.overlayRemoving": "suppression…",
-  "shell.overlaySaving": "enregistrement…",
   "shell.overlayLoading": "chargement…",
   "shell.loadingPage": "Chargement …",
   "shell.pageFailed": "Un problème est survenu pendant la construction de la page. Recharge la page ; si cela persiste, consulte le journal du tableau de bord sur l'hôte qui le sert.",

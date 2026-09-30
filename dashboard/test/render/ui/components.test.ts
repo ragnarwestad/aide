@@ -4,7 +4,7 @@
 // either shape before this.
 import { describe, expect, test } from "bun:test";
 import {
-  btn, btnLink, buttonForm, foldArrow, ICON_FAILED, ICON_INFO, messageSlot, resolveBackHref,
+  btn, btnLink, buttonForm, foldArrow, ICON_FAILED, messageSlot, resolveBackHref,
 } from "../../../src/render/ui/components";
 import { esc } from "../../../src/render/ui/html.ts";
 import { t } from "../../../src/i18n";
@@ -105,12 +105,9 @@ describe("btnLink()", () => {
 });
 
 describe("messageSlot()", () => {
-  test("starts with a text: announced, with the kind's icon and the words escaped and capitalised (AC-3)", () => {
-    expect(messageSlot("refused", "failed", { text: "bad <b>" })).toBe(
-      `<p class="refused rowmsg failed" aria-live="polite">${ICON_FAILED}<span>Bad &lt;b&gt;</span></p>`,
-    );
-    expect(messageSlot("notice", "info", { text: "Defaults saved" })).toBe(
-      `<p class="notice rowmsg info" aria-live="polite">${ICON_INFO}<span>Defaults saved</span></p>`,
+  test("an id names it, for a form elsewhere on the page to write into (AC-6)", () => {
+    expect(messageSlot("refused", "failed", { id: "spec-refused" })).toBe(
+      `<p id="spec-refused" class="refused rowmsg failed" aria-live="polite">${ICON_FAILED}<span></span></p>`,
     );
   });
 

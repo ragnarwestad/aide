@@ -3,6 +3,7 @@
 // (spec 204).
 
 import { drawLimits } from "./limits";
+import { applyRefusal } from "./row-refusal";
 import { offerEachToItsTool, syncAiToModel } from "./ai-sync.ts";
 import { AWAITING, chosen, chosenSteps, checkboxKey, press, selectKey } from "./state.ts";
 
@@ -296,7 +297,8 @@ function removeGroup(key: string): boolean {
 let lastRows: RowSplit | null = null;
 
 /** What every redraw owes the rows it drew: the limits, the reader's
- *  own picks put back, and each AI's own models offered. */
+ *  own picks put back, each AI's own models offered, and a refusal the
+ *  page is holding written under its row again. */
 function redrawn(body: Element): void {
   drawLimits(body);
   restoreChosen(body);
@@ -304,6 +306,7 @@ function redrawn(body: Element): void {
   // belong to the other tool, and the list has to follow the value
   // that ends up in the select.
   offerEachToItsTool(body);
+  applyRefusal();
 }
 
 /** One spec's rows, after its own › was pressed: the server draws that

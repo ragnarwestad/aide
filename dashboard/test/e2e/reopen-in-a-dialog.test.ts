@@ -136,6 +136,5 @@ describe("Reopen asks in a dialog over the specs list", () => {
     const landed = new URL(page.url());
     expect(landed.pathname).toBe("/");
     expect(landed.searchParams.get("state")).toBe("archived");
-    expect(new URLSearchParams(posts[0]).get("fromList")).toBe("1");
   });
 });

@@ -49,9 +49,7 @@ describe("spec 406, REQ-3/REQ-13: Close POST refuses an empty reason", () => {
     expect(res.status).toBe(400);
   });
 
-  // AC-3: with no fallback close page left to redirect to, a no-script
-  // refusal has to land on the spec page itself, carrying the reason.
-  test("a no-script POST with an empty reason redirects to the spec page with the reason (AC-3)", async () => {
+  test("a form post with an empty reason refuses the same way, in JSON (AC-3)", async () => {
     const { base } = start();
     const res = await fetch(`${base}/api/queue/specs/aide/${folder}/close`, {
       method: "POST",
@@ -59,10 +57,8 @@ describe("spec 406, REQ-3/REQ-13: Close POST refuses an empty reason", () => {
       headers: { "content-type": "application/x-www-form-urlencoded" },
       body: "reason=",
     });
-    expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe(
-      `/specs/aide/${folder}?error=${encodeURIComponent("type a reason to close this spec")}`,
-    );
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toBe("type a reason to close this spec");
   });
 });
 

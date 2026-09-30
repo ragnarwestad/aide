@@ -31,11 +31,9 @@ export interface ScheduleEditPageOptions {
   /** The entry being changed, under the name it is saved as. Absent
    *  when making a new one. */
   editing?: string;
-  /** What the fields hold: the saved entry, the defaults, or what a
-   *  refused save sent. */
+  /** What the fields hold: the saved entry, or the defaults. */
   values: Pick<ScheduleEntry, "name" | "cron" | "prompt" | "model" | "notify">;
   backHref: string;
-  error?: string;
   modelChoices?: ScheduleFormOptions["modelChoices"];
   defaultModels?: ScheduleFormOptions["defaultModels"];
   script?: string;
@@ -57,14 +55,13 @@ export function renderScheduleEditPage(nav: NavEntry[], generatedAt: string, opt
         entry: opts.values,
         action,
         back: opts.backHref,
-        error: opts.error,
         modelChoices: opts.modelChoices,
         defaultModels: opts.defaultModels,
       },
       lang,
     );
-  // No meta refresh: this page is a form, and a refresh wipes what is typed.
-  return pageShell(title, nav, PROJECTS_ROUTE, body, generatedAt, undefined, {
+  // No reload of its own: this page is a form, and a reload wipes what is typed.
+  return pageShell(title, nav, PROJECTS_ROUTE, body, generatedAt, {
     script: opts.script,
     hideHeading: true,
     hideTabBar: true,

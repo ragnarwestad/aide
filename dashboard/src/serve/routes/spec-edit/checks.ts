@@ -24,8 +24,8 @@ import {
   type CheckState,
 } from "../../../project/parse-status";
 import { parseSpecStateText } from "../../../project/parse-spec-state.ts";
-import { STATUS_SPEC_FILE, specTabPath } from "../../../render";
-import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, bodyToObject, json, logRefusal, readBounded, specsRedirect, tickMessage } from "../../serve-helpers";
+import { STATUS_SPEC_FILE } from "../../../render";
+import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, bodyToObject, json, logRefusal, readBounded, tickMessage } from "../../serve-helpers";
 import { STATE_SPEC_FILE, specWriteInFlight, stateRelPath } from "./shared.ts";
 
 import type { RoutesContext } from "..";
@@ -35,7 +35,6 @@ export async function checkRoutes(
   req: Request,
   url: URL,
   path: string,
-  wantsJson: boolean,
 ): Promise<Response | null> {
   const tick = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/tick$/);
   if (tick) {
@@ -44,28 +43,14 @@ export async function checkRoutes(
     const found = ctx.specDir(project!, specFolder!);
     if (!found) return new Response("not found", { status: 404 });
     const dir = await ctx.machinerySpecDir(project!, found);
-    // The Status tab, which is where the boxes are — not the bare spec
-    // path, which spec 294 also made default to Description instead.
-    const back = specTabPath(project!, specFolder!, "status");
-    // A press from the Specs list (spec 493) says so on the action URL,
-    // not in the body: the two refusals below answer before the body is read.
+    // A press from the Specs list (spec 493) says so on the action URL:
+    // it has no file-level base sha to send (see `statusBaseSha` below).
     const fromList = url.searchParams.get("fromList") === "1";
     const spec = `${project}/${specFolder}`;
-    // One answer for the three callers. JSON when asked; the list when the
-    // press came from it (with the view the body carried, once it is read);
-    // the Status tab otherwise.
-    const refuse = (error: string, sent?: unknown): Response =>
-      wantsJson
-        ? json({ error, spec }, 409)
-        : fromList
-          ? specsRedirect(sent, { error, spec })
-          : specsRedirect({}, { error }, back);
-    const succeed = (sent: unknown, notice?: { note: string; ok: boolean }): Response =>
-      wantsJson
-        ? json({ ok: true, note: notice?.note ?? "" })
-        : fromList
-          ? specsRedirect(sent)
-          : specsRedirect({}, undefined, back, notice);
+    const refuse = (error: string): Response => json({ error, spec }, 409);
+    /** `changed` is false for a press that committed nothing, so the page
+     *  can say so instead of loading again. */
+    const succeed = (note: string, changed: boolean): Response => json({ ok: true, note, changed });
     // Before the body is even read: this one WRITES, commits and
     // pushes, and an archived spec's folder is in `archive/`. Hiding
     // the boxes leaves this route reachable for anyone who already
@@ -136,7 +121,7 @@ export async function checkRoutes(
     // Boxes with no phase to read them against is a request that
     // never came from this form.
     if (typeof body.checksPhase !== "string") {
-      return refuse("no phase was submitted — nothing was saved", body);
+      return refuse("no phase was submitted — nothing was saved");
     }
     // REQ-1/REQ-4/REQ-6: the same "is this branch open" question the
     // read side asks (`resolveOpenBranchTarget`) — but FRESH, never the
@@ -186,7 +171,7 @@ export async function checkRoutes(
       const current = state.get(line);
       // A Failed row is never drawn as a box: it leaves that state through Reopen.
       if (current === undefined || current === "failed") {
-        return refuse("that check is not there to change any more — reload the page and look again", body);
+        return refuse("that check is not there to change any more — reload the page and look again");
       }
       // An archived spec is the record of what was judged: a check that was
       // put off may still be completed or marked Failed, and nothing else
@@ -208,10 +193,10 @@ export async function checkRoutes(
       if (target === "failed") {
         const note = failNote(line);
         if (!cleanFailNote(note)) {
-          return refuse("say what did not hold before marking a check Failed — nothing was saved", body);
+          return refuse("say what did not hold before marking a check Failed — nothing was saved");
         }
         if (failNoteTooLong(note)) {
-          return refuse(`the note is over ${FAIL_NOTE_MAX} characters — shorten it and press Save again, nothing was saved`, body);
+          return refuse(`the note is over ${FAIL_NOTE_MAX} characters — shorten it and press Save again, nothing was saved`);
         }
       }
       const next =
@@ -226,14 +211,14 @@ export async function checkRoutes(
       // beside it included — never applied silently while one of them
       // is dropped.
       if (next === null) {
-        return refuse("that check is not there to change any more — reload the page and look again", body);
+        return refuse("that check is not there to change any more — reload the page and look again");
       }
       ticked = next;
     }
     // A press that moved nothing: the reader opened the tab, pressed
     // Save and changed their mind about nothing. Not a refusal, and not
     // a commit either.
-    if (ticked === asRead) return succeed(body);
+    if (ticked === asRead) return succeed("no check was changed — nothing was saved", false);
     // Spec 190: the hold-back note goes with the last check it was
     // waiting on. A declined archive run writes `## Archive held
     // back` naming one open row and where to close it out; ticking
@@ -270,7 +255,7 @@ export async function checkRoutes(
     if (!derived.ok || !derived.stateJson) {
       const reason = derived.error ?? "the state file could not be derived";
       logRefusal("tick", `${project}/${specFolder}`, reason);
-      return refuse(`${reason} — nothing was saved`, body);
+      return refuse(`${reason} — nothing was saved`);
     }
     // A state derived by scripts older than this dashboard has no flag, and
     // would hold archive back on a row the reader has just marked.
@@ -279,7 +264,7 @@ export async function checkRoutes(
     if (notVerifiedCount(derivedRows) < notVerifiedCount(written) || failedCount(derivedRows) < failedCount(written)) {
       const reason = "the installed scripts are older than the dashboard";
       logRefusal("tick", `${project}/${specFolder}`, reason);
-      return refuse(`${reason} — nothing was saved`, body);
+      return refuse(`${reason} — nothing was saved`);
     }
     const currentState = await lastCommitOf(ctx.gitRun, dir, STATE_SPEC_FILE);
     // REQ-4: an open branch writes straight onto `refs/heads/aide/<folder>`
@@ -317,10 +302,10 @@ export async function checkRoutes(
         );
     if (!result.ok) {
       logRefusal("tick", `${project}/${specFolder}`, result.note);
-      return refuse(result.note, body);
+      return refuse(result.note);
     }
     await afterTick(ctx, dir, specFolder!);
-    return succeed(body, { note: result.note, ok: true });
+    return succeed(result.note, (result as { committed?: boolean }).committed !== false);
   }
 
   return null;

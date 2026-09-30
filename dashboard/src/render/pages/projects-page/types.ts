@@ -56,16 +56,10 @@ export interface ProjectPageOptions {
    *  Remove project: a project that was only discovered has nothing to
    *  be removed from. */
   removable?: boolean;
-  error?: string;
   /** This checkout's last drift answer (spec 258), `undefined` when no
    *  `AIDE_INSTALL_CMD` is configured — the same gate `/projects`' own
    *  drift map uses. */
   drift?: ProjectDrift;
-  /** Why the last Deploy press was refused, or what its install step
-   *  reported — carried back in the query string, like `error`. */
-  deployError?: string;
-  /** A refused Build wiki press, carried back to the Wiki tab by the route. */
-  wikiError?: string;
   /** The project's latest wiki build, drawn on the Wiki tab: a build is a
    *  job of the project's, never a row on the Specs list. `error` is its
    *  sentence already in the page's language. */
@@ -83,7 +77,7 @@ export interface ProjectPageOptions {
     steptab?: string;
   };
   /** The step the last Deploy failed at and why, kept by the server until
-   *  the next deploy starts; ranks ahead of `deployError`. */
+   *  the next deploy starts. */
   deployFailure?: { step: string; error: string };
   /** This process's own boot-time commit vs. this checkout's current
    *  HEAD (spec 269) — undefined for every project except the one this

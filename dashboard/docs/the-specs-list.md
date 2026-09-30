@@ -12,7 +12,7 @@
 - [Not verified, and Failed](#not-verified-and-failed)
 - [A phase's own transcript](#a-phases-own-transcript)
 - [Which tests prove a criterion](#which-tests-prove-a-criterion)
-- [Plain forms first](#plain-forms-first)
+- [Forms the page script posts](#forms-the-page-script-posts)
 - [The create line, and the pips](#the-create-line-and-the-pips)
 - [A failed create](#a-failed-create)
 - [Filtering and searching the list](#filtering-and-searching-the-list)
@@ -50,8 +50,8 @@ row refresh treats a spec as its head row and every row up to the next head row 
 swapped away with the spec above it.
 
 Opening is a link, and lives in the query string (`?open=<project>/<folder>,…`). That is what makes it survive
-the table's own row refresh, work with JavaScript switched off, and keep a row the reader just acted on open
-across the redirect that follows their own submit.
+the table's own row refresh, work as an ordinary link, and keep a row the reader just acted on open when the rows are
+drawn again after the press.
 
 An open row reveals the workflow phases underneath, always in that order, so how far a spec has got is readable
 without counting rows. The phase lines sit directly under the row; its message rows — held-back, refusal, info
@@ -199,8 +199,7 @@ for the rule that a new round needs at least one.
 
 **A phase that has run unfolds to its own transcript.** Every phase line of an open row that has run or is running
 starts with a ›. It adds or removes the phase's key, `<project>/<folder>:<step>`, in `?phases=<key>,…`, kept by
-every sort and filter link and every redirect after a press the way `?open=` is, and it is a plain link, so it
-works with script off.
+every sort and filter link the way `?open=` is, and it is a plain link.
 
 The unfolded row starts with a `Model:` line when the step's run reported the id it ran on (a Claude Code step; an
 archived phase reads it from its file's `Model id` line, with the recorded word for the choice), and nothing when it
@@ -221,11 +220,11 @@ from the default branch once archive has merged it. Only lines the branch added 
 many specs. A criterion
 no test names gets an amber line saying so, unless analyze's Notes cell already says `Not tested:` and why.
 
-## Plain forms first
+## Forms the page script posts
 
-Every control here is a plain form first. Ticking phases and pressing the row's button works with JavaScript switched off, and
-so do Cancel and expanding a row — each posts its form and follows a 303 back to the list. `specs-client/` is a
-layer ABOVE that floor, never the mechanism (see [what the script adds](#what-the-script-adds)).
+Every control here is a real form, whose own fields are what a press sends, and the page script posts it: the row's
+button with the phases ticked, Cancel's OK, the checks' Save. Every action answers JSON, which the script reads (see
+[what the script adds](#what-the-script-adds)); expanding a row is a plain link.
 
 **New** is a link to `/new`, a page of its own; the list itself carries no form for making a spec. Such a form
 would need a spec dropdown, and a dropdown could not stay current — the row refresh deliberately replaces the ROWS
@@ -369,8 +368,7 @@ acceptance ticking (`POST /api/queue/specs/<project>/<spec>/tracking`).
 **The Logs tab lists every step from every attempt in one flat list, no picker.** A spec with more than one job for
 the same work round tags each row `Attempt N` (oldest = 1); a single-attempt spec shows no marker at all. There is no
 `?job=`: the tab's own count is the true total across every attempt, not just the latest one's. **Only the Logs tab
-reloads itself**, every ten seconds — by `<meta refresh>` without script, and with script by a timer that skips a
-tick while a dialog is open: it is the one that moves while a step runs, and every other tab
+reloads itself**, every ten seconds, by the page script's timer, which skips a tick while a dialog is open: it is the one that moves while a step runs, and every other tab
 carries a form a timer would wipe. The price is a page only as fresh as the last time it was asked for,
 which is what Update is for.
 
@@ -416,7 +414,8 @@ mark, never its prose.
 ### Saving from the page
 
 `POST /api/queue/specs/<project>/<spec>/save` writes, commits and pushes what the open document tab's own form
-carried, then returns to that tab. ONE commit, ONE file. It writes to the spec's own `aide/<folder>` branch where
+carried, and the page script loads that tab again; a save that committed nothing says so in the line under the banner
+instead. ONE commit, ONE file. It writes to the spec's own `aide/<folder>` branch where
 one is open, and to the specs repo's default branch where none is — the same branch-aware choice `/tick` makes.
 
 `POST /api/queue/specs/<project>/<spec>/tracking` is the banner's own route: what the spec depends on and whether it
@@ -424,7 +423,7 @@ requires acceptance ticking, both merged into `1-description.md`'s Tracking info
 `analyze` has already decided the acceptance half of the question.
 
 `POST /api/queue/specs/<project>/<spec>/tick` is the same for the checks form: `4-status.md` alone, its own
-commit, back to the Status tab. It is a route of its own so that ticking a box does not mean opening the description's editor. A
+commit, the Status tab loaded again. It is a route of its own so that ticking a box does not mean opening the description's editor. A
 tick's new text is computed on the server from the row it verified against the file on disk and never taken from the
 body, so no byte of `4-status.md` outside a Status cell can move. Two guards, not one:
 
@@ -491,17 +490,16 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   FormData(form)` has already read them; writing the spinner in first would silently queue a job with no phases at all.
 - **The answer lands in place.** `#jobrows` is re-fetched and swapped; the page does not reload, does not scroll to the
   top, and does not wipe a control someone is half-way through setting.
-- **A refusal does not navigate either.** The reason and the spec it belongs to are written into the address bar with
-  `history.replaceState` — the same `?error=&errorSpec=` query the server's own 303 would have built — and the rows are
-  re-asked with it, so the message comes back rendered on the spec's own row. The filter, the sort and the fold ride
-  along in that query, which is why a refusal cannot throw the reader back to the default list.
+- **A refusal does not navigate either.** The page script keeps the reason itself and writes it at once in a row of
+  its own under the spec the answer names, copied from a `<template>` the page draws outside `#jobrows`
+  (`specs-client/row-refusal/`). Every redraw of the rows puts it back, whether that spec's rows changed or not, and the
+  next press clears it; a confirm dialog the refused form was posted from is closed first. A refusal naming no spec on
+  the list goes into the list's own line above the rows. The address is left as it is, so the filter, the sort and the
+  fold stay the reader's.
 - **The New-spec form is the one exception, and it is not on this page.** It is the whole of `/new`, so it is bound
   directly rather than by delegation, and there is nothing on that page to keep. A refused create has no row to land
   on — the spec it named was never made — so its reason is written beside the form; a successful one sends the
   browser to the list, where the new job is a row.
-
-Without the script every one of those falls back to a form post and a 303 to the list: slower, and one full page load,
-but functionally complete.
 
 ## The page changes when something changes
 

@@ -110,36 +110,6 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
     expect(html.slice(html.indexOf('action="/api/queue/create"'))).toContain('value="skjer"');
   });
 
-  // Criterion 11, the no-JavaScript half: the result cannot be left in a
-  // response body the redirect throws away.
-  test("a form POST carries the whole readiness answer to the page it lands on", async () => {
-    const { base, dir } = start({ gitRun: readyGit({}, []) });
-    const path = join(dir, "root", "noscript");
-    const res = await fetch(`${base}/api/queue/projects`, {
-      method: "POST",
-      redirect: "manual",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ name: "noscript", gitUrl: "https://example.com/noscript.git", codeLanding: "merge" }),
-    });
-    expect(res.status).toBe(303);
-    const location = res.headers.get("location")!;
-    expect(location.startsWith("/projects?")).toBe(true);
-    const params = new URL(location, base).searchParams;
-    // Not a yes: the colour of the banner follows the answer, and this
-    // project cannot run.
-    expect(params.get("noticeOk")).toBeNull();
-    const notice = params.get("notice")!;
-    // Two things to say at once — the missing specs root, which blocks,
-    // and the unconfigured worktree links, which do not — and BOTH of
-    // them are in the answer the reader lands on.
-    expect(notice).toContain("cannot run yet");
-    expect(notice).toContain(join(path, "specs"));
-    expect(notice).toContain("worktree links");
-    // And the page renders what it was handed.
-    const page = await (await fetch(`${base}${location}`, )).text();
-    expect(page).toContain("cannot run yet");
-  });
-
   // Criterion 7, at the route: the field is new, and an unusable value is
   // a refusal of the add rather than a readiness note.
   // Spec 184 moved this key: it is true of the project on any machine,
@@ -251,19 +221,6 @@ describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
     const otherHtml = await other.text();
     expect(otherHtml).not.toContain('data-ask="removeask"');
     expect(otherHtml).not.toContain("/remove");
-  });
-
-  test("a refusal posted without script goes back to the project's Config tab (AC-3)", async () => {
-    const { base } = start();
-    const res = await fetch(`${base}/api/queue/projects/never-added/remove`, {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: "",
-      redirect: "manual",
-    });
-    expect(res.status).toBe(303);
-    expect(new URL(res.headers.get("location")!, base).pathname + new URL(res.headers.get("location")!, base).search)
-      .toStartWith("/projects/never-added?tab=config");
   });
 
   // Criterion 4, for the second route.

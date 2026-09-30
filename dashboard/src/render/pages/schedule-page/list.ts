@@ -85,9 +85,6 @@ function scheduleHref(f: ScheduleFilter, patch: { q?: string; sort?: string; dir
 export interface ScheduleListOptions {
   rows: readonly SchedulePageRow[];
   filter?: ScheduleFilter;
-  /** A refusal to show in the slot above the table — what a Run now made
-   *  without script was sent back with. */
-  error?: string;
   /** The model names the queue offers. Absent means nothing is flagged. */
   modelNames?: readonly string[];
   lang?: Language;
@@ -180,9 +177,8 @@ export function renderScheduleList(opts: ScheduleListOptions): string {
     visible.length === 0
       ? rowMessage("info", opts.rows.length === 0 ? "No schedule entry exists yet." : `No schedule entry matches "${term}".`)
       : `<div class="tablewrap"><table class="list">${sortableHead(f)}<tbody>${visible.map((r) => row(r, now, opts)).join("")}</tbody></table></div>`;
-  // Always drawn, empty when there is nothing to say: the browser code
-  // writes a refused Run now into it, and a press made without script
-  // arrives with the sentence in `?error=`.
-  const slot = messageSlot("refused", "failed", { text: opts.error });
+  // Always drawn, empty when there is nothing to say: the page script
+  // writes a refused Run now into it.
+  const slot = messageSlot("refused", "failed");
   return searchForm(f) + slot + table;
 }

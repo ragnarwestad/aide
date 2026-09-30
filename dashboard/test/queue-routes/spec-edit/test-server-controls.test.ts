@@ -40,31 +40,6 @@ describe("spec 388: the board start/stop routes", () => {
     expect(res.status).toBe(404);
   });
 
-  // The Test servers list carries this same Stop button, and posts it
-  // with no script: a fixed redirect to the spec's own page took the
-  // reader off the list they pressed it on.
-  test("a no-script stop comes back to the page it was posted from", async () => {
-    const { base } = start();
-    const res = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server/stop`, {
-      method: "POST",
-      redirect: "manual",
-      headers: { "content-type": "application/x-www-form-urlencoded", referer: `${base}/test-servers` },
-    });
-    expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe("/test-servers");
-  });
-
-  test("a no-script stop with no Referer falls back to the spec's own page", async () => {
-    const { base } = start();
-    const res = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server/stop`, {
-      method: "POST",
-      redirect: "manual",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-    });
-    expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe(`/specs/aide/${folder}`);
-  });
-
   test("an archived spec refuses with ARCHIVED_REFUSAL, for both start and stop", async () => {
     const archivedFolder = "82-archived";
     const { base } = harness.start({
@@ -376,7 +351,7 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
       expect(res.status).toBe(200);
       const waiting = await res.text();
       expect(waiting).toContain("Starting a test server");
-      expect(waiting).toMatch(/http-equiv="refresh"/);
+      expect(waiting).toContain("data-reload-every=");
       expect(waiting).toContain("spin");
       expect(spawnCalls).toHaveLength(1);
 
@@ -503,7 +478,7 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
     const html = await res.text();
     expect(html).toContain(`Could not start a test server for "${folder}"`);
     expect(html).toContain("Test servers");
-    expect(html).not.toMatch(/http-equiv="refresh"/);
+    expect(html).not.toContain("data-reload-every=");
     // AC-1 (spec 489): the outright-refusal shape — nothing was ever
     // stored — still carries a "Try again" link.
     expect(html).toContain('href="');

@@ -4,9 +4,7 @@
 
 import { persistQueueProjects } from "../queue/queue.ts";
 import type { ProjectReadiness, ProjectStep } from "../project/project-admin";
-import { ADD_PROJECT_ROUTE, PROJECTS_ROUTE } from "../render";
-import { EDIT_GROUP_PARAM, groupForPostedField, type SettingsGroupFile } from "../project/project-settings.ts";
-import { json, logRefusal, specsRedirect } from "./serve-helpers";
+import { json, logRefusal } from "./serve-helpers";
 
 export interface ProjectActionsContext {
   queueConfigFile: string | undefined;
@@ -46,8 +44,6 @@ export function answerProjectChange(
   action: string,
   project: string,
   steps: ProjectStep[],
-  sent: unknown,
-  wantsJson: boolean,
   /** What an Add that SUCCEEDED found out about the project it just
    *  registered (spec 138). It travels beside `results` and never
    *  inside it: `ok` says the registration completed, `canRun` says
@@ -57,41 +53,5 @@ export function answerProjectChange(
 ): Response {
   const ok = steps.every((s) => s.ok);
   for (const s of steps) if (s.error) logRefusal(action, project, s.error);
-  if (wantsJson) {
-    return json({ ok, project, results: steps, ...(readiness ? { readiness } : {}) }, ok ? 200 : 400);
-  }
-  const summary = steps.map((s) => s.error).filter(Boolean).join("; ");
-  // A refusal goes back to the page the FORM is on — the Add page, or
-  // the project's own Config tab for its settings and its Remove — a
-  // success to the list.
-  const formPage =
-    action === "add-project"
-      ? ADD_PROJECT_ROUTE
-      : action === "project-settings"
-        // `?edit=<group>`: each settings table's edit state is
-        // server-rendered (spec 255; spec 552 split it in two), so a
-        // refused save that dropped it would reopen on the read-only
-        // view with the error attached to a form that is no longer
-        // there. Which group was being edited is read off the posted
-        // body itself — every posted field name already belongs to
-        // exactly one group.
-        ? (() => {
-            const postedGroup = Object.keys((sent ?? {}) as Record<string, unknown>)
-              .map(groupForPostedField)
-              .find((g): g is SettingsGroupFile => g !== null);
-            return `/projects/${encodeURIComponent(project)}${postedGroup ? `?edit=${EDIT_GROUP_PARAM[postedGroup]}` : "?tab=config"}`;
-          })()
-        : `/projects/${encodeURIComponent(project)}?tab=config`;
-  if (summary) return specsRedirect(sent, { error: summary }, formPage);
-  // A browser with no script gets the readiness answer the only way a
-  // redirect can carry one: in the query string of the page it lands
-  // on. Without this the whole of it dies in a response body nobody
-  // ever sees — which is how Skjer came to look added and be unable
-  // to run.
-  return specsRedirect(
-    sent,
-    undefined,
-    action === "project-settings" ? `/projects/${encodeURIComponent(project)}?tab=config` : PROJECTS_ROUTE,
-    readiness && { note: readiness.note, ok: readiness.canRun },
-  );
+  return json({ ok, project, results: steps, ...(readiness ? { readiness } : {}) }, ok ? 200 : 400);
 }

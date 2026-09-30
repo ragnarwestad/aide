@@ -71,12 +71,6 @@ function say(dialog: HTMLDialogElement, why: string): void {
   writeLine(dialog.querySelector(".refused"), why);
 }
 
-/** False for a browser without `<dialog>`: the caller leaves the submit
- *  alone and the form posts natively. */
-export function canStand(dialog: HTMLDialogElement | null): dialog is HTMLDialogElement {
-  return !!dialog && typeof dialog.showModal === "function";
-}
-
 /** Whether `dialog` is held right now. */
 export function isStanding(dialog: HTMLDialogElement): boolean {
   return holds.get(dialog)?.held === true;
@@ -125,11 +119,9 @@ export function standOpen(
 
 export async function submitProgress(form: HTMLFormElement, event: Event, io: ProgressIo = browserIo): Promise<void> {
   if (event.defaultPrevented) return;
-  // The dialog holds its posting form.
-  const dialog = form.closest("dialog[data-progress-dialog]") as HTMLDialogElement | null;
-  // No `<dialog>` here: the form posts natively and follows the redirect.
-  if (!canStand(dialog)) return;
   event.preventDefault();
+  // The dialog holds its posting form.
+  const dialog = form.closest("dialog[data-progress-dialog]") as HTMLDialogElement;
   const back = form.dataset.progress ?? "/";
   const done = form.dataset.progressDone ?? "/";
   const hold = standOpen(dialog, io);

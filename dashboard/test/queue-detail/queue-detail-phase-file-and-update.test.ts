@@ -72,15 +72,16 @@ describe("a phase job's page shows that phase's file", () => {
 describe("POST the Update action", () => {
   const SPEC = "81-queue-and-runner";
   const UPDATE = `/api/queue/specs/aide/${SPEC}/update`;
-  const PATH = `/specs/aide/${SPEC}`;
 
-  const press = (base: string) =>
-    fetch(`${base}${UPDATE}`, {
+  const press = async (base: string) => {
+    const res = await fetch(`${base}${UPDATE}`, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
       redirect: "manual",
       body: "",
     });
+    return { status: res.status, body: (await res.json()) as { ok?: boolean; error?: string; note?: string; changed?: boolean } };
+  };
 
   /** A specs checkout that is clean, on its default branch and behind.
    *
@@ -88,8 +89,10 @@ describe("POST the Update action", () => {
    *  globally (spec 269): the server now reads its own boot-time commit
    *  with the same bare command, in `process.cwd()` — a global counter
    *  would let that one extra call shift the specs checkout's own
-   *  before/after pair by one and report "already up to date". */
-  const pullable = (extra: Record<string, { code: number; stdout?: string }> = {}) => {
+   *  before/after pair by one and report "already up to date".
+   *  `after` is the commit the pull leaves; the one it started from
+   *  means nothing moved. */
+  const pullable = (extra: Record<string, { code: number; stdout?: string }> = {}, after = "7b1e004") => {
     const headCallsByDir = new Map<string, number>();
     const answers: Record<string, { code: number; stdout?: string }> = {
       "rev-parse --show-toplevel": { code: 0, stdout: "/host/aide-specs\n" },
@@ -108,7 +111,7 @@ describe("POST the Update action", () => {
       if (line === "rev-parse HEAD") {
         const seen = headCallsByDir.get(dir) ?? 0;
         headCallsByDir.set(dir, seen + 1);
-        return { code: 0, stdout: `${seen === 0 ? "a3f9c21" : "7b1e004"}\n` };
+        return { code: 0, stdout: `${seen === 0 ? "a3f9c21" : after}\n` };
       }
       for (const [prefix, answer] of Object.entries(answers)) {
         if (line.startsWith(prefix)) return { code: answer.code, stdout: answer.stdout ?? "" };
@@ -117,13 +120,21 @@ describe("POST the Update action", () => {
     };
   };
 
-  test("a fast-forwardable checkout is pulled and the reader lands back on the spec page", async () => {
+  test("a fast-forwardable checkout is pulled, and the answer names the commit it moved to", async () => {
     const { base } = start({ gitRun: pullable() });
-    const res = await press(base);
-    expect(res.status).toBe(303);
-    const location = res.headers.get("location")!;
-    expect(location.startsWith(PATH)).toBe(true);
-    expect(decodeURIComponent(location)).toContain("7b1e004");
+    const { status, body } = await press(base);
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.changed).toBe(true);
+    expect(body.note).toContain("7b1e004");
+  });
+
+  test("a checkout already at origin's tip answers that nothing changed", async () => {
+    const { base } = start({ gitRun: pullable({}, "a3f9c21") });
+    const { status, body } = await press(base);
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.changed).toBe(false);
   });
 
   for (const [what, extra, expected] of [
@@ -138,21 +149,11 @@ describe("POST the Update action", () => {
   ] as [string, Record<string, { code: number; stdout?: string }>, string][]) {
     test(`${what} changes nothing and says which one applied (criterion 4)`, async () => {
       const { base } = start({ gitRun: pullable(extra) });
-      const res = await press(base);
-      expect(res.status).toBe(303);
-      const location = decodeURIComponent(res.headers.get("location")!);
-      expect(location.startsWith(PATH)).toBe(true);
-      expect(location).toContain("error=");
-      expect(location).toContain(expected);
+      const { status, body } = await press(base);
+      expect(status).toBe(400);
+      expect(body.error).toContain(expected);
     });
   }
-
-  test("the refusal is on the page the button was pressed from, not in a JSON body", async () => {
-    const { base } = start({ gitRun: pullable({ "diff --quiet HEAD": { code: 1 } }) });
-    const location = decodeURIComponent((await press(base)).headers.get("location")!);
-    const html = await (await fetch(`${base}${location}`)).text();
-    expect(html).toContain("uncommitted");
-  });
 
   test("a spec nobody has cannot be pulled for", async () => {
     const { base } = start({ gitRun: pullable() });

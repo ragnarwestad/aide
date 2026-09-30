@@ -38,7 +38,14 @@ test("an empty line takes no room, and a filled one is taller than its icon, whi
     expect({ hook, width: empty.width <= 1, height: empty.height <= 1 }).toEqual({ hook, width: true, height: true });
   }
 
-  await withBrowser(page.goto(`${base}/settings?tab=process&error=${encodeURIComponent("too many")}`), "refused page.goto");
+  // Filled the way the page fills it: a refused Save (this board has no
+  // queue config file to write).
+  await page.fill("#process-concurrency", "3");
+  await page.click("#settingsform-save");
+  await withBrowser(
+    page.waitForFunction(() => !!document.querySelector("#settings-form p.refused span")?.textContent),
+    "the refusal written",
+  );
   const line = await box("#settings-form p.refused");
   const icon = await box("#settings-form p.refused svg");
   expect(icon.height).toBe(14);

@@ -41,7 +41,7 @@ Every active spec is a row on the list, and every row can be run. A spec that do
 above the table there is a **New** button — a plain link to `/new`. That page is the form and nothing
 else: a project, a **Depends on** field naming a spec this one has to wait for, a title, a description, a phase table,
 and two buttons, Create and Cancel. Create posts to `POST /api/queue/create` and returns to the list; Cancel returns having done nothing. A refused
-submission comes back to `/new?error=…`, where what was typed can be corrected.
+submission says why beside the form, where what was typed can be corrected.
 
 **The new spec is not on the list when you get back.** The `create` step has to run first, and its folder has to
 reach the default branch, which the landing does — see below. Until then the job is on the list as a queued
@@ -436,7 +436,7 @@ reads the same field, so pressing it tests what the schedule actually does.
 An entry whose model the queue config does not offer (the config file was edited by hand, or the queue config changed) is
 flagged in its Name cell on `/schedule` and on the project's Schedule tab, linking to its Edit page and naming the model and the ones the queue
 offers. Its runs are refused: Run now writes the queue's reason into the message slot above the project's Schedule tab list (`Run now was
-refused for <project>:<entry>: …`, or in `?error=` for a press made without script) and logs `queue: run now refused for
+refused for <project>:<entry>: …`) and logs `queue: run now refused for
 <project>/<entry> — <reason>`; the timer logs `queue: scheduled fire refused for <project>/<entry> — <reason>` once per
 fire window and reason, not once per tick. The step sends the named file's contents to the model verbatim, with no Aide skill or spec folder
 involved at all; write it the way you would write a prompt by hand.

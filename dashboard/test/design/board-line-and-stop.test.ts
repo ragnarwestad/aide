@@ -80,7 +80,7 @@ describe("the board line and its Stop control (spec 424)", () => {
     for (const html of render()) {
       expect(html).toContain(`${machine} - Test - round<`);
       expect(html).toMatch(
-        /action="\/api\/self-stop" class="actionform">[\s\S]*?<\/form><form method="post" action="\/api\/self-run" class="actionform">/,
+        /action="\/api\/self-stop" class="actionform">[\s\S]*?<\/form><form method="post" action="\/api\/self-run" class="actionform reloadform">/,
       );
     }
     // Started from a spec's branch: a preview of that spec, never re-run.
@@ -100,7 +100,7 @@ describe("the board line and its Stop control (spec 424)", () => {
   test("a round board's Run says 'Starting…' while its request is out (AC-5)", () => {
     setBoardInfo("aide-wt-run");
     for (const html of render()) {
-      const run = html.match(/action="\/api\/self-run" class="actionform">[\s\S]*?<\/form>/)?.[0] ?? "";
+      const run = html.match(/action="\/api\/self-run" class="actionform reloadform">[\s\S]*?<\/form>/)?.[0] ?? "";
       expect(run).toContain('data-pending="Starting…"');
     }
   });

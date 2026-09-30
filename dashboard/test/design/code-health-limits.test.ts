@@ -43,7 +43,6 @@ const OVER_LINE_LIMIT: Record<string, number> = {
   "src/queue/runner/index.ts": 553,
   "src/queue/store/index.ts": 577,
   "src/git/branch-merge.ts": 605,
-  "src/render/pages/specs-list/data-model/types.ts": 515,
 };
 
 // src/i18n/messages.ts is exempt by filename alone (see EXEMPT_BY_FILENAME

@@ -12,7 +12,7 @@ import { specTabPath } from "../spec-page";
 import { groupKey, isArchivedRow, type SpecGroup, type SpecsFilter } from "./data-model";
 import { specBusy } from "./row-state.ts";
 import { queuePath } from "./filter-bar.ts";
-import { drawsChecksLine, filterFields } from "./row-shared.ts";
+import { drawsChecksLine } from "./row-shared.ts";
 import { listReopenDialog } from "./row-controls.ts";
 
 /** The keys named in `?checks=`: the specs whose criteria are unfolded. */
@@ -87,7 +87,6 @@ export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language): strin
   return (
     `<form class="actionform rowchecks" id="${esc(formId)}" method="post" ` +
     `action="/api/queue/specs/${esc(g.project)}/${esc(g.specFolder)}/tick?fromList=1">` +
-    filterFields(f) +
     `<input type="hidden" name="checksPhase" value="${esc(phase)}">` +
     list +
     btn({ label: t(lang, "list.checksSave"), pending: t(lang, "list.checksSaving"), variant: "primary" }) +

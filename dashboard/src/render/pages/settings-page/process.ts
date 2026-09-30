@@ -17,11 +17,11 @@ export interface ProcessSettings {
   max: number;
 }
 
-export function processPanel(s: ProcessSettings, message: { error?: string; notice?: string }): string {
+export function processPanel(s: ProcessSettings): string {
   return (
     `<form id="settings-form" class="settingsform" data-settings-form method="post" action="/api/queue/settings/concurrency">` +
-    messageSlot("refused", "failed", { text: message.error }) +
-    messageSlot("notice", "info", { text: message.notice }) +
+    messageSlot("refused", "failed") +
+    messageSlot("notice", "info") +
     `<p><label for="process-concurrency">Steps that may run at once</label> ` +
     `<input id="process-concurrency" type="number" name="concurrency" min="${s.min}" max="${s.max}" step="1" value="${s.concurrency}"></p>` +
     `<p class="muted">This machine has ${s.cores} cores. A saved number is used from the next step the queue ` +

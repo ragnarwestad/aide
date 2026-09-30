@@ -100,18 +100,3 @@ describe("Close asks in a dialog (AC-7)", () => {
     }
   });
 });
-
-describe("the button without script (AC-7)", () => {
-  // AC-2: Close has no fallback page behind it (spec 527) — with script
-  // off, the button does nothing at all: no navigation, and the dialog
-  // it would open with script never appears.
-  test("Close does nothing: no navigation, and the dialog never opens", async () => {
-    const context = await browser.newContext({ javaScriptEnabled: false });
-    const page = await context.newPage();
-    await page.goto(`${base}${SPEC}?live=0`);
-    await page.getByRole("button", { name: "Close" }).click();
-    await page.waitForTimeout(300);
-    expect(new URL(page.url()).pathname).toBe(SPEC);
-    expect(await dialog(page).isVisible()).toBe(false);
-  });
-});

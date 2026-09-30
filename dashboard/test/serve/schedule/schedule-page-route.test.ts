@@ -12,7 +12,6 @@ import { join } from "node:path";
 import { scheduleRunOutputDir } from "../../../src/queue/schedule.ts";
 import { writeProposalsRecord } from "../../../src/queue/spec-proposals.ts";
 import { scheduleRunPath } from "../../../src/render";
-import { messageSlot } from "../../../src/render/ui/components";
 import { queueHarness } from "../../helpers/queue-server.ts";
 
 const harness = queueHarness("aide-schedule-page-route-");
@@ -137,15 +136,8 @@ describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
 
 });
 
-describe("GET /schedule with a refusal or an unlisted model (spec 494)", () => {
+describe("GET /schedule with an unlisted model (spec 494)", () => {
   const withModel = (model: string): Entry[] => [{ ...NIGHTLY, model }];
-  test("?error= is drawn in the slot, escaped", async () => {
-    const { base } = start();
-    const html = await (await fetch(`${base}/schedule?error=${encodeURIComponent("bad <b>")}`)).text();
-    expect(html).toContain(messageSlot("refused", "failed", { text: "bad <b>" }));
-    expect(await (await fetch(`${base}/schedule`)).text()).toContain(messageSlot("refused"));
-  });
-
   test("an entry naming a model the queue does not offer is flagged on the list and on its project's Schedule tab", async () => {
     const { base } = start({ extra: { queueDefaults: DEFAULTS } });
     writeSchedule("aide", withModel("retired"));

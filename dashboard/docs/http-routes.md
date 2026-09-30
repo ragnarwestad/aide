@@ -48,16 +48,17 @@ the repository shows are the evidence: `aide-emit-run` posts to `/api/aide-run`,
 repository shows, not a census of every caller.
 
 **How an action answers.** Almost every `POST` reads its body as JSON or as a form
-(`application/x-www-form-urlencoded`), up to 4,096 bytes (65,536 for `tick`, `save` and `tracking`). A caller that sends
-`Accept: application/json` gets JSON: `{ ok: true, … }`, or `{ error }` with 400 (409 for a refused tick or cancel, 404
-for an unknown job). Anything else gets a 303 redirect back to the page the press came from. A body over the cap gets 413
+(`application/x-www-form-urlencoded`), up to 4,096 bytes (65,536 for `tick`, `save` and `tracking`), and answers JSON,
+whatever `Accept` says: `{ ok: true, … }`, or `{ error }` with 400 (409 for a refused tick or cancel, and for a save or
+tracking refused while another job for the spec runs; 404 for an unknown job). The page script reads that answer and
+writes a refusal into the page; no answer carries a message in an address. A body over the cap gets 413
 `{ error: "payload too large" }`, whatever the route. The wrong method on a known path gets 405
 `method not allowed` — except the three redirects `/queue`, `/specs` and `/queue/<rest>`, which answer
 the same 302 for every method — and an unknown project or spec gets a plain-text 404 before the route
 reads anything. A project that was added, changed or removed answers 400 when any step of that change
-failed, rather than 200 with `ok: false`. Where a row says otherwise, the row is right: `POST /api/queue/projects/<project>/test-server`
-answers only a redirect or an HTML page, and the spec `update`, `save` and `tracking` routes redirect whatever `Accept`
-says, apart from a 400 for a malformed body.
+failed, rather than 200 with `ok: false`. Two presses are navigations and answer a page:
+`POST /api/queue/projects/<project>/test-server` answers a redirect to the waiting page or an HTML page, and
+`POST /api/self-stop` answers the stopped page.
 
 A row's wording can go stale while its path stays real: the test checks that a route and a row exist, not what the row
 says. It does check the row's shape — every row must fill Takes, Answers and Made for, Made for must be one of the three
@@ -128,7 +129,7 @@ Answered by `src/serve/routes/job-actions.ts`, `src/serve/routes/job-detail.ts`,
 | Route                                         | Kind   | Takes                                              | Answers                                                                    | Made for  |
 |-----------------------------------------------|--------|----------------------------------------------------|----------------------------------------------------------------------------|-----------|
 | `GET /api/queue`                              | read   | nothing                                            | `{ generatedAt, jobs }`                                                    | interface |
-| `POST /api/queue`                             | action | JSON or form: project, spec folder, steps          | `{ ok, job }`, or a 303 to the page                                        | interface |
+| `POST /api/queue`                             | action | JSON or form: project, spec folder, steps          | `{ ok, job }`; 400 `{ error, spec? }`                                      | interface |
 | `GET /api/queue/<id>`                         | read   | nothing                                            | `{ generatedAt, job }`; 404 `{ error }` for an unknown id                  | interface |
 | `GET /api/queue/events`                       | read   | optional `?phases=`                                | a held-open `text/event-stream` of queue changes                           | interface |
 | `POST /api/queue/<id>/cancel`                 | action | nothing                                            | `{ ok, job }`; 409 for a finished job, unless its landing is still running | form      |
@@ -141,54 +142,52 @@ Answered by `src/serve/routes/job-actions.ts`, `src/serve/routes/job-detail.ts`,
 
 Answered by the files under `src/serve/routes/spec-edit/`.
 
-| Route                                                     | Kind   | Takes                                                                  | Answers                                               | Made for  |
-|-----------------------------------------------------------|--------|------------------------------------------------------------------------|-------------------------------------------------------|-----------|
-| `POST /api/queue/specs/<project>/<spec>/tick`             | action | the rows to tick, unverify or fail, and the phase; up to 65,536 bytes  | a redirect or `{ ok }`; 409 for a refused tick        | form      |
-| `POST /api/queue/specs/<project>/<spec>/tracking`         | action | the tracking fields, and optionally a sha to check they have not moved | a redirect; 400 for a malformed body                  | form      |
-| `POST /api/queue/specs/<project>/<spec>/update`           | action | nothing; pulls the spec's repository from its remote                   | a redirect back to the spec page, with a notice       | form      |
-| `POST /api/queue/specs/<project>/<spec>/save`             | action | which of the four files, its text, and the sha it was read at          | a redirect; 400 for a malformed body                  | form      |
-| `POST /api/queue/specs/<project>/<spec>/model`            | action | step and model                                                         | `{ ok }`, or a 303 to the specs list                  | form      |
-| `POST /api/queue/specs/<project>/<spec>/close`            | action | a reason                                                               | `{ ok, job }`, or a 303; 400 without a reason         | form      |
-| `POST /api/queue/specs/<project>/<spec>/delete-branch`    | action | nothing; deletes an archived spec's merged branch on origin            | `{ ok }`, or a 303 to the specs list; 400 if refused  | form      |
-| `POST /api/queue/specs/<project>/<spec>/test-server`      | action | nothing                                                                | `{ ok, testServer }`, or a 303 to the spec page       | interface |
-| `POST /api/queue/specs/<project>/<spec>/test-server/stop` | action | nothing                                                                | `{ ok }`, or a 303 back to the page it was pressed on | form      |
+| Route                                                     | Kind   | Takes                                                                  | Answers                                         | Made for  |
+|-----------------------------------------------------------|--------|------------------------------------------------------------------------|-------------------------------------------------|-----------|
+| `POST /api/queue/specs/<project>/<spec>/tick`             | action | the rows to tick, unverify or fail, and the phase; up to 65,536 bytes  | `{ ok, note, changed }`; 409 for a refused tick | form      |
+| `POST /api/queue/specs/<project>/<spec>/tracking`         | action | the tracking fields, and optionally a sha to check they have not moved | `{ ok, note, changed }`; 400 `{ error }`        | form      |
+| `POST /api/queue/specs/<project>/<spec>/update`           | action | nothing; pulls the spec's repository from its remote                   | `{ ok, note, changed }`; 400 `{ error }`        | form      |
+| `POST /api/queue/specs/<project>/<spec>/save`             | action | which of the four files, its text, and the sha it was read at          | `{ ok, note, changed }`; 400 `{ error }`        | form      |
+| `POST /api/queue/specs/<project>/<spec>/model`            | action | step and model                                                         | `{ ok }`; 400 `{ error, spec }`                 | form      |
+| `POST /api/queue/specs/<project>/<spec>/close`            | action | a reason                                                               | `{ ok, job }`; 400 without a reason             | form      |
+| `POST /api/queue/specs/<project>/<spec>/delete-branch`    | action | nothing; deletes an archived spec's merged branch on origin            | `{ ok }`; 400 if refused                        | form      |
+| `POST /api/queue/specs/<project>/<spec>/test-server`      | action | nothing                                                                | `{ ok, testServer }`; 400 `{ error, spec }`     | interface |
+| `POST /api/queue/specs/<project>/<spec>/test-server/stop` | action | nothing                                                                | `{ ok }`                                        | form      |
 
 ### Projects and settings
 
 Answered by `src/serve/routes/queue-admin.ts`, except `settings/concurrency`, which
 `src/serve/routes/settings-concurrency.ts` answers, and the four `deploy/<step>` rows, which
-`src/serve/routes/deploy-steps.ts` answers. The page script posts those four one after the other; the combined `deploy`
-route does the same work in one request for a form posted without script.
+`src/serve/routes/deploy-steps.ts` answers. The page script posts those four one after the other.
 
-| Route                                                 | Kind   | Takes                               | Answers                                                                                              | Made for |
-|-------------------------------------------------------|--------|-------------------------------------|------------------------------------------------------------------------------------------------------|----------|
-| `POST /api/queue/settings`                            | action | model and timeout defaults per step | `{ ok }`; 400 `{ error }` for an unknown step or model                                               | form     |
-| `POST /api/queue/settings/check`                      | action | tool: the AI tool to check          | the check's result; 400 for a tool it cannot check                                                   | form     |
-| `POST /api/queue/settings/concurrency`                | action | concurrency: a whole number, 1 to 8 | `{ ok, concurrency }`; 400 `{ error }` for a number outside 1 to 8 or a server with no queue         | form     |
-| `POST /api/queue/projects`                            | action | name, git URL and Code landing      | `{ ok, … }` with the steps taken, or a 303                                                           | form     |
-| `POST /api/queue/projects/<project>/settings`         | action | the project's settings              | `{ ok, … }` with the steps taken, or a 303                                                           | form     |
-| `POST /api/queue/projects/<project>/deploy`           | action | nothing                             | `{ ok, restarting, installError? }`, or a 303; fast-forwards a checkout and runs the install command | form     |
-| `POST /api/queue/projects/<project>/deploy/fetch`     | action | nothing                             | `{ ok }`; 400 `{ error }` for a refusal; fast-forwards the checkout                                  | form     |
-| `POST /api/queue/projects/<project>/deploy/install`   | action | nothing                             | `{ ok }`; 400 `{ error, faulty? }` when the install fails; then a fresh count against origin         | form     |
-| `POST /api/queue/projects/<project>/deploy/restart`   | action | nothing                             | `{ ok, restart, startedAt?, faulty? }`: `restart` is `fired`, `held` or `none`                       | form     |
-| `POST /api/queue/projects/<project>/deploy/check`     | action | nothing                             | `{ ok }`; 400 `{ error, faulty }` when the service runs another commit than the checkout             | form     |
-| `POST /api/queue/projects/<project>/wiki`             | action | nothing                             | `{ ok, job }`, or a 303 to `?tab=wiki`; a refusal is 400 `{ error }` or a 303 there with the reason  | form     |
-| `POST /api/queue/projects/<project>/test-server`      | action | nothing                             | a 303 or an HTML page, never JSON                                                                    | form     |
-| `POST /api/queue/projects/<project>/test-server/stop` | action | nothing                             | `{ ok }`, or a 303 back to the page it was pressed on                                                | form     |
-| `POST /api/queue/projects/<project>/remove`           | action | nothing                             | `{ ok }`, or a 303 to the projects list, or to the Config tab when refused                           | form     |
+| Route                                                 | Kind   | Takes                               | Answers                                                                                      | Made for |
+|-------------------------------------------------------|--------|-------------------------------------|----------------------------------------------------------------------------------------------|----------|
+| `POST /api/queue/settings`                            | action | model and timeout defaults per step | `{ ok }`; 400 `{ error }` for an unknown step or model                                       | form     |
+| `POST /api/queue/settings/check`                      | action | tool: the AI tool to check          | the check's result; 400 for a tool it cannot check                                           | form     |
+| `POST /api/queue/settings/concurrency`                | action | concurrency: a whole number, 1 to 8 | `{ ok, concurrency }`; 400 `{ error }` for a number outside 1 to 8 or a server with no queue | form     |
+| `POST /api/queue/projects`                            | action | name, git URL and Code landing      | `{ ok, project, results, readiness? }`: the steps taken; 400 when one failed                 | form     |
+| `POST /api/queue/projects/<project>/settings`         | action | the project's settings              | `{ ok, project, results, readiness? }`: the steps taken; 400 when one failed                 | form     |
+| `POST /api/queue/projects/<project>/deploy/fetch`     | action | nothing                             | `{ ok }`; 400 `{ error }` for a refusal; fast-forwards the checkout                          | form     |
+| `POST /api/queue/projects/<project>/deploy/install`   | action | nothing                             | `{ ok }`; 400 `{ error, faulty? }` when the install fails; then a fresh count against origin | form     |
+| `POST /api/queue/projects/<project>/deploy/restart`   | action | nothing                             | `{ ok, restart, startedAt?, faulty? }`: `restart` is `fired`, `held` or `none`               | form     |
+| `POST /api/queue/projects/<project>/deploy/check`     | action | nothing                             | `{ ok }`; 400 `{ error, faulty }` when the service runs another commit than the checkout     | form     |
+| `POST /api/queue/projects/<project>/wiki`             | action | nothing                             | `{ ok, job }`; 400 `{ error }` for a refusal                                                 | form     |
+| `POST /api/queue/projects/<project>/test-server`      | action | nothing                             | a 303 or an HTML page, never JSON                                                            | form     |
+| `POST /api/queue/projects/<project>/test-server/stop` | action | nothing                             | `{ ok }`                                                                                     | form     |
+| `POST /api/queue/projects/<project>/remove`           | action | nothing                             | `{ ok, project, results }`: the steps taken; 400 when one failed                             | form     |
 
 ### Schedule
 
 Answered by `src/serve/routes/schedule-admin-routes.ts`.
 
-| Route                                               | Kind   | Takes                                            | Answers                                                                                     | Made for |
-|-----------------------------------------------------|--------|--------------------------------------------------|---------------------------------------------------------------------------------------------|----------|
-| `GET /api/queue/schedule/cron-next`                 | read   | `?cron=` a cron expression                       | `{ next }`: the next time it fires; 400 for an expression it cannot read                    | form     |
-| `POST /api/queue/schedule`                          | action | project, name, cron, prompt, model, notify, back | `{ ok, location }`, or a 303 to `back`; a refusal is 400, and without script the page again | form     |
-| `POST /api/queue/schedule/<project>/<name>`         | action | name, cron, prompt, model, notify, back          | `{ ok, location }`, or a 303 to `back`; a refusal is 400, and without script the page again | form     |
-| `POST /api/queue/schedule/<project>/<name>/enabled` | action | enabled                                          | `{ ok, enabled }`, or a 303                                                                 | form     |
-| `POST /api/queue/schedule/<project>/<name>/run`     | action | nothing                                          | `{ ok, job }`, or a 303 to the project's Schedule tab                                       | form     |
-| `POST /api/queue/schedule/<project>/<name>/delete`  | action | nothing                                          | `{ ok }`, or a 303 to the project's Schedule tab; a refusal redirects there too             | form     |
+| Route                                               | Kind   | Takes                                            | Answers                                                                    | Made for |
+|-----------------------------------------------------|--------|--------------------------------------------------|----------------------------------------------------------------------------|----------|
+| `GET /api/queue/schedule/cron-next`                 | read   | `?cron=` a cron expression                       | `{ next }`: the next time it fires; 400 for an expression it cannot read   | form     |
+| `POST /api/queue/schedule`                          | action | project, name, cron, prompt, model, notify, back | `{ ok, location }`: `back`, or the project's Schedule tab; 400 `{ error }` | form     |
+| `POST /api/queue/schedule/<project>/<name>`         | action | name, cron, prompt, model, notify, back          | `{ ok, location }`: `back`, or the project's Schedule tab; 400 `{ error }` | form     |
+| `POST /api/queue/schedule/<project>/<name>/enabled` | action | enabled                                          | `{ ok, enabled }`; 400 `{ error }`                                         | form     |
+| `POST /api/queue/schedule/<project>/<name>/run`     | action | nothing                                          | `{ ok, job }`; 400 `{ error }`                                             | form     |
+| `POST /api/queue/schedule/<project>/<name>/delete`  | action | nothing                                          | `{ ok }`; 400 `{ error }`                                                  | form     |
 
 ### Push
 
@@ -206,11 +205,11 @@ Answered by `src/serve/routes/self-stop.ts` and `src/serve/routes/self-run.ts`. 
 script's own seeding press has been made — which is the whole life of such a server, since the stage never returns to
 idle after it.
 
-| Route                 | Kind   | Takes   | Answers                                                                                         | Made for  |
-|-----------------------|--------|---------|-------------------------------------------------------------------------------------------------|-----------|
-| `GET /api/self-run`   | read   | nothing | JSON: how far the round has come                                                                | interface |
-| `POST /api/self-run`  | action | nothing | starts queueing the fixtures: `{ ok, stage }`, or a 303; 409 while one is resetting or queueing | interface |
-| `POST /api/self-stop` | action | nothing | a stopped page, then the board exits                                                            | form      |
+| Route                 | Kind   | Takes   | Answers                                                                               | Made for  |
+|-----------------------|--------|---------|---------------------------------------------------------------------------------------|-----------|
+| `GET /api/self-run`   | read   | nothing | JSON: how far the round has come                                                      | interface |
+| `POST /api/self-run`  | action | nothing | starts queueing the fixtures: `{ ok, stage }`; 409 while one is resetting or queueing | interface |
+| `POST /api/self-stop` | action | nothing | a stopped page, then the board exits                                                  | form      |
 
 ### Sessions and probes
 
@@ -226,33 +225,34 @@ dispatcher.
 ### Pages
 
 Answered by the files under `src/serve/routes/page-routes/`, `src/serve/routes/spec-edit/` and
-`src/serve/routes/spec-pdf.ts`. A page that shows an error or a notice takes it as a query (`?error=`, `?notice=`). Every page route also reads
+`src/serve/routes/spec-pdf.ts`. No page takes a message from its query: a refusal or a notice is written in by the page
+script, from the answer to the press that made it. Every page route also reads
 `?lang=`, and answers with a year-long `set-cookie` when it is set.
 
-| Route                                           | Kind   | Takes                                                  | Answers                                                                                                       | Made for |
-|-------------------------------------------------|--------|--------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|----------|
-| `GET /`                                         | read   | optional filters in the query, `?rows=`                | the specs list; with `?rows=`, the rows alone; with `?only=` too, one spec's rows                             | page     |
-| `GET /new`                                      | read   | optional `?retry=`, `?error=`                          | the New spec form                                                                                             | page     |
-| `GET /queue`                                    | read   | nothing                                                | 302 to `/`, whatever the method                                                                               | page     |
-| `GET /specs`                                    | read   | nothing                                                | 302 to `/`, whatever the method                                                                               | page     |
-| `GET /queue/<rest>`                             | read   | nothing                                                | 302 to `/specs/<rest>`, whatever the method                                                                   | page     |
-| `GET /jobs/<id>`                                | read   | optional `?tab=`, `?step=`, `?steptab=`                | the job's page                                                                                                | page     |
-| `GET /specs/<id>`                               | read   | the same as `/jobs/<id>`                               | a 301 to `/jobs/<id>` with the same query string                                                              | page     |
-| `GET /specs/<project>/<spec>`                   | read   | optional `?tab=`, `?step=`, `?steptab=`                | the spec's page                                                                                               | page     |
-| `GET /specs/<project>/<spec>?startTestServer=1` | action | optional `?retryTestServer=1`                          | starts a test server for the spec, then a waiting page, a 303 to it, or a page saying why it could not start  | page     |
-| `GET /specs/<project>/<spec>/pdf`               | read   | nothing                                                | `application/pdf`; 503 without md-to-pdf, 502 when the generator fails; writes a cached file when none exists | page     |
-| `GET /settings`                                 | read   | optional `?tab=`, `?error=`                            | the settings page; `?tab=` takes `ai`, `process`, `notifications`, `phases` or an AI's key, else opens AI     | page     |
-| `GET /test-servers`                             | read   | nothing                                                | the running test servers                                                                                      | page     |
-| `GET /projects`                                 | read   | optional `?notice=`, `?error=`                         | the projects list                                                                                             | page     |
-| `GET /projects/new`                             | read   | optional `?error=`                                     | the add-project form                                                                                          | page     |
-| `GET /projects/<project>`                       | read   | optional `?tab=`, `?edit=`, `?deployError=`, `?page=`  | the project's page; with `?tab=wiki`, the wiki's pages, or the one `?page=` names                             | page     |
-| `GET /projects/<project>?startTestServer=1`     | read   | nothing                                                | a waiting page, a 303 to the test server or back to the deploy tab, or a page saying why it could not start   | page     |
-| `GET /projects/<project>/settings`              | read   | nothing                                                | 302 to the project's Config tab, which carries the form                                                       | page     |
-| `GET /schedule`                                 | read   | optional `?q=`, `?sort=`, `?dir=`                      | the schedule list                                                                                             | page     |
-| `GET /schedule/<project>/<name>`                | read   | optional `?tab=`, `?run=`                              | the schedule's page                                                                                           | page     |
-| `GET /schedule/new`                             | read   | `?project=`                                            | the page that makes a schedule entry                                                                          | page     |
-| `GET /schedule/<project>/<name>/edit`           | read   | nothing                                                | the page that changes a schedule entry                                                                        | page     |
-| `GET /schedule-output/<file>`                   | read   | nothing                                                | a file from the schedule output folder                                                                        | page     |
+| Route                                           | Kind   | Takes                                   | Answers                                                                                                       | Made for |
+|-------------------------------------------------|--------|-----------------------------------------|---------------------------------------------------------------------------------------------------------------|----------|
+| `GET /`                                         | read   | optional filters in the query, `?rows=` | the specs list; with `?rows=`, the rows alone; with `?only=` too, one spec's rows                             | page     |
+| `GET /new`                                      | read   | optional `?retry=`                      | the New spec form                                                                                             | page     |
+| `GET /queue`                                    | read   | nothing                                 | 302 to `/`, whatever the method                                                                               | page     |
+| `GET /specs`                                    | read   | nothing                                 | 302 to `/`, whatever the method                                                                               | page     |
+| `GET /queue/<rest>`                             | read   | nothing                                 | 302 to `/specs/<rest>`, whatever the method                                                                   | page     |
+| `GET /jobs/<id>`                                | read   | optional `?tab=`, `?step=`, `?steptab=` | the job's page                                                                                                | page     |
+| `GET /specs/<id>`                               | read   | the same as `/jobs/<id>`                | a 301 to `/jobs/<id>` with the same query string                                                              | page     |
+| `GET /specs/<project>/<spec>`                   | read   | optional `?tab=`, `?step=`, `?steptab=` | the spec's page                                                                                               | page     |
+| `GET /specs/<project>/<spec>?startTestServer=1` | action | optional `?retryTestServer=1`           | starts a test server for the spec, then a waiting page, a 303 to it, or a page saying why it could not start  | page     |
+| `GET /specs/<project>/<spec>/pdf`               | read   | nothing                                 | `application/pdf`; 503 without md-to-pdf, 502 when the generator fails; writes a cached file when none exists | page     |
+| `GET /settings`                                 | read   | optional `?tab=`                        | the settings page; `?tab=` takes `ai`, `process`, `notifications`, `phases` or an AI's key, else opens AI     | page     |
+| `GET /test-servers`                             | read   | nothing                                 | the running test servers                                                                                      | page     |
+| `GET /projects`                                 | read   | nothing                                 | the projects list                                                                                             | page     |
+| `GET /projects/new`                             | read   | nothing                                 | the add-project form                                                                                          | page     |
+| `GET /projects/<project>`                       | read   | optional `?tab=`, `?edit=`, `?page=`    | the project's page; with `?tab=wiki`, the wiki's pages, or the one `?page=` names                             | page     |
+| `GET /projects/<project>?startTestServer=1`     | read   | nothing                                 | a waiting page, a 303 to the test server or back to the deploy tab, or a page saying why it could not start   | page     |
+| `GET /projects/<project>/settings`              | read   | nothing                                 | 302 to the project's Config tab, which carries the form                                                       | page     |
+| `GET /schedule`                                 | read   | optional `?q=`, `?sort=`, `?dir=`       | the schedule list                                                                                             | page     |
+| `GET /schedule/<project>/<name>`                | read   | optional `?tab=`, `?run=`               | the schedule's page                                                                                           | page     |
+| `GET /schedule/new`                             | read   | `?project=`                             | the page that makes a schedule entry                                                                          | page     |
+| `GET /schedule/<project>/<name>/edit`           | read   | nothing                                 | the page that changes a schedule entry                                                                        | page     |
+| `GET /schedule-output/<file>`                   | read   | nothing                                 | a file from the schedule output folder                                                                        | page     |
 
 ### Files
 

@@ -4,7 +4,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
-import { JOB, specHead, specPanel, specControls, phaseDone, OPEN_81, listUntil, rowSaysDone, setupQueueRoutesHarness } from "../fixtures.ts";
+import { JOB, specControls, phaseDone, OPEN_81, listUntil, rowSaysDone, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -43,37 +43,6 @@ describe("GET / (the spec list, HTML)", () => {
     expect(rows).not.toContain("<html");
   });
 
-});
-
-describe("every row answers for itself", () => {
-  // Spec 93 put this reason in ONE place, above the table, and said so:
-  // "it belongs to the PAGE, not to one control". That held while the
-  // page had one form; it lists up to 25 rows, and a reason attached to
-  // none of them does not say which button was pressed. Spec 99 moved
-  // it onto the row that posted it — the same reason, read off the same
-  // query string, one row further down.
-  test("a refusal is shown once, on the row that posted it (criterion 6)", async () => {
-    const { base } = start();
-    const post = () =>
-      fetch(`${base}/api/queue`, {
-        method: "POST",
-        redirect: "manual",
-        headers: { "content-type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner", steps: "analyze" }),
-      });
-    await post();
-    const refused = await post();
-    expect(refused.status).toBe(303);
-    const location = refused.headers.get("location") ?? "";
-    expect(location.startsWith("/?error=")).toBe(true);
-    const html = await (await fetch(`${base}${location}`, )).text();
-    // In the row's own panel since spec 151, not in the name cell.
-    expect(specPanel(html, "81-queue-and-runner")).toContain("already queued");
-    expect(specHead(html, "81-queue-and-runner")).not.toContain("already queued");
-    // Once, not twice: the banner is the fallback for a refusal that
-    // belongs to no row.
-    expect(html).not.toContain('<p class="refusal">');
-  });
 });
 
 describe("the step boxes on a row follow that spec", () => {

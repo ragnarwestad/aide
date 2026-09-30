@@ -20,15 +20,14 @@ export async function handleSpecEditRoutes(
   req: Request,
   url: URL,
   path: string,
-  wantsJson: boolean,
 ): Promise<Response | null> {
   return (
-    (await runControlRoutes(ctx, req, path, wantsJson)) ??
-    (await closeControlRoutes(ctx, req, path, wantsJson)) ??
-    (await branchControlRoutes(ctx, req, path, wantsJson)) ??
-    (await testServerControlRoutes(ctx, req, path, wantsJson)) ??
-    (await specPageRoutes(ctx, req, url, path, wantsJson)) ??
-    (await trackingRoutes(ctx, req, url, path, wantsJson)) ??
-    (await checkRoutes(ctx, req, url, path, wantsJson))
+    (await runControlRoutes(ctx, req, path)) ??
+    (await closeControlRoutes(ctx, req, path)) ??
+    (await branchControlRoutes(ctx, req, path)) ??
+    (await testServerControlRoutes(ctx, req, path)) ??
+    (await specPageRoutes(ctx, req, url, path)) ??
+    (await trackingRoutes(ctx, req, path)) ??
+    (await checkRoutes(ctx, req, url, path))
   );
 }

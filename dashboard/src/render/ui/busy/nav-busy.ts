@@ -1,6 +1,5 @@
 // A link that leaves this page for another document says so the moment
-// it is clicked, on every page (spec 312) — the second half of the
-// promise `form-busy.ts` keeps for a pressed Save.
+// it is clicked, on every page (spec 312), as a pressed button does.
 //
 // It used to be `specs-client.ts`'s own `markGoing()`, bound only in
 // that bundle, which only the Specs list page loads. Moved here so it
@@ -12,8 +11,8 @@
 // in script to get a spinner would be a bad trade — the only thing
 // wrong was that the click was invisible.
 //
-// Like `form-busy.ts`, this file can neither import nor export
-// anything.
+// Like every head script the shell inlines, this file can neither
+// import nor export anything.
 
 (() => {
   document.addEventListener("click", (event: Event) => {

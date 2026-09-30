@@ -12,7 +12,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import type { GitRunner } from "../../src/git/branch-status.ts";
-import { SPEC, SAVE, DESCRIPTION_TAB, PAGE, FILE_SHA, DESCRIPTION, NEW_TEXT, ARCHIVED, ARCHIVED_TEXT, createSpecSaveHarness, descriptionPath, archivedDescriptionPath, savable, post } from "./spec-save-fixtures.ts";
+import { SPEC, SAVE, DESCRIPTION_TAB, FILE_SHA, DESCRIPTION, NEW_TEXT, ARCHIVED, ARCHIVED_TEXT, createSpecSaveHarness, descriptionPath, archivedDescriptionPath, savable, post, answer } from "./spec-save-fixtures.ts";
 
 const { harness, start, startArchived } = createSpecSaveHarness();
 afterEach(() => harness.cleanup());
@@ -31,25 +31,23 @@ afterEach(() => harness.cleanup());
 // button went, and every other retired route here answers 404.
 
 describe("POST the Save action", () => {
-  test("writes the file, commits it, pushes it and returns to the spec", async () => {
+  test("writes the file, commits it and pushes it", async () => {
     const { base, dir } = start(savable("/host"));
-    const res = await post(base, { text: NEW_TEXT, baseSha: FILE_SHA });
-    expect(res.status).toBe(303);
-    const location = decodeURIComponent(res.headers.get("location")!);
-    expect(location.startsWith(PAGE)).toBe(true);
-    expect(location).not.toContain("error=");
+    const { status, body } = await answer(await post(base, { text: NEW_TEXT, baseSha: FILE_SHA }));
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.changed).toBe(true);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(NEW_TEXT);
   });
 
   // Its own branch in the save, and its own answer: no empty commit,
-  // nothing pushed, and the reader still lands on the spec.
+  // nothing pushed, and the answer is still a success.
   test("text identical to what is committed commits nothing", async () => {
     const { base, dir } = start(savable("/host", { "diff --cached --quiet HEAD": { code: 0 } }));
-    const res = await post(base, { text: DESCRIPTION, baseSha: FILE_SHA });
-    expect(res.status).toBe(303);
-    const location = decodeURIComponent(res.headers.get("location")!);
-    expect(location.startsWith(PAGE)).toBe(true);
-    expect(location).not.toContain("error=");
+    const { status, body } = await answer(await post(base, { text: DESCRIPTION, baseSha: FILE_SHA }));
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.changed).toBe(false);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
   });
 
@@ -67,11 +65,9 @@ describe("POST the Save action", () => {
       body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: ["analyze"] }),
     });
     expect(queued.status).toBe(200);
-    const res = await post(base, { text: NEW_TEXT, baseSha: FILE_SHA });
-    expect(res.status).toBe(303);
-    const location = decodeURIComponent(res.headers.get("location")!);
-    expect(location).toContain("error=");
-    expect(location).toContain("another job for this spec is still running");
+    const { status, body } = await answer(await post(base, { text: NEW_TEXT, baseSha: FILE_SHA }));
+    expect(status).toBe(409);
+    expect(body.error).toContain("another job for this spec is still running");
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
   });
 });
@@ -90,13 +86,11 @@ describe("a save that cannot go through changes nothing", () => {
     ["an unreachable origin", { fetch: { code: 128 } }, "origin"],
     ["a push that fails", { push: { code: 1 } }, "push"],
   ] as [string, Record<string, { code: number; stdout?: string }>, string][]) {
-    test(`${what}: back to the editor with the reason`, async () => {
+    test(`${what}: refused with the reason`, async () => {
       const { base, dir } = start(savable("/host", extra));
-      const res = await post(base, { text: NEW_TEXT, baseSha: FILE_SHA });
-      expect(res.status).toBe(303);
-      const location = decodeURIComponent(res.headers.get("location")!);
-      expect(location.startsWith(DESCRIPTION_TAB)).toBe(true);
-      expect(location).toContain(expected);
+      const { status, body } = await answer(await post(base, { text: NEW_TEXT, baseSha: FILE_SHA }));
+      expect(status).toBe(400);
+      expect(body.error).toContain(expected);
       // A refused push is rolled back by git, which is mocked here — so
       // the bytes are only asserted for the refusals that never write.
       if (!("push" in extra)) expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
@@ -107,30 +101,28 @@ describe("a save that cannot go through changes nothing", () => {
   // while an analyze step lands a new version of the very file.
   test("a description that moved under the editor is refused, not merged and not clobbered", async () => {
     const { base, dir } = start(savable("/host"));
-    const res = await post(base, { text: NEW_TEXT, baseSha: "0000000ffffff" });
-    expect(res.status).toBe(303);
-    const location = decodeURIComponent(res.headers.get("location")!);
-    expect(location.startsWith(DESCRIPTION_TAB)).toBe(true);
-    expect(location).toContain("changed since");
+    const { status, body } = await answer(await post(base, { text: NEW_TEXT, baseSha: "0000000ffffff" }));
+    expect(status).toBe(400);
+    expect(body.error).toContain("changed since");
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
   });
 
-  // Not just on the query string: the editor has to SHOW it, and the
-  // textarea has to come back holding what is actually on disk.
-  test("the reason is on the page the reader lands on, above the current text", async () => {
+  // The refusal comes back in the answer, and the page drawn afterwards
+  // holds what is actually on disk, not the text that was refused.
+  test("the reason comes back in the answer, and the editor still holds the text on disk", async () => {
     const { base } = start(savable("/host", { "diff --quiet HEAD": { code: 1 } }));
-    const location = decodeURIComponent((await post(base, { text: NEW_TEXT, baseSha: FILE_SHA })).headers.get("location")!);
-    const html = await (await fetch(`${base}${location}`)).text();
-    expect(html).toContain("uncommitted");
+    const { body } = await answer(await post(base, { text: NEW_TEXT, baseSha: FILE_SHA }));
+    expect(body.error).toContain("uncommitted");
+    const html = await (await fetch(`${base}${DESCRIPTION_TAB}`)).text();
     expect(html).toContain("As it was.");
     expect(html).not.toContain("As it is now.");
   });
 
   test("a body with no text field at all is refused rather than emptying the file", async () => {
     const { base, dir } = start(savable("/host"));
-    const res = await post(base, { baseSha: FILE_SHA });
-    expect(res.status).toBe(303);
-    expect(decodeURIComponent(res.headers.get("location")!)).toContain("error=");
+    const { status, body } = await answer(await post(base, { baseSha: FILE_SHA }));
+    expect(status).toBe(400);
+    expect(body.error).toBeTruthy();
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
   });
 
@@ -156,9 +148,9 @@ describe("the size of a real description", () => {
     const { base, dir } = start(savable("/host"));
     const text = long(5000);
     expect(text.length).toBeGreaterThan(4096);
-    const res = await post(base, { text, baseSha: FILE_SHA });
-    expect(res.status).toBe(303);
-    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    const { status, body } = await answer(await post(base, { text, baseSha: FILE_SHA }));
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(text);
   });
 
@@ -263,13 +255,11 @@ describe("two specs sharing one checkout", () => {
 // --- criterion 7 (spec 163): the save endpoint refuses an archived spec -----
 
 describe("POST the Save action against an archived spec", () => {
-  test("writes nothing, and says why on the spec's own page", async () => {
+  test("writes nothing, and says why", async () => {
     const { base, dir } = startArchived(savable("/host"));
-    const res = await post(base, { text: NEW_TEXT, baseSha: FILE_SHA }, `/api/queue/specs/aide/${ARCHIVED}/save`);
-    expect(res.status).toBe(303);
-    const location = decodeURIComponent(res.headers.get("location")!);
-    expect(location).toContain("error=");
-    expect(location).toContain("archived");
+    const { status, body } = await answer(await post(base, { text: NEW_TEXT, baseSha: FILE_SHA }, `/api/queue/specs/aide/${ARCHIVED}/save`));
+    expect(status).toBe(400);
+    expect(body.error).toContain("archived");
     expect(readFileSync(archivedDescriptionPath(dir), "utf-8")).toBe(ARCHIVED_TEXT);
   });
 });

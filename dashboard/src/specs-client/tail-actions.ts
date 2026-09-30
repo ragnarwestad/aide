@@ -3,30 +3,16 @@
 // press on the page can land.
 
 import { attrValue, refusalText, rowControls, type ActionResult, type Control } from "./press.ts";
+import { clearRefusal, holdRefusal } from "./row-refusal";
 import { swapRows } from "./row-swap.ts";
 import { chosen, press, selectKey } from "./state.ts";
 
-// A refusal used to navigate — and take the reader's view with it. It
-// does not any more: the address bar is moved WITHOUT a document load,
-// and the rows are re-asked with the same query the server's own
-// redirect would have built. The filter and the sort live in that query,
-// so they are read straight back out of it; dropping them would put
-// every refusal back on the default list, which is the thing the plain
-// form POST was fixed for. `errorSpec` is the server's own answer for
-// WHICH row this belongs to, and `specHeadRow` puts it there.
+// A refusal is written on the page at once and kept by the page script
+// (`row-refusal/`), under the row `spec` names — the server's own
+// answer for WHICH row it belongs to — and the rows are asked for again,
+// since whatever was refused may have changed them.
 export async function showRefusal(why: string, spec: string | undefined): Promise<void> {
-  const back = new URLSearchParams(location.search);
-  // `rows` and the two this is about to set would otherwise be carried
-  // over from a URL that is already showing a refusal.
-  for (const drop of ["rows", "error", "errorSpec"]) back.delete(drop);
-  // Percent-encoded one key at a time, exactly as the server's own
-  // redirect does it (`specsRedirect`): `URLSearchParams.toString()`
-  // writes a space as `+`, and this string is a sentence a person reads
-  // off the page it lands on.
-  const parts = [...back].map(([k, v]) => `${k}=${encodeURIComponent(v)}`);
-  parts.push(`error=${encodeURIComponent(why)}`);
-  if (spec) parts.push(`errorSpec=${encodeURIComponent(spec)}`);
-  history.replaceState(null, "", `/?${parts.join("&")}`);
+  holdRefusal(why, spec);
   await swapRows();
 }
 
@@ -56,6 +42,7 @@ export async function postTailStep(box: HTMLInputElement): Promise<void> {
   const controls = form ? rowControls(form) : [box as Control];
   const wanted = box.checked;
   const before = controls.map((el) => [el, el.disabled] as const);
+  clearRefusal();
   press.inFlight += 1;
   press.pressGen += 1;
   for (const el of controls) el.disabled = true;
@@ -115,6 +102,7 @@ export async function postTailModel(select: HTMLSelectElement, model: string): P
     : null;
   const controls = form ? rowControls(form) : [select as Control];
   const before = controls.map((el) => [el, el.disabled] as const);
+  clearRefusal();
   press.inFlight += 1;
   press.pressGen += 1;
   for (const el of controls) el.disabled = true;

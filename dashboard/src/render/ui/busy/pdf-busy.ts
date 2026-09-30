@@ -1,8 +1,8 @@
 // The PDF button looks pressed the moment it is clicked, and stays that
 // way until the reader is back on this tab (spec 358, REQ-6) — the one
-// control on this dashboard that opens in a NEW tab rather than either
-// posting a form (`form-busy.ts`) or navigating this one away
-// (`nav-busy.ts`/`nav-overlay.ts`), both of which explicitly decline a
+// control on this dashboard that opens in a NEW tab rather than
+// navigating this one away (`nav-busy.ts`/`nav-overlay.ts`, both of
+// which explicitly decline a
 // target="_blank" link because their own signals (a 303 back to this
 // page, this document being replaced) never fire for one. The closest
 // first-party signal that the new tab's own work is done is this tab

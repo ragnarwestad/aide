@@ -91,11 +91,8 @@ export {
 // two. They are internal now: both take a spec ROW rather than a
 // target, and a row is an internal shape with no caller outside
 // specs-list.ts.
-// `FILTER_KEYS`/`FILTER_FIELD_PREFIX` are the page's, not the server's:
-// the forms send the view and the server sends it back, and one list
-// kept in two places would eventually forget a key on one side.
 export {
-  FILTER_FIELD_PREFIX, FILTER_KEYS, FROM_LIST_FIELD, PHASE_LINES, computeSpecTotalDurationMs,
+  FILTER_KEYS, PHASE_LINES, computeSpecTotalDurationMs,
   filterShowsArchived, NOT_VERIFIED_KEY, parsePhaseKeys, phaseKey, phasePips, phasesFor, renderSpecGroupRows, renderSpecsPage, renderSpecsRows,
 } from "./pages/specs-list";
 export type {

@@ -90,28 +90,11 @@ describe("Settings routes (spec 232)", () => {
     const { base } = start({ queueDefaults: DEFAULTS });
     const res = await fetch(`${base}/api/queue/settings/check`, {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        // Ask for JSON, or the refusal comes back as the no-script
-        // redirect and `fetch` follows it to a 200 page.
-        accept: "application/json",
-      },
+      headers: { "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify({ tool: "../../bin/sh" }),
     });
     expect(res.status).toBe(400);
     expect(await res.json()).toMatchObject({ error: expect.stringContaining("unknown tool") });
-  });
-
-  test("a refusal with no script lands back on Settings, saying why", async () => {
-    const { base } = start({ queueDefaults: DEFAULTS });
-    const res = await fetch(`${base}/api/queue/settings/check`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ tool: "nope" }),
-      redirect: "manual",
-    });
-    expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toContain("/settings?error=");
   });
 
   test("the check route answers GET with method not allowed", async () => {
@@ -323,18 +306,20 @@ describe("POST /api/queue/projects (spec 112)", () => {
     expect(noAddress.body.results[0]!.error).toMatch(/^say/);
   });
 
-  test("a form post with no Code landing goes back to the Add page with the sentence (AC-4)", async () => {
-    const { base } = start({ gitRun: cloningGit() });
+  test("a form post with no Code landing is refused with the same sentence (AC-4)", async () => {
+    const { base, dir } = start({ gitRun: cloningGit() });
     const FORM = { "content-type": "application/x-www-form-urlencoded" };
-    const post = (fields: Record<string, string>) =>
-      fetch(`${base}/api/queue/projects`, { method: "POST", redirect: "manual", headers: FORM, body: new URLSearchParams(fields) });
+    const post = async (fields: Record<string, string>) => {
+      const res = await fetch(`${base}/api/queue/projects`, { method: "POST", redirect: "manual", headers: FORM, body: new URLSearchParams(fields) });
+      return { status: res.status, body: (await res.json()) as StepBody };
+    };
     const noLanding = await post({ name: "nochoice", gitUrl: "https://example.com/nochoice.git" });
     const noAddress = await post({ name: "noaddress", codeLanding: "merge" });
-    expect(noLanding.status).toBe(303);
-    const location = noLanding.headers.get("location")!;
-    expect(location.startsWith("/projects/new?error=")).toBe(true);
-    expect(decodeURIComponent(location)).toMatch(/choose/i);
-    expect(noAddress.headers.get("location")!.startsWith("/projects/new?error=")).toBe(true);
+    expect(noLanding.status).toBe(400);
+    expect(noLanding.body.results[0]!.error).toMatch(/^choose/);
+    expect(noAddress.status).toBe(400);
+    expect(noAddress.body.results[0]!.error).toMatch(/^say/);
+    expect(existsSync(join(dir, "root", "nochoice"))).toBe(false);
   });
 
   // Criterion 6: a clone with no manifest gets one, and the answer says
@@ -419,34 +404,6 @@ describe("POST /api/queue/projects (spec 112)", () => {
     expect(projectsIn(file).sort()).toEqual(["two"]);
   });
 
-  // Spec 115: back to the page the form is ON, which is `/projects` now.
-  // Every other route here still lands on `/` — the target is a
-  // parameter with `/` as its default, not a rewrite.
-  test("a form submit lands back on /projects, refusal and success alike", async () => {
-    const { base } = start({ gitRun: cloningGit() });
-    const FORM = { "content-type": "application/x-www-form-urlencoded" };
-    const refused = await fetch(`${base}/api/queue/projects`, {
-      method: "POST",
-      redirect: "manual",
-      headers: FORM,
-      body: new URLSearchParams({ name: "../escape", gitUrl: "https://example.com/x.git" }),
-    });
-    expect(refused.status).toBe(303);
-    // Back to the page the FORM is on (2026-08-19): the Add page.
-    expect(refused.headers.get("location")!.startsWith("/projects/new?error=")).toBe(true);
-
-    const ok = await fetch(`${base}/api/queue/projects`, {
-      method: "POST",
-      redirect: "manual",
-      headers: FORM,
-      body: new URLSearchParams({ name: "on-disk", gitUrl: "https://example.com/on-disk.git", codeLanding: "merge" }),
-    });
-    expect(ok.status).toBe(303);
-    // The list, as it has been since spec 115 — carrying the readiness
-    // answer since spec 138, which is that spec's to assert.
-    expect(ok.headers.get("location")!.split("?")[0]).toBe("/projects");
-  });
-
   test("a refusal reaches the log", async () => {
     const { base } = start();
     const written: string[] = [];
@@ -493,16 +450,14 @@ describe("Settings' Process tab: how many steps may run at once", () => {
     expect(await shownCount(base)).toBe("2");
   });
 
-  test("a form post with no script saves, lands on Process, and the tab shows the new count (AC-2)", async () => {
+  test("a form post saves, answers the new count, and the tab shows it (AC-2)", async () => {
     const file = ownConfig({ concurrency: 2 });
     const { base } = withRunner({ queueConcurrency: 2, queueConfigFile: file });
     const res = await fetch(`${base}/api/queue/settings/concurrency`, {
       method: "POST", headers: FORM, body: "concurrency=4", redirect: "manual",
     });
-    expect(res.status).toBe(303);
-    const location = res.headers.get("location") ?? "";
-    expect(location).toContain("tab=process");
-    expect(location).toContain("notice=");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, concurrency: 4 });
     expect((JSON.parse(readFileSync(file, "utf-8")) as { concurrency: number }).concurrency).toBe(4);
     expect(await shownCount(base)).toBe("4");
   });
@@ -522,7 +477,7 @@ describe("Settings' Process tab: how many steps may run at once", () => {
     expect(await shownCount(base)).toBe("2");
   });
 
-  test("a refused form post with no script lands on Process saying why (AC-3)", async () => {
+  test("a refused form post answers why, and nothing is saved (AC-3)", async () => {
     const file = ownConfig({ concurrency: 2 });
     const before = readFileSync(file, "utf-8");
     const { base } = withRunner({ queueConcurrency: 2, queueConfigFile: file });
@@ -530,10 +485,8 @@ describe("Settings' Process tab: how many steps may run at once", () => {
       const res = await fetch(`${base}/api/queue/settings/concurrency`, {
         method: "POST", headers: FORM, body, redirect: "manual",
       });
-      expect(res.status).toBe(303);
-      const location = res.headers.get("location") ?? "";
-      expect(location).toContain("tab=process");
-      expect(location).toContain("error=");
+      expect(res.status).toBe(400);
+      expect(((await res.json()) as { error: string }).error).toContain("whole number");
     }
     expect(readFileSync(file, "utf-8")).toBe(before);
   });

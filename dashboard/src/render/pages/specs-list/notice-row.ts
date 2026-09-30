@@ -1,13 +1,19 @@
 // The panel a row's long messages go into (spec 143): a row of its own,
 // spanning the table, wrapping rather than overflowing. Everything the
-// State column used to hold and could not — the runner's refusal, the
-// spec's own reason for an archive that declined — is said here, once
-// for the whole row, in the message component the page already has.
+// State column used to hold and could not — the spec's own reason for an
+// archive that declined, a job's failure — is said here, once for the
+// whole row, in the message component the page already has.
 //
 // Nothing to say draws nothing at all: an empty `.rowmsg` is invisible,
 // but an empty `<tr>` is still a row of padding.
+//
+// A refused press is written by the page script into a row of its own,
+// copied from `refusalRowTemplate` below, and a refusal naming no spec
+// into the list's own line. Both are drawn outside `#jobrows`, so no
+// redraw of the rows replaces them (`specs-client/row-refusal/`, which
+// hand-pairs the two ids).
 
-import { helpPopover, rowMessageParts, stepLabel, type MessagePart } from "../../ui/components";
+import { helpPopover, messageSlot, rowMessageParts, stepLabel, type MessagePart } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { specNotice, wordPhase } from "../../ui/job-state";
 import type { Language } from "../../../i18n";
@@ -17,6 +23,19 @@ import { checksRow, checksFold, checksPanel } from "./row-checks.ts";
 import { nextPhase, specBusy } from "./row-state.ts";
 import { LIST_COLUMNS } from "./row-shared.ts";
 import { deleteBranchForm } from "./row-controls.ts";
+
+const REFUSAL_TEMPLATE_ID = "refusal-row";
+const LIST_REFUSED_ID = "list-refused";
+
+/** The message row a refused press is written into, held in a
+ *  `<template>` for the script to copy — in a table of its own there,
+ *  where a row is always parsed as one. */
+export const refusalRowTemplate = (): string =>
+  `<template id="${REFUSAL_TEMPLATE_ID}"><table><tbody><tr class="specnotice" data-refusal>` +
+  `<td colspan="${LIST_COLUMNS}">${messageSlot("refused", "failed")}</td></tr></tbody></table></template>`;
+
+/** The list's own refusal line, above the rows. */
+export const listRefusalLine = (): string => messageSlot("refused", "failed", { id: LIST_REFUSED_ID });
 
 /** The one phase whose own record disagrees with the files, worded for
  *  the panel (spec 195). The sentence used to be drawn under that
@@ -52,7 +71,6 @@ function phaseDisagreement(g: SpecGroup, lang: Language): string | undefined {
 
 export function specNoticeRow(
   g: SpecGroup,
-  refusal: string | undefined,
   now: number,
   lang: Language,
   testServerAvailable: (project: string, specFolder: string) => boolean,
@@ -64,7 +82,6 @@ export function specNoticeRow(
   const notice = specNotice(
     g.lead,
     archiveHeldBack,
-    refusal,
     // A locked row's phases can carry queue-remembered attempts (spec
     // 410, for the duration/cost cells) from a run that happened before
     // the spec was archived or closed — nothing on a locked row is
@@ -91,7 +108,7 @@ export function specNoticeRow(
     "kind" in p && p.kind === "acceptance-hold"
       ? { ...p, lead: checksFold(g, filter, lang), after: checksPanel(g, filter, lang) }
       : "kind" in p && p.kind === "branch-left-behind"
-        ? { ...p, after: deleteBranchForm(g, filter, lang) }
+        ? { ...p, after: deleteBranchForm(g, lang) }
         : p,
   );
   const detail = notice.title ? helpPopover("more detail", esc(notice.title)) : "";

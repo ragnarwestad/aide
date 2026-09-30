@@ -104,7 +104,7 @@ export function renderTestServersPage(
       th("ts-project", "Project") + th("ts-spec", "Spec") + th("ts-branch", "Branch") +
       th("ts-status", "Status") + th("ts-address", "Address") + th("ts-stop", "") +
       `</tr></thead><tbody>${rows.map(row).join("")}</tbody></table></div>`;
-  return pageShell("Test servers", entries, TEST_SERVERS_ROUTE, body, generatedAt, undefined, {
+  return pageShell("Test servers", entries, TEST_SERVERS_ROUTE, body, generatedAt, {
     hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl, script: opts.script,
   });
 }
