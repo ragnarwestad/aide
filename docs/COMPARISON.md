@@ -7,6 +7,7 @@
 - [Aide](#aide)
 - [OpenSpec](#openspec)
 - [GitHub Spec Kit](#github-spec-kit)
+- [Spec Kitty](#spec-kitty)
 - [AWS Kiro](#aws-kiro)
 - [BMAD-METHOD](#bmad-method)
 - [GSD (Get Shit Done)](#gsd-get-shit-done)
@@ -56,17 +57,18 @@ tool.
 
 ## Summary
 
-| Tool               | Document structure                          | AI tool support                            | Execution              | Code handling                        | Invasiveness                                                               |
-|--------------------|---------------------------------------------|--------------------------------------------|------------------------|--------------------------------------|----------------------------------------------------------------------------|
-| Aide               | 4 files per spec, then archived             | 4 tools, one install per machine           | By hand, or unattended | Merges, or opens a pull request      | No files required in the repo; branches and merges show in the git history |
-| OpenSpec           | Change folder holding a capability delta    | 30+ tools, files in the project            | By hand                | You merge                            | `openspec/` and per-tool commands                                          |
-| GitHub Spec Kit    | Spec, plan and tasks under `.specify/`      | 50+ tools, files in the project            | By hand                | You merge                            | `.specify/` and per-tool commands                                          |
-| AWS Kiro           | Requirements, design, tasks                 | Its own IDE                                | By hand                | Commits per step; merging not stated | Three documents per feature, plus steering files                           |
-| BMAD-METHOD        | Brief, PRD, architecture, user stories      | Any tool with skills; a browser            | By hand                | Not stated                           | Planning documents, plus what each install adds                            |
-| GSD                | `.planning/` in the project                 | 12 tools, files in each tool's directories | By hand                | Commits per task; merging not stated | `.planning/`, plus per-tool files                                          |
-| Tessl              | Specs in `.tessl/`; published library specs | Any agent that speaks MCP                  | By hand                | Not stated                           | `.tessl/`                                                                  |
-| Cursor's Plan Mode | One plan per task, not kept                 | The Cursor editor                          | By hand                | You merge                            | `.cursor/rules/`, if rules are used                                        |
-| Augment Code       | None; it supplies context to other tools    | Its own service                            | Not applicable         | Not applicable                       | Nothing                                                                    |
+| Tool               | Document structure                              | AI tool support                                                 | Execution                                       | Code handling                                | Invasiveness                                                               |
+|--------------------|-------------------------------------------------|-----------------------------------------------------------------|-------------------------------------------------|----------------------------------------------|----------------------------------------------------------------------------|
+| Aide               | 4 files per spec, then archived                 | 4 tools, one install per machine                                | By hand, or unattended                          | Merges, or opens a pull request              | No files required in the repo; branches and merges show in the git history |
+| OpenSpec           | Change folder holding a capability delta        | 30+ tools, files in the project                                 | By hand                                         | You merge                                    | `openspec/` and per-tool commands                                          |
+| GitHub Spec Kit    | Spec, plan and tasks under `.specify/`          | 50+ tools, files in the project                                 | By hand                                         | You merge                                    | `.specify/` and per-tool commands                                          |
+| Spec Kitty         | Spec, plan, tasks and work packages per mission | 17 agents; commands per machine, skills in the project for some | By hand, or unattended through its orchestrator | Merges on a command; tests run at acceptance | `kitty-specs/`, `.kittify/`, `.worktrees/`                                 |
+| AWS Kiro           | Requirements, design, tasks                     | Its own IDE                                                     | By hand                                         | Commits per step; merging not stated         | Three documents per feature, plus steering files                           |
+| BMAD-METHOD        | Brief, PRD, architecture, user stories          | Any tool with skills; a browser                                 | By hand                                         | Not stated                                   | Planning documents, plus what each install adds                            |
+| GSD                | `.planning/` in the project                     | 12 tools, files in each tool's directories                      | By hand                                         | Commits per task; merging not stated         | `.planning/`, plus per-tool files                                          |
+| Tessl              | Specs in `.tessl/`; published library specs     | Any agent that speaks MCP                                       | By hand                                         | Not stated                                   | `.tessl/`                                                                  |
+| Cursor's Plan Mode | One plan per task, not kept                     | The Cursor editor                                               | By hand                                         | You merge                                    | `.cursor/rules/`, if rules are used                                        |
+| Augment Code       | None; it supplies context to other tools        | Its own service                                                 | Not applicable                                  | Not applicable                               | Nothing                                                                    |
 
 ## Aide
 
@@ -182,6 +184,42 @@ merging are the person's.
 **Invasiveness.** `.specify/` and the per-tool command files, both in the project. A workflow of six commands used
 with three AI tools puts eighteen command files in the repository, saying the same thing in three formats. That is
 deliberate — a clone brings the workflow with it — but it is visible to everyone working there.
+
+## Spec Kitty
+
+**What it is.** [Spec Kitty](https://github.com/spec-kitty/spec-kitty) is a command-line tool, installed with
+`pipx`, plus slash commands or skills for the AI CLIs, and an optional local kanban dashboard (`spec-kitty
+dashboard`). It calls itself a "governed software factory": people define intent and acceptance criteria, agents
+implement in git worktrees, and reviewers accept, reject or merge. Hosted tracking and sync are optional.
+
+**Document structure.** Each piece of work is a mission, a folder under `kitty-specs/` holding `meta.json`,
+`spec.md`, `plan.md`, `tasks.md` and one file per work package under `tasks/`. A work package moves through lanes —
+`planned`, `in_progress`, `for_review`, `approved`, `done` — recorded in its own file. The mission stays in
+`kitty-specs/` when it is done, and a retrospective is written for each completed mission by default.
+
+**Workflow.** `/spec-kitty.charter`, `/spec-kitty.specify`, `/spec-kitty.plan`, `/spec-kitty.tasks`, then
+`spec-kitty next`, which picks the next action, and `/spec-kitty.implement` and `/spec-kitty.review` per work
+package, then `/spec-kitty.accept` and `/spec-kitty.merge` (the `consolidate` command). A read-only
+`/spec-kitty.analyze` cross-checks the spec, the plan and the tasks before any code is written.
+
+**AI tool support.** Seventeen agents, among them Claude Code, Codex, OpenCode, Copilot, Cursor and Gemini. Most get
+their commands in a directory under the user's home (`~/.claude/commands/`, `~/.opencode/command/`); Codex and three
+others get skills in the project, under `.agents/skills/`. `spec-kitty init --ai <agent>` sets a project up for one.
+
+**Execution.** Both. A person types the commands. Or the separate `spec-kitty-orchestrator` runs the implement and
+review steps unattended: it takes each work package that is ready, runs an implementation agent in its worktree and
+a review agent after it, moves the package to `done` or back for rework, and can run several at once. Planning,
+acceptance and the merge are not in its loop. What a run cost is not stated.
+
+**Code handling.** Work packages are split into lanes, each in its own worktree under `.worktrees/`, so several
+agents work in parallel. `/spec-kitty.accept` checks that every package is approved and runs the validation
+commands it is given (`--test`) before the merge. The merge command merges the lanes into the mission's target
+branch — as a merge, a squash or a rebase — and can push and delete the worktrees and branches. Accepting a
+mission that was merged through a pull request is supported too.
+
+**Invasiveness.** `kitty-specs/` and `.kittify/` in the project, the lanes' worktrees under `.worktrees/`, and, for
+Codex and the other skill-based agents, `.agents/skills/`. In the git history, a branch per lane and the merge into
+the target branch.
 
 ## AWS Kiro
 
@@ -325,6 +363,8 @@ service runs as, and every commit a run makes carries that machine's git user, w
 
 - **Advantage:** a step that takes twenty minutes does not occupy a person for twenty minutes, work can be queued
   overnight, and every run leaves a record of what it cost and how it ended.
+  Spec Kitty's orchestrator runs its implement and review steps unattended as well; Aide runs every step that
+  way, planning and the merge included.
 - **Disadvantage:** it requires a machine that stays on. On macOS the dashboard installs as a launchd service,
   which macOS starts and keeps running; on Linux `dashboard/serve.sh` runs it in a terminal, and nothing restarts
   it after a reboot. A step running unattended cannot ask a question, and a step that goes wrong runs until its
@@ -333,7 +373,9 @@ service runs as, and every commit a run makes carries that machine's git user, w
 ### Landing is part of the workflow, not a step afterwards
 
 - **Advantage:** no step's work has to be merged by hand, the tests cannot be skipped on the way in, and the spec
-  and the code move together. A project that reviews every change keeps that review through `codeLanding: pr`.
+  and the code move together. Spec Kitty merges on a command a person gives, after an acceptance step that
+  runs the tests it is handed; Aide's landing runs the project's own suite on exactly what the default branch is about
+  to become, and pushes only when it is green. A project that reviews every change keeps that review through `codeLanding: pr`.
 - **Disadvantage:** the dashboard needs write access to the repositories it merges into. A merge conflict with the
   default branch is resolved by the archive step itself, which means trusting an AI session with the resolution,
   with the test run as the check behind it. Landing belongs to the dashboard, not to the skills: a person running
