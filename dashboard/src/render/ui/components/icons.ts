@@ -103,3 +103,9 @@ export const ICON_THEME_AUTO =
  *  every test that asks whether a cell is still checking. */
 export const CHECKING =
   '<span class="checking" title="Checking…"><span class="sr">Checking…</span></span>';
+
+/** The cross that closes a dialog: the About box's. */
+export const ICON_CLOSE =
+  `<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" ` +
+  `stroke="currentColor" stroke-width="1.8" stroke-linecap="round">` +
+  `<path d="M4 4l8 8M12 4l-8 8"></path></svg>`;

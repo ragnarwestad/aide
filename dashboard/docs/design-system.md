@@ -70,12 +70,19 @@ passes it in; nothing passes a colour or an icon:
 
 `src/render/ui/components/` builds the markup for every one of these but `.iconlink`, which is a class a caller puts
 on its own link; its `index.ts` exports them all. No page writes a button or a link with `.btn`, or a message line, by
-hand — `test/guards/one-button-one-link-one-line.test.ts` fails when one does:
+hand — `test/guards/one-button-one-link-one-line.test.ts` fails when one does — nor a fold arrow, a tab strip, a table
+of facts, a form holding one button or a checkbox with its words beside it, which
+`test/guards/five-shapes-one-component-each.test.ts` checks:
 
 | Component             | Variants                                                                                                                              |
 |-----------------------|---------------------------------------------------------------------------------------------------------------------------------------|
 | `btn()`               | bare (secondary), `primary`, `ok`, `danger`, `busy`, disabled, `small`; `form`, `value`, `data-*` and `aria-label` when asked         |
 | `btnLink()`           | a link that looks like a button: every `btn()` variant but `busy`, and `small`; never disabled — that is a disabled `btn()`           |
+| `buttonForm()`        | a form whose only control is one button — a `btn()` or a dialog's close cross: a post or the dialog's close, hooks, hidden fields     |
+| `foldArrow()`         | open or shut; its title one of four catalogue sentences with the show/hide word filled in, so always in the page's language           |
+| `tabBar()`            | in `ui/tabs.ts`: every tab strip, the header's row included; a base path or a link per tab, catalogue words, `aria-current="page"`    |
+| `facts()`             | a table of label and value, one row each; a value can be a figure                                                                     |
+| `labelledCheckbox()`  | a box and its words in one label, or disabled with a help popover after the words; never the acceptance row's 18px `.checkbox`        |
 | `switchControl()`     | on or off, its position and the word beside it drawn from `aria-checked`; moved by `setSwitch()`; disabled                            |
 | `.iconlink`           | a link or control that is its icon alone, no button frame — the spec page's PDF link, whose `.icon-pdf` is `--pdf` red in every theme |
 | `badge()`             | `b-idle`, `b-running`, `b-waiting`, `b-ready`, `b-refused`, `b-done`; the state word and its icon                                     |
@@ -311,7 +318,7 @@ else reads `Language`/`LANGUAGES` generically and needs nothing.
 
 Every page's `<body>` is `header + nav.tabbar + main`, with the page's own notices and dialogs between the header
 and the bar. `shell.ts` builds `pageHeader()` — the wordmark, a line naming the machine and which board it is, the
-theme, language and unit controls, and a "…" menu — and its own `tabBar()`, which draws Specs, Projects and Schedule.
+theme, language and unit controls, and a "…" menu — and `siteTabs()`, which draws Specs, Projects and Schedule.
 There is no sidebar, and no reserved column standing empty for one. A page that passes `hideTabBar` draws no bar at
 all: the spec page, a project's page and Settings.
 
@@ -330,7 +337,9 @@ The "…" menu is a `<details>`/`<summary>` disclosure, the same pattern `.intro
 Closing it on an outside click or on
 Escape is its own script, `menu-script.ts`, riding in the head tag with the others.
 
-The two tab bars are separate markup, and neither calls the other: `shell.ts`'s own `tabBar()` writes the page-level
-`<a class="tab">` anchors inline, and `tabs.ts` exports a `tabBar()` the job and spec pages use for their own.
+Every tab strip is `tabBar()` in `tabs.ts`: the header's row (`site`, which leaves out `subtabs`), a page's own tabs,
+and a strip nested under one — a step's Log, Changed files and Errors, the Wiki tab's Pages, Graph and Build. A caller
+gives it a base path or a function building each tab's address, and its words from the catalogue when it has them; the
+open tab is `aria-current="page"` on every strip.
 
 `min-height: 100vh` sits on `body`, so a short page — an empty spec list — still fills the viewport.

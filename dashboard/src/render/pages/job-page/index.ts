@@ -19,7 +19,7 @@ import { renderSentence } from "../../../i18n/message.ts";
 import { t, type Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { completedThirds, stateChip } from "../../ui/job-state";
-import { CHECKING, pips, stepLabel, type PipKind } from "../../ui/components";
+import { CHECKING, facts, pips, stepLabel, type PipKind } from "../../ui/components";
 import { pickTab, tabBar, tabbedBody } from "../../ui/tabs.ts";
 import { landingRefusal, stepResults, unitLabel } from "./steps-table.ts";
 import type { JobDetailView, SpecFileView } from "./types.ts";
@@ -33,17 +33,6 @@ export { pickTab, tabBar, tabbedBody } from "../../ui/tabs.ts";
 // snap back to the first one on every reload.
 export const JOB_TABS = ["overview", "steps"] as const;
 export type JobTab = (typeof JOB_TABS)[number];
-
-/** Both columns are HTML: the labels used to be escaped here, and one of
- *  them is now two spans (`unitLabel`). Every caller passes a literal or
- *  something already escaped. */
-function labelled(rows: [string, string][]): string {
-  return (
-    `<table class="facts"><tbody>` +
-    rows.map(([k, v]) => `<tr><td class="label">${k}</td><td>${v}</td></tr>`).join("") +
-    `</tbody></table>`
-  );
-}
 
 /** One spec file, preformatted and escaped, under its own name and —
  *  when somebody asked git — the commit that last changed it (spec
@@ -124,32 +113,33 @@ export function renderJobDetailPage(
   // worktree under `~/.aide/dashboard/worktrees/`, which is where every run has
   // worked since spec 91.
   const head =
-    labelled([
-      [t(lang, "job.started"), relTime(job.startedAt ?? job.createdAt, now)],
+    facts([
+      { label: t(lang, "job.started"), value: relTime(job.startedAt ?? job.createdAt, now) },
       // Marked when any step summed into it was over-charged, the same
       // way the Steps tab already marks that step (spec 152). Not
       // `anyCostUnmeasured`: this page's own `JobStepResultView` is a
       // different interface, and a Codex step has no dollar figure to
       // have estimated in the first place.
-      [
-        unitLabel(t(lang, "job.costSoFar"), t(lang, "job.tokensSoFar")),
-        usdOrTokens(job.spentUsd, job.spentTokens) +
+      {
+        label: unitLabel(t(lang, "job.costSoFar"), t(lang, "job.tokensSoFar")),
+        value:
+          usdOrTokens(job.spentUsd, job.spentTokens) +
           (job.results.some((r) => !r.costMeasured)
             ? ' <span class="muted small">est.</span>'
             : ""),
-      ],
-      [t(lang, "job.model"), esc(withModelId(job.model, job.modelId) ?? "as configured")],
+      },
+      { label: t(lang, "job.model"), value: esc(withModelId(job.model, job.modelId) ?? "as configured") },
       // Spec 364, REQ-5: beside Model, on the same terms — added during
       // plan review so this page does not show Model with no Effort
       // beside it for a step that ran with one.
-      [t(lang, "job.effort"), esc(job.effort ?? "not set")],
+      { label: t(lang, "job.effort"), value: esc(job.effort ?? "not set") },
     ]) +
     // And what this phase MADE. A reader opens a phase's page to find
     // out what that phase did, and it used to show the same
     // `## Description` prose every other page showed.
     (job.phase ? specFilePanel(job.phase, now) : "");
 
-  const tabHref = `/jobs/${esc(job.id)}?tab=steps`;
+  const tabHref = `/jobs/${job.id}?tab=steps`;
   const panel =
     tab === "steps"
       ? stepResults(job.results, job.archiveHeldBack, {

@@ -95,7 +95,7 @@ describe("the Wiki tab's build is the newest one", () => {
 
 // The build's step is opened, on its own tab, by the address.
 describe("a step of the wiki build keeps its tab in the address (AC-6)", () => {
-  test("?step=0&steptab=errors opens the finished step on Errors", async () => {
+  test("?step=0&steptab=errors opens the finished step on Errors, marked as the page's own tab bar marks its tab (AC-2)", async () => {
     const { base, dir } = start();
     await post(base, "aide");
     const mirror = join(dir, "queue.json");
@@ -108,6 +108,6 @@ describe("a step of the wiki build keeps its tab in the address (AC-6)", () => {
     const { base: base2 } = start({ queueMirrorPath: mirror });
 
     const html = await (await fetch(`${base2}/projects/aide?tab=wiki&wikitab=build&step=0&steptab=errors`)).text();
-    expect(html.match(/<a class="tab"[^>]*aria-current="true"[^>]*>([^<]*)</)?.[1]).toBe("Errors");
+    expect(html.match(/<a class="tab"[^>]*href="[^"]*steptab=[^"]*"[^>]*aria-current="page"[^>]*>([^<]*)</)?.[1]).toBe("Errors");
   });
 });

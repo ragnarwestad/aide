@@ -3,7 +3,11 @@
 // standard `Referer` header. No render file had a test of its own for
 // either shape before this.
 import { describe, expect, test } from "bun:test";
-import { btn, btnLink, ICON_FAILED, ICON_INFO, messageSlot, resolveBackHref } from "../../../src/render/ui/components";
+import {
+  btn, btnLink, buttonForm, foldArrow, ICON_FAILED, ICON_INFO, messageSlot, resolveBackHref,
+} from "../../../src/render/ui/components";
+import { esc } from "../../../src/render/ui/html.ts";
+import { t } from "../../../src/i18n";
 
 describe("resolveBackHref", () => {
   const ORIGIN = "https://dash.example";
@@ -114,5 +118,57 @@ describe("messageSlot()", () => {
     expect(messageSlot("refused")).toBe(
       `<p class="refused rowmsg failed" aria-live="polite">${ICON_FAILED}<span></span></p>`,
     );
+  });
+});
+
+// --- the fold arrow and the one-button form -----------------------------------
+
+describe("foldArrow()", () => {
+  test("takes its title from the catalogue in the page's language, with the action word filled in (AC-1)", () => {
+    const html = foldArrow({ href: "/", open: false, lang: "nb", title: "list.foldTitle", params: { folder: "12-x" } });
+    const title = t("nb", "list.foldTitle", { action: t("nb", "list.foldShow"), folder: "12-x" });
+    expect(html).toContain(`title="${esc(title)}"`);
+  });
+
+  test("escapes its address once and carries the hooks the list's script reads (AC-1)", () => {
+    const html = foldArrow({
+      href: "/?open=a&checks=b",
+      open: true,
+      lang: "en",
+      title: "list.checksFoldTitle",
+      params: { folder: "12-x" },
+      data: { fold: "open", key: "aide/12-x" },
+    });
+    expect(html).toContain('href="/?open=a&amp;checks=b"');
+    expect(html).not.toContain("&amp;amp;");
+    expect(html).toContain('data-fold="open"');
+    expect(html).toContain('data-key="aide/12-x"');
+  });
+});
+
+describe("buttonForm()", () => {
+  test("puts its hidden fields and its button inside the form, which carries the hook the script selects on (AC-4)", () => {
+    const html = buttonForm({
+      action: "/api/queue/j1/cancel?a=1&b=2",
+      hook: "actionform",
+      hidden: { f_state: 'all"' },
+      button: { label: "Cancel" },
+    });
+    expect(html.startsWith('<form method="post" action="/api/queue/j1/cancel?a=1&amp;b=2" class="actionform">')).toBe(true);
+    expect(html).toContain('<input type="hidden" name="f_state" value="all&quot;">');
+    expect(html).toContain(btn({ label: "Cancel" }));
+    expect(html.endsWith("</form>")).toBe(true);
+  });
+
+  test("closes a dialog with no action when its method is the dialog's own (AC-4)", () => {
+    const html = buttonForm({ method: "dialog", button: { label: "OK", value: "leave" } });
+    expect(html).toBe(`<form method="dialog">${btn({ label: "OK", value: "leave" })}</form>`);
+  });
+
+  test("draws a dialog's close cross, named for a screen reader, as its one button (AC-4)", () => {
+    const html = buttonForm({ method: "dialog", button: { cross: "Close" } });
+    expect(html.startsWith('<form method="dialog"><button')).toBe(true);
+    expect(html).toContain('aria-label="Close"');
+    expect(html).not.toContain("action=");
   });
 });

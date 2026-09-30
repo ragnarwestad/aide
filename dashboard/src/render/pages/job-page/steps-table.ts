@@ -9,7 +9,7 @@ import { esc, usdOrTokens } from "../../ui/html.ts";
 import { renderSentence } from "../../../i18n/message.ts";
 import { t, type Language } from "../../../i18n";
 import { heldBackReasonText } from "../../ui/job-state/notice.ts";
-import { ICON_CHEVRON, stepLabel } from "../../ui/components";
+import { facts, foldArrow, stepLabel } from "../../ui/components";
 import type { JobDetailView, JobStepResultView } from "./types.ts";
 import { stepPanel } from "./step-tabs.ts";
 import { providerLimitSentence } from "../../ui/job-state/provider-limit.ts";
@@ -97,24 +97,28 @@ export function resolveOpenStep(query: string | undefined, hasRunning: boolean):
  *  them, and the provider's usage limit that stopped it. A step with no
  *  log and no final message says so in words.
  *
- *  No class of its own: `table.facts` is the page's existing key/value
- *  component (`job-page.ts`'s `labelled()`), and `specfile`/`muted`/
- *  `small`/`num`/`label` are the same classes the raw log and the row's
- *  own cells already carry — no render file introduces a class outside
- *  that vocabulary. */
+ *  No class of its own: the table is the board's `facts()` component,
+ *  and `specfile`/`muted`/`small` are the same classes the raw log and
+ *  the row's own cells already carry — no render file introduces a class
+ *  outside that vocabulary. */
 function stepFacts(r: JobStepResultView, lang: Language = "en"): string {
   const hasLog = !!r.logs?.some((part) => part.lines.length > 0);
-  const facts =
-    `<table class="facts"><tbody>` +
-    `<tr><td class="label">${t(lang, "job.stepAt")}</td><td>${r.at ? esc(r.at) : "–"}</td></tr>` +
-    `<tr><td class="label">${unitLabel(t(lang, "job.cost"), t(lang, "job.tokens"))}</td>` +
-    `<td class="num">${usdOrTokens(r.tool === "codex" ? undefined : r.costUsd, r.tokens)}</td></tr>` +
-    `<tr><td class="label">${t(lang, "job.stepResult")}</td><td>${esc(r.terminalReason)}` +
-    // The usage limit that stopped the step, from the tool's own record.
-    (r.providerLimit ? `<br><span class="muted small">${esc(providerLimitSentence(r.providerLimit, undefined, "en"))}</span>` : "") +
-    `</td></tr>` +
-    `</tbody></table>`;
-  return hasLog ? facts : `${facts}<p class="muted">${t(lang, "job.logMissing")}</p>`;
+  const table = facts([
+    { label: t(lang, "job.stepAt"), value: r.at ? esc(r.at) : "–" },
+    {
+      label: unitLabel(t(lang, "job.cost"), t(lang, "job.tokens")),
+      value: usdOrTokens(r.tool === "codex" ? undefined : r.costUsd, r.tokens),
+      num: true,
+    },
+    {
+      label: t(lang, "job.stepResult"),
+      value:
+        esc(r.terminalReason) +
+        // The usage limit that stopped the step, from the tool's own record.
+        (r.providerLimit ? `<br><span class="muted small">${esc(providerLimitSentence(r.providerLimit, undefined, "en"))}</span>` : ""),
+    },
+  ]);
+  return hasLog ? table : `${table}<p class="muted">${t(lang, "job.logMissing")}</p>`;
 }
 
 /** Exported since spec 150: the SPEC page's Steps tab is the lead job's
@@ -160,10 +164,8 @@ export function stepResults(
   // plain text with a hover underline, not as something to press.
   const stepCell = (label: string, key: string, isOpen: boolean): string =>
     opts.tabHref
-      ? `<a class="fold${isOpen ? "" : " shut"}" data-nav data-steplink ` +
-        `href="${opts.tabHref}&step=${isOpen ? "none" : esc(key)}" ` +
-        `aria-expanded="${isOpen ? "true" : "false"}" ` +
-        `title="${isOpen ? "hide" : "show"} this step's own log">${ICON_CHEVRON}</a> ${esc(label)}`
+      ? foldArrow({ href: `${opts.tabHref}&step=${isOpen ? "none" : key}`, open: isOpen, lang, title: "job.stepFoldTitle" }) +
+        ` ${esc(label)}`
       : esc(label);
   const rows = results
     .map((r, i) => {

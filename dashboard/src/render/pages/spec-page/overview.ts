@@ -2,7 +2,7 @@
 // archived) drawn in the banner on every tab, the Status tab's
 // criteria checklist, and the Reopen and Close controls.
 
-import { btn, helpPopover, ICON_PDF, rowMessage, saveCancelActions } from "../../ui/components";
+import { btn, buttonForm, helpPopover, ICON_PDF, labelledCheckbox, rowMessage, saveCancelActions } from "../../ui/components";
 import { SPINNER } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { acTestsLine } from "../../ui/ac-tests.ts";
@@ -75,26 +75,21 @@ export function trackingControl(view: SpecPageView, lang: Language = "en"): stri
   // The sentence that stood here is the field's own "(?)" now, on the
   // label's line, rather than a paragraph under the control.
   const note = "";
-  // `.row`, not `.checkbox`: that class is the fixed 18px square an
-  // acceptance ROW draws so every row's mark lines up, and it carries
-  // `width: 18px; flex: none`. Wrapped around a label with words in it,
-  // the words were squeezed into eighteen pixels, wrapped to three
-  // lines, and the Save button beside them landed on top.
   // Locked, it draws the box it always drew — disabled, and ticked or
   // not according to what was actually decided. It used to draw the
   // words alone, the same words either way, so a spec that DOES require
   // its ticking was told it does not.
   const required = !view.acceptanceNotRequired;
+  const words = t(lang, "spec.acceptanceTickingRequired");
   const acceptance = acceptanceLocked
-    ? `<span class="row" aria-disabled="true">` +
-      `<input type="checkbox" disabled${required ? " checked" : ""}>` +
-      `<span>${t(lang, "spec.acceptanceTickingRequired")}</span>` +
-      helpPopover(t(lang, "spec.acceptanceLockedTitle"), t(lang, "spec.acceptanceLockedBody")) +
-      `</span>`
-    : `<label class="row">` +
-      `<input type="hidden" name="acceptanceEditable" value="1">` +
-      `<input type="checkbox" name="acceptanceRequired" value="1"${required ? " checked" : ""}>` +
-      `<span>${t(lang, "spec.acceptanceTickingRequired")}</span></label>`;
+    ? labelledCheckbox({
+        label: words,
+        disabled: true,
+        checked: required,
+        help: helpPopover(t(lang, "spec.acceptanceLockedTitle"), t(lang, "spec.acceptanceLockedBody")),
+      })
+    : `<input type="hidden" name="acceptanceEditable" value="1">` +
+      labelledCheckbox({ label: words, name: "acceptanceRequired", value: "1", checked: required });
   // `.trackingform`, never `.specform`: the Status tab's tick form
   // already carries that class, and the banner renders on every tab —
   // Checks included — so a shared class would leave that tab with TWO
@@ -437,8 +432,7 @@ export function testServerStatus(view: SpecPageView): string {
     `<a href="${esc(view.testServerOpenHref ?? view.testServer.url ?? "")}" target="_blank" rel="noopener">Open the test server</a> ` +
     `<span class="muted">— it runs the code from ${where}. The specs shown are from the test ` +
     `suite, not the ones on the prod dashboard.</span></span>` +
-    `<form class="actionform" method="post" action="${esc(view.testServerStopAction ?? "")}">` +
-    btn({ label: "Stop test server" }) + `</form>` +
+    buttonForm({ action: view.testServerStopAction ?? "", hook: "actionform", button: { label: "Stop test server" } }) +
     `</div>`
   );
 }

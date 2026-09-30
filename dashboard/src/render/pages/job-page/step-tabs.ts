@@ -5,7 +5,7 @@
 // held in a widget would snap back to Log on the next reload.
 
 import { t, type Language } from "../../../i18n";
-import { pickTab } from "../../ui/tabs.ts";
+import { pickTab, tabBar } from "../../ui/tabs.ts";
 import { esc } from "../../ui/html.ts";
 import type { LogPart } from "../../../queue/parse-stream";
 import type { JobStepResultView } from "./types.ts";
@@ -85,13 +85,10 @@ export function stepPanel(
     files: `${t(o.lang, "job.tabFiles")}${count}`,
     errors: t(o.lang, "job.tabErrors"),
   };
-  const strip = STEP_TABS.map((tab) => {
-    const here = tab === current ? ` aria-current="true"` : "";
-    return o.tabHref
-      ? `<a class="tab" data-nav data-goto href="${o.tabHref}&step=${esc(o.key)}&steptab=${tab}"${here}>${esc(label[tab])}</a>`
-      : `<span class="tab"${here}>${esc(label[tab])}</span>`;
-  }).join("");
+  // "Changed files (0)" keeps its count through the label: `counts` drops a zero.
+  const link = (tab: StepTab): string | undefined => (o.tabHref ? `${o.tabHref}&step=${o.key}&steptab=${tab}` : undefined);
+  const strip = tabBar(STEP_TABS, link, current, {}, "", { label: (tab) => label[tab] });
   const content = { log: logTab, files: filesTab, errors: errorsTab }[current](r, o.lang);
   const merge = o.refusal ? `<pre class="specfile">${esc(o.refusal)}</pre>` : "";
-  return `${merge}<nav class="tabbar subtabs">${strip}</nav><div class="logbox"><div>${content}</div></div>`;
+  return `${merge}${strip}<div class="logbox"><div>${content}</div></div>`;
 }

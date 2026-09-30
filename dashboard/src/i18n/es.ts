@@ -198,6 +198,7 @@ export const es: Record<TranslationKey, string> = {
   "job.stepResult": "Resultado",
   "job.attempt": "Intento {n}",
   "job.logMissing": "Falta el registro de este paso.",
+  "job.stepFoldTitle": "{action} el registro de este paso",
   "job.tabLog": "Registro",
   "job.tabFiles": "Archivos cambiados",
   "job.tabErrors": "Errores",

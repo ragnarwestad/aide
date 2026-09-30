@@ -3,13 +3,13 @@
 // address (`?phases=`), like the row's own fold and the criteria's
 // (`?checks=`), so it survives the live redraw and works with script off.
 
-import { ICON_CHEVRON, stepLabel } from "../../../ui/components";
+import { foldArrow, stepLabel } from "../../../ui/components";
 import { esc } from "../../../ui/html.ts";
 import { withModelId } from "../../../ui/components/model-label.ts";
 import { t } from "../../../../i18n";
 import { specTabPath } from "../../spec-page";
 import type { Phase, SpecGroup } from "../data-model";
-import { queueHref } from "../filter-bar.ts";
+import { queuePath } from "../filter-bar.ts";
 import type { SpecsPageOptions } from "../";
 import { phaseKey } from "./keys.ts";
 import { LIST_COLUMNS } from "../row-shared.ts";
@@ -57,12 +57,13 @@ export function phaseMessagesFold(g: SpecGroup, p: Phase, opts: SpecsPageOptions
   const unfolded = unfoldedKeys(opts.filter?.phases);
   const shut = !unfolded.has(key);
   const next = shut ? [...unfolded, key] : [...unfolded].filter((k) => k !== key);
-  const action = t(lang, shut ? "list.foldShow" : "list.foldHide");
-  return (
-    `<a class="fold${shut ? " shut" : ""}" data-nav href="${queueHref(opts.filter ?? {}, { phases: next.join(",") })}" ` +
-    `aria-expanded="${shut ? "false" : "true"}" ` +
-    `title="${esc(t(lang, "list.phaseFoldTitle", { action, phase: stepLabel(p.step, lang) }))}">${ICON_CHEVRON}</a>`
-  );
+  return foldArrow({
+    href: queuePath(opts.filter ?? {}, { phases: next.join(",") }),
+    open: !shut,
+    lang,
+    title: "list.phaseFoldTitle",
+    params: { phase: stepLabel(p.step, lang) },
+  });
 }
 
 /** The row under an unfolded phase line, or nothing. */

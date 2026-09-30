@@ -2,7 +2,7 @@
 // the compare links, reopen, and the one Run/Cancel control the State
 // column carries.
 
-import { ICON_CHEVRON, btn, dialogAnswers, stepLabel } from "../../ui/components";
+import { btn, buttonForm, dialogAnswers, foldArrow, stepLabel } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { currentStep, type QueueRowView } from "../../ui/job-state";
@@ -16,7 +16,7 @@ import {
   type SpecGroup,
 } from "./data-model";
 import { askButton, reopenAskDialog } from "../spec-page/ask-dialog.ts";
-import { queueHref, queuePath } from "./filter-bar.ts";
+import { queuePath } from "./filter-bar.ts";
 import { filterFields, filterValues } from "./row-shared.ts";
 import { actionState, runFormId, specBusy } from "./row-state.ts";
 
@@ -30,15 +30,14 @@ export function foldControl(g: SpecGroup, f: SpecsFilter, opened: Set<string>, l
   const key = groupKey(g.project, g.specFolder);
   const shut = !opened.has(key);
   const next = shut ? [...opened, key] : [...opened].filter((k) => k !== key);
-  const action = t(lang, shut ? "list.foldShow" : "list.foldHide");
-  return (
-    `<a class="fold${shut ? " shut" : ""}" data-nav data-fold="open" data-key="${esc(key)}" ` +
-    `href="${queueHref(f, { open: next.join(",") })}" ` +
-    // The key is never the visible content — anything in `?open=` is
-    // attacker-chosen text, and an icon cannot be mistaken for markup.
-    `aria-expanded="${shut ? "false" : "true"}" ` +
-    `title="${esc(t(lang, "list.foldTitle", { action, folder: g.specFolder }))}">${ICON_CHEVRON}</a>`
-  );
+  return foldArrow({
+    href: queuePath(f, { open: next.join(",") }),
+    open: !shut,
+    lang,
+    title: "list.foldTitle",
+    params: { folder: g.specFolder },
+    data: { fold: "open", key },
+  });
 }
 
 // Stopping a run is the one thing this form does. It offered Approve
@@ -67,22 +66,25 @@ function actionForm(
   filter: SpecsFilter | undefined,
   lang: Language,
 ): string {
-  const hidden = filterFields(filter);
+  const hidden = filterValues(filter);
   // Gated on `r.landing`, exactly like `specStateChip`/`busyReason`
   // already do (spec 423, REQ-3): `landingStep(r)` alone answers the
   // wrong question on an ordinary row queued for its NEXT step with no
   // landing in progress.
   const step = stepLabel(r.landing ? landingStep(r) : currentStep(r), lang);
   return (
-    `<form method="post" action="/api/queue/${esc(r.id)}/cancel" class="actionform cancelform">${hidden}` +
-    // Primary, like every row's one action (spec 161): `danger` was
-    // supposed to set it apart, but in dark mode `--danger` and
-    // `--accent` sit close enough in hue that an outlined Cancel and a
-    // filled button beside it said nothing different to the eye. And a
-    // cancelled run can be started again, so it was never what `danger`
-    // is for.
-    btn({ label: t(lang, "list.cancel"), pending: t(lang, "list.cancelling"), variant: "primary" }) +
-    `</form>` +
+    buttonForm({
+      action: `/api/queue/${r.id}/cancel`,
+      hook: "actionform cancelform",
+      hidden,
+      // Primary, like every row's one action (spec 161): `danger` was
+      // supposed to set it apart, but in dark mode `--danger` and
+      // `--accent` sit close enough in hue that an outlined Cancel and a
+      // filled button beside it said nothing different to the eye. And a
+      // cancelled run can be started again, so it was never what `danger`
+      // is for.
+      button: { label: t(lang, "list.cancel"), pending: t(lang, "list.cancelling"), variant: "primary" },
+    }) +
     // A confirmation over the row (spec 423), the same `<dialog>` shape
     // the schedule list's own Delete uses: the reader never leaves the
     // row they are watching. `cancel-confirm.ts` opens it, from a
@@ -94,9 +96,12 @@ function actionForm(
     `<p class="muted">${esc(t(lang, "list.cancelConfirmBody", { step }))}</p>` +
     dialogAnswers(
       lang,
-      `<form method="post" action="/api/queue/${esc(r.id)}/cancel" class="actionform">${hidden}` +
-        btn({ label: t(lang, "dialog.ok"), variant: "primary", pending: t(lang, "list.cancelling") }) +
-        `</form>`,
+      buttonForm({
+        action: `/api/queue/${r.id}/cancel`,
+        hook: "actionform",
+        hidden,
+        button: { label: t(lang, "dialog.ok"), variant: "primary", pending: t(lang, "list.cancelling") },
+      }),
     ) +
     `</div></dialog>`
   );
@@ -137,12 +142,12 @@ function reopenAsk(g: SpecGroup, opts: SpecsPageOptions, lang: Language): string
  *  that deletes the merged branch on origin. The filter rides along so a
  *  no-script press comes back to the same view. */
 export function deleteBranchForm(g: SpecGroup, filter: SpecsFilter, lang: Language): string {
-  return (
-    `<form method="post" action="/api/queue/specs/${esc(g.project)}/${esc(g.specFolder)}/delete-branch" class="actionform">` +
-    filterFields(filter) +
-    btn({ label: t(lang, "list.deleteBranch"), pending: t(lang, "list.deletingBranch"), small: true }) +
-    `</form>`
-  );
+  return buttonForm({
+    action: `/api/queue/specs/${g.project}/${g.specFolder}/delete-branch`,
+    hook: "actionform",
+    hidden: filterValues(filter),
+    button: { label: t(lang, "list.deleteBranch"), pending: t(lang, "list.deletingBranch"), small: true },
+  });
 }
 
 // The one thing the row asks of the reader, beside the sentence that

@@ -66,7 +66,7 @@ describe("the board line and its Stop control (spec 424)", () => {
   test("REQ-3: a test board's header carries a Stop form beside the line", () => {
     setBoardInfo("424-headeren-sier-hvilket-board-du-er-pa-og-testserveren-kan-stoppes-derfra");
     for (const html of render()) {
-      expect(html).toContain('<form class="actionform" method="post" action="/api/self-stop">');
+      expect(html).toContain('<form method="post" action="/api/self-stop" class="actionform">');
     }
   });
 
@@ -80,7 +80,7 @@ describe("the board line and its Stop control (spec 424)", () => {
     for (const html of render()) {
       expect(html).toContain(`${machine} - Test - round<`);
       expect(html).toMatch(
-        /action="\/api\/self-stop">[\s\S]*?<\/form><form class="actionform" method="post" action="\/api\/self-run">/,
+        /action="\/api\/self-stop" class="actionform">[\s\S]*?<\/form><form method="post" action="\/api\/self-run" class="actionform">/,
       );
     }
     // Started from a spec's branch: a preview of that spec, never re-run.
@@ -100,7 +100,7 @@ describe("the board line and its Stop control (spec 424)", () => {
   test("a round board's Run says 'Starting…' while its request is out (AC-5)", () => {
     setBoardInfo("aide-wt-run");
     for (const html of render()) {
-      const run = html.match(/action="\/api\/self-run">[\s\S]*?<\/form>/)?.[0] ?? "";
+      const run = html.match(/action="\/api\/self-run" class="actionform">[\s\S]*?<\/form>/)?.[0] ?? "";
       expect(run).toContain('data-pending="Starting…"');
     }
   });

@@ -198,6 +198,7 @@ export const de: Record<TranslationKey, string> = {
   "job.stepResult": "Ergebnis",
   "job.attempt": "Versuch {n}",
   "job.logMissing": "Für diesen Schritt fehlt das Log.",
+  "job.stepFoldTitle": "{action} das Log dieses Schritts",
   "job.tabLog": "Log",
   "job.tabFiles": "Geänderte Dateien",
   "job.tabErrors": "Fehler",

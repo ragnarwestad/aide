@@ -199,6 +199,7 @@ export const nb: Record<TranslationKey, string> = {
   "job.stepResult": "Resultat",
   "job.attempt": "Forsøk {n}",
   "job.logMissing": "Loggen mangler for dette steget.",
+  "job.stepFoldTitle": "{action} loggen for dette steget",
   "job.tabLog": "Logg",
   "job.tabFiles": "Endrede filer",
   "job.tabErrors": "Feil",

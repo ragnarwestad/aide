@@ -23,7 +23,21 @@ export { STEP_LABELS, STEP_LABELS_NB, STEP_LABELS_ES, STEP_LABELS_DE, STEP_LABEL
 
 // --- button ----------------------------------------------------------------
 
-export { btn, btnLink, saveCancelActions, dialogAnswers, type BtnVariant } from "./button.ts";
+export {
+  btn, btnLink, buttonForm, saveCancelActions, dialogAnswers, type BtnOptions, type BtnVariant, type FormHook,
+} from "./button.ts";
+
+// --- fold arrow ------------------------------------------------------------------
+
+export { foldArrow, type FoldTitle } from "./fold-arrow.ts";
+
+// --- table of facts ----------------------------------------------------------------
+
+export { facts } from "./facts.ts";
+
+// --- labelled checkbox -------------------------------------------------------------
+
+export { labelledCheckbox } from "./checkbox.ts";
 
 // --- status badge --------------------------------------------------------------
 

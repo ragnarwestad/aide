@@ -8,7 +8,7 @@
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { t, type Language } from "../../../i18n";
 import { DESCRIPTION_MAX } from "../../../queue/parse-request.ts";
-import { btn, dialogAnswers, field, messageSlot } from "../../ui/components";
+import { btn, buttonForm, dialogAnswers, field, labelledCheckbox, messageSlot } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { specPagePath } from "./tabs.ts";
 
@@ -63,9 +63,6 @@ export interface AskParts {
 
 export function askDialog(lang: Language, parts: AskParts): string {
   const formId = esc(`${parts.id}-form`);
-  const hidden = Object.entries(parts.hidden ?? {})
-    .map(([name, value]) => `<input type="hidden" name="${esc(name)}" value="${esc(value)}">`)
-    .join("");
   return (
     `<dialog class="confirmdialog" id="${esc(parts.id)}" data-progress-dialog><div class="confirmpanel">` +
     `<h2>${esc(parts.title)}</h2>` +
@@ -75,12 +72,13 @@ export function askDialog(lang: Language, parts: AskParts): string {
     messageSlot("refused") +
     dialogAnswers(
       lang,
-      `<form id="${formId}" method="post" action="${esc(parts.action)}" data-progress="${esc(parts.back)}"` +
-        (parts.done ? ` data-progress-done="${esc(parts.done)}"` : "") +
-        `>` +
-        hidden +
-        btn({ label: t(lang, "dialog.ok"), variant: parts.ok.variant, pending: parts.ok.pending }) +
-        `</form>`,
+      buttonForm({
+        id: `${parts.id}-form`,
+        action: parts.action,
+        data: { progress: parts.back, ...(parts.done ? { "progress-done": parts.done } : {}) },
+        hidden: parts.hidden,
+        button: { label: t(lang, "dialog.ok"), variant: parts.ok.variant, pending: parts.ok.pending },
+      }),
     ) +
     `</div></dialog>`
   );
@@ -110,13 +108,17 @@ export function closeAskDialog(project: string, specFolder: string, lang: Langua
   });
 }
 
-// A line of its own (`.frow`), the box and its words side by side
-// (`.row`). Never `.checkbox`: that is the fixed 18px square an
-// acceptance row draws, and it squeezed the words into eighteen pixels.
-// Unticked: resetting throws the analysis, the plan and the status away.
+// A line of its own (`.frow`). Unticked: resetting throws the analysis,
+// the plan and the status away. `formId` is raw: the box escapes it.
 const resetBox = (formId: string): string =>
-  `<div class="frow"><label class="row"><input type="checkbox" name="resetFiles" value="1" form="${formId}">` +
-  `<span>Also reset the analysis, the plan and the status</span></label></div>`;
+  `<div class="frow">` +
+  labelledCheckbox({
+    label: "Also reset the analysis, the plan and the status",
+    name: "resetFiles",
+    value: "1",
+    form: formId,
+  }) +
+  `</div>`;
 
 /** Reopen's dialog. `where` says which dialog it is and where the reader
  *  goes once the job is posted: the spec page draws one, the list one per
@@ -133,7 +135,7 @@ export function reopenAskDialog(
     title: `Reopen ${specFolder}?`,
     standing: t(lang, "list.reopening"),
     sentence: REOPEN_SENTENCE,
-    control: resetBox,
+    control: () => resetBox(`${where.id}-form`),
     action: "/api/queue",
     hidden: { ...where.hidden, project, specFolder, steps: "reopen" },
     back: where.back,

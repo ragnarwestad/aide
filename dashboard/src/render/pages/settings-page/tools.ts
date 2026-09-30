@@ -8,7 +8,7 @@
 // questions are answerable for which tool, and why.
 
 import { esc } from "../../ui/html.ts";
-import { btn, rowMessage } from "../../ui/components";
+import { buttonForm, rowMessage } from "../../ui/components";
 
 export const TOOL_TABS = ["claude", "codex", "copilot", "opencode"] as const;
 
@@ -137,11 +137,13 @@ export function toolPanel(tool: CheckableTool, check: ToolCheck | undefined): st
     `<p>${esc(note.what)}</p>` +
     `<p class="muted">The check tells you ${esc(note.canCheck)}.</p>` +
     cannot +
-    `<form method="post" action="/api/queue/settings/check" id="check-${esc(tool)}">` +
-    `<input type="hidden" name="tool" value="${esc(tool)}">` +
-    `<div class="configactions">` +
-    btn({ id: `check-${tool}-run`, label: "Check", variant: "primary", pending: "checking…" }) +
-    `</div></form>` +
+    buttonForm({
+      id: `check-${tool}`,
+      action: "/api/queue/settings/check",
+      hook: "configactions",
+      hidden: { tool },
+      button: { id: `check-${tool}-run`, label: "Check", variant: "primary", pending: "checking…" },
+    }) +
     (check ? resultBlock(check) : `<p class="muted">Not checked yet.</p>`) +
     `</section>`
   );

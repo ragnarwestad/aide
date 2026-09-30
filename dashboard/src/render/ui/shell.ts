@@ -11,7 +11,8 @@ import { CSS } from "./css";
 import { ICON_LINKS, WORDMARK } from "./brand.ts";
 import { PWA_LINKS } from "./pwa.ts";
 import { esc } from "./html.ts";
-import { btn, dialogAnswers } from "./components";
+import { tabBar } from "./tabs.ts";
+import { buttonForm, dialogAnswers } from "./components";
 import { capitalizeFirst } from "../../format/error-sentence.ts";
 import { themeControl, languageControl, menuSettingRows } from "./header-controls.ts";
 import { getBoardInfo, isRoundBoard } from "./board-info.ts";
@@ -22,7 +23,7 @@ import { t, type Language, type TranslationKey } from "../../i18n";
 export interface NavEntry {
   label: string;
   path: string;
-  /** Resolved per request, in `tabBar()` below, in preference to `label`
+  /** Resolved per request, in `siteTabs()` below, in preference to `label`
    *  (spec 482) — `navEntries()` builds this list at server start,
    *  before any reader's language is known, so a tab whose word can
    *  change per language names the catalogue KEY here instead of
@@ -147,10 +148,7 @@ export function aboutProse(): string {
 function aboutDialog(): string {
   return (
     `<dialog class="about"><div class="aboutpanel">` +
-    `<form method="dialog"><button class="aboutclose" aria-label="Close">` +
-    `<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" ` +
-    `stroke="currentColor" stroke-width="1.8" stroke-linecap="round">` +
-    `<path d="M4 4l8 8M12 4l-8 8"></path></svg></button></form>` +
+    buttonForm({ method: "dialog", button: { cross: "Close" } }) +
     `<h2>About</h2>` +
     aboutProse() +
     `</div></dialog>`
@@ -169,10 +167,7 @@ function leaveAppDialog(lang: Language): string {
     `<dialog class="leaveapp confirmdialog"><div class="confirmpanel">` +
     `<h2>${esc(t(lang, "shell.leaveAppTitle"))}</h2>` +
     `<p class="muted">${esc(t(lang, "shell.leaveAppBody"))}</p>` +
-    dialogAnswers(
-      lang,
-      `<form method="dialog">${btn({ label: t(lang, "dialog.ok"), variant: "danger", value: "leave" })}</form>`,
-    ) +
+    dialogAnswers(lang, buttonForm({ method: "dialog", button: { label: t(lang, "dialog.ok"), variant: "danger", value: "leave" } })) +
     `</div></dialog>`
   );
 }
@@ -230,19 +225,17 @@ function boardText(lang: Language): string {
  *  a prod board. */
 function runForm(lang: Language): string {
   if (!isRoundBoard()) return "";
-  return (
-    `<form class="actionform" method="post" action="/api/self-run">` +
-    `${btn({ label: t(lang, "shell.runTestRound"), pending: "starting…" })}</form>`
-  );
+  return buttonForm({
+    action: "/api/self-run",
+    hook: "actionform",
+    button: { label: t(lang, "shell.runTestRound"), pending: "starting…" },
+  });
 }
 
 /** A test board's Stop control; nothing on a prod board. */
 function stopForm(lang: Language): string {
   if (!getBoardInfo()) return "";
-  return (
-    `<form class="actionform" method="post" action="/api/self-stop">` +
-    `${btn({ label: t(lang, "shell.stopTestServer") })}</form>`
-  );
+  return buttonForm({ action: "/api/self-stop", hook: "actionform", button: { label: t(lang, "shell.stopTestServer") } });
 }
 
 export function isSpecFolder(folder: string): boolean {
@@ -288,7 +281,7 @@ function pageHeader(lang: Language, currentUrl: string, tabs = ""): string {
   );
 }
 
-function tabBar(entries: NavEntry[], currentPath: string, lang: Language): string {
+function siteTabs(entries: NavEntry[], currentPath: string, lang: Language): string {
   // The first entry is the Projects page; the rest are the project
   // pages, which are NOT tabs — the Projects page lists them, and two
   // lists of the same projects were one too many. A project's own page
@@ -319,15 +312,20 @@ function tabBar(entries: NavEntry[], currentPath: string, lang: Language): strin
   // `navigate()` would be the wrong fix even if it did reach here —
   // `swapRows()` always fetches the Specs list, never the tab's own
   // target.
-  const tab = (label: string, href: string, on: boolean) =>
-    `<a class="tab" data-nav data-goto href="${href}"${on ? ` aria-current="page"` : ""}>${label}</a>`;
-  return (
-    `<nav class="tabbar">` +
-    tab(t(lang, "shell.tabSpecs"), "/", currentPath === "/") +
-    tab(t(lang, "shell.tabProjects"), projectsPage!.path, projectsPage!.path === currentPath || onAProject) +
-    sections.map((e) => tab(e.labelKey ? t(lang, e.labelKey) : e.label, e.path, e.path === currentPath)).join("") +
-    `</nav>`
-  );
+  //
+  // Each tab's key is its own path, so the shared bar links a tab to its key.
+  const words = new Map<string, string>([
+    ["/", t(lang, "shell.tabSpecs")],
+    [projectsPage!.path, t(lang, "shell.tabProjects")],
+    ...sections.map((e): [string, string] => [e.path, e.labelKey ? t(lang, e.labelKey) : e.label]),
+  ]);
+  const current =
+    currentPath === "/"
+      ? "/"
+      : projectsPage!.path === currentPath || onAProject
+        ? projectsPage!.path
+        : sections.find((e) => e.path === currentPath)?.path;
+  return tabBar([...words.keys()], (path) => path, current, {}, "", { label: (path) => words.get(path)!, site: true });
 }
 
 /** Everything `pageShell` takes beyond the title, the tabs and the body. */
@@ -410,7 +408,7 @@ export function shellRest(
   // parsed — and waits for DOMContentLoaded before touching an element.
   const script = opts.script ? `\n<script>${opts.script}</script>` : "";
   const scriptSrc = opts.scriptSrc ? `\n<script src="${esc(opts.scriptSrc)}"></script>` : "";
-  const tabs = opts.hideTabBar ? "" : tabBar(entries, currentPath, lang);
+  const tabs = opts.hideTabBar ? "" : siteTabs(entries, currentPath, lang);
   return `${opts.refresh ?? ""}
 ${pageHeader(lang, currentUrl, tabs)}
 ${headerNotices(lang)}
