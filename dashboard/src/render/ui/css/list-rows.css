@@ -302,3 +302,6 @@ tr.specgap > td { height: 10px; padding: 0; border: 0; background: none; }
    (`followScheduleRow`, specs-client/schedule-actions.ts). */
 table.list tr[data-row-href] { cursor: pointer; }
 table.list tr[data-row-href]:hover td { background: var(--surface-2); }
+/* The run whose report the page shows (`schedule-page/runs.ts`). Weight as
+   well as ground, so it does not read as a hovered row. */
+table.list tr[aria-current] td { background: var(--surface-2); font-weight: 600; }

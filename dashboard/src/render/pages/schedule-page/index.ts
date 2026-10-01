@@ -1,14 +1,15 @@
 // /schedule (spec 272, extended spec 276, reworked spec 278): the list
 // of every allowed project's entries at once, and an entry's own detail
-// page (Report, History and Settings tabs) — composed from
+// page (Report and Settings tabs) — composed from
 // schedule-page/*. An entry is changed on its Settings tab; making one
 // is a page of its own (`new-page.ts`), reached from the project's own
 // Schedule tab.
 
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
+import type { Job } from "../../../queue/types.ts";
 import type { Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
-import { renderScheduleHistory, type ScheduleHistoryRow } from "./history.ts";
+import { renderScheduleRuns } from "./runs.ts";
 import { renderScheduleList, type ScheduleFilter, type SchedulePageRow } from "./list.ts";
 import { renderScheduleSettings, type ScheduleSettingsOptions } from "./settings.ts";
 import {
@@ -22,7 +23,7 @@ export { renderProposalsPanel } from "./proposals.ts";
 export { NEW_SCHEDULE_DEFAULTS, renderScheduleNewPage, scheduleNewPath } from "./new-page.ts";
 export type { ScheduleNewPageOptions } from "./new-page.ts";
 export { SCHEDULE_TABS, schedulePagePath, scheduleRunPath, scheduleSettingsPath, scheduleTabPath };
-export type { SchedulePageRow, ScheduleFilter, ScheduleHistoryRow, ScheduleTab };
+export type { SchedulePageRow, ScheduleFilter, ScheduleTab };
 
 export const SCHEDULE_ROUTE = "/schedule";
 
@@ -61,7 +62,14 @@ export interface ScheduleDetailPageOptions {
   project: string;
   entry: ScheduleEntry;
   tab?: string;
-  history: readonly ScheduleHistoryRow[];
+  /** The entry's runs, newest first, listed under the report. */
+  runs: readonly Job[];
+  /** The id of the run whose report `reportPanel` shows. */
+  shownRun?: string;
+  /** The `?run=` the address named, when it is one of `runs`. */
+  keepRun?: string;
+  /** The runs list's `?sort=` and `?dir=`, as the address gave them. */
+  runSort?: { sort?: string; dir?: string };
   /** The report panel's markup (`renderReportPanel`), the Report tab. */
   reportPanel?: string;
   script?: string;
@@ -88,16 +96,19 @@ export function renderScheduleDetailPage(
   const tab = pickTab(SCHEDULE_TABS, opts.tab, "report");
   const base = schedulePagePath(opts.project, opts.entry.name);
   const bar = tabBar(SCHEDULE_TABS, base, tab, {});
-  // The entry's runs — the newest report, and every run — and what the
-  // entry IS, on Settings, where it is also changed.
+  // The entry's runs — a run's report, and every run below it — and what
+  // the entry IS, on Settings, where it is also changed.
   const panel =
-    tab === "history" ? renderScheduleHistory(opts.history)
-    : tab === "settings"
+    tab === "settings"
       ? renderScheduleSettings({
           project: opts.project, entry: opts.entry, editing: opts.editing, modelChoices: opts.modelChoices,
           defaultModels: opts.defaultModels, deleteDone: opts.deleteDone, lang: opts.lang ?? "en",
         })
-      : (opts.reportPanel ?? "");
+      : (opts.reportPanel ?? "") +
+        renderScheduleRuns({
+          lang: opts.lang ?? "en", project: opts.project, name: opts.entry.name, runs: opts.runs,
+          shown: opts.shownRun, keepRun: opts.keepRun, sort: opts.runSort?.sort, dir: opts.runSort?.dir,
+        });
   const body = tabbedBody("", bar, panel, opts.backHref ?? SCHEDULE_ROUTE, opts.entry.name);
   return pageShell(opts.entry.name, nav, base, body, generatedAt, {
     script: opts.script,

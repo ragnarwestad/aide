@@ -174,8 +174,8 @@ describe("POST /api/queue/schedule/<project>/<name> — edit", () => {
   test("a rename sends a save opened from the entry's own page to its new page, and a back off the board is not followed", async () => {
     const t = start([nightly()]);
     const renamed = await fetch(`${t.base}/api/queue/schedule/aide/nightly`,
-      jsonPost(nightly({ name: "renamed", back: "/schedule/aide/nightly?tab=history" })));
-    expect(await renamed.json()).toEqual({ ok: true, location: "/schedule/aide/renamed?tab=history" });
+      jsonPost(nightly({ name: "renamed", back: "/schedule/aide/nightly?tab=settings" })));
+    expect(await renamed.json()).toEqual({ ok: true, location: "/schedule/aide/renamed?tab=settings" });
     const away = await fetch(`${t.base}/api/queue/schedule/aide/renamed`, jsonPost(nightly({ name: "renamed", back: "//evil.example/" })));
     expect(await away.json()).toEqual({ ok: true, location: "/projects/aide?tab=schedule" });
   });

@@ -291,11 +291,69 @@ describe("GET /schedule/<project>/<entry> shows a run's report (spec 495)", () =
     expect(html).not.toContain("<iframe");
   });
 
-  test("an entry that has never run says so, and ?run= is ignored", async () => {
+  test("an entry that has never run says so once, shows no list, and ?run= is ignored (AC-6)", async () => {
     const { base } = setup([]);
     const html = await get(base, `${PAGE}?run=anything`);
-    expect(html).toContain("This entry has not run yet.");
+    expect(html.split("This entry has not run yet.").length - 1).toBe(1);
     expect(html).not.toContain("<iframe");
+    const doc = parse(html);
+    expect(doc.getElementById("runs")).toBeNull();
+    expect(doc.querySelector("table")).toBeNull();
+  });
+
+  /** The runs list's rows, by run id, and the one marked as shown. */
+  function runsList(html: string): { ids: (string | null)[]; marked: (string | null)[]; headings: Element[] } {
+    const doc = parse(html);
+    const rows = [...doc.querySelectorAll("#runs tbody tr")];
+    const id = (tr: Element) => new URL(tr.getAttribute("data-row-href")!, "http://board").searchParams.get("run");
+    return {
+      ids: rows.map(id),
+      marked: rows.filter((tr) => tr.getAttribute("aria-current") === "true").map(id),
+      headings: [...doc.querySelectorAll("#runs thead th")],
+    };
+  }
+
+  test("the Report tab shows the newest finished run's report with every run listed below, that run marked (AC-2)", async () => {
+    const { base } = setup([
+      { id: "r1", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>FIRST-TEXT</p>" },
+      { id: "r2", state: "done", at: "2026-09-02T03:00:00Z", report: "<p>SECOND-TEXT</p>" },
+      { id: "r3", state: "running", at: "2026-09-03T03:00:00Z" },
+    ]);
+    const html = await get(base, PAGE);
+    expect(html).toContain("SECOND-TEXT");
+    expect(runsList(html)).toMatchObject({ ids: ["r3", "r2", "r1"], marked: ["r2"] });
+  });
+
+  test("?run= marks that run in the list (AC-3)", async () => {
+    const { base } = setup([
+      { id: "r1", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>a</p>" },
+      { id: "r2", state: "done", at: "2026-09-02T03:00:00Z", report: "<p>b</p>" },
+    ]);
+    expect(runsList(await get(base, `${PAGE}?run=r1`)).marked).toEqual(["r1"]);
+  });
+
+  test("?sort= and ?dir= reach the list (AC-5)", async () => {
+    const { base } = setup([{ id: "r1", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>a</p>" }]);
+    const { headings } = runsList(await get(base, `${PAGE}?sort=duration&dir=asc`));
+    expect(headings.map((th) => th.getAttribute("aria-sort"))).toEqual([null, null, "ascending"]);
+  });
+
+  test("a heading keeps a ?run= that names one of the entry's runs, and no other (AC-5)", async () => {
+    const { base } = setup([{ id: "r1", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>a</p>" }]);
+    const runOf = (th: Element) =>
+      new URL(th.querySelector("a")!.getAttribute("href")!, "http://board").searchParams.get("run");
+    expect(runsList(await get(base, `${PAGE}?run=r1&sort=state`)).headings.map(runOf)).toEqual(["r1", "r1", "r1"]);
+    expect(runsList(await get(base, `${PAGE}?run=nope&sort=state`)).headings.map(runOf)).toEqual([null, null, null]);
+  });
+
+  test("an old link to the History tab opens the Report tab, with the report and the runs (AC-7)", async () => {
+    const { base } = setup([{ id: "r1", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>REPORT-R1</p>" }]);
+    const res = await fetch(`${base}${PAGE}?tab=history`);
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain("REPORT-R1");
+    expect(runsList(html).ids).toEqual(["r1"]);
+    expect(parse(html).querySelector('nav.subtabs a[aria-current="page"]')?.textContent).toBe("Report");
   });
 
   test("?run= picks that run's report, with that run's own time, and neither of the others'", async () => {
@@ -331,10 +389,10 @@ describe("GET /schedule/<project>/<entry> shows a run's report (spec 495)", () =
     expect(await get(base, `${PAGE}?run=r2`)).not.toContain('id="proposals"');
   });
 
-  test("the address a source block gives is the one the History row uses, and the page answers it (AC-5)", async () => {
+  test("the address a source block gives is the one the runs list uses, and the page answers it (AC-3)", async () => {
     const { base } = setup([{ id: "r1", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>REPORT-R1</p>" }]);
     const path = scheduleRunPath("aide", "nightly-report", "r1");
-    expect(await get(base, `${PAGE}?tab=history`)).toContain(`href="${path}"`);
+    expect(await get(base, PAGE)).toContain(`href="${path}"`);
     const res = await fetch(`${base}${path.split("#")[0]}`);
     expect(res.status).toBe(200);
     expect(await res.text()).toContain("REPORT-R1");
@@ -395,7 +453,7 @@ describe("where the pages read the jobs from", () => {
       const { base } = start({ extra: { queueMirrorPath: mirror, queueProjects: ["aide", "other"] }, alsoProjects: ["other"] });
       writeSchedule("aide", [NIGHTLY]);
       writeSchedule("other", [{ ...NIGHTLY, name: "unrelated" }]);
-      const own = await (await fetch(`${base}/schedule/aide/nightly-report?tab=history`)).text();
+      const own = await (await fetch(`${base}/schedule/aide/nightly-report`)).text();
       expect(own).toContain("run=aide-run");
       expect(own).not.toContain("run=other-run");
     } finally {

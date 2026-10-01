@@ -384,7 +384,7 @@ directly. The New page and the Settings tab's Edit say what a scheduled job may 
 sort it). It shows and links, and changes nothing: a click anywhere on a row opens the project's Schedule tab, whether
 an entry is enabled is text there. The project's own Schedule tab lists its entries by Name, Next run, the Enabled
 switch, Run now and Delete, with New above the list; a click on a row opens the entry's own page.
-`/schedule/<project>/<name>` is one entry's own page, with three tabs: Report, History and Settings. Settings shows
+`/schedule/<project>/<name>` is one entry's own page, with two tabs: Report and Settings. Settings shows
 every field of the entry — name, cron, prompt file, model and notify — with the Enabled switch, Run now and Delete;
 Delete there goes to the project's Schedule tab once it has gone through. Edit on Settings (`?tab=settings&edit=1`)
 draws the same fields as New as inputs on the tab, with Save and Cancel. New is a page of its own,
@@ -406,9 +406,13 @@ The run's report is its `index.html` there; a missing file, an empty one, whites
 `<img>` count as no report. An entry's Report tab shows the newest finished run's report in a sandboxed frame
 (`sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"`, so nothing in a report runs and its links
 open in a new tab), headed by the run's outcome and how long ago it started; a newer run still queued or running is
-named in a line above it, and with no finished run at all the tab says the job is queued or running. A History row opens the same page with that run's
-report (`?run=<jobId>`, matched against the entry's own jobs and never used as a path; an unknown value shows the
-newest finished run). A run that wrote no report shows a sentence with how it ended, and an entry that has not run says so. The
+named in a line above it, and with no finished run at all the tab says the job is queued or running. Under the
+report, and that run's proposed specs, the tab lists every run of the entry by Started, State and Duration, newest
+first; a heading sorts the list through `?sort=` and `?dir=`, the way the `/schedule` list sorts. A click on a run's row
+opens the same page with that run's report (`?run=<jobId>`, matched against the entry's own jobs and never used as a
+path; an unknown value shows the newest finished run), and the run being shown is marked in the list. A run that wrote
+no report shows a sentence with how it ended, and an entry that has not run says so, with no list. An old
+`?tab=history` address opens the Report tab. The
 report's own styling, scripts and event attributes are removed and the board's tokens put in their place; the frame
 follows the page's Dark/Light/Auto choice through `specs-client/report-frame.ts`. The file on its own is served under
 `/schedule-output/<project>/<key>/runs/<jobId>/index.html`.

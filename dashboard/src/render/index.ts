@@ -63,8 +63,7 @@ export {
   renderProposalsPanel,
 } from "./pages/schedule-page";
 export type {
-  SchedulePageOptions, SchedulePageRow, ScheduleDetailPageOptions,
-  ScheduleHistoryRow, ScheduleTab,
+  SchedulePageOptions, SchedulePageRow, ScheduleDetailPageOptions, ScheduleTab,
 } from "./pages/schedule-page";
 
 // The eight answers that make the dashboard an app you install (spec

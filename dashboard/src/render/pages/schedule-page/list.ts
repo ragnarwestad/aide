@@ -2,14 +2,15 @@
 // sort across every allowed project's entries at once, the same
 // pattern the Specs list already uses. It shows and links, and changes
 // nothing: the switch, Run now and Delete are on each project's own
-// Schedule tab, and Settings and History on the entry's own page.
+// Schedule tab, and the entry's runs and Settings on its own page.
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
-import { btn, ICON_CHEVRON, ICON_SEARCH, messageSlot, rowMessage } from "../../ui/components";
+import { btn, ICON_SEARCH, messageSlot, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { modelFlag } from "./model-flag.ts";
 import { scheduleSettingsPath } from "./tabs.ts";
+import { queryHref, resolveSort, sortHeading, type SortColumns } from "./sort-head.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 
 export interface SchedulePageRow {
@@ -43,6 +44,7 @@ export const SORT_DEFAULT_DIR: Record<string, "asc" | "desc"> = {
   next: "asc",
   last: "desc",
 };
+const SORT_COLUMNS: SortColumns = { keys: SORTS, fallback: DEFAULT_SORT, firstDir: SORT_DEFAULT_DIR };
 
 const haystack = (r: SchedulePageRow): string => `${r.project}:${r.entry.name}\n${r.entry.prompt}`.toLowerCase();
 
@@ -53,8 +55,7 @@ export const matchesSearch = (r: SchedulePageRow, f: ScheduleFilter): boolean =>
 };
 
 export function sortRows(rows: readonly SchedulePageRow[], f: ScheduleFilter, now: Date): SchedulePageRow[] {
-  const sort = SORTS.includes(f.sort ?? "") ? f.sort! : DEFAULT_SORT;
-  const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : SORT_DEFAULT_DIR[sort]!;
+  const { sort, dir } = resolveSort(SORT_COLUMNS, f);
   const sign = dir === "asc" ? 1 : -1;
   const key = (r: SchedulePageRow): number | string =>
     sort === "next"
@@ -73,13 +74,9 @@ export function sortRows(rows: readonly SchedulePageRow[], f: ScheduleFilter, no
 // live-refresh loop for `swapRows()` to patch (2-analysis.md, Findings
 // — reusing the Specs list's `data-nav` links here would prevent the
 // click, rewrite the address bar, and never re-render).
+// Unescaped, like `queryHref`: whoever writes it into markup escapes it.
 function scheduleHref(f: ScheduleFilter, patch: { q?: string; sort?: string; dir?: string }): string {
-  const merged = { ...f, ...patch };
-  const q = Object.entries(merged)
-    .filter(([, v]) => v)
-    .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`)
-    .join("&");
-  return esc(q ? `/schedule?${q}` : "/schedule");
+  return queryHref("/schedule", { ...f, ...patch });
 }
 
 export interface ScheduleListOptions {
@@ -128,7 +125,7 @@ function searchForm(f: ScheduleFilter): string {
     `<input class="archive-q" type="search" name="q" value="${esc(q)}" ` +
     `placeholder="A project, a name or a prompt path" aria-label="Search the schedule">` +
     (q
-      ? `<a class="searchclear" href="${scheduleHref(f, { q: "" })}" ` +
+      ? `<a class="searchclear" href="${esc(scheduleHref(f, { q: "" }))}" ` +
         `title="Clear the search" aria-label="Clear the search">&times;</a>`
       : "") +
     `</span>` +
@@ -139,25 +136,9 @@ function searchForm(f: ScheduleFilter): string {
 }
 
 function sortableHead(f: ScheduleFilter): string {
-  const sort = SORTS.includes(f.sort ?? "") ? f.sort! : DEFAULT_SORT;
-  const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : SORT_DEFAULT_DIR[sort]!;
-  const th = (key: string, label: string) => {
-    const on = key === sort;
-    // Clicking the column you are already sorted by turns it round.
-    const next = on ? (dir === "asc" ? "desc" : "asc") : SORT_DEFAULT_DIR[key]!;
-    const linkCls = on
-      ? dir === "asc"
-        ? "sortlink on asc"
-        : "sortlink on"
-      : SORT_DEFAULT_DIR[key] === "asc"
-        ? "sortlink asc"
-        : "sortlink";
-    const aria = on ? ` aria-sort="${dir === "asc" ? "ascending" : "descending"}"` : "";
-    return (
-      `<th${aria}><a class="${linkCls}" href="${scheduleHref(f, { sort: key, dir: next === SORT_DEFAULT_DIR[key] ? "" : next })}">` +
-      `${esc(label)}${ICON_CHEVRON}</a></th>`
-    );
-  };
+  const now = resolveSort(SORT_COLUMNS, f);
+  const th = (key: string, label: string) =>
+    sortHeading(SORT_COLUMNS, now, key, label, (sort, dir) => scheduleHref(f, { sort, dir }));
   return (
     `<thead><tr>${th("name", "Name")}${th("next", "Next run")}${th("last", "Last run")}` +
     `<th>Enabled</th></tr></thead>`

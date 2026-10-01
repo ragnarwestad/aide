@@ -21,7 +21,7 @@ describe("scheduleBackPath", () => {
 describe("renamedBack", () => {
   test("the entry's old page, with or without a query, becomes its new one", () => {
     expect(renamedBack("/schedule/aide/old", "aide", "old", "new")).toBe("/schedule/aide/new");
-    expect(renamedBack("/schedule/aide/old?tab=history", "aide", "old", "new")).toBe("/schedule/aide/new?tab=history");
+    expect(renamedBack("/schedule/aide/old?tab=settings", "aide", "old", "new")).toBe("/schedule/aide/new?tab=settings");
   });
 
   test("any other page, and a save that kept the name, is left alone", () => {

@@ -9,7 +9,7 @@ import { DEFAULT_SCHEDULE_OUTPUT_ROOT, readScheduleRunReport, scheduleTrackingKe
 import { readProposalsRecord } from "../../../queue/spec-proposals.ts";
 import {
   NEW_SCHEDULE_DEFAULTS, SCHEDULE_ROUTE, buildReportDocument, projectPagePath, renderProposalsPanel, renderReportPanel,
-  renderScheduleDetailPage, renderSchedulePage, resolveBackHref, schedulePagePath,
+  renderScheduleDetailPage, renderSchedulePage, resolveBackHref,
 } from "../../../render";
 import { languageChoice, modelChoiceOptions, specsClientScript } from "../../serve-helpers";
 import { serveStatic } from "../../serve-helpers";
@@ -94,11 +94,6 @@ export async function schedulePages(
       .filter((j) => j.project === project && j.specFolder === key)
       .sort((a, b) => (b.startedAt ?? b.createdAt).localeCompare(a.startedAt ?? a.createdAt));
     const outputRoot = ctx.opts.scheduleOutputRoot ?? DEFAULT_SCHEDULE_OUTPUT_ROOT;
-    const page = schedulePagePath(project, name);
-    const history = jobs.map((job) => ({
-      job,
-      outputHref: `${page}?run=${encodeURIComponent(job.id)}#report`,
-    }));
     const langResult = languageChoice(url, req);
     // `?run=` is only ever compared with this entry's own job ids, never
     // joined into a path; anything else shows the newest run.
@@ -131,7 +126,13 @@ export async function schedulePages(
       modelChoices: modelChoiceOptions(ctx.queue),
       defaultModels: ctx.queue.defaults.model,
       deleteDone: projectScheduleTab(project),
-      history,
+      runs: jobs,
+      shownRun: shown?.id,
+      // Only a `?run=` that matched is carried by the list's headings: a
+      // page showing the newest finished run goes on doing so after a sort.
+      keepRun: shown && shown.id === runParam ? runParam : undefined,
+      // Only ever compared with the list's column names.
+      runSort: { sort: url.searchParams.get("sort") ?? undefined, dir: url.searchParams.get("dir") ?? undefined },
       reportPanel:
         renderReportPanel({
           lang: langResult.lang, run,

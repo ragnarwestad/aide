@@ -18,7 +18,7 @@ const BASE = "/api/queue/schedule/aide/nightly-report";
 
 function page(o: Partial<ScheduleDetailPageOptions> = {}): Document {
   const html = renderScheduleDetailPage(NAV, "2026-09-30T00:00:00Z", {
-    project: "aide", entry: ENTRY, tab: "settings", history: [], modelChoices: MODELS,
+    project: "aide", entry: ENTRY, tab: "settings", runs: [], modelChoices: MODELS,
     defaultModels: { default: "sonnet" }, deleteDone: "/projects/aide?tab=schedule", ...o,
   });
   const window = new Window();
@@ -42,10 +42,10 @@ function fieldNames(doc: Document): string[] {
 }
 
 describe("the entry's page", () => {
-  test("offers the tabs Report, History and Settings (AC-3)", () => {
-    for (const tab of ["report", "history", "settings"]) {
+  test("offers the tabs Report and Settings (AC-1)", () => {
+    for (const tab of ["report", "settings", undefined]) {
       const words = [...page({ tab }).querySelectorAll("nav.subtabs a")].map((a) => a.textContent);
-      expect(words).toEqual(["Report", "History", "Settings"]);
+      expect(words).toEqual(["Report", "Settings"]);
     }
   });
 });
