@@ -28,10 +28,10 @@ and which configuration files each tool reads.
 
 | Tool               | Version | Last verified | Status       |
 |--------------------|---------|---------------|--------------|
-| Claude Code        | 2.1.283 | 2026-09-28    | ✅ Supported |
-| GitHub Copilot CLI | 1.0.88  | 2026-09-28    | ✅ Supported |
-| Codex CLI          | 0.157.1 | 2026-09-28    | ✅ Supported |
-| OpenCode           | 1.18.32 | 2026-09-28    | ✅ Supported |
+| Claude Code        | 2.1.287 | 2026-10-01    | ✅ Supported |
+| GitHub Copilot CLI | 1.0.89  | 2026-10-01    | ✅ Supported |
+| Codex CLI          | 0.159.2 | 2026-10-01    | ✅ Supported |
+| OpenCode           | 1.18.33 | 2026-10-01    | ✅ Supported |
 
 **The Version and Last verified columns are stamped from probing — do not
 edit them by hand.** Run:
@@ -68,7 +68,7 @@ everyone believed was an E is how rules break silently.
 |-----------------------------------------------------------------|------------------------------------------------|------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
 | Rules (git, testing, communication, …)                          | **E** — auto-loaded from `~/.claude/rules/`    | **I** — text in `~/.copilot/copilot-instructions.md` | **I** — text in `~/.codex/AGENTS.md`                                                                                                                                                  | **I** — text in `~/.config/opencode/AGENTS.md`                 |
 | Skills (`/aide-create`, `/aide-explore`, …)                     | **H** — native, activated on description match | **H** — read from `~/.agents/skills/`                | **H** — read from `~/.agents/skills/`                                                                                                                                                 | **H** — scanned in `~/.agents/skills/` and `~/.claude/skills/` |
-| Hooks (markdownlint, `git add .` block, watch-mode block, Stop) | **E** — enforced via `settings.json`           | **—**                                                | **E** — via `~/.codex/hooks.json` (verified live against 0.147.0, 0.154.0 installed; needs one-time hook trust, which `codex exec` keeps through thread start and resume since 0.141) | **—**                                                          |
+| Hooks (markdownlint, `git add .` block, watch-mode block, Stop) | **E** — enforced via `settings.json`           | **—**                                                | **E** — via `~/.codex/hooks.json` (verified live against 0.147.0; needs one-time hook trust, which `codex exec` keeps through thread start and resume since 0.141)                    | **—**                                                          |
 | Agents (task-analyzer)                                          | **H** — invoked via the Agent tool             | **—**                                                | **—**                                                                                                                                                                                 | **—**                                                          |
 | Spec workflow (explore → create → … → archive)                  | **H** — the skills carry it                    | **H** — the skills carry it                          | **H** — the skills carry it                                                                                                                                                           | **H** — the skills carry it                                    |
 
