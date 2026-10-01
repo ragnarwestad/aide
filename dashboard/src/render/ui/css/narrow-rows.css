@@ -128,17 +128,16 @@
   /* One line, as on a desktop and as the phase lines under it: the
      captions over the name, the box and the tick, the row's action in the
      state column, and the spec's total in the Time column. The button
-     takes the phase badges' own height, text size and column width, so
-     it fits where they fit, and trims with an ellipsis where they do. */
+     is the desktop's own button in the phase badges' column width, and
+     trims with an ellipsis where they do. */
   table.list tr.subrow[data-caption="1"] > td[data-col="state"] { order: 6; flex: 0 0 var(--state-w); min-width: 0;
     text-align: center; }
   table.list tr.subrow[data-caption="1"] > td[data-col="started"] { order: 7; }
   table.list tr.subrow[data-caption="1"] td[data-col="state"] > .actionslot,
   table.list tr.subrow[data-caption="1"] .actionslot > .actionform { display: block; width: 100%; }
   table.list tr.subrow[data-caption="1"] .actionslot > .rowrun { display: none; }
-  table.list tr.subrow[data-caption="1"] .actionslot .btn { display: block; width: 100%; height: 20px;
-    padding: 0 var(--sp-1); border-radius: var(--r-s); font-size: var(--fs-s); line-height: 18px;
-    overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; }
+  table.list tr.subrow[data-caption="1"] .actionslot .btn { display: block; width: 100%;
+    padding: 0 var(--sp-1); line-height: 26px; overflow: hidden; text-overflow: ellipsis; }
   /* The rows are flex lines here, not table rows, so an open row's
      second line comes off with `display: none` (list.css collapses it). */
   table.list tr.spechead:has(.fold[aria-expanded="true"]) + tr.specstate { display: none; }
