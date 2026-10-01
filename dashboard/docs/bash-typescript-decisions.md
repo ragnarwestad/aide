@@ -69,7 +69,7 @@ its number.
 
 Each side has a test of its own, and neither reads the other:
 
-- `tests/specs/unit/core/scripts/run_spec/test_aide_run_spec_specs_root_flag.py`
+- `tests/specs/unit/core/scripts/run_spec/setup/test_aide_run_spec_specs_root_flag.py`
   — holds the script:
   - the flag wins;
   - the config still decides without it;

@@ -16,14 +16,12 @@ SOURCE_SUFFIXES = {".sh", ".py", ".ts", ".js", ".mjs", ".css"}
 
 # Files already over the limit, at the length measured when this list was
 # written. One that grows fails; one split below the limit leaves the list.
+# None is left.
 OVER_LINE_LIMIT = {}
 
 # Folders already over the limit, at the count measured when this list was
-# written, held until they are split.
-OVER_FOLDER_LIMIT = {
-    "tests/specs/unit/core/scripts": 28,
-    "tests/specs/unit/core/scripts/run_spec": 40,
-}
+# written, held until they are split. None is left.
+OVER_FOLDER_LIMIT = {}
 
 # The commands installed onto PATH sit flat in one folder, the established
 # pattern for them (rule 5), whatever their number.

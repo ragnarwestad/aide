@@ -51,7 +51,7 @@ call the builder — it keeps returning a plain string — but follows the same 
 reader sees one convention regardless of which layer wrote the words.
 
 `BASH_ERROR_REGISTRY` in `tests/specs/unit/core/scripts/run_spec/run_spec_project_state.py`, checked by
-`run_spec/test_aide_run_spec_no_progress.py`, is the registry for the sentences `aide-run-spec` writes: each is
+`run_spec/record/test_aide_run_spec_no_progress.py`, is the registry for the sentences `aide-run-spec` writes: each is
 listed there with the resolution phrase its own current text must contain, or the reason it is exempt. It grows as
 each sentence is migrated to this convention — an entry is added once a sentence is fixed, not before.
 
