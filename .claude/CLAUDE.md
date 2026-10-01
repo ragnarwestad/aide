@@ -70,8 +70,8 @@ process started by hand with `pkill` + `bun run` is not the service.
 
 ## Reading the documentation
 
-**Grep the long pages; do not read one whole.** `docs/AI_NEWS_LOG.md` is 800 lines and the dashboard's docs
-pages run to 550; they are written to be searched. Where to look:
+**Grep the long pages; do not read one whole.** `docs/AI_NEWS_LOG.md` and its archive run to several hundred
+lines each, and the dashboard's docs pages run to 550; they are written to be searched. Where to look:
 
 | Question                                                  | Page                                          | Who it's for      |
 |-----------------------------------------------------------|-----------------------------------------------|-------------------|
