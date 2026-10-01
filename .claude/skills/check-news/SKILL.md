@@ -66,6 +66,10 @@ Add a new section in `docs/AI_NEWS_LOG.md` under `## News log`, **above** the
 existing entries (newest first). Use today's date as the heading, and add
 the date to the table of contents at the top.
 
+Then delete every review older than about two months, with its line in the
+table of contents. What mattered in it is already in the support matrix and
+the reference; git history keeps the rest.
+
 Format — follow the existing pattern in the file:
 
 ```markdown

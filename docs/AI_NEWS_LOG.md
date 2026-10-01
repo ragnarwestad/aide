@@ -35,9 +35,9 @@ are written.
 The skill lives in `.claude/skills/check-news/SKILL.md` — it is repo-local and runs
 only when you are working in Aide.
 
-The log keeps the reviews of the current period. Older reviews are in
-[AI_NEWS_LOG_ARCHIVE.md](./AI_NEWS_LOG_ARCHIVE.md), newest first, unchanged; move a period there
-once a newer one has replaced it.
+The log keeps the reviews of about the last two months. What mattered in an older review is already in the
+two documents above, so `/check-news` deletes reviews older than that when it adds a new one; git history keeps
+them.
 
 ### Sources
 
