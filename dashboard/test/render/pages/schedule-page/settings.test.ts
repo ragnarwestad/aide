@@ -3,7 +3,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import { renderScheduleDetailPage, renderScheduleNewPage, scheduleSettingsPath } from "../../../../src/render";
-import type { ScheduleDetailPageOptions } from "../../../../src/render/pages/schedule-page";
+import type { ScheduleDetailPageOptions } from "../../../../src/render";
 import { clearCheckoutFaults } from "../../../../src/render/ui/checkout-faults.ts";
 
 beforeEach(() => clearCheckoutFaults());
