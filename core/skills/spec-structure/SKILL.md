@@ -512,8 +512,9 @@ zero.
 
 **Do not edit these lines. `aide-run-spec` writes them**, never from a
 model's own account of itself. Each run OVERWRITES its phase's own
-block with the newest outcome — unlike `Workflow steps completed`,
-nothing here is added to across runs.
+block with the newest outcome, with three exceptions that are added to
+across runs: `Attempts` counts every run of the phase, and `Cost` and
+`Tokens` are what they used together.
 
 **An absent `Model` line does not prove the phase ran without a
 model** — only that no commit could be attributed to it, the ordinary

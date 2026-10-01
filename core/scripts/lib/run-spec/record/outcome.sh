@@ -64,17 +64,45 @@ if [ -n "$phase_file" ]; then
     not-implemented-yet|acceptance-criteria-unticked) attempts_display=${prior_attempts:-0} ;;
     *) attempts_display=$(( ${prior_attempts:-0} + 1 )) ;;
   esac
+  # The phase's total cost, like Attempts its count: this run's cost is
+  # added to what the file already holds, so an archived spec's cost is
+  # every run of it, as the board summed it while the spec was live. A
+  # total with an unmeasured part is unmeasured; a run with no cost of its
+  # own (Codex), or a run the archive gates turned away, leaves the
+  # earlier total as it was.
+  turned_away="false"
+  case "$terminal_reason" in
+    not-implemented-yet|acceptance-criteria-unticked) turned_away="true" ;;
+  esac
+  run_has_cost="$cost_known"
+  [ "$turned_away" = "true" ] && run_has_cost="false"
+  prior_cost_bullet="$(grep -E '^- \*\*Cost:\*\*[[:space:]]*\$[0-9]' "$phase_file" 2>/dev/null | head -1)"
+  prior_cost="$(printf '%s' "$prior_cost_bullet" | grep -oE '\$[0-9]+(\.[0-9]+)?' | tr -d '$')"
+  prior_unmeasured="false"
+  case "$prior_cost_bullet" in *"(unmeasured)"*) prior_unmeasured="true" ;; esac
   cost_line=""
-  if [ "$cost_known" = "true" ]; then
-    cost_line="$(printf '$%.4f' "$cost")"
-    [ "$cost_measured" = "false" ] && cost_line="$cost_line (unmeasured)"
+  if [ "$run_has_cost" = "true" ]; then
+    cost_line="$(awk -v a="${prior_cost:-0}" -v b="$cost" 'BEGIN { printf "$%.4f", a + b }')"
+    if [ "$cost_measured" = "false" ] || [ "$prior_unmeasured" = "true" ]; then
+      cost_line="$cost_line (unmeasured)"
+    fi
+  elif [ -n "$prior_cost" ]; then
+    cost_line="$(printf '$%.4f' "$prior_cost")"
+    [ "$prior_unmeasured" = "true" ] && cost_line="$cost_line (unmeasured)"
   fi
-  # The step's total token count, off the same `tokens_json` the result
-  # JSON already carries (spec 118/125) — absent, never 0, on the same
-  # "measured or not written at all" terms as Cost. Written independently
-  # of Cost: a Codex phase gets Tokens with no Cost line at all.
-  tokens_line=""
-  [ -n "$tokens_json" ] && tokens_line="$(jq -r '.total // empty' <<<"$tokens_json" 2>/dev/null)"
+  # The phase's total token count, added to across runs like Cost, off the
+  # same `tokens_json` the result JSON already carries (spec 118/125) —
+  # absent, never 0, on the same "measured or not written at all" terms.
+  # Written independently of Cost: a Codex phase gets Tokens with no Cost
+  # line at all.
+  prior_tokens="$(grep -oE '^- \*\*Tokens:\*\*[[:space:]]*[0-9]+' "$phase_file" 2>/dev/null \
+    | head -1 | grep -oE '[0-9]+$')"
+  run_tokens=""
+  if [ "$turned_away" = "false" ] && [ -n "$tokens_json" ]; then
+    run_tokens="$(jq -r '.total // empty' <<<"$tokens_json" 2>/dev/null)"
+  fi
+  tokens_line="$prior_tokens"
+  [ -n "$run_tokens" ] && tokens_line=$(( ${prior_tokens:-0} + run_tokens ))
   : > "$work_dir/phase-outcome"
   # `Repo` is absent for `create`: nothing has been analyzed against yet
   # (the issue itself lists only creation time as new for that phase).

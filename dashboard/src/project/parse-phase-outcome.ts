@@ -22,18 +22,20 @@ export interface PhaseOutcome {
    *  duration on the page (including the >1h case the raw string cannot
    *  express: `75m00s` becomes `1h15m`, not left as minutes). */
   timeSpentMs?: number;
-  /** Dollars. Absent means the script wrote no `Cost:` line — never 0. */
+  /** Dollars, every run of the phase together — a total like
+   *  `attempts`, not the latest run's own figure. Absent means the script
+   *  wrote no `Cost:` line — never 0. */
   cost?: number;
   costUnmeasured?: boolean;
-  /** The step's total token count. Absent means the script wrote no
-   *  Tokens: line — the CLI reported no usage block at all, same rule as
-   *  `cost`. Written independently of `cost`: a Codex phase carries this
-   *  with no `cost` at all. */
+  /** The phase's total token count, every run together like `cost`.
+   *  Absent means the script wrote no Tokens: line — the CLI reported no
+   *  usage block at all, same rule as `cost`. Written independently of
+   *  `cost`: a Codex phase carries this with no `cost` at all. */
   tokens?: number;
   /** How many times this phase has run in total, parsed from its own
    *  `Attempts:` bullet (spec 341) — a running count across every
-   *  attempt there has ever been, unlike every other field here, which
-   *  speaks for the latest attempt only. */
+   *  attempt there has ever been. `cost` and `tokens` are the other
+   *  totals; every other field here speaks for the latest attempt only. */
   attempts?: number;
   /** What the run said about itself, as one word: "completed", or
    *  "stopped" for every `stopped (<reason>) — <message>` the writer

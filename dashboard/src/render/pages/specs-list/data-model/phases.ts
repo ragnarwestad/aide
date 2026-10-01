@@ -267,8 +267,7 @@ function specPhases(all: QueueRowView[], dir?: string): Phase[] {
     // its job-derived answer only, never merged with the file's.
     const fileOutcome = dir ? specPhaseOutcome(dir, step) : undefined;
     // Only used for time/cost/tokens when the queue has NOTHING for this
-    // phase — those fields speak for the latest attempt only, and a
-    // queue-derived attempt always wins when one exists (unchanged rule).
+    // phase — a queue-derived attempt always wins when one exists.
     const outcome = attempts.length === 0 ? fileOutcome : undefined;
     return {
       step,

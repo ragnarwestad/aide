@@ -249,13 +249,11 @@ def test_a_run_with_no_usage_block_writes_no_tokens_line(runner, workspace, fake
     text = phase_file_text(workspace, f"{workspace['folder']}/2-analysis.md")
     assert bullet(text, "Tokens") is None, text
 
-def test_a_re_run_of_the_same_step_replaces_the_tokens_line_too(runner, workspace, fake_claude):
-    """AC5: the same replace-not-duplicate guarantee AC6 above already
-    gives Model/Result/Time spent/Cost extends to Tokens — the awk
-    allowlist has to name it too, or a re-run would leave the first
-    run's stale Tokens line in place alongside nothing new (`.match()`
-    on the dashboard's read side returns the FIRST match, so a stale
-    line would win over the fresh figure silently)."""
+def test_a_re_run_adds_its_tokens_to_the_phase_total(runner, workspace, fake_claude):
+    """`Tokens:` is the phase's total, like `Cost:`: a second run adds to
+    the first, in one line, never two (`.match()` on the dashboard's read
+    side returns the FIRST match, so a second line would be read
+    instead of the total)."""
     with_status(workspace)
     result = {**RESULT_OK, "usage": FLAT_USAGE}
     folder = workspace["folder"]
@@ -278,7 +276,31 @@ def test_a_re_run_of_the_same_step_replaces_the_tokens_line_too(runner, workspac
         FLAT_USAGE["input_tokens"] + FLAT_USAGE["output_tokens"]
         + FLAT_USAGE["cache_read_input_tokens"] + FLAT_USAGE["cache_creation_input_tokens"]
     )
-    assert bullet(text, "Tokens") == str(total)
+    assert bullet(text, "Tokens") == str(2 * total)
+
+def test_a_codex_run_adds_its_tokens_to_an_earlier_total(runner, workspace, fake_codex):
+    """Codex reports tokens and no cost, so its total is the one figure a
+    Codex phase has: every run of it counts."""
+    with_status(workspace)
+    with_analysis_attempts(workspace, 1, tokens=1000)
+    codex = fake_codex(emits(CODEX_STREAM_OK))
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{workspace['folder']}/2-analysis.md")
+    u = CODEX_USAGE
+    total = u["input_tokens"] + u["output_tokens"] + u["reasoning_output_tokens"] + u["cached_input_tokens"]
+    assert bullet(text, "Tokens") == str(1000 + total)
+
+def test_a_run_with_no_usage_block_keeps_the_earlier_token_total(runner, workspace, fake_codex):
+    """A run that reported no usage leaves the phase's earlier total as it
+    was, rather than the line disappearing with it."""
+    with_status(workspace)
+    with_analysis_attempts(workspace, 1, tokens=1000)
+    codex = fake_codex(emits(CODEX_STREAM_FAILED))
+    run(runner, workspace, tool="codex", codex=codex)
+    text = phase_file_text(workspace, f"{workspace['folder']}/2-analysis.md")
+    assert bullet(text, "Result") is not None, text
+    assert bullet(text, "Tokens") == "1000"
 
 def test_a_fresh_phase_stamps_its_first_attempt(runner, workspace, fake_claude):
     """REQ-1: a phase with no prior `Attempts:` bullet at all gets `1` on
@@ -325,6 +347,8 @@ def test_an_archive_the_gates_refused_is_not_counted_as_an_attempt(runner, works
     assert out["terminalReason"] == "acceptance-criteria-unticked", out
     text = phase_file_text(workspace, f"{workspace['folder']}/4-status.md")
     assert "- **Attempts:**" not in text, text
+    assert "- **Cost:**" not in text, text
+    assert "- **Tokens:**" not in text, text
 
 def test_a_run_continues_from_a_pre_existing_attempts_value(runner, workspace, fake_claude):
     """REQ-1: the write reads the file's CURRENT value rather than
@@ -338,6 +362,43 @@ def test_a_run_continues_from_a_pre_existing_attempts_value(runner, workspace, f
     assert rc == 0, out
     text = phase_file_text(workspace, f"{workspace['folder']}/2-analysis.md")
     assert bullet(text, "Attempts") == "6"
+
+def test_a_re_run_adds_its_cost_to_the_phase_total(runner, workspace, fake_claude):
+    """`Cost:` is what the phase has cost in total, like `Attempts:` its
+    count: a second run adds to the first rather than replacing it, so an
+    archived spec's cost is what the board showed while it ran."""
+    with_status(workspace)
+    claude1 = analyzing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude1, model="claude-sonnet-5")
+    assert rc == 0, out
+    claude2 = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude2, model="claude-sonnet-5")
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{workspace['folder']}/2-analysis.md")
+    assert text.count("- **Cost:**") == 1, text
+    assert bullet(text, "Cost") == f"${2 * RESULT_OK['total_cost_usd']:.4f}"
+
+def test_an_unmeasured_earlier_cost_keeps_the_total_unmeasured(runner, workspace, fake_claude):
+    """A total that includes an unmeasured figure is itself unmeasured,
+    however the latest run was counted."""
+    with_status(workspace)
+    with_analysis_attempts(workspace, 1, cost="$1.0000 (unmeasured)")
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, model="claude-sonnet-5")
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{workspace['folder']}/2-analysis.md")
+    assert bullet(text, "Cost") == f"${1 + RESULT_OK['total_cost_usd']:.4f} (unmeasured)"
+
+def test_a_run_with_no_cost_of_its_own_keeps_the_earlier_total(runner, workspace, fake_codex):
+    """A Codex run reports no cost: the phase's total from earlier runs
+    stays, rather than the line disappearing with the run that had none."""
+    with_status(workspace)
+    with_analysis_attempts(workspace, 1, cost="$1.2500")
+    codex = fake_codex(emits(CODEX_STREAM_OK))
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{workspace['folder']}/2-analysis.md")
+    assert bullet(text, "Cost") == "$1.2500"
 
 
 def test_the_stamped_time_covers_the_step_not_the_ai_session_alone(

@@ -342,15 +342,19 @@ def phase_file_text(workspace, path, branch="aide/81-queue-and-runner"):
     return git(workspace["specs"], "show", f"{branch}:{path}")
 
 
-def with_analysis_attempts(workspace, attempts, last_analyzed="2026-08-01"):
+def with_analysis_attempts(workspace, attempts, last_analyzed="2026-08-01", cost=None, tokens=None):
     """The sibling of `with_analysis` above, seeded with a pre-existing
     `Attempts:` bullet — the REQ-1 case where the writer has to continue
-    from a value it did not itself just write."""
+    from a value it did not itself just write — and, given `cost`, the
+    `Cost:` value written after it (`"$1.0000"`, `"$1.0000 (unmeasured)"`),
+    and given `tokens`, a `Tokens:` value after that."""
+    cost_line = f"- **Cost:** {cost}\n" if cost else ""
+    cost_line += f"- **Tokens:** {tokens}\n" if tokens else ""
     (workspace["specs"] / workspace["folder"] / "2-analysis.md").write_text(
         "# Queue - Analysis\n\n## Tracking info\n\n"
         f"- **Task:** `{workspace['folder']}/`\n"
         f"- **Last analyzed:** `{last_analyzed}`\n"
-        f"- **Attempts:** {attempts}\n\n---\n\n## Findings\n"
+        f"- **Attempts:** {attempts}\n{cost_line}\n---\n\n## Findings\n"
     )
     subprocess.run(["git", "-C", str(workspace["specs"]), "add", "-A"], check=True)
     subprocess.run(["git", "-C", str(workspace["specs"]), "commit", "-qm", "add analysis"], check=True)
