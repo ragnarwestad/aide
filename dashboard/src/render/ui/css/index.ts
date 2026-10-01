@@ -45,6 +45,8 @@ const SECTIONS = [
   "row-message.css",
   "field.css",
   "list.css",
+  "list-spec-head.css",
+  "list-rows.css",
   "rows-and-forms.css",
   "job-page.css",
   "project-overview.css",

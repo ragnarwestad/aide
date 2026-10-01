@@ -197,7 +197,7 @@ Render files keep to a closed class vocabulary (see [The class vocabulary](#the-
 change that needs to mark up a structural role — nothing to style, just something a test or a future render pass needs
 to find — should not grow that vocabulary for a class that carries no CSS rule. The per-phase caption row
 (`Phase` / `Model` above the phase lines' pickers) is marked `data-caption="1"` for exactly this reason. It has since
-grown rules of its own — two dozen of them, in `list.css` and `narrow.css` — and stays a `data-*` regardless: the
+grown rules of its own — two dozen of them, in the specs list's stylesheets and `narrow.css` — and stays a `data-*` regardless: the
 vocabulary covers the classes a render file emits, so CSS may select on an attribute freely. A marker that gains
 styling later is not a reason to convert it into a class.
 
