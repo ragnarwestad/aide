@@ -168,16 +168,16 @@ with the tests and assertions that pin all of them.
 
 ## Code health
 
-The dashboard's own source keeps these limits, checked by
-`test/design/code-health-limits.test.ts`:
+The repository's line limits — 500 for a source file, 800 for a test
+file — are in `.claude/rules/development.md`, "Code health". The dashboard
+checks them in `test/design/code-health-limits.test.ts`, its stylesheets
+included, and adds these:
 
-- A source file under `src/` stays at or under 500 lines. `messages.ts`,
-  `en.ts` and `nb.ts` are exempt by filename — the message catalogues
-  grow with every new string. Three files already over the limit are held
-  at their recorded length instead (`OVER_LINE_LIMIT` in the test):
-  `src/queue/runner/index.ts`, `src/queue/store/index.ts` and
-  `src/git/branch-merge.ts`.
-- A test file stays at or under 800 lines.
+- `messages.ts`, `en.ts` and `nb.ts` are exempt by filename — the message
+  catalogues grow with every new string. Four files already over the limit
+  are held at their recorded length instead (`OVER_LINE_LIMIT` in the
+  test): `src/queue/runner/index.ts`, `src/queue/store/index.ts`,
+  `src/git/branch-merge.ts` and `src/render/ui/css/narrow.css`.
 - A directory holds at most 15 `.ts` files directly inside it, with no
   exceptions. A new `.ts` file that would
   take a directory past 15 goes in a subdirectory of it instead, named

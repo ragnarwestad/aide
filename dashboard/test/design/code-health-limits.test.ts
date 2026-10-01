@@ -17,6 +17,10 @@ function allFilesUnder(dir: string): string[] {
   });
 }
 
+function filesUnder(dir: string, suffix: string): string[] {
+  return allFilesUnder(dir).filter((file) => file.endsWith(suffix));
+}
+
 function tsFilesUnder(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
     const full = join(dir, name);
@@ -43,6 +47,7 @@ const OVER_LINE_LIMIT: Record<string, number> = {
   "src/queue/runner/index.ts": 553,
   "src/queue/store/index.ts": 577,
   "src/git/branch-merge.ts": 605,
+  "src/render/ui/css/narrow.css": 756,
 };
 
 // src/i18n/messages.ts is exempt by filename alone (see EXEMPT_BY_FILENAME
@@ -77,7 +82,8 @@ describe("dashboard code health (spec 443)", () => {
 
   test("every source file under src is at most 500 lines, unless exempt (AC-7)", () => {
     const bad: string[] = [];
-    for (const file of srcFiles) {
+    // The stylesheets are source too: the limit is the repository's, for every kind of source.
+    for (const file of [...srcFiles, ...filesUnder(SRC, ".css")]) {
       const rel = relPath(file);
       if (EXEMPT_BY_FILENAME.includes(basename(file))) continue;
       const lines = lineCount(file);

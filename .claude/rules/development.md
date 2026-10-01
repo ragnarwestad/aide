@@ -61,6 +61,24 @@ listed once in `core/scripts/_install-bin.sh` and sourced as
   directories only, and is PREPENDED to `~/.bashrc` — most templates
   return early for a non-interactive shell — while appended to `~/.zshenv`.
 
+## Code health
+
+Every source file in the repository stays at or under 500 lines, and every
+test file at or under 800. Source is TypeScript, bash, Python and CSS;
+Markdown is left out, since a page is as long as what it says. A file
+already over its limit is held at its recorded length until it is split,
+so it can only shrink, and a new file cannot cross the limit.
+
+- `tests/specs/unit/core/validation/test_code_health.py` checks everything
+  outside `dashboard/`, with its held files in `OVER_LINE_LIMIT`.
+- `dashboard/test/design/code-health-limits.test.ts` checks `dashboard/`,
+  with its own held files and the message catalogues it exempts. The
+  dashboard adds limits of its own: see `dashboard/CLAUDE.md`, "Code
+  health".
+
+A file nearing a limit is split by responsibility, not by size: pull out
+the part that has its own name, not an arbitrary half.
+
 ## Adding new functionality
 
 Adding a skill, updating a shared rule, or changing the spec structure
