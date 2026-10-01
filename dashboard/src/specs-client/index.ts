@@ -24,6 +24,7 @@
 // earlier one having already run (`syncDependsOn()` before the New-spec
 // form's own `change` listener is added, for instance).
 
+import { keepBack } from "./back-link";
 import { applyAiPick, MODEL_SELECTS, offerEachToItsTool, refreshAiModelBox, syncAiToModel } from "./ai-sync.ts";
 import { openAsk } from "./ask.ts";
 import {
@@ -306,3 +307,8 @@ offerEachToItsTool(document);
 connect();
 
 for (const el of document.querySelectorAll("iframe[data-report-frame]")) bindReportFrame(el as HTMLIFrameElement);
+
+// "← Back" on a page with tabs keeps where the page was opened from while
+// the reader switches tabs. Last, and throwing nothing, so no binding above
+// can be lost to it.
+keepBack(document);

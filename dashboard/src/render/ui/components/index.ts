@@ -161,11 +161,16 @@ export function helpPopover(what: string, body: string): string {
  *  hand-written `<h1>` after `backLink()`, either of which left the
  *  title on a line of its own. Omitted, the markup is exactly what it
  *  was before `title` existed. */
-export function backLink(href: string, title?: string | { html: string }, trailing = ""): string {
+export function backLink(
+  href: string, title?: string | { html: string }, trailing = "",
+  /** On a page with tabs: the page script keeps this Back while the
+   *  reader switches tabs (`specs-client/back-link/`), found by `data-keep`. */
+  o: { keep?: boolean } = {},
+): string {
   // No Referer: the page Back leads to works out its own Back from the
   // Referer, and this page as its Referer would point it straight back
   // here — two pages sending each other round in a circle.
-  const link = `<a class="backlink" rel="noreferrer" href="${esc(href)}">← Back</a>`;
+  const link = `<a class="backlink" rel="noreferrer" href="${esc(href)}"${o.keep ? " data-keep" : ""}>← Back</a>`;
   // `trailing` rides at the far end of the title's own line: on the spec
   // page, where the spec STANDS — its four pips and, while a phase is
   // running, what it is doing. The Logs tab said it, one click away,
@@ -195,7 +200,8 @@ export function resolveBackHref(
   fallback: string,
   /** The page's own path. A Referer on that same path is one of the
    *  page's own tabs, not somewhere to go back to, so it gets the
-   *  fallback too. */
+   *  fallback too — and on a page with tabs the page script puts back
+   *  the Back it remembered from when the page was opened. */
   here?: string,
 ): string {
   if (!referer) return fallback;

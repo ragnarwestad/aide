@@ -131,7 +131,9 @@ export function tabBar<T extends string>(
  *  are written once — the panels themselves already are.
  *
  *  `backHref` is resolved by the server, from the request's own
- *  `Referer` (spec 252) — this layer only draws it. */
+ *  `Referer` (spec 252) — this layer only draws it. A tab is a load of
+ *  the page from itself, so the page script keeps the Back the page was
+ *  opened with (`specs-client/back-link/`). */
 export function tabbedBody(
   banner: string, tabs: string, panel: string, backHref: string, title?: string | { html: string },
   /** True for a page whose content is FIELDS: they cap themselves at a
@@ -149,7 +151,7 @@ export function tabbedBody(
     // Both spellings written out rather than built by hand, so each
     // class name stands in the source as the literal the attribute holds.
     (formFields ? `<div class="doc formdoc">` : `<div class="doc">`) +
-    backLink(backHref, title, headTrailing) +
+    backLink(backHref, title, headTrailing, { keep: true }) +
     banner +
     tabs +
     `<div class="tabpanel">${panel}</div>` +

@@ -16,7 +16,7 @@ describe("spec 252: the spec page's own Back link, read off the Referer header",
     const html = await (
       await fetch(`${base}/specs/aide/${folder}?tab=status`, { headers: { referer: `${base}/specs/aide/${folder}?tab=overview` } })
     ).text();
-    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/">← Back</a>');
+    expect(html).toMatch(/<a class="backlink"[^>]*href="\/"/);
   });
 });
 
@@ -35,6 +35,6 @@ describe("spec 252: the job page's own Back link, read off the Referer header", 
     const html = await (
       await fetch(`${base}/jobs/${id}?tab=steps`, { headers: { referer: `${base}/jobs/${id}` } })
     ).text();
-    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/">← Back</a>');
+    expect(html).toMatch(/<a class="backlink"[^>]*href="\/"/);
   });
 });

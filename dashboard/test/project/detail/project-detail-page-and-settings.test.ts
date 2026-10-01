@@ -18,7 +18,7 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     const res = await get(serve(root, settled(root, "aide")), "aide");
     expect(res.status).toBe(200);
     const html = await res.text();
-    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/projects">← Back</a>');
+    expect(html).toMatch(/<a class="backlink"[^>]*href="\/projects"/);
     expect(html).toMatch(/aria-current="page"[^>]*>Config/);
   });
 
@@ -29,7 +29,7 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     const res = await get(serve(root, settled(root, "aide")), "aide");
     expect(res.status).toBe(200);
     const html = await res.text();
-    expect(html).toContain('<a class="backlink" rel="noreferrer" href="/projects">← Back</a>');
+    expect(html).toMatch(/<a class="backlink"[^>]*href="\/projects"/);
     expect(html).toMatch(/aria-current="page"[^>]*>Config/);
     expect(html).not.toContain("Manifest failed to parse");
   });

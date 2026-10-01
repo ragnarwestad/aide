@@ -5,7 +5,7 @@
 import { describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import {
-  btn, btnLink, buttonForm, facts, foldArrow, helpPopover, labelledCheckbox, messageSlot, resolveBackHref,
+  backLink, btn, btnLink, buttonForm, facts, foldArrow, helpPopover, labelledCheckbox, messageSlot, resolveBackHref,
 } from "../../../src/render/ui/components";
 import { esc } from "../../../src/render/ui/html.ts";
 import { t } from "../../../src/i18n";
@@ -45,6 +45,13 @@ describe("resolveBackHref", () => {
 
   test("a malformed referer falls back rather than throwing", () => {
     expect(resolveBackHref("not a url", ORIGIN, "/fallback")).toBe("/fallback");
+  });
+});
+
+describe("backLink()", () => {
+  test("asked to keep, the link carries the hook the page script finds it by; otherwise none (AC-1)", () => {
+    expect(first(backLink("/", "Settings", "", { keep: true }), "a.backlink").hasAttribute("data-keep")).toBe(true);
+    expect(first(backLink("/", "Settings"), "a.backlink").hasAttribute("data-keep")).toBe(false);
   });
 });
 

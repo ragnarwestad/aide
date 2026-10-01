@@ -163,6 +163,7 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
     opts.backHref ?? "/",
     "Settings",
     helpPopover("What this page sets", PAGE_HELP),
+    { keep: true },
   );
   // timeoutSec is meaningful and already enforced (runner.ts) even on a
   // server with no modelChoices configured — only the AI/model columns

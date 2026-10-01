@@ -6,7 +6,8 @@
 // Acceptance criteria 14, 15, 16.
 import { describe, expect, test } from "bun:test";
 import {
-  followScheduleRow, postScheduleEnabled, postScheduleRun, runCronPreview, scheduleCronPreview, submitScheduleForm,
+  followScheduleRow, leaveAfterSave, postScheduleEnabled, postScheduleRun, runCronPreview, scheduleCronPreview,
+  submitScheduleForm,
 } from "../../src/specs-client/schedule-actions.ts";
 
 function fakeCheckbox(o: { checked: boolean; postTo: string }): HTMLInputElement {
@@ -205,6 +206,27 @@ describe("submitScheduleForm", () => {
     const { went, slot } = await press({ ok: false, body: { error: "a job named nightly already exists" } });
     expect(slot.textContent).toContain("A job named nightly already exists");
     expect(went).toEqual([]);
+  });
+});
+
+// Where a save goes on to: back onto the entry's own page as an ordinary
+// load, so that page keeps its "← Back"; anywhere else without a Referer.
+describe("leaveAfterSave", () => {
+  const here = { href: "http://dash.test/schedule/aide/nightly?tab=settings&edit=1", host: "dash.test", pathname: "/schedule/aide/nightly" };
+
+  function leave(href: string) {
+    const way: string[] = [];
+    leaveAfterSave(href, here, { load: (to) => way.push(`load ${to}`), leave: (to) => way.push(`leave ${to}`) });
+    return way;
+  }
+
+  test("an answer on the page the form is on loads it with the page as Referer (AC-1)", () => {
+    expect(leave("/schedule/aide/nightly?tab=settings")).toEqual(["load /schedule/aide/nightly?tab=settings"]);
+  });
+
+  test("an answer on another path leaves without a Referer (AC-1)", () => {
+    expect(leave("/schedule/aide/weekly?tab=settings")).toEqual(["leave /schedule/aide/weekly?tab=settings"]);
+    expect(leave("/projects/aide?tab=schedule")).toEqual(["leave /projects/aide?tab=schedule"]);
   });
 });
 

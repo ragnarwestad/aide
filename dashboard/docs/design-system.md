@@ -98,7 +98,7 @@ of facts, a form holding one button or a checkbox with its words beside it, whic
 | `progressDialog()`    | the dialog every running step stands in: its running word, a refusal line, and the question first for a step that asks                |
 | `askButton()`         | the button that names a dialog by `data-ask`; one listener on `body` opens any of them                                                |
 | `helpPopover()`       | a `details.intro` disclosure holding developer-authored help text                                                                     |
-| `backLink()`          | the link back out of a page, with the page's title beside it rather than below                                                        |
+| `backLink()`          | the link back out of a page, with the page's title beside it rather than below; `keep` on a page with tabs keeps it across tabs       |
 
 A badge says the state and nothing else: no reason, no count. Its icon comes from the word itself
 (`stateIconName()`, `components/state-icon.ts`) — a tick for Done, a clock for Queued, a spinner for anything running —

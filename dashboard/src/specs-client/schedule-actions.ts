@@ -5,6 +5,7 @@
 // back into the one cell or line it changed, and nothing touches
 // `#jobrows`.
 
+import { isThisPage, type Here } from "./back-link";
 import { postForm, refusalText, writeLine, type ActionResult } from "./press.ts";
 
 /** The Enabled checkbox on a list row: no form, no confirm — the tick
@@ -63,7 +64,13 @@ export async function postScheduleRun(form: HTMLFormElement, fetchImpl: typeof f
 export async function submitScheduleForm(
   form: HTMLFormElement,
   event: Event,
-  go: (href: string) => void = leaveWithoutReferrer,
+  go: (href: string) => void = (href) =>
+    leaveAfterSave(href, location, {
+      load: (to) => {
+        location.href = to;
+      },
+      leave: leaveWithoutReferrer,
+    }),
 ): Promise<void> {
   if (event.defaultPrevented) return;
   event.preventDefault();
@@ -75,6 +82,20 @@ export async function submitScheduleForm(
     },
     (why) => writeLine(slot, why),
   );
+}
+
+/** Where a save goes on to. Back onto the page the form is on — an
+ *  entry's own Settings tab — it is an ordinary load with the page as
+ *  Referer, so the page keeps its "← Back" (`back-link/`). Anywhere else
+ *  — the page the New form was opened from, a renamed entry's new page —
+ *  it leaves without one. */
+export function leaveAfterSave(
+  href: string,
+  here: Here,
+  io: { load(href: string): void; leave(href: string): void },
+): void {
+  if (isThisPage(href, here)) io.load(href);
+  else io.leave(href);
 }
 
 /** Goes to `href` sending no Referer, the way "← Back" does: the page

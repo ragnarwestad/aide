@@ -1,5 +1,6 @@
 // The page that makes a schedule entry, as a response to its own GET.
 // Also where a save goes back to afterwards.
+import { isBoardPath } from "../../../format/board-path.ts";
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import { projectPagePath, renderScheduleNewPage, schedulePagePath } from "../../../render";
 import { languageChoice, modelChoiceOptions, specsClientScript } from "../../serve-helpers";
@@ -14,10 +15,7 @@ export const projectScheduleTab = (project: string): string => `${projectPagePat
  *  otherwise. It comes from the browser, so anything that could leave
  *  the board — another host, a scheme, a header break — is not used. */
 export function scheduleBackPath(raw: unknown, fallback: string): string {
-  if (typeof raw !== "string" || !raw.startsWith("/")) return fallback;
-  if (raw.startsWith("//") || raw.startsWith("/\\")) return fallback;
-  if (/[\u0000-\u001f\u007f]/.test(raw)) return fallback;
-  return raw;
+  return isBoardPath(raw) ? raw : fallback;
 }
 
 /** A rename moves the entry's own page, so a `back` that pointed at the
