@@ -13,11 +13,7 @@ SOURCE_SUFFIXES = {".sh", ".py", ".ts", ".js", ".mjs", ".css"}
 
 # Files already over the limit, at the length measured when this list was
 # written. One that grows fails; one split below the limit leaves the list.
-OVER_LINE_LIMIT = {
-    "core/scripts/lib/run-spec-spec-paths.sh": 769,
-    "core/scripts/aide-wiki": 628,
-    "core/scripts/aide-run-spec": 561,
-}
+OVER_LINE_LIMIT = {}
 
 
 def _tracked(root):

@@ -1,0 +1,254 @@
+#!/usr/bin/env bash
+# run-spec-result.sh — sourced by aide-run-spec once the step's own work is
+# committed and pushed (PASS 1).
+#
+# What the run reports: whether origin confirmed the step's bookkeeping,
+# the repos it touched from their true start to their final end, and the
+# one JSON line in $line that aide-run-spec writes to the result file and
+# prints.
+
+# --- REQ-1/REQ-2/REQ-3: only a step that would land on the line at all ------
+# is asked whether origin confirmed it — no-progress/scope-violation/
+# cli-error/timeout/provider-limit runs were never going to be added
+# to the line regardless of push outcome (completed_steps_for's own guard,
+# below, already excludes them), so they are not asked this question
+# either. This IS the last git operation performed against a root that
+# fails it: the `elif` below, where anything else touches git again, only
+# runs when this check has NOT just failed.
+if [ "$terminal_reason" = "completed" ] && [ -n "$status_file" ] \
+   && ! roots_confirmed_on_origin; then
+  # The line is never touched — nothing was written to it yet, so it
+  # reads exactly as it did before this run, both locally and on origin
+  # (REQ-3). A re-run is a normal ok:false result, not a refusal (REQ-4):
+  # the step is retried like any other failed step, and
+  # commit_and_push_roots's own widened gate retries whatever this run
+  # left stuck, whether or not the re-run's own session changes anything.
+  ok="false"
+  terminal_reason="unpushed"
+  suffix=" (stopped: unpushed)"
+  error_msg="the step's own work did not reach origin: $unpushed_roots"
+elif [ -n "$status_file" ]; then
+  completed_steps_for "$commit_label" "$(dirname "$status_file")" "$status_file" "$specs_ref_before"
+  # Nothing derived leaves the file alone: an empty line says less than
+  # the one already there.
+  #
+  # spec 356: write_phase_stamp (core/scripts/lib/spec-transitions.sh) is
+  # the one place this line is formatted and written — historical
+  # `- **Model (<step>):**` lines an old archive still carries (spec 217,
+  # superseded by spec 245's per-file record below) are left exactly
+  # where they sit, same as before: the function touches only the line
+  # it owns.
+  if declare -f write_phase_stamp >/dev/null 2>&1; then
+    write_phase_stamp "$status_file" "workflow-line" "$completed_steps"
+  fi
+
+  # A completed analysis of an implemented spec clears every acceptance
+  # tick and rebuilds the rows from the description: the code the ticks
+  # judged is about to be replaced. Before Total progress and the state
+  # file, which both count these rows.
+  if [ "$command_name" = "analyze" ] && [ "$terminal_reason" = "completed" ] && \
+     declare -f rebuild_acceptance_rows >/dev/null 2>&1 && \
+     analysis_follows_implement "$status_file" "$specs_ref_before"; then
+    rebuild_acceptance_rows "$status_file" "$(dirname "$status_file")/1-description.md"
+  fi
+
+  # Nothing derived leaves the file alone: a fresh spec whose Phase
+  # tables have no rows yet keeps whatever placeholder it started with.
+  status_progress_for "$status_file"
+  if [ "$progress_total" -gt 0 ]; then
+    progress_pct=$(( (progress_done * 100 + progress_total / 2) / progress_total ))
+    # Format-agnostic on purpose (real specs disagree on bold/position
+    # for this line, spec 246) — only the digits are touched, everything
+    # else on the line survives.
+    awk -v pct="$progress_pct" -v done="$progress_done" -v total="$progress_total" '
+      BEGIN { written = 0 }
+      !written && /Total progress/ {
+        line = $0
+        sub(/[0-9]+%/, pct "%", line)
+        sub(/\([0-9]+[ \t]+(of|av)[ \t]+[0-9]+/, "(" done " of " total, line)
+        print line; written = 1; next
+      }
+      { print }
+    ' "$status_file" > "$work_dir/status-progress" 2>/dev/null
+    if [ -s "$work_dir/status-progress" ] && \
+       ! cmp -s "$work_dir/status-progress" "$status_file"; then
+      cat "$work_dir/status-progress" > "$status_file" 2>/dev/null || true
+    fi
+  fi
+
+  # --- the spec's state file (spec 355) --------------------------------
+  # 4-status.md is the prose; 4-status.json is what the gates and the
+  # dashboard read. Derived here from the prose just rewritten, by the
+  # same library aide-write-spec and aide-archive-spec use — so a run
+  # that lands `analyze` on the line also lands it in the file the
+  # implement gate reads. Spec 355 changed the tests to expect this and
+  # never gave the runner the code: every analyze after it left the file
+  # stale, and the dashboard held the next implement back as "not
+  # analyzed yet". Only for a step that completed: a stopped run changes
+  # no phase, and a first-ever state file on its branch would keep an
+  # otherwise empty branch alive that the sweep below is meant to
+  # delete. The state file keeps its own list of completed phases rather
+  # than re-deriving it from prose (spec 355), so the list this run just
+  # wrote to the prose line is handed over — a file that already existed
+  # before the run would otherwise go on naming only the phases it had.
+  # Placed here, after completed_steps_for has actually run (spec 343
+  # moved that call into this same branch), rather than at this block's
+  # original, earlier position — $completed_steps does not exist yet at
+  # that point any more, and this write has to ride PASS 2's commit
+  # anyway, same as the prose line it derives from.
+  if [ "$terminal_reason" = "completed" ] && [ -f "$status_file" ] && declare -f write_spec_state >/dev/null 2>&1; then
+    write_spec_state "$status_file" "$completed_steps" >/dev/null 2>&1 || true
+  fi
+
+  # --- PASS 2: the line has to clear the same bar (REQ-2) -------------
+  commit_and_push_roots
+  if [ "$terminal_reason" = "completed" ] && ! roots_confirmed_on_origin; then
+    ok="false"
+    terminal_reason="unpushed"
+    suffix=" (stopped: unpushed)"
+    error_msg="the workflow-steps line did not reach origin: $unpushed_roots"
+  fi
+fi
+
+# The close's own word, now that the push has been confirmed: a spec
+# that was stamped and moved, and whose branch reached origin, is
+# `closed` — the one terminal reason the dashboard lands a close on.
+# Anything else the script answered (`conflict-open`, `refused`,
+# `already-archived`) moved nothing, so `completed` stands and nothing
+# is landed.
+if [ "$terminal_reason" = "completed" ]; then
+  case "$close_outcome" in
+    closed|already-closed) terminal_reason="closed" ;;
+  esac
+fi
+
+# --- $repos_json, built ONCE, from the run's true start and final end -------
+# Not built inside commit_and_push_roots any more: a second call's own
+# "nothing changed here" must never overwrite a first call's real
+# headBefore/changedFiles for the same root, which building it fresh
+# inside the loop, every call, would do.
+i=0
+for root in "${roots[@]}"; do
+  repos_json="$(jq -c --arg root "$root" --arg worktree "${work_roots[$i]}" \
+    --arg before "${head_before[$i]}" --arg after "${head_after_per_root[$i]}" \
+    --argjson changed "${changed_files_per_root[$i]}" \
+    '. + [{root:$root, worktree:$worktree, headBefore:$before, headAfter:$after, changedFiles:$changed}]' <<<"$repos_json")"
+  i=$(( i + 1 ))
+done
+
+# A pull request is the same work, one level more public. `gh` on an
+# unattended machine needs an interactive re-auth only a human can do,
+# so a broken gh records its error and leaves the run successful.
+if [ "$push_mode" = "pr" ]; then
+  gh_bin="${AIDE_GH_BIN:-$(command -v gh 2>/dev/null || true)}"
+  if [ -z "$gh_bin" ] || [ ! -x "$gh_bin" ]; then
+    pr_error="cannot find the gh binary (set AIDE_GH_BIN, or run gh auth login)"
+  elif [ -n "$push_error" ]; then
+    pr_error="no pull request: the branch was not pushed"
+  elif ! jq -e --arg root "$project_root" 'any(.[]; .root == $root)' <<<"$branch_urls_json" >/dev/null 2>&1; then
+    # Nothing was pushed for the project's own repo, so its branch holds
+    # nothing to review and `gh` refuses with "No commits between main
+    # and <branch>". A create or an analyze changes the specs repo
+    # alone, and every one of them ended with the row saying no pull
+    # request could be opened — a refusal about work that does not
+    # exist. The push already decided this, per root, and
+    # `$branch_urls_json` is its answer: no entry, nothing pushed.
+    :
+  else
+    # The pull request says what the commit says: the change, in the
+    # project's own words, and no tool (code_commit_message).
+    pr_message="$(code_commit_message)"
+    pr_title="${pr_message%%$'\n'*}"
+    pr_body="$(sed -e '1d' -e '/[^[:space:]]/,$!d' <<<"$pr_message")"
+    [ -n "$pr_body" ] || pr_body="$pr_title"
+    if pr_out="$(cd "$project_wt" && "$gh_bin" pr create \
+        --base "$(default_branch "$project_root")" --head "$branch" \
+        --title "$pr_title" --body "$pr_body" 2>&1)"; then
+      pr_url="$(printf '%s\n' "$pr_out" | grep -o 'https://[^[:space:]]*' | tail -1)"
+      [ -n "$pr_url" ] || pr_error="gh reported no pull request URL"
+    else
+      # A branch that already has a pull request is not a failure: the
+      # request exists, `gh` names it in the very message it refuses
+      # with, and that URL is the answer the row wants. One spec runs
+      # `gh pr create` on the same branch from more than one step, so a
+      # second call is the ordinary case rather than a problem. Matched
+      # on gh's own phrase and not on "any URL in the output": another
+      # refusal's text carries links of its own (status.github.com),
+      # which must never be recorded as this branch's review. gh puts the
+      # link on a line of its own after the colon, so the lines are joined
+      # before the phrase is looked for.
+      pr_url="$(printf '%s' "$pr_out" | tr '\n' ' ' | grep -o 'already exists:[[:space:]]*https://[^[:space:]]*' | sed 's/^already exists:[[:space:]]*//' | tail -1)"
+      if [ -z "$pr_url" ]; then
+        pr_error="$(printf '%s' "$pr_out" | tr '\n' ' ' | tail -c 200)"
+      fi
+    fi
+  fi
+fi
+
+# ABSENT, not zero, when there is no dollar figure at all (spec 125).
+# `tokens` has followed this rule since spec 118; `costUsd` did not,
+# because every claude path DOES produce a number — including the
+# deliberate over-charge a killed run is billed. Codex has nothing to
+# over-charge FROM, and a 0 in this field would be summed into the
+# job's spend as if the step had been free.
+cost_json="null"
+[ "$cost_known" = "true" ] && cost_json="$cost"
+
+# The step's own failure, once, as an error line in the log.
+[ -n "$error_msg" ] && stage_error "$(printf '%s' "$error_msg" | tr '\n' ' ')"
+if [ "$ok" = "true" ]; then aide_part_close; else aide_part_close "stopped: ${terminal_reason:-failed}"; fi
+
+line="$(jq -cn \
+  --argjson ok "$ok" --argjson exitCode "$exit_code" \
+  --arg sessionId "${session_out:-$session_id}" \
+  --arg tool "$tool" \
+  --argjson costUsd "$cost_json" --argjson costMeasured "$cost_measured" \
+  --arg terminalReason "$terminal_reason" --arg subtype "$subtype" \
+  --argjson durationSec "$duration" --argjson repos "$repos_json" \
+  --arg error "$error_msg" --arg branch "$branch" --arg push "$push_mode" \
+  --arg branchUrl "$branch_url" --argjson branchUrls "$branch_urls_json" \
+  --arg prUrl "$pr_url" \
+  --arg prError "$pr_error" --arg pushError "$push_error" \
+  --arg pullError "$pull_error" --arg specFolder "$created_spec_folder" \
+  --arg worktreeLinksSource "$links_source" \
+  --argjson tokens "${tokens_json:-null}" \
+  --arg modelId "${model_id_out:-}" \
+  --argjson providerLimit "${provider_limit_out:-null}" \
+  --argjson testedGreen "${tested_green_json:-null}" \
+  '{ok:$ok, exitCode:$exitCode, sessionId:$sessionId, tool:$tool,
+    costMeasured:$costMeasured, terminalReason:$terminalReason,
+    subtype:$subtype, durationSec:$durationSec, branch:$branch,
+    push:$push,
+    branchUrl:(if $branchUrl == "" then null else $branchUrl end),
+    branchUrls:$branchUrls,
+    prUrl:(if $prUrl == "" then null else $prUrl end),
+    prError:(if $prError == "" then null else $prError end),
+    pushError:(if $pushError == "" then null else $pushError end),
+    pullError:(if $pullError == "" then null else $pullError end),
+    repos:$repos, error:(if $error == "" then null else $error end)}
+   # ABSENT, not null, when there is no answer: the reader renames a job
+   # to what this names, and "the field is not there" is the only shape
+   # that cannot be mistaken for a folder called nothing.
+   + (if $specFolder == "" then {} else {specFolder:$specFolder} end)
+   # The same rule again, for the same reason (spec 118): a token count
+   # is measured or it is not there. A zero would read as "this step
+   # used nothing", which is a claim, and the page shows a dash for a
+   # field that is absent.
+   + (if $tokens == null then {} else {tokens:$tokens} end)
+   # The same rule for the model the log named: absent, never "".
+   + (if $modelId == "" then {} else {modelId:$modelId} end)
+   # And the same rule once more, for the dollar figure itself: a Codex
+   # step reports none, and an absent field is the only shape that
+   # cannot be added up as if it were a real zero.
+   + (if $costUsd == null then {} else {costUsd:$costUsd} end)
+   # And once more for which of the two files the worktree links were
+   # read from (spec 184): absent means none were configured at all,
+   # which is not the same claim as either file naming an empty list.
+   + (if $worktreeLinksSource == "" then {} else {worktreeLinksSource:$worktreeLinksSource} end)
+   # And for the usage limit a provider reported: present only on a step
+   # such a limit stopped, in the shape run-spec-provider-limit.sh documents.
+   + (if $providerLimit == null then {} else {providerLimit:$providerLimit} end)
+   # And for the tree and the commands this step saw green
+   # (run-spec-step-tests.sh): the landing skips its own run of the same
+   # commands on the same tree.
+   + (if $testedGreen == null then {} else {testedGreen:$testedGreen} end)')"

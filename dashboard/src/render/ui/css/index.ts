@@ -53,6 +53,8 @@ const SECTIONS = [
   "wiki-pages.css",
   "wiki-graph.css",
   "narrow.css",
+  "narrow-spec-head.css",
+  "narrow-rows.css",
 ];
 
 export const CSS =

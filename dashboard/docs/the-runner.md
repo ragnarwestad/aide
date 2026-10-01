@@ -16,7 +16,7 @@ What a run does to the repositories it touches: the clones the dashboard keeps o
 checkouts a step works in, what a finished step publishes — and, last, how to run one step by hand.
 
 **Where the code is.** `core/scripts/aide-run-spec` is the entry point and holds little else; the mechanics are in
-`core/scripts/lib/run-spec-*.sh`, twenty-one files named for what they do. The ones this page describes:
+`core/scripts/lib/run-spec-*.sh`, twenty-two files named for what they do. The ones this page describes:
 
 | For a change to                                     | Open                         |
 |-----------------------------------------------------|------------------------------|
@@ -28,7 +28,9 @@ checkouts a step works in, what a finished step publishes — and, last, how to 
 | Whether a step counts as having run                 | `run-spec-status-line.sh`    |
 | The two reviews' lines in the log, and the review   | `run-spec-review.sh`         |
 | The test gate an implement ends on                  | `run-spec-step-tests.sh`     |
-| Where the specs root comes from, and the model turn | `run-spec-spec-paths.sh`     |
+| Where the specs root comes from                     | `run-spec-spec-paths.sh`     |
+| The model turn, and reading what came back          | `run-spec-model-turn.sh`     |
+| What the run reports, and the result JSON           | `run-spec-result.sh`         |
 
 The per-root lock is `$root/.git/aide-run-spec-worktree.lock` (`acquire_worktree_lock`, `run-spec-gates.sh`). Every
 move of a shared checkout takes it: the switch, the fetch, the fast-forward and the `worktree add`.

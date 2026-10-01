@@ -28,7 +28,7 @@ ALLOWED_BASH_FILES = {
     "core/scripts/aide-write-spec",          # reads the derived file back, for its own stdout contract
     "core/scripts/aide-archive-spec",        # stages the new file alongside the git-mv rename
     "core/scripts/aide-close-spec",          # spec 406: same stage-alongside-the-git-mv-rename as aide-archive-spec
-    "core/scripts/aide-run-spec",            # derives it after every completed step, so the gates read what the run just landed
+    "core/scripts/lib/run-spec-result.sh",   # aide-run-spec derives it after every completed step, so the gates read what the run just landed
     "core/scripts/aide-backfill-spec-state",  # doc comment only
     "core/scripts/lib/spec-transitions.sh",  # spec 356: reads via read_spec_state, writes via write_spec_state — doc comments only, no second derivation
 }
@@ -89,7 +89,7 @@ class TestBashWriterConfinement:
 
         write_shapes = ('mv "$tmp" "$state_file"', 'mv "$content_tmp" "$state_file"',
                          '> "$state_file"', '>> "$state_file"')
-        for name in ("aide-run-spec", "aide-archive-spec", "aide-write-spec",
+        for name in ("aide-run-spec", "lib/run-spec-result.sh", "aide-archive-spec", "aide-write-spec",
                      "aide-backfill-spec-state"):
             text = (workspace_root / "core/scripts" / name).read_text()
             for shape in write_shapes:

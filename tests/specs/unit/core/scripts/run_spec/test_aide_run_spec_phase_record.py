@@ -396,7 +396,7 @@ def test_the_step_clock_starts_before_the_run_does_anything():
     outcome = (scripts / "lib" / "run-spec-outcome.sh").read_text()
     assert "step_started_at" in outcome
     assert "time_spent_display" in outcome
-    session = (scripts / "lib" / "run-spec-spec-paths.sh").read_text()
+    session = (scripts / "lib" / "run-spec-model-turn.sh").read_text()
     assert 'deadline=$(( started_at +' in session
 
 

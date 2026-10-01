@@ -1,0 +1,187 @@
+/* --- narrow: the spec's header line on a phone (continues narrow.css's 40rem block) --- */
+@media (max-width: 40rem) {
+  /* The spec header line (design handoff, mobile-spec-row): the mock
+     puts the fold/name/pips alone on the first line and the badge, the
+     Archive button and the date/cost together on a second — one flex
+     row rather than four independent table cells, since a cell cannot
+     wrap around another cell's boundary. tr.spechead becomes the flex
+     container; each td is still a td, just laid out as a flex item
+     instead of a table cell. */
+  /* The state line is the flex row now, not the header: the title has a
+     row of its own (head-row.ts), so nothing here has to wrap around a
+     cell boundary any more. What is left is what a phone still needs —
+     the figures reading from the left instead of standing in columns
+     that are zero wide at this width. */
+  table.list tr.specstate { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+  /* min-width: 0 on the cells, or nothing ever truncates: a flex item
+     refuses to shrink below its content's min-content width by default
+     (min-width: auto), so a long spec name forced the whole row — and
+     with it the table — wider than the viewport instead of letting the
+     label's own ellipsis do its job. */
+  /* The first cell and the name box inside it are dissolved (2026-09-07,
+     the 360px round): the title has line 1 to itself, and the pips —
+     which live INSIDE the name box, where a desktop wants them — have
+     to reach line 2 to stand beside the button and the badge. A cell
+     cannot wrap around another cell's boundary and a child cannot
+     leave its parent's box, so both boxes go and their contents become
+     items of the row itself. The same technique the phase lines use for
+     `.modelcell`. */
+  /* The pips' cell keeps the room the phase lines' own name, box and
+     tick take up, so the badge after it starts where a phase's state
+     starts once the row is open — the same sum the caption line's grid
+     adds up, less the row's own gap, which lands the badge on that
+     edge. The pips themselves stand under the title rather than at the
+     line's left edge, which is what the fold control's width leaves. */
+  table.list tr.specstate > td:first-child { box-sizing: border-box;
+    flex: 0 0 calc(var(--sp-3) + var(--fold-w) + var(--phase-w) + var(--aimodel-w) + var(--tick-w)
+      + 2 * var(--sp-2));
+    padding-left: calc(var(--sp-3) + 24px + var(--sp-1)); }
+  /* Line 1: the fold's own 24px, the row's 8px gap, and 8px more —
+     `100% - 32px` is the exact sum, and exact is what wraps, since one
+     fractional pixel in the row's own width is enough to put the title
+     under the chevron instead of beside it. */
+  /* The label takes what the fold leaves, and shrinks rather than pushing
+     the table wide: `min-width: 0` is what lets its own ellipsis work. */
+  table.list tr.spechead .spec-name > .label { flex: 1 1 auto; min-width: 0; }
+  /* And the title's row is a flex line whose title cell shrinks with it.
+     As a table row it sized the table to its content, so a name kept to
+     one line widened the row past the screen instead of taking its
+     ellipsis. */
+  table.list tr.spechead { display: flex; align-items: stretch; }
+  table.list tr.spechead > td:not(.foldcell) { display: block; flex: 1 1 auto; min-width: 0; }
+  /* The spec's own summary line, under all three. `order: 3` — the
+     badge's own — put it BEFORE the badge: equal orders keep document
+     order, and this line is written in the first cell. Taking the whole
+     width, it then pushed the state onto a line of its own, which is
+     why a row with a summary wrapped and an archived one (which has
+     none) did not. */
+  table.list tr.spechead .spec-title { order: 4; flex: 0 0 100%; }
+  /* The header line starts further left than the phase lines under it
+     (asked for 2026-08-24): the fold+name is the row's MAJOR line, and
+     the base cell padding (var(--sp-3)) put it flush with the minor
+     detail lines an open row shows. The cell itself is dissolved above,
+     so the padding it used to carry is gone with it; the subrows keep
+     theirs and so read as indented under this line. */
+
+  table.list tr.specstate > td:not(:first-child) { flex: 0 0 auto; min-width: 0; }
+  /* The chevron's COLUMN is gone at this width (its width is 0 in
+     list.css), so the empty cell every phase line carries for it goes
+     too — a column the header does not use would only indent them. The
+     header's own cell stays: the two header rows are flex lines here, so
+     the chevron rides inside one rather than standing in a column. */
+  table.list tr.subrow > td[data-col="fold"] { display: none; }
+  /* The state's own column reads centred here as it does on a wider
+     window: a started phase's badge and an unstarted one's "–" stand in
+     the same place. */
+  table.list tr.subrow > td[data-col="state"] { text-align: center; }
+  /* The title line keeps the same left edge as everything under it: the
+     cell's own padding is what every other line here carries, and
+     without it the chevron and the title sat flush against the list's
+     own edge while the pips, the summary and the message cards did
+     not. */
+  table.list tr.spechead > td.foldcell { flex: 0 0 auto; padding: var(--sp-2) 0 0 var(--sp-3); }
+  /* The chevron's own width: the cell is as wide as what it holds, and
+     the smaller spinner that replaces the chevron would shrink it and
+     stand off the chevron's centre. */
+  table.list tr.spechead > td.foldcell > .fold { width: 20px; }
+  table.list tr.specstate { padding-bottom: 10px; }
+  /* The title line's own air above it sits on the CELLS: a phone's head
+     row is still a table row, and a table row's padding draws nothing —
+     which left the title against the line above it. The state line under
+     it keeps none, so the two read as one. */
+  table.list tr.spechead > td { padding-top: var(--sp-2); padding-bottom: 0; }
+  table.list tr.specstate > td { padding-top: 0; padding-bottom: 0; }
+  /* The horizontal cell padding goes the same way as the vertical did:
+     each line-2 cell kept the desktop 12px on both sides, which put
+     up to 24px of dead air between badge, date and cost — enough to
+     wrap the cost off the line on a phone. The row's flex gap is the
+     one spacing between them. */
+  table.list tr.specstate > td:not(:first-child) { padding-left: 0; padding-right: 0; }
+
+  /* The 2px separator above a spec sits on the CELLS in the base rule,
+     and here the cells wrap onto line 2 — each drawing its own border
+     segment, which read as a stray grey line between the name and the
+     badge on every spec but the first (whose cells have the first-row
+     exemption). The row is the box that spans the spec here, so the
+     row carries the one separator and the cells none. */
+  table.list tr.spechead { border-top: 2px solid var(--line-strong); }
+  table.list tr.spechead > td { border-top: none; }
+  table.list tbody tr.spechead:first-child { border-top: none; }
+  /* Both undo the desktop rule (`rows-and-forms.css`), which sizes and
+     spaces this row for a fixed TABLE COLUMN it no longer shares here —
+     every row is its own block on mobile, `list.css`'s width rules do
+     not apply, and a phone this narrow can be under the desktop rule's
+     own 19rem outright. `width: auto` lets the row size to its actual
+     content instead of forcing a fixed box that could be wider than
+     the phone screen; flex-start keeps the badge and the button side by
+     side with the ordinary gap once space-between's old reserved space
+     (REQ-4, spec 379) is gone. */
+  table.list tr.specstate > td > .row { width: auto; justify-content: flex-start; }
+  /* What IS reserved on this line is the badge's SLOT — or the action
+     button after it starts wherever the state's wording happens to
+     end, in a different place on every row. On the holder, never the
+     badge itself: a min-width on the pill stretched its coloured
+     background (2026-08-24). Sized for the longest label it can carry
+     now that the resting texts are one word ("ready"/"done"):
+     "implementing queued", 19 characters of fs-s plus dot and padding. */
+  /* The badge takes its own text's width here. The 9rem it reserved
+     was sized for the longest label there is ("implementing queued")
+     so that the button after it started at the same x on every row —
+     and there is no button after it any more: the order is button,
+     pips, state. Held anyway, a "ready" of five characters carried
+     144px of reserved width and wrapped the state onto a third line. */
+  table.list tr.specstate .badgeslot { width: auto; margin-left: 0; }
+  /* The desktop's one-width badges (7.5rem, status-badge.css) do not
+     fit a phone line: every badge wrapped onto a line of its own and
+     pushed the button off the row (2026-09-10). Each badge is its own
+     word's width here, as it was. */
+  table.list td[data-col="state"] .badge { min-width: 0; }
+  /* No side padding on a phone: a phase line is name, box, tick and
+     state on ONE line down to 360px, and 24px a side was what tipped
+     the state onto a second line under 410px. */
+  table.list td[data-col="state"] { padding-left: 0; padding-right: 0; }
+  /* An ORDINARY phase line's own state cell (spec 480, Round 2): fixed
+     at --state-w, mirroring .phasecell's own `flex: 0 0 var(--phase-w)`
+     (below) exactly — the same mechanism, on the same kind of element (a
+     `<td>`, a direct flex child of `tr.subrow`), not a new one. Scoped to
+     `tr.subrow[data-step]` (an ordinary phase line's own attribute,
+     phase-rows.ts:324) so it never reaches the caption line
+     (`tr.subrow[data-caption="1"]`, which sets its own width below) or
+     the spec-head row's state cell (`tr.spechead`, its own grid rule
+     above) — neither carries `[data-step]`. Time's own `flex: 0 0 auto`
+     rule, already fixed since Round 1, then starts at the same x on
+     every phase line automatically, whatever that phase's own state is
+     — including a not-yet-run phase, which carries no `.badge` at all
+     (`cell-helpers.ts`'s own dash case) and so needed a rule on the CELL
+     itself, not only on `.badge` above. */
+  /* Left-aligned, where desktop centres: the spec's own state above the
+     phases starts at this column's left edge (the caption line's grid,
+     below), and a badge centred in a column that wide sat off to the
+     right of it. */
+  table.list tr.subrow[data-step] td[data-col="state"] {
+    flex: 0 0 var(--state-w); width: var(--state-w); min-width: 0; box-sizing: border-box;
+    overflow: hidden; white-space: nowrap; text-align: center;
+  }
+  /* The last phase line's air belongs to the ROW on a phone: given to
+     every cell (list.css), it made the name's cell taller than the
+     button beside it, and the centred line put "Archive" above the
+     rest of its own line. */
+  table.list tr.subrow:last-child > td,
+  table.list tr.subrow:has(+ tr.spechead) > td,
+  table.list tr.subrow:has(+ tr.specgap) > td { padding-bottom: 2px; }
+  table.list tr.subrow:last-child,
+  table.list tr.subrow:has(+ tr.spechead) { padding-bottom: var(--sp-3); }
+  /* A card ends on the same 10px a closed spec's state line does. */
+  table.list tr.subrow:has(+ tr.specgap) { padding-bottom: 10px; }
+  /* The badge's own text still needs to give way inside that fixed box —
+     `min-width: 0` above lets it shrink, but with no cap it would keep
+     its full content width and force the CELL's own `overflow: hidden`
+     to hard-clip it with no indicator at all. An ellipsis here instead,
+     recovered in full via the badge's own `title` (cell-helpers.ts). */
+  table.list tr.subrow[data-step] td[data-col="state"] .badge {
+    /* The column's own width, so the phase badges read as one column
+       rather than four words of different lengths — the desktop's own
+       7.5rem does not fit here, but the cell's width does. */
+    min-width: 100%; max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+  }
+}

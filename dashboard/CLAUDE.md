@@ -77,7 +77,7 @@ get them, and reads them by hand.
   Still red is `terminalReason: tests-red` on the STEP — a failed job
   with the failing lines as detail, and Implement offered again — unlike
   the landing's `tests-red`, which STOPS the job. `run_model_turn`
-  (`run-spec-spec-paths.sh`) is the one turn; every turn of a step
+  (`run-spec-model-turn.sh`) is the one turn; every turn of a step
   appends to the same transcript. An `archive` runs no suite of its own,
   merged with main or not: its landing runs the suite once, on exactly
   what main is about to become, and that is the one run an archive
@@ -174,10 +174,10 @@ checks them in `test/design/code-health-limits.test.ts`, its stylesheets
 included, and adds these:
 
 - `messages.ts`, `en.ts` and `nb.ts` are exempt by filename — the message
-  catalogues grow with every new string. Four files already over the limit
+  catalogues grow with every new string. Three files already over the limit
   are held at their recorded length instead (`OVER_LINE_LIMIT` in the
-  test): `src/queue/runner/index.ts`, `src/queue/store/index.ts`,
-  `src/git/branch-merge.ts` and `src/render/ui/css/narrow.css`.
+  test): `src/queue/runner/index.ts`, `src/queue/store/index.ts` and
+  `src/git/branch-merge.ts`.
 - A directory holds at most 15 `.ts` files directly inside it, with no
   exceptions. A new `.ts` file that would
   take a directory past 15 goes in a subdirectory of it instead, named
