@@ -63,21 +63,49 @@ listed once in `core/scripts/_install-bin.sh` and sourced as
 
 ## Code health
 
-Every source file in the repository stays at or under 500 lines, and every
-test file at or under 800. Source is TypeScript, bash, Python and CSS;
-Markdown is left out, since a page is as long as what it says. A file
-already over its limit is held at its recorded length until it is split,
-so it can only shrink, and a new file cannot cross the limit.
+Divide and conquer, everywhere: a file does one thing and stays short, a
+folder holds a handful of files about one subject, and a part that grows
+becomes a folder of its own. These rules hold for the whole repository —
+TypeScript, bash, Python and CSS alike; Markdown is left out of the limits,
+since a page is as long as what it says.
+
+1. **A source file stays at or under 500 lines, a test file at or under
+   800.**
+2. **A folder holds at most 15 source or test files directly inside it.**
+   One that would go past 15 is split into subfolders named for what their
+   files are about — `test/e2e/specs-list/`, `test/serve/schedule/`.
+3. **A module split across several files is a folder named after the
+   module** — never a file sitting beside a folder of the same name.
+4. **A test lives under the path that matches what it tests**: the test
+   for `dashboard/src/queue/store/index.ts` under `dashboard/test/queue/`,
+   the tests for `core/scripts/lib/run-spec/` under
+   `tests/specs/unit/core/scripts/run_spec/`. A small, tightly-coupled file
+   may keep its test beside it, as the dashboard's message catalogues do.
+5. **Where a language or framework has an established pattern, it is
+   followed, and it wins over the rules above where they meet:**
+   - TypeScript: a module in several files is a folder with an `index.ts`
+     that says what it exports.
+   - Python and pytest: packages carry `__init__.py`, test files are named
+     `test_*.py`, shared fixtures live in `conftest.py`, and folder names
+     use underscores (`run_spec`, not `run-spec`).
+   - Bash and Unix: the commands a user runs sit flat in one folder that is
+     installed onto PATH, and what they source sits in `lib/`. That is why
+     `core/scripts/` holds every `aide-*` command in one folder, past 15.
+   - CSS: the stylesheets load in a fixed order, and the order is part of
+     what they mean; a split keeps it (`dashboard/src/render/ui/css/index.ts`).
+
+A file or folder already over its limit is held at what it has until it is
+split, so it can only shrink, and a new one cannot cross the limit. A part
+nearing a limit is split by responsibility, not by size: pull out the part
+that has its own name, not an arbitrary half.
 
 - `tests/specs/unit/core/validation/test_code_health.py` checks everything
-  outside `dashboard/`, with its held files in `OVER_LINE_LIMIT`.
+  outside `dashboard/`, with what it holds in `OVER_LINE_LIMIT` and
+  `OVER_FOLDER_LIMIT`.
 - `dashboard/test/design/code-health-limits.test.ts` checks `dashboard/`,
-  with its own held files and the message catalogues it exempts. The
-  dashboard adds limits of its own: see `dashboard/CLAUDE.md`, "Code
-  health".
-
-A file nearing a limit is split by responsibility, not by size: pull out
-the part that has its own name, not an arbitrary half.
+  with its own held files and the message catalogues it exempts by name.
+  `dashboard/CLAUDE.md`, "Code health", has what is particular to the
+  dashboard.
 
 ## Adding new functionality
 

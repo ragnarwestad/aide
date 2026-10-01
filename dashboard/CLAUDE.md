@@ -168,36 +168,19 @@ with the tests and assertions that pin all of them.
 
 ## Code health
 
-The repository's line limits — 500 for a source file, 800 for a test
-file — are in `.claude/rules/development.md`, "Code health". The dashboard
-checks them in `test/design/code-health-limits.test.ts`, its stylesheets
-included, and adds these:
+The repository's rules for file length, folder size, splitting a module
+and where its tests live are in `.claude/rules/development.md`, "Code
+health", and hold here as everywhere. The dashboard checks them in
+`test/design/code-health-limits.test.ts`, its stylesheets included. What
+is particular to the dashboard:
 
-- `messages.ts`, `en.ts` and `nb.ts` are exempt by filename — the message
-  catalogues grow with every new string. Three files already over the limit
-  are held at their recorded length instead (`OVER_LINE_LIMIT` in the
-  test): `src/queue/runner/index.ts`, `src/queue/store/index.ts` and
-  `src/git/branch-merge.ts`.
-- A directory holds at most 15 `.ts` files directly inside it, with no
-  exceptions. A new `.ts` file that would
-  take a directory past 15 goes in a subdirectory of it instead, named
-  for what those files are about — `test/e2e/specs-list/`, `test/serve/schedule/`.
-  A moved test's own imports gain one `../`.
-- As a rule, a source file's tests live under the matching path in
-  `test/` — the test for `src/queue/store/index.ts` belongs under
-  `test/queue/`. A small, tightly-coupled file may keep its test beside
-  it instead, as `src/i18n/`'s own catalogue files already do.
-- A module split across several files is a directory named after the
-  module, holding an `index.ts` — never a file sitting beside a
-  directory of the same name. `src/render/pages/spec-page/index.ts`,
-  not `spec-page.ts` next to `spec-page/`.
-
+- `messages.ts`, `en.ts` and `nb.ts` are exempt from the line limit by
+  filename — the message catalogues grow with every new string. Three
+  files already over the limit are held at their recorded length instead
+  (`OVER_LINE_LIMIT` in the test): `src/queue/runner/index.ts`,
+  `src/queue/store/index.ts` and `src/git/branch-merge.ts`.
+- A test moved into a subfolder gains one `../` in its own imports.
 - No `<name>-e` twin sits beside a file under `src/` or `test/`. macOS
   `sed -i -e ...` reads `-e` as the backup suffix and leaves the original
   under that name; the copy still parses, so nothing fails and nothing
   says so.
-
-A file nearing a limit is split by responsibility, not by size — pull
-out the part that has its own name, not an arbitrary half. New
-functionality goes into its own file rather than being appended to one
-that already holds something else.
