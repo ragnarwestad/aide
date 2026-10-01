@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-spec-checkouts.sh — where this run's checkouts go, what a worktree lacks, and the cleanup installed before the first one.
+# run-spec/checkout/checkouts.sh — where this run's checkouts go, what a worktree lacks, and the cleanup installed before the first one.
 #
 # Sourced by aide-run-spec at the point this ran when it was part of
 # that file, so the order, and every variable it shares with the rest
@@ -251,7 +251,7 @@ on_signal() {
     suffix=" (stopped: cancelled)"
     commit_label="${commit_label:-$spec_label}"
     declare -f commit_and_push_roots >/dev/null 2>&1 \
-      || source "$SCRIPT_DIR/lib/run-spec-publish.sh" >/dev/null 2>&1
+      || source "$SCRIPT_DIR/lib/run-spec/publish/publish.sh" >/dev/null 2>&1
     commit_and_push_roots >/dev/null 2>&1 || true
   fi
   aide_part_close "stopped: cancelled"

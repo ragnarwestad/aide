@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-spec-result.sh — sourced by aide-run-spec once the step's own work is
+# run-spec/publish/result.sh — sourced by aide-run-spec once the step's own work is
 # committed and pushed (PASS 1).
 #
 # What the run reports: whether origin confirmed the step's bookkeeping,
@@ -246,9 +246,9 @@ line="$(jq -cn \
    # which is not the same claim as either file naming an empty list.
    + (if $worktreeLinksSource == "" then {} else {worktreeLinksSource:$worktreeLinksSource} end)
    # And for the usage limit a provider reported: present only on a step
-   # such a limit stopped, in the shape run-spec-provider-limit.sh documents.
+   # such a limit stopped, in the shape run-spec/turn/provider-limit.sh documents.
    + (if $providerLimit == null then {} else {providerLimit:$providerLimit} end)
    # And for the tree and the commands this step saw green
-   # (run-spec-step-tests.sh): the landing skips its own run of the same
+   # (run-spec/turn/step-tests.sh): the landing skips its own run of the same
    # commands on the same tree.
    + (if $testedGreen == null then {} else {testedGreen:$testedGreen} end)')"

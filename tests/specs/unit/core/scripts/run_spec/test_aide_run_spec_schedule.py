@@ -206,5 +206,5 @@ def test_the_schedule_guard_file_is_gone(runner):
     assert not (lib / "run-spec-schedule-guard.sh").exists()
     source_text = runner.read_text()
     assert "run-spec-schedule-guard.sh" not in source_text
-    for part in lib.glob("run-spec-*.sh"):
+    for part in lib.glob("run-spec/**/*.sh"):
         assert "discard_scheduled_commits" not in part.read_text(), part

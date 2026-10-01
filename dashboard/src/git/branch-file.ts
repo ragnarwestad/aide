@@ -297,7 +297,7 @@ export async function resolveOpenBranchTarget(
   // read came back empty, so every row looked gone and every tick was
   // refused with "that check is not there to change any more". The same
   // trap `aide-run-spec` resolves for the specs root it is handed
-  // (`run-spec-code-landing.sh`).
+  // (`run-spec/setup/code-landing.sh`).
   const realRoot = real(root);
   const realDir = real(dir);
   return {

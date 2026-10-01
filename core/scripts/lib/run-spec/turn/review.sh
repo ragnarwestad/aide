@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# run-spec-review.sh — a second pair of eyes on what implement changed,
+# run-spec/turn/review.sh — a second pair of eyes on what implement changed,
 # before the runner's own test run decides the step (spec 551), and the
 # log line that says what an analyze's own plan review found.
 #
-# Sourced by aide-run-spec between run-spec-status-line.sh (which can
+# Sourced by aide-run-spec between run-spec/record/status-line.sh (which can
 # still downgrade terminal_reason away from "completed" for a step with
-# no real progress) and run-spec-step-tests.sh — so this only ever runs
+# no real progress) and run-spec/turn/step-tests.sh — so this only ever runs
 # on a turn genuinely still "completed", the same gate
-# run-spec-step-tests.sh itself uses.
+# run-spec/turn/step-tests.sh itself uses.
 #
 # A green test run proves only what the tests cover; a defect no test
 # reaches — how a gesture behaves in the browser, say — passes implement

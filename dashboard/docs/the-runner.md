@@ -16,23 +16,23 @@ What a run does to the repositories it touches: the clones the dashboard keeps o
 checkouts a step works in, what a finished step publishes — and, last, how to run one step by hand.
 
 **Where the code is.** `core/scripts/aide-run-spec` is the entry point and holds little else; the mechanics are in
-`core/scripts/lib/run-spec-*.sh`, twenty-two files named for what they do. The ones this page describes:
+`core/scripts/lib/run-spec/`, twenty-two files in five folders named for when they run. The ones this page describes:
 
-| For a change to                                     | Open                         |
-|-----------------------------------------------------|------------------------------|
-| The flags and what each refuses                     | `run-spec-arguments.sh`      |
-| The worktrees, their paths and the links into them  | `run-spec-checkouts.sh`      |
-| Branching each root, and the per-root lock it takes | `run-spec-branch.sh`         |
-| The gates before a step starts, and the lock itself | `run-spec-gates.sh`          |
-| Committing and pushing afterwards                   | `run-spec-publish.sh`        |
-| Whether a step counts as having run                 | `run-spec-status-line.sh`    |
-| The two reviews' lines in the log, and the review   | `run-spec-review.sh`         |
-| The test gate an implement ends on                  | `run-spec-step-tests.sh`     |
-| Where the specs root comes from                     | `run-spec-spec-paths.sh`     |
-| The model turn, and reading what came back          | `run-spec-model-turn.sh`     |
-| What the run reports, and the result JSON           | `run-spec-result.sh`         |
+| For a change to                                     | Open                             |
+|-----------------------------------------------------|----------------------------------|
+| The flags and what each refuses                     | `run-spec/setup/arguments.sh`    |
+| The worktrees, their paths and the links into them  | `run-spec/checkout/checkouts.sh` |
+| Branching each root, and the per-root lock it takes | `run-spec/checkout/branch.sh`    |
+| The gates before a step starts, and the lock itself | `run-spec/setup/gates.sh`        |
+| Committing and pushing afterwards                   | `run-spec/publish/publish.sh`    |
+| Whether a step counts as having run                 | `run-spec/record/status-line.sh` |
+| The two reviews' lines in the log, and the review   | `run-spec/turn/review.sh`        |
+| The test gate an implement ends on                  | `run-spec/turn/step-tests.sh`    |
+| Where the specs root comes from                     | `run-spec/turn/spec-paths.sh`    |
+| The model turn, and reading what came back          | `run-spec/turn/model-turn.sh`    |
+| What the run reports, and the result JSON           | `run-spec/publish/result.sh`     |
 
-The per-root lock is `$root/.git/aide-run-spec-worktree.lock` (`acquire_worktree_lock`, `run-spec-gates.sh`). Every
+The per-root lock is `$root/.git/aide-run-spec-worktree.lock` (`acquire_worktree_lock`, `run-spec/setup/gates.sh`). Every
 move of a shared checkout takes it: the switch, the fetch, the fast-forward and the `worktree add`.
 
 Two pages sit beside this one:
@@ -104,7 +104,7 @@ line says so, so a reader sees which project that is.
 
 **`aide-run-spec` branches EVERY repo it touches, not just the project.** An `analyze` step changes only the specs
 repo, so branching the project alone would leave the analysis committed on `main` — the one thing `push branch` exists
-to prevent. Three conditions decide it (`run-spec-publish.sh`), in this order:
+to prevent. Three conditions decide it (`run-spec/publish/publish.sh`), in this order:
 
 1. The branch holds something beyond its own default branch. A branch with nothing of its own is never pushed.
 2. Origin does not already have that tip.
@@ -115,16 +115,16 @@ to prevent. Three conditions decide it (`run-spec-publish.sh`), in this order:
 
 **A `wiki` step commits in the specs repository only, and only `wiki/` there.** Its `--spec` is the key
 `wiki-<project>`, never a folder, and the bare name `wiki` is refused for every command. `restore_wiki_scope`
-(`run-spec-publish.sh`) runs at the top of every commit — a normal end, a timeout and a Cancel — and takes back a change
+(`run-spec/publish/publish.sh`) runs at the top of every commit — a normal end, a timeout and a Cancel — and takes back a change
 in the project repository, a change under the specs root outside `wiki/`, and any change to a page without the
 `wiki: generated` mark in its front matter, comparing the specs repository with the default branch's tip.
 `aide-wiki verify` is the only reader of that mark. A run that would otherwise end `completed` ends `scope-violation`
-(`run-spec-wiki-guard.sh`); one that already ended `timeout` keeps that ending. A run that would end `completed` with no
+(`run-spec/publish/wiki-guard.sh`); one that already ended `timeout` keeps that ending. A run that would end `completed` with no
 `wiki/index.md` built nothing, and ends `no-progress`; so does a build that leaves a generated page written from an
 older commit, and a refresh (`--wiki-refresh`) that leaves a page `aide-wiki status` marks `changed`. The error names
 the pages.
 
-**An `archive` step may write three things under `wiki/`, and `run-spec-wiki-guard.sh` takes back anything else.** It
+**An `archive` step may write three things under `wiki/`, and `run-spec/publish/wiki-guard.sh` takes back anything else.** It
 recomputes them from git, never from what the session says it wrote: the generated pages `aide-wiki affected` names
 (the pages covering files the spec's own code changed), and what `aide-wiki decision-scope` allows. That is a new
 decision page whose `spec:` is this spec and that links to a generated page whose `## Decisions` section links back,
@@ -149,7 +149,7 @@ one).
 
 **It branches them in `git worktree` checkouts of its own**, under `$HOME/.aide/dashboard/worktrees/`. The path is
 `<project>/<spec>/<basename of each root>`. The first segment is the project's name: for the dashboard's own clone,
-`checkouts/<project>/code`, it is `<project>` (`worktree_project_key` in `run-spec-checkouts.sh`), and for any other
+`checkouts/<project>/code`, it is `<project>` (`worktree_project_key` in `run-spec/checkout/checkouts.sh`), and for any other
 `--project-dir` it is that directory's basename. The real
 checkouts are put back **onto** their default branch before the worktrees are made and never leave it, so several runs
 can go at once, the dashboard's spec list never describes whatever branch a running job is on, and a user can use the
@@ -192,7 +192,7 @@ not evidence that the phase happened. What the line is FOR is on
 [A spec's lifecycle](spec-lifecycle.md#what-has-had-a-phase-means); what follows is how it is decided.
 
 **The runner writes it, not the model.** After every step, `completed_steps_for` in
-`core/scripts/lib/run-spec-records.sh`
+`core/scripts/lib/run-spec/record/records.sh`
 rebuilds the line from the specs repo's own history: the commits whose subject reads `Run /aide-<step> for <folder>`
 since the current work round began, plus the step that has just completed. A step that ended `stopped` or `failed`
 is committed with the reason in its subject (`(stopped: timeout)`) and is not counted. A completed `analyze` is newer
@@ -216,13 +216,13 @@ evidence that the phase happened:
   writes nothing itself. Otherwise the step ends `no-progress` and
   the line is not extended. Once past that check, a second, fresh AI session — same model, effort and tool as the
   step, never resumed — reads the spec's own description and a diff of what the step changed, and looks for
-  defects against the description; it never comments on style, naming or structure (`run-spec-review.sh`). One or
+  defects against the description; it never comments on style, naming or structure (`run-spec/turn/review.sh`). One or
   more found go back to the ORIGINAL implement session as one follow-up turn that fixes them, and that turn's own
   failure stands as the step's outcome; the review's own turn is best-effort, and any outcome other than a clean
   "no defects" — a verdict it cannot parse, or its own turn failing to complete — falls back to "found nothing"
   rather than failing an already-successful, already-committed implement over the added safety net's own hiccup.
   The step ends only on a green test run the runner made ITSELF
-  (`run-spec-step-tests.sh`), which always follows the review: the same `aide-resolve-test-cmd` and
+  (`run-spec/turn/step-tests.sh`), which always follows the review: the same `aide-resolve-test-cmd` and
   `aide-record-test-run` the landing's gate calls run
   on the step's result in its worktree, and the record on the branch is the runner's. Red goes back to the same
   session first — the failing lines as a follow-up turn, up to two more rounds within what is left of the step's
@@ -297,7 +297,7 @@ the transcript is cut at each turn's byte, and Aide's lines go between the turns
 for the step's own failure before its result line, and one for a refused run.
 
 **What the two reviews found** is written in the `tests and commit` part. A completed analyze gets one line, read from
-the `**Findings:**` line that opens the plan's Plan review section (`plan_review_line`, `run-spec-review.sh`):
+the `**Findings:**` line that opens the plan's Plan review section (`plan_review_line`, `run-spec/turn/review.sh`):
 `plan review: 2 must-fix, 3 should-fix, 4 acted on — the findings are under Plan review in the plan (3-solution.md)`,
 or that the plan has no Plan review section, or that the section gives no counts. Code blocks are skipped, and after a
 `## Round N` heading only that round's review counts. An implement's code review writes
@@ -324,7 +324,7 @@ and some of them need one more flag: `--title` and `--description` for a `create
 folder, `--prompt-file` for `schedule`, `--reason` for `close`. Beyond those: `--tool claude|codex|opencode`
 chooses the CLI, `--model` and `--effort` what it runs as, `--push none|branch|pr` what is published,
 `--kill-grace-sec` (30) how long the step has between SIGTERM and SIGKILL, and `--worktree-base` where the
-worktrees go. `run-spec-arguments.sh` is the whole list.
+worktrees go. `run-spec/setup/arguments.sh` is the whole list.
 It refuses to start when the spec folder does not exist or when a required value is missing — but not over a dirty
 checkout: the work happens in a worktree cut from origin's default branch, so what somebody left uncommitted in the
 main checkout stops nobody. `--permission-mode` is never defaulted: the most dangerous flag has to be typed out. The queue passes

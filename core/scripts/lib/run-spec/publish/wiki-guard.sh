@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# run-spec-wiki-guard.sh — a wiki build writes generated pages in wiki/ and nothing else.
+# run-spec/publish/wiki-guard.sh — a wiki build writes generated pages in wiki/ and nothing else.
 #
-# Sourced by aide-run-spec after run-spec-publish.sh and before the first
+# Sourced by aide-run-spec after run-spec/publish/publish.sh and before the first
 # commit_and_push_roots, so every variable it reads exists.
 # restore_wiki_scope takes back what the session was never to write; a run
 # that would otherwise read as completed ends as a scope violation instead,

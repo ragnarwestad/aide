@@ -8,7 +8,7 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
-const OUTCOME_SH = read("../../../core/scripts/lib/run-spec-outcome.sh");
+const OUTCOME_SH = read("../../../core/scripts/lib/run-spec/record/outcome.sh");
 const PHASE_ROWS = read("../../src/render/pages/specs-list/phase-rows.ts");
 
 const GUARDS = ["not-implemented-yet", "acceptance-criteria-unticked"];

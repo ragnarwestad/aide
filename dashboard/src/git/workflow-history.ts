@@ -54,7 +54,7 @@ export const HISTORY_STEPS: readonly string[] = workflowStepsData.workflowArc;
 export const HISTORY_STEPS_RETIRED: readonly string[] = workflowStepsData.workflowArcRetired;
 
 /** The steps after `analyze` in the arc: a completed analyze cancels the
- *  ones before it. `core/scripts/lib/run-spec-records.sh` spells the same
+ *  ones before it. `core/scripts/lib/run-spec/record/records.sh` spells the same
  *  two out (`implement|archive`), so a change to the arc touches both. */
 const AFTER_ANALYZE: readonly string[] = HISTORY_STEPS.slice(HISTORY_STEPS.indexOf("analyze") + 1);
 

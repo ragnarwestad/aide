@@ -51,7 +51,7 @@ def run_spec_source(workspace_root):
     in the order it sources them.
 
     The runner was one 2925-line file until 2026-09-04, when its phases
-    moved into `core/scripts/lib/run-spec-*.sh`. Every test that reads the
+    moved into `core/scripts/lib/run-spec/`. Every test that reads the
     runner's own source — a sentence it must carry, a regex two copies of
     which have to agree — reads it through here, so a part moving between
     files is not a test failure and a sentence disappearing still is.

@@ -8,6 +8,7 @@ Split out of conftest.py 2026-09-04; unchanged, and each keeps its name.
 import json
 import os
 import pathlib
+import shutil
 import time
 from ..conftest import git, run
 def _standalone_runner_copy(runner, tmp_path, name="aide-run-spec-under-test"):
@@ -36,12 +37,11 @@ def _standalone_runner_copy(runner, tmp_path, name="aide-run-spec-under-test"):
     (tmp_path / "lib" / "status-progress.sh").write_bytes(
         (pathlib.Path(runner).parent / "lib" / "status-progress.sh").read_bytes()
     )
-    # And the runner's own phases (`lib/run-spec-*.sh`, 2026-09-04): the
-    # script sources them by name, so a copy without them refuses before
-    # it starts. Copied by pattern rather than one by one, so a phase
-    # that moves between files does not have to be named here as well.
-    for part in sorted((pathlib.Path(runner).parent / "lib").glob("run-spec-*.sh")):
-        (tmp_path / "lib" / part.name).write_bytes(part.read_bytes())
+    # And the runner's own phases (`lib/run-spec/`): the script sources
+    # them by path, so a copy without them refuses before it starts.
+    # Copied as a tree rather than one by one, so a phase that moves
+    # between files does not have to be named here as well.
+    shutil.copytree(pathlib.Path(runner).parent / "lib" / "run-spec", tmp_path / "lib" / "run-spec")
     return copy
 
 

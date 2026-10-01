@@ -245,7 +245,7 @@ the job — exactly the path every other upgrade already takes.
 a stray, mostly-empty directory behind at whichever old name the code it
 is running still points at.** `ensureDashboardCheckout` refuses a
 missing checkout rather than cloning one, so that run fails;
-`run-spec-checkouts.sh` treats a missing worktree base as new and
+`run-spec/checkout/checkouts.sh` treats a missing worktree base as new and
 `mkdir -p`s it. Neither one touches the data already moved — but that
 run's own worktree now lives in a directory this procedure is
 about to leave behind, so treat it as failed and re-queue it once the

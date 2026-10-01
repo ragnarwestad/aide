@@ -112,7 +112,7 @@ def test_a_run_that_creates_another_spec_folder_is_downgraded_and_the_folder_dis
 ):
     """REQ-3: a foreign spec folder written under the same TRACKED,
     inside-the-project specs root is still caught and reverted —
-    run-spec-specs-guard.sh's own existing behavior, now reached for this
+    run-spec/record/specs-guard.sh's own existing behavior, now reached for this
     layout because the false positive that used to pre-empt it is gone."""
     ws = tracked_specs_inside_project_workspace(tmp_path)
     folder = ws["folder"]

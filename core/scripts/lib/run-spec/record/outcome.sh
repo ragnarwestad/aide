@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-spec-outcome.sh — this phase's own outcome record.
+# run-spec/record/outcome.sh — this phase's own outcome record.
 #
 # Sourced by aide-run-spec at the point this ran when it was part of
 # that file, so the order, and every variable it shares with the rest

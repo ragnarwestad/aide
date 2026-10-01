@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# run-spec-model-turn.sh — sourced by aide-run-spec before run-spec-spec-paths.sh.
+# run-spec/turn/model-turn.sh — sourced by aide-run-spec before run-spec/turn/spec-paths.sh.
 #
 # The model's one turn, and the reading of what came back, for claude,
 # codex and opencode alike. A function, defined here and called from
-# run-spec-spec-paths.sh (the step's own turn and the analysis-session
-# retry), run-spec-review.sh (the review and its fix turn) and
-# run-spec-step-tests.sh (a fix turn after red tests).
+# run-spec/turn/spec-paths.sh (the step's own turn and the analysis-session
+# retry), run-spec/turn/review.sh (the review and its fix turn) and
+# run-spec/turn/step-tests.sh (a fix turn after red tests).
 
 # One turn of the model: run `argv` on the prompt in $1, wait it out under
 # the step's deadline, and read the result back into the step's own
 # globals ($terminal_reason, $error_msg, $cost, $session_out, ...). A
-# function so run-spec-step-tests.sh can ask for another turn — the same
+# function so run-spec/turn/step-tests.sh can ask for another turn — the same
 # session resumed with the red suite's output — without a second copy of
 # any of this. The transcript is appended to, so every turn of one step
 # is in the one stream the dashboard shows.
@@ -76,7 +76,7 @@ tokens_json=""
 # makes the result's `modelId` ABSENT rather than a guess.
 model_id_out=""
 # The provider's own account of a usage limit that stopped this turn, in
-# the one shape `run-spec-provider-limit.sh` writes for every tool — or
+# the one shape `run-spec/turn/provider-limit.sh` writes for every tool — or
 # empty, which leaves `providerLimit` out of the result.
 provider_limit_out=""
 # Did the tool report an outcome of its own at all? For claude this is

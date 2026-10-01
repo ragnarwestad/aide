@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-spec-status-line.sh — writing this step into the status file, once it has actually succeeded.
+# run-spec/record/status-line.sh — writing this step into the status file, once it has actually succeeded.
 #
 # Sourced by aide-run-spec at the point this ran when it was part of
 # that file, so the order, and every variable it shares with the rest
@@ -80,7 +80,7 @@ if [ -n "$status_file" ]; then
     # A folder that stayed put because `aide-archive-spec` REFUSED to
     # move it is that refusal, not a step that made no progress: the
     # same two gates the pre-session check answers on its own
-    # (run-spec-spec-paths.sh) are asked again here, read-only, in the
+    # (run-spec/turn/spec-paths.sh) are asked again here, read-only, in the
     # script's own order — so a session that resolved a conflict and
     # then reported "completed" over the script's "not all ticked"
     # ends exactly as the pre-session refusal does (ok, held back),
@@ -91,7 +91,7 @@ if [ -n "$status_file" ]; then
         # has to be finished too: a branch that still lacks the base tip
         # it was being merged with had its open merge dropped, and lands
         # on that same conflict again. (An open merge the session left
-        # untouched was aborted by run-spec-cleanup.sh before the commit
+        # untouched was aborted by run-spec/checkout/cleanup.sh before the commit
         # loop, so HEAD is the pre-merge tip here.)
         # $open_merge_count rather than ${#open_merge_wt[@]}: bash 3.2's
         # `set -u` calls an empty array unbound.
@@ -150,7 +150,7 @@ if [ -n "$status_file" ]; then
     # whole point of the step, not a violation. specs_root_excludes
     # (empty unless that is the layout) keeps the specs root out of this
     # check; a foreign spec folder under it is still caught, precisely,
-    # by run-spec-specs-guard.sh right after this.
+    # by run-spec/record/specs-guard.sh right after this.
     proj_changed="no"; proj_dirty_list=""; proj_committed_list=""
     proj_head_now="$(git -C "$project_wt" rev-parse HEAD 2>/dev/null || echo "")"
     if [ "$proj_head_now" != "${head_before[0]}" ]; then

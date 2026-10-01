@@ -62,7 +62,7 @@ const COST_RE = /^- \*\*Cost:\*\*[ \t]*\$(\d+(?:\.\d+)?)( \(unmeasured\))?\s*$/m
 const TOKENS_RE = /^- \*\*Tokens:\*\*[ \t]*(\d+)\s*$/m;
 const ATTEMPTS_RE = /^- \*\*Attempts:\*\*[ \t]*(\d+)\s*$/m;
 /** `completed`, or `stopped (<reason>)` with an optional message after
- *  an em dash — `core/scripts/lib/run-spec-outcome.sh` writes no third
+ *  an em dash — `core/scripts/lib/run-spec/record/outcome.sh` writes no third
  *  shape. Only the first word is kept. */
 const RESULT_RE = /^- \*\*Result:\*\*[ \t]*(completed|stopped)\b/m;
 

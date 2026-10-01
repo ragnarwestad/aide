@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 // The runner as it runs: aide-run-spec, then the library it sources last,
 // where the step's reported word is decided.
-const RUN_SPEC = read("../../../core/scripts/aide-run-spec") + read("../../../core/scripts/lib/run-spec-result.sh");
+const RUN_SPEC = read("../../../core/scripts/aide-run-spec") + read("../../../core/scripts/lib/run-spec/publish/result.sh");
 const RUNNER_SETUP = read("../../src/serve/runner-setup.ts");
 
 describe("close: the word bash reports is the word the dashboard lands on", () => {

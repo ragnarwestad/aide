@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-spec-invocation.sh — finding the tool and building its command line.
+# run-spec/setup/invocation.sh — finding the tool and building its command line.
 #
 # Sourced by aide-run-spec at the point this ran when it was part of
 # that file, so the order, and every variable it shares with the rest

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-spec-step-tests.sh — sourced by aide-run-spec after run-spec-status-line.sh.
+# run-spec/turn/step-tests.sh — sourced by aide-run-spec after run-spec/record/status-line.sh.
 #
 # An `implement` that reported success ends on a green test run the
 # runner made ITSELF, never on the session's word. The session is told
@@ -12,7 +12,7 @@
 # result in its worktree: aide-resolve-test-cmd says which commands the
 # change calls for, aide-record-test-run runs them and writes the
 # record into the spec folder — committed with the step's own commit
-# by run-spec-publish.sh, so the record on the branch is the runner's,
+# by run-spec/publish/publish.sh, so the record on the branch is the runner's,
 # not the session's. Red ends the step `tests-red` with the failing
 # lines as its detail; the phase is not recorded as run, and Implement
 # is the button to press again. A project whose changes fall under no

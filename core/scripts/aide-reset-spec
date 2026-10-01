@@ -9,7 +9,7 @@
 # model), and a person running /aide-reset at a keyboard calls it too.
 # The `**Reset:**` boundary mark is NOT written here: aide-run-spec
 # stamps it once the step finishes, from the specs repository's own
-# default-branch tip (run-spec-boundary.sh).
+# default-branch tip (run-spec/record/boundary.sh).
 #
 # Prints ONE JSON line to stdout and, if given, to --result-file:
 #   {ok, exitCode, terminalReason, error?, specFolder?, files?}

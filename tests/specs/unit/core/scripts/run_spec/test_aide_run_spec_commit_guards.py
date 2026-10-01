@@ -41,13 +41,13 @@ def _commit_with_lost_state(root, wt):
     script = f"""
 set -uo pipefail
 source "{SCRIPTS}/_aide-spec-lib.sh"
-source "{SCRIPTS}/lib/run-spec-worktree.sh"
+source "{SCRIPTS}/lib/run-spec/checkout/worktree.sh"
 stage() {{ :; }}
 roots=("{root}"); work_roots=("{wt}")
 branch="aide/7-x"; push_mode="none"; command_name="implement"
 commit_label="7-x"; model_suffix=""; suffix=" (stopped: cancelled)"; amend_note=""
 set +u
-source "{SCRIPTS}/lib/run-spec-publish.sh"
+source "{SCRIPTS}/lib/run-spec/publish/publish.sh"
 unset head_before head_after_per_root git_add_excludes
 commit_and_push_roots
 """
@@ -88,13 +88,13 @@ def test_a_root_with_no_worktree_yet_commits_nothing_where_the_runner_stands(tmp
     script = f"""
 set -uo pipefail
 source "{SCRIPTS}/_aide-spec-lib.sh"
-source "{SCRIPTS}/lib/run-spec-worktree.sh"
+source "{SCRIPTS}/lib/run-spec/checkout/worktree.sh"
 stage() {{ :; }}
 roots=("{root}"); work_roots=()
 branch="aide/7-x"; push_mode="none"; command_name="implement"
 commit_label="7-x"; model_suffix=""; suffix=" (stopped: cancelled)"; amend_note=""
 set +u
-source "{SCRIPTS}/lib/run-spec-publish.sh"
+source "{SCRIPTS}/lib/run-spec/publish/publish.sh"
 unset head_before head_after_per_root git_add_excludes
 commit_and_push_roots
 """

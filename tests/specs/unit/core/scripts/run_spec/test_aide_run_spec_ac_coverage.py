@@ -1,5 +1,5 @@
 """A completed implement records which test covers which requirement,
-read off the names of the tests the branch ADDED (run-spec-ac-coverage.sh):
+read off the names of the tests the branch ADDED (run-spec/record/ac-coverage.sh):
 the dashboard shows them on the row the user ticks.
 """
 

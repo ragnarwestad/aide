@@ -78,7 +78,7 @@ aide_next_spec_number() {
 # trailing hyphen. SKILL.md's Step 3 names this exact algorithm so a
 # human reading the skill and this function never drift apart.
 #
-# Not the same one-liner run-spec-invocation.sh:122-124 builds for the
+# Not the same one-liner run-spec/setup/invocation.sh:122-124 builds for the
 # AI prompt's own throwaway TODO-<slug> token — that one is explicitly
 # commented as NOT the spec's folder slug and has no diacritic handling.
 # This is the first version meant to BE the real folder slug.

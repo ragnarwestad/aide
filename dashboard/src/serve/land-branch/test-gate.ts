@@ -170,7 +170,7 @@ async function redOnDefaultBranch(liveRoot: string, recorder: string, argTail: s
 }
 
 /** Four bun test processes, as the step's own run uses
- *  (run-spec-step-tests.sh): a landing runs while specs are running, and a
+ *  (run-spec/turn/step-tests.sh): a landing runs while specs are running, and a
  *  suite on every core starves them. */
 function testWorkers(): Record<string, string> {
   return { AIDE_TEST_WORKERS: process.env.AIDE_TEST_WORKERS ?? "4" };

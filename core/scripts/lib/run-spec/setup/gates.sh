@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-spec-gates.sh — the refusals that come before any AI is spent.
+# run-spec/setup/gates.sh — the refusals that come before any AI is spent.
 #
 # Sourced by aide-run-spec at the point this ran when it was part of
 # that file, so the order, and every variable it shares with the rest
@@ -212,7 +212,7 @@ fetch_base_with_retry() {
 # ref name un-parameterized by branch (refs/aide-branch/tip,
 # refs/aide-branch/landed-base), so this lock covers them too, not only
 # the worktree add — it wraps the whole per-root loop body in
-# run-spec-branch.sh, and the pull loop below.
+# run-spec/checkout/branch.sh, and the pull loop below.
 #
 # mkdir is the primitive because this script has nowhere it can assume
 # flock(1) exists — it is not installed on this machine or the serving

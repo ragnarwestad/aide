@@ -30,7 +30,7 @@ export interface ProviderLimitWindow {
 }
 
 /** The usage limit that stopped a step, as `aide-run-spec` read it from
- *  the tool itself (`lib/run-spec-provider-limit.sh`) — never from the
+ *  the tool itself (`lib/run-spec/turn/provider-limit.sh`) — never from the
  *  model, which is spent by then. `window` is the one that ran out;
  *  `plan` and `credit` are there only when the tool said them. */
 export interface ProviderLimit {

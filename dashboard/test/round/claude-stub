@@ -54,7 +54,7 @@ say() {
 BUN="${AIDE_ROUND_BUN:-$(command -v bun || echo "$HOME/.local/share/mise/shims/bun")}"
 
 # A follow-up turn: aide-run-spec found the suite red on implement's
-# result and hands the failing lines back (run-spec-step-tests.sh). The
+# result and hands the failing lines back (run-spec/turn/step-tests.sh). The
 # one fixture whose suite is red on purpose stays red — the round is
 # about the cap holding and the step ending tests-red, not about a fix.
 if printf '%s' "$prompt" | grep -q "test suite is red"; then
@@ -263,7 +263,7 @@ case "$step" in
         # A note in a folder that is not this spec's — a new one, so it
         # is the same whichever fixtures have been archived by now. The
         # runner's specs guard discards it and fails the step
-        # (run-spec-specs-guard.sh).
+        # (run-spec/record/specs-guard.sh).
         mkdir -p "$specs_root/00-not-this-spec"
         printf '# A note that does not belong here\n' > "$specs_root/00-not-this-spec/5-note.md"
         ;;
@@ -299,12 +299,12 @@ case "$step" in
     done
     if [ "$slug" = "an-archive-that-moves-nothing" ]; then
       # aide-run-spec has already stamped and moved the folder before
-      # this session runs (run-spec-spec-paths.sh, the mechanical
+      # this session runs (run-spec/turn/spec-paths.sh, the mechanical
       # pre-check) — unless the step met an open merge, in which case it
       # left the folder alone. Either way the session below undoes every
       # uncommitted change in the specs worktree and still says done:
       # the folder is where it was, without an Archived stamp, and the
-      # runner's own cross-check (run-spec-status-line.sh) turns the
+      # runner's own cross-check (run-spec/record/status-line.sh) turns the
       # claim into `no-progress`. The round's one "no real progress"
       # row, the same whichever way the pre-check went.
       name="${folder##*/}"

@@ -177,7 +177,7 @@ class TestSlugFromTitle:
     """aide_slug_from_title (spec 433): the deterministic bash version of
     SKILL.md Step 3's slug rule, used by the no-AI create path so its
     folder name matches what an AI-run create would also choose. NOT the
-    same one-liner run-spec-invocation.sh:122-124 builds for the AI
+    same one-liner run-spec/setup/invocation.sh:122-124 builds for the AI
     prompt's own throwaway TODO-<slug> token — that one has no diacritic
     handling and is explicitly not the spec's folder slug.
     """

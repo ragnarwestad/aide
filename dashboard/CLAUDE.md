@@ -51,8 +51,8 @@ get them, and reads them by hand.
   reinstalls it under bash's feet — and `/bin/bash` here is 3.2: no
   `mapfile`, build arrays with `array+=(...)`.
 - **An `implement` whose own turn ends `completed` is reviewed before
-  its tests decide anything** (`run-spec-review.sh`, sourced between
-  `run-spec-status-line.sh` and `run-spec-step-tests.sh`): a second,
+  its tests decide anything** (`run-spec/turn/review.sh`, sourced between
+  `run-spec/record/status-line.sh` and `run-spec/turn/step-tests.sh`): a second,
   fresh AI session — same model, effort and tool, never resumed — reads
   the spec's description and a diff of what changed, and looks for
   defects against the description alone, never style, naming or
@@ -68,7 +68,7 @@ get them, and reads them by hand.
   same file: the counts from the `**Findings:**` line of the plan's Plan
   review section, never counted by the runner itself.
 - **An `implement` ends only on a green test run the runner made itself**
-  (`run-spec-step-tests.sh`), which runs after the review above: the
+  (`run-spec/turn/step-tests.sh`), which runs after the review above: the
   session's own record is never what decides. Red goes back to the same
   session first, as a follow-up turn
   with the failing lines — at most `AIDE_TEST_FIX_ROUNDS` (2) more, each
@@ -77,7 +77,7 @@ get them, and reads them by hand.
   Still red is `terminalReason: tests-red` on the STEP — a failed job
   with the failing lines as detail, and Implement offered again — unlike
   the landing's `tests-red`, which STOPS the job. `run_model_turn`
-  (`run-spec-model-turn.sh`) is the one turn; every turn of a step
+  (`run-spec/turn/model-turn.sh`) is the one turn; every turn of a step
   appends to the same transcript. An `archive` runs no suite of its own,
   merged with main or not: its landing runs the suite once, on exactly
   what main is about to become, and that is the one run an archive
@@ -91,7 +91,7 @@ get them, and reads them by hand.
 - Every move of a shared checkout — the pull (switch, fetch,
   fast-forward) and the worktree add — runs under the per-root lock
   `$root/.git/aide-run-spec-worktree.lock` (`acquire_worktree_lock`,
-  `run-spec-gates.sh`). Runs of one project share its checkout, and a
+  `run-spec/setup/gates.sh`). Runs of one project share its checkout, and a
   git command that moves it outside the lock loses a ref lock or the
   checkout under its feet when another run is in its own section.
   A refusal from such a command quotes git's own first line.

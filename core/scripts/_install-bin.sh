@@ -42,7 +42,13 @@ COMMON_BIN_HOOK_SCRIPTS="$(_core_bin_scripts "$(cd "$(dirname "${BASH_SOURCE[0]}
 # step lists, read by aide-run-spec (jq) and imported by the dashboard.
 # Unlike status-progress.sh above, a missing copy here is refused loudly
 # by aide-run-spec rather than silently no-op'd.
-COMMON_BIN_LIB_SCRIPTS="$(_core_bin_scripts "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib")"
+# Every file under lib/, by its path relative to lib/: the runner's own
+# parts sit in lib/run-spec/<stage>/, and a folder is installed as it is.
+_core_lib_files() {
+  local d="$1" f
+  while IFS= read -r f; do printf '%s ' "${f#"$d"/}"; done < <(find "$d" -type f ! -name '.*' | LC_ALL=C sort)
+}
+COMMON_BIN_LIB_SCRIPTS="$(_core_lib_files "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib")"
 # Non-AI CLI tools aide's installer keeps present via mise, using the
 # same npm:<pkg> declaration style as the AI CLIs in
 # ~/.config/mise/config.toml (npm:playwright is the existing precedent).
@@ -87,6 +93,7 @@ install_common_bin() {
   mkdir -p ~/.local/bin/lib
   for s in $COMMON_BIN_LIB_SCRIPTS; do
     if [ -f "$_CORE_SCRIPTS_DIR/lib/$s" ]; then
+      mkdir -p "$(dirname ~/.local/bin/lib/"$s")"
       _install_file "$_CORE_SCRIPTS_DIR/lib/$s" ~/.local/bin/lib/"$s"
       echo "   ✅ Installed: ~/.local/bin/lib/$s"
     fi

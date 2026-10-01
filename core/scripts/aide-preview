@@ -69,7 +69,7 @@ WT="$PREVIEW_DIR/$(basename "$(dirname "$ROOT")")-$PORT"
 mkdir -p "$(dirname "$WT")"
 
 # The same lock file `aide-run-spec` takes around every move of a shared
-# checkout (acquire_worktree_lock, run-spec-gates.sh): runs of one
+# checkout (acquire_worktree_lock, run-spec/setup/gates.sh): runs of one
 # project share this checkout, and a `git worktree add` outside the lock
 # loses a ref lock while a run is in its own section.
 LOCK="$ROOT/.git/aide-run-spec-worktree.lock"

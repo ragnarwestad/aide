@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-spec-arguments.sh — the workflow vocabulary this run is checked
+# run-spec/setup/arguments.sh — the workflow vocabulary this run is checked
 # against, the command line it was given, and the refusals that follow
 # straight from those two.
 #

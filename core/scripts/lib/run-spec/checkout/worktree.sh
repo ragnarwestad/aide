@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-spec-worktree.sh — one throwaway checkout per root, and the lock that keeps two runs out of each other's.
+# run-spec/checkout/worktree.sh — one throwaway checkout per root, and the lock that keeps two runs out of each other's.
 #
 # Sourced by aide-run-spec at the point this ran when it was part of
 # that file, so the order, and every variable it shares with the rest
@@ -245,7 +245,7 @@ branch_already_landed() {
 
 # The worktrees `update_branch_to_base` handed to an archive session with
 # the merge OPEN, and the tip of the base each was being merged with:
-# the status cross-check (run-spec-status-line.sh) asks afterwards
+# the status cross-check (run-spec/record/status-line.sh) asks afterwards
 # whether the branch came to contain that tip. A session that dropped
 # the open merge instead of finishing it leaves the branch behind the
 # base, and its "completed" is then a merge left unfinished, not an
@@ -256,7 +256,7 @@ open_merge_count=0
 # How many times the PROJECT's base was merged into the branch — as
 # opposed to fast-forwarded, which brings the branch nothing it has not
 # already been tested on. An archive whose pull merged main in has a
-# result no green run has seen (run-spec-step-tests.sh).
+# result no green run has seen (run-spec/turn/step-tests.sh).
 base_merged_count=0
 update_branch_to_base() {
   local wt="$1" ref="$2" root="$3" conflicted="" rel="" expected1="" expected2=""
@@ -309,4 +309,4 @@ link_worktree_deps() {
 }
 
 # The per-root worktree lock (acquire_worktree_lock, release_worktree_lock)
-# is defined in run-spec-gates.sh, whose pull is the first section under it.
+# is defined in run-spec/setup/gates.sh, whose pull is the first section under it.

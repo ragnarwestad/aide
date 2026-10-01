@@ -7,6 +7,7 @@ in conftest.py beside them.
 
 import json
 import pathlib
+import shutil
 import re
 import pytest
 from ..conftest import run
@@ -303,10 +304,13 @@ def test_runner_refuses_by_name_when_one_of_its_own_parts_is_missing(runner, wor
     # Everything the script reads beside itself EXCEPT one phase, and a
     # late one: the refusal must not wait until the line that sources it.
     (tmp_path / "lib").mkdir(exist_ok=True)
-    missing = "run-spec-publish.sh"
-    for part in sorted((pathlib.Path(runner).parent / "lib").glob("*")):
-        if part.is_file() and part.name != missing:
-            (tmp_path / "lib" / part.name).write_bytes(part.read_bytes())
+    missing = "run-spec/publish/publish.sh"
+    lib = pathlib.Path(runner).parent / "lib"
+    for part in sorted(lib.rglob("*")):
+        rel = part.relative_to(lib).as_posix()
+        if part.is_file() and rel != missing:
+            (tmp_path / "lib" / rel).parent.mkdir(parents=True, exist_ok=True)
+            (tmp_path / "lib" / rel).write_bytes(part.read_bytes())
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, runner_path=lone_copy)
     assert rc == 2, out
@@ -334,8 +338,7 @@ def test_runner_refuses_when_the_workflow_steps_file_is_missing(runner, workspac
     # those as well, so `lib/workflow-steps.json` is again the only thing
     # missing and this test still asks what it was written to ask.
     (tmp_path / "lib").mkdir(exist_ok=True)
-    for part in sorted((pathlib.Path(runner).parent / "lib").glob("run-spec-*.sh")):
-        (tmp_path / "lib" / part.name).write_bytes(part.read_bytes())
+    shutil.copytree(pathlib.Path(runner).parent / "lib" / "run-spec", tmp_path / "lib" / "run-spec")
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, runner_path=lone_copy)
     assert rc == 2, out

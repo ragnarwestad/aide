@@ -21,7 +21,6 @@ OVER_LINE_LIMIT = {}
 # Folders already over the limit, at the count measured when this list was
 # written, held until they are split.
 OVER_FOLDER_LIMIT = {
-    "core/scripts/lib": 26,
     "tests/specs/unit/core/scripts": 28,
     "tests/specs/unit/core/scripts/run_spec": 40,
 }

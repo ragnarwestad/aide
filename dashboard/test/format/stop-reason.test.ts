@@ -2,9 +2,10 @@
 // list in step with the reasons `aide-run-spec` writes.
 
 import { describe, expect, test } from "bun:test";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { FAILED_STOPS, isFailedStop } from "../../src/format/stop-reason.ts";
+import { runSpecParts } from "../helpers/run-spec-source.ts";
 
 const SCRIPTS = join(import.meta.dir, "../../../core/scripts");
 
@@ -34,9 +35,7 @@ describe("isFailedStop", () => {
   test("every reason the scripts write is either a failure or named as not one", () => {
     const files = [
       join(SCRIPTS, "aide-run-spec"),
-      ...readdirSync(join(SCRIPTS, "lib"))
-        .filter((f) => f.startsWith("run-spec-") && f.endsWith(".sh"))
-        .map((f) => join(SCRIPTS, "lib", f)),
+      ...runSpecParts(),
     ];
     const written = new Set<string>();
     for (const file of files) {

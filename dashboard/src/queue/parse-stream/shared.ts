@@ -171,7 +171,7 @@ export function bounded(out: StreamEntry[], max: number): StreamEntry[] {
 }
 
 /** A skill-step mark, as `step_log_note` in
- *  core/scripts/lib/run-spec-invocation.sh asks the model to write it:
+ *  core/scripts/lib/run-spec/setup/invocation.sh asks the model to write it:
  *  `--- Step N of X: <title> — started|done|skipped: …|stopped: …`.
  *  The ending is read loosely — "done (nothing to keep)" is still a mark. */
 // A log written before the `--- Step` prefix read `analyze · Step 3 of 10: …`,

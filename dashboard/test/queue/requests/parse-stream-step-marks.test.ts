@@ -73,7 +73,7 @@ describe("a final message holding marks", () => {
 // names must come back as a mark.
 describe("the prompt's own format is what the parser reads", () => {
   test("each line step_log_note asks for is a mark", () => {
-    const script = readFileSync(join(import.meta.dir, "../../../../core/scripts/lib/run-spec-invocation.sh"), "utf-8");
+    const script = readFileSync(join(import.meta.dir, "../../../../core/scripts/lib/run-spec/setup/invocation.sh"), "utf-8");
     const note = script.slice(script.indexOf('step_log_note="'), script.indexOf('"\n', script.indexOf('step_log_note="')));
     const template = note.split("\n").find((l) => l.startsWith("--- Step "))!;
     const endings = note.split("\n").filter((l) => l.startsWith("— ")).map((l) => l.replace(/ \(.*\)$/, "").replace("<why>", "no tests"));

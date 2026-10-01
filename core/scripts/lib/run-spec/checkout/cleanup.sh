@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-spec-cleanup.sh — leaving the machine usable.
+# run-spec/checkout/cleanup.sh — leaving the machine usable.
 #
 # Sourced by aide-run-spec at the point this ran when it was part of
 # that file, so the order, and every variable it shares with the rest

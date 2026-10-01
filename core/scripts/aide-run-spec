@@ -42,7 +42,7 @@
 #
 # A step a provider's usage limit stopped adds `providerLimit`: {tool,
 # window, resetsAt, windows[{name, usedPercent, resetsAt}], plan, credit},
-# each part present only when the tool said it (lib/run-spec-provider-limit.sh).
+# each part present only when the tool said it (lib/run-spec/turn/provider-limit.sh).
 # Absent on every other outcome.
 #
 # terminalReason is this script's own vocabulary, not the CLI's:
@@ -161,7 +161,7 @@ need_part() {
 # EVERY phase, before the first one runs. Checked one at a time where
 # each is sourced, a missing late phase was only found after the step had
 # run and the money was spent.
-for _part in run-spec-arguments.sh run-spec-code-landing.sh run-spec-gates.sh run-spec-invocation.sh run-spec-checkouts.sh run-spec-worktree.sh run-spec-branch.sh run-spec-provider-limit.sh run-spec-model-turn.sh run-spec-spec-paths.sh run-spec-cleanup.sh run-spec-records.sh run-spec-status-line.sh run-spec-review.sh run-spec-specs-guard.sh run-spec-boundary.sh run-spec-outcome.sh run-spec-ac-coverage.sh run-spec-publish.sh run-spec-wiki-guard.sh run-spec-result.sh; do need_part "$_part"; done
+for _part in run-spec/setup/arguments.sh run-spec/setup/code-landing.sh run-spec/setup/gates.sh run-spec/setup/invocation.sh run-spec/checkout/checkouts.sh run-spec/checkout/worktree.sh run-spec/checkout/branch.sh run-spec/turn/provider-limit.sh run-spec/turn/model-turn.sh run-spec/turn/spec-paths.sh run-spec/checkout/cleanup.sh run-spec/record/records.sh run-spec/record/status-line.sh run-spec/turn/review.sh run-spec/record/specs-guard.sh run-spec/record/boundary.sh run-spec/record/outcome.sh run-spec/record/ac-coverage.sh run-spec/publish/publish.sh run-spec/publish/wiki-guard.sh run-spec/publish/result.sh; do need_part "$_part"; done
 # The step's own clock, started before anything it does (2026-09-08).
 # It began beside the AI session and therefore measured the session
 # alone: the checkout, the worktree, the branch, the archive pre-check
@@ -210,61 +210,61 @@ stage_error() { stage "error: $*"; }
 
 # --- the vocabulary, the command line, and what they refuse ---
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/run-spec-arguments.sh"
+source "$SCRIPT_DIR/lib/run-spec/setup/arguments.sh"
 
 # --- how this project lands its code ---
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/run-spec-code-landing.sh"
+source "$SCRIPT_DIR/lib/run-spec/setup/code-landing.sh"
 
 # --- the refusals that come before any AI is spent ---
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/run-spec-gates.sh"
+source "$SCRIPT_DIR/lib/run-spec/setup/gates.sh"
 
 # --- finding the tool and building its command line ---
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/run-spec-invocation.sh"
+source "$SCRIPT_DIR/lib/run-spec/setup/invocation.sh"
 
 # --- the throwaway checkout each run works in ---
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/run-spec-checkouts.sh"
+source "$SCRIPT_DIR/lib/run-spec/checkout/checkouts.sh"
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/run-spec-worktree.sh"
+source "$SCRIPT_DIR/lib/run-spec/checkout/worktree.sh"
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/run-spec-branch.sh"
+source "$SCRIPT_DIR/lib/run-spec/checkout/branch.sh"
 
 # --- where the spec folder is, what a step may write, and reading what came back ---
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/run-spec-provider-limit.sh"
+source "$SCRIPT_DIR/lib/run-spec/turn/provider-limit.sh"
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/run-spec-model-turn.sh"
+source "$SCRIPT_DIR/lib/run-spec/turn/model-turn.sh"
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/run-spec-spec-paths.sh"
+source "$SCRIPT_DIR/lib/run-spec/turn/spec-paths.sh"
 
 # --- leaving the machine usable ---
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/run-spec-cleanup.sh"
+source "$SCRIPT_DIR/lib/run-spec/checkout/cleanup.sh"
 
 # --- the record of what has run ---
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/run-spec-records.sh"
+source "$SCRIPT_DIR/lib/run-spec/record/records.sh"
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/run-spec-status-line.sh"
+source "$SCRIPT_DIR/lib/run-spec/record/status-line.sh"
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/run-spec-review.sh"
+source "$SCRIPT_DIR/lib/run-spec/turn/review.sh"
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/run-spec-step-tests.sh"
+source "$SCRIPT_DIR/lib/run-spec/turn/step-tests.sh"
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/run-spec-specs-guard.sh"
+source "$SCRIPT_DIR/lib/run-spec/record/specs-guard.sh"
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/run-spec-boundary.sh"
+source "$SCRIPT_DIR/lib/run-spec/record/boundary.sh"
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/run-spec-outcome.sh"
+source "$SCRIPT_DIR/lib/run-spec/record/outcome.sh"
 
 # --- committing and publishing, confirmed against origin ---
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/run-spec-publish.sh"
+source "$SCRIPT_DIR/lib/run-spec/publish/publish.sh"
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/run-spec-wiki-guard.sh"
+source "$SCRIPT_DIR/lib/run-spec/publish/wiki-guard.sh"
 
 # --- what a `close` step actually DID, in the script's own word -------------
 # The dashboard lands a close on `closed` alone (runner-setup.ts), and a
@@ -298,7 +298,7 @@ fi
 # Which test covers which requirement, for the row the user ticks —
 # written before PASS 1 so it is committed with the step's own work.
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/run-spec-ac-coverage.sh"
+source "$SCRIPT_DIR/lib/run-spec/record/ac-coverage.sh"
 write_ac_coverage
 
 # --- PASS 1: the step's own content, unconditionally, every command ---------
@@ -306,7 +306,7 @@ commit_and_push_roots
 
 # --- what the run reports: the line, the repos and the result JSON ---------
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/run-spec-result.sh"
+source "$SCRIPT_DIR/lib/run-spec/publish/result.sh"
 
 # The result file is written LAST and by rename, so a reader never sees a
 # half-written one — and it is written on every path, including a stop:

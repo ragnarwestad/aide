@@ -3,7 +3,7 @@ ONE review turn — a fresh session, same model/effort/tool — that reads
 the spec's description and a diff of what changed, and looks for
 defects against the description (never style, naming or structure).
 Defects found go back to the ORIGINAL implement session as one
-follow-up (fix) turn; the runner's own test run (run-spec-step-tests.sh)
+follow-up (fix) turn; the runner's own test run (run-spec/turn/step-tests.sh)
 always runs after that, never a second review (spec 551).
 """
 

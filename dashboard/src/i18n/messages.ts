@@ -86,7 +86,7 @@ export const MESSAGES = {
     resolve: "Press {button} again.",
   },
   // The bash cross-check's own verdict on a step that reported success
-  // while changing nothing (core/scripts/lib/run-spec-status-line.sh),
+  // while changing nothing (core/scripts/lib/run-spec/record/status-line.sh),
   // said in the board's words: the English sentence the script wrote is
   // kept on the job as hover detail, never shown as the row's text.
   "runner.noProgressImplement": {
@@ -172,10 +172,10 @@ export const MESSAGES = {
     resolve: "then run the job again",
   },
   // A wiki build writes generated pages in wiki/ and nothing else
-  // (core/scripts/lib/run-spec-wiki-guard.sh): the script's own sentence,
+  // (core/scripts/lib/run-spec/publish/wiki-guard.sh): the script's own sentence,
   // naming what was taken back, stays on the job as hover detail.
   // A wiki build that left pages unwritten, or none written at all
-  // (run-spec-wiki-guard.sh): the run's own log names which.
+  // (run-spec/publish/wiki-guard.sh): the run's own log names which.
   "runner.wikiBuildUnfinished": {
     en: "the wiki build did not finish — pages it should have written were left as they were, or none was written. — The log below names them. Build the wiki again from the project's Wiki tab.",
     nb: "wiki-byggingen ble ikke ferdig — sider den skulle skrive, ble stående som før, eller ingen ble skrevet. — Loggen under nevner hvilke. Bygg wikien på nytt fra Wiki-fanen på prosjektet.",

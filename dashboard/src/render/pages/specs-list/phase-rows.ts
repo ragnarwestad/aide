@@ -16,7 +16,7 @@ import { NO_PULL_REQUEST, prErrorOf, prErrorSentence } from "./row-shared.ts";
 import { phaseHasRun, phaseMessagesFold, phaseMessagesRow } from "./phase-messages";
 
 /** The archive gates' own refusals: nothing was tried, so nothing is
- *  counted as an attempt. Hand-paired with run-spec-outcome.sh. */
+ *  counted as an attempt. Hand-paired with run-spec/record/outcome.sh. */
 const GUARD_REFUSALS = new Set(["not-implemented-yet", "acceptance-criteria-unticked"]);
 const stepResultOf = (r: QueueRowView, step: string) => (r.results ?? []).find((x) => x.step === step);
 
@@ -160,7 +160,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
       // A run the archive gates turned away before anything was tried
       // is a guard, not an attempt (2026-09-11) — the same two reasons
       // aide-run-spec leaves out of the file's own stamp
-      // (run-spec-outcome.sh).
+      // (run-spec/record/outcome.sh).
       const tried = p.attempts.filter((a) => !GUARD_REFUSALS.has(stepResultOf(a, p.step)?.terminalReason ?? ""));
       const attemptCount = Math.max(tried.length, p.attemptCount ?? 0);
 

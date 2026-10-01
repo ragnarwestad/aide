@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-spec-boundary.sh — a reopen's own boundary mark.
+# run-spec/record/boundary.sh — a reopen's own boundary mark.
 #
 # Sourced by aide-run-spec at the point this ran when it was part of
 # that file, so the order, and every variable it shares with the rest

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-spec-spec-paths.sh — where the spec folder is, what a step may write, and reading what came back.
+# run-spec/turn/spec-paths.sh — where the spec folder is, what a step may write, and reading what came back.
 #
 # Sourced by aide-run-spec at the point this ran when it was part of
 # that file, so the order, and every variable it shares with the rest
@@ -15,7 +15,7 @@
 specs_root_wt="$specs_root"
 
 # Spec 405: the pathspec that keeps the specs root out of "did the
-# project repo change" (run-spec-status-line.sh's analyze scope-check).
+# project repo change" (run-spec/record/status-line.sh's analyze scope-check).
 # Populated below, only when the specs root sits inside THIS worktree
 # (single-worktree layout) — with a separate specs worktree the project
 # checkout never sees spec files in its own `git status` at all, so
@@ -169,7 +169,7 @@ The wiki is kept in this specs root and nowhere else: pass --specs-root \"$specs
 fi
 
 # What the code repository's commit and pull request say (spec-free and
-# tool-free: code_commit_message, run-spec-publish.sh). The session knows
+# tool-free: code_commit_message, run-spec/publish/publish.sh). The session knows
 # what it changed and the runner does not, so the session writes it; the
 # file sits in the run's own work directory, outside every repository.
 commit_message_file="$work_dir/commit-message"
@@ -317,7 +317,7 @@ if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reopen_keep_no_ai" ] \
       cost_measured="true"
       tool="none"
       # No AI ran, so nothing chosen for --model/--effort means anything:
-      # run-spec-cleanup.sh's model_value="$tool${model:+ $model}" would
+      # run-spec/checkout/cleanup.sh's model_value="$tool${model:+ $model}" would
       # otherwise read "none <configured-model>" for a create job whose
       # config still names a default model for that step.
       model=""; effort=""
@@ -340,7 +340,7 @@ if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reopen_keep_no_ai" ] \
       # The reset mode's second half, over the folder the line above moved
       # back out of archive/ — which is the order aide-reset-spec needs: it
       # refuses an archived folder by name. The `**Reopened:**` mark comes
-      # after both, from run-spec-boundary.sh, over the status file this
+      # after both, from run-spec/record/boundary.sh, over the status file this
       # writes from the template.
       if [ -n "$reopen_reset_no_ai" ]; then
         reset_result="$("$SCRIPT_DIR/aide-reset-spec" --specs-root "$specs_root_wt" --spec "$spec_folder" 2>/dev/null)"

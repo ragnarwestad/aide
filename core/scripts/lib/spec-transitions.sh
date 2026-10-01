@@ -279,7 +279,7 @@ untick_failed_acceptance_rows() {
 # pattern can read, the rows' text and Notes — only their Status cells are
 # cleared, so an unreadable description never empties the table and lets
 # an archive through unchecked. The criterion pattern is the one
-# run-spec-ac-coverage.sh reads, so both count the same ids.
+# run-spec/record/ac-coverage.sh reads, so both count the same ids.
 rebuild_acceptance_rows() {
   local status_file="$1" description="${2:-/dev/null}" tmp
   [ -f "$status_file" ] || return 0

@@ -1,5 +1,5 @@
 // Which test covers which requirement, as the implement step's runner
-// recorded it (`core/scripts/lib/run-spec-ac-coverage.sh`): the tests
+// recorded it (`core/scripts/lib/run-spec/record/ac-coverage.sh`): the tests
 // whose names carry an AC-id, out of the lines the branch added. Shown
 // under each acceptance row, so whoever ticks it sees what proves it.
 

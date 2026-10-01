@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-spec-branch.sh — a new work round: the branch goes first.
+# run-spec/checkout/branch.sh — a new work round: the branch goes first.
 #
 # Sourced by aide-run-spec at the point this ran when it was part of
 # that file, so the order, and every variable it shares with the rest

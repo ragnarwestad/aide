@@ -70,7 +70,7 @@ def test_affected_is_empty_for_a_project_with_no_wiki_AC_5(script, project, tmp_
 def test_affected_resolves_a_non_main_default_branch_via_origin_head(script, tmp_path, specs_root):
     """A repo whose default branch is not literally `main` still resolves
     the right merge-base — `default_branch_of`'s own fallback, mirroring
-    run-spec-gates.sh's `default_branch()`."""
+    run-spec/setup/gates.sh's `default_branch()`."""
     bare = tmp_path / "origin.git"
     subprocess.run(["git", "init", "-q", "--bare", "-b", "trunk", str(bare)], check=True)
     seed = init_repo(tmp_path / "seed")

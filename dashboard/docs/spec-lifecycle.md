@@ -46,8 +46,8 @@ The code is in these places:
 
 - `transitions.json` — read in bash by `may_apply_spec_transition` (`core/scripts/lib/spec-transitions.sh`) and in
   TypeScript by `isLegalMove` (`dashboard/src/queue/spec-transitions.ts`).
-- `completed_steps_for` and the post-step checks — in `core/scripts/lib/run-spec-records.sh` and
-  `run-spec-status-line.sh`.
+- `completed_steps_for` and the post-step checks — in `core/scripts/lib/run-spec/record/records.sh` and
+  `run-spec/record/status-line.sh`.
 - The gates — in `core/scripts/aide-archive-spec`.
 - The landing — in `src/serve/land-branch/`.
 

@@ -161,7 +161,7 @@ put_page_unless_same() {
 }
 
 # The project's default branch, resolved the same way
-# core/scripts/lib/run-spec-gates.sh's own default_branch() does — that
+# core/scripts/lib/run-spec/setup/gates.sh's own default_branch() does — that
 # function lives in a bash-runner-internal library neither a plain script
 # call nor the archive skill's own session (a separate AI-CLI process)
 # can reach, so this is its own small copy of the same fallback.

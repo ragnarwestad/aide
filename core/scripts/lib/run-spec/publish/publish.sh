@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-spec-publish.sh — committing and publishing, confirmed against origin.
+# run-spec/publish/publish.sh — committing and publishing, confirmed against origin.
 #
 # Sourced by aide-run-spec at the point this ran when it was part of
 # that file, so the order, and every variable it shares with the rest
@@ -349,7 +349,7 @@ EXCLUDES_EOF
       # compare against and so never reads as "already confirmed" either.
       # Asked as containment (`tip_has_nothing_of_its_own`), so the same
       # sentence holds while another spec's landing moves that default
-      # branch — the confirmation in run-spec-worktree.sh asks it the
+      # branch — the confirmation in run-spec/checkout/worktree.sh asks it the
       # same way, and the two disagreeing is what reported an untouched
       # root as unpushed work.
       i=$(( i + 1 ))

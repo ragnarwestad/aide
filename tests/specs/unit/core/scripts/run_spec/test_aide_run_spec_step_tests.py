@@ -1,5 +1,5 @@
 """An implement that reported success ends on a green test run the
-runner made itself (run-spec-step-tests.sh), never on the session's
+runner made itself (run-spec/turn/step-tests.sh), never on the session's
 word — the record on the branch is the runner's own.
 """
 

@@ -3,8 +3,8 @@ import { stepButton } from "../../format/step-label.ts";
 import type { WorkflowStep } from "../queue.ts";
 import type { StepOutcome } from "./types.ts";
 
-/** The bash cross-check's verdicts (run-spec-status-line.sh,
- *  run-spec-step-tests.sh) — a step that made `no-progress`, an
+/** The bash cross-check's verdicts (run-spec/record/status-line.sh,
+ *  run-spec/turn/step-tests.sh) — a step that made `no-progress`, an
  *  implement or archive whose own test run came back red, or an archive
  *  that left its open merge unfinished, or a step whose model declined to
  *  continue — as the board's own message for the step it was about,

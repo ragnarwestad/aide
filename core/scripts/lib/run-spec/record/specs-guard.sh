@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-spec-specs-guard.sh — a step writes only its own spec folder in the specs repo.
+# run-spec/record/specs-guard.sh — a step writes only its own spec folder in the specs repo.
 #
 # Sourced by aide-run-spec at the point this ran when it was part of
 # that file, so the order, and every variable it shares with the rest
@@ -17,7 +17,7 @@
 # `specs/`, outside every folder.
 #
 # `archive` alone may also touch `wiki/`: it rewrites the wiki pages that
-# cover the files its own spec changed. run-spec-wiki-guard.sh checks
+# cover the files its own spec changed. run-spec/publish/wiki-guard.sh checks
 # that precisely — this guard only keeps `wiki/` from being written by
 # any OTHER step, which would otherwise widen every step's own scope.
 if [ "$terminal_reason" = "completed" ] && [ "$command_name" != "create" ] && [ -n "$spec_folder" ]; then

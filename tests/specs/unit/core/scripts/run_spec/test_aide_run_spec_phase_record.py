@@ -390,13 +390,13 @@ def test_the_step_clock_starts_before_the_run_does_anything():
     # worktree and the branch all come after it, and the step's own time
     # includes them.
     clock_at = runner_text.index('step_started_at="$(date +%s)"')
-    for first_work in ("run-spec-checkouts.sh", "run-spec-worktree.sh", "run-spec-spec-paths.sh"):
+    for first_work in ("run-spec/checkout/checkouts.sh", "run-spec/checkout/worktree.sh", "run-spec/turn/spec-paths.sh"):
         assert clock_at < runner_text.index(f'source "$SCRIPT_DIR/lib/{first_work}"'), first_work
 
-    outcome = (scripts / "lib" / "run-spec-outcome.sh").read_text()
+    outcome = (scripts / "lib" / "run-spec/record/outcome.sh").read_text()
     assert "step_started_at" in outcome
     assert "time_spent_display" in outcome
-    session = (scripts / "lib" / "run-spec-model-turn.sh").read_text()
+    session = (scripts / "lib" / "run-spec/turn/model-turn.sh").read_text()
     assert 'deadline=$(( started_at +' in session
 
 

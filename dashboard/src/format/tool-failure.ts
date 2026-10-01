@@ -39,7 +39,7 @@ const TOOL_LEVEL_ENDINGS = new Set(["cli-error", "spawn-failed"]);
  *  not analyzed yet — which the AI's login has nothing to do with. It is
  *  about the AI only when the runner could not find the CLI, and the
  *  runner's own sentence says so by naming the binary
- *  (`core/scripts/lib/run-spec-invocation.sh`). */
+ *  (`core/scripts/lib/run-spec/setup/invocation.sh`). */
 const refusedForTheCli = (f: ToolFailure): boolean =>
   f.terminalReason === "refused" && /\bbinary\b/.test(f.error ?? "");
 

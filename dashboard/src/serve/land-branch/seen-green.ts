@@ -1,6 +1,6 @@
 // Whether the landing is about to test code a step has already seen
 // green. `implement` is the one step that runs the suite itself
-// (`run-spec-step-tests.sh`), and it records the tree it saw green on;
+// (`run-spec/turn/step-tests.sh`), and it records the tree it saw green on;
 // when main has not moved since, the landing's own merge is that same
 // tree, and running the same commands on it a second time costs a whole
 // suite to learn nothing (spec 480, 2026-09-18). When main HAS moved,

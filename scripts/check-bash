@@ -30,6 +30,7 @@ shellcheck --severity=warning \
   core/scripts/build-agents-md.sh \
   core/scripts/upgrade-ai-tools \
   core/scripts/lib/*.sh \
+  core/scripts/lib/run-spec/*/*.sh \
   dashboard/install.sh \
   dashboard/deploy/check-prerequisites.sh \
   dashboard/deploy/repair-serve-plist.sh \

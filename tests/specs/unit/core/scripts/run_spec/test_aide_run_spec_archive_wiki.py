@@ -11,8 +11,8 @@ from .run_spec_status_files import status_with_phase
 
 
 # --- an archive that rewrites the wiki pages its own spec touched -----------
-# The new `wiki/` exception in run-spec-specs-guard.sh (archive-only), and
-# the precision check in run-spec-wiki-guard.sh that recomputes the
+# The new `wiki/` exception in run-spec/record/specs-guard.sh (archive-only), and
+# the precision check in run-spec/publish/wiki-guard.sh that recomputes the
 # allowed pages fresh via `aide-wiki affected` and takes back anything
 # else — never trusting what the session claims it rewrote.
 
@@ -286,7 +286,7 @@ def test_an_archive_whose_decision_page_names_another_spec_is_taken_back_AC_1(
 def test_a_non_archive_step_writing_the_wiki_is_still_a_scope_violation(
     runner, workspace, fake_claude
 ):
-    """The new `wiki/` exception in run-spec-specs-guard.sh is
+    """The new `wiki/` exception in run-spec/record/specs-guard.sh is
     `archive`-only, by the literal command string — mirrors
     `test_archive_no_progress_guard_never_fires_for_other_steps` above,
     inverted: an unrelated step must never be able to write the wiki
