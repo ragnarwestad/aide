@@ -96,13 +96,10 @@ export async function schedulePages(
     const outputRoot = ctx.opts.scheduleOutputRoot ?? DEFAULT_SCHEDULE_OUTPUT_ROOT;
     const langResult = languageChoice(url, req);
     // `?run=` is only ever compared with this entry's own job ids, never
-    // joined into a path; anything else shows the newest run.
+    // joined into a path. A report shows only for a run picked from the
+    // list; without one, the Report tab is the list alone.
     const runParam = url.searchParams.get("run");
-    // With no run asked for, the newest FINISHED run: a run that is queued
-    // or still going has no report yet, and would hide last week's.
-    const unfinished = (j: (typeof jobs)[number]) => j.state === "queued" || j.state === "running";
-    const pendingJob = runParam ? undefined : jobs.find(unfinished);
-    const shown = jobs.find((j) => j.id === runParam) ?? jobs.find((j) => !unfinished(j));
+    const shown = jobs.find((j) => j.id === runParam);
     let run: Parameters<typeof renderReportPanel>[0]["run"];
     if (shown) {
       const report = readScheduleRunReport(outputRoot, project, key, shown.id);
@@ -128,21 +125,15 @@ export async function schedulePages(
       deleteDone: projectScheduleTab(project),
       runs: jobs,
       shownRun: shown?.id,
-      // Only a `?run=` that matched is carried by the list's headings: a
-      // page showing the newest finished run goes on doing so after a sort.
-      keepRun: shown && shown.id === runParam ? runParam : undefined,
       // Only ever compared with the list's column names.
       runSort: { sort: url.searchParams.get("sort") ?? undefined, dir: url.searchParams.get("dir") ?? undefined },
-      reportPanel:
-        renderReportPanel({
-          lang: langResult.lang, run,
-          ...(pendingJob ? { pending: pendingJob.state as "queued" | "running" } : {}),
-        }) +
-        renderProposalsPanel({
-          lang: langResult.lang,
-          project,
-          record: shown ? readProposalsRecord(outputRoot, project, key, shown.id) : null,
-        }),
+      // An entry that has never run says so here, where the list would be.
+      reportPanel: shown
+        ? renderReportPanel({ lang: langResult.lang, run }) +
+          renderProposalsPanel({ lang: langResult.lang, project, record: readProposalsRecord(outputRoot, project, key, shown.id) })
+        : jobs.length === 0
+          ? renderReportPanel({ lang: langResult.lang })
+          : "",
       script: await specsClientScript(),
       backHref: resolveBackHref(req.headers.get("referer"), url.origin, projectScheduleTab(project), url.pathname),
       lang: langResult.lang,

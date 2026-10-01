@@ -64,10 +64,9 @@ export interface ScheduleDetailPageOptions {
   tab?: string;
   /** The entry's runs, newest first, listed under the report. */
   runs: readonly Job[];
-  /** The id of the run whose report `reportPanel` shows. */
+  /** The `?run=` the address named, when it is one of `runs`: the run
+   *  whose report `reportPanel` shows. */
   shownRun?: string;
-  /** The `?run=` the address named, when it is one of `runs`. */
-  keepRun?: string;
   /** The runs list's `?sort=` and `?dir=`, as the address gave them. */
   runSort?: { sort?: string; dir?: string };
   /** The report panel's markup (`renderReportPanel`), the Report tab. */
@@ -107,7 +106,7 @@ export function renderScheduleDetailPage(
       : (opts.reportPanel ?? "") +
         renderScheduleRuns({
           lang: opts.lang ?? "en", project: opts.project, name: opts.entry.name, runs: opts.runs,
-          shown: opts.shownRun, keepRun: opts.keepRun, sort: opts.runSort?.sort, dir: opts.runSort?.dir,
+          shown: opts.shownRun, sort: opts.runSort?.sort, dir: opts.runSort?.dir,
         });
   const body = tabbedBody("", bar, panel, opts.backHref ?? SCHEDULE_ROUTE, opts.entry.name);
   return pageShell(opts.entry.name, nav, base, body, generatedAt, {

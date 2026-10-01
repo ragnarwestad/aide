@@ -1,6 +1,6 @@
 // A schedule entry's most recent run, as the Schedule list shows it.
 import { DEFAULT_SCHEDULE_OUTPUT_ROOT, readScheduleRunReport, scheduleTrackingKey } from "../../../queue/schedule.ts";
-import { schedulePagePath } from "../../../render";
+import { scheduleRunPath } from "../../../render";
 import type { RoutesContext } from "..";
 
 export interface ScheduleLastRun {
@@ -19,6 +19,6 @@ export function scheduleLastRun(ctx: RoutesContext, project: string, entryName: 
   return {
     lastState: last?.state,
     lastRunAt: last?.startedAt ?? last?.createdAt,
-    outputHref: wroteReport ? `${schedulePagePath(project, entryName)}#report` : undefined,
+    outputHref: last && wroteReport ? scheduleRunPath(project, entryName, last.id) : undefined,
   };
 }

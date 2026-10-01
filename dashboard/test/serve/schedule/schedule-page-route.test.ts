@@ -261,34 +261,17 @@ describe("GET /schedule/<project>/<entry> shows a run's report (spec 495)", () =
     (await fetch(`${base}${path}`, )).text();
   const PAGE = "/schedule/aide/nightly-report";
 
-  test("the newest run's report is in a frame, with its time, outcome and a link to the bare file", async () => {
+  test("a picked run's report is in a frame, with its time, outcome and a link to the bare file", async () => {
     const { base } = setup([
       { id: "old", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>OLD-TEXT</p>" },
       { id: "new", state: "done", at: "2026-09-02T03:00:00Z", report: "<p>NEW-TEXT</p>" },
     ]);
-    const html = await get(base, PAGE);
+    const html = await get(base, `${PAGE}?run=new`);
     expect(html).toMatch(/<iframe\b[^>]*data-report-frame/);
     expect(html).toContain("NEW-TEXT");
     expect(html).not.toContain("OLD-TEXT");
     expect(html).toContain("2026-09-02T03:00:00Z");
     expect(html).toContain(`href="/schedule-output/aide/${KEY}/runs/new/index.html"`);
-  });
-
-  test("while a newer run is queued or running, the last finished run's report shows, with a line saying so", async () => {
-    const { base } = setup([
-      { id: "old", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>OLD-TEXT</p>" },
-      { id: "new", state: "running", at: "2026-09-02T03:00:00Z" },
-    ]);
-    const html = await get(base, PAGE);
-    expect(html).toContain("OLD-TEXT");
-    expect(html).toContain("A new run is in progress");
-  });
-
-  test("with no finished run, the page says the job is queued rather than that it has no report", async () => {
-    const { base } = setup([{ id: "new", state: "queued", at: "2026-09-02T03:00:00Z" }]);
-    const html = await get(base, PAGE);
-    expect(html).toContain("No report yet: the job is queued.");
-    expect(html).not.toContain("<iframe");
   });
 
   test("an entry that has never run says so once, shows no list, and ?run= is ignored (AC-6)", async () => {
@@ -313,15 +296,16 @@ describe("GET /schedule/<project>/<entry> shows a run's report (spec 495)", () =
     };
   }
 
-  test("the Report tab shows the newest finished run's report with every run listed below, that run marked (AC-2)", async () => {
+  test("with no run picked, the Report tab is the list of runs alone, newest first, with no report", async () => {
     const { base } = setup([
       { id: "r1", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>FIRST-TEXT</p>" },
       { id: "r2", state: "done", at: "2026-09-02T03:00:00Z", report: "<p>SECOND-TEXT</p>" },
       { id: "r3", state: "running", at: "2026-09-03T03:00:00Z" },
     ]);
     const html = await get(base, PAGE);
-    expect(html).toContain("SECOND-TEXT");
-    expect(runsList(html)).toMatchObject({ ids: ["r3", "r2", "r1"], marked: ["r2"] });
+    expect(html).not.toContain("<iframe");
+    expect(parse(html).getElementById("report")).toBeNull();
+    expect(runsList(html)).toMatchObject({ ids: ["r3", "r2", "r1"], marked: [] });
   });
 
   test("?run= marks that run in the list (AC-3)", async () => {
@@ -346,12 +330,11 @@ describe("GET /schedule/<project>/<entry> shows a run's report (spec 495)", () =
     expect(runsList(await get(base, `${PAGE}?run=nope&sort=state`)).headings.map(runOf)).toEqual([null, null, null]);
   });
 
-  test("an old link to the History tab opens the Report tab, with the report and the runs (AC-7)", async () => {
+  test("an old link to the History tab opens the Report tab, with the runs (AC-7)", async () => {
     const { base } = setup([{ id: "r1", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>REPORT-R1</p>" }]);
     const res = await fetch(`${base}${PAGE}?tab=history`);
     expect(res.status).toBe(200);
     const html = await res.text();
-    expect(html).toContain("REPORT-R1");
     expect(runsList(html).ids).toEqual(["r1"]);
     expect(parse(html).querySelector('nav.subtabs a[aria-current="page"]')?.textContent).toBe("Report");
   });
@@ -398,12 +381,13 @@ describe("GET /schedule/<project>/<entry> shows a run's report (spec 495)", () =
     expect(await res.text()).toContain("REPORT-R1");
   });
 
-  test("a ?run= naming no job of this entry shows the newest run, and nothing outside the run's directory", async () => {
+  test("a ?run= naming no job of this entry shows the list alone, and nothing outside the run's directory", async () => {
     const { base, outputRoot } = setup([{ id: "new", state: "done", at: "2026-09-02T03:00:00Z", report: "<p>NEW-TEXT</p>" }]);
     writeFileSync(join(outputRoot, "aide", KEY, "index.html"), "<p>SENTINEL-OUTSIDE</p>");
     for (const run of ["nope", "../../etc/passwd", "..%2F..%2Findex.html"]) {
       const html = await get(base, `${PAGE}?run=${run}`);
-      expect(html).toContain("NEW-TEXT");
+      expect(runsList(html).ids).toEqual(["new"]);
+      expect(html).not.toContain("NEW-TEXT");
       expect(html).not.toContain("SENTINEL-OUTSIDE");
     }
   });
@@ -416,9 +400,9 @@ describe("GET /schedule/<project>/<entry> shows a run's report (spec 495)", () =
     expect(await res.text()).toContain("NEW-TEXT");
   });
 
-  test("the list's output link goes to the entry's page, and only when the newest run has a report", async () => {
+  test("the list's output link opens the newest run's report, and only when that run has one", async () => {
     const withReport = setup([{ id: "new", state: "done", at: "2026-09-02T03:00:00Z", report: "<p>x</p>" }]);
-    expect(await get(withReport.base, "/schedule")).toContain(`href="${PAGE}#report"`);
+    expect(await get(withReport.base, "/schedule")).toContain(`href="${PAGE}?run=new#report"`);
     const without = setup([
       { id: "old", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>x</p>" },
       { id: "new", state: "done", at: "2026-09-02T03:00:00Z" },

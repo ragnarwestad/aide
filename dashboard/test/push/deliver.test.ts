@@ -177,15 +177,16 @@ describe("what a scheduled run's notification says (AC-9)", () => {
   const KEYS = { done: "push.scheduleDone", failed: "push.scheduleFailed", stopped: "push.scheduleStopped", interrupted: "push.scheduleInterrupted" } as const;
 
   for (const ending of Object.keys(ENDINGS) as (keyof typeof ENDINGS)[]) {
-    test(`a run that ends ${ending}: the title names project and job, the body is its own sentence, the url is the job's page (AC-9)`, async () => {
+    test(`a run that ends ${ending}: the title names project and job, the body is its own sentence, the url is that run's report (AC-9)`, async () => {
       const b = await scheduledBoard();
-      ENDINGS[ending](b.store, runningJob(b.store, ["schedule"], "schedule-nightly-report").id);
+      const job = runningJob(b.store, ["schedule"], "schedule-nightly-report");
+      ENDINGS[ending](b.store, job.id);
       await b.push.idle();
       expect(b.sent.calls).toHaveLength(2);
       const forEn = await openCall(b.sent.calls.find((c) => c.url.endsWith("/en"))!, b.en);
       const forNb = await openCall(b.sent.calls.find((c) => c.url.endsWith("/nb"))!, b.nb);
       expect(forEn.title).toBe("aide · nightly-report");
-      expect(forEn.url).toBe("/schedule/aide/nightly-report");
+      expect(forEn.url).toBe(`/schedule/aide/nightly-report?run=${job.id}#report`);
       expect(forEn.body).toBe(renderMessage("en", { key: KEYS[ending] }));
       expect(forNb.body).toBe(renderMessage("nb", { key: KEYS[ending] }));
       expect(forNb.body).not.toBe(forEn.body);

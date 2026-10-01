@@ -99,14 +99,14 @@ describe("the runs list", () => {
     expect(order(draw({ sort: "duration", dir: "asc" }))).toEqual(["r3", "r2", "r1"]);
   });
 
-  test("a run link keeps the sort, and a heading keeps a run the address named (AC-5)", () => {
-    const doc = draw({ shown: "r1", keepRun: "r1", sort: "state" });
+  test("a run link keeps the sort, and a heading keeps the run being shown (AC-5)", () => {
+    const doc = draw({ shown: "r1", sort: "state" });
     for (const [, u] of headings(doc)) expect(u.searchParams.get("run")).toBe("r1");
     for (const tr of rows(doc)) {
       expect(new URL(tr.getAttribute("data-row-href")!, "http://board").searchParams.get("sort")).toBe("state");
       expect(new URL(tr.querySelector("a")!.getAttribute("href")!, "http://board").searchParams.get("sort")).toBe("state");
     }
-    for (const [, u] of headings(draw({ shown: "r2", sort: "state" }))) expect(u.searchParams.has("run")).toBe(false);
+    for (const [, u] of headings(draw({ sort: "state" }))) expect(u.searchParams.has("run")).toBe(false);
   });
 
   test("an entry that has never run draws nothing (AC-6)", () => {

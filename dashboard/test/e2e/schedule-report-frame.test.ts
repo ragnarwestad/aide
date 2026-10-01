@@ -66,7 +66,7 @@ afterAll(async () => {
 });
 
 test("a script in the report does not run, and a click on its link opens a new tab", async () => {
-  await page.goto(`${base}/schedule/aide/nightly-report?live=0`);
+  await page.goto(`${base}/schedule/aide/nightly-report?run=run1&live=0`);
   const frame = page.frameLocator("iframe[data-report-frame]");
   await frame.locator("h1").waitFor();
   expect(await page.title()).not.toBe("script-ran");

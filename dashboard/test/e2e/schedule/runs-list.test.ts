@@ -1,5 +1,5 @@
-// The runs list under a scheduled job's report, in a browser: a click on
-// a run's row shows that run's report and marks the row.
+// A scheduled job's runs list, in a browser: a click on a run's row
+// shows that run's report and marks the row.
 
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
@@ -60,11 +60,11 @@ afterAll(async () => {
   harness.cleanup();
 });
 
-test("a click on an older run's row shows its report and marks the row (AC-3)", async () => {
+test("a click on a run's row shows its report and marks the row (AC-3)", async () => {
   const page = await browser.newPage();
   await page.goto(`${base}/schedule/aide/nightly-report?live=0`);
   const frame = page.frameLocator("iframe[data-report-frame]");
-  await frame.locator("h1", { hasText: "NEWER-REPORT" }).waitFor();
+  await page.locator("#runs tbody tr").first().waitFor();
 
   // The State cell, not the row's link: the whole row opens the run.
   await page.locator('#runs tbody tr[data-row-href*="run=older"] td').nth(1).click();

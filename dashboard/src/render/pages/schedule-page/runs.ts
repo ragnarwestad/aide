@@ -1,7 +1,7 @@
-// Every run of a schedule entry, under its report on the Report tab.
-// Each run writes into a directory of its own, so a click anywhere on a
-// row opens that run's report on the same page, and the run being shown
-// is marked. Sorted through the address, the way the /schedule list is.
+// Every run of a schedule entry: the Report tab itself, under the report
+// of a run picked from it. Each run writes into a directory of its own,
+// so a click anywhere on a row opens that run's report on the same page,
+// and the run being shown is marked. Sorted through the address, the way the /schedule list is.
 import type { Job } from "../../../queue/types.ts";
 import { t, type Language } from "../../../i18n";
 import { durationLabel } from "../../ui/job-state";
@@ -23,11 +23,9 @@ export interface ScheduleRunsOptions {
   name: string;
   /** The entry's runs, newest first. */
   runs: readonly Job[];
-  /** The id of the run whose report the page shows. */
+  /** The id of the run whose report the page shows, from `?run=`: a
+   *  heading keeps it, so a sort does not change the report shown. */
   shown?: string;
-  /** The `?run=` the address named, when it is one of `runs`: a heading
-   *  keeps it, so a sort does not change the report shown. */
-  keepRun?: string;
   sort?: string;
   dir?: string;
 }
@@ -67,14 +65,14 @@ function row(job: Job, href: string, shown: boolean): string {
   );
 }
 
-/** Nothing for an entry that has never run: the report above says so. */
+/** Nothing for an entry that has never run: the report panel says so. */
 export function renderScheduleRuns(o: ScheduleRunsOptions): string {
   if (o.runs.length === 0) return "";
   const page = schedulePagePath(o.project, o.name);
   const now = resolveSort(RUN_COLUMNS, o);
   const keep = carriedSort(now);
   const runHref = (id: string): string => `${queryHref(page, { run: id, ...keep })}#report`;
-  const headHref = (sort: string, dir: string): string => `${queryHref(page, { run: o.keepRun, sort, dir })}#runs`;
+  const headHref = (sort: string, dir: string): string => `${queryHref(page, { run: o.shown, sort, dir })}#runs`;
   const th = (key: string, label: string): string => sortHeading(RUN_COLUMNS, now, key, label, headHref);
   return (
     `<section id="runs" class="reportpanel"><h2>${esc(t(o.lang, "report.runsHeading"))}</h2>` +
