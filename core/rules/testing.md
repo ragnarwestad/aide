@@ -8,11 +8,8 @@
 - [Test commands](#test-commands)
   - [Unit tests](#unit-tests)
   - [E2E tests (Playwright)](#e2e-tests-playwright)
-- [Workflow](#workflow)
-  - [Example of a correct workflow](#example-of-a-correct-workflow)
-  - [When tests fail](#when-tests-fail)
-- [TDD approach](#tdd-approach-test-driven-development)
-- [Watch mode](#watch-mode)
+- [Red, green, refactor](#red-green-refactor)
+- [Single-run mode, never watch mode](#single-run-mode-never-watch-mode)
 
 ---
 
@@ -127,19 +124,6 @@ Use the project's own test command: `AIDE_TEST_CMD` in `.aide/project.yaml`, and
 "Project commands" in the tools-and-scripts rules). Without it the project has no test command —
 say so rather than guessing one. Always run it in single-run mode.
 
-Example for a pnpm/Vitest project:
-
-```bash
-# All tests (use --run to avoid watch mode)
-pnpm test -- --run
-
-# Specific test file
-pnpm test -- --run <filename>
-
-# With coverage report
-pnpm run test:coverage
-```
-
 ### E2E tests (Playwright)
 
 **Run the e2e suite where the project's own run is quick and reliable. Keep that list explicit —
@@ -170,147 +154,21 @@ Where it is allowed:
 
 ---
 
-## Workflow
+## Red, green, refactor
 
-### Example of a correct workflow
-
-The steps below use a pnpm/Vitest project; swap in the project's own commands.
-
-```text
-1. Created test: src/utils/country.test.ts
-2. Run: pnpm test -- --run country.test.ts
-3. ✅ All 5 tests pass
-4. Run: pnpm test -- --run (full suite for regression check)
-5. ✅ 1247 tests pass, 0 fail
-6. Now it is safe to commit
-```
-
-### When tests fail
-
-```text
-1. Created test: src/components/UserForm.test.tsx
-2. Run: pnpm test -- --run UserForm.test.tsx
-3. ❌ 2 of 8 tests fail
-4. Analyze the error message: "Expected <button> to be disabled, but was enabled"
-5. Fix the code in UserForm.tsx (disabled logic)
-6. Run: pnpm test -- --run UserForm.test.tsx
-7. ✅ All 8 tests pass
-8. Run: pnpm test -- --run (full suite)
-9. ✅ 1255 tests pass, 0 fail
-10. Now it is safe to commit
-```
+New functionality is written test first: a test that fails because the behaviour is missing
+(red), then the least code that makes it pass (green), then the whole suite, to see nothing else
+broke (refactor).
 
 ---
 
-## TDD approach (Test-Driven Development)
+## Single-run mode, never watch mode
 
-**Red → Green → Refactor**
+Run tests so the process exits when they are done: `vitest --run`, not `vitest`, and the same for
+any runner with a watch or interactive mode (Jest, `gradle --continuous`, `cargo watch`, …). An AI
+assistant cannot answer a watch mode, so the process stays open, has to be killed by hand, and
+nobody can tell when the tests finished.
 
-### 1. RED: Write a failing test
-
-Prove the problem by writing a test that demonstrates the desired behavior (but fails because the
-code is not implemented yet).
-
-```tsx
-// Example: Test for new functionality that does not exist yet
-test('getCountryName should return "Norway" for code "NO"', () => {
-  expect(getCountryName('NO')).toBe('Norway');
-});
-
-// Run: pnpm test -- --run country.test.ts
-// ❌ Fails (proves that the functionality is missing)
-```
-
-### 2. GREEN: Implement until the test passes
-
-Write minimal code to make the test pass.
-
-```typescript
-// Implement the functionality
-export function getCountryName(code: string): string {
-  const countries = {
-    'NO': 'Norway',
-    'SE': 'Sweden',
-    'DK': 'Denmark',
-  };
-  return countries[code] || 'Unknown';
-}
-
-// Run: pnpm test -- --run country.test.ts
-// ✅ Passes (the functionality works)
-```
-
-### 3. REFACTOR: Run all tests
-
-Verify that no existing functionality was broken.
-
-```bash
-# Run the entire test suite
-pnpm test -- --run
-
-# ✅ All 1255 tests pass (no regressions)
-```
-
----
-
-## Watch mode
-
-Run tests so the process exits when they're done. The examples are Vitest; the rule applies to any
-runner with a watch or interactive mode (Jest, `gradle --continuous`, `cargo watch`, …).
-
-```bash
-# ✅ Runs and exits
-pnpm test -- --run                    # Vitest - exits after running
-pnpm test -- --run UserProfile.test.tsx  # Specific test
-
-# ❌ Watch mode - the process never exits
-pnpm test
-pnpm test UserProfile.test.tsx
-
-# ❌ e2e is user-run only, regardless of mode
-pnpm run test:e2e
-pnpm run test:e2e:ui
-```
-
-Why: an AI assistant can't interact with watch mode (it needs manual input to exit), so a process
-left in watch mode stays open in the background, has to be killed by hand, and leaves no way to
-tell when the tests actually finished. The same failure blocks a CI pipeline, which waits forever,
-and breaks the TDD cycle, which needs each run to exit before the next one starts.
-
-### Checking whether test processes are hanging
-
-Kill only processes you started yourself, not every process with a matching name.
-
-```bash
-# Check whether your test processes are hanging (do not kill automatically)
-ps aux | grep vitest
-ps aux | grep playwright
-
-# See PID and command to identify your processes
-ps aux | grep "[v]itest"    # Shows vitest processes
-ps aux | grep "[p]laywright" # Shows playwright processes
-
-# Kill only processes you started yourself (use the PID from the output above)
-kill <PID>                   # Replace <PID> with the process ID
-
-# Example:
-# ps aux | grep vitest
-# > ragnar  12345  ... node .../vitest/...
-# kill 12345
-```
-
-Don't use `pkill -f node` (kills every node process) or `pkill -f vitest` without checking first —
-use `ps aux` to identify your own processes, then `kill <PID>` for those specifically.
-
----
-
-## Summary
-
-1. Every fix and every new feature ships with its test, in the same job — revert the fix once to
-   confirm the test catches it
-2. A change that replaces behaviour deletes the tests for what it replaced, in the same job
-3. Run unit tests immediately after creating or modifying them
-4. Verify that all tests pass before committing
-5. Use TDD (Red → Green → Refactor) for new features
-6. Run the e2e suite only where it's quick (per the E2E section's list), say so first, and ask the
-   user to run it elsewhere
+Kill only test processes you started yourself: find them with `ps aux | grep "[v]itest"` (or the
+runner's own name) and `kill <PID>` — never `pkill -f node` or `pkill -f vitest`, which take every
+matching process with them.

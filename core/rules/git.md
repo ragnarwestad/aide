@@ -4,18 +4,13 @@
 
 - [Pulling before new work](#pulling-before-new-work)
 - [Staging new files](#staging-new-files)
-  - [Example](#example)
 - [File renaming and conversion](#file-renaming-and-conversion)
-  - [Workflow for JS to TS conversion](#workflow-for-js-to-ts-conversion)
 - [Commit messages](#commit-messages)
   - [Format](#format)
   - [No Co-Authored-By lines](#no-co-authored-by-lines)
   - [No tool in a project's history](#no-tool-in-a-projects-history)
-  - [Good examples](#good-examples)
-  - [Not this](#not-this)
   - [Structure](#structure)
 - [Pushing and push status](#pushing-and-push-status)
-- [Summary](#summary)
 
 ---
 
@@ -51,40 +46,16 @@ Add new files you have created yourself, by explicit name, as soon as you create
 3. Add only files you wrote or created yourself. Modified files that are already tracked don't
    need `git add` — the user handles committing those in their IDE.
 
-### Example
-
-```bash
-# You have created 4 new markdown files
-git add specs/<NN>-PROJ-7890-slug/description.md
-git add specs/<NN>-PROJ-7890-slug/analysis.md
-git add specs/<NN>-PROJ-7890-slug/solution.md
-git add specs/<NN>-PROJ-7890-slug/status.md
-
-# Or all at once:
-git add specs/<NN>-PROJ-7890-slug/*.md
-```
-
 ---
 
 ## File renaming and conversion
 
-Use `git mv` to rename or convert a file, so its history carries over.
-
-```bash
-git mv src/utils/country.js src/utils/country.ts
-git mv src/components/UserProfile.jsx src/components/UserProfile.tsx
-```
+Use `git mv` to rename or convert a file, so its history carries over — `git mv country.js
+country.ts` first, then the conversion, then the commit.
 
 Why: `git mv` tells git it's the same file under a new name, so `git blame`, `git log`, and the
 history shown in the IDE and on GitHub keep working. Deleting the old file and creating a new one
 in its place loses that history.
-
-### Workflow for JS to TS conversion
-
-1. `git mv old.js new.ts` first
-2. Convert the contents to TypeScript
-3. `git add new.ts` for the changes
-4. Commit
 
 ---
 
@@ -92,7 +63,8 @@ in its place loses that history.
 
 ### Format
 
-Write commit messages in English, in the imperative mood (not past tense).
+Write commit messages in English, in the imperative mood: "Add unit tests for country.ts", not
+"Added unit tests" or "La til enhetstester".
 
 ### No Co-Authored-By lines
 
@@ -110,40 +82,10 @@ The one exception is a repository whose own rules say otherwise — its `CLAUDE.
 `Run /aide-<step> for <spec-folder>` subject is how a step is recorded, and the skills say when to
 write it.
 
-### Good examples
-
-- "Add automatic git add for new files"
-- "Remove user-specific paths from settings.json"
-- "Update documentation with hook explanation"
-- "Convert UserProfile.jsx to TypeScript"
-- "Add unit tests for country.ts"
-
-### Not this
-
-Past tense or Norwegian:
-
-- "Added automatic git add for new files"
-- "Removed user-specific paths"
-- "Updated documentation"
-- "Konverterte UserProfile.jsx til TypeScript"
-- "La til enhetstester for country.ts"
-
 ### Structure
 
-```text
-<What the change does, in the imperative mood>
-
-<Optional: why, context, or details>
-```
-
-**Example:**
-
-```text
-Add unit tests for country.ts
-
-Test getCountryName(), getCountryCode(), and edge cases.
-Preparation before the JS to TS conversion.
-```
+A subject line saying what the change does, then, when it helps, a blank line and a body saying
+why, with the context a reader needs.
 
 ---
 
@@ -168,15 +110,3 @@ pushes immediately, with no separate ask for either step — see that skill's ow
 instructions (`core/skills/aide-create/SKILL.md`), which specify it precisely (message format, when
 to omit the model suffix, what "nothing to stage" means) with no gap left for a general rule to
 fill. Kept in the skill rather than duplicated here so the two copies cannot drift.
-
----
-
-## Summary
-
-1. Pull the repo before creating anything new in it
-2. Add new files with explicit file names
-3. Use `git mv` when renaming files, to preserve history
-4. Write commit messages in English, in the imperative mood
-5. Name no tool in a commit or pull request — only the specs repository records steps by name
-6. Push only on explicit request, and report push status only from a command run in the same
-   reply — except `/aide-create`'s own commit, per that skill's instructions
