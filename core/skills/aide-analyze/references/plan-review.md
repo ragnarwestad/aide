@@ -13,14 +13,16 @@ Agent invocations (subagents), blind to the analyst's own reasoning —
 they read only the four spec files on disk, never the conversation that
 produced them. The Feasibility reviewer reads the project's own files as
 well, from the project root the analyst hands it, since whether a part
-exists is not in the spec. The Coherence reviewer is handed the
-project's acceptance criteria checks level (`off`, `warn` or `stop`,
-Step 1), since that is not in the spec either.
+exists is not in the spec. The Feasibility and Coherence reviewers are
+both handed the project's acceptance criteria checks level (`off`,
+`warn` or `stop`, Step 1), since that is not in the spec either:
+Feasibility makes the cannot-be-built check, Coherence the other four.
 
 ## Review — scaled to complexity
 
 **LOW specs:** one combined pass over the three questions below. Keep it
-short; a LOW plan rarely deserves three reviewers.
+short; a LOW plan rarely deserves three reviewers. The one pass makes
+all five acceptance criteria checks, at the one level.
 
 **MEDIUM/HIGH specs:** three reviewers, each with ONE perspective and no
 sight of the others' findings. In Claude Code, run them as parallel
@@ -41,6 +43,21 @@ questions, with file:line references into the spec:
    a `Reused:` line whose part does not do the job; a `New, because`
    reason that names something the project already has; a `None —`
    line on a plan that does build a part.
+
+   **Cannot be built**, at the level the analyst hands it: none at
+   `off`, at `warn` and `stop` this one. For each AC-n criterion in
+   `1-description.md`, can the code as it stands, with the change built
+   on it, give it? A finding is a criterion that needs something no
+   change inside this project can give — data the system never has and
+   cannot get, a service or tool it cannot reach, a capability the named
+   AI tool does not offer — or that breaks a rule the code keeps
+   (stated in the project's rules, its wiki, or a code comment) and that
+   the description does not ask to change. Something the plan itself
+   builds is never a finding: every spec asks for something the code
+   does not do yet. Each finding is a should-fix that names the id and
+   what it needs. The description is the user's to put right, so the
+   plan declines it with that reason, says what it does for that id
+   meanwhile, and does not count it as acted on.
 2. **Scope guardian** — does the plan do MORE than `1-description.md`
    asks? Flag every planned change that is not traceable to the
    description. Flag missing pieces too: what does the description ask
@@ -52,8 +69,8 @@ questions, with file:line references into the spec:
    acceptance criterion? A missing id is a must-fix.
 
    **The acceptance criteria checks**, at the level the analyst hands
-   it. At `off`, make none of the three. At `warn` and `stop`, make
-   all three:
+   it. At `off`, make none of the four. At `warn` and `stop`, make
+   all four:
 
    - **No acceptance criteria:** `1-description.md` has no AC-n line.
      A should-fix, declined: the description is the user's to write.
@@ -79,12 +96,26 @@ questions, with file:line references into the spec:
      add the scenario. It stands only when the plan cannot say what
      holds without the condition, and the plan then declines it with
      that reason.
+   - **Contradiction:** two AC-n criteria whose conditions can hold at
+     the same time, and whose responses cannot both be true. Find the
+     pairs by their conditions, which EARS puts first and on their own:
+     a criterion with no condition (`The <system> SHALL …`) holds
+     always, so it pairs with every other; a criterion outside EARS is
+     compared by its whole sentence. Ask whether the conditions CAN
+     hold together, not whether they share words. Each pair is a
+     should-fix that names both ids and says why. The description is
+     the user's to put right, so the plan declines it with that reason,
+     says which of the two its scenarios follow meanwhile, and does not
+     count it as acted on.
 
 ## Consolidate
 
 Merge the findings into three lists: **must-fix** (the plan is wrong or
 unbuildable), **should-fix** (weakness, worth fixing now), **notes**
-(observations, no action). Deduplicate across reviewers.
+(observations, no action). Deduplicate across reviewers. The acceptance
+criteria faults come from two reviewers — Coherence's four checks and
+Feasibility's cannot-be-built — and the Criteria check line below names
+both; a fault left out of it is one the runner never stops on.
 
 ## Revise — the review is not a stamp
 
@@ -109,11 +140,18 @@ unbuildable), **should-fix** (weakness, worth fixing now), **notes**
    the line is logged as giving no counts.
 
    Right under it, one Criteria check line: the level, and the faults
-   of the three checks that still stand after the revision.
+   of the five checks that still stand after the revision.
 
    ```markdown
    **Findings:** 2 must-fix, 3 should-fix, 4 acted on
    **Criteria check:** stop — not in EARS: AC-2, AC-4; no scenario for when the condition does not hold: AC-5
+   ```
+
+   or, for the two checks that compare the criteria with each other and
+   with the code:
+
+   ```markdown
+   **Criteria check:** stop — contradiction: AC-1/AC-3; cannot be built: AC-6
    ```
 
    The line reads `**Criteria check:** off` at `off`, and
@@ -124,6 +162,9 @@ unbuildable), **should-fix** (weakness, worth fixing now), **notes**
    - `no acceptance criteria`
    - `not in EARS: AC-2, AC-4`
    - `no scenario for when the condition does not hold: AC-5`
+   - `contradiction: AC-1/AC-3, AC-2/AC-5` — each pair written
+     `AC-a/AC-b`, so the runner keeps which id contradicts which
+   - `cannot be built: AC-6`
 
    At `stop`, the runner ends Analyze stopped when this line names any
    fault, and the reason it gives names each one.

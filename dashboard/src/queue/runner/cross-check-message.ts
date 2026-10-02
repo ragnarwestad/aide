@@ -58,6 +58,8 @@ export function criteriaStopMessage(step: WorkflowStep, outcome: Partial<StepOut
   if (r.missing === true) faults.push({ key: "runner.criteriaMissing" });
   if (ids(r.notEars)) faults.push({ key: "runner.criteriaNotEars", values: { ids: ids(r.notEars) } });
   if (ids(r.noScenario)) faults.push({ key: "runner.criteriaNoScenario", values: { ids: ids(r.noScenario) } });
+  if (ids(r.contradictions)) faults.push({ key: "runner.criteriaContradiction", values: { ids: ids(r.contradictions) } });
+  if (ids(r.cannotBuild)) faults.push({ key: "runner.criteriaCannotBuild", values: { ids: ids(r.cannotBuild) } });
   if (!faults.length) return undefined;
   return { key: "runner.criteriaStopped", values: { button: stepButton(step) }, inner: faults };
 }

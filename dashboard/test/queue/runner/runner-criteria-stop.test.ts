@@ -43,6 +43,28 @@ describe("an analyze stopped on its acceptance criteria", () => {
     expect(nb).not.toBe(en);
   });
 
+  test("names a contradiction and a criterion that cannot be built beside the other kinds (AC-4)", () => {
+    const after = stopped({
+      missing: false,
+      notEars: ["AC-2"],
+      noScenario: [],
+      contradictions: ["AC-1/AC-3"],
+      cannotBuild: ["AC-6"],
+    });
+    const en = renderSentence("en", after?.error as Sentence) ?? "";
+    const nb = renderSentence("nb", after?.error as Sentence) ?? "";
+    for (const text of [en, nb]) {
+      for (const ac of ["AC-2", "AC-1/AC-3", "AC-6"]) expect(text).toContain(ac);
+    }
+    expect(nb).not.toBe(en);
+  });
+
+  test("words the new kinds on their own in the board's sentence (AC-4)", () => {
+    const after = stopped({ missing: false, notEars: [], noScenario: [], contradictions: ["AC-1/AC-3"], cannotBuild: [] });
+    expect(after?.error).not.toBe(SCRIPT_SENTENCE);
+    expect(renderSentence("nb", after?.error as Sentence) ?? "").toContain("AC-1/AC-3");
+  });
+
   test("keeps the runner's own sentence when the result lists no faults (AC-4)", () => {
     const after = stopped();
     expect(after?.state).toBe("stopped");

@@ -288,10 +288,11 @@ written: reviewers with distinct perspectives (feasibility, scope,
 coherence) attack `3-solution.md`, findings become must-fix/should-fix,
 and the plan is REVISED — not just annotated. See
 `references/plan-review.md` for the full routine (scaled to complexity,
-consolidation, and what gets written where). Hand the Coherence reviewer
-the acceptance criteria checks level from Step 1: it makes the three
-checks at that level, and the Plan review section's `**Criteria
-check:**` line names what still stands.
+consolidation, and what gets written where). Hand the Feasibility and
+Coherence reviewers the acceptance criteria checks level from Step 1:
+Feasibility makes the cannot-be-built check at that level, Coherence the
+other four, and the Plan review section's `**Criteria check:**` line
+names what still stands of both.
 
 Skip this step only when `3-solution.md` is still an empty template —
 nothing was written in Step 6 to review.

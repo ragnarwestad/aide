@@ -306,7 +306,8 @@ or that the plan has no Plan review section, or that the section gives no counts
 review section's `**Criteria check:**` line names a fault after ` — ` ends `acceptance-criteria`
 (`run-spec/record/criteria-check.sh`, after the scope guard, so a write outside the spec's folder is decided first):
 `ok` false, the commit subject ending `(stopped: acceptance-criteria)`, the error naming each fault, and the result's
-`criteriaFaults` sorting them into `missing`, `notEars` and `noScenario`. The state file does not gain `analyze`.
+`criteriaFaults` sorting them into `missing`, `notEars`, `noScenario`, `contradictions` (each an `AC-a/AC-b` pair)
+and `cannotBuild`. The state file does not gain `analyze`.
 A line reading `none found`, or no such line at all, completes the step, and the log says what was read. The
 runner reads the line and never judges the criteria itself. An implement's code review writes
 `the review found no defects`, or an `error:` line with the count, one `review: <line>` per line of the reviewer's

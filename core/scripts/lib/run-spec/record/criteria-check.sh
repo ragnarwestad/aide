@@ -27,9 +27,11 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ] && [ 
     stage "criteria check: $criteria_check_read — the step completes"
   else
     stage "criteria check: $criteria_check_read — Analyze ends stopped"
-    # Sorted into the three kinds the board words; a fault in other words
-    # still stops the step, and is said in the runner's own sentence.
+    # Sorted into the five kinds the board words; a contradiction keeps its
+    # pair as `AC-a/AC-b`. A fault in other words still stops the step, and
+    # is said in the runner's own sentence.
     criteria_missing="false"; criteria_not_ears=""; criteria_no_scenario=""
+    criteria_contradictions=""; criteria_cannot_build=""
     criteria_rest="$criteria_check_faults"
     while [ -n "$criteria_rest" ]; do
       case "$criteria_rest" in
@@ -41,12 +43,16 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ] && [ 
         "not in EARS: "*) criteria_not_ears="$criteria_not_ears,${criteria_part#not in EARS: }" ;;
         "no scenario for when the condition does not hold: "*)
           criteria_no_scenario="$criteria_no_scenario,${criteria_part#no scenario for when the condition does not hold: }" ;;
+        "contradiction: "*) criteria_contradictions="$criteria_contradictions,${criteria_part#contradiction: }" ;;
+        "cannot be built: "*) criteria_cannot_build="$criteria_cannot_build,${criteria_part#cannot be built: }" ;;
       esac
     done
     criteria_faults_json="$(jq -cn --arg missing "$criteria_missing" \
-      --arg notEars "$criteria_not_ears" --arg noScenario "$criteria_no_scenario" '
+      --arg notEars "$criteria_not_ears" --arg noScenario "$criteria_no_scenario" \
+      --arg contradictions "$criteria_contradictions" --arg cannotBuild "$criteria_cannot_build" '
       def ids: split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(. != ""));
-      {missing: ($missing == "true"), notEars: ($notEars | ids), noScenario: ($noScenario | ids)}')"
+      {missing: ($missing == "true"), notEars: ($notEars | ids), noScenario: ($noScenario | ids),
+       contradictions: ($contradictions | ids), cannotBuild: ($cannotBuild | ids)}')"
     terminal_reason="acceptance-criteria"
     ok="false"
     suffix=" (stopped: acceptance-criteria)"

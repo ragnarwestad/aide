@@ -150,6 +150,22 @@ export const MESSAGES = {
     fr: "aucun scénario pour le cas où la condition ne tient pas : {ids}",
     exempt: "a part of runner.criteriaStopped, which carries the resolution",
   },
+  "runner.criteriaContradiction": {
+    en: "contradiction: {ids}",
+    nb: "motsier hverandre: {ids}",
+    es: "se contradicen: {ids}",
+    de: "widersprechen sich: {ids}",
+    fr: "se contredisent : {ids}",
+    exempt: "a part of runner.criteriaStopped, which carries the resolution",
+  },
+  "runner.criteriaCannotBuild": {
+    en: "cannot be built: {ids}",
+    nb: "kan ikke bygges: {ids}",
+    es: "no se pueden construir: {ids}",
+    de: "nicht umsetzbar: {ids}",
+    fr: "impossibles à réaliser : {ids}",
+    exempt: "a part of runner.criteriaStopped, which carries the resolution",
+  },
   "runner.testsRedImplement": {
     en: "implement reported success, but the project's tests are red on its result — the runner ran them itself, and the failing tests are listed below. — Press {button} again; the step ends only on a green run.",
     nb: "implementering meldte ferdig, men prosjektets tester er røde på resultatet — runneren kjørte dem selv, og testene som feiler står under. — Trykk {button} igjen; steget ender bare på en grønn kjøring.",
