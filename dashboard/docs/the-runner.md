@@ -126,11 +126,9 @@ the pages.
 
 **An `archive` step may write three things under `wiki/`, and `run-spec/publish/wiki-guard.sh` takes back anything else.** It
 recomputes them from git, never from what the session says it wrote: the generated pages `aide-wiki affected` names
-(the pages covering files the spec's own code changed), and what `aide-wiki decision-scope` allows. That is a new
-decision page whose `spec:` is this spec and that links to a generated page whose `## Decisions` section links back,
-`index.md` when at least one such page exists, and each page such a decision links to whose text differs from the
-default branch's copy in its `## Decisions` section alone. A page taken back ends the run `scope-violation`; the stage
-lines `wiki pages rewritten:` and `wiki decisions recorded:` name what stayed.
+(the pages covering files the spec's own code changed). Current reasons belong in those ordinary pages;
+no extra page or index write is permitted. A page taken back ends the run `scope-violation`;
+the stage line `wiki pages rewritten:` names what stayed.
 
 **A `schedule` step commits and pushes exactly like any other command** — the project repository and the specs root,
 the same two roots every other step reaches. Its own report and any proposed specs live outside both, under

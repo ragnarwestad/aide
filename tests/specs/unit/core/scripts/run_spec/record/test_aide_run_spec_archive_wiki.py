@@ -1,5 +1,5 @@
 """An archive that rewrites the wiki pages covering the files its own
-spec changed, and records its decisions as pages: what it may write, and
+spec changed, and retains current reasons in those pages: what it may write, and
 what is taken back."""
 
 import json
@@ -212,75 +212,21 @@ def test_an_archive_that_edits_a_hand_written_page_is_taken_back_AC_3(
     assert _wiki_page(workspace, branch, "notes.md") == before
 
 
-def _records_a_decision(workspace_root, spec, page="decision-x.md"):
-    """A session that records one decision about `q.md` and rebuilds the index."""
-    wiki = _wiki_bin(workspace_root)
-    return (
-        "cat > /dev/null\n"
-        + READ_SPECS
-        + f'printf "A build never sees a decision.\\n" | {wiki} decision --specs-root "$specs" '
-        + f'--page {page} --spec {spec} --title "Keep decisions" --decision "A decision is a hand-written page." '
-        + '--concerns q.md >/dev/null\n'
-        + f'{wiki} index --specs-root "$specs" --project-dir "$PWD" >/dev/null\n'
+def test_an_archive_cannot_add_a_legacy_page_even_with_backlinks_AC_1(
+    runner, workspace, workspace_root, fake_claude
+):
+    status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
+    branch = _archive_wiki_workspace(workspace, workspace_root)
+    body = (
+        "cat > /dev/null\n" + READ_SPECS
+        + f'printf -- "---\\nwiki: decision\\nspec: {workspace["folder"]}\\n---\\n\\n# Old\\n\\nKeep it.\\n\\n## Concerns\\n\\n- [Q](q.md)\\n" > "$specs/wiki/legacy.md"\n'
+        + 'printf "\\n## Decisions\\n\\n- [Old](legacy.md) — Keep it.\\n" >> "$specs/wiki/q.md"\n'
         + f"echo '{json.dumps(RESULT_OK)}'"
     )
-
-
-def test_an_archive_that_records_a_decision_lands_its_page_its_link_back_and_the_index_AC_1(
-    runner, workspace, workspace_root, fake_claude
-):
-    status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
-    branch = _archive_wiki_workspace(workspace, workspace_root)
-    claude = fake_claude(_records_a_decision(workspace_root, workspace["folder"]))
-    rc, out, _, err = run(runner, workspace, claude, command="archive", return_stderr=True)
-    assert rc == 0, out
-    assert out["ok"] is True and out["terminalReason"] == "completed", out
-    page = _wiki_page(workspace, branch, "decision-x.md")
-    assert f"spec: {workspace['folder']}" in page and "A decision is a hand-written page." in page
-    assert "](decision-x.md)" in _wiki_page(workspace, branch, "q.md")
-    assert "](decision-x.md)" in _wiki_page(workspace, branch, "index.md")
-    assert "wiki decisions recorded: decision-x.md" in err
-
-
-def test_a_decision_on_a_page_main_rewrote_while_the_archive_ran_is_kept(
-    runner, workspace, workspace_root, fake_claude, origin
-):
-    """A wiki refresh lands a rewrite of `q.md` on the default branch while
-    this archive records a decision about it. The archive's branch still
-    has the older `q.md` body under its new `## Decisions` section, which
-    is main moving on, not the archive rewriting the page."""
-    status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
-    branch = _archive_wiki_workspace(workspace, workspace_root)
-    specs = workspace["specs"]
-    git(specs, "push", "-q", "origin", "main")
-    git(workspace["project"], "push", "-q", "origin", "main")
-    moved = (
-        f'sed -i "" "s/About q.md./Rewritten on main./" "{specs}/wiki/q.md"\n'
-        f'git -C "{specs}" commit -qam "a wiki refresh"\n'
-        f'git -C "{specs}" push -q origin main\n'
-    )
-    claude = fake_claude(moved + _records_a_decision(workspace_root, workspace["folder"]))
-    rc, out, _ = run(runner, workspace, claude, command="archive")
-    assert out["terminalReason"] == "completed", out.get("error")
-    assert "](decision-x.md)" in _wiki_page(workspace, branch, "q.md")
-
-
-def test_an_archive_whose_decision_page_names_another_spec_is_taken_back_AC_1(
-    runner, workspace, workspace_root, fake_claude
-):
-    status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
-    branch = _archive_wiki_workspace(workspace, workspace_root)
-    (workspace["specs"] / "80-neighbour").mkdir()
-    (workspace["specs"] / "80-neighbour" / "1-description.md").write_text("# Neighbour\n")
-    git(workspace["specs"], "add", "-A")
-    git(workspace["specs"], "commit", "-qm", "another spec")
-    before = _wiki_page(workspace, "main", "q.md")
-    claude = fake_claude(_records_a_decision(workspace_root, "80-neighbour"))
-    rc, out, _ = run(runner, workspace, claude, command="archive")
-    assert out["ok"] is False and out["terminalReason"] == "scope-violation", out
-    assert "decision-x.md" in out["error"], out
-    assert "wiki/decision-x.md" not in git(workspace["specs"], "ls-tree", "-r", "--name-only", branch).split()
-    assert _wiki_page(workspace, branch, "q.md") == before
+    rc, out, _ = run(runner, workspace, fake_claude(body), command="archive")
+    assert out["terminalReason"] == "scope-violation", out
+    assert "wiki/legacy.md" not in git(workspace["specs"], "ls-tree", "-r", "--name-only", branch).split()
+    assert _wiki_page(workspace, branch, "q.md") == _wiki_page(workspace, "main", "q.md")
 
 
 def test_a_non_archive_step_writing_the_wiki_is_still_a_scope_violation(

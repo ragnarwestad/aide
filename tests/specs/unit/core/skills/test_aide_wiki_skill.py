@@ -23,11 +23,7 @@ def test_every_aide_wiki_subcommand_a_skill_or_prompt_calls_exists_in_the_script
     assert not missing, f"skills and prompts call aide-wiki subcommands the script lacks: {missing}"
 
 
-def test_the_archive_skill_records_decisions_through_the_script_AC_1(workspace_root):
-    called = called_in(workspace_root / "core" / "skills" / "aide-archive" / "SKILL.md")
-    assert {"decisions", "decision"} <= called, called
-
-
-def test_the_analyze_skill_finds_the_decisions_linked_from_the_pages_it_reads_AC_5(workspace_root):
-    text = (workspace_root / "core" / "skills" / "aide-analyze" / "SKILL.md").read_text()
-    assert re.search(r"aide-wiki decisions[^`]*--from", text)
+def test_archive_and_analyze_call_only_ordinary_wiki_commands_AC_1_AC_3_AC_4(workspace_root):
+    for skill in ("aide-archive", "aide-analyze"):
+        called = called_in(workspace_root / "core/skills" / skill / "SKILL.md")
+        assert not called & {"decision", "decisions", "decision-scope"}, called

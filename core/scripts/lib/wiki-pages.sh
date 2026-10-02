@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # wiki-pages.sh — sourced by aide-wiki once its arguments are read.
 #
-# Reading and writing one wiki page: the generated mark, a decision's
-# front matter, the Decisions section a page carries, and putting a page
+# Reading and writing one wiki page: its mark, legacy-section cleanup, and putting a page
 # in place. It uses aide-wiki's own globals ($wiki, $project_dir, ...).
 
 # --- the mark, read here and in dashboard/src/project/wiki/ ------------------
@@ -46,18 +45,9 @@ page_summary() {
   body_of "$1" | awk '/^# / && !seen { seen = 1; next } seen && NF { print; exit }'
 }
 
-# A decision page: the mark and the folder of the spec that recorded it.
+# A legacy page, recognized by front matter only.
 is_decision() {
   front_matter "$1" | grep -qx 'wiki: decision'
-}
-
-fm_spec() {
-  front_matter "$1" | sed -n 's/^spec: *//p' | head -1
-}
-
-# Whether the body of page $1 links to page $2.
-links_to() {
-  body_of "$1" | grep -F "]($2)" >/dev/null
 }
 
 # stdin without its `## Decisions` section: from that heading (outside a
@@ -67,44 +57,16 @@ links_to() {
 # cutting it without give the same text.
 cut_decisions_section() {
   awk '
-    skip { if ($0 !~ /^## /) next; skip = 0; if (printed && blanks == 0) blanks = 1 }
+    skip {
+      if ($0 ~ /^```/ || $0 ~ /^~~~/) { fence = !fence; next }
+      if (fence || $0 !~ /^## /) next
+      skip = 0; if (printed && blanks == 0) blanks = 1
+    }
     !fence && $0 == "## Decisions" { if (blanks > 0) blanks--; skip = 1; next }
     $0 == "" { blanks++; next }
-    { while (blanks > 0) { print ""; blanks-- } if ($0 ~ /^```/) fence = !fence; print; printed = 1 }
+    { while (blanks > 0) { print ""; blanks-- } if ($0 ~ /^```/ || $0 ~ /^~~~/) fence = !fence; print; printed = 1 }
     END { while (blanks > 0) { print ""; blanks-- } }
   '
-}
-
-# The lines of file $1's `## Decisions` section, without the heading.
-decisions_section_text() {
-  awk '!fence && $0 == "## Decisions" { on = 1; next } on && /^## / { on = 0 } on { print } /^```/ { fence = !fence }' "$1"
-}
-
-# The `## Decisions` section page $1 ends with: one line per decision page
-# that links to it, sorted by file name; nothing when none does.
-decisions_section_for() {
-  local n="$1" f found=""
-  for f in "$wiki"/*.md; do
-    [ -f "$f" ] || continue
-    is_decision "$f" || continue
-    links_to "$f" "$n" || continue
-    [ -n "$found" ] || printf '\n## Decisions\n\n'
-    found=1
-    printf -- '- [%s](%s) — %s\n' "$(page_title "$f")" "$(basename "$f")" "$(page_summary "$f")"
-  done
-}
-
-# Give generated page $1 the `## Decisions` section it now has: the front
-# matter and the rest of the body stay exactly as they are.
-refresh_decisions_section() {
-  local target="$1" head_part body_part
-  head_part="$(mktemp)"; body_part="$(mktemp)"
-  awk 'NR == 1 { print; next } { print } $0 == "---" { exit }' "$target" > "$head_part"
-  body_of "$target" | cut_decisions_section > "$body_part"
-  [ -z "$(tail -c1 "$body_part")" ] || echo >> "$body_part"
-  decisions_section_for "$(basename "$target")" >> "$body_part"
-  cat "$head_part" "$body_part" > "$target"
-  rm -f "$head_part" "$body_part"
 }
 
 need_project() {

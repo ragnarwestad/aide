@@ -139,6 +139,13 @@ stale.
 **No pages named:** report that none needed rewriting and continue to
 Step 3.
 
+**Before rewriting:** read this spec's `1-description.md`, `2-analysis.md`
+and `3-solution.md`'s Plan review, under its archive path. Select only
+choices whose stated reason still explains the changed code. Never invent
+or import a reason from a legacy decision page. Keep each selected reason
+as one line in the affected ordinary page's ripples, in the form "change X,
+and Y must follow, because …", naming the current files or pages.
+
 **One or more pages named:** for each, read the files it names as they
 are now — after this spec's own changes, in this session's own worktree
 — and rewrite the page's body the same way the wiki skill's own Step 3
@@ -156,53 +163,21 @@ spec changed is left exactly as it is, however stale it may be for
 another reason — a wiki build or refresh still covers those. Report
 which pages were rewritten, or that none were.
 
-### Step 3 of 7: Record the spec's decisions in the wiki
+### Step 3 of 7: Check the current reasons in the rewritten pages
 
-First write `--- Step 3 of 7: Record the spec's decisions in the wiki — started`, and when this step ends, `--- Step 3 of 7: Record the spec's decisions in the wiki — done`.
+First write `--- Step 3 of 7: Check the current reasons in the rewritten pages — started`, and when this step ends, `--- Step 3 of 7: Check the current reasons in the rewritten pages — done`.
 
-**No wiki (Step 2 found `"wiki":false`):** write `— skipped: the project
-has no wiki` and continue to Step 4.
+**No wiki or no pages rewritten in Step 2:** write `— skipped: no affected wiki pages` and continue to Step 4.
 
-**A wiki:** a decision is a choice among alternatives, or a constraint,
-that a later change could undo without noticing. Read what the spec
-decided in three places, all under the spec's `archive/` path:
-`1-description.md`, `2-analysis.md` (the questions the analysis put and
-how they were answered, wherever it wrote them) and the `## Plan review`
-section of `3-solution.md`. What was built is not a decision, and neither
-is a fix. Keep a decision only when the spec's own text gives the reason;
-never make one up. A spec with none writes nothing here: say so, and
-continue to Step 4.
-
-First ask what an earlier archive of this spec already recorded, so an
-archive pressed again after a failed landing adds nothing twice. Pass the
-folder's own name, never a path or a number:
-
-```bash
-aide-wiki decisions --specs-root <specs root> --spec <the spec's folder name>
-```
-
-An `unknown-subcommand` answer means this machine's `aide-wiki` is older:
-treat it as no wiki, skip this step and write nothing about it.
-
-Then write one page for each decision that is not already there, through
-the script, never by hand. The pages it concerns are generated pages of
-the wiki: the ones `affected` named in Step 2 first, then any other whose
-part the decision is about. A decision with no such page is not recorded;
-the report says why.
-
-```bash
-aide-wiki decision --specs-root <specs root> --page decision-<slug>.md \
-                   --spec <the spec's folder name> --title "<title>" \
-                   --decision "<what was decided, in one line>" \
-                   --concerns PAGE.md [PAGE.md...]
-                   # the reason on stdin
-```
-
-The script adds each concerned page's `## Decisions` section and refuses,
-writing nothing, when the page name, the spec, the reason or a concerned
-page is not right; read its answer and fix the call. After the last page,
-run `aide-wiki index --specs-root <specs root> --project-dir <project root>`
-once, so the index lists them. Report the pages written, or that none were.
+Read the rewritten pages and check that each reason selected in Step 2
+still explains the current code and appears once, as a ripple sentence:
+"change X, and Y must follow, because …". Correct a missing or obsolete
+reason through the same `aide-wiki write` call, using only the pages and
+files `affected` named. A choice whose reason no longer explains the code
+is left out. Do not create a separate decision page, follow a legacy
+decision link, rewrite an unaffected page, or rebuild the index here.
+Report the ordinary pages whose current reasons were retained, or that
+none needed a reason.
 
 ### Step 4 of 7: Close the loop
 
@@ -221,7 +196,7 @@ this is the one step that can remove a test nobody asked about.
 Then read all four spec files and identify what should OUTLIVE the spec:
 
 - Decisions and their reasons (chosen approach, rejected alternatives) —
-  except the ones Step 3 recorded as wiki pages
+  except the current reasons already retained in affected ordinary wiki pages
 - New conventions or patterns the change introduced
 - Gotchas discovered during implementation (things that will bite again)
 
@@ -258,7 +233,7 @@ First write `--- Step 5 of 7: Commit — started`, and when this step ends, `---
 
 The move and this step's own write both already happened, in the
 working directory — Step 1's script did the stamp-and-move, Step 2
-rewrote whichever wiki pages applied, Step 3 wrote the decision pages,
+rewrote whichever wiki pages applied, Step 3 checked their current reasons,
 and Step 4 either wrote the docs directly or appended the
 deferred-feedback proposal. This step is only
 about getting that onto a commit.
@@ -319,7 +294,7 @@ Archive of 17-clean-up-console-log not finished — the merge into main is next 
 - Spec: 4-status.md stamped (Archived: 2026-08-13) and the folder moved
   to archive/17-clean-up-console-log/, on the spec's branch
 - Spec: wiki/queue.md rewritten from the spec's own code, on the spec's branch
-- Spec: wiki/decision-keep-the-log.md, one decision recorded, on the spec's branch
+- Spec: wiki/queue.md retains the current rule and its reason, on the spec's branch
 - Code: docs/CONVENTIONS.md, one addition, on the spec's branch
 - Code: the conflict with main in src/app.ts resolved, merge committed
   on the spec's branch

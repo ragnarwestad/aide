@@ -85,11 +85,4 @@ def verify(script, specs_root, ref="HEAD"):
     return sorted((v["kind"], v["page"]) for v in out["violations"])
 
 
-def decide(script, specs_root, page="decision-x.md", concerns=("p.md",), spec="01-first",
-           title="A decision", line="Keep it.", reason="Because a build never sees it.\n"):
-    args = ["decision", "--specs-root", specs_root, "--page", page, "--spec", spec,
-            "--title", title, "--decision", line, "--concerns", *concerns]
-    return call(script, *args, stdin=reason)
-
-
 HAND_DECISION = "---\nwiki: decision\nspec: 01-first\n---\n\n# By hand\n\nKeep pages.\n\n## Concerns\n\n- [P](p.md)\n"

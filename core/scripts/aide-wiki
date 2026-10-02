@@ -3,13 +3,10 @@
 #
 # The wiki is the folder wiki/ inside the project's specs root: index.md,
 # schema.md and one page per part of the system. A page is GENERATED when
-# its front matter carries `wiki: generated`; every other page is written
-# by hand and is never touched. That mark is read here and in
+# its front matter carries `wiki: generated`; hand-written pages stay
+# protected, apart from explicit retirement of legacy decision pages. The mark is read here and in
 # dashboard/src/project/wiki/ (pinned to this script by state.test.ts there).
-# A DECISION page (`wiki: decision`, `spec: <folder>`) is a page a spec
-# recorded, or a person wrote, saying what was decided and why. To the
-# dashboard and to every check above it is hand-written; only `index`,
-# `write`, `status`, `decision`, `decisions` and `decision-scope` tell it apart.
+# Legacy decision marks are recognized only for filtering and explicit retirement.
 # The /aide-wiki skill decides what the parts are and what a page says;
 # everything that can be checked lives here.
 #
@@ -21,15 +18,10 @@
 #                    # the page's body on stdin
 #   aide-wiki schema --specs-root R --project-dir P
 #   aide-wiki index  --specs-root R --project-dir P
-#   aide-wiki prune  --specs-root R --keep NAME.md [NAME.md...]
+#   aide-wiki prune  --specs-root R --keep NAME.md [NAME.md...] [--project-dir P --retire-decisions]
 #   aide-wiki status --specs-root R --project-dir P
-#   aide-wiki verify --specs-root R --base-ref REF
+#   aide-wiki verify --specs-root R --base-ref REF [--project-dir P --retire-decisions]
 #   aide-wiki affected --specs-root R --project-dir P [--base-ref REF]
-#   aide-wiki decision --specs-root R --page decision-NAME.md --spec FOLDER --title TEXT
-#                      --decision ONE-LINE --concerns PAGE.md [PAGE.md...]
-#                    # the reason on stdin
-#   aide-wiki decisions --specs-root R (--spec FOLDER | --from PAGE.md [PAGE.md...])
-#   aide-wiki decision-scope --specs-root R --base-ref REF --spec FOLDER
 
 set -uo pipefail
 
@@ -40,15 +32,10 @@ Usage:
                    (the page's body on stdin)
   aide-wiki schema --specs-root R --project-dir P
   aide-wiki index  --specs-root R --project-dir P
-  aide-wiki prune  --specs-root R --keep NAME.md [NAME.md...]
+  aide-wiki prune  --specs-root R --keep NAME.md [NAME.md...] [--project-dir P --retire-decisions]
   aide-wiki status --specs-root R --project-dir P
-  aide-wiki verify --specs-root R --base-ref REF
+  aide-wiki verify --specs-root R --base-ref REF [--project-dir P --retire-decisions]
   aide-wiki affected --specs-root R --project-dir P [--base-ref REF]
-  aide-wiki decision --specs-root R --page decision-NAME.md --spec FOLDER --title TEXT
-                     --decision ONE-LINE --concerns PAGE.md [PAGE.md...]
-                     (the reason on stdin)
-  aide-wiki decisions --specs-root R (--spec FOLDER | --from PAGE.md [PAGE.md...])
-  aide-wiki decision-scope --specs-root R --base-ref REF --spec FOLDER
 USAGE
 }
 
@@ -65,7 +52,7 @@ esac
 sub="$1"; shift
 
 specs_root=""; project_dir=""; page=""; base_ref=""; files=(); keep=()
-spec=""; title=""; decision_line=""; concerns=(); from_pages=()
+retire_decisions="no"
 while [ $# -gt 0 ]; do
   case "$1" in
     --specs-root) specs_root="${2:-}"; shift 2 ;;
@@ -74,11 +61,7 @@ while [ $# -gt 0 ]; do
     --base-ref) base_ref="${2:-}"; shift 2 ;;
     --file) shift; while [ $# -gt 0 ] && [[ "$1" != --* ]]; do files+=("$1"); shift; done ;;
     --keep) shift; while [ $# -gt 0 ] && [[ "$1" != --* ]]; do keep+=("$1"); shift; done ;;
-    --spec) spec="${2:-}"; shift 2 ;;
-    --title) title="${2:-}"; shift 2 ;;
-    --decision) decision_line="${2:-}"; shift 2 ;;
-    --concerns) shift; while [ $# -gt 0 ] && [[ "$1" != --* ]]; do concerns+=("$1"); shift; done ;;
-    --from) shift; while [ $# -gt 0 ] && [[ "$1" != --* ]]; do from_pages+=("$1"); shift; done ;;
+    --retire-decisions) retire_decisions="yes"; shift ;;
     -h|--help) usage; exit 0 ;;
     *) refuse "unknown-argument" "unknown argument: $1" ;;
   esac
@@ -93,6 +76,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/wiki-pages.sh
 source "$SCRIPT_DIR/lib/wiki-pages.sh"
 
+if [ "$retire_decisions" = "yes" ]; then
+  case "$sub" in prune|verify) ;; *) refuse "unknown-argument" "--retire-decisions is for prune or verify" ;; esac
+  need_project
+  source "$SCRIPT_DIR/_aide-spec-lib.sh"
+  [ "$(aide_manifest_get name "$project_dir")" = "aide" ] || refuse "retirement-project" "decision retirement requires project identity aide"
+fi
+
 case "$sub" in
   write)
     need_project
@@ -100,8 +90,7 @@ case "$sub" in
     case "$page" in index.md|schema.md) refuse "reserved-page-name" "$page is written by its own subcommand" ;; esac
     [ ${#files[@]} -gt 0 ] || refuse "no-file" "a page names the files it was written from: pass --file"
     body="$(mktemp)"; cat > "$body"
-    # The `## Decisions` section is the script's: one the session copied from
-    # the page it read is cut here, and the current one is added below.
+    # Remove a legacy section copied from the page the session read.
     if grep -qx '## Decisions' "$body"; then
       kept="$(mktemp)"; cut_decisions_section < "$body" > "$kept"; mv "$kept" "$body"
     fi
@@ -125,13 +114,6 @@ case "$sub" in
     done <<NAMED
 $(grep -o '`[^` ]*`' "$body" | tr -d '`' | awk '!seen[$0]++')
 NAMED
-    # After the scan above, so a file a decision's line names is not a source.
-    section="$(mktemp)"; decisions_section_for "$page" > "$section"
-    if [ -s "$section" ]; then
-      [ -z "$(tail -c1 "$body")" ] || echo >> "$body"
-      cat "$section" >> "$body"
-    fi
-    rm -f "$section"
     compose "$head_sha" "${files[@]}" < "$body" | put_page "$wiki/$page"
     [ "${PIPESTATUS[1]}" -eq 0 ] || { rm -f "$body"; exit 2; }
     rm -f "$body"
@@ -154,7 +136,7 @@ The folder `wiki/` holds `index.md`, this page, and one page per part of the sys
 
 ## Generated and hand-written pages
 
-A generated page starts with front matter that has the key `wiki` set to `generated`, the key `commit` (the project's commit it was written from) and the key `files` (the files it was written from — files, never folders). A page without `wiki: generated` in its front matter is hand-written: it is never changed, deleted or rewritten, and the index lists it like any other page.
+A generated page starts with front matter that has the key `wiki` set to `generated`, the key `commit` (the project's commit it was written from) and the key `files` (the files it was written from — files, never folders). A hand-written page has no wiki mark: it is never changed, deleted or rewritten, and the index lists it like any other ordinary page.
 
 ## What a page holds
 
@@ -165,10 +147,6 @@ A generated page starts with front matter that has the key `wiki` set to `genera
 - The words it uses for things.
 
 A page holds no line numbers and no code. It is a map: the code decides.
-
-## Decision pages
-
-A decision page says what was decided and why, and names the spec that decided it. Its front matter has the key `wiki` set to `decision` and the key `spec` (the folder of that spec), and its `## Concerns` list links the pages it is about. A page written by hand needs that mark too, or the index lists it as an ordinary page. A decision page is never changed, deleted or rewritten by a build, and the index lists it under its own `## Decisions` heading. A generated page that a decision concerns ends with a `## Decisions` section listing those decision pages; the script writes it on every rewrite, so a page's body never carries it.
 
 ## Links
 
@@ -190,20 +168,13 @@ SCHEMA
     mkdir -p "$wiki"
     {
       printf '# Wiki index\n\nOne line per page of the wiki.\n\n'
-      decision_pages=()
       for f in "$wiki"/*.md; do
         [ -f "$f" ] || continue
         n="$(basename "$f")"
         [ "$n" = "index.md" ] && continue
-        if is_decision "$f"; then decision_pages+=("$f"); continue; fi
+        is_decision "$f" && continue
         printf -- '- [%s](%s) — %s\n' "$(page_title "$f")" "$n" "$(page_summary "$f")"
       done
-      if [ ${#decision_pages[@]} -gt 0 ]; then
-        printf '\n## Decisions\n\nWhat was decided, and why. Read these before undoing any of it.\n\n'
-        for f in "${decision_pages[@]}"; do
-          printf -- '- [%s](%s) — %s\n' "$(page_title "$f")" "$(basename "$f")" "$(page_summary "$f")"
-        done
-      fi
     } | compose "$head_sha" | put_page_unless_same "$wiki/index.md"
     [ "${PIPESTATUS[2]}" -eq 0 ] || exit 2
     jq -cn --arg c "$head_sha" '{ok:true, exitCode:0, terminalReason:"written", page:"index.md", commit:$c}'
@@ -214,8 +185,16 @@ SCHEMA
     for f in "$wiki"/*.md; do
       [ -f "$f" ] || continue
       n="$(basename "$f")"
-      case "$n" in index.md|schema.md) continue ;; esac
+      if [ "$retire_decisions" = "yes" ] && is_decision "$f"; then
+        rm -f "$f"; deleted+=("$n"); continue
+      fi
       is_generated "$f" || continue
+      if [ "$retire_decisions" = "yes" ]; then
+        cleaned="$(mktemp)"
+        cut_decisions_section < "$f" > "$cleaned"
+        cat "$cleaned" > "$f"; rm -f "$cleaned"
+      fi
+      case "$n" in index.md|schema.md) continue ;; esac
       kept=""
       for k in ${keep[@]+"${keep[@]}"}; do [ "$k" = "$n" ] && kept=1; done
       [ -n "$kept" ] && continue
@@ -233,7 +212,8 @@ SCHEMA
     pages="[]"
     for f in "$wiki"/*.md; do
       [ -f "$f" ] || continue
-      n="$(basename "$f")"; gen=false; dec=false; state="hand-written"; changed=()
+      is_decision "$f" && continue
+      n="$(basename "$f")"; gen=false; state="hand-written"; changed=()
       if is_generated "$f"; then
         gen=true
         commit="$(fm_commit "$f")"
@@ -247,11 +227,9 @@ SCHEMA
           fi
           if [ ${#changed[@]} -gt 0 ]; then state="changed"; else state="current"; fi
         fi
-      elif is_decision "$f"; then
-        dec=true
       fi
-      pages="$(jq -c --arg p "$n" --argjson g "$gen" --argjson d "$dec" --arg s "$state" \
-        '. + [{page:$p, generated:$g, decision:$d, state:$s, changedFiles:($ARGS.positional)}]' --args ${changed[@]+"${changed[@]}"} <<<"$pages")"
+      pages="$(jq -c --arg p "$n" --argjson g "$gen" --arg s "$state" \
+        '. + [{page:$p, generated:$g, state:$s, changedFiles:($ARGS.positional)}]' --args ${changed[@]+"${changed[@]}"} <<<"$pages")"
     done
     jq -cn --arg c "$head_sha" --argjson p "$pages" '{ok:true, exitCode:0, wiki:true, commit:$c, pages:$p}'
     ;;
@@ -320,7 +298,8 @@ SCHEMA
     while IFS= read -r n; do
       [ -n "$n" ] || continue
       base_generated "$n" && continue
-      if [ ! -f "$wiki/$n" ]; then
+      if [ ! -e "$wiki/$n" ] && [ ! -L "$wiki/$n" ]; then
+        if [ "$retire_decisions" = "yes" ] && base_text "$n" | front_matter_of_text | grep -qx "wiki: decision"; then continue; fi
         add_violation "hand-written-deleted" "$n"
       elif [ "$(base_text "$n"; echo x)" != "$(cat "$wiki/$n"; echo x)" ]; then
         add_violation "hand-written-changed" "$n"
@@ -335,123 +314,6 @@ SCHEMA
       add_violation "unmarked-page" "$n"
     done
     jq -cn --argjson v "$violations" '{ok:true, exitCode:0, terminalReason:"verified", violations:$v}'
-    ;;
-
-  # A decision a spec made, kept as a page of its own. The reason is on
-  # stdin. Nothing is written unless everything checks out, and no project
-  # is needed: a decision is not derived from any file.
-  decision)
-    reason="$(mktemp)"; cat > "$reason"
-    reject() { rm -f "$reason"; refuse "$1" "$2"; }
-    [[ "$page" =~ ^decision-[a-z0-9-]+\.md$ ]] || reject "bad-page-name" "--page must be decision- and lower-case letters, digits and hyphens, ending in .md: $page"
-    spec_re='^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$'
-    { [[ "$spec" =~ $spec_re ]] && [ "$spec" != archive ] && [ "$spec" != wiki ] && { [ -d "$specs_root/$spec" ] || [ -d "$specs_root/archive/$spec" ]; }; } ||
-      reject "bad-spec" "--spec is the name of a spec's folder in $specs_root or its archive/: $spec"
-    { [ -n "${title//[[:space:]]/}" ] && [[ "$title" != *$'\n'* ]]; } || reject "bad-title" "--title is one line of text"
-    { [ -n "${decision_line//[[:space:]]/}" ] && [[ "$decision_line" != *$'\n'* ]]; } || reject "bad-decision" "--decision is one line of text"
-    grep -q '[^[:space:]]' "$reason" || reject "no-reason" "a decision gives its reason on stdin"
-    [ ${#concerns[@]} -gt 0 ] || reject "no-concern" "a decision names the pages it concerns: pass --concerns"
-    named=()
-    for c in "${concerns[@]}"; do
-      { [[ "$c" =~ ^[a-z0-9-]+\.md$ ]] && [ -f "$wiki/$c" ]; } || reject "unknown-concern" "$c is not a page of the wiki"
-      case "$c" in index.md|schema.md) reject "concern-not-generated" "$c cannot carry a link back" ;; esac
-      is_generated "$wiki/$c" || reject "concern-not-generated" "$c is not a generated page, and only a generated page can carry a link back"
-      case " ${named[*]-} " in *" $c "*) ;; *) named+=("$c") ;; esac
-    done
-    [ ! -e "$wiki/$page" ] || reject "page-exists" "$page already exists and is left as it is"
-    tmp="$(mktemp)"
-    {
-      printf -- '---\nwiki: decision\nspec: %s\n---\n\n# %s\n\n%s\n\n## Why\n\n' "$spec" "$title" "$decision_line"
-      cat "$reason"
-      [ -z "$(tail -c1 "$reason")" ] || echo
-      printf '\n## Concerns\n\n'
-      for c in "${named[@]}"; do printf -- '- [%s](%s)\n' "$(page_title "$wiki/$c")" "$c"; done
-      # shellcheck disable=SC2016  # the backticks are Markdown in the page, not a command
-      printf '\n## Source\n\nDecided in spec `%s`.\n' "$spec"
-    } > "$tmp"
-    mv "$tmp" "$wiki/$page"; rm -f "$reason"
-    for c in "${named[@]}"; do refresh_decisions_section "$wiki/$c"; done
-    jq -cn --arg p "$page" '{ok:true, exitCode:0, terminalReason:"written", page:$p, concerns:($ARGS.positional)}' --args "${named[@]}"
-    ;;
-
-  # The decision pages that link to one of the pages named, or that one of
-  # them links to (a page written by a person is found that way), or that
-  # a spec recorded.
-  decisions)
-    [ -n "$spec" ] || [ ${#from_pages[@]} -gt 0 ] || refuse "missing-argument" "pass --spec FOLDER or --from PAGE.md"
-    found="[]"
-    for f in "$wiki"/*.md; do
-      [ -f "$f" ] || continue
-      is_decision "$f" || continue
-      d="$(basename "$f")"
-      [ -z "$spec" ] || [ "$(fm_spec "$f")" = "$spec" ] || continue
-      if [ ${#from_pages[@]} -gt 0 ]; then
-        linked=""
-        for p in "${from_pages[@]}"; do
-          p="$(basename "$p")"
-          if links_to "$f" "$p" || { [ -f "$wiki/$p" ] && links_to "$wiki/$p" "$d"; }; then linked=1; break; fi
-        done
-        [ -n "$linked" ] || continue
-      fi
-      found="$(jq -c --arg p "$d" --arg t "$(page_title "$f")" --arg s "$(fm_spec "$f")" --arg m "$(page_summary "$f")" \
-        '. + [{page:$p, title:$t, spec:$s, summary:$m}]' <<<"$found")"
-    done
-    jq -cn --argjson d "$found" '{ok:true, exitCode:0, terminalReason:"listed", decisions:$d}'
-    ;;
-
-  # What an archive of --spec may have added under wiki/ on top of what
-  # `affected` names, judged from git and the files on disk alone: a NEW
-  # decision page of this spec that links to a generated page linking back,
-  # the index when there is one, and each such page whose text differs from
-  # --base-ref's in its `## Decisions` section alone. Only a new decision
-  # page that fails is given a reason; everything else is just not allowed.
-  decision-scope)
-    [ -n "$base_ref" ] || refuse "missing-argument" "missing --base-ref"
-    [ -n "$spec" ] || refuse "missing-argument" "missing --spec"
-    git -C "$specs_root" rev-parse --show-toplevel >/dev/null 2>&1 || refuse "no-specs-repo" "$specs_root is not inside a git repository"
-    base_pages="$(git -C "$specs_root" ls-tree --name-only "$base_ref" -- wiki/ 2>/dev/null | sed -n 's|^.*wiki/\(.*\.md\)$|\1|p')"
-    base_text() { git -C "$specs_root" show "$base_ref:./wiki/$1" 2>/dev/null; }
-    allowed_list=""; linked_list=""; rejected="[]"
-    for f in "$wiki"/*.md; do
-      [ -f "$f" ] || continue
-      is_decision "$f" || continue
-      d="$(basename "$f")"
-      grep -qxF "$d" <<<"$base_pages" && continue
-      why=""
-      if [ "$(fm_spec "$f")" != "$spec" ]; then
-        why="wrong-spec"
-      else
-        targets=""
-        for g in "$wiki"/*.md; do
-          [ -f "$g" ] || continue
-          c="$(basename "$g")"
-          case "$c" in index.md|schema.md) continue ;; esac
-          is_generated "$g" || continue
-          links_to "$f" "$c" || continue
-          section="$(decisions_section_text "$g")"
-          grep -F "]($d)" >/dev/null <<<"$section" || continue
-          targets="$targets$c"$'\n'
-        done
-        [ -n "$targets" ] || why="no-backlink"
-      fi
-      if [ -n "$why" ]; then
-        rejected="$(jq -c --arg p "$d" --arg r "$why" '. + [{page:$p, reason:$r}]' <<<"$rejected")"
-      else
-        allowed_list="$allowed_list$d"$'\n'; linked_list="$linked_list$targets"
-      fi
-    done
-    if [ -n "$allowed_list" ]; then
-      allowed_list="${allowed_list}index.md"$'\n'
-      while IFS= read -r c; do
-        [ -n "$c" ] || continue
-        grep -qxF "$c" <<<"$base_pages" || continue
-        base_text "$c" | front_matter_of_text | grep -qx 'wiki: generated' || continue
-        [ "$(cut_decisions_section < "$wiki/$c"; echo x)" = "$(base_text "$c" | cut_decisions_section; echo x)" ] || continue
-        allowed_list="$allowed_list$c"$'\n'
-      done <<<"$(printf '%s' "$linked_list" | sort -u)"
-    fi
-    allowed=(); while IFS= read -r c; do [ -n "$c" ] && allowed+=("$c"); done <<<"$(printf '%s' "$allowed_list" | sort -u)"
-    jq -cn --argjson r "$rejected" '{ok:true, exitCode:0, terminalReason:"listed", allowed:($ARGS.positional), rejected:$r}' --args ${allowed[@]+"${allowed[@]}"}
     ;;
 
   *)

@@ -66,11 +66,10 @@ First write `--- Step 1 of 10: Read the description — started`, and when this 
   it, run `aide-wiki status --specs-root <root> --project-dir .`, read
   `wiki/index.md`, then the pages that concern the change. A page whose
   state is `changed` or `unknown` is a map of where to look, and the
-  code decides. Then find the decisions recorded for those pages, and
-  read each one — what was decided and why is not something the code
-  shows:
-
-      aide-wiki decisions --specs-root <root> --from <the pages read>
+  code decides. Read only the ordinary pages that status returns, even
+  when an older index still links to a legacy decision page. Do not follow
+  those historical links: the ordinary pages hold the current rules and
+  their reasons.
 
   When the answer is `"wiki":false`, or `aide-wiki` is not installed, or
   it answers `unknown-subcommand`, skip this and write nothing about a
@@ -193,9 +192,7 @@ file:line, API impact, test coverage.
 When Step 1 read the wiki, the `## Mapping` section gets a line **Wiki
 pages used** listing each page with its state: `current`;
 `changed since its commit — files: <changedFiles>`; `unknown`; or
-`hand-written — freshness not tracked`. Each decision page read is listed
-the same way, as `decision — from spec <its spec's folder>`. Without a
-wiki, no such line.
+`hand-written — freshness not tracked`. Without a wiki, no such line.
 
 When Step 1 read what the `reuse` key names, the `## Mapping` section
 gets a line **Reuse paths read** listing each path with `read` or

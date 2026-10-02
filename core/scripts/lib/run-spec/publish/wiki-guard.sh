@@ -56,15 +56,9 @@ if [ "$command_name" = "wiki" ]; then
       echo "aide-run-spec: $error_msg" >&2
     fi
   fi
-# An archive rewrites the wiki pages covering the files its own spec
-# changed, and records the decisions the spec made: recomputed fresh here
-# (never trusting what the session claims it wrote) from the diff between
-# the project's default branch and this spec's own HEAD, the same question
-# `aide-wiki affected` answers for the skill's own step, and from what
-# `aide-wiki decision-scope` finds new under wiki/ for this spec.
-# Anything else under wiki/ this run touched — a page outside those lists,
-# a hand-written one (never in `affected`'s own answer either) — is taken
-# back, the same way a wiki build's own foreign write is.
+# An archive rewrites only generated pages covering its changed files.
+# Recompute that scope from the project's diff and the default branch's
+# page sources, never from what the session claims it wrote.
 elif [ "$command_name" = "archive" ] && [ "$terminal_reason" = "completed" ] \
      && [ -n "${specs_root_wt:-}" ] && [ -n "${project_wt:-}" ] && [ -d "$specs_root_wt/wiki" ]; then
   archive_repo_wt="${specs_wt:-$project_wt}"
@@ -80,19 +74,13 @@ elif [ "$command_name" = "archive" ] && [ "$terminal_reason" = "completed" ] \
   # drops a file this spec deleted from a page's list, and asked after it
   # that page would no longer be one this spec reaches.
   archive_wiki_allowed="$("$SCRIPT_DIR/aide-wiki" affected --specs-root "$specs_root_wt" --project-dir "$project_wt" --base-ref "$archive_wiki_tip" 2>/dev/null | jq -r '.pages[]?.page')"
-  # The decision pages this spec recorded, the index that lists them and
-  # the `## Decisions` section of the pages they concern — each page read
-  # as the branch left the default branch, so a page main rewrote since
-  # is not read as this archive rewriting it.
-  archive_wiki_fork="$(git -C "$archive_repo_wt" merge-base "$archive_wiki_tip" HEAD 2>/dev/null || echo "$archive_wiki_tip")"
-  archive_wiki_decision_scope="$("$SCRIPT_DIR/aide-wiki" decision-scope --specs-root "$specs_root_wt" --base-ref "$archive_wiki_fork" --spec "$spec_folder" 2>/dev/null | jq -r '.allowed[]?')"
   archive_wiki_excludes=()
   while IFS= read -r archive_wiki_line; do
     [ -n "$archive_wiki_line" ] && archive_wiki_excludes+=("$archive_wiki_line")
   done <<ARCHIVE_WIKI_EXCLUDES_EOF
 $(link_excludes_for "$project_root")
 ARCHIVE_WIKI_EXCLUDES_EOF
-  archive_wiki_named=""; archive_wiki_rewritten=""; archive_wiki_recorded=""
+  archive_wiki_named=""; archive_wiki_rewritten=""
   # Every path this run left dirty or untracked, or that the branch
   # changed since it left the default branch (`tip...HEAD`, so a page
   # main changed while the archive ran is not read as the archive's) —
@@ -110,21 +98,15 @@ ARCHIVE_WIKI_EXCLUDES_EOF
       archive_wiki_rewritten="${archive_wiki_rewritten:+$archive_wiki_rewritten, }$archive_wiki_n"
       continue
     fi
-    if grep -qxF "$archive_wiki_n" <<<"$archive_wiki_decision_scope"; then
-      grep -qx 'wiki: decision' "$archive_repo_wt/$archive_wiki_path" 2>/dev/null \
-        && archive_wiki_recorded="${archive_wiki_recorded:+$archive_wiki_recorded, }$archive_wiki_n"
-      continue
-    fi
     wiki_take_back "$archive_repo_wt" "$archive_wiki_tip" "$archive_wiki_path"
     archive_wiki_named="${archive_wiki_named:+$archive_wiki_named, }$archive_wiki_n"
   done < <( { git -C "$archive_repo_wt" status --porcelain --untracked-files=all -- . ${archive_wiki_excludes[@]+"${archive_wiki_excludes[@]}"} 2>/dev/null \
                 | cut -c4- | sed 's/^.* -> //'; \
               git -C "$archive_repo_wt" diff --name-only "$archive_wiki_tip...HEAD" -- . ${archive_wiki_excludes[@]+"${archive_wiki_excludes[@]}"} 2>/dev/null; } | sort -u )
   stage "wiki pages rewritten: ${archive_wiki_rewritten:-none}"
-  stage "wiki decisions recorded: ${archive_wiki_recorded:-none}"
   if [ -n "$archive_wiki_named" ]; then
     terminal_reason="scope-violation"; ok="false"; suffix=" (stopped: scope-violation)"
-    error_msg="the archive rewrote a wiki page it may not — $archive_wiki_named — and that was taken back. It rewrites only the pages covering files this spec's own code changed, and records only decisions of its own spec, each linked from a page it concerns; press $step_button again"
+    error_msg="the archive rewrote a wiki page it may not — $archive_wiki_named — and that was taken back. It rewrites only the pages covering files this spec's own code changed; press $step_button again"
     echo "aide-run-spec: $error_msg" >&2
   fi
 fi

@@ -7,10 +7,8 @@ so do not fix anything and do not commit: report, and stop.
    is the folder `wiki/` inside it. If there is no `wiki/`, say so in the
    report (step 4) and stop.
 2. Run `aide-wiki status --specs-root <specs root> --project-dir .` to list
-   the pages. It says of each page whether it is `generated` and whether it is
-   a `decision` page. Take both from that answer, never from a page's text: a
-   generated page that describes decision pages quotes their front matter in
-   its body and is still generated. Run each of these with `jq -r` over the
+   the ordinary pages, excluding legacy decision pages. Use its generated
+   mark, never a mark quoted in a page's body. Run each filter with `jq -r` over the
    answer. The pages to check:
 
    ```jq
@@ -20,7 +18,7 @@ so do not fix anything and do not commit: report, and stop.
    The pages to skip, and only these:
 
    ```jq
-   .pages[] | select(.decision) | .page
+   .pages[] | select(.generated | not) | .page
    ```
 
 3. For each generated page, read the files it names in its `files:` list as
@@ -42,6 +40,6 @@ so do not fix anything and do not commit: report, and stop.
    - the pages you could not check, each with why (a named file is missing, a
      file could not be read), listed apart from the ones that agree, so a page
      you did not check never reads as agreeing,
-   - the pages skipped: the decision pages the second filter printed.
+   - the pages skipped: the hand-written pages the second filter printed.
 5. Change no file in this repository or in the specs repository, and commit
    nothing.

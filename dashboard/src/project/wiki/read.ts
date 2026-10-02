@@ -51,7 +51,7 @@ export async function readWiki(run: GitRunner, src: WikiSource, requested: strin
 
   const line = (page: string, title: string, summary: string): WikiPageLine =>
     ({ page, title, summary, state: states.get(page) ?? "unknown", body: split.get(page)!.body });
-  const listed = parseIndex(split.get("index.md")!.body).filter((e) => split.has(e.page) && e.page !== "index.md");
+  const listed = parseIndex(split.get("index.md")!.body).filter((e) => split.has(e.page) && !split.get(e.page)!.mark.legacyDecision && e.page !== "index.md");
   const seen = new Set<string>();
   const pages: WikiPageLine[] = [];
   for (const e of listed) {
@@ -59,7 +59,7 @@ export async function readWiki(run: GitRunner, src: WikiSource, requested: strin
     seen.add(e.page);
     pages.push(line(e.page, e.title, e.summary));
   }
-  for (const page of [...split.keys()].filter((n) => n !== "index.md" && !seen.has(n)).sort()) {
+  for (const page of [...split.keys()].filter((n) => n !== "index.md" && !split.get(n)!.mark.legacyDecision && !seen.has(n)).sort()) {
     const body = split.get(page)!.body;
     pages.push(line(page, pageTitle(body, page), pageSummary(body)));
   }

@@ -6,6 +6,7 @@ import { mkdirSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 import { createGitRunner } from "../../../src/git/branch-status.ts";
 import { refreshedRef } from "../../../src/git/branch-file.ts";
+import { buildWikiGraph } from "../../../src/wiki-graph/links.ts";
 import { readWiki } from "../../../src/project/wiki/read.ts";
 import { cleanup, commitAll, generatedPage, git, initRepo, scratch, write } from "./wiki-fixtures.ts";
 
@@ -154,4 +155,23 @@ describe("no wiki (AC-8)", () => {
     mkdirSync(join(f.root, "elsewhere"), { recursive: true });
     expect(await view(f, null, join(f.top, "nothere"))).toBeNull();
   });
+});
+
+
+test("legacy indexed and fallback pages stay out of graph input while direct reads work (AC-6)", async () => {
+  const f = fixture();
+  const legacy = "---\nwiki: decision\nspec: old\n---\n\n# Legacy\n\nOld reason.\n";
+  write(f.top, "specs/wiki/legacy.md", legacy);
+  write(f.top, "specs/wiki/unlisted.md", legacy);
+  write(f.top, "specs/wiki/index.md", INDEX + "- [Legacy](legacy.md) — Old.\n");
+  write(f.top, "specs/wiki/delta.md", "# Delta\n\nwiki: decision\n[Alpha](alpha.md) [Old](legacy.md)\n");
+  commitAll(f.top, "legacy fixtures");
+  git(f.top, "push", "-q", "origin", "main");
+  await (await refreshedRef(run, f.top, "main")).refreshed;
+  const v = await view(f, "legacy.md");
+  expect(v!.pages.map((p) => p.page)).toEqual(["charlie.md", "alpha.md", "bravo.md", "delta.md"]);
+  expect(v!.open).toMatchObject({ page: "legacy.md", text: "# Legacy\n\nOld reason.\n" });
+  const graph = buildWikiGraph(v!.pages);
+  expect(graph.points.length).toBe(4);
+  expect(graph.pairs.length).toBe(2);
 });

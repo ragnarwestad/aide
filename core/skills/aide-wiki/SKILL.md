@@ -53,9 +53,9 @@ First write `--- Step 1 of 5: See what exists — started`, and when this step e
 
 Run `aide-wiki status --specs-root <root> --project-dir .`. A page whose
 state is `hand-written` belongs to a person: its name is taken, and the
-part it covers is linked to from other pages, not rewritten. A decision
-page (`wiki: decision`) is such a page too, whoever wrote it: it is never
-rewritten, and `aide-wiki index` lists it under its own heading. In a build,
+part it covers is linked to from other pages, not rewritten. Legacy decision
+pages are excluded by status and index: do not read them, treat them as
+part ownership, or create replacement pages for them. In a build,
 every other page is rebuilt below; in a refresh, only the `changed` ones
 are, and Step 2 is only about whether a new part needs a page of its own.
 
@@ -113,9 +113,9 @@ A page opens with a `# ` heading, then one line saying what the part does
 
 A page holds no line numbers and no code. It is a map: the code decides.
 
-A page a decision concerns ends with a `## Decisions` section that the
-script writes on every `aide-wiki write`. Leave it out of the body you
-pipe in.
+Keep a reason only when it still explains the current code, as one ripple
+sentence in the ordinary page. Do not write a separate decision page or a
+Decisions section, and never copy historical reasons wholesale.
 
 ### Step 4 of 5: Finish
 
@@ -128,13 +128,18 @@ report's first line ends `— not finished, the merge into main is next
 
 
 1. `aide-wiki schema --specs-root <root> --project-dir .`
-2. `aide-wiki prune --specs-root <root> --keep <every page just written>`,
+2. `aide-wiki prune --specs-root <root> --project-dir . --keep <every page just written>`,
    and in a refresh every current page too: only a page whose part is gone
-   goes
+   goes. Read the manifest's top-level `name`: only when it is exactly
+   `aide`, add `--retire-decisions` to this prune call. This explicitly
+   removes legacy front-matter-marked decision pages and their sections
+   from retained generated pages, without rewriting hand-written pages.
+   Other projects keep the default prune policy.
 3. `aide-wiki index --specs-root <root> --project-dir .` — last, so a run
    that stops early leaves the previous index in place.
 
-Then report the pages written in one line each.
+Then report the pages written in one line each and, for Aide retirement,
+the legacy pages removed from prune's `deleted` answer.
 
 ### Step 5 of 5: Merge into main
 

@@ -202,19 +202,37 @@ def test_a_foreign_write_is_taken_back_and_ends_the_build_as_a_scope_violation_A
         assert "loose.md" not in git(origin["specs"], "ls-tree", "-r", "--name-only", BRANCH)
 
 
-def test_a_build_keeps_a_decision_page_written_by_hand_and_lists_it_under_its_own_heading_AC_3(
-    runner, workspace, workspace_root, fake_claude, origin
+@pytest.mark.parametrize("identity", ["aide", "other"])
+@pytest.mark.parametrize("refresh", [False, True])
+def test_wiki_guard_allows_only_aide_legacy_deletion_AC_5(
+    runner, workspace, workspace_root, fake_claude, origin, identity, refresh
 ):
-    decision = "---\nwiki: decision\nspec: 01-first\n---\n\n# By hand\n\nKeep pages.\n\n## Concerns\n\n- [Queue](queue.md)\n"
-    land_hand_written(workspace, "decision-hand.md", decision)
-    claude = job(fake_claude, build_pages(workspace_root) + FINISHED)
-    rc, out, _ = wiki(runner, workspace, claude)
-    assert rc == 0, out
-    assert out["terminalReason"] == "completed", out
-    assert show(origin["specs"], "wiki/decision-hand.md") == decision.strip()
-    index = show(origin["specs"], "wiki/index.md").splitlines()
-    assert index.index("## Decisions") < index.index("- [By hand](decision-hand.md) — Keep pages.")
-    assert "](decision-hand.md)" in show(origin["specs"], "wiki/queue.md")
+    project = workspace["project"]
+    manifest = project / ".aide/project.yaml"
+    manifest.write_text(manifest.read_text() + f"\nname: {identity}\n")
+    git(project, "add", "-f", ".aide/project.yaml")
+    git(project, "commit", "-qm", "project identity")
+    git(project, "push", "-q", "origin", "main")
+    decision = "---\nwiki: decision\nspec: 01-first\n---\n\n# Old\n\nOld reason.\n"
+    land_hand_written(workspace, "legacy.md", decision)
+    land_hand_written(workspace)
+    pages = build_pages(workspace_root)
+    if identity == "aide":
+        pages = pages.replace('prune --specs-root "$specs"', 'prune --specs-root "$specs" --project-dir "$PWD" --retire-decisions')
+    else:
+        pages = READ_SPECS + 'rm "$specs/wiki/legacy.md"\n' + pages
+    body = pages + FINISHED
+    rc, out, _ = wiki(runner, workspace, job(fake_claude, body), **({"wiki_refresh": True} if refresh else {}))
+    if identity == "aide":
+        assert out["terminalReason"] == "completed", out
+        assert "wiki/legacy.md" not in git(origin["specs"], "ls-tree", "-r", "--name-only", BRANCH).split()
+        rc, repeated, _ = wiki(runner, workspace, job(fake_claude, body), **({"wiki_refresh": True} if refresh else {}))
+        assert repeated["terminalReason"] == "completed", repeated
+        assert "wiki/legacy.md" not in git(origin["specs"], "ls-tree", "-r", "--name-only", BRANCH).split()
+    else:
+        assert out["terminalReason"] == "scope-violation", out
+        assert show(origin["specs"], "wiki/legacy.md") == decision.strip()
+    assert show(origin["specs"], "wiki/notes.md") == HAND.strip()
 
 
 @pytest.mark.usefixtures("origin")
