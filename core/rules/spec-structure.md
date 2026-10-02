@@ -114,11 +114,9 @@ Number, created date, expected duration
   origin has commits not on the default branch — unmerged, not merely
   present — because a run cuts its branch from origin/main and would
   otherwise build on a main without that work
-- The line holds back only the steps that BUILD on merged code —
-  `implement`, `archive`. `analyze` and `create` write only the spec's
-  own folder, so a whole chain of dependent specs can be analysed in
-  parallel before it merges — the tradeoff being that the plan then
-  describes the code WITHOUT it
+- The line holds back `analyze`, `implement` and `archive`; only
+  `create` runs regardless. `analyze` waits too, because a plan made
+  before the dependency lands is a plan for code that is about to change
 - Queued through the dashboard, such a step WAITS rather than fails: it
   stays `queued`, starts itself once the dependency merges, and is
   cancellable. Run by hand, it still refuses immediately — there is no

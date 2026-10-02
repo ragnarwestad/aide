@@ -171,11 +171,9 @@ export function processSettings(
   };
 }
 
-/** The steps a dependency actually holds back (spec 122): the ones that
- *  BUILD on merged code. `analyze` and `create` write
- *  only the spec's own folder in the specs repo and conflict with
- *  nothing, so a chain of dependent specs can be analysed in parallel
- *  the moment it is queued.
+/** The steps a dependency holds back: `analyze`, `implement` and
+ *  `archive`. Only `create` runs regardless; a plan made before the
+ *  dependency lands is a plan for code that is about to change.
  *
  *  Read from `core/scripts/lib/workflow-steps.json` (spec 349) — the
  *  same file `core/scripts/aide-run-spec` reads with jq, so the two
