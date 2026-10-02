@@ -11,7 +11,7 @@
 
 Sources on what a spec for an AI coding agent should say and how it should be written, gathered to be analysed
 before Aide's spec files and skills are changed. Each entry is described from its own page or from the list it was
-found in; none has been analysed against Aide yet. Tools that only sit around a spec — boards, editors, MCP
+found in; an entry analysed against Aide says so, with what came of it. Tools that only sit around a spec — boards, editors, MCP
 servers — are left out; [awesome-spec-driven-development](https://github.com/Engineering4AI/awesome-spec-driven-development)
 and [awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code) list those.
 
@@ -27,6 +27,10 @@ and [awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code) l
 - [What Is Spec-Driven Development? A Practitioner's Guide](https://felipefontoura.com/articles/what-is-spec-driven-development)
   (Felipe Fontoura) — what a spec is, four pillars, the EARS requirement format, a full worked spec, and when to
   skip writing one.
+  **Analysed:** Aide already has the four phases, with a person starting each, a rule in `1-description.md`
+  and concrete cases in `3-solution.md`. What came of it:
+  - EARS as the form of an acceptance criterion, checked by the plan review (spec 581).
+  - Left for now: stating what will not be built. Aide's description has no place for it.
 - [Claude Code best practices](https://code.claude.com/docs/en/best-practices) (Anthropic) — the agentic loop,
   CLAUDE.md, and working patterns.
 
