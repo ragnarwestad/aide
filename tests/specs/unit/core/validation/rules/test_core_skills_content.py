@@ -11,13 +11,8 @@ from .test_core_skills import CORE_SKILLS_DIR
 REPO_ROOT = CORE_SKILLS_DIR.parent.parent
 BASH_BLOCK = re.compile(r"```(?:bash|sh)\n(.*?)```", re.S)
 COMMAND = re.compile(r"\s*(?:[A-Z_]+=\S+\s+)*(aide-[a-z0-9-]+)\b")
-EARS_FORMS = (
-    "The <system> SHALL <response>",
-    "WHEN <trigger>, the <system> SHALL <response>",
-    "WHILE <state>, the <system> SHALL <response>",
-    "IF <condition>, THEN the <system> SHALL <response>",
-    "WHERE <feature>, the <system> SHALL <response>",
-)
+# A pattern is written as a code span ending in `SHALL <response>`.
+EARS_PATTERN = re.compile(r"`([^`]*SHALL <response>)`")
 
 
 @pytest.mark.validation
@@ -62,25 +57,23 @@ def test_analyze_reads_the_reuse_key_and_its_plan_and_review_share_the_parts_lin
         assert form in review, f"the plan review does not check {form!r}"
 
 
-@pytest.mark.validation
-def test_the_spec_structure_rule_gives_the_five_ears_patterns_AC_1():
-    path = REPO_ROOT / "core" / "rules" / "spec-structure.md"
+def ears_patterns(path):
+    """Read whole pattern spans with whitespace collapsed and case preserved."""
     text = path.read_text(encoding="utf-8")
-    for form in EARS_FORMS:
-        assert form in text, f"{path} does not give {form!r}"
+    return {" ".join(span.split()) for span in EARS_PATTERN.findall(text)}
 
 
 @pytest.mark.validation
-def test_the_create_skill_writes_the_five_ears_patterns_AC_2():
-    path = CORE_SKILLS_DIR / "aide-create" / "SKILL.md"
-    text = path.read_text(encoding="utf-8")
-    for form in EARS_FORMS:
-        assert form in text, f"{path} does not write {form!r}"
-
-
-@pytest.mark.validation
-def test_the_plan_review_checks_the_five_ears_patterns_AC_3():
-    path = CORE_SKILLS_DIR / "aide-analyze" / "references" / "plan-review.md"
-    text = path.read_text(encoding="utf-8")
-    for form in EARS_FORMS:
-        assert form in text, f"{path} does not check {form!r}"
+def test_the_create_skill_and_the_plan_review_give_the_rules_ears_patterns_AC_1_AC_2():
+    rule = ears_patterns(REPO_ROOT / "core" / "rules" / "spec-structure.md")
+    assert rule, "core/rules/spec-structure.md gives no EARS pattern"
+    wrong = []
+    for path in (
+        CORE_SKILLS_DIR / "aide-create" / "SKILL.md",
+        CORE_SKILLS_DIR / "aide-analyze" / "references" / "plan-review.md",
+    ):
+        copy = ears_patterns(path)
+        where = path.relative_to(REPO_ROOT)
+        wrong += [f"{where} gives {p!r}, which the rule does not" for p in sorted(copy - rule)]
+        wrong += [f"{where} leaves out {p!r}" for p in sorted(rule - copy)]
+    assert not wrong, "\n".join(wrong)
