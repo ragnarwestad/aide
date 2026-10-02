@@ -387,10 +387,10 @@ export function parseCreateRequest(
   if (r.dependsOn !== undefined && r.dependsOn !== null) {
     if (!Array.isArray(r.dependsOn)) return { ok: false, error: invalidRequest("dependsOn must be a list") };
     if (r.dependsOn.length > 20) return { ok: false, error: invalidRequest("dependsOn: at most 20") };
-    // No resolver, no known specs: a caller that never looks anything up
-    // cannot name a dependency, which is the right answer for a call
-    // site that does not carry the field at all.
-    const known = new Set(opts.resolve?.(r.project)?.specFolders ?? []);
+    // No resolver, no known specs. An archived spec counts: one archived
+    // since the form was drawn is a dependency already met.
+    const resolved = opts.resolve?.(r.project);
+    const known = new Set([...(resolved?.specFolders ?? []), ...(resolved?.archivedFolders ?? [])]);
     for (const d of r.dependsOn) {
       if (typeof d !== "string" || !FOLDER_RE.test(d) || !known.has(d)) {
         return { ok: false, error: invalidRequest(`unknown spec in dependsOn: ${String(d)}`) };

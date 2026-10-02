@@ -137,6 +137,17 @@ describe("parseCreateRequest — dependsOn", () => {
     expect(r.ok && r.job.createDependsOn).toEqual(["81-queue-and-runner"]);
   });
 
+  test("a spec archived since the form was drawn is accepted: depending on it is already met", () => {
+    const withArchive = (project: string) =>
+      project === "aide" ? { specFolders: [], archivedFolders: ["81-queue-and-runner"] } : null;
+    const r = parseCreateRequest(
+      { ...CREATE, dependsOn: ["81-queue-and-runner"] },
+      { allow, resolve: withArchive, defaults: DEFAULTS },
+    );
+    expect(r.ok).toBe(true);
+    expect(r.ok && r.job.createDependsOn).toEqual(["81-queue-and-runner"]);
+  });
+
   test("an entry belonging to another project, or to none at all, is refused", () => {
     // `01-first` is real — it is `aide-dashboard`'s. A dependency is
     // resolved inside ONE specs root (aide-run-spec's own guard does
