@@ -13,6 +13,7 @@ paths:
 - [Overview](#overview)
 - [File structure](#file-structure)
   - [1-description](#1-description)
+    - [Acceptance criteria in EARS](#acceptance-criteria-in-ears)
   - [2-analysis](#2-analysis)
   - [3-solution](#3-solution)
   - [4-status](#4-status)
@@ -91,7 +92,7 @@ Number, created date, expected duration
 ## Acceptance criteria (optional)
 
 - **AC-1:** The system SHALL ...
-- **AC-2:** The system SHALL ...
+- **AC-2:** WHEN ..., the system SHALL ...
 
 ```
 
@@ -122,9 +123,9 @@ Number, created date, expected duration
   cancellable. Run by hand, it still refuses immediately — there is no
   scheduler there to park it against
 - Acceptance criteria is OPTIONAL: a flat bullet list, id in bold
-  (`**AC-n:**`), one SHALL sentence per id — no table, no nested
-  lists, so both the definition and any reference stay grep-able with a
-  plain regex
+  (`**AC-n:**`), one sentence per id in one of the five EARS patterns
+  below — no table, no nested lists, so both the definition and any
+  reference stay grep-able with a plain regex
 - AC-n ids are additive only: once written, never renumbered or
   reused, even if later dropped — same philosophy as 4-status.md's
   `Workflow steps completed` line
@@ -141,6 +142,30 @@ Number, created date, expected duration
 - `/aide-analyze` never retrofits an Acceptance criteria section into
   an existing `1-description.md` on its own initiative — only original
   authoring (via `/aide-create`) adds one
+
+#### Acceptance criteria in EARS
+
+Each criterion is one sentence in one of the five EARS patterns (Easy
+Approach to Requirements Syntax). The condition comes first, in its own
+clause, so a reader knows when the criterion holds before reading what it
+asks for. A criterion with no condition is the always pattern; a condition
+written after SHALL follows none of the five.
+
+- **Always:** `The <system> SHALL <response>` — "The status file SHALL
+  carry one row per AC-n id."
+- **Event:** `WHEN <trigger>, the <system> SHALL <response>` — "WHEN a step
+  ends, the runner SHALL write its result into the status file."
+- **State:** `WHILE <state>, the <system> SHALL <response>` — "WHILE a job
+  runs on a spec, the specs list SHALL lock that spec's Run button."
+- **Unwanted behaviour:**
+  `IF <condition>, THEN the <system> SHALL <response>` — "IF origin
+  refuses the push, THEN the runner SHALL keep the commit on the spec's
+  branch."
+- **Optional feature:** `WHERE <feature>, the <system> SHALL <response>` —
+  "WHERE a project has a wiki, /aide-analyze SHALL read it before the code."
+
+`<system>` is whatever the criterion is about — a script, a skill, a page.
+The keywords are written in capitals, as SHALL is.
 
 ---
 

@@ -49,6 +49,22 @@ questions, with file:line references into the spec:
    id from 1-description.md (when present) appear in at least one
    acceptance criterion? A missing id is a must-fix.
 
+   Does every AC-n line in 1-description.md follow one of the five
+   EARS patterns, its condition first?
+
+   - `The <system> SHALL <response>`
+   - `WHEN <trigger>, the <system> SHALL <response>`
+   - `WHILE <state>, the <system> SHALL <response>`
+   - `IF <condition>, THEN the <system> SHALL <response>`
+   - `WHERE <feature>, the <system> SHALL <response>`
+
+   Each criterion that follows none — a condition written after SHALL
+   counts — is a should-fix that names its id and says why it follows
+   none. Check every AC-n line, on another round too. It is never a
+   must-fix and never stops the analysis: the description is the
+   user's to rewrite, so the plan declines it with that reason, reads
+   the criterion as it stands, and does not count it as acted on.
+
 ## Consolidate
 
 Merge the findings into three lists: **must-fix** (the plan is wrong or

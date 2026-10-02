@@ -142,10 +142,19 @@ Acceptance criteria section. Only a description with no such matching
 section reaches the step below.
 
 Otherwise, attempt to formulate the user's loose description as a
-`## Acceptance criteria` section with `AC-n` SHALL statements (format:
-spec-structure rule § 1-description) — every line exactly
-`- **AC-n:** ...`, bold included. If the description is too thin for
-confident SHALL statements, ask the user for the necessary
+`## Acceptance criteria` section (format: spec-structure rule §
+1-description) — every line exactly `- **AC-n:** ...`, bold included,
+and each criterion one sentence in one of the five EARS patterns, with
+its condition first:
+
+- `The <system> SHALL <response>` — always
+- `WHEN <trigger>, the <system> SHALL <response>` — an event
+- `WHILE <state>, the <system> SHALL <response>` — a state
+- `IF <condition>, THEN the <system> SHALL <response>` — unwanted behaviour
+- `WHERE <feature>, the <system> SHALL <response>` — an optional feature
+
+Never put the condition after SHALL. If the description is too thin to
+say when each criterion holds, ask the user for the necessary
 clarifications now, before creating the spec — never write an
 Acceptance criteria section you had to guess at.
 
