@@ -225,8 +225,11 @@ export function specNotice(
       // `tests-red` waits for the same reason: the landing ran the
       // project's own suite on the merged result, it went red, and
       // nothing was pushed. The step and the merge both did what they
-      // should; the code is not green yet.
-      const waiting = lead.errorReason === "held-back" || lead.errorReason === "tests-red";
+      // should; the code is not green yet. An analyze stopped on its
+      // acceptance criteria waits the same way, on the description.
+      const waiting =
+        lead.errorReason === "held-back" || lead.errorReason === "tests-red" ||
+        (lead.state === "stopped" && lead.stopReason === "acceptance-criteria");
       const variant: MessageVariant = heldBackInfo ? "info" : waiting ? "waiting" : "failed";
       const extra = detailBeyond(text, lead.error, lead.errorDetail);
       // A step's own red run: the failing tests are what the reader came

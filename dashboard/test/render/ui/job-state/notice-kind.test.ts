@@ -76,3 +76,24 @@ describe("specNotice's readyToArchive case (spec 467)", () => {
     expect(notice?.text).not.toContain("All checks ticked");
   });
 });
+
+// An analyze stopped on its acceptance criteria waits on the person who
+// puts the description right: amber, with the faults the runner named.
+describe("specNotice for an analyze stopped on its acceptance criteria", () => {
+  test("renders the job's sentence as a waiting message (AC-5)", () => {
+    const notice = specNotice(
+      lead({
+        steps: ["analyze"],
+        state: "stopped",
+        stopReason: "acceptance-criteria",
+        error: {
+          key: "runner.criteriaStopped",
+          values: { button: "Analyze" },
+          inner: [{ key: "runner.criteriaNotEars", values: { ids: "AC-2, AC-4" } }],
+        },
+      }),
+    );
+    expect(notice?.variant).toBe("waiting");
+    expect(notice?.text).toContain("AC-2, AC-4");
+  });
+});

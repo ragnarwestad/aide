@@ -295,11 +295,19 @@ describe("resolveWorkflowState", () => {
   });
 
   // The two limits the queue keeps as stopped leave the earlier run standing.
-  test("a step whose newest run stopped at its time limit stays done", async () => {
+  test("a step whose newest run stopped at its time limit stays done (AC-5)", async () => {
     const history = await warmedHistory(subject("analyze", { stopped: "timeout" }), subject("analyze"), subject("create"));
     const branchFileSteps = await warmedBranchSteps(["create", "analyze"], ["create", "analyze"]);
     const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
     expect(resolved!.done).toEqual(["create", "analyze"]);
+  });
+
+  test("an analyze whose newest run stopped on its acceptance criteria is not done, though the state file names it (AC-5)", async () => {
+    const history = await warmedHistory(subject("analyze", { stopped: "acceptance-criteria" }), subject("analyze"), subject("create"));
+    const branchFileSteps = await warmedBranchSteps(["create", "analyze"], ["create", "analyze"]);
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
+    expect(resolved!.done).toEqual(["create"]);
+    expect(resolved!.stopped).toEqual({ analyze: "acceptance-criteria" });
   });
 
   test("create is never taken out of done by a failed stop", async () => {

@@ -36,31 +36,41 @@
 # the lists itself: a section without that line is logged as giving no
 # counts.
 
-# The counts of the newest Plan review section in <3-solution.md>, as
-# `<n> must-fix, <n> should-fix, <n> acted on`; `nocounts` for a section
-# without a whole Findings line; nothing when there is no section. Fenced
-# blocks are examples, not the section, and a `## Round N` heading starts
-# over, so a held-back round's own review is the one read.
-plan_review_line() {  # <3-solution.md>
-  [ -f "$1" ] || return 0
-  awk '
-    function n(line, word) { return match(line, "[0-9]+ " word) ? substr(line, RSTART, RLENGTH) : "" }
+# The text after `**<label>:**` on the first such line of the newest Plan
+# review section in <3-solution.md>: empty for a section without that
+# line, and a non-zero exit when there is no section. Fenced blocks are
+# examples, not the section, and a `## Round N` heading starts over, so
+# a held-back round's own review is the one read.
+plan_review_field() {  # <3-solution.md> <label>
+  [ -f "$1" ] || return 1
+  awk -v label="**$2:**" '
     /^(```|~~~)/ { fence = !fence; next }
     fence { next }
-    /^## Round [0-9]/ { found = 0; inside = 0; counts = "" }
+    /^## Round [0-9]/ { found = 0; inside = 0; seen = 0; value = "" }
     /^##/ {
       match($0, /^#+/); level = RLENGTH
       if (inside && level <= at) inside = 0
-      if (!inside && tolower($0) ~ /plan review/) { found = 1; inside = 1; at = level; counts = "" }
+      if (!inside && tolower($0) ~ /plan review/) { found = 1; inside = 1; at = level; seen = 0; value = "" }
       next
     }
-    inside && counts == "" && /^\*\*Findings:\*\*/ { counts = $0 }
-    END {
-      if (!found) exit
-      m = n(counts, "must-fix"); s = n(counts, "should-fix"); a = n(counts, "acted on")
-      if (m == "" || s == "" || a == "") print "nocounts"; else print m ", " s ", " a
+    inside && !seen && index($0, label) == 1 {
+      seen = 1; value = substr($0, length(label) + 1)
+      sub(/^[ \t]+/, "", value); sub(/[ \t]+$/, "", value)
     }
+    END { if (!found) exit 1; print value }
   ' "$1"
+}
+
+# The counts of the newest Plan review section in <3-solution.md>, as
+# `<n> must-fix, <n> should-fix, <n> acted on`; `nocounts` for a section
+# without a whole Findings line; nothing when there is no section.
+plan_review_line() {  # <3-solution.md>
+  local findings must should acted
+  findings="$(plan_review_field "$1" "Findings")" || return 0
+  must="$(printf '%s' "$findings" | grep -oE '[0-9]+ must-fix' | head -1)"
+  should="$(printf '%s' "$findings" | grep -oE '[0-9]+ should-fix' | head -1)"
+  acted="$(printf '%s' "$findings" | grep -oE '[0-9]+ acted on' | head -1)"
+  if [ -z "$must" ] || [ -z "$should" ] || [ -z "$acted" ]; then echo "nocounts"; else echo "$must, $should, $acted"; fi
 }
 
 if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ]; then

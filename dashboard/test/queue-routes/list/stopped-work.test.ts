@@ -229,9 +229,11 @@ describe("landing a stopped step's specs-only work (spec 187)", () => {
 
   // Criterion 4. Scoped to the wall clock and a provider limit — every
   // other terminal reason lands nothing, since neither a red test suite
-  // nor a CLI error leaves a commit boundary landing can trust.
-  test("a stop for a reason other than the clock lands nothing", async () => {
-    for (const reason of ["tests-red", "cli-error"]) {
+  // nor a CLI error leaves a commit boundary landing can trust, and an
+  // analyze stopped on its acceptance criteria stays on the spec's branch
+  // for the next Analyze to take up.
+  test("a stop for a reason other than the clock lands nothing (AC-5)", async () => {
+    for (const reason of ["tests-red", "cli-error", "acceptance-criteria"]) {
       const git = gitFor();
       const { base, results } = serverWithRunner(git);
       const job = await runStep(base, "analyze");

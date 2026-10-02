@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "How a project's acceptance criteria checks level resolves, as one table both",
+    "implementations are checked against. `aide-run-spec` (bash, aide_manifest_get) and the",
+    "dashboard's resolveCriteriaChecks() (TypeScript) read it independently — the pair is",
+    "hand-kept, like the code landing, so the agreement is asserted rather than assumed.",
+    "",
+    "`manifest` is the value written as `criteriaChecks: <value>` in .aide/project.yaml,",
+    "exactly as written (quotes included); null means the key is not written at all.",
+    "`level` is what both sides must resolve to: absent or unknown is warn."
+  ],
+  "cases": [
+    { "name": "unset", "manifest": null, "level": "warn" },
+    { "name": "off", "manifest": "off", "level": "off" },
+    { "name": "warn", "manifest": "warn", "level": "warn" },
+    { "name": "stop", "manifest": "stop", "level": "stop" },
+    { "name": "a-quoted-value-is-read-without-its-quotes", "manifest": "\"stop\"", "level": "stop" },
+    { "name": "an-unknown-value-is-warn", "manifest": "strict", "level": "warn" }
+  ]
+}

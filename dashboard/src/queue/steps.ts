@@ -191,7 +191,15 @@ export type JobState = (typeof JOB_STATES)[number];
 // own suite on the merged result and it went red, so nothing was pushed.
 // The step did its work and the machinery did its job — the code is not
 // green yet, and the answer is to run implement again.
-export type StopReason = "timeout" | "provider-limit" | "tests-red";
+// `acceptance-criteria` is an analyze the runner stopped at the project's
+// `criteriaChecks: stop`: the description needs putting right first.
+export type StopReason = "timeout" | "provider-limit" | "tests-red" | "acceptance-criteria";
+
+/** The reasons a RUN stops on, as a step's result names them. `tests-red`
+ *  is not one: a step's own red run fails it, and only a landing stops a
+ *  job on red. */
+export const isRunStop = (reason: string | undefined): reason is "timeout" | "provider-limit" | "acceptance-criteria" =>
+  reason === "timeout" || reason === "provider-limit" || reason === "acceptance-criteria";
 
 /** States where a job still owns its work. Anything else has released
  *  it, and the same step may be queued again.

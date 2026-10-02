@@ -81,6 +81,9 @@ export interface StepOutcome {
   modelId?: string;
   providerLimit?: unknown;
   testedGreen?: unknown;
+  /** The faults an analyze stopped on its acceptance criteria named, by
+   *  kind; read by `criteriaStopMessage`. */
+  criteriaFaults?: unknown;
   error?: string;
   /** WHY it was refused, when the answer is one the page acts on (spec
    *  153). `"conflict"` — the runner could not bring the spec's branch

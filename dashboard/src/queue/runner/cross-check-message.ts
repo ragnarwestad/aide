@@ -42,3 +42,22 @@ export function noProgressMessage(step: WorkflowStep, outcome: Partial<StepOutco
 export function withoutRestatedError<T extends { terminalReason?: string; error?: unknown }>(outcome: T): T {
   return outcome.terminalReason === "no-progress" ? { ...outcome, error: undefined } : outcome;
 }
+
+/** An analyze stopped on the project's acceptance criteria checks, as the
+ *  board's own sentence naming each fault by kind. Undefined when the
+ *  result sorted none (`criteriaFaults`, run-spec/record/criteria-check.sh):
+ *  the runner's own sentence then carries the plan review's words. */
+export function criteriaStopMessage(step: WorkflowStep, outcome: Partial<StepOutcome>): BoardMessage | undefined {
+  if (outcome.terminalReason !== "acceptance-criteria") return undefined;
+  const raw = outcome.criteriaFaults;
+  if (raw === null || typeof raw !== "object") return undefined;
+  const r = raw as Record<string, unknown>;
+  const ids = (v: unknown): string =>
+    Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x !== "").join(", ") : "";
+  const faults: BoardMessage[] = [];
+  if (r.missing === true) faults.push({ key: "runner.criteriaMissing" });
+  if (ids(r.notEars)) faults.push({ key: "runner.criteriaNotEars", values: { ids: ids(r.notEars) } });
+  if (ids(r.noScenario)) faults.push({ key: "runner.criteriaNoScenario", values: { ids: ids(r.noScenario) } });
+  if (!faults.length) return undefined;
+  return { key: "runner.criteriaStopped", values: { button: stepButton(step) }, inner: faults };
+}

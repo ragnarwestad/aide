@@ -161,7 +161,7 @@ need_part() {
 # EVERY phase, before the first one runs. Checked one at a time where
 # each is sourced, a missing late phase was only found after the step had
 # run and the money was spent.
-for _part in run-spec/setup/arguments.sh run-spec/setup/code-landing.sh run-spec/setup/gates.sh run-spec/setup/invocation.sh run-spec/checkout/checkouts.sh run-spec/checkout/worktree.sh run-spec/checkout/branch.sh run-spec/turn/provider-limit.sh run-spec/turn/model-turn.sh run-spec/turn/spec-paths.sh run-spec/checkout/cleanup.sh run-spec/record/records.sh run-spec/record/status-line.sh run-spec/turn/review.sh run-spec/record/specs-guard.sh run-spec/record/boundary.sh run-spec/record/outcome.sh run-spec/record/ac-coverage.sh run-spec/publish/publish.sh run-spec/publish/wiki-guard.sh run-spec/publish/result.sh; do need_part "$_part"; done
+for _part in run-spec/setup/arguments.sh run-spec/setup/code-landing.sh run-spec/setup/gates.sh run-spec/setup/invocation.sh run-spec/checkout/checkouts.sh run-spec/checkout/worktree.sh run-spec/checkout/branch.sh run-spec/turn/provider-limit.sh run-spec/turn/model-turn.sh run-spec/turn/spec-paths.sh run-spec/checkout/cleanup.sh run-spec/record/records.sh run-spec/record/status-line.sh run-spec/turn/review.sh run-spec/record/specs-guard.sh run-spec/record/criteria-check.sh run-spec/record/boundary.sh run-spec/record/outcome.sh run-spec/record/ac-coverage.sh run-spec/publish/publish.sh run-spec/publish/wiki-guard.sh run-spec/publish/result.sh; do need_part "$_part"; done
 # The step's own clock, started before anything it does (2026-09-08).
 # It began beside the AI session and therefore measured the session
 # alone: the checkout, the worktree, the branch, the archive pre-check
@@ -255,6 +255,8 @@ source "$SCRIPT_DIR/lib/run-spec/turn/review.sh"
 source "$SCRIPT_DIR/lib/run-spec/turn/step-tests.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/run-spec/record/specs-guard.sh"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/run-spec/record/criteria-check.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/run-spec/record/boundary.sh"
 # shellcheck source=/dev/null
