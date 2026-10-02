@@ -25,6 +25,7 @@ const STOP_SENTENCES: Record<string, MessageKey> = {
   "conflict-open": "wordPhase.stopConflictOpen",
   "provider-limit": "wordPhase.stopProviderLimit",
   "model-refused": "wordPhase.stopModelRefused",
+  "acceptance-criteria": "wordPhase.stopAcceptanceCriteria",
 };
 
 export const stopSentence = (reason: string, lang: Language = "en"): string => {

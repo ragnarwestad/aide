@@ -214,7 +214,7 @@ class TestManifestTemplate:
     TOP_KEYS = [
         "name", "description", "generated", "stack", "dependencies",
         "deployment", "logging", "statistics", "reports", "docs",
-        "worktreeLinks", "reuse",
+        "worktreeLinks", "reuse", "criteriaChecks",
     ]
 
     def test_template_has_every_documented_top_key_AC_1(self):

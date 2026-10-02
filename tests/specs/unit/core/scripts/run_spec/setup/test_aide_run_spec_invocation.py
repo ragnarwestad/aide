@@ -12,6 +12,7 @@ import pytest
 from ...conftest import STOP_DEADLINE_SEC, git, run
 from ..run_spec_fakes import writing_claude
 from ..run_spec_invoking import BRANCH, _standalone_runner_copy
+from ..run_spec_project_state import CRITERIA_CHECKS, configure_criteria_checks
 from ..run_spec_results import FLAT_USAGE, MODEL_USAGE, RESULT_ERROR, RESULT_OK, init_event, stream_body
 
 def test_the_claude_binary_can_be_named_in_the_projects_own_config(runner, workspace, fake_claude):
@@ -655,3 +656,24 @@ def test_the_prompt_asks_for_the_skill_steps_in_the_log(runner, workspace, fake_
     assert "— skipped: <why>" in out["prompt"]
     # Shown in backticks, the line came back in backticks in the log.
     assert "`analyze · Step" not in out["prompt"]
+
+# --- the acceptance criteria checks level is stated to analyze --------------
+#
+# The same reason as the acceptance-ticking line above: the skill acts on
+# what its prompt says, and the level lives in the project's manifest.
+
+@pytest.mark.parametrize("case", CRITERIA_CHECKS, ids=[c["name"] for c in CRITERIA_CHECKS])
+def test_analyze_states_the_projects_criteria_checks_level_AC_1_AC_2(runner, workspace, fake_claude, case):
+    configure_criteria_checks(workspace, case["manifest"])
+    rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command="analyze", dry_run=True)
+    assert rc == 0, out
+    lines = [l for l in out["prompt"].splitlines() if "criteriaChecks:" in l]
+    assert len(lines) == 1, out["prompt"]
+    assert lines[0].endswith(f"criteriaChecks: {case['level']}"), lines
+
+
+def test_only_analyze_is_told_the_criteria_checks_level_AC_2(runner, workspace, fake_claude):
+    configure_criteria_checks(workspace, "stop")
+    rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command="implement", dry_run=True)
+    assert rc == 0, out
+    assert "criteriaChecks" not in out["prompt"], out["prompt"]

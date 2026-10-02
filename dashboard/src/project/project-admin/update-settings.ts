@@ -17,6 +17,9 @@ import { fail, type ProjectAdminResult, type ProjectStep, type ProjectStepName }
  *  question of whether code is reviewed before it lands. */
 const CODE_LANDINGS = ["merge", "pr"] as const;
 
+/** How strictly `/aide-analyze` checks a spec's acceptance criteria. */
+const CRITERIA_CHECKS = ["off", "warn", "stop"] as const;
+
 /** Change a project's three settings after it was added (spec 184).
  *
  *  Until this existed, the fields lived on the Add form and nowhere
@@ -49,6 +52,8 @@ export async function updateProjectSettings(
     specsPath?: string;
     worktreeLinks?: string;
     codeLanding?: string;
+    /** Saved like `codeLanding`: `warn`, the default, removes the key. */
+    criteriaChecks?: string;
     /** Both gated on presence in `req`, unlike `specsPath` above:
      *  `codeLanding` already reads that way (`req.codeLanding !==
      *  undefined`), and this one needs the same rule — a future caller
@@ -93,6 +98,10 @@ export async function updateProjectSettings(
   const landing = (req.codeLanding ?? "").trim();
   if (landing && !(CODE_LANDINGS as readonly string[]).includes(landing)) {
     return fail("codeLanding", `code landing must be ${CODE_LANDINGS.join(" or ")} — not "${landing}"`);
+  }
+  const criteria = (req.criteriaChecks ?? "").trim();
+  if (criteria && !(CRITERIA_CHECKS as readonly string[]).includes(criteria)) {
+    return fail("criteriaChecks", `acceptance criteria checks must be ${CRITERIA_CHECKS.join(", ")} — not "${criteria}"`);
   }
   const steps: ProjectStep[] = [];
   const done = async (): Promise<ProjectAdminResult> => ({
@@ -223,6 +232,10 @@ export async function updateProjectSettings(
   const wanted = landing === "merge" ? "" : landing;
   if (req.codeLanding !== undefined && wanted !== (manifestData.codeLanding ?? "")) {
     writeManifest("codeLanding", wanted, "codeLanding");
+  }
+  const wantedCriteria = criteria === "warn" ? "" : criteria;
+  if (req.criteriaChecks !== undefined && wantedCriteria !== (manifestData.criteriaChecks ?? "")) {
+    writeManifest("criteriaChecks", wantedCriteria, "criteriaChecks");
   }
 
   if (settingsFile && settingsEdits.length) {

@@ -77,3 +77,15 @@ def test_the_create_skill_and_the_plan_review_give_the_rules_ears_patterns_AC_1_
         wrong += [f"{where} gives {p!r}, which the rule does not" for p in sorted(copy - rule)]
         wrong += [f"{where} leaves out {p!r}" for p in sorted(rule - copy)]
     assert not wrong, "\n".join(wrong)
+
+
+@pytest.mark.validation
+def test_the_create_skill_hands_the_given_description_to_aide_create_spec_AC_2():
+    """The check that keeps a description's own criteria word for word
+    runs only when the skill passes the description as it came in."""
+    skill = (CORE_SKILLS_DIR / "aide-create" / "SKILL.md").read_text(encoding="utf-8")
+    calls = [block for block in BASH_BLOCK.findall(skill)
+             if "aide-create-spec" in block and "--description" in block]
+    assert calls, "the create skill has no aide-create-spec call passing --description"
+    missing = [block for block in calls if "--given-description" not in block]
+    assert not missing, f"{len(missing)} of {len(calls)} calls pass no --given-description"

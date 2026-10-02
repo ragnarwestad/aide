@@ -309,10 +309,10 @@ function aiFormulateAcceptanceField(formId: string): string {
     `<span class="fieldend">` +
     helpPopover(
       "what this does",
-      "Ticked, create runs a short AI session that drafts the acceptance criteria from this " +
-        "description; cleared, create writes the spec directly from what is typed here — no AI " +
-        "session, done in seconds. A \"## Acceptance criteria\" section you write in the " +
-        "description yourself is left as it stands either way.",
+      "Ticked, create runs a short AI session that writes an acceptance criterion for each " +
+        "requirement in this description that has none, and keeps the criteria you wrote " +
+        "yourself word for word; cleared, create writes the spec directly from what is typed " +
+        "here — no AI session, done in seconds.",
     ) +
     `</span></span></span>`
   );

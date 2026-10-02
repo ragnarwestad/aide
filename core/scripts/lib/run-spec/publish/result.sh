@@ -215,6 +215,7 @@ line="$(jq -cn \
   --arg modelId "${model_id_out:-}" \
   --argjson providerLimit "${provider_limit_out:-null}" \
   --argjson testedGreen "${tested_green_json:-null}" \
+  --argjson criteriaFaults "${criteria_faults_json:-null}" \
   '{ok:$ok, exitCode:$exitCode, sessionId:$sessionId, tool:$tool,
     costMeasured:$costMeasured, terminalReason:$terminalReason,
     subtype:$subtype, durationSec:$durationSec, branch:$branch,
@@ -251,4 +252,7 @@ line="$(jq -cn \
    # And for the tree and the commands this step saw green
    # (run-spec/turn/step-tests.sh): the landing skips its own run of the same
    # commands on the same tree.
-   + (if $testedGreen == null then {} else {testedGreen:$testedGreen} end)')"
+   + (if $testedGreen == null then {} else {testedGreen:$testedGreen} end)
+   # And for the faults an analyze stopped on (run-spec/record/criteria-check.sh),
+   # sorted by kind: present only on a step that stopped on them.
+   + (if $criteriaFaults == null then {} else {criteriaFaults:$criteriaFaults} end)')"

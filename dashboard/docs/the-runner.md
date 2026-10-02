@@ -16,21 +16,22 @@ What a run does to the repositories it touches: the clones the dashboard keeps o
 checkouts a step works in, what a finished step publishes — and, last, how to run one step by hand.
 
 **Where the code is.** `core/scripts/aide-run-spec` is the entry point and holds little else; the mechanics are in
-`core/scripts/lib/run-spec/`, twenty-two files in five folders named for when they run. The ones this page describes:
+`core/scripts/lib/run-spec/`, twenty-three files in five folders named for when they run. The ones this page describes:
 
-| For a change to                                     | Open                             |
-|-----------------------------------------------------|----------------------------------|
-| The flags and what each refuses                     | `run-spec/setup/arguments.sh`    |
-| The worktrees, their paths and the links into them  | `run-spec/checkout/checkouts.sh` |
-| Branching each root, and the per-root lock it takes | `run-spec/checkout/branch.sh`    |
-| The gates before a step starts, and the lock itself | `run-spec/setup/gates.sh`        |
-| Committing and pushing afterwards                   | `run-spec/publish/publish.sh`    |
-| Whether a step counts as having run                 | `run-spec/record/status-line.sh` |
-| The two reviews' lines in the log, and the review   | `run-spec/turn/review.sh`        |
-| The test gate an implement ends on                  | `run-spec/turn/step-tests.sh`    |
-| Where the specs root comes from                     | `run-spec/turn/spec-paths.sh`    |
-| The model turn, and reading what came back          | `run-spec/turn/model-turn.sh`    |
-| What the run reports, and the result JSON           | `run-spec/publish/result.sh`     |
+| For a change to                                     | Open                                |
+|-----------------------------------------------------|-------------------------------------|
+| The flags and what each refuses                     | `run-spec/setup/arguments.sh`       |
+| The worktrees, their paths and the links into them  | `run-spec/checkout/checkouts.sh`    |
+| Branching each root, and the per-root lock it takes | `run-spec/checkout/branch.sh`       |
+| The gates before a step starts, and the lock itself | `run-spec/setup/gates.sh`           |
+| Committing and pushing afterwards                   | `run-spec/publish/publish.sh`       |
+| Whether a step counts as having run                 | `run-spec/record/status-line.sh`    |
+| The two reviews' lines in the log, and the review   | `run-spec/turn/review.sh`           |
+| Stopping an analyze on its acceptance criteria      | `run-spec/record/criteria-check.sh` |
+| The test gate an implement ends on                  | `run-spec/turn/step-tests.sh`       |
+| Where the specs root comes from                     | `run-spec/turn/spec-paths.sh`       |
+| The model turn, and reading what came back          | `run-spec/turn/model-turn.sh`       |
+| What the run reports, and the result JSON           | `run-spec/publish/result.sh`        |
 
 The per-root lock is `$root/.git/aide-run-spec-worktree.lock` (`acquire_worktree_lock`, `run-spec/setup/gates.sh`). Every
 move of a shared checkout takes it: the switch, the fetch, the fast-forward and the `worktree add`.
@@ -298,7 +299,16 @@ for the step's own failure before its result line, and one for a refused run.
 the `**Findings:**` line that opens the plan's Plan review section (`plan_review_line`, `run-spec/turn/review.sh`):
 `plan review: 2 must-fix, 3 should-fix, 4 acted on — the findings are under Plan review in the plan (3-solution.md)`,
 or that the plan has no Plan review section, or that the section gives no counts. Code blocks are skipped, and after a
-`## Round N` heading only that round's review counts. An implement's code review writes
+`## Round N` heading only that round's review counts.
+
+**The acceptance criteria checks.** The project's `criteriaChecks` (`off`, `warn` or `stop`, absent read as
+`warn`) is read from the manifest once and stated in the analyze prompt. At `stop`, a completed analyze whose Plan
+review section's `**Criteria check:**` line names a fault after ` — ` ends `acceptance-criteria`
+(`run-spec/record/criteria-check.sh`, after the scope guard, so a write outside the spec's folder is decided first):
+`ok` false, the commit subject ending `(stopped: acceptance-criteria)`, the error naming each fault, and the result's
+`criteriaFaults` sorting them into `missing`, `notEars` and `noScenario`. The state file does not gain `analyze`.
+A line reading `none found`, or no such line at all, completes the step, and the log says what was read. The
+runner reads the line and never judges the criteria itself. An implement's code review writes
 `the review found no defects`, or an `error:` line with the count, one `review: <line>` per line of the reviewer's
 list, and `the defect(s) went back to the implement session to be fixed` before the fix turn.
 

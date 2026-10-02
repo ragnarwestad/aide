@@ -100,5 +100,6 @@ export function messageKeyFor(a: Attention): MessageKey {
   if (a.kind === "failed") return "push.failed";
   if (a.reason === "provider-limit") return "push.stoppedProviderLimit";
   if (a.reason === "tests-red") return "push.stoppedTestsRed";
+  if (a.reason === "acceptance-criteria") return "push.stoppedAcceptanceCriteria";
   return "push.stoppedTimeout";
 }

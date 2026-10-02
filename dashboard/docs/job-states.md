@@ -34,7 +34,7 @@ A job is an ordered list of steps with a `stepIndex`; its `state` says where the
 | `queued`      | Waiting for the runner to start its next step. Also where a job sits between two steps.                                                                                                                     |
 | `running`     | One step has a live process. `pid`, `pgid`, `resultFile`, `sessionId` and `streamFile` are set.                                                                                                             |
 | `done`        | No step is left to run. Written the instant the last step's process succeeds, so a landing that follows may still fail — and an `archive` held back on unticked criteria reaches it without running at all. |
-| `stopped`     | A step reached its own time limit, a provider limit ended it, or a landing's test run went red. `stopReason` says which.                                                                                    |
+| `stopped`     | A step reached its own time limit, a provider limit ended it, an analyze stopped on its acceptance criteria, or a landing's test run went red. `stopReason` says which.                                     |
 | `failed`      | A step reported failure, or a landing after a successful step did not finish.                                                                                                                               |
 | `cancelled`   | A user pressed Cancel.                                                                                                                                                                                      |
 | `interrupted` | The step's process died without leaving a result.                                                                                                                                                           |
@@ -53,7 +53,7 @@ stateDiagram-v2
     queued --> done: tick — no step left
     running --> queued: step ok, more steps
     running --> done: step ok, last step
-    running --> stopped: timeout, provider limit
+    running --> stopped: timeout, provider limit, acceptance criteria
     running --> failed: step failed
     running --> interrupted: process gone, no result
     done --> failed: landing did not finish
@@ -107,6 +107,10 @@ queued `create`, `archive` or `close` step — the ones that do no model work �
   `timeout` or `provider-limit` step, with something pushed, and no code root among it; a stopped `implement` whose
   code branch was pushed lands nothing, and that code waits for `archive`. A landing that does run leaves the job's
   `error` in place: it is the reason the step stopped, not a fault the landing resolved.
+- `acceptance-criteria` gives `stopped` too: an analyze the runner stopped at the project's `criteriaChecks: stop`.
+  Its `error` names each fault the plan review found, by kind, from the result's `criteriaFaults`, and is the
+  runner's own sentence when that lists none. It lands nothing: the analysis stays on the spec's branch, where the
+  next Analyze takes it up.
 - Any other failure gives `failed`, with `error` and, when the runner found a merge conflict at step start,
   `errorReason: "conflict"`.
   A result whose `stop_reason` is `refusal` ends `model-refused`: the model itself declined, so the error names the
@@ -174,9 +178,10 @@ rides with the last of them, and the permanent records of a landing attempt — 
   disagreeing — they have not seen the run yet. A step with no landing of its own (`implement`, a failed step) has
   those answers read again as soon as its result is written (`stepDoneHandler`, `src/serve/runner-setup.ts`); a step
   with a landing has them read again by the landing.
-- **`stopReason`** is `timeout`, `provider-limit` or `tests-red`, set with `stopped` and nowhere else.
-  `stopped` is deliberately not `failed`: under a tight timeout a time-stop is a common, healthy outcome, and a red
-  suite on a landing is work that is not green yet rather than a broken agent.
+- **`stopReason`** is `timeout`, `provider-limit`, `tests-red` or `acceptance-criteria`, set with `stopped` and
+  nowhere else. `stopped` is deliberately not `failed`: under a tight timeout a time-stop is a common, healthy
+  outcome, a red suite on a landing is work that is not green yet rather than a broken agent, and an analyze stopped
+  on its acceptance criteria waits for the description to be put right.
 - **`errorReason`** is `conflict`, `held-back`, `tests-red` or `unlanded`, set when something stands in the way of
   the job: the class of it, for a reader who needs to act without matching on the sentence. `conflict` and `unlanded` are
   resolved by running `archive` again; `tests-red` by making the suite green and running the step again; and

@@ -30,9 +30,11 @@
 # Usage:
 #   aide-create-spec --specs-root <path> [--number <NN>] --slug <slug>
 #                     --title <title> --description <text>
+#                     [--given-description <text>]
 #                     [--depends-on <value>] [--result-file <path>]
 #   aide-create-spec --specs-root <path> --folder-name <name>
 #                     --title <title> --description <text>
+#                     [--given-description <text>]
 #                     [--depends-on <value>] [--result-file <path>]
 #   aide-create-spec --specs-root <path> --assign-number --folder <name>
 #                     [--result-file <path>]
@@ -57,6 +59,9 @@ folder_name=""; assign_number="no"
 # there is nothing to validate, and its absence is the byte-for-byte
 # behaviour every caller before this flag existed already has (REQ-11).
 acceptance_not_required="no"
+# The description as /aide-create received it, before it added criteria.
+# A flag of its own, so an empty value still counts as given.
+given_description=""; given_set="no"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -65,9 +70,11 @@ while [ $# -gt 0 ]; do
 Usage:
   aide-create-spec --specs-root <path> [--number <NN>] --slug <slug>
                     --title <title> --description <text>
+                    [--given-description <text>]
                     [--depends-on <value>] [--result-file <path>]
   aide-create-spec --specs-root <path> --folder-name <name>
                     --title <title> --description <text>
+                    [--given-description <text>]
                     [--depends-on <value>] [--result-file <path>]
   aide-create-spec --specs-root <path> --assign-number --folder <name>
                     [--result-file <path>]
@@ -81,6 +88,7 @@ USAGE
     --slug) slug="${2:-}"; shift 2 ;;
     --title) title="${2:-}"; shift 2 ;;
     --description) description="${2:-}"; shift 2 ;;
+    --given-description) given_description="${2:-}"; given_set="yes"; shift 2 ;;
     --depends-on) depends_on="${2:-}"; depends_on_given="yes"; shift 2 ;;
     --acceptance-not-required) acceptance_not_required="yes"; shift ;;
     --result-file) result_file="${2:-}"; shift 2 ;;
@@ -262,7 +270,8 @@ fi
 # still refused below, detected by stripping every `*` from the line
 # and checking for a bare "- AC-n:" shape underneath. A line that
 # survives stripping unmatched is ordinary text and is never touched.
-bolded="$(printf '%s\n' "$description" | sed -E 's/^- \**AC-([0-9]+)\**:\**[[:space:]]*/- **AC-\1:** /')"
+AC_BOLD='s/^- \**AC-([0-9]+)\**:\**[[:space:]]*/- **AC-\1:** /'
+bolded="$(printf '%s\n' "$description" | sed -E "$AC_BOLD")"
 [ "$bolded" = "$(printf '%s\n' "$description")" ] || description="$bolded"
 while IFS= read -r ac_line; do
   stripped="${ac_line//\*/}"
@@ -277,6 +286,47 @@ while IFS= read -r ac_line; do
 done <<AC_CHECK_EOF
 $description
 AC_CHECK_EOF
+
+# --given-description: the criteria it gives are the person's own. Each
+# must be in --description word for word, and every criterion added must
+# take the next id after the highest one given, with no gap and no id
+# written more often than the given description has it. Both texts go through the same bold rewrite before they
+# are compared. A given line the rewrite cannot reach still counts as
+# given, by the shape check's own match, but is not compared: its format
+# had to change. Only a criterion's first line is compared, since the
+# rule writes one sentence per id.
+if [ "$given_set" = "yes" ]; then
+  ac_lines() { printf '%s\n' "$1" | sed -E "$AC_BOLD" | grep -E '^- \*\*AC-[0-9]+:\*\*' | sed -E 's/[[:space:]]+$//'; }
+  ac_id() { local rest="${1#- \*\*AC-}"; printf '%s\n' "$((10#${rest%%:*}))"; }
+  given_ids=" "; given_highest=0; given_id_list=""
+  while IFS= read -r n; do
+    [ -n "$n" ] || continue
+    given_ids="$given_ids$((10#$n)) "
+    given_id_list="$given_id_list$((10#$n))"$'\n'
+    [ "$((10#$n))" -gt "$given_highest" ] && given_highest="$((10#$n))"
+  done <<<"$(printf '%s\n' "$given_description" | tr -d '*' | sed -nE 's/^- AC-([0-9]+)[^:]*:.*/\1/p')"
+  written_lines="$(ac_lines "$description")"
+  written_ids="$(while IFS= read -r l; do [ -n "$l" ] && ac_id "$l"; done <<<"$written_lines" | sort -n)"
+  for twice in $(uniq -d <<<"$written_ids"); do
+    [ "$(grep -cx -- "$twice" <<<"$written_ids")" -gt "$(grep -cx -- "$twice" <<<"$given_id_list")" ] \
+      && refuse "AC-$twice appears twice: every criterion keeps an id of its own"
+  done
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    id="$(ac_id "$line")"
+    grep -qx -- "$id" <<<"$written_ids" || refuse "AC-$id is missing: every criterion the description gave must stay in it"
+    grep -qxF -- "$line" <<<"$written_lines" || refuse "AC-$id must stay word for word as the description gave it: \"$line\""
+  done <<<"$(ac_lines "$given_description")"
+  next=$((given_highest + 1))
+  for id in $written_ids; do
+    case "$given_ids" in *" $id "*) continue ;; esac
+    if [ "$id" -ne "$next" ]; then
+      [ "$given_highest" -eq 0 ] && [ "$next" -eq 1 ] && refuse "AC-$id is not the next id: the first criterion takes AC-1"
+      refuse "AC-$id is not the next id: a criterion added after AC-$((next - 1)) takes AC-$next"
+    fi
+    next=$((next + 1))
+  done
+fi
 
 if [ -n "$folder_name" ]; then
   [[ "$folder_name" =~ ^[A-Za-z0-9._-]{1,128}$ ]] || refuse "invalid --folder-name: $folder_name"

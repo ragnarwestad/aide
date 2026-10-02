@@ -41,3 +41,12 @@ describe("a failed newest run speaks for the phase", () => {
     expect(wordPhase(true, undefined, undefined, { step: "analyze" }).badge?.label).toBe("Done");
   });
 });
+
+describe("an analyze stopped on its acceptance criteria", () => {
+  test("reads amber Stopped from history, in a sentence rather than the raw token (AC-5)", () => {
+    const w = wordPhase(false, undefined, undefined, { stopped: "acceptance-criteria", step: "analyze" });
+    expect(w.badge).toEqual({ variant: "waiting", label: "Stopped" });
+    expect(w.qualifier).toBeDefined();
+    expect(w.qualifier).not.toContain("acceptance-criteria");
+  });
+});

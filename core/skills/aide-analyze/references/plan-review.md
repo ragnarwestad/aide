@@ -13,7 +13,9 @@ Agent invocations (subagents), blind to the analyst's own reasoning —
 they read only the four spec files on disk, never the conversation that
 produced them. The Feasibility reviewer reads the project's own files as
 well, from the project root the analyst hands it, since whether a part
-exists is not in the spec.
+exists is not in the spec. The Coherence reviewer is handed the
+project's acceptance criteria checks level (`off`, `warn` or `stop`,
+Step 1), since that is not in the spec either.
 
 ## Review — scaled to complexity
 
@@ -49,21 +51,34 @@ questions, with file:line references into the spec:
    id from 1-description.md (when present) appear in at least one
    acceptance criterion? A missing id is a must-fix.
 
-   Does every AC-n line in 1-description.md follow one of the five
-   EARS patterns, its condition first?
+   **The acceptance criteria checks**, at the level the analyst hands
+   it. At `off`, make none of the three. At `warn` and `stop`, make
+   all three:
 
-   - `The <system> SHALL <response>`
-   - `WHEN <trigger>, the <system> SHALL <response>`
-   - `WHILE <state>, the <system> SHALL <response>`
-   - `IF <condition>, THEN the <system> SHALL <response>`
-   - `WHERE <feature>, the <system> SHALL <response>`
+   - **No acceptance criteria:** `1-description.md` has no AC-n line.
+     A should-fix, declined: the description is the user's to write.
+   - **Not in EARS:** an AC-n line follows none of the five EARS
+     patterns, its condition first:
 
-   Each criterion that follows none — a condition written after SHALL
-   counts — is a should-fix that names its id and says why it follows
-   none. Check every AC-n line, on another round too. It is never a
-   must-fix and never stops the analysis: the description is the
-   user's to rewrite, so the plan declines it with that reason, reads
-   the criterion as it stands, and does not count it as acted on.
+     - `The <system> SHALL <response>`
+     - `WHEN <trigger>, the <system> SHALL <response>`
+     - `WHILE <state>, the <system> SHALL <response>`
+     - `IF <condition>, THEN the <system> SHALL <response>`
+     - `WHERE <feature>, the <system> SHALL <response>`
+
+     Each criterion that follows none — a condition written after
+     SHALL counts — is a should-fix that names its id and says why it
+     follows none. Check every AC-n line, on another round too. The
+     description is the user's to rewrite, so the plan declines it with
+     that reason, reads the criterion as it stands, and does not count
+     it as acted on.
+   - **No scenario where the condition does not hold:** a criterion
+     with a WHEN, WHILE or WHERE condition, wherever it is written, and
+     no Given/when/then scenario in `3-solution.md` for the case where
+     that condition does not hold. A must-fix: the plan is revised to
+     add the scenario. It stands only when the plan cannot say what
+     holds without the condition, and the plan then declines it with
+     that reason.
 
 ## Consolidate
 
@@ -92,6 +107,26 @@ unbuildable), **should-fix** (weakness, worth fixing now), **notes**
    held-back round's own review opens with its own Findings line. The
    runner reads the three numbers into the step's log; a section without
    the line is logged as giving no counts.
+
+   Right under it, one Criteria check line: the level, and the faults
+   of the three checks that still stand after the revision.
+
+   ```markdown
+   **Findings:** 2 must-fix, 3 should-fix, 4 acted on
+   **Criteria check:** stop — not in EARS: AC-2, AC-4; no scenario for when the condition does not hold: AC-5
+   ```
+
+   The line reads `**Criteria check:** off` at `off`, and
+   `**Criteria check:** warn — none found` (or `stop — none found`)
+   when nothing stands. Otherwise the text after ` — ` is one or more
+   of these, joined by `; `, with the ids joined by `, `:
+
+   - `no acceptance criteria`
+   - `not in EARS: AC-2, AC-4`
+   - `no scenario for when the condition does not hold: AC-5`
+
+   At `stop`, the runner ends Analyze stopped when this line names any
+   fault, and the reason it gives names each one.
 2. **REVISE the plan for every must-fix** — the sections of
    `3-solution.md` are updated, not just commented on, the same way.
    Should-fix items are revised or explicitly declined with a reason.

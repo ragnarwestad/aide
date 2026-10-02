@@ -116,6 +116,40 @@ export const MESSAGES = {
     fr: "{button} interrompu : le modèle a refusé de continuer. — Cliquez de nouveau sur {button}, ou choisissez un autre modèle pour cette étape.",
     resolve: "Press {button} again, or choose another model for this step.",
   },
+  // An analyze stopped at the project's `criteriaChecks: stop`, with one
+  // inner sentence per kind of fault the plan review named.
+  "runner.criteriaStopped": {
+    en: "{button} stopped on the acceptance criteria — {message}. — Put the description right, then press {button} again.",
+    nb: "{button} stoppet på akseptansekriteriene — {message}. — Rett opp beskrivelsen, og trykk {button} igjen.",
+    es: "{button} se detuvo en los criterios de aceptación — {message}. — Corrige la descripción y pulsa {button} de nuevo.",
+    de: "{button} wurde bei den Akzeptanzkriterien angehalten — {message}. — Korrigiere die Beschreibung und klicke dann erneut auf {button}.",
+    fr: "{button} s'est arrêté sur les critères d'acceptation — {message}. — Corrigez la description, puis cliquez de nouveau sur {button}.",
+    resolve: "Put the description right, then press {button} again.",
+  },
+  "runner.criteriaMissing": {
+    en: "no acceptance criteria",
+    nb: "ingen akseptansekriterier",
+    es: "no hay criterios de aceptación",
+    de: "keine Akzeptanzkriterien",
+    fr: "aucun critère d'acceptation",
+    exempt: "a part of runner.criteriaStopped, which carries the resolution",
+  },
+  "runner.criteriaNotEars": {
+    en: "not in EARS: {ids}",
+    nb: "ikke skrevet i EARS: {ids}",
+    es: "no siguen EARS: {ids}",
+    de: "nicht in EARS-Form: {ids}",
+    fr: "pas au format EARS : {ids}",
+    exempt: "a part of runner.criteriaStopped, which carries the resolution",
+  },
+  "runner.criteriaNoScenario": {
+    en: "no scenario for when the condition does not hold: {ids}",
+    nb: "ikke noe scenario for når vilkåret ikke gjelder: {ids}",
+    es: "ningún escenario para cuando la condición no se cumple: {ids}",
+    de: "kein Szenario für den Fall, dass die Bedingung nicht gilt: {ids}",
+    fr: "aucun scénario pour le cas où la condition ne tient pas : {ids}",
+    exempt: "a part of runner.criteriaStopped, which carries the resolution",
+  },
   "runner.testsRedImplement": {
     en: "implement reported success, but the project's tests are red on its result — the runner ran them itself, and the failing tests are listed below. — Press {button} again; the step ends only on a green run.",
     nb: "implementering meldte ferdig, men prosjektets tester er røde på resultatet — runneren kjørte dem selv, og testene som feiler står under. — Trykk {button} igjen; steget ender bare på en grønn kjøring.",
@@ -602,6 +636,14 @@ export const MESSAGES = {
     de: "das Modell hat sich geweigert fortzufahren — führe es erneut aus oder wähle ein anderes Modell",
     fr: "le modèle a refusé de continuer — relancez-le, ou choisissez un autre modèle",
     resolve: "run it again",
+  },
+  "wordPhase.stopAcceptanceCriteria": {
+    en: "the plan review found faults in the acceptance criteria — put the description right, then run it again",
+    nb: "plangjennomgangen fant feil i akseptansekriteriene — rett opp beskrivelsen, og kjør på nytt",
+    es: "la revisión del plan encontró fallos en los criterios de aceptación — corrige la descripción y ejecútalo de nuevo",
+    de: "die Planprüfung hat Fehler in den Akzeptanzkriterien gefunden — korrigiere die Beschreibung und führe es erneut aus",
+    fr: "la revue du plan a trouvé des défauts dans les critères d'acceptation — corrigez la description, puis relancez-le",
+    resolve: "put the description right, then run it again",
   },
   "wordPhase.filesDisagree": {
     // The spec's files and the run record (the state file, or git where
@@ -1147,6 +1189,14 @@ export const MESSAGES = {
     de: "Die Tests wurden rot, als {step} in main gemergt wurde — es wartet auf einen grünen Lauf.",
     fr: "Les tests sont passés au rouge lors du merge de {step} dans main — il attend une exécution verte.",
     resolve: "a green run",
+  },
+  "push.stoppedAcceptanceCriteria": {
+    en: "{step} stopped on the acceptance criteria — put the description right, then press {button} again.",
+    nb: "{step} stoppet på akseptansekriteriene — rett opp beskrivelsen, og trykk {button} igjen.",
+    es: "{step} se detuvo en los criterios de aceptación — corrige la descripción y pulsa {button} de nuevo.",
+    de: "{step} wurde bei den Akzeptanzkriterien angehalten — korrigiere die Beschreibung und klicke dann erneut auf {button}.",
+    fr: "{step} s'est arrêté sur les critères d'acceptation — corrigez la description, puis cliquez de nouveau sur {button}.",
+    resolve: "press {button} again",
   },
   "push.failed": {
     en: "{step} failed — it waits for you to look at why and press {button} again.",

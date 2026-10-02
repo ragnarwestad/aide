@@ -84,6 +84,10 @@ First write `--- Step 1 of 10: Read the description — started`, and when this 
 - Identify: What should change? What is the scope? Migration or single fix?
 - If `1-description.md` has a `## Acceptance criteria` section, extract
   its `AC-n` ids for Steps 5-7 — see `references/requirements-tracing.md`.
+- **Learn the acceptance criteria checks level** — `off`, `warn` or
+  `stop`, for Steps 6, 7 and 9. A headless run states it in the prompt
+  (`criteriaChecks: <level>`). Working interactively, read the
+  manifest's `criteriaChecks` key. Absent or any other value is `warn`.
 - If `4-status.md` ALSO already carries that same section plus a
   `**Round boundary:**` stamp, this is a held-back spec taking another
   round on its open checks, not a first analysis — see
@@ -164,6 +168,13 @@ placeholder is the signal, and it is the only one.
 Fill in the sections that still hold their placeholder. Leave every
 section that already has real content exactly as it stands.
 
+One exception: when `2-analysis.md`'s Tracking info reads `Result:
+stopped (acceptance-criteria)`, the earlier run stopped on the
+acceptance criteria, and the description has been put right since.
+Treat every section that run wrote as unwritten, and write the three
+files afresh. On a held-back round, replace that round's own `## Round
+N` subsections rather than appending a new round.
+
 A held-back round (Step 1) is a different case from the above, not a
 variant of it: `2-analysis.md`/`3-solution.md` are already fully
 written from an earlier round, holding no placeholder at all, and this
@@ -242,6 +253,10 @@ must be verifiable by a test — if you cannot phrase the test, the criterion
 is too vague. When AC-n ids exist, see `references/requirements-tracing.md`
 for how each criterion opens with the AC-id it covers.
 
+Unless the level is `off`, a criterion with a WHEN, WHILE or WHERE
+condition, wherever the condition is written, also gets a scenario for
+the case where that condition does not hold: what the system does then.
+
 End a criterion with *(browser)* when only a real browser can answer it:
 whether something is displayed, where it sits on the screen, what
 scrolls, what moves when its text changes. What the markup or the
@@ -273,7 +288,10 @@ written: reviewers with distinct perspectives (feasibility, scope,
 coherence) attack `3-solution.md`, findings become must-fix/should-fix,
 and the plan is REVISED — not just annotated. See
 `references/plan-review.md` for the full routine (scaled to complexity,
-consolidation, and what gets written where).
+consolidation, and what gets written where). Hand the Coherence reviewer
+the acceptance criteria checks level from Step 1: it makes the three
+checks at that level, and the Plan review section's `**Criteria
+check:**` line names what still stands.
 
 Skip this step only when `3-solution.md` is still an empty template —
 nothing was written in Step 6 to review.
@@ -333,8 +351,14 @@ report's first line ends `— not finished, the merge into main is next
 
 
 Show a summary with complexity, number of affected files, the plan
-review's verdict (counts of must-fix/should-fix, what was revised), and
-the next step.
+review's verdict (counts of must-fix/should-fix, what was revised), the
+Criteria check line, and the next step.
+
+At `stop` with a fault on that line, a headless run is ended stopped by
+Aide after this session, and the next step is to put the description
+right and run Analyze again. Working interactively there is no runner
+to stop it: say that the analysis would have ended stopped, and that the
+description is to be put right before `/aide-implement`.
 
 ### Step 10 of 10: Merge into main
 

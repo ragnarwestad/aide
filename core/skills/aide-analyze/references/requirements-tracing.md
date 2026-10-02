@@ -2,7 +2,10 @@
 
 When 1-description.md has a `## Acceptance criteria` section, /aide-analyze
 threads its AC-n ids through the rest of the spec. No section present:
-every step below is unchanged from today's plain-text behavior.
+every step below is unchanged from today's plain-text behavior, and the
+acceptance criteria checks still run — at `warn` and `stop` a
+description with no criteria is a finding of its own
+(`references/plan-review.md`, Coherence).
 
 ## Step 1 (read the description)
 
