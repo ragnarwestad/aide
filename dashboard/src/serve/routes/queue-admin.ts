@@ -242,6 +242,7 @@ export async function handleQueueAdminRoutes(
       // fields must not be read as clearing the ones it never
       // mentioned.
       ...("codeLanding" in asked && { codeLanding: str(asked.codeLanding) }),
+      ...("criteriaChecks" in asked && { criteriaChecks: str(asked.criteriaChecks) }),
       ...("installCmd" in asked && { installCmd: str(asked.installCmd) }),
       ...("previewCmd" in asked && { previewCmd: str(asked.previewCmd) }),
       ...("testCmd" in asked && { testCmd: str(asked.testCmd) }),

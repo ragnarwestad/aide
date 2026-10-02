@@ -1,5 +1,6 @@
 // A project's own `.aide/config` and `.aide/project.yaml`: where its
-// specs live, its worktree links and its code-landing policy.
+// specs live, its worktree links, its code-landing policy and how strictly
+// its acceptance criteria are checked.
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -84,6 +85,24 @@ export function resolveCodeLanding(projectDir: string): CodeLanding {
   if (!existsSync(manifestFile)) return "merge";
   const parsed = parseManifest(readFileSync(manifestFile, "utf-8"));
   return (parsed.ok ? parsed.data.codeLanding : undefined) ?? "merge";
+}
+
+/** How strictly `/aide-analyze` checks a spec's acceptance criteria. */
+export type CriteriaChecks = "off" | "warn" | "stop";
+
+/** Which level this project chose, from the manifest alone — the same
+ *  file a run reads it from. Absent, unrecognized, unparseable or no
+ *  manifest at all → `warn`.
+ *
+ *  One half of a hand-kept pair: `core/scripts/aide-run-spec` reads the
+ *  same key with `aide_manifest_get` to state it in the analyze prompt
+ *  and to stop at `stop`, and `tests/fixtures/criteria-checks-level.json`
+ *  is the table both sides are checked against. */
+export function resolveCriteriaChecks(projectDir: string): CriteriaChecks {
+  const manifestFile = join(projectDir, ".aide", "project.yaml");
+  if (!existsSync(manifestFile)) return "warn";
+  const parsed = parseManifest(readFileSync(manifestFile, "utf-8"));
+  return (parsed.ok ? parsed.data.criteriaChecks : undefined) ?? "warn";
 }
 
 /** Which file an install/test/preview command came out of. */

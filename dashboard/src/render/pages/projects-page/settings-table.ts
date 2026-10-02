@@ -46,6 +46,14 @@ export const codeLandingChoices = (defaultBranch: string | null): { value: "merg
   { value: "pr", label: "Create a pull request" },
 ];
 
+/** The three levels of the acceptance criteria checks, in the order the
+ *  row lists them; the values are what the manifest stores. */
+export const criteriaChecksChoices = (): { value: "off" | "warn" | "stop"; label: string }[] => [
+  { value: "off", label: "Off" },
+  { value: "warn", label: "Warn" },
+  { value: "stop", label: "Stop" },
+];
+
 /** A row's Value cell: plain text in view mode; a one-line
  *  `<textarea data-oneline>`, pre-filled from the
  *  row's own current value, otherwise. A textarea wraps a long value,
@@ -82,21 +90,41 @@ function settingValueCell(r: SettingRow, isEditingThis: boolean, opts: ProjectPa
   return `<textarea name="${field}" data-oneline rows="1" maxlength="300"${placeholder}>${value}</textarea>`;
 }
 
-/** The Code-landing row (spec 255). Not a `SettingRow` — it has no
- *  `key`/`purpose`/`origin` of its own, only what `resolveCodeLanding()`
- *  answers — so it is built from its own small literal here rather than
- *  coerced into the shape the five `SETTING_KEYS` rows share. Lives in
- *  the manifest table (spec 549): it is a manifest-only fact already. */
-function codeLandingRow(codeLanding: "merge" | "pr", isEditingThis: boolean, defaultBranch: string | null): string {
-  const choices = codeLandingChoices(defaultBranch);
+/** A row that is a choice of fixed values: a `<select>` in edit mode,
+ *  the chosen label in view mode. Not a `SettingRow` — it has no
+ *  `key`/`origin` of its own, only what its resolver answers. */
+function choiceRow(
+  label: string,
+  name: string,
+  choices: { value: string; label: string }[],
+  current: string,
+  isEditingThis: boolean,
+  purpose: string,
+): string {
   const value = isEditingThis
-    ? `<select name="codeLanding">${choices.map(
-        (o) => `<option value="${o.value}"${codeLanding === o.value ? " selected" : ""}>${esc(o.label)}</option>`,
+    ? `<select name="${name}">${choices.map(
+        (o) => `<option value="${o.value}"${current === o.value ? " selected" : ""}>${esc(o.label)}</option>`,
       ).join("")}</select>`
-    : esc(choices.find((o) => o.value === codeLanding)!.label);
-  return (
-    `<tr><td>Code landing</td><td data-col="setting-value">${value}</td>` +
-    `<td>What happens to code when a spec is archived</td></tr>`
+    : esc(choices.find((o) => o.value === current)!.label);
+  return `<tr><td>${esc(label)}</td><td data-col="setting-value">${value}</td><td>${esc(purpose)}</td></tr>`;
+}
+
+/** The Code-landing row (spec 255), built from what
+ *  `resolveCodeLanding()` answers. Lives in the manifest table (spec
+ *  549): it is a manifest-only fact already. */
+function codeLandingRow(codeLanding: "merge" | "pr", isEditingThis: boolean, defaultBranch: string | null): string {
+  return choiceRow(
+    "Code landing", "codeLanding", codeLandingChoices(defaultBranch), codeLanding, isEditingThis,
+    "What happens to code when a spec is archived",
+  );
+}
+
+/** The acceptance criteria checks row, after Code landing, built from
+ *  what `resolveCriteriaChecks()` answers. */
+function criteriaChecksRow(criteriaChecks: "off" | "warn" | "stop", isEditingThis: boolean): string {
+  return choiceRow(
+    "Acceptance criteria checks", "criteriaChecks", criteriaChecksChoices(), criteriaChecks, isEditingThis,
+    "How strictly Analyze checks a spec's acceptance criteria",
   );
 }
 
@@ -185,6 +213,7 @@ export function unifiedSettingsTable(
 ): string {
   const path = projectPagePath(name);
   const codeLanding = opts.codeLanding ?? "merge";
+  const criteriaChecks = opts.criteriaChecks ?? "warn";
   const rowFor = (key: string): SettingRow | undefined => settings.rows.find((r) => r.key === key);
   const tables = SETTING_GROUPS.map((group) => {
     const isEditingThis = editingGroup === group.file;
@@ -194,9 +223,12 @@ export function unifiedSettingsTable(
       .map((r) => settingRowHtml(r, isEditingThis, opts))
       .join("");
     const heading = group.file === ".aide/config" ? ".aide/config" : manifestFileHeading(opts.settingsHome);
-    const withCodeLanding =
-      group.file === "manifest" ? rows + codeLandingRow(codeLanding, isEditingThis, opts.defaultBranch ?? null) : rows;
-    return settingsTableFor(heading, withCodeLanding, settingsTableActions(group.file, editingGroup, path));
+    const withChoices =
+      group.file === "manifest"
+        ? rows + codeLandingRow(codeLanding, isEditingThis, opts.defaultBranch ?? null) +
+          criteriaChecksRow(criteriaChecks, isEditingThis)
+        : rows;
+    return settingsTableFor(heading, withChoices, settingsTableActions(group.file, editingGroup, path));
   });
   if (editingGroup === null) return `<div class="configtables">${tables.join("")}</div>`;
   return (

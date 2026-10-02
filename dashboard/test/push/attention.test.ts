@@ -130,12 +130,13 @@ describe("what a spec is waiting for picks the sentence (criterion 9)", () => {
     return a && messageKeyFor(a);
   };
 
-  test("each waiting state and stop reason has its own key", () => {
+  test("each waiting state and stop reason has its own key (AC-4)", () => {
     expect(key(job({ state: "failed" }))).toBe("push.failed");
     expect(key(job({ state: "interrupted" }))).toBe("push.interrupted");
     expect(key(job({ state: "stopped", stopReason: "timeout" }))).toBe("push.stoppedTimeout");
     expect(key(job({ state: "stopped", stopReason: "provider-limit" }))).toBe("push.stoppedProviderLimit");
     expect(key(job({ state: "stopped", stopReason: "tests-red" }))).toBe("push.stoppedTestsRed");
+    expect(key(job({ state: "stopped", stopReason: "acceptance-criteria" }))).toBe("push.stoppedAcceptanceCriteria");
     expect(key(job({ state: "done", results: [result("archive", "acceptance-criteria-unticked")] }))).toBe(
       "push.archiveHeldBack",
     );

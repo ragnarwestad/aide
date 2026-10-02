@@ -29,13 +29,13 @@
 // here, re-exporting them for every existing importer.
 
 import { specNumber } from "../../project/spec-folder.ts";
-import { noProgressMessage, withoutRestatedError } from "./cross-check-message.ts";
+import { criteriaStopMessage, noProgressMessage, withoutRestatedError } from "./cross-check-message.ts";
 import type { NotifyEvent } from "../../integrations/notify.ts";
 import type { BoardMessage } from "../../i18n/message.ts";
 import { stepButton } from "../../format/step-label.ts";
 import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from "../queue.ts";
 import { modelIdOf, providerLimit, stepRepoRanges, testedGreen, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
-import { asResultTool } from "../steps.ts";
+import { asResultTool, isRunStop } from "../steps.ts";
 import { resolveStepModel } from "../model-name.ts";
 import { stepFailure } from "../../format/tool-failure.ts";
 import { endUntickedArchive } from "./unticked-archive.ts";
@@ -502,15 +502,15 @@ export class Runner {
       stepStartedAt: undefined,
     };
 
-    // The clock ending a run is `stopped` — never `failed`. Under tight
-    // timeouts this is a common, healthy outcome, and a reader who
-    // cannot tell it from a broken agent will ignore both.
-    if (outcome.terminalReason === "timeout" || outcome.terminalReason === "provider-limit") {
+    // The clock, a usage limit or the criteria checks ending a run is
+    // `stopped` — never `failed`: a common, healthy outcome, and a reader
+    // who cannot tell it from a broken agent will ignore both.
+    if (isRunStop(outcome.terminalReason)) {
       const result = this.o.store.transition(job.id, "run-stopped", {
         ...base,
         stopReason: outcome.terminalReason,
         finishedAt: this.o.now(),
-        error: outcome.error,
+        error: criteriaStopMessage(step, outcome) ?? outcome.error,
       });
       this.announce(result.ok ? result.job : job, "stopped", step, outcome.terminalReason);
       return;

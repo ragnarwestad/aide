@@ -130,6 +130,23 @@ def configure_code_landing(workspace, manifest, config):
     git(project, "commit", "-q", "-m", "configure the code landing")
 
 
+CRITERIA_CHECKS = json.loads(
+    (pathlib.Path(__file__).resolve().parents[5] / "fixtures" / "criteria-checks-level.json")
+    .read_text()
+)["cases"]
+
+
+def configure_criteria_checks(workspace, manifest):
+    """Write a case's `criteriaChecks` value into the project's untracked
+    manifest, beside what the fixture already carries; `None` writes no
+    key at all."""
+    path = workspace["project"] / ".aide" / "project.yaml"
+    kept = [l for l in path.read_text().splitlines() if not l.startswith("criteriaChecks:")]
+    if manifest is not None:
+        kept.append(f"criteriaChecks: {manifest}")
+    path.write_text("\n".join(kept) + "\n")
+
+
 # --- spec 352, REQ-7: the bash side of the sentence registry ---------------
 #
 # `aide-run-spec`'s own error strings reach the board unrewritten
@@ -188,6 +205,11 @@ BASH_ERROR_REGISTRY: list[dict] = [
         "name": "a completed analyze changed things outside its scope",
         "pattern": r"the step reported success but changed things outside analyze's scope.*",
         "resolve": "Press $step_button again",
+    },
+    {
+        "name": "an analyze stopped on the acceptance criteria",
+        "pattern": r"\$step_button stopped on the acceptance criteria — .*",
+        "resolve": "press $step_button again",
     },
     {
         "name": "a step stopped at its own time limit",

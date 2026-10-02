@@ -203,4 +203,20 @@ describe("a project's settings route (spec 184)", () => {
     expect(res.status).toBe(400);
     expect(readFileSync(join(project, ".aide", "project.yaml"), "utf-8")).not.toContain("codeLanding");
   });
+
+  test("the criteria checks level is saved to the manifest (AC-1)", async () => {
+    const { base, dir, project } = await settled();
+    mkdirSync(join(project, ".aide"), { recursive: true });
+    writeFileSync(join(project, ".aide", "project.yaml"), "name: aide\n");
+    for (const args of [["add", "-A"], ["commit", "-qm", "manifest"], ["push", "-q"]]) {
+      Bun.spawnSync(["git", ...args], { cwd: project });
+    }
+    const res = await fetch(`${base}/api/queue/projects/aide/settings`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ criteriaChecks: "stop" }),
+    });
+    expect(res.status).toBe(200);
+    expect(onOrigin(dir)).toContain("criteriaChecks: stop");
+  });
 });

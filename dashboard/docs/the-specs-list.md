@@ -144,6 +144,9 @@ The State column carries the spec's own state and nothing else:
 Nothing more goes in the column. Why a spec stopped, and what it is held back on, is the row's notice line
 underneath; which phase a press would run is on the button, which is labelled with it.
 
+An analyze stopped on its acceptance criteria reads Stopped, and its notice line is amber, naming each fault the
+plan review found. Its phase counts as not done, even on a spec analyzed before, so the button offers Analyze again.
+
 ## The notice line under the name
 
 A push that never reached origin, a landing that did not finish, a pull request the code is waiting on (or one

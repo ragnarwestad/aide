@@ -4,15 +4,16 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { FAILED_STOPS, isFailedStop } from "../../src/format/stop-reason.ts";
+import { FAILED_STOPS, isFailedStop, leavesStepUndone } from "../../src/format/stop-reason.ts";
 import { runSpecParts } from "../helpers/run-spec-source.ts";
 
 const SCRIPTS = join(import.meta.dir, "../../../core/scripts");
 
 // The reasons the script writes that are NOT a failure of the step's work:
-// a finished step, a close, the two limits the queue keeps as stopped, a
-// cancel, and the runner declining before any model ran.
-const NOT_FAILURES = ["completed", "closed", "timeout", "provider-limit", "cancelled", "refused"];
+// a finished step, a close, the two limits the queue keeps as stopped, an
+// analyze stopped on its acceptance criteria, a cancel, and the runner
+// declining before any model ran.
+const NOT_FAILURES = ["completed", "closed", "timeout", "provider-limit", "acceptance-criteria", "cancelled", "refused"];
 
 describe("isFailedStop", () => {
   test("names the seven reasons a step ends failed for", () => {
@@ -46,5 +47,18 @@ describe("isFailedStop", () => {
     expect(written.size).toBeGreaterThan(5);
     const unclassified = [...written].filter((r) => !isFailedStop(r) && !NOT_FAILURES.includes(r));
     expect(unclassified).toEqual([]);
+  });
+});
+
+describe("leavesStepUndone", () => {
+  test("an analyze stopped on its acceptance criteria is not a failure, and leaves its step undone (AC-4)", () => {
+    expect(isFailedStop("acceptance-criteria")).toBe(false);
+    expect(leavesStepUndone("acceptance-criteria")).toBe(true);
+  });
+
+  test("every failed stop leaves its step undone, and the clock does not", () => {
+    for (const reason of FAILED_STOPS) expect(leavesStepUndone(reason)).toBe(true);
+    expect(leavesStepUndone("timeout")).toBe(false);
+    expect(leavesStepUndone(undefined)).toBe(false);
   });
 });

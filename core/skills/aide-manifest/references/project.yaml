@@ -50,3 +50,7 @@ worktreeLinks: node_modules
 # The project's test command — the only one a run reads. Set from the
 # dashboard's Settings; kept exactly as found, never proposed.
 AIDE_TEST_CMD: pnpm test -- --run
+# How strictly /aide-analyze checks a spec's acceptance criteria: off,
+# warn or stop. Absent is warn. Set from the dashboard's Settings; kept
+# exactly as found, never proposed.
+criteriaChecks: warn

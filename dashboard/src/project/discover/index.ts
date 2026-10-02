@@ -11,9 +11,9 @@
 // and the static generator import from it.
 
 export {
-  configValue, resolveWorktreeLinks, resolveCodeLanding,
+  configValue, resolveWorktreeLinks, resolveCodeLanding, resolveCriteriaChecks,
   resolveInstallCmd, resolveTestCmd, resolvePreviewCmd,
-  type WorktreeLinksSource, type CodeLanding, type ConfigOverrideSource,
+  type WorktreeLinksSource, type CodeLanding, type CriteriaChecks, type ConfigOverrideSource,
 } from "./config.ts";
 
 export {
