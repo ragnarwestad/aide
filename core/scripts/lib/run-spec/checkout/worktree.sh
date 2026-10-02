@@ -166,13 +166,22 @@ commit_already_on_origin() {
 # that checkout's default branch while this run holds its worktree; a
 # root this run never touched must not start reading as unpushed work
 # because of it.
+#
+# Origin's copy of the default branch counts as well as the checkout's
+# own: the branch is cut from origin's, and a checkout whose main lags it
+# (a push made elsewhere) would otherwise read origin's newer commits as
+# this branch's content.
 tip_has_nothing_of_its_own() {
-  local root="$1" tip="$2" default_tip=""
+  local root="$1" tip="$2" default_tip="" default_name=""
   [ -n "$tip" ] || return 0
   default_tip="$(git -C "$root" rev-parse HEAD 2>/dev/null || echo "")"
   [ -n "$default_tip" ] || return 1
   [ "$tip" = "$default_tip" ] && return 0
-  git -C "$root" merge-base --is-ancestor "$tip" "$default_tip" 2>/dev/null
+  git -C "$root" merge-base --is-ancestor "$tip" "$default_tip" 2>/dev/null && return 0
+  default_name="$(git -C "$root" symbolic-ref --quiet --short HEAD 2>/dev/null || echo "")"
+  [ -n "$default_name" ] || return 1
+  git -C "$root" show-ref --verify --quiet "refs/remotes/origin/$default_name" || return 1
+  git -C "$root" merge-base --is-ancestor "$tip" "refs/remotes/origin/$default_name" 2>/dev/null
 }
 
 # True when every root the step actually put content on has a LOCAL tip

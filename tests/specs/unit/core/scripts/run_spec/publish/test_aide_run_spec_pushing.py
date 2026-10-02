@@ -265,6 +265,24 @@ def test_a_root_the_step_never_touched_survives_a_landing_beside_it(
     assert out["ok"] is True, out.get("error")
 
 
+def test_a_checkout_whose_main_lags_origin_gets_no_branch(runner, workspace, fake_claude, origin):
+    """A serving host's checkout keeps its own main where the last landing
+    left it, so a push made elsewhere leaves it behind origin's. The run
+    cuts its branch from origin's main; a step that put nothing on the
+    project must not read that branch as content of its own."""
+    git(workspace["project"], "commit", "-q", "--allow-empty", "-m", "pushed from another machine")
+    git(workspace["project"], "push", "-q", "origin", "main")
+    git(workspace["project"], "reset", "-q", "--hard", "HEAD~1")
+    rc, out, _ = run(runner, workspace, specs_only_claude(fake_claude, workspace), push="branch")
+    assert rc == 0, out
+    assert git(origin["project"], "branch", "--list", "aide/81-queue-and-runner") == "", (
+        "a branch that holds only what origin's main already has is not published"
+    )
+    assert all(b["root"] != str(workspace["project"]) for b in out.get("branchUrls", [])), (
+        "the landing is handed only the repos a branch was published in"
+    )
+
+
 @pytest.mark.usefixtures("rejecting_origin")
 def test_an_unpushed_step_never_lands_on_the_workflow_steps_line(
     runner, workspace, fake_claude
