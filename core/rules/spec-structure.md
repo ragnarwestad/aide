@@ -133,12 +133,17 @@ Number, created date, expected duration
   4-status's own Acceptance criteria section below) numbers a new id
   after the highest one already written — the same additive rule,
   applied to a second round rather than to the first draft
-- A description already carrying a matching `## Acceptance criteria`
-  section is passed through unchanged — no rewriting, no second
-  section appended. Only a description with no such section gets one
-  authored from scratch. `aide-create-spec` writes an `AC-n:` bullet
-  with missing or misplaced bold in the bold format, and refuses only
-  a bullet it cannot rewrite that way
+- `/aide-create` keeps every criterion a description already has, word
+  for word and with its id, and never appends a second section. When it
+  runs a model, it adds a criterion for each requirement none of them
+  covers, numbered from the highest id present, and adds none when
+  every requirement is covered. The New spec form's "Let AI formulate
+  acceptance criteria" box, cleared, runs no model, and the description
+  is written as typed. `aide-create-spec` writes an `AC-n:` bullet with
+  missing or misplaced bold in the bold format and refuses only a
+  bullet it cannot rewrite that way; given the description as it came
+  in, it also refuses a kept criterion that changed or went missing,
+  and an added id that does not follow the highest one
 - `/aide-analyze` never retrofits an Acceptance criteria section into
   an existing `1-description.md` on its own initiative — only original
   authoring (via `/aide-create`) adds one

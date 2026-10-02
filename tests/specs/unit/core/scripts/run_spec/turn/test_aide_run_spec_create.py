@@ -7,6 +7,8 @@ unchanged and keep their names.
 
 import json
 
+import pytest
+
 from ...conftest import READ_SPECS, git, init_repo, run
 from ..run_spec_fakes import creating_claude
 from ..run_spec_results import RESULT_OK
@@ -263,6 +265,31 @@ def test_create_with_no_ai_formulate_states_depends_on_and_acceptance(runner, wo
     )
     assert "Depends on" in text and "81-queue-and-runner" in text, text
     assert "Acceptance:" in text and "not required" in text, text
+
+
+@pytest.mark.parametrize("description", [
+    "Do the thing, and also the other thing.\n\n## Acceptance criteria\n\n"
+    "- AC-1: WHEN the thing is asked for, the board SHALL do it.",
+    "Do the thing, and also the other thing.",
+])
+def test_create_with_no_ai_formulate_keeps_the_description_s_criteria_as_typed_AC_1(
+        runner, workspace, fake_claude, description):
+    """The box cleared: the criteria come through exactly as typed (the
+    bold added, nothing else), none is added, and none is made up for a
+    description that had none."""
+    claude = fake_claude("exit 1")
+    rc, out, _ = create(runner, workspace, claude, description=description, no_ai_formulate=True)
+    assert rc == 0, out
+    text = git(
+        workspace["specs"], "show", f"aide/{CREATE_KEY}:{out['specFolder']}/1-description.md",
+    )
+    ac_lines = [line for line in text.splitlines() if line.startswith("- **AC-")]
+    if "AC-1" in description:
+        assert ac_lines == ["- **AC-1:** WHEN the thing is asked for, the board SHALL do it."], text
+    else:
+        assert ac_lines == [], text
+        assert "## Acceptance criteria" not in text, text
+    assert not fake_claude.calls.exists()
 
 
 def test_create_with_no_ai_formulate_surfaces_a_refused_write(runner, workspace, fake_claude):

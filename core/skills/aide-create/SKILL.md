@@ -133,18 +133,26 @@ acceptance flag — works exactly the same either way.
 A bare interactive `/aide-create`, typed in a session with no such line
 in the prompt, runs Steps 2-4 exactly as below, unchanged.
 
-**Before composing the description below:** if the incoming
-description already contains a `## Acceptance criteria` section whose
-lines already match `^- \*\*AC-\d+:\*\*` (spec-structure rule §
-1-description), pass it through into `--description` exactly as
-given — do not reformulate it, renumber it, or append a second
-Acceptance criteria section. Only a description with no such matching
-section reaches the step below.
+**The criteria the description already has are kept.** Every
+`AC-n:` line in the incoming description, bold or not (spec-structure
+rule § 1-description), goes into `--description` exactly as given: the
+same words, the same id, the same place. `aide-create-spec` adds missing
+bold itself. Never reword, renumber, reorder or drop one, and never add
+a second Acceptance criteria section.
 
-Otherwise, attempt to formulate the user's loose description as a
-`## Acceptance criteria` section (format: spec-structure rule §
-1-description) — every line exactly `- **AC-n:** ...`, bold included,
-and each criterion one sentence in one of the five EARS patterns, with
+**Then add a criterion for each requirement none of them covers.** Read
+the rest of the description for what it asks the system to do. For each
+requirement no existing criterion covers, add one line at the end of the
+same section, or, when there is no section, write one:
+
+- The first new criterion takes the next id after the highest one
+  present, and each further one the id after that: after `AC-1` and
+  `AC-3`, the next is `AC-4`. With no criteria at all, start at `AC-1`.
+- When every requirement is already covered, add nothing: the
+  description goes into `--description` exactly as given.
+
+Every line you write is exactly `- **AC-n:** ...`, bold included, and
+each new criterion one sentence in one of the five EARS patterns, with
 its condition first:
 
 - `The <system> SHALL <response>` — always
@@ -153,16 +161,21 @@ its condition first:
 - `IF <condition>, THEN the <system> SHALL <response>` — unwanted behaviour
 - `WHERE <feature>, the <system> SHALL <response>` — an optional feature
 
-Never put the condition after SHALL. If the description is too thin to
-say when each criterion holds, ask the user for the necessary
-clarifications now, before creating the spec — never write an
-Acceptance criteria section you had to guess at.
+Never put the condition after SHALL. If a requirement is too thin to
+say when its criterion holds, ask the user now, before creating the
+spec. In a headless run, where nobody can answer, write the criterion
+the description best supports, and name its id in Step 6's report as
+one to read before `/aide-analyze` runs.
 
-`aide-create-spec` rewrites an Acceptance-criteria line with missing or
-misplaced bold (`- AC-1:`, `- **AC-1**:`) to `- **AC-1:**`, and refuses
-only a line it cannot rewrite. If it refuses for that reason, fix the
-offending line's formatting and call it again — never work around the
-refusal by dropping the line instead.
+Pass the description exactly as the arguments gave it as
+`--given-description` too. `aide-create-spec` compares the two: it
+refuses when a criterion in the given description is missing from
+`--description` or worded differently, and when the ids you added do not
+run on from the highest one given. It also rewrites an
+Acceptance-criteria line with missing or misplaced bold (`- AC-1:`,
+`- **AC-1**:`) to `- **AC-1:**`, and refuses only a line it cannot
+rewrite. When it refuses, fix the line it names and call it again;
+never get past a refusal by dropping a line or the flag.
 
 Call the script — never the Write tool — so file creation stays on a
 Bash-only path (this is what lets a Write/Edit permission rule be
@@ -179,6 +192,10 @@ aide-create-spec \
 <the description text, verbatim>
 AIDE_DESC
 )" \
+  --given-description "$(cat <<'AIDE_GIVEN'
+<the description exactly as the arguments gave it>
+AIDE_GIVEN
+)" \
   --depends-on "<value>"   # omit this flag entirely when the prompt states none
   --acceptance-not-required   # the default — see "Acceptance" below
 ```
@@ -194,6 +211,10 @@ aide-create-spec \
   --description "$(cat <<'AIDE_DESC'
 <the description text, verbatim>
 AIDE_DESC
+)" \
+  --given-description "$(cat <<'AIDE_GIVEN'
+<the description exactly as the arguments gave it>
+AIDE_GIVEN
 )" \
   --depends-on "<value>"   # omit this flag entirely when the prompt states none
   --acceptance-not-required   # the default — see "Acceptance" below
@@ -332,10 +353,12 @@ report's first line ends `— not finished, the merge into main is next
 Show a summary and the next step, built from Step 4's `specFolder` and
 `files` — not assumed. Never preview the composed description text
 (Problem, or any Acceptance criteria section) in the chat; the file list
-below is the whole summary. When an Acceptance criteria section was
-written, say so explicitly and note that reading it through — and
-editing it, in the dashboard or directly in the repo — is the user's
-responsibility before `/aide-analyze` runs.
+below is the whole summary. When acceptance criteria were written or
+added, say so explicitly, name the ids you added, and note that reading
+them through, and editing them in the dashboard or directly in the
+repo, is the user's responsibility before `/aide-analyze` runs. Name
+the ids you wrote for a requirement too thin to be sure of, in a
+headless run.
 
 ```text
 Task created: 55-clean-up-console-log
