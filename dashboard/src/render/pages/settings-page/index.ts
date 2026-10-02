@@ -6,6 +6,7 @@ import { notificationsPanel } from "./notifications.ts";
 import { processPanel, type ProcessSettings } from "./process.ts";
 import { TOOL_TABS, toolPanel } from "./tools.ts";
 import type { CheckableTool, ToolCheck } from "./tools.ts";
+import type { ToolUsage } from "./usage.ts";
 import type { Language } from "../../../i18n";
 import { defaultModelForTool, modelOptions, resolveChosenModel, TOOL_NAMES } from "../specs-list";
 import { WORKFLOW_STEPS } from "../../../queue/steps.ts";
@@ -98,6 +99,9 @@ export interface SettingsPageOptions {
    *  only when its button is pressed, so a tool with no entry has simply
    *  not been asked about. */
   checks?: Partial<Record<CheckableTool, ToolCheck>>;
+  /** The last usage read for each tool. Read only by a press of Check,
+   *  so a tool with no entry has not been read. */
+  usage?: Partial<Record<CheckableTool, ToolUsage>>;
   /** The server's public key for push, which the Notifications tab's
    *  script subscribes a device with (spec 501). */
   pushPublicKey?: string;
@@ -224,7 +228,7 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
       ? notificationsPanel(opts.pushPublicKey, opts.lang ?? "en")
       : open === "process"
         ? (opts.process ? processPanel(opts.process) : "")
-        : toolPanel(open, opts.checks?.[open]);
+        : toolPanel(open, opts.checks?.[open], opts.usage?.[open], Date.parse(generatedAt));
   // `pageShell` wraps the body in `<main>`: a second one inside it takes
   // the frame's padding twice. Both rows sit directly in it, so page.css's
   // Settings rule centres them, and the panel after them, as it did one row.

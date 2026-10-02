@@ -13,6 +13,7 @@ import { addProject, assessProjectReadiness, commitManifestEdits, projectNameErr
 import { SETTINGS_STEPS } from "../../render";
 import { bodyToObject, json, readBounded } from "../serve-helpers";
 import { CHECKABLE_TOOLS, checkTool, isCheckableTool, recordCheck } from "../tool-check.ts";
+import { readUsage, recordUsage } from "../tool-usage";
 import type { RoutesContext } from "./";
 
 export async function handleQueueAdminRoutes(
@@ -36,9 +37,10 @@ export async function handleQueueAdminRoutes(
     return json({ ok: true, job: result.job });
   }
 
-  // Asking one tool whether it is usable on this host. A GET never runs
-  // it: the check spawns a CLI and reaches the network, so it happens
-  // when the button is pressed and at no other time.
+  // Asking one tool whether it is usable on this host, and how much of
+  // its subscription is used. A GET never runs either: both spawn a CLI
+  // and reach the network, so they happen when the button is pressed and
+  // at no other time. The usage is read here and nowhere else.
   if (path === "/api/queue/settings/check") {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
     const body = await readBounded(req);
@@ -56,9 +58,14 @@ export async function handleQueueAdminRoutes(
       .filter((choice) => (choice.tool ?? "claude") === tool)
       .map((choice) => choice.model)
       .filter((model): model is string => typeof model === "string" && model.length > 0);
-    const check = await checkTool(tool, { configuredModels });
+    const probe = ctx.opts.toolProbe;
+    const [check, usage] = await Promise.all([
+      probe ? probe.check(tool, { configuredModels }) : checkTool(tool, { configuredModels }),
+      probe ? probe.usage(tool) : readUsage(tool),
+    ]);
     recordCheck(check);
-    return json({ ok: true, check });
+    recordUsage(usage);
+    return json({ ok: true, check, usage });
   }
 
   // Matched by string equality, so it and the check route above cannot

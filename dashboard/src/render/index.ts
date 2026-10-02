@@ -46,6 +46,8 @@ export {
 export type { SettingsGroup, SettingsPageOptions, SettingsPanel } from "./pages/settings-page";
 export { CHECKABLE_TOOLS, TOOL_TABS, toolPanel } from "./pages/settings-page/tools.ts";
 export type { CheckableTool, ExtraCheck, ToolCheck } from "./pages/settings-page/tools.ts";
+export { usageView } from "./pages/settings-page/usage.ts";
+export type { ToolUsage, UsageView, UsageWindow } from "./pages/settings-page/usage.ts";
 
 // /test-servers (spec 425, REQ-3/REQ-4): every tracked test server,
 // across every project, in one place.

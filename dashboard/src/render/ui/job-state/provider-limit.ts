@@ -9,13 +9,13 @@ import type { ProviderLimit } from "../../../queue/queue.ts";
 
 const TOOL_NAMES: Record<string, string> = { claude: "Claude", codex: "Codex", opencode: "OpenCode" };
 
-const windowPhrase = (name: string, lang: Language): string => {
+export const windowPhrase = (name: string, lang: Language): string => {
   if (name === "five_hour" || name === "seven_day") return t(lang, `limit.window.${name}` as TranslationKey);
   const minutes = /^(\d+)_minutes$/.exec(name);
   return minutes ? t(lang, "limit.window.minutes", { minutes: minutes[1]! }) : t(lang, "limit.window.other");
 };
 
-const capitalizeFirst = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
+export const capitalizeFirst = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
 // The `Intl.DateTimeFormat` locale for each language's own date/time
 // conventions.
@@ -26,7 +26,7 @@ const LOCALES: Record<Language, string> = {
 /** A reset later today reads as a clock time; any other day carries the
  *  day as well. `timeZone` is the server's own unless a caller names one
  *  — the page is drawn on the serving host, in its reader's zone. */
-function when(iso: string, now: number, lang: Language, timeZone?: string): string {
+export function when(iso: string, now: number, lang: Language, timeZone?: string): string {
   const at = new Date(iso);
   if (Number.isNaN(at.getTime())) return iso;
   const locale = LOCALES[lang];

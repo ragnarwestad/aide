@@ -8,7 +8,8 @@
 // questions are answerable for which tool, and why.
 
 import { esc } from "../../ui/html.ts";
-import { buttonForm, messageSlot, rowMessage } from "../../ui/components";
+import { buttonForm, facts, messageSlot, rowMessage } from "../../ui/components";
+import { usageView, type ToolUsage } from "./usage.ts";
 
 export const TOOL_TABS = ["claude", "codex", "copilot", "opencode"] as const;
 
@@ -124,10 +125,42 @@ function resultBlock(check: ToolCheck): string {
   );
 }
 
-/** The panel behind one AI's tab. `check` is the last answer obtained
- *  for this tool in this server's lifetime, or absent when none has been
- *  asked for: nothing is run because a page was opened. */
-export function toolPanel(tool: CheckableTool, check: ToolCheck | undefined): string {
+/** How much of the AI's subscription is used, as the last press of Check
+ *  read it. A reading that failed is muted like a question the check
+ *  could not answer: the login line above already says when to act. */
+function usageBlock(usage: ToolUsage | undefined, now: number): string {
+  const view = usageView(usage, now);
+  const read = (at: string) => `<p class="muted small">Usage read ${esc(stamp(at))}</p>`;
+  switch (view.kind) {
+    case "unread":
+      return `<p class="muted">Usage not read yet.</p>`;
+    case "failed":
+      return read(view.at) + `<p class="muted">The usage could not be read: ${esc(view.reason)}</p>`;
+    case "noSource":
+      return `<p class="muted">The board does not read this AI's usage: its command line has no command that reports it.</p>`;
+    case "none":
+      return read(view.at) + `<p class="muted">This AI reports no usage windows.</p>`;
+    case "text":
+      return read(view.at) + `<pre class="checkoutput">${esc(view.text)}</pre>`;
+    case "windows":
+      return read(view.at) + facts(view.rows.map((row) => ({
+        label: esc(row.label),
+        value: esc(`${row.usedPercent}% used${row.resets ? ` · resets ${row.resets}` : ""}`),
+      })));
+  }
+}
+
+/** The panel behind one AI's tab. `check` and `usage` are the last
+ *  answers obtained for this tool in this server's lifetime, or absent
+ *  when none has been asked for: nothing is run because a page was
+ *  opened. `now` is the page's own time, which a reset is written
+ *  against. */
+export function toolPanel(
+  tool: CheckableTool,
+  check: ToolCheck | undefined,
+  usage?: ToolUsage,
+  now: number = Date.now(),
+): string {
   const note = TOOL_NOTES[tool];
   const cannot = note.cannotCheck
     ? `<p class="muted">The check cannot tell you ${esc(note.cannotCheck)}</p>`
@@ -148,6 +181,7 @@ export function toolPanel(tool: CheckableTool, check: ToolCheck | undefined): st
       after: messageSlot("refused"),
     }) +
     (check ? resultBlock(check) : `<p class="muted">Not checked yet.</p>`) +
+    usageBlock(usage, now) +
     `</section>`
   );
 }
