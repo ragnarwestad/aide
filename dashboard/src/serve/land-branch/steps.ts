@@ -24,6 +24,9 @@ import type { LandContext } from "./types.ts";
 export async function landNewSpec(ctx: LandContext, job: Job, outcome: Partial<StepOutcome>): Promise<void> {
   return asMergeStep(ctx, job, "create", (onMerged) => landBranch(ctx, job, outcome, {
     step: "create",
+    // A create writes the specs repo alone, so a code branch beside it
+    // is never its to land.
+    repos: specsRootsOnly(ctx, job, outcome),
     onLanded: async () => onMerged(),
     // No `landed` here any more (spec 453): the real folder name is not
     // known until the finalize step runs, under the specs repo's own

@@ -14,7 +14,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { landClosedSpec, landStepBranch } from "../../../src/serve/land-branch";
+import { landClosedSpec, landNewSpec, landStepBranch } from "../../../src/serve/land-branch";
 import { BRANCH, landCtx, landingGit } from "./landing-fixtures.ts";
 
 const JOB = { id: "job-1", project: "aide", specFolder: "479-spec" };
@@ -65,6 +65,32 @@ describe("an analyze landing", () => {
     const calls = await analyzeCalls(code, join(code, "specs"), [code]);
     expect(copiedTheSpec(calls)).toBe(true);
     expect(mergedTheBranch(calls)).toBe(false);
+  });
+});
+
+describe("a create landing", () => {
+  // A create writes the specs repo alone; a code branch beside it (one a
+  // stale checkout once pushed with nothing of its own) is not its to land,
+  // and landing it looked for the new spec's folder in the code repo.
+  test("merges the specs repo and never the code repo beside it", async () => {
+    const base = mkdtempSync(join(tmpdir(), "aide-create-land-"));
+    const code = join(base, "code");
+    const specs = join(base, "specs");
+    mkdirSync(code);
+    mkdirSync(join(specs, "aide"), { recursive: true });
+    const git = landingGit();
+    const { ctx } = landCtx(git.run, {
+      machineryProjectDir: () => code,
+      machinerySpecsRoot: () => join(specs, "aide"),
+    });
+    await landNewSpec(
+      ctx as unknown as Parameters<typeof landNewSpec>[0],
+      { ...JOB, specFolder: "new-a9def7db" } as unknown as Parameters<typeof landNewSpec>[1],
+      { branch: BRANCH, branchUrls: [specs, code].map((root) => ({ root, url: "" })) },
+    );
+    const merged = git.calls.filter((c) => c.args.join(" ").startsWith("merge -q")).map((c) => c.dir);
+    expect(merged.some((dir) => dir === specs)).toBe(true);
+    expect(merged.some((dir) => dir === code)).toBe(false);
   });
 });
 

@@ -36,7 +36,7 @@ Nothing here is merged by hand. Every step lands its own work as it finishes, an
 Approve button: the step that made the work is what knows it is done. Leaving `archive` unticked is the inspection
 point.
 
-- `create`, `analyze` and `wiki` merge the branch they pushed into that repo's default branch. A `wiki` step leaves the
+- `create`, `analyze` and `wiki` merge the branch they pushed into that repo's default branch, and leave the
   project's code root out.
 - `implement` lands nothing. The code stays on the branch for anyone who wants to read or test it first.
 - `archive` merges every repo it was told about: the roots its own run reported, plus the ones the queue's own
