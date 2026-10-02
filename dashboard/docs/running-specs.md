@@ -207,6 +207,13 @@ is named `provider/model`, so that whole string is what `model` holds — `openc
 provider is logged in (`opencode providers login`); the Settings page's own OpenCode tab answers whether one is, and
 whether every model configured here still appears in that provider's list.
 
+**A press of Check also reads how much of the AI's subscription is used**, and the tab shows each usage window with
+the share used, when it starts over, and when it was read. Claude Code's comes from `claude -p /usage`, and Codex's
+from `codex app-server`'s `account/rateLimits/read`; neither runs a model. When Claude's text has no line the board
+can read as a window, the tab shows the text as it came. OpenCode reports no usage windows, and the board does not
+read Copilot's, since its CLI has no command for it. Usage is read on a press and at no other time: not when the
+board starts, not before a job, and not when a page is opened.
+
 **The tool is a choice per PHASE, not per row.** Every phase's dropdown lists every configured model, grouped
 in an
 `<optgroup>` per CLI — `Claude Code` first, then `Codex`, and a tool with nothing configured draws no group at all.

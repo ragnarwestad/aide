@@ -163,7 +163,7 @@ Answered by `src/serve/routes/queue-admin.ts`, except `settings/concurrency`, wh
 | Route                                                 | Kind   | Takes                               | Answers                                                                                      | Made for |
 |-------------------------------------------------------|--------|-------------------------------------|----------------------------------------------------------------------------------------------|----------|
 | `POST /api/queue/settings`                            | action | model and timeout defaults per step | `{ ok }`; 400 `{ error }` for an unknown step or model                                       | form     |
-| `POST /api/queue/settings/check`                      | action | tool: the AI tool to check          | the check's result; 400 for a tool it cannot check                                           | form     |
+| `POST /api/queue/settings/check`                      | action | tool: the AI tool to check          | `{ ok, check, usage }`: the check and the usage read; 400 for a tool it cannot check         | form     |
 | `POST /api/queue/settings/concurrency`                | action | concurrency: a whole number, 1 to 8 | `{ ok, concurrency }`; 400 `{ error }` for a number outside 1 to 8 or a server with no queue | form     |
 | `POST /api/queue/projects`                            | action | name, git URL and Code landing      | `{ ok, project, results, readiness? }`: the steps taken; 400 when one failed                 | form     |
 | `POST /api/queue/projects/<project>/settings`         | action | the project's settings              | `{ ok, project, results, readiness? }`: the steps taken; 400 when one failed                 | form     |

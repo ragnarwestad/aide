@@ -5,7 +5,9 @@ import { rmSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type ServerOptions } from "../../../src/serve/serve.ts";
-import { SETTINGS_STEPS } from "../../../src/render";
+import { SETTINGS_STEPS, type CheckableTool, type ToolCheck, type ToolUsage } from "../../../src/render";
+import { forgetChecks } from "../../../src/serve/tool-check.ts";
+import { lastUsage } from "../../../src/serve/tool-usage";
 import { JOB, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
@@ -101,6 +103,50 @@ describe("Settings routes (spec 232)", () => {
     const { base } = start({ queueDefaults: DEFAULTS });
     const res = await fetch(`${base}/api/queue/settings/check`, );
     expect(res.status).toBe(405);
+  });
+
+  /** Stands in for both spawns a press makes, and counts the usage reads. */
+  const countingProbe = () => {
+    const probe = {
+      usageReads: 0,
+      check: async (tool: CheckableTool): Promise<ToolCheck> =>
+        ({ tool, at: "2026-10-02T19:00:00.000Z", found: true, lines: [], extra: [] }),
+      usage: async (tool: CheckableTool): Promise<ToolUsage> => {
+        probe.usageReads += 1;
+        return { tool, at: "2026-10-02T19:00:00.000Z", windows: [{ name: "Stand-in window", usedPercent: 42 }] };
+      },
+    };
+    return probe;
+  };
+
+  const pressCheck = (base: string, tool: string) =>
+    fetch(`${base}/api/queue/settings/check`, { method: "POST", headers: AUTH, body: JSON.stringify({ tool }) });
+
+  test("a press of Check answers with the AI's usage, and stores it (AC-1)", async () => {
+    forgetChecks();
+    const toolProbe = countingProbe();
+    const { base } = start({ queueDefaults: DEFAULTS, toolProbe });
+    const res = await pressCheck(base, "claude");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { usage: ToolUsage };
+    expect(body.usage.windows).toEqual([{ name: "Stand-in window", usedPercent: 42 }]);
+    expect(lastUsage().claude).toEqual(body.usage);
+    forgetChecks();
+  });
+
+  test("usage is read by a press of Check, never by opening a page (AC-6)", async () => {
+    forgetChecks();
+    const toolProbe = countingProbe();
+    const { base } = start({ queueDefaults: DEFAULTS, toolProbe });
+    await (await fetch(`${base}/settings`)).text();
+    await (await fetch(`${base}/settings?tab=claude`)).text();
+    expect(toolProbe.usageReads).toBe(0);
+    expect((await pressCheck(base, "claude")).status).toBe(200);
+    expect(toolProbe.usageReads).toBe(1);
+    const html = await (await fetch(`${base}/settings?tab=claude`)).text();
+    expect(html.split("Stand-in window").length - 1).toBe(1);
+    expect(toolProbe.usageReads).toBe(1);
+    forgetChecks();
   });
 
   test("a successful save affects later jobs but not an accepted job (AC-4)", async () => {

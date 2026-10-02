@@ -2,7 +2,7 @@
 // closure state, so moving it carries no risk the rest of that file's
 // wiring does.
 
-import type { NavEntry } from "../render";
+import type { CheckableTool, NavEntry, ToolCheck, ToolUsage } from "../render";
 import type { Sentence } from "../i18n/message.ts";
 import type { QueueDefaults } from "../queue/queue.ts";
 import type { GitRunner } from "../git/branch-status.ts";
@@ -111,6 +111,13 @@ export interface ServerOptions {
    *  on a machine with no job registered but a genuine hazard on one
    *  that has. Defaults to `createLaunchdRestart()`. */
   restart?: RestartHook;
+  /** What a press of Check runs in place of the real CLIs: the check and
+   *  the usage read. A test seam, and both halves are required, so a test
+   *  that sets it can never fall through to a real CLI on the other. */
+  toolProbe?: {
+    check: (tool: CheckableTool, opts: { configuredModels: string[] }) => Promise<ToolCheck>;
+    usage: (tool: CheckableTool) => Promise<ToolUsage>;
+  };
   restartPollMs?: number;
   restartDeferTimeoutMs?: number;
   /** The checkout the running dashboard was started from. Only a landing
