@@ -119,7 +119,7 @@ Which files each tool reads automatically:
 | File/directory                              |    Claude Code    |               Copilot                |             Codex              |
 |---------------------------------------------|:-----------------:|:------------------------------------:|:------------------------------:|
 | `CLAUDE.md`                                 |    ✅ primary     |               ✅ read                | — (not read; verified 0.147.0) |
-| `AGENTS.md`                                 |         —         |               ✅ read                | ✅ primary (verified 0.147.0)  |
+| `AGENTS.md`                                 |    ✅ fallback    |               ✅ read                | ✅ primary (verified 0.147.0)  |
 | `.claude/rules/*.md`                        |  ✅ auto-include  |    ✅ read (confirmed v1.0.89-5)     |               —                |
 | `.claude/skills/`                           | ✅ native skills  |      ✅ read (verified 1.0.79)       |               —                |
 | `.github/skills/`                           |         —         |  ✅ native skills (verified 1.0.79)  |               —                |
@@ -142,6 +142,9 @@ Which files each tool reads automatically:
 > read. `.claude/rules/*.md` is confirmed by the Copilot CLI's own v1.0.89-5
 > changelog. The agents row has not been re-verified — see
 > [Open follow-up items](#open-follow-up-items).
+>
+> Claude Code reads `AGENTS.md` only in a folder with no `CLAUDE.md` (since
+> 2.1.277), and not when it runs through Bedrock, Vertex or Foundry.
 
 ---
 
