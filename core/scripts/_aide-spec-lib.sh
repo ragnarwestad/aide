@@ -201,6 +201,40 @@ aide_spec_record_criteria_checks() {
   rm -f "$tmp"
 }
 
+# Whether the spec asks to choose between the approaches its analysis
+# finds: the value of the optional "Let me choose the approach:" line in its
+# OWN 1-description.md, as written. Nothing for a missing file or line,
+# which the caller reads as no.
+#   aide_spec_choose_approach <specs-root> <spec-folder>
+aide_spec_choose_approach() {
+  local file="$1/$2/1-description.md"
+  [ -f "$file" ] || return 0
+  sed -n 's/^[[:space:]]*-[[:space:]]*\*\*Let me choose the approach:\*\*[[:space:]]*//p' "$file" \
+    | head -1 | sed 's/[[:space:]]*$//'
+}
+
+# Record whether a create asked to choose the approach: drop any "Let me
+# choose the approach:" line in the description, and write the new one
+# directly after its "Acceptance criteria checks:" line, or after its
+# "Created:" line when there is none. Fails, writing nothing, when there is
+# no Created line.
+#   aide_spec_record_choose_approach <description-file> <yes|no>
+aide_spec_record_choose_approach() {
+  local file="$1" value="$2" anchor tmp
+  [ -f "$file" ] || return 1
+  grep -q '^[[:space:]]*-[[:space:]]*\*\*Created:\*\*' "$file" || return 1
+  anchor='Created'
+  grep -q '^[[:space:]]*-[[:space:]]*\*\*Acceptance criteria checks:\*\*' "$file" && anchor='Acceptance criteria checks'
+  tmp="$(mktemp "${file}.XXXXXX")" || return 1
+  awk -v line="- **Let me choose the approach:** $value" -v anchor="**$anchor:**" '
+    /^[[:space:]]*-[[:space:]]*\*\*Let me choose the approach:\*\*/ { next }
+    { print }
+    !done && /^[[:space:]]*-[[:space:]]*\*\*/ && index($0, anchor) { print line; done = 1 }
+  ' "$file" > "$tmp" || { rm -f "$tmp"; return 1; }
+  cat "$tmp" > "$file"
+  rm -f "$tmp"
+}
+
 # The three files a work round fills in — 2-analysis.md, 3-solution.md
 # and 4-status.md — written fresh from the templates in
 # core/skills/aide-create/references/file-templates.md. One writer for

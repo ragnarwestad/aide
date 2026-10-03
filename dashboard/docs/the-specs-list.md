@@ -171,6 +171,26 @@ verified. Saving does not start the archive. Ticks not yet saved
 survive the list's live redraw. A spec whose rows cannot be read draws one line saying so, with a link to its
 Status tab, in place of the list.
 
+## Choosing the approach from the row
+
+**A spec created with "Let me choose the approach" ticked is asked which approach to build.** Its analysis marks
+every approach in `3-solution.md` `(recommended)`, `(real alternative)` or `(considered and rejected)`. When two or
+more are real alternatives and no choice is recorded, the row carries a waiting line, "Implement held back: choose
+the approach to build, then press Save", and under it one radio button per real alternative: its letter and title,
+linked to its lead on the Solution tab (`#approach-<letter>`, which the tab scrolls to), with the recommended one
+picked and marked. Save posts the pick to the spec's approach route, which writes `**Chosen approach:** Approach X`
+under the plan's Approaches heading, on the open branch when there is one.
+
+- The recommended one: nothing more. An Implement held for the choice starts at the next tick.
+- Another one: a job held for the choice is cancelled first, then the line is written, then Analyze is queued with
+  the held job's remaining steps and their models, so the new plan is made for that approach and Implement and
+  Archive follow it. With no held job, Analyze alone is queued.
+
+Cancel puts the recommended one back. A pick not yet saved survives the live redraw. The line is quiet while an
+Analyze or Implement runs or lands, gone once a choice is recorded in the newest round of the plan, and gone once an
+Implement has completed without one. While any step of the spec runs, the radios are drawn disabled and there is
+nothing to save. A spec that did not ask, or whose analysis found fewer than two real alternatives, has no such line.
+
 ## Not verified, and Failed
 
 **Each acceptance row has two boxes, side by side at the right of its text.** They are offered under the › and on

@@ -87,6 +87,38 @@ describe("--criteria-checks reaches the runner only for a create that chose a le
   });
 });
 
+// --- whether the new spec asks to choose between its approaches ---------------
+
+describe("--choose-approach reaches the runner for a create from the form", () => {
+  const job = (step: string, chooseApproach?: boolean) =>
+    ({
+      project: "aide", specFolder: "new-abc123de", steps: [step],
+      timeoutSec: 2700, permissionMode: {}, model: {},
+      createTitle: "A new spec", createDescription: "Do the thing",
+      ...(chooseApproach === undefined ? {} : { createChooseApproach: chooseApproach }),
+    }) as unknown as Parameters<typeof import("../../../src/serve/serve.ts").runnerArgv>[0];
+
+  const argvFor = async (step: string, chooseApproach?: boolean) => {
+    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    return runnerArgv(job(step, chooseApproach), step, "/tmp/r.json", {
+      runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
+    });
+  };
+
+  test.each([[true, "yes"], [false, "no"]])("a create with the box %p passes --choose-approach %s (AC-10)", async (ticked, value) => {
+    const argv = await argvFor("create", ticked);
+    expect(argv[argv.indexOf("--choose-approach") + 1]).toBe(value);
+  });
+
+  test("a create job from before the box existed passes no flag (AC-10)", async () => {
+    expect(await argvFor("create")).not.toContain("--choose-approach");
+  });
+
+  test.each([["analyze"], ["implement"]])("never for %s (AC-10)", async (step) => {
+    expect(await argvFor(step, true)).not.toContain("--choose-approach");
+  });
+});
+
 // --- spec 110: what a new spec builds on --------------------------------------
 
 describe("a chosen dependency reaches the runner and the page", () => {

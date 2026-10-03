@@ -301,6 +301,13 @@ the `**Findings:**` line that opens the plan's Plan review section (`plan_review
 or that the plan has no Plan review section, or that the section gives no counts. Code blocks are skipped, and after a
 `## Round N` heading only that round's review counts.
 
+**Let me choose the approach.** The New spec form's box is passed to `create` as `--choose-approach yes|no`, and any
+other value is refused before the run starts. A completed create records it as the `Let me choose the approach:` line
+after the `Acceptance criteria checks:` line (or after `Created`) in the new spec's Tracking info. Analyze reads it once
+(`aide_spec_choose_approach`); with `yes` the prompt gets one line asking the skill to mark each approach
+`(recommended)`, `(real alternative)` or `(considered and rejected)`, and with anything else the prompt is unchanged.
+`tests/fixtures/choose-approach-line.json` is the table the runner and the dashboard both read the line against.
+
 **The acceptance criteria checks.** The level (`off`, `warn` or `stop`) is chosen on the New spec form and passed to
 `create` as `--criteria-checks`. A completed create records it as the `Acceptance criteria checks:` line after
 `Created` in the new spec's Tracking info, whether or not an AI session ran. Analyze reads that line once and states

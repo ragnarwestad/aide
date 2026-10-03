@@ -468,6 +468,23 @@ describe("parseCreateRequest — criteriaChecks", () => {
   });
 });
 
+// --- whether the new spec asks to choose between its approaches ---------------
+
+describe("parseCreateRequest — chooseApproach", () => {
+  const allow = (project: string) => project === "aide";
+  const CREATE = { project: "aide", title: "A new spec", description: "Do the thing" };
+
+  test.each([["1"], [true]])("ticked (%p) is carried on the job as yes (AC-10)", (value) => {
+    const r = parseCreateRequest({ ...CREATE, chooseApproach: value }, { allow, defaults: DEFAULTS });
+    expect(r.ok && r.job.createChooseApproach).toBe(true);
+  });
+
+  test("absent is carried as no, so the spec records that it was not ticked (AC-10)", () => {
+    const r = parseCreateRequest(CREATE, { allow, defaults: DEFAULTS });
+    expect(r.ok && r.job.createChooseApproach).toBe(false);
+  });
+});
+
 // --- spec 513: a close reason is held to the description's bound ---------------
 
 describe("a close request's reason", () => {

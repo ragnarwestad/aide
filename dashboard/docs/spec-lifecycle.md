@@ -227,6 +227,7 @@ is the whole set:
 | What the row says                     | What happened                                                                      | What moves it on                                                    |
 |---------------------------------------|------------------------------------------------------------------------------------|---------------------------------------------------------------------|
 | held back: not analyzed yet           | The spec has not analyzed, and implement needs a plan                              | Run Analyze                                                         |
+| held back: choose the approach        | Analyze found two or more real alternatives on a spec that asked to choose         | Pick one on the row and press Save                                  |
 | held back: depends on `<spec>`        | A spec it names has not archived yet                                               | Nothing. It starts itself once that spec archives                   |
 | held back: another archive is running | A second archive in the same project is ahead of it                                | Nothing. It starts when that one has merged                         |
 | archive held back                     | A row under `## Acceptance criteria` is still open                                 | Tick the rows on the Status tab, then press Archive                 |

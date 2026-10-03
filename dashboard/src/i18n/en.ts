@@ -82,6 +82,7 @@ export const en = {
   "list.checksSave": "Save",
   "list.checksSaving": "saving…",
   "list.checksUnreadable": "The acceptance criteria could not be read here.",
+  "list.approachRecommended": "recommended",
   "checks.verified": "Verified",
   "checks.verifiedQuestion": "Verified?",
   "checks.yes": "Yes",

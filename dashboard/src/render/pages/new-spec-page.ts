@@ -319,6 +319,34 @@ function aiFormulateAcceptanceField(formId: string): string {
   );
 }
 
+// Whether the person asks to choose between the approaches analyze finds.
+// Not ticked when the form opens: unticked, analyze picks the approach and
+// implement builds it, as it always has. The runner records the choice in
+// the new spec's Tracking info either way.
+function chooseApproachField(formId: string): string {
+  return (
+    `<span class="field"><span class="fieldhead">` +
+    phaseChip({
+      dataAttr: "data-choose-approach",
+      value: "1",
+      label: "Let me choose the approach",
+      name: "chooseApproach",
+      form: formId,
+      checked: false,
+      plain: true,
+    }) +
+    `<span class="fieldend">` +
+    helpPopover(
+      "what this does",
+      "Ticked, analyze marks each approach it considered as a real alternative or as rejected. " +
+        "When it finds two or more real alternatives, Implement waits, and the spec's row lists them " +
+        "with the recommended one chosen: save it to go on, or choose another to have analyze plan " +
+        "that one instead. Cleared, analyze picks the approach and Implement builds it.",
+    ) +
+    `</span></span></span>`
+  );
+}
+
 /** The three levels of the acceptance criteria checks, in the order the
  *  select lists them; the values are what the create posts. */
 export const criteriaChecksChoices = (): { value: CriteriaChecks; label: string }[] => [
@@ -389,12 +417,13 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
       // never Create.
       { wide: true, for: "new-spec-project", actions: btn({ label: "Create", variant: "primary", pending: "creating…" }) },
     ) +
-    // The three acceptance criteria controls, on a row of their own,
-    // wrapping where the screen has no room for all three.
+    // The three acceptance criteria controls and the approach choice, on
+    // a row of their own, wrapping where the screen has no room for all.
     `<span class="frow row">` +
     acceptanceField(formId) +
     aiFormulateAcceptanceField(formId) +
     criteriaChecksField() +
+    chooseApproachField(formId) +
     `</span>` +
     field(
       "Title",

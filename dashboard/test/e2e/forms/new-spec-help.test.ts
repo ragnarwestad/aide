@@ -40,3 +40,14 @@ test.each(CONTROLS)("the (?) of %s opens an explanation (AC-3)", async (_label, 
   expect(await help.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
   expect((await help.locator("p").innerText()).trim()).not.toBe("");
 });
+
+test("Let me choose the approach is not ticked when the form opens, and its (?) explains it (AC-1)", async () => {
+  await withBrowser(page.goto(`${base}/new?live=0`), "page.goto(/new)");
+  const box = page.locator('#new-spec-form [name="chooseApproach"]');
+  expect(await box.isChecked()).toBe(false);
+  const help = page.locator('#new-spec-form .field:has(> .fieldhead [name="chooseApproach"]) > .fieldhead details.intro');
+  expect(await help.count()).toBe(1);
+  await help.locator("summary").click();
+  expect(await help.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
+  expect((await help.locator("p").innerText()).trim()).not.toBe("");
+});

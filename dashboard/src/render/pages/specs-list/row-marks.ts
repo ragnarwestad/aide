@@ -13,6 +13,7 @@ import { type ArchivedSpecView, type SpecGroup } from "./data-model";
 import { LANDING_FAILED, NO_PULL_REQUEST, NOT_PUSHED, prErrorOf, prErrorSentence, PULL_REQUEST, TEST_SERVER, TESTS_RED } from "./row-shared.ts";
 import { notLandedTitle } from "./cell-helpers.ts";
 import { roundUnderWay } from "./row-state.ts";
+import { approachChoiceShown } from "./approach-choice/index.ts";
 
 /** The waiting-on-review sentence (spec 220, spec 335): the branch is
  *  there, and a request describes it — worded for both a live row's
@@ -52,7 +53,7 @@ interface LiveMark {
   href?: string;
   /** Stands on a line of its own (spec 493). */
   own?: boolean;
-  kind?: "acceptance-hold";
+  kind?: "acceptance-hold" | "approach-choice";
 }
 
 /** Every mark a LIVE row's own fields carry right now, highest priority
@@ -120,6 +121,19 @@ function liveMarks(
   const quiet = archiveRunning || roundUnderWay(g);
   if (heldBackReason === ACCEPTANCE_CRITERIA_UNTICKED_NOTE && !quiet) {
     marks.push({ variant: "waiting", label: t(lang, "list.archiveHeldBackWord", { step: stepLabel("archive", lang) }), sentence: heldBackReasonText(lang, heldBackReason), own: true, kind: "acceptance-hold" });
+  }
+  // The approaches a ticked spec's analysis found wait for a choice.
+  // Worded from the same two calls the held job's own sentence is, so
+  // `said()` drops the job's copy and the row says it once.
+  if (approachChoiceShown(g)) {
+    const implement = stepLabel("implement", lang);
+    marks.push({
+      variant: "waiting",
+      label: t(lang, "list.archiveHeldBackWord", { step: implement }),
+      sentence: `${implement} ${renderSentence(lang, { key: "runner.approachChoice" })!}`,
+      own: true,
+      kind: "approach-choice",
+    });
   }
   // Spec 557: independent of WHY archive has not run — implement's own
   // git-proved history (`historyDone`, never `g.done`: implement lands

@@ -2,6 +2,7 @@
 // its POST, the spec page itself, and update/save/tick. Extracted
 import { testServerControlRoutes } from "./test-server-controls.ts";
 import { checkRoutes } from "./checks.ts";
+import { approachRoutes } from "./approach.ts";
 import { closeControlRoutes } from "./close-controls.ts";
 import { branchControlRoutes } from "./branch-controls.ts";
 import { runControlRoutes } from "./run-controls.ts";
@@ -28,6 +29,7 @@ export async function handleSpecEditRoutes(
     (await testServerControlRoutes(ctx, req, path)) ??
     (await specPageRoutes(ctx, req, url, path)) ??
     (await trackingRoutes(ctx, req, path)) ??
-    (await checkRoutes(ctx, req, url, path))
+    (await checkRoutes(ctx, req, url, path)) ??
+    (await approachRoutes(ctx, req, path))
   );
 }

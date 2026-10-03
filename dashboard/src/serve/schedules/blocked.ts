@@ -7,6 +7,8 @@ import { join } from "node:path";
 import { discoverProjects, manifestInside } from "../../project/discover";
 import { readSpecState } from "../../project/parse-spec-state.ts";
 import { acceptanceStillOpen, parseStatus } from "../../project/parse-status";
+import { specPendingChoice } from "../../project/approach-choice.ts";
+import type { BoardMessage } from "../../i18n/message.ts";
 import { GATED, resolveDependencyFolder } from "../serve-helpers";
 import type { DependencyHolds } from "../../queue/runner/dependency-hold.ts";
 import type { ScheduleContext } from "./";
@@ -149,6 +151,42 @@ export function blockedForMissingAnalyze(ctx: ScheduleContext): Set<string> {
     if (!completedSteps(ctx, spec.dir, job.specFolder).includes("analyze")) blocked.add(job.id);
   }
   return blocked;
+}
+
+/** Which queued `implement` jobs wait for the person to choose between
+ *  the approaches the analysis found: the job ran that `analyze` just
+ *  before, the spec asked to choose, and two or more real alternatives
+ *  stand with none chosen. An implement started on its own is never in
+ *  it — a person pressed it with the approaches on the row in front of
+ *  them, and it builds the recommended plan.
+ *
+ *  The branch copy of the plan when it has been read and is not stale —
+ *  the row's choice is saved there — the disk copy otherwise. */
+export function waitingForApproachChoice(ctx: ScheduleContext): Set<string> {
+  const waiting = new Set<string>();
+  if (!ctx.projectRoot) return waiting;
+  const chained = ctx.queue.list().filter(
+    (job) => job.state === "queued" && job.steps[job.stepIndex] === "implement" && job.steps[job.stepIndex - 1] === "analyze",
+  );
+  if (chained.length === 0) return waiting;
+  const projects = new Map(discoverProjects(ctx.projectRoot, undefined, manifestInside(ctx.machineryProjectDir)).map((p) => [p.name, p]));
+  for (const job of chained) {
+    const spec = projects.get(job.project)?.specs.find((s) => s.folder === job.specFolder && !s.archived);
+    if (!spec) continue;
+    const peek = ctx.readBranchFileSteps().peekFileSteps(spec.dir, job.specFolder);
+    const branch = peek.checkedAt !== null && !peek.stale ? peek.steps?.approaches : undefined;
+    if (specPendingChoice(spec.dir, branch)) waiting.add(job.id);
+  }
+  return waiting;
+}
+
+/** Every queued job held with a fixed sentence this tick, by id: not
+ *  analyzed yet first, then waiting for a choice of approach. */
+export function fixedSentenceHolds(ctx: ScheduleContext): Map<string, BoardMessage> {
+  const holds = new Map<string, BoardMessage>();
+  for (const id of blockedForMissingAnalyze(ctx)) holds.set(id, { key: "runner.notAnalyzed" });
+  for (const id of waitingForApproachChoice(ctx)) if (!holds.has(id)) holds.set(id, { key: "runner.approachChoice" });
+  return holds;
 }
 
 /** Which queued `archive` jobs `aide-archive-spec` would only refuse,

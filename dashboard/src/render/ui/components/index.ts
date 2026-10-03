@@ -45,7 +45,7 @@ export { facts } from "./facts.ts";
 
 // --- labelled checkbox -------------------------------------------------------------
 
-export { labelledCheckbox } from "./checkbox.ts";
+export { labelledCheckbox, labelledRadio } from "./checkbox.ts";
 
 // --- status badge --------------------------------------------------------------
 

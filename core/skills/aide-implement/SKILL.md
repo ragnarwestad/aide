@@ -52,7 +52,10 @@ First write `--- Step 1 of 4: Preparation — started`, and when this step ends,
 
 
 1. Read `specs/XX-slug/2-analysis.md` (affected files)
-2. Read `specs/XX-slug/3-solution.md` (implementation plan)
+2. Read `specs/XX-slug/3-solution.md` (implementation plan). Build its
+   recommended solution. On a spec that asked to choose the approach, a
+   choice not saved on the Specs list never stops this step: the
+   recommended approach is built
 3. If the spec is MEDIUM/HIGH and `3-solution.md` has no "Plan review"
    section: suggest re-running `/aide-analyze` first (proceed if the
    user declines)

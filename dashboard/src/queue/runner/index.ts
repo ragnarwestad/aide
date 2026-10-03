@@ -112,12 +112,12 @@ export class Runner {
    *  async, and with it every call site and every test that has
    *  nothing to do with dependencies.
    *
-   *  `notAnalyzed` is `blocked`'s sibling (spec 344): a job id SET, not
-   *  a Map, since the reason it names carries no per-job detail — every
-   *  job in it gets the identical fixed sentence, unlike a dependency's
-   *  own folder name. `acceptanceOpen` names the queued archives
+   *  `held` is `blocked`'s sibling: job id → the fixed sentence it is
+   *  held with — not analyzed yet (spec 344), or an implement chained
+   *  after the analyze whose approaches wait for a choice
+   *  (`fixedSentenceHolds`). `acceptanceOpen` names the queued archives
    *  `aide-archive-spec` would only refuse (`archiveWithOpenAcceptance`). */
-  tick(blocked?: DependencyHolds, notAnalyzed?: Set<string>, acceptanceOpen?: Set<string>): void {
+  tick(blocked?: DependencyHolds, held?: Map<string, BoardMessage>, acceptanceOpen?: Set<string>): void {
     // Every sentence this pass writes, by job id. What is NOT in it is
     // no longer held for anything, and `clearStaleHolds` takes its
     // sentence off the row: a hold-back reason is only ever the reason
@@ -126,7 +126,7 @@ export class Runner {
     // "another archive is running in this project" long after that
     // archive had landed, and the two whole-queue pauses below wrote
     // nothing at all on their way out (2026-09-04).
-    const held = (this.heldThisPass = new Set<string>());
+    const heldNow = (this.heldThisPass = new Set<string>());
     const hold = (job: Job, reason: BoardMessage): void => this.hold(job, reason);
 
     // No job waits on a landing any more. A landing used to merge in the
@@ -155,7 +155,7 @@ export class Runner {
       // by a sentence — but a sentence left from an earlier pass has to
       // go, so this leaves through the same door as everything else.
       if (this.runningJobs().length >= this.maxConcurrent) {
-        this.clearStaleHolds(held);
+        this.clearStaleHolds(heldNow);
         return;
       }
       if (job.state !== "queued") continue;
@@ -223,8 +223,8 @@ export class Runner {
       }
       // Cheaper and more fundamental than the dependency question below —
       // checked first, and it needs no network call (spec 344).
-      if (notAnalyzed?.has(job.id)) {
-        hold(job, { key: "runner.notAnalyzed" });
+      if (held?.has(job.id)) {
+        hold(job, held.get(job.id)!);
         continue;
       }
       // Held back, not failed: the reason is written, the state is left alone, no slot is
@@ -243,7 +243,7 @@ export class Runner {
       }
       this.startOne(job);
     }
-    this.clearStaleHolds(held);
+    this.clearStaleHolds(heldNow);
   }
 
   /** Every job this pass held, by id. */
