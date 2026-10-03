@@ -209,31 +209,46 @@ is named `provider/model`, so that whole string is what `model` holds — `openc
 provider is logged in (`opencode providers login`); the Settings page's own OpenCode tab answers whether one is, and
 whether every model configured here still appears in that provider's list.
 
-**A press of Check also reads how much of the AI's subscription is used**, and the tab shows each usage window with
-the share used, when it starts over, and when it was read. Claude Code's comes from `claude -p /usage`, and Codex's
-from `codex app-server`'s `account/rateLimits/read`; neither runs a model. When Claude's text has no line the board
-can read as a window, the tab shows the text as it came. OpenCode reports no usage windows, and the board does not
-read Copilot's, since its CLI has no command for it. Usage is read on a press and at no other time: not when the
-board starts, not before a job, and not when a page is opened.
+**Each AI's tab has three tabs of its own: Models, Subscription and Installation**, and opens on Models. Each has
+its own **Check**, which reads what that tab shows and leaves the other two as they were, and each tab stamps the time
+of its own last reading. The **(?)** in front of a Check says what that one reads for that AI. The address names the
+open tab (`/settings?tab=claude&aitab=installation`), so a press of Check loads the same tab again. Like the
+installation check, the usage and the models are read on a press and at no other time: not when the board starts,
+not before a job, and not when a page is opened. The installation check alone also runs at start and before a waiting
+job, which is what the notice at the top of every page reads; that notice links to the AI's Installation tab.
 
-**A press of Check also reads which models the AI offers**, and the tab lists the models it offers that are not
-choices, each with Add, and the choices it no longer offers, each with Remove. Nothing is added or removed without a
-press, and a choice that is a step's default model is refused until another model is picked for that step. Claude Code
-is asked one model at a time with `claude -p --model <m> "/model"`, which runs no model: the four families `opus`,
-`sonnet`, `fable` and `haiku`, each with the version it gives today, and every Claude choice. Of the choices, only a
-full id Claude Code names is offered: the other names it takes (`best`, `default`, `opusplan`, the `[1m]` names) are
-asked only for the name their choice shows, and such a choice is listed as no longer offered. The Claude tab also adds a fixed version by its full id, such as
-`claude-opus-4-8`, only when Claude Code names it. Codex's models come from `codex debug models`, without the ones it
-marks hidden, and OpenCode's from `opencode models`. Like the usage, the models are read on a press and nowhere else,
-and the lists are gone after a restart until the next press.
+**The Subscription tab shows how much of the AI's subscription is used**: each usage window with the share used, when
+it starts over, and when it was read. Claude Code's comes from `claude -p /usage`, and Codex's from
+`codex app-server`'s `account/rateLimits/read`; neither runs a model. When Claude's text has no line the board can read as a
+window, the tab shows the text as it came. OpenCode reports no usage windows, and the board does not read Copilot's,
+since its CLI has no command for it.
+
+**The Installation tab shows what `aide-preflight` printed** — whether the command line is installed and which
+version, where each piece of aide lands, and whether the installed files match the repository — every command the
+check ran, and whether the AI is logged in, as one sentence: "Logged in with claude.ai as …", or "Not logged in — run
+claude auth login" with the AI's own login command. Copilot's command line cannot say whether it is logged in, and
+the tab says so.
+
+**The Models tab lists the models under three headings.** "Currently supported by Aide" is every model choice of that
+AI, the ones that can be picked on the board today. "Available" is the models the AI offers that are not choices,
+each with Add. "No longer available" is the choices it no longer offers, each with Remove; such a choice can still be
+picked until it is removed, so it is listed under both. Nothing is added or removed without a press, a model is added
+only when the last Models Check read it, and a choice that is a step's default model is refused until another model
+is picked for that step. Claude Code is asked one model at a time with `claude -p --model <m> "/model"`, which runs no
+model: the four families `opus`, `sonnet`, `fable` and `haiku`, each with the version it gives today, and every Claude
+choice. Of the choices, only a full id Claude Code names is offered: the other names it takes (`best`, `default`,
+`opusplan`, the `[1m]` names) are asked only for the name their choice shows, and such a choice is listed as no longer
+offered. A fixed Claude version, such as `claude-opus-4-8`, is a choice written into `queue-config.json` on the
+serving host. Codex's models come from `codex debug models`, without the ones it marks hidden, and OpenCode's from
+`opencode models`. The lists are gone after a restart until the next press.
 
 **A Claude choice shows the version it gives** in every model picker and on the Claude tab. The model id it resolves
-to is kept in `model-ids.json`, beside the queue's own file: a run records the id it ran on, and a press of Check or
-an Add records the id Claude Code names, so the newest of them wins and a choice that never ran shows its version
-too. Beside it, `model-names.json` keeps the name Claude Code gave the choice for that id, which is what the choice is
+to is kept in `model-ids.json`, beside the queue's own file: a run records the id it ran on, and a press of the
+Models tab's Check or an Add records the id Claude Code names, so the newest of them wins and a choice that never ran
+shows its version too. Beside it, `model-names.json` keeps the name Claude Code gave the choice for that id, which is what the choice is
 shown by while the id stands: `Opus 5.5 (1M context)` for `opus[1m]`, `Sonnet 3.5` for `claude-3-5-sonnet-20241022`. A
 run that reports another id shows the name read from that id. A choice written into `queue-config.json` by hand shows
-the bare name until the next press of Check.
+the bare name until the next press of the Models tab's Check.
 
 **The tool is a choice per PHASE, not per row.** Every phase's dropdown lists every configured model, grouped
 in an

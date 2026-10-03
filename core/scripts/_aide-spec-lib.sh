@@ -213,6 +213,20 @@ aide_spec_choose_approach() {
     | head -1 | sed 's/[[:space:]]*$//'
 }
 
+# The description's "## Out of scope" section: its heading and every line
+# up to the next level-1 or level-2 heading or a `---` line, as written,
+# with trailing whitespace (a CR too) and trailing blank lines dropped.
+# Nothing when there is none. The heading is recognised in any letter case.
+#   aide_out_of_scope_section <description text>
+aide_out_of_scope_section() {
+  printf '%s\n' "$1" | awk '
+    (/^##?[ \t]/ || /^---[ \t\r]*$/) && inside { exit }
+    tolower($0) ~ /^##[ \t]+out of scope[ \t\r]*$/ { inside = 1 }
+    inside { sub(/[ \t\r]+$/, ""); line[++n] = $0 }
+    END { while (n > 0 && line[n] == "") n--; for (i = 1; i <= n; i++) print line[i] }
+  '
+}
+
 # Record whether a create asked to choose the approach: drop any "Let me
 # choose the approach:" line in the description, and write the new one
 # directly after its "Acceptance criteria checks:" line, or after its

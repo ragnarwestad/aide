@@ -326,6 +326,17 @@ if [ "$given_set" = "yes" ]; then
     fi
     next=$((next + 1))
   done
+  # The "## Out of scope" section is the person's own too: kept word for
+  # word, and never written by the model.
+  if declare -f aide_out_of_scope_section >/dev/null 2>&1; then
+    given_scope="$(aide_out_of_scope_section "$given_description")"
+    written_scope="$(aide_out_of_scope_section "$description")"
+    if [ -n "$given_scope" ] && [ "$given_scope" != "$written_scope" ]; then
+      refuse "the ## Out of scope section must stay word for word as the description gave it"
+    elif [ -z "$given_scope" ] && [ -n "$written_scope" ]; then
+      refuse "the description gave no ## Out of scope section: only its author writes one"
+    fi
+  fi
 fi
 
 if [ -n "$folder_name" ]; then

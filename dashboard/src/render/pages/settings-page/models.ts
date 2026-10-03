@@ -5,8 +5,9 @@
 // `src/serve`.
 
 import { esc } from "../../ui/html.ts";
-import { btn, buttonForm, facts, field, messageSlot } from "../../ui/components";
+import { buttonForm, facts, messageSlot } from "../../ui/components";
 import { aliasLabel } from "../../ui/components/model-label.ts";
+import { t, type Language } from "../../../i18n";
 import type { ModelChoice } from "../../../queue/types.ts";
 import type { CheckableTool } from "./tools.ts";
 
@@ -60,23 +61,28 @@ export const sameModel = (tool: CheckableTool, a: string, b: string): boolean =>
   tool === "claude" ? a.toLowerCase() === b.toLowerCase() : a === b;
 
 export interface ModelLists {
+  /** Every choice of the AI: what can be picked on the board today. A
+   *  choice the reading no longer offers is still one, until it is removed. */
+  supported: { name: string; model: string }[];
   /** Offered by the AI and no choice of it. */
   offered: OfferedModel[];
   /** A choice of the AI that the reading does not offer. */
   gone: { name: string; model: string }[];
 }
 
-/** The two lists on an AI's tab, worked out from the reading and the live
- *  choices each time the tab is drawn. */
+/** The three lists on an AI's Models tab, worked out from the reading and
+ *  the live choices each time the tab is drawn. */
 export function modelLists(
   tool: CheckableTool,
   choices: Record<string, ModelChoice> | undefined,
-  reading: ToolModels,
+  reading: ToolModels | undefined,
 ): ModelLists {
   const own = Object.entries(choices ?? {})
     .filter(([, choice]) => choiceOf(tool, choice))
     .map(([name, choice]) => ({ name, model: choiceModel(name, choice) }));
+  if (!reading) return { supported: own, offered: [], gone: [] };
   return {
+    supported: own,
     offered: reading.offered.filter((m) => !own.some((c) => sameModel(tool, c.model, m.model))),
     gone: own.filter((c) => !reading.offered.some((m) => sameModel(tool, c.model, m.model))),
   };
@@ -108,70 +114,60 @@ function rowForm(
   });
 }
 
-/** The Claude choices with the version each gives, as every picker labels
- *  them: drawn whether or not a reading is in memory, since the version is
- *  kept across a restart and the reading is not. */
-function claudeChoices(panel: ModelsPanel): string {
-  const names = Object.entries(panel.choices ?? {})
-    .filter(([, choice]) => choiceOf("claude", choice))
-    .map(([name]) => name);
-  if (!names.length) return `<h3>Model choices</h3><p class="muted">No model choice runs on Claude Code.</p>`;
+/** The models that can be picked on the board today: a Claude choice
+ *  with the version it gives, as every picker labels it, another AI's with
+ *  the model its command line is given. Drawn whether or not a reading is
+ *  in memory, since the version is kept across a restart and the reading
+ *  is not. */
+function supportedBlock(tool: CheckableTool, panel: ModelsPanel, lang: Language, toolName: string): string {
+  const heading = `<h3>${esc(t(lang, "settings.models.supported"))}</h3>`;
+  const { supported } = modelLists(tool, panel.choices, undefined);
+  if (!supported.length) return heading + `<p class="muted">${esc(t(lang, "settings.models.noneSupported", { tool: toolName }))}</p>`;
   const option = (name: string) => panel.options?.find((o) => o.name === name);
-  return `<h3>Model choices</h3>` + facts(names.map((name) => ({
+  return heading + facts(supported.map(({ name, model }) => ({
     label: esc(name),
-    value: esc(aliasLabel(name, option(name)?.ranAs, option(name)?.named)),
+    value: esc(tool === "claude" ? aliasLabel(name, option(name)?.ranAs, option(name)?.named) : model),
   })));
 }
 
-/** The field a fixed Claude version is added by, typed as its full id. */
-function claudeIdForm(): string {
-  const input =
-    `<input type="text" id="models-add-claude-id-model" name="model" placeholder="claude-opus-4-8" required>`;
-  return (
-    `<form id="models-add-claude-id" method="post" action="${MODELS_ADD_ROUTE}" class="reloadform">` +
-    `<input type="hidden" name="tool" value="claude">` +
-    field("Add a fixed version by its full id", input, {
-      for: "models-add-claude-id-model",
-      actions: btn({ id: "models-add-claude-id-run", ...ADD }),
-    }) +
-    messageSlot("refused") +
-    `</form>`
-  );
-}
-
-/** What the last press of Check read of the AI's models, against its
- *  choices: nothing at all until a press has read them. */
-function readingBlock(tool: CheckableTool, panel: ModelsPanel, readAt: string): string {
+/** What the last press of the Models tab's Check read of the AI's models,
+ *  against its choices: nothing at all until a press has read them. */
+function readingBlock(tool: CheckableTool, panel: ModelsPanel, lang: Language): string {
   const reading = panel.reading;
   if (!reading) return `<p class="muted">Models not read yet.</p>`;
   if (reading.noSource) {
     return `<p class="muted">The board does not read this AI's models: its command line has no command that lists them.</p>`;
   }
-  const read = `<p class="muted small">Models read ${esc(readAt)}</p>`;
-  if (reading.error) return read + `<p class="muted">The models could not be read: ${esc(reading.error)}</p>`;
+  if (reading.error) return `<p class="muted">The models could not be read: ${esc(reading.error)}</p>`;
   const lists = modelLists(tool, panel.choices, reading);
   const offered = lists.offered.length
     ? facts(lists.offered.map((m, i) => ({
       label: esc(offeredLabel(tool, m)),
       value: rowForm(MODELS_ADD_ROUTE, `models-add-${tool}-${i}`, { tool, model: m.model }, ADD, m.model),
     })))
-    : `<p class="muted">Every model it offers is a choice.</p>`;
+    : `<p class="muted">${esc(t(lang, "settings.models.allSupported"))}</p>`;
   const gone = lists.gone.length
     ? facts(lists.gone.map((c, i) => ({
       label: esc(c.name === c.model ? c.name : `${c.name} (${c.model})`),
       value: rowForm(MODELS_REMOVE_ROUTE, `models-remove-${tool}-${i}`, { name: c.name }, REMOVE, c.name),
     })))
-    : `<p class="muted">Every choice is still offered.</p>`;
-  return read + `<h3>Offered, not a choice</h3>` + offered + `<h3>A choice it no longer offers</h3>` + gone;
+    : `<p class="muted">${esc(t(lang, "settings.models.noneGone"))}</p>`;
+  return (
+    `<h3>${esc(t(lang, "settings.models.available"))}</h3>` + offered +
+    `<h3>${esc(t(lang, "settings.models.gone"))}</h3>` + gone
+  );
 }
 
-/** The models part of an AI's tab. `readAt` is the reading's time as the
- *  tab stamps it. */
-export function modelsBlock(tool: CheckableTool, panel: ModelsPanel, readAt: string): string {
-  const claude = tool === "claude";
-  return (
-    (claude ? claudeChoices(panel) : "") +
-    readingBlock(tool, panel, readAt) +
-    (claude ? claudeIdForm() : "")
-  );
+/** An AI's Models tab: when its models were last read, the ones that can
+ *  be picked, and the reading set against them. `readAt` is the reading's
+ *  time as the tab stamps it; `toolName` is the AI's own name. */
+export function modelsBlock(
+  tool: CheckableTool,
+  panel: ModelsPanel,
+  readAt: string,
+  lang: Language = "en",
+  toolName: string = tool,
+): string {
+  const read = panel.reading && !panel.reading.noSource ? `<p class="muted small">Models read ${esc(readAt)}</p>` : "";
+  return read + supportedBlock(tool, panel, lang, toolName) + readingBlock(tool, panel, lang);
 }

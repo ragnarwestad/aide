@@ -23,7 +23,8 @@ Coherence is told, too, whether the spec asks to choose the approach.
 
 **LOW specs:** one combined pass over the three questions below. Keep it
 short; a LOW plan rarely deserves three reviewers. The one pass makes
-all five acceptance criteria checks, at the one level.
+all five acceptance criteria checks, at the one level, and the Out of
+scope check of the Scope guardian below.
 
 **MEDIUM/HIGH specs:** three reviewers, each with ONE perspective and no
 sight of the others' findings. In Claude Code, run them as parallel
@@ -63,6 +64,13 @@ questions, with file:line references into the spec:
    asks? Flag every planned change that is not traceable to the
    description. Flag missing pieces too: what does the description ask
    for that the plan never delivers?
+
+   **Out of scope**, at every acceptance criteria checks level, `off`
+   included: when `1-description.md` has an `## Out of scope` section,
+   each part of the plan that falls under an item in it — a file it
+   changes, a behaviour it adds, a task — is a must-fix that names the
+   item and the part. The plan is revised to leave that part out or do
+   it another way. Without the section there is no such finding.
 3. **Coherence** — do the analysis, the acceptance criteria and the
    plan agree? Is every criterion testable as written? Does the
    behavior delta match what the steps actually do? Does every AC-n
@@ -123,7 +131,10 @@ unbuildable), **should-fix** (weakness, worth fixing now), **notes**
 (observations, no action). Deduplicate across reviewers. The acceptance
 criteria faults come from two reviewers — Coherence's four checks and
 Feasibility's cannot-be-built — and the Criteria check line below names
-both; a fault left out of it is one the runner never stops on.
+both; a fault left out of it is one the runner never stops on. A part of
+the plan under an item of the description's `## Out of scope` section is
+a must-fix of the Scope guardian and never goes on the Criteria check
+line.
 
 ## Revise — the review is not a stamp
 

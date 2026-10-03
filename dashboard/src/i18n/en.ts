@@ -21,7 +21,8 @@ export const en = {
   "shell.wikiJob": "the {project} wiki",
   "shell.restartWaiting": "Deploy is waiting for {jobs}; the service restarts when they are done.",
   "shell.installWarning": "aide's last install found a problem: {problem} — the full output is in {path}",
-  "shell.toolFault": "{tool}: {problems} — open Settings and press Check on that tab",
+  "shell.toolFault": "{tool}: {problems} — press Check on {where}",
+  "shell.toolFaultWhere": "its Installation tab in Settings",
   "shell.checkoutFault": "{project}: the dashboard cannot use its own checkout — {said}",
   "deploy.title": "Deploying…",
   "deploy.stepFetch": "Fetch from origin",
@@ -64,7 +65,7 @@ export const en = {
   "list.searchHelpBody":
     "Searches the project:folder, the title, the description — the whole description, " +
     "including the part the row does not show.",
-  "list.searchPlaceholder": "a word in any of three fields",
+  "list.searchPlaceholder": "Search in project name, title or description",
   "list.searchAriaLabel": "Search the specs",
   "list.searchClearTitle": "Clear the search",
   "list.search": "Search",
@@ -318,14 +319,37 @@ export const en = {
     "OpenCode brings no model of its own: every model belongs to a provider and is named provider/model. aide installs only its instructions, to {instructions}, and OpenCode finds aide's skills where they already are, in {skills} and {claudeSkills}.",
   "settings.checkHelpTitle":
     "What Check finds out",
-  "settings.checkCan.claude":
-    "The check tells you whether the command line is installed and which version, whether it is logged in, where each piece of aide lands and whether it is there, whether the installed files still match this repository, and which version each of opus, sonnet, fable and haiku gives today, asked with /model, which runs no model.",
-  "settings.checkCan.codex":
-    "The check tells you whether the command line is installed and which version, whether it is logged in, where each piece of aide lands and whether it is there, whether the installed files still match this repository, and which models it offers, from codex debug models.",
-  "settings.checkCan.copilot":
-    "The check tells you whether the command line is installed and which version, where each piece of aide lands and whether it is there, and whether the installed files still match this repository.",
-  "settings.checkCan.opencode":
-    "The check tells you everything the others can, which models its logged-in providers offer, and whether every model configured on this server still appears in its provider's own list. A provider IS the login here, since OpenCode reaches every model through one.",
-  "settings.checkCannot.copilot":
-    "The check cannot tell you whether it is logged in, or which models it accepts. The Copilot CLI has a command for neither.",
+  "settings.part.models": "Models",
+  "settings.part.subscription": "Subscription",
+  "settings.part.installation": "Installation",
+  "settings.checkHelp.models.claude":
+    "This Check asks Claude Code which version each of opus, sonnet, fable and haiku gives today, with /model, which runs no model, and sets what it offers against the models that can be picked on the board.",
+  "settings.checkHelp.models.codex":
+    "This Check reads which models Codex offers, from codex debug models, and sets them against the models that can be picked on the board.",
+  "settings.checkHelp.models.copilot":
+    "This Check cannot read which models Copilot accepts: the Copilot CLI has no command that lists them.",
+  "settings.checkHelp.models.opencode":
+    "This Check reads which models OpenCode's logged-in providers offer, from opencode models, and sets them against the models that can be picked on the board.",
+  "settings.checkHelp.subscription.claude":
+    "This Check reads how much of the subscription is used and when each limit resets, from claude -p /usage, which runs no model.",
+  "settings.checkHelp.subscription.codex":
+    "This Check reads how much of the subscription is used and when each limit resets, asked of codex app-server.",
+  "settings.checkHelp.subscription.copilot":
+    "This Check cannot read how much of the subscription is used: the Copilot CLI has no command that reports it.",
+  "settings.checkHelp.subscription.opencode":
+    "OpenCode keeps no usage limit of its own: every model belongs to a provider, and each provider keeps its own. This Check has nothing to read.",
+  "settings.checkHelp.installation.claude":
+    "This Check runs aide-preflight and claude auth status. It tells you whether the command line is installed and which version, whether it is logged in and with which account, where each piece of aide lands and whether it is there, and whether the installed files still match this repository.",
+  "settings.checkHelp.installation.codex":
+    "This Check runs aide-preflight and codex login status. It tells you whether the command line is installed and which version, whether it is logged in, where each piece of aide lands and whether it is there, and whether the installed files still match this repository.",
+  "settings.checkHelp.installation.copilot":
+    "This Check runs aide-preflight. It tells you whether the command line is installed and which version, where each piece of aide lands and whether it is there, and whether the installed files still match this repository. It cannot tell whether Copilot is logged in: the Copilot CLI has no command for it, so run copilot login if a run is refused.",
+  "settings.checkHelp.installation.opencode":
+    "This Check runs aide-preflight, opencode providers list and opencode models. It tells you whether the command line is installed and which version, whether a provider is logged in, where each piece of aide lands and whether it is there, whether the installed files still match this repository, and whether every model configured on this server is still listed. A provider IS the login here, since OpenCode reaches every model through one.",
+  "settings.models.supported": "Currently supported by Aide",
+  "settings.models.available": "Available",
+  "settings.models.gone": "No longer available",
+  "settings.models.noneSupported": "No model choice runs on {tool}.",
+  "settings.models.allSupported": "Every model it offers can already be picked.",
+  "settings.models.noneGone": "Every model that can be picked is still offered.",
 } as const;

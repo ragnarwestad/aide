@@ -167,6 +167,11 @@ spec. In a headless run, where nobody can answer, write the criterion
 the description best supports, and name its id in Step 6's report as
 one to read before `/aide-analyze` runs.
 
+**An `## Out of scope` section is kept too.** When the incoming
+description has one, it goes into `--description` word for word, in its
+place (spec-structure rule § 1-description). Never write one of your
+own, and never reword, move or drop one that was given.
+
 Pass the description exactly as the arguments gave it as
 `--given-description` too. `aide-create-spec` compares the two: it
 refuses when a criterion in the given description is missing from
@@ -174,7 +179,8 @@ refuses when a criterion in the given description is missing from
 run on from the highest one given. It also rewrites an
 Acceptance-criteria line with missing or misplaced bold (`- AC-1:`,
 `- **AC-1**:`) to `- **AC-1:**`, and refuses only a line it cannot
-rewrite. When it refuses, fix the line it names and call it again;
+rewrite. It refuses a changed,
+dropped or added `## Out of scope` section as well. When it refuses, fix the line it names and call it again;
 never get past a refusal by dropping a line or the flag.
 
 Call the script — never the Write tool — so file creation stays on a

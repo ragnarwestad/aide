@@ -1,5 +1,5 @@
-// A press of Check reads the AI's models beside its check and its usage.
-// For Claude it records the id each choice resolves to, exactly as a run
+// A press of the Check on an AI's Models tab reads the AI's models. For
+// Claude it records the id each choice resolves to, exactly as a run
 // does, so every picker shows the version before any run has used it; and
 // it never changes a model choice.
 

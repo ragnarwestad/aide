@@ -1,12 +1,11 @@
-// An AI's tab under Settings → AI: adding a model it offers to the model
-// choices, and removing a choice it no longer offers. The file is written
-// first and the live choices changed only once the write succeeded, the
-// order every Settings save follows; every page reads the live choices, so
-// the next one drawn has the change.
+// An AI's Models tab under Settings → AI: adding a model it offers to the
+// model choices, and removing a choice it no longer offers. The file is
+// written first and the live choices changed only once the write
+// succeeded, the order every Settings save follows; every page reads the
+// live choices, so the next one drawn has the change.
 //
-// A model the AI offers is added only when the last press of Check read
-// it. A fixed Claude version, typed as its full id, is added only when
-// Claude Code names it.
+// A model is added only when the last press of the Models tab's Check
+// read it among what the AI offers.
 
 import { persistQueueSettings, type QueueStore } from "../../queue/queue.ts";
 import type { ModelChoice } from "../../queue/types.ts";
@@ -15,13 +14,10 @@ import { listedModelName } from "../../queue/model-name.ts";
 import { recordModelName } from "../../queue/store/model-ids.ts";
 import { capitalizeFirst } from "../../format/error-sentence.ts";
 import { stepLabel } from "../../format/step-label.ts";
-import { runScript, scriptFor } from "../land-branch/run-script.ts";
 import {
   choiceModel, choiceOf, MODELS_ADD_ROUTE, MODELS_REMOVE_ROUTE, sameModel, TOOL_TAB_LABELS, type ToolModels,
 } from "../../render";
-import {
-  askClaudeModel, CLAUDE_ID, isClaudeFamily, lastModels, recordModels, type ClaudeModelAnswer,
-} from "../tool-models";
+import { isClaudeFamily, lastModels } from "../tool-models";
 import { bodyToObject, json, readBounded } from "../serve-helpers";
 import type { RoutesContext } from "./";
 
@@ -79,38 +75,19 @@ async function addModel(ctx: RoutesContext, asked: Record<string, unknown>): Pro
   if (!isModelTool(tool)) return refuse("unknown AI: models can be added for claude, codex and opencode");
   const model = text(asked.model);
   const ai = TOOL_TAB_LABELS[tool];
-  if (!model) return refuse(`no model was named — type or pick one on the ${ai} tab`);
+  if (!model) return refuse(`no model was named — pick one on the ${ai} tab`);
   const choices = ctx.queue.defaults.modelChoices ?? {};
   const already = Object.entries(choices).find(
     ([name, choice]) => choiceOf(tool, choice) && sameModel(tool, choiceModel(name, choice), model),
   );
   if (already) return refuse(`${model} is already a model choice for ${ai}, as ${already[0]} — nothing to add`);
 
-  let read: { name?: string; id?: string } | undefined;
-  let typed: { name: string; id?: string } | undefined;
-  if (tool === "claude" && !isClaudeFamily(model)) {
-    // A fixed version, typed by hand: asked of Claude Code, and added
-    // only when it names it.
-    if (!CLAUDE_ID.test(model)) {
-      return refuse(`${model} is not a full Claude model id — type one such as claude-opus-4-8`);
-    }
-    const probe = ctx.opts.toolProbe;
-    const answer: ClaudeModelAnswer = probe
-      ? await probe.claudeName(model)
-      : await askClaudeModel(runScript, scriptFor("claude"), model);
-    if ("error" in answer) return refuse(`Claude Code could not be asked about ${model}: ${answer.error} — try again`);
-    if (!answer.known) return refuse(`Claude Code does not know ${model} — check the id and try again`);
-    typed = { name: answer.name, ...(answer.id ? { id: answer.id } : {}) };
-    read = typed;
-  } else {
-    const reading = lastModels()[tool];
-    const offered = reading && !reading.error
-      ? reading.offered.find((m) => sameModel(tool, m.model, model))
-      : undefined;
-    if (!offered) {
-      return refuse(`${model} is not among the models ${ai} offered when it was last read — press Check on the ${ai} tab and try again`);
-    }
-    read = offered;
+  const reading = lastModels()[tool];
+  const read = reading && !reading.error
+    ? reading.offered.find((m) => sameModel(tool, m.model, model))
+    : undefined;
+  if (!read) {
+    return refuse(`${model} is not among the models ${ai} offered when it was last read — press Check on the ${ai} tab's Models tab and try again`);
   }
 
   const key = keyFor(tool, model, Object.keys(choices));
@@ -120,15 +97,9 @@ async function addModel(ctx: RoutesContext, asked: Record<string, unknown>): Pro
   if (error) return refuse(error);
   ctx.queue.defaults.modelChoices = { ...choices, [key]: entry };
   // The name Claude Code gave it is what it is shown by, kept with the id
-  // it gave it for (the typed id itself when the stream named none).
-  if (tool === "claude" && read?.name) {
+  // it gave it for (the model itself when the reading named none).
+  if (tool === "claude" && read.name) {
     recordModelName(ctx.opts.modelIdsPath, ctx.queue.modelIds, key, read.id ?? model, read.name);
-  }
-  // The typed id is offered from now on, so the tab does not list it as
-  // no longer offered before the next press of Check.
-  const reading = lastModels().claude;
-  if (typed && reading && !reading.error) {
-    recordModels({ ...reading, offered: [...reading.offered, { model, ...typed }] });
   }
   return json({ ok: true, name: key });
 }

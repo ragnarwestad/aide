@@ -20,7 +20,8 @@ export const de: Record<TranslationKey, string> = {
   "shell.wikiJob": "das Wiki von {project}",
   "shell.restartWaiting": "Das Deployment wartet auf {jobs}; der Dienst startet neu, sobald sie fertig sind.",
   "shell.installWarning": "aides letzte Installation hat ein Problem gefunden: {problem} — die ganze Ausgabe steht in {path}",
-  "shell.toolFault": "{tool}: {problems} — öffne Settings und klicke auf Check auf diesem Tab",
+  "shell.toolFault": "{tool}: {problems} — klicke auf Check auf {where}",
+  "shell.toolFaultWhere": "seinem Tab Installation in Settings",
   "shell.checkoutFault": "{project}: das Dashboard kann seinen eigenen Checkout nicht verwenden — {said}",
   "deploy.title": "Wird bereitgestellt…",
   "deploy.stepFetch": "Von origin holen",
@@ -63,7 +64,7 @@ export const de: Record<TranslationKey, string> = {
   "list.searchHelpBody":
     "Durchsucht projekt:ordner, den Titel, die Beschreibung — die ganze Beschreibung, " +
     "auch den Teil, den die Zeile nicht zeigt.",
-  "list.searchPlaceholder": "ein Wort in einem der drei Felder",
+  "list.searchPlaceholder": "Suche in Projektname, Titel oder Beschreibung",
   "list.searchAriaLabel": "Die Specs durchsuchen",
   "list.searchClearTitle": "Suche löschen",
   "list.search": "Suchen",
@@ -308,14 +309,37 @@ export const de: Record<TranslationKey, string> = {
     "OpenCode bringt kein eigenes Modell mit: Jedes Modell gehört zu einem Anbieter und heißt Anbieter/Modell. aide installiert nur die Anweisungen, nach {instructions}, und OpenCode findet die Skills von aide dort, wo sie schon liegen, in {skills} und {claudeSkills}.",
   "settings.checkHelpTitle":
     "Was Check herausfindet",
-  "settings.checkCan.claude":
-    "Die Prüfung sagt dir, ob die Kommandozeile installiert ist und in welcher Version, ob sie angemeldet ist, wo jedes Teil von aide landet und ob es da ist, ob die installierten Dateien noch zu diesem Repository passen, und welche Version opus, sonnet, fable und haiku heute jeweils liefern, abgefragt mit /model, das kein Modell ausführt.",
-  "settings.checkCan.codex":
-    "Die Prüfung sagt dir, ob die Kommandozeile installiert ist und in welcher Version, ob sie angemeldet ist, wo jedes Teil von aide landet und ob es da ist, ob die installierten Dateien noch zu diesem Repository passen, und welche Modelle sie anbietet, laut codex debug models.",
-  "settings.checkCan.copilot":
-    "Die Prüfung sagt dir, ob die Kommandozeile installiert ist und in welcher Version, wo jedes Teil von aide landet und ob es da ist, und ob die installierten Dateien noch zu diesem Repository passen.",
-  "settings.checkCan.opencode":
-    "Die Prüfung sagt dir alles, was sie bei den anderen sagt, welche Modelle die angemeldeten Anbieter anbieten, und ob jedes auf diesem Server eingerichtete Modell noch in der Liste seines Anbieters steht. Hier IST der Anbieter die Anmeldung, da OpenCode jedes Modell über einen erreicht.",
-  "settings.checkCannot.copilot":
-    "Die Prüfung kann dir nicht sagen, ob sie angemeldet ist oder welche Modelle sie annimmt. Die Copilot-Kommandozeile hat für keines von beiden einen Befehl.",
+  "settings.part.models": "Modelle",
+  "settings.part.subscription": "Abonnement",
+  "settings.part.installation": "Installation",
+  "settings.checkHelp.models.claude":
+    "Diese Prüfung fragt Claude Code, welche Version opus, sonnet, fable und haiku heute jeweils liefern, mit /model, das kein Modell ausführt, und hält das Angebot gegen die Modelle, die im Dashboard gewählt werden können.",
+  "settings.checkHelp.models.codex":
+    "Diese Prüfung liest, welche Modelle Codex anbietet, aus codex debug models, und hält sie gegen die Modelle, die im Dashboard gewählt werden können.",
+  "settings.checkHelp.models.copilot":
+    "Diese Prüfung kann nicht lesen, welche Modelle Copilot annimmt: Die Copilot-Kommandozeile hat keinen Befehl, der sie auflistet.",
+  "settings.checkHelp.models.opencode":
+    "Diese Prüfung liest, welche Modelle die angemeldeten Anbieter von OpenCode anbieten, aus opencode models, und hält sie gegen die Modelle, die im Dashboard gewählt werden können.",
+  "settings.checkHelp.subscription.claude":
+    "Diese Prüfung liest, wie viel des Abonnements verbraucht ist und wann jedes Limit zurückgesetzt wird, aus claude -p /usage, das kein Modell ausführt.",
+  "settings.checkHelp.subscription.codex":
+    "Diese Prüfung liest, wie viel des Abonnements verbraucht ist und wann jedes Limit zurückgesetzt wird, abgefragt bei codex app-server.",
+  "settings.checkHelp.subscription.copilot":
+    "Diese Prüfung kann nicht lesen, wie viel des Abonnements verbraucht ist: Die Copilot-Kommandozeile hat keinen Befehl, der es meldet.",
+  "settings.checkHelp.subscription.opencode":
+    "OpenCode hat kein eigenes Nutzungslimit: Jedes Modell gehört einem Anbieter, und jeder Anbieter hat sein eigenes. Diese Prüfung hat nichts zu lesen.",
+  "settings.checkHelp.installation.claude":
+    "Diese Prüfung führt aide-preflight und claude auth status aus. Sie sagt dir, ob die Kommandozeile installiert ist und in welcher Version, ob sie angemeldet ist und mit welchem Konto, wo jedes Teil von aide landet und ob es da ist, und ob die installierten Dateien noch zu diesem Repository passen.",
+  "settings.checkHelp.installation.codex":
+    "Diese Prüfung führt aide-preflight und codex login status aus. Sie sagt dir, ob die Kommandozeile installiert ist und in welcher Version, ob sie angemeldet ist, wo jedes Teil von aide landet und ob es da ist, und ob die installierten Dateien noch zu diesem Repository passen.",
+  "settings.checkHelp.installation.copilot":
+    "Diese Prüfung führt aide-preflight aus. Sie sagt dir, ob die Kommandozeile installiert ist und in welcher Version, wo jedes Teil von aide landet und ob es da ist, und ob die installierten Dateien noch zu diesem Repository passen. Ob Copilot angemeldet ist, kann sie nicht sagen: Die Copilot-Kommandozeile hat keinen Befehl dafür, also führe copilot login aus, wenn ein Lauf abgelehnt wird.",
+  "settings.checkHelp.installation.opencode":
+    "Diese Prüfung führt aide-preflight, opencode providers list und opencode models aus. Sie sagt dir, ob die Kommandozeile installiert ist und in welcher Version, ob ein Anbieter angemeldet ist, wo jedes Teil von aide landet und ob es da ist, ob die installierten Dateien noch zu diesem Repository passen, und ob jedes auf diesem Server eingerichtete Modell noch aufgeführt ist. Hier IST der Anbieter die Anmeldung, da OpenCode jedes Modell über einen erreicht.",
+  "settings.models.supported": "Derzeit von Aide unterstützt",
+  "settings.models.available": "Verfügbar",
+  "settings.models.gone": "Nicht mehr verfügbar",
+  "settings.models.noneSupported": "Keine Modellwahl läuft auf {tool}.",
+  "settings.models.allSupported": "Jedes angebotene Modell kann bereits gewählt werden.",
+  "settings.models.noneGone": "Jedes Modell, das gewählt werden kann, wird noch angeboten.",
 };

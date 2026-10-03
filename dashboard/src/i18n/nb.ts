@@ -20,7 +20,8 @@ export const nb: Record<TranslationKey, string> = {
   "shell.wikiJob": "wikien for {project}",
   "shell.restartWaiting": "Deploy venter på {jobs}; tjenesten restarter når de er ferdige.",
   "shell.installWarning": "siste installasjon fant et problem: {problem} — hele utskriften står i {path}",
-  "shell.toolFault": "{tool}: {problems} — åpne Settings og trykk Check på den fanen",
+  "shell.toolFault": "{tool}: {problems} — trykk Check på {where}",
+  "shell.toolFaultWhere": "Installasjon-fanen i Settings",
   "shell.checkoutFault": "{project}: dashbordet kan ikke bruke sin egen utsjekk — {said}",
   "deploy.title": "Deployer…",
   "deploy.stepFetch": "Hent fra origin",
@@ -63,7 +64,7 @@ export const nb: Record<TranslationKey, string> = {
   "list.searchHelpBody":
     "Søker i prosjekt:mappe, tittelen og beskrivelsen — hele beskrivelsen, også den " +
     "delen raden ikke viser.",
-  "list.searchPlaceholder": "et ord i ett av tre felt",
+  "list.searchPlaceholder": "Søk i prosjektnavn, tittel eller beskrivelse",
   "list.searchAriaLabel": "Søk i specene",
   "list.searchClearTitle": "Tøm søket",
   "list.search": "Søk",
@@ -309,14 +310,37 @@ export const nb: Record<TranslationKey, string> = {
     "OpenCode har ingen modell selv: hver modell hører til en leverandør og heter leverandør/modell. aide installerer bare instruksjonene, til {instructions}, og OpenCode finner aides skills der de allerede ligger, i {skills} og {claudeSkills}.",
   "settings.checkHelpTitle":
     "Hva Check finner ut",
-  "settings.checkCan.claude":
-    "Sjekken forteller om kommandolinjen er installert og hvilken versjon, om den er logget inn, hvor hver del av aide havner og om den er der, om de installerte filene fortsatt stemmer med dette repoet, og hvilken versjon hver av opus, sonnet, fable og haiku gir i dag, spurt med /model, som ikke kjører noen modell.",
-  "settings.checkCan.codex":
-    "Sjekken forteller om kommandolinjen er installert og hvilken versjon, om den er logget inn, hvor hver del av aide havner og om den er der, om de installerte filene fortsatt stemmer med dette repoet, og hvilke modeller den tilbyr, fra codex debug models.",
-  "settings.checkCan.copilot":
-    "Sjekken forteller om kommandolinjen er installert og hvilken versjon, hvor hver del av aide havner og om den er der, og om de installerte filene fortsatt stemmer med dette repoet.",
-  "settings.checkCan.opencode":
-    "Sjekken forteller alt den gjør for de andre, hvilke modeller de innloggede leverandørene tilbyr, og om hver modell som er satt opp på denne serveren fortsatt står i leverandørens egen liste. Her ER leverandøren innloggingen, siden OpenCode når hver modell gjennom en.",
-  "settings.checkCannot.copilot":
-    "Sjekken kan ikke fortelle om den er logget inn, eller hvilke modeller den godtar. Copilot-kommandolinjen har ingen kommando for noen av delene.",
+  "settings.part.models": "Modeller",
+  "settings.part.subscription": "Abonnement",
+  "settings.part.installation": "Installasjon",
+  "settings.checkHelp.models.claude":
+    "Denne sjekken spør Claude Code hvilken versjon opus, sonnet, fable og haiku gir i dag, med /model, som ikke kjører noen modell, og holder det den tilbyr opp mot modellene som kan velges i dashbordet.",
+  "settings.checkHelp.models.codex":
+    "Denne sjekken leser hvilke modeller Codex tilbyr, fra codex debug models, og holder dem opp mot modellene som kan velges i dashbordet.",
+  "settings.checkHelp.models.copilot":
+    "Denne sjekken kan ikke lese hvilke modeller Copilot godtar: Copilot-kommandolinjen har ingen kommando som lister dem.",
+  "settings.checkHelp.models.opencode":
+    "Denne sjekken leser hvilke modeller de innloggede leverandørene til OpenCode tilbyr, fra opencode models, og holder dem opp mot modellene som kan velges i dashbordet.",
+  "settings.checkHelp.subscription.claude":
+    "Denne sjekken leser hvor mye av abonnementet som er brukt og når hver grense nullstilles, fra claude -p /usage, som ikke kjører noen modell.",
+  "settings.checkHelp.subscription.codex":
+    "Denne sjekken leser hvor mye av abonnementet som er brukt og når hver grense nullstilles, spurt fra codex app-server.",
+  "settings.checkHelp.subscription.copilot":
+    "Denne sjekken kan ikke lese hvor mye av abonnementet som er brukt: Copilot-kommandolinjen har ingen kommando som viser det.",
+  "settings.checkHelp.subscription.opencode":
+    "OpenCode har ingen bruksgrense av sin egen: hver modell hører til en leverandør, og hver leverandør har sin egen. Denne sjekken har ingenting å lese.",
+  "settings.checkHelp.installation.claude":
+    "Denne sjekken kjører aide-preflight og claude auth status. Den forteller om kommandolinjen er installert og hvilken versjon, om den er logget inn og med hvilken konto, hvor hver del av aide havner og om den er der, og om de installerte filene fortsatt stemmer med dette repoet.",
+  "settings.checkHelp.installation.codex":
+    "Denne sjekken kjører aide-preflight og codex login status. Den forteller om kommandolinjen er installert og hvilken versjon, om den er logget inn, hvor hver del av aide havner og om den er der, og om de installerte filene fortsatt stemmer med dette repoet.",
+  "settings.checkHelp.installation.copilot":
+    "Denne sjekken kjører aide-preflight. Den forteller om kommandolinjen er installert og hvilken versjon, hvor hver del av aide havner og om den er der, og om de installerte filene fortsatt stemmer med dette repoet. Den kan ikke fortelle om Copilot er logget inn: Copilot-kommandolinjen har ingen kommando for det, så kjør copilot login hvis en kjøring blir avvist.",
+  "settings.checkHelp.installation.opencode":
+    "Denne sjekken kjører aide-preflight, opencode providers list og opencode models. Den forteller om kommandolinjen er installert og hvilken versjon, om en leverandør er logget inn, hvor hver del av aide havner og om den er der, om de installerte filene fortsatt stemmer med dette repoet, og om hver modell som er satt opp på denne serveren fortsatt står på listen. Her ER leverandøren innloggingen, siden OpenCode når hver modell gjennom en.",
+  "settings.models.supported": "Støttes av Aide nå",
+  "settings.models.available": "Tilgjengelig",
+  "settings.models.gone": "Ikke lenger tilgjengelig",
+  "settings.models.noneSupported": "Ingen modellvalg kjører på {tool}.",
+  "settings.models.allSupported": "Hver modell den tilbyr kan allerede velges.",
+  "settings.models.noneGone": "Hver modell som kan velges, tilbys fortsatt.",
 };
