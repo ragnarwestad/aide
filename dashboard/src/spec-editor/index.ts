@@ -29,6 +29,7 @@ import editorDarkCss from "@toast-ui/editor/dist/theme/toastui-editor-dark.css" 
 import Editor from "@toast-ui/editor";
 import { unescapeMarkdown } from "./unescape-markdown.ts";
 import type { ToMdConvertorMap } from "@toast-ui/editor";
+import { scrollToApproach } from "./scroll-to-approach.ts";
 
 // REQ-4: the library exposes no constructor option for the mode
 // switch's position, and its own CSS assumes it sits last (rounded at
@@ -87,11 +88,16 @@ if (host && raw) {
     // Risk analysis) — not a feature this integration wants, and not
     // something a self-hosted tool should phone home about.
     usageStatistics: false,
+    // Focusing the editor scrolls the page to its top after mount, which
+    // would undo the scroll to an approach the address names.
+    autofocus: !/^#approach-/i.test(location.hash),
     initialValue,
     customMarkdownRenderer,
   });
 
   host.dataset.mounted = "true";
+  // A link from the Specs list to one approach of the plan.
+  requestAnimationFrame(() => scrollToApproach(host, location.hash));
   // REQ-1/REQ-3: the library gives a toolbar button a "click" with no
   // "mousedown" of its own in front of it whenever the toolbar redraws
   // and steals focus mid-interaction (2-analysis.md, Codebase analysis)

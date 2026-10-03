@@ -3,8 +3,10 @@
 // fourth request to that process. Pure of the DOM, so a test drives it
 // with fakes and no timers.
 
+import { FAILED_STAYS_MS, type StepState } from "../progress-dialog/steps.ts";
+
+export type { StepState };
 export type DeployStep = "fetch" | "install" | "restart" | "wait" | "check";
-export type StepState = "waiting" | "running" | "done" | "failed";
 
 /** The steps a request answers; `wait` is the page's own. */
 export type PostedStep = "fetch" | "install" | "restart" | "check";
@@ -13,8 +15,6 @@ export const STEPS: DeployStep[] = ["fetch", "install", "restart", "wait", "chec
 
 /** How long "Deploy finished" stays before the dialog closes. */
 export const FINISHED_STAYS_MS = 2000;
-/** How long a failed step stays shown before the dialog closes. */
-export const FAILED_STAYS_MS = 2000;
 /** The restart script sleeps a second first, so the first probe would
  *  only ever meet the old process. */
 export const FIRST_PROBE_AFTER_MS = 2000;

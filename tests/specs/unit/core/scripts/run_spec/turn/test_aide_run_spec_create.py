@@ -392,6 +392,51 @@ def test_an_unknown_level_is_refused_before_anything_runs_AC_4(runner, workspace
     assert not fake_claude.calls.exists()
 
 
+# --- "Let me choose the approach", recorded with the new spec ----------------
+
+APPROACH_LINE = "- **Let me choose the approach:**"
+
+
+@pytest.mark.parametrize("value", ["yes", "no"])
+def test_a_create_without_ai_records_whether_to_choose_the_approach_AC_10(runner, workspace, fake_claude, value):
+    rc, out, _ = create(runner, workspace, fake_claude("exit 1"), no_ai_formulate=True, choose_approach=value)
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert _line_after_created(_created_description(workspace)) == f"{APPROACH_LINE} {value}"
+
+
+def test_a_create_with_an_ai_session_records_it_after_the_criteria_checks_level_AC_10(runner, workspace, fake_claude):
+    rc, out, _ = create(
+        runner, workspace, _describing_claude(fake_claude, RESULT_OK), criteria_checks="warn", choose_approach="yes",
+    )
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    lines = _created_description(workspace).splitlines()
+    at = lines.index(f"{LEVEL_LINE} warn")
+    assert lines[at + 1] == f"{APPROACH_LINE} yes", lines
+    assert sum(1 for l in lines if l.startswith(APPROACH_LINE)) == 1, lines
+
+
+def test_a_create_without_the_choose_approach_flag_records_no_line_AC_10(runner, workspace, fake_claude):
+    rc, out, _ = create(runner, workspace, _describing_claude(fake_claude, RESULT_OK))
+    assert rc == 0, out
+    assert APPROACH_LINE not in _created_description(workspace)
+
+
+def test_a_failed_create_records_no_choose_approach_line_AC_10(runner, workspace, fake_claude):
+    rc, out, _ = create(runner, workspace, _describing_claude(fake_claude, RESULT_ERROR), choose_approach="yes")
+    assert out["ok"] is False, out
+    assert APPROACH_LINE not in git(workspace["specs"], "log", "--all", "-p")
+
+
+def test_an_unknown_choose_approach_value_is_refused_before_anything_runs_AC_10(runner, workspace, fake_claude):
+    rc, out, _ = create(runner, workspace, fake_claude("exit 1"), choose_approach="maybe")
+    assert rc == 2, out
+    assert out["ok"] is False, out
+    assert "maybe" in out["error"], out
+    assert not fake_claude.calls.exists()
+
+
 def test_schedule_runs_with_no_spec_folder_and_sends_the_file_verbatim(
     runner, workspace, fake_claude
 ):

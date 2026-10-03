@@ -25,6 +25,7 @@ import {
   acceptanceRowsOf, acceptanceStillOpen, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, archiveHeldBackReason, failedCount, notVerifiedCount, parseStatus, reopenedRound,
 } from "../project/parse-status";
 import { currentPhase, readSpecState } from "../project/parse-spec-state.ts";
+import { specPendingChoice } from "../project/approach-choice.ts";
 import type { SpecTarget } from "../render";
 import { resolveDependencyFolder } from "./serve-helpers";
 
@@ -157,6 +158,9 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
           acceptance: acceptanceOpen || notVerified || failed
             ? withAcCoverage(branchAnswer?.acceptance ?? acceptanceRowsOf(statusText), branchAnswer?.acCoverage ?? readAcCoverage(s.dir))
             : undefined,
+          // The approaches waiting for the person who asked to choose,
+          // off the branch's plan first, as the rows above.
+          approachChoice: specPendingChoice(s.dir, branchAnswer?.approaches) ?? undefined,
           // Where the freshness check runs git. Never rendered — the
           // page has no use for an absolute path, and `targets` is
           // server-side only.

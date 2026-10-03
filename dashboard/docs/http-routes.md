@@ -130,7 +130,7 @@ Answered by `src/serve/routes/job-actions.ts`, `src/serve/routes/job-detail.ts`,
 |-----------------------------------------------|--------|----------------------------------------------------|----------------------------------------------------------------------------|-----------|
 | `GET /api/queue`                              | read   | nothing                                            | `{ generatedAt, jobs }`                                                    | interface |
 | `POST /api/queue`                             | action | JSON or form: project, spec folder, steps          | `{ ok, job }`; 400 `{ error, spec? }`                                      | interface |
-| `GET /api/queue/<id>`                         | read   | nothing                                            | `{ generatedAt, job }`; 404 `{ error }` for an unknown id                  | interface |
+| `GET /api/queue/<id>`                         | read   | optional `?marks=1`                                | `{ generatedAt, job }`, with `marks` and `reason` if asked; 404 if unknown | interface |
 | `GET /api/queue/events`                       | read   | optional `?phases=`                                | a held-open `text/event-stream` of queue changes                           | interface |
 | `POST /api/queue/<id>/cancel`                 | action | nothing                                            | `{ ok, job }`; 409 for a finished job, unless its landing is still running | form      |
 | `POST /api/queue/<id>/steps`                  | action | step and checked, for a running job's tail         | `{ ok, job }`                                                              | form      |
@@ -145,6 +145,7 @@ Answered by the files under `src/serve/routes/spec-edit/`.
 | Route                                                     | Kind   | Takes                                                                  | Answers                                         | Made for  |
 |-----------------------------------------------------------|--------|------------------------------------------------------------------------|-------------------------------------------------|-----------|
 | `POST /api/queue/specs/<project>/<spec>/tick`             | action | the rows to tick, unverify or fail, and the phase; up to 65,536 bytes  | `{ ok, note, changed }`; 409 for a refused tick | form      |
+| `POST /api/queue/specs/<project>/<spec>/approach`         | action | the approach chosen, by its letter                                     | `{ ok, note, changed }`; 409 `{ error, spec }`  | form      |
 | `POST /api/queue/specs/<project>/<spec>/tracking`         | action | the tracking fields, and optionally a sha to check they have not moved | `{ ok, note, changed }`; 400 `{ error }`        | form      |
 | `POST /api/queue/specs/<project>/<spec>/update`           | action | nothing; pulls the spec's repository from its remote                   | `{ ok, note, changed }`; 400 `{ error }`        | form      |
 | `POST /api/queue/specs/<project>/<spec>/save`             | action | which of the four files, its text, and the sha it was read at          | `{ ok, note, changed }`; 400 `{ error }`        | form      |

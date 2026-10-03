@@ -207,6 +207,12 @@ export interface Job {
    *  info; absent records nothing, and analyze reads that as `off`.
    *  Meaningful only for `create`. */
   createCriteriaChecks?: CriteriaChecks;
+  /** Whether the New-spec form's "Let me choose the approach" box was
+   *  ticked. Handed to `aide-run-spec` as `--choose-approach yes|no`,
+   *  which records it in the new spec's Tracking info; absent (a job from
+   *  before the box existed) passes no flag and records nothing.
+   *  Meaningful only for `create`. */
+  createChooseApproach?: boolean;
   /** Specs this one builds on, named by folder — the create form's
    *  equivalent of the `Depends on:` line spec 92 gave a reader and no
    *  writer but a person at a shell. Validated against the SAME

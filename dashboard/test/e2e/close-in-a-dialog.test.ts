@@ -23,13 +23,20 @@ afterAll(async () => { await browser.close(); harness.cleanup(); });
 const SPEC = `/specs/aide/${LIVE}`;
 const dialog = (page: Page) => page.locator("dialog[data-progress-dialog]");
 
-/** The spec page, with a post answered by `post` and the job it names never settling. */
-async function open(post: { status: number; json: unknown }, viewport?: { width: number; height: number }): Promise<Page> {
+/** The spec page, with a post answered by `post` and the job it names
+ *  answered by `polls` in turn, the last one repeated: by default a job that
+ *  never settles. */
+async function open(
+  post: { status: number; json: unknown },
+  viewport?: { width: number; height: number },
+  polls: unknown[] = [{ job: { id: "j1", state: "running" } }],
+): Promise<Page> {
   const context = await browser.newContext(viewport ? { viewport } : {});
   const page = await context.newPage();
+  let polled = 0;
   await page.route("**/api/queue/**", (route) => {
     if (route.request().method() === "POST") return route.fulfill(post);
-    return route.fulfill({ json: { job: { id: "j1", state: "running" } } });
+    return route.fulfill({ json: polls[Math.min(polled++, polls.length - 1)] });
   });
   await page.goto(`${base}${SPEC}?live=0`);
   return page;
@@ -98,5 +105,48 @@ describe("Close asks in a dialog (AC-7)", () => {
       await dialog(page).getByRole("button", { name: "Cancel" }).click();
       await dialog(page).waitFor({ state: "hidden" });
     }
+  });
+});
+
+const PREPARING = { key: "Step Aide: preparing", title: "Preparing" };
+const SCRIPT = { key: "Step 1 of 4: Run the mechanical script", title: "Run the mechanical script" };
+
+/** Closes the spec with a reason, so the dialog stands. */
+async function closeIt(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "Close" }).click();
+  await dialog(page).locator("textarea").fill("It will not work.");
+  await dialog(page).getByRole("button", { name: "OK" }).click();
+}
+
+describe("a standing Close lists its job's steps", () => {
+  test("the steps the polls mark are shown in the standing dialog, in order (AC-1)", async () => {
+    const page = await open(ACCEPTED, undefined, [
+      { job: { id: "j1", state: "running" }, marks: [{ ...PREPARING, state: "done" }] },
+      { job: { id: "j1", state: "running" }, marks: [{ ...PREPARING, state: "done" }, { ...SCRIPT, state: "running" }] },
+    ]);
+    await closeIt(page);
+    const lines = dialog(page).locator("li[data-step]");
+    await lines.nth(1).waitFor({ state: "visible" });
+    expect(await lines.allTextContents()).toEqual([
+      expect.stringContaining("Preparing"),
+      expect.stringContaining("Run the mechanical script"),
+    ]);
+    expect(await dialog(page).getAttribute("data-standing")).not.toBeNull();
+  });
+
+  test("a failed end shows the failed step and the reason while it stands, then the page moves on (AC-4)", async () => {
+    const page = await open(ACCEPTED, undefined, [
+      { job: { id: "j1", state: "running" }, marks: [{ ...PREPARING, state: "done" }, { ...SCRIPT, state: "running" }] },
+      {
+        job: { id: "j1", state: "failed" },
+        marks: [{ ...PREPARING, state: "done" }, { ...SCRIPT, state: "failed" }],
+        reason: "the close script stopped",
+      },
+    ]);
+    await closeIt(page);
+    await dialog(page).getByText("The close script stopped").waitFor({ state: "visible" });
+    expect(await dialog(page).locator(`li[data-state="failed"]`).textContent()).toContain("Run the mechanical script");
+    expect(await dialog(page).getAttribute("data-standing")).not.toBeNull();
+    await page.waitForURL((url) => !url.search.includes("live=0"));
   });
 });

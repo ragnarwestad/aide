@@ -227,6 +227,7 @@ is the whole set:
 | What the row says                     | What happened                                                                      | What moves it on                                                    |
 |---------------------------------------|------------------------------------------------------------------------------------|---------------------------------------------------------------------|
 | held back: not analyzed yet           | The spec has not analyzed, and implement needs a plan                              | Run Analyze                                                         |
+| held back: choose the approach        | Analyze found two or more real alternatives on a spec that asked to choose         | Pick one on the row and press Save                                  |
 | held back: depends on `<spec>`        | A spec it names has not archived yet                                               | Nothing. It starts itself once that spec archives                   |
 | held back: another archive is running | A second archive in the same project is ahead of it                                | Nothing. It starts when that one has merged                         |
 | archive held back                     | A row under `## Acceptance criteria` is still open                                 | Tick the rows on the Status tab, then press Archive                 |
@@ -305,7 +306,7 @@ queue step the dashboard presses, never a step the runner decides on its own.
 - **Reopen** takes an archived or closed spec back to the active list and asks one question in a dialog, opened
   from the Reopen button on the spec page and on the list row: also reset the analysis, the plan and the status? The
   box is unticked, and the job carries `resetFiles` only when it is ticked. Pressing OK makes the dialog stand as
-  "Reopening…" until the job has settled.
+  "Reopening…", listing the job's steps as its log marks them, until the job has settled.
   It deletes the branch the earlier round left behind in both modes.
   - **Keep (the default, also a bare `steps=reopen`).** `core/scripts/aide-reopen-spec` moves the folder out of
     `archive/` and runs no model. `0-README.md` to `3-solution.md` are untouched; in `4-status.md` `archive` leaves the

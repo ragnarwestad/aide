@@ -3,6 +3,7 @@
 // marked for the page script that holds it open, and has a heading for its
 // running face. Marks the script depends on, not layout or wording.
 import { describe, expect, test } from "bun:test";
+import { Window } from "happy-dom";
 import { renderProjectPage, renderSpecsRows, type ProjectPageOptions, type ProjectView } from "../../../src/render";
 import { closeAskDialog } from "../../../src/render/pages/spec-page/ask-dialog.ts";
 import { reopenControl } from "../../../src/render/pages/spec-page/overview.ts";
@@ -72,5 +73,36 @@ describe("every running step is drawn by the progress dialog", () => {
     expectProgress(box);
     expect(box).not.toContain("data-asks");
     expect(box).not.toContain(`method="dialog"`);
+  });
+});
+
+describe("the step list a dialog's script finds in its running face", () => {
+  /** The list in the box's running face, and its line template, parsed. */
+  const stepsOf = (box: string) => {
+    const window = new Window();
+    window.document.body.innerHTML = box;
+    const face = window.document.querySelector("[data-running-face]");
+    return {
+      list: face?.querySelector("ol.progresssteps") ?? null,
+      template: face?.querySelector("template[data-step-line]") ?? null,
+      steps: [...(face?.querySelectorAll("ol.progresssteps > li[data-step]") ?? [])].map((li) => li.getAttribute("data-step")),
+    };
+  };
+
+  test("Close's and Reopen's dialogs carry an empty step list and the line template it is drawn from (AC-1)", () => {
+    for (const box of [
+      dialogWith(closeAskDialog("aide", "150-x", "en"), `id="closeask"`),
+      dialogWith(reopenControl(view({ archived: true })), `id="reopenask"`),
+    ]) {
+      const got = stepsOf(box);
+      expect(got.list).not.toBeNull();
+      expect(got.template).not.toBeNull();
+      expect(got.steps).toEqual([]);
+    }
+  });
+
+  test("Deploy's five steps are lines of the same list, in its running face (AC-5)", () => {
+    const html = projectPage({ tab: "deploy", drift: { behind: 2, checkedAt: Date.parse("2026-09-20T00:00:00Z") } });
+    expect(stepsOf(dialogWith(html, "data-deploy-dialog")).steps).toEqual(["fetch", "install", "restart", "wait", "check"]);
   });
 });

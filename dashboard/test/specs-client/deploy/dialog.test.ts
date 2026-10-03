@@ -101,7 +101,7 @@ describe("submitDeploy", () => {
     const { done } = submit(io);
     expect(state("fetch")).toBe("running");
     expect(state("install")).toBe("waiting");
-    expect(window.document.querySelector('[data-step="fetch"] .deploystate')?.textContent).toBe("running");
+    expect(window.document.querySelector('[data-step="fetch"] .progressstate')?.textContent).toBe("running");
     io.release();
     await done;
     expect(state("check")).toBe("done");

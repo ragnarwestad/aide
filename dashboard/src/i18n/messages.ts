@@ -69,6 +69,14 @@ export const MESSAGES = {
     fr: "retenu : pas encore analysé — lancez d'abord /aide-analyze",
     resolve: "run /aide-analyze first",
   },
+  "runner.approachChoice": {
+    en: "held back: choose the approach to build, then press Save",
+    nb: "holdt tilbake: velg tilnærmingen som skal bygges, og trykk Lagre",
+    es: "retenido: elige el enfoque que se va a construir y pulsa Guardar",
+    de: "zurückgehalten: wähle den Ansatz, der gebaut werden soll, und klicke auf Speichern",
+    fr: "retenu : choisissez l'approche à construire, puis cliquez sur Enregistrer",
+    resolve: "then press Save",
+  },
   "runner.dependencyNotArchived": {
     en: "held back: depends on {dependency}, which is not archived yet",
     nb: "holdt tilbake: avhenger av {dependency}, som ikke er arkivert ennå",

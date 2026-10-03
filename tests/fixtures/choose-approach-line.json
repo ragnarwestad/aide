@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "Whether a spec asked to choose between the approaches its analysis finds.",
+    "`aide-run-spec` reads it off the spec's own 1-description.md (aide_spec_choose_approach)",
+    "to tell analyze; the dashboard reads the same line (chooseApproachIn) to decide whether",
+    "a choice waits on the spec's row.",
+    "",
+    "`description` is the value written after `- **Let me choose the approach:**` in the",
+    "description's Tracking info; null means the line is not written at all.",
+    "`chosen` is what both sides read: only `yes` is yes, absent or unknown is no."
+  ],
+  "cases": [
+    { "name": "unset", "description": null, "chosen": "no" },
+    { "name": "yes", "description": "yes", "chosen": "yes" },
+    { "name": "no", "description": "no", "chosen": "no" },
+    { "name": "an-unknown-value-is-no", "description": "maybe", "chosen": "no" }
+  ]
+}

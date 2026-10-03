@@ -6,6 +6,7 @@ import { drawLimits } from "./limits";
 import { applyRefusal } from "./row-refusal";
 import { offerEachToItsTool, syncAiToModel } from "./ai-sync.ts";
 import { AWAITING, chosen, chosenSteps, checkboxKey, press, selectKey } from "./state.ts";
+import { syncApproachCancels } from "./approach-choice/index.ts";
 
 /** The row's button says what a press would run — and a press runs the
  *  BOXES, so the label has to follow them as they are clicked.
@@ -102,14 +103,16 @@ export function restoreChosen(body: Element): void {
     // every time, which is what stops the two disagreeing (spec 179).
     syncAiToModel(model);
   }
-  for (const el of body.querySelectorAll('input[name="steps"], input[name="tick"], input[name="unverified"], input[name="failed"]')) {
+  for (const el of body.querySelectorAll('input[name="steps"], input[name="tick"], input[name="unverified"], input[name="failed"], input[name="approach"]')) {
     const box = el as HTMLInputElement;
     const want = chosenSteps.get(checkboxKey(box));
     if (want === undefined) continue;
     box.checked = want;
   }
-  // After the ticks, never before: the label is read off them.
+  // After the ticks, never before: the label is read off them, and
+  // Cancel off the approach picked.
   relabelAll(body);
+  syncApproachCancels(body);
 }
 
 // --- spec 204: a redraw never takes a press with it ------------------------

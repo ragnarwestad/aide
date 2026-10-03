@@ -38,6 +38,7 @@ import {
   syncDependsOn,
 } from "./forms.ts";
 import { submitDeploy } from "./deploy";
+import { onApproachCancel, pickApproach } from "./approach-choice/index.ts";
 import { formatElapsed } from "./elapsed.ts";
 import { bindLimits } from "./limits";
 import { connect, onVisibility } from "./live.ts";
@@ -104,7 +105,10 @@ settingsForm?.addEventListener("submit", (async (event: Event) => {
 // Delegated from the container, because the controls are replaced along
 // with the rows on every redraw — a listener on the links themselves
 // would last until the next one.
-document.getElementById("jobrows")?.addEventListener("click", navigate as EventListener);
+document.getElementById("jobrows")?.addEventListener("click", ((event: MouseEvent) => {
+  navigate(event);
+  onApproachCancel(event);
+}) as EventListener);
 document.getElementById("jobrows")?.addEventListener("submit", submitAction as EventListener);
 // And the row's selects and boxes, for the same reason: the rows are
 // replaced wholesale on every redraw, so a listener bound to a control
@@ -117,6 +121,10 @@ document.getElementById("jobrows")?.addEventListener("change", ((event: Event) =
   // reading the box's text now would be reading it one pick behind.
   const picker = target?.closest?.(".aimodel") as Element | null;
   if (picker) queueMicrotask(() => refreshAiModelBox(picker));
+  // An approach picked under a row's waiting line, remembered for the
+  // next redraw like a ticked box.
+  const approach = target?.closest?.('input[name="approach"]') as HTMLInputElement | null;
+  if (approach?.name === "approach") return pickApproach(approach);
   // A tail box's tick is a press, not something to remember for the
   // next redraw (spec 160): it goes to the server now, and what comes
   // back is what the row is drawn from. The promise is returned rather

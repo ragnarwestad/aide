@@ -17,6 +17,7 @@ exists is not in the spec. The Feasibility and Coherence reviewers are
 both handed the spec's acceptance criteria checks level (`off`,
 `warn` or `stop`, Step 1), since that is not in the spec either:
 Feasibility makes the cannot-be-built check, Coherence the other four.
+Coherence is told, too, whether the spec asks to choose the approach.
 
 ## Review — scaled to complexity
 
@@ -67,6 +68,13 @@ questions, with file:line references into the spec:
    behavior delta match what the steps actually do? Does every AC-n
    id from 1-description.md (when present) appear in at least one
    acceptance criterion? A missing id is a must-fix.
+
+   **The approach marks**, when the spec asks to choose the approach:
+   every approach lead ends `(recommended)`, `(real alternative)` or
+   `(considered and rejected)`, and exactly one is `(recommended)`. A
+   lead without a mark, or any other count of `(recommended)`, is a
+   must-fix: an approach without its mark is never offered to the person
+   who asked to choose.
 
    **The acceptance criteria checks**, at the level the analyst hands
    it. At `off`, make none of the four. At `warn` and `stop`, make

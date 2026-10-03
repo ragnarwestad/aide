@@ -6,6 +6,7 @@
 // theme, exactly as it sat last in the original dispatcher.
 import { json, languageChoice, specsClientScript } from "../serve-helpers";
 import { renderJobDetailPage, resolveBackHref } from "../../render";
+import { jobMarks } from "../spec-views/job-marks.ts";
 import type { RoutesContext } from "./";
 
 export async function handleJobDetailRoute(
@@ -28,6 +29,11 @@ export async function handleJobDetailRoute(
     const job = ctx.queue.get(id!);
     if (!job) {
       return api ? json({ error: "no such job" }, 404) : new Response("not found", { status: 404 });
+    }
+    // `?marks=1` adds the steps the job's log has marked, for the dialog a
+    // Close or Reopen stands in while it runs; without it, no file is read.
+    if (api && url.searchParams.get("marks") === "1") {
+      return json({ generatedAt: new Date().toISOString(), job, ...jobMarks(job, languageChoice(url, req).lang) });
     }
     if (api) return json({ generatedAt: new Date().toISOString(), job });
     const langResult = languageChoice(url, req);

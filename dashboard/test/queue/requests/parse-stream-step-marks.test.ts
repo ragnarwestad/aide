@@ -5,7 +5,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
-import { linesWithFinalMessage, summarizeEntries, summarizeStream } from "../../../src/queue/parse-stream";
+import { linesWithFinalMessage, stepLog, stepMarks, summarizeEntries, summarizeStream, type StepMark } from "../../../src/queue/parse-stream";
 
 const line = (o: unknown) => JSON.stringify(o);
 const say = (text: string) => line({ type: "assistant", message: { content: [{ type: "text", text }] } });
@@ -83,5 +83,102 @@ describe("the prompt's own format is what the parser reads", () => {
     for (const ending of ["— started", ...endings]) {
       expect(summarizeEntries(say(`${head} ${ending}`), { tool: "claude" })[0]!.mark).toBe(true);
     }
+  });
+});
+
+// What a Close or Reopen dialog lists while its job runs: the step log's
+// marks read back as one entry per step, in the order each was first seen.
+describe("stepMarks", () => {
+  const run = (...lines: string[]) => lines.map((l, i) => `aide-run-spec 14:58:${String(10 + i).padStart(2, "0")} +${i}s ${l}`).join("\n") + "\n";
+  const marksOf = (transcript: string, runLog: string, final = true) =>
+    stepMarks(stepLog({ text: transcript, start: 0 }, runLog, { tool: "claude", final }).logs);
+  const shown = (marks: StepMark[]) => marks.map((m) => [m.title, m.state]);
+
+  test("a close's log gives one entry per step, in order, with its marks repeated in the final message read once (AC-1)", () => {
+    const skill = [
+      "--- Step 1 of 4: Run the mechanical script — started",
+      "--- Step 1 of 4: Run the mechanical script — done",
+      "--- Step 2 of 4: Commit & push — started",
+      "--- Step 2 of 4: Commit & push — done",
+      "--- Step 3 of 4: Confirm — started",
+      "--- Step 3 of 4: Confirm — done",
+    ];
+    const transcript = [say(skill[0]!), bash("aide-close-spec"), say(`${skill[1]}\n${skill[2]}`), say(skill.slice(3).join("\n")), result(skill.join("\n"))].join("\n");
+    const runLog = run(
+      "--- Step Aide: preparing — started",
+      "fetching main from origin",
+      "--- Step Aide: preparing — done",
+      "model turn started (transcript at byte 0)",
+      "--- Step Aide: tests and commit — started",
+      "--- Step Aide: tests and commit — done",
+      "--- Step 4 of 4: Merge into main — started",
+      "--- Step 4 of 4: Merge into main — done",
+    );
+    const marks = marksOf(transcript, runLog);
+    expect(shown(marks)).toEqual([
+      ["Preparing", "done"],
+      ["Run the mechanical script", "done"],
+      ["Commit & push", "done"],
+      ["Confirm", "done"],
+      ["Tests and commit", "done"],
+      ["Merge into main", "done"],
+    ]);
+    expect(marks.map((m) => m.key)).toEqual([
+      "Step Aide: preparing",
+      "Step 1 of 4: Run the mechanical script",
+      "Step 2 of 4: Commit & push",
+      "Step 3 of 4: Confirm",
+      "Step Aide: tests and commit",
+      "Step 4 of 4: Merge into main",
+    ]);
+  });
+
+  test("a reopen's log, with no transcript, gives Preparing, Tests and commit and Merge into main (AC-1)", () => {
+    const runLog = run(
+      "--- Step Aide: preparing — started",
+      "--- Step Aide: preparing — done",
+      "--- Step Aide: tests and commit — started",
+      "--- Step Aide: tests and commit — done",
+      "--- Step 8 of 8: Merge into main — started",
+    );
+    expect(shown(marksOf("", runLog, false))).toEqual([
+      ["Preparing", "done"],
+      ["Tests and commit", "done"],
+      ["Merge into main", "running"],
+    ]);
+  });
+
+  test("a step marked started and not yet ended is running (AC-2)", () => {
+    expect(shown(marksOf("", run("--- Step Aide: preparing — started", "fetching main"), false))).toEqual([["Preparing", "running"]]);
+  });
+
+  test("a skipped step, a done with words after it, and a step left started before a later mark are done (AC-3)", () => {
+    const text = [
+      "--- Step 1 of 4: Read — started",
+      "--- Step 1 of 4: Read — done (nothing to keep)",
+      "--- Step 2 of 4: Update — skipped: nothing to update",
+      "--- Step 3 of 4: Commit — started",
+      "--- Step 4 of 4: Confirm — started",
+    ].join("\n");
+    expect(shown(marksOf(say(text), "", false))).toEqual([
+      ["Read", "done"],
+      ["Update", "done"],
+      ["Commit", "done"],
+      ["Confirm", "running"],
+    ]);
+  });
+
+  test("a merge stopped by the landing is failed, titled by the step alone, with the landing's reason (AC-4)", () => {
+    const runLog = run(
+      "--- Step 4 of 4: Merge into main — started",
+      "error: --- Step 4 of 4: Merge into main — stopped: nothing was merged — the close is not finished",
+    );
+    const [merge] = marksOf("", runLog);
+    expect(merge).toEqual({
+      key: "Step 4 of 4: Merge into main",
+      title: "Merge into main",
+      state: "failed",
+      why: "nothing was merged — the close is not finished",
+    });
   });
 });

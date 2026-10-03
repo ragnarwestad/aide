@@ -89,6 +89,11 @@ First write `--- Step 1 of 10: Read the description — started`, and when this 
   (`criteriaChecks: <level>`). Working interactively, read the
   `Acceptance criteria checks:` line in Tracking info of the spec's own
   `1-description.md`. Absent or any other value is `off`.
+- **Learn whether the spec asks to choose the approach**, for Steps 4,
+  6 and 7. A headless run says so in the prompt (`Let me choose the
+  approach is on for this spec`) and says nothing when it is not.
+  Working interactively, read the `Let me choose the approach:` line in
+  Tracking info of the spec's own `1-description.md`. Only `yes` is on.
 - If `4-status.md` ALSO already carries that same section plus a
   `**Round boundary:**` stamp, this is a held-back spec taking another
   round on its open checks, not a first analysis — see
@@ -176,6 +181,17 @@ Treat every section that run wrote as unwritten, and write the three
 files afresh. On a held-back round, replace that round's own `## Round
 N` subsections rather than appending a new round.
 
+A second exception: the newest round of `3-solution.md` records a
+`**Chosen approach:** Approach X` line under its Approaches heading, and
+that approach's lead is not the one marked `(recommended)`. The person
+chose another approach on the Specs list. Move `(recommended)` to the
+chosen approach's lead and give the lead that carried it `(real
+alternative)`; keep every other lead and the chosen line word for word.
+Write `### Recommended:` and every section below it afresh for the chosen
+approach, and `4-status.md`'s phase tables for the new plan. Leave
+`2-analysis.md` as it stands. A chosen line on the recommended approach
+needs nothing: the choice is made, and is never asked again.
+
 A held-back round (Step 1) is a different case from the above, not a
 variant of it: `2-analysis.md`/`3-solution.md` are already fully
 written from an earlier round, holding no placeholder at all, and this
@@ -231,6 +247,16 @@ Sections already filled in per Step 4 are left untouched.
 
 **Scope:** the files to change, the complexity grade with the factors behind
 it, and the estimate for manual and AI-assisted development.
+
+**Approaches:** when the spec asks to choose the approach (Step 1), every
+approach lead ends in one of three marks, letters A, B, C in order, as the
+spec structure shows: `(recommended)` on exactly one, `(real alternative)`
+on each other approach a person could reasonably pick instead, and
+`(considered and rejected)` on one that fails a requirement or is plainly
+worse. The Specs list offers the person every approach marked recommended
+or real alternative, so an approach left unmarked is never offered. When
+the spec does not ask, write the leads as before. Never write or remove a
+`**Chosen approach:**` line: the dashboard writes it.
 
 **Behavior delta:** state what the chosen solution ADDS / MODIFIES / REMOVES
 in behavior, relative to how the system works today — not just which files
@@ -293,7 +319,8 @@ consolidation, and what gets written where). Hand the Feasibility and
 Coherence reviewers the acceptance criteria checks level from Step 1:
 Feasibility makes the cannot-be-built check at that level, Coherence the
 other four, and the Plan review section's `**Criteria check:**` line
-names what still stands of both.
+names what still stands of both. Tell the Coherence reviewer, too,
+whether the spec asks to choose the approach.
 
 Skip this step only when `3-solution.md` is still an empty template —
 nothing was written in Step 6 to review.
