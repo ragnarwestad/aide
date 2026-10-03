@@ -1,4 +1,4 @@
-"""Spec 356 (REQ-7): the mermaid diagram in dashboard/docs/spec-lifecycle.md
+"""Spec 356 (REQ-7): the mermaid diagram in dashboard/docs/spec-transitions.md
 and core/scripts/lib/transitions.json describe the same moves. A test
 fails if either names an edge the other does not have, so the diagram
 can no longer drift from the table the way the description says it
@@ -85,7 +85,7 @@ def table_rows(workspace_root):
 
 @pytest.fixture
 def diagram_text(workspace_root):
-    return (workspace_root / "dashboard/docs/spec-lifecycle.md").read_text()
+    return (workspace_root / "dashboard/docs/spec-transitions.md").read_text()
 
 
 def test_every_legal_table_row_is_drawn_in_the_diagram(table_rows, diagram_text):

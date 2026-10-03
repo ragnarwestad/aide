@@ -21,7 +21,7 @@ landing in `src/serve/land-branch/merge.ts`.
 Three pages sit beside this one:
 
 - [The specs list and the spec page](the-specs-list.md) — how a state reads on the page
-- [A spec's lifecycle](spec-lifecycle.md) — the level above: which of the four phases a SPEC has reached
+- [How a spec moves between phases](spec-transitions.md) — the level above: which of the four phases a SPEC has reached
 - [Error sentences](error-sentences.md) — the one rule a job's own `error` sentence follows
 
 

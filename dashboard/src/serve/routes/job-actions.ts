@@ -84,7 +84,7 @@ export async function handleJobActionRoutes(
           ? { date: "" }
           : null;
         // A bundled job (e.g. analyze+implement+archive queued together
-        // for a fresh spec, spec-lifecycle.md's "Into create") asks for
+        // for a fresh spec, spec-transitions.md's "Into create") asks for
         // several steps at once, each meant to run only once the one
         // before it has landed — so each step is checked against the
         // phase the ones before it in THIS request would reach, not all

@@ -129,7 +129,7 @@ condition it needs — read by both:
 No other code writes a phase-changing stamp or
 `completedPhases` entry; a guard test greps for the stamp patterns
 themselves to catch a stray writer regardless of mechanism, and a second
-guard test keeps `dashboard/docs/spec-lifecycle.md`'s diagram in agreement
+guard test keeps `dashboard/docs/spec-transitions.md`'s diagram in agreement
 with the table's rows.
 
 `DEPENDENCY_GATED_STEPS` is `implement` and `archive`, and "merged" means

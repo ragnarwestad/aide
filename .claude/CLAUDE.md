@@ -81,7 +81,8 @@ the dashboard's docs pages to 550; they are written to be searched. Where to loo
 | What a row on the specs list says, the spec page          | `dashboard/docs/the-specs-list.md`            | Changing the code |
 | Adding a project, whether a run can start there           | `dashboard/docs/projects.md`                  | Both              |
 | A job's states and every transition between them          | `dashboard/docs/job-states.md`                | Changing the code |
-| The four phases, what moves a spec between them           | `dashboard/docs/spec-lifecycle.md`            | Using the board   |
+| Writing a spec, the four phases, what stops one           | `dashboard/docs/spec-lifecycle.md`            | Using the board   |
+| How each move between phases is decided and recorded      | `dashboard/docs/spec-transitions.md`          | Changing the code |
 | How a step's branch is merged, conflicts, unlanded work   | `dashboard/docs/landing.md`                   | Changing the code |
 | The one rule every error the board shows follows          | `dashboard/docs/error-sentences.md`           | Changing the code |
 | Tokens, components and the CSS class vocabulary           | `dashboard/docs/design-system.md`             | Changing the code |

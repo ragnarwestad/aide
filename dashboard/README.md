@@ -26,7 +26,7 @@ spec's row, and can be cancelled or given another phase from there. A spec's own
 every job that has run against it.
 
 [The specs list and the spec page](docs/the-specs-list.md) says what each row and each control does, and
-[A spec's lifecycle](docs/spec-lifecycle.md) covers the four phases and what moves a spec between them.
+[A spec's lifecycle](docs/spec-lifecycle.md) covers writing a spec, the four phases and what stops one.
 
 ## Installation
 
@@ -78,7 +78,8 @@ do there is add a project, which [Projects](docs/projects.md) covers.
 - [The runner and its checkouts](docs/the-runner.md) — what a run does to the repositories, and what a step publishes
 - [The specs list and the spec page](docs/the-specs-list.md) — what a row says, what its controls do, the spec's own page
 - [Projects](docs/projects.md) — adding one, whether a run can start there, the project page
-- [A spec's lifecycle](docs/spec-lifecycle.md) — the four phases, what moves a spec between them, what holds one back
+- [A spec's lifecycle](docs/spec-lifecycle.md) — writing a spec, the four phases, what stops one and what moves it on
+- [How a spec moves between phases](docs/spec-transitions.md) — how each move is decided and recorded, holds, the row's button
 - [A job's states](docs/job-states.md) — the queue's state machine: the seven states, who moves a job, the flags beside it
 - [Branches and landing](docs/landing.md) — how a step's branch is merged, conflicts, what stops a landing
 - [Test server](docs/test-server.md) — the link a requirements review offers to run a spec's branch, and what it shows you
