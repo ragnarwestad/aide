@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [The four phases](#the-four-phases)
+- [Writing a spec](#writing-a-spec)
 - [One spec, from first to last](#one-spec-from-first-to-last)
 - [What "has had a phase" means](#what-has-had-a-phase-means)
 - [The transitions](#the-transitions)
@@ -66,12 +67,53 @@ them appears in the workflow arc. `close` and `reopen` do move a spec between ST
 in the transition table; they draw no line on a spec's row, which always has the four, and the Logs tab lists them.
 They simply do not move a spec along the arc.
 
+## Writing a spec
+
+A spec starts on the New spec page, which has two tabs. Create sits above them and can be pressed from either; if a
+required field on the Spec tab is empty, the page switches to that tab and shows the field's error there.
+
+**The Spec tab** holds what every spec needs: the project, a title, the description, and Depends on, the specs this
+one builds on. A spec that depends on another waits for it to land before its analyze starts. The description holds
+up to 5000 characters.
+
+**The description** says what is wrong and what should be true afterwards. Three parts of it are read by the runs
+that follow:
+
+- **Acceptance criteria**, one per line, `- **AC-n:**` followed by a single sentence in one of the five EARS patterns.
+  The condition comes first, so a reader knows when the criterion holds before reading what it asks for:
+
+  | Pattern            | Form                                                 | Example                                                                          |
+  |--------------------|------------------------------------------------------|----------------------------------------------------------------------------------|
+  | Always             | `The <system> SHALL <response>`                      | The status file SHALL carry one row per AC-n id.                                 |
+  | Event              | `WHEN <trigger>, the <system> SHALL <response>`      | WHEN a step ends, the runner SHALL write its result into the status file.        |
+  | State              | `WHILE <state>, the <system> SHALL <response>`       | WHILE a job runs on a spec, the specs list SHALL lock that spec's Run button.    |
+  | Unwanted behaviour | `IF <condition>, THEN the <system> SHALL <response>` | IF origin refuses the push, THEN the runner SHALL keep the commit on the branch. |
+  | Optional feature   | `WHERE <feature>, the <system> SHALL <response>`     | WHERE a project has a wiki, analyze SHALL read it before the code.               |
+
+  Each criterion becomes a row to tick before archive, unless the spec was created without acceptance ticking.
+- **Out of scope**, an optional section under exactly the heading `## Out of scope`: a list of what the change must
+  not do or touch. Create keeps it word for word and never writes one itself. Analyze's plan review treats any part of
+  the plan under an item as a must-fix, and the review after implement treats any change under an item as a defect,
+  whatever the acceptance criteria checks level.
+- **Depends on**, set on the Spec tab rather than written into the text.
+
+**The Options tab** holds how the spec is run, and most specs leave it as it opens:
+
+| Option                               | When the form opens | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+|--------------------------------------|---------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Acceptance ticking required          | Ticked              | Archive waits until every acceptance criterion is ticked on the spec. Cleared, the criteria stay written down and nothing is left to tick.                                                                                                                                                                                                                                                                                                                 |
+| Let AI formulate acceptance criteria | Ticked              | Create runs a short AI session that adds a criterion, in EARS, for each requirement in the description that has none. The criteria you wrote are kept word for word, with their numbers, and the added ones are numbered on from yours. Cleared, the description is saved exactly as typed.                                                                                                                                                                |
+| Acceptance criteria checks           | Off                 | How strictly analyze checks the criteria: that the description has some, that each follows an EARS pattern, that each WHEN, WHILE or WHERE criterion has a scenario for when its condition does not hold, that no two contradict each other, and that each can be built. Off makes no checks; Warn lists what it finds and analyze completes; Stop holds analyze until the criteria are put right. Chosen here, and not changed after the spec is created. |
+| Let me choose the approach           | Cleared             | Analyze marks each approach it weighed as recommended, a real alternative or rejected. When it finds two or more real alternatives, implement waits, and the spec's row lists them with the recommended one picked: save it to go on, or pick another to have analyze plan that one instead. Cleared, analyze picks and implement builds it.                                                                                                               |
+| The phases                           | All four ticked     | Which phases run one after the other once the spec is created, and the AI and model each one runs on. Create always runs.                                                                                                                                                                                                                                                                                                                                  |
+
 ## One spec, from first to last
 
 A spec for a change to the dashboard, run on the board, with nothing going wrong:
 
-1. **New spec.** You fill in the form: the project, a title, a description, and the four phases left ticked. The
-   job is queued under a provisional name, and the list shows a create running.
+1. **New spec.** You fill in the Spec tab: the project, a title and a description, and leave the Options tab as it
+   opens, with the four phases ticked. The job is queued under a provisional name, and the list shows a create
+   running.
 2. **Create lands.** The folder gets its number and slug when its branch is merged — `512-a-project-keeps-nothing`
    — and the spec has a row from that moment. Its state is `created`.
 3. **Analyze runs**, writes `2-analysis.md` and `3-solution.md` with the acceptance criteria, and lands them in the
