@@ -120,7 +120,6 @@ export const es: Record<TranslationKey, string> = {
   "list.landedAfterRetry": "Integrada tras un reintento: los tests fallaron en la primera ejecución y pasaron en la segunda.",
   "checks.coveredBy": "Tests: {names}",
   "checks.noTestNames": "Ningún test nombra {id}.",
-  "checks.browserTest": "{name} (navegador, ejecutado en implement)",
   "list.branchLeftBehind":
     "Esta spec se mergeó, pero su branch no se pudo borrar en origin. — " +
     "Bórrala a mano, en el checkout del servidor.",

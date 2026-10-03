@@ -120,7 +120,6 @@ export const de: Record<TranslationKey, string> = {
   "list.landedAfterRetry": "Nach einem zweiten Versuch gemergt: die Tests waren beim ersten Lauf rot und beim zweiten grün.",
   "checks.coveredBy": "Tests: {names}",
   "checks.noTestNames": "Kein Test nennt {id}.",
-  "checks.browserTest": "{name} (Browser, in implement ausgeführt)",
   "list.branchLeftBehind":
     "Diese Spec wurde gemergt, aber ihr Branch konnte auf origin nicht gelöscht werden. — " +
     "Lösche ihn von Hand, im Checkout auf dem Server.",

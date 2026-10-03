@@ -240,7 +240,9 @@ A phase that is only queued, or that nothing touched, has no ›.
 AC-id, from `ac-coverage.json`, which the runner writes into the spec's folder after a completed implement
 (`core/scripts/lib/run-spec/record/ac-coverage.sh`). It is read from the spec's open branch, where implement wrote it, and
 from the default branch once archive has merged it. Only lines the branch added count, since `AC-1` is in the tests of
-many specs. A criterion
+many specs. Tests are grouped by file: each file path has its own line, followed by one line per test name.
+Display names omit trailing criterion ids and carry no browser-test tag; the coverage record keeps the original names.
+A criterion
 no test names gets an amber line saying so, unless analyze's Notes cell already says `Not tested:` and why.
 
 ## Forms the page script posts

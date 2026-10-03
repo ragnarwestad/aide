@@ -148,7 +148,7 @@ function MAIN_STATUS_WITH_OPEN_ROWS(): string {
 // main has it only once archive lands: the rows a person ticks before
 // then were drawn with nothing under them.
 describe("the tests behind an acceptance row come off the open branch too", () => {
-  test("a row names the test the branch's own record gives it", async () => {
+  test("a row names the test the branch's own record gives it (AC-6)", async () => {
     const branchStatus = [
       "# Queue - Status", "", "## Acceptance criteria", "",
       "| Task | Status | Notes |", "|------|--------|-------|", "| AC-1: The total SHALL show. | ⬜ | |", "",
@@ -165,6 +165,8 @@ describe("the tests behind an acceptance row come off the open branch too", () =
       },
     });
     const { base } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { gitRun: run } });
-    expect(await overview(base)).toContain("Tests: the total shows (AC-1)");
+    const html = await overview(base);
+    expect(html).toContain("t.test.ts");
+    expect(html).toContain("the total shows");
   });
 });

@@ -120,7 +120,6 @@ export const fr: Record<TranslationKey, string> = {
   "list.landedAfterRetry": "Intégrée après une nouvelle tentative : les tests étaient rouges au premier passage et verts au second.",
   "checks.coveredBy": "Tests : {names}",
   "checks.noTestNames": "Aucun test ne nomme {id}.",
-  "checks.browserTest": "{name} (navigateur, exécuté dans implement)",
   "list.branchLeftBehind":
     "Cette spec a été mergée, mais sa branch n'a pas pu être supprimée sur origin. — " +
     "Supprimez-la à la main, dans le checkout sur le serveur.",
