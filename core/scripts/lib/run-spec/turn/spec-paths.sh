@@ -175,7 +175,8 @@ fi
 commit_message_file="$work_dir/commit-message"
 if [ "$command_name" != "create" ] && [ "$command_name" != "wiki" ]; then
   prompt="$prompt
-If this step changes files outside the specs root, write the commit message for that change to $commit_message_file (do not commit): a subject line in the imperative mood, a blank line, then what changed and why. Write it as a developer on this project would. Do not mention the spec, the workflow step, Aide, or any AI tool or model."
+If this step changes files outside the specs root, write the commit message for that change to $commit_message_file (do not commit): a subject line in the imperative mood, a blank line, then what changed and why. Write it as a developer on this project would. Do not mention the spec, the workflow step, Aide, or any AI tool or model.
+The one commit you make yourself is the merge commit that finishes a merge conflict you resolved, exactly as the skill's conflict step says (git commit --no-edit); an unfinished merge leaves the step undone."
 fi
 
 head_before=()
