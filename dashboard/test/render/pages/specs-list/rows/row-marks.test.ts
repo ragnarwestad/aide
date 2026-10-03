@@ -192,6 +192,20 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
     expect(notice).not.toContain("The link to start one appears once");
   });
 
+  // Pressed and waiting its turn: an archive that finds a criterion
+  // unticked is ended on the spot, never left queued, so a queued one is
+  // under way and the branch is about to move.
+  test("the archive is queued: the link is gone at once", () => {
+    const notice = noticeCellHtml(
+      renderSpecsRows(
+        [row({ specFolder: FOLDER, steps: ["archive"], state: "queued" })],
+        { runnerAvailable: true, targets: [target({ historyDone: ["analyze", "implement"] })] },
+      ),
+      FOLDER,
+    );
+    expect(notice).not.toContain("Click the link to start a test server");
+  });
+
   // Spec 557: the reason archive has not run no longer matters once
   // implement is proven done — the link is independent of `heldBackReason`.
   test("spec 557: a row held back for an unrelated reason still shows the link once implement is done", () => {
@@ -285,12 +299,8 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
     expect(noticeFor(["analyze", "implement", "archive"], 1, "running")).not.toContain(
       "Click the link to start a test server",
     );
-    // Archive actually running hides it too.
+    // Archive running hides it too.
     expect(noticeFor(["archive"], 0, "running")).not.toContain("Click the link to start a test server");
-    // Archive merely QUEUED never counts (row-marks.ts's own asymmetry):
-    // a job queued behind another archive's landing, or behind unticked
-    // criteria, leaves this spec's own branch untouched.
-    expect(noticeFor(["archive"], 0, "queued")).toContain("Click the link to start a test server");
 
     // The step has ended without archiving the spec, with no job left in
     // flight: the link is back.

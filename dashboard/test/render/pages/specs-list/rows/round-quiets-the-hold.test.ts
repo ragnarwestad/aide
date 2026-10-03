@@ -53,20 +53,22 @@ describe("a round under way silences the held-back marks", () => {
   // and nothing else. It sits QUEUED behind the very hold the row is
   // describing, so silencing it here would blank the note in exactly
   // the state it is there for.
-  test("a job queued for archive alone keeps them", () => {
+  // Archive pressed and waiting its turn: the hold stays until the run
+  // rewrites it, but the link goes, since that run will move the branch.
+  test("a job queued for archive alone keeps the hold, not the link", () => {
     const html = notice([row({ specFolder: FOLDER, steps: ["archive"], stepIndex: 0, state: "queued" })]);
     expect(html).toContain(HOLD);
-    expect(html).toContain(LINK);
+    expect(html).not.toContain(LINK);
   });
 
   // The same job once its round is behind it: analyze and implement are
   // done, archive is the step it is waiting on.
-  test("a bundled job already past implement keeps them too", () => {
+  test("a bundled job already past implement keeps the hold, not the link", () => {
     const html = notice([
       row({ specFolder: FOLDER, steps: ["analyze", "implement", "archive"], stepIndex: 2, state: "queued" }),
     ]);
     expect(html).toContain(HOLD);
-    expect(html).toContain(LINK);
+    expect(html).not.toContain(LINK);
   });
 
   test("an idle row is untouched", () => {

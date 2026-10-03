@@ -27,8 +27,9 @@ reading the diff again.
 On the specs list, a spec whose implement has completed carries a note on its row: **"Click the
 link to start a test server running this branch."** It stays there for as long as the spec is not
 archived — with every acceptance criterion ticked and saved, beside an "archive held back" note for
-an unrelated reason, or on its own — and is hidden only while analyze, implement or archive is
-actually running for that spec, back once that step ends without archiving it. The branch has to be
+an unrelated reason, or on its own — and is hidden while analyze, implement or archive is running
+for that spec, and from the moment archive is pressed, even while it waits its turn in the queue. It
+is back once that step ends without archiving it. The branch has to be
 on origin — a test server is built from what origin has — so the row offers the note only while the
 project's code checkout finds `aide/<spec>` there. A reopened spec whose branch archive deleted has no
 note until an implement pushes the branch again; work that is still only on your own machine is

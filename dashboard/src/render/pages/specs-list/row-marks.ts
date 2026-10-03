@@ -146,7 +146,13 @@ function liveMarks(
   // running" across all three run steps (above) — reused as-is, not
   // redefined, so the two marks agree on what "running" means.
   const implementDone = g.phases.find((p) => p.step === "implement")?.history.historyDone === true;
-  if (implementDone && !quiet && testServerAvailable(g.project, g.specFolder)) {
+  // Queued counts here, unlike for the note above: an archive that finds
+  // a criterion unticked is ended on the spot, so a queued one has been
+  // pressed and is about to move the branch the link would build.
+  const archiveStarted = !!g.phases
+    .find((p) => p.step === "archive")
+    ?.attempts.some((a) => a.state === "queued");
+  if (implementDone && !quiet && !archiveStarted && testServerAvailable(g.project, g.specFolder)) {
     marks.push({
       variant: "waiting",
       label: TEST_SERVER(lang),
