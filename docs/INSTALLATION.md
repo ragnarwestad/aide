@@ -226,9 +226,9 @@ The places it prints come from one table, `core/scripts/lib/install-targets.txt`
 dashboard's **Settings** page names the same places in its opening sentence, and a test installs each tool into an
 empty home and fails when an installer stops putting something where the table says.
 
-The **Settings** page also runs the check: each AI tool has its own tab, and its **Check** button shows what
-`aide-preflight` printed on the machine the board runs on. The **(?)** in front of the button says what the check
-finds out, and what it cannot.
+The **Settings** page also runs the check: each AI tool has its own tab, and the **Check** button on its
+**Installation** tab shows what `aide-preflight` printed on the machine the board runs on. The **(?)** in front of the
+button says what the check finds out, and what it cannot.
 
 ### Claude Code
 

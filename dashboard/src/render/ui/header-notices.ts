@@ -76,16 +76,19 @@ function restartWaitingNotice(lang: Language): string {
 /** A tool the board checked and found wanting (2026-09-16). Without
  *  this the answer lives on a Settings tab nobody has a reason to open,
  *  and the first anyone learns of it is a run that failed. One line per
- *  tool, since two faulty tools are two different fixes. */
+ *  tool, since two faulty tools are two different fixes. The line links to
+ *  the tool's Installation tab, whose Check asks again. */
 function toolFaultNotices(lang: Language): string {
   return toolsWithFaults()
-    .map(({ tool, problems }) =>
-      rowMessage(
-        "waiting",
-        t(lang, "shell.toolFault", { tool: TOOL_TAB_LABELS[tool], problems: problems.join(", ") }),
-        { tag: "p", hook: "tool-fault" },
-      ),
-    )
+    .map(({ tool, problems }) => {
+      const values = { tool: TOOL_TAB_LABELS[tool], problems: problems.join(", ") };
+      const where = t(lang, "shell.toolFaultWhere");
+      // The link is placed into the sentence after escaping it.
+      const MARK = "\u0000";
+      const link = `<a data-goto href="${esc(`/settings?tab=${tool}&aitab=installation`)}">${esc(where)}</a>`;
+      const html = esc(t(lang, "shell.toolFault", { ...values, where: MARK })).replace(MARK, link);
+      return rowMessage("waiting", t(lang, "shell.toolFault", { ...values, where }), { tag: "p", hook: "tool-fault", html });
+    })
     .join("");
 }
 

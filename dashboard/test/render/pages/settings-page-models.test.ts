@@ -1,11 +1,14 @@
-// What an AI's tab says of its models: the ones it offers that are not
-// choices, each with Add, and the choices it no longer offers, each with
-// Remove. Worked out each time the tab is drawn, from the last reading and
-// the live choices, so nothing is changed by drawing it.
+// What an AI's Models tab says of its models: the ones that can be picked
+// today, the ones it offers that are not choices, each with Add, and the
+// choices it no longer offers, each with Remove. Worked out each time the
+// tab is drawn, from the last reading and the live choices, so nothing is
+// changed by drawing it. Also: each of an AI's three tabs stamps its own
+// reading.
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import { modelLists, toolPanel, type ToolModels } from "../../../src/render";
+import { modelLists, toolPanel, type ToolCheck, type ToolModels, type ToolUsage } from "../../../src/render";
+import { t } from "../../../src/i18n";
 import type { ModelChoice } from "../../../src/queue/types.ts";
 
 const AT = "2026-10-03T13:30:00.000Z";
@@ -98,11 +101,33 @@ describe("modelLists", () => {
       "gpt-5.5": { tool: "codex" },
       stand: { tool: "fake-claude", model: "opus" },
     };
-    expect(modelLists("claude", choices, CLAUDE)).toEqual({ offered: CLAUDE.offered, gone: [] });
+    expect(modelLists("claude", choices, CLAUDE)).toEqual({ supported: [], offered: CLAUDE.offered, gone: [] });
+  });
+
+  test("the models that can be picked are this AI's choices, gone or not, and no other AI's (AC-6)", () => {
+    const choices: Record<string, ModelChoice> = {
+      "gpt-6.1-sol": { tool: "codex" },
+      luna: { tool: "codex", model: "gpt-5.6-luna" },
+      Opus: { model: "opus" },
+    };
+    const lists = modelLists("codex", choices, CODEX);
+    expect(lists.supported).toEqual([{ name: "gpt-6.1-sol", model: "gpt-6.1-sol" }, { name: "luna", model: "gpt-5.6-luna" }]);
+    expect(lists.offered.map((m) => m.model)).toEqual(["gpt-5.5"]);
+    expect(lists.gone).toEqual([{ name: "luna", model: "gpt-5.6-luna" }]);
   });
 });
 
 describe("the models on an AI's tab", () => {
+  test("the Codex tab lists them under its three headings, with Add and Remove (AC-6)", () => {
+    const html = toolPanel("codex", undefined, undefined, Date.parse(AT), {
+      reading: CODEX, choices: { "gpt-6.1-sol": { tool: "codex" }, "gpt-5.6-luna": { tool: "codex" } },
+    });
+    const headings = Array.from(parse(html).querySelectorAll("h3")).map((h) => h.textContent);
+    expect(headings).toEqual(["supported", "available", "gone"].map((k) => t("en", `settings.models.${k}` as "settings.models.supported")));
+    expect(posted(html, ADD)).toEqual([{ tool: "codex", model: "gpt-5.5" }]);
+    expect(posted(html, REMOVE)).toEqual([{ name: "gpt-5.6-luna" }]);
+  });
+
   test("each model offered and no choice has an Add that posts the AI and the model (AC-1)", () => {
     const html = toolPanel("codex", undefined, undefined, Date.parse(AT), {
       reading: CODEX, choices: { "gpt-6.1-sol": { tool: "codex" } },
@@ -134,21 +159,50 @@ describe("the models on an AI's tab", () => {
     expect(posted(html, ADD).filter((f) => f.model)).toEqual([]);
   });
 
-  test("with no reading, the Claude tab still names each choice by its version (AC-6)", () => {
+  test("with no reading, Currently supported by Aide names each Claude choice by its version (AC-6)", () => {
     const html = toolPanel("claude", undefined, undefined, Date.parse(AT), {
       choices: { Fable: { model: "fable" }, "claude-opus-4-8": { model: "claude-opus-4-8" } },
       options: [{ name: "Fable", ranAs: "claude-fable-5-1" }, { name: "claude-opus-4-8" }],
     });
+    const doc = parse(html);
+    expect(doc.querySelector("h3")?.textContent).toBe(t("en", "settings.models.supported"));
     expect(text(html)).toContain("Fable 5.1");
     expect(text(html)).toContain("Opus 4.8");
   });
 
-  test("the Claude tab always has a field to add a fixed version by its full id (AC-4)", () => {
-    const html = toolPanel("claude", undefined, undefined, Date.parse(AT), { choices: {} });
-    const form = Array.from(parse(html).querySelectorAll("form")).find(
-      (f) => f.getAttribute("action") === ADD && f.querySelector('input[name="model"]:not([type="hidden"])'),
-    );
-    expect(form).toBeDefined();
-    expect(form!.querySelector('input[name="tool"]')?.getAttribute("value")).toBe("claude");
+  test("the Claude Models tab has no field to type a model in, with or without a reading (AC-12)", () => {
+    for (const reading of [undefined, CLAUDE]) {
+      const html = toolPanel("claude", undefined, undefined, Date.parse(AT), { reading, choices: {} });
+      expect(parse(html).querySelectorAll('input[name="model"]:not([type="hidden"])').length).toBe(0);
+    }
+  });
+});
+
+describe("each of an AI's tabs stamps its own reading", () => {
+  const CHECKED = "2026-10-03T10:00:00.000Z";
+  const USAGE_AT = "2026-10-03T11:00:00.000Z";
+  const MODELS_AT = "2026-10-03T12:00:00.000Z";
+  const check: ToolCheck = { tool: "codex", at: CHECKED, found: true, lines: ["Codex found (0.130.0)"], extra: [] };
+  const usage: ToolUsage = { tool: "codex", at: USAGE_AT, windows: [{ name: "Stand-in window", usedPercent: 42 }] };
+  const models: ToolModels = { ...CODEX, at: MODELS_AT };
+  const draw = (part: "models" | "subscription" | "installation") =>
+    text(toolPanel("codex", check, usage, Date.parse(AT), { reading: models, choices: {} }, "en", part));
+  const stamped = (at: string) => at.replace("T", " ").slice(0, 19) + " UTC";
+
+  test("each shows its own reading's time and neither of the other two (AC-5)", () => {
+    const own = { installation: CHECKED, subscription: USAGE_AT, models: MODELS_AT } as const;
+    for (const part of ["models", "subscription", "installation"] as const) {
+      const drawn = draw(part);
+      for (const [other, at] of Object.entries(own)) {
+        if (other === part) expect(drawn).toContain(stamped(at));
+        else expect(drawn).not.toContain(stamped(at));
+      }
+    }
+  });
+
+  test("the Subscription tab draws the usage reading, and the other two do not (AC-7)", () => {
+    expect(draw("subscription")).toContain("Stand-in window");
+    expect(draw("models")).not.toContain("Stand-in window");
+    expect(draw("installation")).not.toContain("Stand-in window");
   });
 });
