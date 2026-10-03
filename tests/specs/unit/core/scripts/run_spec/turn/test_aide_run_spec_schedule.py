@@ -101,6 +101,14 @@ def test_a_job_that_commits_and_hits_its_time_limit_keeps_the_commit_on_the_bran
     assert BRANCH in heads(origin["project"]), heads(origin["project"])
 
 
+def test_a_failed_job_names_run_now_as_the_button_to_press_again(runner, workspace, fake_claude):
+    with_prompt(workspace)
+    rc, out, _ = schedule(runner, workspace, job(fake_claude, "exit 1\n"))
+    assert out["ok"] is False, out
+    # A scheduled job's page has no Schedule button: Run now starts it again.
+    assert "press Run now again" in out["error"], out
+
+
 def test_a_cancelled_job_that_has_committed_keeps_it_on_the_branch(runner, workspace, fake_claude, origin, tmp_path):
     with_prompt(workspace)
     ready = tmp_path / "ready"
