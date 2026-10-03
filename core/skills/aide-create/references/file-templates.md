@@ -40,7 +40,8 @@ Structure - follow the spec structure § 1-description:
   way
 - **Description:** DESC + editable note — DESC may include an optional
   `## Acceptance criteria` section with AC-n criteria in the five EARS
-  patterns, per aide-create's own Step 4
+  patterns, per aide-create's own Step 4, and the author's optional
+  `## Out of scope` section, kept word for word
 - NO criteria for done-ness here — they are part of the solution (3-solution.md)
 - NO affected files or estimate here — they are commitments about the
   solution (3-solution.md)

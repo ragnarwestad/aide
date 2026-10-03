@@ -100,6 +100,12 @@ Number, created date, expected duration
 - **AC-1:** The system SHALL ...
 - **AC-2:** WHEN ..., the system SHALL ...
 
+---
+
+## Out of scope
+
+- [what the change must not do or touch]
+
 ```
 
 **Key points:**
@@ -112,7 +118,16 @@ Number, created date, expected duration
   (AC-n); the testable given/when/then scenarios that verify each one
   are part of the solution — 3-solution.md's own Acceptance criteria
   section
-- No scope or estimate (they are commitments about the solution — 3-solution.md)
+- No Scope section or estimate: the files to change and the estimate are
+  commitments about the solution — 3-solution.md
+- Optionally an `## Out of scope` section, written under exactly that
+  heading: a flat list of what the change must not do or touch. It is
+  the author's own: `/aide-create` keeps it word for word and never
+  writes one, and `aide-create-spec` refuses a create that changes,
+  drops or adds it. When it is there, at every acceptance criteria
+  checks level, `/aide-analyze`'s plan review makes each part of the
+  plan under an item a must-fix, and the review after implement makes
+  each change in the diff under an item a defect
 - Optionally a `Depends on:` line in Tracking info, naming the specs this
   one builds on (comma-separated; each identifier is either a bare number
   or a full `NN-slug` folder name — narrower than `/aide-analyze`'s
@@ -667,23 +682,24 @@ starts from templates and is not in such a round.
 
 ## Separation of content
 
-| Content                                                    | Location         |
-|------------------------------------------------------------|------------------|
-| Problem description                                        | 1-description.md |
-| Acceptance criteria — source (AC-n, optional)              | 1-description.md |
-| Metadata                                                   | 1-description.md |
-| Mapping/findings                                           | 2-analysis.md    |
-| Scope (files, estimate)                                    | 3-solution.md    |
-| Complexity analysis                                        | 3-solution.md    |
-| Risk analysis                                              | 3-solution.md    |
-| Approaches                                                 | 3-solution.md    |
-| Behavior delta                                             | 3-solution.md    |
-| Acceptance criteria — testable scenarios                   | 3-solution.md    |
-| Before/after examples                                      | 3-solution.md    |
-| Implementation plan                                        | 3-solution.md    |
-| Testing strategy                                           | 3-solution.md    |
-| Progress                                                   | 4-status.md      |
-| Acceptance criteria — tick checklist (AC-tagged, optional) | 4-status.md      |
+| Content                                                        | Location         |
+|----------------------------------------------------------------|------------------|
+| Problem description                                            | 1-description.md |
+| Acceptance criteria — source (AC-n, optional)                  | 1-description.md |
+| Out of scope — what the change must not do or touch (optional) | 1-description.md |
+| Metadata                                                       | 1-description.md |
+| Mapping/findings                                               | 2-analysis.md    |
+| Scope (files, estimate)                                        | 3-solution.md    |
+| Complexity analysis                                            | 3-solution.md    |
+| Risk analysis                                                  | 3-solution.md    |
+| Approaches                                                     | 3-solution.md    |
+| Behavior delta                                                 | 3-solution.md    |
+| Acceptance criteria — testable scenarios                       | 3-solution.md    |
+| Before/after examples                                          | 3-solution.md    |
+| Implementation plan                                            | 3-solution.md    |
+| Testing strategy                                               | 3-solution.md    |
+| Progress                                                       | 4-status.md      |
+| Acceptance criteria — tick checklist (AC-tagged, optional)     | 4-status.md      |
 
 ---
 
