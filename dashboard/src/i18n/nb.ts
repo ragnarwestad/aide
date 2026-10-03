@@ -296,4 +296,25 @@ export const nb: Record<TranslationKey, string> = {
   "limit.creditOut": "Det er ikke mer ekstra forbruk igjen.",
   "limit.credit": "Ekstra forbruk: {reason}.",
   "limit.plan": "Abonnement: {plan}.",
+
+  "settings.where.claude":
+    "Claude Code leser aides skills fra {skills}, reglene fra {rules} og agentene fra {agents}; aides skript ligger i {scripts}.",
+  "settings.where.codex":
+    "Codex leser aides instruksjoner fra {instructions}, hookene fra {hookConfig} og {hooks}, og skillsene fra {skills}, som den deler med Copilot; aides skript ligger i {scripts}.",
+  "settings.where.copilot":
+    "Copilot leser aides instruksjoner fra {instructions} og skillsene fra {skills}, som den deler med Codex; aides skript ligger i {scripts}.",
+  "settings.where.opencode":
+    "OpenCode har ingen modell selv: hver modell hører til en leverandør og heter leverandør/modell. aide installerer bare instruksjonene, til {instructions}, og OpenCode finner aides skills der de allerede ligger, i {skills} og {claudeSkills}.",
+  "settings.checkHelpTitle":
+    "Hva Check finner ut",
+  "settings.checkCan.claude":
+    "Sjekken forteller om kommandolinjen er installert og hvilken versjon, om den er logget inn, hvor hver del av aide havner og om den er der, om de installerte filene fortsatt stemmer med dette repoet, og hvilken versjon hver av opus, sonnet, fable og haiku gir i dag, spurt med /model, som ikke kjører noen modell.",
+  "settings.checkCan.codex":
+    "Sjekken forteller om kommandolinjen er installert og hvilken versjon, om den er logget inn, hvor hver del av aide havner og om den er der, om de installerte filene fortsatt stemmer med dette repoet, og hvilke modeller den tilbyr, fra codex debug models.",
+  "settings.checkCan.copilot":
+    "Sjekken forteller om kommandolinjen er installert og hvilken versjon, hvor hver del av aide havner og om den er der, og om de installerte filene fortsatt stemmer med dette repoet.",
+  "settings.checkCan.opencode":
+    "Sjekken forteller alt den gjør for de andre, hvilke modeller de innloggede leverandørene tilbyr, og om hver modell som er satt opp på denne serveren fortsatt står i leverandørens egen liste. Her ER leverandøren innloggingen, siden OpenCode når hver modell gjennom en.",
+  "settings.checkCannot.copilot":
+    "Sjekken kan ikke fortelle om den er logget inn, eller hvilke modeller den godtar. Copilot-kommandolinjen har ingen kommando for noen av delene.",
 };

@@ -1,14 +1,17 @@
-// One panel per AI: what it is, what can be asked about it, and the
-// answer the last check gave.
+// One panel per AI: where aide installs for it, what can be asked about
+// it, and the answer the last check gave.
 //
-// The panel deliberately does NOT restate where aide installs each
-// tool's files. `aide-preflight` knows that, prints it, and is the one
-// place it is written down; the check's own output is what a reader
-// sees. What this file holds is the part the script cannot say: which
-// questions are answerable for which tool, and why.
+// The places in the opening sentence come from
+// core/scripts/lib/install-targets.txt (`places.ts`), the table
+// `aide-preflight` prints its own place lines from, so the sentence and
+// the check's output cannot name different places. What this file adds
+// is the part the script cannot say: which questions are answerable for
+// which tool, and why.
 
+import { t, type Language, type TranslationKey } from "../../../i18n";
 import { esc } from "../../ui/html.ts";
-import { buttonForm, facts, messageSlot, rowMessage } from "../../ui/components";
+import { buttonForm, facts, helpPopover, messageSlot, rowMessage } from "../../ui/components";
+import { INSTALL_TARGETS, placesOf } from "./places.ts";
 import { usageView, type ToolUsage } from "./usage.ts";
 import { modelsBlock, type ModelsPanel } from "./models.ts";
 
@@ -57,33 +60,22 @@ export const TOOL_TAB_LABELS: Record<CheckableTool, string> = {
   opencode: "OpenCode",
 };
 
-/** What each tool is, in the one sentence a reader needs before pressing
- *  Check, and what the check will and will not be able to tell them. The
- *  second half matters: Copilot cannot be asked which models it accepts,
- *  and a page that quietly skipped that would read as if the check had
- *  covered it. */
-const TOOL_NOTES: Record<CheckableTool, { what: string; canCheck: string; cannotCheck: string }> = {
-  claude: {
-    what: "Claude Code reads aide's skills, rules and agents from its own directory under your home.",
-    canCheck: "whether the command line is installed and which version, whether it is logged in, where each piece of aide lands and whether it is there, whether the installed files still match this repository, and which version each of opus, sonnet, fable and haiku gives today, asked with /model, which runs no model",
-    cannotCheck: "",
-  },
-  codex: {
-    what: "Codex reads aide's generated instructions file and shares the skills directory with Copilot.",
-    canCheck: "whether the command line is installed and which version, whether it is logged in, where each piece of aide lands and whether it is there, whether the installed files still match this repository, and which models it offers, from codex debug models",
-    cannotCheck: "",
-  },
-  copilot: {
-    what: "Copilot reads aide's generated instructions file and shares the skills directory with Codex.",
-    canCheck: "whether the command line is installed and which version, where each piece of aide lands and whether it is there, and whether the installed files still match this repository",
-    cannotCheck: "whether it is logged in, or which models it accepts. The Copilot CLI has a command for neither.",
-  },
-  opencode: {
-    what: "OpenCode brings no model of its own: every model belongs to a provider and is named provider/model. It finds aide's skills where they already are, so aide installs only the instructions file for it.",
-    canCheck: "everything the others can, which models its logged-in providers offer, and whether every model configured on this server still appears in its provider's own list. A provider IS the login here, since OpenCode reaches every model through one",
-    cannotCheck: "",
-  },
-};
+/** The tab's opening sentence: where aide installs for this AI, each place
+ *  filled in from the table the preflight prints. */
+export function toolWhere(lang: Language, tool: CheckableTool, places: Record<string, string>): string {
+  return t(lang, `settings.where.${tool}`, places);
+}
+
+/** What a press of Check finds out, and what it cannot. The second half
+ *  matters: Copilot cannot be asked which models it accepts, and help
+ *  that quietly skipped that would read as if the check had covered it. */
+const CANNOT: Partial<Record<CheckableTool, TranslationKey>> = { copilot: "settings.checkCannot.copilot" };
+
+/** The body of the "(?)" before Check, as trusted markup. */
+export function checkHelp(lang: Language, tool: CheckableTool): string {
+  const cannot = CANNOT[tool];
+  return esc(t(lang, `settings.checkCan.${tool}`)) + (cannot ? `<br><br>${esc(t(lang, cannot))}` : "");
+}
 
 const mark = (ok: boolean | null): string =>
   ok === null ? "?" : ok ? "OK" : "FAIL";
@@ -156,23 +148,18 @@ function usageBlock(usage: ToolUsage | undefined, now: number): string {
  *  or absent when none has been asked for: nothing is run because a page
  *  was opened. `now` is the page's own time, which a reset is written
  *  against. `models` also carries the live choices the reading is set
- *  against. */
+ *  against. `lang` is the reader's, for the sentence and the "(?)". */
 export function toolPanel(
   tool: CheckableTool,
   check: ToolCheck | undefined,
   usage?: ToolUsage,
   now: number = Date.now(),
   models: ModelsPanel = {},
+  lang: Language = "en",
 ): string {
-  const note = TOOL_NOTES[tool];
-  const cannot = note.cannotCheck
-    ? `<p class="muted">The check cannot tell you ${esc(note.cannotCheck)}</p>`
-    : "";
   return (
     `<section class="toolpanel" data-tool="${esc(tool)}">` +
-    `<p>${esc(note.what)}</p>` +
-    `<p class="muted">The check tells you ${esc(note.canCheck)}.</p>` +
-    cannot +
+    `<p>${esc(toolWhere(lang, tool, placesOf(INSTALL_TARGETS, tool)))}</p>` +
     // Posted by the page script, which loads the tab again with the
     // answer drawn below; a refusal stays in the form's own line.
     buttonForm({
@@ -180,6 +167,7 @@ export function toolPanel(
       action: "/api/queue/settings/check",
       hook: "configactions reloadform",
       hidden: { tool },
+      before: helpPopover(t(lang, "settings.checkHelpTitle"), checkHelp(lang, tool)),
       button: { id: `check-${tool}-run`, label: "Check", variant: "primary", pending: "checking…" },
       after: messageSlot("refused"),
     }) +

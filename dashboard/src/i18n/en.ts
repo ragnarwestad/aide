@@ -304,4 +304,26 @@ export const en = {
   "limit.creditOut": "No extra usage is left.",
   "limit.credit": "Extra usage: {reason}.",
   "limit.plan": "Plan: {plan}.",
+
+  // An AI's tab on Settings: where aide installs for it, and what Check finds out.
+  "settings.where.claude":
+    "Claude Code reads aide's skills from {skills}, its rules from {rules} and its agents from {agents}; aide's scripts are in {scripts}.",
+  "settings.where.codex":
+    "Codex reads aide's instructions from {instructions}, its hooks from {hookConfig} and {hooks}, and its skills from {skills}, which it shares with Copilot; aide's scripts are in {scripts}.",
+  "settings.where.copilot":
+    "Copilot reads aide's instructions from {instructions} and its skills from {skills}, which it shares with Codex; aide's scripts are in {scripts}.",
+  "settings.where.opencode":
+    "OpenCode brings no model of its own: every model belongs to a provider and is named provider/model. aide installs only its instructions, to {instructions}, and OpenCode finds aide's skills where they already are, in {skills} and {claudeSkills}.",
+  "settings.checkHelpTitle":
+    "What Check finds out",
+  "settings.checkCan.claude":
+    "The check tells you whether the command line is installed and which version, whether it is logged in, where each piece of aide lands and whether it is there, whether the installed files still match this repository, and which version each of opus, sonnet, fable and haiku gives today, asked with /model, which runs no model.",
+  "settings.checkCan.codex":
+    "The check tells you whether the command line is installed and which version, whether it is logged in, where each piece of aide lands and whether it is there, whether the installed files still match this repository, and which models it offers, from codex debug models.",
+  "settings.checkCan.copilot":
+    "The check tells you whether the command line is installed and which version, where each piece of aide lands and whether it is there, and whether the installed files still match this repository.",
+  "settings.checkCan.opencode":
+    "The check tells you everything the others can, which models its logged-in providers offer, and whether every model configured on this server still appears in its provider's own list. A provider IS the login here, since OpenCode reaches every model through one.",
+  "settings.checkCannot.copilot":
+    "The check cannot tell you whether it is logged in, or which models it accepts. The Copilot CLI has a command for neither.",
 } as const;

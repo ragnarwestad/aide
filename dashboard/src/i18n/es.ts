@@ -294,4 +294,25 @@ export const es: Record<TranslationKey, string> = {
   "limit.creditOut": "No queda uso extra.",
   "limit.credit": "Uso extra: {reason}.",
   "limit.plan": "Plan: {plan}.",
+
+  "settings.where.claude":
+    "Claude Code lee las skills de aide desde {skills}, sus reglas desde {rules} y sus agentes desde {agents}; los scripts de aide están en {scripts}.",
+  "settings.where.codex":
+    "Codex lee las instrucciones de aide desde {instructions}, sus hooks desde {hookConfig} y {hooks}, y sus skills desde {skills}, que comparte con Copilot; los scripts de aide están en {scripts}.",
+  "settings.where.copilot":
+    "Copilot lee las instrucciones de aide desde {instructions} y sus skills desde {skills}, que comparte con Codex; los scripts de aide están en {scripts}.",
+  "settings.where.opencode":
+    "OpenCode no trae ningún modelo propio: cada modelo pertenece a un proveedor y se llama proveedor/modelo. aide solo instala sus instrucciones, en {instructions}, y OpenCode encuentra las skills de aide donde ya están, en {skills} y {claudeSkills}.",
+  "settings.checkHelpTitle":
+    "Qué averigua Check",
+  "settings.checkCan.claude":
+    "La comprobación te dice si la línea de comandos está instalada y qué versión, si tiene sesión iniciada, dónde va cada parte de aide y si está ahí, si los archivos instalados siguen coincidiendo con este repositorio, y qué versión da hoy cada uno de opus, sonnet, fable y haiku, preguntado con /model, que no ejecuta ningún modelo.",
+  "settings.checkCan.codex":
+    "La comprobación te dice si la línea de comandos está instalada y qué versión, si tiene sesión iniciada, dónde va cada parte de aide y si está ahí, si los archivos instalados siguen coincidiendo con este repositorio, y qué modelos ofrece, según codex debug models.",
+  "settings.checkCan.copilot":
+    "La comprobación te dice si la línea de comandos está instalada y qué versión, dónde va cada parte de aide y si está ahí, y si los archivos instalados siguen coincidiendo con este repositorio.",
+  "settings.checkCan.opencode":
+    "La comprobación te dice todo lo que dice de los demás, qué modelos ofrecen sus proveedores con sesión iniciada, y si cada modelo configurado en este servidor sigue apareciendo en la lista de su proveedor. Aquí el proveedor ES la sesión, ya que OpenCode llega a cada modelo a través de uno.",
+  "settings.checkCannot.copilot":
+    "La comprobación no puede decirte si tiene sesión iniciada ni qué modelos acepta. La línea de comandos de Copilot no tiene ningún comando para ninguna de las dos cosas.",
 };

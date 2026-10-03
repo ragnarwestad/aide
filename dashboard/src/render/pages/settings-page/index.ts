@@ -238,7 +238,7 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
         ? (opts.process ? processPanel(opts.process) : "")
         : toolPanel(open, opts.checks?.[open], opts.usage?.[open], Date.parse(generatedAt), {
           reading: opts.models?.[open], choices: opts.choices, options: models,
-        });
+        }, opts.lang ?? "en");
   // `pageShell` wraps the body in `<main>`: a second one inside it takes
   // the frame's padding twice. Both rows sit directly in it, so page.css's
   // Settings rule centres them, and the panel after them, as it did one row.

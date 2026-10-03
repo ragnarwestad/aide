@@ -107,6 +107,9 @@ export function buttonForm(o: {
   /** A new tab for what the post answers with — and so never a script hook,
    *  which would post it in the page instead. */
   target?: "_blank";
+  /** Trusted markup before the button, inside the form: a "(?)" saying
+   *  what the button finds out, in the button's own row. */
+  before?: string;
   /** Trusted markup after the button, inside the form: a message line, a dialog. */
   after?: string;
 }): string {
@@ -124,7 +127,7 @@ export function buttonForm(o: {
     "cross" in o.button
       ? `<button class="aboutclose" aria-label="${esc(o.button.cross)}">${ICON_CLOSE}</button>`
       : btn(o.button);
-  return `<form ${attrs}>${hidden}${button}${o.after ?? ""}</form>`;
+  return `<form ${attrs}>${hidden}${o.before ?? ""}${button}${o.after ?? ""}</form>`;
 }
 
 /** A link drawn as a button: somewhere to GO, where a button does

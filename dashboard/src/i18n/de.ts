@@ -295,4 +295,25 @@ export const de: Record<TranslationKey, string> = {
   "limit.creditOut": "Es ist kein zusätzliches Kontingent mehr übrig.",
   "limit.credit": "Zusätzliches Kontingent: {reason}.",
   "limit.plan": "Plan: {plan}.",
+
+  "settings.where.claude":
+    "Claude Code liest die Skills von aide aus {skills}, die Regeln aus {rules} und die Agenten aus {agents}; die Skripte von aide liegen in {scripts}.",
+  "settings.where.codex":
+    "Codex liest die Anweisungen von aide aus {instructions}, die Hooks aus {hookConfig} und {hooks} und die Skills aus {skills}, die es mit Copilot teilt; die Skripte von aide liegen in {scripts}.",
+  "settings.where.copilot":
+    "Copilot liest die Anweisungen von aide aus {instructions} und die Skills aus {skills}, die es mit Codex teilt; die Skripte von aide liegen in {scripts}.",
+  "settings.where.opencode":
+    "OpenCode bringt kein eigenes Modell mit: Jedes Modell gehört zu einem Anbieter und heißt Anbieter/Modell. aide installiert nur die Anweisungen, nach {instructions}, und OpenCode findet die Skills von aide dort, wo sie schon liegen, in {skills} und {claudeSkills}.",
+  "settings.checkHelpTitle":
+    "Was Check herausfindet",
+  "settings.checkCan.claude":
+    "Die Prüfung sagt dir, ob die Kommandozeile installiert ist und in welcher Version, ob sie angemeldet ist, wo jedes Teil von aide landet und ob es da ist, ob die installierten Dateien noch zu diesem Repository passen, und welche Version opus, sonnet, fable und haiku heute jeweils liefern, abgefragt mit /model, das kein Modell ausführt.",
+  "settings.checkCan.codex":
+    "Die Prüfung sagt dir, ob die Kommandozeile installiert ist und in welcher Version, ob sie angemeldet ist, wo jedes Teil von aide landet und ob es da ist, ob die installierten Dateien noch zu diesem Repository passen, und welche Modelle sie anbietet, laut codex debug models.",
+  "settings.checkCan.copilot":
+    "Die Prüfung sagt dir, ob die Kommandozeile installiert ist und in welcher Version, wo jedes Teil von aide landet und ob es da ist, und ob die installierten Dateien noch zu diesem Repository passen.",
+  "settings.checkCan.opencode":
+    "Die Prüfung sagt dir alles, was sie bei den anderen sagt, welche Modelle die angemeldeten Anbieter anbieten, und ob jedes auf diesem Server eingerichtete Modell noch in der Liste seines Anbieters steht. Hier IST der Anbieter die Anmeldung, da OpenCode jedes Modell über einen erreicht.",
+  "settings.checkCannot.copilot":
+    "Die Prüfung kann dir nicht sagen, ob sie angemeldet ist oder welche Modelle sie annimmt. Die Copilot-Kommandozeile hat für keines von beiden einen Befehl.",
 };

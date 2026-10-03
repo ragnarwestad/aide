@@ -7,6 +7,7 @@
 - [Not a pair: the workflow's own vocabulary](#not-a-pair-the-workflows-own-vocabulary)
 - [Not a pair: the effort levels](#not-a-pair-the-effort-levels)
 - [Not a pair: spec-phase transitions](#not-a-pair-spec-phase-transitions)
+- [Not a pair: where aide installs for each AI](#not-a-pair-where-aide-installs-for-each-ai)
 
 ---
 
@@ -156,3 +157,23 @@ written there, and the disk copy stays unticked until archive lands.
 `blockedForMissingAnalyze` reads the same branch copy first for the same
 reason: a chained job's analyze is on the branch the moment the step
 ends, whether or not its landing reached main.
+
+## Not a pair: where aide installs for each AI
+
+**The places aide installs for each AI are also not a hand-paired pair.**
+`core/scripts/lib/install-targets.txt` is the one table — an AI, a
+place's name, its source in the repository and where it lands — read by
+both:
+
+- `core/scripts/aide-preflight` — prints one line per row, with whether
+  the place is there yet.
+- `dashboard/src/render/pages/settings-page/places.ts` — read once at
+  load; each AI's tab on Settings fills its opening sentence with that
+  AI's places.
+
+It is a plain line table, not JSON: every installer runs the preflight
+before it makes sure jq is installed, and a fresh machine has no jq. The
+installers keep their own copy lines, and
+`tests/specs/unit/core/validation/installer/test_install_targets.py`
+installs each AI into an empty home and fails when a place the table
+names is not there.

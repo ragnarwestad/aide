@@ -295,4 +295,25 @@ export const fr: Record<TranslationKey, string> = {
   "limit.creditOut": "Il ne reste plus d'usage supplémentaire.",
   "limit.credit": "Usage supplémentaire : {reason}.",
   "limit.plan": "Forfait : {plan}.",
+
+  "settings.where.claude":
+    "Claude Code lit les skills d'aide dans {skills}, ses règles dans {rules} et ses agents dans {agents} ; les scripts d'aide sont dans {scripts}.",
+  "settings.where.codex":
+    "Codex lit les instructions d'aide dans {instructions}, ses hooks dans {hookConfig} et {hooks}, et ses skills dans {skills}, qu'il partage avec Copilot ; les scripts d'aide sont dans {scripts}.",
+  "settings.where.copilot":
+    "Copilot lit les instructions d'aide dans {instructions} et ses skills dans {skills}, qu'il partage avec Codex ; les scripts d'aide sont dans {scripts}.",
+  "settings.where.opencode":
+    "OpenCode n'apporte aucun modèle à lui : chaque modèle appartient à un fournisseur et s'appelle fournisseur/modèle. aide installe seulement ses instructions, dans {instructions}, et OpenCode trouve les skills d'aide là où elles sont déjà, dans {skills} et {claudeSkills}.",
+  "settings.checkHelpTitle":
+    "Ce que Check découvre",
+  "settings.checkCan.claude":
+    "La vérification te dit si la ligne de commande est installée et en quelle version, si elle est connectée, où va chaque partie d'aide et si elle y est, si les fichiers installés correspondent encore à ce dépôt, et quelle version donne aujourd'hui chacun d'opus, sonnet, fable et haiku, demandé avec /model, qui ne lance aucun modèle.",
+  "settings.checkCan.codex":
+    "La vérification te dit si la ligne de commande est installée et en quelle version, si elle est connectée, où va chaque partie d'aide et si elle y est, si les fichiers installés correspondent encore à ce dépôt, et quels modèles elle propose, d'après codex debug models.",
+  "settings.checkCan.copilot":
+    "La vérification te dit si la ligne de commande est installée et en quelle version, où va chaque partie d'aide et si elle y est, et si les fichiers installés correspondent encore à ce dépôt.",
+  "settings.checkCan.opencode":
+    "La vérification te dit tout ce qu'elle dit des autres, quels modèles proposent ses fournisseurs connectés, et si chaque modèle configuré sur ce serveur figure encore dans la liste de son fournisseur. Ici, le fournisseur EST la connexion, puisqu'OpenCode atteint chaque modèle par l'un d'eux.",
+  "settings.checkCannot.copilot":
+    "La vérification ne peut pas te dire si elle est connectée, ni quels modèles elle accepte. La ligne de commande de Copilot n'a de commande pour aucun des deux.",
 };

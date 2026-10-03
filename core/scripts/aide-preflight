@@ -34,14 +34,45 @@ state() {
   if [ -e "$1" ]; then echo "exists, will be updated"; else echo "new"; fi
 }
 
+# Where aide installs for each AI: one table, which the dashboard's
+# Settings tabs read too. Beside this script in the repository and under
+# ~/.local/bin alike.
+TARGETS="$(cd "$(dirname "$0")" && pwd)/lib/install-targets.txt"
+
+# A place from the table as a path on this machine.
+target_path() {
+  case "$1" in
+    \~/.config/*) echo "${XDG_CONFIG_HOME:-$HOME/.config}/${1#\~/.config/}" ;;
+    \~/*) echo "$HOME/${1#\~/}" ;;
+    *) echo "$1" ;;
+  esac
+}
+
+# Every place the table names for one AI, one line each.
+places() {
+  local ai="$1" tool place from to shown
+  if [ ! -f "$TARGETS" ]; then
+    echo "   ⚠️  $TARGETS is missing — cannot say where aide's pieces land"
+    return 0
+  fi
+  while read -r tool place from to; do
+    case "$tool" in ''|'#'*) continue ;; esac
+    [ "$tool" = "$ai" ] || continue
+    shown="$to"
+    case "$to" in \~/.config/*) [ -n "${XDG_CONFIG_HOME:-}" ] && shown="$(target_path "$to")" ;; esac
+    if [ "$from" = "-" ]; then
+      printf '   %-38s → %s   (read in place, nothing installed)\n' "$place" "$shown"
+    else
+      printf '   %-38s → %s   (%s)\n' "$from" "$shown" "$(state "$(target_path "$to")")"
+    fi
+  done < "$TARGETS"
+}
+
 preflight_claude() {
   echo "Claude Code"
   echo "-----------"
   probe "Claude Code" claude
-  echo "   core/skills/   → ~/.claude/skills/    ($(state "$HOME/.claude/skills"))"
-  echo "   core/rules/    → ~/.claude/rules/     ($(state "$HOME/.claude/rules"))"
-  echo "   agents/        → ~/.claude/agents/    ($(state "$HOME/.claude/agents"))"
-  echo "   core/scripts/  → ~/.local/bin/        ($(state "$HOME/.local/bin"))"
+  places claude
   echo ""
 }
 
@@ -49,9 +80,7 @@ preflight_copilot() {
   echo "GitHub Copilot"
   echo "--------------"
   probe "Copilot CLI" copilot
-  echo "   core/AGENTS.md → ~/.copilot/copilot-instructions.md ($(state "$HOME/.copilot/copilot-instructions.md"))"
-  echo "   core/scripts/  → ~/.local/bin/        ($(state "$HOME/.local/bin"))"
-  echo "   core/skills/   → ~/.agents/skills/    ($(state "$HOME/.agents/skills"))"
+  places copilot
   echo "   Note: the Copilot CLI reads personal skills from ~/.agents/skills/,"
   echo "   not ~/.claude/skills/ (verified against 1.0.79). ~/.claude/rules/ is"
   echo "   NOT read by Copilot; the rules reach it through the instructions file."
@@ -62,18 +91,14 @@ preflight_opencode() {
   echo ""
   echo "🔧 OpenCode"
   probe "OpenCode" opencode
-  echo "   core/AGENTS.md → ${XDG_CONFIG_HOME:-$HOME/.config}/opencode/AGENTS.md   ($(state "${XDG_CONFIG_HOME:-$HOME/.config}/opencode/AGENTS.md"))"
-  echo "   skills: read in place from ~/.agents/skills and ~/.claude/skills — nothing installed"
+  places opencode
 }
 
 preflight_codex() {
   echo "OpenAI Codex"
   echo "------------"
   probe "Codex CLI" codex
-  echo "   core/AGENTS.md → ~/.codex/AGENTS.md   ($(state "$HOME/.codex/AGENTS.md"))"
-  echo "   core/scripts/  → ~/.local/bin/        ($(state "$HOME/.local/bin"))"
-  echo "   implementations/codex/hooks/ → ~/.codex/hooks.json + ~/.codex/hooks/   ($(state "$HOME/.codex/hooks.json"))"
-  echo "   core/skills/   → ~/.agents/skills/    ($(state "$HOME/.agents/skills"))"
+  places codex
   echo ""
 }
 

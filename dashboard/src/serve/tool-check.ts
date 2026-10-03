@@ -1,11 +1,12 @@
 // Asking a tool whether it is actually usable on this host.
 //
-// The knowledge of WHAT aide installs for each tool, and where, lives in
-// `core/scripts/aide-preflight` and nowhere else. This module runs that
-// script and passes on what it said; it does not keep a second copy of
-// the answer in TypeScript. The dashboard already pays for several
-// hand-paired bash/TypeScript decisions (`docs/bash-typescript-decisions.md`)
-// and this is one it does not have to.
+// WHERE aide installs for each tool lives in
+// `core/scripts/lib/install-targets.txt`: `core/scripts/aide-preflight`
+// prints its place lines from it, and the Settings tab for each AI names
+// the same places (`render/pages/settings-page/places.ts`). This module
+// runs the preflight and passes on what it said; it does not keep a second
+// copy of the answer in TypeScript (`docs/bash-typescript-decisions.md`,
+// "Not a pair: where aide installs for each AI").
 //
 // What the preflight cannot answer is asked separately, and only where
 // there is something to ask: OpenCode reaches a model through a provider
