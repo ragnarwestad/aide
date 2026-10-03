@@ -171,6 +171,25 @@ describe("a chosen dependency reaches the runner and the page", () => {
   });
 });
 
+describe("a create post fits the description the page lets the user type", () => {
+  test("a full-length title and description, every character encoding to the most bytes, is taken", async () => {
+    const { DESCRIPTION_MAX, TITLE_MAX } = await import("../../../src/queue/parse-request.ts");
+    const { base } = start({ queueProjects: ["aide"] });
+    // "—" is three UTF-8 bytes, nine once form-encoded: the most a single
+    // character the fields count can cost.
+    const title = "—".repeat(TITLE_MAX);
+    const description = "—".repeat(DESCRIPTION_MAX);
+    const res = await fetch(`${base}/api/queue/create`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
+      body: new URLSearchParams({ project: "aide", title, description }).toString(),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { job: { createDescription: string } };
+    expect(body.job.createDescription).toBe(description);
+  });
+});
+
 // --- spec 553: reordering the page must not change what a create posts ------
 //
 // The New-spec page's fields are read by NAME (parse-request.ts), never

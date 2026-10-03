@@ -1,6 +1,7 @@
 // Server-wide constants and the per-repo merge lock.
 
 import { availableParallelism } from "node:os";
+import { DESCRIPTION_MAX, TITLE_MAX } from "../../queue/parse-request.ts";
 import type { QueueDefaults } from "../../queue/queue.ts";
 import type { ProcessSettings } from "../../render/pages/settings-page/process.ts";
 import workflowStepsData from "../../../../core/scripts/lib/workflow-steps.json" with { type: "json" };
@@ -14,6 +15,13 @@ export const MAX_BODY = 4096;
  *  for. 64 KiB is roughly fifteen times that — headroom for a
  *  description that grows, without becoming an unbounded body. */
 export const MAX_SAVE_BODY = 65536;
+
+/** What the create route accepts: worked out from the character limits
+ *  the New spec page enforces, so no description the page allows is
+ *  refused for its size. A UTF-16 unit is at most three UTF-8 bytes, and
+ *  form-encoding writes each byte as three characters ("%E2"); the other
+ *  fields fit in `MAX_BODY`. */
+export const MAX_CREATE_BODY = (TITLE_MAX + DESCRIPTION_MAX) * 9 + MAX_BODY;
 
 /** How long the project's own install may run after its code merged.
  *  The same bounded-timeout discipline every git call already has

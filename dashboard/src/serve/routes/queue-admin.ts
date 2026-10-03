@@ -11,7 +11,7 @@ import { listedModelName } from "../../queue/model-name.ts";
 import { persistQueueSettings } from "../../queue/queue.ts";
 import { addProject, assessProjectReadiness, commitManifestEdits, projectNameError, removeProject, updateProjectSettings } from "../../project/project-admin";
 import { isToolPart, SETTINGS_STEPS, TOOL_PARTS } from "../../render";
-import { bodyToObject, json, readBounded } from "../serve-helpers";
+import { MAX_CREATE_BODY, bodyToObject, json, readBounded } from "../serve-helpers";
 import { CHECKABLE_TOOLS, checkTool, isCheckableTool, recordCheck } from "../tool-check.ts";
 import { readUsage, recordUsage } from "../tool-usage";
 import { readModels, recordModels } from "../tool-models";
@@ -25,7 +25,7 @@ export async function handleQueueAdminRoutes(
 ): Promise<Response | null> {
   if (path === "/api/queue/create") {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-    const body = await readBounded(req);
+    const body = await readBounded(req, MAX_CREATE_BODY);
     if ("refusal" in body) return body.refusal;
     let raw: unknown;
     try {
