@@ -17,7 +17,7 @@ describe("Remove", () => {
     expect(h.removeButton.disabled).toBe(false);
   });
 
-  test("a removal posts the confirmation and reloads the page it is on, keeping the view", async () => {
+  test("a removal posts and reloads the page it is on, keeping the view", async () => {
     const h = harness(
       () => ({ ok: true, body: { ok: true, results: [{ step: "confirm", ok: true }] } }),
       "actionform",
@@ -27,7 +27,6 @@ describe("Remove", () => {
     await h.submitRemove();
     const post = h.requests.find((r) => r.url.includes("/remove"))!;
     expect(post.init.method).toBe("POST");
-    expect(String(post.init.body)).toContain("confirm=atlasaurus");
     expect((post.init.headers as Record<string, string>).accept).toBe("application/json");
     // The panel is markup the server owns, and what changed is which
     // projects are in it — so the page is asked again, with the

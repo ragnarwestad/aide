@@ -58,8 +58,7 @@ export function buildCreateForm(chips: Chip[], tokenInput: { value: string }, on
   return { createButton, slot, resets, projectSelect, createForm };
 }
 
-/** Spec 112's Projects panel: one Remove form, with the typed
- *  confirmation the browser gates its button on, and (spec 138) one
+/** Spec 112's Projects panel: one Remove form, and (spec 138) one
  *  Add form, the one whose SUCCESS has something to say — the
  *  readiness answer the server worked out for the project that was
  *  just added. */
@@ -78,11 +77,6 @@ export function buildProjectsPanel(tokenInput: { value: string }, on: Record<str
     classList: {} as ReturnType<typeof classes>,
   };
   removeButton.classList = classes(removeButton);
-  const confirmInput = { value: "" } as { value: string; addEventListener?: unknown };
-  const confirmWrap = {
-    getAttribute: (name: string) => (name === "data-confirm" ? "atlasaurus" : null),
-    querySelector: (sel: string) => (sel.includes("input") ? confirmInput : removeButton),
-  };
   const removeSlot = { textContent: "" };
   // Remove project asks in a progress dialog, open since its button was
   // pressed: the refusal line is the dialog's, outside the posting form,
@@ -127,37 +121,22 @@ export function buildProjectsPanel(tokenInput: { value: string }, on: Record<str
     fields: [["name", "skjer"], ["gitUrl", "git@example.com:me/skjer.git"]] as [string, string][],
     querySelectorAll: () => [addButton],
     querySelector: (sel: string) =>
-      sel.includes("data-confirm")
-        ? null
-        : sel.includes("token")
-          ? tokenInput
-          : sel.includes("refused")
-            ? addSlot
-            : null,
+      sel.includes("token")
+        ? tokenInput
+        : sel.includes("refused")
+          ? addSlot
+          : null,
     closest: () => null,
     addEventListener: (type: string, fn: Listener) => void (on[`add:${type}`] = fn),
   };
   const removeForm = {
     dataset: {} as Record<string, string>,
     action: "http://dash.test/api/queue/projects/atlasaurus/remove",
-    fields: [["confirm", "atlasaurus"]] as [string, string][],
+    fields: [] as [string, string][],
     querySelectorAll: () => [removeButton],
-    querySelector: (sel: string) =>
-      sel.includes("data-confirm")
-        ? confirmWrap
-        : sel.includes("token")
-          ? tokenInput
-          : null,
+    querySelector: (sel: string) => (sel.includes("token") ? tokenInput : null),
     closest: (sel: string) => (sel.startsWith("dialog") ? removeDialog : null),
     addEventListener: (type: string, fn: Listener) => void (on[`remove:${type}`] = fn),
   };
-  let typed: (() => void) | undefined;
-  confirmInput.addEventListener = (type: string, fn: () => void) => {
-    if (type === "input") typed = fn;
-  };
-  return {
-    removeButton, confirmInput, confirmWrap, removeSlot, removeDialog,
-    addButton, addSlot, addForm, removeForm,
-    getTyped: () => typed,
-  };
+  return { removeButton, removeSlot, removeDialog, addButton, addSlot, addForm, removeForm };
 }

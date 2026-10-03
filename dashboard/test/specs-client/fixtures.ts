@@ -227,7 +227,7 @@ export function harness(
   // Spec 510: an archived criterion's third box.
   const failedBoxes = [failedCheckbox(TICK_FORM, TICK_ROW, false, firstLi)];
   const tailBoxEl = tailBox(ROW_FORM);
-  const { removeButton, confirmInput, removeSlot, removeDialog, addButton, addSlot, addForm, removeForm, getTyped } =
+  const { removeButton, removeSlot, removeDialog, addButton, addSlot, addForm, removeForm } =
     buildProjectsPanel(tokenInput, on);
 
   const inserted: { id: string; className: string; textContent: string }[] = [];
@@ -455,17 +455,12 @@ export function harness(
     replaced, slot, resets, document, phases, otherPhases, rowQueries, tick,
     sources: sourcesMade, live, visibility, intervals, ticks, timeouts, elapsed, clock,
     projectSelect, chips,
-    removeButton, removeSlot, removeDialog, confirmInput, dispatched,
+    removeButton, removeSlot, removeDialog, dispatched,
     addButton, addSlot,
     submitRemove: (extra: Partial<{ defaultPrevented: boolean }> = {}) =>
       fire("remove:submit", removeButton, extra),
     submitAdd: (extra: Partial<{ defaultPrevented: boolean }> = {}) =>
       fire("add:submit", addButton, extra),
-    /** What the reader typing in the confirmation field does. */
-    type: (value: string) => {
-      confirmInput.value = value;
-      getTyped()?.();
-    },
     changeProject: (value: string) => {
       projectSelect.value = value;
       on["select:change"]?.({ target: projectSelect });
