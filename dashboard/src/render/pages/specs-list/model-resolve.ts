@@ -60,7 +60,11 @@ export function resolveRecordedModel(
   configured: string | undefined,
   recorded: string | undefined,
 ): string {
-  return recorded ?? resolveChosenModel(models, configured, undefined);
+  if (recorded === undefined) return resolveChosenModel(models, configured, undefined);
+  // A phase file records the model as its run named it (`opus`, or a full
+  // id); the choice that runs it may be spelt `Opus`, or be named by that id.
+  const word = recorded.toLowerCase();
+  return models.find((m) => m.name.toLowerCase() === word || m.named?.id === recorded)?.name ?? recorded;
 }
 
 /** The model an AI choice fills in for one step (spec 179).

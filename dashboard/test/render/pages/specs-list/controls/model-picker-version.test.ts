@@ -4,7 +4,7 @@
 // version dropped off it ("Opus 5.5" became "Opus").
 
 import { describe, expect, test } from "bun:test";
-import { pickerModels } from "../../../../../src/render/pages/specs-list/model-picker.ts";
+import { pickerModels, recordLabel, resolveRecordedModel } from "../../../../../src/render/pages/specs-list/model-picker.ts";
 
 const MODELS = [
   { name: "Opus", ranAs: "claude-opus-5-5" },
@@ -24,5 +24,23 @@ describe("pickerModels", () => {
 
   test("a record with no id of its own falls back to what the alias gives today", () => {
     expect(pickerModels(MODELS, "Opus", true, undefined)).toEqual(MODELS);
+  });
+});
+
+describe("a phase's recorded model", () => {
+  // 595's phases recorded `claude opus`; the choice is `Opus`, and the
+  // picker took the lowercase word for a model since removed.
+  test("finds its choice whatever the case", () => {
+    expect(resolveRecordedModel([{ name: "Opus" }, { name: "Sonnet" }], undefined, "opus")).toBe("Opus");
+  });
+
+  test("finds a choice named by its id", () => {
+    const pinned = { name: "Opus 4.8", named: { id: "claude-opus-4-8", name: "Opus 4.8" } };
+    expect(resolveRecordedModel([{ name: "Opus" }, pinned], undefined, "claude-opus-4-8")).toBe("Opus 4.8");
+  });
+
+  test("a model no choice names any more is still named by the version it ran on", () => {
+    expect(recordLabel("opus-old", "claude-opus-5-5")).toBe("Opus 5.5");
+    expect(recordLabel("opus-old", undefined)).toBe("opus-old");
   });
 });

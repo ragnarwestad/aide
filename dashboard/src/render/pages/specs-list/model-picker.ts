@@ -1,6 +1,6 @@
 import { esc } from "../../ui/html.ts";
 import { durationLabel } from "../../ui/job-state";
-import { aliasLabel } from "../../ui/components/model-label.ts";
+import { aliasLabel, modelName } from "../../ui/components/model-label.ts";
 import { t, type Language } from "../../../i18n";
 import type { SpecsPageOptions } from "./";
 import { groupKey, isArchivedRow, type SpecGroup } from "./data-model";
@@ -106,7 +106,7 @@ export function modelPicker(
     // on this select's own `title`.
     (locked ? " disabled" : "") +
     `>` +
-    modelOptions(pickerModels(models, chosen, archived || alreadyRun, ranModelId), chosen) +
+    modelOptions(pickerModels(models, chosen, archived || alreadyRun, ranModelId), chosen, ranModelId) +
     `</select>`
   );
 }
@@ -164,7 +164,17 @@ export function lockedDuration(ms: number | undefined): string {
  *  comes first is a fact about the page, not about whichever tool an
  *  admin happened to list first. A tool with nothing configured draws
  *  no group at all. */
-export function modelOptions(models: NonNullable<SpecsPageOptions["modelChoices"]>, chosen?: string): string {
+/** A recorded model no choice names any more: by the version it ran on
+ *  where its run reported one, else by the word it was recorded as. */
+export function recordLabel(recorded: string, ranModelId: string | undefined): string {
+  return modelName(ranModelId) ?? recorded;
+}
+
+export function modelOptions(
+  models: NonNullable<SpecsPageOptions["modelChoices"]>,
+  chosen?: string,
+  ranModelId?: string,
+): string {
   const groups = Object.keys(TOOL_NAMES)
     .map((tool) => {
       const group = models.filter((m) => (m.tool ?? "claude") === tool);
@@ -193,7 +203,7 @@ export function modelOptions(models: NonNullable<SpecsPageOptions["modelChoices"
   // name silently vanish from the select, one bare option carries it,
   // selected, outside any tool's group.
   const known = chosen !== undefined && models.some((m) => m.name === chosen);
-  const stale = chosen && !known ? `<option value="${esc(chosen)}" selected>${esc(chosen)}</option>` : "";
+  const stale = chosen && !known ? `<option value="${esc(chosen)}" selected>${esc(recordLabel(chosen, ranModelId))}</option>` : "";
   return groups + stale;
 }
 
