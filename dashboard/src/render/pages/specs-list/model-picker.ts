@@ -61,6 +61,8 @@ export function modelPicker(
   /** This phase cannot be run from this row again — its box is drawn
    *  ticked and disabled, so this select is locked with it. */
   alreadyRun = false,
+  /** The model id the phase's own run reported, when it has one. */
+  ranModelId?: string,
 ): string {
   const models = opts.modelChoices ?? [];
   if (!models.length) return "";
@@ -104,11 +106,23 @@ export function modelPicker(
     // on this select's own `title`.
     (locked ? " disabled" : "") +
     `>` +
-    // A select that is a record of what ran carries no alias id: the alias
-    // may have moved on since, and the id that ran is on the phase's own row.
-    modelOptions(archived || alreadyRun || used !== undefined ? models.map(({ ranAs: _ranAs, ...m }) => m) : models, chosen) +
+    modelOptions(pickerModels(models, chosen, archived || alreadyRun, ranModelId), chosen) +
     `</select>`
   );
+}
+
+/** The options as a picker names them, each with a version: what the
+ *  alias gives today while the select is a choice — a phase that ran
+ *  before and may run again included — and, once the select is a record,
+ *  what the phase ran on for the chosen model, where its run reported it. */
+export function pickerModels<M extends { name: string; ranAs?: string }>(
+  models: M[],
+  chosen: string | undefined,
+  record: boolean,
+  ranModelId: string | undefined,
+): M[] {
+  if (!record || !ranModelId) return models;
+  return models.map((m) => (m.name === chosen ? { ...m, ranAs: ranModelId } : m));
 }
 
 /** A locked phase's own record of what it spent in TIME (spec 247), on
