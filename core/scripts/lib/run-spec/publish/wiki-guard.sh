@@ -80,6 +80,20 @@ elif [ "$command_name" = "archive" ] && [ "$terminal_reason" = "completed" ] \
   done <<ARCHIVE_WIKI_EXCLUDES_EOF
 $(link_excludes_for "$project_root")
 ARCHIVE_WIKI_EXCLUDES_EOF
+  # What THIS run changed: from where the branch stood before the session
+  # ($specs_ref_before, run-spec/turn/spec-paths.sh), leaving aside the pages
+  # the default branch changed, which the merge the session finished
+  # brought in. A page an earlier archive run rewrote was checked then: on
+  # a run after the code has landed, the code diff is empty, and that
+  # page would otherwise read as this run's write.
+  archive_wiki_since="$archive_wiki_tip...HEAD"
+  archive_wiki_mains=""
+  if [ -n "${specs_ref_before:-}" ] && git -C "$archive_repo_wt" cat-file -e "$specs_ref_before" 2>/dev/null; then
+    archive_wiki_since="$specs_ref_before"
+    archive_wiki_fork="$(git -C "$archive_repo_wt" merge-base "$specs_ref_before" "$archive_wiki_tip" 2>/dev/null || echo "")"
+    [ -n "$archive_wiki_fork" ] && \
+      archive_wiki_mains="$(git -C "$archive_repo_wt" diff --name-only "$archive_wiki_fork" "$archive_wiki_tip" 2>/dev/null)"
+  fi
   archive_wiki_named=""; archive_wiki_rewritten=""
   # Every path this run left dirty or untracked, or that the branch
   # changed since it left the default branch (`tip...HEAD`, so a page
@@ -94,6 +108,7 @@ ARCHIVE_WIKI_EXCLUDES_EOF
     case "$archive_wiki_path" in "$archive_wiki_prefix"*) ;; *) continue ;; esac
     archive_wiki_n="${archive_wiki_path#"$archive_wiki_prefix"}"
     case "$archive_wiki_n" in */*) continue ;; esac
+    grep -qxF "$archive_wiki_path" <<<"$archive_wiki_mains" && continue
     if grep -qxF "$archive_wiki_n" <<<"$archive_wiki_allowed"; then
       archive_wiki_rewritten="${archive_wiki_rewritten:+$archive_wiki_rewritten, }$archive_wiki_n"
       continue
@@ -102,7 +117,7 @@ ARCHIVE_WIKI_EXCLUDES_EOF
     archive_wiki_named="${archive_wiki_named:+$archive_wiki_named, }$archive_wiki_n"
   done < <( { git -C "$archive_repo_wt" status --porcelain --untracked-files=all -- . ${archive_wiki_excludes[@]+"${archive_wiki_excludes[@]}"} 2>/dev/null \
                 | cut -c4- | sed 's/^.* -> //'; \
-              git -C "$archive_repo_wt" diff --name-only "$archive_wiki_tip...HEAD" -- . ${archive_wiki_excludes[@]+"${archive_wiki_excludes[@]}"} 2>/dev/null; } | sort -u )
+              git -C "$archive_repo_wt" diff --name-only "$archive_wiki_since" -- . ${archive_wiki_excludes[@]+"${archive_wiki_excludes[@]}"} 2>/dev/null; } | sort -u )
   stage "wiki pages rewritten: ${archive_wiki_rewritten:-none}"
   if [ -n "$archive_wiki_named" ]; then
     terminal_reason="scope-violation"; ok="false"; suffix=" (stopped: scope-violation)"

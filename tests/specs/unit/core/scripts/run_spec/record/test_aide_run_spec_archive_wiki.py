@@ -298,3 +298,26 @@ def test_an_archive_rewrites_a_page_covering_a_file_it_deleted_AC_1(
     assert out["terminalReason"] == "completed", out
     assert "Rewritten." in _wiki_page(workspace, ARCHIVE_BRANCH, "r.md")
     assert "wiki pages rewritten: r.md" in err
+
+
+def test_a_page_an_earlier_archive_run_rewrote_is_not_this_runs_write(
+    runner, workspace, workspace_root, fake_claude
+):
+    """597: the first archive landed the code and stopped on a conflict in
+    the specs repo, leaving the page it had rightly rewritten on the specs
+    branch alone. On the next run the code diff against main is empty, so
+    no page is the spec's own, and that earlier rewrite read as this run
+    writing a page it may not. A run answers for what it wrote itself."""
+    status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
+    branch = _archive_wiki_workspace(workspace, workspace_root)
+    project, specs = workspace["project"], workspace["specs"]
+    git(project, "merge", "-q", "--ff-only", branch)
+    git(specs, "switch", "-q", "-c", branch)
+    (specs / "wiki" / "p.md").write_text(_wiki_page(workspace, "main", "p.md") + "\nRewritten by the earlier run.\n")
+    git(specs, "add", "-A")
+    git(specs, "commit", "-qm", "an earlier archive run's wiki rewrite")
+    git(specs, "switch", "-q", "main")
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="archive")
+    assert out["terminalReason"] == "completed", out.get("error")
+    assert "Rewritten by the earlier run." in _wiki_page(workspace, branch, "p.md")
