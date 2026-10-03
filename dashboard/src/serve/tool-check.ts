@@ -10,8 +10,9 @@
 // What the preflight cannot answer is asked separately, and only where
 // there is something to ask: OpenCode reaches a model through a provider
 // and can list what that provider offers, so its own two questions are
-// answerable. The other three CLIs have no command that lists models at
-// all, which is why the extra checks cover one tool rather than four.
+// answerable here. Which models each AI offers is read by a press of
+// Check alone (`tool-models/`), never by this check, which also runs at
+// start and before waiting jobs.
 
 import { runScript, scriptFor } from "./land-branch/run-script.ts";
 import { forgetChecks, lastChecks, recordCheck, setConfiguredTools, toolsWithFaults } from "../render/ui/tool-checks.ts";
@@ -45,7 +46,7 @@ const lines = (text: string): string[] =>
 
 export interface CheckOptions {
   /** The configured model names for this tool, as the CLI would be given
-   *  them. Only OpenCode can be asked whether they still exist. */
+   *  them. Only OpenCode's are asked about here. */
   configuredModels?: string[];
   /** Test seam: what to run instead of the real binaries. */
   run?: typeof runScript;
@@ -80,9 +81,9 @@ async function opencodeProviderCheck(
   };
 }
 
-/** Whether every model configured for OpenCode still exists. The one
- *  question none of the other three can be asked: no other CLI has a
- *  command that lists the models it accepts. */
+/** Whether every model configured for OpenCode still exists, which the
+ *  notice on every page reads. The full lists, for every AI that has one,
+ *  are read by a press of Check (`tool-models/`). */
 async function opencodeModelCheck(
   opts: CheckOptions,
   run: typeof runScript,

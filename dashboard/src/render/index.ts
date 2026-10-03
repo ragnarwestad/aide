@@ -44,10 +44,14 @@ export {
   SETTINGS_TABS, settingsRowChoice, SPEC_STEPS, UNROWED_STEPS,
 } from "./pages/settings-page";
 export type { SettingsGroup, SettingsPageOptions, SettingsPanel } from "./pages/settings-page";
-export { CHECKABLE_TOOLS, TOOL_TABS, toolPanel } from "./pages/settings-page/tools.ts";
+export { CHECKABLE_TOOLS, TOOL_TAB_LABELS, TOOL_TABS, toolPanel } from "./pages/settings-page/tools.ts";
 export type { CheckableTool, ExtraCheck, ToolCheck } from "./pages/settings-page/tools.ts";
 export { usageView } from "./pages/settings-page/usage.ts";
 export type { ToolUsage, UsageView, UsageWindow } from "./pages/settings-page/usage.ts";
+export {
+  choiceModel, choiceOf, modelLists, MODELS_ADD_ROUTE, MODELS_REMOVE_ROUTE, sameModel,
+} from "./pages/settings-page/models.ts";
+export type { ModelsPanel, OfferedModel, ToolModels } from "./pages/settings-page/models.ts";
 
 // /test-servers (spec 425, REQ-3/REQ-4): every tracked test server,
 // across every project, in one place.

@@ -44,6 +44,7 @@ import { handlePageRoutes } from "./page-routes";
 import { handleQueueEvents } from "./sse.ts";
 import { handleQueueAdminRoutes } from "./queue-admin.ts";
 import { handleSettingsConcurrencyRoute } from "./settings-concurrency.ts";
+import { handleSettingsModelsRoutes } from "./settings-models.ts";
 import { handleWikiRoute } from "./wiki-route.ts";
 import { handleDeploySteps, type DeployHooks } from "./deploy-steps.ts";
 import { handleJobActionRoutes } from "./job-actions.ts";
@@ -174,6 +175,7 @@ export async function handleRoutes(ctx: RoutesContext, req: Request, url: URL, p
     (await handleDeploySteps(ctx, req, path)) ??
     (await handleQueueAdminRoutes(ctx, req, path)) ??
     (await handleSettingsConcurrencyRoute(ctx, req, path)) ??
+    (await handleSettingsModelsRoutes(ctx, req, path)) ??
     (await handleWikiRoute(ctx, req, path)) ??
     (await handlePushRoutes(ctx, req, url, path)) ??
     (await handleJobActionRoutes(ctx, req, path)) ??

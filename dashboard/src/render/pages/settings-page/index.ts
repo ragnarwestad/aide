@@ -7,6 +7,8 @@ import { processPanel, type ProcessSettings } from "./process.ts";
 import { TOOL_TABS, toolPanel } from "./tools.ts";
 import type { CheckableTool, ToolCheck } from "./tools.ts";
 import type { ToolUsage } from "./usage.ts";
+import type { ToolModels } from "./models.ts";
+import type { ModelChoice } from "../../../queue/types.ts";
 import type { Language } from "../../../i18n";
 import { defaultModelForTool, modelOptions, resolveChosenModel, TOOL_NAMES } from "../specs-list";
 import { WORKFLOW_STEPS } from "../../../queue/steps.ts";
@@ -77,7 +79,7 @@ if (
 export const SETTINGS_STEPS = [...SPEC_STEPS, ...OTHER_STEPS] as const;
 
 export interface SettingsPageOptions {
-  modelChoices: { name: string; tool?: "claude" | "codex" | "opencode" | "fake-claude"; ranAs?: string }[];
+  modelChoices: { name: string; tool?: "claude" | "codex" | "opencode" | "fake-claude"; ranAs?: string; named?: { id: string; name: string } }[];
   defaultModels: Record<string, string>;
   timeoutSec: Record<string, number>;
   script?: string;
@@ -102,6 +104,12 @@ export interface SettingsPageOptions {
   /** The last usage read for each tool. Read only by a press of Check,
    *  so a tool with no entry has not been read. */
   usage?: Partial<Record<CheckableTool, ToolUsage>>;
+  /** The last reading of each tool's models. Read only by a press of
+   *  Check, so a tool with no entry has not been read. */
+  models?: Partial<Record<CheckableTool, ToolModels>>;
+  /** The live model choices, with the model each hands its command line:
+   *  what an AI's tab sets the reading against. */
+  choices?: Record<string, ModelChoice>;
   /** The server's public key for push, which the Notifications tab's
    *  script subscribes a device with (spec 501). */
   pushPublicKey?: string;
@@ -228,7 +236,9 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
       ? notificationsPanel(opts.pushPublicKey, opts.lang ?? "en")
       : open === "process"
         ? (opts.process ? processPanel(opts.process) : "")
-        : toolPanel(open, opts.checks?.[open], opts.usage?.[open], Date.parse(generatedAt));
+        : toolPanel(open, opts.checks?.[open], opts.usage?.[open], Date.parse(generatedAt), {
+          reading: opts.models?.[open], choices: opts.choices, options: models,
+        });
   // `pageShell` wraps the body in `<main>`: a second one inside it takes
   // the frame's padding twice. Both rows sit directly in it, so page.css's
   // Settings rule centres them, and the panel after them, as it did one row.

@@ -10,6 +10,7 @@
 import { esc } from "../../ui/html.ts";
 import { buttonForm, facts, messageSlot, rowMessage } from "../../ui/components";
 import { usageView, type ToolUsage } from "./usage.ts";
+import { modelsBlock, type ModelsPanel } from "./models.ts";
 
 export const TOOL_TABS = ["claude", "codex", "copilot", "opencode"] as const;
 
@@ -58,19 +59,19 @@ export const TOOL_TAB_LABELS: Record<CheckableTool, string> = {
 
 /** What each tool is, in the one sentence a reader needs before pressing
  *  Check, and what the check will and will not be able to tell them. The
- *  second half matters: three of the four CLIs cannot be asked which
- *  models they accept, and a page that quietly skipped that would read
- *  as if the check had covered it. */
+ *  second half matters: Copilot cannot be asked which models it accepts,
+ *  and a page that quietly skipped that would read as if the check had
+ *  covered it. */
 const TOOL_NOTES: Record<CheckableTool, { what: string; canCheck: string; cannotCheck: string }> = {
   claude: {
     what: "Claude Code reads aide's skills, rules and agents from its own directory under your home.",
-    canCheck: "whether the command line is installed and which version, whether it is logged in, where each piece of aide lands and whether it is there, and whether the installed files still match this repository",
-    cannotCheck: "which models it accepts. Claude Code has no command that lists them, so a model name is only known to be wrong when a run fails on it.",
+    canCheck: "whether the command line is installed and which version, whether it is logged in, where each piece of aide lands and whether it is there, whether the installed files still match this repository, and which version each of opus, sonnet, fable and haiku gives today, asked with /model, which runs no model",
+    cannotCheck: "",
   },
   codex: {
     what: "Codex reads aide's generated instructions file and shares the skills directory with Copilot.",
-    canCheck: "whether the command line is installed and which version, whether it is logged in, where each piece of aide lands and whether it is there, and whether the installed files still match this repository",
-    cannotCheck: "which models it accepts. Codex has no command that lists them.",
+    canCheck: "whether the command line is installed and which version, whether it is logged in, where each piece of aide lands and whether it is there, whether the installed files still match this repository, and which models it offers, from codex debug models",
+    cannotCheck: "",
   },
   copilot: {
     what: "Copilot reads aide's generated instructions file and shares the skills directory with Codex.",
@@ -79,7 +80,7 @@ const TOOL_NOTES: Record<CheckableTool, { what: string; canCheck: string; cannot
   },
   opencode: {
     what: "OpenCode brings no model of its own: every model belongs to a provider and is named provider/model. It finds aide's skills where they already are, so aide installs only the instructions file for it.",
-    canCheck: "everything the others can, and one more besides: whether every model configured on this server still appears in its provider's own list. A provider IS the login here, since OpenCode reaches every model through one",
+    canCheck: "everything the others can, which models its logged-in providers offer, and whether every model configured on this server still appears in its provider's own list. A provider IS the login here, since OpenCode reaches every model through one",
     cannotCheck: "",
   },
 };
@@ -150,16 +151,18 @@ function usageBlock(usage: ToolUsage | undefined, now: number): string {
   }
 }
 
-/** The panel behind one AI's tab. `check` and `usage` are the last
- *  answers obtained for this tool in this server's lifetime, or absent
- *  when none has been asked for: nothing is run because a page was
- *  opened. `now` is the page's own time, which a reset is written
+/** The panel behind one AI's tab. `check`, `usage` and `models.reading`
+ *  are the last answers obtained for this tool in this server's lifetime,
+ *  or absent when none has been asked for: nothing is run because a page
+ *  was opened. `now` is the page's own time, which a reset is written
+ *  against. `models` also carries the live choices the reading is set
  *  against. */
 export function toolPanel(
   tool: CheckableTool,
   check: ToolCheck | undefined,
   usage?: ToolUsage,
   now: number = Date.now(),
+  models: ModelsPanel = {},
 ): string {
   const note = TOOL_NOTES[tool];
   const cannot = note.cannotCheck
@@ -182,6 +185,7 @@ export function toolPanel(
     }) +
     (check ? resultBlock(check) : `<p class="muted">Not checked yet.</p>`) +
     usageBlock(usage, now) +
+    modelsBlock(tool, models, models.reading ? stamp(models.reading.at) : "") +
     `</section>`
   );
 }

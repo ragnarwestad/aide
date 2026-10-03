@@ -130,7 +130,7 @@ export interface SpecsPageOptions {
   /** The models a job may be asked to run on, from the config. Empty or
    *  absent means the per-step configuration is the only answer and the
    *  page offers no choice at all. */
-  modelChoices?: { name: string; tool?: "claude" | "codex" | "opencode" | "fake-claude"; ranAs?: string }[];
+  modelChoices?: { name: string; tool?: "claude" | "codex" | "opencode" | "fake-claude"; ranAs?: string; named?: { id: string; name: string } }[];
   /** The configured model per step (plus a "default" key), from the
    *  config's own `model` table. It is what a phase line's select is
    *  pre-filled with when the phase has not run yet — the reader sees

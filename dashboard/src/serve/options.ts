@@ -2,7 +2,8 @@
 // closure state, so moving it carries no risk the rest of that file's
 // wiring does.
 
-import type { CheckableTool, NavEntry, ToolCheck, ToolUsage } from "../render";
+import type { CheckableTool, NavEntry, ToolCheck, ToolModels, ToolUsage } from "../render";
+import type { ClaudeModelAnswer } from "./tool-models";
 import type { Sentence } from "../i18n/message.ts";
 import type { QueueDefaults } from "../queue/queue.ts";
 import type { GitRunner } from "../git/branch-status.ts";
@@ -117,6 +118,8 @@ export interface ServerOptions {
   toolProbe?: {
     check: (tool: CheckableTool, opts: { configuredModels: string[] }) => Promise<ToolCheck>;
     usage: (tool: CheckableTool) => Promise<ToolUsage>;
+    models: (tool: CheckableTool, opts: { configured: string[] }) => Promise<ToolModels>;
+    claudeName: (id: string) => Promise<ClaudeModelAnswer>;
   };
   restartPollMs?: number;
   restartDeferTimeoutMs?: number;

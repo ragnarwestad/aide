@@ -157,24 +157,27 @@ Answered by the files under `src/serve/routes/spec-edit/`.
 ### Projects and settings
 
 Answered by `src/serve/routes/queue-admin.ts`, except `settings/concurrency`, which
-`src/serve/routes/settings-concurrency.ts` answers, and the four `deploy/<step>` rows, which
+`src/serve/routes/settings-concurrency.ts` answers, the two `settings/models/<add|remove>` rows, which
+`src/serve/routes/settings-models.ts` answers, and the four `deploy/<step>` rows, which
 `src/serve/routes/deploy-steps.ts` answers. The page script posts those four one after the other.
 
-| Route                                                 | Kind   | Takes                               | Answers                                                                                      | Made for |
-|-------------------------------------------------------|--------|-------------------------------------|----------------------------------------------------------------------------------------------|----------|
-| `POST /api/queue/settings`                            | action | model and timeout defaults per step | `{ ok }`; 400 `{ error }` for an unknown step or model                                       | form     |
-| `POST /api/queue/settings/check`                      | action | tool: the AI tool to check          | `{ ok, check, usage }`: the check and the usage read; 400 for a tool it cannot check         | form     |
-| `POST /api/queue/settings/concurrency`                | action | concurrency: a whole number, 1 to 8 | `{ ok, concurrency }`; 400 `{ error }` for a number outside 1 to 8 or a server with no queue | form     |
-| `POST /api/queue/projects`                            | action | name, git URL and Code landing      | `{ ok, project, results, readiness? }`: the steps taken; 400 when one failed                 | form     |
-| `POST /api/queue/projects/<project>/settings`         | action | the project's settings              | `{ ok, project, results, readiness? }`: the steps taken; 400 when one failed                 | form     |
-| `POST /api/queue/projects/<project>/deploy/fetch`     | action | nothing                             | `{ ok }`; 400 `{ error }` for a refusal; fast-forwards the checkout                          | form     |
-| `POST /api/queue/projects/<project>/deploy/install`   | action | nothing                             | `{ ok }`; 400 `{ error, faulty? }` when the install fails; then a fresh count against origin | form     |
-| `POST /api/queue/projects/<project>/deploy/restart`   | action | nothing                             | `{ ok, restart, startedAt?, faulty? }`: `restart` is `fired`, `held` or `none`               | form     |
-| `POST /api/queue/projects/<project>/deploy/check`     | action | nothing                             | `{ ok }`; 400 `{ error, faulty }` when the service runs another commit than the checkout     | form     |
-| `POST /api/queue/projects/<project>/wiki`             | action | nothing                             | `{ ok, job }`; 400 `{ error }` for a refusal                                                 | form     |
-| `POST /api/queue/projects/<project>/test-server`      | action | nothing                             | a 303 or an HTML page, never JSON                                                            | form     |
-| `POST /api/queue/projects/<project>/test-server/stop` | action | nothing                             | `{ ok }`                                                                                     | form     |
-| `POST /api/queue/projects/<project>/remove`           | action | nothing                             | `{ ok, project, results }`: the steps taken; 400 when one failed                             | form     |
+| Route                                                 | Kind   | Takes                               | Answers                                                                                                                         | Made for |
+|-------------------------------------------------------|--------|-------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|----------|
+| `POST /api/queue/settings`                            | action | model and timeout defaults per step | `{ ok }`; 400 `{ error }` for an unknown step or model                                                                          | form     |
+| `POST /api/queue/settings/check`                      | action | tool: the AI tool to check          | `{ ok, check, usage, models }`: the check, the usage and the models read; 400 for a tool it cannot check                        | form     |
+| `POST /api/queue/settings/concurrency`                | action | concurrency: a whole number, 1 to 8 | `{ ok, concurrency }`; 400 `{ error }` for a number outside 1 to 8 or a server with no queue                                    | form     |
+| `POST /api/queue/settings/models/add`                 | action | tool and model                      | `{ ok, name }`: the new choice's name; 400 `{ error }` for a model it was not offered, or a Claude id Claude Code does not know | form     |
+| `POST /api/queue/settings/models/remove`              | action | name: a model choice                | `{ ok, name }`; 400 `{ error }` for no such choice, or one that is a step's default model                                       | form     |
+| `POST /api/queue/projects`                            | action | name, git URL and Code landing      | `{ ok, project, results, readiness? }`: the steps taken; 400 when one failed                                                    | form     |
+| `POST /api/queue/projects/<project>/settings`         | action | the project's settings              | `{ ok, project, results, readiness? }`: the steps taken; 400 when one failed                                                    | form     |
+| `POST /api/queue/projects/<project>/deploy/fetch`     | action | nothing                             | `{ ok }`; 400 `{ error }` for a refusal; fast-forwards the checkout                                                             | form     |
+| `POST /api/queue/projects/<project>/deploy/install`   | action | nothing                             | `{ ok }`; 400 `{ error, faulty? }` when the install fails; then a fresh count against origin                                    | form     |
+| `POST /api/queue/projects/<project>/deploy/restart`   | action | nothing                             | `{ ok, restart, startedAt?, faulty? }`: `restart` is `fired`, `held` or `none`                                                  | form     |
+| `POST /api/queue/projects/<project>/deploy/check`     | action | nothing                             | `{ ok }`; 400 `{ error, faulty }` when the service runs another commit than the checkout                                        | form     |
+| `POST /api/queue/projects/<project>/wiki`             | action | nothing                             | `{ ok, job }`; 400 `{ error }` for a refusal                                                                                    | form     |
+| `POST /api/queue/projects/<project>/test-server`      | action | nothing                             | a 303 or an HTML page, never JSON                                                                                               | form     |
+| `POST /api/queue/projects/<project>/test-server/stop` | action | nothing                             | `{ ok }`                                                                                                                        | form     |
+| `POST /api/queue/projects/<project>/remove`           | action | nothing                             | `{ ok, project, results }`: the steps taken; 400 when one failed                                                                | form     |
 
 ### Schedule
 

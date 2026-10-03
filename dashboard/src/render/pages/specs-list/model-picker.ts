@@ -180,7 +180,7 @@ export function modelOptions(models: NonNullable<SpecsPageOptions["modelChoices"
               // (spec 454) read as a price, and spec 473 dropped it
               // from the config entirely.
               // What the alias gives today, when it has run: `Opus 5.5`.
-              `${m.name === chosen ? " selected" : ""}>${esc(aliasLabel(m.name, m.ranAs))}</option>`,
+              `${m.name === chosen ? " selected" : ""}>${esc(aliasLabel(m.name, m.ranAs, m.named))}</option>`,
           )
           .join("") +
         `</optgroup>`

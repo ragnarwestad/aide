@@ -162,8 +162,8 @@ model may differ) and the analysis ended within the hour; past that the tool's c
 back costs more than starting afresh. A session that cannot be continued starts the implement afresh. Off unless set.
 
 The server WRITES some of that file's keys as well as reading them, each from one page: `projects` from the Add and
-Remove buttons on `/projects`, `schedules` from a project's Schedule tab, and `model`, `timeoutSec` and `concurrency`
-from Settings. A write keeps the file's comments and every other key. `projects` is the queue's allowlist, and
+Remove buttons on `/projects`, `schedules` from a project's Schedule tab, and `model`, `timeoutSec`, `concurrency`
+and `modelChoices` from Settings. A write keeps the file's comments and every other key. `projects` is the queue's allowlist, and
 rewriting it is what makes Add and Remove take effect without a restart. The
 `--queue-projects` flag is the seed for a first install where this file does not exist yet; where the file HAS a
 `projects` array, it wins over the flag. A malformed one is ignored entirely and the flag is kept, the same direction
@@ -213,6 +213,25 @@ from `codex app-server`'s `account/rateLimits/read`; neither runs a model. When 
 can read as a window, the tab shows the text as it came. OpenCode reports no usage windows, and the board does not
 read Copilot's, since its CLI has no command for it. Usage is read on a press and at no other time: not when the
 board starts, not before a job, and not when a page is opened.
+
+**A press of Check also reads which models the AI offers**, and the tab lists the models it offers that are not
+choices, each with Add, and the choices it no longer offers, each with Remove. Nothing is added or removed without a
+press, and a choice that is a step's default model is refused until another model is picked for that step. Claude Code
+is asked one model at a time with `claude -p --model <m> "/model"`, which runs no model: the four families `opus`,
+`sonnet`, `fable` and `haiku`, each with the version it gives today, and every Claude choice. Of the choices, only a
+full id Claude Code names is offered: the other names it takes (`best`, `default`, `opusplan`, the `[1m]` names) are
+asked only for the name their choice shows, and such a choice is listed as no longer offered. The Claude tab also adds a fixed version by its full id, such as
+`claude-opus-4-8`, only when Claude Code names it. Codex's models come from `codex debug models`, without the ones it
+marks hidden, and OpenCode's from `opencode models`. Like the usage, the models are read on a press and nowhere else,
+and the lists are gone after a restart until the next press.
+
+**A Claude choice shows the version it gives** in every model picker and on the Claude tab. The model id it resolves
+to is kept in `model-ids.json`, beside the queue's own file: a run records the id it ran on, and a press of Check or
+an Add records the id Claude Code names, so the newest of them wins and a choice that never ran shows its version
+too. Beside it, `model-names.json` keeps the name Claude Code gave the choice for that id, which is what the choice is
+shown by while the id stands: `Opus 5.5 (1M context)` for `opus[1m]`, `Sonnet 3.5` for `claude-3-5-sonnet-20241022`. A
+run that reports another id shows the name read from that id. A choice written into `queue-config.json` by hand shows
+the bare name until the next press of Check.
 
 **The tool is a choice per PHASE, not per row.** Every phase's dropdown lists every configured model, grouped
 in an

@@ -243,6 +243,8 @@ export interface QueueSettingsUpdate {
   timeoutSec?: Record<string, number>;
   /** The top-level `concurrency`: how many steps may run at once. */
   concurrency?: number;
+  /** `modelChoices` entries to write, each by its key; `null` removes one. */
+  modelChoices?: Record<string, ModelChoice | null>;
 }
 
 /** Atomically replace the dashboard-owned workflow defaults while leaving
@@ -265,6 +267,11 @@ export function persistQueueSettings(file: string, next: QueueSettingsUpdate): s
     }
     if (next.concurrency !== undefined) {
       source = applyEdits(source, modify(source, ["concurrency"], next.concurrency, opts));
+    }
+    // `modify` deletes a property handed `undefined`; `null` would be
+    // written as a value.
+    for (const [name, choice] of Object.entries(next.modelChoices ?? {})) {
+      source = applyEdits(source, modify(source, ["modelChoices", name], choice ?? undefined, opts));
     }
     mkdirSync(dirname(file), { recursive: true });
     const tmp = `${file}.tmp`;

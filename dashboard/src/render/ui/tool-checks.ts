@@ -14,6 +14,7 @@
 
 import type { CheckableTool, ToolCheck } from "../pages/settings-page/tools.ts";
 import type { ToolUsage } from "../pages/settings-page/usage.ts";
+import type { ToolModels } from "../pages/settings-page/models.ts";
 
 const LAST: Map<CheckableTool, ToolCheck> = new Map();
 
@@ -21,6 +22,10 @@ const LAST: Map<CheckableTool, ToolCheck> = new Map();
  *  also run before a waiting job, and that must not wipe a reading only
  *  a press of Check makes. */
 const USAGE: Map<CheckableTool, ToolUsage> = new Map();
+
+/** The last reading of each tool's models, kept apart for the same
+ *  reason as the usage: only a press of Check reads them. */
+const MODELS: Map<CheckableTool, ToolModels> = new Map();
 
 /** Which tools a run can use — the ones a model is configured for. Read
  *  live, since the configuration can change while the board runs. Unset,
@@ -47,11 +52,20 @@ export function lastUsage(): Partial<Record<CheckableTool, ToolUsage>> {
   return Object.fromEntries(USAGE) as Partial<Record<CheckableTool, ToolUsage>>;
 }
 
+export function recordModels(models: ToolModels): void {
+  MODELS.set(models.tool, models);
+}
+
+export function lastModels(): Partial<Record<CheckableTool, ToolModels>> {
+  return Object.fromEntries(MODELS) as Partial<Record<CheckableTool, ToolModels>>;
+}
+
 /** Test seam: a suite that records a check must not leak it into the
  *  next file's expectations. */
 export function forgetChecks(): void {
   LAST.clear();
   USAGE.clear();
+  MODELS.clear();
   configured = undefined;
 }
 

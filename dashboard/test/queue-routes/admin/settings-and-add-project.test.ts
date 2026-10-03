@@ -5,7 +5,7 @@ import { rmSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type ServerOptions } from "../../../src/serve/serve.ts";
-import { SETTINGS_STEPS, type CheckableTool, type ToolCheck, type ToolUsage } from "../../../src/render";
+import { SETTINGS_STEPS, type CheckableTool, type ToolCheck, type ToolModels, type ToolUsage } from "../../../src/render";
 import { forgetChecks } from "../../../src/serve/tool-check.ts";
 import { lastUsage } from "../../../src/serve/tool-usage";
 import { JOB, setupQueueRoutesHarness } from "../fixtures.ts";
@@ -105,7 +105,7 @@ describe("Settings routes (spec 232)", () => {
     expect(res.status).toBe(405);
   });
 
-  /** Stands in for both spawns a press makes, and counts the usage reads. */
+  /** Stands in for every spawn a press makes, and counts the usage reads. */
   const countingProbe = () => {
     const probe = {
       usageReads: 0,
@@ -115,6 +115,8 @@ describe("Settings routes (spec 232)", () => {
         probe.usageReads += 1;
         return { tool, at: "2026-10-02T19:00:00.000Z", windows: [{ name: "Stand-in window", usedPercent: 42 }] };
       },
+      models: async (tool: CheckableTool): Promise<ToolModels> => ({ tool, at: "2026-10-02T19:00:00.000Z", offered: [] }),
+      claudeName: async () => ({ known: false as const }),
     };
     return probe;
   };

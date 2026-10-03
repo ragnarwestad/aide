@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { rmSync, mkdtempSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { parse } from "jsonc-parser";
 import {
   mergeQueueDefaults,
   parseJobRequest,
@@ -81,6 +82,33 @@ describe("persistQueueSettings", () => {
     writeFileSync(file, `{ "model": { "analyze": "old" } }\n`);
     expect(persistQueueSettings(file, { concurrency: 3 })).toBeNull();
     expect((JSON.parse(readFileSync(file, "utf-8")) as { concurrency: number }).concurrency).toBe(3);
+  });
+
+  test("a model choice is added and another removed, and the rest is kept (AC-1, AC-2)", () => {
+    const file = join(dir, "queue-config.json");
+    writeFileSync(file, `{
+  // keep this comment
+  "concurrency": 2,
+  "modelChoices": {
+    "Opus": { "model": "opus" },
+    "gpt-5.6-luna": { "tool": "codex" }
+  }
+}\n`);
+    expect(persistQueueSettings(file, {
+      modelChoices: { "gpt-5.5": { tool: "codex", model: "gpt-5.5" }, "gpt-5.6-luna": null },
+    })).toBeNull();
+    const after = readFileSync(file, "utf-8");
+    expect(after).toContain("// keep this comment");
+    expect(after).toContain('"concurrency": 2');
+    const parsed = parse(after) as { modelChoices: Record<string, unknown> };
+    expect(parsed.modelChoices).toEqual({ Opus: { model: "opus" }, "gpt-5.5": { tool: "codex", model: "gpt-5.5" } });
+  });
+
+  test("a model choice is added to a file that has none yet (AC-1)", () => {
+    const file = join(dir, "queue-config.json");
+    writeFileSync(file, `{ "concurrency": 2 }\n`);
+    expect(persistQueueSettings(file, { modelChoices: { Haiku: { model: "haiku" } } })).toBeNull();
+    expect(JSON.parse(readFileSync(file, "utf-8")).modelChoices).toEqual({ Haiku: { model: "haiku" } });
   });
 });
 

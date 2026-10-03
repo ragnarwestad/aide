@@ -30,9 +30,21 @@ export function withModelId(choice: string | undefined, modelId: string | undefi
   return choice.toLowerCase().startsWith("claude ") ? `Claude ${name}` : name;
 }
 
-/** A picker's option: the alias, and what it gives today when it has run —
- *  `Opus 5.5` for `Opus`, rather than the alias and the id side by side. */
-export function aliasLabel(alias: string, ranAs: string | undefined): string {
+/** A picker's option: the alias, and what it gives today when a run or a
+ *  Check has read it — `Opus 5.5` for `Opus`, rather than the alias and the
+ *  id side by side. The name Claude Code gave the choice wins while the id
+ *  it gave it for is still the one the choice gives (`ranAs`, or the alias
+ *  itself for a choice named by its id). Otherwise a choice named by its own
+ *  Claude id reads as that id's name, read or not: `claude-opus-4-8` is
+ *  `Opus 4.8`. */
+export function aliasLabel(
+  alias: string,
+  ranAs: string | undefined,
+  named?: { id: string; name: string },
+): string {
+  if (named && named.id === (ranAs ?? alias)) return named.name;
+  const own = modelName(alias);
+  if (own) return modelName(ranAs) ?? own;
   if (!ranAs) return alias;
   const name = modelName(ranAs);
   if (!name) return `${alias} (${ranAs})`;
