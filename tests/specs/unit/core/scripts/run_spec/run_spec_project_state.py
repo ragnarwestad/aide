@@ -149,6 +149,25 @@ def configure_criteria_checks(workspace, level):
     git(workspace["specs"], "commit", "-qm", "record the acceptance criteria checks level", "--allow-empty")
 
 
+CHOOSE_APPROACH = json.loads(
+    (pathlib.Path(__file__).resolve().parents[5] / "fixtures" / "choose-approach-line.json")
+    .read_text()
+)["cases"]
+
+
+def configure_choose_approach(workspace, value):
+    """Write a case's value into the spec's own `1-description.md`, as the
+    `Let me choose the approach` line in its Tracking info, and commit it;
+    `None` writes no line at all."""
+    path = workspace["specs"] / workspace["folder"] / "1-description.md"
+    kept = [l for l in path.read_text().splitlines() if not l.startswith("- **Let me choose the approach:**")]
+    if value is not None:
+        kept.append(f"- **Let me choose the approach:** {value}")
+    path.write_text("\n".join(kept) + "\n")
+    git(workspace["specs"], "add", "-A")
+    git(workspace["specs"], "commit", "-qm", "record whether to choose the approach", "--allow-empty")
+
+
 # --- spec 352, REQ-7: the bash side of the sentence registry ---------------
 #
 # `aide-run-spec`'s own error strings reach the board unrewritten

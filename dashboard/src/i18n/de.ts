@@ -81,6 +81,7 @@ export const de: Record<TranslationKey, string> = {
   "list.checksSave": "Speichern",
   "list.checksSaving": "speichert…",
   "list.checksUnreadable": "Die Abnahmekriterien konnten hier nicht gelesen werden.",
+  "list.approachRecommended": "empfohlen",
   "checks.verified": "Verifiziert",
   "checks.verifiedQuestion": "Verifiziert?",
   "checks.yes": "Ja",

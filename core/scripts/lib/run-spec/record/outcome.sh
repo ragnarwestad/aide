@@ -159,4 +159,12 @@ if [ -n "$phase_file" ]; then
       stage "could not record the acceptance criteria checks level $criteria_checks_arg: the description has no Created line, so analyze reads it as off"
     fi
   fi
+  # Whether the New-spec form asked to choose the approach, recorded the
+  # same way and after the level above, so the two lines keep one order.
+  if [ "$command_name" = "create" ] && [ "$terminal_reason" = "completed" ] && [ -n "${choose_approach_arg:-}" ]; then
+    if ! { declare -f aide_spec_record_choose_approach >/dev/null 2>&1 \
+      && aide_spec_record_choose_approach "$phase_file" "$choose_approach_arg"; }; then
+      stage "could not record whether to choose the approach: the description has no Created line, so analyze reads it as no"
+    fi
+  fi
 fi

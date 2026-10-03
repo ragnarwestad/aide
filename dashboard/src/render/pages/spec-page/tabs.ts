@@ -152,7 +152,9 @@ export const TAB_HELP: Record<SpecTab, string> = {
     "While the spec is active and no job is running, Save here rewrites, commits and pushes it; an archived spec, or one with a job in flight, shows the same file read-only.",
   solution: "The plan <code>/aide-analyze</code> wrote, kept in <code>3-solution.md</code>. " +
     "Where it lists more than one Approach, only the one marked recommended gets built — " +
-    "the rest are the record of what was weighed, not options still open. The Acceptance " +
+    "the rest are the record of what was weighed, not options still open — unless the spec " +
+    "was created with Let me choose the approach, where the Specs list offers each real " +
+    "alternative until one is chosen. The Acceptance " +
     "criteria, Risk analysis and Implementation plan below all describe that one approach. " +
     "While the spec is active and no job is running, Save here rewrites, commits and pushes it; an archived spec, or one with a job in flight, shows the same file read-only.",
   status: "Progress through the plan, kept in <code>4-status.md</code> and updated by " +

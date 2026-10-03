@@ -81,6 +81,7 @@ export const nb: Record<TranslationKey, string> = {
   "list.checksSave": "Lagre",
   "list.checksSaving": "lagrer…",
   "list.checksUnreadable": "Akseptansekriteriene kunne ikke leses her.",
+  "list.approachRecommended": "anbefalt",
   "checks.verified": "Verifisert",
   "checks.verifiedQuestion": "Verifisert?",
   "checks.yes": "Ja",

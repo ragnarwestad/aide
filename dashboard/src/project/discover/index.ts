@@ -6,8 +6,8 @@
 // Split by theme into discover/ (split discover.ts by theme):
 // config.ts (a project's own config/manifest values), spec-files.ts
 // (reading one spec's own files), depends-on.ts (the `Depends on:`
-// line), acceptance.ts and criteria-checks.ts (two more Tracking info
-// lines) and scan.ts (walking a projects root, and the types it
+// line), acceptance.ts, criteria-checks.ts and choose-approach.ts (three
+// more Tracking info lines) and scan.ts (walking a projects root, and the types it
 // produces). Kept as a barrel at this path because most of the server
 // and the static generator import from it.
 
@@ -27,6 +27,8 @@ export { dependsOnIn, specDependsOn, stripDependsOnLine, withDependsOnLine } fro
 export { acceptanceNotRequiredIn, specAcceptanceNotRequired, stripAcceptanceLine, withAcceptanceLine } from "./acceptance.ts";
 
 export { criteriaChecksIn, parseCriteriaChecks, type CriteriaChecks } from "./criteria-checks.ts";
+
+export { chooseApproachIn } from "./choose-approach.ts";
 
 export {
   discoverProjects, manifestInside, gitignoreCandidates, buildProjectViews, specFolders,

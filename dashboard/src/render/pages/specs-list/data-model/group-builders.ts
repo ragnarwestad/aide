@@ -49,6 +49,7 @@ function fromTarget(
   | "acceptanceOpen"
   | "reopenedRound"
   | "acceptance"
+  | "approachChoice"
   | "notVerified"
   | "failed"
   | "title"
@@ -64,6 +65,7 @@ function fromTarget(
     acceptanceOpen: t?.acceptanceOpen,
     reopenedRound: t?.reopenedRound,
     acceptance: t?.acceptance,
+    approachChoice: t?.approachChoice,
     notVerified: t?.notVerified,
     failed: t?.failed,
     title: t?.title,

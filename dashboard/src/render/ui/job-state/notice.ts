@@ -63,14 +63,15 @@ export interface RowNotice {
 
 /** One sentence of a notice, with what the row needs to draw it: its own
  *  colour, whether it stands on a line of its own, and which kind of mark
- *  it is when a control belongs beside it (`"acceptance-hold"`, or
- *  `"branch-left-behind"` for Delete branch). */
+ *  it is when a control belongs beside it (`"acceptance-hold"`,
+ *  `"branch-left-behind"` for Delete branch, or `"approach-choice"` for
+ *  the approaches to choose between). */
 export interface NoticePart {
   text: string;
   href?: string;
   variant?: MessageVariant;
   own?: boolean;
-  kind?: "acceptance-hold" | "branch-left-behind";
+  kind?: "acceptance-hold" | "branch-left-behind" | "approach-choice";
 }
 
 /** What a step's raw detail adds to the sentence on its row. A detail

@@ -208,7 +208,17 @@ Use exactly this reason when closing the spec: $reason"
   criteria_line=""
   [ "$command_name" = "analyze" ] && criteria_line="
 The acceptance criteria checks for this spec, per Step 1: criteriaChecks: $criteria_checks"
-  prompt="$(skill_call "aide-$command_name" "$spec_id")$acceptance_line$criteria_line$reason_line
+  # Whether the spec asks to choose between the approaches: its own `Let
+  # me choose the approach:` line, recorded when it was created; absent or
+  # anything but yes is no, and adds nothing to the prompt.
+  # tests/fixtures/choose-approach-line.json is the table.
+  choose_approach=""
+  declare -f aide_spec_choose_approach >/dev/null 2>&1 \
+    && choose_approach="$(aide_spec_choose_approach "$specs_root" "$spec_folder")"
+  approach_line=""
+  [ "$command_name" = "analyze" ] && [ "$choose_approach" = "yes" ] && approach_line="
+Let me choose the approach is on for this spec, per Step 6: mark each approach (recommended), (real alternative) or (considered and rejected)"
+  prompt="$(skill_call "aide-$command_name" "$spec_id")$acceptance_line$criteria_line$approach_line$reason_line
 $step_log_note
 $headless_note"
 else

@@ -83,6 +83,7 @@ of facts, a form holding one button or a checkbox with its words beside it, whic
 | `tabBar()`            | in `ui/tabs.ts`: every tab strip, the header's row included; a base path or a link per tab, catalogue words, `aria-current="page"`    |
 | `facts()`             | a table of label and value, one row each; a value can be a figure                                                                     |
 | `labelledCheckbox()`  | a box and its words in one label, or disabled with a help popover after the words; never the acceptance row's 18px `.checkbox`        |
+| `labelledRadio()`     | a radio button and its words in one label, the words a link when given one; checked, disabled, and `form=`                            |
 | `switchControl()`     | on or off, its position and the word beside it drawn from `aria-checked`; moved by `setSwitch()`; disabled                            |
 | `.iconlink`           | a link or control that is its icon alone, no button frame — the spec page's PDF link, whose `.icon-pdf` is `--pdf` red in every theme |
 | `badge()`             | `b-idle`, `b-running`, `b-waiting`, `b-ready`, `b-refused`, `b-done`; the state word and its icon                                     |

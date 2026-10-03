@@ -8,6 +8,7 @@ import type { GitRunner } from "./branch-status.ts";
 import { readStatusFromBranch, type OpenBranchTarget } from "./branch-file.ts";
 import { acceptanceCriteriaUnticked, acceptanceRowsOf, parseStatus, type StatusCheck } from "../project/parse-status";
 import { parseSpecStateText } from "../project/parse-spec-state.ts";
+import { parseApproaches, type ApproachChoice } from "../project/approach-choice.ts";
 
 /** How long one answer stands, for this checker and `WorkflowHistoryChecker` alike. */
 export const DEFAULT_TTL_MS = 30_000;
@@ -35,6 +36,9 @@ export interface FileStepsAnswer {
   /** Which test covers which criterion, off the same branch: the
    *  default branch has it only once archive lands. */
   acCoverage?: Record<string, AcTest[]>;
+  /** The approaches the branch's `3-solution.md` marks, and its chosen
+   *  line: the row's choice is saved onto the branch, as a tick is. */
+  approaches?: ApproachChoice;
   /** When the disk scan read this copy, epoch ms. Set by `targets()` on the disk answer only — the branch
    *  copy's read time is `peekFileSteps().checkedAt` — so an answer that came from the branch has none. */
   readAt?: number;
@@ -101,6 +105,7 @@ export class BranchFileStepsChecker {
           const jsonFile = await readStatusFromBranch(this.run, target.root, target.branch, jsonPath);
           const state = jsonFile ? parseSpecStateText(jsonFile.text) : null;
           const acCoverage = await branchAcCoverage(this.run, target, relPath);
+          const solution = await readStatusFromBranch(this.run, target.root, target.branch, relPath.replace(/4-status\.md$/, "3-solution.md"));
           steps = {
             proseSteps: parseStatus(file.text).workflowSteps,
             stateSteps: state?.completedPhases,
@@ -109,6 +114,7 @@ export class BranchFileStepsChecker {
               : acceptanceCriteriaUnticked(file.text),
             acceptance: acceptanceRowsOf(file.text),
             ...(acCoverage ? { acCoverage } : {}),
+            ...(solution ? { approaches: parseApproaches(solution.text) } : {}),
           };
           break;
         }

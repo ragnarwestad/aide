@@ -134,6 +134,11 @@ Number, created date, expected duration
   create from the dashboard's New spec form; absent, or any other value,
   is `off`. It is chosen once: the dashboard refuses a Description save
   that changes, removes or adds it
+- A `Let me choose the approach:` line in Tracking info — `yes` or `no` —
+  written by `aide-run-spec` after every create from the New spec form,
+  directly after the `Acceptance criteria checks:` line. `yes` asks
+  `/aide-analyze` to mark each approach (see § 3-solution); absent, or any
+  other value, is `no`
 - Acceptance criteria is OPTIONAL: a flat bullet list, id in bold
   (`**AC-n:**`), one sentence per id in one of the five EARS patterns
   below — no table, no nested lists, so both the definition and any
@@ -386,7 +391,27 @@ The keywords are written in capitals, as SHALL is.
   every section below it describes that approach and no other, and
   `/aide-implement` builds the plan it finds. Wanting a different one
   means saying so in `1-description.md` and analysing again
-  (change an acceptance criterion, then `/aide-analyze` again)
+  (change an acceptance criterion, then `/aide-analyze` again) — or, on a
+  spec whose `Let me choose the approach:` line says `yes`, choosing it on
+  the Specs list
+- On such a spec every lead ends in one of three marks, and exactly one is
+  `(recommended)`. The dashboard offers each approach marked recommended
+  or real alternative, and writes the person's choice as a paragraph of
+  its own directly under the Approaches heading. Analyze keeps that line;
+  when it names an approach that is not the recommended one, the mark
+  moves there and the plan below is written afresh for it. With `## Round
+  N` sections, only the newest round's leads and chosen line count:
+
+  ```markdown
+  **Chosen approach:** Approach B
+
+  **Approach A: [Name] (recommended).** [one-line description]
+
+  **Approach B: [Name] (real alternative).** [one-line description]
+
+  **Approach C: [Name] (considered and rejected).** [one-line description]
+  ```
+
 - Before/After in SEPARATE code blocks (avoids redeclaration errors)
 - Parts: one line per part the change needs that it does not have yet,
   `Reused:` or `New, because`, or the single `None — [why]` when it needs

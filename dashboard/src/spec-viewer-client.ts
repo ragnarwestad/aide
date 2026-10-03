@@ -19,6 +19,7 @@ import viewerCss from "@toast-ui/editor/dist/toastui-editor-viewer.css" with { t
 // own two-stylesheet import.
 import editorDarkCss from "@toast-ui/editor/dist/theme/toastui-editor-dark.css" with { type: "text" };
 import Viewer from "@toast-ui/editor/dist/toastui-editor-viewer";
+import { scrollToApproach } from "./spec-editor/scroll-to-approach.ts";
 
 const host = document.getElementById("spec-editor-host");
 const raw = document.querySelector<HTMLElement>(".spec-editor-raw");
@@ -30,6 +31,8 @@ if (host && raw) {
 
   new Viewer({ el: host, initialValue: raw.textContent ?? "", usageStatistics: false });
   host.dataset.mounted = "true";
+  // A link from the Specs list to one approach of the plan.
+  requestAnimationFrame(() => scrollToApproach(host, location.hash));
 
   // REQ-5: the same live light/dark/auto wiring spec-editor/index.ts
   // carries for the editable path — but the class lands on `host`

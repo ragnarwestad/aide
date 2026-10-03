@@ -12,7 +12,7 @@ import pytest
 from ...conftest import STOP_DEADLINE_SEC, git, run
 from ..run_spec_fakes import writing_claude
 from ..run_spec_invoking import BRANCH, _standalone_runner_copy
-from ..run_spec_project_state import CRITERIA_CHECKS, configure_criteria_checks
+from ..run_spec_project_state import CHOOSE_APPROACH, CRITERIA_CHECKS, configure_choose_approach, configure_criteria_checks
 from ..run_spec_results import FLAT_USAGE, MODEL_USAGE, RESULT_ERROR, RESULT_OK, init_event, stream_body
 
 def test_the_claude_binary_can_be_named_in_the_projects_own_config(runner, workspace, fake_claude):
@@ -687,3 +687,33 @@ def test_only_analyze_is_told_the_criteria_checks_level_AC_4(runner, workspace, 
     rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command="implement", dry_run=True)
     assert rc == 0, out
     assert "criteriaChecks" not in out["prompt"], out["prompt"]
+
+
+# --- "Let me choose the approach" is stated to analyze ----------------------
+#
+# The skill marks each approach only when its prompt says the spec asked to
+# choose; with the line absent or `no` the prompt is what it always was.
+
+APPROACH_LINE = "Let me choose the approach is on for this spec"
+
+
+@pytest.mark.parametrize("case", CHOOSE_APPROACH, ids=[c["name"] for c in CHOOSE_APPROACH])
+def test_analyze_is_told_to_mark_the_approaches_only_when_the_spec_asked_AC_2_AC_9(runner, workspace, fake_claude, case):
+    configure_choose_approach(workspace, case["description"])
+    rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command="analyze", dry_run=True)
+    assert rc == 0, out
+    lines = [l for l in out["prompt"].splitlines() if APPROACH_LINE in l]
+    if case["chosen"] == "yes":
+        assert len(lines) == 1, out["prompt"]
+        for mark in ("(recommended)", "(real alternative)", "(considered and rejected)"):
+            assert mark in lines[0], lines
+    else:
+        assert lines == [], out["prompt"]
+        assert "real alternative" not in out["prompt"], out["prompt"]
+
+
+def test_only_analyze_is_told_to_mark_the_approaches_AC_9(runner, workspace, fake_claude):
+    configure_choose_approach(workspace, "yes")
+    rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command="implement", dry_run=True)
+    assert rc == 0, out
+    assert APPROACH_LINE not in out["prompt"], out["prompt"]

@@ -80,6 +80,11 @@ queued `create`, `archive` or `close` step — the ones that do no model work �
   cheapest of the three holds and the one asked first; the two below need the spec's own files or the network.
 - Leaves a job `queued` with a reason on it — "held back: not analyzed yet — run /aide-analyze first" — when its own
   spec's `analyze` step has not completed, and tries again next tick. The state does not move.
+- Leaves a job `queued` with a reason on it — "held back: choose the approach to build, then press Save" — when its
+  next step is `implement`, its step before that in the same job was `analyze`, and the spec asked to choose the
+  approach and has two or more real alternatives with none chosen (`waitingForApproachChoice`,
+  `schedules/blocked.ts`). An `implement` started on its own is never held for this. It starts at the first tick after
+  a choice is saved; saving another approach than the recommended one cancels it instead.
 - Leaves a job `queued` with a reason on it — "held back: depends on …" — when a dependency it names has not
   archived, and tries again next tick. The state does not move.
 - Ends an `archive` whose spec still has an unticked acceptance row `done`, before anything else and without

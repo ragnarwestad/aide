@@ -428,28 +428,26 @@ describe("parked on a dependency (spec 122)", () => {
 
 // --- spec 344: implement refuses to start before analyze has run -----------
 //
-// The same shape as the dependency park above, one question earlier: a
-// job id SET rather than a Map, since the message carries no per-job
-// detail (unlike a dependency's folder name, every job it applies to
-// gets the same fixed sentence).
+// The same shape as the dependency park above, one question earlier: the
+// held job's id with the fixed sentence it is held with.
 
 describe("parked on its own missing analyze step (spec 344)", () => {
-  test("a job named in the notAnalyzed set is not spawned and stays queued with a reason", () => {
+  test("a job held as not analyzed is not spawned and stays queued with a reason", () => {
     const job = enqueue({ steps: ["implement"] });
     const runner = makeRunner();
-    runner.tick(undefined, new Set([job.id]));
+    runner.tick(undefined, new Map([[job.id, { key: "runner.notAnalyzed" }]]));
     expect(spawns.length).toBe(0);
     const stored = store.get(job.id);
     expect(stored?.state).toBe("queued");
     expect(sentence(stored?.error)).toBe("held back: not analyzed yet — run /aide-analyze first");
   });
 
-  test("the same job starts once the set no longer names it", () => {
+  test("the same job starts once the holds no longer name it", () => {
     const job = enqueue({ steps: ["implement"] });
     const runner = makeRunner();
-    runner.tick(undefined, new Set([job.id]));
+    runner.tick(undefined, new Map([[job.id, { key: "runner.notAnalyzed" }]]));
     expect(spawns.length).toBe(0);
-    runner.tick(undefined, new Set());
+    runner.tick(undefined, new Map());
     expect(spawns.length).toBe(1);
     const stored = store.get(job.id);
     expect(stored?.state).toBe("running");
@@ -459,7 +457,7 @@ describe("parked on its own missing analyze step (spec 344)", () => {
   test("checked before the dependency map: a job in both is held back for the analyze reason", () => {
     const job = enqueue({ steps: ["implement"] });
     const runner = makeRunner();
-    runner.tick(new Map([[job.id, "80-dependency"]]), new Set([job.id]));
+    runner.tick(new Map([[job.id, "80-dependency"]]), new Map([[job.id, { key: "runner.notAnalyzed" }]]));
     expect(spawns.length).toBe(0);
     expect(sentence(store.get(job.id)?.error)).toBe("held back: not analyzed yet — run /aide-analyze first");
   });
