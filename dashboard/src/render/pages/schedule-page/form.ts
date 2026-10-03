@@ -20,7 +20,7 @@ export interface ScheduleFormOptions {
   action: string;
   /** Every allowed project (spec 278): draws a `<select name="project">`
    *  the same way the New-spec form's own Project field is
-   *  (`new-spec-page.ts`). Mutually exclusive with `fixedProject`
+   *  (`new-spec-page/`). Mutually exclusive with `fixedProject`
    *  below — the New-job page used this; nothing else does now that it
    *  is gone (spec 468). */
   projects?: readonly string[];
@@ -61,7 +61,7 @@ export const SCHEDULE_FORM_ID = "schedule-form";
  *  nothing here for a per-phase choice to differ about.
  *
  *  Everything about it is the New-spec form's own model field
- *  (`new-spec-page.ts`), which is what "the same way as on the Specs
+ *  (`new-spec-page/`), which is what "the same way as on the Specs
  *  page" means: every model drawn and grouped by tool, the AI select
  *  drawn only where there are two tools to tell apart, each AI option
  *  carrying the model it fills in (worked out HERE, from the

@@ -185,6 +185,8 @@ export const fr: Record<TranslationKey, string> = {
 
   "newSpec.dependsOn": "Dépend de",
   "newSpec.select": "Sélectionner",
+  "newSpec.tabSpec": "Spécification",
+  "newSpec.tabOptions": "Options",
 
   "job.started": "Démarré",
   "job.model": "Modèle",

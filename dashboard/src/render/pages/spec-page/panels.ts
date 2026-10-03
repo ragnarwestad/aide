@@ -54,7 +54,7 @@ function statusPanel(
  *  own depends-on picker moved to the banner, spec 394), kept for a
  *  future tab that needs one.
  *
- *  Modelled on `new-spec-page.ts`, which is the other page here that is
+ *  Modelled on `new-spec-page/`, which is the other page here that is
  *  nothing but a form: same `field()` helper. The page script posts it
  *  (`reloadform`), and the Save/Cancel enable-disable comes from the
  *  shell's own head script (`spec-form-actions.ts`), so nothing here has

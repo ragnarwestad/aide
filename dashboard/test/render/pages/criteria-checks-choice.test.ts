@@ -5,7 +5,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import { renderNewSpecPage } from "../../../src/render";
-import { criteriaChecksChoices } from "../../../src/render/pages/new-spec-page.ts";
+import { criteriaChecksChoices } from "../../../src/render/pages/new-spec-page/options-tab.ts";
 
 const windows: Window[] = [];
 afterEach(async () => {

@@ -194,6 +194,8 @@ export const en = {
 
   "newSpec.dependsOn": "Depends on",
   "newSpec.select": "Select",
+  "newSpec.tabSpec": "Spec",
+  "newSpec.tabOptions": "Options",
 
   "job.started": "Started",
   "job.model": "Model",

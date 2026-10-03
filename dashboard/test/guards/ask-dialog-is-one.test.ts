@@ -48,6 +48,6 @@ describe("one ask dialog, one opener", () => {
   });
 
   test("only the New-spec form wears the New-spec form's class (AC-5)", () => {
-    expect(writing(render, "newspecform")).toEqual(["src/render/pages/new-spec-page.ts"]);
+    expect(writing(render, "newspecform")).toEqual(["src/render/pages/new-spec-page/index.ts"]);
   });
 });

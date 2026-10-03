@@ -35,7 +35,7 @@ import { t, type Language } from "../../../i18n";
 import type { FailedCreate } from "../../../push/failed-creates.ts";
 import { renderFailedCreateNotices } from "./failed-create-notices.ts";
 // Re-exported for the pages that pick a model outside a row of this
-// list — `new-spec-page.ts` and `settings-page.ts` — so the split
+// list — `new-spec-page/` and `settings-page.ts` — so the split
 // between this file and `specs-list/model-picker.ts` is invisible to
 // them. Nothing here uses these locally.
 export {

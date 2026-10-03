@@ -39,8 +39,10 @@ step that ends either advances the job or ends it, and several jobs run at once 
 
 Every active spec is a row on the list, and every row can be run. A spec that does not exist yet has no row, so
 above the table there is a **New** button — a plain link to `/new`. That page is the form and nothing
-else: a project, a **Depends on** field naming a spec this one has to wait for, a title, a description, a phase table,
-and two buttons, Create and Cancel. Create posts to `POST /api/queue/create` and returns to the list; Cancel returns having done nothing. A refused
+else, on two tabs with Create above them. **Spec**, the tab it opens on, holds a project, a title, a description and
+a **Depends on** field naming a spec this one has to wait for. **Options** (`/new?tab=options`) holds the acceptance
+and approach settings, then the phase table. Switching tabs keeps what was typed, and Create posts both tabs from
+either. Create posts to `POST /api/queue/create` and returns to the list; Cancel returns having done nothing. A refused
 submission says why beside the form, where what was typed can be corrected.
 
 **The new spec is not on the list when you get back.** The `create` step has to run first, and its folder has to

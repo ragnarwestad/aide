@@ -5,7 +5,7 @@
 //                            `/projects/<name>` that carries the config
 //                            and the readiness answer
 //   render/specs-list.ts  / — the spec list
-//   render/new-spec-page.ts  /new — the form that makes a spec
+//   render/new-spec-page/    /new — the form that makes a spec
 //   render/job-page.ts    /jobs/<id> — one job, in full
 //   render/spec-page.ts   /specs/<project>/<spec> — the whole spec
 //   render/shell.ts       the frame they all sit in
@@ -32,8 +32,8 @@ export {
 } from "./pages/projects-page";
 export type { ProjectPageOptions, ProjectView, SpecView, ProjectsPageOptions, ProjectDrift } from "./pages/projects-page";
 
-export { renderNewSpecPage } from "./pages/new-spec-page.ts";
-export type { NewSpecPageOptions } from "./pages/new-spec-page.ts";
+export { renderNewSpecPage } from "./pages/new-spec-page/index.ts";
+export type { NewSpecPageOptions } from "./pages/new-spec-page/index.ts";
 
 export type { NavEntry } from "./ui/shell.ts";
 

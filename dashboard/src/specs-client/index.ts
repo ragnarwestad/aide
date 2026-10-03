@@ -43,6 +43,7 @@ import { formatElapsed } from "./elapsed.ts";
 import { bindLimits } from "./limits";
 import { connect, onVisibility } from "./live.ts";
 import { navigate } from "./navigation.ts";
+import { bindNewSpecTabs } from "./new-spec-tabs";
 import { postPendingModel } from "./pending-model.ts";
 import { bindReportFrame } from "./report-frame.ts";
 import { postForm } from "./press.ts";
@@ -212,6 +213,9 @@ newSpec?.addEventListener("change", ((event: Event) => {
   const model = target?.closest?.('select[name^="model."]') as HTMLSelectElement | null;
   if (model) syncAiToModel(model);
 }) as EventListener);
+// Spec and Options, switched in place, and Spec brought forward when the
+// browser finds one of its required fields empty.
+bindNewSpecTabs(document);
 // Every confirmation asks in a dialog its button names: one click
 // listener opens whichever it is, Cancel on a list row, Delete on a
 // schedule entry and Remove project as well as Reopen and Close. One
