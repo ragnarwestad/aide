@@ -20,7 +20,8 @@ export const fr: Record<TranslationKey, string> = {
   "shell.wikiJob": "le wiki de {project}",
   "shell.restartWaiting": "Le déploiement attend {jobs} ; le service redémarre une fois terminés.",
   "shell.installWarning": "la dernière installation d'aide a rencontré un problème : {problem} — la sortie complète est dans {path}",
-  "shell.toolFault": "{tool}: {problems} — ouvre Settings et clique sur Check dans cet onglet",
+  "shell.toolFault": "{tool}: {problems} — clique sur Check dans {where}",
+  "shell.toolFaultWhere": "son onglet Installation dans Settings",
   "shell.checkoutFault": "{project} : le tableau de bord ne peut pas utiliser sa propre copie — {said}",
   "deploy.title": "Déploiement…",
   "deploy.stepFetch": "Récupérer depuis origin",
@@ -306,14 +307,37 @@ export const fr: Record<TranslationKey, string> = {
     "OpenCode n'apporte aucun modèle à lui : chaque modèle appartient à un fournisseur et s'appelle fournisseur/modèle. aide installe seulement ses instructions, dans {instructions}, et OpenCode trouve les skills d'aide là où elles sont déjà, dans {skills} et {claudeSkills}.",
   "settings.checkHelpTitle":
     "Ce que Check découvre",
-  "settings.checkCan.claude":
-    "La vérification te dit si la ligne de commande est installée et en quelle version, si elle est connectée, où va chaque partie d'aide et si elle y est, si les fichiers installés correspondent encore à ce dépôt, et quelle version donne aujourd'hui chacun d'opus, sonnet, fable et haiku, demandé avec /model, qui ne lance aucun modèle.",
-  "settings.checkCan.codex":
-    "La vérification te dit si la ligne de commande est installée et en quelle version, si elle est connectée, où va chaque partie d'aide et si elle y est, si les fichiers installés correspondent encore à ce dépôt, et quels modèles elle propose, d'après codex debug models.",
-  "settings.checkCan.copilot":
-    "La vérification te dit si la ligne de commande est installée et en quelle version, où va chaque partie d'aide et si elle y est, et si les fichiers installés correspondent encore à ce dépôt.",
-  "settings.checkCan.opencode":
-    "La vérification te dit tout ce qu'elle dit des autres, quels modèles proposent ses fournisseurs connectés, et si chaque modèle configuré sur ce serveur figure encore dans la liste de son fournisseur. Ici, le fournisseur EST la connexion, puisqu'OpenCode atteint chaque modèle par l'un d'eux.",
-  "settings.checkCannot.copilot":
-    "La vérification ne peut pas te dire si elle est connectée, ni quels modèles elle accepte. La ligne de commande de Copilot n'a de commande pour aucun des deux.",
+  "settings.part.models": "Modèles",
+  "settings.part.subscription": "Abonnement",
+  "settings.part.installation": "Installation",
+  "settings.checkHelp.models.claude":
+    "Cette vérification demande à Claude Code quelle version donne aujourd'hui chacun d'opus, sonnet, fable et haiku, avec /model, qui ne lance aucun modèle, et compare ce qu'il propose aux modèles qui peuvent être choisis dans le tableau de bord.",
+  "settings.checkHelp.models.codex":
+    "Cette vérification lit quels modèles Codex propose, depuis codex debug models, et les compare aux modèles qui peuvent être choisis dans le tableau de bord.",
+  "settings.checkHelp.models.copilot":
+    "Cette vérification ne peut pas lire quels modèles Copilot accepte : la ligne de commande de Copilot n'a aucune commande qui les liste.",
+  "settings.checkHelp.models.opencode":
+    "Cette vérification lit quels modèles proposent les fournisseurs connectés d'OpenCode, depuis opencode models, et les compare aux modèles qui peuvent être choisis dans le tableau de bord.",
+  "settings.checkHelp.subscription.claude":
+    "Cette vérification lit quelle part de l'abonnement est utilisée et quand chaque limite se réinitialise, depuis claude -p /usage, qui ne lance aucun modèle.",
+  "settings.checkHelp.subscription.codex":
+    "Cette vérification lit quelle part de l'abonnement est utilisée et quand chaque limite se réinitialise, demandé à codex app-server.",
+  "settings.checkHelp.subscription.copilot":
+    "Cette vérification ne peut pas lire quelle part de l'abonnement est utilisée : la ligne de commande de Copilot n'a aucune commande qui l'indique.",
+  "settings.checkHelp.subscription.opencode":
+    "OpenCode n'a pas de limite d'utilisation propre : chaque modèle appartient à un fournisseur, et chaque fournisseur a la sienne. Cette vérification n'a rien à lire.",
+  "settings.checkHelp.installation.claude":
+    "Cette vérification lance aide-preflight et claude auth status. Elle te dit si la ligne de commande est installée et en quelle version, si elle est connectée et avec quel compte, où va chaque partie d'aide et si elle y est, et si les fichiers installés correspondent encore à ce dépôt.",
+  "settings.checkHelp.installation.codex":
+    "Cette vérification lance aide-preflight et codex login status. Elle te dit si la ligne de commande est installée et en quelle version, si elle est connectée, où va chaque partie d'aide et si elle y est, et si les fichiers installés correspondent encore à ce dépôt.",
+  "settings.checkHelp.installation.copilot":
+    "Cette vérification lance aide-preflight. Elle te dit si la ligne de commande est installée et en quelle version, où va chaque partie d'aide et si elle y est, et si les fichiers installés correspondent encore à ce dépôt. Elle ne peut pas dire si Copilot est connecté : la ligne de commande de Copilot n'a aucune commande pour cela, alors lance copilot login si une exécution est refusée.",
+  "settings.checkHelp.installation.opencode":
+    "Cette vérification lance aide-preflight, opencode providers list et opencode models. Elle te dit si la ligne de commande est installée et en quelle version, si un fournisseur est connecté, où va chaque partie d'aide et si elle y est, si les fichiers installés correspondent encore à ce dépôt, et si chaque modèle configuré sur ce serveur figure encore dans la liste. Ici, le fournisseur EST la connexion, puisqu'OpenCode atteint chaque modèle par l'un d'eux.",
+  "settings.models.supported": "Actuellement pris en charge par Aide",
+  "settings.models.available": "Disponibles",
+  "settings.models.gone": "Plus disponibles",
+  "settings.models.noneSupported": "Aucun choix de modèle ne tourne sur {tool}.",
+  "settings.models.allSupported": "Chaque modèle qu'il propose peut déjà être choisi.",
+  "settings.models.noneGone": "Chaque modèle qui peut être choisi est encore proposé.",
 };

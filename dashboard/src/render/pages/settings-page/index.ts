@@ -4,7 +4,7 @@ import { backLink, btn, helpPopover, messageSlot } from "../../ui/components";
 import { pickTab, tabBar } from "../../ui/tabs.ts";
 import { notificationsPanel } from "./notifications.ts";
 import { processPanel, type ProcessSettings } from "./process.ts";
-import { TOOL_TABS, toolPanel } from "./tools.ts";
+import { TOOL_TABS, toolPanel, toolPart } from "./tools.ts";
 import type { CheckableTool, ToolCheck } from "./tools.ts";
 import type { ToolUsage } from "./usage.ts";
 import type { ToolModels } from "./models.ts";
@@ -97,15 +97,18 @@ export interface SettingsPageOptions {
   /** Which tab is open, off `?tab=`: a group, or a tab inside AI.
    *  Absent opens AI on its models-per-phase table. */
   tab?: string;
+  /** Which tab is open inside an AI's tab, off `?aitab=`. Absent opens
+   *  Models. */
+  aiTab?: string;
   /** The last answer obtained for each tool, keyed by tool. A check runs
    *  only when its button is pressed, so a tool with no entry has simply
    *  not been asked about. */
   checks?: Partial<Record<CheckableTool, ToolCheck>>;
-  /** The last usage read for each tool. Read only by a press of Check,
-   *  so a tool with no entry has not been read. */
+  /** The last usage read for each tool. Read only by a press of the
+   *  Subscription tab's Check, so a tool with no entry has not been read. */
   usage?: Partial<Record<CheckableTool, ToolUsage>>;
-  /** The last reading of each tool's models. Read only by a press of
-   *  Check, so a tool with no entry has not been read. */
+  /** The last reading of each tool's models. Read only by a press of the
+   *  Models tab's Check, so a tool with no entry has not been read. */
   models?: Partial<Record<CheckableTool, ToolModels>>;
   /** The live model choices, with the model each hands its command line:
    *  what an AI's tab sets the reading against. */
@@ -238,7 +241,7 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
         ? (opts.process ? processPanel(opts.process) : "")
         : toolPanel(open, opts.checks?.[open], opts.usage?.[open], Date.parse(generatedAt), {
           reading: opts.models?.[open], choices: opts.choices, options: models,
-        }, opts.lang ?? "en");
+        }, opts.lang ?? "en", toolPart(opts.aiTab));
   // `pageShell` wraps the body in `<main>`: a second one inside it takes
   // the frame's padding twice. Both rows sit directly in it, so page.css's
   // Settings rule centres them, and the panel after them, as it did one row.

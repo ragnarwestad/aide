@@ -78,8 +78,8 @@ export function toolFailureSentence(f: ToolFailure): { text: string; title?: str
   // The tab is named only when the tool is: sending a reader to "the
   // right tab" without saying which one is worse than not sending them.
   const resolve = label
-    ? `Open Settings, the ${label} tab, and press Check to see whether that AI is installed and logged in.`
-    : `Open Settings and press Check on the tab for this model's AI, to see whether it is installed and logged in.`;
+    ? `Open Settings, the ${label} tab, then Installation, and press Check to see whether that AI is installed and logged in.`
+    : `Open Settings, the tab for this model's AI, then Installation, and press Check to see whether it is installed and logged in.`;
 
   return errorSentence({ what, resolve, detail: said });
 }

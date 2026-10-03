@@ -1,8 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import {
   AI_TABS, OTHER_STEPS, renderSettingsPage, resolveSettingsTab, settingsRowChoice, SETTINGS_GROUPS, SETTINGS_STEPS,
-  SPEC_STEPS, UNROWED_STEPS,
+  SPEC_STEPS, TOOL_PARTS, toolPanel, toolPart, UNROWED_STEPS,
 } from "../../../src/render";
+import { t } from "../../../src/i18n";
 import { tabLabel } from "../../../src/render/ui/tabs.ts";
 import { WORKFLOW_STEPS } from "../../../src/queue/steps.ts";
 import { mergeQueueDefaults } from "../../../src/queue/queue.ts";
@@ -80,9 +81,10 @@ describe("the Settings tabs", () => {
     renderSettingsPage([], "2026-08-24T00:00:00Z", {
       modelChoices: MODELS, defaultModels: { default: "sonnet" }, timeoutSec: TIMEOUT_SEC, tab,
     });
-  /** The keys the page links to, and the ones marked as open. */
+  /** The keys the page links to, and the ones marked as open. A link that
+   *  also names a tab inside an AI's tab belongs to that inner row. */
   const links = (html: string) => {
-    const all = [...html.matchAll(/href="\/settings\?tab=([^"]+)"([^>]*)>/g)];
+    const all = [...html.matchAll(/href="\/settings\?tab=([^"&]+)"([^>]*)>/g)];
     return {
       keys: new Set(all.map((m) => m[1])),
       current: new Set(all.filter((m) => m[2]!.includes("aria-current")).map((m) => m[1])),
@@ -126,6 +128,34 @@ describe("the Settings tabs", () => {
 
   test("Process is its own group (AC-5)", () => {
     expect(resolveSettingsTab("process")).toEqual({ group: "process", panel: "process" });
+  });
+});
+
+describe("the tabs inside an AI's tab", () => {
+  /** Each inner tab the panel links to, as its address and its words. */
+  const innerTabs = (html: string) =>
+    [...html.matchAll(/<a [^>]*href="([^"]*aitab=[^"]*)"[^>]*>([^<]*)<\/a>/g)].map((m) => ({
+      href: m[1]!.replaceAll("&amp;", "&"),
+      label: m[2],
+    }));
+
+  test("they are Models, Subscription and Installation, in that order, each a link of its own (AC-1)", () => {
+    expect([...TOOL_PARTS]).toEqual(["models", "subscription", "installation"]);
+    for (const tool of ["claude", "codex", "copilot", "opencode"] as const) {
+      expect(innerTabs(toolPanel(tool, undefined))).toEqual(TOOL_PARTS.map((part) => ({
+        href: `/settings?tab=${tool}&aitab=${part}`,
+        label: t("en", `settings.part.${part}`),
+      })));
+    }
+  });
+
+  test("an AI's tab opens on Models, as does an unknown inner tab (AC-2)", () => {
+    for (const raw of [undefined, "", "nope", "Models"]) expect(toolPart(raw)).toBe("models");
+  });
+
+  test("a named inner tab opens that tab, not Models (AC-2)", () => {
+    expect(toolPart("installation")).toBe("installation");
+    expect(toolPart("subscription")).toBe("subscription");
   });
 });
 

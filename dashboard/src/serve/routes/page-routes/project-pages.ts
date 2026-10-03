@@ -44,6 +44,7 @@ export async function projectPages(
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
       tab: url.searchParams.get("tab") ?? undefined,
+      aiTab: url.searchParams.get("aitab") ?? undefined,
       // What the last press of Check found, never a check run because
       // this page was opened.
       checks: lastChecks(),

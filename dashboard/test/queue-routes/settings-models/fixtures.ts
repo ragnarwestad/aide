@@ -7,7 +7,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { CheckableTool, ToolCheck, ToolModels, ToolUsage } from "../../../src/render";
 import type { QueueDefaults } from "../../../src/queue/types.ts";
-import type { ClaudeModelAnswer } from "../../../src/serve/tool-models";
 
 export const AT = "2026-10-03T13:30:00.000Z";
 export const JSON_HEADERS = { "content-type": "application/json", accept: "application/json" };
@@ -24,24 +23,16 @@ export const CLAUDE_READING: ToolModels = {
   ],
 };
 
-/** Stands in for every CLI: the check, the usage, the models and the one
- *  `/model` ask an Add makes, counting what each was asked. */
-export function modelsProbe(
-  readings: Partial<Record<CheckableTool, ToolModels>> = {},
-  names: Record<string, ClaudeModelAnswer> = {},
-) {
+/** Stands in for every CLI a press of Check starts — the check, the usage
+ *  and the models — counting which models were read. */
+export function modelsProbe(readings: Partial<Record<CheckableTool, ToolModels>> = {}) {
   const probe = {
-    asked: [] as string[],
     modelReads: [] as { tool: CheckableTool; configured: string[] }[],
     check: async (tool: CheckableTool): Promise<ToolCheck> => ({ tool, at: AT, found: true, lines: [], extra: [] }),
     usage: async (tool: CheckableTool): Promise<ToolUsage> => ({ tool, at: AT, windows: [] }),
     models: async (tool: CheckableTool, opts: { configured: string[] }): Promise<ToolModels> => {
       probe.modelReads.push({ tool, configured: opts.configured });
       return readings[tool] ?? { tool, at: AT, offered: [] };
-    },
-    claudeName: async (id: string): Promise<ClaudeModelAnswer> => {
-      probe.asked.push(id);
-      return names[id] ?? { known: false };
     },
   };
   return probe;
@@ -81,4 +72,6 @@ export async function offeredChoices(base: string): Promise<Record<string, strin
 export const post = (base: string, path: string, body: Record<string, string>) =>
   fetch(`${base}${path}`, { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(body) });
 
-export const pressCheck = (base: string, tool: string) => post(base, "/api/queue/settings/check", { tool });
+/** A press of the Check on an AI's Models tab, the one that reads its models. */
+export const pressCheck = (base: string, tool: string) =>
+  post(base, "/api/queue/settings/check", { tool, part: "models" });

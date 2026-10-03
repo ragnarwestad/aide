@@ -24,6 +24,7 @@ import { forgetChecks, lastChecks, recordCheck, setConfiguredTools, toolsWithFau
 export { forgetChecks, lastChecks, recordCheck, setConfiguredTools, toolsWithFaults };
 import { CHECKABLE_TOOLS } from "../render";
 import type { CheckableTool, ExtraCheck, ToolCheck } from "../render";
+import type { BoardMessage } from "../i18n/message.ts";
 
 export { CHECKABLE_TOOLS };
 export type { CheckableTool, ExtraCheck, ToolCheck };
@@ -56,6 +57,33 @@ export interface CheckOptions {
   now?: () => Date;
 }
 
+const LOGIN_QUESTION = "Is it logged in?";
+
+/** A login answer that could not be obtained: no answer, never a "no".
+ *  `command` is the one that was asked, as a reader would type it. */
+function loginUnknown(how: "timedOut" | "unreadable", command: string): ExtraCheck {
+  return {
+    question: LOGIN_QUESTION, ok: null, detail: "",
+    answer: { key: how === "timedOut" ? "login.timedOut" : "login.unreadable", values: { command } },
+  };
+}
+
+/** Not logged in, with the command that logs it in. */
+function loginOut(command: string): ExtraCheck {
+  return {
+    question: LOGIN_QUESTION, ok: false, detail: "", problem: "not logged in",
+    answer: { key: "login.out", values: { command } },
+  };
+}
+
+/** Logged in: how, and as whom, as far as the tool says either. */
+function loggedIn(method: string | undefined, account: string | undefined): BoardMessage {
+  if (method && account) return { key: "login.inWithAs", values: { method, account } };
+  if (method) return { key: "login.inWith", values: { method } };
+  if (account) return { key: "login.inAs", values: { account } };
+  return { key: "login.in" };
+}
+
 /** OpenCode reaches a model through a PROVIDER, so a provider IS its
  *  credential: this is the same "is it logged in" question the other
  *  three answer with a status command, asked the way OpenCode can
@@ -64,22 +92,12 @@ async function opencodeProviderCheck(
   run: typeof runScript,
   bin: string,
 ): Promise<ExtraCheck> {
-  const question = "Is it logged in?";
   const providers = await run([bin, "providers", "list"], process.cwd(), CHECK_TIMEOUT_MS);
-  if (providers.code !== 0 || providers.timedOut) {
-    return { question, ok: null, detail: "opencode providers list could not be run." };
-  }
-  const text = stripAnsi(providers.stdout);
+  if (providers.timedOut) return loginUnknown("timedOut", "opencode providers list");
+  if (providers.code !== 0) return loginUnknown("unreadable", "opencode providers list");
   // "0 credentials" is the CLI's own wording for none configured.
-  const none = /\b0 credentials\b/.test(text);
-  return {
-    question,
-    ok: !none,
-    detail: none
-      ? "No provider is logged in, so every model call is refused. Run `opencode providers login`."
-      : lines(text).filter((l) => /credential/i.test(l)).join(" ")
-        || "At least one provider is configured.",
-  };
+  if (/\b0 credentials\b/.test(stripAnsi(providers.stdout))) return loginOut("opencode providers login");
+  return { question: LOGIN_QUESTION, ok: true, detail: "", answer: loggedIn(undefined, undefined) };
 }
 
 /** Whether every model configured for OpenCode still exists, which the
@@ -115,13 +133,15 @@ async function opencodeModelCheck(
 }
 
 
+const str = (v: unknown): string | undefined => (typeof v === "string" && v !== "" ? v : undefined);
+
 /** Which account and plan `claude auth status` says it runs on — asked
  *  from the board's own process, so it names the login a run will use,
  *  which a terminal's own login need not be. The organization is named
  *  only when it is one of its own, not the default one every personal
- *  account gets ("<email>'s Organization"). */
-function claudeAccount(parsed: Record<string, unknown>): string {
-  const str = (v: unknown): string | undefined => (typeof v === "string" && v !== "" ? v : undefined);
+ *  account gets ("<email>'s Organization"). Undefined when it names none
+ *  of them. */
+function claudeAccount(parsed: Record<string, unknown>): string | undefined {
   const email = str(parsed.email);
   const org = str(parsed.orgName);
   const plan = str(parsed.subscriptionType);
@@ -130,7 +150,7 @@ function claudeAccount(parsed: Record<string, unknown>): string {
     org && org !== `${email}'s Organization` ? org : undefined,
     plan ? plan.charAt(0).toUpperCase() + plan.slice(1) : undefined,
   ].filter((p): p is string => !!p);
-  return parts.length ? ` — ${parts.join(", ")}` : "";
+  return parts.length ? parts.join(", ") : undefined;
 }
 
 /** `claude auth status` reads the address and organization from one
@@ -166,20 +186,17 @@ async function loginCheck(
   run: typeof runScript,
   bin: string,
 ): Promise<ExtraCheck> {
-  const question = "Is it logged in?";
   if (tool === "copilot") {
     return {
-      question,
-      ok: null,
-      detail: "The Copilot CLI has no command that reports it. Run `copilot login` if a run is refused.",
+      question: LOGIN_QUESTION, ok: null, detail: "",
+      answer: { key: "login.noCommand", values: { tool: "Copilot" } },
     };
   }
 
-  const argv = tool === "claude" ? [bin, "auth", "status"] : [bin, "login", "status"];
-  const result = await run(argv, process.cwd(), CHECK_TIMEOUT_MS);
-  if (result.timedOut) {
-    return { question, ok: null, detail: `${argv.slice(1).join(" ")} did not finish in time.` };
-  }
+  const args = tool === "claude" ? ["auth", "status"] : ["login", "status"];
+  const command = [tool, ...args].join(" ");
+  const result = await run([bin, ...args], process.cwd(), CHECK_TIMEOUT_MS);
+  if (result.timedOut) return loginUnknown("timedOut", command);
   const text = stripAnsi(`${result.stdout}\n${result.stderr}`).trim();
 
   if (tool === "claude") {
@@ -187,30 +204,28 @@ async function loginCheck(
     try {
       const parsed = JSON.parse(text) as Record<string, unknown>;
       if (typeof parsed.loggedIn === "boolean") {
-        const how = typeof parsed.authMethod === "string" ? ` (${parsed.authMethod})` : "";
-        if (!parsed.loggedIn) {
-          return { question, ok: false, detail: "No. Run `claude auth login`.", problem: "not logged in" };
-        }
+        if (!parsed.loggedIn) return loginOut("claude auth login");
         const mixed = mixedLogins(parsed);
         return {
-          question,
+          question: LOGIN_QUESTION,
           ok: !mixed,
-          detail: `Yes${how}${claudeAccount(parsed)}.${mixed ? ` ${mixed}` : ""}`,
+          // Only what follows the answer: the tab draws the answer itself.
+          detail: mixed ?? "",
+          answer: loggedIn(str(parsed.authMethod), claudeAccount(parsed)),
           ...(mixed ? { problem: "the login in use is another account's" } : {}),
         };
       }
     } catch {
-      // Falls through to the exit code below: a version that stops
-      // printing JSON is not a version this can claim an answer from.
+      // Falls through: a version that stops printing JSON is not a
+      // version this can claim an answer from.
     }
-    return { question, ok: null, detail: "claude auth status did not answer in a shape this knows." };
+    return loginUnknown("unreadable", command);
   }
 
-  // Codex: one line, and an exit code that says it.
-  if (result.code !== 0) {
-    return { question, ok: false, detail: text || "No. Run `codex login`.", problem: "not logged in" };
-  }
-  return { question, ok: true, detail: text || "Yes." };
+  // Codex: one line, "Logged in using <how>", and an exit code that says it.
+  if (result.code !== 0) return loginOut("codex login");
+  const how = /^Logged in using (.+)$/m.exec(text)?.[1]?.trim();
+  return { question: LOGIN_QUESTION, ok: true, detail: "", answer: loggedIn(how, undefined) };
 }
 
 export async function checkTool(tool: CheckableTool, opts: CheckOptions = {}): Promise<ToolCheck> {
