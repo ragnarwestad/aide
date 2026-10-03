@@ -56,7 +56,8 @@ get them, and reads them by hand.
   fresh AI session — same model, effort and tool, never resumed — reads
   the spec's description and a diff of what changed, and looks for
   defects against the description alone, never style, naming or
-  structure. Defects found go back to the ORIGINAL implement session as
+  structure. A description with an `## Out of scope` section makes each
+  change under an item in it a defect too. Defects found go back to the ORIGINAL implement session as
   one follow-up turn that fixes them, and that turn's own failure stands
   as the step's outcome; the review's own turn is best-effort, so a
   verdict it cannot parse, or its own turn failing to complete, both

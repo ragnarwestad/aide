@@ -10,12 +10,13 @@ always runs after that, never a second review (spec 551).
 import json
 import re
 
-from ...conftest import run
+from ...conftest import git, run
 from ..run_spec_results import CODEX_STREAM_OK, CODEX_THREAD_ID, CODEX_USAGE, emits
 from ..run_spec_status_files import with_status
 
 REVIEW_MARKER = "Read this spec's own description"
 FIX_MARKER = "A review of what you changed found"
+OUT_OF_SCOPE_MARKER = "The description has an ## Out of scope section"
 WENT_BACK = "the defect(s) went back to the implement session to be fixed"
 
 IMPLEMENT_SESSION = "ee80227f-510c-45e9-bfbf-c5124f7761c0"
@@ -218,3 +219,76 @@ def test_defects_found_in_codex_resumes_the_implement_thread_never_the_reviews_o
     assert len(calls) == 3, calls
     assert calls[2].startswith("exec resume ") and calls[2].endswith(f" {CODEX_THREAD_ID} -"), calls[2]
     assert REVIEW_THREAD_ID not in calls[2], calls[2]
+
+
+def _with_out_of_scope_section(workspace):
+    """The spec's description gains an `## Out of scope` section, committed
+    in the specs repo where the review reads it."""
+    specs = workspace["specs"]
+    path = specs / workspace["folder"] / "1-description.md"
+    path.write_text(path.read_text() + "\n## Out of scope\n\n- Do not touch the queue.\n")
+    git(specs, "add", "-A")
+    git(specs, "commit", "-q", "-m", "out of scope")
+
+
+def _out_of_scope_reviewer(fake_claude, tmp_path):
+    """The review reports a defect only when its prompt carries the
+    out-of-scope instruction, and the prompt it read is kept in a file."""
+    defect = "review: 1 defect(s) found" + chr(10) + "1. A change under an out-of-scope item"
+    return fake_claude(
+        "prompt=\"$(cat)\"\n"
+        f"if printf '%s' \"$prompt\" | grep -q \"{REVIEW_MARKER}\"; then\n"
+        f"  printf '%s' \"$prompt\" > {tmp_path / 'review-prompt.txt'}\n"
+        f"  if printf '%s' \"$prompt\" | grep -q \"{OUT_OF_SCOPE_MARKER}\"; then\n"
+        f"    echo '{json.dumps(_result(REVIEW_SESSION, defect, 0.05))}'\n"
+        "  else\n"
+        f"    echo '{json.dumps(_result(REVIEW_SESSION, 'review: no defects found', 0.05))}'\n"
+        "  fi\n"
+        f"elif printf '%s' \"$prompt\" | grep -q \"{FIX_MARKER}\"; then\n"
+        "  printf 'fixed\\n' > fixed.txt && git add -A && git commit -q -m 'the fix'\n"
+        f"  echo '{json.dumps(_result(IMPLEMENT_SESSION, 'done', 0.20))}'\n"
+        "else\n"
+        "  printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'\n"
+        f"  echo '{json.dumps(_result(IMPLEMENT_SESSION, 'done', 0.10))}'\n"
+        "fi\n"
+    )
+
+
+def test_a_description_with_an_out_of_scope_section_tells_the_review_so_at_level_off_AC_4(
+    runner, workspace, fake_claude, tmp_path
+):
+    with_status(workspace, ["create", "analyze"])
+    _with_out_of_scope_section(workspace)
+    claude = _out_of_scope_reviewer(fake_claude, tmp_path)
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert OUT_OF_SCOPE_MARKER in (tmp_path / "review-prompt.txt").read_text()
+
+
+def test_an_out_of_scope_defect_goes_back_in_the_one_fix_turn_and_is_not_reviewed_again_AC_4_AC_5(
+    runner, workspace, fake_claude, tmp_path
+):
+    with_status(workspace, ["create", "analyze"])
+    _with_out_of_scope_section(workspace)
+    claude = _out_of_scope_reviewer(fake_claude, tmp_path)
+    rc, out, _, err = run(runner, workspace, claude, command="implement", return_stderr=True)
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed", out
+    stages = _stamped(err)
+    assert "review: 1. A change under an out-of-scope item" in stages, stages
+    assert WENT_BACK in stages, stages
+    calls = fake_claude.calls.read_text().splitlines()
+    assert len(calls) == 3, calls
+    assert "--resume" in calls[2] and IMPLEMENT_SESSION in calls[2], calls[2]
+    assert "testedGreen" in out, out
+
+
+def test_a_description_without_the_section_gets_the_review_as_before_AC_6(
+    runner, workspace, fake_claude, tmp_path
+):
+    with_status(workspace, ["create", "analyze"])
+    claude = _out_of_scope_reviewer(fake_claude, tmp_path)
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert OUT_OF_SCOPE_MARKER not in (tmp_path / "review-prompt.txt").read_text()
+    assert len(fake_claude.calls.read_text().splitlines()) == 2

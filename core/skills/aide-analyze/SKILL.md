@@ -320,7 +320,9 @@ Coherence reviewers the acceptance criteria checks level from Step 1:
 Feasibility makes the cannot-be-built check at that level, Coherence the
 other four, and the Plan review section's `**Criteria check:**` line
 names what still stands of both. Tell the Coherence reviewer, too,
-whether the spec asks to choose the approach.
+whether the spec asks to choose the approach. The Scope guardian holds
+the plan to the description's `## Out of scope` section, when it has
+one, at every level.
 
 Skip this step only when `3-solution.md` is still an empty template —
 nothing was written in Step 6 to review.

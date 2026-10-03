@@ -17,7 +17,9 @@
 # or missing. It never comments on style, naming or structure — a
 # constraint the runner cannot check mechanically, so it is stated in
 # the prompt, the same way the runner already relies on prompt
-# compliance for what a review even looks for.
+# compliance for what a review even looks for. A description with an
+# `## Out of scope` section adds one instruction: each change under an
+# item in it is a defect too.
 #
 # When it names one or more defects, they go back to the ORIGINAL
 # implement session as ONE follow-up (fix) turn — the same `resume_argv`
@@ -103,20 +105,32 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ]; th
   review_untracked="$(git -C "$project_wt" status --porcelain --untracked-files=all 2>/dev/null | awk '$1=="??"{print $2}')"
   review_description="$(cat "$specs_root_wt/$spec_label/1-description.md" 2>/dev/null)"
 
-  printf '%s\n' \
-    "Read this spec's own description and what this step changed, and look for defects: behaviour that is wrong, broken or missing against the description. Say nothing about style, naming or structure." \
-    "" "Spec description:" "$review_description" \
-    "" "What changed (git diff):" "$review_diff" \
-    "" "Untracked files this step added: ${review_untracked:-none}" \
-    "" "Do not edit, create or delete any file — you are reading and reporting only." \
-    "" "End your reply with exactly one of these, as your very last lines, plain text, no other formatting:" \
-    "review: no defects found" \
-    "or" \
-    "review: N defect(s) found" \
-    "1. <the defect, one sentence>" \
-    "2. <the defect, one sentence>" \
-    "$headless_note" \
-    > "$work_dir/prompt-review"
+  # A description's "## Out of scope" section makes each change under one
+  # of its items a defect too, at every acceptance criteria checks level;
+  # without the section the prompt is exactly what it was.
+  review_scope=""
+  if declare -f aide_out_of_scope_section >/dev/null 2>&1 \
+    && [ -n "$(aide_out_of_scope_section "$review_description")" ]; then
+    review_scope="The description has an ## Out of scope section: what this change must not do or touch. Each change in the diff that falls under an item in it is a defect too, whatever kind of change it is, style, naming and structure included; say which item."
+  fi
+
+  {
+    printf '%s\n' \
+      "Read this spec's own description and what this step changed, and look for defects: behaviour that is wrong, broken or missing against the description. Say nothing about style, naming or structure." \
+      "" "Spec description:" "$review_description"
+    [ -n "$review_scope" ] && printf '%s\n' "" "$review_scope"
+    printf '%s\n' \
+      "" "What changed (git diff):" "$review_diff" \
+      "" "Untracked files this step added: ${review_untracked:-none}" \
+      "" "Do not edit, create or delete any file — you are reading and reporting only." \
+      "" "End your reply with exactly one of these, as your very last lines, plain text, no other formatting:" \
+      "review: no defects found" \
+      "or" \
+      "review: N defect(s) found" \
+      "1. <the defect, one sentence>" \
+      "2. <the defect, one sentence>" \
+      "$headless_note"
+  } > "$work_dir/prompt-review"
 
   stage "reviewing what the step changed"
   argv=("${review_argv[@]}")

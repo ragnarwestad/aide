@@ -215,7 +215,8 @@ evidence that the phase happened:
   writes nothing itself. Otherwise the step ends `no-progress` and
   the line is not extended. Once past that check, a second, fresh AI session — same model, effort and tool as the
   step, never resumed — reads the spec's own description and a diff of what the step changed, and looks for
-  defects against the description; it never comments on style, naming or structure (`run-spec/turn/review.sh`). One or
+  defects against the description; it never comments on style, naming or structure (`run-spec/turn/review.sh`),
+  except that a description with an `## Out of scope` section makes each change under an item in it a defect too. One or
   more found go back to the ORIGINAL implement session as one follow-up turn that fixes them, and that turn's own
   failure stands as the step's outcome; the review's own turn is best-effort, and any outcome other than a clean
   "no defects" — a verdict it cannot parse, or its own turn failing to complete — falls back to "found nothing"

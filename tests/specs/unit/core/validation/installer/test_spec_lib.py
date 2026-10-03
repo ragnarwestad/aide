@@ -420,3 +420,48 @@ class TestAidesOwnWorktreeLinksTravelWithTheRepo:
         manifest is the file that has to decide."""
         manifest = (workspace_root / ".aide" / "project.yaml").read_text(encoding="utf-8")
         assert "worktreeLinks: .venv dashboard/node_modules" in manifest
+
+
+@pytest.mark.validation
+class TestOutOfScopeSection:
+    """aide_out_of_scope_section returns the description's `## Out of
+    scope` heading and its lines, as written."""
+
+    def _section(self, workspace_root, text):
+        return _call(workspace_root, f'aide_out_of_scope_section "$(printf %b "{text}")"')
+
+    def test_returns_the_heading_and_its_items(self, workspace_root):
+        out = self._section(
+            workspace_root, "Problem.\\n\\n## Out of scope\\n\\n- Not the queue.\\n- Not a route.\\n"
+        )
+        assert out.splitlines() == ["## Out of scope", "", "- Not the queue.", "- Not a route."]
+
+    def test_stops_at_the_next_heading(self, workspace_root):
+        out = self._section(
+            workspace_root, "## Out of scope\\n\\n- A.\\n\\n## Acceptance criteria\\n\\n- **AC-1:** x\\n"
+        )
+        assert out.splitlines() == ["## Out of scope", "", "- A."]
+
+    def test_stops_at_a_level_one_heading_and_at_a_rule(self, workspace_root):
+        assert self._section(workspace_root, "## Out of scope\\n\\n- A.\\n# Next\\n- B.\\n").splitlines() == [
+            "## Out of scope", "", "- A.",
+        ]
+        assert self._section(workspace_root, "## Out of scope\\n\\n- A.\\n\\n---\\n\\n- B.\\n").splitlines() == [
+            "## Out of scope", "", "- A.",
+        ]
+
+    def test_keeps_a_level_three_heading_inside_the_section(self, workspace_root):
+        out = self._section(workspace_root, "## Out of scope\\n\\n### Files\\n\\n- A.\\n")
+        assert out.splitlines() == ["## Out of scope", "", "### Files", "", "- A."]
+
+    def test_finds_the_heading_in_any_letter_case(self, workspace_root):
+        out = self._section(workspace_root, "## OUT OF SCOPE\\n\\n- A.\\n")
+        assert out.splitlines() == ["## OUT OF SCOPE", "", "- A."]
+
+    def test_drops_trailing_whitespace_a_carriage_return_and_trailing_blank_lines(self, workspace_root):
+        out = self._section(workspace_root, "## Out of scope\\r\\n\\n- A.  \\r\\n\\n\\n")
+        assert out.splitlines() == ["## Out of scope", "", "- A."]
+
+    def test_a_description_without_the_section_gives_nothing(self, workspace_root):
+        assert self._section(workspace_root, "Problem.\\n\\n## Acceptance criteria\\n\\n- **AC-1:** x\\n") == ""
+        assert self._section(workspace_root, "### Out of scope\\n\\n- A.\\n") == ""

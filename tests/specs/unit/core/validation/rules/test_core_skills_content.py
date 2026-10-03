@@ -2,6 +2,7 @@
 exist, and the reopen boundary is written in the grammar its readers
 parse. Names and formats only — never a sentence of a skill."""
 import re
+import subprocess
 
 import pytest
 
@@ -89,3 +90,25 @@ def test_the_create_skill_hands_the_given_description_to_aide_create_spec_AC_2()
     assert calls, "the create skill has no aide-create-spec call passing --description"
     missing = [block for block in calls if "--given-description" not in block]
     assert not missing, f"{len(missing)} of {len(calls)} calls pass no --given-description"
+
+
+@pytest.mark.validation
+def test_the_rule_the_reader_the_create_skill_and_the_plan_review_share_the_out_of_scope_heading_AC_1_AC_2_AC_3():
+    """`aide_out_of_scope_section` finds a section only under the exact
+    heading, so the rule's skeleton, the create skill and the plan review
+    must all give that heading."""
+    heading = "## Out of scope"
+    rule = (REPO_ROOT / "core" / "rules" / "spec-structure.md").read_text(encoding="utf-8")
+    assert f"\n{heading}\n" in rule, "the rule's skeleton does not give the heading"
+    for path in (
+        CORE_SKILLS_DIR / "aide-create" / "SKILL.md",
+        CORE_SKILLS_DIR / "aide-analyze" / "references" / "plan-review.md",
+    ):
+        assert heading in path.read_text(encoding="utf-8"), f"{path.relative_to(REPO_ROOT)} does not name {heading!r}"
+    lib = REPO_ROOT / "core" / "scripts" / "_aide-spec-lib.sh"
+    description = f"Problem.\n\n{heading}\n\n- Not the queue.\n"
+    found = subprocess.run(
+        ["bash", "-c", f'source "{lib}"; aide_out_of_scope_section "$(printf %b "$1")"', "_", description],
+        capture_output=True, text=True,
+    )
+    assert found.stdout.splitlines() == [heading, "", "- Not the queue."], found.stderr
