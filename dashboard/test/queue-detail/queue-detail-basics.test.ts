@@ -103,6 +103,31 @@ describe("GET /api/queue/<id>", () => {
   });
 });
 
+describe("GET /api/queue/<id>?marks=1", () => {
+  test("answers the steps the job's run log has marked, and without the query answers no marks (AC-1)", async () => {
+    const { base, dir } = start();
+    const id = await enqueue(base);
+    const stream = join(dir, `${id}.analyze.stream.jsonl`);
+    writeFileSync(stream, "");
+    writeFileSync(
+      join(dir, `${id}.analyze.run.log`),
+      "aide-run-spec 14:58:49 +0s --- Step Aide: preparing — started\naide-run-spec 14:59:03 +14s --- Step Aide: preparing — done\n",
+    );
+    const mirror = join(dir, "queue.json");
+    const jobs = JSON.parse(readFileSync(mirror, "utf8")) as Record<string, unknown>[];
+    const job = jobs.find((j) => j.id === id)!;
+    job.state = "failed";
+    job.results = [{ step: "analyze", ok: false, tool: "claude", costUsd: 0, costMeasured: true, terminalReason: "error", streamFile: stream }];
+    writeFileSync(mirror, JSON.stringify(jobs));
+
+    const { base: base2 } = start({ queueMirrorPath: mirror });
+    const asked = (await (await fetch(`${base2}/api/queue/${id}?marks=1`)).json()) as { marks?: { key: string; title: string; state: string }[] };
+    expect(asked.marks).toEqual([{ key: "Step Aide: preparing", title: "Preparing", state: "done" }]);
+    const plain = (await (await fetch(`${base2}/api/queue/${id}`)).json()) as Record<string, unknown>;
+    expect(plain).not.toHaveProperty("marks");
+  });
+});
+
 describe("the finished steps a job table cannot show (criterion 2)", () => {
 
 });

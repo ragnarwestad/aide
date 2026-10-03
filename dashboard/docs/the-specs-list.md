@@ -469,13 +469,17 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   buttons do nothing. The question before leaving a page with unsaved changes is the same dialog, opened by the
   unsaved-changes guard from the link that was clicked rather than from a button.
 - **OK stands the dialog until the job has settled.** The dialog's posting form carries `data-progress`, and one
-  submit listener on `body` hands its OK to the wait: the dialog shows "Reopening…" or "Closing…" alone, held open by
+  submit listener on `body` hands its OK to the wait: the dialog shows "Reopening…" or "Closing…", held open by
   the one hold every progress dialog has (`standOpen()`, `specs-client/progress-dialog/`: Escape and a click outside
-  do not dismiss it, and a back/forward-cache restore closes it), posts the form, and polls `GET /api/queue/<id>` once a
-  second, at most 120 times, until the job has settled and, for a `done` job, its landing is over. A job that is
-  `done` goes to `data-progress-done`, or the list's front page when the form has none; any other end, a job the
-  queue has forgotten and a wait that runs out go to `data-progress` — the spec page, whose error line says why a
-  `failed`, `stopped` or `interrupted` reopen or close ended (`failedRoundSentence`). A dialog over the list carries
+  do not dismiss it, and a back/forward-cache restore closes it), posts the form, and polls
+  `GET /api/queue/<id>?marks=1` once a second, at most 120 times, until the job has settled and, for a `done` job, its
+  landing is over. Under the heading it lists the steps the job's log has marked so far — Aide's own parts, the
+  skill's steps and the merge into main — in the step list Deploy's dialog shares (`drawSteps`), each running with a
+  spinner or done. A job that is `done` goes to `data-progress-done` at once, or the list's front page when the form
+  has none. Any other end shows the step it stopped at as failed and its reason in the dialog's own line for two
+  seconds, then goes to `data-progress` — the spec page, whose error line says why a `failed`, `stopped` or
+  `interrupted` reopen or close ended (`failedRoundSentence`); a job the queue has forgotten and a wait that runs out
+  go there at once. A dialog over the list carries
   the list's own address, filter and all, in both. A refused post is written in the dialog's own line, which stays
   open with whatever was typed or ticked. While a Reopen dialog is open on the list, the live redraw waits, so the
   rows do not take it away.

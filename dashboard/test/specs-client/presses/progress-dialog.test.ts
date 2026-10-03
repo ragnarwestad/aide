@@ -3,7 +3,7 @@
 // until the queued job has settled.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { isStanding, settled, standOpen, submitProgress, type ProgressIo } from "../../../src/specs-client/progress-dialog";
+import { FAILED_STAYS_MS, isStanding, SETTLE_EVERY_MS, settled, standOpen, submitProgress, type ProgressIo } from "../../../src/specs-client/progress-dialog";
 
 const BACK = "/specs/aide/150-x";
 
@@ -35,15 +35,23 @@ function fakeDialog() {
 interface Io extends ProgressIo {
   gone: string[];
   polls: number;
+  /** The address each poll asked. */
+  asked: string[];
   restore?: () => void;
 }
 
+type Answer = Awaited<ReturnType<ProgressIo["get"]>>;
+
 /** `answers` is what each poll of the job says, the last one repeated. */
-function fakeIo(answers: { status?: number; job?: { state: string; landing?: boolean } }[]): Io {
+function fakeIo(answers: Partial<Answer>[]): Io {
   const io: Io = {
     gone: [],
     polls: 0,
-    get: async () => ({ status: 200, ...answers[Math.min(io.polls++, answers.length - 1)]! }),
+    asked: [],
+    get: async (url) => {
+      io.asked.push(url);
+      return { status: 200, ...answers[Math.min(io.polls++, answers.length - 1)]! };
+    },
     sleep: async () => {},
     go: (url) => void io.gone.push(url),
     onRestore: (fn) => void (io.restore = fn),
@@ -89,6 +97,8 @@ function fakeAsk() {
   const base = fakeDialog();
   const attrs = new Set<string>();
   const line = { textContent: "" };
+  /** The step list: the lines a job before this one left in it. */
+  const list = { lines: [] as string[], replaceChildren: () => void (list.lines = []) };
   const ask = Object.assign(base, {
     open: false,
     showModal() {
@@ -102,7 +112,7 @@ function fakeAsk() {
     setAttribute: (name: string) => void attrs.add(name),
     removeAttribute: (name: string) => void attrs.delete(name),
     hasAttribute: (name: string) => attrs.has(name),
-    querySelector: (sel: string) => (sel === ".refused" ? line : null),
+    querySelector: (sel: string) => (sel === ".refused" ? line : sel === "ol.progresssteps" ? list : null),
   });
   const form = {
     action: "http://dash.test/api/queue",
@@ -112,7 +122,7 @@ function fakeAsk() {
     querySelectorAll: () => [],
     closest: (sel: string) => (sel.includes("data-progress-dialog") ? ask : null),
   } as unknown as HTMLFormElement;
-  return { ask, form, line, standing: () => attrs.has("data-standing") };
+  return { ask, form, line, list, standing: () => attrs.has("data-standing") };
 }
 
 describe("submitProgress from inside the ask", () => {
@@ -193,6 +203,74 @@ describe("submitProgress from inside the ask", () => {
     expect(io.gone).toEqual([]);
   });
 
+  test("each poll asks for the job's marks (AC-1)", async () => {
+    stubPost(200, { ok: true, job: { id: "j1" } });
+    const io = fakeIo([{ job: { state: "running" } }, { job: { state: "done" } }]);
+    await submitProgress(fakeAsk().form, submit(), io);
+    expect(io.asked).toEqual(["/api/queue/j1?marks=1", "/api/queue/j1?marks=1"]);
+  });
+
+  for (const end of ["failed", "stopped", "cancelled", "interrupted"]) {
+    test(`a job that ends ${end} writes its reason while the dialog stands, pauses, and only then goes back (AC-4)`, async () => {
+      stubPost(200, { ok: true, job: { id: "j1" } });
+      const a = fakeAsk();
+      const io = fakeIo([{ job: { state: "running" } }, { job: { state: end }, marks: [], reason: "the close is not finished" }]);
+      const seen: string[] = [];
+      io.sleep = async (ms) => void seen.push(`sleep ${ms} standing=${a.standing()} line=${a.line.textContent}`);
+      io.go = (url) => void seen.push(`go ${url}`);
+      await submitProgress(a.form, submit(), io);
+      expect(seen).toEqual([
+        `sleep ${SETTLE_EVERY_MS} standing=true line=`,
+        `sleep ${FAILED_STAYS_MS} standing=true line=The close is not finished`,
+        `go ${BACK}`,
+      ]);
+    });
+  }
+
+  test("a done job whose merge stopped writes its reason while the dialog stands, pauses, then goes where a done job goes (AC-4)", async () => {
+    stubPost(200, { ok: true, job: { id: "j1" } });
+    const a = fakeAsk();
+    const io = fakeIo([{ job: { state: "done" }, marks: [], reason: "nothing was merged" }]);
+    const seen: string[] = [];
+    io.sleep = async (ms) => void seen.push(`sleep ${ms} standing=${a.standing()} line=${a.line.textContent}`);
+    io.go = (url) => void seen.push(`go ${url}`);
+    await submitProgress(a.form, submit(), io);
+    expect(seen).toEqual([`sleep ${FAILED_STAYS_MS} standing=true line=Nothing was merged`, "go /"]);
+  });
+
+  test("a done job goes at once, and so does a wait that gives up (AC-5)", async () => {
+    stubPost(200, { ok: true, job: { id: "j1" } });
+    for (const answers of [[{ job: { state: "done" } }], [{ status: 404 }]]) {
+      const io = fakeIo(answers);
+      const slept: number[] = [];
+      io.sleep = async (ms) => void slept.push(ms);
+      await submitProgress(fakeAsk().form, submit(), io);
+      expect(slept).toEqual([]);
+      expect(io.gone).toHaveLength(1);
+    }
+    const running = fakeIo([{ job: { state: "running" } }]);
+    const slept: number[] = [];
+    running.sleep = async (ms) => void slept.push(ms);
+    await submitProgress(fakeAsk().form, submit(), running);
+    expect(slept).not.toContain(FAILED_STAYS_MS);
+    expect(running.gone).toEqual([BACK]);
+  });
+
+  test("a second press starts with an empty step list (AC-5)", async () => {
+    stubPost(200, { ok: true, job: { id: "j1" } });
+    const a = fakeAsk();
+    await submitProgress(a.form, submit(), fakeIo([{ job: { state: "done" } }]));
+    a.list.lines = ["Preparing done"];
+    let atFirstPoll: string[] | undefined;
+    const io = fakeIo([{ job: { state: "done" } }]);
+    const get = io.get;
+    io.get = async (url) => {
+      atFirstPoll ??= [...a.list.lines];
+      return get(url);
+    };
+    await submitProgress(a.form, submit(), io);
+    expect(atFirstPoll).toEqual([]);
+  });
 });
 
 describe("standOpen, the one hold", () => {

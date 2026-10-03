@@ -292,14 +292,17 @@ dialog.confirmdialog::backdrop, dialog.progressdialog::backdrop { background: va
    A form's own class may carry a margin, which the row resets. */
 .dialogactions { display: flex; gap: var(--sp-2); }
 /* The progress dialog's two faces. Its running face — the heading that
-   says what it is doing, and Deploy's steps — is a column spaced like the
-   panel. A dialog that asks first (`data-asks`) shows its question, its
-   refusal line and its answers until OK; while it stands (`data-standing`,
-   set by `standOpen`) the running face is the only thing in it. Every rule
-   is on the panel's own children, so no mark inside the body can match. */
+   says what it is doing, and its step list when it has one — is a column
+   spaced like the panel. A dialog that asks first (`data-asks`) shows its
+   question, its refusal line and its answers until OK; while it stands
+   (`data-standing`, set by `standOpen`) the running face is the only thing
+   in it, but for a dialog with steps (`data-steps`), whose own line stays
+   to say why a step failed. Every rule is on the panel's own children, so
+   no mark inside the body can match. */
 .progresspanel > [data-running-face] { display: flex; flex-direction: column; gap: var(--sp-3); }
 dialog[data-asks]:not([data-standing]) > .progresspanel > [data-running-face] { display: none; }
 dialog[data-standing] > .progresspanel > :not([data-running-face]) { display: none; }
+dialog[data-steps][data-standing] > .progresspanel > .refused { display: flex; }
 .progresspanel textarea { width: 100%; box-sizing: border-box; }
 .dialogactions > form { margin: 0; }
 
@@ -343,33 +346,35 @@ dialog.pageoverlay::backdrop { background: var(--backdrop); }
 dialog.pageoverlay > .overlaynote { margin: var(--sp-3) 0 0; max-width: 22rem;
   color: var(--muted); text-align: center; }
 
-/* The Deploy dialog is its steps and one line under them, the same box
-   from the press to the end of the run: a fixed width, and the finished
-   message laid out as one empty line from the start, so it grows nothing
-   while a step moves. A failure is shown on the step's own line, its
-   reason in the dialog's refusal line for the pause before it closes,
-   and then on the Deploy tab. Every step's state word reserves a 12px
-   slot in front of it, so the running line's spinner moves no word. */
-dialog[data-deploy-dialog] { width: 26rem; max-width: calc(100% - 2 * var(--sp-4)); }
-.deploysteps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column;
+/* The step list every progress dialog with steps shares — Deploy's five,
+   and the steps a spec's closing or reopening job marks in its log as it
+   runs. The box is one width from the press to the end of the run, so it
+   does not widen as lines arrive, and Deploy's finished message is laid
+   out as one empty line from the start, so it grows nothing while a step
+   moves. A failure is shown on the step's own line, its reason in the
+   dialog's refusal line for the pause before it moves on. Every step's
+   state word reserves a 12px slot in front of it, so the running line's
+   spinner moves no word. */
+dialog[data-steps] { width: 26rem; max-width: calc(100% - 2 * var(--sp-4)); }
+.progresssteps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column;
   gap: var(--sp-2); }
 /* Room for two lines each, whatever the language: a longer state word must
    not wrap a label onto a second line and make the box taller. */
-.deploysteps li { display: flex; align-items: center; gap: var(--sp-3); min-height: 3.2em; }
-.deploysteps li[data-state="waiting"] { color: var(--muted); }
-.deploysteps li[data-state="failed"] { color: var(--danger); }
-.deploystate { margin-left: auto; color: var(--muted); display: inline-flex; align-items: center; gap: var(--sp-1); }
-.deploystate::before { content: ""; width: 12px; height: 12px; flex: none; }
+.progresssteps li { display: flex; align-items: center; gap: var(--sp-3); min-height: 3.2em; }
+.progresssteps li[data-state="waiting"] { color: var(--muted); }
+.progresssteps li[data-state="failed"] { color: var(--danger); }
+.progressstate { margin-left: auto; color: var(--muted); display: inline-flex; align-items: center; gap: var(--sp-1); }
+.progressstate::before { content: ""; width: 12px; height: 12px; flex: none; }
 /* A finished step's word says how it went: green done, red failed. */
-.deploysteps li[data-state="done"] .deploystate { color: var(--ok); }
-.deploysteps li[data-state="failed"] .deploystate { color: var(--danger); }
+.progresssteps li[data-state="done"] .progressstate { color: var(--ok); }
+.progresssteps li[data-state="failed"] .progressstate { color: var(--danger); }
 /* The running line takes the running badge's colour and spinner. */
-.deploysteps li[data-state="running"] { color: var(--accent-strong); }
-.deploysteps li[data-state="running"] .deploystate { color: inherit; }
-.deploysteps li[data-state="running"] .deploystate::before { background-color: currentColor;
+.progresssteps li[data-state="running"] { color: var(--accent-strong); }
+.progresssteps li[data-state="running"] .progressstate { color: inherit; }
+.progresssteps li[data-state="running"] .progressstate::before { background-color: currentColor;
   -webkit-mask: var(--icon-loader) center / contain no-repeat; mask: var(--icon-loader) center / contain no-repeat;
   animation: badgespin 1.1s linear infinite; }
-@media (prefers-reduced-motion: reduce) { .deploysteps li[data-state="running"] .deploystate::before { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .progresssteps li[data-state="running"] .progressstate::before { animation: none; } }
 .deploymessage { min-height: calc(1em * var(--lh)); }
 
 /* How runs work: a small question mark at the right-hand end of the

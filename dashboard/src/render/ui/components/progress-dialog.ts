@@ -9,9 +9,14 @@
 // question and its answers until OK, and only its running face while it
 // stands (`data-standing`). A step that asks nothing (Deploy) shows its
 // running face from the moment it opens.
+//
+// A dialog with steps (Deploy, Close, Reopen) lists them under the heading,
+// one line each with its state, in the one step list every such dialog
+// shares: Deploy hands its five steps in, Close and Reopen none, and their
+// wait adds a line for each step their job's log marks.
 
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
-import type { Language } from "../../../i18n";
+import { t, type Language } from "../../../i18n";
 import { esc } from "../html.ts";
 import { dataAttrs } from "./button.ts";
 import { askParts, type AskParts } from "./confirm-dialog.ts";
@@ -30,10 +35,32 @@ export interface ProgressParts {
    *  `done` (the script goes to `/` without it). Absent, the dialog opens
    *  standing on its form's submit. */
   ask?: AskParts & { wait?: { back: string; done?: string } };
-  /** Trusted markup under the heading while it runs: Deploy's list of steps. */
+  /** The steps it lists while it runs, each waiting until the page script
+   *  moves it: Deploy's five, or none for a list the script fills. Absent,
+   *  the dialog has no list. */
+  steps?: { key: string; label: string }[];
+  /** Trusted markup under the steps while it runs: Deploy's finished line. */
   body?: string;
   /** `data-*` on the dialog, for a page script to read (Deploy's words). */
   data?: Record<string, string>;
+}
+
+/** The step list, its state words as `data-*` for the page script, and the
+ *  empty line it clones for a step the log reaches. */
+function stepList(lang: Language, steps: { key: string; label: string }[]): string {
+  const waiting = t(lang, "dialog.stepWaiting");
+  const lines = steps
+    .map((s) => `<li data-step="${esc(s.key)}" data-state="waiting">${esc(s.label)} <span class="progressstate">${esc(waiting)}</span></li>`)
+    .join("");
+  return (
+    `<ol class="progresssteps"${dataAttrs({
+      waiting,
+      running: t(lang, "dialog.stepRunning"),
+      done: t(lang, "dialog.stepDone"),
+      failed: t(lang, "dialog.stepFailed"),
+    })}>${lines}</ol>` +
+    `<template data-step-line><li data-state="waiting"><span class="progressstate"></span></li></template>`
+  );
 }
 
 export function progressDialog(lang: Language, parts: ProgressParts): string {
@@ -47,10 +74,11 @@ export function progressDialog(lang: Language, parts: ProgressParts): string {
     : { question: "", answers: "" };
   return (
     `<dialog class="progressdialog"${parts.id ? ` id="${esc(parts.id)}"` : ""} data-progress-dialog` +
-    `${ask ? " data-asks" : ""}${dataAttrs(parts.data)}>` +
+    `${ask ? " data-asks" : ""}${parts.steps ? " data-steps" : ""}${dataAttrs(parts.data)}>` +
     `<div class="progresspanel">` +
     question +
-    `<div data-running-face><h2 class="standingtitle">${esc(capitalizeFirst(parts.title))}</h2>${parts.body ?? ""}</div>` +
+    `<div data-running-face><h2 class="standingtitle">${esc(capitalizeFirst(parts.title))}</h2>` +
+    `${parts.steps ? stepList(lang, parts.steps) : ""}${parts.body ?? ""}</div>` +
     messageSlot("refused") +
     answers +
     `</div></dialog>`

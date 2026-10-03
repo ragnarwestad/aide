@@ -4,7 +4,7 @@
 // failure writes its reason in the dialog's own line, closes by itself
 // and leaves the error on the Deploy panel.
 
-import { isStanding, standOpen } from "../progress-dialog";
+import { isStanding, setStepState, standOpen } from "../progress-dialog";
 import { runDeploy, STEPS, type DeployFailure, type DeployIo, type DeployStep, type PostedStep, type StepAnswer, type StepState } from "./run.ts";
 
 /** What a dialog is doing, kept per dialog so its listener is attached
@@ -78,7 +78,7 @@ export async function submitDeploy(form: HTMLFormElement, event: Event, io: Depl
   event.preventDefault();
   // The form holds its dialog.
   const dialog = form.querySelector("dialog[data-deploy-dialog]") as HTMLDialogElement;
-  const list = dialog.querySelector("ol.deploysteps") as HTMLElement;
+  const list = dialog.querySelector("ol.progresssteps") as HTMLElement;
   const messageBox = dialog.querySelector(".deploymessage") as HTMLElement;
 
   const panel = dialog.closest(".deploypanel");
@@ -118,12 +118,7 @@ export async function submitDeploy(form: HTMLFormElement, event: Event, io: Depl
   const state = mine;
 
   const line = (step: DeployStep): HTMLElement => list.querySelector(`[data-step="${step}"]`) as HTMLElement;
-  const setState = (step: DeployStep, to: StepState): void => {
-    const li = line(step);
-    li.dataset.state = to;
-    const word = li.querySelector(".deploystate");
-    if (word) word.textContent = list.dataset[to] ?? to;
-  };
+  const setState = (step: DeployStep, to: StepState): void => setStepState(list, line(step), to);
   for (const step of STEPS) setState(step, "waiting");
   messageBox.replaceChildren();
   for (const error of panelErrors(panel)) error.remove();
@@ -137,7 +132,7 @@ export async function submitDeploy(form: HTMLFormElement, event: Event, io: Depl
     fail: (step, failure) => {
       setState(step, "failed");
       const named = line(step).cloneNode(true) as HTMLElement;
-      named.querySelector(".deploystate")?.remove();
+      named.querySelector(".progressstate")?.remove();
       state.failure = { ...failure, label: named.textContent?.trim() ?? step };
       if (token === state.run) hold.release(failureSentence(dialog, state.failure));
     },

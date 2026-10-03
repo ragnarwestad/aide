@@ -95,7 +95,7 @@ of facts, a form holding one button or a checkbox with its words beside it, whic
 | `field()`             | label above any control, one height and one radius                                                                                    |
 | `saveCancelActions()` | a form's Save and Cancel pair; Save submits the form, Cancel renders disabled because it needs script                                 |
 | `confirmDialog()`     | a confirmation that runs no step: the question, OK first and Cancel beside it (the platform's own close)                              |
-| `progressDialog()`    | the dialog every running step stands in: its running word, a refusal line, and the question first for a step that asks                |
+| `progressDialog()`    | the dialog every running step stands in: its running word, its step list, a refusal line, and first the question of a step that asks  |
 | `askButton()`         | the button that names a dialog by `data-ask`; one listener on `body` opens any of them                                                |
 | `helpPopover()`       | a `details.intro` disclosure holding developer-authored help text                                                                     |
 | `backLink()`          | the link back out of a page, with the page's title beside it rather than below; `keep` on a page with tabs keeps it across tabs       |

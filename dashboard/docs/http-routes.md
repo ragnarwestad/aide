@@ -130,7 +130,7 @@ Answered by `src/serve/routes/job-actions.ts`, `src/serve/routes/job-detail.ts`,
 |-----------------------------------------------|--------|----------------------------------------------------|----------------------------------------------------------------------------|-----------|
 | `GET /api/queue`                              | read   | nothing                                            | `{ generatedAt, jobs }`                                                    | interface |
 | `POST /api/queue`                             | action | JSON or form: project, spec folder, steps          | `{ ok, job }`; 400 `{ error, spec? }`                                      | interface |
-| `GET /api/queue/<id>`                         | read   | nothing                                            | `{ generatedAt, job }`; 404 `{ error }` for an unknown id                  | interface |
+| `GET /api/queue/<id>`                         | read   | optional `?marks=1`                                | `{ generatedAt, job }`, with `marks` and `reason` if asked; 404 if unknown | interface |
 | `GET /api/queue/events`                       | read   | optional `?phases=`                                | a held-open `text/event-stream` of queue changes                           | interface |
 | `POST /api/queue/<id>/cancel`                 | action | nothing                                            | `{ ok, job }`; 409 for a finished job, unless its landing is still running | form      |
 | `POST /api/queue/<id>/steps`                  | action | step and checked, for a running job's tail         | `{ ok, job }`                                                              | form      |

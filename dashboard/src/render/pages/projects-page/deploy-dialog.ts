@@ -1,13 +1,12 @@
 // The dialog a Deploy press stands behind from the press until the
 // service runs the newest commit: the board's one progress dialog, with
-// the five steps, already in the reader's language, each in the state
-// `waiting`. The script (`specs-client/deploy/`) opens it on submit and
-// moves one line at a time.
+// the five steps in its step list, already in the reader's language, each
+// in the state `waiting`. The script (`specs-client/deploy/`) opens it on
+// submit and moves one line at a time.
 
 import { renderSentence } from "../../../i18n/message.ts";
 import { t, type Language, type TranslationKey } from "../../../i18n";
 import { progressDialog, rowMessage } from "../../ui/components";
-import { esc } from "../../ui/html.ts";
 
 /** The key of each step's label. */
 export const STEP_LABEL: Record<string, TranslationKey> = {
@@ -19,11 +18,6 @@ export const STEP_LABEL: Record<string, TranslationKey> = {
 };
 
 export function deployDialog(lang: Language): string {
-  const steps = Object.entries(STEP_LABEL).map(
-    ([step, label]) =>
-      `<li data-step="${step}" data-state="waiting">${esc(t(lang, label))} ` +
-      `<span class="deploystate">${esc(t(lang, "deploy.stateWaiting"))}</span></li>`,
-  ).join("");
   return progressDialog(lang, {
     title: t(lang, "deploy.title"),
     data: {
@@ -32,10 +26,8 @@ export function deployDialog(lang: Language): string {
       "failed-at": t(lang, "deploy.failedAt"),
       "no-answer": renderSentence(lang, { key: "landing.deployNoAnswer" }) ?? "",
     },
+    steps: Object.entries(STEP_LABEL).map(([key, label]) => ({ key, label: t(lang, label) })),
     body:
-      `<ol class="deploysteps" data-waiting="${esc(t(lang, "deploy.stateWaiting"))}" ` +
-      `data-running="${esc(t(lang, "deploy.stateRunning"))}" data-done="${esc(t(lang, "deploy.stateDone"))}" ` +
-      `data-failed="${esc(t(lang, "deploy.stateFailed"))}">${steps}</ol>` +
       `<div class="deploymessage"></div>` +
       `<template data-deploy-error>${rowMessage("failed", "", { tag: "p", hook: "deploy-error" })}</template>`,
   });

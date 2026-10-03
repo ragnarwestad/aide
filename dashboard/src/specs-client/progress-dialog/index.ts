@@ -1,11 +1,14 @@
 // The one hold every progress dialog (`render/ui/components/progress-dialog.ts`)
 // is kept open by while its job runs — Close, Reopen, Remove project and
 // Deploy — and the wait behind Close and Reopen: on OK the dialog stands
-// until the queued job has settled, then the page leaves. While a dialog
-// is held, Escape and the browser's own ways of closing it are answered
-// here, and nowhere else.
+// until the queued job has settled, listing the steps its log marks, then
+// the page leaves. While a dialog is held, Escape and the browser's own
+// ways of closing it are answered here, and nowhere else.
 
 import { postForm, writeLine } from "../press.ts";
+import { drawSteps, FAILED_STAYS_MS, type DrawnStep } from "./steps.ts";
+
+export * from "./steps.ts";
 
 /** A poll a second, at most this many: a modal with no buttons must not
  *  stand for ever behind a job that waits on slow jobs of other specs. */
@@ -17,9 +20,19 @@ export interface ProgressJob {
   landing?: boolean;
 }
 
+/** A poll's answer: the job, the steps its log has marked (`marks`), and
+ *  for a job that ended any other way than done, or done with its merge
+ *  into main stopped, why (`reason`). */
+export interface ProgressAnswer {
+  status: number;
+  job?: ProgressJob;
+  marks?: DrawnStep[];
+  reason?: string;
+}
+
 /** Everything the wait touches outside the form, so a test can stand in. */
 export interface ProgressIo {
-  get(url: string): Promise<{ status: number; job?: ProgressJob }>;
+  get(url: string): Promise<ProgressAnswer>;
   sleep(ms: number): Promise<void>;
   go(url: string): void;
   /** `pageshow` with `persisted`: the back/forward cache brought the page
@@ -30,8 +43,8 @@ export interface ProgressIo {
 const browserIo: ProgressIo = {
   get: async (url) => {
     const res = await fetch(url, { headers: { accept: "application/json" } });
-    const body = (await res.json().catch(() => null)) as { job?: ProgressJob } | null;
-    return { status: res.status, job: body?.job };
+    const body = (await res.json().catch(() => null)) as Omit<ProgressAnswer, "status"> | null;
+    return { status: res.status, job: body?.job, marks: body?.marks, reason: body?.reason };
   },
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   go: (url) => {
@@ -46,13 +59,21 @@ const browserIo: ProgressIo = {
 };
 
 /** Polls the job until it is neither queued nor running nor a done job
- *  still landing. Undefined when it gives up: the polls ran out, or the
- *  queue no longer remembers the job. A poll that fails is tried again. */
-export async function settled(id: string, io: ProgressIo, attempts = SETTLE_POLLS): Promise<ProgressJob | undefined> {
+ *  still landing, handing each answer to `onAnswer`. Undefined when it
+ *  gives up: the polls ran out, or the queue no longer remembers the job.
+ *  A poll that fails is tried again. */
+export async function settled(
+  id: string,
+  io: ProgressIo,
+  attempts = SETTLE_POLLS,
+  onAnswer: (answer: ProgressAnswer) => void = () => {},
+): Promise<ProgressJob | undefined> {
   for (let i = 0; i < attempts; i++) {
     try {
-      const { status, job } = await io.get(`/api/queue/${encodeURIComponent(id)}`);
+      const answer = await io.get(`/api/queue/${encodeURIComponent(id)}?marks=1`);
+      const { status, job } = answer;
       if (status === 404) return undefined;
+      onAnswer(answer);
       if (job && job.state !== "queued" && job.state !== "running" && !(job.state === "done" && job.landing)) return job;
     } catch {
       // The server may be restarting: ask again.
@@ -124,15 +145,31 @@ export async function submitProgress(form: HTMLFormElement, event: Event, io: Pr
   const dialog = form.closest("dialog[data-progress-dialog]") as HTMLDialogElement;
   const back = form.dataset.progress ?? "/";
   const done = form.dataset.progressDone ?? "/";
+  // A second OK, after a restore from the back/forward cache, starts with
+  // none of the last job's lines.
+  (dialog.querySelector("ol.progresssteps") as HTMLElement | null)?.replaceChildren();
   const hold = standOpen(dialog, io);
   await postForm(
     form,
     async (answer) => {
       const id = answer?.job?.id;
-      const job = id ? await settled(id, io) : undefined;
+      let reason: string | undefined;
+      const job = id
+        ? await settled(id, io, SETTLE_POLLS, (poll) => {
+            drawSteps(dialog, poll.marks);
+            reason = poll.reason;
+          })
+        : undefined;
       // The spec page says what a failed job did; the list shows what a done
       // one changed. A dialog over the list comes back to it either way. It
       // stands until the next page has replaced this one.
+      // A job that ended any other way, or done with a reason (its merge
+      // into main stopped), says why under its failed step, long enough to
+      // be read, before the page moves on.
+      if (job && (job.state !== "done" || reason)) {
+        say(dialog, reason ?? "");
+        await io.sleep(FAILED_STAYS_MS);
+      }
       io.go(job?.state === "done" ? done : back);
     },
     // The dialog stays open with the reason still typed.
