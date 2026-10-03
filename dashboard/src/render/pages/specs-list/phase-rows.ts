@@ -274,7 +274,8 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
         // No effort control: the line names the AI and the model, and
         // the effort a step runs at is a configuration answer, not a
         // per-row pick.
-        aiModel(g, opts, p.step, busy, live, latest?.model, recordedModel, alreadyRun, latest?.results?.find((x) => x.step === p.step)?.tool) +
+        aiModel(g, opts, p.step, busy, live, latest?.model, recordedModel, alreadyRun,
+          latest?.results?.find((x) => x.step === p.step)?.tool, p.attempts[0]?.modelId ?? p.modelId) +
         `${box}</span></td>`;
       // Does this phase's own file say it ran at all (spec 274/247/284's
       // fallback in `phasesFor`), even with no Cost line recorded? Used
@@ -362,10 +363,11 @@ function aiModel(
   recordedModel?: string,
   alreadyRun = false,
   usedTool?: string,
+  ranModelId?: string,
 ): string {
   const lang = opts.lang ?? "en";
   const ai = aiPicker(g, opts, step, busy, live, used, recordedModel, undefined, alreadyRun, usedTool);
-  const model = modelPicker(g, opts, step, busy, live, used, recordedModel, undefined, alreadyRun);
+  const model = modelPicker(g, opts, step, busy, live, used, recordedModel, undefined, alreadyRun, ranModelId);
   const locked = isArchivedRow(g) || (busy && !live) || alreadyRun;
   // No "(?)" on a phase line: the State column already says what is
   // running, and an archived or already-run phase needs no sentence to
