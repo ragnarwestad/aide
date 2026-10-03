@@ -63,7 +63,7 @@ export const de: Record<TranslationKey, string> = {
   "list.searchHelpBody":
     "Durchsucht projekt:ordner, den Titel, die Beschreibung — die ganze Beschreibung, " +
     "auch den Teil, den die Zeile nicht zeigt.",
-  "list.searchPlaceholder": "ein Wort in einem der drei Felder",
+  "list.searchPlaceholder": "Suche in Projektname, Titel oder Beschreibung",
   "list.searchAriaLabel": "Die Specs durchsuchen",
   "list.searchClearTitle": "Suche löschen",
   "list.search": "Suchen",

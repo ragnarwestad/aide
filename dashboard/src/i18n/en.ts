@@ -64,7 +64,7 @@ export const en = {
   "list.searchHelpBody":
     "Searches the project:folder, the title, the description — the whole description, " +
     "including the part the row does not show.",
-  "list.searchPlaceholder": "a word in any of three fields",
+  "list.searchPlaceholder": "Search in project name, title or description",
   "list.searchAriaLabel": "Search the specs",
   "list.searchClearTitle": "Clear the search",
   "list.search": "Search",

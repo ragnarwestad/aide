@@ -63,7 +63,7 @@ export const es: Record<TranslationKey, string> = {
   "list.searchHelpBody":
     "Busca en proyecto:carpeta, el título, la descripción — la descripción completa, " +
     "incluida la parte que la fila no muestra.",
-  "list.searchPlaceholder": "una palabra en cualquiera de los tres campos",
+  "list.searchPlaceholder": "Buscar en nombre del proyecto, título o descripción",
   "list.searchAriaLabel": "Buscar en las specs",
   "list.searchClearTitle": "Borrar la búsqueda",
   "list.search": "Buscar",

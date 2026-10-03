@@ -63,7 +63,7 @@ export const nb: Record<TranslationKey, string> = {
   "list.searchHelpBody":
     "Søker i prosjekt:mappe, tittelen og beskrivelsen — hele beskrivelsen, også den " +
     "delen raden ikke viser.",
-  "list.searchPlaceholder": "et ord i ett av tre felt",
+  "list.searchPlaceholder": "Søk i prosjektnavn, tittel eller beskrivelse",
   "list.searchAriaLabel": "Søk i specene",
   "list.searchClearTitle": "Tøm søket",
   "list.search": "Søk",
