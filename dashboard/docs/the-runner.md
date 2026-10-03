@@ -301,8 +301,10 @@ the `**Findings:**` line that opens the plan's Plan review section (`plan_review
 or that the plan has no Plan review section, or that the section gives no counts. Code blocks are skipped, and after a
 `## Round N` heading only that round's review counts.
 
-**The acceptance criteria checks.** The project's `criteriaChecks` (`off`, `warn` or `stop`, absent read as
-`warn`) is read from the manifest once and stated in the analyze prompt. At `stop`, a completed analyze whose Plan
+**The acceptance criteria checks.** The level (`off`, `warn` or `stop`) is chosen on the New spec form and passed to
+`create` as `--criteria-checks`. A completed create records it as the `Acceptance criteria checks:` line after
+`Created` in the new spec's Tracking info, whether or not an AI session ran. Analyze reads that line once and states
+it in the prompt; a spec without the line, or with any other value, is read as `off`. At `stop`, a completed analyze whose Plan
 review section's `**Criteria check:**` line names a fault after ` — ` ends `acceptance-criteria`
 (`run-spec/record/criteria-check.sh`, after the scope guard, so a write outside the spec's folder is decided first):
 `ok` false, the commit subject ending `(stopped: acceptance-criteria)`, the error naming each fault, and the result's

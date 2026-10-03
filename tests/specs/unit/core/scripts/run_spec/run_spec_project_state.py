@@ -136,15 +136,17 @@ CRITERIA_CHECKS = json.loads(
 )["cases"]
 
 
-def configure_criteria_checks(workspace, manifest):
-    """Write a case's `criteriaChecks` value into the project's untracked
-    manifest, beside what the fixture already carries; `None` writes no
-    key at all."""
-    path = workspace["project"] / ".aide" / "project.yaml"
-    kept = [l for l in path.read_text().splitlines() if not l.startswith("criteriaChecks:")]
-    if manifest is not None:
-        kept.append(f"criteriaChecks: {manifest}")
+def configure_criteria_checks(workspace, level):
+    """Write a case's level into the spec's own `1-description.md`, as the
+    `Acceptance criteria checks` line in its Tracking info, and commit it;
+    `None` writes no line at all."""
+    path = workspace["specs"] / workspace["folder"] / "1-description.md"
+    kept = [l for l in path.read_text().splitlines() if not l.startswith("- **Acceptance criteria checks:**")]
+    if level is not None:
+        kept.append(f"- **Acceptance criteria checks:** {level}")
     path.write_text("\n".join(kept) + "\n")
+    git(workspace["specs"], "add", "-A")
+    git(workspace["specs"], "commit", "-qm", "record the acceptance criteria checks level", "--allow-empty")
 
 
 # --- spec 352, REQ-7: the bash side of the sentence registry ---------------

@@ -262,10 +262,9 @@ settings row owns, `specsRoot` and `worktreeLinks`, are left out here and carrie
 
 **Two settings tables, one per file** (every setting belongs to exactly one now): `.aide/config`, holding Specs
 path and Install command, and the manifest — headed `.aide/project.yaml`, or the dashboard's `settings.yaml` when
-the project tracks no manifest — holding Worktree links, Preview command, Test command, a **Code landing** row and an
-**Acceptance criteria checks** row, neither of them a config key. The checks row chooses how strictly Analyze checks
-a spec's acceptance criteria — Off, Warn or Stop, Warn when none is chosen — and choosing Warn takes the
-`criteriaChecks` key out of the manifest again. No row's Comment names a file: which table a setting is in already says that. `AIDE_LINT_CMD`
+the project tracks no manifest — holding Worktree links, Preview command, Test command and a **Code landing** row, which is not a config key. How
+strictly Analyze checks a spec's acceptance criteria is not a project setting: it is chosen per spec, on the New
+spec form. No row's Comment names a file: which table a setting is in already says that. `AIDE_LINT_CMD`
 and `AIDE_BUILD_CMD` have no row: the runner never runs them, and the implement step's AI works them out from the
 project's own files unless `.aide/config` sets them. A row whose readiness check failed carries that check's
 sentence inline.
@@ -277,8 +276,7 @@ lands", with the worked-out command beside it as a suggestion.
 **Each table has its own Edit**, on the same line as its own heading, opening only that table for editing
 (`?edit=config` or `?edit=manifest`) — at most one is open at a time. While one is, the other table's Edit stays on
 the page, disabled, rather than disappearing. Opening `.aide/config` turns on two controls, Specs path and Install
-command; opening the manifest turns on five, Worktree links, Preview command, Test command, Code landing and
-Acceptance criteria checks. The
+command; opening the manifest turns on four, Worktree links, Preview command, Test command and Code landing. The
 test field is empty with the worked-out command as its placeholder, so a save that never touched it configures
 nothing. Worktree links has a line of the checkout's own top-level `.gitignore` entries under it. Each open field
 is as wide as its cell and grows to show the whole value; with the board's script on, Enter saves, and a value is
@@ -287,7 +285,7 @@ always one line — a line break in it is folded to a space. Save and Cancel bot
 
 A save writes each value to the file its table names, and to no other file, regardless of where the value
 currently lives: Specs path and Install command to `.aide/config`, which is never committed; Worktree links,
-Preview command, Test command, Code landing and Acceptance criteria checks to the manifest — the project's own `.aide/project.yaml` where it
+Preview command, Test command and Code landing to the manifest — the project's own `.aide/project.yaml` where it
 is tracked, else the dashboard's `settings.yaml`. Unchanged values are not rewritten.
 
 #### Schedule

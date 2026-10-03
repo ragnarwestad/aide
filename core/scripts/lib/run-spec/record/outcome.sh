@@ -149,4 +149,14 @@ if [ -n "$phase_file" ]; then
   if [ -s "$work_dir/phase-file-out" ] && ! cmp -s "$work_dir/phase-file-out" "$phase_file"; then
     cat "$work_dir/phase-file-out" > "$phase_file" 2>/dev/null || true
   fi
+  # The acceptance criteria checks level the New-spec form chose, recorded
+  # in a completed create's own description, where analyze reads it.
+  # Written here rather than by the create session, so both create paths
+  # record it the same way.
+  if [ "$command_name" = "create" ] && [ "$terminal_reason" = "completed" ] && [ -n "${criteria_checks_arg:-}" ]; then
+    if ! { declare -f aide_spec_record_criteria_checks >/dev/null 2>&1 \
+      && aide_spec_record_criteria_checks "$phase_file" "$criteria_checks_arg"; }; then
+      stage "could not record the acceptance criteria checks level $criteria_checks_arg: the description has no Created line, so analyze reads it as off"
+    fi
+  fi
 fi

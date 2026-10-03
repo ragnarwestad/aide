@@ -11,7 +11,7 @@ import pytest
 
 from ...conftest import READ_SPECS, git, init_repo, run
 from ..run_spec_fakes import creating_claude
-from ..run_spec_results import RESULT_OK
+from ..run_spec_results import RESULT_ERROR, RESULT_OK
 from ..run_spec_invoking import CREATE_KEY, SCHEDULE_KEY, create, schedule
 
 
@@ -325,6 +325,71 @@ def test_create_with_no_ai_formulate_finishes_well_under_the_time_limit(runner, 
     claude = fake_claude("exit 1")
     rc, out, _ = create(runner, workspace, claude, no_ai_formulate=True)
     assert rc == 0, out
+
+
+# --- the acceptance criteria checks level chosen on the New spec form ---------
+
+LEVEL_LINE = "- **Acceptance criteria checks:**"
+
+
+def _describing_claude(fake_claude, result):
+    """A stand-in `/aide-create` that writes a description with a Tracking
+    info `Created` line, as aide-create-spec does, then reports `result`."""
+    return fake_claude(
+        "cat > /dev/null\n" + READ_SPECS
+        + f'mkdir -p "$specs/{CREATE_KEY}"\n'
+        + f'printf "%s\\n" "# A new spec - Description" "" "## Tracking info" "" '
+        + f'"- **Task:** \\`{CREATE_KEY}/\\`" "- **Created:** \\`2026-10-03 07:00 UTC\\`" "" "---" '
+        + f'> "$specs/{CREATE_KEY}/1-description.md"\n'
+        + f"echo '{json.dumps(result)}'"
+    )
+
+
+def _created_description(workspace):
+    return git(workspace["specs"], "show", f"aide/{CREATE_KEY}:{CREATE_KEY}/1-description.md")
+
+
+def _line_after_created(text):
+    lines = text.splitlines()
+    at = next(i for i, line in enumerate(lines) if line.startswith("- **Created:**"))
+    return lines[at + 1]
+
+
+def test_a_create_without_ai_records_the_chosen_level_after_created_AC_4(runner, workspace, fake_claude):
+    rc, out, _ = create(runner, workspace, fake_claude("exit 1"), no_ai_formulate=True, criteria_checks="stop")
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert _line_after_created(_created_description(workspace)) == f"{LEVEL_LINE} stop"
+
+
+def test_a_create_with_an_ai_session_records_the_chosen_level_after_created_AC_4(runner, workspace, fake_claude):
+    rc, out, _ = create(runner, workspace, _describing_claude(fake_claude, RESULT_OK), criteria_checks="stop")
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert _line_after_created(_created_description(workspace)) == f"{LEVEL_LINE} stop"
+
+
+def test_a_create_without_the_flag_records_no_level_AC_5(runner, workspace, fake_claude):
+    rc, out, _ = create(runner, workspace, _describing_claude(fake_claude, RESULT_OK))
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert LEVEL_LINE not in _created_description(workspace)
+
+
+def test_a_failed_create_records_no_level_AC_4(runner, workspace, fake_claude):
+    rc, out, _ = create(runner, workspace, _describing_claude(fake_claude, RESULT_ERROR), criteria_checks="stop")
+    assert out["ok"] is False, out
+    written = [p.read_text() for root in (workspace["specs"], workspace["wtbase"]) for p in root.rglob("1-description.md")]
+    assert not any(LEVEL_LINE in text for text in written), written
+    assert LEVEL_LINE not in git(workspace["specs"], "log", "--all", "-p")
+
+
+def test_an_unknown_level_is_refused_before_anything_runs_AC_4(runner, workspace, fake_claude):
+    rc, out, _ = create(runner, workspace, fake_claude("exit 1"), criteria_checks="strict")
+    assert rc == 2, out
+    assert out["ok"] is False, out
+    assert "strict" in out["error"], out
+    assert not fake_claude.calls.exists()
 
 
 def test_schedule_runs_with_no_spec_folder_and_sends_the_file_verbatim(

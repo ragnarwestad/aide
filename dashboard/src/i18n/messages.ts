@@ -116,7 +116,7 @@ export const MESSAGES = {
     fr: "{button} interrompu : le modèle a refusé de continuer. — Cliquez de nouveau sur {button}, ou choisissez un autre modèle pour cette étape.",
     resolve: "Press {button} again, or choose another model for this step.",
   },
-  // An analyze stopped at the project's `criteriaChecks: stop`, with one
+  // An analyze stopped at the spec's `criteriaChecks: stop`, with one
   // inner sentence per kind of fault the plan review named.
   "runner.criteriaStopped": {
     en: "{button} stopped on the acceptance criteria — {message}. — Put the description right, then press {button} again.",

@@ -31,9 +31,6 @@ export interface ProjectPageOptions {
   defaultBranch?: string;
   script?: string;
   codeLanding?: "merge" | "pr";
-  /** How strictly Analyze checks a spec's acceptance criteria; absent
-   *  reads as `warn`. */
-  criteriaChecks?: "off" | "warn" | "stop";
   /** Where the settings are kept (spec 512), so the page says so above
    *  the table. Absent for a page built with no checkout to ask. */
   settingsHome?: "project" | "dashboard" | "shadowed" | "none";

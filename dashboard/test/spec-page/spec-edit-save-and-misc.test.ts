@@ -48,3 +48,36 @@ describe("AC-1 (spec 471): a held-back spec's description stays editable", () =>
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(NEW_TEXT);
   });
 });
+
+// --- the acceptance criteria checks level is chosen at create only ------------
+
+describe("a Description Save and the recorded acceptance criteria checks level", () => {
+  const described = (line: string, body = "As it was.") =>
+    `# Queue and runner - Description\n\n## Tracking info\n\n- **Created:** \`2026-10-03 07:00 UTC\`\n` +
+    `${line}\n---\n\n## Description\n\n${body}\n`;
+  const STOP = "- **Acceptance criteria checks:** stop";
+
+  const save = async (recorded: string, posted: string) => {
+    const { base, dir } = harness.start({ description: recorded, extra: { gitRun: savable("/host") } });
+    const res = await answer(await post(base, { text: posted, baseSha: FILE_SHA }));
+    return { ...res, onDisk: readFileSync(descriptionPath(dir), "utf-8") };
+  };
+
+  test.each([
+    ["changed to off", described(STOP), described("- **Acceptance criteria checks:** off")],
+    ["removed", described(STOP), described("")],
+    ["added where none was recorded", described(""), described(STOP)],
+  ])("a save with the line %s is refused, and the file is left as it was (AC-7)", async (_name, recorded, posted) => {
+    const { status, body, onDisk } = await save(recorded, posted);
+    expect(status).toBe(400);
+    expect(body.error).toContain("Acceptance criteria checks");
+    expect(onDisk).toBe(recorded);
+  });
+
+  test("a save that keeps the line as recorded goes through (AC-7)", async () => {
+    const posted = described(STOP, "As it is now.");
+    const { status, onDisk } = await save(described(STOP), posted);
+    expect(status).toBe(200);
+    expect(onDisk).toBe(posted);
+  });
+});

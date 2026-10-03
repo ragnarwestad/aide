@@ -3,6 +3,7 @@
 
 import type { Sentence } from "../i18n/message.ts";
 import type { JobState, StopReason, WorkflowStep } from "./steps.ts";
+import type { CriteriaChecks } from "../project/discover/criteria-checks.ts";
 
 /** What one step actually metered, as `aide-run-spec` read it out of
  *  claude's own result event (spec 118). `total` is the sum of the other
@@ -200,6 +201,12 @@ export interface Job {
    *  every job created before this field existed behaves exactly as it
    *  always has. Meaningful only for `create`. */
   createNoAiFormulate?: boolean;
+  /** How strictly analyze checks the new spec's acceptance criteria,
+   *  chosen on the New-spec form. Handed to `aide-run-spec` as
+   *  `--criteria-checks`, which records it in the new spec's Tracking
+   *  info; absent records nothing, and analyze reads that as `off`.
+   *  Meaningful only for `create`. */
+  createCriteriaChecks?: CriteriaChecks;
   /** Specs this one builds on, named by folder — the create form's
    *  equivalent of the `Depends on:` line spec 92 gave a reader and no
    *  writer but a person at a shell. Validated against the SAME

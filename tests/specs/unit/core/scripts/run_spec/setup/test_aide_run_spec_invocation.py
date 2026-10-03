@@ -660,19 +660,29 @@ def test_the_prompt_asks_for_the_skill_steps_in_the_log(runner, workspace, fake_
 # --- the acceptance criteria checks level is stated to analyze --------------
 #
 # The same reason as the acceptance-ticking line above: the skill acts on
-# what its prompt says, and the level lives in the project's manifest.
+# what its prompt says, and the level lives in the spec's own description.
 
 @pytest.mark.parametrize("case", CRITERIA_CHECKS, ids=[c["name"] for c in CRITERIA_CHECKS])
-def test_analyze_states_the_projects_criteria_checks_level_AC_1_AC_2(runner, workspace, fake_claude, case):
-    configure_criteria_checks(workspace, case["manifest"])
+def test_analyze_states_the_specs_criteria_checks_level_AC_4_AC_5(runner, workspace, fake_claude, case):
+    configure_criteria_checks(workspace, case["description"])
     rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command="analyze", dry_run=True)
     assert rc == 0, out
     lines = [l for l in out["prompt"].splitlines() if "criteriaChecks:" in l]
     assert len(lines) == 1, out["prompt"]
+    assert "for this spec" in lines[0], lines
     assert lines[0].endswith(f"criteriaChecks: {case['level']}"), lines
 
 
-def test_only_analyze_is_told_the_criteria_checks_level_AC_2(runner, workspace, fake_claude):
+def test_a_manifest_criteria_checks_key_is_not_read_AC_8(runner, workspace, fake_claude):
+    manifest = workspace["project"] / ".aide" / "project.yaml"
+    manifest.write_text(manifest.read_text() + "criteriaChecks: stop\n")
+    rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command="analyze", dry_run=True)
+    assert rc == 0, out
+    lines = [l for l in out["prompt"].splitlines() if "criteriaChecks:" in l]
+    assert lines and lines[0].endswith("criteriaChecks: off"), lines
+
+
+def test_only_analyze_is_told_the_criteria_checks_level_AC_4(runner, workspace, fake_claude):
     configure_criteria_checks(workspace, "stop")
     rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command="implement", dry_run=True)
     assert rc == 0, out

@@ -87,7 +87,8 @@ First write `--- Step 1 of 10: Read the description — started`, and when this 
 - **Learn the acceptance criteria checks level** — `off`, `warn` or
   `stop`, for Steps 6, 7 and 9. A headless run states it in the prompt
   (`criteriaChecks: <level>`). Working interactively, read the
-  manifest's `criteriaChecks` key. Absent or any other value is `warn`.
+  `Acceptance criteria checks:` line in Tracking info of the spec's own
+  `1-description.md`. Absent or any other value is `off`.
 - If `4-status.md` ALSO already carries that same section plus a
   `**Round boundary:**` stamp, this is a held-back spec taking another
   round on its open checks, not a first analysis — see

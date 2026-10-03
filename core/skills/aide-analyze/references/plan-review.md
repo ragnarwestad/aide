@@ -14,7 +14,7 @@ they read only the four spec files on disk, never the conversation that
 produced them. The Feasibility reviewer reads the project's own files as
 well, from the project root the analyst hands it, since whether a part
 exists is not in the spec. The Feasibility and Coherence reviewers are
-both handed the project's acceptance criteria checks level (`off`,
+both handed the spec's acceptance criteria checks level (`off`,
 `warn` or `stop`, Step 1), since that is not in the spec either:
 Feasibility makes the cannot-be-built check, Coherence the other four.
 

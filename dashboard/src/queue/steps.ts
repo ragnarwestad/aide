@@ -191,7 +191,7 @@ export type JobState = (typeof JOB_STATES)[number];
 // own suite on the merged result and it went red, so nothing was pushed.
 // The step did its work and the machinery did its job — the code is not
 // green yet, and the answer is to run implement again.
-// `acceptance-criteria` is an analyze the runner stopped at the project's
+// `acceptance-criteria` is an analyze the runner stopped at the spec's
 // `criteriaChecks: stop`: the description needs putting right first.
 export type StopReason = "timeout" | "provider-limit" | "tests-red" | "acceptance-criteria";
 

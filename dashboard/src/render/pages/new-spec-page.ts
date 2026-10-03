@@ -20,6 +20,7 @@
 import { backLink, btn, field, messageSlot, phaseChip, phases, stepLabel, helpPopover} from "../ui/components";
 import { DESCRIPTION_MAX, TITLE_MAX } from "../../queue/parse-request.ts";
 import { esc } from "../ui/html.ts";
+import type { CriteriaChecks } from "../../project/discover/criteria-checks.ts";
 import { t, type Language } from "../../i18n";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { PHASE_LINES, type SpecsPageOptions, type SpecTarget, type SpecGroup } from "./specs-list";
@@ -254,8 +255,8 @@ function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
 // then gave the switch its own line, above "Depends on" — spec 394's
 // REQ-3 had put it beside that field instead, in one row, which pushed
 // the chip up against "Depends on"'s own "(?)" popover. It now sits on
-// the project picker's own line (`newSpecForm`, below), and its popover
-// opens with the board's default rule.
+// the acceptance criteria row under the project picker (`newSpecForm`,
+// below), and its popover opens with the board's default rule.
 //
 // Said the POSITIVE way, and checked by default. It read "acceptance
 // ticking not required", unticked, which meant "it IS required" — a
@@ -318,6 +319,42 @@ function aiFormulateAcceptanceField(formId: string): string {
   );
 }
 
+/** The three levels of the acceptance criteria checks, in the order the
+ *  select lists them; the values are what the create posts. */
+export const criteriaChecksChoices = (): { value: CriteriaChecks; label: string }[] => [
+  { value: "off", label: "Off" },
+  { value: "warn", label: "Warn" },
+  { value: "stop", label: "Stop" },
+];
+
+// How strictly analyze checks this spec's acceptance criteria. Chosen
+// here, once: the runner records it in the new spec's Tracking info, and
+// nothing on the board changes it afterwards. Off when the form opens,
+// the same level a spec with nothing recorded is checked at. Drawn the
+// way the two switches beside it are — the control on the label's line,
+// the "(?)" at its end — so the three read as one row.
+function criteriaChecksField(): string {
+  const id = "new-spec-criteria-checks";
+  return (
+    `<span class="field"><span class="fieldhead"><span class="row">` +
+    `<label for="${id}">Acceptance criteria checks</label>` +
+    `<select name="criteriaChecks" id="${id}">` +
+    criteriaChecksChoices()
+      .map((o) => `<option value="${o.value}"${o.value === "off" ? " selected" : ""}>${esc(o.label)}</option>`)
+      .join("") +
+    `</select></span>` +
+    `<span class="fieldend">` +
+    helpPopover(
+      "what this does",
+      "How strictly analyze checks this spec's acceptance criteria — that each is written as a " +
+        "testable requirement, has a scenario, contradicts no other and can be built. Off: no " +
+        "checks. Warn: the plan review lists what it finds, and analyze completes. Stop: analyze " +
+        "stops until the criteria are put right. Chosen here, and not changed after the spec is created.",
+    ) +
+    `</span></span></span>`
+  );
+}
+
 // The fields needed to make the spec: which project, its phase table,
 // what it builds on, its title and its description.
 //
@@ -328,8 +365,8 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
   const formId = "new-spec-form";
   const chosen = projects.find((p) => p === opts.prefill?.project);
   // Spec 553: what is used every time comes first — Project, with
-  // Create at the far right of its label line and the two acceptance
-  // switches on the picker's own line; then Title; then Description.
+  // Create at the far right of its label line; then the three acceptance
+  // criteria controls on a row of their own; then Title; then Description.
   // Depends on and the phase table, seldom touched, come last. Each
   // `.frow` is a full-width row inside the same wrapping flex the Add
   // form shares, so the shared `.pageform` look is untouched.
@@ -337,27 +374,28 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
     `<form method="post" action="/api/queue/create" class="pageform newspecform" id="${formId}">` +
     field(
       "Project",
-      // One line: the picker, then the two check boxes after it, wrapping
-      // onto the lines below where the screen has no room for all three.
-      `<span class="row">` +
-        // Nothing is chosen for the reader: the first project in the list was
-        // where every untouched form used to land. `required` is what makes the
-        // browser refuse the empty placeholder at the field, as it does for the
-        // title and the description below. `id` is what `for` below points at.
-        `<select name="project" id="new-spec-project" required>` +
+      // Nothing is chosen for the reader: the first project in the list was
+      // where every untouched form used to land. `required` is what makes the
+      // browser refuse the empty placeholder at the field, as it does for the
+      // title and the description below. `id` is what `for` below points at.
+      `<select name="project" id="new-spec-project" required>` +
         `<option value=""${chosen ? "" : " selected"}>Choose a project…</option>` +
         projects.map((p) => `<option value="${esc(p)}"${p === chosen ? " selected" : ""}>${esc(p)}</option>`).join("") +
-        `</select>` +
-        acceptanceField(formId) +
-        aiFormulateAcceptanceField(formId) +
-        `</span>`,
+        `</select>`,
       // `wide` makes the head as wide as the Title box, so Create ends at
       // that box's right edge. `for` makes the word "Project" alone the
-      // label for the picker, so the head can hold Create and the control
-      // can hold the check boxes' own labels without nesting either inside
-      // a label, and a click on the word reaches the picker, never Create.
+      // label for the picker, so the head can hold Create without nesting
+      // it inside a label, and a click on the word reaches the picker,
+      // never Create.
       { wide: true, for: "new-spec-project", actions: btn({ label: "Create", variant: "primary", pending: "creating…" }) },
     ) +
+    // The three acceptance criteria controls, on a row of their own,
+    // wrapping where the screen has no room for all three.
+    `<span class="frow row">` +
+    acceptanceField(formId) +
+    aiFormulateAcceptanceField(formId) +
+    criteriaChecksField() +
+    `</span>` +
     field(
       "Title",
       `<input type="text" name="title" maxlength="${TITLE_MAX}" required ` +

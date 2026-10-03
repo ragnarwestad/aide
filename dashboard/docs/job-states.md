@@ -107,7 +107,7 @@ queued `create`, `archive` or `close` step â€” the ones that do no model work â€
   `timeout` or `provider-limit` step, with something pushed, and no code root among it; a stopped `implement` whose
   code branch was pushed lands nothing, and that code waits for `archive`. A landing that does run leaves the job's
   `error` in place: it is the reason the step stopped, not a fault the landing resolved.
-- `acceptance-criteria` gives `stopped` too: an analyze the runner stopped at the project's `criteriaChecks: stop`.
+- `acceptance-criteria` gives `stopped` too: an analyze the runner stopped at the spec's `criteriaChecks: stop`.
   Its `error` names each fault the plan review found, by kind, from the result's `criteriaFaults`, and is the
   runner's own sentence when that lists none. It lands nothing: the analysis stays on the spec's branch, where the
   next Analyze takes it up.

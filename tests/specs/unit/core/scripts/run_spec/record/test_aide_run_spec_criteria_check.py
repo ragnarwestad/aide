@@ -1,4 +1,4 @@
-"""At `criteriaChecks: stop`, an analyze whose plan review names a fault in
+"""At a spec's `criteriaChecks: stop`, an analyze whose plan review names a fault in
 its `**Criteria check:**` line ends stopped on the acceptance criteria;
 at `off` and `warn` it completes. The runner reads the line the analyze
 skill writes and never judges the criteria itself.
@@ -173,7 +173,7 @@ def test_a_scope_violation_is_decided_before_the_criteria_AC_4(runner, workspace
     assert out["terminalReason"] == "scope-violation", out
 
 
-def test_a_fault_at_off_completes_AC_2(runner, workspace, fake_claude):
+def test_a_fault_at_off_completes_AC_4(runner, workspace, fake_claude):
     out, _ = _analyze(runner, workspace, fake_claude, "off", "**Criteria check:** stop — not in EARS: AC-1")
     assert out["terminalReason"] == "completed", out
 
@@ -186,7 +186,7 @@ def test_faults_at_warn_complete_the_analysis_AC_3(runner, workspace, fake_claud
     assert out["terminalReason"] == "completed", out
 
 
-def test_faults_with_no_level_written_complete_the_analysis_AC_3(runner, workspace, fake_claude):
+def test_faults_with_no_level_recorded_complete_the_analysis_AC_5(runner, workspace, fake_claude):
     out, _ = _analyze(runner, workspace, fake_claude, None, "**Criteria check:** warn — not in EARS: AC-2")
     assert out["terminalReason"] == "completed", out
 

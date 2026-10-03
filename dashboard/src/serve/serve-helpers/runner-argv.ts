@@ -178,6 +178,9 @@ export function runnerArgv(
     // — absent produces byte-for-byte the argv every caller before this
     // flag existed already produces.
     ...(step === "create" && job.createNoAiFormulate ? ["--no-ai-formulate"] : []),
+    // Only a `create` whose form chose a level: the runner records it in
+    // the new spec's Tracking info, where analyze reads it.
+    ...(step === "create" && job.createCriteriaChecks ? ["--criteria-checks", job.createCriteriaChecks] : []),
     ...(step === "analyze" && o.acceptanceNotRequiredForAnalyze ? ["--acceptance-not-required"] : []),
     // spec 511: only a `reopen` job that asked for it — absent, the
     // runner keeps the analysis, the plan and the status.

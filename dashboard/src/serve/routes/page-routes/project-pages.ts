@@ -7,7 +7,7 @@
 // three be asked one after another exactly as the chain read before.
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { buildProjectViews, manifestInside, gitignoreCandidates, resolveCodeLanding, resolveCriteriaChecks, resolveInstallCmd } from "../../../project/discover";
+import { buildProjectViews, manifestInside, gitignoreCandidates, resolveCodeLanding, resolveInstallCmd } from "../../../project/discover";
 import { groupForEditParam, projectSettings } from "../../../project/project-settings.ts";
 import { lastChecks } from "../../tool-check.ts";
 import { lastUsage } from "../../tool-usage";
@@ -232,7 +232,6 @@ export async function projectPages(
         // cells straight off those same rows — one read per row's
         // data, not two that could drift.
         codeLanding: resolveCodeLanding(manifestDir),
-        criteriaChecks: resolveCriteriaChecks(manifestDir),
         settingsHome: settingsHome(
           // Fail open like the readiness above: a git that is not there
           // leaves the page standing, and counts as "cannot say".

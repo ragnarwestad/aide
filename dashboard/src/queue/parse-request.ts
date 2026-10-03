@@ -10,6 +10,7 @@
 //     something an HTTP body gets to decide
 
 import { errorSentence } from "../format/error-sentence.ts";
+import { parseCriteriaChecks } from "../project/discover/criteria-checks.ts";
 import { listedModelName } from "./model-name.ts";
 import { ARCHIVE_ONLY_STEP, EFFORT_LEVELS, PHASE_STEPS, WORKFLOW_STEPS, wikiTrackingKey, type WorkflowStep } from "./steps.ts";
 import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "./types.ts";
@@ -457,18 +458,16 @@ export function parseCreateRequest(
   }
 
   // Whether this run says acceptance ticking is not required (spec
-  // 386) — the same whole-job checkbox `parseJobRequest` parses, so
-  // the New-spec page and a spec row's Run form agree on the shape.
-  // The form posts what it says: ticked means the ticking IS required.
-  // A checkbox sends nothing when it is clear, so absent is "not
-  // required" — the one asymmetry HTML forces, and the only place it
-  // has to be thought about.
+  // 386). The form posts what it says: ticked means it IS required, and
+  // a cleared checkbox sends nothing, so absent is "not required".
   const acceptanceRequired = r.acceptanceRequired === "1" || r.acceptanceRequired === true;
 
   // Whether AI formulates this create's acceptance criteria at all (spec
   // 433) — the same checked-by-default, posts-when-ticked shape as
   // `acceptanceRequired` above, inverted onto the job the same way.
   const aiFormulateAcceptance = r.aiFormulateAcceptance === "1" || r.aiFormulateAcceptance === true;
+  const criteriaChecks = parseCriteriaChecks(r.criteriaChecks);
+  if ("error" in criteriaChecks) return { ok: false, error: invalidRequest(criteriaChecks.error) };
 
   return {
     ok: true,
@@ -491,6 +490,7 @@ export function parseCreateRequest(
       ...(dependsOn.length ? { createDependsOn: dependsOn } : {}),
       ...(acceptanceRequired ? {} : { acceptanceNotRequired: true }),
       ...(aiFormulateAcceptance ? {} : { createNoAiFormulate: true }),
+      ...(criteriaChecks.level ? { createCriteriaChecks: criteriaChecks.level } : {}),
       createdAt: new Date().toISOString(),
       results: [],
       spentUsd: 0,

@@ -444,6 +444,30 @@ describe("parseCreateRequest — aiFormulateAcceptance", () => {
   );
 });
 
+// --- how strictly analyze checks the new spec's acceptance criteria ---------
+
+describe("parseCreateRequest — criteriaChecks", () => {
+  const allow = (project: string) => project === "aide";
+  const CREATE = { project: "aide", title: "A new spec", description: "Do the thing" };
+
+  test.each([["off"], ["warn"], ["stop"]])("%p is carried on the job (AC-4)", (level) => {
+    const r = parseCreateRequest({ ...CREATE, criteriaChecks: level }, { allow, defaults: DEFAULTS });
+    expect(r.ok && r.job.createCriteriaChecks).toBe(level as "off" | "warn" | "stop");
+  });
+
+  test("absent leaves the job with no level (AC-4)", () => {
+    const r = parseCreateRequest(CREATE, { allow, defaults: DEFAULTS });
+    expect(r.ok).toBe(true);
+    expect(r.ok && "createCriteriaChecks" in r.job).toBe(false);
+  });
+
+  test("any other value is refused, and no job is made (AC-4)", () => {
+    const r = parseCreateRequest({ ...CREATE, criteriaChecks: "strict" }, { allow, defaults: DEFAULTS });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toContain("strict");
+  });
+});
+
 // --- spec 513: a close reason is held to the description's bound ---------------
 
 describe("a close request's reason", () => {

@@ -46,14 +46,6 @@ export const codeLandingChoices = (defaultBranch: string | null): { value: "merg
   { value: "pr", label: "Create a pull request" },
 ];
 
-/** The three levels of the acceptance criteria checks, in the order the
- *  row lists them; the values are what the manifest stores. */
-export const criteriaChecksChoices = (): { value: "off" | "warn" | "stop"; label: string }[] => [
-  { value: "off", label: "Off" },
-  { value: "warn", label: "Warn" },
-  { value: "stop", label: "Stop" },
-];
-
 /** A row's Value cell: plain text in view mode; a one-line
  *  `<textarea data-oneline>`, pre-filled from the
  *  row's own current value, otherwise. A textarea wraps a long value,
@@ -116,15 +108,6 @@ function codeLandingRow(codeLanding: "merge" | "pr", isEditingThis: boolean, def
   return choiceRow(
     "Code landing", "codeLanding", codeLandingChoices(defaultBranch), codeLanding, isEditingThis,
     "What happens to code when a spec is archived",
-  );
-}
-
-/** The acceptance criteria checks row, after Code landing, built from
- *  what `resolveCriteriaChecks()` answers. */
-function criteriaChecksRow(criteriaChecks: "off" | "warn" | "stop", isEditingThis: boolean): string {
-  return choiceRow(
-    "Acceptance criteria checks", "criteriaChecks", criteriaChecksChoices(), criteriaChecks, isEditingThis,
-    "How strictly Analyze checks a spec's acceptance criteria",
   );
 }
 
@@ -213,7 +196,6 @@ export function unifiedSettingsTable(
 ): string {
   const path = projectPagePath(name);
   const codeLanding = opts.codeLanding ?? "merge";
-  const criteriaChecks = opts.criteriaChecks ?? "warn";
   const rowFor = (key: string): SettingRow | undefined => settings.rows.find((r) => r.key === key);
   const tables = SETTING_GROUPS.map((group) => {
     const isEditingThis = editingGroup === group.file;
@@ -225,8 +207,7 @@ export function unifiedSettingsTable(
     const heading = group.file === ".aide/config" ? ".aide/config" : manifestFileHeading(opts.settingsHome);
     const withChoices =
       group.file === "manifest"
-        ? rows + codeLandingRow(codeLanding, isEditingThis, opts.defaultBranch ?? null) +
-          criteriaChecksRow(criteriaChecks, isEditingThis)
+        ? rows + codeLandingRow(codeLanding, isEditingThis, opts.defaultBranch ?? null)
         : rows;
     return settingsTableFor(heading, withChoices, settingsTableActions(group.file, editingGroup, path));
   });

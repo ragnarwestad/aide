@@ -1,20 +1,17 @@
 {
   "_comment": [
-    "How a project's acceptance criteria checks level resolves, as one table both",
-    "implementations are checked against. `aide-run-spec` (bash, aide_manifest_get) and the",
-    "dashboard's resolveCriteriaChecks() (TypeScript) read it independently — the pair is",
-    "hand-kept, like the code landing, so the agreement is asserted rather than assumed.",
+    "How a spec's acceptance criteria checks level resolves for analyze.",
+    "`aide-run-spec` reads it off the spec's own 1-description.md (aide_spec_criteria_checks).",
     "",
-    "`manifest` is the value written as `criteriaChecks: <value>` in .aide/project.yaml,",
-    "exactly as written (quotes included); null means the key is not written at all.",
-    "`level` is what both sides must resolve to: absent or unknown is warn."
+    "`description` is the value written after `- **Acceptance criteria checks:**` in the",
+    "description's Tracking info; null means the line is not written at all.",
+    "`level` is what analyze is told: absent or unknown is off."
   ],
   "cases": [
-    { "name": "unset", "manifest": null, "level": "warn" },
-    { "name": "off", "manifest": "off", "level": "off" },
-    { "name": "warn", "manifest": "warn", "level": "warn" },
-    { "name": "stop", "manifest": "stop", "level": "stop" },
-    { "name": "a-quoted-value-is-read-without-its-quotes", "manifest": "\"stop\"", "level": "stop" },
-    { "name": "an-unknown-value-is-warn", "manifest": "strict", "level": "warn" }
+    { "name": "unset", "description": null, "level": "off" },
+    { "name": "off", "description": "off", "level": "off" },
+    { "name": "warn", "description": "warn", "level": "warn" },
+    { "name": "stop", "description": "stop", "level": "stop" },
+    { "name": "an-unknown-value-is-off", "description": "strict", "level": "off" }
   ]
 }

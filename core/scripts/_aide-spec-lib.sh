@@ -171,6 +171,36 @@ aide_spec_dependencies() {
     | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | grep -v '^$' || true
 }
 
+# How strictly analyze checks the spec's acceptance criteria: the value of
+# the optional "Acceptance criteria checks:" line in its OWN
+# 1-description.md, as written. Nothing for a missing file or line, which
+# the caller reads as off — same shape as aide_spec_dependencies.
+#   aide_spec_criteria_checks <specs-root> <spec-folder>
+aide_spec_criteria_checks() {
+  local file="$1/$2/1-description.md"
+  [ -f "$file" ] || return 0
+  sed -n 's/^[[:space:]]*-[[:space:]]*\*\*Acceptance criteria checks:\*\*[[:space:]]*//p' "$file" \
+    | head -1 | sed 's/[[:space:]]*$//'
+}
+
+# Record the level a create chose: drop any "Acceptance criteria checks:"
+# line in the description, and write the new one directly after its
+# "Created:" line. Fails, writing nothing, when there is no Created line.
+#   aide_spec_record_criteria_checks <description-file> <level>
+aide_spec_record_criteria_checks() {
+  local file="$1" level="$2" tmp
+  [ -f "$file" ] || return 1
+  grep -q '^[[:space:]]*-[[:space:]]*\*\*Created:\*\*' "$file" || return 1
+  tmp="$(mktemp "${file}.XXXXXX")" || return 1
+  awk -v line="- **Acceptance criteria checks:** $level" '
+    /^[[:space:]]*-[[:space:]]*\*\*Acceptance criteria checks:\*\*/ { next }
+    { print }
+    !done && /^[[:space:]]*-[[:space:]]*\*\*Created:\*\*/ { print line; done = 1 }
+  ' "$file" > "$tmp" || { rm -f "$tmp"; return 1; }
+  cat "$tmp" > "$file"
+  rm -f "$tmp"
+}
+
 # The three files a work round fills in — 2-analysis.md, 3-solution.md
 # and 4-status.md — written fresh from the templates in
 # core/skills/aide-create/references/file-templates.md. One writer for

@@ -196,17 +196,18 @@ Acceptance ticking is not required for this run: per Step 8, do not write the ac
   reason_line=""
   [ "$command_name" = "close" ] && [ -n "$reason" ] && reason_line="
 Use exactly this reason when closing the spec: $reason"
-  # How strictly analyze checks the acceptance criteria: the manifest's
-  # `criteriaChecks`, absent or unknown read as warn. Read once here;
+  # How strictly analyze checks the acceptance criteria: the spec's own
+  # `Acceptance criteria checks:` line, recorded when it was created;
+  # absent or unknown read as off. Read once here;
   # run-spec/record/criteria-check.sh acts on the same value after the
-  # turn. `resolveCriteriaChecks` is the TypeScript half of this pair,
-  # and tests/fixtures/criteria-checks-level.json the table both read.
+  # turn. tests/fixtures/criteria-checks-level.json is the table.
   criteria_checks=""
-  declare -f aide_manifest_get >/dev/null 2>&1 && criteria_checks="$(aide_manifest_get criteriaChecks "$project_root")"
-  case "$criteria_checks" in off|warn|stop) ;; *) criteria_checks="warn" ;; esac
+  declare -f aide_spec_criteria_checks >/dev/null 2>&1 \
+    && criteria_checks="$(aide_spec_criteria_checks "$specs_root" "$spec_folder")"
+  case "$criteria_checks" in off|warn|stop) ;; *) criteria_checks="off" ;; esac
   criteria_line=""
   [ "$command_name" = "analyze" ] && criteria_line="
-The acceptance criteria checks for this project, per Step 1: criteriaChecks: $criteria_checks"
+The acceptance criteria checks for this spec, per Step 1: criteriaChecks: $criteria_checks"
   prompt="$(skill_call "aide-$command_name" "$spec_id")$acceptance_line$criteria_line$reason_line
 $step_log_note
 $headless_note"

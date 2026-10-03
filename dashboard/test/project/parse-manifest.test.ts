@@ -118,14 +118,9 @@ describe("schedule", () => {
 });
 
 describe("criteriaChecks", () => {
-  test("each level parses, and an unknown one is left absent (AC-1)", () => {
-    for (const value of ["off", "warn", "stop"] as const) {
-      const result = parseManifest(`name: x\ncriteriaChecks: ${value}\n`);
-      if (!result.ok) throw new Error(result.error);
-      expect(result.data.criteriaChecks).toBe(value);
-    }
-    const unknown = parseManifest("name: x\ncriteriaChecks: strict\n");
-    if (!unknown.ok) throw new Error(unknown.error);
-    expect(unknown.data.criteriaChecks).toBeUndefined();
+  test("a manifest's criteriaChecks key is not read (AC-8)", () => {
+    const result = parseManifest("name: x\ncriteriaChecks: stop\n");
+    if (!result.ok) throw new Error(result.error);
+    expect(result.data).not.toHaveProperty("criteriaChecks");
   });
 });

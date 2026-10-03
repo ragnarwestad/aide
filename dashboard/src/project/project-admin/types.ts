@@ -16,7 +16,6 @@ export type ProjectStepName =
   | "specsConfig"
   | "worktreeLinks"
   | "codeLanding"
-  | "criteriaChecks"
   | "installCmd"
   | "previewCmd"
   | "testCmd"

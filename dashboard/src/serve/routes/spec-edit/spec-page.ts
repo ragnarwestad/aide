@@ -5,7 +5,8 @@
 import { refreshTestServerStatus, startTestServer } from "../../test-servers/lifecycle.ts";
 import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "./test-server-waiting.ts";
 import { pullFastForward, saveSpecFiles } from "../../../git/specs-pull.ts";
-import { resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
+import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
+import { criteriaChecksIn, specFileText } from "../../../project/discover";
 import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, renderSpecPageFailedRest, renderSpecPageHead, renderSpecPageRest, resolveBackHref, resolveSpecTab, specTabPath } from "../../../render";
 import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, languageChoice, logRefusal, readBounded, specsClientScript, streamedPage } from "../../serve-helpers";
 
@@ -244,6 +245,22 @@ export async function specPageRoutes(
     // cached answer: a branch opened moments ago by `create` or
     // `analyze` must be seen by the very next Save press.
     const branchTarget = await resolveOpenBranchTarget(ctx, dir, specFolder!, file, true);
+    // The acceptance criteria checks level is chosen when the spec is
+    // created and recorded in the description's Tracking info, so a save
+    // that would change, remove or add that line is refused. Compared with
+    // the description where this save writes, as the tracking route reads it.
+    if (file === EDITABLE_SPEC_FILE) {
+      const current = branchTarget
+        ? (await readStatusFromBranch(ctx.gitRun, branchTarget.root, branchTarget.branch, branchTarget.relPath))?.text ?? null
+        : specFileText(dir, file);
+      if (current !== null && criteriaChecksIn(text) !== criteriaChecksIn(current)) {
+        const reason =
+          "the acceptance criteria checks level is chosen when a spec is created and cannot be changed — " +
+          "put the Acceptance criteria checks line back as it was, then save again";
+        logRefusal("save", `${project}/${specFolder}`, reason);
+        return json({ error: reason }, 400);
+      }
+    }
     const result = branchTarget
       ? await ctx.mergeLock.run(branchTarget.root, () =>
           writeStatusToBranch(

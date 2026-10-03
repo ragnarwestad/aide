@@ -99,10 +99,6 @@ First write `--- Step 4 of 5: Write and stamp — started`, and when this step e
   remove one.** It names where the project keeps its reusable parts,
   which `/aide-analyze` reads before it plans; which parts count is the
   team's choice, and nothing in the code says it
-- **Leave a `criteriaChecks:` key exactly as found — never propose one,
-  never remove one.** It says how strictly `/aide-analyze` checks a
-  spec's acceptance criteria (`off`, `warn` or `stop`), set from the
-  dashboard's Settings
 
 ### Step 5 of 5: Confirm
 

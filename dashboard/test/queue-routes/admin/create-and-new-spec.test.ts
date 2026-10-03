@@ -55,6 +55,38 @@ describe("--no-ai-formulate reaches the runner only when the job says so", () =>
   });
 });
 
+// --- the new spec's acceptance criteria checks level --------------------------
+
+describe("--criteria-checks reaches the runner only for a create that chose a level", () => {
+  const job = (step: string, level?: string) =>
+    ({
+      project: "aide", specFolder: "new-abc123de", steps: [step],
+      timeoutSec: 2700, permissionMode: {}, model: {},
+      createTitle: "A new spec", createDescription: "Do the thing",
+      ...(level ? { createCriteriaChecks: level } : {}),
+    }) as unknown as Parameters<typeof import("../../../src/serve/serve.ts").runnerArgv>[0];
+
+  const argvFor = async (step: string, level?: string) => {
+    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    return runnerArgv(job(step, level), step, "/tmp/r.json", {
+      runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
+    });
+  };
+
+  test("a create with Stop chosen passes --criteria-checks stop (AC-4)", async () => {
+    const argv = await argvFor("create", "stop");
+    expect(argv[argv.indexOf("--criteria-checks") + 1]).toBe("stop");
+  });
+
+  test("a create without a level passes no flag (AC-4)", async () => {
+    expect(await argvFor("create")).not.toContain("--criteria-checks");
+  });
+
+  test.each([["analyze"], ["implement"]])("never for %s (AC-4)", async (step) => {
+    expect(await argvFor(step, "stop")).not.toContain("--criteria-checks");
+  });
+});
+
 // --- spec 110: what a new spec builds on --------------------------------------
 
 describe("a chosen dependency reaches the runner and the page", () => {

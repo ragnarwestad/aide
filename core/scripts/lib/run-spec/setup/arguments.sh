@@ -87,6 +87,11 @@ acceptance_not_required="no"
 # validate, and its absence is the byte-for-byte behaviour every caller
 # before this flag existed already has.
 no_ai_formulate="no"
+# How strictly analyze checks the new spec's acceptance criteria, chosen
+# on the New-spec form: off, warn or stop. A `create` that completes
+# records it in the new spec's Tracking info, where analyze reads it.
+# Empty records nothing, which analyze reads as off.
+criteria_checks_arg=""
 # `reopen` only: also put the analysis, the plan and the status back to their
 # templates. Without it a reopen keeps every file and runs no model.
 reset_files="no"
@@ -136,6 +141,7 @@ while [ $# -gt 0 ]; do
     --reason) reason="${2:-}"; shift 2 ;;
     --acceptance-not-required) acceptance_not_required="yes"; shift ;;
     --no-ai-formulate) no_ai_formulate="yes"; shift ;;
+    --criteria-checks) criteria_checks_arg="${2:-}"; shift 2 ;;
     --reset-files) reset_files="yes"; shift ;;
     --wiki-refresh) wiki_refresh="yes"; shift ;;
     --prompt-file) prompt_file="${2:-}"; shift 2 ;;
@@ -221,6 +227,11 @@ step_button="$(printf '%s' "$command_name" | awk '{ print toupper(substr($0, 1, 
 case "$push_mode" in
   none|branch|pr) ;;
   *) refuse "invalid --push: $push_mode (none, branch or pr)" ;;
+esac
+
+case "$criteria_checks_arg" in
+  ""|off|warn|stop) ;;
+  *) refuse "invalid --criteria-checks: $criteria_checks_arg (off, warn or stop)" ;;
 esac
 
 # `fake-claude` is Claude Code's own path with the binary swapped: same

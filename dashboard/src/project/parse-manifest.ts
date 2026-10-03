@@ -46,11 +46,6 @@ export interface ManifestData {
    *  through, so no reader downstream has to decide for itself what a
    *  word it has never heard means. */
   codeLanding?: "merge" | "pr";
-  /** How strictly `/aide-analyze` checks a spec's acceptance criteria:
-   *  `off`, `warn` or `stop`. Validated like `codeLanding`: a word this
-   *  does not recognize is left absent, which the resolver reads as
-   *  `warn`. */
-  criteriaChecks?: "off" | "warn" | "stop";
   /** What installing this project means, and its own test command —
    *  read the same way as `worktreeLinks` (spec 345):
    *  `.aide/config`'s `AIDE_INSTALL_CMD` overrides it per machine when
@@ -149,8 +144,6 @@ export function parseManifest(text: string): ManifestResult {
   // safe default the same way an absent key does.
   const landing = toStr(r.codeLanding)?.trim();
   if (landing === "merge" || landing === "pr") data.codeLanding = landing;
-  const criteria = toStr(r.criteriaChecks)?.trim();
-  if (criteria === "off" || criteria === "warn" || criteria === "stop") data.criteriaChecks = criteria;
 
   return { ok: true, data };
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-spec/record/criteria-check.sh — at `criteriaChecks: stop`, an analyze
+# run-spec/record/criteria-check.sh — at a spec's `criteriaChecks: stop`, an analyze
 # whose plan review names a fault in the acceptance criteria ends stopped.
 #
 # Sourced by aide-run-spec after run-spec/record/specs-guard.sh, so a write
@@ -13,7 +13,8 @@
 # joined by `; `, or `none found`. The runner reads that line and never
 # judges the criteria itself: any text after ` — ` other than `none found`
 # is a fault, and a line it cannot find is said in the log, not stopped on.
-# `criteria_checks` was read from the manifest in run-spec/setup/invocation.sh.
+# `criteria_checks` was read from the spec's own description in
+# run-spec/setup/invocation.sh.
 
 if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ] && [ "${criteria_checks:-}" = "stop" ]; then
   criteria_check_read="$(plan_review_field "$specs_root_wt/$spec_label/3-solution.md" "Criteria check")" || criteria_check_read=""

@@ -122,6 +122,12 @@ Number, created date, expected duration
   stays `queued`, starts itself once the dependency merges, and is
   cancellable. Run by hand, it still refuses immediately — there is no
   scheduler there to park it against
+- Optionally an `Acceptance criteria checks:` line in Tracking info —
+  `off`, `warn` or `stop` — saying how strictly `/aide-analyze` checks
+  the spec's acceptance criteria. `aide-run-spec` writes it after a
+  create from the dashboard's New spec form; absent, or any other value,
+  is `off`. It is chosen once: the dashboard refuses a Description save
+  that changes, removes or adds it
 - Acceptance criteria is OPTIONAL: a flat bullet list, id in bold
   (`**AC-n:**`), one sentence per id in one of the five EARS patterns
   below — no table, no nested lists, so both the definition and any

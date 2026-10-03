@@ -62,10 +62,10 @@ td form { margin: 0; display: inline-block; }
   flex-wrap: wrap; margin-top: var(--sp-3); }
 .pageform .refused { flex-basis: 100%; }
 /* Spec 553: the /new form's rows, read top to bottom — Project (one
-   wide field, Create at the far end of its label line and the two
-   acceptance switches on the picker's line), then Title, then
-   Description, then Depends on, then the phase table. Every row but
-   the first takes the full width of the wrapping flex as a `.frow`. */
+   wide field, Create at the far end of its label line), then the three
+   acceptance criteria controls, then Title, then Description, then
+   Depends on, then the phase table. Every row but Project and Title
+   takes the full width of the wrapping flex as a `.frow`. */
 .pageform .frow { display: flex; gap: var(--sp-4); align-items: flex-start;
   flex-basis: 100%; }
 .pageform .frow .field.wide { flex: 1 1 0; }

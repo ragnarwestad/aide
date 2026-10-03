@@ -7,7 +7,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  acceptanceNotRequiredIn, specAcceptanceNotRequired, stripAcceptanceLine, withAcceptanceLine,
+  acceptanceNotRequiredIn, criteriaChecksIn, specAcceptanceNotRequired, stripAcceptanceLine, withAcceptanceLine,
 } from "../../../src/project/discover";
 
 describe("specAcceptanceNotRequired", () => {
@@ -96,5 +96,23 @@ describe("specAcceptanceNotRequired", () => {
       const d = spec("03-roundtrip", withAcceptanceLine(DESC(), true)!);
       expect(specAcceptanceNotRequired(d)).toBe(true);
     });
+  });
+});
+
+// The `Acceptance criteria checks:` line, which the runner writes after a
+// create and the Description Save holds as it was recorded.
+describe("criteriaChecksIn", () => {
+  const DESC = (line: string) =>
+    `# X - Description\n\n## Tracking info\n\n- **Task:** \`09-x/\`\n- **Created:** \`2026-10-03\`\n` +
+    `${line}\n---\n\n## Description\n\nBody.\n`;
+
+  test("gives the line's value as written (AC-7)", () => {
+    expect(criteriaChecksIn(DESC("- **Acceptance criteria checks:** stop"))).toBe("stop");
+    expect(criteriaChecksIn(DESC("- **Acceptance criteria checks:** strict"))).toBe("strict");
+  });
+
+  test("gives null for a description without the line (AC-7)", () => {
+    expect(criteriaChecksIn(DESC(""))).toBeNull();
+    expect(criteriaChecksIn(DESC("- **Acceptance:** not required"))).toBeNull();
   });
 });
