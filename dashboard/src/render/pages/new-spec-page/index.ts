@@ -17,14 +17,15 @@
 // Modelled on `projects-page.ts`, which is the other served page with
 // real forms on it: same shell, same guard, same top-of-page refusal.
 
-import { backLink, btn, field, messageSlot, phaseChip, phases, stepLabel, helpPopover} from "../ui/components";
-import { DESCRIPTION_MAX, TITLE_MAX } from "../../queue/parse-request.ts";
-import { esc } from "../ui/html.ts";
-import type { CriteriaChecks } from "../../project/discover/criteria-checks.ts";
-import { t, type Language } from "../../i18n";
-import { pageShell, type NavEntry } from "../ui/shell.ts";
-import { PHASE_LINES, type SpecsPageOptions, type SpecTarget, type SpecGroup } from "./specs-list";
-import { aiPicker, modelPicker, phaseCaptionCells, type PickerOptions } from "./specs-list/model-picker.ts";
+import { backLink, btn, field, messageSlot, phaseChip, phases, helpPopover} from "../../ui/components";
+import { DESCRIPTION_MAX, TITLE_MAX } from "../../../queue/parse-request.ts";
+import { esc } from "../../ui/html.ts";
+import { t, type Language } from "../../../i18n";
+import { pageShell, type NavEntry } from "../../ui/shell.ts";
+import { pickTab, tabBar } from "../../ui/tabs.ts";
+import { NEW_SPEC_ROUTE } from "../projects-page/routes.ts";
+import type { SpecsPageOptions, SpecTarget } from "../specs-list";
+import { optionsTab } from "./options-tab.ts";
 
 export interface NewSpecPageOptions {
   /** What a failed create had typed (spec 506): the form opens with it
@@ -62,6 +63,9 @@ export interface NewSpecPageOptions {
   /** Spec 435. The request's own address, threaded to `pageShell` so its
    *  language links keep the reader on this same page. */
   currentUrl?: string;
+  /** Which tab the page opens on, off the address's `?tab=`; anything
+   *  but a tab's own key opens Spec. */
+  tab?: string;
 }
 
 // What a spec builds on (spec 110). One chip per active spec, newest
@@ -190,216 +194,33 @@ export function dependsOnField(
   );
 }
 
-// One row per phase — create, analyze, implement, archive — each with a
-// tick, an AI choice and a model choice, drawn by the same
-// `aiPicker`/`modelPicker`/`phaseCaptionCells` the Specs list's own spec
-// row uses (spec 342): the control this page needs already exists as
-// parts, and the task is reusing them, not writing a second version for
-// a spec that does not exist yet.
-//
-// `aiPicker`/`modelPicker` derive the `<select>`'s `form="..."` from a
-// `SpecGroup`'s own `project`/`specFolder` — real values a spec on this
-// page has neither of, so a small, clearly-synthetic row is built once
-// here, and `formIdOverride` (this page's own form id) is what actually
-// ties every select to it.
-function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
-  const pickerOpts: PickerOptions = {
-    modelChoices: opts.modelChoices,
-    defaultModels: opts.defaultModels,
-    // No `pendingModels`: a spec that does not exist yet has no
-    // `specFolder` to key a pending pick on (REQ-6) — the `pending`
-    // tier of `resolveChosenModel` then falls through to `configured`
-    // every time, the same answer `create`'s own picker already gave.
-  };
-  const row: SpecGroup = {
-    project: "", specFolder: "new", named: false, state: "not-started",
-    spentUsd: 0, costUnmeasured: false, phases: [], done: [],
-    dependsOn: [], analyzeStale: false,
-  };
-  const captionRow = (opts.modelChoices ?? []).length
-    ? `<tr class="subrow" data-caption="1">${phaseCaptionCells(pickerOpts, false, "", opts.lang ?? "en")}</tr>`
-    : "";
-  const phaseRows = PHASE_LINES.map((step) => {
-    // `create` MADE the spec these lines belong to and cannot be
-    // created again — the same locked, nameless box `phase-rows.ts`'s
-    // own `create` line draws for an existing spec.
-    const locked = step === "create";
-    const box = phaseChip({
-      dataAttr: "data-phase",
-      value: step,
-      label: "",
-      ariaLabel: locked
-        ? "Create — always runs, and not a step you can drop"
-        : stepLabel(step),
-      name: locked ? "" : "steps",
-      form: formId,
-      checked: true,
-      disabled: locked,
-      plain: true,
-    });
-    return (
-      `<tr class="subrow" data-step="${esc(step)}"><td class="phasecell">${esc(stepLabel(step))}</td>` +
-      `<td class="modelcell"><span class="row">` +
-      `<span class="aimodel">${aiPicker(row, pickerOpts, step, false, false, undefined, undefined, formId)}` +
-      `${modelPicker(row, pickerOpts, step, false, false, undefined, undefined, formId)}</span>` +
-      `${box}</span></td></tr>`
-    );
-  }).join("");
-  return `<table class="list"><tbody>${captionRow}${phaseRows}</tbody></table>`;
-}
+// The New spec page's two tabs, in the order the strip shows them, each
+// key also its `?tab=` value.
+export const NEW_SPEC_TABS = ["spec", "options"] as const;
+export type NewSpecTab = (typeof NEW_SPEC_TABS)[number];
 
-// Spec 394 (REQ-2): the acceptance switch, drawn separately from the
-// phase table's own rows — neither is about one phase, both are about
-// the spec as a whole. Spec 386's original placement (a row inside
-// `newSpecPhaseTable`) split this pair across the phase table. Spec 426
-// then gave the switch its own line, above "Depends on" — spec 394's
-// REQ-3 had put it beside that field instead, in one row, which pushed
-// the chip up against "Depends on"'s own "(?)" popover. It now sits on
-// the acceptance criteria row under the project picker (`newSpecForm`,
-// below), and its popover opens with the board's default rule.
-//
-// Said the POSITIVE way, and checked by default. It read "acceptance
-// ticking not required", unticked, which meant "it IS required" — a
-// double negative to unwind every time. The field posts the same way it
-// reads, so nothing between here and the runner has to be read
-// backwards either.
-//
-// Checked by default because the wrong default is expensive: `analyze`
-// decides once, from this, and locks the switch after — so a spec that
-// quietly skipped its acceptance table could only be put right by
-// running the whole analysis again.
-function acceptanceField(formId: string): string {
-  return (
-    `<span class="field"><span class="fieldhead">` +
-    phaseChip({
-      dataAttr: "data-acceptance",
-      value: "1",
-      label: "Acceptance ticking required",
-      name: "acceptanceRequired",
-      form: formId,
-      checked: true,
-      plain: true,
-    }) +
-    `<span class="fieldend">` +
-    helpPopover(
-      "what this does",
-      "Analyze writes an acceptance-criteria table, and archive waits until every row is ticked. " +
-        "Cleared, the requirements stay written down and nothing is left to tick.",
-    ) +
-    `</span></span></span>`
-  );
-}
+/** The form's id: the fields inside it, and Create and the phase table's
+ *  controls outside or beside it, are tied to it by name. */
+const FORM_ID = "new-spec-form";
 
-// Spec 433 (AC-4/AC-5): whether create spends an AI session at all.
-// Checked by default, like acceptanceField above and for the same
-// reason — unticking it is a deliberate action, never a default a reader
-// stumbles into. Ticked, create runs exactly as it always has: the only
-// path left to an AI session anywhere inside create.
-function aiFormulateAcceptanceField(formId: string): string {
-  return (
-    `<span class="field"><span class="fieldhead">` +
-    phaseChip({
-      dataAttr: "data-ai-formulate",
-      value: "1",
-      label: "Let AI formulate acceptance criteria",
-      name: "aiFormulateAcceptance",
-      form: formId,
-      checked: true,
-      plain: true,
-    }) +
-    `<span class="fieldend">` +
-    helpPopover(
-      "what this does",
-      "Ticked, create runs a short AI session that writes an acceptance criterion for each " +
-        "requirement in this description that has none, and keeps the criteria you wrote " +
-        "yourself word for word; cleared, create writes the spec directly from what is typed " +
-        "here — no AI session, done in seconds.",
-    ) +
-    `</span></span></span>`
-  );
-}
+// Both tabs are in the one form, so a press posts what either holds; the
+// closed one is `hidden`, and the page script switches them in place
+// (`specs-client/new-spec-tabs/`).
+const panel = (key: NewSpecTab, open: NewSpecTab, body: string): string =>
+  `<div data-tab-panel="${key}"${key === open ? "" : " hidden"}>${body}</div>`;
 
-// Whether the person asks to choose between the approaches analyze finds.
-// Not ticked when the form opens: unticked, analyze picks the approach and
-// implement builds it, as it always has. The runner records the choice in
-// the new spec's Tracking info either way.
-function chooseApproachField(formId: string): string {
-  return (
-    `<span class="field"><span class="fieldhead">` +
-    phaseChip({
-      dataAttr: "data-choose-approach",
-      value: "1",
-      label: "Let me choose the approach",
-      name: "chooseApproach",
-      form: formId,
-      checked: false,
-      plain: true,
-    }) +
-    `<span class="fieldend">` +
-    helpPopover(
-      "what this does",
-      "Ticked, analyze marks each approach it considered as a real alternative or as rejected. " +
-        "When it finds two or more real alternatives, Implement waits, and the spec's row lists them " +
-        "with the recommended one chosen: save it to go on, or choose another to have analyze plan " +
-        "that one instead. Cleared, analyze picks the approach and Implement builds it.",
-    ) +
-    `</span></span></span>`
-  );
-}
-
-/** The three levels of the acceptance criteria checks, in the order the
- *  select lists them; the values are what the create posts. */
-export const criteriaChecksChoices = (): { value: CriteriaChecks; label: string }[] => [
-  { value: "off", label: "Off" },
-  { value: "warn", label: "Warn" },
-  { value: "stop", label: "Stop" },
-];
-
-// How strictly analyze checks this spec's acceptance criteria. Chosen
-// here, once: the runner records it in the new spec's Tracking info, and
-// nothing on the board changes it afterwards. Off when the form opens,
-// the same level a spec with nothing recorded is checked at. Drawn the
-// way the two switches beside it are — the control on the label's line,
-// the "(?)" at its end — so the three read as one row.
-function criteriaChecksField(): string {
-  const id = "new-spec-criteria-checks";
-  return (
-    `<span class="field"><span class="fieldhead"><span class="row">` +
-    `<label for="${id}">Acceptance criteria checks</label>` +
-    `<select name="criteriaChecks" id="${id}">` +
-    criteriaChecksChoices()
-      .map((o) => `<option value="${o.value}"${o.value === "off" ? " selected" : ""}>${esc(o.label)}</option>`)
-      .join("") +
-    `</select></span>` +
-    `<span class="fieldend">` +
-    helpPopover(
-      "what this does",
-      "How strictly analyze checks this spec's acceptance criteria — that each is written as a " +
-        "testable requirement, has a scenario, contradicts no other and can be built. Off: no " +
-        "checks. Warn: the plan review lists what it finds, and analyze completes. Stop: analyze " +
-        "stops until the criteria are put right. Chosen here, and not changed after the spec is created.",
-    ) +
-    `</span></span></span>`
-  );
-}
-
-// The fields needed to make the spec: which project, its phase table,
-// what it builds on, its title and its description.
+// The fields needed to make the spec: which project, its title, its
+// description and what it builds on, on the Spec tab; the settings and
+// the phase table on Options.
 //
 // It posts a project NAME, a title and a description. What the spec ends
 // up being CALLED is decided by `/aide-create` alone: nothing here, and
 // nothing in `aide-run-spec`, computes a spec number or a folder slug.
-function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
-  const formId = "new-spec-form";
+function newSpecForm(opts: NewSpecPageOptions, projects: string[], open: NewSpecTab): string {
   const chosen = projects.find((p) => p === opts.prefill?.project);
-  // Spec 553: what is used every time comes first — Project, with
-  // Create at the far right of its label line; then the three acceptance
-  // criteria controls on a row of their own; then Title; then Description.
-  // Depends on and the phase table, seldom touched, come last. Each
-  // `.frow` is a full-width row inside the same wrapping flex the Add
-  // form shares, so the shared `.pageform` look is untouched.
-  return (
-    `<form method="post" action="/api/queue/create" class="pageform newspecform" id="${formId}">` +
+  // Each `.frow` is a full-width row inside the same wrapping flex the
+  // Add form shares, so the shared `.pageform` look is untouched.
+  const spec =
     field(
       "Project",
       // Nothing is chosen for the reader: the first project in the list was
@@ -410,21 +231,8 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
         `<option value=""${chosen ? "" : " selected"}>Choose a project…</option>` +
         projects.map((p) => `<option value="${esc(p)}"${p === chosen ? " selected" : ""}>${esc(p)}</option>`).join("") +
         `</select>`,
-      // `wide` makes the head as wide as the Title box, so Create ends at
-      // that box's right edge. `for` makes the word "Project" alone the
-      // label for the picker, so the head can hold Create without nesting
-      // it inside a label, and a click on the word reaches the picker,
-      // never Create.
-      { wide: true, for: "new-spec-project", actions: btn({ label: "Create", variant: "primary", pending: "creating…" }) },
+      { wide: true, for: "new-spec-project" },
     ) +
-    // The three acceptance criteria controls and the approach choice, on
-    // a row of their own, wrapping where the screen has no room for all.
-    `<span class="frow row">` +
-    acceptanceField(formId) +
-    aiFormulateAcceptanceField(formId) +
-    criteriaChecksField() +
-    chooseApproachField(formId) +
-    `</span>` +
     field(
       "Title",
       `<input type="text" name="title" maxlength="${TITLE_MAX}" required ` +
@@ -448,14 +256,16 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
         selectLabel: t(opts.lang ?? "en", "newSpec.select"),
       },
     }) +
-    `</span>` +
-    `<span class="frow">` +
-    newSpecPhaseTable(opts, formId) +
-    `</span>` +
-    // The slot a refusal is written into. A rejected create names a spec
-    // that was never made, so there is no row for the reason to land on
-    // the way there is for every other action. Empty until something
-    // fills it (`.refused:empty` draws nothing).
+    `</span>`;
+  return (
+    `<form method="post" action="/api/queue/create" class="pageform newspecform" id="${FORM_ID}">` +
+    panel("spec", open, spec) +
+    panel("options", open, optionsTab(opts, FORM_ID)) +
+    // The slot a refusal is written into, after both tabs so it is seen
+    // from either. A rejected create names a spec that was never made, so
+    // there is no row for the reason to land on the way there is for
+    // every other action. Empty until something fills it (`.refused:empty`
+    // draws nothing).
     messageSlot("refused") +
     `</form>`
   );
@@ -467,16 +277,26 @@ export function renderNewSpecPage(
   opts: NewSpecPageOptions,
 ): string {
   const projects = opts.createProjects ?? [];
-  const body =
-    backLink(opts.backHref ?? "/", "New spec") +
-    (projects.length
-      ? newSpecForm(opts, projects)
-      : // The link on `/` is simply not offered when there is nothing to
-        // create in, but this page has an address of its own and can be
-        // reached anyway — and an empty form with an empty dropdown
-        // reads as a page that failed to load.
-        `<p class="muted">No project on this machine may have a spec made in it yet. ` +
-        `Add one on the Projects page first.</p>`);
+  const lang = opts.lang ?? "en";
+  const open = pickTab(NEW_SPEC_TABS, opts.tab, "spec");
+  // Above the tabs, so it is pressed from either. It reaches the form by
+  // `form=`, and the form holds no button of its own: `postForm()` gives
+  // the busy word to the form's first button, and only without one to a
+  // button naming it (`specs-client/press.ts`).
+  const create = btn({ label: "Create", variant: "primary", pending: "creating…", form: FORM_ID });
+  const tabs = tabBar(NEW_SPEC_TABS, NEW_SPEC_ROUTE, open, {}, "", {
+    label: (key) => t(lang, key === "spec" ? "newSpec.tabSpec" : "newSpec.tabOptions"),
+    data: { "new-spec-tabs": "" },
+  });
+  const body = projects.length
+    ? backLink(opts.backHref ?? "/", "New spec", create) + tabs + newSpecForm(opts, projects, open)
+    : backLink(opts.backHref ?? "/", "New spec") +
+      // The link on `/` is simply not offered when there is nothing to
+      // create in, but this page has an address of its own and can be
+      // reached anyway — and an empty form with an empty dropdown
+      // reads as a page that failed to load.
+      `<p class="muted">No project on this machine may have a spec made in it yet. ` +
+      `Add one on the Projects page first.</p>`;
   // `/` as the current path, not this page's own: the tab bar names the
   // two AREAS of the site, and making a spec is part of the spec list's
   // — the same answer `job-page.ts` gives for a job's detail page.

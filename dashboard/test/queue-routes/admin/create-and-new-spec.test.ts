@@ -453,4 +453,13 @@ describe("GET /new (spec 121)", () => {
     expect(html).toContain("No project on this machine");
   });
 
+  test("?tab=options opens the Options tab, and no tab opens Spec (AC-1)", async () => {
+    const { base } = start();
+    const options = await (await fetch(`${base}/new?tab=options`)).text();
+    expect(options).toContain('<div data-tab-panel="options">');
+    expect(options).toContain('<div data-tab-panel="spec" hidden>');
+    const plain = await (await fetch(`${base}/new`)).text();
+    expect(plain).toContain('<div data-tab-panel="spec">');
+  });
+
 });

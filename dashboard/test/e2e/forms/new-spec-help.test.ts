@@ -24,6 +24,12 @@ afterAll(async () => {
   harness.cleanup();
 });
 
+/** `/new` on its Options tab, where the settings are. */
+async function openOptions(): Promise<void> {
+  await withBrowser(page.goto(`${base}/new?live=0`), "page.goto(/new)");
+  await page.locator("nav[data-new-spec-tabs]").getByRole("link", { name: "Options", exact: true }).click();
+}
+
 // The field holding the control, by the control's own name or id; its
 // "(?)" sits in that field's own head.
 const CONTROLS: [string, string][] = [
@@ -33,7 +39,7 @@ const CONTROLS: [string, string][] = [
 ];
 
 test.each(CONTROLS)("the (?) of %s opens an explanation (AC-3)", async (_label, fieldSelector) => {
-  await withBrowser(page.goto(`${base}/new?live=0`), "page.goto(/new)");
+  await openOptions();
   const help = page.locator(`#new-spec-form ${fieldSelector} > .fieldhead details.intro`);
   expect(await help.count()).toBe(1);
   await help.locator("summary").click();
@@ -42,7 +48,7 @@ test.each(CONTROLS)("the (?) of %s opens an explanation (AC-3)", async (_label, 
 });
 
 test("Let me choose the approach is not ticked when the form opens, and its (?) explains it (AC-1)", async () => {
-  await withBrowser(page.goto(`${base}/new?live=0`), "page.goto(/new)");
+  await openOptions();
   const box = page.locator('#new-spec-form [name="chooseApproach"]');
   expect(await box.isChecked()).toBe(false);
   const help = page.locator('#new-spec-form .field:has(> .fieldhead [name="chooseApproach"]) > .fieldhead details.intro');

@@ -61,11 +61,13 @@ td form { margin: 0; display: inline-block; }
 .pageform { display: flex; gap: var(--sp-3); align-items: flex-end;
   flex-wrap: wrap; margin-top: var(--sp-3); }
 .pageform .refused { flex-basis: 100%; }
-/* Spec 553: the /new form's rows, read top to bottom — Project (one
-   wide field, Create at the far end of its label line), then the three
-   acceptance criteria controls, then Title, then Description, then
-   Depends on, then the phase table. Every row but Project and Title
-   takes the full width of the wrapping flex as a `.frow`. */
+/* The /new form's rows, read top to bottom on each of its two tabs —
+   Spec: Project, Title, Description, Depends on; Options: the four
+   settings, then the phase table. Every row but Project and Title takes
+   the full width of the wrapping flex as a `.frow`. The open tab's panel
+   draws no box of its own, so its rows are the form's flex rows; the
+   closed one keeps `[hidden]`'s `display: none`. */
+.pageform > [data-tab-panel]:not([hidden]) { display: contents; }
 .pageform .frow { display: flex; gap: var(--sp-4); align-items: flex-start;
   flex-basis: 100%; }
 .pageform .frow .field.wide { flex: 1 1 0; }
