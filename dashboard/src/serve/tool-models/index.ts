@@ -14,7 +14,7 @@ import type { CheckableTool, OfferedModel, ToolModels } from "../../render";
 // The store lives in the render layer beside the checks; re-exported so
 // a caller has one import site for "read the models and remember them".
 export { lastModels, recordModels };
-export { askClaudeModel, CLAUDE_FAMILIES, CLAUDE_ID, isClaudeFamily, type ClaudeModelAnswer } from "./claude.ts";
+export { askClaudeModel, CLAUDE_FAMILIES, isClaudeFamily } from "./claude.ts";
 export { parseCodexModels } from "./codex.ts";
 
 export interface ModelsOptions {

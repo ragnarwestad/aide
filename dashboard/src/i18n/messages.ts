@@ -1283,6 +1283,73 @@ export const MESSAGES = {
     fr: "L'exécution a été interrompue avant d'être terminée — ouvrez la tâche pour voir jusqu'où elle est allée.",
     exempt: "it reports how a run ended and opens the job's own page; there is no button to press or step to take",
   },
+
+  // --- the login line on an AI's Installation tab (serve/tool-check.ts) ---
+
+  "login.inWithAs": {
+    en: "logged in with {method} as {account}",
+    nb: "logget inn med {method} som {account}",
+    es: "sesión iniciada con {method} como {account}",
+    de: "angemeldet mit {method} als {account}",
+    fr: "connecté avec {method} en tant que {account}",
+    exempt: "it says how the AI is logged in; there is nothing to put right",
+  },
+  "login.inWith": {
+    en: "logged in with {method}",
+    nb: "logget inn med {method}",
+    es: "sesión iniciada con {method}",
+    de: "angemeldet mit {method}",
+    fr: "connecté avec {method}",
+    exempt: "it says how the AI is logged in; there is nothing to put right",
+  },
+  "login.inAs": {
+    en: "logged in as {account}",
+    nb: "logget inn som {account}",
+    es: "sesión iniciada como {account}",
+    de: "angemeldet als {account}",
+    fr: "connecté en tant que {account}",
+    exempt: "it says how the AI is logged in; there is nothing to put right",
+  },
+  "login.in": {
+    en: "logged in",
+    nb: "logget inn",
+    es: "sesión iniciada",
+    de: "angemeldet",
+    fr: "connecté",
+    exempt: "it says the AI is logged in; there is nothing to put right",
+  },
+  "login.out": {
+    en: "not logged in — run {command}",
+    nb: "ikke logget inn — kjør {command}",
+    es: "sin sesión iniciada — ejecuta {command}",
+    de: "nicht angemeldet — führe {command} aus",
+    fr: "non connecté — lancez {command}",
+    resolve: "run {command}",
+  },
+  "login.noCommand": {
+    en: "{tool}'s command line cannot say whether it is logged in.",
+    nb: "Kommandolinjen til {tool} kan ikke si om den er logget inn.",
+    es: "La línea de comandos de {tool} no puede decir si tiene sesión iniciada.",
+    de: "Die Kommandozeile von {tool} kann nicht sagen, ob sie angemeldet ist.",
+    fr: "La ligne de commande de {tool} ne peut pas dire si elle est connectée.",
+    exempt: "the command line has no command that reports it, and nothing on the board can change that",
+  },
+  "login.timedOut": {
+    en: "whether it is logged in could not be read: {command} did not finish in time — press Check again.",
+    nb: "om den er logget inn kunne ikke leses: {command} ble ikke ferdig i tide — trykk Check igjen.",
+    es: "no se pudo leer si tiene sesión iniciada: {command} no terminó a tiempo — pulsa Check de nuevo.",
+    de: "ob sie angemeldet ist, konnte nicht gelesen werden: {command} wurde nicht rechtzeitig fertig — klicke erneut auf Check.",
+    fr: "impossible de lire si elle est connectée : {command} n'a pas fini à temps — cliquez de nouveau sur Check.",
+    resolve: "press Check again",
+  },
+  "login.unreadable": {
+    en: "whether it is logged in could not be read: {command} gave no answer the board can read — run it in a terminal to see what it says.",
+    nb: "om den er logget inn kunne ikke leses: {command} ga ikke noe svar dashbordet kan lese — kjør den i en terminal for å se hva den sier.",
+    es: "no se pudo leer si tiene sesión iniciada: {command} no dio ninguna respuesta que el dashboard pueda leer — ejecútalo en una terminal para ver qué dice.",
+    de: "ob sie angemeldet ist, konnte nicht gelesen werden: {command} gab keine Antwort, die das Dashboard lesen kann — führe es in einem Terminal aus, um zu sehen, was es sagt.",
+    fr: "impossible de lire si elle est connectée : {command} n'a donné aucune réponse que le tableau de bord sache lire — lancez-la dans un terminal pour voir ce qu'elle dit.",
+    resolve: "run it in a terminal",
+  },
 } as const satisfies Record<string, MessageEntry>;
 
 export type MessageKey = keyof typeof MESSAGES;

@@ -1,5 +1,6 @@
-// One panel per AI: where aide installs for it, what can be asked about
-// it, and the answer the last check gave.
+// One panel per AI: where aide installs for it, then three tabs —
+// Models, Subscription and Installation — each with its own Check, which
+// reads what that tab shows and nothing else, and its own last reading.
 //
 // The places in the opening sentence come from
 // core/scripts/lib/install-targets.txt (`places.ts`), the table
@@ -8,12 +9,15 @@
 // is the part the script cannot say: which questions are answerable for
 // which tool, and why.
 
-import { t, type Language, type TranslationKey } from "../../../i18n";
+import { t, type Language } from "../../../i18n";
+import type { BoardMessage } from "../../../i18n/message.ts";
 import { esc } from "../../ui/html.ts";
-import { buttonForm, facts, helpPopover, messageSlot, rowMessage } from "../../ui/components";
+import { buttonForm, facts, helpPopover, messageSlot } from "../../ui/components";
+import { pickTab, tabBar } from "../../ui/tabs.ts";
 import { INSTALL_TARGETS, placesOf } from "./places.ts";
 import { usageView, type ToolUsage } from "./usage.ts";
 import { modelsBlock, type ModelsPanel } from "./models.ts";
+import { installationBlock } from "./installation.ts";
 
 export const TOOL_TABS = ["claude", "codex", "copilot", "opencode"] as const;
 
@@ -33,6 +37,10 @@ export interface ExtraCheck {
   /** What is wrong, in a few words, when `ok` is false — what the notice
    *  on every page says. Absent, the question itself is said. */
   problem?: string;
+  /** The answer as one sentence, stored without a language. Set, the
+   *  Installation tab draws the entry as this sentence alone, with
+   *  `detail` after it when there is one: no mark and no question. */
+  answer?: BoardMessage;
 }
 
 export interface ToolCheck {
@@ -66,22 +74,24 @@ export function toolWhere(lang: Language, tool: CheckableTool, places: Record<st
   return t(lang, `settings.where.${tool}`, places);
 }
 
-/** What a press of Check finds out, and what it cannot. The second half
- *  matters: Copilot cannot be asked which models it accepts, and help
- *  that quietly skipped that would read as if the check had covered it. */
-const CANNOT: Partial<Record<CheckableTool, TranslationKey>> = { copilot: "settings.checkCannot.copilot" };
+/** The three tabs inside an AI's tab, in the order they are shown. Each
+ *  has its own Check, which reads what that tab shows and nothing else. */
+export const TOOL_PARTS = ["models", "subscription", "installation"] as const;
+export type ToolPart = (typeof TOOL_PARTS)[number];
 
-/** The body of the "(?)" before Check, as trusted markup. */
-export function checkHelp(lang: Language, tool: CheckableTool): string {
-  const cannot = CANNOT[tool];
-  return esc(t(lang, `settings.checkCan.${tool}`)) + (cannot ? `<br><br>${esc(t(lang, cannot))}` : "");
+export function isToolPart(name: unknown): name is ToolPart {
+  return typeof name === "string" && (TOOL_PARTS as readonly string[]).includes(name);
 }
 
-const mark = (ok: boolean | null): string =>
-  ok === null ? "?" : ok ? "OK" : "FAIL";
+/** The open tab inside an AI's tab, off `?aitab=`: Models when none, or an
+ *  unknown one, is named. */
+export const toolPart = (raw: string | undefined): ToolPart => pickTab(TOOL_PARTS, raw, "models");
 
-const markClass = (ok: boolean | null): string =>
-  ok === null ? "muted" : ok ? "ok" : "failed";
+/** The body of the "(?)" before one tab's Check, as trusted markup: what
+ *  that Check reads for this AI, and what it cannot. */
+export function checkHelp(lang: Language, tool: CheckableTool, part: ToolPart): string {
+  return esc(t(lang, `settings.checkHelp.${part}.${tool}`));
+}
 
 /** How long ago the check was made, so a stale answer reads as one. The
  *  stamp is the moment it was obtained, never the moment the page was
@@ -92,35 +102,9 @@ function stamp(at: string): string {
   return Number.isNaN(when.getTime()) ? at : when.toISOString().replace("T", " ").slice(0, 19) + " UTC";
 }
 
-function resultBlock(check: ToolCheck): string {
-  if (check.error) {
-    return rowMessage("failed", check.error, { tag: "p" });
-  }
-  const extra = check.extra.length
-    ? `<ul class="checklist">` +
-      check.extra
-        .map(
-          (e) =>
-            `<li><span class="${markClass(e.ok)}">${mark(e.ok)}</span> ` +
-            `${esc(e.question)} ${esc(e.detail)}</li>`,
-        )
-        .join("") +
-      `</ul>`
-    : "";
-  const ran = check.commands?.length
-    ? `<p class="muted small">Ran:</p><pre class="checkoutput">${esc(check.commands.join("\n"))}</pre>`
-    : "";
-  return (
-    `<p class="muted small">Checked ${esc(stamp(check.at))}</p>` +
-    extra +
-    ran +
-    `<pre class="checkoutput">${esc(check.lines.join("\n"))}</pre>`
-  );
-}
-
-/** How much of the AI's subscription is used, as the last press of Check
- *  read it. A reading that failed is muted like a question the check
- *  could not answer: the login line above already says when to act. */
+/** How much of the AI's subscription is used, as the last press of its
+ *  Check read it. A reading that failed is muted like a question the check
+ *  could not answer: the Installation tab's login line says when to act. */
 function usageBlock(usage: ToolUsage | undefined, now: number): string {
   const view = usageView(usage, now);
   const read = (at: string) => `<p class="muted small">Usage read ${esc(stamp(at))}</p>`;
@@ -143,12 +127,27 @@ function usageBlock(usage: ToolUsage | undefined, now: number): string {
   }
 }
 
+/** What the open tab shows: the reading its own Check made. */
+function partBody(
+  part: ToolPart,
+  tool: CheckableTool,
+  readings: { check?: ToolCheck; usage?: ToolUsage; models: ModelsPanel },
+  now: number,
+  lang: Language,
+): string {
+  const { check, usage, models } = readings;
+  if (part === "installation") return installationBlock(check, check ? stamp(check.at) : "", lang);
+  if (part === "subscription") return usageBlock(usage, now);
+  return modelsBlock(tool, models, models.reading ? stamp(models.reading.at) : "", lang, TOOL_TAB_LABELS[tool]);
+}
+
 /** The panel behind one AI's tab. `check`, `usage` and `models.reading`
  *  are the last answers obtained for this tool in this server's lifetime,
  *  or absent when none has been asked for: nothing is run because a page
  *  was opened. `now` is the page's own time, which a reset is written
  *  against. `models` also carries the live choices the reading is set
- *  against. `lang` is the reader's, for the sentence and the "(?)". */
+ *  against. `lang` is the reader's, for the sentence, the tabs and the
+ *  "(?)". `part` is the open tab, which is the only one drawn. */
 export function toolPanel(
   tool: CheckableTool,
   check: ToolCheck | undefined,
@@ -156,24 +155,28 @@ export function toolPanel(
   now: number = Date.now(),
   models: ModelsPanel = {},
   lang: Language = "en",
+  part: ToolPart = "models",
 ): string {
+  const id = `check-${tool}-${part}`;
   return (
     `<section class="toolpanel" data-tool="${esc(tool)}">` +
     `<p>${esc(toolWhere(lang, tool, placesOf(INSTALL_TARGETS, tool)))}</p>` +
-    // Posted by the page script, which loads the tab again with the
+    tabBar(TOOL_PARTS, (p) => `/settings?tab=${tool}&aitab=${p}`, part, {}, "", {
+      label: (p) => t(lang, `settings.part.${p}`),
+      data: { aitabs: "" },
+    }) +
+    // Posted by the page script, which loads the same tab again with the
     // answer drawn below; a refusal stays in the form's own line.
     buttonForm({
-      id: `check-${tool}`,
+      id,
       action: "/api/queue/settings/check",
       hook: "configactions reloadform",
-      hidden: { tool },
-      before: helpPopover(t(lang, "settings.checkHelpTitle"), checkHelp(lang, tool)),
-      button: { id: `check-${tool}-run`, label: "Check", variant: "primary", pending: "checking…" },
+      hidden: { tool, part },
+      before: helpPopover(t(lang, "settings.checkHelpTitle"), checkHelp(lang, tool, part)),
+      button: { id: `${id}-run`, label: "Check", variant: "primary", pending: "checking…" },
       after: messageSlot("refused"),
     }) +
-    (check ? resultBlock(check) : `<p class="muted">Not checked yet.</p>`) +
-    usageBlock(usage, now) +
-    modelsBlock(tool, models, models.reading ? stamp(models.reading.at) : "") +
+    partBody(part, tool, { check, usage, models }, now, lang) +
     `</section>`
   );
 }

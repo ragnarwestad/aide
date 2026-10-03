@@ -15,10 +15,11 @@ describe("toolFailureSentence", () => {
     expect(s.text).toContain("boom");
   });
 
-  test("it points at the Check button on that AI's own tab", () => {
+  test("it points at the Check button on that AI's own Installation tab", () => {
     const s = toolFailureSentence({ tool: "codex", model: "gpt-5.6-sol", terminalReason: "cli-error" })!;
     expect(s.text).toContain("Settings");
     expect(s.text).toContain("Codex tab");
+    expect(s.text).toContain("Installation");
     expect(s.text).toContain("Check");
   });
 
@@ -40,6 +41,7 @@ describe("toolFailureSentence", () => {
     expect(s.text).not.toContain(" on gemini-3.1-pro on ");
     // Without a tool there is no tab to name, so it does not name one.
     expect(s.text).toContain("the tab for this model's AI");
+    expect(s.text).toContain("Installation");
   });
 
   // The shape Claude Code writes when it is not logged in: an error result

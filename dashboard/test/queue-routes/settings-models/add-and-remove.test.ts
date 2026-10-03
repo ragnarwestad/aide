@@ -1,7 +1,7 @@
-// Adding and removing a model choice from an AI's tab. The file is written
-// first and the live choices after; a refusal changes neither. A Claude id
-// typed by hand is added only when Claude Code names it, and a step's
-// default model is never removed from under it.
+// Adding and removing a model choice from an AI's Models tab. The file is
+// written first and the live choices after; a refusal changes neither. A
+// model is added only when the last reading of its AI's models offered it,
+// and a step's default model is never removed from under it.
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync, rmSync } from "node:fs";
@@ -83,7 +83,7 @@ describe("adding a model the AI offers", () => {
     expect(Object.keys(await offeredChoices(base))).toContain("gpt-5.5");
   });
 
-  test("a Claude family is added under its capitalised name and shows its version (AC-1, AC-6)", async () => {
+  test("a Claude family is added under its capitalised name and shows its version (AC-14)", async () => {
     forgetChecks();
     const { base, file } = serve(modelsProbe({ claude: CLAUDE_READING }));
     await pressCheck(base, "claude");
@@ -115,50 +115,16 @@ describe("adding a model the AI offers", () => {
   });
 });
 
-describe("adding a fixed Claude version by its full id", () => {
-  test("is added when Claude Code names it, and shown by that name (AC-4)", async () => {
+describe("a Claude model typed as its full id", () => {
+  test("is refused like any model the last reading did not offer, asking no CLI (AC-14)", async () => {
     forgetChecks();
-    const probe = modelsProbe({}, { "claude-opus-4-8": { known: true, name: "Opus 4.8", id: "claude-opus-4-8" } });
-    const { base, file } = serve(probe);
-    const res = await post(base, ADD, { tool: "claude", model: "claude-opus-4-8" });
-    expect(await res.json()).toEqual({ ok: true, name: "claude-opus-4-8" });
-    expect(probe.asked).toEqual(["claude-opus-4-8"]);
-    expect(choicesIn(file)["claude-opus-4-8"]).toEqual({ model: "claude-opus-4-8" });
-    expect((await offeredChoices(base))["claude-opus-4-8"]).toBe("Opus 4.8");
-    expect(await (await fetch(`${base}/settings?tab=claude`)).text()).toContain("Opus 4.8");
-  });
-
-  test("an id of an older shape is shown by the name Claude Code gave it, also after a restart (AC-4)", async () => {
-    forgetChecks();
-    const id = "claude-3-5-sonnet-20241022";
-    const { base, file, modelIdsPath } = serve(modelsProbe({}, { [id]: { known: true, name: "Sonnet 3.5", id } }));
-    expect(await (await post(base, ADD, { tool: "claude", model: id })).json()).toEqual({ ok: true, name: id });
-    expect((await offeredChoices(base))[id]).toBe("Sonnet 3.5");
-    const afresh = start({
-      queueDefaults: defaultsOf({ ...CHOICES, [id]: { model: id } }, MODEL), toolProbe: modelsProbe(), queueConfigFile: file, modelIdsPath,
-    });
-    expect((await offeredChoices(afresh.base))[id]).toBe("Sonnet 3.5");
-  });
-
-  test("a value that is not a full Claude id is refused without asking (AC-4)", async () => {
-    forgetChecks();
-    const { base, file, probe } = serve();
-    for (const model of ["opusplan", "opus[1m]", "gpt-5"]) {
-      expect((await post(base, ADD, { tool: "claude", model })).status).toBe(400);
-    }
-    expect(probe.asked).toEqual([]);
-    expect(readFileSync(file, "utf-8")).toBe(CONFIG);
-  });
-
-  test("an id Claude Code answers with the id itself is refused as one it does not know (AC-5)", async () => {
-    forgetChecks();
-    const { base, file } = serve(modelsProbe({}, { "claude-opus-9-9": { known: false } }));
+    const { base, file, probe } = serve(modelsProbe({ claude: CLAUDE_READING }));
+    await pressCheck(base, "claude");
     const before = await offeredChoices(base);
-    const res = await post(base, ADD, { tool: "claude", model: "claude-opus-9-9" });
+    const res = await post(base, ADD, { tool: "claude", model: "claude-opus-4-8" });
     expect(res.status).toBe(400);
-    const error = await errorOf(res);
-    expect(error).toContain("Claude Code does not know");
-    expect(error).toContain("claude-opus-9-9");
+    expect(await errorOf(res)).toContain("Check");
+    expect(probe.modelReads.length).toBe(1);
     expect(readFileSync(file, "utf-8")).toBe(CONFIG);
     expect(await offeredChoices(base)).toEqual(before);
   });

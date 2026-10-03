@@ -20,7 +20,8 @@ export const es: Record<TranslationKey, string> = {
   "shell.wikiJob": "la wiki de {project}",
   "shell.restartWaiting": "El despliegue espera a {jobs}; el servicio se reinicia cuando terminen.",
   "shell.installWarning": "la última instalación de aide encontró un problema: {problem} — la salida completa está en {path}",
-  "shell.toolFault": "{tool}: {problems} — abre Settings y pulsa Check en esa pestaña",
+  "shell.toolFault": "{tool}: {problems} — pulsa Check en {where}",
+  "shell.toolFaultWhere": "su pestaña Instalación en Settings",
   "shell.checkoutFault": "{project}: el panel no puede usar su propia copia — {said}",
   "deploy.title": "Desplegando…",
   "deploy.stepFetch": "Traer desde origin",
@@ -305,14 +306,37 @@ export const es: Record<TranslationKey, string> = {
     "OpenCode no trae ningún modelo propio: cada modelo pertenece a un proveedor y se llama proveedor/modelo. aide solo instala sus instrucciones, en {instructions}, y OpenCode encuentra las skills de aide donde ya están, en {skills} y {claudeSkills}.",
   "settings.checkHelpTitle":
     "Qué averigua Check",
-  "settings.checkCan.claude":
-    "La comprobación te dice si la línea de comandos está instalada y qué versión, si tiene sesión iniciada, dónde va cada parte de aide y si está ahí, si los archivos instalados siguen coincidiendo con este repositorio, y qué versión da hoy cada uno de opus, sonnet, fable y haiku, preguntado con /model, que no ejecuta ningún modelo.",
-  "settings.checkCan.codex":
-    "La comprobación te dice si la línea de comandos está instalada y qué versión, si tiene sesión iniciada, dónde va cada parte de aide y si está ahí, si los archivos instalados siguen coincidiendo con este repositorio, y qué modelos ofrece, según codex debug models.",
-  "settings.checkCan.copilot":
-    "La comprobación te dice si la línea de comandos está instalada y qué versión, dónde va cada parte de aide y si está ahí, y si los archivos instalados siguen coincidiendo con este repositorio.",
-  "settings.checkCan.opencode":
-    "La comprobación te dice todo lo que dice de los demás, qué modelos ofrecen sus proveedores con sesión iniciada, y si cada modelo configurado en este servidor sigue apareciendo en la lista de su proveedor. Aquí el proveedor ES la sesión, ya que OpenCode llega a cada modelo a través de uno.",
-  "settings.checkCannot.copilot":
-    "La comprobación no puede decirte si tiene sesión iniciada ni qué modelos acepta. La línea de comandos de Copilot no tiene ningún comando para ninguna de las dos cosas.",
+  "settings.part.models": "Modelos",
+  "settings.part.subscription": "Suscripción",
+  "settings.part.installation": "Instalación",
+  "settings.checkHelp.models.claude":
+    "Esta comprobación pregunta a Claude Code qué versión da hoy cada uno de opus, sonnet, fable y haiku, con /model, que no ejecuta ningún modelo, y compara lo que ofrece con los modelos que se pueden elegir en el dashboard.",
+  "settings.checkHelp.models.codex":
+    "Esta comprobación lee qué modelos ofrece Codex, de codex debug models, y los compara con los modelos que se pueden elegir en el dashboard.",
+  "settings.checkHelp.models.copilot":
+    "Esta comprobación no puede leer qué modelos acepta Copilot: la línea de comandos de Copilot no tiene ningún comando que los liste.",
+  "settings.checkHelp.models.opencode":
+    "Esta comprobación lee qué modelos ofrecen los proveedores con sesión iniciada de OpenCode, de opencode models, y los compara con los modelos que se pueden elegir en el dashboard.",
+  "settings.checkHelp.subscription.claude":
+    "Esta comprobación lee cuánto de la suscripción se ha usado y cuándo se reinicia cada límite, de claude -p /usage, que no ejecuta ningún modelo.",
+  "settings.checkHelp.subscription.codex":
+    "Esta comprobación lee cuánto de la suscripción se ha usado y cuándo se reinicia cada límite, preguntado a codex app-server.",
+  "settings.checkHelp.subscription.copilot":
+    "Esta comprobación no puede leer cuánto de la suscripción se ha usado: la línea de comandos de Copilot no tiene ningún comando que lo indique.",
+  "settings.checkHelp.subscription.opencode":
+    "OpenCode no tiene un límite de uso propio: cada modelo pertenece a un proveedor, y cada proveedor tiene el suyo. Esta comprobación no tiene nada que leer.",
+  "settings.checkHelp.installation.claude":
+    "Esta comprobación ejecuta aide-preflight y claude auth status. Te dice si la línea de comandos está instalada y qué versión, si tiene sesión iniciada y con qué cuenta, dónde va cada parte de aide y si está ahí, y si los archivos instalados siguen coincidiendo con este repositorio.",
+  "settings.checkHelp.installation.codex":
+    "Esta comprobación ejecuta aide-preflight y codex login status. Te dice si la línea de comandos está instalada y qué versión, si tiene sesión iniciada, dónde va cada parte de aide y si está ahí, y si los archivos instalados siguen coincidiendo con este repositorio.",
+  "settings.checkHelp.installation.copilot":
+    "Esta comprobación ejecuta aide-preflight. Te dice si la línea de comandos está instalada y qué versión, dónde va cada parte de aide y si está ahí, y si los archivos instalados siguen coincidiendo con este repositorio. No puede decir si Copilot tiene sesión iniciada: la línea de comandos de Copilot no tiene ningún comando para ello, así que ejecuta copilot login si se rechaza una ejecución.",
+  "settings.checkHelp.installation.opencode":
+    "Esta comprobación ejecuta aide-preflight, opencode providers list y opencode models. Te dice si la línea de comandos está instalada y qué versión, si un proveedor tiene sesión iniciada, dónde va cada parte de aide y si está ahí, si los archivos instalados siguen coincidiendo con este repositorio, y si cada modelo configurado en este servidor sigue apareciendo. Aquí el proveedor ES la sesión, ya que OpenCode llega a cada modelo a través de uno.",
+  "settings.models.supported": "Compatibles con Aide ahora",
+  "settings.models.available": "Disponibles",
+  "settings.models.gone": "Ya no disponibles",
+  "settings.models.noneSupported": "Ninguna opción de modelo se ejecuta en {tool}.",
+  "settings.models.allSupported": "Cada modelo que ofrece ya se puede elegir.",
+  "settings.models.noneGone": "Cada modelo que se puede elegir se sigue ofreciendo.",
 };
