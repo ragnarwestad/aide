@@ -60,8 +60,9 @@ ac_coverage_refs() {   # stdin: ac_coverage_added_lines
     ids="$(printf '%s\n' "$line" | grep -oiE '(^|[^a-z0-9])ac[-_]?[0-9]+' | grep -oE '[0-9]+$')" || continue
     [ -n "$ids" ] || continue
     # Up to the SAME quote that opened it: a title in double quotes may
-    # hold an apostrophe ("a row's total").
-    name="$(printf '%s\n' "$line" | perl -ne 'print $2 if /(["\x27`])((?:(?!\1).)+)\1/')"
+    # hold an apostrophe ("a row's total"). A `.each(cases)("title")` is
+    # named by the title after its cases, not by the first case.
+    name="$(printf '%s\n' "$line" | perl -ne 'if (/\.each\b.*?\)\s*\(\s*(["\x27`])((?:(?!\1).)+)\1/) { print $2 } elsif (/(["\x27`])((?:(?!\1).)+)\1/) { print $2 }')"
     [ -n "$name" ] || name="$(printf '%s\n' "$line" | sed -E 's/^[[:space:]]+//' | cut -c1-160)"
     for id in $ids; do printf 'AC-%s\t%s\t%s\n' "$((10#$id))" "$file" "$name"; done
   done

@@ -95,3 +95,30 @@ def test_the_record_is_written_when_the_step_committed_its_own_tests(runner, wor
     assert out["terminalReason"] == "completed", out
     record = json.loads(git(workspace["specs"], "show", f"{BRANCH}:{workspace['folder']}/ac-coverage.json"))
     assert [t["name"] for t in record["acs"]["AC-1"]] == ["the total shows on a phone (AC-1)"]
+
+
+def _refs(line, file="test/e2e/tabs.test.ts"):
+    """What `ac_coverage_refs` makes of one added line."""
+    import pathlib
+    import subprocess
+    lib = pathlib.Path(__file__).resolve().parents[7] / "core/scripts/lib/run-spec/record/ac-coverage.sh"
+    out = subprocess.run(
+        ["bash", "-c", f'source "{lib}"; ac_coverage_refs'],
+        input=f"{file}\t{line}\n", capture_output=True, text=True, check=True,
+    ).stdout
+    return [row.split("\t") for row in out.splitlines()]
+
+
+def test_a_test_each_is_named_by_its_title_not_by_its_first_case():
+    # 595's row listed "Options" — the first of the cases — as a test.
+    line = 'test.each(["Options", "Spec"] as const)("from %s, it sends both tabs (AC-5, AC-6)", async (from) => {'
+    assert _refs(line) == [
+        ["AC-5", "test/e2e/tabs.test.ts", "from %s, it sends both tabs (AC-5, AC-6)"],
+        ["AC-6", "test/e2e/tabs.test.ts", "from %s, it sends both tabs (AC-5, AC-6)"],
+    ]
+
+
+def test_a_plain_test_keeps_its_title():
+    assert _refs('test("the total shows (AC-1)", () => {});') == [
+        ["AC-1", "test/e2e/tabs.test.ts", "the total shows (AC-1)"],
+    ]
