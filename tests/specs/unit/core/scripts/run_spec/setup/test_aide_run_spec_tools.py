@@ -326,3 +326,22 @@ def test_an_archive_that_drops_the_open_merge_is_merge_unfinished_not_completed(
     assert out["terminalReason"] == "merge-unfinished", out
     assert "still behind main" in out["error"], out["error"]
     assert not is_ancestor(project, "main", branch), "the branch was left as the step found it"
+
+
+def test_the_prompt_names_the_specs_worktree_its_open_merge_is_in(runner, tmp_path, fake_claude):
+    """The merge archive is handed can be open in the specs worktree, not
+    the project's. A session that looked only where it stood found
+    nothing there and left the merge undone (597): the prompt names every
+    worktree a merge is open in."""
+    ws = nested_workspace(tmp_path)
+    status_only_conflict(ws, second_file="notes.txt")
+    seen = ws["project"].parent / "open-merges.txt"
+    claude = fake_claude(
+        'prompt="$(cat)"\n'
+        'line="$(printf "%s\\n" "$prompt" | sed -n \'s/^A merge with the default branch is open, with conflicts, in: \\(.*\\)\\. Resolve.*/\\1/p\')"\n'
+        f'for wt in $line; do git -C "$wt" rev-parse -q --verify MERGE_HEAD >/dev/null && echo open >> {seen}; done\n'
+        "exit 1\n"
+    )
+    run(runner, ws, claude, command="archive")
+    assert seen.exists() and seen.read_text().split() == ["open"], \
+        "the prompt must name the one worktree whose merge is open"

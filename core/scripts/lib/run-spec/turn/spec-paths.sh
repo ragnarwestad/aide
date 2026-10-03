@@ -179,6 +179,21 @@ If this step changes files outside the specs root, write the commit message for 
 The one commit you make yourself is the merge commit that finishes a merge conflict you resolved, exactly as the skill's conflict step says (git commit --no-edit); an unfinished merge leaves the step undone."
 fi
 
+# Where the merge with the default branch was left open for this step
+# (update_branch_to_base, run-spec/checkout/worktree.sh): named, since it
+# can be the specs worktree as well as the project's, and a session that
+# looks only where it stands finds nothing and leaves the merge undone.
+if [ "$open_merge_count" -gt 0 ]; then
+  open_merge_list=""
+  i=0
+  while [ "$i" -lt "$open_merge_count" ]; do
+    open_merge_list="$open_merge_list ${open_merge_wt[$i]}"
+    i=$((i + 1))
+  done
+  prompt="$prompt
+A merge with the default branch is open, with conflicts, in:$open_merge_list. Resolve and finish it in each of these worktrees before anything else."
+fi
+
 head_before=()
 for wt in "${work_roots[@]}"; do
   head_before+=("$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "")")

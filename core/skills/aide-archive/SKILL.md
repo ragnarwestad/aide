@@ -52,8 +52,10 @@ conflict independently of the project, and the script only checks the
 directories it is given.
 
 **Before branching on the answer: a merge that is OPEN in the project
-worktree (`git rev-parse -q --verify MERGE_HEAD` succeeds, conflict
-markers in files) is this step's own work, whatever the script said.**
+worktree or the specs worktree (`git rev-parse -q --verify MERGE_HEAD`
+succeeds there, conflict markers in files) is this step's own work,
+whatever the script said.** A run started by `aide-run-spec` names each
+worktree its merge is open in; check both when it does not.
 `aide-run-spec` hands the conflict with the default branch to `archive`
 open on purpose, and it is never leftover dirty state from an earlier
 run: aborting it, resetting the tree or committing over it throws the
