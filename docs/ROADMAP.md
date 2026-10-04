@@ -14,6 +14,7 @@
   - [Aide's skills as a Claude plugin](#aides-skills-as-a-claude-plugin)
   - [Correct the spec, not the code](#correct-the-spec-not-the-code)
   - [Keep an archived spec's tests from disappearing unnoticed](#keep-an-archived-specs-tests-from-disappearing-unnoticed)
+  - [A review that also holds the code to the repo's own rules](#a-review-that-also-holds-the-code-to-the-repos-own-rules)
 - [Parked](#parked)
   - [One project, several code repositories](#one-project-several-code-repositories)
   - [The prompt a run was given, on its job page](#the-prompt-a-run-was-given-on-its-job-page)
@@ -114,6 +115,26 @@ an archived spec's criterion has lost its proof.
 - **A changed test is pointed out, and judged by the review.** Whether a test whose body changed still checks what
   its criterion says cannot be told from git: it may only have been tidied. The landing says that the test changed,
   and the review after implement, which already reads the diff, checks that it still proves the archived criterion.
+
+### A review that also holds the code to the repo's own rules
+
+From Matt Pocock's [`code-review`](https://github.com/mattpocock/skills/tree/main/skills/engineering/code-review)
+skill, listed on [skills.sh](https://www.skills.sh/). It reviews a diff on two axes, each in a sub-agent of its own,
+and reports them side by side without merging them: Spec (does the code do what the spec asked?) and Standards (does
+it follow the repo's own documented rules?). The review after an implement in Aide has the Spec axis alone: defects
+against the description, and changes that fall under "Out of scope".
+
+- **An axis for the repo's own rules.** Not style, but the rules written down: the testing rules (no wording pins, no
+  layout tests, one test per rule) and the code-health limits. On spec 581 the tests pinned wording, and the review
+  found nothing, since it read the description alone.
+- **The three Spec questions asked outright:** what the spec asked for that is missing or partial, what the diff
+  does that nobody asked for, and what looks implemented but is wrong. "Out of scope" covers the second only when a
+  description has the section.
+- **Every finding cites its source**, the criterion's line or the rule and its file, so the implement turn that fixes
+  it, and the person, can check it.
+
+Its baseline of code smells is left out: they are judgement calls, and noise for a review whose findings go back to
+be fixed.
 
 ## Parked
 
