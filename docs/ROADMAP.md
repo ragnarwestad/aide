@@ -16,7 +16,8 @@
   - [Keep an archived spec's tests from disappearing unnoticed](#keep-an-archived-specs-tests-from-disappearing-unnoticed)
   - [A review that also holds the code to the repo's own rules](#a-review-that-also-holds-the-code-to-the-repos-own-rules)
   - [One project, several code repositories](#one-project-several-code-repositories)
-  - [More than one flow for analyze and implement](#more-than-one-flow-for-analyze-and-implement)
+  - [A flow suited to the kind of task](#a-flow-suited-to-the-kind-of-task)
+  - [More than one way to run a step](#more-than-one-way-to-run-a-step)
 
 ---
 
@@ -94,16 +95,32 @@ A system is often a frontend and one or more backends: one spec that changes all
 in the same run, each landing through its own pull request. Worth doing once there is a real system with several
 repositories to try it on.
 
-### More than one flow for analyze and implement
+### A flow suited to the kind of task
 
-From comparing Aide with agents started by hand from the command line, where each run can be shaped to its task:
-a spec chooses a flow suited to its kind of work, and the runner checks that flow's own rules. Possible flows, the
-first two with rules the runner can check without trusting the agent:
+From comparing Aide with agents started by hand from the command line, where each run can be shaped to its task: a
+spec says what kind of task it is, and analyze and implement follow a flow suited to it. Much of this can be said in
+the spec itself; the goal is that the runner also checks the flow's own rules where it can, without trusting the
+agent. Kinds of task:
 
 - **A bug fix:** a test that reproduces the bug is red before the change and green after it.
 - **A refactor:** the behaviour does not change, so the existing tests stay as they are and green throughout.
 - **A quick fix:** a small change skips the analysis, or gets a short plan without a plan review.
+- **Explore first:** the analysis builds a throwaway prototype to learn from before it writes the plan.
+
+### More than one way to run a step
+
+From the same comparison, and the talk of running many agents at once: how a step is run, whatever the task, can
+vary in how many agents work on it, how long they keep going, and who checks the result. Possible ways:
+
 - **A second opinion:** two models each analyse the spec, and their plans are compared or merged.
 - **Competing implementations:** two models each implement the spec, and the one that does best on the tests and
   the review is kept.
-- **Explore first:** the analysis builds a throwaway prototype to learn from before it writes the plan.
+- **Split the spec:** one agent divides the work, by criterion or by part of the code, and several agents take a
+  part each at the same time.
+- **Planner and doer:** a strong model writes the plan, a cheaper one makes the changes and asks the planner when
+  stuck.
+- **Keep going until done:** the turn goes on until the tests are green and every criterion has a test, within a
+  limit on time or cost, rather than for a fixed number of rounds.
+- **One criterion at a time:** each criterion is made green and committed before the next.
+- **A review by another model,** or several reviews with a focus each: the spec, the repo's own rules, security.
+- **The agent checks in a browser:** a change to a page is tried in a real browser before the step ends.
