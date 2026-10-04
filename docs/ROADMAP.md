@@ -97,8 +97,13 @@ repositories to try it on.
 ### More than one flow for analyze and implement
 
 From comparing Aide with agents started by hand from the command line, where each run can be shaped to its task:
-a spec chooses a flow suited to its kind of work, and the runner checks that flow's own rules. Two flows whose rules
-differ from today's, and that the runner can check without trusting the agent:
+a spec chooses a flow suited to its kind of work, and the runner checks that flow's own rules. Possible flows, the
+first two with rules the runner can check without trusting the agent:
 
 - **A bug fix:** a test that reproduces the bug is red before the change and green after it.
 - **A refactor:** the behaviour does not change, so the existing tests stay as they are and green throughout.
+- **A quick fix:** a small change skips the analysis, or gets a short plan without a plan review.
+- **A second opinion:** two models each analyse the spec, and their plans are compared or merged.
+- **Competing implementations:** two models each implement the spec, and the one that does best on the tests and
+  the review is kept.
+- **Explore first:** the analysis builds a throwaway prototype to learn from before it writes the plan.
