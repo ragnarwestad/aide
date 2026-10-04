@@ -30,7 +30,13 @@ and [awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code) l
   **Analysed:** Aide already has the four phases, with a person starting each, a rule in `1-description.md`
   and concrete cases in `3-solution.md`. What came of it:
   - EARS as the form of an acceptance criterion, checked by the plan review (spec 581).
-  - Left for now: stating what will not be built. Aide's description has no place for it.
+  - Stating what will not be built: the optional `## Out of scope` section (spec 596).
+- [Spec-Driven Development: a case study](https://felipefontoura.com/articles/spec-driven-development-case-study/)
+  (Felipe Fontoura) — one developer, 70 days, a payments platform of 13 apps, run on 28 standing domain specs
+  loaded into every session, with a loop of specify, generate, verify and correct the spec rather than the code.
+  **Analysed:** its standing domain specs are closest to a project's wiki in Aide, whose specs are per change and
+  archived. What came of it: "correct the spec, not the code" is in `docs/ROADMAP.md` to consider. Its "out of
+  scope (v1)" sections stopping additions confirm spec 596.
 - [Claude Code best practices](https://code.claude.com/docs/en/best-practices) (Anthropic) — the agentic loop,
   CLAUDE.md, and working patterns.
 

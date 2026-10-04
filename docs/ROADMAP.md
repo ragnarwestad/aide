@@ -12,6 +12,7 @@
   - [The plan review checks the scenarios and the test list](#the-plan-review-checks-the-scenarios-and-the-test-list)
   - [A Claude Code mod that shows the board in a session](#a-claude-code-mod-that-shows-the-board-in-a-session)
   - [Aide's skills as a Claude plugin](#aides-skills-as-a-claude-plugin)
+  - [Correct the spec, not the code](#correct-the-spec-not-the-code)
 - [Parked](#parked)
   - [One project, several code repositories](#one-project-several-code-repositories)
   - [The prompt a run was given, on its job page](#the-prompt-a-run-was-given-on-its-job-page)
@@ -86,6 +87,15 @@ session that is working on Aide.
 From "Build plugins for Claude" and the Claude Marketplace. Aide installs its skills with its own scripts. A plugin
 could be another way to deliver them to Claude users, but Aide also serves Codex, OpenCode and Copilot, so it would be
 a second channel, not a replacement.
+
+### Correct the spec, not the code
+
+From Felipe Fontoura's [case study](https://felipefontoura.com/articles/spec-driven-development-case-study/):
+"Wrong output means a wrong or incomplete spec. Fix the document, regenerate. Never patch the code and leave the
+spec behind." Aide can already do it: change an acceptance criterion and run Analyze again, or reopen a spec. But it
+is written down nowhere as the way to fix a wrong result, and nothing stops the code being patched by hand while the
+spec still says something else. It could be a rule in the workflow, or a check that a change on a spec's branch made
+by hand is reflected in its description.
 
 ## Parked
 
