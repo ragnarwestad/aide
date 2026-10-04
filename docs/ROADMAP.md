@@ -18,7 +18,6 @@
 - [Parked](#parked)
   - [One project, several code repositories](#one-project-several-code-repositories)
   - [The prompt a run was given, on its job page](#the-prompt-a-run-was-given-on-its-job-page)
-- [Not pursued](#not-pursued)
 
 ---
 
@@ -27,11 +26,12 @@ specs and the git history, not here.
 
 ## How an idea is kept here
 
-Each idea says where it came from, what it is, and why it might be worth doing. An idea is in one of three places:
+Each idea says where it came from, what it is, and why it might be worth doing. An idea is in one of two places:
 
 - **To consider:** not decided yet.
 - **Parked:** worth doing, but waiting for a need or for something else first.
-- **Not pursued:** decided against, with the reason, so the question is not opened again by accident.
+
+An idea decided against is taken off the page.
 
 An idea that becomes a spec names it, and leaves this page once the spec is archived.
 
@@ -160,12 +160,3 @@ From finding out why GPT-6.1 Sol stopped on archive: the runner's prompt and the
 things, and the prompt had to be rebuilt from the runner's code to see it. Storing each run's prompt with its log,
 and showing it on the job page, would let the user and a session read what the run was told. Parked until it is
 needed again.
-
-## Not pursued
-
-- **Running OpenGeni.** It is a whole product: Postgres, Temporal, NATS and S3 storage. Its ideas are above; the
-  product itself is not something to run beside Aide.
-- **An `aide` command that forwards to the `aide-*` scripts.** It would only change how the commands are written;
-  nothing is missing with the scripts as they are.
-- **Decision pages in the wiki.** They recorded what one spec chose, went out of date without a word, and duplicated
-  the ordinary pages. The reasons for a rule now live as one line on the page that covers the code.
