@@ -278,7 +278,8 @@ On the dashboard you type none of this. A spec that already exists has a row: ti
 spec form, which queues create and the phases after it.
 
 **See:** [dashboard/docs/spec-lifecycle.md](dashboard/docs/spec-lifecycle.md) — the same four steps, which the
-dashboard calls phases, and what moves a spec from one to the next.
+dashboard calls phases, and what stops one; [dashboard/docs/spec-transitions.md](dashboard/docs/spec-transitions.md)
+— what moves a spec from one to the next.
 
 ---
 

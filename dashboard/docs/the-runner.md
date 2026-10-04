@@ -190,7 +190,7 @@ available.** Anything added to this script that wants an array built from multip
 A step's own claim of success is not what puts it on a spec's `Workflow steps completed:` line. The runner
 rebuilds that line after every step, and cross-checks the claim first, because a model's turn ending cleanly is
 not evidence that the phase happened. What the line is FOR is on
-[A spec's lifecycle](spec-transitions.md#what-has-had-a-phase-means); what follows is how it is decided.
+[How a spec moves between phases](spec-transitions.md#what-has-had-a-phase-means); what follows is how it is decided.
 
 **The runner writes it, not the model.** After every step, `completed_steps_for` in
 `core/scripts/lib/run-spec/record/records.sh`
