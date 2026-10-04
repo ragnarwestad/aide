@@ -95,10 +95,11 @@ alpha builds after v0.159.3.
 
 **OpenAI Codex CLI (Sep 30 – Oct 4, v0.159.2 → v0.159.3):**
 
-| Date           | Version               | News                                                                                | Source                                                      |
-|----------------|-----------------------|-------------------------------------------------------------------------------------|-------------------------------------------------------------|
-| Sep 30         | v0.159.3              | Optional account-security setup reminders for local sessions signed in with ChatGPT | [Changelog](https://learn.chatgpt.com/docs/changelog)       |
-| Sep 30 – Oct 4 | v0.162.0-alpha.3 … 12 | Alpha builds with no release notes                                                  | [GitHub Releases](https://github.com/openai/codex/releases) |
+| Date           | Version               | News                                                                                                                                                                                                                                                                                                                                                    | Source                                                                                                    |
+|----------------|-----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------|
+| Sep 30         | v0.159.3              | Optional account-security setup reminders for local sessions signed in with ChatGPT                                                                                                                                                                                                                                                                     | [Changelog](https://learn.chatgpt.com/docs/changelog)                                                     |
+| Sep 30 – Oct 4 | v0.162.0-alpha.3 … 12 | Alpha builds with no release notes                                                                                                                                                                                                                                                                                                                      | [GitHub Releases](https://github.com/openai/codex/releases)                                               |
+| —              | —                     | Developer blog: "Rethinking skills and prompts for GPT-6 Astra" — trim instructions written for weaker models, keep skill descriptions short and specific, say when each document in `AGENTS.md` applies, avoid contradicting instructions, and state when a task is done, since GPT-6 models can be tentative about finishing (the post shows no date) | [OpenAI developer blog](https://developers.openai.com/blog/rethinking-skills-and-prompts-for-gpt-6-astra) |
 
 **OpenCode (Sep 30 – Oct 4, v1.18.33 → v1.18.34):**
 
@@ -116,6 +117,10 @@ alpha builds after v0.159.3.
 - ✅ **`-p` streams a forked skill's turns** and **continues after an API timeout** (v2.1.288) — the runner reads
   `stream-json` from `claude -p`, so a skill run with `context: fork` now shows in the step's log, and a timeout
   mid-response no longer ends the turn.
+- ✅ **OpenAI's guidance on skills and prompts for GPT-6 models** matches what GPT-6.1 Sol ran into on archive
+  (specs 595 and 597): a prompt line that contradicted the archive skill, and a skill that named only one of the two
+  worktrees a merge could be open in. Both were fixed in the runner and the skill. Worth reading before the next
+  change to a skill: short, specific descriptions, no contradictions, and an explicit end to each task.
 - ℹ Claude Code v2.1.286's `--bare` change (the runner does not use `--bare`), v2.1.289's agent and mod fixes,
   "Build plugins for Claude", Copilot v1.0.91 and its v1.0.92 pre-releases, Codex v0.159.3 and its alphas, and
   OpenCode v1.18.34 — no Aide action.
