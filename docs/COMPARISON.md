@@ -14,6 +14,7 @@
 - [Tessl](#tessl)
 - [Cursor's Plan Mode](#cursors-plan-mode)
 - [Augment Code](#augment-code)
+- [Claude Projects](#claude-projects)
 - [Aide's design choices](#aides-design-choices)
 
 ---
@@ -69,6 +70,7 @@ tool.
 | Tessl              | Specs in `.tessl/`; published library specs     | Any agent that speaks MCP                                       | By hand                                         | Not stated                                   | `.tessl/`                                                                  |
 | Cursor's Plan Mode | One plan per task, not kept                     | The Cursor editor                                               | By hand                                         | You merge                                    | `.cursor/rules/`, if rules are used                                        |
 | Augment Code       | None; it supplies context to other tools        | Its own service                                                 | Not applicable                                  | Not applicable                               | Nothing                                                                    |
+| Claude Projects    | Threads in a project, with a shared memory      | Claude only, as Claude Code cloud sessions                      | Unattended: a coordinator hands work to threads | Opens pull requests; runs tests              | Nothing required in the repo; branches and pull requests                   |
 
 ## Aide
 
@@ -353,6 +355,31 @@ architectural picture of a large codebase, across repositories, for other tools 
 **Code handling.** Not applicable.
 
 **Invasiveness.** Nothing in the repository.
+
+## Claude Projects
+
+**What it is.** [Claude Projects](https://claude.com/blog/projects-redesigned), redesigned in September 2026, runs
+long, multi-step work inside Claude. It is not a spec tool: a project is a conversation that Claude coordinates,
+handing parts of the work to threads that run in parallel. In beta for some Pro and Max subscribers who use cloud
+sessions in Claude Code, rolling out to all Claude Code users and then to Team and Enterprise.
+
+**Document structure.** No spec files. A project holds its threads, a memory that builds up over time (the
+project's details, decisions and preferences), and a library of the files added to it and the artifacts Claude
+made.
+
+**Workflow.** Claude, as coordinator, splits the work and gives each part to a thread, follows their progress and
+brings the results together. The model and effort can be set for the coordinator and the threads separately.
+
+**AI tool support.** Claude only. Each thread is a Claude Code session in the cloud; running locally is announced
+as coming.
+
+**Execution.** Unattended, with threads running in parallel. Several threads at once use up the plan's limits
+faster.
+
+**Code handling.** Each thread works on its own branch, and work that overlaps shows as merge conflicts. The
+coordinator runs tests and opens pull requests, across more than one repository.
+
+**Invasiveness.** Nothing required in the repository; the work shows as branches and pull requests.
 
 ## Aide's design choices
 
