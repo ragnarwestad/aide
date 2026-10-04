@@ -113,6 +113,11 @@ push_with_retry() {
     return 1
   fi
 
+  # Origin answers now, but may have been away for the push itself: that
+  # push was never rejected, so it is tried again before anything is
+  # read as the branch having moved.
+  try_push && return 0
+
   # REQ-1: origin answered, so the push was REJECTED — almost always
   # because something else landed a commit on this branch since this
   # worktree last looked (another run, or the landing's own cleanup).

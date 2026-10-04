@@ -199,6 +199,34 @@ def test_a_push_that_cannot_reach_origin_is_retried_then_succeeds(
     assert out["ok"] is True, out
     assert out.get("pushError") is None
 
+def test_origin_back_between_a_failed_push_and_the_check_is_pushed_not_rebased(
+    runner, workspace, fake_claude, fetchable_origin_both_roots, tmp_path, monkeypatch
+):
+    """Origin is unreachable for the first push and answers again by the
+    time the runner asks whether it is there. The push was never rejected:
+    the branch is pushed, not rebased onto an origin copy that does not
+    exist and reported as diverged."""
+    project_bare = fetchable_origin_both_roots["project"]
+    hidden = tmp_path / "hidden-origin.git"
+    project_bare.rename(hidden)
+    # A failed push brings origin back at once, so the check that follows
+    # finds it answering.
+    monkeypatch.setenv(
+        "BASH_FUNC_git%%",
+        "() { if [ \"$1\" = -C ] && [ \"$3\" = push ] && [ -e '" + str(hidden) + "' ]; then "
+        "command git \"$@\"; local rc=$?; [ $rc -ne 0 ] && mv '" + str(hidden) + "' '" + str(project_bare) + "'; "
+        "return $rc; fi; command git \"$@\"; }",
+    )
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + 'echo "written by the step" > "$PWD/new-code.txt"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, push="branch", command="implement")
+    assert not hidden.exists(), "the first push must have found origin missing"
+    assert out["ok"] is True, (out.get("terminalReason"), out.get("pushError"), out.get("error"))
+    assert out.get("pushError") is None
+
 def test_a_conflicting_rebase_is_reported_not_resolved(
     runner, workspace, fake_claude, fetchable_origin_both_roots, tmp_path
 ):
