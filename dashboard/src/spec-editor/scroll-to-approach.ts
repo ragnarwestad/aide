@@ -14,7 +14,7 @@ export function scrollToApproach(host: Element, hash: string): boolean {
   // the one shown, and its Markdown mode draws bold as a span: the lead
   // is the first one on screen.
   const lead = Array.from(host.querySelectorAll("strong, .toastui-editor-md-strong")).find(
-    (el) => el.getClientRects().length > 0 && !!el.textContent?.trim().startsWith(prefix),
+    (el) => el.getClientRects().length > 0 && el.textContent?.trim().startsWith(prefix),
   );
   if (!lead) return false;
   lead.scrollIntoView({ block: "center" });

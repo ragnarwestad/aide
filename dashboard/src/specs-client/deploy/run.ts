@@ -3,7 +3,7 @@
 // fourth request to that process. Pure of the DOM, so a test drives it
 // with fakes and no timers.
 
-import { FAILED_STAYS_MS, type StepState } from "../progress-dialog/steps.ts";
+import { FAILED_STAYS_MS, type StepState } from "../progress-dialog";
 
 export type { StepState };
 export type DeployStep = "fetch" | "install" | "restart" | "wait" | "check";

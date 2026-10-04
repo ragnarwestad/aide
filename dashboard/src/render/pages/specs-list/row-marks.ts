@@ -13,7 +13,7 @@ import { type ArchivedSpecView, type SpecGroup } from "./data-model";
 import { LANDING_FAILED, NO_PULL_REQUEST, NOT_PUSHED, prErrorOf, prErrorSentence, PULL_REQUEST, TEST_SERVER, TESTS_RED } from "./row-shared.ts";
 import { notLandedTitle } from "./cell-helpers.ts";
 import { roundUnderWay } from "./row-state.ts";
-import { approachChoiceShown } from "./approach-choice/index.ts";
+import { approachChoiceShown } from "./approach-choice";
 
 /** The waiting-on-review sentence (spec 220, spec 335): the branch is
  *  there, and a request describes it — worded for both a live row's

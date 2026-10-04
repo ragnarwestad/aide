@@ -32,8 +32,8 @@ export {
 } from "./pages/projects-page";
 export type { ProjectPageOptions, ProjectView, SpecView, ProjectsPageOptions, ProjectDrift } from "./pages/projects-page";
 
-export { renderNewSpecPage } from "./pages/new-spec-page/index.ts";
-export type { NewSpecPageOptions } from "./pages/new-spec-page/index.ts";
+export { renderNewSpecPage } from "./pages/new-spec-page";
+export type { NewSpecPageOptions } from "./pages/new-spec-page";
 
 export type { NavEntry } from "./ui/shell.ts";
 

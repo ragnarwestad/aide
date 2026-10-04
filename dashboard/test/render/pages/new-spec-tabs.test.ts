@@ -4,8 +4,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import { renderNewSpecPage } from "../../../src/render";
-import type { NewSpecPageOptions } from "../../../src/render/pages/new-spec-page";
+import { renderNewSpecPage, type NewSpecPageOptions } from "../../../src/render";
 import { t } from "../../../src/i18n";
 
 const windows: Window[] = [];

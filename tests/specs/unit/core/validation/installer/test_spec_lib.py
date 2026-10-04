@@ -427,7 +427,8 @@ class TestOutOfScopeSection:
     """aide_out_of_scope_section returns the description's `## Out of
     scope` heading and its lines, as written."""
 
-    def _section(self, workspace_root, text):
+    @staticmethod
+    def _section(workspace_root, text):
         return _call(workspace_root, f'aide_out_of_scope_section "$(printf %b "{text}")"')
 
     def test_returns_the_heading_and_its_items(self, workspace_root):

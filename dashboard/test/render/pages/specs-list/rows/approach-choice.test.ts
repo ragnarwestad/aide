@@ -6,8 +6,8 @@ import { describe, expect, test } from "bun:test";
 import type { QueueRowView, SpecTarget } from "../../../../../src/render";
 import { groupBySpec } from "../../../../../src/render/pages/specs-list/data-model";
 import { errorMarkNotices } from "../../../../../src/render/pages/specs-list/row-marks.ts";
-import { approachHref, approachItems } from "../../../../../src/render/pages/specs-list/approach-choice/index.ts";
-import { specTabPath } from "../../../../../src/render/pages/spec-page/tabs.ts";
+import { approachHref, approachItems } from "../../../../../src/render/pages/specs-list/approach-choice";
+import { specTabPath } from "../../../../../src/render";
 import { specNotice } from "../../../../../src/render/ui/job-state";
 import { row } from "../../fixtures.ts";
 

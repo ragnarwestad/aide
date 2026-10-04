@@ -4,6 +4,8 @@ import subprocess
 
 from ..conftest import git, init_repo
 # The fixtures are imported for pytest to find; the tests take them by name.
+# specs_repo is taken by specs_root, not by a test here, so it reads as unused.
+# noinspection PyUnusedImports
 from .aide_wiki_support import (
     script,
     project,

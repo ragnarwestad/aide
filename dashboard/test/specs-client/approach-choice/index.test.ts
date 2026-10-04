@@ -6,8 +6,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import type { SpecTarget } from "../../../src/render";
 import { groupBySpec } from "../../../src/render/pages/specs-list/data-model";
-import { approachPanel } from "../../../src/render/pages/specs-list/approach-choice/index.ts";
-import { cancelApproach, pickApproach } from "../../../src/specs-client/approach-choice/index.ts";
+import { approachPanel } from "../../../src/render/pages/specs-list/approach-choice";
+import { cancelApproach, pickApproach } from "../../../src/specs-client/approach-choice";
 import { restoreChosen } from "../../../src/specs-client/row-swap.ts";
 
 const FOLDER = "590-choose-the-approach";

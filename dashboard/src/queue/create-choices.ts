@@ -4,7 +4,7 @@
 // the person asks to choose between the approaches analyze finds. Each
 // becomes a field on the create job, which `runnerArgv` turns into a flag.
 
-import { parseCriteriaChecks } from "../project/discover/criteria-checks.ts";
+import { parseCriteriaChecks } from "../project/discover";
 import type { Job } from "./types.ts";
 
 /** The create job's fields for these choices, or what was refused. */

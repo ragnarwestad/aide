@@ -6,7 +6,7 @@ import { chromium, type Browser, type Page } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 import { t } from "../../../src/i18n";
-import { TOOL_PARTS, TOOL_TABS } from "../../../src/render/pages/settings-page/tools.ts";
+import { TOOL_PARTS, TOOL_TABS } from "../../../src/render";
 
 browserDeadline();
 

@@ -4,7 +4,7 @@ import { describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import type { Job } from "../../../../src/queue/types.ts";
 import { renderScheduleRuns, type ScheduleRunsOptions } from "../../../../src/render/pages/schedule-page/runs.ts";
-import { scheduleRunPath } from "../../../../src/render/pages/schedule-page/tabs.ts";
+import { scheduleRunPath } from "../../../../src/render";
 
 function run(id: string, state: string, startedAt: string, finishedAt?: string): Job {
   return {

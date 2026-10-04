@@ -6,7 +6,7 @@ import { drawLimits } from "./limits";
 import { applyRefusal } from "./row-refusal";
 import { offerEachToItsTool, syncAiToModel } from "./ai-sync.ts";
 import { AWAITING, chosen, chosenSteps, checkboxKey, press, selectKey } from "./state.ts";
-import { syncApproachCancels } from "./approach-choice/index.ts";
+import { syncApproachCancels } from "./approach-choice";
 
 /** The row's button says what a press would run — and a press runs the
  *  BOXES, so the label has to follow them as they are clicked.

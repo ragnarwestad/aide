@@ -38,7 +38,7 @@ import {
   syncDependsOn,
 } from "./forms.ts";
 import { submitDeploy } from "./deploy";
-import { onApproachCancel, pickApproach } from "./approach-choice/index.ts";
+import { onApproachCancel, pickApproach } from "./approach-choice";
 import { formatElapsed } from "./elapsed.ts";
 import { bindLimits } from "./limits";
 import { connect, onVisibility } from "./live.ts";

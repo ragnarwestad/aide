@@ -23,7 +23,7 @@ import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { pickTab, tabBar } from "../../ui/tabs.ts";
-import { NEW_SPEC_ROUTE } from "../projects-page/routes.ts";
+import { NEW_SPEC_ROUTE } from "../projects-page";
 import type { SpecsPageOptions, SpecTarget } from "../specs-list";
 import { optionsTab } from "./options-tab.ts";
 

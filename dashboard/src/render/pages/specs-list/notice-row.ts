@@ -23,7 +23,7 @@ import { checksRow, checksFold, checksPanel } from "./row-checks.ts";
 import { nextPhase, specBusy } from "./row-state.ts";
 import { LIST_COLUMNS } from "./row-shared.ts";
 import { deleteBranchForm } from "./row-controls.ts";
-import { approachPanel } from "./approach-choice/index.ts";
+import { approachPanel } from "./approach-choice";
 
 const REFUSAL_TEMPLATE_ID = "refusal-row";
 const LIST_REFUSED_ID = "list-refused";

@@ -186,6 +186,7 @@ stage() {
   fi
   stage_line "$*"
 }
+# shellcheck disable=SC2329  # called by stage and the part marks below, which the sourced parts call
 stage_line() {
   printf 'aide-run-spec %s +%ss %s\n' "$(date +%H:%M:%S)" "$(( $(date +%s) - step_started_at ))" "$*" >&2
 }
@@ -195,10 +196,12 @@ stage_line() {
 # `— stopped: <why>`. A model turn closes the part it interrupts
 # (run_model_turn), so the log reads as one sequence of marked parts.
 aide_part=""; aide_part_seen=""
+# shellcheck disable=SC2329  # called by the parts sourced from lib/run-spec/
 aide_part_open() {   # <part>
   aide_part="$1"
   stage_line "--- Step Aide: $1 — started"
 }
+# shellcheck disable=SC2329  # called by the parts sourced from lib/run-spec/
 aide_part_close() {  # [<ending>, default done]
   [ -n "$aide_part" ] || return 0
   stage_line "--- Step Aide: $aide_part — ${1:-done}"

@@ -3,7 +3,7 @@
 
 import type { Sentence } from "../i18n/message.ts";
 import type { JobState, StopReason, WorkflowStep } from "./steps.ts";
-import type { CriteriaChecks } from "../project/discover/criteria-checks.ts";
+import type { CriteriaChecks } from "../project/discover";
 
 /** What one step actually metered, as `aide-run-spec` read it out of
  *  claude's own result event (spec 118). `total` is the sum of the other

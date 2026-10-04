@@ -4,10 +4,10 @@
 
 import { helpPopover, phaseChip, stepLabel } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
-import type { CriteriaChecks } from "../../../project/discover/criteria-checks.ts";
+import type { CriteriaChecks } from "../../../project/discover";
 import { PHASE_LINES, type SpecGroup } from "../specs-list";
 import { aiPicker, modelPicker, phaseCaptionCells, type PickerOptions } from "../specs-list/model-picker.ts";
-import type { NewSpecPageOptions } from "./index.ts";
+import type { NewSpecPageOptions } from ".";
 
 /** The Options tab: the four settings on one row, wrapping where the
  *  screen has no room for all, then the phase table. Each is a `.frow`,
