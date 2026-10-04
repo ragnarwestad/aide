@@ -13,6 +13,7 @@
   - [A Claude Code mod that shows the board in a session](#a-claude-code-mod-that-shows-the-board-in-a-session)
   - [Aide's skills as a Claude plugin](#aides-skills-as-a-claude-plugin)
   - [Correct the spec, not the code](#correct-the-spec-not-the-code)
+  - [Keep an archived spec's tests from disappearing unnoticed](#keep-an-archived-specs-tests-from-disappearing-unnoticed)
 - [Parked](#parked)
   - [One project, several code repositories](#one-project-several-code-repositories)
   - [The prompt a run was given, on its job page](#the-prompt-a-run-was-given-on-its-job-page)
@@ -96,6 +97,23 @@ spec behind." Aide can already do it: change an acceptance criterion and run Ana
 is written down nowhere as the way to fix a wrong result, and nothing stops the code being patched by hand while the
 spec still says something else. It could be a rule in the workflow, or a check that a change on a spec's branch made
 by hand is reflected in its description.
+
+### Keep an archived spec's tests from disappearing unnoticed
+
+From weighing how OpenSpec keeps its specs true. A test is tied to an acceptance criterion only by its name carrying
+"(AC-3)", and the same id is in many specs, so nothing knows which spec a test proves. The record of a spec's tests
+is made once, after its implement, and only from the tests its branch added. A later change, in another spec or by
+hand, can remove a test or change what it checks, and as long as the suite stays green it lands, with nobody told that
+an archived spec's criterion has lost its proof.
+
+- **A test names its spec**, such as "(597/AC-3)" rather than "(AC-3)", so a test can be traced to the spec it
+  proves.
+- **A removed or renamed test is caught by the landing.** The diff between the default branch and what is about to
+  be merged shows a line with such a name leaving a test file; when the name is found nowhere afterwards, the landing
+  says which archived spec's criterion lost its test, as a warning or a stop.
+- **A changed test is pointed out, and judged by the review.** Whether a test whose body changed still checks what
+  its criterion says cannot be told from git: it may only have been tidied. The landing says that the test changed,
+  and the review after implement, which already reads the diff, checks that it still proves the archived criterion.
 
 ## Parked
 
