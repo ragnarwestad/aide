@@ -43,7 +43,9 @@ them.
 ### Sources
 
 The changelog and news sources the skill fetches from (since the last review). The OpenAI developer blog shows no
-dates on its listing, so a post is opened to see when it was published.
+dates on its listing, so a post is opened to see when it was published. Artificial Analysis' Coding Agent
+Index compares coding agents by score, cost and time per task; its tables are drawn in the browser, so a fetch
+sees only placeholders, and what is worth noting there is whether its comparison of the tools themselves has come.
 
 | Tool               | Changelog                                                                                          | News                                                           |
 |--------------------|----------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
@@ -51,6 +53,7 @@ dates on its listing, so a post is opened to see when it was published.
 | GitHub Copilot CLI | <https://github.com/github/copilot-cli/releases><br><https://github.blog/changelog/label/copilot/> | <https://github.blog/ai-and-ml/github-copilot/>                |
 | OpenAI Codex CLI   | <https://github.com/openai/codex/releases><br><https://learn.chatgpt.com/docs/changelog>           | <https://developers.openai.com/blog>                           |
 | OpenCode           | <https://github.com/anomalyco/opencode/releases><br><https://opencode.ai/changelog>                | —                                                              |
+| All four           | —                                                                                                  | <https://artificialanalysis.ai/agents/coding-agents>           |
 
 ---
 
