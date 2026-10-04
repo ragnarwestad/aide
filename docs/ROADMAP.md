@@ -114,8 +114,6 @@ needed again.
 
 ## Not pursued
 
-- **Adopting whippletree.** It compiles one hook contract onto several tools and ships a compiled dispatcher per
-  bundle. Aide distributes prompts and short shell scripts, so a compiled layer costs more than it gives.
 - **Running OpenGeni.** It is a whole product: Postgres, Temporal, NATS and S3 storage. Its ideas are above; the
   product itself is not something to run beside Aide.
 - **An `aide` command that forwards to the `aide-*` scripts.** It would only change how the commands are written;
