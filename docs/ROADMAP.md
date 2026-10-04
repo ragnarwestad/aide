@@ -11,7 +11,7 @@
   - [From OpenGeni](#from-opengeni)
 - [Phase 5: The dashboard — toward spec-driven, observable runs](#phase-5-the-dashboard--toward-spec-driven-observable-runs)
   - [Parked: one project, several code repositories](#parked-one-project-several-code-repositories)
-  - [Parked: how specs are written](#parked-how-specs-are-written)
+  - [How specs are written](#how-specs-are-written)
 
 ---
 
@@ -194,6 +194,9 @@ is the same position we are in.
       step lists, `repos[].root` vs `repos[].worktree`, the six places the
       spec layout is written down). Turn it into an actual table, and add
       the same-change rule.
+      Partly there: `.claude/CLAUDE.md`'s "Reading the documentation" table
+      says which page answers which question, and the wiki maps how the parts
+      hang together. The same-change rule is still missing.
 - [ ] **A run that can ask a question and resume where it stopped.**
       `aide-run-spec` today can only guess or fail when something is
       genuinely unclear. OpenGeni lets an in-flight agent request a
@@ -201,7 +204,11 @@ is the same position we are in.
       an allowed skip, an expiry, or a restart. The full mechanism is more
       than we need; the small version is a job that parks itself as
       `waiting` with its question on the row, and a reply field on the
-      dashboard.
+      dashboard. Partly there for two fixed questions: an Implement is held
+      back while the user picks one of the approaches an analysis found
+      (spec 590), and an Analyze stops on its acceptance-criteria checks
+      until the description is put right (specs 584, 588). A free question
+      from a run is still missing.
 - [ ] **An append-only event log, not a last-state mirror.**
       `dashboard/src/queue/store/` writes the current state of every job to a
       JSON file, and `aide-emit-run` posts phase boundaries with
@@ -276,7 +283,7 @@ The agreed shape:
 - No merge across repositories at once is needed: the order and the
   review are the team's.
 
-### Parked: how specs are written
+### How specs are written
 
 A comparison of Aide's specs with 25 sources on writing specs for AI
 agents (`docs/SPEC_WRITING_SOURCES.md`) found:
@@ -285,7 +292,7 @@ agents (`docs/SPEC_WRITING_SOURCES.md`) found:
   within what they recommend (median about 355 words and six criteria).
 - Every plan rewrites the acceptance criteria as Given/When/Then that
   nobody approves, and a few change how many there are.
-- `core/rules/spec-structure.md` describes an older form (the problem as
+- `core/rules/spec-structure.md` described an older form (the problem as
   reported, SHALL, a scope section); the specs are written as Problem,
   Solution and plain criteria.
 - Plans list tests the testing rules do not allow: markup checks, and one
@@ -293,14 +300,25 @@ agents (`docs/SPEC_WRITING_SOURCES.md`) found:
 - The plan review finds real defects on LOW specs too, so it stays for
   every complexity.
 
-The options, to be chosen together:
+Done:
 
-- a. An optional "Must not change" part in the description.
-- b. `core/rules/spec-structure.md` says how specs are written now.
-- c. The plan review checks that each Given/When/Then says what its
-  criterion says, raises its own readings as open questions, and checks
-  the plan's test list against the testing rules: one test per rule, on
-  the function that decides it, no markup or CSS.
-- d. A lighter plan for LOW specs (not recommended: see the last finding).
+- [x] An optional `## Out of scope` section in the description, which the
+      plan review and the review after implement hold the plan and the
+      code to (spec 596).
+- [x] Acceptance criteria in the five EARS patterns, written by
+      `/aide-create` and checked by the plan review (specs 581, 582);
+      `/aide-create` fills in the criteria a description is missing when
+      asked to (586).
+- [x] The plan review finds criteria that contradict each other or cannot
+      be built, and a condition with no scenario for when it does not hold
+      (specs 584, 585), at a level chosen per spec in New spec: off, warn
+      or stop (588).
 
-Recommended: b and c as one spec.
+Still open:
+
+- [ ] `core/rules/spec-structure.md` says how specs are written now
+      throughout, not only for the acceptance criteria.
+- [ ] The plan review checks that each Given/When/Then says what its
+      criterion says, raises its own readings as open questions, and
+      checks the plan's test list against the testing rules: one test per
+      rule, on the function that decides it, no markup or CSS.
