@@ -2,323 +2,123 @@
 
 ## Table of contents
 
-- [Background](#background)
-- [Architecture decisions](#architecture-decisions)
-- [Phase 3: Make the tool truly generic](#phase-3-make-the-tool-truly-generic)
-- [Phase 4: Ideas borrowed from other tools](#phase-4-ideas-borrowed-from-other-tools)
-  - [From OpenSpec](#from-openspec)
-  - [From whippletree](#from-whippletree)
-  - [From OpenGeni](#from-opengeni)
-- [Phase 5: The dashboard — toward spec-driven, observable runs](#phase-5-the-dashboard--toward-spec-driven-observable-runs)
-  - [Parked: one project, several code repositories](#parked-one-project-several-code-repositories)
-  - [How specs are written](#how-specs-are-written)
+- [How an idea is kept here](#how-an-idea-is-kept-here)
+- [To consider](#to-consider)
+  - [A commit body that says what was wrong and what stays unchanged](#a-commit-body-that-says-what-was-wrong-and-what-stays-unchanged)
+  - [One map of the system, updated in the same change](#one-map-of-the-system-updated-in-the-same-change)
+  - [A run that can ask a question and wait for the answer](#a-run-that-can-ask-a-question-and-wait-for-the-answer)
+  - [An append-only event log for runs](#an-append-only-event-log-for-runs)
+  - [The spec-structure rule describes how specs are written now](#the-spec-structure-rule-describes-how-specs-are-written-now)
+  - [The plan review checks the scenarios and the test list](#the-plan-review-checks-the-scenarios-and-the-test-list)
+  - [A Claude Code mod that shows the board in a session](#a-claude-code-mod-that-shows-the-board-in-a-session)
+  - [Aide's skills as a Claude plugin](#aides-skills-as-a-claude-plugin)
+- [Parked](#parked)
+  - [One project, several code repositories](#one-project-several-code-repositories)
+  - [The prompt a run was given, on its job page](#the-prompt-a-run-was-given-on-its-job-page)
+- [Not pursued](#not-pursued)
 
 ---
 
-Where Aide came from, what has been decided, and what comes next.
-New contributors (human or AI): read this first.
+Ideas we want to weigh for Aide, and where each one stands. What Aide does today is in its own documentation, the
+specs and the git history, not here.
 
+## How an idea is kept here
 
-## Background
+Each idea says where it came from, what it is, and why it might be worth doing. An idea is in one of three places:
 
-Aide started as an internal AI-tooling workspace for a customer
-project. In July 2026 it was extracted into this repo with a clean
-history, stripped of all domain content, translated from Norwegian to
-English, and slimmed down. The git history documents each step.
+- **To consider:** not decided yet.
+- **Parked:** worth doing, but waiting for a need or for something else first.
+- **Not pursued:** decided against, with the reason, so the question is not opened again by accident.
 
-The repo initially carried a "doc-" prefix; it was dropped in August 2026
-because the tool had outgrown documents — it installs rules, skills,
-agents and hooks, and the specs are just one of its outputs.
+An idea that becomes a spec names it, and leaves this page once the spec is archived.
 
-The documents themselves were renamed from "reports" to "specs" in August
-2026 (spec 72 in aide-specs), following the documents repo's rename to
-aide-specs: they are specifications more than reports.
+## To consider
 
-A frozen copy of the original customer workspace exists locally as
-reference only — do not develop there.
+### A commit body that says what was wrong and what stays unchanged
 
-## Architecture decisions
+From [OpenGeni](https://github.com/Cloudgeni-ai/opengeni). Its bug-fix commits have a fixed body: what the wrong
+behaviour was, the mechanism behind it, what it meant for a user, and what deliberately does not change. The git rule
+asks only for an optional "why". The last part is what stops the next reader from undoing something that was
+intended.
 
-- **Four supported tools, via shared standards:** Claude Code reads the
-  skills in `~/.claude/skills/`; Copilot and Codex read them in
-  `~/.agents/skills/`, and OpenCode scans both. Copilot, Codex and OpenCode
-  read the generated `core/AGENTS.md` (installed as
-  `~/.copilot/copilot-instructions.md`, `~/.codex/AGENTS.md` and
-  `~/.config/opencode/AGENTS.md`).
-  Priority: Claude Code > Codex > OpenCode > Copilot. Gemini support and all
-  per-tool extras (JetBrains templates, editor tasks, Codex CLI wrappers)
-  were deliberately dropped — hand-maintained per-tool adapters were the
-  main maintenance cost. Inspired by OpenSpec's engine/adapter split.
-- **`core/` is the product.** Skills, rules, scripts and templates live
-  there once. `implementations/` holds only thin install scripts.
-- **`core/AGENTS.md` is generated** by `core/scripts/build-agents-md.sh`
-  from `core/agents-intro.md` + `core/rules/`. Never edit it by hand.
-- **Individual uninstallers keep the shared `~/.local/bin` scripts.**
-  Only `uninstall-all.sh` removes them, so removing one tool never breaks
-  the others or the daily cron job.
-- **Conventions:** English throughout; commit messages in English
-  imperative mood; spec files are `1-description.md`, `2-analysis.md`,
-  `3-solution.md`, `4-status.md` with strict content separation.
-- **Skill frontmatter is additive-only** (spec 71 in aide-specs, August
-  2026): beyond the Agent Skills spec's six fields, only Claude Code extras
-  whose absence costs a nicety (`effort`, `argument-hint`) — enforced by an
-  allowlist test. Behavior-critical fields are banned; that class of
-  divergence is what made `disable-model-invocation` block "ask the
-  assistant in prose" while Copilot/Codex ignored the field entirely.
-- **claude-usage is consumed, never modified** (spec 80, August 2026).
-  `~/develop/claude-usage` is a pristine clone of RuneLind/claude-usage
-  — an actively developed personal tool with no support promise.
-  aide-dashboard keeps every aide-specific receiver in its own code
-  rather than patching claude-usage, which would be permanent fork
-  drift. Aide's dashboard makes no request to claude-usage's HTTP API.
+### One map of the system, updated in the same change
 
-## Phase 3: Make the tool truly generic
+From OpenGeni, whose `CLAUDE.md` points at one architecture page and says a change that alters the shape of the
+system updates that page in the same change: "a stale map is a bug". `.claude/CLAUDE.md`'s "Reading the
+documentation" table and the wiki give Aide most of the map already; the rule that the same change keeps it current
+is what is missing.
 
-The content is generic, but some behavior was still shaped by its origin.
-Done in August 2026:
+### A run that can ask a question and wait for the answer
 
-- [x] **Issue keys need no configuration.** Skills and scripts recognize
-      any issue key by pattern (`[A-Z][A-Z0-9]*-[0-9]+`) instead of the
-      `PROJ-` example prefix. `PROJ-` remains in illustrative examples only.
-- [x] **Project-agnostic commands.** The test command is the manifest's
-      `AIDE_TEST_CMD`; lint/build commands are detected
-      from what the project ships (lockfiles, gradlew, pom.xml, …) — see
-      "Project commands" in `core/skills/tools-and-scripts/SKILL.md`. The pnpm
-      blocks in skills are labeled examples.
-- [x] **Per-project setup.** Optional `.aide/config` in the project root
-      (KEY=value): `AIDE_SPECS_PATH` (spec 73) plus
-      `AIDE_TEST_CMD`/`AIDE_LINT_CMD`/`AIDE_BUILD_CMD` overrides. Shell
-      scripts read it via `aide_config_get` in `_aide-spec-lib.sh`. No init
-      step — the file is created the first time a skill needs a value it
-      cannot detect.
+From OpenGeni, where a running agent can ask for an answer and carry on from the same point once it has one. A run
+in Aide can only guess or stop when something is unclear. Two fixed questions exist: an Implement held back while the
+user picks an approach, and an Analyze that stops on its acceptance-criteria checks. A free question from any run,
+answered on its row, would be the general form.
 
-## Phase 4: Ideas borrowed from other tools
+### An append-only event log for runs
 
-### From OpenSpec
+From OpenGeni, which writes every event to a log first and builds every view from it, so a reload, a second client
+and an audit all see the same history. The queue keeps each job's current state, and `aide-emit-run` posts phase
+boundaries with no guarantee they arrive, so nothing can be replayed. A `runs/<id>.jsonl` appended to would be
+enough; no database is needed.
 
-From the comparison with [OpenSpec](https://github.com/Fission-AI/OpenSpec)
-(see its docs/overview.md for the concepts):
+### The spec-structure rule describes how specs are written now
 
-- [x] **Archive step that closes the loop.** Done August 2026: `/aide-archive`
-      verifies `4-status.md`, feeds durable knowledge back into the project's
-      living docs, stamps the date in `4-status.md` and moves the folder to
-      `<specs-root>/archive/` with its name unchanged (the date lives in
-      the status file, so resolution stays unambiguous). Numbers are never
-      reused — `aide_next_spec_number` scans `archive/` too, and the
-      pdf/html scripts fall back to `archive/` when resolving.
-- [x] **Delta thinking in requirements.** Done August 2026: `3-solution.md`
-      has a "Behavior delta" section — what the solution ADDS / MODIFIES /
-      REMOVES in behavior relative to today, distinct from the analysis's
-      file scope.
-- [x] **Given/when/then acceptance criteria** in `3-solution.md`. Done
-      August 2026. `1-description.md` holds the AC-n SHALL statements;
-      `3-solution.md` holds the given/when/then cases, each opening with
-      the AC-id it covers. The RED phase writes at least one failing test
-      per criterion — wired into aide-analyze and aide-implement.
-- [x] **Explore step.** Done August 2026: `/aide-explore` — a thinking
-      partner that creates nothing (reading the codebase is encouraged,
-      writing is banned), lays out approaches with trade-offs including
-      "do nothing", shrinks the scope, and ends with an offer to hand the
-      sharpened conclusion to `/aide-create`.
+From comparing Aide's specs with the sources in `docs/SPEC_WRITING_SOURCES.md`. Specs are written as Problem,
+Solution and acceptance criteria in EARS, with an optional "Out of scope", but `core/rules/spec-structure.md` still
+describes parts of an older form. The rule should say how a spec is written today, throughout.
 
-### From whippletree
+### The plan review checks the scenarios and the test list
 
-From reading [whippletree](https://github.com/larstonder/whippletree), a Go
-CLI that compiles one hook contract onto Claude Code, Codex and OpenCode. We
-are not adopting it — it distributes executable behavior, we distribute
-prompts, and it carries a compiled dispatcher per bundle for what is often a
-three-line shell script. Three of its ideas are worth taking anyway:
+From the same comparison. Every plan rewrites the acceptance criteria as Given/When/Then that nobody approves, and
+some plans list tests the testing rules do not allow: markup checks, or one rule tested on several layers. The plan
+review could check that each scenario says what its criterion says, raise its own readings as open questions, and
+check the test list against the testing rules.
 
-- [x] **A check step before installing.** Done August 2026:
-      `core/scripts/aide-preflight` probes each CLI (version or not-found),
-      reports where every piece lands and whether the target exists, and
-      explains the cross-tool paths (Copilot reads skills from
-      `~/.claude/skills/`; rules reach Copilot/Codex via AGENTS.md). Each
-      installer runs it first; informational only, never blocks. Also ships
-      to `~/.local/bin` for standalone runs.
-- [x] **Fidelity levels in the support matrix.** Done August 2026: the
-      matrix defines an E/H/I ladder (Enforced by the tool / Heuristic
-      tool feature / Instruction the model usually follows) and grades how
-      each Aide piece lands per tool in "How the Aide pieces land" —
-      e.g. rules are E in Claude Code but I in Copilot/Codex.
-- [x] **Stamp versions from probing, not by hand.** Done August 2026:
-      `scripts/stamp-versions` asks each CLI and stamps the "Supported
-      versions" table with what the tool actually reports; a missing tool
-      keeps its old row. `/check-news` now points to the script instead of
-      hand-editing.
+### A Claude Code mod that shows the board in a session
 
-Related gap the reading exposed — closed August 2026: the four hooks in
-`implementations/claude-code/settings.json` — markdownlint on markdown, the
-`git add .` block, the watch-mode block, and the Stop hook that refuses to end
-a turn when code changed without tests — are ported to Codex as
-`implementations/codex/hooks/` (a `hooks.json` plus five shell scripts,
-installed to `~/.codex/`). The Stop guard needed a different construction:
-Codex has no prompt hooks, so PostToolUse markers ("code changed" /
-"tests run") are written per turn and judged by a command hook at Stop.
-All four verified in live `codex exec` sessions against 0.147.0.
+From Claude Code's mods (v2.1.287): plugins that add a pane, a status line or a hook inside a session, reloaded
+while it runs. Aide's hooks are shell commands. A mod could show the board's running specs and their state in the
+session that is working on Aide.
 
-### From OpenGeni
+### Aide's skills as a Claude plugin
 
-From reading [OpenGeni](https://github.com/Cloudgeni-ai/opengeni), an
-Apache-2.0 runtime for long-running agent sessions (durable event log in
-Postgres, Temporal for orchestration, human approvals before tool use,
-sessions that run on an enrolled machine of your own). It is not a tool we
-would install — it is a whole product, and running it means running
-Postgres, Temporal, NATS and S3 storage — but it is the closest thing we
-have found to a serious answer to the problem the dashboard is circling:
-what a headless agent run IS as durable state.
+From "Build plugins for Claude" and the Claude Marketplace. Aide installs its skills with its own scripts. A plugin
+could be another way to deliver them to Claude users, but Aide also serves Codex, OpenCode and Copilot, so it would be
+a second channel, not a replacement.
 
-It is also worth knowing HOW it was built, because that is what makes its
-conventions interesting. The public repo opens with "Initial OpenGeni open
-source release" on 12 May 2026 and carries 2234 commits by 19 August —
-roughly 1.29 million lines of TypeScript, 302 database migrations, 1180
-test files — with one dominant human author and `Co-authored-by: Cursor`
-on nearly every commit. The disciplines below are what a project reaches
-for when a machine writes the code faster than anyone can read it, which
-is the same position we are in.
+## Parked
 
-- [ ] **A commit body that says what was wrong and what stays unchanged.**
-      `core/rules/git.md` fixes the subject line (English, imperative) and
-      then says only "Optional: why, context, or details" about the body.
-      OpenGeni's bug-fix commits have a fixed shape worth copying: what the
-      wrong behavior was, the mechanism that caused it, what the
-      consequence was for a user, and — the part we have nothing about —
-      what deliberately does NOT change. That last clause is what stops the
-      next reader from undoing something that was intentional.
-- [ ] **One canonical map, updated in the same change.** OpenGeni's
-      `CLAUDE.md` points at a single `docs/architecture.md` and states the
-      rule: if a change alters the shape of the system, the map is updated
-      in that same change — "a stale map is a bug". It carries a "changing
-      X, read Y first" table. We have the content of that table already, as
-      prose warnings in `.claude/rules/development.md` (the two duplicated
-      step lists, `repos[].root` vs `repos[].worktree`, the six places the
-      spec layout is written down). Turn it into an actual table, and add
-      the same-change rule.
-      Partly there: `.claude/CLAUDE.md`'s "Reading the documentation" table
-      says which page answers which question, and the wiki maps how the parts
-      hang together. The same-change rule is still missing.
-- [ ] **A run that can ask a question and resume where it stopped.**
-      `aide-run-spec` today can only guess or fail when something is
-      genuinely unclear. OpenGeni lets an in-flight agent request a
-      validated answer and resume that exact tool call afterwards — or on
-      an allowed skip, an expiry, or a restart. The full mechanism is more
-      than we need; the small version is a job that parks itself as
-      `waiting` with its question on the row, and a reply field on the
-      dashboard. Partly there for two fixed questions: an Implement is held
-      back while the user picks one of the approaches an analysis found
-      (spec 590), and an Analyze stops on its acceptance-criteria checks
-      until the description is put right (specs 584, 588). A free question
-      from a run is still missing.
-- [ ] **An append-only event log, not a last-state mirror.**
-      `dashboard/src/queue/store/` writes the current state of every job to a
-      JSON file, and `aide-emit-run` posts phase boundaries with
-      `curl --max-time 1` in the background — deliberately without any
-      guarantee of arrival. So there is no history to replay: a dropped
-      post is gone, and reloading the page does not reconstruct what
-      happened. OpenGeni appends every event to the log first and streams
-      from it, so a reload, a second client and an audit all replay the
-      same history. We do not need Postgres for that — a `runs/<id>.jsonl`
-      appended to would do.
-- [x] **The anti-lesson: cap the file size before a barrel grows.**
-      `packages/db/src/index.ts` is 62 487 lines with 1134 exports, because
-      nothing enforces module boundaries and an assistant just appends at
-      the end. Done: `dashboard/test/design/code-health-limits.test.ts`
-      fails when a file under `dashboard/src/` passes 500 lines.
+### One project, several code repositories
 
-## Phase 5: The dashboard — toward spec-driven, observable runs
+A system is often a frontend and one or more backends, but a project has one code repository and its specs
+repository, so a change across the API and the frontend cannot be one spec. Parked until there is a need and a real
+system with several repositories to test on. The agreed shape:
 
-The long-term direction (August 2026): write specifications that agents
-solve over hours, and have ONE web UI with overview and control —
-projects, running processes, approvals, cost. Three layers: knowledge
-(what each project is), state (what is running and how far), execution
-(starting and gating runs).
+- The Projects page lists several code repositories for one project, each with its own test command and worktree
+  links.
+- One spec branches every repository, so analyze and implement see and change all of them in the same run. The
+  runner already branches, commits and pushes more than one repository per run.
+- Pull-request mode only, since this is a team setting with its own review: archive opens one pull request per code
+  repository whose branch has changes, each linking the others and the spec. The specs repository still merges on its
+  own, and the runner's tests run in every repository before any pull request is opened.
+- The row says it is waiting on pull requests until every branch is merged on origin, and names the repositories
+  still waiting. The order of the merges and the review are the team's.
 
-The plan and the backlog live as specs in aide-specs — the detail is
-THERE, not here (we eat our own dog food):
+### The prompt a run was given, on its job page
 
-- [x] Stage 0 — plan review step → spec 77 (done August 2026: `/aide-review-plan`; that skill is gone since, and the review is part of `/aide-analyze`)
-- [x] Stage 1 — project manifest → spec 78 (done August 2026: `/aide-manifest` + `.aide/project.yaml`)
-- [x] Stage 2 — read-only dashboard → spec 79 (done August 2026: the
-      `aide-dashboard` repo — static generator on the laptop reading
-      the manifests and specs roots, served on the serving host)
-- [x] Stage 3 — live process events → spec 80 (done August 2026:
-      `aide-emit-run` hook + the aide-dashboard server's `/live`, enriched
-      read-only from claude-usage's `/api/live`)
-- [x] Stage 4 — queue and runner → spec 81 (done August 2026: Aide's
-      `aide-run-spec` runs one workflow step headless with its guards and
-      caps; the aide-dashboard `/queue` page, scheduler, gates,
-      notifications and `push = none | branch | pr` drive it from the
-      mac mini. `aide-emit-run --phase` reports the TDD boundaries from
-      inside a run)
-- [x] Stage 5 — HTTPS and one address → spec 172 (done August 2026: the
-      server binds `127.0.0.1` and an HTTPS proxy in front of it gives
-      the dashboard one address that is a secure context — which is
-      what an installable app needs)
+From finding out why GPT-6.1 Sol stopped on archive: the runner's prompt and the archive skill said different
+things, and the prompt had to be rebuilt from the runner's code to see it. Storing each run's prompt with its log,
+and showing it on the job page, would let the user and a session read what the run was told. Parked until it is
+needed again.
 
-The wish list and the grounding are in spec 76 (archived).
+## Not pursued
 
-### Parked: one project, several code repositories
-
-A system is often more than one repository — a frontend and one or more
-backends. Today a project has one code repository (plus its specs
-repository), so a change that spans the API and the frontend cannot be
-one spec. Parked until there is a need and a real multi-repository
-system to test on.
-
-The agreed shape:
-
-- The Projects page lists several code repositories for one project,
-  each with its own test command and worktree links.
-- One spec branches every repository, so analyze and implement see and
-  change all of them in the same run. The runner already handles more
-  than one repository per run (the code and specs repositories each get
-  their own branch, worktree, commit and push).
-- Pull-request mode only: this is a team setting with its own review.
-  Archive opens one pull request per code repository whose branch has
-  changes, each linking the others and the spec; the specs repository
-  still merges on its own. The runner's tests still run in every
-  repository before any pull request is opened.
-- The row keeps "waiting on a pull request" until every branch is merged
-  on origin, and names the repositories still waiting.
-- No merge across repositories at once is needed: the order and the
-  review are the team's.
-
-### How specs are written
-
-A comparison of Aide's specs with 25 sources on writing specs for AI
-agents (`docs/SPEC_WRITING_SOURCES.md`) found:
-
-- `1-description.md` is what the sources call the spec, and its size is
-  within what they recommend (median about 355 words and six criteria).
-- Every plan rewrites the acceptance criteria as Given/When/Then that
-  nobody approves, and a few change how many there are.
-- `core/rules/spec-structure.md` described an older form (the problem as
-  reported, SHALL, a scope section); the specs are written as Problem,
-  Solution and plain criteria.
-- Plans list tests the testing rules do not allow: markup checks, and one
-  rule tested on several layers.
-- The plan review finds real defects on LOW specs too, so it stays for
-  every complexity.
-
-Done:
-
-- [x] An optional `## Out of scope` section in the description, which the
-      plan review and the review after implement hold the plan and the
-      code to (spec 596).
-- [x] Acceptance criteria in the five EARS patterns, written by
-      `/aide-create` and checked by the plan review (specs 581, 582);
-      `/aide-create` fills in the criteria a description is missing when
-      asked to (586).
-- [x] The plan review finds criteria that contradict each other or cannot
-      be built, and a condition with no scenario for when it does not hold
-      (specs 584, 585), at a level chosen per spec in New spec: off, warn
-      or stop (588).
-
-Still open:
-
-- [ ] `core/rules/spec-structure.md` says how specs are written now
-      throughout, not only for the acceptance criteria.
-- [ ] The plan review checks that each Given/When/Then says what its
-      criterion says, raises its own readings as open questions, and
-      checks the plan's test list against the testing rules: one test per
-      rule, on the function that decides it, no markup or CSS.
+- **Adopting whippletree.** It compiles one hook contract onto several tools and ships a compiled dispatcher per
+  bundle. Aide distributes prompts and short shell scripts, so a compiled layer costs more than it gives.
+- **Running OpenGeni.** It is a whole product: Postgres, Temporal, NATS and S3 storage. Its ideas are above; the
+  product itself is not something to run beside Aide.
+- **An `aide` command that forwards to the `aide-*` scripts.** It would only change how the commands are written;
+  nothing is missing with the scripts as they are.
+- **Decision pages in the wiki.** They recorded what one spec chose, went out of date without a word, and duplicated
+  the ordinary pages. The reasons for a rule now live as one line on the page that covers the code.

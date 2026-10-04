@@ -61,6 +61,29 @@ listed once in `core/scripts/_install-bin.sh` and sourced as
   directories only, and is PREPENDED to `~/.bashrc` — most templates
   return early for a non-interactive shell — while appended to `~/.zshenv`.
 
+## Decisions that shape the repo
+
+- **`core/` is the product.** Skills, rules, scripts and templates live
+  there once; `implementations/` holds only thin install scripts. No
+  per-tool adapters: hand-maintained adapters were the main maintenance
+  cost, which is why Gemini and the per-tool extras were dropped.
+- **Four tools through shared standards.** Claude Code reads the skills in
+  `~/.claude/skills/`; Copilot and Codex read them in `~/.agents/skills/`,
+  and OpenCode scans both. Copilot, Codex and OpenCode read the generated
+  `core/AGENTS.md`, installed as `~/.copilot/copilot-instructions.md`,
+  `~/.codex/AGENTS.md` and `~/.config/opencode/AGENTS.md`.
+- **`core/AGENTS.md` is generated** by `core/scripts/build-agents-md.sh`
+  from `core/agents-intro.md` and `core/rules/`; never edit it by hand.
+- **Skill frontmatter is additive only.** Beyond the Agent Skills spec's
+  fields, only Claude Code extras whose absence costs a nicety (`effort`,
+  `argument-hint`), enforced by an allowlist test. A field that changes
+  behaviour in one tool and is ignored by the others is not allowed.
+- **claude-usage is consumed, never modified.** `~/develop/claude-usage` is
+  a clean clone of someone else's tool; the dashboard keeps its own
+  receivers rather than patching it, and makes no request to its HTTP API.
+- **The original customer workspace is reference only.** A frozen copy
+  exists locally; nothing is developed there.
+
 ## Code health
 
 Divide and conquer, everywhere: a file does one thing and stays short, a

@@ -94,7 +94,7 @@ the dashboard's docs pages to 550; they are written to be searched. Where to loo
 | The test server a held-back spec offers                   | `dashboard/docs/test-server.md`               | Using the board   |
 | When the tests run in a spec, and what red means          | `dashboard/docs/tests-in-a-spec.md`           | Both              |
 | Installation layout, what goes where, the gotchas         | `.claude/rules/development.md`                | Changing the code |
-| Where the project came from and what is next              | `docs/ROADMAP.md`                             | Both              |
+| Ideas being considered for Aide, and where they stand     | `docs/ROADMAP.md`                             | Both              |
 | How Aide compares with other spec-driven tools            | `docs/COMPARISON.md`                          | Both              |
 | Sources on writing specs for AI agents, to be analysed    | `docs/SPEC_WRITING_SOURCES.md`                | Changing the code |
 | Every key in `.aide/config` and `.aide/project.yaml`      | `docs/CONFIGURATION.md`                       | Both              |
@@ -114,6 +114,5 @@ gotchas and how to add new functionality. The `/ai-tools-reference` skill holds
 the verified config reference for Claude Code, Codex and Copilot (not OpenCode); `/ai-tools-upgrade` holds the
 daily-upgrade setup for a machine.
 
-See `docs/ROADMAP.md` for where the project came from, the architecture
-decisions, and what to work on next (phase 3: genericization, phase 4:
-OpenSpec-inspired improvements).
+See `docs/ROADMAP.md` for the ideas being considered for Aide, and
+`.claude/rules/development.md` for the decisions that shape the repo.
