@@ -16,6 +16,7 @@
   - [Keep an archived spec's tests from disappearing unnoticed](#keep-an-archived-specs-tests-from-disappearing-unnoticed)
   - [A review that also holds the code to the repo's own rules](#a-review-that-also-holds-the-code-to-the-repos-own-rules)
   - [One project, several code repositories](#one-project-several-code-repositories)
+  - [More than one flow for analyze and implement](#more-than-one-flow-for-analyze-and-implement)
 
 ---
 
@@ -92,3 +93,12 @@ spec, and says what is missing, what nobody asked for, and where each finding co
 A system is often a frontend and one or more backends: one spec that changes all of a project's code repositories
 in the same run, each landing through its own pull request. Worth doing once there is a real system with several
 repositories to try it on.
+
+### More than one flow for analyze and implement
+
+From comparing Aide with agents started by hand from the command line, where each run can be shaped to its task:
+a spec chooses a flow suited to its kind of work, and the runner checks that flow's own rules. Two flows whose rules
+differ from today's, and that the runner can check without trusting the agent:
+
+- **A bug fix:** a test that reproduces the bug is red before the change and green after it.
+- **A refactor:** the behaviour does not change, so the existing tests stay as they are and green throughout.
