@@ -129,8 +129,8 @@ the pages.
 recomputes them from git, never from what the session says it wrote: the generated pages `aide-wiki affected` names
 (the pages covering files the spec's own code changed). Current reasons belong in those ordinary pages;
 no extra page or index write is permitted. Only what this run wrote is checked: the pages changed since the branch
-stood before the session, leaving aside those the default branch changed, which the merge brought in. A page an
-earlier archive run rewrote was checked then. A page taken back ends the run `scope-violation`;
+stood before the session, leaving aside those the default branch changed while they still match its copy, which the
+merge brought in. A page an earlier archive run rewrote was checked then. A page taken back ends the run `scope-violation`;
 the stage line `wiki pages rewritten:` names what stayed.
 
 **A `schedule` step commits and pushes exactly like any other command** — the project repository and the specs root,

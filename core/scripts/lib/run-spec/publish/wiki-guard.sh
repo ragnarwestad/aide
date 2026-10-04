@@ -108,7 +108,12 @@ ARCHIVE_WIKI_EXCLUDES_EOF
     case "$archive_wiki_path" in "$archive_wiki_prefix"*) ;; *) continue ;; esac
     archive_wiki_n="${archive_wiki_path#"$archive_wiki_prefix"}"
     case "$archive_wiki_n" in */*) continue ;; esac
-    grep -qxF "$archive_wiki_path" <<<"$archive_wiki_mains" && continue
+    # Main's change only when the page is main's copy: a session that
+    # also wrote into it answers for that like any other page.
+    if grep -qxF "$archive_wiki_path" <<<"$archive_wiki_mains" \
+       && git -C "$archive_repo_wt" diff --quiet "$archive_wiki_tip" -- "$archive_wiki_path" 2>/dev/null; then
+      continue
+    fi
     if grep -qxF "$archive_wiki_n" <<<"$archive_wiki_allowed"; then
       archive_wiki_rewritten="${archive_wiki_rewritten:+$archive_wiki_rewritten, }$archive_wiki_n"
       continue

@@ -321,3 +321,43 @@ def test_a_page_an_earlier_archive_run_rewrote_is_not_this_runs_write(
     rc, out, _ = run(runner, workspace, claude, command="archive")
     assert out["terminalReason"] == "completed", out.get("error")
     assert "Rewritten by the earlier run." in _wiki_page(workspace, branch, "p.md")
+
+
+def test_a_page_main_changed_and_the_session_rewrote_too_is_taken_back(
+    runner, workspace, workspace_root, fake_claude
+):
+    """The session is handed an open merge with main, which changed `q.md`
+    and conflicts on a note in the spec's folder. It resolves the note and
+    also writes its own text into `q.md`, a page this spec may not touch.
+    Main having changed the page does not make the session's rewrite main's."""
+    status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
+    branch = _archive_wiki_workspace(workspace, workspace_root)
+    specs = workspace["specs"]
+    note = next(specs.glob("**/4-status.md")).parent / "notes.txt"
+    git(specs, "switch", "-q", "-c", branch)
+    note.write_text("the branch's note\n")
+    git(specs, "add", "-A")
+    git(specs, "commit", "-qm", "branch side")
+    git(specs, "switch", "-q", "main")
+    note.write_text("main's note\n")
+    (specs / "wiki" / "q.md").write_text(_wiki_page(workspace, "main", "q.md") + "\nChanged on main.\n")
+    git(specs, "add", "-A")
+    git(specs, "commit", "-qm", "main side")
+    on_main = _wiki_page(workspace, "main", "q.md")
+    note_rel = note.relative_to(specs)
+    folder = note.parent.relative_to(specs)
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'echo "resolved" > "$specs/{note_rel}"\n'
+        + 'echo "Rewritten by this session." >> "$specs/wiki/q.md"\n'
+        + 'git -C "$specs" add -A\n'
+        + 'git -C "$specs" -c user.name=S -c user.email=s@example.com commit -q --no-edit\n'
+        + f'mkdir -p "$specs/archive" && git -C "$specs" mv {folder} archive/{folder} '
+        + '&& git -C "$specs" -c user.name=S -c user.email=s@example.com commit -q -m "archive"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="archive")
+    assert out["terminalReason"] == "scope-violation", out
+    assert "q.md" in out["error"], out
+    assert _wiki_page(workspace, branch, "q.md") == on_main
