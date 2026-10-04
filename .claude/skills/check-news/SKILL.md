@@ -27,26 +27,10 @@ heading under `## News log`).
 
 ## Step 2: Fetch news from sources
 
-Check these sources for news **since the last review**:
-
-### Claude Code
-
-1. WebFetch: `https://github.com/anthropics/claude-code/releases`
-2. WebFetch: `https://www.anthropic.com/news`
-
-### GitHub Copilot
-
-1. WebFetch: `https://github.blog/changelog/label/copilot/`
-2. WebFetch: `https://github.com/github/copilot-cli/releases`
-
-### OpenAI Codex
-
-1. WebFetch: `https://github.com/openai/codex/releases`
-2. WebFetch: `https://learn.chatgpt.com/docs/changelog`
-
-### OpenCode
-
-1. WebFetch: `https://github.com/anomalyco/opencode/releases`
+Fetch every source in the **Sources** table of `docs/AI_NEWS_LOG.md` (its
+`### Sources` section) for news **since the last review**: one WebFetch per
+address, all of them, every tool. The table is the one list of sources; add
+or change a source there, not here.
 
 ## Step 3: Filter and assess
 

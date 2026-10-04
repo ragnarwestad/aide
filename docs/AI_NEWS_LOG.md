@@ -44,12 +44,12 @@ them.
 
 Canonical changelog sources the skill fetches from (since the last review):
 
-| Tool               | Sources                                                                                           |
-|--------------------|---------------------------------------------------------------------------------------------------|
-| Claude Code        | <https://github.com/anthropics/claude-code/releases> · <https://www.anthropic.com/news>           |
-| GitHub Copilot CLI | <https://github.blog/changelog/label/copilot/> · <https://github.com/github/copilot-cli/releases> |
-| OpenAI Codex CLI   | <https://github.com/openai/codex/releases> · <https://learn.chatgpt.com/docs/changelog>           |
-| OpenCode           | <https://github.com/anomalyco/opencode/releases>                                                  |
+| Tool               | Sources                                                                                                              |
+|--------------------|----------------------------------------------------------------------------------------------------------------------|
+| Claude Code        | <https://github.com/anthropics/claude-code/releases> · <https://claude.com/blog/> · <https://www.anthropic.com/news> |
+| GitHub Copilot CLI | <https://github.blog/changelog/label/copilot/> · <https://github.com/github/copilot-cli/releases>                    |
+| OpenAI Codex CLI   | <https://github.com/openai/codex/releases> · <https://learn.chatgpt.com/docs/changelog>                              |
+| OpenCode           | <https://github.com/anomalyco/opencode/releases> · <https://opencode.ai/changelog>                                   |
 
 ---
 
