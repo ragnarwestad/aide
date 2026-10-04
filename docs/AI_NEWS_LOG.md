@@ -6,6 +6,7 @@
   - [Sources](#sources)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-10-04](#2026-10-04)
   - [2026-09-30](#2026-09-30)
   - [2026-09-28](#2026-09-28)
   - [2026-09-26](#2026-09-26)
@@ -66,6 +67,57 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-10-04
+
+Sep 30 – Oct 4. **Claude Code got mods** (v2.1.287): plugins can now change deeper behaviour through function hooks
+that reload in the session. Claude Code v2.1.288 also fixed path-scoped `.claude/rules` and nested `CLAUDE.md` not
+loading for a file created or changed during the session, which the dashboard's own rules rely on. Codex had only
+alpha builds after v0.159.3.
+
+**Claude Code (Sep 30 – Oct 4, v2.1.286 → v2.1.289):**
+
+| Date  | Version  | News                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Source                                                                |
+|-------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
+| Oct 1 | v2.1.287 | **Claude Mods**: plugins can change deeper behaviour through function hooks that reload in the session (panes, bands, status lines, toasts, hooks); a built-in "You should know" mod; `n:<text>` filter in the agents view; `prompt_text` on the OpenTelemetry `user_prompt` event; `asyncRewake` hooks no longer wake repeatedly when their script is missing                                                                                                            | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
+| Oct 2 | v2.1.288 | Path-scoped `.claude/rules` and nested `CLAUDE.md` now load when a file is created or changed in the session; `-p` sessions stream the turns of a `context: fork` skill; a non-interactive session continues from a partial response after an API timeout; long conversations auto-compact instead of failing "Prompt is too long"; an agent spawned by name runs with its own prompt, tools and effort; `$.ui.selection()` for mods; `--max-findings` for `/code-review` | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
+| Oct 3 | v2.1.289 | `agent.spawn` for teammates and one agent id across plugin hook events; installed mods load in the first session after an upgrade; Read deny rules apply to @-mentioned files reached through symlinks; deny/ask rules on nested compound shell commands hold over mod approvals                                                                                                                                                                                          | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
+| Oct 1 | —        | Blog: "Customize Claude Code with mods"; Sep 25: "Build plugins for Claude", listed in the Claude Marketplace (Sep 23)                                                                                                                                                                                                                                                                                                                                                    | [Claude blog](https://claude.com/blog/)                               |
+
+**GitHub Copilot CLI (Sep 30 – Oct 4, v1.0.89 → v1.0.91, and v1.0.92 pre-releases):**
+
+| Date          | Version              | News                                                                                                                                                                                                    | Source                                                            |
+|---------------|----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
+| Oct 1         | v1.0.91              | `copilot sandbox ca` commands; review of read-only shell pipelines; telemetry flushed on shutdown; model picker updates                                                                                 | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
+| Oct 1 – Oct 2 | v1.0.92-0 … -3 (pre) | Environment picker (Ctrl+E) for local or cloud runs; remote MCP servers reconnect after their HTTP session expires; background agents can be steered by message; retired models removed from the picker | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
+| Oct 1         | —                    | Dynamic workflows in Copilot CLI and the Copilot app; Copilot can drive desktop apps with computer use; Oct 2: selected models deprecated                                                               | [GitHub Changelog](https://github.blog/changelog/label/copilot/)  |
+
+**OpenAI Codex CLI (Sep 30 – Oct 4, v0.159.2 → v0.159.3):**
+
+| Date           | Version               | News                                                                                | Source                                                      |
+|----------------|-----------------------|-------------------------------------------------------------------------------------|-------------------------------------------------------------|
+| Sep 30         | v0.159.3              | Optional account-security setup reminders for local sessions signed in with ChatGPT | [Changelog](https://learn.chatgpt.com/docs/changelog)       |
+| Sep 30 – Oct 4 | v0.162.0-alpha.3 … 12 | Alpha builds with no release notes                                                  | [GitHub Releases](https://github.com/openai/codex/releases) |
+
+**OpenCode (Sep 30 – Oct 4, v1.18.33 → v1.18.34):**
+
+| Date   | Version  | News                                                                                                | Source                                                            |
+|--------|----------|-----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
+| Sep 30 | v1.18.34 | Namespaced session identity headers on model requests; macOS binaries signed for macOS 27 and later | [GitHub Releases](https://github.com/anomalyco/opencode/releases) |
+
+**Relevance for Aide:**
+
+- ✅ **Claude Code mods** (v2.1.287) — a richer kind of hook than the shell commands Aide installs in `settings.json`
+  (the markdownlint check, the `git add .` and watch-mode blocks). No action now; a mod could one day show the
+  board's state inside a session.
+- ✅ **Path-scoped rules load on file creation and change** (v2.1.288) — the dashboard's `.claude/rules` (landing,
+  process groups, design) now load for a file a session creates, not only one it reads.
+- ✅ **`-p` streams a forked skill's turns** and **continues after an API timeout** (v2.1.288) — the runner reads
+  `stream-json` from `claude -p`, so a skill run with `context: fork` now shows in the step's log, and a timeout
+  mid-response no longer ends the turn.
+- ℹ Claude Code v2.1.286's `--bare` change (the runner does not use `--bare`), v2.1.289's agent and mod fixes,
+  "Build plugins for Claude", Copilot v1.0.91 and its v1.0.92 pre-releases, Codex v0.159.3 and its alphas, and
+  OpenCode v1.18.34 — no Aide action.
 
 ### 2026-09-30
 
