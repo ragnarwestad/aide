@@ -45,12 +45,12 @@ them.
 The changelog and news sources the skill fetches from (since the last review). The OpenAI developer blog shows no
 dates on its listing, so a post is opened to see when it was published.
 
-| Tool               | Sources                                                                                                                                             |
-|--------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Claude Code        | <https://github.com/anthropics/claude-code/releases> · <https://claude.com/blog/> · <https://www.anthropic.com/news>                                |
-| GitHub Copilot CLI | <https://github.blog/changelog/label/copilot/> · <https://github.com/github/copilot-cli/releases> · <https://github.blog/ai-and-ml/github-copilot/> |
-| OpenAI Codex CLI   | <https://github.com/openai/codex/releases> · <https://learn.chatgpt.com/docs/changelog> · <https://developers.openai.com/blog>                      |
-| OpenCode           | <https://github.com/anomalyco/opencode/releases> · <https://opencode.ai/changelog>                                                                  |
+| Tool               | Changelog                                                                                          | News                                                           |
+|--------------------|----------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
+| Claude Code        | <https://github.com/anthropics/claude-code/releases>                                               | <https://claude.com/blog/><br><https://www.anthropic.com/news> |
+| GitHub Copilot CLI | <https://github.com/github/copilot-cli/releases><br><https://github.blog/changelog/label/copilot/> | <https://github.blog/ai-and-ml/github-copilot/>                |
+| OpenAI Codex CLI   | <https://github.com/openai/codex/releases><br><https://learn.chatgpt.com/docs/changelog>           | <https://developers.openai.com/blog>                           |
+| OpenCode           | <https://github.com/anomalyco/opencode/releases><br><https://opencode.ai/changelog>                | —                                                              |
 
 ---
 
