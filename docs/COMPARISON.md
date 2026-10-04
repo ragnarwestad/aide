@@ -79,16 +79,21 @@ is a Markdown file holding the instructions for one command, which an AI CLI rea
 dashboard is a web page served on the machine that runs the work, and it keeps a clone of each project, separate
 from any checkout a person uses.
 
-**Document structure.** A spec is a folder of four files: `1-description.md` states the problem as it was reported,
-with its acceptance criteria as AC-n SHALL statements, `2-analysis.md` records what the code shows, `3-solution.md`
-holds the plan and a given/when/then case for each AC-id, and `4-status.md` records what happened, including the cost of each step. The folder goes in
+**Document structure.** A spec is a folder of four files: `1-description.md` holds the problem, the proposed
+solution, an optional `## Out of scope` list and the acceptance criteria, each an AC-n line in one of the five EARS
+patterns (`/aide-create` can fill in the criteria a description is missing), `2-analysis.md` records what the code
+shows, `3-solution.md` holds the plan and a given/when/then case for each AC-id, and `4-status.md` records what
+happened, including the cost of each step. The folder goes in
 `specs/` in the project, or in a separate specs repository when `AIDE_SPECS_PATH` in the machine's own
 `.aide/config` names one. A finished spec is moved to `archive/`, and the archive step writes what was learned into
 the project's own documentation first.
 
 **Workflow.** `/aide-create`, `/aide-analyze`, `/aide-implement`, `/aide-archive`. Beside them: `/aide-explore` for
 thinking a problem through, `/aide-manifest` for a project's own settings file, and `/aide-close` and `/aide-reopen`
-for specs that stop or come back.
+for specs that stop or come back. `/aide-analyze` reviews its own plan against the description: criteria that
+contradict each other or cannot be built, a condition with no scenario for when it does not hold, and anything that
+falls under "Out of scope", at a level chosen per spec (off, warn or stop). After `/aide-implement`, a second session
+reviews the diff against the description, "Out of scope" included.
 
 **AI tool support.** Claude Code, Codex, OpenCode and Copilot. The content exists once, in `core/`, and each tool
 has a small installer that writes it into the user's home directory: `~/.claude/skills/` for Claude Code,
@@ -103,7 +108,9 @@ of its own, under a time limit, on a model chosen for that step. A worktree is a
 repository on a branch of its own, so a run never touches the checkout anyone else is using. The job's row on the
 dashboard records the model, the cost, the token count and the reason each step ended. A step running unattended
 has nobody to ask, so a step that needs a decision writes the question into the spec's own files and finishes
-without the answer. The queue and its limits are in
+without the answer. Two decisions wait for the person instead: an Implement is held back while they pick one of the
+approaches an analysis found, and an Analyze can stop on its acceptance-criteria checks until the description is put
+right. The queue and its limits are in
 [Running specs](../dashboard/docs/running-specs.md); what a run does to the repositories is in
 [The runner and its checkouts](../dashboard/docs/the-runner.md).
 
@@ -394,8 +401,9 @@ service runs as, and every commit a run makes carries that machine's git user, w
   way, planning and the merge included.
 - **Disadvantage:** it requires a machine that stays on. On macOS the dashboard installs as a launchd service,
   which macOS starts and keeps running; on Linux `dashboard/serve.sh` runs it in a terminal, and nothing restarts
-  it after a reboot. A step running unattended cannot ask a question, and a step that goes wrong runs until its
-  time limit before anything reports it.
+  it after a reboot. A step running unattended cannot ask a free question, only wait at the two fixed points (the
+  choice of approach, the acceptance-criteria checks), and a step that goes wrong runs until its time limit before
+  anything reports it.
 
 ### Landing is part of the workflow, not a step afterwards
 
@@ -411,7 +419,8 @@ service runs as, and every commit a run makes carries that machine's git user, w
 ### One set of skills across four AI tools
 
 - **Advantage:** the workflow does not change when the tool does, and a project is not tied to one vendor's editor.
-  A step can run on a cheaper model where that is sufficient.
+  Each phase of a spec can run on its own AI and model, for example an analysis on Claude and an implement and
+  archive on Codex, and a step can run on a cheaper model where that is sufficient.
 - **Disadvantage:** four is few beside the thirty to fifty the file-based tools reach, because each of Aide's is
   written and tested by hand rather than generated from a table. The skills also stay within what all four can do,
   so tool-specific features go unused, each tool has its own installer to keep up to date, and support is not
@@ -419,9 +428,11 @@ service runs as, and every commit a run makes carries that machine's git user, w
 
 ### Four files per spec, and an archive step that writes back
 
-- **Advantage:** the reasoning outlives the change. A later reader sees the problem as it was reported, what the
-  code looked like, what was decided and what it cost, and the project's documentation stays current instead of
+- **Advantage:** the reasoning outlives the change. A later reader sees the problem and the criteria it was held to,
+  what the code looked like, what was decided and what it cost, and the project's documentation stays current instead of
   falling behind a growing pile of finished specs.
 - **Disadvantage:** four files are more overhead than a single plan file for a small change. And unlike OpenSpec,
-  Aide has no capability document describing the system as a whole: the answer to "what does this system do today"
-  is in the project's own documentation, and stays correct only for as long as the archive step keeps it there.
+  Aide has no capability document describing what the system does as a whole. Each project's wiki, in the specs
+  repository and read first by `/aide-analyze`, maps how its parts hang together, one page per part, and the
+  archive step rewrites the pages a spec's code touched; the answer to "what does this system do today" is in the
+  project's own documentation, and stays correct only for as long as the archive step keeps it there.
