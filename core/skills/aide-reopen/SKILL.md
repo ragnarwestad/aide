@@ -30,13 +30,9 @@ starts, write one line `--- Step N of X: <title> — started`, and when
 it ends, one line `--- Step N of X: <title> — done`. A step that ends
 the run early says `— stopped: <why>` in place of `— done`, and one that does not apply to this run `— skipped: <why>`.
 
-Step 8, the merge into the default branch, is Aide's, after this
-session: Aide writes its marks, and the reopen is finished only when it is
-done.
+### Step 1 of 7: Find the spec
 
-### Step 1 of 8: Find the spec
-
-First write `--- Step 1 of 8: Find the spec — started`, and when this step ends, `--- Step 1 of 8: Find the spec — done`.
+First write `--- Step 1 of 7: Find the spec — started`, and when this step ends, `--- Step 1 of 7: Find the spec — done`.
 
 
 Resolve `$ARGUMENTS` to a folder, looking under `archive/` — that is
@@ -53,9 +49,9 @@ mode. A headless run never reaches this skill at all: the runner runs
 `aide-reopen-spec` itself, and for `--reset-files` `aide-reset-spec`
 after it. This skill is the keyboard's path to the same two scripts.
 
-### Step 2 of 8: Remove the branch the earlier round left behind
+### Step 2 of 7: Remove the branch the earlier round left behind
 
-First write `--- Step 2 of 8: Remove the branch the earlier round left behind — started`, and when this step ends, `--- Step 2 of 8: Remove the branch the earlier round left behind — done`.
+First write `--- Step 2 of 7: Remove the branch the earlier round left behind — started`, and when this step ends, `--- Step 2 of 7: Remove the branch the earlier round left behind — done`.
 
 
 `aide/<NN>-slug` can be in four places, and the one that is missed is
@@ -68,21 +64,14 @@ the one the next run refuses on:
 | the specs repo | the local ref in the checkout |
 | the specs repo | `origin`                      |
 
-Delete all four. Write it as ONE loop over the pairs, not as four
-separately typed commands — four commands is how one of them ends up
-different from the others.
+Delete all four in ONE loop over the pairs, so the four deletions stay
+alike. Every deletion tolerates "already gone" — the landing that
+archived the spec usually removed the branch already — and an origin
+that cannot be reached is no reason to stop.
 
-Every deletion tolerates "already gone". A spec whose branch was cleaned
-up by the landing that archived it is the normal case, not a failure,
-and an origin that cannot be reached is not a reason to stop either.
+### Step 3 of 7: Move the folder back
 
-**In a headless run this is already done.** Check first, and do nothing
-when there is nothing to do. This step exists for `/aide-reopen` typed
-at a keyboard, where no worktree stands in the way.
-
-### Step 3 of 8: Move the folder back
-
-First write `--- Step 3 of 8: Move the folder back — started`, and when this step ends, `--- Step 3 of 8: Move the folder back — done`.
+First write `--- Step 3 of 7: Move the folder back — started`, and when this step ends, `--- Step 3 of 7: Move the folder back — done`.
 
 
 **Keep mode:** run
@@ -100,23 +89,20 @@ Step 6.
 otherwise. The folder keeps its `NN-slug` name — numbers are never
 reused, and the spec is the same spec.
 
-### Step 4 of 8: Reset three files, keep two (reset mode only)
+### Step 4 of 7: Reset three files, keep two (reset mode only)
 
-First write `--- Step 4 of 8: Reset three files, keep two (reset mode only) — started`, and when this step ends, `--- Step 4 of 8: Reset three files, keep two (reset mode only) — done`.
+First write `--- Step 4 of 7: Reset three files, keep two (reset mode only) — started`, and when this step ends, `--- Step 4 of 7: Reset three files, keep two (reset mode only) — done`.
 
 
 **Run `aide-reset-spec --specs-root <specs-root> --spec <NN-slug>`** over
 the folder Step 3 moved back. It writes `2-analysis.md`, `3-solution.md`
-and `4-status.md` from the templates itself, which is the same writer
-`/aide-create` uses — never write those three by hand.
+and `4-status.md` from the templates itself, with the same writer
+`/aide-create` uses. `1-description.md` and `0-README.md` stay byte for
+byte as they are: the description is what the new round is for.
 
-**Leave `1-description.md` and `0-README.md` byte for byte as they are.**
-The description is why the spec exists, and it is what the new round is
-for. Rewriting it would delete the one thing the reopen is keeping.
+### Step 5 of 7: Carry over the `**Archived:**` line (reset mode only)
 
-### Step 5 of 8: Carry over the `**Archived:**` line (reset mode only)
-
-First write `--- Step 5 of 8: Carry over the **Archived:** line (reset mode only) — started`, and when this step ends, `--- Step 5 of 8: Carry over the **Archived:** line (reset mode only) — done`.
+First write `--- Step 5 of 7: Carry over the **Archived:** line (reset mode only) — started`, and when this step ends, `--- Step 5 of 7: Carry over the **Archived:** line (reset mode only) — done`.
 
 
 Copy the `**Archived:**` line (with every earlier one it already had)
@@ -135,14 +121,12 @@ not count)` — the one grammar `completed_steps_for` in
 `core/scripts/aide-run-spec`, `parse-status.ts`, `workflow-history.ts`
 and `description-freshness.ts` all parse.
 
-### Step 6 of 8: Commit
+### Step 6 of 7: Commit
 
-First write `--- Step 6 of 8: Commit — started`, and when this step ends, `--- Step 6 of 8: Commit — done`.
+First write `--- Step 6 of 7: Commit — started`, and when this step ends, `--- Step 6 of 7: Commit — done`.
 
 
-A headless run gets its commit for free — this session does not run
-`git commit` or `git push` itself, headless or not. Working
-interactively, ASK whether to commit, and suggest this message:
+ASK whether to commit, and suggest this message:
 
 ```text
 Run /aide-reopen for <spec-folder>
@@ -153,15 +137,9 @@ boundary sha, in a commit of its own right after this step finishes — it
 is not part of what this session commits. In keep mode the
 `**Round boundary:**` line is already written by `aide-reopen-spec`.
 
-### Step 7 of 8: Confirm
+### Step 7 of 7: Confirm
 
-First write `--- Step 7 of 8: Confirm — started`, and when this step ends, `--- Step 7 of 8: Confirm — done`.
-
-In a headless run nothing of this is on the default branch yet: the
-reopen is finished only once Step 8, the merge into main, is done. So the
-report's first line ends `— not finished, the merge into main is next
-(Step 8)`, and the report never calls the reopen done or complete.
-
+First write `--- Step 7 of 7: Confirm — started`, and when this step ends, `--- Step 7 of 7: Confirm — done`.
 
 ```text
 Reopened: 17-clean-up-console-log
@@ -174,18 +152,6 @@ Reopened: 17-clean-up-console-log
 Next: /aide-analyze 17
 ```
 
----
-
-### Step 8 of 8: Merge into main
-
-Aide writes `--- Step 8 of 8: Merge into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
-
-Not this session's step, and it writes no mark for it. In a headless
-run Aide merges what this session committed on the spec's branch into
-the default branch once the session has ended, and the reopen is finished
-when that merge is, not before. Working interactively there is no such
-step: the steps above say what reaches the default branch.
-
 IMPORTANT:
 - Never delete a commit, and never rewrite the default branch's history.
   The mark is what stops the earlier round counting; the repository keeps
@@ -193,8 +159,5 @@ IMPORTANT:
 - Never touch `1-description.md` or `0-README.md`
 - In keep mode, never touch `2-analysis.md`, `3-solution.md` or a row of
   `4-status.md`; `aide-reopen-spec` is the only thing that edits it
-- If the specs root lies outside the project root, do NOT run
-  `git add`/`git mv` in the project's repo for spec files (they live in
-  another repo — use the specs repo's git if it has one)
-- Code blocks ALWAYS end with just ` ``` ` — NEVER ` ```text ` as the
-  closing fence
+- When the specs root lies outside the project root, spec files are
+  moved and staged with the specs repo's git, never the project's
