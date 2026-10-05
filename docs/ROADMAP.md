@@ -116,7 +116,8 @@ vary in how many agents work on it, how long they keep going, and who checks the
 - **Competing implementations:** two models each implement the spec, and the one that does best on the tests and
   the review is kept.
 - **Split the spec:** one agent divides the work, by criterion or by part of the code, and several agents take a
-  part each at the same time.
+  part each at the same time. The riskiest of these: agents working at once each make decisions the others do not
+  see, and the parts may not fit together ([Cognition](https://cognition.ai/blog/dont-build-multi-agents)).
 - **Planner and doer:** a strong model writes the plan, a cheaper one makes the changes and asks the planner when
   stuck.
 - **Keep going until done:** the turn goes on until the tests are green and every criterion has a test, within a
