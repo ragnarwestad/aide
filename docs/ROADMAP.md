@@ -100,7 +100,8 @@ repositories to try it on.
 From comparing Aide with agents started by hand from the command line, where each run can be shaped to its task: a
 spec says what kind of task it is, and analyze and implement follow a flow suited to it. Much of this can be said in
 the spec itself; the goal is that the runner also checks the flow's own rules where it can, without trusting the
-agent. Kinds of task:
+agent. Birgitta Böckeler's [look at Kiro, spec-kit and Tessl](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html)
+found one fixed flow far too heavy for a small bug fix. Kinds of task:
 
 - **A bug fix:** a test that reproduces the bug is red before the change and green after it.
 - **A refactor:** the behaviour does not change, so the existing tests stay as they are and green throughout.
@@ -110,14 +111,20 @@ agent. Kinds of task:
 ### More than one way to run a step
 
 From the same comparison, and the talk of running many agents at once: how a step is run, whatever the task, can
-vary in how many agents work on it, how long they keep going, and who checks the result. Possible ways:
+vary in how many agents work on it, how long they keep going, and who checks the result. What works, by
+Cognition's [follow-up](https://cognition.com/blog/multi-agents-working) to its
+[earlier warning](https://cognition.com/blog/dont-build-multi-agents): the extra agents give judgment while one
+agent writes the code, such as a review in a fresh session, or a model asking a stronger one, often from another
+provider. Agents writing at the same time still do not work, and Anthropic's
+[research system](https://www.anthropic.com/engineering/multi-agent-research-system) found coding a poor fit for
+splitting between agents. Possible ways:
 
 - **A second opinion:** two models each analyse the spec, and their plans are compared or merged.
 - **Competing implementations:** two models each implement the spec, and the one that does best on the tests and
   the review is kept.
 - **Split the spec:** one agent divides the work, by criterion or by part of the code, and several agents take a
   part each at the same time. The riskiest of these: agents working at once each make decisions the others do not
-  see, and the parts may not fit together ([Cognition](https://cognition.ai/blog/dont-build-multi-agents)).
+  see, and the parts may not fit together.
 - **Planner and doer:** a strong model writes the plan, a cheaper one makes the changes and asks the planner when
   stuck.
 - **Keep going until done:** the turn goes on until the tests are green and every criterion has a test, within a

@@ -37,6 +37,20 @@ and [awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code) l
   **Analysed:** its standing domain specs are closest to a project's wiki in Aide, whose specs are per change and
   archived. What came of it: "correct the spec, not the code" is in `docs/ROADMAP.md` to consider. Its "out of
   scope (v1)" sections stopping additions confirm spec 596.
+- [Understanding Spec-Driven-Development: Kiro, spec-kit, and Tessl](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html)
+  (Birgitta Böckeler, martinfowler.com) — three levels of spec-driven development:
+  - spec-first: the spec is written before the code and set aside after it;
+  - spec-anchored: the spec is kept and changed with the code;
+  - spec-as-source: only the spec is edited, and the code is made from it.
+
+  Also: long markdown is harder to review than the code, agents ignore the spec, and one fixed flow is too heavy
+  for a small fix.
+  **Analysed:** Aide is spec-first, with the project's wiki carrying what lasts. What came of it: the source for "a
+  flow suited to the kind of task" in `docs/ROADMAP.md`.
+- [Structured-Prompt-Driven Development](https://martinfowler.com/articles/structured-prompt-driven/) (Wei Zhang
+  and Jessie Jie Xia, martinfowler.com) — the prompt as a versioned artifact, written in seven parts: requirements,
+  entities, approach, structure, operations, norms and safeguards. When the code turns out wrong, the prompt is
+  fixed first, then the code, the same rule as "correct the spec, not the code" in `docs/ROADMAP.md`.
 - [Claude Code best practices](https://code.claude.com/docs/en/best-practices) (Anthropic) — the agentic loop,
   CLAUDE.md, and working patterns.
 
