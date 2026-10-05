@@ -155,5 +155,5 @@ echo "Hello"
 - The result is broken HTML with wrong code blocks and broken anchor links
 
 **Preventive fix:**
-- The `aide-generate-html` script corrects this automatically
-- But the source should be fixed - see the "Code blocks" section of the documentation skill
+- The `aide-generate-html` script corrects this automatically, but the
+  source is fixed too

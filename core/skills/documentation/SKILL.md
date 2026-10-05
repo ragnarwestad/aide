@@ -22,7 +22,6 @@ effort: medium
   - [Formatting](#formatting)
 - [Markdown guidelines](#markdown-guidelines)
   - [Code blocks](#code-blocks)
-  - [Numbered lists](#numbered-lists)
   - [Emojis](#emojis)
 - [Best practices for AI-assisted documentation](#best-practices-for-ai-assisted-documentation)
   - [Visual documentation](#visual-documentation)
@@ -83,7 +82,6 @@ Content...
 - Document title: `# Title` (only one per document)
 - Main sections: `## Section`
 - Subsections: `### Subsection`
-- No emojis in headings (causes problems with anchor links)
 
 **Separators:**
 - Use `---` between logical sections
@@ -104,29 +102,8 @@ Content...
 
 **Why:** IDEs parse code blocks and produce warnings if the syntax does not match.
 
-**CRITICAL: Closing code blocks:**
-
-Code blocks are ALWAYS closed with just three backticks - NEVER with a language specifier:
-
-````markdown
-```bash
-echo "Hello"
-```
-````
-
-**WRONG (common AI mistake):**
-
-````markdown
-```bash
-echo "Hello"
-```text
-````
-
-**Why this matters:**
-- ` ```text` as a closing fence breaks markdown parsing
-- Pandoc and other converters interpret it as the start of a new code block
-- HTML generation fails with broken code blocks
-- Anchor links can end up broken
+Close a code block with just three backticks; the markdown-linting skill
+has why, and the other rules the linter checks (list numbering, anchors).
 
 **Before/After code examples:**
 
@@ -146,24 +123,6 @@ const value = useSelector(state => state.value);
 
 **Why:** Avoids redeclaration errors (same variable name in a single code block).
 
-### Numbered lists
-
-**Always start at 1 after a header/section break:**
-
-```markdown
-#### Files to change:
-
-1. file1.tsx
-2. file2.tsx
-
-#### Files to test:
-
-1. test1.tsx   (CORRECT - starts at 1)
-2. test2.tsx
-```
-
-**Why:** Markdown linters expect new lists to start at 1.
-
 ### Emojis
 
 **Do NOT use emojis in section headings (## headings):**
@@ -179,8 +138,6 @@ const value = useSelector(state => state.value);
 - Content and body text
 - Lists and tables
 - Metadata fields
-
-**See also:** the markdown-linting skill for detailed linting rules.
 
 ---
 
@@ -221,19 +178,18 @@ Desired result:
 
 ### Specific instructions
 
-**Be explicit and detailed in descriptions:**
+**Be explicit about what should happen:**
 
 **Vague example:**
 ```markdown
 ## Problem
-Add tests for foo.tsx
+Add tests for the application form
 ```
 
 **Specific example:**
 ```markdown
 ## Problem
-Write unit tests for `validateApplicationForm()` in foo.tsx:156.
-Test the following edge cases:
+The application form's validation has no tests. Test these cases:
 - Invalid national identity number (11 digits, but wrong check digit)
 - Missing required fields (name, address)
 - Date of birth in the future
@@ -245,11 +201,13 @@ Avoid mocks for validation - use real test data.
 
 ### File references
 
-**Use concrete file paths:**
-- Name exact files: `src/components/CaseOverview.tsx`
-- Use line numbers: `CaseOverview.tsx:123-145`
+**Name concrete files and line numbers where the code is the subject** —
+an analysis, a plan, a README: `src/components/CaseOverview.tsx:123-145`.
+A spec's description says what the problem is, in the user's terms, and
+leaves the files to the analysis.
 
-**Why:** Helps AI assistants locate the right resources without searching.
+**Why:** Helps AI assistants locate the right resources without searching,
+while the description stays true when the code moves.
 
 ---
 
