@@ -162,9 +162,6 @@ export const de: Record<TranslationKey, string> = {
     "Startet einen Testserver vom neuesten main, bestückt mit den eigenen Test-Specs der Runde. Er rührt " +
     "nie an Prod; der Server erscheint unter Testserver.",
   "project.testServerButton": "Testserver starten",
-  "project.testServerUnavailable":
-    "Dieses Projekt enthält nicht den eigenen Quellcode des Dashboards, daher kann von hier aus kein " +
-    "Testserver gestartet werden.",
   "project.wikiHeading": "Wiki",
   "project.wikiTabPages": "Seiten",
   "project.wikiTabGraph": "Graph",

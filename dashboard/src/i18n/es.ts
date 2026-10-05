@@ -162,9 +162,6 @@ export const es: Record<TranslationKey, string> = {
     "Arranca un servidor de prueba desde el último main, con las propias specs de prueba de la ronda. Nunca " +
     "toca producción; el servidor aparece bajo Servidores de prueba.",
   "project.testServerButton": "Iniciar servidor de prueba",
-  "project.testServerUnavailable":
-    "Este proyecto no lleva el propio código del dashboard, así que un servidor de prueba no puede arrancar " +
-    "desde aquí.",
   "project.wikiHeading": "Wiki",
   "project.wikiTabPages": "Páginas",
   "project.wikiTabGraph": "Grafo",

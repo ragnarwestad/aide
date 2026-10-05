@@ -162,9 +162,6 @@ export const fr: Record<TranslationKey, string> = {
     "Démarre un serveur de test depuis le dernier main, avec les specs de test du tour. Il ne touche " +
     "jamais à la prod ; le serveur apparaît sous Serveurs de test.",
   "project.testServerButton": "Démarrer le serveur de test",
-  "project.testServerUnavailable":
-    "Ce projet ne contient pas le code source du tableau de bord, donc un serveur de test ne peut pas " +
-    "démarrer d'ici.",
   "project.wikiHeading": "Wiki",
   "project.wikiTabPages": "Pages",
   "project.wikiTabGraph": "Graphe",

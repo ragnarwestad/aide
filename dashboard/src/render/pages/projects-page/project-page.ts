@@ -194,16 +194,13 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
 
 /** AC-3/AC-4/AC-8: the section beside Deploy for prod — a button that
  *  starts (or, per AC-6, restarts) a test server from the latest main,
- *  seeded with the round's own test specs. `!opts.testServerAvailable`
- *  mirrors `deploySection()`'s own established pattern: the heading stays,
- *  and a sentence says why there is nothing to act on, rather than the
- *  section disappearing. */
+ *  seeded with the round's own test specs. Only a project that carries the
+ *  dashboard's own source can start one; every other project is not told
+ *  about it at all. */
 function testServerSection(name: string, opts: ProjectPageOptions): string {
+  if (!opts.testServerAvailable) return "";
   const lang = opts.lang ?? "en";
   const heading = `<h3>${esc(t(lang, "project.testServerHeading"))}</h3>`;
-  if (!opts.testServerAvailable) {
-    return heading + panel(rowMessage("info", t(lang, "project.testServerUnavailable")));
-  }
   // Deliberately NOT class="deployform"/"actionform"/"rowrun" — any of
   // those three classes gets its native submit replaced by an XHR
   // (`specs-client/forms.ts`/`press.ts`), which silently defeats

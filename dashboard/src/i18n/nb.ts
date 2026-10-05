@@ -164,8 +164,6 @@ export const nb: Record<TranslationKey, string> = {
     "Starter en testserver fra siste main, med rundens egne testspecer. Den rører ikke prod; " +
     "serveren dukker opp under Testservere.",
   "project.testServerButton": "Start testserver",
-  "project.testServerUnavailable":
-    "Dette prosjektet inneholder ikke dashbordets egen kode, så en testserver kan ikke starte herfra.",
   "project.wikiHeading": "Wiki",
   "project.wikiTabPages": "Sider",
   "project.wikiTabGraph": "Graf",

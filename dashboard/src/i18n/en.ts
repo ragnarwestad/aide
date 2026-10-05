@@ -172,8 +172,6 @@ export const en = {
     "Starts a test server from the latest main, seeded with the round's own test specs. It never touches " +
     "prod; the server shows up under Test servers.",
   "project.testServerButton": "Start test server",
-  "project.testServerUnavailable":
-    "This project does not carry the dashboard's own source, so a test server cannot start from here.",
   "project.wikiHeading": "Wiki",
   "project.wikiTabPages": "Pages",
   "project.wikiTabGraph": "Graph",

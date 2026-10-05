@@ -37,7 +37,8 @@ refused with "no such branch on origin" if the address is opened by hand. Where 
 live inside the project, the reopen puts the branch back on origin, so the note stays.
 
 A project's own page has a second entry point, on its Deploy tab: beside "Deploy for prod", a
-"Test server with the test specs" section with its own "Start test server" button. It starts a test
+"Test server with the test specs" section with its own "Start test server" button. Only a project that carries the
+dashboard's own source has the section; on every other project's tab it is left out. It starts a test
 server from the project's latest main rather than from a spec's branch, for when you want to try
 the project as it stands today. It opens in a new tab the same way.
 
