@@ -18,6 +18,8 @@
   - [One project, several code repositories](#one-project-several-code-repositories)
   - [A flow suited to the kind of task](#a-flow-suited-to-the-kind-of-task)
   - [More than one way to run a step](#more-than-one-way-to-run-a-step)
+  - [A spec's complexity chooses the AI](#a-specs-complexity-chooses-the-ai)
+  - [Create and archive with as little AI as possible](#create-and-archive-with-as-little-ai-as-possible)
 
 ---
 
@@ -132,3 +134,21 @@ splitting between agents. Possible ways:
 - **One criterion at a time:** each criterion is made green and committed before the next.
 - **A review by another model,** or several reviews with a focus each: the spec, the repo's own rules, security.
 - **The agent checks in a browser:** a change to a page is tried in a real browser before the step ends.
+
+### A spec's complexity chooses the AI
+
+From weighing how the AI and model for each step are chosen today: by habit, or to try a model out, rarely from how
+hard the spec is, since a person grades a spec no better than the analysis does. Once a spec's complexity can be judged
+well, it could choose the AI, model and effort for the steps after the analysis, with a person's own choice still
+winning. One way that keeps the risk low: the grade only raises the choice, so a stronger model takes the hard specs
+and a wrong grade never gives a weaker one than today.
+
+What it needs first is research on judging the complexity of a task: which signals predict that a change is hard or
+risky, how reliably an agent reads them, and how other tools route work between models.
+
+### Create and archive with as little AI as possible
+
+From the same weighing: create and archive are the least complex steps, and much of them is mechanical. Create already
+runs without AI when the acceptance criteria are not to be formulated, and archive when the spec cannot be archived
+yet. The goal is that AI is used only for what needs judgment: formulating criteria, resolving a merge conflict,
+writing the wiki, and that everything else is done by scripts.
