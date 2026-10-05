@@ -36,10 +36,9 @@ it is done.
 First write `--- Step 1 of 7: Run the mechanical script — started`, and when this step ends, `--- Step 1 of 7: Run the mechanical script — done`.
 
 
-Everything mechanical — resolving the argument to a folder, checking
-whether a merge is open, reading `4-status.md`'s tables, and (when the
-work is done) stamping and moving the folder — is a script now, not
-something this session reasons about by hand:
+A script does everything mechanical: resolving the argument to a
+folder, checking whether a merge is open, reading `4-status.md`'s
+tables, and, when the work is done, stamping and moving the folder:
 
 ```bash
 aide-archive-spec --project-dir <project root> --spec <argument> \
@@ -69,10 +68,9 @@ Branch on the JSON's `terminalReason`:
 
 - **`refused`:** report the script's own `error` message and stop.
 - **`already-archived`:** the folder is already under `archive/`. If the
-  script's own JSON also carries a `specFolder` (`aide-run-spec`'s own
-  pre-check may have just archived this spec seconds ago, before
-  spawning this very session), treat that exactly like a fresh
-  `archived` result below and continue to Step 2. Otherwise an earlier
+  JSON also carries a `specFolder` (the runner may have archived it just
+  before this session started), treat it exactly like `archived` below
+  and continue to Step 2. Otherwise an earlier
   run already moved the spec folder on the spec's branch — usually
   because the merge after it stopped: say so and stop, after finishing
   any merge left open, as above, in the words Step 6 gives.
@@ -85,32 +83,21 @@ Branch on the JSON's `terminalReason`:
   Never the full suite: the landing runs it once, on exactly this
   merge, before anything reaches the default branch.
 - **`not-implemented-yet`:** the spec has not reached `implement` yet.
-  That is the workflow working, never a warning — the script has
-  already removed any stale `## Archive held back` section on this
-  path. Report plainly that the work is not done yet, name the next
-  step (`/aide-implement`), and stop: do not continue to Steps 2 to 4,
-  and write nothing else to `4-status.md`.
+  Report plainly that the work is not done yet, name the next step
+  (`/aide-implement`), and stop here, writing nothing to `4-status.md`.
 - **`held-back`:** an open row is genuinely blocked, or `implement` has
   started while a row is still open. The script has already written the
   `## Archive held back` section itself, with its one bullet — that
   bullet is a real checkbox on the spec's own page, and ticking it is
   what makes the next archive run see the work as done. Report the
-  hold-back plainly (the script's own `note` names it) and stop: do not
-  continue to Steps 2 to 4.
+  hold-back plainly (the script's own `note` names it) and stop here.
 - **`archived`:** the work was done, and the script has already stamped
   `4-status.md` and moved the folder to `specFolder` (the new
   `archive/NN-slug/` path). Continue straight to Step 2, reading from
   that path — the move has already happened by the time this step runs.
 
-Nobody at a keyboard can override the script's own not-done verdict —
-the "ask whether to archive anyway" judgment call the old, fully
-AI-driven version of this step made no longer has anywhere to run. An
-open row that genuinely should be archived past is closed out by ticking
-it on the spec's page (or by editing `4-status.md` directly) and running
-archive again, not by talking a session into skipping the check.
-
-The folder keeps its `NN-slug` name once moved — the date lives in
-`4-status.md`. Numbers are never reused.
+The script's not-done verdict stands. An open row that should be
+archived past is ticked on the spec's page, and archive is run again.
 
 ### Step 2 of 7: Rewrite the wiki pages the spec touched
 
@@ -129,15 +116,8 @@ and continue straight to Step 3. Nothing else in this step applies.
 aide-wiki affected --specs-root <specs root> --project-dir <project root>
 ```
 
-— which answers with the generated (never hand-written) pages whose
-declared files overlap the diff between the project's default branch and
-this spec's own code, each already narrowed to the files of its own that
-still exist at HEAD — a file this spec's own diff deleted is dropped from
-that list, never handed to `aide-wiki write`, which refuses any file no
-longer in the project. A page whose every named file this spec deleted
-has nothing left to rewrite it from and is not named at all: it is left
-exactly as it is, for a wiki build or refresh to prune once it goes
-stale.
+— which answers with the generated pages whose files this spec's code
+changed, each with the files of its own that still exist.
 **No pages named:** report that none needed rewriting and continue to
 Step 3.
 
@@ -208,13 +188,12 @@ something behind.
 Otherwise, propose where each item belongs — the project's docs,
 `CLAUDE.md`/rules, or a README — with the concrete text to add.
 
-Then decide how to close the loop. **If the prompt said the run is
-headless, or `AIDE_HEADLESS` is set, nobody can answer** — do not ask.
-The prompt is the reliable signal of the two.
+Then decide how to close the loop. The run is headless when the prompt
+says so or `AIDE_HEADLESS` is set; then nobody can answer.
 
 - **Someone is there (interactive):** ask for confirmation, then write
   it — the judgment call is worth having when someone can make it.
-- **Nobody is there (headless):** do NOT ask. Read the current
+- **Nobody is there (headless):** Read the current
   `4-status.md` (it may already be under `archive/` — see Step 1),
   append the proposal under a new `## Deferred documentation feedback`
   heading, one item per entry: the destination file and the exact text
@@ -223,22 +202,13 @@ The prompt is the reliable signal of the two.
   the folder under either the active specs root or its `archive/`
   subfolder automatically). Then continue straight to Step 5.
 
-The question must never block the move: a headless run that stops here
-has already archived the folder in Step 1 regardless, reports success,
-and leaves only the doc-feedback proposal unrecorded rather than the
-whole spec unmoved.
-
 ### Step 5 of 7: Commit
 
 First write `--- Step 5 of 7: Commit — started`, and when this step ends, `--- Step 5 of 7: Commit — done`.
 
 
-The move and this step's own write both already happened, in the
-working directory — Step 1's script did the stamp-and-move, Step 2
-rewrote whichever wiki pages applied, Step 3 checked their current reasons,
-and Step 4 either wrote the docs directly or appended the
-deferred-feedback proposal. This step is only
-about getting that onto a commit.
+Steps 1 to 4 left their changes in the working directory; this step
+gets them onto a commit.
 
 `aide-run-spec` writes `Workflow steps completed:` from the spec's own
 commits, at whichever address the folder now has — leave that line
@@ -324,11 +294,6 @@ Working interactively, the branches are merged by hand. Either way the
 archive is finished when the merge is, and not before.
 
 IMPORTANT:
-- Never delete a spec — archiving is a move, not a removal
-- Never run the project's full test suite: the landing after this step
-  runs it once, on exactly the merge
-- If the specs root lies outside the project root, do NOT run
-  `git add`/`git mv` in the project's repo for spec files (they live in
-  another repo — use the specs repo's git if it has one)
-- Code blocks ALWAYS end with just ` ``` ` — NEVER ` ```text ` as the
-  closing fence
+- Archiving is a move: a spec is never deleted
+- When the specs root lies outside the project root, spec files are
+  staged with the specs repo's git, never the project's
