@@ -12,6 +12,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import type { GitRunner } from "../../src/git/branch-status.ts";
+import { QUEUE_DEFAULTS } from "../../src/serve/serve-helpers";
 import { SPEC, PAGE, TRACKING, FILE_SHA, DESCRIPTION, ARCHIVED, ARCHIVED_TEXT, createSpecSaveHarness, descriptionPath, savable, post, answer } from "./spec-save-fixtures.ts";
 
 const { harness } = createSpecSaveHarness();
@@ -187,5 +188,88 @@ describe("the Depends on field", () => {
     expect(status).toBe(400);
     expect(body.error).toContain("Created");
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
+  });
+  // --- an analyze stopped on shared files: saving Depends on queues Analyze --
+
+  describe("after an analyze stopped on files another open spec changes", () => {
+    const STOPPED = (stopReason = "shared-files") => ({
+      id: "stopped-1", project: "aide", specFolder: SPEC,
+      steps: ["analyze", "implement", "archive"], stepIndex: 0,
+      state: "stopped", stopReason,
+      model: { analyze: "opus", implement: "opus", archive: "sonnet" },
+      effort: { analyze: "high", implement: "medium" },
+      timeoutSec: {}, permissionMode: {},
+      createdAt: "2026-10-05T08:00:00.000Z", spentUsd: 0,
+      results: [{
+        step: "analyze", ok: false, costUsd: 0, costMeasured: true, terminalReason: stopReason,
+        ...(stopReason === "shared-files" ? { sharedFiles: [{ spec: OTHER, files: ["x.ts"] }] } : {}),
+      }],
+    });
+
+    const startStopped = (job: Record<string, unknown>) =>
+      harness.start({
+        description: TRACKED(),
+        alsoSpecs: [OTHER, "88-a-third-spec"],
+        queueMirror: JSON.stringify([job]),
+        // The queued job names its models, and a request may only name a listed one.
+        extra: { gitRun: savable("/host"), queueDefaults: { ...QUEUE_DEFAULTS, modelChoices: { opus: {}, sonnet: {} } } },
+      });
+
+    const allJobs = async (base: string) =>
+      ((await (await fetch(`${base}/api/queue`)).json()) as {
+        jobs: { id: string; specFolder: string; state: string; steps: string[]; model?: Record<string, string>; effort?: Record<string, string> }[];
+      }).jobs;
+    const jobsOfSpec = async (base: string) => {
+      const jobs = await allJobs(base);
+      // The stopped job the fixture started with is still on the board.
+      expect(jobs.find((j) => j.id === "stopped-1")?.state).toBe("stopped");
+      return jobs.filter((j) => j.specFolder === SPEC && j.id !== "stopped-1");
+    };
+
+    test("naming a spec the stop named queues one Analyze with the stopped job's remaining steps, on its models and effort (AC-5)", async () => {
+      const { base } = startStopped(STOPPED());
+      const { status, body } = await answer(await track(base, { dependsOn: OTHER, baseSha: FILE_SHA }));
+      expect(status).toBe(200);
+      expect(body.ok).toBe(true);
+      const queued = await jobsOfSpec(base);
+      expect(queued).toHaveLength(1);
+      expect(queued[0]!.steps).toEqual(["analyze", "implement", "archive"]);
+      expect(queued[0]!.model).toMatchObject({ analyze: "opus", implement: "opus", archive: "sonnet" });
+      expect(queued[0]!.effort).toMatchObject({ analyze: "high", implement: "medium" });
+    });
+
+    test("naming a spec the stop named among others still queues one Analyze (AC-5)", async () => {
+      const { base } = startStopped(STOPPED());
+      await track(base, { dependsOn: `88-a-third-spec, ${OTHER}`, baseSha: FILE_SHA });
+      expect(await jobsOfSpec(base)).toHaveLength(1);
+    });
+
+    test("naming only a spec the stop did not name queues nothing (AC-5)", async () => {
+      const { base } = startStopped(STOPPED());
+      const { body } = await answer(await track(base, { dependsOn: "88-a-third-spec", baseSha: FILE_SHA }));
+      expect(body.ok).toBe(true);
+      expect(await jobsOfSpec(base)).toHaveLength(0);
+    });
+
+    test("emptying Depends on queues nothing (AC-5)", async () => {
+      const { base } = startStopped(STOPPED());
+      await track(base, { dependsOn: "", baseSha: FILE_SHA });
+      expect(await jobsOfSpec(base)).toHaveLength(0);
+    });
+
+    test("a lead job that stopped for another reason queues nothing (AC-5)", async () => {
+      const { base } = startStopped(STOPPED("acceptance-criteria"));
+      const { body } = await answer(await track(base, { dependsOn: OTHER, baseSha: FILE_SHA }));
+      expect(body.ok).toBe(true);
+      expect(await jobsOfSpec(base)).toHaveLength(0);
+    });
+
+    test("with no job for the spec at all, a save queues nothing (AC-5)", async () => {
+      const { base } = harness.start({
+        description: TRACKED(), alsoSpecs: [OTHER], extra: { gitRun: savable("/host") },
+      });
+      await track(base, { dependsOn: OTHER, baseSha: FILE_SHA });
+      expect(await allJobs(base)).toHaveLength(0);
+    });
   });
 });

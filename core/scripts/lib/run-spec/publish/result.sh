@@ -216,6 +216,7 @@ line="$(jq -cn \
   --argjson providerLimit "${provider_limit_out:-null}" \
   --argjson testedGreen "${tested_green_json:-null}" \
   --argjson criteriaFaults "${criteria_faults_json:-null}" \
+  --argjson sharedFiles "${shared_files_json:-null}" \
   '{ok:$ok, exitCode:$exitCode, sessionId:$sessionId, tool:$tool,
     costMeasured:$costMeasured, terminalReason:$terminalReason,
     subtype:$subtype, durationSec:$durationSec, branch:$branch,
@@ -255,4 +256,7 @@ line="$(jq -cn \
    + (if $testedGreen == null then {} else {testedGreen:$testedGreen} end)
    # And for the faults an analyze stopped on (run-spec/record/criteria-check.sh),
    # sorted by kind: present only on a step that stopped on them.
-   + (if $criteriaFaults == null then {} else {criteriaFaults:$criteriaFaults} end)')"
+   + (if $criteriaFaults == null then {} else {criteriaFaults:$criteriaFaults} end)
+   # And for the specs an analyze stopped on because they change the same
+   # files (run-spec/record/shared-files-check.sh), each with those files.
+   + (if $sharedFiles == null then {} else {sharedFiles:$sharedFiles} end)')"

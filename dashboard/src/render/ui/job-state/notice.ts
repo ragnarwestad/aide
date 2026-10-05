@@ -101,6 +101,14 @@ export function failedRoundSentence(lead: QueueRowView | undefined, lang: Langua
   return renderSentence(lang, lead.error);
 }
 
+/** The sentence of a spec's lead job when its analyze stopped on files
+ *  another open spec changes. The spec page draws it as a waiting line,
+ *  where the list row draws the same sentence from `specNotice`. */
+export function sharedFilesSentence(lead: QueueRowView | undefined, lang: Language = "en"): string | undefined {
+  if (!lead?.error || lead.state !== "stopped" || lead.stopReason !== "shared-files") return undefined;
+  return renderSentence(lang, lead.error);
+}
+
 /** Which applies, if any. The order is the row's own: a job that
  *  failed saying why it failed, then the spec's standing note about an
  *  archive that declined, and last a phase whose own record disagrees
@@ -227,10 +235,11 @@ export function specNotice(
       // project's own suite on the merged result, it went red, and
       // nothing was pushed. The step and the merge both did what they
       // should; the code is not green yet. An analyze stopped on its
-      // acceptance criteria waits the same way, on the description.
+      // acceptance criteria waits the same way, on the description, and
+      // one stopped on files another open spec shares, on Depends on.
       const waiting =
         lead.errorReason === "held-back" || lead.errorReason === "tests-red" ||
-        (lead.state === "stopped" && lead.stopReason === "acceptance-criteria");
+        (lead.state === "stopped" && (lead.stopReason === "acceptance-criteria" || lead.stopReason === "shared-files"));
       const variant: MessageVariant = heldBackInfo ? "info" : waiting ? "waiting" : "failed";
       const extra = detailBeyond(text, lead.error, lead.errorDetail);
       // A step's own red run: the failing tests are what the reader came

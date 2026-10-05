@@ -50,3 +50,12 @@ describe("an analyze stopped on its acceptance criteria", () => {
     expect(w.qualifier).not.toContain("acceptance-criteria");
   });
 });
+
+describe("an analyze stopped on files another open spec changes", () => {
+  test("reads amber Stopped from history, in a sentence rather than the raw token (AC-3)", () => {
+    const w = wordPhase(false, undefined, undefined, { stopped: "shared-files", step: "analyze" });
+    expect(w.badge).toEqual({ variant: "waiting", label: "Stopped" });
+    expect(w.qualifier).toBeDefined();
+    expect(w.qualifier).not.toContain("shared-files");
+  });
+});

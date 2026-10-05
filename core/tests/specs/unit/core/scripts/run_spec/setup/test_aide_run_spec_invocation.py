@@ -509,7 +509,7 @@ def test_analyze_states_the_switch_was_chosen(runner, workspace, fake_claude):
     prompt = out["prompt"]
     assert prompt.startswith("/aide-analyze"), prompt
     assert (
-        "Acceptance ticking is not required for this run: per Step 8, do not "
+        "Acceptance ticking is not required for this run: per Step 9, do not "
         "write the acceptance-criteria table into 4-status.md — write the "
         "one-line note instead." in prompt
     ), prompt

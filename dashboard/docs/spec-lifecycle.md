@@ -101,21 +101,27 @@ Anything that goes differently is one of the rows in [When a spec stops, and wha
 Every stop writes its own sentence onto the spec's row, and most of them end by naming the button to press. This
 is the whole set:
 
-| What the row says                     | What happened                                                                      | What moves it on                                                    |
-|---------------------------------------|------------------------------------------------------------------------------------|---------------------------------------------------------------------|
-| held back: not analyzed yet           | The spec has not analyzed, and implement needs a plan                              | Run Analyze                                                         |
-| held back: choose the approach        | Analyze found two or more real alternatives on a spec that asked to choose         | Pick one on the row and press Save                                  |
-| held back: depends on `<spec>`        | A spec it names has not archived yet                                               | Nothing. It starts itself once that spec archives                   |
-| held back: another archive is running | A second archive in the same project is ahead of it                                | Nothing. It starts when that one has merged                         |
-| archive held back                     | A row under `## Acceptance criteria` is still open                                 | Tick the rows on the Status tab, then press Archive                 |
-| stopped: no-progress                  | The step said it succeeded but changed nothing in the project                      | Press the same button again                                         |
-| stopped: merge-unfinished             | The step dropped the merge with the default branch it was handed open              | Press the same button again                                         |
-| stopped: scope-violation              | The step wrote outside its own spec folder, or claimed a step it did not run       | Press the same button again                                         |
-| stopped: tests-red                    | The project's suite is red, after the runner gave the session two more turns at it | Make the suite green, then press Implement                          |
-| stopped: timeout                      | The step reached its own time limit                                                | Press the same button again; the work it committed is on the branch |
-| not landed                            | Archive finished, but the spec's branch is still on origin, not merged             | Run Archive again                                                   |
-| branch still on origin                | The branch merged, but deleting it on origin failed                                | Press Delete branch                                                 |
-| conflict                              | A merge conflict no machine could settle                                           | Resolve it yourself, with the diff in front of you                  |
+| What the row says                     | What happened                                                                      | What moves it on                                                        |
+|---------------------------------------|------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| held back: not analyzed yet           | The spec has not analyzed, and implement needs a plan                              | Run Analyze                                                             |
+| held back: choose the approach        | Analyze found two or more real alternatives on a spec that asked to choose         | Pick one on the row and press Save                                      |
+| held back: depends on `<spec>`        | A spec it names has not archived yet                                               | Nothing. It starts itself once that spec archives                       |
+| held back: another archive is running | A second archive in the same project is ahead of it                                | Nothing. It starts when that one has merged                             |
+| archive held back                     | A row under `## Acceptance criteria` is still open                                 | Tick the rows on the Status tab, then press Archive                     |
+| stopped: no-progress                  | The step said it succeeded but changed nothing in the project                      | Press the same button again                                             |
+| stopped: merge-unfinished             | The step dropped the merge with the default branch it was handed open              | Press the same button again                                             |
+| stopped: scope-violation              | The step wrote outside its own spec folder, or claimed a step it did not run       | Press the same button again                                             |
+| stopped: tests-red                    | The project's suite is red, after the runner gave the session two more turns at it | Make the suite green, then press Implement                              |
+| stopped: timeout                      | The step reached its own time limit                                                | Press the same button again; the work it committed is on the branch     |
+| stopped: shared-files                 | Analyze found files another open spec also changes, and stopped before the plan    | Add those specs to Depends on and save, or press Analyze again to go on |
+| not landed                            | Archive finished, but the spec's branch is still on origin, not merged             | Run Archive again                                                       |
+| branch still on origin                | The branch merged, but deleting it on origin failed                                | Press Delete branch                                                     |
+| conflict                              | A merge conflict no machine could settle                                           | Resolve it yourself, with the diff in front of you                      |
+
+A held Analyze queued from a `stopped: shared-files` row is cancelled from the row like any other held step. The
+comparison cannot see two cases. A spec analyzed before the comparison existed has no `### Files to change` list in
+its analysis, so it never collides with another until it is analyzed again. And two specs analyzed at the same time do
+not see each other, since neither has written its list when the other compares.
 
 An archived or closed spec refuses every step but Reopen, whatever is ticked on its row.
 

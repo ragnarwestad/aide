@@ -157,3 +157,27 @@ def test_the_grading_criteria_are_written_in_one_place_AC_5():
         if "complexity-and-analysis.md" not in (CORE_SKILLS_DIR / name / "SKILL.md").read_text(encoding="utf-8")
     ]
     assert not unpointed, f"these skills do not name the grading reference: {unpointed}"
+
+
+STEP_HEADING = re.compile(r"^#+ Step \d+ of \d+: (.+)$", re.M)
+
+
+def _analyze_steps():
+    """The analyze skill's steps as (title, body), in the order written."""
+    skill = (CORE_SKILLS_DIR / "aide-analyze" / "SKILL.md").read_text(encoding="utf-8")
+    marks = list(STEP_HEADING.finditer(skill))
+    return [
+        (mark.group(1), skill[mark.end():marks[i + 1].start() if i + 1 < len(marks) else len(skill)])
+        for i, mark in enumerate(marks)
+    ]
+
+
+@pytest.mark.validation
+def test_analyze_compares_with_the_other_specs_between_writing_the_analysis_and_the_plan_AC_1():
+    steps = _analyze_steps()
+    titles = [title for title, _ in steps]
+    writes_analysis = next(i for i, title in enumerate(titles) if "2-analysis.md" in title)
+    writes_plan = next(i for i, title in enumerate(titles) if "3-solution.md" in title)
+    runs_comparison = [i for i, (_, body) in enumerate(steps) if re.search(r"aide-spec-overlap[^\n]*--record", body)]
+    assert runs_comparison, "no step of the analyze skill runs aide-spec-overlap with --record"
+    assert all(writes_analysis < i < writes_plan for i in runs_comparison), (titles, runs_comparison)

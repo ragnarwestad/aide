@@ -214,7 +214,7 @@ findings to look thorough.
 
 If `3-solution.md` is still an empty template — its bracketed
 placeholder text unfilled — there is nothing to review; go back and
-finish Step 6 (Create the implementation plan) first.
+finish Step 7 (Create the implementation plan) first.
 
 IMPORTANT:
 - Findings about the SOLUTION belong in `3-solution.md` only — never

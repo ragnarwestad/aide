@@ -112,6 +112,9 @@ queued `create`, `archive` or `close` step — the ones that do no model work �
   `timeout` or `provider-limit` step, with something pushed, and no code root among it; a stopped `implement` whose
   code branch was pushed lands nothing, and that code waits for `archive`. A landing that does run leaves the job's
   `error` in place: it is the reason the step stopped, not a fault the landing resolved.
+- `shared-files` gives `stopped` too: an analyze whose analysis names files another open spec also changes. It lands
+  like a `timeout` stop — what it pushed went to the specs repository only, so the analysis is merged into the
+  default branch — and the job's `error` names each spec with the files it shares, from the result's `sharedFiles`.
 - `acceptance-criteria` gives `stopped` too: an analyze the runner stopped at the spec's `criteriaChecks: stop`.
   Its `error` names each fault the plan review found, by kind, from the result's `criteriaFaults`, and is the
   runner's own sentence when that lists none. It lands nothing: the analysis stays on the spec's branch, where the
@@ -183,7 +186,7 @@ rides with the last of them, and the permanent records of a landing attempt — 
   disagreeing — they have not seen the run yet. A step with no landing of its own (`implement`, a failed step) has
   those answers read again as soon as its result is written (`stepDoneHandler`, `src/serve/runner-setup.ts`); a step
   with a landing has them read again by the landing.
-- **`stopReason`** is `timeout`, `provider-limit`, `tests-red` or `acceptance-criteria`, set with `stopped` and
+- **`stopReason`** is `timeout`, `provider-limit`, `tests-red`, `acceptance-criteria` or `shared-files`, set with `stopped` and
   nowhere else. `stopped` is deliberately not `failed`: under a tight timeout a time-stop is a common, healthy
   outcome, a red suite on a landing is work that is not green yet rather than a broken agent, and an analyze stopped
   on its acceptance criteria waits for the description to be put right.

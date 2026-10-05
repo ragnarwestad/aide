@@ -142,6 +142,10 @@ describe("what a spec is waiting for picks the sentence (criterion 9)", () => {
     );
   });
 
+  test("a stop on files another open spec changes pushes its own sentence, not the time limit's (AC-3)", () => {
+    expect(key(job({ state: "stopped", stopReason: "shared-files", steps: ["analyze"] }))).toBe("push.stoppedSharedFiles");
+  });
+
   test("the step named is the one that ran", () => {
     const a = attentionFor({ state: "running", results: 0 }, job({ state: "failed", results: [result("analyze", "error", false)] }));
     expect(a?.step).toBe("analyze");

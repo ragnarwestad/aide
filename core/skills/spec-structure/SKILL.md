@@ -233,6 +233,15 @@ The keywords are written in capitals, as SHALL is.
 1. `fil/path.tsx:123-145` - [description]
 2. `fil/path2.tsx:67` - [description]
 
+### Files to change
+
+- `fil/path.tsx`
+- `fil/new-file.ts`
+
+### Overlapping specs
+
+- `603-other-spec` - `fil/path.tsx`
+
 ### Codebase analysis
 
 [Detailed findings]
@@ -250,6 +259,16 @@ The keywords are written in capitals, as SHALL is.
 **Key points:**
 - Focus on ANALYSIS (not solution)
 - Include specific files with line numbers
+- `### Files to change` is written by /aide-analyze: one line for every
+  file the change will create, change or delete, and a file only read is
+  not listed. Each line is the path from the project root in backticks and
+  nothing after it, since `aide-spec-overlap` compares the paths as
+  written with the lists of the other open specs
+- `### Overlapping specs` is written only by `aide-spec-overlap --record`,
+  never by the model: one line per spec that shares a file with this one,
+  naming the spec's folder and the files. A rewrite copies it word for word
+- A held-back round's `## Round N` carries its own two subsections, and
+  the newest round's are the ones read
 - No implementation plan or solution proposals
 - No complexity grade, estimate or risk analysis — those judge the
   solution we intend to build, and belong in 3-solution.md

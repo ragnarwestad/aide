@@ -114,6 +114,7 @@ function specPageBody(view: SpecPageView, opts: SpecPageOpts): { body: string; t
     // while a dialog is open; the marker tells it how often.
     (RELOADING_TABS.includes(tab) ? reloadMarker() : "") +
     (view.error ? rowMessage("failed", view.error, { tag: "p" }) : "") +
+    (view.warning ? rowMessage("waiting", view.warning, { tag: "p" }) : "") +
     // Where the page script writes what a press on this page answered:
     // Update, Save, the banner, the Status tab's tick, Stop test server.
     messageSlot("refused", "failed", { id: SPEC_REFUSED_LINE }) +

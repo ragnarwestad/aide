@@ -2,7 +2,7 @@
 //
 // A commit subject carries the reason a step stopped (`(stopped: <reason>)`),
 // and a phase read from history alone has only that to go on. `timeout`,
-// `provider-limit`, `acceptance-criteria` and a cancel are the queue's own
+// `provider-limit`, `acceptance-criteria`, `shared-files` and a cancel are the queue's own
 // stops and stay amber; `refused` is the runner declining before any model
 // ran. A reason nobody has listed here reads as a stop, as before.
 
@@ -23,7 +23,7 @@ export const isFailedStop = (reason: string | undefined): boolean =>
 
 /** Whether a step whose newest run stopped for `reason` is not done,
  *  though an earlier run of it finished: every failed stop, and an
- *  analyze stopped on the acceptance criteria, which reads Stopped but
- *  still has to run again. */
+ *  analyze stopped on the acceptance criteria or on files another open
+ *  spec shares, which reads Stopped but still has to run again. */
 export const leavesStepUndone = (reason: string | undefined): boolean =>
-  isFailedStop(reason) || reason === "acceptance-criteria";
+  isFailedStop(reason) || reason === "acceptance-criteria" || reason === "shared-files";

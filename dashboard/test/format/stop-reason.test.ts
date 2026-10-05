@@ -11,9 +11,10 @@ const SCRIPTS = join(import.meta.dir, "../../../core/scripts");
 
 // The reasons the script writes that are NOT a failure of the step's work:
 // a finished step, a close, the two limits the queue keeps as stopped, an
-// analyze stopped on its acceptance criteria, a cancel, and the runner
+// analyze stopped on its acceptance criteria or on files another open
+// spec changes, a cancel, and the runner
 // declining before any model ran.
-const NOT_FAILURES = ["completed", "closed", "timeout", "provider-limit", "acceptance-criteria", "cancelled", "refused"];
+const NOT_FAILURES = ["completed", "closed", "timeout", "provider-limit", "acceptance-criteria", "shared-files", "cancelled", "refused"];
 
 describe("isFailedStop", () => {
   test("names the seven reasons a step ends failed for", () => {
@@ -54,6 +55,11 @@ describe("leavesStepUndone", () => {
   test("an analyze stopped on its acceptance criteria is not a failure, and leaves its step undone (AC-4)", () => {
     expect(isFailedStop("acceptance-criteria")).toBe(false);
     expect(leavesStepUndone("acceptance-criteria")).toBe(true);
+  });
+
+  test("an analyze stopped on files another open spec changes is not a failure, and leaves its step undone (AC-2)", () => {
+    expect(isFailedStop("shared-files")).toBe(false);
+    expect(leavesStepUndone("shared-files")).toBe(true);
   });
 
   test("every failed stop leaves its step undone, and the clock does not", () => {

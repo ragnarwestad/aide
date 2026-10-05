@@ -59,13 +59,19 @@ No subagents and no review.
 ### Analyze
 
 1. The runner starts one new session with `aide-analyze`.
-2. The session reads the description and the code, and writes `2-analysis.md` and the plan in `3-solution.md`, with
-   more than one approach when the spec asks for a choice and the approaches really differ.
-3. **The plan review.** The session starts subagents that read only the spec's four files, never the reasoning behind
+2. The session reads the description and the code, and writes `2-analysis.md`, with a list of the files the change
+   will touch under `### Files to change`.
+3. **The comparison.** The session runs `aide-spec-overlap`, which compares that list with the lists of the other
+   open, analyzed specs in the project. When one shares a file, the analysis ends there, stopped: no plan, no review.
+   After the turn the runner runs the same command and ends the step `shared-files` if the session did not
+   ([The runner](../dashboard/docs/the-runner.md)).
+4. The session writes the plan in `3-solution.md`, with more than one approach when the spec asks for a choice and the
+   approaches really differ.
+5. **The plan review.** The session starts subagents that read only the spec's four files, never the reasoning behind
    the plan (`core/skills/aide-analyze/references/plan-review.md`):
    three reviewers, in parallel, each with one perspective and no sight of the others' findings, whatever the spec's
    complexity. A tool with no way to start a subagent runs the same reviews one after the other in its own session.
-4. The same session corrects the plan from the findings and writes `4-status.md`. The runner reads only the counts on
+6. The same session corrects the plan from the findings and writes `4-status.md`. The runner reads only the counts on
    the plan review's `**Findings:**` line.
 
 #### The complexity grade

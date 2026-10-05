@@ -58,7 +58,7 @@ Structure - follow the spec structure § 2-analysis:
   Tracking info once `analyze` has actually run, plus a time of day onto
   `Last analyzed:`
 - **Mapping:** Placeholder for how the analysis was performed - search terms, methods, tools
-- **Findings:** Affected files (numbered list) plus sections for codebase analysis, affected components, patterns, test coverage, API dependencies
+- **Findings:** Affected files (numbered list), a Files to change section (placeholder, filled in by /aide-analyze), plus sections for codebase analysis, affected components, patterns, test coverage, API dependencies
 - NOTHING that judges the solution — no grade, estimate or risks (3-solution.md)
 
 ## 3-solution.md (placeholder - filled in by /aide-analyze)

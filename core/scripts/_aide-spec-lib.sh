@@ -287,6 +287,10 @@ local dest="$1" title="$2" folder="$3"
 
 *(Filled in by /aide-analyze.)*
 
+### Files to change
+
+*(Filled in by /aide-analyze.)*
+
 ### Codebase analysis
 
 *(Filled in by /aide-analyze.)*

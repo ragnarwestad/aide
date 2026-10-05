@@ -10,7 +10,7 @@ import { criteriaChecksIn, specFileText } from "../../../project/discover";
 import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, renderSpecPageFailedRest, renderSpecPageHead, renderSpecPageRest, resolveBackHref, resolveSpecTab, specTabPath } from "../../../render";
 import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, languageChoice, logRefusal, readBounded, specsClientScript, streamedPage } from "../../serve-helpers";
 
-import { failedRoundSentence } from "../../../render/ui/job-state";
+import { failedRoundSentence, sharedFilesSentence } from "../../../render/ui/job-state";
 import type { RoutesContext } from "..";
 
 export async function specPageRoutes(
@@ -116,6 +116,7 @@ export async function specPageRoutes(
           {
             ...view,
             error: failedRoundSentence(view.lead, langResult.lang),
+            warning: sharedFilesSentence(view.lead, langResult.lang),
             backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/", url.pathname),
           },
           new Date().toISOString(),

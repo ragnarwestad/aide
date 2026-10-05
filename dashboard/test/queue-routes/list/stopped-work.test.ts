@@ -265,6 +265,24 @@ describe("landing a stopped step's specs-only work (spec 187)", () => {
     expect(mergesOf(git.calls)).not.toEqual([]);
   });
 
+  // The stopped analysis lands so that a Depends on saved afterwards is
+  // written to the default branch, where the dependency hold reads it.
+  test("a shared-files stop of an analyze that pushed only the specs repo is merged, as a timeout's is (AC-2)", async () => {
+    const git = gitFor();
+    const { base, results } = serverWithRunner(git);
+    const job = await runStep(base, "analyze");
+    writeFileSync(
+      join(results, `${job.id}.json`),
+      JSON.stringify({ ...STOPPED_RESULT, terminalReason: "shared-files" }),
+    );
+    const ended = await settle(base, job.id, (j) => j.state === "stopped" || j.state === "failed");
+    await settle(base, job.id, (j) => !j.landing);
+    expect(ended.state).toBe("stopped");
+    expect(ended.stopReason as string).toBe("shared-files");
+    expect(mergesOf(git.calls).length).toBeGreaterThan(0);
+    expect(mergesOf(git.calls).every((c) => repoOf(c.dir) === SPECS_REPO)).toBe(true);
+  });
+
   test("a provider-limit stop leaves project changes on the branch", async () => {
     const git = gitFor();
     const { base, results } = serverWithRunner(git);

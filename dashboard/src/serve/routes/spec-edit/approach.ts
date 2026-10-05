@@ -10,9 +10,8 @@ import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } fr
 import { lastCommitOf } from "../../../git/description-freshness.ts";
 import { chooseApproachIn, specFileText } from "../../../project/discover";
 import { parseApproaches, pendingChoice, withChosenApproach } from "../../../project/approach-choice.ts";
-import type { Job } from "../../../queue/types.ts";
 import { ARCHIVED_REFUSAL, bodyToObject, editMessage, json, logRefusal, readBounded } from "../../serve-helpers";
-import { specWriteInFlight } from "./shared.ts";
+import { followOnJob, specWriteInFlight } from "./shared.ts";
 import { afterTick } from "./checks.ts";
 
 import type { RoutesContext } from "..";
@@ -111,21 +110,15 @@ export async function approachRoutes(ctx: RoutesContext, req: Request, path: str
   }
 
   if (!recommended) {
-    const queued = ctx.queue.enqueue(reanalysis(project!, specFolder!, held));
+    const queued = ctx.queue.enqueue(followOnJob(
+      project!,
+      specFolder!,
+      held ? ["analyze", ...held.steps.slice(held.stepIndex)] : ["analyze"],
+      held,
+    ));
     if (!queued.ok) return refuse(`the choice was saved, but analyze could not be queued: ${queued.error}`);
   }
   await afterTick(ctx, dir, specFolder!);
   await ctx.tickRunner();
   return json({ ok: true, note: result.note, changed: (result as { committed?: boolean }).committed !== false });
-}
-
-/** Analyze for the chosen approach, then the steps the held job had left,
- *  on the models and effort it would have run them with. The timeouts are
- *  not carried: a job takes those from Settings. */
-function reanalysis(project: string, specFolder: string, held: Job | undefined): Record<string, unknown> {
-  if (!held) return { project, specFolder, steps: ["analyze"] };
-  const steps = ["analyze", ...held.steps.slice(held.stepIndex)];
-  const forSteps = (map: Record<string, string> | undefined): Record<string, string> =>
-    Object.fromEntries(steps.filter((s) => map?.[s]).map((s) => [s, map![s]!]));
-  return { project, specFolder, steps, model: forSteps(held.model), effort: forSteps(held.effort) };
 }

@@ -155,6 +155,10 @@ Answered by the files under `src/serve/routes/spec-edit/`.
 | `POST /api/queue/specs/<project>/<spec>/test-server`      | action | nothing                                                                | `{ ok, testServer }`; 400 `{ error, spec }`     | interface |
 | `POST /api/queue/specs/<project>/<spec>/test-server/stop` | action | nothing                                                                | `{ ok }`                                        | form      |
 
+`tracking` also queues a job in one case: the spec's newest job stopped `shared-files`, and the saved Depends on names a
+spec that stop named. The route then queues Analyze with the stopped job's remaining steps, on its models and effort,
+and answers 400 `{ error }` with `Depends on was saved, but analyze could not be queued: …` when the queue refuses it.
+
 ### Projects and settings
 
 Answered by `src/serve/routes/queue-admin.ts`, except `settings/concurrency`, which

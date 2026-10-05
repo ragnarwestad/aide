@@ -6,6 +6,7 @@
 - [Mapping](#mapping)
 - [Findings](#findings)
   - [Affected files/components](#affected-filescomponents)
+  - [Files to change](#files-to-change)
   - [Codebase analysis](#codebase-analysis)
   - [Affected components](#affected-components)
   - [Patterns and anti-patterns](#patterns-and-anti-patterns)
@@ -33,6 +34,10 @@
 
 1. `file/path.tsx:123-145` - [description of change]
 2. `file/path2.tsx:67` - [description of change]
+
+### Files to change
+
+[filled in by analysis: one line per file to create, change or delete, the path from the project root in backticks]
 
 ### Codebase analysis
 

@@ -362,12 +362,12 @@ export function stepDoneHandler(
     // is no second list of "which steps are safe" to keep in step
     // with the first.
     //
-    // The wall clock and a provider limit both stop after the
-    // runner has committed the work. A CLI error has no such safe
-    // landing promise.
+    // The wall clock, a provider limit and a shared-files stop all
+    // stop after the runner has committed the work. A CLI error has no
+    // such safe landing promise.
     if (
       !step ||
-      (outcome.terminalReason !== "timeout" && outcome.terminalReason !== "provider-limit")
+      !["timeout", "provider-limit", "shared-files"].includes(outcome.terminalReason ?? "")
     ) return undefined;
     const codeRoots = new Set([ctx.machineryProjectDir(job.project)]);
     const pushed = outcome.branchUrls ?? [];

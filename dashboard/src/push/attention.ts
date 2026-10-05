@@ -101,5 +101,6 @@ export function messageKeyFor(a: Attention): MessageKey {
   if (a.reason === "provider-limit") return "push.stoppedProviderLimit";
   if (a.reason === "tests-red") return "push.stoppedTestsRed";
   if (a.reason === "acceptance-criteria") return "push.stoppedAcceptanceCriteria";
+  if (a.reason === "shared-files") return "push.stoppedSharedFiles";
   return "push.stoppedTimeout";
 }

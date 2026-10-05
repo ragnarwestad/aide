@@ -147,6 +147,10 @@ underneath; which phase a press would run is on the button, which is labelled wi
 An analyze stopped on its acceptance criteria reads Stopped, and its notice line is amber, naming each fault the
 plan review found. Its phase counts as not done, even on a spec analyzed before, so the button offers Analyze again.
 
+An analyze stopped on files another open spec also changes reads Stopped too, and its notice line names each spec
+with the files it shares. Its phase counts as not done, so the button offers Analyze again, which goes on. Adding
+those specs to Depends on and saving queues Analyze instead, held until they archive.
+
 ## The notice line under the name
 
 A push that never reached origin, a landing that did not finish, a pull request the code is waiting on (or one

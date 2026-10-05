@@ -29,12 +29,12 @@
 // here, re-exporting them for every existing importer.
 
 import { specNumber } from "../../project/spec-folder.ts";
-import { criteriaStopMessage, noProgressMessage, withoutRestatedError } from "./cross-check-message.ts";
+import { noProgressMessage, runStopMessage, withoutRestatedError } from "./cross-check-message.ts";
 import type { NotifyEvent } from "../../integrations/notify.ts";
 import type { BoardMessage } from "../../i18n/message.ts";
 import { stepButton } from "../../format/step-label.ts";
 import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from "../queue.ts";
-import { modelIdOf, providerLimit, stepRepoRanges, testedGreen, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
+import { modelIdOf, providerLimit, sharedFiles, stepRepoRanges, testedGreen, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
 import { asResultTool, isRunStop } from "../steps.ts";
 import { resolveStepModel } from "../model-name.ts";
 import { stepFailure } from "../../format/tool-failure.ts";
@@ -422,7 +422,7 @@ export class Runner {
         tokens, modelId, providerLimit: providerLimit(outcome.providerLimit), testedGreen: testedGreen(outcome.testedGreen),
         costMeasured: outcome.costMeasured !== false,
         terminalReason: outcome.terminalReason ?? "no reason recorded",
-        subtype: outcome.subtype,
+        subtype: outcome.subtype, sharedFiles: sharedFiles(outcome.sharedFiles),
         // What the run reported, or failing that the id we gave it — a
         // step whose result carried no session was still run under one.
         sessionId: outcome.sessionId ?? job.sessionId,
@@ -510,7 +510,7 @@ export class Runner {
         ...base,
         stopReason: outcome.terminalReason,
         finishedAt: this.o.now(),
-        error: criteriaStopMessage(step, outcome) ?? outcome.error,
+        error: runStopMessage(step, outcome) ?? outcome.error,
       });
       this.announce(result.ok ? result.job : job, "stopped", step, outcome.terminalReason);
       return;

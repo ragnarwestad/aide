@@ -16,22 +16,23 @@ What a run does to the repositories it touches: the clones the dashboard keeps o
 checkouts a step works in, what a finished step publishes — and, last, how to run one step by hand.
 
 **Where the code is.** `core/scripts/aide-run-spec` is the entry point and holds little else; the mechanics are in
-`core/scripts/lib/run-spec/`, twenty-three files in five folders named for when they run. The ones this page describes:
+`core/scripts/lib/run-spec/`, twenty-four files in five folders named for when they run. The ones this page describes:
 
-| For a change to                                     | Open                                |
-|-----------------------------------------------------|-------------------------------------|
-| The flags and what each refuses                     | `run-spec/setup/arguments.sh`       |
-| The worktrees, their paths and the links into them  | `run-spec/checkout/checkouts.sh`    |
-| Branching each root, and the per-root lock it takes | `run-spec/checkout/branch.sh`       |
-| The gates before a step starts, and the lock itself | `run-spec/setup/gates.sh`           |
-| Committing and pushing afterwards                   | `run-spec/publish/publish.sh`       |
-| Whether a step counts as having run                 | `run-spec/record/status-line.sh`    |
-| The two reviews' lines in the log, and the review   | `run-spec/turn/review.sh`           |
-| Stopping an analyze on its acceptance criteria      | `run-spec/record/criteria-check.sh` |
-| The test gate an implement ends on                  | `run-spec/turn/step-tests.sh`       |
-| Where the specs root comes from                     | `run-spec/turn/spec-paths.sh`       |
-| The model turn, and reading what came back          | `run-spec/turn/model-turn.sh`       |
-| What the run reports, and the result JSON           | `run-spec/publish/result.sh`        |
+| For a change to                                     | Open                                    |
+|-----------------------------------------------------|-----------------------------------------|
+| The flags and what each refuses                     | `run-spec/setup/arguments.sh`           |
+| The worktrees, their paths and the links into them  | `run-spec/checkout/checkouts.sh`        |
+| Branching each root, and the per-root lock it takes | `run-spec/checkout/branch.sh`           |
+| The gates before a step starts, and the lock itself | `run-spec/setup/gates.sh`               |
+| Committing and pushing afterwards                   | `run-spec/publish/publish.sh`           |
+| Whether a step counts as having run                 | `run-spec/record/status-line.sh`        |
+| The two reviews' lines in the log, and the review   | `run-spec/turn/review.sh`               |
+| Stopping an analyze on its acceptance criteria      | `run-spec/record/criteria-check.sh`     |
+| Stopping an analyze on files another spec changes   | `run-spec/record/shared-files-check.sh` |
+| The test gate an implement ends on                  | `run-spec/turn/step-tests.sh`           |
+| Where the specs root comes from                     | `run-spec/turn/spec-paths.sh`           |
+| The model turn, and reading what came back          | `run-spec/turn/model-turn.sh`           |
+| What the run reports, and the result JSON           | `run-spec/publish/result.sh`            |
 
 The per-root lock is `$root/.git/aide-run-spec-worktree.lock` (`acquire_worktree_lock`, `run-spec/setup/gates.sh`). Every
 move of a shared checkout takes it: the switch, the fetch, the fast-forward and the `worktree add`.
@@ -326,6 +327,17 @@ A line reading `none found`, or no such line at all, completes the step, and the
 runner reads the line and never judges the criteria itself. An implement's code review writes
 `the review found no defects`, or an `error:` line with the count, one `review: <line>` per line of the reviewer's
 list, and `the defect(s) went back to the implement session to be fixed` before the fix turn.
+
+**The shared files check.** The analyze skill compares the files its analysis will change (`### Files to change` in
+`2-analysis.md`) with those of every other open spec in the project that is analyzed or implemented and not archived,
+by running `aide-spec-overlap`, and stops before the plan when one shares a file. After the turn
+(`run-spec/record/shared-files-check.sh`, after the scope guard and before the criteria check) the runner runs the
+same command with `--record`, which writes the specs found into the analysis's `### Overlapping specs`, and compares
+that list with the one the analysis had before the turn. A spec that is new in it ends the step `shared-files`: `ok`
+false, the commit subject ending `(stopped: shared-files)`, the error naming each spec with its files, and the
+result's `sharedFiles` (`[{ "spec": "<folder>", "files": [...] }]`) carrying the same. The state file does not gain
+`analyze`. A spec already in the list does not stop the next Analyze, which is how pressing it again goes on. When
+`aide-spec-overlap` is not installed, the check is skipped.
 
 ## Running a step by hand
 

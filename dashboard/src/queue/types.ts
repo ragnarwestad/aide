@@ -43,6 +43,14 @@ export interface ProviderLimit {
   credit?: string;
 }
 
+/** One open spec whose analysis lists files this analysis also lists, and
+ *  those files — what a `shared-files` stop names
+ *  (`lib/run-spec/record/shared-files-check.sh`). */
+export interface SharedFiles {
+  spec: string;
+  files: string[];
+}
+
 /** What `testedGreen` on a step result holds. */
 export interface TestedGreen {
   tree: string;
@@ -74,6 +82,8 @@ export interface StepResult {
   terminalReason: string;
   /** Present only on a step a provider's usage limit stopped. */
   providerLimit?: ProviderLimit;
+  /** Present only on an analyze stopped on files other open specs share. */
+  sharedFiles?: SharedFiles[];
   /** The tree and the test commands this step saw green, hashed the way
    *  `aide_tree_hash` hashes a checkout. A landing about to run the same
    *  commands on the same tree skips its own run. Absent on a red step,

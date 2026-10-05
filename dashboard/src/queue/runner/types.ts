@@ -2,7 +2,7 @@
 // reports, and the options the scheduler is built from.
 
 import type { NotifyEvent } from "../../integrations/notify.ts";
-import type { BranchRef, Job, ProviderLimit, QueueStore, StepRepoRange, TestedGreen, TokenUsage, WorkflowStep } from "../queue.ts";
+import type { BranchRef, Job, ProviderLimit, QueueStore, SharedFiles, StepRepoRange, TestedGreen, TokenUsage, WorkflowStep } from "../queue.ts";
 
 export interface SpawnResult {
   pid: number;
@@ -84,6 +84,9 @@ export interface StepOutcome {
   /** The faults an analyze stopped on its acceptance criteria named, by
    *  kind; read by `criteriaStopMessage`. */
   criteriaFaults?: unknown;
+  /** The open specs an analyze stopped on `shared-files` named, with the
+   *  files each shares; read by `sharedFiles()` below. */
+  sharedFiles?: unknown;
   error?: string;
   /** WHY it was refused, when the answer is one the page acts on (spec
    *  153). `"conflict"` — the runner could not bring the spec's branch
@@ -236,6 +239,20 @@ export function providerLimit(raw: unknown): ProviderLimit | undefined {
     ...(text(r.plan) ? { plan: text(r.plan) } : {}),
     ...(text(r.credit) ? { credit: text(r.credit) } : {}),
   };
+}
+
+/** `outcome.sharedFiles`, read as defensively as `providerLimit`: a spec
+ *  with no name or no file says nothing and is dropped; nothing left is
+ *  nothing at all. */
+export function sharedFiles(raw: unknown): SharedFiles[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const specs = raw.flatMap((e) => {
+    if (e === null || typeof e !== "object") return [];
+    const r = e as Record<string, unknown>;
+    const files = Array.isArray(r.files) ? r.files.filter((f): f is string => typeof f === "string" && f !== "") : [];
+    return typeof r.spec === "string" && r.spec !== "" && files.length ? [{ spec: r.spec, files }] : [];
+  });
+  return specs.length ? specs : undefined;
 }
 
 /** The model id a result file names — a non-empty string, or nothing. Another

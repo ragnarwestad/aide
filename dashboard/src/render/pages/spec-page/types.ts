@@ -162,6 +162,10 @@ export interface SpecPageView {
   /** Why the spec's last round ended, when a Reopen or a Close failed
    *  (`failedRoundSentence`) — read from the spec's own state. */
   error?: string;
+  /** Why the spec's lead analyze stopped on files another open spec
+   *  changes (`sharedFilesSentence`) — drawn as a waiting line, not an
+   *  error. */
+  warning?: string;
   /** Where "← Back" goes (spec 252) — resolved by `serve.ts` from the
    *  request's own `Referer`, same-origin only. Absent falls back to
    *  `/`, today's exact hardcoded destination. */

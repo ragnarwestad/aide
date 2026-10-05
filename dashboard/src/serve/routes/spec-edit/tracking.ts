@@ -11,10 +11,13 @@ import {
 } from "../../../project/discover";
 import { parseStatus } from "../../../project/parse-status";
 import { EDITABLE_SPEC_FILE, STATUS_SPEC_FILE } from "../../../render";
+import { workRoundJobs } from "../../spec-views/work-round.ts";
 import {
   ARCHIVED_REFUSAL, MAX_SAVE_BODY, bodyToObject, editMessage, json, logRefusal, readBounded,
   resolveDependencyFolder,
 } from "../../serve-helpers";
+
+import { followOnJob } from "./shared.ts";
 
 import type { RoutesContext } from "..";
 
@@ -102,6 +105,7 @@ export async function trackingRoutes(
     .flatMap((v) => v.split(","))
     .map((id) => id.trim())
     .filter(Boolean);
+  const depFolders: string[] = [];
   if (ids.length > 0) {
     const discovered = ctx.opts.projectRoot
       ? discoverProjects(ctx.opts.projectRoot, undefined, manifestInside(ctx.machineryProjectDir)).find((p) => p.name === project)
@@ -115,6 +119,7 @@ export async function trackingRoutes(
       if (dep.folder === specFolder) {
         return refuse(`a spec cannot depend on itself: ${id} — nothing was saved`);
       }
+      depFolders.push(dep.folder);
     }
   }
   let text = withDependsOnLine(currentText, ids);
@@ -171,6 +176,24 @@ export async function trackingRoutes(
   if (!result.ok) {
     logRefusal("tracking", `${project}/${specFolder}`, result.note);
     return refuse(result.note);
+  }
+
+  // An analyze that stopped on files another open spec changes goes on
+  // once Depends on names one of the specs it named: Analyze is queued
+  // with the steps the stopped job had left, and the dependency hold keeps
+  // it waiting until that spec archives.
+  const lead = workRoundJobs(ctx.queue, project!, specFolder!)[0];
+  const named = new Set(
+    (lead?.state === "stopped" && lead.stopReason === "shared-files" ? (lead.results.at(-1)?.sharedFiles ?? []) : [])
+      .map((s) => s.spec),
+  );
+  if (lead && depFolders.some((folder) => named.has(folder))) {
+    const queued = ctx.queue.enqueue(followOnJob(project!, specFolder!, lead.steps.slice(lead.stepIndex), lead));
+    if (!queued.ok) {
+      logRefusal("tracking", `${project}/${specFolder}`, queued.error);
+      return refuse(`Depends on was saved, but analyze could not be queued: ${queued.error}`);
+    }
+    await ctx.tickRunner();
   }
   return json({ ok: true, note: result.note, changed: (result as { committed?: boolean }).committed !== false });
 }

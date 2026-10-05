@@ -174,6 +174,24 @@ export const MESSAGES = {
     fr: "impossibles à réaliser : {ids}",
     exempt: "a part of runner.criteriaStopped, which carries the resolution",
   },
+  // An analyze stopped because another open spec's analysis lists the same
+  // files, with one inner sentence per spec naming the files it shares.
+  "runner.sharedFilesStopped": {
+    en: "{button} stopped: other open specs change the same files — {message}. — Add them to Depends on, and {button} runs by itself once they are archived; or press {button} again to go on.",
+    nb: "{button} stoppet: andre åpne specs endrer de samme filene — {message}. — Legg dem til under Avhenger av, så kjører {button} av seg selv når de er arkivert; eller trykk {button} igjen for å gå videre.",
+    es: "{button} se detuvo: otras specs abiertas cambian los mismos archivos — {message}. — Añádelas a Depende de, y {button} se ejecuta solo cuando estén archivadas; o pulsa {button} de nuevo para continuar.",
+    de: "{button} angehalten: andere offene Specs ändern dieselben Dateien — {message}. — Trage sie unter Hängt ab von ein, dann läuft {button} von selbst, sobald sie archiviert sind; oder klicke erneut auf {button}, um weiterzumachen.",
+    fr: "{button} interrompu : d'autres specs ouvertes modifient les mêmes fichiers — {message}. — Ajoutez-les à Dépend de, et {button} s'exécute tout seul une fois qu'elles sont archivées ; ou cliquez de nouveau sur {button} pour continuer.",
+    resolve: "Add them to Depends on",
+  },
+  "runner.sharedFilesSpec": {
+    en: "{spec}: {files}",
+    nb: "{spec}: {files}",
+    es: "{spec}: {files}",
+    de: "{spec}: {files}",
+    fr: "{spec} : {files}",
+    exempt: "a part of runner.sharedFilesStopped, which carries the resolution",
+  },
   "runner.testsRedImplement": {
     en: "implement reported success, but the project's tests are red on its result — the runner ran them itself, and the failing tests are listed below. — Press {button} again; the step ends only on a green run.",
     nb: "implementering meldte ferdig, men prosjektets tester er røde på resultatet — runneren kjørte dem selv, og testene som feiler står under. — Trykk {button} igjen; steget ender bare på en grønn kjøring.",
@@ -668,6 +686,14 @@ export const MESSAGES = {
     de: "die Planprüfung hat Fehler in den Akzeptanzkriterien gefunden — korrigiere die Beschreibung und führe es erneut aus",
     fr: "la revue du plan a trouvé des défauts dans les critères d'acceptation — corrigez la description, puis relancez-le",
     resolve: "put the description right, then run it again",
+  },
+  "wordPhase.stopSharedFiles": {
+    en: "other open specs change the same files — add them to Depends on, or run it again to go on",
+    nb: "andre åpne specs endrer de samme filene — legg dem til under Avhenger av, eller kjør på nytt for å gå videre",
+    es: "otras specs abiertas cambian los mismos archivos — añádelas a Depende de, o ejecútalo de nuevo para continuar",
+    de: "andere offene Specs ändern dieselben Dateien — trage sie unter Hängt ab von ein, oder führe es erneut aus, um weiterzumachen",
+    fr: "d'autres specs ouvertes modifient les mêmes fichiers — ajoutez-les à Dépend de, ou relancez-le pour continuer",
+    resolve: "add them to Depends on",
   },
   "wordPhase.filesDisagree": {
     // The spec's files and the run record (the state file, or git where
@@ -1221,6 +1247,14 @@ export const MESSAGES = {
     de: "{step} wurde bei den Akzeptanzkriterien angehalten — korrigiere die Beschreibung und klicke dann erneut auf {button}.",
     fr: "{step} s'est arrêté sur les critères d'acceptation — corrigez la description, puis cliquez de nouveau sur {button}.",
     resolve: "press {button} again",
+  },
+  "push.stoppedSharedFiles": {
+    en: "{step} stopped: other open specs change the same files — add them to Depends on, or press {button} again to go on.",
+    nb: "{step} stoppet: andre åpne specs endrer de samme filene — legg dem til under Avhenger av, eller trykk {button} igjen for å gå videre.",
+    es: "{step} se detuvo: otras specs abiertas cambian los mismos archivos — añádelas a Depende de, o pulsa {button} de nuevo para continuar.",
+    de: "{step} angehalten: andere offene Specs ändern dieselben Dateien — trage sie unter Hängt ab von ein, oder klicke erneut auf {button}, um weiterzumachen.",
+    fr: "{step} interrompu : d'autres specs ouvertes modifient les mêmes fichiers — ajoutez-les à Dépend de, ou cliquez de nouveau sur {button} pour continuer.",
+    resolve: "add them to Depends on",
   },
   "push.failed": {
     en: "{step} failed — it waits for you to look at why and press {button} again.",

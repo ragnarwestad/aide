@@ -193,13 +193,17 @@ export type JobState = (typeof JOB_STATES)[number];
 // green yet, and the answer is to run implement again.
 // `acceptance-criteria` is an analyze the runner stopped at the spec's
 // `criteriaChecks: stop`: the description needs putting right first.
-export type StopReason = "timeout" | "provider-limit" | "tests-red" | "acceptance-criteria";
+// `shared-files` is an analyze the runner stopped because another open
+// spec's analysis lists the same files: the two specs must be ordered first.
+export type StopReason = "timeout" | "provider-limit" | "tests-red" | "acceptance-criteria" | "shared-files";
 
 /** The reasons a RUN stops on, as a step's result names them. `tests-red`
  *  is not one: a step's own red run fails it, and only a landing stops a
  *  job on red. */
-export const isRunStop = (reason: string | undefined): reason is "timeout" | "provider-limit" | "acceptance-criteria" =>
-  reason === "timeout" || reason === "provider-limit" || reason === "acceptance-criteria";
+export const isRunStop = (
+  reason: string | undefined,
+): reason is "timeout" | "provider-limit" | "acceptance-criteria" | "shared-files" =>
+  reason === "timeout" || reason === "provider-limit" || reason === "acceptance-criteria" || reason === "shared-files";
 
 /** States where a job still owns its work. Anything else has released
  *  it, and the same step may be queued again.

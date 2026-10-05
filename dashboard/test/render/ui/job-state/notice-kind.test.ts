@@ -97,3 +97,18 @@ describe("specNotice for an analyze stopped on its acceptance criteria", () => {
     expect(notice?.text).toContain("AC-2, AC-4");
   });
 });
+
+// An analyze stopped on files another open spec changes waits on the person
+// who adds those specs to Depends on, or presses Analyze again: amber, with
+// the sentence the runner worded.
+describe("specNotice for an analyze stopped on files another open spec changes", () => {
+  test("renders the job's sentence as a waiting message (AC-3)", () => {
+    const sentence = "Analyze stopped: other open specs change the same files — 603-b: x.ts, y.ts; 604-c: z.ts.";
+    const notice = specNotice(
+      lead({ steps: ["analyze"], state: "stopped", stopReason: "shared-files", error: sentence }),
+    );
+    expect(notice?.variant).toBe("waiting");
+    expect(notice?.text).toContain("603-b");
+    expect(notice?.text).toContain("z.ts");
+  });
+});

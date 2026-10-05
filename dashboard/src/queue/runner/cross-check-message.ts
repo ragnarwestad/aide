@@ -1,7 +1,7 @@
 import type { BoardMessage } from "../../i18n/message.ts";
 import { stepButton } from "../../format/step-label.ts";
 import type { WorkflowStep } from "../queue.ts";
-import type { StepOutcome } from "./types.ts";
+import { sharedFiles, type StepOutcome } from "./types.ts";
 
 /** The bash cross-check's verdicts (run-spec/record/status-line.sh,
  *  run-spec/turn/step-tests.sh) — a step that made `no-progress`, an
@@ -63,3 +63,23 @@ export function criteriaStopMessage(step: WorkflowStep, outcome: Partial<StepOut
   if (!faults.length) return undefined;
   return { key: "runner.criteriaStopped", values: { button: stepButton(step) }, inner: faults };
 }
+
+/** An analyze stopped on files other open specs also change, as the
+ *  board's own sentence naming each spec and the files it shares.
+ *  Undefined when the result lists no spec: the runner's own sentence
+ *  then stands. */
+export function sharedFilesStopMessage(step: WorkflowStep, outcome: Partial<StepOutcome>): BoardMessage | undefined {
+  if (outcome.terminalReason !== "shared-files") return undefined;
+  const specs = sharedFiles(outcome.sharedFiles);
+  if (!specs) return undefined;
+  const inner: BoardMessage[] = specs.map((s) => ({
+    key: "runner.sharedFilesSpec",
+    values: { spec: s.spec, files: s.files.join(", ") },
+  }));
+  return { key: "runner.sharedFilesStopped", values: { button: stepButton(step) }, inner };
+}
+
+/** The board's sentence for a run that stopped on a check of the spec
+ *  itself — the acceptance criteria or the files other open specs share. */
+export const runStopMessage = (step: WorkflowStep, outcome: Partial<StepOutcome>): BoardMessage | undefined =>
+  criteriaStopMessage(step, outcome) ?? sharedFilesStopMessage(step, outcome);

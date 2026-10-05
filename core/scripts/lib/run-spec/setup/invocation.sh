@@ -185,11 +185,11 @@ $headless_note"
 elif [ -n "$spec_folder" ]; then
   # Spec 386: stated to the skill, not just to the harness — a CLI flag
   # on the claude/codex binary is invisible to the skill's own
-  # reasoning, and Step 8's branch has to be read out of the prompt the
+  # reasoning, and Step 9's branch has to be read out of the prompt the
   # same way depends_line already is for /aide-create.
   acceptance_line=""
   [ "$command_name" = "analyze" ] && [ "$acceptance_not_required" = "yes" ] && acceptance_line="
-Acceptance ticking is not required for this run: per Step 8, do not write the acceptance-criteria table into 4-status.md — write the one-line note instead."
+Acceptance ticking is not required for this run: per Step 9, do not write the acceptance-criteria table into 4-status.md — write the one-line note instead."
   # Spec 406: stated to the skill the same way depends_line/acceptance_line
   # are — a CLI flag alone is invisible to the skill's own reasoning, and
   # Step 1 hands this straight to `aide-close-spec --reason`.
@@ -217,7 +217,7 @@ The acceptance criteria checks for this spec, per Step 1: criteriaChecks: $crite
     && choose_approach="$(aide_spec_choose_approach "$specs_root" "$spec_folder")"
   approach_line=""
   [ "$command_name" = "analyze" ] && [ "$choose_approach" = "yes" ] && approach_line="
-Let me choose the approach is on for this spec, per Step 6: mark each approach (recommended), (real alternative) or (considered and rejected)"
+Let me choose the approach is on for this spec, per Step 7: mark each approach (recommended), (real alternative) or (considered and rejected)"
   prompt="$(skill_call "aide-$command_name" "$spec_id")$acceptance_line$criteria_line$approach_line$reason_line
 $step_log_note
 $headless_note"

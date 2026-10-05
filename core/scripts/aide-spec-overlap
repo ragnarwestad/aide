@@ -1,0 +1,191 @@
+#!/usr/bin/env bash
+# aide-spec-overlap — which other open specs of the same project change the
+# same files as this one. /aide-analyze's comparison step calls it, and
+# aide-run-spec calls it again after the analyze turn
+# (lib/run-spec/record/shared-files-check.sh), so a session that skipped the
+# step is still caught.
+#
+# A spec's list is `### Files to change` in its 2-analysis.md: one bare path
+# per line, in backticks, read from the newest `## Round N` when the file has
+# rounds and from the whole file otherwise. A path is compared as written,
+# less a leading `./` and a trailing `:<line>` or `:<from>-<to>`. The
+# candidates are the folders directly under the specs root, but archive/,
+# wiki/ and the spec itself, whose phase is analyzed or implemented: an
+# implement lands nothing, the code reaches the default branch when the spec
+# archives. Nothing in a candidate is written.
+#
+# The record of what an analysis has been warned about is its own
+# `### Overlapping specs` subsection, one line per spec:
+#   - `<spec>` — `<file>`, `<file>`
+# Only --record writes it.
+#
+# Prints ONE JSON line to stdout:
+#   {ok, exitCode, files, overlaps, warned, landed}
+# files    this spec's list.
+# overlaps the candidates sharing a path with it, less the specs `warned`
+#          names, each {spec, files}, sorted by folder.
+# warned   the specs in this spec's record, each {spec, files}.
+# landed   the specs `warned` names that this spec's Depends on line also
+#          names and whose folder now sits under archive/.
+# A refusal is the one shape the other jq scripts share:
+#   {"ok":false,"exitCode":2,"terminalReason":"refused","error":"…"}
+#
+# Usage:
+#   aide-spec-overlap --specs-root <path> --spec <NN-slug>
+#                      [--record] [--analysis <file>]
+
+set -uo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=/dev/null
+[ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
+# shellcheck source=/dev/null
+[ -f "$SCRIPT_DIR/lib/spec-transitions.sh" ] && source "$SCRIPT_DIR/lib/spec-transitions.sh"
+
+specs_root=""; spec=""; record="no"; analysis_arg=""
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -h|--help)
+      cat <<'USAGE'
+Usage:
+  aide-spec-overlap --specs-root <path> --spec <NN-slug>
+                     [--record]           # write the record into the spec's 2-analysis.md
+                     [--analysis <file>]  # read the spec's list and record from <file>
+USAGE
+      exit 0 ;;
+    --specs-root) specs_root="${2:-}"; shift 2 ;;
+    --spec) spec="${2:-}"; shift 2 ;;
+    --record) record="yes"; shift ;;
+    --analysis) analysis_arg="${2:-}"; shift 2 ;;
+    *) printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"unknown argument: %s"}\n' "$1"; exit 2 ;;
+  esac
+done
+
+command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"jq is required"}'; exit 2; }
+
+refuse() {
+  jq -cn --arg e "$1" '{ok:false, exitCode:2, terminalReason:"refused", error:$e}'
+  exit 2
+}
+
+[ -n "$specs_root" ] || refuse "missing --specs-root"
+[ -n "$spec" ] || refuse "missing --spec"
+[ -d "$specs_root" ] || refuse "specs root not found: $specs_root"
+case "$spec" in */*|.*) refuse "not a spec folder: $spec" ;; esac
+[ -d "$specs_root/$spec" ] || refuse "spec folder not found: $spec"
+[ -z "$analysis_arg" ] || [ -f "$analysis_arg" ] || refuse "analysis file not found: $analysis_arg"
+[ "$record" = "no" ] || [ -z "$analysis_arg" ] || refuse "--record writes the spec's own 2-analysis.md, so it cannot be combined with --analysis"
+
+# --- reading a 2-analysis.md ---------------------------------------------------
+
+# The file from its last `## Round N` heading to the end; all of it without one.
+newest_round() {
+  local from
+  from="$(grep -n '^## Round [0-9][0-9]*' "$1" 2>/dev/null | tail -1 | cut -d: -f1)"
+  tail -n +"${from:-1}" "$1" 2>/dev/null
+}
+
+# The lines under `### <heading>`, up to the next heading of any level.
+section() {
+  awk -v h="### $1" '$0 == h { on = 1; next } /^#+ / { on = 0 } on { print }'
+}
+
+# A list of bare paths (stdin) as a JSON array, in the order written, once each.
+paths_json() {
+  jq -R -s -c '
+    split("\n")
+    | map(capture("^\\s*-\\s*`(?<p>[^`]+)`")? | .p | sub("^\\./"; "") | sub(":[0-9]+(-[0-9]+)?$"; ""))
+    | reduce .[] as $x ([]; if index([$x]) then . else . + [$x] end)'
+}
+
+# The record lines (stdin) as a JSON array of {spec, files}.
+record_json() {
+  jq -R -s -c '
+    split("\n")
+    | map(capture("^\\s*-\\s*`(?<spec>[^`]+)`(?<rest>.*)$")?
+          | {spec, files: [.rest | scan("`([^`]+)`") | .[0] | sub("^\\./"; "") | sub(":[0-9]+(-[0-9]+)?$"; "")]})'
+}
+
+own_analysis="${analysis_arg:-$specs_root/$spec/2-analysis.md}"
+own_text="$(newest_round "$own_analysis")"
+files_json="$(printf '%s\n' "$own_text" | section "Files to change" | paths_json)"
+warned_json="$(printf '%s\n' "$own_text" | section "Overlapping specs" | record_json)"
+
+# --- the candidates: open, analysed specs of the same project ----------------
+
+candidates_json="[]"
+for dir in "$specs_root"/*/; do
+  dir="${dir%/}"
+  [ -d "$dir" ] || continue
+  name="$(basename "$dir")"
+  case "$name" in archive|wiki|"$spec"|.*) continue ;; esac
+  [ -f "$dir/4-status.md" ] || continue
+  _peek_spec_state "$dir/4-status.md"
+  case "$(current_phase_from "$state_json")" in analyzed|implemented) ;; *) continue ;; esac
+  their_files="$(newest_round "$dir/2-analysis.md" | section "Files to change" | paths_json)"
+  candidates_json="$(jq -cn --argjson acc "$candidates_json" --arg spec "$name" --argjson files "$their_files" \
+    '$acc + [{spec: $spec, files: $files}]')"
+done
+
+overlaps_json="$(jq -cn --argjson files "$files_json" --argjson cands "$candidates_json" --argjson warned "$warned_json" '
+  ($warned | map(.spec)) as $known
+  | [$cands[]
+     | select(.spec as $s | ($known | index([$s])) | not)
+     | {spec, files: ([.files[] | select(. as $f | $files | index([$f]))] | unique)}
+     | select(.files | length > 0)]
+  | sort_by(.spec)')"
+
+# --- what the record names that has been archived since ----------------------
+
+archived_json="[]"
+for name in $(jq -r '.[].spec' <<<"$warned_json"); do
+  [ -d "$specs_root/archive/$name" ] && archived_json="$(jq -c --arg n "$name" '. + [$n]' <<<"$archived_json")"
+done
+depends_json="$(aide_spec_dependencies "$specs_root" "$spec" | jq -R -s -c 'split("\n") | map(select(. != ""))')"
+landed_json="$(jq -cn --argjson warned "$warned_json" --argjson archived "$archived_json" --argjson deps "$depends_json" '
+  [$warned[] | select(.spec as $s | ($archived | index([$s])) and ($deps | any(. as $d | $d == $s or ($d | test("^[0-9]+$") and ($s | startswith($d + "-")))))) ]')"
+
+# --- --record: drop the archived specs, add the new overlaps -------------------
+
+if [ "$record" = "yes" ]; then
+  kept_json="$(jq -cn --argjson warned "$warned_json" --argjson archived "$archived_json" \
+    '$warned | map(select(.spec as $s | ($archived | index([$s])) | not))')"
+  if [ "$kept_json" != "$warned_json" ] || [ "$overlaps_json" != "[]" ]; then
+    entries="$(jq -cn --argjson a "$kept_json" --argjson b "$overlaps_json" '$a + $b')"
+    # Where the subsection stands in the newest round, and how long the file is.
+    read -r sec_start sec_end total < <(awk '
+      /^## Round [0-9]+/ { s = 0; e = 0; on = 0 }
+      $0 == "### Overlapping specs" && !s { s = NR; on = 1; next }
+      /^#+ / && on { e = NR - 1; on = 0 }
+      END { if (on) e = NR; print s + 0, e + 0, NR }' "$specs_root/$spec/2-analysis.md")
+    section_file="$(mktemp)"; updated="$(mktemp)"
+    if [ "$entries" != "[]" ]; then
+      {
+        printf '### Overlapping specs\n\n'
+        jq -r '.[] | "- `\(.spec)` — " + (.files | map("`" + . + "`") | join(", "))' <<<"$entries"
+        # A blank line before whatever follows the subsection.
+        [ "$sec_start" -gt 0 ] && [ "$sec_end" -lt "$total" ] && printf '\n'
+      } > "$section_file"
+    fi
+    if [ "$sec_start" -gt 0 ]; then
+      awk -v s="$sec_start" -v e="$sec_end" -v nf="$section_file" '
+        NR == s { while ((getline l < nf) > 0) print l }
+        NR >= s && NR <= e { next }
+        { print }' "$specs_root/$spec/2-analysis.md" > "$updated"
+    else
+      { awk '{ print }' "$specs_root/$spec/2-analysis.md"; printf '\n'; cat "$section_file"; } > "$updated"
+    fi
+    write_out="$("$SCRIPT_DIR/aide-write-spec" --specs-root "$specs_root" --folder "$spec" --file 2-analysis.md < "$updated")"
+    write_rc=$?
+    rm -f "$section_file" "$updated"
+    if [ "$write_rc" -ne 0 ]; then
+      refuse "could not write the record: $(jq -r '.error // empty' <<<"$write_out" 2>/dev/null)"
+    fi
+    warned_json="$entries"
+  fi
+fi
+
+jq -cn --argjson files "$files_json" --argjson overlaps "$overlaps_json" \
+  --argjson warned "$warned_json" --argjson landed "$landed_json" \
+  '{ok:true, exitCode:0, files:$files, overlaps:$overlaps, warned:$warned, landed:$landed}'
