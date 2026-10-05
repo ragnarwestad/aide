@@ -4,7 +4,7 @@
 // test command — "nothing to run is not red", so a landing merged
 // untested and said nothing.
 //
-// The rule is the runner's, stated once in tests/fixtures/manifest-carry.json
+// The rule is the runner's, stated once in core/tests/fixtures/manifest-carry.json
 // and tested on the bash side by test_aide_run_spec_manifest.py.
 
 import { afterEach, describe, expect, test } from "bun:test";
@@ -13,7 +13,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runProjectSuiteBeforePush } from "../../../src/serve/land-branch/test-gate.ts";
 
-const ROWS = JSON.parse(readFileSync(join(import.meta.dir, "../../../../tests/fixtures/manifest-carry.json"), "utf-8"))
+const ROWS = JSON.parse(readFileSync(join(import.meta.dir, "../../../../core/tests/fixtures/manifest-carry.json"), "utf-8"))
   .rows as { name: string; sourceHasManifest: boolean; trackedInTree: boolean; copied: boolean }[];
 const RESOLVER = join(import.meta.dir, "../../../../core/scripts/aide-resolve-test-cmd");
 const MANIFEST = "name: demo\nAIDE_TEST_CMD: make it\nworktreeLinks: deps\n";

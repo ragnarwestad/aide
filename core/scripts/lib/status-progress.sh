@@ -2,7 +2,7 @@
 # Shared "how many rows under a matching heading are done" rule — the
 # bash mirror of dashboard/src/project/parse-status.ts's
 # tableCells/isDoneMark/PHASE_HEADING_RE, kept in sync via
-# tests/fixtures/status-row-counting.json (spec 246, widened spec 285).
+# core/tests/fixtures/status-row-counting.json (spec 246, widened spec 285).
 # Sourced by both aide-run-spec (unfiltered: every Phase/Fase/Checklist/
 # Acceptance section) and aide-archive-spec (filtered to "Acceptance"
 # only, for its narrow archive gate) so neither hand-rolls a second copy.

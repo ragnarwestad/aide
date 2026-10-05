@@ -2,6 +2,14 @@
 
 ## Repo layout
 
+**Two parts side by side: `core/` is the method, `dashboard/` the board.**
+`core/` holds the skills, rules, templates and scripts, the installers in
+`core/implementations/` and their pytest suite in `core/tests/`; it works
+without the dashboard. `dashboard/` uses `core/`, never the other way
+round. The runner, `core/scripts/aide-run-spec`, is the board's engine but
+stays in `core/scripts/` with the scripts it calls, since it is installed
+beside them in `~/.local/bin/`.
+
 **`dashboard/` came in with `git subtree add`, and its history is only
 reachable through `git blame`.** `git log --follow -- dashboard/<file>`
 and plain `git log -- dashboard/<file>` stop at the import commit and
@@ -16,7 +24,7 @@ carries a manifest, so it is not a project in its own right anymore.
 (`dashboard/bun.lock`). Aide's test command is its `AIDE_TEST_CMD`, which
 runs both suites and the browser tests. Lint/build detection reads the
 ROOT only — a `package.json` at the root would silently redirect it, which
-`tests/specs/unit/core/validation/dashboard/test_dashboard_merge.py` guards
+`core/tests/specs/unit/core/validation/dashboard/test_dashboard_merge.py` guards
 against. Run the dashboard's own suite from inside `dashboard/` with `make test`:
 it type-checks first, then spreads the test files over one bun process per
 core (`dashboard/scripts/run-tests.sh`). A bare `bun test` runs them in one
@@ -43,7 +51,7 @@ spec written before the repo was translated still has its heading found.
 ## What gets installed where
 
 Everything is installed **globally** — not per project. `./install-all.sh`
-(repo root) runs each `implementations/<ai>/install.sh`. Each installer
+(repo root) runs each `core/implementations/<ai>/install.sh`. Each installer
 starts with `core/scripts/aide-preflight <tool>` (informational only) and
 is self-contained: the shared scripts (`core/scripts/` → `~/.local/bin/`,
 listed once in `core/scripts/_install-bin.sh` and sourced as
@@ -64,7 +72,7 @@ listed once in `core/scripts/_install-bin.sh` and sourced as
 ## Decisions that shape the repo
 
 - **`core/` is the product.** Skills, rules, scripts and templates live
-  there once; `implementations/` holds only thin install scripts. No
+  there once; `core/implementations/` holds only thin install scripts. No
   per-tool adapters: hand-maintained adapters were the main maintenance
   cost, which is why Gemini and the per-tool extras were dropped.
 - **Four tools through shared standards.** Claude Code reads the skills in
@@ -102,7 +110,7 @@ since a page is as long as what it says.
 4. **A test lives under the path that matches what it tests**: the test
    for `dashboard/src/queue/store/index.ts` under `dashboard/test/queue/`,
    the tests for `core/scripts/lib/run-spec/` under
-   `tests/specs/unit/core/scripts/run_spec/`. A small, tightly-coupled file
+   `core/tests/specs/unit/core/scripts/run_spec/`. A small, tightly-coupled file
    may keep its test beside it, as the dashboard's message catalogues do.
 5. **Where a language or framework has an established pattern, it is
    followed, and it wins over the rules above where they meet:**
@@ -122,7 +130,7 @@ split, so it can only shrink, and a new one cannot cross the limit. A part
 nearing a limit is split by responsibility, not by size: pull out the part
 that has its own name, not an arbitrary half.
 
-- `tests/specs/unit/core/validation/test_code_health.py` checks everything
+- `core/tests/specs/unit/core/validation/test_code_health.py` checks everything
   outside `dashboard/`, with what it holds in `OVER_LINE_LIMIT` and
   `OVER_FOLDER_LIMIT`.
 - `dashboard/test/design/code-health-limits.test.ts` checks `dashboard/`,

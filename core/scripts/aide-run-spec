@@ -155,7 +155,7 @@ command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReaso
 # a caller reading the result file would see nothing but an exit code.
 need_part() {
   [ -f "$SCRIPT_DIR/lib/$1" ] && return 0
-  echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"lib/'"$1"' is missing beside aide-run-spec — reinstall aide (implementations/claude-code/install.sh)"}'
+  echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"lib/'"$1"' is missing beside aide-run-spec — reinstall aide (core/implementations/claude-code/install.sh)"}'
   exit 2
 }
 

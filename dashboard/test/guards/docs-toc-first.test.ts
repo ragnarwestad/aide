@@ -13,11 +13,11 @@ const DIRS = [join(DASHBOARD, "docs"), join(DASHBOARD, "..", "docs")];
 const REPO = join(DASHBOARD, "..");
 const READ_BY_PEOPLE = [
   "README.md", "DEVELOPING.md", "CONTRIBUTING.md", "SECURITY.md", "CODE_OF_CONDUCT.md",
-  "tests/README.md", "specs/README.md", "dashboard/README.md",
-  "implementations/claude-code/README.md", "implementations/claude-code/INSTALL.md",
-  "implementations/codex/README.md", "implementations/codex/mcp/BROWSER_TESTING_MCP_SETUP.md",
-  "implementations/codex/mcp/CONTEXT7_MCP_SETUP.md", "implementations/copilot/README.md",
-  "implementations/copilot/INSTALL.md", "implementations/opencode/README.md",
+  "core/tests/README.md", "specs/README.md", "dashboard/README.md",
+  "core/implementations/claude-code/README.md", "core/implementations/claude-code/INSTALL.md",
+  "core/implementations/codex/README.md", "core/implementations/codex/mcp/BROWSER_TESTING_MCP_SETUP.md",
+  "core/implementations/codex/mcp/CONTEXT7_MCP_SETUP.md", "core/implementations/copilot/README.md",
+  "core/implementations/copilot/INSTALL.md", "core/implementations/opencode/README.md",
 ];
 
 const pages = [

@@ -157,7 +157,7 @@ describe("withChosenApproach", () => {
 
 // --- the description's line, read the way aide-run-spec reads it ------------
 
-const CASES = JSON.parse(readFileSync(join(REPO, "tests", "fixtures", "choose-approach-line.json"), "utf-8")).cases as {
+const CASES = JSON.parse(readFileSync(join(REPO, "core", "tests", "fixtures", "choose-approach-line.json"), "utf-8")).cases as {
   name: string;
   description: string | null;
   chosen: "yes" | "no";

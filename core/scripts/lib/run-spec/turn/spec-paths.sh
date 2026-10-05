@@ -115,7 +115,7 @@ repoint_specs_path
 # `aide-resolve-test-cmd --project-dir .` reads inside this worktree, and
 # a worktree carries tracked files only. Copied in when the worktree does
 # not track one, and kept out of the commit by a pathspec whenever it was
-# copied. The rule, stated once (tests/fixtures/manifest-carry.json):
+# copied. The rule, stated once (core/tests/fixtures/manifest-carry.json):
 # tracked in the worktree -> leave it alone; git unable to say -> leave it
 # alone; untracked with a source -> copy it in and exclude it.
 # STRICTLY AFTER update_branch_to_base, like repoint_specs_path: a merge

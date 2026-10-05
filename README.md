@@ -25,6 +25,10 @@ plain-Markdown files (description, analysis, solution, status) that you and any 
 continue identically. The spec is committed to git, either in the project it describes or in a specs repository of
 its own.
 
+The repository holds Aide's two parts side by side: `core/` has the skills, rules, templates and scripts, with an
+installer for each AI CLI, and `dashboard/` has the dashboard, which uses them. The layout is in
+[DEVELOPING.md](DEVELOPING.md#directory-structure).
+
 ### The skills
 
 Each step of the workflow — create, analyze, implement and archive — is an `aide-*` skill: a command you type in
@@ -120,7 +124,7 @@ of truth for what gets built. Birgitta Böckeler's
 three levels of it:
 
 | Level          | The spec …                                                                      |
-|----------------|---------------------------------------------------------------------------------|
+| -------------- | ------------------------------------------------------------------------------- |
 | Spec-first     | is written first and guides the work, then is discarded once the feature exists |
 | Spec-anchored  | is kept after the work and edited as the feature evolves                        |
 | Spec-as-source | is the only thing a user edits; the code is generated from it                   |
@@ -201,12 +205,12 @@ jq, gh, pandoc and md-to-pdf.
 optional MCP servers — browser testing and Context7 — and run from here, both are answered no. To be asked them,
 or to install for one tool only, run that tool's installer on its own:
 
-| AI CLI         | Install                                  | Documentation                                        |
-|----------------|------------------------------------------|------------------------------------------------------|
-| Claude Code    | `implementations/claude-code/install.sh` | [INSTALL.md](implementations/claude-code/INSTALL.md) |
-| GitHub Copilot | `implementations/copilot/install.sh`     | [INSTALL.md](implementations/copilot/INSTALL.md)     |
-| Codex          | `implementations/codex/install.sh`       | [README.md](implementations/codex/README.md)         |
-| OpenCode       | `implementations/opencode/install.sh`    | [README.md](implementations/opencode/README.md)      |
+| AI CLI         | Install                                       | Documentation                                             |
+| -------------- | --------------------------------------------- | --------------------------------------------------------- |
+| Claude Code    | `core/implementations/claude-code/install.sh` | [INSTALL.md](core/implementations/claude-code/INSTALL.md) |
+| GitHub Copilot | `core/implementations/copilot/install.sh`     | [INSTALL.md](core/implementations/copilot/INSTALL.md)     |
+| Codex          | `core/implementations/codex/install.sh`       | [README.md](core/implementations/codex/README.md)         |
+| OpenCode       | `core/implementations/opencode/install.sh`    | [README.md](core/implementations/opencode/README.md)      |
 
 The dashboard is installed afterwards, on the one machine that will run it, and serves at
 `http://127.0.0.1:8788`. On macOS that is `dashboard/install.sh`, which sets it up as a service that starts when

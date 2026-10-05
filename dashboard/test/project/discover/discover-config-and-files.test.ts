@@ -52,7 +52,7 @@ describe("one key out of a project's own .aide/config", () => {
 // `.aide/config` entry. The test command is the manifest's alone.
 describe("resolveInstallCmd / resolveTestCmd", () => {
   const CASES = JSON.parse(
-    readFileSync(join(import.meta.dir, "..", "..", "..", "..", "tests", "fixtures", "config-cmd-precedence.json"), "utf-8"),
+    readFileSync(join(import.meta.dir, "..", "..", "..", "..", "core", "tests", "fixtures", "config-cmd-precedence.json"), "utf-8"),
   );
 
   const project = (configLine: string | null, manifestLine: string | null, manifestKey: string, configKey: string): string => {

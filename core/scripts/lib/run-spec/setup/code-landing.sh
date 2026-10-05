@@ -25,7 +25,7 @@
 # gitignored, and a review policy one machine can shadow in silence is
 # not a policy. `resolveCodeLanding` in dashboard/src/discover.ts is the
 # other half of this pair, and
-# tests/fixtures/code-landing-precedence.json is the table both are
+# core/tests/fixtures/code-landing-precedence.json is the table both are
 # checked against.
 if [ "$push_mode_explicit" = "no" ] && declare -f aide_manifest_get >/dev/null 2>&1; then
   code_landing="$(aide_manifest_get codeLanding "$project_root")"
@@ -94,7 +94,7 @@ roots=("$project_root")
 [ "$spec_arg" != "wiki" ] || refuse "wiki is reserved — it is the folder a wiki build writes, not a spec; a build is run with --command wiki --spec wiki-<project>"
 if [ "$command_name" = "wiki" ]; then
   [[ "$spec_arg" =~ ^wiki-[A-Za-z0-9._-]{1,120}$ ]] || refuse "invalid --spec for wiki: $spec_arg (expected wiki-<project>)"
-  [ -x "$SCRIPT_DIR/aide-wiki" ] || refuse "aide-wiki is missing beside aide-run-spec — reinstall aide (implementations/claude-code/install.sh)"
+  [ -x "$SCRIPT_DIR/aide-wiki" ] || refuse "aide-wiki is missing beside aide-run-spec — reinstall aide (core/implementations/claude-code/install.sh)"
   # The pages are committed in a repository. A specs folder git ignores inside
   # the project has no tip to restore from and nothing to commit.
   if [ -n "$specs_repo" ] && [ "$specs_repo" = "$project_root" ] \

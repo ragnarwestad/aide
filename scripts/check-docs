@@ -27,7 +27,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 status=0
 
 if [ -x .venv/bin/pytest ]; then
-  .venv/bin/pytest -q tests/specs/unit/core/validation tests/specs/unit/core/skills || status=1
+  .venv/bin/pytest -q core/tests/specs/unit/core/validation core/tests/specs/unit/core/skills || status=1
 else
   echo "no .venv/bin/pytest — python3 -m venv .venv && .venv/bin/pip install -r requirements.txt" >&2
   status=1

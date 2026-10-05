@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 /** `aide-run-spec` plus every phase it sources, as one text — the same
- *  reading `tests/conftest.py`'s `run_spec_source` fixture gives the
+ *  reading `core/tests/conftest.py`'s `run_spec_source` fixture gives the
  *  Python side. The runner was one 2925-line file until 2026-09-04. */
 export function runSpecSource(): string {
   const scripts = new URL("../../../core/scripts", import.meta.url).pathname;

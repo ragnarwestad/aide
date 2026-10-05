@@ -66,7 +66,7 @@ fields — `name`, `description`, `license`, `compatibility`, `metadata`,
 only use Claude Code extras that degrade additively — a tool that ignores
 them loses a nicety, never a guarantee. Today that is `effort` and
 `argument-hint`. The allowlist is enforced by
-`tests/specs/unit/core/validation/rules/test_core_skills.py`; behavior-critical
+`core/tests/specs/unit/core/validation/rules/test_core_skills.py`; behavior-critical
 fields (`disable-model-invocation`, `user-invocable`, `context`, `hooks`)
 are banned by default. Note: claude.ai uploads and the Skills API
 **hard-error** on any non-spec field, so the skills cannot be uploaded there

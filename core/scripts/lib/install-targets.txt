@@ -8,7 +8,7 @@
 #
 # aide-preflight prints these places, and the dashboard's Settings tab for
 # each AI names them. The installers keep their own copy lines;
-# tests/specs/unit/core/validation/installer/test_install_targets.py fails
+# core/tests/specs/unit/core/validation/installer/test_install_targets.py fails
 # when an installer stops putting something where this table says.
 claude    skills        core/skills/                            ~/.claude/skills/
 claude    rules         core/rules/                             ~/.claude/rules/
@@ -18,8 +18,8 @@ copilot   scripts       core/scripts/                           ~/.local/bin/
 copilot   skills        core/skills/                            ~/.agents/skills/
 codex     instructions  core/AGENTS.md                          ~/.codex/AGENTS.md
 codex     scripts       core/scripts/                           ~/.local/bin/
-codex     hookConfig    implementations/codex/hooks/hooks.json  ~/.codex/hooks.json
-codex     hooks         implementations/codex/hooks/            ~/.codex/hooks/
+codex     hookConfig    core/implementations/codex/hooks/hooks.json  ~/.codex/hooks.json
+codex     hooks         core/implementations/codex/hooks/            ~/.codex/hooks/
 codex     skills        core/skills/                            ~/.agents/skills/
 opencode  instructions  core/AGENTS.md                          ~/.config/opencode/AGENTS.md
 opencode  skills        -                                       ~/.agents/skills/

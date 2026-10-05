@@ -200,7 +200,7 @@ Use exactly this reason when closing the spec: $reason"
   # `Acceptance criteria checks:` line, recorded when it was created;
   # absent or unknown read as off. Read once here;
   # run-spec/record/criteria-check.sh acts on the same value after the
-  # turn. tests/fixtures/criteria-checks-level.json is the table.
+  # turn. core/tests/fixtures/criteria-checks-level.json is the table.
   criteria_checks=""
   declare -f aide_spec_criteria_checks >/dev/null 2>&1 \
     && criteria_checks="$(aide_spec_criteria_checks "$specs_root" "$spec_folder")"
@@ -211,7 +211,7 @@ The acceptance criteria checks for this spec, per Step 1: criteriaChecks: $crite
   # Whether the spec asks to choose between the approaches: its own `Let
   # me choose the approach:` line, recorded when it was created; absent or
   # anything but yes is no, and adds nothing to the prompt.
-  # tests/fixtures/choose-approach-line.json is the table.
+  # core/tests/fixtures/choose-approach-line.json is the table.
   choose_approach=""
   declare -f aide_spec_choose_approach >/dev/null 2>&1 \
     && choose_approach="$(aide_spec_choose_approach "$specs_root" "$spec_folder")"

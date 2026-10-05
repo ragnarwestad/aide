@@ -41,7 +41,7 @@ disabled_rules = ["XP-SK-001"]
 # Pages that document where each tool installs, and the dashboard's own
 # CLAUDE.md, name those tools' paths because that is what they describe.
 [[overrides]]
-paths = ["DEVELOPING.md", "implementations/**/*.md", "dashboard/CLAUDE.md"]
+paths = ["DEVELOPING.md", "core/implementations/**/*.md", "dashboard/CLAUDE.md"]
 disabled_rules = ["XP-003"]
 
 # The two CLAUDE.md files hold what every session in their directory needs;
@@ -61,5 +61,5 @@ disabled_rules = ["AS-012", "CC-SK-016"]
 # A prompt hook without $ARGUMENTS gets the hook's input appended to the
 # prompt by Claude Code, which is what the Stop check wants.
 [[overrides]]
-paths = ["implementations/claude-code/settings.json"]
+paths = ["core/implementations/claude-code/settings.json"]
 disabled_rules = ["CC-HK-017"]

@@ -332,7 +332,7 @@ describe("whether a run could start there (spec 138)", () => {
   });
 
   // Criterion 7, the dashboard half. The runner half is in
-  // tests/specs/unit/core/scripts/test_aide_run_spec.py — one rule, two
+  // core/tests/specs/unit/core/scripts/test_aide_run_spec.py — one rule, two
   // places that have to agree about it.
   test.each([["/etc"], ["../escape"], ["deps/../../escape"]])(
     "a worktree link that escapes the root (%p) blocks and is named",
@@ -427,7 +427,7 @@ describe("whether a run could start there (spec 138)", () => {
 
   // --- Spec 316: the same fixture the bash side reads, read here too ---------
   //
-  // tests/fixtures/project-readiness-prerequisites.json is the one place
+  // core/tests/fixtures/project-readiness-prerequisites.json is the one place
   // this list of prerequisites lives; test_aide_run_spec.py reads it for
   // the bash half of the same pin. A fixture entry with no matching
   // answer set below fails loudly (`toBeDefined()`), which is what makes
@@ -437,7 +437,7 @@ describe("whether a run could start there (spec 138)", () => {
     prerequisites: { check: string; failsWhen: string; blocking: boolean }[];
   } = JSON.parse(
     readFileSync(
-      join(import.meta.dir, "..", "..", "..", "..", "tests", "fixtures", "project-readiness-prerequisites.json"),
+      join(import.meta.dir, "..", "..", "..", "..", "core", "tests", "fixtures", "project-readiness-prerequisites.json"),
       "utf-8",
     ),
   );

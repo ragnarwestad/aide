@@ -27,18 +27,18 @@ LOG="${AIDE_INSTALL_LOG:-$LOG_DEFAULT}"
 mkdir -p "$(dirname "$LOG")"
 {
   echo "--- $(date -u +%Y-%m-%dT%H:%M:%SZ) ---"
-  ./implementations/claude-code/install.sh
+  ./core/implementations/claude-code/install.sh
   # Codex too, or its copy of the skills and AGENTS.md drifts silently:
   # both tools read the SAME shared sources, but each has its own
   # installer, and only Claude Code's ran here. Found 2026-08-19, when
   # Codex created a spec on the four-file layout that spec 82 replaced —
   # it had been reading its 16 August copy ever since.
-  ./implementations/codex/install.sh
+  ./core/implementations/codex/install.sh
   # And OpenCode, for the same reason and no other: its instructions file
   # lives where only its own installer writes. Copilot needs no line —
   # it reads `~/.agents/skills/` and the instructions file Codex's
   # installer already refreshes.
-  ./implementations/opencode/install.sh
+  ./core/implementations/opencode/install.sh
 } >> "$LOG" 2>&1
 PLIST="${AIDE_DASH_PLIST:-$HOME/Library/LaunchAgents/com.aide-dashboard.serve.plist}"
 ARGS_SRC="dashboard/src/serve/serve-helpers/parse-args.ts"

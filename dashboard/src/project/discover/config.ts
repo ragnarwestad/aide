@@ -45,7 +45,7 @@ export type WorktreeLinksSource = "project.yaml";
  *  This is one half of a hand-kept pair: `core/scripts/aide-run-spec`
  *  resolves the same file with one anchored `sed`, and a divergence here
  *  would report a project as unconfigured that a run links perfectly
- *  well, or the reverse. `tests/fixtures/worktree-links-precedence.json`
+ *  well, or the reverse. `core/tests/fixtures/worktree-links-precedence.json`
  *  is the table both sides are checked against. */
 export function resolveWorktreeLinks(
   projectDir: string,
@@ -78,7 +78,7 @@ export type CodeLanding = "merge" | "pr";
  *
  *  One half of a hand-kept pair: `core/scripts/aide-run-spec` reads the
  *  same key with one anchored `sed` to default its own `--push`, and
- *  `tests/fixtures/code-landing-precedence.json` is the table both sides
+ *  `core/tests/fixtures/code-landing-precedence.json` is the table both sides
  *  are checked against. */
 export function resolveCodeLanding(projectDir: string): CodeLanding {
   const manifestFile = join(projectDir, ".aide", "project.yaml");
@@ -98,7 +98,7 @@ export type ConfigOverrideSource = ".aide/config" | "project.yaml";
  *
  *  One half of a hand-kept pair: `core/scripts/_aide-spec-lib.sh`'s
  *  `aide_resolve_override` resolves the same file, and
- *  `tests/fixtures/config-cmd-precedence.json` is the table both sides
+ *  `core/tests/fixtures/config-cmd-precedence.json` is the table both sides
  *  are checked against. */
 export function resolveInstallCmd(projectDir: string): { value: string | null; source: ".aide/config" | null } {
   const value = configValue(projectDir, "AIDE_INSTALL_CMD");

@@ -2,7 +2,7 @@
 # Shared installation/uninstallation of core/scripts into ~/.local/bin.
 #
 # This is the ONE source for the list of shared CLI scripts. Every
-# implementations/<ai>/install.sh sources this file and calls
+# core/implementations/<ai>/install.sh sources this file and calls
 # install_common_bin — so the list lives in one place. uninstall_common_bin
 # is called ONLY by uninstall-all.sh: individual uninstallers must leave the
 # shared scripts alone, since the other AI tools (and the cron job) use them.
@@ -53,7 +53,7 @@ COMMON_BIN_LIB_SCRIPTS="$(_core_lib_files "$(cd "$(dirname "${BASH_SOURCE[0]}")"
 # same npm:<pkg> declaration style as the AI CLIs in
 # ~/.config/mise/config.toml (npm:playwright is the existing precedent).
 # upgrade-ai-tools must upgrade every name listed here — a test in
-# tests/specs/unit/core/validation/test_core_scripts.py enforces it.
+# core/tests/specs/unit/core/validation/test_core_scripts.py enforces it.
 #
 # Every external CLI aide's own scripts shell out to, declared once so
 # every machine that runs aide's installer has it (spec 334). A tool

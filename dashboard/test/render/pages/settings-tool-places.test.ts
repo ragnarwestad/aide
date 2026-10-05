@@ -64,8 +64,8 @@ describe("the sentence above Check", () => {
     const other = parseInstallTargets(
       "codex instructions core/AGENTS.md ~/.x/AGENTS.md\n" +
         "codex scripts core/scripts/ ~/.x/bin/\n" +
-        "codex hookConfig implementations/codex/hooks/hooks.json ~/.x/hooks.json\n" +
-        "codex hooks implementations/codex/hooks/ ~/.x/hooks/\n" +
+        "codex hookConfig core/implementations/codex/hooks/hooks.json ~/.x/hooks.json\n" +
+        "codex hooks core/implementations/codex/hooks/ ~/.x/hooks/\n" +
         "codex skills core/skills/ ~/.x/skills/\n",
     );
     const sentence = toolWhere("en", "codex", placesOf(other, "codex"));

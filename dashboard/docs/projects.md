@@ -392,15 +392,15 @@ project's manifest from the clone when the project's own directory holds none.
 ### Which readiness checks are the dashboard's own
 
 The asymmetry is recorded in
-`tests/fixtures/project-readiness-prerequisites.json`'s own comment rather than pinned against the runner.
+`core/tests/fixtures/project-readiness-prerequisites.json`'s own comment rather than pinned against the runner.
 
 `worktreeLinks` is read from the project's `.aide/project.yaml` (the committed one, else the dashboard's derived copy)
 alone, the same file `aide-run-spec` itself reads — `.aide/config`'s older `AIDE_WORKTREE_LINKS` is legacy and is
 never read, by either side.
-`tests/fixtures/worktree-links-precedence.json` is the one table both sides are tested against, because the two are
+`core/tests/fixtures/worktree-links-precedence.json` is the one table both sides are tested against, because the two are
 written independently and nothing else would stop them drifting.
 
-`tests/fixtures/project-readiness-prerequisites.json` is the equivalent table for `gitRoot`, `specsRoot`,
+`core/tests/fixtures/project-readiness-prerequisites.json` is the equivalent table for `gitRoot`, `specsRoot`,
 `defaultBranch` and `worktreeLinks` themselves: a test on each side reads it and asserts `aide-run-spec` really
 refuses what this page says it does, for the same identifier and the same blocking answer.
 

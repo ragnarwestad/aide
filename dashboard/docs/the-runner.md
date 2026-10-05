@@ -311,7 +311,7 @@ other value is refused before the run starts. A completed create records it as t
 after the `Acceptance criteria checks:` line (or after `Created`) in the new spec's Tracking info. Analyze reads it once
 (`aide_spec_choose_approach`); with `yes` the prompt gets one line asking the skill to mark each approach
 `(recommended)`, `(real alternative)` or `(considered and rejected)`, and with anything else the prompt is unchanged.
-`tests/fixtures/choose-approach-line.json` is the table the runner and the dashboard both read the line against.
+`core/tests/fixtures/choose-approach-line.json` is the table the runner and the dashboard both read the line against.
 
 **The acceptance criteria checks.** The level (`off`, `warn` or `stop`) is chosen on the New spec form and passed to
 `create` as `--criteria-checks`. A completed create records it as the `Acceptance criteria checks:` line after

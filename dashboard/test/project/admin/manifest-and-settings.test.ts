@@ -142,7 +142,7 @@ describe("where the worktree links are read from (spec 184)", () => {
   const CASES: {
     cases: { name: string; manifest: string | null; config: string | null; links: string }[];
   } = JSON.parse(
-    readFileSync(join(import.meta.dir, "..", "..", "../../tests/fixtures/worktree-links-precedence.json"), "utf-8"),
+    readFileSync(join(import.meta.dir, "..", "..", "../../core/tests/fixtures/worktree-links-precedence.json"), "utf-8"),
   );
 
   /** The same four combinations `aide-run-spec`'s own test iterates over,

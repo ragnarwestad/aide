@@ -2,10 +2,10 @@
 name: uninstall-all
 description: >-
   Uninstall Aide for all AI tools (Claude Code, Copilot, Codex).
-  Runs uninstall-all.sh, which calls each implementations/<ai>/uninstall.sh.
+  Runs uninstall-all.sh, which calls each core/implementations/<ai>/uninstall.sh.
   Use when: removing Aide from the machine, cleaning up before a fresh install.
   Do NOT use for: installing (use /install-all). Just one AI? Run
-  implementations/<ai>/uninstall.sh directly.
+  core/implementations/<ai>/uninstall.sh directly.
 disable-model-invocation: true
 ---
 
@@ -21,6 +21,6 @@ It runs each AI implementation's own `uninstall.sh`, which reverses what the
 respective `install.sh` did. Each installer **asks for its own confirmation** before
 deleting anything (so you get one yes/no question per AI).
 
-**Just one AI?** Run its script directly, e.g. `implementations/codex/uninstall.sh`.
+**Just one AI?** Run its script directly, e.g. `core/implementations/codex/uninstall.sh`.
 
 If removed skills still show up, restart Claude Code.

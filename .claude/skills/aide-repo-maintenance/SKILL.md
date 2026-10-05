@@ -23,14 +23,14 @@ changing the spec structure — not for ordinary spec work in this repo.
 2. Create `core/skills/<name>/SKILL.md` with frontmatter and core instructions
 3. Put heavy documentation in `core/skills/<name>/references/`
 4. Add it to the SKILLS list in uninstall.sh
-5. Run `cd implementations/claude-code && ./install.sh`
+5. Run `cd core/implementations/claude-code && ./install.sh`
 
 ## Updating rules
 
 1. Edit in `core/rules/` (shared source for all AI tools)
 2. Run `core/scripts/build-agents-md.sh` (regenerates `core/AGENTS.md`
    AND `core/skills/spec-structure/SKILL.md`)
-3. Run `implementations/claude-code/install.sh` (rules → `~/.claude/rules/`), `implementations/copilot/install.sh` and `implementations/codex/install.sh` (new AGENTS.md → `~/.copilot/` and `~/.codex/`)
+3. Run `core/implementations/claude-code/install.sh` (rules → `~/.claude/rules/`), `core/implementations/copilot/install.sh` and `core/implementations/codex/install.sh` (new AGENTS.md → `~/.copilot/` and `~/.codex/`)
 
 **Four of the nine rules are no longer rules (spec 147).** `workflows`,
 `documentation`, `tools-and-scripts` and `markdown-linting` are skills in
@@ -49,7 +49,7 @@ Two consequences worth knowing before editing anything here:
   `core/rules/spec-structure.md` and re-run the build script — never the
   skill directly; `test_core_scripts.py::TestSpecStructureSkillIsGenerated`
   compares the two bodies byte for byte.
-- `implementations/claude-code/install.sh` excludes `spec-structure/`
+- `core/implementations/claude-code/install.sh` excludes `spec-structure/`
   from its skill rsync by name, so it reaches Codex/Copilot only. That
   exclusion is why `test_core_skills.py::TestUninstallListsEverySkill`
   carries a one-name exception, and it is the third hand-paired list in
@@ -71,7 +71,7 @@ Spec 82 found them the hard way: fixing the templates alone left
 5. `core/skills/spec-structure/SKILL.md` — generated from item 1 by
    `core/scripts/build-agents-md.sh`; the spec layout left `core/AGENTS.md`
    in spec 147, so this file is where Codex and Copilot read it now
-6. `tests/specs/unit/core/validation/templates/test_templates.py`, which
+6. `core/tests/specs/unit/core/validation/templates/test_templates.py`, which
    checks the placeholders the script fills and that a fresh spec claims
    no step or phase outcome
 

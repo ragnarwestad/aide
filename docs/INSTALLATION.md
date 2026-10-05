@@ -19,8 +19,8 @@
 ---
 
 > **📝 Note:** For AI-specific installation, primarily see:
-> - **Claude Code:** [implementations/claude-code/INSTALL.md](../implementations/claude-code/INSTALL.md)
-> - **Copilot:** [implementations/copilot/INSTALL.md](../implementations/copilot/INSTALL.md)
+> - **Claude Code:** [core/implementations/claude-code/INSTALL.md](../core/implementations/claude-code/INSTALL.md)
+> - **Copilot:** [core/implementations/copilot/INSTALL.md](../core/implementations/copilot/INSTALL.md)
 >
 > This guide provides a high-level overview.
 
@@ -33,12 +33,12 @@ Complete step-by-step guide for setting up the AI workspace with your preferred 
 
 This workspace supports several AI tools. Choose the one that suits you best:
 
-| AI tool            | Advantages                             | Best for                                   | Installation documentation                                               |
-|--------------------|----------------------------------------|--------------------------------------------|--------------------------------------------------------------------------|
-| **Claude Code**    | Slash commands, specialized agents     | Complex analyses, cross-cutting tasks      | [claude-code/README.md](../implementations/claude-code/README.md)        |
-| **Codex (OpenAI)** | The same skills, in `~/.agents/skills` | Spec analysis and implementation           | [../implementations/codex/README.md](../implementations/codex/README.md) |
-| **GitHub Copilot** | Shares the skills directory with Codex | Quick edits, refactoring, single-file work | [copilot/README.md](../implementations/copilot/README.md)                |
-| **OpenCode**       | One CLI in front of many providers     | Reaching a model no other tool offers      | [opencode/README.md](../implementations/opencode/README.md)              |
+| AI tool            | Advantages                             | Best for                                   | Installation documentation                                                         |
+| ------------------ | -------------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------- |
+| **Claude Code**    | Slash commands, specialized agents     | Complex analyses, cross-cutting tasks      | [claude-code/README.md](../core/implementations/claude-code/README.md)             |
+| **Codex (OpenAI)** | The same skills, in `~/.agents/skills` | Spec analysis and implementation           | [../core/implementations/codex/README.md](../core/implementations/codex/README.md) |
+| **GitHub Copilot** | Shares the skills directory with Codex | Quick edits, refactoring, single-file work | [copilot/README.md](../core/implementations/copilot/README.md)                     |
+| **OpenCode**       | One CLI in front of many providers     | Reaching a model no other tool offers      | [opencode/README.md](../core/implementations/opencode/README.md)                   |
 
 **💡 Tip:** You can use several AI tools at the same time! Choose the best tool for each task.
 
@@ -200,10 +200,10 @@ In Claude Code you can run the `/install-all` skill instead. `./uninstall-all.sh
 **Just one tool?** Run its installer directly — it provides everything that tool needs:
 
 ```bash
-implementations/claude-code/install.sh
-implementations/copilot/install.sh
-implementations/codex/install.sh
-implementations/opencode/install.sh
+core/implementations/claude-code/install.sh
+core/implementations/copilot/install.sh
+core/implementations/codex/install.sh
+core/implementations/opencode/install.sh
 ```
 
 The sections below describe what each individual installer does.
@@ -266,7 +266,7 @@ button says what the check finds out, and what it cannot.
 
 **Full documentation:**
 
-- **[implementations/claude-code/README.md](../implementations/claude-code/README.md)** - Setup guide and quick start
+- **[core/implementations/claude-code/README.md](../core/implementations/claude-code/README.md)** - Setup guide and quick start
 
 **Key features:**
 
@@ -294,7 +294,7 @@ button says what the check finds out, and what it cannot.
 3. **Run the install script:**
    ```bash
    # From the workspace root
-   implementations/copilot/install.sh
+   core/implementations/copilot/install.sh
    ```
    It installs `AGENTS.md` as the global Copilot instructions
    (`~/.copilot/copilot-instructions.md`) and the shared scripts to `~/.local/bin/`.
@@ -311,7 +311,7 @@ button says what the check finds out, and what it cannot.
 
 **Full documentation:**
 
-- **[implementations/copilot/README.md](../implementations/copilot/README.md)** - Setup guide and quick start
+- **[core/implementations/copilot/README.md](../core/implementations/copilot/README.md)** - Setup guide and quick start
 
 **Key features:**
 
@@ -351,7 +351,7 @@ button says what the check finds out, and what it cannot.
 
 **Full documentation:**
 
-- **[implementations/codex/README.md](../implementations/codex/README.md)** - Setup guide and quick start
+- **[core/implementations/codex/README.md](../core/implementations/codex/README.md)** - Setup guide and quick start
 
 ---
 
@@ -397,7 +397,7 @@ model call refused until you do.
 
 **Full documentation:**
 
-- **[implementations/opencode/README.md](../implementations/opencode/README.md)** - Setup guide and quick start
+- **[core/implementations/opencode/README.md](../core/implementations/opencode/README.md)** - Setup guide and quick start
 
 **Key features:**
 
@@ -413,7 +413,7 @@ model call refused until you do.
 
 1. **Add new AI tools:**
     - Follow the same pattern as Codex/Copilot
-    - Create `implementations/<tool>/`
+    - Create `core/implementations/<tool>/`
     - Reuse the `core/rules/` rules
 
 2. **Use the generic workflows:**
@@ -520,7 +520,7 @@ cd aide/implementations/claude-code
 
 ```bash
 # Reinstall
-implementations/copilot/install.sh
+core/implementations/copilot/install.sh
 
 # Restart the Copilot CLI
 ```
@@ -538,8 +538,8 @@ implementations/copilot/install.sh
 Once the setup is complete:
 
 1. **Read the implementation documentation for your AI tool:**
-    - [implementations/claude-code/README.md](../implementations/claude-code/README.md)
-    - [implementations/copilot/README.md](../implementations/copilot/README.md)
+    - [core/implementations/claude-code/README.md](../core/implementations/claude-code/README.md)
+    - [core/implementations/copilot/README.md](../core/implementations/copilot/README.md)
 
 2. **Read the generic workflows:**
     - [core/skills/workflows/SKILL.md](../core/skills/workflows/SKILL.md)

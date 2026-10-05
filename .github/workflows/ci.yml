@@ -74,7 +74,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           # Kept equal to the version dashboard/bun.lock resolves; a test
-          # in tests/specs/unit/core/validation/test_ci_workflow.py fails
+          # in core/tests/specs/unit/core/validation/test_ci_workflow.py fails
           # when the two drift apart.
           bun-version: 1.3.14
       - run: cd dashboard && bun install

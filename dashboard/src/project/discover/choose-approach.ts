@@ -3,7 +3,7 @@
 // `aide-run-spec` as the `Let me choose the approach:` line in the new
 // spec's own `1-description.md`. The runner reads the same line in bash
 // (`aide_spec_choose_approach`) to tell analyze, and
-// tests/fixtures/choose-approach-line.json is the table both sides read.
+// core/tests/fixtures/choose-approach-line.json is the table both sides read.
 
 // `[ \t]*`, never `\s*`, for the reason `depends-on.ts` gives: `\s`
 // matches a newline.

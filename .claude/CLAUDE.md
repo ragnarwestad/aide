@@ -11,7 +11,7 @@ It is NOT an application in itself.
 this repo. The Claude Code config for this repo lives in `.claude/`.
 Other AI tools (Copilot, Codex) are not used for development here.
 
-**Role 2 — Product:** `implementations/` contains source code we build
+**Role 2 — Product:** `core/implementations/` contains source code we build
 and install into other projects. There are implementations
 for Claude Code, Codex, OpenCode and Copilot.
 
@@ -56,7 +56,7 @@ locally passes there.
 Both full runs take minutes, not seconds, and grow with the suites. Run
 the full suite ONCE, before the commit, in the background; while working,
 run only the narrow files that cover the change (`bun test <file>`, or for
-`core/` alone `.venv/bin/pytest tests/specs/unit/core/validation`, which
+`core/` alone `.venv/bin/pytest core/tests/specs/unit/core/validation`, which
 covers the rules, the templates and the skills in seconds).
 
 The dashboard on the serving host runs as a launchd job

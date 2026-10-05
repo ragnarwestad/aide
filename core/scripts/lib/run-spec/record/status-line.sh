@@ -9,7 +9,7 @@
 # core/scripts/lib/status-progress.sh, is the shared bash mirror of
 # `dashboard/src/parse-status.ts`'s `tableCells`/`isDoneMark`. Kept in
 # sync with that TypeScript rule by
-# `tests/fixtures/status-row-counting.json`, read by a test on each side.
+# `core/tests/fixtures/status-row-counting.json`, read by a test on each side.
 # aide-archive-spec sources the same helper for its own, narrower,
 # Acceptance-only gate.
 

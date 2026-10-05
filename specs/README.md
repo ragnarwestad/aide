@@ -85,8 +85,8 @@ Reports are **OUTPUT** - the tools live elsewhere:
 
 - **Workflows & Templates:** `../core/` (INPUT)
 
-- **AI implementations:** `../implementations/` (INPUT)
+- **AI implementations:** `../core/implementations/` (INPUT)
 
 ---
 
-**💡 Tip:** This directory contains reports only. AI workflows and agents live in `../implementations/`.
+**💡 Tip:** This directory contains reports only. AI workflows and agents live in `../core/implementations/`.

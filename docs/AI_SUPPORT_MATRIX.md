@@ -181,7 +181,7 @@ Which files each tool reads automatically:
 ### Implementation
 
 ```text
-implementations/claude-code/
+core/implementations/claude-code/
 ├── INSTALL.md
 ├── setup.sh
 └── config/project/.claude/     ← copied to the target project
@@ -247,7 +247,7 @@ The projects therefore need no Copilot config of their own.
 ### Implementation
 
 ```text
-implementations/copilot/
+core/implementations/copilot/
 └── install.sh / uninstall.sh ← installs core/AGENTS.md → ~/.copilot/copilot-instructions.md
 
 (The instruction file is generated to core/AGENTS.md by core/scripts/build-agents-md.sh)
@@ -281,7 +281,7 @@ implementations/copilot/
 ### Implementation
 
 ```text
-implementations/codex/
+core/implementations/codex/
 ├── config.toml                 ← sandbox + MCP
 ├── hooks/                      ← hooks.json + aide-*.sh, installed to ~/.codex/
 ├── install.sh / uninstall.sh   ← global install: ~/.codex/AGENTS.md, hooks, skills, shared scripts
@@ -338,7 +338,7 @@ JSON event per line. Its flags:
 ## Installation
 
 Aide installs globally, not into each project: `./install-all.sh` runs
-each `implementations/<ai>/install.sh`, and each one writes under the home
+each `core/implementations/<ai>/install.sh`, and each one writes under the home
 directory (`~/.claude/`, `~/.copilot/`, `~/.codex/`, `~/.config/opencode/`,
 `~/.agents/skills/`, `~/.local/bin/`).
 
@@ -370,6 +370,6 @@ Check these when you update versions or wonder whether something has changed:
 ## See also
 
 - [AI_NEWS_LOG.md](./AI_NEWS_LOG.md) — News log / research feed that feeds this matrix
-- [implementations/claude-code/](../implementations/claude-code) — Claude Code implementation
-- [implementations/copilot/](../implementations/copilot) — Copilot implementation
-- [implementations/codex/](../implementations/codex) — Codex implementation
+- [core/implementations/claude-code/](../core/implementations/claude-code) — Claude Code implementation
+- [core/implementations/copilot/](../core/implementations/copilot) — Copilot implementation
+- [core/implementations/codex/](../core/implementations/codex) — Codex implementation

@@ -162,7 +162,7 @@ describe("spec 231: the work-round boundary", () => {
 describe("spec 246: the shared row-counting fixture (AC8, TypeScript half)", () => {
   const FIXTURE: { cases: { name: string; body: string; done: number; total: number }[] } =
     JSON.parse(
-      readFileSync(join(import.meta.dir, "..", "..", "../../tests/fixtures/status-row-counting.json"), "utf-8"),
+      readFileSync(join(import.meta.dir, "..", "..", "../../core/tests/fixtures/status-row-counting.json"), "utf-8"),
     );
 
   for (const c of FIXTURE.cases) {

@@ -168,7 +168,7 @@ describe("where a project's code-landing choice is read from (spec 220)", () => 
   const CASES: {
     cases: { name: string; manifest: string | null; config: string | null; landing: "merge" | "pr" }[];
   } = JSON.parse(
-    readFileSync(join(import.meta.dir, "..", "..", "../../tests/fixtures/code-landing-precedence.json"), "utf-8"),
+    readFileSync(join(import.meta.dir, "..", "..", "../../core/tests/fixtures/code-landing-precedence.json"), "utf-8"),
   );
 
   /** The same table `aide-run-spec`'s own test iterates over, out of the

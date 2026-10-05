@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Uninstalls aide for ALL AI tools.
 #
-# Runs each implementations/<ai>/uninstall.sh. Each one asks for its own
+# Runs each core/implementations/<ai>/uninstall.sh. Each one asks for its own
 # confirmation before deleting anything. The shared scripts in ~/.local/bin
 # are removed at the end by this script only — individual uninstallers leave
 # them alone, since the other AI tools depend on them.
 #
 # If you only want to uninstall one AI, run its script directly, e.g.:
-#   implementations/codex/uninstall.sh
+#   core/implementations/codex/uninstall.sh
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -18,7 +18,7 @@ status=0
 for ai in claude-code copilot codex opencode; do
   echo ""
   echo "═══════ $ai ═══════"
-  if "$ROOT/implementations/$ai/uninstall.sh"; then
+  if "$ROOT/core/implementations/$ai/uninstall.sh"; then
     echo "✅ $ai done"
   else
     echo "⚠️  $ai failed (continuing)"
