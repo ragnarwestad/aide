@@ -10,7 +10,7 @@ import { pageShell } from "../../../src/render/ui/shell.ts";
 import { setBoardInfo } from "../../../src/render/ui/board-info.ts";
 import { waitingForTestServerPage } from "../../../src/serve/routes/spec-edit/test-server-waiting.ts";
 import { AWAITING_DRIFT_REFRESH_SECONDS } from "../../../src/render/pages/projects-page/project-page.ts";
-import { page, view } from "./spec-page-fixtures.ts";
+import { lead, page, view } from "./spec-page-fixtures.ts";
 import { detail, NAV } from "./fixtures.ts";
 
 afterEach(() => setBoardInfo(undefined));
@@ -98,15 +98,21 @@ describe("each form the page script posts and loads again", () => {
 const marker = (html: string): string | null =>
   parse(html).querySelector("[data-reload-every]")?.getAttribute("data-reload-every") ?? null;
 
+const follows = (html: string): boolean => parse(html).querySelector("[data-follow]") !== null;
+
+describe("the pages that follow their job carry the marker the script reads", () => {
+  test("a job page and a spec's Steps tab carry it while their job runs, and not once it is done (AC-1)", () => {
+    const running = { state: "running" as const, runningStep: { step: "analyze", logs: [] } };
+    expect(follows(renderJobDetailPage(detail(running), "2026-08-16T10:00:00Z", NAV))).toBe(true);
+    expect(follows(page(view({ lead: lead(running) }), "steps"))).toBe(true);
+
+    const done = { state: "done" as const };
+    expect(follows(renderJobDetailPage(detail(done), "2026-08-16T10:00:00Z", NAV))).toBe(false);
+    expect(follows(page(view({ lead: lead(done) }), "steps"))).toBe(false);
+  });
+});
+
 describe("each page that reloads itself carries the script timer's marker", () => {
-  test("a spec's Steps tab, drawn without the script, reloads every 10 seconds (AC-5)", () => {
-    expect(marker(page(view(), "steps"))).toBe("10");
-  });
-
-  test("a job page reloads every 10 seconds (AC-5)", () => {
-    expect(marker(renderJobDetailPage(detail(), "2026-08-16T10:00:00Z", NAV))).toBe("10");
-  });
-
   test("a project's Deploy tab waiting for origin reloads at its own interval (AC-5)", () => {
     const html = projectPage({ tab: "deploy", drift: { behind: 0, checkedAt: null } });
     expect(marker(html)).toBe(String(AWAITING_DRIFT_REFRESH_SECONDS));

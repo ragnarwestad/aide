@@ -108,7 +108,7 @@ export type {
 
 export type { QueueRowView } from "./ui/job-state";
 
-export { renderJobDetailPage } from "./pages/job-page";
+export { renderJobDetailPage, renderJobFollowParts } from "./pages/job-page";
 export type { JobDetailView, JobStepResultView, JobTab, SpecFileView } from "./pages/job-page";
 
 // `/specs/<project>/<specFolder>` — the SPEC, not one of its runs (spec
@@ -122,10 +122,11 @@ export {
   TAB_FILES,
   documentTabScript,
   renderSpecPage,
+  renderSpecStepsFollowParts,
   renderSpecPageHead,
   renderSpecPageRest,
   renderSpecPageFailedRest,
   specPagePath,
   specTabPath,
 } from "./pages/spec-page";
-export type { SpecCheckView, SpecChecksView, SpecPageView } from "./pages/spec-page";
+export type { SpecCheckView, SpecChecksView, SpecPageView, SpecStepsView } from "./pages/spec-page";

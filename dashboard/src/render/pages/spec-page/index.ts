@@ -26,12 +26,12 @@
 // The reload went with that split. This page refreshed itself every ten
 // seconds on every tab, which is why editing the description lived on a
 // page of its own: a timer wipes a half-typed textarea and a half-ticked
-// list. Checks and the four document tabs no longer refresh; Activity
-// and Steps still do, because they are the two that move while a step
-// runs and neither holds a form. The price is every banner fact — what
-// the spec depends on, whether it requires acceptance ticking, whether
-// it is archived — only as fresh as the last time the page was asked
-// for, with the Update button beside it.
+// list. No tab reloads now. The Steps tab, which moves while a step runs
+// and holds no form, follows its job in place through the page script
+// (`renderSpecStepsFollowParts`). Every banner fact — what the spec depends
+// on, whether it requires acceptance ticking, whether it is archived — is
+// only as fresh as the last time the page was asked for, with the Update
+// button beside it.
 //
 // Activity and Steps are the lead job's, through the JOB page's own
 // functions. Not copies of them: `development.md` names the
@@ -55,13 +55,14 @@ import { pageShell, shellHead, shellRest, type NavEntry } from "../../ui/shell.t
 import { LOADING_HIDE_RULE, loadingBlock } from "../../ui/loading.ts";
 import { t } from "../../../i18n";
 import { landingRefusal, stepResults, tabBar, tabbedBody } from "../job-page";
+import { followMarker, followPart } from "../job-page/follow.ts";
 import {
   actionsHelp, archivedLine, testServerStatus, closedLine, closeControl, pdfControl,
   reopenControl, trackingControl,
 } from "./overview.ts";
 import { descriptionPanel, documentPanel } from "./panels.ts";
 import {
-  RELOADING_TABS, reloadMarker, resolveSpecTab, SPEC_LINES, SPEC_NOTICE_LINE, SPEC_REFUSED_LINE, SPEC_TABS, specPagePath, specTabPath, TAB_FILES, TAB_HELP, type SpecTab,
+  resolveSpecTab, SPEC_LINES, SPEC_NOTICE_LINE, SPEC_REFUSED_LINE, SPEC_TABS, specPagePath, specTabPath, TAB_FILES, TAB_HELP, type SpecTab,
 } from "./tabs.ts";
 import type { SpecPageView } from "./types.ts";
 
@@ -80,6 +81,50 @@ interface SpecPageOpts {
   scriptSrc?: string;
   lang?: Language;
   currentUrl?: string;
+}
+
+/** What the Steps tab draws of a spec: its lead job and every step of the
+ *  round. The follow answer builds only these two, not the whole page's view. */
+export type SpecStepsView = Pick<SpecPageView, "project" | "specFolder" | "lead" | "steps">;
+
+/** The index the lead job's running step has among the round's steps once it
+ *  finishes — what keys its row and what the follow marker names. */
+const runningIndexOf = (view: SpecStepsView): number | undefined =>
+  view.lead?.runningStep ? (view.steps?.length ?? 0) : undefined;
+
+/** Where the spec stands, on the line that names it: while a phase is
+ *  running, what it is doing, in the reader's own language. The page said
+ *  this only in the Logs tab, one click away, so a spec you had just started
+ *  looked exactly like one that had never run. */
+function runningBadge(view: SpecStepsView, lang: Language): string {
+  const running = view.lead?.runningStep?.step;
+  return running ? badge("running", gerund(lang, running)) : "";
+}
+
+/** The Steps tab's table, with the tab's own "(?)" in its first line. */
+function stepsTable(view: SpecStepsView, opts: Pick<SpecPageOpts, "step" | "steptab" | "lang">): string {
+  const lead = view.lead;
+  return stepResults(view.steps ?? [], lead?.archiveHeldBack, {
+    tabHref: specTabPath(view.project, view.specFolder, "steps"),
+    openStep: opts.step,
+    runningStep: lead?.runningStep,
+    steptab: opts.steptab,
+    lang: opts.lang,
+    mark: helpPopover("What this tab shows", TAB_HELP.steps),
+    // The same table, so the same answer: a step whose merge was
+    // refused must not read "ok" here either.
+    landingRefused: lead ? landingRefusal(lead, opts.lang ?? "en") : undefined,
+  });
+}
+
+/** What `?follow=1` answers on the Steps tab: the marker and the parts the
+ *  page script swaps, drawn by the same functions as the page. */
+export function renderSpecStepsFollowParts(view: SpecStepsView, opts: Pick<SpecPageOpts, "step" | "steptab" | "lang"> = {}): string {
+  return (
+    (view.lead ? followMarker(view.lead, { tab: "steps", step: opts.step, runningIndex: runningIndexOf(view) }) : "") +
+    followPart("head", runningBadge(view, opts.lang ?? "en"), "span") +
+    followPart("panel", stepsTable(view, opts))
+  );
 }
 
 /** The page's body and the tab it is on — what `renderSpecPage` and the
@@ -110,9 +155,11 @@ function specPageBody(view: SpecPageView, opts: SpecPageOpts): { body: string; t
     // What a board asked for is doing, in words. Its button lives in
     // the tab row below, which holds buttons only.
     testServerStatus(view) +
-    // The Steps tab reloads from the page script's timer, which waits
-    // while a dialog is open; the marker tells it how often.
-    (RELOADING_TABS.includes(tab) ? reloadMarker() : "") +
+    // The Steps tab follows a job that is in flight; the page script reads
+    // the marker.
+    (tab === "steps" && lead
+      ? followMarker(lead, { tab, step: opts.step, runningIndex: runningIndexOf(view) })
+      : "") +
     (view.error ? rowMessage("failed", view.error, { tag: "p" }) : "") +
     (view.warning ? rowMessage("waiting", view.warning, { tag: "p" }) : "") +
     // Where the page script writes what a press on this page answered:
@@ -135,7 +182,6 @@ function specPageBody(view: SpecPageView, opts: SpecPageOpts): { body: string; t
     // not a link, exactly as every other action on this dashboard is.
     buttonForm({ action: view.updateAction, hook: "reloadform", data: SPEC_LINES, button: { label: "Update", pending: "updating…" } });
 
-  const tabHref = specTabPath(view.project, view.specFolder, "steps");
   // Every tab says what it is for (spec 311): a "(?)" at the right end of
   // the tab's own first line, using the same shared component the search
   // field's own popover is built on — threaded into whichever function
@@ -143,34 +189,18 @@ function specPageBody(view: SpecPageView, opts: SpecPageOpts): { body: string; t
   const mark = helpPopover("What this tab shows", TAB_HELP[tab]);
   const panel =
     tab === "steps"
-      ? stepResults(view.steps ?? [], lead?.archiveHeldBack, {
-          tabHref,
-          openStep: opts.step,
-          runningStep: lead?.runningStep,
-          steptab: opts.steptab,
-          lang: opts.lang,
-          mark,
-          // The same table, so the same answer: a step whose merge was
-          // refused must not read "ok" here either.
-          landingRefused: lead ? landingRefusal(lead, opts.lang ?? "en") : undefined,
-        })
+      ? followPart("panel", stepsTable(view, opts))
       : tab === "description"
         ? descriptionPanel(view, now, opts.lang ?? "en", mark)
         : documentPanel(view, TAB_FILES[tab]!, now, opts.lang ?? "en", mark);
 
-  // Where the spec stands, on the line that names it: the four pips the
-  // specs list already draws, and — while a phase is running — what it
-  // is doing, in the reader's own language. The page said this only in
-  // the Logs tab, one click away, so a spec you had just started looked
-  // exactly like one that had never run.
-  const running = lead?.runningStep?.step;
   // The end of the title line (2026-09-09): what is running, and the
   // PDF link at the far right — the phase pips that stood there said
   // nothing the tabs below do not, and the PDF is not an action on the
-  // spec the way Close and Update are.
-  const headTrailing =
-    (running ? badge("running", gerund(opts.lang ?? "en", running)) : "") +
-    pdfControl(view);
+  // spec the way Close and Update are. On the Steps tab the badge is the
+  // `head` part the page script swaps, so it follows its job too.
+  const badgeHtml = runningBadge(view, opts.lang ?? "en");
+  const headTrailing = (tab === "steps" ? followPart("head", badgeHtml, "span") : badgeHtml) + pdfControl(view);
 
   const body = tabbedBody(
     banner,

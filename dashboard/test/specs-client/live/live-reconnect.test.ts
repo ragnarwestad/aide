@@ -222,3 +222,50 @@ describe("coming back into focus", () => {
     expect(h.rows.innerHTML).toBe("<tr>stale</tr>");
   });
 });
+
+// --- a followed page names its phases on the stream --------------------------
+//
+// A job page and a Steps tab hear a running step's log grow only when the
+// stream's address names the job's phases, and the marker an answer brings
+// back can name them later than the page did.
+describe("the stream follows the follow marker's phases (AC-2)", () => {
+  const A = "aide/605-x:analyze";
+  const B = "aide/605-x:implement";
+  const answer = (phases: string) =>
+    `<span hidden data-follow data-tab="steps" data-running="1"${phases ? ` data-phases="${phases}"` : ""}></span>`;
+  const page = (marker: Record<string, string>, reply: () => string) =>
+    harness((url) => ({ ok: true, text: url.includes("follow=1") ? reply() : "" }), "actionform", "?tab=steps", {
+      pathname: "/jobs/j1",
+      follow: { "data-tab": "steps", "data-running": "1", ...marker },
+    });
+  const phasesOf = (url: string) => new URL(url, "http://dash.test").searchParams.get("phases");
+
+  test("the stream's address carries the marker's phases beside the page's own query (AC-2)", () => {
+    const h = page({ "data-phases": `${A},${B}` }, () => answer(`${A},${B}`));
+    h.visibility("visible");
+    const url = new URL(h.live()!.url, "http://dash.test");
+    expect(url.pathname).toBe("/api/queue/events");
+    expect(url.searchParams.get("tab")).toBe("steps");
+    expect(url.searchParams.get("phases")).toBe(`${A},${B}`);
+  });
+
+  test("an answer that names phases the stream was opened without closes it and opens it with them (AC-2)", async () => {
+    const h = page({}, () => answer(`${A},${B}`));
+    h.visibility("visible");
+    expect(phasesOf(h.live()!.url)).toBeNull();
+    h.live()!.emit("changed");
+    await flush();
+    expect(h.sources).toHaveLength(2);
+    expect(h.sources[0]!.closed).toBe(true);
+    expect(phasesOf(h.live()!.url)).toBe(`${A},${B}`);
+  });
+
+  test("an answer that names the phases the stream already has leaves it open (AC-2)", async () => {
+    const h = page({ "data-phases": A }, () => answer(A));
+    h.visibility("visible");
+    h.live()!.emit("changed");
+    await flush();
+    expect(h.sources).toHaveLength(1);
+    expect(h.sources[0]!.closed).toBe(false);
+  });
+});

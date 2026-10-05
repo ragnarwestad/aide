@@ -401,9 +401,14 @@ read-only tab, the page scrolls as a whole.
 **The Logs tab lists every step from every attempt in one flat list, no picker.** A spec with more than one job for
 the same work round tags each row `Attempt N` (oldest = 1); a single-attempt spec shows no marker at all. There is no
 `?job=`: the tab's own count is the true total across every attempt, not just the latest one's. **Only the Logs tab
-reloads itself**, every ten seconds, by the page script's timer, which skips a tick while a dialog is open: it is the one that moves while a step runs, and every other tab
-carries a form a timer would wipe. The price is a page only as fresh as the last time it was asked for,
-which is what Update is for.
+follows its job**, in place: while the lead job is queued, running or landing, the page carries a hidden marker, and
+when the live feed says something moved (or the stream reconnects, or the tab comes back into view) the page script asks
+its own address with `follow=1`. The server answers the steps table and the running badge alone, built from the round's
+steps and never from the page's whole view; the script swaps only the rows that differ, adds a longer log's new end
+after what is drawn, and keeps the page's scroll, each log box's place and any row the reader has selected text in.
+An answer without the marker ends the following, and a page whose job is not in flight asks for nothing at all. Every
+other tab carries a form a refresh would wipe; their banner facts are only as fresh as the last time the page was asked
+for, which is what Update is for.
 
 **An opened step shows its numbers, then three tabs: Log, Changed files and Errors.** The numbers are the row's own
 time, cost, tokens and result, and a step with no log says so. One tab shows at a time, in one box about a hundred
@@ -430,7 +435,7 @@ lines tall that opens at its end. The three tabs:
 
 The tab is
 `?steptab=log|files|errors` beside `?step=`, on the job page, the spec page's Logs tab and a project's Wiki tab alike:
-a link rather than a widget, because the tab reloads itself every ten seconds, and pressing one keeps the step open.
+a link rather than a widget, because the open row is part of the address, and pressing one keeps the step open.
 An address with no `steptab`, or an unknown one, shows Log.
 
 **An archived spec has this page too** — the scan records every spec's directory before it drops the archived ones
@@ -568,7 +573,8 @@ broadcasts nothing.
 
 A step writes its transcript straight to a file, so nothing above fires while it runs. A tab that unfolded a phase
 (`?phases=`) opens the stream with the same query, and on the runner's two-second tick the server compares the size of
-each running step's transcript with the last tick and sends `changed` only to the tabs whose keys name that step. A
+each running step's transcript and run log with the last tick and sends `changed` only to the tabs whose keys name that step.
+The job page and the Logs tab name their running job's phases on the stream themselves while the running row is open. A
 tab with nothing unfolded, or only other phases, is never told, and while no tab has keys no file is measured. Pressing
 a › reopens the stream with the new `phases`.
 

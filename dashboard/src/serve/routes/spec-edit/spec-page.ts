@@ -7,10 +7,11 @@ import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from
 import { pullFastForward, saveSpecFiles } from "../../../git/specs-pull.ts";
 import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
 import { criteriaChecksIn, specFileText } from "../../../project/discover";
-import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, renderSpecPageFailedRest, renderSpecPageHead, renderSpecPageRest, resolveBackHref, resolveSpecTab, specTabPath } from "../../../render";
+import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, renderSpecPageFailedRest, renderSpecPageHead, renderSpecPageRest, renderSpecStepsFollowParts, resolveBackHref, resolveSpecTab, specTabPath } from "../../../render";
 import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, languageChoice, logRefusal, readBounded, specsClientScript, streamedPage } from "../../serve-helpers";
 
 import { failedRoundSentence, sharedFilesSentence } from "../../../render/ui/job-state";
+import { stepsOfRound } from "../../spec-views/work-round.ts";
 import type { RoutesContext } from "..";
 
 export async function specPageRoutes(
@@ -30,7 +31,7 @@ export async function specPageRoutes(
     // never starts a board against the wrong checkout in a multi-repo
     // project, or for a spec archived after the link was rendered.
     // `startTestServer()` carries its own branch+commit+alive dedup, so a
-    // repeat of this same URL — the reload every 10 seconds on the Steps
+    // repeat of this same URL — a reload of the Steps
     // tab it redirects to included — is a no-op read, not a second round.
     if (url.searchParams.get("startTestServer") === "1") {
       const ref = ctx.specRef(project!, specFolder!);
@@ -99,6 +100,23 @@ export async function specPageRoutes(
     // Description panel while loading no editor script for it.
     const tab = resolveSpecTab(url.searchParams.get("tab") ?? undefined);
     const langResult = languageChoice(url, req);
+    // `?follow=1`: the Steps tab's moving parts alone, for the page script that
+    // follows a job in place. Built from the round's steps, never the page's
+    // whole view, which reads branch copies and coverage through git.
+    if (url.searchParams.get("follow") === "1") {
+      const { lead, steps } = await stepsOfRound(ctx.queue, ctx.jobDetailView, project!, specFolder!);
+      return new Response(
+        renderSpecStepsFollowParts(
+          { project: project!, specFolder: specFolder!, lead, steps },
+          {
+            step: url.searchParams.get("step") ?? undefined,
+            steptab: url.searchParams.get("steptab") ?? undefined,
+            lang: langResult.lang,
+          },
+        ),
+        { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } },
+      );
+    }
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
     // Spec 515: the head and a loading element go out at once, the rest when
@@ -127,7 +145,7 @@ export async function specPageRoutes(
             steptab: url.searchParams.get("steptab") ?? undefined,
             currentUrl: langResult.currentUrl,
             // Close's dialog, the count under its Reason field and the
-            // Steps tab's reload timer are all this bundle's (spec 525).
+            // Steps tab's following of its job are all this bundle's.
             script: await specsClientScript(),
             // REQ-1/REQ-4/REQ-5 (spec 315, extended by spec 333): a src=
             // reference to whichever bundle's own route this tab's panel

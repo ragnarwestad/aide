@@ -1,5 +1,6 @@
-// The Steps tab's reload, from script, and the only one a page that ships
-// the script has: every N seconds the page reloads, except that a tick is
+// The reload from script of a page that waits on something outside the board
+// (the Wiki tab's Build panel while a build runs, the Deploy tab waiting for
+// origin): every N seconds the page reloads, except that a tick is
 // skipped while a dialog is open, so a reason half-typed in Close's box is
 // not lost — or while the Wiki tab's own graph is being dragged, panned or
 // pinched, so a reload does not reset it under the reader's finger.

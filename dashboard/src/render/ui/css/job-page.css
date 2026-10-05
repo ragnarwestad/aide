@@ -12,9 +12,11 @@ table.facts .pipwrap { margin-left: var(--sp-2); vertical-align: middle; }
    .steplog sits right under its summary row with no top padding, so the
    pair reads as one unit rather than two unrelated rows of the table. */
 tr.steplog td { padding-top: 0; }
+/* A part the page script swaps while its job runs adds no box of its own. */
+[data-follow-part] { display: contents; }
 /* A step's log: about a hundred lines, then it scrolls. Laid out bottom
-   first, so it opens at the newest line and a page that reloads itself
-   while the step runs keeps showing the end without a script. */
+   first, so it opens at the newest line and a log that grows while the step
+   runs keeps showing the end without a script. */
 .logbox { max-height: 100lh; overflow-y: auto; display: flex; flex-direction: column-reverse; }
 .logbox > div { flex: none; }
 .logbox .specfile { margin: 0; }

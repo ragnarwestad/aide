@@ -45,13 +45,7 @@ export function resolveSpecTab(raw: string | undefined): SpecTab {
   return pickTab(SPEC_TABS, raw === "checks" ? "status" : raw, "description");
 }
 
-/** Which tabs move on their own, and therefore reload. Steps is the one
- *  that changes while a step runs, and holds no form; every other tab
- *  carries one, and a page that reloads on a timer wipes what was
- *  half-typed or half-ticked. */
-export const RELOADING_TABS: readonly SpecTab[] = ["steps"];
-
-/** How often a page that follows a running step reloads itself. */
+/** How often a page that waits on something outside the board reloads itself. */
 export const RELOAD_SECONDS = 10;
 
 /** The marker the page script's timer reloads a page by

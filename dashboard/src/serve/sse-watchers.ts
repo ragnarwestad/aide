@@ -7,6 +7,7 @@
 
 import { statSync } from "node:fs";
 import { phaseKey } from "../render";
+import { runLogPath } from "../queue/runner/run-log-path.ts";
 import type { Job } from "../queue/queue.ts";
 
 export interface SseWatchersContext {
@@ -110,8 +111,8 @@ export function closeSpecWatchers(ctx: SseWatchersContext): void {
 // The store is silent while a step runs, so a tab that unfolded a running
 // phase would show what the model said at the start and then stand still.
 // On the runner's own two-second tick, the size of each running step's
-// transcript is compared with what it was, and only the tabs whose stream
-// query named that step are told.
+// transcript and of its run log (Aide's own lines beside it) is compared with
+// what it was, and only the tabs whose stream query named that step are told.
 
 const fileSize = (path: string): number => {
   try {
@@ -122,8 +123,10 @@ const fileSize = (path: string): number => {
 };
 
 /** The growth check. `tick()` measures no file while no subscriber has
- *  phase keys; a file first seen non-empty counts as grown, so the first
- *  messages are not lost; a file whose job stopped running is forgotten. */
+ *  phase keys; a step first seen with something written counts as grown, so
+ *  the first messages are not lost; a step whose job stopped running is
+ *  forgotten. A step's size is its transcript and its run log together: only
+ *  the run log grows while Aide prepares and while it runs its tests. */
 export function createStreamGrowth(
   ctx: SseWatchersContext,
   jobs: () => Job[],
@@ -141,7 +144,7 @@ export function createStreamGrowth(
         const listening = [...ctx.phaseWatchers].filter(([, keys]) => keys.has(key));
         if (listening.length === 0) continue;
         live.add(job.streamFile);
-        const size = sizeOf(job.streamFile);
+        const size = sizeOf(job.streamFile) + sizeOf(runLogPath(job.streamFile));
         if (size === (seen.get(job.streamFile) ?? 0)) continue;
         seen.set(job.streamFile, size);
         for (const [c] of listening) writeTo(ctx, c, "event: changed\ndata: {}\n\n");

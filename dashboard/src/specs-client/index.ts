@@ -296,7 +296,7 @@ document.addEventListener("click", ((event: MouseEvent) => {
     location.href = href;
   });
 }) as EventListener);
-// The spec page's Steps tab reloads from here, and waits while a dialog is open.
+// A page that carries `data-reload-every` reloads from here, and waits while a dialog is open.
 startReloadWhileIdle(document);
 // The Wiki tab's own graph, above the page list — bound wherever one is on
 // the page, since only the tab that drew it carries `data-wikigraph`.

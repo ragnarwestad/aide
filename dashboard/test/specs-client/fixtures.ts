@@ -13,6 +13,7 @@ import { fakeTbody, type FakeRow } from "./fixtures-tbody.ts";
 import { makeFakeDate, makeFakeEventSource, makeFakeFormData, makeFakeTimers } from "./fixtures-runtime.ts";
 import { buildCreateForm, buildProjectsPanel } from "./fixtures-panels.ts";
 import { buildNavigation, resolveDocumentQuerySelectorAll } from "./fixtures-events.ts";
+import { followFakes } from "./fixtures-follow.ts";
 
 const built = await Bun.build({
   entrypoints: [join(import.meta.dir, "..", "..", "src", "specs-client", "index.ts")],
@@ -70,7 +71,7 @@ export function harness(
   reply: (url: string) => Reply,
   control_ = "actionform",
   search = "",
-  o: { offRow?: boolean; pathname?: string; formId?: string } = {},
+  o: { offRow?: boolean; pathname?: string; formId?: string; follow?: Record<string, string> } = {},
 ) {
   const control = CONTROLS[control_]!;
   const formClass = control.formClass;
@@ -331,7 +332,10 @@ export function harness(
    *  on the list is written (`row-refusal/`); its words are the span. */
   const listRefused = { textContent: "" };
   const listRefusedLine = { querySelector: (sel: string) => (sel === "span" ? listRefused : null) };
+  // A page that follows its job has a marker.
+  const followed = followFakes(o.follow);
   const document = {
+    createElement: followed.createElement,
     // Spec 204: a row's own anchor id resolves too. `rowAnchorId()` is
     // already on every head row for the sake of `href="#..."`, and the
     // per-group diff reaches a group through it — so a fake that
@@ -342,7 +346,9 @@ export function harness(
     // must reach its own row's boxes and no others, so a document-wide
     // lookup has to be visibly wrong rather than accidentally right.
     querySelector: (sel: string) =>
-      sel.includes("newspecform")
+      sel === "[data-follow]"
+        ? followed.find()
+        : sel.includes("newspecform")
         ? createForm
         : // Spec 160: a tail box is on a phase LINE, and the row it
           // belongs to is reached through the form it names — the same
@@ -453,6 +459,8 @@ export function harness(
     submit, submitCreate, click, clickFold, clickHref, foldLink,
     button, createButton, requests, location, rows, inserted,
     replaced, slot, resets, document, phases, otherPhases, rowQueries, tick,
+    /** Whether the page still carries its follow marker. */
+    marked: followed.marked,
     sources: sourcesMade, live, visibility, intervals, ticks, timeouts, elapsed, clock,
     projectSelect, chips,
     removeButton, removeSlot, removeDialog, dispatched,

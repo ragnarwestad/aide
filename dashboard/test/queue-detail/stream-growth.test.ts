@@ -44,6 +44,19 @@ describe("the growth check on the two-second tick (AC-3)", () => {
     expect(subs.named!.told()).toBe(2);
   });
 
+  test("a run log that grows while the transcript stands still is growth too (AC-2)", () => {
+    const { subs, ctx } = setup({ named: [KEY] });
+    const sizes: Record<string, number> = { "/t/a.analyze.stream.jsonl": 10, "/t/a.analyze.run.log": 4 };
+    const growth = createStreamGrowth(ctx, () => [running("/t/a.analyze.stream.jsonl")], (f) => sizes[f] ?? 0);
+    growth.tick();
+    expect(subs.named!.told()).toBe(1);
+    growth.tick();
+    expect(subs.named!.told()).toBe(1);
+    sizes["/t/a.analyze.run.log"] = 90;
+    growth.tick();
+    expect(subs.named!.told()).toBe(2);
+  });
+
   test("the first sight of an empty file is not growth (AC-3)", () => {
     const { subs, ctx } = setup({ named: [KEY] });
     createStreamGrowth(ctx, () => [running("/t/a")], () => 0).tick();

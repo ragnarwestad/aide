@@ -497,3 +497,95 @@ describe("a redraw touches only the specs that changed (spec 204)", () => {
     });
   });
 });
+
+// --- a page that follows its job asks for its own parts, and only then -------
+//
+// A job page and a spec's Steps tab carry a marker while their job is in
+// flight. What the server pushes and what a return to the tab brings is the
+// same for them as for the list: the page asks. Without the marker it asks
+// nothing, and a page never reloads on a timer.
+describe("a page that follows its job asks for its parts (AC-1, AC-2, AC-6)", () => {
+  const MARKER = { "data-tab": "steps", "data-running": "1" };
+  const PARTS = `<div data-follow-part="head"><p>Running</p></div>`;
+  /** The answer of a job still in flight: the marker, then the parts. */
+  const STILL_GOING = `<span hidden data-follow data-tab="steps" data-running="1"></span>${PARTS}`;
+  const followed = (reply: (url: string) => { ok: boolean; text?: string } = () => ({ ok: true, text: STILL_GOING })) =>
+    harness(reply, "actionform", "?tab=steps", { pathname: "/jobs/j1", follow: MARKER });
+  const asks = (h: ReturnType<typeof harness>) => h.requests.filter((r) => r.url.includes("follow=1"));
+  /** Each event comes two seconds after the last, the pace the asks keep. */
+  const later = (h: ReturnType<typeof harness>) => void (h.clock.at += 2500);
+
+  test("a page without the marker asks nothing on `changed`, `open` or a return to the tab (AC-1)", async () => {
+    const h = harness(() => ({ ok: true }));
+    h.visibility("visible");
+    h.live()!.emit("changed");
+    h.live()!.emit("open");
+    h.visibility("hidden");
+    h.visibility("visible");
+    await flush();
+    expect(asks(h)).toHaveLength(0);
+  });
+
+  test("a followed page asks its own path, with its query and follow=1, on each of the three (AC-2)", async () => {
+    const h = followed();
+    h.visibility("visible");
+    h.live()!.emit("changed");
+    await flush();
+    later(h);
+    h.live()!.emit("open");
+    await flush();
+    later(h);
+    h.visibility("hidden");
+    h.visibility("visible");
+    await flush();
+    expect(asks(h)).toHaveLength(3);
+    for (const { url } of asks(h)) {
+      const ask = new URL(url, "http://dash.test");
+      expect(ask.pathname).toBe("/jobs/j1");
+      expect(ask.searchParams.get("tab")).toBe("steps");
+      expect(ask.searchParams.get("follow")).toBe("1");
+    }
+  });
+
+  test("while a press is in flight it does not ask (AC-2)", async () => {
+    let release: () => void = () => {};
+    const held = new Promise<void>((r) => (release = r));
+    const h = harness(
+      (url) => (url.includes("/cancel") ? { ok: true, body: OK_ACTION, hold: held } : { ok: true, text: STILL_GOING }),
+      "actionform",
+      "?tab=steps",
+      { pathname: "/jobs/j1", follow: MARKER },
+    );
+    h.visibility("visible");
+    const pressed = h.submit();
+    await Promise.resolve();
+    h.live()!.emit("changed");
+    await flush();
+    expect(asks(h)).toHaveLength(0);
+    release();
+    await pressed;
+  });
+
+  test("an answer with no marker takes the page's away, and later events ask nothing (AC-6)", async () => {
+    const h = followed(() => ({ ok: true, text: PARTS }));
+    h.visibility("visible");
+    h.live()!.emit("changed");
+    await flush();
+    expect(asks(h)).toHaveLength(1);
+    expect(h.marked()).toBe(false);
+    later(h);
+    h.live()!.emit("changed");
+    h.live()!.emit("open");
+    await flush();
+    expect(asks(h)).toHaveLength(1);
+  });
+
+  test("a page opened with ?live=0 asks nothing (AC-1)", async () => {
+    const h = harness(() => ({ ok: true, text: PARTS }), "actionform", "?live=0", { pathname: "/jobs/j1", follow: MARKER });
+    h.visibility("visible");
+    h.visibility("hidden");
+    h.visibility("visible");
+    await flush();
+    expect(asks(h)).toHaveLength(0);
+  });
+});

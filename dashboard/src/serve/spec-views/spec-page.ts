@@ -10,7 +10,7 @@ import {
 import { acceptanceSectionUnreadable, parseStatus } from "../../project/parse-status";
 import { phasesFor, specPagePath, resolveSpecTab, EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, TAB_FILES, type SpecPageView } from "../../render";
 import type { TestServerStatusView } from "../../render/pages/spec-page/types.ts";
-import { currentWorkRoundJobs, landingInProject, type Job } from "../../queue/queue.ts";
+import { landingInProject } from "../../queue/queue.ts";
 import { lastCommitOf } from "../../git/description-freshness.ts";
 import { readStatusFromFetchedBranch, resolveOpenBranchTarget } from "../../git/branch-file.ts";
 import { refreshTestServerStatus } from "../test-servers/lifecycle.ts";
@@ -18,6 +18,7 @@ import { type SpecViewsContext, specFileViews } from "./";
 import { type BranchCopy, readBranchCopy } from "./branch-copy.ts";
 
 import { jobDetailView } from "./job-detail.ts";
+import { stepsOfRound } from "./work-round.ts";
 
 export async function specPageView(
   ctx: SpecViewsContext,
@@ -34,19 +35,9 @@ export async function specPageView(
   // demand.
   const dir = ctx.peekMachinerySpecDir(project, found);
   const ref = ctx.specRef(project, specFolder);
-  // Whatever is in flight, or failing that the most recently active —
-  // the rule `jobGroup` uses for the row's own lead, over the same
-  // in-flight states (queued and running — there is no stop between
-  // steps since spec 149) and the same "started, or failing that
-  // created" clock, so the page a name opens speaks for the job the
-  // name spoke for.
   const matchingJobs = ctx.queue
     .list()
     .filter((j) => j.project === project && j.specFolder === specFolder);
-  const jobs = currentWorkRoundJobs(matchingJobs)
-    .sort((a, b) => (Date.parse(b.startedAt ?? b.createdAt) || 0) - (Date.parse(a.startedAt ?? a.createdAt) || 0));
-  const inFlight = (j: Job): boolean => j.state === "queued" || j.state === "running" || !!j.landing;
-  const leadJob = jobs.find(inFlight) ?? jobs[0];
   const files = specFileViews(ctx, dir);
   // Off the text `specFileViews` has already read, so the page makes
   // no second git or disk read for the same file. This is the Status
@@ -187,25 +178,10 @@ export async function specPageView(
     : fetchForm && formFile === EDITABLE_SPEC_FILE
       ? formCopy
       : await readBranchCopy(ctx, dir, specFolder, EDITABLE_SPEC_FILE);
+  // The Steps tab's jobs, lead and steps: one function, which the follow
+  // answer calls too.
+  const { jobs, lead, steps } = await stepsOfRound(ctx.queue, (job) => jobDetailView(ctx, job), project, specFolder);
   const jobRows = await Promise.all(jobs.map(ctx.jobRow));
-  const jobDetails = await Promise.all(jobs.map((job) => jobDetailView(ctx, job)));
-  // jobs is newest-first; oldest = attempt 1. Only tagged when there is
-  // more than one job — a single-attempt spec draws no marker at all
-  // (spec 242's own "nothing to show, show nothing" rule, at row level).
-  const multiAttempt = jobs.length > 1;
-  const attemptNumber = (j: Job): number | undefined =>
-    multiAttempt ? jobs.length - jobs.indexOf(j) : undefined;
-  const leadDetail = leadJob ? jobDetails[jobs.indexOf(leadJob)] : undefined;
-  const lead = leadDetail && {
-    ...leadDetail,
-    runningStep: leadDetail.runningStep && { ...leadDetail.runningStep, attempt: attemptNumber(leadJob!) },
-  };
-  // Spec 242: every step from every job in this work round, oldest job
-  // first — `jobs` is newest-first, so this flattens it in reverse.
-  const steps = jobs
-    .map((j, i) => jobDetails[i]!.results.map((r) => ({ ...r, attempt: attemptNumber(j) })))
-    .reverse()
-    .flat();
   // Spec 388, REQ-1: "a branch that carries code" is read off the same
   // source `landArchivedSpec` already reads (`branchesFor`) — a spec
   // with no implement step yet, or one already archived, has nothing

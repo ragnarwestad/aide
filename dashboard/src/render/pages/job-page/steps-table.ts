@@ -76,19 +76,20 @@ export function landingRefusal(
   };
 }
 
-/** Which row a Steps tab has open, from the raw `step=` query value and
- *  whether a step is running right now (spec 240). `"none"` is an
- *  explicit close — the one value a click actually sends to collapse a
- *  row that defaulted open — and is kept apart from "absent": nothing
- *  in the URL defaults to the running row when there is one, exactly
- *  the behaviour `activityPanel` gave a live job before it existed. This
- *  is what survives the page's own 10-second reload: the open row is a
- *  property of the URL, never of a client-only widget (`specs-list.ts`'s
- *  row-fold already rejected `<details>` for the identical reason). */
-export function resolveOpenStep(query: string | undefined, hasRunning: boolean): string | undefined {
+/** Which row a Steps tab has open, from the raw `step=` query value and the
+ *  index the running step has among the results (spec 240) — or will have
+ *  once it finishes; undefined when none runs. `"none"` is an explicit
+ *  close, the one value a click sends to collapse a row that defaulted open,
+ *  and is kept apart from "absent": nothing in the URL defaults to the
+ *  running row when there is one. The open row is a property of the URL,
+ *  never of a client-only widget (`specs-list.ts`'s row-fold rejected
+ *  `<details>` for the identical reason). The running row's own index opens
+ *  it while it runs and opens its finished row after, so the row a reader
+ *  has open stays open when the step ends; `live` still opens it. */
+export function resolveOpenStep(query: string | undefined, runningIndex: number | undefined): string | undefined {
   if (query === "none") return undefined;
-  if (query !== undefined) return query;
-  return hasRunning ? "live" : undefined;
+  if (runningIndex !== undefined && (query === undefined || query === "live")) return String(runningIndex);
+  return query;
 }
 
 /** What an opened step's tabs do not repeat: the numbers already drawn
@@ -156,7 +157,11 @@ export function stepResults(
   // session and how it ended.
   if (results.length === 0 && !opts.runningStep)
     return `<p class="muted">No step has finished yet.${opts.mark ? ` ${opts.mark}` : ""}</p>`;
-  const open = resolveOpenStep(opts.openStep, !!opts.runningStep);
+  // The running row is keyed by the index its step will have among the
+  // results once it finishes, so the address that opens it keeps naming its
+  // row after it has finished.
+  const runningKey = opts.runningStep ? String(results.length) : undefined;
+  const open = resolveOpenStep(opts.openStep, opts.runningStep ? results.length : undefined);
   // The chevron toggles; the name beside it is plain text — the same
   // split the specs list's own `.fold` uses, rather than making the
   // whole name the click target the way this used to (spec 240,
@@ -195,17 +200,18 @@ export function stepResults(
     .join("");
   const runningRow = ((): string => {
     if (!opts.runningStep) return "";
-    const isOpen = open === "live";
+    const key = runningKey!;
+    const isOpen = open === key;
     const main =
       `<tr><td>${opts.runningStep.attempt === undefined ? "" : `<span class="muted small">${t(lang, "job.attempt", { n: opts.runningStep.attempt })}</span> `}` +
-      `${stepCell(stepLabel(opts.runningStep.step), "live", isOpen)}</td>` +
+      `${stepCell(stepLabel(opts.runningStep.step), key, isOpen)}</td>` +
       `<td>${t(lang, "state.running")}</td><td class="num">${usdOrTokens(undefined, undefined)}</td><td>–</td>` +
       `<td class="muted small">${esc(opts.runningStep.sessionId ? opts.runningStep.sessionId.slice(0, 8) : "–")}</td>` +
       `<td class="muted small">–</td></tr>`;
     const log = isOpen
       ? `<tr class="steplog"><td colspan="6">${stepPanel(
           { ...opts.runningStep, running: true, terminalReason: "" },
-          { tabHref: opts.tabHref, key: "live", steptab: opts.steptab, lang },
+          { tabHref: opts.tabHref, key, steptab: opts.steptab, lang },
         )}</td></tr>`
       : "";
     return main + log;

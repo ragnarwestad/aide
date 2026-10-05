@@ -5,7 +5,7 @@
 // /api/queue/create) — it MUST be tried last, after every other
 // theme, exactly as it sat last in the original dispatcher.
 import { json, languageChoice, specsClientScript } from "../serve-helpers";
-import { renderJobDetailPage, resolveBackHref } from "../../render";
+import { renderJobDetailPage, renderJobFollowParts, resolveBackHref } from "../../render";
 import { jobMarks } from "../spec-views/job-marks.ts";
 import type { RoutesContext } from "./";
 
@@ -37,6 +37,19 @@ export async function handleJobDetailRoute(
     }
     if (api) return json({ generatedAt: new Date().toISOString(), job });
     const langResult = languageChoice(url, req);
+    // `?follow=1`: the page's moving parts alone, for the page script that
+    // follows a job in place.
+    if (url.searchParams.get("follow") === "1") {
+      return new Response(
+        renderJobFollowParts(await ctx.jobDetailView(job), {
+          tab: url.searchParams.get("tab") ?? undefined,
+          step: url.searchParams.get("step") ?? undefined,
+          steptab: url.searchParams.get("steptab") ?? undefined,
+          lang: langResult.lang,
+        }),
+        { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } },
+      );
+    }
     const html = renderJobDetailPage(
       { ...(await ctx.jobDetailView(job)), backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/", url.pathname) },
       new Date().toISOString(),
@@ -47,7 +60,7 @@ export async function handleJobDetailRoute(
         steptab: url.searchParams.get("steptab") ?? undefined,
         lang: langResult.lang,
         currentUrl: langResult.currentUrl,
-        // The page script: it reloads the page every ten seconds.
+        // The page script, which follows a running job in place.
         script: await specsClientScript(),
       },
     );

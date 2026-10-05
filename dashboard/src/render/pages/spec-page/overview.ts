@@ -168,10 +168,8 @@ export function closedLine(view: SpecPageView, lang: Language = "en"): string {
  *  behind a link, so ticking a box no longer means opening it.
  *
  *  On the Status PANEL rather than in the banner, which is where spec
- *  182 put the summary: a form in the banner rides onto Activity and
- *  Steps, and those two reload every ten seconds — which would wipe a
- *  half-ticked list, the exact failure this spec's reload scoping
- *  exists to prevent.
+ *  182 put the summary: a form in the banner rides onto every tab, and a
+ *  half-ticked list is the first thing a refresh of the page wipes.
  *
  *  Done rows are shown too, dimmed: the list is what is left AND what
  *  has been settled, and a list that only ever shrinks says nothing

@@ -1,8 +1,9 @@
 // What an opened step shows under its facts: a strip of three tabs (Log,
 // Changed files, Errors) and one box holding the current tab's content.
 // The tab is `?steptab=` in the address, like the open step is `?step=`:
-// the page reloads itself every ten seconds while a step runs, so a choice
-// held in a widget would snap back to Log on the next reload.
+// a page that follows a running step is asked for again in place, and one
+// opened afresh reads its address, so a choice held in a widget would snap
+// back to Log.
 
 import { t, type Language } from "../../../i18n";
 import { pickTab, tabBar } from "../../ui/tabs.ts";

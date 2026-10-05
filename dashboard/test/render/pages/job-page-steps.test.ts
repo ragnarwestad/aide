@@ -38,18 +38,24 @@ describe("a landing refusal's detail", () => {
 
 describe("spec 240: resolveOpenStep", () => {
   test("no query and nothing running: nothing is open (AC2)", () => {
-    expect(resolveOpenStep(undefined, false)).toBeUndefined();
+    expect(resolveOpenStep(undefined, undefined)).toBeUndefined();
   });
 
   test("no query but something running: the running row opens by default (AC3)", () => {
-    expect(resolveOpenStep(undefined, true)).toBe("live");
+    expect(resolveOpenStep(undefined, 2)).toBe("2");
   });
 
   test("an explicit step index wins over the running default", () => {
-    expect(resolveOpenStep("0", true)).toBe("0");
+    expect(resolveOpenStep("0", 2)).toBe("0");
   });
 
   test("the literal close value wins even while something is running (AC4)", () => {
-    expect(resolveOpenStep("none", true)).toBeUndefined();
+    expect(resolveOpenStep("none", 2)).toBeUndefined();
+  });
+
+  test("the running step's index, `live` and no step open it while it runs, and its finished row after (AC-3)", () => {
+    for (const query of [undefined, "live", "2"]) expect(resolveOpenStep(query, 2), String(query)).toBe("2");
+    expect(resolveOpenStep("2", undefined)).toBe("2");
+    expect(resolveOpenStep("none", undefined)).toBeUndefined();
   });
 });

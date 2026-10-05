@@ -21,7 +21,7 @@ import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { completedThirds, stateChip } from "../../ui/job-state";
 import { CHECKING, facts, pips, stepLabel, type PipKind } from "../../ui/components";
 import { pickTab, tabBar, tabbedBody } from "../../ui/tabs.ts";
-import { reloadMarker } from "../spec-page/tabs.ts";
+import { followMarker, followPart } from "./follow.ts";
 import { landingRefusal, stepResults, unitLabel } from "./steps-table.ts";
 import type { JobDetailView, SpecFileView } from "./types.ts";
 
@@ -29,9 +29,9 @@ export type { JobStepResultView, SpecFileView, JobDetailView } from "./types.ts"
 export { landingRefusal, resolveOpenStep, stepResults, type LandingRefusal } from "./steps-table.ts";
 export { pickTab, tabBar, tabbedBody } from "../../ui/tabs.ts";
 
-// The page's tabs. The choice lives in the URL, not in script: the page
-// reloads itself every 10 seconds, and a tab held only in memory would
-// snap back to the first one on every reload.
+// The page's tabs. The choice lives in the URL, not in script: a page the
+// script follows is asked for again in place, and a tab held only in memory
+// would snap back to the first one.
 export const JOB_TABS = ["overview", "steps"] as const;
 export type JobTab = (typeof JOB_TABS)[number];
 
@@ -63,30 +63,35 @@ export function fileStamp(file: SpecFileView, now: number): string {
   return file.checking ? ` <span class="muted small">${CHECKING}</span>` : "";
 }
 
-// Server-rendered in the site's layout. Poll-and-refresh like every
-// other page here — no new transport for one panel.
-export function renderJobDetailPage(
-  job: JobDetailView,
-  generatedAt: string,
-  entries: NavEntry[],
-  opts: {
-    tab?: string;
-    step?: string;
-    steptab?: string;
-    now?: number;
-    lang?: Language;
-    currentUrl?: string;
-    /** The page script, which reloads the page every ten seconds. */
-    script?: string;
-  } = {},
-): string {
-  const now = opts.now ?? Date.now();
-  const lang: Language = opts.lang ?? "en";
-  // While a step is running, what it is DOING is what the page was
-  // opened for; a job that has stopped has nothing running, so its
-  // facts open instead. Activity is gone (spec 240) — Steps is the one
-  // tab left that shows a live step.
-  const tab = pickTab(JOB_TABS, opts.tab, job.state === "running" ? "steps" : "overview");
+interface JobPageOpts {
+  tab?: string;
+  step?: string;
+  steptab?: string;
+  now?: number;
+  lang?: Language;
+  currentUrl?: string;
+  /** The page script, which follows a running job in place. */
+  script?: string;
+}
+
+// While a step is running, what it is DOING is what the page was
+// opened for; a job that has stopped has nothing running, so its
+// facts open instead. Activity is gone (spec 240) — Steps is the one
+// tab left that shows a live step.
+const jobTab = (job: JobDetailView, raw: string | undefined): JobTab =>
+  pickTab(JOB_TABS, raw, job.state === "running" ? "steps" : "overview");
+
+/** The index the running step has among the results once it finishes —
+ *  what keys its row and what the follow marker names. */
+const runningIndexOf = (job: JobDetailView): number | undefined => (job.runningStep ? job.results.length : undefined);
+
+/** State and title stay ABOVE the tabs: whichever tab is open, the
+ *  reader still needs to know which job this is and how it is doing.
+ *  The pips came down with the facts table's Step row (spec 150) and
+ *  land here, beside the state: "Step is in the pips" is why that row
+ *  went, so the pips have to be somewhere a reader sees them. Their own
+ *  block rather than inside the paragraph — `pips()` is a `<div>`. */
+function jobBanner(job: JobDetailView, lang: Language): string {
   const progress = pips(
     job.steps.map((s, i) => ({
       kind: (i < job.stepIndex ? "past" : i === job.stepIndex ? "now" : "todo") as PipKind,
@@ -98,19 +103,51 @@ export function renderJobDetailPage(
       third: i === job.stepIndex ? completedThirds(job) : undefined,
     })),
   );
-
-  // State and title stay ABOVE the tabs: whichever tab is open, the
-  // reader still needs to know which job this is and how it is doing.
-  // The pips came down with the facts table's Step row (spec 150) and
-  // land here, beside the state: "Step is in the pips" is why that row
-  // went, so the pips have to be somewhere a reader sees them. Their own
-  // block rather than inside the paragraph — `pips()` is a `<div>`.
-  const banner =
+  return (
     `<p class="pagehead">${stateChip(job, lang)}` +
     (job.error ? ` <span class="muted small">${esc(capitalizeFirst(renderSentence(lang, job.error) ?? ""))}</span>` : "") +
     `</p>` +
     progress +
-    (job.title ? `<p class="desc"><strong>${esc(job.title)}</strong></p>` : "");
+    (job.title ? `<p class="desc"><strong>${esc(job.title)}</strong></p>` : "")
+  );
+}
+
+function jobStepsPanel(job: JobDetailView, opts: JobPageOpts, lang: Language): string {
+  return stepResults(job.results, job.archiveHeldBack, {
+    tabHref: `/jobs/${job.id}?tab=steps`,
+    openStep: opts.step,
+    runningStep: job.runningStep,
+    steptab: opts.steptab,
+    landingRefused: landingRefusal(job, lang),
+    lang,
+  });
+}
+
+/** What `?follow=1` answers: the marker and the parts the page script swaps,
+ *  drawn by the same functions as the page. Overview's parts are the banner
+ *  alone: its facts are as of the page load. */
+export function renderJobFollowParts(job: JobDetailView, opts: JobPageOpts = {}): string {
+  const lang: Language = opts.lang ?? "en";
+  const tab = jobTab(job, opts.tab);
+  return (
+    followMarker(job, { tab, step: opts.step, runningIndex: runningIndexOf(job) }) +
+    followPart("head", jobBanner(job, lang)) +
+    (tab === "steps" ? followPart("panel", jobStepsPanel(job, opts, lang)) : "")
+  );
+}
+
+// Server-rendered in the site's layout. The page script follows a job that
+// is in flight in place, through `renderJobFollowParts`.
+export function renderJobDetailPage(
+  job: JobDetailView,
+  generatedAt: string,
+  entries: NavEntry[],
+  opts: JobPageOpts = {},
+): string {
+  const now = opts.now ?? Date.now();
+  const lang: Language = opts.lang ?? "en";
+  const tab = jobTab(job, opts.tab);
+  const banner = jobBanner(job, lang);
 
   // Two facts, and only two (spec 150). Project and Spec are in the
   // heading, and Step is in the pips beside the state chip. What is left
@@ -149,21 +186,10 @@ export function renderJobDetailPage(
     // `## Description` prose every other page showed.
     (job.phase ? specFilePanel(job.phase, now) : "");
 
-  const tabHref = `/jobs/${job.id}?tab=steps`;
-  const panel =
-    tab === "steps"
-      ? stepResults(job.results, job.archiveHeldBack, {
-          tabHref,
-          openStep: opts.step,
-          runningStep: job.runningStep,
-          steptab: opts.steptab,
-          landingRefused: landingRefusal(job, lang),
-          lang,
-        })
-      : head;
+  const panel = tab === "steps" ? followPart("panel", jobStepsPanel(job, opts, lang)) : head;
 
   const body = tabbedBody(
-    banner,
+    followPart("head", banner),
     tabBar(JOB_TABS, `/jobs/${esc(job.id)}`, tab, {
       steps: job.results.length + (job.runningStep ? 1 : 0),
     }),
@@ -173,13 +199,19 @@ export function renderJobDetailPage(
   );
 
   // `/`, not this page's own address: the nav entry it belongs under is
-  // the spec list, and that is where the list lives now. The page follows
-  // a job, so it reloads itself from the page script's timer.
-  return pageShell(job.specFolder, entries, "/", reloadMarker() + body, generatedAt, {
-    hideHeading: true,
-    hideTabBar: true,
-    lang,
-    currentUrl: opts.currentUrl,
-    script: opts.script,
-  });
+  // the spec list, and that is where the list lives now.
+  return pageShell(
+    job.specFolder,
+    entries,
+    "/",
+    followMarker(job, { tab, step: opts.step, runningIndex: runningIndexOf(job) }) + body,
+    generatedAt,
+    {
+      hideHeading: true,
+      hideTabBar: true,
+      lang,
+      currentUrl: opts.currentUrl,
+      script: opts.script,
+    },
+  );
 }
