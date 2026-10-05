@@ -110,3 +110,34 @@ def test_the_rule_the_reader_the_create_skill_and_the_plan_review_share_the_out_
         capture_output=True, text=True,
     )
     assert found.stdout.splitlines() == [heading, "", "- Not the queue."], found.stderr
+
+
+STEP_TITLE = re.compile(r"^#+ Step \d+ of \d+: (.+)$", re.M)
+# A table row whose last three cells, stripped of padding, are the three grades.
+GRADE_ROW = re.compile(r"^\s*\|[^|\n]*\|\s*LOW\s*\|\s*MEDIUM\s*\|\s*HIGH\s*\|\s*$", re.M)
+GRADING_REFERENCE = "core/skills/aide-analyze/references/complexity-and-analysis.md"
+
+
+@pytest.mark.validation
+def test_analyze_grades_the_complexity_after_it_searches_the_code_AC_1():
+    skill = (CORE_SKILLS_DIR / "aide-analyze" / "SKILL.md").read_text(encoding="utf-8")
+    titles = STEP_TITLE.findall(skill)
+    assert "Analyze the codebase" in titles, "the analyze skill has no search step"
+    assert "Grade the complexity" in titles, "the analyze skill has no grading step"
+    assert titles.index("Analyze the codebase") < titles.index("Grade the complexity")
+
+
+@pytest.mark.validation
+def test_the_grading_criteria_are_written_in_one_place_AC_5():
+    holders = {
+        str(path.relative_to(REPO_ROOT))
+        for root in ("core", "docs")
+        for path in (REPO_ROOT / root).rglob("*.md")
+        if GRADE_ROW.search(path.read_text(encoding="utf-8"))
+    }
+    assert holders == {GRADING_REFERENCE}, f"the LOW/MEDIUM/HIGH table is in {sorted(holders)}"
+    unpointed = [
+        name for name in ("aide-analyze", "workflows", "task-workflow-assistant")
+        if "complexity-and-analysis.md" not in (CORE_SKILLS_DIR / name / "SKILL.md").read_text(encoding="utf-8")
+    ]
+    assert not unpointed, f"these skills do not name the grading reference: {unpointed}"

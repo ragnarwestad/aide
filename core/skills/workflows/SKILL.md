@@ -36,21 +36,12 @@ effort: medium
 
 **Principle:** Match the scope of the documentation to the complexity of the task.
 
-**Grading rule:** The grade is the highest band Operation, Keywords or
-API impact reaches; Number of files is read last, as a signal, never a
-fourth vote, and never enough by itself to move a spec the other three
-read as LOW. Worked example: a wording fix replacing one string across
-an implementation file and its test — Operation is fix/replace (LOW),
-Keywords name the specific files (LOW), API impact is none (LOW).
-Touching four files sits inside the MEDIUM file-count range, but that
-range is not a vote, so the grade stays LOW.
+**Grading:** the grade is set once the code has been read, by the risk of
+the change. The criteria and two worked examples are in `aide-analyze`'s
+`references/complexity-and-analysis.md`, and nowhere else. Each level
+below says what its grade means for the analysis and for the documents.
 
 ### LOW complexity (Quick Fix)
-
-**Characteristics:**
-- The description mentions **one specific file**
-- Simple operations: "remove", "replace", "correct", "update", "fix"
-- Typically touches 1-5 files — the file itself, plus its own test
 
 **Analysis scope:**
 - Read ONLY the mentioned file
@@ -59,18 +50,9 @@ range is not a vote, so the grade stays LOW.
 **Documentation:** Short and concise (< 200 lines total)
 **Estimate:** Minutes to hours (< 2 hours)
 
-**Examples:**
-- "Remove console.log from src/services/utils.js"
-- "Fix typo in UserProfile.tsx line 45"
-
 ---
 
 ### MEDIUM complexity
-
-**Characteristics:**
-- The description mentions **one component/module**
-- Operations: "refactor", "improve", "modernize", "extend"
-- Typically touches 5-15 files
 
 **Analysis scope:**
 - Find files related to the component/module
@@ -80,18 +62,9 @@ range is not a vote, so the grade stays LOW.
 **Documentation:** Moderate detail (100-300 lines total)
 **Estimate:** Hours to days (2-16 hours)
 
-**Examples:**
-- "Refactor the Stegvelger component"
-- "Improve error handling in the api layer"
-
 ---
 
 ### HIGH complexity
-
-**Characteristics:**
-- The description uses **patterns** ("all", "migrate X to Y", "upgrade")
-- Large refactorings or architecture changes
-- Typically touches 15+ files
 
 **Analysis scope:**
 - Search the codebase broadly for patterns
@@ -101,10 +74,6 @@ range is not a vote, so the grade stays LOW.
 
 **Documentation:** Comprehensive analysis (300-800 lines total)
 **Estimate:** Days to weeks (1-10 days)
-
-**Examples:**
-- "Migrate all Redux Form components to react-hook-form"
-- "Upgrade React 17 to React 18"
 
 ---
 
@@ -216,7 +185,7 @@ The rest of the detail lives beside this file:
 ## Summary
 
 **Three key principles:**
-1. **Detect complexity** early and match the documentation to the task
+1. **Grade complexity** once the code is read, and match the documentation to it
 2. Follow the **linear flow**: Create - Analyze - Implement - Archive
 3. Always assess **API impact** (use the mapping)
 

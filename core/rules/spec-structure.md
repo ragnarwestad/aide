@@ -280,7 +280,7 @@ The keywords are written in capitals, as SHALL is.
 
 ### Complexity
 
-[High/Medium/Low, with the factors that drove the classification]
+[High/Medium/Low, then one line per factor that set it, with the files that show it, and the number of files as a signal]
 
 ### Estimate
 
