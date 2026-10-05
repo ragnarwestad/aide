@@ -27,9 +27,9 @@ all five acceptance criteria checks, at the one level, and the Out of
 scope check of the Scope guardian below.
 
 **MEDIUM/HIGH specs:** three reviewers, each with ONE perspective and no
-sight of the others' findings. In Claude Code, run them as parallel
-subagents (the Agent tool); in tools without subagents, run the same
-three instructions as sequential passes.
+sight of the others' findings. Run each one as a subagent of its own,
+in parallel, whichever tool you run in; only where the tool has no way
+to start one, run the same three instructions as sequential passes.
 
 Each reviewer reads the four spec files and answers ONLY its own
 questions, with file:line references into the spec:
