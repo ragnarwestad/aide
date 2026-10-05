@@ -16,5 +16,5 @@ export {
   summarizeStream,
 } from "./entries.ts";
 export { endWithFinalMessage, finalMessage, linesWithFinalMessage } from "./final-message.ts";
-export { stepLog, type LogPart } from "./step-log.ts";
+export { stepLog, type LogPart, type SubagentPart, type TextPart } from "./step-log.ts";
 export { stepMarks, type StepMark } from "./step-marks.ts";

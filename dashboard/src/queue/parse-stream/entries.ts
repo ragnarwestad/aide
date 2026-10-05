@@ -1,6 +1,7 @@
 // A transcript as the bounded list of lines a person reads: what the
 // run said and what it did, one line each, in the three CLIs' own
 // schemas turned into one shape.
+import { itemCounter } from "./numbering.ts";
 import {
   blocksOf, bounded, CLAUDE_WRITES, clip, codexKind, commandLine, esc, events, keepsEntry, sniff, textEntries, toolSubject, trim,
   type StreamEntry, type StreamEntryKind, type SummarizeOptions,
@@ -18,7 +19,7 @@ export function summarizeClaudeStream(text: string, opts: SummarizeOptions = {})
  *  by the id the call and its result share. Read in a pass of its own
  *  because a result arrives AFTER the call it answers: an entry cannot
  *  know its own outcome at the moment it is built. */
-function failedToolUses(text: string): Set<string> {
+export function failedToolUses(text: string): Set<string> {
   const failed = new Set<string>();
   for (const event of events(text)) {
     if (event.type !== "user") continue;
@@ -31,29 +32,46 @@ function failedToolUses(text: string): Set<string> {
   return failed;
 }
 
+/** The id of the call a subagent's event belongs to. The session's own
+ *  events carry `parent_tool_use_id: null`, so the key's presence says
+ *  nothing: only a non-empty string does. */
+export function parentCall(event: Record<string, unknown>): string | undefined {
+  return typeof event.parent_tool_use_id === "string" && event.parent_tool_use_id !== "" ? event.parent_tool_use_id : undefined;
+}
+
+/** The entries one `assistant` event's blocks make, in order: the model's
+ *  text, and a line for each tool call. An `Agent` call the session itself
+ *  made carries its id, which is where its subagent's part is put. */
+export function claudeBlockEntries(event: Record<string, unknown>, failed: Set<string>, whole?: boolean): StreamEntry[] {
+  const out: StreamEntry[] = [];
+  for (const block of blocksOf(event)) {
+    if (block.type === "text" && typeof block.text === "string" && block.text.trim()) {
+      out.push(...textEntries(block.text, whole));
+    } else if (block.type === "tool_use" && typeof block.name === "string") {
+      const kind: StreamEntryKind =
+        block.name === "Bash" ? "command" : CLAUDE_WRITES.has(block.name) ? "file" : "tool";
+      const subject = kind === "command" ? commandLine(toolSubject(block.input)) : toolSubject(block.input);
+      out.push({
+        kind,
+        text: esc(clip(subject ? `${block.name} ${subject}` : block.name)),
+        ...(typeof block.id === "string" && failed.has(block.id) ? { failed: true } : {}),
+        ...(block.name === "Agent" && typeof block.id === "string" && parentCall(event) === undefined ? { call: block.id } : {}),
+      });
+    }
+  }
+  return out;
+}
+
 function claudeEntries(text: string, opts: SummarizeOptions = {}): StreamEntry[] {
   const max = opts.max ?? 40;
   const failed = failedToolUses(text);
   const out: StreamEntry[] = [];
-  const keep = (entry: StreamEntry) => {
-    if (keepsEntry(entry, opts.only)) out.push(entry);
-  };
   for (const event of events(text)) {
     if (event.type !== "assistant") continue;
-    for (const block of blocksOf(event)) {
-      if (block.type === "text" && typeof block.text === "string" && block.text.trim()) {
-        textEntries(block.text, opts.whole).forEach(keep);
-      } else if (block.type === "tool_use" && typeof block.name === "string") {
-        const kind: StreamEntryKind =
-          block.name === "Bash" ? "command" : CLAUDE_WRITES.has(block.name) ? "file" : "tool";
-        const subject = kind === "command" ? commandLine(toolSubject(block.input)) : toolSubject(block.input);
-        keep({
-          kind,
-          text: esc(clip(subject ? `${block.name} ${subject}` : block.name)),
-          ...(typeof block.id === "string" && failed.has(block.id) ? { failed: true } : {}),
-        });
-      }
-    }
+    // A subagent's events are its own part's (`claudeSubagents`); only the
+    // Errors list reads them here, since a failed call is a failed call.
+    if (parentCall(event) !== undefined && opts.only !== "errors") continue;
+    for (const entry of claudeBlockEntries(event, failed, opts.whole)) if (keepsEntry(entry, opts.only)) out.push(entry);
     trim(out, max);
   }
   return bounded(out, max);
@@ -124,13 +142,16 @@ export function summarizeCodexStream(text: string, opts: SummarizeOptions = {}):
 function codexEntries(text: string, opts: SummarizeOptions = {}): StreamEntry[] {
   const max = opts.max ?? 40;
   const out: StreamEntry[] = [];
+  const counter = itemCounter(opts.numbering);
   for (const event of events(text)) {
+    // Every numbered item takes its number, whether or not it gives an entry.
+    const item = counter.read(event);
     if (event.type !== "item.completed") continue;
-    const item = event.item;
-    if (item === null || typeof item !== "object" || Array.isArray(item)) continue;
-    const { text: said, ...rest } = codexEntry(item as Record<string, unknown>);
+    const completed = event.item;
+    if (completed === null || typeof completed !== "object" || Array.isArray(completed)) continue;
+    const { text: said, ...rest } = codexEntry(completed as Record<string, unknown>);
     const entries = rest.kind === "text" ? textEntries(said, opts.whole) : said.trim() ? [{ ...rest, text: esc(clip(said)) }] : [];
-    for (const entry of entries) if (keepsEntry(entry, opts.only)) out.push(entry);
+    for (const entry of entries) if (keepsEntry(entry, opts.only)) out.push(item ? { ...entry, item } : entry);
     trim(out, max);
   }
   return bounded(out, max);

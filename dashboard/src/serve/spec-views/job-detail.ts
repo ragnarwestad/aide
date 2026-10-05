@@ -9,6 +9,7 @@ import type { Job } from "../../queue/queue.ts";
 import { existsSync } from "node:fs";
 import { resolveStepModel, tailFile, tailFileAt } from "../serve-helpers";
 import { stepLog } from "../../queue/parse-stream";
+import { readCodexSession } from "./codex-sessions.ts";
 import { RUN_LOG_MAX_BYTES, runLogPath } from "../../queue/runner/run-log-path.ts";
 import { diffStatBetween } from "../../git/diff-stat.ts";
 import type { SpecViewsContext } from "./";
@@ -57,7 +58,7 @@ export async function jobDetailView(
   const liveRunLog = running && step && job.streamFile ? readRunLog(job.streamFile) : undefined; // before the transcript
   const live =
     running && step && job.streamFile
-      ? stepLog(tailFileAt(job.streamFile, Infinity), liveRunLog, { tool: named, final: false })
+      ? stepLog(tailFileAt(job.streamFile, Infinity), liveRunLog, { tool: named, final: false, codexSession: readCodexSession })
       : undefined;
   return {
     ...(await ctx.jobRow(job)),
@@ -86,7 +87,7 @@ export async function jobDetailView(
               )
             ).flat()
           : undefined;
-        const shown = tail ? stepLog(tail, runLog, { tool, final: true }) : undefined;
+        const shown = tail ? stepLog(tail, runLog, { tool, final: true, codexSession: readCodexSession }) : undefined;
         return {
           ...r,
           tokens: r.tokens?.total,

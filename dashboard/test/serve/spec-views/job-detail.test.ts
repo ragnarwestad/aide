@@ -12,6 +12,7 @@ import { aiLabel } from "../../../src/serve/spec-views/job-detail.ts";
 import type { SpecViewsContext } from "../../../src/serve/spec-views";
 import type { Job } from "../../../src/queue/queue.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
+import { feasibility, ran, said, S, started, T, writeSessions } from "../../helpers/codex-fixtures.ts";
 
 const dirs: string[] = [];
 function tempStreamFile(lines: unknown[]): string {
@@ -249,5 +250,36 @@ describe("the AI's label", () => {
 
     expect(view.results[0]!.aiModel).toBe("Claude Opus 5.5");
     expect(view.results[1]!.aiModel).toBe("Codex Opus");
+  });
+});
+
+describe("jobDetailView reads a Codex step's session files", () => {
+  const stream = () => tempStreamFile([started(T), said("m1"), ran("c1"), said("m2")]);
+  const withHome = async <R>(run: () => Promise<R>): Promise<R> => {
+    const home = mkdtempSync(join(tmpdir(), "job-detail-codex-"));
+    writeSessions(home, { [T]: feasibility.parent, [S]: feasibility.child });
+    const before = process.env.CODEX_HOME;
+    process.env.CODEX_HOME = home;
+    try {
+      return await run();
+    } finally {
+      if (before === undefined) delete process.env.CODEX_HOME;
+      else process.env.CODEX_HOME = before;
+    }
+  };
+
+  test("a finished step's log holds the subagent's part (AC-2)", async () => {
+    const job = makeJob({
+      results: [{ step: "analyze", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", streamFile: stream(), tool: "codex" }],
+    });
+    const view = await withHome(() => jobDetailView(makeCtx(), job));
+
+    expect(view.results[0]!.logs!.map((p) => p.by)).toEqual(["ai", "subagent", "ai"]);
+  });
+
+  test("a running step's log holds it too (AC-2)", async () => {
+    const view = await withHome(() => jobDetailView(makeCtx(), makeJob({ state: "running", streamFile: stream() })));
+
+    expect(view.runningStep!.logs.map((p) => p.by)).toEqual(["ai", "subagent", "ai"]);
   });
 });

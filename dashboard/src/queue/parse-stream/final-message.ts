@@ -37,6 +37,36 @@ function rawFinalMessage(text: string, opts: SummarizeOptions): string | undefin
   return found;
 }
 
+/** How many of the last of `lines` are the entries `raw` itself made — its
+ *  prose clipped, each step mark on its own — and so are said again by `raw`
+ *  in full. */
+function repeatedTail(lines: string[], raw: string, whole: boolean): number {
+  const clipped = splitMarks(raw).map((p) => esc(prose(p.text, whole && !p.mark)));
+  const n = clipped.length;
+  return n > 0 && n <= lines.length && clipped.every((c, i) => lines[lines.length - n + i] === c) ? n : 0;
+}
+
+/** `lines` without the last of them that only repeat `raw`, the whole text
+ *  a subagent answered with, which its part shows once, as its answer. */
+export function withoutRepeat(lines: string[], raw: string): string[] {
+  return lines.slice(0, lines.length - repeatedTail(lines, raw, true));
+}
+
+/** How a step's lines end on its final message: the first `kept` of them
+ *  stay, and `added` follows — the message in full, its marks lines of their
+ *  own. Undefined when the transcript has no final message. */
+export function finalTail(
+  lines: string[],
+  text: string,
+  opts: SummarizeOptions = {},
+  cut: (escaped: string) => string = (t) => t,
+): { kept: number; added: string[] } | undefined {
+  const raw = rawFinalMessage(text, opts);
+  if (raw === undefined) return undefined;
+  const added = splitMarks(raw).map((p) => (p.mark ? esc(p.text) : cut(esc(p.text.trim()))));
+  return { kept: lines.length - repeatedTail(lines, raw, !!opts.whole), added };
+}
+
 /** Lines ending on the final message in full. The entries the message
  *  itself made — its prose clipped, each step mark on its own — are
  *  replaced when the lines end on them, and the message is appended when
@@ -48,14 +78,8 @@ export function endWithFinalMessage(
   opts: SummarizeOptions = {},
   cut: (escaped: string) => string = (t) => t,
 ): string[] {
-  const raw = rawFinalMessage(text, opts);
-  if (raw === undefined) return lines;
-  const pieces = splitMarks(raw);
-  const clipped = pieces.map((p) => esc(prose(p.text, !!opts.whole && !p.mark)));
-  const full = pieces.map((p) => (p.mark ? esc(p.text) : cut(esc(p.text.trim()))));
-  const n = clipped.length;
-  const endsOnIt = n > 0 && n <= lines.length && clipped.every((c, i) => lines[lines.length - n + i] === c);
-  return [...(endsOnIt ? lines.slice(0, lines.length - n) : lines), ...full];
+  const tail = finalTail(lines, text, opts, cut);
+  return tail ? [...lines.slice(0, tail.kept), ...tail.added] : lines;
 }
 
 /** A step's log lines, the last of them the whole final message. */

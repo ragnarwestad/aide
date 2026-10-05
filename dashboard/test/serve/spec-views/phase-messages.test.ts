@@ -9,6 +9,7 @@ import { specPageView, type SpecViewsContext } from "../../../src/serve/spec-vie
 import { phaseMessagesFor } from "../../../src/serve/spec-views/phase-messages.ts";
 import type { Job } from "../../../src/queue/queue.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
+import { feasibility, ran as codexRan, said as codexSaid, S, started, T, writeSessions } from "../../helpers/codex-fixtures.ts";
 
 const dir = mkdtempSync(join(tmpdir(), "phase-messages-"));
 let n = 0;
@@ -191,5 +192,35 @@ describe("the key it returns is the Logs tab's own (AC-5)", () => {
     expect(indexOf("a2")).toBeGreaterThan(indexOf("i1"));
     expect(phaseMessagesFor(q, ["j2"], "implement")?.step).toBe("live");
     expect(view!.lead?.runningStep?.step).toBe("implement");
+  });
+});
+
+describe("a Codex phase's row reads the session files (AC-2)", () => {
+  const codexStream = () => stream([started(T), codexSaid("m1"), codexRan("c1"), codexSaid("m2")]);
+  const withHome = <R>(run: () => R): R => {
+    const home = mkdtempSync(join(tmpdir(), "phase-codex-"));
+    writeSessions(home, { [T]: feasibility.parent, [S]: feasibility.child });
+    const before = process.env.CODEX_HOME;
+    process.env.CODEX_HOME = home;
+    try {
+      return run();
+    } finally {
+      if (before === undefined) delete process.env.CODEX_HOME;
+      else process.env.CODEX_HOME = before;
+    }
+  };
+
+  test("a finished step's parts include the subagent's", () => {
+    const j = job("a", { results: [{ step: "analyze", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", tool: "codex", streamFile: codexStream() } as never] });
+    const got = withHome(() => phaseMessagesFor(queueOf([j]), ["a"], "analyze"));
+
+    expect(got?.logs.map((part) => part.by)).toEqual(["ai", "subagent", "ai"]);
+  });
+
+  test("a running step's parts include it too", () => {
+    const j = job("r", { state: "running", steps: ["analyze"], stepIndex: 0, streamFile: codexStream() });
+    const got = withHome(() => phaseMessagesFor(queueOf([j]), ["r"], "analyze"));
+
+    expect(got?.logs.map((part) => part.by)).toEqual(["ai", "subagent", "ai"]);
   });
 });

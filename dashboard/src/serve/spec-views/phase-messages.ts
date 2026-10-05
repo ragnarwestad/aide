@@ -10,6 +10,7 @@ import type { QueueStore } from "../../queue/queue.ts";
 import { stepLog } from "../../queue/parse-stream";
 import type { PhaseMessages } from "../../render";
 import { tailFileAt } from "../serve-helpers";
+import { readCodexSession } from "./codex-sessions.ts";
 import { readRunLog } from "./job-detail.ts";
 import { stepKey, workRoundJobs } from "./work-round.ts";
 
@@ -34,7 +35,7 @@ export function phaseMessagesFor(
     // landing, so the merge step and its test run show here as they go.
     const transcript = file ? tailFileAt(file, Infinity) : { text: "", start: 0 };
     const runLog = file ? readRunLog(file) : undefined;
-    const { logs } = stepLog(transcript, runLog, { tool: result?.tool, final: !running });
+    const { logs } = stepLog(transcript, runLog, { tool: result?.tool, final: !running, codexSession: readCodexSession });
     return {
       logs,
       step: stepKey(workRoundJobs(queue, job.project, job.specFolder), job, step),
