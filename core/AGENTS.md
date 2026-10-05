@@ -510,8 +510,11 @@ commit or push anything in the specs repo on your own initiative.
 2. **Hand over three parts:** a title line, the description (what goes
    in `1-description.md`, with its `- **AC-n:**` lines), and a
    `Depends on:` line when there is one.
-3. **Plain text between `---` lines**, as in the section below — no
-   blockquotes.
+3. **Each part in a fenced code block** (```` ```markdown ````), the
+   title in its own block — never as rendered text between `---` lines.
+   The terminal renders markdown, and what the user copies is what it
+   shows: `## Out of scope` arrives as a plain line, and backticks and
+   `**` vanish. A code block is shown and copied exactly as written.
 4. **No number.** The number is assigned when the spec is created, not
    by whoever writes the text; don't call it "spec 02".
 
@@ -531,6 +534,7 @@ proposed in the conversation.
 
 - Distinguish between text that is *your reply* (may use blockquotes/headers freely) and text that is *a suggestion for external use* (plain text, do not prefix each line with `>`).
 - To visually delimit the suggested text, instead use `---` above and below, or a short lead-in like "Suggestion:" on the preceding line.
+- Text whose markdown must arrive intact — a spec, a file's content — goes in a fenced code block instead, as [Handing over a spec](#handing-over-a-spec) says: rendered text loses its headings, backticks and bold when copied.
 - Markdown for italics/bold/lists inside the suggestion is fine — it is only the blockquote prefix that is the problem.
 
 **Example:**
