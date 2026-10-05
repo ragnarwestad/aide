@@ -93,9 +93,9 @@ First write `--- Step 2 of 7: Find the next available number — started`, and w
   and a number must never be reused
 - Next number = highest + 1 (or 01 if none exist), leading zero: `01`, `02`, ...
 - Helper: `aide_next_spec_number <specs-root>` in `_aide-spec-lib.sh`
-  does exactly this — use it, and never sort folder names as text:
-  `ls | sort` puts `99-…` above `431-…`, and `aide-create-spec` refuses
-  a number that is not above every number already there
+  does exactly this, comparing the numbers as numbers — use it;
+  `aide-create-spec` refuses a number that is not above every number
+  already there
 
 ### Step 3 of 7: Generate a slug from the title
 
@@ -105,13 +105,10 @@ First write `--- Step 3 of 7: Generate a slug from the title — started`, and w
 **Headless, with a literal folder name stated:** skip this step
 entirely, for the same reason as Step 2.
 
-- Lowercase, spaces → hyphens
-- Transliterate non-ASCII letters to their ASCII equivalents
-- Remove special characters and double hyphens
+- Helper: `aide_slug_from_title "<title>"` in `_aide-spec-lib.sh`:
+  lowercase, hyphens for spaces, non-ASCII letters transliterated,
+  special characters and double hyphens removed
 - Result: `NN-slug` (e.g. `65-clean-up-console-log`)
-- The deterministic no-AI create path uses `aide_slug_from_title` in
-  `_aide-spec-lib.sh` for exactly this rule — read it there if this
-  description and that function ever need to be checked against each other.
 
 ### Step 4 of 7: Create the directory and 5 files
 
@@ -128,10 +125,6 @@ step assigns both later, under the specs repo's own lock, which is the
 one place two creates running at once cannot both miss.
 Everything else in this step — the description, `--depends-on`, the
 acceptance flag — works exactly the same either way.
-
-
-A bare interactive `/aide-create`, typed in a session with no such line
-in the prompt, runs Steps 2-4 exactly as below, unchanged.
 
 **The criteria the description already has are kept.** Every
 `AC-n:` line in the incoming description, bold or not (spec-structure
@@ -183,10 +176,7 @@ rewrite. It refuses a changed,
 dropped or added `## Out of scope` section as well. When it refuses, fix the line it names and call it again;
 never get past a refusal by dropping a line or the flag.
 
-Call the script — never the Write tool — so file creation stays on a
-Bash-only path (this is what lets a Write/Edit permission rule be
-scoped to the specs-repo path later, with no legitimate case left to
-break):
+Create the files with the script, through Bash:
 
 ```bash
 aide-create-spec \
@@ -207,24 +197,7 @@ AIDE_GIVEN
 ```
 
 Headless, with a literal folder name stated (Steps 2-3 skipped): the
-same call, with `--folder-name "<name>"` in place of `--number`/`--slug`:
-
-```bash
-aide-create-spec \
-  --specs-root "<specs-root>" \
-  --folder-name "<name>" \
-  --title "<title>" \
-  --description "$(cat <<'AIDE_DESC'
-<the description text, verbatim>
-AIDE_DESC
-)" \
-  --given-description "$(cat <<'AIDE_GIVEN'
-<the description exactly as the arguments gave it>
-AIDE_GIVEN
-)" \
-  --depends-on "<value>"   # omit this flag entirely when the prompt states none
-  --acceptance-not-required   # the default — see "Acceptance" below
-```
+same call, with `--folder-name "<name>"` in place of `--number`/`--slug`.
 
 **Depends on:** if the prompt states a Depends-on value (the "New spec"
 form on the dashboard passes one as
@@ -251,11 +224,8 @@ ways.
 
 Neither stated (a bare `/aide-create` typed in a session): pass the flag
 by default, and omit it when the user creating the spec has said they
-want acceptance ticking required.
-
-The default is what the New-spec form's own unticked box used to be
-overruled by, so a spec whose author asked for the ticking was created
-without it. An instruction always outranks the default.
+want acceptance ticking required. An instruction always outranks the
+default.
 
 **A collision you can see is a question to ask, not a dependency to
 guess.** Before creating the spec, check whether an open spec already
@@ -275,12 +245,8 @@ do not assume the 5 filenames.
 Markdown validation uses `markdownlint-cli2` only when it is installed locally.
 Rely on the automatic hook where present; otherwise check for the executable
 with `command -v markdownlint-cli2` before running it. If it is unavailable,
-report that validation was skipped and continue. Validation must not invoke `npx`
-or another package-download fallback. This validation stays a Bash invocation
-in the skill, not moved into the script — it already carries none of the
-permission-layer ambiguity this change removes, and folding it in would add an
-external-tool dependency to a script whose only other dependencies are `bash`
-and `jq`, for no reduction in that ambiguity.
+report that validation was skipped and continue, without `npx` or any
+other package download.
 
 ### Step 5 of 7: Stage in git
 
@@ -297,13 +263,9 @@ aide-create-spec --stamp-outcome --specs-root "<specs-root>" \
                                # suffix below
 ```
 
-so `1-description.md`'s own Tracking info carries this phase's `Model`
-and `Time spent` the same way the other three phases' files already do
-— before the file is staged, so the stamp lands in the same
-commit as the rest of the spec. A headless run skips this: `aide-run-spec`
-already performs the equivalent stamp itself once the whole run ends,
-and running it here too would just be overwritten by that later,
-authoritative write.
+so `1-description.md`'s Tracking info carries this phase's `Model` and
+`Time spent` in the same commit as the rest of the spec. A headless run
+skips this: `aide-run-spec` writes the stamp itself once the run ends.
 
 `git add <specs-root>/<specFolder>/*.md`, using the `specFolder` the
 script's JSON reported — the specs root is a working directory the
@@ -319,10 +281,8 @@ the same way:
 Run /aide-create for <spec-folder> (model: <tool> <model>)
 ```
 
-Do not ask first: the user's request to create the spec was the
-approval, and a follow-up question here is how a finished folder sits
-staged-but-uncommitted for hours while everyone believes it was queued.
-Commit only once the 5 files have actually been
+The user's request to create the spec was the approval; commit without
+asking again. Commit only once the 5 files have actually been
 created — nothing to stage means nothing to commit. If origin has moved,
 `git pull --rebase` and push again; a push that still fails is reported
 out loud, never left silent.
@@ -333,10 +293,7 @@ same script writes this phase's `Model`/`Result`/`Time spent`/`Cost`
 block into `1-description.md`'s own Tracking info — leave those lines
 alone too, **for a headless run**; an interactive run wrote its own
 `Model`/`Time spent` a few lines above, via `--stamp-outcome`, and those
-stay exactly as that call left them. `create` is the one stage nobody picks a model for in advance: a spec
-is already being written by the time it reaches a dashboard row, so its
-model is only ever recorded after the fact, from whatever commit
-created the folder.
+stay exactly as that call left them.
 
 Add the `(model: ...)` part only when you can name your own model with
 certainty. A Claude Code session is told which model it is running in
@@ -388,11 +345,6 @@ run Aide merges what this session committed on the spec's branch into
 the default branch once the session has ended, and the create is finished
 when that merge is, not before. Working interactively there is no such
 step: the steps above say what reaches the default branch.
-
-IMPORTANT:
-- Follow the workflows rules - Phase 1: Create document structure
-- Follow the spec structure for the file layout
-- Code blocks ALWAYS end with just ` ``` ` — NEVER ` ```text ` as the closing fence
 
 ---
 
