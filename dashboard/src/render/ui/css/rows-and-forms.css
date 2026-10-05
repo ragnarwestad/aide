@@ -2,8 +2,8 @@
 /* "rowrun", "actionform" and "refused" are classes specs-client
    selects on. What of them is laid out is laid out here and coloured
    nowhere: a rename breaks the browser code with no type error to catch
-   it. The New spec form's own hook, "newspecform", has no rule — its
-   layout is "pageform"'s. */
+   it. The New spec form shares "pageform"'s layout, with scoped rules
+   for its Project control and phase table. */
 
 .row { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
 /* The spec banner's test-server line: a sentence and the button that
@@ -61,6 +61,8 @@ td form { margin: 0; display: inline-block; }
 .pageform { display: flex; gap: var(--sp-3); align-items: flex-end;
   flex-wrap: wrap; margin-top: var(--sp-3); }
 .pageform .refused { flex-basis: 100%; }
+.newspecform #new-spec-project { width: 350px; box-sizing: border-box; }
+.newspecform table.list tr.subrow > td.phasecell { padding-left: var(--sp-3); }
 /* The /new form's rows, read top to bottom on each of its two tabs —
    Spec: Project, Title, Description, Depends on; Options: the four
    settings, then the phase table. Every row but Project and Title takes
