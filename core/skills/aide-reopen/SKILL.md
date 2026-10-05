@@ -30,9 +30,12 @@ starts, write one line `--- Step N of X: <title> — started`, and when
 it ends, one line `--- Step N of X: <title> — done`. A step that ends
 the run early says `— stopped: <why>` in place of `— done`, and one that does not apply to this run `— skipped: <why>`.
 
-### Step 1 of 5: Find the spec
+Step 6, the merge into the default branch, is Aide's, after a reopen on
+the board: Aide writes its marks there.
 
-First write `--- Step 1 of 5: Find the spec — started`, and when this step ends, `--- Step 1 of 5: Find the spec — done`.
+### Step 1 of 6: Find the spec
+
+First write `--- Step 1 of 6: Find the spec — started`, and when this step ends, `--- Step 1 of 6: Find the spec — done`.
 
 
 Resolve `$ARGUMENTS` to a folder, looking under `archive/` — that is
@@ -48,9 +51,9 @@ Then ask: "Reset the analysis, the plan and the status as well?
 mode. A headless run never reaches this skill at all: the runner makes
 the same `aide-reopen-spec` call itself.
 
-### Step 2 of 5: Remove the branch the earlier round left behind
+### Step 2 of 6: Remove the branch the earlier round left behind
 
-First write `--- Step 2 of 5: Remove the branch the earlier round left behind — started`, and when this step ends, `--- Step 2 of 5: Remove the branch the earlier round left behind — done`.
+First write `--- Step 2 of 6: Remove the branch the earlier round left behind — started`, and when this step ends, `--- Step 2 of 6: Remove the branch the earlier round left behind — done`.
 
 
 `aide/<NN>-slug` can be in four places, and the one that is missed is
@@ -68,9 +71,9 @@ alike. Every deletion tolerates "already gone" — the landing that
 archived the spec usually removed the branch already — and an origin
 that cannot be reached is no reason to stop.
 
-### Step 3 of 5: Move the folder back
+### Step 3 of 6: Move the folder back
 
-First write `--- Step 3 of 5: Move the folder back — started`, and when this step ends, `--- Step 3 of 5: Move the folder back — done`.
+First write `--- Step 3 of 6: Move the folder back — started`, and when this step ends, `--- Step 3 of 6: Move the folder back — done`.
 
 
 Run, from the specs repository as it stands before anything is moved:
@@ -94,9 +97,9 @@ modes.
 Either mark is what stops the earlier round's steps counting. On a
 refusal, report the script's `error` and stop.
 
-### Step 4 of 5: Commit
+### Step 4 of 6: Commit
 
-First write `--- Step 4 of 5: Commit — started`, and when this step ends, `--- Step 4 of 5: Commit — done`.
+First write `--- Step 4 of 6: Commit — started`, and when this step ends, `--- Step 4 of 6: Commit — done`.
 
 
 ASK whether to commit, and suggest this message:
@@ -105,9 +108,9 @@ ASK whether to commit, and suggest this message:
 Run /aide-reopen for <spec-folder>
 ```
 
-### Step 5 of 5: Confirm
+### Step 5 of 6: Confirm
 
-First write `--- Step 5 of 5: Confirm — started`, and when this step ends, `--- Step 5 of 5: Confirm — done`.
+First write `--- Step 5 of 6: Confirm — started`, and when this step ends, `--- Step 5 of 6: Confirm — done`.
 
 ```text
 Reopened: 17-clean-up-console-log
@@ -119,6 +122,14 @@ Reopened: 17-clean-up-console-log
 
 Next: /aide-analyze 17
 ```
+
+### Step 6 of 6: Merge into main
+
+Aide writes `--- Step 6 of 6: Merge into main — started` itself, after a reopen on the board, and ends it `— done` or `— stopped: <why>`.
+
+Not this session's step, and it writes no mark for it. Typed at a
+keyboard there is no such step: the commit in Step 4 is what reaches
+the specs repository.
 
 IMPORTANT:
 - Never delete a commit, and never rewrite the default branch's history.
