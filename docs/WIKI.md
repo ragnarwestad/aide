@@ -23,8 +23,10 @@ changes seldom; line numbers and code detail stay in the code.
 
 ## Where the idea comes from
 
-It follows the pattern of Andrej Karpathy's [LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f):
-a knowledge base an AI writes once and keeps current, with an index and a schema, instead of finding the same things
+It follows the pattern Andrej Karpathy described in his post
+[LLM Knowledge Bases](https://x.com/karpathy/status/2039805659525644595) on X in April 2026, and wrote up afterwards
+as the [LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f): a knowledge base an AI writes once
+and keeps current, with an index and a schema, instead of finding the same things
 again on every question. Aide applies it to a code base, and adds what the pattern leaves open: each page names the
 files and the commit it was written from, so a reader can tell whether the code has moved on.
 
