@@ -22,6 +22,7 @@
   - [Phase 3: Verify that the tests pass (GREEN)](#phase-3-verify-that-the-tests-pass-green)
   - [Phase 4: Run the full test suite (VERIFY)](#phase-4-run-the-full-test-suite-verify)
 - [Testing](#testing)
+  - [Where the tests sit](#where-the-tests-sit)
   - [Unit tests](#unit-tests)
   - [Integration tests](#integration-tests)
   - [E2E tests](#e2e-tests)
@@ -211,6 +212,10 @@ test('should [description]', () => {
 ---
 
 ## Testing
+
+### Where the tests sit
+
+- **[Public interface]** in `[test file]` (existing|new) — [AC-ids, or the rule in words]
 
 ### Unit tests
 

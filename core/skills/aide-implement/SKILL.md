@@ -86,13 +86,15 @@ First write `--- Step 2 of 4: RED — Write failing tests — started`, and when
 Skip this step entirely if item 5 of Step 1 found it already done;
 resume it at the first unticked task if it found it in progress.
 
-1. Read "Task 0" (the tests the plan asks for) and the acceptance
-   criteria from 3-solution.md
+1. Read "Task 0" (the tests the plan asks for), the acceptance
+   criteria and the `### Where the tests sit` subsection from
+   3-solution.md
 2. Run `aide-emit-run --phase red --spec <ID>` (see [Reporting RED, GREEN and VERIFY](#reporting-red-green-and-verify))
-3. Create test files — at least one failing test per acceptance criterion.
-   A criterion an existing test already proves gets no second test: add
-   the AC-id to that test's name instead (step 4). What a test is for,
-   and what it is not, is the testing rule's "What to test"
+3. Write the tests at the places `### Where the tests sit` names in
+   `3-solution.md` — at least one failing test per acceptance criterion
+   it gives a place. A criterion an existing test already proves gets no
+   second test: add the AC-id to that test's name instead (step 4). What
+   a test is for, and what it is not, is the testing rule's "What to test"
 4. **Put the AC-id in the test's name.** A test written for a criterion
    that opens with an AC-id carries that id in its own name, as the
    name's last words: `test("the total keeps counting (AC-2)", ...)`.
@@ -102,14 +104,22 @@ resume it at the first unticked task if it found it in progress.
 5. **Write a browser test for a *(browser)* criterion,** where the
    project keeps its browser tests; a project with none names that
    criterion in `3-solution.md`'s Manual testing note instead
-6. **Check the list before running anything:** every AC-id in
-   `3-solution.md`'s Acceptance criteria appears in at least one test
-   name from steps 3-5. An id with none gets its test now
+6. **Check the list before running anything:** every AC-id the places
+   list gives a place appears in at least one test name from steps 3-5.
+   An id with none gets its test now, at its place. An id the plan
+   leaves untested, with its reason under Manual testing, gets none
 7. Run the tests — verify that they FAIL
 8. Tick this step's task rows in `4-status.md` — ✅ once a row's test is
    written and confirmed to fail, not merely planned. Write the result
    with `aide-write-spec --file 4-status.md` (never Write/Edit)
 9. Report the RED result briefly and continue to GREEN
+
+A test steps 3-6 need in a file the places list does not name is written
+all the same, and the Notes cell of the Phase 1 RED row of the task that
+wrote it gets one sentence per such test, in the form
+`Outside the plan's places: <test file> — <why>`. A plan without the
+section leaves the places to this step, and every AC-id gets a test, as
+before.
 
 ### Step 3 of 4: GREEN — Implement until tests pass
 

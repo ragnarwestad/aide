@@ -377,7 +377,7 @@ factors, estimate.)*
 
 ## Testing
 
-*(Filled in by /aide-analyze: unit, integration, e2e, and a manual testing note.)*
+*(Filled in by /aide-analyze: where the tests sit, unit, integration, e2e, and a manual testing note.)*
 AIDE_EOF
 
   cat > "$dest/4-status.md" <<AIDE_EOF

@@ -30,6 +30,29 @@ effort: high
 
 ---
 
+## One test at a time
+
+Write one failing test, then the least code that makes it pass, then the
+next test. RED and GREEN below are one turn of that loop; the quality
+gate and REFACTOR come after the last test. Inside a spec's
+/aide-implement run, the plan's Task 0 and implement's own steps set the
+order of tests and code.
+
+---
+
+## Two kinds of test that are worth nothing
+
+1. **The test that works out its expected value the way the code does.**
+   It cannot disagree with the code, so it passes whether the code is
+   right or not. Write the expected value as a literal, worked out from
+   the requirement. The testing rule's revert check ("Prove the test is
+   worth having") can catch one when the fix changes the formula.
+2. **All the tests first, all the code after.** Tests written ahead of
+   any code describe a design nobody has tried yet, and fail or pass
+   together, so no single one says which behaviour is missing.
+
+---
+
 ## The TDD cycle
 
 The commands below are from a pnpm/Vitest project — substitute the project's
@@ -37,15 +60,14 @@ own commands (see "Project commands" in the tools-and-scripts rules).
 
 ### 1. RED PHASE
 
-**Write tests first (based on requirements)**
+**Write the next test first (based on requirements)**
 
 ```bash
 # Step 1: Read existing tests to understand patterns and fixtures
-# Step 2: Write tests that verify the requirements
-# Step 3: Run the tests
+# Step 2: Write one test that verifies a requirement
+# Step 3: Run the test
 pnpm test -- --run <test-file>
-# Step 4: Verify that tests FAIL on assertions (not on import errors)
-# Step 5: Stop and ask for confirmation
+# Step 4: Verify that it FAILS on an assertion (not on an import error)
 ```
 
 **Rules for RED:**
@@ -66,7 +88,7 @@ pnpm test -- --run <test-file>
 # Step 3: Run the tests after each step
 pnpm test -- --run <test-file>
 # Step 4: Verify that all tests PASS
-# Step 5: Stop and ask for confirmation
+# Then write the next test; after the last one, stop and ask for confirmation
 ```
 
 **Rules for GREEN:**

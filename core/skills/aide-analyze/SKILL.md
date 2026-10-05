@@ -302,8 +302,19 @@ prints it (the manifest's `AIDE_TEST_CMD`, the tools-and-scripts skill,
 "Project commands"). Write it into the plan verbatim — never leave the
 `<project test command>` placeholder standing.
 
+**Where the tests sit:** a `### Where the tests sit` subsection under
+Testing, one line per place: the public interface where the behaviour is
+observed, its test file, whether that file exists, and the rules tested
+there (the AC-ids). As few places as cover the criteria, and a new place
+only where no existing test file observes the behaviour — the testing
+rule's "One place per rule", decided before any test is written. A
+criterion no test can reach gets no place: the Manual testing note says
+why.
+
+    - **<public interface>** in `<test file>` (existing|new) — <AC-ids, or the rule in words>
+
 Structure the plan with TDD:
-- Task 0: Write tests (RED phase) — at least one failing test per acceptance criterion
+- Task 0: Write tests (RED phase) — at least one failing test per acceptance criterion with a place, at the places Where the tests sit names
 - Task 1-N: Implementation (GREEN phase)
 - Testing strategy (VERIFY phase)
 

@@ -112,6 +112,22 @@ def test_the_rule_the_reader_the_create_skill_and_the_plan_review_share_the_out_
     assert found.stdout.splitlines() == [heading, "", "- Not the queue."], found.stderr
 
 
+@pytest.mark.validation
+def test_the_rule_the_plan_step_the_plan_review_and_implement_share_the_test_places_heading_AC_5_AC_6():
+    """Implement's RED step finds the plan's places by this heading, so the
+    rule's skeleton, the plan step, the plan review and implement must all
+    give it."""
+    heading = "### Where the tests sit"
+    rule = (REPO_ROOT / "core" / "rules" / "spec-structure.md").read_text(encoding="utf-8")
+    assert f"\n{heading}\n" in rule, "the rule's skeleton does not give the heading"
+    for path in (
+        CORE_SKILLS_DIR / "aide-analyze" / "SKILL.md",
+        CORE_SKILLS_DIR / "aide-analyze" / "references" / "plan-review.md",
+        CORE_SKILLS_DIR / "aide-implement" / "SKILL.md",
+    ):
+        assert heading in path.read_text(encoding="utf-8"), f"{path.relative_to(REPO_ROOT)} does not name {heading!r}"
+
+
 STEP_TITLE = re.compile(r"^#+ Step \d+ of \d+: (.+)$", re.M)
 # A table row whose last three cells, stripped of padding, are the three grades.
 GRADE_ROW = re.compile(r"^\s*\|[^|\n]*\|\s*LOW\s*\|\s*MEDIUM\s*\|\s*HIGH\s*\|\s*$", re.M)

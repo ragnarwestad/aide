@@ -6,9 +6,9 @@ tools-and-scripts rules).
 
 ## Phase 1: RED — Write failing tests
 
-1. Read "Task 0" (the tests the plan asks for) from 3-solution.md
-2. Identify all tests to be written
-3. Create the test files (follow the testing rules and the frontend coding standard)
+1. Read "Task 0" (the tests the plan asks for) and the `### Where the tests sit` subsection from 3-solution.md
+2. Identify all tests to be written — one per acceptance criterion the places list gives a place
+3. Create the test files at those places (follow the testing rules and the frontend coding standard); a test needed in a file the list does not name is recorded in the Notes cell of its task's Phase 1 RED row
 4. Run: `pnpm test -- --run <test file>`
 5. Verify that the tests FAIL (expected!)
 6. Report the result and continue to GREEN

@@ -56,6 +56,7 @@ effort: high
 **Content:**
 - Scope (files to change, complexity, estimate)
 - TDD-based implementation plan
+- Where the tests sit (public interface, test file, AC-ids)
 - Task 0: Write tests (RED phase)
 - Tasks 1-N: Implementation (GREEN phase)
 - Testing strategy (VERIFY phase)

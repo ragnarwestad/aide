@@ -39,14 +39,31 @@ finished plan looking for holes. Useful moves:
 3. **Lay out 2-3 approaches** with real trade-offs — including "do
    nothing" when it is a serious contender. Name what each choice locks in.
 4. **Surface the unknowns**: what must be true for this to work? What
-   would we need to find out first? What breaks it?
+   would we need to find out first? What breaks it? Ask the ones only the
+   user can decide in rounds (below)
 5. **Shrink the scope.** Ask what the smallest version worth doing is —
    most ideas leave exploration smaller than they arrived.
 
+## Asking in rounds
+
+Ask in rounds. A round holds every question that can be decided with the
+answers given so far; a question whose answer depends on one still open
+waits for a later round. Number the questions on from the last round and
+letter each one's options, the way the communication rule's "Answering
+'do we have anything outstanding?'" does, so a reply can be "3c" — and
+give each question the answer you recommend, and why.
+
+Find the facts yourself, in the code and the environment (config,
+installed tools, versions), and state each with file:line or the command
+that showed it. Ask the user only for decisions.
+
 ## Ending the exploration
 
-Summarize in a few lines: the sharpened problem, the leading approach and
-why, the open questions. Then offer the handoff:
+When no question is left open, summarize the shared understanding: the
+sharpened problem, the approach chosen and the answers that shaped it.
+Ask the user to confirm it. Offer the handoff only once they have. If the
+user asks to wrap up while a question is open or the summary is not
+confirmed, offer no handoff and name what is still open. The handoff:
 
 ```text
 Ready to make this a task?

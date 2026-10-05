@@ -373,6 +373,9 @@ The keywords are written in capitals, as SHALL is.
 
 ## Testing
 
+### Where the tests sit
+- **[Public interface]** in `[test file]` (existing|new) — [AC-ids, or the rule in words]
+
 ### Unit tests
 [Testing strategy]
 
@@ -430,6 +433,12 @@ The keywords are written in capitals, as SHALL is.
 - Acceptance criteria as given/when/then scenarios; the RED phase writes
   at least one failing test per criterion
 - TDD approach with RED-GREEN-VERIFY phases
+- Where the tests sit: one line per place — the public interface where
+  the behaviour is observed, its test file, whether that file exists,
+  and the rules tested there. As few places as cover the criteria, and a
+  new one only where no existing test file observes the behaviour.
+  `/aide-implement` writes its tests there; a criterion no test can reach
+  gets no place, and the Manual testing note says why
 - Manual testing is a NOTE, not a checklist: it names what no test
   covers and why. Nothing under it is a task, and nothing under it
   blocks archiving — 4-status has no row for it

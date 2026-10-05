@@ -43,6 +43,14 @@ questions, with file:line references into the spec:
    reason that names something the project already has; a `None —`
    line on a plan that does build a part.
 
+   Check the `### Where the tests sit` subsection under Testing the
+   same way. Each of these is a must-fix, given with the file:line that
+   shows it: no such subsection; a place that is not a public interface
+   where the behaviour is observed; a new place where an existing test
+   file already observes that behaviour; a criterion with no place that
+   the plan does not name, with its reason, under Manual testing; one
+   rule given to two places.
+
    **Cannot be built**, at the level the analyst hands it: none at
    `off`, at `warn` and `stop` this one. For each AC-n criterion in
    `1-description.md`, can the code as it stands, with the change built
