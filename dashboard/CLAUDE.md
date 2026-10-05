@@ -54,7 +54,8 @@ get them, and reads them by hand.
   its tests decide anything** (`run-spec/turn/review.sh`, sourced between
   `run-spec/record/status-line.sh` and `run-spec/turn/step-tests.sh`): a second,
   fresh AI session — same model, effort and tool, never resumed — reads
-  the spec's description and a diff of what changed, and looks for
+  the spec's description and, with `git diff` itself, everything the
+  branch changed since it left the default branch, and looks for
   defects against the description alone, never style, naming or
   structure. A description with an `## Out of scope` section makes each
   change under an item in it a defect too. Defects found go back to the ORIGINAL implement session as

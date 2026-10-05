@@ -1,6 +1,6 @@
 """An `implement` step whose own turn ends `completed` is followed by
 ONE review turn — a fresh session, same model/effort/tool — that reads
-the spec's description and a diff of what changed, and looks for
+the spec's description and everything the branch changed, and looks for
 defects against the description (never style, naming or structure).
 Defects found go back to the ORIGINAL implement session as one
 follow-up (fix) turn; the runner's own test run (run-spec/turn/step-tests.sh)
@@ -292,3 +292,22 @@ def test_a_description_without_the_section_gets_the_review_as_before_AC_6(
     assert rc == 0, out
     assert OUT_OF_SCOPE_MARKER not in (tmp_path / "review-prompt.txt").read_text()
     assert len(fake_claude.calls.read_text().splitlines()) == 2
+
+
+def test_the_review_is_told_where_the_branch_left_main_and_finds_the_changes_itself(
+    runner, workspace, fake_claude, tmp_path
+):
+    """The review compares the whole branch with where it left the default
+    branch — an earlier attempt's commits included — by running `git diff`
+    itself, so nothing is pasted into the prompt and nothing is cut off.
+    The implement turn here commits its own work, which `git diff HEAD`
+    would not have shown at all."""
+    with_status(workspace, ["create", "analyze"])
+    fork = git(workspace["project"], "rev-parse", "HEAD").strip()
+    claude = _out_of_scope_reviewer(fake_claude, tmp_path)
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    prompt = (tmp_path / "review-prompt.txt").read_text()
+    assert f"git diff {fork}" in prompt, prompt
+    assert "real work" not in prompt, prompt
+    assert str(workspace["folder"]) + "/1-description.md" in prompt, prompt

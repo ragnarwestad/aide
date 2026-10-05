@@ -12,7 +12,8 @@
 # A green test run proves only what the tests cover; a defect no test
 # reaches — how a gesture behaves in the browser, say — passes implement
 # unnoticed. So a fresh AI session, same model/effort/tool as the step,
-# reads the spec's own description and a diff of what changed, and looks
+# reads the spec's own description and, with `git diff` itself, everything
+# the branch changed since it left the default branch, and looks
 # for defects against the description: behaviour that is wrong, broken
 # or missing. It never comments on style, naming or structure — a
 # constraint the runner cannot check mechanically, so it is stated in
@@ -101,9 +102,14 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ]; th
     esac
   done
 
-  review_diff="$(git -C "$project_wt" diff HEAD 2>/dev/null | head -c 20000)"
-  review_untracked="$(git -C "$project_wt" status --porcelain --untracked-files=all 2>/dev/null | awk '$1=="??"{print $2}')"
-  review_description="$(cat "$specs_root_wt/$spec_label/1-description.md" 2>/dev/null)"
+  # The review finds what changed itself, against where the branch left
+  # the default branch: an earlier attempt's commits count as much as
+  # this turn's, and nothing pasted into the prompt has to be cut short.
+  review_base="$(default_branch "$project_root")"
+  git -C "$project_wt" rev-parse --verify --quiet "origin/$review_base" >/dev/null && review_base="origin/$review_base"
+  review_fork="$(git -C "$project_wt" merge-base "$review_base" HEAD 2>/dev/null)" || review_fork="HEAD"
+  review_description_path="$specs_root_wt/$spec_label/1-description.md"
+  review_description="$(cat "$review_description_path" 2>/dev/null)"
 
   # A description's "## Out of scope" section makes each change under one
   # of its items a defect too, at every acceptance criteria checks level;
@@ -116,12 +122,11 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ]; th
 
   {
     printf '%s\n' \
-      "Read this spec's own description and what this step changed, and look for defects: behaviour that is wrong, broken or missing against the description. Say nothing about style, naming or structure." \
-      "" "Spec description:" "$review_description"
+      "Read this spec's own description and everything this spec's branch changed, and look for defects: behaviour that is wrong, broken or missing against the description. Say nothing about style, naming or structure." \
+      "" "The description: $review_description_path" \
+      "" "What changed: run \`git diff $review_fork\` in this directory, for every change since the branch left $review_base, committed or not, and \`git status --porcelain\` for new files not tracked yet. Read a whole file wherever the diff alone does not show enough."
     [ -n "$review_scope" ] && printf '%s\n' "" "$review_scope"
     printf '%s\n' \
-      "" "What changed (git diff):" "$review_diff" \
-      "" "Untracked files this step added: ${review_untracked:-none}" \
       "" "Do not edit, create or delete any file — you are reading and reporting only." \
       "" "End your reply with exactly one of these, as your very last lines, plain text, no other formatting:" \
       "review: no defects found" \

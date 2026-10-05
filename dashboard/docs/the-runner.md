@@ -216,8 +216,9 @@ evidence that the phase happened:
   branch — the third catches a re-pressed implement that finds an earlier run's code already on the branch and
   writes nothing itself. Otherwise the step ends `no-progress` and
   the line is not extended. Once past that check, a second, fresh AI session — same model, effort and tool as the
-  step, never resumed — reads the spec's own description and a diff of what the step changed, and looks for
-  defects against the description; it never comments on style, naming or structure (`run-spec/turn/review.sh`),
+  step, never resumed — reads the spec's own description and, with `git diff` itself, everything the branch changed
+  since it left the default branch, and looks for defects against the description; it never comments on style,
+  naming or structure (`run-spec/turn/review.sh`),
   except that a description with an `## Out of scope` section makes each change under an item in it a defect too. One or
   more found go back to the ORIGINAL implement session as one follow-up turn that fixes them, and that turn's own
   failure stands as the step's outcome; the review's own turn is best-effort, and any outcome other than a clean
