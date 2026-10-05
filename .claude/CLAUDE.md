@@ -96,6 +96,7 @@ the dashboard's docs pages to 550; they are written to be searched. Where to loo
 | Installation layout, what goes where, the gotchas         | `.claude/rules/development.md`                | Changing the code |
 | Ideas being considered for Aide, and where they stand     | `docs/ROADMAP.md`                             | Both              |
 | How Aide uses agents, subagents and loops in each step    | `docs/AGENTS_AND_LOOPS.md`                    | Both              |
+| A project's wiki: what it is, who writes and reads it     | `docs/WIKI.md`                                | Both              |
 | How Aide compares with other spec-driven tools            | `docs/COMPARISON.md`                          | Both              |
 | Sources on writing specs for AI agents, to be analysed    | `docs/SPEC_WRITING_SOURCES.md`                | Changing the code |
 | Every key in `.aide/config` and `.aide/project.yaml`      | `docs/CONFIGURATION.md`                       | Both              |
