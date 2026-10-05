@@ -159,8 +159,9 @@ Answered by the files under `src/serve/routes/spec-edit/`.
 
 Answered by `src/serve/routes/queue-admin.ts`, except `settings/concurrency`, which
 `src/serve/routes/settings-concurrency.ts` answers, the two `settings/models/<add|remove>` rows, which
-`src/serve/routes/settings-models.ts` answers, and the four `deploy/<step>` rows, which
-`src/serve/routes/deploy-steps.ts` answers. The page script posts those four one after the other.
+`src/serve/routes/settings-models.ts` answers, and the four `deploy/<step>` rows and the `drift` row, which
+`src/serve/routes/deploy-steps.ts` answers. The page script posts the four steps one after the other, and `drift` once
+when the Deploy tab is opened.
 
 | Route                                                 | Kind   | Takes                                                         | Answers                                                                                                                            | Made for |
 |-------------------------------------------------------|--------|---------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------|----------|
@@ -175,6 +176,7 @@ Answered by `src/serve/routes/queue-admin.ts`, except `settings/concurrency`, wh
 | `POST /api/queue/projects/<project>/deploy/install`   | action | nothing                                                       | `{ ok }`; 400 `{ error, faulty? }` when the install fails; then a fresh count against origin                                       | form     |
 | `POST /api/queue/projects/<project>/deploy/restart`   | action | nothing                                                       | `{ ok, restart, startedAt?, faulty? }`: `restart` is `fired`, `held` or `none`                                                     | form     |
 | `POST /api/queue/projects/<project>/deploy/check`     | action | nothing                                                       | `{ ok }`; 400 `{ error, faulty }` when the service runs another commit than the checkout                                           | form     |
+| `POST /api/queue/projects/<project>/drift`            | action | nothing                                                       | `{ ok, behind }` after a fresh count; 400 `{ error }` when it cannot count; reads only                                             | form     |
 | `POST /api/queue/projects/<project>/wiki`             | action | nothing                                                       | `{ ok, job }`; 400 `{ error }` for a refusal                                                                                       | form     |
 | `POST /api/queue/projects/<project>/test-server`      | action | nothing                                                       | a 303 or an HTML page, never JSON                                                                                                  | form     |
 | `POST /api/queue/projects/<project>/test-server/stop` | action | nothing                                                       | `{ ok }`                                                                                                                           | form     |

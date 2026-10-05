@@ -282,8 +282,10 @@ export class BranchStatusChecker {
    *  `fresh` bypasses the cache AND replaces the entry, the same escape
    *  hatch `isMerged`'s own `fresh` gives (spec 258): the Deploy route
    *  needs to re-check the count right after it changes the checkout,
-   *  not wait out the TTL. */
-  async commitsBehindOrigin(projectDir: string, fresh = false): Promise<number | null> {
+   *  not wait out the TTL.
+   *
+   *  `reach` (the Deploy tab's own check): a fetch that fails, or any null, keeps the last answer. */
+  async commitsBehindOrigin(projectDir: string, fresh = false, reach = false): Promise<number | null> {
     const at = this.now();
     const hit = this.driftCache.get(projectDir);
     if (!fresh && hit && at - hit.at < this.ttlMs) return hit.behind;
@@ -294,9 +296,9 @@ export class BranchStatusChecker {
       if (base) {
         const current = await this.run(projectDir, ["rev-parse", "--abbrev-ref", "HEAD"]);
         if (current.code === 0 && current.stdout.trim() === base) {
-          // Best effort, as it is in `isMerged`: whatever the checkout
-          // already knows beats no answer at all.
-          await this.run(projectDir, ["fetch", "--quiet", "origin", base]);
+          // Best effort, as it is in `isMerged` — unless `reach` asks for origin's own answer.
+          const fetched = await this.run(projectDir, ["fetch", "--quiet", "origin", base]);
+          if (reach && fetched.code !== 0) return null;
           const count = await this.run(projectDir, [
             "rev-list", "--count", `HEAD..refs/remotes/origin/${base}`,
           ]);
@@ -310,6 +312,7 @@ export class BranchStatusChecker {
       behind = null;
     }
 
+    if (reach && behind === null) return null;
     this.driftCache.set(projectDir, { at, behind });
     return behind;
   }

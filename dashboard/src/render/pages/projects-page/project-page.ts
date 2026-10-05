@@ -38,6 +38,11 @@ export const AWAITING_DRIFT_REFRESH_SECONDS = 5;
  *  panel wrapper, empty content drawing nothing at all. */
 const panel = (inner: string): string => (inner ? `<div class="deploypanel">${inner}</div>` : "");
 
+/** The gated Deploy section, with the address the page script asks origin
+ *  through when the tab is open (`specs-client/deploy/origin-check.ts`). */
+const checked = (name: string, inner: string): string =>
+  `<div data-origin-check="${esc(`/api/queue/projects/${encodeURIComponent(name)}/drift`)}">${inner}</div>`;
+
 export const driftPrefix = (behind: number, checkedAt: number, now: number): string =>
   `${behind} ${behind === 1 ? "commit" : "commits"} behind origin, checked ` +
   `${relTimeLabel(new Date(checkedAt).toISOString(), now)}`;
@@ -105,7 +110,7 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
   // Only "asked, unanswerable" still bails out with no claim and no
   // button (REQ-5) — "never asked" now falls into the shared chain
   // below (spec 392, REQ-1, REQ-3).
-  if (!notYetChecked && behind === null) return heading + panel(errorLine + servingLine); // asked, unanswerable — no claim, never a guess
+  if (!notYetChecked && behind === null) return checked(name, heading + panel(errorLine + servingLine)); // asked, unanswerable — no claim, never a guess
 
   // From here the checkout's own drift is either known, or not yet
   // asked at all, so its answer and the Serving line's answer (when
@@ -181,7 +186,10 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
     },
     after: messageSlot("refused") + deployDialog(opts.lang ?? "en"),
   });
-  return heading + panel(errorLine + rowMessage(notYetChecked || behind! > 0 || stale ? "waiting" : "info", sentence, { html: sentenceHtml }) + button);
+  return checked(
+    name,
+    heading + panel(errorLine + rowMessage(notYetChecked || behind! > 0 || stale ? "waiting" : "info", sentence, { html: sentenceHtml }) + button),
+  );
 }
 
 /** AC-3/AC-4/AC-8: the section beside Deploy for prod — a button that

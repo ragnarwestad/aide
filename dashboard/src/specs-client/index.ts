@@ -37,7 +37,8 @@ import {
   submitTestServerStop,
   syncDependsOn,
 } from "./forms.ts";
-import { submitDeploy } from "./deploy";
+import { bindDeployForms } from "./deploy";
+import { startOriginCheck } from "./deploy/origin-check.ts";
 import { onApproachCancel, pickApproach } from "./approach-choice";
 import { formatElapsed } from "./elapsed.ts";
 import { bindLimits } from "./limits";
@@ -73,10 +74,9 @@ for (const el of document.querySelectorAll("form.addprojectform, form.removeform
   form.addEventListener("submit", ((event: Event) => submitProjectChange(form, event)) as EventListener);
 }
 
-for (const el of document.querySelectorAll("form.deployform")) {
-  const form = el as HTMLFormElement;
-  form.addEventListener("submit", ((event: Event) => submitDeploy(form, event)) as EventListener);
-}
+bindDeployForms(document);
+// The Deploy tab asks origin the moment it is open, and redraws itself from the answer.
+startOriginCheck(document);
 
 for (const el of document.querySelectorAll("form.projectsettingsform")) {
   const form = el as HTMLFormElement;
