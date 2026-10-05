@@ -27,6 +27,10 @@ interface Repo {
   branch: string;
   /** Where `--show-toplevel` says this process runs from. */
   top?: string;
+  /** How many commits origin is ahead; 0 when absent. */
+  behind?: number;
+  /** A fetch that fails: origin cannot be reached. */
+  fetchFails?: boolean;
 }
 
 /** A checkout on `branch`, level with origin, that is also the repo this
@@ -48,7 +52,8 @@ function deployGit(project: string, repo: Repo, fetchGate?: Promise<void>) {
       headCalls += 1;
       return { code: 0, stdout: `${headCalls === 1 ? repo.bootSha : repo.headSha}\n` };
     }
-    if (a.startsWith("rev-list --count")) return { code: 0, stdout: "0\n" };
+    if (a.startsWith("rev-list --count")) return { code: 0, stdout: `${repo.behind ?? 0}\n` };
+    if (repo.fetchFails && args[0] === "fetch") return { code: 128, stdout: "" };
     return inner.run(dir, args);
   };
   return { run, calls };
@@ -359,5 +364,83 @@ describe("POST .../deploy/check", () => {
     installs(paths.project);
     mkdirSync(join(paths.project, ".aide"), { recursive: true });
     expect((await post(base, "aide/deploy/check")).status).toBe(200);
+  });
+});
+
+describe("POST .../drift", () => {
+  const tab = "/projects/aide?tab=deploy";
+
+  test("asks origin afresh with the poll off and answers the count, which the next Deploy tab says (AC-1)", async () => {
+    const repo = { ...SAME, behind: 2 };
+    const { base, git, paths } = await deployServer(repo, noRestart);
+    installs(paths.project);
+    expect(await page(base, tab)).toContain("has not been checked yet");
+    const res = await post(base, "aide/drift");
+    expect(res.status).toBe(200);
+    expect(await answer(res)).toEqual({ ok: true, behind: 2 });
+    expect(git.calls.some((c) => c.args.join(" ") === "fetch --quiet origin master")).toBe(true);
+    expect(await page(base, tab)).toContain("2 commits behind origin");
+  });
+
+  test("asks git again inside the 30-second TTL rather than answering from the cache (AC-1)", async () => {
+    const repo = { ...SAME, behind: 1 };
+    const { base, git, paths } = await deployServer(repo, noRestart);
+    installs(paths.project);
+    expect((await answer(await post(base, "aide/drift"))).behind).toBe(1);
+    repo.behind = 3;
+    const fetches = git.calls.filter((c) => c.args[0] === "fetch").length;
+    expect((await answer(await post(base, "aide/drift"))).behind).toBe(3);
+    expect(git.calls.filter((c) => c.args[0] === "fetch").length).toBe(fetches + 1);
+  });
+
+  test("a project with no install command answers 400 and runs no git (AC-1)", async () => {
+    const { base, git } = await deployServer(SAME, noRestart);
+    const res = await post(base, "aide/drift");
+    expect(res.status).toBe(400);
+    expect(String((await answer(res)).error)).toContain("install command");
+    expect(git.calls.some((c) => c.args[0] === "fetch" || c.args[0] === "rev-list")).toBe(false);
+  });
+
+  test("an origin that cannot be reached answers 400, and the tab keeps the earlier answer with no failed deploy (AC-4)", async () => {
+    const repo: Repo = { ...SAME, behind: 1 };
+    const { base, paths } = await deployServer(repo, noRestart);
+    installs(paths.project);
+    expect((await post(base, "aide/drift")).status).toBe(200);
+    repo.fetchFails = true;
+    repo.behind = 5;
+    const res = await post(base, "aide/drift");
+    expect(res.status).toBe(400);
+    expect(String((await answer(res)).error)).toContain("origin could not be checked");
+    const html = await page(base, tab);
+    expect(html).toContain("1 commit behind origin");
+    expect(kept(html).length).toBe(0);
+    expect(await page(base, "/projects")).not.toMatch(FAULT);
+  });
+
+  test("a project this dashboard does not know answers 400 and keeps no failed deploy (AC-4)", async () => {
+    const { base, paths } = await deployServer(SAME, noRestart);
+    installs(paths.project);
+    const res = await post(base, "nosuch/drift");
+    expect(res.status).toBe(400);
+    expect(String((await answer(res)).error)).toContain('"nosuch" is not a project this dashboard knows');
+    expect(kept(await page(base, tab)).length).toBe(0);
+  });
+
+  test("only POST (AC-4)", async () => {
+    const { base } = await deployServer(SAME, noRestart);
+    expect((await fetch(`${base}/api/queue/projects/aide/drift`, { headers: AUTH })).status).toBe(405);
+  });
+
+  test("it only reads: no merge, pull, reset, checkout or clean, no install, no restart (AC-5)", async () => {
+    let fired = 0;
+    const { base, git, paths } = await deployServer({ ...SAME, behind: 4 }, { registered: async () => true, fire: () => void fired++ });
+    const marker = installs(paths.project);
+    expect((await post(base, "aide/drift")).status).toBe(200);
+    for (const forbidden of ["merge", "pull", "reset", "checkout", "clean"]) {
+      expect(git.calls.some((c) => c.args[0] === forbidden)).toBe(false);
+    }
+    expect(existsSync(marker)).toBe(false);
+    await Bun.sleep(100);
+    expect(fired).toBe(0);
   });
 });

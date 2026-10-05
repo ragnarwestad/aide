@@ -1,6 +1,7 @@
 // The Deploy button, one request per step (fetch, install, restart,
 // check), for the page script that draws each step's state as it
-// happens.
+// happens, and the read-only origin check the Deploy tab makes when it
+// is opened.
 
 import { resolve } from "node:path";
 import { fastForwardToOrigin, type RepoMergeResult } from "../../git/branch-merge.ts";
@@ -28,6 +29,7 @@ export interface DeployHooks {
   restartDashboard: () => void;
 }
 
+const DRIFT_ROUTE = /^\/api\/queue\/projects\/([^/]+)\/drift$/;
 const STEP_ROUTE = /^\/api\/queue\/projects\/([^/]+)\/deploy\/(fetch|install|restart|check)$/;
 
 /** The commit the dashboard's own checkout is on when the running
@@ -45,7 +47,28 @@ async function servedOlder(
   return checkout === sha ? "equal" : { served: sha.slice(0, 7), head: checkout.slice(0, 7) };
 }
 
+/** The Deploy tab's own check, made when the tab is opened: a fresh count
+ *  against origin and nothing else — no pull, no install, no restart, and
+ *  no failure kept for the tab. An answer origin did not give keeps the last one. */
+async function driftCheck(ctx: RoutesContext, name: string): Promise<Response> {
+  if (!ctx.opts.projectRoot || !ctx.allowed.has(name)) {
+    return json({ ok: false, error: `"${name}" is not a project this dashboard knows` }, 400);
+  }
+  const root = ctx.machineryProjectDir(name);
+  if (!resolveInstallCmd(root).value) {
+    return json({ ok: false, error: `${name} has no ${SETTING_LABELS.AIDE_INSTALL_CMD.toLowerCase()} configured` }, 400);
+  }
+  const behind = await ctx.branchStatus.commitsBehindOrigin(root, true, true);
+  if (behind === null) return json({ ok: false, error: `origin could not be checked for ${name}` }, 400);
+  return json({ ok: true, behind });
+}
+
 export async function handleDeploySteps(ctx: RoutesContext, req: Request, path: string): Promise<Response | null> {
+  const drift = path.match(DRIFT_ROUTE);
+  if (drift) {
+    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+    return driftCheck(ctx, decodeURIComponent(drift[1]!));
+  }
   const match = path.match(STEP_ROUTE);
   if (!match) return null;
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });

@@ -596,7 +596,8 @@ Two things this deliberately does NOT do:
 What arrives from elsewhere — a spec pushed from another machine, a branch deleted on the git host — shows within
 five minutes. That is how often the board fetches every project's checkouts and asks which `aide/*` branches origin
 still has (`SPEC_CACHE_POLL_MS`), one round trip to the git host each. What the board does itself refreshes at once.
-The Deploy tab's own check of how far a checkout is behind origin runs on its own 30-second schedule.
+The Deploy tab's own check of how far a checkout is behind origin runs on its own 30-second schedule, and once more
+whenever the Deploy tab is opened.
 
 The one server-side timer here is a `: ping\n\n` comment every 45 seconds. `Bun.serve` cuts a connection quiet for
 `idleTimeout` (120 seconds here, set for slow git work), and a page watching a quiet queue is exactly that. It is

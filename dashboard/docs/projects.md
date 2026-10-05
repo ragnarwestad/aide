@@ -214,7 +214,11 @@ there while the reader switches tabs. A page opened with none — a typed addres
 Two panels. The first says how far the checkout is behind origin, and for the one project this server runs from,
 which commit it is serving; under it a **Deploy** button, disabled when the checkout matches origin or when origin
 has not been checked yet. A project with no `AIDE_INSTALL_CMD` keeps the heading and a sentence saying there is
-nothing to act on. When drift has not been checked yet, the page asks for itself again after five seconds.
+nothing to act on. When drift has not been checked yet, the page asks for itself again after five seconds. Opening the
+tab of a project with an `AIDE_INSTALL_CMD` also asks origin at once, through `POST .../drift` (`http-routes.md`): a
+fresh count and nothing else, with no pull, install or restart and no failed deploy kept. When it answers, the page
+reads itself again and draws the section in place, unless Deploy was pressed or a dialog is open meanwhile. A check
+that fails leaves the tab as it was.
 
 Pressing **Deploy** opens the board's progress dialog: "Deploying…", its steps and one line under them, at one size
 while the steps run. Escape and a click outside do not close it while a step runs. It lists five steps, each waiting, running,
@@ -409,7 +413,8 @@ does everything else on the request path. The commits-behind-origin count on a p
 `.unref()`'d `setInterval`, the same shape as the runner's own tick and the SSE keep-alive ping, cleared in `stop()`
 beside them. The handler calls the synchronous `peekDrift()`, which reads the cache and never spawns git. A project
 the poll has never reached yet returns `checkedAt: null`, and the Deploy tab says the check has not been made yet —
-a labelled stale number, never a page that blocks on GitHub being reachable.
+a labelled stale number, never a page that blocks on GitHub being reachable. The Deploy tab asks origin itself when it is
+opened: its page script posts `POST .../drift` and draws the section again from the answer.
 
 ### A server started with no projects root
 

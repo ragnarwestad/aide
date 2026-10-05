@@ -231,3 +231,59 @@ describe("BranchStatusChecker.peekDrift", () => {
     expect(checker.peekDrift("/repos/atlasaurus")).toEqual({ behind: null, checkedAt: null });
   });
 });
+
+// The Deploy tab's own check, made when the tab is opened: it keeps the
+// last answer when origin gives none, so a failed check changes nothing.
+describe("BranchStatusChecker.commitsBehindOrigin: reach", () => {
+  /** A checkout that counts `behind`, until `broken` says what fails. */
+  function checkout(state: { behind: string; fetch: number; count: number }) {
+    const run: GitRunner = async (_dir, args) => {
+      const joined = args.join(" ");
+      if (joined.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (joined.startsWith("rev-parse --abbrev-ref HEAD")) return { code: 0, stdout: "master\n" };
+      if (joined.startsWith("fetch")) return { code: state.fetch, stdout: "" };
+      if (joined.startsWith("rev-list --count")) return { code: state.count, stdout: `${state.behind}\n` };
+      return { code: 1, stdout: "" };
+    };
+    let clock = 1000;
+    const checker = new BranchStatusChecker({ run, ttlMs: 30_000, now: () => clock });
+    return { checker, tick: () => (clock += 5_000) };
+  }
+
+  test("a fetch that fails answers null and leaves the last answer and its time (AC-4)", async () => {
+    const state = { behind: "3", fetch: 0, count: 0 };
+    const { checker, tick } = checkout(state);
+    expect(await checker.commitsBehindOrigin("/repo")).toBe(3);
+    tick();
+    state.fetch = 128;
+    state.behind = "7";
+    expect(await checker.commitsBehindOrigin("/repo", true, true)).toBeNull();
+    expect(checker.peekDrift("/repo")).toEqual({ behind: 3, checkedAt: 1000 });
+  });
+
+  test("a count git cannot give answers null and leaves the last answer and its time (AC-4)", async () => {
+    const state = { behind: "3", fetch: 0, count: 0 };
+    const { checker, tick } = checkout(state);
+    expect(await checker.commitsBehindOrigin("/repo")).toBe(3);
+    tick();
+    state.count = 128;
+    expect(await checker.commitsBehindOrigin("/repo", true, true)).toBeNull();
+    expect(checker.peekDrift("/repo")).toEqual({ behind: 3, checkedAt: 1000 });
+  });
+
+  test("a fetch that succeeds counts afresh and writes the answer, as `fresh` does (AC-4)", async () => {
+    const state = { behind: "0", fetch: 0, count: 0 };
+    const { checker, tick } = checkout(state);
+    expect(await checker.commitsBehindOrigin("/repo")).toBe(0);
+    tick();
+    state.behind = "2";
+    expect(await checker.commitsBehindOrigin("/repo", true, true)).toBe(2);
+    expect(checker.peekDrift("/repo")).toEqual({ behind: 2, checkedAt: 6000 });
+  });
+
+  test("without `reach` a failed fetch is still best effort, as it was (AC-4)", async () => {
+    const state = { behind: "3", fetch: 128, count: 0 };
+    const { checker } = checkout(state);
+    expect(await checker.commitsBehindOrigin("/repo", true)).toBe(3);
+  });
+});

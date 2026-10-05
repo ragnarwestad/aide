@@ -146,3 +146,12 @@ export async function submitDeploy(form: HTMLFormElement, event: Event, io: Depl
     },
   });
 }
+
+/** Every Deploy form under `root` takes its press here; `makeIo` is the
+ *  browser's unless a test hands one in, as `submitDeploy` takes one. */
+export function bindDeployForms(root: ParentNode, makeIo: (form: HTMLFormElement) => DeployIo = browserIo): void {
+  for (const el of root.querySelectorAll("form.deployform")) {
+    const form = el as HTMLFormElement;
+    form.addEventListener("submit", ((event: Event) => submitDeploy(form, event, makeIo(form))) as EventListener);
+  }
+}
