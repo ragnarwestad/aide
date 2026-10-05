@@ -325,7 +325,6 @@ Follow the project's coding standards"
 
 ### Codex does NOT have:
 - ❌ Automatic reading of CLAUDE.md at startup (use `AGENTS.md`)
-- ❌ Built-in agents like `@agent-task-analyzer`
 - ❌ A free tier (requires Plus/Pro/Enterprise)
 
 ### Codex DOES have:

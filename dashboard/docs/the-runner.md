@@ -224,6 +224,7 @@ evidence that the phase happened:
   failure stands as the step's outcome; the review's own turn is best-effort, and any outcome other than a clean
   "no defects" — a verdict it cannot parse, or its own turn failing to complete — falls back to "found nothing"
   rather than failing an already-successful, already-committed implement over the added safety net's own hiccup.
+  Either is logged as an error, never as a review that found nothing.
   The step ends only on a green test run the runner made ITSELF
   (`run-spec/turn/step-tests.sh`), which always follows the review: the same `aide-resolve-test-cmd` and
   `aide-record-test-run` the landing's gate calls run

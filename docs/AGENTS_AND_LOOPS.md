@@ -63,10 +63,8 @@ No subagents and no review.
    more than one approach when the spec asks for a choice and the approaches really differ.
 3. **The plan review.** The session starts subagents that read only the spec's four files, never the reasoning behind
    the plan (`core/skills/aide-analyze/references/plan-review.md`):
-   - a LOW spec gets one reviewer;
-   - a MEDIUM or HIGH spec gets three, in parallel, each with one perspective and no sight of the others' findings.
-
-   A tool with no way to start a subagent runs the same reviews one after the other in its own session.
+   three reviewers, in parallel, each with one perspective and no sight of the others' findings, whatever the spec's
+   complexity. A tool with no way to start a subagent runs the same reviews one after the other in its own session.
 4. The same session corrects the plan from the findings and writes `4-status.md`. The runner reads only the counts on
    the plan review's `**Findings:**` line.
 
@@ -84,10 +82,9 @@ person sets the grade, and the runner does not check it.
   in `core/skills/aide-analyze/references/complexity-and-analysis.md`.
 - **What it decides:**
   - how deep the analysis goes, and how long `2-analysis.md` is;
-  - whether the plan comes in phases, for HIGH;
-  - how many plan reviewers there are: one for LOW, three for MEDIUM and HIGH.
+  - whether the plan comes in phases, for HIGH.
 
-The session that writes the plan also decides how strict the review of it is.
+  It does not decide the plan review: that always has three reviewers, since the grade is the analyst's own.
 
 ### Implement
 

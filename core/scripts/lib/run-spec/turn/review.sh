@@ -152,7 +152,12 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ]; th
     session_out="$implement_session"; cost="$running_cost"
   else
     review_verdict="$(printf '%s\n' "$turn_message" | grep -iE '^review: ' | tail -n 1)"
-    if [ -z "$review_verdict" ] || printf '%s' "$review_verdict" | grep -qi 'no defects found'; then
+    if [ -z "$review_verdict" ]; then
+      # Still best-effort, so the step goes on, but never logged as a
+      # clean review: a reply without the line may well describe defects.
+      stage_error "the review's reply has no review: line — proceeding as if it found none"
+      session_out="$implement_session"; cost="$running_cost"
+    elif printf '%s' "$review_verdict" | grep -qi 'no defects found'; then
       stage "the review found no defects"
       session_out="$implement_session"; cost="$running_cost"
     else

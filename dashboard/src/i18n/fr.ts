@@ -299,7 +299,7 @@ export const fr: Record<TranslationKey, string> = {
   "limit.plan": "Forfait : {plan}.",
 
   "settings.where.claude":
-    "Claude Code lit les skills d'aide dans {skills}, ses règles dans {rules} et ses agents dans {agents} ; les scripts d'aide sont dans {scripts}.",
+    "Claude Code lit les skills d'aide dans {skills} et ses règles dans {rules} ; les scripts d'aide sont dans {scripts}.",
   "settings.where.codex":
     "Codex lit les instructions d'aide dans {instructions}, ses hooks dans {hookConfig} et {hooks}, et ses skills dans {skills}, qu'il partage avec Copilot ; les scripts d'aide sont dans {scripts}.",
   "settings.where.copilot":

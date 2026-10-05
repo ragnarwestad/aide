@@ -12,7 +12,6 @@
 # when an installer stops putting something where this table says.
 claude    skills        core/skills/                            ~/.claude/skills/
 claude    rules         core/rules/                             ~/.claude/rules/
-claude    agents        implementations/claude-code/agents/     ~/.claude/agents/
 claude    scripts       core/scripts/                           ~/.local/bin/
 copilot   instructions  core/AGENTS.md                          ~/.copilot/copilot-instructions.md
 copilot   scripts       core/scripts/                           ~/.local/bin/

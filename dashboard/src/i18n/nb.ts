@@ -300,7 +300,7 @@ export const nb: Record<TranslationKey, string> = {
   "limit.plan": "Abonnement: {plan}.",
 
   "settings.where.claude":
-    "Claude Code leser aides skills fra {skills}, reglene fra {rules} og agentene fra {agents}; aides skript ligger i {scripts}.",
+    "Claude Code leser aides skills fra {skills} og reglene fra {rules}; aides skript ligger i {scripts}.",
   "settings.where.codex":
     "Codex leser aides instruksjoner fra {instructions}, hookene fra {hookConfig} og {hooks}, og skillsene fra {skills}, som den deler med Copilot; aides skript ligger i {scripts}.",
   "settings.where.copilot":

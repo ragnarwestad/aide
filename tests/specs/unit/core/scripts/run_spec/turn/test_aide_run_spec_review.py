@@ -119,12 +119,16 @@ def test_defects_found_are_listed_then_handed_to_a_third_turn_the_fix_never_a_se
 
 def test_a_verdict_with_no_review_line_counts_as_no_defects_AC_4(runner, workspace, fake_claude):
     """The model answered in free prose, with no `review:` marker line
-    at all — treated as no defects, never as an unspecified fix turn."""
+    at all — treated as no defects, never as an unspecified fix turn, but
+    said in the log as an error, never as the review having found nothing."""
     with_status(workspace, ["create", "analyze"])
     claude = _reviewing_claude(fake_claude, "I looked closely and everything matches the description.")
-    rc, out, _ = run(runner, workspace, claude, command="implement")
+    rc, out, _, err = run(runner, workspace, claude, command="implement", return_stderr=True)
     assert out["terminalReason"] == "completed", out
     assert len(fake_claude.calls.read_text().splitlines()) == 2
+    stages = _stamped(err)
+    assert "the review found no defects" not in stages, stages
+    assert any(s.startswith("error: the review's reply has no review: line") for s in stages), stages
 
 
 def test_the_reviews_own_turn_failing_falls_back_to_found_nothing_AC_4(runner, workspace, fake_claude):

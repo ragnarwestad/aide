@@ -8,7 +8,7 @@ step between writing `3-solution.md` and writing `4-status.md` — one run
 now produces both the plan and its review.
 
 The property that made a standalone step worth having is unaffected by
-where it is invoked from: the reviewer(s) below are spawned as separate
+where it is invoked from: the reviewers below are spawned as separate
 Agent invocations (subagents), blind to the analyst's own reasoning —
 they read only the four spec files on disk, never the conversation that
 produced them. The Feasibility reviewer reads the project's own files as
@@ -19,15 +19,12 @@ both handed the spec's acceptance criteria checks level (`off`,
 Feasibility makes the cannot-be-built check, Coherence the other four.
 Coherence is told, too, whether the spec asks to choose the approach.
 
-## Review — scaled to complexity
+## Review — three reviewers, at every complexity
 
-**LOW specs:** one combined pass over the three questions below. Keep it
-short; a LOW plan rarely deserves three reviewers. The one pass makes
-all five acceptance criteria checks, at the one level, and the Out of
-scope check of the Scope guardian below.
-
-**MEDIUM/HIGH specs:** three reviewers, each with ONE perspective and no
-sight of the others' findings. Run each one as a subagent of its own,
+Three reviewers, each with ONE perspective and no sight of the others'
+findings, whatever the spec's complexity: the grade is the analyst's own,
+so it does not decide how strict the review of its plan is. A LOW plan
+gets short answers, not fewer reviewers. Run each one as a subagent of its own,
 in parallel, whichever tool you run in; only where the tool has no way
 to start one, run the same three instructions as sequential passes.
 

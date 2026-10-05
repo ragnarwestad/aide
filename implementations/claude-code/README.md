@@ -208,9 +208,7 @@ aide/
     ├── README.md                       # This file
     ├── INSTALL.md                      # Installation guide
     ├── install.sh / uninstall.sh       # Global install/uninstall
-    ├── settings.json                   # Template for ~/.claude/settings.json
-    └── agents/                         # Agent definitions → ~/.claude/agents/
-        └── task-analyzer.md
+    └── settings.json                   # Template for ~/.claude/settings.json
 ```
 
 ### Runtime files (installed locally, not in git)
@@ -219,7 +217,6 @@ aide/
 ~/.local/bin/aide-*                     # Every core/scripts/aide-* script, plus upgrade-ai-tools
 ~/.local/bin/lib/                       # The scripts' shared library
 ~/.claude/skills/<skill>/SKILL.md       # Every skill in core/skills/ except spec-structure
-~/.claude/agents/*.md                   # The agents
 ~/.claude/rules/*.md                    # The always-on rules
 ```
 

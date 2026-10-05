@@ -338,10 +338,6 @@ copilot --yolo                            # Allow everything without prompts
 - ✅ MCP server support (built-in GitHub MCP + custom)
 - ✅ Permanent permissions via `config.json` and CLI flags
 
-### Copilot CLI does NOT have:
-
-- ❌ Built-in agents like `@agent-task-analyzer` (uses general agents)
-
 ---
 
 ## Comparison with Claude Code

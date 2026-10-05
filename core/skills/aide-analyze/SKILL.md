@@ -314,8 +314,8 @@ Attack the plan while the mistake is still cheap, before any test is
 written: reviewers with distinct perspectives (feasibility, scope,
 coherence) attack `3-solution.md`, findings become must-fix/should-fix,
 and the plan is REVISED — not just annotated. See
-`references/plan-review.md` for the full routine (scaled to complexity,
-consolidation, and what gets written where). Hand the Feasibility and
+`references/plan-review.md` for the full routine (three reviewers at
+every complexity, consolidation, and what gets written where). Hand the Feasibility and
 Coherence reviewers the acceptance criteria checks level from Step 1:
 Feasibility makes the cannot-be-built check at that level, Coherence the
 other four, and the Plan review section's `**Criteria check:**` line

@@ -198,8 +198,8 @@ The phases are written out in full in
 
 **Explore is optional and has no stakes:** `/aide-explore` thinks the
 problem through with the user first — no files, no spec. Use it when the
-idea or scope is not ready for `/aide-create` yet. **Review is optional
-for LOW specs and expected for MEDIUM/HIGH:** `/aide-analyze` attacks
+idea or scope is not ready for `/aide-create` yet. **Review runs at
+every complexity:** `/aide-analyze` attacks
 `3-solution.md` from three reviewer perspectives before the first test is
 written, as its own last step.
 

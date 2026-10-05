@@ -309,7 +309,7 @@ export const en = {
 
   // An AI's tab on Settings: where aide installs for it, and what Check finds out.
   "settings.where.claude":
-    "Claude Code reads aide's skills from {skills}, its rules from {rules} and its agents from {agents}; aide's scripts are in {scripts}.",
+    "Claude Code reads aide's skills from {skills} and its rules from {rules}; aide's scripts are in {scripts}.",
   "settings.where.codex":
     "Codex reads aide's instructions from {instructions}, its hooks from {hookConfig} and {hooks}, and its skills from {skills}, which it shares with Copilot; aide's scripts are in {scripts}.",
   "settings.where.copilot":

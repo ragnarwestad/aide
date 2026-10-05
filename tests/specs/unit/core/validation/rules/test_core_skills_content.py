@@ -17,10 +17,8 @@ EARS_PATTERN = re.compile(r"`([^`]*SHALL <response>)`")
 
 
 @pytest.mark.validation
-def test_every_aide_script_a_skill_or_agent_runs_exists():
-    sources = list(CORE_SKILLS_DIR.rglob("*.md")) + list(
-        (REPO_ROOT / "implementations" / "claude-code" / "agents").glob("*.md")
-    )
+def test_every_aide_script_a_skill_runs_exists():
+    sources = list(CORE_SKILLS_DIR.rglob("*.md"))
     called = {}
     for path in sources:
         for block in BASH_BLOCK.findall(path.read_text(encoding="utf-8")):
@@ -28,7 +26,7 @@ def test_every_aide_script_a_skill_or_agent_runs_exists():
                 match = COMMAND.match(line)
                 if match:
                     called.setdefault(match.group(1), path.relative_to(REPO_ROOT))
-    assert "aide-write-spec" in called, "the extraction found none of the known calls"
+    assert "aide-wiki" in called, "the extraction found none of the known calls"
     missing = {name: str(where) for name, where in called.items()
                if not (REPO_ROOT / "core" / "scripts" / name).is_file()}
     assert not missing, f"skills run scripts core/scripts does not have: {missing}"

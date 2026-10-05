@@ -412,7 +412,8 @@ def test_the_red_hand_back_and_a_tests_red_stop_are_error_lines_AC_7(runner, wor
     _, out, _, err = run(
         runner, workspace, _fixing_claude(fake_claude, fix_on_retry=False), command="implement", return_stderr=True
     )
-    errors = [s for s in _stamped(err) if s.startswith("error: ")]
+    # The fake's review turn answers without a verdict line: that error is the review's, not the tests'.
+    errors = [s for s in _stamped(err) if s.startswith("error: ") and not s.startswith("error: the review")]
     assert errors[0].startswith("error: the tests are red — handing them back"), errors
     assert errors[-1].startswith("error: the step reported success, but the project's tests are red"), errors
     assert "\n" not in errors[-1]

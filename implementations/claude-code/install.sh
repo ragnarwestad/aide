@@ -45,7 +45,7 @@ echo ""
 echo "2️⃣  Installing globally to ~/.claude/..."
 
 GLOBAL_CLAUDE="$HOME/.claude"
-mkdir -p "$GLOBAL_CLAUDE/skills" "$GLOBAL_CLAUDE/agents" "$GLOBAL_CLAUDE/rules"
+mkdir -p "$GLOBAL_CLAUDE/skills" "$GLOBAL_CLAUDE/rules"
 
 # Skills (copy without --delete to avoid deleting other tools' skills)
 if [ -d "$WORKSPACE_ROOT/core/skills" ]; then
@@ -77,11 +77,10 @@ if [ -d "$GLOBAL_CLAUDE/commands" ]; then
   echo "   🗑️  Removed old: ~/.claude/commands/ (consolidated into skills)"
 fi
 
-# Agents
-if [ -d "$IMPL_DIR/agents" ]; then
-  mkdir -p "$GLOBAL_CLAUDE/agents"
-  cp -R "$IMPL_DIR/agents/." "$GLOBAL_CLAUDE/agents/"
-  echo "   ✅ Agents installed: ~/.claude/agents/"
+# An agent no skill calls any more, left by an earlier install
+if [ -f "$GLOBAL_CLAUDE/agents/task-analyzer.md" ]; then
+  rm "$GLOBAL_CLAUDE/agents/task-analyzer.md"
+  echo "   🗑️  Removed old: ~/.claude/agents/task-analyzer.md"
 fi
 
 # Generic rules
@@ -153,7 +152,6 @@ echo ""
 echo "📋 Installed globally:"
 echo "   ~/.claude/skills/          ($(find ~/.claude/skills -mindepth 1 -maxdepth 1 2>/dev/null | wc -l | tr -d ' ') skills)"
 echo "   ~/.claude/rules/           ($(find ~/.claude/rules -mindepth 1 -maxdepth 1 2>/dev/null | wc -l | tr -d ' ') rules)"
-echo "   ~/.claude/agents/          (agents)"
 echo "   ~/.local/bin/              (scripts)"
 echo ""
 echo "🔌 LSP plugins:"
