@@ -48,11 +48,9 @@ specs/<NN>-slug/          # flat structure
 3. **3-solution.md** - Scope, behavior delta, acceptance criteria, risk and implementation plan with a TDD approach
 4. **4-status.md** - Living document: Progress and status
 
-`/aide-implement`'s VERIFY phase adds a fifth, non-markdown file next
-to these four: `test-run.json`, written by `core/scripts/aide-record-test-run`
-and read by `core/scripts/aide-archive-spec`'s test-record gate — never
-written or read by a model. `aide-archive-spec`'s move step already
-`git mv`s the whole folder, so it needs no special handling of its own.
+A fifth file, `test-run.json`, is written by `aide-record-test-run` in
+`/aide-implement`'s VERIFY phase and read by `aide-archive-spec`; no
+model writes or reads it.
 
 ---
 
@@ -64,36 +62,18 @@ written or read by a model. `aide-archive-spec`'s move step already
 
 **Structure:**
 ```markdown
-# [Title]
+# [Title] - Description
 
-## Table of contents
+## Tracking info
 
-- Metadata
-- Description
-- Problem
-
----
-
-## Metadata
-
-Number, created date, expected duration
+- **Task:** `NN-slug/`
+- **Created:** `YYYY-MM-DD`
 
 ---
 
 ## Description
 
-**This field can be edited manually to add:**
-- Extra context or clarifications
-- Specific technical requirements
-- Clarifications from meetings/discussions
-
----
-
-## Problem
-
-[The description as given]
-
----
+[The description as given; the user may add to it by hand]
 
 ## Acceptance criteria (optional)
 
@@ -109,10 +89,8 @@ Number, created date, expected duration
 ```
 
 **Key points:**
-- Table of contents for quick navigation
-- Metadata table
-- The Description section is editable for manual additional information
-- The Problem section is copied verbatim (do not rewrite)
+- The description is written as given, never rewritten; the user may
+  add to it by hand
 - No code examples (they belong in 3-solution.md)
 - Acceptance criteria here are the SHALL-statement source requirements
   (AC-n); the testable given/when/then scenarios that verify each one
@@ -131,24 +109,14 @@ Number, created date, expected duration
 - Optionally a `Depends on:` line in Tracking info, naming the specs this
   one builds on (comma-separated; each identifier is either a bare number
   or a full `NN-slug` folder name — narrower than `/aide-analyze`'s
-  resolver, which also takes `TODO-NN` and an issue key). `aide-run-spec`
-  refuses to start while any named spec's `aide/<NN-slug>` branch on
-  origin has commits not on the default branch — unmerged, not merely
-  present — because a run cuts its branch from origin/main and would
-  otherwise build on a main without that work
-- The line holds back `analyze`, `implement` and `archive`; only
-  `create` runs regardless. `analyze` waits too, because a plan made
-  before the dependency lands is a plan for code that is about to change
-- Queued through the dashboard, such a step WAITS rather than fails: it
-  stays `queued`, starts itself once the dependency merges, and is
-  cancellable. Run by hand, it still refuses immediately — there is no
-  scheduler there to park it against
+  resolver, which also takes `TODO-NN` and an issue key). `analyze`,
+  `implement` and `archive` wait until every named spec has landed on
+  the default branch; `create` runs regardless
 - Optionally an `Acceptance criteria checks:` line in Tracking info —
   `off`, `warn` or `stop` — saying how strictly `/aide-analyze` checks
   the spec's acceptance criteria. `aide-run-spec` writes it after a
   create from the dashboard's New spec form; absent, or any other value,
-  is `off`. It is chosen once: the dashboard refuses a Description save
-  that changes, removes or adds it
+  is `off`. It is chosen once, at create
 - A `Let me choose the approach:` line in Tracking info — `yes` or `no` —
   written by `aide-run-spec` after every create from the New spec form,
   directly after the `Acceptance criteria checks:` line. `yes` asks
@@ -166,16 +134,8 @@ Number, created date, expected duration
   after the highest one already written — the same additive rule,
   applied to a second round rather than to the first draft
 - `/aide-create` keeps every criterion a description already has, word
-  for word and with its id, and never appends a second section. When it
-  runs a model, it adds a criterion for each requirement none of them
-  covers, numbered from the highest id present, and adds none when
-  every requirement is covered. The New spec form's "Let AI formulate
-  acceptance criteria" box, cleared, runs no model, and the description
-  is written as typed. `aide-create-spec` writes an `AC-n:` bullet with
-  missing or misplaced bold in the bold format and refuses only a
-  bullet it cannot rewrite that way; given the description as it came
-  in, it also refuses a kept criterion that changed or went missing,
-  and an added id that does not follow the highest one
+  for word and with its id, and may add criteria after the highest id
+  (the aide-create skill has how)
 - `/aide-analyze` never retrofits an Acceptance criteria section into
   an existing `1-description.md` on its own initiative — only original
   authoring (via `/aide-create`) adds one
@@ -518,10 +478,7 @@ The keywords are written in capitals, as SHALL is.
 ```
 
 **Key points:**
-- Total progress at the top
-- Organized in phases (matches 3-solution.md)
-- Table format for clarity
-- Updated continuously
+- Organized in phases, matching 3-solution.md's implementation plan
 
 #### Workflow steps completed
 
@@ -537,29 +494,18 @@ and `archive`. A missing line means nothing is known to have completed;
 an unknown value is ignored.
 
 **Do not edit this line. It is written by `aide-run-spec`, from the
-spec's own commits** — every step the runner finishes leaves a commit
-whose subject names the step and how it ended, and the line is derived
-from those commits at the end of every run, so the file agrees with git
-rather than with whoever remembered to update it. A step run
-interactively counts once committed under the same subject — the four
-step skills offer exactly that commit, and ask first.
+spec's own commits**: each step leaves a commit whose subject names the
+step, `Run /aide-<step> for <spec-folder>`. A step run interactively
+counts once committed under the same subject.
 
-**The line is added to, never subtracted from.** A step it already
-names stays even when no commit currently corroborates it — a copied
-claim (a spec's four files copied from a sibling) stands the same way,
-since the scan cannot tell it from a real one. Two things take a step
-off: a reopen that resets the files, by regenerating the file without the
-line at all, and a completed analysis, which takes `implement` and
-`archive` off because the plan they were made from has been replaced.
+The line is only added to, with two exceptions: a reopen that resets
+the files starts it afresh, and a completed analysis takes `implement`
+and `archive` off, since the plan they were made from has been replaced.
 A completed analysis of a spec that stood at `implemented` also clears
 every row of `## Acceptance criteria` (a `Not verified` one too) and
 rebuilds the table from the criteria in `1-description.md` as they read
 now, one open row per `AC-n`; a row keeps its Notes cell only while its
 criterion's text is unchanged.
-
-The dashboard reads the same commits, live, to mark a spec's phases
-done — a `4-status.md` that disagrees with them is said out loud on the
-row rather than believed.
 
 #### Total progress
 
@@ -571,12 +517,8 @@ Phase-table rows are done:
 ```
 
 **Do not edit this line by hand. `aide-run-spec` recomputes it** at the
-end of every step from the file's own `## Phase`/`## Fase` rows — a
-well-formed three-column row counts as one task, done when its Status
-cell reads `✅` or `Completed`; header rows, separators and free
-commentary are skipped. A file whose Phase tables have no rows yet
-(fresh from the template) is left alone: there is nothing yet to
-derive.
+end of every step from the file's own Phase-table rows: a row is done
+when its Status cell reads `✅` or `Completed`.
 
 #### Phase outcome record
 
@@ -618,14 +560,8 @@ block with the newest outcome, with three exceptions that are added to
 across runs: `Attempts` counts every run of the phase, and `Cost` and
 `Tokens` are what they used together.
 
-**An absent `Model` line does not prove the phase ran without a
-model** — only that no commit could be attributed to it, the ordinary
-case for a file a user wrote and committed by hand under their own
-message.
-
-Specs archived before this record existed may still carry the older,
-centralized `Model (create):`/`Model (analyze):`/`Model (implement):`
-lines in their `4-status.md` — left exactly as they are, not migrated.
+Older specs may carry `Model (create):`-style lines in `4-status.md`;
+they are left as they are.
 
 #### Acceptance criteria (optional)
 
@@ -733,8 +669,6 @@ starts from templates and is not in such a round.
 
 ## Templates
 
-AI tools create documentation directly based on the structure described in this document.
-
 The `/aide-create` command creates the 4-file structure with the correct placeholders.
 The `/aide-analyze` command fills in the analysis, solution and status.
 
@@ -745,10 +679,10 @@ known from a previous invocation in the same session.** A spec created
 this way carries none of the commits, review or convention the skill
 provides, and looks identical to one that did.
 
-`aide-install-spec-hook <specs-repo> [...]` installs a best-effort `commit-msg` guard into a spec repo's common git
-dir: a commit touching a spec's 4/5-file layout is rejected unless its message follows the
-`Run /aide-<step> for <spec-folder>` convention. A hand-edit to an existing `1-description.md` is never gated. It only fires where it has
-been installed; the rule above is the primary defence.
+Where `aide-install-spec-hook` has been run, a commit touching a spec's
+files is rejected unless its message follows the
+`Run /aide-<step> for <spec-folder>` convention; a hand-edit to an
+existing `1-description.md` is the one exception.
 
 ---
 
