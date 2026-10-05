@@ -117,6 +117,32 @@ body:has(#jobrows) { height: 100vh; height: 100dvh; overflow: hidden; box-sizing
    same chain). */
 body:has(#jobrows) main { flex: 1 1 auto; min-height: 0;
   display: flex; flex-direction: column; }
+/* The spec page's editor, on a screen wider than a phone: the page is as
+   tall as the window, and the editor takes what is left, its text
+   scrolling inside it under its own toolbar (the editor's height is set
+   by its script, spec-editor/index.ts, on the same query). The header,
+   the banner, the tabs and the tab's Save and Cancel stay put. Keyed on
+   the mounted editor, so the plain textarea and every read-only tab
+   scroll as before. The body keeps its overflow, unlike the specs list's:
+   a window too short for the editor's minimum scrolls instead of cutting
+   the banner off. */
+/*noinspection CssOverwrittenProperties*/
+@media not all and (max-width: 40rem) {
+  body:has(form.specform .spec-editor-mount[data-mounted]) {
+    height: 100vh; height: 100dvh; box-sizing: border-box;
+    display: flex; flex-direction: column; }
+  body:has(form.specform .spec-editor-mount[data-mounted]) > main,
+  main:has(form.specform .spec-editor-mount[data-mounted]) > .doc,
+  .doc:has(form.specform .spec-editor-mount[data-mounted]) > .tabpanel {
+    flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+  form.specform:has(.spec-editor-mount[data-mounted]) {
+    flex: 1 1 auto; min-height: 0; flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+  form.specform:has(.spec-editor-mount[data-mounted]) > .panelhead { flex: none; }
+  form.specform:has(.spec-editor-mount[data-mounted]) > .frow {
+    flex: 1 1 auto; min-height: 0; align-items: stretch; }
+  form.specform .field.wide:has(> .spec-editor-mount[data-mounted]) { min-height: 0; }
+  form.specform .spec-editor-mount[data-mounted] { flex: 1 1 0; min-height: 16rem; }
+}
 /* Window Controls Overlay (asked 2026-08-31): when Chrome has actually
    folded the OS title bar into the page — a person has to opt in per
    window, so `display_override` in the manifest is necessary but not

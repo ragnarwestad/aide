@@ -36,6 +36,7 @@ let scriptText: string;
 type FakeMediaQueryList = EventTarget & { matches: boolean };
 let FakeMediaQueryList: new (matches: boolean) => FakeMediaQueryList;
 let fakeMql: FakeMediaQueryList;
+let fakePhone: FakeMediaQueryList;
 
 beforeAll(async () => {
   const { GlobalRegistrator } = await import("@happy-dom/global-registrator");
@@ -62,7 +63,10 @@ beforeEach(() => {
   document.head.querySelectorAll("style").forEach((s) => s.remove());
   delete document.documentElement.dataset.theme;
   fakeMql = new FakeMediaQueryList(false);
-  window.matchMedia = (() => fakeMql) as unknown as typeof window.matchMedia;
+  fakePhone = new FakeMediaQueryList(false);
+  // The bundle asks two questions: the colour scheme and the phone width.
+  window.matchMedia = ((query: string) =>
+    query.includes("max-width") ? fakePhone : fakeMql) as unknown as typeof window.matchMedia;
 });
 
 /** Runs the built bundle once against whatever DOM the test has set up
@@ -114,5 +118,40 @@ describe("REQ-2: an editor content change re-dispatches as \"input\" on the raw 
     raw.dispatchEvent(new Event("spec-cancel"));
 
     expect(fired).toBe(true);
+  });
+});
+
+// The editor's height follows the same width the stylesheet's window-filling
+// chain is keyed on: fixed where the page gives it room, growing with its
+// text at phone width. The library marks the growing mode with
+// `auto-height` on the host it was mounted on.
+describe("the editor's height follows the phone width", () => {
+  const RAW = '<textarea class="spec-editor-raw"># original\n</textarea>';
+
+  test("a wide screen mounts the editor at a fixed height (AC-2)", () => {
+    const host = setHost(RAW);
+    mount();
+    expect(host.classList.contains("auto-height")).toBe(false);
+  });
+
+  test("phone width mounts the editor growing with its text (AC-4)", () => {
+    fakePhone.matches = true;
+    const host = setHost(RAW);
+    mount();
+    expect(host.classList.contains("auto-height")).toBe(true);
+  });
+
+  test("a window crossing the phone width switches the editor with no reload (AC-2)", () => {
+    const host = setHost(RAW);
+    mount();
+    expect(host.classList.contains("auto-height")).toBe(false);
+
+    fakePhone.matches = true;
+    fakePhone.dispatchEvent(new Event("change"));
+    expect(host.classList.contains("auto-height")).toBe(true);
+
+    fakePhone.matches = false;
+    fakePhone.dispatchEvent(new Event("change"));
+    expect(host.classList.contains("auto-height")).toBe(false);
   });
 });

@@ -389,6 +389,10 @@ checkout (`POST /api/queue/specs/<project>/<spec>/update`), sits at the end of t
 tabs holds what belongs to the spec rather than to one document: whether it is archived or closed, the test
 server's state, any error, and two facts editable in one form — what the spec depends on, and whether it requires
 acceptance ticking (`POST /api/queue/specs/<project>/<spec>/tracking`).
+On a screen wider than a phone, a tab with an editor fills the window: the
+banner, the tabs and the tab's Save and Cancel stay put, and the document
+scrolls inside the editor, under its toolbar. At phone width, and on a
+read-only tab, the page scrolls as a whole.
 
 **The Logs tab lists every step from every attempt in one flat list, no picker.** A spec with more than one job for
 the same work round tags each row `Attempt N` (oldest = 1); a single-attempt spec shows no marker at all. There is no
