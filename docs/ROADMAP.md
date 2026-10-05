@@ -163,6 +163,25 @@ So the first step is to measure, not to route: keep, for each spec, the shape of
 changed, lines), the model each step ran with, and how it went (green at the first try, rounds of red tests, defects
 the review found, a step run again). Only once that shows what predicts trouble should anything choose the model.
 
+Every source the research read:
+
+- Task difficulty:
+  - [What Makes Software Issue Resolution Tasks Difficult for Agents?](https://arxiv.org/html/2608.18280)
+  - [Predicting Task Difficulty Without Rollouts](https://arxiv.org/html/2608.05797)
+  - [Agent Psychometrics: Task-Level Performance Prediction in Agentic Coding Benchmarks](https://arxiv.org/html/2604.00594v2)
+- Routing between models:
+  - [Agent-as-a-Router: Agentic Model Routing for Coding Tasks](https://www.alphaxiv.org/abs/2606.22902)
+  - [Triage: Routing Software Engineering Tasks to Cost-Effective LLM Tiers via Code Quality Signals](https://arxiv.org/pdf/2604.07494)
+  - [Dynamic Model Routing and Cascading for Efficient LLM Inference: A Survey](https://arxiv.org/pdf/2603.04445)
+  - [RouteLLM: An Open-Source Framework for Cost-Effective LLM Routing](https://www.lmsys.org/blog/2024-07-01-routellm/)
+  - [Best AI Model for Coding Agents in 2026: A Routing Guide](https://www.augmentcode.com/guides/ai-model-routing-guide)
+- The products:
+  - [Cursor Router](https://cursor.com/docs/cursor-router)
+  - [I Tested Whether Cursor's Auto Mode Actually Picks the Right Model](https://dev.to/nedcodes/i-tested-whether-cursors-auto-mode-actually-picks-the-right-model-20ml)
+  - [About Copilot auto model selection](https://docs.github.com/en/copilot/concepts/models/auto-model-selection)
+  - [Why Copilot's Auto Mode for AI Models Ignores Your Actual Task](https://visualstudiomagazine.com/articles/2026/02/06/why-copilots-auto-mode-for-ai-models-ignores-your-actual-task.aspx)
+  - [Claude Code model configuration, with `opusplan`](https://code.claude.com/docs/en/model-config)
+
 ### Create and archive with as little AI as possible
 
 From the same weighing: create and archive are the least complex steps, and much of them is mechanical. Create already
