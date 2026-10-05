@@ -173,7 +173,7 @@ queue step the dashboard presses, never a step the runner decides on its own.
     offers them unticked beside a ticked Archive.
   - **Reset (`resetFiles`, runner flag `--reset-files`).** No model here either: `aide-reopen-spec --reset-files`
     moves the folder back, writes `2-analysis.md`, `3-solution.md` and `4-status.md` from the templates (through
-    `aide-reset-spec`), keeping `0-README.md` and `1-description.md`, and records
+    `aide-reset-spec`), keeping `0-README.md`, `1-description.md` and the `**Archived:**`/`**Closed:**` trail, and records
     `- **Reopened:** <date> (history before <sha> does not count)` in `4-status.md`, the same call `/aide-reopen` makes
     at a keyboard. The sha is the boundary
     `completed_steps_for` counts from: runner commits before it are the old round's and no longer put a step on the

@@ -184,3 +184,17 @@ def test_reset_files_without_a_boundary_takes_the_specs_repos_head(script, tmp_p
     assert rc == 0, out
     status = (tmp_path / "82-x" / "4-status.md").read_text()
     assert f"(history before `{head}` does not count)" in status, status
+
+
+def test_reset_files_keeps_the_archive_trail_above_the_reopened_mark(script, tmp_path):
+    """The template's fresh status file would drop when the spec was
+    archived and closed; the trail is carried over, then the mark."""
+    add_archived(tmp_path, status=STATUS + "\n**Closed:** 2026-08-01 — not needed\n")
+    rc, out = run(script, "--specs-root", str(tmp_path), "--spec", "82",
+                  "--boundary", "abc1234", "--reset-files")
+    assert rc == 0, out
+    lines = (tmp_path / "82-x" / "4-status.md").read_text().splitlines()
+    archived = lines.index("**Archived:** 2026-09-01")
+    closed = lines.index("**Closed:** 2026-08-01 — not needed")
+    reopened = next(i for i, l in enumerate(lines) if l.startswith("- **Reopened:** "))
+    assert archived < closed < reopened

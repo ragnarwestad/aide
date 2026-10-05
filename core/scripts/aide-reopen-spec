@@ -95,9 +95,12 @@ else
 fi
 
 if [ -n "$reset_files" ]; then
+  # The template's status file has no archive trail; carry it over.
+  trail="$(grep -E '^\*\*(Archived|Closed):\*\*' "$specs_root/$name/4-status.md" 2>/dev/null)"
   reset_result="$("$SCRIPT_DIR/aide-reset-spec" --specs-root "$specs_root" --spec "$name" 2>/dev/null)"
   [ "$(jq -r '.ok // false' <<<"$reset_result" 2>/dev/null)" = "true" ] \
     || refuse "$(jq -r '.error // "aide-reset-spec refused"' <<<"$reset_result" 2>/dev/null)"
+  [ -n "$trail" ] && printf '\n%s\n' "$trail" >> "$specs_root/$name/4-status.md"
   apply_spec_transition "$specs_root/$name/4-status.md" reopen "$boundary"
 else
   apply_spec_transition "$specs_root/$name/4-status.md" reopen-keep "$boundary"
