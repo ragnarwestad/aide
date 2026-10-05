@@ -30,9 +30,9 @@ starts, write one line `--- Step N of X: <title> — started`, and when
 it ends, one line `--- Step N of X: <title> — done`. A step that ends
 the run early says `— stopped: <why>` in place of `— done`, and one that does not apply to this run `— skipped: <why>`.
 
-### Step 1 of 7: Find the spec
+### Step 1 of 5: Find the spec
 
-First write `--- Step 1 of 7: Find the spec — started`, and when this step ends, `--- Step 1 of 7: Find the spec — done`.
+First write `--- Step 1 of 5: Find the spec — started`, and when this step ends, `--- Step 1 of 5: Find the spec — done`.
 
 
 Resolve `$ARGUMENTS` to a folder, looking under `archive/` — that is
@@ -45,13 +45,12 @@ round that is running.
 
 Then ask: "Reset the analysis, the plan and the status as well?
 (default: no)". No, or no answer, is the keep mode; yes is the reset
-mode. A headless run never reaches this skill at all: the runner runs
-`aide-reopen-spec` itself, and for `--reset-files` `aide-reset-spec`
-after it. This skill is the keyboard's path to the same two scripts.
+mode. A headless run never reaches this skill at all: the runner makes
+the same `aide-reopen-spec` call itself.
 
-### Step 2 of 7: Remove the branch the earlier round left behind
+### Step 2 of 5: Remove the branch the earlier round left behind
 
-First write `--- Step 2 of 7: Remove the branch the earlier round left behind — started`, and when this step ends, `--- Step 2 of 7: Remove the branch the earlier round left behind — done`.
+First write `--- Step 2 of 5: Remove the branch the earlier round left behind — started`, and when this step ends, `--- Step 2 of 5: Remove the branch the earlier round left behind — done`.
 
 
 `aide/<NN>-slug` can be in four places, and the one that is missed is
@@ -69,61 +68,35 @@ alike. Every deletion tolerates "already gone" — the landing that
 archived the spec usually removed the branch already — and an origin
 that cannot be reached is no reason to stop.
 
-### Step 3 of 7: Move the folder back
+### Step 3 of 5: Move the folder back
 
-First write `--- Step 3 of 7: Move the folder back — started`, and when this step ends, `--- Step 3 of 7: Move the folder back — done`.
-
-
-**Keep mode:** run
-`aide-reopen-spec --specs-root <specs-root> --spec <NN>`. It does this step and everything the keep mode changes: it moves
-the folder, leaves `0-README.md`, `1-description.md`, `2-analysis.md`
-and `3-solution.md` byte for byte, takes `archive` off the `Workflow
-steps completed:` line of `4-status.md` and appends one
-`**Round boundary:**` line in the `history before` grammar. The
-`**Archived:**` or `**Closed:**` line stays as the trail, and the
-`**Round boundary:**` line after it is what makes it history. Go to
-Step 6.
-
-**Reset mode:** `git mv <specs-root>/archive/<NN>-slug
-<specs-root>/<NN>-slug` when the specs root is git-tracked, plain `mv`
-otherwise. The folder keeps its `NN-slug` name — numbers are never
-reused, and the spec is the same spec.
-
-### Step 4 of 7: Reset three files, keep two (reset mode only)
-
-First write `--- Step 4 of 7: Reset three files, keep two (reset mode only) — started`, and when this step ends, `--- Step 4 of 7: Reset three files, keep two (reset mode only) — done`.
+First write `--- Step 3 of 5: Move the folder back — started`, and when this step ends, `--- Step 3 of 5: Move the folder back — done`.
 
 
-**Run `aide-reset-spec --specs-root <specs-root> --spec <NN-slug>`** over
-the folder Step 3 moved back. It writes `2-analysis.md`, `3-solution.md`
-and `4-status.md` from the templates itself, with the same writer
-`/aide-create` uses. `1-description.md` and `0-README.md` stay byte for
-byte as they are: the description is what the new round is for.
+Run, from the specs repository as it stands before anything is moved:
 
-### Step 5 of 7: Carry over the `**Archived:**` line (reset mode only)
+```bash
+aide-reopen-spec --specs-root <specs-root> --spec <NN>                 # keep mode
+aide-reopen-spec --specs-root <specs-root> --spec <NN> --reset-files   # reset mode
+```
 
-First write `--- Step 5 of 7: Carry over the **Archived:** line (reset mode only) — started`, and when this step ends, `--- Step 5 of 7: Carry over the **Archived:** line (reset mode only) — done`.
+It moves the folder back under its own `NN-slug` name and stages the
+move. `0-README.md` and `1-description.md` stay byte for byte in both
+modes.
 
+- **Keep mode:** `2-analysis.md` and `3-solution.md` stay too; `archive`
+  leaves the `Workflow steps completed:` line, and a `**Round
+  boundary:**` line is appended to `4-status.md`.
+- **Reset mode:** `2-analysis.md`, `3-solution.md` and `4-status.md` are
+  written fresh from the templates, and `4-status.md` gets a
+  `**Reopened:**` mark at the specs repository's HEAD.
 
-Copy the `**Archived:**` line (with every earlier one it already had)
-verbatim from the file being replaced into the regenerated
-`4-status.md`'s Tracking info. The spec's archive trail still has to
-read.
+Either mark is what stops the earlier round's steps counting. On a
+refusal, report the script's `error` and stop.
 
-Leave the `**Reopened:**` mark and the `**Workflow steps completed:**`
-line out. `aide-run-spec` writes the `**Reopened:**` mark itself, once
-this step finishes, from the specs repository's own default-branch tip
-at the moment the branch above was cut — not from anything this session
-computes — and it writes `**Workflow steps completed:**` from the
-spec's own commits, of which there are none yet after the boundary. The
-mark it writes reads `- **Reopened:** DATE (history before \`SHA\` does
-not count)` — the one grammar `completed_steps_for` in
-`core/scripts/aide-run-spec`, `parse-status.ts`, `workflow-history.ts`
-and `description-freshness.ts` all parse.
+### Step 4 of 5: Commit
 
-### Step 6 of 7: Commit
-
-First write `--- Step 6 of 7: Commit — started`, and when this step ends, `--- Step 6 of 7: Commit — done`.
+First write `--- Step 4 of 5: Commit — started`, and when this step ends, `--- Step 4 of 5: Commit — done`.
 
 
 ASK whether to commit, and suggest this message:
@@ -132,14 +105,9 @@ ASK whether to commit, and suggest this message:
 Run /aide-reopen for <spec-folder>
 ```
 
-In reset mode `aide-run-spec` adds the `**Reopened:**` mark, with its
-boundary sha, in a commit of its own right after this step finishes — it
-is not part of what this session commits. In keep mode the
-`**Round boundary:**` line is already written by `aide-reopen-spec`.
+### Step 5 of 5: Confirm
 
-### Step 7 of 7: Confirm
-
-First write `--- Step 7 of 7: Confirm — started`, and when this step ends, `--- Step 7 of 7: Confirm — done`.
+First write `--- Step 5 of 5: Confirm — started`, and when this step ends, `--- Step 5 of 5: Confirm — done`.
 
 ```text
 Reopened: 17-clean-up-console-log
@@ -157,7 +125,7 @@ IMPORTANT:
   The mark is what stops the earlier round counting; the repository keeps
   it.
 - Never touch `1-description.md` or `0-README.md`
-- In keep mode, never touch `2-analysis.md`, `3-solution.md` or a row of
-  `4-status.md`; `aide-reopen-spec` is the only thing that edits it
+- Never edit `2-analysis.md`, `3-solution.md` or `4-status.md` by hand;
+  `aide-reopen-spec` is the only thing that writes them here
 - When the specs root lies outside the project root, spec files are
   moved and staged with the specs repo's git, never the project's

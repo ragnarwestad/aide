@@ -295,12 +295,10 @@ create_no_ai=""
 if [ "$command_name" = "create" ] && [ "$no_ai_formulate" = "yes" ]; then
   create_no_ai="yes"
 fi
-# A reopen is mechanical either way, so no model runs for it. Keeping the
-# files is aide-reopen-spec alone; --reset-files runs that same script and
-# then aide-reset-spec over the folder it moved back, which is the pair a
-# model turn was asked to imitate. The turn also cost a run and could be
-# refused its own commands under a permission mode with nobody to ask —
-# the reason the `reset` step stopped using one before it was removed.
+# A reopen is mechanical either way, so no model runs for it: both modes
+# are aide-reopen-spec, with --reset-files passed on for the reset. A model
+# turn also cost a run and could be refused its own commands under a
+# permission mode with nobody to ask.
 reopen_keep_no_ai=""
 reopen_reset_no_ai=""
 if [ "$command_name" = "reopen" ]; then
@@ -347,24 +345,13 @@ if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reopen_keep_no_ai" ] \
   elif [ -n "$reopen_keep_no_ai" ] || [ -n "$reopen_reset_no_ai" ]; then
     reopen_args=(--specs-root "$specs_root_wt" --spec "$spec_folder")
     [ -n "$reopen_boundary_sha" ] && reopen_args+=(--boundary "$reopen_boundary_sha")
+    [ -n "$reopen_reset_no_ai" ] && reopen_args+=(--reset-files)
     reopen_result="$("$SCRIPT_DIR/aide-reopen-spec" "${reopen_args[@]}" 2>/dev/null)"
     if [ "$(jq -r '.ok // false' <<<"$reopen_result" 2>/dev/null)" = "true" ]; then
       terminal_reason="completed"
       cost_measured="true"
       tool="none"
       model=""; effort=""
-      # The reset mode's second half, over the folder the line above moved
-      # back out of archive/ — which is the order aide-reset-spec needs: it
-      # refuses an archived folder by name. The `**Reopened:**` mark comes
-      # after both, from run-spec/record/boundary.sh, over the status file this
-      # writes from the template.
-      if [ -n "$reopen_reset_no_ai" ]; then
-        reset_result="$("$SCRIPT_DIR/aide-reset-spec" --specs-root "$specs_root_wt" --spec "$spec_folder" 2>/dev/null)"
-        if [ "$(jq -r '.ok // false' <<<"$reset_result" 2>/dev/null)" != "true" ]; then
-          terminal_reason="refused"
-          error_msg="$(jq -r '.error // "aide-reset-spec refused"' <<<"$reset_result" 2>/dev/null)"
-        fi
-      fi
     else
       terminal_reason="refused"
       tool="none"; model=""; effort=""

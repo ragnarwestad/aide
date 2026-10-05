@@ -33,15 +33,6 @@ def test_every_aide_script_a_skill_runs_exists():
 
 
 @pytest.mark.validation
-def test_the_reopen_boundary_is_written_in_the_grammar_the_readers_parse():
-    """One grammar, several readers: `completed_steps_for` in
-    `core/scripts/aide-run-spec` and the dashboard's status parsers."""
-    skill = (CORE_SKILLS_DIR / "aide-reopen" / "SKILL.md").read_text()
-    assert "**Reopened:**" in skill
-    assert "history before" in skill
-
-
-@pytest.mark.validation
 def test_analyze_reads_the_reuse_key_and_its_plan_and_review_share_the_parts_lines_AC_2_AC_3_AC_4():
     """The manifest documents `reuse`, the analyze skill reads it, and
     the plan step writes the Parts lines the plan review checks (AC-2,

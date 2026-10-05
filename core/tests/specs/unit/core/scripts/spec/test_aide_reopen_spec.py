@@ -155,3 +155,32 @@ def test_a_closed_spec_is_reopened_with_its_closed_line_kept(script, tmp_path):
     assert "**Round boundary:**" in text
     state = json.loads((tmp_path / "82-x" / ("4-status." + "json")).read_text())
     assert state["closed"] is None
+
+
+def test_reset_files_writes_three_files_fresh_and_marks_the_round_reopened(script, tmp_path):
+    """A reopen typed at a keyboard has no runner to write the mark after
+    it: the script writes it, or the earlier round's steps still count."""
+    add_archived(tmp_path)
+    rc, out = run(script, "--specs-root", str(tmp_path), "--spec", "82",
+                  "--boundary", "abc1234", "--reset-files")
+    assert rc == 0, out
+    d = tmp_path / "82-x"
+    assert (d / "0-README.md").read_text() == README
+    assert (d / "1-description.md").read_text() == DESCRIPTION
+    assert (d / "2-analysis.md").read_text() != ANALYSIS
+    assert (d / "3-solution.md").read_text() != SOLUTION
+    status = (d / "4-status.md").read_text()
+    assert "- **Reopened:** " in status and "(history before `abc1234` does not count)" in status, status
+
+
+def test_reset_files_without_a_boundary_takes_the_specs_repos_head(script, tmp_path):
+    git = ["git", "-C", str(tmp_path), "-c", "user.name=t", "-c", "user.email=t@t"]
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    add_archived(tmp_path)
+    subprocess.run([*git, "add", "-A"], check=True)
+    subprocess.run([*git, "commit", "-qm", "archived"], check=True)
+    head = subprocess.run([*git, "rev-parse", "--short", "HEAD"], capture_output=True, text=True).stdout.strip()
+    rc, out = run(script, "--specs-root", str(tmp_path), "--spec", "82", "--reset-files")
+    assert rc == 0, out
+    status = (tmp_path / "82-x" / "4-status.md").read_text()
+    assert f"(history before `{head}` does not count)" in status, status

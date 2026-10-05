@@ -7,10 +7,13 @@
 # `**Round boundary:**` line is appended. The spec's state file follows the
 # steps line; it is written through spec-transitions.sh, never here.
 #
+# With --reset-files the analysis, the plan and the status are written
+# fresh from the templates instead (aide-reset-spec), and the status gets
+# a `**Reopened:**` mark at the boundary, so the earlier round's steps stop
+# counting. The boundary is --boundary, or the specs repository's HEAD.
+#
 # No model is needed, so aide-run-spec runs this directly for a headless
-# `reopen` without --reset-files (the way it runs aide-reset-spec for a
-# reset), and a person running /aide-reopen at a keyboard calls it too. The
-# reset mode (analysis, plan and status back to templates) is the skill's.
+# `reopen`, and a person running /aide-reopen at a keyboard calls it too.
 #
 # Prints ONE JSON line to stdout and, if given, to --result-file:
 #   {ok, exitCode, terminalReason, error?, specFolder?}
@@ -18,7 +21,7 @@
 # terminalReason: refused | reopened
 #
 # Usage:
-#   aide-reopen-spec --specs-root <path> --spec <arg> [--boundary <sha>] [--result-file <path>]
+#   aide-reopen-spec --specs-root <path> --spec <arg> [--boundary <sha>] [--reset-files] [--result-file <path>]
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -27,18 +30,19 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 [ -f "$SCRIPT_DIR/lib/spec-transitions.sh" ] && source "$SCRIPT_DIR/lib/spec-transitions.sh"
 
-specs_root=""; spec_arg=""; boundary=""; result_file=""
+specs_root=""; spec_arg=""; boundary=""; result_file=""; reset_files=""
 while [ $# -gt 0 ]; do
   case "$1" in
     -h|--help)
       cat <<'USAGE'
 Usage:
-  aide-reopen-spec --specs-root <path> --spec <arg> [--boundary <sha>] [--result-file <path>]
+  aide-reopen-spec --specs-root <path> --spec <arg> [--boundary <sha>] [--reset-files] [--result-file <path>]
 USAGE
       exit 0 ;;
     --specs-root) specs_root="${2:-}"; shift 2 ;;
     --spec) spec_arg="${2:-}"; shift 2 ;;
     --boundary) boundary="${2:-}"; shift 2 ;;
+    --reset-files) reset_files="yes"; shift ;;
     --result-file) result_file="${2:-}"; shift 2 ;;
     *) printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"unknown argument: %s"}\n' "$1"; exit 2 ;;
   esac
@@ -78,13 +82,26 @@ name="${folder#archive/}"
 [ ! -e "$specs_root/$name" ] || refuse "$name already exists among the active specs"
 [ -f "$specs_root/$folder/4-status.md" ] || refuse "$folder has no 4-status.md"
 
+# Before the move, so a refusal leaves the folder where it was.
+if [ -n "$reset_files" ]; then
+  [ -n "$boundary" ] || boundary="$(git -C "$specs_root" rev-parse --short HEAD 2>/dev/null)"
+  [ -n "$boundary" ] || refuse "no boundary: pass --boundary, or keep the specs root in git"
+fi
+
 if git -C "$specs_root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   git -C "$specs_root" mv "$folder" "$name" || refuse "cannot move $folder out of archive/"
 else
   mv "$specs_root/$folder" "$specs_root/$name" || refuse "cannot move $folder out of archive/"
 fi
 
-apply_spec_transition "$specs_root/$name/4-status.md" reopen-keep "$boundary"
+if [ -n "$reset_files" ]; then
+  reset_result="$("$SCRIPT_DIR/aide-reset-spec" --specs-root "$specs_root" --spec "$name" 2>/dev/null)"
+  [ "$(jq -r '.ok // false' <<<"$reset_result" 2>/dev/null)" = "true" ] \
+    || refuse "$(jq -r '.error // "aide-reset-spec refused"' <<<"$reset_result" 2>/dev/null)"
+  apply_spec_transition "$specs_root/$name/4-status.md" reopen "$boundary"
+else
+  apply_spec_transition "$specs_root/$name/4-status.md" reopen-keep "$boundary"
+fi
 
 # Staged like the move, so a caller that commits what git mv staged takes
 # the edited status file and its state along in the same commit.

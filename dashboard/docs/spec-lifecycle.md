@@ -171,10 +171,11 @@ queue step the dashboard presses, never a step the runner decides on its own.
     stamp with no `**Reopened:**` or `**Reset:**` mark between (`reopenedRound`, `held-back.ts`). Analyze and Implement
     are accepted once one criterion is new, or reworded with its row unticked, since that boundary; the specs list
     offers them unticked beside a ticked Archive.
-  - **Reset (`resetFiles`, runner flag `--reset-files`).** No model here either: `aide-reopen-spec` moves the folder
-    back and `aide-reset-spec` then writes `2-analysis.md`, `3-solution.md` and `4-status.md` from the templates,
-    keeping `0-README.md` and `1-description.md`. The step records
-    `- **Reopened:** <date> (history before <sha> does not count)` in `4-status.md`. The sha is the boundary
+  - **Reset (`resetFiles`, runner flag `--reset-files`).** No model here either: `aide-reopen-spec --reset-files`
+    moves the folder back, writes `2-analysis.md`, `3-solution.md` and `4-status.md` from the templates (through
+    `aide-reset-spec`), keeping `0-README.md` and `1-description.md`, and records
+    `- **Reopened:** <date> (history before <sha> does not count)` in `4-status.md`, the same call `/aide-reopen` makes
+    at a keyboard. The sha is the boundary
     `completed_steps_for` counts from: runner commits before it are the old round's and no longer put a step on the
     line. It drops the spec's recorded phase choice too: those ticks belonged to the round just discarded.
 
