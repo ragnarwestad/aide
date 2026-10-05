@@ -23,11 +23,7 @@ effort: medium
   - [HIGH complexity](#high-complexity)
 - [Problem type routing (Quick Reference)](#problem-type-routing-quick-reference)
 - [Branch strategy](#branch-strategy)
-  - [Why this matters](#why-this-matters)
-  - [Recommended procedure](#recommended-procedure)
-  - [Tracking info in documentation](#tracking-info-in-documentation)
 - [The spec workflows](#the-spec-workflows)
-- [Summary](#summary)
 - [See also](#see-also)
 
 ---
@@ -45,7 +41,6 @@ below says what its grade means for the analysis and for the documents.
 
 **Analysis scope:**
 - Read ONLY the mentioned file
-- Do NOT search the entire codebase
 
 **Documentation:** Short and concise (< 200 lines total)
 **Estimate:** Minutes to hours (< 2 hours)
@@ -56,8 +51,7 @@ below says what its grade means for the analysis and for the documents.
 
 **Analysis scope:**
 - Find files related to the component/module
-- Find related tests and usage sites
-- Do NOT search wider than necessary
+- Find related tests and usage sites, and stop there
 
 **Documentation:** Moderate detail (100-300 lines total)
 **Estimate:** Hours to days (2-16 hours)
@@ -96,26 +90,15 @@ documents.
 | **Database change**   | Identify ripple effects - Migration script - Test |
 | **Performance**       | Profile - Find root cause - Benchmark - Optimize  |
 
-**Quick reference:**
-- **Testing?** See `the testing rules`
-- **Git/Commit?** See `the git rules`
-- **Everything else:** the project's own docs if they exist, the code if not
-
 ---
 
 ## Branch strategy
 
 **Before starting analysis or implementation:**
 
-The AI assistant may work with **multiple repositories** at the same time (e.g. my-app, my-api, etc.). It is critical that the correct branch is checked out in all relevant repositories.
-
-### Why this matters
-
-- The analysis phase reads the API mapping to find which systems are involved
-- **If the wrong branch is checked out**, the analysis/implementation may be wrong or incomplete
-- The AI assistant **aborts with an error message** if a required repository is missing
-
-### Recommended procedure
+A change may span **several repositories** (e.g. my-app and my-api).
+Check out the same branch in each of them, or the analysis and the
+implementation read the wrong code.
 
 **1. Check out the same branch in all relevant repositories:**
 
@@ -136,23 +119,8 @@ cd ~/develop/my-app && git pull
 cd ~/develop/my-api && git pull
 ```
 
-### Tracking info in documentation
-
-After analysis AND solution, the **Tracking info** section records which
-repositories and branches were used — one compact `Repo` line per repo,
-in the same style as the other fields:
-
-```markdown
-## Tracking info
-
-- **Last analyzed:** `2025-11-07`
-- **Repo:** `my-app/feature/PROJ-7637 @ abc123de`
-- **Repo:** `my-api/feature/PROJ-7637 @ def456ab`
-```
-
-The `Repo` lines belong in BOTH `2-analysis.md` and `3-solution.md` —
-the solution is written against a state of the code, and that state must
-be recorded where the solution lives.
+Which repositories and branches a phase worked against is recorded as
+`Repo` lines in Tracking info; the spec-structure skill has the format.
 
 ---
 
@@ -179,21 +147,6 @@ The rest of the detail lives beside this file:
 | [references/spec-workflows.md](./references/spec-workflows.md)               | Every phase of the spec workflow: what each one does, what it produces, when to re-run it     |
 | [references/api-impact.md](./references/api-impact.md)                       | Assessing API impact, and the order to implement a change that spans several projects         |
 | [references/workflow-optimization.md](./references/workflow-optimization.md) | Context management, course correction, Explore - Plan - Code, checklists for large migrations |
-
----
-
-## Summary
-
-**Three key principles:**
-1. **Grade complexity** once the code is read, and match the documentation to it
-2. Follow the **linear flow**: Create - Analyze - Implement - Archive
-3. Always assess **API impact** (use the mapping)
-
-**Best practices:**
-1. Use `/clear` between independent tasks
-2. Follow **Explore - Plan - Code - Commit**
-3. Iterate toward **clear goals** (tests, screenshots, specifications)
-4. Use **checklists** for complex tasks
 
 ---
 
