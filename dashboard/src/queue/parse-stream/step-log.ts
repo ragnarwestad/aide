@@ -7,15 +7,35 @@
 //   aide-run-spec HH:MM:SS +Ns model turn started (transcript at byte N)  where the AI's next turn begins
 //   aide-run-spec: <text>                                                 an older, unstamped note
 //   <anything else>                                                       another script's line on stderr
-import { summarizeEntries } from "./entries.ts";
-import { linesWithFinalMessage } from "./final-message.ts";
-import { esc, type SummarizeOptions } from "./shared.ts";
+import { aiParts, type AiTurn, type BuiltPart, type Owned } from "./ai-turn.ts";
+import { claudeSubagents } from "./claude-subagents.ts";
+import { codexSpawns } from "./codex-subagents.ts";
+import { codexNumbering } from "./numbering.ts";
+import { esc, sniff, type ItemNumbering, type SummarizeOptions } from "./shared.ts";
 
-export interface LogPart {
+export type LogPart = TextPart | SubagentPart;
+
+export interface TextPart {
   /** aide-before: before the AI's first turn. ai: one turn of the AI. aide-after: after a turn
    *  (tests, commit). aide: a finished step that ran no model turn at all. */
   by: "aide-before" | "ai" | "aide-after" | "aide";
   lines: string[]; // already escaped
+}
+
+/** A subagent's work, under the call that started it. */
+export interface SubagentPart {
+  by: "subagent";
+  /** Claude's `description` (else its `subagent_type`), Codex's task name.
+   *  Not escaped: it is shown only inside a catalogue sentence, which the
+   *  renderer escapes whole. */
+  name: string;
+  /** What it was asked, whole and escaped. Absent for Codex, which keeps it encrypted. */
+  asked?: string;
+  lines: string[]; // its own work, already escaped
+  /** What it answered, whole and escaped. Absent while it has not answered. */
+  answer?: string;
+  /** Codex: its session file was not found or not readable. Not escaped, like `name`. */
+  unread?: { thread: string };
 }
 
 type RunLine = { turn: true; offset?: number } | { turn?: false; text: string; error: boolean };
@@ -40,24 +60,29 @@ function parseRunLog(runLog: string): RunLine[] {
   return out;
 }
 
-interface Built { part: LogPart; errors: string[] }
-
 export function stepLog(
   transcript: { text: string; start: number },
   runLog: string | undefined,
-  o: { tool?: SummarizeOptions["tool"]; final: boolean },
+  o: {
+    tool?: SummarizeOptions["tool"];
+    final: boolean;
+    /** A Codex session file's text by thread id: the step's own thread's says where its subagents were started. */
+    codexSession?: (thread: string) => string | undefined;
+  },
 ): { logs: LogPart[]; errors: string[] } {
   const opts = { tool: o.tool, max: Infinity, whole: true }; // the Log is the whole step, every line of it in full
-  const built: Built[] = [];
-  const aide = (by: LogPart["by"], lines: RunLine[]) => {
+  const tool = o.tool ?? sniff(transcript.text);
+  const aideParts: (BuiltPart | AiTurn)[] = [];
+  const aide = (by: TextPart["by"], lines: RunLine[]) => {
     const own = lines.filter((l): l is Extract<RunLine, { text: string }> => !l.turn);
-    if (own.length) built.push({ part: { by, lines: own.map((l) => l.text) }, errors: own.filter((l) => l.error).map((l) => l.text) });
+    if (own.length) aideParts.push({ part: { by, lines: own.map((l) => l.text) }, errors: own.filter((l) => l.error).map((l) => l.text) });
   };
-  const ai = (text: string, last: boolean) => {
-    const lines = last && o.final ? linesWithFinalMessage(text, opts) : summarizeEntries(text, opts).map((e) => e.text);
-    if (lines.length) {
-      built.push({ part: { by: "ai", lines }, errors: summarizeEntries(text, { ...opts, only: "errors" }).map((e) => e.text) });
-    }
+  const codex = tool === "codex";
+  const turns: AiTurn[] = [];
+  const ai = (text: string, last: boolean, before?: ItemNumbering) => {
+    const turn: AiTurn = { text, last, ...(codex ? { before, after: codexNumbering(text, before) } : {}) };
+    turns.push(turn);
+    aideParts.push(turn);
   };
 
   const entries = runLog ? parseRunLog(runLog) : [];
@@ -79,9 +104,38 @@ export function stepLog(
       const end = next === undefined ? Infinity : (entries[next] as { offset: number }).offset;
       const from = Math.max(begin, transcript.start) - transcript.start;
       const to = Math.min(end - transcript.start, bytes.length);
-      if (to > 0) ai(bytes.subarray(from, Math.max(from, to)).toString("utf-8"), next === undefined);
+      // Codex numbers its items through the whole transcript, so a turn starts from the count before it.
+      if (to > 0) ai(bytes.subarray(from, Math.max(from, to)).toString("utf-8"), next === undefined, codex ? codexNumbering(bytes.subarray(0, from).toString("utf-8")) : undefined);
       aide("aide-after", entries.slice(at + 1, next));
     });
   }
+
+  const claude = tool === "codex" || tool === "opencode" || !/"name":\s*"Agent"/.test(transcript.text) ? new Map() : claudeSubagents(transcript.text);
+  const owned = codex && o.codexSession ? spawnsByTurn(turns, transcript.text, o.codexSession) : new Map<AiTurn, Owned[]>();
+  const built = aideParts.flatMap((p) =>
+    "part" in p ? [p] : aiParts(p, opts, { final: o.final, claude, spawns: owned.get(p) ?? [], reader: o.codexSession }),
+  );
   return { logs: built.map((b) => b.part), errors: built.flatMap((b) => b.errors) };
+}
+
+/** Which turn each subagent a thread's session file says it started belongs
+ *  to: the turn that holds the thread's item the spawn follows, or, for one
+ *  counted past the items the transcript holds, the thread's last turn. */
+function spawnsByTurn(turns: AiTurn[], text: string, reader: (thread: string) => string | undefined): Map<AiTurn, Owned[]> {
+  const out = new Map<AiTurn, Owned[]>();
+  const count = (turn: AiTurn | undefined, thread: string, side: "before" | "after") => turn?.[side]?.counts[thread] ?? 0;
+  for (const thread of new Set(codexNumbering(text).started)) {
+    const sessionText = reader(thread);
+    if (sessionText === undefined) continue;
+    const touched = turns.filter((t) => count(t, thread, "after") > count(t, thread, "before") || t.after?.started.includes(thread));
+    const total = count(turns.at(-1), thread, "after");
+    for (const spawn of codexSpawns(sessionText, thread)) {
+      const end = spawn.n > total;
+      const turn = end
+        ? (touched.at(-1) ?? turns.at(-1))
+        : turns.find((t) => count(t, thread, "before") < Math.max(spawn.n, 1) && Math.max(spawn.n, 1) <= count(t, thread, "after"));
+      if (turn) out.set(turn, [...(out.get(turn) ?? []), { spawn, end }]);
+    }
+  }
+  return out;
 }

@@ -99,7 +99,20 @@ export interface SummarizeOptions {
    *  commands among the last 40 entries". A step whose tail is all prose
    *  would otherwise answer "no errors" for a step that hit twenty. */
   only?: LogFilter;
+  /** Codex: where the numbering of items stands at the first byte of the text
+   *  read, so a turn cut from the middle of a transcript carries on counting. */
+  numbering?: ItemNumbering;
 }
+
+/** Codex's items by their place: `thread.started` names the thread the items
+ *  after it belong to, and each `agent_message`, `command_execution` and
+ *  `file_change` item takes the next number of its thread. */
+export interface ItemNumbering {
+  thread?: string;
+  /** How many numbered items each thread has completed. */
+  counts: Record<string, number>;
+}
+
 /** What a transcript entry IS, kept rather than flattened into its text
  *  so a reader can ask for one kind. The
  *  three CLIs name these differently — a Claude `tool_use` block named
@@ -120,6 +133,10 @@ export interface StreamEntry {
   failed?: boolean;
   /** A skill-step mark: kept by every bound. */
   mark?: true;
+  /** Claude: the id of the `Agent` call this entry is, when the session itself made it. */
+  call?: string;
+  /** Codex: the item this entry came from, by its place among the numbered items of its thread. */
+  item?: { thread: string; n: number };
 }
 
 /** What a reader can ask of a transcript's entries: all of them, the

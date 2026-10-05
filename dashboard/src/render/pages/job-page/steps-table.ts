@@ -11,7 +11,7 @@ import { t, type Language } from "../../../i18n";
 import { heldBackReasonText } from "../../ui/job-state/notice.ts";
 import { facts, foldArrow, stepLabel } from "../../ui/components";
 import type { JobDetailView, JobStepResultView } from "./types.ts";
-import { stepPanel } from "./step-tabs.ts";
+import { drawnParts, stepPanel } from "./step-tabs.ts";
 import { providerLimitSentence } from "../../ui/job-state/provider-limit.ts";
 
 /** A heading that says "Cost" above a column of token counts is the
@@ -102,7 +102,7 @@ export function resolveOpenStep(query: string | undefined, hasRunning: boolean):
  *  the row's own cells already carry — no render file introduces a class
  *  outside that vocabulary. */
 function stepFacts(r: JobStepResultView, lang: Language = "en"): string {
-  const hasLog = !!r.logs?.some((part) => part.lines.length > 0);
+  const hasLog = drawnParts(r.logs ?? [], r.aiModel, lang).length > 0;
   const table = facts([
     { label: t(lang, "job.stepAt"), value: r.at ? esc(r.at) : "–" },
     {

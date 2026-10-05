@@ -14,7 +14,7 @@ import type { SpecsPageOptions } from "../";
 import { phaseKey } from "./keys.ts";
 import { LIST_COLUMNS } from "../row-shared.ts";
 import type { LogPart } from "../../../../queue/parse-stream";
-import { logPartWriter } from "../../job-page/step-tabs.ts";
+import { drawnParts } from "../../job-page/step-tabs.ts";
 
 export { phaseKey, parsePhaseKeys } from "./keys.ts";
 
@@ -90,15 +90,13 @@ export function phaseMessagesRow(
   const modelLine = modelId ? `<p class="muted small" data-model-id>${esc(t(lang, "list.phaseModel", { model: ranOn ?? "" }))}</p>` : "";
   const body = modelLine + (!found
     ? `<p class="phasemsgempty muted">${esc(t(lang, "list.phaseNoneKept"))}</p>`
-    : !found.logs.some((part) => part.lines.length > 0)
+    : drawnParts(found.logs, found.aiModel, lang).length === 0
       ? `<p class="phasemsgempty muted">${esc(t(lang, "list.phaseNoMessages"))}</p>`
       : // The box opens at its end, where the last thing the phase did is.
-        `<div class="logbox"><ul class="phasemsglist">${found.logs
-          .filter((part) => part.lines.length > 0)
+        `<div class="logbox"><ul class="phasemsglist">${drawnParts(found.logs, found.aiModel, lang)
           .map(
             (part) =>
-              `<li class="muted">— ${esc(logPartWriter(part.by, found.aiModel, lang))} —</li>` +
-              part.lines.map((m) => `<li>${m}</li>`).join(""),
+              `<li class="muted">— ${esc(part.writer)} —</li>` + part.lines.map((m) => `<li>${m}</li>`).join(""),
           )
           .join("")}</ul></div>`);
   return {

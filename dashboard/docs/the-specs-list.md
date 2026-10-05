@@ -416,6 +416,12 @@ lines tall that opens at its end. The three tabs:
   are the marks of Aide's own parts around the AI (`--- Step Aide: preparing — started`, then `— done`, and
   `Aide: tests and commit` after the AI, ending `— done` or `— stopped: <why>`). The step's full final message is
   the last of the AI's lines, with no heading; a last line that only repeats it is replaced by it, so it reads once.
+  A subagent the AI started is a part of its own, under the line of the call that started it, with the separator
+  "Subagent: <name>": what it was asked, its own lines and what it answered, and the AI's lines go on under a new
+  "AI" separator after it. For Claude the subagent's lines come from the transcript. For Codex, whose transcript has no
+  line for the call, the call's line (`spawn_agent <name>`) and the subagent's work come from the thread's session
+  file and the subagent's own, under `sessions/` in `CODEX_HOME` (else `~/.codex`); Codex keeps what it was asked
+  encrypted, so the part names the task, and a file that cannot be read gives a part saying so.
 - **Changed files** — lists what the step's own commit changed with lines added and removed, and the tab's name
   carries the count (none when the step recorded no commit range or is still running).
 - **Errors** — holds the error lines of both writers, in one list with no separators: Aide's `error:` lines and the

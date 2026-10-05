@@ -24,24 +24,43 @@ export type StepPanelData = Pick<JobStepResultView, "logs" | "errors" | "aiModel
 
 /** Who writes the part that follows, as its separator line names them.
  *  The phase's row under the specs list draws the same words. */
-export function logPartWriter(by: LogPart["by"], aiModel: string | undefined, lang: Language): string {
+export function logPartWriter(part: LogPart, aiModel: string | undefined, lang: Language): string {
+  if (part.by === "subagent") return t(lang, "job.logSubagent", { name: part.name });
   return {
     "aide-before": t(lang, "job.logAideBefore"),
     "aide-after": t(lang, "job.logAideAfter"),
     aide: t(lang, "job.logAide"),
     ai: aiModel ? t(lang, "job.logAi", { model: aiModel }) : t(lang, "job.logAiPlain"),
-  }[by];
+  }[part.by];
 }
 
-/** Each part opens with one separator line naming who writes what follows. */
-function separator(part: LogPart, r: StepPanelData, lang: Language): string {
-  return `<span class="muted">— ${esc(logPartWriter(part.by, r.aiModel, lang))} —</span>`;
+/** A part's lines as drawn. A subagent's are what it was asked, its own work
+ *  and what it answered; one whose work could not be read is one sentence
+ *  saying so. The model's text arrives escaped; a name and a thread id do
+ *  not, and are escaped here. */
+export function logPartLines(part: LogPart, lang: Language): string[] {
+  if (part.by !== "subagent") return part.lines;
+  if (part.unread) return [t(lang, "job.subagentUnread", { thread: esc(part.unread.thread) })];
+  return [
+    part.asked !== undefined ? t(lang, "job.subagentAsked", { text: part.asked }) : t(lang, "job.subagentAskedTask", { name: esc(part.name) }),
+    ...part.lines,
+    part.answer !== undefined ? t(lang, "job.subagentAnswered", { text: part.answer }) : t(lang, "job.subagentNoAnswer"),
+  ];
+}
+
+/** The parts a Log draws, each as its separator words and its lines; a part
+ *  with nothing to draw is left out. Both the Log tab and the phase's row
+ *  draw these. */
+export function drawnParts(parts: LogPart[], aiModel: string | undefined, lang: Language): { writer: string; lines: string[] }[] {
+  return parts
+    .map((part) => ({ writer: logPartWriter(part, aiModel, lang), lines: logPartLines(part, lang) }))
+    .filter((drawn) => drawn.lines.length > 0);
 }
 
 function logTab(r: StepPanelData, lang: Language): string {
-  const parts = (r.logs ?? []).filter((part) => part.lines.length > 0);
+  const parts = drawnParts(r.logs ?? [], r.aiModel, lang);
   if (parts.length > 0) {
-    const body = parts.map((part) => `${separator(part, r, lang)}\n${part.lines.join("\n")}`).join("\n");
+    const body = parts.map((part) => `<span class="muted">— ${esc(part.writer)} —</span>\n${part.lines.join("\n")}`).join("\n");
     return `<pre class="specfile">${body}</pre>`;
   }
   if (r.terminalReason === "refused") {
