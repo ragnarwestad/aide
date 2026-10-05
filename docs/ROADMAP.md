@@ -143,8 +143,25 @@ well, it could choose the AI, model and effort for the steps after the analysis,
 winning. One way that keeps the risk low: the grade only raises the choice, so a stronger model takes the hard specs
 and a wrong grade never gives a weaker one than today.
 
-What it needs first is research on judging the complexity of a task: which signals predict that a change is hard or
-risky, how reliably an agent reads them, and how other tools route work between models.
+What the research found, and what it means for the order of the work:
+
+- **The shape of the change predicts difficulty, the description hardly does.** Lines deleted, how many separate places
+  the change touches and how far apart, and the size of the repository predicted whether an agent succeeds
+  ([What makes issue resolution tasks difficult](https://arxiv.org/html/2608.18280)); the wording of the task added
+  almost nothing, and predicting from the text alone transfers poorly
+  ([Predicting task difficulty without rollouts](https://arxiv.org/html/2608.05797)). A grade set once the code is
+  read, or read off the plan, is the useful one.
+- **What works learns from its own history.** [Agent-as-a-Router](https://www.alphaxiv.org/abs/2606.22902) chooses
+  from how the most similar earlier tasks went, and [Cursor Router](https://cursor.com/docs/cursor-router) is trained
+  on real requests; no single model was best at every kind of coding task.
+- **The products route mostly to save money.** [RouteLLM](https://www.lmsys.org/blog/2024-07-01-routellm/) kept 95 %
+  of the strong model's quality with a quarter of the calls; Claude Code's `opusplan` plans with Opus and carries out
+  with Sonnet, as Aide's own defaults do. For Aide the value is the other way round: a hard spec not implemented by too
+  weak a model.
+
+So the first step is to measure, not to route: keep, for each spec, the shape of its change (files, separate places
+changed, lines), the model each step ran with, and how it went (green at the first try, rounds of red tests, defects
+the review found, a step run again). Only once that shows what predicts trouble should anything choose the model.
 
 ### Create and archive with as little AI as possible
 
