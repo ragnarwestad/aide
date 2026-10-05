@@ -67,10 +67,9 @@ First write `--- Step 1 of 11: Read the description — started`, and when this 
   it, run `aide-wiki status --specs-root <root> --project-dir .`, read
   `wiki/index.md`, then the pages that concern the change. A page whose
   state is `changed` or `unknown` is a map of where to look, and the
-  code decides. Read only the ordinary pages that status returns, even
-  when an older index still links to a legacy decision page. Do not follow
-  those historical links: the ordinary pages hold the current rules and
-  their reasons.
+  code decides. Read only the ordinary pages that status returns; they
+  hold the current rules and their reasons, whatever an older index
+  still links to.
 
   When the answer is `"wiki":false`, or `aide-wiki` is not installed, or
   it answers `unknown-subcommand`, skip this and write nothing about a
@@ -159,22 +158,16 @@ See `references/complexity-and-analysis.md` for detailed steps per level.
 First write `--- Step 4 of 11: Check for work already begun — started`, and when this step ends, `--- Step 4 of 11: Check for work already begun — done`.
 
 
-A step stopped by its own time limit still commits what it wrote, and
-that work is landed on the default branch rather than left on a branch
-nobody can see — so the three files may already hold an
-earlier run's answers. Read `specs/XX-slug/2-analysis.md`,
+An earlier run stopped by its time limit lands what it wrote, so the
+three files may already hold its answers. Read `specs/XX-slug/2-analysis.md`,
 `3-solution.md` and `4-status.md` as they stand before writing anything.
 
 A section is UNWRITTEN when it still holds its template's bracketed
 placeholder text: `[not analyzed yet]`, `[filled in by analysis]`,
 `[How the analysis was performed...]`, `[not started]`, and any other
 bracketed stand-in the templates put there. Anything else is written,
-whether an earlier run wrote it or this one did.
-
-Counting headings is not enough. A half-written section carries its
-heading exactly as a finished one does, so the heading says nothing
-about whether the section was ever filled in — the bracketed
-placeholder is the signal, and it is the only one.
+whether an earlier run wrote it or this one did. The placeholder is the
+only signal: a half-written section has its heading too.
 
 Fill in the sections that still hold their placeholder. Leave every
 section that already has real content exactly as it stands.
@@ -306,7 +299,7 @@ on each other approach a person could reasonably pick instead, and
 `(considered and rejected)` on one that fails a requirement or is plainly
 worse. The Specs list offers the person every approach marked recommended
 or real alternative, so an approach left unmarked is never offered. When
-the spec does not ask, write the leads as before. Never write or remove a
+the spec does not ask, only the recommended lead carries a mark. Never write or remove a
 `**Chosen approach:**` line: the dashboard writes it.
 
 **Behavior delta:** state what the chosen solution ADDS / MODIFIES / REMOVES
@@ -462,12 +455,6 @@ run Aide merges what this session committed on the spec's branch into
 the default branch once the session has ended, and the analyze is finished
 when that merge is, not before. Working interactively there is no such
 step: the steps above say what reaches the default branch.
-
-IMPORTANT:
-- ALWAYS use the file:line format for references
-- ALWAYS consider API impact (frontend ↔ backend)
-- Match the scope of the documentation to the complexity
-- Code blocks ALWAYS end with just ` ``` `
 
 ---
 
