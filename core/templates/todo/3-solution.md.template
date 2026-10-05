@@ -47,10 +47,9 @@
 
 **[High/Medium/Low]**
 
-[What drove the classification - number of files, dependencies, etc.]
-
 **Factors:**
-- [list of complexity factors]
+- [one line per factor that set the grade, with the files that show it]
+- [the number of files, as a signal]
 
 ### Estimate
 

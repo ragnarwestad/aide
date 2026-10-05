@@ -45,8 +45,8 @@ specs/05-class-to-functional/
 
 **What is done:**
 1. Reads `1-description.md`
-2. **Detects the complexity level** (see "Complexity detection" in SKILL.md)
-3. Analyzes the codebase (specific files + line numbers)
+2. Analyzes the codebase (specific files + line numbers, and what depends on them, an interface's other side included)
+3. **Grades the complexity** by the change's risk (the criteria are in `aide-analyze`'s `references/complexity-and-analysis.md`)
 4. Identifies affected projects (frontend, backend, etc.)
 5. Assesses API impact (see [api-impact.md](./api-impact.md))
 6. Updates all 4 document files

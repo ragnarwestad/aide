@@ -2,8 +2,9 @@
 name: aide-analyze
 description: >-
   Analyze the codebase for a spec.
-  Detects complexity (LOW/MEDIUM/HIGH), maps affected files with
-  file:line references, and creates an implementation plan with TDD.
+  Maps affected files with file:line references, grades the change's
+  complexity (LOW/MEDIUM/HIGH) by its risk, and creates an implementation
+  plan with TDD.
   Use when: analyzing the codebase for an existing task,
   filling in 2-analysis.md and 3-solution.md, needing an overview of
   affected files and API impact.
@@ -75,11 +76,11 @@ First write `--- Step 1 of 10: Read the description — started`, and when this 
   it answers `unknown-subcommand`, skip this and write nothing about a
   wiki.
 - **Read what the manifest's `reuse` key names, after the wiki and
-  before Step 3.** The key lists the files and folders where the project
+  before Step 2.** The key lists the files and folders where the project
   keeps its reusable parts and the rules for using them, each a path from
   the project root. Read a file whole, and a folder file by file. Note
   each path as `read`, or `missing` when it does not exist, for Step 5.
-  A project without the key has nothing named to read, and Step 3's
+  A project without the key has nothing named to read, and Step 2's
   search runs all the same.
 - Identify: What should change? What is the scope? Migration or single fix?
 - If `1-description.md` has a `## Acceptance criteria` section, extract
@@ -108,29 +109,16 @@ stop anyway: applying it is `/aide-implement`'s job, in its own turn, not
 something this skill does on its behalf because it happens to be
 possible in the same session.
 
-### Step 2 of 10: Detect complexity
+### Step 2 of 10: Analyze the codebase
 
-First write `--- Step 2 of 10: Detect complexity — started`, and when this step ends, `--- Step 2 of 10: Detect complexity — done`.
-
-
-Classify as LOW/MEDIUM/HIGH: Operation, Keywords and API impact decide the
-grade, and the grade is the highest band any of them reaches. The number of
-files is a signal read last — it never raises a grade the other three read
-as LOW. See `references/complexity-and-analysis.md` for the criteria.
-
-### Step 3 of 10: Analyze the codebase
-
-First write `--- Step 3 of 10: Analyze the codebase — started`, and when this step ends, `--- Step 3 of 10: Analyze the codebase — done`.
+First write `--- Step 2 of 10: Analyze the codebase — started`, and when this step ends, `--- Step 2 of 10: Analyze the codebase — done`.
 
 
-Search the code from where the wiki pages read in Step 1 point.
-
-Scale the analysis to the complexity:
-- **LOW:** Find the file, read it, check tests. < 15 min.
-- **MEDIUM:** Find dependencies, related files, API impact. 20-45 min.
-- **HIGH:** Search broadly, categorize files, create a migration plan. 1-3 hours.
-
-See `references/complexity-and-analysis.md` for detailed steps per level.
+Search the code from where the wiki pages read in Step 1 point. For each
+function, format or interface the change modifies, ask once what depends
+on it — how many callers, in how many parts — and keep the count with the
+files it names. Step 3 grades the change from that count; how far to read
+those files is the grade's to say.
 
 **Look for what the project already has.** List every part the change
 needs that it does not have yet: a component, a dialog, a form, a
@@ -148,6 +136,23 @@ the real references, not every line that happens to contain the name.
 Fall back to `grep` only when the language server gives no answer (it
 errors, or the file's language has none), and for text that is not a
 symbol — a message, a config key, a CSS class.
+
+### Step 3 of 10: Grade the complexity
+
+First write `--- Step 3 of 10: Grade the complexity — started`, and when this step ends, `--- Step 3 of 10: Grade the complexity — done`.
+
+
+Grade the change LOW, MEDIUM or HIGH by its risk, from what Step 2 found,
+with the criteria and the two worked examples in
+`references/complexity-and-analysis.md`, the one place they are written.
+Keep each factor with the files that show it, for Step 6's Scope.
+
+Scale the analysis to the complexity:
+- **LOW:** Find the file, read it, check tests. < 15 min.
+- **MEDIUM:** Find dependencies, related files, API impact. 20-45 min.
+- **HIGH:** Search broadly, categorize files, create a migration plan. 1-3 hours.
+
+See `references/complexity-and-analysis.md` for detailed steps per level.
 
 ### Step 4 of 10: Check for work already begun
 
@@ -245,8 +250,9 @@ Write/Edit). Follow the spec structure § 3-solution.
 
 Sections already filled in per Step 4 are left untouched.
 
-**Scope:** the files to change, the complexity grade with the factors behind
-it, and the estimate for manual and AI-assisted development.
+**Scope:** the files to change, the complexity grade with each factor that
+set it and the files that show it (Step 3), and the estimate for manual and
+AI-assisted development.
 
 **Approaches:** when the spec asks to choose the approach (Step 1), every
 approach lead ends in one of three marks, letters A, B, C in order, as the
@@ -263,7 +269,7 @@ in behavior, relative to how the system works today — not just which files
 change (those are listed under Scope).
 
 **Parts:** a `### Parts` subsection under Recommended solution, with one
-line for every part the change needs that it does not have yet (Step 3):
+line for every part the change needs that it does not have yet (Step 2):
 
     - **<the part>** — Reused: <what, with file:line>
     - **<the part>** — New, because <why nothing existing does it>

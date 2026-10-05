@@ -70,16 +70,11 @@ No subagents and no review.
 
 #### The complexity grade
 
-The analyze session grades the spec LOW, MEDIUM or HIGH itself, early in the step, before it searches the code. No
-person sets the grade, and the runner does not check it.
+The analyze session grades the spec LOW, MEDIUM or HIGH itself, once it has searched the code. No person sets the
+grade, and the runner does not check it.
 
-- **What decides it:** three factors, and the grade is the highest band any of them reaches:
-  - the operation, from fix or replace (LOW) to migrate or upgrade (HIGH);
-  - the words of the description, from one named file (LOW) to "all" or "entire" (HIGH);
-  - the impact on an API, from none (LOW) to new or changed contracts (HIGH).
-
-  The number of files is read last, as a signal, and never raises a spec the three factors read as LOW. The table is
-  in `core/skills/aide-analyze/references/complexity-and-analysis.md`.
+- **What decides it:** the risk of the change, judged from the code. The criteria, with two worked examples, are in
+  `core/skills/aide-analyze/references/complexity-and-analysis.md`, and nowhere else.
 - **What it decides:**
   - how deep the analysis goes, and how long `2-analysis.md` is;
   - whether the plan comes in phases, for HIGH.

@@ -123,9 +123,9 @@ Use the API mapping to identify:
 
 ### Complexity
 
-See the workflows rules § Complexity detection for the grading criteria:
-Operation, Keywords and API impact decide the grade; Number of files is
-a signal, read last, never a floor by itself.
+Grade once the code is read, by the risk of the change: the criteria are
+in `aide-analyze`'s `references/complexity-and-analysis.md`, and what each
+grade means is in the workflows rules § Complexity detection.
 
 ---
 
