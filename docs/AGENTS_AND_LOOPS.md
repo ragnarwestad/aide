@@ -7,6 +7,7 @@
 - [Step by step](#step-by-step)
   - [Create](#create)
   - [Analyze](#analyze)
+    - [The complexity grade](#the-complexity-grade)
   - [Implement](#implement)
   - [Held back](#held-back)
   - [Archive](#archive)
@@ -68,6 +69,25 @@ No subagents and no review.
    A tool with no way to start a subagent runs the same reviews one after the other in its own session.
 4. The same session corrects the plan from the findings and writes `4-status.md`. The runner reads only the counts on
    the plan review's `**Findings:**` line.
+
+#### The complexity grade
+
+The analyze session grades the spec LOW, MEDIUM or HIGH itself, early in the step, before it searches the code. No
+person sets the grade, and the runner does not check it.
+
+- **What decides it:** three factors, and the grade is the highest band any of them reaches:
+  - the operation, from fix or replace (LOW) to migrate or upgrade (HIGH);
+  - the words of the description, from one named file (LOW) to "all" or "entire" (HIGH);
+  - the impact on an API, from none (LOW) to new or changed contracts (HIGH).
+
+  The number of files is read last, as a signal, and never raises a spec the three factors read as LOW. The table is
+  in `core/skills/aide-analyze/references/complexity-and-analysis.md`.
+- **What it decides:**
+  - how deep the analysis goes, and how long `2-analysis.md` is;
+  - whether the plan comes in phases, for HIGH;
+  - how many plan reviewers there are: one for LOW, three for MEDIUM and HIGH.
+
+The session that writes the plan also decides how strict the review of it is.
 
 ### Implement
 
