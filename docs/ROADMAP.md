@@ -20,6 +20,7 @@
   - [More than one way to run a step](#more-than-one-way-to-run-a-step)
   - [A spec's complexity chooses the AI](#a-specs-complexity-chooses-the-ai)
   - [Create and archive with as little AI as possible](#create-and-archive-with-as-little-ai-as-possible)
+  - [Aide as a Mac app](#aide-as-a-mac-app)
 
 ---
 
@@ -190,3 +191,41 @@ From the same weighing: create and archive are the least complex steps, and much
 runs without AI when the acceptance criteria are not to be formulated, and archive when the spec cannot be archived
 yet. The goal is that AI is used only for what needs judgment: formulating criteria, resolving a merge conflict,
 writing the wiki, and that everything else is done by scripts.
+
+### Aide as a Mac app
+
+From looking at how [T3 Code](https://t3.codes/) is installed: on a Mac, Aide is installed like any other app, with
+`brew install --cask aide` or a `.dmg` from GitHub Releases. Today it takes a git clone, `install-all.sh` and
+`dashboard/install.sh`. On its first start the app does what those scripts do. It installs the scripts, the skills
+and the rules, shows which AI tools are installed and logged in, and adds the first project. Then it updates itself.
+
+How T3 Code does it ([source](https://github.com/pingdotgg/t3code)):
+
+- **The app:** Electron, built with `electron-builder` into a `.dmg` and a `.zip`. The server is inside the app and
+  runs on Electron's own Node, so the user needs no Node installed.
+- **Signing:** GitHub Actions signs with a Developer ID certificate and notarises with an Apple API key. Without
+  those secrets the app is built unsigned.
+- **Updates:** `electron-updater`, from GitHub Releases, checked at start and on a timer.
+- **Homebrew:** the cask is in Homebrew's own collection (`Homebrew/homebrew-cask`), marked `auto_updates`. T3 Code
+  itself only publishes the releases.
+- **A service at login:** not the app's job. Its command line installs it (`t3 service install`), as launchd on a
+  Mac and systemd on Linux. The app runs the server only while it is open.
+
+What it would mean for Aide:
+
+- **Electron, with Bun inside the app.** Electron because Aide also runs on Linux. The dashboard cannot run on Node
+  as it is: `Bun.serve`, `Bun.spawn` and `Bun.build` are used in the server, the runs and the landing. The app
+  therefore carries the `bun` program, about 60 MB, and starts the dashboard with it, as `dashboard/serve.sh` does.
+- **Releases with a version.** Today the board installs from main with Deploy. A Mac app is updated by releases
+  instead. The two can live side by side: a machine Aide is developed on deploys from main, and other machines use
+  the app.
+- **An Apple Developer account**, at 99 dollars a year, for macOS to open the app without a warning. Without it, the
+  app can be opened only with right-click and Open, which is enough for one's own machines.
+- **The board's host keeps its service.** A machine that runs the queue around the clock keeps the launchd service;
+  the app is for the person at the machine.
+
+It is too large for one spec. A split:
+
+1. The app, with Bun inside it, which starts the dashboard and opens it in a window.
+2. The first start: install the scripts, skills and rules, find the AI tools, add a project.
+3. Releases: a version number, a signed and notarised build on GitHub Releases, updates, and a Homebrew cask.
