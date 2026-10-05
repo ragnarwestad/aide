@@ -6,6 +6,7 @@
   - [Sources](#sources)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-10-05](#2026-10-05)
   - [2026-10-04](#2026-10-04)
   - [2026-09-30](#2026-09-30)
   - [2026-09-28](#2026-09-28)
@@ -71,6 +72,41 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-10-05
+
+Short period (Oct 4 – Oct 5). No new release of Claude Code or OpenCode, and no stable Copilot or Codex release. No
+change needed in the support matrix or the reference. Late find: Codex v0.160.0 (Oct 1) was not in the 2026-10-04
+review.
+
+**Claude Code (Oct 4 – Oct 5):**
+
+| Date | Version | News                                                                                                            | Source                                                                |
+|------|---------|-----------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
+| —    | —       | No release since v2.1.289 (Oct 3, already logged); Oct 2 Anthropic news: $100 million to train 10,000 engineers | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
+
+**GitHub Copilot CLI (Oct 4, v1.0.92-3 → v1.0.92-4):**
+
+| Date  | Version         | News                                                                                                                                                                                                                                        | Source                                                            |
+|-------|-----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
+| Oct 4 | v1.0.92-4 (pre) | New `copilot config` subcommands; faster startup; MCP server connections respond faster; canvas actions return images to the model; fixes for legacy HTTP+SSE MCP connections, voice runtime install errors and shell tool output streaming | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
+
+**OpenAI Codex CLI (Oct 1 – Oct 5):**
+
+| Date          | Version                | News                                                                                                                                                                                                                                                                      | Source                                                      |
+|---------------|------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|
+| Oct 1         | v0.160.0               | "Show more" for older tasks in the agent command center; middle-click paste in fullscreen on Linux X11; sessions outside a project with workspace defaults, saved permissions restored on resume; Guardian review retrieves earlier user instructions and handoff context | [Changelog](https://learn.chatgpt.com/docs/changelog)       |
+| Oct 4 – Oct 5 | v0.162.0-alpha.12 … 14 | Alpha builds with no release notes                                                                                                                                                                                                                                        | [GitHub Releases](https://github.com/openai/codex/releases) |
+
+**OpenCode (Oct 4 – Oct 5):**
+
+| Date | Version | News                                               | Source                                                            |
+|------|---------|----------------------------------------------------|-------------------------------------------------------------------|
+| —    | —       | No release since v1.18.34 (Sep 30, already logged) | [GitHub Releases](https://github.com/anomalyco/opencode/releases) |
+
+**Relevance for Aide:**
+
+- ℹ Codex v0.160.0, Copilot v1.0.92-4 pre-release and the Anthropic training investment — no Aide action.
 
 ### 2026-10-04
 
