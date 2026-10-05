@@ -8,8 +8,7 @@
   - [Complexity](#complexity)
   - [Estimate](#estimate)
 - [Approaches](#approaches)
-  - [Approach 1: [Name] (recommended)](#approach-1-name-recommended)
-  - [Approach 2: [Name]](#approach-2-name)
+  - [Recommended: Approach A](#recommended-approach-a)
 - [Recommended solution](#recommended-solution)
   - [Before/After examples](#beforeafter-examples)
 - [Behavior delta](#behavior-delta)
@@ -61,39 +60,25 @@
 
 ## Approaches
 
-### Approach 1: [Name] (recommended)
+**Approach A: [Name] (recommended).** [One-line description of approach A]
+- **Pros:** [advantage 1], [advantage 2]
+- **Cons:** [disadvantage 1], [disadvantage 2]
+- **Estimate:** [X hours/days]
 
-[Description of approach 1]
+**Approach B: [Name] (real alternative).** [One-line description of approach B, if relevant]
+- **Pros:** [advantage 1]
+- **Cons:** [disadvantage 1]
+- **Estimate:** [X hours/days]
 
-**Advantages:**
-- [advantage 1]
-- [advantage 2]
+### Recommended: Approach A
 
-**Disadvantages:**
-- [disadvantage 1]
-- [disadvantage 2]
-
-**Estimate:** [X hours/days]
-
-### Approach 2: [Name]
-
-[Description of approach 2 if relevant]
-
-**Advantages:**
-- [advantage 1]
-
-**Disadvantages:**
-- [disadvantage 1]
-
-**Estimate:** [X hours/days]
+[Why this approach was chosen over the others]
 
 ---
 
 ## Recommended solution
 
-**Approach 1: [Name]**
-
-[Detailed description of why this approach is recommended]
+[Detailed description of approach A]
 
 ### Before/After examples
 

@@ -172,3 +172,14 @@ describe("chooseApproachIn", () => {
     expect(chooseApproachIn(text)).toBe(c.chosen === "yes");
   });
 });
+
+describe("the solution template", () => {
+  test("its approaches parse as the board reads them", () => {
+    const template = readFileSync(join(REPO, "core", "templates", "todo", "3-solution.md.template"), "utf-8");
+    const parsed = parseApproaches(template);
+    expect(parsed.approaches.map((a) => [a.letter, a.mark])).toEqual([
+      ["A", "recommended"],
+      ["B", "real alternative"],
+    ]);
+  });
+});
