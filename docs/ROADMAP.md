@@ -54,7 +54,9 @@ stopping. Aide has this for two fixed questions; the goal is a run that can ask 
 ### An append-only event log for runs
 
 From OpenGeni: every event of a run is kept in order, so any view, a reload or an audit can replay what happened.
-Aide keeps each job's latest state, so a run's history cannot be replayed.
+Aide keeps each job's latest state, so a run's history cannot be replayed. [T3 Code](https://t3.codes/) works this
+way: every thread is kept as its events, with a checkpoint after each turn that can restore the files and the
+conversation ([architecture notes](https://github.com/pingdotgg/t3code/blob/main/AGENTS.md)).
 
 ### The spec-structure rule describes how specs are written now
 

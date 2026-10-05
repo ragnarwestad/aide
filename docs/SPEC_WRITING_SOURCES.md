@@ -103,5 +103,5 @@ and [awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code) l
 ## Already compared
 
 [COMPARISON.md](COMPARISON.md) compares Aide with OpenSpec, GitHub Spec Kit, AWS Kiro, BMAD-METHOD, GSD, Tessl,
-Cursor's Plan Mode and Augment Code as tools. What their specs themselves contain is part of the analysis these
+Cursor's Plan Mode and Augment Code as spec-driven tools, and with Claude Projects and T3 Code as agent runners. What their specs themselves contain is part of the analysis these
 sources are gathered for.

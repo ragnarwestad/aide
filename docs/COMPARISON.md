@@ -1,4 +1,4 @@
-# Comparison with other spec-driven tools
+# Comparison with other spec-driven tools and agent runners
 
 ## Table of contents
 
@@ -15,12 +15,18 @@
 - [Cursor's Plan Mode](#cursors-plan-mode)
 - [Augment Code](#augment-code)
 - [Claude Projects](#claude-projects)
+- [T3 Code](#t3-code)
 - [Aide's design choices](#aides-design-choices)
 
 ---
 
-Aide and the other tools for spec-driven development — writing down what is to be built, and how, before an AI
-writes the code — compared on the same seven criteria. The criteria are defined first, five
+Aide compared with two kinds of tool, on the same seven criteria:
+
+- **Tools for spec-driven development:** writing down what is to be built, and how, before an AI writes the code.
+- **Agent runners:** tools that start AI coding agents, give each its own workspace and follow their work, with or
+  without a spec. Aide's dashboard is one, and Claude Projects and T3 Code are compared with it as such.
+
+The criteria are the same for both kinds. The criteria are defined first, five
 of them are summarised in a table, and then all seven are answered one tool at a time. The last chapter lists Aide's own design
 choices with the advantages and disadvantages of each.
 
@@ -71,6 +77,7 @@ tool.
 | Cursor's Plan Mode | One plan per task, not kept                     | The Cursor editor                                               | By hand                                         | You merge                                    | `.cursor/rules/`, if rules are used                                        |
 | Augment Code       | None; it supplies context to other tools        | Its own service                                                 | Not applicable                                  | Not applicable                               | Nothing                                                                    |
 | Claude Projects    | Threads in a project, with a shared memory      | Claude only, as Claude Code cloud sessions                      | Unattended: a coordinator hands work to threads | Opens pull requests; runs tests              | Nothing required in the repo; branches and pull requests                   |
+| T3 Code            | None; a thread per task, kept as its events     | 6 agent CLIs, through their server protocols                    | By hand, one thread per task, in parallel       | Opens pull requests; tests not stated        | An optional `t3.json`; branches, worktrees and hidden checkpoint refs      |
 
 ## Aide
 
@@ -387,6 +394,36 @@ faster.
 coordinator runs tests and opens pull requests, across more than one repository.
 
 **Invasiveness.** Nothing required in the repository; the work shows as branches and pull requests.
+
+## T3 Code
+
+**What it is.** [T3 Code](https://t3.codes/), open source (MIT) from T3 Tools, is a control plane for AI coding
+agents: a server on your own machine that starts the agents and owns the files and git, and desktop, web and mobile
+apps that show their work. It is not a spec tool: each task is a conversation a person leads.
+[Its own architecture notes](https://github.com/pingdotgg/t3code/blob/main/AGENTS.md) and
+[a deep dive](https://flaviocopes.com/t3-code/) describe it.
+
+**Document structure.** No spec files. A task is a thread: its messages and turns, stored as an append-only log of
+events, with a checkpoint after every turn (a hidden git ref) that can restore both the files and the conversation
+to that turn.
+
+**Workflow.** None of its own. A person writes a message, the agent works, and the person reads the diff and writes
+the next one; the model can be changed in the middle of a thread.
+
+**AI tool support.** Claude Code, Codex, OpenCode, Cursor, Grok CLI and Antigravity, each through its own server mode
+where it has one (`codex app-server` for Codex), turned into one shared stream of events. Each runs on the user's
+own subscription.
+
+**Execution.** By hand: a person starts each thread, and can send it to the background to start the next, so several
+run at once, each in its own worktree. Permissions run from asking before every edit and command to full access, and
+a question can be answered from any of its apps, the phone included. There is no queue, schedule or dependency
+between threads.
+
+**Code handling.** A thread is turned into a pull request in one press, with a title and body it writes; a commit
+straight to the default branch is refused. Whether tests run before the pull request is not stated.
+
+**Invasiveness.** An optional `t3.json` in the project, naming scripts to run, such as on a new worktree. The work
+shows as branches, worktrees and the hidden checkpoint refs.
 
 ## Aide's design choices
 

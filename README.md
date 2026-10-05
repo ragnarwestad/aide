@@ -137,9 +137,9 @@ archive step also writes what the change means for the project into the project'
 spec can be reopened later and taken through another round. It is not spec-as-source: you and the AI CLI still
 read and edit the code.
 
-[docs/COMPARISON.md](docs/COMPARISON.md) puts the other spec-driven tools through the same criteria: document
-structure, which AI tools they run on, how they execute a step, what they do with the code, and what each one
-leaves behind in a repository.
+[docs/COMPARISON.md](docs/COMPARISON.md) puts the other spec-driven tools, and the tools that run AI coding agents,
+through the same criteria: document structure, which AI tools they run on, how they execute a step, what they do with
+the code, and what each one leaves behind in a repository.
 
 ---
 
@@ -331,8 +331,9 @@ It lives in `dashboard/` and has its own documentation: **[dashboard/README.md](
 
 About Aide:
 
-- [How Aide compares with the other spec-driven tools](docs/COMPARISON.md) — Kiro, Spec Kit, BMAD, GSD, OpenSpec,
-  Tessl, Cursor's Plan Mode and Augment Code, each answered on the same criteria
+- [How Aide compares with the other spec-driven tools and agent runners](docs/COMPARISON.md) — Kiro, Spec Kit, BMAD,
+  GSD, OpenSpec, Tessl, Cursor's Plan Mode, Augment Code, Claude Projects and T3 Code, each answered on the same
+  criteria
 
 Reading:
 
