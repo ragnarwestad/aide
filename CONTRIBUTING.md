@@ -18,14 +18,14 @@ structure is easier to steer before it's written than after.
 
 ## Two toolchains
 
-The repo root is Python (pytest, no lockfile); `dashboard/` is a separate
+`core/` is Python (pytest, no lockfile, run from the repo root); `dashboard/` is a separate
 Bun + TypeScript project (`dashboard/bun.lock`). Keep changes to one or the
 other — see `.claude/rules/development.md` for why they stay separate.
 
 ## Running the tests
 
 ```bash
-.venv/bin/pytest                    # the root's gate
+.venv/bin/pytest                    # core's gate, run from the root
 cd dashboard && make test           # the dashboard's gate (tsc --noEmit, then bun test)
 scripts/check-bash                  # shellcheck over core/scripts, when a bash script changed
 npx markdownlint-cli2 '**/*.md'     # markdown, from the repo root

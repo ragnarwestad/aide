@@ -19,8 +19,8 @@ every line to its original pre-merge commit and author. The
 standalone `aide-dashboard` repo is kept as a fallback but no longer
 carries a manifest, so it is not a project in its own right anymore.
 
-**Two toolchains, deliberately separate.** The repo root is pytest
-(`pytest.ini`, no lockfile); `dashboard/` is bun + TypeScript
+**Two toolchains, deliberately separate.** `core/` is pytest, run from
+the repo root (`pytest.ini`, no lockfile); `dashboard/` is bun + TypeScript
 (`dashboard/bun.lock`). Aide's test command is its `AIDE_TEST_CMD`, which
 runs both suites and the browser tests. Lint/build detection reads the
 ROOT only — a `package.json` at the root would silently redirect it, which

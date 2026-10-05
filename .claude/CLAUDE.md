@@ -28,13 +28,13 @@ for Claude Code, Codex, OpenCode and Copilot.
 
 ## Commands
 
-Two toolchains, and each has its own gate. Neither is guessed: the repo
-root is pytest and `dashboard/` is bun + TypeScript (see
+Two toolchains, and each has its own gate. Neither is guessed: `core/`
+is pytest, run from the repo root, and `dashboard/` is bun + TypeScript (see
 `.claude/rules/development.md`, "Two toolchains, deliberately separate").
 
 ```bash
-.venv/bin/pytest                    # the root's gate — the shared scripts,
-                                    # the templates, the rules, the skills
+.venv/bin/pytest                    # core's gate, run from the root — the scripts,
+                                    # the templates, the rules, the skills, the installers
 cd dashboard && make test           # the dashboard's gate: tsc --noEmit, then bun test
 cd dashboard && bun test test/queue/schedule-store.test.ts   # one suite
 npx markdownlint-cli2 '**/*.md'     # markdown, from the repo ROOT (the config lives there)
