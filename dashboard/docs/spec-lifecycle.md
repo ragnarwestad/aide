@@ -41,8 +41,10 @@ required field on the Spec tab is empty, the page switches to that tab and shows
 one builds on. A spec that depends on another waits for it to land before its analyze starts. The description holds
 up to 5000 characters.
 
-**The description** says what is wrong and what should be true afterwards. Three parts of it are read by the runs
-that follow:
+**The description** says what is wrong and what should be true afterwards. It is markdown: `##` starts a heading and
+`**` makes bold, as in the parts below. Three parts of it are read by the runs that follow; everything else, headings
+such as `## Problem` and `## Solution` included, is for the people and the AI that read the spec, and no run looks for
+it:
 
 - **Acceptance criteria**, one per line, `- **AC-n:**` followed by a single sentence in one of the five EARS patterns.
   The condition comes first, so a reader knows when the criterion holds before reading what it asks for:
