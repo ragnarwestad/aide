@@ -551,8 +551,10 @@ aide · 81-queue-and-runner · analyze done · $2.1 · https://github.com/…/co
 The dashboard also sends a push notification to each device that turned them on, when a spec needs a person:
 
 - a step **failed**, ran out of **time**, hit the AI's **usage limit**, or was **cut off** (its process vanished, or the
-  server restarted under it) — the job entered `failed`, `stopped` or `interrupted`;
-- a step finished and its merge into main **did not finish**, or its **tests went red** on the merge;
+  server restarted under it) — the job entered `failed`, `stopped` or `interrupted`; a tap opens the Specs list with
+  that spec's row unfolded, where its state and the buttons that act on it are;
+- a step finished and its merge into main **did not finish**, or its **tests went red** on the merge — a tap opens the
+  Specs list with that spec's row unfolded;
 - an **archive is held back** on unticked acceptance criteria — a tap opens the Specs list with that spec's criteria
   unfolded, where they are ticked;
 - a **create ends without a spec**: it failed, stopped, was interrupted, or its own merge failed.
@@ -588,7 +590,8 @@ send.
 - A title — with the project and the spec folder; for a failed create, its title.
 - One sentence — in the language the device had chosen when it turned notifications on (it keeps that language until
   it is turned off and on again); for a failed create, its reason.
-- The spec's page path — which a tap opens; for a failed create, New spec filled in.
+- The Specs list with the spec's row unfolded (or, for a held-back archive, its criteria) — which a tap opens; for a
+  failed create, New spec filled in.
 
 It leaves the machine as an encrypted message to the device's own push service (Google, Apple, Mozilla or
 Microsoft) and is never in the clear there.

@@ -40,7 +40,7 @@ async function board(lang = "en") {
 }
 
 describe("a create that ends without a spec (AC-6)", () => {
-  test("a failed step: one record, one push, and the url is the Try again link", async () => {
+  test("a failed step: one record, one push, and the url is the Try again link (AC-2)", async () => {
     const b = await board();
     const job = b.create();
     b.store.transition(job.id, "step-failed", {

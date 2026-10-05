@@ -12,7 +12,7 @@ import { stepButton, stepLabel } from "../format/step-label.ts";
 import type { Language } from "../i18n";
 import { renderMessage, renderSentence } from "../i18n/message.ts";
 import type { Job } from "../queue/queue.ts";
-import { scheduleRunPath, specPagePath } from "../render";
+import { scheduleRunPath } from "../render";
 import { createFailedCreates, failedCreateFrom, type FailedCreates } from "./failed-creates.ts";
 import { attentionFor, messageKeyFor, seenOf, type Attention, type Seen } from "./attention.ts";
 import { scheduleNameOf, type ScheduleNotify } from "../queue/schedule.ts";
@@ -77,15 +77,15 @@ function payloadFor(a: Attention, job: Job, lang: Language): { title: string; bo
     };
   }
   const values = { step: stepLabel(a.step, lang), button: stepButton(a.step) };
+  // Both open the Specs list, where the spec's state and the buttons that
+  // act on it are: a held-back archive with its criteria unfolded, since
+  // they are ticked there, and a failed, stopped or interrupted step with
+  // its row unfolded.
+  const fold = a.kind === "archive-held-back" ? "checks" : "open";
   return {
     title: `${job.project} · ${job.specFolder}`,
     body: renderMessage(lang, { key: messageKeyFor(a), values }),
-    // A held-back archive waits for criteria to be ticked, and they are
-    // ticked on the Specs list: it opens there with this spec's unfolded.
-    url:
-      a.kind === "archive-held-back"
-        ? `/?checks=${encodeURIComponent(`${job.project}/${job.specFolder}`)}`
-        : specPagePath(job.project, job.specFolder),
+    url: `/?${fold}=${encodeURIComponent(`${job.project}/${job.specFolder}`)}`,
   };
 }
 
