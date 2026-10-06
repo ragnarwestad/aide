@@ -1,5 +1,5 @@
 // One panel per AI: where aide installs for it, then three tabs —
-// Models, Subscription and Installation — each with its own Check, which
+// Models, Usage and Installation — each with its own Check, which
 // reads what that tab shows and nothing else, and its own last reading.
 //
 // The places in the opening sentence come from

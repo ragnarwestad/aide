@@ -311,7 +311,7 @@ export const es: Record<TranslationKey, string> = {
   "settings.checkHelpTitle":
     "Qué averigua Check",
   "settings.part.models": "Modelos",
-  "settings.part.subscription": "Suscripción",
+  "settings.part.subscription": "Uso",
   "settings.part.installation": "Instalación",
   "settings.checkHelp.models.claude":
     "Esta comprobación pregunta a Claude Code qué versión da hoy cada uno de opus, sonnet, fable y haiku, con /model, que no ejecuta ningún modelo, y compara lo que ofrece con los modelos que se pueden elegir en el dashboard.",

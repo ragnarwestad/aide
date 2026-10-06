@@ -139,7 +139,7 @@ describe("the tabs inside an AI's tab", () => {
       label: m[2],
     }));
 
-  test("they are Models, Subscription and Installation, in that order, each a link of its own (AC-1)", () => {
+  test("they are Models, Usage and Installation, in that order, each a link of its own (AC-1)", () => {
     expect([...TOOL_PARTS]).toEqual(["models", "subscription", "installation"]);
     for (const tool of ["claude", "codex", "copilot", "opencode"] as const) {
       expect(innerTabs(toolPanel(tool, undefined))).toEqual(TOOL_PARTS.map((part) => ({

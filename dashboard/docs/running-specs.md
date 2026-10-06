@@ -210,7 +210,7 @@ is named `provider/model`, so that whole string is what `model` holds — `openc
 provider is logged in (`opencode providers login`); the Settings page's own OpenCode tab answers whether one is, and
 whether every model configured here still appears in that provider's list.
 
-**Each AI's tab has three tabs of its own: Models, Subscription and Installation**, and opens on Models. Each has
+**Each AI's tab has three tabs of its own: Models, Usage and Installation**, and opens on Models. Each has
 its own **Check**, which reads what that tab shows and leaves the other two as they were, and each tab stamps the time
 of its own last reading. The **(?)** in front of a Check says what that one reads for that AI. The address names the
 open tab (`/settings?tab=claude&aitab=installation`), so a press of Check loads the same tab again. Like the
@@ -218,7 +218,7 @@ installation check, the usage and the models are read on a press and at no other
 not before a job, and not when a page is opened. The installation check alone also runs at start and before a waiting
 job, which is what the notice at the top of every page reads; that notice links to the AI's Installation tab.
 
-**The Subscription tab shows how much of the AI's subscription is used**: each usage window with the share used, when
+**The Usage tab shows how much of the AI's subscription is used**: each usage window with the share used, when
 it starts over, and when it was read. Claude Code's comes from `claude -p /usage`, and Codex's from
 `codex app-server`'s `account/rateLimits/read`; neither runs a model. When Claude's text has no line the board can read as a
 window, the tab shows the text as it came. OpenCode reports no usage windows, and the board does not read Copilot's,

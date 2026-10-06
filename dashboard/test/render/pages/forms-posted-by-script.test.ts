@@ -74,7 +74,7 @@ describe("each form the page script posts and loads again", () => {
     ["Build wiki", () => projectPage({ tab: "wiki" }), "/api/queue/projects/aide/wiki"],
     ["a running build's Cancel", () => projectPage({ tab: "wiki", wikiBuild: { id: "w1", state: "running" } }), "/api/queue/w1/cancel"],
     ["an AI's Models Check", () => toolPanel("claude", undefined, undefined, 0, {}, "en", "models"), "/api/queue/settings/check"],
-    ["an AI's Subscription Check", () => toolPanel("claude", undefined, undefined, 0, {}, "en", "subscription"), "/api/queue/settings/check"],
+    ["an AI's Usage Check", () => toolPanel("claude", undefined, undefined, 0, {}, "en", "subscription"), "/api/queue/settings/check"],
     ["an AI's Installation Check", () => toolPanel("claude", undefined, undefined, 0, {}, "en", "installation"), "/api/queue/settings/check"],
     ["an offered model's Add", () => toolPanel("codex", undefined, undefined, 0, {
       reading: { tool: "codex", at: "2026-10-03T13:30:00Z", offered: [{ model: "gpt-5.5" }] },

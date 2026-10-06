@@ -323,7 +323,7 @@ export const en = {
   "settings.checkHelpTitle":
     "What Check finds out",
   "settings.part.models": "Models",
-  "settings.part.subscription": "Subscription",
+  "settings.part.subscription": "Usage",
   "settings.part.installation": "Installation",
   "settings.checkHelp.models.claude":
     "This Check asks Claude Code which version each of opus, sonnet, fable and haiku gives today, with /model, which runs no model, and sets what it offers against the models that can be picked on the board.",

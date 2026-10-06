@@ -41,7 +41,7 @@ export async function handleQueueAdminRoutes(
 
   // Asking one tool one of three things, as the tab whose Check was
   // pressed shows it: whether it is usable on this host (Installation),
-  // how much of its subscription is used (Subscription), or which models
+  // how much of its subscription is used (Usage), or which models
   // it offers (Models). A press reads that one and leaves the other two
   // readings as they were. A GET never runs any of them: each spawns a CLI
   // and reaches the network, so they happen when a button is pressed and

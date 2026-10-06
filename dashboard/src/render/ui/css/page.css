@@ -55,11 +55,14 @@ nav.tabbar.subtabs > .row { margin-left: auto; flex: 0 0 auto; flex-wrap: nowrap
    own — the class vocabulary is closed, and
    `:has()` is how `narrow.css` already scopes a rule to the page it is
    about. Every other page's tab bar is untouched: the spec page's own
-   actions ride at its right end. */
+   actions ride at its right end. The panel holds one width whichever of
+   an AI's tabs is open — the 70ch its own prose already has, or the room
+   there is — so a long preflight line wraps or scrolls in .checkoutput
+   instead of widening the panel and moving the tabs. */
 main:has(> nav.tabbar.subtabs a[href^="/settings"]) > nav.tabbar.subtabs {
   justify-content: center; }
 main:has(> nav.tabbar.subtabs a[href^="/settings"]) > .toolpanel {
-  width: fit-content; margin-inline: auto; }
+  width: min(70ch, 100%); margin-inline: auto; }
 /* Narrower than the site's two: seven tabs at 7rem each do not fit a
    laptop, and these labels are one word. They keep the row's own
    rhythm by their padding instead. */

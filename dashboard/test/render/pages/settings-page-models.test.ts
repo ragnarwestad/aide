@@ -200,7 +200,7 @@ describe("each of an AI's tabs stamps its own reading", () => {
     }
   });
 
-  test("the Subscription tab draws the usage reading, and the other two do not (AC-7)", () => {
+  test("the Usage tab draws the usage reading, and the other two do not (AC-7)", () => {
     expect(draw("subscription")).toContain("Stand-in window");
     expect(draw("models")).not.toContain("Stand-in window");
     expect(draw("installation")).not.toContain("Stand-in window");

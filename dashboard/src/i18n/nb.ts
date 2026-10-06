@@ -314,7 +314,7 @@ export const nb: Record<TranslationKey, string> = {
   "settings.checkHelpTitle":
     "Hva Check finner ut",
   "settings.part.models": "Modeller",
-  "settings.part.subscription": "Abonnement",
+  "settings.part.subscription": "Forbruk",
   "settings.part.installation": "Installasjon",
   "settings.checkHelp.models.claude":
     "Denne sjekken spør Claude Code hvilken versjon opus, sonnet, fable og haiku gir i dag, med /model, som ikke kjører noen modell, og holder det den tilbyr opp mot modellene som kan velges i dashbordet.",

@@ -312,7 +312,7 @@ export const fr: Record<TranslationKey, string> = {
   "settings.checkHelpTitle":
     "Ce que Check découvre",
   "settings.part.models": "Modèles",
-  "settings.part.subscription": "Abonnement",
+  "settings.part.subscription": "Utilisation",
   "settings.part.installation": "Installation",
   "settings.checkHelp.models.claude":
     "Cette vérification demande à Claude Code quelle version donne aujourd'hui chacun d'opus, sonnet, fable et haiku, avec /model, qui ne lance aucun modèle, et compare ce qu'il propose aux modèles qui peuvent être choisis dans le tableau de bord.",

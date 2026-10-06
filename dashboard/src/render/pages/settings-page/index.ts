@@ -105,7 +105,7 @@ export interface SettingsPageOptions {
    *  not been asked about. */
   checks?: Partial<Record<CheckableTool, ToolCheck>>;
   /** The last usage read for each tool. Read only by a press of the
-   *  Subscription tab's Check, so a tool with no entry has not been read. */
+   *  Usage tab's Check, so a tool with no entry has not been read. */
   usage?: Partial<Record<CheckableTool, ToolUsage>>;
   /** The last reading of each tool's models. Read only by a press of the
    *  Models tab's Check, so a tool with no entry has not been read. */
