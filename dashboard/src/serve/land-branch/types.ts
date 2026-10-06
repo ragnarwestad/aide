@@ -6,6 +6,7 @@ import type { QueueStore, BranchRef, Job, WorkflowStep } from "../../queue/queue
 import type { BranchStatusChecker, GitRunner } from "../../git/branch-status.ts";
 import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/workflow-history.ts";
 import type { SpecCreatedAtChecker, DescriptionFreshnessChecker } from "../../git/description-freshness.ts";
+import type { PullRequestAnswer } from "../../integrations/pull-requests.ts";
 import type { CodeLanding } from "../../project/discover";
 import type { QueueRowView } from "../../render";
 import type { createRootLock } from "../serve-helpers";
@@ -20,6 +21,9 @@ import type { TestServersContext } from "../test-servers/lifecycle.ts";
 export interface LandContext {
   machineryProjectDir: (project: string) => string;
   codeLanding: (project: string) => CodeLanding;
+  /** What GitHub last said about each archived spec's pull request,
+   *  keyed `project/folder` (`ServerState.pullRequests`). */
+  pullRequests?: Map<string, PullRequestAnswer>;
   queue: QueueStore;
   mergeLock: ReturnType<typeof createRootLock>;
   gitRun: GitRunner;

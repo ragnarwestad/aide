@@ -146,6 +146,10 @@ export function queueHarness(prefix: string, defaultStatus?: string): QueueHarne
         // and a test that cares about a taken port says so through
         // `extra` below.
         testServersPortProbe: () => true,
+        // The default would spawn a real `gh`, and a project that reviews
+        // its code asks it on every sweep. No answer here, as for a host
+        // where `gh` is missing; a test about the answer passes its own.
+        ghRun: async () => ({ code: 1, stdout: "" }),
         ...extra,
       });
       servers.push(server);

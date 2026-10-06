@@ -16,10 +16,11 @@ import type {
 } from "../../git/description-freshness.ts";
 import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/workflow-history.ts";
 import { resolveOpenBranchTarget } from "../../git/branch-file.ts";
+import { askPullRequest, type GhRunner, type PullRequestAnswer } from "../../integrations/pull-requests.ts";
 import type { DashboardCheckout } from "../../git/dashboard-checkout.ts";
 import type { CheckoutEnsurer } from "../../git/checkout-ensurer.ts";
 import {
-  SPEC_FILES, buildProjectViews, manifestInside, resolveInstallCmd,
+  SPEC_FILES, buildProjectViews, manifestInside, resolveInstallCmd, type CodeLanding,
 } from "../../project/discover";
 import { isDue, mostRecentFireTime, scheduleTrackingKey, type ScheduleJobRef } from "../../queue/schedule.ts";
 import type { QueueStore } from "../../queue/queue.ts";
@@ -93,6 +94,12 @@ export interface ScheduleContext {
    *  have answered right on the very next request, but nothing told the
    *  page already open to make one. */
   notifyQueueChanged: () => void;
+  /** What asks GitHub whether an archived spec's pull request merged, how
+   *  a project lands its code, and where the answers are kept. Absent,
+   *  the sweep asks GitHub nothing. */
+  codeLanding?: (project: string) => CodeLanding;
+  ghRun?: GhRunner;
+  pullRequests?: Map<string, PullRequestAnswer>;
 }
 
 export async function refreshDrift(ctx: ScheduleContext): Promise<void> {
@@ -248,7 +255,8 @@ export async function refreshSpecCaches(ctx: ScheduleContext): Promise<void> {
       // project whose origin is unreachable costs one complaint, once.
       ...[...ctx.allowed].map((project) => ctx.ensureCheckout(project)),
     ]);
-    const mergedMoved = await refreshMergedAnswers(ctx, archivedKeys);
+    const gitMoved = await refreshMergedAnswers(ctx, archivedKeys);
+    const mergedMoved = (await refreshPullRequestAnswers(ctx, archivedKeys)) || gitMoved;
     // Spec 275: only a root whose answer MOVED tells anyone, and only
     // once per tick, however many roots moved — a tick that finds
     // nothing new stays silent, exactly as spec 189 already promises
@@ -278,6 +286,43 @@ async function refreshMergedAnswers(ctx: ScheduleContext, archivedKeys: string[]
   }
   const now = await Promise.all(asks.map((a) => ctx.branchStatus.isMerged(a.root, a.branch)));
   return asks.some((a, i) => a.was !== now[i]);
+}
+
+/** What GitHub says about the pull request of each archived spec of a
+ *  project that reviews its code, for the branches still on origin in its
+ *  code checkout: a squash merge never makes git call the branch merged,
+ *  so only GitHub can say the review is over. A question it did not answer
+ *  leaves the last answer where it was, and an answer is dropped once its
+ *  spec is no longer asked about, so a spec archived again is asked afresh.
+ *  True when an answer's `merged` moved or one was dropped. */
+async function refreshPullRequestAnswers(ctx: ScheduleContext, archivedKeys: string[]): Promise<boolean> {
+  const { codeLanding, ghRun, pullRequests } = ctx;
+  if (!codeLanding || !ghRun || !pullRequests) return false;
+  const landing = new Map<string, boolean>();
+  const asks: { key: string; root: string; branch: string }[] = [];
+  for (const key of archivedKeys) {
+    const cut = key.indexOf("/");
+    const project = key.slice(0, cut);
+    if (!landing.has(project)) landing.set(project, codeLanding(project) === "pr");
+    if (!landing.get(project)) continue;
+    const root = ctx.machineryProjectDir(project);
+    const branch = specBranch(key.slice(cut + 1));
+    if (ctx.branchStatus.peekOpenSpecBranches(root).open?.has(branch)) asks.push({ key, root, branch });
+  }
+  let moved = false;
+  for (const key of [...pullRequests.keys()]) {
+    if (asks.some((a) => a.key === key)) continue;
+    pullRequests.delete(key);
+    moved = true;
+  }
+  const answers = await Promise.all(asks.map((a) => askPullRequest(ghRun, a.root, a.branch).catch(() => null)));
+  asks.forEach((a, i) => {
+    const answer = answers[i];
+    if (!answer) return;
+    if ((pullRequests.get(a.key)?.merged ?? false) !== answer.merged) moved = true;
+    pullRequests.set(a.key, answer);
+  });
+  return moved;
 }
 
 function sameOpenSet(a: Set<string> | null, b: Set<string> | null): boolean {

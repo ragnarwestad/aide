@@ -26,6 +26,7 @@ import {
 } from "../project/parse-status";
 import { currentPhase, readSpecState } from "../project/parse-spec-state.ts";
 import { specPendingChoice } from "../project/approach-choice.ts";
+import type { PullRequestAnswer } from "../integrations/pull-requests.ts";
 import type { SpecTarget } from "../render";
 import { resolveDependencyFolder } from "./serve-helpers";
 
@@ -62,6 +63,9 @@ export interface SpecLookupContext {
    *  it (spec 298's checker). Attached after the schedules exist, so
    *  optional; absent, every read below is off disk. */
   readBranchFileSteps?: () => BranchFileStepsChecker | undefined;
+  /** What GitHub last said about each archived spec's pull request,
+   *  keyed `project/folder`; absent, git's answer is the only one. */
+  pullRequests?: Map<string, PullRequestAnswer>;
 }
 
 /** Where every spec's four files are, ARCHIVED ONES INCLUDED (spec
@@ -255,6 +259,14 @@ export async function rootsStillHolding(
   return [...held];
 }
 
+/** A specs root INSIDE the project is the same repository, so it holds
+ *  the same one branch and answers `ls-remote` identically. Counting it
+ *  as a second root would call every single-repo project's review a
+ *  failed landing, and paceup and atlasaurus are both shaped that way. */
+function inCodeRepo(codeRoot: string, root: string): boolean {
+  return root === codeRoot || resolve(root).startsWith(resolve(codeRoot) + sep);
+}
+
 /** Rebuild `unlanded` from one `ls-remote` per ROOT — never one per
  *  spec. The archived keys come off the scan the page already keeps,
  *  and the intersection is done in memory. */
@@ -280,14 +292,6 @@ export function peekUnlanded(ctx: SpecLookupContext): { unlanded: string[]; prOp
     const elsewhere = new Set<string>();
     const codeRoot = ctx.machineryProjectDir(project);
     const pr = ctx.codeLanding(project) === "pr";
-    // A specs root INSIDE the project is the same repository, so it
-    // holds the same one branch and answers `ls-remote` identically —
-    // `specRoots` asks it separately because it compares paths, not
-    // repos. Counting that as a second root would call every
-    // single-repo project's review a failed landing, and paceup and
-    // atlasaurus are both shaped that way.
-    const separate = (root: string): boolean =>
-      root !== codeRoot && !resolve(root).startsWith(resolve(codeRoot) + sep);
     for (const root of specRoots(ctx, project)) {
       // A root nobody has asked about yet peeks `null`, and `?? []`
       // makes it contribute nothing — the same way an unanswerable
@@ -295,7 +299,7 @@ export function peekUnlanded(ctx: SpecLookupContext): { unlanded: string[]; prOp
       // without any new logic to get wrong.
       for (const branch of ctx.branchStatus.peekOpenSpecBranches(root).open ?? []) {
         open.add(branch);
-        if (separate(root)) elsewhere.add(branch);
+        if (!inCodeRepo(codeRoot, root)) elsewhere.add(branch);
       }
     }
     for (const folder of folders) {
@@ -308,14 +312,33 @@ export function peekUnlanded(ctx: SpecLookupContext): { unlanded: string[]; prOp
   return { unlanded: found, prOpen: reviewing };
 }
 
+/** GitHub's answer when it says the spec's pull request merged, for a
+ *  project that reviews its code and a root in the code repository. A
+ *  specs root of its own is merged at archive, so git alone answers. */
+export function mergedPullRequest(
+  ctx: Pick<SpecLookupContext, "machineryProjectDir" | "codeLanding" | "pullRequests">,
+  project: string,
+  folder: string,
+  root: string,
+): PullRequestAnswer | undefined {
+  if (ctx.codeLanding(project) !== "pr" || !inCodeRepo(ctx.machineryProjectDir(project), root)) return undefined;
+  const answer = ctx.pullRequests?.get(`${project}/${folder}`);
+  return answer?.merged ? answer : undefined;
+}
+
 /** Whether an archived spec's open branch is merged in every root that
  *  still holds it: only a cleanup is left. A root never asked, or one
  *  that answered "not merged", makes it false, and the row reads "not
- *  landed" as before. Peeks only, like `peekUnlanded`. */
+ *  landed" as before. Peeks only, like `peekUnlanded`. A squash merge
+ *  leaves the branch outside the default branch for good, so a project
+ *  that reviews its code also counts a merged pull request. */
 export function peekMergedOnOrigin(ctx: SpecLookupContext, project: string, folder: string): boolean {
   const branch = specBranch(folder);
   const holding = specRoots(ctx, project).filter((r) => ctx.branchStatus.peekOpenSpecBranches(r).open?.has(branch));
-  return holding.length > 0 && holding.every((r) => ctx.branchStatus.peekMerged(r, branch) === true);
+  return (
+    holding.length > 0 &&
+    holding.every((r) => ctx.branchStatus.peekMerged(r, branch) === true || !!mergedPullRequest(ctx, project, folder, r))
+  );
 }
 
 /** When the set was last taken, for the archive page's own label: an

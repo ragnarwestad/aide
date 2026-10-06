@@ -11,8 +11,9 @@ import { fakeGit } from "../../helpers/fake-git.ts";
 
 const FOLDER = "300-left-behind";
 const KEY = `aide/${FOLDER}`;
+const PR_URL = "https://github.com/example/aide/pull/37";
 
-function ctxFor(o: { merged: boolean; closed?: boolean; open?: boolean }): {
+function ctxFor(o: { merged: boolean; closed?: boolean; open?: boolean; reviewing?: boolean }): {
   ctx: SpecViewsContext;
   deleteErrorAsked: string[];
 } {
@@ -23,7 +24,7 @@ function ctxFor(o: { merged: boolean; closed?: boolean; open?: boolean }): {
     targets: () => [],
     peekUnlanded: () => (o.open === false ? [] : [KEY]),
     peekUnlandedCheckedAt: () => 1000,
-    readPrOpen: () => [],
+    readPrOpen: () => (o.reviewing ? [KEY] : []),
     readScan: () => ({ archived: [KEY], refs: new Map([[KEY, ref]]) }),
     queue: {
       list: () => [],
@@ -31,7 +32,7 @@ function ctxFor(o: { merged: boolean; closed?: boolean; open?: boolean }): {
         deleteErrorAsked.push(folder);
         return { key: "landing.branchDeleteFailed", values: {} };
       },
-      pullRequestFor: () => ({}),
+      pullRequestFor: () => ({ prUrl: PR_URL }),
     } as never,
     peekMergedOnOrigin: (project: string, folder: string) => project === "aide" && folder === FOLDER && o.merged,
     specCreatedAt: { peekCreatedAtForArchived: () => ({ createdAt: null }) } as never,
@@ -71,6 +72,32 @@ describe("an archived spec whose branch is still on origin", () => {
     const { ctx } = ctxFor({ merged: true, open: false });
     const [row] = archivedSpecRows(ctx, "all");
     expect(row?.notLanded).toBe(false);
+    expect(row?.branchLeftBehind).toBeFalsy();
+  });
+});
+
+describe("an archived spec of a project that reviews its code", () => {
+  test("whose pull request merged is left behind, not waiting on a review (AC-1, AC-4)", () => {
+    const { ctx } = ctxFor({ merged: true, reviewing: true });
+    const [row] = archivedSpecRows(ctx, "archived");
+    expect(row?.branchLeftBehind).toBe(true);
+    expect(row?.prOpen).toBe(false);
+    expect(row?.prUrl).toBeUndefined();
+    expect(row?.notLanded).toBe(false);
+  });
+
+  test("whose pull request is still open keeps its review line and link (AC-2)", () => {
+    const { ctx } = ctxFor({ merged: false, reviewing: true });
+    const [row] = archivedSpecRows(ctx, "archived");
+    expect(row?.prOpen).toBe(true);
+    expect(row?.prUrl).toBe(PR_URL);
+    expect(row?.branchLeftBehind).toBeFalsy();
+  });
+
+  test("a closed spec keeps its review line as before (AC-2)", () => {
+    const { ctx } = ctxFor({ merged: true, closed: true, reviewing: true });
+    const [row] = archivedSpecRows(ctx, "all");
+    expect(row?.prOpen).toBe(true);
     expect(row?.branchLeftBehind).toBeFalsy();
   });
 });

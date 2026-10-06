@@ -82,6 +82,7 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
   const landCtx: LandContext = {
     machineryProjectDir: inputs.machineryProjectDir,
     codeLanding: inputs.codeLanding,
+    pullRequests: state.pullRequests,
     queue: inputs.queue,
     mergeLock: inputs.mergeLock,
     gitRun: inputs.gitRun,

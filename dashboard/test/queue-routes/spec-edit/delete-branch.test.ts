@@ -29,6 +29,10 @@ interface Origin {
   unanswerable?: boolean;
   /** The root (by path suffix) whose merged answer is "not an ancestor". */
   notMergedIn?: string;
+  /** Every root's merged answer is "not an ancestor": a squash merge. */
+  notMergedAnywhere?: boolean;
+  /** The sha `ls-remote` prints for the branch; a placeholder if unset. */
+  tip?: string;
   /** Origin refuses the delete. */
   refuseDelete?: boolean;
   /** A landing's merge waits on this, so the landing stays in flight. */
@@ -49,7 +53,10 @@ function originGit(origin: Origin) {
     if (a.startsWith("ls-remote")) {
       if (origin.unanswerable) return { code: 128, stdout: "", stderr: "Could not resolve host" };
       if (a.startsWith("ls-remote --exit-code")) {
-        return origin.has.has(args[4]!.replace("refs/heads/", "")) ? { code: 0, stdout: "sha\n" } : { code: 2, stdout: "" };
+        const branch = args[4]!.replace("refs/heads/", "");
+        return origin.has.has(branch)
+          ? { code: 0, stdout: `${origin.tip ?? "sha"}\trefs/heads/${branch}\n` }
+          : { code: 2, stdout: "" };
       }
       return { code: 0, stdout: [...origin.has].map((b) => `sha\trefs/heads/${b}\n`).join("") };
     }
@@ -57,7 +64,8 @@ function originGit(origin: Origin) {
     if (a === "rev-parse --show-toplevel") return { code: 0, stdout: `${top(dir)}\n` };
     if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
     if (a.startsWith("merge-base --is-ancestor")) {
-      return { code: origin.notMergedIn && dir.endsWith(origin.notMergedIn) ? 1 : 0, stdout: "" };
+      const notMerged = origin.notMergedAnywhere || (origin.notMergedIn && dir.endsWith(origin.notMergedIn));
+      return { code: notMerged ? 1 : 0, stdout: "" };
     }
     if (a === DELETE) {
       if (origin.refuseDelete) return { code: 1, stdout: "", stderr: "remote rejected: hook declined" };
@@ -69,17 +77,32 @@ function originGit(origin: Origin) {
   return { run, calls, deletes: () => calls.filter((c) => c.args.join(" ") === DELETE) };
 }
 
-function startWith(origin: Origin, opts: { closed?: boolean; queueMirror?: string; results?: string } = {}) {
+/** A project that reviews its code: `codeLanding: pr` in its manifest, and a
+ *  `gh` that says the branch's pull request merged from `mergedHead`. */
+interface Reviewed {
+  mergedHead: string;
+}
+
+function startWith(
+  origin: Origin,
+  opts: { closed?: boolean; queueMirror?: string; results?: string; reviewed?: Reviewed } = {},
+) {
   const git = originGit(origin);
   const status = opts.closed
     ? `${statusSaying(["create", "analyze", "close"])}\n- **Closed:** 2026-09-20 — did not hold\n`
     : statusSaying(["create", "analyze", "implement", "archive"]);
   const runner = opts.results ? { queueRunnerBin: "/usr/bin/true", queueResultDir: opts.results } : {};
+  const { mergedHead } = opts.reviewed ?? {};
+  const gh = mergedHead
+    ? { ghRun: async () => ({ code: 0, stdout: JSON.stringify([{ state: "MERGED", headRefOid: mergedHead }]) }) }
+    : {};
   const { base, dir } = harness.start({
     archivedSpecs: { [FOLDER]: { status } },
-    extra: { gitRun: git.run as never, ...runner },
+    extra: { gitRun: git.run as never, ...runner, ...gh },
     ...(opts.queueMirror ? { queueMirror: opts.queueMirror } : {}),
   });
+  // Written after the server starts, which works because `codeLanding` is read on every call.
+  if (opts.reviewed) writeFileSync(join(dir, "root", "aide", ".aide", "project.yaml"), "name: aide\ncodeLanding: pr\n");
   return { base, dir, git };
 }
 
@@ -113,6 +136,47 @@ describe("Delete branch deletes a merged branch left on origin (AC-3)", () => {
     expect(await res.json()).toEqual({ ok: true });
     expect(git.deletes()).toHaveLength(0);
     expect(await archivedBlock(base)).not.toContain(NOTE);
+  });
+});
+
+const REVIEW_LINES = ["waiting on a pull request", "no pull request was opened"];
+
+// A project that reviews its code squash-merges the pull request, so git
+// never calls the branch merged; only GitHub says it did. The row must read
+// the Slett gren line, and the press must accept the head that merged.
+describe("a squash-merged pull request's branch left on origin (AC-1, AC-3, AC-4)", () => {
+  const MERGED_HEAD = "9f3c0de";
+  const squashed = (over: Partial<Origin> = {}): Origin => ({
+    has: new Set([BRANCH]), notMergedAnywhere: true, tip: MERGED_HEAD, ...over,
+  });
+
+  test("the row reads the Slett gren line and no review line (AC-1, AC-4)", async () => {
+    const { base } = startWith(squashed(), { reviewed: { mergedHead: MERGED_HEAD } });
+    const block = blockFor(await listUntil(base, NOTE, ARCHIVED_VIEW), FOLDER);
+    expect(block).toContain(NOTE);
+    for (const line of REVIEW_LINES) expect(block).not.toContain(line);
+  });
+
+  test("the press deletes it once per repository and leaves no amber line (AC-3)", async () => {
+    const { base, git } = startWith(squashed(), { reviewed: { mergedHead: MERGED_HEAD } });
+    await listUntil(base, NOTE, ARCHIVED_VIEW);
+    const res = await press(base);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
+    expect(git.deletes()).toHaveLength(1);
+    const block = await archivedBlock(base);
+    for (const line of [NOTE, ...REVIEW_LINES]) expect(block).not.toContain(line);
+  });
+
+  test("a tip that is no longer the merged head is refused, nothing deleted (AC-3)", async () => {
+    const origin = squashed();
+    const { base, git } = startWith(origin, { reviewed: { mergedHead: MERGED_HEAD } });
+    await listUntil(base, NOTE, ARCHIVED_VIEW);
+    origin.tip = "pushed-after-the-merge";
+    const res = await press(base);
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toContain("not on the default branch");
+    expect(git.deletes()).toHaveLength(0);
   });
 });
 

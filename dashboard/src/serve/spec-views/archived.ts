@@ -110,18 +110,20 @@ export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefine
     if (job.testsGreenOnRetry) retried.set(`${job.project}/${job.specFolder}`, job.testsGreenOnRetry);
   }
   for (const key of scan?.archived ?? []) {
-    // The two marks come from one fact and mean opposite things (spec
-    // 220), so the deliberate one wins outright rather than both being
-    // set and the renderer picking.
-    const prWaiting = reviewing.has(key);
     const cut = key.indexOf("/");
     const project = key.slice(0, cut);
     const ref = scan?.refs.get(key);
-    const branchOpen = open.has(key) && !prWaiting;
     // Merged in every root that holds it: the work landed and only a
     // cleanup is left, so the spec is archived. A closed spec's branch
     // was never meant to merge, and its row reads as before.
-    const branchLeftBehind = branchOpen && !ref?.closed && ctx.peekMergedOnOrigin(project, key.slice(cut + 1));
+    const merged = open.has(key) && !ref?.closed && ctx.peekMergedOnOrigin(project, key.slice(cut + 1));
+    // The two marks come from one fact and mean opposite things (spec
+    // 220), so one wins outright rather than both being set and the
+    // renderer picking: a review that is still open, unless the merged
+    // answer says the pull request has nothing left to review.
+    const prWaiting = reviewing.has(key) && !merged;
+    const branchOpen = open.has(key) && !prWaiting;
+    const branchLeftBehind = branchOpen && merged;
     const notLanded = branchOpen && !branchLeftBehind;
     // The gate, and it is BEFORE the two file reads under it — after
     // them it would be a filter, not a gate, and would cost the

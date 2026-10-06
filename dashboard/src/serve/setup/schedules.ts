@@ -17,6 +17,8 @@ import {
 import { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/workflow-history.ts";
 import type { DashboardCheckout } from "../../git/dashboard-checkout.ts";
 import type { CheckoutEnsurer } from "../../git/checkout-ensurer.ts";
+import type { GhRunner } from "../../integrations/pull-requests.ts";
+import { resolveCodeLanding } from "../../project/discover";
 import type { QueueStore } from "../../queue/queue.ts";
 import type { CheckableTool, SpecTarget } from "../../render";
 import {
@@ -28,12 +30,15 @@ import {
   tickRunner as tickRunnerImpl,
   type ScheduleContext,
 } from "../schedules";
+import { runScript } from "../land-branch/run-script.ts";
 import { createRootLock, SPEC_CACHE_POLL_MS } from "../serve-helpers";
 import type { ServerState } from "../state.ts";
 import type { ScheduleStore } from "../../queue/schedule-store.ts";
 
 export interface ScheduleSetupOptions {
   projectRoot?: string;
+  /** How GitHub is asked about a pull request; `gh` through `runScript` unless a test supplies one. */
+  ghRun?: GhRunner;
   driftPollMs?: number;
   specCachePollMs?: number;
   scheduleCheckMs?: number;
@@ -69,6 +74,13 @@ export interface ScheduleSetupInputs {
 export function specCacheTimes(pollMs = SPEC_CACHE_POLL_MS): { pollMs: number; ttlMs: number } {
   return { pollMs, ttlMs: pollMs > 0 ? Math.min(pollMs, DEFAULT_TTL_MS) : DEFAULT_TTL_MS };
 }
+
+/** `gh` on the PATH a step's own spawn gets, so it is the one the runner
+ *  finds. No answer, not an error, where it cannot be run. */
+const runGh: GhRunner = (dir, args) =>
+  runScript(["gh", ...args], dir, 10_000, undefined, { GH_PROMPT_DISABLED: "1", GH_NO_UPDATE_NOTIFIER: "1" }).catch(
+    () => ({ code: 127, stdout: "" }),
+  );
 
 export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, inputs: ScheduleSetupInputs) {
   const {
@@ -121,6 +133,9 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
     checkoutEnsurer,
     notifyQueueChanged,
     recheckTools,
+    codeLanding: (project) => resolveCodeLanding(machineryProjectDir(project)),
+    ghRun: opts.ghRun ?? runGh,
+    pullRequests: state.pullRequests,
   };
   function refreshDrift() {
     return refreshDriftImpl(scheduleCtx);

@@ -337,7 +337,7 @@ the Add form, which leaves it unchosen and refuses a project added without an an
 | Code landing                                | What happens                                                                                                                                                                                                                                        |
 |---------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Merge into the default branch               | Archive merges the code branch into the project's main branch, once the project's tests pass on the merged result.                                                                                                                                  |
-| Create a pull request                       | Each step that pushes the code branch opens a pull request for it, and archive leaves that pull request open instead of merging, so someone can review the code before it reaches main. The row links to it for as long as the branch is on origin. |
+| Create a pull request                       | Each step that pushes the code branch opens a pull request for it, and archive leaves that pull request open instead of merging, so someone can review the code before it reaches main. The row links to it until it merges.                        |
 
 Either way, the spec folder itself is archived straight away: its move to `archive/` is merged into the specs
 repository without review. A project that keeps its specs inside its own repository has one branch for both, so there
@@ -346,6 +346,10 @@ the archived spec waits in the same pull request as the code.
 A pull request is opened with `gh` on the machine that runs the dashboard, so `gh` has to be logged in there. When it
 is not, the run still succeeds, and the row says no pull request was opened and that one can be opened by hand — on the
 line of the step that tried, since that is the step that called `gh`.
+
+Once the pull request has merged, on GitHub, the archived spec's row stops asking for a review and offers Delete branch
+for the branch left on origin. The dashboard asks `gh` whether the request merged, every few minutes and only for a
+project that creates pull requests; without an answer the row keeps the review line.
 
 Two cases are not failures, and the row says nothing about either going wrong. A step that pushed nothing to the
 project's own repository opens no request at all, and says so nowhere: a create and an analyze change the spec folder

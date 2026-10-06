@@ -176,6 +176,7 @@ export function setupProjectResolution(
     gitRun,
     resolvedCheckouts,
     ensureCheckout,
+    pullRequests: state.pullRequests,
   };
   function targets() {
     return targetsImpl(specLookupCtx);

@@ -23,6 +23,7 @@ import { BranchStatusChecker } from "../../src/git/branch-status.ts";
 import { refreshSpecCaches, rereadSpec, type ScheduleContext } from "../../src/serve/schedules";
 import { createScheduleStore } from "../../src/queue/schedule-store.ts";
 import type { QueueStore } from "../../src/queue/queue.ts";
+import type { GhRunner, PullRequestAnswer } from "../../src/integrations/pull-requests.ts";
 import type { CheckoutEnsurer } from "../../src/git/checkout-ensurer.ts";
 import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../src/git/workflow-history.ts";
 import type {
@@ -625,5 +626,115 @@ describe("refreshSpecCaches asks whether an open archived branch is merged", () 
     ancestor.code = 1; // the open set is the same; only the merged answer moved
     await refreshSpecCaches(ctx);
     expect(notifyCount()).toBe(2);
+  });
+});
+
+// A project that reviews its code leaves the archived spec's branch on
+// origin until the pull request is dealt with. Only GitHub knows whether
+// that request merged, so the sweep asks `gh` for those branches — and for
+// no others — and keeps what it was told for the row and the press to read.
+describe("refreshSpecCaches asks GitHub whether an archived spec's pull request merged", () => {
+  const CODE = "/fake/aide";
+  const OPEN = "aide/77-old-thing";
+  // `project/folder`, which here reads the same as the branch name.
+  const OPEN_KEY = "aide/77-old-thing";
+  const GONE_KEY = "aide/78-gone";
+  const MERGED_REQUEST = JSON.stringify([{ state: "MERGED", headRefOid: "abc123" }]);
+
+  function sweepCtx(landing: "pr" | "merge") {
+    const run: GitRunner = async (_dir, args) => {
+      if (args[0] === "ls-remote") return { code: 0, stdout: `sha\trefs/heads/${OPEN}\n` };
+      if (args[0] === "symbolic-ref") return { code: 0, stdout: "refs/remotes/origin/main\n" };
+      if (args[0] === "merge-base") return { code: 1, stdout: "" };
+      return { code: 0, stdout: "" };
+    };
+    const gh = { code: 0, stdout: MERGED_REQUEST };
+    const asked: { dir: string; args: string[] }[] = [];
+    const ghRun: GhRunner = async (dir, args) => {
+      asked.push({ dir, args });
+      return { code: gh.code, stdout: gh.stdout };
+    };
+    const pullRequests = new Map<string, PullRequestAnswer>();
+    let warming = false;
+    let notifyCount = 0;
+    const ctx: ScheduleContext = {
+      projectRoot: undefined,
+      machineryProjectDir: () => CODE,
+      scheduleStore: createScheduleStore(undefined),
+      branchStatus: new BranchStatusChecker({ run, ttlMs: 0 }),
+      readWorkflowHistory: () => ({}) as unknown as WorkflowHistoryChecker,
+      readFreshness: () => ({}) as unknown as DescriptionFreshnessChecker,
+      readSpecCreatedAt: () => ({}) as unknown as SpecCreatedAtChecker,
+      readSpecFileCommits: () => ({}) as unknown as SpecFileCommitChecker,
+      specsRoot: async (dir) => dir,
+      readBranchFileSteps: () => ({}) as unknown as BranchFileStepsChecker,
+      targets: () => [],
+      readScan: () => ({ archived: [OPEN_KEY, GONE_KEY], dirs: new Map() }),
+      allowed: new Set(),
+      ensureCheckout: async () => undefined,
+      getWarming: () => warming,
+      setWarming: (v) => {
+        warming = v;
+      },
+      queue: {} as unknown as QueueStore,
+      specRoots: () => [CODE],
+      readRunner: () => null,
+      checkoutEnsurer: {} as unknown as CheckoutEnsurer,
+      notifyQueueChanged: () => {
+        notifyCount += 1;
+      },
+      codeLanding: () => landing,
+      ghRun,
+      pullRequests,
+    };
+    return { ctx, gh, asked, pullRequests, notifyCount: () => notifyCount };
+  }
+
+  test("for a pr project's archived spec whose branch is on origin, and for no other (AC-1)", async () => {
+    const { ctx, asked, pullRequests } = sweepCtx("pr");
+    await refreshSpecCaches(ctx);
+    expect(asked.map((a) => a.args.slice(0, 4))).toEqual([["pr", "list", "--head", OPEN]]);
+    expect(asked[0]?.dir).toBe(CODE);
+    expect(pullRequests.get(OPEN_KEY)).toEqual({ merged: true, headSha: "abc123" });
+    expect(pullRequests.has(GONE_KEY)).toBe(false);
+  });
+
+  test("an answer that moves sends one change event, one that stays does not (AC-1)", async () => {
+    const { ctx, gh, notifyCount } = sweepCtx("pr");
+    await refreshSpecCaches(ctx); // discovery: the open set and the answer moved
+    expect(notifyCount()).toBe(1);
+    await refreshSpecCaches(ctx);
+    expect(notifyCount()).toBe(1);
+    gh.stdout = JSON.stringify([{ state: "OPEN", headRefOid: "abc123" }]);
+    await refreshSpecCaches(ctx);
+    expect(notifyCount()).toBe(2);
+  });
+
+  test("a project that merges its code at archive never runs gh (AC-5)", async () => {
+    const { ctx, asked, pullRequests } = sweepCtx("merge");
+    await refreshSpecCaches(ctx);
+    expect(asked).toEqual([]);
+    expect(pullRequests.size).toBe(0);
+  });
+
+  test("a gh that fails leaves the last answer where it was (AC-2)", async () => {
+    const { ctx, gh, pullRequests } = sweepCtx("pr");
+    await refreshSpecCaches(ctx);
+    gh.code = 1;
+    gh.stdout = "";
+    await refreshSpecCaches(ctx);
+    expect(pullRequests.get(OPEN_KEY)).toEqual({ merged: true, headSha: "abc123" });
+    gh.code = 0;
+    gh.stdout = "oops";
+    await refreshSpecCaches(ctx);
+    expect(pullRequests.get(OPEN_KEY)).toEqual({ merged: true, headSha: "abc123" });
+  });
+
+  test("an answer about a branch origin no longer holds, or a spec no longer archived, is dropped (AC-2)", async () => {
+    const { ctx, pullRequests } = sweepCtx("pr");
+    pullRequests.set(GONE_KEY, { merged: true, headSha: "old" });
+    pullRequests.set("aide/99-not-archived", { merged: true, headSha: "old" });
+    await refreshSpecCaches(ctx);
+    expect([...pullRequests.keys()]).toEqual([OPEN_KEY]);
   });
 });

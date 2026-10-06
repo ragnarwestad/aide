@@ -209,9 +209,16 @@ land is not finished, and its row has to say so.**
   The row peeks that merged answer (`peekMerged`); the landing records it the moment its delete fails, and the
   background sweep asks it for archived specs whose branch is open. An answer not in yet, or "not merged", reads "not
   landed" as above. A closed spec's branch was never meant to merge, and its row is left as it was.
+  For a project that reviews its code, a merged pull request counts as merged for the code repository too, since a
+  squash or rebase merge leaves the branch outside the default branch for good. The sweep asks `gh pr list --head
+  <branch>` for each archived spec of such a project whose branch is still on origin, and keeps the answer in
+  `ServerState.pullRequests`; a request still open wins over a merged one, and `gh` failing keeps the last answer.
+  The merged answer decides before the review line, so a merged pull request reads as a branch left behind.
 - **Delete branch asks origin itself.** `POST /api/queue/specs/<project>/<spec>/delete-branch` asks each root fresh
   whether it holds the branch and whether it is merged, deletes nothing if any root is not merged, and deletes once per
-  repository. A closed spec, a spec that is not archived, a landing in the project or a job for the spec is refused.
+  repository. A root git calls unmerged is accepted when the pull request merged and origin's tip, asked just now, is
+  the head that merged, so a commit pushed after the merge is never deleted. A closed spec, a spec that is not
+  archived, a landing in the project or a job for the spec is refused.
 - **The way out is the step that already exists.** `archive` can be enqueued again for such a spec: `aide-run-spec`
   hands it the open merge, `/aide-archive`'s Step 1 resolves it, Step 2 still runs — `already-archived`
   carries the same `needsDocFeedback` a fresh archive does — and the landing that follows merges cleanly. A set that has not been refreshed yet is empty, so the enqueue fails closed.
@@ -294,6 +301,7 @@ describing it, or a pull request merged past moments after it was opened. Four t
   user can act on. What splits instead is the WORDING of the branch-still-on-origin set: `prOpen`,
   computed by `peekUnlanded` in `src/serve/spec-lookup.ts`, is the subset that is open deliberately, and such a row
   says a pull request is waiting for review instead of wearing the "not landed" mark
-  (`archivedRowNotices` in `src/render/pages/specs-list/row-marks.ts`). The set itself is the
+  (`archivedRowNotices` in `src/render/pages/specs-list/row-marks.ts`), until the pull request merges and the row
+  offers Delete branch instead. The set itself is the
   same, so the row stays on the list and `archive` stays enqueueable for it. `assessProjectReadiness` never looks at
   `codeLanding`: every value is valid to run with, so it is never a reason to refuse a run.

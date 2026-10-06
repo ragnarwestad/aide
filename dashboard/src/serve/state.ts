@@ -17,6 +17,7 @@ import { setPendingRestartNotice } from "../render/ui/pending-restart.ts";
 import type { SpecTarget } from "../render";
 import type { SpecRef } from "../project/discover";
 import type { Runner } from "../queue/runner";
+import type { PullRequestAnswer } from "../integrations/pull-requests.ts";
 
 export interface Scan {
   at: number;
@@ -64,6 +65,14 @@ export interface ServerState {
    *  open in the CODE root alone — a specs root that still holds it is
    *  a landing that genuinely did not finish. */
   prOpen: string[];
+  /** GitHub's last answer about the pull request of each ARCHIVED spec
+   *  of a `codeLanding: pr` project whose branch is still on origin,
+   *  keyed `project/folder` like `prOpen`. Filled by the sweep
+   *  (`refreshPullRequestAnswers`); the row and the Delete branch press
+   *  read it. A question GitHub did not answer leaves the last answer in
+   *  place, and an answer is dropped once the spec is not archived and
+   *  open any more. */
+  pullRequests: Map<string, PullRequestAnswer>;
   notifySoon: ReturnType<typeof setTimeout> | null;
   warming: boolean;
   /** Filled once `Bun.serve()` has run. A getter closing over this is
@@ -123,7 +132,7 @@ export function createServerState(): ServerState {
   setPendingRestartNotice([]);
   setDeployFaultNotice(null);
   const state: ServerState = {
-    scan: null, unlanded: [], prOpen: [], notifySoon: null, warming: false, server: null, runner: null,
+    scan: null, unlanded: [], prOpen: [], pullRequests: new Map(), notifySoon: null, warming: false, server: null, runner: null,
     servingSha: null, servingRepoRoot: null, pendingRestart: null, stopped: false, deployFault: null,
     deployFailures: new Map(),
   };
