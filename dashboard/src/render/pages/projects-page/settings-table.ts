@@ -1,6 +1,7 @@
 // The project page's settings tables: one per file (spec 549), view mode
 // and edit mode in the same markup.
 
+import type { PreviewFrom } from "../../../project/parse-manifest.ts";
 import {
   EDIT_GROUP_PARAM,
   EDITABLE_FIELD,
@@ -44,6 +45,15 @@ function unsetTestComment(r: SettingRow): string {
 export const codeLandingChoices = (defaultBranch: string | null): { value: "merge" | "pr"; label: string }[] => [
   { value: "merge", label: `Merge into ${defaultBranch ?? "the project's main branch"}` },
   { value: "pr", label: "Create a pull request" },
+];
+
+/** The words for the three ways a branch can be tried, in the order the
+ *  parser lists them (`PREVIEW_FROMS`). The values are what the manifest
+ *  stores and are not translated along with the labels. */
+export const previewFromChoices = (): { value: PreviewFrom; label: string }[] => [
+  { value: "none", label: "Not before it is merged" },
+  { value: "command", label: "A test server on this machine" },
+  { value: "cloudflare-pages", label: "A Cloudflare Pages preview" },
 ];
 
 /** A row's Value cell: plain text in view mode; a one-line
@@ -108,6 +118,16 @@ function codeLandingRow(codeLanding: "merge" | "pr", isEditingThis: boolean, def
   return choiceRow(
     "Code landing", "codeLanding", codeLandingChoices(defaultBranch), codeLanding, isEditingThis,
     "What happens to code when a spec is archived",
+  );
+}
+
+/** The Try a branch row, built from what `resolvePreviewFrom()` answers:
+ *  how a spec's branch can be tried before it is merged. Sits in the
+ *  manifest table beside Code landing. */
+function previewFromRow(previewFrom: PreviewFrom, isEditingThis: boolean): string {
+  return choiceRow(
+    "Try a branch", "previewFrom", previewFromChoices(), previewFrom, isEditingThis,
+    "How a spec's branch can be tried before it is merged",
   );
 }
 
@@ -196,6 +216,7 @@ export function unifiedSettingsTable(
 ): string {
   const path = projectPagePath(name);
   const codeLanding = opts.codeLanding ?? "merge";
+  const previewFrom = opts.previewFrom ?? "none";
   const rowFor = (key: string): SettingRow | undefined => settings.rows.find((r) => r.key === key);
   const tables = SETTING_GROUPS.map((group) => {
     const isEditingThis = editingGroup === group.file;
@@ -207,7 +228,7 @@ export function unifiedSettingsTable(
     const heading = group.file === ".aide/config" ? ".aide/config" : manifestFileHeading(opts.settingsHome);
     const withChoices =
       group.file === "manifest"
-        ? rows + codeLandingRow(codeLanding, isEditingThis, opts.defaultBranch ?? null)
+        ? rows + codeLandingRow(codeLanding, isEditingThis, opts.defaultBranch ?? null) + previewFromRow(previewFrom, isEditingThis)
         : rows;
     return settingsTableFor(heading, withChoices, settingsTableActions(group.file, editingGroup, path));
   });

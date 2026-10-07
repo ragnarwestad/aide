@@ -5,6 +5,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join } from "node:path";
 import { stringify } from "yaml";
+import { PREVIEW_FROMS } from "../parse-manifest.ts";
 
 /** A directory name, and nothing that could be read as a path. No
  *  separator, no `..`, no leading dot (a project directory the scan
@@ -41,8 +42,10 @@ export function minimalManifest(name: string, description?: string): string {
   return stringify({ name, ...(description ? { description } : {}) });
 }
 
-/** Set (or clear) ONE top-level scalar in a `.aide/project.yaml`,
- *  touching nothing else in the file (spec 184).
+/** Set (or clear) ONE top-level scalar in a `.aide/project.yaml`, or
+ *  one key inside a top-level block, written `block.key`
+ *  (`manifestWithBlockKey`), touching nothing else in the file (spec
+ *  184).
  *
  *  The same discipline `writeAideConfig` applies to `.aide/config`, and
  *  for a sharper reason: a manifest is a file a person wrote through
@@ -73,8 +76,12 @@ export function upsertManifestScalar(file: string, key: string, value: string): 
 
 /** The same edit on the manifest's TEXT, for a caller that commits the
  *  result itself rather than leaving it on disk (Settings, through
- *  `saveSpecFile`). `label` names the file in the one refusal. */
+ *  `saveSpecFile`). `label` names the file in the one refusal. One
+ *  top-level scalar, or one key inside a top-level block, written
+ *  `block.key`. */
 export function manifestWithScalar(text: string, key: string, value: string, label: string): string {
+  const dot = key.indexOf(".");
+  if (dot !== -1) return manifestWithBlockKey(text, key.slice(0, dot), key.slice(dot + 1), value, label);
   const lines = text.split("\n");
   // A trailing newline splits into a final empty element; it is put back
   // by the join, so the file's shape survives a no-op.
@@ -99,6 +106,72 @@ export function manifestWithScalar(text: string, key: string, value: string, lab
     return text; // nothing to clear, and nothing to write
   }
   return lines.join("\n") + (trailing !== undefined || lines.length ? "\n" : "");
+}
+
+const isBlank = (line: string): boolean => line.trim() === "";
+const isComment = (line: string): boolean => line.trimStart().startsWith("#");
+const isIndented = (line: string): boolean => line.startsWith(" ") || line.startsWith("\t");
+const indentOf = (line: string): string => line.match(/^[ \t]*/)![0];
+
+/** Set (or, with an empty value, remove) the line `<child>: <value>` inside
+ *  the top-level block `<block>:`, one line and never a round trip through
+ *  a YAML parser, for the reason `upsertManifestScalar` gives.
+ *
+ *  The block runs from its header to the first line at column 0 that is
+ *  not a comment: a comment at any column and a blank line never end it.
+ *  A new child goes after the block's last indented, non-blank line, at
+ *  the block's own indentation; a block that is not there is appended.
+ *
+ *  Refuses, rather than guesses at, every shape where one line is not the
+ *  whole of the thing: a header with a value on it, a list under it, and a
+ *  child whose value runs over deeper lines. */
+function manifestWithBlockKey(text: string, block: string, child: string, value: string, label: string): string {
+  const lines = text.split("\n");
+  const trailing = lines.length && lines[lines.length - 1] === "" ? lines.pop() : undefined;
+  const finish = (): string => lines.join("\n") + (trailing !== undefined || lines.length ? "\n" : "");
+  const notABlock = new Error(`${block} in ${label} is not a block of keys — edit it by hand`);
+
+  const header = lines.findIndex((line) => line.startsWith(`${block}:`));
+  if (header === -1) {
+    if (!value) return text; // nothing to clear, and nothing to write
+    while (lines.length && lines[lines.length - 1] === "") lines.pop();
+    lines.push(`${block}:`, `  ${child}: ${value}`);
+    return finish();
+  }
+  const after = lines[header]!.slice(block.length + 1).trim();
+  if (after !== "" && !after.startsWith("#")) throw notABlock;
+
+  let end = header + 1;
+  while (end < lines.length && (isBlank(lines[end]!) || isComment(lines[end]!) || isIndented(lines[end]!))) end++;
+  const first = lines.slice(header + 1).find((line) => !isBlank(line) && !isComment(line));
+  if (first !== undefined && /^\s*-(\s|$)/.test(first)) throw notABlock;
+
+  const inside = lines.slice(header + 1, end);
+  const indent = indentOf(inside.find((line) => isIndented(line) && !isComment(line)) ?? "  ") || "  ";
+  const at = inside.findIndex((line) => line.startsWith(`${indent}${child}:`) && /^(\s|$)/.test(line.slice(indent.length + child.length + 1)));
+  if (at !== -1) {
+    const own = header + 1 + at;
+    for (const line of lines.slice(own + 1, end)) {
+      if (isBlank(line) || isComment(line)) continue;
+      if (indentOf(line).length <= indent.length) break;
+      throw new Error(`${block}.${child} in ${label} runs over several lines, and this writes a single line — edit it by hand`);
+    }
+    if (value) lines[own] = `${indent}${child}: ${value}`;
+    else lines.splice(own, 1);
+    return finish();
+  }
+  if (!value) return text; // nothing to clear, and nothing to write
+  let last = header;
+  for (let i = header + 1; i < end; i++) if (isIndented(lines[i]!) && !isBlank(lines[i]!)) last = i;
+  lines.splice(last + 1, 0, `${indent}${child}: ${value}`);
+  return finish();
+}
+
+/** Why this word cannot say how a branch is tried. The Add form and the
+ *  Config tab's save refuse an unknown one in the same sentence. */
+export function previewFromError(word: string): string {
+  const words = `${PREVIEW_FROMS.slice(0, -1).join(", ")} or ${PREVIEW_FROMS[PREVIEW_FROMS.length - 1]}`;
+  return `how a branch is tried must be ${words} — not "${word}"`;
 }
 
 /** What a one-line setting's value is: every line break, with the space

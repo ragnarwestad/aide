@@ -6,8 +6,10 @@ import { existsSync, mkdirSync, symlinkSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import type { GitRunner } from "../../git/branch-status.ts";
 import { dashboardCheckoutRoot, dashboardProjectsRoot, dashboardSettingsFile } from "../../git/dashboard-checkout.ts";
+import { isPreviewFrom } from "../parse-manifest.ts";
 import {
   minimalManifest,
+  previewFromError,
   projectNameError,
   specsPathError,
   worktreeLinksError,
@@ -111,6 +113,11 @@ export async function addProject(
   if (!landing) {
     return fail("codeLanding", "choose how code lands: merge into the main branch, or a pull request");
   }
+
+  // Before the clone too: a word no reader recognises would be saved and
+  // then read as `none`.
+  const previewFrom = (req.previewFrom ?? "").trim() || "none";
+  if (!isPreviewFrom(previewFrom)) return fail("previewFrom", previewFromError(previewFrom));
 
   const steps: ProjectStep[] = [{ step: "name", ok: true }];
   const dir = join(projectsRoot, name);

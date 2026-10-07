@@ -9,6 +9,9 @@ import { SETTINGS_STEPS, type CheckableTool, type ToolCheck, type ToolModels, ty
 import { forgetChecks, lastChecks, recordCheck } from "../../../src/serve/tool-check.ts";
 import { lastUsage, recordUsage } from "../../../src/serve/tool-usage";
 import { lastModels, recordModels } from "../../../src/serve/tool-models";
+import { createGitRunner } from "../../../src/git/branch-status.ts";
+import { parseManifest } from "../../../src/project/parse-manifest.ts";
+import { git, projectWithOrigin } from "../../project/admin/git-fixture.ts";
 import { JOB, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
@@ -450,6 +453,80 @@ describe("POST /api/queue/projects (spec 112)", () => {
     expect(body.ok).toBe(true);
     expect(body.results.map((r) => r.step)).toEqual(["name", "clone", "manifest", "allowlist"]);
     expect(body.results.find((r) => r.step === "manifest")!.note).toMatch(/aide-manifest/);
+  });
+
+  const previewFromIn = (text: string) => {
+    const parsed = parseManifest(text);
+    return parsed.ok ? parsed.data.deployment?.previewFrom : undefined;
+  };
+
+  test("a previewFrom chosen on a project that tracks no manifest is saved to settings.yaml (AC-2, AC-4)", async () => {
+    const { base, dir } = start({ gitRun: cloningGit() });
+    const res = await fetch(`${base}/api/queue/projects`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({
+        name: "chosen",
+        gitUrl: "https://example.com/chosen.git",
+        codeLanding: "merge",
+        previewFrom: "cloudflare-pages",
+      }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as StepBody;
+    expect(body.ok).toBe(true);
+    expect(body.results.find((r) => r.step === "previewFrom")?.ok).toBe(true);
+    const settings = readFileSync(join(dir, "owned", "chosen", "settings.yaml"), "utf-8");
+    expect(previewFromIn(settings)).toBe("cloudflare-pages");
+  });
+
+  test("none, or no previewFrom at all, writes no deployment key and adds no step (AC-2)", async () => {
+    const { base, dir } = start({ gitRun: cloningGit() });
+    for (const [name, extra] of [["picked-none", { previewFrom: "none" }], ["picked-nothing", {}]] as const) {
+      const res = await fetch(`${base}/api/queue/projects`, {
+        method: "POST",
+        headers: AUTH,
+        body: JSON.stringify({ name, gitUrl: `https://example.com/${name}.git`, codeLanding: "merge", ...extra }),
+      });
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as StepBody;
+      expect(body.results.map((r) => r.step)).toEqual(["name", "clone", "manifest", "allowlist"]);
+      expect(readFileSync(join(dir, "owned", name, "settings.yaml"), "utf-8")).not.toContain("deployment");
+    }
+  });
+
+  test("an unknown previewFrom is refused through the route, and nothing is cloned (AC-2)", async () => {
+    const { base, dir } = start({ gitRun: cloningGit() });
+    const res = await fetch(`${base}/api/queue/projects`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ name: "odd", gitUrl: "https://example.com/odd.git", codeLanding: "merge", previewFrom: "vercel" }),
+    });
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as StepBody).results[0]).toMatchObject({ step: "previewFrom", ok: false });
+    expect(existsSync(join(dir, "root", "odd"))).toBe(false);
+  });
+
+  test("a choice on a project that tracks its manifest is committed to it, and the rest of the file stays (AC-2)", async () => {
+    const manifest = "name: demo\ndeployment:\n  host: Cloudflare Pages\nlogging:\n  where: Cloudflare dashboard\n";
+    const f = projectWithOrigin({ ".aide/project.yaml": manifest }, { clone: false });
+    try {
+      const real = createGitRunner(30_000);
+      const committer = { GIT_AUTHOR_NAME: "T", GIT_AUTHOR_EMAIL: "t@example.com", GIT_COMMITTER_NAME: "T", GIT_COMMITTER_EMAIL: "t@example.com" };
+      const { base } = start({ gitRun: (cwd, args, timeout, env) => real(cwd, args, timeout, { ...committer, ...env }) });
+      const res = await fetch(`${base}/api/queue/projects`, {
+        method: "POST",
+        headers: AUTH,
+        body: JSON.stringify({ name: "demo", gitUrl: f.origin, codeLanding: "merge", previewFrom: "command" }),
+      });
+      const body = (await res.json()) as StepBody;
+      expect(body.results.find((r) => r.step === "previewFrom")).toEqual({ step: "previewFrom", ok: true });
+      const onOrigin = git(f.origin, "show", "main:.aide/project.yaml");
+      expect(previewFromIn(onOrigin)).toBe("command");
+      expect(onOrigin).toBe(manifest.replace("  host: Cloudflare Pages\n", "  host: Cloudflare Pages\n  previewFrom: command\n"));
+    } finally {
+      f.cleanup();
+    }
   });
 
   // The name the ALLOWLIST gets is the name the directory gets, trimmed:

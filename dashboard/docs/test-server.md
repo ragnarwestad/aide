@@ -30,6 +30,8 @@ A project's manifest says how a branch of it is tried, in `deployment.previewFro
 | `cloudflare-pages` | A preview link to the address the host built the branch on, instead of a test server.     |
 | `none`, or absent  | Neither — a branch cannot be tried without merging.                                       |
 
+The value is chosen as **Try a branch**, on the Add project form and on the project's Config tab.
+
 ## Where you find it
 
 On the specs list, a spec whose implement has completed carries a note on its row: **"Click the

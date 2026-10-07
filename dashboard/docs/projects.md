@@ -49,6 +49,7 @@ The Add form asks for:
 | Git URL        | Required. The address to clone                                                                                 |
 | Specs path     | Optional. Where this project's specs live, when they are not in `specs/` inside it                             |
 | Code landing   | Required, none pre-selected — see [How a project's code lands](#how-a-projects-code-lands)                     |
+| Try a branch   | Optional. How a spec's branch can be tried before it is merged; starts on none                                 |
 | Worktree links | Optional. Space-separated repo-relative paths a run has to symlink into its worktree                           |
 | Description    | One line saying what the project is                                                                            |
 
@@ -267,7 +268,7 @@ settings row owns, `specsRoot` and `worktreeLinks`, are left out here and carrie
 
 **Two settings tables, one per file** (every setting belongs to exactly one now): `.aide/config`, holding Specs
 path and Install command, and the manifest — headed `.aide/project.yaml`, or the dashboard's `settings.yaml` when
-the project tracks no manifest — holding Worktree links, Preview command, Test command and a **Code landing** row, which is not a config key. How
+the project tracks no manifest — holding Worktree links, Preview command, Test command, a **Code landing** row and a **Try a branch** row, which are not config keys. How
 strictly Analyze checks a spec's acceptance criteria is not a project setting: it is chosen per spec, on the New
 spec form. No row's Comment names a file: which table a setting is in already says that. `AIDE_LINT_CMD`
 and `AIDE_BUILD_CMD` have no row: the runner never runs them, and the implement step's AI works them out from the
@@ -281,7 +282,7 @@ lands", with the worked-out command beside it as a suggestion.
 **Each table has its own Edit**, on the same line as its own heading, opening only that table for editing
 (`?edit=config` or `?edit=manifest`) — at most one is open at a time. While one is, the other table's Edit stays on
 the page, disabled, rather than disappearing. Opening `.aide/config` turns on two controls, Specs path and Install
-command; opening the manifest turns on four, Worktree links, Preview command, Test command and Code landing. The
+command; opening the manifest turns on five, Worktree links, Preview command, Test command, Code landing and Try a branch. The
 test field is empty with the worked-out command as its placeholder, so a save that never touched it configures
 nothing. Worktree links has a line of the checkout's own top-level `.gitignore` entries under it. Each open field
 is as wide as its cell and grows to show the whole value; with the board's script on, Enter saves, and a value is
@@ -290,7 +291,7 @@ always one line — a line break in it is folded to a space. Save and Cancel bot
 
 A save writes each value to the file its table names, and to no other file, regardless of where the value
 currently lives: Specs path and Install command to `.aide/config`, which is never committed; Worktree links,
-Preview command, Test command and Code landing to the manifest — the project's own `.aide/project.yaml` where it
+Preview command, Test command, Code landing and Try a branch (`deployment.previewFrom`) to the manifest — the project's own `.aide/project.yaml` where it
 is tracked, else the dashboard's `settings.yaml`. Unchanged values are not rewritten.
 
 #### Schedule

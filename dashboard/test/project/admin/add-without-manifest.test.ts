@@ -77,4 +77,20 @@ describe("Add writes the dashboard's settings file, not the checkout", () => {
     await addProject(run, f.projects, { name: "demo", gitUrl: f.origin, codeLanding: "merge", description: "new" }, f.base);
     expect(readFileSync(dashboardSettingsFile(f.base, "demo"), "utf-8")).toContain("installCmd: mine");
   });
+
+  test("a previewFrom that is not one of the three words is refused before anything is cloned (AC-2)", async () => {
+    const f = fixture();
+    const result = await addProject(
+      run,
+      f.projects,
+      { name: "demo", gitUrl: f.origin, codeLanding: "merge", previewFrom: "vercel" },
+      f.base,
+    );
+    expect(result.ok).toBe(false);
+    expect(result.steps).toEqual([
+      { step: "previewFrom", ok: false, error: 'how a branch is tried must be none, command or cloudflare-pages — not "vercel"' },
+    ]);
+    expect(existsSync(f.dir)).toBe(false);
+    expect(existsSync(dashboardSettingsFile(f.base, "demo"))).toBe(false);
+  });
 });

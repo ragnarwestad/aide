@@ -10,6 +10,7 @@ import {
   updateProjectSettings,
   upsertManifestScalar,
 } from "../../../src/project/project-admin";
+import { manifestWithScalar } from "../../../src/project/project-admin/manifest-io.ts";
 import { parseManifest } from "../../../src/project/parse-manifest.ts";
 import { configValue, resolveWorktreeLinks } from "../../../src/project/discover";
 import { cloningGit, fakeGit } from "../../helpers/fake-git.ts";
@@ -135,6 +136,93 @@ describe("upserting one scalar into a manifest (spec 184)", () => {
     upsertManifestScalar(written, "worktreeLinks", value);
     expect(readFileSync(written, "utf-8").match(SHELL_READS)![1]!.trimEnd()).toBe(value);
     expect(minimalManifest("alpha", "a description")).not.toContain("worktreeLinks");
+  });
+});
+
+describe("writing one key inside a block of the manifest", () => {
+  const KEY = "deployment.previewFrom";
+  const write = (text: string, value = "cloudflare-pages"): string => manifestWithScalar(text, KEY, value, "project.yaml");
+  const read = (text: string) => {
+    const parsed = parseManifest(text);
+    return parsed.ok ? parsed.data.deployment?.previewFrom : undefined;
+  };
+  const LONG = "  command: " + "bun run build && ".repeat(12) + "bun run preview";
+
+  test("an existing line is replaced and every other byte stays (AC-3, AC-5)", () => {
+    const before = [
+      "name: demo",
+      "deployment:",
+      "  host: Cloudflare Pages",
+      LONG,
+      "  # How a branch is tried.",
+      "  previewFrom: command",
+      "logging:",
+      "  where: Cloudflare dashboard",
+      "",
+    ].join("\n");
+    const after = write(before);
+    expect(after).toBe(before.replace("previewFrom: command", "previewFrom: cloudflare-pages"));
+    expect(read(after)).toBe("cloudflare-pages");
+  });
+
+  test("a block without the key gets the line at the block's own indentation (AC-3, AC-4)", () => {
+    const before = "name: demo\ndeployment:\n    host: Cloudflare Pages\n    # a note\n\nlogging:\n  where: x\n";
+    const after = write(before, "command");
+    expect(after).toBe(
+      "name: demo\ndeployment:\n    host: Cloudflare Pages\n    # a note\n    previewFrom: command\n\nlogging:\n  where: x\n",
+    );
+    expect(read(after)).toBe("command");
+  });
+
+  test("a bare header gets the line right after it (AC-3)", () => {
+    const after = write("name: demo\ndeployment:\nlogging:\n  where: x\n", "command");
+    expect(after).toBe("name: demo\ndeployment:\n  previewFrom: command\nlogging:\n  where: x\n");
+    expect(read(after)).toBe("command");
+  });
+
+  test("a comment at column 0 inside the block does not end it, and no second key appears (AC-3, AC-5)", () => {
+    const before = "deployment:\n  host: x\n# written by hand\n  previewFrom: command\n";
+    const after = write(before);
+    expect(after).toBe("deployment:\n  host: x\n# written by hand\n  previewFrom: cloudflare-pages\n");
+    expect(after.match(/previewFrom/g)).toHaveLength(1);
+    expect(read(after)).toBe("cloudflare-pages");
+  });
+
+  test("a column-0 comment after the block's last key stays where it was (AC-3)", () => {
+    const after = write("deployment:\n  host: x\n# next part\nlogging:\n  where: y\n", "command");
+    expect(after).toBe("deployment:\n  host: x\n  previewFrom: command\n# next part\nlogging:\n  where: y\n");
+  });
+
+  test("no block at all appends one at the end (AC-3, AC-4)", () => {
+    const after = write("name: demo\ndescription: the demo app\n", "command");
+    expect(after).toBe("name: demo\ndescription: the demo app\ndeployment:\n  previewFrom: command\n");
+    expect(read(after)).toBe("command");
+  });
+
+  test("an empty value removes the line, and has nothing to do without a block (AC-3)", () => {
+    expect(write("deployment:\n  host: x\n  previewFrom: command\n", "")).toBe("deployment:\n  host: x\n");
+    expect(write("name: demo\n", "")).toBe("name: demo\n");
+  });
+
+  test("a block that is not a block of keys is refused and the text is unchanged (AC-3, AC-4)", () => {
+    for (const before of [
+      "name: demo\ndeployment: {}\n",
+      "name: demo\ndeployment: Cloudflare Pages\n",
+      "name: demo\ndeployment:\n  - Cloudflare Pages\n",
+      "name: demo\ndeployment:\n- Cloudflare Pages\n",
+    ]) {
+      expect(() => write(before)).toThrow(/deployment in project\.yaml is not a block of keys/);
+    }
+  });
+
+  test("a previewFrom that continues over several lines is refused (AC-3, AC-4)", () => {
+    for (const before of [
+      "deployment:\n  previewFrom:\n    - command\n",
+      "deployment:\n  previewFrom: command\n    and more\n",
+      "deployment:\n  previewFrom:\n    nested: key\n",
+    ]) {
+      expect(() => write(before)).toThrow(/previewFrom/);
+    }
   });
 });
 
