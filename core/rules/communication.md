@@ -123,7 +123,9 @@ commit or push anything in the specs repo on your own initiative.
    a list of open questions after it.
 2. **Hand over three parts:** a title line, the description (what goes
    in `1-description.md`, with its `- **AC-n:**` lines), and a
-   `Depends on:` line when there is one.
+   `Depends on:` line when there is one. A spec that is archived or
+   closed is never named there: check where it lies in the specs repo
+   in the same reply.
 3. **Each part in a fenced code block** (```` ```markdown ````), the
    title in its own block — never as rendered text between `---` lines.
    The terminal renders markdown, and what the user copies is what it
