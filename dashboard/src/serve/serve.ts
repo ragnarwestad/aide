@@ -467,9 +467,7 @@ export function createServer(opts: ServerOptions) {
     stop: () => {
       state.stopped = true;
       if (timer) clearInterval(timer);
-      if (schedules.driftTimer) clearInterval(schedules.driftTimer);
-      if (schedules.specCacheTimer) clearInterval(schedules.specCacheTimer);
-      if (schedules.scheduleTimer) clearInterval(schedules.scheduleTimer);
+      for (const t of schedules.timers) if (t) clearInterval(t);
       clearInterval(keepAlive);
       watch.closeSpecWatchers();
       // Every watching page, let go of deliberately: `server.stop(true)`

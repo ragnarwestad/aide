@@ -18,6 +18,10 @@ export const PULL_REQUEST = (lang: Language): string => t(lang, "list.pullReques
  *  already has. */
 export const TEST_SERVER = (lang: Language): string => t(lang, "list.testServer");
 
+/** The mark a LIVE row carries when a project's host has built the spec's
+ *  branch: a link to the address it is served on. */
+export const BRANCH_PREVIEW = (lang: Language): string => t(lang, "list.branchPreview");
+
 /** The mark a LIVE row carries when a landing failed and no later step
  *  of the same job has resolved it (spec 327) — independent of
  *  `state`, which a later step's own start already overwrites. */

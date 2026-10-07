@@ -31,9 +31,10 @@ export interface TestServersContext {
    *  group stays alive while the board serves, and the log carries the
    *  "board up: pid N, <url>" line `refreshTestServerStatus` reads. */
   startCommand: (project: string, opts: { branch: string; port: number }) => string[] | undefined;
-  /** Whether a board can be started at all on this host for this
-   *  project — a capability check (REQ-1), never a hardcoded project
-   *  name. */
+  /** Whether a board is OFFERED for this project: its manifest says a
+   *  branch is tried by a board (`deployment.previewFrom: command`) and
+   *  this host can start one — never a hardcoded project name. Whether a
+   *  board can start alone is `startCommand`'s answer. */
   previewAvailable: (project: string) => boolean;
   gitRun: GitRunner;
   spawn: Spawner;

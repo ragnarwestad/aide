@@ -12,10 +12,12 @@
 // and the static generator import from it.
 
 export {
-  configValue, resolveWorktreeLinks, resolveCodeLanding,
+  configValue, resolveWorktreeLinks, resolveCodeLanding, resolvePreviewFrom,
   resolveInstallCmd, resolveTestCmd, resolvePreviewCmd,
   type WorktreeLinksSource, type CodeLanding, type ConfigOverrideSource,
 } from "./config.ts";
+
+export type { PreviewFrom } from "../parse-manifest.ts";
 
 export {
   SPEC_FILES, specFileText, markdownSection, specDescription, specPhaseFile, specArchivedDate,

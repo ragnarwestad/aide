@@ -15,7 +15,7 @@ import { TestServerStore } from "../test-servers/store.ts";
 import { findFreePort, type TestServersContext, type PortProbe, type Spawner } from "../test-servers/lifecycle.ts";
 import { testServerOnPort } from "../test-servers/port-owner.ts";
 import { portExposed } from "../test-servers/tailscale-exposure.ts";
-import { resolvePreviewCmd } from "../../project/discover";
+import { resolvePreviewCmd, resolvePreviewFrom } from "../../project/discover";
 import type { ServerState } from "../state.ts";
 import { scriptArgv } from "../../integrations/script-argv.ts";
 
@@ -64,6 +64,14 @@ export function startCommandFor(root: string, branch: string, port: number): str
   return [PREVIEW_BIN, root, "--branch", branch, "--port", String(port), "--cmd", preview];
 }
 
+/** Whether a test server is offered for the project at `root`: its
+ *  manifest says a branch is tried by a board on this machine
+ *  (`deployment.previewFrom: command`) AND a board can be started. The
+ *  setting picks the one way a branch is tried; the start command only
+ *  says whether this host can do it. */
+export const testServerOffered = (root: string): boolean =>
+  resolvePreviewFrom(root) === "command" && !!startCommandFor(root, "x", 0);
+
 const hasRoundScript = (root: string): boolean =>
   existsSync(join(root, "dashboard", "test", "round", "run")) &&
   existsSync(join(root, "dashboard", "src", "serve", "serve.ts"));
@@ -96,8 +104,7 @@ export function setupTestServers(state: ServerState, inputs: TestServersSetupInp
         (inputs.testServersAvailable ? roundCommand(root, branch, port) : undefined)
       );
     },
-    previewAvailable: (project) =>
-      inputs.testServersAvailable ?? !!startCommandFor(inputs.machineryProjectDir(project), "x", 0),
+    previewAvailable: (project) => inputs.testServersAvailable ?? testServerOffered(inputs.machineryProjectDir(project)),
     gitRun: inputs.gitRun,
     spawn:
       inputs.testServersSpawn ??

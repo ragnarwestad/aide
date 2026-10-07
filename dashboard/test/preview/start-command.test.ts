@@ -6,7 +6,7 @@ import { describe, expect, test, afterEach } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
-import { startCommandFor } from "../../src/serve/setup/test-servers.ts";
+import { startCommandFor, testServerOffered } from "../../src/serve/setup/test-servers.ts";
 
 const dirs: string[] = [];
 const root = (): string => {
@@ -61,5 +61,46 @@ describe("what starts a board for a project", () => {
     manifest(dir, "name: skjer\n");
 
     expect(startCommandFor(dir, "aide/1-x", 8801)).toBeUndefined();
+  });
+});
+
+describe("whether a test server is offered for a project", () => {
+  const roundScript = (dir: string): void => {
+    mkdirSync(join(dir, "dashboard", "test", "round"), { recursive: true });
+    mkdirSync(join(dir, "dashboard", "src", "serve"), { recursive: true });
+    writeFileSync(join(dir, "dashboard", "test", "round", "run"), "#!/bin/bash\n");
+    writeFileSync(join(dir, "dashboard", "src", "serve", "serve.ts"), "");
+  };
+
+  test("command with a round script or a previewCmd is offered (AC-3)", () => {
+    const withRound = root();
+    manifest(withRound, "name: a\ndeployment:\n  previewFrom: command\n");
+    roundScript(withRound);
+    const withCmd = root();
+    manifest(withCmd, "name: a\npreviewCmd: pnpm dev --port $PORT\ndeployment:\n  previewFrom: command\n");
+
+    expect(testServerOffered(withRound)).toBe(true);
+    expect(testServerOffered(withCmd)).toBe(true);
+  });
+
+  test("command with nothing that can start a board is not offered (AC-3)", () => {
+    const dir = root();
+    manifest(dir, "name: a\ndeployment:\n  previewFrom: command\n");
+
+    expect(testServerOffered(dir)).toBe(false);
+  });
+
+  test("none, no setting and cloudflare-pages are not offered, though a previewCmd could start a board (AC-4, AC-1)", () => {
+    for (const deployment of ["deployment:\n  previewFrom: none\n", "", "deployment:\n  previewFrom: cloudflare-pages\n"]) {
+      const dir = root();
+      manifest(dir, `name: a\npreviewCmd: pnpm dev --port $PORT\n${deployment}`);
+      expect(testServerOffered(dir)).toBe(false);
+    }
+  });
+
+  test("Aide's own manifest says command, so its row keeps the test server (AC-3)", () => {
+    const aide = join(import.meta.dir, "..", "..", "..");
+
+    expect(testServerOffered(aide)).toBe(true);
   });
 });

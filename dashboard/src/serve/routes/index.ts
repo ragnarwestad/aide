@@ -142,6 +142,9 @@ export interface RoutesContext {
    *  `null` clears it (see `state.ts`'s `deployFailures`). */
   readDeployFailure: (project: string) => DeployFailure | undefined;
   setDeployFailure: (project: string, failure: DeployFailure | null) => void;
+  /** The address a live spec's branch has been built on (see
+   *  `state.ts`'s `branchPreviews`), for the specs list's preview link. */
+  readBranchPreview: (project: string, specFolder: string) => string | undefined;
   /** Where `aide-generate-pdf` writes the PDF it makes (spec 358),
    *  outside every checkout (REQ-4). */
   pdfCacheDir: string;

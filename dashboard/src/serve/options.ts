@@ -173,6 +173,10 @@ export interface ServerOptions {
    *  timer. Omitted, it is `DEFAULT_TTL_MS`, the same default the other
    *  two schedules share. */
   scheduleCheckMs?: number;
+  /** How often GitHub is asked whether a `cloudflare-pages` project's
+   *  branch has been built. A SCHEDULE, like `driftPollMs`; `0` turns it
+   *  off, which is a test seam. Omitted, `BRANCH_PREVIEW_POLL_MS`. */
+  branchPreviewPollMs?: number;
   /** How often the queue asks the runner whether a step has ended, and
    *  starts what comes next. A test seam; omitted, 2000. */
   queuePollMs?: number;

@@ -113,6 +113,8 @@ export const de: Record<TranslationKey, string> = {
   "list.waitingOnReview": "der Code wartet auf einen Pull Request — öffne ihn zur Überprüfung",
   "list.testServer": "Testserver",
   "list.testServerStartLink": "Klicke auf den Link, um einen Testserver mit diesem Branch zu starten",
+  "list.branchPreview": "Vorschau",
+  "list.branchPreviewLink": "Klicke auf den Link, um diesen Branch dort zu öffnen, wo sein Host ihn gebaut hat",
   "list.pushError":
     "Der Push eines Schritts hat origin nicht erreicht. — Hole den Branch im Checkout auf dem Server, " +
     "und pushe ihn erneut von einem Terminal aus.",

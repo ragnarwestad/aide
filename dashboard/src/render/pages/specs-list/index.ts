@@ -162,6 +162,11 @@ export interface SpecsPageOptions {
    *  is not there. Absent treats every spec as capable — real traffic always
    *  supplies it (`specs-pages.ts`). */
   testServerAvailable?: (project: string, specFolder: string) => boolean;
+  /** The address a spec's branch has been built on, for a project whose
+   *  host builds every branch, or `undefined` while there is none (spec's
+   *  build still running, or the project is set otherwise). Absent, no
+   *  row carries a preview link. */
+  branchPreview?: (project: string, specFolder: string) => string | undefined;
   /** The messages of one unfolded phase, for the attempts that may have
    *  run it (newest first) — called only for a phase the address names
    *  in `phases` (spec 500). Undefined: nothing is kept to read. */
@@ -222,6 +227,7 @@ function groupRows(
       const head = specHeadRow(g, opts, opened);
       const notice = specNoticeRow(g, now, opts.lang ?? "en", testServerAvailable, {
         filter: opts.filter,
+        branchPreview: opts.branchPreview,
       });
       // Each spec ends with an empty row the stylesheet turns into the air
       // between two cards. It closes the group rather than opening the

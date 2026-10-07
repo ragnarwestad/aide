@@ -4,7 +4,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { parseManifest } from "../parse-manifest.ts";
+import { parseManifest, type PreviewFrom } from "../parse-manifest.ts";
 
 /** One key out of a project's OWN `.aide/config` — the personal,
  *  gitignored file where an operator writes what only their machine
@@ -85,6 +85,17 @@ export function resolveCodeLanding(projectDir: string): CodeLanding {
   if (!existsSync(manifestFile)) return "merge";
   const parsed = parseManifest(readFileSync(manifestFile, "utf-8"));
   return (parsed.ok ? parsed.data.codeLanding : undefined) ?? "merge";
+}
+
+/** How one branch of this project can be tried before it is merged,
+ *  from the COMMITTED manifest's `deployment.previewFrom` and nothing
+ *  else. `undefined` for no manifest, no key or a word it does not know,
+ *  which reads as `none`. */
+export function resolvePreviewFrom(projectDir: string): PreviewFrom | undefined {
+  const manifestFile = join(projectDir, ".aide", "project.yaml");
+  if (!existsSync(manifestFile)) return undefined;
+  const parsed = parseManifest(readFileSync(manifestFile, "utf-8"));
+  return parsed.ok ? parsed.data.deployment?.previewFrom : undefined;
 }
 
 /** Which file an install/test/preview command came out of. */

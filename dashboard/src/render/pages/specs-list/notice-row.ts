@@ -77,7 +77,7 @@ export function specNoticeRow(
   testServerAvailable: (project: string, specFolder: string) => boolean,
   /** The view the row is drawn in: what the unfolded acceptance
    *  criteria (spec 493) need to keep. */
-  view: { filter?: SpecsFilter } = {},
+  view: { filter?: SpecsFilter; branchPreview?: (project: string, specFolder: string) => string | undefined } = {},
 ): string {
   const archiveHeldBack = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
   const notice = specNotice(
@@ -91,7 +91,7 @@ export function specNoticeRow(
     // and readyToArchive arguments beside this one already carry the
     // same gate.
     isArchivedRow(g) ? undefined : phaseDisagreement(g, lang),
-    isArchivedRow(g) ? archivedRowNotices(g.archive, now, lang) : errorMarkNotices(g, lang, testServerAvailable),
+    isArchivedRow(g) ? archivedRowNotices(g.archive, now, lang) : errorMarkNotices(g, lang, testServerAvailable, view.branchPreview),
     lang,
     !isArchivedRow(g) && !archiveHeldBack && !specBusy(g) && nextPhase(g.done) === "archive",
   );

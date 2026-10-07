@@ -180,7 +180,7 @@ describe("finding a test server again", () => {
   test("a project the round cannot run on is not asked about at all", async () => {
     const asked: string[][] = [];
     const ctx = makeCtx({ worktrees: porcelain(roundWorkDir(), "aide/415-x", "b67707e") });
-    ctx.previewAvailable = () => false;
+    ctx.startCommand = () => undefined;
     ctx.gitRun = async (_dir, args) => {
       asked.push(args);
       return { code: 1, stdout: "", stderr: "" };
@@ -188,6 +188,33 @@ describe("finding a test server again", () => {
     expect(await recoverTestServers(ctx, ["aide"])).toEqual([]);
     expect(await sweepDeadTestServers(ctx, ["aide"])).toEqual([]);
     expect(asked).toEqual([]);
+  });
+
+  // Whether a board is OFFERED follows the project's manifest; a board
+  // already running on a project that has since left that setting is
+  // still found, and its dead worktrees still swept.
+  test("a project that can start a board is recovered and swept though no board is offered for it", async () => {
+    const work = roundWorkDir();
+    const store = new TestServerStore();
+    const removed: string[] = [];
+    const ctx = makeCtx({
+      store,
+      worktrees: porcelain(work, "aide/415-x", "b67707e"),
+      onPort: async (port) => (port === 8801 ? { pid: 238, workDir: work } : undefined),
+    });
+    ctx.previewAvailable = () => false;
+    const listing = ctx.gitRun;
+    ctx.gitRun = async (dir, args) => {
+      if (args[0] === "worktree" && args[1] === "remove") removed.push(args[3] ?? "");
+      return listing(dir, args);
+    };
+
+    expect(await recoverTestServers(ctx, ["aide"])).toHaveLength(1);
+    expect(store.get("aide", "415-x")?.status).toBe("running");
+
+    store.delete("aide", "415-x");
+    expect(await sweepDeadTestServers(ctx, ["aide"])).toEqual([join(work, "checkout")]);
+    expect(removed).toEqual([join(work, "checkout")]);
   });
 
   test("a checkout git cannot be asked about recovers nothing, and does not throw", async () => {

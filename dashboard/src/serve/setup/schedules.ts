@@ -18,7 +18,7 @@ import { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/workfl
 import type { DashboardCheckout } from "../../git/dashboard-checkout.ts";
 import type { CheckoutEnsurer } from "../../git/checkout-ensurer.ts";
 import type { GhRunner } from "../../integrations/pull-requests.ts";
-import { resolveCodeLanding } from "../../project/discover";
+import { resolveCodeLanding, resolvePreviewFrom } from "../../project/discover";
 import type { QueueStore } from "../../queue/queue.ts";
 import type { CheckableTool, SpecTarget } from "../../render";
 import {
@@ -30,6 +30,7 @@ import {
   tickRunner as tickRunnerImpl,
   type ScheduleContext,
 } from "../schedules";
+import { BRANCH_PREVIEW_POLL_MS, dropPreviewsOfRunningSteps, refreshBranchPreviews, type BranchPreviewContext } from "../schedules/branch-previews.ts";
 import { runScript } from "../land-branch/run-script.ts";
 import { createRootLock, SPEC_CACHE_POLL_MS } from "../serve-helpers";
 import type { ServerState } from "../state.ts";
@@ -42,6 +43,7 @@ export interface ScheduleSetupOptions {
   driftPollMs?: number;
   specCachePollMs?: number;
   scheduleCheckMs?: number;
+  branchPreviewPollMs?: number;
 }
 
 export interface ScheduleSetupInputs {
@@ -137,6 +139,20 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
     ghRun: opts.ghRun ?? runGh,
     pullRequests: state.pullRequests,
   };
+  /** Whether a branch has been built by its host is asked about on its own
+   *  schedule, not with the spec caches: the answer changes within
+   *  minutes of a push, and each question is a call to GitHub. */
+  const branchPreviewCtx: BranchPreviewContext = {
+    targets,
+    machineryProjectDir,
+    branchStatus,
+    previewFrom: (project) => resolvePreviewFrom(machineryProjectDir(project)),
+    stepRunning: (project, specFolder) =>
+      queue.list().some((j) => j.project === project && j.specFolder === specFolder && j.state === "running"),
+    ghRun: opts.ghRun ?? runGh,
+    branchPreviews: state.branchPreviews,
+    notifyQueueChanged,
+  };
   function refreshDrift() {
     return refreshDriftImpl(scheduleCtx);
   }
@@ -153,6 +169,7 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
     return refreshSchedulesImpl(scheduleCtx);
   }
   function tickRunner() {
+    dropPreviewsOfRunningSteps(branchPreviewCtx);
     return tickRunnerImpl(scheduleCtx);
   }
 
@@ -193,9 +210,19 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
       : null;
   scheduleTimer?.unref?.();
 
+  const branchPreviewPollMs = opts.branchPreviewPollMs ?? BRANCH_PREVIEW_POLL_MS;
+  const branchPreviewTimer =
+    branchPreviewPollMs > 0
+      ? (() => {
+          void refreshBranchPreviews(branchPreviewCtx);
+          return setInterval(() => void refreshBranchPreviews(branchPreviewCtx), branchPreviewPollMs);
+        })()
+      : null;
+  branchPreviewTimer?.unref?.();
+
   return {
     mergeLock, freshness, workflowHistory, specCreatedAt, specFileCommits, branchFileSteps,
     warmSpec, rereadSpec, refreshSpecCaches, tickRunner,
-    driftTimer, specCacheTimer, scheduleTimer,
+    timers: [driftTimer, specCacheTimer, scheduleTimer, branchPreviewTimer],
   };
 }

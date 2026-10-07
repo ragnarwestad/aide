@@ -98,8 +98,11 @@ export async function recoverTestServers(ctx: TestServersContext, projects: stri
   const checkedOut = new Map<string, string>();
   for (const project of projects) {
     // A project the round cannot run on has never had a test server, so
-    // there is nothing to find and no reason to ask git anything.
-    if (!ctx.previewAvailable(project)) continue;
+    // there is nothing to find and no reason to ask git anything. What
+    // decides is whether a board CAN start, not whether one is offered:
+    // a board still running on a project that has since left `command`
+    // is found all the same.
+    if (!ctx.startCommand(project, { branch: "x", port: 0 })) continue;
     const listed = await ctx.gitRun(ctx.aideCheckout(project), ["worktree", "list", "--porcelain"]);
     if (listed.code !== 0) continue;
     for (const wt of parseWorktrees(listed.stdout)) {
@@ -180,7 +183,7 @@ export async function sweepDeadTestServers(
   const live = new Set(ctx.store.all().map((e) => resolved(join(e.workDir, "checkout"))));
   const removed: string[] = [];
   for (const project of projects) {
-    if (!ctx.previewAvailable(project)) continue;
+    if (!ctx.startCommand(project, { branch: "x", port: 0 })) continue;
     const root = ctx.aideCheckout(project);
     const listed = await ctx.gitRun(root, ["worktree", "list", "--porcelain"]);
     if (listed.code !== 0) continue;

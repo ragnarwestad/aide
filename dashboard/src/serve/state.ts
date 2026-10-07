@@ -73,6 +73,11 @@ export interface ServerState {
    *  place, and an answer is dropped once the spec is not archived and
    *  open any more. */
   pullRequests: Map<string, PullRequestAnswer>;
+  /** The address each live spec's branch has been built on, keyed
+   *  `project/folder`: only a `cloudflare-pages` project's spec whose
+   *  build has succeeded has one. Filled by the sweep
+   *  (`refreshBranchPreviews`); the row reads it. */
+  branchPreviews: Map<string, string>;
   notifySoon: ReturnType<typeof setTimeout> | null;
   warming: boolean;
   /** Filled once `Bun.serve()` has run. A getter closing over this is
@@ -132,7 +137,7 @@ export function createServerState(): ServerState {
   setPendingRestartNotice([]);
   setDeployFaultNotice(null);
   const state: ServerState = {
-    scan: null, unlanded: [], prOpen: [], pullRequests: new Map(), notifySoon: null, warming: false, server: null, runner: null,
+    scan: null, unlanded: [], prOpen: [], pullRequests: new Map(), branchPreviews: new Map(), notifySoon: null, warming: false, server: null, runner: null,
     servingSha: null, servingRepoRoot: null, pendingRestart: null, stopped: false, deployFault: null,
     deployFailures: new Map(),
   };

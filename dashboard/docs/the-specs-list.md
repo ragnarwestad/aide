@@ -159,8 +159,10 @@ is IN, so none of them draws a badge in the State column. Each is said once in t
 
 The notices are ranked, and joined with " · " when more than one applies, in a sentence written for a user: what
 happened and what to do, never git's own stderr. Each keeps its own link where it has one, so a reader never loses
-one fact's link by another fact joining it on the same line. Two stand in a box of their own and are never joined:
-the held-back message, and the test server's.
+one fact's link by another fact joining it on the same line. Three stand in a box of their own and are never joined:
+the held-back message, the test server's, and the preview link's. The preview link goes to the address a project's
+host has built the spec's branch on, for a project whose manifest says `deployment.previewFrom: cloudflare-pages`; it
+shows in the same window as the test server's link, and only once the build has succeeded.
 
 ## Judging a held-back archive from the row
 

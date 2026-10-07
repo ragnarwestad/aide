@@ -10,7 +10,7 @@ import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status
 import { heldBackReasonText, type NoticePart } from "../../ui/job-state/notice.ts";
 import { specPagePath } from "../spec-page";
 import { type ArchivedSpecView, type SpecGroup } from "./data-model";
-import { LANDING_FAILED, NO_PULL_REQUEST, NOT_PUSHED, prErrorOf, prErrorSentence, PULL_REQUEST, TEST_SERVER, TESTS_RED } from "./row-shared.ts";
+import { BRANCH_PREVIEW, LANDING_FAILED, NO_PULL_REQUEST, NOT_PUSHED, prErrorOf, prErrorSentence, PULL_REQUEST, TEST_SERVER, TESTS_RED } from "./row-shared.ts";
 import { notLandedTitle } from "./cell-helpers.ts";
 import { roundUnderWay } from "./row-state.ts";
 import { approachChoiceShown } from "./approach-choice";
@@ -69,6 +69,7 @@ function liveMarks(
   g: SpecGroup,
   lang: Language,
   testServerAvailable: (project: string, specFolder: string) => boolean,
+  branchPreview: (project: string, specFolder: string) => string | undefined,
 ): LiveMark[] {
   const marks: LiveMark[] = [];
   if (g.pushError) marks.push({ variant: "refused", label: NOT_PUSHED(lang), sentence: pushErrorSentence(lang) });
@@ -161,6 +162,13 @@ function liveMarks(
       href: `${specPagePath(g.project, g.specFolder)}?tab=steps&startTestServer=1`,
     });
   }
+  // One window says when a branch can be tried, whichever way it is tried:
+  // a running or queued step is about to replace or merge what the address
+  // shows.
+  const previewAddress = implementDone && !quiet && !archiveStarted ? branchPreview(g.project, g.specFolder) : undefined;
+  if (previewAddress) {
+    marks.push({ variant: "waiting", label: BRANCH_PREVIEW(lang), sentence: t(lang, "list.branchPreviewLink"), own: true, href: previewAddress });
+  }
   if (g.prUrl) {
     marks.push({ variant: "waiting", label: PULL_REQUEST(lang), sentence: waitingOnReviewSentence(lang), href: g.prUrl });
   }
@@ -193,8 +201,9 @@ export function errorMarkNotices(
   g: SpecGroup,
   lang: Language,
   testServerAvailable: (project: string, specFolder: string) => boolean,
+  branchPreview: (project: string, specFolder: string) => string | undefined = () => undefined,
 ): RowMarkNotice[] {
-  const marks = liveMarks(g, lang, testServerAvailable);
+  const marks = liveMarks(g, lang, testServerAvailable, branchPreview);
   // The mark's own variant decides the colour: every one of these is a
   // refusal except a landing the project's suite went red on, or a pull
   // request waiting on review, neither of which is broken.

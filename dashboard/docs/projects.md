@@ -247,8 +247,9 @@ store anything, so the page already loaded draws that message, on the Deploy tab
 dialog closes; a reload removes it. A failure that leaves the board faulty reloads the page instead, so the server
 draws the message under the header.
 
-The second panel starts a test server for the project, in a new tab. Without a preview command configured, the
-heading stays with a sentence saying it is unavailable.
+The second panel starts a test server for the project, in a new tab. Unless the manifest says
+`deployment.previewFrom: command` and a preview command is configured, the heading stays with a sentence saying it is
+unavailable.
 
 #### Config
 

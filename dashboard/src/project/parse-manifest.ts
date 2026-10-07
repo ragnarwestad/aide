@@ -4,17 +4,24 @@
 
 import { parse } from "yaml";
 
+export type PreviewFrom = "cloudflare-pages" | "command" | "none";
+
+const isPreviewFrom = (v: string | undefined): v is PreviewFrom =>
+  v === "cloudflare-pages" || v === "command" || v === "none";
+
 export interface ManifestData {
   name?: string;
   description?: string;
   generated?: string;
   stack?: Record<string, string>;
   dependencies?: string[];
-  /** `preview` is a URL TEMPLATE with a literal `{branch}` in it —
-   *  where one branch can be tried, as opposed to `url`, which is
-   *  where the merged site lives. Only a project whose host builds
-   *  every branch has one. */
-  deployment?: { host?: string; command?: string; url?: string; preview?: string; note?: string };
+  /** `previewFrom` says how one branch of the project can be tried
+   *  before it is merged: the host builds every branch
+   *  (`cloudflare-pages`), the board starts the project on its own
+   *  machine (`command`), or it cannot be tried without merging
+   *  (`none`). A word this does not recognize is left ABSENT, which
+   *  reads as `none`. */
+  deployment?: { host?: string; command?: string; url?: string; previewFrom?: PreviewFrom; note?: string };
   logging?: { where: string[] };
   statistics?: string[];
   reports?: { title?: string; url?: string; recipe?: string }[];
@@ -110,11 +117,12 @@ export function parseManifest(text: string): ManifestResult {
   if (r.dependencies != null) data.dependencies = toList(r.dependencies);
   if (r.deployment != null && typeof r.deployment === "object") {
     const d = r.deployment as Record<string, unknown>;
+    const previewFrom = toStr(d.previewFrom)?.trim();
     data.deployment = {
       ...(d.host != null && { host: toStr(d.host) }),
       ...(d.command != null && { command: toStr(d.command) }),
       ...(d.url != null && { url: toStr(d.url) }),
-      ...(d.preview != null && { preview: toStr(d.preview) }),
+      ...(isPreviewFrom(previewFrom) && { previewFrom }),
       ...(d.note != null && { note: toStr(d.note) }),
     };
   }

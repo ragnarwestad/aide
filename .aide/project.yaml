@@ -22,6 +22,9 @@ deployment:
   host: local machines — installed globally to ~/.claude, ~/.codex, ~/.copilot, ~/.agents/skills and ~/.local/bin. The dashboard is served from a host of the operator's choice — no host is named in the repo; MINI=<host> selects one, or make serve-local runs everything on one machine
   command: ./install-all.sh (or per-tool core/implementations/<ai>/install.sh). Dashboard — dashboard/install.sh on the serving machine, or MINI=<host> make -C dashboard install-serve over ssh; AIDE_DASH_HOST=<host> make -C dashboard publish (generate + rsync); make -C dashboard serve-local (single machine)
   url: dashboard — http://127.0.0.1:8788/ on the serving host, which binds loopback alone (PORT= to change it); HTTPS and other devices are an optional proxy in front of it (dashboard/docs/hosting.md)
+  # A branch of this repository is tried by a board the dashboard starts
+  # on its own machine (the Test server).
+  previewFrom: command
 logging:
   where: dashboard — ~/Library/Logs/aide-dashboard/serve.log on the serving host (launchd job com.aide-dashboard.serve)
 # Gitignored paths a headless run must symlink into its worktree — a

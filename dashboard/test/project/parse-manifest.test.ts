@@ -49,26 +49,43 @@ describe("parseManifest on the real manifests", () => {
   });
 });
 
-// Spec 95: where a branch can be TRIED, as opposed to where the merged
-// site lives. Only a project that builds a preview per branch has one,
-// so the key follows every other manifest field: absent means absent.
-describe("deployment.preview (spec 95)", () => {
-  test("a manifest that declares it parses it", () => {
-    const result = parseManifest(
-      "name: atlasaurus\ndeployment:\n  host: Cloudflare Pages\n" +
-        '  preview: "https://{branch}.atlasaurus.pages.dev"\n',
-    );
-    if (!result.ok) throw new Error(result.error);
-    expect(result.data.deployment?.preview).toBe("https://{branch}.atlasaurus.pages.dev");
-    expect(result.data.deployment?.host).toBe("Cloudflare Pages");
+// How one branch of the project can be tried before it is merged. A
+// three-word setting, so a word it does not know reads as absent — the
+// same as not setting it, which means a branch cannot be tried.
+describe("deployment.previewFrom", () => {
+  test("each of the three words is kept (AC-4)", () => {
+    for (const word of ["cloudflare-pages", "command", "none"] as const) {
+      const result = parseManifest(`name: x\ndeployment:\n  host: Cloudflare Pages\n  previewFrom: ${word}\n`);
+      if (!result.ok) throw new Error(result.error);
+      expect(result.data.deployment?.previewFrom).toBe(word);
+      expect(result.data.deployment?.host).toBe("Cloudflare Pages");
+    }
   });
 
-  test("a manifest without it leaves it undefined — aide's and PaceUp's do", () => {
+  test("an unknown word, an absent key and the old URL template read as no previewFrom (AC-4)", () => {
+    const unknown = parseManifest("name: x\ndeployment:\n  previewFrom: vercel\n");
+    const oldTemplate = parseManifest('name: x\ndeployment:\n  preview: "https://{branch}.x.pages.dev"\n');
+    for (const result of [unknown, oldTemplate]) {
+      if (!result.ok) throw new Error(result.error);
+      expect(result.data.deployment?.previewFrom).toBeUndefined();
+      expect(result.data.deployment).not.toHaveProperty("preview");
+    }
     for (const name of ["paceup.yaml", "atlasaurus.yaml"]) {
       const result = parseManifest(fixture(name));
       if (!result.ok) throw new Error(result.error);
-      expect(result.data.deployment?.preview).toBeUndefined();
+      expect(result.data.deployment?.previewFrom).toBeUndefined();
     }
+  });
+
+  test("the manifest skill's example names one of the three words (AC-6)", () => {
+    const example = readFileSync(
+      join(import.meta.dir, "..", "..", "..", "core", "skills", "aide-manifest", "references", "project.yaml"),
+      "utf-8",
+    );
+    const result = parseManifest(example);
+    if (!result.ok) throw new Error(result.error);
+    const words: (string | undefined)[] = ["cloudflare-pages", "command", "none"];
+    expect(words).toContain(result.data.deployment?.previewFrom);
   });
 });
 

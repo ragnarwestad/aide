@@ -22,6 +22,14 @@ branch, on the same machine as this dashboard. Open it and click through the cha
 reading the diff again.
 
 
+A project's manifest says how a branch of it is tried, in `deployment.previewFrom`:
+
+| Value              | What the row offers                                                                       |
+|--------------------|-------------------------------------------------------------------------------------------|
+| `command`          | The test server this page describes.                                                      |
+| `cloudflare-pages` | A preview link to the address the host built the branch on, instead of a test server.     |
+| `none`, or absent  | Neither — a branch cannot be tried without merging.                                       |
+
 ## Where you find it
 
 On the specs list, a spec whose implement has completed carries a note on its row: **"Click the
@@ -176,7 +184,7 @@ checked out in a worktree there, which means a test server is running on it: tha
 
 ## Which projects this works for
 
-Any project that says how to start itself. Aide is its own case: its checkout carries the
+Any project whose manifest says `deployment.previewFrom: command` and that says how to start itself. Aide is its own case: its checkout carries the
 dashboard's source and the round script, and a test server there is that round left running. Every
 other project names a preview command, in one of two places:
 
@@ -190,9 +198,14 @@ The command is expected to serve on `$PORT` and keep running until it is stopped
 project's `worktreeLinks` paths linked in — a worktree carries tracked files only, so the
 dependencies and the local settings a dev server needs get there that way and no other.
 
-Where a project names no command, the spec's row carries no start link, and the Deploy tab's "Test
-server with the test specs" section keeps its heading with a sentence saying a test server cannot
-start from there.
+Where a project's manifest does not say `command`, or names no way to start, the spec's row carries no start
+link, and the Deploy tab's "Test server with the test specs" section keeps its heading with a sentence saying a test
+server cannot start from there.
+
+A project set to `cloudflare-pages` has a preview link on the row in the same window and place, once its host has
+built the branch. The board asks GitHub once a minute for the Cloudflare Pages check run on the branch's newest
+commit and shows the branch's own address from it when the run has succeeded. While a build is running, after a
+failed one, or while a step of the spec is running, there is no link.
 
 ## Under the hood
 

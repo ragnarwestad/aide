@@ -113,6 +113,12 @@ export async function specsPages(
       testServerAvailable: (project: string, specFolder: string) =>
         ctx.testServers.previewAvailable(project) &&
         codeBranchOnOrigin(ctx.branchStatus, ctx.testServers.aideCheckout(project), specFolder),
+      // The address the sweep holds for a branch Cloudflare has built; only
+      // while origin still holds the branch it was built from.
+      branchPreview: (project: string, specFolder: string) =>
+        codeBranchOnOrigin(ctx.branchStatus, ctx.testServers.aideCheckout(project), specFolder)
+          ? ctx.readBranchPreview(project, specFolder)
+          : undefined,
       // Spec 500: the messages of a phase the address unfolded. Called
       // only for those, so a redraw reads no transcript for a phase nobody
       // opened.

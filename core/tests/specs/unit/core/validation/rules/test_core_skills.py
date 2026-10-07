@@ -226,6 +226,15 @@ class TestManifestTemplate:
         ]
         assert not missing, f"template lacks top keys: {missing}"
 
+    def test_deployment_asks_previewFrom_and_no_url_template_AC_6(self):
+        text = self.TEMPLATE.read_text(encoding="utf-8")
+        assert re.search(r"^\s+previewFrom:", text, re.MULTILINE), (
+            "the example's deployment block must name previewFrom:"
+        )
+        assert not re.search(r"^\s+preview:", text, re.MULTILINE), (
+            "the example must not carry the old preview: URL template"
+        )
+
 
 @pytest.mark.validation
 class TestInstallRetiresTheRulesThatBecameSkills:

@@ -16,7 +16,7 @@ import { type RoutesContext } from "../routes";
  *  describes for `readScan`/`invalidateScan`. */
 export type QueueContextInputs = Omit<
   RoutesContext,
-  "readScan" | "invalidateScan" | "notifyQueueChanged" | "forgetBranchFileSteps" | "readServing" | "readPendingRestart" | "setPendingRestart" | "setDeployFault" | "readDeployFailure" | "setDeployFailure" | "selfStopExit"
+  "readScan" | "invalidateScan" | "notifyQueueChanged" | "forgetBranchFileSteps" | "readServing" | "readPendingRestart" | "setPendingRestart" | "setDeployFault" | "readDeployFailure" | "setDeployFailure" | "readBranchPreview" | "selfStopExit"
 > & {
   branchFileSteps: BranchFileStepsChecker;
 };
@@ -71,6 +71,7 @@ export function setupQueueContext(state: ServerState, inputs: QueueContextInputs
     setDeployFault: (fault) => setDeployFault(state, fault),
     readDeployFailure: (project) => state.deployFailures.get(project),
     setDeployFailure: (project, failure) => setDeployFailure(state, project, failure),
+    readBranchPreview: (project, specFolder) => state.branchPreviews.get(`${project}/${specFolder}`),
     pdfCacheDir: inputs.pdfCacheDir,
     pdfGeneratorBin: inputs.pdfGeneratorBin,
     pdfToolAvailable: inputs.pdfToolAvailable,
