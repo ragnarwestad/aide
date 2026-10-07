@@ -129,7 +129,10 @@ commit or push anything in the specs repo on your own initiative.
    The terminal renders markdown, and what the user copies is what it
    shows: `## Out of scope` arrives as a plain line, and backticks and
    `**` vanish. A code block is shown and copied exactly as written.
-4. **No number.** The number is assigned when the spec is created, not
+4. **A label above each block**, as plain bold text outside it:
+   `**Tittel:**`, `**Beskrivelse:**`, `**Depends on:**`. The blocks
+   look alike, and the user pastes each into its own field.
+5. **No number.** The number is assigned when the spec is created, not
    by whoever writes the text; don't call it "spec 02".
 
 Don't offer to create it afterwards either. The same goes for an
