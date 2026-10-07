@@ -9,7 +9,7 @@ import { MAIN_TEST_SERVER_KEY, restartMainTestServer, stopTestServer } from "../
 import { testServerFailedPage } from "./spec-edit/test-server-waiting.ts";
 import { listedModelName } from "../../queue/model-name.ts";
 import { persistQueueSettings } from "../../queue/queue.ts";
-import { addProject, assessProjectReadiness, commitManifestEdits, projectNameError, removeProject, updateProjectSettings } from "../../project/project-admin";
+import { addProject, assessProjectReadiness, commitManifestEdits, projectNameError, removeProject, updateProjectSettings, type SaveManifest } from "../../project/project-admin";
 import { isToolPart, SETTINGS_STEPS, TOOL_PARTS } from "../../render";
 import { MAX_CREATE_BODY, bodyToObject, json, readBounded } from "../serve-helpers";
 import { CHECKABLE_TOOLS, checkTool, isCheckableTool, recordCheck } from "../tool-check.ts";
@@ -187,6 +187,7 @@ export async function handleQueueAdminRoutes(
       specsPath: text(asked.specsPath),
       worktreeLinks: text(asked.worktreeLinks),
       codeLanding: text(asked.codeLanding),
+      previewFrom: text(asked.previewFrom),
     }, ctx.opts.dashboardCheckoutRoot ?? DEFAULT_DASHBOARD_CHECKOUT_ROOT);
     const steps = [...result.steps];
     let readiness = result.readiness;
@@ -197,6 +198,19 @@ export async function handleQueueAdminRoutes(
       // not see the project.
       ctx.invalidateScan();
       steps.push(ctx.persistAllowlist("added to the allowlist"));
+      // A choice other than `none` is saved the way the Config tab's Save
+      // does it, now that the project exists: into `settings.yaml`, or
+      // committed to a tracked manifest that does not already say it.
+      // `none` saves nothing, so an Add never overwrites a value a team's
+      // manifest already sets.
+      const previewFrom = text(asked.previewFrom);
+      if (previewFrom && previewFrom !== "none") {
+        const saved = await updateProjectSettings(ctx.gitRun, join(ctx.opts.projectRoot, name), { previewFrom }, {
+          saveManifest: manifestSaver(ctx, name),
+          settingsFile: dashboardSettingsFile(ctx.opts.dashboardCheckoutRoot ?? DEFAULT_DASHBOARD_CHECKOUT_ROOT, name),
+        });
+        steps.push(...saved.steps);
+      }
       // Spec 205: eagerly, and here rather than inside `addProject` —
       // the alternative is every project's first run, Save or Update
       // paying a full clone inside the request that happens to need
@@ -254,15 +268,6 @@ export async function handleQueueAdminRoutes(
     // to: the same key a landing into that checkout takes.
     const checkoutBase = ctx.opts.dashboardCheckoutRoot ?? DEFAULT_DASHBOARD_CHECKOUT_ROOT;
     const settingsDir = join(ctx.opts.projectRoot, name);
-    const codeRoot = realpathOr(settingsDir);
-    const saveManifest = (edits: { key: string; value: string }[]) =>
-      ctx.mergeLock.run(codeRoot, () =>
-        commitManifestEdits(
-          { run: ctx.gitRun, resolveBase: (root: string) => ctx.branchStatus.defaultBranch(root) },
-          codeRoot,
-          edits,
-        ),
-      );
     const result = await updateProjectSettings(ctx.gitRun, settingsDir, {
       ...("specsPath" in asked && { specsPath: str(asked.specsPath) }),
       ...("worktreeLinks" in asked && { worktreeLinks: str(asked.worktreeLinks) }),
@@ -274,7 +279,8 @@ export async function handleQueueAdminRoutes(
       ...("installCmd" in asked && { installCmd: str(asked.installCmd) }),
       ...("previewCmd" in asked && { previewCmd: str(asked.previewCmd) }),
       ...("testCmd" in asked && { testCmd: str(asked.testCmd) }),
-    }, { saveManifest, settingsFile: dashboardSettingsFile(checkoutBase, name) });
+      ...("previewFrom" in asked && { previewFrom: str(asked.previewFrom) }),
+    }, { saveManifest: manifestSaver(ctx, name), settingsFile: dashboardSettingsFile(checkoutBase, name) });
     // The specs root a save just named is where the scan goes looking
     // for this project's specs — without this the very next request
     // would still read the old one.
@@ -373,6 +379,25 @@ export async function handleQueueAdminRoutes(
   }
 
   return null;
+}
+
+/** Commits and pushes the manifest keys a save changed, in the checkout
+ *  the project's settings are read from and written to, the moment they
+ *  are saved — never left on disk for the next pull there to refuse
+ *  over. On a serving host that entry is a link to the dashboard's own
+ *  checkout (projects.md), so the lock is taken on the directory it
+ *  resolves to: the same key a landing into that checkout takes. Both
+ *  the settings route and the add route save through it. */
+function manifestSaver(ctx: RoutesContext, name: string): SaveManifest {
+  const codeRoot = realpathOr(join(ctx.opts.projectRoot!, name));
+  return (edits) =>
+    ctx.mergeLock.run(codeRoot, () =>
+      commitManifestEdits(
+        { run: ctx.gitRun, resolveBase: (root: string) => ctx.branchStatus.defaultBranch(root) },
+        codeRoot,
+        edits,
+      ),
+    );
 }
 
 /** The directory a path resolves to, or the path itself when it cannot

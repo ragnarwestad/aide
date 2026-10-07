@@ -5,6 +5,7 @@ import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import type { Language } from "../../../i18n";
 import type { JobDetailView, JobStepResultView } from "../job-page";
 import type { WikiView } from "../../../project/wiki/types.ts";
+import type { PreviewFrom } from "../../../project/parse-manifest.ts";
 import type { SettingsGroupFile } from "../../../project/project-settings.ts";
 
 export type { SpecView, ProjectView };
@@ -31,6 +32,9 @@ export interface ProjectPageOptions {
   defaultBranch?: string;
   script?: string;
   codeLanding?: "merge" | "pr";
+  /** How a spec's branch can be tried, as `resolvePreviewFrom()` reads
+   *  it. Absent reads as `none`. */
+  previewFrom?: PreviewFrom;
   /** Where the settings are kept (spec 512), so the page says so above
    *  the table. Absent for a page built with no checkout to ask. */
   settingsHome?: "project" | "dashboard" | "shadowed" | "none";

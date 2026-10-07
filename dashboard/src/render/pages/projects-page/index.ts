@@ -35,7 +35,7 @@ import {
   type ProjectPageOptions,
 } from "./types.ts";
 import { SETTING_LABELS } from "../../../project/setting-labels.ts";
-import { codeLandingChoices } from "./settings-table.ts";
+import { codeLandingChoices, previewFromChoices } from "./settings-table.ts";
 
 export type { SpecView, ProjectView, ProjectDrift, ProjectPageOptions };
 export {
@@ -215,6 +215,18 @@ export function renderAddProjectPage(
         // name to show. The project page names the real one.
         codeLandingChoices(null)
           .map((o) => `<option value="${o.value}">${esc(o.label)}</option>`)
+          .join("") +
+        `</select>`,
+      { wide: true },
+    ) +
+    // How a spec's branch can be tried before it is merged. Starts on
+    // `none`, what a manifest without the key already means; the Config
+    // tab changes it later.
+    field(
+      "Try a branch",
+      `<select name="previewFrom">` +
+        previewFromChoices()
+          .map((o) => `<option value="${o.value}"${o.value === "none" ? " selected" : ""}>${esc(o.label)}</option>`)
           .join("") +
         `</select>`,
       { wide: true },

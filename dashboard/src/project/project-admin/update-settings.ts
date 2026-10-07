@@ -4,8 +4,8 @@ import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { GitRunner } from "../../git/branch-status.ts";
 import { configValue } from "../discover";
-import { parseManifest } from "../parse-manifest.ts";
-import { oneLine, specsPathError, upsertManifestScalar, worktreeLinksError, writeAideConfig } from "./manifest-io.ts";
+import { isPreviewFrom, parseManifest } from "../parse-manifest.ts";
+import { oneLine, previewFromError, specsPathError, upsertManifestScalar, worktreeLinksError, writeAideConfig } from "./manifest-io.ts";
 import { assessProjectReadiness } from "./readiness.ts";
 import { applySettingsEdits, manifestTracked } from "./settings-state.ts";
 import { fail, type ProjectAdminResult, type ProjectStep, type ProjectStepName } from "./types.ts";
@@ -49,6 +49,10 @@ export async function updateProjectSettings(
     specsPath?: string;
     worktreeLinks?: string;
     codeLanding?: string;
+    /** One of `PREVIEW_FROMS`, written to the manifest as
+     *  `deployment.previewFrom` and gated on presence like
+     *  `codeLanding`. */
+    previewFrom?: string;
     /** Both gated on presence in `req`, unlike `specsPath` above:
      *  `codeLanding` already reads that way (`req.codeLanding !==
      *  undefined`), and this one needs the same rule — a future caller
@@ -93,6 +97,10 @@ export async function updateProjectSettings(
   const landing = (req.codeLanding ?? "").trim();
   if (landing && !(CODE_LANDINGS as readonly string[]).includes(landing)) {
     return fail("codeLanding", `code landing must be ${CODE_LANDINGS.join(" or ")} — not "${landing}"`);
+  }
+  const previewFrom = (req.previewFrom ?? "").trim();
+  if (req.previewFrom !== undefined && !isPreviewFrom(previewFrom)) {
+    return fail("previewFrom", previewFromError(previewFrom));
   }
   const steps: ProjectStep[] = [];
   const done = async (): Promise<ProjectAdminResult> => ({
@@ -223,6 +231,13 @@ export async function updateProjectSettings(
   const wanted = landing === "merge" ? "" : landing;
   if (req.codeLanding !== undefined && wanted !== (manifestData.codeLanding ?? "")) {
     writeManifest("codeLanding", wanted, "codeLanding");
+  }
+
+  // Compared with what the readers resolve (`resolvePreviewFrom`): no key
+  // and a word they do not know both count as `none`. A changed value is
+  // written as it is, `none` included, so the line is replaced in place.
+  if (req.previewFrom !== undefined && previewFrom !== (manifestData.deployment?.previewFrom ?? "none")) {
+    writeManifest("deployment.previewFrom", previewFrom, "previewFrom");
   }
 
   if (settingsFile && settingsEdits.length) {

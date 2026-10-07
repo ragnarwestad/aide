@@ -7,6 +7,7 @@ import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createGitRunner, type GitRunner } from "../../../src/git/branch-status.ts";
 import { dashboardSettingsFile } from "../../../src/git/dashboard-checkout.ts";
+import { parseManifest } from "../../../src/project/parse-manifest.ts";
 import { commitManifestEdits, updateProjectSettings } from "../../../src/project/project-admin";
 import { git, projectWithOrigin } from "./git-fixture.ts";
 
@@ -66,5 +67,57 @@ describe("Settings save by whether the manifest is tracked", () => {
     expect(git(f.origin, "log", "-1", "--format=%s", "main").trim()).toBe("Set previewCmd from the dashboard");
     expect(git(f.origin, "show", "main:.aide/project.yaml")).toContain("previewCmd: make check");
     expect(existsSync(dashboardSettingsFile(f.base, "demo"))).toBe(false);
+  });
+
+  test("an untracked project saves previewFrom to the settings file, and origin and the checkout are untouched (AC-4)", async () => {
+    const f = fixture();
+    const head = git(f.dir, "rev-parse", "HEAD");
+    const originHead = git(f.origin, "rev-parse", "main");
+    const result = await updateProjectSettings(run, f.dir, { previewFrom: "cloudflare-pages" }, {
+      saveManifest: saveManifest(f.dir),
+      settingsFile: dashboardSettingsFile(f.base, "demo"),
+    });
+    expect(result.ok).toBe(true);
+    expect(result.steps.find((s) => s.step === "previewFrom")?.ok).toBe(true);
+    const parsed = parseManifest(readFileSync(dashboardSettingsFile(f.base, "demo"), "utf-8"));
+    expect(parsed.ok && parsed.data.deployment?.previewFrom).toBe("cloudflare-pages");
+    expect(git(f.origin, "rev-parse", "main")).toBe(originHead);
+    expect(git(f.dir, "rev-parse", "HEAD")).toBe(head);
+  });
+
+  test("the value the manifest already holds writes nothing, and none against no key writes nothing (AC-5)", async () => {
+    const manifest = "name: demo\ndeployment:\n  host: Cloudflare Pages\n  previewFrom: command\n";
+    const tracked = fixture({ ".aide/project.yaml": manifest });
+    const options = { saveManifest: saveManifest(tracked.dir), settingsFile: dashboardSettingsFile(tracked.base, "demo") };
+    const saved = (await updateProjectSettings(run, tracked.dir, { previewFrom: "cloudflare-pages" }, options));
+    expect(saved.ok).toBe(true);
+    expect(git(tracked.origin, "show", "main:.aide/project.yaml")).toBe(manifest.replace("command", "cloudflare-pages"));
+    const originHead = git(tracked.origin, "rev-parse", "main");
+    const again = await updateProjectSettings(run, tracked.dir, { previewFrom: "cloudflare-pages" }, options);
+    expect(again.ok).toBe(true);
+    expect(git(tracked.origin, "rev-parse", "main")).toBe(originHead);
+
+    const bare = fixture({ ".aide/project.yaml": "name: demo\n" });
+    const bareHead = git(bare.origin, "rev-parse", "main");
+    const none = await updateProjectSettings(run, bare.dir, { previewFrom: "none" }, {
+      saveManifest: saveManifest(bare.dir),
+      settingsFile: dashboardSettingsFile(bare.base, "demo"),
+    });
+    expect(none.ok).toBe(true);
+    expect(git(bare.origin, "rev-parse", "main")).toBe(bareHead);
+  });
+
+  test("a word that is not one of the three is refused and no file is written (AC-3)", async () => {
+    const f = fixture();
+    const result = await updateProjectSettings(run, f.dir, { previewFrom: "vercel" }, {
+      saveManifest: saveManifest(f.dir),
+      settingsFile: dashboardSettingsFile(f.base, "demo"),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.steps).toEqual([
+      { step: "previewFrom", ok: false, error: 'how a branch is tried must be none, command or cloudflare-pages — not "vercel"' },
+    ]);
+    expect(existsSync(dashboardSettingsFile(f.base, "demo"))).toBe(false);
+    expect(existsSync(join(f.dir, ".aide", "project.yaml"))).toBe(false);
   });
 });

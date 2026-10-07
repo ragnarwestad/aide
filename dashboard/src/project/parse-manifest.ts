@@ -4,10 +4,15 @@
 
 import { parse } from "yaml";
 
-export type PreviewFrom = "cloudflare-pages" | "command" | "none";
+/** The three ways a branch can be tried, in the order the Add form and
+ *  the Config tab offer them. The one list: the parser, the choices and
+ *  the validators all read it. */
+export const PREVIEW_FROMS = ["none", "command", "cloudflare-pages"] as const;
 
-const isPreviewFrom = (v: string | undefined): v is PreviewFrom =>
-  v === "cloudflare-pages" || v === "command" || v === "none";
+export type PreviewFrom = (typeof PREVIEW_FROMS)[number];
+
+export const isPreviewFrom = (v: string | undefined): v is PreviewFrom =>
+  (PREVIEW_FROMS as readonly (string | undefined)[]).includes(v);
 
 export interface ManifestData {
   name?: string;

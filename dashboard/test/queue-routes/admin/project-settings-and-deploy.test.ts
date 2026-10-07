@@ -3,6 +3,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { parseManifest } from "../../../src/project/parse-manifest.ts";
+import { resolvePreviewFrom } from "../../../src/project/discover";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
@@ -202,6 +204,57 @@ describe("a project's settings route (spec 184)", () => {
     });
     expect(res.status).toBe(400);
     expect(readFileSync(join(project, ".aide", "project.yaml"), "utf-8")).not.toContain("codeLanding");
+  });
+
+  /** A manifest committed and pushed, then pulled into the dashboard's
+   *  own checkout when it has one, since that is the copy the page reads. */
+  const commitManifest = (dir: string, project: string, text: string): void => {
+    mkdirSync(join(project, ".aide"), { recursive: true });
+    writeFileSync(join(project, ".aide", "project.yaml"), text);
+    for (const args of [["add", "-A"], ["commit", "-qm", "manifest"], ["push", "-q"]]) {
+      Bun.spawnSync(["git", ...args], { cwd: project });
+    }
+    const owned = join(dir, "owned", "aide", "code");
+    if (existsSync(join(owned, ".git"))) Bun.spawnSync(["git", "pull", "-q", "--ff-only"], { cwd: owned });
+  };
+  const previewFromOf = (text: string) => {
+    const parsed = parseManifest(text);
+    return parsed.ok ? parsed.data.deployment?.previewFrom : undefined;
+  };
+
+  test("a manifest that sets previewFrom shows it selected on the Config tab (AC-3, AC-5)", async () => {
+    const { base, dir, project } = await settled();
+    commitManifest(dir, project, "name: aide\ndeployment:\n  previewFrom: cloudflare-pages\n");
+    const form = await (await fetch(`${base}/projects/aide?edit=manifest`)).text();
+    expect(form).toMatch(/<option value="cloudflare-pages"[^>]*selected/);
+    expect(form).not.toMatch(/<option value="none"[^>]*selected/);
+  });
+
+  test("a save of previewFrom lands on origin and in the dashboard's checkout, and the rows read it (AC-3)", async () => {
+    const { base, dir, project } = await settled();
+    commitManifest(dir, project, "name: aide\ndeployment:\n  host: Cloudflare Pages\n");
+    const res = await fetch(`${base}/api/queue/projects/aide/settings`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ previewFrom: "command" }),
+    });
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as StepBody).results.find((r) => r.step === "previewFrom")?.ok).toBe(true);
+    expect(previewFromOf(onOrigin(dir))).toBe("command");
+    expect(onOrigin(dir)).toContain("host: Cloudflare Pages");
+    expect(resolvePreviewFrom(join(dir, "owned", "aide", "code"))).toBe("command");
+  });
+
+  test("a previewFrom neither side knows is refused, and nothing is written (AC-3)", async () => {
+    const { base, dir, project } = await settled();
+    commitManifest(dir, project, "name: aide\n");
+    const res = await fetch(`${base}/api/queue/projects/aide/settings`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ previewFrom: "vercel" }),
+    });
+    expect(res.status).toBe(400);
+    expect(onOrigin(dir)).not.toContain("previewFrom");
   });
 
   test("a posted criteria checks level is ignored, and the manifest gets no key (AC-6, AC-8)", async () => {

@@ -16,6 +16,7 @@ export type ProjectStepName =
   | "specsConfig"
   | "worktreeLinks"
   | "codeLanding"
+  | "previewFrom"
   | "installCmd"
   | "previewCmd"
   | "testCmd"
@@ -101,6 +102,10 @@ export interface AddProjectRequest {
    *  `codeLanding` already means, and a key stating that is a key to
    *  keep in step with it — and `pr` is written. */
   codeLanding?: string;
+  /** How a branch of the project can be tried: one of `PREVIEW_FROMS`,
+   *  `none` when omitted. Refused when it is anything else. Saved by the
+   *  route once the project exists, the way the Config tab saves it. */
+  previewFrom?: string;
   /** `worktreeLinks`: the space-separated, repo-relative paths a
    *  run has to link into its worktree because git does not carry them
    *  — `node_modules`, `.venv`. Omitted means the key is not written:
