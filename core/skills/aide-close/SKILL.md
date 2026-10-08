@@ -39,10 +39,9 @@ done.
 First write `--- Step 1 of 4: Run the mechanical script — started`, and when this step ends, `--- Step 1 of 4: Run the mechanical script — done`.
 
 
-Resolving the argument to a folder, checking whether a merge is open,
-and stamping-and-moving the folder is a script, the same way archive's
-own equivalent is — this session never reasons about whether the work is
-"done enough" to close, because Close does not ask that question:
+A script resolves the argument to a folder, checks whether a merge is
+open, and stamps and moves the folder. Close does not ask whether the
+work is done:
 
 ```bash
 aide-close-spec --project-dir <project root> --spec <argument> \
@@ -65,9 +64,8 @@ Branch on the JSON's `terminalReason`:
   and closing needs a reason before anything else happens.
 - **`already-closed`:** the folder is already under `archive/` with a
   `**Closed:**` stamp. If the script's own JSON also carries a
-  `specFolder` (`aide-run-spec`'s own pre-check may have just closed
-  this spec seconds ago, before spawning this very session), treat that
-  exactly like a fresh `closed` result below and continue to Step 2.
+  `specFolder` (the runner may have closed it just before this session
+  started), treat it exactly like `closed` below and continue to Step 2.
   Otherwise this is a plain re-run against a spec already closed: say so
   and stop.
 - **`already-archived`:** the folder is under `archive/` but was archived
@@ -76,9 +74,7 @@ Branch on the JSON's `terminalReason`:
 - **`conflict-open`:** the specs branch would not merge cleanly with the
   default branch. Follow
   [aide-archive's references/resolve-conflict.md](../aide-archive/references/resolve-conflict.md)
-  in full — the same routine `/aide-archive` uses for the same situation,
-  since a conflict confined to moving one folder is identical work
-  whichever step is doing the moving. Read every "archive"/`aide-archive`
+  in full, the routine `/aide-archive` uses. Read every "archive"/`aide-archive`
   in it as this step's own equivalent: `aide-close-spec` in place of
   `aide-archive-spec`, this skill's Step 1 in place of `/aide-archive`'s.
   Once past the conflict, run the script again before continuing.
@@ -86,23 +82,13 @@ Branch on the JSON's `terminalReason`:
   `specFolder` (the new `archive/NN-slug/` path). Continue straight to
   Step 2, reading from that path.
 
-Nobody at a keyboard overrides the script's own refusal for a missing
-reason — the same "the check decides, not a conversation" rule
-`/aide-archive` already applies to its own gates.
-
-The folder keeps its `NN-slug` name once moved — the date and the reason
-live in `4-status.md`. Numbers are never reused.
-
 ### Step 2 of 4: Commit
 
 First write `--- Step 2 of 4: Commit — started`, and when this step ends, `--- Step 2 of 4: Commit — done`.
 
 
-The move and the stamp already happened, in the working directory —
-Step 1's script did both. This step is only about getting that onto a
-commit. Unlike `/aide-archive`, there is no documentation-feedback step
-here: work that was closed never shipped, so there is nothing to feed
-back into the project's living docs.
+Step 1 left the move and the stamp in the working directory; this step
+gets them onto a commit.
 
 `aide-run-spec` writes `Workflow steps completed:` from the spec's own
 commits, at whichever address the folder now has — leave that line
@@ -160,11 +146,8 @@ when that merge is, not before. Working interactively there is no such
 step: the steps above say what reaches the default branch.
 
 IMPORTANT:
-- Never delete a spec — closing is a move, not a removal
-- If the specs root lies outside the project root, do NOT run
-  `git add`/`git mv` in the project's repo for spec files (they live in
-  another repo — use the specs repo's git if it has one)
-- Never merge the code branch — the landing that follows this step
-  deletes it; nothing in this skill pushes or merges any branch
-- Code blocks ALWAYS end with just ` ``` ` — NEVER ` ```text ` as the
-  closing fence
+- Closing is a move: a spec is never deleted
+- When the specs root lies outside the project root, spec files are
+  staged with the specs repo's git, never the project's
+- The code branch is left for the landing after this step, which deletes
+  it; nothing in this skill pushes or merges any branch
