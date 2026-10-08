@@ -21,6 +21,7 @@
   - [A spec's complexity chooses the AI](#a-specs-complexity-chooses-the-ai)
   - [Create and archive with as little AI as possible](#create-and-archive-with-as-little-ai-as-possible)
   - [Aide as a Mac app](#aide-as-a-mac-app)
+  - [A run that reaches only its own repository](#a-run-that-reaches-only-its-own-repository)
 
 ---
 
@@ -229,3 +230,28 @@ It is too large for one spec. A split:
 1. The app, with Bun inside it, which starts the dashboard and opens it in a window.
 2. The first start: install the scripts, skills and rules, find the AI tools, add a project.
 3. Releases: a version number, a signed and notarised build on GitHub Releases, updates, and a Homebrew cask.
+
+### A run that reaches only its own repository
+
+From [sandcastle](https://github.com/mattpocock/sandcastle), which runs each coding agent in a container on a branch
+of its own and merges its commits back. A step on the board runs the AI tool as the user, with `bypassPermissions`:
+every command it runs can read and write the whole home directory (SSH keys, the GitHub login, other projects'
+`.env` files, the specs repository, the dashboard's own files) and reach the whole network. A command that goes
+wrong, or that text in a README or an issue talks a run into, can do anything the user can. The risk is the
+machine's, whoever owns the repository.
+
+Two ways to narrow it:
+
+- **The AI tool's own sandbox.** Claude Code can confine the commands it runs with macOS's own sandbox: writes only
+  inside the working directory, network only to allowed domains. Codex has `workspace-write`. A setting per run in
+  place of `bypassPermissions`, with no Docker; what has to be tried out is every place a project's tests write or
+  fetch from, each of which must be allowed. It could be turned on per project, leaving Aide out until its own suite
+  is known to pass inside it.
+- **A container per run, as sandcastle does.** Only the worktree is mounted; the AI tool gets its own token
+  (`claude setup-token`) and no SSH keys or GitHub login, and the runner outside commits, pushes and lands as today.
+  The strongest boundary, at the cost of Docker or Podman on the serving host, an image per project, dependencies
+  built inside the container rather than linked in, and Aide's own suite, which assumes macOS, behaving differently
+  on Linux.
+
+Neither keeps a run from damaging or reading its own repository, or from sending what it reads out, unless the
+network is narrowed too. The first is where to start.
