@@ -51,45 +51,23 @@ get them, and reads them by hand.
   reinstalls it under bash's feet — and `/bin/bash` here is 3.2: no
   `mapfile`, build arrays with `array+=(...)`.
 - **An `implement` whose own turn ends `completed` is reviewed before
-  its tests decide anything** (`run-spec/turn/review.sh`, sourced between
-  `run-spec/record/status-line.sh` and `run-spec/turn/step-tests.sh`): a second,
-  fresh AI session — same model, effort and tool, never resumed — reads
-  the spec's description and, with `git diff` itself, everything the
-  branch changed since it left the default branch, and looks for
-  defects against the description alone, never style, naming or
-  structure. A description with an `## Out of scope` section makes each
-  change under an item in it a defect too. Defects found go back to the ORIGINAL implement session as
-  one follow-up turn that fixes them, and that turn's own failure stands
-  as the step's outcome; the review's own turn is best-effort, so a
-  verdict it cannot parse, or its own turn failing to complete, both
-  fall back to "found nothing" rather than failing an
-  already-successful, already-committed implement over it. Either way,
-  the step's reported cost is the sum of every turn this ran, and its
-  `sessionId` still names the implement session, never the review's own
-  throwaway one. A completed `analyze` gets its plan-review line from the
-  same file: the counts from the `**Findings:**` line of the plan's Plan
-  review section, never counted by the runner itself.
+  its tests decide anything** (`run-spec/turn/review.sh`): a second,
+  fresh session with the same model reads the description and the
+  branch's diff and looks for defects against the description alone.
+  Defects go back to the ORIGINAL session as one follow-up turn; the
+  review itself is best-effort, so a verdict it cannot parse counts as
+  "found nothing". The step's cost sums every turn, and its `sessionId`
+  stays the implement session's.
 - **An `implement` ends only on a green test run the runner made itself**
-  (`run-spec/turn/step-tests.sh`), which runs after the review above: the
-  session's own record is never what decides. Red goes back to the same
-  session first, as a follow-up turn
-  with the failing lines — at most `AIDE_TEST_FIX_ROUNDS` (2) more, each
-  within what is left of the step's time limit — claude through
-  `-p --resume`, codex through `codex exec resume <thread> -`.
-  Still red is `terminalReason: tests-red` on the STEP — a failed job
-  with the failing lines as detail, and Implement offered again — unlike
-  the landing's `tests-red`, which STOPS the job. `run_model_turn`
-  (`run-spec/turn/model-turn.sh`) is the one turn; every turn of a step
-  appends to the same transcript. An `archive` runs no suite of its own,
-  merged with main or not: its landing runs the suite once, on exactly
-  what main is about to become, and that is the one run an archive
-  gets. The session never runs the whole suite — only the tests covering
-  its change — and the runner's run is the only one that counts: a green
-  one ticks the spec's "Run the full test suite" row. The tree it saw
-  green (`aide_tree_hash`, `_aide-spec-lib.sh`) leaves the project's
-  worktree links out, so it is the tree the commit carries, and a landing
-  about to run the same commands on the same tree skips its own run
-  (`testedGreen`, `land-branch/seen-green.ts`).
+  (`run-spec/turn/step-tests.sh`), never on the session's own record.
+  Red goes back to the same session, at most `AIDE_TEST_FIX_ROUNDS` (2)
+  more turns; still red is `tests-red` on the STEP (Implement offered
+  again), unlike the landing's `tests-red`, which STOPS the job. An
+  `archive` runs no suite of its own: its landing runs it once, on what
+  main is about to become, and skips it when the runner already saw that
+  same tree green (`testedGreen`, `aide_tree_hash`).
+
+  `docs/the-runner.md` and `docs/landing.md` have the rest.
 - Every move of a shared checkout — the pull (switch, fetch,
   fast-forward) and the worktree add — runs under the per-root lock
   `$root/.git/aide-run-spec-worktree.lock` (`acquire_worktree_lock`,
@@ -138,16 +116,9 @@ get them, and reads them by hand.
 
 `core/scripts/aide-run-spec` and the dashboard make several of the same
 decisions with no shared source. Each pair is pinned by a test that reads
-both sides, so drift is caught — but the two copies still have to be
-edited by hand together. Three further decisions look like such pairs but
-share one source file each — the workflow's own vocabulary, the effort
-levels, and whether a spec may move from one phase to another — so those
-three are never hand-paired; each carries a runtime assertion instead of
-a test that reads two sides.
-
-`docs/bash-typescript-decisions.md` has the full table, the two known
-asymmetries in the readiness pair, and the three shared-source decisions
-with the tests and assertions that pin all of them.
+both sides, but the two copies are still edited by hand together.
+`docs/bash-typescript-decisions.md` has the table, and the decisions that
+look like pairs but share one source.
 
 - **The landing runs Aide's scripts from beside `--runner-bin`, never from
   PATH alone** (`scriptFor` in `land-branch/run-script.ts`). A test board
@@ -177,10 +148,9 @@ health", and hold here as everywhere. The dashboard checks them in
 is particular to the dashboard:
 
 - `messages.ts`, `en.ts` and `nb.ts` are exempt from the line limit by
-  filename — the message catalogues grow with every new string. Three
-  files already over the limit are held at their recorded length instead
-  (`OVER_LINE_LIMIT` in the test): `src/queue/runner/index.ts`,
-  `src/queue/store/index.ts` and `src/git/branch-merge.ts`.
+  filename — the message catalogues grow with every new string. Files
+  already over the limit are held at their recorded length in the test's
+  `OVER_LINE_LIMIT`.
 - A test moved into a subfolder gains one `../` in its own imports.
 - No `<name>-e` twin sits beside a file under `src/` or `test/`. macOS
   `sed -i -e ...` reads `-e` as the backup suffix and leaves the original
