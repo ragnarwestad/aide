@@ -128,7 +128,38 @@ sync_branch_with_origin() {
       || refuse "cannot fast-forward $br to origin's copy in $root — merge it by hand, in the checkout on the serving host"
     return 0
   fi
+  # What this machine has and origin has not may be nothing but merges of
+  # the default branch: a cancelled run merges main in and then loses its
+  # push to a description saved from the board. Such a merge is no work of
+  # its own, and this run merges main in again below, so origin's copy is
+  # taken.
+  if only_clean_merges_of_base "$root" "$tip" "$here"; then
+    git -C "$root" branch -f "$br" "$tip" >/dev/null 2>&1 \
+      || refuse "cannot move $br to origin's copy in $root — reconcile it by hand, in the checkout on the serving host"
+    return 0
+  fi
   refuse "$br has diverged from origin's copy in $root (each has commits the other has not) — reconcile them by hand, in the checkout on the serving host"
+}
+
+# True when every commit in $2..$3 is a merge of the default branch
+# ($base_ref) that git makes by itself: no commit of its own, and no merge
+# whose tree differs from git's own merge of its parents. A merge that
+# resolved a conflict holds work, and is never counted.
+only_clean_merges_of_base() {
+  local root="$1" from="$2" to="$3" c parents tree
+  [ -n "${base_ref:-}" ] || return 1
+  # The commits a merge brought in from the default branch are on it
+  # already, and are left out of both lists.
+  [ -z "$(git -C "$root" rev-list --no-merges "$from..$to" --not "$base_ref" 2>/dev/null)" ] || return 1
+  for c in $(git -C "$root" rev-list --merges "$from..$to" --not "$base_ref" 2>/dev/null); do
+    parents=()
+    for p in $(git -C "$root" rev-list --parents -n 1 "$c" 2>/dev/null); do parents+=("$p"); done
+    [ ${#parents[@]} -eq 3 ] || return 1
+    git -C "$root" merge-base --is-ancestor "${parents[2]}" "$base_ref" 2>/dev/null || return 1
+    tree="$(git -C "$root" merge-tree --write-tree "${parents[1]}" "${parents[2]}" 2>/dev/null)" || return 1
+    [ "$tree" = "$(git -C "$root" rev-parse "$c^{tree}")" ] || return 1
+  done
+  return 0
 }
 
 # True when $sha is already what origin's $branch points at — the only

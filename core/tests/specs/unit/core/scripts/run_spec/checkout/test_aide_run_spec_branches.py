@@ -342,6 +342,80 @@ def test_a_branch_that_has_diverged_from_origin_refuses_by_name(
     assert git(project, "rev-parse", branch) == ours
     assert not fake_claude.calls.exists()
 
+def test_a_local_branch_that_only_merged_main_takes_origins_copy(
+    runner, workspace, fake_claude, fetchable_origin
+):
+    """A cancelled run merges main into the branch and then loses its push
+    to a description saved from the board. Its merge is no work of its
+    own, and the next run merges main in again, so the branch is taken
+    from origin instead of refused as diverged (woodstack 43, 2026-10-08)."""
+    project = workspace["project"]
+    branch = "aide/81-queue-and-runner"
+    git(project, "switch", "-q", "-c", branch)
+    (project / "shared.txt").write_text("common\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "common ancestor")
+    common = git(project, "rev-parse", "HEAD")
+    (project / "theirs.txt").write_text("saved from the board\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "their side")
+    theirs = git(project, "rev-parse", "HEAD")
+    git(project, "push", "-q", "origin", branch)
+    git(project, "switch", "-q", "main")
+    (project / "main-moved.txt").write_text("main moved on\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "main moves on")
+    git(project, "push", "-q", "origin", "main")
+    git(project, "branch", "-f", branch, common)
+    git(project, "update-ref", "-d", f"refs/remotes/origin/{branch}")
+    git(project, "switch", "-q", branch)
+    git(project, "merge", "-q", "--no-ff", "--no-edit", "main")
+    git(project, "switch", "-q", "main")
+
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out.get("error")
+    assert is_ancestor(project, theirs, branch), "the run must build on origin's copy"
+    assert fake_claude.calls.exists()
+
+
+def test_a_local_merge_that_resolved_a_conflict_is_still_refused_as_diverged(
+    runner, workspace, fake_claude, fetchable_origin
+):
+    """A merge whose conflict was resolved by hand holds work of its own,
+    and is never thrown away for origin's copy."""
+    project = workspace["project"]
+    branch = "aide/81-queue-and-runner"
+    git(project, "switch", "-q", "-c", branch)
+    (project / "shared.txt").write_text("the branch's line\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "common ancestor")
+    common = git(project, "rev-parse", "HEAD")
+    (project / "theirs.txt").write_text("saved from the board\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "their side")
+    git(project, "push", "-q", "origin", branch)
+    git(project, "switch", "-q", "main")
+    (project / "shared.txt").write_text("main's line\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "main changes the same file")
+    git(project, "push", "-q", "origin", "main")
+    git(project, "branch", "-f", branch, common)
+    git(project, "update-ref", "-d", f"refs/remotes/origin/{branch}")
+    git(project, "switch", "-q", branch)
+    subprocess.run(["git", "-C", str(project), "merge", "-q", "--no-edit", "main"], capture_output=True)
+    (project / "shared.txt").write_text("resolved by hand\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "--no-edit")
+    ours = git(project, "rev-parse", "HEAD")
+    git(project, "switch", "-q", "main")
+
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 2 and "diverged" in out["error"], out
+    assert git(project, "rev-parse", branch) == ours
+
+
 def test_a_step_that_pushed_its_own_commit_is_not_amended(
     runner, workspace, fake_claude, fetchable_origin, tmp_path
 ):
