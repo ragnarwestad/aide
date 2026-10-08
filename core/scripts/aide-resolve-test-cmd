@@ -75,7 +75,6 @@ changed_files() {
   local base links link
   base="$(git -C "$project_dir" merge-base HEAD "$1" 2>/dev/null)" || return 0
   links="$(aide_manifest_get worktreeLinks "$manifest_dir")"
-  [ -n "$links" ] || { declare -f aide_config_get >/dev/null 2>&1 && links="$(aide_config_get AIDE_WORKTREE_LINKS "$manifest_dir" 2>/dev/null)"; }
   {
     git -C "$project_dir" diff --name-only "$base" 2>/dev/null
     git -C "$project_dir" ls-files --others --exclude-standard 2>/dev/null

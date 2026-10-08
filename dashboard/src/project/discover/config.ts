@@ -65,13 +65,9 @@ export type CodeLanding = "merge" | "pr";
 
 /** Which of the two this project chose (spec 220).
  *
- *  The COMMITTED manifest and nothing else — deliberately unlike
- *  `resolveWorktreeLinks` above, which reads `.aide/config` as a
- *  fallback. That fallback exists because `AIDE_WORKTREE_LINKS` predates
- *  the manifest and both spellings had to keep working; this key has no
- *  older spelling to migrate from, and giving it one would let a
- *  gitignored file on one machine quietly overrule the policy the repo
- *  states.
+ *  The COMMITTED manifest and nothing else; like `resolveWorktreeLinks`
+ *  above, it never reads `.aide/config`, so a gitignored file on one
+ *  machine cannot overrule the policy the repo states.
  *
  *  Absent, unrecognized, unparseable or no manifest at all → `merge`,
  *  which is what every project on the host did before this existed.
