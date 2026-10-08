@@ -104,13 +104,13 @@ def test_the_rule_the_reader_the_create_skill_and_the_plan_review_share_the_out_
 
 
 @pytest.mark.validation
-def test_the_rule_the_plan_step_the_plan_review_and_implement_share_the_test_places_heading_AC_5_AC_6():
+def test_the_template_the_plan_step_the_plan_review_and_implement_share_the_test_places_heading_AC_5_AC_6():
     """Implement's RED step finds the plan's places by this heading, so the
-    rule's skeleton, the plan step, the plan review and implement must all
-    give it."""
+    solution template, the plan step, the plan review and implement must
+    all give it."""
     heading = "### Where the tests sit"
-    rule = (REPO_ROOT / "core" / "rules" / "spec-structure.md").read_text(encoding="utf-8")
-    assert f"\n{heading}\n" in rule, "the rule's skeleton does not give the heading"
+    template = (REPO_ROOT / "core" / "templates" / "todo" / "3-solution.md.template").read_text(encoding="utf-8")
+    assert f"\n{heading}\n" in template, "the solution template does not give the heading"
     for path in (
         CORE_SKILLS_DIR / "aide-analyze" / "SKILL.md",
         CORE_SKILLS_DIR / "aide-analyze" / "references" / "plan-review.md",

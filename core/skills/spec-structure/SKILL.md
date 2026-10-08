@@ -23,34 +23,29 @@ effort: medium
   - [2-analysis](#2-analysis)
   - [3-solution](#3-solution)
   - [4-status](#4-status)
-    - [Workflow steps completed](#workflow-steps-completed)
 - [Separation of content](#separation-of-content)
 - [Templates](#templates)
-- [See also](#see-also)
 
 ---
 
 ## Overview
 
-4 standardized files per issue/plan:
+Four files per spec, in `specs/<NN>-slug/` (an issue key in the title is
+part of the slug):
 
-```text
-specs/<NN>-slug/          # flat structure
-├── 1-description.md        # (an issue key in the title is part of the slug)
-├── 2-analysis.md
-├── 3-solution.md
-└── 4-status.md
-```
+1. **1-description.md** — the problem as reported
+2. **2-analysis.md** — what the investigation found
+3. **3-solution.md** — the solution and its plan, test first
+4. **4-status.md** — progress, updated as the work goes
 
-**Roles:**
-1. **1-description.md** - Main entry point: The problem as reported
-2. **2-analysis.md** - Detailed analysis: Mapping and findings
-3. **3-solution.md** - Scope, behavior delta, acceptance criteria, risk and implementation plan with a TDD approach
-4. **4-status.md** - Living document: Progress and status
+Each file is created from its template, and its headings are the
+structure to fill in. A fifth file, `test-run.json`, is written by
+`aide-record-test-run` and read by `aide-archive-spec`; no model writes
+or reads it.
 
-A fifth file, `test-run.json`, is written by `aide-record-test-run` in
-`/aide-implement`'s VERIFY phase and read by `aide-archive-spec`; no
-model writes or reads it.
+The details a step needs only in some runs — the Tracking info lines,
+approach marks, the lines the runner writes, the acceptance rows in a
+new round — are in the aide-analyze skill's `references/spec-files.md`.
 
 ---
 
@@ -58,9 +53,6 @@ model writes or reads it.
 
 ### 1-description
 
-**Purpose:** Describe the problem as it was reported.
-
-**Structure:**
 ```markdown
 # [Title] - Description
 
@@ -80,65 +72,23 @@ model writes or reads it.
 - **AC-1:** The system SHALL ...
 - **AC-2:** WHEN ..., the system SHALL ...
 
----
-
 ## Out of scope
 
 - [what the change must not do or touch]
-
 ```
 
-**Key points:**
-- The description is written as given, never rewritten; the user may
-  add to it by hand
-- No code examples (they belong in 3-solution.md)
-- Acceptance criteria here are the SHALL-statement source requirements
-  (AC-n); the testable given/when/then scenarios that verify each one
-  are part of the solution — 3-solution.md's own Acceptance criteria
-  section
-- No Scope section or estimate: the files to change and the estimate are
-  commitments about the solution — 3-solution.md
-- Optionally an `## Out of scope` section, written under exactly that
-  heading: a flat list of what the change must not do or touch. It is
-  the author's own: `/aide-create` keeps it word for word and never
-  writes one, and `aide-create-spec` refuses a create that changes,
-  drops or adds it. When it is there, at every acceptance criteria
-  checks level, `/aide-analyze`'s plan review makes each part of the
-  plan under an item a must-fix, and the review after implement makes
-  each change in the diff under an item a defect
-- Optionally a `Depends on:` line in Tracking info, naming the specs this
-  one builds on (comma-separated; each identifier is either a bare number
-  or a full `NN-slug` folder name — narrower than `/aide-analyze`'s
-  resolver, which also takes `TODO-NN` and an issue key). `analyze`,
-  `implement` and `archive` wait until every named spec has landed on
-  the default branch; `create` runs regardless
-- Optionally an `Acceptance criteria checks:` line in Tracking info —
-  `off`, `warn` or `stop` — saying how strictly `/aide-analyze` checks
-  the spec's acceptance criteria. `aide-run-spec` writes it after a
-  create from the dashboard's New spec form; absent, or any other value,
-  is `off`. It is chosen once, at create
-- A `Let me choose the approach:` line in Tracking info — `yes` or `no` —
-  written by `aide-run-spec` after every create from the New spec form,
-  directly after the `Acceptance criteria checks:` line. `yes` asks
-  `/aide-analyze` to mark each approach (see § 3-solution); absent, or any
-  other value, is `no`
-- Acceptance criteria is OPTIONAL: a flat bullet list, id in bold
+- The description is written as given, never rewritten. It holds no
+  code, no files to change and no estimate: those belong in the solution
+- Acceptance criteria are optional: a flat bullet list, the id in bold
   (`**AC-n:**`), one sentence per id in one of the five EARS patterns
-  below — no table, no nested lists, so both the definition and any
-  reference stay grep-able with a plain regex
-- AC-n ids are additive only: once written, never renumbered or
-  reused, even if later dropped — same philosophy as 4-status.md's
-  `Workflow steps completed` line
-- A held-back spec taking another round on its open checks (see
-  4-status's own Acceptance criteria section below) numbers a new id
-  after the highest one already written — the same additive rule,
-  applied to a second round rather than to the first draft
-- `/aide-create` keeps every criterion a description already has, word
-  for word and with its id, and may add criteria after the highest id
-  (the aide-create skill has how)
-- `/aide-analyze` never retrofits an Acceptance criteria section into
-  an existing `1-description.md` on its own initiative — only original
-  authoring (via `/aide-create`) adds one
+  below. Ids are additive: never renumbered or reused
+- An `## Out of scope` section is optional, under exactly that heading:
+  a flat list of what the change must not do or touch. It is the
+  author's own; the plan review and the review after implement hold the
+  change to it
+- Tracking info may carry `Depends on:`, `Acceptance criteria checks:`
+  and `Let me choose the approach:` lines; `references/spec-files.md`
+  says what each does
 
 #### Acceptance criteria in EARS
 
@@ -168,479 +118,46 @@ The keywords are written in capitals, as SHALL is.
 
 ### 2-analysis
 
-**Purpose:** Detailed technical analysis of the problem.
-
-**Structure:**
-```markdown
-# [Title] - Analysis
-
-## Table of contents
-
-- Mapping
-- Findings
-
----
-
-## Mapping
-
-**Last analyzed**: [date]
-
-[How the analysis was performed - search terms, methods, tools used]
-
-## Findings
-
-**Affected files/components:**
-1. `fil/path.tsx:123-145` - [description]
-2. `fil/path2.tsx:67` - [description]
-
-### Files to change
-
-- `fil/path.tsx`
-- `fil/new-file.ts`
-
-### Overlapping specs
-
-- `603-other-spec` - `fil/path.tsx`
-
-### Codebase analysis
-
-[Detailed findings]
-
-### Affected components
-
-[Detailed description per file with specific line numbers]
-
-### Test coverage
-
-**Existing tests:** [list]
-**Missing tests:** [gaps]
-```
-
-**Key points:**
-- Focus on ANALYSIS (not solution)
-- Include specific files with line numbers
-- `### Files to change` is written by /aide-analyze: one line for every
-  file the change will create, change or delete, and a file only read is
-  not listed. Each line is the path from the project root in backticks and
-  nothing after it, since `aide-spec-overlap` compares the paths as
-  written with the lists of the other open specs
-- `### Overlapping specs` is written only by `aide-spec-overlap --record`,
-  never by the model: one line per spec that shares a file with this one,
-  naming the spec's folder and the files. A rewrite copies it word for word
-- A held-back round's `## Round N` carries its own two subsections, and
-  the newest round's are the ones read
-- No implementation plan or solution proposals
-- No complexity grade, estimate or risk analysis — those judge the
-  solution we intend to build, and belong in 3-solution.md
+What the investigation found: how it was done, the affected files with
+`file:line`, the code, the test coverage. No solution, complexity grade,
+estimate or risk: those judge the solution, and belong in 3-solution.md.
 
 ---
 
 ### 3-solution
 
-**Purpose:** Implementation plan with a TDD approach.
+Scope (files, complexity, estimate), Approaches with the recommended one
+under its own `### Recommended: Approach X` heading, the recommended
+solution with its Parts, Behavior delta, Acceptance criteria as
+given/when/then scenarios, Risk analysis, the implementation plan
+(RED, GREEN, VERIFY) and Testing.
 
-**Structure:**
-
-````markdown
-# [Title] - Solution
-
-## Table of contents
-
-- Scope
-- Approaches
-- Recommended: Approach A
-- Recommended solution
-- Behavior delta
-- Acceptance criteria
-- Risk analysis
-- Implementation plan
-- Testing
-- References
-
----
-
-## Scope
-
-**Files to change:** [list, from the analysis]
-
-### Complexity
-
-[High/Medium/Low, then one line per factor that set it, with the files that show it, and the number of files as a signal]
-
-### Estimate
-
-- **Manual development:** [time]
-- **AI-assisted development:** [time]
-
----
-
-## Approaches
-
-**Approach A: [Name] (recommended).** [one-line description]
-- **Pros:** [list]
-- **Cons:** [list]
-- **Estimate:** [time]
-
-**Approach B: [Name].** [one-line description]
-- **Pros:** [list]
-- **Cons:** [list]
-- **Estimate:** [time]
-
-### Recommended: Approach A
-
-[Why this approach was chosen over the others, as plain text.]
-
----
-
-## Recommended solution
-
-### Before/After examples
-
-**Before:**
-```tsx
-// fil/path.tsx:123
-[old code]
-```
-
-**After:**
-```tsx
-// fil/path.tsx:123
-[new code]
-```
-
-### Parts
-
-- **[the part]** — Reused: [what, with file:line]
-- **[the part]** — New, because [why nothing existing does it]
-
----
-
-## Behavior delta
-
-**Adds:** [new behavior] · **Modifies:** [before → after] · **Removes:** [behavior that goes away]
-
----
-
-## Acceptance criteria
-
-1. **Given** [precondition] **when** [action] **then** [expected outcome]
-
----
-
-## Risk analysis
-
-### [High/Medium/Low risk]
-
-**[Risk 1]**
-- **Consequence:** [description]
-- **Probability:** [High/Medium/Low]
-- **Mitigation:** [how to reduce]
-
----
-
-## Implementation plan
-
-### TDD approach (Red-Green-Verify)
-
-### Phase 1: Write tests (RED)
-- [ ] Task 1
-- [ ] Task 2
-
-### Phase 2: Implement the solution (GREEN)
-- [ ] Task 1
-- [ ] Task 2
-
-### Phase 3: VERIFY
-- [ ] Run the full test suite
-- [ ] Check for regressions
-
----
-
-## Testing
-
-### Where the tests sit
-- **[Public interface]** in `[test file]` (existing|new) — [AC-ids, or the rule in words]
-
-### Unit tests
-[Testing strategy]
-
-### Manual testing
-[What is NOT covered by a test, and why — a note, not a checklist]
-
----
-
-## References
-
-- 1-description.md - Problem description
-- 2-analysis.md - Analysis and findings
-````
-
-**Key points:**
-- Scope, complexity, estimate and risk analysis live here: they judge
-  the solution, not what the investigation found
-- Approaches with pros/cons, each a bold-paragraph lead (not a
-  heading) — `**Approach A: [Name] (recommended).**` followed by
-  Pros/Cons/Estimate. The choice itself stands as its own heading,
-  `### Recommended: Approach X`, directly under Approaches, with the
-  reasoning as plain text below it and its own line in the table of
-  contents — a reader who jumps straight to the heading, or only scans
-  the ToC, must still find the pick. The RECOMMENDED one IS the spec —
-  every section below it describes that approach and no other, and
-  `/aide-implement` builds the plan it finds. Wanting a different one
-  means saying so in `1-description.md` and analysing again
-  (change an acceptance criterion, then `/aide-analyze` again) — or, on a
-  spec whose `Let me choose the approach:` line says `yes`, choosing it on
-  the Specs list
-- On such a spec every lead ends in one of three marks, and exactly one is
-  `(recommended)`. The dashboard offers each approach marked recommended
-  or real alternative, and writes the person's choice as a paragraph of
-  its own directly under the Approaches heading. Analyze keeps that line;
-  when it names an approach that is not the recommended one, the mark
-  moves there and the plan below is written afresh for it. With `## Round
-  N` sections, only the newest round's leads and chosen line count:
-
-  ```markdown
-  **Chosen approach:** Approach B
-
-  **Approach A: [Name] (recommended).** [one-line description]
-
-  **Approach B: [Name] (real alternative).** [one-line description]
-
-  **Approach C: [Name] (considered and rejected).** [one-line description]
-  ```
-
-- Before/After in SEPARATE code blocks (avoids redeclaration errors)
-- Parts: one line per part the change needs that it does not have yet,
-  `Reused:` or `New, because`, or the single `None — [why]` when it needs
-  none
-- Behavior delta: what the solution ADDS / MODIFIES / REMOVES relative to
-  current behavior — not just which files change
-- Acceptance criteria as given/when/then scenarios; the RED phase writes
-  at least one failing test per criterion
-- TDD approach with RED-GREEN-VERIFY phases
-- Where the tests sit: one line per place — the public interface where
-  the behaviour is observed, its test file, whether that file exists,
-  and the rules tested there. As few places as cover the criteria, and a
-  new one only where no existing test file observes the behaviour.
-  `/aide-implement` writes its tests there; a criterion no test can reach
-  gets no place, and the Manual testing note says why
-- Manual testing is a NOTE, not a checklist: it names what no test
-  covers and why. Nothing under it is a task, and nothing under it
-  blocks archiving — 4-status has no row for it
+- The recommended approach IS the spec: every section below it describes
+  that approach, and `/aide-implement` builds the plan it finds
+- Each approach is a bold lead, `**Approach A: [Name] (recommended).**`,
+  never a heading; on a spec whose `Let me choose the approach:` line
+  says `yes`, every lead carries one of three marks
+  (`references/spec-files.md`)
+- `### Where the tests sit` names, one line per place, the public
+  interface where the behaviour is observed, its test file and the rules
+  tested there; `/aide-implement` writes its tests there
+- Manual testing is a note, not a checklist: what no test covers, and why
 
 ---
 
 ### 4-status
 
-**Purpose:** Living document that is updated along the way.
+Phase tables matching 3-solution.md's plan, one row per task, the Status
+cell a symbol from the file's own Notation (`⬜`, `🔄`, `✅`).
 
-**Structure:**
-```markdown
-# [Title] - Status
-
-## Tracking info
-
-- **Task:** `NN-slug/`
-- **Workflow steps completed:** create, analyze   <!-- written by aide-run-spec -->
-- **Total progress:** X% (Y of Z completed)
-- **Estimate:** [time]
-- **Last updated:** `YYYY-MM-DD`
-
-## Table of contents
-
-- Phase 1: Name
-- Phase 2: Name
-- Notation
-
----
-
-## Phase 1: [Name]
-
-| Task | Status | Notes |
-|---------|--------|---------|
-| Task 1 | ⬜ | [notes] |
-| Task 2 | 🔄 | [notes] |
-| Task 3 | ✅ | [notes] |
-
----
-
-## Notation
-
-| Symbol | Meaning |
-|--------|-----------|
-| ⬜ | Not started |
-| 🔄 | In progress |
-| ✅ | Completed |
-| ❌ | Blocked |
-| ⚠️ | Waiting |
-| Not verified | Set aside for a check after deploy; counts as done (Acceptance rows only) |
-| ❌ Failed | A check after deploy that did not hold; open, with a `Failed:` note (Acceptance rows only) |
-```
-
-**Key points:**
-- Organized in phases, matching 3-solution.md's implementation plan
-
-#### Workflow steps completed
-
-One line in Tracking info, saying how far a spec has got through the
-workflow:
-
-```markdown
-- **Workflow steps completed:** create, analyze
-```
-
-The allowed values, in workflow order, are `create`, `analyze`, `implement`
-and `archive`. A missing line means nothing is known to have completed;
-an unknown value is ignored.
-
-**Do not edit this line. It is written by `aide-run-spec`, from the
-spec's own commits**: each step leaves a commit whose subject names the
-step, `Run /aide-<step> for <spec-folder>`. A step run interactively
-counts once committed under the same subject.
-
-The line is only added to, with two exceptions: a reopen that resets
-the files starts it afresh, and a completed analysis takes `implement`
-and `archive` off, since the plan they were made from has been replaced.
-A completed analysis of a spec that stood at `implemented` also clears
-every row of `## Acceptance criteria` (a `Not verified` one too) and
-rebuilds the table from the criteria in `1-description.md` as they read
-now, one open row per `AC-n`; a row keeps its Notes cell only while its
-criterion's text is unchanged.
-
-#### Total progress
-
-One line, near the top of the file, saying how many of the file's own
-Phase-table rows are done:
-
-```markdown
-- **Total progress:** 50% (2 of 4 completed)
-```
-
-**Do not edit this line by hand. `aide-run-spec` recomputes it** at the
-end of every step from the file's own Phase-table rows: a row is done
-when its Status cell reads `✅` or `Completed`.
-
-#### Phase outcome record
-
-Each of the four phases writes its own outcome into the Tracking info
-of the file that is ITS OWN artifact — never into 4-status.md on
-another phase's behalf:
-
-| Phase     | Own file         | Date field enriched |
-|-----------|------------------|---------------------|
-| create    | 1-description.md | `Created:`          |
-| analyze   | 2-analysis.md    | `Last analyzed:`    |
-| implement | 3-solution.md    | `Last updated:`     |
-| archive   | 4-status.md      | `Last updated:`     |
-
-The record, beside the file's own existing date field — never a new
-one, the date already exists, only the time of day is new
-(`` `YYYY-MM-DD HH:MM UTC` ``):
-
-```markdown
-- **Repo:** `repo-name/branch @ sha`
-- **Model:** claude claude-sonnet-5
-- **Model id:** claude-sonnet-5
-- **Result:** completed
-- **Time spent:** 4m12s
-- **Cost:** $0.1234
-```
-
-`Repo` is one line per repo root; it is absent for `create`, since
-nothing has been analyzed against yet. `Result` is `completed`, or
-`stopped (<reason>)` with a one-line error summary. `Model id` is the model
-Claude Code's own log named for the run, so an alias shows what it ran on;
-it is absent when the log names none. `Cost` is absent
-for a tool that reports no cost (codex) — absence means unknown, never
-zero.
-
-**Do not edit these lines. `aide-run-spec` writes them**, never from a
-model's own account of itself. Each run OVERWRITES its phase's own
-block with the newest outcome, with three exceptions that are added to
-across runs: `Attempts` counts every run of the phase, and `Cost` and
-`Tokens` are what they used together.
-
-Older specs may carry `Model (create):`-style lines in `4-status.md`;
-they are left as they are.
-
-#### Acceptance criteria (optional)
-
-When `1-description.md` has a `## Acceptance criteria` section,
-`/aide-analyze` adds one more section to `4-status.md`, after the last
-implementation phase and before `## Notation`, with exactly one row per
-`AC-n` id from `1-description.md`, in ascending id order, carrying that
-requirement's own SHALL text — never a scenario from `3-solution.md`'s
-Acceptance criteria, which a user cannot judge and which can repeat
-one id across several scenarios:
-
-```markdown
-## Acceptance criteria
-
-| Task | Status | Notes |
-|------|--------|-------|
-| AC-1: <requirement text, verbatim from 1-description.md> | ⬜ | |
-| AC-2: <requirement text, verbatim from 1-description.md> | ⬜ | |
-```
-
-Every row starts `⬜`, a `Not tested:` row too: a criterion no test
-proves is one the user checks by hand. `Not verified` is a done mark like
-`✅`: archiving does not wait for it, and the user can still tick it
-later. Only the user writes it, when a check can only be made after
-deploy — never a skill.
-
-A `Not verified` row that was checked after the deploy and did not hold is
-marked `❌ Failed`, with a Notes cell that starts `Failed:` and says what did
-not hold. `❌ Failed` is not a done mark: archiving waits for it. Only the
-user writes it (from the Specs list or the Status tab of an archived spec) —
-never a skill. Reopening the spec puts the row back to `⬜` and keeps its
-note, and a note starting `Failed:` on an open row counts as a changed
-criterion for the rule that a new round needs one.
-
-No Acceptance criteria section: `4-status.md` looks exactly as it does
-today — no such section, no change to archiving.
-
-**These rows start unticked, and no skill ever ticks one.** Unlike the
-RED/GREEN/VERIFY rows above, an acceptance-criteria row names a
-judgment only the user the spec is for can make — ticking it is the
-same one-click Overview-tab action any other recognized row offers.
-Placing the section after the last implementation phase means it only
-becomes tickable once every earlier phase's own rows are done.
-
-**`aide-archive-spec` refuses to archive while any of these rows is
-still unticked**, with `terminalReason: "acceptance-criteria-unticked"`
-— the one place a "must be ticked" gate exists in this file, scoped to
-this section alone. A spec with no such section, or every row ticked,
-archives exactly as it did before this section existed.
-
-**A held-back spec may take another round on its open rows.**
-`/aide-analyze` and `/aide-implement` may run again on a spec whose
-archive is held back this way — a THIRD kind of restart, distinct
-from a reopen that resets the files, which regenerates this table from
-its template. A held-back round instead APPENDS while the session
-works: it never rewrites the table, only an OPEN row's Notes cell may
-gain text naming what the round still finds missing, and a genuinely
-new `AC-n` id, numbered after the highest one already written, may be
-appended as a new unticked row. When the analysis completes, the runner
-then clears every tick and rebuilds the rows from the description, so
-the person ticks each criterion again against the new code; a round
-that starts with Implement keeps its ticks. The round may start
-once at least one open row's own requirement text has changed since the
-round that held it back, or a new `AC-n` id has been added — when none
-has, the spec stays held back on Analyze and Implement alike, not only
-on Archive.
-
-**A reopened spec takes the same round.** `/aide-reopen` without a
-reset (`aide-reopen-spec`) moves an archived or closed spec back into
-the active list with `2-analysis.md`, `3-solution.md` and `4-status.md`
-kept, and stamps a `**Round boundary:**` line after its
-`**Archived:**` or `**Closed:**` line. A reopened spec has no open row
-by construction, so the round it takes works on what changed since that
-boundary instead: an `AC-n` id added to `1-description.md`, or an
-existing criterion reworded whose row is still unticked. It follows the
-rules above: ticked rows are left exactly as found, only `⬜` rows and
-new ids are worked on, and with no new or changed criterion the spec
-stays held back on Analyze and Implement. A spec reopened WITH a reset
-starts from templates and is not in such a round.
+- **The runner writes these lines; never edit them:** `Workflow steps
+  completed:`, `Total progress:`, and each phase's `Repo`/`Model`/
+  `Result`/`Time spent`/`Cost` record in that phase's own file
+- **No skill ever ticks a row under `## Acceptance criteria`**, and none
+  writes `Not verified` or `Failed`: those are the user's judgment. The
+  section has one row per `AC-n`, and archiving waits until every row is
+  ticked. A new round on a held-back or reopened spec has its own rules
+  (`references/spec-files.md`)
 
 ---
 
@@ -669,8 +186,8 @@ starts from templates and is not in such a round.
 
 ## Templates
 
-The `/aide-create` command creates the 4-file structure with the correct placeholders.
-The `/aide-analyze` command fills in the analysis, solution and status.
+The `/aide-create` command creates the four files from their templates;
+`/aide-analyze` fills in the analysis, the solution and the status.
 
 **Spec files are always produced by invoking the actual `/aide-*` skill
 for that step — never by hand-writing or reimplementing the pattern
@@ -683,10 +200,3 @@ Where `aide-install-spec-hook` has been run, a commit touching a spec's
 files is rejected unless its message follows the
 `Run /aide-<step> for <spec-folder>` convention; a hand-edit to an
 existing `1-description.md` is the one exception.
-
----
-
-## See also
-
-- The documentation skill - General documentation rules
-- The markdown-linting skill - Markdown linting rules

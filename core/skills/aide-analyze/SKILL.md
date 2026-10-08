@@ -298,7 +298,8 @@ spec structure shows: `(recommended)` on exactly one, `(real alternative)`
 on each other approach a person could reasonably pick instead, and
 `(considered and rejected)` on one that fails a requirement or is plainly
 worse. The Specs list offers the person every approach marked recommended
-or real alternative, so an approach left unmarked is never offered. When
+or real alternative, so an approach left unmarked is never offered
+(`references/spec-files.md` has the format and the chosen line). When
 the spec does not ask, only the recommended lead carries a mark. Never write or remove a
 `**Chosen approach:**` line: the dashboard writes it.
 

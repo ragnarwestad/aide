@@ -84,8 +84,8 @@ describe("parseApproaches", () => {
     expect(parseApproaches(solution("```markdown\n**Approach A: Example (recommended).** x\n```")).approaches).toEqual([]);
   });
 
-  test("the marked leads the spec-structure rule shows parse as the rule says (AC-2)", () => {
-    const rule = readFileSync(join(REPO, "core", "rules", "spec-structure.md"), "utf-8");
+  test("the marked leads the spec-files reference shows parse as it says (AC-2)", () => {
+    const rule = readFileSync(join(REPO, "core", "skills", "aide-analyze", "references", "spec-files.md"), "utf-8");
     const block = rule.split(/^[ \t]*```/m).find((part) => part.includes("(real alternative)"));
     expect(block).toBeDefined();
     const example = block!.replace(/^markdown\n/, "").replace(/^[ \t]+/gm, "");
