@@ -58,7 +58,7 @@ export function phaseMessagesFold(g: SpecGroup, p: Phase, opts: SpecsPageOptions
   const shut = !unfolded.has(key);
   const next = shut ? [...unfolded, key] : [...unfolded].filter((k) => k !== key);
   return foldArrow({
-    href: queuePath(opts.filter ?? {}, { phases: next.join(",") }),
+    href: queuePath(opts.filter ?? {}, { phases: next.join(",") }, opts.listPath),
     open: !shut,
     lang,
     title: "list.phaseFoldTitle",

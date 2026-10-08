@@ -236,35 +236,3 @@ describe("what the answer's marker does to the page's own (AC-2, AC-6)", () => {
     expect(t.state.phases).toBe(1);
   });
 });
-
-describe("a part that holds an open dialog is left alone (AC-5)", () => {
-  const JOBS = (rows: string, open: boolean) =>
-    `<div data-follow-part="jobs"><table><tbody>${rows}${open ? "<tr><td><dialog open>Stop?</dialog></td></tr>" : ""}</tbody></table></div>`;
-  const BOTH = (rows: string, open: boolean, head: string) =>
-    `${MARKER('')}<div data-follow-part="head"><p>${head}</p></div>${JOBS(rows, open)}`;
-
-  test("the part with the open question stays whole while another part is replaced (AC-5)", async () => {
-    const t = setup(BOTH(ROW("a"), true, "old"));
-    t.state.reply = () => ({ html: BOTH(ROW("a") + ROW("b"), false, "new") });
-    const table = t.doc.querySelector('[data-follow-part="jobs"] table');
-    t.follow.request();
-    await t.flush();
-    expect(t.doc.querySelector('[data-follow-part="head"]')!.textContent).toBe("new");
-    expect(t.doc.querySelector('[data-follow-part="jobs"] table')).toBe(table);
-    expect(t.doc.querySelectorAll('[data-follow-part="jobs"] tbody > tr')).toHaveLength(2);
-    expect(t.doc.querySelector("dialog")!.hasAttribute("open")).toBe(true);
-  });
-
-  test("once the question is closed the next answer swaps the part (AC-5)", async () => {
-    const t = setup(BOTH(ROW("a"), true, "old"));
-    t.state.reply = () => ({ html: BOTH(ROW("a") + ROW("b"), false, "new") });
-    t.follow.request();
-    await t.flush();
-    t.doc.querySelector("dialog")!.removeAttribute("open");
-    t.clock.at += 5000;
-    t.follow.request();
-    await t.flush();
-    expect(t.doc.querySelectorAll('[data-follow-part="jobs"] tbody > tr')).toHaveLength(2);
-    expect(t.doc.querySelector("dialog")).toBeNull();
-  });
-});

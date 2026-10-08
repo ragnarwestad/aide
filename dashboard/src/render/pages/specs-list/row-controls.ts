@@ -24,12 +24,12 @@ import { actionState, runFormId, specBusy } from "./row-state.ts";
 // `#jobrows` so a click neither reloads the page nor wipes a half-filled
 // form, and the choice survives the table swapping itself every five
 // seconds — the same mechanism the filter and the sort ride on.
-export function foldControl(g: SpecGroup, f: SpecsFilter, opened: Set<string>, lang: Language): string {
+export function foldControl(g: SpecGroup, f: SpecsFilter, opened: Set<string>, lang: Language, path?: string): string {
   const key = groupKey(g.project, g.specFolder);
   const shut = !opened.has(key);
   const next = shut ? [...opened, key] : [...opened].filter((k) => k !== key);
   return foldArrow({
-    href: queuePath(f, { open: next.join(",") }),
+    href: queuePath(f, { open: next.join(",") }, path),
     open: !shut,
     lang,
     title: "list.foldTitle",
@@ -96,8 +96,14 @@ function actionForm(r: QueueRowView, lang: Language): string {
 /** Reopen's dialog over the list, `id` being the one its button names.
  *  Whether the job ends done or not, the reader comes back to the list as
  *  it was: the list's own address is where the script goes either way. */
-export function listReopenDialog(g: SpecGroup, filter: SpecsFilter | undefined, lang: Language, id: string): string {
-  const list = queuePath(filter ?? {});
+export function listReopenDialog(
+  g: SpecGroup,
+  filter: SpecsFilter | undefined,
+  lang: Language,
+  id: string,
+  path?: string,
+): string {
+  const list = queuePath(filter ?? {}, {}, path);
   return reopenAskDialog(g.project, g.specFolder, lang, {
     id,
     back: list,
@@ -109,7 +115,7 @@ export function listReopenDialog(g: SpecGroup, filter: SpecsFilter | undefined, 
  *  spec 221): a button, and the dialog it opens beside it. */
 function reopenAsk(g: SpecGroup, opts: SpecsPageOptions, lang: Language): string {
   const id = `reopenask-${groupKey(g.project, g.specFolder)}`;
-  return askButton({ label: t(lang, "list.reopen"), dialogId: id, variant: "primary" }) + listReopenDialog(g, opts.filter, lang, id);
+  return askButton({ label: t(lang, "list.reopen"), dialogId: id, variant: "primary" }) + listReopenDialog(g, opts.filter, lang, id, opts.listPath);
 }
 
 /** The press an archived row's "still on origin" note carries: a POST

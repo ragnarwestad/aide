@@ -105,8 +105,6 @@ export const en = {
   "list.cancelling": "cancelling…",
   "list.cancelConfirmTitle": "Cancel {step}?",
   "list.cancelConfirmBody": "This stops it right away — it can be run again from the same spec.",
-  "jobs.colTitle": "Title",
-  "jobs.colState": "State",
   "jobs.nothingRunning": "Nothing is running.",
   "jobs.wikiBuild": "Wiki build — {project}",
   "jobs.wikiRefresh": "Wiki refresh — {project}",

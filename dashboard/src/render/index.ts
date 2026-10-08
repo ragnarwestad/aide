@@ -100,7 +100,7 @@ export {
 // specs-list.ts.
 export {
   FILTER_KEYS, PHASE_LINES, computeSpecTotalDurationMs,
-  filterShowsArchived, NOT_VERIFIED_KEY, parsePhaseKeys, phaseKey, phasePips, phasesFor, renderSpecGroupRows, renderSpecsPage, renderSpecsRows,
+  filterShowsArchived, NOT_VERIFIED_KEY, parsePhaseKeys, phaseKey, phasePips, phasesFor, renderSpecGroupRows, renderSpecsPage, renderSpecsRows, specGroupRowsByKey,
 } from "./pages/specs-list";
 export type {
   ArchivedSpecView, Phase, PhaseMessages, SpecsFilter, SpecsPageOptions, SpecTarget,
@@ -109,8 +109,8 @@ export type {
 export type { QueueRowView } from "./ui/job-state";
 
 export { renderJobDetailPage, renderJobFollowParts } from "./pages/job-page";
-export { jobsShown, renderJobsFollowParts, renderJobsPage } from "./pages/jobs-page";
-export type { JobsPageOptions } from "./pages/jobs-page";
+export { jobsShown, renderJobsPage, renderJobsRows, renderJobsSpecRows } from "./pages/jobs-page";
+export type { JobsView } from "./pages/jobs-page";
 export type { JobDetailView, JobStepResultView, JobTab, SpecFileView } from "./pages/job-page";
 
 // `/specs/<project>/<specFolder>` — the SPEC, not one of its runs (spec

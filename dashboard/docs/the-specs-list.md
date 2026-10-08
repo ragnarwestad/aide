@@ -41,7 +41,8 @@ it.
 
 A spec's own › — the row's chevron and the criteria's — redraws that spec's rows alone: the page asks for `?rows=1&only=<project>/<spec>`
 and replaces just those rows, since the whole list runs to a megabyte once the archive is on it. The chevron is a
-spinner until they are back. Every other link on the page takes the open rows from the address rather than from its
+spinner until they are back. The page asks its own address: `/specs?rows=1…` here, and `/?rows=1…` on the Jobs tab,
+which draws the same rows for the specs it shows. Every other link on the page takes the open rows from the address rather than from its
 own href, which was drawn before the last ›.
 
 Each spec is a card: its rows share one rounded frame on the page's ground, and an empty `tr.specgap` row after the

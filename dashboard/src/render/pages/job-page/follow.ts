@@ -32,5 +32,5 @@ export function followMarker(
 
 /** A part the page script swaps by itself, and that draws no box of its own
  *  (`display: contents`). A `<span>` where the part sits in a line. */
-export const followPart = (name: "head" | "panel" | "jobs", html: string, tag: "div" | "span" = "div"): string =>
+export const followPart = (name: "head" | "panel", html: string, tag: "div" | "span" = "div"): string =>
   `<${tag} data-follow-part="${name}">${html}</${tag}>`;

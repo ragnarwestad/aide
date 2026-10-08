@@ -181,6 +181,10 @@ export interface SpecsPageOptions {
   /** Spec 435. The request's own address, threaded to `pageShell` so its
    *  language links keep the reader on this same page, filter and sort. */
   currentUrl?: string;
+  /** The page the rows sit on, for every link a row draws back to it: the
+   *  Specs list's own `/specs` when absent. The Jobs tab draws the same rows
+   *  and sets `/`. */
+  listPath?: string;
 }
 
 
@@ -206,40 +210,60 @@ function groupRows(
   now: number,
   opened: Set<string>,
 ): string {
+  return groups.map((g) => groupRow(g, opts, now, opened)).join("");
+}
+
+/** The rows of the specs named by `keys` (`<project>/<folder>`), each drawn as
+ *  the list draws it, by key. The filter comes before the drawing: only the
+ *  specs asked for are drawn, though every spec's group is built. Another
+ *  page that shows some of the specs, the Jobs tab, draws them with this. */
+export function specGroupRowsByKey(
+  rows: QueueRowView[],
+  opts: SpecsPageOptions,
+  keys: ReadonlySet<string>,
+  now = Date.now(),
+): Map<string, string> {
+  const opened = openedSet(opts.filter ?? {});
+  const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now);
+  return new Map(
+    groups
+      .filter((g) => keys.has(groupKey(g.project, g.specFolder)))
+      .map((g) => [groupKey(g.project, g.specFolder), groupRow(g, opts, now, opened)]),
+  );
+}
+
+function groupRow(g: SpecGroup, opts: SpecsPageOptions, now: number, opened: Set<string>): string {
   const testServerAvailable = opts.testServerAvailable ?? (() => true);
-  return groups
-    .map((g) => {
-      // An archived spec branched to a flat reader row of its own here
-      // until spec 224 — `archivedHeadRow`, a second row builder kept
-      // level with this one by hand, which had already drifted: no fold
-      // and no phase lines on its side alone. There is one builder now
-      // and `isArchivedRow` locks it, so the failure mode spec 193 met
-      // in the other direction — an archived spec drawn as a fully
-      // interactive row, offering a Run the server refuses — cannot be
-      // reached by forgetting a branch.
-      //
-      // The panel belongs to the row, not to the phase lines: a
-      // collapsed row is told what went wrong without being opened.
-      //
-      // An open row reads head row, phase lines, then the message rows:
-      // the detail the chevron opens sits directly under the row, and
-      // every message keeps that one place.
-      const head = specHeadRow(g, opts, opened);
-      const notice = specNoticeRow(g, now, opts.lang ?? "en", testServerAvailable, {
-        filter: opts.filter,
-        branchPreview: opts.branchPreview,
-      });
-      // Each spec ends with an empty row the stylesheet turns into the air
-      // between two cards. It closes the group rather than opening the
-      // next one, so the page's own row swap (row-swap.ts, which takes a
-      // spec as its head row and everything up to the next) carries it
-      // along with the spec it belongs to.
-      const gap = `<tr class="specgap" aria-hidden="true"><td colspan="${LIST_COLUMNS}"></td></tr>`;
-      return opened.has(groupKey(g.project, g.specFolder))
-        ? head + phaseSubRows(g, opts, now) + notice + gap
-        : head + notice + gap;
-    })
-    .join("");
+  // An archived spec branched to a flat reader row of its own here
+  // until spec 224 — `archivedHeadRow`, a second row builder kept
+  // level with this one by hand, which had already drifted: no fold
+  // and no phase lines on its side alone. There is one builder now
+  // and `isArchivedRow` locks it, so the failure mode spec 193 met
+  // in the other direction — an archived spec drawn as a fully
+  // interactive row, offering a Run the server refuses — cannot be
+  // reached by forgetting a branch.
+  //
+  // The panel belongs to the row, not to the phase lines: a
+  // collapsed row is told what went wrong without being opened.
+  //
+  // An open row reads head row, phase lines, then the message rows:
+  // the detail the chevron opens sits directly under the row, and
+  // every message keeps that one place.
+  const head = specHeadRow(g, opts, opened);
+  const notice = specNoticeRow(g, now, opts.lang ?? "en", testServerAvailable, {
+    filter: opts.filter,
+    branchPreview: opts.branchPreview,
+    listPath: opts.listPath,
+  });
+  // Each spec ends with an empty row the stylesheet turns into the air
+  // between two cards. It closes the group rather than opening the
+  // next one, so the page's own row swap (row-swap.ts, which takes a
+  // spec as its head row and everything up to the next) carries it
+  // along with the spec it belongs to.
+  const gap = `<tr class="specgap" aria-hidden="true"><td colspan="${LIST_COLUMNS}"></td></tr>`;
+  return opened.has(groupKey(g.project, g.specFolder))
+    ? head + phaseSubRows(g, opts, now) + notice + gap
+    : head + notice + gap;
 }
 
 // The controls and the rows alone, so the page can refresh its table

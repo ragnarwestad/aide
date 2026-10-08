@@ -589,3 +589,35 @@ describe("a page that follows its job asks for its parts (AC-1, AC-2, AC-6)", ()
     expect(asks(h)).toHaveLength(0);
   });
 });
+
+// The Jobs tab at `/` draws the Specs list's rows in the same `#jobrows`, so
+// the redraw asks the address of the page it runs on.
+describe("the redraw asks the page's own address (AC-8)", () => {
+  const asked = (h: ReturnType<typeof harness>) =>
+    h.requests.map((r) => r.url).filter((u) => u.includes("rows=1"));
+
+  test.each([
+    ["/", "/?"],
+    ["/specs", "/specs?"],
+  ])("on %s the rows are asked at %s (AC-8)", async (pathname, prefix) => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }), "actionform", "?open=aide%2F81-x", { pathname });
+    h.visibility("visible");
+    h.live()!.emit("changed");
+    await flush();
+    expect(asked(h)[0]).toStartWith(prefix);
+    expect(asked(h)[0]).toContain("rows=1");
+    expect(asked(h)[0]).toContain("open=aide%2F81-x");
+  });
+
+  test.each([
+    ["/", "/?"],
+    ["/specs", "/specs?"],
+  ])("on %s one spec's fold asks %s with only= (AC-8)", async (pathname, prefix) => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }), "rowrun", "", { pathname });
+    h.clickFold();
+    await flush();
+    const first = asked(h)[0] ?? "";
+    expect(first).toStartWith(prefix);
+    expect(first).toContain("only=aide%2F127-one-ai");
+  });
+});

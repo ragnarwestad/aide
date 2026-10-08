@@ -546,4 +546,4 @@ export const OK_ACTION = { ok: true, job: { id: "job-1" } };
 /** Where `swapRows` asked for the rows, which is where the refusal the
  *  page is about to show comes from. */
 export const swapUrl = (h: { requests: { url: string }[] }): string =>
-  h.requests.map((r) => r.url).find((u) => u.startsWith("/specs?") && u.includes("rows=1")) ?? "";
+  h.requests.map((r) => r.url).find((u) => u.includes("rows=1")) ?? "";

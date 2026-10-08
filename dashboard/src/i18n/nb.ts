@@ -104,8 +104,6 @@ export const nb: Record<TranslationKey, string> = {
   "list.cancelling": "avbryter…",
   "list.cancelConfirmTitle": "Avbryt {step}?",
   "list.cancelConfirmBody": "Dette stopper det med en gang — det kan kjøres på nytt fra samme spec.",
-  "jobs.colTitle": "Tittel",
-  "jobs.colState": "Tilstand",
   "jobs.nothingRunning": "Ingenting kjører.",
   "jobs.wikiBuild": "Wiki-bygging — {project}",
   "jobs.wikiRefresh": "Wiki-oppdatering — {project}",

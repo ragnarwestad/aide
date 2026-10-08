@@ -97,8 +97,8 @@ header, body > nav.tabbar, main { max-width: calc(72rem + 2 * var(--sp-6));
 body > p.rowmsg { max-width: 72rem; width: calc(100% - 2 * var(--sp-6));
   box-sizing: border-box; margin-inline: auto; }
 
-/* The Specs page only (spec 320), scoped by :has(#jobrows) — the id only
-   that one page ever writes. Its own box (.tablewrap, list.css) is the
+/* The Specs list and the Jobs tab (spec 320), scoped by :has(#jobrows) — the
+   id only those two pages write. Their own box (.tablewrap, list.css) is the
    only thing meant to scroll; everywhere else keeps the ordinary
    min-height: 100vh above, which lets a page grow past the viewport and
    the browser scroll it normally (REQ-5). overflow: hidden lives on body

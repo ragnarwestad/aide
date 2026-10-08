@@ -104,8 +104,6 @@ export const de: Record<TranslationKey, string> = {
   "list.cancelling": "wird abgebrochen…",
   "list.cancelConfirmTitle": "{step} abbrechen?",
   "list.cancelConfirmBody": "Das stoppt es sofort — es kann von derselben Spec aus erneut ausgeführt werden.",
-  "jobs.colTitle": "Titel",
-  "jobs.colState": "Status",
   "jobs.nothingRunning": "Nichts läuft.",
   "jobs.wikiBuild": "Wiki-Build — {project}",
   "jobs.wikiRefresh": "Wiki-Aktualisierung — {project}",

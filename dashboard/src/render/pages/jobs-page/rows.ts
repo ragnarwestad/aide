@@ -43,13 +43,12 @@ const group = (job: JobLike): number => (job.state === "running" || job.landing 
 /** The jobs the tab shows, in the order it shows them: in flight, or waiting
  *  for a person and not yet dealt with. A waiting job is dealt with when a
  *  job of the same project and tracking key was created after it and was not
- *  cancelled; a failed create (its key is never reused) when its
- *  message is dismissed; a scheduled job when its entry is deleted. */
+ *  cancelled; a scheduled job when its entry is deleted. A create that ended
+ *  without a spec is never a row: the Specs list's message for it stands, from
+ *  a record kept until Dismiss is pressed. */
 export function jobsShown<T extends JobLike>(
   jobs: T[],
   o: {
-    /** Ids of the failed creates whose message is not dismissed. */
-    openFailedCreates: ReadonlySet<string>;
     scheduleEntryExists: (project: string, name: string) => boolean;
   },
 ): T[] {
@@ -59,7 +58,7 @@ export function jobsShown<T extends JobLike>(
   for (const job of jobs.filter((j) => j.state !== "cancelled")) newest.set(sameJob(job), Math.max(newest.get(sameJob(job)) ?? 0, at(job)));
   const shown = jobs.filter((job) => {
     if (inFlight(job)) return true;
-    if (createEndedWithoutSpec(job)) return o.openFailedCreates.has(job.id);
+    if (createEndedWithoutSpec(job)) return false;
     if (!waitsForPerson(job)) return false;
     if ((newest.get(sameJob(job)) ?? 0) > at(job)) return false;
     return !isScheduleJob(job) || o.scheduleEntryExists(job.project, scheduleNameOf(job.specFolder));

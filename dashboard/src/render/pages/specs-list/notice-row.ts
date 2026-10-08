@@ -77,7 +77,12 @@ export function specNoticeRow(
   testServerAvailable: (project: string, specFolder: string) => boolean,
   /** The view the row is drawn in: what the unfolded acceptance
    *  criteria (spec 493) need to keep. */
-  view: { filter?: SpecsFilter; branchPreview?: (project: string, specFolder: string) => string | undefined } = {},
+  view: {
+    filter?: SpecsFilter;
+    branchPreview?: (project: string, specFolder: string) => string | undefined;
+    /** The page the row sits on, for the criteria's fold; the Specs list's own when absent. */
+    listPath?: string;
+  } = {},
 ): string {
   const archiveHeldBack = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
   const notice = specNotice(
@@ -100,7 +105,7 @@ export function specNoticeRow(
   // carries. A held-back notice unfolds the same list, so there the count
   // stands without a › of its own.
   const holds = (notice?.parts ?? []).some((p) => "kind" in p && p.kind === "acceptance-hold");
-  const checks = checksRow(g, filter, lang, LIST_COLUMNS, !holds);
+  const checks = checksRow(g, filter, lang, LIST_COLUMNS, !holds, view.listPath);
   if (!notice) return checks;
   // The held-back part is led by the › and carries the unfolded list
   // directly under its own box.
@@ -108,7 +113,7 @@ export function specNoticeRow(
   // their waiting line.
   const parts: MessagePart[] = (notice.parts ?? [{ text: notice.text }]).map((p) =>
     "kind" in p && p.kind === "acceptance-hold"
-      ? { ...p, lead: checksFold(g, filter, lang), after: checksPanel(g, filter, lang) }
+      ? { ...p, lead: checksFold(g, filter, lang, view.listPath), after: checksPanel(g, filter, lang, view.listPath) }
       : "kind" in p && p.kind === "branch-left-behind"
         ? { ...p, after: deleteBranchForm(g, lang) }
         : "kind" in p && p.kind === "approach-choice"

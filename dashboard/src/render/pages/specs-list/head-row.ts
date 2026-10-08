@@ -198,7 +198,7 @@ export function specHeadRow(
     // one line tall was hard to hit (asked for 2026-09-22). Out here it
     // also gives the title and the pips below it the same left edge for
     // nothing — they both start where this cell ends.
-    `<td class="foldcell" rowspan="2" data-col="fold">${foldControl(g, opts.filter ?? {}, opened, lang)}</td>` +
+    `<td class="foldcell" rowspan="2" data-col="fold">${foldControl(g, opts.filter ?? {}, opened, lang, opts.listPath)}</td>` +
     `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name">${spec}` +
     `</div>` +
     under +

@@ -29,9 +29,6 @@ export function restoreBox(box: HTMLElement, place: BoxPlace): void {
   box.scrollTop = place.negative ? -away : away;
 }
 
-/** Whether a question (a `<dialog>`) is open inside `node`. */
-export const dialogOpenIn = (node: ParentNode): boolean => node.querySelector("dialog[open]") !== null;
-
 /** A non-collapsed selection that reaches into `node`. */
 export function selectionHolds(win: Pick<Window, "getSelection"> | undefined, node: Node): boolean {
   const selection = win?.getSelection();

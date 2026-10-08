@@ -610,8 +610,7 @@ The Slack `notifyCommand` above is separate and unchanged.
 ## The Jobs tab
 
 The Jobs tab is the board's first page, at `/`. It lists what runs, whatever started it: a spec's step, a create, a
-wiki build or refresh, or a scheduled job, in every project. Starting a phase is the Specs list's job (at `/specs`), so
-no row offers a Run.
+wiki build or refresh, or a scheduled job, in every project.
 
 A job has a row while it is queued, running or landing. A finished job keeps its row while it waits for the user:
 
@@ -624,20 +623,28 @@ the tab when the user has dealt with it:
 
 - a newer job of the same project and tracking key exists and was not cancelled: the spec's folder for any step, a
   wiki's `wiki-<project>` for a build and a refresh alike, a scheduled job's `schedule-<name>`;
-- a create that ended without a spec has its message dismissed on the Specs list;
 - a scheduled job's entry is deleted.
 
 The queue keeps 200 jobs, so a waiting job older than that leaves with its history. A project off the allowlist keeps
 its rows. With no row to show, the page says "Nothing is running."
 
-A row has the columns Title, State, Time and Cost. Its title names the project, the spec and the step; "Wiki build —
-<project>" or "Wiki refresh — <project>"; or "<name> — <project>" for a scheduled job. It links to the job's log and
-to where the job belongs: the spec's page, the project's Wiki build panel, its Schedule tab, or the Specs list for a
-create. A queued job offers Cancel and a running or landing one Stop, each asking first; a finished job and a running
-create offer neither. The rules are in `src/render/pages/jobs-page/rows.ts`.
+A create that ended without a spec has no row. It shows as the Specs list's message for it, above the table, with Try
+again and Dismiss, drawn from the same record. The message stays until Dismiss is pressed, on either page.
 
-The page follows the queue in place: it carries a follow marker even while nothing runs, so a job that starts gets its
-row without a reload. The part holding an open Stop or Cancel question is left whole until the question closes.
+A spec's row is the Specs list's row, drawn by the same builder from the same options: the same columns and buttons,
+and when it is unfolded the same phase lines, steps, logs and acceptance criteria. Its links back to its own page
+(the folds) lead to `/`, not `/specs`. A press on it is the press the Specs list makes. A job the list's builder draws
+no group for (a project off the allowlist, a spec whose folder is gone) gets a job row.
+
+A wiki build or refresh and a scheduled job get a job row in the same columns and the same two-line shape
+(`src/render/pages/jobs-page/job-row.ts`). Its title is "Wiki build — <project>", "Wiki refresh — <project>" or
+"<name> — <project>"; under it are links to the job's log and to where it belongs, the project's Wiki build panel or its
+Schedule tab. A queued job offers Cancel and a running or landing one Stop, each asking first. The rules for which jobs
+show, their titles, links and controls are in `src/render/pages/jobs-page/rows.ts`.
+
+The rows sit in `#jobrows`, so the page redraws as the Specs list does: the page script asks the page's own address with
+`?rows=1` (and `&only=<project>/<spec>` for one spec's fold) when the server says something moved, and every press posts
+and redraws in place. A Stop or Cancel question closes when its row is redrawn, as the Specs list's Cancel does.
 
 ## Live runs
 

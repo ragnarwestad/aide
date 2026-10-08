@@ -6,7 +6,7 @@
 import { NEW_SPEC_ROUTE } from "../projects-page";
 import { btn, btnLink, helpPopover, ICON_CHEVRON, ICON_SEARCH } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
-import { t, type Language } from "../../../i18n";
+import { t, type Language, type TranslationKey } from "../../../i18n";
 import {
   ARCHIVED_STATE,
   CLOSED_STATE,
@@ -36,14 +36,16 @@ export function queueHref(f: SpecsFilter, patch: SpecsFilter): string {
   return esc(queuePath(f, patch));
 }
 
-/** The same address unescaped, for a caller that escapes it itself. */
-export function queuePath(f: SpecsFilter, patch: SpecsFilter = {}): string {
+/** The same address unescaped, for a caller that escapes it itself. `path`
+ *  is the page the rows sit on: the Specs list's own unless the Jobs tab
+ *  draws them. */
+export function queuePath(f: SpecsFilter, patch: SpecsFilter = {}, path = "/specs"): string {
   const merged = { ...f, ...patch };
   const q = Object.entries(merged)
     .filter(([, v]) => v)
     .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`)
     .join("&");
-  return q ? `/specs?${q}` : "/specs";
+  return q ? `${path}?${q}` : path;
 }
 
 // What the page used to say in a separate paragraph under the search
@@ -228,6 +230,38 @@ function searchForm(f: SpecsFilter, opts: SpecsPageOptions, state: string, lang:
   );
 }
 
+/** The columns' widths are declared on the column group, in this order. */
+const COLUMNS = ["fold", "spec", "phase", "state", "started", "cost"];
+const columnGroup = (): string => `<colgroup>${COLUMNS.map((c) => `<col data-col="${c}">`).join("")}</colgroup>`;
+
+/** The five headings the list's table carries, one list for the sortable head
+ *  and the plain one. Cost's heading holds both units; the reader's choice
+ *  shows one (spec 118). */
+const HEADINGS: { key: string; label: TranslationKey; cls?: string; attrs: string; labelHtml?: (lang: Language) => string }[] = [
+  { key: "created", label: "list.colCreated", attrs: ' colspan="2" data-col="created"' },
+  { key: "spec", label: "list.colSpec", attrs: ' data-col="spec"' },
+  { key: "state", label: "list.colState", attrs: ' data-col="state"' },
+  { key: "started", label: "list.colTime", attrs: ' data-col="started"' },
+  {
+    key: "cost",
+    label: "list.colCost",
+    cls: "num",
+    attrs: ' data-col="cost"',
+    labelHtml: (lang) => `<span class="u-usd">${t(lang, "list.colCost")}</span><span class="u-tok">${t(lang, "list.colTokens")}</span>`,
+  },
+];
+
+/** The same table head with plain headings, for a page that keeps its own
+ *  order and offers no sort: the Jobs tab. */
+export function listHead(lang: Language = "en"): string {
+  return (
+    columnGroup() +
+    `<thead><tr>` +
+    HEADINGS.map((h) => `<th class="${h.cls ?? ""}"${h.attrs}>${h.labelHtml?.(lang) ?? esc(t(lang, h.label))}</th>`).join("") +
+    `</tr></thead>`
+  );
+}
+
 export function sortableHead(f: SpecsFilter, lang: Language = "en"): string {
   const sort = SORTS.includes(f.sort ?? "") ? f.sort! : DEFAULT_SORT;
   const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : SORT_DEFAULT_DIR[sort]!;
@@ -289,21 +323,9 @@ export function sortableHead(f: SpecsFilter, lang: Language = "en"): string {
     // not information, so it stands outside the title rather than inside
     // it — which also gives it a cell's worth of height to be hit in,
     // across both of the header's two lines.
-    `<colgroup>${["fold", "spec", "phase", "state", "started", "cost"]
-      .map((c) => `<col data-col="${c}">`)
-      .join("")}</colgroup>` +
+    columnGroup() +
     `<thead><tr>` +
-    `${th("created", t(lang, "list.colCreated"), "", undefined, ' colspan="2" data-col="created"')}` +
-    `${th("spec", t(lang, "list.colSpec"), "", undefined, ' data-col="spec"')}` +
-    `${th("state", t(lang, "list.colState"), "", undefined, ' data-col="state"')}` +
-    `${th("started", t(lang, "list.colTime"), "", undefined, ' data-col="started"')}` +
-    `${th(
-      "cost",
-      t(lang, "list.colCost"),
-      "num",
-      `<span class="u-usd">${t(lang, "list.colCost")}</span><span class="u-tok">${t(lang, "list.colTokens")}</span>`,
-      ' data-col="cost"',
-    )}` +
+    HEADINGS.map((h) => th(h.key, t(lang, h.label), h.cls ?? "", h.labelHtml?.(lang), h.attrs)).join("") +
     `</tr></thead>`
   );
 }

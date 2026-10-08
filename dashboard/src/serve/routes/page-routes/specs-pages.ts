@@ -7,8 +7,7 @@
 // three be asked one after another exactly as the chain read before.
 import { NEW_SPEC_ROUTE, renderNewSpecPage, renderSpecGroupRows, renderSpecsPage, renderSpecsRows, resolveBackHref } from "../../../render";
 import { languageChoice, modelChoiceOptions, specsClientScript, sortChoice, stateChoice } from "../../serve-helpers";
-import { phaseMessagesFor } from "../../spec-views/phase-messages.ts";
-import { codeBranchOnOrigin } from "../../test-servers/branch-on-origin.ts";
+import { specRowOptions } from "./spec-row-options.ts";
 import { isWikiBuild } from "../../../queue/steps.ts";
 import type { RoutesContext } from "..";
 
@@ -37,8 +36,13 @@ export async function specsPages(
 
   if (path === "/specs") {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-    const liveTargets = ctx.withFreshness(ctx.targets());
-    const archivedKeys = ctx.readScan()?.archived ?? [];
+    // The reader's own choice of language (spec 350), from the address
+    // or from the cookie it was last written into — the same shape as
+    // the sort/state pair below, with one difference: this always
+    // resolves to a concrete language, never `{}`.
+    const langResult = languageChoice(url, req);
+    const base = specRowOptions(ctx, url, langResult.lang);
+    const archivedKeys = base.archived ?? [];
     // spec 406, REQ-7: the closed subset of the same cheap key list, off
     // `ctx.specRef` — the same per-key lookup job-actions.ts already
     // uses, never a second walk.
@@ -58,11 +62,6 @@ export async function specsPages(
     // column's own `chosenSort` below).
     const stateResult = stateChoice(url, req, ctx.serverPort());
     const chosenState = stateResult.state;
-    // The reader's own choice of language (spec 350), from the address
-    // or from the cookie it was last written into — the same shape as
-    // the sort/state pair above, with one difference: this always
-    // resolves to a concrete language, never `{}`.
-    const langResult = languageChoice(url, req);
     // Every archived spec is a row on this list since spec 221 — but
     // only for a reader whose chip asks for one. The builder decides
     // that itself, off the same `filterShowsArchived` the filter's entries are
@@ -75,31 +74,15 @@ export async function specsPages(
     // cookie it was last written into.
     const chosenSort = sortChoice(url, req, ctx.serverPort());
     const view = {
-      runnerAvailable: ctx.opts.runnerAvailable ?? ctx.runner !== null,
-      targets: liveTargets,
-      archived: archivedKeys,
+      ...base,
       closed: closedKeys,
       notVerified: notVerifiedKeys,
-      lang: langResult.lang,
       currentUrl: langResult.currentUrl,
       // Spec 506: the creates that ended without a spec and were not
       // dismissed — a message each, above the filter bar.
       failedCreates: ctx.push.failedCreates.list(),
       archivedSpecs,
       script: await specsClientScript(),
-      modelChoices: modelChoiceOptions(ctx.queue),
-      defaultModels: ctx.queue.defaults.model,
-      // A model picked for a phase before any job exists (spec 308).
-      // Only this view — the `/` page and its `?rows=1` poll — draws a
-      // phase's own picker; the other four views built in this file
-      // (New spec, Settings, new-schedule, schedule-detail) render no
-      // phase picker and need nothing here.
-      pendingModels: ctx.queue.pendingModels,
-      // The sibling of pendingModels, for an effort level (spec 364).
-      // Which phases a reader chose — at create time, or at a later Run
-      // — recorded so a fresh render shows that choice instead of
-      // re-deriving one from history alone (spec 439).
-      pendingSteps: ctx.queue.pendingSteps,
       // The raw allowlist, not the discovered set: a project whose
       // FIRST spec this form exists to make has nothing on disk to be
       // discovered from, so deriving these from `targets()` would
@@ -107,22 +90,6 @@ export async function specsPages(
       // other list on this page stays derived, because every other
       // control is about a spec that already exists.
       createProjects: [...ctx.allowed].sort(),
-      // The same capability check `spec-page.ts` and `project-pages.ts` call,
-      // and the cached answer of whether origin holds the spec's branch in the
-      // checkout the start route asks.
-      testServerAvailable: (project: string, specFolder: string) =>
-        ctx.testServers.previewAvailable(project) &&
-        codeBranchOnOrigin(ctx.branchStatus, ctx.testServers.aideCheckout(project), specFolder),
-      // The address the sweep holds for a branch Cloudflare has built; only
-      // while origin still holds the branch it was built from.
-      branchPreview: (project: string, specFolder: string) =>
-        codeBranchOnOrigin(ctx.branchStatus, ctx.testServers.aideCheckout(project), specFolder)
-          ? ctx.readBranchPreview(project, specFolder)
-          : undefined,
-      // Spec 500: the messages of a phase the address unfolded. Called
-      // only for those, so a redraw reads no transcript for a phase nobody
-      // opened.
-      phaseMessages: (attemptIds: string[], step: string) => phaseMessagesFor(ctx.queue, attemptIds, step),
       // Straight from the query string: how the list is cut and
       // ordered lives in the URL, so it survives a reload and can be
       // sent to someone else. Nothing here is trusted — the renderer
@@ -134,13 +101,11 @@ export async function specsPages(
       // and read back off the same address, but the sort is thrown
       // away by every plain link to `/` there is.
       filter: {
+        ...base.filter,
         state: chosenState,
         project: url.searchParams.get("project") ?? undefined,
         sort: chosenSort.sort,
         dir: chosenSort.dir,
-        open: url.searchParams.get("open") ?? undefined,
-        checks: url.searchParams.get("checks") ?? undefined,
-        phases: url.searchParams.get("phases") ?? undefined,
         // The search term (spec 221), a query-string citizen like the
         // rest of the view — so it survives a reload, can be pasted to
         // someone else, and rides along on the SSE-driven row swap,

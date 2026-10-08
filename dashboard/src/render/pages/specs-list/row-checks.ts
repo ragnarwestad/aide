@@ -21,13 +21,13 @@ export const unfoldedKeys = (f: SpecsFilter): Set<string> =>
 
 /** The › to the left of the held-back message. Adds or removes only this
  *  spec's key and keeps every other part of the view. */
-export function checksFold(g: SpecGroup, f: SpecsFilter, lang: Language): string {
+export function checksFold(g: SpecGroup, f: SpecsFilter, lang: Language, path?: string): string {
   const key = groupKey(g.project, g.specFolder);
   const unfolded = unfoldedKeys(f);
   const shut = !unfolded.has(key);
   const next = shut ? [...unfolded, key] : [...unfolded].filter((k) => k !== key);
   return foldArrow({
-    href: queuePath(f, { checks: next.join(",") }),
+    href: queuePath(f, { checks: next.join(",") }, path),
     open: !shut,
     lang,
     title: "list.checksFoldTitle",
@@ -37,7 +37,7 @@ export function checksFold(g: SpecGroup, f: SpecsFilter, lang: Language): string
 }
 
 /** The list under the message, or nothing while it is folded. */
-export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language): string {
+export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language, path?: string): string {
   const key = groupKey(g.project, g.specFolder);
   if (!unfoldedKeys(f).has(key)) return "";
   const rows = g.acceptance ?? [];
@@ -62,7 +62,7 @@ export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language): strin
   // inside its form: the parser drops a nested form.
   const reopenId = `reopenask-checks-${key}`;
   const reopen = askButton({ label: t(lang, "list.reopen"), dialogId: reopenId });
-  const reopenDialog = archived && rows.some((row) => row.failed) ? listReopenDialog(g, f, lang, reopenId) : "";
+  const reopenDialog = archived && rows.some((row) => row.failed) ? listReopenDialog(g, f, lang, reopenId, path) : "";
   // The boxes name the form with `form=`, so they can sit in the list
   // while the row's own table stays outside any form.
   const item = (row: (typeof rows)[number]): string => {
@@ -99,7 +99,7 @@ export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language): strin
  *  gets a line of its own with the › and the same unfold a held-back row
  *  has: the choice "under ›" belongs on every row a criterion is decided
  *  on. A closed spec has none, and nothing is drawn without rows to show. */
-export function checksRow(g: SpecGroup, f: SpecsFilter, lang: Language, columns: number, fold = true): string {
+export function checksRow(g: SpecGroup, f: SpecsFilter, lang: Language, columns: number, fold = true, path?: string): string {
   if (!drawsChecksLine(g)) return "";
   const parts = [
     ...((g.notVerified ?? 0) > 0 ? [t(lang, "list.notVerifiedMark", { n: g.notVerified! })] : []),
@@ -109,7 +109,7 @@ export function checksRow(g: SpecGroup, f: SpecsFilter, lang: Language, columns:
     `<tr class="specnotice" data-folder="${esc(g.specFolder)}"><td colspan="${columns}">` +
     rowMessageParts("info", [
       fold
-        ? { text: parts.join(" · "), own: true, lead: checksFold(g, f, lang), after: checksPanel(g, f, lang) }
+        ? { text: parts.join(" · "), own: true, lead: checksFold(g, f, lang, path), after: checksPanel(g, f, lang, path) }
         : { text: parts.join(" · "), own: true },
     ]) +
     `</td></tr>`

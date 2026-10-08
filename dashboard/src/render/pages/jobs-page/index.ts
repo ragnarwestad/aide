@@ -1,142 +1,97 @@
 // The Jobs tab: the board's first page. Every job that is queued, running or
 // landing, and every finished one that waits for the user, whatever started
-// it. Which jobs and what each row says live in `rows.ts`; this draws them.
-// Phases are started from the Specs list, so no row here offers a Run.
+// it. Which jobs live in `rows.ts`. A spec's row is the Specs list's own,
+// drawn by its row builder from the same options; a wiki or scheduled job's
+// row is `job-row.ts`'s, in the same columns. Both sit in `#jobrows`, so the
+// page script redraws and presses them as it does the list's.
 
-import { t, type Language } from "../../../i18n";
-import { ACCEPTANCE_CRITERIA_UNTICKED } from "../../../queue/steps.ts";
-import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
-import { askButton, confirmDialog, stepLabel } from "../../ui/components";
-import { messageSlot, rowMessage } from "../../ui/components/message.ts";
-import { esc } from "../../ui/html.ts";
-import { currentStep, durationLabel, inFlight, specStateChip, type QueueRowView } from "../../ui/job-state";
-import { landingStep } from "../../ui/job-state/resting.ts";
+import { t } from "../../../i18n";
+import { rowMessage } from "../../ui/components/message.ts";
+import type { QueueRowView } from "../../ui/job-state";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
-import { followPart } from "../job-page/follow.ts";
-import { costCell } from "../specs-list/cell-helpers.ts";
-import { isWikiBuild } from "../../../queue/steps.ts";
-import { jobControl, jobHome, jobTitle } from "./rows.ts";
+import { renderFailedCreateNotices } from "../specs-list/failed-create-notices.ts";
+import { listHead } from "../specs-list/filter-bar.ts";
+import { listRefusalLine, refusalRowTemplate } from "../specs-list/notice-row.ts";
+import { specGroupRowsByKey, type SpecsPageOptions } from "../specs-list";
+import { jobRow } from "./job-row.ts";
 
 export { jobControl, jobHome, jobsShown, jobTitle } from "./rows.ts";
 export type { JobLike } from "./rows.ts";
 
-/** Where a refused Stop or Cancel is written. */
-const REFUSED_LINE = "jobs-refused";
-
-/** The page always follows the queue, even while nothing runs: a job that
- *  starts must get its row without the page being loaded again. */
-const FOLLOW_MARKER = `<span hidden data-follow></span>`;
-
-export interface JobsPageOptions {
+/** What the page draws: the jobs it shows, and the Specs list's options its
+ *  spec rows are drawn with. */
+export interface JobsView {
+  /** The shown jobs, in the order they are shown. */
+  shown: QueueRowView[];
+  /** Every job of the specs that may have the list's row, not only the shown
+   *  ones: a row's phases, times and cost come from its spec's whole history. */
+  specJobs: QueueRowView[];
+  /** `<project>/<folder>` of the shown jobs that are a spec's step, in a
+   *  project on the allowlist. Any other shown job gets a job row. */
+  specKeys: ReadonlySet<string>;
   /** A spec's own title, by project and folder. */
   titleOf: (project: string, specFolder: string) => string | undefined;
-  lang?: Language;
-  currentUrl?: string;
-  script?: string;
+  /** The options a spec's row is drawn with, `listPath` set to this page. */
+  list: SpecsPageOptions;
   /** The moment the page is drawn at, for the time of a job still going. */
   now?: number;
 }
 
-/** Stop or Cancel with the question it asks first. The dialog's OK posts the
- *  cancel route and writes a refusal into the page's line. */
-function control(row: QueueRowView, kind: "stop" | "cancel", lang: Language): string {
-  const id = `jobask-${row.id}`;
-  const step = stepLabel(row.landing ? landingStep(row) : currentStep(row), lang);
-  const stop = kind === "stop";
-  return (
-    askButton({ label: t(lang, stop ? "jobs.stop" : "list.cancel"), dialogId: id, variant: "primary" }) +
-    confirmDialog(lang, {
-      id,
-      title: t(lang, stop ? "jobs.stopConfirmTitle" : "list.cancelConfirmTitle", { step }),
-      sentence: t(lang, "jobs.confirmBody"),
-      ok: { variant: "primary", pending: t(lang, stop ? "jobs.stopping" : "list.cancelling") },
-      post: { action: `/api/queue/${row.id}/cancel`, hook: "reloadform", data: { line: REFUSED_LINE } },
-    })
-  );
-}
+const keyOf = (r: { project: string; specFolder: string }): string => `${r.project}/${r.specFolder}`;
 
-/** The job's own time: counting from its start while it goes, its span once
- *  it has ended, a dash before it has started. */
-function timeCell(row: QueueRowView, now: number): string {
-  if (!row.startedAt) return "–";
-  const start = Date.parse(row.startedAt);
-  if (inFlight(row)) {
-    return `<span class="muted small" data-elapsed="${esc(row.startedAt)}">${durationLabel(Math.max(0, now - start))}</span>`;
+/** The rows in order, each with its `<project>/<folder>` key. A spec stands
+ *  where its first shown job stands, once; a shown job the list's builder
+ *  draws no group for (a project off the allowlist, a spec whose folder is
+ *  gone) has a job row. */
+function entries(v: JobsView): { key: string; html: string }[] {
+  const now = v.now ?? Date.now();
+  const specRows = specGroupRowsByKey(v.specJobs, v.list, v.specKeys, now);
+  const lang = v.list.lang ?? "en";
+  const seen = new Set<string>();
+  const out: { key: string; html: string }[] = [];
+  for (const job of v.shown) {
+    const key = keyOf(job);
+    const spec = v.specKeys.has(key) ? specRows.get(key) : undefined;
+    if (spec === undefined) {
+      out.push({ key, html: jobRow(job, { titleOf: v.titleOf, lang, now }) });
+    } else if (!seen.has(key)) {
+      seen.add(key);
+      out.push({ key, html: spec });
+    }
   }
-  const end = Date.parse(row.finishedAt ?? row.results?.at(-1)?.at ?? "");
-  return Number.isNaN(end) ? "–" : `<span class="muted small">${durationLabel(Math.max(0, end - start))}</span>`;
+  return out;
 }
 
-/** The word of the link to the place the job belongs. */
-function homeWord(row: QueueRowView, lang: Language): string {
-  if (isWikiBuild(row)) return t(lang, "jobs.linkWiki");
-  if (row.steps.length === 1 && row.steps[0] === "schedule" && row.specFolder.startsWith("schedule-")) {
-    return t(lang, "shell.tabSchedule");
-  }
-  return jobHome(row) === "/specs" ? t(lang, "shell.tabSpecs") : t(lang, "jobs.linkSpec");
-}
-
-function jobRow(row: QueueRowView, o: JobsPageOptions, lang: Language, now: number): string {
-  const heldBack =
-    row.state === "done" && row.results?.at(-1)?.terminalReason === ACCEPTANCE_CRITERIA_UNTICKED
-      ? { archiveHeldBack: ACCEPTANCE_CRITERIA_UNTICKED_NOTE }
-      : {};
-  const kind = jobControl(row);
+/** The failed-create messages and the table, or the sentence for no row. */
+export function renderJobsRows(v: JobsView): string {
+  const lang = v.list.lang ?? "en";
+  const rows = entries(v);
+  const notices = renderFailedCreateNotices(v.list.failedCreates ?? [], lang);
+  if (!rows.length) return notices || rowMessage("info", t(lang, "jobs.nothingRunning"));
   return (
-    `<tr data-job="${esc(row.id)}">` +
-    `<td data-col="spec">${esc(jobTitle(row, lang, o.titleOf))} ` +
-    `<span class="muted small"><a data-goto href="/jobs/${esc(row.id)}?tab=steps">${t(lang, "job.tabLog")}</a> · ` +
-    `<a data-goto href="${esc(jobHome(row))}">${esc(homeWord(row, lang))}</a></span></td>` +
-    `<td data-col="state"><span class="badgeslot">${specStateChip(row, lang, heldBack)}</span>` +
-    `${kind ? `<span class="actionslot">${control(row, kind, lang)}</span>` : ""}</td>` +
-    `<td data-col="started">${timeCell(row, now)}</td>` +
-    `<td class="num" data-col="cost">${costCell(row.spentUsd, row.spentTokens, "–")}</td>` +
-    `</tr>`
-  );
-}
-
-function head(lang: Language): string {
-  return (
-    `<thead><tr>` +
-    `<th data-col="spec">${t(lang, "jobs.colTitle")}</th>` +
-    `<th data-col="state">${t(lang, "jobs.colState")}</th>` +
-    `<th data-col="started">${t(lang, "list.colTime")}</th>` +
-    `<th class="num" data-col="cost"><span class="u-usd">${t(lang, "list.colCost")}</span>` +
-    `<span class="u-tok">${t(lang, "list.colTokens")}</span></th>` +
-    `</tr></thead>`
-  );
-}
-
-/** The part the page script swaps: the table, or the sentence for no row. */
-function jobsPart(rows: QueueRowView[], o: JobsPageOptions, lang: Language): string {
-  if (!rows.length) return rowMessage("info", t(lang, "jobs.nothingRunning"));
-  const now = o.now ?? Date.now();
-  return (
-    `<div class="tablewrap"><table class="list">${head(lang)}<tbody>` +
-    rows.map((r) => jobRow(r, o, lang, now)).join("") +
+    notices +
+    `<div class="tablewrap"><table class="list speclist">${listHead(lang)}<tbody>` +
+    rows.map((r) => r.html).join("") +
     `</tbody></table></div>`
   );
 }
 
-/** `/?follow=1`: the marker and the part alone. */
-export function renderJobsFollowParts(rows: QueueRowView[], o: JobsPageOptions): string {
-  return FOLLOW_MARKER + followPart("jobs", jobsPart(rows, o, o.lang ?? "en"));
+/** One spec's rows alone, for a fold: an empty body when the spec has no row
+ *  on the page, and the script then redraws the whole list. */
+export function renderJobsSpecRows(v: JobsView, key: string): string {
+  return `<table><tbody>${entries(v).filter((r) => r.key === key).map((r) => r.html).join("")}</tbody></table>`;
 }
 
-export function renderJobsPage(
-  rows: QueueRowView[],
-  generatedAt: string,
-  entries: NavEntry[],
-  o: JobsPageOptions,
-): string {
-  const lang = o.lang ?? "en";
-  // The refusal line sits above the part, outside what the script swaps.
-  const body = messageSlot("refused", "failed", { id: REFUSED_LINE }) + renderJobsFollowParts(rows, o);
-  return pageShell("Jobs", entries, "/", body, generatedAt, {
+export function renderJobsPage(v: JobsView, generatedAt: string, entriesNav: NavEntry[]): string {
+  const lang = v.list.lang ?? "en";
+  // The refusal line and the row it is copied into sit outside `#jobrows`, so
+  // no redraw of the rows replaces either.
+  const body = listRefusalLine() + `<div id="jobrows">${renderJobsRows(v)}</div>` + refusalRowTemplate();
+  return pageShell("Jobs", entriesNav, "/", body, generatedAt, {
     docTitle: "aide -board · Jobs",
     hideHeading: true,
-    script: o.script,
+    script: v.list.script,
     lang,
-    currentUrl: o.currentUrl,
+    currentUrl: v.list.currentUrl,
   });
 }
