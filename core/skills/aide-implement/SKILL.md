@@ -59,11 +59,11 @@ First write `--- Step 1 of 4: Preparation — started`, and when this step ends,
 3. If the spec is MEDIUM/HIGH and `3-solution.md` has no "Plan review"
    section: suggest re-running `/aide-analyze` first (proceed if the
    user declines)
-4. Read the relevant coding standard (frontend or backend)
-5. Read `specs/XX-slug/4-status.md`'s task tables. A step
-   stopped by its time limit commits what it wrote, and that work is
-   landed rather than left on a branch — so an earlier run may already
-   have finished some of the steps below. A step whose task rows are
+4. Read the project's coding standard, where it has one (its
+   `CLAUDE.md`, `AGENTS.md` or `CONTRIBUTING.md`)
+5. Read `specs/XX-slug/4-status.md`'s task tables. An earlier run
+   stopped by its time limit lands what it wrote, so some of the steps
+   below may already be done. A step whose task rows are
    all ✅ is done: skip it. A step whose table is marked 🔄, with some
    rows ✅ and some ⬜: keep the ✅ ones and resume at the first ⬜.
    Start at Step 2 only when every row is still ⬜ Not started.
@@ -118,8 +118,7 @@ A test steps 3-6 need in a file the places list does not name is written
 all the same, and the Notes cell of the Phase 1 RED row of the task that
 wrote it gets one sentence per such test, in the form
 `Outside the plan's places: <test file> — <why>`. A plan without the
-section leaves the places to this step, and every AC-id gets a test, as
-before.
+section leaves the places to this step, and every AC-id gets a test.
 
 ### Step 3 of 4: GREEN — Implement until tests pass
 
@@ -189,9 +188,7 @@ skill to a number there lands in the wrong table.
 In a Tasks table's Status cell, write the SYMBOL its Notation section
 gives — `✅`, `⬜`, `🔄` — never the word beside it, and never both
 together (`✅ Completed` is wrong the same way `Completed` alone is
-wrong). The dashboard reads both forms, but a file that spells the
-same state two ways is a file whose own legend has stopped describing
-it.
+wrong).
 
 None of Steps 2-4 above ever ticks a row under a `## Acceptance
 criteria` heading, if `4-status.md` has one — never tick that section,
@@ -215,10 +212,8 @@ not widen the rule above it.
 
 **The cell is REWRITTEN, never added to, and it is one or two
 sentences: what is missing for a user to tick this row, and nothing
-else.** The cell is a table cell a user reads to decide one thing;
-four rounds' worth of appended paragraphs in it is a cell nobody reads
-at all. Whatever the earlier round left there is replaced, not kept —
-what each round found, ran and measured belongs in `2-analysis.md` and
+else.** Whatever the earlier round left there is replaced — what each
+round found, ran and measured belongs in `2-analysis.md` and
 `3-solution.md`, which carry a `## Round N` section for exactly that.
 Nothing is missing is a cell left empty, not a sentence saying so.
 One sentence is kept as it is: a cell that starts `Failed:` (what did
@@ -281,9 +276,6 @@ IMPORTANT:
   confirmation — report each step's result as you pass it. Stop only
   when genuinely blocked (a decision only the user can make, or a
   step that cannot be completed)
-- NEVER skip tests
-- Follow the coding standard strictly
-- Code blocks ALWAYS end with just ` ``` `
 
 ---
 
@@ -294,29 +286,12 @@ a toolchain (see the "Project commands" section of the tools-and-scripts
 rules). Example for a pnpm/TypeScript project:
 
 ```bash
-pnpm test -- --run    # All tests
 npx tsc --noEmit      # TypeScript check
 pnpm run eslint       # ESLint
 pnpm run build        # Build
-```
-
-Example for a Maven/Gradle backend:
-
-```bash
-./gradlew test        # or: mvn test
-./gradlew build       # or: mvn verify
 ```
 
 **The project's test command is the runner's to run.** It is the
 manifest's `AIDE_TEST_CMD` (the tools-and-scripts skill, "Project
 commands"), and `aide-run-spec` runs it on the step's result. A change to
 Markdown files alone runs the project's documentation check instead.
-
----
-
-## After implementation
-
-1. Optional: read the Manual testing note in 3-solution.md. It names what no
-   test covers and why — a thing to look at when you get the chance, never a
-   step that has to be completed before the spec is done
-2. Commit the changes
