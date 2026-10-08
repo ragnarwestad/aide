@@ -303,7 +303,7 @@ export function renderNewSpecPage(
   //
   // No reload of its own, for the reason `/projects` has none: this page is
   // a form, and a blunt refresh wipes a half-typed description.
-  return pageShell("New spec", entries, "/", body, generatedAt, {
+  return pageShell("New spec", entries, "/specs", body, generatedAt, {
     docTitle: "aide -board — new spec",
     script: opts.script,
     hideHeading: true,

@@ -1,4 +1,4 @@
-// the list itself, its two redirects, and New spec. One of the three route families `handlePageRoutes`
+// the list itself, its redirect, and New spec. One of the three route families `handlePageRoutes`
 // asks in turn (split 2026-09-04: the file had reached 594 lines,
 // a single function with a chain of route checks in it).
 //
@@ -24,8 +24,8 @@ export async function specsPages(
   url: URL,
   path: string,
 ): Promise<Response | null> {
-  if (path === "/queue" || path === "/specs") {
-    return new Response(null, { status: 302, headers: { location: `/${url.search}` } });
+  if (path === "/queue") {
+    return new Response(null, { status: 302, headers: { location: `/specs${url.search}` } });
   }
 
   if (path.startsWith("/queue/")) {
@@ -35,7 +35,7 @@ export async function specsPages(
     return new Response(null, { status: 302, headers: { location: `${base}${rest}${url.search}` } });
   }
 
-  if (path === "/") {
+  if (path === "/specs") {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     const liveTargets = ctx.withFreshness(ctx.targets());
     const archivedKeys = ctx.readScan()?.archived ?? [];
@@ -206,7 +206,7 @@ export async function specsPages(
     const html = renderNewSpecPage(ctx.nav(), new Date().toISOString(), {
       createProjects: [...ctx.allowed].sort(),
       targets: ctx.withFreshness(ctx.targets()),
-      backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/", url.pathname),
+      backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/specs", url.pathname),
       script: await specsClientScript(),
       modelChoices: modelChoiceOptions(ctx.queue),
       defaultModels: ctx.queue.defaults.model,

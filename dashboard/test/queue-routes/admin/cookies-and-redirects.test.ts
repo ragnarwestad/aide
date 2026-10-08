@@ -30,8 +30,8 @@ describe("spec 363: port-scoped cookies and the headerAuth bind", () => {
     const b = start();
     expect(a.server.port).not.toBe(b.server.port);
 
-    const resA = await fetch(`${a.base}/?sort=started&state=done`, { redirect: "manual" });
-    const resB = await fetch(`${b.base}/?sort=cost&state=active`, { redirect: "manual" });
+    const resA = await fetch(`${a.base}/specs?sort=started&state=done`, { redirect: "manual" });
+    const resB = await fetch(`${b.base}/specs?sort=cost&state=active`, { redirect: "manual" });
     const cookiesA = resA.headers.getSetCookie();
     const cookiesB = resB.headers.getSetCookie();
 
@@ -43,8 +43,8 @@ describe("spec 363: port-scoped cookies and the headerAuth bind", () => {
     // A real browser keeps ONE cookie jar for `127.0.0.1`, so both
     // boards' cookies arrive on every request to either.
     const jar = [...cookiesA, ...cookiesB].map((c) => c.split(";")[0]).join("; ");
-    const checkA = await fetch(`${a.base}/`, { headers: { cookie: jar } });
-    const checkB = await fetch(`${b.base}/`, { headers: { cookie: jar } });
+    const checkA = await fetch(`${a.base}/specs`, { headers: { cookie: jar } });
+    const checkB = await fetch(`${b.base}/specs`, { headers: { cookie: jar } });
     expect(checkA.status).toBe(200);
     expect(checkB.status).toBe(200);
   });
@@ -60,36 +60,20 @@ describe("spec 363: port-scoped cookies and the headerAuth bind", () => {
   });
 });
 
-// Spec 87: the page is about SPECS. That a queue orders the runs is an
-// implementation detail, and it stopped being the name a reader reads.
 // The old address keeps working: people bookmark this page.
-describe("the page moved from /queue to /specs to / (criteria 7-9, 12)", () => {
-  // Spec 100 criterion 3: /queue was pointed at /specs; both now point
-  // at `/`, because that is where the list itself is.
-  test("GET /queue redirects to / with the query string intact (criterion 7)", async () => {
+describe("the Specs list is at /specs (AC-1)", () => {
+  test("GET /queue redirects to /specs with the query string intact (AC-1)", async () => {
     const { base } = start();
-    const res = await fetch(`${base}/queue?state=active&sort=cost`, {
-      redirect: "manual",
-    });
+    const res = await fetch(`${base}/queue?state=active&sort=cost`, { redirect: "manual" });
     expect(res.status).toBe(302);
-    expect(res.headers.get("location")).toBe(`/?state=active&sort=cost`);
+    expect(res.headers.get("location")).toBe(`/specs?state=active&sort=cost`);
   });
 
-  // Spec 100 criterion 2: the address this page used to live at.
-  test("GET /specs redirects to / with the query string intact", async () => {
+  test("GET /specs answers the list itself, with no redirect (AC-1)", async () => {
     const { base } = start();
-    const res = await fetch(`${base}/specs?state=active&sort=cost`, {
-      redirect: "manual",
-    });
-    expect(res.status).toBe(302);
-    expect(res.headers.get("location")).toBe(`/?state=active&sort=cost`);
-  });
-
-  test("GET /specs with nothing to carry redirects to exactly /", async () => {
-    const { base } = start();
-    const res = await fetch(`${base}/specs`, { redirect: "manual" });
-    expect(res.status).toBe(302);
-    expect(res.headers.get("location")).toBe("/");
+    const res = await fetch(`${base}/specs?state=active&sort=cost`, { redirect: "manual" });
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain('id="jobrows"');
   });
 
   // Spec 100 criterion 4: the DETAIL page did not move, so this one

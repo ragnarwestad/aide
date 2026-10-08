@@ -15,7 +15,7 @@ describe("the language the reader chose is remembered", () => {
 
   test("?lang=nb sets the cookie and renders Norwegian, on that same response", async () => {
     const { base } = start();
-    const res = await fetch(`${base}/?lang=nb`);
+    const res = await fetch(`${base}/specs?lang=nb`);
     expect(langCookie(res)).toContain("aide_lang=nb");
     const html = await res.text();
     expect(html).toContain('<html lang="nb">');
@@ -24,22 +24,22 @@ describe("the language the reader chose is remembered", () => {
 
   test("a later GET / with the cookie and no ?lang= is Norwegian too", async () => {
     const { base } = start();
-    const chosen = await fetch(`${base}/?lang=nb`);
+    const chosen = await fetch(`${base}/specs?lang=nb`);
     const jar = langCookie(chosen).split(";")[0]!;
-    const plain = await fetch(`${base}/`, { headers: { cookie: `${jar}` } });
+    const plain = await fetch(`${base}/specs`, { headers: { cookie: `${jar}` } });
     expect(await plain.text()).toContain('<html lang="nb">');
   });
 
   test("no cookie and no ?lang= renders English", async () => {
     const { base } = start();
-    const res = await fetch(`${base}/`);
+    const res = await fetch(`${base}/specs`);
     expect(await res.text()).toContain('<html lang="en">');
     expect(langCookie(res)).toBe("");
   });
 
   test("the rows-only fetch writes the cookie too", async () => {
     const { base } = start();
-    const res = await fetch(`${base}/?lang=nb&rows=1`);
+    const res = await fetch(`${base}/specs?lang=nb&rows=1`);
     expect(langCookie(res)).toContain("aide_lang=nb");
   });
 
@@ -48,7 +48,7 @@ describe("the language the reader chose is remembered", () => {
   // one — a regression guard, not a behaviour change.
   test("a language chosen on / is still in effect on a different route", async () => {
     const { base } = start();
-    const chosen = await fetch(`${base}/?lang=nb`);
+    const chosen = await fetch(`${base}/specs?lang=nb`);
     const jar = langCookie(chosen).split(";")[0]!;
     const projects = await fetch(`${base}/projects`, {
       headers: { cookie: `${jar}` },

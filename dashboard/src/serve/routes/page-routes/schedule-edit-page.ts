@@ -2,14 +2,11 @@
 // Also where a save goes back to afterwards.
 import { isBoardPath } from "../../../format/board-path.ts";
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
-import { projectPagePath, renderScheduleNewPage, schedulePagePath } from "../../../render";
+import { projectScheduleTab, renderScheduleNewPage, schedulePagePath } from "../../../render";
 import { languageChoice, modelChoiceOptions, specsClientScript } from "../../serve-helpers";
 import type { RoutesContext } from "..";
 
-/** The project's own Schedule tab: where New is pressed, where Delete on
- *  an entry's own page goes, and where a save goes when nothing better is
- *  known. */
-export const projectScheduleTab = (project: string): string => `${projectPagePath(project)}?tab=schedule`;
+export { projectScheduleTab };
 
 /** The `back` a form sent, if it is a path on this board; the fallback
  *  otherwise. It comes from the browser, so anything that could leave

@@ -27,7 +27,7 @@ describe("GET / (the spec list, HTML)", () => {
       headers,
       body: JSON.stringify({ project: "aide", specFolder: "schedule-nightly", steps: ["schedule"] }),
     });
-    const html = await (await fetch(`${base}/`, )).text();
+    const html = await (await fetch(`${base}/specs`, )).text();
     expect(html).not.toContain("schedule-nightly");
   });
 
@@ -36,7 +36,7 @@ describe("GET / (the spec list, HTML)", () => {
     const headers = { "content-type": "application/json", accept: "application/json" };
     await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) });
     const rows = await (
-      await fetch(`${base}/?rows=1&${OPEN_81}`, )
+      await fetch(`${base}/specs?rows=1&${OPEN_81}`, )
     ).text();
     expect(rows).toContain("<tr");
     expect(rows).toContain("81-queue-and-runner");

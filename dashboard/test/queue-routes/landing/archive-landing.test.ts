@@ -82,7 +82,7 @@ describe("landing an archived spec (spec 136)", () => {
     expect(git.calls.some((c) => repoOf(c.dir) === SPECS_REPO && c.args.join(" ") === "merge --abort")).toBe(true);
     expect(failed.branchUrls).toEqual([{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
     // The spec is still in the active list, exactly as it was.
-    const html = await (await fetch(`${base}/`, )).text();
+    const html = await (await fetch(`${base}/specs`, )).text();
     expect(specHead(html, SPEC)).not.toBe("");
   });
 
@@ -260,7 +260,7 @@ describe("landing an archived spec (spec 136)", () => {
     const { base, dir, results } = serverWithRunner(start, "aide-archive-results-", git);
     const specDir = join(dir, "root", "aide", "specs", SPEC);
     // The page is read once first, so the scan is cached WITHOUT the note.
-    const before = await (await fetch(`${base}/`, )).text();
+    const before = await (await fetch(`${base}/specs`, )).text();
     expect(before).not.toContain("archive held back");
 
     // What the merge brings into the main checkout.
@@ -276,7 +276,7 @@ describe("landing an archived spec (spec 136)", () => {
     const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
     expect(landed.error).toBeFalsy();
 
-    const html = await (await fetch(`${base}/`, )).text();
+    const html = await (await fetch(`${base}/specs`, )).text();
     expect(html).toContain("Archive held back: the implementation was reverted");
   });
 
@@ -337,7 +337,7 @@ describe("the row for a branch left behind after a successful merge (spec 319)",
   const enqueueArchiveWhenResolvable = async (base: string, specFolder: string): Promise<{ id: string }> => {
     const deadline = Date.now() + 15_000;
     for (;;) {
-      await fetch(`${base}/${ARCHIVED_VIEW}`, );
+      await fetch(`${base}/specs${ARCHIVED_VIEW}`, );
       const res = await fetch(`${base}/api/queue`, {
         method: "POST",
         headers: AUTH,
@@ -431,7 +431,7 @@ describe("the row for a branch left behind after a successful merge (spec 319)",
     expect(block).toContain("This spec merged, but its branch is still on origin. — Press Delete branch to delete it there.");
     expect(block).toContain(`action="/api/queue/specs/aide/${FOLDER}/delete-branch"`);
     expect(block).not.toContain("re-run archive");
-    const active = await (await fetch(`${base}/?state=not-archived`)).text();
+    const active = await (await fetch(`${base}/specs?state=not-archived`)).text();
     expect(active).not.toContain(`data-folder="${FOLDER}"`);
     expect(landed.state).toBe("done");
 

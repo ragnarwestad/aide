@@ -85,7 +85,7 @@ The served dashboard is a web app you can install: Chrome and Edge offer it from
 Share → "Add to Home Screen". It then opens in a window of its own, with the mark as its icon and the page's own
 background behind the title bar.
 
-An installed app is launched on `start_url` — `/`, with no query string — and opens straight into the spec list.
+An installed app is launched on `start_url` — `/`, with no query string — and opens straight into the Jobs tab.
 
 Nine routes make it work — `/manifest.webmanifest`, `/sw.js`, `/icon-512.svg`, `/icon-512-maskable.svg`,
 `/icon-192.png`, `/icon-512.png`, `/icon-512-maskable.png`, `/apple-touch-icon.png` and `/badge-96.png`. All nine are

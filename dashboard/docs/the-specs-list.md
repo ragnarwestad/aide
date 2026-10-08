@@ -25,7 +25,7 @@
 
 ---
 
-What a row on `/` says, what its controls do, what a spec's own page shows, and how the page keeps itself current.
+What a row on `/specs` says, what its controls do, what a spec's own page shows, and how the page keeps itself current.
 The queue behind the rows is on [Running specs](running-specs.md); how a step's branch lands is on
 [Branches and landing](landing.md). What a row's own error sentence has to say is the one rule on
 [Error sentences](error-sentences.md).

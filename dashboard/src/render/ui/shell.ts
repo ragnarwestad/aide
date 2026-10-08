@@ -279,26 +279,40 @@ function pageHeader(lang: Language, currentUrl: string, tabs = ""): string {
   );
 }
 
-function siteTabs(entries: NavEntry[], currentPath: string, lang: Language): string {
-  // The first entry is the Projects page; the rest are the project
-  // pages, which are NOT tabs — the Projects page lists them, and two
-  // lists of the same projects were one too many. A project's own page
-  // counts as being "in" Projects, so that tab is current there too.
-  //
-  // Except the sections (spec 163): anything among the rest with an
-  // ABSOLUTE path is a half of the dashboard rather than a project — so
-  // it gets a tab of its own and is not one of the pages Projects is
-  // current on. The shape is what decides, not the label. A RELATIVE
-  // `<slug>.html` is read as a project page, which no build writes any
-  // more (spec 185 served it instead) — `projects` below is empty in
-  // practice, since nothing produces such an entry any more.
+/** The header's tab keys in order — Jobs, Specs, the Projects page, then the
+ *  sections — and the one that is current for `currentPath`.
+ *
+ *  The first entry is the Projects page; the rest are the project pages, which
+ *  are NOT tabs — the Projects page lists them, and two lists of the same
+ *  projects were one too many. A project's own page counts as being "in"
+ *  Projects, so that tab is current there too.
+ *
+ *  Except the sections (spec 163): anything among the rest with an ABSOLUTE
+ *  path is a half of the dashboard rather than a project — so it gets a tab of
+ *  its own and is not one of the pages Projects is current on. The shape is
+ *  what decides, not the label. A RELATIVE `<slug>.html` is read as a project
+ *  page, which no build writes any more (spec 185 served it instead).
+ *
+ *  Jobs is current on `/` and on every job's page, which passes `/`; Specs on
+ *  `/specs`, which the list, New spec and the spec page pass. */
+export function siteTabKeys(
+  entries: NavEntry[],
+  currentPath: string,
+): { keys: string[]; sections: NavEntry[]; current: string | undefined } {
   const [projectsPage, ...rest] = entries;
   const sections = rest.filter((e) => e.path.startsWith("/"));
   const projects = rest.filter((e) => !e.path.startsWith("/"));
   const onAProject = projects.some((p) => p.path === currentPath);
-  // The spec list is `/` for the list itself AND for every job detail
-  // page — `job-page.ts` passes the literal `"/"` — so one check covers
-  // both halves of Specs.
+  const current =
+    currentPath === "/" || currentPath === "/specs"
+      ? currentPath
+      : projectsPage!.path === currentPath || onAProject
+        ? projectsPage!.path
+        : sections.find((e) => e.path === currentPath)?.path;
+  return { keys: ["/", "/specs", projectsPage!.path, ...sections.map((e) => e.path)], sections, current };
+}
+
+function siteTabs(entries: NavEntry[], currentPath: string, lang: Language): string {
   // Real tabs, not filter pills: a hairline the row sits on, and the
   // current tab marked by an underline in the accent colour (asked for
   // 2026-08-19, with PaceUp's tab bar as the reference).
@@ -312,18 +326,14 @@ function siteTabs(entries: NavEntry[], currentPath: string, lang: Language): str
   // target.
   //
   // Each tab's key is its own path, so the shared bar links a tab to its key.
+  const { keys, sections, current } = siteTabKeys(entries, currentPath);
   const words = new Map<string, string>([
-    ["/", t(lang, "shell.tabSpecs")],
-    [projectsPage!.path, t(lang, "shell.tabProjects")],
+    ["/", t(lang, "shell.tabJobs")],
+    ["/specs", t(lang, "shell.tabSpecs")],
+    [entries[0]!.path, t(lang, "shell.tabProjects")],
     ...sections.map((e): [string, string] => [e.path, e.labelKey ? t(lang, e.labelKey) : e.label]),
   ]);
-  const current =
-    currentPath === "/"
-      ? "/"
-      : projectsPage!.path === currentPath || onAProject
-        ? projectsPage!.path
-        : sections.find((e) => e.path === currentPath)?.path;
-  return tabBar([...words.keys()], (path) => path, current, {}, "", { label: (path) => words.get(path)!, site: true });
+  return tabBar(keys, (path) => path, current, {}, "", { label: (path) => words.get(path)!, site: true });
 }
 
 /** Everything `pageShell` takes beyond the title, the tabs and the body. */

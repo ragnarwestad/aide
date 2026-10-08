@@ -8,7 +8,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { pageShell } from "../../../src/render/ui/shell.ts";
+import { pageShell, siteTabKeys } from "../../../src/render/ui/shell.ts";
 
 const ENTRIES = [{ label: "Projects", path: "/projects" }];
 
@@ -91,5 +91,26 @@ describe("pageShell language (spec 350)", () => {
     });
     expect(html).toContain('href="/?lang=en"');
     expect(html).toContain('href="/?lang=nb"');
+  });
+});
+
+describe("the header's tabs (AC-1)", () => {
+  const NAV = [
+    { label: "Projects", path: "/projects" },
+    { label: "Schedule", path: "/schedule" },
+  ];
+
+  test("Jobs comes first, then Specs, Projects and the sections (AC-1)", () => {
+    expect(siteTabKeys(NAV, "/").keys).toEqual(["/", "/specs", "/projects", "/schedule"]);
+  });
+
+  test("Jobs is current for / and Specs for /specs (AC-1)", () => {
+    expect(siteTabKeys(NAV, "/").current).toBe("/");
+    expect(siteTabKeys(NAV, "/specs").current).toBe("/specs");
+  });
+
+  test("Projects and a section stay current on their own pages (AC-1)", () => {
+    expect(siteTabKeys(NAV, "/projects").current).toBe("/projects");
+    expect(siteTabKeys(NAV, "/schedule").current).toBe("/schedule");
   });
 });

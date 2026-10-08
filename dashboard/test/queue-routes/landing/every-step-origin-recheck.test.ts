@@ -184,7 +184,7 @@ describe("an archive landing asks origin whether anything stayed open", () => {
       paths.archiveSpec();
       const git = gitFor({ openOn: branchStillOpen ? [paths.project] : [] });
       const { base } = serverWithHarness(dir, paths, git);
-      await fetch(`${base}/`, );
+      await fetch(`${base}/specs`, );
       return { base, paths };
     }
 

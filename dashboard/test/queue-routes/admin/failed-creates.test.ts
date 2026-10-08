@@ -29,7 +29,7 @@ function served(records: unknown[]) {
   return { base, failedCreatesPath };
 }
 
-const home = async (base: string) => await (await fetch(`${base}/`)).text();
+const home = async (base: string) => await (await fetch(`${base}/specs`)).text();
 const dismiss = (base: string, id: string) =>
   fetch(`${base}/api/queue/failed-creates/${id}/dismiss`, {
     method: "POST",
@@ -54,7 +54,7 @@ describe("a failed create on the Specs list", () => {
 
   test("the rows swap carries it too, so a refresh does not lose it (AC-4)", async () => {
     const s = served([record("first")]);
-    const rows = await (await fetch(`${s.base}/?rows=1`)).text();
+    const rows = await (await fetch(`${s.base}/specs?rows=1`)).text();
     expect(rows).toContain("Title of first");
   });
 
@@ -64,7 +64,7 @@ describe("a failed create on the Specs list", () => {
     const failedCreatesPath = join(dir, "failed-creates.json");
     writeFileSync(failedCreatesPath, "{oops");
     const { base } = start({ failedCreatesPath });
-    const res = await fetch(`${base}/`);
+    const res = await fetch(`${base}/specs`);
     expect(res.status).toBe(200);
     expect(await res.text()).not.toContain("failedcreate");
   });

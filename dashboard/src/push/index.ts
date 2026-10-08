@@ -85,7 +85,7 @@ function payloadFor(a: Attention, job: Job, lang: Language): { title: string; bo
   return {
     title: `${job.project} · ${job.specFolder}`,
     body: renderMessage(lang, { key: messageKeyFor(a), values }),
-    url: `/?${fold}=${encodeURIComponent(`${job.project}/${job.specFolder}`)}`,
+    url: `/specs?${fold}=${encodeURIComponent(`${job.project}/${job.specFolder}`)}`,
   };
 }
 

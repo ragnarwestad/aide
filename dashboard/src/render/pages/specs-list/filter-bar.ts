@@ -43,7 +43,7 @@ export function queuePath(f: SpecsFilter, patch: SpecsFilter = {}): string {
     .filter(([, v]) => v)
     .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`)
     .join("&");
-  return q ? `/?${q}` : "/";
+  return q ? `/specs?${q}` : "/specs";
 }
 
 // What the page used to say in a separate paragraph under the search
@@ -197,7 +197,7 @@ function searchForm(f: SpecsFilter, opts: SpecsPageOptions, state: string, lang:
   const q = (f.q ?? "").trim();
   const clearLabel = t(lang, "list.searchClearTitle");
   return (
-    `<form class="specsearch" method="get" action="/">` +
+    `<form class="specsearch" method="get" action="/specs">` +
     // No caption over the field: the button beside it says Search, and
     // the same word twice made the field taller than the button it
     // stands next to (2026-08-23).

@@ -70,7 +70,7 @@ describe("OK posts once, to the old route", () => {
   test("Cancel on a list row (AC-4)", async () => {
     const base = board();
     const page = await browser.newPage();
-    const posts = await pressOk(page, `${base}/?live=0&open=aide%2F${FOLDER}`, "cancelask-run1", { ok: true });
+    const posts = await pressOk(page, `${base}/specs?live=0&open=aide%2F${FOLDER}`, "cancelask-run1", { ok: true });
     await page.waitForTimeout(500);
     expect(posts).toEqual(["/api/queue/run1/cancel"]);
     await page.close();

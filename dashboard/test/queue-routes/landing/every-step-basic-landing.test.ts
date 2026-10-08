@@ -223,7 +223,7 @@ describe("every step lands its own work (spec 149)", () => {
     expect(git.calls.some((c) => repoOf(c.dir) === paths.project && c.args.join(" ") === "merge --abort")).toBe(true);
     expect(existsSync(marker)).toBe(false);
     // Still in the active list, with its branch, exactly as it was.
-    const html = await (await fetch(`${base}/`, )).text();
+    const html = await (await fetch(`${base}/specs`, )).text();
     expect(specHead(html, SPEC)).not.toBe("");
   }, 20000);
 
@@ -344,7 +344,7 @@ describe("every step lands its own work (spec 149)", () => {
       (j) => !!j.error,
     );
 
-    const url = `${base}/?${OPEN_81}`;
+    const url = `${base}/specs?${OPEN_81}`;
     const html = await (await fetch(url, )).text();
     expect(html).not.toContain("resolveform");
     expect(specControls(html, SPEC)).not.toContain('value="resolve"');

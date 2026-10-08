@@ -60,7 +60,7 @@ describe("an unfolded list of criteria locks when its Save is pressed", () => {
           await held;
           await route.abort();
         });
-        await withBrowser(page.goto(`${started.base}/?live=0&state=all&checks=${KEY}`), "page.goto(/)");
+        await withBrowser(page.goto(`${started.base}/specs?live=0&state=all&checks=${KEY}`), "page.goto(/)");
         const form = page.locator("form.rowchecks");
         await form.waitFor();
         const boxes = page.locator(`input[type="checkbox"][form="${await form.getAttribute("id")}"]`);

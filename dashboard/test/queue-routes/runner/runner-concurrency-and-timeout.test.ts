@@ -479,13 +479,13 @@ describe("an over-charged cost survives the row mapping", () => {
 
   test("the spec row's total carries no (?) marker even when it could not be measured", async () => {
     const { base } = start({ queueMirrorPath: await seeded(false) });
-    const html = await (await fetch(`${base}/`, )).text();
+    const html = await (await fetch(`${base}/specs`, )).text();
     expect(specHead(html, "81-queue-and-runner")).not.toContain(MARKER);
   });
 
   test("a measured total through the same seam carries no mark", async () => {
     const { base } = start({ queueMirrorPath: await seeded(true) });
-    const html = await (await fetch(`${base}/`, )).text();
+    const html = await (await fetch(`${base}/specs`, )).text();
     const head = specHead(html, "81-queue-and-runner");
     expect(head).toContain("$35.00");
     expect(head).not.toContain(MARKER);

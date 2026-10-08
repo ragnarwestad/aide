@@ -28,7 +28,7 @@ afterAll(async () => {
 const fold = (folder: string) => `tr.spechead[data-folder="${folder}"] a.fold[data-fold="open"]`;
 
 test("two ›s pressed one after the other leave both rows open and the others untouched", async () => {
-  await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
+  await withBrowser(page.goto(`${base}/specs?live=0`), "page.goto(/)");
   await page.evaluate(() => {
     (document.querySelector('tr.spechead[data-folder="83-third"]') as HTMLElement & { mark?: number }).mark = 1;
   });

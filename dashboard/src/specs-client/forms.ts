@@ -124,7 +124,7 @@ export async function submitCreate(form: HTMLFormElement, event: Event): Promise
   await postForm(
     form,
     async () => {
-      location.href = "/";
+      location.href = "/specs";
     },
     (why) => formNote(form, why),
   );

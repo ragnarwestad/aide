@@ -63,12 +63,12 @@ describe("no render path runs git or a network command (spec 208)", () => {
       archivedSpecs: { "77-old-thing": {} },
     });
     const before = git.calls.length;
-    const html = await (await get(base, "/")).text();
+    const html = await (await get(base, "/specs")).text();
     expect(git.calls.length).toBe(before);
     // Not a false "nothing has run": the row says the answer is not in
     // yet. This is the shape spec 178's own plan review flagged.
     expect(html).toContain("Checking…");
-    const rows = await (await get(base, "/?rows=1")).text();
+    const rows = await (await get(base, "/specs?rows=1")).text();
     expect(git.calls.length).toBe(before);
     expect(rows).toContain("Checking…");
   });
@@ -85,7 +85,7 @@ describe("no render path runs git or a network command (spec 208)", () => {
     await until(() => git.calls.some((c) => c.args.join(" ").startsWith("log --format=%aI")));
     await new Promise((r) => setTimeout(r, 100));
     const before = git.calls.length;
-    const html = await (await get(base, "/")).text();
+    const html = await (await get(base, "/specs")).text();
     expect(git.calls.length).toBe(before);
     expect(html).not.toContain("Checking…");
   });
@@ -103,7 +103,7 @@ describe("no render path runs git or a network command (spec 208)", () => {
       archivedSpecs: { "77-old-thing": { status: "# Status\n" } },
     });
     const before = git.calls.length;
-    const res = await get(base, "/?state=archived");
+    const res = await get(base, "/specs?state=archived");
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(git.calls.length).toBe(before);
@@ -188,7 +188,7 @@ describe("no render path runs git or a network command (spec 208)", () => {
     // The specs LIST's own row, opened so its phase lines are drawn:
     // that is where each phase's own state is said since the pips came
     // off the list, and it is read from the same `done`.
-    const html = await (await get(base, "/?state=archived&open=aide/77-old-thing")).text();
+    const html = await (await get(base, "/specs?state=archived&open=aide/77-old-thing")).text();
     for (const step of ["create", "analyze", "implement", "archive"]) {
       expect([step, phaseBadge(html, step)]).toEqual([step, "done"]);
     }
@@ -213,7 +213,7 @@ describe("no render path runs git or a network command (spec 208)", () => {
     // Same list-route note as criterion 5 above.
     let html = "";
     for (let i = 0; i < 100; i++) {
-      html = await (await get(base, "/?open=aide/81-queue-and-runner")).text();
+      html = await (await get(base, "/specs?open=aide/81-queue-and-runner")).text();
       if (phaseBadge(html, "analyze") === "done") break;
       await new Promise((r) => setTimeout(r, 50));
     }

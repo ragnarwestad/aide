@@ -162,7 +162,7 @@ describe("the New-spec form answers for itself (criteria 7, 8)", () => {
   test("a created spec takes the reader back to the list", async () => {
     const h = harness(() => ({ ok: true, body: { ok: true, job: { id: "job-2" } } }));
     await h.submitCreate();
-    expect(h.location.href).toBe("/");
+    expect(h.location.href).toBe("/specs");
     // Nothing is put back in place first: the reader has left.
     expect(h.resets).toHaveLength(0);
     expect(h.requests.some((r) => r.url.includes("rows=1"))).toBe(false);
@@ -232,7 +232,7 @@ describe("the Depends-on chips are scoped to the chosen project", () => {
     h.changeProject("aide-dashboard");
     expect(h.chips[1]!.hidden).toBe(false);
     await h.submitCreate();
-    expect(h.location.href).toBe("/");
+    expect(h.location.href).toBe("/specs");
     expect(h.projectSelect.value).toBe("aide-dashboard");
     expect(h.chips[1]!.hidden).toBe(false);
   });

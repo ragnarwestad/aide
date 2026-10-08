@@ -303,7 +303,7 @@ describe("spec 221: archived specs on the spec list", () => {
     const open = rows({ archivedSpecs: [archivedSpec("50-archived")], filter: openFilter });
     const id = open.match(/<button\b[^>]*\sdata-ask="([^"]+)"[^>]*>Reopen<\/button>/)?.[1];
     expect(id).toBeDefined();
-    expectListParts(dialogById(open, id!), "/?state=archived&amp;open=aide%2F50-archived");
+    expectListParts(dialogById(open, id!), "/specs?state=archived&amp;open=aide%2F50-archived");
   });
 
   test("a Failed criterion's Reopen in the unfolded checks names a dialog outside the panel's form (AC-4)", () => {
@@ -318,7 +318,7 @@ describe("spec 221: archived specs on the spec list", () => {
     expect(id).toBeDefined();
     expect(panel).not.toContain("<dialog");
     const dialog = dialogById(html, id!);
-    expectListParts(dialog, "/?state=archived&amp;checks=aide%2F50-archived");
+    expectListParts(dialog, "/specs?state=archived&amp;checks=aide%2F50-archived");
   });
 
   test("and carries the not-landed mark when its branch is still open", () => {

@@ -193,7 +193,7 @@ export const start = (extra: Record<string, unknown> = {}, archivedSpecs: Archiv
 /** The Specs list, whatever the query. `?state=archived` is the view
  *  most of this file is about — the reading the Archive tab used to be. */
 export const specsList = async (base: string, query = ""): Promise<string> => {
-  const res = await fetch(`${base}/${query}`);
+  const res = await fetch(`${base}/specs${query}`);
   expect(res.status).toBe(200);
   return res.text();
 };

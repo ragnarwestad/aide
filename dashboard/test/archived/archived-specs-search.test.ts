@@ -90,7 +90,7 @@ describe("the search field's clear control", () => {
     // A link, not script: the same "state lives in the URL" shape the
     // fold and the sort already have, so it works with JavaScript off
     // and can be pasted to someone else.
-    expect(form).toMatch(/<a class="searchclear"[^>]*href="\/\?state=archived"/);
+    expect(form).toMatch(/<a class="searchclear"[^>]*href="\/specs\?state=archived"/);
   });
 
   test("keeps every other filter the reader had chosen (criterion 4)", async () => {

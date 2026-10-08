@@ -13,6 +13,7 @@
 - [How many run at once](#how-many-run-at-once)
 - [Notifications](#notifications)
     - [Push notifications on a phone or laptop](#push-notifications-on-a-phone-or-laptop)
+- [The Jobs tab](#the-jobs-tab)
 - [Live runs](#live-runs)
 
 ---
@@ -605,6 +606,38 @@ Microsoft) and is never in the clear there.
   stays for the newest 50 so an old notification still opens the form.
 
 The Slack `notifyCommand` above is separate and unchanged.
+
+## The Jobs tab
+
+The Jobs tab is the board's first page, at `/`. It lists what runs, whatever started it: a spec's step, a create, a
+wiki build or refresh, or a scheduled job, in every project. Starting a phase is the Specs list's job (at `/specs`), so
+no row offers a Run.
+
+A job has a row while it is queued, running or landing. A finished job keeps its row while it waits for the user:
+
+- it failed, was stopped (time limit, usage limit, red tests, unticked criteria, shared files) or was interrupted, a
+  conflict being a failure;
+- it is an archive held back on unticked acceptance criteria.
+
+`waitsForPerson()` in `src/queue/steps.ts` decides that, and push notifications read the same set. A waiting row leaves
+the tab when the user has dealt with it:
+
+- a newer job of the same project and tracking key exists and was not cancelled: the spec's folder for any step, a
+  wiki's `wiki-<project>` for a build and a refresh alike, a scheduled job's `schedule-<name>`;
+- a create that ended without a spec has its message dismissed on the Specs list;
+- a scheduled job's entry is deleted.
+
+The queue keeps 200 jobs, so a waiting job older than that leaves with its history. A project off the allowlist keeps
+its rows. With no row to show, the page says "Nothing is running."
+
+A row has the columns Title, State, Time and Cost. Its title names the project, the spec and the step; "Wiki build —
+<project>" or "Wiki refresh — <project>"; or "<name> — <project>" for a scheduled job. It links to the job's log and
+to where the job belongs: the spec's page, the project's Wiki build panel, its Schedule tab, or the Specs list for a
+create. A queued job offers Cancel and a running or landing one Stop, each asking first; a finished job and a running
+create offer neither. The rules are in `src/render/pages/jobs-page/rows.ts`.
+
+The page follows the queue in place: it carries a follow marker even while nothing runs, so a job that starts gets its
+row without a reload. The part holding an open Stop or Cancel question is left whole until the question closes.
 
 ## Live runs
 

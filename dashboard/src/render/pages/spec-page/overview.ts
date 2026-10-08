@@ -349,6 +349,7 @@ export function reopenControl(view: SpecPageView, lang: Language = "en"): string
     reopenAskDialog(view.project, view.specFolder, lang, {
       id: REOPEN_ASK_ID,
       back: specPagePath(view.project, view.specFolder),
+      done: "/specs",
     })
   );
 }

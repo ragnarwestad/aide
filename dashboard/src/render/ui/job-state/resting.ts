@@ -84,7 +84,7 @@ export function restingChip(lang: Language, resting: RestingState = {}): string 
 /** The step a landing belongs to: the one that just finished. A job in
  *  `done` still points at it; one that has already stepped on to its
  *  next step points one past it. */
-export function landingStep(r: QueueRowView): string {
+export function landingStep(r: { steps: readonly string[]; stepIndex: number; state: QueueRowView["state"] }): string {
   return r.steps[landingStepIndex(r.state, r.stepIndex)] ?? currentStep(r);
 }
 

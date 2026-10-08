@@ -128,10 +128,10 @@ describe("the spec's own history says what has happened, not the queue's", () =>
   // on the view of the active ones.
   test("a spec whose folder has been archived is off the Active view, and on the Archived one", async () => {
     const { base } = harness.start({ archivedSpecs: { "80-already-archived": {} } });
-    const active = await (await fetch(`${base}/?state=not-archived&${OPEN_81}`)).text();
+    const active = await (await fetch(`${base}/specs?state=not-archived&${OPEN_81}`)).text();
     expect(active).toContain("81-queue-and-runner");
     expect(active).not.toContain("80-already-archived");
-    const archivedView = await (await fetch(`${base}/?state=archived`)).text();
+    const archivedView = await (await fetch(`${base}/specs?state=archived`)).text();
     expect(archivedView).toContain("80-already-archived");
   });
 });

@@ -97,7 +97,7 @@ export const listUntil = async (
   const deadline = Date.now() + budgetMs;
   let html = "";
   for (;;) {
-    html = await (await fetch(`${base}/?${OPEN_81}`, )).text();
+    html = await (await fetch(`${base}/specs?${OPEN_81}`, )).text();
     if (ok(html)) return html;
     if (Date.now() > deadline) {
       throw new Error(`the specs list never reached ${what} within ${budgetMs}ms`);

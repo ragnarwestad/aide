@@ -53,7 +53,7 @@ export function closeAskDialog(project: string, specFolder: string, lang: Langua
         ),
       ok: { variant: "danger", pending: t(lang, "dialog.closing") },
       post: { action: `/api/queue${back}/close` },
-      wait: { back },
+      wait: { back, done: "/specs" },
     },
   });
 }

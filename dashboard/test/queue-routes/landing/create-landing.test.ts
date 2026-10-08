@@ -259,7 +259,7 @@ describe("landing a created spec (spec 93)", () => {
     await settle(base, job.id, (j) => j.specFolder === "94-a-new-spec");
 
     const html = await (
-      await fetch(`${base}/?${openQuery("aide/94-a-new-spec")}`, )
+      await fetch(`${base}/specs?${openQuery("aide/94-a-new-spec")}`, )
     ).text();
     const row = specHead(html, "94-a-new-spec");
     expect(row).not.toBe("");
@@ -303,7 +303,7 @@ describe("landing a created spec (spec 93)", () => {
     await settle(base, made.job.id, (j) => j.specFolder === "94-a-new-spec");
 
     const html = await (
-      await fetch(`${base}/?${openQuery("aide/94-a-new-spec")}`, )
+      await fetch(`${base}/specs?${openQuery("aide/94-a-new-spec")}`, )
     ).text();
     const group = specControls(html, "94-a-new-spec");
     const implementSelect = group.match(/<select name="model\.implement"[^]*?<\/select>/)?.[0] ?? "";
@@ -317,7 +317,7 @@ describe("landing a created spec (spec 93)", () => {
     // without an allowance the job running right now renders nothing.
     const { base } = start();
     const job = await createJob(base, "A brand new spec");
-    const html = await (await fetch(`${base}/`, )).text();
+    const html = await (await fetch(`${base}/specs`, )).text();
     expect(html).toContain(job.specFolder);
     // Labelled by its title: the provisional key says nothing to anyone.
     expect(html).toContain("A brand new spec");

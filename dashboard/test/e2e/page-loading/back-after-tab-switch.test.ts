@@ -49,15 +49,15 @@ describe("← Back after switching tabs", () => {
   });
 
   test("the project page opened from the Specs page leads Back there after its tabs (AC-1)", async () => {
-    await withBrowser(page.goto(`${base}/?live=0`), "page.goto(Specs)");
+    await withBrowser(page.goto(`${base}/specs?live=0`), "page.goto(Specs)");
     const project = page.locator('#jobrows a[href="/projects/aide"]').first();
     await withBrowser(Promise.all([page.waitForURL(/\/projects\/aide$/), project.click()]), "the project link");
-    expect(await backPath(page)).toBe("/");
+    expect(await backPath(page)).toBe("/specs");
     await clickTab(page, "Deploy");
     await clickTab(page, "Config");
-    expect(await backPath(page)).toBe("/");
+    expect(await backPath(page)).toBe("/specs");
     await withBrowser(Promise.all([page.waitForURL(`${base}/**`), page.locator("a.backlink").click()]), "Back");
-    expect(new URL(page.url()).pathname).toBe("/");
+    expect(new URL(page.url()).pathname).toBe("/specs");
   });
 
   test("a typed address leads Back to Projects, also after a tab (AC-2)", async () => {

@@ -8,7 +8,7 @@ import type { MessageKey } from "../i18n/messages.ts";
 import { createEndedWithoutSpec } from "../queue/create-failure.ts";
 import type { Job } from "../queue/queue.ts";
 import type { ScheduleNotify } from "../queue/schedule.ts";
-import type { JobState, StopReason } from "../queue/steps.ts";
+import { ACCEPTANCE_CRITERIA_UNTICKED, WAITS_FOR_PERSON, type JobState, type StopReason } from "../queue/steps.ts";
 import { isSpecFolder } from "../render/ui/shell.ts";
 
 /** What the observer remembers of a job between two changes. */
@@ -57,10 +57,6 @@ function scheduleRunAttention(prev: Seen | undefined, job: Job, choice?: Schedul
   return { kind: "schedule-run", step: "schedule", outcome: job.state as ScheduleOutcome };
 }
 
-/** The states in which a job waits for a person. `cancelled` is not one:
- *  a person ended it themselves. */
-const WAITING = new Set<JobState>(["failed", "stopped", "interrupted"]);
-
 export function attentionFor(prev: Seen | undefined, job: Job, scheduleChoice?: ScheduleChoice): Attention | null {
   // A create that ended without a spec names its project and title and
   // opens New spec, once: the edge of the rule, not the state, is the trigger.
@@ -69,7 +65,7 @@ export function attentionFor(prev: Seen | undefined, job: Job, scheduleChoice?: 
   // A create still under way has no spec to name and none to open.
   if (!isSpecFolder(job.specFolder)) return null;
   const last = job.results.at(-1);
-  if (job.state !== prev?.state && WAITING.has(job.state)) {
+  if (job.state !== prev?.state && WAITS_FOR_PERSON.has(job.state)) {
     // An interrupted step left no result of its own, so the step that
     // was in flight is the one at `stepIndex`; the others ended with one.
     const step = job.state === "interrupted" ? job.steps[job.stepIndex] : (last?.step ?? job.steps[job.stepIndex]);
@@ -78,7 +74,7 @@ export function attentionFor(prev: Seen | undefined, job: Job, scheduleChoice?: 
   if (
     job.state === "done" &&
     job.results.length > (prev?.results ?? 0) &&
-    last?.terminalReason === "acceptance-criteria-unticked"
+    last?.terminalReason === ACCEPTANCE_CRITERIA_UNTICKED
   ) {
     return { kind: "archive-held-back", step: "archive" };
   }

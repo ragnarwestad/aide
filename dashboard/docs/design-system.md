@@ -322,7 +322,7 @@ else reads `Language`/`LANGUAGES` generically and needs nothing.
 
 Every page's `<body>` is `header + nav.tabbar + main`, with the page's own notices and dialogs between the header
 and the bar. `shell.ts` builds `pageHeader()` — the wordmark, a line naming the machine and which board it is, the
-theme, language and unit controls, and a "…" menu — and `siteTabs()`, which draws Specs, Projects and Schedule.
+theme, language and unit controls, and a "…" menu — and `siteTabs()`, which draws Jobs, Specs, Projects and Schedule.
 There is no sidebar, and no reserved column standing empty for one. A page that passes `hideTabBar` draws no bar at
 all: the spec page, a project's page and Settings.
 

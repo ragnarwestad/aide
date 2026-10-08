@@ -53,3 +53,8 @@ export const NEW_SPEC_ROUTE = "/new";
  *  went because a frozen copy could not answer what the config file says
  *  right now, while sitting one tab away from the page that could. */
 export const projectPagePath = (name: string): string => `/projects/${encodeURIComponent(name)}`;
+
+/** The project's own Schedule tab: where New is pressed, where Delete on
+ *  an entry's own page goes, and where a save goes when nothing better is
+ *  known. */
+export const projectScheduleTab = (project: string): string => `${projectPagePath(project)}?tab=schedule`;

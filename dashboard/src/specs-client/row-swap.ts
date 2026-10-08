@@ -326,7 +326,7 @@ export async function swapSpec(key: string): Promise<void> {
   params.set("rows", "1");
   params.set("only", key);
   try {
-    const res = await fetch(`/?${params}`, { headers: { accept: "text/html" } });
+    const res = await fetch(`/specs?${params}`, { headers: { accept: "text/html" } });
     const one = res.ok ? splitGroups(await res.text()) : null;
     // The same rule as `swapRows`: a press that began meanwhile draws
     // its own answer.
@@ -353,7 +353,7 @@ export async function swapRows(): Promise<void> {
   const params = new URLSearchParams(location.search);
   params.set("rows", "1");
   try {
-    const res = await fetch(`/?${params}`, { headers: { accept: "text/html" } });
+    const res = await fetch(`/specs?${params}`, { headers: { accept: "text/html" } });
     if (!res.ok) return; // a blip is not worth a broken page
     const html = await res.text();
     // A press began while this was in the air, so this answer predates

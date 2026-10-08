@@ -46,11 +46,11 @@ export function renderSchedulePage(nav: NavEntry[], generatedAt: string, opts: S
   // `pageShell` wraps the body in `<main>`: a second one inside it takes
   // the frame's padding twice.
   const body = renderScheduleList(opts);
-  // "Jobs", not "Schedule" — the nav tab beside this page already says
-  // "Schedule"; repeating it as a visible page heading read as the same
-  // word twice in a row, so the heading is hidden and "Jobs" survives
-  // only as the browser tab's title.
-  return pageShell("Jobs", nav, SCHEDULE_ROUTE, body, generatedAt, {
+  // The nav tab beside this page already says "Schedule"; repeating it as a
+  // visible page heading read as the same word twice in a row, so the
+  // heading is hidden and "Schedule" survives only as the browser tab's
+  // title. The Jobs tab has the title "Jobs".
+  return pageShell("Schedule", nav, SCHEDULE_ROUTE, body, generatedAt, {
     script: opts.script,
     hideHeading: true,
     lang: opts.lang,

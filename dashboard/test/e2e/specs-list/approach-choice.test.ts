@@ -49,7 +49,7 @@ beforeAll(async () => {
   base = started.base;
   writeFileSync(join(started.dir, "root", "aide", "specs", FOLDER, "3-solution.md"), SOLUTION);
   await waitUntil(
-    async () => (await (await fetch(`${base}/?live=0`)).text()).includes('class="actionform approachform"'),
+    async () => (await (await fetch(`${base}/specs?live=0`)).text()).includes('class="actionform approachform"'),
     10_000,
     "the specs list to carry the approach warning",
   );
@@ -65,7 +65,7 @@ const radio = (letter: string) => notice().locator(`input[name="approach"][value
 
 describe("the approach warning", () => {
   test("Cancel puts the recommended approach back (AC-3)", async () => {
-    await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
+    await withBrowser(page.goto(`${base}/specs?live=0`), "page.goto(/)");
     expect(await radio("A").isChecked()).toBe(true);
     const cancel = notice().locator("button", { hasText: "Cancel" });
     expect(await cancel.isDisabled()).toBe(true);
@@ -78,7 +78,7 @@ describe("the approach warning", () => {
   });
 
   test("an approach's link opens the Solution tab with its lead in view (AC-3)", async () => {
-    await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
+    await withBrowser(page.goto(`${base}/specs?live=0`), "page.goto(/)");
     await notice().locator('a[href*="#approach-b"]').click();
     await page.waitForURL(/tab=solution#approach-b$/);
     const lead = page.locator("strong:visible", { hasText: "Approach B: End the job after analyze" }).first();

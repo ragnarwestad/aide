@@ -21,7 +21,7 @@ beforeAll(async () => {
 afterAll(async () => { await browser.close(); harness.cleanup(); });
 
 const SPEC = `/specs/aide/${STAMPED}`;
-const LIST = `/?state=archived&open=${encodeURIComponent(`aide/${STAMPED}`)}`;
+const LIST = `/specs?state=archived&open=${encodeURIComponent(`aide/${STAMPED}`)}`;
 const ACCEPTED = { status: 200, json: { ok: true, job: { id: "j1" } } };
 
 interface Opened {
@@ -120,11 +120,11 @@ describe("Reopen asks in a dialog over the specs list", () => {
     const { page, posts } = await open(LIST, ACCEPTED, "done");
     await ask(page);
     expect(await modal(page)).toBe(true);
-    expect(new URL(page.url()).pathname).toBe("/");
+    expect(new URL(page.url()).pathname).toBe("/specs");
     await dialog(page).getByRole("button", { name: "OK" }).click();
     await page.waitForURL((url) => posts.length === 1 && !url.searchParams.has("live"));
     const landed = new URL(page.url());
-    expect(landed.pathname).toBe("/");
+    expect(landed.pathname).toBe("/specs");
     expect(landed.searchParams.get("state")).toBe("archived");
   });
 });

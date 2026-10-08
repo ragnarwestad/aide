@@ -131,7 +131,7 @@ describe("a description newer than the analysis is shown on the row", () => {
   /** The badge sits on the analyze phase line and the marks on the step
    *  boxes, and a collapsed row draws neither — so every fetch here
    *  asks for the spec open. */
-  const listPage = (base: string) => fetch(`${base}/?${OPEN_81}`).then((r) => r.text());
+  const listPage = (base: string) => fetch(`${base}/specs?${OPEN_81}`).then((r) => r.text());
 
   test("the analyze line says the description changed since (criterion 1)", async () => {
     const { base, dir } = start({

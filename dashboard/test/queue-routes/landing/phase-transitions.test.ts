@@ -135,7 +135,7 @@ describe("a chained job's row between its phases", () => {
       },
     });
     const page = async () =>
-      await (await fetch(`${base}/?${openQuery(`aide/${SPEC}`)}`, )).text();
+      await (await fetch(`${base}/specs?${openQuery(`aide/${SPEC}`)}`, )).text();
 
     const made = (await (
       await fetch(`${base}/api/queue`, {

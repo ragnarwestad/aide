@@ -27,7 +27,7 @@ describe("jobs of a project no longer in the allowlist are not rows", () => {
     });
     const mirror = join(first.dir, "queue.json");
     const { base } = start({ queueMirrorPath: mirror, queueProjects: ["aide"] });
-    const html = await (await fetch(`${base}/?rows=1`)).text();
+    const html = await (await fetch(`${base}/specs?rows=1`)).text();
     expect(html).not.toContain("01-first");
     expect(html).not.toContain("aide-dashboard");
     // The API keeps the history: this is a page rule, not a deletion.

@@ -49,7 +49,7 @@ beforeAll(async () => {
   writeFileSync(join(started.dir, "root", "aide", "specs", FOLDER, "4-status.json"), STATE_JSON);
   ran(started.dir, ["analyze", "implement"]);
   await waitUntil(
-    async () => (await (await fetch(`${base}/?live=0`)).text()).includes("tick them under › on the Specs list, or on the Status tab"),
+    async () => (await (await fetch(`${base}/specs?live=0`)).text()).includes("tick them under › on the Specs list, or on the Status tab"),
     10_000,
     "the specs list to carry the acceptance hold-back message",
   );
@@ -61,7 +61,7 @@ const notice = () => page.locator(`tr.specnotice[data-folder="${FOLDER}"]`);
 
 describe("the criteria unfolded on the specs list", () => {
   test("the › unfolds and folds the criteria in place", async () => {
-    await page.goto(`${base}/?live=0`);
+    await page.goto(`${base}/specs?live=0`);
     expect(await notice().locator("input[name=\"tick\"]").count()).toBe(0);
     await notice().locator("a.fold").click();
     await page.waitForSelector(`tr.specnotice[data-folder="${FOLDER}"] input[name="tick"]`);
@@ -75,7 +75,7 @@ describe("the criteria unfolded on the specs list", () => {
 // Last: it ticks every criterion, and the list has nothing to unfold after.
 describe("saving from the list", () => {
   test("ticking one and saving keeps the message, ticking the last one takes it away, and nothing is started", async () => {
-    await page.goto(`${base}/?live=0&checks=aide%2F${FOLDER}`);
+    await page.goto(`${base}/specs?live=0&checks=aide%2F${FOLDER}`);
     // A save replaces the whole row (row-swap.ts), so the next tick has
     // to go on the row that came BACK: waiting for "one is checked" is
     // true of the old node too, and a box ticked there goes with it —

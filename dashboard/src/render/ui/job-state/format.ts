@@ -108,10 +108,10 @@ export const notStartedChip = (): string => badge("idle", "not started");
  *  the list's filter vocabulary. */
 export const IN_FLIGHT: QueueRowView["state"][] = ["queued", "running"];
 
-export const inFlight = (r: QueueRowView): boolean => IN_FLIGHT.includes(r.state) || !!r.landing;
+export const inFlight = (r: Pick<QueueRowView, "state" | "landing">): boolean => IN_FLIGHT.includes(r.state) || !!r.landing;
 
 /** The step a job is on, or — once it has stopped — the last one it
  *  reached. */
-export function currentStep(r: QueueRowView): string {
+export function currentStep(r: { steps: readonly string[]; stepIndex: number }): string {
   return r.steps[r.stepIndex] ?? r.steps[r.steps.length - 1] ?? "–";
 }

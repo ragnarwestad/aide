@@ -54,6 +54,12 @@ describe("spec 198: the Reopen control", () => {
     expect(checks).not.toContain("<dialog");
   });
 
+  test("a finished Reopen goes to the Specs list, not the Jobs tab (AC-1)", () => {
+    const html = archived();
+    const id = html.match(/data-ask="([^"]+)"[^>]*>Reopen</)?.[1] ?? "";
+    expect(dialogById(html, id)).toContain('data-progress-done="/specs"');
+  });
+
   // A live spec has the whole row on the queue list for this; the
   // archived page is the one place a reopen can be asked for.
   test("a live spec's page offers nothing of the sort", () => {

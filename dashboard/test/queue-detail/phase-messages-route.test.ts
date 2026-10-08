@@ -36,7 +36,7 @@ describe("GET /?rows=1&phases=…", () => {
     writeFileSync(mirror, JSON.stringify(jobs));
 
     const { base: base2 } = harness.start({ extra: { queueMirrorPath: mirror } });
-    const url = `${base2}/?rows=1&open=${encodeURIComponent(`aide/${FOLDER}`)}&phases=${encodeURIComponent(KEY)}`;
+    const url = `${base2}/specs?rows=1&open=${encodeURIComponent(`aide/${FOLDER}`)}&phases=${encodeURIComponent(KEY)}`;
     const first = await (await fetch(url)).text();
     expect(first).toContain("first message");
 

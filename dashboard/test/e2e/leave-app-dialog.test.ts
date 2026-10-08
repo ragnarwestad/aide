@@ -46,7 +46,7 @@ async function dirtyTheTrackingForm(): Promise<void> {
  *  (`unsaved-changes.ts`), so the exit path only has to be a link that
  *  is actually on this page. */
 function exitLink() {
-  return page.locator('a.backlink[href="/"]');
+  return page.locator('a.backlink[href="/specs"]');
 }
 
 describe("the leave-app dialog replaces the native prompt for an in-app link (spec 478)", () => {
@@ -91,9 +91,9 @@ describe("the leave-app dialog replaces the native prompt for an in-app link (sp
     await dialog.waitFor({ state: "visible" });
 
     await Promise.all([
-      page.waitForURL((url) => new URL(url).pathname === "/"),
+      page.waitForURL((url) => new URL(url).pathname === "/specs"),
       dialog.getByRole("button", { name: "OK" }).click(),
     ]);
-    expect(new URL(page.url()).pathname).toBe("/");
+    expect(new URL(page.url()).pathname).toBe("/specs");
   });
 });

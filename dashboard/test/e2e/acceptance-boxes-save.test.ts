@@ -65,7 +65,7 @@ beforeAll(async () => {
   // verified "implement" against git history, which the list reaches by its
   // own poll.
   const deadline = Date.now() + 10_000;
-  while (!(await (await fetch(`${base}/?live=0`)).text()).includes("tick them under › on the Specs list, or on the Status tab")) {
+  while (!(await (await fetch(`${base}/specs?live=0`)).text()).includes("tick them under › on the Specs list, or on the Status tab")) {
     if (Date.now() > deadline) throw new Error("the specs list never carried the acceptance hold-back message");
     await new Promise((r) => setTimeout(r, 50));
   }
@@ -79,7 +79,7 @@ async function status(folder: string, width: number): Promise<void> {
 }
 async function unfolded(folder: string, width: number): Promise<void> {
   await page.setViewportSize({ width, height: 900 });
-  await page.goto(`${base}/?live=0&checks=aide%2F${folder}`);
+  await page.goto(`${base}/specs?live=0&checks=aide%2F${folder}`);
   await page.waitForSelector(`tr.specnotice[data-folder="${folder}"] .rowchecks .check`);
 }
 

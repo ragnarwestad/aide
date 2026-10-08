@@ -47,6 +47,12 @@ describe("spec 406, REQ-1: the Close control", () => {
     expect(html).toContain("Close can't run right now because a job is running.");
   });
 
+  test("a finished Close goes to the Specs list, not the Jobs tab (AC-1)", () => {
+    const html = page(view({ closeAvailable: true }));
+    const dialog = html.match(/<dialog[^>]*id="closeask"[^>]*>[\s\S]*?<\/dialog>/)?.[0] ?? "";
+    expect(dialog).toContain('data-progress-done="/specs"');
+  });
+
   test("a live spec with no closeAvailable offers nothing of the sort", () => {
     expect(page(view())).not.toContain(">Close<");
   });

@@ -54,7 +54,7 @@ describe("a wiki build is followed on the Wiki tab, never on the Specs list", ()
   test("the Specs list draws no row for it, the full page or the rows alone", async () => {
     const { base } = start();
     await post(base, "aide");
-    for (const path of ["/", "/?rows=1"]) {
+    for (const path of ["/specs", "/specs?rows=1"]) {
       const html = await (await fetch(`${base}${path}`)).text();
       expect(html).not.toContain("wiki-aide");
     }

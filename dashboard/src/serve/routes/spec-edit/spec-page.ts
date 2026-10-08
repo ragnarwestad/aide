@@ -135,7 +135,7 @@ export async function specPageRoutes(
             ...view,
             error: failedRoundSentence(view.lead, langResult.lang),
             warning: sharedFilesSentence(view.lead, langResult.lang),
-            backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/", url.pathname),
+            backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/specs", url.pathname),
           },
           new Date().toISOString(),
           ctx.nav(),

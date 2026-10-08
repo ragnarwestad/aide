@@ -244,7 +244,7 @@ describe("the job list sorts and filters", () => {
 
   test("a column header is a link that keeps the filter you are already in", () => {
     const html = page([row("a", { state: "running" })], { state: "active" });
-    expect(html).toContain('href="/?state=active&amp;sort=cost"');
+    expect(html).toContain('href="/specs?state=active&amp;sort=cost"');
   });
 
 });

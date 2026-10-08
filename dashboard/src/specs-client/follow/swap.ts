@@ -4,6 +4,8 @@
 // a longer log is given the new end after what is drawn. Nothing is moved out
 // of the answer, so a swap that had to wait can run again from it.
 
+import { dialogOpenIn } from "./place.ts";
+
 /** Whether the reader's selection reaches into a node: it is not replaced. */
 export type Held = (node: Node) => boolean;
 
@@ -55,13 +57,20 @@ function swapRows(mine: Element, next: Element, held: Held): "unaccounted" | boo
 }
 
 /** Swap every `[data-follow-part]` of `answer` into `doc`. Returns whether
- *  anything had to wait for a selection to go. */
+ *  anything had to wait for a selection to go. A part that holds an open
+ *  dialog is left whole, since rows are swapped by position and holding one
+ *  row would draw a row inserted above it twice; it catches up on the first
+ *  answer after the question closes. */
 export function swapParts(doc: Document, answer: ParentNode, held: Held): boolean {
   let waiting = false;
   for (const next of answer.querySelectorAll("[data-follow-part]")) {
     const name = next.getAttribute("data-follow-part");
     const mine = doc.querySelector(`[data-follow-part="${name}"]`);
     if (!mine || mine.innerHTML === next.innerHTML) continue;
+    if (dialogOpenIn(mine)) {
+      waiting = true;
+      continue;
+    }
     if (mine.querySelectorAll("table").length === 1 && next.querySelectorAll("table").length === 1) {
       const done = swapRows(mine, next, held);
       if (done !== "unaccounted") {

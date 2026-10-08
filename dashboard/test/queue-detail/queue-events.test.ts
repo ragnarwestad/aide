@@ -169,7 +169,7 @@ describe("a spec created outside the dashboard reaches an open page (spec 204)",
     const s = await connect(base);
     // Draw the page once, so the five-second scan is warm and stale:
     // the watch has to drop that cache before it speaks.
-    const first = await fetch(`${base}/?rows=1`);
+    const first = await fetch(`${base}/specs?rows=1`);
     expect(await first.text()).not.toContain("206-made-by-hand");
 
     const at = join(dir, "root", "aide", "specs", "206-made-by-hand");
@@ -179,7 +179,7 @@ describe("a spec created outside the dashboard reaches an open page (spec 204)",
     heard[0]!("rename", "206-made-by-hand/1-description.md");
     expect(await s.next()).toContain("event: changed");
 
-    const again = await fetch(`${base}/?rows=1`);
+    const again = await fetch(`${base}/specs?rows=1`);
     expect(await again.text()).toContain("206-made-by-hand");
   });
 
@@ -256,14 +256,14 @@ describe("a background discovery of an archived spec's branch reaches an open ta
     // row's own point of view — an unwarmed archived spec reads as
     // ordinary "archived", not as a problem (spec 208's own contract:
     // fail closed, never claim a mark it cannot back up).
-    const before = await fetch(`${base}/?rows=1&state=archived`);
+    const before = await fetch(`${base}/specs?rows=1&state=archived`);
     expect(await before.text()).not.toContain("its branch is still on origin — re-run archive");
 
     const s = await connect(base);
     release();
     expect(await s.next()).toContain("event: changed");
 
-    const after = await fetch(`${base}/?rows=1&state=archived`);
+    const after = await fetch(`${base}/specs?rows=1&state=archived`);
     const html = await after.text();
     expect(html).toContain('data-folder="77-old-thing"');
     expect(html).toContain("Its branch is still on origin — re-run archive");

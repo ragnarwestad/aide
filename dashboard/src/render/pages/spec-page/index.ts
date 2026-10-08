@@ -233,7 +233,7 @@ export function renderSpecPage(
   opts: SpecPageOpts = {},
 ): string {
   const { body } = specPageBody(view, opts);
-  return pageShell(view.specFolder, entries, "/", body, generatedAt, {
+  return pageShell(view.specFolder, entries, "/specs", body, generatedAt, {
     script: opts.script,
     scriptSrc: opts.scriptSrc,
     hideHeading: true,
@@ -260,7 +260,7 @@ export function renderSpecPageRest(
   opts: SpecPageOpts = {},
 ): string {
   const { body } = specPageBody(view, opts);
-  return shellRest(entries, "/", view.specFolder, body, {
+  return shellRest(entries, "/specs", view.specFolder, body, {
     script: opts.script,
     scriptSrc: opts.scriptSrc,
     hideHeading: true,
@@ -274,7 +274,7 @@ export function renderSpecPageRest(
 /** What ends a spec page whose second half failed after the head was sent:
  *  the loading element hidden and one sentence saying what to do. */
 export function renderSpecPageFailedRest(entries: NavEntry[], lang: Language, currentUrl?: string): string {
-  return shellRest(entries, "/", "", rowMessage("failed", t(lang, "shell.pageFailed"), { tag: "p" }), {
+  return shellRest(entries, "/specs", "", rowMessage("failed", t(lang, "shell.pageFailed"), { tag: "p" }), {
     hideHeading: true,
     hideTabBar: true,
     lang,

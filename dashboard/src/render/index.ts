@@ -25,7 +25,7 @@ export {
   // `/projects/<name>` — the project's own page, served (spec 185), so
   // what it says about the config file is true when it is read rather
   // than at some earlier time.
-  projectPagePath, renderProjectPage,
+  projectPagePath, projectScheduleTab, renderProjectPage,
   renderProjectsPage,
   renderAddProjectPage,
   ADD_PROJECT_ROUTE,
@@ -109,6 +109,8 @@ export type {
 export type { QueueRowView } from "./ui/job-state";
 
 export { renderJobDetailPage, renderJobFollowParts } from "./pages/job-page";
+export { jobsShown, renderJobsFollowParts, renderJobsPage } from "./pages/jobs-page";
+export type { JobsPageOptions } from "./pages/jobs-page";
 export type { JobDetailView, JobStepResultView, JobTab, SpecFileView } from "./pages/job-page";
 
 // `/specs/<project>/<specFolder>` — the SPEC, not one of its runs (spec

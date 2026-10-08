@@ -136,7 +136,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     });
     const base = `http://127.0.0.1:${server.port}`;
     try {
-      const html = await untilPage(base, "/", (h) => !h.includes("990-only-in-my-checkout"));
+      const html = await untilPage(base, "/specs", (h) => !h.includes("990-only-in-my-checkout"));
       expect(html).not.toContain("990-only-in-my-checkout");
       expect(html).toContain("81-queue-and-runner");
     } finally {
@@ -192,7 +192,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     const base = `http://127.0.0.1:${server.port}`;
     try {
       expect(existsSync(join(owned, "aide", "code", ".git"))).toBe(false);
-      const html = await page(base, "/");
+      const html = await page(base, "/specs");
       expect(html).toContain("81-queue-and-runner");
       // Not hidden, and not an empty list either: the person's own
       // checkout is all there is to read here.
@@ -224,7 +224,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     const base = `http://127.0.0.1:${server.port}`;
     try {
       // The boot-time ensure has settled and the page is answering.
-      expect(await untilPage(base, "/", (h) => h.includes("81-queue-and-runner"))).toContain(
+      expect(await untilPage(base, "/specs", (h) => h.includes("81-queue-and-runner"))).toContain(
         "81-queue-and-runner",
       );
       // Somebody else pushes. The person's own checkout never hears
@@ -232,7 +232,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
       pushSpecToOrigin(projectsRoot, "993-pushed-by-somebody-else");
       expect(existsSync(join(person, "specs", "993-pushed-by-somebody-else"))).toBe(false);
 
-      const html = await untilPage(base, "/", (h) => h.includes("993-pushed-by-somebody-else"), 25000);
+      const html = await untilPage(base, "/specs", (h) => h.includes("993-pushed-by-somebody-else"), 25000);
       expect(html).toContain("993-pushed-by-somebody-else");
     } finally {
       server.stop();
@@ -264,12 +264,12 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     });
     const base = `http://127.0.0.1:${server.port}`;
     try {
-      expect(await untilPage(base, "/", (h) => h.includes("994-pushed-by-somebody-else"))).toContain(
+      expect(await untilPage(base, "/specs", (h) => h.includes("994-pushed-by-somebody-else"))).toContain(
         "994-pushed-by-somebody-else",
       );
       await quiet(recorded.calls);
       const before = recorded.calls.length;
-      const html = await page(base, "/");
+      const html = await page(base, "/specs");
       expect(html).toContain("994-pushed-by-somebody-else");
       expect(recorded.calls.length).toBe(before);
     } finally {

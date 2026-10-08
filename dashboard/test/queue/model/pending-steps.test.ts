@@ -181,7 +181,7 @@ describe("POST /api/queue records the row's own choice (spec 439)", () => {
     // the render this test is actually about: what the row shows once
     // there is no job left to speak for it.
     await fetch(`${base}/api/queue/${job.id}/cancel`, { method: "POST" });
-    const html = await (await fetch(`${base}/?${openQuery}`)).text();
+    const html = await (await fetch(`${base}/specs?${openQuery}`)).text();
     const ticked = [...html.matchAll(/<input type="checkbox" name="steps" value="([^"]+)" checked/g)].map(
       (m) => m[1],
     );
@@ -202,7 +202,7 @@ describe("POST /api/queue records the row's own choice (spec 439)", () => {
     // Nothing was ticked before this, and the refused press must not
     // have written an empty choice over what a later, real Run would
     // otherwise have found unset — the fallback stays available for it.
-    const html = await (await fetch(`${base}/?${openQuery}`, )).text();
+    const html = await (await fetch(`${base}/specs?${openQuery}`, )).text();
     expect(html).toContain('value="analyze" checked');
   });
 });

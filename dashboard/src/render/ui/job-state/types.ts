@@ -15,6 +15,9 @@ export interface QueueRowView {
    *  running. Absent on every other job, whose spec has a real name. */
   createTitle?: string;
   steps: string[];
+  /** Whether a wiki job refreshes the pages a change touched, rather than
+   *  building the whole wiki. Absent on every other job. */
+  wikiRefresh?: boolean;
   stepIndex: number;
   /** The steps whose box a reader may still tick or untick while this
    *  job runs (spec 160): the tail that has not started, plus every
@@ -47,6 +50,9 @@ export interface QueueRowView {
   timeoutSec: number;
   createdAt: string;
   startedAt?: string;
+  /** When the job ended, as the queue recorded it: an interrupted job has
+   *  this though it left no result to take an end from. */
+  finishedAt?: string;
   /** The render-side mirror of `Job.stepStartedAt` (spec 384): when the
    *  step now in flight was actually spawned. Absent whenever the job has
    *  no step actually running right now — including while merely `queued`

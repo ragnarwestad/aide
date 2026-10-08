@@ -205,6 +205,22 @@ export const isRunStop = (
 ): reason is "timeout" | "provider-limit" | "acceptance-criteria" | "shared-files" =>
   reason === "timeout" || reason === "provider-limit" || reason === "acceptance-criteria" || reason === "shared-files";
 
+/** The states in which a job waits for a person. `cancelled` is not one:
+ *  a person ended it themselves. */
+export const WAITS_FOR_PERSON = new Set<JobState>(["failed", "stopped", "interrupted"]);
+
+/** How the result of an archive held back on unticked acceptance criteria ends. */
+export const ACCEPTANCE_CRITERIA_UNTICKED = "acceptance-criteria-unticked";
+
+/** Whether a finished job waits for a person: it failed, stopped or was
+ *  interrupted (a conflict is a failure), or it is an archive held back on
+ *  unticked acceptance criteria. */
+export const waitsForPerson = (
+  job: { state: string; results?: readonly { terminalReason?: string }[] },
+): boolean =>
+  WAITS_FOR_PERSON.has(job.state as JobState) ||
+  (job.state === "done" && job.results?.at(-1)?.terminalReason === ACCEPTANCE_CRITERIA_UNTICKED);
+
 /** States where a job still owns its work. Anything else has released
  *  it, and the same step may be queued again.
  *

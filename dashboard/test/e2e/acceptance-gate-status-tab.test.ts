@@ -80,7 +80,7 @@ beforeAll(async () => {
   // a board that never shows it still fails, on the bound below.
   await waitUntil(
     async () => {
-      const res = await fetch(`${base}/?live=0`);
+      const res = await fetch(`${base}/specs?live=0`);
       return (await res.text()).includes("tick them under › on the Specs list, or on the Status tab");
     },
     10_000,
@@ -107,7 +107,7 @@ describe("the acceptance gate, on a page a person could click", () => {
     // Open: the row's one action rides the caption line the fold opens
     // (2026-09-08), so a shut row has no button to press.
     await withBrowser(
-      page.goto(`${base}/?live=0&open=aide%2F${FOLDER}`),
+      page.goto(`${base}/specs?live=0&open=aide%2F${FOLDER}`),
       "page.goto(/) again",
     );
     const notice = page.locator(`tr.specnotice[data-folder="${FOLDER}"]`);

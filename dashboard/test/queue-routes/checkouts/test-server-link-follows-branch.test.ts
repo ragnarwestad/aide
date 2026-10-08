@@ -48,7 +48,7 @@ describe("the specs list offers a test server only while the spec's branch is on
     );
     // The answer is cached a moment after the ask returns.
     await new Promise((r) => setTimeout(r, 150));
-    return await (await fetch(`${base}/?${OPEN_81}`)).text();
+    return await (await fetch(`${base}/specs?${OPEN_81}`)).text();
   }
 
   test("a capable project whose branch is on origin has the link (AC-2)", async () => {

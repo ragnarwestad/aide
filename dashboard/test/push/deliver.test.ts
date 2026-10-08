@@ -70,7 +70,7 @@ describe("what a notification says (criterion 9)", () => {
       SPEC_ENDINGS[ending](b.store, job.id);
       await b.push.idle();
       const sent = await openCall(b.sent.calls[0]!, d);
-      expect(sent.url).toBe(`/?open=${encodeURIComponent(`aide/${SPEC}`)}`);
+      expect(sent.url).toBe(`/specs?open=${encodeURIComponent(`aide/${SPEC}`)}`);
     });
   }
 
@@ -81,7 +81,7 @@ describe("what a notification says (criterion 9)", () => {
     b.store.transition(job.id, "step-succeeded-last", { results: [result("archive", "acceptance-criteria-unticked")] });
     await b.push.idle();
     const sent = await openCall(b.sent.calls[0]!, d);
-    expect(sent.url).toBe(`/?checks=${encodeURIComponent(`aide/${SPEC}`)}`);
+    expect(sent.url).toBe(`/specs?checks=${encodeURIComponent(`aide/${SPEC}`)}`);
   });
 
   test("the body is in the language stored with the subscription", async () => {
