@@ -94,6 +94,7 @@ the dashboard's docs pages to 550; they are written to be searched. Where to loo
 | The test server a held-back spec offers                   | `dashboard/docs/test-server.md`               | Using the board   |
 | When the tests run in a spec, and what red means          | `dashboard/docs/tests-in-a-spec.md`           | Both              |
 | Installation layout, what goes where, the gotchas         | `.claude/rules/development.md`                | Changing the code |
+| What a word means: phase, step, landing, round, held back | `docs/GLOSSARY.md`                            | Both              |
 | Ideas being considered for Aide, and where they stand     | `docs/ROADMAP.md`                             | Both              |
 | How Aide uses agents, subagents and loops in each step    | `docs/AGENTS_AND_LOOPS.md`                    | Both              |
 | A project's wiki: what it is, who writes and reads it     | `docs/WIKI.md`                                | Both              |
