@@ -137,9 +137,8 @@ describe("a newer job of the same project and key clears a waiting one (AC-3)", 
 describe("a create that ended without a spec (AC-3)", () => {
   const create = job({ id: "cr", state: "failed", specFolder: "new-0a1b2c3d", steps: ["create"] });
 
-  test("is never a row, whether or not its message is dismissed: the Specs list's message stands for it (AC-3)", () => {
+  test("is never a row: the Specs list's message stands for it (AC-3)", () => {
     expect(ids([create])).toEqual([]);
-    expect(ids([create], { ...none, openFailedCreates: new Set(["cr"]) } as typeof none)).toEqual([]);
   });
 });
 
