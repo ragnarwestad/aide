@@ -255,13 +255,8 @@ EXCLUDES_EOF
   done < <( { git -C "$repo_wt" status --porcelain --untracked-files=all -- . ${excludes[@]+"${excludes[@]}"} 2>/dev/null \
                 | cut -c4- | sed 's/^.* -> //'; \
               git -C "$repo_wt" diff --name-only "$tip...HEAD" -- . ${excludes[@]+"${excludes[@]}"} 2>/dev/null; } | sort -u )
-  # 3. Hand-written pages stay protected. Only Aide retires base-marked
-  #    legacy pages; edits and replacements stay forbidden.
-  local retirement=()
-  if [ "$(aide_manifest_get name "$project_wt")" = "aide" ]; then
-    retirement=(--retire-decisions --project-dir "$project_wt")
-  fi
-  verdict="$("$SCRIPT_DIR/aide-wiki" verify --specs-root "$specs_root_wt" --base-ref "$tip" ${retirement[@]+"${retirement[@]}"} 2>/dev/null)"
+  # 3. Hand-written pages stay protected.
+  verdict="$("$SCRIPT_DIR/aide-wiki" verify --specs-root "$specs_root_wt" --base-ref "$tip" 2>/dev/null)"
   while IFS=$'\t' read -r kind page; do
     [ -n "$page" ] || continue
     wiki_take_back "$repo_wt" "$tip" "${wiki_prefix}$page"

@@ -103,11 +103,3 @@ describe("a link between pages (AC-3)", () => {
     expect(wikiPagePath("aide")).toBe("/projects/aide?tab=wiki");
   });
 });
-
-
-test("recognizes legacy pages only by complete front matter (AC-6)", () => {
-  expect(splitPage("---\nwiki: decision\n---\n\n# Old\n").mark.legacyDecision).toBe(true);
-  for (const text of ["# Notes\n\nwiki: decision\n", GENERATED + "\nwiki: decision\n", "---\nwiki: decision\n"]) {
-    expect(splitPage(text).mark.legacyDecision).toBeUndefined();
-  }
-});

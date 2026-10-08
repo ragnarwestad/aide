@@ -4,9 +4,8 @@
 # The wiki is the folder wiki/ inside the project's specs root: index.md,
 # schema.md and one page per part of the system. A page is GENERATED when
 # its front matter carries `wiki: generated`; hand-written pages stay
-# protected, apart from explicit retirement of legacy decision pages. The mark is read here and in
+# protected. The mark is read here and in
 # dashboard/src/project/wiki/ (pinned to this script by state.test.ts there).
-# Legacy decision marks are recognized only for filtering and explicit retirement.
 # The /aide-wiki skill decides what the parts are and what a page says;
 # everything that can be checked lives here.
 #
@@ -18,9 +17,9 @@
 #                    # the page's body on stdin
 #   aide-wiki schema --specs-root R --project-dir P
 #   aide-wiki index  --specs-root R --project-dir P
-#   aide-wiki prune  --specs-root R --keep NAME.md [NAME.md...] [--project-dir P --retire-decisions]
+#   aide-wiki prune  --specs-root R --keep NAME.md [NAME.md...]
 #   aide-wiki status --specs-root R --project-dir P
-#   aide-wiki verify --specs-root R --base-ref REF [--project-dir P --retire-decisions]
+#   aide-wiki verify --specs-root R --base-ref REF
 #   aide-wiki affected --specs-root R --project-dir P [--base-ref REF]
 
 set -uo pipefail
@@ -32,9 +31,9 @@ Usage:
                    (the page's body on stdin)
   aide-wiki schema --specs-root R --project-dir P
   aide-wiki index  --specs-root R --project-dir P
-  aide-wiki prune  --specs-root R --keep NAME.md [NAME.md...] [--project-dir P --retire-decisions]
+  aide-wiki prune  --specs-root R --keep NAME.md [NAME.md...]
   aide-wiki status --specs-root R --project-dir P
-  aide-wiki verify --specs-root R --base-ref REF [--project-dir P --retire-decisions]
+  aide-wiki verify --specs-root R --base-ref REF
   aide-wiki affected --specs-root R --project-dir P [--base-ref REF]
 USAGE
 }
@@ -52,7 +51,6 @@ esac
 sub="$1"; shift
 
 specs_root=""; project_dir=""; page=""; base_ref=""; files=(); keep=()
-retire_decisions="no"
 while [ $# -gt 0 ]; do
   case "$1" in
     --specs-root) specs_root="${2:-}"; shift 2 ;;
@@ -61,7 +59,6 @@ while [ $# -gt 0 ]; do
     --base-ref) base_ref="${2:-}"; shift 2 ;;
     --file) shift; while [ $# -gt 0 ] && [[ "$1" != --* ]]; do files+=("$1"); shift; done ;;
     --keep) shift; while [ $# -gt 0 ] && [[ "$1" != --* ]]; do keep+=("$1"); shift; done ;;
-    --retire-decisions) retire_decisions="yes"; shift ;;
     -h|--help) usage; exit 0 ;;
     *) refuse "unknown-argument" "unknown argument: $1" ;;
   esac
@@ -76,13 +73,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/wiki-pages.sh
 source "$SCRIPT_DIR/lib/wiki-pages.sh"
 
-if [ "$retire_decisions" = "yes" ]; then
-  case "$sub" in prune|verify) ;; *) refuse "unknown-argument" "--retire-decisions is for prune or verify" ;; esac
-  need_project
-  source "$SCRIPT_DIR/_aide-spec-lib.sh"
-  [ "$(aide_manifest_get name "$project_dir")" = "aide" ] || refuse "retirement-project" "decision retirement requires project identity aide"
-fi
-
 case "$sub" in
   write)
     need_project
@@ -90,10 +80,6 @@ case "$sub" in
     case "$page" in index.md|schema.md) refuse "reserved-page-name" "$page is written by its own subcommand" ;; esac
     [ ${#files[@]} -gt 0 ] || refuse "no-file" "a page names the files it was written from: pass --file"
     body="$(mktemp)"; cat > "$body"
-    # Remove a legacy section copied from the page the session read.
-    if grep -qx '## Decisions' "$body"; then
-      kept="$(mktemp)"; cut_decisions_section < "$body" > "$kept"; mv "$kept" "$body"
-    fi
     [ -s "$body" ] || { rm -f "$body"; refuse "empty-body" "no content on stdin"; }
     for f in "${files[@]}"; do
       git -C "$project_dir" cat-file -e "HEAD:$f" 2>/dev/null || { rm -f "$body"; refuse "unknown-file" "$f is not in the project at HEAD"; }
@@ -172,7 +158,6 @@ SCHEMA
         [ -f "$f" ] || continue
         n="$(basename "$f")"
         [ "$n" = "index.md" ] && continue
-        is_decision "$f" && continue
         printf -- '- [%s](%s) — %s\n' "$(page_title "$f")" "$n" "$(page_summary "$f")"
       done
     } | compose "$head_sha" | put_page_unless_same "$wiki/index.md"
@@ -185,15 +170,7 @@ SCHEMA
     for f in "$wiki"/*.md; do
       [ -f "$f" ] || continue
       n="$(basename "$f")"
-      if [ "$retire_decisions" = "yes" ] && is_decision "$f"; then
-        rm -f "$f"; deleted+=("$n"); continue
-      fi
       is_generated "$f" || continue
-      if [ "$retire_decisions" = "yes" ]; then
-        cleaned="$(mktemp)"
-        cut_decisions_section < "$f" > "$cleaned"
-        cat "$cleaned" > "$f"; rm -f "$cleaned"
-      fi
       case "$n" in index.md|schema.md) continue ;; esac
       kept=""
       for k in ${keep[@]+"${keep[@]}"}; do [ "$k" = "$n" ] && kept=1; done
@@ -212,7 +189,6 @@ SCHEMA
     pages="[]"
     for f in "$wiki"/*.md; do
       [ -f "$f" ] || continue
-      is_decision "$f" && continue
       n="$(basename "$f")"; gen=false; state="hand-written"; changed=()
       if is_generated "$f"; then
         gen=true
@@ -299,7 +275,6 @@ SCHEMA
       [ -n "$n" ] || continue
       base_generated "$n" && continue
       if [ ! -e "$wiki/$n" ] && [ ! -L "$wiki/$n" ]; then
-        if [ "$retire_decisions" = "yes" ] && base_text "$n" | front_matter_of_text | grep -qx "wiki: decision"; then continue; fi
         add_violation "hand-written-deleted" "$n"
       elif [ "$(base_text "$n"; echo x)" != "$(cat "$wiki/$n"; echo x)" ]; then
         add_violation "hand-written-changed" "$n"

@@ -10,7 +10,6 @@ export const WIKI_PAGE = /^[a-z0-9-]+\.md$/;
 
 export interface PageMark {
   generated: boolean;
-  legacyDecision?: boolean;
   commit: string;
   files: string[];
 }
@@ -41,8 +40,7 @@ export function splitPage(text: string): { mark: PageMark; body: string } {
   let start = end + 1;
   while (start < lines.length && lines[start] === "") start++;
   return {
-    mark: { generated: front.includes("wiki: generated"), commit, files,
-      ...(front.includes("wiki: decision") ? { legacyDecision: true } : {}) },
+    mark: { generated: front.includes("wiki: generated"), commit, files },
     body: lines.slice(start).join("\n"),
   };
 }

@@ -7,7 +7,7 @@ so do not fix anything and do not commit: report, and stop.
    is the folder `wiki/` inside it. If there is no `wiki/`, say so in the
    report (step 4) and stop.
 2. Run `aide-wiki status --specs-root <specs root> --project-dir .` to list
-   the ordinary pages, excluding legacy decision pages. Use its generated
+   the pages. Use its generated
    mark, never a mark quoted in a page's body. Run each filter with `jq -r` over the
    answer. The pages to check:
 

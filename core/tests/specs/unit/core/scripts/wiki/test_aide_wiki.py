@@ -25,7 +25,6 @@ from .aide_wiki_support import (
     commit_all,
     hand_written,
     verify,
-    HAND_DECISION,
 )
 
 
@@ -260,25 +259,6 @@ def test_status_tells_current_changed_unknown_and_hand_written_apart_AC_5(script
     assert status(script, specs_root, project)["commit"] == head(project)
 
 
-QUOTES_THE_MARK = "# Decisions\n\nA decision page has `wiki: decision` in its front matter.\n\nwiki: decision\n"
-
-
-def test_status_says_a_generated_page_that_quotes_the_decision_mark_is_no_decision_AC_1(script, specs_root, project):
-    write_page(script, specs_root, project, "a.md", ["x.txt"], QUOTES_THE_MARK)
-    page = {p["page"]: p for p in status(script, specs_root, project)["pages"]}["a.md"]
-    assert page["generated"] is True
-    assert "decision" not in page
-    assert page["state"] == "current"
-
-
-def test_status_excludes_legacy_front_matter_but_keeps_quoted_marks_AC_3(script, specs_root, project):
-    write_page(script, specs_root, project, "b.md", ["x.txt"], QUOTES_THE_MARK)
-    hand_written(specs_root, "legacy.md", HAND_DECISION)
-    hand_written(specs_root, "decision-notes.md", QUOTES_THE_MARK)
-    pages = {p["page"] for p in status(script, specs_root, project)["pages"]}
-    assert pages == {"b.md", "decision-notes.md"}
-
-
 def prompt_filters(workspace_root):
     """The two fenced jq blocks of the weekly check's prompt: the pages to
     check, then the pages to skip."""
@@ -297,9 +277,8 @@ def run_filter(flt, answer):
 def test_the_weekly_check_picks_its_pages_with_the_filters_its_prompt_gives_AC_1_AC_2_AC_3(
     script, specs_root, project, workspace_root
 ):
-    write_page(script, specs_root, project, "a.md", ["x.txt"], QUOTES_THE_MARK)
+    write_page(script, specs_root, project, "a.md", ["x.txt"])
     write_page(script, specs_root, project, "b.md", ["y.txt"])
-    hand_written(specs_root, "legacy.md", HAND_DECISION)
     hand_written(specs_root)
     assert call(script, "schema", "--specs-root", specs_root, "--project-dir", project)[0] == 0
     assert build_index(script, specs_root, project)[0] == 0
@@ -328,7 +307,6 @@ def test_removed_commands_refuse_without_writing_AC_4(script, specs_root):
 def test_write_keeps_current_reason_and_tracks_its_source_without_backlinks_AC_1_AC_2(
     script, specs_root, project
 ):
-    hand_written(specs_root, "legacy.md", HAND_DECISION)
     reason = "- Change `y.txt`, and x must follow, because they share a format.\n"
     body = "# P\n\nCurrent rule.\n\n## Ripples\n\n" + reason
     for _ in range(2):
@@ -341,61 +319,3 @@ def test_write_keeps_current_reason_and_tracks_its_source_without_backlinks_AC_1
     commit_all(project, "change source")
     page = next(p for p in status(script, specs_root, project)["pages"] if p["page"] == "p.md")
     assert page["changedFiles"] == ["y.txt"]
-
-
-def test_index_and_schema_expose_no_legacy_decisions_AC_4(script, specs_root, project):
-    hand_written(specs_root, "legacy.md", HAND_DECISION)
-    hand_written(specs_root, "notes.md", QUOTES_THE_MARK)
-    build_index(script, specs_root, project)
-    call(script, "schema", "--specs-root", specs_root, "--project-dir", project)
-    index = (specs_root / "wiki/index.md").read_text()
-    assert "legacy.md" not in index and "## Decisions" not in index
-    assert "notes.md" in index
-    assert "## Decision pages" not in (specs_root / "wiki/schema.md").read_text()
-
-
-def test_retirement_deletes_only_base_marked_legacy_and_strips_real_sections_AC_5(
-    script, specs_root, project, specs_repo
-):
-    (project / ".aide").mkdir()
-    (project / ".aide/project.yaml").write_text("name: aide\n")
-    commit_all(project, "project identity")
-    write_page(script, specs_root, project, "p.md", ["x.txt"])
-    page = specs_root / "wiki/p.md"
-    before = page.read_text()
-    page.write_text(before + "\n## Decisions\n\n```markdown\n## Inside fence\n```\n\n- [Old](legacy.md)\n\n## Current\n\nKeep this.\n")
-    hand = hand_written(specs_root, "decision-notes.md", QUOTES_THE_MARK)
-    hand_written(specs_root, "legacy.md", HAND_DECISION)
-    commit_all(specs_repo, "legacy wiki")
-    args = ("--retire-decisions", "--project-dir", project)
-    for _ in range(2):
-        rc, out = call(script, "prune", "--specs-root", specs_root, *args, "--keep", "p.md", "legacy.md")
-        assert rc == 0, out
-        assert not (specs_root / "wiki/legacy.md").exists()
-        assert page.read_text() == before + "\n## Current\n\nKeep this.\n"
-        assert (specs_root / "wiki/decision-notes.md").read_text() == hand
-        assert call(script, "verify", "--specs-root", specs_root, "--base-ref", "HEAD", *args)[1]["violations"] == []
-    # The exception never permits editing or replacing a protected base page.
-    hand_written(specs_root, "legacy.md", HAND_DECISION + "Edited\n")
-    out = call(script, "verify", "--specs-root", specs_root, "--base-ref", "HEAD", *args)[1]
-    assert {"kind": "hand-written-changed", "page": "legacy.md"} in out["violations"]
-    (specs_root / "wiki/legacy.md").unlink()
-    (specs_root / "wiki/legacy.md").symlink_to("missing.md")
-    out = call(script, "verify", "--specs-root", specs_root, "--base-ref", "HEAD", *args)[1]
-    assert {"kind": "hand-written-changed", "page": "legacy.md"} in out["violations"]
-    hand_written(specs_root, "decision-notes.md", HAND_DECISION)
-    (specs_root / "wiki/decision-notes.md").unlink()
-    out = call(script, "verify", "--specs-root", specs_root, "--base-ref", "HEAD", *args)[1]
-    assert {"kind": "hand-written-deleted", "page": "decision-notes.md"} in out["violations"]
-
-
-def test_default_and_other_project_prune_preserve_legacy_pages_AC_5(script, specs_root, project):
-    hand_written(specs_root, "legacy.md", HAND_DECISION)
-    assert call(script, "prune", "--specs-root", specs_root)[0] == 0
-    assert (specs_root / "wiki/legacy.md").exists()
-    for identity in ("other", ""):
-        (project / ".aide").mkdir(exist_ok=True)
-        (project / ".aide/project.yaml").write_text(f"name: {identity}\n")
-        rc, out = call(script, "prune", "--specs-root", specs_root, "--project-dir", project, "--retire-decisions")
-        assert rc == 2 and out["reason"] == "retirement-project", out
-        assert (specs_root / "wiki/legacy.md").exists()

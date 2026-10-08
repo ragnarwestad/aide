@@ -83,6 +83,3 @@ def verify(script, specs_root, ref="HEAD"):
     rc, out = call(script, "verify", "--specs-root", specs_root, "--base-ref", ref)
     assert rc == 0, out
     return sorted((v["kind"], v["page"]) for v in out["violations"])
-
-
-HAND_DECISION = "---\nwiki: decision\nspec: 01-first\n---\n\n# By hand\n\nKeep pages.\n\n## Concerns\n\n- [P](p.md)\n"

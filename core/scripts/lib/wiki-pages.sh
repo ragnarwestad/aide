@@ -45,30 +45,6 @@ page_summary() {
   body_of "$1" | awk '/^# / && !seen { seen = 1; next } seen && NF { print; exit }'
 }
 
-# A legacy page, recognized by front matter only.
-is_decision() {
-  front_matter "$1" | grep -qx 'wiki: decision'
-}
-
-# stdin without its `## Decisions` section: from that heading (outside a
-# fenced code block) up to, not including, the next `## ` line, or to the
-# end, with the one blank line before it. What is left is what a body said
-# before the section was added, so cutting a body with the section and
-# cutting it without give the same text.
-cut_decisions_section() {
-  awk '
-    skip {
-      if ($0 ~ /^```/ || $0 ~ /^~~~/) { fence = !fence; next }
-      if (fence || $0 !~ /^## /) next
-      skip = 0; if (printed && blanks == 0) blanks = 1
-    }
-    !fence && $0 == "## Decisions" { if (blanks > 0) blanks--; skip = 1; next }
-    $0 == "" { blanks++; next }
-    { while (blanks > 0) { print ""; blanks-- } if ($0 ~ /^```/ || $0 ~ /^~~~/) fence = !fence; print; printed = 1 }
-    END { while (blanks > 0) { print ""; blanks-- } }
-  '
-}
-
 need_project() {
   [ -n "$project_dir" ] || refuse "missing-argument" "missing --project-dir"
   git -C "$project_dir" rev-parse HEAD >/dev/null 2>&1 || refuse "no-project" "$project_dir is not a git repository with a commit"

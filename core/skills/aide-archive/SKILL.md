@@ -123,9 +123,9 @@ Step 3.
 
 **Before rewriting:** read this spec's `1-description.md`, `2-analysis.md`
 and `3-solution.md`'s Plan review, under its archive path. Select only
-choices whose stated reason still explains the changed code. Never invent
-or import a reason from a legacy decision page. Keep each selected reason
-as one line in the affected ordinary page's ripples, in the form "change X,
+choices whose stated reason still explains the changed code, and invent
+none. Keep each selected reason
+as one line in the affected page's ripples, in the form "change X,
 and Y must follow, because …", naming the current files or pages.
 
 **One or more pages named:** for each, read the files it names as they
@@ -156,9 +156,8 @@ still explains the current code and appears once, as a ripple sentence:
 "change X, and Y must follow, because …". Correct a missing or obsolete
 reason through the same `aide-wiki write` call, using only the pages and
 files `affected` named. A choice whose reason no longer explains the code
-is left out. Do not create a separate decision page, follow a legacy
-decision link, rewrite an unaffected page, or rebuild the index here.
-Report the ordinary pages whose current reasons were retained, or that
+is left out. Write only the pages `affected` named, and leave the index
+as it is. Report the pages whose current reasons were retained, or that
 none needed a reason.
 
 ### Step 4 of 7: Close the loop
