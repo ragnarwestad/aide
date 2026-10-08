@@ -9,15 +9,6 @@ effort: high
 
 # Tdd Coach
 
-## When to use this skill
-
-- You are implementing new functionality
-- You are refactoring existing code
-- You need to ensure high test coverage
-- You are following the TDD cycle
-
----
-
 ## Ground rules (apply to ALL phases)
 
 1. Write the least amount of code that satisfies the requirements and makes the tests pass
@@ -88,7 +79,7 @@ pnpm test -- --run <test-file>
 # Step 3: Run the tests after each step
 pnpm test -- --run <test-file>
 # Step 4: Verify that all tests PASS
-# Then write the next test; after the last one, stop and ask for confirmation
+# Then write the next test
 ```
 
 **Rules for GREEN:**
@@ -102,15 +93,12 @@ pnpm test -- --run <test-file>
 
 **Automated checks that MUST pass before REFACTOR**
 
+The project's own type check and lint, and its tests as its rules say
+(inside a spec's /aide-implement run the whole suite is the runner's):
+
 ```bash
-# Frontend
-pnpm test -- --run          # All tests pass
 npx tsc --noEmit            # TypeScript check
 pnpm run eslint             # Linting
-
-# Backend
-./gradlew test              # All tests pass
-./gradlew ktlintCheck       # Kotlin linting
 ```
 
 All checks must pass. If anything fails, fix it in the GREEN phase before moving on.
@@ -138,27 +126,8 @@ All checks must pass. If anything fails, fix it in the GREEN phase before moving
 
 ## Testing standards
 
-### Frontend (React/TypeScript)
-
-- ✅ **Vitest** + **React Testing Library**
-- ✅ `describe` + `it` structure
-- ✅ Mock external dependencies
-- ✅ Test happy path, edge cases, errors
-- ✅ Target: 80% coverage
-
-### Backend (Kotlin/Spring Boot)
-
-- ✅ **JUnit 5** + **MockK**
-- ✅ `@Test` annotations
-- ✅ Mock external dependencies
-- ✅ Test domain logic, repository, controller
-- ✅ Target: 80% coverage
-
-### E2E Tests
-
-- ✅ **Playwright** for frontend E2E
-- ✅ Test critical user flows
-- ✅ Run before deployment
+Use the project's own test framework, structure and fixtures. What a
+test is for, and what it is not, is the testing rule's "What to test".
 
 ---
 
@@ -218,6 +187,5 @@ it('should handle API errors', async () => {
 
 ## References
 
-- `the testing rules` - Complete testing ruleset
-- `the workflow rules` - The TDD workflow in the context of a spec
-- Frontend coding standard
+- The testing rule — the complete testing ruleset
+- The workflows skill — the TDD workflow in the context of a spec
