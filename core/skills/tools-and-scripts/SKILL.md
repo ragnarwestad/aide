@@ -26,17 +26,11 @@ effort: medium
 
 Skills are loaded from `~/.claude/skills/` — use the `/` syntax.
 
-Available skills:
-
-- `/aide-explore` - No-stakes thinking partner before a spec exists (creates nothing)
-- `/aide-create` - Create a spec
-- `/aide-analyze` - Analyze the codebase, then review the plan (feasibility, scope, coherence)
-- `/aide-manifest` - Draft or refresh the project manifest (.aide/project.yaml)
-- `/aide-wiki` - Build the project's wiki of how its parts hang together (run by the dashboard's Wiki tab)
-- `/aide-implement` - Implement with TDD
-- `/aide-archive` - Resolve any merge conflict on the branch, then archive the spec and feed durable knowledge back into the docs
-- `/aide-to-pdf` - Render the specs to PDF
-- `/tdd-coach` - Test-Driven Development methodology
+Each skill's own description says what it does and when to use it; the
+`aide-*` skills are the workflow's steps (`/aide-explore`, `/aide-create`,
+`/aide-analyze`, `/aide-implement`, `/aide-archive`, `/aide-close`,
+`/aide-reopen`) and its helpers (`/aide-manifest`, `/aide-wiki`,
+`/aide-to-pdf`).
 
 ---
 
@@ -74,7 +68,8 @@ in single-run mode, never watch mode (see the testing rules).
 **When to run what:**
 
 - New files created → Run `git add <file>` automatically
-- Implementation done → Run the project's test/typecheck/lint commands automatically
+- Implementation done → Run the tests covering the change, the type check
+  and lint automatically; the whole suite as the project's rules say
 
 ---
 
@@ -87,7 +82,6 @@ with `#` comments. Recognized keys:
 |-----------------------|------------------------------------------------------------------------------------------------------------------|
 | `AIDE_LINT_CMD`       | Overrides the detected lint command                                                                              |
 | `AIDE_BUILD_CMD`      | Overrides the detected build command                                                                             |
-| `AIDE_WORKTREE_LINKS` | LEGACY. Never read — `.aide/project.yaml`'s `worktreeLinks:` is the only source now, see below                   |
 | `AIDE_INSTALL_CMD`    | What installing this project means on THIS machine — run by the dashboard after the project's own code is merged |
 
 The worktree links live in the project's **manifest**, not here:
@@ -107,20 +101,14 @@ and excluded from the commit. Paths are relative to the repo root; an
 absolute path, or one containing `..`, is refused by name. Which paths
 matter cannot be derived without guessing, so the project states them.
 
-They are in the manifest rather than in `.aide/config` because they are
-true of the project on ANY machine, while `.aide/config` is kept out of
-git — so the answer was lost every time the project met a new machine.
-A project that does not track a manifest keeps them in the dashboard's own
-settings file, `checkouts/<name>/settings.yaml`, which reaches a run as an
-untracked, uncommitted `.aide/project.yaml`; a tracked manifest wins.
-`.aide/config`'s older `AIDE_WORKTREE_LINKS` is legacy and is never
-read any more — the manifest is the only source, and the run's own
-output says so.
+They are in the manifest because they hold on any machine. A project
+that does not track a manifest keeps them in the dashboard's own
+settings file, `checkouts/<name>/settings.yaml`, which reaches a run as
+an untracked `.aide/project.yaml`; a tracked manifest wins.
+`.aide/config`'s older `AIDE_WORKTREE_LINKS` is never read.
 
-`AIDE_INSTALL_CMD` exists because merged is not deployed. For a project
-that installs itself somewhere — Aide puts its scripts in
-`~/.local/bin` — code reaching the default branch changes nothing on
-the machine until the install runs. The value
+`AIDE_INSTALL_CMD` is for a project that installs itself somewhere, so
+that code reaching the default branch also reaches the machine. The value
 is an argv, split on whitespace and run with **no shell**, in the
 project's own checkout, bounded by a timeout; a failure is reported
 beside the merge and never turns a completed merge back into a failed
@@ -129,11 +117,9 @@ deploying is still a hand step. `aide`'s own value is
 `dashboard/deploy/install-after-merge.sh` — it reinstalls the shared
 scripts and refreshes/restarts the dashboard where one runs.
 
-`AIDE_INSTALL_CMD` is read from `.aide/config` alone — a manifest
-`installCmd:` is never read, **the reverse of `worktreeLinks`'s single
-source**: an install command can legitimately differ on one machine,
-while a worktree link cannot. The dashboard resolves it with
-`resolveInstallCmd()` in `dashboard/src/project/discover/config.ts`.
+`AIDE_INSTALL_CMD` is read from `.aide/config` alone, never from the
+manifest, since an install command can differ from one machine to the
+next.
 
 Everything is optional. Shell scripts read the file via `aide_config_get KEY <project-root>` from
 `_aide-spec-lib.sh`.

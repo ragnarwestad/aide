@@ -54,16 +54,11 @@ npx markdownlint-cli2 --fix '**/*.md'
 
 See `.markdownlint-cli2.jsonc` for the rules.
 
-**Important:** The configuration is minimal and focuses ONLY on the critical issues we have had problems with.
-
 ## Responsibilities
 
-**ALL AI implementations (Claude Code, Cursor, Junie, Codex, etc.):**
-- Must ALWAYS run linting on markdown files after writing/editing/moving them
-- Must fix all MD029, MD040 and MD051 errors before the task is done
+- Run linting on markdown files after writing, editing or moving them
+- Fix all MD029, MD040 and MD051 errors before the task is done
 - Command: `npx markdownlint-cli2 <file.md>` or `npx markdownlint-cli2 '**/*.md'`
-
-**Manual check (optional):** You can run linting to double-check.
 
 ## Common errors and solutions
 

@@ -36,8 +36,7 @@ get them, and reads them by hand.
   `$HOME/.aide/dashboard/worktrees/<project>/<spec>/`. The result's `repos[].root` is
   the MAIN checkout; `repos[].worktree` is the throwaway one.
 - Gitignored paths reach a worktree only through `worktreeLinks:` in the
-  manifest; `.aide/config`'s `AIDE_WORKTREE_LINKS` is the fallback, and the
-  manifest wins. A project that does not track a manifest keeps its
+  manifest; `.aide/config`'s older `AIDE_WORKTREE_LINKS` is never read. A project that does not track a manifest keeps its
   settings in the dashboard's `checkouts/<name>/settings.yaml`; the
   clone, a step's worktree and the landing's tree carry an untracked copy
   of it as `.aide/project.yaml`, kept out of every commit and out of
