@@ -12,6 +12,8 @@ import { lastModels, recordModels } from "../../../src/serve/tool-models";
 import { createGitRunner } from "../../../src/git/branch-status.ts";
 import { parseManifest } from "../../../src/project/parse-manifest.ts";
 import { git, projectWithOrigin } from "../../project/admin/git-fixture.ts";
+import { latestWikiBuild } from "../../../src/serve/routes/page-routes/project-pages.ts";
+import type { Job } from "../../../src/queue/types.ts";
 import { JOB, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
@@ -350,6 +352,23 @@ describe("POST /api/queue/projects (spec 112)", () => {
     expect(html.slice(html.indexOf('action="/api/queue/create"'))).toContain('value="newproj"');
   });
 
+  test("the Add answers and queues one wiki build, the one the Wiki tab reads (AC-1) (AC-2)", async () => {
+    const { base } = start({ gitRun: cloningGit() });
+    const res = await fetch(`${base}/api/queue/projects`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ name: "newproj", gitUrl: "https://example.com/newproj.git", codeLanding: "merge" }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as StepBody;
+    expect(body.results.map((r) => r.step)).toEqual(["name", "clone", "manifest", "allowlist"]);
+    const queued = ((await (await fetch(`${base}/api/queue`)).json()) as { jobs: Job[] }).jobs;
+    const forNew = queued.filter((j) => j.project === "newproj");
+    expect(forNew).toHaveLength(1);
+    expect(forNew[0]).toMatchObject({ specFolder: "wiki-newproj", steps: ["wiki"], state: "queued" });
+    expect(latestWikiBuild(queued, "newproj", "en")?.id).toBe(forNew[0]!.id);
+  });
+
   // Criterion 2.
   test("a name already taken under the projects root is refused, and names the collision", async () => {
     const { base, dir } = start({ gitRun: cloningGit() });
@@ -363,6 +382,8 @@ describe("POST /api/queue/projects (spec 112)", () => {
     expect(body.ok).toBe(false);
     expect(body.results.find((r) => r.step === "clone")!.error).toContain("aide");
     expect(existsSync(join(dir, "root", "aide", ".git"))).toBe(false);
+    const queued = ((await (await fetch(`${base}/api/queue`)).json()) as { jobs: Job[] }).jobs;
+    expect(queued.filter((j) => j.specFolder === "wiki-aide")).toHaveLength(0);
   });
 
   // Criterion 3, at the route level.

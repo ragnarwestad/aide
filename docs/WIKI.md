@@ -42,8 +42,9 @@ files and the commit it was written from, so a reader can tell whether the code 
 
 ## Who writes it
 
-- **A build**, from the **Build wiki** button on the project's Wiki tab: the `wiki` step with the `aide-wiki` skill,
-  rewriting every generated page from the code as it is now. It lands like a spec.
+- **A build**, queued by Add project when the project is added, or from the **Build wiki** button on the project's
+  Wiki tab: the `wiki` step with the `aide-wiki` skill, rewriting every generated page from the code as it is now. It
+  lands like a spec.
 - **The archive of a spec** rewrites the pages the spec's own code touched (`aide-archive`, Step 2). A guard refuses an
   archive that changed any other page.
 - **A refresh**, queued by the board once an archive lands in a project with a wiki: the same step, rewriting only the
