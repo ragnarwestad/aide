@@ -35,11 +35,12 @@ import type { BoardMessage } from "../../i18n/message.ts";
 import { stepButton } from "../../format/step-label.ts";
 import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from "../queue.ts";
 import { modelIdOf, providerLimit, sharedFiles, stepRepoRanges, testedGreen, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
-import { asResultTool, isRunStop } from "../steps.ts";
+import { asResultTool, isRunStop, isWikiBuild } from "../steps.ts";
 import { resolveStepModel } from "../model-name.ts";
 import { stepFailure } from "../../format/tool-failure.ts";
 import { endUntickedArchive } from "./unticked-archive.ts";
 import { dependencyHold, NOT_CHECKED, type DependencyHolds } from "./dependency-hold.ts";
+import { projectHold } from "./project-holds.ts";
 
 export type { SpawnResult, Spawner, StepOutcome, RunnerOptions } from "./types.ts";
 
@@ -168,7 +169,8 @@ export class Runner {
       // implement for one spec are ordered by nature, and git would
       // refuse the second worktree on that branch anyway — which is a
       // refusal mid-run, not a scheduling decision.
-      if (this.runningJobs().some((r) => r.project === job.project && r.specFolder === job.specFolder)) {
+      // A wiki job is left to the wiki hold below, so its row says why it waits.
+      if (!isWikiBuild(job) && this.runningJobs().some((r) => r.project === job.project && r.specFolder === job.specFolder)) {
         continue;
       }
       // Two `archive` steps never run at once in the SAME project: both
@@ -201,24 +203,11 @@ export class Runner {
         hold(job, { key: "runner.archiveRunning" });
         continue;
       }
-      // A schedule job never starts while anything else for its project
-      // is running or landing (spec 558, AC-6) — the same shape as the
-      // archive hold above, but wider (any step, not only archive) and
-      // one-directional: only the schedule job itself ever waits for
-      // this, nothing holds a spec's own step or landing back for a
-      // queued schedule job.
-      if (
-        job.steps[job.stepIndex] === "schedule" &&
-        this.o.store
-          .list()
-          .some(
-            (r) =>
-              r.project === job.project &&
-              r.id !== job.id &&
-              (r.state === "running" || r.landing === true),
-          )
-      ) {
-        hold(job, { key: "runner.scheduleWaitsOnProject" });
+      // The schedule and wiki holds (runner/project-holds.ts): other work of
+      // the project is in flight.
+      const projectReason = projectHold(this.o.store.list(), job);
+      if (projectReason) {
+        hold(job, projectReason);
         continue;
       }
       // Cheaper and more fundamental than the dependency question below —

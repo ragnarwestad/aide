@@ -89,13 +89,13 @@ export class QueueStore {
   }
 
   /** An unfinished job for the same spec that already covers one of
-   *  these steps. Two of those is never what anyone meant: it happened
-   *  when the same analyze was posted from the API and from the page
-   *  seconds apart, and the queue took both without a word. */
+   *  these steps — never what anyone meant, as when one analyze was
+   *  posted from the API and from the page seconds apart. A board
+   *  refresh is excepted behind a wiki job that has started: it waits. */
   private clashing(job: Job): { job: Job; step: WorkflowStep } | null {
     for (const other of this.jobs.values()) {
       if (other.project !== job.project || other.specFolder !== job.specFolder) continue;
-      if (!UNFINISHED.has(other.state)) continue;
+      if (!UNFINISHED.has(other.state) || (job.wikiRefresh && other.state !== "queued")) continue;
       const step = job.steps.find((s) => other.steps.includes(s));
       if (step) return { job: other, step };
     }
@@ -148,11 +148,11 @@ export class QueueStore {
    *  Unlike `clashing()` this fires regardless of step overlap: a
    *  landing is a merge in progress in the spec's own files, and a
    *  fresh job of ANY step would enqueue behind a half-merged working
-   *  tree. */
+   *  tree — a board refresh excepted. */
   private landingJob(job: Job): Job | null {
     for (const other of this.jobs.values()) {
       if (other.project !== job.project || other.specFolder !== job.specFolder) continue;
-      if (other.landing) return other;
+      if (other.landing && !job.wikiRefresh) return other;
     }
     return null;
   }

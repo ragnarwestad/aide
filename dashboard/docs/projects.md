@@ -336,7 +336,8 @@ or failed with its reason, with that build's steps and their logs below it, and 
 step runs with Aide's own scripts allowed (`permissionMode.wiki`), since it writes only through `aide-wiki`. **Build
 wiki** rewrites every generated page. Once an archive lands in a project that has a wiki, the board queues a refresh by
 itself: the same job with `wikiRefresh`, which rewrites only the pages whose files changed; a refresh already queued
-covers the next archive too. A project whose specs folder git ignores inside the project cannot build
+covers the next archive too, while one running or merging gets another queued behind it, which waits for it. The
+Build panel keeps showing the run in flight, not the refresh behind it. A project whose specs folder git ignores inside the project cannot build
 a wiki: the run is refused, since there is no repository to commit the pages to.
 
 Above the log the tab lists the wiki's pages, in the order of the wiki's `index.md`, each with its summary and a word

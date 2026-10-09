@@ -81,7 +81,8 @@ leaves the provisional name in place and says which repo and why. Two `create` j
 the same scheduler pass: there is no number for them to collide over.
 
 A landing merges in a worktree of its own and touches the shared checkout for one fast-forward at the end, so it
-holds back two things and nothing else: the job being landed, and a second `archive` in the same project.
+holds back three things and nothing else: the job being landed, a second `archive` in the same project, and a wiki run
+in it, which waits until the landing has merged.
 
 **The list holds specs, not the machine's whole run history.** An archived spec stays on the list as a row under the
 default **All** filter, and **Active** leaves it out. Nothing is destroyed — `/api/queue` still returns every job and `/jobs/<id>` still renders each one. A project whose specs the server cannot read this time keeps the rows it

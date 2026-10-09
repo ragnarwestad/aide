@@ -77,6 +77,11 @@ The answer's `missing` lists the pages every wiki must have and this one
 lacks (`overview.md`, `reusable-parts.md`); a build and a refresh both
 write each of them in Step 3.
 
+Then run `aide-wiki landed --specs-root <root> --project-dir .`. It names,
+for each generated page, the archived specs that landed since the page was
+last written and plan to change one of its files; Step 3 reads them. A page
+it does not list has none.
+
 ### Step 2 of 5: Decide the parts
 
 First write `--- Step 2 of 5: Decide the parts — started`, and when this step ends, `--- Step 2 of 5: Decide the parts — done`.
@@ -140,8 +145,12 @@ A page opens with a `# ` heading, then one line saying what the part does
 
 A page holds no line numbers and no code. It is a map: the code decides.
 
-Keep a reason only when it still explains the current code, as one ripple
-sentence in the page it concerns.
+Before rewriting a page that `aide-wiki landed` names specs for, read each
+of those specs under `<root>/archive/<folder>/`: `1-description.md`,
+`2-analysis.md` and the Plan review in `3-solution.md`. Keep a reason, from
+those specs or already in the page, only when it still explains the current
+code, as one ripple sentence in the page it concerns. Invent none. A page
+this run does not rewrite is left as it is, whatever `landed` names for it.
 
 Then write the two pages every wiki has, whatever its parts. Each is a
 generated page like the others, written with `aide-wiki write`, and the

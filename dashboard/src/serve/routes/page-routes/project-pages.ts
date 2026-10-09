@@ -363,9 +363,14 @@ export function latestWikiBuild(jobs: readonly Job[], project: string, lang: Lan
   return { id: last.id, state: last.state, finishedAt: last.finishedAt, error: renderSentence(lang, last.error) };
 }
 
+/** The wiki job under way when there is one (running, or merging), so its
+ *  Cancel and log stay on the run in flight and never fall to a refresh
+ *  queued behind it; the newest otherwise. */
 function latestWikiJob(jobs: readonly Job[], project: string): Job | undefined {
   const builds = jobs.filter((j) => j.project === project && isWikiBuild(j));
-  return builds.length === 0 ? undefined : builds.reduce((a, b) => (b.createdAt > a.createdAt ? b : a));
+  const underWay = builds.filter((j) => j.state === "running" || j.landing === true);
+  const candidates = underWay.length > 0 ? underWay : builds;
+  return candidates.length === 0 ? undefined : candidates.reduce((a, b) => (b.createdAt > a.createdAt ? b : a));
 }
 
 /** The latest build's steps and their logs, for the Wiki tab: the same table

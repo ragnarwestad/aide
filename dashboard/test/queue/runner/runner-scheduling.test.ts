@@ -353,6 +353,67 @@ describe("a schedule job holds while other work runs in its project (AC-6)", () 
   });
 });
 
+// A wiki job writes the pages the project's code is read from: two at once, or one beside a
+// scheduled refresh or an archive's landing, write the same pages or read half-landed code.
+describe("a wiki job holds while related work is in flight in its project (AC-6)", () => {
+  const WIKI = { specFolder: "wiki-aide", steps: ["wiki"] };
+  const wikiHeldBehind = (ahead: Record<string, unknown>, state: "running" | "done", landing = false) => {
+    const a = enqueue(ahead);
+    store.update(a.id, { state, ...(landing ? { landing: true } : {}) });
+    const b = enqueue({ ...WIKI, wikiRefresh: true });
+    const runner = makeRunner({ maxConcurrent: 3 });
+    return { a, b, runner };
+  };
+
+  test("a queued wiki job is held, with its sentence, behind a wiki job that is running (AC-6)", () => {
+    const { b, runner } = wikiHeldBehind(WIKI, "running");
+    runner.tick();
+    expect(spawns.length).toBe(0);
+    const held = store.get(b.id)!;
+    expect(held.state).toBe("queued");
+    expect(held.error).toMatchObject({ key: "runner.wikiWaitsOnProject" });
+  });
+
+  test("it is held while the wiki job ahead is merging, and starts once the landing clears (AC-6)", () => {
+    const { a, b, runner } = wikiHeldBehind(WIKI, "done", true);
+    runner.tick();
+    expect(store.get(b.id)?.state).toBe("queued");
+    expect(store.get(b.id)?.error).toMatchObject({ key: "runner.wikiWaitsOnProject" });
+    store.update(a.id, { landing: false });
+    runner.tick();
+    expect(store.get(b.id)?.state).toBe("running");
+  });
+
+  test("it is held behind a schedule job that is running or landing (AC-6)", () => {
+    for (const [state, landing] of [["running", false], ["done", true]] as const) {
+      resetHarness();
+      const { b, runner } = wikiHeldBehind({ specFolder: "schedule-nightly", steps: ["schedule"] }, state, landing);
+      runner.tick();
+      expect(store.get(b.id)?.state).toBe("queued");
+    }
+  });
+
+  test("it is held behind an archive whose landing is in flight (AC-6)", () => {
+    const { b, runner } = wikiHeldBehind({ steps: ["archive"] }, "done", true);
+    runner.tick();
+    expect(store.get(b.id)?.state).toBe("queued");
+    expect(store.get(b.id)?.error).toMatchObject({ key: "runner.wikiWaitsOnProject" });
+  });
+
+  test("it starts when only unrelated work is in flight (AC-6)", () => {
+    // Another project's wiki job, a spec's analyze here, and an archive here that is not landing yet.
+    const other = enqueue({ project: "other-project", specFolder: "wiki-other-project", steps: ["wiki"] });
+    store.update(other.id, { state: "running" });
+    const analyze = enqueue({ steps: ["analyze"] });
+    store.update(analyze.id, { state: "running" });
+    const archive = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
+    store.update(archive.id, { state: "running" });
+    const b = enqueue(WIKI);
+    makeRunner({ maxConcurrent: 5 }).tick();
+    expect(store.get(b.id)?.state).toBe("running");
+  });
+});
+
 // Spec 353: a quick step (create/archive) jumps a queued slow step
 // (analyze/implement), whatever the age of either.
 describe("quick steps before slow ones", () => {

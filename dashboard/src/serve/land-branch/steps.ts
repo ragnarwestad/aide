@@ -179,8 +179,9 @@ export async function landArchivedSpec(ctx: LandContext, job: Job, outcome: Part
 /** Once an archive has landed, the project's wiki is brought up to date
  *  with a refresh: a job that rewrites only the pages whose files the
  *  change moved. Only for a project that has a wiki. A refresh already
- *  queued or running for the project covers this one too, so the queue's
- *  refusal of a second is the answer and not a fault. */
+ *  queued covers this one too, so the queue's refusal of a second is the
+ *  answer and not a fault; one running or merging does not, since it
+ *  started before this archive landed, so this one is queued behind it. */
 export function queueWikiRefresh(ctx: LandContext, project: string): void {
   const root = ctx.machinerySpecsRoot(project);
   if (!root || !existsSync(join(root, "wiki", "index.md"))) return;

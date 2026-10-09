@@ -75,6 +75,14 @@ describe("the Wiki tab's build is the newest one", () => {
     expect(latestWikiBuild([old, now], "aide", "en")?.id).toBe("now");
   });
 
+  test("a build running or merging stays the one shown while a refresh is queued behind it (AC-2)", () => {
+    const running = build("running", "running", "2026-09-26T10:00:00Z");
+    const refresh = build("refresh", "queued", "2026-09-26T12:00:00Z");
+    expect(latestWikiBuild([refresh, running], "aide", "en")?.id).toBe("running");
+    const merging = { ...build("merging", "done", "2026-09-26T10:00:00Z"), landing: true } as unknown as Job;
+    expect(latestWikiBuild([refresh, merging], "aide", "en")?.id).toBe("merging");
+  });
+
   test("a build that ended failed is read as failed, with its error (AC-2)", () => {
     const failed = { ...build("f", "failed", "2026-09-26T12:00:00Z"), error: "the specs folder is missing" } as unknown as Job;
     const read = latestWikiBuild([failed], "aide", "en");

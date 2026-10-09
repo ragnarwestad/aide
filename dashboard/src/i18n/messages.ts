@@ -211,13 +211,25 @@ export const MESSAGES = {
   // A schedule job never starts while anything else for its project is
   // running or merging (spec 558, AC-6) — the same shape as
   // `runner.archiveRunning` above, but one-directional: only the
-  // schedule job itself ever waits for this.
+  // schedule job itself ever waits for this. A wiki job waits on a
+  // schedule job in flight too (`runner.wikiWaitsOnProject` below).
   "runner.scheduleWaitsOnProject": {
     en: "held back: another job is running or merging in this project — it starts when that one has finished",
     nb: "holdt tilbake: en annen jobb kjører eller merges i dette prosjektet — dette starter når den er ferdig",
     es: "retenido: otro trabajo está en curso o mergeándose en este proyecto — esto empieza cuando ese haya terminado",
     de: "zurückgehalten: in diesem Projekt läuft oder mergt bereits ein anderer Job — das startet, sobald der fertig ist",
     fr: "retenu : une autre tâche est en cours ou en train de merger dans ce projet — cela démarre une fois celle-là terminée",
+    resolve: "it starts when that one has finished",
+  },
+  // A wiki job writes the pages the project's code is read from, so it waits
+  // while another wiki job or a schedule job of its project is running or
+  // merging, or an archive of it is merging.
+  "runner.wikiWaitsOnProject": {
+    en: "held back: another wiki run, scheduled job or archive is under way in this project — it starts when that one has finished",
+    nb: "holdt tilbake: en annen wiki-kjøring, planlagt jobb eller arkivering pågår i dette prosjektet — dette starter når den er ferdig",
+    es: "retenido: otra ejecución del wiki, un trabajo programado o un archive está en marcha en este proyecto — esto empieza cuando ese haya terminado",
+    de: "zurückgehalten: in diesem Projekt läuft bereits ein anderer Wiki-Lauf, ein geplanter Job oder ein Archive — das startet, sobald der fertig ist",
+    fr: "retenu : une autre exécution du wiki, une tâche planifiée ou un archive est en cours dans ce projet — cela démarre une fois celle-là terminée",
     resolve: "it starts when that one has finished",
   },
   // A green scheduled run's proposed specs (queue/propose-specs.ts): what went

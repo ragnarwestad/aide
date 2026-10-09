@@ -97,21 +97,3 @@ put_page_unless_same() {
   rm -f "$tmp"
   return $rc
 }
-
-# The project's default branch, resolved the same way
-# core/scripts/lib/run-spec/setup/gates.sh's own default_branch() does — that
-# function lives in a bash-runner-internal library neither a plain script
-# call nor the archive skill's own session (a separate AI-CLI process)
-# can reach, so this is its own small copy of the same fallback.
-default_branch_of() {
-  local root="$1" ref candidate
-  ref="$(git -C "$root" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)"
-  if [ -n "$ref" ]; then
-    echo "${ref#origin/}"
-    return
-  fi
-  for candidate in main master; do
-    git -C "$root" show-ref --verify --quiet "refs/heads/$candidate" && { echo "$candidate"; return; }
-  done
-  git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null
-}

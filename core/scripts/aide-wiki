@@ -22,6 +22,9 @@
 #   aide-wiki verify --specs-root R --base-ref REF
 #   aide-wiki unfinished --specs-root R --project-dir P [--refresh]
 #                    # what a build (or, with --refresh, a refresh) left unfinished
+#   aide-wiki landed --specs-root R --project-dir P
+#                    # per generated page, the archived specs that landed since it was
+#                    # last written and change one of its files
 
 set -uo pipefail
 
@@ -36,6 +39,7 @@ Usage:
   aide-wiki status --specs-root R --project-dir P
   aide-wiki verify --specs-root R --base-ref REF
   aide-wiki unfinished --specs-root R --project-dir P [--refresh]
+  aide-wiki landed --specs-root R --project-dir P
 USAGE
 }
 
@@ -85,6 +89,10 @@ fixed_sections() {
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/wiki-pages.sh
 source "$SCRIPT_DIR/lib/wiki-pages.sh"
+# shellcheck source=lib/files-to-change.sh
+source "$SCRIPT_DIR/lib/files-to-change.sh"
+# shellcheck source=lib/spec-transitions.sh
+source "$SCRIPT_DIR/lib/spec-transitions.sh"
 
 case "$sub" in
   write)
@@ -268,6 +276,73 @@ SCHEMA
       --argjson m "$(jq -cn '$ARGS.positional' --args ${missing[@]+"${missing[@]}"})" \
       --argjson p "$(jq -cn '$ARGS.positional' --args ${left[@]+"${left[@]}"})" \
       '{ok:true, exitCode:0, terminalReason:"checked", finished:$f, index:$i, missing:$m, pages:$p}'
+    ;;
+
+  # The archived specs a page has not carried yet: those whose archive is not
+  # in the history the page was last written from, and whose planned files
+  # (`### Files to change`, every round) name one of the page's files — or
+  # that plan none, since then which files they changed is unknown. A page
+  # that never was written, or whose starting point git does not know, is
+  # left out, as is a page with no such spec. The history read is HEAD's:
+  # a board run's specs worktree is cut from the default branch.
+  #
+  # The starting point is the page's last commit in a specs repository of
+  # its own: a wiki landing merges there, so an archive that landed while
+  # the run ran is not an ancestor of it. Where the specs live inside the
+  # project's repository a wiki landing is a copy on top of the default
+  # branch, so its own commit has every archive that landed meanwhile as an
+  # ancestor, and the page's `commit:` (the project commit the run started
+  # from) is the starting point instead.
+  landed)
+    need_project
+    git -C "$specs_root" rev-parse --show-toplevel >/dev/null 2>&1 || refuse "no-specs-repo" "$specs_root is not inside a git repository"
+    pages="[]"
+    if [ -d "$wiki" ]; then
+      same_repo=""
+      [ "$(git -C "$specs_root" rev-parse --show-toplevel)" = "$(git -C "$project_dir" rev-parse --show-toplevel)" ] && same_repo=1
+      cache="$(mktemp -d)"
+      for f in "$wiki"/*.md; do
+        [ -f "$f" ] || continue
+        n="$(basename "$f")"
+        case "$n" in index.md|schema.md) continue ;; esac
+        is_generated "$f" || continue
+        if [ -n "$same_repo" ]; then
+          since="$(fm_commit "$f")"
+          [ -n "$since" ] && git -C "$specs_root" cat-file -e "$since^{commit}" 2>/dev/null || continue
+        else
+          since="$(git -C "$specs_root" log -1 --format=%H -- "wiki/$n" 2>/dev/null)"
+          [ -n "$since" ] || continue
+        fi
+        page_files="$(fm_files "$f" | jq -R -s -c 'split("\n") | map(select(length > 0))')"
+        named=()
+        while IFS= read -r path; do
+          [ -n "$path" ] || continue
+          folder="$(basename "$(dirname "$path")")"
+          case " ${named[*]-} " in *" $folder "*) continue ;; esac
+          # One verdict per folder, read once: its planned files, or `null` when it is not an archived spec.
+          if [ ! -f "$cache/$folder" ]; then
+            archive_dir="$specs_root/archive/$folder"
+            verdict=null
+            if [ -f "$archive_dir/4-status.md" ]; then
+              _peek_spec_state "$archive_dir/4-status.md"
+              if [ "$(current_phase_from "$state_json")" = "archived" ]; then
+                verdict='{"files":null}'
+                if grep -qx '### Files to change' "$archive_dir/2-analysis.md" 2>/dev/null; then
+                  verdict="$(jq -cn --argjson f "$(section "Files to change" < "$archive_dir/2-analysis.md" | paths_json)" '{files:$f}')"
+                fi
+              fi
+            fi
+            printf '%s' "$verdict" > "$cache/$folder"
+          fi
+          jq -e --argjson page "$page_files" '. != null and (.files == null or ((.files - (.files - $page)) | length > 0))' \
+            "$cache/$folder" >/dev/null 2>&1 && named+=("$folder")
+        done < <(git -C "$specs_root" log --reverse --no-renames --diff-filter=A --name-only --format= "$since..HEAD" -- 'archive/*/1-description.md' 2>/dev/null)
+        [ ${#named[@]} -gt 0 ] || continue
+        pages="$(jq -c --arg p "$n" '. + [{page:$p, specs:($ARGS.positional)}]' --args "${named[@]}" <<<"$pages")"
+      done
+      rm -rf "$cache"
+    fi
+    jq -cn --argjson p "$pages" '{ok:true, exitCode:0, terminalReason:"listed", pages:$p}'
     ;;
 
   verify)
