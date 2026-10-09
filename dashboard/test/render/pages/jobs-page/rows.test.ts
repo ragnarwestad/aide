@@ -197,15 +197,15 @@ describe("a row's title says what the job is (AC-2, AC-6)", () => {
     expect(title).toContain("Create");
   });
 
-  test("a wiki build and a wiki refresh read Wiki build / Wiki refresh — project (AC-6)", () => {
+  test("a wiki build and a wiki refresh read Wiki build / Wiki refresh, with no project (AC-5)", () => {
     const wiki = { specFolder: "wiki-aide", steps: ["wiki"] };
-    expect(jobTitle(view(wiki), "en", titleOf)).toBe("Wiki build — aide");
-    expect(jobTitle(view({ ...wiki, wikiRefresh: true }), "en", titleOf)).toBe("Wiki refresh — aide");
+    expect(jobTitle(view(wiki), "en", titleOf)).toBe("Wiki build");
+    expect(jobTitle(view({ ...wiki, wikiRefresh: true }), "en", titleOf)).toBe("Wiki refresh");
   });
 
-  test("a scheduled job reads name — project (AC-6)", () => {
+  test("a scheduled job reads its name, with no project (AC-5)", () => {
     const title = jobTitle(view({ specFolder: "schedule-nightly-report", steps: ["schedule"], project: "woodstack" }), "en", titleOf);
-    expect(title).toBe("nightly-report — woodstack");
+    expect(title).toBe("nightly-report");
   });
 });
 

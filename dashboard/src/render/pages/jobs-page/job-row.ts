@@ -4,25 +4,50 @@
 // drawn here from the job alone and with the classes the list already has.
 // The `spechead` class and the `spec-<project>/<folder>` id make the page
 // script treat it as a spec's row: it redraws it by that id and writes a
-// refused Stop under it.
+// refused Stop under it. A wiki or scheduled job's row folds as a spec's does,
+// from the `open` key in the address: shut, it holds the title, state, time and
+// cost; open, it adds the links and Stop or Cancel. A spec's step drawn here
+// keeps every part on show.
 
 import { t, type Language } from "../../../i18n";
 import { ACCEPTANCE_CRITERIA_UNTICKED } from "../../../queue/steps.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
 import { isWikiBuild } from "../../../queue/steps.ts";
-import { askButton, confirmDialog, stepLabel } from "../../ui/components";
+import { askButton, confirmDialog, foldArrow, stepLabel } from "../../ui/components";
+import { projectLink } from "../../ui/components/spec-name.ts";
 import { esc } from "../../ui/html.ts";
 import { currentStep, durationLabel, inFlight, specStateChip, type QueueRowView } from "../../ui/job-state";
 import { landingStep } from "../../ui/job-state/resting.ts";
 import { costCell } from "../specs-list/cell-helpers.ts";
+import type { SpecsFilter } from "../specs-list/data-model";
+import { queuePath } from "../specs-list/filter-bar.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
-import { jobControl, jobHome, jobTitle } from "./rows.ts";
+import { isScheduleJob, jobControl, jobHome, jobTitle } from "./rows.ts";
 
 export interface JobRowOptions {
   /** A spec's own title, by project and folder. */
   titleOf: (project: string, specFolder: string) => string | undefined;
   lang: Language;
   now: number;
+  /** How the rows are folded, from the address: `open` names the rows shown open. */
+  filter: SpecsFilter;
+  /** The page the row sits on, for its fold's address. */
+  listPath: string;
+}
+
+const openKeys = (o: JobRowOptions): string[] => (o.filter.open ?? "").split(",").filter(Boolean);
+
+/** The row's ›, as a spec's: a link that names the row in `open`, or takes it out. */
+function fold(key: string, open: boolean, name: string, o: JobRowOptions): string {
+  const next = open ? openKeys(o).filter((k) => k !== key) : [...openKeys(o), key];
+  return foldArrow({
+    href: queuePath(o.filter, { open: next.join(",") }, o.listPath),
+    open,
+    lang: o.lang,
+    title: "jobs.foldTitle",
+    params: { name },
+    data: { fold: "open", key },
+  });
 }
 
 /** Stop or Cancel with the question it asks first. The dialog's OK posts the
@@ -58,9 +83,7 @@ function timeCell(row: QueueRowView, now: number): string {
 /** The word of the link to the place the job belongs. */
 function homeWord(row: QueueRowView, lang: Language): string {
   if (isWikiBuild(row)) return t(lang, "jobs.linkWiki");
-  if (row.steps.length === 1 && row.steps[0] === "schedule" && row.specFolder.startsWith("schedule-")) {
-    return t(lang, "shell.tabSchedule");
-  }
+  if (isScheduleJob(row)) return t(lang, "shell.tabSchedule");
   return jobHome(row) === "/specs" ? t(lang, "shell.tabSpecs") : t(lang, "jobs.linkSpec");
 }
 
@@ -70,14 +93,24 @@ export function jobRow(row: QueueRowView, o: JobRowOptions): string {
     row.state === "done" && row.results?.at(-1)?.terminalReason === ACCEPTANCE_CRITERIA_UNTICKED
       ? { archiveHeldBack: ACCEPTANCE_CRITERIA_UNTICKED_NOTE }
       : {};
-  const kind = jobControl(row);
+  const key = `${row.project}/${row.specFolder}`;
+  const folds = isWikiBuild(row) || isScheduleJob(row);
+  const open = !folds || openKeys(o).includes(key);
+  const name = jobTitle(row, lang, o.titleOf);
+  const kind = open ? jobControl(row) : undefined;
+  const label = folds
+    ? `${projectLink(row.project, { className: "muted" })}<span class="specpart"><span class="muted">:</span>` +
+      `<span class="specname">${esc(name)}</span></span>`
+    : `<span class="specpart"><span class="specname">${esc(name)}</span></span>`;
   return (
-    `<tr class="spechead" id="spec-${esc(row.project)}/${esc(row.specFolder)}">` +
-    `<td class="foldcell" rowspan="2" data-col="fold"></td>` +
-    `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name"><span class="label"><span class="specpart">` +
-    `<span class="specname">${esc(jobTitle(row, lang, o.titleOf))}</span></span></span></div>` +
-    `<div class="spec-title"><a data-goto href="/jobs/${esc(row.id)}?tab=steps">${t(lang, "job.tabLog")}</a> · ` +
-    `<a data-goto href="${esc(jobHome(row))}">${esc(homeWord(row, lang))}</a></div></td></tr>` +
+    `<tr class="spechead" id="spec-${esc(key)}" data-job="1">` +
+    `<td class="foldcell" rowspan="2" data-col="fold">${folds ? fold(key, open, `${row.project}:${name}`, o) : ""}</td>` +
+    `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name"><span class="label">${label}</span></div>` +
+    (open
+      ? `<div class="spec-title"><a data-goto href="/jobs/${esc(row.id)}?tab=steps">${t(lang, "job.tabLog")}</a> · ` +
+        `<a data-goto href="${esc(jobHome(row))}">${esc(homeWord(row, lang))}</a></div>`
+      : "") +
+    `</td></tr>` +
     `<tr class="specstate"><td colspan="2"></td>` +
     `<td data-col="state"><span class="badgeslot">${specStateChip(row, lang, heldBack)}</span>` +
     `${kind ? `<span class="actionslot">${control(row, kind, lang)}</span>` : ""}</td>` +

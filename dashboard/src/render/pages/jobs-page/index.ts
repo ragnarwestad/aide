@@ -53,7 +53,10 @@ function entries(v: JobsView): { key: string; html: string }[] {
     const key = keyOf(job);
     const spec = v.specKeys.has(key) ? specRows.get(key) : undefined;
     if (spec === undefined) {
-      out.push({ key, html: jobRow(job, { titleOf: v.titleOf, lang, now }) });
+      out.push({
+        key,
+        html: jobRow(job, { titleOf: v.titleOf, lang, now, filter: v.list.filter ?? {}, listPath: v.list.listPath ?? "/" }),
+      });
     } else if (!seen.has(key)) {
       seen.add(key);
       out.push({ key, html: spec });

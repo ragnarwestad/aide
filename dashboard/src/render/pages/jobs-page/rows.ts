@@ -31,7 +31,7 @@ export interface JobLike {
 type StateRow = Pick<QueueRowView, "state" | "landing" | "stepIndex"> & { steps: readonly string[] };
 type TitleRow = StateRow & Pick<QueueRowView, "project" | "specFolder" | "createTitle" | "wikiRefresh">;
 
-const isScheduleJob = (job: { steps: readonly string[]; specFolder: string }): boolean =>
+export const isScheduleJob = (job: { steps: readonly string[]; specFolder: string }): boolean =>
   job.steps.length === 1 && job.steps[0] === "schedule" && job.specFolder.startsWith("schedule-");
 
 const at = (job: JobLike): number => Date.parse(job.createdAt) || 0;
@@ -66,15 +66,17 @@ export function jobsShown<T extends JobLike>(
   return shown.sort((a, b) => group(a) - group(b) || at(b) - at(a));
 }
 
-/** What a row is called: the spec's name and step, the wiki run and its
- *  project, or the scheduled job. `titleOf` is the spec's own title. */
+/** What a row is called: the spec's name and step, the wiki run, or the
+ *  scheduled job. The wiki run and the scheduled job are named without their
+ *  project, which their row draws before the name. `titleOf` is the spec's
+ *  own title. */
 export function jobTitle(
   row: TitleRow,
   lang: Language,
   titleOf: (project: string, specFolder: string) => string | undefined,
 ): string {
-  if (isWikiBuild(row)) return t(lang, row.wikiRefresh ? "jobs.wikiRefresh" : "jobs.wikiBuild", { project: row.project });
-  if (isScheduleJob(row)) return t(lang, "jobs.scheduled", { name: scheduleNameOf(row.specFolder), project: row.project });
+  if (isWikiBuild(row)) return t(lang, row.wikiRefresh ? "jobs.wikiRefresh" : "jobs.wikiBuild");
+  if (isScheduleJob(row)) return scheduleNameOf(row.specFolder);
   if (isProvisionalKey(row.specFolder)) return `${row.createTitle ?? row.specFolder} — ${stepLabel("create", lang)}`;
   // As the Specs list's head row builds a spec's name: the folder's number,
   // then the title; with no title, the folder.

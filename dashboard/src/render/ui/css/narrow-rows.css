@@ -140,7 +140,7 @@
     padding: 0 var(--sp-1); line-height: 26px; overflow: hidden; text-overflow: ellipsis; }
   /* The rows are flex lines here, not table rows, so an open row's
      second line comes off with `display: none` (list.css collapses it). */
-  table.list tr.spechead:has(.fold[aria-expanded="true"]) + tr.specstate { display: none; }
+  table.list tr.spechead:not([data-job]):has(.fold[aria-expanded="true"]) + tr.specstate { display: none; }
   table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="ai"] { order: 4; }
   /* Same tier as "ai" (spec 488): a tie in flex `order` falls back to DOM
      order, and the caption line writes "ai" ahead of "model" — this only

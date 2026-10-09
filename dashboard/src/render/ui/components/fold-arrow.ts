@@ -6,12 +6,12 @@ import { t, type Language, type TranslationKey } from "../../../i18n";
 import { ICON_CHEVRON } from "./icons.ts";
 import { dataAttrs } from "./button.ts";
 
-/** The four sentences a fold arrow says, each with `{action}` for the
+/** The five sentences a fold arrow says, each with `{action}` for the
  *  show/hide word. A key, never a sentence: a caller cannot hand the arrow
  *  words in one language only. */
 export type FoldTitle = Extract<
   TranslationKey,
-  "list.foldTitle" | "list.checksFoldTitle" | "list.phaseFoldTitle" | "job.stepFoldTitle"
+  "list.foldTitle" | "list.checksFoldTitle" | "list.phaseFoldTitle" | "job.stepFoldTitle" | "jobs.foldTitle"
 >;
 
 // A LINK, not a button, with the state in the address: it works with script

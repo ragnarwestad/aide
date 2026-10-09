@@ -84,15 +84,34 @@ describe("a spec's row on the Jobs tab acts in place", () => {
   });
 });
 
-describe("a wiki job's row stops in place", () => {
-  test("Stop and its question's OK end the job cancelled and the page stays on / (AC-6)", async () => {
+describe("a wiki job's row folds and stops in place", () => {
+  const WIKI_ROW = 'tr.spechead[id="spec-aide/wiki-aide"]';
+  const FOLD = `${WIKI_ROW} a[data-fold="open"]`;
+  const STOP = `${WIKI_ROW} + tr.specstate button[data-ask]`;
+  const CHIP = `${WIKI_ROW} + tr.specstate .badgeslot .badge`;
+
+  test("the row is shut, its › opens it with no page load and shuts it again, and Stop and its OK end the job cancelled (AC-3, AC-4)", async () => {
     const { base } = harness.start({ queueMirror: JSON.stringify([wiki]) });
     const page = await browser.newPage();
     await page.goto(`${base}/`);
-    await page.locator('tr.spechead[id="spec-aide/wiki-aide"]').waitFor();
+    await page.locator(WIKI_ROW).waitFor();
     const loads = countLoads(page);
 
-    await page.locator("button[data-ask]").first().click();
+    expect(await page.locator(STOP).count()).toBe(0);
+
+    await page.locator(FOLD).click();
+    await page.locator(STOP).waitFor({ state: "visible" });
+    expect(await page.locator(CHIP).isVisible()).toBe(true);
+    expect(pathOf(page)).toBe("/");
+    expect(new URL(page.url()).searchParams.get("open")).toBe("aide/wiki-aide");
+    expect(loads.n).toBe(0);
+
+    await page.locator(FOLD).click();
+    await page.locator(STOP).waitFor({ state: "detached" });
+    expect(new URL(page.url()).searchParams.get("open")).toBeNull();
+
+    await page.locator(FOLD).click();
+    await page.locator(STOP).click();
     await page.locator("dialog[open]").getByRole("button", { name: "OK" }).click();
     await page.waitForFunction(async () => {
       const r = await fetch("/api/queue/wiki1");
@@ -102,5 +121,16 @@ describe("a wiki job's row stops in place", () => {
     expect(pathOf(page)).toBe("/");
     expect(loads.n).toBe(0);
     await page.close();
+  });
+
+  test("opened, the row shows its Stop and its state chip at desktop width and at a phone's (AC-3)", async () => {
+    const { base } = harness.start({ queueMirror: JSON.stringify([wiki]) });
+    for (const width of [1280, 375]) {
+      const page = await browser.newPage({ viewport: { width, height: 800 } });
+      await page.goto(`${base}/?open=aide/wiki-aide`);
+      await page.locator(STOP).waitFor({ state: "visible" });
+      expect(await page.locator(CHIP).isVisible()).toBe(true);
+      await page.close();
+    }
   });
 });

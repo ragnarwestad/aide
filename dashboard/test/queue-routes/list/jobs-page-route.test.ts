@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { t } from "../../../src/i18n";
 import type { FailedCreate } from "../../../src/push/failed-creates.ts";
 import { renderFailedCreateNotices } from "../../../src/render/pages/specs-list/failed-create-notices.ts";
-import { jobHome, jobTitle } from "../../../src/render/pages/jobs-page/rows.ts";
+import { jobHome } from "../../../src/render/pages/jobs-page/rows.ts";
 import { ran } from "../../helpers/queue-server.ts";
 import { dated, setupQueueRoutesHarness } from "../fixtures.ts";
 
@@ -113,36 +113,107 @@ describe("an old link to the Specs list is sent on (AC-1)", () => {
   });
 });
 
-describe("which kind of row a job gets (AC-2, AC-6)", () => {
+describe("which kind of row a job gets (AC-1, AC-2, AC-3, AC-4, AC-5)", () => {
   const wiki = job({ id: "wiki1", specFolder: "wiki-aide", steps: ["wiki"], createdAt: "2026-10-08T10:01:00Z" });
   const sched = job({
     id: "sched1", specFolder: "schedule-nightly", steps: ["schedule"], state: "queued", startedAt: undefined,
     createdAt: "2026-10-08T10:02:00Z",
   });
+  const failedWiki = job({
+    id: "wikif", specFolder: "wiki-aide", steps: ["wiki"], state: "failed", createdAt: "2026-10-08T10:01:00Z",
+    results: [{ step: "wiki", ok: false, exitCode: 1, costUsd: 0.1, costMeasured: true, terminalReason: "error", repos: [] }],
+  });
+  const OPEN_BOTH = "open=aide/wiki-aide,aide/schedule-nightly";
 
-  test("a spec has its spec row; a wiki build and a scheduled job have a job row each, with title, Log and home (AC-2)", async () => {
+  const text = (html: string): string => html.replace(/<[^>]*>/g, "");
+  const titleLine = (g: string): string => text(g.match(/<div class="spec-name">[\s\S]*?<\/div>/)?.[0] ?? "");
+  const foldHref = (g: string): URL => {
+    const href = g.match(/<a class="fold[^"]*"[^>]*?href="([^"]*)"/)?.[1] ?? "";
+    return new URL(href.replaceAll("&amp;", "&"), "http://board");
+  };
+
+  test("a spec has its spec row; a wiki build and a scheduled job show title, state, time and cost shut (AC-1)", async () => {
     const { base } = board([job({}), wiki, sched]);
     const html = await rowsOf(base);
 
     expect(html).toContain('data-folder="81-queue-and-runner"');
 
-    const w = group(html, "spec-aide/wiki-aide");
-    expect(w).toContain(attr(jobTitle({ ...wiki, wikiRefresh: false } as never, "en", () => undefined)));
-    expect(w).toContain('href="/jobs/wiki1?tab=steps"');
-    expect(w).toContain(`href="${attr(jobHome(wiki as never))}"`);
-
-    const s = group(html, "spec-aide/schedule-nightly");
-    expect(s).toContain(attr(jobTitle(sched as never, "en", () => undefined)));
-    expect(s).toContain('href="/jobs/sched1?tab=steps"');
-    expect(s).toContain(`href="${attr(jobHome(sched as never))}"`);
+    for (const [id, title] of [["spec-aide/wiki-aide", "Wiki build"], ["spec-aide/schedule-nightly", "nightly"]] as const) {
+      const g = group(html, id);
+      expect(titleLine(g)).toContain(title);
+      expect(g).toContain("badgeslot");
+      expect(g).toContain('data-col="started"');
+      expect(g).toContain('data-col="cost"');
+    }
   });
 
-  test("a job row's Stop posts in place, as the list's Cancel does (AC-6)", async () => {
-    const { base } = board([wiki]);
-    const w = group(await rowsOf(base), "spec-aide/wiki-aide");
+  test("shut, by default or with another row open, a job row has no links and no Stop or Cancel (AC-2)", async () => {
+    const { base } = board([wiki, sched]);
+    for (const query of ["", "open=aide/81-queue-and-runner"]) {
+      const html = await rowsOf(base, query);
+      for (const [id, jobId] of [["spec-aide/wiki-aide", "wiki1"], ["spec-aide/schedule-nightly", "sched1"]]) {
+        const g = group(html, id);
+        expect(g).not.toBe("");
+        expect(g).not.toContain(`/jobs/${jobId}?tab=steps`);
+        expect(g).not.toContain("tab=wiki");
+        expect(g).not.toContain("tab=schedule");
+        expect(g).not.toContain(`/api/queue/${jobId}/cancel`);
+        expect(g).not.toContain("data-ask");
+      }
+    }
+  });
+
+  test("open, a wiki build has its Log and Wiki links and a Stop that posts in place; a scheduled job its links and Cancel (AC-3)", async () => {
+    const { base } = board([wiki, sched]);
+    const html = await rowsOf(base, OPEN_BOTH);
+
+    const w = group(html, "spec-aide/wiki-aide");
+    expect(w).toContain('href="/jobs/wiki1?tab=steps"');
+    expect(w).toContain(`href="${attr(jobHome(wiki as never))}"`);
     expect(w).toContain('action="/api/queue/wiki1/cancel"');
     expect(w).toContain("actionform");
     expect(w).not.toContain("reloadform");
+
+    const s = group(html, "spec-aide/schedule-nightly");
+    expect(s).toContain('href="/jobs/sched1?tab=steps"');
+    expect(s).toContain(`href="${attr(jobHome(sched as never))}"`);
+    expect(s).toContain('action="/api/queue/sched1/cancel"');
+  });
+
+  test("an open row of a failed wiki build has its links and nothing to stop (AC-3)", async () => {
+    const { base } = board([failedWiki]);
+    const g = group(await rowsOf(base, "open=aide/wiki-aide"), "spec-aide/wiki-aide");
+    expect(g).toContain('href="/jobs/wikif?tab=steps"');
+    expect(g).toContain(`href="${attr(jobHome(failedWiki as never))}"`);
+    expect(g).not.toContain("/api/queue/wikif/cancel");
+    expect(g).not.toContain("data-ask");
+  });
+
+  test("the › opens a shut row and shuts an open one, by the open key, and ?only= answers one row (AC-4)", async () => {
+    const { base } = board([wiki, sched]);
+
+    const shut = group(await rowsOf(base), "spec-aide/wiki-aide");
+    expect(shut).toContain('data-fold="open"');
+    expect(shut).toContain('data-key="aide/wiki-aide"');
+    const opens = foldHref(shut);
+    expect(opens.pathname).toBe("/");
+    expect(opens.searchParams.get("open")).toBe("aide/wiki-aide");
+
+    const open = group(await rowsOf(base, "open=aide/wiki-aide"), "spec-aide/wiki-aide");
+    const shuts = foldHref(open);
+    expect(shuts.pathname).toBe("/");
+    expect(shuts.searchParams.get("open")).toBeNull();
+
+    const one = await rowsOf(base, "only=aide/wiki-aide");
+    expect(one).toContain('id="spec-aide/wiki-aide"');
+    expect(one).not.toContain('id="spec-aide/schedule-nightly"');
+  });
+
+  test("a row's title line leads with its project: aide:Wiki build and aide:nightly (AC-5)", async () => {
+    const { base } = board([wiki, sched]);
+    const html = await rowsOf(base);
+    expect(titleLine(group(html, "spec-aide/wiki-aide"))).toBe("aide:Wiki build");
+    expect(titleLine(group(html, "spec-aide/schedule-nightly"))).toBe("aide:nightly");
   });
 
   test("a running job of a project off the allowlist has a job row; on the allowlist it has the spec's row (AC-2)", async () => {
