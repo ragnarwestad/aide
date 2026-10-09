@@ -114,6 +114,55 @@ export function stateChoice(url: URL, req: Request, port: number): { state?: str
   return stored ? { state: stored } : {};
 }
 
+/** The Jobs tab's own memory of its view: a cookie of its own, so the Specs
+ *  list's `aide_state_<port>` and `aide_sort_<port>` and this one never read
+ *  each other's choices. Named after the bound port, as those are. */
+export const jobsViewCookieName = (port: number): string => `aide_jobs_view_${port}`;
+
+/** The Jobs tab's view: the keys that cut and order its rows. */
+export interface JobsViewKeys {
+  state?: string;
+  project?: string;
+  sort?: string;
+  dir?: string;
+  q?: string;
+}
+
+/** The Jobs tab's view. An address that names any of the five keys, even
+ *  empty, is the whole view and becomes the memory: every link the tab draws
+ *  names its state entry, so clearing the search or the sort is remembered
+ *  too. An address that names none — the Jobs tab in the header, a bookmark,
+ *  a redraw of a bare `/` — gets the view last chosen. The cookie holds the
+ *  keys that have a value, as a query string. Nothing in it is trusted: the
+ *  renderer falls back to All, every project, no search and the tab's order
+ *  for anything it does not know. */
+export function jobsViewChoice(url: URL, req: Request, port: number): { view: JobsViewKeys; setCookie?: string } {
+  const cookieName = jobsViewCookieName(port);
+  // One literal read per key: a page reads its address only that way.
+  const named = {
+    state: url.searchParams.get("state"),
+    project: url.searchParams.get("project"),
+    sort: url.searchParams.get("sort"),
+    dir: url.searchParams.get("dir"),
+    q: url.searchParams.get("q"),
+  };
+  const namesAny = Object.values(named).some((v) => v !== null);
+  const stored = namesAny ? null : new URLSearchParams(cookieValue(req.headers.get("cookie"), cookieName) ?? "");
+  const pick = (key: keyof JobsViewKeys): string | undefined => (stored ? stored.get(key) : named[key]) || undefined;
+  const view: JobsViewKeys = {};
+  for (const key of ["state", "project", "sort", "dir", "q"] as const) {
+    const value = pick(key);
+    if (value) view[key] = value;
+  }
+  if (!namesAny) return { view };
+  return {
+    view,
+    setCookie:
+      `${cookieName}=${encodeURIComponent(new URLSearchParams(view as Record<string, string>).toString())}` +
+      `; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`,
+  };
+}
+
 /** Which language the reader has chosen, remembered the same way the
  *  sort column and the state filter are (spec 350). One difference from
  *  both: this always resolves to a concrete `Language` (REQ-5's English

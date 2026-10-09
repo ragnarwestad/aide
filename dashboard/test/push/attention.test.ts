@@ -146,6 +146,23 @@ describe("what a spec is waiting for picks the sentence (criterion 9)", () => {
     expect(key(job({ state: "stopped", stopReason: "shared-files", steps: ["analyze"] }))).toBe("push.stoppedSharedFiles");
   });
 
+  test("a shared-files stop names by number the specs its result holds, and keeps the plain sentence when it names none (AC-5)", () => {
+    const stop = (sharedFiles: { spec: string; files: string[] }[]) =>
+      job({
+        state: "stopped",
+        stopReason: "shared-files",
+        steps: ["analyze"],
+        results: [{ ...result("analyze", "shared-files", false), sharedFiles }],
+      });
+    const named = attentionFor(
+      { state: "running", results: 0 },
+      stop([{ spec: "624-a-spec", files: ["x.ts"] }, { spec: "619-b-spec", files: ["y.ts"] }]),
+    );
+    expect(named?.specs).toEqual(["624", "619"]);
+    expect(named && messageKeyFor(named)).toBe("push.stoppedSharedFilesNamed");
+    expect(key(stop([]))).toBe("push.stoppedSharedFiles");
+  });
+
   test("the step named is the one that ran", () => {
     const a = attentionFor({ state: "running", results: 0 }, job({ state: "failed", results: [result("analyze", "error", false)] }));
     expect(a?.step).toBe("analyze");

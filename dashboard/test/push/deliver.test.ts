@@ -56,6 +56,24 @@ describe("what a notification says (criterion 9)", () => {
     expect(sent.body).toBe("Implement failed — it waits for you to look at why and press Implement again.");
   });
 
+  test("a shared-files stop names the specs by number in the body (AC-5)", async () => {
+    const b = await board();
+    const d = await b.device(1);
+    const job = runningJob(b.store);
+    b.store.transition(job.id, "run-stopped", {
+      stopReason: "shared-files",
+      results: [{ ...result("implement", "shared-files", false), sharedFiles: [
+        { spec: "624-a-spec", files: ["x.ts"] },
+        { spec: "619-b-spec", files: ["y.ts"] },
+      ] }],
+    });
+    await b.push.idle();
+    const sent = await openCall(b.sent.calls[0]!, d);
+    expect(sent.body).toBe(
+      "Implement stopped: specs 624, 619 change the same files — add them to Depends on, or press Implement again to go on.",
+    );
+  });
+
   const SPEC_ENDINGS = {
     failed: (s: ReturnType<typeof makeStore>, id: string) => s.transition(id, "step-failed", { results: [result("implement", "error", false)] }),
     stopped: (s: ReturnType<typeof makeStore>, id: string) => s.transition(id, "run-stopped", { stopReason: "timeout", results: [result("implement", "timeout", false)] }),

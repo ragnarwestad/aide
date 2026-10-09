@@ -15,7 +15,8 @@
 
 import { helpPopover, messageSlot, rowMessageParts, stepLabel, type MessagePart } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
-import { specNotice, wordPhase } from "../../ui/job-state";
+import { sharedFilesSentence, specNotice, wordPhase } from "../../ui/job-state";
+import type { OpenOverlap } from "../../../project/overlapping-specs.ts";
 import type { Language } from "../../../i18n";
 import { archivedRowNotices, errorMarkNotices } from "./row-marks.ts";
 import { isArchivedRow, type SpecGroup, type SpecsFilter } from "./data-model";
@@ -59,15 +60,19 @@ export const listRefusalLine = (): string => messageSlot("refused", "failed", { 
  *  `p.attempts[0]`, not the in-flight-first pick the pips use: this is
  *  a RELOCATION of what `phaseSubRows` computes for that same phase's
  *  badge, so it has to read the same attempt that function does. */
-function phaseDisagreement(g: SpecGroup, lang: Language): string | undefined {
-  let earliest: { step: string; qualifier: string } | undefined;
+function phaseDisagreement(g: SpecGroup, lang: Language, sharedFiles?: string): string | undefined {
+  // An analyze stopped on shared files is said from the spec's own record
+  // (`sharedFilesSentence`), which already opens with the step.
+  const said = (step: string, qualifier: string, stopped?: string): string =>
+    sharedFiles && step === "analyze" && stopped === "shared-files" ? sharedFiles : `${stepLabel(step, lang)} ${qualifier}`;
+  let earliest: { step: string; qualifier: string; stopped?: string } | undefined;
   for (const p of g.phases) {
     const word = wordPhase(g.done.includes(p.step), p.heldBack, p.attempts[0], { ...p.history, fileResult: p.fileResult }, lang);
     if (!word.qualifier) continue;
-    if (p.attempts[0]?.state === "failed") return `${stepLabel(p.step, lang)} ${word.qualifier}`;
-    earliest ??= { step: p.step, qualifier: word.qualifier };
+    if (p.attempts[0]?.state === "failed") return said(p.step, word.qualifier, p.history.stopped);
+    earliest ??= { step: p.step, qualifier: word.qualifier, stopped: p.history.stopped };
   }
-  return earliest && `${stepLabel(earliest.step, lang)} ${earliest.qualifier}`;
+  return earliest && said(earliest.step, earliest.qualifier, earliest.stopped);
 }
 
 export function specNoticeRow(
@@ -80,13 +85,28 @@ export function specNoticeRow(
   view: {
     filter?: SpecsFilter;
     branchPreview?: (project: string, specFolder: string) => string | undefined;
+    /** The specs an analyze stopped on shared files recorded as sharing
+     *  them, less those archived since; called only for a row whose analyze
+     *  stands stopped so. */
+    overlappingSpecs?: (project: string, specFolder: string) => OpenOverlap[] | undefined;
     /** The page the row sits on, for the criteria's fold; the Specs list's own when absent. */
     listPath?: string;
   } = {},
 ): string {
   const archiveHeldBack = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
+  const locked = isArchivedRow(g);
+  const analyzeStopped = g.phases.find((p) => p.step === "analyze")?.history.stopped;
+  const sharedFiles = locked
+    ? undefined
+    : sharedFilesSentence(g.lead, analyzeStopped, () => view.overlappingSpecs?.(g.project, g.specFolder), lang);
+  // A stop on shared files is said from the spec's own record, not from the
+  // job's sentence, so the row reads the same once the job has gone.
+  const lead =
+    sharedFiles && g.lead?.state === "stopped" && g.lead.stopReason === "shared-files"
+      ? { ...g.lead, error: sharedFiles }
+      : g.lead;
   const notice = specNotice(
-    g.lead,
+    lead,
     archiveHeldBack,
     // A locked row's phases can carry queue-remembered attempts (spec
     // 410, for the duration/cost cells) from a run that happened before
@@ -95,7 +115,7 @@ export function specNoticeRow(
     // leftover attempt is not shown as a warning (spec 483). The mark
     // and readyToArchive arguments beside this one already carry the
     // same gate.
-    isArchivedRow(g) ? undefined : phaseDisagreement(g, lang),
+    locked ? undefined : phaseDisagreement(g, lang, sharedFiles),
     isArchivedRow(g) ? archivedRowNotices(g.archive, now, lang) : errorMarkNotices(g, lang, testServerAvailable, view.branchPreview),
     lang,
     !isArchivedRow(g) && !archiveHeldBack && !specBusy(g) && nextPhase(g.done) === "archive",

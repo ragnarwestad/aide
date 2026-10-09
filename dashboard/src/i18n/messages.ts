@@ -190,7 +190,7 @@ export const MESSAGES = {
     es: "{spec}: {files}",
     de: "{spec}: {files}",
     fr: "{spec} : {files}",
-    exempt: "a part of runner.sharedFilesStopped, which carries the resolution",
+    exempt: "a part of runner.sharedFilesStopped and wordPhase.stopSharedFilesNamed, which carry the resolution",
   },
   "runner.testsRedImplement": {
     en: "implement reported success, but the project's tests are red on its result — the runner ran them itself, and the failing tests are listed below. — Press {button} again; the step ends only on a green run.",
@@ -694,6 +694,24 @@ export const MESSAGES = {
     de: "andere offene Specs ändern dieselben Dateien — trage sie unter Hängt ab von ein, oder führe es erneut aus, um weiterzumachen",
     fr: "d'autres specs ouvertes modifient les mêmes fichiers — ajoutez-les à Dépend de, ou relancez-le pour continuer",
     resolve: "add them to Depends on",
+  },
+  // The same stop said from the spec's own record, once the job that stopped
+  // may have left the queue: no promise that Analyze runs by itself.
+  "wordPhase.stopSharedFilesNamed": {
+    en: "{button} stopped: other open specs change the same files — {message}. — Add them to Depends on to wait until they are archived, or press {button} again to go on.",
+    nb: "{button} stoppet: andre åpne specs endrer de samme filene — {message}. — Legg dem til under Avhenger av for å vente til de er arkivert, eller trykk {button} igjen for å gå videre.",
+    es: "{button} se detuvo: otras specs abiertas cambian los mismos archivos — {message}. — Añádelas a Depende de para esperar a que estén archivadas, o pulsa {button} de nuevo para continuar.",
+    de: "{button} angehalten: andere offene Specs ändern dieselben Dateien — {message}. — Trage sie unter Hängt ab von ein, um zu warten, bis sie archiviert sind, oder klicke erneut auf {button}, um weiterzumachen.",
+    fr: "{button} interrompu : d'autres specs ouvertes modifient les mêmes fichiers — {message}. — Ajoutez-les à Dépend de pour attendre qu'elles soient archivées, ou cliquez de nouveau sur {button} pour continuer.",
+    resolve: "Add them to Depends on to wait until they are archived, or press {button} again to go on.",
+  },
+  "wordPhase.stopSharedFilesArchived": {
+    en: "{button} stopped on files other open specs changed, and every one of them has been archived or removed since — press {button} again to go on.",
+    nb: "{button} stoppet på filer andre åpne specs endret, og alle er arkivert eller fjernet siden — trykk {button} igjen for å gå videre.",
+    es: "{button} se detuvo por archivos que cambiaban otras specs abiertas, y todas se han archivado o eliminado desde entonces — pulsa {button} de nuevo para continuar.",
+    de: "{button} wurde wegen Dateien angehalten, die andere offene Specs änderten, und alle sind seitdem archiviert oder entfernt — klicke erneut auf {button}, um weiterzumachen.",
+    fr: "{button} a été interrompu sur des fichiers que d'autres specs ouvertes modifiaient, et toutes ont été archivées ou supprimées depuis — cliquez de nouveau sur {button} pour continuer.",
+    resolve: "press {button} again to go on",
   },
   "wordPhase.filesDisagree": {
     // The spec's files and the run record (the state file, or git where
@@ -1254,6 +1272,14 @@ export const MESSAGES = {
     es: "{step} se detuvo: otras specs abiertas cambian los mismos archivos — añádelas a Depende de, o pulsa {button} de nuevo para continuar.",
     de: "{step} angehalten: andere offene Specs ändern dieselben Dateien — trage sie unter Hängt ab von ein, oder klicke erneut auf {button}, um weiterzumachen.",
     fr: "{step} interrompu : d'autres specs ouvertes modifient les mêmes fichiers — ajoutez-les à Dépend de, ou cliquez de nouveau sur {button} pour continuer.",
+    resolve: "add them to Depends on",
+  },
+  "push.stoppedSharedFilesNamed": {
+    en: "{step} stopped: specs {specs} change the same files — add them to Depends on, or press {button} again to go on.",
+    nb: "{step} stoppet: specene {specs} endrer de samme filene — legg dem til under Avhenger av, eller trykk {button} igjen for å gå videre.",
+    es: "{step} se detuvo: las specs {specs} cambian los mismos archivos — añádelas a Depende de, o pulsa {button} de nuevo para continuar.",
+    de: "{step} angehalten: die Specs {specs} ändern dieselben Dateien — trage sie unter Hängt ab von ein, oder klicke erneut auf {button}, um weiterzumachen.",
+    fr: "{step} interrompu : les specs {specs} modifient les mêmes fichiers — ajoutez-les à Dépend de, ou cliquez de nouveau sur {button} pour continuer.",
     resolve: "add them to Depends on",
   },
   "push.failed": {

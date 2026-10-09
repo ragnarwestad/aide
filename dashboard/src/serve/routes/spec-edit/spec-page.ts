@@ -7,6 +7,7 @@ import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from
 import { pullFastForward, saveSpecFiles } from "../../../git/specs-pull.ts";
 import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
 import { criteriaChecksIn, specFileText } from "../../../project/discover";
+import { openOverlappingSpecs } from "../../../project/overlapping-specs.ts";
 import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, renderSpecPageFailedRest, renderSpecPageHead, renderSpecPageRest, renderSpecStepsFollowParts, resolveBackHref, resolveSpecTab, specTabPath } from "../../../render";
 import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, languageChoice, logRefusal, readBounded, specsClientScript, streamedPage } from "../../serve-helpers";
 
@@ -134,7 +135,12 @@ export async function specPageRoutes(
           {
             ...view,
             error: failedRoundSentence(view.lead, langResult.lang),
-            warning: sharedFilesSentence(view.lead, langResult.lang),
+            warning: sharedFilesSentence(
+              view.lead,
+              view.phases?.find((p) => p.step === "analyze")?.history.stopped,
+              () => openOverlappingSpecs(ctx.specDir(project!, specFolder!), (folder) => ctx.specRef(project!, folder)),
+              langResult.lang,
+            ),
             backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/specs", url.pathname),
           },
           new Date().toISOString(),

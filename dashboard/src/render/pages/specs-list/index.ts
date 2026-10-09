@@ -33,6 +33,7 @@ import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import type { QueueRowView } from "../../ui/job-state";
 import { t, type Language } from "../../../i18n";
 import type { FailedCreate } from "../../../push/failed-creates.ts";
+import type { OpenOverlap } from "../../../project/overlapping-specs.ts";
 import { renderFailedCreateNotices } from "./failed-create-notices.ts";
 // Re-exported for the pages that pick a model outside a row of this
 // list — `new-spec-page/` and `settings-page.ts` — so the split
@@ -169,6 +170,12 @@ export interface SpecsPageOptions {
    *  build still running, or the project is set otherwise). Absent, no
    *  row carries a preview link. */
   branchPreview?: (project: string, specFolder: string) => string | undefined;
+  /** The specs a stopped analysis recorded as sharing its files and that
+   *  are still open, for a spec whose analyze stopped on them — read from
+   *  the spec's own analysis, so a row says the same with the job and
+   *  without it. Called only for such a row. Absent, a row says the
+   *  job's own sentence. */
+  overlappingSpecs?: (project: string, specFolder: string) => OpenOverlap[] | undefined;
   /** The messages of one unfolded phase, for the attempts that may have
    *  run it (newest first) — called only for a phase the address names
    *  in `phases` (spec 500). Undefined: nothing is kept to read. */
@@ -255,6 +262,7 @@ function groupRow(g: SpecGroup, opts: SpecsPageOptions, now: number, opened: Set
   const notice = specNoticeRow(g, now, opts.lang ?? "en", testServerAvailable, {
     filter: opts.filter,
     branchPreview: opts.branchPreview,
+    overlappingSpecs: opts.overlappingSpecs,
     listPath: opts.listPath,
   });
   // Each spec ends with an empty row the stylesheet turns into the air
