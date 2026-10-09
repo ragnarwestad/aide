@@ -34,6 +34,10 @@ type StateFilterEntry = {
   where?: (g: SpecGroup) => boolean;
 };
 
+/** The Active entry's key: every spec neither archived nor closed, and an
+ *  archived one whose branch has not merged. The Jobs tab shows what it shows. */
+export const ACTIVE_FILTER_KEY = "not-archived";
+
 export const STATE_FILTERS: StateFilterEntry[] = [
   // All first, and therefore the default (see DEFAULT_STATE_FILTER): a
   // spec that reaches the archive stays on the list a reader is already
@@ -45,7 +49,7 @@ export const STATE_FILTERS: StateFilterEntry[] = [
   // is no more "everything still going on" than an archived one is, but
   // it has its own word and must not borrow ARCHIVED_STATE's meaning
   // just to be kept out of this entry.
-  { key: "not-archived", label: "Active", excludeStates: [ARCHIVED_STATE, CLOSED_STATE] },
+  { key: ACTIVE_FILTER_KEY, label: "Active", excludeStates: [ARCHIVED_STATE, CLOSED_STATE] },
   // `["running"]` alone, not IN_FLIGHT (queued+running): `group-builders.ts`
   // now folds a job's `landing` flag into this same state before it reaches
   // here (see below), so "running" already means "running, or a step's
@@ -80,7 +84,7 @@ export const DEFAULT_STATE_FILTER = STATE_FILTERS[0]!;
  *  it always has. */
 const STATE_FILTER_LABEL_KEYS: Record<string, TranslationKey> = {
   all: "list.state.all",
-  "not-archived": "list.state.active",
+  [ACTIVE_FILTER_KEY]: "list.state.active",
   "active:all": "list.state.running",
   waiting: "list.state.waiting",
   stopped: "list.state.stopped",

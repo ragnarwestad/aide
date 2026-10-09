@@ -38,3 +38,12 @@ export function foldArrow(o: {
     `aria-expanded="${o.open ? "true" : "false"}" title="${esc(title)}">${ICON_CHEVRON}</a>`
   );
 }
+
+/** A fold that opens and shuts in the browser itself: a `<details>` whose
+ *  `<summary>` is the chevron and `summary`, holding `body`. For a fold
+ *  inside a row, where a click must not load the page or ask the server.
+ *  `summary` and `body` are trusted markup; the caller escapes what it
+ *  hands in. */
+export function foldDisclosure(o: { summary: string; body: string; data?: Record<string, string> }): string {
+  return `<details class="foldbox"${dataAttrs(o.data)}><summary>${ICON_CHEVRON}${o.summary}</summary>${o.body}</details>`;
+}

@@ -609,41 +609,53 @@ The Slack `notifyCommand` above is separate and unchanged.
 
 ## The Jobs tab
 
-The Jobs tab is the board's first page, at `/`. It lists what runs, whatever started it: a spec's step, a create, a
-wiki build or refresh, or a scheduled job, in every project.
+The Jobs tab is the board's first page, at `/`. It lists every spec the Specs list shows under Active, and the wiki
+builds, wiki refreshes and scheduled jobs that are running or wait for the user, in every project.
 
-A job has a row while it is queued, running or landing. A finished job keeps its row while it waits for the user:
+A spec has a row for as long as the Specs list shows it under Active: neither archived nor closed, whatever its jobs
+did and whether or not it has one in the queue. A spec waiting for Implement, one implemented and waiting to be tested
+and archived, one held back on unticked acceptance criteria and one nothing has run on all have a row. The tab draws the
+rows from the same jobs and the same archived rows as the list's Active entry, through the same filter, so the two cannot
+show different specs. That includes an archived spec whose branch has not merged: the list keeps it under Active, marked
+that its branch is still on origin, and so does the tab. An archived or closed spec whose work is finished has no row. A
+job of a spec in a project off the allowlist, of a spec whose folder is gone, or of a finished archived or closed spec (a
+Reopen in flight) has no row either; its job page `/jobs/<id>` still shows it with its Stop.
 
-- it failed, was stopped (time limit, usage limit, red tests, unticked criteria, shared files) or was interrupted, a
-  conflict being a failure;
-- it is an archive held back on unticked acceptance criteria.
-
-`waitsForPerson()` in `src/queue/steps.ts` decides that, and push notifications read the same set. A waiting row leaves
-the tab when the user has dealt with it:
-
-- a newer job of the same project and tracking key exists and was not cancelled: the spec's folder for any step, a
-  wiki's `wiki-<project>` for a build and a refresh alike, a scheduled job's `schedule-<name>`;
-- a scheduled job's entry is deleted.
-
-The queue keeps 200 jobs, so a waiting job older than that leaves with its history. A project off the allowlist keeps
-its rows. With no row to show, the page says "Nothing is running."
+A spec's row is the Specs list's row, drawn by the same builder from the same options: the same columns and buttons,
+and when it is unfolded the same phase lines, steps, logs and acceptance criteria. Its links back to its own page
+(the folds) lead to `/`, not `/specs`. A press on it is the press the Specs list makes.
 
 A create that ended without a spec has no row. It shows as the Specs list's message for it, above the table, with Try
 again and Dismiss, drawn from the same record. The message stays until Dismiss is pressed, on either page.
 
-A spec's row is the Specs list's row, drawn by the same builder from the same options: the same columns and buttons,
-and when it is unfolded the same phase lines, steps, logs and acceptance criteria. Its links back to its own page
-(the folds) lead to `/`, not `/specs`. A press on it is the press the Specs list makes. A job the list's builder draws
-no group for (a project off the allowlist, a spec whose folder is gone) gets a job row.
+A wiki build or refresh has a row while it is queued, running or landing, and a scheduled job likewise. A finished one
+keeps its row while it waits for the user:
 
-A wiki build or refresh and a scheduled job get a job row in the same columns and the same two-line shape
+- it failed, was stopped (time limit, usage limit, red tests, unticked criteria, shared files) or was interrupted, a
+  conflict being a failure.
+
+`waitsForPerson()` in `src/queue/steps.ts` decides that, and push notifications read the same set. A waiting row leaves
+the tab when the user has dealt with it:
+
+- a newer job of the same project and tracking key exists and was not cancelled: a wiki's `wiki-<project>` for a build
+  and a refresh alike, a scheduled job's `schedule-<name>`;
+- a scheduled job's entry is deleted.
+
+The queue keeps 200 jobs, so a waiting job older than that leaves with its history.
+
+A wiki or scheduled job gets a job row in the same columns and the same two-line shape
 (`src/render/pages/jobs-page/job-row.ts`). Its title leads with the project, as a spec's does: "<project>:Wiki build",
 "<project>:Wiki refresh" or "<project>:<name>". It folds as a spec's row does, by the `open` key in the address, and is
 shut by default: it shows its title, state, time and cost. Its › opens it to show the links to the job's log and to
 where it belongs, the project's Wiki build panel or its Schedule tab, and Stop or Cancel. A queued job offers Cancel and
-a running or landing one Stop, each asking first; a finished job has nothing to stop. A job the list's builder draws no
-group for (a spec's step off the allowlist, a spec whose folder is gone) keeps its links and control on show, with no
-fold. The rules for which jobs show, their titles, links and controls are in `src/render/pages/jobs-page/rows.ts`.
+a running or landing one Stop, each asking first; a finished job has nothing to stop. The rules for which wiki and
+scheduled jobs show, their titles, links and controls are in `src/render/pages/jobs-page/rows.ts`.
+
+The rows stand in one order, spec rows and job rows together: running or landing first, then queued, then the rest, the
+most recently changed first in each. A job's change is the newest of its made, started and finished times. A spec's is
+the same for its lead job, or the day the spec was made when no job of its round exists; a spec git has not dated yet
+counts as the newest. A change made without a job, such as a description saved from another machine, does not move a
+spec. With no row to show, the page says "Nothing is running."
 
 The rows sit in `#jobrows`, so the page redraws as the Specs list does: the page script asks the page's own address with
 `?rows=1` (and `&only=<project>/<folder>` for one row's fold) when the server says something moved, and every press posts

@@ -37,6 +37,7 @@ export {
   NOT_VERIFIED_KEY,
   isArchivedRow,
   matchesSearch,
+  ACTIVE_FILTER_KEY,
   applyFilter,
   sortGroups,
 } from "./filter-sort.ts";

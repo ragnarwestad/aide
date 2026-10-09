@@ -1,18 +1,16 @@
-// The Jobs tab's rules, as pure functions: which jobs it shows, what a row
-// is called, where the job belongs and what the row offers to stop it. They
-// read only the fields a job and its row view share, so the route can run
-// them on the raw jobs and the tests on plain objects.
+// The Jobs tab's rules, as pure functions: which wiki builds and scheduled
+// jobs it shows, where every row stands, what a job row is called, where the
+// job belongs and what the row offers to stop it. They read only the fields a
+// job and its row view share, so the route can run them on the raw jobs and
+// the tests on plain objects.
 
-import { stepLabel } from "../../../format/step-label.ts";
 import { t, type Language } from "../../../i18n";
-import { createEndedWithoutSpec, isProvisionalKey } from "../../../queue/create-failure.ts";
 import { scheduleNameOf } from "../../../queue/schedule.ts";
 import { isWikiBuild, waitsForPerson } from "../../../queue/steps.ts";
-import { currentStep, inFlight } from "../../ui/job-state/format.ts";
-import { landingStep } from "../../ui/job-state/resting.ts";
+import { inFlight } from "../../ui/job-state/format.ts";
 import type { QueueRowView } from "../../ui/job-state/types.ts";
 import { projectPagePath, projectScheduleTab } from "../projects-page/routes.ts";
-import { specPagePath } from "../spec-page/tabs.ts";
+import type { SpecGroup } from "../specs-list";
 
 /** What a job and its row view have in common, and all the rules read. */
 export interface JobLike {
@@ -29,7 +27,7 @@ export interface JobLike {
 }
 
 type StateRow = Pick<QueueRowView, "state" | "landing" | "stepIndex"> & { steps: readonly string[] };
-type TitleRow = StateRow & Pick<QueueRowView, "project" | "specFolder" | "createTitle" | "wikiRefresh">;
+type TitleRow = StateRow & Pick<QueueRowView, "specFolder" | "wikiRefresh">;
 
 export const isScheduleJob = (job: { steps: readonly string[]; specFolder: string }): boolean =>
   job.steps.length === 1 && job.steps[0] === "schedule" && job.specFolder.startsWith("schedule-");
@@ -38,14 +36,45 @@ const at = (job: JobLike): number => Date.parse(job.createdAt) || 0;
 const sameJob = (job: JobLike): string => `${job.project}\0${job.specFolder}`;
 
 /** 0 running or landing, 1 queued, 2 waiting for the user. */
-const group = (job: JobLike): number => (job.state === "running" || job.landing ? 0 : job.state === "queued" ? 1 : 2);
+const group = (job: JobLike): 0 | 1 | 2 => (job.state === "running" || job.landing ? 0 : job.state === "queued" ? 1 : 2);
 
-/** The jobs the tab shows, in the order it shows them: in flight, or waiting
+/** Where a row stands: its band (0 running or landing, 1 queued, 2 the rest)
+ *  and when it last changed, in milliseconds. */
+export interface TabPlace {
+  band: 0 | 1 | 2;
+  changedAt: number;
+}
+
+/** The newest of a job's own stamps: made, started, finished. Not
+ *  `activityMs`, which leaves out the finish and picks a spec's lead job. */
+const lastStamp = (j: { createdAt: string; startedAt?: string; finishedAt?: string }): number =>
+  Math.max(0, ...[j.createdAt, j.startedAt, j.finishedAt].map((s) => Date.parse(s ?? "")).filter(Number.isFinite));
+
+export const jobPlace = (job: JobLike & { startedAt?: string; finishedAt?: string }): TabPlace => ({
+  band: group(job),
+  changedAt: lastStamp(job),
+});
+
+/** A spec's band is its row's state (a landing lead already reads `running`);
+ *  its change is its lead job's newest stamp, or, with no job of its round,
+ *  the day it was made. A spec git has not dated yet, with no job, was made
+ *  moments ago: it is the newest, as the list's `sortGroups` treats it. */
+export const specPlace = (g: Pick<SpecGroup, "state" | "lead" | "createdAt">): TabPlace => ({
+  band: g.state === "running" ? 0 : g.state === "queued" ? 1 : 2,
+  changedAt:
+    !g.lead && !g.createdAt
+      ? Number.MAX_SAFE_INTEGER
+      : Math.max(g.lead ? lastStamp(g.lead) : 0, Date.parse(g.createdAt ?? "") || 0),
+});
+
+/** Running or landing first, then queued, then the rest; the newest change first in each. */
+export const byTabPlace = (a: TabPlace, b: TabPlace): number => a.band - b.band || b.changedAt - a.changedAt;
+
+/** The wiki builds and scheduled jobs the tab shows: in flight, or waiting
  *  for a person and not yet dealt with. A waiting job is dealt with when a
  *  job of the same project and tracking key was created after it and was not
- *  cancelled; a scheduled job when its entry is deleted. A create that ended
- *  without a spec is never a row: the Specs list's message for it stands, from
- *  a record kept until Dismiss is pressed. */
+ *  cancelled; a scheduled job when its entry is deleted. A spec's job is never
+ *  returned: its spec's row stands for it. */
 export function jobsShown<T extends JobLike>(
   jobs: T[],
   o: {
@@ -56,51 +85,31 @@ export function jobsShown<T extends JobLike>(
   // A cancelled run is a person ending it, not a run that succeeded, so it
   // does not deal with an earlier job's failure.
   for (const job of jobs.filter((j) => j.state !== "cancelled")) newest.set(sameJob(job), Math.max(newest.get(sameJob(job)) ?? 0, at(job)));
-  const shown = jobs.filter((job) => {
+  return jobs.filter((job) => {
+    if (!isWikiBuild(job) && !isScheduleJob(job)) return false;
     if (inFlight(job)) return true;
-    if (createEndedWithoutSpec(job)) return false;
     if (!waitsForPerson(job)) return false;
     if ((newest.get(sameJob(job)) ?? 0) > at(job)) return false;
     return !isScheduleJob(job) || o.scheduleEntryExists(job.project, scheduleNameOf(job.specFolder));
   });
-  return shown.sort((a, b) => group(a) - group(b) || at(b) - at(a));
 }
 
-/** What a row is called: the spec's name and step, the wiki run, or the
- *  scheduled job. The wiki run and the scheduled job are named without their
- *  project, which their row draws before the name. `titleOf` is the spec's
- *  own title. */
-export function jobTitle(
-  row: TitleRow,
-  lang: Language,
-  titleOf: (project: string, specFolder: string) => string | undefined,
-): string {
+/** What a job row is called: the wiki run or the scheduled job, named without
+ *  its project, which the row draws before the name. */
+export function jobTitle(row: TitleRow, lang: Language): string {
   if (isWikiBuild(row)) return t(lang, row.wikiRefresh ? "jobs.wikiRefresh" : "jobs.wikiBuild");
-  if (isScheduleJob(row)) return scheduleNameOf(row.specFolder);
-  if (isProvisionalKey(row.specFolder)) return `${row.createTitle ?? row.specFolder} — ${stepLabel("create", lang)}`;
-  // As the Specs list's head row builds a spec's name: the folder's number,
-  // then the title; with no title, the folder.
-  const title = titleOf(row.project, row.specFolder);
-  const number = row.specFolder.split("-")[0];
-  const name = title ? (number ? `${number}-${title}` : title) : row.specFolder;
-  const step = row.landing ? landingStep(row) : currentStep(row);
-  return `${row.project}: ${name} — ${stepLabel(step, lang)}`;
+  return scheduleNameOf(row.specFolder);
 }
 
 /** The place the job belongs. */
 export function jobHome(row: Pick<JobLike, "project" | "specFolder" | "steps">): string {
   if (isWikiBuild(row)) return `${projectPagePath(row.project)}?tab=wiki&wikitab=build`;
-  if (isScheduleJob(row)) return projectScheduleTab(row.project);
-  // A create has no spec page yet, or never got one.
-  if (isProvisionalKey(row.specFolder)) return "/specs";
-  return specPagePath(row.project, row.specFolder);
+  return projectScheduleTab(row.project);
 }
 
 /** What a row offers to end its job: Cancel for a queued one, Stop for a
- *  running or landing one, nothing for a finished one. Nothing while `create`
- *  is the step, as on the Specs list: cancelling a create throws its title and
- *  description away. Never a Run. */
+ *  running or landing one, nothing for a finished one. Never a Run. */
 export function jobControl(row: StateRow): "cancel" | "stop" | undefined {
-  if (!inFlight(row) || currentStep(row) === "create") return undefined;
+  if (!inFlight(row)) return undefined;
   return row.state === "queued" && !row.landing ? "cancel" : "stop";
 }

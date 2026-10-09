@@ -45,6 +45,7 @@ export {
   resolveChosenModel,
 } from "./model-picker.ts";
 import {
+  ACTIVE_FILTER_KEY,
   applyFilter,
   groupBySpec,
   groupKey,
@@ -59,6 +60,7 @@ import {
 // model straight off this file's own historical path — some, like
 // `PHASE_LINES` and `Phase`, only for that; nothing here reads them.
 export {
+  ACTIVE_FILTER_KEY,
   FILTER_KEYS,
   PHASE_LINES,
   RUN_STEPS,
@@ -213,23 +215,23 @@ function groupRows(
   return groups.map((g) => groupRow(g, opts, now, opened)).join("");
 }
 
-/** The rows of the specs named by `keys` (`<project>/<folder>`), each drawn as
- *  the list draws it, by key. The filter comes before the drawing: only the
- *  specs asked for are drawn, though every spec's group is built. Another
- *  page that shows some of the specs, the Jobs tab, draws them with this. */
-export function specGroupRowsByKey(
+/** The specs the list's Active entry shows, each with its group and its rows
+ *  drawn as the list draws them. The caller hands the archived rows the list
+ *  builds for Active (`archivedSpecRows(ACTIVE_FILTER_KEY)`: the archived specs
+ *  whose branch has not merged). Another page that shows the active specs, the
+ *  Jobs tab, draws them with this, so the two cannot show different specs. */
+export function activeSpecRows(
   rows: QueueRowView[],
   opts: SpecsPageOptions,
-  keys: ReadonlySet<string>,
   now = Date.now(),
-): Map<string, string> {
+): { key: string; group: SpecGroup; html: string }[] {
   const opened = openedSet(opts.filter ?? {});
   const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now);
-  return new Map(
-    groups
-      .filter((g) => keys.has(groupKey(g.project, g.specFolder)))
-      .map((g) => [groupKey(g.project, g.specFolder), groupRow(g, opts, now, opened)]),
-  );
+  return applyFilter(groups, { state: ACTIVE_FILTER_KEY }).map((g) => ({
+    key: groupKey(g.project, g.specFolder),
+    group: g,
+    html: groupRow(g, opts, now, opened),
+  }));
 }
 
 function groupRow(g: SpecGroup, opts: SpecsPageOptions, now: number, opened: Set<string>): string {

@@ -76,7 +76,7 @@ export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language, path?:
       `<span class="checktask">${esc(row.task)}</span>` +
       (row.note ? `<span class="checknote">${esc(row.note)}</span>` : "") +
       (row.failed && archived ? reopen : "") +
-      acTestsLine(row, lang) +
+      acTestsLine(row, lang, key) +
       `</li>`
     );
   };

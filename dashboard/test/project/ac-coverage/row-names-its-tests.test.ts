@@ -6,8 +6,13 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { Window } from "happy-dom";
 import { readAcCoverage, withAcCoverage } from "../../../src/project/ac-coverage.ts";
+import { groupBySpec, groupKey } from "../../../src/render/pages/specs-list/data-model";
+import { checksPanel } from "../../../src/render/pages/specs-list/row-checks.ts";
+import { checklist } from "../../../src/render/pages/spec-page/overview.ts";
 import { acTestsLine, prepareAcTests } from "../../../src/render/ui/ac-tests.ts";
+import { view } from "../../render/pages/spec-page-fixtures.ts";
 
 const dirs: string[] = [];
 afterEach(() => {
@@ -97,5 +102,79 @@ describe("the tests behind an acceptance row", () => {
     dirs.push(none);
     expect(readAcCoverage(none)).toBeNull();
     expect(acTestsLine(withAcCoverage([row("AC-1: x")], readAcCoverage(none))[0]!, "en")).toBe("");
+  });
+});
+
+// The files under a criterion: one shut line each, its count on the line,
+// its test names inside, drawn by one function for both pages.
+describe("a criterion's tests, one shut line per file", () => {
+  const windows: Window[] = [];
+  afterEach(async () => {
+    while (windows.length) await windows.pop()!.happyDOM.close();
+  });
+  const SCOPE = "aide/624-x";
+
+  function drawn(html: string): HTMLElement {
+    const win = new Window();
+    windows.push(win);
+    win.document.body.innerHTML = html;
+    return win.document.body as unknown as HTMLElement;
+  }
+
+  const TESTS = [
+    { file: "dashboard/test/a.test.ts", name: "the total shows (AC-1)" },
+    { file: "dashboard/test/e2e/b.test.ts", name: "it fits a phone (AC-1)" },
+    { file: "dashboard/test/a.test.ts", name: "the total updates (AC-1)" },
+  ];
+
+  test("each file is a shut line with its count and holds only its own names (AC-1)", () => {
+    const body = drawn(acTestsLine({ task: "AC-1: x", tests: TESTS }, "en", SCOPE));
+    const folds = [...body.querySelectorAll("details")];
+    expect(folds.map((d) => d.querySelector("summary")!.textContent!.trim())).toEqual([
+      "dashboard/test/a.test.ts (2)",
+      "dashboard/test/e2e/b.test.ts (1)",
+    ]);
+    expect(folds.map((d) => d.open)).toEqual([false, false]);
+    const inside = (d: Element) => d.textContent!.replace(d.querySelector("summary")!.textContent!, "");
+    expect(inside(folds[0]!)).toContain("the total shows");
+    expect(inside(folds[0]!)).toContain("the total updates");
+    expect(inside(folds[0]!)).not.toContain("it fits a phone");
+    expect(inside(folds[1]!)).toContain("it fits a phone");
+  });
+
+  test("the same test listed twice counts twice and both names are inside (AC-1)", () => {
+    const twice = { file: "a.test.ts", name: "the total shows (AC-1)" };
+    const body = drawn(acTestsLine({ task: "AC-1: x", tests: [twice, twice] }, "en", SCOPE));
+    const fold = body.querySelector("details")!;
+    expect(fold.querySelector("summary")!.textContent).toContain("a.test.ts (2)");
+    expect(fold.innerHTML.match(/the total shows/g)).toHaveLength(2);
+  });
+
+  test("each fold is keyed by the spec, the criterion's number and the file, with no AC- text (AC-2)", () => {
+    const html = acTestsLine({ task: "AC-3: x", tests: [{ file: "a.test.ts", name: "t (AC-3)" }] }, "en", SCOPE);
+    expect(html).toContain(`data-testfile="${SCOPE}|3|a.test.ts"`);
+    expect(html).not.toContain("AC-");
+  });
+
+  test("the Status tab and the Specs list draw exactly the markup acTestsLine gives (AC-3)", () => {
+    const folder = "624-x";
+    const key = groupKey("aide", folder);
+    const task = "AC-1: it counts";
+    const line = `| ${task} | ⬜ | |`;
+    const row = { phase: "Acceptance criteria", line, task, done: false, note: "", tests: TESTS };
+    const expected = acTestsLine(row, "en", key);
+    expect(expected).toContain("<details");
+
+    const group = { ...groupBySpec([], [{ project: "aide", specFolder: folder }])[0]!, acceptance: [row] };
+    expect(checksPanel(group, { checks: key }, "en")).toContain(expected);
+
+    const page = view({ project: "aide", specFolder: folder, checks: { rows: [row], phase: "Acceptance criteria" } });
+    expect(checklist(page, "en")).toContain(expected);
+  });
+
+  test("a criterion no test names still shows its warning and no fold (AC-4)", () => {
+    const body = drawn(acTestsLine({ task: "AC-4: x", untested: true }, "en", SCOPE));
+    expect(body.querySelector(".checktests.untested")?.textContent).toBe("No test names AC-4.");
+    expect(body.querySelector("details")).toBeNull();
   });
 });

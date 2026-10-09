@@ -6,6 +6,7 @@ import { askButton, btn, buttonForm, dataAttrs, helpPopover, ICON_PDF, labelledC
 import { SPINNER } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { acTestsLine } from "../../ui/ac-tests.ts";
+import { groupKey } from "../specs-list/data-model";
 import { checkColumns, checkControls, checkReadOnlyMark } from "../../ui/check-controls.ts";
 import { failedCount, notVerifiedCount } from "../../../project/parse-status";
 import { dependsOnField } from "../new-spec-page";
@@ -294,7 +295,7 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
     row.note ? `<span class="checknote">${esc(row.note)}</span>` : "";
   const item = (row: SpecCheckView): string =>
     `<li class="check ${row.failed ? "failed" : row.notVerified ? "notverified" : row.done ? "done" : "open"}">${control(row)}` +
-    `<span class="checktask">${esc(row.task)}</span>${note(row)}${reopen(row)}${acTestsLine(row, lang)}</li>`;
+    `<span class="checktask">${esc(row.task)}</span>${note(row)}${reopen(row)}${acTestsLine(row, lang, groupKey(view.project, view.specFolder))}</li>`;
   const group = (g: { phase: string; rows: SpecCheckView[] }): string =>
     `<li class="checkphase">${esc(g.phase)}</li>` +
     // One heading over the boxes, under the caption of the section they belong to.
