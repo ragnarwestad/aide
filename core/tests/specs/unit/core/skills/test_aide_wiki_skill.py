@@ -47,3 +47,7 @@ def test_the_analyze_and_wiki_skills_name_every_page_a_wiki_must_have_AC_1_AC_3_
         text = (workspace_root / "core/skills" / skill / "SKILL.md").read_text()
         unnamed = [page for page in missing if page not in text]
         assert not unnamed, f"{skill} does not name {unnamed}, which every wiki must have"
+
+
+def test_the_wiki_skill_checks_its_own_result_with_the_script_AC_4(workspace_root):
+    assert "unfinished" in called_in(workspace_root / "core/skills/aide-wiki/SKILL.md")

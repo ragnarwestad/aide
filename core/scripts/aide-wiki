@@ -21,6 +21,8 @@
 #   aide-wiki status --specs-root R --project-dir P
 #   aide-wiki verify --specs-root R --base-ref REF
 #   aide-wiki affected --specs-root R --project-dir P [--base-ref REF]
+#   aide-wiki unfinished --specs-root R --project-dir P [--refresh]
+#                    # what a build (or, with --refresh, a refresh) left unfinished
 
 set -uo pipefail
 
@@ -35,6 +37,7 @@ Usage:
   aide-wiki status --specs-root R --project-dir P
   aide-wiki verify --specs-root R --base-ref REF
   aide-wiki affected --specs-root R --project-dir P [--base-ref REF]
+  aide-wiki unfinished --specs-root R --project-dir P [--refresh]
 USAGE
 }
 
@@ -50,13 +53,14 @@ case "${1:-}" in
 esac
 sub="$1"; shift
 
-specs_root=""; project_dir=""; page=""; base_ref=""; files=(); keep=()
+specs_root=""; project_dir=""; page=""; base_ref=""; refresh=""; files=(); keep=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --specs-root) specs_root="${2:-}"; shift 2 ;;
     --project-dir) project_dir="${2:-}"; shift 2 ;;
     --page) page="${2:-}"; shift 2 ;;
     --base-ref) base_ref="${2:-}"; shift 2 ;;
+    --refresh) [ "$sub" = "unfinished" ] || refuse "unknown-argument" "unknown argument: $1"; refresh=1; shift ;;
     --file) shift; while [ $# -gt 0 ] && [[ "$1" != --* ]]; do files+=("$1"); shift; done ;;
     --keep) shift; while [ $# -gt 0 ] && [[ "$1" != --* ]]; do keep+=("$1"); shift; done ;;
     -h|--help) usage; exit 0 ;;
@@ -284,6 +288,41 @@ SCHEMA
       pages="$(jq -c --arg p "$n" '. + [{page:$p, files:$ARGS.positional}]' --args "${current[@]}" <<<"$pages")"
     done
     jq -cn --argjson p "$pages" '{ok:true, exitCode:0, terminalReason:"listed", pages:$p}'
+    ;;
+
+  # What a build, or with --refresh a refresh, left unfinished: the rule the
+  # runner's check (lib/run-spec/publish/wiki-guard.sh) applies to a board
+  # run, for a session that has no runner. A build leaves no generated page
+  # on an older commit than the project's HEAD (the index and the schema
+  # are left out: an unchanged one keeps the commit it was written from); a
+  # refresh leaves no page `status` marks changed. A hand-written page is
+  # never named. Change the guard's rule and this one must follow.
+  unfinished)
+    need_project
+    index=false; [ -f "$wiki/index.md" ] && index=true
+    missing=(); for n in $FIXED_PAGES; do [ -f "$wiki/$n" ] || missing+=("$n"); done
+    left=()
+    if [ -d "$wiki" ]; then
+      if [ -n "$refresh" ]; then
+        while IFS= read -r n; do [ -n "$n" ] && left+=("$n"); done \
+          < <("$0" status --specs-root "$specs_root" --project-dir "$project_dir" 2>/dev/null \
+            | jq -r '.pages[]? | select(.state == "changed") | .page')
+      else
+        for f in "$wiki"/*.md; do
+          [ -f "$f" ] || continue
+          n="$(basename "$f")"
+          case "$n" in index.md|schema.md) continue ;; esac
+          is_generated "$f" || continue
+          [ "$(fm_commit "$f")" = "$head_sha" ] || left+=("$n")
+        done
+      fi
+    fi
+    finished=false
+    [ "$index" = true ] && [ ${#missing[@]} -eq 0 ] && [ ${#left[@]} -eq 0 ] && finished=true
+    jq -cn --argjson f "$finished" --argjson i "$index" \
+      --argjson m "$(jq -cn '$ARGS.positional' --args ${missing[@]+"${missing[@]}"})" \
+      --argjson p "$(jq -cn '$ARGS.positional' --args ${left[@]+"${left[@]}"})" \
+      '{ok:true, exitCode:0, terminalReason:"checked", finished:$f, index:$i, missing:$m, pages:$p}'
     ;;
 
   verify)

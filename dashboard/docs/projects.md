@@ -203,6 +203,12 @@ machine: a personal global gitignore (`core.excludesFile`) covers it in every pr
 project's own `.gitignore`. The dashboard's own clone, which nobody edits, lists its derived `.aide/project.yaml`
 in that clone's `.git/info/exclude`.
 
+**The wiki is built.** Add queues a wiki build, the same job the **Build wiki** button queues, once the dashboard's
+own checkout is made, so the project's first analysis has a wiki to read. The queue starts it; the Add does not wait
+for it. A build that fails leaves the project added, shows on the Wiki tab's Build panel and on the Jobs tab, and
+**Build wiki** runs it again. A build the queue refuses is written to the server's log as `build wiki refused`, and
+the add is not refused with it.
+
 **Worktree links are suggested on the project's own page, not on Add.** Nothing can derive which gitignored paths a
 project's commands need, which is why the field exists — but a checkout's `.gitignore` names the candidates in a
 file the reader had to go and open. The Config tab's Edit form lists the literal, top-level
@@ -322,7 +328,8 @@ that is not on the allowlist; a create there is then refused, with the reason on
 
 A wiki is a set of pages about how the project's parts hang together, kept in `wiki/` in the project's specs root and
 read first when a spec is analyzed. The tab says so and has one **Build wiki** button, which posts to
-`POST /api/queue/projects/<name>/wiki` and queues one `wiki` job under the key `wiki-<name>`. A press while a build
+`POST /api/queue/projects/<name>/wiki` and queues one `wiki` job under the key `wiki-<name>`. The first build is
+queued by Add. A press while a build
 is unfinished, or while its merge is running, is refused on the tab with the queue's own sentence. The build is
 followed on this tab and never on the Specs list: the latest one reads as running (with Cancel), last built on a date,
 or failed with its reason, with that build's steps and their logs below it, and a press or a Cancel comes back here. The
