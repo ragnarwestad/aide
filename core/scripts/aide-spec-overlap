@@ -8,7 +8,9 @@
 # A spec's list is `### Files to change` in its 2-analysis.md: one bare path
 # per line, in backticks, read from the newest `## Round N` when the file has
 # rounds and from the whole file otherwise. A path is compared as written,
-# less a leading `./` and a trailing `:<line>` or `:<from>-<to>`. The
+# less a leading `./` and a trailing `:<line>` or `:<from>-<to>`. A
+# Markdown file is never an overlap: pages are shared by nearly every spec,
+# and archive resolves a conflict in one. The
 # candidates are the folders directly under the specs root, but archive/,
 # wiki/ and the spec itself, whose phase is analyzed or implemented: an
 # implement lands nothing, the code reaches the default branch when the spec
@@ -132,7 +134,7 @@ overlaps_json="$(jq -cn --argjson files "$files_json" --argjson cands "$candidat
   ($warned | map(.spec)) as $known
   | [$cands[]
      | select(.spec as $s | ($known | index([$s])) | not)
-     | {spec, files: ([.files[] | select(. as $f | $files | index([$f]))] | unique)}
+     | {spec, files: ([.files[] | select(endswith(".md") | not) | select(. as $f | $files | index([$f]))] | unique)}
      | select(.files | length > 0)]
   | sort_by(.spec)')"
 

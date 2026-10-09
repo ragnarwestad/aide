@@ -331,7 +331,8 @@ list, and `the defect(s) went back to the implement session to be fixed` before 
 
 **The shared files check.** The analyze skill compares the files its analysis will change (`### Files to change` in
 `2-analysis.md`) with those of every other open spec in the project that is analyzed or implemented and not archived,
-by running `aide-spec-overlap`, and stops before the plan when one shares a file. After the turn
+by running `aide-spec-overlap`, and stops before the plan when one shares a file. A Markdown file never counts: pages
+are shared by nearly every spec, and archive resolves a conflict in one. After the turn
 (`run-spec/record/shared-files-check.sh`, after the scope guard and before the criteria check) the runner runs the
 same command with `--record`, which writes the specs found into the analysis's `### Overlapping specs`, and compares
 that list with the one the analysis had before the turn. A spec that is new in it ends the step `shared-files`: `ok`

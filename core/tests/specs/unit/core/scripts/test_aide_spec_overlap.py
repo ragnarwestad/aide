@@ -101,6 +101,17 @@ def test_a_path_is_compared_without_a_leading_dot_slash_or_a_trailing_line_range
     assert specs_named(out["overlaps"]) == {OTHER: ["a/x.ts", "b/y.ts"]}, out
 
 
+def test_a_shared_markdown_file_is_not_an_overlap(script, root):
+    # Five analyses stopped on one day over shared doc pages alone
+    # (dashboard/docs/http-routes.md, the-specs-list.md); archive resolves
+    # a conflict in a page.
+    make_spec(root, SPEC, ["docs/page.md", "x.ts"], phase="created")
+    make_spec(root, OTHER, ["docs/page.md"])
+    make_spec(root, THIRD, ["docs/page.md", "x.ts"])
+    _, out = overlap(script, root)
+    assert specs_named(out["overlaps"]) == {THIRD: ["x.ts"]}, out
+
+
 def test_only_the_newest_round_of_each_analysis_is_compared_AC_1(script, root):
     rounds = (
         "# X - Analysis\n\n## Findings\n\n### Files to change\n\n- `old.ts`\n"
