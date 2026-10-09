@@ -553,7 +553,8 @@ The dashboard also sends a push notification to each device that turned them on,
 
 - a step **failed**, ran out of **time**, hit the AI's **usage limit**, or was **cut off** (its process vanished, or the
   server restarted under it) — the job entered `failed`, `stopped` or `interrupted`; a tap opens the Specs list with
-  that spec's row unfolded, where its state and the buttons that act on it are;
+  that spec's row unfolded, where its state and the buttons that act on it are. A stop on shared files names, by
+  number, the specs it added to the analysis's record;
 - a step finished and its merge into main **did not finish**, or its **tests went red** on the merge — a tap opens the
   Specs list with that spec's row unfolded;
 - an **archive is held back** on unticked acceptance criteria — a tap opens the Specs list with that spec's criteria

@@ -118,6 +118,10 @@ is the whole set:
 | branch still on origin                | The branch merged, or its pull request did, but the branch was left on origin      | Press Delete branch                                                     |
 | conflict                              | A merge conflict no machine could settle                                           | Resolve it yourself, with the diff in front of you                      |
 
+The row names each of those specs that is still open, with the files it shares, read from the spec's own analysis, so it
+reads the same after a restart and once the job has left the queue. A spec archived since is left out; when all are, the
+row says so and that pressing Analyze goes on.
+
 A held Analyze queued from a `stopped: shared-files` row is cancelled from the row like any other held step. The
 comparison cannot see two cases. A spec analyzed before the comparison existed has no `### Files to change` list in
 its analysis, so it never collides with another until it is analyzed again. And two specs analyzed at the same time do

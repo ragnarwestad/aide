@@ -4,6 +4,7 @@
 
 import type { Language } from "../../../i18n";
 import type { SpecsPageOptions } from "../../../render";
+import { openOverlappingSpecs } from "../../../project/overlapping-specs.ts";
 import { isWikiBuild } from "../../../queue/steps.ts";
 import { modelChoiceOptions } from "../../serve-helpers";
 import { phaseMessagesFor } from "../../spec-views/phase-messages.ts";
@@ -35,6 +36,10 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
       codeBranchOnOrigin(ctx.branchStatus, ctx.testServers.aideCheckout(project), specFolder)
         ? ctx.readBranchPreview(project, specFolder)
         : undefined,
+    // The specs a stopped analysis recorded as sharing its files, less those
+    // archived since. Called only for a row whose analyze stopped on them.
+    overlappingSpecs: (project: string, specFolder: string) =>
+      openOverlappingSpecs(ctx.specDir(project, specFolder), (folder) => ctx.specRef(project, folder)),
     // The messages of a phase the address unfolded. Called only for those, so
     // a redraw reads no transcript for a phase nobody opened.
     phaseMessages: (attemptIds: string[], step: string) => phaseMessagesFor(ctx.queue, attemptIds, step),

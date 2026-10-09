@@ -3,8 +3,9 @@
 import { stepLabel, type MessageVariant } from "../components";
 import { stepButton } from "../../../format/step-label.ts";
 import { t, type Language } from "../../../i18n";
-import { renderSentence } from "../../../i18n/message.ts";
+import { renderMessage, renderSentence } from "../../../i18n/message.ts";
 import type { MessageKey } from "../../../i18n/messages.ts";
+import type { OpenOverlap } from "../../../project/overlapping-specs.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
 import { currentStep, inFlight } from "./format.ts";
 import { providerLimitSentence } from "./provider-limit.ts";
@@ -101,12 +102,36 @@ export function failedRoundSentence(lead: QueueRowView | undefined, lang: Langua
   return renderSentence(lang, lead.error);
 }
 
-/** The sentence of a spec's lead job when its analyze stopped on files
- *  another open spec changes. The spec page draws it as a waiting line,
- *  where the list row draws the same sentence from `specNotice`. */
-export function sharedFilesSentence(lead: QueueRowView | undefined, lang: Language = "en"): string | undefined {
-  if (!lead?.error || lead.state !== "stopped" || lead.stopReason !== "shared-files") return undefined;
-  return renderSentence(lang, lead.error);
+/** The sentence for a spec whose analyze stands stopped on files other open
+ *  specs change: its lead job stopped so, or the analyze phase's own history
+ *  (`analyzeStopped`) says so and the lead has nothing newer to say — none in
+ *  flight, and none that ended with a sentence of its own, which `specNotice`
+ *  ranks first on the row as well. Said from the spec's own record, so it
+ *  reads the same with the job and without it: the specs still open with
+ *  their files, or that none is open any more. With no record to read, the
+ *  lead's own sentence as before, and nothing when only the history says so.
+ *  The record is read only once the stop is established. The spec page draws
+ *  it as a waiting line, where the list row draws it through `specNoticeRow`. */
+export function sharedFilesSentence(
+  lead: QueueRowView | undefined,
+  analyzeStopped: string | undefined,
+  overlaps: () => OpenOverlap[] | undefined,
+  lang: Language = "en",
+): string | undefined {
+  const leadStopped = lead?.state === "stopped" && lead.stopReason === "shared-files";
+  const historyStopped = analyzeStopped === "shared-files" && !(lead && (inFlight(lead) || lead.error));
+  if (!leadStopped && !historyStopped) return undefined;
+  const open = overlaps();
+  const button = stepButton("analyze");
+  if (open?.length) {
+    const inner = open.map((o) => ({
+      key: "runner.sharedFilesSpec" as const,
+      values: { spec: o.label, files: o.files.join(", ") },
+    }));
+    return renderMessage(lang, { key: "wordPhase.stopSharedFilesNamed", values: { button }, inner });
+  }
+  if (open) return renderMessage(lang, { key: "wordPhase.stopSharedFilesArchived", values: { button } });
+  return leadStopped && lead!.error ? renderSentence(lang, lead!.error) : undefined;
 }
 
 /** Which applies, if any. The order is the row's own: a job that

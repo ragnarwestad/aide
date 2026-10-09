@@ -41,6 +41,8 @@ export interface StartOptions {
   queueMirror?: string;
   /** The spec's 1-description.md. A bare heading unless a suite cares. */
   description?: string;
+  /** The live spec's 2-analysis.md, verbatim. Absent writes none. */
+  analysis?: string;
   /** The spec's 4-status.md. Its "Workflow steps completed" line is
    *  what the spec CLAIMS to have had; `ran()` is what makes a step
    *  count (spec 154). The default claims `create`, which is what
@@ -76,12 +78,14 @@ export function queueHarness(prefix: string, defaultStatus?: string): QueueHarne
       status = defaultStatus ?? statusSaying(["create"]),
       liveState,
       queueMirror,
+      analysis,
     } = {}) {
       const dir = mkdtempSync(join(tmpdir(), prefix));
       dirs.push(dir);
       const root = join(dir, "root");
       project(root, "aide", "81-queue-and-runner", description, status);
       if (liveState !== undefined) writeFileSync(join(root, "aide", "specs", "81-queue-and-runner", "4-status.json"), liveState);
+      if (analysis !== undefined) writeFileSync(join(root, "aide", "specs", "81-queue-and-runner", "2-analysis.md"), analysis);
       for (const folder of alsoSpecs) {
         mkdirSync(join(root, "aide", "specs", folder), { recursive: true });
         writeFileSync(join(root, "aide", "specs", folder, "1-description.md"), `# ${folder}\n`);

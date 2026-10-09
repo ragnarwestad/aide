@@ -5,6 +5,7 @@
 // snapshot itself.
 
 import type { MessageKey } from "../i18n/messages.ts";
+import { specNumber } from "../project/spec-folder.ts";
 import { createEndedWithoutSpec } from "../queue/create-failure.ts";
 import type { Job } from "../queue/queue.ts";
 import type { ScheduleNotify } from "../queue/schedule.ts";
@@ -31,6 +32,8 @@ export interface Attention {
   reason?: StopReason;
   /** How a scheduled run ended, for `schedule-run`. */
   outcome?: ScheduleOutcome;
+  /** The numbers of the specs a shared-files stop added to the analysis's record. */
+  specs?: string[];
 }
 
 export type ScheduleOutcome = "done" | "failed" | "stopped" | "interrupted";
@@ -69,7 +72,16 @@ export function attentionFor(prev: Seen | undefined, job: Job, scheduleChoice?: 
     // An interrupted step left no result of its own, so the step that
     // was in flight is the one at `stepIndex`; the others ended with one.
     const step = job.state === "interrupted" ? job.steps[job.stepIndex] : (last?.step ?? job.steps[job.stepIndex]);
-    return { kind: job.state as "failed" | "stopped" | "interrupted", step: step ?? "implement", reason: job.stopReason };
+    const specs =
+      job.state === "stopped" && job.stopReason === "shared-files"
+        ? (last?.sharedFiles ?? []).map((s) => specNumber(s.spec))
+        : undefined;
+    return {
+      kind: job.state as "failed" | "stopped" | "interrupted",
+      step: step ?? "implement",
+      reason: job.stopReason,
+      ...(specs?.length ? { specs } : {}),
+    };
   }
   if (
     job.state === "done" &&
@@ -97,6 +109,6 @@ export function messageKeyFor(a: Attention): MessageKey {
   if (a.reason === "provider-limit") return "push.stoppedProviderLimit";
   if (a.reason === "tests-red") return "push.stoppedTestsRed";
   if (a.reason === "acceptance-criteria") return "push.stoppedAcceptanceCriteria";
-  if (a.reason === "shared-files") return "push.stoppedSharedFiles";
+  if (a.reason === "shared-files") return a.specs?.length ? "push.stoppedSharedFilesNamed" : "push.stoppedSharedFiles";
   return "push.stoppedTimeout";
 }

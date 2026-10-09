@@ -148,9 +148,13 @@ underneath; which phase a press would run is on the button, which is labelled wi
 An analyze stopped on its acceptance criteria reads Stopped, and its notice line is amber, naming each fault the
 plan review found. Its phase counts as not done, even on a spec analyzed before, so the button offers Analyze again.
 
-An analyze stopped on files another open spec also changes reads Stopped too, and its notice line names each spec
-with the files it shares. Its phase counts as not done, so the button offers Analyze again, which goes on. Adding
-those specs to Depends on and saving queues Analyze instead, held until they archive.
+An analyze stopped on files another open spec also changes reads Stopped too, and its notice line, like the spec
+page's waiting line, names each spec that is still open by number and title, with the files it shares. The names are
+read from the `### Overlapping specs` record in the spec's own analysis each time the row is drawn, so the line is the
+same with the stopped job in the queue and without it. A spec archived since is left out; when every one is, the line
+says so and that pressing Analyze goes on, and asks for nothing in Depends on. Its phase counts as not done, so the
+button offers Analyze again, which goes on. Adding the specs to Depends on and saving queues Analyze instead, held
+until they archive, but only while the stopped job is still in the queue.
 
 ## The notice line under the name
 
