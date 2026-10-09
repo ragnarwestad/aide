@@ -27,6 +27,16 @@ const STATE_JSON = JSON.stringify({
   acceptanceCriteria: [{ task: "AC-1: it folds", done: false }, { task: LONG, done: false }], phaseCounts: {},
 });
 
+// AC-1 is proved in two files; AC-2 has no entry, so it draws no tests.
+const COVERAGE_JSON = JSON.stringify({
+  acs: {
+    "AC-1": [
+      { file: "dashboard/test/a.test.ts", name: "the total shows (AC-1)" },
+      { file: "dashboard/test/e2e/b.test.ts", name: "it fits a phone (AC-1)" },
+    ],
+  },
+});
+
 const harness = queueHarness("aide-e2e-acceptance-fold-");
 let browser: Browser;
 let page: Page;
@@ -47,6 +57,7 @@ beforeAll(async () => {
   const started = harness.start({ extra: { gitRun: recording().run }, status: STATUS });
   base = started.base;
   writeFileSync(join(started.dir, "root", "aide", "specs", FOLDER, "4-status.json"), STATE_JSON);
+  writeFileSync(join(started.dir, "root", "aide", "specs", FOLDER, "ac-coverage.json"), COVERAGE_JSON);
   ran(started.dir, ["analyze", "implement"]);
   await waitUntil(
     async () => (await (await fetch(`${base}/specs?live=0`)).text()).includes("tick them under › on the Specs list, or on the Status tab"),
@@ -70,6 +81,19 @@ describe("the criteria unfolded on the specs list", () => {
     await page.waitForSelector(`tr.specnotice[data-folder="${FOLDER}"] .rowchecks`, { state: "detached" });
   });
 
+  test("a file's line under a criterion opens and shuts its test names in place (AC-2)", async () => {
+    await page.goto(`${base}/specs?live=0&checks=aide%2F${FOLDER}`);
+    await page.evaluate(() => { (window as unknown as { loadMark: boolean }).loadMark = true; });
+    const file = notice().locator("details[data-testfile]").first();
+    await file.locator("summary").click();
+    await page.waitForFunction(() => document.querySelector("details[data-testfile]")?.hasAttribute("open"));
+    expect(await file.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
+    await file.locator("summary").click();
+    await page.waitForFunction(() => !document.querySelector("details[data-testfile]")?.hasAttribute("open"));
+    expect(await file.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(false);
+    expect(await page.evaluate(() => (window as unknown as { loadMark?: boolean }).loadMark)).toBe(true);
+  });
+
 });
 
 // Last: it ticks every criterion, and the list has nothing to unfold after.
@@ -86,8 +110,11 @@ describe("saving from the list", () => {
       if (before) await page.waitForFunction((el) => !(el as Element).isConnected, before, { timeout: 10_000 });
     };
     await notice().locator(`input[name="tick"]`).first().check();
+    await notice().locator("details[data-testfile] summary").first().click();
     await save();
     await waitUntil(async () => (await notice().locator("input[name=\"tick\"]:checked").count()) === 1, 10_000, "the first tick to be saved");
+    // The redraw that the save set off keeps the file the reader opened open (AC-2).
+    await waitUntil(async () => (await notice().locator("details[data-testfile][open]").count()) === 1, 10_000, "the opened file to stay open");
     expect(await notice().textContent()).toContain("tick them under › on the Specs list, or on the Status tab");
     await notice().locator(`input[name="tick"]`).nth(1).check();
     await save();

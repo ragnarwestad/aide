@@ -7,6 +7,7 @@ import { applyRefusal } from "./row-refusal";
 import { offerEachToItsTool, syncAiToModel } from "./ai-sync.ts";
 import { AWAITING, chosen, chosenSteps, checkboxKey, press, selectKey } from "./state.ts";
 import { syncApproachCancels } from "./approach-choice";
+import { openTestFiles, reopenTestFiles } from "./test-files";
 
 /** The row's button says what a press would run — and a press runs the
  *  BOXES, so the label has to follow them as they are clicked.
@@ -300,11 +301,13 @@ function removeGroup(key: string): boolean {
 let lastRows: RowSplit | null = null;
 
 /** What every redraw owes the rows it drew: the limits, the reader's
- *  own picks put back, each AI's own models offered, and a refusal the
- *  page is holding written under its row again. */
-function redrawn(body: Element): void {
+ *  own picks put back, the files they had open under a criterion opened
+ *  again, each AI's own models offered, and a refusal the page is holding
+ *  written under its row again. `open` was read before the rows were replaced. */
+function redrawn(body: Element, open: ReadonlySet<string>): void {
   drawLimits(body);
   restoreChosen(body);
+  reopenTestFiles(body, open);
   // After the restore, never before: a model put back by hand may
   // belong to the other tool, and the list has to follow the value
   // that ends up in the select.
@@ -332,12 +335,13 @@ export async function swapSpec(key: string): Promise<void> {
     // its own answer.
     if (press.pressGen !== gen) return;
     const group = one?.groups.length === 1 ? one.groups[0]! : null;
+    const open = openTestFiles(body);
     if (!group || !replaceGroup(group)) return swapRows();
     // Kept level with the page, so the next whole-list diff compares
     // against what this spec's rows now are.
     const at = lastRows?.groups.findIndex((g) => g.key === group.key) ?? -1;
     if (at !== -1) lastRows!.groups[at] = group;
-    redrawn(body);
+    redrawn(body, open);
   } catch {
     return swapRows();
   }
@@ -381,6 +385,7 @@ export async function swapRows(): Promise<void> {
     // differs — a chip's count changing when a job starts or finishes
     // is exactly that.
     const scrolled = (body.querySelector(".tablewrap") as HTMLElement | null)?.scrollTop ?? 0;
+    const open = openTestFiles(body);
     // Spec 204. The first paint has nothing to diff against, markup the
     // split cannot account for is redrawn the old way, and a diff that
     // could not finish is repaired by the same line.
@@ -389,7 +394,7 @@ export async function swapRows(): Promise<void> {
     lastRows = next;
     const wrap = body.querySelector(".tablewrap") as HTMLElement | null;
     if (wrap) wrap.scrollTop = scrolled;
-    redrawn(body);
+    redrawn(body, open);
   } catch {
     // offline, server restarting, tailnet hiccup: try again next tick
   } finally {

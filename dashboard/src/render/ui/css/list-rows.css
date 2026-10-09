@@ -170,6 +170,15 @@ table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="model"] { 
 .fold:hover { background: var(--surface-2); color: var(--text); }
 .fold svg { transition: transform 120ms ease; }
 .fold.shut svg { transform: rotate(-90deg); }
+/* A fold inside a row that opens in the browser itself (`foldDisclosure`):
+   a line of its own with no browser marker, the chevron turned while it is
+   shut, and the names under it indented to the file name's text. */
+.foldbox > summary { display: flex; align-items: center; gap: var(--sp-1);
+  list-style: none; cursor: pointer; }
+.foldbox > summary::-webkit-details-marker { display: none; }
+.foldbox > summary svg { flex: none; transition: transform 120ms ease; }
+.foldbox:not([open]) > summary svg { transform: rotate(-90deg); }
+.foldbox[open] > summary ~ * { margin-left: calc(var(--sp-1) + 1em); }
 /* The spinner a pressed › shows until its rows are back: a span, which
    takes its size only as an inline block. */
 .fold > .spin { display: inline-block; vertical-align: middle; }
