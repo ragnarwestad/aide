@@ -143,9 +143,24 @@ def dependency_folders(description, specs_root):
     return folders
 
 
-def specs_copy(archived, folder, project, dest, core, specs_root):
+def copy_wiki(specs_root, when, dest):
+    """The project's wiki/ as the real specs repository held it at `when`, written into `dest`; nothing when it had none."""
+    top = git(specs_root, "rev-parse", "--show-toplevel")
+    rel = os.path.relpath(os.path.realpath(specs_root), os.path.realpath(top))
+    wiki = "wiki" if rel == "." else f"{rel}/wiki"
+    sha = git(top, "rev-list", "-1", f"--before={when}", "HEAD", "--", wiki, check=False)
+    if not sha:
+        return
+    for path in (git(top, "ls-tree", "-r", "--name-only", sha, "--", wiki) or "").splitlines():
+        target = Path(dest) / "wiki" / os.path.relpath(path, wiki)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(subprocess.run(["git", "-C", top, "show", f"{sha}:{path}"], capture_output=True, check=True).stdout)
+
+
+def specs_copy(archived, folder, project, dest, core, specs_root, wiki_at=None):
     """A specs repository holding the spec's archived description, the other files fresh from the commit's
-    templates, and an empty folder for each spec it depends on. Returns the project's folder inside it."""
+    templates, an empty folder for each spec it depends on, and with `wiki_at` the wiki as it stood then.
+    Returns the project's folder inside it."""
     subprocess.run(["git", "init", "--quiet", "-b", "main", str(dest)], check=True)
     set_identity(dest)
     root = Path(dest) / project
@@ -159,6 +174,8 @@ def specs_copy(archived, folder, project, dest, core, specs_root):
     description = (root / folder / "1-description.md").read_text()
     for dep in dependency_folders(description, specs_root):
         (root / "archive" / dep).mkdir(parents=True, exist_ok=True)
+    if wiki_at:
+        copy_wiki(specs_root, wiki_at, root)
     git(str(dest), "add", "-A")
     git(str(dest), "commit", "--quiet", "-m", f"Run /aide-create for {folder}")
     return str(root)

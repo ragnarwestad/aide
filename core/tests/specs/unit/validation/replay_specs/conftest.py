@@ -118,6 +118,7 @@ ls -A "$proj" > "$rec/project-files"
 cp "$sroot/$spec/1-description.md" "$rec/description"
 [ -f "$sroot/$spec/3-solution.md" ] && cp "$sroot/$spec/3-solution.md" "$rec/solution"
 cp "$sroot/$spec/2-analysis.md" "$rec/analysis"
+[ -f "$sroot/wiki/index.md" ] && cp "$sroot/wiki/index.md" "$rec/wiki-index"
 if [ "${CLAUDE_CONFIG_DIR-}" ]; then
   ls "$CLAUDE_CONFIG_DIR/skills" > "$rec/claude-skills"; ls "$CLAUDE_CONFIG_DIR/rules" > "$rec/claude-rules"
   cp "$CLAUDE_CONFIG_DIR/skills/aide-analyze/SKILL.md" "$rec/claude-skill"
@@ -132,6 +133,7 @@ if [ -e "$STANDIN_DIR/hang-$cmd" ]; then
 fi
 if [ "$cmd" = analyze ]; then
   git -C "$sroot" checkout -q -b "aide/$spec"
+  [ -f "$STANDIN_DIR/analysis.md" ] && cp "$STANDIN_DIR/analysis.md" "$sroot/$spec/2-analysis.md"
   if [ -f "$STANDIN_DIR/plan.md" ]; then cp "$STANDIN_DIR/plan.md" "$sroot/$spec/3-solution.md"
   else printf '# Plan\n\nNEW-PLAN-MARKER\n' > "$sroot/$spec/3-solution.md"; fi
   git -C "$sroot" add -A && git -C "$sroot" commit -q -m "Run /aide-analyze for $spec"
@@ -265,7 +267,7 @@ def world(tmp_path, monkeypatch, standin, aide_repo):
 
     def argv(*specs, analyze=("claude", "opus", "high"), implement=("claude", "sonnet"), commit_=None, extra=()):
         return ["--project", "proj", "--specs", ",".join(specs), "--aide-commit", commit_ or aide_repo.new,
-                "--analyze", *analyze, "--implement", *implement, "--judge", "opus", "--code", str(code),
+                "--analyze", *analyze, *(["--implement", *implement] if implement else []), "--judge", "opus", "--code", str(code),
                 "--specs-root", str(specs_root), "--aide-repo", str(aide_repo.path), "--results", str(results), *extra]
 
     def record(step, name):

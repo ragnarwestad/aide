@@ -6,7 +6,7 @@ from typing import Optional
 # What a step used. A None is a figure that was not measured; `last_turn` marks tokens that are the last turn's alone.
 Stats = namedtuple("Stats", "seconds tokens cost last_turn")
 
-COLUMNS = ("Spec", "Must-fix", "Should-fix", "Every AC placed", "Green", "Rounds", "Original tests", "Judge",
+COLUMNS = ("Spec", "Files found", "Must-fix", "Should-fix", "Every AC placed", "Green", "Rounds", "Original tests", "Judge",
            "Analyze time/tokens/cost", "Implement time/tokens/cost", "Judge time/tokens/cost", "Note")
 
 
@@ -15,6 +15,7 @@ class Row:
     spec: str
     folder: str = ""
     replayed: bool = False
+    files: Optional[tuple] = None  # (named and changed, changed, named and not changed)
     must: Optional[int] = None
     should: Optional[int] = None
     placed: str = "–"
@@ -57,12 +58,19 @@ def original_cell(original):
     return f"{passed}/{ran}" + (f" ({not_run} file{'s' if not_run != 1 else ''} not run)" if not_run else "")
 
 
+def files_cell(files):
+    if files is None:
+        return "–"
+    found, changed, extra = files
+    return f"{found}/{changed}" + (f" (+{extra} not changed)" if extra else "")
+
+
 def number(value):
     return "–" if value is None else str(value)
 
 
 def cells(row):
-    return [row.spec, number(row.must), number(row.should), row.placed, row.green, number(row.rounds), original_cell(row.original),
+    return [row.spec, files_cell(row.files), number(row.must), number(row.should), row.placed, row.green, number(row.rounds), original_cell(row.original),
             number(row.judge), step_cell(row.analyze), step_cell(row.implement), step_cell(row.judging), "; ".join(row.notes)]
 
 
@@ -84,7 +92,9 @@ def total_row(rows):
     originals = [r.original for r in replayed if r.original is not None]
     scores = [r.judge for r in replayed if isinstance(r.judge, int)]
     n = len(replayed)
+    files = [r.files for r in replayed if r.files is not None]
     return [f"Total ({n} of {len(rows)} replayed)",
+            files_cell(tuple(sum(f[i] for f in files) for i in range(3))) if files else "–",
             str(sum(musts)) if musts else "–", str(sum(shoulds)) if shoulds else "–",
             f"{sum(r.placed == 'yes' for r in replayed)} of {n}", f"{sum(r.green == 'yes' for r in replayed)} of {n}",
             str(sum(rounds)) if rounds else "–",

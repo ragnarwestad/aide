@@ -9,6 +9,7 @@ import time
 from collections import namedtuple
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 import copies
 import judge
@@ -36,9 +37,10 @@ class Run:
     tmp: Path
     out: Path
     analyze: Step
-    implement: Step
+    implement: Optional[Step]
     judge_model: str
     branch: str
+    with_wiki: bool
     code_landing: str
     env: dict
     tool_env: dict
@@ -175,6 +177,15 @@ def replay_steps(run, row, folder, archived, found, code_dir, specs_repo, specs_
     row.must, row.should = counts.must, counts.should
     row.notes += (counts.note,) if counts.note else ()
     row.placed = measure.unplaced_criteria(description, plan)
+    analysis = (Path(specs_dir) / folder / "2-analysis.md").read_text()
+    row.files = measure.files_found(measure.files_to_change(analysis), measure.changed_files(run.code, found.before, found.landed))
+
+    original = (Path(archived) / "3-solution.md").read_text()
+    verdict = judge.ask(run.judge_model, description, original, plan, str(run.tmp))
+    row.judge = verdict.score if verdict.score else "no score"
+    row.reasons, row.judging = verdict.reasons, verdict.stats
+    if not run.implement:
+        return
 
     second = run_step(run, "implement", run.implement, folder, code_dir, specs_dir, out)
     row.implement = stats_of(run.implement, second)
@@ -184,11 +195,6 @@ def replay_steps(run, row, folder, archived, found, code_dir, specs_repo, specs_
         row.notes += (f"implement ended {ended(second)}",)
     row.original, why = original_tests(run, folder, found, code_dir, work)
     row.notes += (why,) if why else ()
-
-    original = (Path(archived) / "3-solution.md").read_text()
-    verdict = judge.ask(run.judge_model, description, original, plan, str(run.tmp))
-    row.judge = verdict.score if verdict.score else "no score"
-    row.reasons, row.judging = verdict.reasons, verdict.stats
 
 
 def replay_one(run, arg, index):
@@ -206,7 +212,8 @@ def replay_one(run, arg, index):
         (run.out / folder).mkdir(parents=True, exist_ok=True)
         code_dir = copies.code_copy(run.code, re.sub("^origin/", "", run.branch), found.before, work / "code")
         specs_repo = work / "specs"
-        specs_dir = copies.specs_copy(archived, folder, run.project, specs_repo, run.core, run.specs_root)
+        began = git(run.code, "show", "-s", "--format=%cI", found.before) if run.with_wiki else None
+        specs_dir = copies.specs_copy(archived, folder, run.project, specs_repo, run.core, run.specs_root, wiki_at=began)
         row.replayed = True
         replay_steps(run, row, folder, archived, found, code_dir, str(specs_repo), specs_dir, work)
     except (CannotReplay, landing.NoLanding) as error:

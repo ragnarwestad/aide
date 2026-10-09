@@ -8,7 +8,7 @@ import time
 
 import pytest
 
-from .conftest import SCRIPT_DIR, git, judge_says, snapshot, write
+from .conftest import IDENT, SCRIPT_DIR, git, judge_says, snapshot, write
 
 PLAN = """# Plan
 
@@ -33,6 +33,12 @@ def table(text):
     """The rows of results.md's table as {column: cell}."""
     rows = [[c.strip() for c in line.strip().strip("|").split("|")] for line in text.splitlines() if line.startswith("|")]
     return [dict(zip(rows[0], row)) for row in rows[2:]]
+
+
+def git_dated(repo, dates, *args):
+    p = subprocess.run(["git", "-C", str(repo), "-c", "commit.gpgsign=false", *args],
+                       capture_output=True, text=True, env={**os.environ, **IDENT, **dates})
+    assert p.returncode == 0, p.stderr
 
 
 def results_text(world):
@@ -236,3 +242,47 @@ def test_the_aide_repository_defaults_to_the_one_the_script_sits_in_AC_3():
     args = module.parse(["--specs", "1", "--aide-commit", "x", "--analyze", "claude", "m", "--implement", "claude", "m"])
 
     assert os.path.exists(os.path.join(args.aide_repo, "core", "scripts", "aide-run-spec"))
+
+
+def test_with_no_implement_only_analyze_runs_and_the_judge_still_scores_the_plan(world, replay_main):
+    assert replay_main(world.argv("4-replayed", implement=None)) == 0
+
+    assert world.record("implement", "args") is None
+    (row,) = table(results_text(world))[:1]
+    assert row["Judge"] == "4"
+    assert "analyze only" in results_text(world).splitlines()[0]
+
+
+def test_with_wiki_the_specs_copy_holds_the_wiki_as_it_stood_before_the_code_landed(world, replay_main):
+    early, late = {"GIT_COMMITTER_DATE": "2000-01-01T00:00:00"}, {"GIT_COMMITTER_DATE": "2099-01-01T00:00:00"}
+    write(world.specs_root / "wiki" / "index.md", "early index\n")
+    git_dated(world.specs_repo, early, "add", "-A")
+    git_dated(world.specs_repo, early, "commit", "-q", "-m", "wiki then")
+    write(world.specs_root / "wiki" / "index.md", "later index\n")
+    git_dated(world.specs_repo, late, "commit", "-q", "-am", "wiki later")
+
+    assert replay_main(world.argv("4-replayed", implement=None, extra=("--with-wiki",))) == 0
+
+    assert "./wiki/index.md" in world.record("analyze", "specs-listing").split()
+    assert world.record("analyze", "wiki-index") == "early index\n"
+    assert "wiki as of" in results_text(world).splitlines()[0]
+
+
+def test_without_wiki_the_specs_copy_has_none(world, replay_main):
+    write(world.specs_root / "wiki" / "index.md", "index\n")
+    git(world.specs_repo, "add", "-A")
+    git(world.specs_repo, "commit", "-q", "-m", "wiki")
+
+    assert replay_main(world.argv("4-replayed", implement=None)) == 0
+
+    assert not any(p.startswith("./wiki") for p in world.record("analyze", "specs-listing").split())
+    assert "no wiki" in results_text(world).splitlines()[0]
+
+
+def test_the_row_says_how_many_of_the_files_the_landing_changed_the_analysis_named(world, replay_main, standin):
+    write(standin / "analysis.md", "# A\n\n## Findings\n\n### Files to change\n\n- `lib_replayed.py:3`\n- `other.py`\n- `README.md`\n")
+
+    assert replay_main(world.argv("4-replayed", implement=None)) == 0
+
+    (row,) = table(results_text(world))[:1]
+    assert row["Files found"] == "1/2 (+1 not changed)"

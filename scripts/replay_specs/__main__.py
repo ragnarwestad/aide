@@ -7,7 +7,10 @@ the templates). It runs analyze and implement there through the runner of the Ai
 model and effort it is given per step and that commit's skills, then measures the run: the plan review's counts,
 whether every acceptance criterion has a place for its test, whether the suite is green and in how many rounds, how
 many of the original spec's tests pass against the new code, a judge's score of the new plan against the original,
-and time, tokens and cost per step. One table with a row per spec and the totals goes to a results folder.
+and time, tokens and cost per step. Without --implement only analyze runs. With --with-wiki the specs copy also holds
+the project's wiki as the specs repository had it when the spec's code began, and either way a row says how many of the
+files the original landing changed the new analysis named. One table with a row per spec and the totals goes to a
+results folder.
 
 Nothing is written to the board's queue, to the real specs repository or to any origin, and the copies are removed
 when the run ends. The script is run by hand; it is no part of any test suite and does not run on the board.
@@ -19,7 +22,7 @@ machine. Run it only on specs and Aide commits you trust.
 Usage:
   export CLAUDE_CODE_OAUTH_TOKEN=...   # once: `claude setup-token`; a fresh Claude config folder has no login
   python3 scripts/replay_specs --project aide --specs 590,601,605 --aide-commit 4e8a481a \\
-      --analyze claude opus high --implement codex gpt-6.1-sol --judge opus
+      --analyze claude opus high [--implement codex gpt-6.1-sol] --judge opus [--with-wiki]
       [--code ~/.aide/dashboard/checkouts/<project>/code]
       [--specs-root ~/.aide/dashboard/checkouts/<project>/specs/<project>]
       [--aide-repo <the repository this script sits in>] [--results ~/.aide/replays]
@@ -58,7 +61,9 @@ def parse(argv):
     ap.add_argument("--specs", required=True, help="comma-separated spec numbers or folder names")
     ap.add_argument("--aide-commit", required=True)
     ap.add_argument("--analyze", nargs="+", required=True, metavar="TOOL MODEL [EFFORT]")
-    ap.add_argument("--implement", nargs="+", required=True, metavar="TOOL MODEL [EFFORT]")
+    ap.add_argument("--implement", nargs="+", metavar="TOOL MODEL [EFFORT]", help="left out, only analyze runs")
+    ap.add_argument("--with-wiki", action="store_true",
+                    help="give the specs copy the project's wiki as it stood when the spec's code began")
     ap.add_argument("--judge", default="opus", help="the Claude model that scores the new plan")
     ap.add_argument("--code")
     ap.add_argument("--specs-root")
@@ -78,7 +83,7 @@ def inside(path, repo):
 
 def check_inputs(args, analyze, implement):
     """Everything that can be refused before anything is copied."""
-    if "claude" in (analyze.tool, implement.tool) and not (os.environ.get("CLAUDE_CODE_OAUTH_TOKEN") or os.environ.get("ANTHROPIC_API_KEY")):
+    if "claude" in {s.tool for s in (analyze, implement) if s} and not (os.environ.get("CLAUDE_CODE_OAUTH_TOKEN") or os.environ.get("ANTHROPIC_API_KEY")):
         raise Refusal("a step names claude, and a fresh Claude config folder has no login: run `claude setup-token` once and "
                       "export CLAUDE_CODE_OAUTH_TOKEN (or set ANTHROPIC_API_KEY)")
     for what, path in (("code checkout", args.code), ("specs root", args.specs_root), ("Aide repository", args.aide_repo)):
@@ -94,7 +99,7 @@ def prepare(args, analyze, implement, tmp):
     """The export, the tools' configuration folders and the run's folders; Refusal when the commit cannot be replayed with."""
     core, sha = copies.export_aide(args.aide_repo, args.aide_commit, tmp)
     home, configured = os.path.expanduser("~"), {}
-    for tool in {analyze.tool, implement.tool}:
+    for tool in {s.tool for s in (analyze, implement) if s}:
         key = "claude" if tool == "fake-claude" else tool
         configured[tool] = configured[key] if key in configured else copies.tool_environment(core, tool, tmp / "tools", home)
     (tmp / "tmp").mkdir()
@@ -109,16 +114,17 @@ def prepare(args, analyze, implement, tmp):
     out.mkdir(parents=True)
     branch = copies.default_branch(args.code)
     return steps.Run(project=args.project, code=os.path.realpath(args.code), specs_root=os.path.realpath(args.specs_root), core=core,
-                     tmp=tmp, out=out, analyze=analyze, implement=implement, judge_model=args.judge, branch=branch,
+                     tmp=tmp, out=out, analyze=analyze, implement=implement, judge_model=args.judge, branch=branch, with_wiki=args.with_wiki,
                      code_landing="pr" if copies.manifest_value(args.code, "codeLanding") == "pr" else "merge",
                      env=env, tool_env=configured), sha
 
 
 def header(sha, run):
     parts = [f"Aide {sha[:8]}", *(f"{name} {s.tool} {s.model}" + (f" {s.effort}" if s.effort else "")
-                                  for name, s in (("analyze", run.analyze), ("implement", run.implement))),
-             f"judge claude {run.judge_model}", "no wiki in the specs copy"]
-    if "opencode" in (run.analyze.tool, run.implement.tool):
+                                  for name, s in (("analyze", run.analyze), ("implement", run.implement)) if s),
+             *([] if run.implement else ["analyze only"]), f"judge claude {run.judge_model}",
+             "wiki as of the specs repository when each spec's code began" if run.with_wiki else "no wiki in the specs copy"]
+    if "opencode" in {s.tool for s in (run.analyze, run.implement) if s}:
         parts.append("opencode reads its global AGENTS.md from the installed one")
     return " · ".join(parts)
 
@@ -138,7 +144,8 @@ def main(argv=None):
     handlers = {s: signal.signal(s, stop) for s in (signal.SIGINT, signal.SIGTERM)}
     tmp = None
     try:
-        analyze, implement = step_argument(args.analyze, "--analyze"), step_argument(args.implement, "--implement")
+        analyze = step_argument(args.analyze, "--analyze")
+        implement = step_argument(args.implement, "--implement") if args.implement else None
         check_inputs(args, analyze, implement)
         tmp = Path(os.path.realpath(tempfile.mkdtemp(prefix="replay-specs-", dir=os.environ.get("TMPDIR") or None)))
         run, sha = prepare(args, analyze, implement, tmp)

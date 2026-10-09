@@ -107,6 +107,32 @@ def implement_green(result):
     return "no" if reason == "tests-red" else "–"
 
 
+def files_to_change(analysis):
+    """The paths under `### Files to change` in the newest round of an analysis, read as aide-spec-overlap reads
+    them: in backticks, less a leading `./` and a trailing `:<line>` or `:<from>-<to>`."""
+    rounds = re.split(r"^## Round [0-9].*$", analysis, flags=re.M)
+    section = re.search(r"^### Files to change\s*$(.*?)(?=^#{1,6} |\Z)", rounds[-1], re.M | re.S)
+    if not section:
+        return []
+    paths = []
+    for line in section.group(1).splitlines():
+        found = re.match(r"\s*[-*]\s*`([^`]+)`", line)
+        if found:
+            paths.append(re.sub(r":[0-9]+(-[0-9]+)?$", "", re.sub(r"^\./", "", found.group(1))))
+    return paths
+
+
+def changed_files(code, before, landed):
+    return (git(code, "diff", "--name-only", "--no-renames", before, landed) or "").splitlines()
+
+
+def files_found(named, changed):
+    """(named and changed, changed, named and not changed), Markdown left out as the shared files check leaves it."""
+    named = {p for p in named if not p.endswith(".md")}
+    changed = {p for p in changed if not p.endswith(".md")}
+    return len(named & changed), len(changed), len(named - changed)
+
+
 def original_test_files(code, before, landed, ac_coverage=AC_COVERAGE):
     """The test files the landing added or changed (by the project's own rule for which paths hold tests)."""
     out = git(code, "diff", "--name-status", "--no-renames", "-z", before, landed).split("\0")
