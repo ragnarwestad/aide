@@ -74,6 +74,13 @@ describe("the Wiki tab's build is the newest one", () => {
     expect(latestWikiBuild([now, old], "aide", "en")?.id).toBe("now");
     expect(latestWikiBuild([old, now], "aide", "en")?.id).toBe("now");
   });
+
+  test("a build that ended failed is read as failed, with its error (AC-2)", () => {
+    const failed = { ...build("f", "failed", "2026-09-26T12:00:00Z"), error: "the specs folder is missing" } as unknown as Job;
+    const read = latestWikiBuild([failed], "aide", "en");
+    expect(read?.state).toBe("failed");
+    expect(read?.error).toBe("the specs folder is missing");
+  });
 });
 
 // The build's step is opened, on its own tab, by the address.

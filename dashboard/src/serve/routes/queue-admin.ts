@@ -9,9 +9,10 @@ import { MAIN_TEST_SERVER_KEY, restartMainTestServer, stopTestServer } from "../
 import { testServerFailedPage } from "./spec-edit/test-server-waiting.ts";
 import { listedModelName } from "../../queue/model-name.ts";
 import { persistQueueSettings } from "../../queue/queue.ts";
+import { wikiTrackingKey } from "../../queue/steps.ts";
 import { addProject, assessProjectReadiness, commitManifestEdits, projectNameError, removeProject, updateProjectSettings, type SaveManifest } from "../../project/project-admin";
 import { isToolPart, SETTINGS_STEPS, TOOL_PARTS } from "../../render";
-import { MAX_CREATE_BODY, bodyToObject, json, readBounded } from "../serve-helpers";
+import { MAX_CREATE_BODY, bodyToObject, json, logRefusal, readBounded } from "../serve-helpers";
 import { CHECKABLE_TOOLS, checkTool, isCheckableTool, recordCheck } from "../tool-check.ts";
 import { readUsage, recordUsage } from "../tool-usage";
 import { readModels, recordModels } from "../tool-models";
@@ -231,6 +232,12 @@ export async function handleQueueAdminRoutes(
         join(ctx.opts.projectRoot, name),
         ctx.machineryProjectDir(name),
       ).catch(() => readiness ?? undefined);
+      // The project's first wiki build, so its first analysis has a wiki
+      // to read: the job Build wiki queues. Queued after the checkout is
+      // made, since a tick never clones one; the runner's timer starts
+      // it. A refusal is logged and is not a refusal of the add.
+      const wiki = ctx.queue.enqueue({ project: name, specFolder: wikiTrackingKey(name), steps: ["wiki"] });
+      if (!wiki.ok) logRefusal("build wiki", name, wiki.error);
     }
     // Only for an add that got as far as writing its files: there is
     // nothing to assess in a clone that never happened, and a

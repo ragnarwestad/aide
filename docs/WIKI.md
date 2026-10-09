@@ -42,13 +42,18 @@ files and the commit it was written from, so a reader can tell whether the code 
 
 ## Who writes it
 
-- **A build**, from the **Build wiki** button on the project's Wiki tab: the `wiki` step with the `aide-wiki` skill,
-  rewriting every generated page from the code as it is now. It lands like a spec.
+- **A build**, queued by Add project when the project is added, or from the **Build wiki** button on the project's
+  Wiki tab: the `wiki` step with the `aide-wiki` skill, rewriting every generated page from the code as it is now. It
+  lands like a spec.
 - **The archive of a spec** rewrites the pages the spec's own code touched (`aide-archive`, Step 2). A guard refuses an
   archive that changed any other page.
 - **A refresh**, queued by the board once an archive lands in a project with a wiki: the same step, rewriting only the
   pages whose files changed since they were written, and adding a page for a new part or for either fixed page the
   wiki lacks.
+- **A run by hand**, `/aide-wiki` or `/aide-wiki refresh` in a session in the project, without the board. It finds the
+  specs root the way the other skills do, asks only when it is unclear how the project divides into pages, checks its
+  own result with `aide-wiki unfinished` by the rule the runner applies to a board run, and asks before it commits the
+  wiki folder in the specs repository. It never pushes or merges.
 - **A scheduled job**, where a project sets one up on its Schedule tab. Aide's own board runs a refresh every night
   (`docs/prompts/wiki-refresh.md`) and a weekly check that reports pages the code or docs contradict, and changes
   nothing (`docs/prompts/wiki-check.md`).

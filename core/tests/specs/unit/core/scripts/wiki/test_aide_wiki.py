@@ -27,6 +27,8 @@ from .aide_wiki_support import (
     commit_all,
     hand_written,
     verify,
+    FIXED_PAGES,
+    fixed_body,
 )
 
 
@@ -324,17 +326,6 @@ def test_write_keeps_current_reason_and_tracks_its_source_without_backlinks_AC_1
 
 
 # --- the project's overview and its reusable parts ---------------------------
-
-FIXED_PAGES = {
-    "overview.md": ["## Stack", "## Services", "## Build and deploy", "## Docs"],
-    "reusable-parts.md": ["## Parts", "## Rules"],
-}
-
-
-def fixed_body(page, leaving_out=None):
-    headings = [h for h in FIXED_PAGES[page] if h != leaving_out]
-    return "# The page\n\nWhat it holds.\n\n" + "".join(f"{h}\n\nSomething under it.\n\n" for h in headings)
-
 
 @pytest.mark.parametrize(
     "page,lacking",
