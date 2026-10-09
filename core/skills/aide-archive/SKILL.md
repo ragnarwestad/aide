@@ -27,13 +27,13 @@ starts, write one line `--- Step N of X: <title> — started`, and when
 it ends, one line `--- Step N of X: <title> — done`. A step that ends
 the run early says `— stopped: <why>` in place of `— done`, and one that does not apply to this run `— skipped: <why>`.
 
-Step 7, the merge into the default branch, is Aide's, after this
+Step 5, the merge into the default branch, is Aide's, after this
 session: Aide writes its marks, and the archive is finished only when
 it is done.
 
-### Step 1 of 7: Move the spec to the archive
+### Step 1 of 5: Move the spec to the archive
 
-First write `--- Step 1 of 7: Move the spec to the archive — started`, and when this step ends, `--- Step 1 of 7: Move the spec to the archive — done`.
+First write `--- Step 1 of 5: Move the spec to the archive — started`, and when this step ends, `--- Step 1 of 5: Move the spec to the archive — done`.
 
 
 A script does everything mechanical: resolving the argument to a
@@ -75,7 +75,7 @@ Branch on the JSON's `terminalReason`:
   and continue to Step 2. Otherwise an earlier
   run already moved the spec folder on the spec's branch — usually
   because the merge after it stopped: say so and stop, after finishing
-  any merge left open, as above, in the words Step 6 gives.
+  any merge left open, as above, in the words Step 4 gives.
 - **`conflict-open`:** the branch would not merge cleanly with the
   default branch. Follow
   [references/resolve-conflict.md](./references/resolve-conflict.md) in
@@ -101,75 +101,14 @@ Branch on the JSON's `terminalReason`:
 The script's not-done verdict stands. An open row that should be
 archived past is ticked on the spec's page, and archive is run again.
 
-### Step 2 of 7: Rewrite the wiki pages the spec touched
+### Step 2 of 5: Close the loop
 
-First write `--- Step 2 of 7: Rewrite the wiki pages the spec touched — started`, and when this step ends, `--- Step 2 of 7: Rewrite the wiki pages the spec touched — done`.
-
-```bash
-aide-wiki status --specs-root <specs root> --project-dir <project root>
-```
-
-**No wiki (`"wiki":false`):** write `— skipped: the project has no wiki`
-and continue straight to Step 3. Nothing else in this step applies.
-
-**A wiki:** ask which of its pages this spec's own code touched —
-
-```bash
-aide-wiki affected --specs-root <specs root> --project-dir <project root>
-```
-
-— which answers with the generated pages whose files this spec's code
-changed, each with the files of its own that still exist.
-**No pages named:** report that none needed rewriting and continue to
-Step 3.
-
-**Before rewriting:** read this spec's `1-description.md`, `2-analysis.md`
-and `3-solution.md`'s Plan review, under its archive path. Select only
-choices whose stated reason still explains the changed code, and invent
-none. Keep each selected reason
-as one line in the affected page's ripples, in the form "change X,
-and Y must follow, because …", naming the current files or pages.
-
-**One or more pages named:** for each, read the files it names as they
-are now — after this spec's own changes, in this session's own worktree
-— and rewrite the page's body the same way the wiki skill's own Step 3
-does, through the script, never by hand, passing exactly the files
-`affected` named for that page:
-
-```bash
-aide-wiki write --specs-root <specs root> --project-dir <project root> \
-                 --page NAME.md --file PATH [--file PATH...]
-                 # the page's new body on stdin
-```
-
-Rewrite only the pages `affected` named: a page covering no file this
-spec changed is left exactly as it is, however stale it may be for
-another reason — a wiki build or refresh still covers those. Report
-which pages were rewritten, or that none were.
-
-### Step 3 of 7: Check the current reasons in the rewritten pages
-
-First write `--- Step 3 of 7: Check the current reasons in the rewritten pages — started`, and when this step ends, `--- Step 3 of 7: Check the current reasons in the rewritten pages — done`.
-
-**No wiki or no pages rewritten in Step 2:** write `— skipped: no affected wiki pages` and continue to Step 4.
-
-Read the rewritten pages and check that each reason selected in Step 2
-still explains the current code and appears once, as a ripple sentence:
-"change X, and Y must follow, because …". Correct a missing or obsolete
-reason through the same `aide-wiki write` call, using only the pages and
-files `affected` named. A choice whose reason no longer explains the code
-is left out. Write only the pages `affected` named, and leave the index
-as it is. Report the pages whose current reasons were retained, or that
-none needed a reason.
-
-### Step 4 of 7: Close the loop
-
-First write `--- Step 4 of 7: Close the loop — started`, and when this step ends, `--- Step 4 of 7: Close the loop — done`.
+First write `--- Step 2 of 5: Close the loop — started`, and when this step ends, `--- Step 2 of 5: Close the loop — done`.
 
 
 First, what should NOT outlive it. **If this spec replaced behaviour, the
 tests for the behaviour it replaced are deleted here, before the commit
-in Step 5** (`core/rules/testing.md`, "Replaced behaviour takes its tests
+in Step 3** (`core/rules/testing.md`, "Replaced behaviour takes its tests
 with it"): a test whose subject is gone, and a check that the old thing
 is still absent where the test already checks what replaced it. A check
 whose absence IS the rule stays. Run the project's tests afterwards, and
@@ -178,8 +117,7 @@ this is the one step that can remove a test nobody asked about.
 
 Then read all four spec files and identify what should OUTLIVE the spec:
 
-- Decisions and their reasons (chosen approach, rejected alternatives) —
-  except the current reasons already retained in affected ordinary wiki pages
+- Decisions and their reasons (chosen approach, rejected alternatives)
 - New conventions or patterns the change introduced
 - Gotchas discovered during implementation (things that will bite again)
 
@@ -201,11 +139,11 @@ says so or `AIDE_HEADLESS` is set; then nobody can answer.
   proposed, then write the result with `aide-write-spec --file
   4-status.md` (never Write/Edit; `aide-write-spec` resolves
   the folder under either the active specs root or its `archive/`
-  subfolder automatically). Then continue straight to Step 5.
+  subfolder automatically). Then continue straight to Step 3.
 
-### Step 5 of 7: Commit
+### Step 3 of 5: Commit
 
-First write `--- Step 5 of 7: Commit — started`, and when this step ends, `--- Step 5 of 7: Commit — done`.
+First write `--- Step 3 of 5: Commit — started`, and when this step ends, `--- Step 3 of 5: Commit — done`.
 
 
 Steps 1 to 4 left their changes in the working directory; this step
@@ -242,13 +180,13 @@ Offer it only after the move actually happened — a `not-implemented-yet`
 or `held-back` decline in Step 1 has nothing to commit here beyond its
 own decline, which the ordinary git-add workflow already covers.
 
-### Step 6 of 7: Confirm
+### Step 4 of 5: Confirm
 
-First write `--- Step 6 of 7: Confirm — started`, and when this step ends, `--- Step 6 of 7: Confirm — done`.
+First write `--- Step 4 of 5: Confirm — started`, and when this step ends, `--- Step 4 of 5: Confirm — done`.
 
 
 The archive is not finished until the code and the spec are merged into
-the default branch, and that is Step 7, after this session. Everything
+the default branch, and that is Step 5, after this session. Everything
 this session did is on the spec's branches. So the report:
 
 - opens by saying the archive is not finished and the merge is next —
@@ -262,17 +200,15 @@ this session did is on the spec's branches. So the report:
   to be merged.
 
 ```text
-Archive of 17-clean-up-console-log not finished — the merge into main is next (Step 7)
+Archive of 17-clean-up-console-log not finished — the merge into main is next (Step 5)
 
 - Spec: 4-status.md stamped (Archived: 2026-08-13) and the folder moved
   to archive/17-clean-up-console-log/, on the spec's branch
-- Spec: wiki/queue.md rewritten from the spec's own code, on the spec's branch
-- Spec: wiki/queue.md retains the current rule and its reason, on the spec's branch
 - Code: docs/CONVENTIONS.md, one addition, on the spec's branch
 - Code: the conflict with main in src/app.ts resolved, merge committed
   on the spec's branch
 
-Still to come, Step 7: the tests run on the merge; when they pass, the
+Still to come, Step 5: the tests run on the merge; when they pass, the
 code and the spec go into main, and only then is the archive finished.
 
 The spec stays findable: /aide-to-pdf 17
@@ -283,9 +219,9 @@ Name the default branch by its own name (`main` above). An
 usually happened seconds before this session, in the same run, and the
 merge is still to come.
 
-### Step 7 of 7: Merge into main
+### Step 5 of 5: Merge into main
 
-Aide writes `--- Step 7 of 7: Merge into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
+Aide writes `--- Step 5 of 5: Merge into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
 
 Not this session's step, and it writes no mark for it. In a headless
 run Aide merges the spec's branches into the default branch once this

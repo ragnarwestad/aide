@@ -109,7 +109,7 @@ No AI. A person ticks the acceptance criteria, and can try the change on the tes
 
 1. When the spec cannot be archived yet, such as acceptance criteria still unticked, the runner says so and no AI runs.
 2. Otherwise the runner starts one new session with `aide-archive`. It merges the default branch in, resolves any
-   conflict, updates the project's wiki and moves the spec to `archive/`.
+   conflict and moves the spec to `archive/`. It leaves the wiki to the refresh that follows the landing.
 3. The landing runs the whole suite and merges the branch into main. That is the board's own code, not an agent.
 
 No subagents and no review.
