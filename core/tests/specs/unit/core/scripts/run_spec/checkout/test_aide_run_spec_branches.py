@@ -255,6 +255,27 @@ def test_a_conflicting_rebase_is_reported_not_resolved(
     assert not is_ancestor(project, their_sha, branch)
     assert git(project, "show", f"{branch}:README.md") == "our line"
 
+def test_a_push_origin_refuses_says_why_not_diverged(
+    runner, workspace, fake_claude, fetchable_origin_both_roots
+):
+    """Origin answers a read but refuses every push, as GitHub does for an
+    account with read access only. Nothing moved on origin, so the run
+    reports git's own refusal, never a diverged branch with nothing on
+    either side (skjera 01, 2026-10-09)."""
+    hook = fetchable_origin_both_roots["project"] / "hooks" / "pre-receive"
+    hook.write_text("#!/bin/sh\necho 'ERROR: Permission to org/repo.git denied to someone.' >&2\nexit 1\n")
+    hook.chmod(0o755)
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + 'echo "written by the step" > "$PWD/new-code.txt"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, push="branch", command="implement")
+    assert out["terminalReason"] == "unpushed", out
+    assert "Permission to org/repo.git denied" in out["pushError"], out["pushError"]
+    assert "diverged" not in out["pushError"], out["pushError"]
+    assert "Permission to org/repo.git denied" in out["error"], out["error"]
+
 def test_a_push_that_cannot_reach_its_remote_at_all_still_needs_no_retry(
     runner, workspace, fake_claude
 ):
