@@ -11,7 +11,7 @@ import { t } from "../../../src/i18n";
 import type { FailedCreate } from "../../../src/push/failed-creates.ts";
 import { renderFailedCreateNotices } from "../../../src/render/pages/specs-list/failed-create-notices.ts";
 import { jobHome } from "../../../src/render/pages/jobs-page/rows.ts";
-import { ran } from "../../helpers/queue-server.ts";
+import { ran, statusSaying } from "../../helpers/queue-server.ts";
 import { dated, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
@@ -113,7 +113,7 @@ describe("an old link to the Specs list is sent on (AC-1)", () => {
   });
 });
 
-describe("which kind of row a job gets (AC-1, AC-2, AC-3, AC-4, AC-5)", () => {
+describe("which kind of row a job gets (AC-5)", () => {
   const wiki = job({ id: "wiki1", specFolder: "wiki-aide", steps: ["wiki"], createdAt: "2026-10-08T10:01:00Z" });
   const sched = job({
     id: "sched1", specFolder: "schedule-nightly", steps: ["schedule"], state: "queued", startedAt: undefined,
@@ -132,7 +132,7 @@ describe("which kind of row a job gets (AC-1, AC-2, AC-3, AC-4, AC-5)", () => {
     return new URL(href.replaceAll("&amp;", "&"), "http://board");
   };
 
-  test("a spec has its spec row; a wiki build and a scheduled job show title, state, time and cost shut (AC-1)", async () => {
+  test("a spec has its spec row; a wiki build and a scheduled job show title, state, time and cost shut (AC-5)", async () => {
     const { base } = board([job({}), wiki, sched]);
     const html = await rowsOf(base);
 
@@ -147,7 +147,7 @@ describe("which kind of row a job gets (AC-1, AC-2, AC-3, AC-4, AC-5)", () => {
     }
   });
 
-  test("shut, by default or with another row open, a job row has no links and no Stop or Cancel (AC-2)", async () => {
+  test("shut, by default or with another row open, a job row has no links and no Stop or Cancel (AC-5)", async () => {
     const { base } = board([wiki, sched]);
     for (const query of ["", "open=aide/81-queue-and-runner"]) {
       const html = await rowsOf(base, query);
@@ -163,7 +163,7 @@ describe("which kind of row a job gets (AC-1, AC-2, AC-3, AC-4, AC-5)", () => {
     }
   });
 
-  test("open, a wiki build has its Log and Wiki links and a Stop that posts in place; a scheduled job its links and Cancel (AC-3)", async () => {
+  test("open, a wiki build has its Log and Wiki links and a Stop that posts in place; a scheduled job its links and Cancel (AC-5)", async () => {
     const { base } = board([wiki, sched]);
     const html = await rowsOf(base, OPEN_BOTH);
 
@@ -180,7 +180,7 @@ describe("which kind of row a job gets (AC-1, AC-2, AC-3, AC-4, AC-5)", () => {
     expect(s).toContain('action="/api/queue/sched1/cancel"');
   });
 
-  test("an open row of a failed wiki build has its links and nothing to stop (AC-3)", async () => {
+  test("an open row of a failed wiki build has its links and nothing to stop (AC-5)", async () => {
     const { base } = board([failedWiki]);
     const g = group(await rowsOf(base, "open=aide/wiki-aide"), "spec-aide/wiki-aide");
     expect(g).toContain('href="/jobs/wikif?tab=steps"');
@@ -189,7 +189,7 @@ describe("which kind of row a job gets (AC-1, AC-2, AC-3, AC-4, AC-5)", () => {
     expect(g).not.toContain("data-ask");
   });
 
-  test("the › opens a shut row and shuts an open one, by the open key, and ?only= answers one row (AC-4)", async () => {
+  test("the › opens a shut row and shuts an open one, by the open key, and ?only= answers one row (AC-5)", async () => {
     const { base } = board([wiki, sched]);
 
     const shut = group(await rowsOf(base), "spec-aide/wiki-aide");
@@ -216,28 +216,15 @@ describe("which kind of row a job gets (AC-1, AC-2, AC-3, AC-4, AC-5)", () => {
     expect(titleLine(group(html, "spec-aide/schedule-nightly"))).toBe("aide:nightly");
   });
 
-  test("a running job of a project off the allowlist has a job row; on the allowlist it has the spec's row (AC-2)", async () => {
-    const { base } = board([job({ id: "gone", project: "retired", specFolder: "07-old" }), job({ id: "here" })]);
-    const html = await rowsOf(base);
-
-    const off = group(html, "spec-retired/07-old");
-    expect(off).toContain('href="/jobs/gone?tab=steps"');
-    expect(off).not.toContain('data-folder="07-old"');
-
-    const on = group(html, "spec-aide/81-queue-and-runner");
+  test("a running job of a spec on the allowlist has the spec's row, not a job row (AC-5)", async () => {
+    const { base } = board([job({ id: "here" })]);
+    const on = group(await rowsOf(base), "spec-aide/81-queue-and-runner");
     expect(on).toContain('data-folder="81-queue-and-runner"');
     expect(on).not.toContain('href="/jobs/here?tab=steps"');
   });
-
-  test("a finished job that needs nobody has no row (AC-2)", async () => {
-    const { base } = board([job({ state: "done", specFolder: "55-finished-fine" })]);
-    const html = await rowsOf(base);
-    expect(html).not.toContain("55-finished-fine");
-    expect(html).toContain(t("en", "jobs.nothingRunning"));
-  });
 });
 
-describe("a create that ended without a spec shows as the Specs list's message (AC-3)", () => {
+describe("a create that ended without a spec shows as the Specs list's message", () => {
   const failed = job({ id: "cr", state: "failed", specFolder: "new-0a1b2c3d", steps: ["create"] });
   const record: FailedCreate = {
     id: "cr", project: "aide", title: "A spec that never was", description: "text",
@@ -253,7 +240,7 @@ describe("a create that ended without a spec shows as the Specs list's message (
     return board([failed], { failedCreatesPath });
   }
 
-  test("its message is on the Jobs tab while it is not dismissed, never a row, and not the empty sentence (AC-3)", async () => {
+  test("its message is on the Jobs tab while it is not dismissed, never a row, and not the empty sentence", async () => {
     const { base } = withRecord();
     const html = await rowsOf(base);
     expect(html).toContain(renderFailedCreateNotices([record], "en"));
@@ -261,7 +248,7 @@ describe("a create that ended without a spec shows as the Specs list's message (
     expect(html).not.toContain('id="spec-aide/new-0a1b2c3d"');
   });
 
-  test("once dismissed neither the message nor a row is there (AC-3)", async () => {
+  test("once dismissed neither the message nor a row is there", async () => {
     const { base } = withRecord();
     const res = await fetch(`${base}/api/queue/failed-creates/cr/dismiss`, {
       method: "POST",
@@ -275,22 +262,150 @@ describe("a create that ended without a spec shows as the Specs list's message (
   });
 });
 
-describe("nothing running (AC-7)", () => {
-  test("with nothing to show the rows say so and draw no table; with a running job they do not (AC-7)", async () => {
-    const empty = await rowsOf(board().base);
+describe("nothing running (AC-1)", () => {
+  test("with no Active spec, no wiki or scheduled row and no failed create the rows say so and draw no table (AC-1)", async () => {
+    const empty = await rowsOf(board([], { queueProjects: [] }).base);
     expect(empty).toContain(t("en", "jobs.nothingRunning"));
     expect(empty).not.toContain("<table");
+  });
 
-    const busy = await rowsOf(board([job({})]).base);
+  test("an Active spec alone, with no job in the queue, is a row and not the empty sentence (AC-1)", async () => {
+    const busy = await rowsOf(board().base);
     expect(busy).not.toContain(t("en", "jobs.nothingRunning"));
     expect(busy).toContain("<table");
+  });
+});
+
+const specKeys = (html: string): string[] =>
+  [...html.matchAll(/<tr class="spechead\b[^>]*?\bid="spec-([^"]+)"/g)].map((m) => m[1]!).sort();
+
+const STATE_OF = (done: string[], criteria: { task: string; done: boolean }[] = []): string =>
+  JSON.stringify({ completedPhases: done, archived: null, reopened: null, phaseCounts: {}, acceptanceCriteria: criteria });
+
+describe("every spec the Specs list shows under Active has a row, job or not (AC-1)", () => {
+  test("a spec implemented and waiting, one held back on an unticked criterion and one analyzed, with no job in the queue (AC-1)", async () => {
+    const folders = ["82-implemented", "83-held-back", "84-analyzed"];
+    const { base, dir } = harness.start({ extra: { queueProjects: ["aide"] }, alsoSpecs: folders });
+    const states: Record<string, string> = {
+      "82-implemented": STATE_OF(["create", "analyze", "implement"]),
+      "83-held-back": STATE_OF(["create", "analyze", "implement"], [{ task: "AC-1: it holds", done: false }]),
+      "84-analyzed": STATE_OF(["create", "analyze"]),
+    };
+    for (const folder of folders) {
+      writeFileSync(join(dir, "root", "aide", "specs", folder, "4-status.json"), states[folder]!);
+    }
+
+    const html = await rowsOf(base);
+    for (const folder of folders) {
+      expect(html).toContain(`id="spec-aide/${folder}"`);
+      expect(html).toContain(`data-folder="${folder}"`);
+    }
+  });
+});
+
+describe("the Jobs tab and the Specs list's Active entry show the same specs (AC-1, AC-2)", () => {
+  const UNMERGED = "92-unmerged";
+  const specsRepo = join("aide", "specs");
+  // The unmerged spec's branch is on origin and not part of the default branch.
+  const gitRun = async (dir: string, args: string[]) => {
+    const a = args.join(" ");
+    if (a.startsWith("ls-remote --heads") && dir.endsWith(specsRepo)) {
+      return { code: 0, stdout: `sha\trefs/heads/aide/${UNMERGED}\n` };
+    }
+    if (a.startsWith("merge-base --is-ancestor")) return { code: 1, stdout: "" };
+    if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+    return { code: 0, stdout: "" };
+  };
+  const closed = `${statusSaying(["create", "analyze", "close"])}\n- **Closed:** 2026-09-20 — did not hold\n`;
+
+  function everyKind(extraJobs: Record<string, unknown>[] = []) {
+    return harness.start({
+      extra: { queueProjects: ["aide"], gitRun: gitRun as never },
+      alsoSpecs: ["82-no-job"],
+      archivedSpecs: { "90-finished": {}, "91-closed": { status: closed }, [UNMERGED]: {} },
+      queueMirror: JSON.stringify([
+        job({ id: "run81" }),
+        job({ id: "cr", specFolder: "new-0a1b2c3d", steps: ["create"] }),
+        job({ id: "off", project: "retired", specFolder: "07-old" }),
+        ...extraJobs,
+      ]),
+    });
+  }
+
+  /** The list's Active rows, asked until the unmerged archived spec is on them. */
+  async function activeList(base: string): Promise<string> {
+    const deadline = Date.now() + 10_000;
+    for (;;) {
+      const html = await (await fetch(`${base}/specs?rows=1&state=not-archived`)).text();
+      if (html.includes(`id="spec-aide/${UNMERGED}"`)) return html;
+      if (Date.now() > deadline) throw new Error("the unmerged archived spec never reached the Active list");
+      await new Promise((r) => setTimeout(r, 25));
+    }
+  }
+
+  test("the spec rows of both answers name the same <project>/<folder> keys (AC-1, AC-2)", async () => {
+    const { base } = everyKind();
+    const list = await activeList(base);
+    const tab = await rowsOf(base);
+    expect(specKeys(tab)).toEqual(specKeys(list));
+    expect(specKeys(tab)).toContain("aide/81-queue-and-runner");
+    expect(specKeys(tab)).toContain("aide/82-no-job");
+    expect(specKeys(tab)).not.toContain("aide/90-finished");
+    expect(specKeys(tab)).not.toContain("aide/91-closed");
+    expect(specKeys(tab)).not.toContain("retired/07-old");
+  });
+
+  test("an archived spec whose branch is on origin and not merged has the list's row for it, with its mark (AC-1, AC-2)", async () => {
+    const { base } = everyKind();
+    const list = group(await activeList(base), `spec-aide/${UNMERGED}`);
+    const tab = group(await rowsOf(base), `spec-aide/${UNMERGED}`);
+    expect(tab).not.toBe("");
+    expect(tab).toContain("still on origin");
+    // The list's links carry the Active entry it was asked for; the tab's carry none.
+    const asTab = list.replaceAll("&amp;state=not-archived", "").replaceAll('href="/specs?', 'href="/?');
+    expect(tab).toBe(asTab.replaceAll('href="/specs"', 'href="/"'));
+  });
+
+  test("a finished archived spec with a Reopen running and a closed spec with a failed job have no row of any kind (AC-2)", async () => {
+    const { base } = everyKind([
+      job({ id: "reopen", specFolder: "90-finished", steps: ["reopen"] }),
+      job({ id: "bad", specFolder: "91-closed", steps: ["analyze"], state: "failed" }),
+    ]);
+    await activeList(base);
+    const html = await rowsOf(base);
+    expect(html).not.toContain("90-finished");
+    expect(html).not.toContain("91-closed");
+    expect(html).not.toContain("/jobs/reopen");
+    expect(html).not.toContain("/jobs/bad");
+  });
+});
+
+describe("the rows stand in the tab's order (AC-4)", () => {
+  test("a running spec first, then the waiting wiki builds, the one that changed last first (AC-4)", async () => {
+    const failedWiki = (o: Record<string, unknown>) =>
+      job({
+        state: "failed", steps: ["wiki"],
+        results: [{ step: "wiki", ok: false, exitCode: 1, costUsd: 0.1, costMeasured: true, terminalReason: "error", repos: [] }],
+        ...o,
+      });
+    // `other` was made later than `aide` but `aide` finished last.
+    const { base } = board([
+      failedWiki({ id: "wa", specFolder: "wiki-aide", createdAt: "2026-10-08T10:01:00Z", finishedAt: "2026-10-08T12:00:00Z" }),
+      failedWiki({ id: "wo", project: "other", specFolder: "wiki-other", createdAt: "2026-10-08T10:05:00Z", finishedAt: "2026-10-08T10:06:00Z" }),
+      job({ id: "run81" }),
+    ]);
+    const html = await rowsOf(base);
+    const at = (id: string): number => html.indexOf(`id="spec-${id}"`);
+    expect(at("aide/81-queue-and-runner")).toBeGreaterThan(-1);
+    expect(at("aide/81-queue-and-runner")).toBeLessThan(at("aide/wiki-aide"));
+    expect(at("aide/wiki-aide")).toBeLessThan(at("other/wiki-other"));
   });
 });
 
 // Spec 81: a done Analyze, then a failed Implement. Spec 82: an archive held
 // back on an unticked criterion. Both are shown on the Jobs tab, and both are
 // rows the Specs list draws.
-describe("a spec's row on the Jobs tab is the Specs list's row (AC-4, AC-5)", () => {
+describe("a spec's row on the Jobs tab is the Specs list's row (AC-3)", () => {
   const T = (m: number): string => `2026-10-08T10:${String(m).padStart(2, "0")}:00Z`;
   const step = (name: string, o: Record<string, unknown> = {}) => ({
     step: name, ok: true, exitCode: 0, costUsd: 0.1, costMeasured: true, terminalReason: "completed", repos: [], ...o,
@@ -324,10 +439,10 @@ describe("a spec's row on the Jobs tab is the Specs list's row (AC-4, AC-5)", ()
     const { base, dir } = harness.start({
       extra: { queueProjects: ["aide"] },
       queueMirror: JSON.stringify(jobs),
-      alsoSpecs: ["82-held-back"],
+      alsoSpecs: ["82-held-back", "83-idle"],
       status: STATUS,
     });
-    for (const folder of ["81-queue-and-runner", "82-held-back"]) {
+    for (const folder of ["81-queue-and-runner", "82-held-back", "83-idle"]) {
       writeFileSync(join(dir, "root", "aide", "specs", folder, "4-status.json"), STATE);
       ran(dir, ["create", "analyze", "implement"], folder);
     }
@@ -346,7 +461,7 @@ describe("a spec's row on the Jobs tab is the Specs list's row (AC-4, AC-5)", ()
   // The list's links to its own address read as the Jobs tab's.
   const asJobs = (html: string): string => html.replaceAll('href="/specs?', 'href="/?').replaceAll('href="/specs"', 'href="/"');
 
-  test("spec 81's rows are the list's rows for it (AC-4)", async () => {
+  test("spec 81's rows are the list's rows for it (AC-3)", async () => {
     const base = await settled();
     const jobsTab = group(await rowsOf(base), "spec-aide/81-queue-and-runner");
     const list = group(await (await fetch(`${base}/specs?rows=1`)).text(), "spec-aide/81-queue-and-runner");
@@ -354,7 +469,7 @@ describe("a spec's row on the Jobs tab is the Specs list's row (AC-4, AC-5)", ()
     expect(jobsTab).toBe(asJobs(list));
   });
 
-  test("a held-back spec, open with its criteria and a phase's log unfolded, is the list's row too (AC-5)", async () => {
+  test("a held-back spec, open with its criteria and a phase's log unfolded, is the list's row too (AC-3)", async () => {
     const base = await settled();
     const jobsTab = group(await rowsOf(base, OPEN_82), "spec-aide/82-held-back");
     const list = group(await (await fetch(`${base}/specs?rows=1&${OPEN_82}`)).text(), "spec-aide/82-held-back");
@@ -362,7 +477,16 @@ describe("a spec's row on the Jobs tab is the Specs list's row (AC-4, AC-5)", ()
     expect(jobsTab).toBe(asJobs(list));
   });
 
-  test("neither a heading nor any link a spec row draws back to its page leads to /specs (AC-4)", async () => {
+  test("a spec with no job, opened, is the list's rows for it too (AC-3)", async () => {
+    const base = await settled();
+    const open = "open=aide/83-idle";
+    const jobsTab = group(await rowsOf(base, open), "spec-aide/83-idle");
+    const list = group(await (await fetch(`${base}/specs?rows=1&${open}`)).text(), "spec-aide/83-idle");
+    expect(jobsTab).not.toBe("");
+    expect(jobsTab).toBe(asJobs(list));
+  });
+
+  test("neither a heading nor any link a spec row draws back to its page leads to /specs (AC-3)", async () => {
     const base = await settled();
     const html = await rowsOf(base, OPEN_82);
     expect(html).toContain("<thead>");
@@ -370,7 +494,7 @@ describe("a spec's row on the Jobs tab is the Specs list's row (AC-4, AC-5)", ()
     expect(html).not.toMatch(/<thead>[\s\S]*?<a\b[\s\S]*?<\/thead>/);
   });
 
-  test("?only= answers that spec's rows alone; a spec with no row gets a table with none (AC-5)", async () => {
+  test("?only= answers that spec's rows alone; a spec with no row gets a table with none (AC-3)", async () => {
     const base = await settled();
     const one = await rowsOf(base, `only=aide/81-queue-and-runner&${OPEN_82}`);
     expect(one).toContain('id="spec-aide/81-queue-and-runner"');

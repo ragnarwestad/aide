@@ -99,8 +99,8 @@ export {
 // target, and a row is an internal shape with no caller outside
 // specs-list.ts.
 export {
-  FILTER_KEYS, PHASE_LINES, computeSpecTotalDurationMs,
-  filterShowsArchived, NOT_VERIFIED_KEY, parsePhaseKeys, phaseKey, phasePips, phasesFor, renderSpecGroupRows, renderSpecsPage, renderSpecsRows, specGroupRowsByKey,
+  ACTIVE_FILTER_KEY, FILTER_KEYS, PHASE_LINES, computeSpecTotalDurationMs,
+  filterShowsArchived, NOT_VERIFIED_KEY, parsePhaseKeys, phaseKey, phasePips, phasesFor, renderSpecGroupRows, renderSpecsPage, renderSpecsRows,
 } from "./pages/specs-list";
 export type {
   ArchivedSpecView, Phase, PhaseMessages, SpecsFilter, SpecsPageOptions, SpecTarget,

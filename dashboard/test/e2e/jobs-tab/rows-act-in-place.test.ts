@@ -52,14 +52,15 @@ afterAll(async () => {
 });
 
 describe("a spec's row on the Jobs tab acts in place", () => {
-  test("a job queued while nothing runs gets its row, which folds open and whose Cancel ends the job, with no page load (AC-2, AC-5, AC-8)", async () => {
+  test("a spec's row is on the tab before any job, a job queued on it redraws it in place and Cancel ends the job, the row staying, with no page load (AC-1, AC-3)", async () => {
     const { base } = harness.start({});
     const page = await browser.newPage();
     await page.goto(`${base}/`);
+    await page.locator(SPEC_ROW).waitFor({ timeout: 10_000 });
     const loads = countLoads(page);
 
     const id = await queueAnalyze(base);
-    await page.locator(SPEC_ROW).waitFor({ timeout: 10_000 });
+    await page.locator(`${SPEC_ROW} a[data-fold="open"]`).waitFor();
     expect(loads.n).toBe(0);
 
     // The fold opens the row's phase lines; the address names the spec and stays on the Jobs tab.
@@ -77,7 +78,9 @@ describe("a spec's row on the Jobs tab acts in place", () => {
       return ((await r.json()) as { job: { state: string } }).job.state === "cancelled";
     }, id);
     expect(await stateOf(base, id)).toBe("cancelled");
-    await page.locator(SPEC_ROW).waitFor({ state: "detached", timeout: 10_000 });
+    // The spec is still Active: its row stays, with nothing left to cancel.
+    await page.locator(SPEC_ROW).waitFor({ timeout: 10_000 });
+    await page.locator(`form[action="/api/queue/${id}/cancel"]`).waitFor({ state: "detached", timeout: 10_000 });
     expect(pathOf(page)).toBe("/");
     expect(loads.n).toBe(0);
     await page.close();
@@ -90,7 +93,7 @@ describe("a wiki job's row folds and stops in place", () => {
   const STOP = `${WIKI_ROW} + tr.specstate button[data-ask]`;
   const CHIP = `${WIKI_ROW} + tr.specstate .badgeslot .badge`;
 
-  test("the row is shut, its › opens it with no page load and shuts it again, and Stop and its OK end the job cancelled (AC-3, AC-4)", async () => {
+  test("the row is shut, its › opens it with no page load and shuts it again, and Stop and its OK end the job cancelled (AC-5)", async () => {
     const { base } = harness.start({ queueMirror: JSON.stringify([wiki]) });
     const page = await browser.newPage();
     await page.goto(`${base}/`);
@@ -123,7 +126,7 @@ describe("a wiki job's row folds and stops in place", () => {
     await page.close();
   });
 
-  test("opened, the row shows its Stop and its state chip at desktop width and at a phone's (AC-3)", async () => {
+  test("opened, the row shows its Stop and its state chip at desktop width and at a phone's (AC-5)", async () => {
     const { base } = harness.start({ queueMirror: JSON.stringify([wiki]) });
     for (const width of [1280, 375]) {
       const page = await browser.newPage({ viewport: { width, height: 800 } });

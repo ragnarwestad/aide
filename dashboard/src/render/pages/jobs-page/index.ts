@@ -1,9 +1,10 @@
-// The Jobs tab: the board's first page. Every job that is queued, running or
-// landing, and every finished one that waits for the user, whatever started
-// it. Which jobs live in `rows.ts`. A spec's row is the Specs list's own,
-// drawn by its row builder from the same options; a wiki or scheduled job's
-// row is `job-row.ts`'s, in the same columns. Both sit in `#jobrows`, so the
-// page script redraws and presses them as it does the list's.
+// The Jobs tab: the board's first page. Every spec the Specs list shows under
+// Active, with the list's own row, and the wiki builds and scheduled jobs that
+// are in flight or wait for the user, whatever started them. Which jobs live
+// in `rows.ts`. A spec's row is drawn by the list's row builder from the same
+// options; a wiki or scheduled job's row is `job-row.ts`'s, in the same
+// columns. Both sit in `#jobrows`, in one order, so the page script redraws and
+// presses them as it does the list's.
 
 import { t } from "../../../i18n";
 import { rowMessage } from "../../ui/components/message.ts";
@@ -12,57 +13,39 @@ import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { renderFailedCreateNotices } from "../specs-list/failed-create-notices.ts";
 import { listHead } from "../specs-list/filter-bar.ts";
 import { listRefusalLine, refusalRowTemplate } from "../specs-list/notice-row.ts";
-import { specGroupRowsByKey, type SpecsPageOptions } from "../specs-list";
+import { activeSpecRows, type SpecsPageOptions } from "../specs-list";
 import { jobRow } from "./job-row.ts";
+import { byTabPlace, jobPlace, specPlace } from "./rows.ts";
 
 export { jobControl, jobHome, jobsShown, jobTitle } from "./rows.ts";
 export type { JobLike } from "./rows.ts";
 
-/** What the page draws: the jobs it shows, and the Specs list's options its
- *  spec rows are drawn with. */
+/** What the page draws: the wiki and scheduled jobs it shows, and the Specs
+ *  list's options its spec rows are drawn with. */
 export interface JobsView {
-  /** The shown jobs, in the order they are shown. */
+  /** The wiki builds and scheduled jobs `jobsShown` picks. */
   shown: QueueRowView[];
-  /** Every job of the specs that may have the list's row, not only the shown
-   *  ones: a row's phases, times and cost come from its spec's whole history. */
+  /** Every job a spec's row is drawn from (`listedSpecJobs`): the Active rows are built from them. */
   specJobs: QueueRowView[];
-  /** `<project>/<folder>` of the shown jobs that are a spec's step, in a
-   *  project on the allowlist. Any other shown job gets a job row. */
-  specKeys: ReadonlySet<string>;
-  /** A spec's own title, by project and folder. */
-  titleOf: (project: string, specFolder: string) => string | undefined;
-  /** The options a spec's row is drawn with, `listPath` set to this page. */
+  /** The options a spec's row is drawn with, `listPath` set to this page;
+   *  `archivedSpecs` holds the archived rows the Active entry shows. */
   list: SpecsPageOptions;
   /** The moment the page is drawn at, for the time of a job still going. */
   now?: number;
 }
 
-const keyOf = (r: { project: string; specFolder: string }): string => `${r.project}/${r.specFolder}`;
-
-/** The rows in order, each with its `<project>/<folder>` key. A spec stands
- *  where its first shown job stands, once; a shown job the list's builder
- *  draws no group for (a project off the allowlist, a spec whose folder is
- *  gone) has a job row. */
+/** The rows in order, each with its `<project>/<folder>` key: the Active
+ *  specs, each once, among the wiki and scheduled jobs, by where each stands. */
 function entries(v: JobsView): { key: string; html: string }[] {
   const now = v.now ?? Date.now();
-  const specRows = specGroupRowsByKey(v.specJobs, v.list, v.specKeys, now);
   const lang = v.list.lang ?? "en";
-  const seen = new Set<string>();
-  const out: { key: string; html: string }[] = [];
-  for (const job of v.shown) {
-    const key = keyOf(job);
-    const spec = v.specKeys.has(key) ? specRows.get(key) : undefined;
-    if (spec === undefined) {
-      out.push({
-        key,
-        html: jobRow(job, { titleOf: v.titleOf, lang, now, filter: v.list.filter ?? {}, listPath: v.list.listPath ?? "/" }),
-      });
-    } else if (!seen.has(key)) {
-      seen.add(key);
-      out.push({ key, html: spec });
-    }
-  }
-  return out;
+  const specs = activeSpecRows(v.specJobs, v.list, now).map((s) => ({ key: s.key, html: s.html, place: specPlace(s.group) }));
+  const jobs = v.shown.map((job) => ({
+    key: `${job.project}/${job.specFolder}`,
+    html: jobRow(job, { lang, now, filter: v.list.filter ?? {}, listPath: v.list.listPath ?? "/" }),
+    place: jobPlace(job),
+  }));
+  return [...specs, ...jobs].sort((a, b) => byTabPlace(a.place, b.place));
 }
 
 /** The failed-create messages and the table, or the sentence for no row. */

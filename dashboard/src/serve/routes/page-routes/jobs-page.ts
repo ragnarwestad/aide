@@ -1,10 +1,9 @@
 // The Jobs tab at `/`: the board's first page. One of the route families
 // `handlePageRoutes` asks in turn, and answers `null` for a path that is not
 // its own.
-import { jobsShown, renderJobsPage, renderJobsRows, renderJobsSpecRows } from "../../../render";
-import { isWikiBuild } from "../../../queue/steps.ts";
+import { ACTIVE_FILTER_KEY, jobsShown, renderJobsPage, renderJobsRows, renderJobsSpecRows } from "../../../render";
 import { languageChoice, specsClientScript } from "../../serve-helpers";
-import { specRowOptions } from "./spec-row-options.ts";
+import { listedSpecJobs, specRowOptions } from "./spec-row-options.ts";
 import type { RoutesContext } from "..";
 
 /** Whether the address carries one of the keys that cut or order the Specs
@@ -34,32 +33,22 @@ export async function jobsPage(
 
   const langResult = languageChoice(url, req);
   const jobs = ctx.queue.list();
-  // Decided on the raw jobs, so only the rows needed are built.
+  // The jobs a spec's row is drawn from, as the Specs list draws it.
+  const specJobs = listedSpecJobs(ctx, jobs);
+  // The wiki builds and scheduled jobs, by the rules they follow.
   const shown = jobsShown(jobs, {
     scheduleEntryExists: (project, name) => ctx.scheduleStore.list(project).some((e) => e.name === name),
   });
-  // A spec's step in a project the queue may run is drawn as the Specs list
-  // draws a spec, from all of that spec's jobs. A wiki or scheduled job is no
-  // spec, and a project off the allowlist could only offer a Run that would
-  // be refused: those get a job row.
-  const keyOf = (j: { project: string; specFolder: string }): string => `${j.project}/${j.specFolder}`;
-  const specKeys = new Set(
-    shown
-      .filter((j) => ctx.allowed.has(j.project) && !j.specFolder.startsWith("schedule-") && !isWikiBuild(j))
-      .map(keyOf),
-  );
-  const specJobs = jobs.filter((j) => specKeys.has(keyOf(j)));
   const built = new Map(
-    (await Promise.all([...new Set([...shown, ...specJobs])].map(ctx.jobRow))).map((r) => [r.id, r]),
+    (await Promise.all([...new Set([...specJobs, ...shown])].map(ctx.jobRow))).map((r) => [r.id, r]),
   );
   const view = {
     shown: shown.map((j) => built.get(j.id)!),
     specJobs: specJobs.map((j) => built.get(j.id)!),
-    specKeys,
-    titleOf: (project: string, specFolder: string) =>
-      ctx.targets().find((t) => t.project === project && t.specFolder === specFolder)?.title,
     list: {
       ...specRowOptions(ctx, url, langResult.lang),
+      // The archived rows the list's Active entry shows: those whose branch has not merged.
+      archivedSpecs: ctx.archivedSpecRows(ACTIVE_FILTER_KEY),
       listPath: "/",
       failedCreates: ctx.push.failedCreates.list(),
       currentUrl: langResult.currentUrl,

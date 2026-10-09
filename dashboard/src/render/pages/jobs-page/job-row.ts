@@ -6,12 +6,9 @@
 // script treat it as a spec's row: it redraws it by that id and writes a
 // refused Stop under it. A wiki or scheduled job's row folds as a spec's does,
 // from the `open` key in the address: shut, it holds the title, state, time and
-// cost; open, it adds the links and Stop or Cancel. A spec's step drawn here
-// keeps every part on show.
+// cost; open, it adds the links and Stop or Cancel.
 
 import { t, type Language } from "../../../i18n";
-import { ACCEPTANCE_CRITERIA_UNTICKED } from "../../../queue/steps.ts";
-import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
 import { isWikiBuild } from "../../../queue/steps.ts";
 import { askButton, confirmDialog, foldArrow, stepLabel } from "../../ui/components";
 import { projectLink } from "../../ui/components/spec-name.ts";
@@ -22,11 +19,9 @@ import { costCell } from "../specs-list/cell-helpers.ts";
 import type { SpecsFilter } from "../specs-list/data-model";
 import { queuePath } from "../specs-list/filter-bar.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
-import { isScheduleJob, jobControl, jobHome, jobTitle } from "./rows.ts";
+import { jobControl, jobHome, jobTitle } from "./rows.ts";
 
 export interface JobRowOptions {
-  /** A spec's own title, by project and folder. */
-  titleOf: (project: string, specFolder: string) => string | undefined;
   lang: Language;
   now: number;
   /** How the rows are folded, from the address: `open` names the rows shown open. */
@@ -83,28 +78,21 @@ function timeCell(row: QueueRowView, now: number): string {
 /** The word of the link to the place the job belongs. */
 function homeWord(row: QueueRowView, lang: Language): string {
   if (isWikiBuild(row)) return t(lang, "jobs.linkWiki");
-  if (isScheduleJob(row)) return t(lang, "shell.tabSchedule");
-  return jobHome(row) === "/specs" ? t(lang, "shell.tabSpecs") : t(lang, "jobs.linkSpec");
+  return t(lang, "shell.tabSchedule");
 }
 
 export function jobRow(row: QueueRowView, o: JobRowOptions): string {
   const { lang } = o;
-  const heldBack =
-    row.state === "done" && row.results?.at(-1)?.terminalReason === ACCEPTANCE_CRITERIA_UNTICKED
-      ? { archiveHeldBack: ACCEPTANCE_CRITERIA_UNTICKED_NOTE }
-      : {};
   const key = `${row.project}/${row.specFolder}`;
-  const folds = isWikiBuild(row) || isScheduleJob(row);
-  const open = !folds || openKeys(o).includes(key);
-  const name = jobTitle(row, lang, o.titleOf);
+  const open = openKeys(o).includes(key);
+  const name = jobTitle(row, lang);
   const kind = open ? jobControl(row) : undefined;
-  const label = folds
-    ? `${projectLink(row.project, { className: "muted" })}<span class="specpart"><span class="muted">:</span>` +
-      `<span class="specname">${esc(name)}</span></span>`
-    : `<span class="specpart"><span class="specname">${esc(name)}</span></span>`;
+  const label =
+    `${projectLink(row.project, { className: "muted" })}<span class="specpart"><span class="muted">:</span>` +
+    `<span class="specname">${esc(name)}</span></span>`;
   return (
     `<tr class="spechead" id="spec-${esc(key)}" data-job="1">` +
-    `<td class="foldcell" rowspan="2" data-col="fold">${folds ? fold(key, open, `${row.project}:${name}`, o) : ""}</td>` +
+    `<td class="foldcell" rowspan="2" data-col="fold">${fold(key, open, `${row.project}:${name}`, o)}</td>` +
     `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name"><span class="label">${label}</span></div>` +
     (open
       ? `<div class="spec-title"><a data-goto href="/jobs/${esc(row.id)}?tab=steps">${t(lang, "job.tabLog")}</a> · ` +
@@ -112,7 +100,7 @@ export function jobRow(row: QueueRowView, o: JobRowOptions): string {
       : "") +
     `</td></tr>` +
     `<tr class="specstate"><td colspan="2"></td>` +
-    `<td data-col="state"><span class="badgeslot">${specStateChip(row, lang, heldBack)}</span>` +
+    `<td data-col="state"><span class="badgeslot">${specStateChip(row, lang)}</span>` +
     `${kind ? `<span class="actionslot">${control(row, kind, lang)}</span>` : ""}</td>` +
     `<td data-col="started">${timeCell(row, o.now)}</td>` +
     `<td class="num" data-col="cost">${costCell(row.spentUsd, row.spentTokens, "–")}</td></tr>` +

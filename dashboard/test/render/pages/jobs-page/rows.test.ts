@@ -1,10 +1,20 @@
-// Which jobs the Jobs tab shows, what it calls them, where they belong and
-// what they offer. One test per rule, on plain job-shaped objects.
+// Which wiki builds and scheduled jobs the Jobs tab shows, where every row
+// stands, what a job row is called, where it belongs and what it offers. One
+// test per rule, on plain job-shaped objects.
 
 import { describe, expect, test } from "bun:test";
-import { jobControl, jobHome, jobsShown, jobTitle } from "../../../../src/render/pages/jobs-page/rows.ts";
+import {
+  byTabPlace,
+  jobControl,
+  jobHome,
+  jobPlace,
+  jobsShown,
+  jobTitle,
+  specPlace,
+} from "../../../../src/render/pages/jobs-page/rows.ts";
 
 type J = Parameters<typeof jobsShown>[0][number];
+type Lead = Parameters<typeof jobPlace>[0];
 
 let n = 0;
 const job = (o: Partial<J> & { createdAt?: string } = {}): J => ({
@@ -18,232 +28,221 @@ const job = (o: Partial<J> & { createdAt?: string } = {}): J => ({
   results: [],
   ...o,
 });
+const wiki = (o: Partial<J> = {}): J => job({ specFolder: "wiki-aide", steps: ["wiki"], ...o });
+const sched = (o: Partial<J> = {}): J => job({ specFolder: "schedule-nightly", steps: ["schedule"], ...o });
 const T = (day: number): string => `2026-10-${String(day).padStart(2, "0")}T10:00:00Z`;
+const ms = (day: number): number => Date.parse(T(day));
 
 const none: Parameters<typeof jobsShown>[1] = { scheduleEntryExists: () => true };
 const ids = (jobs: J[], o = none): string[] => jobsShown(jobs, o).map((j) => j.id);
 
-describe("a job in flight has a row, whatever started it (AC-2)", () => {
-  test("a queued spec step, a running create, a landing archive, wiki jobs and a scheduled job", () => {
-    const jobs = [
-      job({ id: "q", state: "queued" }),
-      job({ id: "c", state: "running", specFolder: "new-0a1b2c3d", steps: ["create"] }),
-      job({ id: "l", state: "done", landing: true, steps: ["archive"] }),
-      job({ id: "wr", state: "queued", specFolder: "wiki-aide", steps: ["wiki"] }),
-      job({ id: "wb", state: "running", specFolder: "wiki-aide", steps: ["wiki"] }),
-      job({ id: "s", state: "running", project: "other", specFolder: "schedule-nightly", steps: ["schedule"] }),
-    ];
-    expect(new Set(ids(jobs))).toEqual(new Set(["q", "c", "l", "wr", "wb", "s"]));
+/** A spec's group, as far as its place on the tab reads it. */
+const group = (o: { state: string; lead?: Partial<Lead>; createdAt?: string }): Parameters<typeof specPlace>[0] =>
+  ({ state: o.state, lead: o.lead ? job(o.lead as Partial<J>) : undefined, createdAt: o.createdAt }) as never;
+
+describe("where a row stands on the tab: running or landing, queued, the rest; the newest change first (AC-4)", () => {
+  test("running and landing specs come first, then the queued one, then the rest, newest first (AC-4)", () => {
+    const places = [
+      ["rest-t1", specPlace(group({ state: "not-started", createdAt: T(1) }))],
+      ["queued", specPlace(group({ state: "queued", lead: { state: "queued", createdAt: T(2) } }))],
+      ["rest-t3", specPlace(group({ state: "failed", lead: { state: "failed", createdAt: T(3) } }))],
+      ["running-old", specPlace(group({ state: "running", lead: { state: "running", createdAt: T(4) } }))],
+      // A landing lead already reads `running` in its group.
+      ["landing-new", specPlace(group({ state: "running", lead: { state: "done", landing: true, createdAt: T(8) } }))],
+      ["rest-t2", specPlace(group({ state: "not-started", createdAt: T(2) }))],
+    ] as const;
+    const ordered = [...places].sort((a, b) => byTabPlace(a[1], b[1])).map(([name]) => name);
+    expect(ordered).toEqual(["landing-new", "running-old", "queued", "rest-t3", "rest-t2", "rest-t1"]);
   });
 
-  test("a finished job with nothing waiting, and a cancelled one, have none (AC-2)", () => {
-    const jobs = [job({ id: "d", state: "done" }), job({ id: "x", state: "cancelled" })];
-    expect(ids(jobs)).toEqual([]);
+  test("a job's band is its own state: running or landing, queued, else the rest (AC-4)", () => {
+    expect(jobPlace(job({ state: "running" })).band).toBe(0);
+    expect(jobPlace(job({ state: "done", landing: true })).band).toBe(0);
+    expect(jobPlace(job({ state: "queued" })).band).toBe(1);
+    expect(jobPlace(job({ state: "failed" })).band).toBe(2);
   });
 
-  test("running and landing come first, then queued, then waiting; the newest first in each (AC-2)", () => {
-    const jobs = [
-      job({ id: "f", state: "failed", specFolder: "1-a", createdAt: T(9) }),
-      job({ id: "q-old", state: "queued", specFolder: "2-b", createdAt: T(2) }),
-      job({ id: "q-new", state: "queued", specFolder: "3-c", createdAt: T(3) }),
-      job({ id: "r-old", state: "running", specFolder: "4-d", createdAt: T(1) }),
-      job({ id: "r-new", state: "running", specFolder: "5-e", createdAt: T(4) }),
-      job({ id: "l", state: "done", landing: true, specFolder: "6-f", createdAt: T(5) }),
-    ];
-    expect(ids(jobs)).toEqual(["l", "r-new", "r-old", "q-new", "q-old", "f"]);
+  test("a spec's change is its lead job's newest stamp: made, started or finished (AC-4)", () => {
+    const lead = { createdAt: T(2), startedAt: T(3), finishedAt: T(4), state: "done" as const };
+    expect(specPlace(group({ state: "done", lead, createdAt: T(1) })).changedAt).toBe(ms(4));
+  });
+
+  test("with no job of its round a spec's change is the day it was made (AC-4)", () => {
+    expect(specPlace(group({ state: "not-started", createdAt: T(1) })).changedAt).toBe(ms(1));
+  });
+
+  test("a spec git has not dated, with no job, is the newest of its band (AC-4)", () => {
+    const undated = specPlace(group({ state: "not-started" }));
+    const dated = specPlace(group({ state: "not-started", createdAt: T(9) }));
+    expect(byTabPlace(undated, dated)).toBeLessThan(0);
+  });
+
+  test("a wiki build's change is its newest stamp, so it can stand above a spec made after it began (AC-4)", () => {
+    const build = jobPlace(wiki({ state: "failed", createdAt: T(10), finishedAt: T(12) } as Partial<J>));
+    const idle = specPlace(group({ state: "not-started", createdAt: T(11) }));
+    expect(byTabPlace(build, idle)).toBeLessThan(0);
+
+    const running = specPlace(group({ state: "running", lead: { state: "running", createdAt: T(5) } }));
+    expect(byTabPlace(running, build)).toBeLessThan(0);
   });
 });
 
-describe("a finished job that waits for the user keeps its row (AC-3)", () => {
+describe("a wiki build or scheduled job in flight has a row (AC-5)", () => {
+  test("a queued or running wiki build, a landing one and a running scheduled job (AC-5)", () => {
+    const jobs = [
+      wiki({ id: "wq", state: "queued" }),
+      wiki({ id: "wr", state: "running", project: "other" }),
+      wiki({ id: "wl", state: "done", landing: true, project: "third" }),
+      sched({ id: "s", state: "running", project: "fourth" }),
+    ];
+    expect(new Set(ids(jobs))).toEqual(new Set(["wq", "wr", "wl", "s"]));
+  });
+
+  test("a finished one with nothing waiting, and a cancelled one, have none (AC-5)", () => {
+    const jobs = [wiki({ id: "d", state: "done" }), sched({ id: "x", state: "cancelled" })];
+    expect(ids(jobs)).toEqual([]);
+  });
+});
+
+describe("a spec's job is never a job row: its spec's row stands for it (AC-1, AC-3)", () => {
+  test("running, queued, landing, failed and held-back spec jobs are not returned (AC-1)", () => {
+    const jobs = [
+      job({ id: "r", state: "running" }),
+      job({ id: "q", state: "queued", specFolder: "82-b" }),
+      job({ id: "l", state: "done", landing: true, steps: ["archive"], specFolder: "83-c" }),
+      job({ id: "f", state: "failed", specFolder: "84-d" }),
+      job({
+        id: "h", state: "done", steps: ["archive"], specFolder: "85-e",
+        results: [{ terminalReason: "acceptance-criteria-unticked" }],
+      }),
+    ];
+    expect(ids(jobs)).toEqual([]);
+  });
+
+  test("a create, running or ended without a spec, is not returned either (AC-3)", () => {
+    const create = (o: Partial<J>) => job({ specFolder: "new-0a1b2c3d", steps: ["create"], ...o });
+    expect(ids([create({ id: "run", state: "running" }), create({ id: "cr", state: "failed" })])).toEqual([]);
+  });
+});
+
+describe("a finished wiki build or scheduled job that waits for the user keeps its row (AC-5)", () => {
   const waiting: [string, Partial<J>][] = [
     ["failed", { state: "failed" }],
     ["failed with a conflict", { state: "failed", errorReason: "conflict" } as Partial<J>],
     ["interrupted", { state: "interrupted" }],
     ["stopped by its time limit", { state: "stopped", stopReason: "timeout" } as Partial<J>],
     ["stopped on red tests", { state: "stopped", stopReason: "tests-red" } as Partial<J>],
-    ["stopped on unticked criteria", { state: "stopped", stopReason: "acceptance-criteria" } as Partial<J>],
-    ["stopped on shared files", { state: "stopped", stopReason: "shared-files" } as Partial<J>],
-    [
-      "an archive held back on unticked criteria",
-      { state: "done", steps: ["archive"], results: [{ terminalReason: "acceptance-criteria-unticked" }] },
-    ],
   ];
   for (const [what, o] of waiting) {
-    test(`${what} (AC-3)`, () => {
-      expect(ids([job({ id: "w", ...o })])).toEqual(["w"]);
+    test(`${what} (AC-5)`, () => {
+      expect(ids([wiki({ id: "w", ...o })])).toEqual(["w"]);
+      expect(ids([sched({ id: "s", ...o })])).toEqual(["s"]);
     });
   }
-
-  test("an archive that ended another way is not held back (AC-3)", () => {
-    const done = job({ id: "d", state: "done", steps: ["archive"], results: [{ terminalReason: "merged" }] });
-    expect(ids([done])).toEqual([]);
-  });
 });
 
-describe("a newer job of the same project and key clears a waiting one (AC-3)", () => {
-  const failed = job({ id: "old", state: "failed", specFolder: "81-queue", createdAt: T(1) });
+describe("a newer job of the same project and key clears a waiting one (AC-5)", () => {
+  const failed = wiki({ id: "old", state: "failed", createdAt: T(1) });
 
   for (const state of ["queued", "running", "done"] as const) {
-    test(`a newer ${state} one (AC-3)`, () => {
-      const newer = job({ id: "new", state, specFolder: "81-queue", steps: ["implement"], createdAt: T(2) });
+    test(`a newer ${state} one (AC-5)`, () => {
+      const newer = wiki({ id: "new", state, createdAt: T(2) });
       expect(ids([newer, failed])).not.toContain("old");
     });
   }
 
-  test("a newer cancelled run does not clear it (AC-3)", () => {
-    const newer = job({ id: "new", state: "cancelled", specFolder: "81-queue", createdAt: T(2) });
+  test("a newer cancelled run does not clear it (AC-5)", () => {
+    const newer = wiki({ id: "new", state: "cancelled", createdAt: T(2) });
     expect(ids([newer, failed])).toEqual(["old"]);
   });
 
-  test("a newer one that itself waits keeps its own row, and the older goes (AC-3)", () => {
-    const newer = job({ id: "new", state: "failed", specFolder: "81-queue", createdAt: T(2) });
+  test("a newer one that itself waits keeps its own row, and the older goes (AC-5)", () => {
+    const newer = wiki({ id: "new", state: "failed", createdAt: T(2) });
     expect(ids([newer, failed])).toEqual(["new"]);
   });
 
-  test("any step of the spec clears it: a newer Analyze clears a failed Implement (AC-3)", () => {
-    const implement = job({ id: "imp", state: "failed", steps: ["implement"], specFolder: "81-queue", createdAt: T(1) });
-    const analyze = job({ id: "ana", state: "running", steps: ["analyze"], specFolder: "81-queue", createdAt: T(2) });
-    expect(ids([analyze, implement])).toEqual(["ana"]);
-  });
-
-  test("an older job after the failed one does not clear it (AC-3)", () => {
-    const older = job({ id: "before", state: "done", specFolder: "81-queue", createdAt: T(0) });
+  test("an older job after the failed one does not clear it (AC-5)", () => {
+    const older = wiki({ id: "before", state: "done", createdAt: T(0) });
     expect(ids([failed, older])).toEqual(["old"]);
   });
 
-  test("another spec, another project, another wiki or schedule key leave it (AC-3)", () => {
-    const others = [
-      job({ id: "a", state: "running", specFolder: "82-other", createdAt: T(3) }),
-      job({ id: "b", state: "running", project: "other", specFolder: "81-queue", createdAt: T(3) }),
-    ];
-    expect(ids([...others, failed])).toContain("old");
+  test("another project, another wiki or schedule key leave it (AC-5)", () => {
+    const other = wiki({ id: "b", state: "running", project: "other", createdAt: T(3) });
+    expect(ids([other, failed])).toContain("old");
 
-    const wiki = job({ id: "w", state: "failed", specFolder: "wiki-aide", steps: ["wiki"], createdAt: T(1) });
-    const wikiOther = job({ id: "wo", state: "done", specFolder: "wiki-other", steps: ["wiki"], createdAt: T(2) });
-    expect(ids([wikiOther, wiki])).toEqual(["w"]);
+    const w = wiki({ id: "w", state: "failed", specFolder: "wiki-aide", createdAt: T(1) });
+    const wOther = wiki({ id: "wo", state: "done", specFolder: "wiki-other", createdAt: T(2) });
+    expect(ids([wOther, w])).toEqual(["w"]);
 
-    const sched = job({ id: "s", state: "failed", specFolder: "schedule-a", steps: ["schedule"], createdAt: T(1) });
-    const schedOther = job({ id: "so", state: "done", specFolder: "schedule-b", steps: ["schedule"], createdAt: T(2) });
-    expect(ids([schedOther, sched])).toEqual(["s"]);
+    const s = sched({ id: "s", state: "failed", specFolder: "schedule-a", createdAt: T(1) });
+    const sOther = sched({ id: "so", state: "done", specFolder: "schedule-b", createdAt: T(2) });
+    expect(ids([sOther, s])).toEqual(["s"]);
   });
 
-  test("a newer refresh clears a failed wiki build of the same project (AC-3)", () => {
-    const build = job({ id: "b", state: "failed", specFolder: "wiki-aide", steps: ["wiki"], createdAt: T(1) });
-    const refresh = job({ id: "r", state: "done", specFolder: "wiki-aide", steps: ["wiki"], createdAt: T(2) });
-    expect(ids([refresh, build])).toEqual([]);
+  test("a newer refresh clears a failed wiki build of the same project (AC-5)", () => {
+    const refresh = wiki({ id: "r", state: "done", createdAt: T(2) });
+    expect(ids([refresh, failed])).toEqual([]);
   });
 });
 
-describe("a create that ended without a spec (AC-3)", () => {
-  const create = job({ id: "cr", state: "failed", specFolder: "new-0a1b2c3d", steps: ["create"] });
+describe("a waiting scheduled job whose entry was deleted (AC-5)", () => {
+  const waiting = sched({ id: "s", state: "failed" });
 
-  test("is never a row: the Specs list's message stands for it (AC-3)", () => {
-    expect(ids([create])).toEqual([]);
-  });
-});
-
-describe("a waiting scheduled job whose entry was deleted (AC-3)", () => {
-  const sched = job({ id: "s", state: "failed", specFolder: "schedule-nightly", steps: ["schedule"] });
-
-  test("has a row while its entry exists, and none once it is gone (AC-3)", () => {
+  test("has a row while its entry exists, and none once it is gone (AC-5)", () => {
     const asked: [string, string][] = [];
     const exists = (project: string, name: string) => (asked.push([project, name]), true);
-    expect(ids([sched], { ...none, scheduleEntryExists: exists })).toEqual(["s"]);
+    expect(ids([waiting], { ...none, scheduleEntryExists: exists })).toEqual(["s"]);
     expect(asked).toEqual([["aide", "nightly"]]);
-    expect(ids([sched], { ...none, scheduleEntryExists: () => false })).toEqual([]);
+    expect(ids([waiting], { ...none, scheduleEntryExists: () => false })).toEqual([]);
   });
 
-  test("a running scheduled job does not ask whether its entry exists (AC-2)", () => {
-    const running = job({ id: "r", state: "running", specFolder: "schedule-nightly", steps: ["schedule"] });
+  test("a running scheduled job does not ask whether its entry exists (AC-5)", () => {
+    const running = sched({ id: "r", state: "running" });
     expect(ids([running], { ...none, scheduleEntryExists: () => false })).toEqual(["r"]);
   });
 });
 
-describe("a row's title says what the job is (AC-2, AC-6)", () => {
-  const titleOf = (project: string, folder: string): string | undefined =>
-    project === "aide" && folder === "81-queue-and-runner" ? "Queue and runner" : undefined;
-  const view = (o: Partial<J> & { createTitle?: string; wikiRefresh?: boolean }) => job({ ...o }) as ReturnType<typeof job> & typeof o;
-
-  test("a spec's step names the project, the number and title, and the step (AC-2)", () => {
-    const title = jobTitle(view({ specFolder: "81-queue-and-runner", steps: ["implement"] }), "en", titleOf);
-    expect(title).toContain("aide");
-    expect(title).toContain("81-Queue and runner");
-    expect(title).toContain("Implement");
-  });
-
-  test("with no title the folder stands alone, number not doubled (AC-2)", () => {
-    const title = jobTitle(view({ specFolder: "82-untitled", steps: ["analyze"] }), "en", titleOf);
-    expect(title).toContain("82-untitled");
-    expect(title).not.toContain("82-82");
-  });
-
-  test("a landing archive names the step landing, not the one queued behind it (AC-2)", () => {
-    const title = jobTitle(
-      view({ specFolder: "81-queue-and-runner", steps: ["analyze", "implement"], stepIndex: 1, state: "queued", landing: true }),
-      "en",
-      titleOf,
-    );
-    expect(title).toContain("Analyze");
-    expect(title).not.toContain("Implement");
-  });
-
-  test("a create names its title and Create (AC-2)", () => {
-    const title = jobTitle(
-      view({ specFolder: "new-0a1b2c3d", steps: ["create"], createTitle: "Add a thing" }),
-      "en",
-      titleOf,
-    );
-    expect(title).toContain("Add a thing");
-    expect(title).toContain("Create");
-  });
+describe("a job row's title says what the job is (AC-5)", () => {
+  const view = (o: Partial<J> & { wikiRefresh?: boolean }) => job({ ...o }) as ReturnType<typeof job> & typeof o;
 
   test("a wiki build and a wiki refresh read Wiki build / Wiki refresh, with no project (AC-5)", () => {
-    const wiki = { specFolder: "wiki-aide", steps: ["wiki"] };
-    expect(jobTitle(view(wiki), "en", titleOf)).toBe("Wiki build");
-    expect(jobTitle(view({ ...wiki, wikiRefresh: true }), "en", titleOf)).toBe("Wiki refresh");
+    const w = { specFolder: "wiki-aide", steps: ["wiki"] };
+    expect(jobTitle(view(w), "en")).toBe("Wiki build");
+    expect(jobTitle(view({ ...w, wikiRefresh: true }), "en")).toBe("Wiki refresh");
   });
 
   test("a scheduled job reads its name, with no project (AC-5)", () => {
-    const title = jobTitle(view({ specFolder: "schedule-nightly-report", steps: ["schedule"], project: "woodstack" }), "en", titleOf);
+    const title = jobTitle(view({ specFolder: "schedule-nightly-report", steps: ["schedule"], project: "woodstack" }), "en");
     expect(title).toBe("nightly-report");
   });
 });
 
-describe("what a row offers to stop it (AC-6)", () => {
-  test("a queued job that is not landing offers Cancel (AC-6)", () => {
-    expect(jobControl(job({ state: "queued" }))).toBe("cancel");
+describe("what a job row offers to stop it (AC-5)", () => {
+  test("a queued job that is not landing offers Cancel (AC-5)", () => {
+    expect(jobControl(wiki({ state: "queued" }))).toBe("cancel");
   });
 
-  test("a running or a landing job offers Stop (AC-6)", () => {
-    expect(jobControl(job({ state: "running" }))).toBe("stop");
-    expect(jobControl(job({ state: "done", landing: true }))).toBe("stop");
-    expect(jobControl(job({ state: "queued", landing: true }))).toBe("stop");
+  test("a running or a landing job offers Stop (AC-5)", () => {
+    expect(jobControl(wiki({ state: "running" }))).toBe("stop");
+    expect(jobControl(wiki({ state: "done", landing: true }))).toBe("stop");
+    expect(jobControl(sched({ state: "queued", landing: true }))).toBe("stop");
   });
 
-  test("a running create offers neither, and neither does a finished job (AC-6)", () => {
-    expect(jobControl(job({ state: "running", steps: ["create"], specFolder: "new-0a1b2c3d" }))).toBeUndefined();
+  test("a finished job offers nothing (AC-5)", () => {
     for (const state of ["done", "failed", "stopped", "interrupted", "cancelled"] as const) {
-      expect(jobControl(job({ state }))).toBeUndefined();
+      expect(jobControl(wiki({ state }))).toBeUndefined();
     }
   });
 });
 
-describe("where a job belongs (AC-2, AC-6)", () => {
-  test("a spec's step belongs on the spec's page (AC-2)", () => {
-    expect(jobHome(job({ project: "aide", specFolder: "81-queue" }))).toBe("/specs/aide/81-queue");
-  });
-
-  test("a create belongs on the Specs list (AC-2)", () => {
-    expect(jobHome(job({ specFolder: "new-0a1b2c3d", steps: ["create"] }))).toBe("/specs");
-  });
-
-  test("a wiki job belongs on the project's Wiki build panel (AC-6)", () => {
+describe("where a job row belongs (AC-5)", () => {
+  test("a wiki job belongs on the project's Wiki build panel (AC-5)", () => {
     expect(jobHome(job({ project: "aide", specFolder: "wiki-aide", steps: ["wiki"] }))).toBe(
       "/projects/aide?tab=wiki&wikitab=build",
     );
   });
 
-  test("a scheduled job belongs on the project's Schedule tab (AC-6)", () => {
+  test("a scheduled job belongs on the project's Schedule tab (AC-5)", () => {
     expect(jobHome(job({ project: "aide", specFolder: "schedule-nightly", steps: ["schedule"] }))).toBe(
       "/projects/aide?tab=schedule",
     );
