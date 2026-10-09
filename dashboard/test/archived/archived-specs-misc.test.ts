@@ -22,12 +22,12 @@ describe("building the archived rows", () => {
   const specViewsSrc = sourceWithParts("serve/spec-views");
   const pageRoutesSrc = sourceWithParts("serve/routes/page-routes");
 
-  test("is asked for by the reader's own chip and by nothing else", () => {
+  test("is asked for by the reader's own chip and by the Jobs tab's Active entry, and by nothing else", () => {
     const calls = [...(specViewsSrc + pageRoutesSrc).matchAll(/\barchivedSpecRows\(([^)]*)\)/g)]
       .map((m) => m[1]!)
       // Its own declaration reads the same as a call; it is not one.
       .filter((arg) => !arg.includes(":"));
-    expect(calls).toEqual(["chosenState"]);
+    expect(calls.sort()).toEqual(["ACTIVE_FILTER_KEY", "chosenState"]);
   });
 
   test("skips a row before it reads anything for it (criterion 10)", () => {

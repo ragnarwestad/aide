@@ -7,8 +7,7 @@
 // three be asked one after another exactly as the chain read before.
 import { NEW_SPEC_ROUTE, renderNewSpecPage, renderSpecGroupRows, renderSpecsPage, renderSpecsRows, resolveBackHref } from "../../../render";
 import { languageChoice, modelChoiceOptions, specsClientScript, sortChoice, stateChoice } from "../../serve-helpers";
-import { specRowOptions } from "./spec-row-options.ts";
-import { isWikiBuild } from "../../../queue/steps.ts";
+import { listedSpecJobs, specRowOptions } from "./spec-row-options.ts";
 import type { RoutesContext } from "..";
 
 /** The typed text of a failed create, by its id; absent for an id that is not kept. */
@@ -126,9 +125,7 @@ export async function specsPages(
     // that got refused with "unknown specFolder" on every press. Its
     // own history lives on `/schedule`'s detail page instead.
     // A wiki build is no spec either: its state is on the project's Wiki tab.
-    const listed = ctx.queue.list().filter(
-      (j) => ctx.allowed.has(j.project) && !j.specFolder.startsWith("schedule-") && !isWikiBuild(j),
-    );
+    const listed = listedSpecJobs(ctx, ctx.queue.list());
     if (url.searchParams.get("rows")) {
       // The sort cookie is written HERE as well as on the whole page,
       // and this is the one that matters: pressing a column heading
