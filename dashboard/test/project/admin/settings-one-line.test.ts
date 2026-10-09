@@ -56,6 +56,12 @@ describe("updateProjectSettings folds line breaks", () => {
     expect(config.split("\n").every((l) => l === "" || /^[A-Z_]+=/.test(l))).toBe(true);
   });
 
+  test("a break in the description is written on one line (AC-2)", async () => {
+    const dir = project();
+    await updateProjectSettings(run, dir, { description: "the\r\nboard\nfor specs" });
+    expect(files(dir).manifest).toContain("description: the board for specs\n");
+  });
+
   test("a save carrying only the test command leaves the other four as they were (AC-3)", async () => {
     const dir = project();
     writeFileSync(join(dir, ".aide", "config"), "AIDE_INSTALL_CMD=bun install\n");

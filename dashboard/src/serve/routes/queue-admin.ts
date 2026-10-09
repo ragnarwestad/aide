@@ -9,7 +9,7 @@ import { MAIN_TEST_SERVER_KEY, restartMainTestServer, stopTestServer } from "../
 import { testServerFailedPage } from "./spec-edit/test-server-waiting.ts";
 import { listedModelName } from "../../queue/model-name.ts";
 import { persistQueueSettings } from "../../queue/queue.ts";
-import { addProject, assessProjectReadiness, commitManifestEdits, projectNameError, removeProject, updateProjectSettings, type SaveManifest } from "../../project/project-admin";
+import { addProject, assessProjectReadiness, commitManifestEdits, detectRemoteTestCommand, projectNameError, removeProject, updateProjectSettings, type SaveManifest } from "../../project/project-admin";
 import { isToolPart, SETTINGS_STEPS, TOOL_PARTS } from "../../render";
 import { MAX_CREATE_BODY, bodyToObject, json, readBounded } from "../serve-helpers";
 import { CHECKABLE_TOOLS, checkTool, isCheckableTool, recordCheck } from "../tool-check.ts";
@@ -198,14 +198,27 @@ export async function handleQueueAdminRoutes(
       // not see the project.
       ctx.invalidateScan();
       steps.push(ctx.persistAllowlist("added to the allowlist"));
-      // A choice other than `none` is saved the way the Config tab's Save
-      // does it, now that the project exists: into `settings.yaml`, or
-      // committed to a tracked manifest that does not already say it.
-      // `none` saves nothing, so an Add never overwrites a value a team's
-      // manifest already sets.
+      // What the form set beyond the name and the address is saved the way
+      // the Config tab's Save does it, now that the project exists: into
+      // `settings.yaml` or `.aide/config`, or committed to a tracked
+      // manifest. A field left empty and a default (Merge, `none`) write
+      // nothing, so an Add never overwrites a value a team's manifest
+      // already sets. For a project that tracks no manifest `addProject`
+      // has written the links, a `pr` landing and the description already,
+      // and a save writes only what differs from what is stored.
       const previewFrom = text(asked.previewFrom);
-      if (previewFrom && previewFrom !== "none") {
-        const saved = await updateProjectSettings(ctx.gitRun, join(ctx.opts.projectRoot, name), { previewFrom }, {
+      const codeLanding = text(asked.codeLanding);
+      const later = {
+        ...(previewFrom && previewFrom !== "none" && { previewFrom }),
+        ...(codeLanding === "pr" && { codeLanding }),
+        ...(text(asked.worktreeLinks) && { worktreeLinks: text(asked.worktreeLinks) }),
+        ...(text(asked.description) && { description: text(asked.description) }),
+        ...(text(asked.testCmd) && { testCmd: text(asked.testCmd) }),
+        ...(text(asked.installCmd) && { installCmd: text(asked.installCmd) }),
+        ...(text(asked.previewCmd) && { previewCmd: text(asked.previewCmd) }),
+      };
+      if (Object.keys(later).length) {
+        const saved = await updateProjectSettings(ctx.gitRun, join(ctx.opts.projectRoot, name), later, {
           saveManifest: manifestSaver(ctx, name),
           settingsFile: dashboardSettingsFile(ctx.opts.dashboardCheckoutRoot ?? DEFAULT_DASHBOARD_CHECKOUT_ROOT, name),
         });
@@ -237,6 +250,25 @@ export async function handleQueueAdminRoutes(
     // readiness answer about a project that was not added would be an
     // answer about somebody else's directory.
     return ctx.answerProjectChange("add-project", name, steps, readiness);
+  }
+
+  // What test command the root files of a git address point at, for the
+  // Add form's placeholder. Matched by its exact path ahead of the
+  // per-project routes: no project of that name exists yet. A POST, so the
+  // request guard's same-origin check applies — a GET could be fired by
+  // another site's page and make this server clone an address of its choosing.
+  if (path === "/api/queue/projects/test-command") {
+    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+    const body = await readBounded(req);
+    if ("refusal" in body) return body.refusal;
+    let raw: unknown;
+    try {
+      raw = bodyToObject(body.text, req.headers.get("content-type"));
+    } catch {
+      return json({ error: "malformed body" }, 400);
+    }
+    const gitUrl = (raw as Record<string, unknown> | null)?.gitUrl;
+    return json({ ok: true, testCmd: typeof gitUrl === "string" ? await detectRemoteTestCommand(ctx.gitRun, gitUrl) : null });
   }
 
   const settingsPost = path.match(/^\/api\/queue\/projects\/([^/]+)\/settings$/);
@@ -279,6 +311,7 @@ export async function handleQueueAdminRoutes(
       ...("installCmd" in asked && { installCmd: str(asked.installCmd) }),
       ...("previewCmd" in asked && { previewCmd: str(asked.previewCmd) }),
       ...("testCmd" in asked && { testCmd: str(asked.testCmd) }),
+      ...("description" in asked && { description: str(asked.description) }),
       ...("previewFrom" in asked && { previewFrom: str(asked.previewFrom) }),
     }, { saveManifest: manifestSaver(ctx, name), settingsFile: dashboardSettingsFile(checkoutBase, name) });
     // The specs root a save just named is where the scan goes looking

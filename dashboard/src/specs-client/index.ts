@@ -24,6 +24,7 @@
 // earlier one having already run (`syncDependsOn()` before the New-spec
 // form's own `change` listener is added, for instance).
 
+import { bindAddProjectForm } from "./add-project";
 import { keepBack } from "./back-link";
 import { applyAiPick, MODEL_SELECTS, offerEachToItsTool, refreshAiModelBox, syncAiToModel } from "./ai-sync.ts";
 import { openAsk } from "./ask.ts";
@@ -73,6 +74,8 @@ for (const el of document.querySelectorAll("form.addprojectform, form.removeform
   const form = el as HTMLFormElement;
   form.addEventListener("submit", ((event: Event) => submitProjectChange(form, event)) as EventListener);
 }
+
+for (const el of document.querySelectorAll("form.addprojectform")) bindAddProjectForm(el as HTMLFormElement);
 
 bindDeployForms(document);
 // The Deploy tab asks origin the moment it is open, and redraws itself from the answer.

@@ -38,6 +38,7 @@ export {
 export { manifestTracked, applySettingsEdits, seedSettingsFile, settingsHome, type SettingsHome } from "./settings-state.ts";
 export { assessProjectReadiness } from "./readiness.ts";
 export { addProject } from "./add-project.ts";
+export { detectRemoteTestCommand } from "./probe-remote.ts";
 export { updateProjectSettings, type SaveManifest } from "./update-settings.ts";
 export { removeProject } from "./remove-project.ts";
 export { commitManifestEdits } from "./manifest-commit.ts";

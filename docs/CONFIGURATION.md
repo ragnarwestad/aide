@@ -54,10 +54,11 @@ The settings a run uses:
 | `deployment.previewFrom` | How one branch can be tried before it is merged: `cloudflare-pages` (the host builds every branch; the row links to its address), `command` (the board starts the project, with `previewCmd`) or `none`; absent means `none` | the board                     | yes       |
 | `codeLanding`            | `pr` to leave archived code on its branch for a pull request; absent means merge into the default branch                                                                                                                     | a run, the board              | yes       |
 | `reuse`                  | Files and folders holding the project's reusable parts and the rules for using them, such as a component library and its design document. with no wiki, `/aide-analyze` reads each before it plans                           | `/aide-analyze`               | no        |
+| `description`            | One line saying what the project is, shown on the Projects list                                                                                                                                                              | the board                     | yes       |
 | `name`                   | The project's name                                                                                                                                                                                                           | a run, the board              | no        |
 
-What the project is, read by `/aide-analyze` for context in a project with no wiki, and shown on the project's page: `description`,
-`generated`, `stack`, `dependencies`, `deployment`, `logging`, `statistics`, `reports` and `docs`.
+What the project is, read by `/aide-analyze` for context in a project with no wiki, and shown on the project's page: `generated`, `stack`, `dependencies`, `deployment`, `logging`, `statistics`,
+`reports` and `docs`.
 `/aide-manifest` drafts and refreshes these; it leaves `AIDE_TEST_CMD`, `worktreeLinks` and the other settings above
 exactly as it finds them. `core/skills/aide-manifest/references/project.yaml` is a commented example.
 

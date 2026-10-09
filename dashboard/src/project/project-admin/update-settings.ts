@@ -70,6 +70,9 @@ export async function updateProjectSettings(
      *  `AIDE_TEST_CMD`, read by `aide-resolve-test-cmd`. Gated on
      *  presence the same way. */
     testCmd?: string;
+    /** One line saying what the project is, the manifest's `description`.
+     *  Gated on presence like the fields above. */
+    description?: string;
   },
   opts: {
     saveManifest?: SaveManifest;
@@ -81,7 +84,7 @@ export async function updateProjectSettings(
   // A value is one line. A field the request does not carry stays
   // absent, so a partial save clears nothing.
   const req = { ...raw };
-  for (const key of ["specsPath", "worktreeLinks", "installCmd", "previewCmd", "testCmd"] as const) {
+  for (const key of ["specsPath", "worktreeLinks", "installCmd", "previewCmd", "testCmd", "description"] as const) {
     if (req[key] !== undefined) req[key] = oneLine(req[key]);
   }
   const links = (req.worktreeLinks ?? "").trim();
@@ -223,6 +226,10 @@ export async function updateProjectSettings(
   save("installCmd", req.installCmd, "AIDE_INSTALL_CMD", "installCmd", "", true);
   save("previewCmd", req.previewCmd, "AIDE_PREVIEW_CMD", "previewCmd", fromManifest(manifestData.previewCmd), false);
   save("testCmd", req.testCmd, "", "AIDE_TEST_CMD", fromManifest(manifestData.AIDE_TEST_CMD), false);
+  // Compared folded to one line, as the form posts it back: a description
+  // an older Add stored over several lines would otherwise differ from its
+  // own folded value and be rewritten by every save.
+  save("description", req.description, "", "description", oneLine(fromManifest(manifestData.description)), false);
 
   // Spec 220: `merge` is the default, so choosing it takes the key OUT
   // rather than spelling today's behaviour into every project's

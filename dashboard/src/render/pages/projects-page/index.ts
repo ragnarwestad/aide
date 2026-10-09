@@ -54,6 +54,10 @@ export {
 /** Where a project is added: its own page, like `/new`. */
 export const ADD_PROJECT_ROUTE = "/projects/new";
 
+/** What the Test command field on Add is drawn with, and what the page
+ *  script puts back when the Git URL gives no command. */
+const TEST_CMD_PLACEHOLDER = "optional — the project's own test command";
+
 export interface ProjectsPageOptions {
   /** The page's browser code, compiled from `specs-client.ts` by the
    *  server: the typed-confirmation gate and the inline refusals. Every
@@ -175,8 +179,9 @@ export function renderAddProjectPage(
     // them in belongs where something reads them.
     rowMessage(
       "info",
-      "The dashboard keeps the name and the description in its own settings file — nothing is written " +
-        "into the project's repository.",
+      "The specs path and the install command go to the project's .aide/config on this machine. " +
+        "The other settings go to the dashboard's own settings file. For a repository that already tracks " +
+        ".aide/project.yaml, they are committed to that file instead.",
       { tag: "p" },
     ) +
     `<form method="post" action="/api/queue/projects" class="pageform addprojectform">` +
@@ -246,6 +251,27 @@ export function renderAddProjectPage(
       // project being added has no checkout on this host yet.
       `<input type="text" name="worktreeLinks" maxlength="300" ` +
         `placeholder="optional — gitignored paths a run must link in: node_modules .venv">`,
+      { wide: true },
+    ) +
+    `</span>` +
+    // Each is saved after the add by the call the Config tab's Save makes,
+    // and a field left empty writes nothing. The Test command's page
+    // script replaces the placeholder with the command the Git URL's root
+    // files point at; it is a suggestion and is never saved.
+    `<span class="frow">` +
+    field(
+      SETTING_LABELS.AIDE_TEST_CMD,
+      `<input type="text" name="testCmd" maxlength="300" placeholder="${TEST_CMD_PLACEHOLDER}">`,
+      { wide: true },
+    ) +
+    field(
+      SETTING_LABELS.AIDE_INSTALL_CMD,
+      `<input type="text" name="installCmd" maxlength="300" placeholder="optional — run after its code merges">`,
+      { wide: true },
+    ) +
+    field(
+      SETTING_LABELS.AIDE_PREVIEW_CMD,
+      `<input type="text" name="previewCmd" maxlength="300" placeholder="optional — serving on $PORT">`,
       { wide: true },
     ) +
     `</span>` +

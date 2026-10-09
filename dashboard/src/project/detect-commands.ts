@@ -58,14 +58,16 @@ const TABLE: { file: string; toolchain: string; test?: string; lint?: string; bu
   { file: "Cargo.toml", toolchain: "Cargo", test: "cargo test", build: "cargo build" },
 ];
 
-/** Which of test/lint/build the project's own root points at, if any.
- *  A project the table does not recognise gets an empty answer — "not
- *  set" is the honest thing to show, and a guess would be worse than
- *  silence on a page whose whole point is saying where a value came
+/** Which of test/lint/build the files of a project's root point at, if
+ *  any. `has` says whether a file is in the root, so the same table
+ *  answers for a directory on disk and for a list of names read off a
+ *  remote. A project the table does not recognise gets an empty answer
+ *  — "not set" is the honest thing to show, and a guess would be worse
+ *  than silence on a page whose whole point is saying where a value came
  *  from. */
-export function detectProjectCommands(root: string): DetectedCommands {
+export function detectCommandsIn(has: (file: string) => boolean): DetectedCommands {
   for (const row of TABLE) {
-    if (!existsSync(join(root, row.file))) continue;
+    if (!has(row.file)) continue;
     const found: DetectedCommands = {};
     for (const kind of ["test", "lint", "build"] as const) {
       const cmd = row[kind];
@@ -75,3 +77,7 @@ export function detectProjectCommands(root: string): DetectedCommands {
   }
   return {};
 }
+
+/** The same, read off the project's own root on disk. */
+export const detectProjectCommands = (root: string): DetectedCommands =>
+  detectCommandsIn((file) => existsSync(join(root, file)));

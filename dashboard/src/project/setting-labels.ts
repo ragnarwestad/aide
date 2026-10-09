@@ -9,4 +9,5 @@ export const SETTING_LABELS: Record<string, string> = {
   AIDE_TEST_CMD: "Test command",
   AIDE_INSTALL_CMD: "Install command",
   AIDE_PREVIEW_CMD: "Preview command",
+  description: "Description",
 };

@@ -25,7 +25,7 @@
 
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { configValue, resolveWorktreeLinks, resolveInstallCmd, resolvePreviewCmd, resolveTestCmd } from "./discover";
+import { configValue, resolveDescription, resolveWorktreeLinks, resolveInstallCmd, resolvePreviewCmd, resolveTestCmd } from "./discover";
 import { detectProjectCommands, type CommandKind } from "./detect-commands.ts";
 import type { ProjectReadiness, ReadinessCheckName } from "./project-admin";
 
@@ -83,6 +83,7 @@ export const SETTING_KEYS = [
   "AIDE_TEST_CMD",
   "AIDE_INSTALL_CMD",
   "AIDE_PREVIEW_CMD",
+  "description",
 ] as const;
 
 /** Which file each setting belongs to now that every key has exactly one
@@ -93,7 +94,7 @@ export const SETTING_KEYS = [
  *  the same rows into two tables. */
 export const SETTING_GROUPS: { file: ".aide/config" | "manifest"; keys: readonly string[] }[] = [
   { file: ".aide/config", keys: ["AIDE_SPECS_PATH", "AIDE_INSTALL_CMD"] },
-  { file: "manifest", keys: ["AIDE_WORKTREE_LINKS", "AIDE_PREVIEW_CMD", "AIDE_TEST_CMD"] },
+  { file: "manifest", keys: ["AIDE_WORKTREE_LINKS", "AIDE_PREVIEW_CMD", "AIDE_TEST_CMD", "description"] },
 ];
 
 export type SettingsGroupFile = (typeof SETTING_GROUPS)[number]["file"];
@@ -120,6 +121,7 @@ export const EDITABLE_FIELD: Record<string, string> = {
   AIDE_INSTALL_CMD: "installCmd",
   AIDE_PREVIEW_CMD: "previewCmd",
   AIDE_TEST_CMD: "testCmd",
+  description: "description",
 };
 
 const PURPOSE: Record<string, string> = {
@@ -128,6 +130,7 @@ const PURPOSE: Record<string, string> = {
   AIDE_TEST_CMD: "The project's own test command",
   AIDE_INSTALL_CMD: "What installing this project means on this machine, run after its code merges",
   AIDE_PREVIEW_CMD: "How to start this project so a spec's branch can be looked at, serving on $PORT",
+  description: "One line saying what the project is, shown on the Projects list",
 };
 
 /** The keys a lockfile can answer, and which command each is: the test
@@ -164,6 +167,10 @@ function configuredValue(
   if (key === "AIDE_WORKTREE_LINKS") {
     const { links, source } = resolveWorktreeLinks(manifestDir);
     return links ? { value: links, source: source ?? undefined } : null;
+  }
+  if (key === "description") {
+    const { value, source } = resolveDescription(manifestDir);
+    return value ? { value, source: source ?? undefined } : null;
   }
   if (key === "AIDE_INSTALL_CMD" || key === "AIDE_TEST_CMD" || key === "AIDE_PREVIEW_CMD") {
     const resolve =

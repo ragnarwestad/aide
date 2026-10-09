@@ -186,7 +186,7 @@ export async function addProject(
       steps.push({
         step: "manifest",
         ok: true,
-        note: "the project's own manifest (.aide/project.yaml) is used — change its worktree links and code landing there",
+        note: "the project's own manifest (.aide/project.yaml) is used — what the form sets is committed to it",
       });
     } else if (!settingsFile) {
       steps.push({ step: "manifest", ok: true, note: "no dashboard checkout root is set, so no settings are kept for it" });

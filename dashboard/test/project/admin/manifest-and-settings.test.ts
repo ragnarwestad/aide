@@ -10,7 +10,7 @@ import {
   updateProjectSettings,
   upsertManifestScalar,
 } from "../../../src/project/project-admin";
-import { manifestWithScalar } from "../../../src/project/project-admin/manifest-io.ts";
+import { manifestWithScalar, oneLine } from "../../../src/project/project-admin/manifest-io.ts";
 import { parseManifest } from "../../../src/project/parse-manifest.ts";
 import { configValue, resolveWorktreeLinks } from "../../../src/project/discover";
 import { cloningGit, fakeGit } from "../../helpers/fake-git.ts";
@@ -563,4 +563,64 @@ describe("saving AIDE_INSTALL_CMD (spec 255)", () => {
     expect(result.ok).toBe(true);
     expect(readFileSync(join(dir, ".aide", "config"), "utf-8")).toBe(before);
   });
+});
+
+// A description is the one manifest key only the YAML parser reads, so it is
+// written whole: on one line, quoted where a plain line would not read back,
+// and in place of every line a folded or block form took.
+describe("saving a description over every form it can be stored in (AC-2)", () => {
+  const typed = "Aide: the board for specs # not a comment, and long enough to pass the eighty character mark";
+  const forms: { form: string; description: string[]; tail: string[] }[] = [
+    { form: "folded over two lines", description: ["description: a board for", "  specs and jobs"], tail: ["", "# note", "AIDE_TEST_CMD: make test"] },
+    { form: "folded so its second line starts with a dash", description: ["description: a board", "  - for specs"], tail: ["", "# note", "AIDE_TEST_CMD: make test"] },
+    { form: "a block", description: ["description: |-", "  a board", "  for specs"], tail: ["", "# note", "AIDE_TEST_CMD: make test"] },
+    { form: "absent", description: [], tail: ["AIDE_TEST_CMD: make test"] },
+  ];
+  const run = async () => ({ code: 1, stdout: "" });
+  const setup = (description: string[], tail: string[]): { dir: string; file: string; text: string } => {
+    const dir = root();
+    mkdirSync(join(dir, ".aide"), { recursive: true });
+    const file = join(dir, ".aide", "project.yaml");
+    const text = `${["name: p", ...description, ...tail].join("\n")}\n`;
+    writeFileSync(file, text);
+    return { dir, file, text };
+  };
+  const parsed = (file: string) => {
+    const result = parseManifest(readFileSync(file, "utf-8"));
+    if (!result.ok) throw new Error(`the manifest no longer parses: ${result.error}`);
+    return result.data;
+  };
+
+  for (const { form, description, tail } of forms) {
+    test(`a description of over 80 characters reads back as typed over a description ${form} (AC-2)`, async () => {
+      const { dir, file } = setup(description, tail);
+      const result = await updateProjectSettings(run, dir, { description: typed });
+      expect(result.steps.find((s) => s.step === "description")).toEqual({ step: "description", ok: true });
+      const data = parsed(file);
+      expect(data.description).toBe(typed);
+      expect(data.name).toBe("p");
+      expect(data.AIDE_TEST_CMD).toBe("make test");
+      const text = readFileSync(file, "utf-8");
+      for (const line of tail) expect(text.split("\n")).toContain(line);
+
+      const saved = text;
+      const again = await updateProjectSettings(run, dir, { description: typed });
+      expect(again.steps.map((s) => s.step)).not.toContain("description");
+      expect(readFileSync(file, "utf-8")).toBe(saved);
+    });
+
+    test(`a stored description ${form} posted back on one line writes nothing (AC-2)`, async () => {
+      const { dir, file, text } = setup(description, tail);
+      const stored = parsed(file).description ?? "";
+      const result = await updateProjectSettings(run, dir, { description: oneLine(stored) });
+      expect(result.steps.map((s) => s.step)).not.toContain("description");
+      expect(readFileSync(file, "utf-8")).toBe(text);
+    });
+
+    test(`an empty description removes the key and its continuation lines ${form}, and nothing else (AC-2)`, async () => {
+      const { dir, file } = setup(description, tail);
+      await updateProjectSettings(run, dir, { description: "" });
+      expect(readFileSync(file, "utf-8")).toBe(`${["name: p", ...tail].join("\n")}\n`);
+    });
+  }
 });

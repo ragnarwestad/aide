@@ -58,6 +58,10 @@ export function minimalManifest(name: string, description?: string): string {
  *  parser — a quoted value would read back there as empty, which is
  *  indistinguishable from "no links configured".
  *
+ *  The one exception is a key only the YAML parser reads (`description`):
+ *  it is written as YAML needs it, quoted where a plain line would not read
+ *  back, and replaces the lines a folded or block form took.
+ *
  *  An empty value REMOVES the key: a manifest carrying `worktreeLinks:`
  *  with nothing after it says something no reader agrees about.
  *
@@ -86,26 +90,54 @@ export function manifestWithScalar(text: string, key: string, value: string, lab
   // A trailing newline splits into a final empty element; it is put back
   // by the join, so the file's shape survives a no-op.
   const trailing = lines.length && lines[lines.length - 1] === "" ? lines.pop() : undefined;
-  const at = lines.findIndex((line) => line.startsWith(`${key}:`));
+  const yamlOnly = YAML_ONLY_KEYS.has(key);
+  // Written in mapping context, so a value a plain line would not read back
+  // is quoted, and `lineWidth: 0` keeps a long one on the one line.
+  const line = yamlOnly && value ? stringify({ [key]: value }, { lineWidth: 0 }).trimEnd() : `${key}: ${value}`;
+  const at = lines.findIndex((l) => l.startsWith(`${key}:`));
   if (at !== -1) {
     const next = lines[at + 1];
-    if (next !== undefined && /^\s+-\s/.test(next)) {
+    const ownValue = lines[at]!.slice(key.length + 1).trim() !== "";
+    if (next !== undefined && /^\s+-\s/.test(next) && !(yamlOnly && ownValue)) {
       throw new Error(
         `${key} in ${label} is a YAML list, and this writes a single line — edit it by hand or make it a scalar first`,
       );
     }
-    if (value) lines[at] = `${key}: ${value}`;
-    else lines.splice(at, 1);
+    const span = yamlOnly ? 1 + continuationLines(lines, at) : 1;
+    if (value) lines.splice(at, span, line);
+    else lines.splice(at, span);
   } else if (value) {
     // Appended at the end rather than slotted in: a manifest's key order
     // is its author's, and there is no position here that is more
     // correct than the one after everything they wrote.
     while (lines.length && lines[lines.length - 1] === "") lines.pop();
-    lines.push(`${key}: ${value}`);
+    lines.push(line);
   } else {
     return text; // nothing to clear, and nothing to write
   }
   return lines.join("\n") + (trailing !== undefined || lines.length ? "\n" : "");
+}
+
+/** The keys only the YAML parser reads: bash's anchored `sed` reads none
+ *  of them, so they are written the way YAML needs, not the plain way the
+ *  others are. */
+const YAML_ONLY_KEYS = new Set(["description"]);
+
+/** How many lines after `lines[at]` belong to its value: the indented ones,
+ *  and a blank line only when an indented line follows it. A line at column
+ *  0 — a key, a comment, `---` — ends them. */
+function continuationLines(lines: string[], at: number): number {
+  let count = 0;
+  let blanks = 0;
+  for (let i = at + 1; i < lines.length; i++) {
+    const line = lines[i]!;
+    if (isBlank(line)) blanks++;
+    else if (isIndented(line)) {
+      count += blanks + 1;
+      blanks = 0;
+    } else break;
+  }
+  return count;
 }
 
 const isBlank = (line: string): boolean => line.trim() === "";

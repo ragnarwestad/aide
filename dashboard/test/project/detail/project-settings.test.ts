@@ -19,7 +19,9 @@ import { join } from "node:path";
 import type { ProjectReadiness, ReadinessCheck } from "../../../src/project/project-admin";
 import {
   DERIVABLE,
+  EDITABLE_FIELD,
   EDIT_GROUP_PARAM,
+  SETTING_GROUPS,
   SETTING_KEYS,
   groupForEditParam,
   projectSettings,
@@ -314,5 +316,24 @@ describe("every row's purpose starts with a capital letter (AC-7)", () => {
       const purpose = row(dir, key).purpose;
       expect(purpose[0]).toBe(purpose[0]!.toUpperCase());
     }
+  });
+});
+
+describe("the manifest's Description row (AC-2)", () => {
+  test("a description in the manifest is a row of the manifest group, posted as description (AC-2)", () => {
+    const dir = project(null);
+    writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\ndescription: A board\n");
+    const manifest = SETTING_GROUPS.find((g) => g.file === "manifest")!;
+    expect(manifest.keys).toContain("description");
+    const r = row(dir, "description");
+    expect(r.origin).toBe("configured");
+    expect(r.value).toBe("A board");
+    expect(EDITABLE_FIELD.description).toBe("description");
+  });
+
+  test("a manifest with no description leaves the row unset (AC-2)", () => {
+    const r = row(project(null), "description");
+    expect(r.origin).toBe("unset");
+    expect(r.value).toBeNull();
   });
 });

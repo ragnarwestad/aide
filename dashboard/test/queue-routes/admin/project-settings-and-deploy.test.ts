@@ -108,6 +108,23 @@ describe("a project's settings route (spec 184)", () => {
     expect(body.readiness!.checks.find((c) => c.check === "worktreeLinks")!.ok).toBe(true);
   });
 
+  test("the description is saved to the manifest when posted, and left alone when not (AC-2)", async () => {
+    const { base, dir } = await settled();
+    const post = (payload: object) =>
+      fetch(`${base}/api/queue/projects/aide/settings`, { method: "POST", headers: AUTH, body: JSON.stringify(payload) });
+    const first = await post({ description: "Aide: the board" });
+    expect(first.status).toBe(200);
+    expect(((await first.json()) as StepBody).results.map((r) => r.step)).toContain("description");
+    const parsed = parseManifest(onOrigin(dir));
+    expect(parsed.ok && parsed.data.description).toBe("Aide: the board");
+
+    const second = await post({ testCmd: "make test" });
+    expect(second.status).toBe(200);
+    const kept = parseManifest(onOrigin(dir));
+    expect(kept.ok && kept.data.description).toBe("Aide: the board");
+    expect(kept.ok && kept.data.AIDE_TEST_CMD).toBe("make test");
+  });
+
   test("an unusable value is refused, and nothing is written", async () => {
     const { base, project } = await settled();
     const before = readFileSync(join(project, ".aide", "project.yaml"), "utf-8");

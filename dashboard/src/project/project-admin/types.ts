@@ -20,6 +20,7 @@ export type ProjectStepName =
   | "installCmd"
   | "previewCmd"
   | "testCmd"
+  | "description"
   | "allowlist"
   | "confirm";
 

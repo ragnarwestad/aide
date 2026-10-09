@@ -88,8 +88,15 @@ function settingValueCell(r: SettingRow, isEditingThis: boolean, opts: ProjectPa
         : "")
     );
   }
-  const placeholder = r.key === "AIDE_SPECS_PATH" ? ` placeholder="its own specs/ when empty"` : "";
-  return `<textarea name="${field}" data-oneline rows="1" maxlength="300"${placeholder}>${value}</textarea>`;
+  // The description's limit is Add's own, 500; every other row keeps 300.
+  const placeholder =
+    r.key === "AIDE_SPECS_PATH"
+      ? ` placeholder="its own specs/ when empty"`
+      : r.key === "description"
+        ? ` placeholder="one line: what the project is"`
+        : "";
+  const maxlength = r.key === "description" ? 500 : 300;
+  return `<textarea name="${field}" data-oneline rows="1" maxlength="${maxlength}"${placeholder}>${value}</textarea>`;
 }
 
 /** A row that is a choice of fixed values: a `<select>` in edit mode,

@@ -480,9 +480,13 @@ describe("POST /api/queue/projects (spec 112)", () => {
     expect(previewFromIn(settings)).toBe("cloudflare-pages");
   });
 
-  test("none, or no previewFrom at all, writes no deployment key and adds no step (AC-2)", async () => {
+  test("none, no previewFrom and empty commands write no key and add no step (AC-1, AC-2)", async () => {
     const { base, dir } = start({ gitRun: cloningGit() });
-    for (const [name, extra] of [["picked-none", { previewFrom: "none" }], ["picked-nothing", {}]] as const) {
+    for (const [name, extra] of [
+      ["picked-none", { previewFrom: "none" }],
+      ["picked-nothing", {}],
+      ["picked-empty-commands", { testCmd: "", installCmd: "", previewCmd: "" }],
+    ] as const) {
       const res = await fetch(`${base}/api/queue/projects`, {
         method: "POST",
         headers: AUTH,
@@ -491,7 +495,10 @@ describe("POST /api/queue/projects (spec 112)", () => {
       expect(res.status).toBe(200);
       const body = (await res.json()) as StepBody;
       expect(body.results.map((r) => r.step)).toEqual(["name", "clone", "manifest", "allowlist"]);
-      expect(readFileSync(join(dir, "owned", name, "settings.yaml"), "utf-8")).not.toContain("deployment");
+      const settings = readFileSync(join(dir, "owned", name, "settings.yaml"), "utf-8");
+      expect(settings).not.toContain("deployment");
+      expect(settings).not.toMatch(/AIDE_TEST_CMD|previewCmd/);
+      expect(existsSync(join(dir, "root", name, ".aide", "config"))).toBe(false);
     }
   });
 
@@ -524,6 +531,89 @@ describe("POST /api/queue/projects (spec 112)", () => {
       const onOrigin = git(f.origin, "show", "main:.aide/project.yaml");
       expect(previewFromIn(onOrigin)).toBe("command");
       expect(onOrigin).toBe(manifest.replace("  host: Cloudflare Pages\n", "  host: Cloudflare Pages\n  previewFrom: command\n"));
+    } finally {
+      f.cleanup();
+    }
+  });
+
+  test("the three commands typed on Add are saved where the Config tab saves them (AC-1)", async () => {
+    const { base, dir } = start({ gitRun: cloningGit() });
+    const res = await fetch(`${base}/api/queue/projects`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({
+        name: "commands",
+        gitUrl: "https://example.com/commands.git",
+        codeLanding: "merge",
+        testCmd: "make test",
+        installCmd: "make install",
+        previewCmd: "make serve",
+      }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as StepBody;
+    expect(body.ok).toBe(true);
+    for (const step of ["testCmd", "installCmd", "previewCmd"]) {
+      expect(body.results.find((r) => r.step === step)?.ok).toBe(true);
+    }
+    const settings = parseManifest(readFileSync(join(dir, "owned", "commands", "settings.yaml"), "utf-8"));
+    expect(settings.ok && settings.data.AIDE_TEST_CMD).toBe("make test");
+    expect(settings.ok && settings.data.previewCmd).toBe("make serve");
+    expect(readFileSync(join(dir, "root", "commands", ".aide", "config"), "utf-8")).toContain("AIDE_INSTALL_CMD=make install\n");
+  });
+
+  test("every setting typed on Add is committed to a tracked manifest, and the rest of the file stays (AC-1, AC-3)", async () => {
+    const manifest = "name: demo\nlogging:\n  where: Cloudflare dashboard\n";
+    const f = projectWithOrigin({ ".aide/project.yaml": manifest }, { clone: false });
+    try {
+      const real = createGitRunner(30_000);
+      const committer = { GIT_AUTHOR_NAME: "T", GIT_AUTHOR_EMAIL: "t@example.com", GIT_COMMITTER_NAME: "T", GIT_COMMITTER_EMAIL: "t@example.com" };
+      const { base } = start({ gitRun: (cwd, args, timeout, env) => real(cwd, args, timeout, { ...committer, ...env }) });
+      const res = await fetch(`${base}/api/queue/projects`, {
+        method: "POST",
+        headers: AUTH,
+        body: JSON.stringify({
+          name: "demo",
+          gitUrl: f.origin,
+          codeLanding: "pr",
+          previewFrom: "command",
+          testCmd: "make test",
+          worktreeLinks: "node_modules",
+          description: "Aide: the board",
+        }),
+      });
+      expect(((await res.json()) as StepBody).ok).toBe(true);
+      const onOrigin = git(f.origin, "show", "main:.aide/project.yaml");
+      const parsed = parseManifest(onOrigin);
+      expect(parsed.ok).toBe(true);
+      if (!parsed.ok) return;
+      expect(parsed.data).toMatchObject({
+        name: "demo",
+        AIDE_TEST_CMD: "make test",
+        worktreeLinks: "node_modules",
+        codeLanding: "pr",
+        description: "Aide: the board",
+        deployment: { previewFrom: "command" },
+      });
+      for (const line of manifest.split("\n").filter(Boolean)) expect(onOrigin.split("\n")).toContain(line);
+    } finally {
+      f.cleanup();
+    }
+  });
+
+  test("the test-command route answers what a git address's root files point at, and refuses a GET (AC-1)", async () => {
+    const f = projectWithOrigin({ "package-lock.json": "{}" }, { clone: false });
+    try {
+      git(f.origin, "config", "uploadpack.allowFilter", "true");
+      const { base } = start({ gitRun: createGitRunner(30_000) });
+      const res = await fetch(`${base}/api/queue/projects/test-command`, {
+        method: "POST",
+        headers: AUTH,
+        body: JSON.stringify({ gitUrl: `file://${f.origin}` }),
+      });
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ ok: true, testCmd: "npm test" });
+      expect((await fetch(`${base}/api/queue/projects/test-command`)).status).toBe(405);
     } finally {
       f.cleanup();
     }
