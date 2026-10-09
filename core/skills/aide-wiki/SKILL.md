@@ -6,19 +6,22 @@ description: >-
   /aide-analyze. One page per part, an index and a schema, each generated
   page naming the files and the commit it was written from.
   Use when: the run is a wiki build (the runner starts it with
-  --command wiki), the wiki is missing or stale.
+  --command wiki), by hand in a session, the wiki is missing or stale.
   Do NOT use for: a spec's analysis (use aide-analyze), documentation for
   readers of the project (use the project's own docs).
-argument-hint: "wiki-<project>"
+argument-hint: "[wiki-<project>] [refresh]"
 effort: high
 ---
 
-Build or rebuild the project's wiki. The run is headless: no one answers
-questions, so decide and finish.
+Build or rebuild the project's wiki, from the board or by hand in a
+session. The run is headless when the prompt says so or `AIDE_HEADLESS`
+is set: no one answers questions, so decide and finish. Otherwise someone
+is there, and the skill asks only where a step below says so.
 
-**Input:** $ARGUMENTS (the tracking key `wiki-<project>`, then `refresh`
-when the run is a refresh; the project is the current directory and the
-specs root is named in the prompt)
+**Input:** $ARGUMENTS — from the board, the tracking key `wiki-<project>`,
+then `refresh` when the run is a refresh; by hand, nothing for a build, or
+`refresh`. A `refresh` among the arguments makes the run a refresh. The
+project is the current directory.
 
 A **build** rewrites every generated page from the code as it is now,
 whether or not its files changed. A **refresh** rewrites only the pages
@@ -29,15 +32,16 @@ build that leaves a page from an older commit, or a refresh that leaves a
 the project's overview or its reusable parts out: every wiki has
 `overview.md` and `reusable-parts.md` beside its index, whatever its
 parts, and a refresh writes the one `aide-wiki status` lists under
-`missing`.
+`missing`. By hand no runner checks the result, so Step 4 checks it by
+the same rule.
 
 The wiki is the folder `wiki/` inside the specs root: `index.md`,
 `schema.md`, `overview.md`, `reusable-parts.md` and one page per part of
 the system. Every write under
 `wiki/` goes through `aide-wiki`, never through Write or Edit, and
-nothing is written outside `wiki/`. The prompt names the specs root and
-the project directory; pass them to every call as `--specs-root` and
-`--project-dir`.
+nothing is written outside `wiki/`. Step 1 settles the specs root: the one
+the prompt names, or by hand the one it finds. Pass it, and the project
+directory, to every call as `--specs-root` and `--project-dir`.
 
 ## Workflow
 
@@ -55,6 +59,14 @@ done.
 
 First write `--- Step 1 of 5: See what exists — started`, and when this step ends, `--- Step 1 of 5: See what exists — done`.
 
+
+A board run's prompt names the specs root and the project directory: use
+exactly those, and look nothing up. By hand, find the specs root the way
+the other skills do: `AIDE_SPECS_PATH` in `.aide/config` in the project
+root, or `specs/` in the project root when the file names none
+(`aide_specs_root` in `_aide-spec-lib.sh` does the whole lookup), then
+`git pull --ff-only` the repository that holds it; when that cannot
+fast-forward, say so and go on from what is on disk.
 
 Run `aide-wiki status --specs-root <root> --project-dir .`. A page whose
 state is `hand-written` belongs to a person: its name is taken, and the
@@ -81,6 +93,15 @@ sees — a list, a detail page and its tabs, a dialog, the stylesheets — is
 a part of its own, since that is where changes land. The test of a split:
 given a change described in the user's words, the index points at one
 page, and that page names the files the change will touch.
+
+By hand, ask before Step 3 writes anything when this does not settle how
+the project divides: two divisions both pass the test of a split and send
+the same change to different pages, or a part's job is not plain from its
+code and docs. Name the parts you propose and what is unclear, and wait for
+the answer. In a refresh this concerns only a new part: a page of its own,
+or a place on an existing one. Otherwise decide without asking, as a
+headless run always does; nothing else is asked before Step 4's commit
+question.
 
 ### Step 3 of 5: Write a page for each part
 
@@ -159,8 +180,39 @@ report's first line ends `— not finished, the merge into main is next
 3. `aide-wiki index --specs-root <root> --project-dir .` — last, so a run
    that stops early leaves the previous index in place.
 
+4. By hand, check the result the way the runner checks a board run:
+   `aide-wiki unfinished --specs-root <root> --project-dir .`, with
+   `--refresh` in a refresh. Its `pages` are the generated pages a build
+   left from an older commit, or the `changed` pages a refresh left;
+   `missing` the fixed pages the wiki lacks; `index` is false when there is
+   no index. Whatever it names is unfinished.
+
 Then report the pages written in one line each, and the pages prune
-deleted.
+deleted. By hand there is no merge step: the report's first line says the
+wiki is built or refreshed, or that it is not finished, naming what the
+check named.
+
+By hand, end by asking whether to commit the wiki's changes in the specs
+repository, the repository that holds the specs root, and suggest this
+message:
+
+```text
+Run /aide-wiki for wiki-<project> (model: <tool> <model>)
+```
+
+`<project>` is the name of the project root's folder, the name the board
+gives the project. Add the `(model: ...)` part only when you can name your
+own model with certainty. A yes commits the wiki folder alone, removed
+pages included, so nothing else staged or changed goes with it:
+`git -C <root> add -- wiki`, then
+`git -C <root> commit -m "<message>" -- wiki`. Nothing is pushed or
+merged; that is the person's. Without a yes nothing is committed. When
+`git -C <root> status --porcelain -- wiki` shows nothing, or the specs
+root is in no repository, or its repository ignores it, say so in place of
+the question.
+
+A headless run asks nothing about committing: the runner commits what the
+session leaves, and merges it.
 
 ### Step 5 of 5: Merge into main
 

@@ -41,6 +41,18 @@ def specs_root(specs_repo):
     return root
 
 
+# The two pages every wiki carries beside its index, and the sections each must hold.
+FIXED_PAGES = {
+    "overview.md": ["## Stack", "## Services", "## Build and deploy", "## Docs"],
+    "reusable-parts.md": ["## Parts", "## Rules"],
+}
+
+
+def fixed_body(page, leaving_out=None):
+    headings = [h for h in FIXED_PAGES[page] if h != leaving_out]
+    return "# The page\n\nWhat it holds.\n\n" + "".join(f"{h}\n\nSomething under it.\n\n" for h in headings)
+
+
 def call(script, *args, stdin=""):
     proc = subprocess.run([str(script), *map(str, args)], input=stdin, capture_output=True, text=True)
     line = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else "{}"
