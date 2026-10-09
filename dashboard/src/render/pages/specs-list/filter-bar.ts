@@ -110,8 +110,16 @@ export function filterBar(groups: SpecGroup[], f: SpecsFilter, opts: SpecsPageOp
   // replaced it, deliberately — nobody had asked to filter by project,
   // and the list is short enough to read. Build something when the need
   // is real, and a dropdown is the shape that does not grow.
+  const state = stateDropdown(f, current, counted, { archived: uncountedArchived, closed: uncountedClosed, notVerified: uncountedNotVerified }, lang);
   return searchForm(
-    f, opts, stateDropdown(f, current, counted, { archived: uncountedArchived, closed: uncountedClosed, notVerified: uncountedNotVerified }, lang), lang,
+    {
+      action: "/specs",
+      hidden: FILTER_KEYS.filter((k) => k !== "q" && f[k]).map((k) => [k, f[k]!]),
+      q: f.q ?? "",
+      clearHref: queueHref(f, { q: "" }),
+      after: state + newSpecLink(opts, lang),
+    },
+    lang,
   );
 }
 
@@ -148,31 +156,54 @@ function stateDropdown(
       (!s.where && matchesState(s, CLOSED_STATE) ? uncounted.closed : 0);
     return { s, on, count };
   });
-  const options = rows
-    .map(({ s, on, count }) => {
+  return menuDropdown({
+    filter: "state",
+    ariaLabel: t(lang, "list.statesLabel"),
+    options: rows.map(({ s, on, count }) => ({
+      label: stateFilterLabel(s.key, lang),
+      count,
+      on,
       // Always explicit (REQ-4, spec 338): picking All has to be able to
       // override a REMEMBERED non-default filter, and a blank `state`
       // collapses to the same bare `/` a plain navigation with no choice
       // at all produces — the one thing that would tell the two apart.
-      const href = queueHref(f, { state: s.key });
-      return (
-        `<a data-nav href="${href}" role="radio" aria-checked="${on}">` +
-        `<span class="check" aria-hidden="true"></span>${esc(stateFilterLabel(s.key, lang))} (${count})</a>`
-      );
-    })
+      href: queueHref(f, { state: s.key }),
+    })),
+  });
+}
+
+/** One option of a dropdown: its label as plain text, its count, whether it is
+ *  the chosen one, and the link that chooses it, already escaped. */
+export interface MenuOption {
+  label: string;
+  count: number;
+  on: boolean;
+  href: string;
+}
+
+/** The dropdown the State control is, for any control that picks one of a few
+ *  options. The trigger shows the chosen option's own label and count, and
+ *  nothing else (REQ-1): the room the old "State:" prefix took is what
+ *  lets a longer choice like "Running-analyzing (2)" fit. Spec 454: the
+ *  visible content beside it IS that choice, not the word "States" — so
+ *  `aria-label` alone carries the name for assistive tech, without a
+ *  `title` repeating it as a tooltip nobody asked to read twice. The panel
+ *  carries `role="radiogroup"`/`role="radio"` (spec 323): a radio glyph is what
+ *  "pick one of these" looks and announces like. `filter` names the control
+ *  for the page script and the tests. */
+export function menuDropdown(o: { filter: string; ariaLabel: string; options: MenuOption[] }): string {
+  const options = o.options
+    .map(
+      (opt) =>
+        `<a data-nav href="${opt.href}" role="radio" aria-checked="${opt.on}">` +
+        `<span class="check" aria-hidden="true"></span>${esc(opt.label)} (${opt.count})</a>`,
+    )
     .join("");
-  const chosen = rows.find((r) => r.on) ?? rows[0]!;
-  const statesLabel = t(lang, "list.statesLabel");
-  // The trigger shows the chosen option's own label and count, and
-  // nothing else (REQ-1): the room the old "State:" prefix took is what
-  // lets a longer choice like "Running-analyzing (2)" fit. Spec 454: the
-  // visible content beside it IS that choice, not the word "States" — so
-  // `aria-label` alone carries the name for assistive tech, without a
-  // `title` repeating it as a tooltip nobody asked to read twice.
+  const chosen = o.options.find((opt) => opt.on) ?? o.options[0]!;
   return (
-    `<details class="menu state" data-filter="state">` +
-    `<summary aria-label="${statesLabel}">` +
-    `${esc(stateFilterLabel(chosen.s.key, lang))} (${chosen.count})${ICON_CHEVRON}</summary>` +
+    `<details class="menu state" data-filter="${o.filter}">` +
+    `<summary aria-label="${o.ariaLabel}">` +
+    `${esc(chosen.label)} (${chosen.count})${ICON_CHEVRON}</summary>` +
     `<div class="menupanel" role="radiogroup">${options}</div>` +
     `</details>`
   );
@@ -192,14 +223,25 @@ function stateDropdown(
  *  key, so a plain "Search" press with no JavaScript preserves whichever
  *  state filter is active instead of silently resetting to the
  *  default. */
-function searchForm(f: SpecsFilter, opts: SpecsPageOptions, state: string, lang: Language): string {
-  const keep = FILTER_KEYS.filter((k) => k !== "q")
-    .map((k) => (f[k] ? `<input type="hidden" name="${k}" value="${esc(f[k]!)}">` : ""))
-    .join("");
-  const q = (f.q ?? "").trim();
+export function searchForm(
+  o: {
+    /** The page the form is asked of. */
+    action: string;
+    /** What travels on, as name and value. */
+    hidden: [string, string][];
+    q: string;
+    /** The link that clears the term, already escaped. */
+    clearHref: string;
+    /** What follows the help popover: the dropdowns and the New link. */
+    after: string;
+  },
+  lang: Language,
+): string {
+  const keep = o.hidden.map(([k, v]) => `<input type="hidden" name="${k}" value="${esc(v)}">`).join("");
+  const q = o.q.trim();
   const clearLabel = t(lang, "list.searchClearTitle");
   return (
-    `<form class="specsearch" method="get" action="/specs">` +
+    `<form class="specsearch" method="get" action="${o.action}">` +
     // No caption over the field: the button beside it says Search, and
     // the same word twice made the field taller than the button it
     // stands next to (2026-08-23).
@@ -217,15 +259,14 @@ function searchForm(f: SpecsFilter, opts: SpecsPageOptions, state: string, lang:
     `<input class="archive-q" type="search" name="q" value="${esc(q)}" ` +
     `placeholder="${capitalizeFirst(t(lang, "list.searchPlaceholder"))}" aria-label="${t(lang, "list.searchAriaLabel")}">` +
     (q
-      ? `<a class="searchclear" data-nav href="${queueHref(f, { q: "" })}" ` +
+      ? `<a class="searchclear" data-nav href="${o.clearHref}" ` +
         `title="${clearLabel}" aria-label="${clearLabel}">&times;</a>`
       : "") +
     `</span>` +
     keep +
     btn({ label: t(lang, "list.search") }) +
     runsHelp(lang) +
-    state +
-    newSpecLink(opts, lang) +
+    o.after +
     `</form>\n`
   );
 }
@@ -234,8 +275,7 @@ function searchForm(f: SpecsFilter, opts: SpecsPageOptions, state: string, lang:
 const COLUMNS = ["fold", "spec", "phase", "state", "started", "cost"];
 const columnGroup = (): string => `<colgroup>${COLUMNS.map((c) => `<col data-col="${c}">`).join("")}</colgroup>`;
 
-/** The five headings the list's table carries, one list for the sortable head
- *  and the plain one. Cost's heading holds both units; the reader's choice
+/** The five headings the list's table carries. Cost's heading holds both units; the reader's choice
  *  shows one (spec 118). */
 const HEADINGS: { key: string; label: TranslationKey; cls?: string; attrs: string; labelHtml?: (lang: Language) => string }[] = [
   { key: "created", label: "list.colCreated", attrs: ' colspan="2" data-col="created"' },
@@ -251,20 +291,15 @@ const HEADINGS: { key: string; label: TranslationKey; cls?: string; attrs: strin
   },
 ];
 
-/** The same table head with plain headings, for a page that keeps its own
- *  order and offers no sort: the Jobs tab. */
-export function listHead(lang: Language = "en"): string {
-  return (
-    columnGroup() +
-    `<thead><tr>` +
-    HEADINGS.map((h) => `<th class="${h.cls ?? ""}"${h.attrs}>${h.labelHtml?.(lang) ?? esc(t(lang, h.label))}</th>`).join("") +
-    `</tr></thead>`
-  );
-}
-
-export function sortableHead(f: SpecsFilter, lang: Language = "en"): string {
-  const sort = SORTS.includes(f.sort ?? "") ? f.sort! : DEFAULT_SORT;
-  const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : SORT_DEFAULT_DIR[sort]!;
+/** The list's table head with a sort link on every heading. `now.sort` is the
+ *  column the rows are ordered by, undefined for a page that is in its own
+ *  order and marks none; `href` is the already escaped link a heading leads
+ *  to; `specLabel` heads the second column. */
+export function sortHead(
+  o: { now: { sort?: string; dir: "asc" | "desc" }; href: (key: string) => string; specLabel: TranslationKey },
+  lang: Language = "en",
+): string {
+  const { sort, dir } = o.now;
   // `labelHtml` for the one column whose heading is a consumption label
   // and not a noun: "Cost" is the wrong word above a column of token
   // counts, so it carries the same two spans its cells do (spec 118).
@@ -274,8 +309,6 @@ export function sortableHead(f: SpecsFilter, lang: Language = "en"): string {
   // `nth-child` rule would have broken silently when it did.
   const th = (key: string, label: string, cls = "", labelHtml?: string, attrs = "") => {
     const on = key === sort;
-    // Clicking the column you are already sorted by turns it round.
-    const next = on ? (dir === "asc" ? "desc" : "asc") : SORT_DEFAULT_DIR[key]!;
     // Every sortable column carries the chevron — faint until hovered,
     // so the reader can see the column CAN be sorted; full on the sorted
     // one, and ascending turns it by a class rather than swapping a
@@ -288,7 +321,7 @@ export function sortableHead(f: SpecsFilter, lang: Language = "en"): string {
     const aria = on ? ` aria-sort="${dir === "asc" ? "ascending" : "descending"}"` : "";
     return (
       `<th class="${cls}"${attrs}${aria}>` +
-      `<a class="${linkCls}" data-nav href="${queueHref(f, { sort: key, dir: next === SORT_DEFAULT_DIR[key] ? "" : next })}">` +
+      `<a class="${linkCls}" data-nav href="${o.href(key)}">` +
       `${labelHtml ?? esc(label)}${mark}</a></th>`
     );
   };
@@ -325,8 +358,27 @@ export function sortableHead(f: SpecsFilter, lang: Language = "en"): string {
     // across both of the header's two lines.
     columnGroup() +
     `<thead><tr>` +
-    HEADINGS.map((h) => th(h.key, t(lang, h.label), h.cls ?? "", h.labelHtml?.(lang), h.attrs)).join("") +
+    HEADINGS.map((h) => th(h.key, t(lang, h.key === "spec" ? o.specLabel : h.label), h.cls ?? "", h.labelHtml?.(lang), h.attrs)).join("") +
     `</tr></thead>`
+  );
+}
+
+/** The Specs list's head: the column the view is sorted by, marked, and a
+ *  heading's link turning it round when it is the one already sorted by. */
+export function sortableHead(f: SpecsFilter, lang: Language = "en"): string {
+  const sort = SORTS.includes(f.sort ?? "") ? f.sort! : DEFAULT_SORT;
+  const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : SORT_DEFAULT_DIR[sort]!;
+  return sortHead(
+    {
+      now: { sort, dir },
+      // Clicking the column you are already sorted by turns it round.
+      href: (key) => {
+        const next = key === sort ? (dir === "asc" ? "desc" : "asc") : SORT_DEFAULT_DIR[key]!;
+        return queueHref(f, { sort: key, dir: next === SORT_DEFAULT_DIR[key] ? "" : next });
+      },
+      specLabel: "list.colSpec",
+    },
+    lang,
   );
 }
 

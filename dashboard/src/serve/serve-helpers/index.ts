@@ -17,7 +17,7 @@ export {
 
 export {
   json, readBounded, cookieValue, sortCookieName, sortChoice,
-  stateCookieName, stateChoice, LANG_COOKIE, languageChoice, bodyToObject,
+  stateCookieName, stateChoice, jobsViewCookieName, jobsViewChoice, LANG_COOKIE, languageChoice, bodyToObject,
 } from "./http.ts";
 
 export {

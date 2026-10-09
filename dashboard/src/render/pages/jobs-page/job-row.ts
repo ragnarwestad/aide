@@ -20,6 +20,7 @@ import type { SpecsFilter } from "../specs-list/data-model";
 import { queuePath } from "../specs-list/filter-bar.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { jobControl, jobHome, jobTitle } from "./rows.ts";
+import { jobDurationMs, jobEndMs } from "./view.ts";
 
 export interface JobRowOptions {
   lang: Language;
@@ -64,15 +65,13 @@ function control(row: QueueRowView, kind: "stop" | "cancel", lang: Language): st
 }
 
 /** The job's own time: counting from its start while it goes, its span once
- *  it has ended, a dash before it has started. */
+ *  it has ended, a dash before it has started or with no recorded end. */
 function timeCell(row: QueueRowView, now: number): string {
   if (!row.startedAt) return "–";
-  const start = Date.parse(row.startedAt);
   if (inFlight(row)) {
-    return `<span class="muted small" data-elapsed="${esc(row.startedAt)}">${durationLabel(Math.max(0, now - start))}</span>`;
+    return `<span class="muted small" data-elapsed="${esc(row.startedAt)}">${durationLabel(jobDurationMs(row, now))}</span>`;
   }
-  const end = Date.parse(row.finishedAt ?? row.results?.at(-1)?.at ?? "");
-  return Number.isNaN(end) ? "–" : `<span class="muted small">${durationLabel(Math.max(0, end - start))}</span>`;
+  return Number.isNaN(jobEndMs(row)) ? "–" : `<span class="muted small">${durationLabel(jobDurationMs(row, now))}</span>`;
 }
 
 /** The word of the link to the place the job belongs. */

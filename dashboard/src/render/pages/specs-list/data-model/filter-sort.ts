@@ -24,6 +24,12 @@ import { ARCHIVED_OPEN_STATE, ARCHIVED_STATE, CLOSED_STATE, isFinishedGroup, typ
 // archived row without a line of new code.
 export const NOT_VERIFIED_KEY = "not-verified";
 
+/** What the state filter and the search read off a row: a spec's group, or a
+ *  wiki or scheduled job's facts on the Jobs tab. */
+type FilterFacts = Pick<SpecGroup, "project" | "specFolder" | "title" | "description" | "state" | "notVerified" | "failed">;
+/** What the column sort reads off a row. */
+type SortFacts = Pick<SpecGroup, "spentUsd" | "specFolder" | "state" | "createdAt" | "totalDurationMs" | "lead">;
+
 type StateFilterEntry = {
   key: string;
   label: string;
@@ -31,7 +37,7 @@ type StateFilterEntry = {
   excludeStates?: string[];
   /** A predicate on the row itself, for an entry that is not a state:
    *  "Not verified" cuts across live and archived rows alike. */
-  where?: (g: SpecGroup) => boolean;
+  where?: (g: FilterFacts) => boolean;
 };
 
 /** The Active entry's key: every spec neither archived nor closed, and an
@@ -132,7 +138,7 @@ export const matchesState = (
   state: string,
 ): boolean => (!f.states || f.states.includes(state)) && !(f.excludeStates ?? []).includes(state);
 
-export function matchesStateFilter(f: StateFilterEntry, g: SpecGroup): boolean {
+export function matchesStateFilter(f: StateFilterEntry, g: FilterFacts): boolean {
   return matchesState(f, g.state) && (!f.where || f.where(g));
 }
 
@@ -171,17 +177,17 @@ export const isArchivedRow = (g: SpecGroup): boolean =>
  *  says as much. Off `SpecGroup`, so one matcher reads a live spec and
  *  an archived one — the "across active AND archived" half of spec 221
  *  falls out of there being one row shape rather than two. */
-const haystack = (g: SpecGroup): string =>
+const haystack = (g: FilterFacts): string =>
   `${g.project}:${g.specFolder}\n${g.title ?? ""}\n${g.description ?? ""}`.toLowerCase();
 
 /** A term of nothing but spaces is no search at all: it must not empty
  *  the list. */
-export const matchesSearch = (g: SpecGroup, f: SpecsFilter): boolean => {
+export const matchesSearch = (g: FilterFacts, f: SpecsFilter): boolean => {
   const term = (f.q ?? "").trim().toLowerCase();
   return !term || haystack(g).includes(term);
 };
 
-export function applyFilter(groups: SpecGroup[], f: SpecsFilter): SpecGroup[] {
+export function applyFilter<T extends FilterFacts>(groups: T[], f: SpecsFilter): T[] {
   const entry = stateFilter(f.state);
   return groups.filter(
     (g) =>
@@ -201,7 +207,7 @@ function compareFolders(a: string, b: string): number {
   return a.localeCompare(b);
 }
 
-export function sortGroups(groups: SpecGroup[], f: SpecsFilter): SpecGroup[] {
+export function sortGroups<T extends SortFacts>(groups: T[], f: SpecsFilter): T[] {
   const sort = SORTS.includes(f.sort ?? "") ? f.sort! : DEFAULT_SORT;
   const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : SORT_DEFAULT_DIR[sort]!;
   const sign = dir === "asc" ? 1 : -1;
@@ -210,7 +216,7 @@ export function sortGroups(groups: SpecGroup[], f: SpecsFilter): SpecGroup[] {
   // live half match spec 273's archived one) — a column that DRAWS one
   // figure has to SORT by that figure, for both kinds of row alike, or
   // a click on "Time" reorders the page by a number nobody can see.
-  const key = (g: SpecGroup): number | string =>
+  const key = (g: SortFacts): number | string =>
     sort === "cost" ? g.spentUsd
     : sort === "spec" ? g.specFolder
     : sort === "state" ? g.state
