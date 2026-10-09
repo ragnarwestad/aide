@@ -1,7 +1,7 @@
 // GET / is the Jobs page: the board's first page. These are the rules it has
-// of its own — what it answers, where an old Specs list link goes, which jobs
-// get which kind of row, the sentence for nothing — and that a spec's row on
-// it is the row the Specs list draws.
+// of its own — what it answers, the view its address and its cookie name, which
+// jobs get which kind of row, the sentence for nothing — and that a spec's row
+// on it is the row the Specs list draws.
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -82,24 +82,6 @@ describe("GET / answers the Jobs page, GET /?rows=1 its rows alone (AC-1)", () =
     const res = await fetch(`${base}/?lang=nb`, { redirect: "manual" });
     expect(res.status).toBe(200);
     expect(await res.text()).toContain('id="jobrows"');
-  });
-});
-
-describe("an old link to the Specs list is sent on (AC-1)", () => {
-  test("state, project, sort, dir and q answer 302 to /specs with the same query (AC-1)", async () => {
-    const { base } = board();
-    for (const key of ["state", "project", "sort", "dir", "q"]) {
-      const res = await fetch(`${base}/?${key}=x`, { redirect: "manual" });
-      expect(res.status).toBe(302);
-      expect(res.headers.get("location")).toBe(`/specs?${key}=x`);
-    }
-  });
-
-  test("an empty value is caught too (AC-1)", async () => {
-    const { base } = board();
-    const res = await fetch(`${base}/?q=`, { redirect: "manual" });
-    expect(res.status).toBe(302);
-    expect(res.headers.get("location")).toBe("/specs?q=");
   });
 
   test("rows, only, open, checks and phases are the Jobs tab's own: it answers, it sends nothing on (AC-1)", async () => {
@@ -486,12 +468,11 @@ describe("a spec's row on the Jobs tab is the Specs list's row (AC-3)", () => {
     expect(jobsTab).toBe(asJobs(list));
   });
 
-  test("neither a heading nor any link a spec row draws back to its page leads to /specs (AC-3)", async () => {
+  test("no link a spec row draws back to its page leads to /specs (AC-3)", async () => {
     const base = await settled();
     const html = await rowsOf(base, OPEN_82);
     expect(html).toContain("<thead>");
     expect(html).not.toMatch(/href="\/specs(\?|")/);
-    expect(html).not.toMatch(/<thead>[\s\S]*?<a\b[\s\S]*?<\/thead>/);
   });
 
   test("?only= answers that spec's rows alone; a spec with no row gets a table with none (AC-3)", async () => {
@@ -504,5 +485,72 @@ describe("a spec's row on the Jobs tab is the Specs list's row (AC-3)", () => {
     const none = await rowsOf(base, "only=aide/99-no-row");
     expect(none).toContain("<table");
     expect(none).not.toContain("spechead");
+  });
+});
+
+// A running spec and a failed wiki build of `aide`.
+describe("the Jobs tab's view: its address, its cookie and its sentence for no row (AC-1, AC-5, AC-6, AC-7)", () => {
+  const wiki = job({
+    id: "wikif", specFolder: "wiki-aide", steps: ["wiki"], state: "failed", createdAt: "2026-10-08T10:01:00Z",
+    results: [{ step: "wiki", ok: false, exitCode: 1, costUsd: 0.1, costMeasured: true, terminalReason: "error", repos: [] }],
+  });
+  const SPEC_ID = 'id="spec-aide/81-queue-and-runner"';
+  const WIKI_ID = 'id="spec-aide/wiki-aide"';
+  const withBoth = () => board([job({ id: "run81" }), wiki]);
+
+  /** The `name=value` of the Jobs tab's cookie in an answer, as a request sends it back. */
+  const jobsCookie = (res: Response): string | undefined =>
+    res.headers.getSetCookie().map((c) => c.split(";")[0]!).find((c) => c.startsWith("aide_jobs_view_"));
+
+  test("a view key narrows the rows and the answer is 200, not a redirect (AC-1)", async () => {
+    const { base } = withBoth();
+    const html = await rowsOf(base, "state=failed");
+    expect(html).toContain(WIKI_ID);
+    expect(html).not.toContain(SPEC_ID);
+  });
+
+  test("a view that hides every row answers the sentence for it, and no row (AC-1)", async () => {
+    const { base } = withBoth();
+    const html = await rowsOf(base, "q=nothing-matches");
+    expect(html).toContain(t("en", "jobs.noRowMatchesFilter"));
+    expect(html).not.toContain("spechead");
+  });
+
+  test("?only= follows the view: a row the view hides answers a table with none (AC-1)", async () => {
+    const { base } = withBoth();
+    const html = await rowsOf(base, "only=aide/81-queue-and-runner&state=failed");
+    expect(html).toContain("<table");
+    expect(html).not.toContain("spechead");
+  });
+
+  test("the tab's own cookie is written, and neither of the Specs list's, and the list writes none of the tab's (AC-5)", async () => {
+    const { base } = withBoth();
+    const tabRes = await fetch(`${base}/?rows=1&state=stopped&sort=cost&q=x`);
+    const names = tabRes.headers.getSetCookie().map((c) => c.split("=")[0]);
+    expect(names.some((n) => n!.startsWith("aide_jobs_view_"))).toBe(true);
+    expect(names.some((n) => n!.startsWith("aide_state_") || n!.startsWith("aide_sort_"))).toBe(false);
+
+    const listRes = await fetch(`${base}/specs?rows=1&state=failed&sort=spec`);
+    expect(listRes.headers.getSetCookie().some((c) => c.startsWith("aide_jobs_view_"))).toBe(false);
+  });
+
+  test("the Jobs tab's second heading is Title and the Specs list's is unchanged (AC-6)", async () => {
+    const { base } = withBoth();
+    const tabHead = (await rowsOf(base)).match(/<thead>[\s\S]*?<\/thead>/)?.[0] ?? "";
+    expect(tabHead).toContain(t("en", "jobs.colTitle"));
+    expect(tabHead).not.toContain(t("en", "list.colSpec"));
+    const listHead = (await (await fetch(`${base}/specs?rows=1`)).text()).match(/<thead>[\s\S]*?<\/thead>/)?.[0] ?? "";
+    expect(listHead).toContain(t("en", "list.colSpec"));
+  });
+
+  test("a bare /?rows=1 brings back the view the cookie remembers (AC-7)", async () => {
+    const { base } = withBoth();
+    const first = await fetch(`${base}/?q=build`);
+    const cookie = jobsCookie(first);
+    expect(cookie).toBeDefined();
+    const res = await fetch(`${base}/?rows=1`, { headers: { cookie: cookie! } });
+    const html = await res.text();
+    expect(html).toContain(WIKI_ID);
+    expect(html).not.toContain(SPEC_ID);
   });
 });
