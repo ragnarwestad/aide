@@ -31,9 +31,9 @@ Step 7, the merge into the default branch, is Aide's, after this
 session: Aide writes its marks, and the archive is finished only when
 it is done.
 
-### Step 1 of 7: Run the mechanical script
+### Step 1 of 7: Move the spec to the archive
 
-First write `--- Step 1 of 7: Run the mechanical script — started`, and when this step ends, `--- Step 1 of 7: Run the mechanical script — done`.
+First write `--- Step 1 of 7: Move the spec to the archive — started`, and when this step ends, `--- Step 1 of 7: Move the spec to the archive — done`.
 
 
 A script does everything mechanical: resolving the argument to a
@@ -42,13 +42,15 @@ tables, and, when the work is done, stamping and moving the folder:
 
 ```bash
 aide-archive-spec --project-dir <project root> --spec <argument> \
-                   [--specs-dir <specs repo root, if separate>]
+                   [--specs-dir <the folder holding this project's spec folders, if separate>]
 ```
 
 Pass `--specs-dir` whenever the specs root lives in a different git repo
 from the project — the specs repo has a branch of its own and can
 conflict independently of the project, and the script only checks the
 directories it is given.
+It is the folder the spec folders sit in (`<specs repo>/<project>`), never the specs
+repo's own root, which holds one folder per project and no spec.
 
 **Before branching on the answer: a merge that is OPEN in the project
 worktree or the specs worktree (`git rev-parse -q --verify MERGE_HEAD`
