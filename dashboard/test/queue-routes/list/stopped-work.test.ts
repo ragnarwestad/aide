@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { type ServerOptions } from "../../../src/serve/serve.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 import { statusSaying } from "../../helpers/queue-server.ts";
+import { WAITING_RUNNER } from "../../helpers/waiting-runner.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -86,7 +87,7 @@ describe("landing a stopped step's specs-only work (spec 187)", () => {
     const { base, dir } = start(
       {
         gitRun: git.run as never,
-        queueRunnerBin: "/usr/bin/true",
+        queueRunnerBin: WAITING_RUNNER,
         queueResultDir: results,
         queueProjectRoot: "/repos",
         // Landing, not the step, names a create's folder now — this

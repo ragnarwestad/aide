@@ -17,6 +17,7 @@ function sentence(s: unknown): string {
 }
 
 import { JOB, specHead, specControls, openQuery, setupQueueRoutesHarness } from "../fixtures.ts";
+import { WAITING_RUNNER } from "../../helpers/waiting-runner.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -73,7 +74,7 @@ function serverWithRunner(
   ownDirs.push(results);
   const { base, dir } = start({
     gitRun: git.run as never,
-    queueRunnerBin: "/usr/bin/true",
+    queueRunnerBin: WAITING_RUNNER,
     queueResultDir: results,
     finalizeCreateSpec: DEFAULT_FINALIZE_CREATE,
     ...extra,

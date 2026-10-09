@@ -9,6 +9,7 @@ import { tmpdir } from "node:os";
 import { join, sep } from "node:path";
 import { queueHarness, statusSaying } from "../../helpers/queue-server.ts";
 import { ARCHIVED_VIEW, blockFor, listUntil } from "../../archived/archived-specs-fixtures.ts";
+import { WAITING_RUNNER } from "../../helpers/waiting-runner.ts";
 
 // A press waits for the list to show the note first, which the sweep
 // fills within its own ticks.
@@ -91,7 +92,7 @@ function startWith(
   const status = opts.closed
     ? `${statusSaying(["create", "analyze", "close"])}\n- **Closed:** 2026-09-20 — did not hold\n`
     : statusSaying(["create", "analyze", "implement", "archive"]);
-  const runner = opts.results ? { queueRunnerBin: "/usr/bin/true", queueResultDir: opts.results } : {};
+  const runner = opts.results ? { queueRunnerBin: WAITING_RUNNER, queueResultDir: opts.results } : {};
   const { mergedHead } = opts.reviewed ?? {};
   const gh = mergedHead
     ? { ghRun: async () => ({ code: 0, stdout: JSON.stringify([{ state: "MERGED", headRefOid: mergedHead }]) }) }

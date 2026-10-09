@@ -23,6 +23,7 @@ export function sentence(s: unknown): string {
 }
 
 import { setupQueueRoutesHarness } from "../fixtures.ts";
+import { WAITING_RUNNER } from "../../helpers/waiting-runner.ts";
 
 export const { harness, start } = setupQueueRoutesHarness(undefined, IMPLEMENTED);
 
@@ -90,7 +91,7 @@ export function serverWithRunner(
   ownDirs.push(results);
   const { base, dir } = start({
     gitRun: git.run as never,
-    queueRunnerBin: "/usr/bin/true",
+    queueRunnerBin: WAITING_RUNNER,
     queueResultDir: results,
     ...extra,
   });

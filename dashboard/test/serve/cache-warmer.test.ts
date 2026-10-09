@@ -29,6 +29,7 @@ import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../src/g
 import type {
   DescriptionFreshnessChecker, SpecCreatedAtChecker, SpecFileCommitChecker,
 } from "../../src/git/description-freshness.ts";
+import { WAITING_RUNNER } from "../helpers/waiting-runner.ts";
 
 const harness = queueHarness("aide-cache-warmer-");
 
@@ -286,7 +287,7 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
           gitRun: landingGit,
           driftPollMs: 0,
           specCachePollMs: 60_000,
-          queueRunnerBin: "/usr/bin/true",
+          queueRunnerBin: WAITING_RUNNER,
           queueResultDir: jobs,
           // Landing, not the step, names a create's folder now — this
           // stands in for `aide-create-spec --assign-number`.

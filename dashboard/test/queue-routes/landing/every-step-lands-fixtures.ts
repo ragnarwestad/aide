@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ServerOptions } from "../../../src/serve/serve.ts";
 import { statusSaying, type QueueHarness } from "../../helpers/queue-server.ts";
+import { WAITING_RUNNER } from "../../helpers/waiting-runner.ts";
 
 export const SPEC = "81-queue-and-runner";
 export const BRANCH = `aide/${SPEC}`;
@@ -137,7 +138,7 @@ export function serverWith(
       projectRoot: paths.root,
       queueProjectRoot: paths.root,
       gitRun: git.run as never,
-      queueRunnerBin: "/usr/bin/true",
+      queueRunnerBin: WAITING_RUNNER,
       queueResultDir: results,
       ...extra,
     },

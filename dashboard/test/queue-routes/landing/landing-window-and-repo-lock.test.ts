@@ -9,6 +9,7 @@ import { type GitRunner } from "../../../src/git/branch-status.ts";
 import { statusSaying } from "../../helpers/queue-server.ts";
 
 import { setupQueueRoutesHarness } from "../fixtures.ts";
+import { WAITING_RUNNER } from "../../helpers/waiting-runner.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -105,7 +106,7 @@ describe("a step reads busy for the whole landing window (spec 254)", () => {
         projectRoot: paths.root,
         queueProjectRoot: paths.root,
         gitRun: git.run,
-        queueRunnerBin: "/usr/bin/true",
+        queueRunnerBin: WAITING_RUNNER,
         queueResultDir: results,
       },
     }), results };
@@ -237,7 +238,7 @@ describe("two landings against one repo run one at a time (criteria 6, 10)", () 
     const { base } = start(
       {
         gitRun: git.run,
-        queueRunnerBin: "/usr/bin/true",
+        queueRunnerBin: WAITING_RUNNER,
         queueResultDir: results,
         queueConcurrency: 2,
       },

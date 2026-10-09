@@ -6,6 +6,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
+import { WAITING_RUNNER } from "../../helpers/waiting-runner.ts";
 
 const { harness, start } = setupQueueRoutesHarness("aide-board-routes-");
 const ownDirs: string[] = [];
@@ -295,7 +296,7 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
     const { base, dir } = start({
       testServersAvailable: true,
       gitRun: gitRun as never,
-      queueRunnerBin: "/usr/bin/true",
+      queueRunnerBin: WAITING_RUNNER,
       queueResultDir: results,
       testServersSpawn: (cmd, logPath) => {
         spawnCalls.push({ cmd });
@@ -444,7 +445,7 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
       testServersAvailable: true,
       testServersPortProbe: () => false,
       gitRun: gitRun as never,
-      queueRunnerBin: "/usr/bin/true",
+      queueRunnerBin: WAITING_RUNNER,
       queueResultDir: results,
     });
     const root = join(dir, "root", "aide");
@@ -514,7 +515,7 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
     const { base, dir } = start({
       testServersAvailable: true,
       gitRun: gitRun as never,
-      queueRunnerBin: "/usr/bin/true",
+      queueRunnerBin: WAITING_RUNNER,
       queueResultDir: results,
       testServersSpawn: (cmd, logPath) => {
         spawnCalls.push({ cmd });
@@ -664,7 +665,7 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
     const { base, dir } = start({
       testServersAvailable: true,
       gitRun: gitRun as never,
-      queueRunnerBin: "/usr/bin/true",
+      queueRunnerBin: WAITING_RUNNER,
       queueResultDir: results,
       testServersSpawn: (cmd, logPath) => {
         spawnCalls.push({ cmd });
