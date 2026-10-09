@@ -1,6 +1,6 @@
-"""An archive that rewrites the wiki pages covering the files its own
-spec changed, and retains current reasons in those pages: what it may write, and
-what is taken back."""
+"""An archive leaves the wiki alone: the refresh after its landing
+rewrites the pages, on the default branch. A page the archive writes is
+taken back like any other path outside its own folder."""
 
 import json
 import subprocess
@@ -9,12 +9,6 @@ from ..run_spec_origins import origin
 from ..run_spec_results import RESULT_OK
 from ..run_spec_status_files import status_with_phase
 
-
-# --- an archive that rewrites the wiki pages its own spec touched -----------
-# The new `wiki/` exception in run-spec/record/specs-guard.sh (archive-only), and
-# the precision check in run-spec/publish/wiki-guard.sh that recomputes the
-# allowed pages fresh via `aide-wiki affected` and takes back anything
-# else — never trusting what the session claims it rewrote.
 
 ARCHIVE_BRANCH = "aide/81-queue-and-runner"
 
@@ -61,11 +55,14 @@ def _wiki_page(workspace, branch, name):
     return git(workspace["specs"], "show", f"{branch}:wiki/{name}")
 
 
-def test_an_archive_rewrites_the_page_covering_its_own_changed_file_AC_1(
+def test_an_archive_that_rewrites_the_page_covering_its_own_change_is_taken_back(
     runner, workspace, workspace_root, fake_claude
 ):
+    """Two archives rewriting the same page on their own branches conflicted
+    on every landing after the first (619 and 622, 2026-10-09)."""
     status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
     branch = _archive_wiki_workspace(workspace, workspace_root)
+    before = _wiki_page(workspace, "main", "p.md")
     wiki = _wiki_bin(workspace_root)
     claude = fake_claude(
         "cat > /dev/null\n"
@@ -74,30 +71,23 @@ def test_an_archive_rewrites_the_page_covering_its_own_changed_file_AC_1(
         + '--project-dir "$PWD" --page p.md --file x.txt >/dev/null\n'
         + f"echo '{json.dumps(RESULT_OK)}'"
     )
-    rc, out, _, err = run(runner, workspace, claude, command="archive", return_stderr=True)
-    assert rc == 0, out
-    assert out["ok"] is True, out
-    assert out["terminalReason"] == "completed", out
-    text = _wiki_page(workspace, branch, "p.md")
-    assert "Rewritten." in text
-    head = git(workspace["project"], "rev-parse", branch)
-    assert f"commit: {head}" in text
-    assert "wiki pages rewritten: p.md" in err
+    rc, out, _ = run(runner, workspace, claude, command="archive")
+    assert out["terminalReason"] == "scope-violation", out
+    assert _wiki_page(workspace, branch, "p.md") == before
 
 
-def test_an_archive_that_touches_no_wiki_page_leaves_it_unchanged_AC_2_AC_4(
+def test_an_archive_that_touches_no_wiki_page_completes(
     runner, workspace, workspace_root, fake_claude
 ):
     status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
     branch = _archive_wiki_workspace(workspace, workspace_root)
     before = {name: _wiki_page(workspace, "main", name) for name in ("p.md", "q.md", "notes.md")}
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _, err = run(runner, workspace, claude, command="archive", return_stderr=True)
+    rc, out, _ = run(runner, workspace, claude, command="archive")
     assert rc == 0, out
     assert out["terminalReason"] == "completed", out
     for name, text in before.items():
         assert _wiki_page(workspace, branch, name) == text
-    assert "wiki pages rewritten: none" in err
 
 
 def test_a_page_main_changed_while_the_archive_ran_is_not_the_archives_write(
@@ -120,244 +110,3 @@ def test_a_page_main_changed_while_the_archive_ran_is_not_the_archives_write(
     claude = fake_claude("cat > /dev/null\n" + moved + f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, command="archive")
     assert out["terminalReason"] == "completed", out.get("error")
-
-
-def test_an_archive_that_writes_a_page_outside_its_own_diff_is_taken_back_AC_2_AC_4(
-    runner, workspace, workspace_root, fake_claude
-):
-    """A page whose own file the spec never touched (`q.md`, over `y.txt`)
-    rewritten anyway — the guard's own recomputed answer, not the
-    session's claim, decides what stays."""
-    status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
-    branch = _archive_wiki_workspace(workspace, workspace_root)
-    before = _wiki_page(workspace, "main", "q.md")
-    wiki = _wiki_bin(workspace_root)
-    claude = fake_claude(
-        "cat > /dev/null\n"
-        + READ_SPECS
-        + f'printf "# Q\\n\\nRewritten anyway.\\n" | {wiki} write --specs-root "$specs" '
-        + '--project-dir "$PWD" --page q.md --file y.txt >/dev/null\n'
-        + f"echo '{json.dumps(RESULT_OK)}'"
-    )
-    rc, out, _ = run(runner, workspace, claude, command="archive")
-    assert out["ok"] is False, out
-    assert out["terminalReason"] == "scope-violation", out
-    assert "q.md" in out["error"], out
-    assert _wiki_page(workspace, branch, "q.md") == before
-
-
-def test_an_archive_that_creates_a_brand_new_unaffected_page_is_taken_back_AC_2_AC_4(
-    runner, workspace, workspace_root, fake_claude
-):
-    """A page that never existed before this run is UNTRACKED at the
-    point the guard checks it — `git diff` alone is silent about an
-    untracked file, so a check built on `git diff --quiet` misses it
-    unless it also looks at `git status`."""
-    status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
-    branch = _archive_wiki_workspace(workspace, workspace_root)
-    wiki = _wiki_bin(workspace_root)
-    claude = fake_claude(
-        "cat > /dev/null\n"
-        + READ_SPECS
-        + f'printf "# New\\n\\nUnrelated.\\n" | {wiki} write --specs-root "$specs" '
-        + '--project-dir "$PWD" --page new.md --file y.txt >/dev/null\n'
-        + f"echo '{json.dumps(RESULT_OK)}'"
-    )
-    rc, out, _ = run(runner, workspace, claude, command="archive")
-    assert out["ok"] is False, out
-    assert out["terminalReason"] == "scope-violation", out
-    assert "new.md" in out["error"], out
-    tree = git(workspace["specs"], "ls-tree", "-r", "--name-only", branch).split()
-    assert "wiki/new.md" not in tree, tree
-
-
-def test_an_archive_that_deletes_an_unaffected_page_is_restored_AC_2_AC_4(
-    runner, workspace, workspace_root, fake_claude
-):
-    """A page the run DELETED is absent from `wiki/`'s own listing
-    afterward — a check that only globs what remains on disk never
-    visits it, so the deletion would otherwise land unnoticed."""
-    status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
-    branch = _archive_wiki_workspace(workspace, workspace_root)
-    before = _wiki_page(workspace, "main", "q.md")
-    claude = fake_claude(
-        "cat > /dev/null\n"
-        + READ_SPECS
-        + 'rm "$specs/wiki/q.md"\n'
-        + f"echo '{json.dumps(RESULT_OK)}'"
-    )
-    rc, out, _ = run(runner, workspace, claude, command="archive")
-    assert out["ok"] is False, out
-    assert out["terminalReason"] == "scope-violation", out
-    assert "q.md" in out["error"], out
-    assert _wiki_page(workspace, branch, "q.md") == before
-
-
-def test_an_archive_that_edits_a_hand_written_page_is_taken_back_AC_3(
-    runner, workspace, workspace_root, fake_claude
-):
-    status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
-    branch = _archive_wiki_workspace(workspace, workspace_root)
-    before = _wiki_page(workspace, "main", "notes.md")
-    claude = fake_claude(
-        "cat > /dev/null\n"
-        + READ_SPECS
-        + 'echo "edited by the step" >> "$specs/wiki/notes.md"\n'
-        + f"echo '{json.dumps(RESULT_OK)}'"
-    )
-    rc, out, _ = run(runner, workspace, claude, command="archive")
-    assert out["ok"] is False, out
-    assert out["terminalReason"] == "scope-violation", out
-    assert "notes.md" in out["error"], out
-    assert _wiki_page(workspace, branch, "notes.md") == before
-
-
-def test_an_archive_cannot_add_a_legacy_page_even_with_backlinks_AC_1(
-    runner, workspace, workspace_root, fake_claude
-):
-    status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
-    branch = _archive_wiki_workspace(workspace, workspace_root)
-    body = (
-        "cat > /dev/null\n" + READ_SPECS
-        + f'printf -- "---\\nwiki: decision\\nspec: {workspace["folder"]}\\n---\\n\\n# Old\\n\\nKeep it.\\n\\n## Concerns\\n\\n- [Q](q.md)\\n" > "$specs/wiki/legacy.md"\n'
-        + 'printf "\\n## Decisions\\n\\n- [Old](legacy.md) — Keep it.\\n" >> "$specs/wiki/q.md"\n'
-        + f"echo '{json.dumps(RESULT_OK)}'"
-    )
-    rc, out, _ = run(runner, workspace, fake_claude(body), command="archive")
-    assert out["terminalReason"] == "scope-violation", out
-    assert "wiki/legacy.md" not in git(workspace["specs"], "ls-tree", "-r", "--name-only", branch).split()
-    assert _wiki_page(workspace, branch, "q.md") == _wiki_page(workspace, "main", "q.md")
-
-
-def test_a_non_archive_step_writing_the_wiki_is_still_a_scope_violation(
-    runner, workspace, fake_claude
-):
-    """The new `wiki/` exception in run-spec/record/specs-guard.sh is
-    `archive`-only, by the literal command string — mirrors
-    `test_archive_no_progress_guard_never_fires_for_other_steps` above,
-    inverted: an unrelated step must never be able to write the wiki
-    undetected, or the guard's whole purpose is defeated (the guard
-    file's own comment, spec 366)."""
-    status_with_phase(workspace, "create", ["| a | ⬜ | |"])
-    (workspace["specs"] / "wiki").mkdir()
-    (workspace["specs"] / "wiki" / "p.md").write_text("# P\n\nSeed.\n")
-    git(workspace["specs"], "add", "-A")
-    git(workspace["specs"], "commit", "-qm", "seed the wiki")
-    claude = fake_claude(
-        "cat > /dev/null\n"
-        + READ_SPECS
-        + 'echo "changed by analyze" >> "$specs/wiki/p.md"\n'
-        + f"echo '{json.dumps(RESULT_OK)}'"
-    )
-    rc, out, _ = run(runner, workspace, claude, command="analyze")
-    assert out["ok"] is False, out
-    assert out["terminalReason"] == "scope-violation", out
-
-
-def test_an_archive_in_a_project_with_no_wiki_is_unaffected_AC_5(
-    runner, workspace, fake_claude
-):
-    status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
-    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude, command="archive")
-    assert rc == 0, out
-    assert out["ok"] is True, out
-    assert out["terminalReason"] == "completed", out
-    assert not (workspace["specs"] / "wiki").exists()
-
-
-
-def test_an_archive_rewrites_a_page_covering_a_file_it_deleted_AC_1(
-    runner, workspace, workspace_root, fake_claude
-):
-    """The rewrite drops the deleted file from the page's own list, so the
-    page no longer names anything the spec changed once it is rewritten.
-    What the page named before the rewrite is what lets it stay."""
-    status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
-    project, specs = workspace["project"], workspace["specs"]
-    (project / "gone.txt").write_text("gone\n")
-    (project / "kept.txt").write_text("kept\n")
-    git(project, "add", "-A")
-    git(project, "commit", "-qm", "add two files")
-    _write_wiki_page(workspace_root, specs, project, "r.md", ["gone.txt", "kept.txt"])
-    git(specs, "add", "-A")
-    git(specs, "commit", "-qm", "seed the wiki")
-    git(project, "switch", "-q", "-c", ARCHIVE_BRANCH)
-    git(project, "rm", "-q", "gone.txt")
-    git(project, "commit", "-q", "-m", "implement")
-    git(project, "switch", "-q", "main")
-    wiki = _wiki_bin(workspace_root)
-    claude = fake_claude(
-        "cat > /dev/null\n"
-        + READ_SPECS
-        + f'printf "# R\\n\\nRewritten.\\n" | {wiki} write --specs-root "$specs" '
-        + '--project-dir "$PWD" --page r.md --file kept.txt >/dev/null\n'
-        + f"echo '{json.dumps(RESULT_OK)}'"
-    )
-    rc, out, _, err = run(runner, workspace, claude, command="archive", return_stderr=True)
-    assert out["terminalReason"] == "completed", out
-    assert "Rewritten." in _wiki_page(workspace, ARCHIVE_BRANCH, "r.md")
-    assert "wiki pages rewritten: r.md" in err
-
-
-def test_a_page_an_earlier_archive_run_rewrote_is_not_this_runs_write(
-    runner, workspace, workspace_root, fake_claude
-):
-    """597: the first archive landed the code and stopped on a conflict in
-    the specs repo, leaving the page it had rightly rewritten on the specs
-    branch alone. On the next run the code diff against main is empty, so
-    no page is the spec's own, and that earlier rewrite read as this run
-    writing a page it may not. A run answers for what it wrote itself."""
-    status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
-    branch = _archive_wiki_workspace(workspace, workspace_root)
-    project, specs = workspace["project"], workspace["specs"]
-    git(project, "merge", "-q", "--ff-only", branch)
-    git(specs, "switch", "-q", "-c", branch)
-    (specs / "wiki" / "p.md").write_text(_wiki_page(workspace, "main", "p.md") + "\nRewritten by the earlier run.\n")
-    git(specs, "add", "-A")
-    git(specs, "commit", "-qm", "an earlier archive run's wiki rewrite")
-    git(specs, "switch", "-q", "main")
-    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude, command="archive")
-    assert out["terminalReason"] == "completed", out.get("error")
-    assert "Rewritten by the earlier run." in _wiki_page(workspace, branch, "p.md")
-
-
-def test_a_page_main_changed_and_the_session_rewrote_too_is_taken_back(
-    runner, workspace, workspace_root, fake_claude
-):
-    """The session is handed an open merge with main, which changed `q.md`
-    and conflicts on a note in the spec's folder. It resolves the note and
-    also writes its own text into `q.md`, a page this spec may not touch.
-    Main having changed the page does not make the session's rewrite main's."""
-    status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
-    branch = _archive_wiki_workspace(workspace, workspace_root)
-    specs = workspace["specs"]
-    note = next(specs.glob("**/4-status.md")).parent / "notes.txt"
-    git(specs, "switch", "-q", "-c", branch)
-    note.write_text("the branch's note\n")
-    git(specs, "add", "-A")
-    git(specs, "commit", "-qm", "branch side")
-    git(specs, "switch", "-q", "main")
-    note.write_text("main's note\n")
-    (specs / "wiki" / "q.md").write_text(_wiki_page(workspace, "main", "q.md") + "\nChanged on main.\n")
-    git(specs, "add", "-A")
-    git(specs, "commit", "-qm", "main side")
-    on_main = _wiki_page(workspace, "main", "q.md")
-    note_rel = note.relative_to(specs)
-    folder = note.parent.relative_to(specs)
-    claude = fake_claude(
-        "cat > /dev/null\n"
-        + READ_SPECS
-        + f'echo "resolved" > "$specs/{note_rel}"\n'
-        + 'echo "Rewritten by this session." >> "$specs/wiki/q.md"\n'
-        + 'git -C "$specs" add -A\n'
-        + 'git -C "$specs" -c user.name=S -c user.email=s@example.com commit -q --no-edit\n'
-        + f'mkdir -p "$specs/archive" && git -C "$specs" mv {folder} archive/{folder} '
-        + '&& git -C "$specs" -c user.name=S -c user.email=s@example.com commit -q -m "archive"\n'
-        + f"echo '{json.dumps(RESULT_OK)}'"
-    )
-    rc, out, _ = run(runner, workspace, claude, command="archive")
-    assert out["terminalReason"] == "scope-violation", out
-    assert "q.md" in out["error"], out
-    assert _wiki_page(workspace, branch, "q.md") == on_main

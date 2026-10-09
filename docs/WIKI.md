@@ -45,8 +45,6 @@ files and the commit it was written from, so a reader can tell whether the code 
 - **A build**, queued by Add project when the project is added, or from the **Build wiki** button on the project's
   Wiki tab: the `wiki` step with the `aide-wiki` skill, rewriting every generated page from the code as it is now. It
   lands like a spec.
-- **The archive of a spec** rewrites the pages the spec's own code touched (`aide-archive`, Step 2). A guard refuses an
-  archive that changed any other page.
 - **A refresh**, queued by the board once an archive lands in a project with a wiki: the same step, rewriting only the
   pages whose files changed since they were written, and adding a page for a new part or for either fixed page the
   wiki lacks.
@@ -83,7 +81,6 @@ the same the Wiki tab shows:
 
 - The Wiki tab: [projects.md, "Wiki"](../dashboard/docs/projects.md#wiki).
 - How a build and a refresh write the pages: `core/skills/aide-wiki/SKILL.md`.
-- How an archive rewrites the pages it touched: `core/skills/aide-archive/SKILL.md`, Step 2.
 - How analyze reads the wiki: `core/skills/aide-analyze/SKILL.md`, Step 1.
-- What a `wiki` step may commit, and the guard on an archive's pages: [the-runner.md](../dashboard/docs/the-runner.md).
+- What a `wiki` step may commit: [the-runner.md](../dashboard/docs/the-runner.md).
 - The graph of the pages: [design-system.md, "The wiki graph"](../dashboard/docs/design-system.md#the-wiki-graph).

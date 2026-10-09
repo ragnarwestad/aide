@@ -20,7 +20,6 @@
 #   aide-wiki prune  --specs-root R --keep NAME.md [NAME.md...]
 #   aide-wiki status --specs-root R --project-dir P
 #   aide-wiki verify --specs-root R --base-ref REF
-#   aide-wiki affected --specs-root R --project-dir P [--base-ref REF]
 #   aide-wiki unfinished --specs-root R --project-dir P [--refresh]
 #                    # what a build (or, with --refresh, a refresh) left unfinished
 
@@ -36,7 +35,6 @@ Usage:
   aide-wiki prune  --specs-root R --keep NAME.md [NAME.md...]
   aide-wiki status --specs-root R --project-dir P
   aide-wiki verify --specs-root R --base-ref REF
-  aide-wiki affected --specs-root R --project-dir P [--base-ref REF]
   aide-wiki unfinished --specs-root R --project-dir P [--refresh]
 USAGE
 }
@@ -235,59 +233,6 @@ SCHEMA
     missing=(); for n in $FIXED_PAGES; do [ -f "$wiki/$n" ] || missing+=("$n"); done
     jq -cn --arg c "$head_sha" --argjson p "$pages" \
       '{ok:true, exitCode:0, wiki:true, commit:$c, pages:$p, missing:($ARGS.positional)}' --args ${missing[@]+"${missing[@]}"}
-    ;;
-
-  # Which generated (non-hand-written) pages does THIS file set — a
-  # spec's own diff against its default branch — touch. `status` above
-  # starts from a PAGE and asks about ITS OWN recorded commit; this
-  # starts from the diff and answers which pages it reaches, for a
-  # caller (the archive step) that never recorded one.
-  affected)
-    need_project
-    # With --base-ref, the pages as the specs repo has them at REF: a
-    # caller asking after the pages were rewritten gets the answer they
-    # had before, when a file the spec deleted was still on their lists.
-    if [ -n "$base_ref" ]; then
-      at="$(mktemp -d)"; trap 'rm -rf "$at"' EXIT
-      while IFS= read -r n; do
-        [ -n "$n" ] && git -C "$specs_root" show "$base_ref:./wiki/$n" > "$at/$n" 2>/dev/null
-      done < <(git -C "$specs_root" ls-tree --name-only "$base_ref" -- wiki/ 2>/dev/null | sed -n 's|^.*wiki/\([^/]*\.md\)$|\1|p')
-      wiki="$at"
-    fi
-    if [ ! -d "$wiki" ]; then
-      jq -cn '{ok:true, exitCode:0, terminalReason:"listed", pages:[]}'
-      exit 0
-    fi
-    base="$(default_branch_of "$project_dir")"
-    since="$(git -C "$project_dir" merge-base "origin/$base" HEAD 2>/dev/null || git -C "$project_dir" merge-base "$base" HEAD 2>/dev/null)"
-    [ -n "$since" ] || refuse "no-merge-base" "could not find a merge-base with $base in $project_dir"
-    changed=(); while IFS= read -r line; do [ -n "$line" ] && changed+=("$line"); done \
-      < <(git -C "$project_dir" diff --name-only "$since" HEAD -- . 2>/dev/null)
-    pages="[]"
-    for f in "$wiki"/*.md; do
-      [ -f "$f" ] || continue
-      n="$(basename "$f")"
-      case "$n" in index.md|schema.md) continue ;; esac
-      is_generated "$f" || continue
-      declared=(); while IFS= read -r pf; do [ -n "$pf" ] && declared+=("$pf"); done < <(fm_files "$f")
-      hit=()
-      for pf in ${declared[@]+"${declared[@]}"}; do
-        for cf in ${changed[@]+"${changed[@]}"}; do [ "$pf" = "$cf" ] && { hit+=("$pf"); break; }; done
-      done
-      [ ${#hit[@]} -gt 0 ] || continue
-      # The page's own sources still at HEAD — a file this spec's diff
-      # deleted is dropped here, never handed to `aide-wiki write`, which
-      # refuses any file no longer in the project. A page whose every
-      # named file is gone has nothing left to rewrite it from and is
-      # left out entirely: a wiki build or refresh prunes it once stale.
-      current=()
-      for pf in ${declared[@]+"${declared[@]}"}; do
-        git -C "$project_dir" cat-file -e "HEAD:$pf" 2>/dev/null && current+=("$pf")
-      done
-      [ ${#current[@]} -gt 0 ] || continue
-      pages="$(jq -c --arg p "$n" '. + [{page:$p, files:$ARGS.positional}]' --args "${current[@]}" <<<"$pages")"
-    done
-    jq -cn --argjson p "$pages" '{ok:true, exitCode:0, terminalReason:"listed", pages:$p}'
     ;;
 
   # What a build, or with --refresh a refresh, left unfinished: the rule the
