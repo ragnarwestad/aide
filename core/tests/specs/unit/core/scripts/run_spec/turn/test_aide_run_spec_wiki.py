@@ -25,7 +25,26 @@ def wiki_cmd(workspace_root):
     return workspace_root / "core" / "scripts" / "aide-wiki"
 
 
-def build_pages(workspace_root, pages=("queue",)):
+FIXED = {
+    "overview": ("Stack", "Services", "Build and deploy", "Docs"),
+    "reusable-parts": ("Parts", "Rules"),
+}
+
+
+def write_fixed_pages(workspace_root):
+    """The project's overview and its reusable parts, each with its sections."""
+    wiki_bin = wiki_cmd(workspace_root)
+    lines = []
+    for name, sections in FIXED.items():
+        text = f"# The {name}\\n\\nDrawn from \\`README.md\\`.\\n\\n" + "".join(f"## {s}\\n\\nSomething.\\n\\n" for s in sections)
+        lines.append(
+            f'printf "{text}" | {wiki_bin} write --specs-root "$specs" '
+            f'--project-dir "$PWD" --page {name}.md --file README.md >/dev/null\n'
+        )
+    return "".join(lines)
+
+
+def build_pages(workspace_root, pages=("queue",), fixed=True):
     """What a session does with the script: pages, the schema, the prune, the index."""
     wiki_bin = wiki_cmd(workspace_root)
     lines = [READ_SPECS]
@@ -34,7 +53,9 @@ def build_pages(workspace_root, pages=("queue",)):
             f'printf "# The {name}\\n\\nRuns the {name}.\\n" | {wiki_bin} write --specs-root "$specs" '
             f'--project-dir "$PWD" --page {name}.md --file README.md >/dev/null\n'
         )
-    keep = " ".join(f"{n}.md" for n in pages)
+    if fixed:
+        lines.append(write_fixed_pages(workspace_root))
+    keep = " ".join(f"{n}.md" for n in (*pages, *(FIXED if fixed else ())))
     lines.append(f'{wiki_bin} schema --specs-root "$specs" --project-dir "$PWD" >/dev/null\n')
     lines.append(f'{wiki_bin} prune --specs-root "$specs" --keep {keep} >/dev/null\n')
     lines.append(f'{wiki_bin} index --specs-root "$specs" --project-dir "$PWD" >/dev/null\n')
@@ -312,6 +333,18 @@ def test_a_build_that_wrote_no_wiki_ends_as_no_progress_not_as_done(runner, work
     assert "left no wiki" in out["error"], out
 
 
+@pytest.mark.usefixtures("origin")
+def test_a_build_that_leaves_the_overview_and_the_reusable_parts_out_ends_unfinished_naming_them_AC_1_AC_3(
+    runner, workspace, workspace_root, fake_claude
+):
+    """Pages and an index but neither fixed page: the analysis would read a
+    wiki with no context in it."""
+    claude = job(fake_claude, build_pages(workspace_root, fixed=False) + FINISHED)
+    rc, out, _ = wiki(runner, workspace, claude)
+    assert out["ok"] is False and out["terminalReason"] == "no-progress", out
+    assert "overview.md" in out["error"] and "reusable-parts.md" in out["error"], out
+
+
 # --- a build rewrites every page; a refresh rewrites the changed ones ---------
 
 
@@ -330,7 +363,8 @@ def wiki_then_move_the_code(runner, workspace, workspace_root, fake_claude, orig
 
 
 def keep_only_writing(workspace_root, written, kept):
-    """A session that writes some pages and keeps others it did not write."""
+    """A session that writes some pages and keeps others it did not write.
+    The overview and the reusable parts are written and kept in both cases."""
     script = wiki_cmd(workspace_root)
     lines = [READ_SPECS]
     for name in written:
@@ -338,8 +372,9 @@ def keep_only_writing(workspace_root, written, kept):
             f'printf "# The {name}\\n\\nRuns the {name}.\\n" | {script} write --specs-root "$specs" '
             f'--project-dir "$PWD" --page {name}.md --file README.md >/dev/null\n'
         )
+    lines.append(write_fixed_pages(workspace_root))
     lines.append(f'{script} schema --specs-root "$specs" --project-dir "$PWD" >/dev/null\n')
-    lines.append(f'{script} prune --specs-root "$specs" --keep {" ".join(f"{n}.md" for n in kept)} >/dev/null\n')
+    lines.append(f'{script} prune --specs-root "$specs" --keep {" ".join(f"{n}.md" for n in (*kept, *FIXED))} >/dev/null\n')
     lines.append(f'{script} index --specs-root "$specs" --project-dir "$PWD" >/dev/null\n')
     return "".join(lines)
 

@@ -128,7 +128,7 @@ Everything is optional. Shell scripts read the file via `aide_config_get KEY <pr
 `.aide/project.yaml` describes what the project IS (stack, dependencies,
 deployment, logging, statistics, reports, docs) and belongs in git.
 `/aide-manifest` drafts and refreshes it; `/aide-analyze` reads it for
-project context. Only `.aide/config` is personal and gitignored — never
+project context in a project with no wiki. Only `.aide/config` is personal and gitignored — never
 ignore the whole `.aide/` directory.
 
 ---

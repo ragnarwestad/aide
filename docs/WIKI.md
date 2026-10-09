@@ -34,6 +34,9 @@ files and the commit it was written from, so a reader can tell whether the code 
 
 - **`index.md`:** one line per page, read first.
 - **A schema page:** how the wiki is organised and what a page must contain.
+- **`overview.md`:** the project's stack, the services it depends on, how it is built and deployed, and its docs.
+- **`reusable-parts.md`:** the parts worth reusing, with the file that holds each, and the rules for using them.
+  Both are generated pages like the rest, and `aide-wiki write` refuses either without its sections.
 - **One page per part:** written from the files it names, with ordinary markdown links to the pages it relates to.
   A generated page records its files and commit; a page written by hand is never rewritten.
 
@@ -44,20 +47,22 @@ files and the commit it was written from, so a reader can tell whether the code 
 - **The archive of a spec** rewrites the pages the spec's own code touched (`aide-archive`, Step 2). A guard refuses an
   archive that changed any other page.
 - **A refresh**, queued by the board once an archive lands in a project with a wiki: the same step, rewriting only the
-  pages whose files changed since they were written, and adding a page for a new part.
+  pages whose files changed since they were written, and adding a page for a new part or for either fixed page the
+  wiki lacks.
 - **A scheduled job**, where a project sets one up on its Schedule tab. Aide's own board runs a refresh every night
   (`docs/prompts/wiki-refresh.md`) and a weekly check that reports pages the code or docs contradict, and changes
   nothing (`docs/prompts/wiki-check.md`).
 
 ## Who reads it
 
-- **Analyze**, before anything else: the index, then the pages that concern the change, and the analysis says which
-  pages it used and whether their files had changed. A page whose files have changed is used only as a map of where
+- **Analyze**, before anything else: the index, the overview and the reusable parts, then the pages that concern the
+  change, and the analysis says which pages it used and whether their files had changed. A page whose files have changed is used only as a map of where
   to look; the code decides.
 - **People**, on the project's Wiki tab, which lists the pages in the index's order with the state of each, and opens
   one rendered.
 
-A project with no wiki is analysed as it would be without one.
+In a project with a wiki, the analysis takes the project's context and reusable parts from the overview and the
+reusable-parts page, not from `.aide/project.yaml`. A project with no wiki is analysed from the manifest.
 
 ## How a page is known to be current
 

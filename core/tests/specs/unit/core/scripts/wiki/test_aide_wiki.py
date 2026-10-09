@@ -10,6 +10,8 @@ import re
 import subprocess
 import textwrap
 
+import pytest
+
 from ..conftest import git
 # The fixtures are imported for pytest to find; the tests take them by name.
 from .aide_wiki_support import (
@@ -319,3 +321,49 @@ def test_write_keeps_current_reason_and_tracks_its_source_without_backlinks_AC_1
     commit_all(project, "change source")
     page = next(p for p in status(script, specs_root, project)["pages"] if p["page"] == "p.md")
     assert page["changedFiles"] == ["y.txt"]
+
+
+# --- the project's overview and its reusable parts ---------------------------
+
+FIXED_PAGES = {
+    "overview.md": ["## Stack", "## Services", "## Build and deploy", "## Docs"],
+    "reusable-parts.md": ["## Parts", "## Rules"],
+}
+
+
+def fixed_body(page, leaving_out=None):
+    headings = [h for h in FIXED_PAGES[page] if h != leaving_out]
+    return "# The page\n\nWhat it holds.\n\n" + "".join(f"{h}\n\nSomething under it.\n\n" for h in headings)
+
+
+@pytest.mark.parametrize(
+    "page,lacking",
+    [(page, h) for page, headings in sorted(FIXED_PAGES.items()) for h in headings],
+)
+def test_the_overview_and_the_reusable_parts_are_refused_without_a_section_AC_1_AC_3(
+    script, specs_root, project, page, lacking
+):
+    rc, out = write_page(script, specs_root, project, page, ["x.txt"], fixed_body(page, lacking))
+    assert rc == 2 and out["reason"] == "missing-section", out
+    assert lacking in out["error"], out
+    assert not (specs_root / "wiki" / page).exists()
+
+
+@pytest.mark.parametrize("page", sorted(FIXED_PAGES))
+def test_the_overview_and_the_reusable_parts_are_written_with_every_section_AC_1_AC_3(
+    script, specs_root, project, page
+):
+    rc, out = write_page(script, specs_root, project, page, ["x.txt"], fixed_body(page))
+    assert rc == 0 and out["terminalReason"] == "written", out
+    assert (specs_root / "wiki" / page).read_text().startswith("---\nwiki: generated\n")
+
+
+def test_status_names_the_fixed_pages_a_wiki_lacks_and_counts_a_hand_written_one_AC_1_AC_3(
+    script, specs_root, project
+):
+    write_page(script, specs_root, project, "a.md", ["x.txt"])
+    assert status(script, specs_root, project)["missing"] == ["overview.md", "reusable-parts.md"]
+    hand_written(specs_root, "overview.md", "# Overview\n\nWritten by a person.\n")
+    assert status(script, specs_root, project)["missing"] == ["reusable-parts.md"]
+    write_page(script, specs_root, project, "reusable-parts.md", ["x.txt"], fixed_body("reusable-parts.md"))
+    assert status(script, specs_root, project)["missing"] == []

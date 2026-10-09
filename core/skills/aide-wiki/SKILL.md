@@ -25,10 +25,15 @@ whether or not its files changed. A **refresh** rewrites only the pages
 `aide-wiki status` marks `changed`, adds a page for a part that has none,
 and leaves every current page as it is. The runner checks the result: a
 build that leaves a page from an older commit, or a refresh that leaves a
-`changed` page, ends unfinished.
+`changed` page, ends unfinished. So does a build or a refresh that leaves
+the project's overview or its reusable parts out: every wiki has
+`overview.md` and `reusable-parts.md` beside its index, whatever its
+parts, and a refresh writes the one `aide-wiki status` lists under
+`missing`.
 
 The wiki is the folder `wiki/` inside the specs root: `index.md`,
-`schema.md` and one page per part of the system. Every write under
+`schema.md`, `overview.md`, `reusable-parts.md` and one page per part of
+the system. Every write under
 `wiki/` goes through `aide-wiki`, never through Write or Edit, and
 nothing is written outside `wiki/`. The prompt names the specs root and
 the project directory; pass them to every call as `--specs-root` and
@@ -56,6 +61,9 @@ state is `hand-written` belongs to a person: its name is taken, and the
 part it covers is linked to from other pages, not rewritten. In a build,
 every other page is rebuilt below; in a refresh, only the `changed` ones
 are, and Step 2 is only about whether a new part needs a page of its own.
+The answer's `missing` lists the pages every wiki must have and this one
+lacks (`overview.md`, `reusable-parts.md`); a build and a refresh both
+write each of them in Step 3.
 
 ### Step 2 of 5: Decide the parts
 
@@ -114,6 +122,26 @@ A page holds no line numbers and no code. It is a map: the code decides.
 Keep a reason only when it still explains the current code, as one ripple
 sentence in the page it concerns.
 
+Then write the two pages every wiki has, whatever its parts. Each is a
+generated page like the others, written with `aide-wiki write`, and the
+script refuses it without its sections, heading for heading:
+
+- `overview.md` — what the analysis takes the project's context from.
+  `## Stack` (languages, frameworks, runtime), `## Services` (the
+  external services it depends on and what for; say so when there are
+  none), `## Build and deploy` (how it is built, tested and shipped) and
+  `## Docs` (each doc page and what it covers). Other sections may follow.
+- `reusable-parts.md` — what the analysis looks for before it plans new
+  code. `## Parts` (each part worth reusing: its job, in one line, and
+  the file that holds it, in backticks) and `## Rules` (the rules for
+  using them: what to call, what never to copy). Say so when there is
+  nothing to reuse. Other sections may follow.
+
+Both name in backticks, by full path from the project's root, the files
+they were drawn from — the package and build files, the CI and deploy
+configuration, each doc page, each reusable part's file — since a page
+is rewritten by a refresh when one of them changes.
+
 ### Step 4 of 5: Finish
 
 First write `--- Step 4 of 5: Finish — started`, and when this step ends, `--- Step 4 of 5: Finish — done`.
@@ -125,7 +153,7 @@ report's first line ends `— not finished, the merge into main is next
 
 
 1. `aide-wiki schema --specs-root <root> --project-dir .`
-2. `aide-wiki prune --specs-root <root> --project-dir . --keep <every page just written>`,
+2. `aide-wiki prune --specs-root <root> --project-dir . --keep <every page just written, `overview.md` and `reusable-parts.md` included>`,
    and in a refresh every current page too: only a page whose part is gone
    goes.
 3. `aide-wiki index --specs-root <root> --project-dir .` — last, so a run
