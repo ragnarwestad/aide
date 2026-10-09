@@ -42,6 +42,8 @@ A job is an ordered list of steps with a `stepIndex`; its `state` says where the
 Only `queued` and `running` own their work (`UNFINISHED` in `src/queue/steps.ts`), and the duplicate guard is
 built on that set alone. A second guard sits beside it: `QueueStore.landingJob()` refuses a NEW job of any step for
 a spec whose own job reads `done` with a landing still in flight, since that spec's working tree is half merged.
+Both guards let the board's refresh after an archive lands (`wikiRefresh`) through behind a wiki job that is running
+or merging; only a queued one refuses it, and the runner's wiki hold below makes it wait.
 Once the landing settles, the same step may be queued again — as a new job; a finished job is never resumed.
 
 ## The transitions
@@ -73,11 +75,17 @@ queued `create`, `archive` or `close` step — the ones that do no model work �
 
 - Skips a job that has `landing` set: that job's next step waits for its own merge. Every other job runs as
   usual — see [Beside the state](#beside-the-state).
-- Skips a job whose spec already has a running job: two steps for one spec are ordered by nature.
+- Skips a job whose spec already has a running job: two steps for one spec are ordered by nature. A wiki job is left
+  to the wiki hold below instead, so its row says why it waits.
 - Leaves an `archive` job `queued` with a reason on it — "held back: another archive is running in this project — it
   starts when that one has merged" — while another `archive` in the same project is running or landing. Both branch
   from the code root's main and both land into it, so the second waits for the first to have merged. This is the
   cheapest of the three holds and the one asked first; the two below need the spec's own files or the network.
+- Leaves a `schedule` job `queued` with a reason on it while anything else in its project is running or landing, and a
+  `wiki` job `queued` — "held back: another wiki run, scheduled job or archive is under way in this project" — while
+  another wiki job or a schedule job of its project is running or landing, or an archive of it is landing
+  (`runner/project-holds.ts`). An archive lands the code root before the specs root, so a wiki run started between the
+  two would see the spec's code without its archived folder. A row held this way resolves on its own.
 - Leaves a job `queued` with a reason on it — "held back: not analyzed yet — run /aide-analyze first" — when its own
   spec's `analyze` step has not completed, and tries again next tick. The state does not move.
 - Leaves a job `queued` with a reason on it — "held back: choose the approach to build, then press Save" — when its

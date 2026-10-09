@@ -315,3 +315,43 @@ describe("the same work is not queued twice", () => {
   }
 });
 
+
+// The board queues a refresh each time an archive lands. One that is
+// refused because a wiki run is under way leaves the pages the landed spec
+// changed as they were, so the refresh waits behind a run in flight.
+describe("a refresh after an archive waits behind a wiki run in flight", () => {
+  const WIKI = { project: "aide", specFolder: "wiki-aide", steps: ["wiki"] };
+  const running = () => {
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    const first = store.enqueue(WIKI);
+    if (!first.ok) throw new Error(first.error);
+    return { store, first: first.job };
+  };
+
+  test("a refresh is queued behind a wiki job that is running (AC-2)", () => {
+    const { store, first } = running();
+    store.update(first.id, { state: "running" });
+    const refresh = store.enqueue({ ...WIKI, wikiRefresh: true });
+    expect(refresh.ok).toBe(true);
+    if (refresh.ok) expect(refresh.job.state).toBe("queued");
+  });
+
+  test("a refresh is queued behind a wiki job that is done and still landing (AC-2)", () => {
+    const { store, first } = running();
+    store.update(first.id, { state: "done", landing: true });
+    expect(store.enqueue({ ...WIKI, wikiRefresh: true }).ok).toBe(true);
+  });
+
+  test("a refresh is refused while a wiki job is still queued, and no second one is queued (AC-2)", () => {
+    const { store } = running();
+    expect(store.enqueue({ ...WIKI, wikiRefresh: true }).ok).toBe(false);
+    expect(store.list()).toHaveLength(1);
+  });
+
+  test("a build without wikiRefresh is refused behind a wiki job that is running, as before (AC-2)", () => {
+    const { store, first } = running();
+    store.update(first.id, { state: "running" });
+    expect(store.enqueue(WIKI).ok).toBe(false);
+    expect(store.list()).toHaveLength(1);
+  });
+});

@@ -43,6 +43,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 [ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
 # shellcheck source=/dev/null
 [ -f "$SCRIPT_DIR/lib/spec-transitions.sh" ] && source "$SCRIPT_DIR/lib/spec-transitions.sh"
+# shellcheck source=lib/files-to-change.sh
+source "$SCRIPT_DIR/lib/files-to-change.sh"
 
 specs_root=""; spec=""; record="no"; analysis_arg=""
 
@@ -80,26 +82,6 @@ case "$spec" in */*|.*) refuse "not a spec folder: $spec" ;; esac
 [ "$record" = "no" ] || [ -z "$analysis_arg" ] || refuse "--record writes the spec's own 2-analysis.md, so it cannot be combined with --analysis"
 
 # --- reading a 2-analysis.md ---------------------------------------------------
-
-# The file from its last `## Round N` heading to the end; all of it without one.
-newest_round() {
-  local from
-  from="$(grep -n '^## Round [0-9][0-9]*' "$1" 2>/dev/null | tail -1 | cut -d: -f1)"
-  tail -n +"${from:-1}" "$1" 2>/dev/null
-}
-
-# The lines under `### <heading>`, up to the next heading of any level.
-section() {
-  awk -v h="### $1" '$0 == h { on = 1; next } /^#+ / { on = 0 } on { print }'
-}
-
-# A list of bare paths (stdin) as a JSON array, in the order written, once each.
-paths_json() {
-  jq -R -s -c '
-    split("\n")
-    | map(capture("^\\s*-\\s*`(?<p>[^`]+)`")? | .p | sub("^\\./"; "") | sub(":[0-9]+(-[0-9]+)?$"; ""))
-    | reduce .[] as $x ([]; if index([$x]) then . else . + [$x] end)'
-}
 
 # The record lines (stdin) as a JSON array of {spec, files}.
 record_json() {

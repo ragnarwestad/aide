@@ -19,7 +19,7 @@ def test_every_aide_wiki_subcommand_a_skill_or_prompt_calls_exists_in_the_script
     for folder in ("core/skills", "docs/prompts"):
         for path in (workspace_root / folder).rglob("*.md"):
             called |= called_in(path)
-    assert {"status", "write"} <= called, called
+    assert {"status", "write", "landed"} <= called, called
     script = workspace_root / "core" / "scripts" / "aide-wiki"
     help_text = subprocess.run([str(script), "--help"], capture_output=True, text=True).stdout
     missing = sorted(name for name in called if not re.search(rf"aide-wiki {re.escape(name)}\s", help_text))

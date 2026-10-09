@@ -47,7 +47,9 @@ files and the commit it was written from, so a reader can tell whether the code 
   lands like a spec.
 - **A refresh**, queued by the board once an archive lands in a project with a wiki: the same step, rewriting only the
   pages whose files changed since they were written, and adding a page for a new part or for either fixed page the
-  wiki lacks.
+  wiki lacks. Each page it rewrites carries the reasons of the archived specs that landed since the page was written
+  and planned to change one of its files (`aide-wiki landed`), as one line each in its ripples. A refresh waits behind
+  a wiki run in flight in the project, and behind a scheduled job or an archive's landing.
 - **A run by hand**, `/aide-wiki` or `/aide-wiki refresh` in a session in the project, without the board. It finds the
   specs root the way the other skills do, asks only when it is unclear how the project divides into pages, checks its
   own result with `aide-wiki unfinished` by the rule the runner applies to a board run, and asks before it commits the

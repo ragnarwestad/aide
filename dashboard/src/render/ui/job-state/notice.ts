@@ -11,7 +11,7 @@ import { currentStep, inFlight } from "./format.ts";
 import { providerLimitSentence } from "./provider-limit.ts";
 import type { QueueRowView } from "./types.ts";
 
-/** The three held-back reasons that resolve on their own — the queue
+/** The four held-back reasons that resolve on their own — the queue
  *  starts the work itself the moment the thing in front of it finishes,
  *  so nobody has anything to act on. Every other held-back reason,
  *  named here or not, keeps the waiting kind's warning triangle: a
@@ -21,6 +21,7 @@ export const HELD_BACK_INFO_KEYS = new Set<MessageKey>([
   "runner.landingPause",
   "runner.archiveRunning",
   "runner.dependencyNotArchived",
+  "runner.wikiWaitsOnProject",
 ]);
 
 /** Whether a queued job's own hold resolves on its own, read off the
@@ -28,7 +29,7 @@ export const HELD_BACK_INFO_KEYS = new Set<MessageKey>([
  *  row's own state word (`specStateChip`, resting.ts) colours a
  *  held-back queue exactly as this file's notice line already does —
  *  one classification, asked from two places, rather than the same
- *  three keys copied a second time and left free to drift apart. */
+ *  four keys copied a second time and left free to drift apart. */
 export function heldBackResolvesOnItsOwn(r: Pick<QueueRowView, "errorReason" | "error">): boolean {
   if (r.errorReason !== "held-back" || !r.error || typeof r.error !== "object" || Array.isArray(r.error)) {
     return false;

@@ -5,6 +5,7 @@
 // shaped message still guessing "warn" or "err" for itself.
 import { describe, expect, test } from "bun:test";
 import { specNotice } from "../../../../src/render/ui/job-state";
+import { heldBackResolvesOnItsOwn } from "../../../../src/render/ui/job-state/notice.ts";
 import type { QueueRowView } from "../../../../src/render";
 
 const lead = (over: Partial<QueueRowView> = {}): QueueRowView => ({
@@ -110,5 +111,15 @@ describe("specNotice for an analyze stopped on files another open spec changes",
     expect(notice?.variant).toBe("waiting");
     expect(notice?.text).toContain("603-b");
     expect(notice?.text).toContain("z.ts");
+  });
+});
+
+// A wiki job held behind related work starts the moment that work ends, so the
+// Jobs tab's state chip and the notice both read it as nothing to act on.
+describe("a wiki job held behind related work in its project", () => {
+  test("resolves on its own, as an archive held behind another does (AC-6)", () => {
+    const held = (key: string) => ({ errorReason: "held-back" as const, error: { key } as never });
+    expect(heldBackResolvesOnItsOwn(held("runner.archiveRunning"))).toBe(true);
+    expect(heldBackResolvesOnItsOwn(held("runner.wikiWaitsOnProject"))).toBe(true);
   });
 });
