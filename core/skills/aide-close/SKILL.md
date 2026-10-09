@@ -34,9 +34,9 @@ Step 4, the merge into the default branch, is Aide's, after this
 session: Aide writes its marks, and the close is finished only when it is
 done.
 
-### Step 1 of 4: Run the mechanical script
+### Step 1 of 4: Move the spec to the archive as closed
 
-First write `--- Step 1 of 4: Run the mechanical script — started`, and when this step ends, `--- Step 1 of 4: Run the mechanical script — done`.
+First write `--- Step 1 of 4: Move the spec to the archive as closed — started`, and when this step ends, `--- Step 1 of 4: Move the spec to the archive as closed — done`.
 
 
 A script resolves the argument to a folder, checks whether a merge is
@@ -46,7 +46,7 @@ work is done:
 ```bash
 aide-close-spec --project-dir <project root> --spec <argument> \
                  --reason <the reason typed by the user closing it> \
-                 [--specs-dir <specs repo root, if separate>]
+                 [--specs-dir <the folder holding this project's spec folders, if separate>]
 ```
 
 The reason is the one thing this script refuses to run without. Read it
@@ -56,6 +56,8 @@ directly when interactive and none was given).
 
 Pass `--specs-dir` whenever the specs root lives in a different git repo
 from the project — same reasoning as `/aide-archive`'s own Step 1.
+It is the folder the spec folders sit in (`<specs repo>/<project>`), never the specs
+repo's own root, which holds one folder per project and no spec.
 
 Branch on the JSON's `terminalReason`:
 
