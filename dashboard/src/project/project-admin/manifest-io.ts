@@ -35,9 +35,9 @@ export function projectNameError(name: unknown): string | null {
  *  and `description`, which is the smallest manifest that renders
  *  USEFULLY rather than the smallest that avoids an error
  *  (`render/projects-page.ts` shows a description and nothing else without one).
- *  Everything past those two is `/aide-manifest`'s job, and the form
- *  says so. Serialized by the same `yaml` package that reads it back,
- *  so nobody here has to get quoting right on a description's behalf. */
+ *  Everything past those two is set from the Config tab. Serialized by
+ *  the same `yaml` package that reads it back, so nobody here has to get
+ *  quoting right on a description's behalf. */
 export function minimalManifest(name: string, description?: string): string {
   return stringify({ name, ...(description ? { description } : {}) });
 }
@@ -48,9 +48,9 @@ export function minimalManifest(name: string, description?: string): string {
  *  184).
  *
  *  The same discipline `writeAideConfig` applies to `.aide/config`, and
- *  for a sharper reason: a manifest is a file a person wrote through
- *  `/aide-manifest`, with comments, key order and multi-line blocks that
- *  a parse-mutate-`stringify()` round trip promises nothing about. Only
+ *  for a sharper reason: a manifest is a file a person wrote by hand,
+ *  with comments, key order and multi-line blocks that a
+ *  parse-mutate-`stringify()` round trip promises nothing about. Only
  *  the one anchored line is ever touched.
  *
  *  The line is written PLAIN and unquoted, because the reader on the
@@ -266,8 +266,7 @@ export const WORKTREE_LINK_DENYLIST = ["build", "target", "dist", ".gradle"] as 
  *  `key` names the SETTING the value came out of, so a refusal is read
  *  as an instruction to go and edit it. Defaults to the manifest's,
  *  which is where every worktree-links value is read from now (spec
- *  549) — `.aide/config`'s older `AIDE_WORKTREE_LINKS` is legacy and is
- *  never read, by the dashboard or by a run. */
+ *  549). */
 export function worktreeLinksError(value: string, key = "worktreeLinks"): string | null {
   for (const entry of value.split(/\s+/).filter(Boolean)) {
     if (entry.startsWith("/")) {

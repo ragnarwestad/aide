@@ -30,8 +30,7 @@ export function configValue(projectDir: string, key: string): string | null {
 export const configSpecsPath = (projectDir: string): string | null => configValue(projectDir, "AIDE_SPECS_PATH");
 
 /** Which file a project's worktree links came out of. `null` when the
- *  manifest names none — `.aide/config`'s older `AIDE_WORKTREE_LINKS` is
- *  legacy and is never read (spec 549). */
+ *  manifest names none. */
 export type WorktreeLinksSource = "project.yaml";
 
 /** The gitignored paths a run must symlink into its worktree, and where
@@ -126,8 +125,7 @@ export function resolveTestCmd(
 
 /** How this project is started for a look at one branch, and where that
  *  came from — the manifest's `previewCmd:` alone (spec 549), the same
- *  shape as `resolveTestCmd`: a legacy `AIDE_PREVIEW_CMD` in
- *  `.aide/config` is never read. */
+ *  shape as `resolveTestCmd`. */
 export function resolvePreviewCmd(projectDir: string): { value: string | null; source: "project.yaml" | null } {
   const manifestFile = join(projectDir, ".aide", "project.yaml");
   if (!existsSync(manifestFile)) return { value: null, source: null };

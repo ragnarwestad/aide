@@ -98,7 +98,7 @@ def test_the_two_copies_of_the_worktree_link_denylist_agree(workspace_root, run_
 
 def test_a_link_naming_a_path_that_is_not_there_is_refused(runner, workspace, fake_claude):
     """One rule, two places that have to agree about it: the dashboard's
-    Add reports a configured AIDE_WORKTREE_LINKS entry with no source as
+    Add reports a configured worktreeLinks entry with no source as
     a reason the project cannot run, and the runner refuses the same
     entry rather than starting a step whose test command will fail for a
     reason that has nothing to do with its change.
@@ -131,12 +131,9 @@ def test_the_worktree_links_are_read_from_the_documented_source(
 ):
     """Both columns of the shared table at once: WHICH paths end up
     linked into the worktree, and which file the run says it read them
-    from. The manifest wins where both are written — the committed file
-    is the one that travels with the repo — and the run naming its source
-    is what makes a value shadowed in the other file diagnosable rather
-    than silently ignored."""
-    configure_links(workspace, case["manifest"], case["config"])
-    claude, log = linking_claude(fake_claude, workspace, ["deps", "other-deps"])
+    from."""
+    configure_links(workspace, case["manifest"])
+    claude, log = linking_claude(fake_claude, workspace, ["deps"])
     rc, out, _, err = run(runner, workspace, claude, return_stderr=True)
     assert rc == 0, out
     linked = log.read_text().split() if log.exists() else []
@@ -153,8 +150,7 @@ def test_the_worktree_links_are_read_from_the_documented_source(
 def test_a_manifest_link_that_escapes_the_root_is_refused_in_the_manifests_own_words(
     runner, workspace, fake_claude
 ):
-    """The refusal named `AIDE_WORKTREE_LINKS` unconditionally, which is
-    the wrong file to go and edit once the value came from the manifest."""
+    """The refusal names the manifest's key, the file to go and edit."""
     claude = fake_claude("exit 1")
     (workspace["project"] / ".aide" / "project.yaml").write_text(
         "name: proj\nworktreeLinks: ../escape\n"
@@ -165,7 +161,6 @@ def test_a_manifest_link_that_escapes_the_root_is_refused_in_the_manifests_own_w
     assert rc == 2, out
     assert "../escape" in out["error"], out
     assert "worktreeLinks" in out["error"], out
-    assert "AIDE_WORKTREE_LINKS" not in out["error"], out
     assert not fake_claude.calls.exists()
 
 def test_a_manifest_link_with_no_source_is_refused_in_the_manifests_own_words(
@@ -181,7 +176,6 @@ def test_a_manifest_link_with_no_source_is_refused_in_the_manifests_own_words(
     assert rc == 2, out
     assert "node_modules" in out["error"], out
     assert "worktreeLinks" in out["error"], out
-    assert "AIDE_WORKTREE_LINKS" not in out["error"], out
 
 def test_aides_own_two_paths_are_both_linked_from_the_manifest(runner, workspace, fake_claude):
     """Spec 184, requirement 3: aide's own settings survive the move,
@@ -209,22 +203,6 @@ def test_aides_own_two_paths_are_both_linked_from_the_manifest(runner, workspace
     assert rc == 0, out
     assert sorted(log.read_text().split()) == [".venv", "dashboard/node_modules"], log.read_text()
     assert out["worktreeLinksSource"] == "project.yaml", out
-
-def test_a_legacy_config_only_link_is_never_read(runner, workspace, fake_claude):
-    """AIDE_WORKTREE_LINKS in .aide/config is legacy and is never read at
-    all (spec 549): a value that would once have been refused (an entry
-    with nothing to link) is now simply never looked at, and the run
-    succeeds with nothing linked."""
-    claude = fake_claude("exit 0")
-    (workspace["project"] / ".aide" / "config").write_text(
-        f"AIDE_SPECS_PATH={workspace['specs']}\nAIDE_WORKTREE_LINKS=deps node_modules\n"
-    )
-    (workspace["project"] / ".aide" / "project.yaml").write_text("AIDE_TEST_CMD: true\n")
-    git(workspace["project"], "add", "-f", ".aide/config")
-    git(workspace["project"], "commit", "-q", "-m", "a legacy-only link")
-    rc, out, _ = run(runner, workspace, claude)
-    assert rc == 0, out
-    assert "worktreeLinksSource" not in out, out
 
 @pytest.mark.parametrize(
     "case", READINESS_FIXTURE, ids=[f"{c['check']}: {c['failsWhen']}" for c in READINESS_FIXTURE]

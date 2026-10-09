@@ -40,8 +40,8 @@ describe("discovery reads the manifest from the dashboard's clone", () => {
   test("the settings page shows the preview command from the clone (AC-4)", () => {
     const w = world();
     const own = join(w.projects, "skjer");
-    const row = projectSettings(own, null, w.clone).rows.find((r) => r.key === "AIDE_PREVIEW_CMD");
+    const row = projectSettings(own, null, w.clone).rows.find((r) => r.key === "previewCmd");
     expect(row?.value).toBe("make check");
-    expect(projectSettings(own).rows.find((r) => r.key === "AIDE_PREVIEW_CMD")?.origin).not.toBe("configured");
+    expect(projectSettings(own).rows.find((r) => r.key === "previewCmd")?.origin).not.toBe("configured");
   });
 });

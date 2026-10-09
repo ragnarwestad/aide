@@ -354,8 +354,7 @@ describe("whether a run could start there (spec 138)", () => {
   // The note about an unset key is the one readiness answer a person can
   // act on directly, and it used to describe the gap without naming the
   // place to close it: the reader was left hunting for a field whose
-  // label (`AIDE_WORKTREE_LINKS`) matches neither the manifest key
-  // (`worktreeLinks`) nor the words in the note.
+  // label did not match the words in the note.
   test("the unset note names the setting and the tab that holds it", async () => {
     const { projectsRoot, dir } = checkout("nolinks");
     const result = await assess(dir, projectsRoot);
@@ -363,7 +362,7 @@ describe("whether a run could start there (spec 138)", () => {
     expect(note.blocking).toBe(false);
     // The label the Config row shows, from the shared table (spec 318),
     // and the tab it is on.
-    expect(note.detail).toContain(SETTING_LABELS.AIDE_WORKTREE_LINKS);
+    expect(note.detail).toContain(SETTING_LABELS.worktreeLinks);
     expect(note.detail).toContain("Config tab");
   });
 

@@ -31,8 +31,8 @@ export type { BranchFileStepsOptions, FileStepsAnswer } from "./branch-file-step
 
 /** The four stages a spec passes through, in workflow order — the same
  *  list `parse-status.ts` reads off the file, and deliberately NOT the
- *  nine the runner will execute: `explore` and `manifest`
- *  are things you can queue, not places a spec gets to. Read from
+ *  nine the runner will execute: `explore` is a
+ *  thing you can queue, not a place a spec gets to. Read from
  *  `core/scripts/lib/workflow-steps.json` (spec 349), the same file
  *  `core/scripts/aide-run-spec` reads with jq. */
 export const HISTORY_STEPS: readonly string[] = workflowStepsData.workflowArc;

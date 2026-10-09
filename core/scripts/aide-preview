@@ -112,8 +112,7 @@ trap remove_worktree EXIT
 # A worktree carries TRACKED files only, so the gitignored paths the
 # project's own command needs — its dependencies, its local settings —
 # are linked in, the same list `aide-run-spec` reads (the manifest
-# alone; `.aide/config`'s older AIDE_WORKTREE_LINKS is legacy and is
-# never read). A link that cannot be made is not fatal here: the command
+# alone). A link that cannot be made is not fatal here: the command
 # below says what it is missing far better than a guess from this script
 # would.
 links_of() {

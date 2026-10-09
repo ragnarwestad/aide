@@ -286,7 +286,7 @@ function jobGroup(all: QueueRowView[], target: SpecTarget | undefined, now: numb
   const lead = recent.find(inFlight) ?? recent[0]!;
   // The four, always, in order — a phase nobody has run yet still holds
   // its place, which is what makes progress readable at a glance. A
-  // step outside them (reopen, close, explore, manifest) draws no
+  // step outside them (reopen, close, explore) draws no
   // line; the Logs tab lists it. `create` is one of
   // the four since spec 116, so a create job lands on its own line at
   // the front rather than being appended after archive.

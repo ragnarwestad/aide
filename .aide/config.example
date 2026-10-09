@@ -12,10 +12,6 @@
 # AIDE_LINT_CMD=ruff check .
 # AIDE_BUILD_CMD=make build
 
-# LEGACY and never read: worktree links live in the manifest's
-# worktreeLinks: alone.
-# AIDE_WORKTREE_LINKS=.venv dashboard/node_modules
-
 # What installing this project means on THIS machine, run by the
 # dashboard after the project's own code is merged.
 # AIDE_INSTALL_CMD=./install.sh

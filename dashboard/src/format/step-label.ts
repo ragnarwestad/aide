@@ -13,27 +13,27 @@ import type { Language } from "../i18n";
  *  omission fails `make test` rather than surfacing on the board. */
 export const STEP_LABELS: Record<string, string> = {
   create: "Create", analyze: "Analyze", implement: "Implement", archive: "Archive",
-  explore: "Explore", manifest: "Manifest", reopen: "Reopen", reset: "Reset",
+  explore: "Explore", reopen: "Reopen", reset: "Reset",
   schedule: "Schedule", close: "Close", wiki: "Wiki",
 };
 export const STEP_LABELS_NB: Record<string, string> = {
   create: "Opprett", analyze: "Analyser", implement: "Implementer", archive: "Arkiver",
-  explore: "Utforsk", manifest: "Manifest", reopen: "Gjenåpne", reset: "Tilbakestill",
+  explore: "Utforsk", reopen: "Gjenåpne", reset: "Tilbakestill",
   schedule: "Kjøring", close: "Lukk", wiki: "Wiki",
 };
 export const STEP_LABELS_ES: Record<string, string> = {
   create: "Crear", analyze: "Analizar", implement: "Implementar", archive: "Archivar",
-  explore: "Explorar", manifest: "Manifest", reopen: "Reabrir", reset: "Restablecer",
+  explore: "Explorar", reopen: "Reabrir", reset: "Restablecer",
   schedule: "Programación", close: "Cerrar", wiki: "Wiki",
 };
 export const STEP_LABELS_DE: Record<string, string> = {
   create: "Erstellen", analyze: "Analysieren", implement: "Implementieren", archive: "Archivieren",
-  explore: "Erkunden", manifest: "Manifest", reopen: "Wiedereröffnen", reset: "Zurücksetzen",
+  explore: "Erkunden", reopen: "Wiedereröffnen", reset: "Zurücksetzen",
   schedule: "Zeitplan", close: "Schließen", wiki: "Wiki",
 };
 export const STEP_LABELS_FR: Record<string, string> = {
   create: "Créer", analyze: "Analyser", implement: "Implémenter", archive: "Archiver",
-  explore: "Explorer", manifest: "Manifest", reopen: "Rouvrir", reset: "Réinitialiser",
+  explore: "Explorer", reopen: "Rouvrir", reset: "Réinitialiser",
   schedule: "Planification", close: "Fermer", wiki: "Wiki",
 };
 const STEP_LABEL_TABLES: Partial<Record<Language, Record<string, string>>> = {

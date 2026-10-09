@@ -21,21 +21,17 @@ PRECEDENCE = json.loads(
 )["cases"]
 
 
-def configure_links(workspace, manifest, config):
+def configure_links(workspace, manifest):
     """Write a precedence case's two files, and make sure every path
-    either of them names is actually there — a link with no source is a
+    the manifest names is actually there — a link with no source is a
     refusal of its own (spec 138), and it is not what these tests are
     about."""
     project = workspace["project"]
-    for value in (manifest, config):
-        for entry in (value or "").split():
-            (project / entry).mkdir(parents=True, exist_ok=True)
-            (project / entry / "marker.txt").write_text("a dependency tree\n")
-    (project / ".gitignore").write_text("/deps/\n/other-deps/\n")
-    (project / ".aide" / "config").write_text(
-        f"AIDE_SPECS_PATH={workspace['specs']}\n"
-        + (f"AIDE_WORKTREE_LINKS={config}\n" if config else "")
-    )
+    for entry in (manifest or "").split():
+        (project / entry).mkdir(parents=True, exist_ok=True)
+        (project / entry / "marker.txt").write_text("a dependency tree\n")
+    (project / ".gitignore").write_text("/deps/\n")
+    (project / ".aide" / "config").write_text(f"AIDE_SPECS_PATH={workspace['specs']}\n")
     (project / ".aide" / "project.yaml").write_text(
         "name: proj\n" + (f"worktreeLinks: {manifest}\n" if manifest else "")
     )

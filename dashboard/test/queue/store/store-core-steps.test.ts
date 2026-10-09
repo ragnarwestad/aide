@@ -43,9 +43,8 @@ describe("spec 198: reopen", () => {
     expect(!r.ok && r.error).toContain("already active");
   });
 
-  // It is queueable, not a stage a spec passes through: `explore` and
-  // `manifest` are in `WORKFLOW_STEPS` for the same reason, and neither
-  // draws a phase box.
+  // It is queueable, not a stage a spec passes through: `explore` is
+  // in `WORKFLOW_STEPS` for the same reason, and draws no phase box.
   test("is not one of the phases a row draws a box for", () => {
     expect([...PHASE_STEPS] as string[]).not.toContain("reopen");
   });

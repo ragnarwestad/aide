@@ -114,7 +114,7 @@ export async function handleJobActionRoutes(
           // minutes later and out of sight. The state is the one the
           // runner reads, the default branch's, so the two cannot differ.
           // Only the four phases: a step the table has no row for
-          // (explore, manifest, wiki …) is not a phase move at all.
+          // (explore, wiki …) is not a phase move at all.
           if (!move.ok && !PHASE_STEPS.has(step)) continue;
           if (!move.ok) {
             const spec = `${askedFor.project}/${askedFor.specFolder}`;

@@ -79,8 +79,8 @@ describe("upserting one scalar into a manifest (spec 184)", () => {
     expect(readFileSync(file, "utf-8")).toBe("name: alpha\n");
   });
 
-  // Criterion 7. A manifest is a file a person wrote through
-  // /aide-manifest — comments, key order, multi-line blocks and all. A
+  // Criterion 7. A manifest is a file a person wrote
+  // by hand — comments, key order, multi-line blocks and all. A
   // parse-mutate-stringify round trip promises none of that back.
   test("every other line of a real manifest is byte-identical afterwards", () => {
     const before =
@@ -228,22 +228,22 @@ describe("writing one key inside a block of the manifest", () => {
 
 describe("where the worktree links are read from (spec 184)", () => {
   const CASES: {
-    cases: { name: string; manifest: string | null; config: string | null; links: string }[];
+    cases: { name: string; manifest: string | null; links: string }[];
   } = JSON.parse(
     readFileSync(join(import.meta.dir, "..", "..", "../../core/tests/fixtures/worktree-links-precedence.json"), "utf-8"),
   );
 
-  /** The same four combinations `aide-run-spec`'s own test iterates over,
+  /** The same combinations `aide-run-spec`'s own test iterates over,
    *  out of the same file. The two implementations are written
-   *  independently — one anchored `sed` in bash, `parseManifest` plus
-   *  `configValue` here — so what pins them together is this table, the
+   *  independently — one anchored `sed` in bash, `parseManifest` here —
+   *  so what pins them together is this table, the
    *  way `WORKFLOW_STEPS` and `DEPENDENCY_GATED_STEPS` are pinned by a
    *  test that reads both sides. The `source` column is the shell's
    *  alone: only the run has a source to report. */
   for (const c of CASES.cases) {
     test(`${c.name}: the links resolve to "${c.links}"`, async () => {
       const { projectsRoot, dir } = checkoutFor(c.name.toLowerCase().replace(/[^a-z]/g, ""));
-      for (const entry of `${c.manifest ?? ""} ${c.config ?? ""}`.split(/\s+/).filter(Boolean)) {
+      for (const entry of (c.manifest ?? "").split(/\s+/).filter(Boolean)) {
         mkdirSync(join(dir, entry), { recursive: true });
       }
       mkdirSync(join(dir, ".aide"), { recursive: true });
@@ -251,7 +251,6 @@ describe("where the worktree links are read from (spec 184)", () => {
         join(dir, ".aide", "project.yaml"),
         `name: x\n${c.manifest ? `worktreeLinks: ${c.manifest}\n` : ""}`,
       );
-      if (c.config) writeFileSync(join(dir, ".aide", "config"), `AIDE_WORKTREE_LINKS=${c.config}\n`);
       expect(resolveWorktreeLinks(dir).links).toBe(c.links);
       // And the readiness check reads it the same way: a value it cannot
       // see is a project it reports as unconfigured while a run links it.
@@ -270,11 +269,8 @@ describe("where the worktree links are read from (spec 184)", () => {
 });
 
 describe("a refused link names the file it came out of (spec 184)", () => {
-  // Since spec 549 there is only one spelling to refuse over: the
-  // manifest's `worktreeLinks`. `.aide/config`'s older
-  // `AIDE_WORKTREE_LINKS` is legacy and is never read, so nothing about
-  // it is ever refused either — `test_aide_run_spec.py` is the bash half
-  // of the same rule.
+  // The manifest's `worktreeLinks` is the one spelling to refuse over;
+  // `test_aide_run_spec.py` is the bash half of the same rule.
   test("a manifest value is refused in the manifest's own words", async () => {
     const { projectsRoot, dir } = checkoutFor("frommanifest");
     mkdirSync(join(dir, ".aide"), { recursive: true });
@@ -283,20 +279,7 @@ describe("a refused link names the file it came out of (spec 184)", () => {
     const check = readiness.checks.find((c) => c.check === "worktreeLinks")!;
     expect(check.blocking).toBe(true);
     expect(check.detail).toContain("worktreeLinks must not escape the root");
-    expect(check.detail).not.toContain("AIDE_WORKTREE_LINKS");
     expect(projectsRoot).toBeTruthy();
-  });
-
-  test("a legacy config value is not read at all, and so never refused (AC-5)", async () => {
-    const { dir } = checkoutFor("fromconfig");
-    mkdirSync(join(dir, ".aide"), { recursive: true });
-    writeFileSync(join(dir, ".aide", "config"), "AIDE_WORKTREE_LINKS=/etc\n");
-    const readiness = await assessProjectReadiness(fakeGit({}).run, dir);
-    const check = readiness.checks.find((c) => c.check === "worktreeLinks")!;
-    expect(check.blocking).toBe(false);
-    expect(check.ok).toBe(false);
-    expect(check.detail).not.toContain("AIDE_WORKTREE_LINKS must name repo-relative paths");
-    expect(check.detail).toContain("no worktree links are configured");
   });
 });
 
@@ -316,7 +299,6 @@ describe("adding a project keeps its links in the dashboard's settings file (spe
     expect(result.ok).toBe(true);
     const parsed = parseManifest(settingsOf(base, "travels"));
     expect(parsed.ok && parsed.data.worktreeLinks).toBe(".venv dashboard/node_modules");
-    expect(configValue(dir, "AIDE_WORKTREE_LINKS")).toBeNull();
     expect(existsSync(join(dir, ".aide", "project.yaml"))).toBe(false);
   });
 
@@ -327,7 +309,7 @@ describe("adding a project keeps its links in the dashboard's settings file (spe
     const projectsRoot = root();
     const base = root();
     const dir = join(projectsRoot, "hasmanifest");
-    const drafted = "name: hasmanifest\ndescription: written by /aide-manifest\nstack:\n  backend: none\n";
+    const drafted = "name: hasmanifest\ndescription: written by hand\nstack:\n  backend: none\n";
     const result = await addProject(cloningGit({}, { ".aide/project.yaml": drafted }).run, projectsRoot, {
       name: "hasmanifest",
       gitUrl: "git@example.com:me/hasmanifest.git",
@@ -336,7 +318,7 @@ describe("adding a project keeps its links in the dashboard's settings file (spe
     }, base);
     expect(result.ok).toBe(true);
     const text = settingsOf(base, "hasmanifest");
-    expect(text).toContain("description: written by /aide-manifest");
+    expect(text).toContain("description: written by hand");
     expect(text).toContain("  backend: none");
     expect(text).toContain("worktreeLinks: node_modules");
     expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).toBe(drafted);
@@ -406,9 +388,6 @@ describe("changing a project's settings after it was added (spec 184)", () => {
     expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).toBe(
       `${before}worktreeLinks: node_modules\n`,
     );
-    // `.aide/config` is not the place for this key any more, and a save
-    // that wrote it there would put the two files at odds.
-    expect(configValue(dir, "AIDE_WORKTREE_LINKS")).toBeNull();
     const links = result.readiness!.checks.find((c) => c.check === "worktreeLinks")!;
     expect(links.ok).toBe(true);
     expect(links.blocking).toBe(false);
@@ -487,19 +466,6 @@ describe("changing a project's settings after it was added (spec 184)", () => {
     expect(result.steps.find((s) => s.step === "worktreeLinks")!.error).toContain("../escape");
     expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).toBe(before);
     expect(existsSync(join(dir, ".aide", "config"))).toBe(false);
-  });
-
-  // Spec 549 (AC-6): every save now goes to the row's own fixed file,
-  // regardless of where the value currently lives.
-  test("a links value read from .aide/config is saved to the manifest instead", async () => {
-    const { dir } = added("legacy");
-    mkdirSync(join(dir, "deps"), { recursive: true });
-    mkdirSync(join(dir, "vendor"), { recursive: true });
-    writeFileSync(join(dir, ".aide", "config"), "AIDE_WORKTREE_LINKS=deps\n");
-    const result = await updateProjectSettings(fakeGit({}).run, dir, { worktreeLinks: "deps vendor" });
-    expect(result.ok).toBe(true);
-    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).toContain("worktreeLinks: deps vendor\n");
-    expect(configValue(dir, "AIDE_WORKTREE_LINKS")).toBe("deps");
   });
 
   test("an install command read from the manifest is saved to .aide/config instead", async () => {

@@ -53,10 +53,10 @@ describe("persistQueueSettings", () => {
 }\n`;
     writeFileSync(file, before);
     const model = Object.fromEntries(
-      ["explore", "create", "analyze", "implement", "archive", "manifest", "reopen"].map((step) => [step, "codex-fast"]),
+      ["explore", "create", "analyze", "implement", "archive", "reopen"].map((step) => [step, "codex-fast"]),
     );
     const timeoutSec = Object.fromEntries(
-      ["explore", "create", "analyze", "implement", "archive", "manifest", "reopen"].map((step) => [step, 1800]),
+      ["explore", "create", "analyze", "implement", "archive", "reopen"].map((step) => [step, 1800]),
     );
 
     expect(persistQueueSettings(file, { model, timeoutSec })).toBeNull();

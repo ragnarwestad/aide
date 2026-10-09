@@ -47,15 +47,6 @@ describe("what starts a board for a project", () => {
     ]);
   });
 
-  test("the manifest wins; the machine's own AIDE_PREVIEW_CMD is not read (AC-4)", () => {
-    const dir = root();
-    manifest(dir, "name: paceup\npreviewCmd: pnpm dev --port $PORT\n");
-    mkdirSync(join(dir, ".aide"), { recursive: true });
-    writeFileSync(join(dir, ".aide", "config"), "AIDE_PREVIEW_CMD=npm run dev -- --port $PORT\n");
-
-    expect(startCommandFor(dir, "aide/02-x", 8802)?.at(-1)).toBe("pnpm dev --port $PORT");
-  });
-
   test("a project that says nothing can have no board", () => {
     const dir = root();
     manifest(dir, "name: skjer\n");

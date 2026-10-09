@@ -55,7 +55,6 @@ SKILLS=(
   "aide-close"
   "aide-explore"
   "aide-reopen"
-  "aide-manifest"
   "aide-wiki"
   "aide-implement"
   "aide-create"

@@ -64,7 +64,7 @@ Run it again to update; it replaces what it installed and removes what it no lon
 
 Every skill in `core/skills/` except `spec-structure` is installed (Claude Code gets it as the
 `spec-structure` rule instead): the `aide-*` workflow skills (`aide-create`,
-`aide-analyze`, `aide-implement`, `aide-archive`, `aide-explore`, `aide-manifest`, `aide-reopen`,
+`aide-analyze`, `aide-implement`, `aide-archive`, `aide-explore`, `aide-reopen`,
 `aide-close`, `aide-to-pdf`) and the expertise skills Claude Code activates by context
 (`tdd-coach`, `task-workflow-assistant`, `documentation`, `markdown-linting`,
 `tools-and-scripts`, `unit-tests`, `playwright-e2e`, `workflows`).

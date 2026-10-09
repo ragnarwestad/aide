@@ -31,7 +31,7 @@ import effortLevelsData from "../../../core/scripts/lib/effort-levels.json" with
 // already has, though the exemption is separate new logic in
 // `parseJobRequest` below rather than a copy of `create`'s (which lives
 // in a wholly different parser, `parseCreateRequest`). Queueable and,
-// like `explore`/`manifest`/`reopen`, deliberately not part of
+// like `explore`/`reopen`, deliberately not part of
 // the workflow arc: a schedule run is not a stage any spec passes
 // through.
 
@@ -49,11 +49,11 @@ import effortLevelsData from "../../../core/scripts/lib/effort-levels.json" with
 // `workflowSteps` disagree, in every process that loads it (the
 // dashboard and every test alike).
 export type WorkflowStep =
-  | "explore" | "create" | "analyze" | "implement" | "archive" | "manifest" | "reopen"
+  | "explore" | "create" | "analyze" | "implement" | "archive" | "reopen"
   | "schedule" | "close" | "wiki";
 
 const KNOWN_STEPS: readonly WorkflowStep[] = [
-  "explore", "create", "analyze", "implement", "archive", "manifest", "reopen",
+  "explore", "create", "analyze", "implement", "archive", "reopen",
   "schedule", "close", "wiki",
 ];
 
@@ -127,8 +127,7 @@ export function currentWorkRoundJobs<T extends {
 /** The steps a spec's row draws a box for, in the order they run — and
  *  so the steps a running job's tail may be given (spec 160). It is
  *  narrower than `WORKFLOW_STEPS` on purpose: `create` cannot be run
- *  for a spec that exists, `explore` is not a phase of the work, and
- *  `manifest` is not part of the workflow's order at all.
+ *  for a spec that exists, `explore` is not a phase of the work.
  *
  *  `queue-list.ts` keeps the same list, because the render layer does
  *  not import this module; the two are hand-paired: change one and
@@ -139,7 +138,7 @@ export const PHASE_STEPS = ["analyze", "implement", "archive"] as const;
  *  (REQ-1): `create` and `archive` take minutes, `analyze` and
  *  `implement` a half hour or more. `close` (spec 406) does no model
  *  work either, in the same sense `archive` doesn't. Every step not
- *  named here — `explore`, `manifest`, `reopen`, `schedule` —
+ *  named here — `explore`, `reopen`, `schedule` —
  *  stays in the slow group: none of them is characterized the way these
  *  are. Module-internal: nothing outside this file needs it directly
  *  (only `queuePriorityOrder`, below, is exported for other files to

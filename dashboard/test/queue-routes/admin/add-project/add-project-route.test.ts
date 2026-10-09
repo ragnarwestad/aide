@@ -210,7 +210,6 @@ describe("POST /api/queue/projects (spec 112)", () => {
     const body = (await res.json()) as StepBody;
     expect(body.ok).toBe(true);
     expect(body.results.map((r) => r.step)).toEqual(["name", "clone", "manifest", "allowlist"]);
-    expect(body.results.find((r) => r.step === "manifest")!.note).toMatch(/aide-manifest/);
   });
 
   const previewFromIn = (text: string) => {

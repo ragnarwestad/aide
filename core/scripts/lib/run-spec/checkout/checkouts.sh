@@ -49,8 +49,7 @@ wt_dir="$worktree_base/$(worktree_project_key "$project_root")/$spec_label"
 # The COMMITTED manifest alone (spec 549): `.aide/project.yaml` travels
 # with the repo, so a checkout that has never been configured on this
 # machine still knows which gitignored paths its commands need.
-# `.aide/config`'s older `AIDE_WORKTREE_LINKS` is legacy and is never
-# read. Which file was read is REPORTED — to stderr for whoever is
+# Which file was read is REPORTED — to stderr for whoever is
 # watching the run, and in the result blob for whatever reads that.
 link_paths=()
 links_raw=""

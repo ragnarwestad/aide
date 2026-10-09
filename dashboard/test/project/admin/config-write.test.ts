@@ -125,16 +125,4 @@ describe("writing .aide/config (spec 138)", () => {
     expect(step.error).toContain("build output");
     expect(existsSync(join(dir, ".aide", "config"))).toBe(false);
   });
-
-  test("no worktree links means no key is written for them", async () => {
-    const projectsRoot = root();
-    const dir = join(projectsRoot, "quiet");
-    await addProject(cloningGit().run, projectsRoot, {
-      name: "quiet",
-      gitUrl: "git@example.com:me/quiet.git",
-      codeLanding: "merge",
-      specsPath: "/somewhere",
-    });
-    expect(configValue(dir, "AIDE_WORKTREE_LINKS")).toBeNull();
-  });
 });

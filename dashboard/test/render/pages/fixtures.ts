@@ -32,10 +32,6 @@ export const healthy: ProjectView = {
     data: {
       name: "goodproj",
       description: "A healthy project",
-      stack: { frontend: "TypeScript" },
-      deployment: { url: "https://goodproj.example.com" },
-      statistics: ["https://stats.example.com"],
-      docs: ["README.md"],
     },
   },
   specs: [

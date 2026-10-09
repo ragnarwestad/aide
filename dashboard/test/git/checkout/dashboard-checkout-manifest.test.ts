@@ -31,7 +31,7 @@ const SETTINGS = "name: demo\npreviewCmd: make check\nworktreeLinks: node_module
 /** A bare origin with one commit, the person's checkout of it, and an
  *  empty checkout base. */
 function world(files: Record<string, string> = { "README.md": "hi\n" }) {
-  const root = mkdtempSync(join(tmpdir(), "aide-manifest-carry-"));
+  const root = mkdtempSync(join(tmpdir(), "settings-carry-"));
   dirs.push(root);
   const origin = join(root, "origin.git");
   const seed = join(root, "seed");
@@ -65,19 +65,13 @@ function world(files: Record<string, string> = { "README.md": "hi\n" }) {
 
 describe("the dashboard's clone carries the settings file", () => {
   test("the resolvers answer the settings file and the clone stays clean (AC-4)", async () => {
-    const saved = process.env.AIDE_PREVIEW_CMD;
-    delete process.env.AIDE_PREVIEW_CMD;
-    try {
-      const w = world();
-      writeFileSync(w.settings, SETTINGS);
-      expect((await w.ensure()).ok).toBe(true);
-      expect(resolvePreviewCmd(w.code).value).toBe("make check");
-      expect(resolveWorktreeLinks(w.code).links).toBe("node_modules");
-      expect(resolveCodeLanding(w.code)).toBe("pr");
-      expect(git(w.code, "status", "--porcelain")).not.toContain(".aide/project.yaml");
-    } finally {
-      if (saved !== undefined) process.env.AIDE_PREVIEW_CMD = saved;
-    }
+    const w = world();
+    writeFileSync(w.settings, SETTINGS);
+    expect((await w.ensure()).ok).toBe(true);
+    expect(resolvePreviewCmd(w.code).value).toBe("make check");
+    expect(resolveWorktreeLinks(w.code).links).toBe("node_modules");
+    expect(resolveCodeLanding(w.code)).toBe("pr");
+    expect(git(w.code, "status", "--porcelain")).not.toContain(".aide/project.yaml");
   });
 
   test("aide_manifest_get reads the same three values off the clone (AC-4)", async () => {

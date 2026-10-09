@@ -188,12 +188,8 @@ checked out in a worktree there, which means a test server is running on it: tha
 
 Any project whose manifest says `deployment.previewFrom: command` and that says how to start itself. Aide is its own case: its checkout carries the
 dashboard's source and the round script, and a test server there is that round left running. Every
-other project names a preview command, in one of two places:
-
-- `previewCmd:` in the committed `.aide/project.yaml` — the Settings table on its project page
-  writes it, under the row labelled `AIDE_PREVIEW_CMD`.
-- `AIDE_PREVIEW_CMD` in the machine's own `.aide/config` — a machine that starts the project
-  differently overrides it this way, the same precedence the install command has.
+other project names a preview command: `previewCmd:` in the committed `.aide/project.yaml`, which the Settings table
+on its project page writes under the row labelled Preview command.
 
 The command is expected to serve on `$PORT` and keep running until it is stopped, for example
 `pnpm dev --port $PORT --host 127.0.0.1`. It runs in a worktree of the spec's branch, with the

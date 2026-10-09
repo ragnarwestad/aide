@@ -80,17 +80,10 @@ First write `--- Step 1 of 11: Read the description — started`, and when this 
 - **Read the project's reusable parts, after the wiki and before
   Step 2.** With a wiki, they are the files `wiki/reusable-parts.md`
   names, each a path from the project root, and the rules it gives for
-  using them. Without a wiki, they are the paths the manifest's `reuse`
-  key lists: the files and folders where the project keeps its reusable
-  parts and the rules for using them. Read a file whole, and a folder
-  file by file. Note each path as `read`, or `missing` when it does not
-  exist, for Step 5. A project with neither has nothing named to read,
-  and Step 2's search runs all the same.
-- **Only in a project with no wiki,** read `.aide/project.yaml` in the
-  project root if it exists — the project manifest gives deployment,
-  logging and dependency context the analysis should use (refresh it
-  with `/aide-manifest`). With a wiki, the project's context comes from
-  `wiki/overview.md` and the manifest is not read.
+  using them. Read a file whole, and a folder file by file. Note each
+  path as `read`, or `missing` when it does not exist, for Step 5. A
+  project with no wiki has none named to read, and Step 2's search runs
+  all the same.
 - Identify: What should change? What is the scope? Migration or single fix?
 - If `1-description.md` has a `## Acceptance criteria` section, extract
   its `AC-n` ids for Steps 5, 7 and 8 — see `references/requirements-tracing.md`.
@@ -133,7 +126,7 @@ those files is the grade's to say.
 needs that it does not have yet: a component, a dialog, a form, a
 helper, a script, a parser, a style rule, a test fixture. For each, look
 in the reusable parts Step 1 read (the files `wiki/reusable-parts.md`
-named, or what the `reuse` key named without a wiki) and search the code for one that
+named) and search the code for one that
 already does the same, or would with a small change. Keep what you find,
 with file:line, for the plan's Parts (Step 7).
 
@@ -255,8 +248,7 @@ under `missing` as `missing`. Without a wiki, no such line.
 
 When Step 1 read the reusable parts, the `## Mapping` section gets a
 line **Reuse paths read** listing each path with `read` or `missing`:
-the files `wiki/reusable-parts.md` named, or with no wiki the paths the
-`reuse` key names. With neither, no such line.
+the files `wiki/reusable-parts.md` named. With no wiki, no such line.
 
 Sections already filled in per Step 4 are left untouched.
 

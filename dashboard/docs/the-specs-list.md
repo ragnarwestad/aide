@@ -303,7 +303,7 @@ movement.
 Filtering and sorting work on the spec's grouped jobs. "Active" means the spec has something in flight; sorting by
 cost sorts on the sum. A wiki build is a job of the project's and not a spec, so the list draws no row for it; it is
 followed on the project's Wiki tab. A spec's phase lines are the four and nothing else: a step outside them (`reopen`, `close`,
-`explore`, `manifest`, `schedule`) draws no line, and the Logs tab on the spec page lists it. The spec's total time is
+`explore`, `schedule`) draws no line, and the Logs tab on the spec page lists it. The spec's total time is
 the sum over the four phases, so a step outside them adds nothing to it.
 
 ## A failed create

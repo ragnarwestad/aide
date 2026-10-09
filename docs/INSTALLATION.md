@@ -150,15 +150,8 @@ project on any machine — that a Vite project needs `node_modules` does
 not depend on whose laptop it is checked out on — and `.aide/config` is
 kept out of git, so a clone arrived on the next machine with the answer
 gone (spec 184). The dashboard's Add form and each project's Settings
-page write this key; `/aide-manifest` leaves it exactly as found.
-
-The older spelling — `AIDE_WORKTREE_LINKS=.venv dashboard/node_modules`
-in `.aide/config` — is still read, so a project migrated on one machine
-keeps running on the others. The manifest **wins** where both name
-something, and every run says in its own output which of the two files it
-read (`worktreeLinksSource` in the result, and a line on stderr), so a
-value shadowed in the other file is diagnosable rather than silently
-ignored.
+page write this key. Every run says in its own output which file it read
+the links from (`worktreeLinksSource` in the result, and a line on stderr).
 
 A link is a symlink into the one main checkout, and several runs share
 it — so it names what a build **reads**, never what a build writes. A

@@ -173,7 +173,7 @@ export async function addProject(
   // have written into the checkout goes to the dashboard's own settings
   // file instead, and a manifest the checkout already has — tracked or
   // not — is never written to: an untracked one only seeds the settings
-  // file, so what somebody drafted with `/aide-manifest` is not lost.
+  // file, so what somebody drafted by hand is not lost.
   const own = join(dir, ".aide", "project.yaml");
   const settingsFile = checkoutBase ? dashboardSettingsFile(checkoutBase, name) : null;
   // Only a yes counts as tracked. A git that cannot say (the directory is
@@ -198,7 +198,7 @@ export async function addProject(
         ok: true,
         note: existed
           ? "kept the settings the dashboard already holds for it"
-          : `the dashboard keeps its settings in ${settingsFile}, not in the project — run /aide-manifest to fill in the rest`,
+          : `the dashboard keeps its settings in ${settingsFile}, not in the project`,
       });
     }
   } catch (err) {

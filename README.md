@@ -161,7 +161,6 @@ The four basic workflow skills, in the order a spec moves through them:
 Other, supporting skills:
 
 - **`/aide-explore`** — weighs approaches and sharpens the scope before a spec is created; creates no files
-- **`/aide-manifest`** — drafts or refreshes a project's `.aide/project.yaml` manifest (stack, dependencies, deployment, docs)
 - **`/aide-wiki`** — builds a project's wiki: one page per part of the system, an index and a schema, kept in the specs repository and read first by `/aide-analyze`
 - **`/aide-close`** — closes a spec you have decided not to build: records the reason, moves it to `archive/`, and deletes its code branch unmerged
 - **`/aide-reopen`** — takes an archived spec back into the active list for another round of analysis or implementation; keeps every file unless asked to reset the analysis, plan and status

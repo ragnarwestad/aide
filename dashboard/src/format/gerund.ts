@@ -19,27 +19,27 @@ import { stepLabel } from "./step-label.ts";
  *  production. */
 export const GERUND_EN: Record<string, string> = {
   create: "Creating", analyze: "Analyzing", implement: "Implementing", archive: "Archiving",
-  explore: "Exploring", manifest: "Updating the manifest", reopen: "Reopening", reset: "Resetting",
+  explore: "Exploring", reopen: "Reopening", reset: "Resetting",
   schedule: "Running the schedule", close: "Closing", wiki: "Building the wiki",
 };
 export const GERUND_NB: Record<string, string> = {
   create: "Oppretter", analyze: "Analyserer", implement: "Implementerer", archive: "Arkiverer",
-  explore: "Utforsker", manifest: "Oppdaterer manifestet", reopen: "Gjenåpner", reset: "Tilbakestiller",
+  explore: "Utforsker", reopen: "Gjenåpner", reset: "Tilbakestiller",
   schedule: "Kjører planen", close: "Lukker", wiki: "Bygger wikien",
 };
 export const GERUND_ES: Record<string, string> = {
   create: "Creando", analyze: "Analizando", implement: "Implementando", archive: "Archivando",
-  explore: "Explorando", manifest: "Actualizando el manifest", reopen: "Reabriendo", reset: "Restableciendo",
+  explore: "Explorando", reopen: "Reabriendo", reset: "Restableciendo",
   schedule: "Ejecutando la programación", close: "Cerrando", wiki: "Construyendo la wiki",
 };
 export const GERUND_DE: Record<string, string> = {
   create: "Erstellt", analyze: "Analysiert", implement: "Implementiert", archive: "Archiviert",
-  explore: "Erkundet", manifest: "Aktualisiert das Manifest", reopen: "Öffnet erneut", reset: "Setzt zurück",
+  explore: "Erkundet", reopen: "Öffnet erneut", reset: "Setzt zurück",
   schedule: "Führt den Zeitplan aus", close: "Schließt", wiki: "Baut das Wiki",
 };
 export const GERUND_FR: Record<string, string> = {
   create: "Crée", analyze: "Analyse", implement: "Implémente", archive: "Archive",
-  explore: "Explore", manifest: "Met à jour le manifest", reopen: "Rouvre", reset: "Réinitialise",
+  explore: "Explore", reopen: "Rouvre", reset: "Réinitialise",
   schedule: "Exécute la planification", close: "Ferme", wiki: "Construit le wiki",
 };
 const GERUND_TABLES: Partial<Record<Language, Record<string, string>>> = {

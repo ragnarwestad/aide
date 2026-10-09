@@ -285,7 +285,7 @@ describe("adding a checkout that is already on the host", () => {
     const dir = join(projectsRoot, "already");
     const manifest = join(dir, ".aide", "project.yaml");
     const git = cloningGit({}, {
-      ".aide/project.yaml": "name: already\ndescription: written by /aide-manifest\nstack:\n  api: Go\n",
+      ".aide/project.yaml": "name: already\ndescription: written by hand\nstack:\n  api: Go\n",
     });
     const result = await addProject(git.run, projectsRoot, {
       name: "already",
@@ -301,9 +301,9 @@ describe("adding a checkout that is already on the host", () => {
   });
 
   // Criterion 6: the same registration, with no manifest there. It
-  // succeeds — and SAYS a manifest had to be made, because the operator
-  // has a `/aide-manifest` run to do afterwards.
-  test("a checkout with no manifest gets a minimal one in the dashboard's settings file, and the answer says so", async () => {
+  // succeeds — and SAYS where the settings are kept, without sending the
+  // operator to a command.
+  test("a checkout with no manifest gets a minimal one in the dashboard's settings file, and the answer says so (AC-2)", async () => {
     const projectsRoot = root();
     const base = root();
     const dir = join(projectsRoot, "bare");
@@ -316,7 +316,10 @@ describe("adding a checkout that is already on the host", () => {
     expect(result.ok).toBe(true);
     const manifest = result.steps.find((s) => s.step === "manifest")!;
     expect(manifest.ok).toBe(true);
-    expect(manifest.note).toMatch(/aide-manifest/);
+    const settingsFile = dashboardSettingsFile(base, "bare");
+    expect(manifest.note).toContain(settingsFile);
+    // The temp directory's own name starts with `aide-`, so the path is taken out first.
+    expect(manifest.note!.replace(settingsFile, "")).not.toMatch(/\/aide-/);
     expect(existsSync(join(dir, ".aide", "project.yaml"))).toBe(false);
     expect(parseManifest(readFileSync(dashboardSettingsFile(base, "bare"), "utf-8"))).toEqual({
       ok: true,

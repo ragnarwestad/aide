@@ -142,9 +142,10 @@ describe("readWorkflowSubjects", () => {
 
   // The four the workflow arc is made of, plus the retired ones kept
   // for history (`HISTORY_STEPS_RETIRED`), and nothing else: explore
-  // and manifest are steps the runner will execute but not stages a
-  // spec passes through (`parse-status.ts`'s own list), and a word that
-  // was never a step at all is ignored the same way.
+  // is a step the runner will execute but not a stage a spec passes
+  // through (`parse-status.ts`'s own list), and a subject naming a step
+  // that no longer exists, or a word that was never a step at all, is
+  // ignored the same way.
   test("a step outside the tracked ones is ignored, not appended", () => {
     const history = readWorkflowSubjects(
       [subject("explore"), subject("manifest"), subject("resolve")],

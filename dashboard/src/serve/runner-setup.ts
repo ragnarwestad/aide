@@ -342,8 +342,8 @@ export function stepDoneHandler(
         const pushed = outcome.branchUrls ?? [];
         return pushed.length > 0 ? ctx.landScheduleRun(job, outcome) : undefined;
       }
-      // `implement`, `explore` and `manifest` fall through: the first
-      // by design, the other two because neither leaves a spec branch
+      // `implement` and `explore` fall through: the first
+      // by design, the other because it leaves no spec branch
       // for anyone to land.
       return undefined;
     }

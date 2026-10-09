@@ -17,6 +17,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ProjectReadiness, ReadinessCheck } from "../../../src/project/project-admin";
+import { parseManifest } from "../../../src/project/parse-manifest.ts";
 import {
   DERIVABLE,
   EDITABLE_FIELD,
@@ -27,6 +28,19 @@ import {
   projectSettings,
   type SettingsGroupFile,
 } from "../../../src/project/project-settings.ts";
+
+// Each row of the manifest group is keyed by the manifest's own key, so
+// the grey key the tab prints beside it is one a manifest can hold.
+describe("the manifest group is keyed by keys the parser reads (AC-3)", () => {
+  test("every key of the manifest group, set in a manifest, reads back under the same key (AC-3)", () => {
+    const manifest = SETTING_GROUPS.find((g) => g.file === "manifest")!;
+    for (const key of manifest.keys) {
+      const result = parseManifest(`name: p\n${key}: x\n`);
+      if (!result.ok) throw new Error(result.error);
+      expect([key, (result.data as Record<string, unknown>)[key]]).toEqual([key, "x"]);
+    }
+  });
+});
 
 const dirs: string[] = [];
 
@@ -102,7 +116,7 @@ describe("configured, worked out, or not set", () => {
     expect(r.value).toBeNull();
   });
 
-  for (const key of ["AIDE_INSTALL_CMD", "AIDE_WORKTREE_LINKS", "AIDE_SPECS_PATH"]) {
+  for (const key of ["AIDE_INSTALL_CMD", "worktreeLinks", "AIDE_SPECS_PATH"]) {
     test(`${key} is never worked out from a lockfile`, () => {
       const r = row(project("", "pnpm-lock.yaml"), key);
       expect([key, r.origin]).toEqual([key, "unset"]);
@@ -134,8 +148,9 @@ describe("a value that does not resolve is marked, in the words readiness alread
   };
 
   test("a worktree link with nothing to link carries readiness's own sentence (criterion 4)", () => {
-    const dir = project("AIDE_WORKTREE_LINKS=node_modules\n");
-    expect(row(dir, "AIDE_WORKTREE_LINKS", readiness(missingLinks)).problem).toEqual({
+    const dir = project("");
+    writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\nworktreeLinks: node_modules\n");
+    expect(row(dir, "worktreeLinks", readiness(missingLinks)).problem).toEqual({
       text: missingLinks.detail,
       blocking: true,
     });
@@ -165,8 +180,9 @@ describe("a value that does not resolve is marked, in the words readiness alread
   // The rows still say what the file says; nothing claims a path is
   // missing on no evidence.
   test("with no readiness result nothing is marked as unresolved", () => {
-    const dir = project("AIDE_WORKTREE_LINKS=node_modules\nAIDE_SPECS_PATH=/tmp/elsewhere\n");
-    for (const key of ["AIDE_WORKTREE_LINKS", "AIDE_SPECS_PATH"]) {
+    const dir = project("AIDE_SPECS_PATH=/tmp/elsewhere\n");
+    writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\nworktreeLinks: node_modules\n");
+    for (const key of ["worktreeLinks", "AIDE_SPECS_PATH"]) {
       expect([key, row(dir, key, null).problem]).toEqual([key, undefined]);
     }
   });
@@ -184,7 +200,7 @@ describe("a value that does not resolve is marked, in the words readiness alread
       blocking: false,
       detail: "no worktree links are configured — a run's worktree carries tracked files only",
     };
-    const r = row(project(""), "AIDE_WORKTREE_LINKS", readiness(unsetNote));
+    const r = row(project(""), "worktreeLinks", readiness(unsetNote));
     expect(r.origin).toBe("unset");
     expect(r.problem).toEqual({ text: unsetNote.detail, blocking: false });
   });
@@ -216,7 +232,7 @@ describe("a value that does not resolve is marked, in the words readiness alread
       blocking: false,
       detail: "the worktree links are all there: ",
     };
-    const r = row(project(""), "AIDE_WORKTREE_LINKS", readiness(passed));
+    const r = row(project(""), "worktreeLinks", readiness(passed));
     expect(r.origin).toBe("unset");
     expect(r.problem).toBeUndefined();
   });
@@ -233,26 +249,18 @@ describe("the Worktree links row is sourced from resolveWorktreeLinks() (spec 25
     expect(view.rows.map((r) => r.key)).toEqual([...SETTING_KEYS]);
   });
 
-  test("the manifest's worktreeLinks: wins when both files set it, and the row names that file (criterion 2)", () => {
-    const dir = project("AIDE_WORKTREE_LINKS=other-deps\n");
+  test("the manifest's worktreeLinks: is the row's value, and the row names that file (criterion 2)", () => {
+    const dir = project("");
     writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\nworktreeLinks: deps\n");
-    const r = row(dir, "AIDE_WORKTREE_LINKS");
+    const r = row(dir, "worktreeLinks");
     expect(r.origin).toBe("configured");
     expect(r.value).toBe("deps");
     expect(r.source).toBe("project.yaml");
   });
 
-  test("a legacy .aide/config value alone is not read: the row reads unset (AC-5)", () => {
-    const dir = project("AIDE_WORKTREE_LINKS=deps\n");
-    const r = row(dir, "AIDE_WORKTREE_LINKS");
-    expect(r.origin).toBe("unset");
-    expect(r.value).toBeNull();
-    expect(r.source).toBeUndefined();
-  });
-
-  test("neither file setting it reads unset, same as before", () => {
+  test("no manifest setting reads unset", () => {
     const dir = project("");
-    const r = row(dir, "AIDE_WORKTREE_LINKS");
+    const r = row(dir, "worktreeLinks");
     expect(r.origin).toBe("unset");
     expect(r.value).toBeNull();
     expect(r.source).toBeUndefined();

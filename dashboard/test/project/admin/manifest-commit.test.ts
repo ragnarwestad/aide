@@ -27,7 +27,7 @@ function git(cwd: string, ...args: string[]): string {
 
 /** A checkout on `main`, cloned from a bare origin, with a manifest. */
 function checkout(): { root: string; origin: string } {
-  const base = mkdtempSync(join(tmpdir(), "aide-manifest-commit-"));
+  const base = mkdtempSync(join(tmpdir(), "settings-commit-"));
   dirs.push(base);
   const origin = join(base, "origin.git");
   const seed = join(base, "seed");

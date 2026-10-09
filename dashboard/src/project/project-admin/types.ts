@@ -29,8 +29,8 @@ export interface ProjectStep {
   ok: boolean;
   error?: string;
   /** Something that went RIGHT and the operator still has to know —
-   *  today only "a manifest had to be made, so `/aide-manifest` still
-   *  has a run to do". A note never makes the step fail. */
+   *  today only where the settings of a project with no manifest are
+   *  kept. A note never makes the step fail. */
   note?: string;
 }
 

@@ -29,8 +29,7 @@ Skills are loaded from `~/.claude/skills/` — use the `/` syntax.
 Each skill's own description says what it does and when to use it; the
 `aide-*` skills are the workflow's steps (`/aide-explore`, `/aide-create`,
 `/aide-analyze`, `/aide-implement`, `/aide-archive`, `/aide-close`,
-`/aide-reopen`) and its helpers (`/aide-manifest`, `/aide-wiki`,
-`/aide-to-pdf`).
+`/aide-reopen`) and its helpers (`/aide-wiki`, `/aide-to-pdf`).
 
 ---
 
@@ -105,7 +104,6 @@ They are in the manifest because they hold on any machine. A project
 that does not track a manifest keeps them in the dashboard's own
 settings file, `checkouts/<name>/settings.yaml`, which reaches a run as
 an untracked `.aide/project.yaml`; a tracked manifest wins.
-`.aide/config`'s older `AIDE_WORKTREE_LINKS` is never read.
 
 `AIDE_INSTALL_CMD` is for a project that installs itself somewhere, so
 that code reaching the default branch also reaches the machine. The value
@@ -125,11 +123,11 @@ Everything is optional. Shell scripts read the file via `aide_config_get KEY <pr
 `_aide-spec-lib.sh`.
 
 **The project manifest is the config's team-owned sibling:**
-`.aide/project.yaml` describes what the project IS (stack, dependencies,
-deployment, logging, statistics, reports, docs) and belongs in git.
-`/aide-manifest` drafts and refreshes it; `/aide-analyze` reads it for
-project context in a project with no wiki. Only `.aide/config` is personal and gitignored — never
-ignore the whole `.aide/` directory.
+`.aide/project.yaml` holds the settings a run and the board read
+(`name`, `description`, `AIDE_TEST_CMD`, `worktreeLinks`, `previewCmd`,
+`codeLanding`, `deployment.previewFrom`) and belongs in git. Only
+`.aide/config` is personal and gitignored — never ignore the whole
+`.aide/` directory.
 
 ---
 

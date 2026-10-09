@@ -282,10 +282,10 @@ describe("landing an archived spec (spec 136)", () => {
 
   // Criterion 5, as spec 149 leaves it. `analyze` lands itself now too,
   // so the steps that still land nothing are `implement` — whose pushed
-  // branch IS the place a person tests the code — and the two that
-  // belong to no spec's branch at all.
+  // branch IS the place a person tests the code — and the one that
+  // belongs to no spec's branch at all.
   test("no other step lands itself — implement's branch stays open", async () => {
-    const steps = ["implement", "explore", "manifest"];
+    const steps = ["implement", "explore"];
     const checked = await Promise.all(
       steps.map(async (step) => {
         const git = gitFor();

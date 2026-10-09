@@ -339,9 +339,9 @@ export async function assessProjectReadiness(
           // table (spec 318) so it is the same words the Config row
           // shows.
           detail:
-            `no ${SETTING_LABELS.AIDE_WORKTREE_LINKS.toLowerCase()} are configured — a run's ` +
+            `no ${SETTING_LABELS.worktreeLinks.toLowerCase()} are configured — a run's ` +
             "worktree carries tracked files only, so name any gitignored path the project's " +
-            `own commands need (node_modules, .venv) in ${SETTING_LABELS.AIDE_WORKTREE_LINKS} ` +
+            `own commands need (node_modules, .venv) in ${SETTING_LABELS.worktreeLinks} ` +
             "on the Config tab",
         }
       : linkError

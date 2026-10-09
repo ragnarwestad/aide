@@ -52,7 +52,7 @@ Each entry says what the word is and links the page that has the rest.
   cancelled or interrupted.
   [A job's states](../dashboard/docs/job-states.md).
 - **Step** — anything the queue runs: the four phases, and explore,
-  manifest, schedule, reopen, close and wiki.
+  schedule, reopen, close and wiki.
 - **Skill step** — a numbered section of the skill a step runs,
   `Step N of X`, marked in the step's log.
 - **Runner** — `aide-run-spec`, the script that runs one step: checks out

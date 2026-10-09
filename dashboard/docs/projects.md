@@ -91,7 +91,7 @@ Try a branch, Test command and Preview command go to the dashboard's own setting
 command go to the project's `.aide/config`. A field left empty and a default (Merge, Not before it is merged) write
 nothing. A manifest the checkout already tracks is the team's: what the form sets is committed to it in one commit,
 and because a default writes nothing, an Add never overwrites a value that manifest already sets. An untracked
-`.aide/project.yaml` in the checkout (a draft from `/aide-manifest`) is left as it is and seeds the settings file, so
+`.aide/project.yaml` in the checkout (one somebody drafted by hand) is left as it is and seeds the settings file, so
 what it said is not lost.
 
 ### Where a project's settings are kept
@@ -112,7 +112,7 @@ A tracked manifest wins as a whole file where both exist, and the heading still 
 was typed goes to the file the state names, and the specs path and the install command to `.aide/config`.
 
 **What moves a project to the first state is the project itself**: commit an `.aide/project.yaml` in
-its repository — `/aide-manifest` drafts one — and the dashboard reads that instead from the next
+its repository, and the dashboard reads that instead from the next
 render on. Nothing on the board moves the settings, and no press copies one file into the other.
 
 Two of the eight values never travel this way at all: Specs path and Install command are written to
@@ -419,8 +419,7 @@ The asymmetry is recorded in
 `core/tests/fixtures/project-readiness-prerequisites.json`'s own comment rather than pinned against the runner.
 
 `worktreeLinks` is read from the project's `.aide/project.yaml` (the committed one, else the dashboard's derived copy)
-alone, the same file `aide-run-spec` itself reads — `.aide/config`'s older `AIDE_WORKTREE_LINKS` is legacy and is
-never read, by either side.
+alone, the same file `aide-run-spec` itself reads.
 `core/tests/fixtures/worktree-links-precedence.json` is the one table both sides are tested against, because the two are
 written independently and nothing else would stop them drifting.
 

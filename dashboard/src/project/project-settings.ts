@@ -79,10 +79,10 @@ export interface ProjectSettingsView {
  *  `AIDE_SPECS_PATH` paragraph. */
 export const SETTING_KEYS = [
   "AIDE_SPECS_PATH",
-  "AIDE_WORKTREE_LINKS",
+  "worktreeLinks",
   "AIDE_TEST_CMD",
   "AIDE_INSTALL_CMD",
-  "AIDE_PREVIEW_CMD",
+  "previewCmd",
   "description",
 ] as const;
 
@@ -94,7 +94,7 @@ export const SETTING_KEYS = [
  *  the same rows into two tables. */
 export const SETTING_GROUPS: { file: ".aide/config" | "manifest"; keys: readonly string[] }[] = [
   { file: ".aide/config", keys: ["AIDE_SPECS_PATH", "AIDE_INSTALL_CMD"] },
-  { file: "manifest", keys: ["AIDE_WORKTREE_LINKS", "AIDE_PREVIEW_CMD", "AIDE_TEST_CMD", "description"] },
+  { file: "manifest", keys: ["worktreeLinks", "previewCmd", "AIDE_TEST_CMD", "description"] },
 ];
 
 export type SettingsGroupFile = (typeof SETTING_GROUPS)[number]["file"];
@@ -117,19 +117,19 @@ export function groupForEditParam(param: string | null): SettingsGroupFile | nul
  *  saved to the manifest's `AIDE_TEST_CMD`. */
 export const EDITABLE_FIELD: Record<string, string> = {
   AIDE_SPECS_PATH: "specsPath",
-  AIDE_WORKTREE_LINKS: "worktreeLinks",
+  worktreeLinks: "worktreeLinks",
   AIDE_INSTALL_CMD: "installCmd",
-  AIDE_PREVIEW_CMD: "previewCmd",
+  previewCmd: "previewCmd",
   AIDE_TEST_CMD: "testCmd",
   description: "description",
 };
 
 const PURPOSE: Record<string, string> = {
   AIDE_SPECS_PATH: "Where this project's specs are kept — its own specs/ when unset",
-  AIDE_WORKTREE_LINKS: "Gitignored paths a run's worktree needs, which git does not carry",
+  worktreeLinks: "Gitignored paths a run's worktree needs, which git does not carry",
   AIDE_TEST_CMD: "The project's own test command",
   AIDE_INSTALL_CMD: "What installing this project means on this machine, run after its code merges",
-  AIDE_PREVIEW_CMD: "How to start this project so a spec's branch can be looked at, serving on $PORT",
+  previewCmd: "How to start this project so a spec's branch can be looked at, serving on $PORT",
   description: "One line saying what the project is, shown on the Projects list",
 };
 
@@ -145,7 +145,7 @@ export const DERIVABLE: Record<string, CommandKind> = {
  *  read-only can say whether they work. */
 const RESOLVED_BY: Record<string, ReadinessCheckName> = {
   AIDE_SPECS_PATH: "specsRoot",
-  AIDE_WORKTREE_LINKS: "worktreeLinks",
+  worktreeLinks: "worktreeLinks",
 };
 
 /** The checks a settings row already speaks for (spec 378) — exported so
@@ -164,7 +164,7 @@ function configuredValue(
   key: string,
   manifestDir: string,
 ): { value: string; source?: string } | null {
-  if (key === "AIDE_WORKTREE_LINKS") {
+  if (key === "worktreeLinks") {
     const { links, source } = resolveWorktreeLinks(manifestDir);
     return links ? { value: links, source: source ?? undefined } : null;
   }
@@ -172,7 +172,7 @@ function configuredValue(
     const { value, source } = resolveDescription(manifestDir);
     return value ? { value, source: source ?? undefined } : null;
   }
-  if (key === "AIDE_INSTALL_CMD" || key === "AIDE_TEST_CMD" || key === "AIDE_PREVIEW_CMD") {
+  if (key === "AIDE_INSTALL_CMD" || key === "AIDE_TEST_CMD" || key === "previewCmd") {
     const resolve =
       key === "AIDE_INSTALL_CMD" ? resolveInstallCmd : key === "AIDE_TEST_CMD" ? resolveTestCmd : resolvePreviewCmd;
     const { value, source } = resolve(manifestDir);

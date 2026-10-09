@@ -1,6 +1,6 @@
-// Normalize hand-edited .aide/project.yaml into one render shape.
-// The two real manifests already diverge (logging.where is a string
-// in one, a list in the other) — normalization is the point.
+// Read the settings out of a hand-edited .aide/project.yaml. A key
+// nothing reads is left out of the result, so a manifest that still
+// carries one keeps working.
 
 import { parse } from "yaml";
 
@@ -17,20 +17,13 @@ export const isPreviewFrom = (v: string | undefined): v is PreviewFrom =>
 export interface ManifestData {
   name?: string;
   description?: string;
-  generated?: string;
-  stack?: Record<string, string>;
-  dependencies?: string[];
   /** `previewFrom` says how one branch of the project can be tried
    *  before it is merged: the host builds every branch
    *  (`cloudflare-pages`), the board starts the project on its own
    *  machine (`command`), or it cannot be tried without merging
    *  (`none`). A word this does not recognize is left ABSENT, which
    *  reads as `none`. */
-  deployment?: { host?: string; command?: string; url?: string; previewFrom?: PreviewFrom; note?: string };
-  logging?: { where: string[] };
-  statistics?: string[];
-  reports?: { title?: string; url?: string; recipe?: string }[];
-  docs?: string[];
+  deployment?: { previewFrom: PreviewFrom };
   /** The gitignored paths a run has to symlink into its worktree, space
    *  separated (spec 184). Here rather than in `.aide/config` because it
    *  is true of the PROJECT on any machine — that a Vite project needs
@@ -58,15 +51,6 @@ export interface ManifestData {
    *  through, so no reader downstream has to decide for itself what a
    *  word it has never heard means. */
   codeLanding?: "merge" | "pr";
-  /** What installing this project means, and its own test command —
-   *  read the same way as `worktreeLinks` (spec 345):
-   *  `.aide/config`'s `AIDE_INSTALL_CMD` overrides it per machine when
-   *  set, but a fresh clone that has never been configured locally still
-   *  knows it. Unlike `worktreeLinks` the config file wins here, not the
-   *  manifest — an install command can legitimately differ on one
-   *  machine (a PATH prefix a shell needs, say) in a way a worktree link
-   *  cannot. */
-  installCmd?: string;
   /** The project's test command: the whole suite, run by a step, the
    *  landing and `/aide-implement` (`aide-resolve-test-cmd`). Read here
    *  and nowhere else, so every checkout runs the same command. */
@@ -77,22 +61,14 @@ export interface ManifestData {
    *  own pool, and the command is expected to serve on `$PORT` and keep
    *  running until it is stopped.
    *
-   *  Read like `installCmd`: `.aide/config`'s
-   *  `AIDE_PREVIEW_CMD` overrides it per machine, because how an app is
-   *  started locally can legitimately differ on one machine. A project
-   *  that carries `dashboard/test/round/run` (aide itself) needs none —
-   *  that script is what its own preview starts. */
+   *  A project that carries `dashboard/test/round/run` (aide itself)
+   *  needs none — that script is what its own preview starts. */
   previewCmd?: string;
 }
 
 export type ManifestResult =
   | { ok: true; data: ManifestData }
   | { ok: false; error: string };
-
-function toList(v: unknown): string[] | undefined {
-  if (v == null) return undefined;
-  return Array.isArray(v) ? v.map(String) : [String(v)];
-}
 
 function toStr(v: unknown): string | undefined {
   return v == null ? undefined : String(v);
@@ -113,43 +89,11 @@ export function parseManifest(text: string): ManifestResult {
 
   if (r.name != null) data.name = toStr(r.name);
   if (r.description != null) data.description = toStr(r.description);
-  if (r.generated != null) data.generated = toStr(r.generated);
-  if (r.stack != null && typeof r.stack === "object" && !Array.isArray(r.stack)) {
-    data.stack = Object.fromEntries(
-      Object.entries(r.stack as Record<string, unknown>).map(([k, v]) => [k, String(v)]),
-    );
-  }
-  if (r.dependencies != null) data.dependencies = toList(r.dependencies);
   if (r.deployment != null && typeof r.deployment === "object") {
-    const d = r.deployment as Record<string, unknown>;
-    const previewFrom = toStr(d.previewFrom)?.trim();
-    data.deployment = {
-      ...(d.host != null && { host: toStr(d.host) }),
-      ...(d.command != null && { command: toStr(d.command) }),
-      ...(d.url != null && { url: toStr(d.url) }),
-      ...(isPreviewFrom(previewFrom) && { previewFrom }),
-      ...(d.note != null && { note: toStr(d.note) }),
-    };
+    const previewFrom = toStr((r.deployment as Record<string, unknown>).previewFrom)?.trim();
+    if (isPreviewFrom(previewFrom)) data.deployment = { previewFrom };
   }
-  if (r.logging != null && typeof r.logging === "object") {
-    const where = toList((r.logging as Record<string, unknown>).where);
-    if (where) data.logging = { where };
-  }
-  if (r.statistics != null) data.statistics = toList(r.statistics);
-  if (r.reports != null && Array.isArray(r.reports)) {
-    data.reports = r.reports.map((entry) => {
-      if (entry === null || typeof entry !== "object") return { title: String(entry) };
-      const e = entry as Record<string, unknown>;
-      return {
-        ...(e.title != null && { title: toStr(e.title) }),
-        ...(e.url != null && { url: toStr(e.url) }),
-        ...(e.recipe != null && { recipe: toStr(e.recipe) }),
-      };
-    });
-  }
-  if (r.docs != null) data.docs = toList(r.docs);
   if (r.worktreeLinks != null) data.worktreeLinks = toStr(r.worktreeLinks);
-  if (r.installCmd != null) data.installCmd = toStr(r.installCmd);
   if (r.AIDE_TEST_CMD != null) data.AIDE_TEST_CMD = toStr(r.AIDE_TEST_CMD);
   if (r.previewCmd != null) data.previewCmd = toStr(r.previewCmd);
   // The one field here that is VALIDATED rather than normalized: it is a

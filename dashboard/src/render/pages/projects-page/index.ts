@@ -270,7 +270,7 @@ export function renderAddProjectPage(
       { wide: true },
     ) +
     field(
-      SETTING_LABELS.AIDE_PREVIEW_CMD,
+      SETTING_LABELS.previewCmd,
       `<input type="text" name="previewCmd" maxlength="300" placeholder="optional — serving on $PORT">`,
       { wide: true },
     ) +

@@ -239,12 +239,12 @@ def test_create_does_not_resolve_an_archived_spec_with_an_open_branch(
 def test_workflow_steps_json_holds_the_known_lists(workspace_root):
     """REQ-1: one data file holds the workflow steps, the dependency-gated
     steps and the workflow arc — each matching today's known-good
-    values."""
+    values. AC-2: the list has no step that starts a removed skill."""
     path = workspace_root / "core" / "scripts" / "lib" / "workflow-steps.json"
     assert path.is_file(), f"the shared workflow-step file is missing: {path}"
     data = json.loads(path.read_text())
     assert data["workflowSteps"] == [
-        "explore", "create", "analyze", "implement", "archive", "manifest", "reopen", "schedule", "close", "wiki",
+        "explore", "create", "analyze", "implement", "archive", "reopen", "schedule", "close", "wiki",
     ]
     assert data["dependencyGatedSteps"] == ["analyze", "implement", "archive"]
     assert data["workflowArc"] == ["create", "analyze", "implement", "archive"]

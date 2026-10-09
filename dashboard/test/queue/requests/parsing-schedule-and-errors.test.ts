@@ -42,7 +42,7 @@ describe("PHASE_STEPS", () => {
 });
 
 // Spec 259: a project's own recurring job, queued through the same
-// store as every other step. Queueable like `explore`/`manifest`/
+// store as every other step. Queueable like `explore`/
 // `reopen`/`reset`, but never a phase a spec passes through.
 describe("WORKFLOW_STEPS — schedule (spec 259)", () => {
   test("is a workflow step but not a phase", () => {

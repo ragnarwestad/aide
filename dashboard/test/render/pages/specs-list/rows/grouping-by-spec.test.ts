@@ -124,9 +124,9 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     expect(noFold(subRow(html, "create"))).not.toContain("<a ");
   });
 
-  // Reopen, close, explore, manifest and schedule are steps, not phases:
+  // Reopen, close, explore and schedule are steps, not phases:
   // whichever of them ran, the strip is the four.
-  for (const step of ["reopen", "close", "explore", "manifest", "schedule"]) {
+  for (const step of ["reopen", "close", "explore", "schedule"]) {
     test(`a ${step} job leaves the phase lines at the four (AC-1)`, () => {
       const html = rows([job("j1", "analyze"), job("j2", step)]);
       const order = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);

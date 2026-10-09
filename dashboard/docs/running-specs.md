@@ -373,8 +373,8 @@ and shown on the job's own detail page beside its Model row.
 
 ## Global defaults for the AI and model
 
-`/settings` holds the default AI and model per step, on its AI tab under Models per phase. The table has nine rows:
-the six that act on a spec — Create, Analyze, Implement, Archive, Close and Reopen — then Manifest, Schedule and
+`/settings` holds the default AI and model per step, on its AI tab under Models per phase. The table has eight rows:
+the six that act on a spec — Create, Analyze, Implement, Archive, Close and Reopen — then Schedule and
 Wiki, which do not. `explore` is deliberately left out: it has no button, no row action and no place in Schedule, so
 a model set for it could not be used.
 

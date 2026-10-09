@@ -27,7 +27,7 @@ take it back or close it. How each move is decided and recorded is in
 | `implement` | Code and tests in the project, the status rows in `4-status.md`, and `test-run.json` beside the spec                     | Nothing. The code waits on `aide/<folder>`                                           |
 | `archive`   | The `Archived:` stamp, moves the folder into `archive/`, feeds documentation back                                        | Merges the specs repo, then the code root, runs `AIDE_INSTALL_CMD`, then asks origin |
 
-Other steps exist — `explore`, `manifest`, `schedule`, `reopen`, `close` — but they are not phases: none of
+Other steps exist — `explore`, `schedule`, `reopen`, `close` — but they are not phases: none of
 them appears in the workflow arc. `close` and `reopen` do move a spec between STATES, which is why they have rows
 in the transition table; they draw no line on a spec's row, which always has the four, and the Logs tab lists them.
 They simply do not move a spec along the arc.

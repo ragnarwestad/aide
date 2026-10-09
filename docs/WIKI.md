@@ -65,7 +65,7 @@ files and the commit it was written from, so a reader can tell whether the code 
   one rendered.
 
 In a project with a wiki, the analysis takes the project's context and reusable parts from the overview and the
-reusable-parts page, not from `.aide/project.yaml`. A project with no wiki is analysed from the manifest.
+reusable-parts page. A project with no wiki is analysed from the code alone.
 
 ## How a page is known to be current
 

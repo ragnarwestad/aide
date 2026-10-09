@@ -59,7 +59,7 @@ describe("QueueStore", () => {
     // Distinct steps: the queue refuses the same step twice while the
     // first is unfinished, so four identical requests would not make
     // four jobs to drop one of.
-    const ids = ["analyze", "implement", "archive", "manifest"].map((step) => {
+    const ids = ["analyze", "implement", "archive", "explore"].map((step) => {
       const r = store.enqueue({ ...REQ, steps: [step] });
       return r.ok ? r.job.id : "";
     });

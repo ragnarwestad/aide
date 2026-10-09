@@ -81,14 +81,9 @@ describe("resolveInstallCmd / resolveTestCmd", () => {
   });
 
   // AC-4: the reverse of resolveInstallCmd — the preview command is the
-  // manifest's alone now, and a legacy AIDE_PREVIEW_CMD in .aide/config
-  // is never read.
-  test("the preview command is the manifest's previewCmd alone: .aide/config is not read (AC-4)", () => {
-    expect(resolvePreviewCmd(project("bun run dev", null, "previewCmd", "AIDE_PREVIEW_CMD"))).toEqual({
-      value: null,
-      source: null,
-    });
-    expect(resolvePreviewCmd(project(null, "bun run dev", "previewCmd", "AIDE_PREVIEW_CMD"))).toEqual({
+  // manifest's alone.
+  test("the preview command is the manifest's previewCmd (AC-4)", () => {
+    expect(resolvePreviewCmd(project(null, "bun run dev", "previewCmd", ""))).toEqual({
       value: "bun run dev",
       source: "project.yaml",
     });
@@ -99,7 +94,7 @@ describe("resolveInstallCmd / resolveTestCmd", () => {
 // test command needs — which is why the Add form asks — but the
 // checkout's own `.gitignore` names the candidates, and the form read
 // no such file. This is the reader of it: suggestions for a field, not
-// an answer, so only the entries `AIDE_WORKTREE_LINKS` could actually
+// an answer, so only the entries `worktreeLinks` could actually
 // take are offered.
 describe("gitignoreCandidates", () => {
   let checkouts: string;

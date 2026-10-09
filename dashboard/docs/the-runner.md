@@ -160,8 +160,7 @@ checkout meanwhile. Two consequences worth knowing before changing anything here
 - A worktree carries tracked files only, so `.venv` and `dashboard/node_modules` reach it through `worktreeLinks:` in
   the `.aide/project.yaml` (committed, or the dashboard's untracked copy, which the run copies into the worktree and
   keeps out of the commit) — symlinked in, and excluded from `git add -A` by pathspec, because a `dir/`
-  gitignore rule does not match a symlink. `.aide/config`'s `AIDE_WORKTREE_LINKS` is still read when the manifest names
-  none — the manifest wins where both do, and the run reports which file it read (`worktreeLinksSource` in the result
+  gitignore rule does not match a symlink. The run reports which file it read (`worktreeLinksSource` in the result
   blob, and a line on stderr).
 - The specs root reaches the worktree in one of three shapes. A separate specs repository gets a worktree of its own. A
   specs root inside the project that git ignores — aide's own `/specs/` — is linked in from the main checkout and never

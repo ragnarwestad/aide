@@ -57,7 +57,7 @@ describe("Add writes the dashboard's settings file, not the checkout", () => {
   test("an untracked manifest seeds the settings file and is left as it was (AC-1)", async () => {
     const f = fixture();
     // A checkout the dashboard had already made, holding a manifest
-    // somebody drafted with /aide-manifest and never committed. That is
+    // somebody drafted by hand and never committed. That is
     // the one way an untracked manifest is there when Add runs, now that
     // Add clones the project itself.
     const code = join(f.base, "demo", "code");

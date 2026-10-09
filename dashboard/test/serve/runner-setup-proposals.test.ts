@@ -70,7 +70,7 @@ describe("stepDoneHandler and a scheduled run's proposals", () => {
   });
 
   test("an ok step of any other kind reads no proposals (AC-2)", () => {
-    for (const step of ["analyze", "implement", "explore", "manifest"] as const) {
+    for (const step of ["analyze", "implement", "explore"] as const) {
       handler()(job({ steps: [step] }), step, { ok: true, terminalReason: "completed" });
     }
     expect(creates()).toEqual([]);

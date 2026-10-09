@@ -205,38 +205,6 @@ class TestUninstallReadsTheManifest:
 
 
 @pytest.mark.validation
-class TestManifestTemplate:
-    """The example manifest ships with the skill and carries every
-    documented top key (spec 78). String-based on purpose: no YAML
-    parser in the test env — real parsing is spec 79's decision."""
-
-    TEMPLATE = CORE_SKILLS_DIR / "aide-manifest" / "references" / "project.yaml"
-    TOP_KEYS = [
-        "name", "description", "generated", "stack", "dependencies",
-        "deployment", "logging", "statistics", "reports", "docs",
-        "worktreeLinks", "reuse",
-    ]
-
-    def test_template_has_every_documented_top_key_AC_1(self):
-        assert self.TEMPLATE.exists(), f"missing: {self.TEMPLATE}"
-        lines = self.TEMPLATE.read_text(encoding="utf-8").splitlines()
-        missing = [
-            k for k in self.TOP_KEYS
-            if not any(line.startswith(f"{k}:") for line in lines)
-        ]
-        assert not missing, f"template lacks top keys: {missing}"
-
-    def test_deployment_asks_previewFrom_and_no_url_template_AC_6(self):
-        text = self.TEMPLATE.read_text(encoding="utf-8")
-        assert re.search(r"^\s+previewFrom:", text, re.MULTILINE), (
-            "the example's deployment block must name previewFrom:"
-        )
-        assert not re.search(r"^\s+preview:", text, re.MULTILINE), (
-            "the example must not carry the old preview: URL template"
-        )
-
-
-@pytest.mark.validation
 class TestInstallRetiresTheRulesThatBecameSkills:
     """Spec 147: four rules became skills, and the rules side has no
     pruning mechanism of its own.

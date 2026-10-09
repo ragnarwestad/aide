@@ -76,7 +76,7 @@ function settingValueCell(r: SettingRow, isEditingThis: boolean, opts: ProjectPa
   }
   const field = EDITABLE_FIELD[r.key]!;
   const value = esc(r.value ?? "");
-  if (r.key === "AIDE_WORKTREE_LINKS") {
+  if (r.key === "worktreeLinks") {
     // A `<datalist>` cannot be attached to a textarea, so the
     // candidates are text under the field, in the order and spacing a
     // value is typed.

@@ -13,8 +13,8 @@
 # aide-archive-spec sources the same helper for its own, narrower,
 # Acceptance-only gate.
 
-# Only the five steps the line is ABOUT write it. `explore` and
-# `manifest` leave the file exactly as they found it: neither is
+# Only the five steps the line is ABOUT write it. `explore`
+# leaves the file exactly as it found it: it is not
 # a stage a spec passes through, and an explore run that today writes
 # nothing at all must not start leaving a commit — and with it a branch
 # no step lands — for a line it has no news about.

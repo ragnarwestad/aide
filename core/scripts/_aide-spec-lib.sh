@@ -441,10 +441,9 @@ AIDE_EOF
 # throwaway index so the caller's own index is never touched.
 #
 # The project's worktree links (`worktreeLinks`, the same list a run
-# links in — `.aide/config`'s older AIDE_WORKTREE_LINKS is legacy and is
-# never read) are left out, committed or not. They are the gitignored paths a run points
-# at the main checkout, a `node_modules/` ignore rule does not match the
-# symlink that stands in for one, and a session's own `git add -A` can
+# links in) are left out, committed or not. They are the gitignored
+# paths a run points at the main checkout, a `node_modules/` ignore rule
+# does not match the symlink that stands in for one, and a session's own `git add -A` can
 # commit it — so counted, the tree a run tested differed from the tree
 # that landed with nothing else between them (spec 480's archive,
 # 2026-09-18), and the same tree hashed before and after a commit came

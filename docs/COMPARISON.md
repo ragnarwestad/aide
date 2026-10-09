@@ -96,8 +96,7 @@ happened, including the cost of each step. The folder goes in
 the project's own documentation first.
 
 **Workflow.** `/aide-create`, `/aide-analyze`, `/aide-implement`, `/aide-archive`. Beside them: `/aide-explore` for
-thinking a problem through, `/aide-manifest` for a project's own settings file, and `/aide-close` and `/aide-reopen`
-for specs that stop or come back. `/aide-analyze` reviews its own plan against the description: criteria that
+thinking a problem through, and `/aide-close` and `/aide-reopen` for specs that stop or come back. `/aide-analyze` reviews its own plan against the description: criteria that
 contradict each other or cannot be built, a condition with no scenario for when it does not hold, and anything that
 falls under "Out of scope", at a level chosen per spec (off, warn or stop). After `/aide-implement`, a second session
 reviews the diff against the description, "Out of scope" included.
@@ -135,7 +134,7 @@ the skills run the tests themselves, and what to do about a failure — and when
 settings: name, description, test command, worktree links — the gitignored directories a run has to borrow, such
 as `node_modules` — and the `codeLanding` choice. The dashboard stores them next to the clones it keeps, and
 writes them into the project only where `.aide/project.yaml` is committed there already, a file a team that has
-adopted Aide writes itself with the `/aide-manifest` skill or by hand — see
+adopted Aide writes by hand — see
 [Projects](../dashboard/docs/projects.md). `.aide/config`, which holds one machine's own settings, is never
 committed. The second set is the spec folders, which go in `specs/` unless
 `AIDE_SPECS_PATH` points at a specs repository. The workflow itself is never installed into a project, since the

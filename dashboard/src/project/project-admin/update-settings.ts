@@ -62,9 +62,7 @@ export async function updateProjectSettings(
     /** Read the same way, written to the MANIFEST rather than
      *  `.aide/config`: how a project is started for a look at one
      *  branch is a fact about the project, and a fresh clone that knows
-     *  it can offer the board. A machine that starts it differently
-     *  still sets `AIDE_PREVIEW_CMD` in its own config by hand, which
-     *  keeps winning. */
+     *  it can offer the board. */
     previewCmd?: string;
     /** The command a run and a landing test with — the manifest's
      *  `AIDE_TEST_CMD`, read by `aide-resolve-test-cmd`. Gated on
@@ -222,9 +220,9 @@ export async function updateProjectSettings(
     else if (value.trim() !== stored) writeManifest(manifestKey, value.trim(), step);
   };
   const storedLinks = fromManifest(manifestData.worktreeLinks);
-  save("worktreeLinks", req.worktreeLinks, "AIDE_WORKTREE_LINKS", "worktreeLinks", storedLinks, false);
+  save("worktreeLinks", req.worktreeLinks, "", "worktreeLinks", storedLinks, false);
   save("installCmd", req.installCmd, "AIDE_INSTALL_CMD", "installCmd", "", true);
-  save("previewCmd", req.previewCmd, "AIDE_PREVIEW_CMD", "previewCmd", fromManifest(manifestData.previewCmd), false);
+  save("previewCmd", req.previewCmd, "", "previewCmd", fromManifest(manifestData.previewCmd), false);
   save("testCmd", req.testCmd, "", "AIDE_TEST_CMD", fromManifest(manifestData.AIDE_TEST_CMD), false);
   // Compared folded to one line, as the form posts it back: a description
   // an older Add stored over several lines would otherwise differ from its

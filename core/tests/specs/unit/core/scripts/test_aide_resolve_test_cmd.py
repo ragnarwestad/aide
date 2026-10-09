@@ -62,7 +62,7 @@ def test_no_aide_test_cmd_resolves_to_no_command(script, project):
 
 def test_aide_config_and_the_old_keys_are_not_read(script, project):
     write_manifest(project, "testCmd: echo manifest\nlandingTestCmd: echo e2e\n")
-    (project / ".aide" / "config").write_text("AIDE_TEST_CMD=make test\nAIDE_TEST_SCOPE_CMD_1=pytest\n")
+    (project / ".aide" / "config").write_text("AIDE_TEST_CMD=make test\n")
     assert resolve(script, project) == (0, {"ok": True, "commands": []})
 
 
@@ -130,18 +130,4 @@ def test_a_change_that_touches_anything_else_runs_the_test_command(script, proje
 def test_no_change_at_all_runs_the_test_command(script, project):
     write_manifest(project, "AIDE_TEST_CMD: make test\n")
     _docs_check(project)
-    assert resolve(script, project, "--changed-from", "main") == (0, {"ok": True, "commands": ["make test"]})
-
-
-def test_the_old_links_key_does_not_hide_a_change(script, project):
-    """Only the manifest's worktreeLinks name the linked directories;
-    `.aide/config`'s AIDE_WORKTREE_LINKS is never read, so a path under it
-    is a change like any other."""
-    write_manifest(project, "AIDE_TEST_CMD: make test\n")
-    (project / ".aide" / "config").write_text("AIDE_WORKTREE_LINKS=vendor\n")
-    _docs_check(project)
-    git(project, "switch", "-q", "-c", "spec")
-    (project / "README.md").write_text("changed prose\n")
-    (project / "vendor").mkdir()
-    (project / "vendor" / "lib.js").write_text("x\n")
     assert resolve(script, project, "--changed-from", "main") == (0, {"ok": True, "commands": ["make test"]})

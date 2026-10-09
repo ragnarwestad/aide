@@ -5,9 +5,9 @@
 // is a one-line edit in this file rather than a hunt across pages.
 export const SETTING_LABELS: Record<string, string> = {
   AIDE_SPECS_PATH: "Specs path",
-  AIDE_WORKTREE_LINKS: "Worktree links",
+  worktreeLinks: "Worktree links",
   AIDE_TEST_CMD: "Test command",
   AIDE_INSTALL_CMD: "Install command",
-  AIDE_PREVIEW_CMD: "Preview command",
+  previewCmd: "Preview command",
   description: "Description",
 };

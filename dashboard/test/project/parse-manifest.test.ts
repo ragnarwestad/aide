@@ -1,6 +1,6 @@
-// Criterion 4: normalization of BOTH real manifests (fixtures are
-// verbatim copies) into exact expected render values — including
-// logging.where arriving as a list (paceup) and a string (atlasaurus).
+// A manifest written before the description keys were dropped still reads:
+// the keys nothing uses are left out of the result, the way `schedule` and
+// `criteriaChecks` are.
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -9,30 +9,51 @@ import { parseManifest } from "../../src/project/parse-manifest.ts";
 const fixture = (name: string) =>
   readFileSync(join(import.meta.dir, "..", "fixtures", "manifests", name), "utf-8");
 
-describe("parseManifest on the real manifests", () => {
-  test("paceup: exact values", () => {
-    const result = parseManifest(fixture("paceup.yaml"));
+const RETIRED_TOP_LEVEL = [
+  "stack", "dependencies", "logging", "statistics", "reports", "docs", "reuse", "generated", "installCmd",
+];
+
+describe("parseManifest ignores the keys nothing reads", () => {
+  test("a manifest with every retired key reads the kept ones and drops the rest (AC-1)", () => {
+    const result = parseManifest([
+      "name: x",
+      "generated: 2026-01-01",
+      "stack:",
+      "  language: TypeScript",
+      "dependencies: [a, b]",
+      "deployment:",
+      "  host: Somewhere",
+      "  command: make deploy",
+      "  url: https://x.example",
+      "  note: be careful",
+      "  preview: https://{branch}.x.example",
+      "  previewFrom: command",
+      "logging:",
+      "  where: [Sentry]",
+      "statistics: [https://stats.example]",
+      "reports:",
+      "  - title: Weekly",
+      "docs: [docs/README.md]",
+      "reuse: [src/lib]",
+      "installCmd: make install",
+      "AIDE_TEST_CMD: make test",
+      "",
+    ].join("\n"));
     if (!result.ok) throw new Error(result.error);
-    expect(result.data.name).toBe("paceup");
-    expect(result.data.deployment?.url).toBe("https://example.github.io/paceup/");
-    expect(result.data.statistics).toEqual(["https://paceup.goatcounter.com"]);
-    // list stays a list
-    expect(result.data.logging?.where).toHaveLength(3);
+    expect(result.data.name).toBe("x");
+    expect(result.data.AIDE_TEST_CMD).toBe("make test");
+    expect(result.data.deployment).toEqual({ previewFrom: "command" });
+    for (const key of RETIRED_TOP_LEVEL) expect(result.data).not.toHaveProperty(key);
   });
 
-  test("atlasaurus: exact values, string logging.where becomes a list", () => {
-    const result = parseManifest(fixture("atlasaurus.yaml"));
-    if (!result.ok) throw new Error(result.error);
-    expect(result.data.name).toBe("atlasaurus");
-    expect(result.data.deployment?.url).toBe("https://atlasaurus.online");
-    expect(result.data.statistics).toEqual([
-      "https://atlasaurus.goatcounter.com",
-      "Google Search Console, domain property atlasaurus.online",
-      "https://supabase.com/dashboard/project/ybpumverjdhntlsglhyt/editor (feedback + search_misses rows)",
-    ]);
-    expect(result.data.logging?.where).toEqual([
-      "Sentry, org atlasaurus-w7, project atlasaurus (de.sentry.io — EU; prod-only by design)",
-    ]);
+  test("the real manifests still read, without the keys they carry (AC-1)", () => {
+    for (const [file, name] of [["paceup.yaml", "paceup"], ["atlasaurus.yaml", "atlasaurus"]]) {
+      const result = parseManifest(fixture(file));
+      if (!result.ok) throw new Error(result.error);
+      expect(result.data.name).toBe(name);
+      for (const key of RETIRED_TOP_LEVEL) expect(result.data).not.toHaveProperty(key);
+      expect(result.data.deployment).toBeUndefined();
+    }
   });
 
   test("invalid YAML reports an error instead of throwing", () => {
@@ -45,7 +66,6 @@ describe("parseManifest on the real manifests", () => {
     if (!result.ok) throw new Error(result.error);
     expect(result.data.name).toBe("tiny");
     expect(result.data.deployment).toBeUndefined();
-    expect(result.data.statistics).toBeUndefined();
   });
 });
 
@@ -55,10 +75,9 @@ describe("parseManifest on the real manifests", () => {
 describe("deployment.previewFrom", () => {
   test("each of the three words is kept (AC-4)", () => {
     for (const word of ["cloudflare-pages", "command", "none"] as const) {
-      const result = parseManifest(`name: x\ndeployment:\n  host: Cloudflare Pages\n  previewFrom: ${word}\n`);
+      const result = parseManifest(`name: x\ndeployment:\n  previewFrom: ${word}\n`);
       if (!result.ok) throw new Error(result.error);
       expect(result.data.deployment?.previewFrom).toBe(word);
-      expect(result.data.deployment?.host).toBe("Cloudflare Pages");
     }
   });
 
@@ -67,25 +86,13 @@ describe("deployment.previewFrom", () => {
     const oldTemplate = parseManifest('name: x\ndeployment:\n  preview: "https://{branch}.x.pages.dev"\n');
     for (const result of [unknown, oldTemplate]) {
       if (!result.ok) throw new Error(result.error);
-      expect(result.data.deployment?.previewFrom).toBeUndefined();
-      expect(result.data.deployment).not.toHaveProperty("preview");
+      expect(result.data.deployment).toBeUndefined();
     }
     for (const name of ["paceup.yaml", "atlasaurus.yaml"]) {
       const result = parseManifest(fixture(name));
       if (!result.ok) throw new Error(result.error);
       expect(result.data.deployment?.previewFrom).toBeUndefined();
     }
-  });
-
-  test("the manifest skill's example names one of the three words (AC-6)", () => {
-    const example = readFileSync(
-      join(import.meta.dir, "..", "..", "..", "core", "skills", "aide-manifest", "references", "project.yaml"),
-      "utf-8",
-    );
-    const result = parseManifest(example);
-    if (!result.ok) throw new Error(result.error);
-    const words: (string | undefined)[] = ["cloudflare-pages", "command", "none"];
-    expect(words).toContain(result.data.deployment?.previewFrom);
   });
 });
 

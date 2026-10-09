@@ -51,8 +51,8 @@ export function writeAtomically(file: string, text: string): void {
 }
 
 /** What a settings file starts from: itself, else the first of `seeds`
- *  that exists (an untracked manifest an earlier Add or `/aide-manifest`
- *  left behind — its content is never lost), else `fallbackText`. */
+ *  that exists (an untracked manifest an earlier Add or
+ *  a person left behind — its content is never lost), else `fallbackText`. */
 export function settingsText(file: string, seeds: string[], fallbackText = ""): string {
   const source = [file, ...seeds].find((p) => existsSync(p));
   return source ? readFileSync(source, "utf-8") : fallbackText;
