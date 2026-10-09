@@ -68,6 +68,17 @@ done
 [ -d "$specs_root" ] || refuse "no-specs-root" "no specs root at $specs_root"
 wiki="$specs_root/wiki"
 
+# The two pages every wiki carries beside its index: the project's overview
+# and its reusable parts. The analysis reads them for the project's context,
+# so a write of either must hold every section it reads them for.
+FIXED_PAGES="overview.md reusable-parts.md"
+fixed_sections() {
+  case "$1" in
+    overview.md) printf '%s\n' "## Stack" "## Services" "## Build and deploy" "## Docs" ;;
+    reusable-parts.md) printf '%s\n' "## Parts" "## Rules" ;;
+  esac
+}
+
 # Reading and writing one page, the generated mark included.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/wiki-pages.sh
@@ -81,6 +92,16 @@ case "$sub" in
     [ ${#files[@]} -gt 0 ] || refuse "no-file" "a page names the files it was written from: pass --file"
     body="$(mktemp)"; cat > "$body"
     [ -s "$body" ] || { rm -f "$body"; refuse "empty-body" "no content on stdin"; }
+    lacking=(); sections=()
+    while IFS= read -r heading; do
+      [ -n "$heading" ] || continue
+      sections+=("$heading")
+      grep -qxF "$heading" "$body" || lacking+=("$heading")
+    done < <(fixed_sections "$page")
+    if [ ${#lacking[@]} -gt 0 ]; then
+      rm -f "$body"
+      refuse "missing-section" "$page needs the sections $(printf '%s, ' "${sections[@]}" | sed 's/, $//'); it lacks $(printf '%s, ' "${lacking[@]}" | sed 's/, $//')"
+    fi
     for f in "${files[@]}"; do
       git -C "$project_dir" cat-file -e "HEAD:$f" 2>/dev/null || { rm -f "$body"; refuse "unknown-file" "$f is not in the project at HEAD"; }
       # A page names files, not folders: one written from a folder reads as
@@ -118,7 +139,7 @@ A map of how the project's parts hang together, kept beside its specs and read b
 
 ## Layout
 
-The folder `wiki/` holds `index.md`, this page, and one page per part of the system. The index has one line per page.
+The folder `wiki/` holds `index.md`, this page, `overview.md` (the project's stack, the services it depends on, how it is built and deployed, and its docs), `reusable-parts.md` (the parts to reuse and the rules for using them), and one page per part of the system. The index has one line per page.
 
 ## Generated and hand-written pages
 
@@ -207,7 +228,9 @@ SCHEMA
       pages="$(jq -c --arg p "$n" --argjson g "$gen" --arg s "$state" \
         '. + [{page:$p, generated:$g, state:$s, changedFiles:($ARGS.positional)}]' --args ${changed[@]+"${changed[@]}"} <<<"$pages")"
     done
-    jq -cn --arg c "$head_sha" --argjson p "$pages" '{ok:true, exitCode:0, wiki:true, commit:$c, pages:$p}'
+    missing=(); for n in $FIXED_PAGES; do [ -f "$wiki/$n" ] || missing+=("$n"); done
+    jq -cn --arg c "$head_sha" --argjson p "$pages" \
+      '{ok:true, exitCode:0, wiki:true, commit:$c, pages:$p, missing:($ARGS.positional)}' --args ${missing[@]+"${missing[@]}"}
     ;;
 
   # Which generated (non-hand-written) pages does THIS file set — a

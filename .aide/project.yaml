@@ -57,7 +57,7 @@ docs:
   - .claude/rules/development.md
   - .claude/rules/ai-tools-reference.md
 # Where the board's reusable parts are and the rules for using them.
-# /aide-analyze reads each before it plans a change.
+# With no wiki, /aide-analyze reads each before it plans a change.
 reuse:
   - dashboard/src/render/ui/components/
   - dashboard/docs/design-system.md

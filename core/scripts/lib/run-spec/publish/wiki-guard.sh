@@ -5,8 +5,8 @@
 # commit_and_push_roots, so every variable it reads exists.
 # restore_wiki_scope takes back what the session was never to write; a run
 # that would otherwise read as completed ends as a scope violation instead,
-# and one that left no index, or left pages it should have rewritten, ends
-# as no progress.
+# and one that left no index, no overview or reusable-parts page, or left
+# pages it should have rewritten, ends as no progress.
 # A run that already ended stopped or failed keeps that ending.
 #
 # An `archive` run gets a narrower, precision check below instead of
@@ -28,6 +28,18 @@ if [ "$command_name" = "wiki" ]; then
     terminal_reason="no-progress"; ok="false"; suffix=" (stopped: no-progress)"
     error_msg="the wiki build left no wiki — wiki/index.md was never written, so no page was built. The run's own log says why; press $step_button again once that is fixed"
     echo "aide-run-spec: $error_msg" >&2
+  fi
+  # Every wiki has the project's overview and its reusable parts beside its
+  # index: the analysis takes the project's context from them. A run that
+  # reads as completed and leaves either one out is unfinished.
+  if [ "$terminal_reason" = "completed" ] && [ -n "${specs_root_wt:-}" ] && [ -n "${project_wt:-}" ]; then
+    wiki_lacks="$("$SCRIPT_DIR/aide-wiki" status --specs-root "$specs_root_wt" --project-dir "$project_wt" 2>/dev/null \
+      | jq -r '(.missing // []) | join(", ")' 2>/dev/null)"
+    if [ -n "$wiki_lacks" ]; then
+      terminal_reason="no-progress"; ok="false"; suffix=" (stopped: no-progress)"
+      error_msg="the wiki build left no $wiki_lacks — every wiki has the project's overview and its reusable parts beside its index. Press $step_button again"
+      echo "aide-run-spec: $error_msg" >&2
+    fi
   fi
   # What a run must leave, checked rather than asked for: a refresh leaves
   # no page whose files changed since it was written, and a build rewrites

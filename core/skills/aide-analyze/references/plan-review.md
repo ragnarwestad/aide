@@ -34,8 +34,9 @@ questions, with file:line references into the spec:
 1. **Feasibility** — can this be built as described? Are the steps in
    an order that works? Are the estimates honest? Does the plan depend
    on anything that does not exist (files, tools, config)? Does it
-   build anything that already exists? Read every file the manifest's
-   `reuse` key names and search the code, then check the Parts list
+   build anything that already exists? Read every file the
+   project's wiki names in `wiki/reusable-parts.md` (without a wiki, every
+   path the manifest's `reuse` key names) and search the code, then check the Parts list
    under Recommended solution. Each of these is a must-fix, given with
    the file:line that shows it: no Parts list; a part with no line of
    the three forms, `Reused:`, `New, because` or the single `None —`;

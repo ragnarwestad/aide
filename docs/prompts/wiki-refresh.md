@@ -1,6 +1,7 @@
 Run the `/aide-wiki` skill for this project, as a refresh: Steps 1 to 4, the
 same as the Wiki tab's own Build button, rewriting only the pages
-`aide-wiki status` marks changed and adding pages for any new part. Mark each
+`aide-wiki status` marks changed, adding pages for any new part, and writing any page
+`aide-wiki status` lists under `missing`. Mark each
 of the skill's own numbered steps in your output the way its Workflow section
 says.
 
