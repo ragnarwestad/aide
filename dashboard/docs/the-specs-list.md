@@ -517,9 +517,11 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   the one hold every progress dialog has (`standOpen()`, `specs-client/progress-dialog/`: Escape and a click outside
   do not dismiss it, and a back/forward-cache restore closes it), posts the form, and polls
   `GET /api/queue/<id>?marks=1` once a second, at most 120 times, until the job has settled and, for a `done` job, its
-  landing is over. Under the heading it lists the steps the job's log has marked so far — Aide's own parts, the
-  skill's steps and the merge into main — in the step list Deploy's dialog shares (`drawSteps`), each running with a
-  spinner or done. A job that is `done` goes to `data-progress-done` at once, or the list's front page when the form
+  landing is over. Under the heading it lists every step the job will run — Aide's own parts, the skill's
+  steps and the merge into main, drawn by the page from the skill's `Step N of X` headings (`stepPlan()`) — in the
+  step list Deploy's dialog shares, each waiting until the job's log marks it. `drawSteps` then changes that line in
+  place to running with a spinner or done, and a second OK puts every line back to waiting (`resetSteps`). A skill
+  that cannot be read leaves the list empty, and the lines are then added as the log marks the steps. A job that is `done` goes to `data-progress-done` at once, or the list's front page when the form
   has none. Any other end shows the step it stopped at as failed and its reason in the dialog's own line for two
   seconds, then goes to `data-progress` — the spec page, whose error line says why a `failed`, `stopped` or
   `interrupted` reopen or close ended (`failedRoundSentence`); a job the queue has forgotten and a wait that runs out

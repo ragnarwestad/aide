@@ -2,11 +2,13 @@
 // with no fallback page behind either: their words, their controls and
 // where their wait goes. The dialog itself is the board's one
 // `progressDialog()`, which asks their question and then stands while
-// their job runs (`submitProgress`), listing the steps the job's log
-// marks, a refusal or a failed job's reason written in its own line.
+// their job runs (`submitProgress`), listing every step the job will run,
+// each waiting until the job's log marks it, a refusal or a failed job's
+// reason written in its own line.
 
 import { t, type Language } from "../../../i18n";
 import { DESCRIPTION_MAX } from "../../../queue/parse-request.ts";
+import { stepPlan } from "../../../queue/parse-stream";
 import { field, labelledCheckbox, progressDialog } from "../../ui/components";
 import { specPagePath } from "./tabs.ts";
 
@@ -41,8 +43,8 @@ export function closeAskDialog(project: string, specFolder: string, lang: Langua
   return progressDialog(lang, {
     id: CLOSE_ASK_ID,
     title: t(lang, "dialog.closing"),
-    // Filled by the wait as the job's log marks its steps.
-    steps: [],
+    // Every step the job will run, waiting; the wait moves each line as the log marks it.
+    steps: stepPlan("close"),
     ask: {
       title: `Close ${specFolder}?`,
       sentence: CLOSE_WORDING,
@@ -82,7 +84,7 @@ export function reopenAskDialog(
   return progressDialog(lang, {
     id: where.id,
     title: t(lang, "list.reopening"),
-    steps: [],
+    steps: stepPlan("reopen"),
     ask: {
       title: `Reopen ${specFolder}?`,
       sentence: REOPEN_SENTENCE,

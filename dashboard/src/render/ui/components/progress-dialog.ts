@@ -12,8 +12,8 @@
 //
 // A dialog with steps (Deploy, Close, Reopen) lists them under the heading,
 // one line each with its state, in the one step list every such dialog
-// shares: Deploy hands its five steps in, Close and Reopen none, and their
-// wait adds a line for each step their job's log marks.
+// shares: Deploy hands its five steps in, Close and Reopen every step their
+// job will run, and their wait moves each line as the job's log marks it.
 
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { t, type Language } from "../../../i18n";
@@ -36,8 +36,9 @@ export interface ProgressParts {
    *  standing on its form's submit. */
   ask?: AskParts & { wait?: { back: string; done?: string } };
   /** The steps it lists while it runs, each waiting until the page script
-   *  moves it: Deploy's five, or none for a list the script fills. Absent,
-   *  the dialog has no list. */
+   *  moves it: Deploy's five, or Close's and Reopen's plan (none for a skill
+   *  that could not be read; the script then adds a line per step the log
+   *  marks). Absent, the dialog has no list. */
   steps?: { key: string; label: string }[];
   /** Trusted markup under the steps while it runs: Deploy's finished line. */
   body?: string;

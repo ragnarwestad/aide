@@ -5,6 +5,7 @@
 import { describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import { renderProjectPage, renderSpecsRows, type ProjectPageOptions, type ProjectView } from "../../../src/render";
+import { stepPlan } from "../../../src/queue/parse-stream";
 import { closeAskDialog } from "../../../src/render/pages/spec-page/ask-dialog.ts";
 import { reopenControl } from "../../../src/render/pages/spec-page/overview.ts";
 import { view } from "../pages/spec-page-fixtures.ts";
@@ -89,15 +90,48 @@ describe("the step list a dialog's script finds in its running face", () => {
     };
   };
 
-  test("Close's and Reopen's dialogs carry an empty step list and the line template it is drawn from (AC-1)", () => {
+  /** Each line of the box's step list: its key, its state, its label and the waiting word it shows. */
+  const linesOf = (box: string) => {
+    const window = new Window();
+    window.document.body.innerHTML = box;
+    const face = window.document.querySelector("[data-running-face]")!;
+    const word = face.querySelector("ol.progresssteps")?.getAttribute("data-waiting");
+    return [...face.querySelectorAll("ol.progresssteps > li[data-step]")].map((li) => ({
+      key: li.getAttribute("data-step"),
+      state: li.getAttribute("data-state"),
+      text: li.textContent?.replace(/\s+/g, " ").trim(),
+      word,
+    }));
+  };
+
+  test("Close's and Reopen's dialogs carry one line per step of their plan, in order, and the line template (AC-1)", () => {
+    const boxes = {
+      close: dialogWith(closeAskDialog("aide", "150-x", "en"), `id="closeask"`),
+      reopen: dialogWith(reopenControl(view({ archived: true })), `id="reopenask"`),
+    };
+    for (const [step, box] of Object.entries(boxes)) {
+      const plan = stepPlan(step);
+      expect(plan).not.toEqual([]);
+      const got = stepsOf(box);
+      expect(got.list).not.toBeNull();
+      expect(got.template).not.toBeNull();
+      expect(got.steps).toEqual(plan.map((s) => s.key));
+      expect(linesOf(box).map((l) => l.text)).toEqual(plan.map((s) => `${s.label} ${linesOf(box)[0]!.word}`));
+    }
+  });
+
+  test("every planned line is waiting, with the list's waiting word, when the dialog opens (AC-2)", () => {
     for (const box of [
       dialogWith(closeAskDialog("aide", "150-x", "en"), `id="closeask"`),
       dialogWith(reopenControl(view({ archived: true })), `id="reopenask"`),
     ]) {
-      const got = stepsOf(box);
-      expect(got.list).not.toBeNull();
-      expect(got.template).not.toBeNull();
-      expect(got.steps).toEqual([]);
+      const lines = linesOf(box);
+      expect(lines).not.toEqual([]);
+      for (const line of lines) {
+        expect(line.state).toBe("waiting");
+        expect(line.word).toBeTruthy();
+        expect(line.text?.endsWith(line.word!)).toBe(true);
+      }
     }
   });
 

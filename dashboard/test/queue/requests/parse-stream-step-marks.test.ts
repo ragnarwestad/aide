@@ -2,10 +2,21 @@
 // model to write, one per step start and end. Each is a line of its own
 // in the Log, and no bound on the number of lines drops one.
 
-import { readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, utimesSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
-import { linesWithFinalMessage, stepLog, stepMarks, summarizeEntries, summarizeStream, type StepMark } from "../../../src/queue/parse-stream";
+import {
+  AIDE_PARTS,
+  NO_MODEL_TURN,
+  linesWithFinalMessage,
+  stepLog,
+  stepMarks,
+  stepPlan,
+  summarizeEntries,
+  summarizeStream,
+  type StepMark,
+} from "../../../src/queue/parse-stream";
 
 const line = (o: unknown) => JSON.stringify(o);
 const say = (text: string) => line({ type: "assistant", message: { content: [{ type: "text", text }] } });
@@ -125,11 +136,11 @@ describe("stepMarks", () => {
     ]);
     expect(marks.map((m) => m.key)).toEqual([
       "Step Aide: preparing",
-      "Step 1 of 4: Run the mechanical script",
-      "Step 2 of 4: Commit & push",
-      "Step 3 of 4: Confirm",
+      "Step 1 of 4",
+      "Step 2 of 4",
+      "Step 3 of 4",
       "Step Aide: tests and commit",
-      "Step 4 of 4: Merge into main",
+      "Step 4 of 4",
     ]);
   });
 
@@ -175,10 +186,110 @@ describe("stepMarks", () => {
     );
     const [merge] = marksOf("", runLog);
     expect(merge).toEqual({
-      key: "Step 4 of 4: Merge into main",
+      key: "Step 4 of 4",
       title: "Merge into main",
       state: "failed",
       why: "nothing was merged — the close is not finished",
     });
+  });
+
+  test("a mark worded differently from its heading keeps the step's place as its key, the key the plan gives (AC-3)", () => {
+    const [mark] = marksOf(say("--- Step 1 of 4: Move the spec into the archive — started"), "", false);
+    expect(mark!.key).toBe("Step 1 of 4");
+    expect(mark!.title).toBe("Move the spec into the archive");
+  });
+});
+
+// What a Close or Reopen dialog lists before its job has marked anything:
+// the steps the job's log WILL mark, read from the skill it runs.
+describe("stepPlan", () => {
+  const skillText = (steps: string[], last: "aide" | "session" = "aide") =>
+    steps
+      .map((title, i) => {
+        const n = i + 1;
+        const body = i === steps.length - 1 && last === "aide"
+          ? `Aide writes \`--- Step ${n} of ${steps.length}: ${title} — started\` itself, after this session.`
+          : `First write \`--- Step ${n} of ${steps.length}: ${title} — started\`.`;
+        return `### Step ${n} of ${steps.length}: ${title}\n\n${body}\n`;
+      })
+      .join("\n");
+  /** A skills folder holding `aide-<step>/SKILL.md` with `text`. */
+  const skillsWith = (step: string, text: string): string => {
+    const dir = mkdtempSync(join(tmpdir(), "step-plan-"));
+    mkdirSync(join(dir, `aide-${step}`));
+    writeFileSync(join(dir, `aide-${step}`, "SKILL.md"), `# aide-${step}\n\n## Workflow\n\n${text}`);
+    return dir;
+  };
+
+  test("a close's plan is Aide's preparing, the skill's steps, Aide's tests and commit, then the heading Aide writes (AC-1)", () => {
+    const dir = skillsWith("close", skillText(["move the spec", "commit", "confirm", "merge into main"]));
+    const plan = stepPlan("close", dir);
+    expect(plan.map((s) => s.key)).toEqual([
+      "Step Aide: preparing",
+      "Step 1 of 4",
+      "Step 2 of 4",
+      "Step 3 of 4",
+      "Step Aide: tests and commit",
+      "Step 4 of 4",
+    ]);
+    expect(plan.map((s) => s.label)).toEqual(["Preparing", "Move the spec", "Commit", "Confirm", "Tests and commit", "Merge into main"]);
+  });
+
+  test("a step that runs no model turn lists Aide's two parts and the heading Aide writes, none of the session's (AC-1)", () => {
+    const [step] = [...NO_MODEL_TURN];
+    const dir = skillsWith(step!, skillText(["find the spec", "move it back", "merge into main"]));
+    expect(stepPlan(step!, dir).map((s) => s.key)).toEqual(["Step Aide: preparing", "Step Aide: tests and commit", "Step 3 of 3"]);
+  });
+
+  test("the checkout's own skills are found: Close's and Reopen's plans start with preparing and end on a numbered step (AC-1)", () => {
+    for (const step of ["close", "reopen"]) {
+      const keys = stepPlan(step).map((s) => s.key);
+      expect(keys.length).toBeGreaterThan(2);
+      expect(keys[0]).toBe("Step Aide: preparing");
+      expect(keys.at(-1)).toMatch(/^Step \d+ of \d+$/);
+    }
+  });
+
+  test("a skill rewritten with another heading and a later modification time is read again (AC-1)", () => {
+    const dir = skillsWith("close", skillText(["one", "two"]));
+    const file = join(dir, "aide-close", "SKILL.md");
+    expect(stepPlan("close", dir).map((s) => s.key)).toContain("Step 2 of 2");
+    writeFileSync(file, skillText(["one", "two", "three"]));
+    const later = new Date(statSync(file).mtimeMs + 5000);
+    utimesSync(file, later, later);
+    expect(stepPlan("close", dir).map((s) => s.key)).toContain("Step 3 of 3");
+  });
+
+  test("a file unchanged since it was read is not read again (AC-1)", () => {
+    const dir = skillsWith("close", skillText(["one", "two"]));
+    const file = join(dir, "aide-close", "SKILL.md");
+    utimesSync(file, 1_000_000, 1_000_000);
+    const first = stepPlan("close", dir);
+    writeFileSync(file, skillText(["uno", "dos", "tres"]));
+    utimesSync(file, 1_000_000, 1_000_000);
+    expect(stepPlan("close", dir)).toEqual(first);
+  });
+
+  test("the pair the runner decides in bash is the pair stepPlan holds (AC-1)", () => {
+    const scripts = join(import.meta.dir, "../../../../core/scripts");
+    const files = (dir: string): string[] =>
+      readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? files(join(dir, e.name)) : [join(dir, e.name)]));
+    const sources = ["aide-run-spec", ...files(join(scripts, "lib")).map((f) => f.slice(scripts.length + 1))].map((f) =>
+      readFileSync(join(scripts, f), "utf-8"),
+    );
+    // The literals `aide_part_open "<name>"` is called with; `"$variable"` names a variable and does not count.
+    const names = sources.flatMap((text) => [...text.matchAll(/^\s*(?:[^#\n]*&&\s*)?aide_part_open "([^"$]+)"/gm)].map((m) => m[1]!));
+    expect(names.sort()).toEqual([AIDE_PARTS.before, AIDE_PARTS.after].sort());
+
+    const paths = readFileSync(join(scripts, "lib/run-spec/turn/spec-paths.sh"), "utf-8");
+    const stretch = paths.slice(paths.indexOf('create_no_ai=""'), paths.indexOf('if [ -n "$skip_ai" ]'));
+    const noModel = [...stretch.matchAll(/\[ "\$command_name" = "(\w+)" \]\s*;\s*then/g)].map((m) => m[1]!);
+    expect(new Set(noModel)).toEqual(new Set(NO_MODEL_TURN));
+  });
+
+  test("a skills folder with no file for the step, or a file with no Step N of X heading, gives no plan (AC-4)", () => {
+    const empty = mkdtempSync(join(tmpdir(), "step-plan-"));
+    expect(stepPlan("close", empty)).toEqual([]);
+    expect(stepPlan("close", skillsWith("close", "No steps here.\n"))).toEqual([]);
   });
 });

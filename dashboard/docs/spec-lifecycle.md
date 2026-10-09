@@ -161,7 +161,7 @@ queue step the dashboard presses, never a step the runner decides on its own.
 - **Reopen** takes an archived or closed spec back to the active list and asks one question in a dialog, opened
   from the Reopen button on the spec page and on the list row: also reset the analysis, the plan and the status? The
   box is unticked, and the job carries `resetFiles` only when it is ticked. Pressing OK makes the dialog stand as
-  "Reopening…", listing the job's steps as its log marks them, until the job has settled.
+  "Reopening…", listing every step of the job, each changing as its log marks it, until the job has settled.
   It deletes the branch the earlier round left behind in both modes.
   - **Keep (the default, also a bare `steps=reopen`).** `core/scripts/aide-reopen-spec` moves the folder out of
     `archive/` and runs no model. `0-README.md` to `3-solution.md` are untouched; in `4-status.md` `archive` leaves the

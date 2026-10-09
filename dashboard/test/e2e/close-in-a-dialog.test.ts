@@ -5,6 +5,7 @@
 // `cd dashboard && bun test --timeout 20000 test/e2e/close-in-a-dialog.test.ts`.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
+import { stepPlan } from "../../src/queue/parse-stream";
 import { browserDeadline } from "../helpers/browser-deadline.ts";
 import { LIVE, harness, start } from "../archived/archived-specs-fixtures.ts";
 
@@ -108,8 +109,10 @@ describe("Close asks in a dialog (AC-7)", () => {
   });
 });
 
-const PREPARING = { key: "Step Aide: preparing", title: "Preparing" };
-const SCRIPT = { key: "Step 1 of 4: Run the mechanical script", title: "Run the mechanical script" };
+// The plan's own keys: the page draws one waiting line per entry, and a poll's mark moves the line with its key.
+const [PLAN_PREPARING, PLAN_SCRIPT] = stepPlan("close").map((s) => ({ key: s.key, title: s.label }));
+const PREPARING = PLAN_PREPARING!;
+const SCRIPT = PLAN_SCRIPT!;
 
 /** Closes the spec with a reason, so the dialog stands. */
 async function closeIt(page: Page): Promise<void> {
@@ -119,18 +122,19 @@ async function closeIt(page: Page): Promise<void> {
 }
 
 describe("a standing Close lists its job's steps", () => {
-  test("the steps the polls mark are shown in the standing dialog, in order (AC-1)", async () => {
+  test("a poll's mark moves the planned line with its key, and the line count stays (AC-3)", async () => {
     const page = await open(ACCEPTED, undefined, [
       { job: { id: "j1", state: "running" }, marks: [{ ...PREPARING, state: "done" }] },
       { job: { id: "j1", state: "running" }, marks: [{ ...PREPARING, state: "done" }, { ...SCRIPT, state: "running" }] },
     ]);
+    const planned = await dialog(page).locator("li[data-step]").count();
+    expect(planned).toBe(stepPlan("close").length);
     await closeIt(page);
-    const lines = dialog(page).locator("li[data-step]");
-    await lines.nth(1).waitFor({ state: "visible" });
-    expect(await lines.allTextContents()).toEqual([
-      expect.stringContaining("Preparing"),
-      expect.stringContaining("Run the mechanical script"),
-    ]);
+    await dialog(page).locator(`li[data-state="running"]`).waitFor({ state: "visible" });
+    expect(await dialog(page).locator("li[data-step]").evaluateAll((lis) => lis.map((li) => (li as HTMLElement).dataset.step))).toEqual(
+      stepPlan("close").map((s) => s.key),
+    );
+    expect(await dialog(page).locator(`li[data-step="${SCRIPT.key}"]`).getAttribute("data-state")).toBe("running");
     expect(await dialog(page).getAttribute("data-standing")).not.toBeNull();
   });
 
@@ -145,7 +149,7 @@ describe("a standing Close lists its job's steps", () => {
     ]);
     await closeIt(page);
     await dialog(page).getByText("The close script stopped").waitFor({ state: "visible" });
-    expect(await dialog(page).locator(`li[data-state="failed"]`).textContent()).toContain("Run the mechanical script");
+    expect(await dialog(page).locator(`li[data-step="${SCRIPT.key}"]`).getAttribute("data-state")).toBe("failed");
     expect(await dialog(page).getAttribute("data-standing")).not.toBeNull();
     await page.waitForURL((url) => !url.search.includes("live=0"));
   });

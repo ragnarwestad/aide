@@ -96,9 +96,27 @@ const submit = () => {
 function fakeAsk() {
   const base = fakeDialog();
   const attrs = new Set<string>();
-  const line = { textContent: "" };
-  /** The step list: the lines a job before this one left in it. */
-  const list = { lines: [] as string[], replaceChildren: () => void (list.lines = []) };
+  const refused = { textContent: "" };
+  /** The step list, with the lines a job before this one left in it: a planned line, done, and one its log added. */
+  const word = { textContent: "done" };
+  const line = (added: boolean) => {
+    const li = {
+      dataset: { state: "done" } as Record<string, string>,
+      hasAttribute: (name: string) => added && name === "data-added",
+      querySelector: () => word,
+      remove: () => void (list.children = list.children.filter((other) => other !== li)),
+    };
+    return li;
+  };
+  const list = {
+    children: [] as ReturnType<typeof line>[],
+    dataset: { waiting: "waiting" } as Record<string, string>,
+    /** What each line's state is now, in order. */
+    states: () => list.children.map((li) => li.dataset.state),
+  };
+  const leave = () => {
+    list.children = [line(false), line(true)];
+  };
   const ask = Object.assign(base, {
     open: false,
     showModal() {
@@ -112,7 +130,7 @@ function fakeAsk() {
     setAttribute: (name: string) => void attrs.add(name),
     removeAttribute: (name: string) => void attrs.delete(name),
     hasAttribute: (name: string) => attrs.has(name),
-    querySelector: (sel: string) => (sel === ".refused" ? line : sel === "ol.progresssteps" ? list : null),
+    querySelector: (sel: string) => (sel === ".refused" ? refused : sel === "ol.progresssteps" ? list : null),
   });
   const form = {
     action: "http://dash.test/api/queue",
@@ -122,7 +140,7 @@ function fakeAsk() {
     querySelectorAll: () => [],
     closest: (sel: string) => (sel.includes("data-progress-dialog") ? ask : null),
   } as unknown as HTMLFormElement;
-  return { ask, form, line, list, standing: () => attrs.has("data-standing") };
+  return { ask, form, line: refused, list, leave, standing: () => attrs.has("data-standing") };
 }
 
 describe("submitProgress from inside the ask", () => {
@@ -256,20 +274,20 @@ describe("submitProgress from inside the ask", () => {
     expect(running.gone).toEqual([BACK]);
   });
 
-  test("a second press starts with an empty step list (AC-5)", async () => {
+  test("a second press resets the step list before its first poll (AC-3)", async () => {
     stubPost(200, { ok: true, job: { id: "j1" } });
     const a = fakeAsk();
     await submitProgress(a.form, submit(), fakeIo([{ job: { state: "done" } }]));
-    a.list.lines = ["Preparing done"];
+    a.leave();
     let atFirstPoll: string[] | undefined;
     const io = fakeIo([{ job: { state: "done" } }]);
     const get = io.get;
     io.get = async (url) => {
-      atFirstPoll ??= [...a.list.lines];
+      atFirstPoll ??= a.list.states();
       return get(url);
     };
     await submitProgress(a.form, submit(), io);
-    expect(atFirstPoll).toEqual([]);
+    expect(atFirstPoll).toEqual(["waiting"]);
   });
 });
 

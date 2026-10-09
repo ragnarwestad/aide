@@ -1,7 +1,9 @@
 // The step list a progress dialog draws while its job runs
 // (`progressDialog()`'s `steps`): Deploy moves its five lines one at a
-// time, and the wait behind Close and Reopen adds a line for each step its
-// job's log marks. The state words ride on the list as `data-*`.
+// time, and the wait behind Close and Reopen moves the line of each step
+// its job's log marks, in place. The page draws the whole list, waiting;
+// only a step the page did not plan gets a line of its own. The state
+// words ride on the list as `data-*`.
 
 export type StepState = "waiting" | "running" | "done" | "failed";
 
@@ -24,9 +26,9 @@ export function setStepState(list: HTMLElement, li: HTMLElement, state: StepStat
 
 /** Draws `steps` into the dialog's list, in order: a step already drawn
  *  keeps its line and only changes state, so a running spinner does not
- *  restart on every poll, and a step the log has newly reached gets a
- *  line cloned from the dialog's own template. A dialog with no list, or
- *  no steps, draws nothing. */
+ *  restart on every poll, and a step the page did not plan (or a list that
+ *  could not be planned) gets a line cloned from the dialog's own template,
+ *  marked `data-added`. A dialog with no list, or no steps, draws nothing. */
 export function drawSteps(dialog: ParentNode | null, steps: DrawnStep[] | undefined): void {
   const list = dialog?.querySelector("ol.progresssteps") as HTMLElement | null | undefined;
   if (!list || !steps) return;
@@ -38,9 +40,22 @@ export function drawSteps(dialog: ParentNode | null, steps: DrawnStep[] | undefi
       li = template?.content.firstElementChild?.cloneNode(true) as HTMLElement | undefined;
       if (!li) continue;
       li.dataset.step = step.key;
+      li.setAttribute("data-added", "");
       li.prepend(`${step.title} `);
       list.append(li);
     }
     setStepState(list, li, step.state);
+  }
+}
+
+/** Puts the dialog's list back as the page drew it: every planned line
+ *  waiting, and the lines an earlier job's log added gone. A dialog with no
+ *  list does nothing. */
+export function resetSteps(dialog: ParentNode | null): void {
+  const list = dialog?.querySelector("ol.progresssteps") as HTMLElement | null | undefined;
+  if (!list) return;
+  for (const li of [...list.children] as HTMLElement[]) {
+    if (li.hasAttribute("data-added")) li.remove();
+    else setStepState(list, li, "waiting");
   }
 }

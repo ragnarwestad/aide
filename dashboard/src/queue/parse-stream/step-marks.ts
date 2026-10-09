@@ -14,7 +14,7 @@ import type { LogPart } from "./step-log.ts";
 export type MarkState = "running" | "done" | "failed";
 
 export interface StepMark {
-  /** Everything before the ending: "Step 4 of 4: Merge into main". */
+  /** The step's place, `stepKey()`: "Step 4 of 4", "Step Aide: preparing". */
   key: string;
   /** "Merge into main", its first letter capitalised. */
   title: string;
@@ -23,10 +23,15 @@ export interface StepMark {
   why?: string;
 }
 
+/** A step's key, shared by a mark and the planned line it moves: the place
+ *  the step has in its job, whatever words the model gives its title. Aide's
+ *  two parts share the place "Aide", so their name stays in. */
+export const stepKey = (place: string, title: string): string => (place === "Aide" ? `Step Aide: ${title}` : `Step ${place}`);
+
 /** The ending is read loosely, as `STEP_MARK` reads it: `— done (nothing to
  *  keep)` is a done. The title is the shortest match, so a stopped merge's
  *  `— stopped: <why> — the close is not finished` ends it at the step. */
-const MARK = /^--- (Step (?:Aide|\d+ of \d+): (.+?)) — (started|done|skipped|stopped)\b(?::\s*(.*))?/;
+const MARK = /^--- Step (Aide|\d+ of \d+): (.+?) — (started|done|skipped|stopped)\b(?::\s*(.*))?/;
 
 /** The run log's `HH:MM:SS +Ns ` stamp and a failure's `error: `. */
 const PREFIX = /^(?:\d\d:\d\d:\d\d \+\d+s )?(?:error: )?/;
@@ -42,7 +47,8 @@ export function stepMarks(logs: LogPart[]): StepMark[] {
   for (const line of logs.flatMap((part) => part.lines)) {
     const match = MARK.exec(unescape(line).replace(PREFIX, ""));
     if (!match) continue;
-    const [, key, title, ending, why] = match as unknown as [string, string, string, string, string | undefined];
+    const [, place, title, ending, why] = match as unknown as [string, string, string, string, string | undefined];
+    const key = stepKey(place, title);
     // Steps run one at a time: a later step's mark means one still running
     // ended without saying so, and a spinner on it would be wrong.
     for (const other of byKey.values()) {

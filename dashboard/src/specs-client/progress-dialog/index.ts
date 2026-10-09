@@ -1,12 +1,12 @@
 // The one hold every progress dialog (`render/ui/components/progress-dialog.ts`)
 // is kept open by while its job runs — Close, Reopen, Remove project and
 // Deploy — and the wait behind Close and Reopen: on OK the dialog stands
-// until the queued job has settled, listing the steps its log marks, then
-// the page leaves. While a dialog is held, Escape and the browser's own
+// until the queued job has settled, moving the line of each step its log
+// marks in the list the page drew, then the page leaves. While a dialog is held, Escape and the browser's own
 // ways of closing it are answered here, and nowhere else.
 
 import { postForm, writeLine } from "../press.ts";
-import { drawSteps, FAILED_STAYS_MS, type DrawnStep } from "./steps.ts";
+import { drawSteps, FAILED_STAYS_MS, resetSteps, type DrawnStep } from "./steps.ts";
 
 export * from "./steps.ts";
 
@@ -146,8 +146,8 @@ export async function submitProgress(form: HTMLFormElement, event: Event, io: Pr
   const back = form.dataset.progress ?? "/";
   const done = form.dataset.progressDone ?? "/";
   // A second OK, after a restore from the back/forward cache, starts with
-  // none of the last job's lines.
-  (dialog.querySelector("ol.progresssteps") as HTMLElement | null)?.replaceChildren();
+  // every planned line waiting and none the last job's log added.
+  resetSteps(dialog);
   const hold = standOpen(dialog, io);
   await postForm(
     form,
