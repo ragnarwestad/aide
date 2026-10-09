@@ -118,6 +118,15 @@ push_with_retry() {
   # read as the branch having moved.
   try_push && return 0
 
+  # Origin answered and holds no copy of this branch, so nothing moved
+  # under us: origin refused the push itself (no write access, a hook, a
+  # protected name). Its own words say why; a rebase would only fail and
+  # read as a diverged branch with nothing on either side.
+  if ! git -C "$wt" ls-remote --exit-code origin "refs/heads/$branch" >/dev/null 2>&1; then
+    push_retry_error="origin refused the push of $branch in $root: $(printf '%s\n' "$err" | grep -m1 . | sed 's/^remote: //')"
+    return 1
+  fi
+
   # REQ-1: origin answered, so the push was REJECTED — almost always
   # because something else landed a commit on this branch since this
   # worktree last looked (another run, or the landing's own cleanup).

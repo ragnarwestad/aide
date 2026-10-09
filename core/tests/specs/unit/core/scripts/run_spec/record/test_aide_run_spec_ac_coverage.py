@@ -113,12 +113,27 @@ def test_a_test_each_is_named_by_its_title_not_by_its_first_case():
     # 595's row listed "Options" — the first of the cases — as a test.
     line = 'test.each(["Options", "Spec"] as const)("from %s, it sends both tabs (AC-5, AC-6)", async (from) => {'
     assert _refs(line) == [
-        ["AC-5", "test/e2e/tabs.test.ts", "from %s, it sends both tabs (AC-5, AC-6)"],
-        ["AC-6", "test/e2e/tabs.test.ts", "from %s, it sends both tabs (AC-5, AC-6)"],
+        ["AC-5", "test/e2e/tabs.test.ts", "from …, it sends both tabs (AC-5, AC-6)"],
+        ["AC-6", "test/e2e/tabs.test.ts", "from …, it sends both tabs (AC-5, AC-6)"],
     ]
 
 
 def test_a_plain_test_keeps_its_title():
     assert _refs('test("the total shows (AC-1)", () => {});') == [
         ["AC-1", "test/e2e/tabs.test.ts", "the total shows (AC-1)"],
+    ]
+
+
+def test_a_describe_is_a_group_not_a_test():
+    # 623's AC-5 listed each group's title beside the tests inside it.
+    assert _refs('describe("a wiki build in flight has a row (AC-5)", () => {') == []
+
+
+def test_a_template_title_shows_its_placeholders_as_an_ellipsis():
+    # 623's row read "${what}" and "a newer ${state} one".
+    assert _refs("    test(`a newer ${state} one (AC-5)`, () => {") == [
+        ["AC-5", "test/e2e/tabs.test.ts", "a newer … one (AC-5)"],
+    ]
+    assert _refs("    test(`${what} (AC-5)`, () => {") == [
+        ["AC-5", "test/e2e/tabs.test.ts", "… (AC-5)"],
     ]

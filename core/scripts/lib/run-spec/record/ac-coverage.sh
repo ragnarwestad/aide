@@ -40,12 +40,13 @@ ac_coverage_added_lines() {   # $1: worktree  $2: base ref
   return 0
 }
 
-# A line that starts a test: `test(`, `it(`, `describe(` and their
-# `.each`/`.skip` forms, a Python `def test_…`, a Go `func Test…`. A
-# comment or any other line naming an AC is not a test, even in a test
-# file — 501's row read "Tests: // The control on the Notifications tab".
+# A line that starts a test: `test(`, `it(` and their `.each`/`.skip`
+# forms, a Python `def test_…`, a Go `func Test…`. A `describe(` is a
+# group of tests, not one, and a comment or any other line naming an AC
+# is not a test, even in a test file — 501's row read "Tests: // The
+# control on the Notifications tab".
 ac_coverage_is_test_line() {   # $1: the line
-  printf '%s\n' "$1" | grep -qE '^[[:space:]]*((test|it|describe)(\.[A-Za-z]+)*[[:space:]]*\(|(async[[:space:]]+)?def[[:space:]]+test|func[[:space:]]+Test)'
+  printf '%s\n' "$1" | grep -qE '^[[:space:]]*((test|it)(\.[A-Za-z]+)*[[:space:]]*\(|(async[[:space:]]+)?def[[:space:]]+test|func[[:space:]]+Test)'
 }
 
 # "<id><TAB><file><TAB><name>" for every AC reference in an added line
@@ -64,6 +65,9 @@ ac_coverage_refs() {   # stdin: ac_coverage_added_lines
     # named by the title after its cases, not by the first case.
     name="$(printf '%s\n' "$line" | perl -ne 'if (/\.each\b.*?\)\s*\(\s*(["\x27`])((?:(?!\1).)+)\1/) { print $2 } elsif (/(["\x27`])((?:(?!\1).)+)\1/) { print $2 }')"
     [ -n "$name" ] || name="$(printf '%s\n' "$line" | sed -E 's/^[[:space:]]+//' | cut -c1-160)"
+    # A title filled in when the test runs (`${state}`, `%s`) shows its
+    # placeholders as an ellipsis, not as code.
+    name="$(printf '%s\n' "$name" | perl -CS -pe 's/\$\{[^}]*\}/\x{2026}/g; s/%[sdifjoOp#]/\x{2026}/g')"
     for id in $ids; do printf 'AC-%s\t%s\t%s\n' "$((10#$id))" "$file" "$name"; done
   done
 }

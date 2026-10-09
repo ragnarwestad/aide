@@ -26,7 +26,7 @@ if [ "$terminal_reason" = "completed" ] && [ -n "$status_file" ] \
   ok="false"
   terminal_reason="unpushed"
   suffix=" (stopped: unpushed)"
-  error_msg="the step's own work did not reach origin: $unpushed_roots"
+  error_msg="the step's own work did not reach origin: $unpushed_roots${push_error:+ — $push_error}"
 elif [ -n "$status_file" ]; then
   completed_steps_for "$commit_label" "$(dirname "$status_file")" "$status_file" "$specs_ref_before"
   # Nothing derived leaves the file alone: an empty line says less than
