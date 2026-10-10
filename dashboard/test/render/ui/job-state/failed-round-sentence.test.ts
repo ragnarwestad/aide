@@ -61,7 +61,10 @@ describe("sharedFilesSentence", () => {
   /** The reader, and a log of how often it was asked. */
   const reading = (answer: OpenOverlap[] | undefined) => {
     const asked = { n: 0 };
-    return { asked, read: () => (asked.n++, answer) };
+    return { asked, read: () => {
+      asked.n++;
+      return answer;
+    } };
   };
 
   test("a lead stopped shared-files names every spec still open, number and title, with its files (AC-1)", () => {

@@ -3,9 +3,8 @@
 // while their job is in flight and nothing otherwise: a page whose job is
 // not in flight asks the server for nothing at all.
 
-import { inFlight } from "../../ui/job-state";
-import type { QueueRowView } from "../../ui/job-state/types.ts";
-import { phaseKey } from "../specs-list/phase-messages/keys.ts";
+import { inFlight, type QueueRowView } from "../../ui/job-state";
+import { phaseKey } from "../specs-list/phase-messages";
 import { resolveOpenStep } from "./steps-table.ts";
 
 /** The marker, while `job` is queued, running or landing.

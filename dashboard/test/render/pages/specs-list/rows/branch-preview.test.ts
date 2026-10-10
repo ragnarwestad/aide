@@ -36,7 +36,10 @@ describe("a row's preview link", () => {
 
   test("the address is asked about the spec's own project and folder (AC-1)", () => {
     const asked: string[] = [];
-    render({ branchPreview: (project, folder) => (asked.push(`${project}/${folder}`), ADDRESS) });
+    render({ branchPreview: (project, folder) => {
+        asked.push(`${project}/${folder}`);
+        return ADDRESS;
+      } });
     expect(asked).toContain(`woodstack/${FOLDER}`);
   });
 

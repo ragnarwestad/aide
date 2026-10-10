@@ -9,7 +9,7 @@ import time
 from collections import namedtuple
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import NamedTuple, Optional
 
 import copies
 import judge
@@ -19,7 +19,10 @@ from copies import CannotReplay
 from gitutil import git
 from table import Row, Stats
 
-Step = namedtuple("Step", "tool model effort")
+class Step(NamedTuple):
+    tool: str
+    model: str
+    effort: Optional[str]
 StepRun = namedtuple("StepRun", "seconds result log stream")
 
 # The time limits and permission mode the board's queue gives each step.

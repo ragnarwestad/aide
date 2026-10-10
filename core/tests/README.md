@@ -511,6 +511,6 @@ jobs run on `macos-latest`:
 
 See the README for each implementation for CLI documentation and headless mode:
 
-- [Claude Code](../core/implementations/claude-code/README.md)
-- [GitHub Copilot CLI](../core/implementations/copilot/README.md)
-- [OpenAI Codex CLI](../core/implementations/codex/README.md)
+- [Claude Code](../implementations/claude-code/README.md)
+- [GitHub Copilot CLI](../implementations/copilot/README.md)
+- [OpenAI Codex CLI](../implementations/codex/README.md)

@@ -343,7 +343,7 @@ copilot --yolo                            # Allow everything without prompts
 ## Comparison with Claude Code
 
 What each tool supports, verified against installed versions, is kept in one place:
-[docs/AI_SUPPORT_MATRIX.md](../../docs/AI_SUPPORT_MATRIX.md).
+[docs/AI_SUPPORT_MATRIX.md](../../../docs/AI_SUPPORT_MATRIX.md).
 
 ---
 

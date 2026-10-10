@@ -7,8 +7,7 @@
 import { t, type Language } from "../../../i18n";
 import { scheduleNameOf } from "../../../queue/schedule.ts";
 import { isWikiBuild, waitsForPerson } from "../../../queue/steps.ts";
-import { inFlight } from "../../ui/job-state/format.ts";
-import type { QueueRowView } from "../../ui/job-state/types.ts";
+import { inFlight, type QueueRowView } from "../../ui/job-state";
 import { projectPagePath, projectScheduleTab } from "../projects-page/routes.ts";
 import type { SpecGroup } from "../specs-list";
 

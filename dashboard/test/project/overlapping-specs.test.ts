@@ -7,7 +7,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { openOverlappingSpecs, overlappingSpecsIn } from "../../src/project/overlapping-specs.ts";
-import type { SpecRef } from "../../src/project/discover/scan.ts";
+import type { SpecRef } from "../../src/project/discover";
 
 const SCRIPT = join(import.meta.dir, "../../../core/scripts/aide-spec-overlap");
 

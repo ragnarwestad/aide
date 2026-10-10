@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { t } from "../../../src/i18n";
 import type { FailedCreate } from "../../../src/push/failed-creates.ts";
 import { renderFailedCreateNotices } from "../../../src/render/pages/specs-list/failed-create-notices.ts";
-import { jobHome } from "../../../src/render/pages/jobs-page/rows.ts";
+import { jobHome } from "../../../src/render/pages/jobs-page";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
 import { dated, setupQueueRoutesHarness } from "../fixtures.ts";
 

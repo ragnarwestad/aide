@@ -190,7 +190,10 @@ describe("a waiting scheduled job whose entry was deleted (AC-5)", () => {
 
   test("has a row while its entry exists, and none once it is gone (AC-5)", () => {
     const asked: [string, string][] = [];
-    const exists = (project: string, name: string) => (asked.push([project, name]), true);
+    const exists = (project: string, name: string) => {
+      asked.push([project, name]);
+      return true;
+    };
     expect(ids([waiting], { ...none, scheduleEntryExists: exists })).toEqual(["s"]);
     expect(asked).toEqual([["aide", "nightly"]]);
     expect(ids([waiting], { ...none, scheduleEntryExists: () => false })).toEqual([]);

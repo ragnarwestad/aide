@@ -4,7 +4,7 @@
 // The bash reader and this one are a pair (docs/bash-typescript-decisions.md).
 
 import type { SharedFiles } from "../queue/types.ts";
-import type { SpecRef } from "./discover/scan.ts";
+import type { SpecRef } from "./discover";
 import { specFileText } from "./discover";
 import { specNumber } from "./spec-folder.ts";
 

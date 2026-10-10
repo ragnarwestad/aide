@@ -135,7 +135,7 @@ def write_results(run, sha, rows):
     os.replace(run.out / "results.md.tmp", target)  # a run stopped part-way keeps the rows it finished
 
 
-def stop(signum, frame):
+def stop(signum, _frame):
     raise SystemExit(128 + signum)
 
 

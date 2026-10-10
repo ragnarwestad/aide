@@ -67,7 +67,10 @@ describe("the check made when the Deploy tab is opened", () => {
     const { doc, section } = load(LEVEL);
     const { io, asked } = fakeIo();
     let handedTo = null as HTMLElement | null;
-    startOriginCheck(doc, (s) => ((handedTo = s), io), () => {});
+    startOriginCheck(doc, (s) => {
+        handedTo = s;
+        return io;
+      }, () => {});
     expect(asked.check).toBe(1);
     expect(handedTo).toBe(section());
     expect(section()!.dataset.originCheck).toBe("/api/queue/projects/aide/drift");
@@ -79,7 +82,10 @@ describe("the check made when the Deploy tab is opened", () => {
     const { doc, section } = load(projectPage());
     expect(section()).toBeNull();
     let made = 0;
-    startOriginCheck(doc, () => (made++, fakeIo().io), () => {});
+    startOriginCheck(doc, () => {
+        made++;
+        return fakeIo().io;
+      }, () => {});
     expect(made).toBe(0);
   });
 

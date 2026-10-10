@@ -46,13 +46,19 @@ describe("a row whose analyze stopped on shared files", () => {
 
   test("the record is asked about the row's own project and folder (AC-2)", () => {
     const asked: string[] = [];
-    notice([], target({ stopped: { analyze: "shared-files" } }), (project, folder) => (asked.push(`${project}/${folder}`), OPEN));
+    notice([], target({ stopped: { analyze: "shared-files" } }), (project, folder) => {
+      asked.push(`${project}/${folder}`);
+      return OPEN;
+    });
     expect(asked).toEqual([`aide/${FOLDER}`]);
   });
 
   test("a row whose analyze did not stop on shared files does not read the record", () => {
     const asked: string[] = [];
-    notice([], target({ stopped: { analyze: "model-refused" } }), (p, f) => (asked.push(p + f), OPEN));
+    notice([], target({ stopped: { analyze: "model-refused" } }), (p, f) => {
+      asked.push(p + f);
+      return OPEN;
+    });
     expect(asked).toEqual([]);
   });
 

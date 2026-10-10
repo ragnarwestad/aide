@@ -1,10 +1,13 @@
 """results.md: the run's settings, a row per spec with the totals, and the judge's reasons."""
-from collections import namedtuple
 from dataclasses import dataclass
-from typing import Optional
+from typing import NamedTuple, Optional
 
 # What a step used. A None is a figure that was not measured; `last_turn` marks tokens that are the last turn's alone.
-Stats = namedtuple("Stats", "seconds tokens cost last_turn")
+class Stats(NamedTuple):
+    seconds: Optional[float]
+    tokens: Optional[int]
+    cost: Optional[float]
+    last_turn: bool
 
 COLUMNS = ("Spec", "Files found", "Must-fix", "Should-fix", "Every AC placed", "Green", "Rounds", "Original tests", "Judge",
            "Analyze time/tokens/cost", "Implement time/tokens/cost", "Judge time/tokens/cost", "Note")

@@ -7,7 +7,7 @@
 // presses them as it does the list's.
 
 import { t } from "../../../i18n";
-import { rowMessage } from "../../ui/components/message.ts";
+import { rowMessage } from "../../ui/components";
 import type { QueueRowView } from "../../ui/job-state";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { renderFailedCreateNotices } from "../specs-list/failed-create-notices.ts";

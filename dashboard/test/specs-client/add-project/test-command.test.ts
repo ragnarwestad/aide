@@ -3,7 +3,7 @@
 // the form keeps its drawn hint whenever there is no answer to show.
 // Hand-built fakes and a fake `fetch`, as `schedule-actions.test.ts` does.
 import { describe, expect, test } from "bun:test";
-import { bindAddProjectForm } from "../../../src/specs-client/add-project/index.ts";
+import { bindAddProjectForm } from "../../../src/specs-client/add-project";
 
 const DRAWN = "optional — the project's own test command";
 const ROUTE = "/api/queue/projects/test-command";

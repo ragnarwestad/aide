@@ -6,7 +6,7 @@ import re
 import subprocess
 import sys
 import tempfile
-import xml.etree.ElementTree as ET
+from xml.etree import ElementTree
 from collections import namedtuple
 from pathlib import Path
 
@@ -147,8 +147,8 @@ def original_test_files(code, before, landed, ac_coverage=AC_COVERAGE):
 def junit_file_counts(path):
     """(passed, ran) in one JUnit file, skipped cases left out; None when it cannot be read."""
     try:
-        root = ET.parse(path).getroot()
-    except (ET.ParseError, OSError):
+        root = ElementTree.parse(path).getroot()
+    except (ElementTree.ParseError, OSError):
         return None
     passed = ran = 0
     for case in root.iter("testcase"):
@@ -199,7 +199,7 @@ def run_test_file(worktree, rel, python=None, timeout=600):
         except OSError:
             return None
         counts = junit_file_counts(xml)
-        return counts if counts and counts[1] else (int(code == 0), 1)
+    return counts if counts and counts[1] else (int(code == 0), 1)
 
 
 def claude_event_tokens(event):

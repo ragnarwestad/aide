@@ -308,7 +308,7 @@ SCHEMA
         is_generated "$f" || continue
         if [ -n "$same_repo" ]; then
           since="$(fm_commit "$f")"
-          [ -n "$since" ] && git -C "$specs_root" cat-file -e "$since^{commit}" 2>/dev/null || continue
+          if [ -z "$since" ] || ! git -C "$specs_root" cat-file -e "$since^{commit}" 2>/dev/null; then continue; fi
         else
           since="$(git -C "$specs_root" log -1 --format=%H -- "wiki/$n" 2>/dev/null)"
           [ -n "$since" ] || continue

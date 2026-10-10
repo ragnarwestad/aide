@@ -56,7 +56,7 @@ core/implementations/codex/
 - OpenAI Codex: Terminal-based agent, autonomous multi-step tasks
 
 **Model:**
-- Whichever model the installed Codex CLI ships as its default — see [docs/AI_SUPPORT_MATRIX.md](../../docs/AI_SUPPORT_MATRIX.md)
+- Whichever model the installed Codex CLI ships as its default — see [docs/AI_SUPPORT_MATRIX.md](../../../docs/AI_SUPPORT_MATRIX.md)
 
 ---
 
@@ -351,7 +351,7 @@ Follow the project's coding standards"
 ## Comparison with Claude Code
 
 What each tool supports, verified against installed versions, is kept in one place:
-[docs/AI_SUPPORT_MATRIX.md](../../docs/AI_SUPPORT_MATRIX.md).
+[docs/AI_SUPPORT_MATRIX.md](../../../docs/AI_SUPPORT_MATRIX.md).
 
 ---
 
