@@ -281,7 +281,7 @@ describe("POST /api/queue/specs/:project/:folder/model (spec 308)", () => {
     const { base } = start({ queueDefaults: DEFAULTS });
     await pick(base, "aide", "81-queue-and-runner", "analyze", "fable");
     const html = await (
-      await fetch(`${base}/specs?${OPEN_81}`, )
+      await fetch(`${base}/?${OPEN_81}`, )
     ).text();
     const group = specControls(html, "81-queue-and-runner");
     const select = group.match(/<select name="model\.analyze"[\s\S]*?<\/select>/)?.[0] ?? "";

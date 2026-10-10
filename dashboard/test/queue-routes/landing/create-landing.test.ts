@@ -260,7 +260,7 @@ describe("landing a created spec (spec 93)", () => {
     await settle(base, job.id, (j) => j.specFolder === "94-a-new-spec");
 
     const html = await (
-      await fetch(`${base}/specs?${openQuery("aide/94-a-new-spec")}`, )
+      await fetch(`${base}/?${openQuery("aide/94-a-new-spec")}`, )
     ).text();
     const row = specHead(html, "94-a-new-spec");
     expect(row).not.toBe("");
@@ -309,7 +309,7 @@ describe("landing a created spec (spec 93)", () => {
     // The scan that finds the folder comes round on its own schedule.
     let html = "";
     for (let n = 0; n < 100 && !specControls(html, "94-a-new-spec").includes('name="model.implement"'); n++) {
-      html = await (await fetch(`${base}/specs?${openQuery("aide/94-a-new-spec")}`)).text();
+      html = await (await fetch(`${base}/?${openQuery("aide/94-a-new-spec")}`)).text();
       await new Promise((r) => setTimeout(r, 50));
     }
     const group = specControls(html, "94-a-new-spec");

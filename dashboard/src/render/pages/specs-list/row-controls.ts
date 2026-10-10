@@ -44,7 +44,7 @@ export function foldControl(
       href: `${queuePath(view, {}, shut ? specPagePath(g.project, g.specFolder) : undefined)}#${rowAnchorId(g)}`,
       open: !shut,
       lang,
-      title: "list.foldTitle",
+      title: "list.specFoldTitle",
       params: { folder: g.specFolder },
       goto: true,
     });

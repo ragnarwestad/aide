@@ -1,6 +1,5 @@
 // Shared test data for the archived-specs suite, split by theme across
 // archived-specs-filters.test.ts, archived-specs-row.test.ts,
-// archived-specs-row-opened.test.ts,
 // archived-specs-reopen-and-landing.test.ts, archived-specs-search.test.ts
 // and archived-specs-misc.test.ts (split out of archived-specs.test.ts).
 //

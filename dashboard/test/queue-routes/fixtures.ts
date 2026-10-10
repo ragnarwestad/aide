@@ -61,7 +61,7 @@ export const phaseDone = (group: string, step: string): boolean =>
 export const openQuery = (...keys: string[]): string => `open=${encodeURIComponent(keys.join(","))}`;
 export const OPEN_81 = openQuery("aide/81-queue-and-runner");
 
-/** The spec list, asked again until `ok` holds (spec 208).
+/** The Running tab, asked again until `ok` holds (spec 208).
  *
  *  A render reads memory now — the git answers behind a row arrive on
  *  the cache schedule's own tick, not inside the request. Every fixture
@@ -74,7 +74,10 @@ export const OPEN_81 = openQuery("aide/81-queue-and-runner");
  *  regression then reads as the assertion it broke rather than as a
  *  timeout with nothing to look at. The same idiom `projects-route.test.ts`
  *  has used for the drift poll since spec 203. */
-/** Poll the list until `ok` holds, and THROW when it never does.
+/** Poll the Running tab until `ok` holds, and THROW when it never does.
+ *
+ *  It asks the Running tab, since that is the page whose open row draws the
+ *  phase lines every caller reads: the Specs list's open row is the spec alone.
  *
  *  It used to return the last page instead. A budget that ran out on a
  *  loaded host then handed the caller a page that had never reached the
@@ -97,10 +100,10 @@ export const listUntil = async (
   const deadline = Date.now() + budgetMs;
   let html = "";
   for (;;) {
-    html = await (await fetch(`${base}/specs?${OPEN_81}`, )).text();
+    html = await (await fetch(`${base}/?${OPEN_81}`)).text();
     if (ok(html)) return html;
     if (Date.now() > deadline) {
-      throw new Error(`the specs list never reached ${what} within ${budgetMs}ms`);
+      throw new Error(`the Running tab never reached ${what} within ${budgetMs}ms`);
     }
     await new Promise((r) => setTimeout(r, 25));
   }

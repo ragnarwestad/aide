@@ -59,26 +59,31 @@ notification's link) answers a redirect to the spec's address, with the rest of 
 with several keys it goes to the first. The Running tab is the other page that draws these rows, and it keeps `?open=`
 for its own folds.
 
-An open row reveals the workflow phases underneath, always in that order, so how far a spec has got is readable
-without counting rows. The phase lines sit directly under the row; its message rows — held-back, refusal, info
-line — come after them. A phase never run shows a muted "not run yet". A phase run more than once shows its LATEST
-attempt with the count beside it, because a re-run is ordinary.
+On the Specs list an open row is the spec: its title line, the row's message rows — held-back, refusal, info
+line — and then the spec itself. It shows nothing about the spec's runs: no caption line, no phase lines and no
+press that starts, stops or re-runs a step, since what runs is followed on the Running tab.
+
+The Running tab's open row reveals the workflow phases underneath, always in that order, so how far a spec has got
+is readable without counting rows. The phase lines sit directly under the row; its message rows come after them.
+A phase never run shows a muted "not run yet". A phase run more than once shows its LATEST attempt with the count
+beside it, because a re-run is ordinary.
 
 The header carries what belongs to the spec rather than to one run, shut or open: the summed cost, one link per
 repo the spec pushed to, and the state that matters most right now — whatever is in flight, else the most recent
-outcome. It carries no button: the row's one action is on the caption line inside the fold, once per spec rather
-than once per job.
+outcome. It carries no button: the row's one action is on the caption line inside the Running tab's fold, once per
+spec rather than once per job.
 
 The header is two lines: the title, kept to one line and cut with an ellipsis where it does not fit, then the pips,
-the state and the figures. An open row drops the second line and
-the caption line carries the spec's summed Time and Cost instead, over the phases' own figures. Each phase line says
-its own state, failed, stopped and held back included, so the badge and the pips would only say it twice. A phone
-lays the caption line out the same way: the captions, then the row's button in the state column at the phase badges'
-own size, then the total in the Time column.
+the state and the figures. An open row drops the second line. On the Specs list that leaves no badge, pips, Time or
+Cost; on the Running tab the caption line carries the spec's summed Time and Cost instead, over the phases' own
+figures. Each phase line says its own state, failed, stopped and held back included, so the badge and the pips would
+only say it twice. A phone lays the caption line out the same way: the captions, then the row's button in the state
+column at the phase badges' own size, then the total in the Time column.
 
 ## The row's controls
 
-An open row adds one line per phase, and a caption line above them. Each phase line carries its own tick box, its
+The Running tab's open row adds one line per phase, and a caption line above them; the Specs list's open row has
+none of this. Each phase line carries its own tick box, its
 own AI select and its own model select — the AI select only when more than one tool is configured, since one tool
 is nothing to choose between. On a narrow screen the two selects collapse into one disclosure labelled with what
 they are set to, `Claude/sonnet`.
@@ -101,7 +106,7 @@ script; everything else on the row does not.
 
 ## What is ticked, and why
 
-What is ticked is a recorded CHOICE, not a fresh guess on every render. It is the phases posted from New spec at
+The boxes are on the Running tab's open row. What is ticked is a recorded CHOICE, not a fresh guess on every render. It is the phases posted from New spec at
 create time, or the phases ticked on the row itself at whichever Run came after that — whichever happened more
 recently. That choice sticks until the reader changes it, by re-ticking the row's boxes and pressing Run again.
 
@@ -148,17 +153,17 @@ The State column carries the spec's own state and nothing else:
 - **Ready**, **Done**, or **Stopped** — once nothing is running the column is one word.
 
 Nothing more goes in the column. Why a spec stopped, and what it is held back on, is the row's notice line
-underneath; which phase a press would run is on the button, which is labelled with it.
+underneath; which phase a press would run is on the Running tab's button, which is labelled with it.
 
 An analyze stopped on its acceptance criteria reads Stopped, and its notice line is amber, naming each fault the
-plan review found. Its phase counts as not done, even on a spec analyzed before, so the button offers Analyze again.
+plan review found. Its phase counts as not done, even on a spec analyzed before, so the Running tab's button offers Analyze again.
 
 An analyze stopped on files another open spec also changes reads Stopped too, and its notice line, like the spec
 page's waiting line, names each spec that is still open by number and title, with the files it shares. The names are
 read from the `### Overlapping specs` record in the spec's own analysis each time the row is drawn, so the line is the
 same with the stopped job in the queue and without it. A spec archived since is left out; when every one is, the line
 says so and that pressing Analyze goes on, and asks for nothing in Depends on. Its phase counts as not done, so the
-button offers Analyze again, which goes on. Adding the specs to Depends on and saving queues Analyze instead, held
+Running tab's button offers Analyze again, which goes on. Adding the specs to Depends on and saving queues Analyze instead, held
 until they archive, but only while the stopped job is still in the queue.
 
 ## The notice line under the name
@@ -236,7 +241,7 @@ for the rule that a new round needs at least one.
 
 ## A phase's own transcript
 
-**A phase that has run unfolds to its own transcript.** Every phase line of an open row that has run or is running
+**A phase that has run unfolds to its own transcript.** Every phase line of the Running tab's open row that has run or is running
 starts with a ›. It adds or removes the phase's key, `<project>/<folder>:<step>`, in `?phases=<key>,…`, kept by
 every sort and filter link the way `?open=` is, and it is a plain link.
 
@@ -264,7 +269,7 @@ no test names gets an amber line saying so, unless analyze's Notes cell already 
 
 ## Forms the page script posts
 
-Every control here is a real form, whose own fields are what a press sends, and the page script posts it: the row's
+Every control here is a real form, whose own fields are what a press sends, and the page script posts it: the Running tab's
 button with the phases ticked, Cancel's OK, the checks' Save. Every action answers JSON, which the script reads (see
 [what the script adds](#what-the-script-adds)); expanding a row is a plain link.
 
@@ -387,7 +392,7 @@ It reads live and archived rows alike, because they are rows on one list.
 
 ## Changing a running job's tail
 
-`POST /api/queue/<id>/steps` edits a RUNNING job's tail: `step` plus a `checked` flag adds a phase the run has not
+`POST /api/queue/<id>/steps`, posted from the Running tab's open row, edits a RUNNING job's tail: `step` plus a `checked` flag adds a phase the run has not
 reached yet, or removes one it has not started. The running step and everything behind it are refused by name, as is
 any job that is not running — the decision is made against the job as it stands when the request arrives, never
 against what the page believed. This is deliberately NOT `POST /api/queue`: that route creates a job, and for a spec
@@ -396,7 +401,7 @@ with one in flight it answers with the clash refusal.
 ## The spec page
 
 `/specs/<project>/<spec>` is the Specs list with that spec's row open, and the whole SPEC, as it stands now, drawn in the
-row after its phase lines and message rows: a banner and five tabs, one per document (Description,
+row after its message rows: a banner and five tabs, one per document (Description,
 Analysis, Solution, Status — each stamped with the commit that last changed it) and Logs for its runs. The open
 tab's file, its stamp and the banner's facts about the description are read off the spec's own `aide/<folder>`
 branch where one is open, as of its last fetch, and off the specs checkout where none is. The Status tab
@@ -528,8 +533,8 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   unticked box that also resets the analysis, the plan and the status. Its button (`askButton()`) carries `data-ask="<dialog id>"`, and
   one click listener on `body` (`openAsk`, `specs-client/ask.ts`) opens whichever dialog a button names — on a row a
   later redraw drew too, and a Reopen beside a Failed criterion, inside the checks' own form, opens a dialog drawn
-  outside it. Close is on the spec page; Reopen is on an archived spec's page and over the list, on the row and beside
-  a Failed criterion under the ›; Cancel is on a running row. Without script, or a browser without `<dialog>`, the
+  outside it. Close is on the spec page; Reopen is on an archived spec's page, on the Running tab's row for an archived spec whose branch has not
+  merged, and beside a Failed criterion under the › on either page; Cancel is on the Running tab's running row. Without script, or a browser without `<dialog>`, the
   buttons do nothing. The question before leaving a page with unsaved changes is the same dialog, opened by the
   unsaved-changes guard from the link that was clicked rather than from a button.
 - **OK stands the dialog until the job has settled.** The dialog's posting form carries `data-progress`, and one

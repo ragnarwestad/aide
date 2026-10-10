@@ -1,4 +1,4 @@
-// A job moving from one phase to the next, read off the Specs list at
+// A job moving from one phase to the next, read off the Running tab at
 // every point on the way. The row draws from the queue, which moves the
 // instant a step ends, and from the files and git history, which catch
 // up a moment later — and each gap between the two used to be drawn as
@@ -124,7 +124,7 @@ describe("a chained job's row between its phases", () => {
       },
     });
     const page = async () =>
-      await (await fetch(`${base}/specs?${openQuery(`aide/${SPEC}`)}`, )).text();
+      await (await fetch(`${base}/?${openQuery(`aide/${SPEC}`)}`, )).text();
 
     const made = (await (
       await fetch(`${base}/api/queue`, {

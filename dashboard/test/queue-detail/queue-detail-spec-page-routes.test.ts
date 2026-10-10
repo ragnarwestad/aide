@@ -229,6 +229,21 @@ describe("GET /specs/<project>/<specFolder>", () => {
     expect(html).toContain("It shows nothing about");
   });
 
+  // `<select` is not checked here: the banner carries the create choices'
+  // disabled criteria-checks select. The caption line is looked for as a
+  // row, since the page's stylesheet names `data-caption` too.
+  test("the open row is the spec alone: no phase line and no Run, and Close or Reopen at the end of its tabs (AC-1, AC-2)", async () => {
+    const live = harness.start({ description: DESCRIPTION, archivedSpecs: { "70-an-old-spec": {} } });
+    const open = await (await fetch(`${live.base}${PATH}`)).text();
+    expect(open).toContain('data-ask="closeask"');
+    for (const absent of ['class="subrow"', '<tr class="subrow" data-caption', 'class="rowrun"']) {
+      expect([absent, open.includes(absent)]).toEqual([absent, false]);
+    }
+    const archived = await (await fetch(`${live.base}/specs/aide/70-an-old-spec`)).text();
+    expect(archived).toContain('data-ask="reopenask"');
+    expect(archived).not.toContain('data-ask="reopenask-aide/70-an-old-spec"');
+  });
+
   test("a spec archived while the list shows only the active ones is still the open row (AC-4)", async () => {
     const { base } = harness.start({ description: DESCRIPTION, archivedSpecs: { "70-an-old-spec": {} } });
     const html = await (await fetch(`${base}/specs/aide/70-an-old-spec`)).text();

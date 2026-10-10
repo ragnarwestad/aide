@@ -218,7 +218,7 @@ describe("a running implement's TDD phase reaches the page", () => {
     const { base: base2 } = start({ queueMirrorPath: mirror });
     expect((await report(base2, "sess-210-green", "green")).status).toBe(200);
     const html = await (
-      await fetch(`${base2}/specs?open=aide/81-queue-and-runner`)
+      await fetch(`${base2}/?open=aide/81-queue-and-runner`)
     ).text();
     expect(html).toContain("Running (green)");
     expect(html).toContain('data-third="1"');
@@ -237,7 +237,7 @@ describe("a running implement's TDD phase reaches the page", () => {
     const { base: base2 } = start({ queueMirrorPath: mirror });
     expect((await report(base2, "sess-210-analyze", "green")).status).toBe(200);
     const rows = await (
-      await fetch(`${base2}/specs?rows=1&open=aide/81-queue-and-runner`)
+      await fetch(`${base2}/?rows=1&open=aide/81-queue-and-runner`)
     ).text();
     expect(rows).toContain("running");
     expect(rows).not.toContain("running (");

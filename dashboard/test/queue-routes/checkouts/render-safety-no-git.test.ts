@@ -185,12 +185,11 @@ describe("no render path runs git or a network command (spec 208)", () => {
         "77-old-thing": { status: statusSaying(["create", "analyze", "implement", "archive"]) },
       },
     });
-    // The specs LIST's own row, opened so its phase lines are drawn:
-    // that is where each phase's own state is said since the pips came
-    // off the list, and it is read from the same `done`.
-    const html = await (await get(base, "/specs?state=archived&open=aide/77-old-thing")).text();
-    for (const step of ["create", "analyze", "implement", "archive"]) {
-      expect([step, phaseBadge(html, step)]).toEqual([step, "done"]);
+    // The specs LIST's own shut row says each phase in its pips, read from
+    // the same `done`; an archived, merged spec has no row on the Running tab.
+    const html = await (await get(base, "/specs?state=archived")).text();
+    for (const step of ["Create", "Analyze", "Implement", "Archive"]) {
+      expect([step, html.includes(`<span class="pip past" title="${step}">`)]).toEqual([step, true]);
     }
   });
 
@@ -210,10 +209,10 @@ describe("no render path runs git or a network command (spec 208)", () => {
     ran(dir, ["create", "analyze"]);
     // The history is read in the background; wait for it rather than a
     // fixed 100 ms, which a landing's gate lost to load (2026-09-03).
-    // Same list-route note as criterion 5 above.
+    // The Running tab's open row draws the phase lines.
     let html = "";
     for (let i = 0; i < 100; i++) {
-      html = await (await get(base, "/specs?open=aide/81-queue-and-runner")).text();
+      html = await (await get(base, "/?open=aide/81-queue-and-runner")).text();
       if (phaseBadge(html, "analyze") === "done") break;
       await new Promise((r) => setTimeout(r, 50));
     }

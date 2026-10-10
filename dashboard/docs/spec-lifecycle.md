@@ -152,7 +152,7 @@ a round that starts with Implement keeps them.
   planned again: the earlier round's code and tests for it stay on the branch, and the user checks it against the new
   code when they tick it again. Implement may rewrite an open row's Notes cell with what is still missing. No skill
   ticks a row.
-- **On the specs list**, a spec held back this way offers Analyze and Implement unticked beside a ticked Archive: a
+- **On the Running tab**, a spec held back this way offers Analyze and Implement unticked beside a ticked Archive: a
   plain press archives, and another round is a choice made by ticking it.
 
 When the user is satisfied, they tick the rows on the spec's Status tab and press Archive.

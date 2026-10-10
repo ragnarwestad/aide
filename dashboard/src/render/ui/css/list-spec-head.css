@@ -44,9 +44,11 @@ table.list td.foldcell > .fold { display: block; width: 100%; height: 40px; line
    messages': it opens the whole spec, and is the one a reader hunts for. */
 table.list td.foldcell > .fold > svg { vertical-align: middle; width: 20px; height: 20px; }
 table.list tr.spechead:has(.fold[aria-expanded="true"]) + tr.specstate .pipslot { display: none; }
-/* An open row's second line comes off: the caption line under it
-   carries the totals, and each phase line says its own state, whatever
-   it is, so the badge and the pips would say it twice. `visibility: collapse` rather than `display: none`: the head
+/* An open row's second line comes off. On the Running tab the caption line
+   under it carries the totals, and each phase line says its own state,
+   whatever it is, so the badge and the pips would say it twice. On the
+   Specs list the open row is the spec, and its state and figures are what
+   runs, followed on the Running tab. `visibility: collapse` rather than `display: none`: the head
    row's chevron cell spans both lines, and a row taken out with
    `display: none` hands that span to the caption line, which then
    starts a column to the right. A job row (`data-job`) has no caption line

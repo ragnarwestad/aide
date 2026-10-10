@@ -1,5 +1,5 @@
-// Reopen asks in a dialog, from the spec in its open row and from the row's
-// own control, and the dialog stands while the job starts.
+// Reopen asks in a dialog, from the spec in its open row, and the dialog
+// stands while the job starts.
 //
 // `make test` runs it, and by hand:
 // `cd dashboard && bun test --timeout 20000 test/e2e/reopen-in-a-dialog.test.ts`.
@@ -21,7 +21,6 @@ beforeAll(async () => {
 afterAll(async () => { await browser.close(); harness.cleanup(); });
 
 const SPEC = `/specs/aide/${STAMPED}`;
-const LIST = `${SPEC}?state=archived`;
 const ACCEPTED = { status: 200, json: { ok: true, job: { id: "j1" } } };
 
 interface Opened {
@@ -60,10 +59,8 @@ async function ok(page: Page): Promise<void> {
   ]);
 }
 
-/** The open row has two Reopen buttons: the spec's own, in its cell, and the row's. */
-async function ask(page: Page, from: "spec" | "row" = "spec"): Promise<void> {
-  const scope = from === "spec" ? page.locator("tr[data-spec-detail]") : page.locator("tr:not([data-spec-detail])");
-  await scope.getByRole("button", { name: "Reopen" }).click();
+async function ask(page: Page): Promise<void> {
+  await page.locator("tr[data-spec-detail]").getByRole("button", { name: "Reopen" }).click();
   await dialog(page).waitFor({ state: "visible" });
 }
 
@@ -114,19 +111,5 @@ describe("Reopen asks in a dialog from the spec in its row", () => {
     expect(new URL(page.url()).pathname).toBe(SPEC);
     await ok(page);
     expect(posts).toHaveLength(2);
-  });
-});
-
-describe("Reopen asks in a dialog from the row's own control", () => {
-  test("a row's Reopen opens the dialog over the list, and a done reopen comes back to the filtered list (AC-4)", async () => {
-    const { page, posts } = await open(LIST, ACCEPTED, "done");
-    await ask(page, "row");
-    expect(await modal(page)).toBe(true);
-    expect(new URL(page.url()).pathname).toBe(SPEC);
-    await dialog(page).getByRole("button", { name: "OK" }).click();
-    await page.waitForURL((url) => posts.length === 1 && !url.searchParams.has("live"));
-    const landed = new URL(page.url());
-    expect(landed.pathname).toBe(SPEC);
-    expect(landed.searchParams.get("state")).toBe("archived");
   });
 });

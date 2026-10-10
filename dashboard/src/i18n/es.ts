@@ -79,6 +79,7 @@ export const es: Record<TranslationKey, string> = {
   "list.foldShow": "mostrar",
   "list.foldHide": "ocultar",
   "list.foldTitle": "{action} las fases y controles de {folder}",
+  "list.specFoldTitle": "{action} la spec {folder}",
   "list.checksFoldTitle": "{action} los criterios de aceptación de {folder}",
   "list.checksSave": "Guardar",
   "list.checksSaving": "guardando…",

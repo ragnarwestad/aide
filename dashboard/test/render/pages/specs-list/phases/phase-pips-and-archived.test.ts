@@ -91,3 +91,64 @@ describe("spec 265: an archived phase line looks like a live one", () => {
     );
   });
 });
+
+// An archived spec whose branch has not merged still has a row on the
+// Running tab, and the row's phase lines are locked: they say what the
+// spec's own files record and offer no press.
+describe("a locked phase line", () => {
+  const archived = (over: Partial<ArchivedSpecView> = {}): ArchivedSpecView => ({
+    project: "aide",
+    folder: "50-archived",
+    done: ["create", "analyze"],
+    models: {},
+    phaseOutcomes: {},
+    ...over,
+  });
+
+  const lines = (spec: ArchivedSpecView): Record<string, string> => {
+    const html = renderSpecsRows([], {
+      runnerAvailable: true,
+      targets: [],
+      modelChoices: [{ name: "sonnet" }, { name: "claude-opus-5" }],
+      defaultModels: { default: "sonnet" },
+      archivedSpecs: [spec],
+      filter: { state: "archived", open: "aide/50-archived" },
+    });
+    return Object.fromEntries(
+      ["create", "analyze", "implement", "archive"].map((step) => [
+        step,
+        html.match(new RegExp(`<tr class="subrow"[^>]*data-step="${step}">[\\s\\S]*?</tr>`))?.[0] ?? "",
+      ]),
+    );
+  };
+
+  // `chosenSteps` answers "what would a press run next", which for a
+  // finished spec with no recorded choice falls back to `{archive}` alone:
+  // routed through it the row would tick the one step it did not have.
+  test("each box is ticked by what happened, not by what a press would run", () => {
+    const byStep = lines(archived());
+    for (const step of ["create", "analyze"]) expect(byStep[step]).toContain(" checked");
+    for (const step of ["implement", "archive"]) expect(byStep[step]).not.toContain(" checked");
+  });
+
+  test("no box can be ticked, and none would post a step if it were", () => {
+    const byStep = lines(archived());
+    for (const [step, line] of Object.entries(byStep)) {
+      const box = line.slice(line.indexOf(`data-phase="${step}"`));
+      expect([step, box.slice(0, box.indexOf("</label>")).includes(" disabled")]).toEqual([step, true]);
+      expect(box.slice(0, box.indexOf("</label>"))).not.toContain('name="steps"');
+    }
+  });
+
+  // The old `4-status.md` `Model (<step>):` line and the new per-phase-file
+  // `Model:` line never both exist for one real archive, but the merge
+  // order is fixed: the new value wins.
+  test("prefers the new-format model over the old when a record carries both", () => {
+    const byStep = lines(archived({
+      models: { analyze: "claude claude-sonnet-5" },
+      phaseOutcomes: { analyze: { model: "claude claude-opus-5" } },
+    }));
+    expect(byStep["analyze"]).toContain("claude-opus-5");
+    expect(byStep["analyze"]).not.toContain("claude-sonnet-5");
+  });
+});

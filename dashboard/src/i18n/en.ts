@@ -80,6 +80,7 @@ export const en = {
   "list.foldShow": "show",
   "list.foldHide": "hide",
   "list.foldTitle": "{action} the phases and controls of {folder}",
+  "list.specFoldTitle": "{action} the spec {folder}",
   "list.checksFoldTitle": "{action} the acceptance criteria of {folder}",
   "list.checksSave": "Save",
   "list.checksSaving": "saving…",

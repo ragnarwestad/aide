@@ -623,8 +623,9 @@ that its branch is still on origin, and so does the tab. An archived or closed s
 job of a spec in a project off the allowlist, of a spec whose folder is gone, or of a finished archived or closed spec (a
 Reopen in flight) has no row either; its job page `/jobs/<id>` still shows it with its Stop.
 
-A spec's row is the Specs list's row, drawn by the same builder from the same options: the same columns and buttons,
-and when it is unfolded the same phase lines, steps, logs and acceptance criteria. A spec's title leads to the spec's
+A spec's row is the Specs list's row, drawn by the same builder from the same options: the same columns and buttons
+shut. Opened here it unfolds to the phase lines, steps, logs and acceptance criteria, where the Specs list's open row
+shows the spec instead. A spec's title leads to the spec's
 own address with its row's anchor (`/specs/<project>/<spec>#spec-<project>/<spec>`): the Specs list with that row open
 and scrolled to it. The Specs list's own title keeps the address without the anchor. The folds lead to `/`, not
 `/specs`. A press on it is the press the Specs list makes.
@@ -685,7 +686,7 @@ does, gets the view last chosen. The rows' fold links carry the view.
 
 The rows sit in `#jobrows`, so the page redraws as the Specs list does: the page script asks the page's own address with
 `?rows=1` (and `&only=<project>/<folder>` for one row's fold) when the server says something moved, and every press posts
-and redraws in place. A Stop or Cancel question closes when its row is redrawn, as the Specs list's Cancel does.
+and redraws in place. A Stop or Cancel question closes when its row is redrawn.
 
 ## Live runs
 

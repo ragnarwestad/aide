@@ -344,7 +344,7 @@ describe("every step lands its own work (spec 149)", () => {
       (j) => !!j.error,
     );
 
-    const url = `${base}/specs?${OPEN_81}`;
+    const url = `${base}/?${OPEN_81}`;
     const html = await (await fetch(url, )).text();
     expect(html).not.toContain("resolveform");
     expect(specControls(html, SPEC)).not.toContain('value="resolve"');

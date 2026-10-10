@@ -79,6 +79,7 @@ export const nb: Record<TranslationKey, string> = {
   "list.foldShow": "vis",
   "list.foldHide": "skjul",
   "list.foldTitle": "{action} faser og kontroller for {folder}",
+  "list.specFoldTitle": "{action} specen {folder}",
   "list.checksFoldTitle": "{action} akseptansekriteriene for {folder}",
   "list.checksSave": "Lagre",
   "list.checksSaving": "lagrer…",

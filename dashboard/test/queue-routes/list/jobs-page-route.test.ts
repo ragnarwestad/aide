@@ -438,7 +438,7 @@ describe("the rows stand in the tab's order (AC-4)", () => {
 // Spec 81: a done Analyze, then a failed Implement. Spec 82: an archive held
 // back on an unticked criterion. Both are shown on the Jobs tab, and both are
 // rows the Specs list draws.
-describe("a spec's row on the Jobs tab is the Specs list's row (AC-3)", () => {
+describe("a spec's shut row on the Jobs tab is the Specs list's row, and its open row adds the phase lines (AC-1, AC-3)", () => {
   const T = (m: number): string => `2026-10-08T10:${String(m).padStart(2, "0")}:00Z`;
   const step = (name: string, o: Record<string, unknown> = {}) => ({
     step: name, ok: true, exitCode: 0, costUsd: 0.1, costMeasured: true, terminalReason: "completed", repos: [], ...o,
@@ -504,21 +504,33 @@ describe("a spec's row on the Jobs tab is the Specs list's row (AC-3)", () => {
     expect(asJobs(jobsTab)).toBe(asJobs(list));
   });
 
-  test("a held-back spec, open with its criteria and a phase's log unfolded, is the list's row too (AC-3)", async () => {
+  /** The Jobs tab's open row less what only it draws: the caption line, the phase lines and their messages. */
+  const withoutPhaseLines = (html: string): string =>
+    html.replace(/<tr class="(?:subrow|phasemsgs)\b[\s\S]*?<\/tr>/g, "");
+
+  test("a held-back spec opened on each: the Jobs tab's rows are the list's and the phase lines (AC-1, AC-3)", async () => {
     const base = await settled();
     const jobsTab = group(await rowsOf(base, OPEN_82), "spec-aide/82-held-back");
     const list = group(await (await fetch(`${base}/specs/aide/82-held-back?rows=1&${OPEN_82}`)).text(), "spec-aide/82-held-back");
     expect(jobsTab).toContain('class="checklist"');
-    expect(asJobs(jobsTab)).toBe(asJobs(list));
+    expect(jobsTab).toContain("data-caption");
+    expect(jobsTab).toContain("data-step=");
+    expect(list).toContain('class="checklist"');
+    expect(list).not.toContain("data-caption");
+    expect(list).not.toContain("data-step=");
+    expect(asJobs(withoutPhaseLines(jobsTab))).toBe(asJobs(list));
   });
 
-  test("a spec with no job, opened, is the list's rows for it too (AC-3)", async () => {
+  test("a spec with no job opened on each: the Jobs tab has its Run, the list has none (AC-1, AC-3)", async () => {
     const base = await settled();
     const open = "open=aide/83-idle";
     const jobsTab = group(await rowsOf(base, open), "spec-aide/83-idle");
     const list = group(await (await fetch(`${base}/specs/aide/83-idle?rows=1&${open}`)).text(), "spec-aide/83-idle");
-    expect(jobsTab).not.toBe("");
-    expect(asJobs(jobsTab)).toBe(asJobs(list));
+    expect(jobsTab).toContain('class="rowrun"');
+    expect(list).not.toBe("");
+    expect(list).not.toContain('class="rowrun"');
+    expect(list).not.toContain("data-caption");
+    expect(asJobs(withoutPhaseLines(jobsTab))).toBe(asJobs(list));
   });
 
   test("no link a spec row draws back to its page leads to /specs (AC-3)", async () => {

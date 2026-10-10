@@ -79,6 +79,7 @@ export const de: Record<TranslationKey, string> = {
   "list.foldShow": "zeigen",
   "list.foldHide": "verbergen",
   "list.foldTitle": "{action} die Phasen und Steuerelemente von {folder}",
+  "list.specFoldTitle": "{action} die Spec {folder}",
   "list.checksFoldTitle": "{action} die Abnahmekriterien von {folder}",
   "list.checksSave": "Speichern",
   "list.checksSaving": "speichert…",

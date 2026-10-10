@@ -209,7 +209,7 @@ root's branch open through `archive` too, as the pull request; the specs root st
 
 ## Which button a row offers
 
-The row carries one control at a time, on the caption line inside the fold. While nothing of the spec is running it
+The row carries one control at a time, on the caption line inside the Running tab's open row. While nothing of the spec is running it
 is the row's button, **labelled with the phase it would run** — Analyze, Implement, Archive — and greyed out, still
 named, when that phase is unticked.
 

@@ -204,7 +204,8 @@ export interface SpecsPageOptions {
    *  present, it replaces `filter.open`. `key` is the open spec, absent for
    *  a list with every row shut; `detail` is the spec drawn in its row,
    *  empty in a rows answer, where the page keeps the spec it holds. Only
-   *  the Specs list sets it; the Jobs tab folds its rows as before. */
+   *  the Specs list sets it; the Jobs tab folds its rows as before. An open
+   *  row on the Specs list carries no phase lines. */
   openSpec?: { key?: string; detail?: string };
 }
 
@@ -282,15 +283,17 @@ function groupRow(g: SpecGroup, opts: SpecsPageOptions, now: number, opened: Set
   // The panel belongs to the row, not to the phase lines: a
   // collapsed row is told what went wrong without being opened.
   //
-  // An open row reads head row, phase lines, then the message rows:
-  // the detail the chevron opens sits directly under the row, and
-  // every message keeps that one place.
+  // An open row on the Running tab reads head row, phase lines, then the
+  // message rows; on the Specs list it reads head row, message rows, then
+  // the spec, with no phase lines, since what runs is followed on the
+  // Running tab. Every message keeps that one place.
   const head = specHeadRow(g, opts, opened);
   const notice = specNoticeRow(g, now, opts.lang ?? "en", testServerAvailable, {
     filter: opts.filter,
     branchPreview: opts.branchPreview,
     overlappingSpecs: opts.overlappingSpecs,
     listPath: opts.listPath,
+    specOpen: !!opts.openSpec && opened.has(groupKey(g.project, g.specFolder)),
   });
   // Each spec ends with an empty row the stylesheet turns into the air
   // between two cards. It closes the group rather than opening the
@@ -305,8 +308,9 @@ function groupRow(g: SpecGroup, opts: SpecsPageOptions, now: number, opened: Set
   const detail = opts.openSpec?.key === key
     ? `<tr class="specdetail" data-spec-detail="${esc(key)}"><td colspan="${LIST_COLUMNS}">${opts.openSpec.detail ?? ""}</td></tr>`
     : "";
+  const runs = opts.openSpec ? "" : phaseSubRows(g, opts, now);
   return opened.has(key)
-    ? head + phaseSubRows(g, opts, now) + notice + detail + gap
+    ? head + runs + notice + detail + gap
     : head + notice + gap;
 }
 

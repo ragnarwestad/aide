@@ -91,6 +91,9 @@ export function specNoticeRow(
     overlappingSpecs?: (project: string, specFolder: string) => OpenOverlap[] | undefined;
     /** The page the row sits on, for the criteria's fold; the Specs list's own when absent. */
     listPath?: string;
+    /** The row is open on the Specs list, where it is the spec alone: the
+     *  approach choice, a press that releases a step, is left out. */
+    specOpen?: boolean;
   } = {},
 ): string {
   const archiveHeldBack = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
@@ -137,7 +140,7 @@ export function specNoticeRow(
       : "kind" in p && p.kind === "branch-left-behind"
         ? { ...p, after: deleteBranchForm(g, lang) }
         : "kind" in p && p.kind === "approach-choice"
-          ? { ...p, after: approachPanel(g, lang) }
+          ? view.specOpen ? p : { ...p, after: approachPanel(g, lang) }
           : p,
   );
   const detail = notice.title ? helpPopover("more detail", esc(notice.title)) : "";
