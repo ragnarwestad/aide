@@ -280,6 +280,10 @@ Two ways to get it:
 - **b. The runner shortening more of what it hands a session.** After a red test run it already hands back the
   failing lines alone; the commands a session runs itself are not shortened.
 
-What has to be found out first is how much of a step's tokens command output is today, from the steps' own logs,
-before deciding whether either is worth it.
+Measured on the board's last 60 analyze and implement steps (October 2026), neither is worth doing now. Of what
+the tools handed the sessions, reading files was 66% (`cat`, `sed` and `head` 41%, the Read tool 25%), searching
+and listing 24% (`grep`, `rg`, `find`, `ls`), git 6%, and test runs and checks 2%. What rtk shortens best, test
+runs and git logs, is about 6% of it; the files a session reads are what it needs to change the code, and cannot
+be shortened without losing that. The large share is finding and reading code, which the wiki is meant to make
+cheaper. Measured again if that changes.
 
