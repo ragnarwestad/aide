@@ -243,12 +243,12 @@ machine's, whoever owns the repository.
 
 Two ways to narrow it:
 
-- **The AI tool's own sandbox.** Claude Code can confine the commands it runs with macOS's own sandbox: writes only
+- **a. The AI tool's own sandbox.** Claude Code can confine the commands it runs with macOS's own sandbox: writes only
   inside the working directory, network only to allowed domains. Codex has `workspace-write`. A setting per run in
   place of `bypassPermissions`, with no Docker; what has to be tried out is every place a project's tests write or
   fetch from, each of which must be allowed. It could be turned on per project, leaving Aide out until its own suite
   is known to pass inside it.
-- **A container per run, as sandcastle does.** Only the worktree is mounted; the AI tool gets its own token
+- **b. A container per run, as sandcastle does.** Only the worktree is mounted; the AI tool gets its own token
   (`claude setup-token`) and no SSH keys or GitHub login, and the runner outside commits, pushes and lands as today.
   The strongest boundary, at the cost of Docker or Podman on the serving host, an image per project, dependencies
   built inside the container rather than linked in, and Aide's own suite, which assumes macOS, behaving differently
@@ -256,7 +256,7 @@ Two ways to narrow it:
   Dagger: each agent gets a container on a branch of its own, and its commands and logs can be read afterwards.
 
 Neither keeps a run from damaging or reading its own repository, or from sending what it reads out, unless the
-network is narrowed too. The first is where to start.
+network is narrowed too. Option a is where to start.
 
 ### Shorter command output for a run
 
@@ -271,9 +271,9 @@ for on a long implement.
 
 Two ways to get it:
 
-- **rtk itself**, installed on the serving host and turned on for the runs. It hooks into Claude Code's Bash tool
+- **a. rtk itself**, installed on the serving host and turned on for the runs. It hooks into Claude Code's Bash tool
   only; Read and Grep pass it by.
-- **The runner shortening more of what it hands a session.** After a red test run it already hands back the
+- **b. The runner shortening more of what it hands a session.** After a red test run it already hands back the
   failing lines alone; the commands a session runs itself are not shortened.
 
 What has to be found out first is how much of a step's tokens command output is today, from the steps' own logs,
