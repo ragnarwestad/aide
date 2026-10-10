@@ -1,6 +1,7 @@
 // The spec page's own view types.
 
 import type { AcTest } from "../../../project/ac-coverage.ts";
+import type { CreateChoices } from "../../../project/discover";
 import type { JobDetailView, JobStepResultView, SpecFileView } from "../job-page";
 import type { Phase, SpecTarget } from "../specs-list";
 
@@ -148,6 +149,10 @@ export interface SpecPageView {
    *  comes from. Absent/false means "required", exactly as no line at
    *  all does (REQ-11). */
   acceptanceNotRequired?: boolean;
+  /** The choices the spec was created with, read off its description. The
+   *  banner shows three of them and cannot change them; absent, the banner
+   *  draws what a spec with nothing recorded runs with. */
+  createChoices?: CreateChoices;
   /** Where the banner's combined depends-on/acceptance form posts (spec
    *  394) — its own route, since the banner is drawn once per page load
    *  regardless of which document tab is open, unlike `saveAction`
@@ -167,10 +172,6 @@ export interface SpecPageView {
    *  with the job or without it, and drawn as a waiting line, not an
    *  error. */
   warning?: string;
-  /** Where "← Back" goes (spec 252) — resolved by `serve.ts` from the
-   *  request's own `Referer`, same-origin only. Absent falls back to
-   *  `/`, today's exact hardcoded destination. */
-  backHref?: string;
   /** Where the "Start board" form posts (spec 388). Absent means no
    *  control is drawn at all — the round is unavailable on this host, or
    *  this spec's own code branch carries no commits (REQ-1). */

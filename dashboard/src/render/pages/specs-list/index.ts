@@ -29,7 +29,9 @@
 // one function that has to know about both a filtered/sorted list AND
 // a single row's markup.
 
-import { pageShell, type NavEntry } from "../../ui/shell.ts";
+import { esc } from "../../ui/html.ts";
+import { LOADING_HIDE_RULE, loadingBlock } from "../../ui/loading.ts";
+import { pageShell, shellHead, shellRest, type NavEntry } from "../../ui/shell.ts";
 import type { QueueRowView } from "../../ui/job-state";
 import { t, type Language } from "../../../i18n";
 import type { FailedCreate } from "../../../push/failed-creates.ts";
@@ -62,6 +64,7 @@ import {
 // `PHASE_LINES` and `Phase`, only for that; nothing here reads them.
 export {
   ACTIVE_FILTER_KEY,
+  ARCHIVED_STATE,
   FILTER_KEYS,
   PHASE_LINES,
   RUN_STEPS,
@@ -194,6 +197,15 @@ export interface SpecsPageOptions {
    *  Specs list's own `/specs` when absent. The Jobs tab draws the same rows
    *  and sets `/`. */
   listPath?: string;
+  /** Browser code loaded by address (`src=`), after `script`: the spec
+   *  editor or viewer the open spec's tab mounts. */
+  scriptSrc?: string;
+  /** The Specs list opens one spec at a time, at the spec's own address:
+   *  present, it replaces `filter.open`. `key` is the open spec, absent for
+   *  a list with every row shut; `detail` is the spec drawn in its row,
+   *  empty in a rows answer, where the page keeps the spec it holds. Only
+   *  the Specs list sets it; the Jobs tab folds its rows as before. */
+  openSpec?: { key?: string; detail?: string };
 }
 
 
@@ -202,6 +214,21 @@ export interface SpecsPageOptions {
 // doing, and the controls that act on it come with expanding it.
 const openedSet = (f: SpecsFilter): Set<string> =>
   new Set((f.open ?? "").split(",").filter(Boolean));
+
+/** The rows drawn open: the one spec the address names where the list opens
+ *  one at a time, else the keys the `open` fold lists. */
+const openedKeys = (opts: SpecsPageOptions): Set<string> =>
+  opts.openSpec ? new Set(opts.openSpec.key ? [opts.openSpec.key] : []) : openedSet(opts.filter ?? {});
+
+/** The groups the filter shows, and the open spec's too where the filter
+ *  would hide it: the address names it, so the list must show it. */
+function shownGroups(groups: SpecGroup[], opts: SpecsPageOptions): SpecGroup[] {
+  const f = opts.filter ?? {};
+  const shown = applyFilter(groups, f);
+  const key = opts.openSpec?.key;
+  const open = key ? groups.find((g) => groupKey(g.project, g.specFolder) === key) : undefined;
+  return open && !shown.includes(open) ? [...shown, open] : shown;
+}
 
 
 // A collapsed row OMITS its phase lines and its "more" line rather than
@@ -232,7 +259,7 @@ export function activeSpecRows(
   opts: SpecsPageOptions,
   now = Date.now(),
 ): { key: string; group: SpecGroup; html: string }[] {
-  const opened = openedSet(opts.filter ?? {});
+  const opened = openedKeys(opts);
   const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now);
   return applyFilter(groups, { state: ACTIVE_FILTER_KEY }).map((g) => ({
     key: groupKey(g.project, g.specFolder),
@@ -271,8 +298,15 @@ function groupRow(g: SpecGroup, opts: SpecsPageOptions, now: number, opened: Set
   // spec as its head row and everything up to the next) carries it
   // along with the spec it belongs to.
   const gap = `<tr class="specgap" aria-hidden="true"><td colspan="${LIST_COLUMNS}"></td></tr>`;
-  return opened.has(groupKey(g.project, g.specFolder))
-    ? head + phaseSubRows(g, opts, now) + notice + gap
+  const key = groupKey(g.project, g.specFolder);
+  // The open spec ends in its detail row, the whole spec in one cell. A
+  // rows answer carries it empty, as a place for the page to put the spec
+  // it already holds.
+  const detail = opts.openSpec?.key === key
+    ? `<tr class="specdetail" data-spec-detail="${esc(key)}"><td colspan="${LIST_COLUMNS}">${opts.openSpec.detail ?? ""}</td></tr>`
+    : "";
+  return opened.has(key)
+    ? head + phaseSubRows(g, opts, now) + notice + detail + gap
     : head + notice + gap;
 }
 
@@ -301,11 +335,11 @@ function groupRow(g: SpecGroup, opts: SpecsPageOptions, now: number, opened: Set
 export function renderSpecsRows(rows: QueueRowView[], opts: SpecsPageOptions, now = Date.now()): string {
   const f = opts.filter ?? {};
   const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now);
-  const matched = sortGroups(applyFilter(groups, f), f);
+  const matched = sortGroups(shownGroups(groups, opts), f);
   const body = matched.length
     ? // `groups`, not `matched`: a dependency the filter has hidden is
       // still in the way of the row that names it.
-      groupRows(matched, opts, now, openedSet(f))
+      groupRows(matched, opts, now, openedKeys(opts))
     : `<tr><td colspan="${LIST_COLUMNS}" class="empty muted">` +
       // Two different emptinesses. "Nothing matches what you asked for"
       // is answered by changing the filter; "there is no spec here at
@@ -332,24 +366,19 @@ export function renderSpecsRows(rows: QueueRowView[], opts: SpecsPageOptions, no
  *  The table is empty when the filter does not show that spec, and the
  *  page then redraws the whole list instead. */
 export function renderSpecGroupRows(rows: QueueRowView[], opts: SpecsPageOptions, key: string, now = Date.now()): string {
-  const f = opts.filter ?? {};
   const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now);
-  const one = applyFilter(groups, f).filter((g) => groupKey(g.project, g.specFolder) === key);
-  return `<table><tbody>${groupRows(one, opts, now, openedSet(f))}</tbody></table>`;
+  const one = shownGroups(groups, opts).filter((g) => groupKey(g.project, g.specFolder) === key);
+  return `<table><tbody>${groupRows(one, opts, now, openedKeys(opts))}</tbody></table>`;
 }
 
-export function renderSpecsPage(
-  rows: QueueRowView[],
-  generatedAt: string,
-  entries: NavEntry[],
-  opts: SpecsPageOptions,
-): string {
+/** The page's body: the notices, then the one container the script swaps. */
+function specsPageBody(rows: QueueRowView[], opts: SpecsPageOptions): string {
   // One container: the script swaps its whole contents, so the controls
   // and the rows can never drift apart on a refresh.
   const lang = opts.lang ?? "en";
   const table = `<div id="jobrows">${renderSpecsRows(rows, opts)}</div>`;
   const notice = opts.runnerAvailable ? "" : `<p class="muted">${t(lang, "list.noRunner")}</p>\n`;
-  const body =
+  return (
     notice +
     // Where the page script writes a refused press: the list's own line,
     // and after the rows the row it copies under the spec the press was
@@ -359,15 +388,45 @@ export function renderSpecsPage(
     // after the (?)): it is a plain link since spec 121, so the
     // five-second swap of `#jobrows` holds no half-typed state to lose.
     table +
-    refusalRowTemplate();
+    refusalRowTemplate()
+  );
+}
+
+export function renderSpecsPage(
+  rows: QueueRowView[],
+  generatedAt: string,
+  entries: NavEntry[],
+  opts: SpecsPageOptions,
+): string {
   // The front page IS the board: the tab says only that — and the
   // heading said it a second time right under the Specs tab, so it is
   // gone (2026-08-19). The title still names the page for the shell.
-  return pageShell("Specs", entries, "/specs", body, generatedAt, {
+  return pageShell("Specs", entries, "/specs", specsPageBody(rows, opts), generatedAt, {
     docTitle: "aide -board",
     hideHeading: true,
     script: opts.script,
-    lang,
+    scriptSrc: opts.scriptSrc,
+    lang: opts.lang ?? "en",
     currentUrl: opts.currentUrl,
+  });
+}
+
+/** The list's first chunk when it is streamed (spec 515): the document up to
+ *  `<body>` and the loading element, needing nothing the route has yet to
+ *  read. `title` names the page in the tab. */
+export function renderSpecsPageHead(title: string, lang: Language): string {
+  return shellHead(title, { lang, docTitle: "aide -board" }) + loadingBlock(lang);
+}
+
+/** The second chunk: the page from the header on, with the rule that hides
+ *  the loading element right after `</main>`. */
+export function renderSpecsPageRest(rows: QueueRowView[], entries: NavEntry[], opts: SpecsPageOptions): string {
+  return shellRest(entries, "/specs", "Specs", specsPageBody(rows, opts), {
+    hideHeading: true,
+    script: opts.script,
+    scriptSrc: opts.scriptSrc,
+    lang: opts.lang ?? "en",
+    currentUrl: opts.currentUrl,
+    afterMain: LOADING_HIDE_RULE,
   });
 }

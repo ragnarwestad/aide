@@ -7,8 +7,9 @@
 // config.ts (a project's own config/manifest values), spec-files.ts
 // (reading one spec's own files), depends-on.ts (the `Depends on:`
 // line), acceptance.ts, criteria-checks.ts and choose-approach.ts (three
-// more Tracking info lines) and scan.ts (walking a projects root, and the types it
-// produces). Kept as a barrel at this path because most of the server
+// more Tracking info lines), create-choices.ts (those and the AI
+// formulation line, read together) and scan.ts (walking a projects root,
+// and the types it produces). Kept as a barrel at this path because most of the server
 // and the static generator import from it.
 
 export {
@@ -31,6 +32,8 @@ export { acceptanceNotRequiredIn, specAcceptanceNotRequired, stripAcceptanceLine
 export { criteriaChecksIn, parseCriteriaChecks, type CriteriaChecks } from "./criteria-checks.ts";
 
 export { chooseApproachIn } from "./choose-approach.ts";
+
+export { createChoicesIn, type CreateChoices } from "./create-choices.ts";
 
 export {
   discoverProjects, manifestInside, gitignoreCandidates, buildProjectViews, specFolders,

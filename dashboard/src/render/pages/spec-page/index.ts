@@ -1,5 +1,5 @@
-// /specs/<project>/<specFolder>: the whole spec, as it stands now (spec
-// 150).
+// /specs/<project>/<specFolder>: the whole spec, as it stands now, drawn in
+// the open row of the Specs list (spec 150).
 //
 // The dashboard never showed a spec — it showed jobs. Every link on a
 // spec's row went to one queue RUN, whose Overview held the
@@ -43,18 +43,18 @@
 // overview.ts (the banner's own facts — archived read-only, the
 // depends-on/acceptance tracking control editable — the checklist,
 // Reopen), panels.ts (the document tabs) and ask-dialog.ts (the
-// dialog Close and Reopen ask in). `renderSpecPage` itself — the one
-// function that assembles all of them — stays here.
+// dialog Close and Reopen ask in). `renderSpecDetail` — the one function
+// that assembles all of them, into the open row of the Specs list — stays
+// here.
 
 import { badge, buttonForm, helpPopover, messageSlot, rowMessage } from "../../ui/components";
-import { projectLink } from "../../ui/components/spec-name.ts";
 import { gerund } from "../../../format/gerund.ts";
-import { esc } from "../../ui/html.ts";
 import type { Language } from "../../../i18n";
-import { pageShell, shellHead, shellRest, type NavEntry } from "../../ui/shell.ts";
+import { shellHead, shellRest, type NavEntry } from "../../ui/shell.ts";
 import { LOADING_HIDE_RULE, loadingBlock } from "../../ui/loading.ts";
 import { t } from "../../../i18n";
-import { landingRefusal, stepResults, tabBar, tabbedBody } from "../job-page";
+import { groupKey } from "../specs-list/data-model";
+import { landingRefusal, stepResults, tabBar } from "../job-page";
 import { followMarker, followPart } from "../job-page/follow.ts";
 import {
   actionsHelp, archivedLine, testServerStatus, closedLine, closeControl, pdfControl,
@@ -62,25 +62,26 @@ import {
 } from "./overview.ts";
 import { descriptionPanel, documentPanel } from "./panels.ts";
 import {
-  resolveSpecTab, SPEC_LINES, SPEC_NOTICE_LINE, SPEC_REFUSED_LINE, SPEC_TABS, specPagePath, specTabPath, TAB_FILES, TAB_HELP, type SpecTab,
+  resolveSpecTab, SPEC_LINES, SPEC_NOTICE_LINE, SPEC_REFUSED_LINE, SPEC_TABS, specDetailPath, specTabPath, TAB_FILES, TAB_HELP,
+  type ListView,
 } from "./tabs.ts";
 import type { SpecPageView } from "./types.ts";
 
 export type { SpecCheckView, SpecChecksView, SpecPageView } from "./types.ts";
 export {
   EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, FILE_TABS, resolveSpecTab, TAB_FILES,
-  documentTabScript, specPagePath, specTabPath,
+  documentTabScript, listViewIn, specDetailPath, specPagePath, specTabPath, type ListView,
 } from "./tabs.ts";
 
-interface SpecPageOpts {
+interface SpecDetailOpts {
   tab?: string;
   step?: string;
   steptab?: string;
   now?: number;
-  script?: string;
-  scriptSrc?: string;
   lang?: Language;
-  currentUrl?: string;
+  /** The list's view (filter, sort, search) the spec's links carry, so
+   *  following one keeps the list around the open row. */
+  view?: ListView;
 }
 
 /** What the Steps tab draws of a spec: its lead job and every step of the
@@ -102,10 +103,10 @@ function runningBadge(view: SpecStepsView, lang: Language): string {
 }
 
 /** The Steps tab's table, with the tab's own "(?)" in its first line. */
-function stepsTable(view: SpecStepsView, opts: Pick<SpecPageOpts, "step" | "steptab" | "lang">): string {
+function stepsTable(view: SpecStepsView, opts: Pick<SpecDetailOpts, "step" | "steptab" | "lang" | "view">): string {
   const lead = view.lead;
   return stepResults(view.steps ?? [], lead?.archiveHeldBack, {
-    tabHref: specTabPath(view.project, view.specFolder, "steps"),
+    tabHref: opts.view ? specDetailPath(view.project, view.specFolder, opts.view, "steps") : specTabPath(view.project, view.specFolder, "steps"),
     openStep: opts.step,
     runningStep: lead?.runningStep,
     steptab: opts.steptab,
@@ -119,7 +120,7 @@ function stepsTable(view: SpecStepsView, opts: Pick<SpecPageOpts, "step" | "step
 
 /** What `?follow=1` answers on the Steps tab: the marker and the parts the
  *  page script swaps, drawn by the same functions as the page. */
-export function renderSpecStepsFollowParts(view: SpecStepsView, opts: Pick<SpecPageOpts, "step" | "steptab" | "lang"> = {}): string {
+export function renderSpecStepsFollowParts(view: SpecStepsView, opts: Pick<SpecDetailOpts, "step" | "steptab" | "lang" | "view"> = {}): string {
   return (
     (view.lead ? followMarker(view.lead, { tab: "steps", step: opts.step, runningIndex: runningIndexOf(view) }) : "") +
     followPart("head", runningBadge(view, opts.lang ?? "en"), "span") +
@@ -127,9 +128,12 @@ export function renderSpecStepsFollowParts(view: SpecStepsView, opts: Pick<SpecP
   );
 }
 
-/** The page's body and the tab it is on — what `renderSpecPage` and the
- *  streamed second half (`renderSpecPageRest`) both draw. */
-function specPageBody(view: SpecPageView, opts: SpecPageOpts): { body: string; tab: SpecTab } {
+/** The whole spec as it sits in the open row of the Specs list: the running
+ *  badge and the PDF link on a line of their own, the banner, the tab bar
+ *  and the open tab's panel. The page's own frame — its "← Back" link and
+ *  its title — is not drawn: the row names the spec, and the browser's Back
+ *  shuts the row. */
+export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}): string {
   const now = opts.now ?? Date.now();
   // Description, whatever is running. The JOB page opens on the
   // activity while a step runs, because that page is about the run;
@@ -202,45 +206,29 @@ function specPageBody(view: SpecPageView, opts: SpecPageOpts): { body: string; t
   const badgeHtml = runningBadge(view, opts.lang ?? "en");
   const headTrailing = (tab === "steps" ? followPart("head", badgeHtml, "span") : badgeHtml) + pdfControl(view);
 
-  const body = tabbedBody(
-    banner,
-    tabBar(
-      SPEC_TABS,
-      specPagePath(view.project, view.specFolder),
-      tab,
-      { steps: (view.steps?.length ?? 0) + (lead?.runningStep ? 1 : 0) },
-      actions,
-    ),
-    panel,
-    view.backHref ?? "/",
-    { html: `${projectLink(view.project)}:${esc(view.specFolder)}` },
-    // The spec page's content is FIELDS — the depends-on picker, the
-    // acceptance switch, the description editor — and they cap
-    // themselves narrower than `.doc`'s default. One right edge means
-    // taking theirs, or the tab row's own buttons end a hand's width
-    // to the right of everything they act on.
-    true,
-    headTrailing,
+  // Each tab is a page load of the spec's own address, with the list's view
+  // and the row's anchor, so the row is still open and in view after it.
+  const view_ = opts.view ?? {};
+  const anchor = `#spec-${groupKey(view.project, view.specFolder)}`;
+  const tabs = tabBar(
+    SPEC_TABS,
+    (key) => `${specDetailPath(view.project, view.specFolder, view_, key)}${anchor}`,
+    tab,
+    { steps: (view.steps?.length ?? 0) + (lead?.runningStep ? 1 : 0) },
+    actions,
   );
 
-  return { body, tab };
-}
-
-export function renderSpecPage(
-  view: SpecPageView,
-  generatedAt: string,
-  entries: NavEntry[],
-  opts: SpecPageOpts = {},
-): string {
-  const { body } = specPageBody(view, opts);
-  return pageShell(view.specFolder, entries, "/specs", body, generatedAt, {
-    script: opts.script,
-    scriptSrc: opts.scriptSrc,
-    hideHeading: true,
-    hideTabBar: true,
-    lang: opts.lang,
-    currentUrl: opts.currentUrl,
-  });
+  // The spec's content is FIELDS — the depends-on picker, the acceptance
+  // switch, the description editor — and they cap themselves narrower than
+  // `.doc`'s default, so the wrapper takes theirs: one right edge.
+  return (
+    `<div class="doc formdoc">` +
+    (headTrailing ? `<p class="row">${headTrailing}</p>` : "") +
+    banner +
+    tabs +
+    `<div class="tabpanel">${panel}</div>` +
+    `</div>`
+  );
 }
 
 /** The spec page's first chunk (spec 515): the document up to `<body>`, the
@@ -248,27 +236,6 @@ export function renderSpecPage(
  *  route knows before any view data exists. */
 export function renderSpecPageHead(specFolder: string, lang: Language): string {
   return shellHead(specFolder, { lang }) + loadingBlock(lang);
-}
-
-/** The second chunk: the same document `renderSpecPage` draws, from the
- *  header on, with the rule that hides the loading element right after
- *  `</main>`. */
-export function renderSpecPageRest(
-  view: SpecPageView,
-  _generatedAt: string,
-  entries: NavEntry[],
-  opts: SpecPageOpts = {},
-): string {
-  const { body } = specPageBody(view, opts);
-  return shellRest(entries, "/specs", view.specFolder, body, {
-    script: opts.script,
-    scriptSrc: opts.scriptSrc,
-    hideHeading: true,
-    hideTabBar: true,
-    lang: opts.lang,
-    currentUrl: opts.currentUrl,
-    afterMain: LOADING_HIDE_RULE,
-  });
 }
 
 /** What ends a spec page whose second half failed after the head was sent:

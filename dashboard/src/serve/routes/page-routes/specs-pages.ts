@@ -5,9 +5,9 @@
 // Every check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own — which is what lets the
 // three be asked one after another exactly as the chain read before.
-import { NEW_SPEC_ROUTE, renderNewSpecPage, renderSpecGroupRows, renderSpecsPage, renderSpecsRows, resolveBackHref } from "../../../render";
-import { languageChoice, modelChoiceOptions, specsClientScript, sortChoice, stateChoice } from "../../serve-helpers";
-import { listedSpecJobs, specRowOptions } from "./spec-row-options.ts";
+import { NEW_SPEC_ROUTE, renderNewSpecPage, renderSpecsPage, resolveBackHref, specPagePath } from "../../../render";
+import { languageChoice, modelChoiceOptions, specsClientScript } from "../../serve-helpers";
+import { listHeaders, specsListParts, specsRowsAnswer } from "./specs-list-view.ts";
 import type { RoutesContext } from "..";
 
 /** The typed text of a failed create, by its id; absent for an id that is not kept. */
@@ -35,131 +35,26 @@ export async function specsPages(
 
   if (path === "/specs") {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-    // The reader's own choice of language (spec 350), from the address
-    // or from the cookie it was last written into — the same shape as
-    // the sort/state pair below, with one difference: this always
-    // resolves to a concrete language, never `{}`.
-    const langResult = languageChoice(url, req);
-    const base = specRowOptions(ctx, url, langResult.lang);
-    const archivedKeys = base.archived ?? [];
-    // spec 406, REQ-7: the closed subset of the same cheap key list, off
-    // `ctx.specRef` — the same per-key lookup job-actions.ts already
-    // uses, never a second walk.
-    const closedKeys = archivedKeys.filter((k) => {
-      const cut = k.indexOf("/");
-      return ctx.specRef(k.slice(0, cut), k.slice(cut + 1))?.closed;
-    });
-    // Off the same lookup: the archived specs with a Not verified row,
-    // what the Not verified entry's count adds where no row is built.
-    const notVerifiedKeys = archivedKeys.filter((k) => {
-      const cut = k.indexOf("/");
-      const ref = ctx.specRef(k.slice(0, cut), k.slice(cut + 1));
-      return (ref?.notVerified ?? 0) + (ref?.failed ?? 0) > 0;
-    });
-    // The reader's own choice of state, from the address or from the
-    // cookie it was last written into (spec 338, mirroring the sort
-    // column's own `chosenSort` below).
-    const stateResult = stateChoice(url, req, ctx.serverPort());
-    const chosenState = stateResult.state;
-    // Every archived spec is a row on this list since spec 221 — but
-    // only for a reader whose chip asks for one. The builder decides
-    // that itself, off the same `filterShowsArchived` the filter's entries are
-    // defined by, and the scale question is why: aide alone archives
-    // about 150 specs, this page rebuilds itself on every change
-    // event on every open tab, and the default view must not pay for
-    // a set it does not show.
-    const archivedSpecs = ctx.archivedSpecRows(chosenState);
-    // The reader's own choice of column, from the address or from the
-    // cookie it was last written into.
-    const chosenSort = sortChoice(url, req, ctx.serverPort());
-    const view = {
-      ...base,
-      closed: closedKeys,
-      notVerified: notVerifiedKeys,
-      currentUrl: langResult.currentUrl,
-      // Spec 506: the creates that ended without a spec and were not
-      // dismissed — a message each, above the filter bar.
-      failedCreates: ctx.push.failedCreates.list(),
-      archivedSpecs,
-      script: await specsClientScript(),
-      // The raw allowlist, not the discovered set: a project whose
-      // FIRST spec this form exists to make has nothing on disk to be
-      // discovered from, so deriving these from `targets()` would
-      // leave it out of the one dropdown it needs to be in. Every
-      // other list on this page stays derived, because every other
-      // control is about a spec that already exists.
-      createProjects: [...ctx.allowed].sort(),
-      // Straight from the query string: how the list is cut and
-      // ordered lives in the URL, so it survives a reload and can be
-      // sent to someone else. Nothing here is trusted — the renderer
-      // falls back to its defaults for anything it does not know.
-      //
-      // The SORT alone falls back to what the reader last chose
-      // (`sortChoice`) rather than to the renderer's default: every
-      // other part of the filter is set from a control on this page
-      // and read back off the same address, but the sort is thrown
-      // away by every plain link to `/` there is.
-      filter: {
-        ...base.filter,
-        state: chosenState,
-        project: url.searchParams.get("project") ?? undefined,
-        sort: chosenSort.sort,
-        dir: chosenSort.dir,
-        // The search term (spec 221), a query-string citizen like the
-        // rest of the view — so it survives a reload, can be pasted to
-        // someone else, and rides along on the SSE-driven row swap,
-        // which sends `location.search` back verbatim.
-        q: url.searchParams.get("q") ?? undefined,
-      },
-    };
-    // The rows alone: the page swaps them from script every few
-    // seconds, so a half-filled form is never wiped by a refresh.
-    // Only the projects the queue may run. A project taken out of the
-    // allowlist keeps its jobs in the history (and in /api/queue), but
-    // a row for it could only offer a Run that would be refused.
-    // A schedule job is not a spec (spec 259's own tracking key never
-    // resolves under the specs root — `parseJobRequest`'s exemption for
-    // it) and has no spec folder for a row's name link to point at:
-    // left in here it drew a row whose name linked to
-    // `/specs/<project>/schedule-<name>`, a 404, and an action button
-    // that got refused with "unknown specFolder" on every press. Its
-    // own history lives on `/schedule`'s detail page instead.
-    // A wiki build is no spec either: its state is on the project's Wiki tab.
-    const listed = listedSpecJobs(ctx, ctx.queue.list());
-    if (url.searchParams.get("rows")) {
-      // The sort cookie is written HERE as well as on the whole page,
-      // and this is the one that matters: pressing a column heading
-      // never reloads the page. The script rewrites the address and
-      // fetches these rows alone, so a cookie set only on the full
-      // page would never be written by the very act of choosing.
-      const rowHeaders = new Headers({ "content-type": "text/html; charset=utf-8" });
-      if (chosenSort.setCookie) rowHeaders.append("set-cookie", chosenSort.setCookie);
-      if (stateResult.setCookie) rowHeaders.append("set-cookie", stateResult.setCookie);
-      if (langResult.setCookie) rowHeaders.append("set-cookie", langResult.setCookie);
-      const rows = await Promise.all(listed.map(ctx.jobRow));
-      // `only`: the one spec a › opened or shut, so the page swaps that
-      // row and not the whole list.
-      const only = url.searchParams.get("only");
-      return new Response(only ? renderSpecGroupRows(rows, view, only) : renderSpecsRows(rows, view), {
-        headers: rowHeaders,
+    // A row is opened at the spec's own address, so a link that names one
+    // here (a notification's, an older bookmark) is sent there, with the
+    // rest of the query. With several keys it goes to the first.
+    const first = (url.searchParams.get("open") ?? "").split(",").filter(Boolean)[0];
+    const spec = first?.match(/^([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)$/);
+    // Only a spec there is a page for: a key nothing has yet (a create still
+    // landing) leaves the list as it is.
+    if (spec && ctx.specDir(spec[1]!, spec[2]!)) {
+      const rest = url.search.slice(1).split("&").filter((pair) => pair && !pair.startsWith("open="));
+      return new Response(null, {
+        status: 302,
+        headers: { location: `${specPagePath(spec[1]!, spec[2]!)}${rest.length ? `?${rest.join("&")}` : ""}` },
       });
     }
-    const html = renderSpecsPage(
-      await Promise.all(listed.map(ctx.jobRow)),
-      new Date().toISOString(),
-      ctx.nav(),
-      view,
+    const parts = await specsListParts(ctx, req, url);
+    if (url.searchParams.get("rows")) return specsRowsAnswer(parts, url);
+    return new Response(
+      renderSpecsPage(await parts.rows(), new Date().toISOString(), ctx.nav(), parts.view),
+      { headers: listHeaders(parts) },
     );
-    const headers: Record<string, string> = { "content-type": "text/html; charset=utf-8" };
-    // A `Headers` rather than the record it was built from: several
-    // cookies can be handed over on one response — the sort, the state
-    // and the language a shared link carried — and a record has room
-    // for one `set-cookie`.
-    const pageHeaders = new Headers(headers);
-    if (chosenSort.setCookie) pageHeaders.append("set-cookie", chosenSort.setCookie);
-    if (stateResult.setCookie) pageHeaders.append("set-cookie", stateResult.setCookie);
-    if (langResult.setCookie) pageHeaders.append("set-cookie", langResult.setCookie);
-    return new Response(html, { headers: pageHeaders });
   }
 
   if (path === NEW_SPEC_ROUTE) {

@@ -278,6 +278,20 @@ table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="model"] { 
    rows: the side edges on each row's outer cells, the top on its head row,
    the bottom on whichever row comes last before its gap row. */
 tr.specgap > td { height: 10px; padding: 0; border: 0; background: none; }
+/* The open spec sits in one cell that spans the card (spec 627). Its frame is
+   the spec's own `.doc`, which stops at the width its fields cap themselves
+   at; the list's scroller scrolls around it. Above 40rem the mounted editor
+   is given a height of its own, no taller than the window less the page's
+   chrome, and scrolls inside it under its toolbar; on a phone it grows with
+   its text. */
+tr.specdetail { --spec-editor-height: 32rem; }
+tr.specdetail > td { padding: var(--sp-3); }
+@media (min-width: 40.0625rem) {
+  /* !important because the editor writes `height: 100%` on its mount, inline
+     (spec-editor/index.ts), and that is a height of nothing inside a table cell. */
+  tr.specdetail .spec-editor-mount[data-mounted] {
+    height: min(var(--spec-editor-height), calc(100dvh - 16rem)) !important; min-height: 16rem; }
+}
 @media (min-width: 40.0625rem) {
   table.speclist { border: 0; background: none; border-collapse: separate; border-spacing: 0; }
   /* The chevron stands as far below the row's top open as shut. Centred in

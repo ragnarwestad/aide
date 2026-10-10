@@ -3,6 +3,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { createGitRunner, type GitRunner } from "../../src/git/branch-status.ts";
 import type { ServerOptions } from "../../src/serve/serve.ts";
 import { queueHarness, IMPLEMENTED } from "../helpers/queue-server.ts";
 
@@ -209,6 +210,69 @@ describe("GET /specs/<project>/<specFolder>", () => {
     expect(solution).toContain("One must-fix.");
   });
 
+  // Spec 627: the spec's address is the Specs list with that row open, and
+  // the spec drawn in the row.
+  test("answers the Specs list with the spec's row open and the whole spec in it (AC-1)", async () => {
+    const { base, dir } = start();
+    fillSpec(dir);
+    const res = await fetch(`${base}${PATH}`);
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain('id="jobrows"');
+    expect(html).toContain(`data-spec-detail="aide/${SPEC}"`);
+    // The part above the tabs, once.
+    expect(html.match(/class="trackingform/g)).toHaveLength(1);
+    // The tabs, each a link to the spec's own address, and the Description panel.
+    for (const tab of ["description", "analysis", "solution", "status", "steps"]) {
+      expect([tab, new RegExp(`href="/specs/aide/${SPEC}\\?[^"]*tab=${tab}`).test(html)]).toEqual([tab, true]);
+    }
+    expect(html).toContain("It shows nothing about");
+  });
+
+  test("a spec archived while the list shows only the active ones is still the open row (AC-4)", async () => {
+    const { base } = harness.start({ description: DESCRIPTION, archivedSpecs: { "70-an-old-spec": {} } });
+    const html = await (await fetch(`${base}/specs/aide/70-an-old-spec`)).text();
+    expect(html).toContain('id="spec-aide/70-an-old-spec"');
+    expect(html).toContain('data-spec-detail="aide/70-an-old-spec"');
+  });
+
+  test("/specs?open= leads to the spec's address with the rest of the query (AC-4)", async () => {
+    const { base } = start();
+    const res = await fetch(`${base}/specs?open=${encodeURIComponent(`aide/${SPEC},aide/82-other`)}&q=queue`, { redirect: "manual" });
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe(`/specs/aide/${SPEC}?q=queue`);
+  });
+
+  test("/specs draws every row shut, without the spec (AC-3)", async () => {
+    const { base } = start();
+    const html = await (await fetch(`${base}/specs`)).text();
+    expect(html).not.toContain('<tr class="specdetail"');
+    expect(html).not.toMatch(/<a class="fold"[^>]*aria-expanded="true"/);
+    expect(html).toMatch(/<a class="fold shut"[^>]*aria-expanded="false"/);
+  });
+
+  // The spec's view reads its files through git; the list's answers must not.
+  test("the spec is loaded when its row is opened, not when the list is drawn (AC-2)", async () => {
+    const real = createGitRunner();
+    const hits: string[] = [];
+    const gitRun: GitRunner = (cwd, args, timeoutMs, env) => {
+      hits.push(args.join(" "));
+      return real(cwd, args, timeoutMs, env);
+    };
+    const { base } = start({ gitRun });
+    const reads = (): number => hits.filter((h) => /\d-(description|analysis|solution|status)\.md/.test(h)).length;
+
+    await (await fetch(`${base}/specs`)).text();
+    await (await fetch(`${base}/specs?rows=1`)).text();
+    const stand = await (await fetch(`${base}${PATH}?rows=1`)).text();
+    const none = reads();
+    expect(stand).toContain(`data-spec-detail="aide/${SPEC}"`);
+    expect(stand).not.toContain("trackingform");
+
+    await (await fetch(`${base}${PATH}`)).text();
+    expect(reads()).toBeGreaterThan(none);
+  });
+
   test("a spec nobody has is a 404, not a blank page", async () => {
     const { base } = start();
     expect((await fetch(`${base}/specs/aide/99-no-such-spec`)).status).toBe(404);
@@ -257,20 +321,10 @@ describe("GET /specs/<project>/<specFolder>?job=", () => {
   const SPEC = "81-queue-and-runner";
   const PATH = `/specs/aide/${SPEC}`;
 
-  // Spec 435: the header's language links now target the request's own
-  // full address, `job=` included — so two responses that differ only
-  // in a harmless `job=` legitimately differ there now. That is not
-  // what AC6 tests: strip the parts that are SUPPOSED to vary before
-  // asserting the rest of the page is untouched. Spec 436 gave the
-  // language links a second copy — the "…" menu's flat mobile rows,
-  // outside the standalone `.menu.lang` control (a dropdown's options
-  // since spec 507) — so both copies need stripping, not just the one
-  // `<details>` block.
-  const withoutLangMenu = (html: string): string =>
-    html
-      .replace(/<details class="menu lang">[\s\S]*?<\/details>/, "")
-      .replace(/<a href="[^"]*[?&](?:amp;)?lang=[^"]*"[^>]*>.*?<\/a>/g, "")
-      .replace(/<option value="[^"]*[?&](?:amp;)?lang=[^"]*"[^>]*>.*?<\/option>/g, "");
+  // The spec is drawn in the open row of the Specs list. The rest of the
+  // list (the header's language links, the freshness marks of its rows) varies
+  // with the address and the clock, so what is compared is the spec's own cell.
+  const detailOf = (html: string): string => html.match(/<tr class="specdetail"[\s\S]*?<tr class="specgap"/)?.[0] ?? "";
 
   /** Two finished analyze jobs on one spec, oldest last — which is one
    *  more than the queue will accept through its own route, so the
@@ -310,10 +364,11 @@ describe("GET /specs/<project>/<specFolder>?job=", () => {
     const mirror = twoAttempts(dir, id);
 
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const bare = withoutLangMenu(await (await fetch(`${base2}${PATH}?tab=steps`)).text());
+    const bare = detailOf(await (await fetch(`${base2}${PATH}?tab=steps`)).text());
     const res = await fetch(`${base2}${PATH}?tab=steps&job=older-attempt`);
     expect(res.status).toBe(200);
-    expect(withoutLangMenu(await res.text())).toBe(bare);
+    expect(bare).toContain("$7.77");
+    expect(detailOf(await res.text())).toBe(bare);
   });
 
   test("both attempts' cost figures are present together in one response (AC7)", async () => {

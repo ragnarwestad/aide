@@ -1,7 +1,6 @@
-// A spec's own › redraws that spec alone. Whether the rest of the list is
-// really left standing, and whether a second › keeps the first row open
-// when every other link on the page was drawn before it, only a browser
-// answers.
+// Opening a row loads the spec's own address, so the browser's history is
+// what shuts it again. Pressing the chevron, a tab inside the row and Back
+// only a browser answers.
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
@@ -25,29 +24,34 @@ afterAll(async () => {
   harness.cleanup();
 });
 
-const fold = (folder: string) => `tr.spechead[data-folder="${folder}"] a.fold[data-fold="open"]`;
+const fold = (folder: string) => `tr.spechead[data-folder="${folder}"] a.fold`;
+const detail = (key: string) => `tr[data-spec-detail="aide/${key}"]`;
 
-test("two ›s pressed one after the other leave both rows open and the others untouched", async () => {
-  await withBrowser(page.goto(`${base}/specs?live=0`), "page.goto(/)");
-  await page.evaluate(() => {
-    (document.querySelector('tr.spechead[data-folder="83-third"]') as HTMLElement & { mark?: number }).mark = 1;
-  });
-  const asked: string[] = [];
-  page.on("request", (r) => {
-    if (r.url().includes("rows=1")) asked.push(r.url());
-  });
+const openRows = () =>
+  page.evaluate(() => [...document.querySelectorAll("tr.spechead a.fold[aria-expanded=true]")].map((a) => a.closest("tr")!.getAttribute("data-folder")));
+
+test("a chevron opens the spec at its own address, one row at a time, and Back shuts it (AC-3, AC-4)", async () => {
+  await withBrowser(page.goto(`${base}/specs?live=0`), "page.goto(/specs)");
+  expect(await openRows()).toEqual([]);
+
   await page.click(fold("81-queue-and-runner"));
-  await page.waitForSelector(`${fold("81-queue-and-runner")}[aria-expanded="true"]`);
+  await page.waitForSelector(detail("81-queue-and-runner"));
+  expect(new URL(page.url()).pathname).toBe("/specs/aide/81-queue-and-runner");
+  expect(await openRows()).toEqual(["81-queue-and-runner"]);
+
+  await page.click(`${detail("81-queue-and-runner")} a.tab:text-is("Analysis")`);
+  await page.waitForURL(/tab=analysis/);
+  await page.waitForSelector(detail("81-queue-and-runner"));
+  expect(await openRows()).toEqual(["81-queue-and-runner"]);
+
   await page.click(fold("82-second"));
-  await page.waitForSelector(`${fold("82-second")}[aria-expanded="true"]`);
-  const after = await page.evaluate(() => ({
-    firstOpen: document.querySelector('tr.spechead[data-folder="81-queue-and-runner"] a.fold')!.getAttribute("aria-expanded"),
-    thirdKept: (document.querySelector('tr.spechead[data-folder="83-third"]') as HTMLElement & { mark?: number }).mark,
-    open: new URLSearchParams(location.search).get("open"),
-  }));
-  expect(after.firstOpen).toBe("true");
-  expect(after.thirdKept).toBe(1);
-  expect(after.open).toBe("aide/81-queue-and-runner,aide/82-second");
-  expect(asked).toHaveLength(2);
-  for (const url of asked) expect(url).toContain("only=");
+  await page.waitForSelector(detail("82-second"));
+  expect(new URL(page.url()).pathname).toBe("/specs/aide/82-second");
+  expect(await openRows()).toEqual(["82-second"]);
+  expect(await page.$(detail("81-queue-and-runner"))).toBeNull();
+
+  for (let i = 0; i < 3; i++) await page.goBack();
+  await page.waitForURL((url) => url.pathname === "/specs");
+  expect(await openRows()).toEqual([]);
+  expect(await page.$("tr[data-spec-detail]")).toBeNull();
 });

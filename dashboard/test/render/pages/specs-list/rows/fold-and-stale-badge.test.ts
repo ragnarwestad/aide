@@ -80,3 +80,48 @@ describe("the description-changed badge (criteria 1, 3)", () => {
     expect([...line.matchAll(/name="steps" value="[^"]*" checked/g)]).toHaveLength(2);
   });
 });
+
+// Spec 627: a row is opened by loading the spec's own address, so one row
+// is open at a time and each chevron is a link to the page that shows it.
+describe("the open row and the chevrons (AC-3)", () => {
+  const targets: SpecTarget[] = [
+    { project: "aide", specFolder: "81-queue-x" },
+    { project: "aide", specFolder: "82-queue-y" },
+  ];
+  const html = renderSpecsRows(
+    [],
+    {
+      runnerAvailable: true,
+      targets,
+      filter: { q: "queue" },
+      openSpec: { key: "aide/81-queue-x", detail: "<p>THE-SPEC</p>" },
+    },
+    Date.parse("2026-08-18T12:00:00Z"),
+  );
+  const chevron = (folder: string): string =>
+    html.match(new RegExp(`<tr class="spechead"[^>]*data-folder="${folder}">[\\s\\S]*?(<a class="fold[^"]*"[^>]*>)`))?.[1] ?? "";
+
+  test("exactly one row is open, and it ends in the spec", () => {
+    expect(html.match(/<a class="fold"[^>]*aria-expanded="true"/g)).toHaveLength(1);
+    expect(html.match(/data-spec-detail="/g)).toHaveLength(1);
+    expect(html).toContain('data-spec-detail="aide/81-queue-x"');
+    expect(html).toContain("<p>THE-SPEC</p>");
+  });
+
+  test("a shut row's chevron loads the spec's address with the list's view, and is not a row swap", () => {
+    const link = chevron("82-queue-y");
+    expect(link).toContain('href="/specs/aide/82-queue-y?q=queue#spec-aide/82-queue-y"');
+    expect(link).toContain("data-goto");
+    expect(link).not.toContain("data-nav");
+  });
+
+  test("the open row's chevron leads back to the list, with the row's view", () => {
+    expect(chevron("81-queue-x")).toContain('href="/specs?q=queue#spec-aide/81-queue-x"');
+  });
+
+  test("no spec is open when openSpec names no key", () => {
+    const shut = renderSpecsRows([], { runnerAvailable: true, targets, openSpec: {} }, Date.parse("2026-08-18T12:00:00Z"));
+    expect(shut.match(/aria-expanded="true"/g)).toBeNull();
+    expect(shut).not.toContain("data-spec-detail");
+  });
+});

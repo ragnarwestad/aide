@@ -14,6 +14,7 @@ import { t, type Language } from "../../../i18n";
 import {
   CLOSE_ASK_ID, CLOSE_SENTENCE, REOPEN_ASK_ID, closeAskDialog, reopenAskDialog,
 } from "./ask-dialog.ts";
+import { createChoicesControls, createChoicesFacts } from "./create-choices.ts";
 import { SPEC_LINES, SPEC_REFUSED_LINE, specPagePath } from "./tabs.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
@@ -44,7 +45,8 @@ export function trackingControl(view: SpecPageView, lang: Language = "en"): stri
     const dep = folders.length ? fact(t(lang, "newSpec.dependsOn"), folders.map((f) => esc(f)).join(", ")) : "";
     return (
       dep +
-      fact(t(lang, "spec.acceptance"), capitalizeFirst(view.acceptanceNotRequired ? t(lang, "spec.acceptanceNotRequired") : t(lang, "spec.acceptanceRequired")))
+      fact(t(lang, "spec.acceptance"), capitalizeFirst(view.acceptanceNotRequired ? t(lang, "spec.acceptanceNotRequired") : t(lang, "spec.acceptanceRequired"))) +
+      createChoicesFacts(view.createChoices, lang).map((f) => fact(f.label, f.value)).join("")
     );
   }
   const acceptanceLocked = view.done?.includes("analyze") ?? false;
@@ -104,6 +106,8 @@ export function trackingControl(view: SpecPageView, lang: Language = "en"): stri
     // Not `.factions`: the switch is a FIELD, not an action, and the
     // page's one actions row is the Save/Cancel pair below it.
     `<p class="row">${acceptance}</p>` +
+    // Chosen when the spec was created, shown and never posted.
+    createChoicesControls(view.createChoices, lang) +
     // The same pair, and the same rules, the document forms already
     // have: both inactive until something changes, Cancel putting the
     // form back the way the page opened it.

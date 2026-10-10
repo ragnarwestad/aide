@@ -67,9 +67,9 @@ describe("← Back after switching tabs", () => {
     expect(await backPath(page)).toBe("/projects");
   });
 
-  test("opened again from a spec page, Back leads to that spec page, not the Specs page (AC-3)", async () => {
-    await withBrowser(page.goto(`${base}/specs/aide/${FOLDER}?live=0`), "page.goto(spec page)");
-    const project = page.locator('.backhead h1 a[href="/projects/aide"]');
+  test("opened again from a spec's open row, Back leads to that address, not the Specs page (AC-3)", async () => {
+    await withBrowser(page.goto(`${base}/specs/aide/${FOLDER}?live=0`), "page.goto(spec address)");
+    const project = page.locator('#jobrows a[href="/projects/aide"]').first();
     await withBrowser(Promise.all([page.waitForURL(/\/projects\/aide$/), project.click()]), "the project link");
     await clickTab(page, "Config");
     expect(await backPath(page)).toBe(`/specs/aide/${FOLDER}`);

@@ -8,6 +8,7 @@ import { offerEachToItsTool, syncAiToModel } from "./ai-sync.ts";
 import { AWAITING, chosen, chosenSteps, checkboxKey, press, selectKey } from "./state.ts";
 import { syncApproachCancels } from "./approach-choice";
 import { openTestFiles, reopenTestFiles } from "./test-files";
+import { holdSpecDetail } from "./spec-detail";
 
 /** The row's button says what a press would run — and a press runs the
  *  BOXES, so the label has to follow them as they are clicked.
@@ -336,7 +337,11 @@ export async function swapSpec(key: string): Promise<void> {
     if (press.pressGen !== gen) return;
     const group = one?.groups.length === 1 ? one.groups[0]! : null;
     const open = openTestFiles(body);
-    if (!group || !replaceGroup(group)) return swapRows();
+    // The open spec is not in the answer: it is held across the replace.
+    const restore = holdSpecDetail(body);
+    const replaced = group !== null && replaceGroup(group);
+    restore();
+    if (!group || !replaced) return swapRows();
     // Kept level with the page, so the next whole-list diff compares
     // against what this spec's rows now are.
     const at = lastRows?.groups.findIndex((g) => g.key === group.key) ?? -1;
@@ -390,7 +395,10 @@ export async function swapRows(): Promise<void> {
     // split cannot account for is redrawn the old way, and a diff that
     // could not finish is repaired by the same line.
     const next = splitGroups(html);
+    // The open spec is not in the answer: it is held across the replace.
+    const restore = holdSpecDetail(body);
     if (!next || !lastRows || !applyGroupDiff(lastRows, next)) body.innerHTML = html;
+    restore();
     lastRows = next;
     const wrap = body.querySelector(".tablewrap") as HTMLElement | null;
     if (wrap) wrap.scrollTop = scrolled;

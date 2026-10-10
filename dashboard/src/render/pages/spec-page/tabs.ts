@@ -14,6 +14,27 @@ export const specPagePath = (project: string, specFolder: string): string =>
 export const specTabPath = (project: string, specFolder: string, tab: string): string =>
   `${specPagePath(project, specFolder)}?tab=${encodeURIComponent(tab)}`;
 
+/** The parts of the Specs list's address that a spec's address inside the
+ *  list carries along, so a link out of the open row keeps the list around
+ *  it as it was cut and ordered. */
+export const LIST_VIEW_PARAMS = ["state", "project", "sort", "dir", "q"] as const;
+export type ListView = Partial<Record<(typeof LIST_VIEW_PARAMS)[number], string>>;
+
+/** The list's view out of the values an address's query holds for it. */
+export function listViewIn(values: Record<(typeof LIST_VIEW_PARAMS)[number], string | null>): ListView {
+  const view: ListView = {};
+  for (const key of LIST_VIEW_PARAMS) if (values[key]) view[key] = values[key]!;
+  return view;
+}
+
+/** The spec's address as the open row links to it: its path, the list's view
+ *  and, when given, the tab. Ends in the query, so a step's `&step=` can be
+ *  added to it. */
+export function specDetailPath(project: string, specFolder: string, view: ListView, tab?: string): string {
+  const query = [...LIST_VIEW_PARAMS.filter((k) => view[k]).map((k) => `${k}=${encodeURIComponent(view[k]!)}`), ...(tab ? [`tab=${encodeURIComponent(tab)}`] : [])];
+  return `${specPagePath(project, specFolder)}${query.length ? `?${query.join("&")}` : ""}`;
+}
+
 /** The page's tabs: its four documents in the order they are written and
  *  read, then the lead job's own Logs.
  *
@@ -132,7 +153,7 @@ export function documentTabScript(view: SpecPageView, tab: SpecTab): DocumentTab
 }
 
 /** What each tab's own "(?)" says (spec 311, REQ-3). One string per tab,
- *  built once by `renderSpecPage()` and passed as the optional `mark`
+ *  built once by `renderSpecDetail()` and passed as the optional `mark`
  *  parameter into whichever of `documentPanel()`/`descriptionPanel()`/
  *  `statusPanel()`/`stepResults()` draws that tab's panel (spec 360) — each
  *  appends it inside its own first line rather than drawing it as a

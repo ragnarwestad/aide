@@ -22,8 +22,8 @@ How a project gets in, and where its settings are kept, is in [Projects](docs/pr
 ## How it's used
 
 The front page lists every spec, grouped by phase. **New** writes a spec; a queued job shows its progress on the
-spec's row, and can be cancelled or given another phase from there. A spec's own page holds its four files and
-every job that has run against it.
+spec's row, and can be cancelled or given another phase from there. Opening a row shows the spec itself: its four files
+and every job that has run against it.
 
 [The specs list and the spec page](docs/the-specs-list.md) says what each row and each control does, and
 [A spec's lifecycle](docs/spec-lifecycle.md) covers writing a spec, the four phases and what stops one.

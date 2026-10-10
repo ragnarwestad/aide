@@ -30,4 +30,45 @@ describe("spec 394: the banner's combined tracking control", () => {
     const html = page(view({ done: [] }));
     expect(html).toMatch(/<input type="checkbox" name="acceptanceRequired"/);
   });
+
+  // Spec 627: the three choices made on New spec's Options tab sit beside
+  // the acceptance switch, shown as chosen and not changeable.
+  const CHOICES = { acceptanceRequired: true, aiFormulate: false, criteriaChecks: "warn", chooseApproach: true } as const;
+  const disabledTags = (html: string) => html.match(/<(?:input|select)\b[^>]*\bdisabled\b[^>]*>/g) ?? [];
+
+  test("a live spec shows the three choices as chosen, beside the switch (AC-5)", () => {
+    const html = page(view({ createChoices: CHOICES }));
+    expect(html).toContain("Let AI formulate acceptance criteria");
+    expect(html).toContain("Acceptance criteria checks");
+    expect(html).toContain("Let me choose the approach");
+    expect(html).toMatch(/<input type="checkbox" name="acceptanceRequired"/);
+    // AI formulation not ticked, the approach ticked: two disabled boxes, one of them checked.
+    const boxes = disabledTags(html).filter((tag) => tag.startsWith("<input"));
+    expect(boxes).toHaveLength(2);
+    expect(boxes.filter((tag) => /\bchecked\b/.test(tag))).toHaveLength(1);
+    expect(html).toMatch(/<select[^>]*\bdisabled\b[^>]*>[\s\S]*?<option value="warn" selected>/);
+  });
+
+  test("the three choices carry no field name, so the banner's form posts none of them (AC-6)", () => {
+    const html = page(view({ createChoices: CHOICES }));
+    const tags = disabledTags(html);
+    expect(tags.length).toBeGreaterThanOrEqual(3);
+    for (const tag of tags) expect(tag).not.toContain("name=");
+  });
+
+  test("an archived spec shows the three choices as facts with the same values (AC-5)", () => {
+    const html = page(view({ archived: true, createChoices: CHOICES }));
+    expect(html).toContain("Let AI formulate acceptance criteria");
+    expect(html).toContain("Acceptance criteria checks");
+    expect(html).toContain("Let me choose the approach");
+    expect(html).toContain("Warn");
+    expect(disabledTags(html)).toEqual([]);
+  });
+
+  test("a view with no recorded choices shows the defaults (AC-7)", () => {
+    const html = page(view({ createChoices: { acceptanceRequired: true, aiFormulate: true, criteriaChecks: "off", chooseApproach: false } }));
+    const boxes = disabledTags(html).filter((tag) => tag.startsWith("<input"));
+    expect(boxes.filter((tag) => /\bchecked\b/.test(tag))).toHaveLength(1);
+    expect(html).toMatch(/<select[^>]*\bdisabled\b[^>]*>[\s\S]*?<option value="off" selected>/);
+  });
 });

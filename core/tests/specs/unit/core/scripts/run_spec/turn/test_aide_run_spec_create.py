@@ -437,6 +437,35 @@ def test_an_unknown_choose_approach_value_is_refused_before_anything_runs_AC_10(
     assert not fake_claude.calls.exists()
 
 
+# --- "Let AI formulate acceptance criteria", recorded with the new spec ------
+
+FORMULATE_LINE = "- **Let AI formulate acceptance criteria:**"
+
+
+def _formulate_lines(workspace):
+    return [l for l in _created_description(workspace).splitlines() if l.startswith(FORMULATE_LINE)]
+
+
+def test_a_create_with_an_ai_session_records_that_ai_formulated_the_criteria_AC_5(runner, workspace, fake_claude):
+    rc, out, _ = create(runner, workspace, _describing_claude(fake_claude, RESULT_OK))
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert _formulate_lines(workspace) == [f"{FORMULATE_LINE} yes"]
+
+
+def test_a_create_without_ai_records_that_it_did_not_AC_5(runner, workspace, fake_claude):
+    rc, out, _ = create(runner, workspace, fake_claude("exit 1"), no_ai_formulate=True)
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert _formulate_lines(workspace) == [f"{FORMULATE_LINE} no"]
+
+
+def test_a_failed_create_records_no_formulation_line_AC_5(runner, workspace, fake_claude):
+    rc, out, _ = create(runner, workspace, _describing_claude(fake_claude, RESULT_ERROR))
+    assert out["ok"] is False, out
+    assert FORMULATE_LINE not in git(workspace["specs"], "log", "--all", "-p")
+
+
 def test_schedule_runs_with_no_spec_folder_and_sends_the_file_verbatim(
     runner, workspace, fake_claude
 ):

@@ -19,7 +19,9 @@ const FOLDS = ["open", "checks"] as const;
 export function navigate(event: MouseEvent): void {
   if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
   const link = (event.target as Element | null)?.closest?.("a[data-nav]") as HTMLAnchorElement | null;
-  if (!link) return;
+  // The links inside the open spec (its tabs, the Logs tab's step folds) load
+  // pages of their own, as they do on the spec's own address.
+  if (!link || link.closest("tr[data-spec-detail]")) return;
   event.preventDefault();
   const fold = link.getAttribute("data-fold");
   const key = link.getAttribute("data-key");

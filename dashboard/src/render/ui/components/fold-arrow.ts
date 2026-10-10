@@ -30,11 +30,15 @@ export function foldArrow(o: {
   /** Each key written as `data-<key>`: the hooks the list's script reads
    *  (`data-fold`, `data-key`). */
   data?: Record<string, string>;
+  /** The arrow loads the address as a page, marked `data-goto` and waiting
+   *  until it arrives, instead of swapping rows in place: for a fold whose
+   *  state is a page of its own. */
+  goto?: boolean;
 }): string {
   const action = t(o.lang, o.open ? "list.foldHide" : "list.foldShow");
   const title = t(o.lang, o.title, { ...o.params, action });
   return (
-    `<a class="fold${o.open ? "" : " shut"}" data-nav${dataAttrs(o.data)} href="${esc(o.href)}" ` +
+    `<a class="fold${o.open ? "" : " shut"}" ${o.goto ? "data-goto" : "data-nav"}${dataAttrs(o.data)} href="${esc(o.href)}" ` +
     `aria-expanded="${o.open ? "true" : "false"}" title="${esc(title)}">${ICON_CHEVRON}</a>`
   );
 }

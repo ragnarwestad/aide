@@ -294,6 +294,16 @@ export const nb: Record<TranslationKey, string> = {
   "spec.acceptanceLockedTitle": "hvorfor dette ikke kan endres",
   "spec.acceptanceLockedBody":
     "Analyser har allerede avgjort om akseptansekriterie-tabellen skal skrives — dette kan ikke endres nå.",
+  "spec.formulateCriteria": "La AI formulere akseptansekriteriene",
+  "spec.criteriaChecks": "Kontroll av akseptansekriteriene",
+  "spec.chooseApproach": "La meg velge tilnærmingen",
+  "spec.checksOff": "Av",
+  "spec.checksWarn": "Advar",
+  "spec.checksStop": "Stopp",
+  "spec.valueYes": "Ja",
+  "spec.valueNo": "Nei",
+  "spec.createChoicesTitle": "hvorfor disse ikke kan endres",
+  "spec.createChoicesBody": "Disse ble valgt da specen ble laget, og kan ikke endres nå.",
   "spec.archivedLine": "Denne specen er arkivert, og kan ikke redigeres før specen gjenåpnes",
   "spec.closedLine":
     "Denne specen ble lukket{when}{reason} — den fungerte ikke, og beskrivelsen og sjekkene kan ikke " +

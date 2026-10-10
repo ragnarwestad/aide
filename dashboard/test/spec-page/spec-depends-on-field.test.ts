@@ -70,7 +70,8 @@ describe("the Depends on field", () => {
   test("the spec being edited is not among the boxes", async () => {
     const { base } = startTracked(savable("/host"));
     const html = await (await fetch(`${base}${PAGE}`)).text();
-    expect(html).not.toContain(`value="${SPEC}"`);
+    expect(html).toContain('name="dependsOn"');
+    expect(html).not.toContain(`name="dependsOn" value="${SPEC}"`);
   });
 
   // The narrowing this control brings, stated as a test rather than

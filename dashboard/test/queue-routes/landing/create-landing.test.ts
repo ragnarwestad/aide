@@ -281,7 +281,7 @@ describe("landing a created spec (spec 93)", () => {
   // the landed row's own Implement select with no fresh pick needed.
   test("a model picked for Implement on the New page pre-fills Implement's select once the spec lands", async () => {
     const git = gitFor();
-    const { base, results } = serverWithRunner(start, "aide-create-results-", git, {
+    const { base, dir, results } = serverWithRunner(start, "aide-create-results-", git, {
       queueDefaults: {
         timeoutSec: { default: 1200 },
         permissionMode: { default: "acceptEdits" },
@@ -302,10 +302,16 @@ describe("landing a created spec (spec 93)", () => {
 
     writeFileSync(join(results, `${made.job.id}.json`), JSON.stringify(CREATE_RESULT));
     await settle(base, made.job.id, (j) => j.specFolder === "94-a-new-spec");
+    // The landed folder, which the spec's address (where an open row lives) needs on disk.
+    mkdirSync(join(dir, "root", "aide", "specs", "94-a-new-spec"), { recursive: true });
+    writeFileSync(join(dir, "root", "aide", "specs", "94-a-new-spec", "1-description.md"), "# A new spec - Description\n");
 
-    const html = await (
-      await fetch(`${base}/specs?${openQuery("aide/94-a-new-spec")}`, )
-    ).text();
+    // The scan that finds the folder comes round on its own schedule.
+    let html = "";
+    for (let n = 0; n < 100 && !specControls(html, "94-a-new-spec").includes('name="model.implement"'); n++) {
+      html = await (await fetch(`${base}/specs?${openQuery("aide/94-a-new-spec")}`)).text();
+      await new Promise((r) => setTimeout(r, 50));
+    }
     const group = specControls(html, "94-a-new-spec");
     const implementSelect = group.match(/<select name="model\.implement"[^]*?<\/select>/)?.[0] ?? "";
     expect(implementSelect).not.toBe("");

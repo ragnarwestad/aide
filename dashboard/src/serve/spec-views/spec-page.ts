@@ -4,7 +4,7 @@
 // lines; every function is unchanged and keeps its name.
 import { parseAcCoverage, readAcCoverage, withAcCoverage } from "../../project/ac-coverage.ts";
 import {
-  acceptanceNotRequiredIn, dependsOnIn, specAcceptanceNotRequired, specCloseReason, specClosedDate, specFileText,
+  acceptanceNotRequiredIn, createChoicesIn, dependsOnIn, specAcceptanceNotRequired, specCloseReason, specClosedDate, specFileText,
   stripDependsOnLine,
 } from "../../project/discover";
 import { acceptanceSectionUnreadable, parseStatus } from "../../project/parse-status";
@@ -261,6 +261,8 @@ export async function specPageView(
     // from — a fresh read, since the banner is drawn once per page
     // load and this fact only changes via the banner's own Save.
     acceptanceNotRequired: descriptionCopy ? acceptanceNotRequiredIn(descriptionCopy.text) : specAcceptanceNotRequired(dir),
+    // The choices the spec was created with, off the same description.
+    createChoices: createChoicesIn(descriptionCopy?.text ?? specFileText(dir, EDITABLE_SPEC_FILE) ?? ""),
     phases: phasesFor(jobRows, target),
     // `targets()` deliberately drops an archived spec (serve.ts:792-796),
     // so `target` — and `target?.done` — is always empty for one. The

@@ -249,6 +249,22 @@ aide_spec_record_choose_approach() {
   rm -f "$tmp"
 }
 
+# Record whether an AI session formulated a create's acceptance criteria
+# (yes, or no for --no-ai-formulate): drop any earlier line, write the new
+# one directly after "Created:". Fails, writing nothing, with no Created line.
+#   aide_spec_record_ai_formulate <description-file> <yes|no>
+aide_spec_record_ai_formulate() {
+  local file="$1" value="$2" tmp
+  [ -f "$file" ] && grep -q '^[[:space:]]*-[[:space:]]*\*\*Created:\*\*' "$file" || return 1
+  tmp="$(mktemp "${file}.XXXXXX")" || return 1
+  awk -v line="- **Let AI formulate acceptance criteria:** $value" '
+    /^[[:space:]]*-[[:space:]]*\*\*Let AI formulate acceptance criteria:\*\*/ { next }
+    { print }
+    !done && /^[[:space:]]*-[[:space:]]*\*\*Created:\*\*/ { print line; done = 1 }
+  ' "$file" > "$tmp" && cat "$tmp" > "$file"
+  rm -f "$tmp"
+}
+
 # The three files a work round fills in — 2-analysis.md, 3-solution.md
 # and 4-status.md — written fresh from the templates in
 # core/skills/aide-create/references/file-templates.md. One writer for

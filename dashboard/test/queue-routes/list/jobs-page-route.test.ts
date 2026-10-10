@@ -14,6 +14,10 @@ import { jobHome } from "../../../src/render/pages/jobs-page";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
 import { dated, setupQueueRoutesHarness } from "../fixtures.ts";
 
+/** A row without its chevron: the Specs list's loads the spec's own page,
+ *  and the Jobs tab's folds the row in place. Everything else is one builder's. */
+const withoutFold = (html: string): string => html.replace(/<td class="foldcell"[\s\S]*?<\/td>/g, "");
+
 const { harness } = setupQueueRoutesHarness();
 const tmp: string[] = [];
 
@@ -345,7 +349,7 @@ describe("the Jobs tab and the Specs list's Active entry show the same specs (AC
     expect(tab).toContain("still on origin");
     // The list's links carry the Active entry it was asked for; the tab's carry none.
     const asTab = list.replaceAll("&amp;state=not-archived", "").replaceAll('href="/specs?', 'href="/?');
-    expect(tab).toBe(asTab.replaceAll('href="/specs"', 'href="/"'));
+    expect(withoutFold(tab)).toBe(withoutFold(asTab.replaceAll('href="/specs"', 'href="/"')));
   });
 
   test("a finished archived spec with a Reopen running and a closed spec with a failed job have no row of any kind (AC-2)", async () => {
@@ -440,32 +444,34 @@ describe("a spec's row on the Jobs tab is the Specs list's row (AC-3)", () => {
     return base;
   }
 
-  // The list's links to its own address read as the Jobs tab's.
-  const asJobs = (html: string): string => html.replaceAll('href="/specs?', 'href="/?').replaceAll('href="/specs"', 'href="/"');
+  // What one builder draws for both pages: the rows less the chevron, the open
+  // spec's cell and the addresses, which are each page's own.
+  const asJobs = (html: string): string =>
+    withoutFold(html).replace(/<tr class="specdetail"[\s\S]*?<\/tr>/g, "").replace(/href="[^"]*"/g, 'href=""');
 
   test("spec 81's rows are the list's rows for it (AC-3)", async () => {
     const base = await settled();
     const jobsTab = group(await rowsOf(base), "spec-aide/81-queue-and-runner");
     const list = group(await (await fetch(`${base}/specs?rows=1`)).text(), "spec-aide/81-queue-and-runner");
     expect(jobsTab).not.toBe("");
-    expect(jobsTab).toBe(asJobs(list));
+    expect(asJobs(jobsTab)).toBe(asJobs(list));
   });
 
   test("a held-back spec, open with its criteria and a phase's log unfolded, is the list's row too (AC-3)", async () => {
     const base = await settled();
     const jobsTab = group(await rowsOf(base, OPEN_82), "spec-aide/82-held-back");
-    const list = group(await (await fetch(`${base}/specs?rows=1&${OPEN_82}`)).text(), "spec-aide/82-held-back");
+    const list = group(await (await fetch(`${base}/specs/aide/82-held-back?rows=1&${OPEN_82}`)).text(), "spec-aide/82-held-back");
     expect(jobsTab).toContain('class="checklist"');
-    expect(jobsTab).toBe(asJobs(list));
+    expect(asJobs(jobsTab)).toBe(asJobs(list));
   });
 
   test("a spec with no job, opened, is the list's rows for it too (AC-3)", async () => {
     const base = await settled();
     const open = "open=aide/83-idle";
     const jobsTab = group(await rowsOf(base, open), "spec-aide/83-idle");
-    const list = group(await (await fetch(`${base}/specs?rows=1&${open}`)).text(), "spec-aide/83-idle");
+    const list = group(await (await fetch(`${base}/specs/aide/83-idle?rows=1&${open}`)).text(), "spec-aide/83-idle");
     expect(jobsTab).not.toBe("");
-    expect(jobsTab).toBe(asJobs(list));
+    expect(asJobs(jobsTab)).toBe(asJobs(list));
   });
 
   test("no link a spec row draws back to its page leads to /specs (AC-3)", async () => {

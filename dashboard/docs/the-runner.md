@@ -303,6 +303,10 @@ the `**Findings:**` line that opens the plan's Plan review section (`plan_review
 or that the plan has no Plan review section, or that the section gives no counts. Code blocks are skipped, and after a
 `## Round N` heading only that round's review counts.
 
+**Let AI formulate acceptance criteria.** A completed create records which path it took as the `Let AI formulate
+acceptance criteria:` line in the new spec's Tracking info: `yes` when an AI session ran, `no` for `--no-ai-formulate`
+(`aide_spec_record_ai_formulate`). The board reads it for the spec's banner; a spec without the line is read as `yes`.
+
 **Let me choose the approach.** The New spec form's box is passed to `create` as `--choose-approach yes|no`, and any
 other value is refused before the run starts. A completed create records it as the `Let me choose the approach:` line
 after the `Acceptance criteria checks:` line (or after `Created`) in the new spec's Tracking info. Analyze reads it once

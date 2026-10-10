@@ -302,6 +302,16 @@ export const en = {
   "spec.acceptanceLockedTitle": "why this can't change",
   "spec.acceptanceLockedBody":
     "Analyze has already decided whether to write the acceptance-criteria table — this cannot change now.",
+  "spec.formulateCriteria": "Let AI formulate acceptance criteria",
+  "spec.criteriaChecks": "Acceptance criteria checks",
+  "spec.chooseApproach": "Let me choose the approach",
+  "spec.checksOff": "Off",
+  "spec.checksWarn": "Warn",
+  "spec.checksStop": "Stop",
+  "spec.valueYes": "Yes",
+  "spec.valueNo": "No",
+  "spec.createChoicesTitle": "why these can't change",
+  "spec.createChoicesBody": "These were chosen when the spec was created and cannot be changed now.",
   "spec.archivedLine": "This spec has been archived, and cannot be edited until the spec is reopened",
   "spec.closedLine":
     "This spec was closed{when}{reason} — it did not work out, and the description and the checks " +

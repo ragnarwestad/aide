@@ -16,7 +16,8 @@ import {
 } from "./data-model";
 import { reopenAskDialog } from "../spec-page/ask-dialog.ts";
 import { queuePath } from "./filter-bar.ts";
-import { actionState, runFormId, specBusy } from "./row-state.ts";
+import { actionState, rowAnchorId, runFormId, specBusy } from "./row-state.ts";
+import { specPagePath } from "../spec-page/tabs.ts";
 
 // The fold is a LINK, not a button, and the state is in the URL. That
 // buys three things at once for no browser code at all: it works with
@@ -24,9 +25,30 @@ import { actionState, runFormId, specBusy } from "./row-state.ts";
 // `#jobrows` so a click neither reloads the page nor wipes a half-filled
 // form, and the choice survives the table swapping itself every five
 // seconds — the same mechanism the filter and the sort ride on.
-export function foldControl(g: SpecGroup, f: SpecsFilter, opened: Set<string>, lang: Language, path?: string): string {
+export function foldControl(
+  g: SpecGroup,
+  f: SpecsFilter,
+  opened: Set<string>,
+  lang: Language,
+  path?: string,
+  /** The list opens one spec at a time at the spec's own address: the arrow
+   *  loads that page, or the list to shut it, and the row's anchor keeps
+   *  the row in view. */
+  pageLoad = false,
+): string {
   const key = groupKey(g.project, g.specFolder);
   const shut = !opened.has(key);
+  if (pageLoad) {
+    const { open: _fold, ...view } = f;
+    return foldArrow({
+      href: `${queuePath(view, {}, shut ? specPagePath(g.project, g.specFolder) : undefined)}#${rowAnchorId(g)}`,
+      open: !shut,
+      lang,
+      title: "list.foldTitle",
+      params: { folder: g.specFolder },
+      goto: true,
+    });
+  }
   const next = shut ? [...opened, key] : [...opened].filter((k) => k !== key);
   return foldArrow({
     href: queuePath(f, { open: next.join(",") }, path),

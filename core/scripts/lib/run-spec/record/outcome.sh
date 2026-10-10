@@ -149,6 +149,16 @@ if [ -n "$phase_file" ]; then
   if [ -s "$work_dir/phase-file-out" ] && ! cmp -s "$work_dir/phase-file-out" "$phase_file"; then
     cat "$work_dir/phase-file-out" > "$phase_file" 2>/dev/null || true
   fi
+  # Whether an AI session formulated the criteria, recorded for every
+  # completed create: the runner knows which of the two paths it took. First,
+  # so the lines the form's other choices write land above it.
+  if [ "$command_name" = "create" ] && [ "$terminal_reason" = "completed" ]; then
+    formulated="yes"; [ "$no_ai_formulate" = "yes" ] && formulated="no"
+    if ! { declare -f aide_spec_record_ai_formulate >/dev/null 2>&1 \
+      && aide_spec_record_ai_formulate "$phase_file" "$formulated"; }; then
+      stage "could not record whether AI formulated the acceptance criteria: the description has no Created line, so the board reads it as yes"
+    fi
+  fi
   # The acceptance criteria checks level the New-spec form chose, recorded
   # in a completed create's own description, where analyze reads it.
   # Written here rather than by the create session, so both create paths

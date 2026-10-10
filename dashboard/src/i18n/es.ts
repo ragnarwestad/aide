@@ -292,6 +292,16 @@ export const es: Record<TranslationKey, string> = {
   "spec.acceptanceLockedTitle": "por qué no se puede cambiar esto",
   "spec.acceptanceLockedBody":
     "Analizar ya decidió si escribir la tabla de criterios de aceptación — esto no se puede cambiar ahora.",
+  "spec.formulateCriteria": "Que la IA formule los criterios de aceptación",
+  "spec.criteriaChecks": "Comprobación de los criterios de aceptación",
+  "spec.chooseApproach": "Quiero elegir el enfoque",
+  "spec.checksOff": "Desactivada",
+  "spec.checksWarn": "Avisar",
+  "spec.checksStop": "Detener",
+  "spec.valueYes": "Sí",
+  "spec.valueNo": "No",
+  "spec.createChoicesTitle": "por qué esto no se puede cambiar",
+  "spec.createChoicesBody": "Se eligieron al crear la spec y ya no se pueden cambiar.",
   "spec.archivedLine": "Esta spec ha sido archivada, y no se puede editar hasta que la spec se reabra",
   "spec.closedLine":
     "Esta spec se cerró{when}{reason} — no funcionó, y la descripción y las comprobaciones no se pueden " +

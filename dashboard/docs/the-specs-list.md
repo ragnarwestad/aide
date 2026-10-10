@@ -39,10 +39,13 @@ but the one that opens it: a chevron in front of the name. Under it sit the row'
 line among them when the spec has one. They belong to the shut row, so a reader sees what went wrong without opening
 it.
 
-A spec's own › — the row's chevron and the criteria's — redraws that spec's rows alone: the page asks for `?rows=1&only=<project>/<spec>`
-and replaces just those rows, since the whole list runs to a megabyte once the archive is on it. The chevron is a
-spinner until they are back. The page asks its own address: `/specs?rows=1…` here, and `/?rows=1…` on the Jobs tab,
-which draws the same rows for the specs it shows. Every other link on the page takes the open rows from the address rather than from its
+The row's chevron is a link to the spec's own address (`/specs/<project>/<spec>`), a page load, so one row is open at a
+time and the browser's Back shuts it. It carries the list's view (state, project, sort, search) and ends in the row's anchor, so the
+open row is in view. The open row's chevron leads back to `/specs`. The criteria's › redraws that spec's rows alone: the
+page asks for `?rows=1&only=<project>/<spec>` and replaces just those rows, since the whole list runs to a megabyte once
+the archive is on it. That chevron is a spinner until they are back. The page asks its own address: `/specs?rows=1…`
+or `/specs/<project>/<spec>?rows=1…` here, and `/?rows=1…` on the Jobs tab, which draws the same rows for the specs it
+shows and folds its rows in place. Every other link on the page takes the folds from the address rather than from its
 own href, which was drawn before the last ›.
 
 Each spec is a card: its rows share one rounded frame on the page's ground, and an empty `tr.specgap` row after the
@@ -50,9 +53,11 @@ group's last row puts the space between two cards. The gap closes a group rather
 row refresh treats a spec as its head row and every row up to the next head row — a gap in front of a spec would be
 swapped away with the spec above it.
 
-Opening is a link, and lives in the query string (`?open=<project>/<folder>,…`). That is what makes it survive
-the table's own row refresh, work as an ordinary link, and keep a row the reader just acted on open when the rows are
-drawn again after the press.
+Opening is a link to the spec's address, and the address is what says which row is open: `/specs` draws every row
+shut, and `/specs/<project>/<spec>` draws the list with that row open. `/specs?open=<project>/<folder>` (a push
+notification's link) answers a redirect to the spec's address, with the rest of the query, when there is such a spec;
+with several keys it goes to the first. The Jobs tab is the other page that draws these rows, and it keeps `?open=`
+for its own folds.
 
 An open row reveals the workflow phases underneath, always in that order, so how far a spec has got is readable
 without counting rows. The phase lines sit directly under the row; its message rows — held-back, refusal, info
@@ -390,21 +395,31 @@ with one in flight it answers with the clash refusal.
 
 ## The spec page
 
-`/specs/<project>/<spec>` is the whole SPEC, as it stands now, in five tabs: one per document (Description,
+`/specs/<project>/<spec>` is the Specs list with that spec's row open, and the whole SPEC, as it stands now, drawn in the
+row after its phase lines and message rows: a banner and five tabs, one per document (Description,
 Analysis, Solution, Status — each stamped with the commit that last changed it) and Logs for its runs. The open
-tab's file, its stamp and the banner's two facts about the description are read off the spec's own `aide/<folder>`
+tab's file, its stamp and the banner's facts about the description are read off the spec's own `aide/<folder>`
 branch where one is open, as of its last fetch, and off the specs checkout where none is. The Status tab
 draws the acceptance criteria first, as real boxes with a Save of their own (each with its note and the tests that
 name it), then the rest of `4-status.md` rendered read-only; an archived spec, or one with a job in flight, shows the
 same criteria without boxes. An old `?tab=checks` link opens the Status tab. Update, which pulls the specs
 checkout (`POST /api/queue/specs/<project>/<spec>/update`), sits at the end of the tab row. The banner above the
 tabs holds what belongs to the spec rather than to one document: whether it is archived or closed, the test
-server's state, any error, and two facts editable in one form — what the spec depends on, and whether it requires
-acceptance ticking (`POST /api/queue/specs/<project>/<spec>/tracking`).
-On a screen wider than a phone, a tab with an editor fills the window: the
-banner, the tabs and the tab's Save and Cancel stay put, and the document
-scrolls inside the editor, under its toolbar. At phone width, and on a
-read-only tab, the page scrolls as a whole.
+server's state, any error, and the four choices the spec was created with. Acceptance ticking required and what the spec
+depends on are editable in one form (`POST /api/queue/specs/<project>/<spec>/tracking`), the ticking until analyze has
+run. "Let AI formulate acceptance criteria", "Acceptance criteria checks" and "Let me choose the approach" are shown as
+chosen, disabled and with no field name, so the form posts none of them; on an archived spec all of them are facts.
+A spec created before a choice was recorded shows what a spec with nothing recorded runs with: AI formulated, checks
+Off, the approach not chosen, ticking required. `createChoicesIn` reads the four off the description's Tracking info;
+`aide-run-spec` writes the `Let AI formulate acceptance criteria:` line when a create completes.
+
+The spec is built when its address is asked, never when the list is drawn: the rows answers (`?rows=1`) carry an empty
+cell for it, and the page script puts the spec it holds back there after every redraw
+(`src/specs-client/spec-detail/`), so the editor, a half-typed description and ticks not yet saved survive. A tab is a
+page load of the spec's address, and so is every link inside the spec: the page script leaves them to the browser.
+The mounted editor is given a height of its own above 40rem and scrolls inside it, under its toolbar, while the list
+scrolls around it; at phone width it grows with its text. The answer is streamed: the head and a loading line first,
+the list and the spec when the spec's view is ready.
 
 **The Logs tab lists every step from every attempt in one flat list, no picker.** A spec with more than one job for
 the same work round tags each row `Attempt N` (oldest = 1); a single-attempt spec shows no marker at all. There is no

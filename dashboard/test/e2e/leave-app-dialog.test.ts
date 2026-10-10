@@ -40,13 +40,12 @@ async function dirtyTheTrackingForm(): Promise<void> {
   await page.locator(".trackingform input[name=\"acceptanceRequired\"]").click();
 }
 
-/** The spec page's own Back link — an in-app link to the specs list
- *  (`shell.ts`'s `backLink()`). The interceptor takes ANY `a[href]`
- *  that is not a fragment, a mail/tel link, a download or a new tab
- *  (`unsaved-changes.ts`), so the exit path only has to be a link that
- *  is actually on this page. */
+/** The header's Jobs tab — an in-app link on every page. The interceptor
+ *  takes ANY `a[href]` that is not a fragment, a mail/tel link, a download
+ *  or a new tab (`unsaved-changes.ts`), so the exit path only has to be a
+ *  link that is actually on this page. */
 function exitLink() {
-  return page.locator('a.backlink[href="/specs"]');
+  return page.locator('nav.tabbar a.tab[href="/"]:visible').first();
 }
 
 describe("the leave-app dialog replaces the native prompt for an in-app link (spec 478)", () => {
@@ -91,9 +90,9 @@ describe("the leave-app dialog replaces the native prompt for an in-app link (sp
     await dialog.waitFor({ state: "visible" });
 
     await Promise.all([
-      page.waitForURL((url) => new URL(url).pathname === "/specs"),
+      page.waitForURL((url) => new URL(url).pathname === "/"),
       dialog.getByRole("button", { name: "OK" }).click(),
     ]);
-    expect(new URL(page.url()).pathname).toBe("/specs");
+    expect(new URL(page.url()).pathname).toBe("/");
   });
 });

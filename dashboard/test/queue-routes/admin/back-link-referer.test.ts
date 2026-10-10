@@ -7,19 +7,6 @@ afterEach(() => {
   harness.cleanup();
 });
 
-describe("spec 252: the spec page's own Back link, read off the Referer header", () => {
-  const folder = "81-queue-and-runner";
-
-  // A switch between the page's own tabs is not somewhere to go back to.
-  test("a Referer that is another tab of the same page falls back to the specs list", async () => {
-    const { base } = start();
-    const html = await (
-      await fetch(`${base}/specs/aide/${folder}?tab=status`, { headers: { referer: `${base}/specs/aide/${folder}?tab=overview` } })
-    ).text();
-    expect(html).toMatch(/<a class="backlink"[^>]*href="\/specs"/);
-  });
-});
-
 describe("spec 252: the job page's own Back link, read off the Referer header", () => {
   const AUTH = { "content-type": "application/json", accept: "application/json" };
 

@@ -99,8 +99,9 @@ export {
 // target, and a row is an internal shape with no caller outside
 // specs-list.ts.
 export {
-  ACTIVE_FILTER_KEY, FILTER_KEYS, PHASE_LINES, computeSpecTotalDurationMs,
-  filterShowsArchived, NOT_VERIFIED_KEY, parsePhaseKeys, phaseKey, phasePips, phasesFor, renderSpecGroupRows, renderSpecsPage, renderSpecsRows,
+  ACTIVE_FILTER_KEY, ARCHIVED_STATE, FILTER_KEYS, PHASE_LINES, computeSpecTotalDurationMs,
+  filterShowsArchived, NOT_VERIFIED_KEY, parsePhaseKeys, phaseKey, phasePips, phasesFor, renderSpecGroupRows, renderSpecsPage, renderSpecsPageHead,
+  renderSpecsPageRest, renderSpecsRows,
 } from "./pages/specs-list";
 export type {
   ArchivedSpecView, Phase, PhaseMessages, SpecsFilter, SpecsPageOptions, SpecTarget,
@@ -123,12 +124,13 @@ export {
   resolveSpecTab,
   TAB_FILES,
   documentTabScript,
-  renderSpecPage,
+  renderSpecDetail,
   renderSpecStepsFollowParts,
   renderSpecPageHead,
-  renderSpecPageRest,
   renderSpecPageFailedRest,
+  listViewIn,
+  specDetailPath,
   specPagePath,
   specTabPath,
 } from "./pages/spec-page";
-export type { SpecCheckView, SpecChecksView, SpecPageView, SpecStepsView } from "./pages/spec-page";
+export type { ListView, SpecCheckView, SpecChecksView, SpecPageView, SpecStepsView } from "./pages/spec-page";

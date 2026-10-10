@@ -8,8 +8,9 @@ import { pullFastForward, saveSpecFiles } from "../../../git/specs-pull.ts";
 import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
 import { criteriaChecksIn, specFileText } from "../../../project/discover";
 import { openOverlappingSpecs } from "../../../project/overlapping-specs.ts";
-import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, renderSpecPageFailedRest, renderSpecPageHead, renderSpecPageRest, renderSpecStepsFollowParts, resolveBackHref, resolveSpecTab, specTabPath } from "../../../render";
-import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, languageChoice, logRefusal, readBounded, specsClientScript, streamedPage } from "../../serve-helpers";
+import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, listViewIn, renderSpecDetail, renderSpecPageFailedRest, renderSpecsPageHead, renderSpecsPageRest, renderSpecStepsFollowParts, resolveSpecTab, specTabPath } from "../../../render";
+import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, languageChoice, logRefusal, readBounded, streamedPage } from "../../serve-helpers";
+import { listHeaders, specsListParts, specsRowsAnswer } from "../page-routes/specs-list-view.ts";
 
 import { failedRoundSentence, sharedFilesSentence } from "../../../render/ui/job-state";
 import { stepsOfRound } from "../../spec-views/work-round.ts";
@@ -100,11 +101,19 @@ export async function specPageRoutes(
     // that mismatch was spec 303's actual bug: a bare URL rendered the
     // Description panel while loading no editor script for it.
     const tab = resolveSpecTab(url.searchParams.get("tab") ?? undefined);
-    const langResult = languageChoice(url, req);
+    // The list's view the spec's links carry, so a click keeps the list around the row.
+    const listView = listViewIn({
+      state: url.searchParams.get("state"),
+      project: url.searchParams.get("project"),
+      sort: url.searchParams.get("sort"),
+      dir: url.searchParams.get("dir"),
+      q: url.searchParams.get("q"),
+    });
     // `?follow=1`: the Steps tab's moving parts alone, for the page script that
     // follows a job in place. Built from the round's steps, never the page's
     // whole view, which reads branch copies and coverage through git.
     if (url.searchParams.get("follow") === "1") {
+      const langResult = languageChoice(url, req);
       const { lead, steps } = await stepsOfRound(ctx.queue, ctx.jobDetailView, project!, specFolder!);
       return new Response(
         renderSpecStepsFollowParts(
@@ -113,62 +122,65 @@ export async function specPageRoutes(
             step: url.searchParams.get("step") ?? undefined,
             steptab: url.searchParams.get("steptab") ?? undefined,
             lang: langResult.lang,
+            view: listView,
           },
         ),
         { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } },
       );
     }
-    const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
-    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
+    // The address is the Specs list with this spec's row open. The rows the
+    // page script redraws carry an empty place for the spec: it already holds
+    // the spec, and building its view on every change would read git for each.
+    const key = `${project}/${specFolder}`;
+    const parts = await specsListParts(ctx, req, url, key);
+    if (url.searchParams.get("rows")) return specsRowsAnswer(parts, url);
+    const lang = parts.view.lang ?? "en";
     // Spec 515: the head and a loading element go out at once, the rest when
-    // the view is ready.
+    // the spec's view is ready.
     return streamedPage({
-      head: renderSpecPageHead(specFolder!, langResult.lang),
+      head: renderSpecsPageHead(specFolder!, lang),
       rest: async () => {
-        const view = await ctx.specPageView(
-          project!,
-          specFolder!,
-          url.searchParams.get("tab") ?? undefined,
-        );
+        const [view, rows] = await Promise.all([
+          ctx.specPageView(project!, specFolder!, url.searchParams.get("tab") ?? undefined),
+          parts.rows(),
+        ]);
         if (!view) throw new Error("spec folder disappeared while the page was built");
-        return renderSpecPageRest(
+        const detail = renderSpecDetail(
           {
             ...view,
-            error: failedRoundSentence(view.lead, langResult.lang),
+            error: failedRoundSentence(view.lead, lang),
             warning: sharedFilesSentence(
               view.lead,
               view.phases?.find((p) => p.step === "analyze")?.history.stopped,
               () => openOverlappingSpecs(ctx.specDir(project!, specFolder!), (folder) => ctx.specRef(project!, folder)),
-              langResult.lang,
+              lang,
             ),
-            backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/specs", url.pathname),
           },
-          new Date().toISOString(),
-          ctx.nav(),
           {
             tab,
             step: url.searchParams.get("step") ?? undefined,
             steptab: url.searchParams.get("steptab") ?? undefined,
-            currentUrl: langResult.currentUrl,
-            // Close's dialog, the count under its Reason field and the
-            // Steps tab's following of its job are all this bundle's.
-            script: await specsClientScript(),
-            // REQ-1/REQ-4/REQ-5 (spec 315, extended by spec 333): a src=
-            // reference to whichever bundle's own route this tab's panel
-            // actually mounts (`documentTabScript`, the same predicate
-            // `panels.ts` uses to decide what to draw) — the editor for a
-            // writable tab, the lighter viewer for a locked one with real
-            // text, or no script at all.
-            scriptSrc:
-              documentTabScript(view, tab) === "editor" ? SPEC_EDITOR_ASSET_PATH :
-              documentTabScript(view, tab) === "viewer" ? SPEC_VIEWER_ASSET_PATH :
-              undefined,
-            lang: langResult.lang,
+            lang,
+            view: listView,
           },
         );
+        return renderSpecsPageRest(rows, ctx.nav(), {
+          ...parts.view,
+          openSpec: { key, detail },
+          // REQ-1/REQ-4/REQ-5 (spec 315, extended by spec 333): a src=
+          // reference to whichever bundle's own route this tab's panel
+          // actually mounts (`documentTabScript`, the same predicate
+          // `panels.ts` uses to decide what to draw) — the editor for a
+          // writable tab, the lighter viewer for a locked one with real
+          // text, or no script at all.
+          scriptSrc:
+            documentTabScript(view, tab) === "editor" ? SPEC_EDITOR_ASSET_PATH :
+            documentTabScript(view, tab) === "viewer" ? SPEC_VIEWER_ASSET_PATH :
+            undefined,
+        });
       },
-      failedRest: renderSpecPageFailedRest(ctx.nav(), langResult.lang, langResult.currentUrl),
-      headers,
+      failedRest: renderSpecPageFailedRest(ctx.nav(), lang, parts.view.currentUrl),
+      headers: listHeaders(parts),
     });
   }
 

@@ -79,7 +79,7 @@ of facts, a form holding one button or a checkbox with its words beside it, whic
 | `btn()`               | bare (secondary), `primary`, `ok`, `danger`, `busy`, disabled, `small`; `form`, `value`, `data-*` and `aria-label` when asked         |
 | `btnLink()`           | a link that looks like a button: every `btn()` variant but `busy`, and `small`; never disabled — that is a disabled `btn()`           |
 | `buttonForm()`        | a form whose only control is one button — a `btn()` or a dialog's close cross: a post or its close, hooks, hidden fields, a (?) first |
-| `foldArrow()`         | open or shut; its title one of five catalogue sentences with the show/hide word filled in, so always in the page's language           |
+| `foldArrow()`         | open or shut, swapping rows in place or, with `goto`, loading a page; its title one of five catalogue sentences                       |
 | `foldDisclosure()`    | a fold inside a row that opens and shuts in the browser itself, with no request; a summary line and a body, `data-*` when asked       |
 | `tabBar()`            | in `ui/tabs.ts`: every tab strip, the header's row included; a base path or a link per tab, catalogue words, `aria-current="page"`    |
 | `facts()`             | a table of label and value, one row each; a value can be a figure                                                                     |
