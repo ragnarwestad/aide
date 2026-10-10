@@ -4,7 +4,7 @@
 // a wiki or scheduled job's facts from `jobFacts`.
 
 import { describe, expect, test } from "bun:test";
-import type { SpecsFilter } from "../../../../src/render/pages/specs-list/data-model";
+import type { SpecsFilter } from "../../../../src/render/pages/specs-list";
 import {
   JOBS_STATE_FILTERS,
   jobFacts,

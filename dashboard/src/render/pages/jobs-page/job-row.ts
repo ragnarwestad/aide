@@ -16,7 +16,7 @@ import { esc } from "../../ui/html.ts";
 import { currentStep, durationLabel, inFlight, specStateChip, type QueueRowView } from "../../ui/job-state";
 import { landingStep } from "../../ui/job-state/resting.ts";
 import { costCell } from "../specs-list/cell-helpers.ts";
-import type { SpecsFilter } from "../specs-list/data-model";
+import type { SpecsFilter } from "../specs-list";
 import { queuePath } from "../specs-list/filter-bar.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { jobControl, jobHome, jobTitle } from "./rows.ts";

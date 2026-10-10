@@ -8,7 +8,7 @@ import { t, type Language } from "../../../i18n";
 import { scheduleNameOf } from "../../../queue/schedule.ts";
 import { isWikiBuild, waitsForPerson } from "../../../queue/steps.ts";
 import { inFlight, type QueueRowView } from "../../ui/job-state";
-import { projectPagePath, projectScheduleTab } from "../projects-page/routes.ts";
+import { projectPagePath, projectScheduleTab } from "../projects-page";
 import type { SpecGroup } from "../specs-list";
 
 /** What a job and its row view have in common, and all the rules read. */

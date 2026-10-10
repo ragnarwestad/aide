@@ -37,6 +37,7 @@ import signal
 import sys
 import tempfile
 from pathlib import Path
+from typing import Optional
 
 import copies
 import steps
@@ -81,7 +82,7 @@ def inside(path, repo):
     return path == repo or path.startswith(repo + os.sep)
 
 
-def check_inputs(args, analyze, implement):
+def check_inputs(args: argparse.Namespace, analyze: steps.Step, implement: Optional[steps.Step]) -> None:
     """Everything that can be refused before anything is copied."""
     if "claude" in {s.tool for s in (analyze, implement) if s} and not (os.environ.get("CLAUDE_CODE_OAUTH_TOKEN") or os.environ.get("ANTHROPIC_API_KEY")):
         raise Refusal("a step names claude, and a fresh Claude config folder has no login: run `claude setup-token` once and "
@@ -95,7 +96,7 @@ def check_inputs(args, analyze, implement):
             raise Refusal(f"the results folder {args.results} lies inside the {what} repository {top}")
 
 
-def prepare(args, analyze, implement, tmp):
+def prepare(args: argparse.Namespace, analyze: steps.Step, implement: Optional[steps.Step], tmp: Path):
     """The export, the tools' configuration folders and the run's folders; Refusal when the commit cannot be replayed with."""
     core, sha = copies.export_aide(args.aide_repo, args.aide_commit, tmp)
     home, configured = os.path.expanduser("~"), {}
