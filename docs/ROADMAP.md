@@ -4,24 +4,25 @@
 
 - [How an idea is kept here](#how-an-idea-is-kept-here)
 - [To consider](#to-consider)
-  - [A commit body that says what was wrong and what stays unchanged](#a-commit-body-that-says-what-was-wrong-and-what-stays-unchanged)
-  - [One map of the system, updated in the same change](#one-map-of-the-system-updated-in-the-same-change)
-  - [A run that can ask a question and wait for the answer](#a-run-that-can-ask-a-question-and-wait-for-the-answer)
-  - [An append-only event log for runs](#an-append-only-event-log-for-runs)
-  - [The spec-structure rule describes how specs are written now](#the-spec-structure-rule-describes-how-specs-are-written-now)
-  - [The plan review checks the scenarios and the test list](#the-plan-review-checks-the-scenarios-and-the-test-list)
-  - [A Claude Code mod that shows the board in a session](#a-claude-code-mod-that-shows-the-board-in-a-session)
-  - [Aide's skills as a Claude plugin](#aides-skills-as-a-claude-plugin)
-  - [Correct the spec, not the code](#correct-the-spec-not-the-code)
-  - [Keep an archived spec's tests from disappearing unnoticed](#keep-an-archived-specs-tests-from-disappearing-unnoticed)
-  - [A review that also holds the code to the repo's own rules](#a-review-that-also-holds-the-code-to-the-repos-own-rules)
-  - [One project, several code repositories](#one-project-several-code-repositories)
-  - [A flow suited to the kind of task](#a-flow-suited-to-the-kind-of-task)
-  - [More than one way to run a step](#more-than-one-way-to-run-a-step)
-  - [A spec's complexity chooses the AI](#a-specs-complexity-chooses-the-ai)
-  - [Create and archive with as little AI as possible](#create-and-archive-with-as-little-ai-as-possible)
-  - [Aide as a Mac app](#aide-as-a-mac-app)
-  - [A run that reaches only its own repository](#a-run-that-reaches-only-its-own-repository)
+  - [1. A commit body that says what was wrong and what stays unchanged](#1-a-commit-body-that-says-what-was-wrong-and-what-stays-unchanged)
+  - [2. One map of the system, updated in the same change](#2-one-map-of-the-system-updated-in-the-same-change)
+  - [3. A run that can ask a question and wait for the answer](#3-a-run-that-can-ask-a-question-and-wait-for-the-answer)
+  - [4. An append-only event log for runs](#4-an-append-only-event-log-for-runs)
+  - [5. The spec-structure rule describes how specs are written now](#5-the-spec-structure-rule-describes-how-specs-are-written-now)
+  - [6. The plan review checks the scenarios and the test list](#6-the-plan-review-checks-the-scenarios-and-the-test-list)
+  - [7. A Claude Code mod that shows the board in a session](#7-a-claude-code-mod-that-shows-the-board-in-a-session)
+  - [8. Aide's skills as a Claude plugin](#8-aides-skills-as-a-claude-plugin)
+  - [9. Correct the spec, not the code](#9-correct-the-spec-not-the-code)
+  - [10. Keep an archived spec's tests from disappearing unnoticed](#10-keep-an-archived-specs-tests-from-disappearing-unnoticed)
+  - [11. A review that also holds the code to the repo's own rules](#11-a-review-that-also-holds-the-code-to-the-repos-own-rules)
+  - [12. One project, several code repositories](#12-one-project-several-code-repositories)
+  - [13. A flow suited to the kind of task](#13-a-flow-suited-to-the-kind-of-task)
+  - [14. More than one way to run a step](#14-more-than-one-way-to-run-a-step)
+  - [15. A spec's complexity chooses the AI](#15-a-specs-complexity-chooses-the-ai)
+  - [16. Create and archive with as little AI as possible](#16-create-and-archive-with-as-little-ai-as-possible)
+  - [17. Aide as a Mac app](#17-aide-as-a-mac-app)
+  - [18. A run that reaches only its own repository](#18-a-run-that-reaches-only-its-own-repository)
+  - [19. Shorter command output for a run](#19-shorter-command-output-for-a-run)
 
 ---
 
@@ -35,73 +36,77 @@ a design. An idea decided against is taken off the page.
 
 An idea that becomes a spec names it, and leaves this page once the spec is archived.
 
+Each idea has a number that stays with it. A new idea gets the next number after the highest one ever given, and
+the number of an idea taken off the page is never used again, so a number can be referred to and still mean the
+same idea later. The next number is 20.
+
 ## To consider
 
-### A commit body that says what was wrong and what stays unchanged
+### 1. A commit body that says what was wrong and what stays unchanged
 
 From [OpenGeni](https://github.com/Cloudgeni-ai/opengeni): a fix's commit says what was wrong, why, what it meant for
 a user, and what deliberately does not change, so the next reader does not undo something that was intended.
 
-### One map of the system, updated in the same change
+### 2. One map of the system, updated in the same change
 
 From OpenGeni: one map of how the system is built, kept current by the same change that alters it, since "a stale map
 is a bug". Aide has most of the map in its documentation table and the wiki; the rule that keeps it current is
 missing.
 
-### A run that can ask a question and wait for the answer
+### 3. A run that can ask a question and wait for the answer
 
 From OpenGeni: a run that meets something unclear asks, and carries on once it has the answer, instead of guessing or
 stopping. Aide has this for two fixed questions; the goal is a run that can ask anything.
 
-### An append-only event log for runs
+### 4. An append-only event log for runs
 
 From OpenGeni: every event of a run is kept in order, so any view, a reload or an audit can replay what happened.
 Aide keeps each job's latest state, so a run's history cannot be replayed. [T3 Code](https://t3.codes/) works this
 way: every thread is kept as its events, with a checkpoint after each turn that can restore the files and the
 conversation ([architecture notes](https://github.com/pingdotgg/t3code/blob/main/AGENTS.md)).
 
-### The spec-structure rule describes how specs are written now
+### 5. The spec-structure rule describes how specs are written now
 
 From comparing Aide's specs with the sources in `docs/SPEC_WRITING_SOURCES.md`: the rule for the spec files should
 describe a spec as it is written today, throughout.
 
-### The plan review checks the scenarios and the test list
+### 6. The plan review checks the scenarios and the test list
 
 From the same comparison: the plan review holds a plan's scenarios to the criteria they come from, and its tests to
 the testing rules.
 
-### A Claude Code mod that shows the board in a session
+### 7. A Claude Code mod that shows the board in a session
 
 From Claude Code's mods: the board's work shown inside the session working on Aide.
 
-### Aide's skills as a Claude plugin
+### 8. Aide's skills as a Claude plugin
 
 From "Build plugins for Claude" and the Claude Marketplace: a second way to deliver Aide's skills to Claude users,
 beside the installer that also serves Codex, OpenCode and Copilot.
 
-### Correct the spec, not the code
+### 9. Correct the spec, not the code
 
 From Felipe Fontoura's [case study](https://felipefontoura.com/articles/spec-driven-development-case-study/): a wrong
 result is fixed in the spec and run again, never patched in the code while the spec says something else.
 
-### Keep an archived spec's tests from disappearing unnoticed
+### 10. Keep an archived spec's tests from disappearing unnoticed
 
 From weighing how OpenSpec keeps its specs true: an archived spec's criteria stay proven over time, so a later change
 cannot remove or weaken the test behind one without anyone being told.
 
-### A review that also holds the code to the repo's own rules
+### 11. A review that also holds the code to the repo's own rules
 
 From Matt Pocock's [`code-review`](https://github.com/mattpocock/skills/tree/main/skills/engineering/code-review)
 skill: the review after an implement checks the code against the repo's own written rules as well as against the
 spec, and says what is missing, what nobody asked for, and where each finding comes from.
 
-### One project, several code repositories
+### 12. One project, several code repositories
 
 A system is often a frontend and one or more backends: one spec that changes all of a project's code repositories
 in the same run, each landing through its own pull request. Worth doing once there is a real system with several
 repositories to try it on.
 
-### A flow suited to the kind of task
+### 13. A flow suited to the kind of task
 
 From comparing Aide with agents started by hand from the command line, where each run can be shaped to its task: a
 spec says what kind of task it is, and analyze and implement follow a flow suited to it. Much of this can be said in
@@ -114,7 +119,7 @@ found one fixed flow far too heavy for a small bug fix. Kinds of task:
 - **A quick fix:** a small change skips the analysis, or gets a short plan without a plan review.
 - **Explore first:** the analysis builds a throwaway prototype to learn from before it writes the plan.
 
-### More than one way to run a step
+### 14. More than one way to run a step
 
 From the same comparison, and the talk of running many agents at once: how a step is run, whatever the task, can
 vary in how many agents work on it, how long they keep going, and who checks the result. What works, by
@@ -139,7 +144,7 @@ splitting between agents. Possible ways:
 - **A review by another model,** or several reviews with a focus each: the spec, the repo's own rules, security.
 - **The agent checks in a browser:** a change to a page is tried in a real browser before the step ends.
 
-### A spec's complexity chooses the AI
+### 15. A spec's complexity chooses the AI
 
 From weighing how the AI and model for each step are chosen today: by habit, or to try a model out, rarely from how
 hard the spec is, since a person grades a spec no better than the analysis does. Once a spec's complexity can be judged
@@ -186,14 +191,14 @@ Every source the research read:
   - [Why Copilot's Auto Mode for AI Models Ignores Your Actual Task](https://visualstudiomagazine.com/articles/2026/02/06/why-copilots-auto-mode-for-ai-models-ignores-your-actual-task.aspx)
   - [Claude Code model configuration, with `opusplan`](https://code.claude.com/docs/en/model-config)
 
-### Create and archive with as little AI as possible
+### 16. Create and archive with as little AI as possible
 
 From the same weighing: create and archive are the least complex steps, and much of them is mechanical. Create already
 runs without AI when the acceptance criteria are not to be formulated, and archive when the spec cannot be archived
 yet. The goal is that AI is used only for what needs judgment: formulating criteria, resolving a merge conflict,
 writing the wiki, and that everything else is done by scripts.
 
-### Aide as a Mac app
+### 17. Aide as a Mac app
 
 From looking at how [T3 Code](https://t3.codes/) is installed: on a Mac, Aide is installed like any other app, with
 `brew install --cask aide` or a `.dmg` from GitHub Releases. Today it takes a git clone, `install-all.sh` and
@@ -231,7 +236,7 @@ It is too large for one spec. A split:
 2. The first start: install the scripts, skills and rules, find the AI tools, add a project.
 3. Releases: a version number, a signed and notarised build on GitHub Releases, updates, and a Homebrew cask.
 
-### A run that reaches only its own repository
+### 18. A run that reaches only its own repository
 
 From [sandcastle](https://github.com/mattpocock/sandcastle), which runs each coding agent in a container on a branch
 of its own and merges its commits back. A step on the board runs the AI tool as the user, with `bypassPermissions`:
@@ -242,16 +247,43 @@ machine's, whoever owns the repository.
 
 Two ways to narrow it:
 
-- **The AI tool's own sandbox.** Claude Code can confine the commands it runs with macOS's own sandbox: writes only
+- **a. The AI tool's own sandbox.** Claude Code can confine the commands it runs with macOS's own sandbox: writes only
   inside the working directory, network only to allowed domains. Codex has `workspace-write`. A setting per run in
   place of `bypassPermissions`, with no Docker; what has to be tried out is every place a project's tests write or
   fetch from, each of which must be allowed. It could be turned on per project, leaving Aide out until its own suite
   is known to pass inside it.
-- **A container per run, as sandcastle does.** Only the worktree is mounted; the AI tool gets its own token
+- **b. A container per run, as sandcastle does.** Only the worktree is mounted; the AI tool gets its own token
   (`claude setup-token`) and no SSH keys or GitHub login, and the runner outside commits, pushes and lands as today.
   The strongest boundary, at the cost of Docker or Podman on the serving host, an image per project, dependencies
   built inside the container rather than linked in, and Aide's own suite, which assumes macOS, behaving differently
-  on Linux.
+  on Linux. [container-use](https://github.com/dagger/container-use) does the same through an MCP server, built on
+  Dagger: each agent gets a container on a branch of its own, and its commands and logs can be read afterwards.
 
 Neither keeps a run from damaging or reading its own repository, or from sending what it reads out, unless the
-network is narrowed too. The first is where to start.
+network is narrowed too. Option a is where to start.
+
+### 19. Shorter command output for a run
+
+From [rtk](https://github.com/rtk-ai/rtk), which sits between the AI tool and the shell and shortens what common
+commands print before the agent reads it: a test run reduced to its failures, `git log` to one line per commit,
+`git diff` without its context lines. Its authors measure 60-90% less command output; they point out that this is
+a share of the output alone, not of the cost, which also counts the prompt, the conversation and the answer.
+
+A step on the board reads a great deal of command output: the tests it runs while it works, the diffs a review
+reads, the logs of a failing run. Less of it means more of the step's context left for the work, and less to pay
+for on a long implement.
+
+Two ways to get it:
+
+- **a. rtk itself**, installed on the serving host and turned on for the runs. It hooks into Claude Code's Bash tool
+  only; Read and Grep pass it by.
+- **b. The runner shortening more of what it hands a session.** After a red test run it already hands back the
+  failing lines alone; the commands a session runs itself are not shortened.
+
+Measured on the board's last 60 analyze and implement steps (October 2026), neither is worth doing now. Of what
+the tools handed the sessions, reading files was 66% (`cat`, `sed` and `head` 41%, the Read tool 25%), searching
+and listing 24% (`grep`, `rg`, `find`, `ls`), git 6%, and test runs and checks 2%. What rtk shortens best, test
+runs and git logs, is about 6% of it; the files a session reads are what it needs to change the code, and cannot
+be shortened without losing that. The large share is finding and reading code, which the wiki is meant to make
+cheaper. Measured again if that changes.
+

@@ -11,6 +11,7 @@
 - [AWS Kiro](#aws-kiro)
 - [BMAD-METHOD](#bmad-method)
 - [GSD (Get Shit Done)](#gsd-get-shit-done)
+- [Superpowers](#superpowers)
 - [Tessl](#tessl)
 - [Cursor's Plan Mode](#cursors-plan-mode)
 - [Augment Code](#augment-code)
@@ -64,20 +65,21 @@ tool.
 
 ## Summary
 
-| Tool               | Document structure                              | AI tool support                                                 | Execution                                       | Code handling                                | Invasiveness                                                               |
-|--------------------|-------------------------------------------------|-----------------------------------------------------------------|-------------------------------------------------|----------------------------------------------|----------------------------------------------------------------------------|
-| Aide               | 4 files per spec, then archived                 | 4 tools, one install per machine                                | By hand, or unattended                          | Merges, or opens a pull request              | No files required in the repo; branches and merges show in the git history |
-| OpenSpec           | Change folder holding a capability delta        | 30+ tools, files in the project                                 | By hand                                         | You merge                                    | `openspec/` and per-tool commands                                          |
-| GitHub Spec Kit    | Spec, plan and tasks under `.specify/`          | 50+ tools, files in the project                                 | By hand                                         | You merge                                    | `.specify/` and per-tool commands                                          |
-| Spec Kitty         | Spec, plan, tasks and work packages per mission | 17 agents; commands per machine, skills in the project for some | By hand, or unattended through its orchestrator | Merges on a command; tests run at acceptance | `kitty-specs/`, `.kittify/`, `.worktrees/`                                 |
-| AWS Kiro           | Requirements, design, tasks                     | Its own IDE                                                     | By hand                                         | Commits per step; merging not stated         | Three documents per feature, plus steering files                           |
-| BMAD-METHOD        | Brief, PRD, architecture, user stories          | Any tool with skills; a browser                                 | By hand                                         | Not stated                                   | Planning documents, plus what each install adds                            |
-| GSD                | `.planning/` in the project                     | 12 tools, files in each tool's directories                      | By hand                                         | Commits per task; merging not stated         | `.planning/`, plus per-tool files                                          |
-| Tessl              | Specs in `.tessl/`; published library specs     | Any agent that speaks MCP                                       | By hand                                         | Not stated                                   | `.tessl/`                                                                  |
-| Cursor's Plan Mode | One plan per task, not kept                     | The Cursor editor                                               | By hand                                         | You merge                                    | `.cursor/rules/`, if rules are used                                        |
-| Augment Code       | None; it supplies context to other tools        | Its own service                                                 | Not applicable                                  | Not applicable                               | Nothing                                                                    |
-| Claude Projects    | Threads in a project, with a shared memory      | Claude only, as Claude Code cloud sessions                      | Unattended: a coordinator hands work to threads | Opens pull requests; runs tests              | Nothing required in the repo; branches and pull requests                   |
-| T3 Code            | None; a thread per task, kept as its events     | 6 agent CLIs, through their server protocols                    | By hand, one thread per task, in parallel       | Opens pull requests; tests not stated        | An optional `t3.json`; branches, worktrees and hidden checkpoint refs      |
+| Tool               | Document structure                                     | AI tool support                                                 | Execution                                       | Code handling                                | Invasiveness                                                               |
+|--------------------|--------------------------------------------------------|-----------------------------------------------------------------|-------------------------------------------------|----------------------------------------------|----------------------------------------------------------------------------|
+| Aide               | 4 files per spec, then archived                        | 4 tools, one install per machine                                | By hand, or unattended                          | Merges, or opens a pull request              | No files required in the repo; branches and merges show in the git history |
+| OpenSpec           | Change folder holding a capability delta               | 30+ tools, files in the project                                 | By hand                                         | You merge                                    | `openspec/` and per-tool commands                                          |
+| GitHub Spec Kit    | Spec, plan and tasks under `.specify/`                 | 50+ tools, files in the project                                 | By hand                                         | You merge                                    | `.specify/` and per-tool commands                                          |
+| Spec Kitty         | Spec, plan, tasks and work packages per mission        | 17 agents; commands per machine, skills in the project for some | By hand, or unattended through its orchestrator | Merges on a command; tests run at acceptance | `kitty-specs/`, `.kittify/`, `.worktrees/`                                 |
+| AWS Kiro           | Requirements, design, tasks                            | Its own IDE                                                     | By hand                                         | Commits per step; merging not stated         | Three documents per feature, plus steering files                           |
+| BMAD-METHOD        | Brief, PRD, architecture, user stories                 | Any tool with skills; a browser                                 | By hand                                         | Not stated                                   | Planning documents, plus what each install adds                            |
+| GSD                | `.planning/` in the project                            | 12 tools, files in each tool's directories                      | By hand                                         | Commits per task; merging not stated         | `.planning/`, plus per-tool files                                          |
+| Superpowers        | A design and a plan per change, in `docs/superpowers/` | 16 harnesses, a plugin per tool                                 | By hand; subagents carry out an approved plan   | Merges locally, or opens a pull request      | `docs/superpowers/`, plus a plugin per tool                                |
+| Tessl              | Specs in `.tessl/`; published library specs            | Any agent that speaks MCP                                       | By hand                                         | Not stated                                   | `.tessl/`                                                                  |
+| Cursor's Plan Mode | One plan per task, not kept                            | The Cursor editor                                               | By hand                                         | You merge                                    | `.cursor/rules/`, if rules are used                                        |
+| Augment Code       | None; it supplies context to other tools               | Its own service                                                 | Not applicable                                  | Not applicable                               | Nothing                                                                    |
+| Claude Projects    | Threads in a project, with a shared memory             | Claude only, as Claude Code cloud sessions                      | Unattended: a coordinator hands work to threads | Opens pull requests; runs tests              | Nothing required in the repo; branches and pull requests                   |
+| T3 Code            | None; a thread per task, kept as its events            | 6 agent CLIs, through their server protocols                    | By hand, one thread per task, in parallel       | Opens pull requests; tests not stated        | An optional `t3.json`; branches, worktrees and hidden checkpoint refs      |
 
 ## Aide
 
@@ -312,6 +314,35 @@ wave instead. Merging is not described.
 
 **Invasiveness.** The `.planning/` directory in the project, and the files the installer writes into each AI
 tool's own directories.
+
+## Superpowers
+
+**What it is.** [Superpowers](https://github.com/obra/superpowers) is a library of skills that together make a
+development method, with a short instruction that makes the agent check for a fitting skill before any task. The
+skills trigger on their own; nothing is started by a command.
+
+**Document structure.** Two documents per change, both committed: a design in
+`docs/superpowers/specs/<date>-<topic>-design.md`, and an implementation plan in
+`docs/superpowers/plans/<date>-<feature>.md`. A small change is agreed in the conversation and gets no design
+document. The plan is written for "an engineer who has not seen this codebase": every task names its files, its
+code and the test that proves it.
+
+**Workflow.** Brainstorming draws out what is wanted and plays it back for correction; a worktree is made for the
+work; the plan is written as tasks of two to five minutes; the tasks are carried out with strict test-first
+development, each by a fresh subagent with a review after it, or all in one session with one review of the whole
+branch at the end; and the branch is finished.
+
+**AI tool support.** Sixteen harnesses, among them Claude Code, Codex, Copilot CLI, Cursor, Gemini CLI and
+OpenCode. It installs as a plugin per tool, from that tool's own marketplace where there is one.
+
+**Execution.** By hand: a person approves the design and the plan. Once the plan is approved, the subagents work
+through it on their own, which the documentation says can go on "for a couple hours at a time".
+
+**Code handling.** The tests are verified before the branch is finished, and the person chooses between merging
+locally, pushing and opening a pull request, or keeping the branch. A local merge runs the tests again on the
+merged result.
+
+**Invasiveness.** `docs/superpowers/` in the project, and a plugin in each AI tool.
 
 ## Tessl
 
