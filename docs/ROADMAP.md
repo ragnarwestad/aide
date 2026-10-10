@@ -22,6 +22,7 @@
   - [Create and archive with as little AI as possible](#create-and-archive-with-as-little-ai-as-possible)
   - [Aide as a Mac app](#aide-as-a-mac-app)
   - [A run that reaches only its own repository](#a-run-that-reaches-only-its-own-repository)
+  - [Shorter command output for a run](#shorter-command-output-for-a-run)
 
 ---
 
@@ -251,7 +252,30 @@ Two ways to narrow it:
   (`claude setup-token`) and no SSH keys or GitHub login, and the runner outside commits, pushes and lands as today.
   The strongest boundary, at the cost of Docker or Podman on the serving host, an image per project, dependencies
   built inside the container rather than linked in, and Aide's own suite, which assumes macOS, behaving differently
-  on Linux.
+  on Linux. [container-use](https://github.com/dagger/container-use) does the same through an MCP server, built on
+  Dagger: each agent gets a container on a branch of its own, and its commands and logs can be read afterwards.
 
 Neither keeps a run from damaging or reading its own repository, or from sending what it reads out, unless the
 network is narrowed too. The first is where to start.
+
+### Shorter command output for a run
+
+From [rtk](https://github.com/rtk-ai/rtk), which sits between the AI tool and the shell and shortens what common
+commands print before the agent reads it: a test run reduced to its failures, `git log` to one line per commit,
+`git diff` without its context lines. Its authors measure 60-90% less command output; they point out that this is
+a share of the output alone, not of the cost, which also counts the prompt, the conversation and the answer.
+
+A step on the board reads a great deal of command output: the tests it runs while it works, the diffs a review
+reads, the logs of a failing run. Less of it means more of the step's context left for the work, and less to pay
+for on a long implement.
+
+Two ways to get it:
+
+- **rtk itself**, installed on the serving host and turned on for the runs. It hooks into Claude Code's Bash tool
+  only; Read and Grep pass it by.
+- **The runner shortening more of what it hands a session.** After a red test run it already hands back the
+  failing lines alone; the commands a session runs itself are not shortened.
+
+What has to be found out first is how much of a step's tokens command output is today, from the steps' own logs,
+before deciding whether either is worth it.
+
