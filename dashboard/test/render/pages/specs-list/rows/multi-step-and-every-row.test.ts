@@ -226,7 +226,7 @@ describe("every spec is a row (criteria 1-10)", () => {
     // It used to link to nothing — "a link to nothing is worse than no
     // link". Spec 150 gave every spec somewhere to point, so what must
     // NOT be there is a JOB link: a spec that has never run has no job.
-    expect(line).toContain('href="/specs/aide/90-never-run"');
+    expect(line).toContain('href="/specs/aide/90-never-run');
     expect(line).toContain("90-never-run");
   });
 

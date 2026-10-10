@@ -13,7 +13,7 @@
 - [How many run at once](#how-many-run-at-once)
 - [Notifications](#notifications)
     - [Push notifications on a phone or laptop](#push-notifications-on-a-phone-or-laptop)
-- [The Jobs tab](#the-jobs-tab)
+- [The Running tab](#the-running-tab)
 - [Live runs](#live-runs)
 
 ---
@@ -609,9 +609,9 @@ Microsoft) and is never in the clear there.
 
 The Slack `notifyCommand` above is separate and unchanged.
 
-## The Jobs tab
+## The Running tab
 
-The Jobs tab is the board's first page, at `/`. It lists every spec the Specs list shows under Active, and the wiki
+The Running tab is the board's first page, at `/`. It lists every spec the Specs list shows under Active, and the wiki
 builds, wiki refreshes and scheduled jobs that are running or wait for the user, in every project.
 
 A spec has a row for as long as the Specs list shows it under Active: neither archived nor closed, whatever its jobs
@@ -624,8 +624,13 @@ job of a spec in a project off the allowlist, of a spec whose folder is gone, or
 Reopen in flight) has no row either; its job page `/jobs/<id>` still shows it with its Stop.
 
 A spec's row is the Specs list's row, drawn by the same builder from the same options: the same columns and buttons,
-and when it is unfolded the same phase lines, steps, logs and acceptance criteria. Its links back to its own page
-(the folds) lead to `/`, not `/specs`. A press on it is the press the Specs list makes.
+and when it is unfolded the same phase lines, steps, logs and acceptance criteria. A spec's title leads to the spec's
+own address with its row's anchor (`/specs/<project>/<spec>#spec-<project>/<spec>`): the Specs list with that row open
+and scrolled to it. The Specs list's own title keeps the address without the anchor. The folds lead to `/`, not
+`/specs`. A press on it is the press the Specs list makes.
+
+The code keeps the page's old name: the folder `src/render/pages/jobs-page/`, the `jobs.*` words and the
+`aide_jobs_view_<port>` cookie.
 
 A create that ended without a spec has no row. It shows as the Specs list's message for it, above the table, with Try
 again and Dismiss, drawn from the same record. The message stays until Dismiss is pressed, on either page.

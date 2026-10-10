@@ -49,7 +49,7 @@ export function renderSchedulePage(nav: NavEntry[], generatedAt: string, opts: S
   // The nav tab beside this page already says "Schedule"; repeating it as a
   // visible page heading read as the same word twice in a row, so the
   // heading is hidden and "Schedule" survives only as the browser tab's
-  // title. The Jobs tab has the title "Jobs".
+  // title. The Running tab has the title "Running".
   return pageShell("Schedule", nav, SCHEDULE_ROUTE, body, generatedAt, {
     script: opts.script,
     hideHeading: true,

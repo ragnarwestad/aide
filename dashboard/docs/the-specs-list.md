@@ -44,7 +44,7 @@ time and the browser's Back shuts it. It carries the list's view (state, project
 open row is in view. The open row's chevron leads back to `/specs`. The criteria's › redraws that spec's rows alone: the
 page asks for `?rows=1&only=<project>/<spec>` and replaces just those rows, since the whole list runs to a megabyte once
 the archive is on it. That chevron is a spinner until they are back. The page asks its own address: `/specs?rows=1…`
-or `/specs/<project>/<spec>?rows=1…` here, and `/?rows=1…` on the Jobs tab, which draws the same rows for the specs it
+or `/specs/<project>/<spec>?rows=1…` here, and `/?rows=1…` on the Running tab, which draws the same rows for the specs it
 shows and folds its rows in place. Every other link on the page takes the folds from the address rather than from its
 own href, which was drawn before the last ›.
 
@@ -56,7 +56,7 @@ swapped away with the spec above it.
 Opening is a link to the spec's address, and the address is what says which row is open: `/specs` draws every row
 shut, and `/specs/<project>/<spec>` draws the list with that row open. `/specs?open=<project>/<folder>` (a push
 notification's link) answers a redirect to the spec's address, with the rest of the query, when there is such a spec;
-with several keys it goes to the first. The Jobs tab is the other page that draws these rows, and it keeps `?open=`
+with several keys it goes to the first. The Running tab is the other page that draws these rows, and it keeps `?open=`
 for its own folds.
 
 An open row reveals the workflow phases underneath, always in that order, so how far a spec has got is readable

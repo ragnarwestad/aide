@@ -100,11 +100,11 @@ describe("the header's tabs (AC-1)", () => {
     { label: "Schedule", path: "/schedule" },
   ];
 
-  test("Jobs comes first, then Specs, Projects and the sections (AC-1)", () => {
+  test("Running comes first, then Specs, Projects and the sections (AC-1)", () => {
     expect(siteTabKeys(NAV, "/").keys).toEqual(["/", "/specs", "/projects", "/schedule"]);
   });
 
-  test("Jobs is current for / and Specs for /specs (AC-1)", () => {
+  test("Running is current for / and Specs for /specs (AC-1)", () => {
     expect(siteTabKeys(NAV, "/").current).toBe("/");
     expect(siteTabKeys(NAV, "/specs").current).toBe("/specs");
   });

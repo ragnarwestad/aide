@@ -206,7 +206,7 @@ describe("spec 221: archived specs on the spec list", () => {
     renderSpecsRows([], { runnerAvailable: true, targets: [], ...opts });
 
   const folders = (html: string): string[] =>
-    [...html.matchAll(/href="\/specs\/[A-Za-z0-9._-]+\/([A-Za-z0-9._-]+)"/g)].map((m) => m[1]!);
+    [...html.matchAll(/href="\/specs\/[A-Za-z0-9._-]+\/([A-Za-z0-9._-]+)(?:#[^"]*)?"/g)].map((m) => m[1]!);
 
   // All is the default now, and first in the panel with it — a spec that
   // reaches the archive stays on the list the reader is already looking

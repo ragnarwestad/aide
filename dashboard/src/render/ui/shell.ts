@@ -279,7 +279,7 @@ function pageHeader(lang: Language, currentUrl: string, tabs = ""): string {
   );
 }
 
-/** The header's tab keys in order — Jobs, Specs, the Projects page, then the
+/** The header's tab keys in order — Running, Specs, the Projects page, then the
  *  sections — and the one that is current for `currentPath`.
  *
  *  The first entry is the Projects page; the rest are the project pages, which
@@ -293,7 +293,7 @@ function pageHeader(lang: Language, currentUrl: string, tabs = ""): string {
  *  what decides, not the label. A RELATIVE `<slug>.html` is read as a project
  *  page, which no build writes any more (spec 185 served it instead).
  *
- *  Jobs is current on `/` and on every job's page, which passes `/`; Specs on
+ *  Running is current on `/` and on every job's page, which passes `/`; Specs on
  *  `/specs`, which the list, New spec and the spec page pass. */
 export function siteTabKeys(
   entries: NavEntry[],
@@ -328,7 +328,7 @@ function siteTabs(entries: NavEntry[], currentPath: string, lang: Language): str
   // Each tab's key is its own path, so the shared bar links a tab to its key.
   const { keys, sections, current } = siteTabKeys(entries, currentPath);
   const words = new Map<string, string>([
-    ["/", t(lang, "shell.tabJobs")],
+    ["/", t(lang, "shell.tabRunning")],
     ["/specs", t(lang, "shell.tabSpecs")],
     [entries[0]!.path, t(lang, "shell.tabProjects")],
     ...sections.map((e): [string, string] => [e.path, e.labelKey ? t(lang, e.labelKey) : e.label]),

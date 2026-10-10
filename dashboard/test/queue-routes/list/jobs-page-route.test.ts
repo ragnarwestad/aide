@@ -76,6 +76,13 @@ describe("GET / answers the Jobs page, GET /?rows=1 its rows alone (AC-1)", () =
     expect(rows).toContain('id="spec-aide/81-queue-and-runner"');
   });
 
+  test("the tab for / reads Running and is current, and the document's title says Running (AC-1)", async () => {
+    const { base } = board([job({})]);
+    const html = await (await fetch(`${base}/`)).text();
+    expect(html).toContain('<a class="tab" data-nav data-goto href="/" aria-current="page">Running</a>');
+    expect(html).toContain("<title>aide -board · Running</title>");
+  });
+
   test("a method other than GET is refused (AC-1)", async () => {
     const { base } = board();
     expect((await fetch(`${base}/`, { method: "POST" })).status).toBe(405);
@@ -130,6 +137,18 @@ describe("which kind of row a job gets (AC-5)", () => {
       expect(g).toContain("badgeslot");
       expect(g).toContain('data-col="started"');
       expect(g).toContain('data-col="cost"');
+    }
+  });
+
+  test("a wiki build's and a scheduled job's title line holds one link, to the project, shut or open (AC-3)", async () => {
+    const { base } = board([wiki, sched]);
+    for (const query of ["", OPEN_BOTH]) {
+      const html = await rowsOf(base, query);
+      for (const id of ["spec-aide/wiki-aide", "spec-aide/schedule-nightly"]) {
+        const line = group(html, id).match(/<div class="spec-name">[\s\S]*?<\/div>/)?.[0] ?? "";
+        expect(line.match(/<a\b/g)).toHaveLength(1);
+        expect(line).toContain('href="/projects/aide"');
+      }
     }
   });
 
@@ -347,8 +366,12 @@ describe("the Jobs tab and the Specs list's Active entry show the same specs (AC
     const tab = group(await rowsOf(base), `spec-aide/${UNMERGED}`);
     expect(tab).not.toBe("");
     expect(tab).toContain("still on origin");
-    // The list's links carry the Active entry it was asked for; the tab's carry none.
-    const asTab = list.replaceAll("&amp;state=not-archived", "").replaceAll('href="/specs?', 'href="/?');
+    // The list's links carry the Active entry it was asked for; the tab's carry none,
+    // and the tab's title ends in the row's anchor.
+    const asTab = list
+      .replaceAll("&amp;state=not-archived", "")
+      .replaceAll('href="/specs?', 'href="/?')
+      .replaceAll(`href="/specs/aide/${UNMERGED}"`, `href="/specs/aide/${UNMERGED}#spec-aide/${UNMERGED}"`);
     expect(withoutFold(tab)).toBe(withoutFold(asTab.replaceAll('href="/specs"', 'href="/"')));
   });
 
@@ -363,6 +386,30 @@ describe("the Jobs tab and the Specs list's Active entry show the same specs (AC
     expect(html).not.toContain("91-closed");
     expect(html).not.toContain("/jobs/reopen");
     expect(html).not.toContain("/jobs/bad");
+  });
+});
+
+describe("a spec's title on the Running tab (AC-2)", () => {
+  const FOLDER = "81-queue-and-runner";
+  const titleHref = (html: string): string => {
+    const g = group(html, `spec-aide/${FOLDER}`);
+    return g.match(/<a class="specpart"[^>]*?href="([^"]*)"/)?.[1] ?? "";
+  };
+
+  test("leads to the spec's own address, ending in its row's anchor, which answers the Specs list with that row (AC-2)", async () => {
+    const { base } = board([job({})]);
+    const href = titleHref(await rowsOf(base));
+    expect(href).toBe(`/specs/aide/${FOLDER}#spec-aide/${FOLDER}`);
+
+    const page = await (await fetch(`${base}${href.split("#")[0]}`)).text();
+    expect(page).toContain(`data-spec-detail="aide/${FOLDER}"`);
+    expect(page).toContain(`id="spec-aide/${FOLDER}"`);
+  });
+
+  test("on the Specs list the same title keeps a bare address (AC-2)", async () => {
+    const { base } = board([job({})]);
+    const list = await (await fetch(`${base}/specs?rows=1`)).text();
+    expect(titleHref(list)).toBe(`/specs/aide/${FOLDER}`);
   });
 });
 

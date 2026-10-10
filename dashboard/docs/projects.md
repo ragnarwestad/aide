@@ -205,7 +205,7 @@ in that clone's `.git/info/exclude`.
 
 **The wiki is built.** Add queues a wiki build, the same job the **Build wiki** button queues, once the dashboard's
 own checkout is made, so the project's first analysis has a wiki to read. The queue starts it; the Add does not wait
-for it. A build that fails leaves the project added, shows on the Wiki tab's Build panel and on the Jobs tab, and
+for it. A build that fails leaves the project added, shows on the Wiki tab's Build panel and on the Running tab, and
 **Build wiki** runs it again. A build the queue refuses is written to the server's log as `build wiki refused`, and
 the add is not refused with it.
 

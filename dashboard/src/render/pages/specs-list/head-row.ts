@@ -118,8 +118,12 @@ export function specHeadRow(
   // two anchors side by side inside the label's flex row, the colon in
   // the spec's, with no whitespace between them so the two touch.
   const project = projectLink(g.project, { className: "muted" });
+  // On the Running tab the title opens the Specs list at its row; the Specs
+  // list (which sets openSpec) keeps a bare address, so a click never only
+  // moves the fragment and leaves the page's loading overlay up.
+  const titleHref = specPagePath(g.project, g.specFolder) + (opts.openSpec ? "" : `#${rowAnchorId(g)}`);
   const spec = g.named
-    ? `<span class="label">${project}<a class="specpart" data-goto href="${esc(specPagePath(g.project, g.specFolder))}" ` +
+    ? `<span class="label">${project}<a class="specpart" data-goto href="${esc(titleHref)}" ` +
       // The tooltip is the IDENTIFIER — project and folder — which is
       // what a reader copies into a command or another page.
       `title="${esc(g.project)}:${esc(g.specFolder)}">` +
