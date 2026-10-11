@@ -16,7 +16,14 @@ let base: string;
 beforeAll(async () => {
   browser = await withBrowser(chromium.launch(), "chromium.launch()");
   page = await browser.newPage();
-  base = harness.start({ extra: {}, alsoSpecs: ["82-second", "83-third"] }).base;
+  // Model choices, so the open row's phase table draws its pickers.
+  const queueDefaults = {
+    timeoutSec: { default: 1200 },
+    permissionMode: { default: "acceptEdits" },
+    model: { default: "sonnet" },
+    modelChoices: { sonnet: {}, fable: {} },
+  };
+  base = harness.start({ extra: { queueDefaults }, alsoSpecs: ["82-second", "83-third"] }).base;
 });
 
 afterAll(async () => {
@@ -102,4 +109,20 @@ test("a spec opened by its address far down a long list keeps the page's top in 
     await tall.close();
     many.cleanup();
   }
+});
+
+// A model picked in the open row's phase table is saved for the spec the
+// moment it is made, as the Running tab saves one, and leaves the settings'
+// Save beside it alone.
+test("a model picked in the open row is saved for the spec, and Save stays inactive", async () => {
+  const picker = await browser.newPage();
+  await withBrowser(picker.goto(`${base}/specs/aide/81-queue-and-runner?live=0`), "page.goto(spec)");
+  const select = `${detail("81-queue-and-runner")} tr[data-step="analyze"] select[name="model.analyze"]`;
+  await picker.waitForSelector(select);
+  const posted = picker.waitForRequest((r) => r.url().endsWith("/api/queue/specs/aide/81-queue-and-runner/model"));
+  await picker.selectOption(select, "fable");
+  const body = new URLSearchParams((await posted).postData() ?? "");
+  expect([body.get("step"), body.get("model")]).toEqual(["analyze", "fable"]);
+  expect(await picker.isDisabled("#trackingform-save")).toBe(true);
+  await picker.close();
 });

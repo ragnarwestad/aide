@@ -28,6 +28,11 @@
     const target = event.target as Element | null;
     if (!target?.closest?.(TRACKED)) return;
     if (target.closest("[data-unit-choice]")) return;
+    // A field that names a form other than a tracked one is saved some
+    // other way: the phase table's AI and model are saved the moment
+    // they are picked.
+    const named = target.getAttribute?.("form");
+    if (named && !document.getElementById(named)?.closest?.(TRACKED)) return;
     dirty = true;
   };
 

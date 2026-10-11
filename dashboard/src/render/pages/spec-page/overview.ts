@@ -20,18 +20,18 @@ import type { SpecCheckView, SpecPageView } from "./types.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 
 /** What sits above the tabs: each phase's AI and model beside the four
- *  settings the spec was created with. While acceptance ticking can still
- *  change — a live spec analyze has not run on — it is a form posting to
- *  `view.trackingAction`; otherwise everything is locked and nothing posts.
- *  `acceptanceEditable` is a hidden sentinel so the route can tell a
- *  cleared box from a locked one, which submits nothing either (see
+ *  settings the spec was created with. While the three analyze reads can
+ *  still change — a live spec analyze has not run on — it is a form
+ *  posting to `view.trackingAction`; otherwise everything is locked and
+ *  nothing posts. `settingsEditable` is a hidden sentinel so the route can
+ *  tell a cleared box from a locked one, which submits nothing either (see
  *  `spec-edit/tracking.ts`). */
 export function trackingControl(view: SpecPageView, lang: Language = "en", phases = ""): string {
-  // Archived, nothing posts. Live, acceptance does until analyze has
-  // decided it; the other three were chosen when the spec was created.
-  const acceptanceEditable = !view.archived && !(view.done?.includes("analyze") ?? false);
-  const settings = `<span class="frow options-row">${phases}${createdOptions(view, lang, acceptanceEditable)}</span>`;
-  if (!acceptanceEditable) return settings;
+  // Archived, nothing posts. Live, the three settings analyze reads do
+  // until it has run; the AI formulation was used by create.
+  const settingsEditable = !view.archived && !(view.done?.includes("analyze") ?? false);
+  const settings = `<span class="frow options-row">${phases}${createdOptions(view, lang, settingsEditable)}</span>`;
+  if (!settingsEditable) return settings;
   // `.trackingform`, never `.specform`: the Status tab's tick form
   // already carries that class, and the banner renders on every tab —
   // Checks included — so a shared class would leave that tab with TWO
@@ -50,13 +50,14 @@ export function trackingControl(view: SpecPageView, lang: Language = "en", phase
 }
 
 /** The four settings the spec was created with, as New spec's Options tab
- *  draws them, locked: acceptance alone may still post. */
-function createdOptions(view: SpecPageView, lang: Language, acceptanceEditable: boolean): string {
+ *  draws them: the AI formulation locked, the other three posting while
+ *  `settingsEditable`. */
+function createdOptions(view: SpecPageView, lang: Language, settingsEditable: boolean): string {
   const c = view.createChoices ?? createChoicesIn("");
   return optionsGroup({
     locked: true,
     checksLast: true,
-    acceptanceEditable,
+    settingsEditable,
     acceptance: !view.acceptanceNotRequired,
     aiFormulate: c.aiFormulate,
     criteriaChecks: c.criteriaChecks,

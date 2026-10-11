@@ -259,3 +259,28 @@ describe("spec 409: the settingsform prefix gets the same dirty latch", () => {
     expect(cancel.disabled).toBe(true);
   });
 });
+
+describe("a field inside the form that posts elsewhere", () => {
+  // The open row's phase table sits inside the tracking form, and its
+  // selects name the spec's run form, which is not on the page: a pick is
+  // saved the moment it is made, so it is nothing for this Save to post.
+  test("a phase pick leaves Save inactive; a setting of the form's own enables it", () => {
+    document.body.innerHTML =
+      `<form class="trackingform" method="post">` +
+      `<select name="model.analyze" form="rowrun-aide/1-x"><option value="a">a</option><option value="b">b</option></select>` +
+      `<select name="criteriaChecks"><option value="off">off</option><option value="warn">warn</option></select>` +
+      `<button id="trackingform-save" type="submit">Save</button>` +
+      `<button id="trackingform-cancel" type="button" disabled>Cancel</button>` +
+      `</form>`;
+    mount();
+    const saveButton = document.getElementById("trackingform-save") as HTMLButtonElement;
+    const pick = document.querySelector('select[name="model.analyze"]') as HTMLSelectElement;
+    pick.value = "b";
+    pick.dispatchEvent(new Event("change", { bubbles: true }));
+    expect(saveButton.disabled).toBe(true);
+    const checks = document.querySelector('select[name="criteriaChecks"]') as HTMLSelectElement;
+    checks.value = "warn";
+    checks.dispatchEvent(new Event("change", { bubbles: true }));
+    expect(saveButton.disabled).toBe(false);
+  });
+});

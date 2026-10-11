@@ -6,6 +6,7 @@ import {
   type ArchivedSpecView,
   type SpecsPageOptions,
 } from "../../../../../src/render";
+import { row } from "../../fixtures.ts";
 
 // Spec 265: an archived phase line draws the SAME aiPicker/modelPicker
 // controls a live one does, disabled, instead of a second, hand-rolled
@@ -154,8 +155,8 @@ describe("a locked phase line", () => {
 });
 
 // The open row on the Specs list shows what each phase runs on in New
-// spec's phase table, and what runs is chosen on the Running tab: every
-// select is locked, and none belongs to a form, live spec or archived.
+// spec's phase table. A phase still to run takes a pick, saved for the
+// spec as the Running tab saves one, while no job runs on it.
 describe("the open spec's phase table", () => {
   const TOOLS: NonNullable<SpecsPageOptions["modelChoices"]> = [{ name: "sonnet" }, { name: "opus" }];
   const phases = (opts: Partial<SpecsPageOptions>, key: string): string => {
@@ -172,13 +173,31 @@ describe("the open spec's phase table", () => {
   };
   const selects = (html: string) => html.match(/<select\b[^>]*>/g) ?? [];
 
-  test("a live spec's selects are locked and tied to no form", () => {
+  const line = (html: string, step: string): string[] =>
+    selects(html.match(new RegExp(`<tr class="subrow" data-step="${step}">[\\s\\S]*?</tr>`))![0]);
+
+  test("an idle spec's phases take a pick under its run form; create does not", () => {
     const html = phases({ targets: [{ project: "aide", specFolder: "81-live" }] }, "aide/81-live");
-    expect(selects(html).length).toBeGreaterThan(0);
-    for (const tag of selects(html)) {
-      expect(tag).toContain(" disabled");
-      expect(tag).toContain('form=""');
+    for (const step of ["analyze", "implement", "archive"]) {
+      for (const tag of line(html, step)) {
+        expect([step, tag.includes(" disabled")]).toEqual([step, false]);
+        expect(tag).toContain('form="rowrun-aide/81-live"');
+      }
     }
+    for (const tag of line(html, "create")) expect(tag).toContain(" disabled");
+  });
+
+  test("while a job runs on the spec, every phase is locked", () => {
+    let drawn = "";
+    renderSpecsRows([row({ specFolder: "81-queue-and-runner" })], {
+      runnerAvailable: true,
+      targets: [],
+      modelChoices: TOOLS,
+      defaultModels: { default: "sonnet" },
+      openSpec: { key: "aide/81-queue-and-runner", detail: (parts) => (drawn = parts.phases) },
+    });
+    expect(selects(drawn).length).toBeGreaterThan(0);
+    for (const tag of selects(drawn)) expect(tag).toContain(" disabled");
   });
 
   test("an archived spec's phase shows the model it ran on", () => {

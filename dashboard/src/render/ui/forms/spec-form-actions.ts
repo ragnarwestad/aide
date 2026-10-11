@@ -56,8 +56,15 @@
       save.disabled = !dirty;
       cancel.disabled = !dirty;
     };
-    form.addEventListener("input", () => setDirty(true));
-    form.addEventListener("change", () => setDirty(true));
+    // A field inside the form that names another form — the phase
+    // table's AI and model, saved the moment they are picked — changes
+    // nothing this Save would post.
+    const ours = (event: Event): boolean => {
+      const named = (event.target as Element | null)?.getAttribute?.("form");
+      return !named || named === form.id;
+    };
+    form.addEventListener("input", (event) => { if (ours(event)) setDirty(true); });
+    form.addEventListener("change", (event) => { if (ours(event)) setDirty(true); });
     setDirty(false);
 
     cancel.addEventListener("click", () => {

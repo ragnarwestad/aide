@@ -102,8 +102,10 @@ export interface OptionsGroupValues {
   chooseApproach: boolean;
   /** Shows the values and posts none of them. */
   locked?: boolean;
-  /** Acceptance can still be changed although the rest is locked. */
-  acceptanceEditable?: boolean;
+  /** The three settings analyze reads — acceptance, the checks and
+   *  choosing the approach — can still be changed although the AI
+   *  formulation, which create has already used, is locked. */
+  settingsEditable?: boolean;
   /** The labels, where the page has a language of its own. */
   labels?: Partial<Record<"acceptance" | "aiFormulate" | "criteriaChecks" | "chooseApproach", string>>;
   /** The level words of the checks select, by value. */
@@ -144,21 +146,24 @@ export function optionsGroup(v: OptionsGroupValues): string {
 // decides once, from this, and locks the switch after — so a spec that
 // quietly skipped its acceptance table could only be put right by
 // running the whole analysis again.
+/** Whether one of the three settings analyze reads takes a change. */
+const editable = (v: OptionsGroupValues): boolean => !v.locked || !!v.settingsEditable;
+
 function acceptanceField(v: OptionsGroupValues): string {
-  const editable = !v.locked || !!v.acceptanceEditable;
+  const open = editable(v);
   return (
     `<span class="field"><span class="fieldhead">` +
     // What tells the route a cleared box from a locked one: a locked box
     // posts nothing, the same as a cleared one.
-    (v.locked && editable ? `<input type="hidden" name="acceptanceEditable" value="1">` : "") +
+    (v.locked && open ? `<input type="hidden" name="settingsEditable" value="1">` : "") +
     phaseChip({
       dataAttr: "data-acceptance",
       value: "1",
       label: v.labels?.acceptance ?? "Acceptance ticking required",
-      name: editable ? "acceptanceRequired" : "",
+      name: open ? "acceptanceRequired" : "",
       form: v.form,
       checked: v.acceptance,
-      disabled: !editable,
+      disabled: !open,
       plain: true,
     }) +
     `<span class="fieldend">` +
@@ -212,10 +217,10 @@ function chooseApproachField(v: OptionsGroupValues): string {
       dataAttr: "data-choose-approach",
       value: "1",
       label: v.labels?.chooseApproach ?? "Let me choose the approach",
-      name: v.locked ? "" : "chooseApproach",
+      name: editable(v) ? "chooseApproach" : "",
       form: v.form,
       checked: v.chooseApproach,
-      disabled: v.locked,
+      disabled: !editable(v),
       plain: true,
     }) +
     `<span class="fieldend">` +
@@ -238,9 +243,9 @@ export const criteriaChecksChoices = (): { value: CriteriaChecks; label: string 
   { value: "stop", label: "Stop" },
 ];
 
-// How strictly analyze checks this spec's acceptance criteria. Chosen
-// here, once: the runner records it in the new spec's Tracking info, and
-// nothing on the board changes it afterwards. Off when the form opens,
+// How strictly analyze checks this spec's acceptance criteria. The runner
+// records it in the new spec's Tracking info, and the spec's open row can
+// change it until analyze has run. Off when the form opens,
 // the same level a spec with nothing recorded is checked at. Drawn the
 // way the two switches beside it are — the control on the label's line,
 // the "(?)" at its end — so the three read as one row.
@@ -249,7 +254,7 @@ function criteriaChecksField(v: OptionsGroupValues): string {
   return (
     `<span class="field"><span class="fieldhead"><span class="row">` +
     `<label for="${id}">${esc(v.labels?.criteriaChecks ?? "Acceptance criteria checks")}</label>` +
-    `<select ${v.locked ? "disabled" : `name="criteriaChecks"`} id="${id}">` +
+    `<select ${editable(v) ? `name="criteriaChecks"` : "disabled"} id="${id}">` +
     criteriaChecksChoices()
       .map((o) => `<option value="${o.value}"${o.value === v.criteriaChecks ? " selected" : ""}>${esc(v.levelWords?.[o.value] ?? o.label)}</option>`)
       .join("") +

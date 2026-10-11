@@ -98,7 +98,7 @@ describe("a spec with a branch of its own", () => {
     const { base } = withBranch(tracked("As the branch has it."));
     expect(acceptanceRequiredShown(await draw(base, ANALYSIS_TAB))).toBe(true);
 
-    const saved = await post(base, { acceptanceEditable: "1" }, TRACKING);
+    const saved = await post(base, { settingsEditable: "1" }, TRACKING);
     expect(await failed(saved)).toBe(false);
 
     expect(acceptanceRequiredShown(await draw(base, ANALYSIS_TAB))).toBe(false);
@@ -108,12 +108,12 @@ describe("a spec with a branch of its own", () => {
   test("a second banner Save, with the switch as the page shows it, keeps the Acceptance line (AC-2)", async () => {
     const { base, fx } = withBranch(tracked("As the branch has it."));
     await draw(base, ANALYSIS_TAB);
-    expect(await failed(await post(base, { acceptanceEditable: "1" }, TRACKING))).toBe(false);
+    expect(await failed(await post(base, { settingsEditable: "1" }, TRACKING))).toBe(false);
 
     const page = await draw(base, ANALYSIS_TAB);
     const again = await post(
       base,
-      { acceptanceEditable: "1", ...(acceptanceRequiredShown(page) ? { acceptanceRequired: "1" } : {}) },
+      { settingsEditable: "1", ...(acceptanceRequiredShown(page) ? { acceptanceRequired: "1" } : {}) },
       TRACKING,
     );
 

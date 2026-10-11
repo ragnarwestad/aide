@@ -411,12 +411,14 @@ same criteria without boxes. An old `?tab=checks` link opens the Status tab. Upd
 checkout (`POST /api/queue/specs/<project>/<spec>/update`), sits at the end of the tab row. Above the
 banner, laid out as New spec's Options tab with the same components, each phase's AI and model beside the four choices
 the spec was created with: the table as wide as its columns, the four settings as one group beside it, going under it
-where there is no room. The selects are locked and belong to no form, with no box to tick, since what runs is chosen on
-the Running tab: a phase that has run shows what it ran on, one that has not what it will get. Of the four, Acceptance
-ticking required is editable in a form of its own (`POST /api/queue/specs/<project>/<spec>/tracking`) until analyze
-has run; "Let AI formulate acceptance criteria", "Acceptance criteria checks" and "Let me choose the approach" are
-locked with no field name, so the form posts none of them, and once analyze has run, or on an archived spec, all four
-are and there is no form. What the spec depends on is not shown here: the row's own line under the title names it, by
+where there is no room. There is no box to tick, since what runs is chosen on the Running tab. A phase's AI and model
+take a pick the way the Running tab's do, saved for the spec the moment it is made
+(`POST /api/queue/specs/<project>/<spec>/model`); create's are locked, and so is every phase while a job runs on the
+spec or once it is archived. Of the four settings, the three analyze reads — Acceptance ticking required, "Acceptance
+criteria checks" and "Let me choose the approach" — are editable in a form of their own
+(`POST /api/queue/specs/<project>/<spec>/tracking`) until analyze has run; "Let AI formulate acceptance criteria",
+which create has already used, is locked with no field name. Once analyze has run, or on an archived spec, all four
+are locked and there is no form. What the spec depends on is not shown here: the row's own line under the title names it, by
 number. The banner holds the rest of what belongs to the spec rather than to one document: whether it is closed, the
 test server's state and any error.
 A spec created before a choice was recorded shows what a spec with nothing recorded runs with: AI formulated, checks

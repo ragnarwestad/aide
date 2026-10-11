@@ -7,7 +7,8 @@ import { saveSpecFiles } from "../../../git/specs-pull.ts";
 import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
 import { lastCommitOf } from "../../../git/description-freshness.ts";
 import {
-  discoverProjects, manifestInside, specFileText, withAcceptanceLine, withDependsOnLine,
+  chooseApproachIn, createChoicesIn, discoverProjects, manifestInside, parseCriteriaChecks, specFileText, withAcceptanceLine,
+  withChooseApproachLine, withCriteriaChecksLine, withDependsOnLine,
 } from "../../../project/discover";
 import { parseStatus } from "../../../project/parse-status";
 import { EDITABLE_SPEC_FILE, STATUS_SPEC_FILE } from "../../../render";
@@ -131,14 +132,15 @@ export async function trackingRoutes(
     }
   }
 
-  // Acceptance — REQ-6: only touched when the form was actually drawn
-  // editable. `acceptanceEditable` is a hidden sentinel posted ONLY by
+  // The settings analyze reads — acceptance, the checks level and
+  // choosing the approach — only touched when the form was actually drawn
+  // editable. `settingsEditable` is a hidden sentinel posted ONLY by
   // the unlocked render (`overview.ts`'s `trackingControl`): an
-  // unchecked box and a LOCKED box both submit no `acceptanceNotRequired`
-  // field at all, and only this sentinel tells the two apart — without
-  // it, "the field is absent" could not tell "required" from "analyze
-  // already decided, leave it alone".
-  if (body.acceptanceEditable === "1") {
+  // unchecked box and a LOCKED box both submit nothing at all, and only
+  // this sentinel tells the two apart — without it, "the field is absent"
+  // could not tell "cleared" from "analyze already decided, leave it
+  // alone".
+  if (body.settingsEditable === "1") {
     const statusTarget = await resolveOpenBranchTarget(ctx, dir, specFolder!, STATUS_SPEC_FILE, false);
     const statusRead = statusTarget
       ? await readStatusFromBranch(ctx.gitRun, statusTarget.root, statusTarget.branch, statusTarget.relPath)
@@ -146,10 +148,10 @@ export async function trackingRoutes(
     const statusText = statusRead ? statusRead.text : (specFileText(dir, STATUS_SPEC_FILE) ?? "");
     const analyzeDone = parseStatus(statusText).workflowSteps.includes("analyze");
     if (analyzeDone) {
-      return refuse("analyze has already decided whether to write the acceptance-criteria table — this cannot change now");
+      return refuse("analyze has already run on these settings — they cannot change now");
     }
     // The box says what it means: ticked is required. Absent is a
-    // cleared box, which is "not required" — and `acceptanceEditable`
+    // cleared box, which is "not required" — and `settingsEditable`
     // above is what tells that apart from a LOCKED box, which submits
     // nothing either.
     const acceptanceRequired = body.acceptanceRequired === "1" || body.acceptanceRequired === true;
@@ -159,6 +161,27 @@ export async function trackingRoutes(
       return refuse(`nowhere to put "Acceptance" — Tracking info has no Created line — nothing was saved`);
     }
     text = withAccept;
+    // The other two settings analyze reads, under the same rule: the
+    // checks level, and whether to choose the approach (a cleared box
+    // posts nothing, which is no). Each written only when it changes, so
+    // a spec with no line keeps having none.
+    const checks = parseCriteriaChecks(body.criteriaChecks);
+    if ("error" in checks) return refuse(`${checks.error} — nothing was saved`);
+    if (checks.level && checks.level !== createChoicesIn(text).criteriaChecks) {
+      const withChecks = withCriteriaChecksLine(text, checks.level);
+      if (withChecks === null) {
+        return refuse(`nowhere to put "Acceptance criteria checks" — Tracking info has no Created line — nothing was saved`);
+      }
+      text = withChecks;
+    }
+    const choose = body.chooseApproach === "1" || body.chooseApproach === true;
+    if (choose !== chooseApproachIn(text)) {
+      const withChoose = withChooseApproachLine(text, choose);
+      if (withChoose === null) {
+        return refuse(`nowhere to put "Let me choose the approach" — Tracking info has no Created line — nothing was saved`);
+      }
+      text = withChoose;
+    }
   }
 
   const result = target

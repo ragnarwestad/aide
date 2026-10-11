@@ -29,9 +29,9 @@ export { dependsOnIn, specDependsOn, stripDependsOnLine, withDependsOnLine } fro
 
 export { acceptanceNotRequiredIn, specAcceptanceNotRequired, stripAcceptanceLine, withAcceptanceLine } from "./acceptance.ts";
 
-export { criteriaChecksIn, parseCriteriaChecks, type CriteriaChecks } from "./criteria-checks.ts";
+export { criteriaChecksIn, parseCriteriaChecks, withCriteriaChecksLine, type CriteriaChecks } from "./criteria-checks.ts";
 
-export { chooseApproachIn } from "./choose-approach.ts";
+export { chooseApproachIn, withChooseApproachLine } from "./choose-approach.ts";
 
 export { createChoicesIn, type CreateChoices } from "./create-choices.ts";
 
