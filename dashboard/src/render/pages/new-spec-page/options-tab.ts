@@ -1,6 +1,7 @@
-// The New spec page's Options tab: the four settings about the spec as a
-// whole, then the phase table with each phase's box, AI and model. Kept
-// apart from the page itself, which draws the Spec tab and the frame.
+// The New spec page's Options tab: the phase table with each phase's box,
+// AI and model, and the four settings about the spec as a whole beside
+// it. Kept apart from the page itself, which draws the Spec tab and the
+// frame.
 
 import { helpPopover, phaseChip, stepLabel } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
@@ -9,19 +10,20 @@ import { PHASE_LINES, type SpecGroup } from "../specs-list";
 import { aiPicker, modelPicker, phaseCaptionCells, type PickerOptions } from "../specs-list/model-picker.ts";
 import type { NewSpecPageOptions } from ".";
 
-/** The Options tab: the four settings on one row, wrapping where the
- *  screen has no room for all, then the phase table. Each is a `.frow`,
- *  a full-width row of the form's own wrapping flex. */
+/** The Options tab: the phase table, then the four settings as one group
+ *  of two columns beside it, going under it where the screen has no room
+ *  for both. One `.frow`, a full-width row of the form's own wrapping
+ *  flex. */
 export function optionsTab(opts: NewSpecPageOptions, formId: string): string {
   return (
     `<span class="frow row">` +
+    newSpecPhaseTable(opts, formId) +
+    `<span class="options-grid">` +
     acceptanceField(formId) +
     aiFormulateAcceptanceField(formId) +
     criteriaChecksField() +
     chooseApproachField(formId) +
     `</span>` +
-    `<span class="frow">` +
-    newSpecPhaseTable(opts, formId) +
     `</span>`
   );
 }

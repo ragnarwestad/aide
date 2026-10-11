@@ -37,20 +37,31 @@ describe("which tab the New spec page opens", () => {
 });
 
 describe("what the New spec form posts", () => {
-  test("it carries the Spec tab's fields and the hidden Options tab's choices (AC-6)", () => {
-    const doc = page();
+  test("an untouched Options tab posts the same names and values as before (AC-4)", () => {
+    const doc = page({ modelChoices: [{ name: "sonnet" }, { name: "fable" }] });
     expect(panel(doc, "options")?.hasAttribute("hidden")).toBe(true);
     const form = doc.getElementById("new-spec-form") as HTMLFormElement;
     (form.querySelector('input[name="title"]') as HTMLInputElement).value = "A title";
     (form.querySelector('textarea[name="description"]') as HTMLTextAreaElement).value = "A description";
     const FormDataCtor = (doc.defaultView as unknown as { FormData: typeof FormData }).FormData;
-    const data = new FormDataCtor(form);
-    expect(data.get("title")).toBe("A title");
-    expect(data.get("description")).toBe("A description");
-    expect(data.get("criteriaChecks")).toBe("off");
-    expect(data.get("acceptanceRequired")).toBe("1");
-    expect(data.get("aiFormulateAcceptance")).toBe("1");
-    expect(data.getAll("steps").length).toBeGreaterThan(0);
+    const posted = [...new FormDataCtor(form).entries()].map(([name, value]) => [name, String(value)]);
+    expect(posted.sort()).toEqual(
+      [
+        ["project", ""],
+        ["title", "A title"],
+        ["description", "A description"],
+        ["acceptanceRequired", "1"],
+        ["aiFormulateAcceptance", "1"],
+        ["criteriaChecks", "off"],
+        ["steps", "analyze"],
+        ["steps", "implement"],
+        ["steps", "archive"],
+        ["model.create", "sonnet"],
+        ["model.analyze", "sonnet"],
+        ["model.implement", "sonnet"],
+        ["model.archive", "sonnet"],
+      ].sort(),
+    );
   });
 });
 
