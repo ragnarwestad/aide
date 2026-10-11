@@ -17,6 +17,6 @@ export { LIST_COLUMNS } from "./row-shared.ts";
 export { runFormId } from "./row-state.ts";
 export { foldControl } from "./row-controls.ts";
 export { phasePips } from "./cell-helpers.ts";
-export { specHeadRow } from "./head-row.ts";
-export { phaseSubRows } from "./phase-rows.ts";
+export { headStateBadge, specHeadRow } from "./head-row.ts";
+export { phaseSubRows, specPhaseTable } from "./phase-rows.ts";
 export { specNoticeRow } from "./notice-row.ts";

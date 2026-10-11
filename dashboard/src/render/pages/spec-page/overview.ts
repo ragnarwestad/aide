@@ -2,7 +2,7 @@
 // archived) drawn in the banner on every tab, the Status tab's
 // criteria checklist, and the Reopen and Close controls.
 
-import { askButton, btn, buttonForm, dataAttrs, helpPopover, ICON_PDF, labelledCheckbox, rowMessage, saveCancelActions } from "../../ui/components";
+import { askButton, btn, buttonForm, dataAttrs, helpPopover, ICON_PDF, rowMessage, saveCancelActions } from "../../ui/components";
 import { SPINNER } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { acTestsLine } from "../../ui/ac-tests.ts";
@@ -14,7 +14,8 @@ import { t, type Language } from "../../../i18n";
 import {
   CLOSE_ASK_ID, CLOSE_SENTENCE, REOPEN_ASK_ID, closeAskDialog, reopenAskDialog,
 } from "./ask-dialog.ts";
-import { createChoicesControls, createChoicesFacts } from "./create-choices.ts";
+import { optionsGroup } from "../new-spec-page/options-tab.ts";
+import { createChoicesIn } from "../../../project/discover";
 import { SPEC_LINES, SPEC_REFUSED_LINE, specPagePath } from "./tabs.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
@@ -38,18 +39,17 @@ import { capitalizeFirst } from "../../../format/error-sentence.ts";
  *  same as an unchecked one — `acceptanceEditable` is a hidden sentinel
  *  precisely so the route can tell those two apart (see
  *  `spec-edit/tracking.ts`). */
-export function trackingControl(view: SpecPageView, lang: Language = "en"): string {
+export function trackingControl(view: SpecPageView, lang: Language = "en", phases = ""): string {
   const folders = view.dependsOn ?? [];
   const options = view.dependsOnOptions ?? [];
+  // Archived, nothing posts. Live, acceptance does until analyze has
+  // decided it; the other three were chosen when the spec was created.
+  const acceptanceEditable = !view.archived && !(view.done?.includes("analyze") ?? false);
+  const settings = `<span class="frow options-row">${phases}${createdOptions(view, lang, acceptanceEditable)}</span>`;
   if (view.archived) {
     const dep = folders.length ? fact(t(lang, "newSpec.dependsOn"), folders.map((f) => esc(f)).join(", ")) : "";
-    return (
-      dep +
-      fact(t(lang, "spec.acceptance"), capitalizeFirst(view.acceptanceNotRequired ? t(lang, "spec.acceptanceNotRequired") : t(lang, "spec.acceptanceRequired"))) +
-      createChoicesFacts(view.createChoices, lang).map((f) => fact(f.label, f.value)).join("")
-    );
+    return settings + dep;
   }
-  const acceptanceLocked = view.done?.includes("analyze") ?? false;
   // A spec this one depends on that is no longer a valid CHOICE is
   // still a fact about this spec. Nothing archived is among the
   // options — it cannot be picked — so a spec whose dependencies have
@@ -75,24 +75,6 @@ export function trackingControl(view: SpecPageView, lang: Language = "en"): stri
         actions,
       })
       : "";
-  // The sentence that stood here is the field's own "(?)" now, on the
-  // label's line, rather than a paragraph under the control.
-  const note = "";
-  // Locked, it draws the box it always drew — disabled, and ticked or
-  // not according to what was actually decided. It used to draw the
-  // words alone, the same words either way, so a spec that DOES require
-  // its ticking was told it does not.
-  const required = !view.acceptanceNotRequired;
-  const words = t(lang, "spec.acceptanceTickingRequired");
-  const acceptance = acceptanceLocked
-    ? labelledCheckbox({
-        label: words,
-        disabled: true,
-        checked: required,
-        help: helpPopover(t(lang, "spec.acceptanceLockedTitle"), t(lang, "spec.acceptanceLockedBody")),
-      })
-    : `<input type="hidden" name="acceptanceEditable" value="1">` +
-      labelledCheckbox({ label: words, name: "acceptanceRequired", value: "1", checked: required });
   // `.trackingform`, never `.specform`: the Status tab's tick form
   // already carries that class, and the banner renders on every tab —
   // Checks included — so a shared class would leave that tab with TWO
@@ -101,19 +83,35 @@ export function trackingControl(view: SpecPageView, lang: Language = "en"): stri
   // spec 382).
   return (
     `<form class="trackingform reloadform" method="post" action="${esc(view.trackingAction)}"${dataAttrs(SPEC_LINES)}>` +
+    settings +
     (picker ? `<span class="frow">${picker}</span>` : "") +
-    note +
-    // Not `.factions`: the switch is a FIELD, not an action, and the
-    // page's one actions row is the Save/Cancel pair below it.
-    `<p class="row">${acceptance}</p>` +
-    // Chosen when the spec was created, shown and never posted.
-    createChoicesControls(view.createChoices, lang) +
     // The same pair, and the same rules, the document forms already
     // have: both inactive until something changes, Cancel putting the
     // form back the way the page opened it.
     (picker ? "" : actions) +
     `</form>`
   );
+}
+
+/** The four settings the spec was created with, as New spec's Options tab
+ *  draws them, locked: acceptance alone may still post. */
+function createdOptions(view: SpecPageView, lang: Language, acceptanceEditable: boolean): string {
+  const c = view.createChoices ?? createChoicesIn("");
+  return optionsGroup({
+    locked: true,
+    acceptanceEditable,
+    acceptance: !view.acceptanceNotRequired,
+    aiFormulate: c.aiFormulate,
+    criteriaChecks: c.criteriaChecks,
+    chooseApproach: c.chooseApproach,
+    labels: {
+      acceptance: capitalizeFirst(t(lang, "spec.acceptanceTickingRequired")),
+      aiFormulate: t(lang, "spec.formulateCriteria"),
+      criteriaChecks: t(lang, "spec.criteriaChecks"),
+      chooseApproach: t(lang, "spec.chooseApproach"),
+    },
+    levelWords: { off: t(lang, "spec.checksOff"), warn: t(lang, "spec.checksWarn"), stop: t(lang, "spec.checksStop") },
+  });
 }
 
 /** One labelled fact about the spec: what it is, then what it says.

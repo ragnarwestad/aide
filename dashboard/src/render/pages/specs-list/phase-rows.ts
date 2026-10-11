@@ -7,7 +7,7 @@ import { t } from "../../../i18n";
 import { wordPhase } from "../../ui/job-state";
 import type { QueueRowView } from "../../ui/job-state";
 import type { SpecsPageOptions } from "./";
-import { RUN_STEPS, groupKey, isArchivedRow, type SpecGroup } from "./data-model";
+import { PHASE_LINES, RUN_STEPS, groupKey, isArchivedRow, type SpecGroup } from "./data-model";
 import { costCell, phaseDurationCell, phaseWordCell, specTotalCell } from "./cell-helpers.ts";
 import { aiPicker, ALREADY_RUN_REASON, compactModelLabel, compactModelLabelFull, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells } from "./model-picker.ts";
 import { chosenSteps, runFormId, specBusy } from "./row-state.ts";
@@ -392,4 +392,33 @@ function aiModel(
     `<label class="aimodelfield"><span>${t(lang, "list.captionModel")}</span>${model}</label>` +
     `</span></span>`
   );
+}
+
+/** What each phase of a spec runs on, as the open row on the Specs list
+ *  shows it: the New spec page's phase table, every select locked and none
+ *  posting, and no box to tick — what runs is chosen on the Running tab. A
+ *  phase that has run shows what it ran on; one that has not, what it will
+ *  get. */
+export function specPhaseTable(g: SpecGroup, opts: SpecsPageOptions): string {
+  const lang = opts.lang ?? "en";
+  const caption = (opts.modelChoices ?? []).length
+    ? `<tr class="subrow" data-caption="1">${phaseCaptionCells(opts, false, "", lang, undefined, false)}</tr>`
+    : "";
+  const lines = PHASE_LINES.map((step) => {
+    const p = g.phases.find((x) => x.step === step);
+    const latest = p?.attempts[0];
+    const recordedModel = p?.model?.split(" ").slice(1).join(" ") || undefined;
+    const usedTool = latest?.results?.find((x) => x.step === step)?.tool;
+    const ranModelId = p?.attempts[0]?.modelId ?? p?.modelId;
+    // Locked as a busy row's phase is (`busy`, not `live`): the value is
+    // still the pick the phase will get, not a record of a run. An empty
+    // `form` ties the selects to no form at all.
+    const ai = aiPicker(g, opts, step, true, false, latest?.model, recordedModel, "", false, usedTool);
+    const model = modelPicker(g, opts, step, true, false, latest?.model, recordedModel, "", false, ranModelId);
+    return (
+      `<tr class="subrow" data-step="${esc(step)}"><td class="phasecell">${esc(stepLabel(step, opts.lang))}</td>` +
+      `<td class="modelcell"><span class="row"><span class="aimodel">${ai}${model}</span></span></td></tr>`
+    );
+  }).join("");
+  return `<table class="list"><tbody>${caption}${lines}</tbody></table>`;
 }

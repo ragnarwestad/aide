@@ -141,14 +141,6 @@ table.settingstable tbody:first-of-type tr.settingsgroup th { padding-top: 0; }
   background: var(--surface);
   border-radius: var(--r);
 }
-/* Spec 415: the New-spec page's own AI/Model table has the same
-   narrow-content-columns complaint as .settingstable just above, but it
-   shares plain table.list with the Specs list's phase rows (spec 342),
-   so it cannot take table.speclist's or table.settingstable's own
-   class without inheriting rules meant for a different table. Scoped
-   by the page's existing form id instead: no new class, so the closed
-   class vocabulary stays untouched. */
-#new-spec-form table.list { width: auto; }
 /* Measured in a browser against the widest thing each column can draw,
    plus the cell's own padding (--sp-3 on each side): Spec is
    the first two together carry `.spec-name`'s 27rem box, which the

@@ -152,3 +152,41 @@ describe("a locked phase line", () => {
     expect(byStep["analyze"]).not.toContain("claude-sonnet-5");
   });
 });
+
+// The open row on the Specs list shows what each phase runs on in New
+// spec's phase table, and what runs is chosen on the Running tab: every
+// select is locked, and none belongs to a form, live spec or archived.
+describe("the open spec's phase table", () => {
+  const TOOLS: NonNullable<SpecsPageOptions["modelChoices"]> = [{ name: "sonnet" }, { name: "opus" }];
+  const phases = (opts: Partial<SpecsPageOptions>, key: string): string => {
+    let drawn = "";
+    renderSpecsRows([], {
+      runnerAvailable: true,
+      targets: [],
+      modelChoices: TOOLS,
+      defaultModels: { default: "sonnet" },
+      openSpec: { key, detail: (parts) => (drawn = parts.phases) },
+      ...opts,
+    });
+    return drawn;
+  };
+  const selects = (html: string) => html.match(/<select\b[^>]*>/g) ?? [];
+
+  test("a live spec's selects are locked and tied to no form", () => {
+    const html = phases({ targets: [{ project: "aide", specFolder: "81-live" }] }, "aide/81-live");
+    expect(selects(html).length).toBeGreaterThan(0);
+    for (const tag of selects(html)) {
+      expect(tag).toContain(" disabled");
+      expect(tag).toContain('form=""');
+    }
+  });
+
+  test("an archived spec's phase shows the model it ran on", () => {
+    const html = phases(
+      { archivedSpecs: [{ project: "aide", folder: "50-archived", done: ["create", "analyze"], models: { analyze: "claude opus" }, phaseOutcomes: {} }], filter: { state: "archived" } },
+      "aide/50-archived",
+    );
+    const analyze = html.match(/<tr class="subrow" data-step="analyze">[\s\S]*?<\/tr>/)![0];
+    expect(analyze).toMatch(/<option value="opus"[^>]*selected>/);
+  });
+});

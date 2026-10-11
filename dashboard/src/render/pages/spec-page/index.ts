@@ -47,8 +47,7 @@
 // that assembles all of them, into the open row of the Specs list — stays
 // here.
 
-import { badge, buttonForm, helpPopover, messageSlot, rowMessage } from "../../ui/components";
-import { gerund } from "../../../format/gerund.ts";
+import { buttonForm, helpPopover, messageSlot, rowMessage } from "../../ui/components";
 import type { Language } from "../../../i18n";
 import { shellHead, shellRest, type NavEntry } from "../../ui/shell.ts";
 import { LOADING_HIDE_RULE, loadingBlock } from "../../ui/loading.ts";
@@ -82,6 +81,9 @@ interface SpecDetailOpts {
   /** The list's view (filter, sort, search) the spec's links carry, so
    *  following one keeps the list around the open row. */
   view?: ListView;
+  /** What the Specs list knows of the spec and draws for it: its state
+   *  badge and its phase table. */
+  top?: { badge: string; phases: string };
 }
 
 /** What the Steps tab draws of a spec: its lead job and every step of the
@@ -92,15 +94,6 @@ export type SpecStepsView = Pick<SpecPageView, "project" | "specFolder" | "lead"
  *  finishes — what keys its row and what the follow marker names. */
 const runningIndexOf = (view: SpecStepsView): number | undefined =>
   view.lead?.runningStep ? (view.steps?.length ?? 0) : undefined;
-
-/** Where the spec stands, on the line that names it: while a phase is
- *  running, what it is doing, in the reader's own language. The page said
- *  this only in the Logs tab, one click away, so a spec you had just started
- *  looked exactly like one that had never run. */
-function runningBadge(view: SpecStepsView, lang: Language): string {
-  const running = view.lead?.runningStep?.step;
-  return running ? badge("running", gerund(lang, running)) : "";
-}
 
 /** The Steps tab's table, with the tab's own "(?)" in its first line. */
 function stepsTable(view: SpecStepsView, opts: Pick<SpecDetailOpts, "step" | "steptab" | "lang" | "view">): string {
@@ -123,12 +116,11 @@ function stepsTable(view: SpecStepsView, opts: Pick<SpecDetailOpts, "step" | "st
 export function renderSpecStepsFollowParts(view: SpecStepsView, opts: Pick<SpecDetailOpts, "step" | "steptab" | "lang" | "view"> = {}): string {
   return (
     (view.lead ? followMarker(view.lead, { tab: "steps", step: opts.step, runningIndex: runningIndexOf(view) }) : "") +
-    followPart("head", runningBadge(view, opts.lang ?? "en"), "span") +
     followPart("panel", stepsTable(view, opts))
   );
 }
 
-/** The whole spec as it sits in the open row of the Specs list: the running
+/** The whole spec as it sits in the open row of the Specs list: the state
  *  badge and the PDF link on a line of their own, the banner, the tab bar
  *  and the open tab's panel. The page's own frame — its "← Back" link and
  *  its title — is not drawn: the row names the spec, and the browser's Back
@@ -155,7 +147,7 @@ export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}):
     // missing textarea that the spec is closed.
     archivedLine(view, opts.lang ?? "en") +
     closedLine(view, opts.lang ?? "en") +
-    trackingControl(view, opts.lang ?? "en") +
+    trackingControl(view, opts.lang ?? "en", opts.top?.phases ?? "") +
     // What a board asked for is doing, in words. Its button lives in
     // the tab row below, which holds buttons only.
     testServerStatus(view) +
@@ -198,13 +190,10 @@ export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}):
         ? descriptionPanel(view, now, opts.lang ?? "en", mark)
         : documentPanel(view, TAB_FILES[tab]!, now, opts.lang ?? "en", mark);
 
-  // The end of the title line (2026-09-09): what is running, and the
-  // PDF link at the far right — the phase pips that stood there said
-  // nothing the tabs below do not, and the PDF is not an action on the
-  // spec the way Close and Update are. On the Steps tab the badge is the
-  // `head` part the page script swaps, so it follows its job too.
-  const badgeHtml = runningBadge(view, opts.lang ?? "en");
-  const headTrailing = (tab === "steps" ? followPart("head", badgeHtml, "span") : badgeHtml) + pdfControl(view);
+  // The first line: where the spec stands at the left, the PDF link at the
+  // right. Then what each phase runs on beside the four settings the spec
+  // was created with, laid out as on New spec's Options tab.
+  const head = `<div class="panelhead">${opts.top?.badge ?? ""}${pdfControl(view)}</div>`;
 
   // Each tab is a page load of the spec's own address, with the list's view
   // and the row's anchor, so the row is still open and in view after it.
@@ -223,7 +212,7 @@ export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}):
   // `.doc`'s default, so the wrapper takes theirs: one right edge.
   return (
     `<div class="doc formdoc">` +
-    (headTrailing ? `<p class="row">${headTrailing}</p>` : "") +
+    head +
     banner +
     tabs +
     `<div class="tabpanel">${panel}</div>` +

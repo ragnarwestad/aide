@@ -407,22 +407,28 @@ branch where one is open, as of its last fetch, and off the specs checkout where
 draws the acceptance criteria first, as real boxes with a Save of their own (each with its note and the tests that
 name it), then the rest of `4-status.md` rendered read-only; an archived spec, or one with a job in flight, shows the
 same criteria without boxes. An old `?tab=checks` link opens the Status tab. Update, which pulls the specs
-checkout (`POST /api/queue/specs/<project>/<spec>/update`), sits at the end of the tab row. The banner above the
-tabs holds what belongs to the spec rather than to one document: whether it is archived or closed, the test
-server's state, any error, and the four choices the spec was created with. Acceptance ticking required and what the spec
-depends on are editable in one form (`POST /api/queue/specs/<project>/<spec>/tracking`), the ticking until analyze has
-run. "Let AI formulate acceptance criteria", "Acceptance criteria checks" and "Let me choose the approach" are shown as
-chosen, disabled and with no field name, so the form posts none of them; on an archived spec all of them are facts.
+checkout (`POST /api/queue/specs/<project>/<spec>/update`), sits at the end of the tab row. Its first line
+holds the spec's state badge at the left, the same badge as the row's State column, and the PDF link at the right.
+Under it, laid out as New spec's Options tab with the same components, each phase's AI and model beside the four choices
+the spec was created with: the table as wide as its columns, the four settings as one group beside it, going under it
+where there is no room. The selects are locked and belong to no form, with no box to tick, since what runs is chosen on
+the Running tab: a phase that has run shows what it ran on, one that has not what it will get. Of the four, Acceptance
+ticking required is editable with what the spec depends on, in one form
+(`POST /api/queue/specs/<project>/<spec>/tracking`), until analyze has run; "Let AI formulate acceptance criteria",
+"Acceptance criteria checks" and "Let me choose the approach" are locked with no field name, so the form posts none of
+them, and on an archived spec all four are. The banner holds the rest of what belongs to the spec rather than to one
+document: whether it is archived or closed, the test server's state and any error.
 A spec created before a choice was recorded shows what a spec with nothing recorded runs with: AI formulated, checks
 Off, the approach not chosen, ticking required. `createChoicesIn` reads the four off the description's Tracking info;
 `aide-run-spec` writes the `Let AI formulate acceptance criteria:` line when a create completes.
 
-The spec is built when its address is asked, never when the list is drawn: the rows answers (`?rows=1`) carry an empty
-cell for it, and the page script puts the spec it holds back there after every redraw
-(`src/specs-client/spec-detail/`), so the editor, a half-typed description and ticks not yet saved survive. A tab is a
+The spec is built when its address is asked, never when the list is drawn: the rows answers (`?rows=1`) carry a cell
+for it holding the state badge alone, and the page script puts the spec it holds back there after every redraw
+(`src/specs-client/spec-detail/`), with the fresh badge taken into it, so the editor, a half-typed description and
+ticks not yet saved survive. A tab is a
 page load of the spec's address, and so is every link inside the spec: the page script leaves them to the browser.
-The mounted editor is given a height of its own above 40rem and scrolls inside it, under its toolbar, while the list
-scrolls around it; at phone width it grows with its text. The answer is streamed: the head and a loading line first,
+The spec is shown whole: the editor and the viewer grow with their text at every width, and the list scrolls around
+them. The answer is streamed: the head and a loading line first,
 the list and the spec when the spec's view is ready.
 
 **The Logs tab lists every step from every attempt in one flat list, no picker.** A spec with more than one job for
@@ -430,7 +436,7 @@ the same work round tags each row `Attempt N` (oldest = 1); a single-attempt spe
 `?job=`: the tab's own count is the true total across every attempt, not just the latest one's. **Only the Logs tab
 follows its job**, in place: while the lead job is queued, running or landing, the page carries a hidden marker, and
 when the live feed says something moved (or the stream reconnects, or the tab comes back into view) the page script asks
-its own address with `follow=1`. The server answers the steps table and the running badge alone, built from the round's
+its own address with `follow=1`. The server answers the steps table alone, built from the round's
 steps and never from the page's whole view; the script swaps only the rows that differ, adds a longer log's new end
 after what is drawn, and keeps the page's scroll, each log box's place and any row the reader has selected text in.
 An answer without the marker ends the following, and a page whose job is not in flight asks for nothing at all. Every

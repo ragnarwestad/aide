@@ -145,7 +145,7 @@ export async function specPageRoutes(
           parts.rows(),
         ]);
         if (!view) throw new Error("spec folder disappeared while the page was built");
-        const detail = renderSpecDetail(
+        const detail = (top: { badge: string; phases: string }): string => renderSpecDetail(
           {
             ...view,
             error: failedRoundSentence(view.lead, lang),
@@ -162,6 +162,7 @@ export async function specPageRoutes(
             steptab: url.searchParams.get("steptab") ?? undefined,
             lang,
             view: listView,
+            top,
           },
         );
         return renderSpecsPageRest(rows, ctx.nav(), {

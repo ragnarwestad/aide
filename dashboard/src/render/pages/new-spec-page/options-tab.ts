@@ -16,14 +16,15 @@ import type { NewSpecPageOptions } from ".";
  *  flex. */
 export function optionsTab(opts: NewSpecPageOptions, formId: string): string {
   return (
-    `<span class="frow row">` +
+    `<span class="frow options-row">` +
     newSpecPhaseTable(opts, formId) +
-    `<span class="options-group">` +
-    acceptanceField(formId) +
-    aiFormulateAcceptanceField(formId) +
-    criteriaChecksField() +
-    chooseApproachField(formId) +
-    `</span>` +
+    optionsGroup({
+      form: formId,
+      acceptance: true,
+      aiFormulate: true,
+      criteriaChecks: "off",
+      chooseApproach: false,
+    }) +
     `</span>`
   );
 }
@@ -86,6 +87,42 @@ function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
   return `<table class="list"><tbody>${captionRow}${phaseRows}</tbody></table>`;
 }
 
+/** What the four settings show, and whether they post. New spec posts
+ *  all four to its form; the open row on the Specs list shows what the
+ *  spec was created with, locked, and names none of them — except
+ *  acceptance, which posts with the row's own form until analyze has
+ *  decided it. */
+export interface OptionsGroupValues {
+  /** The form the fields post to; absent, they post with the form they
+   *  sit inside. */
+  form?: string;
+  acceptance: boolean;
+  aiFormulate: boolean;
+  criteriaChecks: CriteriaChecks;
+  chooseApproach: boolean;
+  /** Shows the values and posts none of them. */
+  locked?: boolean;
+  /** Acceptance can still be changed although the rest is locked. */
+  acceptanceEditable?: boolean;
+  /** The labels, where the page has a language of its own. */
+  labels?: Partial<Record<"acceptance" | "aiFormulate" | "criteriaChecks" | "chooseApproach", string>>;
+  /** The level words of the checks select, by value. */
+  levelWords?: Partial<Record<CriteriaChecks, string>>;
+}
+
+/** The four settings about the spec as a whole, one to a line, as one
+ *  group: beside the phase table where there is room, under it where not. */
+export function optionsGroup(v: OptionsGroupValues): string {
+  return (
+    `<span class="options-group">` +
+    acceptanceField(v) +
+    aiFormulateAcceptanceField(v) +
+    criteriaChecksField(v) +
+    chooseApproachField(v) +
+    `</span>`
+  );
+}
+
 // Spec 394 (REQ-2): the acceptance switch, drawn separately from the
 // phase table's own rows — neither is about one phase, both are about
 // the spec as a whole. Spec 386's original placement (a row inside
@@ -106,16 +143,21 @@ function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
 // decides once, from this, and locks the switch after — so a spec that
 // quietly skipped its acceptance table could only be put right by
 // running the whole analysis again.
-function acceptanceField(formId: string): string {
+function acceptanceField(v: OptionsGroupValues): string {
+  const editable = !v.locked || !!v.acceptanceEditable;
   return (
     `<span class="field"><span class="fieldhead">` +
+    // What tells the route a cleared box from a locked one: a locked box
+    // posts nothing, the same as a cleared one.
+    (v.locked && editable ? `<input type="hidden" name="acceptanceEditable" value="1">` : "") +
     phaseChip({
       dataAttr: "data-acceptance",
       value: "1",
-      label: "Acceptance ticking required",
-      name: "acceptanceRequired",
-      form: formId,
-      checked: true,
+      label: v.labels?.acceptance ?? "Acceptance ticking required",
+      name: editable ? "acceptanceRequired" : "",
+      form: v.form,
+      checked: v.acceptance,
+      disabled: !editable,
       plain: true,
     }) +
     `<span class="fieldend">` +
@@ -133,16 +175,17 @@ function acceptanceField(formId: string): string {
 // reason — unticking it is a deliberate action, never a default a reader
 // stumbles into. Ticked, create runs exactly as it always has: the only
 // path left to an AI session anywhere inside create.
-function aiFormulateAcceptanceField(formId: string): string {
+function aiFormulateAcceptanceField(v: OptionsGroupValues): string {
   return (
     `<span class="field"><span class="fieldhead">` +
     phaseChip({
       dataAttr: "data-ai-formulate",
       value: "1",
-      label: "Let AI formulate acceptance criteria",
-      name: "aiFormulateAcceptance",
-      form: formId,
-      checked: true,
+      label: v.labels?.aiFormulate ?? "Let AI formulate acceptance criteria",
+      name: v.locked ? "" : "aiFormulateAcceptance",
+      form: v.form,
+      checked: v.aiFormulate,
+      disabled: v.locked,
       plain: true,
     }) +
     `<span class="fieldend">` +
@@ -161,16 +204,17 @@ function aiFormulateAcceptanceField(formId: string): string {
 // Not ticked when the form opens: unticked, analyze picks the approach and
 // implement builds it, as it always has. The runner records the choice in
 // the new spec's Tracking info either way.
-function chooseApproachField(formId: string): string {
+function chooseApproachField(v: OptionsGroupValues): string {
   return (
     `<span class="field"><span class="fieldhead">` +
     phaseChip({
       dataAttr: "data-choose-approach",
       value: "1",
-      label: "Let me choose the approach",
-      name: "chooseApproach",
-      form: formId,
-      checked: false,
+      label: v.labels?.chooseApproach ?? "Let me choose the approach",
+      name: v.locked ? "" : "chooseApproach",
+      form: v.form,
+      checked: v.chooseApproach,
+      disabled: v.locked,
       plain: true,
     }) +
     `<span class="fieldend">` +
@@ -199,14 +243,14 @@ export const criteriaChecksChoices = (): { value: CriteriaChecks; label: string 
 // the same level a spec with nothing recorded is checked at. Drawn the
 // way the two switches beside it are — the control on the label's line,
 // the "(?)" at its end — so the three read as one row.
-function criteriaChecksField(): string {
-  const id = "new-spec-criteria-checks";
+function criteriaChecksField(v: OptionsGroupValues): string {
+  const id = v.locked ? "spec-criteria-checks" : "new-spec-criteria-checks";
   return (
     `<span class="field"><span class="fieldhead"><span class="row">` +
-    `<label for="${id}">Acceptance criteria checks</label>` +
-    `<select name="criteriaChecks" id="${id}">` +
+    `<label for="${id}">${esc(v.labels?.criteriaChecks ?? "Acceptance criteria checks")}</label>` +
+    `<select ${v.locked ? "disabled" : `name="criteriaChecks"`} id="${id}">` +
     criteriaChecksChoices()
-      .map((o) => `<option value="${o.value}"${o.value === "off" ? " selected" : ""}>${esc(o.label)}</option>`)
+      .map((o) => `<option value="${o.value}"${o.value === v.criteriaChecks ? " selected" : ""}>${esc(v.levelWords?.[o.value] ?? o.label)}</option>`)
       .join("") +
     `</select></span>` +
     `<span class="fieldend">` +

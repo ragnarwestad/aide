@@ -6,22 +6,14 @@ import { describe, expect, test } from "bun:test";
 import { page, view } from "../spec-page-fixtures.ts";
 
 describe("spec 394: the banner's combined tracking control", () => {
-  // REQ-6: locked, not omitted, once analyze has run — with a "(?)"
-  // saying why, the same disabled-with-reason shape pdfControl/
-  // resetControl already use (spec 454: moved off `title` into a
-  // helpPopover).
-  test("REQ-6: the switch is drawn disabled with a '(?)' once done includes analyze", () => {
+  // REQ-6: locked, not omitted, once analyze has run.
+  test("REQ-6: the switch is drawn disabled, and posts nothing, once done includes analyze", () => {
     const html = page(view({ done: ["create", "analyze"] }));
     expect(html).not.toContain('name="acceptanceRequired"');
-    expect(html).toMatch(/<span class="row" aria-disabled="true">/);
-    expect(html).not.toMatch(/title="analyze has already decided/);
-    expect(html).toContain(
-      "<p>Analyze has already decided whether to write the acceptance-criteria table — this cannot change now.</p>",
-    );
-    // Still a box, and still saying which way it went — it used to draw
-    // one sentence for both answers.
-    expect(html).toContain("acceptance ticking required");
-    expect(html).toMatch(/<input type="checkbox" disabled/);
+    expect(html).not.toContain('name="acceptanceEditable"');
+    // Still a box, and still saying which way it went.
+    expect(html).toContain("Acceptance ticking required");
+    expect(html).toMatch(/data-acceptance[^>]*><input[^>]*\bchecked\b[^>]*\bdisabled\b/);
   });
 
   // REQ-6's own criterion is testable both ways: nothing done yet draws
@@ -56,13 +48,14 @@ describe("spec 394: the banner's combined tracking control", () => {
     for (const tag of tags) expect(tag).not.toContain("name=");
   });
 
-  test("an archived spec shows the three choices as facts with the same values (AC-5)", () => {
+  test("an archived spec shows the four settings locked, with the same values, posting none (AC-5)", () => {
     const html = page(view({ archived: true, createChoices: CHOICES }));
     expect(html).toContain("Let AI formulate acceptance criteria");
-    expect(html).toContain("Acceptance criteria checks");
     expect(html).toContain("Let me choose the approach");
-    expect(html).toContain("Warn");
-    expect(disabledTags(html)).toEqual([]);
+    expect(html).toMatch(/<select[^>]*\bdisabled\b[^>]*>[\s\S]*?<option value="warn" selected>/);
+    for (const field of ["acceptanceRequired", "acceptanceEditable", "aiFormulateAcceptance", "criteriaChecks", "chooseApproach"]) {
+      expect([field, html.includes(`name="${field}"`)]).toEqual([field, false]);
+    }
   });
 
   test("a view with no recorded choices shows the defaults (AC-7)", () => {

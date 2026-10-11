@@ -267,6 +267,9 @@ export function phaseCaptionCells(
   /** The spec's own Time and Cost, for the caption line under an open
    *  row. */
   totals: { started: string; cost: string } = { started: "", cost: "" },
+  /** A table that shows what each phase runs on, and selects nothing,
+   *  has no "Select" column to head. */
+  withBox = true,
 ): string {
   const tools = new Set((opts.modelChoices ?? []).map((m) => m.tool ?? "claude"));
   return (
@@ -287,7 +290,7 @@ export function phaseCaptionCells(
       ? `<span class="muted small" data-cap="ai" data-ai-cap>${t(lang, "list.captionAi")}</span>`
       : "") +
     `<span class="muted small" data-cap="model">${t(lang, "list.captionModel")}</span>` +
-    `<span class="muted small" data-cap="box">${t(lang, "list.captionSelect")}</span>` +
+    (withBox ? `<span class="muted small" data-cap="box">${t(lang, "list.captionSelect")}</span>` : "") +
     `</span></td>` +
     (includeListColumns
       ? `<td data-col="state">${action ? `<span class="actionslot">${action}</span>` : ""}</td>` +

@@ -265,24 +265,13 @@ export const de: Record<TranslationKey, string> = {
   "project.count": "{n} Projekte",
   "project.manifestFailed": "Manifest konnte nicht geparst werden: {error}",
 
-  "spec.acceptance": "Abnahme",
-  "spec.acceptanceRequired": "erforderlich",
-  "spec.acceptanceNotRequired": "nicht erforderlich",
   "spec.acceptanceTickingRequired": "Abnahme muss abgehakt werden",
-  "spec.acceptanceLockedTitle": "warum sich das nicht ändern lässt",
-  "spec.acceptanceLockedBody":
-    "Analysieren hat bereits entschieden, ob die Abnahmekriterien-Tabelle geschrieben wird — das lässt sich " +
-    "jetzt nicht mehr ändern.",
   "spec.formulateCriteria": "KI die Abnahmekriterien formulieren lassen",
   "spec.criteriaChecks": "Prüfung der Abnahmekriterien",
   "spec.chooseApproach": "Den Ansatz selbst wählen",
   "spec.checksOff": "Aus",
   "spec.checksWarn": "Warnen",
   "spec.checksStop": "Stoppen",
-  "spec.valueYes": "Ja",
-  "spec.valueNo": "Nein",
-  "spec.createChoicesTitle": "warum sich diese nicht ändern lassen",
-  "spec.createChoicesBody": "Diese wurden beim Anlegen der Spec gewählt und lassen sich jetzt nicht mehr ändern.",
   "spec.archivedLine": "Diese Spec wurde archiviert und kann nicht bearbeitet werden, bis die Spec wieder geöffnet wird",
   "spec.closedLine":
     "Diese Spec wurde geschlossen{when}{reason} — es hat nicht funktioniert, und die Beschreibung und die " +

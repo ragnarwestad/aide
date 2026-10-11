@@ -47,13 +47,12 @@ async function runningJob(): Promise<{ base: string; id: string; stream: string 
 }
 
 describe("the follow answer of a running job (AC-2)", () => {
-  test("a job page and a Steps tab each answer the marker, a head and a panel holding the log, and no page (AC-2)", async () => {
+  test("a job page and a Steps tab each answer the marker and a panel holding the log, and no page (AC-2)", async () => {
     const { base, id, stream } = await runningJob();
     writeFileSync(stream, said("the line X"));
     for (const url of [`/jobs/${id}?tab=steps&follow=1`, `/specs/aide/${FOLDER}?tab=steps&follow=1`]) {
       const html = await (await fetch(`${base}${url}`)).text();
       expect(html, url).toContain("data-follow");
-      expect(html, url).toContain('data-follow-part="head"');
       expect(html, url).toContain('data-follow-part="panel"');
       expect(html, url).toContain("the line X");
       expect(html, url).not.toContain("<html");

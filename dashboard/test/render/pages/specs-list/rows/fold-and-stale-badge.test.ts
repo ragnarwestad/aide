@@ -95,7 +95,7 @@ describe("the open row and the chevrons (AC-3)", () => {
       runnerAvailable: true,
       targets,
       filter: { q: "queue" },
-      openSpec: { key: "aide/81-queue-x", detail: "<p>THE-SPEC</p>" },
+      openSpec: { key: "aide/81-queue-x", detail: () => "<p>THE-SPEC</p>" },
     },
     Date.parse("2026-08-18T12:00:00Z"),
   );
@@ -180,7 +180,7 @@ describe("an open row on the Specs list is the spec alone (AC-1, AC-2, AC-3)", (
     html.match(new RegExp(`<tr class="spechead\\b[^>]*?\\bid="spec-${key}"[\\s\\S]*?<tr class="specgap"[^>]*>.*?</tr>`))?.[0] ?? "";
   const onList = (key: string): string =>
     group(
-      renderSpecsRows(list, { ...base, filter: { phases: "aide/81-queue-x:create" }, openSpec: { key, detail: "<p>THE-SPEC</p>" } }, NOW),
+      renderSpecsRows(list, { ...base, filter: { phases: "aide/81-queue-x:create" }, openSpec: { key, detail: () => "<p>THE-SPEC</p>" } }, NOW),
       key,
     );
   const onJobsTab = (key: string): string =>
@@ -220,7 +220,7 @@ describe("an open row on the Specs list is the spec alone (AC-1, AC-2, AC-3)", (
     const key = "aide/81-queue-x";
     expect(draw({})).toContain("/approach");
     expect(draw({ filter: { open: key } })).toContain("/approach");
-    expect(draw({ openSpec: { key, detail: "<p>THE-SPEC</p>" } })).not.toContain("/approach");
+    expect(draw({ openSpec: { key, detail: () => "<p>THE-SPEC</p>" } })).not.toContain("/approach");
   });
 
   test("drawn the Running tab's way, an open row has its caption line and its phase lines (AC-3)", () => {

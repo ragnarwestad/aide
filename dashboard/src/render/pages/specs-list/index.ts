@@ -81,7 +81,7 @@ export {
   type SpecTarget,
   type SpecGroup,
 };
-import { LIST_COLUMNS, phaseSubRows, phasePips, specHeadRow, specNoticeRow } from "./cells.ts";
+import { LIST_COLUMNS, headStateBadge, phaseSubRows, phasePips, specHeadRow, specNoticeRow, specPhaseTable } from "./cells.ts";
 import { listRefusalLine, refusalRowTemplate } from "./notice-row.ts";
 // Re-exported for `spec-page.ts`, which draws a spec's phase pip strip
 // on its own Overview tab.
@@ -202,11 +202,13 @@ export interface SpecsPageOptions {
   scriptSrc?: string;
   /** The Specs list opens one spec at a time, at the spec's own address:
    *  present, it replaces `filter.open`. `key` is the open spec, absent for
-   *  a list with every row shut; `detail` is the spec drawn in its row,
-   *  empty in a rows answer, where the page keeps the spec it holds. Only
-   *  the Specs list sets it; the Jobs tab folds its rows as before. An open
-   *  row on the Specs list carries no phase lines. */
-  openSpec?: { key?: string; detail?: string };
+   *  a list with every row shut; `detail` draws the spec in its row from
+   *  the parts the list knows: its state badge and its phase table.
+   *  Absent in a rows answer, where the row carries the badge alone and
+   *  the page keeps the spec it holds. Only the Specs list sets it; the
+   *  Jobs tab folds its rows as before. An open row on the Specs list
+   *  carries no phase lines. */
+  openSpec?: { key?: string; detail?: (parts: { badge: string; phases: string }) => string };
 }
 
 
@@ -303,10 +305,13 @@ function groupRow(g: SpecGroup, opts: SpecsPageOptions, now: number, opened: Set
   const gap = `<tr class="specgap" aria-hidden="true"><td colspan="${LIST_COLUMNS}"></td></tr>`;
   const key = groupKey(g.project, g.specFolder);
   // The open spec ends in its detail row, the whole spec in one cell. A
-  // rows answer carries it empty, as a place for the page to put the spec
-  // it already holds.
+  // rows answer carries the state badge alone, as a place for the page to
+  // put the spec it already holds; the page takes the fresh badge from it.
+  const badge = `<span class="badgeslot" data-spec-badge>${headStateBadge(g, opts.lang ?? "en")}</span>`;
   const detail = opts.openSpec?.key === key
-    ? `<tr class="specdetail" data-spec-detail="${esc(key)}"><td colspan="${LIST_COLUMNS}">${opts.openSpec.detail ?? ""}</td></tr>`
+    ? `<tr class="specdetail" data-spec-detail="${esc(key)}"><td colspan="${LIST_COLUMNS}">` +
+      (opts.openSpec.detail ? opts.openSpec.detail({ badge, phases: specPhaseTable(g, opts) }) : badge) +
+      `</td></tr>`
     : "";
   const runs = opts.openSpec ? "" : phaseSubRows(g, opts, now);
   return opened.has(key)

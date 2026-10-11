@@ -236,8 +236,11 @@ describe("GET /specs/<project>/<specFolder>", () => {
     const live = harness.start({ description: DESCRIPTION, archivedSpecs: { "70-an-old-spec": {} } });
     const open = await (await fetch(`${live.base}${PATH}`)).text();
     expect(open).toContain('data-ask="closeask"');
+    // The spec's own phase table sits inside its detail row; the list row
+    // around it has no phase line of its own.
+    const row = open.replace(/<tr class="specdetail"[\s\S]*?(?=<tr class="specgap")/, "");
     for (const absent of ['class="subrow"', '<tr class="subrow" data-caption', 'class="rowrun"']) {
-      expect([absent, open.includes(absent)]).toEqual([absent, false]);
+      expect([absent, row.includes(absent)]).toEqual([absent, false]);
     }
     const archived = await (await fetch(`${live.base}/specs/aide/70-an-old-spec`)).text();
     expect(archived).toContain('data-ask="reopenask"');

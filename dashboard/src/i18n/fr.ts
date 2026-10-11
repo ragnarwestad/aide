@@ -265,24 +265,13 @@ export const fr: Record<TranslationKey, string> = {
   "project.count": "{n} projets",
   "project.manifestFailed": "Échec de l'analyse du manifest : {error}",
 
-  "spec.acceptance": "Acceptation",
-  "spec.acceptanceRequired": "requise",
-  "spec.acceptanceNotRequired": "non requise",
   "spec.acceptanceTickingRequired": "acceptation à cocher",
-  "spec.acceptanceLockedTitle": "pourquoi cela ne peut pas changer",
-  "spec.acceptanceLockedBody":
-    "Analyser a déjà décidé s'il fallait écrire le tableau des critères d'acceptation — cela ne peut plus " +
-    "être changé maintenant.",
   "spec.formulateCriteria": "Faire formuler les critères d'acceptation par l'IA",
   "spec.criteriaChecks": "Vérification des critères d'acceptation",
   "spec.chooseApproach": "Choisir moi-même l'approche",
   "spec.checksOff": "Désactivée",
   "spec.checksWarn": "Avertir",
   "spec.checksStop": "Arrêter",
-  "spec.valueYes": "Oui",
-  "spec.valueNo": "Non",
-  "spec.createChoicesTitle": "pourquoi cela ne peut pas changer",
-  "spec.createChoicesBody": "Ils ont été choisis à la création de la spec et ne peuvent plus être modifiés.",
   "spec.archivedLine": "Cette spec a été archivée et ne peut pas être modifiée tant qu'elle n'est pas rouverte",
   "spec.closedLine":
     "Cette spec a été fermée{when}{reason} — cela n'a pas fonctionné, et la description et les vérifications " +
