@@ -75,3 +75,31 @@ test("opening a spec leaves its row in view once the editor has mounted", async 
   expect(row).toBeLessThan(560);
   await small.close();
 });
+
+// Opening a spec by its address — the Running tab's link to it — scrolls
+// the list's own box to its row and leaves the page where it is: the
+// browser's own jump to the anchor scrolled the page too, and a row far
+// down a long list took the tabs and the headings above the screen.
+test("a spec opened by its address far down a long list keeps the page's top in view", async () => {
+  const many = queueHarness("aide-e2e-fold-long-");
+  const folders = Array.from({ length: 40 }, (_, i) => `${100 + i}-spec-number-${i}`);
+  const longBase = many.start({ extra: {}, alsoSpecs: folders }).base;
+  const tall = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  try {
+    const last = folders[0]!;
+    await withBrowser(tall.goto(`${longBase}/specs/aide/${last}?live=0#spec-aide/${last}`), "page.goto(long list)");
+    await tall.waitForSelector(detail(last));
+    await tall.waitForTimeout(300);
+    const at = await tall.evaluate((id) => ({
+      page: window.scrollY,
+      row: document.getElementById(id)!.getBoundingClientRect().top,
+      headings: document.querySelector("table.speclist thead")!.getBoundingClientRect().bottom,
+    }), `spec-aide/${last}`);
+    expect(at.page).toBe(0);
+    expect(at.row).toBeGreaterThanOrEqual(at.headings - 1);
+    expect(at.row).toBeLessThan(900);
+  } finally {
+    await tall.close();
+    many.cleanup();
+  }
+});

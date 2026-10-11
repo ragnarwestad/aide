@@ -428,6 +428,8 @@ for it holding the state badge alone, and the page script puts the spec it holds
 (`src/specs-client/spec-detail/`), with the fresh badge taken into it, so the editor, a half-typed description and
 ticks not yet saved survive. A tab is a
 page load of the spec's address, and so is every link inside the spec: the page script leaves them to the browser.
+The page script puts the row the address names at the top of the list's own box, under its headings, and leaves the
+page at its top, wherever the row sits in the list.
 The spec is shown whole: the editor and the viewer grow with their text at every width, and the list scrolls around
 them. The answer is streamed: the head and a loading line first,
 the list and the spec when the spec's view is ready.

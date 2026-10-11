@@ -52,6 +52,7 @@ import { postForm } from "./press.ts";
 import { bindPushPanel } from "./push.ts";
 import { startReloadWhileIdle } from "./reload-while-idle";
 import { relabelRunButton } from "./row-swap.ts";
+import { placeNamedRow } from "./spec-detail";
 import {
   followScheduleRow, postScheduleEnabled, postScheduleRun, scheduleCronPreview, submitScheduleForm,
 } from "./schedule-actions.ts";
@@ -318,6 +319,13 @@ offerEachToItsTool(document);
 connect();
 
 for (const el of document.querySelectorAll("iframe[data-report-frame]")) bindReportFrame(el as HTMLIFrameElement);
+
+// A row the address names sits at the top of the list's box, the page at
+// its top — now, and again once the page has loaded, after the browser's
+// own jump to the anchor.
+const page = globalThis as unknown as Window;
+placeNamedRow(document, page);
+page.addEventListener?.("load", () => placeNamedRow(document, page));
 
 // "← Back" on a page with tabs keeps where the page was opened from while
 // the reader switches tabs. Last, and throwing nothing, so no binding above

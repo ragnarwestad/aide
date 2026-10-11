@@ -29,3 +29,23 @@ export function holdSpecDetail(body: ParentNode): () => void {
     }
   };
 }
+
+/** Puts the row the address names (`#spec-<project>/<folder>`) at the top
+ *  of the list's own box, under its headings, and the page at its top. The
+ *  browser's own jump to the anchor scrolls every box the row sits in, the
+ *  page included, so a row far down a long list took the tabs, the search
+ *  and the headings above the screen. Where the box does not scroll by
+ *  itself — a phone, where the page does — the browser's jump stands. */
+export function placeNamedRow(doc: Document, win: Window): void {
+  const hash = win.location?.hash;
+  if (typeof hash !== "string" || !hash.startsWith("#spec-")) return;
+  const id = decodeURIComponent(hash.slice(1));
+  const row = doc.getElementById(id);
+  const wrap = row?.closest(".tablewrap") as HTMLElement | null;
+  if (!row || !wrap || wrap.scrollHeight <= wrap.clientHeight) return;
+  const style = win.getComputedStyle(wrap);
+  if (!/auto|scroll/.test(style.overflowY)) return;
+  win.scrollTo(0, 0);
+  const headings = Number.parseFloat(style.scrollPaddingTop) || 0;
+  wrap.scrollTop += row.getBoundingClientRect().top - wrap.getBoundingClientRect().top - headings;
+}
