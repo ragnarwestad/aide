@@ -557,7 +557,7 @@ describe("a spec's shut row on the Jobs tab is the Specs list's row, and its ope
     const base = await settled();
     const html = await rowsOf(base, OPEN_82);
     expect(html).toContain("<thead>");
-    expect(html).not.toMatch(/href="\/specs(\?|")/);
+    expect(html).not.toMatch(/href="\/specs[?"]/);
   });
 
   test("?only= answers that spec's rows alone; a spec with no row gets a table with none (AC-3)", async () => {

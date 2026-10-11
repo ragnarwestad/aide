@@ -4,7 +4,7 @@
 // a scheduled job's facts from `jobFacts`.
 
 import { describe, expect, test } from "bun:test";
-import type { SpecsFilter } from "../../../../src/render/pages/specs-list";
+import type { QueueRowView, SpecsFilter } from "../../../../src/render";
 import {
   JOBS_STATE_FILTERS,
   jobFacts,
@@ -17,7 +17,6 @@ import {
   type RowFacts,
 } from "../../../../src/render/pages/jobs-page/view.ts";
 import { byTabPlace, jobPlace, type TabPlace } from "../../../../src/render/pages/jobs-page/rows.ts";
-import type { QueueRowView } from "../../../../src/render/ui/job-state";
 
 const NOW = Date.parse("2026-10-09T12:00:00Z");
 const T = (day: number, hour = 10): string => `2026-10-${String(day).padStart(2, "0")}T${String(hour).padStart(2, "0")}:00:00Z`;
