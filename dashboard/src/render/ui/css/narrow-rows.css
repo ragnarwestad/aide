@@ -70,6 +70,8 @@
      Cost are hidden, State moved onto the spec's own second line), and
      the mock draws no heading row here at all. */
   table.list thead { display: none; }
+  /* With no headings to clear, a named row scrolls to the very top. */
+  #jobrows .tablewrap { scroll-padding-top: 0; }
 
   /* The fold control (design handoff, mobile-spec-row), second attempt
      (2026-08-24). The first attempt toggled .modelcell between
