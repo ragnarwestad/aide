@@ -295,50 +295,11 @@ describe("SpecFileCommitChecker", () => {
     expect(git.calls).toHaveLength(2);
   });
 
-  test("a file nothing has ever asked about peeks null, and spawns no git", () => {
-    const git = dated();
-    const checker = new SpecFileCommitChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
-    expect(checker.peekCommitFor(DIR, "1-description.md")).toEqual({
-      sha: null,
-      at: null,
-      checkedAt: null,
-    });
-    expect(git.calls.length).toBe(0);
-  });
-
-  test("after a check, the peek hands back that stamp and when it was taken", async () => {
-    const git = dated();
-    const checker = new SpecFileCommitChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
-    await checker.commitFor(DIR, "1-description.md");
-    const before = git.calls.length;
-    expect(checker.peekCommitFor(DIR, "1-description.md")).toEqual({
-      sha: "deadbee",
-      at: "2026-08-18T09:10:36+02:00",
-      checkedAt: 1000,
-    });
-    expect(git.calls.length).toBe(before);
-  });
-
-  test("past the TTL the same stamp stands, with its original timestamp", async () => {
-    const git = dated();
-    let clock = 1000;
-    const checker = new SpecFileCommitChecker({ run: git.run, ttlMs: 30_000, now: () => clock });
-    await checker.commitFor(DIR, "1-description.md");
-    clock += 60_000;
-    expect(checker.peekCommitFor(DIR, "1-description.md").checkedAt).toBe(1000);
-  });
-
   // A file git cannot date still renders — a spec outside git, a file
-  // never committed. Asked-and-undatable is timestamped, so the page
-  // stops saying "Checking…" about it.
-  test("an undatable file is a real, timestamped null", async () => {
+  // never committed — with no stamp.
+  test("an undatable file answers null", async () => {
     const git = fakeGit({});
     const checker = new SpecFileCommitChecker({ run: git.run, ttlMs: 30_000, now: () => 5000 });
-    await checker.commitFor(DIR, "1-description.md");
-    expect(checker.peekCommitFor(DIR, "1-description.md")).toEqual({
-      sha: null,
-      at: null,
-      checkedAt: 5000,
-    });
+    expect(await checker.commitFor(DIR, "1-description.md")).toBeNull();
   });
 });

@@ -33,10 +33,9 @@ import { scrollToApproach } from "./scroll-to-approach.ts";
 
 // REQ-4: the library exposes no constructor option for the mode
 // switch's position, and its own CSS assumes it sits last (rounded at
-// the bottom only). The switch's parent is a normal block-flow
-// container in `height: "auto"` mode (phone width, below); on a wider
-// screen the library's flex-column layout for that element applies, and
-// `order: -1` keeps the switch on top in both. A CSS-only reorder, with
+// the bottom only). The editor runs in `height: "auto"` mode (below),
+// where the switch's parent is a normal block-flow container; the flex
+// column set here puts `order: -1` to work. A CSS-only reorder, with
 // no JS DOM surgery: `order: -1` on a flex-column parent. Undocumented
 // library internals, not a public API — the same kind of reach
 // `customMarkdownRenderer` below already relies on — verified against
@@ -78,18 +77,11 @@ if (host && raw) {
     },
   };
 
-  // The phone width `narrow.css` is keyed on. Wider, page.css fills the
-  // window with the page and the editor takes what is left, scrolling its
-  // text under its own toolbar; at phone width it grows with its text.
-  // Both sides must read this same query: a fixed height with no room
-  // given to it collapses the editor.
-  const PHONE_WIDTH = "(max-width: 40rem)";
-  const phone = window.matchMedia(PHONE_WIDTH);
-  const heightFor = (): string => (phone.matches ? "auto" : "100%");
-
+  // The editor sits in the Specs list's open row, which shows the spec
+  // whole: it grows with its text, toolbar and all, at every width.
   const instance = new Editor({
     el: host,
-    height: heightFor(),
+    height: "auto",
     initialEditType: "wysiwyg",
     previewStyle: "tab",
     // `usageStatistics` defaults to true and would send this dashboard's
@@ -97,7 +89,7 @@ if (host && raw) {
     // Risk analysis) — not a feature this integration wants, and not
     // something a self-hosted tool should phone home about.
     usageStatistics: false,
-    // Focusing the editor scrolls it (the page, at phone width) to its
+    // Focusing the editor scrolls the page to its
     // top after mount, which would undo the scroll to an approach the
     // address names.
     autofocus: !/^#approach-/i.test(location.hash),
@@ -190,6 +182,4 @@ if (host && raw) {
   // can flip underneath the page.
   new MutationObserver(applyTheme).observe(document.documentElement, { attributeFilter: ["data-theme"] });
   prefersDark.addEventListener("change", applyTheme);
-  // A window that crosses the phone width changes the editor's mode with it.
-  phone.addEventListener("change", () => instance.setHeight(heightFor()));
 }

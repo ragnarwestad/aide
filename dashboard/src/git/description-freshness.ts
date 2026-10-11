@@ -457,20 +457,4 @@ export class SpecFileCommitChecker {
     this.cache.set(key, { at, commit });
     return commit;
   }
-
-  /** The LAST stamp this checker holds, without asking git at all.
-   *  `checkedAt` is `null` only where nothing has ever been asked — the
-   *  panel then says "checking…" and the render fires the fill without
-   *  waiting on it. A real, timestamped null is a file git cannot date
-   *  (a spec outside git, a file never committed), and the panel shows
-   *  no stamp at all, exactly as it did before this class existed. */
-  peekCommitFor(dir: string, file: string): {
-    sha: string | null;
-    at: string | null;
-    checkedAt: number | null;
-  } {
-    const hit = this.cache.get(JSON.stringify([dir, file]));
-    if (!hit) return { sha: null, at: null, checkedAt: null };
-    return { sha: hit.commit?.sha ?? null, at: hit.commit?.at ?? null, checkedAt: hit.at };
-  }
 }

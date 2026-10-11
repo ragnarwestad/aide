@@ -74,12 +74,6 @@ export interface SpecFileView {
   text: string | null;
   sha?: string;
   at?: string;
-  /** Nobody has yet asked git which commit this file is at (spec 208).
-   *  A different state from "git could not say": that one shows no
-   *  stamp at all, exactly as it did before the answer was cached, and
-   *  this one says so. Set only by the SPEC page, which is the one that
-   *  asks. */
-  checking?: boolean;
 }
 
 export interface JobDetailView extends QueueRowView {

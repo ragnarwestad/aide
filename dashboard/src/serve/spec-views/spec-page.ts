@@ -38,7 +38,7 @@ export async function specPageView(
   const matchingJobs = ctx.queue
     .list()
     .filter((j) => j.project === project && j.specFolder === specFolder);
-  const files = specFileViews(ctx, dir);
+  const files = await specFileViews(ctx, dir);
   // Off the text `specFileViews` has already read, so the page makes
   // no second git or disk read for the same file. This is the Status
   // TAB's own text (out of REQ-1's scope, per 1-description.md) — the
@@ -235,7 +235,7 @@ export async function specPageView(
       if (!fetchForm || f.label !== formFile) return f;
       // The stamp names the version the text is: the branch's commit when
       // the text came off the branch.
-      const stamp = formCopy ? { sha: formCopy.sha, at: formCopy.at, checking: false } : {};
+      const stamp = formCopy ? { sha: formCopy.sha, at: formCopy.at } : {};
       if (f.label === EDITABLE_SPEC_FILE) {
         return formText === null ? { ...f, ...stamp, text: formText } : { ...f, ...stamp, text: stripDependsOnLine(formText) };
       }

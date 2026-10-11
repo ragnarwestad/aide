@@ -61,28 +61,20 @@ export interface SpecViewsContext {
   testServers: TestServersContext;
 }
 
-export function specFileViews(ctx: SpecViewsContext, dir: string): SpecFileView[] {
-  return SPEC_FILES.map((name) => {
-    const { sha, at, checkedAt } = ctx.specFileCommits.peekCommitFor(dir, name);
-    // The one cache in this spec a sweep over the live list cannot
-    // fill: an ARCHIVED spec's page is a real render path too, and
-    // archived specs are not `targets()`'s business. So the fill is
-    // started from the request and never waited on — bounded by how
-    // many archived specs anyone actually opens, rather than by how
-    // many exist, which is the unbounded cost spec 178's own plan
-    // review rejected. The next view of this page has the stamp.
-    if (checkedAt === null) void ctx.specFileCommits.commitFor(dir, name);
+export async function specFileViews(ctx: SpecViewsContext, dir: string): Promise<SpecFileView[]> {
+  // Each file's stamp is asked of the cache, which runs `git log` once
+  // per file and TTL. The page streams its head before the spec is
+  // built, so the wait is the spec's own, and the stamp is there on the
+  // first view.
+  return await Promise.all(SPEC_FILES.map(async (name) => {
+    const commit = await ctx.specFileCommits.commitFor(dir, name);
     return {
       label: name,
       text: specFileText(dir, name),
-      sha: sha ?? undefined,
-      at: at ?? undefined,
-      // Nothing has ever asked. Not "git cannot date this file" —
-      // that is a real, timestamped answer and shows no stamp at all,
-      // exactly as it did before this cache existed.
-      checking: checkedAt === null,
+      sha: commit?.sha,
+      at: commit?.at,
     };
-  });
+  }));
 }
 
 /** WHEN a spec was archived. The stamp the archive step writes into

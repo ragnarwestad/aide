@@ -9,7 +9,8 @@ afterEach(() => {
   harness.cleanup();
 });
 
-// Spec 208: a render reads memory and disk, and nothing else.
+// Spec 208: a render reads memory and disk, and nothing else — but for
+// a spec's own file stamps, which its page waits for (below).
 //
 // This has been introduced three times — spec 178 wrote the rule and
 // was never merged, spec 203 fixed `/projects`, and spec 193 put a
@@ -134,30 +135,16 @@ describe("no render path runs git or a network command (spec 208)", () => {
     expect(await res.text()).toContain("81-queue-and-runner");
   });
 
-  // Criterion 10: the one cache a sweep over the live list cannot fill —
-  // an archived spec's page is a real render path too. It fills itself
-  // from the request, without the request ever waiting on it.
-  test("a spec page's file stamps fill in behind the request, never during it", async () => {
+  // A spec's file stamps are the one git question its page waits for:
+  // the page streams its head first, and the open row on the Specs list
+  // is never redrawn, so a stamp left for a later view never arrived.
+  test("a spec page shows its file stamp on the first view", async () => {
     const git = recording();
     const { base } = harness.start({
       extra: { gitRun: git.run, driftPollMs: 0, specCachePollMs: 0 },
     });
-    const before = git.calls.length;
-    // A document tab since spec 212: Overview carries no file text, so
-    // the stamps this is about are on the tabs that do.
     const first = await (await get(base, "/specs/aide/81-queue-and-runner?tab=analysis")).text();
-    // The stamps are not known yet, and the page says so rather than
-    // holding for four `git log`s.
-    expect(first).toContain("Checking…");
-    expect(first).not.toContain("deadbee");
-    // The fire-and-forget fill did run — it was simply never awaited.
-    expect(await until(() => git.calls.length > before)).toBe(true);
-    let second = "";
-    for (let i = 0; i < 40 && !second.includes("deadbee"); i += 1) {
-      second = await (await get(base, "/specs/aide/81-queue-and-runner?tab=analysis")).text();
-      if (!second.includes("deadbee")) await new Promise((r) => setTimeout(r, 25));
-    }
-    expect(second).toContain("deadbee");
+    expect(first).toContain("deadbee");
   });
 
   /** What the row says a phase's state is. The pips said it until

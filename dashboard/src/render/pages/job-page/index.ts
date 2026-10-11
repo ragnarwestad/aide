@@ -19,7 +19,7 @@ import { renderSentence } from "../../../i18n/message.ts";
 import { t, type Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { completedThirds, stateChip } from "../../ui/job-state";
-import { CHECKING, facts, pips, stepLabel, type PipKind } from "../../ui/components";
+import { facts, pips, stepLabel, type PipKind } from "../../ui/components";
 import { pickTab, tabBar, tabbedBody } from "../../ui/tabs.ts";
 import { followMarker, followPart } from "./follow.ts";
 import { landingRefusal, stepResults, unitLabel } from "./steps-table.ts";
@@ -58,9 +58,7 @@ export function fileStamp(file: SpecFileView, now: number): string {
   if (file.sha && file.at) {
     return ` <span class="muted small">committed ${relTime(file.at, now)} · ${esc(file.sha.slice(0, 7))}</span>`;
   }
-  // Spec 208: the page renders now and the stamp arrives on the next
-  // view. It never holds the page for a `git log`.
-  return file.checking ? ` <span class="muted small">${CHECKING}</span>` : "";
+  return "";
 }
 
 interface JobPageOpts {
