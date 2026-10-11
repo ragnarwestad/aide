@@ -117,13 +117,6 @@ export interface SpecPageView {
   /** Why Close cannot be selected at this instant (REQ-11): a job in
    *  flight or a landing in progress blocks the move. */
   closeUnavailableReason?: string;
-  /** Where the PDF button opens (spec 358) — a plain `GET`, streamed
-   *  inline, never a form. */
-  pdfAction?: string;
-  /** Why the PDF button cannot be pressed — `md-to-pdf` missing on the
-   *  serving host, drawn disabled with this as its reason rather than
-   *  hidden (REQ-7). */
-  pdfUnavailableReason?: string;
   /** Where the Description tab's Save posts. */
   saveAction: string;
   /** Where the Overview tab's checks form posts (spec 212). Its own

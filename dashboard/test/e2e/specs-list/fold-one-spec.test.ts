@@ -55,3 +55,23 @@ test("a chevron opens the spec at its own address, one row at a time, and Back s
   expect(await openRows()).toEqual([]);
   expect(await page.$("tr[data-spec-detail]")).toBeNull();
 });
+
+// The description's editor sits under the row and the spec's settings, and
+// grows with its text: taking focus as it mounts scrolled the page down to
+// it, leaving the row that was opened above the top of the screen.
+test("opening a spec leaves its row in view once the editor has mounted", async () => {
+  const small = await browser.newPage({ viewport: { width: 1280, height: 560 } });
+  await withBrowser(small.goto(`${base}/specs/aide/81-queue-and-runner?live=0`), "page.goto(spec)");
+  await small.waitForSelector(`${detail("81-queue-and-runner")} .spec-editor-mount[data-mounted]`);
+  await small.waitForTimeout(200);
+  // The list scrolls inside its own box, under headings that stay put: the
+  // row is in view when the headings are, and it starts below them.
+  const { row, headings } = await small.evaluate(() => ({
+    row: document.getElementById("spec-aide/81-queue-and-runner")!.getBoundingClientRect().top,
+    headings: document.querySelector("table.speclist thead")!.getBoundingClientRect().bottom,
+  }));
+  expect(headings).toBeGreaterThanOrEqual(0);
+  expect(row).toBeGreaterThanOrEqual(headings - 1);
+  expect(row).toBeLessThan(560);
+  await small.close();
+});

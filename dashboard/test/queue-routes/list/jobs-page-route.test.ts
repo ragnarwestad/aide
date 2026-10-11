@@ -14,15 +14,20 @@ import { jobHome } from "../../../src/render/pages/jobs-page";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
 import { dated, setupQueueRoutesHarness } from "../fixtures.ts";
 
-/** A row without its chevron, its title's wrapper and the cell under the
- *  title: the Specs list's chevron loads the spec's own page, its title is
- *  text and the cell says when the spec was created; the Jobs tab's chevron
- *  folds the row in place, its title is a link and the cell holds the pips.
- *  Everything else is one builder's. */
+/** A row without what the two pages draw differently: the Specs list's
+ *  chevron loads the spec's own page, its title is text, the cell under it
+ *  says when the spec was created, and it has no Time or Cost but the
+ *  spec's PDF beside the state; the Jobs tab's chevron folds the row in
+ *  place, its title is a link, the cell holds the pips and the row ends in
+ *  its figures. Everything else is one builder's. */
 const withoutFold = (html: string): string =>
   html
     .replace(/<td class="foldcell"[\s\S]*?<\/td>/g, "")
     .replace(/(<tr class="specstate"[^>]*>)<td colspan="2">[\s\S]*?<\/td>/g, "$1")
+    .replace(/<td[^>]*data-col="(started|cost)"[^>]*>[\s\S]*?<\/td>/g, "")
+    .replace(/<td data-col="state"><span class="row">([\s\S]*?)<\/span><\/td>/g, '<td data-col="state">$1</td>')
+    .replace(/<(a|span) class="iconlink"[^>]*>[\s\S]*?<\/\1>/g, "")
+    .replace(/colspan="\d+"/g, 'colspan=""')
     .replace(/<(a|span) class="specpart"[^>]*>(<span class="muted">:<\/span><span class="specname">[^<]*<\/span>)<\/\1>/g, "$2");
 
 const { harness } = setupQueueRoutesHarness();

@@ -54,6 +54,7 @@ import {
   groupKey,
   isArchivedRow,
   sortGroups,
+  SPECS_LIST_SORTS,
   type ArchivedSpecView,
   type SpecsFilter,
   type SpecTarget,
@@ -81,7 +82,7 @@ export {
   type SpecTarget,
   type SpecGroup,
 };
-import { LIST_COLUMNS, headStateBadge, phaseSubRows, phasePips, specHeadRow, specNoticeRow, specPhaseTable } from "./cells.ts";
+import { listColumns, phaseSubRows, phasePips, specHeadRow, specNoticeRow, specPhaseTable } from "./cells.ts";
 import { listRefusalLine, refusalRowTemplate } from "./notice-row.ts";
 // Re-exported for `spec-page.ts`, which draws a spec's phase pip strip
 // on its own Overview tab.
@@ -203,12 +204,14 @@ export interface SpecsPageOptions {
   /** The Specs list opens one spec at a time, at the spec's own address:
    *  present, it replaces `filter.open`. `key` is the open spec, absent for
    *  a list with every row shut; `detail` draws the spec in its row from
-   *  the parts the list knows: its state badge and its phase table.
-   *  Absent in a rows answer, where the row carries the badge alone and
-   *  the page keeps the spec it holds. Only the Specs list sets it; the
-   *  Jobs tab folds its rows as before. An open row on the Specs list
+   *  the part the list knows: its phase table. Absent in a rows answer,
+   *  where the page keeps the spec it holds. Only the Specs list sets it;
+   *  the Jobs tab folds its rows as before. An open row on the Specs list
    *  carries no phase lines. */
-  openSpec?: { key?: string; detail?: (parts: { badge: string; phases: string }) => string };
+  openSpec?: { key?: string; detail?: (parts: { phases: string }) => string };
+  /** Whether this host can make a spec's PDF; false draws the PDF link
+   *  disabled with the reason. */
+  pdfAvailable?: boolean;
 }
 
 
@@ -289,6 +292,7 @@ function groupRow(g: SpecGroup, opts: SpecsPageOptions, now: number, opened: Set
   // message rows; on the Specs list it reads head row, message rows, then
   // the spec, with no phase lines, since what runs is followed on the
   // Running tab. Every message keeps that one place.
+  const columns = listColumns(!!opts.openSpec);
   const head = specHeadRow(g, opts, opened);
   const notice = specNoticeRow(g, now, opts.lang ?? "en", testServerAvailable, {
     filter: opts.filter,
@@ -296,21 +300,21 @@ function groupRow(g: SpecGroup, opts: SpecsPageOptions, now: number, opened: Set
     overlappingSpecs: opts.overlappingSpecs,
     listPath: opts.listPath,
     specOpen: !!opts.openSpec && opened.has(groupKey(g.project, g.specFolder)),
+    columns,
   });
   // Each spec ends with an empty row the stylesheet turns into the air
   // between two cards. It closes the group rather than opening the
   // next one, so the page's own row swap (row-swap.ts, which takes a
   // spec as its head row and everything up to the next) carries it
   // along with the spec it belongs to.
-  const gap = `<tr class="specgap" aria-hidden="true"><td colspan="${LIST_COLUMNS}"></td></tr>`;
+  const gap = `<tr class="specgap" aria-hidden="true"><td colspan="${columns}"></td></tr>`;
   const key = groupKey(g.project, g.specFolder);
   // The open spec ends in its detail row, the whole spec in one cell. A
-  // rows answer carries the state badge alone, as a place for the page to
-  // put the spec it already holds; the page takes the fresh badge from it.
-  const badge = `<span class="badgeslot" data-spec-badge>${headStateBadge(g, opts.lang ?? "en")}</span>`;
+  // rows answer carries it empty, as a place for the page to put the spec
+  // it already holds.
   const detail = opts.openSpec?.key === key
-    ? `<tr class="specdetail" data-spec-detail="${esc(key)}"><td colspan="${LIST_COLUMNS}">` +
-      (opts.openSpec.detail ? opts.openSpec.detail({ badge, phases: specPhaseTable(g, opts) }) : badge) +
+    ? `<tr class="specdetail" data-spec-detail="${esc(key)}"><td colspan="${columns}">` +
+      (opts.openSpec.detail?.({ phases: specPhaseTable(g, opts) }) ?? "") +
       `</td></tr>`
     : "";
   const runs = opts.openSpec ? "" : phaseSubRows(g, opts, now);
@@ -344,12 +348,12 @@ function groupRow(g: SpecGroup, opts: SpecsPageOptions, now: number, opened: Set
 export function renderSpecsRows(rows: QueueRowView[], opts: SpecsPageOptions, now = Date.now()): string {
   const f = opts.filter ?? {};
   const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now);
-  const matched = sortGroups(shownGroups(groups, opts), f);
+  const matched = sortGroups(shownGroups(groups, opts), f, opts.openSpec ? SPECS_LIST_SORTS : undefined);
   const body = matched.length
     ? // `groups`, not `matched`: a dependency the filter has hidden is
       // still in the way of the row that names it.
       groupRows(matched, opts, now, openedKeys(opts))
-    : `<tr><td colspan="${LIST_COLUMNS}" class="empty muted">` +
+    : `<tr><td colspan="${listColumns(!!opts.openSpec)}" class="empty muted">` +
       // Two different emptinesses. "Nothing matches what you asked for"
       // is answered by changing the filter; "there is no spec here at
       // all" is not, and telling that reader to pick one above is
@@ -364,8 +368,10 @@ export function renderSpecsRows(rows: QueueRowView[], opts: SpecsPageOptions, no
     // "speclist" beside "list": the mobile stylesheet lays THIS table
     // out as stacked blocks (its rows are flex lines there), and the
     // archive page and the settings table share .list without wanting
-    // any of that.
-    `<div class="tablewrap"><table class="list speclist">${sortableHead(f, opts.lang ?? "en")}<tbody>${body}</tbody></table></div>`
+    // any of that. `data-list` tells the Specs list's own columns apart
+    // from the Running tab's, which share the class.
+    `<div class="tablewrap"><table class="list speclist"${opts.openSpec ? ` data-list="specs"` : ""}>` +
+    `${sortableHead(f, opts.lang ?? "en", !!opts.openSpec)}<tbody>${body}</tbody></table></div>`
   );
 }
 
@@ -397,7 +403,7 @@ function specsPageBody(rows: QueueRowView[], opts: SpecsPageOptions): string {
     // after the (?)): it is a plain link since spec 121, so the
     // five-second swap of `#jobrows` holds no half-typed state to lose.
     table +
-    refusalRowTemplate()
+    refusalRowTemplate(listColumns(!!opts.openSpec))
   );
 }
 

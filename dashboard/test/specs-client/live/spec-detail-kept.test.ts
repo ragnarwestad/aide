@@ -114,23 +114,6 @@ describe("the open spec survives a redraw of the rows (AC-1)", () => {
     expect(box.value).toBe("typed after the page opened");
   });
 
-  // The spec's state badge sits in the kept element, so it is the one part
-  // the page takes from the answer: the row's stand-in carries it fresh.
-  test("the kept spec takes its state badge from the redrawn row", async () => {
-    win.document.body.innerHTML = `<div id="jobrows">${table(
-      group(KEY, "phase v1", `<tr class="specdetail" data-spec-detail="${KEY}"><td><span data-spec-badge>Analyzing</span><form><textarea name="text">saved</textarea></form></td></tr>`) +
-        group(OTHER, "phase v1"),
-    )}</div>`;
-    const before = detail();
-    answer = table(
-      group(KEY, "phase v2", `<tr class="specdetail" data-spec-detail="${KEY}"><td><span data-spec-badge>Done</span></td></tr>`) +
-        group(OTHER, "phase v1"),
-    );
-    await mod.swapRows();
-    expect(detail() === before).toBe(true);
-    expect(win.document.querySelector("[data-spec-badge]")!.textContent).toBe("Done");
-  });
-
   test("a spec whose row is gone from the answer takes its element with it", async () => {
     load();
     answer = table(group(OTHER, "phase v1"));

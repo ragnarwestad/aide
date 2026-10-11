@@ -70,3 +70,10 @@ export const drawsChecksLine = (g: SpecGroup): boolean =>
  *  written twice is a count that drifts the next time a column moves. */
 export const LIST_COLUMNS = 6;
 
+/** The Specs list's own count: it has no Time or Cost column. */
+export const SPECS_LIST_COLUMNS = 4;
+
+/** How many columns a row spans: the Specs list's four, or the six the
+ *  Running tab and every other list has. */
+export const listColumns = (specsList: boolean): number => (specsList ? SPECS_LIST_COLUMNS : LIST_COLUMNS);
+

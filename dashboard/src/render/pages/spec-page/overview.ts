@@ -309,20 +309,21 @@ export function reopenControl(view: SpecPageView, lang: Language = "en"): string
  *  does to a reader who cannot see the icon, on both branches. And no
  *  button frame around it (asked 2026-09-09): the red PDF icon is the
  *  control, the way a file icon is. */
-export function pdfControl(view: SpecPageView): string {
-  if (!view.pdfAction) return "";
+export const PDF_UNAVAILABLE = "md-to-pdf is not installed on this host";
+
+export function pdfLink(action: string, unavailableReason?: string): string {
   // Trimmed from "...in a new tab" (spec 454): the design guard caps a
   // title attribute at a few words, and the link's own target attribute
   // already says where it opens.
   const what = "Open this spec as a PDF";
-  if (view.pdfUnavailableReason) {
+  if (unavailableReason) {
     return (
       `<span class="iconlink" aria-disabled="true" aria-label="${esc(what)}">${ICON_PDF}</span>` +
-      helpPopover("why this is unavailable", esc(view.pdfUnavailableReason))
+      helpPopover("why this is unavailable", esc(unavailableReason))
     );
   }
   return (
-    `<a class="iconlink" href="${esc(view.pdfAction)}" target="_blank" rel="noopener" data-pdf ` +
+    `<a class="iconlink" href="${esc(action)}" target="_blank" rel="noopener" data-pdf ` +
     `aria-label="${esc(what)}" title="${esc(what)}">${ICON_PDF}</a>`
   );
 }

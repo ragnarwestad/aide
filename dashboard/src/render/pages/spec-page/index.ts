@@ -56,7 +56,7 @@ import { groupKey } from "../specs-list/data-model";
 import { landingRefusal, stepResults, tabBar } from "../job-page";
 import { followMarker, followPart } from "../job-page/follow.ts";
 import {
-  actionsHelp, testServerStatus, closedLine, closeControl, pdfControl,
+  actionsHelp, testServerStatus, closedLine, closeControl,
   reopenControl, trackingControl,
 } from "./overview.ts";
 import { descriptionPanel, documentPanel } from "./panels.ts";
@@ -81,9 +81,9 @@ interface SpecDetailOpts {
   /** The list's view (filter, sort, search) the spec's links carry, so
    *  following one keeps the list around the open row. */
   view?: ListView;
-  /** What the Specs list knows of the spec and draws for it: its state
-   *  badge and its phase table. */
-  top?: { badge: string; phases: string };
+  /** What the Specs list knows of the spec and draws for it: its phase
+   *  table. */
+  top?: { phases: string };
 }
 
 /** What the Steps tab draws of a spec: its lead job and every step of the
@@ -120,8 +120,8 @@ export function renderSpecStepsFollowParts(view: SpecStepsView, opts: Pick<SpecD
   );
 }
 
-/** The whole spec as it sits in the open row of the Specs list: the state
- *  badge and the PDF link on a line of their own, the banner, the tab bar
+/** The whole spec as it sits in the open row of the Specs list: what each
+ *  phase runs on beside the spec's settings, the banner, the tab bar
  *  and the open tab's panel. The page's own frame — its "← Back" link and
  *  its title — is not drawn: the row names the spec, and the browser's Back
  *  shuts the row. */
@@ -189,10 +189,6 @@ export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}):
         ? descriptionPanel(view, now, opts.lang ?? "en", mark)
         : documentPanel(view, TAB_FILES[tab]!, now, opts.lang ?? "en", mark);
 
-  // The first line: where the spec stands at the left, the PDF link at the
-  // right. Then what each phase runs on beside the four settings the spec
-  // was created with, laid out as on New spec's Options tab.
-  const head = `<div class="panelhead">${opts.top?.badge ?? ""}${pdfControl(view)}</div>`;
 
   // Each tab is a page load of the spec's own address, with the list's view
   // and the row's anchor, so the row is still open and in view after it.
@@ -211,7 +207,6 @@ export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}):
   // `.doc`'s default, so the wrapper takes theirs: one right edge.
   return (
     `<div class="doc formdoc">` +
-    head +
     banner +
     tabs +
     `<div class="tabpanel">${panel}</div>` +

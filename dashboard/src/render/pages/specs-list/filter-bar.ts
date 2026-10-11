@@ -13,6 +13,7 @@ import {
   DEFAULT_SORT,
   FILTER_KEYS,
   SORTS,
+  SPECS_LIST_SORTS,
   SORT_DEFAULT_DIR,
   STATE_FILTERS,
   groupKey,
@@ -273,7 +274,10 @@ export function searchForm(
 
 /** The columns' widths are declared on the column group, in this order. */
 const COLUMNS = ["fold", "spec", "phase", "state", "started", "cost"];
-const columnGroup = (): string => `<colgroup>${COLUMNS.map((c) => `<col data-col="${c}">`).join("")}</colgroup>`;
+/** The Specs list has no Time or Cost. */
+const SPECS_LIST_DROPS = new Set(["started", "cost"]);
+const columnGroup = (specsList: boolean): string =>
+  `<colgroup>${COLUMNS.filter((c) => !specsList || !SPECS_LIST_DROPS.has(c)).map((c) => `<col data-col="${c}">`).join("")}</colgroup>`;
 
 /** The five headings the list's table carries. Cost's heading holds both units; the reader's choice
  *  shows one (spec 118). */
@@ -296,7 +300,13 @@ const HEADINGS: { key: string; label: TranslationKey; cls?: string; attrs: strin
  *  order and marks none; `href` is the already escaped link a heading leads
  *  to; `specLabel` heads the second column. */
 export function sortHead(
-  o: { now: { sort?: string; dir: "asc" | "desc" }; href: (key: string) => string; specLabel: TranslationKey },
+  o: {
+    now: { sort?: string; dir: "asc" | "desc" };
+    href: (key: string) => string;
+    specLabel: TranslationKey;
+    /** The Specs list: no Time or Cost, and its State column holds no action. */
+    specsList?: boolean;
+  },
   lang: Language = "en",
 ): string {
   const { sort, dir } = o.now;
@@ -356,17 +366,22 @@ export function sortHead(
     // not information, so it stands outside the title rather than inside
     // it — which also gives it a cell's worth of height to be hit in,
     // across both of the header's two lines.
-    columnGroup() +
+    columnGroup(!!o.specsList) +
     `<thead><tr>` +
-    HEADINGS.map((h) => th(h.key, t(lang, h.key === "spec" ? o.specLabel : h.label), h.cls ?? "", h.labelHtml?.(lang), h.attrs)).join("") +
+    HEADINGS.filter((h) => !o.specsList || !SPECS_LIST_DROPS.has(h.key))
+      .map((h) => {
+        const label = h.key === "spec" ? o.specLabel : h.key === "state" && o.specsList ? "list.colStateAlone" : h.label;
+        return th(h.key, t(lang, label), h.cls ?? "", h.labelHtml?.(lang), h.attrs);
+      })
+      .join("") +
     `</tr></thead>`
   );
 }
 
 /** The Specs list's head: the column the view is sorted by, marked, and a
  *  heading's link turning it round when it is the one already sorted by. */
-export function sortableHead(f: SpecsFilter, lang: Language = "en"): string {
-  const sort = SORTS.includes(f.sort ?? "") ? f.sort! : DEFAULT_SORT;
+export function sortableHead(f: SpecsFilter, lang: Language = "en", specsList = false): string {
+  const sort = (specsList ? SPECS_LIST_SORTS : SORTS).includes(f.sort ?? "") ? f.sort! : DEFAULT_SORT;
   const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : SORT_DEFAULT_DIR[sort]!;
   return sortHead(
     {
@@ -377,6 +392,7 @@ export function sortableHead(f: SpecsFilter, lang: Language = "en"): string {
         return queueHref(f, { sort: key, dir: next === SORT_DEFAULT_DIR[key] ? "" : next });
       },
       specLabel: "list.colSpec",
+      specsList,
     },
     lang,
   );

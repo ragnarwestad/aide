@@ -271,8 +271,6 @@ export async function specPageView(
     // closeControl (overview.ts) is what hides it once the spec is
     // archived. No fallback page behind it (spec 527), so this is a flag.
     closeAvailable: true,
-    pdfAction: `${specPagePath(project, specFolder)}/pdf`,
-    pdfUnavailableReason: ctx.pdfToolAvailable ? undefined : "md-to-pdf is not installed on this host",
     closeUnavailableReason: busyReason,
     testServerAction: testServerCapable ? `/api/queue${specPagePath(project, specFolder)}/test-server` : undefined,
     testServerStopAction: testServerEntry ? `/api/queue${specPagePath(project, specFolder)}/test-server/stop` : undefined,

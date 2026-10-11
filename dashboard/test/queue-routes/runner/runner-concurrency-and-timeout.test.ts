@@ -476,16 +476,17 @@ describe("an over-charged cost survives the row mapping", () => {
   }
 
   const MARKER = '<summary title="why this is an estimate"';
+  // The Running tab: the Specs list has no Cost column.
 
   test("the spec row's total carries no (?) marker even when it could not be measured", async () => {
     const { base } = start({ queueMirrorPath: await seeded(false) });
-    const html = await (await fetch(`${base}/specs`, )).text();
+    const html = await (await fetch(`${base}/`)).text();
     expect(specHead(html, "81-queue-and-runner")).not.toContain(MARKER);
   });
 
   test("a measured total through the same seam carries no mark", async () => {
     const { base } = start({ queueMirrorPath: await seeded(true) });
-    const html = await (await fetch(`${base}/specs`, )).text();
+    const html = await (await fetch(`${base}/`)).text();
     const head = specHead(html, "81-queue-and-runner");
     expect(head).toContain("$35.00");
     expect(head).not.toContain(MARKER);

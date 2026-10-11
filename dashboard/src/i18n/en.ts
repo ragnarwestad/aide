@@ -72,6 +72,7 @@ export const en = {
   "list.newSpec": "New",
   "list.colSpec": "Specification",
   "list.colState": "State/Action",
+  "list.colStateAlone": "State",
   "list.colCreated": "Created",
   "list.colTime": "Time",
   "list.colCost": "Cost",

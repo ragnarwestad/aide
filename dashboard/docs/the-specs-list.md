@@ -33,10 +33,11 @@ The queue behind the rows is on [Running specs](running-specs.md); how a step's 
 
 ## The row, open and shut
 
-One row per spec, not per job, and shut by default. A shut row shows the spec's name and title, one status line,
-when the spec was created (the date and the time to the minute, what the Created sort orders by) on the Specs list or
-the phase pips on the Running tab, how long its phases have taken, and what they cost — and carries no control
-but the one that opens it: a chevron in front of the name. Under it sit the row's notice lines, the `N not verified`
+One row per spec, not per job, and shut by default. A shut row shows the spec's name and title and one status line.
+On the Specs list that line is when the spec was created (the date and the time to the minute, what the Created sort
+orders by), its state, and its PDF at the right; the list has three headings, Created, Specification and State, and
+sorts by those alone. On the Running tab it is the phase pips, the state, how long its phases have taken and what
+they cost. The row carries no control but the one that opens it: a chevron in front of the name. Under it sit the row's notice lines, the `N not verified`
 line among them when the spec has one. They belong to the shut row, so a reader sees what went wrong without opening
 it.
 
@@ -74,10 +75,9 @@ repo the spec pushed to, and the state that matters most right now — whatever 
 outcome. It carries no button: the row's one action is on the caption line inside the Running tab's fold, once per
 spec rather than once per job.
 
-The header is two lines: the title, kept to one line and cut with an ellipsis where it does not fit, then the created
-stamp or the pips, the state and the figures. An open row drops the second line. On the Specs list that leaves no badge, pips, Time or
-Cost; on the Running tab the caption line carries the spec's summed Time and Cost instead, over the phases' own
-figures. Each phase line says its own state, failed, stopped and held back included, so the badge and the pips would
+The header is two lines: the title, kept to one line and cut with an ellipsis where it does not fit, then the status
+line. On the Specs list an open row is drawn the same as a shut one. On the Running tab an open row drops the second
+line, and the caption line carries the spec's summed Time and Cost instead, over the phases' own figures. Each phase line says its own state, failed, stopped and held back included, so the badge and the pips would
 only say it twice. A phone lays the caption line out the same way: the captions, then the row's button in the state
 column at the phase badges' own size, then the total in the Time column.
 
@@ -408,9 +408,8 @@ branch where one is open, as of its last fetch, and off the specs checkout where
 draws the acceptance criteria first, as real boxes with a Save of their own (each with its note and the tests that
 name it), then the rest of `4-status.md` rendered read-only; an archived spec, or one with a job in flight, shows the
 same criteria without boxes. An old `?tab=checks` link opens the Status tab. Update, which pulls the specs
-checkout (`POST /api/queue/specs/<project>/<spec>/update`), sits at the end of the tab row. Its first line
-holds the spec's state badge at the left, the same badge as the row's State column, and the PDF link at the right.
-Under it, laid out as New spec's Options tab with the same components, each phase's AI and model beside the four choices
+checkout (`POST /api/queue/specs/<project>/<spec>/update`), sits at the end of the tab row. Above the
+banner, laid out as New spec's Options tab with the same components, each phase's AI and model beside the four choices
 the spec was created with: the table as wide as its columns, the four settings as one group beside it, going under it
 where there is no room. The selects are locked and belong to no form, with no box to tick, since what runs is chosen on
 the Running tab: a phase that has run shows what it ran on, one that has not what it will get. Of the four, Acceptance

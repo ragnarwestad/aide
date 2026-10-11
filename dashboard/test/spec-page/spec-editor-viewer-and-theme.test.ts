@@ -127,3 +127,4 @@ describe("the editor grows with its text", () => {
     expect(host.classList.contains("auto-height")).toBe(true);
   });
 });
+

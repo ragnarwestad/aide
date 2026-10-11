@@ -32,9 +32,9 @@ const LIST_REFUSED_ID = "list-refused";
 /** The message row a refused press is written into, held in a
  *  `<template>` for the script to copy — in a table of its own there,
  *  where a row is always parsed as one. */
-export const refusalRowTemplate = (): string =>
+export const refusalRowTemplate = (columns = LIST_COLUMNS): string =>
   `<template id="${REFUSAL_TEMPLATE_ID}"><table><tbody><tr class="specnotice" data-refusal>` +
-  `<td colspan="${LIST_COLUMNS}">${messageSlot("refused", "failed")}</td></tr></tbody></table></template>`;
+  `<td colspan="${columns}">${messageSlot("refused", "failed")}</td></tr></tbody></table></template>`;
 
 /** The list's own refusal line, above the rows. */
 export const listRefusalLine = (): string => messageSlot("refused", "failed", { id: LIST_REFUSED_ID });
@@ -94,6 +94,8 @@ export function specNoticeRow(
     /** The row is open on the Specs list, where it is the spec alone: the
      *  approach choice, a press that releases a step, is left out. */
     specOpen?: boolean;
+    /** How many columns the row spans: the list's own count. */
+    columns?: number;
   } = {},
 ): string {
   const archiveHeldBack = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
@@ -128,7 +130,8 @@ export function specNoticeRow(
   // carries. A held-back notice unfolds the same list, so there the count
   // stands without a › of its own.
   const holds = (notice?.parts ?? []).some((p) => "kind" in p && p.kind === "acceptance-hold");
-  const checks = checksRow(g, filter, lang, LIST_COLUMNS, !holds, view.listPath);
+  const columns = view.columns ?? LIST_COLUMNS;
+  const checks = checksRow(g, filter, lang, columns, !holds, view.listPath);
   if (!notice) return checks;
   // The held-back part is led by the › and carries the unfolded list
   // directly under its own box.
@@ -146,7 +149,7 @@ export function specNoticeRow(
   const detail = notice.title ? helpPopover("more detail", esc(notice.title)) : "";
   return (
     `<tr class="specnotice" data-folder="${esc(g.specFolder)}">` +
-    `<td colspan="${LIST_COLUMNS}">${rowMessageParts(notice.variant, parts, { hook: notice.hook })}${detail}</td></tr>` +
+    `<td colspan="${columns}">${rowMessageParts(notice.variant, parts, { hook: notice.hook })}${detail}</td></tr>` +
     checks
   );
 }

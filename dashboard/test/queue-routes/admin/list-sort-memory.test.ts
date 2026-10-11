@@ -22,14 +22,14 @@ describe("the column the reader sorted by is remembered", () => {
 
   test("choosing one writes it down, and a bare / gets it back", async () => {
     const { base, server } = start();
-    const chosen = await fetch(`${base}/specs?sort=started`);
-    expect(sortCookie(chosen, server.port)).toContain(`aide_sort_${server.port}=started`);
-    expect(sortedBy(await chosen.text())).toBe("Time");
+    const chosen = await fetch(`${base}/specs?sort=spec`);
+    expect(sortCookie(chosen, server.port)).toContain(`aide_sort_${server.port}=spec`);
+    expect(sortedBy(await chosen.text())).toBe("Specification");
     const jar = sortCookie(chosen, server.port).split(";")[0]!;
     // The Specs tab: `/` with nothing on it. The token rides along
     // because every request needs it, not because the sort does.
     const plain = await fetch(`${base}/specs`, { headers: { cookie: `${jar}` } });
-    expect(sortedBy(await plain.text())).toBe("Time");
+    expect(sortedBy(await plain.text())).toBe("Specification");
   });
 
   // Pressing a heading never reloads the page — the script rewrites
@@ -46,7 +46,7 @@ describe("the column the reader sorted by is remembered", () => {
     const res = await fetch(`${base}/specs?sort=state`, {
       headers: { cookie: `aide_sort_${server.port}=started|desc` },
     });
-    expect(sortedBy(await res.text())).toBe("State/Action");
+    expect(sortedBy(await res.text())).toBe("State");
     // And it becomes the new memory, so the next bare `/` agrees with
     // what the reader is looking at.
     expect(sortCookie(res, server.port)).toContain(`aide_sort_${server.port}=state`);

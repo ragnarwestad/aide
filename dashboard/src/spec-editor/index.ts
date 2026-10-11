@@ -89,10 +89,10 @@ if (host && raw) {
     // Risk analysis) — not a feature this integration wants, and not
     // something a self-hosted tool should phone home about.
     usageStatistics: false,
-    // Focusing the editor scrolls the page to its
-    // top after mount, which would undo the scroll to an approach the
-    // address names.
-    autofocus: !/^#approach-/i.test(location.hash),
+    // Never focused on mount: the editor sits under the opened row and
+    // grows with its text, and focusing it scrolled the page down to it,
+    // past the row and to the end of an approach the address names.
+    autofocus: false,
     initialValue,
     customMarkdownRenderer,
   });

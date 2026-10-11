@@ -111,6 +111,7 @@ export async function specsListParts(
     // One row open at most, the one the address names. The folds inside its
     // row lead to that address, so they keep the row open.
     openSpec: { key: openKey },
+    pdfAvailable: ctx.pdfToolAvailable,
     listPath: openKey ? specPagePath(openKey.slice(0, openKey.indexOf("/")), openKey.slice(openKey.indexOf("/") + 1)) : undefined,
   };
   // Only the projects the queue may run. A project taken out of the

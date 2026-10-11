@@ -3,12 +3,9 @@
 // answers, since building the spec on every change would read git for each;
 // the page holds the live one and puts it back where the fresh stand-in is,
 // so the editor, a half-typed description and ticks not yet saved survive.
-// The stand-in carries the spec's state badge, the one part of the spec
-// that moves with its rows, and the page takes it into the live one.
 
 const DETAIL = "tr[data-spec-detail]";
 const KEY = "data-spec-detail";
-const BADGE = "[data-spec-badge]";
 
 /** Takes the live spec out of the rows about to be replaced, leaving an
  *  empty stand-in in its place, and returns what puts it back: it finds the
@@ -26,9 +23,6 @@ export function holdSpecDetail(body: ParentNode): () => void {
   return () => {
     for (const el of Array.from(body.querySelectorAll(DETAIL))) {
       if (el.getAttribute(KEY) !== key) continue;
-      const badge = el.querySelector(BADGE);
-      const held = live.querySelector(BADGE);
-      if (badge && held) held.innerHTML = badge.innerHTML;
       el.replaceWith(live);
       focused?.focus?.();
       return;

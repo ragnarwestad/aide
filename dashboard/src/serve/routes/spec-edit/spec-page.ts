@@ -145,7 +145,7 @@ export async function specPageRoutes(
           parts.rows(),
         ]);
         if (!view) throw new Error("spec folder disappeared while the page was built");
-        const detail = (top: { badge: string; phases: string }): string => renderSpecDetail(
+        const detail = (top: { phases: string }): string => renderSpecDetail(
           {
             ...view,
             error: failedRoundSentence(view.lead, lang),
