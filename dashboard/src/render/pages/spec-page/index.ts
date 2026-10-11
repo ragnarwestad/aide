@@ -56,7 +56,7 @@ import { groupKey } from "../specs-list/data-model";
 import { landingRefusal, stepResults, tabBar } from "../job-page";
 import { followMarker, followPart } from "../job-page/follow.ts";
 import {
-  actionsHelp, archivedLine, testServerStatus, closedLine, closeControl, pdfControl,
+  actionsHelp, testServerStatus, closedLine, closeControl, pdfControl,
   reopenControl, trackingControl,
 } from "./overview.ts";
 import { descriptionPanel, documentPanel } from "./panels.ts";
@@ -145,7 +145,6 @@ export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}):
     // Where the description's editor would have been, in words: a
     // reader who came looking for it should not have to work out from a
     // missing textarea that the spec is closed.
-    archivedLine(view, opts.lang ?? "en") +
     closedLine(view, opts.lang ?? "en") +
     trackingControl(view, opts.lang ?? "en", opts.top?.phases ?? "") +
     // What a board asked for is doing, in words. Its button lives in

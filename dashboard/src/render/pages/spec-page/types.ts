@@ -3,7 +3,7 @@
 import type { AcTest } from "../../../project/ac-coverage.ts";
 import type { CreateChoices } from "../../../project/discover";
 import type { JobDetailView, JobStepResultView, SpecFileView } from "../job-page";
-import type { Phase, SpecTarget } from "../specs-list";
+import type { Phase } from "../specs-list";
 
 /** One row of `4-status.md`'s Tasks tables, as the page shows it (spec
  *  182). `phase` and `line` are the row's identity: the checks form
@@ -133,20 +133,9 @@ export interface SpecPageView {
   /** The spec's own checks (spec 182). Absent for a spec whose
    *  `4-status.md` has no phase section at all. */
   checks?: SpecChecksView;
-  /** What the spec depends on, resolved to live folders the way the
-   *  runtime gate resolves it (spec 166's line may hold a bare number,
-   *  and a hand-edited one usually does). Read-only on Overview; the
-   *  ticks of the Description tab's picker. Empty and neither is drawn
-   *  at all. */
-  dependsOn?: string[];
-  /** What this spec MAY be made to depend on: every active spec in its
-   *  own project, itself left out. Empty — a project whose only spec is
-   *  this one — and the picker is not drawn (spec 174). */
-  dependsOnOptions?: SpecTarget[];
   /** Whether the spec's own Tracking info says acceptance ticking is not
    *  required (spec 394) — read fresh off `1-description.md`
-   *  (`specAcceptanceNotRequired`), the same file `dependsOn` above
-   *  comes from. Absent/false means "required", exactly as no line at
+   *  (`specAcceptanceNotRequired`). Absent/false means "required", exactly as no line at
    *  all does (REQ-11). */
   acceptanceNotRequired?: boolean;
   /** The choices the spec was created with, read off its description. The

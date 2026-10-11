@@ -64,6 +64,20 @@ describe("the acceptance switch on the spec page's tracking route", () => {
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(ACCEPT_LINE));
   });
 
+  // The form posts the acceptance switch alone, so a save leaves the spec's
+  // Depends on line as it was.
+  test("saving the switch keeps the spec's Depends on line", async () => {
+    const DEPENDS = "- **Depends on:** 82";
+    const { base, dir } = harness.start({
+      description: TRACKED(DEPENDS),
+      status: statusSaying(["create"]),
+      extra: { gitRun: savable("/host") },
+    });
+    const { status } = await answer(await track(base, { acceptanceEditable: "1", acceptanceRequired: "1", baseSha: FILE_SHA }));
+    expect(status).toBe(200);
+    expect(readFileSync(descriptionPath(dir), "utf-8")).toContain(DEPENDS);
+  });
+
   // REQ-6: once analyze has already decided the question, the acceptance
   // half is refused outright — nothing is written, including any
   // depends-on change bundled in the same request.

@@ -282,7 +282,6 @@ export const en = {
   "spec.checksOff": "Off",
   "spec.checksWarn": "Warn",
   "spec.checksStop": "Stop",
-  "spec.archivedLine": "This spec has been archived, and cannot be edited until the spec is reopened",
   "spec.closedLine":
     "This spec was closed{when}{reason} — it did not work out, and the description and the checks " +
     "cannot be edited until the spec is reopened",

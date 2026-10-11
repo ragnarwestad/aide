@@ -94,37 +94,41 @@ export async function trackingRoutes(
   // and the write is still refused there.
   const baseSha = sentSha ?? currentSha;
 
-  // Depends on — the same validation `/save` used to make inline
-  // (`resolveDependencyFolder`, which takes a bare number or a full
-  // folder and sees archived specs too) — so a dependency this route
-  // accepts is one the runtime gate can read. Refused entry by entry,
-  // never filtered: a typo left to drop out silently is a dead gate
-  // nobody is told about.
-  const ids = (Array.isArray(body.dependsOn) ? body.dependsOn : body.dependsOn === undefined ? [] : [body.dependsOn])
-    .filter((v): v is string => typeof v === "string")
-    .flatMap((v) => v.split(","))
-    .map((id) => id.trim())
-    .filter(Boolean);
+  // Depends on, only when the request names it: the spec page's form posts
+  // the acceptance switch alone, and leaves the line as it is. The same
+  // validation `/save` used to make inline (`resolveDependencyFolder`,
+  // which takes a bare number or a full folder and sees archived specs
+  // too), so a dependency this route accepts is one the runtime gate can
+  // read. Refused entry by entry, never filtered: a typo left to drop out
+  // silently is a dead gate nobody is told about.
   const depFolders: string[] = [];
-  if (ids.length > 0) {
-    const discovered = ctx.opts.projectRoot
-      ? discoverProjects(ctx.opts.projectRoot, undefined, manifestInside(ctx.machineryProjectDir)).find((p) => p.name === project)
-      : undefined;
-    if (!discovered) return refuse("unknown project — nothing was saved");
-    for (const id of ids) {
-      const dep = resolveDependencyFolder(discovered, id);
-      if (!dep) {
-        return refuse(`no such spec in this project: ${id} — nothing was saved`);
+  let text: string | null = currentText;
+  if (body.dependsOn !== undefined) {
+    const ids = (Array.isArray(body.dependsOn) ? body.dependsOn : [body.dependsOn])
+      .filter((v): v is string => typeof v === "string")
+      .flatMap((v) => v.split(","))
+      .map((id) => id.trim())
+      .filter(Boolean);
+    if (ids.length > 0) {
+      const discovered = ctx.opts.projectRoot
+        ? discoverProjects(ctx.opts.projectRoot, undefined, manifestInside(ctx.machineryProjectDir)).find((p) => p.name === project)
+        : undefined;
+      if (!discovered) return refuse("unknown project — nothing was saved");
+      for (const id of ids) {
+        const dep = resolveDependencyFolder(discovered, id);
+        if (!dep) {
+          return refuse(`no such spec in this project: ${id} — nothing was saved`);
+        }
+        if (dep.folder === specFolder) {
+          return refuse(`a spec cannot depend on itself: ${id} — nothing was saved`);
+        }
+        depFolders.push(dep.folder);
       }
-      if (dep.folder === specFolder) {
-        return refuse(`a spec cannot depend on itself: ${id} — nothing was saved`);
-      }
-      depFolders.push(dep.folder);
     }
-  }
-  let text = withDependsOnLine(currentText, ids);
-  if (text === null) {
-    return refuse(`nowhere to put "Depends on" — Tracking info has no Created line — nothing was saved`);
+    text = withDependsOnLine(currentText, ids);
+    if (text === null) {
+      return refuse(`nowhere to put "Depends on" — Tracking info has no Created line — nothing was saved`);
+    }
   }
 
   // Acceptance — REQ-6: only touched when the form was actually drawn

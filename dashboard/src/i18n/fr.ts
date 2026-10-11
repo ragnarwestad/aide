@@ -272,7 +272,6 @@ export const fr: Record<TranslationKey, string> = {
   "spec.checksOff": "Désactivée",
   "spec.checksWarn": "Avertir",
   "spec.checksStop": "Arrêter",
-  "spec.archivedLine": "Cette spec a été archivée et ne peut pas être modifiée tant qu'elle n'est pas rouverte",
   "spec.closedLine":
     "Cette spec a été fermée{when}{reason} — cela n'a pas fonctionné, et la description et les vérifications " +
     "ne peuvent pas être modifiées tant qu'elle n'est pas rouverte",

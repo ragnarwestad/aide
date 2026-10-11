@@ -413,11 +413,12 @@ Under it, laid out as New spec's Options tab with the same components, each phas
 the spec was created with: the table as wide as its columns, the four settings as one group beside it, going under it
 where there is no room. The selects are locked and belong to no form, with no box to tick, since what runs is chosen on
 the Running tab: a phase that has run shows what it ran on, one that has not what it will get. Of the four, Acceptance
-ticking required is editable with what the spec depends on, in one form
-(`POST /api/queue/specs/<project>/<spec>/tracking`), until analyze has run; "Let AI formulate acceptance criteria",
-"Acceptance criteria checks" and "Let me choose the approach" are locked with no field name, so the form posts none of
-them, and on an archived spec all four are. The banner holds the rest of what belongs to the spec rather than to one
-document: whether it is archived or closed, the test server's state and any error.
+ticking required is editable in a form of its own (`POST /api/queue/specs/<project>/<spec>/tracking`) until analyze
+has run; "Let AI formulate acceptance criteria", "Acceptance criteria checks" and "Let me choose the approach" are
+locked with no field name, so the form posts none of them, and once analyze has run, or on an archived spec, all four
+are and there is no form. What the spec depends on is not shown here: the row's own line under the title names it, by
+number. The banner holds the rest of what belongs to the spec rather than to one document: whether it is closed, the
+test server's state and any error.
 A spec created before a choice was recorded shows what a spec with nothing recorded runs with: AI formulated, checks
 Off, the approach not chosen, ticking required. `createChoicesIn` reads the four off the description's Tracking info;
 `aide-run-spec` writes the `Let AI formulate acceptance criteria:` line when a create completes.
@@ -472,13 +473,11 @@ a link rather than a widget, because the open row is part of the address, and pr
 An address with no `steptab`, or an unknown one, shows Log.
 
 **An archived spec has this page too** — the scan records every spec's directory before it drops the archived ones
-from the list. It says it is archived, and its Description tab is read-only with no box to tick anywhere: the spec is
-a record.
+from the list. Its Description tab is read-only with no box to tick anywhere: the spec is a record.
 
 **The Description tab** is `1-description.md` in a textarea with its own Save. It is the one of the four files a
 user owns: the other three are written by a step, and a hand edit there is overwritten the next time that step
-runs. The `Depends on` picker sits in the banner above the tab row, not on this tab, since a dependency is a fact
-about the SPEC rather than about this one document. Its text and its stamp are the branch's, where the spec has
+runs. Its text and its stamp are the branch's, where the spec has
 one, so a Save shows at once and a second Save from the page starts from the first.
 
 **The checks on the Status tab** are `4-status.md`'s Tasks rows, every one of them — a list that only ever shrinks says
@@ -495,9 +494,10 @@ carried, and the page script loads that tab again; a save that committed nothing
 instead. ONE commit, ONE file. It writes to the spec's own `aide/<folder>` branch where
 one is open, and to the specs repo's default branch where none is — the same branch-aware choice `/tick` makes.
 
-`POST /api/queue/specs/<project>/<spec>/tracking` is the banner's own route: what the spec depends on and whether it
-requires acceptance ticking, both merged into `1-description.md`'s Tracking info in one commit, refused once
-`analyze` has already decided the acceptance half of the question.
+`POST /api/queue/specs/<project>/<spec>/tracking` is the banner's own route: whether the spec requires acceptance
+ticking, merged into `1-description.md`'s Tracking info in one commit, refused once `analyze` has already decided the
+question. A request that names `dependsOn` writes the Depends on line in the same commit; one that does not leaves the
+line as it is.
 
 `POST /api/queue/specs/<project>/<spec>/tick` is the same for the checks form: `4-status.md` alone, its own
 commit, the Status tab loaded again. It is a route of its own so that ticking a box does not mean opening the description's editor. A

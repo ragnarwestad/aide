@@ -274,7 +274,6 @@ export const nb: Record<TranslationKey, string> = {
   "spec.checksOff": "Av",
   "spec.checksWarn": "Advar",
   "spec.checksStop": "Stopp",
-  "spec.archivedLine": "Denne specen er arkivert, og kan ikke redigeres før specen gjenåpnes",
   "spec.closedLine":
     "Denne specen ble lukket{when}{reason} — den fungerte ikke, og beskrivelsen og sjekkene kan ikke " +
     "redigeres før specen gjenåpnes",

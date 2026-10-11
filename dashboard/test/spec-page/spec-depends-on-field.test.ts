@@ -13,7 +13,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import type { GitRunner } from "../../src/git/branch-status.ts";
 import { QUEUE_DEFAULTS } from "../../src/serve/serve-helpers";
-import { SPEC, PAGE, TRACKING, FILE_SHA, DESCRIPTION, ARCHIVED, ARCHIVED_TEXT, createSpecSaveHarness, descriptionPath, savable, post, answer } from "./spec-save-fixtures.ts";
+import { SPEC, TRACKING, FILE_SHA, DESCRIPTION, ARCHIVED, ARCHIVED_TEXT, createSpecSaveHarness, descriptionPath, savable, post, answer } from "./spec-save-fixtures.ts";
 
 const { harness } = createSpecSaveHarness();
 afterEach(() => harness.cleanup());
@@ -51,38 +51,6 @@ describe("the Depends on field", () => {
   };
 
   const track = (base: string, body: Record<string, string>) => post(base, body, TRACKING);
-
-  // --- criteria 1, 2: what the page opens with ------------------------------
-
-  // Spec 174. The line is written by hand as often as by this page, and
-  // `resolve_dependency_folder` has always taken a bare number — so the
-  // box that gets ticked is the one the RUNNER would resolve the line
-  // to, not the one whose folder happens to match the text.
-  test("a dependency written as a bare number ticks the spec it resolves to", async () => {
-    const { base } = startTracked(savable("/host"), TRACKED(DEPENDS("99")));
-    const html = await (await fetch(`${base}${PAGE}`)).text();
-    expect(html).toMatch(new RegExp(`value="${OTHER}"[^>]*checked`));
-  });
-
-  // A spec cannot depend on itself, and spec 166 spent a refusal saying
-  // so. With a list of real specs the case mostly stops arising: the
-  // one box that would say it is not drawn.
-  test("the spec being edited is not among the boxes", async () => {
-    const { base } = startTracked(savable("/host"));
-    const html = await (await fetch(`${base}${PAGE}`)).text();
-    expect(html).toContain('name="dependsOn"');
-    expect(html).not.toContain(`name="dependsOn" value="${SPEC}"`);
-  });
-
-  // The narrowing this control brings, stated as a test rather than
-  // left to be discovered: `targets()` is the live list, so an archived
-  // spec is not offered as a NEW dependency. One already written into
-  // the line still resolves and still gates the run.
-  test("an archived spec is not offered as a new dependency", async () => {
-    const { base } = startTracked(savable("/host"));
-    const html = await (await fetch(`${base}${PAGE}`)).text();
-    expect(html).not.toContain(`value="${ARCHIVED}"`);
-  });
 
   // --- criteria 3, 4, 7: what a save writes ---------------------------------
 

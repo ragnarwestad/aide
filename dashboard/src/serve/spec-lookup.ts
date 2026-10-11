@@ -19,7 +19,7 @@ import type { BranchFileStepsChecker } from "../git/workflow-history.ts";
 import { specBranch } from "../git/branch-status.ts";
 import { dashboardSpecDir, type DashboardCheckout } from "../git/dashboard-checkout.ts";
 import {
-  discoverProjects, manifestInside, specDependsOn, type CodeLanding, type SpecRef,
+  discoverProjects, manifestInside, type CodeLanding, type SpecRef,
 } from "../project/discover";
 import {
   acceptanceRowsOf, acceptanceStillOpen, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, archiveHeldBackReason, failedCount, notVerifiedCount, parseStatus, reopenedRound,
@@ -28,7 +28,6 @@ import { currentPhase, readSpecState } from "../project/parse-spec-state.ts";
 import { specPendingChoice } from "../project/approach-choice.ts";
 import type { PullRequestAnswer } from "../integrations/pull-requests.ts";
 import type { SpecTarget } from "../render";
-import { resolveDependencyFolder } from "./serve-helpers";
 
 /** What `targets()` caches for five seconds and every other lookup in
  *  this file reads a slice of. */
@@ -376,42 +375,6 @@ export function specDir(ctx: SpecLookupContext, project: string, specFolder: str
 export function specRef(ctx: SpecLookupContext, project: string, specFolder: string): SpecRef | undefined {
   ctx.targets();
   return ctx.readScan()?.refs.get(`${project}/${specFolder}`);
-}
-
-/** What a spec's `Depends on:` line RESOLVES to, folder by folder
- *  (spec 174) — which boxes the Edit page's picker ticks.
- *
- *  Through `resolveDependencyFolder`, the same reader the save route
- *  and the runtime gate use, because the line is written by hand as
- *  often as by the page and `164` is what a person types. An
- *  identifier nothing matches simply ticks nothing: this is a form
- *  being drawn, not a run being gated, and the refusal for a typo
- *  belongs to Save and to `aide-run-spec`.
- *
- *  Not `targets()`: an entry may name an already-archived spec, which
- *  that scan drops. Such an entry ticks no box either — the picker
- *  offers live specs only — but it must not be mistaken for one that
- *  resolves to a live one.
- *
- *  `idsRead` is the line as the caller already read it, when the
- *  description it comes from is not the one on disk in `dir`. */
-export function dependencyFolders(ctx: SpecLookupContext, project: string, dir: string, idsRead?: string[]): string[] {
-  // `??`, never `||`: a description read off the branch that names nothing
-  // is a real answer, and must not fall back to the directory's line.
-  const ids = idsRead ?? specDependsOn(dir);
-  if (ids.length === 0 || !ctx.projectRoot) return [];
-  const discovered = discoverProjects(ctx.projectRoot, undefined, manifestInside(ctx.machineryProjectDir)).find((p) => p.name === project);
-  if (!discovered) return [];
-  // An archived dependency counts. It is dropped from what HOLDS a
-  // step back — an archived one holds nothing — but the spec still
-  // depends on it, and this is the answer to "what does this depend
-  // on". Filtered out here, a spec whose dependencies had all been
-  // archived answered "nothing", while the specs list one click away
-  // printed them.
-  return ids.flatMap((id) => {
-    const dep = resolveDependencyFolder(discovered, id);
-    return dep ? [dep.folder] : [];
-  });
 }
 
 /** The checkout a spec folder sits in — the lock key for everything

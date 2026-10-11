@@ -4,7 +4,7 @@
 // lines; every function is unchanged and keeps its name.
 import { parseAcCoverage, readAcCoverage, withAcCoverage } from "../../project/ac-coverage.ts";
 import {
-  acceptanceNotRequiredIn, createChoicesIn, dependsOnIn, specAcceptanceNotRequired, specCloseReason, specClosedDate, specFileText,
+  acceptanceNotRequiredIn, createChoicesIn, specAcceptanceNotRequired, specCloseReason, specClosedDate, specFileText,
   stripDependsOnLine,
 } from "../../project/discover";
 import { acceptanceSectionUnreadable, parseStatus } from "../../project/parse-status";
@@ -247,19 +247,9 @@ export async function specPageView(
       baseSha: statusCommit?.sha,
       unreadable: acceptanceSectionUnreadable(checksText),
     },
-    // Ticked by what the LINE resolves to, not by what it says:
-    // `resolve_dependency_folder` takes a bare number, and a
-    // hand-written line usually is one — matching the raw string
-    // against a folder would leave a real dependency unticked, and
-    // the next Save would then silently drop it.
-    dependsOn: ctx.dependencyFolders(project, dir, descriptionCopy ? dependsOnIn(descriptionCopy.text) : undefined),
-    // Spec 174: the New-spec page's picker, fed this project's own
-    // active specs. Self excluded — the one box that could only ever
-    // earn spec 166's "cannot depend on itself" refusal.
-    dependsOnOptions: ctx.targets().filter((t) => t.project === project && t.specFolder !== specFolder),
-    // Spec 394: read off the same description `dependsOn` above comes
-    // from — a fresh read, since the banner is drawn once per page
-    // load and this fact only changes via the banner's own Save.
+    // Spec 394: read off the description — a fresh read, since the
+    // banner is drawn once per page load and this fact only changes via
+    // the banner's own Save.
     acceptanceNotRequired: descriptionCopy ? acceptanceNotRequiredIn(descriptionCopy.text) : specAcceptanceNotRequired(dir),
     // The choices the spec was created with, off the same description.
     createChoices: createChoicesIn(descriptionCopy?.text ?? specFileText(dir, EDITABLE_SPEC_FILE) ?? ""),

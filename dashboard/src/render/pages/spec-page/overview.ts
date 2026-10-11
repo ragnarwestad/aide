@@ -9,7 +9,6 @@ import { acTestsLine } from "../../ui/ac-tests.ts";
 import { groupKey } from "../specs-list/data-model";
 import { checkColumns, checkControls, checkReadOnlyMark } from "../../ui/check-controls.ts";
 import { failedCount, notVerifiedCount } from "../../../project/parse-status";
-import { dependsOnField } from "../new-spec-page";
 import { t, type Language } from "../../../i18n";
 import {
   CLOSE_ASK_ID, CLOSE_SENTENCE, REOPEN_ASK_ID, closeAskDialog, reopenAskDialog,
@@ -20,61 +19,19 @@ import { SPEC_LINES, SPEC_REFUSED_LINE, specPagePath } from "./tabs.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 
-/** The two whole-spec facts that sit above the tabs (spec 394): what the
- *  spec depends on, and whether it requires acceptance ticking. Neither
- *  is about any one document — REQ-1 moves the depends-on picker out of
- *  the Description tab's own save form for exactly that reason, and
- *  REQ-2 puts the acceptance switch beside it rather than leaving it
- *  homeless on the specs list's own row.
- *
- *  Read-only sentences for an archived spec — the same shape this
- *  banner always drew, since an archived spec is a RECORD with no form
- *  to draw at all (REQ-7). One combined form for a live spec, posting
- *  to `view.trackingAction`.
- *
- *  The acceptance switch is drawn LOCKED, not omitted, once `analyze`
- *  has already decided the question (REQ-6) — the same disabled-with-
- *  title shape `pdfControl`/`closeControl` use below for "possible in
- *  principle, not right now". A locked box submits nothing at all, the
- *  same as an unchecked one — `acceptanceEditable` is a hidden sentinel
- *  precisely so the route can tell those two apart (see
+/** What sits above the tabs: each phase's AI and model beside the four
+ *  settings the spec was created with. While acceptance ticking can still
+ *  change — a live spec analyze has not run on — it is a form posting to
+ *  `view.trackingAction`; otherwise everything is locked and nothing posts.
+ *  `acceptanceEditable` is a hidden sentinel so the route can tell a
+ *  cleared box from a locked one, which submits nothing either (see
  *  `spec-edit/tracking.ts`). */
 export function trackingControl(view: SpecPageView, lang: Language = "en", phases = ""): string {
-  const folders = view.dependsOn ?? [];
-  const options = view.dependsOnOptions ?? [];
   // Archived, nothing posts. Live, acceptance does until analyze has
   // decided it; the other three were chosen when the spec was created.
   const acceptanceEditable = !view.archived && !(view.done?.includes("analyze") ?? false);
   const settings = `<span class="frow options-row">${phases}${createdOptions(view, lang, acceptanceEditable)}</span>`;
-  if (view.archived) {
-    const dep = folders.length ? fact(t(lang, "newSpec.dependsOn"), folders.map((f) => esc(f)).join(", ")) : "";
-    return settings + dep;
-  }
-  // A spec this one depends on that is no longer a valid CHOICE is
-  // still a fact about this spec. Nothing archived is among the
-  // options — it cannot be picked — so a spec whose dependencies have
-  // all been archived showed a list of specs it does NOT depend on and
-  // none of the ones it does, while the specs list one click away
-  // printed them plainly. They are shown, locked: a box that cannot be
-  // unticked says what is true without promising a change it cannot
-  // make.
-  const known = new Set(options.map((t) => t.specFolder));
-  const locked = folders.filter((f) => !known.has(f));
-  // The Save/Cancel pair rides on the "Depends on" label line, after
-  // its "(?)" — the picker is the form's one real control, and a pair
-  // under a list this tall sat far from what it saves. A spec with no
-  // picker to draw at all still needs them, so they fall back to a row
-  // of their own below.
-  const actions = saveCancelActions("trackingform");
-  const picker =
-    options.length || locked.length
-      ? dependsOnField(options, new Set(folders), {
-        wide: true,
-        locked,
-        project: view.project,
-        actions,
-      })
-      : "";
+  if (!acceptanceEditable) return settings;
   // `.trackingform`, never `.specform`: the Status tab's tick form
   // already carries that class, and the banner renders on every tab —
   // Checks included — so a shared class would leave that tab with TWO
@@ -84,11 +41,10 @@ export function trackingControl(view: SpecPageView, lang: Language = "en", phase
   return (
     `<form class="trackingform reloadform" method="post" action="${esc(view.trackingAction)}"${dataAttrs(SPEC_LINES)}>` +
     settings +
-    (picker ? `<span class="frow">${picker}</span>` : "") +
     // The same pair, and the same rules, the document forms already
     // have: both inactive until something changes, Cancel putting the
     // form back the way the page opened it.
-    (picker ? "" : actions) +
+    saveCancelActions("trackingform") +
     `</form>`
   );
 }
@@ -128,23 +84,8 @@ export function fact(label: string, value: string): string {
   return `<p class="desc"><strong>${esc(label)}</strong> <span class="muted">${value}</span></p>`;
 }
 
-/** What being archived actually means for this spec.
- *
- *  Not "read-only", which was the wording until 2026-08-23 and is a
- *  truth with modifications: Reopen is right there on the head line,
- *  and archive can be run again while the spec's branch is still open.
- *  What IS true is that the description's textarea and the checks'
- *  boxes are gone until it is reopened. */
-export function archivedLine(view: SpecPageView, lang: Language = "en"): string {
-  // spec 406, REQ-7: a closed spec is under archive/ too (the same
-  // folder move), but must never read as "archived" on its own page —
-  // closedLine, below, is what draws for it instead.
-  if (!view.archived || view.closed) return "";
-  return `<p class="desc"><span class="muted">${t(lang, "spec.archivedLine")}</span></p>`;
-}
-
 /** What being closed actually means for this spec (spec 406, REQ-7) —
- *  `archivedLine`'s sibling, drawn instead of it. Names the reason and
+ *  Names the reason and
  *  the date (REQ-5's "travels with the spec"), never the word
  *  "archived": the description's own emphasis is that closing must not
  *  look like archiving, and this is where a reader of the spec's own

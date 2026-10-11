@@ -61,6 +61,6 @@ describe("a stop on shared files names the specs its analysis recorded", () => {
       page = await pageOf(base);
     }
     expect(page).toContain(`${OTHER}: src/shared.ts`);
-    expect(page).toContain("Add them to Depends on to wait until they are archived");
+    expect(page).toContain("Press Analyze again to go on");
   }, 8_000);
 });

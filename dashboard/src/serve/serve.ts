@@ -318,7 +318,6 @@ export function createServer(opts: ServerOptions) {
     specRef: resolution.specRef,
     peekMachinerySpecDir: resolution.peekMachinerySpecDir,
     machinerySpecDir: resolution.machinerySpecDir,
-    dependencyFolders: resolution.dependencyFolders,
     gitRun,
     withFreshness: land.withFreshness,
     jobRow: land.jobRow,

@@ -272,7 +272,6 @@ export const de: Record<TranslationKey, string> = {
   "spec.checksOff": "Aus",
   "spec.checksWarn": "Warnen",
   "spec.checksStop": "Stoppen",
-  "spec.archivedLine": "Diese Spec wurde archiviert und kann nicht bearbeitet werden, bis die Spec wieder geöffnet wird",
   "spec.closedLine":
     "Diese Spec wurde geschlossen{when}{reason} — es hat nicht funktioniert, und die Beschreibung und die " +
     "Prüfungen können nicht bearbeitet werden, bis die Spec wieder geöffnet wird",

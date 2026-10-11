@@ -54,7 +54,7 @@ describe("sharedFilesSentence", () => {
   ];
   const NAMED =
     "Analyze stopped: other open specs change the same files — 82 The other thing: a.ts, b.ts. 84 Third: c.ts. — " +
-    "Add them to Depends on to wait until they are archived, or press Analyze again to go on.";
+    "Press Analyze again to go on.";
   const ARCHIVED =
     "Analyze stopped on files other open specs changed, and every one of them has been archived or removed since — " +
     "press Analyze again to go on.";
