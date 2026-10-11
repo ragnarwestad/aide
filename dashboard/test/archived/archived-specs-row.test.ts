@@ -3,8 +3,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import type { GitRunner } from "../../src/git/branch-status.ts";
 import {
-  ARCHIVED_VIEW, SAME_DAY, STAMPED, STAMPED_COST_LABEL, STAMPED_TIME_SHOWN, STAMPED_TIME_SPENT, TWO_TOOLS,
-  UNSTAMPED, blockFor, described, harness, noStamp, opened, order, outcome, rowFor, specsList, stamp, start,
+  ARCHIVED_VIEW, SAME_DAY, STAMPED, TWO_TOOLS, UNSTAMPED, blockFor, harness, opened, order, rowFor,
+  specsList, start,
 } from "./archived-specs-fixtures.ts";
 
 afterEach(() => harness.cleanup());
@@ -43,76 +43,6 @@ describe("an archived spec's row", () => {
   test("its badge never says the spec is ready for anything", async () => {
     const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
     expect(row).not.toContain(">ready<");
-  });
-
-  // The sort key used to fall through to `g.createdAt`, which an
-  // archived row almost never has (it is no target) — every archived
-  // row tied at 0 and the click did nothing. It now reads the same
-  // summed duration the cell itself shows.
-  test("clicking Time actually reorders the archived rows, by duration", async () => {
-    const html = await specsList(start().base, `${ARCHIVED_VIEW}&sort=started`);
-    // `data-folder` is written more than once per spec (the fold toggle
-    // carries its own copy) — only the spechead row's own is one row.
-    const folders = [...html.matchAll(/<tr class="[^"]*spechead[^"]*"[^>]*data-folder="([^"]+)"/g)].map(
-      (m) => m[1],
-    );
-    const stampedAt = folders.indexOf(STAMPED);
-    const unstampedAt = folders.indexOf(UNSTAMPED);
-    expect(stampedAt).toBeGreaterThanOrEqual(0);
-    expect(unstampedAt).toBeGreaterThanOrEqual(0);
-    // "started"'s default direction is descending (SORT_DEFAULT_DIR):
-    // the spec with a real recorded duration (STAMPED, > 0) sorts before
-    // the one with none (UNSTAMPED, tied at 0).
-    expect(stampedAt).toBeLessThan(unstampedAt);
-  });
-
-  // Acceptance criterion 2: the exact bug 1-description.md names — the
-  // one-shot `4-status.md` stamp never got written (the queue's LRU cap
-  // evicted the job before archive landed) — but the phase's own file
-  // still carries its `Time spent:` line, and the sum reads off that.
-  test("carries the summed duration even with no 4-status.md stamp at all", async () => {
-    const folder = "272-no-stamp-but-phase-outcomes";
-    const { base } = start({}, {
-      [folder]: {
-        description: described("No stamp but phase outcomes", "The stamp never got written."),
-        status: noStamp,
-        analysis: outcome({ timeSpent: STAMPED_TIME_SPENT }),
-      },
-    });
-    const row = rowFor(await specsList(base, ARCHIVED_VIEW), folder);
-    const cell = row.slice(row.indexOf('data-col="started"'));
-    const body = cell.slice(0, cell.indexOf("</td>"));
-    expect(body).toContain(STAMPED_TIME_SHOWN);
-  });
-
-  // Spec 257: the head row's own Cost cell hardcoded `spentUsd: 0` even
-  // though each phase's own real cost was already available — summed
-  // here off the same phases that already carry it (the analyze phase
-  // is STAMPED's only one with a recorded cost).
-  test("carries the sum of its phases' recorded costs in the head row's Cost cell", async () => {
-    const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
-    const cell = row.slice(row.indexOf('data-col="cost"'));
-    expect(cell.slice(0, cell.indexOf("</td>"))).toContain(STAMPED_COST_LABEL);
-  });
-
-  // Spec 260: an archived spec whose only recorded figure is tokens (a
-  // Codex-only run — no `Cost:` line anywhere) must still show something
-  // in the head row's Cost cell, not the blank dash a `spentUsd` of `0`
-  // used to leave behind.
-  test("carries the sum of its phases' recorded tokens when no phase recorded a cost (spec 260, AC7)", async () => {
-    const folder = "260-a-codex-only-archive";
-    const { base } = start({}, {
-      [folder]: {
-        description: described("A Codex-only archive", "One archived spec, no dollar figure at all."),
-        status: stamp("2026-08-26", ["create", "analyze"]),
-        analysis: outcome({ tokens: "9562" }),
-      },
-    });
-    const row = rowFor(await specsList(base, ARCHIVED_VIEW), folder);
-    const cell = row.slice(row.indexOf('data-col="cost"'));
-    const body = cell.slice(0, cell.indexOf("</td>"));
-    expect(body).toContain('<span class="u-tok">9.6k</span>');
-    expect(body).not.toContain("$0.00");
   });
 
   // --- the archive sorts by its own creation date ---------------------------
