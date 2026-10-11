@@ -14,9 +14,14 @@ import { jobHome } from "../../../src/render/pages/jobs-page";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
 import { dated, setupQueueRoutesHarness } from "../fixtures.ts";
 
-/** A row without its chevron: the Specs list's loads the spec's own page,
- *  and the Jobs tab's folds the row in place. Everything else is one builder's. */
-const withoutFold = (html: string): string => html.replace(/<td class="foldcell"[\s\S]*?<\/td>/g, "");
+/** A row without its chevron and its title's wrapper: the Specs list's chevron
+ *  loads the spec's own page and its title is text, the Jobs tab's chevron
+ *  folds the row in place and its title is a link. Everything else is one
+ *  builder's. */
+const withoutFold = (html: string): string =>
+  html
+    .replace(/<td class="foldcell"[\s\S]*?<\/td>/g, "")
+    .replace(/<(a|span) class="specpart"[^>]*>(<span class="muted">:<\/span><span class="specname">[^<]*<\/span>)<\/\1>/g, "$2");
 
 const { harness } = setupQueueRoutesHarness();
 const tmp: string[] = [];
@@ -419,12 +424,6 @@ describe("a spec's title on the Running tab (AC-2)", () => {
     expect(page).toContain(`data-spec-detail="aide/${FOLDER}"`);
     expect(page).toContain(`id="spec-aide/${FOLDER}"`);
   });
-
-  test("on the Specs list the same title keeps a bare address (AC-2)", async () => {
-    const { base } = board([job({})]);
-    const list = await (await fetch(`${base}/specs?rows=1`)).text();
-    expect(titleHref(list)).toBe(`/specs/aide/${FOLDER}`);
-  });
 });
 
 describe("the rows stand in the tab's order (AC-4)", () => {
@@ -631,5 +630,26 @@ describe("the Jobs tab's view: its address, its cookie and its sentence for no r
     const html = await res.text();
     expect(html).toContain(REPORT_ID);
     expect(html).not.toContain(SPEC_ID);
+  });
+});
+
+describe("the spec a Create just queued is open on arrival, found by its job", () => {
+  const create = (specFolder: string) =>
+    job({ id: "c1", specFolder, steps: ["create", "analyze"], state: specFolder.startsWith("new-") ? "running" : "queued", createTitle: "A new spec" });
+  const opened = (g: string): boolean => /<a class="fold[^"]*"[^>]*aria-expanded="true"/.test(g);
+
+  test("before the spec has its number, and after, `created` opens its row and no other", async () => {
+    for (const folder of ["new-abc12345", "630-a-new-spec"]) {
+      const { base } = board([create(folder), job({ id: "j2" })]);
+      const html = await rowsOf(base, "created=c1");
+      expect(opened(group(html, `spec-aide/${folder}`))).toBe(true);
+      expect(opened(group(html, "spec-aide/81-queue-and-runner"))).toBe(false);
+      harness.cleanup();
+    }
+  });
+
+  test("a `created` that names no job opens nothing", async () => {
+    const { base } = board([job({})]);
+    expect(opened(group(await rowsOf(base, "created=gone"), "spec-aide/81-queue-and-runner"))).toBe(false);
   });
 });

@@ -56,7 +56,12 @@ export function navigate(event: MouseEvent): void {
 async function foldOne(link: HTMLAnchorElement, fold: string, key: string): Promise<void> {
   const params = new URLSearchParams(location.search);
   const keys = (params.get(fold) ?? "").split(",").filter(Boolean);
-  const next = keys.includes(key) ? keys.filter((k) => k !== key) : [...keys, key];
+  // A row the address opens by `created` (the spec a Create just queued) is
+  // open without its key in `open`, so the chevron's own state says which
+  // way this press goes, and shutting it lets go of `created` as well.
+  const isOpen = keys.includes(key) || link.getAttribute("aria-expanded") === "true";
+  const next = isOpen ? keys.filter((k) => k !== key) : [...keys, key];
+  if (isOpen && fold === "open") params.delete("created");
   if (next.length) params.set(fold, next.join(","));
   else params.delete(fold);
   const query = params.toString();
