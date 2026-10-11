@@ -436,7 +436,7 @@ export function harness(
     live()?.emit("changed");
   };
 
-  const { submit, submitCreate, click, clickFold, clickHref, fire, foldLink } = buildNavigation(
+  const { submit, submitCreate, click, clickFold, clickHref, fire, foldLink, foldAttrs } = buildNavigation(
     on,
     button as unknown as { closest?: (s: string) => unknown },
     form,
@@ -456,7 +456,7 @@ export function harness(
      *  object after every wholesale replace, exactly as the browser's
      *  own element is. */
     wrap: () => wrap,
-    submit, submitCreate, click, clickFold, clickHref, foldLink,
+    submit, submitCreate, click, clickFold, clickHref, foldLink, foldAttrs,
     button, createButton, requests, location, rows, inserted,
     replaced, slot, resets, document, phases, otherPhases, rowQueries, tick,
     /** Whether the page still carries its follow marker. */

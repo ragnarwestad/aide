@@ -76,7 +76,7 @@ export function buildNavigation(
     return fire("click", link);
   };
 
-  return { submit, submitCreate, click, clickFold, clickHref, fire, foldLink };
+  return { submit, submitCreate, click, clickFold, clickHref, fire, foldLink, foldAttrs };
 }
 
 /** `document.querySelectorAll`, as `harness()`'s fake document answers

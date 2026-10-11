@@ -411,6 +411,9 @@ table.list th[data-col="state"] { width: 0; white-space: nowrap; }
    stacking above earlier ones. Below the menus (20), so an open menu
    still shows over it. */
 table.speclist thead th { position: sticky; top: 0; z-index: 5; }
+/* A row the address names is scrolled to just below those pinned headings,
+   not under them: their padding and one line of their text. */
+#jobrows .tablewrap { scroll-padding-top: calc(2 * var(--sp-2) + 1lh); }
 /* Every sortable column shares one rule: the label centres in the
    FULL column width, narrowed only by its own reserved padding.
    box-sizing: border-box is what makes that padding a genuine

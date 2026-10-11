@@ -116,6 +116,11 @@ describe("the open row and the chevrons (AC-3)", () => {
     expect(link).not.toContain("data-nav");
   });
 
+  test("a spec's title on the Specs list leads nowhere; its project still links to the project", () => {
+    expect(html).not.toContain('class="specpart" data-goto');
+    expect(html).toContain('href="/projects/aide"');
+  });
+
   test("the open row's chevron leads back to the list, with the row's view", () => {
     expect(chevron("81-queue-x")).toContain('href="/specs?q=queue#spec-aide/81-queue-x"');
   });

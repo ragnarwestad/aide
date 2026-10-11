@@ -115,16 +115,17 @@ export function syncDependsOn(): void {
 // against the rule at the top — because this form is a page (spec 121),
 // not a panel on one. There is nothing here to put back into a clean
 // state and no #jobrows beside it to refresh: the spec that was just
-// made is a row on the LIST, and going there to see it is what pressing
-// Create asked for. A refusal still answers in place, where what was
-// typed is still typed.
+// made is a row on the Running tab, opened by its job, and following it
+// there is what pressing Create asked for. A refusal still answers in
+// place, where what was typed is still typed.
 export async function submitCreate(form: HTMLFormElement, event: Event): Promise<void> {
   if (event.defaultPrevented) return;
   event.preventDefault();
   await postForm(
     form,
-    async () => {
-      location.href = "/specs";
+    async (body) => {
+      const id = body?.job?.id;
+      location.href = id ? `/?created=${encodeURIComponent(id)}` : "/";
     },
     (why) => formNote(form, why),
   );

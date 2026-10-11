@@ -6,6 +6,21 @@ import { jobsViewChoice, languageChoice, specsClientScript } from "../../serve-h
 import { listedSpecJobs, specRowOptions } from "./spec-row-options.ts";
 import type { RoutesContext } from "..";
 
+/** The rows the address opens, and the spec a Create just queued: `created`
+ *  names its job, so the row is found by the job's key now, before the spec
+ *  has its number and after it has one. */
+export function openWithCreated(
+  open: string | undefined,
+  created: string | null,
+  jobs: { id: string; project: string; specFolder: string }[],
+): string | undefined {
+  const job = created ? jobs.find((j) => j.id === created) : undefined;
+  if (!job) return open;
+  const key = `${job.project}/${job.specFolder}`;
+  const keys = (open ?? "").split(",").filter(Boolean);
+  return keys.includes(key) ? open : [...keys, key].join(",");
+}
+
 export async function jobsPage(
   ctx: RoutesContext,
   req: Request,
@@ -35,7 +50,11 @@ export async function jobsPage(
     list: {
       ...rowOptions,
       // The view travels in the rows' fold links, as the Specs list's filter does.
-      filter: { ...rowOptions.filter, ...choice.view },
+      filter: {
+        ...rowOptions.filter,
+        ...choice.view,
+        open: openWithCreated(rowOptions.filter?.open, url.searchParams.get("created"), jobs),
+      },
       // The archived rows the list's Active entry shows: those whose branch has not merged.
       archivedSpecs: ctx.archivedSpecRows(ACTIVE_FILTER_KEY),
       listPath: "/",

@@ -44,10 +44,10 @@ above the table there is a **New** button — a plain link to `/new`. That page 
 else, on two tabs with Create above them. **Spec**, the tab it opens on, holds a project, a title, a description and
 a **Depends on** field naming a spec this one has to wait for. **Options** (`/new?tab=options`) holds the acceptance
 and approach settings, then the phase table. Switching tabs keeps what was typed, and Create posts both tabs from
-either. Create posts to `POST /api/queue/create` and returns to the list; Cancel returns having done nothing. A refused
+either. Create posts to `POST /api/queue/create` and goes to the Running tab with the new spec's row open (`/?created=<job id>`, which opens the row of that job before and after the spec has its number); Cancel returns having done nothing. A refused
 submission says why beside the form, where what was typed can be corrected.
 
-**The new spec is not on the list when you get back.** The `create` step has to run first, and its folder has to
+**The new spec is not on the Specs list yet.** The `create` step has to run first, and its folder has to
 reach the default branch, which the landing does — see below. Until then the job is on the list as a queued
 create, under a provisional name. The browser holds Create at an empty project, title or description, and the
 server refuses a request with no project as well.
@@ -626,8 +626,8 @@ A spec's row is the Specs list's row, drawn by the same builder from the same op
 shut. Opened here it unfolds to the phase lines, steps, logs and acceptance criteria, where the Specs list's open row
 shows the spec instead. A spec's title leads to the spec's
 own address with its row's anchor (`/specs/<project>/<spec>#spec-<project>/<spec>`): the Specs list with that row open
-and scrolled to it. The Specs list's own title keeps the address without the anchor. The folds lead to `/`, not
-`/specs`. A press on it is the press the Specs list makes.
+and scrolled to it. On the Specs list the title is text, and the project before it is the link. The folds lead to `/`,
+not `/specs`. A press on it is the press the Specs list makes.
 
 The code keeps the page's old name: the folder `src/render/pages/jobs-page/`, the `jobs.*` words and the
 `aide_jobs_view_<port>` cookie.

@@ -201,18 +201,16 @@ export const ARCHIVED_VIEW = "?state=archived";
 export const ALL_VIEW = "?state=all";
 
 /** The folders the table lists, in the order it lists them. Read off
- *  the row links rather than off the raw HTML: a folder name also
+ *  each row's head rather than off the raw HTML: a folder name also
  *  appears inside a href, and `indexOf` on the bare name would compare
- *  two different things. A job's own page is `/jobs/<id>` — one
- *  segment — so the two-segment shape here is the SPEC link and nothing
- *  else. */
+ *  two different things. */
 export const order = (html: string): string[] =>
-  [...html.matchAll(/href="\/specs\/[A-Za-z0-9._-]+\/([A-Za-z0-9._-]+)"/g)].map((m) => m[1]!);
+  [...html.matchAll(/<tr class="spechead\b[^>]*?\bdata-folder="([^"]*)"/g)].map((m) => m[1]!);
 
 /** One spec's whole row. Read per row, because a mark appearing
  *  anywhere on the page says nothing about WHICH spec it belongs to. */
 export const rowFor = (html: string, folder: string): string => {
-  const rows = html.split('<tr class="spechead').filter((r) => r.includes(`/${folder}"`));
+  const rows = html.split('<tr class="spechead').filter((r) => r.slice(0, r.indexOf(">")).includes(`data-folder="${folder}"`));
   expect(rows.length).toBe(1);
   // The header is TWO rows since 2026-09-22 — the title, then its state —
   // so it runs to the end of the second, which is where the cells are.

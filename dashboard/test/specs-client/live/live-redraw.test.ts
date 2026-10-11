@@ -621,3 +621,15 @@ describe("the redraw asks the page's own address (AC-8)", () => {
     expect(first).toContain("only=aide%2F127-one-ai");
   });
 });
+
+describe("a row the address opens by its job shuts at its chevron", () => {
+  test("pressing an open row's chevron with only `created` naming it lets go of `created`", async () => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }), "rowrun", "?created=c1", { pathname: "/" });
+    h.foldAttrs["aria-expanded"] = "true";
+    h.clickFold();
+    await flush();
+    const now = new URLSearchParams(h.location.search);
+    expect(now.get("created")).toBeNull();
+    expect(now.get("open")).toBeNull();
+  });
+});
