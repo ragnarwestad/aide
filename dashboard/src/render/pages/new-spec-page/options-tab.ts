@@ -11,14 +11,14 @@ import { aiPicker, modelPicker, phaseCaptionCells, type PickerOptions } from "..
 import type { NewSpecPageOptions } from ".";
 
 /** The Options tab: the phase table, then the four settings as one group
- *  of two columns beside it, going under it where the screen has no room
+ *  beside it, one to a line, going under it where the screen has no room
  *  for both. One `.frow`, a full-width row of the form's own wrapping
  *  flex. */
 export function optionsTab(opts: NewSpecPageOptions, formId: string): string {
   return (
     `<span class="frow row">` +
     newSpecPhaseTable(opts, formId) +
-    `<span class="options-grid">` +
+    `<span class="options-group">` +
     acceptanceField(formId) +
     aiFormulateAcceptanceField(formId) +
     criteriaChecksField() +
