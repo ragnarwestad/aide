@@ -304,9 +304,7 @@ export function stepDoneHandler(
       // from Analyze rather than from whatever was ticked for the round
       // just discarded. A reopen that kept the files keeps the choice.
       if (step === "reopen" && job.resetFiles) ctx.store.forgetPendingSteps(job.project, job.specFolder);
-      // `wiki` writes generated markdown in the specs repository and
-      // nothing else, so it lands the way `analyze` does.
-      if (step === "analyze" || step === "reopen" || step === "wiki") {
+      if (step === "analyze" || step === "reopen") {
         return ctx.landStepBranch(job, step, outcome);
       }
       // `archive` lands on `completed` alone. A refusal from

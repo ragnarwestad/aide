@@ -11,8 +11,8 @@
 # less a leading `./` and a trailing `:<line>` or `:<from>-<to>`. A
 # Markdown file is never an overlap: pages are shared by nearly every spec,
 # and archive resolves a conflict in one. The
-# candidates are the folders directly under the specs root, but archive/,
-# wiki/ and the spec itself, whose phase is analyzed or implemented: an
+# candidates are the folders directly under the specs root, but archive/
+# and the spec itself, whose phase is analyzed or implemented: an
 # implement lands nothing, the code reaches the default branch when the spec
 # archives. Nothing in a candidate is written.
 #
@@ -103,7 +103,7 @@ for dir in "$specs_root"/*/; do
   dir="${dir%/}"
   [ -d "$dir" ] || continue
   name="$(basename "$dir")"
-  case "$name" in archive|wiki|"$spec"|.*) continue ;; esac
+  case "$name" in archive|"$spec"|.*) continue ;; esac
   [ -f "$dir/4-status.md" ] || continue
   _peek_spec_state "$dir/4-status.md"
   case "$(current_phase_from "$state_json")" in analyzed|implemented) ;; *) continue ;; esac

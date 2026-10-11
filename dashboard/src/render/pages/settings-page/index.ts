@@ -51,7 +51,7 @@ export const SPEC_STEPS = [
 /** The steps that do not act on a spec. `schedule` runs a job from a
  *  prompt file and names no spec at all. Their own group, below the
  *  first. */
-export const OTHER_STEPS = ["schedule", "wiki"] as const;
+export const OTHER_STEPS = ["schedule"] as const;
 
 /** A step the queue can run that nothing on the board starts. `explore`
  *  has no button, no row action and no place in Schedule, so a model
@@ -124,7 +124,7 @@ export interface SettingsPageOptions {
 const LABELS: Record<(typeof SETTINGS_STEPS)[number], string> = {
   create: "Create", analyze: "Analyze", implement: "Implement",
   archive: "Archive", close: "Close", reopen: "Reopen",
-  schedule: "Schedule", wiki: "Wiki",
+  schedule: "Schedule",
 };
 
 /** What a Settings row shows: the step's saved choice, else the default
@@ -158,8 +158,7 @@ const PAGE_HELP =
   "archived spec back." +
   "<br><br>" +
   "<strong>Not on a spec.</strong> Schedule runs a job from a prompt file and names no spec " +
-  "at all. Wiki builds the project's wiki of how its parts " +
-  "hang together, and names no spec either." +
+  "at all." +
   "<br><br>" +
   "A row nothing has been saved for shows what its step runs on: Claude Code on Opus, unless the " +
   "server's config file names another default." +

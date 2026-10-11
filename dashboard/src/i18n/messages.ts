@@ -211,25 +211,13 @@ export const MESSAGES = {
   // A schedule job never starts while anything else for its project is
   // running or merging (spec 558, AC-6) — the same shape as
   // `runner.archiveRunning` above, but one-directional: only the
-  // schedule job itself ever waits for this. A wiki job waits on a
-  // schedule job in flight too (`runner.wikiWaitsOnProject` below).
+  // schedule job itself ever waits for this.
   "runner.scheduleWaitsOnProject": {
     en: "held back: another job is running or merging in this project — it starts when that one has finished",
     nb: "holdt tilbake: en annen jobb kjører eller merges i dette prosjektet — dette starter når den er ferdig",
     es: "retenido: otro trabajo está en curso o mergeándose en este proyecto — esto empieza cuando ese haya terminado",
     de: "zurückgehalten: in diesem Projekt läuft oder mergt bereits ein anderer Job — das startet, sobald der fertig ist",
     fr: "retenu : une autre tâche est en cours ou en train de merger dans ce projet — cela démarre une fois celle-là terminée",
-    resolve: "it starts when that one has finished",
-  },
-  // A wiki job writes the pages the project's code is read from, so it waits
-  // while another wiki job or a schedule job of its project is running or
-  // merging, or an archive of it is merging.
-  "runner.wikiWaitsOnProject": {
-    en: "held back: another wiki run, scheduled job or archive is under way in this project — it starts when that one has finished",
-    nb: "holdt tilbake: en annen wiki-kjøring, planlagt jobb eller arkivering pågår i dette prosjektet — dette starter når den er ferdig",
-    es: "retenido: otra ejecución del wiki, un trabajo programado o un archive está en marcha en este proyecto — esto empieza cuando ese haya terminado",
-    de: "zurückgehalten: in diesem Projekt läuft bereits ein anderer Wiki-Lauf, ein geplanter Job oder ein Archive — das startet, sobald der fertig ist",
-    fr: "retenu : une autre exécution du wiki, une tâche planifiée ou un archive est en cours dans ce projet — cela démarre une fois celle-là terminée",
     resolve: "it starts when that one has finished",
   },
   // A green scheduled run's proposed specs (queue/propose-specs.ts): what went
@@ -258,27 +246,6 @@ export const MESSAGES = {
     de: "das Board ist beim Erstellen der vorgeschlagenen Specs gescheitert ({detail}); was es bis dahin getan hat, steht unten — Lies serve.log auf dem Server und führe den Job erneut aus.",
     fr: "le tableau a échoué en créant les specs proposées ({detail}) ; ce qu'il avait fait figure ci-dessous — Lisez serve.log sur le serveur, puis relancez la tâche.",
     resolve: "then run the job again",
-  },
-  // A wiki build writes generated pages in wiki/ and nothing else
-  // (core/scripts/lib/run-spec/publish/wiki-guard.sh): the script's own sentence,
-  // naming what was taken back, stays on the job as hover detail.
-  // A wiki build that left pages unwritten, or none written at all
-  // (run-spec/publish/wiki-guard.sh): the run's own log names which.
-  "runner.wikiBuildUnfinished": {
-    en: "the wiki build did not finish — pages it should have written were left as they were, or none was written. — The log below names them. Build the wiki again from the project's Wiki tab.",
-    nb: "wiki-byggingen ble ikke ferdig — sider den skulle skrive, ble stående som før, eller ingen ble skrevet. — Loggen under nevner hvilke. Bygg wikien på nytt fra Wiki-fanen på prosjektet.",
-    es: "la generación de la wiki no terminó — quedaron sin escribir páginas que debía escribir, o no se escribió ninguna. — El registro de abajo las nombra. Vuelve a generar la wiki desde la pestaña Wiki del proyecto.",
-    de: "Der Wiki-Aufbau wurde nicht fertig — Seiten, die er schreiben sollte, blieben unverändert, oder es wurde keine geschrieben. — Das Protokoll unten nennt sie. Baue das Wiki im Tab Wiki des Projekts erneut auf.",
-    fr: "la construction du wiki n'est pas allée au bout — des pages qu'elle devait écrire sont restées telles quelles, ou aucune n'a été écrite. — Le journal ci-dessous les nomme. Relancez la construction depuis l'onglet Wiki du projet.",
-    resolve: "Build the wiki again",
-  },
-  "runner.wikiWroteOutsideItsScope": {
-    en: "the wiki build wrote something it may not — that was taken back. — Build the wiki again from the project's Wiki tab; a build writes only generated pages in wiki/.",
-    nb: "wiki-byggingen skrev noe den ikke har lov til — det er tatt tilbake. — Bygg wikien på nytt fra Wiki-fanen på prosjektet; en bygging skriver bare genererte sider i wiki/.",
-    es: "la generación de la wiki escribió algo que no puede — se deshizo. — Vuelve a generar la wiki desde la pestaña Wiki del proyecto; una generación solo escribe páginas generadas en wiki/.",
-    de: "Der Wiki-Aufbau hat etwas geschrieben, das er nicht darf — das wurde zurückgenommen. — Baue das Wiki im Tab Wiki des Projekts erneut auf; ein Aufbau schreibt nur generierte Seiten in wiki/.",
-    fr: "la construction du wiki a écrit quelque chose qu'elle n'a pas le droit d'écrire — cela a été annulé. — Relancez la construction depuis l'onglet Wiki du projet ; une construction n'écrit que des pages générées dans wiki/.",
-    resolve: "Build the wiki again",
   },
   "runner.mergeUnfinishedArchive": {
     en: "archive reported success, but dropped the merge with main it was handed open — the branch is still behind main, and the same conflict waits at the next merge. — Press {button} again; the session has to finish that merge.",

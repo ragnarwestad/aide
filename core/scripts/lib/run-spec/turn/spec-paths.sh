@@ -162,18 +162,12 @@ if [ "$command_name" = "create" ]; then
 Create it under this specs root and nowhere else: pass --specs-root \"$specs_root_wt\" to aide-create-spec in Step 4."
 fi
 
-# A wiki build is told the one place it writes, the way a create is.
-if [ "$command_name" = "wiki" ]; then
-  prompt="$prompt
-The wiki is kept in this specs root and nowhere else: pass --specs-root \"$specs_root_wt\" and --project-dir \"$project_wt\" to every aide-wiki call."
-fi
-
 # What the code repository's commit and pull request say (spec-free and
 # tool-free: code_commit_message, run-spec/publish/publish.sh). The session knows
 # what it changed and the runner does not, so the session writes it; the
 # file sits in the run's own work directory, outside every repository.
 commit_message_file="$work_dir/commit-message"
-if [ "$command_name" != "create" ] && [ "$command_name" != "wiki" ]; then
+if [ "$command_name" != "create" ]; then
   prompt="$prompt
 If this step changes files outside the specs root, write the commit message for that change to $commit_message_file (do not commit): a subject line in the imperative mood, a blank line, then what changed and why. Write it as a developer on this project would. Do not mention the spec, the workflow step, Aide, or any AI tool or model.
 The one commit you make yourself is the merge commit that finishes a merge conflict you resolved, exactly as the skill's conflict step says (git commit --no-edit); an unfinished merge leaves the step undone."

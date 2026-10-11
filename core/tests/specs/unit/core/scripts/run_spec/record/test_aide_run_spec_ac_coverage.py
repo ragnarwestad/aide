@@ -126,7 +126,7 @@ def test_a_plain_test_keeps_its_title():
 
 def test_a_describe_is_a_group_not_a_test():
     # 623's AC-5 listed each group's title beside the tests inside it.
-    assert _refs('describe("a wiki build in flight has a row (AC-5)", () => {') == []
+    assert _refs('describe("a spec in flight has a row (AC-5)", () => {') == []
 
 
 def test_a_template_title_shows_its_placeholders_as_an_ellipsis():

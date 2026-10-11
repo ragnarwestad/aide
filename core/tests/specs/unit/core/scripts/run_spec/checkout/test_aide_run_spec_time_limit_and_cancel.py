@@ -96,11 +96,9 @@ def test_what_the_session_left_running_is_stopped_when_its_turn_ends(runner, wor
 
 
 def test_a_cancelled_steps_commit_waits_for_the_checkout_lock(runner, workspace, fake_claude, tmp_path):
-    """A wiki build stopped at a restart was committing into its worktree
-    while the re-queued build was cutting a fresh one at the same path, and
-    the commit caught half of main's new files (2026-09-27). The commit and
-    the worktree's removal now hold the checkout's lock, which the next run
-    takes before it cuts its worktree."""
+    """A cancelled step's commit and the worktree's removal hold the
+    checkout's lock, which the next run takes before it cuts its worktree,
+    so the commit never catches a fresh worktree's files."""
     with_status(workspace, ["create", "analyze"])
     ready = tmp_path / "ready"
     claude = fake_claude(

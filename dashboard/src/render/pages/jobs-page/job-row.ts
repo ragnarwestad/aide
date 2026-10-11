@@ -1,15 +1,14 @@
-// A wiki or scheduled job's row on the Jobs tab, in the Specs list's own
+// A scheduled job's row on the Jobs tab, in the Specs list's own
 // shape: a title line, a state line and a gap, in the same columns. It has no
 // spec folder, phases or target for the list's row builder to read, so it is
 // drawn here from the job alone and with the classes the list already has.
 // The `spechead` class and the `spec-<project>/<folder>` id make the page
 // script treat it as a spec's row: it redraws it by that id and writes a
-// refused Stop under it. A wiki or scheduled job's row folds as a spec's does,
+// refused Stop under it. A scheduled job's row folds as a spec's does,
 // from the `open` key in the address: shut, it holds the title, state, time and
 // cost; open, it adds the links and Stop or Cancel.
 
 import { t, type Language } from "../../../i18n";
-import { isWikiBuild } from "../../../queue/steps.ts";
 import { askButton, confirmDialog, foldArrow, stepLabel } from "../../ui/components";
 import { projectLink } from "../../ui/components/spec-name.ts";
 import { esc } from "../../ui/html.ts";
@@ -75,8 +74,7 @@ function timeCell(row: QueueRowView, now: number): string {
 }
 
 /** The word of the link to the place the job belongs. */
-function homeWord(row: QueueRowView, lang: Language): string {
-  if (isWikiBuild(row)) return t(lang, "jobs.linkWiki");
+function homeWord(lang: Language): string {
   return t(lang, "shell.tabSchedule");
 }
 
@@ -84,7 +82,7 @@ export function jobRow(row: QueueRowView, o: JobRowOptions): string {
   const { lang } = o;
   const key = `${row.project}/${row.specFolder}`;
   const open = openKeys(o).includes(key);
-  const name = jobTitle(row, lang);
+  const name = jobTitle(row);
   const kind = open ? jobControl(row) : undefined;
   const label =
     `${projectLink(row.project, { className: "muted" })}<span class="specpart"><span class="muted">:</span>` +
@@ -95,7 +93,7 @@ export function jobRow(row: QueueRowView, o: JobRowOptions): string {
     `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name"><span class="label">${label}</span></div>` +
     (open
       ? `<div class="spec-title"><a data-goto href="/jobs/${esc(row.id)}?tab=steps">${t(lang, "job.tabLog")}</a> · ` +
-        `<a data-goto href="${esc(jobHome(row))}">${esc(homeWord(row, lang))}</a></div>`
+        `<a data-goto href="${esc(jobHome(row))}">${esc(homeWord(lang))}</a></div>`
       : "") +
     `</td></tr>` +
     `<tr class="specstate"><td colspan="2"></td>` +

@@ -174,14 +174,6 @@ if [ "$command_name" = "schedule" ]; then
     || refuse "no such --prompt-file: $prompt_file (under $project_root)"
   prompt="$(cat "$project_root/$prompt_file")
 $headless_note"
-elif [ "$command_name" = "wiki" ]; then
-  # No spec folder: the skill builds the project's wiki, named by the key.
-  # A refresh rewrites only the pages whose files changed.
-  wiki_args="$spec_arg"
-  [ "$wiki_refresh" = "yes" ] && wiki_args="$spec_arg refresh"
-  prompt="$(skill_call "aide-wiki" "$wiki_args")
-$step_log_note
-$headless_note"
 elif [ -n "$spec_folder" ]; then
   # Spec 386: stated to the skill, not just to the harness — a CLI flag
   # on the claude/codex binary is invisible to the skill's own

@@ -40,11 +40,8 @@ export const QUEUE_DEFAULTS: QueueDefaults = {
   // routine that used to be its own `review-plan` step now runs inside
   // `analyze`, so one run does what used to be two, and the default
   // budget for one step is no longer enough for both.
-  // `wiki` reads a whole project, so it gets the same ceiling as `analyze`.
-  timeoutSec: { default: 1200, implement: 5400, analyze: 2400, wiki: 2400 },
-  // `wiki` writes only through aide-wiki, a script of Aide's own that the
-  // cautious default stops at every call with nobody there to allow it.
-  permissionMode: { implement: "bypassPermissions", wiki: "bypassPermissions", default: "acceptEdits" },
+  timeoutSec: { default: 1200, implement: 5400, analyze: 2400 },
+  permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
   // Every step runs on Claude Code's Opus until Settings saves another
   // choice for it.
   model: { default: "opus" },

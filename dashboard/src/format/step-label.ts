@@ -14,27 +14,27 @@ import type { Language } from "../i18n";
 export const STEP_LABELS: Record<string, string> = {
   create: "Create", analyze: "Analyze", implement: "Implement", archive: "Archive",
   explore: "Explore", reopen: "Reopen", reset: "Reset",
-  schedule: "Schedule", close: "Close", wiki: "Wiki",
+  schedule: "Schedule", close: "Close",
 };
 export const STEP_LABELS_NB: Record<string, string> = {
   create: "Opprett", analyze: "Analyser", implement: "Implementer", archive: "Arkiver",
   explore: "Utforsk", reopen: "Gjenåpne", reset: "Tilbakestill",
-  schedule: "Kjøring", close: "Lukk", wiki: "Wiki",
+  schedule: "Kjøring", close: "Lukk",
 };
 export const STEP_LABELS_ES: Record<string, string> = {
   create: "Crear", analyze: "Analizar", implement: "Implementar", archive: "Archivar",
   explore: "Explorar", reopen: "Reabrir", reset: "Restablecer",
-  schedule: "Programación", close: "Cerrar", wiki: "Wiki",
+  schedule: "Programación", close: "Cerrar",
 };
 export const STEP_LABELS_DE: Record<string, string> = {
   create: "Erstellen", analyze: "Analysieren", implement: "Implementieren", archive: "Archivieren",
   explore: "Erkunden", reopen: "Wiedereröffnen", reset: "Zurücksetzen",
-  schedule: "Zeitplan", close: "Schließen", wiki: "Wiki",
+  schedule: "Zeitplan", close: "Schließen",
 };
 export const STEP_LABELS_FR: Record<string, string> = {
   create: "Créer", analyze: "Analyser", implement: "Implémenter", archive: "Archiver",
   explore: "Explorer", reopen: "Rouvrir", reset: "Réinitialiser",
-  schedule: "Planification", close: "Fermer", wiki: "Wiki",
+  schedule: "Planification", close: "Fermer",
 };
 const STEP_LABEL_TABLES: Partial<Record<Language, Record<string, string>>> = {
   nb: STEP_LABELS_NB, es: STEP_LABELS_ES, de: STEP_LABELS_DE, fr: STEP_LABELS_FR,

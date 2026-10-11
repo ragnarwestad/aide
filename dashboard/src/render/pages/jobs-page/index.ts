@@ -1,8 +1,8 @@
 // The Jobs tab: the board's first page. Every spec the Specs list shows under
-// Active, with the list's own row, and the wiki builds and scheduled jobs that
+// Active, with the list's own row, and the scheduled jobs that
 // are in flight or wait for the user, whatever started them. Which jobs live
 // in `rows.ts`. A spec's row is drawn by the list's row builder from the same
-// options; a wiki or scheduled job's row is `job-row.ts`'s, in the same
+// options; a scheduled job's row is `job-row.ts`'s, in the same
 // columns. Both sit in `#jobrows`, in one order, so the page script redraws and
 // presses them as it does the list's.
 
@@ -22,10 +22,10 @@ import { jobFacts, jobsViewRows, type RowFacts } from "./view.ts";
 export { jobControl, jobHome, jobsShown, jobTitle } from "./rows.ts";
 export type { JobLike } from "./rows.ts";
 
-/** What the page draws: the wiki and scheduled jobs it shows, and the Specs
+/** What the page draws: the scheduled jobs it shows, and the Specs
  *  list's options its spec rows are drawn with. */
 export interface JobsView {
-  /** The wiki builds and scheduled jobs `jobsShown` picks. */
+  /** The scheduled jobs `jobsShown` picks. */
   shown: QueueRowView[];
   /** Every job a spec's row is drawn from (`listedSpecJobs`): the Active rows are built from them. */
   specJobs: QueueRowView[];
@@ -37,7 +37,7 @@ export interface JobsView {
 }
 
 /** The rows in order, each with its `<project>/<folder>` key and the facts the
- *  view's filter and sort read: the Active specs, each once, among the wiki and
+ *  view's filter and sort read: the Active specs, each once, among the
  *  scheduled jobs, by where each stands. */
 function entries(v: JobsView): { key: string; html: string; place: TabPlace; facts: RowFacts }[] {
   const now = v.now ?? Date.now();
@@ -49,7 +49,7 @@ function entries(v: JobsView): { key: string; html: string; place: TabPlace; fac
     key: `${job.project}/${job.specFolder}`,
     html: jobRow(job, { lang, now, filter: v.list.filter ?? {}, listPath: v.list.listPath ?? "/" }),
     place: jobPlace(job),
-    facts: jobFacts(job, lang, now),
+    facts: jobFacts(job, now),
   }));
   return [...specs, ...jobs].sort((a, b) => byTabPlace(a.place, b.place));
 }

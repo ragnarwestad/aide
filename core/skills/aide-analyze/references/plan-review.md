@@ -34,8 +34,7 @@ questions, with file:line references into the spec:
 1. **Feasibility** — can this be built as described? Are the steps in
    an order that works? Are the estimates honest? Does the plan depend
    on anything that does not exist (files, tools, config)? Does it
-   build anything that already exists? Read every file the
-   project's wiki names in `wiki/reusable-parts.md` and search the code, then check the Parts list
+   build anything that already exists? Search the code, then check the Parts list
    under Recommended solution. Each of these is a must-fix, given with
    the file:line that shows it: no Parts list; a part with no line of
    the three forms, `Reused:`, `New, because` or the single `None —`;
@@ -58,7 +57,7 @@ questions, with file:line references into the spec:
    change inside this project can give — data the system never has and
    cannot get, a service or tool it cannot reach, a capability the named
    AI tool does not offer — or that breaks a rule the code keeps
-   (stated in the project's rules, its wiki, or a code comment) and that
+   (stated in the project's rules or a code comment) and that
    the description does not ask to change. Something the plan itself
    builds is never a finding: every spec asks for something the code
    does not do yet. Each finding is a should-fix that names the id and

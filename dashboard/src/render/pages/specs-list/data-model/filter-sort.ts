@@ -25,7 +25,7 @@ import { ARCHIVED_OPEN_STATE, ARCHIVED_STATE, CLOSED_STATE, isFinishedGroup, typ
 export const NOT_VERIFIED_KEY = "not-verified";
 
 /** What the state filter and the search read off a row: a spec's group, or a
- *  wiki or scheduled job's facts on the Jobs tab. */
+ *  scheduled job's facts on the Jobs tab. */
 type FilterFacts = Pick<SpecGroup, "project" | "specFolder" | "title" | "description" | "state" | "notVerified" | "failed">;
 /** What the column sort reads off a row. */
 type SortFacts = Pick<SpecGroup, "spentUsd" | "specFolder" | "state" | "createdAt" | "totalDurationMs" | "lead">;

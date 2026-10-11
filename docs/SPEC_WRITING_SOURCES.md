@@ -34,7 +34,7 @@ and [awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code) l
 - [Spec-Driven Development: a case study](https://felipefontoura.com/articles/spec-driven-development-case-study/)
   (Felipe Fontoura) — one developer, 70 days, a payments platform of 13 apps, run on 28 standing domain specs
   loaded into every session, with a loop of specify, generate, verify and correct the spec rather than the code.
-  **Analysed:** its standing domain specs are closest to a project's wiki in Aide, whose specs are per change and
+  **Analysed:** its standing domain specs have no counterpart in Aide, whose specs are per change and
   archived. What came of it: "correct the spec, not the code" is in `docs/ROADMAP.md` to consider. Its "out of
   scope (v1)" sections stopping additions confirm spec 596.
 - [Understanding Spec-Driven-Development: Kiro, spec-kit, and Tessl](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html)
@@ -45,7 +45,7 @@ and [awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code) l
 
   Also: long markdown is harder to review than the code, agents ignore the spec, and one fixed flow is too heavy
   for a small fix.
-  **Analysed:** Aide is spec-first, with the project's wiki carrying what lasts. What came of it: the source for "a
+  **Analysed:** Aide is spec-first, with the project's own documentation carrying what lasts. What came of it: the source for "a
   flow suited to the kind of task" in `docs/ROADMAP.md`.
 - [Structured-Prompt-Driven Development](https://martinfowler.com/articles/structured-prompt-driven/) (Wei Zhang
   and Jessie Jie Xia, martinfowler.com) — the prompt as a versioned artifact, written in seven parts: requirements,

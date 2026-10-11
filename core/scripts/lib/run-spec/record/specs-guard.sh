@@ -24,7 +24,7 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" != "create" ] && [ 
   archive_prefix="${specs_root_rel:+$specs_root_rel/}archive/$spec_folder/"
   root_prefix="${specs_root_rel:+$specs_root_rel/}"
   # A path the default branch already holds as HEAD has it came in with a
-  # merge of that branch — another spec archived meanwhile, a wiki build —
+  # merge of that branch — another spec archived meanwhile —
   # and is not this step's own write.
   specs_guard_branch="$(default_branch "$specs_repo_wt")"
   if git -C "$specs_repo_wt" show-ref --verify --quiet "refs/remotes/origin/$specs_guard_branch"; then

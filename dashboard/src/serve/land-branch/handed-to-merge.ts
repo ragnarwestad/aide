@@ -106,17 +106,14 @@ export function handedToMerge(
       for (const r of cacheRootsWithin(ctx, job.project, root)) ctx.branchStatus.forgetOpenSpecBranch(r, branch);
     },
   };
-  // A wiki build's key is not a folder: what it writes is `wiki/`, and it has
-  // no `archive/` twin.
-  const isWiki = what.step === "wiki";
   const paths = SPEC_ONLY_STEPS.has(what.step) && codeRoots.has(root)
-    ? specPathsIn(root, ctx.machinerySpecsRoot(job.project), isWiki ? "wiki" : job.specFolder, !isWiki)
+    ? specPathsIn(root, ctx.machinerySpecsRoot(job.project), job.specFolder)
     : undefined;
   const specOnly = paths
     ? {
         paths,
-        message: isWiki ? `Land the wiki's pages from ${branch}` : `Land ${job.specFolder}'s spec files from ${branch}`,
-        deleteBranch: what.step === "close" || isWiki,
+        message: `Land ${job.specFolder}'s spec files from ${branch}`,
+        deleteBranch: what.step === "close",
         hooks,
       }
     : undefined;
@@ -127,12 +124,12 @@ export function handedToMerge(
  *  code repo, their branch is also the code's, and merging it whole
  *  would put an earlier `implement`'s code on the default branch before
  *  `archive` — so these land the spec's own folder alone. */
-const SPEC_ONLY_STEPS = new Set(["analyze", "reopen", "close", "wiki"]);
+const SPEC_ONLY_STEPS = new Set(["analyze", "reopen", "close"]);
 
-/** The spec's folder and (unless `withArchive` is off) its `archive/` twin
+/** The spec's folder and its `archive/` twin
  *  relative to `root`, or `undefined` when the specs root is not inside
  *  `root` at all. */
-function specPathsIn(root: string, specsRoot: string | undefined, folder: string, withArchive = true): string[] | undefined {
+function specPathsIn(root: string, specsRoot: string | undefined, folder: string): string[] | undefined {
   if (!specsRoot) return undefined;
   const real = (p: string): string => {
     try {
@@ -144,5 +141,5 @@ function specPathsIn(root: string, specsRoot: string | undefined, folder: string
   const rel = relative(real(root), real(specsRoot));
   if (rel.startsWith("..") || isAbsolute(rel)) return undefined;
   const prefix = rel ? `${rel.split(sep).join("/")}/` : "";
-  return withArchive ? [`${prefix}${folder}`, `${prefix}archive/${folder}`] : [`${prefix}${folder}`];
+  return [`${prefix}${folder}`, `${prefix}archive/${folder}`];
 }

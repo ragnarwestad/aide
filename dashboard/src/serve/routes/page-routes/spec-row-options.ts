@@ -5,7 +5,6 @@
 import type { Language } from "../../../i18n";
 import type { SpecsPageOptions } from "../../../render";
 import { openOverlappingSpecs } from "../../../project/overlapping-specs.ts";
-import { isWikiBuild } from "../../../queue/steps.ts";
 import { modelChoiceOptions } from "../../serve-helpers";
 import { phaseMessagesFor } from "../../spec-views/phase-messages.ts";
 import { codeBranchOnOrigin } from "../../test-servers/branch-on-origin.ts";
@@ -53,11 +52,11 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
 }
 
 /** The jobs a spec's row is drawn from, on the Specs list and the Jobs tab
- *  alike: those of a project the queue may run, neither a scheduled job (no
- *  spec folder) nor a wiki build (its state is on the project's Wiki tab). */
-export function listedSpecJobs<J extends { project: string; specFolder: string; steps: readonly string[] }>(
+ *  alike: those of a project the queue may run that are not a scheduled job
+ *  (no spec folder). */
+export function listedSpecJobs<J extends { project: string; specFolder: string }>(
   ctx: Pick<RoutesContext, "allowed">,
   jobs: J[],
 ): J[] {
-  return jobs.filter((j) => ctx.allowed.has(j.project) && !j.specFolder.startsWith("schedule-") && !isWikiBuild(j));
+  return jobs.filter((j) => ctx.allowed.has(j.project) && !j.specFolder.startsWith("schedule-"));
 }

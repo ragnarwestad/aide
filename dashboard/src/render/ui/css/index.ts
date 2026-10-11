@@ -50,8 +50,6 @@ const SECTIONS = [
   "rows-and-forms.css",
   "job-page.css",
   "project-overview.css",
-  "wiki-pages.css",
-  "wiki-graph.css",
   "narrow.css",
   "narrow-spec-head.css",
   "narrow-rows.css",

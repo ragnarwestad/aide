@@ -19,7 +19,6 @@ import { deployDialog, STEP_LABEL } from "./deploy-dialog.ts";
 import { projectDescription } from "./overview-list.ts";
 import { PROJECTS_ROUTE, projectPagePath } from "./routes.ts";
 import { unifiedSettingsTable } from "./settings-table.ts";
-import { wikiSection } from "./wiki-section.ts";
 import { reloadMarker } from "../spec-page/tabs.ts";
 import type { ProjectPageOptions, ProjectView } from "./types.ts";
 
@@ -351,7 +350,7 @@ function configSection(
  *  `steps` → "Logs" — no label override map is needed (spec 293).
  *  Health is gone (spec 378): every check it drew now reads on Config,
  *  either on its own settings row or in the checkout-level section. */
-const PROJECT_TABS = ["deploy", "config", "schedule", "wiki"] as const;
+const PROJECT_TABS = ["deploy", "config", "schedule"] as const;
 type ProjectTab = (typeof PROJECT_TABS)[number];
 
 /** The served project page: the settings, the readiness answer, the
@@ -382,7 +381,6 @@ export function renderProjectPage(
   const panel =
     tab === "deploy" ? deploySection(p.name, opts, now) + testServerSection(p.name, opts)
     : tab === "schedule" ? scheduleSection(p.name, opts.schedule ?? [], opts)
-    : tab === "wiki" ? wikiSection(p.name, opts)
     : configSection(settings, p.name, readiness, opts);
 
   // "Whether this checkout is behind origin has not been checked yet" is
@@ -397,6 +395,6 @@ export function renderProjectPage(
     (awaitingDrift ? reloadMarker(AWAITING_DRIFT_REFRESH_SECONDS) : "") +
     tabbedBody(projectDescription(p), tabBar(PROJECT_TABS, base, tab, {}), panel, opts.backHref ?? PROJECTS_ROUTE, p.name);
   return pageShell(p.name, nav, base, body, generatedAt, {
-    script: opts.script, scriptSrc: opts.scriptSrc, hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,
+    script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,
   });
 }

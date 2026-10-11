@@ -1,15 +1,13 @@
 // The four thin `Landing` descriptions each workflow step's own landing
 // is built from.
 
-import { existsSync } from "node:fs";
-import { isAbsolute, join, relative } from "node:path";
+import { isAbsolute, relative } from "node:path";
 import { mergeBranchRefs, type BranchRef, type Job, type WorkflowStep } from "../../queue/queue.ts";
 import type { StepOutcome } from "../../queue/runner";
 import { stopTestServer } from "../test-servers/lifecycle.ts";
 import { landBranch, sameRoot } from "./merge.ts";
 import { stepLogLine } from "./test-gate.ts";
 import { renderSentence } from "../../i18n/message.ts";
-import { wikiTrackingKey } from "../../queue/steps.ts";
 import type { LandContext } from "./types.ts";
 
 /** Put a newly created spec where the page can see it (spec 93).
@@ -171,21 +169,8 @@ export async function landArchivedSpec(ctx: LandContext, job: Job, outcome: Part
     onLanded: async () => {
       onMerged();
       stopTestServer(ctx.testServers, job.project, job.specFolder, "its archive landed");
-      queueWikiRefresh(ctx, job.project);
     },
   }));
-}
-
-/** Once an archive has landed, the project's wiki is brought up to date
- *  with a refresh: a job that rewrites only the pages whose files the
- *  change moved. Only for a project that has a wiki. A refresh already
- *  queued covers this one too, so the queue's refusal of a second is the
- *  answer and not a fault; one running or merging does not, since it
- *  started before this archive landed, so this one is queued behind it. */
-export function queueWikiRefresh(ctx: LandContext, project: string): void {
-  const root = ctx.machinerySpecsRoot(project);
-  if (!root || !existsSync(join(root, "wiki", "index.md"))) return;
-  ctx.queue.enqueue({ project, specFolder: wikiTrackingKey(project), steps: ["wiki"], wikiRefresh: true });
 }
 
 /** Take a closed spec out of the active list, the same way
@@ -244,7 +229,6 @@ export const MERGE_STEP: Partial<Record<WorkflowStep, string>> = {
   create: "--- Step 7 of 7: Merge into main",
   analyze: "--- Step 11 of 11: Merge into main",
   reopen: "--- Step 6 of 6: Merge into main",
-  wiki: "--- Step 5 of 5: Merge into main",
   archive: "--- Step 5 of 5: Merge into main",
   close: "--- Step 4 of 4: Merge into main",
 };

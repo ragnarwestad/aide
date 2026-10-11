@@ -263,9 +263,8 @@ def test_an_implemented_spec_that_has_not_archived_is_named_AC_8(script, root):
     assert specs_named(out["overlaps"]) == {OTHER: ["x.ts"]}, out
 
 
-def test_the_spec_itself_and_the_wiki_folder_are_never_candidates_AC_8(script, root):
+def test_the_spec_itself_is_never_a_candidate_AC_8(script, root):
     make_spec(root, SPEC, ["x.ts"], phase="analyzed")
-    make_spec(root, "wiki", ["x.ts"])
     _, out = overlap(script, root)
     assert out["overlaps"] == [], out
 

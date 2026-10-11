@@ -81,8 +81,7 @@ leaves the provisional name in place and says which repo and why. Two `create` j
 the same scheduler pass: there is no number for them to collide over.
 
 A landing merges in a worktree of its own and touches the shared checkout for one fast-forward at the end, so it
-holds back three things and nothing else: the job being landed, a second `archive` in the same project, and a wiki run
-in it, which waits until the landing has merged.
+holds back two things and nothing else: the job being landed and a second `archive` in the same project.
 
 **The list holds specs, not the machine's whole run history.** An archived spec stays on the list as a row under the
 default **All** filter, and **Active** leaves it out. Nothing is destroyed — `/api/queue` still returns every job and `/jobs/<id>` still renders each one. A project whose specs the server cannot read this time keeps the rows it
@@ -374,9 +373,9 @@ and shown on the job's own detail page beside its Model row.
 
 ## Global defaults for the AI and model
 
-`/settings` holds the default AI and model per step, on its AI tab under Models per phase. The table has eight rows:
-the six that act on a spec — Create, Analyze, Implement, Archive, Close and Reopen — then Schedule and
-Wiki, which do not. `explore` is deliberately left out: it has no button, no row action and no place in Schedule, so
+`/settings` holds the default AI and model per step, on its AI tab under Models per phase. The table has seven rows:
+the six that act on a spec — Create, Analyze, Implement, Archive, Close and Reopen — then Schedule, which does
+not. `explore` is deliberately left out: it has no button, no row action and no place in Schedule, so
 a model set for it could not be used.
 
 A step nothing has been saved for runs on Claude Code's Opus, and its row shows that. The built-in name `opus` is
@@ -611,8 +610,8 @@ The Slack `notifyCommand` above is separate and unchanged.
 
 ## The Running tab
 
-The Running tab is the board's first page, at `/`. It lists every spec the Specs list shows under Active, and the wiki
-builds, wiki refreshes and scheduled jobs that are running or wait for the user, in every project.
+The Running tab is the board's first page, at `/`. It lists every spec the Specs list shows under Active, and the
+scheduled jobs that are running or wait for the user, in every project.
 
 A spec has a row for as long as the Specs list shows it under Active: neither archived nor closed, whatever its jobs
 did and whether or not it has one in the queue. A spec waiting for Implement, one implemented and waiting to be tested
@@ -636,7 +635,7 @@ The code keeps the page's old name: the folder `src/render/pages/jobs-page/`, th
 A create that ended without a spec has no row. It shows as the Specs list's message for it, above the table, with Try
 again and Dismiss, drawn from the same record. The message stays until Dismiss is pressed, on either page.
 
-A wiki build or refresh has a row while it is queued, running or landing, and a scheduled job likewise. A finished one
+A scheduled job has a row while it is queued, running or landing. A finished one
 keeps its row while it waits for the user:
 
 - it failed, was stopped (time limit, usage limit, red tests, unticked criteria, shared files) or was interrupted, a
@@ -645,18 +644,16 @@ keeps its row while it waits for the user:
 `waitsForPerson()` in `src/queue/steps.ts` decides that, and push notifications read the same set. A waiting row leaves
 the tab when the user has dealt with it:
 
-- a newer job of the same project and tracking key exists and was not cancelled: a wiki's `wiki-<project>` for a build
-  and a refresh alike, a scheduled job's `schedule-<name>`;
+- a newer job of the same project and tracking key exists and was not cancelled: a scheduled job's `schedule-<name>`;
 - a scheduled job's entry is deleted.
 
 The queue keeps 200 jobs, so a waiting job older than that leaves with its history.
 
-A wiki or scheduled job gets a job row in the same columns and the same two-line shape
-(`src/render/pages/jobs-page/job-row.ts`). Its title leads with the project, as a spec's does: "<project>:Wiki build",
-"<project>:Wiki refresh" or "<project>:<name>". It folds as a spec's row does, by the `open` key in the address, and is
+A scheduled job gets a job row in the same columns and the same two-line shape
+(`src/render/pages/jobs-page/job-row.ts`). Its title leads with the project, as a spec's does: "<project>:<name>". It folds as a spec's row does, by the `open` key in the address, and is
 shut by default: it shows its title, state, time and cost. Its › opens it to show the links to the job's log and to
-where it belongs, the project's Wiki build panel or its Schedule tab, and Stop or Cancel. A queued job offers Cancel and
-a running or landing one Stop, each asking first; a finished job has nothing to stop. The rules for which wiki and
+where it belongs, the project's Schedule tab, and Stop or Cancel. A queued job offers Cancel and
+a running or landing one Stop, each asking first; a finished job has nothing to stop. The rules for which
 scheduled jobs show, their titles, links and controls are in `src/render/pages/jobs-page/rows.ts`.
 
 The rows stand in one order, spec rows and job rows together: running or landing first, then queued, then the rest, the
@@ -666,8 +663,8 @@ counts as the newest. A change made without a job, such as a description saved f
 spec. With no row to show, the page says "Nothing is running."
 
 The tab has the Specs list's search box, and two dropdowns beside it, State and Project; its headings sort. The search
-reads what the list's does: the project and folder, the title and the whole description. A wiki or scheduled job is
-matched on its title as its row shows it ("Wiki build", "Wiki refresh" or the scheduled job's name) and on its project.
+reads what the list's does: the project and folder, the title and the whole description. A scheduled job is
+matched on its name and on its project.
 The State dropdown offers All, Running, Waiting, Stopped, Failed and Not verified, All by default, each counted over the
 rows the project and the search let through; a job row is never Not verified. Archived, Closed and Active say nothing
 about a tab that shows only Active specs, so an old address naming one of them gets All. The Project dropdown offers

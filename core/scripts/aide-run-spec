@@ -86,7 +86,7 @@ Usage:
   aide-run-spec --project-dir <path> --command <create|analyze|implement|archive>
                  --spec <arg> [--specs-root P] [--title T] [--description D] [--depends-on D]
                  [--reason R] [--acceptance-not-required] [--no-ai-formulate]
-                 [--criteria-checks off|warn|stop] [--choose-approach yes|no] [--wiki-refresh]
+                 [--criteria-checks off|warn|stop] [--choose-approach yes|no]
                  [--prompt-file F] [--timeout-sec S] [--permission-mode M]
                  [--result-file F] [--model M] [--effort E] [--tool T]
                  [--session-id S] [--resume-session S] [--stream-file F] [--kill-grace-sec S]
@@ -162,7 +162,7 @@ need_part() {
 # EVERY phase, before the first one runs. Checked one at a time where
 # each is sourced, a missing late phase was only found after the step had
 # run and the money was spent.
-for _part in run-spec/setup/arguments.sh run-spec/setup/code-landing.sh run-spec/setup/gates.sh run-spec/setup/invocation.sh run-spec/checkout/checkouts.sh run-spec/checkout/worktree.sh run-spec/checkout/branch.sh run-spec/turn/provider-limit.sh run-spec/turn/model-turn.sh run-spec/turn/spec-paths.sh run-spec/checkout/cleanup.sh run-spec/record/records.sh run-spec/record/status-line.sh run-spec/turn/review.sh run-spec/record/specs-guard.sh run-spec/record/shared-files-check.sh run-spec/record/criteria-check.sh run-spec/record/outcome.sh run-spec/record/ac-coverage.sh run-spec/publish/publish.sh run-spec/publish/wiki-guard.sh run-spec/publish/result.sh; do need_part "$_part"; done
+for _part in run-spec/setup/arguments.sh run-spec/setup/code-landing.sh run-spec/setup/gates.sh run-spec/setup/invocation.sh run-spec/checkout/checkouts.sh run-spec/checkout/worktree.sh run-spec/checkout/branch.sh run-spec/turn/provider-limit.sh run-spec/turn/model-turn.sh run-spec/turn/spec-paths.sh run-spec/checkout/cleanup.sh run-spec/record/records.sh run-spec/record/status-line.sh run-spec/turn/review.sh run-spec/record/specs-guard.sh run-spec/record/shared-files-check.sh run-spec/record/criteria-check.sh run-spec/record/outcome.sh run-spec/record/ac-coverage.sh run-spec/publish/publish.sh run-spec/publish/result.sh; do need_part "$_part"; done
 # The step's own clock, started before anything it does (2026-09-08).
 # It began beside the AI session and therefore measured the session
 # alone: the checkout, the worktree, the branch, the archive pre-check
@@ -269,8 +269,6 @@ source "$SCRIPT_DIR/lib/run-spec/record/outcome.sh"
 # --- committing and publishing, confirmed against origin ---
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/run-spec/publish/publish.sh"
-# shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/run-spec/publish/wiki-guard.sh"
 
 # --- what a `close` step actually DID, in the script's own word -------------
 # The dashboard lands a close on `closed` alone (runner-setup.ts), and a

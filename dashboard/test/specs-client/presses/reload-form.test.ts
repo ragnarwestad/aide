@@ -1,6 +1,6 @@
 // A form the page posts itself and then loads again: the spec page's
 // Update, Save, banner and Status tab tick, Stop test server, a test
-// board's Run, Build wiki and its Cancel, an AI's Check and a schedule
+// board's Run, an AI's Check and a schedule
 // entry's Delete. A refusal is written in the form's line and the page
 // stays; a success loads it again, unless it changed nothing and the
 // form names a line to say so in.

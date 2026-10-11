@@ -191,9 +191,6 @@ export function runnerArgv(
     // runner keeps the analysis, the plan and the status.
     ...(step === "reopen" && job.resetFiles ? ["--reset-files"] : []),
     ...(step === "implement" && o.resumeSession ? ["--resume-session", o.resumeSession] : []),
-    // Only a wiki job the board queued after an archive: rewrite the pages
-    // whose files changed, not all of them.
-    ...(step === "wiki" && job.wikiRefresh ? ["--wiki-refresh"] : []),
     // Only a `schedule` step has this, and cannot run without it: its
     // `--spec` is a tracking key, never a folder on disk, so the file
     // is the whole of what the step is for.

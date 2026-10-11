@@ -5,7 +5,6 @@
 - [The spec](#the-spec)
 - [The board](#the-board)
 - [When something does not go on](#when-something-does-not-go-on)
-- [The wiki](#the-wiki)
 
 ---
 
@@ -47,12 +46,12 @@ Each entry says what the word is and links the page that has the rest.
 
 - **Board** — the dashboard: the web pages that queue, run and show the
   steps. [The dashboard](../dashboard/README.md).
-- **Job** — one run of one or more steps for one spec, wiki or scheduled
+- **Job** — one run of one or more steps for one spec or scheduled
   task, with its own state: queued, running, done, stopped, failed,
   cancelled or interrupted.
   [A job's states](../dashboard/docs/job-states.md).
 - **Step** — anything the queue runs: the four phases, and explore,
-  schedule, reopen, close and wiki.
+  schedule, reopen and close.
 - **Skill step** — a numbered section of the skill a step runs,
   `Step N of X`, marked in the step's log.
 - **Runner** — `aide-run-spec`, the script that runs one step: checks out
@@ -93,14 +92,3 @@ which:
   `no-progress`, `scope-violation`, and others.
 - **Conflict** — the spec's branch does not merge cleanly with the
   default branch; archive resolves it.
-
-## The wiki
-
-- **Wiki** — a map of how a project's parts hang together, in `wiki/` in
-  its specs root, read first by the analysis. [The wiki](WIKI.md).
-- **Generated page** — a wiki page a wiki run wrote, naming the files and
-  the commit it was written from; rewritten when its files change.
-- **Hand-written page** — a wiki page a person wrote; no run changes it.
-- **Build / refresh** — a build rewrites every generated page; a refresh
-  only those whose files changed, and runs by itself after an archive
-  lands.

@@ -109,7 +109,7 @@ written after SHALL follows none of the five.
   refuses the push, THEN the runner SHALL keep the commit on the spec's
   branch."
 - **Optional feature:** `WHERE <feature>, the <system> SHALL <response>` —
-  "WHERE a project has a wiki, /aide-analyze SHALL read it before the code."
+  "WHERE a project has a test command, /aide-implement SHALL run it before the commit."
 
 `<system>` is whatever the criterion is about — a script, a skill, a page.
 The keywords are written in capitals, as SHALL is.

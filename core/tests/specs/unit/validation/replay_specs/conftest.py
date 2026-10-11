@@ -118,7 +118,6 @@ ls -A "$proj" > "$rec/project-files"
 cp "$sroot/$spec/1-description.md" "$rec/description"
 [ -f "$sroot/$spec/3-solution.md" ] && cp "$sroot/$spec/3-solution.md" "$rec/solution"
 cp "$sroot/$spec/2-analysis.md" "$rec/analysis"
-[ -f "$sroot/wiki/index.md" ] && cp "$sroot/wiki/index.md" "$rec/wiki-index"
 if [ "${CLAUDE_CONFIG_DIR-}" ]; then
   ls "$CLAUDE_CONFIG_DIR/skills" > "$rec/claude-skills"; ls "$CLAUDE_CONFIG_DIR/rules" > "$rec/claude-rules"
   cp "$CLAUDE_CONFIG_DIR/skills/aide-analyze/SKILL.md" "$rec/claude-skill"

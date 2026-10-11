@@ -35,7 +35,7 @@ import type { BoardMessage } from "../../i18n/message.ts";
 import { stepButton } from "../../format/step-label.ts";
 import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from "../queue.ts";
 import { modelIdOf, providerLimit, sharedFiles, stepRepoRanges, testedGreen, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
-import { asResultTool, isRunStop, isWikiBuild } from "../steps.ts";
+import { asResultTool, isRunStop } from "../steps.ts";
 import { resolveStepModel } from "../model-name.ts";
 import { stepFailure } from "../../format/tool-failure.ts";
 import { endUntickedArchive } from "./unticked-archive.ts";
@@ -169,8 +169,7 @@ export class Runner {
       // implement for one spec are ordered by nature, and git would
       // refuse the second worktree on that branch anyway — which is a
       // refusal mid-run, not a scheduling decision.
-      // A wiki job is left to the wiki hold below, so its row says why it waits.
-      if (!isWikiBuild(job) && this.runningJobs().some((r) => r.project === job.project && r.specFolder === job.specFolder)) {
+      if (this.runningJobs().some((r) => r.project === job.project && r.specFolder === job.specFolder)) {
         continue;
       }
       // Two `archive` steps never run at once in the SAME project: both
@@ -203,7 +202,7 @@ export class Runner {
         hold(job, { key: "runner.archiveRunning" });
         continue;
       }
-      // The schedule and wiki holds (runner/project-holds.ts): other work of
+      // The schedule hold (runner/project-holds.ts): other work of
       // the project is in flight.
       const projectReason = projectHold(this.o.store.list(), job);
       if (projectReason) {

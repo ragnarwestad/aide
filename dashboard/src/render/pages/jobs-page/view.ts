@@ -1,10 +1,9 @@
 // The Jobs tab's view rules, as pure functions: which state entries it offers,
-// what a wiki or scheduled job's row is to the filter and the sort, which rows
+// what a scheduled job's row is to the filter and the sort, which rows
 // a view leaves and in what order, what each dropdown offers and counts, and
 // where a view link goes. The filter and the sort are the Specs list's own,
 // run over the facts a row has; the bar and the page draw what this decides.
 
-import type { Language } from "../../../i18n";
 import { inFlight, type QueueRowView } from "../../ui/job-state";
 import {
   DEFAULT_STATE_FILTER,
@@ -57,14 +56,14 @@ export function jobDurationMs(row: QueueRowView, now: number): number {
   return Number.isNaN(end) ? 0 : Math.max(0, end - start);
 }
 
-/** A wiki or scheduled job's facts: its title as the row shows it, its state
+/** A scheduled job's facts: its title as the row shows it, its state
  *  with a landing read as running (as a spec's group reads it), its cost, the
  *  moment it was made and its time. No criteria, so never Not verified. */
-export function jobFacts(row: QueueRowView, lang: Language, now: number): RowFacts {
+export function jobFacts(row: QueueRowView, now: number): RowFacts {
   return {
     project: row.project,
     specFolder: row.specFolder,
-    title: jobTitle(row, lang),
+    title: jobTitle(row),
     state: row.landing ? "running" : row.state,
     spentUsd: row.spentUsd,
     createdAt: row.createdAt,

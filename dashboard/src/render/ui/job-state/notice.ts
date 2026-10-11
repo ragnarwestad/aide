@@ -21,7 +21,6 @@ export const HELD_BACK_INFO_KEYS = new Set<MessageKey>([
   "runner.landingPause",
   "runner.archiveRunning",
   "runner.dependencyNotArchived",
-  "runner.wikiWaitsOnProject",
 ]);
 
 /** Whether a queued job's own hold resolves on its own, read off the

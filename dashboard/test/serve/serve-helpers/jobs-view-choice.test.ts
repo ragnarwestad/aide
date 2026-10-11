@@ -28,14 +28,14 @@ const stored = (setCookie: string | undefined): Record<string, string> => {
   return Object.fromEntries(new URLSearchParams(value ?? ""));
 };
 
-const remembered = { [jobsViewCookieName(PORT)]: "state=stopped&q=wiki" };
+const remembered = { [jobsViewCookieName(PORT)]: "state=stopped&q=nightly" };
 
 describe("an address that names a view key is the view and becomes the memory (AC-7)", () => {
   test("the keys it names are the view, and a cookie of the tab's own holds them (AC-7)", () => {
-    const { url, req } = ask("state=failed&project=other&sort=cost&dir=asc&q=wiki");
+    const { url, req } = ask("state=failed&project=other&sort=cost&dir=asc&q=nightly");
     const choice = jobsViewChoice(url, req, PORT);
-    expect(choice.view).toEqual({ state: "failed", project: "other", sort: "cost", dir: "asc", q: "wiki" });
-    expect(stored(choice.setCookie)).toEqual({ state: "failed", project: "other", sort: "cost", dir: "asc", q: "wiki" });
+    expect(choice.view).toEqual({ state: "failed", project: "other", sort: "cost", dir: "asc", q: "nightly" });
+    expect(stored(choice.setCookie)).toEqual({ state: "failed", project: "other", sort: "cost", dir: "asc", q: "nightly" });
     expect(choice.setCookie).toContain("HttpOnly");
     expect(choice.setCookie).toContain("Path=/");
   });
@@ -61,7 +61,7 @@ describe("an address that names a view key is the view and becomes the memory (A
   test("an address naming none gets the view last chosen, and sets no cookie (AC-7)", () => {
     const { url, req } = ask("rows=1&open=aide/81-x", remembered);
     const choice = jobsViewChoice(url, req, PORT);
-    expect(choice.view).toEqual({ state: "stopped", q: "wiki" });
+    expect(choice.view).toEqual({ state: "stopped", q: "nightly" });
     expect(choice.setCookie).toBeUndefined();
   });
 

@@ -19,7 +19,7 @@ const hits = (dirs: string[], re: RegExp): string[] =>
     .filter((f) => re.test(readFileSync(f, "utf8")))
     .map((f) => relative(ROOT, f));
 
-const MESSAGES = "error|errorSpec|notice|noticeOk|deployError|wikiError";
+const MESSAGES = "error|errorSpec|notice|noticeOk|deployError";
 
 describe("no message rides the address", () => {
   test("no address is built carrying a message (AC-1)", () => {

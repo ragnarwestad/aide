@@ -26,7 +26,6 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     // provisional key: `new-abc123de` says nothing to anyone.
     createTitle: job.createTitle,
     steps: job.steps,
-    wikiRefresh: job.wikiRefresh,
     stepIndex: job.stepIndex,
     // Spec 160: which of them the row may still be given or relieved
     // of. Asked of the queue's own module, so the box and the route

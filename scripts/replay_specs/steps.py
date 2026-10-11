@@ -43,7 +43,6 @@ class Run:
     implement: Optional[Step]
     judge_model: str
     branch: str
-    with_wiki: bool
     code_landing: str
     env: dict
     tool_env: dict
@@ -215,8 +214,7 @@ def replay_one(run, arg, index):
         (run.out / folder).mkdir(parents=True, exist_ok=True)
         code_dir = copies.code_copy(run.code, re.sub("^origin/", "", run.branch), found.before, work / "code")
         specs_repo = work / "specs"
-        began = git(run.code, "show", "-s", "--format=%cI", found.before) if run.with_wiki else None
-        specs_dir = copies.specs_copy(archived, folder, run.project, specs_repo, run.core, run.specs_root, wiki_at=began)
+        specs_dir = copies.specs_copy(archived, folder, run.project, specs_repo, run.core, run.specs_root)
         row.replayed = True
         replay_steps(run, row, folder, archived, found, code_dir, str(specs_repo), specs_dir, work)
     except (CannotReplay, landing.NoLanding) as error:

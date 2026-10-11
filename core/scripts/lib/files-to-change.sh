@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# files-to-change.sh — sourced by aide-spec-overlap and aide-wiki.
+# files-to-change.sh — sourced by aide-spec-overlap.
 #
 # Reading the `### Files to change` list of a spec's 2-analysis.md: the
 # newest round of the file, the lines under a heading, and a list of bare

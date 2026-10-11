@@ -203,12 +203,6 @@ machine: a personal global gitignore (`core.excludesFile`) covers it in every pr
 project's own `.gitignore`. The dashboard's own clone, which nobody edits, lists its derived `.aide/project.yaml`
 in that clone's `.git/info/exclude`.
 
-**The wiki is built.** Add queues a wiki build, the same job the **Build wiki** button queues, once the dashboard's
-own checkout is made, so the project's first analysis has a wiki to read. The queue starts it; the Add does not wait
-for it. A build that fails leaves the project added, shows on the Wiki tab's Build panel and on the Running tab, and
-**Build wiki** runs it again. A build the queue refuses is written to the server's log as `build wiki refused`, and
-the add is not refused with it.
-
 **Worktree links are suggested on the project's own page, not on Add.** Nothing can derive which gitignored paths a
 project's commands need, which is why the field exists — but a checkout's `.gitignore` names the candidates in a
 file the reader had to go and open. The Config tab's Edit form lists the literal, top-level
@@ -221,7 +215,7 @@ from.
 
 ### A project's own page
 
-`/projects/<name>` has four tabs — **Deploy**, **Config**, **Schedule** and **Wiki** — chosen with `?tab=` and defaulting to
+`/projects/<name>` has three tabs — **Deploy**, **Config** and **Schedule** — chosen with `?tab=` and defaulting to
 Deploy, which is also where an unrecognised value lands. `?edit=config` or `?edit=manifest`, a settings table's own
 edit state, opens on Config.
 **← Back** goes to the page the reader came from, such as the spec whose project link was pressed, and keeps going
@@ -323,32 +317,6 @@ it is saved. A save goes back to the page it was opened from; a refused one stay
 [Running a job on a schedule](running-specs.md#running-a-job-on-a-schedule) has what such a job may do and where
 its output goes. The tab is drawn even for a project
 that is not on the allowlist; a create there is then refused, with the reason on the form.
-
-#### Wiki
-
-A wiki is a set of pages about how the project's parts hang together, kept in `wiki/` in the project's specs root and
-read first when a spec is analyzed. The tab says so and has one **Build wiki** button, which posts to
-`POST /api/queue/projects/<name>/wiki` and queues one `wiki` job under the key `wiki-<name>`. The first build is
-queued by Add. A press while a build
-is unfinished, or while its merge is running, is refused on the tab with the queue's own sentence. The build is
-followed on this tab and never on the Specs list: the latest one reads as running (with Cancel), last built on a date,
-or failed with its reason, with that build's steps and their logs below it, and a press or a Cancel comes back here. The
-step runs with Aide's own scripts allowed (`permissionMode.wiki`), since it writes only through `aide-wiki`. **Build
-wiki** rewrites every generated page. Once an archive lands in a project that has a wiki, the board queues a refresh by
-itself: the same job with `wikiRefresh`, which rewrites only the pages whose files changed; a refresh already queued
-covers the next archive too, while one running or merging gets another queued behind it, which waits for it. The
-Build panel keeps showing the run in flight, not the refresh behind it. A project whose specs folder git ignores inside the project cannot build
-a wiki: the run is refused, since there is no repository to commit the pages to.
-
-Above the log the tab lists the wiki's pages, in the order of the wiki's `index.md`, each with its summary and a word
-for its state: **Current**, **Files changed** (a file the page names differs from the project's checkout since the page
-was written), **Unknown** (the commit it was written from is not in the checkout) or **By hand** (no freshness is
-tracked). A page not in the index follows the listed ones. Pressing a page opens it on the tab, rendered as markdown
-with the viewer a locked spec document uses; a link to another page opens that page there, and `?page=<file>.md` in the
-address keeps the open page across a reload and a language change. The pages are read from the specs repository's
-default branch as of its last fetch, never from its working tree, and a fetch of that branch is started behind the read —
-the one place the project page fetches. A tab open on a page does not reload itself while a build runs. A project whose
-default branch has no `wiki/index.md` shows the tab without any of this.
 
 ### How a project's code lands
 

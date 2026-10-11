@@ -100,7 +100,6 @@ choose_approach_arg=""
 # `reopen` only: also put the analysis, the plan and the status back to their
 # templates. Without it a reopen keeps every file and runs no model.
 reset_files="no"
-wiki_refresh="no"
 resume_session=""
 # The file whose contents become the prompt VERBATIM, for `--command
 # schedule` alone (spec 259). A schedule entry names no aide skill and
@@ -149,7 +148,6 @@ while [ $# -gt 0 ]; do
     --criteria-checks) criteria_checks_arg="${2:-}"; shift 2 ;;
     --choose-approach) choose_approach_arg="${2:-}"; shift 2 ;;
     --reset-files) reset_files="yes"; shift ;;
-    --wiki-refresh) wiki_refresh="yes"; shift ;;
     --prompt-file) prompt_file="${2:-}"; shift 2 ;;
     --timeout-sec) timeout_sec="${2:-}"; shift 2 ;;
     --permission-mode) permission_mode="${2:-}"; shift 2 ;;

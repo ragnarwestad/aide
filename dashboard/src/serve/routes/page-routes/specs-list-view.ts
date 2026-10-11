@@ -116,8 +116,7 @@ export async function specsListParts(
   // Only the projects the queue may run. A project taken out of the
   // allowlist keeps its jobs in the history (and in /api/queue), but
   // a row for it could only offer a Run that would be refused.
-  // A schedule job is not a spec and a wiki build is no spec either
-  // (`listedSpecJobs`).
+  // A schedule job is not a spec (`listedSpecJobs`).
   const listed = listedSpecJobs(ctx, ctx.queue.list());
   return {
     view,

@@ -21,7 +21,7 @@ export async function jobsPage(
   const jobs = ctx.queue.list();
   // The jobs a spec's row is drawn from, as the Specs list draws it.
   const specJobs = listedSpecJobs(ctx, jobs);
-  // The wiki builds and scheduled jobs, by the rules they follow.
+  // The scheduled jobs, by the rules they follow.
   const shown = jobsShown(jobs, {
     scheduleEntryExists: (project, name) => ctx.scheduleStore.list(project).some((e) => e.name === name),
   });

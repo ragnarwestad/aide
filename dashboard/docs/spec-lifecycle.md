@@ -55,7 +55,7 @@ it:
   | Event              | `WHEN <trigger>, the <system> SHALL <response>`      | WHEN a step ends, the runner SHALL write its result into the status file.        |
   | State              | `WHILE <state>, the <system> SHALL <response>`       | WHILE a job runs on a spec, the specs list SHALL lock that spec's Run button.    |
   | Unwanted behaviour | `IF <condition>, THEN the <system> SHALL <response>` | IF origin refuses the push, THEN the runner SHALL keep the commit on the branch. |
-  | Optional feature   | `WHERE <feature>, the <system> SHALL <response>`     | WHERE a project has a wiki, analyze SHALL read it before the code.               |
+  | Optional feature   | `WHERE <feature>, the <system> SHALL <response>`     | WHERE a project sets a test command, the runner SHALL run it before the commit.  |
 
   Each criterion becomes a row to tick before archive, unless the spec was created without acceptance ticking.
 - **Out of scope**, an optional section under exactly the heading `## Out of scope`: a list of what the change must

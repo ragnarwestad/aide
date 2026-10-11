@@ -1,4 +1,4 @@
-// Which wiki builds and scheduled jobs the Jobs tab shows, where every row
+// Which scheduled jobs the Jobs tab shows, where every row
 // stands, what a job row is called, where it belongs and what it offers. One
 // test per rule, on plain job-shaped objects.
 
@@ -28,7 +28,6 @@ const job = (o: Partial<J> & { createdAt?: string } = {}): J => ({
   results: [],
   ...o,
 });
-const wiki = (o: Partial<J> = {}): J => job({ specFolder: "wiki-aide", steps: ["wiki"], ...o });
 const sched = (o: Partial<J> = {}): J => job({ specFolder: "schedule-nightly", steps: ["schedule"], ...o });
 const T = (day: number): string => `2026-10-${String(day).padStart(2, "0")}T10:00:00Z`;
 const ms = (day: number): number => Date.parse(T(day));
@@ -77,8 +76,8 @@ describe("where a row stands on the tab: running or landing, queued, the rest; t
     expect(byTabPlace(undated, dated)).toBeLessThan(0);
   });
 
-  test("a wiki build's change is its newest stamp, so it can stand above a spec made after it began (AC-4)", () => {
-    const build = jobPlace(wiki({ state: "failed", createdAt: T(10), finishedAt: T(12) } as Partial<J>));
+  test("a scheduled job's change is its newest stamp, so it can stand above a spec made after it began (AC-4)", () => {
+    const build = jobPlace(sched({ state: "failed", createdAt: T(10), finishedAt: T(12) } as Partial<J>));
     const idle = specPlace(group({ state: "not-started", createdAt: T(11) }));
     expect(byTabPlace(build, idle)).toBeLessThan(0);
 
@@ -87,19 +86,18 @@ describe("where a row stands on the tab: running or landing, queued, the rest; t
   });
 });
 
-describe("a wiki build or scheduled job in flight has a row (AC-5)", () => {
-  test("a queued or running wiki build, a landing one and a running scheduled job (AC-5)", () => {
+describe("a scheduled job in flight has a row (AC-5)", () => {
+  test("a queued, a running and a landing scheduled job (AC-5)", () => {
     const jobs = [
-      wiki({ id: "wq", state: "queued" }),
-      wiki({ id: "wr", state: "running", project: "other" }),
-      wiki({ id: "wl", state: "done", landing: true, project: "third" }),
-      sched({ id: "s", state: "running", project: "fourth" }),
+      sched({ id: "sq", state: "queued" }),
+      sched({ id: "sr", state: "running", project: "other" }),
+      sched({ id: "sl", state: "done", landing: true, project: "third" }),
     ];
-    expect(new Set(ids(jobs))).toEqual(new Set(["wq", "wr", "wl", "s"]));
+    expect(new Set(ids(jobs))).toEqual(new Set(["sq", "sr", "sl"]));
   });
 
   test("a finished one with nothing waiting, and a cancelled one, have none (AC-5)", () => {
-    const jobs = [wiki({ id: "d", state: "done" }), sched({ id: "x", state: "cancelled" })];
+    const jobs = [sched({ id: "d", state: "done" }), sched({ id: "x", state: "cancelled", project: "other" })];
     expect(ids(jobs)).toEqual([]);
   });
 });
@@ -125,7 +123,7 @@ describe("a spec's job is never a job row: its spec's row stands for it (AC-1, A
   });
 });
 
-describe("a finished wiki build or scheduled job that waits for the user keeps its row (AC-5)", () => {
+describe("a finished scheduled job that waits for the user keeps its row (AC-5)", () => {
   const waiting: [string, Partial<J>][] = [
     ["failed", { state: "failed" }],
     ["failed with a conflict", { state: "failed", errorReason: "conflict" } as Partial<J>],
@@ -135,53 +133,43 @@ describe("a finished wiki build or scheduled job that waits for the user keeps i
   ];
   for (const [what, o] of waiting) {
     test(`${what} (AC-5)`, () => {
-      expect(ids([wiki({ id: "w", ...o })])).toEqual(["w"]);
       expect(ids([sched({ id: "s", ...o })])).toEqual(["s"]);
     });
   }
 });
 
 describe("a newer job of the same project and key clears a waiting one (AC-5)", () => {
-  const failed = wiki({ id: "old", state: "failed", createdAt: T(1) });
+  const failed = sched({ id: "old", state: "failed", createdAt: T(1) });
 
   for (const state of ["queued", "running", "done"] as const) {
     test(`a newer ${state} one (AC-5)`, () => {
-      const newer = wiki({ id: "new", state, createdAt: T(2) });
+      const newer = sched({ id: "new", state, createdAt: T(2) });
       expect(ids([newer, failed])).not.toContain("old");
     });
   }
 
   test("a newer cancelled run does not clear it (AC-5)", () => {
-    const newer = wiki({ id: "new", state: "cancelled", createdAt: T(2) });
+    const newer = sched({ id: "new", state: "cancelled", createdAt: T(2) });
     expect(ids([newer, failed])).toEqual(["old"]);
   });
 
   test("a newer one that itself waits keeps its own row, and the older goes (AC-5)", () => {
-    const newer = wiki({ id: "new", state: "failed", createdAt: T(2) });
+    const newer = sched({ id: "new", state: "failed", createdAt: T(2) });
     expect(ids([newer, failed])).toEqual(["new"]);
   });
 
   test("an older job after the failed one does not clear it (AC-5)", () => {
-    const older = wiki({ id: "before", state: "done", createdAt: T(0) });
+    const older = sched({ id: "before", state: "done", createdAt: T(0) });
     expect(ids([failed, older])).toEqual(["old"]);
   });
 
-  test("another project, another wiki or schedule key leave it (AC-5)", () => {
-    const other = wiki({ id: "b", state: "running", project: "other", createdAt: T(3) });
+  test("another project or another schedule key leave it (AC-5)", () => {
+    const other = sched({ id: "b", state: "running", project: "other", createdAt: T(3) });
     expect(ids([other, failed])).toContain("old");
-
-    const w = wiki({ id: "w", state: "failed", specFolder: "wiki-aide", createdAt: T(1) });
-    const wOther = wiki({ id: "wo", state: "done", specFolder: "wiki-other", createdAt: T(2) });
-    expect(ids([wOther, w])).toEqual(["w"]);
 
     const s = sched({ id: "s", state: "failed", specFolder: "schedule-a", createdAt: T(1) });
     const sOther = sched({ id: "so", state: "done", specFolder: "schedule-b", createdAt: T(2) });
     expect(ids([sOther, s])).toEqual(["s"]);
-  });
-
-  test("a newer refresh clears a failed wiki build of the same project (AC-5)", () => {
-    const refresh = wiki({ id: "r", state: "done", createdAt: T(2) });
-    expect(ids([refresh, failed])).toEqual([]);
   });
 });
 
@@ -206,45 +194,31 @@ describe("a waiting scheduled job whose entry was deleted (AC-5)", () => {
 });
 
 describe("a job row's title says what the job is (AC-5)", () => {
-  const view = (o: Partial<J> & { wikiRefresh?: boolean }) => job({ ...o }) as ReturnType<typeof job> & typeof o;
-
-  test("a wiki build and a wiki refresh read Wiki build / Wiki refresh, with no project (AC-5)", () => {
-    const w = { specFolder: "wiki-aide", steps: ["wiki"] };
-    expect(jobTitle(view(w), "en")).toBe("Wiki build");
-    expect(jobTitle(view({ ...w, wikiRefresh: true }), "en")).toBe("Wiki refresh");
-  });
-
   test("a scheduled job reads its name, with no project (AC-5)", () => {
-    const title = jobTitle(view({ specFolder: "schedule-nightly-report", steps: ["schedule"], project: "woodstack" }), "en");
+    const title = jobTitle(job({ specFolder: "schedule-nightly-report", steps: ["schedule"], project: "woodstack" }));
     expect(title).toBe("nightly-report");
   });
 });
 
 describe("what a job row offers to stop it (AC-5)", () => {
   test("a queued job that is not landing offers Cancel (AC-5)", () => {
-    expect(jobControl(wiki({ state: "queued" }))).toBe("cancel");
+    expect(jobControl(sched({ state: "queued" }))).toBe("cancel");
   });
 
   test("a running or a landing job offers Stop (AC-5)", () => {
-    expect(jobControl(wiki({ state: "running" }))).toBe("stop");
-    expect(jobControl(wiki({ state: "done", landing: true }))).toBe("stop");
+    expect(jobControl(sched({ state: "running" }))).toBe("stop");
+    expect(jobControl(sched({ state: "done", landing: true }))).toBe("stop");
     expect(jobControl(sched({ state: "queued", landing: true }))).toBe("stop");
   });
 
   test("a finished job offers nothing (AC-5)", () => {
     for (const state of ["done", "failed", "stopped", "interrupted", "cancelled"] as const) {
-      expect(jobControl(wiki({ state }))).toBeUndefined();
+      expect(jobControl(sched({ state }))).toBeUndefined();
     }
   });
 });
 
 describe("where a job row belongs (AC-5)", () => {
-  test("a wiki job belongs on the project's Wiki build panel (AC-5)", () => {
-    expect(jobHome(job({ project: "aide", specFolder: "wiki-aide", steps: ["wiki"] }))).toBe(
-      "/projects/aide?tab=wiki&wikitab=build",
-    );
-  });
-
   test("a scheduled job belongs on the project's Schedule tab (AC-5)", () => {
     expect(jobHome(job({ project: "aide", specFolder: "schedule-nightly", steps: ["schedule"] }))).toBe(
       "/projects/aide?tab=schedule",

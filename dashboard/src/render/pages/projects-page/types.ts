@@ -3,8 +3,6 @@
 import type { SpecView, ProjectView } from "../../../project/discover";
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import type { Language } from "../../../i18n";
-import type { JobDetailView, JobStepResultView } from "../job-page";
-import type { WikiView } from "../../../project/wiki/types.ts";
 import type { PreviewFrom } from "../../../project/parse-manifest.ts";
 import type { SettingsGroupFile } from "../../../project/project-settings.ts";
 
@@ -61,22 +59,6 @@ export interface ProjectPageOptions {
    *  `AIDE_INSTALL_CMD` is configured — the same gate `/projects`' own
    *  drift map uses. */
   drift?: ProjectDrift;
-  /** The project's latest wiki build, drawn on the Wiki tab: a build is a
-   *  job of the project's, never a row on the Specs list. `error` is its
-   *  sentence already in the page's language. */
-  wikiBuild?: { id: string; state: string; finishedAt?: string; error?: string };
-  /** The wiki's pages and the one the address opens, drawn on the Wiki tab.
-   *  Absent for a project with no wiki. */
-  wiki?: WikiView;
-  /** A script the page loads after its own — the viewer, for an open wiki page. */
-  scriptSrc?: string;
-  /** That build's steps and logs, drawn under it on the Wiki tab. */
-  wikiLog?: {
-    results: JobStepResultView[];
-    runningStep?: JobDetailView["runningStep"];
-    step?: string;
-    steptab?: string;
-  };
   /** The step the last Deploy failed at and why, kept by the server until
    *  the next deploy starts. */
   deployFailure?: { step: string; error: string };
@@ -114,12 +96,6 @@ export interface ProjectPageOptions {
    *  tab held only in client state would snap back to the default on
    *  every reload. */
   tab?: string;
-  /** Which of the Wiki tab's own Pages/Graph/Build panels is open, off
-   *  `?wikitab=` — nested one level under `tab` the same way a job
-   *  step's own Log/Files/Errors strip reads `?steptab=` under `?step=`.
-   *  Absent means Pages, except an open wiki page (`wiki.open`) always
-   *  wins over whatever this says. */
-  wikiTab?: string;
   /** Spec 408. Absent means English — the same default `pageShell`'s
    *  own `opts.lang` falls back to. */
   lang?: Language;

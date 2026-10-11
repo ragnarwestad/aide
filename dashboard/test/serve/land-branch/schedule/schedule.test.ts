@@ -124,7 +124,7 @@ describe("landScheduleRun", () => {
     );
     expect(mergedTheBranch(git.calls, code)).toBe(true);
     // Not a folder-only copy: no `diff --name-only ... specs/<folder>`,
-    // the shape `analyze`/`reopen`/`close`/`wiki` take instead.
+    // the shape `analyze`/`reopen`/`close` take instead.
     expect(git.calls.some((c) => c.args[0] === "diff" && c.args.includes(`specs/${JOB.specFolder}`))).toBe(false);
   });
 

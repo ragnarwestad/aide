@@ -499,7 +499,5 @@ service runs as, and every commit a run makes carries that machine's git user, w
   what the code looked like, what was decided and what it cost, and the project's documentation stays current instead of
   falling behind a growing pile of finished specs.
 - **Disadvantage:** four files are more overhead than a single plan file for a small change. And unlike OpenSpec,
-  Aide has no capability document describing what the system does as a whole. Each project's wiki, in the specs
-  repository and read first by `/aide-analyze`, maps how its parts hang together, one page per part, and the
-  archive step rewrites the pages a spec's code touched; the answer to "what does this system do today" is in the
-  project's own documentation, and stays correct only for as long as the archive step keeps it there.
+  Aide has no capability document describing what the system does as a whole; the answer to "what does this
+  system do today" is in the project's own documentation, and stays correct only for as long as the archive step keeps it there.

@@ -12,7 +12,7 @@
 import { errorSentence } from "../format/error-sentence.ts";
 import { parseCreateChoices } from "./create-choices.ts";
 import { listedModelName } from "./model-name.ts";
-import { ARCHIVE_ONLY_STEP, EFFORT_LEVELS, PHASE_STEPS, WORKFLOW_STEPS, wikiTrackingKey, type WorkflowStep } from "./steps.ts";
+import { ARCHIVE_ONLY_STEP, EFFORT_LEVELS, PHASE_STEPS, WORKFLOW_STEPS, type WorkflowStep } from "./steps.ts";
 import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "./types.ts";
 
 export type ParseResult = { ok: true; job: Job } | { ok: false; error: string };
@@ -96,19 +96,10 @@ export function parseJobRequest(
   if (isScheduleJob && !r.specFolder.startsWith("schedule-")) {
     return { ok: false, error: invalidRequest("invalid specFolder: a schedule job's tracking key must start with schedule-") };
   }
-  // A `wiki` job names no spec either, and is admitted on both halves
-  // together: exactly the steps `["wiki"]` on exactly the folder
-  // `wiki-<project>`. Either half alone is refused.
-  const isWikiSteps = Array.isArray(r.steps) && r.steps.length === 1 && r.steps[0] === "wiki";
-  const isWikiKey = r.specFolder === wikiTrackingKey(r.project);
-  if (isWikiSteps !== isWikiKey) {
-    return { ok: false, error: invalidRequest(`invalid specFolder: a wiki job is exactly the step wiki on ${wikiTrackingKey(r.project)}`) };
-  }
-  const isWikiJob = isWikiSteps && isWikiKey;
   const archivedOnly =
     !resolved.specFolders.includes(r.specFolder) &&
     (resolved.archivedFolders ?? []).includes(r.specFolder);
-  if (!isScheduleJob && !isWikiJob && !resolved.specFolders.includes(r.specFolder) && !archivedOnly) {
+  if (!isScheduleJob && !resolved.specFolders.includes(r.specFolder) && !archivedOnly) {
     return { ok: false, error: invalidRequest(`unknown specFolder: ${r.specFolder}`) };
   }
 
@@ -254,8 +245,6 @@ export function parseJobRequest(
   const resetFiles =
     steps.length === 1 && steps[0] === "reopen" &&
     (r.resetFiles === true || r.resetFiles === "1" || r.resetFiles === "on");
-  // A wiki job that refreshes rather than builds: a lone `wiki` step only.
-  const wikiRefresh = steps.length === 1 && steps[0] === "wiki" && r.wikiRefresh === true;
 
   // Per step, each against its OWN ceiling: an override that would be a
   // tightening for implement can be a loosening for analyze, and the
@@ -292,7 +281,6 @@ export function parseJobRequest(
       effort: stepEffort,
       closeReason,
       ...(resetFiles ? { resetFiles: true } : {}),
-      ...(wikiRefresh ? { wikiRefresh: true } : {}),
       createdAt: new Date().toISOString(),
       results: [],
       spentUsd: 0,

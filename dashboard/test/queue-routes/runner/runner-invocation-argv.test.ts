@@ -337,25 +337,6 @@ describe("--reset-files", () => {
   });
 });
 
-// A wiki refresh reaches the runner as --wiki-refresh; a build does not.
-describe("--wiki-refresh", () => {
-  const argvFor = (extra: Record<string, unknown>): string[] =>
-    runnerArgv(
-      {
-        id: "j1", project: "aide", specFolder: "wiki-aide", steps: ["wiki"], stepIndex: 0,
-        model: {}, timeoutSec: {}, permissionMode: {}, state: "queued", createdAt: "", results: [], ...extra,
-      } as unknown as Parameters<typeof runnerArgv>[0],
-      "wiki", "/tmp/r.json", { runnerBin: "/bin/aide-run-spec", projectDir: "/p", push: "branch" },
-    );
-
-  test("a refresh passes it", () => {
-    expect(argvFor({ wikiRefresh: true })).toContain("--wiki-refresh");
-  });
-  test("a build does not", () => {
-    expect(argvFor({})).not.toContain("--wiki-refresh");
-  });
-});
-
 // An implement continues its analysis's own session: the latest finished
 // analysis of the spec, run with the same AI, ended within the hour.
 describe("the analysis session an implement continues", () => {

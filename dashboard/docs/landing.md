@@ -27,8 +27,7 @@ does nothing for the other: each repo's branch is landed on its own, asked of th
 A project whose specs live inside it has one repo and one branch for both. There, a step that lands no code —
 `analyze`, `reopen`, `close` — copies the spec's own folder, and its `archive/` twin, from the branch onto the
 default branch as one commit, and leaves every other path as it was. The branch stays open for the next step,
-whose run merges the default branch in before it starts; a `close` deletes it afterwards. A `wiki` step copies
-`wiki/` alone and deletes its branch, since nothing follows it.
+whose run merges the default branch in before it starts; a `close` deletes it afterwards.
 
 ### What each step lands
 
@@ -36,7 +35,7 @@ Nothing here is merged by hand. Every step lands its own work as it finishes, an
 Approve button: the step that made the work is what knows it is done. Leaving `archive` unticked is the inspection
 point.
 
-- `create`, `analyze` and `wiki` merge the branch they pushed into that repo's default branch, and leave the
+- `create` and `analyze` merge the branch they pushed into that repo's default branch, and leave the
   project's code root out.
 - `implement` lands nothing. The code stays on the branch for anyone who wants to read or test it first.
 - `archive` merges every repo it was told about: the roots its own run reported, plus the ones the queue's own
@@ -55,7 +54,7 @@ it the way the AI marks the skill's other steps, in the words of that skill's la
 - `— stopped: <why> — the archive is not finished`, an error line, when it did not
 
 The titles are `MERGE_STEP` in `src/serve/land-branch/steps.ts`, one per step that lands (`create`, `analyze`,
-`reopen`, `wiki`, `archive`, `close`); a test reads each skill's last heading against it.
+`reopen`, `archive`, `close`); a test reads each skill's last heading against it.
 
 Code reaches the default branch through `archive` alone. The loop can only merge what it knows about, which is why
 it asks origin afterwards — see

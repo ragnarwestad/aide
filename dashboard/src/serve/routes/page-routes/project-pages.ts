@@ -18,13 +18,8 @@ import { ADD_PROJECT_ROUTE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, 
 import { MAIN_TEST_SERVER_KEY, refreshTestServerStatus } from "../../test-servers/lifecycle.ts";
 import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "../spec-edit/test-server-waiting.ts";
 import { isSpecFolder } from "../../../render/ui/shell.ts";
-import { SPEC_VIEWER_ASSET_PATH, languageChoice, modelChoiceOptions, processSettings, specsClientScript } from "../../serve-helpers";
-import { wikiView } from "./wiki-view.ts";
+import { languageChoice, modelChoiceOptions, processSettings, specsClientScript } from "../../serve-helpers";
 import type { RoutesContext } from "..";
-import { isWikiBuild } from "../../../queue/steps.ts";
-import { renderSentence } from "../../../i18n/message.ts";
-import type { Language } from "../../../i18n";
-import type { Job } from "../../../queue/types.ts";
 
 export async function projectPages(
   ctx: RoutesContext,
@@ -173,9 +168,7 @@ export async function projectPages(
     // Read-only, like `/projects`' own drift map: `peekDrift` is a
     // cache lookup, never a git call — the page's own "never merges,
     // pulls, fetches or checks anything out" contract
-    // (project-detail-readiness-and-deploy.test.ts) must hold here too (spec 258) — on
-    // every tab but Wiki, whose read starts a fetch of the specs
-    // repository's default branch behind it.
+    // (project-detail-readiness-and-deploy.test.ts) must hold here too (spec 258).
     const driftRoot = ctx.machineryProjectDir(name);
     const drift = resolveInstallCmd(driftRoot).value
       ? ctx.branchStatus.peekDrift(driftRoot)
@@ -213,10 +206,6 @@ export async function projectPages(
     const machinery = ctx.machineryProjectDir(name);
     const manifestDir = existsSync(join(machinery, ".aide", "project.yaml")) ? machinery : dir;
     const langResult = languageChoice(url, req);
-    // The one tab that reads git: the wiki's pages off the default branch,
-    // with a fetch started behind the read (the rest of this page never
-    // fetches).
-    const wiki = url.searchParams.get("tab") === "wiki" ? await wikiView(ctx, name, url.searchParams.get("page")).catch(() => undefined) : undefined;
     const html = renderProjectPage(
       view,
       projectSettings(dir, readiness, manifestDir),
@@ -256,11 +245,6 @@ export async function projectPages(
         worktreeLinkCandidates: gitignoreCandidates(dir),
         editingGroup: groupForEditParam(url.searchParams.get("edit")),
         drift,
-        wikiBuild: latestWikiBuild(ctx.queue.list(), name, langResult.lang),
-        wikiLog: await wikiLog(ctx, url, name),
-        wiki,
-        // The viewer bundle a rendered page needs; the list draws none.
-        scriptSrc: wiki?.open && !("missing" in wiki.open) ? SPEC_VIEWER_ASSET_PATH : undefined,
         deployFailure: ctx.readDeployFailure(name),
         serving,
         restartWaiting: ctx.readPendingRestart()?.jobs,
@@ -268,7 +252,6 @@ export async function projectPages(
         // test-server link already gates on.
         testServerAvailable: ctx.testServers.previewAvailable(name),
         tab: url.searchParams.get("tab") ?? undefined,
-        wikiTab: url.searchParams.get("wikitab") ?? undefined,
         lang: langResult.lang,
         currentUrl: langResult.currentUrl,
       },
@@ -352,35 +335,4 @@ export async function projectPages(
   // failure mode `dashboard/CLAUDE.md` already names six instances of.
 
   return null;
-}
-
-/** The project's latest wiki build for its Wiki tab, its failure already a
- *  sentence in the reader's language. Latest by when it was queued, not by
- *  its place in the list, which the queue keeps newest first. */
-export function latestWikiBuild(jobs: readonly Job[], project: string, lang: Language) {
-  const last = latestWikiJob(jobs, project);
-  if (!last) return undefined;
-  return { id: last.id, state: last.state, finishedAt: last.finishedAt, error: renderSentence(lang, last.error) };
-}
-
-/** The wiki job under way when there is one (running, or merging), so its
- *  Cancel and log stay on the run in flight and never fall to a refresh
- *  queued behind it; the newest otherwise. */
-function latestWikiJob(jobs: readonly Job[], project: string): Job | undefined {
-  const builds = jobs.filter((j) => j.project === project && isWikiBuild(j));
-  const underWay = builds.filter((j) => j.state === "running" || j.landing === true);
-  const candidates = underWay.length > 0 ? underWay : builds;
-  return candidates.length === 0 ? undefined : candidates.reduce((a, b) => (b.createdAt > a.createdAt ? b : a));
-}
-
-/** The latest build's steps and their logs, for the Wiki tab: the same table
- *  the spec page's Logs tab draws, read only when that tab is the one open. */
-async function wikiLog(ctx: RoutesContext, url: URL, project: string) {
-  if (url.searchParams.get("tab") !== "wiki") return undefined;
-  const job = latestWikiJob(ctx.queue.list(), project);
-  if (!job) return undefined;
-  const detail = await ctx.jobDetailView(job);
-  return { results: detail.results, runningStep: detail.runningStep, step: url.searchParams.get("step") ?? undefined,
-    steptab: url.searchParams.get("steptab") ?? undefined,
-  };
 }

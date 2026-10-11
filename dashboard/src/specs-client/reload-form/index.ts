@@ -1,6 +1,6 @@
 // A form the page posts itself and then loads again: the spec page's
 // Update, Save, banner and Status tab tick, Stop test server, a test
-// board's Run, Build wiki and its Cancel, an AI's Check and a schedule
+// board's Run, an AI's Check and a schedule
 // entry's Delete. What the press changed is drawn by the server, so the
 // page loads again once it has gone through — or goes where the form
 // names, when the press took away the page it was on; a refusal stays on

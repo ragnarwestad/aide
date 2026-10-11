@@ -51,8 +51,7 @@ const TAB_LABELS: Record<string, string> = {
 export const tabLabel = (key: string): string => TAB_LABELS[key] ?? key[0]!.toUpperCase() + key.slice(1);
 
 /** Every tab strip on the board: a page's own tabs, a strip nested under
- *  one (a step's Log/Changed files/Errors, the Wiki tab's Pages/Graph/
- *  Build) and the header's Specs/Projects/Schedule row. It used to build
+ *  one (a step's Log/Changed files/Errors) and the header's Specs/Projects/Schedule row. It used to build
  *  its hrefs from `job.id`, which is the one assumption a spec-scoped page
  *  could not share — and a copy of the bar beside it is two renderings of
  *  "Logs (12)" that nothing keeps in step. */
@@ -81,7 +80,7 @@ export function tabBar<T extends string>(
      *  catalogue; `tabLabel()` otherwise. */
     label?: (key: T) => string;
     /** Each key written as `data-<key>` on the `<nav>`: a hook, like
-     *  `wikisubtabs`. */
+     *  `aitabs`. */
     data?: Record<string, string>;
     /** The header's own row: `tabbar` without `subtabs`. */
     site?: boolean;

@@ -50,7 +50,7 @@ a user, and what deliberately does not change, so the next reader does not undo 
 ### 2. One map of the system, updated in the same change
 
 From OpenGeni: one map of how the system is built, kept current by the same change that alters it, since "a stale map
-is a bug". Aide has most of the map in its documentation table and the wiki; the rule that keeps it current is
+is a bug". Aide has most of the map in its documentation table; the rule that keeps it current is
 missing.
 
 ### 3. A run that can ask a question and wait for the answer
@@ -196,7 +196,7 @@ Every source the research read:
 From the same weighing: create and archive are the least complex steps, and much of them is mechanical. Create already
 runs without AI when the acceptance criteria are not to be formulated, and archive when the spec cannot be archived
 yet. The goal is that AI is used only for what needs judgment: formulating criteria, resolving a merge conflict,
-writing the wiki, and that everything else is done by scripts.
+and that everything else is done by scripts.
 
 ### 17. Aide as a Mac app
 
@@ -284,6 +284,5 @@ Measured on the board's last 60 analyze and implement steps (October 2026), neit
 the tools handed the sessions, reading files was 66% (`cat`, `sed` and `head` 41%, the Read tool 25%), searching
 and listing 24% (`grep`, `rg`, `find`, `ls`), git 6%, and test runs and checks 2%. What rtk shortens best, test
 runs and git logs, is about 6% of it; the files a session reads are what it needs to change the code, and cannot
-be shortened without losing that. The large share is finding and reading code, which the wiki is meant to make
-cheaper. Measured again if that changes.
+be shortened without losing that. The large share is finding and reading code.
 

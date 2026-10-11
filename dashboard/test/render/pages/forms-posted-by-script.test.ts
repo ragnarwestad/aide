@@ -71,8 +71,6 @@ describe("each form the page script posts and loads again", () => {
       setBoardInfo("round");
       return pageShell("x", NAV, "/", "", "2026-09-20T00:00:00Z", { lang: "en" });
     }, "/api/self-run"],
-    ["Build wiki", () => projectPage({ tab: "wiki" }), "/api/queue/projects/aide/wiki"],
-    ["a running build's Cancel", () => projectPage({ tab: "wiki", wikiBuild: { id: "w1", state: "running" } }), "/api/queue/w1/cancel"],
     ["an AI's Models Check", () => toolPanel("claude", undefined, undefined, 0, {}, "en", "models"), "/api/queue/settings/check"],
     ["an AI's Usage Check", () => toolPanel("claude", undefined, undefined, 0, {}, "en", "subscription"), "/api/queue/settings/check"],
     ["an AI's Installation Check", () => toolPanel("claude", undefined, undefined, 0, {}, "en", "installation"), "/api/queue/settings/check"],
@@ -116,11 +114,6 @@ describe("each page that reloads itself carries the script timer's marker", () =
   test("a project's Deploy tab waiting for origin reloads at its own interval (AC-5)", () => {
     const html = projectPage({ tab: "deploy", drift: { behind: 0, checkedAt: null } });
     expect(marker(html)).toBe(String(AWAITING_DRIFT_REFRESH_SECONDS));
-  });
-
-  test("the Wiki tab's Build panel, drawn without the script, reloads while a build runs (AC-5)", () => {
-    const html = projectPage({ tab: "wiki", wikiBuild: { id: "w1", state: "running" } });
-    expect(marker(html)).toBe("10");
   });
 
   test("the test-server waiting page reloads by a script of its own (AC-5)", async () => {

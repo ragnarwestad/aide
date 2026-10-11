@@ -1,14 +1,13 @@
-// The Jobs tab's rules, as pure functions: which wiki builds and scheduled
-// jobs it shows, where every row stands, what a job row is called, where the
-// job belongs and what the row offers to stop it. They read only the fields a
+// The Jobs tab's rules, as pure functions: which scheduled jobs it shows,
+// where every row stands, what a job row is called, where the job belongs
+// and what the row offers to stop it. They read only the fields a
 // job and its row view share, so the route can run them on the raw jobs and
 // the tests on plain objects.
 
-import { t, type Language } from "../../../i18n";
 import { scheduleNameOf } from "../../../queue/schedule.ts";
-import { isWikiBuild, waitsForPerson } from "../../../queue/steps.ts";
+import { waitsForPerson } from "../../../queue/steps.ts";
 import { inFlight, type QueueRowView } from "../../ui/job-state";
-import { projectPagePath, projectScheduleTab } from "../projects-page";
+import { projectScheduleTab } from "../projects-page";
 import type { SpecGroup } from "../specs-list";
 
 /** What a job and its row view have in common, and all the rules read. */
@@ -26,7 +25,7 @@ export interface JobLike {
 }
 
 type StateRow = Pick<QueueRowView, "state" | "landing" | "stepIndex"> & { steps: readonly string[] };
-type TitleRow = StateRow & Pick<QueueRowView, "specFolder" | "wikiRefresh">;
+type TitleRow = Pick<QueueRowView, "specFolder">;
 
 export const isScheduleJob = (job: { steps: readonly string[]; specFolder: string }): boolean =>
   job.steps.length === 1 && job.steps[0] === "schedule" && job.specFolder.startsWith("schedule-");
@@ -69,7 +68,7 @@ export const specPlace = (g: Pick<SpecGroup, "state" | "lead" | "createdAt">): T
 /** Running or landing first, then queued, then the rest; the newest change first in each. */
 export const byTabPlace = (a: TabPlace, b: TabPlace): number => a.band - b.band || b.changedAt - a.changedAt;
 
-/** The wiki builds and scheduled jobs the tab shows: in flight, or waiting
+/** The scheduled jobs the tab shows: in flight, or waiting
  *  for a person and not yet dealt with. A waiting job is dealt with when a
  *  job of the same project and tracking key was created after it and was not
  *  cancelled; a scheduled job when its entry is deleted. A spec's job is never
@@ -85,24 +84,22 @@ export function jobsShown<T extends JobLike>(
   // does not deal with an earlier job's failure.
   for (const job of jobs.filter((j) => j.state !== "cancelled")) newest.set(sameJob(job), Math.max(newest.get(sameJob(job)) ?? 0, at(job)));
   return jobs.filter((job) => {
-    if (!isWikiBuild(job) && !isScheduleJob(job)) return false;
+    if (!isScheduleJob(job)) return false;
     if (inFlight(job)) return true;
     if (!waitsForPerson(job)) return false;
     if ((newest.get(sameJob(job)) ?? 0) > at(job)) return false;
-    return !isScheduleJob(job) || o.scheduleEntryExists(job.project, scheduleNameOf(job.specFolder));
+    return o.scheduleEntryExists(job.project, scheduleNameOf(job.specFolder));
   });
 }
 
-/** What a job row is called: the wiki run or the scheduled job, named without
- *  its project, which the row draws before the name. */
-export function jobTitle(row: TitleRow, lang: Language): string {
-  if (isWikiBuild(row)) return t(lang, row.wikiRefresh ? "jobs.wikiRefresh" : "jobs.wikiBuild");
+/** What a job row is called: the scheduled job, named without its project,
+ *  which the row draws before the name. */
+export function jobTitle(row: TitleRow): string {
   return scheduleNameOf(row.specFolder);
 }
 
 /** The place the job belongs. */
 export function jobHome(row: Pick<JobLike, "project" | "specFolder" | "steps">): string {
-  if (isWikiBuild(row)) return `${projectPagePath(row.project)}?tab=wiki&wikitab=build`;
   return projectScheduleTab(row.project);
 }
 

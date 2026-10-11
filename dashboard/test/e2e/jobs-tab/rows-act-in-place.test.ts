@@ -15,8 +15,8 @@ let browser: Browser;
 const SPEC = "81-queue-and-runner";
 const SPEC_ROW = `tr.spechead[data-folder="${SPEC}"]`;
 
-const wiki = {
-  id: "wiki1", project: "aide", specFolder: "wiki-aide", steps: ["wiki"], stepIndex: 0, state: "running",
+const nightly = {
+  id: "nightly1", project: "aide", specFolder: "schedule-nightly", steps: ["schedule"], stepIndex: 0, state: "running",
   timeoutSec: {}, permissionMode: {}, model: {}, createdAt: "2026-10-08T03:00:00Z", startedAt: "2026-10-08T03:00:00Z",
 };
 
@@ -87,17 +87,17 @@ describe("a spec's row on the Jobs tab acts in place", () => {
   });
 });
 
-describe("a wiki job's row folds and stops in place", () => {
-  const WIKI_ROW = 'tr.spechead[id="spec-aide/wiki-aide"]';
-  const FOLD = `${WIKI_ROW} a[data-fold="open"]`;
-  const STOP = `${WIKI_ROW} + tr.specstate button[data-ask]`;
-  const CHIP = `${WIKI_ROW} + tr.specstate .badgeslot .badge`;
+describe("a scheduled job's row folds and stops in place", () => {
+  const JOB_ROW = 'tr.spechead[id="spec-aide/schedule-nightly"]';
+  const FOLD = `${JOB_ROW} a[data-fold="open"]`;
+  const STOP = `${JOB_ROW} + tr.specstate button[data-ask]`;
+  const CHIP = `${JOB_ROW} + tr.specstate .badgeslot .badge`;
 
   test("the row is shut, its › opens it with no page load and shuts it again, and Stop and its OK end the job cancelled (AC-5)", async () => {
-    const { base } = harness.start({ queueMirror: JSON.stringify([wiki]) });
+    const { base } = harness.start({ queueMirror: JSON.stringify([nightly]) });
     const page = await browser.newPage();
     await page.goto(`${base}/`);
-    await page.locator(WIKI_ROW).waitFor();
+    await page.locator(JOB_ROW).waitFor();
     const loads = countLoads(page);
 
     expect(await page.locator(STOP).count()).toBe(0);
@@ -106,7 +106,7 @@ describe("a wiki job's row folds and stops in place", () => {
     await page.locator(STOP).waitFor({ state: "visible" });
     expect(await page.locator(CHIP).isVisible()).toBe(true);
     expect(pathOf(page)).toBe("/");
-    expect(new URL(page.url()).searchParams.get("open")).toBe("aide/wiki-aide");
+    expect(new URL(page.url()).searchParams.get("open")).toBe("aide/schedule-nightly");
     expect(loads.n).toBe(0);
 
     await page.locator(FOLD).click();
@@ -117,20 +117,20 @@ describe("a wiki job's row folds and stops in place", () => {
     await page.locator(STOP).click();
     await page.locator("dialog[open]").getByRole("button", { name: "OK" }).click();
     await page.waitForFunction(async () => {
-      const r = await fetch("/api/queue/wiki1");
+      const r = await fetch("/api/queue/nightly1");
       return ((await r.json()) as { job: { state: string } }).job.state === "cancelled";
     });
-    expect(await stateOf(base, "wiki1")).toBe("cancelled");
+    expect(await stateOf(base, "nightly1")).toBe("cancelled");
     expect(pathOf(page)).toBe("/");
     expect(loads.n).toBe(0);
     await page.close();
   });
 
   test("opened, the row shows its Stop and its state chip at desktop width and at a phone's (AC-5)", async () => {
-    const { base } = harness.start({ queueMirror: JSON.stringify([wiki]) });
+    const { base } = harness.start({ queueMirror: JSON.stringify([nightly]) });
     for (const width of [1280, 375]) {
       const page = await browser.newPage({ viewport: { width, height: 800 } });
-      await page.goto(`${base}/?open=aide/wiki-aide`);
+      await page.goto(`${base}/?open=aide/schedule-nightly`);
       await page.locator(STOP).waitFor({ state: "visible" });
       expect(await page.locator(CHIP).isVisible()).toBe(true);
       await page.close();

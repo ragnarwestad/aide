@@ -244,8 +244,8 @@ on_signal() {
   if [ -n "${work_roots[*]:-}" ]; then
     set +u
     # Under each checkout's lock, held until the worktrees are gone: a run
-    # started on the same branch meanwhile — a wiki build re-queued at a
-    # restart — cuts its worktree only after this commit, never during it.
+    # started on the same branch meanwhile cuts its worktree only after this
+    # commit, never during it.
     for root in ${roots[@]+"${roots[@]}"}; do take_signal_lock "$root"; done
     suffix=" (stopped: cancelled)"
     commit_label="${commit_label:-$spec_label}"

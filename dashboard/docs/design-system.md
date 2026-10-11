@@ -4,7 +4,6 @@
 
 - [Tokens](#tokens)
 - [Components](#components)
-- [The wiki graph](#the-wiki-graph)
 - [The class vocabulary](#the-class-vocabulary)
 - [Spacing lives in the container, not the component](#spacing-lives-in-the-container-not-the-component)
 - [One busy flag, not a per-step lookup](#one-busy-flag-not-a-per-step-lookup)
@@ -112,17 +111,6 @@ the word a reader sees, with a sibling table per language (`STEP_LABELS_NB` and 
 checkbox `value`, the queue step and the skill all keep the technical name regardless.
 
 The brand is `src/render/ui/brand.ts` — the mark, the wordmark and the favicons, all inline SVG and data URIs.
-
-## The wiki graph
-
-Above the Wiki tab's page list, one named point per page and one line per linked pair
-(`src/render/pages/projects-page/wiki-graph.ts`, `wiki-graph.css`): `.wikigraph` is the box, sized to the tab's own
-width and at most 70% of the viewport tall so the page can always be scrolled from above or below it; `.wikiedge` is
-a line between two linked points; `.wikinode` is one page's own point and name, a real link to the address the page
-list already opens it at. The server draws a first, settled layout at 720×480 (`src/wiki-graph/layout.ts`); with
-script it is measured and settled again at the box's real size, and script adds drag, pan, wheel and pinch zoom over
-pointer events (`src/specs-client/wiki-graph/`) — none of it is a new dependency, and with script off or failed the
-first layout is what stays drawn. A project with no wiki page besides its own index draws no graph at all.
 
 ## The class vocabulary
 
@@ -343,7 +331,7 @@ Closing it on an outside click or on
 Escape is its own script, `menu-script.ts`, riding in the head tag with the others.
 
 Every tab strip is `tabBar()` in `tabs.ts`: the header's row (`site`, which leaves out `subtabs`), a page's own tabs,
-and a strip nested under one — a step's Log, Changed files and Errors, the Wiki tab's Pages, Graph and Build. A caller
+and a strip nested under one — a step's Log, Changed files and Errors. A caller
 gives it a base path or a function building each tab's address, and its words from the catalogue when it has them; the
 open tab is `aria-current="page"` on every strip.
 

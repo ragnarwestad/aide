@@ -29,7 +29,7 @@ Skills are loaded from `~/.claude/skills/` — use the `/` syntax.
 Each skill's own description says what it does and when to use it; the
 `aide-*` skills are the workflow's steps (`/aide-explore`, `/aide-create`,
 `/aide-analyze`, `/aide-implement`, `/aide-archive`, `/aide-close`,
-`/aide-reopen`) and its helpers (`/aide-wiki`, `/aide-to-pdf`).
+`/aide-reopen`) and its helper `/aide-to-pdf`.
 
 ---
 

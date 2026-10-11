@@ -59,7 +59,6 @@ import { submitProgress } from "./progress-dialog";
 import { RELOAD_FORM, submitReloadForm } from "./reload-form";
 import { NEW_SPEC_FORM } from "./state.ts";
 import { postTailModel, postTailStep } from "./tail-actions.ts";
-import { bindWikiGraphs } from "./wiki-graph";
 import { checkboxKey, chosen, chosenSteps, selectKey } from "./state.ts";
 
 // The count under every bounded text field: drawn first, so a binding below
@@ -301,9 +300,6 @@ document.addEventListener("click", ((event: MouseEvent) => {
 }) as EventListener);
 // A page that carries `data-reload-every` reloads from here, and waits while a dialog is open.
 startReloadWhileIdle(document);
-// The Wiki tab's own graph, above the page list — bound wherever one is on
-// the page, since only the tab that drew it carries `data-wikigraph`.
-bindWikiGraphs(document);
 
 document.addEventListener("visibilitychange", onVisibility);
 // An installed app coming back to the foreground can be restored from

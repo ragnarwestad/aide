@@ -1,7 +1,7 @@
 // The Jobs tab's view: which rows a search, a project and a state entry leave,
 // in which order, and what the two dropdowns offer and count. One test per
 // rule, on plain objects: a spec's facts as the Specs list's group holds them,
-// a wiki or scheduled job's facts from `jobFacts`.
+// a scheduled job's facts from `jobFacts`.
 
 import { describe, expect, test } from "bun:test";
 import type { SpecsFilter } from "../../../../src/render/pages/specs-list";
@@ -24,7 +24,7 @@ const T = (day: number, hour = 10): string => `2026-10-${String(day).padStart(2,
 
 const jobRowView = (o: Partial<QueueRowView>): QueueRowView =>
   ({
-    id: "j", project: "aide", specFolder: "wiki-aide", steps: ["wiki"], stepIndex: 0, state: "queued",
+    id: "j", project: "aide", specFolder: "schedule-nightly", steps: ["schedule"], stepIndex: 0, state: "queued",
     spentUsd: 0, timeoutSec: 0, createdAt: T(1), ...o,
   }) as QueueRowView;
 
@@ -44,22 +44,22 @@ const spec = (
   };
 };
 
-/** A wiki or scheduled job's row: its facts from `jobFacts`, its place from its own stamps. */
+/** A scheduled job's row: its facts from `jobFacts`, its place from its own stamps. */
 const jobEntry = (name: string, row: Partial<QueueRowView>): Entry => {
   const view = jobRowView(row);
-  return { name, facts: jobFacts(view, "en", NOW), place: jobPlace(view) };
+  return { name, facts: jobFacts(view, NOW), place: jobPlace(view) };
 };
 
 const running = spec("run81", { specFolder: "81-queue-and-runner", state: "running", createdAt: T(8) });
 const stopped = spec("idle83", { specFolder: "83-idle", state: "stopped", createdAt: T(5) });
-const failedWiki = jobEntry("wiki-other", {
-  project: "other", specFolder: "wiki-other", steps: ["wiki"], state: "failed", createdAt: T(6),
+const failedReport = jobEntry("report-other", {
+  project: "other", specFolder: "schedule-report", steps: ["schedule"], state: "failed", createdAt: T(6),
   startedAt: T(6), finishedAt: T(6, 11), spentUsd: 0.4,
 });
 const nightly = jobEntry("nightly", {
   project: "aide", specFolder: "schedule-nightly", steps: ["schedule"], state: "queued", createdAt: T(7),
 });
-const tab = [running, stopped, failedWiki, nightly];
+const tab = [running, stopped, failedReport, nightly];
 
 const names = (rows: Entry[]): string[] => rows.map((r) => r.name);
 const view = (rows: Entry[], f: SpecsFilter): string[] => names(jobsViewRows(rows, f));
@@ -68,8 +68,8 @@ const factsOf = (rows: Entry[]): RowFacts[] => rows.map((r) => r.facts);
 describe("the state, the project and the search narrow the rows as the Specs list's do (AC-1)", () => {
   test("a state entry, a project and a search each leave only the rows they match (AC-1)", () => {
     expect(view(tab, { state: "stopped" })).toEqual(["idle83"]);
-    expect(view(tab, { state: "failed" })).toEqual(["wiki-other"]);
-    expect(view(tab, { project: "other" })).toEqual(["wiki-other"]);
+    expect(view(tab, { state: "failed" })).toEqual(["report-other"]);
+    expect(view(tab, { project: "other" })).toEqual(["report-other"]);
     expect(view(tab, { q: "queue" })).toEqual(["run81"]);
     expect(view(tab, { project: "aide", state: "waiting" })).toEqual(["nightly"]);
   });
@@ -113,33 +113,33 @@ describe("the state filter offers the states a row on the tab can be in (AC-2)",
 
   test("a job row is never Not verified: only the spec with an open criterion is left (AC-2)", () => {
     const unverified = spec("unverified", { specFolder: "84-held", state: "done", notVerified: 1 });
-    expect(view([unverified, failedWiki], { state: "not-verified" })).toEqual(["unverified"]);
+    expect(view([unverified, failedReport], { state: "not-verified" })).toEqual(["unverified"]);
   });
 });
 
-describe("a wiki build or scheduled job is matched on its title and its project (AC-3)", () => {
-  test("a word of the wiki build's title finds it and not the scheduled job; its folder name is not the title (AC-3)", () => {
-    expect(failedWiki.facts.title).toBe("Wiki build");
-    expect(view([failedWiki, nightly], { q: "build" })).toEqual(["wiki-other"]);
-    expect(view([failedWiki, nightly], { q: "night" })).toEqual(["nightly"]);
-    expect(view([failedWiki, nightly], { project: "other" })).toEqual(["wiki-other"]);
+describe("a scheduled job is matched on its title and its project (AC-3)", () => {
+  test("a word of a scheduled job's title finds it and not another; its folder's prefix is not the title (AC-3)", () => {
+    expect(failedReport.facts.title).toBe("report");
+    expect(view([failedReport, nightly], { q: "report" })).toEqual(["report-other"]);
+    expect(view([failedReport, nightly], { q: "night" })).toEqual(["nightly"]);
+    expect(view([failedReport, nightly], { project: "other" })).toEqual(["report-other"]);
   });
 
-  test("a job's facts read as a spec's group reads: a landing is running, the wiki's time spans its start to its finish (AC-3)", () => {
-    const landing = jobFacts(jobRowView({ state: "done", landing: true }), "en", NOW);
+  test("a job's facts read as a spec's group reads: a landing is running, the job's time spans its start to its finish (AC-3)", () => {
+    const landing = jobFacts(jobRowView({ state: "done", landing: true }), NOW);
     expect(landing.state).toBe("running");
-    expect(failedWiki.facts.totalDurationMs).toBe(60 * 60 * 1000);
-    const going = jobFacts(jobRowView({ state: "running", startedAt: T(9, 11) }), "en", NOW);
+    expect(failedReport.facts.totalDurationMs).toBe(60 * 60 * 1000);
+    const going = jobFacts(jobRowView({ state: "running", startedAt: T(9, 11) }), NOW);
     expect(going.totalDurationMs).toBe(60 * 60 * 1000);
-    expect(jobFacts(jobRowView({ state: "queued" }), "en", NOW).totalDurationMs).toBe(0);
+    expect(jobFacts(jobRowView({ state: "queued" }), NOW).totalDurationMs).toBe(0);
   });
 });
 
 describe("the columns sort as the Specs list's do, and no sorting is the tab's own order (AC-4)", () => {
-  const inTabOrder = ["run81", "nightly", "wiki-other", "idle83"];
+  const inTabOrder = ["run81", "nightly", "report-other", "idle83"];
 
   test("with no sort, or one that is not a column, the rows keep the tab's own order whatever order they come in (AC-4)", () => {
-    const shuffled = [stopped, nightly, failedWiki, running];
+    const shuffled = [stopped, nightly, failedReport, running];
     expect(view(shuffled, {})).toEqual(inTabOrder);
     expect(view(shuffled, { sort: "no-such-column" })).toEqual(inTabOrder);
     expect([...tab].sort((a, b) => byTabPlace(a.place, b.place)).map((r) => r.name)).toEqual(inTabOrder);
@@ -149,19 +149,19 @@ describe("the columns sort as the Specs list's do, and no sorting is the tab's o
     const priced = [
       spec("cheap", { specFolder: "90-cheap", state: "stopped", spentUsd: 0.1 }),
       spec("dear", { specFolder: "91-dear", state: "stopped", spentUsd: 9 }),
-      jobEntry("wiki", { specFolder: "wiki-aide", state: "failed", spentUsd: 3 }),
+      jobEntry("job", { state: "failed", spentUsd: 3 }),
     ];
-    expect(view(priced, { sort: "cost" })).toEqual(["dear", "wiki", "cheap"]);
-    expect(view(priced, { sort: "cost", dir: "asc" })).toEqual(["cheap", "wiki", "dear"]);
+    expect(view(priced, { sort: "cost" })).toEqual(["dear", "job", "cheap"]);
+    expect(view(priced, { sort: "cost", dir: "asc" })).toEqual(["cheap", "job", "dear"]);
   });
 
   test("the time column orders by the figure each row's Time cell shows, longest first (AC-4)", () => {
     const rows = [
       spec("short-spec", { specFolder: "90-a", state: "stopped", totalDurationMs: 1000 }),
-      jobEntry("long-wiki", { specFolder: "wiki-aide", state: "failed", startedAt: T(2), finishedAt: T(2, 12) }),
+      jobEntry("long-job", { state: "failed", startedAt: T(2), finishedAt: T(2, 12) }),
       spec("mid-spec", { specFolder: "91-b", state: "stopped", totalDurationMs: 60_000 }),
     ];
-    expect(view(rows, { sort: "started" })).toEqual(["long-wiki", "mid-spec", "short-spec"]);
+    expect(view(rows, { sort: "started" })).toEqual(["long-job", "mid-spec", "short-spec"]);
   });
 
   test("a press on a heading sorts by it, a second turns it round, a third returns to the tab's order (AC-4)", () => {
@@ -175,9 +175,9 @@ describe("the columns sort as the Specs list's do, and no sorting is the tab's o
 
   test("a view link leads to the Jobs tab, always names its state entry, and drops what the patch empties (AC-4)", () => {
     expect(jobsViewPath({ sort: "cost", dir: "asc" }, jobsSortPatch({ sort: "cost", dir: "asc" }, "cost"))).toBe("/?state=all");
-    const link = new URL(`http://x${jobsViewPath({ state: "failed", q: "wiki" }, { project: "other" })}`);
+    const link = new URL(`http://x${jobsViewPath({ state: "failed", q: "nightly" }, { project: "other" })}`);
     expect(link.pathname).toBe("/");
-    expect(Object.fromEntries(link.searchParams)).toEqual({ state: "failed", q: "wiki", project: "other" });
+    expect(Object.fromEntries(link.searchParams)).toEqual({ state: "failed", q: "nightly", project: "other" });
     expect(new URL(`http://x${jobsViewPath({ state: "closed" }, {})}`).searchParams.get("state")).toBe("all");
   });
 });

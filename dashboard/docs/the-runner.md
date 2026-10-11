@@ -115,22 +115,6 @@ to prevent. Three conditions decide it (`run-spec/publish/publish.sh`), in this 
    rest). A root the run did move is pushed whatever
    the run's terminal reason; a root it did not move is pushed only by a completed run.
 
-**A `wiki` step commits in the specs repository only, and only `wiki/` there.** Its `--spec` is the key
-`wiki-<project>`, never a folder, and the bare name `wiki` is refused for every command. `restore_wiki_scope`
-(`run-spec/publish/publish.sh`) runs at the top of every commit — a normal end, a timeout and a Cancel — and takes back a change
-in the project repository, a change under the specs root outside `wiki/`, and any change to a page without the
-`wiki: generated` mark in its front matter, comparing the specs repository with the default branch's tip.
-`aide-wiki verify` is the only reader of that mark. A run that would otherwise end `completed` ends `scope-violation`
-(`run-spec/publish/wiki-guard.sh`); one that already ended `timeout` keeps that ending. A run that would end `completed` with no
-`wiki/index.md` built nothing, and ends `no-progress`; so does a build that leaves a generated page written from an
-older commit, a refresh (`--wiki-refresh`) that leaves a page `aide-wiki status` marks `changed`, and a build or refresh
-that leaves `overview.md` or `reusable-parts.md` missing (`aide-wiki status` lists them under `missing`). The error names
-the pages.
-
-**Only a `wiki` step writes under `wiki/`.** An `archive` that writes a page there is taken back like any other path
-outside its own folder, and ends `scope-violation`: pages rewritten on a spec's branch conflicted with every later change
-to the wiki on the default branch. The refresh queued after the archive lands rewrites them there.
-
 **A `schedule` step commits and pushes exactly like any other command** — the project repository and the specs root,
 the same two roots every other step reaches. Its own report and any proposed specs live outside both, under
 `$AIDE_SCHEDULE_OUTPUT_DIR`, so a run that also commits still writes its report. Once the step ends, the board lands

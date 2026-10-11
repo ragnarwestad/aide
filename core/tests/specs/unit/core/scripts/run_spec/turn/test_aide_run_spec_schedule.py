@@ -150,7 +150,7 @@ def test_a_non_scheduled_step_still_commits_and_pushes_its_work(runner, workspac
 def test_a_scheduled_prompt_now_carries_a_request_for_a_commit_message(runner, workspace, fake_claude):
     """The exclusion that made this a lie for `schedule` alone is gone: a
     schedule prompt asks for the commit-message file exactly the way
-    every command but `create` and `wiki` already does."""
+    every command but `create` already does."""
     with_prompt(workspace)
     seen = fake_claude.calls.parent / "prompt-seen.txt"
     rc, out, _ = schedule(runner, workspace, fake_claude(f"cat > {seen}\n{FINISHED}"))

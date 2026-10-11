@@ -58,32 +58,6 @@ First write `--- Step 1 of 11: Read the description — started`, and when this 
 
 
 - Read `specs/XX-slug/1-description.md`
-- **Read the project's wiki, when it has one, before anything else —
-  in a later round too, before the earlier round's files.** The specs
-  root is the folder that holds this spec's folder. If `wiki/` is beside
-  it, run `aide-wiki status --specs-root <root> --project-dir .`, read
-  `wiki/index.md`, then the pages that concern the change. A page whose
-  state is `changed` or `unknown` is a map of where to look, and the
-  code decides. Read only the ordinary pages that status returns; they
-  hold the current rules and their reasons, whatever an older index
-  still links to.
-
-  When the answer is `"wiki":false`, or `aide-wiki` is not installed, or
-  it answers `unknown-subcommand`, skip this and write nothing about a
-  wiki.
-
-  With a wiki, always read `wiki/overview.md` — the project's stack, the
-  services it depends on, how it is built and deployed, and its docs —
-  and `wiki/reusable-parts.md`, whatever the change. A page `status`
-  lists under `missing` is noted `missing` on the **Wiki pages used**
-  line (Step 5), and nothing is read in its place.
-- **Read the project's reusable parts, after the wiki and before
-  Step 2.** With a wiki, they are the files `wiki/reusable-parts.md`
-  names, each a path from the project root, and the rules it gives for
-  using them. Read a file whole, and a folder file by file. Note each
-  path as `read`, or `missing` when it does not exist, for Step 5. A
-  project with no wiki has none named to read, and Step 2's search runs
-  all the same.
 - Identify: What should change? What is the scope? Migration or single fix?
 - If `1-description.md` has a `## Acceptance criteria` section, extract
   its `AC-n` ids for Steps 5, 7 and 8 — see `references/requirements-tracing.md`.
@@ -116,7 +90,7 @@ possible in the same session.
 First write `--- Step 2 of 11: Analyze the codebase — started`, and when this step ends, `--- Step 2 of 11: Analyze the codebase — done`.
 
 
-Search the code from where the wiki pages read in Step 1 point. For each
+Search the code for what the change touches. For each
 function, format or interface the change modifies, ask once what depends
 on it — how many callers, in how many parts — and keep the count with the
 files it names. Step 3 grades the change from that count; how far to read
@@ -124,9 +98,8 @@ those files is the grade's to say.
 
 **Look for what the project already has.** List every part the change
 needs that it does not have yet: a component, a dialog, a form, a
-helper, a script, a parser, a style rule, a test fixture. For each, look
-in the reusable parts Step 1 read (the files `wiki/reusable-parts.md`
-named) and search the code for one that
+helper, a script, a parser, a style rule, a test fixture. For each,
+search the code for one that
 already does the same, or would with a small change. Keep what you find,
 with file:line, for the plan's Parts (Step 7).
 
@@ -239,16 +212,6 @@ A held-back round's `## Round N` carries its own `### Files to change`.
 
     - `dashboard/src/queue/steps.ts`
     - `core/scripts/aide-spec-overlap`
-
-When Step 1 read the wiki, the `## Mapping` section gets a line **Wiki
-pages used** listing each page with its state: `current`;
-`changed since its commit — files: <changedFiles>`; `unknown`; or
-`hand-written — freshness not tracked`; and each page `status` lists
-under `missing` as `missing`. Without a wiki, no such line.
-
-When Step 1 read the reusable parts, the `## Mapping` section gets a
-line **Reuse paths read** listing each path with `read` or `missing`:
-the files `wiki/reusable-parts.md` named. With no wiki, no such line.
 
 Sections already filled in per Step 4 are left untouched.
 
