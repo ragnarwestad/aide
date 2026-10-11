@@ -253,3 +253,14 @@ export function notLandedTitle(checkedAt: number | undefined, now: number): stri
   if (checkedAt === undefined) return why;
   return `${why}, checked ${relTimeLabel(new Date(checkedAt).toISOString(), now)}`;
 }
+
+/** When the spec was created, as the collapsed row on the Specs list says
+ *  it: the date and the time to the minute, in the server's own time, the
+ *  same in every language. What the Created sort orders by. Empty for a
+ *  spec git could not date. */
+export function createdLabel(createdAt: string | undefined): string {
+  const at = createdAt ? new Date(createdAt) : undefined;
+  if (!at || Number.isNaN(at.getTime())) return "";
+  const pad = (n: number): string => String(n).padStart(2, "0");
+  return `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())} ${pad(at.getHours())}:${pad(at.getMinutes())}`;
+}

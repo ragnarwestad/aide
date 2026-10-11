@@ -158,28 +158,6 @@ describe("no render path runs git or a network command (spec 208)", () => {
   const buttonLabel = (html: string): string =>
     html.match(/<button[^>]*class="btn primary"[^>]*>([^<]*)<\/button>/)?.[1] ?? "";
 
-  // Spec 241, criterion 5: `targets()` deliberately excludes an archived
-  // spec (spec 150), so `specPageView()`'s old `done: target?.done ?? []`
-  // always collapsed to `[]` for one — every phase but `create` (which is
-  // coloured from `phases` alone) read `todo` regardless of what the
-  // spec's own `4-status.md` claims. The fix trusts that file's claim for
-  // an archived spec, the same source `archivedSteps()` already trusts
-  // for the front page's archived rows (spec 224).
-  test("an archived spec's Overview tab shows all four phases as past, not just create (criterion 5)", async () => {
-    const { base } = harness.start({
-      extra: { driftPollMs: 0, specCachePollMs: 0 },
-      archivedSpecs: {
-        "77-old-thing": { status: statusSaying(["create", "analyze", "implement", "archive"]) },
-      },
-    });
-    // The specs LIST's own shut row says each phase in its pips, read from
-    // the same `done`; an archived, merged spec has no row on the Running tab.
-    const html = await (await get(base, "/specs?state=archived")).text();
-    for (const step of ["Create", "Analyze", "Implement", "Archive"]) {
-      expect([step, html.includes(`<span class="pip past" title="${step}">`)]).toEqual([step, true]);
-    }
-  });
-
   // Spec 241, criterion 6: a regression guard for the branch above — a
   // LIVE spec must keep reading `done` from `target?.done` (the
   // git-verified `workflowHistory`), never from the file's own claim.

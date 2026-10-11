@@ -34,7 +34,8 @@ The queue behind the rows is on [Running specs](running-specs.md); how a step's 
 ## The row, open and shut
 
 One row per spec, not per job, and shut by default. A shut row shows the spec's name and title, one status line,
-the phase pips, how long its phases have taken, and what they cost — and carries no control
+when the spec was created (the date and the time to the minute, what the Created sort orders by) on the Specs list or
+the phase pips on the Running tab, how long its phases have taken, and what they cost — and carries no control
 but the one that opens it: a chevron in front of the name. Under it sit the row's notice lines, the `N not verified`
 line among them when the spec has one. They belong to the shut row, so a reader sees what went wrong without opening
 it.
@@ -73,8 +74,8 @@ repo the spec pushed to, and the state that matters most right now — whatever 
 outcome. It carries no button: the row's one action is on the caption line inside the Running tab's fold, once per
 spec rather than once per job.
 
-The header is two lines: the title, kept to one line and cut with an ellipsis where it does not fit, then the pips,
-the state and the figures. An open row drops the second line. On the Specs list that leaves no badge, pips, Time or
+The header is two lines: the title, kept to one line and cut with an ellipsis where it does not fit, then the created
+stamp or the pips, the state and the figures. An open row drops the second line. On the Specs list that leaves no badge, pips, Time or
 Cost; on the Running tab the caption line carries the spec's summed Time and Cost instead, over the phases' own
 figures. Each phase line says its own state, failed, stopped and held back included, so the badge and the pips would
 only say it twice. A phone lays the caption line out the same way: the captions, then the row's button in the state

@@ -14,6 +14,7 @@ import {
   activeDurationCell,
   archiveDateCell,
   costCell,
+  createdLabel,
   phasePips,
   stateCell,
 } from "./cell-helpers.ts";
@@ -224,10 +225,13 @@ export function specHeadRow(
     // the anchor id, `data-run` and the `spechead` class stay on the
     // title's row, which is the row every other reader looks for.
     `<tr class="specstate" data-folder="${esc(g.specFolder)}">` +
-    // The pips at the left, in the columns the title no longer needs:
-    // the button's label says how far the spec has come, and the pips
-    // say the same at a glance for a row that is shut.
-    `<td colspan="2"><span class="pipslot">${phasePips(g.phases, g.done)}</span></td>` +
+    // At the left, in the columns the title no longer needs: on the Specs
+    // list, when the spec was created, which is what its Created sort
+    // orders by; on the Running tab, the pips, which say how far a spec
+    // that is being run has come.
+    `<td colspan="2">${opts.openSpec
+      ? `<span class="muted small">${esc(createdLabel(g.createdAt))}</span>`
+      : `<span class="pipslot">${phasePips(g.phases, g.done)}</span>`}</td>` +
     // The badge says what is happening, or — once nothing is — the
     // resting state and what can happen next (spec 132). A sentence
     // under it said what to press until spec 174: the control names the

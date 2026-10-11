@@ -14,13 +14,15 @@ import { jobHome } from "../../../src/render/pages/jobs-page";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
 import { dated, setupQueueRoutesHarness } from "../fixtures.ts";
 
-/** A row without its chevron and its title's wrapper: the Specs list's chevron
- *  loads the spec's own page and its title is text, the Jobs tab's chevron
- *  folds the row in place and its title is a link. Everything else is one
- *  builder's. */
+/** A row without its chevron, its title's wrapper and the cell under the
+ *  title: the Specs list's chevron loads the spec's own page, its title is
+ *  text and the cell says when the spec was created; the Jobs tab's chevron
+ *  folds the row in place, its title is a link and the cell holds the pips.
+ *  Everything else is one builder's. */
 const withoutFold = (html: string): string =>
   html
     .replace(/<td class="foldcell"[\s\S]*?<\/td>/g, "")
+    .replace(/(<tr class="specstate"[^>]*>)<td colspan="2">[\s\S]*?<\/td>/g, "$1")
     .replace(/<(a|span) class="specpart"[^>]*>(<span class="muted">:<\/span><span class="specname">[^<]*<\/span>)<\/\1>/g, "$2");
 
 const { harness } = setupQueueRoutesHarness();
