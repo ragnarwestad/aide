@@ -77,6 +77,10 @@ td form { margin: 0; display: inline-block; }
    and the open row on the Specs list. The table is as wide as its columns. */
 .options-row { display: flex; flex-wrap: wrap; gap: var(--sp-4); align-items: flex-start; }
 .options-row > table.list { width: auto; }
+/* In the Specs list's open row they show what the spec was made with, not a
+   form to fill in: no frame round the phase table or the settings. */
+tr.specdetail .options-row > table.list { border: 0; background: none; }
+tr.specdetail .options-group .phase { border-color: transparent; background: transparent; }
 /* The Options tab's four settings as one group beside the phase table, one
    to a line. The group never shrinks, so no label wraps inside it: where
    the two do not fit side by side, the row's own wrap puts the whole group

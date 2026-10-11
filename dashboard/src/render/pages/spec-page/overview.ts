@@ -55,6 +55,7 @@ function createdOptions(view: SpecPageView, lang: Language, acceptanceEditable: 
   const c = view.createChoices ?? createChoicesIn("");
   return optionsGroup({
     locked: true,
+    checksLast: true,
     acceptanceEditable,
     acceptance: !view.acceptanceNotRequired,
     aiFormulate: c.aiFormulate,

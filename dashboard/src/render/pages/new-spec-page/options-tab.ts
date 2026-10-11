@@ -108,6 +108,8 @@ export interface OptionsGroupValues {
   labels?: Partial<Record<"acceptance" | "aiFormulate" | "criteriaChecks" | "chooseApproach", string>>;
   /** The level words of the checks select, by value. */
   levelWords?: Partial<Record<CriteriaChecks, string>>;
+  /** The checks select last, after choosing the approach. */
+  checksLast?: boolean;
 }
 
 /** The four settings about the spec as a whole, one to a line, as one
@@ -117,8 +119,7 @@ export function optionsGroup(v: OptionsGroupValues): string {
     `<span class="options-group">` +
     acceptanceField(v) +
     aiFormulateAcceptanceField(v) +
-    criteriaChecksField(v) +
-    chooseApproachField(v) +
+    (v.checksLast ? chooseApproachField(v) + criteriaChecksField(v) : criteriaChecksField(v) + chooseApproachField(v)) +
     `</span>`
   );
 }
