@@ -1,6 +1,6 @@
 // The Jobs tab's view rules, as pure functions: which state entries it offers,
 // what a scheduled job's row is to the filter and the sort, which rows
-// a view leaves and in what order, what each dropdown offers and counts, and
+// a view leaves and in what order, what the state dropdown offers and counts, and
 // where a view link goes. The filter and the sort are the Specs list's own,
 // run over the facts a row has; the bar and the page draw what this decides.
 
@@ -74,11 +74,11 @@ export function jobFacts(row: QueueRowView, now: number): RowFacts {
 
 /** The view with its state entry resolved for this tab: an entry the tab does
  *  not offer (an old `archived` or `closed` link) is All, before anything is
- *  filtered or counted. */
-const onTab = (f: SpecsFilter): SpecsFilter => ({ ...f, state: jobsStateFilter(f.state).key });
+ *  filtered or counted. The tab's view holds no project: the search finds one. */
+const onTab = (f: SpecsFilter): SpecsFilter => ({ ...f, state: jobsStateFilter(f.state).key, project: undefined });
 
-/** The rows the view shows, in its order: the state entry, the project and the
- *  search cut them as `applyFilter` does; a column the view names orders them
+/** The rows the view shows, in its order: the state entry and the search cut
+ *  them as `applyFilter` does; a column the view names orders them
  *  as `sortGroups` does; with none, the tab's own order (`byTabPlace`). */
 export function jobsViewRows<E extends { facts: RowFacts; place: TabPlace }>(entries: E[], f: SpecsFilter): E[] {
   const inOrder = [...entries].sort((a, b) => byTabPlace(a.place, b.place));
@@ -89,28 +89,15 @@ export function jobsViewRows<E extends { facts: RowFacts; place: TabPlace }>(ent
 }
 
 /** What the state dropdown offers: the six entries, the chosen one marked,
- *  each counted over the rows the project and the search let through. */
+ *  each counted over the rows the search lets through. */
 export function jobsStateOptions(facts: RowFacts[], f: SpecsFilter): { key: string; count: number; on: boolean }[] {
   const chosen = jobsStateFilter(f.state).key;
-  const counted = facts.filter((g) => (!f.project || g.project === f.project) && matchesSearch(g, f));
+  const counted = facts.filter((g) => matchesSearch(g, f));
   return JOBS_STATE_FILTERS.map((s) => ({
     key: s.key,
     count: counted.filter((g) => matchesStateFilter(s, g)).length,
     on: s.key === chosen,
   }));
-}
-
-/** What the project dropdown offers: every project ("" first), then each
- *  project with a row on the tab, by name, plus the chosen one when it has
- *  none; each counted over the rows the state entry and the search let through. */
-export function jobsProjectOptions(facts: RowFacts[], f: SpecsFilter): { project: string; count: number; on: boolean }[] {
-  const entry = jobsStateFilter(f.state);
-  const counted = facts.filter((g) => matchesStateFilter(entry, g) && matchesSearch(g, f));
-  const projects = [...new Set([...facts.map((g) => g.project), ...(f.project ? [f.project] : [])])].sort((a, b) => a.localeCompare(b));
-  return [
-    { project: "", count: counted.length, on: !f.project },
-    ...projects.map((project) => ({ project, count: counted.filter((g) => g.project === project).length, on: project === f.project })),
-  ];
 }
 
 /** Where a heading's link goes: a column not sorted by goes to its first

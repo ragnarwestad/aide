@@ -109,8 +109,6 @@ export const en = {
   "list.cancelConfirmBody": "This stops it right away — it can be run again from the same spec.",
   "jobs.nothingRunning": "Nothing is running.",
   "jobs.colTitle": "Title",
-  "jobs.allProjects": "All projects",
-  "jobs.projectsLabel": "Projects",
   "jobs.noRowMatchesFilter": "Nothing on this tab matches this filter.",
   "jobs.foldTitle": "{action} the links and controls of {name}",
   "jobs.stop": "Stop",
