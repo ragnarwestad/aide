@@ -507,18 +507,22 @@ commit or push anything in the specs repo on your own initiative.
 1. **Ask first.** Raise the choices the spec depends on — thresholds,
    scope, dependencies on other specs — before writing the text, not as
    a list of open questions after it.
-2. **Hand over three parts:** a title line, the description (what goes
-   in `1-description.md`, with its `- **AC-n:**` lines), and a
-   `Depends on:` line when there is one. A spec that is archived or
-   closed is never named there: check where it lies in the specs repo
-   in the same reply.
-3. **Each part in a fenced code block** (```` ```markdown ````), the
-   title in its own block — never as rendered text between `---` lines.
-   The terminal renders markdown, and what the user copies is what it
+2. **Hand over five parts, always, in this order:** Prosjekt (the
+   project the spec belongs to), Tittel, Beskrivelse (the description
+   without its acceptance criteria), ACer (the `- **AC-n:**` lines), and
+   Avhengigheter (Depends on). A part with nothing in it is still handed
+   over, saying plainly that its field is left empty. Avhengigheter names
+   only a spec with a queued, running or landing job, never one that is
+   archived or closed: check the board in the same reply.
+3. **Each part in a fenced code block** (```` ```markdown ````), one
+   block per part — never as rendered text between `---` lines. The
+   terminal renders markdown, and what the user copies is what it
    shows: `## Out of scope` arrives as a plain line, and backticks and
-   `**` vanish. A code block is shown and copied exactly as written.
-4. **A label above each block**, as plain bold text outside it:
-   `**Tittel:**`, `**Beskrivelse:**`, `**Depends on:**`. The blocks
+   `**` vanish. A code block is shown and copied exactly as written. An
+   empty part says so in plain text under its label, with no block.
+4. **A label above each part**, as plain bold text outside the block:
+   `**Prosjekt:**`, `**Tittel:**`, `**Beskrivelse:**`, `**ACer:**`,
+   `**Avhengigheter:**`, with a blank line between the parts. The blocks
    look alike, and the user pastes each into its own field.
 5. **No number.** The number is assigned when the spec is created, not
    by whoever writes the text; don't call it "spec 02".
