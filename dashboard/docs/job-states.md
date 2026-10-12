@@ -114,6 +114,13 @@ queued `create`, `archive` or `close` step — the ones that do no model work �
   `timeout` or `provider-limit` step, with something pushed, and no code root among it; a stopped `implement` whose
   code branch was pushed lands nothing, and that code waits for `archive`. A landing that does run leaves the job's
   `error` in place: it is the reason the step stopped, not a fault the landing resolved.
+- `model-at-capacity` gives `stopped` too: the provider had no room for the model, so unlike a usage limit there is
+  no reset to wait for. The runner reads it from the last `error` or `turn.failed` event of a Codex turn that did not
+  complete, when its message says "at capacity", and from Claude Code's closing result when that is an error with
+  status 529 or a message saying overloaded or at capacity; a used-up limit and the step's own time limit win over
+  it, and opencode has no reader. The job's `error` names the step's button and the model the step ran on and says
+  to press the button again or choose another model; the phase, worded from the commit history alone, says the model
+  was at capacity without naming it. It lands nothing, and the step is offered again.
 - `shared-files` gives `stopped` too: an analyze whose analysis names files another open spec also changes. It lands
   like a `timeout` stop — what it pushed went to the specs repository only, so the analysis is merged into the
   default branch — and the job's `error` names each spec with the files it shares, from the result's `sharedFiles`.
@@ -188,7 +195,7 @@ rides with the last of them, and the permanent records of a landing attempt — 
   disagreeing — they have not seen the run yet. A step with no landing of its own (`implement`, a failed step) has
   those answers read again as soon as its result is written (`stepDoneHandler`, `src/serve/runner-setup.ts`); a step
   with a landing has them read again by the landing.
-- **`stopReason`** is `timeout`, `provider-limit`, `tests-red`, `acceptance-criteria` or `shared-files`, set with `stopped` and
+- **`stopReason`** is `timeout`, `provider-limit`, `model-at-capacity`, `tests-red`, `acceptance-criteria` or `shared-files`, set with `stopped` and
   nowhere else. `stopped` is deliberately not `failed`: under a tight timeout a time-stop is a common, healthy
   outcome, a red suite on a landing is work that is not green yet rather than a broken agent, and an analyze stopped
   on its acceptance criteria waits for the description to be put right.

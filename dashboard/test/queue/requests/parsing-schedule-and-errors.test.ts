@@ -150,9 +150,10 @@ describe("stopReason", () => {
     // Named, so widening the union without a reader is caught here
     // rather than at the page: `tests-red` is the landing's own suite
     // going red on the merged result, which pushes nothing and asks for
-    // implement to run again — the only one of the five that is not the
-    // run itself being cut short.
-    expect(stored).toEqual(["acceptance-criteria", "provider-limit", "shared-files", "tests-red", "timeout"]);
+    // implement to run again — the only one of the six that is not the
+    // run itself being cut short. `model-at-capacity` is the provider
+    // having no room for the chosen model right now.
+    expect(stored).toEqual(["acceptance-criteria", "model-at-capacity", "provider-limit", "shared-files", "tests-red", "timeout"]);
   });
 });
 

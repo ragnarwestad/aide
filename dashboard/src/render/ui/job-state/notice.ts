@@ -261,10 +261,14 @@ export function specNotice(
       // nothing was pushed. The step and the merge both did what they
       // should; the code is not green yet. An analyze stopped on its
       // acceptance criteria waits the same way, on the description, and
-      // one stopped on files another open spec shares, on Depends on.
+      // one stopped on files another open spec shares, on Depends on, and
+      // a model the provider had no room for, on pressing it again or
+      // choosing another model.
       const waiting =
         lead.errorReason === "held-back" || lead.errorReason === "tests-red" ||
-        (lead.state === "stopped" && (lead.stopReason === "acceptance-criteria" || lead.stopReason === "shared-files"));
+        (lead.state === "stopped" &&
+          (lead.stopReason === "acceptance-criteria" || lead.stopReason === "shared-files" ||
+            lead.stopReason === "model-at-capacity"));
       const variant: MessageVariant = heldBackInfo ? "info" : waiting ? "waiting" : "failed";
       const extra = detailBeyond(text, lead.error, lead.errorDetail);
       // A step's own red run: the failing tests are what the reader came

@@ -79,6 +79,10 @@ model_id_out=""
 # the one shape `run-spec/turn/provider-limit.sh` writes for every tool — or
 # empty, which leaves `providerLimit` out of the result.
 provider_limit_out=""
+# The provider's own words when it had no room for the model, which ends
+# the turn: empty unless the stream's last error says so. Unlike a usage
+# limit there is no reset to wait for.
+at_capacity_out=""
 # Did the tool report an outcome of its own at all? For claude this is
 # the same question as "was a cost measured", which is why the branch
 # below used to ask that one — but a Codex step never measures a cost
@@ -150,6 +154,15 @@ if [ "$tool" = "codex" ]; then
   # file does.
   if [ "$subtype" != "success" ]; then
     provider_limit_out="$(codex_provider_limit "$session_out")"
+    # The last `error` or `turn.failed` event is how the turn ended; an
+    # earlier at-capacity error that a different one followed is not.
+    # Selected as a whole event first, then read, like the message above.
+    codex_error_json="$(jq -Rc 'fromjson? | select(type == "object" and (.type == "error" or .type == "turn.failed"))' \
+      "$transcript" 2>/dev/null | tail -n 1)"
+    codex_error=""
+    [ -n "$codex_error_json" ] && codex_error="$(jq -r '(.message // .error.message // .error // empty) | tostring' \
+      <<<"$codex_error_json" 2>/dev/null)"
+    printf '%s' "$codex_error" | grep -qi 'at capacity' && at_capacity_out="$codex_error"
   fi
 elif [ "$tool" = "opencode" ]; then
   # opencode closes no turn with a single result event. It emits one
@@ -247,6 +260,13 @@ if [ -n "$result_json" ]; then
   # The turn's own final text: the same result event already parsed for
   # session_id/cost above — free, no new scan of $transcript.
   turn_message="$(jq -r '.result // empty' <<<"$result_json")"
+  # The provider had no room for the model: the closing result is an error
+  # with status 529, or one that says overloaded or at capacity. Claude Code
+  # retries a 529 by itself, so only how the step ended counts, never the
+  # `api_retry` events. A refusal is the model's own stop.
+  at_capacity_out="$(jq -r 'select(.is_error == true and .stop_reason != "refusal"
+      and (.api_error_status == 529 or ((.result // "") | tostring | test("overloaded|at capacity"; "i"))))
+    | (.result // "overloaded") | tostring' <<<"$result_json" 2>/dev/null)"
   # What the plan actually meters. On a subscription the dollar figure is
   # notional and this is the number that counts, so it is recorded beside
   # the cost rather than instead of it.
@@ -303,6 +323,12 @@ elif [ -n "${provider_limit_out:-}" ]; then
   reset_at="$(jq -r '.resetsAt // empty' <<<"$provider_limit_out")"
   error_msg="$limit_type provider limit reached — press $step_button again once it resets"
   [ -n "$reset_at" ] && error_msg="$error_msg; resets $reset_at"
+# The provider has no room for this model right now: no reset to wait
+# for, and another model runs at once.
+elif [ -n "$at_capacity_out" ]; then
+  terminal_reason="model-at-capacity"
+  error_msg="$step_button stopped: ${model:-${model_id_out:-the model}} is at capacity right now"
+  error_msg="$error_msg — press $step_button again, or choose another model for this step"
 elif [ "$have_result" = "true" ]; then
   is_error="$(jq -r '.is_error // false' <<<"$result_json")"
   if [ "$is_error" = "true" ] && [ "$(jq -r '.stop_reason // empty' <<<"$result_json")" = "refusal" ]; then

@@ -9,7 +9,7 @@ cannot be continued.
 import json
 
 from ...conftest import run
-from ..run_spec_results import RESULT_OK
+from ..run_spec_results import RESULT_OK, RESULT_OVERLOADED
 
 SESSION = "analysis-session-1"
 
@@ -82,3 +82,19 @@ def test_a_refused_session_starts_the_implement_afresh(runner, workspace, fake_c
     assert len(calls) >= 2, calls
     assert "--resume" in calls[0] and "--resume" not in calls[1], calls
     assert out["terminalReason"] != "model-refused", out
+
+
+def test_an_overloaded_resumed_session_stops_at_capacity_without_a_fresh_turn_AC_2(runner, workspace, fake_claude):
+    """The provider has no room for the model: running the implement again on
+    the same model would be the step retrying itself, so it stops after the
+    one turn."""
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        f"echo '{json.dumps(RESULT_OVERLOADED)}'\n"
+        "exit 1"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement", resume_session=SESSION)
+    calls = fake_claude.calls.read_text().splitlines()
+    assert len(calls) == 1, calls
+    assert "--resume" in calls[0], calls
+    assert out["terminalReason"] == "model-at-capacity", out

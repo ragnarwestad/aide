@@ -551,7 +551,7 @@ aide · 81-queue-and-runner · analyze done · $2.1 · https://github.com/…/co
 
 The dashboard also sends a push notification to each device that turned them on, when a spec needs a person:
 
-- a step **failed**, ran out of **time**, hit the AI's **usage limit**, or was **cut off** (its process vanished, or the
+- a step **failed**, ran out of **time**, hit the AI's **usage limit**, found its model **at capacity**, or was **cut off** (its process vanished, or the
   server restarted under it) — the job entered `failed`, `stopped` or `interrupted`; a tap opens the Specs list with
   that spec's row unfolded, where its state and the buttons that act on it are. A stop on shared files names, by
   number, the specs it added to the analysis's record;
@@ -662,13 +662,13 @@ the same for its lead job, or the day the spec was made when no job of its round
 counts as the newest. A change made without a job, such as a description saved from another machine, does not move a
 spec. With no row to show, the page says "Nothing is running."
 
-The tab has the Specs list's search box, and two dropdowns beside it, State and Project; its headings sort. The search
+The tab has the Specs list's search box, and the State dropdown beside it; its headings sort. The search
 reads what the list's does: the project and folder, the title and the whole description. A scheduled job is
 matched on its name and on its project.
 The State dropdown offers All, Running, Waiting, Stopped, Failed and Not verified, All by default, each counted over the
-rows the project and the search let through; a job row is never Not verified. Archived, Closed and Active say nothing
-about a tab that shows only Active specs, so an old address naming one of them gets All. The Project dropdown offers
-All projects and each project with a row on the tab, counted over the rows the state and the search let through.
+rows the search lets through; a job row is never Not verified. Archived, Closed and Active say nothing
+about a tab that shows only Active specs, so an old address naming one of them gets All. There is no Project
+dropdown: typing a project's name, or `name:`, in the search narrows the tab to it, and a `project` key in an address is ignored.
 
 The second heading reads "Title", since the tab also shows rows that are not specs. Every heading sorts, by the rules of
 the Specs list's own. With no heading chosen the rows stand in the tab's own order above, and no heading is marked; a
@@ -677,7 +677,7 @@ queued, though the row draws no date there, and its Time is the figure its Time 
 says "Nothing on this tab matches this filter."
 
 The tab remembers its search, filters and sorting in a cookie of its own, apart from the Specs list's two: choosing on
-one tab never changes the other. An address that names any of `state`, `project`, `sort`, `dir` or `q` is the whole view
+one tab never changes the other. An address that names any of `state`, `sort`, `dir` or `q` is the whole view
 and becomes the memory, so clearing the search is remembered too; an address that names none, as the tab in the header
 does, gets the view last chosen. The rows' fold links carry the view.
 

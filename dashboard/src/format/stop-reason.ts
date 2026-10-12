@@ -22,8 +22,9 @@ export const isFailedStop = (reason: string | undefined): boolean =>
   reason !== undefined && FAILED_STOPS.includes(reason);
 
 /** Whether a step whose newest run stopped for `reason` is not done,
- *  though an earlier run of it finished: every failed stop, and an
- *  analyze stopped on the acceptance criteria or on files another open
- *  spec shares, which reads Stopped but still has to run again. */
+ *  though an earlier run of it finished: every failed stop, a step the
+ *  provider had no room for, and an analyze stopped on the acceptance
+ *  criteria or on files another open spec shares, which read Stopped but
+ *  still have to run again. */
 export const leavesStepUndone = (reason: string | undefined): boolean =>
-  isFailedStop(reason) || reason === "acceptance-criteria" || reason === "shared-files";
+  isFailedStop(reason) || reason === "model-at-capacity" || reason === "acceptance-criteria" || reason === "shared-files";

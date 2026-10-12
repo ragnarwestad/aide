@@ -110,5 +110,6 @@ export function messageKeyFor(a: Attention): MessageKey {
   if (a.reason === "tests-red") return "push.stoppedTestsRed";
   if (a.reason === "acceptance-criteria") return "push.stoppedAcceptanceCriteria";
   if (a.reason === "shared-files") return a.specs?.length ? "push.stoppedSharedFilesNamed" : "push.stoppedSharedFiles";
+  if (a.reason === "model-at-capacity") return "push.stoppedModelAtCapacity";
   return "push.stoppedTimeout";
 }
