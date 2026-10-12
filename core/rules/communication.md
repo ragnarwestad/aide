@@ -123,8 +123,11 @@ commit or push anything in the specs repo on your own initiative.
    a list of open questions after it.
 2. **Hand over five parts, always, in this order:** Prosjekt (the
    project the spec belongs to), Tittel, Beskrivelse (the description
-   without its acceptance criteria), ACer (the `- **AC-n:**` lines), and
-   Avhengigheter (Depends on). A part with nothing in it is still handed
+   without its acceptance criteria: a `## Problem` section saying what is
+   wrong, a `## Solution` section saying what should be true afterwards,
+   and `## Out of scope` when there is one), ACer (the `- **AC-n:**`
+   lines, each one sentence in one of the five EARS patterns the
+   spec-structure rule lists), and Avhengigheter (Depends on). A part with nothing in it is still handed
    over, saying plainly that its field is left empty. Avhengigheter names
    only a spec with a queued, running or landing job, never one that is
    archived or closed: check the board in the same reply.
