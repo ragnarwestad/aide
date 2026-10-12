@@ -167,19 +167,21 @@ const SPEC_HEAD = new RegExp(`<tr class="${SPEC_HEAD_CLASS}\\b[^>]*?\\bid="([^"]
 const OPEN_TBODY = "<tbody>";
 const CLOSE_TBODY = "</tbody>";
 
-/** The fetched markup as groups, or `null` when it cannot be accounted
+/** The fetched markup as groups (`holdsSpec`: the spec is drawn in its row), or `null` when it cannot be accounted
  *  for exactly — no table, more than one, a row before the first spec
  *  (the empty and no-match states are one such row), or two specs
  *  wearing one id. `null` means "redraw the old way": failing open to
  *  the behaviour that has shipped for a year beats a diff that might be
  *  wrong about which rows are whose. */
-function splitGroups(html: string): RowSplit | null {
+function splitGroups(html: string, holdsSpec = false): RowSplit | null {
   const open = html.indexOf(OPEN_TBODY);
   const close = html.lastIndexOf(CLOSE_TBODY);
   if (open === -1 || close === -1 || close < open) return null;
   const start = open + OPEN_TBODY.length;
-  // A second table would put rows outside the range walked below.
-  if (html.indexOf(OPEN_TBODY, start) !== -1) return null;
+  // A second table would put rows outside the range walked below. The
+  // answer that has the open spec in its row has tables of its own inside
+  // that row, and is one spec's rows alone.
+  if (!holdsSpec && html.indexOf(OPEN_TBODY, start) !== -1) return null;
   const content = html.slice(start, close);
   const at: { key: string; index: number }[] = [];
   SPEC_HEAD.lastIndex = 0;
@@ -316,6 +318,32 @@ function redrawn(body: Element, open: ReadonlySet<string>): void {
   applyRefusal();
 }
 
+/** One spec's rows put in the place of its old ones, from an answer that
+ *  holds that spec alone. `holdOpen` keeps the spec drawn in the open row
+ *  across the replace, for an answer that carries only its stand-in; a press
+ *  that fetched the spec passes false, since its answer has the spec in it.
+ *  `false` when the answer cannot be accounted for: the spec not in it, or no
+ *  longer on the page. */
+export function placeSpecRows(html: string, holdOpen: boolean): boolean {
+  const body = document.getElementById("jobrows");
+  if (!body) return false;
+  const one = splitGroups(html, !holdOpen);
+  const group = one?.groups.length === 1 ? one.groups[0]! : null;
+  const open = openTestFiles(body);
+  const restore = holdOpen ? holdSpecDetail(body) : () => {};
+  const replaced = group !== null && replaceGroup(group);
+  restore();
+  if (!group || !replaced) return false;
+  // Kept level with the page, so the next whole-list diff compares
+  // against what this spec's rows now are. With the spec drawn in they are
+  // not what the list's own answers carry, so no answer equals them and the
+  // next diff draws this spec again.
+  const at = lastRows?.groups.findIndex((g) => g.key === group.key) ?? -1;
+  if (at !== -1) lastRows!.groups[at] = holdOpen ? group : { key: group.key, html: "" };
+  redrawn(body, open);
+  return true;
+}
+
 /** One spec's rows, after its own › was pressed: the server draws that
  *  spec alone and only its rows are replaced. The whole list is a
  *  megabyte once the archive is on it, and fetching and redrawing all of
@@ -331,22 +359,12 @@ export async function swapSpec(key: string): Promise<void> {
   params.set("only", key);
   try {
     const res = await fetch(`${location.pathname}?${params}`, { headers: { accept: "text/html" } });
-    const one = res.ok ? splitGroups(await res.text()) : null;
+    const html = res.ok ? await res.text() : "";
     // The same rule as `swapRows`: a press that began meanwhile draws
     // its own answer.
     if (press.pressGen !== gen) return;
-    const group = one?.groups.length === 1 ? one.groups[0]! : null;
-    const open = openTestFiles(body);
     // The open spec is not in the answer: it is held across the replace.
-    const restore = holdSpecDetail(body);
-    const replaced = group !== null && replaceGroup(group);
-    restore();
-    if (!group || !replaced) return swapRows();
-    // Kept level with the page, so the next whole-list diff compares
-    // against what this spec's rows now are.
-    const at = lastRows?.groups.findIndex((g) => g.key === group.key) ?? -1;
-    if (at !== -1) lastRows!.groups[at] = group;
-    redrawn(body, open);
+    if (!placeSpecRows(html, true)) return swapRows();
   } catch {
     return swapRows();
   }

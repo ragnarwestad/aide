@@ -20,7 +20,7 @@ let held: { why: string; spec?: string } | null = null;
 const hasClass = (el: Element, name: string): boolean => ` ${el.className} `.indexOf(` ${name} `) !== -1;
 
 /** Where the spec's rows end: its gap row, or its last row when it has none. */
-function groupEnd(head: Element): { before: Element } | { after: Element } {
+export function groupEnd(head: Element): { before: Element } | { after: Element } {
   let last = head;
   for (let el = head.nextElementSibling; el && !hasClass(el, SPEC_HEAD); el = el.nextElementSibling) {
     if (hasClass(el, SPEC_GAP)) return { before: el };

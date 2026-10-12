@@ -80,6 +80,7 @@ export const nb: Record<TranslationKey, string> = {
   "list.foldHide": "skjul",
   "list.foldTitle": "{action} faser og kontroller for {folder}",
   "list.specFoldTitle": "{action} specen {folder}",
+  "list.specLoadFailed": "spesifikasjonen kunne ikke lastes — last inn siden på nytt for å prøve igjen",
   "list.checksFoldTitle": "{action} akseptansekriteriene for {folder}",
   "list.checksSave": "Lagre",
   "list.checksSaving": "lagrer…",

@@ -26,18 +26,26 @@
 // transpiled source against a real DOM.
 
 (() => {
-  document.addEventListener("DOMContentLoaded", () => {
-    // Every form on the page that carries the pair, not just the one:
-    // the spec page has the Checks/document form AND the tracking form
-    // above the tabs, and they save different things (spec 394).
+  // Every form on the page that carries the pair, not just the one:
+  // the spec page has the Checks/document form AND the tracking form
+  // above the tabs, and they save different things (spec 394).
+  const bindAll = (): void => {
     for (const prefix of ["specform", "trackingform", "settingsform"]) bind(prefix);
-  });
+  };
+  document.addEventListener("DOMContentLoaded", bindAll);
+  // The Specs list draws the open spec's forms into a row after the page has
+  // loaded, and says so with this event (`spec-detail/open.ts`, which names it
+  // too: this script imports nothing).
+  document.addEventListener("spec-detail-drawn", bindAll);
 
   function bind(prefix: string): void {
     const form = document.querySelector(`form.${prefix}`) as HTMLFormElement | null;
     const save = document.getElementById(`${prefix}-save`) as HTMLButtonElement | null;
     const cancel = document.getElementById(`${prefix}-cancel`) as HTMLButtonElement | null;
     if (!form || !save || !cancel) return;
+    // On the form itself, so a second event for a form already bound adds nothing.
+    if (form.hasAttribute("data-actions-bound")) return;
+    form.setAttribute("data-actions-bound", "");
 
     const fields = (): (HTMLInputElement | HTMLTextAreaElement)[] =>
       Array.from(form.elements).filter(

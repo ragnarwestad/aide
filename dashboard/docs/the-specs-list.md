@@ -41,9 +41,27 @@ they cost. The row carries no control but the one that opens it: a chevron in fr
 line among them when the spec has one. They belong to the shut row, so a reader sees what went wrong without opening
 it.
 
-The row's chevron is a link to the spec's own address (`/specs/<project>/<spec>`), a page load, so one row is open at a
-time and the browser's Back shuts it. It carries the list's view (state, project, sort, search) and ends in the row's anchor, so the
-open row is in view. The open row's chevron leads back to `/specs`. The criteria's › redraws that spec's rows alone: the
+The row's chevron is a link to the spec's own address (`/specs/<project>/<spec>`), so one row is open at a
+time. It carries the list's view (state, project, sort, search) and ends in the row's anchor, so the
+open row is in view. The open row's chevron leads back to `/specs`.
+
+On the Specs list the page script takes a plain press on a shut chevron and opens the row where it is, without loading
+a page. The row gets a detail row of its own that reads "Loading …", copied from the `#spec-loading-row` template the
+list carries; the header, the filters and every other row stay as they are, and the page is inert, so no press
+anywhere on it does anything until the spec is in. The spec's address is pushed, and the page asks that address with
+`?detail=1`: the answer is that spec's rows with the spec drawn in its detail row, followed by a `<script src>` for the
+tab's editor or viewer when it needs one, which the page script adds as a new script so the bundle mounts in the row.
+`spec-detail-drawn` is then sent on `document`, which `spec-form-actions.ts` hears and binds Save and Cancel for the
+forms just drawn. A spec that was open is shut where it stands and its rows are drawn again for the new address; if it
+sat above the pressed row, the list scrolls back by its height, so the pressed row stays where it was on the screen.
+When the spec cannot be loaded (an answer that is not 2xx, a request that fails, or an answer with no detail row), the
+row says so in its own area, from the row's `data-failed` sentence, and the page accepts presses again.
+
+Back to `/specs` shuts the open row where it stands, and a Back while the spec is still on its way drops the request.
+Back or Forward to a spec's address loads that page. The press is left to the browser, which loads the spec's address as
+a page, for a modified click, a page without script, and an open spec whose Save is active, since the browser's
+leave-page question is the one that guards an unsaved edit; Back to `/specs` with such an edit puts the spec's address
+back and loads the list, so the same question is asked. The criteria's › redraws that spec's rows alone: the
 page asks for `?rows=1&only=<project>/<spec>` and replaces just those rows, since the whole list runs to a megabyte once
 the archive is on it. That chevron is a spinner until they are back. The page asks its own address: `/specs?rows=1…`
 or `/specs/<project>/<spec>?rows=1…` here, and `/?rows=1…` on the Running tab, which draws the same rows for the specs it
@@ -433,8 +451,9 @@ page load of the spec's address, and so is every link inside the spec: the page 
 The page script puts the row the address names at the top of the list's own box, under its headings, and leaves the
 page at its top, wherever the row sits in the list.
 The spec is shown whole: the editor and the viewer grow with their text at every width, and the list scrolls around
-them. The answer is streamed: the head and a loading line first,
-the list and the spec when the spec's view is ready.
+them. A direct load of the address (a reload, a link from the Running tab, Back or Forward) is streamed: the head and a loading line first,
+the list and the spec when the spec's view is ready. A press on a shut row of the Specs list does not load the address
+but asks for it with `?detail=1`, as "The row, open and shut" says.
 
 **The Logs tab lists every step from every attempt in one flat list, no picker.** A spec with more than one job for
 the same work round tags each row `Attempt N` (oldest = 1); a single-attempt spec shows no marker at all. There is no

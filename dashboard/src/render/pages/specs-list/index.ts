@@ -84,7 +84,7 @@ export {
   type SpecGroup,
 };
 import { listColumns, phaseSubRows, phasePips, specHeadRow, specNoticeRow, specPhaseTable } from "./cells.ts";
-import { listRefusalLine, refusalRowTemplate } from "./notice-row.ts";
+import { listRefusalLine, refusalRowTemplate, specLoadingRowTemplate } from "./notice-row.ts";
 // Re-exported for `spec-page.ts`, which draws a spec's phase pip strip
 // on its own Overview tab.
 export { phasePips };
@@ -407,7 +407,9 @@ function specsPageBody(rows: QueueRowView[], opts: SpecsPageOptions): string {
     // after the (?)): it is a plain link since spec 121, so the
     // five-second swap of `#jobrows` holds no half-typed state to lose.
     table +
-    refusalRowTemplate(listColumns(!!opts.openSpec))
+    refusalRowTemplate(listColumns(!!opts.openSpec)) +
+    // The row a › draws while its spec loads: only where a › opens a row.
+    (opts.openSpec ? specLoadingRowTemplate(listColumns(true), lang) : "")
   );
 }
 

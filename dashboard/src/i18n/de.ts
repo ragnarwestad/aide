@@ -80,6 +80,7 @@ export const de: Record<TranslationKey, string> = {
   "list.foldHide": "verbergen",
   "list.foldTitle": "{action} die Phasen und Steuerelemente von {folder}",
   "list.specFoldTitle": "{action} die Spec {folder}",
+  "list.specLoadFailed": "die Spec konnte nicht geladen werden — lade die Seite neu, um es erneut zu versuchen",
   "list.checksFoldTitle": "{action} die Abnahmekriterien von {folder}",
   "list.checksSave": "Speichern",
   "list.checksSaving": "speichert…",

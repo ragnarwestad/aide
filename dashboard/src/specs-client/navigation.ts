@@ -6,6 +6,7 @@
 import { connect, disconnect } from "./live.ts";
 import { SPINNER } from "./press.ts";
 import { swapRows, swapSpec } from "./row-swap.ts";
+import { openSpecInPlace } from "./spec-detail/open.ts";
 import { AWAITING } from "./state.ts";
 
 /** The parts of the address one spec's › opens or shuts, and so the only
@@ -17,6 +18,8 @@ const FOLDS = ["open", "checks"] as const;
 // keeps the promise the rest of this file makes: never reload the page
 // under a control somebody is half-way through setting.
 export function navigate(event: MouseEvent): void {
+  // A shut › on the Specs list opens its row where it is.
+  if (openSpecInPlace(event)) return;
   if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
   const link = (event.target as Element | null)?.closest?.("a[data-nav]") as HTMLAnchorElement | null;
   // The links inside the open spec (its tabs, the Logs tab's step folds) load

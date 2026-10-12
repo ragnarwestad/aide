@@ -264,9 +264,36 @@ describe("GET /specs/<project>/<specFolder>", () => {
   test("/specs draws every row shut, without the spec (AC-3)", async () => {
     const { base } = start();
     const html = await (await fetch(`${base}/specs`)).text();
-    expect(html).not.toContain('<tr class="specdetail"');
+    // The loading-row template holds a detail row of its own, outside the rows.
+    const rows = html.slice(html.indexOf('<div id="jobrows">'), html.indexOf('<template id="refusal-row">'));
+    expect(rows).not.toContain('<tr class="specdetail"');
     expect(html).not.toMatch(/<a class="fold"[^>]*aria-expanded="true"/);
     expect(html).toMatch(/<a class="fold shut"[^>]*aria-expanded="false"/);
+  });
+
+  // The page script opens a shut row in place: it asks for the spec's rows with
+  // the spec drawn in, and adds the tab's script itself.
+  test("?detail=1 answers that spec's rows with the spec in its row and the editor's script tag (AC-4)", async () => {
+    const { base, dir } = start();
+    fillSpec(dir);
+    const res = await fetch(`${base}${PATH}?detail=1`);
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).not.toContain("<html");
+    expect(html).toContain(`data-spec-detail="aide/${SPEC}"`);
+    expect(html.match(/class="trackingform/g)).toHaveLength(1);
+    expect(html).toContain("It shows nothing about");
+    expect(html).toMatch(/<script src="\/spec-editor\.js"><\/script>\s*$/);
+  });
+
+  // The page script copies this template for the row it draws while it waits.
+  test("/specs and a spec's address carry the loading-row template the page script reads (AC-4)", async () => {
+    const { base } = start();
+    const { SPEC_LOADING_ROW_ID } = await import("../../src/specs-client/spec-detail/open.ts");
+    for (const path of ["/specs", PATH]) {
+      const html = await (await fetch(`${base}${path}`)).text();
+      expect([path, html.includes(`<template id="${SPEC_LOADING_ROW_ID}">`)]).toEqual([path, true]);
+    }
   });
 
   // The spec's view reads its files through git; the list's answers must not.

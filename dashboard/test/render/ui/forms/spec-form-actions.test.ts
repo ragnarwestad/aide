@@ -284,3 +284,38 @@ describe("a field inside the form that posts elsewhere", () => {
     expect(saveButton.disabled).toBe(false);
   });
 });
+
+describe("a form drawn after the page loaded (AC-4)", () => {
+  // The Specs list draws the open spec's forms into a row after load; the
+  // page script says so with an event on the document, under its own name.
+  test("the page script's event binds it: inactive until a field changes, and sending it twice binds it once", async () => {
+    document.body.innerHTML = "<p>the list, no spec open</p>";
+    mount();
+    const { SPEC_DETAIL_DRAWN } = await import("../../../../src/specs-client/spec-detail/open.ts");
+    document.body.innerHTML =
+      `<form class="trackingform" method="post">` +
+      `<textarea name="note" class="spec-editor-raw">old</textarea>` +
+      `<button id="trackingform-save" type="submit">Save</button>` +
+      `<button id="trackingform-cancel" type="button" disabled>Cancel</button>` +
+      `</form>`;
+    const saveButton = document.getElementById("trackingform-save") as HTMLButtonElement;
+    const cancelButton = document.getElementById("trackingform-cancel") as HTMLButtonElement;
+    const raw = document.querySelector(".spec-editor-raw") as HTMLTextAreaElement;
+    expect(saveButton.disabled).toBe(false);
+
+    document.dispatchEvent(new Event(SPEC_DETAIL_DRAWN));
+    document.dispatchEvent(new Event(SPEC_DETAIL_DRAWN));
+    expect([saveButton.disabled, cancelButton.disabled]).toEqual([true, true]);
+
+    raw.value = "new";
+    raw.dispatchEvent(new Event("input", { bubbles: true }));
+    expect([saveButton.disabled, cancelButton.disabled]).toEqual([false, false]);
+
+    let redraws = 0;
+    raw.addEventListener("spec-cancel", () => { redraws++; });
+    cancelButton.click();
+    expect(raw.value).toBe("old");
+    expect([saveButton.disabled, cancelButton.disabled]).toEqual([true, true]);
+    expect(redraws).toBe(1);
+  });
+});

@@ -81,6 +81,7 @@ export const en = {
   "list.foldHide": "hide",
   "list.foldTitle": "{action} the phases and controls of {folder}",
   "list.specFoldTitle": "{action} the spec {folder}",
+  "list.specLoadFailed": "the spec could not be loaded — reload the page to try again",
   "list.checksFoldTitle": "{action} the acceptance criteria of {folder}",
   "list.checksSave": "Save",
   "list.checksSaving": "saving…",

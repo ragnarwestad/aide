@@ -52,6 +52,7 @@ import { postForm } from "./press.ts";
 import { bindPushPanel } from "./push.ts";
 import { startReloadWhileIdle } from "./reload-while-idle";
 import { relabelRunButton } from "./row-swap.ts";
+import { bindBack } from "./spec-detail/open.ts";
 import { placeNamedRow } from "./spec-detail";
 import {
   followScheduleRow, postScheduleEnabled, postScheduleRun, scheduleCronPreview, submitScheduleForm,
@@ -326,6 +327,8 @@ for (const el of document.querySelectorAll("iframe[data-report-frame]")) bindRep
 const page = globalThis as unknown as Window;
 placeNamedRow(document, page);
 page.addEventListener?.("load", () => placeNamedRow(document, page));
+// Back from a spec opened in place shuts its row where it stands.
+bindBack(page);
 
 // "← Back" on a page with tabs keeps where the page was opened from while
 // the reader switches tabs. Last, and throwing nothing, so no binding above

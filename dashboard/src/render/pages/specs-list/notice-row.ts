@@ -17,7 +17,7 @@ import { helpPopover, messageSlot, rowMessageParts, stepLabel, type MessagePart 
 import { esc } from "../../ui/html.ts";
 import { sharedFilesSentence, specNotice, wordPhase } from "../../ui/job-state";
 import type { OpenOverlap } from "../../../project/overlapping-specs.ts";
-import type { Language } from "../../../i18n";
+import { t, type Language } from "../../../i18n";
 import { archivedRowNotices, errorMarkNotices } from "./row-marks.ts";
 import { isArchivedRow, type SpecGroup, type SpecsFilter } from "./data-model";
 import { checksRow, checksFold, checksPanel } from "./row-checks.ts";
@@ -28,6 +28,8 @@ import { approachPanel } from "./approach-choice";
 
 const REFUSAL_TEMPLATE_ID = "refusal-row";
 const LIST_REFUSED_ID = "list-refused";
+/** Hand-paired with `specs-client/spec-detail/open.ts`, which copies it. */
+const SPEC_LOADING_ROW_ID = "spec-loading-row";
 
 /** The message row a refused press is written into, held in a
  *  `<template>` for the script to copy — in a table of its own there,
@@ -35,6 +37,16 @@ const LIST_REFUSED_ID = "list-refused";
 export const refusalRowTemplate = (columns = LIST_COLUMNS): string =>
   `<template id="${REFUSAL_TEMPLATE_ID}"><table><tbody><tr class="specnotice" data-refusal>` +
   `<td colspan="${columns}">${messageSlot("refused", "failed")}</td></tr></tbody></table></template>`;
+
+/** The detail row a spec's › draws while the spec is on its way, held in a
+ *  `<template>` for the script to copy: the "Loading …" line, and an empty
+ *  slot the script writes the failure sentence (`data-failed`) into when the
+ *  spec cannot be loaded. */
+export const specLoadingRowTemplate = (columns: number, lang: Language): string =>
+  `<template id="${SPEC_LOADING_ROW_ID}"><table><tbody>` +
+  `<tr class="specdetail" data-failed="${esc(t(lang, "list.specLoadFailed"))}"><td colspan="${columns}">` +
+  `<p class="muted">${esc(t(lang, "shell.loadingPage"))}</p>${messageSlot("refused", "failed")}` +
+  `</td></tr></tbody></table></template>`;
 
 /** The list's own refusal line, above the rows. */
 export const listRefusalLine = (): string => messageSlot("refused", "failed", { id: LIST_REFUSED_ID });
