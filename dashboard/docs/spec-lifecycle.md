@@ -113,7 +113,7 @@ is the whole set:
 | stopped: scope-violation              | The step wrote outside its own spec folder, or claimed a step it did not run       | Press the same button again                                             |
 | stopped: tests-red                    | The project's suite is red, after the runner gave the session two more turns at it | Make the suite green, then press Implement                              |
 | stopped: timeout                      | The step reached its own time limit                                                | Press the same button again; the work it committed is on the branch     |
-| stopped: shared-files                 | Analyze found files another open spec also changes, and stopped before the plan    | Press Analyze again to go on                                            |
+| stopped: shared-files                 | Analyze found files another open spec also changes, and stopped before the plan    | Add those specs to Depends on and save, or press Analyze again to go on |
 | not landed                            | Archive finished, but the spec's branch is still on origin, not merged             | Run Archive again                                                       |
 | branch still on origin                | The branch merged, or its pull request did, but the branch was left on origin      | Press Delete branch                                                     |
 | conflict                              | A merge conflict no machine could settle                                           | Resolve it yourself, with the diff in front of you                      |

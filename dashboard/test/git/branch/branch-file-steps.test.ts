@@ -99,6 +99,20 @@ describe("BranchFileStepsChecker", () => {
     });
   });
 
+  // Spec 635: a Depends on saved on a spec with an open branch is written
+  // onto the branch, so the row and the hold read the branch's own line.
+  test("the branch's 1-description.md answers dependsOn (AC-3)", async () => {
+    const descriptionPath = TARGET.relPath.replace(/4-status\.md$/, "1-description.md");
+    const answers = branchFile(["create", "analyze"]);
+    answers[`log -1 --format=%H refs/remotes/origin/${TARGET.branch} -- ${descriptionPath}`] = { code: 0, stdout: "d00dfeed1234\n" };
+    answers[`show refs/remotes/origin/${TARGET.branch}:${descriptionPath}`] = {
+      code: 0,
+      stdout: "# D\n\n## Tracking info\n\n- **Created:** `2026-10-12`\n- **Depends on:** `99-a-second-spec`, 88\n",
+    };
+    const checker = new BranchFileStepsChecker({ run: fake(answers).run });
+    expect((await checker.read(DIR, FOLDER, TARGET))?.dependsOn).toEqual(["99-a-second-spec", "88"]);
+  });
+
   test("peekFileSteps hands back the read answer, spawning no git", async () => {
     const git = fake(branchFile(["analyze"]));
     const checker = new BranchFileStepsChecker({ run: git.run, now: () => 1000 });

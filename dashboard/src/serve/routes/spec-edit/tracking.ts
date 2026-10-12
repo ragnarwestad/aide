@@ -18,6 +18,7 @@ import {
   resolveDependencyFolder,
 } from "../../serve-helpers";
 
+import { afterTick } from "./checks.ts";
 import { followOnJob } from "./shared.ts";
 
 import type { RoutesContext } from "..";
@@ -204,6 +205,8 @@ export async function trackingRoutes(
     logRefusal("tracking", `${project}/${specFolder}`, result.note);
     return refuse(result.note);
   }
+  // The row's own line reads the same copy this save wrote.
+  await afterTick(ctx, dir, specFolder!);
 
   // An analyze that stopped on files another open spec changes goes on
   // once Depends on names one of the specs it named: Analyze is queued

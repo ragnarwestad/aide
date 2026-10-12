@@ -14,24 +14,38 @@ import {
   CLOSE_ASK_ID, CLOSE_SENTENCE, REOPEN_ASK_ID, closeAskDialog, reopenAskDialog,
 } from "./ask-dialog.ts";
 import { optionsGroup } from "../new-spec-page/options-tab.ts";
+import { dependsOnField } from "../new-spec-page";
 import { createChoicesIn } from "../../../project/discover";
 import { SPEC_LINES, SPEC_REFUSED_LINE } from "./tabs.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 
 /** What sits above the tabs: each phase's AI and model beside the four
- *  settings the spec was created with. While the three analyze reads can
- *  still change — a live spec analyze has not run on — it is a form
- *  posting to `view.trackingAction`; otherwise everything is locked and
- *  nothing posts. `settingsEditable` is a hidden sentinel so the route can
- *  tell a cleared box from a locked one, which submits nothing either (see
- *  `spec-edit/tracking.ts`). */
+ *  settings the spec was created with, and the Depends on picker. A live
+ *  spec's form posts to `view.trackingAction`: the three settings analyze
+ *  reads while it has not run (`settingsEditable` is a hidden sentinel so
+ *  the route can tell a cleared box from a locked one), and the picker
+ *  always. An archived or closed spec is a record: nothing posts. */
 export function trackingControl(view: SpecPageView, lang: Language = "en", phases = ""): string {
   // Archived, nothing posts. Live, the three settings analyze reads do
   // until it has run; the AI formulation was used by create.
   const settingsEditable = !view.archived && !(view.done?.includes("analyze") ?? false);
   const settings = `<span class="frow options-row">${phases}${createdOptions(view, lang, settingsEditable)}</span>`;
-  if (!settingsEditable) return settings;
+  if (view.archived) return settings;
+  const folders = view.dependsOn ?? [];
+  const options = view.dependsOnOptions ?? [];
+  // A dependency since archived or closed is no longer offered but is still
+  // depended on: drawn ticked, droppable, until it is removed.
+  const known = new Set(options.map((o) => o.specFolder));
+  const locked = folders.filter((f) => !known.has(f));
+  // The Save/Cancel pair rides on the picker's label line; a form with no
+  // picker keeps them in a row of their own.
+  const actions = saveCancelActions("trackingform");
+  const field = dependsOnField(options, new Set(folders), { wide: true, locked, project: view.project, actions });
+  // The empty entry makes a picker with every box clear post an empty list,
+  // which the route reads as no dependencies; an absent field leaves the line.
+  const picker = field ? `<input type="hidden" name="dependsOn" value="">${field}` : "";
+  if (!settingsEditable && !picker) return settings;
   // `.trackingform`, never `.specform`: the Status tab's tick form
   // already carries that class, and the banner renders on every tab —
   // Checks included — so a shared class would leave that tab with TWO
@@ -41,10 +55,11 @@ export function trackingControl(view: SpecPageView, lang: Language = "en", phase
   return (
     `<form class="trackingform reloadform" method="post" action="${esc(view.trackingAction)}"${dataAttrs(SPEC_LINES)}>` +
     settings +
+    (picker ? `<span class="frow">${picker}</span>` : "") +
     // The same pair, and the same rules, the document forms already
     // have: both inactive until something changes, Cancel putting the
     // form back the way the page opened it.
-    saveCancelActions("trackingform") +
+    (picker ? "" : actions) +
     `</form>`
   );
 }

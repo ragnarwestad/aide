@@ -54,7 +54,7 @@ describe("sharedFilesSentence", () => {
   ];
   const NAMED =
     "Analyze stopped: other open specs change the same files — 82 The other thing: a.ts, b.ts. 84 Third: c.ts. — " +
-    "Press Analyze again to go on.";
+    "Add them to Depends on to wait until they are archived, or press Analyze again to go on.";
   const ARCHIVED =
     "Analyze stopped on files other open specs changed, and every one of them has been archived or removed since — " +
     "press Analyze again to go on.";
@@ -67,7 +67,7 @@ describe("sharedFilesSentence", () => {
     } };
   };
 
-  test("a lead stopped shared-files names every spec still open, number and title, with its files (AC-1)", () => {
+  test("a lead stopped shared-files names every spec still open, number and title, with its files, and tells the reader to add them to Depends on (AC-6)", () => {
     expect(jobState.sharedFilesSentence(stoppedOn("shared-files"), undefined, () => OPEN)).toBe(NAMED);
   });
 

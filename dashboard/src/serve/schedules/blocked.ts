@@ -10,6 +10,7 @@ import { acceptanceStillOpen, parseStatus } from "../../project/parse-status";
 import { specPendingChoice } from "../../project/approach-choice.ts";
 import type { BoardMessage } from "../../i18n/message.ts";
 import { GATED, resolveDependencyFolder } from "../serve-helpers";
+import type { Job } from "../../queue/queue.ts";
 import type { DependencyHolds } from "../../queue/runner/dependency-hold.ts";
 import type { ScheduleContext } from "./";
 
@@ -58,8 +59,13 @@ export async function blockedDependencies(ctx: ScheduleContext): Promise<Depende
   // that names nothing costs neither a walk of the specs root nor a
   // git call, the same way a spec without the field asks origin
   // nothing in the script.
-  const named = new Map(ctx.targets().map((t) => [`${t.project}/${t.specFolder}`, t.dependsOn ?? []]));
-  if (!waiting.some((j) => (named.get(`${j.project}/${j.specFolder}`) ?? []).length > 0)) return blocked;
+  const key = (j: { project: string; specFolder: string }) => `${j.project}/${j.specFolder}`;
+  const named = new Map(ctx.targets().map((t) => [key(t), t.dependsOn ?? []]));
+  // An open branch may have dropped a dependency the checkout still names,
+  // and the runner's own gate reads the checkout.
+  const branchAnswers = (j: Job) =>
+    ctx.readBranchFileSteps().peekFileSteps(ctx.readScan()?.dirs.get(key(j)) ?? "", j.specFolder).steps?.dependsOn !== undefined;
+  if (!waiting.some((j) => (named.get(key(j)) ?? []).length > 0 || branchAnswers(j))) return blocked;
 
   // Not `targets()`: that drops archived specs, and an archived
   // dependency is precisely the case that must resolve — to
@@ -69,7 +75,7 @@ export async function blockedDependencies(ctx: ScheduleContext): Promise<Depende
     const project = projects.get(job.project);
     const spec = project?.specs.find((s) => s.folder === job.specFolder && !s.archived);
     if (!project || !spec) continue;
-    for (const id of spec.dependsOn) {
+    for (const id of new Set([...(named.get(key(job)) ?? []), ...spec.dependsOn])) {
       const dep = resolveDependencyFolder(project, id);
       // An unknown identifier, or the spec itself: both are refusals
       // the script makes on its own, and neither is something waiting
