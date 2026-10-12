@@ -122,26 +122,24 @@ export const jobsViewCookieName = (port: number): string => `aide_jobs_view_${po
 /** The Jobs tab's view: the keys that cut and order its rows. */
 export interface JobsViewKeys {
   state?: string;
-  project?: string;
   sort?: string;
   dir?: string;
   q?: string;
 }
 
-/** The Jobs tab's view. An address that names any of the five keys, even
+/** The Jobs tab's view. An address that names any of the four keys, even
  *  empty, is the whole view and becomes the memory: every link the tab draws
  *  names its state entry, so clearing the search or the sort is remembered
  *  too. An address that names none — the Jobs tab in the header, a bookmark,
  *  a redraw of a bare `/` — gets the view last chosen. The cookie holds the
  *  keys that have a value, as a query string. Nothing in it is trusted: the
- *  renderer falls back to All, every project, no search and the tab's order
+ *  renderer falls back to All, no search and the tab's order
  *  for anything it does not know. */
 export function jobsViewChoice(url: URL, req: Request, port: number): { view: JobsViewKeys; setCookie?: string } {
   const cookieName = jobsViewCookieName(port);
   // One literal read per key: a page reads its address only that way.
   const named = {
     state: url.searchParams.get("state"),
-    project: url.searchParams.get("project"),
     sort: url.searchParams.get("sort"),
     dir: url.searchParams.get("dir"),
     q: url.searchParams.get("q"),
@@ -150,7 +148,7 @@ export function jobsViewChoice(url: URL, req: Request, port: number): { view: Jo
   const stored = namesAny ? null : new URLSearchParams(cookieValue(req.headers.get("cookie"), cookieName) ?? "");
   const pick = (key: keyof JobsViewKeys): string | undefined => (stored ? stored.get(key) : named[key]) || undefined;
   const view: JobsViewKeys = {};
-  for (const key of ["state", "project", "sort", "dir", "q"] as const) {
+  for (const key of ["state", "sort", "dir", "q"] as const) {
     const value = pick(key);
     if (value) view[key] = value;
   }

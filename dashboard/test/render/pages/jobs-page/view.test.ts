@@ -1,6 +1,5 @@
-// The Jobs tab's view: which rows a search, a project and a state entry leave,
-// in which order, and what the two dropdowns offer and count. One test per
-// rule, on plain objects: a spec's facts as the Specs list's group holds them,
+// The Jobs tab's view: which rows a search and a state entry leave, in which
+// order, and what the state dropdown offers and counts. One test per rule, on plain objects: a spec's facts as the Specs list's group holds them,
 // a scheduled job's facts from `jobFacts`.
 
 import { describe, expect, test } from "bun:test";
@@ -8,7 +7,6 @@ import type { QueueRowView, SpecsFilter } from "../../../../src/render";
 import {
   JOBS_STATE_FILTERS,
   jobFacts,
-  jobsProjectOptions,
   jobsSortPatch,
   jobsStateFilter,
   jobsStateOptions,
@@ -64,25 +62,18 @@ const names = (rows: Entry[]): string[] => rows.map((r) => r.name);
 const view = (rows: Entry[], f: SpecsFilter): string[] => names(jobsViewRows(rows, f));
 const factsOf = (rows: Entry[]): RowFacts[] => rows.map((r) => r.facts);
 
-describe("the state, the project and the search narrow the rows as the Specs list's do (AC-1)", () => {
-  test("a state entry, a project and a search each leave only the rows they match (AC-1)", () => {
+describe("the state and the search narrow the rows as the Specs list's do (AC-1)", () => {
+  test("a state entry and a search each leave only the rows they match (AC-1)", () => {
     expect(view(tab, { state: "stopped" })).toEqual(["idle83"]);
     expect(view(tab, { state: "failed" })).toEqual(["report-other"]);
-    expect(view(tab, { project: "other" })).toEqual(["report-other"]);
     expect(view(tab, { q: "queue" })).toEqual(["run81"]);
-    expect(view(tab, { project: "aide", state: "waiting" })).toEqual(["nightly"]);
+    expect(view(tab, { state: "waiting", q: "night" })).toEqual(["nightly"]);
   });
 
-  test("the project dropdown offers every project first, then each with a row by name, counted over the state and the search (AC-1)", () => {
-    const options = jobsProjectOptions(factsOf(tab), { state: "failed" });
-    expect(options.map((o) => [o.project, o.count])).toEqual([["", 1], ["aide", 0], ["other", 1]]);
-    expect(options.filter((o) => o.on).map((o) => o.project)).toEqual([""]);
-  });
-
-  test("a project in the view that has no row is offered too, marked, with none (AC-1)", () => {
-    const options = jobsProjectOptions(factsOf(tab), { project: "gone" });
-    expect(options.find((o) => o.project === "gone")).toEqual({ project: "gone", count: 0, on: true });
-    expect(options.filter((o) => o.on).map((o) => o.project)).toEqual(["gone"]);
+  test("a project in the filter narrows neither the rows nor the counts (AC-2)", () => {
+    expect(view(tab, { project: "other" })).toEqual(view(tab, {}));
+    expect(view(tab, { project: "other", q: "other:" })).toEqual(["report-other"]);
+    expect(jobsStateOptions(factsOf(tab), { project: "aide" })).toEqual(jobsStateOptions(factsOf(tab), {}));
   });
 });
 
@@ -100,14 +91,26 @@ describe("the state filter offers the states a row on the tab can be in (AC-2)",
     expect(view(tab, { state: "archived" })).toEqual(view(tab, {}));
   });
 
-  test("the dropdown counts each entry over the rows the project and the search let through, and marks the chosen one (AC-2)", () => {
-    const options = jobsStateOptions(factsOf(tab), { project: "aide" });
+  test("the dropdown counts each entry over the rows the search lets through, and marks the chosen one (AC-2)", () => {
+    const options = jobsStateOptions(factsOf(tab), { q: "other:", project: "aide" });
     expect(options.map((o) => [o.key, o.count])).toEqual([
-      ["all", 3], ["active:all", 1], ["waiting", 1], ["stopped", 1], ["failed", 0], ["not-verified", 0],
+      ["all", 1], ["active:all", 0], ["waiting", 0], ["stopped", 0], ["failed", 1], ["not-verified", 0],
     ]);
     expect(options.filter((o) => o.on).map((o) => o.key)).toEqual(["all"]);
+    expect(view(tab, { q: "other:", project: "aide" })).toEqual(["report-other"]);
     expect(jobsStateOptions(factsOf(tab), { state: "stopped" }).find((o) => o.on)?.key).toBe("stopped");
     expect(jobsStateOptions(factsOf(tab), { state: "archived" }).find((o) => o.on)?.key).toBe("all");
+  });
+
+  test("a search that names a project's rows counts those rows alone (AC-2)", () => {
+    const counts = jobsStateOptions(factsOf(tab), { q: "aide" }).map((o) => [o.key, o.count]);
+    expect(counts).toEqual([["all", 3], ["active:all", 1], ["waiting", 1], ["stopped", 1], ["failed", 0], ["not-verified", 0]]);
+  });
+
+  test("with no search term, or only spaces, each entry counts over every row on the tab (AC-2)", () => {
+    for (const q of [undefined, "", "   "]) {
+      expect(jobsStateOptions(factsOf(tab), { q }).map((o) => o.count)).toEqual([4, 1, 1, 1, 1, 0]);
+    }
   });
 
   test("a job row is never Not verified: only the spec with an open criterion is left (AC-2)", () => {
@@ -121,7 +124,7 @@ describe("a scheduled job is matched on its title and its project (AC-3)", () =>
     expect(failedReport.facts.title).toBe("report");
     expect(view([failedReport, nightly], { q: "report" })).toEqual(["report-other"]);
     expect(view([failedReport, nightly], { q: "night" })).toEqual(["nightly"]);
-    expect(view([failedReport, nightly], { project: "other" })).toEqual(["report-other"]);
+    expect(view([failedReport, nightly], { q: "other:" })).toEqual(["report-other"]);
   });
 
   test("a job's facts read as a spec's group reads: a landing is running, the job's time spans its start to its finish (AC-3)", () => {
@@ -174,9 +177,9 @@ describe("the columns sort as the Specs list's do, and no sorting is the tab's o
 
   test("a view link leads to the Jobs tab, always names its state entry, and drops what the patch empties (AC-4)", () => {
     expect(jobsViewPath({ sort: "cost", dir: "asc" }, jobsSortPatch({ sort: "cost", dir: "asc" }, "cost"))).toBe("/?state=all");
-    const link = new URL(`http://x${jobsViewPath({ state: "failed", q: "nightly" }, { project: "other" })}`);
+    const link = new URL(`http://x${jobsViewPath({ state: "failed", q: "nightly" }, { sort: "cost" })}`);
     expect(link.pathname).toBe("/");
-    expect(Object.fromEntries(link.searchParams)).toEqual({ state: "failed", q: "nightly", project: "other" });
+    expect(Object.fromEntries(link.searchParams)).toEqual({ state: "failed", q: "nightly", sort: "cost" });
     expect(new URL(`http://x${jobsViewPath({ state: "closed" }, {})}`).searchParams.get("state")).toBe("all");
   });
 });

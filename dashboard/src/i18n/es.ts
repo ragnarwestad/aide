@@ -108,8 +108,6 @@ export const es: Record<TranslationKey, string> = {
   "list.cancelConfirmBody": "Esto lo detiene de inmediato — se puede volver a ejecutar desde la misma spec.",
   "jobs.nothingRunning": "No se está ejecutando nada.",
   "jobs.colTitle": "Título",
-  "jobs.allProjects": "Todos los proyectos",
-  "jobs.projectsLabel": "Proyectos",
   "jobs.noRowMatchesFilter": "Nada en esta pestaña coincide con este filtro.",
   "jobs.foldTitle": "{action} los enlaces y controles de {name}",
   "jobs.stop": "Detener",

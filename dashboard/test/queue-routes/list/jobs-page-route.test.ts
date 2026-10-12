@@ -632,6 +632,40 @@ describe("the Jobs tab's view: its address, its cookie and its sentence for no r
     expect(listHead).toContain(t("en", "list.colSpec"));
   });
 
+  describe("a project key", () => {
+    const reportOther = job({ ...report, id: "reporto", project: "other", createdAt: "2026-10-08T10:02:00Z" });
+    const withOther = () => scheduled([job({ id: "run81" }), report, reportOther]);
+    const rowIds = (html: string): string[] => [...html.matchAll(/<tr class="spechead\b[^>]*?\bid="([^"]+)"/g)].map((m) => m[1]!);
+
+    test("the filter bar holds the state dropdown alone, whatever the address carries (AC-1)", async () => {
+      const { base } = withOther();
+      for (const query of ["", "project=other"]) {
+        const html = await rowsOf(base, query);
+        expect(html.match(/data-filter="/g)).toHaveLength(1);
+        expect(html).toContain('data-filter="state"');
+        expect(html).not.toContain('data-filter="project"');
+      }
+    });
+
+    test("an address that carries one shows the rows it shows without it (AC-3)", async () => {
+      const { base } = withOther();
+      const without = rowIds(await rowsOf(base, "state=all"));
+      expect(without).toContain("spec-other/schedule-report");
+      expect(rowIds(await rowsOf(base, "state=all&project=other"))).toEqual(without);
+    });
+
+    test("no link and no field the tab builds from its view carries one (AC-4)", async () => {
+      const { base } = withOther();
+      const html = await rowsOf(base, "state=all&project=aide&sort=cost&q=report");
+      const form = html.match(/<form class="specsearch"[\s\S]*?<\/form>/)?.[0] ?? "";
+      expect(form).toContain('name="sort"');
+      expect(form).not.toMatch(/name="project"/);
+      const hrefs = [...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1]!.replaceAll("&amp;", "&"));
+      expect(hrefs.filter((h) => h.startsWith("/?"))).not.toHaveLength(0);
+      expect(hrefs.filter((h) => new URL(h, "http://x").searchParams.has("project"))).toEqual([]);
+    });
+  });
+
   test("a bare /?rows=1 brings back the view the cookie remembers (AC-7)", async () => {
     const { base } = withBoth();
     const first = await fetch(`${base}/?q=report`);
