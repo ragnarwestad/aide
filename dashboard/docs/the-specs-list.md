@@ -342,6 +342,9 @@ in-flight-press spinner, a different fact with a different lifetime (see [what t
 `--accent` still, so a machine set to reduce motion still tells a running phase from a waiting one, just without the
 movement.
 
+A phase whose job the runner holds back has not started, so its pip reads as if no job were queued for it (grey for a
+phase that has not run, with no motion), and the row's badge says it is held back (`phasePipKind`).
+
 Filtering and sorting work on the spec's grouped jobs. "Active" means the spec has something in flight; sorting by
 cost sorts on the sum. A spec's phase lines are the four and nothing else: a step outside them (`reopen`, `close`,
 `explore`, `schedule`) draws no line, and the Logs tab on the spec page lists it. The spec's total time is

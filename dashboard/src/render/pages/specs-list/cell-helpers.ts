@@ -3,7 +3,7 @@
 // (the notice-line sentences an archived or live row's own fields can
 // carry).
 
-import { badge, pips, stepLabel } from "../../ui/components";
+import { badge, pips, stepLabel, type PipKind } from "../../ui/components";
 import { esc, relTimeLabel, usdOrTokens } from "../../ui/html.ts";
 import type { Language } from "../../../i18n";
 import {
@@ -202,32 +202,44 @@ export const costCell = (
  *  the set for any spec whose folder is on disk), so the phase LINE
  *  agrees now; the two states above are what is left. */
 export function phasePips(phases: Phase[], done: string[]): string {
-  const createRunning = phases.find((p) => p.step === "create")?.attempts.some(inFlight);
   return pips(
-    phases.map((p) => {
-      // One rule, one function: what the FILES say, qualified by the
-      // most relevant attempt (whatever is in flight, else the latest).
-      // The pips used to read the job history alone, so a spec analysed
-      // by hand showed four grey pips and a cancelled re-run turned a
-      // finished phase grey again.
-      const attempt = p.attempts.find(inFlight) ?? p.attempts[0];
-      return {
-        kind:
-          p.step === "create"
-            ? createRunning
-              ? "now"
-              : "past"
-            : wordPhase(done.includes(p.step), p.heldBack, attempt, { ...p.history, step: p.step }).pip,
-        title: stepLabel(p.step),
-        // How much of a running implement is behind it (spec 210). The
-        // fallback above is the latest attempt whatever became of it,
-        // so the "only while it runs" half of the rule is what keeps a
-        // stale phase from filling a pip for work that has stopped —
-        // and that half lives in `completedThirds`, once.
-        third: completedThirds(attempt),
-      };
-    }),
+    phases.map((p) => ({
+      kind: phasePipKind(p, done),
+      title: stepLabel(p.step),
+      // How much of a running implement is behind it (spec 210). The
+      // fallback above is the latest attempt whatever became of it,
+      // so the "only while it runs" half of the rule is what keeps a
+      // stale phase from filling a pip for work that has stopped —
+      // and that half lives in `completedThirds`, once.
+      third: completedThirds(pipAttempt(p)),
+    })),
   );
+}
+
+/** A job the runner is holding back: still queued, not started, and not
+ *  merging an earlier step either. */
+const waitsOnHold = (r: QueueRowView): boolean => r.state === "queued" && !r.landing && r.errorReason === "held-back";
+
+/** The attempt a phase's pip speaks for: one that is running or merging
+ *  first, even when a held-back job sits ahead of it, else whatever is in
+ *  flight, else the latest. */
+const pipAttempt = (p: Phase): QueueRowView | undefined =>
+  p.attempts.find((a) => inFlight(a) && !waitsOnHold(a)) ?? p.attempts.find(inFlight) ?? p.attempts[0];
+
+/** What one phase's pip is. A held-back job has not started, so the pip
+ *  reads as if it were not queued at all: what the files and the history
+ *  say about the phase, which is grey for a phase that has not run. The
+ *  motion is for a phase whose job is running right now. */
+export function phasePipKind(p: Phase, done: string[]): PipKind {
+  if (p.step === "create") return p.attempts.some(inFlight) ? "now" : "past";
+  // One rule, one function: what the FILES say, qualified by the
+  // most relevant attempt (whatever is in flight, else the latest).
+  // The pips used to read the job history alone, so a spec analysed
+  // by hand showed four grey pips and a cancelled re-run turned a
+  // finished phase grey again.
+  const attempt = pipAttempt(p);
+  const live = attempt && waitsOnHold(attempt) ? undefined : attempt;
+  return wordPhase(done.includes(p.step), p.heldBack, live, { ...p.history, step: p.step }).pip;
 }
 
 /** The Time column for a locked row: how long the work took, and never
