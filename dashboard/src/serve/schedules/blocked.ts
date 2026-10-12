@@ -65,7 +65,9 @@ export async function blockedDependencies(ctx: ScheduleContext): Promise<Depende
   // and the runner's own gate reads the checkout.
   const branchAnswers = (j: Job) =>
     ctx.readBranchFileSteps().peekFileSteps(ctx.readScan()?.dirs.get(key(j)) ?? "", j.specFolder).steps?.dependsOn !== undefined;
-  if (!waiting.some((j) => (named.get(key(j)) ?? []).length > 0 || branchAnswers(j))) return blocked;
+  // A spec the cached scan does not hold yet — one `create` landed a
+  // moment ago — has not said it names nothing: it is read off disk below.
+  if (!waiting.some((j) => !named.has(key(j)) || (named.get(key(j)) ?? []).length > 0 || branchAnswers(j))) return blocked;
 
   // Not `targets()`: that drops archived specs, and an archived
   // dependency is precisely the case that must resolve — to
