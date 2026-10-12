@@ -28,10 +28,10 @@ and which configuration files each tool reads.
 
 | Tool               | Version | Last verified | Status       |
 |--------------------|---------|---------------|--------------|
-| Claude Code        | 2.1.289 | 2026-10-05    | ✅ Supported |
-| GitHub Copilot CLI | 1.0.91  | 2026-10-05    | ✅ Supported |
-| Codex CLI          | 0.160.0 | 2026-10-05    | ✅ Supported |
-| OpenCode           | 1.18.34 | 2026-10-05    | ✅ Supported |
+| Claude Code        | 2.1.296 | 2026-10-12    | ✅ Supported |
+| GitHub Copilot CLI | 1.0.95  | 2026-10-12    | ✅ Supported |
+| Codex CLI          | 0.162.1 | 2026-10-12    | ✅ Supported |
+| OpenCode           | 1.19.0  | 2026-10-12    | ✅ Supported |
 
 **The Version and Last verified columns are stamped from probing — do not
 edit them by hand.** Run:
@@ -88,12 +88,12 @@ an allowlist test. See the frontmatter table in the ai-tools reference.
 
 ## Current models
 
-| Tool               | Default / recommended model                                                            |
-|--------------------|----------------------------------------------------------------------------------------|
-| Claude Code        | Claude Fable 5.1 (default Fable, v2.1.257); Opus 5 (v2.1.219) and Sonnet 5 (v2.1.197)  |
-| GitHub Copilot CLI | `auto` (chooses itself); Claude Fable 5.1, Sonnet 5, GPT-6 Astra and GPT-5.6 available |
-| OpenAI Codex CLI   | GPT-6 Astra (bundled default since 0.153.4)                                            |
-| OpenCode           | None of its own: every model is its provider's, named `provider/model`                 |
+| Tool               | Default / recommended model                                                                                                |
+|--------------------|----------------------------------------------------------------------------------------------------------------------------|
+| Claude Code        | Claude Fable 5.1 (default Fable, v2.1.257); Opus 5 (v2.1.219), Sonnet 5 (v2.1.197) and Haiku 5.5 (default Haiku, v2.1.293) |
+| GitHub Copilot CLI | `auto` (chooses itself); Claude Fable 5.1, Sonnet 5, Haiku 5.5, GPT-6 Astra and GPT-5.6 available                          |
+| OpenAI Codex CLI   | GPT-6 Astra (bundled default since 0.153.4)                                                                                |
+| OpenCode           | None of its own: every model is its provider's, named `provider/model`                                                     |
 
 Release dates and history are in the [news log](./AI_NEWS_LOG.md).
 

@@ -6,6 +6,7 @@
   - [Sources](#sources)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-10-12](#2026-10-12)
   - [2026-10-05](#2026-10-05)
   - [2026-10-04](#2026-10-04)
   - [2026-09-30](#2026-09-30)
@@ -72,6 +73,53 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-10-12
+
+Oct 5 – Oct 12. Claude Haiku 5.5 arrived (default Haiku in Claude Code v2.1.293, selectable in Copilot CLI v1.0.94).
+Not read in full: Copilot CLI v1.0.92–1.0.93 (Oct 4–7), the last third of the Codex changelog.
+
+**Claude Code (Oct 5 – Oct 9, v2.1.290 → v2.1.296):**
+
+| Date  | Version      | News                                                                                                                        | Source                                                         |
+|-------|--------------|-----------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
+| Oct 5 | v2.1.290     | `agentId` on `tool.check`; `claude attach`/`claude logs`; symlinked CLAUDE.md/rules fix                                     | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Oct 6 | v2.1.291–292 | Regression fixes; `claude plugin install --marketplace`; `effort` on Agent tool; MCP tool names over 128 characters dropped | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Oct 7 | v2.1.293     | Haiku 5.5 default Haiku; path-scoped rules load via Bash `cat`/`sed -n`/`grep`                                              | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Oct 8 | v2.1.294–295 | Instruction-style `prompt`/`agent` hooks fixed; `onFailure: "block"` for hooks; remote MCP backoff                          | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Oct 9 | v2.1.296     | `autoCompactWindow` in subagent frontmatter; MCP description limit 2,048 → 4,096 characters; Read `allow_large`             | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Oct 7 | —            | Claude Haiku 5.5: 1M context, $0.10/$0.50 per Mtok                                                                          | [News](https://www.anthropic.com/news)                         |
+
+**GitHub Copilot CLI (Oct 7 – Oct 10, v1.0.94 → v1.0.96 pre):**
+
+| Date     | Version            | News                                                                                   | Source                                                     |
+|----------|--------------------|----------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Oct 8    | v1.0.94            | Claude Haiku 5.5 in model selection; MCP enable/disable before discovery               | [Releases](https://github.com/github/copilot-cli/releases) |
+| Oct 9    | v1.0.95            | Entra broker auth on macOS; sandbox `injectHosts`; managed plugin setup retries hourly | [Releases](https://github.com/github/copilot-cli/releases) |
+| Oct 9–10 | v1.0.96-0…-2 (pre) | `/add-dir` grants sandbox access; sandbox secret masking hosts                         | [Releases](https://github.com/github/copilot-cli/releases) |
+| Oct 7    | —                  | Local sandboxing generally available; local models in Copilot CLI                      | [Changelog](https://github.blog/changelog/label/copilot/)  |
+
+**OpenAI Codex CLI (Oct 8 – Oct 9, v0.162.0 → v0.162.1):**
+
+| Date  | Version  | News                                                                                                                   | Source                                                |
+|-------|----------|------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------|
+| Oct 8 | v0.162.0 | Managed Git worktree tools; custom-provider web access and remote compaction settings; ranked tool search in Code Mode | [Releases](https://github.com/openai/codex/releases)  |
+| Oct 9 | v0.162.1 | TUI crash and startup failure fixes                                                                                    | [Releases](https://github.com/openai/codex/releases)  |
+| Oct 8 | —        | GPT-6.1 Sol Ultrafast in Codex                                                                                         | [Changelog](https://learn.chatgpt.com/docs/changelog) |
+
+**OpenCode (Oct 6 – Oct 11, v1.18.35 → v1.19.0):**
+
+| Date   | Version  | News                                                                                                     | Source                                                     |
+|--------|----------|----------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Oct 6  | v1.18.35 | Agent-readable stats formats; xAI image tool results                                                     | [Releases](https://github.com/anomalyco/opencode/releases) |
+| Oct 11 | v1.19.0  | `opencode upgrade --major` to OpenCode 2; OpenAI ultrafast tier; updates no longer automatic (`/update`) | [Releases](https://github.com/anomalyco/opencode/releases) |
+
+**Relevance for Aide:**
+
+- ⭐ Haiku 5.5 in Claude Code and Copilot CLI: add to the Current models table.
+- ✅ Path-scoped rules via Bash reads, hook `onFailure`, subagent `autoCompactWindow`: no action.
+- ⚠️ MCP description limit 4,096; MCP tool names over 128 characters dropped: no Aide MCP server affected.
+- ℹ Copilot sandboxing GA, Codex worktree tools, OpenCode 2 upgrade path.
 
 ### 2026-10-05
 
