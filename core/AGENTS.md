@@ -514,7 +514,8 @@ commit or push anything in the specs repo on your own initiative.
    and `## Out of scope` when there is one), ACer (the `- **AC-n:**`
    lines, each one sentence in one of the five EARS patterns the
    spec-structure rule lists), and Avhengigheter (Depends on). A part with nothing in it is still handed
-   over, saying plainly that its field is left empty. Avhengigheter names
+   over as the label followed by "ingen" (`**Avhengigheter:** ingen`),
+   with no reason given. Avhengigheter names
    only a spec with a queued, running or landing job, never one that is
    archived or closed: check the board in the same reply.
 3. **Each part in a fenced code block** (```` ```markdown ````), one
@@ -522,7 +523,7 @@ commit or push anything in the specs repo on your own initiative.
    terminal renders markdown, and what the user copies is what it
    shows: `## Out of scope` arrives as a plain line, and backticks and
    `**` vanish. A code block is shown and copied exactly as written. An
-   empty part says so in plain text under its label, with no block.
+   empty part has no block.
 4. **A label above each part**, as plain bold text outside the block:
    `**Prosjekt:**`, `**Tittel:**`, `**Beskrivelse:**`, `**ACer:**`,
    `**Avhengigheter:**`, with a blank line between the parts. The blocks
