@@ -50,7 +50,7 @@ repository shows, not a census of every caller.
 **How an action answers.** Almost every `POST` reads its body as JSON or as a form
 (`application/x-www-form-urlencoded`), up to 4,096 bytes (65,536 for `tick`, `save` and `tracking`), and answers JSON,
 whatever `Accept` says: `{ ok: true, … }`, or `{ error }` with 400 (409 for a refused tick or cancel, and for a save or
-tracking refused while another job for the spec runs; 404 for an unknown job). The page script reads that answer and
+tracking refused while a job of the spec is queued or running; 404 for an unknown job). The page script reads that answer and
 writes a refusal into the page; no answer carries a message in an address. A body over the cap gets 413
 `{ error: "payload too large" }`, whatever the route. The wrong method on a known path gets 405
 `method not allowed` — except the two redirects `/queue` and `/queue/<rest>`, which answer
@@ -146,7 +146,7 @@ Answered by the files under `src/serve/routes/spec-edit/`.
 |-----------------------------------------------------------|--------|------------------------------------------------------------------------|-------------------------------------------------|-----------|
 | `POST /api/queue/specs/<project>/<spec>/tick`             | action | the rows to tick, unverify or fail, and the phase; up to 65,536 bytes  | `{ ok, note, changed }`; 409 for a refused tick | form      |
 | `POST /api/queue/specs/<project>/<spec>/approach`         | action | the approach chosen, by its letter                                     | `{ ok, note, changed }`; 409 `{ error, spec }`  | form      |
-| `POST /api/queue/specs/<project>/<spec>/tracking`         | action | the tracking fields, and optionally a sha to check they have not moved | `{ ok, note, changed }`; 400 `{ error }`        | form      |
+| `POST /api/queue/specs/<project>/<spec>/tracking`         | action | the tracking fields, and optionally a sha to check they have not moved | `{ ok, note, changed }`; 400 `{ error, spec }`  | form      |
 | `POST /api/queue/specs/<project>/<spec>/update`           | action | nothing; pulls the spec's repository from its remote                   | `{ ok, note, changed }`; 400 `{ error }`        | form      |
 | `POST /api/queue/specs/<project>/<spec>/save`             | action | which of the four files, its text, and the sha it was read at          | `{ ok, note, changed }`; 400 `{ error }`        | form      |
 | `POST /api/queue/specs/<project>/<spec>/model`            | action | step and model                                                         | `{ ok }`; 400 `{ error, spec }`                 | form      |

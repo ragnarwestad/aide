@@ -15,6 +15,7 @@ import { chosenSteps, runFormId, specBusy } from "./row-state.ts";
 import { stateAction } from "./row-controls.ts";
 import { NO_PULL_REQUEST, prErrorOf, prErrorSentence } from "./row-shared.ts";
 import { phaseHasRun, phaseMessagesFold, phaseMessagesRow } from "./phase-messages";
+import { dependsOnLine } from "./depends-on";
 
 /** The archive gates' own refusals: nothing was tried, so nothing is
  *  counted as an attempt. Hand-paired with run-spec/record/outcome.sh. */
@@ -336,7 +337,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
   // so a later job for this spec reads that record instead of asking
   // again from a checkbox unchecked by default on every render.
   //
-  return lines.map((l) => `${l.tag}${l.cells}</tr>`).join("") + closeOrReopenLine(g, opts, now);
+  return lines.map((l) => `${l.tag}${l.cells}</tr>`).join("") + dependsOnLine(g, opts) + closeOrReopenLine(g, opts, now);
 }
 
 /** A Close or Reopen the spec's lead job is working on, or ended on without

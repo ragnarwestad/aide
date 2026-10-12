@@ -41,6 +41,7 @@ import {
 import { bindDeployForms } from "./deploy";
 import { startOriginCheck } from "./deploy/origin-check.ts";
 import { onApproachCancel, pickApproach } from "./approach-choice";
+import { onDependsOnCancel, pickDependency } from "./depends-on";
 import { formatElapsed } from "./elapsed.ts";
 import { bindLimits } from "./limits";
 import { connect, onVisibility } from "./live.ts";
@@ -113,6 +114,7 @@ settingsForm?.addEventListener("submit", (async (event: Event) => {
 document.getElementById("jobrows")?.addEventListener("click", ((event: MouseEvent) => {
   navigate(event);
   onApproachCancel(event);
+  onDependsOnCancel(event);
 }) as EventListener);
 document.getElementById("jobrows")?.addEventListener("submit", submitAction as EventListener);
 // And the row's selects and boxes, for the same reason: the rows are
@@ -130,6 +132,9 @@ document.getElementById("jobrows")?.addEventListener("change", ((event: Event) =
   // next redraw like a ticked box.
   const approach = target?.closest?.('input[name="approach"]') as HTMLInputElement | null;
   if (approach?.name === "approach") return pickApproach(approach);
+  // A dependency ticked in a row's Depends on picker, remembered the same way.
+  const dependency = target?.closest?.("form.dependsform input[name=dependsOn]") as HTMLInputElement | null;
+  if (dependency?.name === "dependsOn") return pickDependency(dependency);
   // A tail box's tick is a press, not something to remember for the
   // next redraw (spec 160): it goes to the server now, and what comes
   // back is what the row is drawn from. The promise is returned rather

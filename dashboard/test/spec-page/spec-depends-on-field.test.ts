@@ -59,7 +59,8 @@ describe("the Depends on field", () => {
     [...html.matchAll(/<input [^>]*name="dependsOn"[^>]*>/g)].map((m) => m[0]).filter((tag) => /value="[^"]+"/.test(tag));
   const chipFor = (html: string, folder: string) => chips(html).find((tag) => tag.includes(`value="${folder}"`));
   const ticked = (html: string, folder: string) => chipFor(html, folder)?.includes(" checked") ?? false;
-  const pageOf = async (base: string) => (await fetch(`${base}${PAGE}`)).text();
+  /** The Running tab's rows, this spec's own row open. */
+  const openRowOf = async (base: string) => (await fetch(`${base}/?rows=1&open=aide/${SPEC}`)).text();
   /** The Specs list's rows, and this spec's own line among them. */
   const rowOf = async (base: string) => {
     const html = await (await fetch(`${base}/?rows=1`)).text();
@@ -70,51 +71,14 @@ describe("the Depends on field", () => {
   // `resolve_dependency_folder` has always taken a bare number — so the
   // box that gets ticked is the one the RUNNER would resolve the line
   // to, not the one whose folder happens to match the text.
-  test("a dependency written as a bare number ticks the spec it resolves to (AC-1)", async () => {
+  test("the Running tab's open row ticks the spec a bare number resolves to (AC-1)", async () => {
     const { base } = startTracked(savable("/host"), TRACKED(DEPENDS("99")));
-    expect(ticked(await pageOf(base), OTHER)).toBe(true);
+    expect(ticked(await openRowOf(base), OTHER)).toBe(true);
   });
 
-  test("the picker offers the project's active specs, not the spec itself and not an archived one (AC-2)", async () => {
-    const THIRD = "88-a-third-spec";
-    const { base } = harness.start({
-      description: TRACKED(),
-      alsoSpecs: [OTHER, THIRD],
-      archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT } },
-      extra: { gitRun: savable("/host") },
-    });
-    const html = await pageOf(base);
-    expect(chips(html).map((tag) => tag.match(/value="([^"]+)"/)![1])).toEqual([OTHER, THIRD].sort().reverse());
-    expect(chipFor(html, SPEC)).toBeUndefined();
-    expect(chipFor(html, ARCHIVED)).toBeUndefined();
-  });
-
-  test("a dependency since archived is drawn ticked, and so is one since closed (AC-4)", async () => {
-    const CLOSED = "140-a-closed-one";
-    const { base } = harness.start({
-      description: TRACKED(`${DEPENDS(ARCHIVED)}, \`${CLOSED}\``),
-      alsoSpecs: [OTHER],
-      archivedSpecs: {
-        [ARCHIVED]: { description: ARCHIVED_TEXT },
-        [CLOSED]: { description: "# Closed - Description\n", status: "**Closed:** 2026-10-01 — did not hold\n" },
-      },
-      extra: { gitRun: savable("/host") },
-    });
-    const html = await pageOf(base);
-    expect(ticked(html, ARCHIVED)).toBe(true);
-    expect(ticked(html, CLOSED)).toBe(true);
-    expect(ticked(html, OTHER)).toBe(false);
-  });
-
-  test("an archived spec's own page draws no Depends on field (AC-5)", async () => {
-    const { base } = harness.start({
-      description: TRACKED(),
-      alsoSpecs: [OTHER],
-      archivedSpecs: { [ARCHIVED]: { description: `${TRACKED(DEPENDS(OTHER))}` } },
-      extra: { gitRun: savable("/host") },
-    });
-    const html = await (await fetch(`${base}/specs/aide/${ARCHIVED}`)).text();
-    expect(html).not.toContain('name="dependsOn"');
+  test("the spec's own page draws no Depends on field (AC-5)", async () => {
+    const { base } = startTracked(savable("/host"), TRACKED(DEPENDS(OTHER)));
+    expect(await (await fetch(`${base}${PAGE}`)).text()).not.toContain('name="dependsOn"');
   });
 
   // --- criteria 3, 4, 7: what a save writes ---------------------------------
@@ -257,6 +221,12 @@ describe("the Depends on field", () => {
     expect(status).toBe(400);
     expect(body.error).toContain("77-no-such-spec");
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(DEPENDS(OTHER)));
+  });
+
+  test("a refused save names the spec, so the Running tab writes the refusal under its row (AC-3)", async () => {
+    const { base } = startTracked(savable("/host"), TRACKED(DEPENDS(OTHER)));
+    const { body } = await answer(await track(base, { dependsOn: "77-no-such-spec", baseSha: FILE_SHA }));
+    expect(body.spec).toBe(`aide/${SPEC}`);
   });
 
   test("a spec cannot depend on itself, by folder or by number", async () => {

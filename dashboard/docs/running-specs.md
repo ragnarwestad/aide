@@ -623,8 +623,8 @@ job of a spec in a project off the allowlist, of a spec whose folder is gone, or
 Reopen in flight) has no row either; its job page `/jobs/<id>` still shows it with its Stop.
 
 A spec's row is the Specs list's row, drawn by the same builder from the same options: the same columns and buttons
-shut. Opened here it unfolds to the phase lines, steps, logs and acceptance criteria, where the Specs list's open row
-shows the spec instead. A spec's title leads to the spec's
+shut. Opened here it unfolds to the phase lines, the Depends on picker, steps, logs and acceptance criteria, where the
+Specs list's open row shows the spec instead. A spec's title leads to the spec's
 own address with its row's anchor (`/specs/<project>/<spec>#spec-<project>/<spec>`): the Specs list with that row open
 and scrolled to it. On the Specs list the title is text, and the project before it is the link. The folds lead to `/`,
 not `/specs`. A press on it is the press the Specs list makes.

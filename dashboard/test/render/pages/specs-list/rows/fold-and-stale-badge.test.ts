@@ -223,6 +223,19 @@ describe("an open row on the Specs list is the spec alone (AC-1, AC-2, AC-3)", (
     expect(draw({ openSpec: { key, detail: () => "<p>THE-SPEC</p>" } })).not.toContain("/approach");
   });
 
+  test("the Depends on picker is on the Running tab's open row, not on a shut row or the Specs list's open row (AC-1, AC-5)", () => {
+    const withSiblings: SpecTarget[] = [
+      { project: "aide", specFolder: "81-queue-x", dependsOn: ["82-queue-y"] },
+      { project: "aide", specFolder: "82-queue-y" },
+    ];
+    const draw = (extra: Partial<SpecsPageOptions>): string =>
+      renderSpecsRows([], { runnerAvailable: true, targets: withSiblings, ...extra }, NOW);
+    const key = "aide/81-queue-x";
+    expect(draw({})).not.toContain("dependsform");
+    expect(draw({ filter: { open: key } })).toContain("dependsform");
+    expect(draw({ openSpec: { key, detail: () => "<p>THE-SPEC</p>" } })).not.toContain("dependsform");
+  });
+
   test("drawn the Running tab's way, an open row has its caption line and its phase lines (AC-3)", () => {
     for (const key of specs) {
       const html = onJobsTab(key);

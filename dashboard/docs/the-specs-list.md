@@ -117,6 +117,18 @@ button at all: cancelling it would throw away the title and the description with
 
 A reader who wants to stop between steps runs one phase at a time.
 
+**The Depends on picker is the last line of the open row**, after the phase lines, for every spec that is neither
+archived nor closed and whose folder exists. It offers the specs the New spec form offers for the project, less the spec
+itself, with the ones the spec depends on ticked; a dependency since archived or closed is no longer offered but stays
+ticked until it is removed. The scan resolves each entry of the `Depends on:` line to its folder, so a bare number ticks
+the spec it names. Save posts the picker to `POST /api/queue/specs/<project>/<spec>/tracking` and the rows are redrawn
+in place; Cancel puts back what the server drew. A tick not yet saved outlives a redraw, each row's picker apart from
+the others. While a job of the spec is queued or running the boxes show the ticks and cannot be changed, since the route
+refuses a save then. A spec alone in its project that depends on nothing has nothing to offer or show, so it gets no
+picker. On a spec with an open `aide/<folder>` branch the picker and the row's own line show the branch's `Depends on:`
+line, since a save is written there; archive stays held on what the checkout names too, because the runner's own check
+reads the checkout.
+
 **A phase the running job has already passed is disabled; one still ahead of it is not.** The queue would refuse a
 duplicate of a phase the job already holds, so its box is shut. The phases in the job's tail are a different
 question, and their boxes stay live: each posts itself to `POST /api/queue/<id>/steps` as it is ticked, with no
@@ -438,14 +450,9 @@ criteria checks" and "Let me choose the approach" — are editable in a form of 
 which create has already used, is locked with no field name. Once analyze has run, or on an archived spec, all four
 are locked.
 
-The same form holds the Depends on picker, for every spec that is neither archived nor closed, before analyze and after
-it: the specs the New spec form offers for the project, less the spec itself, with the ones the spec depends on
-ticked. A dependency since archived or closed is no longer offered but stays ticked until it is removed. Once analyze
-has run the form posts the picker alone. A spec alone in its project that depends on nothing has nothing to offer or
-show, so it gets no picker, and no form once analyze has run. On a spec with an open `aide/<folder>` branch, the
-picker and the row's own line show the branch's `Depends on:` line, since a save is written there; archive stays held
-on what the checkout names too, because the runner's own check reads the checkout. The banner holds the rest of what
-belongs to the spec rather than to one document: whether it is closed, the test server's state and any error.
+The form is drawn only until analyze has run; after that the settings are shown locked, with no form. A spec's Depends
+on is changed from its open row on the Running tab, not here (see [The row's controls](#the-rows-controls)). The banner
+holds the rest of what belongs to the spec rather than to one document: whether it is closed, the test server's state and any error.
 A spec created before a choice was recorded shows what a spec with nothing recorded runs with: AI formulated, checks
 Off, the approach not chosen, ticking required. `createChoicesIn` reads the four off the description's Tracking info;
 `aide-run-spec` writes the `Let AI formulate acceptance criteria:` line when a create completes.
@@ -527,8 +534,9 @@ one is open, and to the specs repo's default branch where none is — the same b
 `POST /api/queue/specs/<project>/<spec>/tracking` is the banner's own route: whether the spec requires acceptance
 ticking, merged into `1-description.md`'s Tracking info in one commit, refused once `analyze` has already decided the
 question. A request that names `dependsOn` writes the Depends on line in the same commit, and an empty entry
-(`dependsOn=`) beside the boxes is how a picker with every box cleared removes it; one that names no `dependsOn` at
-all leaves the line as it is. The Description tab's `/save` keeps the line too: the tab shows the description without
+(`dependsOn=`) beside the boxes is how the Running tab's picker with every box cleared removes it; one that names no
+`dependsOn` at all, as the banner's form does not, leaves the line as it is. A refusal answers `{ error, spec }`, so the
+Running tab writes it under the row the save was pressed on. The Description tab's `/save` keeps the line too: the tab shows the description without
 it, and the save puts back the one in the copy it overwrites.
 
 `POST /api/queue/specs/<project>/<spec>/tick` is the same for the checks form: `4-status.md` alone, its own

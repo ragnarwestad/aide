@@ -105,6 +105,13 @@ export function dependsOnField(
   // label rather than under a list tall enough to push them off screen.
   o: {
     wide?: boolean; locked?: string[]; project?: string; actions?: string;
+    /** The id of the form the boxes post with, for a picker drawn on a
+     *  row of a list rather than inside the form itself. */
+    form?: string;
+    /** Every box shown as it stands and not to be changed. Drawn
+     *  `plain`, so a ticked box stays visible instead of taking the
+     *  padlock look, which hides it. */
+    disabled?: boolean;
     /** New-spec page only (spec 474): draw the picked box and the pick
      *  list as two same-styled fields side by side, each with its own
      *  label, no outer title and no "none" placeholder. */
@@ -125,6 +132,9 @@ export function dependsOnField(
       label: t.specFolder,
       name: "dependsOn",
       checked: checked.has(t.specFolder),
+      form: o.form,
+      disabled: o.disabled,
+      plain: o.disabled,
     }) +
     `</span>`;
   // Spec 404: what is already ticked sits above the scrolling list
@@ -143,6 +153,9 @@ export function dependsOnField(
       label: folder,
       name: "dependsOn",
       checked: true,
+      form: o.form,
+      disabled: o.disabled,
+      plain: o.disabled,
       title: "archived — it can be dropped here, but not added back",
     }) +
     `</span>`;

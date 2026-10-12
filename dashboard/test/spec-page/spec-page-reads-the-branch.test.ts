@@ -46,7 +46,6 @@ const inputTag = (html: string, name: string, value?: string) =>
     (tag) => tag.includes(`name="${name}"`) && (value === undefined || tag.includes(`value="${value}"`)),
   );
 const acceptanceRequiredShown = (html: string) => inputTag(html, "acceptanceRequired")!.includes(" checked");
-const dependencyShown = (html: string, folder: string) => inputTag(html, "dependsOn", folder)?.includes(" checked") ?? false;
 
 const failed = async (res: Response) => {
   const { status, body } = await answer(res);
@@ -119,19 +118,6 @@ describe("a spec with a branch of its own", () => {
 
     expect(await failed(again)).toBe(false);
     expect(onOrigin(fx, fx.branch, SPEC, "1-description.md")).toContain("- **Acceptance:** not required");
-  });
-
-  test("the banner shows the dependencies the branch has, and none when the branch has dropped the line (AC-1)", async () => {
-    const onMain = tracked("As it was on main.", `- **Depends on:** \`${OTHER}\`\n`);
-    const { base } = withBranch(tracked("As the branch has it."), onMain);
-
-    expect(dependencyShown(await draw(base, ANALYSIS_TAB), OTHER)).toBe(false);
-  });
-
-  test("the banner ticks the dependency the branch has, though main's copy names none (AC-1)", async () => {
-    const { base } = withBranch(tracked("As the branch has it.", `- **Depends on:** \`${OTHER}\`\n`));
-
-    expect(dependencyShown(await draw(base, ANALYSIS_TAB), OTHER)).toBe(true);
   });
 
   test("a Depends on saved onto the branch is named on the row's own line at once (AC-3)", async () => {

@@ -35,7 +35,10 @@ export async function trackingRoutes(
   const found = ctx.specDir(project!, specFolder!);
   if (!found) return new Response("not found", { status: 404 });
   const dir = await ctx.machinerySpecDir(project!, found);
-  const refuse = (error: string): Response => json({ error }, 400);
+  // The spec named in a refusal, as `/approach` and `/model` name it, so
+  // the Running tab writes it under the row it was pressed on.
+  const spec = `${project}/${specFolder}`;
+  const refuse = (error: string): Response => json({ error, spec }, 400);
 
   // Before the body is even read: this one WRITES, commits and pushes,
   // and an archived spec's folder is in `archive/` — the same refusal
@@ -55,7 +58,7 @@ export async function trackingRoutes(
   if (activeJob) {
     const reason = "another job for this spec is still running — nothing was saved";
     logRefusal("tracking", `${project}/${specFolder}`, reason);
-    return json({ error: reason }, 409);
+    return json({ error: reason, spec }, 409);
   }
 
   const sent = await readBounded(req, MAX_SAVE_BODY);

@@ -19,17 +19,17 @@
 // Overview: for a spec of any size that was thousands of lines of
 // preformatted text before the reader reached whatever they came for.
 // The Status tab draws the acceptance criteria as real boxes with a
-// Save of their own, above its file. Update, the title, whether the spec is archived,
-// what it depends on and whether it requires acceptance ticking (spec
-// 394) are the banner's, visible on every tab rather than one.
+// Save of their own, above its file. Update, the title, whether the spec is archived
+// and whether it requires acceptance ticking (spec 394) are the banner's,
+// visible on every tab rather than one.
 //
 // The reload went with that split. This page refreshed itself every ten
 // seconds on every tab, which is why editing the description lived on a
 // page of its own: a timer wipes a half-typed textarea and a half-ticked
 // list. No tab reloads now. The Steps tab, which moves while a step runs
 // and holds no form, follows its job in place through the page script
-// (`renderSpecStepsFollowParts`). Every banner fact — what the spec depends
-// on, whether it requires acceptance ticking, whether it is archived — is
+// (`renderSpecStepsFollowParts`). Every banner fact — whether it requires
+// acceptance ticking, whether it is archived — is
 // only as fresh as the last time the page was asked for, with the Update
 // button beside it.
 //
@@ -41,7 +41,7 @@
 // Split by theme into spec-page/ (split spec-page.ts by theme):
 // types.ts (the view types), tabs.ts (paths, tabs, file/phase maps),
 // overview.ts (the banner's own facts — archived read-only, the
-// depends-on/acceptance tracking control editable — the checklist,
+// settings tracking control editable — the checklist,
 // Reopen), panels.ts (the document tabs) and ask-dialog.ts (the
 // dialog Close and Reopen ask in). `renderSpecDetail` — the one function
 // that assembles all of them, into the open row of the Specs list — stays
@@ -202,8 +202,8 @@ export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}):
     actions,
   );
 
-  // The spec's content is FIELDS — the depends-on picker, the acceptance
-  // switch, the description editor — and they cap themselves narrower than
+  // The spec's content is FIELDS — the acceptance switch, the settings,
+  // the description editor — and they cap themselves narrower than
   // `.doc`'s default, so the wrapper takes theirs: one right edge.
   return (
     `<div class="doc formdoc">` +

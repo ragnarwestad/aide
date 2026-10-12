@@ -7,6 +7,7 @@ import { applyRefusal } from "./row-refusal";
 import { offerEachToItsTool, syncAiToModel } from "./ai-sync.ts";
 import { AWAITING, chosen, chosenSteps, checkboxKey, press, selectKey } from "./state.ts";
 import { syncApproachCancels } from "./approach-choice";
+import { syncDependsOnForms } from "./depends-on";
 import { openTestFiles, reopenTestFiles } from "./test-files";
 import { holdSpecDetail } from "./spec-detail";
 
@@ -105,7 +106,7 @@ export function restoreChosen(body: Element): void {
     // every time, which is what stops the two disagreeing (spec 179).
     syncAiToModel(model);
   }
-  for (const el of body.querySelectorAll('input[name="steps"], input[name="tick"], input[name="unverified"], input[name="failed"], input[name="approach"]')) {
+  for (const el of body.querySelectorAll('input[name="steps"], input[name="tick"], input[name="unverified"], input[name="failed"], input[name="approach"], input[name=dependsOn][form]')) {
     const box = el as HTMLInputElement;
     const want = chosenSteps.get(checkboxKey(box));
     if (want === undefined) continue;
@@ -115,6 +116,7 @@ export function restoreChosen(body: Element): void {
   // Cancel off the approach picked.
   relabelAll(body);
   syncApproachCancels(body);
+  syncDependsOnForms(body);
 }
 
 // --- spec 204: a redraw never takes a press with it ------------------------

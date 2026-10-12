@@ -97,6 +97,13 @@ describe("the row's own Depends on line", () => {
     const { root } = projectsRoot([OLD_DEPENDENCY]);
     expect(dependsOnOf(root, undefined)).toEqual([OLD_DEPENDENCY]);
   });
+
+  // The Running tab's picker ticks by folder, and a hand-written line is
+  // often a bare number.
+  test("names a bare number by the folder it resolves to, and keeps an entry nothing matches as written (AC-1)", () => {
+    const { root } = projectsRoot(["99", "77"]);
+    expect(dependsOnOf(root, undefined)).toEqual([NEW_DEPENDENCY, "77"]);
+  });
 });
 
 describe("the queue's dependency hold", () => {
