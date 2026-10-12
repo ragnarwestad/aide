@@ -19,7 +19,7 @@ import type { BranchFileStepsChecker } from "../git/workflow-history.ts";
 import { specBranch } from "../git/branch-status.ts";
 import { dashboardSpecDir, type DashboardCheckout } from "../git/dashboard-checkout.ts";
 import {
-  discoverProjects, manifestInside, type CodeLanding, type SpecRef,
+  discoverProjects, manifestInside, specDependsOn, type CodeLanding, type SpecRef,
 } from "../project/discover";
 import {
   acceptanceRowsOf, acceptanceStillOpen, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, archiveHeldBackReason, failedCount, notVerifiedCount, parseStatus, reopenedRound,
@@ -28,6 +28,7 @@ import { currentPhase, readSpecState } from "../project/parse-spec-state.ts";
 import { specPendingChoice } from "../project/approach-choice.ts";
 import type { PullRequestAnswer } from "../integrations/pull-requests.ts";
 import type { SpecTarget } from "../render";
+import { resolveDependencyFolder } from "./serve-helpers";
 
 /** What `targets()` caches for five seconds and every other lookup in
  *  this file reads a slice of. */
@@ -173,7 +174,9 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
           // What its own 1-description.md says it builds on (spec 92),
           // shown on its row in the same words the run's dependency
           // refusal uses.
-          dependsOn: s.dependsOn,
+          // The branch's line first, as the rows above: a save of it is
+          // written onto the open branch, not the checkout.
+          dependsOn: branchAnswer?.dependsOn ?? s.dependsOn,
           phase: (state ? currentPhase(state) : null) ?? undefined,
           // The FILES, and nothing else (spec 108). It used to be
           // unioned with the queue's own record of what it ran, so
@@ -375,6 +378,25 @@ export function specDir(ctx: SpecLookupContext, project: string, specFolder: str
 export function specRef(ctx: SpecLookupContext, project: string, specFolder: string): SpecRef | undefined {
   ctx.targets();
   return ctx.readScan()?.refs.get(`${project}/${specFolder}`);
+}
+
+/** What a spec's `Depends on:` line resolves to, folder by folder — the
+ *  boxes the open row's picker ticks. Through `resolveDependencyFolder`, as
+ *  the save and the runtime gate do: a hand-written line is often a bare
+ *  number. An archived or closed dependency counts, since the spec still
+ *  depends on it; an identifier nothing matches ticks nothing.
+ *  `idsRead` is the line as the caller already read it, when the
+ *  description is not the one on disk in `dir`. */
+export function dependencyFolders(ctx: SpecLookupContext, project: string, dir: string, idsRead?: string[]): string[] {
+  // `??`, never `||`: a description whose line names nothing is a real answer.
+  const ids = idsRead ?? specDependsOn(dir);
+  if (ids.length === 0 || !ctx.projectRoot) return [];
+  const discovered = discoverProjects(ctx.projectRoot, undefined, manifestInside(ctx.machineryProjectDir)).find((p) => p.name === project);
+  if (!discovered) return [];
+  return ids.flatMap((id) => {
+    const dep = resolveDependencyFolder(discovered, id);
+    return dep ? [dep.folder] : [];
+  });
 }
 
 /** The checkout a spec folder sits in — the lock key for everything

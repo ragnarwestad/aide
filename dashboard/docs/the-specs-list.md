@@ -436,9 +436,16 @@ spec or once it is archived. Of the four settings, the three analyze reads — A
 criteria checks" and "Let me choose the approach" — are editable in a form of their own
 (`POST /api/queue/specs/<project>/<spec>/tracking`) until analyze has run; "Let AI formulate acceptance criteria",
 which create has already used, is locked with no field name. Once analyze has run, or on an archived spec, all four
-are locked and there is no form. What the spec depends on is not shown here: the row's own line under the title names it, by
-number. The banner holds the rest of what belongs to the spec rather than to one document: whether it is closed, the
-test server's state and any error.
+are locked.
+
+The same form holds the Depends on picker, for every spec that is neither archived nor closed, before analyze and after
+it: the specs the New spec form offers for the project, less the spec itself, with the ones the spec depends on
+ticked. A dependency since archived or closed is no longer offered but stays ticked until it is removed. Once analyze
+has run the form posts the picker alone. A spec alone in its project that depends on nothing has nothing to offer or
+show, so it gets no picker, and no form once analyze has run. On a spec with an open `aide/<folder>` branch, the
+picker and the row's own line show the branch's `Depends on:` line, since a save is written there; archive stays held
+on what the checkout names too, because the runner's own check reads the checkout. The banner holds the rest of what
+belongs to the spec rather than to one document: whether it is closed, the test server's state and any error.
 A spec created before a choice was recorded shows what a spec with nothing recorded runs with: AI formulated, checks
 Off, the approach not chosen, ticking required. `createChoicesIn` reads the four off the description's Tracking info;
 `aide-run-spec` writes the `Let AI formulate acceptance criteria:` line when a create completes.
@@ -519,8 +526,10 @@ one is open, and to the specs repo's default branch where none is — the same b
 
 `POST /api/queue/specs/<project>/<spec>/tracking` is the banner's own route: whether the spec requires acceptance
 ticking, merged into `1-description.md`'s Tracking info in one commit, refused once `analyze` has already decided the
-question. A request that names `dependsOn` writes the Depends on line in the same commit; one that does not leaves the
-line as it is.
+question. A request that names `dependsOn` writes the Depends on line in the same commit, and an empty entry
+(`dependsOn=`) beside the boxes is how a picker with every box cleared removes it; one that names no `dependsOn` at
+all leaves the line as it is. The Description tab's `/save` keeps the line too: the tab shows the description without
+it, and the save puts back the one in the copy it overwrites.
 
 `POST /api/queue/specs/<project>/<spec>/tick` is the same for the checks form: `4-status.md` alone, its own
 commit, the Status tab loaded again. It is a route of its own so that ticking a box does not mean opening the description's editor. A

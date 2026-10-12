@@ -8,6 +8,7 @@ import type { GitRunner } from "./branch-status.ts";
 import { readStatusFromBranch, type OpenBranchTarget } from "./branch-file.ts";
 import { acceptanceCriteriaUnticked, acceptanceRowsOf, parseStatus, type StatusCheck } from "../project/parse-status";
 import { parseSpecStateText } from "../project/parse-spec-state.ts";
+import { dependsOnIn } from "../project/discover/depends-on.ts";
 import { parseApproaches, type ApproachChoice } from "../project/approach-choice.ts";
 
 /** How long one answer stands, for this checker and `WorkflowHistoryChecker` alike. */
@@ -39,6 +40,10 @@ export interface FileStepsAnswer {
   /** The approaches the branch's `3-solution.md` marks, and its chosen
    *  line: the row's choice is saved onto the branch, as a tick is. */
   approaches?: ApproachChoice;
+  /** The `Depends on:` line of the branch's `1-description.md`: a save of
+   *  it is written onto the branch, as a tick is. Absent when the
+   *  description could not be read there; empty when the branch has no line. */
+  dependsOn?: string[];
   /** When the disk scan read this copy, epoch ms. Set by `targets()` on the disk answer only — the branch
    *  copy's read time is `peekFileSteps().checkedAt` — so an answer that came from the branch has none. */
   readAt?: number;
@@ -106,6 +111,7 @@ export class BranchFileStepsChecker {
           const state = jsonFile ? parseSpecStateText(jsonFile.text) : null;
           const acCoverage = await branchAcCoverage(this.run, target, relPath);
           const solution = await readStatusFromBranch(this.run, target.root, target.branch, relPath.replace(/4-status\.md$/, "3-solution.md"));
+          const description = await readStatusFromBranch(this.run, target.root, target.branch, relPath.replace(/4-status\.md$/, "1-description.md"));
           steps = {
             proseSteps: parseStatus(file.text).workflowSteps,
             stateSteps: state?.completedPhases,
@@ -115,6 +121,7 @@ export class BranchFileStepsChecker {
             acceptance: acceptanceRowsOf(file.text),
             ...(acCoverage ? { acCoverage } : {}),
             ...(solution ? { approaches: parseApproaches(solution.text) } : {}),
+            ...(description ? { dependsOn: dependsOnIn(description.text) } : {}),
           };
           break;
         }

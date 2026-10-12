@@ -65,6 +65,7 @@ function makeCtx(overrides: Partial<SpecViewsContext> = {}): SpecViewsContext {
     specRef: () => undefined,
     peekMachinerySpecDir: (_p, dir) => dir,
     machinerySpecDir: async (_p, dir) => dir,
+    dependencyFolders: () => [],
     gitRun: fakeGit({}).run,
     withFreshness: (list) => list,
     jobRow: async (job) => ({ ...job }) as never,

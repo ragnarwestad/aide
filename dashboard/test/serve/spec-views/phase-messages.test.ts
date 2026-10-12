@@ -152,6 +152,7 @@ describe("the key it returns is the Logs tab's own (AC-5)", () => {
       specRef: () => undefined,
       peekMachinerySpecDir: (_p: string, d: string) => d,
       machinerySpecDir: async (_p: string, d: string) => d,
+      dependencyFolders: () => [],
       gitRun: fakeGit({}).run,
       withFreshness: (list: unknown[]) => list,
       jobRow: async (j: Job) => ({ ...j }),

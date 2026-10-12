@@ -40,6 +40,7 @@ import {
   peekMergedOnOrigin as peekMergedOnOriginImpl,
   specDir as specDirImpl,
   specRef as specRefImpl,
+  dependencyFolders as dependencyFoldersImpl,
   specsRoot as specsRootImpl,
   machinerySpecDir as machinerySpecDirImpl,
   peekMachinerySpecDir as peekMachinerySpecDirImpl,
@@ -204,6 +205,9 @@ export function setupProjectResolution(
   function specRef(project: string, specFolder: string) {
     return specRefImpl(specLookupCtx, project, specFolder);
   }
+  function dependencyFolders(project: string, dir: string, idsRead?: string[]) {
+    return dependencyFoldersImpl(specLookupCtx, project, dir, idsRead);
+  }
   function specsRoot(dir: string) {
     return specsRootImpl(specLookupCtx, dir);
   }
@@ -221,6 +225,6 @@ export function setupProjectResolution(
     checkoutEnsurer, ensureCheckout, gitRun, branchStatus,
     displayProjectDir, machineryProjectDir, codeLanding, promptFileFor, ownedSpecsRoot, machinerySpecsRoot,
     targets, specRoots, rootsStillHolding, peekUnlanded, peekUnlandedCheckedAt, peekMergedOnOrigin,
-    specDir, specRef, specsRoot, machinerySpecDir, peekMachinerySpecDir,
+    specDir, specRef, dependencyFolders, specsRoot, machinerySpecDir, peekMachinerySpecDir,
   };
 }

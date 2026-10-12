@@ -4,7 +4,7 @@
 // lines; every function is unchanged and keeps its name.
 import { parseAcCoverage, readAcCoverage, withAcCoverage } from "../../project/ac-coverage.ts";
 import {
-  acceptanceNotRequiredIn, createChoicesIn, specAcceptanceNotRequired, specCloseReason, specClosedDate, specFileText,
+  acceptanceNotRequiredIn, createChoicesIn, dependsOnIn, specAcceptanceNotRequired, specCloseReason, specClosedDate, specFileText,
   stripDependsOnLine,
 } from "../../project/discover";
 import { acceptanceSectionUnreadable, parseStatus } from "../../project/parse-status";
@@ -247,6 +247,13 @@ export async function specPageView(
       baseSha: statusCommit?.sha,
       unreadable: acceptanceSectionUnreadable(checksText),
     },
+    // Ticked by what the LINE resolves to, not by what it says: a bare
+    // number is a real dependency, and matching the raw string against a
+    // folder would leave it unticked for the next Save to drop.
+    dependsOn: ctx.dependencyFolders(project, dir, descriptionCopy ? dependsOnIn(descriptionCopy.text) : undefined),
+    // The New spec picker's list for this project, the spec itself left
+    // out: the one box that could only earn "cannot depend on itself".
+    dependsOnOptions: ctx.targets().filter((t) => t.project === project && t.specFolder !== specFolder),
     // Spec 394: read off the description — a fresh read, since the
     // banner is drawn once per page load and this fact only changes via
     // the banner's own Save.

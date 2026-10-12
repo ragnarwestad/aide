@@ -6,7 +6,7 @@ import { refreshTestServerStatus, startTestServer } from "../../test-servers/lif
 import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "./test-server-waiting.ts";
 import { pullFastForward, saveSpecFiles } from "../../../git/specs-pull.ts";
 import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
-import { criteriaChecksIn, specFileText } from "../../../project/discover";
+import { criteriaChecksIn, dependsOnIn, specFileText, withDependsOnLine } from "../../../project/discover";
 import { openOverlappingSpecs } from "../../../project/overlapping-specs.ts";
 import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, listViewIn, renderSpecDetail, renderSpecGroupRows, renderSpecPageFailedRest, renderSpecsPageHead, renderSpecsPageRest, renderSpecStepsFollowParts, resolveSpecTab, specTabPath } from "../../../render";
 import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, languageChoice, logRefusal, readBounded, streamedPage } from "../../serve-helpers";
@@ -302,11 +302,11 @@ export async function specPageRoutes(
     // with no field at all is not: it is a request that never came
     // from this form, and writing it would empty the file.
     if (typeof body.text !== "string") return json({ error: "no text was submitted — nothing was saved" }, 400);
-    // REQ-1 (spec 394): the "Depends on" picker moved out of the
-    // Description tab's own form into the banner above the tab row, so
-    // this route no longer merges a posted `dependsOn` field at all —
-    // that is `spec-edit/tracking.ts`'s route now, for every tab.
-    const text = body.text;
+    // The "Depends on" picker lives in the banner above the tab row and
+    // saves through `spec-edit/tracking.ts`; this route posts no
+    // `dependsOn` field. The tab shows the description without the line,
+    // so it is put back below from the copy this save overwrites.
+    let text = body.text;
     const baseSha = typeof body.baseSha === "string" && body.baseSha ? body.baseSha : null;
     // The derived state file has no second writer here any more: the one
     // file whose save had to keep it in step was `4-status.md`, and that
@@ -334,6 +334,13 @@ export async function specPageRoutes(
         logRefusal("save", `${project}/${specFolder}`, reason);
         return json({ error: reason }, 400);
       }
+      const kept = withDependsOnLine(text, current === null ? [] : dependsOnIn(current));
+      if (kept === null) {
+        const reason = `nowhere to keep "Depends on" — the description has no Created line — nothing was saved`;
+        logRefusal("save", `${project}/${specFolder}`, reason);
+        return json({ error: reason }, 400);
+      }
+      text = kept;
     }
     const result = branchTarget
       ? await ctx.mergeLock.run(branchTarget.root, () =>

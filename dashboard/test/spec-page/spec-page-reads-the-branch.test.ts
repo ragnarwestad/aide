@@ -127,6 +127,28 @@ describe("a spec with a branch of its own", () => {
 
     expect(dependencyShown(await draw(base, ANALYSIS_TAB), OTHER)).toBe(false);
   });
+
+  test("the banner ticks the dependency the branch has, though main's copy names none (AC-1)", async () => {
+    const { base } = withBranch(tracked("As the branch has it.", `- **Depends on:** \`${OTHER}\`\n`));
+
+    expect(dependencyShown(await draw(base, ANALYSIS_TAB), OTHER)).toBe(true);
+  });
+
+  test("a Depends on saved onto the branch is named on the row's own line at once (AC-3)", async () => {
+    const { base, fx } = withBranch(tracked("As the branch has it."));
+    const rowLine = async () => {
+      const rows = await (await fetch(`${base}/?rows=1`)).text();
+      return rows.match(new RegExp(`data-folder="${SPEC}"[\\s\\S]*?</tr>`))?.[0] ?? "";
+    };
+    await draw(base, ANALYSIS_TAB);
+    expect(await rowLine()).not.toContain("Depends on:");
+
+    const saved = await post(base, { dependsOn: OTHER }, TRACKING);
+
+    expect(await failed(saved)).toBe(false);
+    expect(onOrigin(fx, fx.branch, SPEC, "1-description.md")).toContain(`- **Depends on:** \`${OTHER}\``);
+    expect(await rowLine()).toContain("Depends on: 82");
+  });
 });
 
 describe("a spec with no branch of its own", () => {

@@ -13,7 +13,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import type { GitRunner } from "../../src/git/branch-status.ts";
 import { QUEUE_DEFAULTS } from "../../src/serve/serve-helpers";
-import { SPEC, TRACKING, FILE_SHA, DESCRIPTION, ARCHIVED, ARCHIVED_TEXT, createSpecSaveHarness, descriptionPath, savable, post, answer } from "./spec-save-fixtures.ts";
+import { SPEC, PAGE, SAVE, TRACKING, FILE_SHA, DESCRIPTION, ARCHIVED, ARCHIVED_TEXT, createSpecSaveHarness, descriptionPath, savable, post, answer } from "./spec-save-fixtures.ts";
 
 const { harness } = createSpecSaveHarness();
 afterEach(() => harness.cleanup());
@@ -51,6 +51,71 @@ describe("the Depends on field", () => {
   };
 
   const track = (base: string, body: Record<string, string>) => post(base, body, TRACKING);
+
+  // --- what the open row's picker opens with (spec 635) ----------------------
+
+  /** The `<input>` tags the page posts as `dependsOn`, by folder. */
+  const chips = (html: string) =>
+    [...html.matchAll(/<input [^>]*name="dependsOn"[^>]*>/g)].map((m) => m[0]).filter((tag) => /value="[^"]+"/.test(tag));
+  const chipFor = (html: string, folder: string) => chips(html).find((tag) => tag.includes(`value="${folder}"`));
+  const ticked = (html: string, folder: string) => chipFor(html, folder)?.includes(" checked") ?? false;
+  const pageOf = async (base: string) => (await fetch(`${base}${PAGE}`)).text();
+  /** The Specs list's rows, and this spec's own line among them. */
+  const rowOf = async (base: string) => {
+    const html = await (await fetch(`${base}/?rows=1`)).text();
+    return html.match(new RegExp(`data-folder="${SPEC}"[\\s\\S]*?</tr>`))?.[0] ?? "";
+  };
+
+  // Spec 174. The line is written by hand as often as by this page, and
+  // `resolve_dependency_folder` has always taken a bare number — so the
+  // box that gets ticked is the one the RUNNER would resolve the line
+  // to, not the one whose folder happens to match the text.
+  test("a dependency written as a bare number ticks the spec it resolves to (AC-1)", async () => {
+    const { base } = startTracked(savable("/host"), TRACKED(DEPENDS("99")));
+    expect(ticked(await pageOf(base), OTHER)).toBe(true);
+  });
+
+  test("the picker offers the project's active specs, not the spec itself and not an archived one (AC-2)", async () => {
+    const THIRD = "88-a-third-spec";
+    const { base } = harness.start({
+      description: TRACKED(),
+      alsoSpecs: [OTHER, THIRD],
+      archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT } },
+      extra: { gitRun: savable("/host") },
+    });
+    const html = await pageOf(base);
+    expect(chips(html).map((tag) => tag.match(/value="([^"]+)"/)![1])).toEqual([OTHER, THIRD].sort().reverse());
+    expect(chipFor(html, SPEC)).toBeUndefined();
+    expect(chipFor(html, ARCHIVED)).toBeUndefined();
+  });
+
+  test("a dependency since archived is drawn ticked, and so is one since closed (AC-4)", async () => {
+    const CLOSED = "140-a-closed-one";
+    const { base } = harness.start({
+      description: TRACKED(`${DEPENDS(ARCHIVED)}, \`${CLOSED}\``),
+      alsoSpecs: [OTHER],
+      archivedSpecs: {
+        [ARCHIVED]: { description: ARCHIVED_TEXT },
+        [CLOSED]: { description: "# Closed - Description\n", status: "**Closed:** 2026-10-01 — did not hold\n" },
+      },
+      extra: { gitRun: savable("/host") },
+    });
+    const html = await pageOf(base);
+    expect(ticked(html, ARCHIVED)).toBe(true);
+    expect(ticked(html, CLOSED)).toBe(true);
+    expect(ticked(html, OTHER)).toBe(false);
+  });
+
+  test("an archived spec's own page draws no Depends on field (AC-5)", async () => {
+    const { base } = harness.start({
+      description: TRACKED(),
+      alsoSpecs: [OTHER],
+      archivedSpecs: { [ARCHIVED]: { description: `${TRACKED(DEPENDS(OTHER))}` } },
+      extra: { gitRun: savable("/host") },
+    });
+    const html = await (await fetch(`${base}/specs/aide/${ARCHIVED}`)).text();
+    expect(html).not.toContain('name="dependsOn"');
+  });
 
   // --- criteria 3, 4, 7: what a save writes ---------------------------------
 
@@ -117,6 +182,71 @@ describe("the Depends on field", () => {
     expect(status).toBe(200);
     expect(body.ok).toBe(true);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED());
+  });
+
+  // The picker's form is the only writer of the line, and a browser
+  // posts nothing for a box left unticked: the form carries one empty
+  // entry, so a picker cleared of every box still posts, and the route
+  // reads it as no dependencies.
+  test("the empty entry beside the boxes clears the last dependency, and the row's line follows (AC-3)", async () => {
+    const { base, dir } = startTracked(savable("/host"), TRACKED(DEPENDS(OTHER)));
+    expect(await rowOf(base)).toContain("Depends on: 99");
+    const { status } = await answer(await track(base, { dependsOn: "", baseSha: FILE_SHA }));
+    expect(status).toBe(200);
+    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED());
+    expect(await rowOf(base)).not.toContain("Depends on:");
+  });
+
+  test("a changed Depends on is named on the row's own line right after the save, though the rows were answered before (AC-3)", async () => {
+    const { base, dir } = startTracked(savable("/host"));
+    expect(await rowOf(base)).not.toContain("Depends on:");
+    const body = new URLSearchParams([["baseSha", FILE_SHA], ["dependsOn", ""], ["dependsOn", OTHER]]);
+    const { status } = await answer(await fetch(`${base}${TRACKING}`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: body.toString(),
+    }));
+    expect(status).toBe(200);
+    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(DEPENDS(OTHER)));
+    expect(await rowOf(base)).toContain("Depends on: 99");
+  });
+
+  test("a dependency since archived is kept when posted with the rest, and dropped when left out (AC-4)", async () => {
+    const both = `${DEPENDS(ARCHIVED)}, \`${OTHER}\``;
+    const start = () => startTracked(savable("/host"), TRACKED(both));
+    const kept = start();
+    await track(kept.base, { dependsOn: ARCHIVED, baseSha: FILE_SHA });
+    expect(readFileSync(descriptionPath(kept.dir), "utf-8")).toContain(ARCHIVED);
+    const dropped = start();
+    const body = new URLSearchParams([["baseSha", FILE_SHA], ["dependsOn", ""], ["dependsOn", OTHER]]);
+    await fetch(`${dropped.base}${TRACKING}`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: body.toString(),
+    });
+    expect(readFileSync(descriptionPath(dropped.dir), "utf-8")).toBe(TRACKED(DEPENDS(OTHER)));
+  });
+
+  // The Description tab shows the description without the line and posts
+  // what it is given, so its save would remove the line the picker wrote.
+  test("saving the Description tab keeps the spec's Depends on line (AC-3)", async () => {
+    const { base, dir } = startTracked(savable("/host"), TRACKED(DEPENDS(OTHER)));
+    const text = TRACKED().replace("As it was.", "As it is now.");
+    const { status } = await answer(await post(base, { text, baseSha: FILE_SHA }, SAVE));
+    expect(status).toBe(200);
+    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(DEPENDS(OTHER)).replace("As it was.", "As it is now."));
+  });
+
+  test("a Description save of a spec with no dependency gains no line, and one that has lost its Created line is refused (AC-3)", async () => {
+    const plain = startTracked(savable("/host"));
+    await post(plain.base, { text: TRACKED().replace("As it was.", "Changed."), baseSha: FILE_SHA }, SAVE);
+    expect(readFileSync(descriptionPath(plain.dir), "utf-8")).toBe(TRACKED().replace("As it was.", "Changed."));
+    harness.cleanup();
+
+    const { base, dir } = startTracked(savable("/host"), TRACKED(DEPENDS(OTHER)));
+    const { status } = await answer(await post(base, { text: DESCRIPTION, baseSha: FILE_SHA }, SAVE));
+    expect(status).toBe(400);
+    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(DEPENDS(OTHER)));
   });
 
   // --- criteria 5, 6: what a save refuses -----------------------------------

@@ -3,7 +3,7 @@
 import type { AcTest } from "../../../project/ac-coverage.ts";
 import type { CreateChoices } from "../../../project/discover";
 import type { JobDetailView, JobStepResultView, SpecFileView } from "../job-page";
-import type { Phase } from "../specs-list";
+import type { Phase, SpecTarget } from "../specs-list";
 
 /** One row of `4-status.md`'s Tasks tables, as the page shows it (spec
  *  182). `phase` and `line` are the row's identity: the checks form
@@ -126,6 +126,14 @@ export interface SpecPageView {
   /** The spec's own checks (spec 182). Absent for a spec whose
    *  `4-status.md` has no phase section at all. */
   checks?: SpecChecksView;
+  /** What the spec depends on, resolved to folders the way the runtime
+   *  gate resolves them (the line may hold a bare number). Archived and
+   *  closed ones are included: the spec still depends on them. The ticks
+   *  of the banner's picker. */
+  dependsOn?: string[];
+  /** What this spec MAY be made to depend on: every active spec in its
+   *  own project, itself left out. */
+  dependsOnOptions?: SpecTarget[];
   /** Whether the spec's own Tracking info says acceptance ticking is not
    *  required (spec 394) — read fresh off `1-description.md`
    *  (`specAcceptanceNotRequired`). Absent/false means "required", exactly as no line at

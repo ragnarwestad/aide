@@ -184,7 +184,9 @@ Three things hold a job back rather than stop it: nothing failed, and the job is
 
 - **A dependency.** `Depends on:` in `1-description.md` names other specs. `analyze`, `implement` and `archive` are held back
   while any of them still has a branch on origin carrying commits the default branch does not — which is until that
-  spec's own `archive` lands. The dashboard leaves the job `queued` with the reason on its row and tries again on
+  spec's own `archive` lands. The line is read from the spec's open `aide/<folder>` branch and from the checkout, and the
+  job waits for what either names: a Depends on saved from the open row is written to the branch, while the runner's own
+  check reads the checkout. The dashboard leaves the job `queued` with the reason on its row and tries again on
   every pass of the runner; a run started by hand is refused. `create` runs regardless. `analyze` waits too,
   because a plan made before the dependency lands is a plan for code that is about to change.
 - **Another job on the same spec.** Two jobs for one spec never run at once.

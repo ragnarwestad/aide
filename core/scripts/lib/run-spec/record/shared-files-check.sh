@@ -42,6 +42,6 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ] && [ 
     ok="false"
     suffix=" (stopped: shared-files)"
     amend_note="${model_suffix}${suffix}"
-    error_msg="$step_button stopped: other open specs change the same files — $shared_files_said. Press $step_button again to go on."
+    error_msg="$step_button stopped: other open specs change the same files — $shared_files_said. Add them to Depends on to wait until they are archived, or press $step_button again to go on."
   fi
 fi
