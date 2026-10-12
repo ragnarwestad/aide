@@ -21,12 +21,13 @@ machine. Run it only on specs and Aide commits you trust.
 Usage:
   export CLAUDE_CODE_OAUTH_TOKEN=...   # once: `claude setup-token`; a fresh Claude config folder has no login
   python3 scripts/replay_specs --project aide --specs 590,601,605 --aide-commit 4e8a481a \\
-      --analyze claude opus high [--implement codex gpt-6.1-sol] --judge opus
+      --analyze claude opus high [--implement codex gpt-6.1-sol] --judge opus [--advisor opus]
       [--code ~/.aide/dashboard/checkouts/<project>/code]
       [--specs-root ~/.aide/dashboard/checkouts/<project>/specs/<project>]
       [--aide-repo <the repository this script sits in>] [--results ~/.aide/replays]
 
-A step is `TOOL MODEL [EFFORT]`, the tool one of claude, codex, opencode and fake-claude.
+A step is `TOOL MODEL [EFFORT]`, the tool one of claude, codex, opencode and fake-claude. --advisor gives every claude
+step that model as its advisor, through `advisorModel` in the step's Claude config folder.
 """
 import argparse
 import datetime
@@ -63,6 +64,7 @@ def parse(argv):
     ap.add_argument("--analyze", nargs="+", required=True, metavar="TOOL MODEL [EFFORT]")
     ap.add_argument("--implement", nargs="+", metavar="TOOL MODEL [EFFORT]", help="left out, only analyze runs")
     ap.add_argument("--judge", default="opus", help="the Claude model that scores the new plan")
+    ap.add_argument("--advisor", help="the model every claude step consults as its advisor")
     ap.add_argument("--code")
     ap.add_argument("--specs-root")
     ap.add_argument("--aide-repo", default=str(HERE.parents[1]))
@@ -84,6 +86,8 @@ def check_inputs(args: argparse.Namespace, analyze: steps.Step, implement: Optio
     if "claude" in {s.tool for s in (analyze, implement) if s} and not (os.environ.get("CLAUDE_CODE_OAUTH_TOKEN") or os.environ.get("ANTHROPIC_API_KEY")):
         raise Refusal("a step names claude, and a fresh Claude config folder has no login: run `claude setup-token` once and "
                       "export CLAUDE_CODE_OAUTH_TOKEN (or set ANTHROPIC_API_KEY)")
+    if args.advisor and "claude" not in {s.tool for s in (analyze, implement) if s}:
+        raise Refusal("--advisor is set for claude steps, and no step names claude")
     for what, path in (("code checkout", args.code), ("specs root", args.specs_root), ("Aide repository", args.aide_repo)):
         if not os.path.isdir(path):
             raise Refusal(f"the {what} {path} does not exist")
@@ -99,7 +103,7 @@ def prepare(args: argparse.Namespace, analyze: steps.Step, implement: Optional[s
     home, configured = os.path.expanduser("~"), {}
     for tool in {s.tool for s in (analyze, implement) if s}:
         key = "claude" if tool == "fake-claude" else tool
-        configured[tool] = configured[key] if key in configured else copies.tool_environment(core, tool, tmp / "tools", home)
+        configured[tool] = configured[key] if key in configured else copies.tool_environment(core, tool, tmp / "tools", home, args.advisor)
     (tmp / "tmp").mkdir()
     env = {k: v for k, v in os.environ.items() if k != "AIDE_RUN_URL"}  # no step reports to a board
     env["PATH"] = f"{core / 'scripts'}{os.pathsep}{env.get('PATH', '')}"
@@ -112,7 +116,7 @@ def prepare(args: argparse.Namespace, analyze: steps.Step, implement: Optional[s
     out.mkdir(parents=True)
     branch = copies.default_branch(args.code)
     return steps.Run(project=args.project, code=os.path.realpath(args.code), specs_root=os.path.realpath(args.specs_root), core=core,
-                     tmp=tmp, out=out, analyze=analyze, implement=implement, judge_model=args.judge, branch=branch,
+                     tmp=tmp, out=out, analyze=analyze, implement=implement, judge_model=args.judge, advisor=args.advisor, branch=branch,
                      code_landing="pr" if copies.manifest_value(args.code, "codeLanding") == "pr" else "merge",
                      env=env, tool_env=configured), sha
 
@@ -120,6 +124,7 @@ def prepare(args: argparse.Namespace, analyze: steps.Step, implement: Optional[s
 def header(sha, run):
     parts = [f"Aide {sha[:8]}", *(f"{name} {s.tool} {s.model}" + (f" {s.effort}" if s.effort else "")
                                   for name, s in (("analyze", run.analyze), ("implement", run.implement)) if s),
+             *([f"advisor {run.advisor}"] if run.advisor else []),
              *([] if run.implement else ["analyze only"]), f"judge claude {run.judge_model}"]
     if "opencode" in {s.tool for s in (run.analyze, run.implement) if s}:
         parts.append("opencode reads its global AGENTS.md from the installed one")

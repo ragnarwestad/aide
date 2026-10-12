@@ -121,6 +121,7 @@ cp "$sroot/$spec/2-analysis.md" "$rec/analysis"
 if [ "${CLAUDE_CONFIG_DIR-}" ]; then
   ls "$CLAUDE_CONFIG_DIR/skills" > "$rec/claude-skills"; ls "$CLAUDE_CONFIG_DIR/rules" > "$rec/claude-rules"
   cp "$CLAUDE_CONFIG_DIR/skills/aide-analyze/SKILL.md" "$rec/claude-skill"
+  [ -f "$CLAUDE_CONFIG_DIR/settings.json" ] && cp "$CLAUDE_CONFIG_DIR/settings.json" "$rec/claude-settings"
 fi
 if [ "${CODEX_HOME-}" ]; then
   (cd "$CODEX_HOME" && ls) > "$rec/codex-files"; (cd "$CODEX_HOME/skills" && ls) > "$rec/codex-skills"
