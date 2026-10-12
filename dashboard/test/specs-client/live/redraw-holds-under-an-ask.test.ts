@@ -21,7 +21,7 @@ afterEach(() => {
 });
 
 /** Reopen's dialog on the list, and Cancel's, as the shared function draws them. */
-const REOPEN = reopenAskDialog("aide", "50-x", "en", { id: "reopenask-aide/50", back: "/" });
+const REOPEN = reopenAskDialog("aide", "50-x", "en", "reopenask-aide/50");
 const CANCEL = confirmDialog("en", {
   id: "cancelask-j1",
   title: "Cancel Implement?",

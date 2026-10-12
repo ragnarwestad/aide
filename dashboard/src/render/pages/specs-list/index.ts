@@ -33,6 +33,7 @@ import { esc } from "../../ui/html.ts";
 import { LOADING_HIDE_RULE, loadingBlock } from "../../ui/loading.ts";
 import { pageShell, shellHead, shellRest, type NavEntry } from "../../ui/shell.ts";
 import type { QueueRowView } from "../../ui/job-state";
+import type { ProgressStepState } from "../../ui/components";
 import { t, type Language } from "../../../i18n";
 import type { FailedCreate } from "../../../push/failed-creates.ts";
 import type { OpenOverlap } from "../../../project/overlapping-specs.ts";
@@ -157,6 +158,9 @@ export interface SpecsPageOptions {
    *  entry here at all. Absent or missing an entry behaves exactly as
    *  before this existed. */
   pendingSteps?: Record<string, string[]>;
+  /** The steps of a Close or Reopen job, each in the state its log has it
+   *  in: what the line under an open row's phases lists while one runs. */
+  closeOrReopenSteps?: (jobId: string, step: string) => { key: string; label: string; state?: ProgressStepState }[];
   /** Every project a spec may be CREATED in — the raw allowlist, not
    *  the discovered set. A project whose first spec this form exists to
    *  make has nothing on disk yet, so it appears in no other list on

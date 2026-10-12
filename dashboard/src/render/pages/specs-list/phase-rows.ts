@@ -1,14 +1,15 @@
 // One line per phase, in the workflow's own order, whether or not it
 // has happened.
 
-import { badge, phaseChip, stepLabel } from "../../ui/components";
+import { badge, phaseChip, progressSteps, stepLabel } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t } from "../../../i18n";
-import { wordPhase } from "../../ui/job-state";
+import { currentStep, wordPhase } from "../../ui/job-state";
+import { closeOrReopenJob } from "../../../queue/queue.ts";
 import type { QueueRowView } from "../../ui/job-state";
 import type { SpecsPageOptions } from "./";
 import { PHASE_LINES, RUN_STEPS, groupKey, isArchivedRow, type SpecGroup } from "./data-model";
-import { costCell, phaseDurationCell, phaseWordCell, specTotalCell } from "./cell-helpers.ts";
+import { costCell, phaseDurationCell, phaseWordCell, specTotalCell, stateCell } from "./cell-helpers.ts";
 import { aiPicker, ALREADY_RUN_REASON, compactModelLabel, compactModelLabelFull, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells } from "./model-picker.ts";
 import { chosenSteps, runFormId, specBusy } from "./row-state.ts";
 import { stateAction } from "./row-controls.ts";
@@ -335,7 +336,27 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
   // so a later job for this spec reads that record instead of asking
   // again from a checkbox unchecked by default on every render.
   //
-  return lines.map((l) => `${l.tag}${l.cells}</tr>`).join("");
+  return lines.map((l) => `${l.tag}${l.cells}</tr>`).join("") + closeOrReopenLine(g, opts, now);
+}
+
+/** A Close or Reopen the spec's lead job is working on, or ended on without
+ *  finishing: a line of its own under the four phases, with the steps its
+ *  dialog used to list, each in the state the job's log has it in. */
+function closeOrReopenLine(g: SpecGroup, opts: SpecsPageOptions, now: number): string {
+  const job = g.lead && closeOrReopenJob([g.lead]);
+  if (!job) return "";
+  const lang = opts.lang ?? "en";
+  const step = currentStep(job);
+  const steps = opts.closeOrReopenSteps?.(job.id, step) ?? [];
+  return (
+    `<tr class="subrow" data-step="${esc(step)}">` +
+    `<td class="phasecell" colspan="2">${esc(stepLabel(step, lang))}</td>` +
+    `<td>${steps.length ? progressSteps(lang, steps) : ""}</td>` +
+    `<td data-col="state">${stateCell(job, lang)}</td>` +
+    `<td data-col="started">${phaseDurationCell(job, step, now)}</td>` +
+    `<td class="num" data-col="cost">${costCell(job.spentUsd, job.spentTokens, "", job.state === "done")}</td>` +
+    `</tr>`
+  );
 }
 
 /** The AI and the model a phase line offers, in one place.

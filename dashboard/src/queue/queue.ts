@@ -14,6 +14,7 @@ export {
   TRANSITIONS,
   UNFINISHED,
   WORKFLOW_STEPS,
+  closeOrReopenJob,
   currentWorkRoundJobs,
   landingInProject,
   queuePriorityOrder,

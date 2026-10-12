@@ -1,11 +1,11 @@
-// What a Close or Reopen dialog lists while its job runs: the steps the
+// What a Close's or Reopen's line on the Running page lists: the steps the
 // job's step log has marked (`stepMarks`), and for a job that ended any
 // other way than done, or done with its merge into main stopped, the step
 // it stopped at and why — the sentence the spec page itself gives
 // (`failedRoundSentence`).
 import type { Language } from "../../i18n";
 import { renderSentence } from "../../i18n/message.ts";
-import { stepLog, stepMarks, type StepMark } from "../../queue/parse-stream";
+import { stepLog, stepMarks, stepPlan, type StepMark } from "../../queue/parse-stream";
 import type { Job } from "../../queue/queue.ts";
 import { tailFileAt } from "../serve-helpers";
 import { readRunLog } from "./job-detail.ts";
@@ -32,4 +32,23 @@ export function jobMarks(job: Job, lang: Language): { marks: StepMark[]; reason?
   const said = job.state === "done" ? job.landingError : (job.error ?? job.landingError);
   const reason = renderSentence(lang, said) || failed?.why;
   return reason ? { marks, reason } : { marks };
+}
+
+/** A Close's or Reopen's steps as its line on the Running page lists them:
+ *  every step its skill plans, each in the state the job's log has it in
+ *  (none yet is waiting), then any step the log marked that the plan did
+ *  not name. */
+export function closeOrReopenSteps(
+  job: Job,
+  step: string,
+  lang: Language,
+): { key: string; label: string; state?: StepMark["state"] }[] {
+  const { marks } = jobMarks(job, lang);
+  const marked = new Map(marks.map((m) => [m.key, m.state]));
+  const planned = stepPlan(step);
+  const keys = new Set(planned.map((p) => p.key));
+  return [
+    ...planned.map((p) => ({ key: p.key, label: p.label, state: marked.get(p.key) })),
+    ...marks.filter((m) => !keys.has(m.key)).map((m) => ({ key: m.key, label: m.title, state: m.state })),
+  ];
 }

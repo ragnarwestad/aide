@@ -37,7 +37,7 @@ export function checksFold(g: SpecGroup, f: SpecsFilter, lang: Language, path?: 
 }
 
 /** The list under the message, or nothing while it is folded. */
-export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language, path?: string): string {
+export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language): string {
   const key = groupKey(g.project, g.specFolder);
   if (!unfoldedKeys(f).has(key)) return "";
   const rows = g.acceptance ?? [];
@@ -62,7 +62,7 @@ export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language, path?:
   // inside its form: the parser drops a nested form.
   const reopenId = `reopenask-checks-${key}`;
   const reopen = askButton({ label: t(lang, "list.reopen"), dialogId: reopenId });
-  const reopenDialog = archived && rows.some((row) => row.failed) ? listReopenDialog(g, f, lang, reopenId, path) : "";
+  const reopenDialog = archived && rows.some((row) => row.failed) ? listReopenDialog(g, lang, reopenId) : "";
   // The boxes name the form with `form=`, so they can sit in the list
   // while the row's own table stays outside any form.
   const item = (row: (typeof rows)[number]): string => {
@@ -109,7 +109,7 @@ export function checksRow(g: SpecGroup, f: SpecsFilter, lang: Language, columns:
     `<tr class="specnotice" data-folder="${esc(g.specFolder)}"><td colspan="${columns}">` +
     rowMessageParts("info", [
       fold
-        ? { text: parts.join(" · "), own: true, lead: checksFold(g, f, lang, path), after: checksPanel(g, f, lang, path) }
+        ? { text: parts.join(" · "), own: true, lead: checksFold(g, f, lang, path), after: checksPanel(g, f, lang) }
         : { text: parts.join(" · "), own: true },
     ]) +
     `</td></tr>`

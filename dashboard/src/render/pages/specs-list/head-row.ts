@@ -295,7 +295,9 @@ export function headStateBadge(g: SpecGroup, lang: Language): string {
   const nextStep = locked ? undefined : nextPhase(g.done);
   const readyPhase = nextStep ? stepLabel(nextStep) : undefined;
   const heldBack = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
-  return locked
+  // A locked row with a lead is one a Close or Reopen is working on: its
+  // badge is the job's.
+  return locked && !g.lead
     ? badge("done", capitalizeFirst(g.state === CLOSED_STATE ? CLOSED_STATE : ARCHIVED_STATE))
     : g.lead
       ? stateCell(g.lead, lang, { archiveHeldBack: heldBack, readyPhase })

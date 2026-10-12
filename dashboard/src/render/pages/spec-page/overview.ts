@@ -15,7 +15,7 @@ import {
 } from "./ask-dialog.ts";
 import { optionsGroup } from "../new-spec-page/options-tab.ts";
 import { createChoicesIn } from "../../../project/discover";
-import { SPEC_LINES, SPEC_REFUSED_LINE, specPagePath } from "./tabs.ts";
+import { SPEC_LINES, SPEC_REFUSED_LINE } from "./tabs.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 
@@ -292,11 +292,7 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
 export function reopenControl(view: SpecPageView, lang: Language = "en"): string {
   return (
     askButton({ label: "Reopen", dialogId: REOPEN_ASK_ID }) +
-    reopenAskDialog(view.project, view.specFolder, lang, {
-      id: REOPEN_ASK_ID,
-      back: specPagePath(view.project, view.specFolder),
-      done: "/specs",
-    })
+    reopenAskDialog(view.project, view.specFolder, lang, REOPEN_ASK_ID)
   );
 }
 

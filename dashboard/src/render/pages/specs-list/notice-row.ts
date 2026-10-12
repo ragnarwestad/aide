@@ -139,7 +139,7 @@ export function specNoticeRow(
   // their waiting line.
   const parts: MessagePart[] = (notice.parts ?? [{ text: notice.text }]).map((p) =>
     "kind" in p && p.kind === "acceptance-hold"
-      ? { ...p, lead: checksFold(g, filter, lang, view.listPath), after: checksPanel(g, filter, lang, view.listPath) }
+      ? { ...p, lead: checksFold(g, filter, lang, view.listPath), after: checksPanel(g, filter, lang) }
       : "kind" in p && p.kind === "branch-left-behind"
         ? { ...p, after: deleteBranchForm(g, lang) }
         : "kind" in p && p.kind === "approach-choice"

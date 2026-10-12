@@ -110,4 +110,13 @@ describe("GET /api/queue/events?phases=… (AC-3)", () => {
     server.stop();
     expect(server.phaseWatchCount()).toBe(0);
   });
+
+  // The Running page with a spec open follows that spec's Close or Reopen:
+  // its line lists the steps the job's log marks.
+  test("a tab with a spec open hears that spec's Close or Reopen grow", async () => {
+    const { base, server } = harness.start();
+    const s = await connectStream(base, "?open=aide/500-x");
+    opened.push(s);
+    expect(server.phaseWatchCount()).toBe(1);
+  });
 });

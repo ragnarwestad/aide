@@ -360,8 +360,8 @@ link, a bookmark, the back button — falls back to that cookie instead of alway
 row: its name as two links — the project to its page and the rest to its own `/specs/<project>/<spec>` page — under a two-line clamp, what its phases came to in
 time, and Reopen. It draws no description — a locked row's description stays searchable but is not shown — and no
 archive date: the Time column holds a duration and never a date. Reopen opens a dialog over the list that asks
-whether to reset the analysis, the plan and the status as well; once the reopen has started the reader comes back
-to the list, filter and all. No model select, no tick box and no Run — the server
+whether to reset the analysis, the plan and the status as well; once the reopen has started the reader goes to the
+Running tab, where the row follows it. No model select, no tick box and no Run — the server
 refuses every step but `reopen` for an archived spec (`ARCHIVE_ONLY_STEP`), and a control that would be refused is a
 control that should not be drawn. The list shows no creation date on any row; the spec's page does, as the
 Created line of its description's Tracking info.
@@ -536,9 +536,9 @@ The page's own browser code does one thing to the controls: it keeps the reader 
 - **Every confirmation asks the one shared question, with no fallback page behind it.** One function draws the
   question and its answers (`askParts()`, `render/ui/components/confirm-dialog.ts`): the question, the sentence that
   says what the action does, any control of its own, and OK and Cancel. Cancel's is asked in a `dialog.confirmdialog`
-  (`confirmDialog()`); Close's and Reopen's in the progress dialog they then stand in (`progressDialog()`,
-  `render/ui/components/progress-dialog.ts`), a `dialog.progressdialog` that also holds a refusal line and the word
-  it shows while its job runs. Close's control is its required Reason field (bounded and counted), Reopen's an
+  (`confirmDialog()`); Close's and Reopen's in the progress dialog they then stand in while the press is sent
+  (`progressDialog()`, `render/ui/components/progress-dialog.ts`), a `dialog.progressdialog` that also holds a
+  refusal line and the word it shows meanwhile. Close's control is its required Reason field (bounded and counted), Reopen's an
   unticked box that also resets the analysis, the plan and the status. Its button (`askButton()`) carries `data-ask="<dialog id>"`, and
   one click listener on `body` (`openAsk`, `specs-client/ask.ts`) opens whichever dialog a button names — on a row a
   later redraw drew too, and a Reopen beside a Failed criterion, inside the checks' own form, opens a dialog drawn
@@ -546,23 +546,23 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   merged, and beside a Failed criterion under the › on either page; Cancel is on the Running tab's running row. Without script, or a browser without `<dialog>`, the
   buttons do nothing. The question before leaving a page with unsaved changes is the same dialog, opened by the
   unsaved-changes guard from the link that was clicked rather than from a button.
-- **OK stands the dialog until the job has settled.** The dialog's posting form carries `data-progress`, and one
-  submit listener on `body` hands its OK to the wait: the dialog shows "Reopening…" or "Closing…", held open by
-  the one hold every progress dialog has (`standOpen()`, `specs-client/progress-dialog/`: Escape and a click outside
-  do not dismiss it, and a back/forward-cache restore closes it), posts the form, and polls
-  `GET /api/queue/<id>?marks=1` once a second, at most 120 times, until the job has settled and, for a `done` job, its
-  landing is over. Under the heading it lists every step the job will run — Aide's own parts, the skill's
-  steps and the merge into main, drawn by the page from the skill's `Step N of X` headings (`stepPlan()`) — in the
-  step list Deploy's dialog shares, each waiting until the job's log marks it. `drawSteps` then changes that line in
-  place to running with a spinner or done, and a second OK puts every line back to waiting (`resetSteps`). A skill
-  that cannot be read leaves the list empty, and the lines are then added as the log marks the steps. A job that is `done` goes to `data-progress-done` at once, or the list's front page when the form
-  has none. Any other end shows the step it stopped at as failed and its reason in the dialog's own line for two
-  seconds, then goes to `data-progress` — the spec page, whose error line says why a `failed`, `stopped` or
-  `interrupted` reopen or close ended (`failedRoundSentence`); a job the queue has forgotten and a wait that runs out
-  go there at once. A dialog over the list carries
-  the list's own address, filter and all, in both. A refused post is written in the dialog's own line, which stays
-  open with whatever was typed or ticked. While a Reopen dialog is open on the list, the live redraw waits, so the
-  rows do not take it away.
+- **OK goes to the Running tab once the queue has the job.** The dialog's posting form carries `data-progress`, and
+  one submit listener on `body` hands its OK on: the dialog shows "Reopening…" or "Closing…", held open by the one
+  hold every progress dialog has (`standOpen()`, `specs-client/progress-dialog/`: Escape and a click outside do not
+  dismiss it, and a back/forward-cache restore closes it), posts the form, and once it is accepted goes to the
+  Running tab with the spec's row open (`/?open=<project>/<spec>`). A refused post is written in the dialog's own
+  line, which stays open with whatever was typed or ticked. While a Reopen dialog is open on the list, the live
+  redraw waits, so the rows do not take it away.
+- **A Close or Reopen is followed on its spec's row on the Running tab.** While the spec's newest job is a close or a
+  reopen that has not ended done or cancelled (`closeOrReopenJob`, `queue/steps.ts`), the row speaks for it: its badge
+  is the job's ("Closing", "Reopening", "Failed"), and an archived or closed spec has a row on the tab for as long,
+  in the job's state, with no Reopen offered while the job is in flight. The open row has a line under the four
+  phases, named for the step, listing every step the job will run — Aide's own parts, the skill's steps and the
+  merge into main, from the skill's `Step N of X` headings (`stepPlan()`) — each in the state the job's log has it
+  in (`closeOrReopenSteps`, `serve/spec-views/job-marks.ts`), in the step list Deploy's dialog shares
+  (`progressSteps()`). A tab with the spec open hears the log grow (`?open=` on `/api/queue/events`), so the list
+  moves as the job goes. A `failed`, `stopped` or `interrupted` close or reopen keeps its line, the step it stopped at
+  failed, and its sentence under the row (`failedRoundSentence`).
 - **A press changes the button at once, without changing its width.**
   It disables, gains the `busy` look and a spinner ahead of its own label — the label itself stays put, only
   the `title` carries the pending word ("starting…", "cancelling…", "queueing…",

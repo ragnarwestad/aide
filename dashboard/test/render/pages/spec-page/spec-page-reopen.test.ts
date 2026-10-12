@@ -34,7 +34,7 @@ describe("spec 198: the Reopen control", () => {
     expect(form![0]).toContain('name="project" value="aide"');
     expect(form![0]).toContain(`name="specFolder" value="${FOLDER}"`);
     expect(form![0]).toContain('name="steps" value="reopen"');
-    expect(form![0]).toContain(`data-progress="/specs/aide/${FOLDER}"`);
+    expect(form![0]).toContain("data-progress");
     expect(dialog).toMatch(new RegExp(`<input type="checkbox" name="resetFiles" value="1" form="${form![1]}">`));
   });
 
@@ -52,12 +52,6 @@ describe("spec 198: the Reopen control", () => {
     expect(id).toBeDefined();
     expect(dialogById(html, id!)).toContain(`name="specFolder" value="${FOLDER}"`);
     expect(checks).not.toContain("<dialog");
-  });
-
-  test("a finished Reopen goes to the Specs list, not the Jobs tab (AC-1)", () => {
-    const html = archived();
-    const id = html.match(/data-ask="([^"]+)"[^>]*>Reopen</)?.[1] ?? "";
-    expect(dialogById(html, id)).toContain('data-progress-done="/specs"');
   });
 
   // A live spec has the whole row on the queue list for this; the

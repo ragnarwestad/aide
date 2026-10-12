@@ -171,7 +171,7 @@ export function filterShowsArchived(state: string | undefined): boolean {
  *  wherever the ROW SHAPE is the question rather than the filter's —
  *  which is the routing in `groupRows` and the entry counts. */
 export const isArchivedRow = (g: SpecGroup): boolean =>
-  g.state === ARCHIVED_STATE || g.state === ARCHIVED_OPEN_STATE || g.state === CLOSED_STATE;
+  !!g.archive || g.state === ARCHIVED_STATE || g.state === ARCHIVED_OPEN_STATE || g.state === CLOSED_STATE;
 
 /** Everything the search reads, as one lowercase haystack. The WHOLE
  *  description, not the two lines a row shows: a term found in the

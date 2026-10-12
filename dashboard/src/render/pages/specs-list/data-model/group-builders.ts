@@ -3,7 +3,7 @@
 // none it took.
 
 import { createEndedWithoutSpec } from "../../../../queue/create-failure.ts";
-import { currentWorkRoundJobs } from "../../../../queue/queue.ts";
+import { closeOrReopenJob, currentWorkRoundJobs } from "../../../../queue/queue.ts";
 import { anyCostUnmeasured, inFlight, type QueueRowView } from "../../../ui/job-state";
 import { activityMs, attemptsPerStep, doneOutsideRound, phasesFor, roundUnderWayIn, totalDurationOf } from "./phases.ts";
 import {
@@ -233,17 +233,24 @@ function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number): Sp
     };
   });
   const total = totalDurationOf(phases, now);
+  // A Close or Reopen still working on the spec, or ended on without
+  // finishing: the row speaks for it and is in its state, so the Running
+  // page follows it. Still a record: `archive` keeps every control locked.
+  const moving = closeOrReopenJob(jobs);
   return {
     project: s.project,
     specFolder: s.folder,
     // It came out of a folder on disk, so the name IS the spec's.
     named: true,
+    ...(moving ? { lead: moving } : {}),
     // Closed checked first (spec 406, REQ-7): a closed spec must never
     // read as either archived state, even a defensive one — see
     // `ArchivedSpecView.closed`'s own comment for why the two are
     // checked independently rather than assumed exclusive. Otherwise
     // the one place the two archived states are told apart.
-    state: s.closed ? CLOSED_STATE : s.notLanded ? ARCHIVED_OPEN_STATE : ARCHIVED_STATE,
+    state: moving
+      ? (moving.landing ? "running" : moving.state)
+      : s.closed ? CLOSED_STATE : s.notLanded ? ARCHIVED_OPEN_STATE : ARCHIVED_STATE,
     spentUsd: Object.values(s.phaseOutcomes).reduce((sum, o) => sum + (o.cost ?? 0), 0),
     costUnmeasured: Object.values(s.phaseOutcomes).some((o) => o.costUnmeasured),
     // Spec 260: the sibling roll-up for a Codex-only archive, which has

@@ -1,14 +1,12 @@
 // What Close and Reopen ask, on the spec page and over the specs list,
-// with no fallback page behind either: their words, their controls and
-// where their wait goes. The dialog itself is the board's one
-// `progressDialog()`, which asks their question and then stands while
-// their job runs (`submitProgress`), listing every step the job will run,
-// each waiting until the job's log marks it, a refusal or a failed job's
-// reason written in its own line.
+// with no fallback page behind either: their words and their controls. The
+// dialog itself is the board's one `progressDialog()`, which asks their
+// question, writes a refusal in its own line, and once the queue has the
+// job goes to the Running page, where the spec's row follows it
+// (`submitProgress`).
 
 import { t, type Language } from "../../../i18n";
 import { DESCRIPTION_MAX } from "../../../queue/parse-request.ts";
-import { stepPlan } from "../../../queue/parse-stream";
 import { field, labelledCheckbox, progressDialog } from "../../ui/components";
 import { specPagePath } from "./tabs.ts";
 
@@ -39,12 +37,9 @@ export const CLOSE_ASK_ID = "closeask";
 export const REOPEN_ASK_ID = "reopenask";
 
 export function closeAskDialog(project: string, specFolder: string, lang: Language): string {
-  const back = specPagePath(project, specFolder);
   return progressDialog(lang, {
     id: CLOSE_ASK_ID,
     title: t(lang, "dialog.closing"),
-    // Every step the job will run, waiting; the wait moves each line as the log marks it.
-    steps: stepPlan("close"),
     ask: {
       title: `Close ${specFolder}?`,
       sentence: CLOSE_WORDING,
@@ -54,8 +49,8 @@ export function closeAskDialog(project: string, specFolder: string, lang: Langua
           `<textarea name="reason" form="${formId}" rows="4" required data-maxlength="${DESCRIPTION_MAX}"></textarea>`,
         ),
       ok: { variant: "danger", pending: t(lang, "dialog.closing") },
-      post: { action: `/api/queue${back}/close` },
-      wait: { back, done: "/specs" },
+      post: { action: `/api/queue${specPagePath(project, specFolder)}/close` },
+      queuesJob: true,
     },
   });
 }
@@ -72,29 +67,22 @@ const resetBox = (formId: string): string =>
   }) +
   `</div>`;
 
-/** Reopen's dialog. `where` says which dialog it is and where the reader
- *  goes once the job is posted: the spec page draws one, the list one per
+/** Reopen's dialog, by its id: the spec page draws one, the list one per
  *  place a Reopen is pressed. */
-export function reopenAskDialog(
-  project: string,
-  specFolder: string,
-  lang: Language,
-  where: { id: string; back: string; done?: string },
-): string {
+export function reopenAskDialog(project: string, specFolder: string, lang: Language, id: string): string {
   return progressDialog(lang, {
-    id: where.id,
+    id,
     title: t(lang, "list.reopening"),
-    steps: stepPlan("reopen"),
     ask: {
       title: `Reopen ${specFolder}?`,
       sentence: REOPEN_SENTENCE,
-      control: () => resetBox(`${where.id}-form`),
+      control: () => resetBox(`${id}-form`),
       ok: { variant: "primary", pending: t(lang, "list.reopening") },
       post: {
         action: "/api/queue",
         hidden: { project, specFolder, steps: "reopen" },
       },
-      wait: { back: where.back, done: where.done },
+      queuesJob: true,
     },
   });
 }

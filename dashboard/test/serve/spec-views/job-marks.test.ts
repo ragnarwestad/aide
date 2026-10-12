@@ -1,5 +1,6 @@
-// A job's step marks as the Close and Reopen dialogs list them, and how a
-// job that did not end done is read: the step it stopped at, and why.
+// A job's step marks as a Close's or Reopen's line on the Running page lists
+// them, and how a job that did not end done is read: the step it stopped at,
+// and why.
 
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -7,7 +8,8 @@ import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 import { renderSentence } from "../../../src/i18n/message.ts";
 import type { Job } from "../../../src/queue/queue.ts";
-import { jobMarks } from "../../../src/serve/spec-views/job-marks.ts";
+import { stepPlan } from "../../../src/queue/parse-stream";
+import { closeOrReopenSteps, jobMarks } from "../../../src/serve/spec-views/job-marks.ts";
 
 const dir = mkdtempSync(join(tmpdir(), "job-marks-"));
 let n = 0;
@@ -87,5 +89,20 @@ describe("jobMarks", () => {
 
   test("a queued job with no stream file has no marks (AC-4)", () => {
     expect(jobMarks(job({ state: "queued" }), "en")).toEqual({ marks: [] });
+  });
+});
+
+describe("closeOrReopenSteps", () => {
+  // The line lists every step Close's skill plans from the start, and the
+  // log moves each one: the dialog's list, followed on the Running page.
+  test("every planned step is listed, each in the state the log has it in", () => {
+    const got = closeOrReopenSteps(job({ streamFile: STOPPED_IN_STEP_1() }), "close", "en");
+    const plan = stepPlan("close");
+    expect(plan.length).toBeGreaterThan(2);
+    expect(got.map((s) => s.key)).toEqual(plan.map((p) => p.key));
+    const state = (key: string) => got.find((s) => s.key === key)?.state;
+    expect(state("Step Aide: preparing")).toBe("done");
+    expect(state("Step 1 of 4")).toBe("running");
+    expect(got.filter((s) => s.state === undefined)).toHaveLength(plan.length - 2);
   });
 });

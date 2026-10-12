@@ -6,6 +6,7 @@ import type { Language } from "../../../i18n";
 import type { SpecsPageOptions } from "../../../render";
 import { openOverlappingSpecs } from "../../../project/overlapping-specs.ts";
 import { modelChoiceOptions } from "../../serve-helpers";
+import { closeOrReopenSteps } from "../../spec-views/job-marks.ts";
 import { phaseMessagesFor } from "../../spec-views/phase-messages.ts";
 import { codeBranchOnOrigin } from "../../test-servers/branch-on-origin.ts";
 import type { RoutesContext } from "..";
@@ -23,6 +24,11 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
     // from history alone.
     pendingModels: ctx.queue.pendingModels,
     pendingSteps: ctx.queue.pendingSteps,
+    // Called only for an open row a Close or Reopen is working on.
+    closeOrReopenSteps: (jobId: string, step: string) => {
+      const job = ctx.queue.get(jobId);
+      return job ? closeOrReopenSteps(job, step, lang) : [];
+    },
     // The same capability check `spec-page.ts` and `project-pages.ts` call,
     // and the cached answer of whether origin holds the spec's branch in the
     // checkout the start route asks.

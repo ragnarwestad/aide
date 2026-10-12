@@ -115,29 +115,16 @@ function actionForm(r: QueueRowView, lang: Language): string {
 // `isCodeRepo` existed only so the button's own sentence could say
 // whether it would land the plan or the code.
 
-/** Reopen's dialog over the list, `id` being the one its button names.
- *  Whether the job ends done or not, the reader comes back to the list as
- *  it was: the list's own address is where the script goes either way. */
-export function listReopenDialog(
-  g: SpecGroup,
-  filter: SpecsFilter | undefined,
-  lang: Language,
-  id: string,
-  path?: string,
-): string {
-  const list = queuePath(filter ?? {}, {}, path);
-  return reopenAskDialog(g.project, g.specFolder, lang, {
-    id,
-    back: list,
-    done: list,
-  });
+/** Reopen's dialog over the list, `id` being the one its button names. */
+export function listReopenDialog(g: SpecGroup, lang: Language, id: string): string {
+  return reopenAskDialog(g.project, g.specFolder, lang, id);
 }
 
 /** The one action an archived spec offers (spec 198, on its row since
  *  spec 221): a button, and the dialog it opens beside it. */
-function reopenAsk(g: SpecGroup, opts: SpecsPageOptions, lang: Language): string {
+function reopenAsk(g: SpecGroup, lang: Language): string {
   const id = `reopenask-${groupKey(g.project, g.specFolder)}`;
-  return askButton({ label: t(lang, "list.reopen"), dialogId: id, variant: "primary" }) + listReopenDialog(g, opts.filter, lang, id, opts.listPath);
+  return askButton({ label: t(lang, "list.reopen"), dialogId: id, variant: "primary" }) + listReopenDialog(g, lang, id);
 }
 
 /** The press an archived row's "still on origin" note carries: a POST
@@ -185,7 +172,8 @@ export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
   // answer "what would run next" for a spec whose workflow is over by
   // falling back to ticking `archive` alone (`defaultTicked`, spec 439's
   // own fallback for a spec with no recorded choice).
-  if (isArchivedRow(g)) return reopenAsk(g, opts, lang);
+  // Nothing while a Close or Reopen is still working on it.
+  if (isArchivedRow(g)) return specBusy(g) ? "" : reopenAsk(g, lang);
   const busy = specBusy(g);
   // A conflict used to draw a Resolve control of its own here, off the
   // job's stored `errorReason`. Spec 171 took it away: `archive`

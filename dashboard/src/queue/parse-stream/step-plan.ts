@@ -1,5 +1,5 @@
-// The steps a job's log WILL mark, read before the job starts: what a Close
-// or Reopen dialog lists, each waiting, from the moment it opens. The
+// The steps a job's log WILL mark, read before the job starts: what a Close's
+// or Reopen's line on the Running page lists, each waiting until marked. The
 // counterpart of `stepMarks`, and the two share `stepKey()`, so a mark moves
 // the planned line that has its key.
 //
@@ -29,10 +29,10 @@ export interface PlannedStep {
 }
 
 /** A read skill, kept while its file's modification time is unchanged: a landing does not restart the
- *  board, and a list of archived rows draws one dialog per row. */
+ *  board, and the Running page asks again on every redraw. */
 const kept = new Map<string, { mtimeMs: number; plan: PlannedStep[] }>();
 
-/** Every step `step`'s log marks, in the order it marks them, each a line the dialog draws waiting.
+/** Every step `step`'s log marks, in the order it marks them, each a line the Running page draws waiting.
  *  A skill that is missing, unreadable or without a `Step N of X:` heading gives `[]`. */
 export function stepPlan(step: string, skills = SKILLS_DIR): PlannedStep[] {
   const file = join(skills, `aide-${step}`, "SKILL.md");

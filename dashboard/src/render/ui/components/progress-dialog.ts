@@ -1,8 +1,9 @@
-// The one dialog every step the board shows running stands in: Close,
+// The one dialog every press the board shows under way stands in: Close,
 // Reopen, Remove project and Deploy. It says what it is doing in one
-// heading while its job runs, writes a refusal in its own line, and one
-// piece of page script keeps it open until the job has settled
-// (`standOpen`, specs-client/progress-dialog/).
+// heading while its press is under way, writes a refusal in its own line,
+// and one piece of page script keeps it open meanwhile (`standOpen`,
+// specs-client/progress-dialog/). Close and Reopen stand only until the
+// queue has their job; the Running page follows it from there.
 //
 // A step that asks first (Close, Reopen, Remove project) hands it the
 // question, drawn by the confirmation's own parts: the dialog shows the
@@ -10,10 +11,9 @@
 // stands (`data-standing`). A step that asks nothing (Deploy) shows its
 // running face from the moment it opens.
 //
-// A dialog with steps (Deploy, Close, Reopen) lists them under the heading,
-// one line each with its state, in the one step list every such dialog
-// shares: Deploy hands its five steps in, Close and Reopen every step their
-// job will run, and their wait moves each line as the job's log marks it.
+// Deploy lists its five steps under the heading, one line each with its
+// state, in the step list a Close or Reopen also has on its spec's row on
+// the Running page (`progressSteps`).
 
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { t, type Language } from "../../../i18n";
@@ -30,15 +30,12 @@ export interface ProgressParts {
    *  Capitalised here. */
   title: string;
   /** The question asked before the step runs (Close, Reopen, Remove
-   *  project); its OK's form is `<id>-form`. `wait` is where Close's and
-   *  Reopen's wait goes: any end but a done job to `back`, a done job to
-   *  `done` (the script goes to `/` without it). Absent, the dialog opens
-   *  standing on its form's submit. */
-  ask?: AskParts & { wait?: { back: string; done?: string } };
+   *  project); its OK's form is `<id>-form`. `queuesJob`: its OK queues a
+   *  job, and the page goes to the Running page to follow it (Close,
+   *  Reopen). Absent, the dialog opens standing on its form's submit. */
+  ask?: AskParts & { queuesJob?: boolean };
   /** The steps it lists while it runs, each waiting until the page script
-   *  moves it: Deploy's five, or Close's and Reopen's plan (none for a skill
-   *  that could not be read; the script then adds a line per step the log
-   *  marks). Absent, the dialog has no list. */
+   *  moves it: Deploy's five. Absent, the dialog has no list. */
   steps?: { key: string; label: string }[];
   /** Trusted markup under the steps while it runs: Deploy's finished line. */
   body?: string;
@@ -46,32 +43,35 @@ export interface ProgressParts {
   data?: Record<string, string>;
 }
 
-/** The step list, its state words as `data-*` for the page script, and the
- *  empty line it clones for a step the log reaches. */
-function stepList(lang: Language, steps: { key: string; label: string }[]): string {
-  const waiting = t(lang, "dialog.stepWaiting");
+/** A step's state in a step list. */
+export type ProgressStepState = "waiting" | "running" | "done" | "failed";
+
+/** A list of steps, each with its state and state word: a progress
+ *  dialog's, and a Close's or Reopen's on its row on the Running page. The
+ *  state words ride as `data-*` for the page script that moves a line. */
+export function progressSteps(
+  lang: Language,
+  steps: { key: string; label: string; state?: ProgressStepState }[],
+): string {
+  const words: Record<ProgressStepState, string> = {
+    waiting: t(lang, "dialog.stepWaiting"),
+    running: t(lang, "dialog.stepRunning"),
+    done: t(lang, "dialog.stepDone"),
+    failed: t(lang, "dialog.stepFailed"),
+  };
   const lines = steps
-    .map((s) => `<li data-step="${esc(s.key)}" data-state="waiting">${esc(s.label)} <span class="progressstate">${esc(waiting)}</span></li>`)
+    .map((s) => {
+      const state = s.state ?? "waiting";
+      return `<li data-step="${esc(s.key)}" data-state="${state}">${esc(s.label)} <span class="progressstate">${esc(words[state])}</span></li>`;
+    })
     .join("");
-  return (
-    `<ol class="progresssteps"${dataAttrs({
-      waiting,
-      running: t(lang, "dialog.stepRunning"),
-      done: t(lang, "dialog.stepDone"),
-      failed: t(lang, "dialog.stepFailed"),
-    })}>${lines}</ol>` +
-    `<template data-step-line><li data-state="waiting"><span class="progressstate"></span></li></template>`
-  );
+  return `<ol class="progresssteps"${dataAttrs(words)}>${lines}</ol>`;
 }
 
 export function progressDialog(lang: Language, parts: ProgressParts): string {
   const ask = parts.ask;
-  const wait = ask?.wait;
   const { question, answers } = ask
-    ? askParts(lang, ask, `${parts.id ?? ""}-form`, {
-        ...(wait ? { progress: wait.back } : {}),
-        ...(wait?.done ? { "progress-done": wait.done } : {}),
-      })
+    ? askParts(lang, ask, `${parts.id ?? ""}-form`, ask.queuesJob ? { progress: "" } : {})
     : { question: "", answers: "" };
   return (
     `<dialog class="progressdialog"${parts.id ? ` id="${esc(parts.id)}"` : ""} data-progress-dialog` +
@@ -79,7 +79,7 @@ export function progressDialog(lang: Language, parts: ProgressParts): string {
     `<div class="progresspanel">` +
     question +
     `<div data-running-face><h2 class="standingtitle">${esc(capitalizeFirst(parts.title))}</h2>` +
-    `${parts.steps ? stepList(lang, parts.steps) : ""}${parts.body ?? ""}</div>` +
+    `${parts.steps ? progressSteps(lang, parts.steps) : ""}${parts.body ?? ""}</div>` +
     messageSlot("refused") +
     answers +
     `</div></dialog>`

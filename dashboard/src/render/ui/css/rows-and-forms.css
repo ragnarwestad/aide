@@ -393,6 +393,12 @@ dialog[data-steps] { width: 26rem; max-width: calc(100% - 2 * var(--sp-4)); }
   -webkit-mask: var(--icon-loader) center / contain no-repeat; mask: var(--icon-loader) center / contain no-repeat;
   animation: badgespin 1.1s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .progresssteps li[data-state="running"] .progressstate::before { animation: none; } }
+/* On a Close's or Reopen's line on the Running page the list sits in a
+   table cell: a line is as tall as its text, and the step's name stands at
+   the top beside it. */
+tr.subrow .progresssteps { gap: var(--sp-1); }
+tr.subrow .progresssteps li { min-height: 0; }
+tr.subrow:has(.progresssteps) > td { vertical-align: top; }
 .deploymessage { min-height: calc(1em * var(--lh)); }
 
 /* How runs work: a small question mark at the right-hand end of the

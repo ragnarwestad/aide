@@ -1,6 +1,6 @@
 // A step's Log read back as the steps it has marked: one entry per step,
 // in the order each was first marked, in the state its last mark left it.
-// What a Close or Reopen dialog lists while its job runs.
+// What a Close's or Reopen's line on the Running page lists while its job runs.
 //
 // The marks have three writers, all in one shape: `aide-run-spec`'s own
 // parts in the run log (`--- Step Aide: preparing — started`), the

@@ -289,21 +289,19 @@ describe("spec 221: archived specs on the spec list", () => {
   const openFilter = { state: "archived", open: "aide/50-archived" };
   const dialogById = (html: string, id: string): string =>
     html.match(new RegExp(`<dialog[^>]*id="${id}"[^>]*>[\\s\\S]*?</dialog>`))?.[0] ?? "";
-  /** What both of the list's Reopen dialogs carry, so either answers on the
-   *  list: `list` is the list's own address, as an attribute holds it —
-   *  escaped once, never twice. */
-  const expectListParts = (dialog: string, list: string): void => {
+  /** What both of the list's Reopen dialogs carry: the post the page
+   *  script sends, and goes on to the Running page from. */
+  const expectListParts = (dialog: string): void => {
     const form = dialog.match(/<form\b[^>]*\saction="\/api\/queue"[^>]*>/);
     expect(form).not.toBeNull();
-    expect(form![0]).toContain(`data-progress="${list}"`);
-    expect(form![0]).toContain(`data-progress-done="${list}"`);
+    expect(form![0]).toContain("data-progress");
   };
 
-  test("an open archived row's Reopen names a dialog over the list that answers on the list (AC-4)", () => {
+  test("an open archived row's Reopen names a dialog over the list (AC-4)", () => {
     const open = rows({ archivedSpecs: [archivedSpec("50-archived")], filter: openFilter });
     const id = open.match(/<button\b[^>]*\sdata-ask="([^"]+)"[^>]*>Reopen<\/button>/)?.[1];
     expect(id).toBeDefined();
-    expectListParts(dialogById(open, id!), "/specs?state=archived&amp;open=aide%2F50-archived");
+    expectListParts(dialogById(open, id!));
   });
 
   test("a Failed criterion's Reopen in the unfolded checks names a dialog outside the panel's form (AC-4)", () => {
@@ -318,7 +316,7 @@ describe("spec 221: archived specs on the spec list", () => {
     expect(id).toBeDefined();
     expect(panel).not.toContain("<dialog");
     const dialog = dialogById(html, id!);
-    expectListParts(dialog, "/specs?state=archived&amp;checks=aide%2F50-archived");
+    expectListParts(dialog);
   });
 
   test("and carries the not-landed mark when its branch is still open", () => {

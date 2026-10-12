@@ -304,3 +304,22 @@ export function asResultTool(value: unknown): RunnableTool | "none" | undefined 
 export function landingInProject(jobs: Job[], project: string): boolean {
   return jobs.some((job) => job.landing && job.project === project);
 }
+
+/** The close or reopen a spec's row follows on the Running page: the
+ *  spec's newest job, while it is one of the two and has not ended done
+ *  (its landing over) or cancelled. Its folder may already be under `archive/` while it runs. */
+export function closeOrReopenJob<T extends {
+  steps: readonly string[];
+  stepIndex: number;
+  state: string;
+  landing?: boolean;
+  createdAt: string;
+  startedAt?: string;
+}>(jobs: T[]): T | undefined {
+  const at = (job: T): number => Date.parse(job.startedAt ?? job.createdAt) || 0;
+  const newest = jobs.reduce<T | undefined>((latest, job) => (!latest || at(job) > at(latest) ? job : latest), undefined);
+  const step = newest?.steps[newest.stepIndex] ?? newest?.steps.at(-1);
+  if (!newest || (step !== "close" && step !== "reopen")) return undefined;
+  const over = (newest.state === "done" && !newest.landing) || newest.state === "cancelled";
+  return over ? undefined : newest;
+}
