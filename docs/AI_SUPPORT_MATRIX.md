@@ -88,12 +88,12 @@ an allowlist test. See the frontmatter table in the ai-tools reference.
 
 ## Current models
 
-| Tool               | Default / recommended model                                                            |
-|--------------------|----------------------------------------------------------------------------------------|
-| Claude Code        | Claude Fable 5.1 (default Fable, v2.1.257); Opus 5 (v2.1.219) and Sonnet 5 (v2.1.197)  |
-| GitHub Copilot CLI | `auto` (chooses itself); Claude Fable 5.1, Sonnet 5, GPT-6 Astra and GPT-5.6 available |
-| OpenAI Codex CLI   | GPT-6 Astra (bundled default since 0.153.4)                                            |
-| OpenCode           | None of its own: every model is its provider's, named `provider/model`                 |
+| Tool               | Default / recommended model                                                                                                                           |
+|--------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Claude Code        | Claude Fable 5.1 (default Fable, v2.1.257); Opus 5 (v2.1.219) and Sonnet 5 (v2.1.197); Claude Haiku 5.5 (`claude-haiku-5-5`, default Haiku, v2.1.293) |
+| GitHub Copilot CLI | `auto` (chooses itself); Claude Fable 5.1, Sonnet 5, Haiku 5.5, GPT-6 Astra and GPT-5.6 available                                                     |
+| OpenAI Codex CLI   | GPT-6 Astra (bundled default since 0.153.4)                                                                                                           |
+| OpenCode           | None of its own: every model is its provider's, named `provider/model`                                                                                |
 
 Release dates and history are in the [news log](./AI_NEWS_LOG.md).
 
