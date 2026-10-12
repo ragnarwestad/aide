@@ -96,6 +96,42 @@ CODEX_STREAM_FAILED = "\n".join(
 )
 
 
+# What Codex says when the provider has no room for the chosen model: an
+# `error` event, then a `turn.failed` carrying the same sentence, and exit 1.
+AT_CAPACITY_MESSAGE = "Selected model is at capacity. Please try a different model."
+
+CODEX_STREAM_AT_CAPACITY = "\n".join(
+    json.dumps(e)
+    for e in [
+        {"type": "thread.started", "thread_id": CODEX_THREAD_ID},
+        {"type": "error", "message": AT_CAPACITY_MESSAGE},
+        {"type": "turn.failed", "error": {"message": AT_CAPACITY_MESSAGE}},
+    ]
+)
+
+
+# The same stop with the `turn.failed` missing: the `error` event alone ends it.
+CODEX_STREAM_AT_CAPACITY_NO_TURN = "\n".join(
+    json.dumps(e)
+    for e in [
+        {"type": "thread.started", "thread_id": CODEX_THREAD_ID},
+        {"type": "error", "message": AT_CAPACITY_MESSAGE},
+    ]
+)
+
+
+# An at-capacity error early on that Codex got past: the turn completes.
+CODEX_STREAM_RECOVERED = "\n".join(
+    json.dumps(e)
+    for e in [
+        {"type": "thread.started", "thread_id": CODEX_THREAD_ID},
+        {"type": "error", "message": AT_CAPACITY_MESSAGE},
+        {"type": "item.completed", "item": {"id": "item_0", "item_type": "agent_message", "text": "done"}},
+        {"type": "turn.completed", "usage": CODEX_USAGE},
+    ]
+)
+
+
 STREAM_NOISE = [
     {"type": "system", "subtype": "init", "cwd": "/x"},
     {"type": "assistant", "message": {"content": [{"type": "text", "text": "Reading queue.ts"}]}},
@@ -204,3 +240,20 @@ OPENCODE_STREAM_FAILED = "\n".join(
         }
     ]
 )
+
+
+# Claude Code's closing result when the API answered 529 on every try, and
+# the same with no status, only the words. `api_retry` events are what it
+# writes while it retries on its own.
+RESULT_OVERLOADED = {
+    **RESULT_OK, "is_error": True, "terminal_reason": "api_error",
+    "api_error_status": 529, "result": "API Error: Repeated 529 Overloaded errors",
+}
+RESULT_OVERLOADED_TEXT = {
+    **RESULT_OK, "is_error": True, "terminal_reason": "api_error",
+    "result": "API Error: the model is overloaded right now",
+}
+OVERLOAD_RETRIES = [
+    {"type": "system", "subtype": "api_retry", "attempt": attempt, "error_status": 529, "error": "overloaded_error"}
+    for attempt in (1, 2)
+]

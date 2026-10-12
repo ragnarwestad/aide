@@ -179,15 +179,19 @@ export type JobState = (typeof JOB_STATES)[number];
 // `criteriaChecks: stop`: the description needs putting right first.
 // `shared-files` is an analyze the runner stopped because another open
 // spec's analysis lists the same files: the two specs must be ordered first.
-export type StopReason = "timeout" | "provider-limit" | "tests-red" | "acceptance-criteria" | "shared-files";
+// `model-at-capacity` is a step the provider had no room for: unlike a
+// usage limit it has no reset to wait for, and another model runs at once.
+export type StopReason =
+  | "timeout" | "provider-limit" | "model-at-capacity" | "tests-red" | "acceptance-criteria" | "shared-files";
 
 /** The reasons a RUN stops on, as a step's result names them. `tests-red`
  *  is not one: a step's own red run fails it, and only a landing stops a
  *  job on red. */
 export const isRunStop = (
   reason: string | undefined,
-): reason is "timeout" | "provider-limit" | "acceptance-criteria" | "shared-files" =>
-  reason === "timeout" || reason === "provider-limit" || reason === "acceptance-criteria" || reason === "shared-files";
+): reason is "timeout" | "provider-limit" | "model-at-capacity" | "acceptance-criteria" | "shared-files" =>
+  reason === "timeout" || reason === "provider-limit" || reason === "model-at-capacity" ||
+  reason === "acceptance-criteria" || reason === "shared-files";
 
 /** The states in which a job waits for a person. `cancelled` is not one:
  *  a person ended it themselves. */

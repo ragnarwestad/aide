@@ -8,8 +8,11 @@ unchanged and keep their names.
 import json
 import pytest
 import pytest
-from ...conftest import STOP_DEADLINE_SEC, run
-from ..run_spec_results import CODEX_STREAM_FAILED, CODEX_STREAM_OK, CODEX_THREAD_ID, CODEX_USAGE, RESULT_OK, emits
+from ...conftest import READ_SPECS, STOP_DEADLINE_SEC, git, run
+from ..run_spec_results import (
+    CODEX_STREAM_AT_CAPACITY, CODEX_STREAM_AT_CAPACITY_NO_TURN, CODEX_STREAM_FAILED, CODEX_STREAM_OK,
+    CODEX_STREAM_RECOVERED, CODEX_THREAD_ID, CODEX_USAGE, RESULT_OK, emits,
+)
 
 
 def test_a_codex_run_records_tool_and_tokens_but_no_cost(runner, workspace, fake_codex):
@@ -230,6 +233,78 @@ def test_a_codex_turn_that_failed_with_room_left_is_still_a_cli_error(runner, wo
     rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
     assert out["terminalReason"] == "cli-error"
     assert "providerLimit" not in out
+
+
+def test_a_codex_model_at_capacity_is_its_own_stop_and_the_commit_says_so_AC_1(runner, workspace, fake_codex):
+    """Codex says the model is full in its stream and exits 1. That is the
+    provider having no room, not the CLI failing: the step stops with a
+    reason of its own, and it reaches the commit subject."""
+    body = emits(CODEX_STREAM_AT_CAPACITY) + "; exit 1"
+    codex = fake_codex(
+        body.replace(
+            "cat > /dev/null; ",
+            "cat > /dev/null\n" + READ_SPECS
+            + f'echo "analysis" > "$specs/{workspace["folder"]}/2-analysis.md"\n',
+            1,
+        )
+    )
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex, command="analyze", model="gpt-5.6")
+    assert rc == 0, out
+    assert out["ok"] is False
+    assert out["terminalReason"] == "model-at-capacity", out
+    assert "at capacity right now" in out["error"], out["error"]
+    assert "press Analyze again" in out["error"] and "choose another model" in out["error"], out["error"]
+    assert "gpt-5.6" in out["error"], out["error"]
+    subject_line = git(workspace["specs"], "log", "-1", "--pretty=%s", "aide/81-queue-and-runner")
+    assert subject_line.endswith("(stopped: model-at-capacity)"), subject_line
+
+
+def test_a_codex_at_capacity_error_with_no_failed_turn_is_the_same_stop_AC_1(runner, workspace, fake_codex):
+    codex = fake_codex(emits(CODEX_STREAM_AT_CAPACITY_NO_TURN) + "; exit 1")
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
+    assert out["ok"] is False
+    assert out["terminalReason"] == "model-at-capacity", out
+
+
+def test_a_codex_at_capacity_error_the_turn_got_past_is_not_a_stop_AC_1(runner, workspace, fake_codex):
+    """"Ends with" is the condition: an earlier error in a turn that then
+    completed is not how the step ended."""
+    codex = fake_codex(emits(CODEX_STREAM_RECOVERED))
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
+    assert rc == 0, out
+    assert out["ok"] is True
+    assert out["terminalReason"] == "completed"
+
+
+def test_a_codex_at_capacity_error_a_later_error_followed_is_a_cli_error_AC_6(runner, workspace, fake_codex):
+    """The last error decides: a different one after the at-capacity one is
+    what the step ended on."""
+    stream = CODEX_STREAM_AT_CAPACITY_NO_TURN + "\n" + CODEX_STREAM_FAILED.split("\n", 1)[1]
+    codex = fake_codex(emits(stream) + "; exit 1")
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
+    assert out["terminalReason"] == "cli-error"
+
+
+def test_a_codex_exit_1_with_no_at_capacity_error_is_a_cli_error_AC_6(runner, workspace, fake_codex):
+    codex = fake_codex(emits(CODEX_STREAM_FAILED) + "; exit 1")
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
+    assert out["terminalReason"] == "cli-error"
+
+
+def test_a_codex_turn_at_capacity_with_a_full_window_keeps_the_provider_limit_AC_5(
+        runner, workspace, fake_codex, tmp_path, monkeypatch):
+    home = tmp_path / "codex-home"
+    _codex_session(home, {
+        "primary": {"used_percent": 100.0, "window_minutes": 300, "resets_at": 1789639800},
+        "secondary": {"used_percent": 41.4, "window_minutes": 10080, "resets_at": 1789866000},
+        "plan_type": "plus", "rate_limit_reached_type": None})
+    monkeypatch.setenv("CODEX_HOME", str(home))
+    codex = fake_codex(emits(CODEX_STREAM_AT_CAPACITY) + "; exit 1")
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
+    assert out["terminalReason"] == "provider-limit"
+    assert out["providerLimit"]["window"] == "five_hour"
+    assert out["providerLimit"]["resetsAt"] == "2026-09-17T10:10:00Z"
+    assert "resets 2026-09-17T10:10:00Z" in out["error"]
 
 
 def test_a_codex_run_gets_no_session_id_argument(runner, workspace, fake_codex):

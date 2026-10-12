@@ -51,6 +51,15 @@ describe("an analyze stopped on its acceptance criteria", () => {
   });
 });
 
+describe("an analyze stopped because the model was at capacity", () => {
+  test("reads amber Stopped from history, in a sentence rather than the raw token (AC-3)", () => {
+    const w = wordPhase(false, undefined, undefined, { stopped: "model-at-capacity", step: "analyze" });
+    expect(w.badge).toEqual({ variant: "waiting", label: "Stopped" });
+    expect(w.qualifier).toContain("at capacity");
+    expect(w.qualifier).not.toContain("model-at-capacity");
+  });
+});
+
 describe("an analyze stopped on files another open spec changes", () => {
   test("reads amber Stopped from history, in a sentence rather than the raw token (AC-3)", () => {
     const w = wordPhase(false, undefined, undefined, { stopped: "shared-files", step: "analyze" });

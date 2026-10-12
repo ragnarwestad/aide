@@ -10,11 +10,13 @@ import { runSpecParts } from "../helpers/run-spec-source.ts";
 const SCRIPTS = join(import.meta.dir, "../../../core/scripts");
 
 // The reasons the script writes that are NOT a failure of the step's work:
-// a finished step, a close, the two limits the queue keeps as stopped, an
-// analyze stopped on its acceptance criteria or on files another open
+// a finished step, a close, the two limits the queue keeps as stopped, a model
+// the provider had no room for, an analyze stopped on its acceptance criteria or on files another open
 // spec changes, a cancel, and the runner
 // declining before any model ran.
-const NOT_FAILURES = ["completed", "closed", "timeout", "provider-limit", "acceptance-criteria", "shared-files", "cancelled", "refused"];
+const NOT_FAILURES = [
+  "completed", "closed", "timeout", "provider-limit", "model-at-capacity", "acceptance-criteria", "shared-files", "cancelled", "refused",
+];
 
 describe("isFailedStop", () => {
   test("names the seven reasons a step ends failed for", () => {
@@ -60,6 +62,11 @@ describe("leavesStepUndone", () => {
   test("an analyze stopped on files another open spec changes is not a failure, and leaves its step undone (AC-2)", () => {
     expect(isFailedStop("shared-files")).toBe(false);
     expect(leavesStepUndone("shared-files")).toBe(true);
+  });
+
+  test("a model at capacity is not a failure, and leaves its step undone (AC-4)", () => {
+    expect(isFailedStop("model-at-capacity")).toBe(false);
+    expect(leavesStepUndone("model-at-capacity")).toBe(true);
   });
 
   test("every failed stop leaves its step undone, and the clock does not", () => {

@@ -25,6 +25,7 @@ const STOP_SENTENCES: Record<string, MessageKey> = {
   "conflict-open": "wordPhase.stopConflictOpen",
   "provider-limit": "wordPhase.stopProviderLimit",
   "model-refused": "wordPhase.stopModelRefused",
+  "model-at-capacity": "wordPhase.stopModelAtCapacity",
   "acceptance-criteria": "wordPhase.stopAcceptanceCriteria",
   "shared-files": "wordPhase.stopSharedFiles",
 };

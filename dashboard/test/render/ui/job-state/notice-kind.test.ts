@@ -112,3 +112,16 @@ describe("specNotice for an analyze stopped on files another open spec changes",
     expect(notice?.text).toContain("z.ts");
   });
 });
+
+// A model the provider had no room for waits on the person who presses the
+// step again or picks another model: amber, like the badge.
+describe("specNotice for a step stopped because the model is at capacity", () => {
+  test("renders the job's sentence as a waiting message, not failed (AC-3)", () => {
+    const sentence = "Analyze stopped: sonnet is at capacity right now — press Analyze again, or choose another model for this step";
+    const notice = specNotice(
+      lead({ steps: ["analyze"], state: "stopped", stopReason: "model-at-capacity", error: sentence }),
+    );
+    expect(notice?.variant).toBe("waiting");
+    expect(notice?.text).toContain("sonnet");
+  });
+});

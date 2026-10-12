@@ -498,7 +498,7 @@ export class Runner {
         ...base,
         stopReason: outcome.terminalReason,
         finishedAt: this.o.now(),
-        error: runStopMessage(step, outcome) ?? outcome.error,
+        error: runStopMessage(step, outcome, resolveStepModel(job, step, this.o.store.defaults.model)) ?? outcome.error,
       });
       this.announce(result.ok ? result.job : job, "stopped", step, outcome.terminalReason);
       return;

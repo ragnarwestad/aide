@@ -124,6 +124,16 @@ export const MESSAGES = {
     fr: "{button} interrompu : le modèle a refusé de continuer. — Cliquez de nouveau sur {button}, ou choisissez un autre modèle pour cette étape.",
     resolve: "Press {button} again, or choose another model for this step.",
   },
+  // The provider had no room for the model the step ran on (no reset to wait
+  // for): said for the step and the model, with the two moves the reader has.
+  "runner.modelAtCapacity": {
+    en: "{button} stopped: {model} is at capacity right now. — Press {button} again, or choose another model for this step.",
+    nb: "{button} stoppet: {model} har ikke kapasitet akkurat nå. — Trykk {button} igjen, eller velg en annen modell for dette steget.",
+    es: "{button} se detuvo: {model} no tiene capacidad ahora mismo. — Pulsa {button} de nuevo, o elige otro modelo para este paso.",
+    de: "{button} angehalten: {model} ist gerade ausgelastet. — Klicke erneut auf {button} oder wähle für diesen Schritt ein anderes Modell.",
+    fr: "{button} interrompu : {model} est saturé en ce moment. — Cliquez de nouveau sur {button}, ou choisissez un autre modèle pour cette étape.",
+    resolve: "Press {button} again, or choose another model for this step.",
+  },
   // An analyze stopped at the spec's `criteriaChecks: stop`, with one
   // inner sentence per kind of fault the plan review named.
   "runner.criteriaStopped": {
@@ -656,6 +666,14 @@ export const MESSAGES = {
     es: "el modelo se negó a continuar — ejecútalo de nuevo, o elige otro modelo",
     de: "das Modell hat sich geweigert fortzufahren — führe es erneut aus oder wähle ein anderes Modell",
     fr: "le modèle a refusé de continuer — relancez-le, ou choisissez un autre modèle",
+    resolve: "run it again",
+  },
+  "wordPhase.stopModelAtCapacity": {
+    en: "the model was at capacity — run it again, or choose another model",
+    nb: "modellen hadde ikke kapasitet — kjør på nytt, eller velg en annen modell",
+    es: "el modelo no tenía capacidad — ejecútalo de nuevo, o elige otro modelo",
+    de: "das Modell war ausgelastet — führe es erneut aus oder wähle ein anderes Modell",
+    fr: "le modèle était saturé — relancez-le, ou choisissez un autre modèle",
     resolve: "run it again",
   },
   "wordPhase.stopAcceptanceCriteria": {
@@ -1227,6 +1245,14 @@ export const MESSAGES = {
     es: "{step} se detuvo por el límite de uso de la IA — espera a que pulses {button} de nuevo cuando el límite se restablezca.",
     de: "{step} wurde durch das Nutzungslimit der KI gestoppt — es wartet darauf, dass du nach dem Zurücksetzen des Limits erneut {button} klickst.",
     fr: "{step} s'est arrêté sur la limite d'usage de l'IA — il attend que vous cliquiez de nouveau sur {button} une fois la limite réinitialisée.",
+    resolve: "press {button} again",
+  },
+  "push.stoppedModelAtCapacity": {
+    en: "{step} stopped: the model was at capacity — it waits for you to press {button} again or choose another model.",
+    nb: "{step} stoppet: modellen hadde ikke kapasitet — den venter på at du trykker {button} igjen eller velger en annen modell.",
+    es: "{step} se detuvo: el modelo no tenía capacidad — espera a que pulses {button} de nuevo o elijas otro modelo.",
+    de: "{step} angehalten: das Modell war ausgelastet — es wartet darauf, dass du erneut {button} klickst oder ein anderes Modell wählst.",
+    fr: "{step} s'est arrêté : le modèle était saturé — il attend que vous cliquiez de nouveau sur {button} ou choisissiez un autre modèle.",
     resolve: "press {button} again",
   },
   "push.stoppedTestsRed": {

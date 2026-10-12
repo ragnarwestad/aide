@@ -75,7 +75,20 @@ export function sharedFilesStopMessage(step: WorkflowStep, outcome: Partial<Step
   return { key: "runner.sharedFilesStopped", values: { button: stepButton(step) }, inner };
 }
 
+/** A step the provider had no room for: the board's sentence naming the
+ *  model the step ran on. Undefined without one: the runner's own
+ *  sentence then stands. */
+export function modelAtCapacityMessage(
+  step: WorkflowStep,
+  outcome: Partial<StepOutcome>,
+  model: string | undefined,
+): BoardMessage | undefined {
+  if (outcome.terminalReason !== "model-at-capacity" || !model) return undefined;
+  return { key: "runner.modelAtCapacity", values: { button: stepButton(step), model } };
+}
+
 /** The board's sentence for a run that stopped on a check of the spec
- *  itself — the acceptance criteria or the files other open specs share. */
-export const runStopMessage = (step: WorkflowStep, outcome: Partial<StepOutcome>): BoardMessage | undefined =>
-  criteriaStopMessage(step, outcome) ?? sharedFilesStopMessage(step, outcome);
+ *  itself — the acceptance criteria or the files other open specs share —
+ *  or on a model the provider had no room for. */
+export const runStopMessage = (step: WorkflowStep, outcome: Partial<StepOutcome>, model?: string): BoardMessage | undefined =>
+  criteriaStopMessage(step, outcome) ?? sharedFilesStopMessage(step, outcome) ?? modelAtCapacityMessage(step, outcome, model);

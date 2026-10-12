@@ -551,7 +551,7 @@ aide · 81-queue-and-runner · analyze done · $2.1 · https://github.com/…/co
 
 The dashboard also sends a push notification to each device that turned them on, when a spec needs a person:
 
-- a step **failed**, ran out of **time**, hit the AI's **usage limit**, or was **cut off** (its process vanished, or the
+- a step **failed**, ran out of **time**, hit the AI's **usage limit**, found its model **at capacity**, or was **cut off** (its process vanished, or the
   server restarted under it) — the job entered `failed`, `stopped` or `interrupted`; a tap opens the Specs list with
   that spec's row unfolded, where its state and the buttons that act on it are. A stop on shared files names, by
   number, the specs it added to the analysis's record;
