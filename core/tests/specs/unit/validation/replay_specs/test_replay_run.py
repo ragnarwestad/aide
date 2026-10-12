@@ -1,4 +1,5 @@
 """scripts/replay_specs: whole runs through main(argv), with a stand-in runner, judge and gh."""
+import json
 import os
 import re
 import signal
@@ -85,6 +86,24 @@ def test_the_runner_the_skills_the_rules_and_the_scripts_are_those_of_the_aide_c
     assert world.record("analyze", "claude-skills").split() == ["aide-analyze", "aide-implement"]
     assert world.record("analyze", "claude-rules").split() == ["git.md", "llm-discipline.md"]
     assert "write-spec v1" in world.record("analyze", "write-spec")
+
+
+def test_an_advisor_reaches_a_claude_step_through_its_config_folder_and_the_header(world, replay_main):
+    assert replay_main(world.argv("4-replayed", analyze=("claude", "sonnet"), implement=None, extra=("--advisor", "opus"))) == 0
+
+    assert json.loads(world.record("analyze", "claude-settings")) == {"advisorModel": "opus"}
+    assert "advisor opus" in results_text(world)
+
+
+def test_without_an_advisor_a_claude_step_gets_no_settings(world, replay_main):
+    assert replay_main(world.argv("4-replayed", implement=None)) == 0
+
+    assert world.record("analyze", "claude-settings") is None
+
+
+def test_an_advisor_with_no_claude_step_is_refused_before_anything_is_copied(world, replay_main, capsys):
+    refused(world, capsys, replay_main, world.argv("4-replayed", analyze=("codex", "gpt-6.1-sol"), implement=None,
+                                                   extra=("--advisor", "opus")), "--advisor")
 
 
 def test_a_codex_step_gets_the_commits_skills_a_linked_login_and_the_installed_skills_switched_off_AC_3(world, replay_main, monkeypatch):

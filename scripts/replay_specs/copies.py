@@ -48,7 +48,7 @@ def copy_skills(core, dest, skip=()):
             shutil.copytree(skill, Path(dest) / "skills" / skill.name)
 
 
-def tool_environment(core, tool, tools_dir, home):
+def tool_environment(core, tool, tools_dir, home, advisor=None):
     """Set up the configuration folder `tool` reads its skills from, filled from the Aide commit the way its installer
     lays them out, and return the environment that points the CLI at it."""
     folder = Path(tools_dir) / ("claude" if tool == "fake-claude" else tool)
@@ -62,6 +62,8 @@ def tool_environment(core, tool, tools_dir, home):
         for rule in rules:
             if (core / "rules" / f"{rule}.md").exists():
                 shutil.copy(core / "rules" / f"{rule}.md", folder / "rules")
+        if advisor:
+            (folder / "settings.json").write_text(json.dumps({"advisorModel": advisor}))
         return {"CLAUDE_CONFIG_DIR": str(folder)}
     if tool == "codex":
         copy_skills(core, folder)

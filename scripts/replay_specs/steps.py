@@ -42,6 +42,7 @@ class Run:
     analyze: Step
     implement: Optional[Step]
     judge_model: str
+    advisor: Optional[str]
     branch: str
     code_landing: str
     env: dict
