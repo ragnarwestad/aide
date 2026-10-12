@@ -129,7 +129,7 @@ themselves to catch a stray writer regardless of mechanism, and a second
 guard test keeps `dashboard/docs/spec-transitions.md`'s diagram in agreement
 with the table's rows.
 
-`DEPENDENCY_GATED_STEPS` is `implement` and `archive`, and "merged" means
+`DEPENDENCY_GATED_STEPS` is `analyze`, `implement` and `archive`, and "merged" means
 ARCHIVED: a dependent spec's held-back steps are released when the
 dependency's `archive` step runs. The two copies decide different things:
 
@@ -144,6 +144,12 @@ the two differ on purpose:
 - The dashboard — parks the job and asks again every tick for up to
   `UNCONFIRMED_HOLD_MS` before releasing it, so a moment's failure does
   not start a job into the script's refusal.
+
+A job queued for its next step right after `create` is asked about
+before the board's cached scan of the specs has the new spec. The
+dashboard reads that spec's Depends on off disk, where the create
+landing has already put it, rather than taking its absence from the
+scan as naming no dependency.
 
 The acceptance-criteria gate is
 the script's alone: `aide-archive-spec` refuses an `archive` whose state
