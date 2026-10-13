@@ -2,7 +2,6 @@
 //
 // Split out of spec-views.ts 2026-09-04, where it had grown to 562
 // lines; every function is unchanged and keeps its name.
-import { closeOrReopenJob, type Job } from "../../queue/queue.ts";
 import { specCloseReason, specFileText } from "../../project/discover";
 import { acceptanceRowsOf, parseStatus } from "../../project/parse-status";
 import { specPhaseOutcome, type PhaseOutcome } from "../../project/parse-phase-outcome.ts";
@@ -107,15 +106,9 @@ export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefine
   // A landing whose suite was green only on its retry, per spec: the
   // lines the first run failed on, off whichever job recorded them.
   const retried = new Map<string, string>();
-  const jobsByKey = new Map<string, Job[]>();
   for (const job of ctx.queue.list()) {
-    const key = `${job.project}/${job.specFolder}`;
-    if (job.testsGreenOnRetry) retried.set(key, job.testsGreenOnRetry);
-    jobsByKey.set(key, [...(jobsByKey.get(key) ?? []), job]);
+    if (job.testsGreenOnRetry) retried.set(`${job.project}/${job.specFolder}`, job.testsGreenOnRetry);
   }
-  // A spec a Close or Reopen is still working on, or ended on without
-  // finishing: followed on the Running page whatever the view.
-  const moving = new Set([...jobsByKey].filter(([, jobs]) => closeOrReopenJob(jobs)).map(([key]) => key));
   for (const key of scan?.archived ?? []) {
     const cut = key.indexOf("/");
     const project = key.slice(0, cut);
@@ -137,7 +130,7 @@ export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefine
     // default view exactly what it exists to save. A PR waiting on
     // review is not the failure this gate exists to surface, so it
     // does not bypass it the way `notLanded` does.
-    if (!everyOne && !notLanded && !moving.has(key)) continue;
+    if (!everyOne && !notLanded) continue;
     if (!ref) continue;
     // The Not verified entry builds only the rows it lists — the count is
     // on the ref, so the rest of the archive costs no file read. A row

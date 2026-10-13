@@ -97,8 +97,10 @@ export async function submitProgress(form: HTMLFormElement, event: Event, io: Pr
     form,
     (answer) => {
       const job = answer?.job;
-      // It stands until the Running page has replaced this one.
-      io.go(job?.project && job.specFolder ? `/?open=${job.project}/${job.specFolder}` : "/");
+      // It stands until the Running page has replaced this one, with the
+      // job's own row open: its key is the spec's and the job's step.
+      const step = job?.steps?.[job.stepIndex ?? 0];
+      io.go(job?.project && job.specFolder && step ? `/?open=${job.project}/${job.specFolder}:${step}` : "/");
     },
     (why) => hold.release(why),
   );

@@ -1,5 +1,5 @@
 // Reopen asks in a dialog, from the spec in its open row, and once the queue
-// has the job the page goes to the Running page with the spec's row open.
+// has the job the page goes to the Running page with the job's own row open.
 //
 // `make test` runs it, and by hand:
 // `cd dashboard && bun test --timeout 20000 test/e2e/reopen-in-a-dialog.test.ts`.
@@ -21,7 +21,7 @@ beforeAll(async () => {
 afterAll(async () => { await browser.close(); harness.cleanup(); });
 
 const SPEC = `/specs/aide/${STAMPED}`;
-const ACCEPTED = { status: 200, json: { ok: true, job: { id: "j1", project: "aide", specFolder: STAMPED } } };
+const ACCEPTED = { status: 200, json: { ok: true, job: { id: "j1", project: "aide", specFolder: STAMPED, steps: ["reopen"], stepIndex: 0 } } };
 
 interface Opened {
   page: Page;
@@ -88,12 +88,12 @@ describe("Reopen asks in a dialog from the spec in its row", () => {
     }
   });
 
-  test("an accepted post goes to the Running page with the spec's row open", async () => {
+  test("an accepted post goes to the Running page with the job's row open", async () => {
     const { page } = await open(SPEC);
     await ask(page);
     await dialog(page).getByRole("button", { name: "OK" }).click();
     await page.waitForURL((url) => url.pathname === "/");
-    expect(new URL(page.url()).searchParams.get("open")).toBe(`aide/${STAMPED}`);
+    expect(new URL(page.url()).searchParams.get("open")).toBe(`aide/${STAMPED}:reopen`);
   });
 
   test("a refusal is written in the dialog, which stays, and a second OK posts again (AC-3)", async () => {

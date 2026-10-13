@@ -6,10 +6,12 @@
 // script treat it as a spec's row: it redraws it by that id and writes a
 // refused Stop under it. A scheduled job's row folds as a spec's does,
 // from the `open` key in the address: shut, it holds the title, state, time and
-// cost; open, it adds the links and Stop or Cancel.
+// cost; open, it adds the links and Stop or Cancel. A Close or Reopen is drawn
+// the same way, and open it also lists the job's steps, each in the state the
+// job's log has it in.
 
 import { t, type Language } from "../../../i18n";
-import { askButton, confirmDialog, foldArrow, stepLabel } from "../../ui/components";
+import { askButton, confirmDialog, foldArrow, progressSteps, stepLabel, type ProgressStepState } from "../../ui/components";
 import { projectLink } from "../../ui/components/spec-name.ts";
 import { esc } from "../../ui/html.ts";
 import { currentStep, durationLabel, inFlight, specStateChip, type QueueRowView } from "../../ui/job-state";
@@ -18,7 +20,8 @@ import { costCell } from "../specs-list/cell-helpers.ts";
 import type { SpecsFilter } from "../specs-list";
 import { queuePath } from "../specs-list/filter-bar.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
-import { jobControl, jobHome, jobTitle } from "./rows.ts";
+import { closeOrReopenStep } from "../../../queue/queue.ts";
+import { jobControl, jobHome, jobKey, jobTitle } from "./rows.ts";
 import { jobDurationMs, jobEndMs } from "./view.ts";
 
 export interface JobRowOptions {
@@ -28,6 +31,8 @@ export interface JobRowOptions {
   filter: SpecsFilter;
   /** The page the row sits on, for its fold's address. */
   listPath: string;
+  /** A Close or Reopen job's steps, each in the state its log has it in. */
+  steps?: (jobId: string, step: string) => { key: string; label: string; state?: ProgressStepState }[];
 }
 
 const openKeys = (o: JobRowOptions): string[] => (o.filter.open ?? "").split(",").filter(Boolean);
@@ -73,16 +78,24 @@ function timeCell(row: QueueRowView, now: number): string {
   return Number.isNaN(jobEndMs(row)) ? "–" : `<span class="muted small">${durationLabel(jobDurationMs(row, now))}</span>`;
 }
 
-/** The word of the link to the place the job belongs. */
-function homeWord(lang: Language): string {
-  return t(lang, "shell.tabSchedule");
+/** The word of the link to the place the job belongs: the Schedule tab, or
+ *  the spec a Close or Reopen works on, by its folder. */
+function homeWord(row: QueueRowView, lang: Language): string {
+  return closeOrReopenStep(row) ? row.specFolder : t(lang, "shell.tabSchedule");
+}
+
+/** A Close or Reopen's steps, under its links while the row is open. */
+function stepList(row: QueueRowView, o: JobRowOptions): string {
+  const step = closeOrReopenStep(row);
+  const steps = step ? (o.steps?.(row.id, step) ?? []) : [];
+  return steps.length ? progressSteps(o.lang, steps) : "";
 }
 
 export function jobRow(row: QueueRowView, o: JobRowOptions): string {
   const { lang } = o;
-  const key = `${row.project}/${row.specFolder}`;
+  const key = jobKey(row);
   const open = openKeys(o).includes(key);
-  const name = jobTitle(row);
+  const name = jobTitle(row, lang);
   const kind = open ? jobControl(row) : undefined;
   const label =
     `${projectLink(row.project, { className: "muted" })}<span class="specpart"><span class="muted">:</span>` +
@@ -93,7 +106,8 @@ export function jobRow(row: QueueRowView, o: JobRowOptions): string {
     `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name"><span class="label">${label}</span></div>` +
     (open
       ? `<div class="spec-title"><a data-goto href="/jobs/${esc(row.id)}?tab=steps">${t(lang, "job.tabLog")}</a> · ` +
-        `<a data-goto href="${esc(jobHome(row))}">${esc(homeWord(lang))}</a></div>`
+        `<a data-goto href="${esc(jobHome(row))}">${esc(homeWord(row, lang))}</a></div>` +
+        stepList(row, o)
       : "") +
     `</td></tr>` +
     `<tr class="specstate"><td colspan="2"></td>` +

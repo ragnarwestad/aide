@@ -7,6 +7,7 @@ import {
   byTabPlace,
   jobControl,
   jobHome,
+  jobKey,
   jobPlace,
   jobsShown,
   jobTitle,
@@ -190,6 +191,36 @@ describe("a waiting scheduled job whose entry was deleted (AC-5)", () => {
   test("a running scheduled job does not ask whether its entry exists (AC-5)", () => {
     const running = sched({ id: "r", state: "running" });
     expect(ids([running], { ...none, scheduleEntryExists: () => false })).toEqual(["r"]);
+  });
+});
+
+describe("a Close or Reopen is a job row of its own, not its spec's", () => {
+  const at = (step: string, o: Partial<J> = {}): J => job({ steps: [step], ...o });
+  test("a queued, a running and a landing Close or Reopen have a row", () => {
+    const jobs = [
+      at("reopen", { id: "q", state: "queued" }),
+      at("close", { id: "r", state: "running", specFolder: "82-b" }),
+      at("reopen", { id: "l", state: "done", landing: true, specFolder: "83-c" }),
+    ];
+    expect(ids(jobs)).toEqual(["q", "r", "l"]);
+  });
+
+  test("a failed one keeps its row until a newer job of its spec, and a finished one has none", () => {
+    expect(ids([at("close", { id: "f", state: "failed" })])).toEqual(["f"]);
+    expect(ids([at("close", { id: "f", state: "failed", createdAt: T(1) }), job({ id: "a", state: "running", createdAt: T(2) })])).toEqual([]);
+    expect(ids([at("reopen", { id: "d", state: "done" })])).toEqual([]);
+  });
+
+  test("a reopen gone on to the spec's next step is the spec's again", () => {
+    expect(ids([job({ id: "on", steps: ["reopen", "analyze"], stepIndex: 1, state: "running" })])).toEqual([]);
+  });
+
+  test("its key is its spec's and its step's, its title names both, and it belongs to its spec", () => {
+    const row = at("reopen", { project: "aide", specFolder: "534-a-card" });
+    expect(jobKey(row)).toBe("aide/534-a-card:reopen");
+    expect(jobKey(sched())).toBe("aide/schedule-nightly");
+    expect(jobTitle(row)).toBe("Reopen 534-a-card");
+    expect(jobHome(row)).toBe("/specs/aide/534-a-card");
   });
 });
 

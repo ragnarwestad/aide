@@ -16,10 +16,10 @@ import { activeSpecRows, type SpecsPageOptions } from "../specs-list";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { jobsFilterBar, jobsHead } from "./filter-bar.ts";
 import { jobRow } from "./job-row.ts";
-import { byTabPlace, jobPlace, specPlace, type TabPlace } from "./rows.ts";
+import { byTabPlace, jobKey, jobPlace, specPlace, type TabPlace } from "./rows.ts";
 import { jobFacts, jobsViewRows, type RowFacts } from "./view.ts";
 
-export { jobControl, jobHome, jobsShown, jobTitle } from "./rows.ts";
+export { jobControl, jobHome, jobKey, jobsShown, jobTitle } from "./rows.ts";
 export type { JobLike } from "./rows.ts";
 
 /** What the page draws: the scheduled jobs it shows, and the Specs
@@ -46,8 +46,8 @@ function entries(v: JobsView): { key: string; html: string; place: TabPlace; fac
     key: s.key, html: s.html, place: specPlace(s.group), facts: s.group,
   }));
   const jobs = v.shown.map((job) => ({
-    key: `${job.project}/${job.specFolder}`,
-    html: jobRow(job, { lang, now, filter: v.list.filter ?? {}, listPath: v.list.listPath ?? "/" }),
+    key: jobKey(job),
+    html: jobRow(job, { lang, now, filter: v.list.filter ?? {}, listPath: v.list.listPath ?? "/", steps: v.list.closeOrReopenSteps }),
     place: jobPlace(job),
     facts: jobFacts(job, now),
   }));

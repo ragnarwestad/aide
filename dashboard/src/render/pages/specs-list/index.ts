@@ -159,7 +159,7 @@ export interface SpecsPageOptions {
    *  before this existed. */
   pendingSteps?: Record<string, string[]>;
   /** The steps of a Close or Reopen job, each in the state its log has it
-   *  in: what the line under an open row's phases lists while one runs. */
+   *  in: what the job's own open row on the Running page lists. */
   closeOrReopenSteps?: (jobId: string, step: string) => { key: string; label: string; state?: ProgressStepState }[];
   /** Every project a spec may be CREATED in — the raw allowlist, not
    *  the discovered set. A project whose first spec this form exists to

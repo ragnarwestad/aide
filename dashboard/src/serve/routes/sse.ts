@@ -1,7 +1,7 @@
 // The SSE subscription route (spec 189). Extracted from routes.ts
 // (split of split serve.ts step 2) so the dispatcher's own body reads as
 // a short sequence of theme calls.
-import { parsePhaseKeys, phaseKey } from "../../render";
+import { parsePhaseKeys } from "../../render";
 import type { RoutesContext } from "./";
 
 export function handleQueueEvents(ctx: RoutesContext, req: Request, path: string): Response | null {
@@ -13,15 +13,12 @@ export function handleQueueEvents(ctx: RoutesContext, req: Request, path: string
         mine = controller;
         ctx.watchers.add(controller);
         // The phases this tab has unfolded (spec 500): only these hear a
-        // transcript grow. A spec it has open hears its Close or Reopen
-        // grow too: the line under its phases lists the steps the log marks.
+        // transcript grow. A Close or Reopen row it has open hears its
+        // job's log grow too: the row's key is the job's phase key, and the
+        // open row lists the steps the log marks.
         const url = new URL(req.url);
         const keys = parsePhaseKeys(url.searchParams.get("phases"));
-        for (const spec of (url.searchParams.get("open") ?? "").split(",")) {
-          const slash = spec.indexOf("/");
-          if (slash <= 0 || slash === spec.length - 1) continue;
-          for (const step of ["close", "reopen"]) keys.add(phaseKey(spec.slice(0, slash), spec.slice(slash + 1), step));
-        }
+        for (const key of parsePhaseKeys(url.searchParams.get("open"))) keys.add(key);
         if (keys.size) ctx.phaseWatchers.set(controller, keys);
         // The subscriber is registered — say so. A caller that acts
         // the instant its `fetch` resolves would otherwise race the

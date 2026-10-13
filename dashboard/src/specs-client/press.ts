@@ -34,7 +34,7 @@ export interface ActionResult {
   /** The project a project route answered for (`answerProjectChange`). */
   project?: string;
   /** The job a queue request started, for a caller that waits for it. */
-  job?: { id?: string; project?: string; specFolder?: string };
+  job?: { id?: string; project?: string; specFolder?: string; steps?: string[]; stepIndex?: number };
   /** Where a saved schedule entry goes next: the page it was opened from. */
   location?: string;
   /** What a press that went through says about itself ("saved

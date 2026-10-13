@@ -111,11 +111,14 @@ describe("GET /api/queue/events?phases=… (AC-3)", () => {
     expect(server.phaseWatchCount()).toBe(0);
   });
 
-  // The Running page with a spec open follows that spec's Close or Reopen:
-  // its line lists the steps the job's log marks.
-  test("a tab with a spec open hears that spec's Close or Reopen grow", async () => {
+  // A Close or Reopen row open on the Running page lists the steps the
+  // job's log marks; a spec's own open row hears no log.
+  test("a tab with a Close or Reopen row open hears that job's log grow, and one with a spec open does not", async () => {
     const { base, server } = harness.start();
-    const s = await connectStream(base, "?open=aide/500-x");
+    const spec = await connectStream(base, "?open=aide/500-x");
+    opened.push(spec);
+    expect(server.phaseWatchCount()).toBe(0);
+    const s = await connectStream(base, "?open=aide/500-x:reopen");
     opened.push(s);
     expect(server.phaseWatchCount()).toBe(1);
   });

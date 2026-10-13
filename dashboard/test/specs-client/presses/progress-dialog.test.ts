@@ -110,8 +110,8 @@ function fakeAsk() {
 }
 
 describe("submitProgress from inside the ask", () => {
-  test("posts for JSON, stands while it is sent, and goes to the Running page with the spec's row open", async () => {
-    const requests = stubPost(200, { ok: true, job: { id: "j1", project: "aide", specFolder: "150-x" } });
+  test("posts for JSON, stands while it is sent, and goes to the Running page with the job's row open", async () => {
+    const requests = stubPost(200, { ok: true, job: { id: "j1", project: "aide", specFolder: "150-x", steps: ["reopen"], stepIndex: 0 } });
     const a = fakeAsk();
     const io = fakeIo();
     const event = submit();
@@ -119,7 +119,7 @@ describe("submitProgress from inside the ask", () => {
     expect(event.defaultPrevented).toBe(true);
     expect(a.ask.shows).toBe(1);
     expect(requests[0]!.headers.accept).toBe("application/json");
-    expect(io.gone).toEqual(["/?open=aide/150-x"]);
+    expect(io.gone).toEqual(["/?open=aide/150-x:reopen"]);
     // It stands until the Running page replaces this one.
     expect(a.standing()).toBe(true);
     expect(a.ask.closes).toBe(0);

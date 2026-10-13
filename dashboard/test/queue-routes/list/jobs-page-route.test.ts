@@ -409,13 +409,27 @@ describe("the Jobs tab and the Specs list's Active entry show the same specs (AC
     expect(html).not.toContain("/jobs/bad");
   });
 
-  // A Reopen is followed where every other job is: its archived spec has a
-  // row while the job runs, and the row speaks for the job.
-  test("an archived spec with a Reopen running has a row, in the job's state", async () => {
+  // A Reopen or Close is a job of its own, as a scheduled job is: its own row,
+  // never its spec's.
+  test("a Reopen running on an archived spec is a row of its own, and the spec has none", async () => {
     const { base } = everyKind([job({ id: "reopen", specFolder: "90-finished", steps: ["reopen"] })]);
     const html = await rowsOf(base);
-    expect(html).toContain('id="spec-aide/90-finished"');
-    expect(group(html, "spec-aide/90-finished")).toContain("b-running");
+    expect(group(html, "spec-aide/90-finished:reopen")).toContain("b-running");
+    expect(html).not.toContain('id="spec-aide/90-finished"');
+  });
+
+  test("a Close running on a live spec is a row of its own, and the spec's row is not the close's", async () => {
+    const { base } = everyKind([job({ id: "close", specFolder: "82-no-job", steps: ["close"] })]);
+    const html = await rowsOf(base);
+    expect(group(html, "spec-aide/82-no-job:close")).toContain("b-running");
+    expect(group(html, "spec-aide/82-no-job")).not.toContain("b-running");
+  });
+
+  test("an open Reopen row lists the job's steps, and a shut one does not", async () => {
+    const { base } = everyKind([job({ id: "reopen", specFolder: "90-finished", steps: ["reopen"] })]);
+    const steps = (html: string): number => (group(html, "spec-aide/90-finished:reopen").match(/<li data-step=/g) ?? []).length;
+    expect(steps(await rowsOf(base))).toBe(0);
+    expect(steps(await rowsOf(base, "open=aide/90-finished:reopen"))).toBeGreaterThan(0);
   });
 });
 

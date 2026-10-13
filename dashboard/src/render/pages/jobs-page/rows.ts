@@ -5,6 +5,11 @@
 // the tests on plain objects.
 
 import { scheduleNameOf } from "../../../queue/schedule.ts";
+import { closeOrReopenStep } from "../../../queue/queue.ts";
+import { phaseKey } from "../specs-list/phase-messages/keys.ts";
+import { stepLabel } from "../../ui/components";
+import { specPagePath } from "../spec-page/tabs.ts";
+import type { Language } from "../../../i18n";
 import { waitsForPerson } from "../../../queue/steps.ts";
 import { inFlight, type QueueRowView } from "../../ui/job-state";
 import { projectScheduleTab } from "../projects-page";
@@ -25,7 +30,7 @@ export interface JobLike {
 }
 
 type StateRow = Pick<QueueRowView, "state" | "landing" | "stepIndex"> & { steps: readonly string[] };
-type TitleRow = Pick<QueueRowView, "specFolder">;
+type TitleRow = { specFolder: string; steps: readonly string[]; stepIndex: number };
 
 export const isScheduleJob = (job: { steps: readonly string[]; specFolder: string }): boolean =>
   job.steps.length === 1 && job.steps[0] === "schedule" && job.specFolder.startsWith("schedule-");
@@ -68,11 +73,12 @@ export const specPlace = (g: Pick<SpecGroup, "state" | "lead" | "createdAt">): T
 /** Running or landing first, then queued, then the rest; the newest change first in each. */
 export const byTabPlace = (a: TabPlace, b: TabPlace): number => a.band - b.band || b.changedAt - a.changedAt;
 
-/** The scheduled jobs the tab shows: in flight, or waiting
- *  for a person and not yet dealt with. A waiting job is dealt with when a
- *  job of the same project and tracking key was created after it and was not
- *  cancelled; a scheduled job when its entry is deleted. A spec's job is never
- *  returned: its spec's row stands for it. */
+/** The jobs that are rows of their own: the scheduled jobs and the Close and
+ *  Reopen jobs, in flight, or waiting for a person and not yet dealt with. A
+ *  waiting job is dealt with when a job of the same project and tracking key
+ *  was created after it and was not cancelled; a scheduled job also when its
+ *  entry is deleted. Any other job of a spec is never returned: its spec's row
+ *  stands for it. */
 export function jobsShown<T extends JobLike>(
   jobs: T[],
   o: {
@@ -84,23 +90,33 @@ export function jobsShown<T extends JobLike>(
   // does not deal with an earlier job's failure.
   for (const job of jobs.filter((j) => j.state !== "cancelled")) newest.set(sameJob(job), Math.max(newest.get(sameJob(job)) ?? 0, at(job)));
   return jobs.filter((job) => {
-    if (!isScheduleJob(job)) return false;
+    const schedule = isScheduleJob(job);
+    if (!schedule && !closeOrReopenStep(job)) return false;
     if (inFlight(job)) return true;
     if (!waitsForPerson(job)) return false;
     if ((newest.get(sameJob(job)) ?? 0) > at(job)) return false;
-    return o.scheduleEntryExists(job.project, scheduleNameOf(job.specFolder));
+    return !schedule || o.scheduleEntryExists(job.project, scheduleNameOf(job.specFolder));
   });
 }
 
-/** What a job row is called: the scheduled job, named without its project,
- *  which the row draws before the name. */
-export function jobTitle(row: TitleRow): string {
-  return scheduleNameOf(row.specFolder);
+/** What a job row is called, without its project, which the row draws
+ *  before the name: the scheduled job, or the Close or Reopen and its spec. */
+export function jobTitle(row: TitleRow, lang: Language = "en"): string {
+  const step = closeOrReopenStep(row);
+  return step ? `${stepLabel(step, lang)} ${row.specFolder}` : scheduleNameOf(row.specFolder);
 }
 
-/** The place the job belongs. */
-export function jobHome(row: Pick<JobLike, "project" | "specFolder" | "steps">): string {
-  return projectScheduleTab(row.project);
+/** The row's key, in the tab's `open`: a scheduled job's tracking key, or for a
+ *  Close or Reopen its spec's and its step's, so it never folds with the spec's
+ *  own row and the page hears the job's log grow while the row is open. */
+export function jobKey(row: Pick<JobLike, "project" | "specFolder" | "steps" | "stepIndex">): string {
+  const step = closeOrReopenStep(row);
+  return step ? phaseKey(row.project, row.specFolder, step) : `${row.project}/${row.specFolder}`;
+}
+
+/** The place the job belongs: the Schedule tab, or the spec a Close or Reopen works on. */
+export function jobHome(row: Pick<JobLike, "project" | "specFolder" | "steps" | "stepIndex">): string {
+  return closeOrReopenStep(row) ? specPagePath(row.project, row.specFolder) : projectScheduleTab(row.project);
 }
 
 /** What a row offers to end its job: Cancel for a queued one, Stop for a

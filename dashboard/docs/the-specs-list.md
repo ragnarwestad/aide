@@ -395,7 +395,7 @@ row: its name as two links — the project to its page and the rest to its own `
 time, and Reopen. It draws no description — a locked row's description stays searchable but is not shown — and no
 archive date: the Time column holds a duration and never a date. Reopen opens a dialog over the list that asks
 whether to reset the analysis, the plan and the status as well; once the reopen has started the reader goes to the
-Running tab, where the row follows it. No model select, no tick box and no Run — the server
+Running tab, where the reopen is a row of its own. No model select, no tick box and no Run — the server
 refuses every step but `reopen` for an archived spec (`ARCHIVE_ONLY_STEP`), and a control that would be refused is a
 control that should not be drawn. The list shows no creation date on any row; the spec's page does, as the
 Created line of its description's Tracking info.
@@ -590,19 +590,21 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   one submit listener on `body` hands its OK on: the dialog shows "Reopening…" or "Closing…", held open by the one
   hold every progress dialog has (`standOpen()`, `specs-client/progress-dialog/`: Escape and a click outside do not
   dismiss it, and a back/forward-cache restore closes it), posts the form, and once it is accepted goes to the
-  Running tab with the spec's row open (`/?open=<project>/<spec>`). A refused post is written in the dialog's own
+  Running tab with the job's own row open (`/?open=<project>/<spec>:<step>`). A refused post is written in the dialog's own
   line, which stays open with whatever was typed or ticked. While a Reopen dialog is open on the list, the live
   redraw waits, so the rows do not take it away.
-- **A Close or Reopen is followed on its spec's row on the Running tab.** While the spec's newest job is a close or a
-  reopen that has not ended done or cancelled (`closeOrReopenJob`, `queue/steps.ts`), the row speaks for it: its badge
-  is the job's ("Closing", "Reopening", "Failed"), and an archived or closed spec has a row on the tab for as long,
-  in the job's state, with no Reopen offered while the job is in flight. The open row has a line under the four
-  phases, named for the step, listing every step the job will run — Aide's own parts, the skill's steps and the
-  merge into main, from the skill's `Step N of X` headings (`stepPlan()`) — each in the state the job's log has it
-  in (`closeOrReopenSteps`, `serve/spec-views/job-marks.ts`), in the step list Deploy's dialog shares
-  (`progressSteps()`). A tab with the spec open hears the log grow (`?open=` on `/api/queue/events`), so the list
-  moves as the job goes. A `failed`, `stopped` or `interrupted` close or reopen keeps its line, the step it stopped at
-  failed, and its sentence under the row (`failedRoundSentence`).
+- **A Close or Reopen is a row of its own on the Running tab**, as a scheduled job is, never its spec's. A job
+  whose current step is `close` or `reopen` (`closeOrReopenStep`, `queue/steps.ts`) has a row while it is queued,
+  running or landing, and while it waits for a person after failing or stopping, until a newer job of the spec is
+  created (`jobsShown`, `render/pages/jobs-page/rows.ts`). The row is named for the step and the spec ("Reopen
+  534-…"), its key is `<project>/<spec>:<step>` so it never folds with the spec's own row, and it links to its log
+  and to the spec. The spec's own row is left as it is: an archived or closed spec gets no row on the tab for it,
+  and a live spec's row keeps its four phases and its own badge. The open job row lists every step the job will
+  run — Aide's own parts, the skill's steps and the merge into main, from the skill's `Step N of X` headings
+  (`stepPlan()`) — each in the state the job's log has it in (`closeOrReopenSteps`,
+  `serve/spec-views/job-marks.ts`), in the step list Deploy's dialog shares (`progressSteps()`). A tab with the row
+  open hears the log grow (its key in `?open=` on `/api/queue/events`), so the list moves as the job goes. A reopen
+  that has gone on to the spec's next step is the spec's again.
 - **A press changes the button at once, without changing its width.**
   It disables, gains the `busy` look and a spinner ahead of its own label — the label itself stays put, only
   the `title` carries the pending word ("starting…", "cancelling…", "queueing…",

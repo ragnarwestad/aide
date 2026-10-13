@@ -24,7 +24,7 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
     // from history alone.
     pendingModels: ctx.queue.pendingModels,
     pendingSteps: ctx.queue.pendingSteps,
-    // Called only for an open row a Close or Reopen is working on.
+    // Called only for the open row of a Close or Reopen job.
     closeOrReopenSteps: (jobId: string, step: string) => {
       const job = ctx.queue.get(jobId);
       return job ? closeOrReopenSteps(job, step, lang) : [];

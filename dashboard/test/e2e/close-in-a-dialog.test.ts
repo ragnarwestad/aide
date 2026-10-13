@@ -33,7 +33,7 @@ async function open(post: { status: number; json: unknown }): Promise<Page> {
   return page;
 }
 
-const ACCEPTED = { status: 200, json: { ok: true, job: { id: "j1", project: "aide", specFolder: LIVE } } };
+const ACCEPTED = { status: 200, json: { ok: true, job: { id: "j1", project: "aide", specFolder: LIVE, steps: ["close"], stepIndex: 0 } } };
 
 describe("Close asks in a dialog (AC-7)", () => {
   test("Close opens a modal with the Reason field, OK and Cancel, and the address stays (AC-2)", async () => {
@@ -73,14 +73,14 @@ describe("Close asks in a dialog (AC-7)", () => {
     expect(await dialog(page).isVisible()).toBe(false);
   });
 
-  // The Running page follows the job from there, on the spec's open row.
-  test("an accepted post goes to the Running page with the spec's row open", async () => {
+  // The Running page follows the job from there, on the job's own open row.
+  test("an accepted post goes to the Running page with the job's row open", async () => {
     const page = await open(ACCEPTED);
     await page.getByRole("button", { name: "Close" }).click();
     await dialog(page).locator("textarea").fill("It will not work.");
     await dialog(page).getByRole("button", { name: "OK" }).click();
     await page.waitForURL((url) => url.pathname === "/");
-    expect(new URL(page.url()).searchParams.get("open")).toBe(`aide/${LIVE}`);
+    expect(new URL(page.url()).searchParams.get("open")).toBe(`aide/${LIVE}:close`);
   });
 
   test("Cancel closes the box on every press (AC-1)", async () => {

@@ -144,42 +144,14 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     expect((phasePips(phases, []).match(/class="pip /g) ?? []).length).toBe(4);
   });
 
-  // A failed reopen or close keeps its sentence under the row, and has a
-  // line of its own under the four phases, where it is followed (AC-1, AC-5).
+  // A failed reopen or close keeps its sentence under the row; the strip
+  // above it stays the four (AC-1, AC-5).
   for (const step of ["reopen", "close"]) {
-    test(`a failed ${step} keeps its sentence under the row, and its own line under the four (AC-5)`, () => {
+    test(`a failed ${step} keeps its sentence under the row, over four lines (AC-5)`, () => {
       const html = rows([job("j1", step, { state: "failed", error: "It did not go through." })]);
       expect(html).toContain("It did not go through.");
       const order = [...html.matchAll(/<tr class="subrow" data-step="([^"]+)"/g)].map((m) => m[1]);
-      expect(order).toEqual(["create", "analyze", "implement", "archive", step]);
+      expect(order).toEqual(["create", "analyze", "implement", "archive"]);
     });
   }
-
-  test("a running close's line lists its steps in the states the server gives", () => {
-    const list = [job("j1", "close", { state: "running" })];
-    const asked: string[] = [];
-    const html = renderSpecsRows(
-      list,
-      {
-        runnerAvailable: true,
-        targets: [],
-        filter: { open: openKeys(list) },
-        closeOrReopenSteps: (id, step) => {
-          asked.push(`${id} ${step}`);
-          return [{ key: "Step Aide: preparing", label: "Preparing", state: "done" }, { key: "Step 1 of 4", label: "Move", state: "running" }, { key: "Step 2 of 4", label: "Commit" }];
-        },
-      },
-      Date.parse("2026-08-17T12:00:00Z"),
-    );
-    expect(asked).toEqual(["j1 close"]);
-    const line = html.match(/<tr class="subrow" data-step="close">[\s\S]*?<\/tr>/)![0];
-    const states = [...line.matchAll(/<li data-step="([^"]+)" data-state="([^"]+)"/g)].map((m) => [m[1], m[2]]);
-    expect(states).toEqual([["Step Aide: preparing", "done"], ["Step 1 of 4", "running"], ["Step 2 of 4", "waiting"]]);
-  });
-
-  test("a done close or reopen has no line of its own", () => {
-    const html = rows([job("j1", "reopen", { state: "done" })]);
-    const order = [...html.matchAll(/<tr class="subrow" data-step="([^"]+)"/g)].map((m) => m[1]);
-    expect(order).toEqual(["create", "analyze", "implement", "archive"]);
-  });
 });
