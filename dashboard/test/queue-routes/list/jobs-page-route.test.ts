@@ -10,7 +10,6 @@ import { join } from "node:path";
 import { t } from "../../../src/i18n";
 import type { FailedCreate } from "../../../src/push/failed-creates.ts";
 import { renderFailedCreateNotices } from "../../../src/render/pages/specs-list/failed-create-notices.ts";
-import { jobHome } from "../../../src/render/pages/jobs-page";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
 import { dated, setupQueueRoutesHarness } from "../fixtures.ts";
 
@@ -86,7 +85,11 @@ const rowsOf = async (base: string, query = ""): Promise<string> => {
 const group = (html: string, id: string): string =>
   html.match(new RegExp(`<tr class="spechead\\b[^>]*?\\bid="${id}"[\\s\\S]*?<tr class="specgap"[^>]*>.*?</tr>`))?.[0] ?? "";
 
-const attr = (s: string): string => s.replaceAll("&", "&amp;");
+/** A row group's title line: everything before its state line, without the fold's cell. */
+const headOf = (g: string): string => (g.split('<tr class="specstate"')[0] ?? "").replace(/<td class="foldcell"[\s\S]*?<\/td>/, "");
+const hrefsOf = (html: string): string[] => [...html.matchAll(/<a\b[^>]*?href="([^"]*)"/g)].map((m) => m[1]);
+/** The line under a row's state that says why the job ended. */
+const noticeOf = (g: string): string => g.match(/<tr class="specnotice">[\s\S]*?<\/tr>/)?.[0] ?? "";
 
 describe("GET / answers the Jobs page, GET /?rows=1 its rows alone (AC-1)", () => {
   test("the page holds its rows in #jobrows, the rows answer holds no page around them (AC-1)", async () => {
@@ -194,30 +197,55 @@ describe("which kind of row a job gets (AC-5)", () => {
     }
   });
 
-  test("open, a running scheduled job has its Log and Schedule links and a Stop that posts in place; a queued one its links and Cancel (AC-5)", async () => {
+  test("open or shut, a scheduled job's title line holds no link but the project's; open, it still offers Stop or Cancel (AC-1)", async () => {
     const { base } = board([report, sched]);
-    const html = await rowsOf(base, OPEN_BOTH);
+    for (const query of ["", OPEN_BOTH]) {
+      const html = await rowsOf(base, query);
+      for (const [id, jobId] of [["spec-aide/schedule-report", "report1"], ["spec-aide/schedule-nightly", "sched1"]]) {
+        const g = group(html, id);
+        expect(hrefsOf(headOf(g))).toEqual(["/projects/aide"]);
+        expect(g).not.toContain(`/jobs/${jobId}`);
+        expect(g).not.toContain("tab=schedule");
+      }
+    }
 
+    const html = await rowsOf(base, OPEN_BOTH);
     const w = group(html, "spec-aide/schedule-report");
-    expect(w).toContain('href="/jobs/report1?tab=steps"');
-    expect(w).toContain(`href="${attr(jobHome(report as never))}"`);
     expect(w).toContain('action="/api/queue/report1/cancel"');
     expect(w).toContain("actionform");
     expect(w).not.toContain("reloadform");
-
-    const s = group(html, "spec-aide/schedule-nightly");
-    expect(s).toContain('href="/jobs/sched1?tab=steps"');
-    expect(s).toContain(`href="${attr(jobHome(sched as never))}"`);
-    expect(s).toContain('action="/api/queue/sched1/cancel"');
+    expect(group(html, "spec-aide/schedule-nightly")).toContain('action="/api/queue/sched1/cancel"');
   });
 
-  test("an open row of a failed scheduled job has its links and nothing to stop (AC-5)", async () => {
+  test("a failed scheduled job says how it ended under its state, shut and open, and the line ends with its Log link (AC-2, AC-3)", async () => {
     const { base } = scheduled([failedReport]);
-    const g = group(await rowsOf(base, "open=aide/schedule-report"), "spec-aide/schedule-report");
-    expect(g).toContain('href="/jobs/reportf?tab=steps"');
-    expect(g).toContain(`href="${attr(jobHome(failedReport as never))}"`);
-    expect(g).not.toContain("/api/queue/reportf/cancel");
-    expect(g).not.toContain("data-ask");
+    for (const query of ["", "open=aide/schedule-report"]) {
+      const g = group(await rowsOf(base, query), "spec-aide/schedule-report");
+      const line = noticeOf(g);
+      expect(text(line)).toContain(t("en", "jobs.endedFailed"));
+      expect(line).toMatch(/<a [^>]*href="\/jobs\/reportf\?tab=steps"[^>]*>Log<\/a>(<\/div>)?<\/td><\/tr>$/);
+      expect(hrefsOf(headOf(g))).toEqual(["/projects/aide"]);
+      expect(g).not.toContain("/api/queue/reportf/cancel");
+      expect(g).not.toContain("data-ask");
+    }
+  });
+
+  test("a Close, a Reopen and a Deploy have no link under the title, open or shut, and none to a log while they run (AC-1, AC-4)", async () => {
+    const { base } = board([
+      job({ id: "cl", specFolder: "82-no-job", steps: ["close"] }),
+      job({ id: "re", specFolder: "90-finished", steps: ["reopen"] }),
+      job({ id: "dep", specFolder: "deploy", steps: ["deploy"] }),
+    ]);
+    const keys = ["aide/82-no-job:close", "aide/90-finished:reopen", "aide/deploy:deploy"];
+    for (const query of ["", `open=${keys.join(",")}`]) {
+      const html = await rowsOf(base, query);
+      for (const [key, id] of [[keys[0], "cl"], [keys[1], "re"], [keys[2], "dep"]]) {
+        const g = group(html, `spec-${key}`);
+        expect(g).not.toBe("");
+        expect(hrefsOf(headOf(g))).toEqual(["/projects/aide"]);
+        expect(g).not.toContain(`/jobs/${id}`);
+      }
+    }
   });
 
   test("the › opens a shut row and shuts an open one, by the open key, and ?only= answers one row (AC-5)", async () => {

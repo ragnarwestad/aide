@@ -1,18 +1,17 @@
 // The Jobs tab's rules, as pure functions: which scheduled jobs it shows,
-// where every row stands, what a job row is called, where the job belongs
-// and what the row offers to stop it. They read only the fields a
+// where every row stands, what a job row is called, what the line under its
+// state says and what the row offers to stop it. They read only the fields a
 // job and its row view share, so the route can run them on the raw jobs and
 // the tests on plain objects.
 
 import { scheduleNameOf } from "../../../queue/schedule.ts";
 import { closeOrReopenStep, deployStep } from "../../../queue/queue.ts";
 import { phaseKey } from "../specs-list/phase-messages/keys.ts";
-import { stepLabel } from "../../ui/components";
-import { specPagePath } from "../spec-page/tabs.ts";
-import type { Language } from "../../../i18n";
+import { stepLabel, type MessageVariant } from "../../ui/components";
+import { t, type Language, type TranslationKey } from "../../../i18n";
+import { renderSentence } from "../../../i18n/message.ts";
 import { waitsForPerson } from "../../../queue/steps.ts";
-import { inFlight, type QueueRowView } from "../../ui/job-state";
-import { projectDeployTab, projectScheduleTab } from "../projects-page";
+import { heldBackResolvesOnItsOwn, inFlight, type QueueRowView } from "../../ui/job-state";
 import type { SpecGroup } from "../specs-list";
 
 /** What a job and its row view have in common, and all the rules read. */
@@ -117,11 +116,45 @@ export function jobKey(row: Pick<JobLike, "project" | "specFolder" | "steps" | "
   return step ? phaseKey(row.project, row.specFolder, step) : `${row.project}/${row.specFolder}`;
 }
 
-/** The place the job belongs: the Schedule tab, the Deploy tab of the project a
- *  deploy is for, or the spec a Close or Reopen works on. */
-export function jobHome(row: Pick<JobLike, "project" | "specFolder" | "steps" | "stepIndex">): string {
-  if (deployStep(row)) return projectDeployTab(row.project);
-  return closeOrReopenStep(row) ? specPagePath(row.project, row.specFolder) : projectScheduleTab(row.project);
+/** The line under a job row's state, or none. A job that failed, stopped or
+ *  was interrupted says why, in its own sentence or, with none, in one saying
+ *  how it ended, and the line carries the address of the job's own page for
+ *  its Log link. A deploy held back says why it waits, with no link. Every
+ *  other row has no line. */
+export interface JobMessage {
+  variant: MessageVariant;
+  text: string;
+  /** The job's own page, for the line's Log link; absent when it has none. */
+  log?: string;
+}
+
+/** What the line reads: the row view's fields, with `steps` as `JobLike` has
+ *  them, so the tests' plain jobs fit as `StateRow`'s do. */
+type MessageRow = Pick<QueueRowView, "id" | "state" | "error" | "errorReason" | "stepIndex"> & {
+  steps: readonly string[];
+};
+
+const ENDED: Partial<Record<QueueRowView["state"], TranslationKey>> = {
+  failed: "jobs.endedFailed",
+  stopped: "jobs.endedStopped",
+  interrupted: "jobs.endedInterrupted",
+};
+
+export function jobMessage(row: MessageRow, lang: Language): JobMessage | undefined {
+  const ended = ENDED[row.state];
+  if (ended) {
+    return {
+      // The badge's own colour: a stop is amber, a failure red.
+      variant: row.state === "stopped" ? "waiting" : "failed",
+      text: renderSentence(lang, row.error) || t(lang, ended),
+      log: `/jobs/${row.id}?tab=steps`,
+    };
+  }
+  if (deployStep(row) && row.errorReason === "held-back") {
+    const text = renderSentence(lang, row.error);
+    if (text) return { variant: heldBackResolvesOnItsOwn(row) ? "info" : "waiting", text };
+  }
+  return undefined;
 }
 
 /** What a row offers to end its job: Cancel for a queued one, Stop for a

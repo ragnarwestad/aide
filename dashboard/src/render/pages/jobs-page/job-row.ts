@@ -6,26 +6,26 @@
 // script treat it as a spec's row: it redraws it by that id and writes a
 // refused Stop under it. A scheduled job's row folds as a spec's does,
 // from the `open` key in the address: shut, it holds the title, state, time and
-// cost; open, it adds the links and Stop or Cancel. A Close or Reopen is drawn
-// the same way, with no Stop or Cancel, and open it adds a line per step of
-// the job, in the row's own columns: its state, its time, and no cost of its
-// own, since the job's cost is the row's. A deploy is drawn as they are, with
-// Cancel while it is queued, and a line under its state for the hold it waits
-// under or the reason it failed.
+// cost; open, it adds Stop or Cancel. A Close or Reopen is drawn the same way,
+// with no Stop or Cancel, and open it adds a line per step of the job, in the
+// row's own columns: its state, its time, and no cost of its own, since the
+// job's cost is the row's. A deploy is drawn as they are, with Cancel while it
+// is queued. A job that ended badly says why in a line under its state, open or
+// shut, and the line ends with a Log link to the job's own page; a deploy held
+// back has its waiting line there, with no link.
 
 import { t, type Language } from "../../../i18n";
-import { renderSentence } from "../../../i18n/message.ts";
 import { askButton, badge, confirmDialog, foldArrow, rowMessage, stepLabel, type ProgressStepState } from "../../ui/components";
 import { projectLink } from "../../ui/components/spec-name.ts";
 import { esc } from "../../ui/html.ts";
-import { currentStep, durationLabel, heldBackResolvesOnItsOwn, inFlight, specStateChip, type QueueRowView } from "../../ui/job-state";
+import { currentStep, durationLabel, inFlight, specStateChip, type QueueRowView } from "../../ui/job-state";
 import { landingStep } from "../../ui/job-state/resting.ts";
 import { costCell } from "../specs-list/cell-helpers.ts";
 import type { SpecsFilter } from "../specs-list";
 import { queuePath } from "../specs-list/filter-bar.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { closeOrReopenStep, deployStep } from "../../../queue/queue.ts";
-import { jobControl, jobHome, jobKey, jobTitle } from "./rows.ts";
+import { jobControl, jobKey, jobMessage, jobTitle } from "./rows.ts";
 import { jobDurationMs, jobEndMs } from "./view.ts";
 
 /** One step of a Close or Reopen: its state, and for Aide's own steps its
@@ -92,23 +92,13 @@ function timeCell(row: QueueRowView, now: number): string {
   return Number.isNaN(jobEndMs(row)) ? "–" : `<span class="muted small">${durationLabel(jobDurationMs(row, now))}</span>`;
 }
 
-/** The word of the link to the place the job belongs: the Schedule tab, the
- *  project a deploy is for, or the spec a Close or Reopen works on, by its folder. */
-function homeWord(row: QueueRowView, lang: Language): string {
-  if (deployStep(row)) return row.project;
-  return closeOrReopenStep(row) ? row.specFolder : t(lang, "shell.tabSchedule");
-}
-
-/** A deploy's one line of words under its state: the landing it waits for,
- *  or why it failed or was interrupted. Open or shut. */
-function deployMessage(row: QueueRowView, lang: Language): string {
-  const text = deployStep(row) ? renderSentence(lang, row.error) : undefined;
-  if (!text) return "";
-  const held = row.errorReason === "held-back";
-  const failed = row.state === "failed" || row.state === "interrupted";
-  if (!held && !failed) return "";
-  const variant = failed ? "failed" : heldBackResolvesOnItsOwn(row) ? "info" : "waiting";
-  return `<tr class="specnotice"><td colspan="${LIST_COLUMNS}">${rowMessage(variant, text, { hook: "deploy-message" })}</td></tr>`;
+/** The line under the state, open or shut, from `jobMessage`; its Log link
+ *  ends the line. */
+function messageLine(row: QueueRowView, lang: Language): string {
+  const m = jobMessage(row, lang);
+  if (!m) return "";
+  const log = m.log ? `<a data-goto href="${esc(m.log)}">${esc(t(lang, "job.tabLog"))}</a>` : "";
+  return `<tr class="specnotice"><td colspan="${LIST_COLUMNS}">${rowMessage(m.variant, m.text, { actions: log })}</td></tr>`;
 }
 
 /** A step's state, in the badge a phase line uses; a step not reached yet in a muted word. */
@@ -154,18 +144,13 @@ export function jobRow(row: QueueRowView, o: JobRowOptions): string {
   return (
     `<tr class="spechead" id="spec-${esc(key)}" data-job="1">` +
     `<td class="foldcell" rowspan="2" data-col="fold">${fold(key, open, `${row.project}:${name}`, o)}</td>` +
-    `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name"><span class="label">${label}</span></div>` +
-    (open
-      ? `<div class="spec-title"><a data-goto href="/jobs/${esc(row.id)}?tab=steps">${t(lang, "job.tabLog")}</a> · ` +
-        `<a data-goto href="${esc(jobHome(row))}">${esc(homeWord(row, lang))}</a></div>`
-      : "") +
-    `</td></tr>` +
+    `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name"><span class="label">${label}</span></div></td></tr>` +
     `<tr class="specstate"><td colspan="2"></td>` +
     `<td data-col="state"><span class="badgeslot">${specStateChip(row, lang)}</span>` +
     `${kind ? `<span class="actionslot">${control(row, kind, lang)}</span>` : ""}</td>` +
     `<td data-col="started">${timeCell(row, o.now)}</td>` +
     `<td class="num" data-col="cost">${costCell(row.spentUsd, row.spentTokens, "–")}</td></tr>` +
-    deployMessage(row, lang) +
+    messageLine(row, lang) +
     (open ? stepLines(row, o) : "") +
     `<tr class="specgap" aria-hidden="true"><td colspan="${LIST_COLUMNS}"></td></tr>`
   );

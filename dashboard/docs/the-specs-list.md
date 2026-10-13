@@ -590,8 +590,9 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   whose current step is `close` or `reopen` (`closeOrReopenStep`, `queue/steps.ts`) has a row while it is queued,
   running or landing, and while it waits for a person after failing or stopping, until a newer job of the spec is
   created (`jobsShown`, `render/pages/jobs-page/rows.ts`). The row is named for the step and the spec ("Reopen
-  534-…"), its key is `<project>/<spec>:<step>` so it never folds with the spec's own row, and it links to its log
-  and to the spec. It offers no Stop or Cancel: stopped part-way, the job would leave the spec between its two
+  534-…"), its key is `<project>/<spec>:<step>` so it never folds with the spec's own row, and it has no links under
+  its title; when it fails or stops, a line under its state says why and ends with a Log link. It offers no Stop or
+  Cancel: stopped part-way, the job would leave the spec between its two
   places. The spec's own row is left as it is: an archived or closed spec gets no row on the tab for it, and a live
   spec's row keeps its four phases and its own badge. The open job row has a line per step the job will run —
   Aide's own parts, the skill's steps and the merge into main, from the skill's `Step N of X` headings

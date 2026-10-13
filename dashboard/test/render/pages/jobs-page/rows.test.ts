@@ -1,13 +1,15 @@
 // Which scheduled jobs the Jobs tab shows, where every row
-// stands, what a job row is called, where it belongs and what it offers. One
-// test per rule, on plain job-shaped objects.
+// stands, what a job row is called, what it says under its state and what it
+// offers. One test per rule, on plain job-shaped objects.
 
 import { describe, expect, test } from "bun:test";
+import { t } from "../../../../src/i18n";
+import { renderSentence } from "../../../../src/i18n/message.ts";
 import {
   byTabPlace,
   jobControl,
-  jobHome,
   jobKey,
+  jobMessage,
   jobPlace,
   jobsShown,
   jobTitle,
@@ -215,12 +217,11 @@ describe("a Close or Reopen is a job row of its own, not its spec's", () => {
     expect(ids([job({ id: "on", steps: ["reopen", "analyze"], stepIndex: 1, state: "running" })])).toEqual([]);
   });
 
-  test("its key is its spec's and its step's, its title names both, and it belongs to its spec", () => {
+  test("its key is its spec's and its step's, and its title names both", () => {
     const row = at("reopen", { project: "aide", specFolder: "534-a-card" });
     expect(jobKey(row)).toBe("aide/534-a-card:reopen");
     expect(jobKey(sched())).toBe("aide/schedule-nightly");
     expect(jobTitle(row)).toBe("Reopen 534-a-card");
-    expect(jobHome(row)).toBe("/specs/aide/534-a-card");
   });
 
   test("offers neither Stop nor Cancel: a half-done move would leave the spec between two places", () => {
@@ -254,14 +255,6 @@ describe("what a job row offers to stop it (AC-5)", () => {
   });
 });
 
-describe("where a job row belongs (AC-5)", () => {
-  test("a scheduled job belongs on the project's Schedule tab (AC-5)", () => {
-    expect(jobHome(job({ project: "aide", specFolder: "schedule-nightly", steps: ["schedule"] }))).toBe(
-      "/projects/aide?tab=schedule",
-    );
-  });
-});
-
 describe("a deploy is a job row of its own, named for the deploy (AC-2)", () => {
   const deploy = (o: Partial<J> = {}): J => job({ specFolder: "deploy", steps: ["deploy"], ...o });
 
@@ -285,16 +278,103 @@ describe("a deploy is a job row of its own, named for the deploy (AC-2)", () => 
     expect(ids([deploy({ id: "d", state: "done" })])).toEqual([]);
   });
 
-  test("its title is the deploy and its project, its key and home are the project's own (AC-2)", () => {
+  test("its title is the deploy and its project, and its key is the project's own (AC-2)", () => {
     const row = deploy({ project: "aide" });
     expect(jobTitle(row)).toBe("Deploy aide");
     expect(jobKey(row)).toBe("aide/deploy:deploy");
-    expect(jobHome(row)).toBe("/projects/aide?tab=deploy");
   });
 
   test("offers Cancel while queued, held back or not, and nothing once it runs (AC-8)", () => {
     expect(jobControl(deploy({ state: "queued" }))).toBe("cancel");
     expect(jobControl(deploy({ state: "queued", errorReason: "held-back" } as Partial<J>))).toBe("cancel");
     expect(jobControl(deploy({ state: "running" }))).toBeUndefined();
+  });
+});
+
+describe("the line under a job row's state (AC-2, AC-3, AC-4, AC-5)", () => {
+  type Msg = Partial<J> & { error?: unknown; errorReason?: string };
+  const schedule = (o: Msg = {}): J => sched(o as Partial<J>);
+  const close = (o: Msg = {}): J => job({ steps: ["close"], ...o } as Partial<J>);
+  const reopen = (o: Msg = {}): J => job({ steps: ["reopen"], ...o } as Partial<J>);
+  const deploy = (o: Msg = {}): J => job({ specFolder: "deploy", steps: ["deploy"], ...o } as Partial<J>);
+  const kinds: [string, (o?: Msg) => J][] = [["scheduled job", schedule], ["Close", close], ["Reopen", reopen], ["Deploy", deploy]];
+  const said = { key: "landing.deployServiceOlder", values: { served: "9999999", head: "abc1234" } } as const;
+  const sentenceOf = renderSentence("en", said) as string;
+  const message = (row: J) => jobMessage(row as never, "en");
+
+  test("a failed job of any kind says why, in its own sentence, red, with its log's address (AC-2)", () => {
+    for (const [, make] of kinds) {
+      const row = make({ id: "f1", state: "failed", error: said });
+      expect(message(row)).toEqual({ variant: "failed", text: sentenceOf, log: "/jobs/f1?tab=steps" });
+    }
+  });
+
+  test("a stopped job says why in amber, an interrupted one in red, each with the log's address (AC-2)", () => {
+    expect(message(schedule({ id: "s1", state: "stopped", error: said }))).toEqual({
+      variant: "waiting", text: sentenceOf, log: "/jobs/s1?tab=steps",
+    });
+    expect(message(schedule({ id: "i1", state: "interrupted", error: said }))).toEqual({
+      variant: "failed", text: sentenceOf, log: "/jobs/i1?tab=steps",
+    });
+  });
+
+  test("with no sentence of its own, a failed, stopped or interrupted job says how it ended (AC-3)", () => {
+    const ended = [
+      ["failed", "jobs.endedFailed"],
+      ["stopped", "jobs.endedStopped"],
+      ["interrupted", "jobs.endedInterrupted"],
+    ] as const;
+    for (const [state, key] of ended) {
+      for (const [, make] of kinds) {
+        const m = message(make({ id: "e1", state }));
+        expect(m?.text).toBe(t("en", key));
+        expect(m?.log).toBe("/jobs/e1?tab=steps");
+      }
+    }
+    expect(message(schedule({ state: "failed" }))?.text).not.toBe(message(schedule({ state: "stopped" }))?.text);
+  });
+
+  test("the sentence it falls back on is the reader's language (AC-3)", () => {
+    const m = jobMessage(schedule({ state: "failed" }) as never, "nb");
+    expect(m?.text).toBe(t("nb", "jobs.endedFailed"));
+  });
+
+  test("a queued or running job, or a done one landing, offers no log, with or without a sentence (AC-4)", () => {
+    for (const [, make] of kinds) {
+      for (const row of [make({ state: "queued" }), make({ state: "running" }), make({ state: "done", landing: true })]) {
+        expect(message(row)?.log).toBeUndefined();
+        expect(message({ ...row, error: said } as J)?.log).toBeUndefined();
+      }
+    }
+    for (const make of [schedule, close, reopen]) {
+      expect(message(make({ state: "running", error: said }))).toBeUndefined();
+      expect(message(make({ state: "queued" }))).toBeUndefined();
+    }
+  });
+
+  test("a cancelled job has no line: a person ended it (AC-4)", () => {
+    for (const make of [schedule, close, reopen]) expect(message(make({ state: "cancelled", error: said }))).toBeUndefined();
+  });
+
+  test("a deploy held back for a landing says so in the info colour, with no log (AC-5)", () => {
+    const error = { key: "runner.landingPause" } as const;
+    for (const state of ["queued", "running"] as const) {
+      const m = message(deploy({ state, errorReason: "held-back", error }));
+      expect(m).toEqual({ variant: "info", text: renderSentence("en", error) as string });
+    }
+  });
+
+  test("a deploy held back for a hold that does not clear on its own is amber, with no log (AC-5)", () => {
+    const error = { key: "landing.deployServiceOlder", values: { served: "9999999", head: "abc1234" } } as const;
+    const m = message(deploy({ state: "queued", errorReason: "held-back", error }));
+    expect(m?.variant).toBe("waiting");
+    expect(m?.log).toBeUndefined();
+  });
+
+  test("a held-back scheduled job, Close or Reopen has no line: the waiting line is a deploy's (AC-5)", () => {
+    const error = { key: "runner.landingPause" } as const;
+    for (const make of [schedule, close, reopen]) {
+      expect(message(make({ state: "queued", errorReason: "held-back", error }))).toBeUndefined();
+    }
   });
 });

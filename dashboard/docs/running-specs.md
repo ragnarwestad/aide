@@ -653,7 +653,7 @@ The queue keeps 200 jobs, so a waiting job older than that leaves with its histo
 The board's own deploy is a job under the tracking key `deploy`, with the step `deploy`: a step the server runs itself,
 in its own process, so it takes no slot and waits for none (`takesSlot`, `queue/steps.ts`). The Deploy button on the
 board's own project queues it (`POST /api/queue/projects/<project>/deploy`). Its row is named "Deploy <project>", its key
-is `<project>/deploy:deploy`, and it links to its log and to the project's Deploy tab. It has a row while it is queued,
+is `<project>/deploy:deploy`, and it has no links under its title. It has a row while it is queued,
 held back or running, and once it has failed or been interrupted until a newer deploy of the project is queued. A
 second deploy is refused while one is queued or running. It offers Cancel while it is queued and nothing once it runs:
 the run is the server itself, and a job marked cancelled would go on restarting the service. The open row lists five
@@ -664,10 +664,12 @@ its fetch and before its restart; the row says "Held back" with the reason under
 
 A scheduled job gets a job row in the same columns and the same two-line shape
 (`src/render/pages/jobs-page/job-row.ts`). Its title leads with the project, as a spec's does: "<project>:<name>". It folds as a spec's row does, by the `open` key in the address, and is
-shut by default: it shows its title, state, time and cost. Its › opens it to show the links to the job's log and to
-where it belongs, the project's Schedule tab, and Stop or Cancel. A queued job offers Cancel and
-a running or landing one Stop, each asking first; a finished job has nothing to stop. The rules for which
-scheduled jobs show, their titles, links and controls are in `src/render/pages/jobs-page/rows.ts`.
+shut by default: it shows its title, state, time and cost. Its › opens it to show Stop or Cancel. It has no links
+under its title. A job that failed, stopped or was interrupted says why in a line under its state, open or shut: its own
+sentence or, with none, one saying how it ended, and the line ends with a Log link to the job's own page. A queued,
+running or finished job has no Log link. A queued job offers Cancel and a running or landing one Stop, each asking
+first; a finished job has nothing to stop. The rules for which scheduled jobs show, their titles, the line under the
+state and their controls are in `src/render/pages/jobs-page/rows.ts`.
 
 The rows stand in one order, spec rows and job rows together: running or landing first, then queued, then the rest, the
 most recently changed first in each. A job's change is the newest of its made, started and finished times. A spec's is

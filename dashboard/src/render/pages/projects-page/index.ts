@@ -25,7 +25,7 @@ import {
 import { esc } from "../../ui/html.ts";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { t, type Language } from "../../../i18n";
-import { navEntries, OVERVIEW_PAGE, PROJECTS_ROUTE, NEW_SPEC_ROUTE, projectPagePath, projectScheduleTab, projectDeployTab } from "./routes.ts";
+import { navEntries, OVERVIEW_PAGE, PROJECTS_ROUTE, NEW_SPEC_ROUTE, projectPagePath, projectScheduleTab } from "./routes.ts";
 import { projectListBody, projectSummary } from "./overview-list.ts";
 import { driftPrefix, renderProjectPage } from "./project-page.ts";
 import {
@@ -45,7 +45,6 @@ export {
   NEW_SPEC_ROUTE,
   projectPagePath,
   projectScheduleTab,
-  projectDeployTab,
   projectListBody,
   projectSummary,
   driftPrefix,
