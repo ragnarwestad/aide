@@ -255,8 +255,8 @@ function criteriaChecksField(v: OptionsGroupValues): string {
   const id = row ? `${v.form}-criteria-checks` : v.locked ? "spec-criteria-checks" : "new-spec-criteria-checks";
   return (
     `<span class="field"><span class="fieldhead"><span class="row">` +
-    `<label for="${id}">${esc(v.labels?.criteriaChecks ?? "Acceptance criteria checks")}</label>` +
-    `<select ${editable(v) ? `name="criteriaChecks"` : "disabled"}${row ? ` form="${esc(v.form!)}"` : ""} id="${id}">` +
+    `<label for="${esc(id)}">${esc(v.labels?.criteriaChecks ?? "Acceptance criteria checks")}</label>` +
+    `<select ${editable(v) ? `name="criteriaChecks"` : "disabled"}${row ? ` form="${esc(v.form!)}"` : ""} id="${esc(id)}">` +
     criteriaChecksChoices()
       .map((o) => `<option value="${o.value}"${o.value === v.criteriaChecks ? " selected" : ""}>${esc(v.levelWords?.[o.value] ?? o.label)}</option>`)
       .join("") +
