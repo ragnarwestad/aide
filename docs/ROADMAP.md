@@ -23,6 +23,7 @@
   - [17. Aide as a Mac app](#17-aide-as-a-mac-app)
   - [18. A run that reaches only its own repository](#18-a-run-that-reaches-only-its-own-repository)
   - [19. Shorter command output for a run](#19-shorter-command-output-for-a-run)
+  - [20. A spec's states, separate from its run's](#20-a-specs-states-separate-from-its-runs)
 
 ---
 
@@ -38,7 +39,7 @@ An idea that becomes a spec names it, and leaves this page once the spec is arch
 
 Each idea has a number that stays with it. A new idea gets the next number after the highest one ever given, and
 the number of an idea taken off the page is never used again, so a number can be referred to and still mean the
-same idea later. The next number is 20.
+same idea later. The next number is 21.
 
 ## To consider
 
@@ -286,3 +287,29 @@ and listing 24% (`grep`, `rg`, `find`, `ls`), git 6%, and test runs and checks 2
 runs and git logs, is about 6% of it; the files a session reads are what it needs to change the code, and cannot
 be shortened without losing that. The large share is finding and reading code.
 
+### 20. A spec's states, separate from its run's
+
+A tidy-up rather than a feature. The states a row shows have grown one at a time and overlap: Ready and Idle mean
+the same thing, "Stopped" names both a job the user stopped and a step that ended without finishing, and a
+cancelled step wears Stopped's amber badge while the state filter counts it as Failed. Now that how a run is going
+is shown mainly on the Running page, the Specs page needs only the spec's own state.
+
+The proposed model:
+
+- **Open**, the spec is being worked on, and is either:
+  - **Idle:** nothing runs, and the next phase waits for the user to press it (today's Ready).
+  - **Active:** something is happening to it, and it is Waiting (queued, or waiting on a spec it depends on),
+    Running, Stopped (the board stopped it on purpose and says what must be settled: red tests, another spec
+    changing the same files, unticked acceptance criteria) or Failed (something went wrong).
+- **Archived**
+- **Closed**
+
+The Specs page shows the top level alone: Open (Idle or Active), Archived and Closed. Waiting, Running, Stopped and
+Failed are shown on the Running page.
+
+Open question: where a step the user cancelled belongs.
+
+- **a. Stopped.** It shows that someone stopped it on purpose, at the cost of Stopped no longer meaning only that
+  the board stopped it.
+- **b. Idle.** Nothing needs fixing and the spec stands where it stood before the step, at the cost of a cancelled
+  spec looking the same as one never started.
