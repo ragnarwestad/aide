@@ -312,7 +312,7 @@ if [ -n "$stopped" ]; then
   # can be re-run from where it got to. The row says "press Run"
   # separately (`nextActionHint`); this sentence only has to say why
   # and that nothing was lost.
-  error_msg="stopped at its own ${timeout_sec}s time limit for this step"
+  error_msg="stopped at its own $(time_limit_words "$timeout_sec") time limit for this step"
   error_msg="$error_msg — work up to that point is committed to the branch"
 # "Did the tool say how it went", not "was a cost measured" — the two
 # are the same question for claude and different for codex, which

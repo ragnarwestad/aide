@@ -220,7 +220,7 @@ BASH_ERROR_REGISTRY: list[dict] = [
     },
     {
         "name": "a step stopped at its own time limit",
-        "pattern": r"stopped at its own \$\{timeout_sec\}s time limit for this step.*",
+        "pattern": r"stopped at its own \$\(time_limit_words \"\$timeout_sec\"\) time limit for this step.*",
         "exempt": "a time-limited step resumes on its own next run — nothing to resolve by hand",
     },
     {

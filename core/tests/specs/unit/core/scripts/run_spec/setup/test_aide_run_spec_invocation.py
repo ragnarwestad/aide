@@ -453,7 +453,7 @@ def test_a_run_past_its_deadline_is_killed_and_reported_as_stopped(runner, works
     # `error` is read verbatim by the row's panel and the job page's
     # banner, so this string is the whole of what either one says.
     assert "time limit" in out["error"]
-    assert f"{STOP_DEADLINE_SEC}s" in out["error"], "the limit's own number belongs in the sentence"
+    assert f"{STOP_DEADLINE_SEC}-second" in out["error"], "the limit's own number belongs in the sentence"
     assert "committed" in out["error"]
     assert "killed" not in out["error"], "a limit we set is not something that happened to us"
 

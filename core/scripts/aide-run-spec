@@ -240,6 +240,8 @@ source "$SCRIPT_DIR/lib/run-spec/checkout/branch.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/run-spec/turn/provider-limit.sh"
 # shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/run-spec/turn/time-limit.sh"
+# shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/run-spec/turn/model-turn.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/run-spec/turn/spec-paths.sh"

@@ -160,7 +160,7 @@ EOF_CMDS
           terminal_reason="timeout"
           ok="false"
           suffix=" (stopped: timeout)"
-          error_msg="stopped at its own ${timeout_sec}s time limit for this step while the project's tests were running — the work is committed to the branch; press $step_button again to test it"
+          error_msg="stopped at its own $(time_limit_words "$timeout_sec") time limit for this step while the project's tests were running — the work is committed to the branch; press $step_button again to test it"
           break
         fi
         # The lines a reader looks for first — a runner's own failure
