@@ -189,14 +189,18 @@ export function dependsOnField(
       `</span>`
     );
   }
-  // Under the one "Depends on" label: the picked box, then the pick list.
-  // Both are ALWAYS drawn, even with nothing in them, so the script that
-  // lifts a chip on tick has a box to lift into; CSS hides a box while it
-  // is empty (`field.css`), so an empty half takes no room.
+  // "Depends on:" with the picked chips on its own line, or "none" while
+  // there are none, and the pick list under it. Both boxes are ALWAYS
+  // drawn, even with nothing in them, so the script that lifts a chip on
+  // tick has a box to lift into; CSS hides a box while it is empty, and
+  // "none" while the picked box is not (`field.css`).
   return field(
-    "Depends on",
-    phases(lockedBlock + picked.map(chip).join(""), "picked") + phases(rest.map(chip).join("")),
-    { group: true, wide: o.wide, help, actions: o.actions },
+    "Depends on:",
+    phases(rest.map(chip).join("")),
+    {
+      group: true, wide: o.wide, help, actions: o.actions,
+      after: phases(lockedBlock + picked.map(chip).join(""), "picked") + `<span class="muted" data-none>none</span>`,
+    },
   );
 }
 

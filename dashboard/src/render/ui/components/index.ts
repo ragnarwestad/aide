@@ -86,15 +86,18 @@ export function field(
   // buttons sit where the eye already is instead of below a tall list.
   // `for`: the control's own `id`. The word alone is then the <label>, and
   // the wrapper a span that can hold buttons and other labels beside it.
-  o: { wide?: boolean; group?: boolean; help?: string; actions?: string; for?: string } = {},
+  // `after`: what stands on the label's own line right after the word, as
+  // the chips a Depends on picker has picked, or its "none".
+  o: { wide?: boolean; group?: boolean; help?: string; actions?: string; for?: string; after?: string } = {},
 ): string {
   const tag = o.group || o.for ? "span" : "label";
   const trail = `${o.help ?? ""}${o.actions ?? ""}`;
   const word = o.for ? `<label for="${esc(o.for)}">${esc(label)}</label>` : esc(label);
+  const lead = o.after ? `<span class="row">${word}${o.after}</span>` : `<span>${word}</span>`;
   const head = trail
-    ? `<span class="fieldhead"><span>${word}</span>` +
+    ? `<span class="fieldhead">${lead}` +
       `<span class="fieldend">${trail}</span></span>`
-    : `<span>${word}</span>`;
+    : lead;
   return `<${tag} class="field${o.wide ? " wide" : ""}">${head}${control}</${tag}>`;
 }
 

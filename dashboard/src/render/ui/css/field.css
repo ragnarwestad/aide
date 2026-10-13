@@ -142,9 +142,11 @@ select[name^="model."] {
 .fieldhead > .fieldend { display: flex; align-items: center; gap: var(--sp-2); }
 
 /* The Running tab's Depends on picker: an empty picked box or an empty pick
-   list takes no room, and comes back the moment a chip is moved into it —
-   which is why this is the stylesheet's to decide, not the server's. */
+   list takes no room, and comes back the moment a chip is moved into it,
+   and "none" beside the label goes the moment the picked box has a chip —
+   which is why both are the stylesheet's to decide, not the server's. */
 .dependsform .phases:empty { display: none; }
+.phases.picked:not(:empty) + [data-none] { display: none; }
 
 /* The count under a bounded text field, and the line of its own after a paste
    or a drop was cut down to the bound. Both are drawn by the script
