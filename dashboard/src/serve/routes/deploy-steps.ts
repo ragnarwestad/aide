@@ -1,7 +1,8 @@
-// The Deploy button, one request per step (fetch, install, restart,
-// check), for the page script that draws each step's state as it
-// happens, and the read-only origin check the Deploy tab makes when it
-// is opened.
+// The Deploy button. For the board's own project it is one request that
+// queues a deploy job (the run is `serve/deploy-job/`); for every other
+// project one request per step (fetch, install, restart, check), for the
+// page script that draws each step's state as it happens. And the
+// read-only origin check the Deploy tab makes when it is opened.
 
 import { resolve } from "node:path";
 import { fastForwardToOrigin, type RepoMergeResult } from "../../git/branch-merge.ts";
@@ -9,6 +10,7 @@ import { renderSentence, type Sentence } from "../../i18n/message.ts";
 import type { Language } from "../../i18n";
 import { resolveInstallCmd } from "../../project/discover";
 import { SETTING_LABELS } from "../../project/setting-labels.ts";
+import { DEPLOY_KEY, isDeployJob, UNFINISHED } from "../../queue/queue.ts";
 import { landingJobNames } from "../land-branch";
 import { DEPLOY_LOCK_WAIT_MS, json, languageChoice, logRefusal, rootFreeWithin } from "../serve-helpers";
 import { STARTED_AT } from "../state.ts";
@@ -27,16 +29,24 @@ export interface DeployHooks {
   restartRegistered: () => Promise<boolean>;
   /** Waits for landings in flight, then restarts the service. */
   restartDashboard: () => void;
+  /** Whether `root` is the checkout the board runs from: the one project
+   *  whose Deploy is a job. */
+  isBoard: (root: string) => boolean;
+  /** The deploy job's restart: waits for landings with no deadline, tells
+   *  `onWait` which are in flight, calls `beforeFire` right before the
+   *  service restarts, and answers whether it did. */
+  restartWhenSettled: (o: { onWait: (landings: string[]) => void; beforeFire: () => void }) => Promise<boolean>;
 }
 
+const DEPLOY_ROUTE = /^\/api\/queue\/projects\/([^/]+)\/deploy$/;
 const DRIFT_ROUTE = /^\/api\/queue\/projects\/([^/]+)\/drift$/;
 const STEP_ROUTE = /^\/api\/queue\/projects\/([^/]+)\/deploy\/(fetch|install|restart|check)$/;
 
 /** The commit the dashboard's own checkout is on when the running
  *  service is on another one — for the dashboard's own project only,
  *  and only once the served commit is known (until it is, no claim). */
-async function servedOlder(
-  ctx: RoutesContext,
+export async function servedOlder(
+  ctx: Pick<RoutesContext, "readServing" | "gitRun">,
   root: string,
 ): Promise<{ served: string; head: string } | "equal" | "unknown"> {
   const { sha, repoRoot } = ctx.readServing();
@@ -63,7 +73,42 @@ async function driftCheck(ctx: RoutesContext, name: string): Promise<Response> {
   return json({ ok: true, behind });
 }
 
+/** The board's own Deploy: queue the job and answer it. Every refusal is a
+ *  400 with its sentence; the Deploy panel's kept failure belongs to the
+ *  steps a page drives, not to a job. */
+async function queueDeploy(ctx: RoutesContext, name: string): Promise<Response> {
+  const refuse = (error: string): Response => {
+    logRefusal("project-deploy", name, error);
+    return json({ ok: false, error }, 400);
+  };
+  if (!ctx.opts.projectRoot || !ctx.allowed.has(name)) {
+    return refuse(`"${name}" is not a project this dashboard knows`);
+  }
+  const root = ctx.machineryProjectDir(name);
+  if (!resolveInstallCmd(root).value) {
+    return refuse(`${name} has no ${SETTING_LABELS.AIDE_INSTALL_CMD.toLowerCase()} configured — deploying stays a hand step`);
+  }
+  if (!ctx.deploy.isBoard(root)) {
+    return refuse(`only the board itself is deployed as a job — ${name} deploys from its own Deploy tab`);
+  }
+  // A job nothing starts would sit queued for ever.
+  if (!(ctx.opts.runnerAvailable ?? ctx.runner !== null)) {
+    return refuse("this board has no runner, so a deploy job would never start");
+  }
+  const running = ctx.queue.list().find((j) => j.project === name && isDeployJob(j) && UNFINISHED.has(j.state));
+  if (running) return refuse(`a deploy is already ${running.state} — follow it on the Running tab`);
+  const result = ctx.queue.enqueue({ project: name, specFolder: DEPLOY_KEY, steps: ["deploy"] });
+  if (!result.ok) return refuse(result.error);
+  await ctx.tickRunner();
+  return json({ ok: true, job: result.job });
+}
+
 export async function handleDeploySteps(ctx: RoutesContext, req: Request, path: string): Promise<Response | null> {
+  const queue = path.match(DEPLOY_ROUTE);
+  if (queue) {
+    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+    return queueDeploy(ctx, decodeURIComponent(queue[1]!));
+  }
   const drift = path.match(DRIFT_ROUTE);
   if (drift) {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });

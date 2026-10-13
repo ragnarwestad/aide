@@ -178,11 +178,14 @@ describe("what a step refuses before it moves anything (AC-5)", () => {
     expect(String((await answer(branch)).error)).toContain("feature-x");
   });
 
-  test("the one-request deploy route is gone (AC-3)", async () => {
-    const { base, paths } = await deployServer(SAME, noRestart);
+  test("the base route no longer runs the sequence in the request: it queues a job (AC-3)", async () => {
+    const gate = new Promise<void>(() => {});
+    const { base, git, paths } = await deployServer(SAME, noRestart, {}, gate);
     installs(paths.project);
-    expect((await post(base, "aide/deploy")).status).toBe(404);
-    expect((await post(base, "aide/deploy/fetch")).status).toBe(200);
+    const res = await post(base, "aide/deploy");
+    expect(res.status).toBe(200);
+    expect(((await answer(res)).job as { steps: string[] }).steps).toEqual(["deploy"]);
+    expect(git.calls.some((c) => c.args[0] === "merge")).toBe(false);
   });
 });
 
@@ -442,5 +445,61 @@ describe("POST .../drift", () => {
     expect(existsSync(marker)).toBe(false);
     await Bun.sleep(100);
     expect(fired).toBe(0);
+  });
+});
+
+/** The queue, as the board lists it. */
+const queued = async (base: string): Promise<{ id: string; specFolder: string; steps: string[]; state: string }[]> =>
+  ((await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as { jobs: { id: string; specFolder: string; steps: string[]; state: string }[] }).jobs;
+
+describe("POST .../deploy queues the board's own deploy as a job", () => {
+  test("it answers the job and the queue holds it (AC-1)", async () => {
+    const { base, paths } = await deployServer(SAME, noRestart, {}, new Promise<void>(() => {}));
+    installs(paths.project);
+    const res = await post(base, "aide/deploy");
+    expect(res.status).toBe(200);
+    const body = await answer(res);
+    expect(body.ok).toBe(true);
+    expect(body.job).toMatchObject({ project: "aide", specFolder: "deploy", steps: ["deploy"] });
+    expect((await queued(base)).filter((j) => j.specFolder === "deploy")).toHaveLength(1);
+  });
+
+  test("it refuses a project with no install command, a project that is not the board's, and a board with no runner, and queues nothing (AC-1)", async () => {
+    const noInstall = await deployServer(SAME, noRestart);
+    const refused = await post(noInstall.base, "aide/deploy");
+    expect(refused.status).toBe(400);
+    expect(String((await answer(refused)).error)).toContain("install command");
+    expect(await queued(noInstall.base)).toEqual([]);
+
+    const elsewhere = await deployServer(SAME, noRestart, { dashboardRoot: "/somewhere/else" });
+    installs(elsewhere.paths.project);
+    const notBoard = await post(elsewhere.base, "aide/deploy");
+    expect(notBoard.status).toBe(400);
+    expect(String((await answer(notBoard)).error)).toContain("only the board itself");
+    expect(await queued(elsewhere.base)).toEqual([]);
+
+    const noRunner = await deployServer(SAME, noRestart, { queueRunnerBin: undefined });
+    installs(noRunner.paths.project);
+    expect((await post(noRunner.base, "aide/deploy")).status).toBe(400);
+    expect(await queued(noRunner.base)).toEqual([]);
+  });
+
+  test("a second deploy is refused while one is queued or running, and queued again once it has ended (AC-7)", async () => {
+    let release = (): void => {};
+    const gate = new Promise<void>((r) => (release = r));
+    const { base, paths } = await deployServer(SAME, noRestart, {}, gate);
+    installs(paths.project);
+    const first = (await answer(await post(base, "aide/deploy"))).job as { id: string };
+
+    const second = await post(base, "aide/deploy");
+    expect(second.status).toBe(400);
+    expect(String((await answer(second)).error)).toContain("already");
+    expect((await queued(base)).filter((j) => j.specFolder === "deploy")).toHaveLength(1);
+
+    release();
+    await settle(base, first.id, (j) => j.state === "done");
+    const third = await post(base, "aide/deploy");
+    expect(third.status).toBe(200);
+    expect((await queued(base)).filter((j) => j.specFolder === "deploy")).toHaveLength(2);
   });
 });

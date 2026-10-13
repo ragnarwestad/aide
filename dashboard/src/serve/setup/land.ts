@@ -30,13 +30,15 @@ import {
   landScheduleRun as landScheduleRunImpl,
   installAfterMerge as installAfterMergeImpl,
   restartAfterLanding,
+  isDashboardRoot,
   withFreshness as withFreshnessImpl,
   deleteLeftBehindBranch as deleteLeftBehindBranchImpl,
   type LandContext,
   type RestartHook,
 } from "../land-branch";
 import type { DeployHooks } from "../routes/deploy-steps.ts";
-import { setPendingRestart, type ServerState } from "../state.ts";
+import { setDeployFailure, setDeployFault, setPendingRestart, type ServerState } from "../state.ts";
+import { createDeployJob } from "../deploy-job/index.ts";
 import type { TestServersContext } from "../test-servers/lifecycle.ts";
 
 export interface LandSetupInputs {
@@ -152,7 +154,37 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
     restartDashboard: () => {
       void restartAfterLanding(landCtx);
     },
+    isBoard: (root) => isDashboardRoot(landCtx, root),
+    // The deploy job's restart waits as long as landings take: nothing may
+    // be cut short, so no deadline.
+    restartWhenSettled: ({ onWait, beforeFire }) =>
+      restartAfterLanding({
+        ...landCtx,
+        restartDeferTimeoutMs: Infinity,
+        onJobsWaitChange: (jobs) => {
+          setPendingRestart(state, jobs);
+          onWait(jobs);
+        },
+        beforeFire,
+      }),
   };
+  /** The board's own deploy as a job: the runner starts it through
+   *  `start`, and the next process finishes it at boot. */
+  const deployJob = createDeployJob({
+    queue: inputs.queue,
+    projectRoot: inputs.machineryProjectDir,
+    isBoard: deploy.isBoard,
+    gitRun: inputs.gitRun,
+    branchStatus: inputs.branchStatus,
+    mergeLock: inputs.mergeLock,
+    installCheckout: deploy.installCheckout,
+    restartRegistered: deploy.restartRegistered,
+    restartWhenSettled: deploy.restartWhenSettled,
+    readServing: () => ({ sha: state.servingSha, repoRoot: state.servingRepoRoot }),
+    setFailure: (project, failure) => setDeployFailure(state, project, failure),
+    setFault: (fault) => setDeployFault(state, fault),
+    dashboardRoot: inputs.dashboardRoot,
+  });
   function withFreshness(list: SpecTarget[]) {
     return withFreshnessImpl(landCtx, list);
   }
@@ -163,6 +195,6 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
 
   return {
     jobRow, landNewSpec, landStepBranch, landStoppedStepBranch, landArchivedSpec, landClosedSpec, landScheduleRun,
-    deploy, withFreshness, deleteLeftBehindBranch,
+    deploy, deployJob, withFreshness, deleteLeftBehindBranch,
   };
 }

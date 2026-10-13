@@ -611,7 +611,8 @@ The Slack `notifyCommand` above is separate and unchanged.
 ## The Running tab
 
 The Running tab is the board's first page, at `/`. It lists every spec the Specs list shows under Active, and the
-scheduled jobs that are running or wait for the user, in every project.
+scheduled jobs, the Close and Reopen jobs and the board's own deploy that are running or wait for the user, in every
+project.
 
 A spec has a row for as long as the Specs list shows it under Active: neither archived nor closed, whatever its jobs
 did and whether or not it has one in the queue. A spec waiting for Implement, one implemented and waiting to be tested
@@ -648,6 +649,18 @@ the tab when the user has dealt with it:
 - a scheduled job's entry is deleted.
 
 The queue keeps 200 jobs, so a waiting job older than that leaves with its history.
+
+The board's own deploy is a job under the tracking key `deploy`, with the step `deploy`: a step the server runs itself,
+in its own process, so it takes no slot and waits for none (`takesSlot`, `queue/steps.ts`). The Deploy button on the
+board's own project queues it (`POST /api/queue/projects/<project>/deploy`). Its row is named "Deploy <project>", its key
+is `<project>/deploy:deploy`, and it links to its log and to the project's Deploy tab. It has a row while it is queued,
+held back or running, and once it has failed or been interrupted until a newer deploy of the project is queued. A
+second deploy is refused while one is queued or running. It offers Cancel while it is queued and nothing once it runs:
+the run is the server itself, and a job marked cancelled would go on restarting the service. The open row lists five
+steps in order: fetch from origin, install, restart the service, wait for the service to answer, and check that the
+newest commit runs. Each state and time comes from the job's run log, to which the process that starts after the restart
+adds its own two. Its cost is a dash. While a merge is in flight, a queued deploy waits, and a running one waits before
+its fetch and before its restart; the row says "Held back" with the reason under the state line.
 
 A scheduled job gets a job row in the same columns and the same two-line shape
 (`src/render/pages/jobs-page/job-row.ts`). Its title leads with the project, as a spec's does: "<project>:<name>". It folds as a spec's row does, by the `open` key in the address, and is

@@ -9,7 +9,7 @@ import { describe, expect, test } from "bun:test";
 import { renderSentence } from "../../../src/i18n/message.ts";
 import type { Job } from "../../../src/queue/queue.ts";
 import { stepPlan } from "../../../src/queue/parse-stream";
-import { closeOrReopenSteps, jobMarks } from "../../../src/serve/spec-views/job-marks.ts";
+import { closeOrReopenSteps, deploySteps, jobMarks } from "../../../src/serve/spec-views/job-marks.ts";
 
 const dir = mkdtempSync(join(tmpdir(), "job-marks-"));
 let n = 0;
@@ -123,5 +123,54 @@ describe("closeOrReopenSteps", () => {
     expect(of("Step Aide: preparing")?.seconds).toBe(1);
     expect(of("Step Aide: tests and commit")).toMatchObject({ state: "running", since: "2026-10-03T10:00:03.000Z" });
     expect(of("Step 1 of 4")?.seconds).toBeUndefined();
+  });
+});
+
+describe("deploySteps", () => {
+  const deployJob = (file: string, extra: Partial<Job> = {}) =>
+    job({ specFolder: "deploy", steps: ["deploy"], streamFile: file, stepStartedAt: "2026-10-03T10:00:00Z", ...extra });
+  const KEYS = ["Step 1 of 5", "Step 2 of 5", "Step 3 of 5", "Step 4 of 5", "Step 5 of 5"];
+
+  // The run is cut at the restart: what it has marked is the fetch, the
+  // install and the restart. The wait and the check are not marked yet.
+  test("lists the five deploy steps in order, each in the state the run log has it in (AC-3)", () => {
+    const file = step([], [
+      "--- Step 1 of 5: Fetch from origin — started",
+      "--- Step 1 of 5: Fetch from origin — done",
+      "--- Step 2 of 5: Install — started",
+      "--- Step 2 of 5: Install — done",
+      "--- Step 3 of 5: Restart the service — started",
+    ]);
+    const got = deploySteps(deployJob(file), "en");
+    expect(got.map((s) => s.key)).toEqual(KEYS);
+    expect(got.map((s) => s.state)).toEqual(["done", "done", "running", undefined, undefined]);
+    expect(got[0]!.seconds).toBe(1);
+    expect(got[1]!.seconds).toBe(1);
+    expect(got[2]).toMatchObject({ since: "2026-10-03T10:00:04.000Z" });
+  });
+
+  // The process that starts after the restart writes its marks to the same
+  // log, its seconds counted from the job's `stepStartedAt`.
+  test("lines marked after the restart read done, each with its seconds (AC-3)", () => {
+    const file = step([], [
+      "--- Step 1 of 5: Fetch from origin — started",
+      "--- Step 1 of 5: Fetch from origin — done",
+      "--- Step 3 of 5: Restart the service — started",
+      "--- Step 3 of 5: Restart the service — done",
+      "--- Step 4 of 5: Wait for the service to answer — started",
+      "--- Step 4 of 5: Wait for the service to answer — done",
+      "--- Step 5 of 5: Check the newest commit runs — started",
+      "--- Step 5 of 5: Check the newest commit runs — done",
+    ]);
+    const got = deploySteps(deployJob(file), "en");
+    expect(got.slice(2).map((s) => s.state)).toEqual(["done", "done", "done"]);
+    expect(got[3]!.seconds).toBe(1);
+    expect(got[4]!.seconds).toBe(1);
+  });
+
+  test("a deploy with nothing marked yet lists the five steps, none with a state (AC-3)", () => {
+    const got = deploySteps(job({ specFolder: "deploy", steps: ["deploy"], state: "queued" }), "en");
+    expect(got.map((s) => s.key)).toEqual(KEYS);
+    expect(got.every((s) => s.state === undefined)).toBe(true);
   });
 });

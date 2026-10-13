@@ -2,6 +2,7 @@
 // reports, and the options the scheduler is built from.
 
 import type { NotifyEvent } from "../../integrations/notify.ts";
+import type { Sentence } from "../../i18n/message.ts";
 import type { BranchRef, Job, ProviderLimit, QueueStore, SharedFiles, StepRepoRange, TestedGreen, TokenUsage, WorkflowStep } from "../queue.ts";
 
 export interface SpawnResult {
@@ -88,6 +89,10 @@ export interface StepOutcome {
    *  files each shares; read by `sharedFiles()` below. */
   sharedFiles?: unknown;
   error?: string;
+  /** A deploy's failure in the board's own words, which the English `error`
+   *  beside it restates: the job's row reads this, and `error` is its
+   *  hover detail. Only a `deploy` step writes it. */
+  sentence?: Sentence;
   /** WHY it was refused, when the answer is one the page acts on (spec
    *  153). `"conflict"` — the runner could not bring the spec's branch
    *  up to date with the base before the step started — is the only one

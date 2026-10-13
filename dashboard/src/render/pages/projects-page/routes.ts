@@ -58,3 +58,6 @@ export const projectPagePath = (name: string): string => `/projects/${encodeURIC
  *  an entry's own page goes, and where a save goes when nothing better is
  *  known. */
 export const projectScheduleTab = (project: string): string => `${projectPagePath(project)}?tab=schedule`;
+
+/** The project's own Deploy tab: where a deploy job's row sends a reader. */
+export const projectDeployTab = (project: string): string => `${projectPagePath(project)}?tab=deploy`;

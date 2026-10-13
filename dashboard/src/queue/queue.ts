@@ -8,6 +8,8 @@
 
 export {
   ARCHIVE_ONLY_STEP,
+  BOARD_STEPS,
+  DEPLOY_KEY,
   EFFORT_LEVELS,
   JOB_STATES,
   PHASE_STEPS,
@@ -16,9 +18,12 @@ export {
   WORKFLOW_STEPS,
   closeOrReopenStep,
   currentWorkRoundJobs,
+  deployStep,
+  isDeployJob,
   landingInProject,
   queuePriorityOrder,
   tailEdits,
+  takesSlot,
   type EffortLevel,
   type JobState,
   type StopReason,

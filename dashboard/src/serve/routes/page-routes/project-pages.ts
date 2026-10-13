@@ -9,6 +9,7 @@ import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { buildProjectViews, manifestInside, gitignoreCandidates, resolveCodeLanding, resolveInstallCmd, resolvePreviewFrom } from "../../../project/discover";
 import { groupForEditParam, projectSettings } from "../../../project/project-settings.ts";
+import { isDeployJob, UNFINISHED } from "../../../queue/queue.ts";
 import { lastChecks } from "../../tool-check.ts";
 import { lastUsage } from "../../tool-usage";
 import { lastModels } from "../../tool-models";
@@ -248,6 +249,8 @@ export async function projectPages(
         deployFailure: ctx.readDeployFailure(name),
         serving,
         restartWaiting: ctx.readPendingRestart()?.jobs,
+        boardItself: ctx.deploy.isBoard(driftRoot),
+        deployUnderWay: deployUnderWay(ctx, name),
         // AC-8: the same capability check the spec-page's own
         // test-server link already gates on.
         testServerAvailable: ctx.testServers.previewAvailable(name),
@@ -335,4 +338,10 @@ export async function projectPages(
   // failure mode `dashboard/CLAUDE.md` already names six instances of.
 
   return null;
+}
+
+/** The state of the project's deploy job while one is queued or running. */
+function deployUnderWay(ctx: RoutesContext, project: string): "queued" | "running" | undefined {
+  const job = ctx.queue.list().find((j) => j.project === project && isDeployJob(j) && UNFINISHED.has(j.state));
+  return job?.state === "queued" || job?.state === "running" ? job.state : undefined;
 }

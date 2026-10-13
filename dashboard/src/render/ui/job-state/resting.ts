@@ -88,8 +88,18 @@ export function landingStep(r: { steps: readonly string[]; stepIndex: number; st
   return r.steps[landingStepIndex(r.state, r.stepIndex)] ?? currentStep(r);
 }
 
+/** "Held back", neutral when the hold clears on its own and amber when it waits on a person. */
+function heldBackBadge(r: QueueRowView, lang: Language): string {
+  return badge(heldBackResolvesOnItsOwn(r) ? "idle" : "waiting", capitalizeFirst(t(lang, "state.heldBack")));
+}
+
 export function specStateChip(r: QueueRowView, lang: Language, resting: RestingState = {}): string {
-  if (r.state === "running") return badge("running", gerund(lang, currentStep(r)));
+  if (r.state === "running") {
+    // A running job whose reason is a hold waits as a held-back one does: a
+    // deploy's fetch or restart waiting for a landing to settle.
+    if (r.errorReason === "held-back") return heldBackBadge(r, lang);
+    return badge("running", gerund(lang, currentStep(r)));
+  }
   // A landing in flight is what the row says, whichever state the job
   // has reached — `done` with the step's own branch still merging, or
   // already `queued` on the NEXT step while the last one lands. Read as
@@ -114,9 +124,7 @@ export function specStateChip(r: QueueRowView, lang: Language, resting: RestingS
     // never a stop, and its colour follows the same classification the
     // notice line already uses — neutral when the hold clears on its
     // own, amber when it waits on a person — so the two never disagree.
-    if (r.errorReason === "held-back") {
-      return badge(heldBackResolvesOnItsOwn(r) ? "idle" : "waiting", capitalizeFirst(t(lang, "state.heldBack")));
-    }
+    if (r.errorReason === "held-back") return heldBackBadge(r, lang);
     const pos = r.queuePosition;
     return badge(
       "idle",

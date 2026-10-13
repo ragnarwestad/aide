@@ -63,8 +63,9 @@ stateDiagram-v2
     running --> cancelled: Cancel
 ```
 
-**Into the queue.** Five callers insert a job as `queued`: `POST /api/queue`, `POST /api/queue/create`, the
-schedule poll, the schedule page's own Run now, and the Close control on a spec's page.
+**Into the queue.** Six callers insert a job as `queued`: `POST /api/queue`, `POST /api/queue/create`, the
+schedule poll, the schedule page's own Run now, the Close control on a spec's page, and the Deploy button on the
+board's own project page (`POST /api/queue/projects/<project>/deploy`).
 
 **The runner's tick, every two seconds** (`Runner.tick()`), walks the queue in `queuePriorityOrder()`'s order — every
 queued `create`, `archive` or `close` step — the ones that do no model work — before any queued `analyze` or
@@ -210,6 +211,16 @@ rides with the last of them, and the permanent records of a landing attempt — 
   is held back, and on a landing held for a red suite. A `timeout` or `provider-limit` stop passes the run's own
   error through, so a result file that recorded none leaves it unset. It is a `Sentence`, or several: a message key and its values, translated where it is drawn, never
   a finished string the queue made up.
+
+**A deploy across its own restart.** The board's own deploy (`deploy`, the one step the server runs itself) starts like
+any step but takes no slot. Its spawn answers the server's own pid with no process group to signal, and a cancel of a
+running one is refused (409). Its run writes `deploy.restartedAt` to the job, fires the restart and is taken down with
+it, so the job is `running` in the stored queue with an old pid and no result. The process that starts finishes it at
+boot, right before the runner reconciles: it writes the result file (done when it runs the fetched commit or one that
+contains it, failed otherwise or after three minutes), and `reconcile` ends the job through the usual transition. A
+deploy found `running` without `deploy.restartedAt` was cut before its restart and is interrupted. While a landing is in
+flight a queued deploy is held back, and a running one carries the same `held-back` reason (the one case of `running`
+with an `errorReason`) until the wait ends.
 
 ## What the page makes of it
 

@@ -53,12 +53,13 @@ export const SPEC_STEPS = [
  *  first. */
 export const OTHER_STEPS = ["schedule"] as const;
 
-/** A step the queue can run that nothing on the board starts. `explore`
- *  has no button, no row action and no place in Schedule, so a model
- *  and a timeout for it set something that cannot be used. It is named
- *  here rather than simply left out, so that STEP_COVERAGE below still
+/** A step the queue can run that has nothing to set. `explore` has no
+ *  button, no row action and no place in Schedule, so a model and a
+ *  timeout for it set something that cannot be used; `deploy` is run by the
+ *  server itself, with no model and no time limit. They are named here
+ *  rather than simply left out, so that STEP_COVERAGE below still
  *  fails when a NEW step arrives with no group of its own. */
-export const UNROWED_STEPS = ["explore"] as const;
+export const UNROWED_STEPS = ["explore", "deploy"] as const;
 
 // Every step the queue can run is accounted for: in one of the two
 // groups, or deliberately unrowed. Derived-and-checked rather than

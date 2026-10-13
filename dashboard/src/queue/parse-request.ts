@@ -12,7 +12,7 @@
 import { errorSentence } from "../format/error-sentence.ts";
 import { parseCreateChoices } from "./create-choices.ts";
 import { listedModelName } from "./model-name.ts";
-import { ARCHIVE_ONLY_STEP, EFFORT_LEVELS, PHASE_STEPS, WORKFLOW_STEPS, type WorkflowStep } from "./steps.ts";
+import { ARCHIVE_ONLY_STEP, DEPLOY_KEY, EFFORT_LEVELS, PHASE_STEPS, WORKFLOW_STEPS, type WorkflowStep } from "./steps.ts";
 import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "./types.ts";
 
 export type ParseResult = { ok: true; job: Job } | { ok: false; error: string };
@@ -96,10 +96,16 @@ export function parseJobRequest(
   if (isScheduleJob && !r.specFolder.startsWith("schedule-")) {
     return { ok: false, error: invalidRequest("invalid specFolder: a schedule job's tracking key must start with schedule-") };
   }
+  // The board's own deploy is no spec either: exactly `["deploy"]`, under the
+  // tracking key `deploy` and no other, and that step under no other key.
+  const isDeploy = Array.isArray(r.steps) && r.steps.length === 1 && r.steps[0] === "deploy";
+  if (isDeploy && r.specFolder !== DEPLOY_KEY) {
+    return { ok: false, error: invalidRequest(`invalid specFolder: a deploy job's tracking key must be ${DEPLOY_KEY}`) };
+  }
   const archivedOnly =
     !resolved.specFolders.includes(r.specFolder) &&
     (resolved.archivedFolders ?? []).includes(r.specFolder);
-  if (!isScheduleJob && !resolved.specFolders.includes(r.specFolder) && !archivedOnly) {
+  if (!isScheduleJob && !isDeploy && !resolved.specFolders.includes(r.specFolder) && !archivedOnly) {
     return { ok: false, error: invalidRequest(`unknown specFolder: ${r.specFolder}`) };
   }
 
@@ -112,6 +118,9 @@ export function parseJobRequest(
       return { ok: false, error: invalidRequest(`invalid entry in steps: ${String(s)}`) };
     }
     steps.push(s as WorkflowStep);
+  }
+  if (!isDeploy && steps.includes("deploy")) {
+    return { ok: false, error: invalidRequest("invalid entry in steps: deploy runs alone, under the deploy key") };
   }
 
   // Checked here rather than beside the folder lookup above, so that the

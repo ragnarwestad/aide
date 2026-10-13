@@ -35,6 +35,8 @@ export const nb: Record<TranslationKey, string> = {
   "dialog.stepFailed": "feilet",
   "deploy.finished": "Deploy er ferdig",
   "deploy.failedAt": "{step} feilet: {error}",
+  "deploy.askTitle": "Deploy {project}?",
+  "deploy.askSentence": "Henter fra origin, installerer og starter tjenesten på nytt, og sjekker så at nyeste commit kjører. Det går som en jobb du følger under Kjører.",
   "shell.overlayLoading": "laster…",
   "shell.loadingPage": "Laster …",
   "shell.pageFailed": "Noe gikk galt mens siden ble bygget. Last siden på nytt; feiler det fortsatt, se i dashboardets logg på verten som kjører det.",

@@ -35,6 +35,8 @@ export const es: Record<TranslationKey, string> = {
   "dialog.stepFailed": "fallido",
   "deploy.finished": "Despliegue terminado",
   "deploy.failedAt": "{step} falló: {error}",
+  "deploy.askTitle": "¿Desplegar {project}?",
+  "deploy.askSentence": "Trae desde origin, instala y reinicia el servicio, y comprueba después que corre el último commit. Se ejecuta como un trabajo: síguelo en la pestaña En curso.",
   "shell.overlayLoading": "cargando…",
   "shell.loadingPage": "Cargando …",
   "shell.pageFailed": "Algo salió mal al construir la página. Recarga la página; si sigue fallando, mira el registro del panel en el equipo que lo sirve.",

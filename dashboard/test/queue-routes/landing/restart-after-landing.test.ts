@@ -432,3 +432,55 @@ describe("onJobsWaitChange (spec 385)", () => {
     expect(seen[seen.length - 1]).toEqual([]);
   });
 });
+
+// The board's own deploy job restarts through this wait with no deadline,
+// and records its restart in the job before the process is taken down.
+describe("restartAfterLanding for a deploy job: no deadline and a call before the fire", () => {
+  function restartSpy() {
+    const order: string[] = [];
+    const hook: RestartHook = { registered: async () => true, fire: () => void order.push("fire") };
+    return { hook, order };
+  }
+
+  test("with no deadline it does not fire while a landing stays in flight, and fires exactly once when it clears (AC-4)", async () => {
+    const jobs: { id: string; state: string; landing?: boolean }[] = [{ id: "archiving", state: "done", landing: true }];
+    const { hook, order } = restartSpy();
+    const waiting = restartAfterLanding({
+      mergeLock: createRootLock(),
+      restart: hook,
+      restartPollMs: 5,
+      restartDeferTimeoutMs: Infinity,
+      queue: { list: () => jobs },
+    });
+    await new Promise((r) => setTimeout(r, 80));
+    expect(order).toEqual([]);
+
+    jobs[0]!.landing = undefined;
+    expect(await waiting).toBe(true);
+    expect(order).toEqual(["fire"]);
+  });
+
+  test("beforeFire is called once, right before the restart fires (AC-4)", async () => {
+    const { hook, order } = restartSpy();
+    const fired = await restartAfterLanding({
+      mergeLock: createRootLock(),
+      restart: hook,
+      restartPollMs: 5,
+      beforeFire: () => void order.push("before"),
+    });
+    expect(fired).toBe(true);
+    expect(order).toEqual(["before", "fire"]);
+  });
+
+  test("it answers false, and calls nothing, when nothing is registered to restart (AC-4)", async () => {
+    let called = 0;
+    const fired = await restartAfterLanding({
+      mergeLock: createRootLock(),
+      restart: { registered: async () => false, fire: () => {} },
+      restartPollMs: 5,
+      beforeFire: () => void (called += 1),
+    });
+    expect(fired).toBe(false);
+    expect(called).toBe(0);
+  });
+});

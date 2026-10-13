@@ -20,7 +20,7 @@ import { DEFAULT_SCHEDULE_OUTPUT_ROOT, scheduleRunOutputDir } from "../queue/sch
 import { proposeSpecs } from "../queue/propose-specs.ts";
 import { scheduleRunPath } from "../render";
 import type { QueueStore, Job, WorkflowStep } from "../queue/queue.ts";
-import type { StepOutcome } from "../queue/runner";
+import type { SpawnResult, StepOutcome } from "../queue/runner";
 import type { Notifier } from "../integrations/notify.ts";
 import { specAcceptanceNotRequired, type CodeLanding } from "../project/discover";
 import { runnerArgv, DEFAULT_QUEUE_CONCURRENCY, logRefusal } from "./serve-helpers";
@@ -52,6 +52,8 @@ export interface RunnerSetupContext {
   landClosedSpec: (job: Job, outcome: Partial<StepOutcome>) => Promise<void>;
   landStoppedStepBranch: (job: Job, step: WorkflowStep, outcome: Partial<StepOutcome>) => Promise<void>;
   landScheduleRun: (job: Job, outcome: Partial<StepOutcome>) => Promise<void>;
+  /** Starts a `deploy` step, which this process runs itself. */
+  startDeploy: (job: Job, resultFile: string) => SpawnResult;
   /** The spec's own on-disk folder (spec 394) — the same `specDir` →
    *  `peekMachinerySpecDir` chain `spec-views/spec-page.ts` already uses
    *  to reach it, added here so `analyze`'s own spawn can read the
@@ -138,6 +140,7 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
     today: () => new Date().toISOString().slice(0, 10),
     spawn: (job, step, resultFile, sessionId, streamFile) => {
       mkdirSync(dirname(resultFile), { recursive: true });
+      if (step === "deploy") return ctx.startDeploy(job, resultFile);
       // Spec 222. `aide-emit-run` reports each TDD phase and is
       // inert unless `AIDE_RUN_URL` says where — so a headless step
       // reported into silence, because nothing from launchd down to

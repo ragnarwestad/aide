@@ -100,3 +100,40 @@ test("cancel refuses a job that has already finished, and leaves its state alone
     harness.cleanup();
   }
 });
+
+// A deploy runs inside the board's own process, so there is nothing to
+// signal: marking it cancelled would leave it fetching and restarting under
+// a row that says it ended. Only a queued one, which has no run yet, is
+// cancelled.
+test("cancel refuses a running deploy and leaves it running; a queued deploy, held back or not, is cancelled", async () => {
+  const headers = { "content-type": "application/json", accept: "application/json" };
+  const deploy = (id: string, state: string, extra: Record<string, unknown> = {}) => ({
+    id, project: "aide", specFolder: "deploy", steps: ["deploy"], stepIndex: 0, state,
+    timeoutSec: { default: 1200 }, permissionMode: {}, model: {}, results: [],
+    createdAt: "2026-10-13T08:00:00Z", ...extra,
+  });
+  const site = mkdtempSync(join(tmpdir(), "aide-cancel-deploy-"));
+  ownDirs.push(site);
+  writeFileSync(join(site, "queue.json"), JSON.stringify([
+    deploy("dep-running", "running", { startedAt: "2026-10-13T08:00:01Z", pid: process.pid, pgid: 0 }),
+    deploy("dep-queued", "queued"),
+    deploy("dep-held", "queued", { errorReason: "held-back", error: { key: "runner.landingPause" } }),
+  ]));
+  const { base } = start({ queueMirrorPath: join(site, "queue.json") });
+  const states = async () =>
+    Object.fromEntries(
+      ((await (await fetch(`${base}/api/queue`, { headers })).json()) as { jobs: { id: string; state: string }[] }).jobs.map((j) => [j.id, j.state]),
+    );
+
+  const refused = await fetch(`${base}/api/queue/dep-running/cancel`, { method: "POST", headers });
+  expect(refused.status).toBe(409);
+  expect((await states())["dep-running"]).toBe("running");
+
+  for (const id of ["dep-queued", "dep-held"]) {
+    expect((await fetch(`${base}/api/queue/${id}/cancel`, { method: "POST", headers })).status).toBe(200);
+  }
+  const after = await states();
+  expect(after["dep-queued"]).toBe("cancelled");
+  expect(after["dep-held"]).toBe("cancelled");
+  expect(after["dep-running"]).toBe("running");
+});

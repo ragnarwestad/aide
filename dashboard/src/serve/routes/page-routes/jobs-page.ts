@@ -2,7 +2,7 @@
 // `handlePageRoutes` asks in turn, and answers `null` for a path that is not
 // its own.
 import { ACTIVE_FILTER_KEY, jobsShown, renderJobsPage, renderJobsRows, renderJobsSpecRows } from "../../../render";
-import { closeOrReopenStep } from "../../../queue/queue.ts";
+import { closeOrReopenStep, deployStep } from "../../../queue/queue.ts";
 import { jobsViewChoice, languageChoice, specsClientScript } from "../../serve-helpers";
 import { listedSpecJobs, specRowOptions } from "./spec-row-options.ts";
 import type { RoutesContext } from "..";
@@ -35,13 +35,13 @@ export async function jobsPage(
   // The tab's own view, from the address or its own cookie.
   const choice = jobsViewChoice(url, req, ctx.serverPort());
   const jobs = ctx.queue.list();
-  // The scheduled jobs and the Close and Reopen jobs, by the rules they follow.
+  // The scheduled jobs and the Close, Reopen and deploy jobs, by the rules they follow.
   const shown = jobsShown(jobs, {
     scheduleEntryExists: (project, name) => ctx.scheduleStore.list(project).some((e) => e.name === name),
   });
   // The jobs a spec's row is drawn from, as the Specs list draws it, less a
-  // Close or Reopen that is a row of its own.
-  const own = new Set(shown.filter((j) => closeOrReopenStep(j)).map((j) => j.id));
+  // Close, Reopen or deploy that is a row of its own.
+  const own = new Set(shown.filter((j) => closeOrReopenStep(j) || deployStep(j)).map((j) => j.id));
   const specJobs = listedSpecJobs(ctx, jobs).filter((j) => !own.has(j.id));
   const built = new Map(
     (await Promise.all([...new Set([...specJobs, ...shown])].map(ctx.jobRow))).map((r) => [r.id, r]),

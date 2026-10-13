@@ -34,6 +34,11 @@ import effortLevelsData from "../../../core/scripts/lib/effort-levels.json" with
 // like `explore`/`reopen`, deliberately not part of
 // the workflow arc: a schedule run is not a stage any spec passes
 // through.
+//
+// `deploy` is the board's own: Deploy on the project the board runs from is
+// a job of its own, run by the server and finished by the process that
+// starts after its restart (`serve/deploy-job/`). Its `specFolder` is the
+// tracking key `deploy`, which no spec folder is.
 
 // TypeScript cannot infer a literal union from a JSON import (an array
 // of strings types as `string[]`), and `WorkflowStep` is consumed as a
@@ -45,14 +50,23 @@ import effortLevelsData from "../../../core/scripts/lib/effort-levels.json" with
 // dashboard and every test alike).
 export type WorkflowStep =
   | "explore" | "create" | "analyze" | "implement" | "archive" | "reopen"
-  | "schedule" | "close";
+  | "schedule" | "close" | "deploy";
+
+/** The steps the server runs itself, in its own process: the file the
+ *  runner script reads does not name them, so `aide-run-spec --command`
+ *  never takes one. They are queued, started and ended like any other
+ *  step, but take no slot. */
+export const BOARD_STEPS = ["deploy"] as const;
 
 const KNOWN_STEPS: readonly WorkflowStep[] = [
   "explore", "create", "analyze", "implement", "archive", "reopen",
-  "schedule", "close",
+  "schedule", "close", ...BOARD_STEPS,
 ];
 
-export const WORKFLOW_STEPS = workflowStepsData.workflowSteps as readonly WorkflowStep[];
+export const WORKFLOW_STEPS: readonly WorkflowStep[] = [
+  ...(workflowStepsData.workflowSteps as readonly WorkflowStep[]),
+  ...BOARD_STEPS,
+];
 
 if (
   WORKFLOW_STEPS.length !== KNOWN_STEPS.length ||
@@ -61,7 +75,7 @@ if (
   throw new Error(
     `dashboard/src/queue/steps.ts's WorkflowStep union and ` +
       `core/scripts/lib/workflow-steps.json disagree: file has ` +
-      `${JSON.stringify(WORKFLOW_STEPS)}, union has ${JSON.stringify(KNOWN_STEPS)}`,
+      `${JSON.stringify(workflowStepsData.workflowSteps)}, union has ${JSON.stringify(KNOWN_STEPS)}`,
   );
 }
 
@@ -316,3 +330,22 @@ export function closeOrReopenStep(job: { steps: readonly string[]; stepIndex: nu
   const step = job.steps[job.stepIndex];
   return step === "close" || step === "reopen" ? step : undefined;
 }
+
+/** The tracking key of a deploy job: no spec folder is called this. */
+export const DEPLOY_KEY = "deploy";
+
+/** The step a job is on when it is a deploy: the Running page draws such a
+ *  job as a row of its own, never as a spec's. */
+export function deployStep(job: { steps: readonly string[]; stepIndex: number }): "deploy" | undefined {
+  return job.steps[job.stepIndex] === "deploy" ? "deploy" : undefined;
+}
+
+/** Whether a job is the board's own deploy: the one step, under the one key. */
+export const isDeployJob = (job: { steps: readonly string[]; specFolder: string }): boolean =>
+  job.steps.length === 1 && job.steps[0] === "deploy" && job.specFolder === DEPLOY_KEY;
+
+/** Whether the job's step holds one of the runner's slots. A board step runs in
+ *  the server's own process, so it neither counts against `maxConcurrent` nor
+ *  waits for it. */
+export const takesSlot = (job: { steps: readonly string[]; stepIndex: number }): boolean =>
+  !(BOARD_STEPS as readonly string[]).includes(job.steps[job.stepIndex] ?? "");

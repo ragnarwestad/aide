@@ -96,6 +96,11 @@ export function createRootLock() {
   };
 }
 
+/** How long the board waits for the process that starts after a deploy's
+ *  restart: the browser's old probe loop, 2 s then 120 probes 1.5 s apart.
+ *  The bootstrap's own retries take about ten seconds of it. */
+export const DEPLOY_RESTART_WAIT_MS = 3 * 60_000;
+
 /** How long Deploy's fetch waits for the checkout's merge lock. A save or
  *  a tick holds it for a moment; a landing holds it through its test run,
  *  and a request left waiting that long ends as "the request failed". */

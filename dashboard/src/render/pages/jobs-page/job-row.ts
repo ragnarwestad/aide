@@ -9,19 +9,22 @@
 // cost; open, it adds the links and Stop or Cancel. A Close or Reopen is drawn
 // the same way, with no Stop or Cancel, and open it adds a line per step of
 // the job, in the row's own columns: its state, its time, and no cost of its
-// own, since the job's cost is the row's.
+// own, since the job's cost is the row's. A deploy is drawn as they are, with
+// Cancel while it is queued, and a line under its state for the hold it waits
+// under or the reason it failed.
 
 import { t, type Language } from "../../../i18n";
-import { askButton, badge, confirmDialog, foldArrow, stepLabel, type ProgressStepState } from "../../ui/components";
+import { renderSentence } from "../../../i18n/message.ts";
+import { askButton, badge, confirmDialog, foldArrow, rowMessage, stepLabel, type ProgressStepState } from "../../ui/components";
 import { projectLink } from "../../ui/components/spec-name.ts";
 import { esc } from "../../ui/html.ts";
-import { currentStep, durationLabel, inFlight, specStateChip, type QueueRowView } from "../../ui/job-state";
+import { currentStep, durationLabel, heldBackResolvesOnItsOwn, inFlight, specStateChip, type QueueRowView } from "../../ui/job-state";
 import { landingStep } from "../../ui/job-state/resting.ts";
 import { costCell } from "../specs-list/cell-helpers.ts";
 import type { SpecsFilter } from "../specs-list";
 import { queuePath } from "../specs-list/filter-bar.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
-import { closeOrReopenStep } from "../../../queue/queue.ts";
+import { closeOrReopenStep, deployStep } from "../../../queue/queue.ts";
 import { jobControl, jobHome, jobKey, jobTitle } from "./rows.ts";
 import { jobDurationMs, jobEndMs } from "./view.ts";
 
@@ -89,10 +92,23 @@ function timeCell(row: QueueRowView, now: number): string {
   return Number.isNaN(jobEndMs(row)) ? "–" : `<span class="muted small">${durationLabel(jobDurationMs(row, now))}</span>`;
 }
 
-/** The word of the link to the place the job belongs: the Schedule tab, or
- *  the spec a Close or Reopen works on, by its folder. */
+/** The word of the link to the place the job belongs: the Schedule tab, the
+ *  project a deploy is for, or the spec a Close or Reopen works on, by its folder. */
 function homeWord(row: QueueRowView, lang: Language): string {
+  if (deployStep(row)) return row.project;
   return closeOrReopenStep(row) ? row.specFolder : t(lang, "shell.tabSchedule");
+}
+
+/** A deploy's one line of words under its state: the landing it waits for,
+ *  or why it failed or was interrupted. Open or shut. */
+function deployMessage(row: QueueRowView, lang: Language): string {
+  const text = deployStep(row) ? renderSentence(lang, row.error) : undefined;
+  if (!text) return "";
+  const held = row.errorReason === "held-back";
+  const failed = row.state === "failed" || row.state === "interrupted";
+  if (!held && !failed) return "";
+  const variant = failed ? "failed" : heldBackResolvesOnItsOwn(row) ? "info" : "waiting";
+  return `<tr class="specnotice"><td colspan="${LIST_COLUMNS}">${rowMessage(variant, text, { hook: "deploy-message" })}</td></tr>`;
 }
 
 /** A step's state, in the badge a phase line uses; a step not reached yet in a muted word. */
@@ -112,9 +128,9 @@ function stepTime(s: JobStep, now: number): string {
   return "–";
 }
 
-/** A Close's or Reopen's steps, a line each in the row's columns, while the row is open. */
+/** A Close's, Reopen's or deploy's steps, a line each in the row's columns, while the row is open. */
 function stepLines(row: QueueRowView, o: JobRowOptions): string {
-  const step = closeOrReopenStep(row);
+  const step = closeOrReopenStep(row) ?? deployStep(row);
   return (step ? (o.steps?.(row.id, step) ?? []) : [])
     .map(
       (s) =>
@@ -149,6 +165,7 @@ export function jobRow(row: QueueRowView, o: JobRowOptions): string {
     `${kind ? `<span class="actionslot">${control(row, kind, lang)}</span>` : ""}</td>` +
     `<td data-col="started">${timeCell(row, o.now)}</td>` +
     `<td class="num" data-col="cost">${costCell(row.spentUsd, row.spentTokens, "–")}</td></tr>` +
+    deployMessage(row, lang) +
     (open ? stepLines(row, o) : "") +
     `<tr class="specgap" aria-hidden="true"><td colspan="${LIST_COLUMNS}"></td></tr>`
   );

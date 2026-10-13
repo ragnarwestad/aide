@@ -99,6 +99,17 @@ export function askButton(o: {
   /** For a button whose label alone does not say what it acts on — one
    *  Delete per schedule entry. */
   ariaLabel?: string;
+  /** A button that stays shut, and a hover line that says why. */
+  disabled?: boolean;
+  title?: string;
 }): string {
-  return btn({ label: o.label, type: "button", variant: o.variant, ariaLabel: o.ariaLabel, data: { ask: o.dialogId } });
+  return btn({
+    label: o.label,
+    type: "button",
+    variant: o.variant,
+    ariaLabel: o.ariaLabel,
+    disabled: o.disabled,
+    title: o.title,
+    data: { ask: o.dialogId },
+  });
 }

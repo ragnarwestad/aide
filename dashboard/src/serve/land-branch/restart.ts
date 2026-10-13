@@ -113,6 +113,8 @@ export function landingJobNames(
     .map((j) => (j.project && j.specFolder ? `${j.project}:${j.specFolder}` : j.id.slice(0, 8)));
 }
 
+/** Answers whether the restart fired: false when nothing is registered to
+ *  restart the service. */
 export async function restartAfterLanding(ctx: {
   mergeLock: ReturnType<typeof createRootLock>;
   restart: RestartHook;
@@ -124,10 +126,13 @@ export async function restartAfterLanding(ctx: {
    *  with `[]` once the wait is over one way or another (spec 385) — the
    *  one signal the Deploy tab's "waiting" sentence is drawn from. */
   onJobsWaitChange?: (jobs: string[]) => void;
-}): Promise<void> {
+  /** Called once, right before the restart fires: the last thing the
+   *  process that is about to be taken down can write. */
+  beforeFire?: () => void;
+}): Promise<boolean> {
   if (!(await ctx.restart.registered())) {
     ctx.onJobsWaitChange?.([]);
-    return;
+    return false;
   }
   const pollMs = ctx.restartPollMs ?? RESTART_POLL_MS;
   const running = (): string[] => landingJobNames(ctx.queue, ctx.exceptJobId);
@@ -159,5 +164,7 @@ export async function restartAfterLanding(ctx: {
   // above already returned before this line.
   console.error("queue: restarting the dashboard to pick up a landed code change");
   ctx.onJobsWaitChange?.([]);
+  ctx.beforeFire?.();
   ctx.restart.fire();
+  return true;
 }
