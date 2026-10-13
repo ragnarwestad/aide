@@ -6,7 +6,7 @@
 .rowmsg svg { width: 14px; height: 14px; flex: none; }
 /* A refusal that lands under a form needs air between it and the Save
    it is answering: 4px read as part of the button row. */
-.trackingform + .rowmsg, .specform + .rowmsg { margin-top: var(--sp-3); }
+.dependsform + .rowmsg, .specform + .rowmsg { margin-top: var(--sp-3); }
 .rowmsg.failed { background: var(--danger-ground); border-color: var(--danger); color: var(--danger); }
 .rowmsg.waiting { background: var(--warn-ground); border-color: var(--warn); color: var(--warn); }
 /* The light background, framed — not a filled grey box: a card on the

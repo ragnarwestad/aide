@@ -41,7 +41,7 @@ import {
 import { bindDeployForms } from "./deploy";
 import { startOriginCheck } from "./deploy/origin-check.ts";
 import { onApproachCancel, pickApproach } from "./approach-choice";
-import { onDependsOnCancel, pickDependency } from "./depends-on";
+import { onDependsOnCancel, pickDependency, pickSetting } from "./depends-on";
 import { formatElapsed } from "./elapsed.ts";
 import { bindLimits } from "./limits";
 import { connect, onVisibility } from "./live.ts";
@@ -132,9 +132,15 @@ document.getElementById("jobrows")?.addEventListener("change", ((event: Event) =
   // next redraw like a ticked box.
   const approach = target?.closest?.('input[name="approach"]') as HTMLInputElement | null;
   if (approach?.name === "approach") return pickApproach(approach);
-  // A dependency ticked in a row's Depends on picker, remembered the same way.
+  // A dependency ticked in a row's Depends on picker, remembered the same way,
+  // and a setting changed under it.
   const dependency = target?.closest?.("form.dependsform input[name=dependsOn]") as HTMLInputElement | null;
   if (dependency?.name === "dependsOn") return pickDependency(dependency);
+  const setting = target?.closest?.("form.dependsform input[type=checkbox][name], form.dependsform select[name]") as
+    | HTMLInputElement
+    | HTMLSelectElement
+    | null;
+  if (setting && ["acceptanceRequired", "chooseApproach", "criteriaChecks"].includes(setting.name)) return pickSetting(setting);
   // A tail box's tick is a press, not something to remember for the
   // next redraw (spec 160): it goes to the server now, and what comes
   // back is what the row is drawn from. The promise is returned rather

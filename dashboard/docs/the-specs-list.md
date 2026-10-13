@@ -125,7 +125,11 @@ the spec it names. Save posts the picker to `POST /api/queue/specs/<project>/<sp
 in place; Cancel puts back what the server drew. A tick not yet saved outlives a redraw, each row's picker apart from
 the others. While a job of the spec is queued or running the boxes show the ticks and cannot be changed, since the route
 refuses a save then. A spec alone in its project that depends on nothing has nothing to offer or show, so it gets no
-picker. On a spec with an open `aide/<folder>` branch the picker and the row's own line show the branch's `Depends on:`
+picker. Under the picker, in the same form and saved by the same Save, are the four settings the spec was created
+with, laid out as New spec's Options tab: the three analyze reads — Acceptance ticking required, "Acceptance criteria
+checks" and "Let me choose the approach" — take a change until analyze has run and while no job of the spec is queued
+or running, as the route allows; "Let AI formulate acceptance criteria", which create has already used, is locked with
+no field name. A change not yet saved outlives a redraw and offers Cancel, as a tick does. On a spec with an open `aide/<folder>` branch the picker and the row's own line show the branch's `Depends on:`
 line, since a save is written there; archive stays held on what the checkout names too, because the runner's own check
 reads the checkout.
 
@@ -443,19 +447,11 @@ draws the acceptance criteria first, as real boxes with a Save of their own (eac
 name it), then the rest of `4-status.md` rendered read-only; an archived spec, or one with a job in flight, shows the
 same criteria without boxes. An old `?tab=checks` link opens the Status tab. Update, which pulls the specs
 checkout (`POST /api/queue/specs/<project>/<spec>/update`), sits at the end of the tab row. Above the
-banner, laid out as New spec's Options tab with the same components, each phase's AI and model beside the four choices
-the spec was created with: the table as wide as its columns, the four settings as one group beside it, going under it
-where there is no room. There is no box to tick, since what runs is chosen on the Running tab. A phase's AI and model
-take a pick the way the Running tab's do, saved for the spec the moment it is made
-(`POST /api/queue/specs/<project>/<spec>/model`); create's are locked, and so is every phase while a job runs on the
-spec or once it is archived. Of the four settings, the three analyze reads — Acceptance ticking required, "Acceptance
-criteria checks" and "Let me choose the approach" — are editable in a form of their own
-(`POST /api/queue/specs/<project>/<spec>/tracking`) until analyze has run; "Let AI formulate acceptance criteria",
-which create has already used, is locked with no field name. Once analyze has run, or on an archived spec, all four
-are locked.
-
-The form is drawn only until analyze has run; after that the settings are shown locked, with no form. A spec's Depends
-on is changed from its open row on the Running tab, not here (see [The row's controls](#the-rows-controls)). The banner
+banner, laid out as New spec's Options tab with the same components, each phase's AI and model. There is no box to
+tick, since what runs is chosen on the Running tab. A phase's AI and model take a pick the way the Running tab's do,
+saved for the spec the moment it is made (`POST /api/queue/specs/<project>/<spec>/model`); create's are locked, and so
+is every phase while a job runs on the spec or once it is archived. A spec's Depends on and the four settings it was
+created with are changed from its open row on the Running tab, not here (see [The row's controls](#the-rows-controls)). The banner
 holds the rest of what belongs to the spec rather than to one document: whether it is closed, the test server's state and any error.
 A spec created before a choice was recorded shows what a spec with nothing recorded runs with: AI formulated, checks
 Off, the approach not chosen, ticking required. `createChoicesIn` reads the four off the description's Tracking info;

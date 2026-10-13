@@ -87,10 +87,12 @@ describe("the line the open row draws", () => {
     expect(dependsOnLine(g, opts)).toBe("");
   });
 
-  test("is nothing for a spec alone in its project that depends on nothing (AC-1)", () => {
+  test("has no picker, only the spec's settings, for a spec alone in its project that depends on nothing (AC-1)", () => {
     const targets = [spec(FOLDER)];
     const opts = optionsFor(targets);
-    expect(dependsOnLine(groupOf(targets, opts), opts)).toBe("");
+    const html = dependsOnLine(groupOf(targets, opts), opts);
+    expect(boxes(html)).toEqual([]);
+    expect(html).toContain('name="settingsEditable"');
   });
 
   test("shows the ticks with every box disabled and no Save or Cancel while the lead job is queued or running (AC-1)", () => {
@@ -100,6 +102,8 @@ describe("the line the open row draws", () => {
       const job = row({ id: `j-${state}`, specFolder: FOLDER, state, steps: ["analyze"], stepIndex: 0 });
       const html = dependsOnLine(groupOf(targets, opts, [job]), opts);
       expect(tickedBoxes(html)).toEqual(["99-a-second-spec"]);
+      // Only what it depends on: the specs it could pick are not offered while nothing can change.
+      expect(boxes(html)).toEqual(["99-a-second-spec"]);
       for (const tag of html.match(/<input [^>]*name="dependsOn"[^>]*value="[^"]+"[^>]*>/g)!) expect(tag).toContain(" disabled");
       expect(html).not.toContain("-cancel");
       expect(html).not.toContain("-save");

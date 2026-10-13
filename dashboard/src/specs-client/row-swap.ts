@@ -106,7 +106,13 @@ export function restoreChosen(body: Element): void {
     // every time, which is what stops the two disagreeing (spec 179).
     syncAiToModel(model);
   }
-  for (const el of body.querySelectorAll('input[name="steps"], input[name="tick"], input[name="unverified"], input[name="failed"], input[name="approach"], input[name=dependsOn][form]')) {
+  // A Depends on form's checks level, put back as a model is, without the AI that follows a model.
+  for (const el of body.querySelectorAll("form.dependsform select[name][form]")) {
+    const level = el as HTMLSelectElement;
+    const want = chosen.get(selectKey(level));
+    if (want !== undefined && Array.from(level.options).some((o) => o.value === want)) level.value = want;
+  }
+  for (const el of body.querySelectorAll('input[name="steps"], input[name="tick"], input[name="unverified"], input[name="failed"], input[name="approach"], input[name=dependsOn][form], form.dependsform input[type=checkbox][name][form]')) {
     const box = el as HTMLInputElement;
     const want = chosenSteps.get(checkboxKey(box));
     if (want === undefined) continue;

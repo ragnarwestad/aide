@@ -79,7 +79,7 @@ select[name^="model."] {
    edge to edge here. No top margin: this pair rides on the "Depends on"
    label line, and the fallback pair below the switch sits in a `.field`
    row that already spaces it. */
-.trackingform .factions { display: flex; gap: var(--sp-2); }
+.dependsform .factions { display: flex; gap: var(--sp-2); }
 /* `.field` is inline-flex, so a bare form of them sits cramped edge to
    edge with no rule of its own to space them apart. Project+Name share
    a `.frow`, Cron+Prompt share another (`schedule-page/form.ts`) — a
@@ -95,7 +95,7 @@ select[name^="model."] {
    the form itself; the narrow breakpoint (narrow.css) collapses back
    to one column, covering this form's two embeddings — the New page
    and an entry's Settings tab — without two different markups. Save and
-   Cancel on the Settings tab are spaced as `.trackingform`'s pair is. */
+   Cancel on the Settings tab are spaced as `.dependsform`'s pair is. */
 .scheduleform { display: grid; grid-template-columns: max-content max-content; gap: var(--sp-3) var(--sp-4); align-items: start; max-width: 100%; }
 .scheduleform .factions { grid-column: 1 / -1; margin-top: var(--sp-1); display: flex; gap: var(--sp-2); }
 .scheduleform .rowmsg { grid-column: 1 / -1; }
@@ -146,6 +146,16 @@ select[name^="model."] {
    and "none" beside the label goes the moment the picked box has a chip —
    which is why both are the stylesheet's to decide, not the server's. */
 .dependsform .phases:empty { display: none; }
+/* The picker spans the row, so Save and Cancel stand at its far right: the
+   form a block rather than the inline-block a form in a cell is. */
+table.list tr.subrow[data-depends-line] form.dependsform { display: block; }
+.dependsform > .field { display: flex; max-width: none; }
+/* Air between the phase lines' AI and model and the Depends on line. */
+table.list tr.subrow[data-depends-line] > td { padding-top: var(--sp-4); }
+/* Its four settings two by two, each column as wide as its widest field, so
+   the two rows line up. */
+.dependsform .options-group { display: grid; grid-template-columns: max-content max-content;
+  gap: var(--sp-2) var(--sp-5); align-items: center; }
 .phases.picked:not(:empty) + [data-none] { display: none; }
 
 /* The count under a bounded text field, and the line of its own after a paste

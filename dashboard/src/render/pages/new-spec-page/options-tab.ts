@@ -250,11 +250,13 @@ export const criteriaChecksChoices = (): { value: CriteriaChecks; label: string 
 // way the two switches beside it are — the control on the label's line,
 // the "(?)" at its end — so the three read as one row.
 function criteriaChecksField(v: OptionsGroupValues): string {
-  const id = v.locked ? "spec-criteria-checks" : "new-spec-criteria-checks";
+  // A row's own form names its select, so two open rows never share an id.
+  const row = v.locked && v.form;
+  const id = row ? `${v.form}-criteria-checks` : v.locked ? "spec-criteria-checks" : "new-spec-criteria-checks";
   return (
     `<span class="field"><span class="fieldhead"><span class="row">` +
-    `<label for="${id}">${esc(v.labels?.criteriaChecks ?? "Acceptance criteria checks")}</label>` +
-    `<select ${editable(v) ? `name="criteriaChecks"` : "disabled"} id="${id}">` +
+    `<label for="${esc(id)}">${esc(v.labels?.criteriaChecks ?? "Acceptance criteria checks")}</label>` +
+    `<select ${editable(v) ? `name="criteriaChecks"` : "disabled"}${row ? ` form="${esc(v.form!)}"` : ""} id="${esc(id)}">` +
     criteriaChecksChoices()
       .map((o) => `<option value="${o.value}"${o.value === v.criteriaChecks ? " selected" : ""}>${esc(v.levelWords?.[o.value] ?? o.label)}</option>`)
       .join("") +

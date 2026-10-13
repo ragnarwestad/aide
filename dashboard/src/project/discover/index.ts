@@ -33,7 +33,7 @@ export { criteriaChecksIn, parseCriteriaChecks, withCriteriaChecksLine, type Cri
 
 export { chooseApproachIn, withChooseApproachLine } from "./choose-approach.ts";
 
-export { createChoicesIn, type CreateChoices } from "./create-choices.ts";
+export { createChoicesIn, specCreateChoices, type CreateChoices } from "./create-choices.ts";
 
 export {
   discoverProjects, manifestInside, gitignoreCandidates, buildProjectViews, specFolders,

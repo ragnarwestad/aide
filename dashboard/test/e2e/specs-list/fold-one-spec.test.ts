@@ -117,9 +117,8 @@ test("a spec opened by its address far down a long list keeps the page's top in 
 });
 
 // A model picked in the open row's phase table is saved for the spec the
-// moment it is made, as the Running tab saves one, and leaves the settings'
-// Save beside it alone.
-test("a model picked in the open row is saved for the spec, and Save stays inactive", async () => {
+// moment it is made, as the Running tab saves one.
+test("a model picked in the open row is saved for the spec", async () => {
   const picker = await browser.newPage();
   await withBrowser(picker.goto(`${base}/specs/aide/81-queue-and-runner?live=0`), "page.goto(spec)");
   const select = `${detail("81-queue-and-runner")} tr[data-step="analyze"] select[name="model.analyze"]`;
@@ -128,7 +127,6 @@ test("a model picked in the open row is saved for the spec, and Save stays inact
   await picker.selectOption(select, "fable");
   const body = new URLSearchParams((await posted).postData() ?? "");
   expect([body.get("step"), body.get("model")]).toEqual(["analyze", "fable"]);
-  expect(await picker.isDisabled("#trackingform-save")).toBe(true);
   await picker.close();
 });
 
@@ -209,7 +207,7 @@ test("a press anywhere else does nothing while the row loads (AC-3)", async () =
   await p.close();
 });
 
-test("a spec opened in place mounts one editor, saves a model pick and keeps Save inactive (AC-4)", async () => {
+test("a spec opened in place mounts one editor and saves a model pick (AC-4)", async () => {
   const p = await browser.newPage();
   await withBrowser(p.goto(`${base}/specs?live=0`), "page.goto(/specs)");
   const asked = p.waitForRequest((r) => isDetail(new URL(r.url())));
@@ -221,7 +219,6 @@ test("a spec opened in place mounts one editor, saves a model pick and keeps Sav
   await p.selectOption(select, "fable");
   const body = new URLSearchParams((await posted).postData() ?? "");
   expect([body.get("step"), body.get("model")]).toEqual(["analyze", "fable"]);
-  expect(await p.isDisabled("#trackingform-save")).toBe(true);
   await p.close();
 });
 

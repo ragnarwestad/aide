@@ -8,6 +8,7 @@ import { parseManifest, type ManifestResult } from "../parse-manifest.ts";
 import { failedCount, notVerifiedCount, parseStatus, type StatusInfo } from "../parse-status";
 import { readSpecState } from "../parse-spec-state.ts";
 import { configSpecsPath } from "./config.ts";
+import { specCreateChoices, type CreateChoices } from "./create-choices.ts";
 import { specDependsOn } from "./depends-on.ts";
 import { specClosed, specDescription, specTitle } from "./spec-files.ts";
 
@@ -34,6 +35,9 @@ export interface SpecRef {
   /** Folder names from 1-description.md's `Depends on:` line (spec 92),
    *  in the order written. Empty when the spec names none. */
   dependsOn: string[];
+  /** The four choices it was created with, off the same file; absent for
+   *  an archived spec, whose choices nothing can change any more. */
+  createChoices?: CreateChoices;
 }
 
 export interface DiscoveredProject {
@@ -80,6 +84,7 @@ export function specFolders(root: string, archived: boolean): SpecRef[] {
       title: specTitle(dir),
       description: specDescription(dir),
       dependsOn: specDependsOn(dir),
+      ...(archived ? {} : { createChoices: specCreateChoices(dir) }),
     });
   }
   return out;
