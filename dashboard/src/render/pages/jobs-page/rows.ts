@@ -120,8 +120,10 @@ export function jobHome(row: Pick<JobLike, "project" | "specFolder" | "steps" | 
 }
 
 /** What a row offers to end its job: Cancel for a queued one, Stop for a
- *  running or landing one, nothing for a finished one. Never a Run. */
+ *  running or landing one, nothing for a finished one. Never a Run. A Close or
+ *  Reopen offers nothing: stopped part-way, it would leave the spec between
+ *  its two places. */
 export function jobControl(row: StateRow): "cancel" | "stop" | undefined {
-  if (!inFlight(row)) return undefined;
+  if (!inFlight(row) || closeOrReopenStep(row)) return undefined;
   return row.state === "queued" && !row.landing ? "cancel" : "stop";
 }

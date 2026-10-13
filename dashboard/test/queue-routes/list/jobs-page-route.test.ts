@@ -425,12 +425,17 @@ describe("the Jobs tab and the Specs list's Active entry show the same specs (AC
     expect(group(html, "spec-aide/82-no-job")).not.toContain("b-running");
   });
 
-  test("an open Reopen row lists the job's steps, and a shut one does not", async () => {
-    const { base } = everyKind([job({ id: "reopen", specFolder: "90-finished", steps: ["reopen"] })]);
-    const steps = (html: string): number => (group(html, "spec-aide/90-finished:reopen").match(/<li data-step=/g) ?? []).length;
-    expect(steps(await rowsOf(base))).toBe(0);
-    expect(steps(await rowsOf(base, "open=aide/90-finished:reopen"))).toBeGreaterThan(0);
-  });
+  for (const step of ["reopen", "close"]) {
+    test(`an open ${step} row has a line per step of the job, a shut one none, and neither offers Stop`, async () => {
+      const { base } = everyKind([job({ id: step, specFolder: "90-finished", steps: [step] })]);
+      const row = async (query = "") => group(await rowsOf(base, query), `spec-aide/90-finished:${step}`);
+      const lines = (html: string): number => (html.match(/<tr class="subrow" data-step=/g) ?? []).length;
+      expect(lines(await row())).toBe(0);
+      const open = await row(`open=aide/90-finished:${step}`);
+      expect(lines(open)).toBeGreaterThan(0);
+      expect(open).not.toContain("/cancel");
+    });
+  }
 });
 
 describe("a spec's title on the Running tab (AC-2)", () => {

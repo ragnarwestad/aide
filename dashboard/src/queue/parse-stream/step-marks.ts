@@ -21,6 +21,10 @@ export interface StepMark {
   state: MarkState;
   /** A stopped mark's reason, as the log wrote it. */
   why?: string;
+  /** Seconds into the run the step started and ended, off the run log's
+   *  `+Ns` stamp: Aide's own steps have them, the model's never do. */
+  startedSec?: number;
+  endedSec?: number;
 }
 
 /** A step's key, shared by a mark and the planned line it moves: the place
@@ -34,7 +38,7 @@ export const stepKey = (place: string, title: string): string => (place === "Aid
 const MARK = /^--- Step (Aide|\d+ of \d+): (.+?) — (started|done|skipped|stopped)\b(?::\s*(.*))?/;
 
 /** The run log's `HH:MM:SS +Ns ` stamp and a failure's `error: `. */
-const PREFIX = /^(?:\d\d:\d\d:\d\d \+\d+s )?(?:error: )?/;
+const PREFIX = /^(?:\d\d:\d\d:\d\d \+(\d+)s )?(?:error: )?/;
 
 const STATE: Record<string, StepMark["state"]> = { started: "running", done: "done", skipped: "done", stopped: "failed" };
 
@@ -45,18 +49,33 @@ const unescape = (s: string): string =>
 export function stepMarks(logs: LogPart[]): StepMark[] {
   const byKey = new Map<string, StepMark>();
   for (const line of logs.flatMap((part) => part.lines)) {
-    const match = MARK.exec(unescape(line).replace(PREFIX, ""));
+    const bare = unescape(line);
+    const stamp = PREFIX.exec(bare)?.[1];
+    const at = stamp === undefined ? undefined : Number(stamp);
+    const match = MARK.exec(bare.replace(PREFIX, ""));
     if (!match) continue;
     const [, place, title, ending, why] = match as unknown as [string, string, string, string, string | undefined];
     const key = stepKey(place, title);
     // Steps run one at a time: a later step's mark means one still running
     // ended without saying so, and a spinner on it would be wrong.
     for (const other of byKey.values()) {
-      if (other.key !== key && other.state === "running") other.state = "done";
+      if (other.key !== key && other.state === "running") {
+        other.state = "done";
+        if (at !== undefined && other.startedSec !== undefined) other.endedSec = at;
+      }
     }
     const reason = ending === "stopped" ? why?.trim() : undefined;
+    const startedSec = ending === "started" ? at : byKey.get(key)?.startedSec;
+    const endedSec = ending === "started" ? undefined : at;
     // A Map keeps a key where it was first set: the step keeps its place.
-    byKey.set(key, { key, title: capitalizeFirst(title), state: STATE[ending]!, ...(reason ? { why: reason } : {}) });
+    byKey.set(key, {
+      key,
+      title: capitalizeFirst(title),
+      state: STATE[ending]!,
+      ...(reason ? { why: reason } : {}),
+      ...(startedSec !== undefined ? { startedSec } : {}),
+      ...(endedSec !== undefined && startedSec !== undefined ? { endedSec } : {}),
+    });
   }
   return [...byKey.values()];
 }

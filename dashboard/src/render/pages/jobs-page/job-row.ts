@@ -7,11 +7,12 @@
 // refused Stop under it. A scheduled job's row folds as a spec's does,
 // from the `open` key in the address: shut, it holds the title, state, time and
 // cost; open, it adds the links and Stop or Cancel. A Close or Reopen is drawn
-// the same way, and open it also lists the job's steps, each in the state the
-// job's log has it in.
+// the same way, with no Stop or Cancel, and open it adds a line per step of
+// the job, in the row's own columns: its state, its time, and no cost of its
+// own, since the job's cost is the row's.
 
 import { t, type Language } from "../../../i18n";
-import { askButton, confirmDialog, foldArrow, progressSteps, stepLabel, type ProgressStepState } from "../../ui/components";
+import { askButton, badge, confirmDialog, foldArrow, stepLabel, type ProgressStepState } from "../../ui/components";
 import { projectLink } from "../../ui/components/spec-name.ts";
 import { esc } from "../../ui/html.ts";
 import { currentStep, durationLabel, inFlight, specStateChip, type QueueRowView } from "../../ui/job-state";
@@ -24,6 +25,16 @@ import { closeOrReopenStep } from "../../../queue/queue.ts";
 import { jobControl, jobHome, jobKey, jobTitle } from "./rows.ts";
 import { jobDurationMs, jobEndMs } from "./view.ts";
 
+/** One step of a Close or Reopen: its state, and for Aide's own steps its
+ *  seconds once ended, or when it started while it runs. */
+export interface JobStep {
+  key: string;
+  label: string;
+  state?: ProgressStepState;
+  seconds?: number;
+  since?: string;
+}
+
 export interface JobRowOptions {
   lang: Language;
   now: number;
@@ -32,7 +43,7 @@ export interface JobRowOptions {
   /** The page the row sits on, for its fold's address. */
   listPath: string;
   /** A Close or Reopen job's steps, each in the state its log has it in. */
-  steps?: (jobId: string, step: string) => { key: string; label: string; state?: ProgressStepState }[];
+  steps?: (jobId: string, step: string) => JobStep[];
 }
 
 const openKeys = (o: JobRowOptions): string[] => (o.filter.open ?? "").split(",").filter(Boolean);
@@ -84,11 +95,35 @@ function homeWord(row: QueueRowView, lang: Language): string {
   return closeOrReopenStep(row) ? row.specFolder : t(lang, "shell.tabSchedule");
 }
 
-/** A Close or Reopen's steps, under its links while the row is open. */
-function stepList(row: QueueRowView, o: JobRowOptions): string {
+/** A step's state, in the badge a phase line uses; a step not reached yet in a muted word. */
+function stepState(state: ProgressStepState | undefined, lang: Language): string {
+  if (state === "done") return badge("done", t(lang, "dialog.stepDone"));
+  if (state === "running") return badge("running", t(lang, "dialog.stepRunning"));
+  if (state === "failed") return badge("refused", t(lang, "dialog.stepFailed"));
+  return `<span class="muted small">${esc(t(lang, "dialog.stepWaiting"))}</span>`;
+}
+
+/** A step's time: its seconds once ended, counting from its start while it runs. */
+function stepTime(s: JobStep, now: number): string {
+  if (s.seconds !== undefined) return `<span class="muted small">${durationLabel(s.seconds * 1000)}</span>`;
+  if (s.since) {
+    return `<span class="muted small" data-elapsed="${esc(s.since)}">${durationLabel(Math.max(0, now - Date.parse(s.since)))}</span>`;
+  }
+  return "–";
+}
+
+/** A Close's or Reopen's steps, a line each in the row's columns, while the row is open. */
+function stepLines(row: QueueRowView, o: JobRowOptions): string {
   const step = closeOrReopenStep(row);
-  const steps = step ? (o.steps?.(row.id, step) ?? []) : [];
-  return steps.length ? progressSteps(o.lang, steps) : "";
+  return (step ? (o.steps?.(row.id, step) ?? []) : [])
+    .map(
+      (s) =>
+        `<tr class="subrow" data-step="${esc(s.key)}"><td></td><td class="phasecell" colspan="2">${esc(s.label)}</td>` +
+        `<td data-col="state">${stepState(s.state, o.lang)}</td>` +
+        `<td data-col="started">${stepTime(s, o.now)}</td>` +
+        `<td class="num" data-col="cost">–</td></tr>`,
+    )
+    .join("");
 }
 
 export function jobRow(row: QueueRowView, o: JobRowOptions): string {
@@ -106,8 +141,7 @@ export function jobRow(row: QueueRowView, o: JobRowOptions): string {
     `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name"><span class="label">${label}</span></div>` +
     (open
       ? `<div class="spec-title"><a data-goto href="/jobs/${esc(row.id)}?tab=steps">${t(lang, "job.tabLog")}</a> · ` +
-        `<a data-goto href="${esc(jobHome(row))}">${esc(homeWord(row, lang))}</a></div>` +
-        stepList(row, o)
+        `<a data-goto href="${esc(jobHome(row))}">${esc(homeWord(row, lang))}</a></div>`
       : "") +
     `</td></tr>` +
     `<tr class="specstate"><td colspan="2"></td>` +
@@ -115,6 +149,7 @@ export function jobRow(row: QueueRowView, o: JobRowOptions): string {
     `${kind ? `<span class="actionslot">${control(row, kind, lang)}</span>` : ""}</td>` +
     `<td data-col="started">${timeCell(row, o.now)}</td>` +
     `<td class="num" data-col="cost">${costCell(row.spentUsd, row.spentTokens, "–")}</td></tr>` +
+    (open ? stepLines(row, o) : "") +
     `<tr class="specgap" aria-hidden="true"><td colspan="${LIST_COLUMNS}"></td></tr>`
   );
 }

@@ -185,7 +185,7 @@ describe("stepMarks", () => {
       "error: --- Step 4 of 4: Merge into main — stopped: nothing was merged — the close is not finished",
     );
     const [merge] = marksOf("", runLog);
-    expect(merge).toEqual({
+    expect(merge).toMatchObject({
       key: "Step 4 of 4",
       title: "Merge into main",
       state: "failed",

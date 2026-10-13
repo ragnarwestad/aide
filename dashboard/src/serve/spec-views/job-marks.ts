@@ -34,7 +34,17 @@ export function jobMarks(job: Job, lang: Language): { marks: StepMark[]; reason?
   return reason ? { marks, reason } : { marks };
 }
 
-/** A Close's or Reopen's steps as its line on the Running page lists them:
+/** One step of a Close or Reopen: its state, and for Aide's own steps how
+ *  long it took once ended, or when it started while it runs. */
+export interface CloseOrReopenStep {
+  key: string;
+  label: string;
+  state?: StepMark["state"];
+  seconds?: number;
+  since?: string;
+}
+
+/** A Close's or Reopen's steps as its row on the Running page lists them:
  *  every step its skill plans, each in the state the job's log has it in
  *  (none yet is waiting), then any step the log marked that the plan did
  *  not name. */
@@ -42,13 +52,19 @@ export function closeOrReopenSteps(
   job: Job,
   step: string,
   lang: Language,
-): { key: string; label: string; state?: StepMark["state"] }[] {
+): CloseOrReopenStep[] {
   const { marks } = jobMarks(job, lang);
-  const marked = new Map(marks.map((m) => [m.key, m.state]));
+  const marked = new Map(marks.map((m) => [m.key, m]));
   const planned = stepPlan(step);
   const keys = new Set(planned.map((p) => p.key));
+  const start = Date.parse(job.stepStartedAt ?? job.startedAt ?? "");
+  const timed = (m: StepMark | undefined) => {
+    if (m?.startedSec === undefined) return {};
+    if (m.endedSec !== undefined) return { seconds: m.endedSec - m.startedSec };
+    return m.state === "running" && Number.isFinite(start) ? { since: new Date(start + m.startedSec * 1000).toISOString() } : {};
+  };
   return [
-    ...planned.map((p) => ({ key: p.key, label: p.label, state: marked.get(p.key) })),
-    ...marks.filter((m) => !keys.has(m.key)).map((m) => ({ key: m.key, label: m.title, state: m.state })),
+    ...planned.map((p) => ({ key: p.key, label: p.label, state: marked.get(p.key)?.state, ...timed(marked.get(p.key)) })),
+    ...marks.filter((m) => !keys.has(m.key)).map((m) => ({ key: m.key, label: m.title, state: m.state, ...timed(m) })),
   ];
 }

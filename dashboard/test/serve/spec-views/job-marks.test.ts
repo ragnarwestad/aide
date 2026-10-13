@@ -105,4 +105,23 @@ describe("closeOrReopenSteps", () => {
     expect(state("Step 1 of 4")).toBe("running");
     expect(got.filter((s) => s.state === undefined)).toHaveLength(plan.length - 2);
   });
+
+  // Aide's own steps carry the run log's `+Ns` stamps: an ended one its
+  // seconds, a running one the moment it started. The model's steps have none.
+  test("an ended Aide step has its seconds, a running one when it started, a model step neither", () => {
+    const file = step(
+      [said("--- Step 1 of 4: Run the mechanical script — started"), said("--- Step 1 of 4: Run the mechanical script — done")],
+      [
+        "--- Step Aide: preparing — started",
+        "--- Step Aide: preparing — done",
+        "model turn started (transcript at byte 0)",
+        "--- Step Aide: tests and commit — started",
+      ],
+    );
+    const got = closeOrReopenSteps(job({ streamFile: file, stepStartedAt: "2026-10-03T10:00:00Z" }), "close", "en");
+    const of = (key: string) => got.find((s) => s.key === key);
+    expect(of("Step Aide: preparing")?.seconds).toBe(1);
+    expect(of("Step Aide: tests and commit")).toMatchObject({ state: "running", since: "2026-10-03T10:00:03.000Z" });
+    expect(of("Step 1 of 4")?.seconds).toBeUndefined();
+  });
 });

@@ -222,6 +222,11 @@ describe("a Close or Reopen is a job row of its own, not its spec's", () => {
     expect(jobTitle(row)).toBe("Reopen 534-a-card");
     expect(jobHome(row)).toBe("/specs/aide/534-a-card");
   });
+
+  test("offers neither Stop nor Cancel: a half-done move would leave the spec between two places", () => {
+    for (const state of ["queued", "running"] as const) expect(jobControl(at("reopen", { state }))).toBeUndefined();
+    expect(jobControl(at("close", { state: "done", landing: true }))).toBeUndefined();
+  });
 });
 
 describe("a job row's title says what the job is (AC-5)", () => {

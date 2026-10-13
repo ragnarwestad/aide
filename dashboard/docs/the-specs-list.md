@@ -598,13 +598,15 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   running or landing, and while it waits for a person after failing or stopping, until a newer job of the spec is
   created (`jobsShown`, `render/pages/jobs-page/rows.ts`). The row is named for the step and the spec ("Reopen
   534-…"), its key is `<project>/<spec>:<step>` so it never folds with the spec's own row, and it links to its log
-  and to the spec. The spec's own row is left as it is: an archived or closed spec gets no row on the tab for it,
-  and a live spec's row keeps its four phases and its own badge. The open job row lists every step the job will
-  run — Aide's own parts, the skill's steps and the merge into main, from the skill's `Step N of X` headings
-  (`stepPlan()`) — each in the state the job's log has it in (`closeOrReopenSteps`,
-  `serve/spec-views/job-marks.ts`), in the step list Deploy's dialog shares (`progressSteps()`). A tab with the row
-  open hears the log grow (its key in `?open=` on `/api/queue/events`), so the list moves as the job goes. A reopen
-  that has gone on to the spec's next step is the spec's again.
+  and to the spec. It offers no Stop or Cancel: stopped part-way, the job would leave the spec between its two
+  places. The spec's own row is left as it is: an archived or closed spec gets no row on the tab for it, and a live
+  spec's row keeps its four phases and its own badge. The open job row has a line per step the job will run —
+  Aide's own parts, the skill's steps and the merge into main, from the skill's `Step N of X` headings
+  (`stepPlan()`) — in the row's own columns: the step's state as a badge under State/Action, from the job's log
+  (`closeOrReopenSteps`, `serve/spec-views/job-marks.ts`); its time under Time, for Aide's own steps, off the run
+  log's `+Ns` stamps (counting while it runs); and a dash under Cost, since the job's cost is the row's. A tab with
+  the row open hears the log grow (its key in `?open=` on `/api/queue/events`), so the lines move as the job goes.
+  A reopen that has gone on to the spec's next step is the spec's again.
 - **A press changes the button at once, without changing its width.**
   It disables, gains the `busy` look and a spinner ahead of its own label — the label itself stays put, only
   the `title` carries the pending word ("starting…", "cancelling…", "queueing…",
