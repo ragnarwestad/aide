@@ -102,6 +102,8 @@ describe("the line the open row draws", () => {
       const job = row({ id: `j-${state}`, specFolder: FOLDER, state, steps: ["analyze"], stepIndex: 0 });
       const html = dependsOnLine(groupOf(targets, opts, [job]), opts);
       expect(tickedBoxes(html)).toEqual(["99-a-second-spec"]);
+      // Only what it depends on: the specs it could pick are not offered while nothing can change.
+      expect(boxes(html)).toEqual(["99-a-second-spec"]);
       for (const tag of html.match(/<input [^>]*name="dependsOn"[^>]*value="[^"]+"[^>]*>/g)!) expect(tag).toContain(" disabled");
       expect(html).not.toContain("-cancel");
       expect(html).not.toContain("-save");

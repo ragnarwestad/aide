@@ -194,9 +194,11 @@ export function dependsOnField(
   // drawn, even with nothing in them, so the script that lifts a chip on
   // tick has a box to lift into; CSS hides a box while it is empty, and
   // "none" while the picked box is not (`field.css`).
+  // A picker that cannot be changed offers nothing to pick: what it depends
+  // on, and no list.
   return field(
     "Depends on:",
-    phases(rest.map(chip).join("")),
+    phases(o.disabled ? "" : rest.map(chip).join("")),
     {
       group: true, wide: o.wide, help, actions: o.actions,
       after: phases(lockedBlock + picked.map(chip).join(""), "picked") + `<span class="muted" data-none>none</span>`,
