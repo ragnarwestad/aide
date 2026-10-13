@@ -155,7 +155,7 @@ table.list tr.subrow[data-depends-line] > td { padding-top: var(--sp-4); }
 /* Its four settings two by two, each column as wide as its widest field, so
    the two rows line up. */
 .dependsform .options-group { display: grid; grid-template-columns: max-content max-content;
-  gap: var(--sp-2) var(--sp-5); align-items: center; }
+  gap: var(--sp-2) var(--sp-5); align-items: center; margin-top: var(--sp-4); }
 .phases.picked:not(:empty) + [data-none] { display: none; }
 
 /* The count under a bounded text field, and the line of its own after a paste
