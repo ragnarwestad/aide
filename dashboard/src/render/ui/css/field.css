@@ -150,6 +150,9 @@ select[name^="model."] {
    form a block rather than the inline-block a form in a cell is. */
 table.list tr.subrow[data-depends-line] form.dependsform { display: block; }
 .dependsform > .field { display: flex; max-width: none; }
+/* Its pick list as tall as its chips, up to the cap every pick list has,
+   so a handful of specs leaves no empty box under them. */
+.dependsform .phases:not(.picked) { height: auto; }
 /* Air between the phase lines' AI and model and the Depends on line. */
 table.list tr.subrow[data-depends-line] > td { padding-top: var(--sp-4); }
 /* Its four settings two by two, each column as wide as its widest field, so
