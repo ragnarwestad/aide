@@ -1,9 +1,14 @@
-// The Depends on picker on the Running tab's open row: a line after the
-// phase lines, in a form of its own that posts to the spec's tracking route
-// and is redrawn in place. Its Save and Cancel and the ticks kept across a
-// redraw are the page script's (`specs-client/depends-on/`).
+// The Depends on picker on the Running tab's open row, and under it the four
+// settings the spec was created with: a line after the phase lines, in a form
+// of its own that posts to the spec's tracking route and is redrawn in place.
+// Its Save and Cancel and the changes kept across a redraw are the page
+// script's (`specs-client/depends-on/`).
 
 import { saveCancelActions } from "../../../ui/components";
+import { t } from "../../../../i18n";
+import { capitalizeFirst } from "../../../../format/error-sentence.ts";
+import { createChoicesIn } from "../../../../project/discover";
+import { optionsGroup } from "../../new-spec-page/options-tab.ts";
 import { esc } from "../../../ui/html.ts";
 import { dependsOnField } from "../../new-spec-page";
 import type { SpecsPageOptions } from "..";
@@ -30,30 +35,58 @@ export function dependsOnOffer(
   return { options, ticked: g.dependsOn, locked };
 }
 
-/** The line after an open row's phase lines. Nothing for a record, for a
- *  create whose folder is not there yet, or when there is nothing to offer
- *  or show. While the lead job is queued or running the boxes show the
- *  ticks and cannot be changed: the tracking route refuses a save then. */
-export function dependsOnLine(g: SpecGroup, opts: Pick<SpecsPageOptions, "targets" | "archived">): string {
+/** The four settings the spec was created with, as New spec's Options tab
+ *  draws them: the AI formulation locked, since create has used it, and the
+ *  three analyze reads posting with the row's form while `editable`. */
+function settingsGroup(g: SpecGroup, id: string, editable: boolean, lang: SpecsPageOptions["lang"] = "en"): string {
+  const c = g.createChoices ?? createChoicesIn("");
+  return optionsGroup({
+    form: id,
+    locked: true,
+    checksLast: true,
+    settingsEditable: editable,
+    acceptance: c.acceptanceRequired,
+    aiFormulate: c.aiFormulate,
+    criteriaChecks: c.criteriaChecks,
+    chooseApproach: c.chooseApproach,
+    labels: {
+      acceptance: capitalizeFirst(t(lang, "spec.acceptanceTickingRequired")),
+      aiFormulate: t(lang, "spec.formulateCriteria"),
+      criteriaChecks: t(lang, "spec.criteriaChecks"),
+      chooseApproach: t(lang, "spec.chooseApproach"),
+    },
+    levelWords: { off: t(lang, "spec.checksOff"), warn: t(lang, "spec.checksWarn"), stop: t(lang, "spec.checksStop") },
+  });
+}
+
+/** The line after an open row's phase lines. Nothing for a record or for a
+ *  create whose folder is not there yet. While the lead job is queued or
+ *  running nothing can be changed: the tracking route refuses a save then.
+ *  The settings take a change only until analyze has run, as the route
+ *  allows; Depends on until a job is queued again. */
+export function dependsOnLine(g: SpecGroup, opts: Pick<SpecsPageOptions, "targets" | "archived" | "lang">): string {
   if (isArchivedRow(g) || !g.named) return "";
   const offer = dependsOnOffer(g, opts);
   const id = dependsOnFormId(g);
   const held = g.lead?.state === "queued" || g.lead?.state === "running";
+  const actions = held ? "" : saveCancelActions(id);
   const field = dependsOnField(offer.options, new Set(offer.ticked), {
     wide: true,
     locked: offer.locked,
     project: g.project,
     form: id,
     disabled: held,
-    actions: held ? "" : saveCancelActions(id),
+    actions,
   });
-  if (!field) return "";
+  const settings = settingsGroup(g, id, !held && !g.done.includes("analyze"), opts.lang);
+  // With no picker to carry them, Save and Cancel go with the settings.
+  const body = field ? field + settings : `<span class="frow options-row">${settings}${actions}</span>`;
   return (
     `<tr class="subrow" data-depends-line="1"><td colspan="${LIST_COLUMNS}">` +
     `<form class="actionform dependsform" id="${esc(id)}" method="post" ` +
     `action="/api/queue/specs/${esc(g.project)}/${esc(g.specFolder)}/tracking">` +
-    `<input type="hidden" name="dependsOn" value="">` +
-    field +
+    (field ? `<input type="hidden" name="dependsOn" value="">` : "") +
+    body +
     `</form></td></tr>`
   );
 }

@@ -8,9 +8,9 @@ import type { FileStepsAnswer } from "../../../../git/workflow-history.ts";
 import type { Sentence } from "../../../../i18n/message.ts";
 import type { StatusCheck } from "../../../../project/parse-status";
 import type { HasNotVerified } from "./not-verified.ts";
-import type { HasApproachChoice } from "./approach-choice.ts";
+import type { HasApproachChoice, HasCreateChoices } from "./approach-choice.ts";
 
-export interface SpecTarget extends HasNotVerified, HasApproachChoice {
+export interface SpecTarget extends HasNotVerified, HasApproachChoice, HasCreateChoices {
   project: string;
   specFolder: string;
   title?: string;
@@ -348,7 +348,7 @@ export interface Phase {
   fileResult?: "completed" | "stopped";
 }
 
-export interface SpecGroup extends HasNotVerified, HasApproachChoice {
+export interface SpecGroup extends HasNotVerified, HasApproachChoice, HasCreateChoices {
   project: string;
   specFolder: string;
   /** Whether `specFolder` is a real folder or a create job's provisional

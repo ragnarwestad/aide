@@ -11,6 +11,8 @@ import { onOrigin, rootWithOrigin, specBranchAhead, specRelPath, type BranchFixt
 import { DESCRIPTION_TAB, ANALYSIS_TAB, SAVE, SPEC, TRACKING, descriptionPath, post, answer } from "./spec-save-fixtures.ts";
 
 const OTHER = "82-another-spec";
+/** The spec's open row on the Running tab, where its settings are changed. */
+const OPEN_ROW = `/?rows=1&open=aide/${SPEC}`;
 const harness = queueHarness("aide-spec-page-branch-");
 afterEach(() => harness.cleanup());
 
@@ -93,23 +95,22 @@ describe("a spec with a branch of its own", () => {
     expect(onOrigin(fx, "main", SPEC, "1-description.md")).toBe(ON_MAIN);
   });
 
-  test("the banner shows what its own Save wrote to the branch, on the Analysis tab and the Description tab alike (AC-1)", async () => {
+  test("the open row on the Running tab shows what its own Save wrote to the branch (AC-1)", async () => {
     const { base } = withBranch(tracked("As the branch has it."));
-    expect(acceptanceRequiredShown(await draw(base, ANALYSIS_TAB))).toBe(true);
+    expect(acceptanceRequiredShown(await draw(base, OPEN_ROW))).toBe(true);
 
     const saved = await post(base, { settingsEditable: "1" }, TRACKING);
     expect(await failed(saved)).toBe(false);
 
-    expect(acceptanceRequiredShown(await draw(base, ANALYSIS_TAB))).toBe(false);
-    expect(acceptanceRequiredShown(await draw(base, DESCRIPTION_TAB))).toBe(false);
+    expect(acceptanceRequiredShown(await draw(base, OPEN_ROW))).toBe(false);
   });
 
-  test("a second banner Save, with the switch as the page shows it, keeps the Acceptance line (AC-2)", async () => {
+  test("a second Save from the open row, with the switch as the row shows it, keeps the Acceptance line (AC-2)", async () => {
     const { base, fx } = withBranch(tracked("As the branch has it."));
-    await draw(base, ANALYSIS_TAB);
+    await draw(base, OPEN_ROW);
     expect(await failed(await post(base, { settingsEditable: "1" }, TRACKING))).toBe(false);
 
-    const page = await draw(base, ANALYSIS_TAB);
+    const page = await draw(base, OPEN_ROW);
     const again = await post(
       base,
       { settingsEditable: "1", ...(acceptanceRequiredShown(page) ? { acceptanceRequired: "1" } : {}) },
@@ -138,7 +139,7 @@ describe("a spec with a branch of its own", () => {
 });
 
 describe("a spec with no branch of its own", () => {
-  test("the text, the stamp and the banner are the default branch's, and a Save writes to it (AC-3)", async () => {
+  test("the text, the stamp and the open row's settings are the default branch's, and a Save writes to it (AC-3)", async () => {
     const { base, dir } = harness.start({ description: tracked("As it was on main.", NOT_REQUIRED), alsoSpecs: [OTHER] });
     const fx = rootWithOrigin(dir);
 
@@ -146,7 +147,7 @@ describe("a spec with no branch of its own", () => {
 
     expect(textareaText(html)).toContain("As it was on main.");
     expect(stampedSha7(html)).toBe(git(fx.root, "log", "-1", "--format=%H", "--", specRelPath(SPEC, "1-description.md")).slice(0, 7));
-    expect(acceptanceRequiredShown(html)).toBe(false);
+    expect(acceptanceRequiredShown(await draw(base, OPEN_ROW))).toBe(false);
 
     const saved = await post(base, { text: `${textareaText(html)}Saved on main.\n`, baseSha: baseShaOf(html) }, SAVE);
     expect(await failed(saved)).toBe(false);

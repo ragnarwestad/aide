@@ -4,6 +4,8 @@
 // as the runner treats it. The three lines other than `Acceptance:` are
 // written by `aide-run-spec` after a completed create.
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { acceptanceNotRequiredIn } from "./acceptance.ts";
 import { chooseApproachIn } from "./choose-approach.ts";
 import { CRITERIA_CHECKS, criteriaChecksIn, type CriteriaChecks } from "./criteria-checks.ts";
@@ -34,4 +36,14 @@ export function createChoicesIn(text: string): CreateChoices {
     criteriaChecks: (CRITERIA_CHECKS as readonly (string | null)[]).includes(level) ? (level as CriteriaChecks) : "off",
     chooseApproach: chooseApproachIn(text),
   };
+}
+
+/** The four choices off a spec folder's own `1-description.md`, or none
+ *  when it cannot be read. */
+export function specCreateChoices(dir: string): CreateChoices | undefined {
+  try {
+    return createChoicesIn(readFileSync(join(dir, "1-description.md"), "utf-8"));
+  } catch {
+    return undefined;
+  }
 }

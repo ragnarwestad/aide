@@ -13,61 +13,14 @@ import { t, type Language } from "../../../i18n";
 import {
   CLOSE_ASK_ID, CLOSE_SENTENCE, REOPEN_ASK_ID, closeAskDialog, reopenAskDialog,
 } from "./ask-dialog.ts";
-import { optionsGroup } from "../new-spec-page/options-tab.ts";
-import { createChoicesIn } from "../../../project/discover";
 import { SPEC_LINES, SPEC_REFUSED_LINE } from "./tabs.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
-import { capitalizeFirst } from "../../../format/error-sentence.ts";
 
-/** What sits above the tabs: each phase's AI and model beside the four
- *  settings the spec was created with. A live spec's form posts to
- *  `view.trackingAction` the three settings analyze reads, while it has
- *  not run (`settingsEditable` is a hidden sentinel so the route can tell a
- *  cleared box from a locked one). Once analyze has run, or for an archived
- *  or closed spec, the settings are shown and nothing posts. */
-export function trackingControl(view: SpecPageView, lang: Language = "en", phases = ""): string {
-  // Archived, nothing posts. Live, the three settings analyze reads do
-  // until it has run; the AI formulation was used by create.
-  const settingsEditable = !view.archived && !(view.done?.includes("analyze") ?? false);
-  const settings = `<span class="frow options-row">${phases}${createdOptions(view, lang, settingsEditable)}</span>`;
-  if (!settingsEditable) return settings;
-  // `.trackingform`, never `.specform`: the Status tab's tick form
-  // already carries that class, and the banner renders on every tab —
-  // Checks included — so a shared class would leave that tab with TWO
-  // `.specform` forms, breaking anything that finds one by that class
-  // alone (`dashboard/test/e2e/acceptance-gate-status-tab.test.ts`,
-  // spec 382).
-  return (
-    `<form class="trackingform reloadform" method="post" action="${esc(view.trackingAction)}"${dataAttrs(SPEC_LINES)}>` +
-    settings +
-    // Both inactive until something changes, Cancel putting the form
-    // back the way the page opened it.
-    saveCancelActions("trackingform") +
-    `</form>`
-  );
-}
-
-/** The four settings the spec was created with, as New spec's Options tab
- *  draws them: the AI formulation locked, the other three posting while
- *  `settingsEditable`. */
-function createdOptions(view: SpecPageView, lang: Language, settingsEditable: boolean): string {
-  const c = view.createChoices ?? createChoicesIn("");
-  return optionsGroup({
-    locked: true,
-    checksLast: true,
-    settingsEditable,
-    acceptance: !view.acceptanceNotRequired,
-    aiFormulate: c.aiFormulate,
-    criteriaChecks: c.criteriaChecks,
-    chooseApproach: c.chooseApproach,
-    labels: {
-      acceptance: capitalizeFirst(t(lang, "spec.acceptanceTickingRequired")),
-      aiFormulate: t(lang, "spec.formulateCriteria"),
-      criteriaChecks: t(lang, "spec.criteriaChecks"),
-      chooseApproach: t(lang, "spec.chooseApproach"),
-    },
-    levelWords: { off: t(lang, "spec.checksOff"), warn: t(lang, "spec.checksWarn"), stop: t(lang, "spec.checksStop") },
-  });
+/** What sits above the tabs: each phase's AI and model. The settings the
+ *  spec was created with, and Depends on, are changed on its open row on the
+ *  Running tab, where its runs are. */
+export function trackingControl(phases = ""): string {
+  return `<span class="frow options-row">${phases}</span>`;
 }
 
 /** One labelled fact about the spec: what it is, then what it says.

@@ -79,7 +79,7 @@ select[name^="model."] {
    edge to edge here. No top margin: this pair rides on the "Depends on"
    label line, and the fallback pair below the switch sits in a `.field`
    row that already spaces it. */
-.trackingform .factions { display: flex; gap: var(--sp-2); }
+.dependsform .factions { display: flex; gap: var(--sp-2); }
 /* `.field` is inline-flex, so a bare form of them sits cramped edge to
    edge with no rule of its own to space them apart. Project+Name share
    a `.frow`, Cron+Prompt share another (`schedule-page/form.ts`) — a
@@ -95,7 +95,7 @@ select[name^="model."] {
    the form itself; the narrow breakpoint (narrow.css) collapses back
    to one column, covering this form's two embeddings — the New page
    and an entry's Settings tab — without two different markups. Save and
-   Cancel on the Settings tab are spaced as `.trackingform`'s pair is. */
+   Cancel on the Settings tab are spaced as `.dependsform`'s pair is. */
 .scheduleform { display: grid; grid-template-columns: max-content max-content; gap: var(--sp-3) var(--sp-4); align-items: start; max-width: 100%; }
 .scheduleform .factions { grid-column: 1 / -1; margin-top: var(--sp-1); display: flex; gap: var(--sp-2); }
 .scheduleform .rowmsg { grid-column: 1 / -1; }

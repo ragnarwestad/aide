@@ -9,8 +9,8 @@ import { Window } from "happy-dom";
 import type { SpecTarget } from "../../../src/render";
 import { groupBySpec } from "../../../src/render/pages/specs-list/data-model";
 import { dependsOnFormId, dependsOnLine } from "../../../src/render/pages/specs-list/depends-on";
-import { cancelDependsOn, pickDependency } from "../../../src/specs-client/depends-on";
-import { chosenSteps } from "../../../src/specs-client/state.ts";
+import { cancelDependsOn, pickDependency, pickSetting } from "../../../src/specs-client/depends-on";
+import { chosen, chosenSteps } from "../../../src/specs-client/state.ts";
 import { restoreChosen } from "../../../src/specs-client/row-swap.ts";
 
 const A = "81-first-spec";
@@ -25,7 +25,10 @@ const ROWS = `<table><tbody>${lineOf(A)}${lineOf(B)}</tbody></table>`;
 
 const windows: Window[] = [];
 const savedEvent = globalThis.Event;
-beforeEach(() => chosenSteps.clear());
+beforeEach(() => {
+  chosenSteps.clear();
+  chosen.clear();
+});
 afterEach(async () => {
   globalThis.Event = savedEvent;
   while (windows.length) await windows.pop()!.happyDOM.close();
@@ -101,5 +104,40 @@ describe("the Depends on picker's ticks", () => {
     redraw();
     expect(box(rows, A, THIRD).checked).toBe(false);
     expect(box(rows, B, THIRD).checked).toBe(true);
+  });
+});
+
+describe("the settings under the picker", () => {
+  const setting = (rows: HTMLElement, folder: string, name: string) =>
+    form(rows, folder).querySelector(`[name="${name}"]`) as HTMLInputElement & HTMLSelectElement;
+
+  test("a changed box and a changed level outlive a redraw and keep Cancel offered", () => {
+    const { rows, redraw } = list();
+    const approach = setting(rows, A, "chooseApproach");
+    approach.checked = !approach.checked;
+    pickSetting(approach);
+    const checks = setting(rows, A, "criteriaChecks");
+    checks.value = "stop";
+    pickSetting(checks);
+    expect(cancel(rows, A).disabled).toBe(false);
+    redraw();
+    expect(setting(rows, A, "chooseApproach").checked).toBe(!approach.defaultChecked);
+    expect(setting(rows, A, "criteriaChecks").value).toBe("stop");
+    expect(cancel(rows, A).disabled).toBe(false);
+  });
+
+  test("Cancel puts them back as drawn and forgets them, in that row alone", () => {
+    const { rows, redraw } = list();
+    for (const folder of [A, B]) {
+      const checks = setting(rows, folder, "criteriaChecks");
+      checks.value = "stop";
+      pickSetting(checks);
+    }
+    cancelDependsOn(cancel(rows, A));
+    expect(setting(rows, A, "criteriaChecks").value).toBe("off");
+    expect(cancel(rows, A).disabled).toBe(true);
+    redraw();
+    expect(setting(rows, A, "criteriaChecks").value).toBe("off");
+    expect(setting(rows, B, "criteriaChecks").value).toBe("stop");
   });
 });

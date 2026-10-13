@@ -64,7 +64,6 @@ describe("each form the page script posts and loads again", () => {
   const FORMS: [string, () => string, string][] = [
     ["Update", () => page(view(), "description"), `${SPEC}/update`],
     ["a document tab's Save", () => page(view(), "description"), `${SPEC}/save`],
-    ["the banner's settings form", () => page(view(), "description"), `${SPEC}/tracking`],
     ["the Status tab's tick", () => page(view(CHECKS), "status"), `${SPEC}/tick`],
     ["Stop test server", () => page(view(TEST_SERVER), "description"), `${SPEC}/test-server/stop`],
     ["a test board's Run test round", () => {

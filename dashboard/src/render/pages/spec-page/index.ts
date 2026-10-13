@@ -146,7 +146,7 @@ export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}):
     // reader who came looking for it should not have to work out from a
     // missing textarea that the spec is closed.
     closedLine(view, opts.lang ?? "en") +
-    trackingControl(view, opts.lang ?? "en", opts.top?.phases ?? "") +
+    trackingControl(opts.top?.phases ?? "") +
     // What a board asked for is doing, in words. Its button lives in
     // the tab row below, which holds buttons only.
     testServerStatus(view) +

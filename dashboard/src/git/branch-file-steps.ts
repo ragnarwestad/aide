@@ -9,6 +9,7 @@ import { readStatusFromBranch, type OpenBranchTarget } from "./branch-file.ts";
 import { acceptanceCriteriaUnticked, acceptanceRowsOf, parseStatus, type StatusCheck } from "../project/parse-status";
 import { parseSpecStateText } from "../project/parse-spec-state.ts";
 import { dependsOnIn } from "../project/discover/depends-on.ts";
+import { createChoicesIn, type CreateChoices } from "../project/discover/create-choices.ts";
 import { parseApproaches, type ApproachChoice } from "../project/approach-choice.ts";
 
 /** How long one answer stands, for this checker and `WorkflowHistoryChecker` alike. */
@@ -44,6 +45,9 @@ export interface FileStepsAnswer {
    *  it is written onto the branch, as a tick is. Absent when the
    *  description could not be read there; empty when the branch has no line. */
   dependsOn?: string[];
+  /** The four settings the branch's `1-description.md` records, saved there
+   *  as Depends on is; absent when the description could not be read there. */
+  createChoices?: CreateChoices;
   /** When the disk scan read this copy, epoch ms. Set by `targets()` on the disk answer only — the branch
    *  copy's read time is `peekFileSteps().checkedAt` — so an answer that came from the branch has none. */
   readAt?: number;
@@ -121,7 +125,7 @@ export class BranchFileStepsChecker {
             acceptance: acceptanceRowsOf(file.text),
             ...(acCoverage ? { acCoverage } : {}),
             ...(solution ? { approaches: parseApproaches(solution.text) } : {}),
-            ...(description ? { dependsOn: dependsOnIn(description.text) } : {}),
+            ...(description ? { dependsOn: dependsOnIn(description.text), createChoices: createChoicesIn(description.text) } : {}),
           };
           break;
         }

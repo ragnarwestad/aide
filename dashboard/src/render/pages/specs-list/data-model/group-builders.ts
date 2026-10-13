@@ -56,6 +56,7 @@ function fromTarget(
   | "description"
   | "phase"
   | "dependsOn"
+  | "createChoices"
   | "analyzeStale"
   | "createdAt"
   | "freshnessUnknown"
@@ -73,6 +74,7 @@ function fromTarget(
     description: t?.description,
     phase: t?.phase,
     dependsOn: t?.dependsOn ?? [],
+    createChoices: t?.createChoices,
     analyzeStale: t?.analyzeStale ?? false,
     freshnessUnknown: t?.freshnessUnknown,
     // From the TARGET and from nowhere else (spec 199). There is

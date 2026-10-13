@@ -179,6 +179,10 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
           // by the folder it resolves to, as the Running tab's picker
           // ticks by folder; one nothing matches stays as written.
           dependsOn: (branchAnswer?.dependsOn ?? s.dependsOn).map((id) => resolveDependencyFolder(p, id)?.folder ?? id),
+          // The four settings it was created with, for its open row on the
+          // Running tab: the branch's first, as Depends on above, since a
+          // save is written there.
+          createChoices: branchAnswer?.createChoices ?? s.createChoices,
           phase: (state ? currentPhase(state) : null) ?? undefined,
           // The FILES, and nothing else (spec 108). It used to be
           // unioned with the queue's own record of what it ran, so

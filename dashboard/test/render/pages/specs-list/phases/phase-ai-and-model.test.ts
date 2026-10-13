@@ -90,7 +90,7 @@ describe("spec 179: an AI and a model on every phase line", () => {
   });
 
   test("no model configured at all draws no AI select either", () => {
-    expect(rows([], { modelChoices: undefined })).not.toContain("data-ai");
+    expect(rows([], { modelChoices: undefined })).not.toContain('data-ai="');
   });
 
   // --- criterion 2: the model an AI fills in is worked out here ------------
