@@ -190,7 +190,8 @@ export function dependsOnField(
     );
   }
   // "Depends on:" with the picked chips on its own line, or "none" while
-  // there are none, and the pick list under it. Both boxes are ALWAYS
+  // there are none, and its "(?)" after them; Save and Cancel at the far
+  // end of that line, and the pick list under it. Both boxes are ALWAYS
   // drawn, even with nothing in them, so the script that lifts a chip on
   // tick has a box to lift into; CSS hides a box while it is empty, and
   // "none" while the picked box is not (`field.css`).
@@ -200,8 +201,8 @@ export function dependsOnField(
     "Depends on:",
     phases(o.disabled ? "" : rest.map(chip).join("")),
     {
-      group: true, wide: o.wide, help, actions: o.actions,
-      after: phases(lockedBlock + picked.map(chip).join(""), "picked") + `<span class="muted" data-none>none</span>`,
+      group: true, wide: o.wide, actions: o.actions,
+      after: phases(lockedBlock + picked.map(chip).join(""), "picked") + `<span class="muted" data-none>none</span>` + help,
     },
   );
 }
