@@ -14,6 +14,7 @@ import { dependsOnField } from "../../new-spec-page";
 import type { SpecsPageOptions } from "..";
 import { groupKey, isArchivedRow, type SpecGroup, type SpecTarget } from "../data-model";
 import { LIST_COLUMNS } from "../row-shared.ts";
+import { specBusy } from "../row-state.ts";
 
 /** The form's id, which its boxes name with `form=` too, so a tick is
  *  remembered per spec across a redraw. */
@@ -60,15 +61,16 @@ function settingsGroup(g: SpecGroup, id: string, editable: boolean, lang: SpecsP
 }
 
 /** The line after an open row's phase lines. Nothing for a record or for a
- *  create whose folder is not there yet. While the lead job is queued or
- *  running nothing can be changed: the tracking route refuses a save then.
+ *  create whose folder is not there yet. While the lead job is queued,
+ *  running or landing nothing can be changed, as the phase lines above are
+ *  locked then.
  *  The settings take a change only until analyze has run, as the route
  *  allows; Depends on until a job is queued again. */
 export function dependsOnLine(g: SpecGroup, opts: Pick<SpecsPageOptions, "targets" | "archived" | "lang">): string {
   if (isArchivedRow(g) || !g.named) return "";
   const offer = dependsOnOffer(g, opts);
   const id = dependsOnFormId(g);
-  const held = g.lead?.state === "queued" || g.lead?.state === "running";
+  const held = specBusy(g);
   const actions = held ? "" : saveCancelActions(id);
   const field = dependsOnField(offer.options, new Set(offer.ticked), {
     wide: true,

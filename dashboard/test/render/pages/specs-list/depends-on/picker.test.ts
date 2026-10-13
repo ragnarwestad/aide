@@ -110,12 +110,13 @@ describe("the line the open row draws", () => {
     }
   });
 
-  test("is live while the lead job is landing (AC-1)", () => {
+  test("is locked while the lead job is landing, as the phase lines above it are", () => {
     const targets = [spec(FOLDER, { dependsOn: ["99-a-second-spec"] }), ...SIBLINGS];
     const opts = optionsFor(targets);
-    const landing = row({ id: "j-land", specFolder: FOLDER, state: "done", landing: true, steps: ["implement"], stepIndex: 0 });
+    const landing = row({ id: "j-land", specFolder: FOLDER, state: "done", landing: true, steps: ["archive"], stepIndex: 0 });
     const html = dependsOnLine(groupOf(targets, opts, [landing]), opts);
-    for (const tag of html.match(/<input [^>]*name="dependsOn"[^>]*value="[^"]+"[^>]*>/g)!) expect(tag).not.toContain(" disabled");
-    expect(html).toContain("-cancel");
+    for (const tag of html.match(/<input [^>]*name="dependsOn"[^>]*value="[^"]+"[^>]*>/g)!) expect(tag).toContain(" disabled");
+    expect(html).not.toContain("-cancel");
+    expect(html).not.toContain("-save");
   });
 });

@@ -123,12 +123,12 @@ itself, with the ones the spec depends on ticked; a dependency since archived or
 ticked until it is removed. The scan resolves each entry of the `Depends on:` line to its folder, so a bare number ticks
 the spec it names. Save posts the picker to `POST /api/queue/specs/<project>/<spec>/tracking` and the rows are redrawn
 in place; Cancel puts back what the server drew. A tick not yet saved outlives a redraw, each row's picker apart from
-the others. While a job of the spec is queued or running the boxes show the ticks and cannot be changed, since the route
-refuses a save then. A spec alone in its project that depends on nothing has nothing to offer or show, so it gets no
+the others. While a job of the spec is queued, running or landing the picker shows only what the spec depends on, with
+no list to pick from and no Save or Cancel, as the phase lines above it are locked then. A spec alone in its project that depends on nothing has nothing to offer or show, so it gets no
 picker. Under the picker, in the same form and saved by the same Save, are the four settings the spec was created
 with, laid out as New spec's Options tab: the three analyze reads — Acceptance ticking required, "Acceptance criteria
-checks" and "Let me choose the approach" — take a change until analyze has run and while no job of the spec is queued
-or running, as the route allows; "Let AI formulate acceptance criteria", which create has already used, is locked with
+checks" and "Let me choose the approach" — take a change until analyze has run and while no job of the spec is queued,
+running or landing; "Let AI formulate acceptance criteria", which create has already used, is locked with
 no field name. A change not yet saved outlives a redraw and offers Cancel, as a tick does. On a spec with an open `aide/<folder>` branch the picker and the row's own line show the branch's `Depends on:`
 line, since a save is written there; archive stays held on what the checkout names too, because the runner's own check
 reads the checkout.
