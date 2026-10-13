@@ -35,7 +35,7 @@ import type { BoardMessage } from "../../i18n/message.ts";
 import { stepButton } from "../../format/step-label.ts";
 import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from "../queue.ts";
 import { modelIdOf, providerLimit, sharedFiles, stepRepoRanges, testedGreen, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
-import { asResultTool, isRunStop } from "../steps.ts";
+import { asResultTool, isRunStop, takesSlot } from "../steps.ts";
 import { resolveStepModel } from "../model-name.ts";
 import { stepFailure } from "../../format/tool-failure.ts";
 import { endUntickedArchive } from "./unticked-archive.ts";
@@ -152,14 +152,12 @@ export class Runner {
     }
     // Quick steps first, oldest first within each group (REQ-1); list() is newest-first.
     for (const job of queuePriorityOrder([...this.o.store.list()].reverse())) {
-      // Every slot is busy. The row says so by its queue position, not
-      // by a sentence — but a sentence left from an earlier pass has to
-      // go, so this leaves through the same door as everything else.
-      if (this.runningJobs().length >= this.maxConcurrent) {
-        this.clearStaleHolds(heldNow);
-        return;
-      }
       if (job.state !== "queued") continue;
+      // Every slot is busy. The row says so by its queue position, not
+      // by a sentence — a sentence left from an earlier pass goes with
+      // the other stale holds after the loop. A board step (a deploy)
+      // takes no slot and waits for none.
+      if (takesSlot(job) && this.runningJobs().filter(takesSlot).length >= this.maxConcurrent) continue;
       // A job whose OWN landing is in flight is still not restarted:
       // its own next step waits for its merge, which is what `landing`
       // means. That is one row's own ordering, not a pause on the

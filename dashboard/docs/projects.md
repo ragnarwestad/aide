@@ -232,7 +232,14 @@ fresh count and nothing else, with no pull, install or restart and no failed dep
 reads itself again and draws the section in place, unless Deploy was pressed or a dialog is open meanwhile. A check
 that fails leaves the tab as it was.
 
-Pressing **Deploy** opens the board's progress dialog: "Deploying…", its steps and one line under them, at one size
+On the project this server runs from, **Deploy** is a job of its own. The button asks first ("Deploy aide?"); OK queues
+the deploy job and goes to the Running tab with the job's row open (`/?open=<project>/deploy:deploy`), where the five
+steps below are followed as lines of the row (`running-specs.md`, "The Running tab"). Closing the tab stops nothing. While a
+deploy is queued or running a second press is refused, and the button's hover line says where to follow the first.
+Everything below, from the progress dialog to the last paragraph about the faulty service, is how every other
+project with an install command deploys.
+
+Pressing **Deploy** on another project opens the board's progress dialog: "Deploying…", its steps and one line under them, at one size
 while the steps run. Escape and a click outside do not close it while a step runs. It lists five steps, each waiting, running,
 done or failed, one running at a time: fetch from origin, install, restart the service, wait for the service to
 answer, and check that the service runs the newest commit. The page runs them one request each

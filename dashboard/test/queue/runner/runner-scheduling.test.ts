@@ -593,3 +593,32 @@ describe("the count changes on a live runner", () => {
     expect(store.get(c!.id)?.state).toBe("running");
   });
 });
+
+// A deploy is the board's own step: it runs inside the server, takes no
+// slot and waits for none.
+describe("a deploy takes no slot", () => {
+  const deploy = () => enqueue({ specFolder: "deploy", steps: ["deploy"] });
+
+  test("it starts with every slot busy, and a queued analyze still waits", () => {
+    const a = enqueue();
+    const b = enqueue({ specFolder: "91-parallel-spec-runs" });
+    const queuedAnalyze = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["implement"] });
+    const d = deploy();
+    const runner = makeRunner({ maxConcurrent: 2 });
+    runner.tick();
+    expect(store.get(a.id)?.state).toBe("running");
+    expect(store.get(b.id)?.state).toBe("running");
+    expect(store.get(d.id)?.state).toBe("running");
+    expect(store.get(queuedAnalyze.id)?.state).toBe("queued");
+    expect(spawns.map((s) => s.step).sort()).toEqual(["analyze", "analyze", "deploy"]);
+  });
+
+  test("a running deploy is not counted against the slots", () => {
+    const d = deploy();
+    const a = enqueue();
+    const runner = makeRunner({ maxConcurrent: 1 });
+    runner.tick();
+    expect(store.get(d.id)?.state).toBe("running");
+    expect(store.get(a.id)?.state).toBe("running");
+  });
+});

@@ -16,4 +16,4 @@ export {
 } from "./steps.ts";
 export { withFreshness } from "./freshness.ts";
 export { deleteLeftBehindBranch, type DeleteLeftBehindResult } from "./left-behind/delete-branch.ts";
-export { createLaunchdRestart, landingJobNames, restartAfterLanding, type RestartHook } from "./restart.ts";
+export { createLaunchdRestart, isDashboardRoot, landingJobNames, restartAfterLanding, type RestartHook } from "./restart.ts";

@@ -239,6 +239,11 @@ export interface Job {
    *  Absent, a reopen keeps the files. Only a job whose steps are
    *  exactly `["reopen"]` has it. */
   resetFiles?: boolean;
+  /** A deploy job's own record of the run (the board's `deploy` step): the
+   *  checkout it deployed, the commit its fetch reached, when the restart
+   *  was fired and the `STARTED_AT` of the process that fired it. The
+   *  process that starts after the restart reads it to finish the job. */
+  deploy?: { root: string; commit?: string; restartedAt?: string; leaving?: string };
   /** Set while a finished step's work is being landed on a default
    *  branch — a merge that runs AFTER the step reported success, in this
    *  process, against a shared main checkout no worktree isolates. The

@@ -139,7 +139,13 @@ when it suits — the Deploy button on the project's own page (`/projects/aide`)
 drops from the launchd job's plist every option the serve code no longer accepts, since a job still passing one would
 not start again, and the restart takes the job down and loads it from that plist. By hand on the host,
 `launchctl kickstart -k gui/$(id -u)/com.aide-dashboard.serve` restarts it on the arguments it was loaded with; after
-changing the plist, `launchctl bootout` and `launchctl bootstrap` it instead. The button's restart step answers before the restart
+changing the plist, `launchctl bootout` and `launchctl bootstrap` it instead. The board's own Deploy is a job: the
+process that runs it fetches and installs, then fires the restart and is taken down with it. It writes the restart into
+the job first (`deploy.restartedAt`), and the process that starts checks that it runs the fetched commit, or one that
+contains it, and writes the job's result before the runner reconciles at boot. A restart with no new process within
+three minutes ends the job failed. The restart of that job waits for every merge to settle with no time limit: a
+landing that never settles holds the deploy and its row says why; Cancel on that landing ends the wait, and a deploy that
+is still queued can be cancelled itself. For any other project, the button's restart step answers before the restart
 fires; the dialog then waits for a process with a new `startedAt` to answer `/api/version`, checks it, and reloads the page. A running step
 does not hold the restart back: it runs detached, in a process group of its own, outlives the restart, and the new
 process reads its result. A landing runs inside the process, so the restart waits for every step whose landing has not
@@ -364,11 +370,11 @@ What an operator needs and will not find here, or anywhere else in these pages:
 
 ## Known gaps
 
-The Deploy button's restart is not gated on `isDashboardRoot`. A landing never restarts anything; it uses
-`isDashboardRoot` (`land-branch/merge.ts`) to decide whether to LOG that the served page now runs older code than
-main. The Deploy button's `restart` step (`routes/deploy-steps.ts`) does restart, and carries no equivalent
-check: pressing Deploy on any project with an install command, on a host where this dashboard's own
-launchd job is registered, triggers the same restart wait and fire. No current page depends on this
+The restart of a Deploy on any project but the board's own is not gated on `isDashboardRoot`. A landing never
+restarts anything; it uses `isDashboardRoot` (`land-branch/merge.ts`) to decide whether to LOG that the served page now
+runs older code than main. The `restart` step those projects' Deploy tab posts (`routes/deploy-steps.ts`) does restart,
+and carries no equivalent check: pressing Deploy on a project with an install command, on a host where this
+dashboard's own launchd job is registered, triggers the same restart wait and fire. No current page depends on this
 being scoped further, since the Deploy tab's own `serving` comparison only ever exists for the
 dashboard's own project — but a future project added to the dashboard whose install is slow or
 disruptive would restart the dashboard itself as a side effect of deploying something unrelated.

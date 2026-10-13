@@ -84,6 +84,11 @@ export interface ProjectPageOptions {
   /** Non-empty while a Deploy press's restart is held back by these
    *  landings in flight (spec 385) — undefined everywhere `serving` is. */
   restartWaiting?: string[];
+  /** This project is the checkout the board runs from, so its Deploy asks
+   *  first and queues a job. Every other project's Deploy is the form. */
+  boardItself?: boolean;
+  /** The state of the board's deploy job while one is queued or running. */
+  deployUnderWay?: "queued" | "running";
   /** Whether this project's own machinery checkout carries the
    *  dashboard's source (`ctx.testServers.previewAvailable`) — the same
    *  capability check the spec-page's test-server link already gates on.

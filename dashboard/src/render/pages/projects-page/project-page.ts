@@ -15,7 +15,7 @@ import { pickTab, tabBar, tabbedBody } from "../job-page";
 import { SCHEDULE_REFUSED_LINE, scheduleControlCells } from "../schedule-page/controls.ts";
 import { scheduleNewPath, schedulePagePath, scheduleSettingsPath } from "../schedule-page";
 import { modelFlag } from "../schedule-page/model-flag.ts";
-import { deployDialog, STEP_LABEL } from "./deploy-dialog.ts";
+import { deployAskDialog, deployDialog, STEP_LABEL } from "./deploy-dialog.ts";
 import { projectDescription } from "./overview-list.ts";
 import { PROJECTS_ROUTE, projectPagePath } from "./routes.ts";
 import { unifiedSettingsTable } from "./settings-table.ts";
@@ -167,6 +167,23 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
       : stale && opts.restartWaiting?.length
         ? "Pressing again only repeats the pull and install — it does not restart the service sooner."
         : undefined;
+
+  // The board's own Deploy asks first, and OK queues the job. A second press
+  // is refused while one is under way, and the hover line says so.
+  if (opts.boardItself) {
+    const lang = opts.lang ?? "en";
+    const dialogId = "deployask";
+    const underWay = opts.deployUnderWay
+      ? `A deploy is already ${opts.deployUnderWay} — follow it on the Running tab.`
+      : undefined;
+    const ask =
+      askButton({ label: "Deploy", dialogId, variant: "primary", disabled, title: underWay ?? title }) +
+      deployAskDialog(lang, name, dialogId);
+    return checked(
+      name,
+      heading + panel(errorLine + rowMessage(notYetChecked || behind! > 0 || stale ? "waiting" : "info", sentence, { html: sentenceHtml }) + ask),
+    );
+  }
 
   // No action: the script posts each step to `<data-deploy-base>/<step>`
   // (`specs-client/deploy/`), and nothing answers at the base itself.

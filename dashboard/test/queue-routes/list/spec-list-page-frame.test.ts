@@ -31,6 +31,21 @@ describe("GET / (the spec list, HTML)", () => {
     expect(html).not.toContain("schedule-nightly");
   });
 
+  // A deploy job's tracking key is `deploy`, which no spec folder is: the job
+  // has a row of its own on the Running tab, never a spec's here.
+  test("draws no row for a deploy job (AC-2)", async () => {
+    const { base } = start();
+    const headers = { "content-type": "application/json", accept: "application/json" };
+    const made = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ project: "aide", specFolder: "deploy", steps: ["deploy"] }),
+    });
+    expect(made.status).toBe(200);
+    const html = await (await fetch(`${base}/specs`, )).text();
+    expect(html).not.toContain('data-folder="deploy"');
+  });
+
   test("?rows=1 returns the table body alone, for the script to swap in", async () => {
     const { base } = start();
     const headers = { "content-type": "application/json", accept: "application/json" };

@@ -3,10 +3,11 @@
 // take these options from here and add what is their own.
 
 import type { Language } from "../../../i18n";
+import { isDeployJob } from "../../../queue/queue.ts";
 import type { SpecsPageOptions } from "../../../render";
 import { openOverlappingSpecs } from "../../../project/overlapping-specs.ts";
 import { modelChoiceOptions } from "../../serve-helpers";
-import { closeOrReopenSteps } from "../../spec-views/job-marks.ts";
+import { closeOrReopenSteps, deploySteps } from "../../spec-views/job-marks.ts";
 import { phaseMessagesFor } from "../../spec-views/phase-messages.ts";
 import { codeBranchOnOrigin } from "../../test-servers/branch-on-origin.ts";
 import type { RoutesContext } from "..";
@@ -24,10 +25,11 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
     // from history alone.
     pendingModels: ctx.queue.pendingModels,
     pendingSteps: ctx.queue.pendingSteps,
-    // Called only for the open row of a Close or Reopen job.
+    // Called only for the open row of a Close, Reopen or deploy job.
     closeOrReopenSteps: (jobId: string, step: string) => {
       const job = ctx.queue.get(jobId);
-      return job ? closeOrReopenSteps(job, step, lang) : [];
+      if (!job) return [];
+      return step === "deploy" ? deploySteps(job, lang) : closeOrReopenSteps(job, step, lang);
     },
     // The same capability check `spec-page.ts` and `project-pages.ts` call,
     // and the cached answer of whether origin holds the spec's branch in the
@@ -58,11 +60,11 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
 }
 
 /** The jobs a spec's row is drawn from, on the Specs list and the Jobs tab
- *  alike: those of a project the queue may run that are not a scheduled job
- *  (no spec folder). */
-export function listedSpecJobs<J extends { project: string; specFolder: string }>(
+ *  alike: those of a project the queue may run that are neither a scheduled job
+ *  nor a deploy (no spec folder). */
+export function listedSpecJobs<J extends { project: string; specFolder: string; steps: readonly string[] }>(
   ctx: Pick<RoutesContext, "allowed">,
   jobs: J[],
 ): J[] {
-  return jobs.filter((j) => ctx.allowed.has(j.project) && !j.specFolder.startsWith("schedule-"));
+  return jobs.filter((j) => ctx.allowed.has(j.project) && !j.specFolder.startsWith("schedule-") && !isDeployJob(j));
 }

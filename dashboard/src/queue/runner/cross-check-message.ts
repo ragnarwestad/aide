@@ -1,4 +1,4 @@
-import type { BoardMessage } from "../../i18n/message.ts";
+import type { BoardMessage, Sentence } from "../../i18n/message.ts";
 import { stepButton } from "../../format/step-label.ts";
 import type { WorkflowStep } from "../queue.ts";
 import { sharedFiles, type StepOutcome } from "./types.ts";
@@ -11,7 +11,9 @@ import { sharedFiles, type StepOutcome } from "./types.ts";
  *  so the row reads it in the reader's language rather than in the
  *  script's English. Every other failure keeps the sentence the script
  *  wrote. */
-export function noProgressMessage(step: WorkflowStep, outcome: Partial<StepOutcome>): BoardMessage | undefined {
+export function noProgressMessage(step: WorkflowStep, outcome: Partial<StepOutcome>): Sentence | undefined {
+  // A deploy runs in the board's own process, which words its failure itself.
+  if (step === "deploy" && !outcome.ok) return outcome.sentence;
   if (outcome.terminalReason === "model-refused") {
     return { key: "runner.modelRefused", values: { button: stepButton(step) } };
   }

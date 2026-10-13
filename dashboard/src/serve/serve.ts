@@ -246,6 +246,7 @@ export function createServer(opts: ServerOptions) {
     landClosedSpec: land.landClosedSpec,
     landStoppedStepBranch: land.landStoppedStepBranch,
     landScheduleRun: land.landScheduleRun,
+    startDeploy: land.deployJob.start,
     specDir: resolution.specDir,
     peekMachinerySpecDir: resolution.peekMachinerySpecDir,
     forgetSpecCaches: (dir, folder) => {
@@ -272,6 +273,7 @@ export function createServer(opts: ServerOptions) {
   // On boot, before anything new starts: every job left `running`, then every landing cut short.
   // Primed first, so the jobs the store already holds are not news.
   push.prime();
+  land.deployJob.finishAfterRestart();
   runner?.reconcile();
   if (runner) resumeCutLandingsAtBoot(runnerSetupCtx);
   const growth = watch.streamGrowth(() => queue.list());

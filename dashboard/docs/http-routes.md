@@ -164,8 +164,9 @@ and answers 400 `{ error }` with `Depends on was saved, but analyze could not be
 Answered by `src/serve/routes/queue-admin.ts`, except `settings/concurrency`, which
 `src/serve/routes/settings-concurrency.ts` answers, the two `settings/models/<add|remove>` rows, which
 `src/serve/routes/settings-models.ts` answers, and the four `deploy/<step>` rows and the `drift` row, which
-`src/serve/routes/deploy-steps.ts` answers. The page script posts the four steps one after the other, and `drift` once
-when the Deploy tab is opened.
+`src/serve/routes/deploy-steps.ts` answers. The page script posts the four steps one after the other for every project
+but the board's own, whose Deploy is the one `deploy` row that queues a job, and `drift` once when the Deploy tab is
+opened.
 
 | Route                                                 | Kind   | Takes                                                         | Answers                                                                                                                            | Made for |
 |-------------------------------------------------------|--------|---------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------|----------|
@@ -177,6 +178,7 @@ when the Deploy tab is opened.
 | `POST /api/queue/projects`                            | action | name, git URL, the settings and the three commands            | `{ ok, project, results, readiness? }`: the steps taken; 400 when one failed                                                       | form     |
 | `POST /api/queue/projects/test-command`               | action | a git URL                                                     | `{ ok, testCmd }`: the test command its root files point at, or `null`; reads only                                                 | form     |
 | `POST /api/queue/projects/<project>/settings`         | action | the project's settings                                        | `{ ok, project, results, readiness? }`: the steps taken; 400 when one failed                                                       | form     |
+| `POST /api/queue/projects/<project>/deploy`           | action | nothing                                                       | `{ ok, job }`: the queued deploy job; 400 `{ error }` for a project that is not the board's, or a deploy under way                 | form     |
 | `POST /api/queue/projects/<project>/deploy/fetch`     | action | nothing                                                       | `{ ok }`; 400 `{ error }` for a refusal; fast-forwards the checkout                                                                | form     |
 | `POST /api/queue/projects/<project>/deploy/install`   | action | nothing                                                       | `{ ok }`; 400 `{ error, faulty? }` when the install fails; then a fresh count against origin                                       | form     |
 | `POST /api/queue/projects/<project>/deploy/restart`   | action | nothing                                                       | `{ ok, restart, startedAt?, faulty? }`: `restart` is `fired`, `held` or `none`                                                     | form     |

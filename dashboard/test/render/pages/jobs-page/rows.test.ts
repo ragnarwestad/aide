@@ -261,3 +261,40 @@ describe("where a job row belongs (AC-5)", () => {
     );
   });
 });
+
+describe("a deploy is a job row of its own, named for the deploy (AC-2)", () => {
+  const deploy = (o: Partial<J> = {}): J => job({ specFolder: "deploy", steps: ["deploy"], ...o });
+
+  test("a queued, a held-back and a running deploy have a row (AC-2)", () => {
+    const jobs = [
+      deploy({ id: "q", state: "queued" }),
+      deploy({ id: "h", state: "queued", specFolder: "deploy", project: "other", errorReason: "held-back" } as Partial<J>),
+      deploy({ id: "r", state: "running", project: "third" }),
+    ];
+    expect(ids(jobs)).toEqual(["q", "h", "r"]);
+  });
+
+  test("a failed or interrupted one keeps its row until a newer deploy of the project is queued (AC-2)", () => {
+    for (const state of ["failed", "interrupted"] as const) {
+      expect(ids([deploy({ id: "f", state, createdAt: T(1) })])).toEqual(["f"]);
+      expect(ids([deploy({ id: "f", state, createdAt: T(1) }), deploy({ id: "n", state: "queued", createdAt: T(2) })])).toEqual(["n"]);
+    }
+  });
+
+  test("a done one has none (AC-2)", () => {
+    expect(ids([deploy({ id: "d", state: "done" })])).toEqual([]);
+  });
+
+  test("its title is the deploy and its project, its key and home are the project's own (AC-2)", () => {
+    const row = deploy({ project: "aide" });
+    expect(jobTitle(row)).toBe("Deploy aide");
+    expect(jobKey(row)).toBe("aide/deploy:deploy");
+    expect(jobHome(row)).toBe("/projects/aide?tab=deploy");
+  });
+
+  test("offers Cancel while queued, held back or not, and nothing once it runs (AC-8)", () => {
+    expect(jobControl(deploy({ state: "queued" }))).toBe("cancel");
+    expect(jobControl(deploy({ state: "queued", errorReason: "held-back" } as Partial<J>))).toBe("cancel");
+    expect(jobControl(deploy({ state: "running" }))).toBeUndefined();
+  });
+});

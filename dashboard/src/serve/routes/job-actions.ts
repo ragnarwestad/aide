@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { readSpecState } from "../../project/parse-spec-state.ts";
 import { parseStatus } from "../../project/parse-status";
 import { isLegalMove, phaseFromState } from "../../queue/spec-transitions.ts";
+import { isDeployJob } from "../../queue/queue.ts";
 import { bodyToObject, json, logRefusal, readBounded } from "../serve-helpers";
 import type { RoutesContext } from "./";
 
@@ -168,6 +169,14 @@ export async function handleJobActionRoutes(
     // is bounded like every other request's.
     const sent = await readBounded(req);
     if ("refusal" in sent) return sent.refusal;
+    // A running deploy is this process itself: marked cancelled, it would
+    // go on fetching and restarting under a row that says it ended. A
+    // queued one has no run yet and is cancelled like any queued job.
+    if (job.state === "running" && isDeployJob(job)) {
+      const reason = "a deploy cannot be stopped part-way";
+      logRefusal("cancel", `${job.project}/${job.specFolder}`, reason);
+      return json({ error: reason, spec: `${job.project}/${job.specFolder}` }, 409);
+    }
     // Only a job that still owns its work can be cancelled. A finished
     // job's state is history — done, failed, stopped — and writing
     // "cancelled" over it would say someone ended a run that had

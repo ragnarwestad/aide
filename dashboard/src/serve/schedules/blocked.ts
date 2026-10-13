@@ -10,7 +10,8 @@ import { acceptanceStillOpen, parseStatus } from "../../project/parse-status";
 import { specPendingChoice } from "../../project/approach-choice.ts";
 import type { BoardMessage } from "../../i18n/message.ts";
 import { GATED, resolveDependencyFolder } from "../serve-helpers";
-import type { Job } from "../../queue/queue.ts";
+import { landingJobNames } from "../land-branch";
+import { isDeployJob, type Job } from "../../queue/queue.ts";
 import type { DependencyHolds } from "../../queue/runner/dependency-hold.ts";
 import type { ScheduleContext } from "./";
 
@@ -188,12 +189,22 @@ export function waitingForApproachChoice(ctx: ScheduleContext): Set<string> {
   return waiting;
 }
 
+/** Which queued deploy jobs wait for a landing to settle: the deploy
+ *  fetches into the board's checkout and restarts the process that runs the
+ *  landings, so it starts when none is in flight. */
+export function deployWaitingForLanding(ctx: ScheduleContext): Set<string> {
+  if (landingJobNames(ctx.queue).length === 0) return new Set();
+  return new Set(ctx.queue.list().filter((job) => job.state === "queued" && isDeployJob(job)).map((job) => job.id));
+}
+
 /** Every queued job held with a fixed sentence this tick, by id: not
- *  analyzed yet first, then waiting for a choice of approach. */
+ *  analyzed yet first, then waiting for a choice of approach, and a deploy
+ *  waiting for a landing. */
 export function fixedSentenceHolds(ctx: ScheduleContext): Map<string, BoardMessage> {
   const holds = new Map<string, BoardMessage>();
   for (const id of blockedForMissingAnalyze(ctx)) holds.set(id, { key: "runner.notAnalyzed" });
   for (const id of waitingForApproachChoice(ctx)) if (!holds.has(id)) holds.set(id, { key: "runner.approachChoice" });
+  for (const id of deployWaitingForLanding(ctx)) holds.set(id, { key: "runner.landingPause" });
   return holds;
 }
 

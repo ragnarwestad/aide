@@ -119,3 +119,22 @@ describe("specStateChip() on a held-back queued row (spec 396, spec 485)", () =>
     expect(html).toContain(">Stopped<");
   });
 });
+
+// A deploy's fetch or its restart waits for a landing with the job still
+// running: it reads like every other held-back job, not "Deploying".
+describe("specStateChip() on a running row with a hold (AC-4)", () => {
+  const held = { errorReason: "held-back" as const, error: { key: "runner.landingPause" as const } };
+
+  test("a running job whose reason is a hold reads 'Held back', in the colour a held queued job gets (AC-4)", () => {
+    const html = specStateChip(row({ state: "running", steps: ["deploy"], stepIndex: 0, ...held }), "en");
+    expect(html).toContain(">Held back<");
+    expect(html).toContain("b-idle");
+    expect(html).not.toContain("Deploying");
+  });
+
+  test("once the hold is gone it reads as running again (AC-4)", () => {
+    const html = specStateChip(row({ state: "running", steps: ["deploy"], stepIndex: 0 }), "en");
+    expect(html).toContain("Deploying");
+    expect(html).not.toContain("Held back");
+  });
+});

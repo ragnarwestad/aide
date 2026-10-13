@@ -20,27 +20,27 @@ import { stepLabel } from "./step-label.ts";
 export const GERUND_EN: Record<string, string> = {
   create: "Creating", analyze: "Analyzing", implement: "Implementing", archive: "Archiving",
   explore: "Exploring", reopen: "Reopening", reset: "Resetting",
-  schedule: "Running the schedule", close: "Closing",
+  schedule: "Running the schedule", close: "Closing", deploy: "Deploying",
 };
 export const GERUND_NB: Record<string, string> = {
   create: "Oppretter", analyze: "Analyserer", implement: "Implementerer", archive: "Arkiverer",
   explore: "Utforsker", reopen: "Gjenåpner", reset: "Tilbakestiller",
-  schedule: "Kjører planen", close: "Lukker",
+  schedule: "Kjører planen", close: "Lukker", deploy: "Deployer",
 };
 export const GERUND_ES: Record<string, string> = {
   create: "Creando", analyze: "Analizando", implement: "Implementando", archive: "Archivando",
   explore: "Explorando", reopen: "Reabriendo", reset: "Restableciendo",
-  schedule: "Ejecutando la programación", close: "Cerrando",
+  schedule: "Ejecutando la programación", close: "Cerrando", deploy: "Desplegando",
 };
 export const GERUND_DE: Record<string, string> = {
   create: "Erstellt", analyze: "Analysiert", implement: "Implementiert", archive: "Archiviert",
   explore: "Erkundet", reopen: "Öffnet erneut", reset: "Setzt zurück",
-  schedule: "Führt den Zeitplan aus", close: "Schließt",
+  schedule: "Führt den Zeitplan aus", close: "Schließt", deploy: "Stellt bereit",
 };
 export const GERUND_FR: Record<string, string> = {
   create: "Crée", analyze: "Analyse", implement: "Implémente", archive: "Archive",
   explore: "Explore", reopen: "Rouvre", reset: "Réinitialise",
-  schedule: "Exécute la planification", close: "Ferme",
+  schedule: "Exécute la planification", close: "Ferme", deploy: "Déploie",
 };
 const GERUND_TABLES: Partial<Record<Language, Record<string, string>>> = {
   nb: GERUND_NB, es: GERUND_ES, de: GERUND_DE, fr: GERUND_FR,

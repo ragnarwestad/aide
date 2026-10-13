@@ -607,6 +607,12 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   log's `+Ns` stamps (counting while it runs); and a dash under Cost, since the job's cost is the row's. A tab with
   the row open hears the log grow (its key in `?open=` on `/api/queue/events`), so the lines move as the job goes.
   A reopen that has gone on to the spec's next step is the spec's again.
+- **A deploy is a row of its own on the Running tab** too, for the one project the board runs from. A job whose
+  step is `deploy` (`deployStep`, `queue/steps.ts`) has a row named "Deploy <project>", with the key
+  `<project>/deploy:deploy`; no spec row is drawn for its tracking key `deploy`, on the Running tab or the Specs list. It
+  offers Cancel while queued and nothing once it runs. The open row has a line per step (`deploySteps`,
+  `serve/spec-views/job-marks.ts`), and the row draws its hold, or why it failed or was interrupted, as one message
+  line under its state, open or shut. A running deploy that waits for a merge reads "Held back".
 - **A press changes the button at once, without changing its width.**
   It disables, gains the `busy` look and a spinner ahead of its own label — the label itself stays put, only
   the `title` carries the pending word ("starting…", "cancelling…", "queueing…",

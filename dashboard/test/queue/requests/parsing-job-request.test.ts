@@ -314,13 +314,35 @@ describe("parseJobRequest", () => {
     ["a project not in the allowlist", { ...REQ, project: "claude-usage" }, "project"],
     ["a path instead of a name", { ...REQ, project: "../../etc" }, "project"],
     ["an unknown spec folder", { ...REQ, specFolder: "99-nope" }, "specFolder"],
-    ["a step that is not a workflow step", { ...REQ, steps: ["deploy"] }, "steps"],
+    ["a step that is not a workflow step", { ...REQ, steps: ["publish"] }, "steps"],
     ["no steps at all", { ...REQ, steps: [] }, "steps"],
     ["a non-object body", "hello", "object"],
   ])("%s is rejected", (_label, body, field) => {
     const r = parseJobRequest(body, { resolve, defaults: DEFAULTS });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toContain(field);
+  });
+});
+
+describe("a deploy job (AC-1)", () => {
+  const deploy = { project: "aide", specFolder: "deploy", steps: ["deploy"] };
+
+  test("is admitted without a spec, under the deploy key alone (AC-1)", () => {
+    const r = parseJobRequest(deploy, { resolve, defaults: DEFAULTS });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.job.specFolder).toBe("deploy");
+      expect(r.job.steps).toEqual(["deploy"]);
+    }
+  });
+
+  test.each([
+    ["the deploy step under another key", { ...deploy, specFolder: "81-queue-and-runner" }],
+    ["another step under the deploy key", { ...deploy, steps: ["analyze"] }],
+    ["the deploy step chained with another", { ...deploy, steps: ["deploy", "analyze"] }],
+    ["the deploy step chained with another under a spec", { ...deploy, specFolder: "81-queue-and-runner", steps: ["analyze", "deploy"] }],
+  ])("%s is rejected (AC-1)", (_label, body) => {
+    expect(parseJobRequest(body, { resolve, defaults: DEFAULTS }).ok).toBe(false);
   });
 });
 

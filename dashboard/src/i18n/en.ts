@@ -36,6 +36,8 @@ export const en = {
   "dialog.stepFailed": "failed",
   "deploy.finished": "Deploy finished",
   "deploy.failedAt": "{step} failed: {error}",
+  "deploy.askTitle": "Deploy {project}?",
+  "deploy.askSentence": "Fetches from origin, installs and restarts the service, then checks that the newest commit runs. It runs as a job: follow it on the Running tab.",
   "shell.overlayLoading": "loading…",
   "shell.loadingPage": "Loading …",
   "shell.pageFailed": "Something went wrong while the page was being built. Reload the page; if it keeps failing, look in the dashboard's log on the serving host.",
