@@ -189,20 +189,13 @@ export function dependsOnField(
       `</span>`
     );
   }
-  // "Selected:" is drawn whether or not anything is: an empty picked
-  // block was no block at all, so a spec that depends on nothing looked
-  // exactly like one whose dependencies the page had failed to show,
-  // and the framed list below read as the answer.
-  // The picked box is ALWAYS drawn, even with nothing in it: the word
-  // "none" in its place left the script that lifts a chip on tick with
-  // no box to lift into, so ticking did nothing. "none" is a sibling
-  // that CSS hides the moment the box has a chip (`field.css`).
-  const selected = `<span class="row"><span class="lbl">Selected:</span>` +
-    phases(lockedBlock + picked.map(chip).join(""), "picked") +
-    `<span class="muted" data-none>none</span></span>`;
+  // Under the one "Depends on" label: the picked box, then the pick list.
+  // Both are ALWAYS drawn, even with nothing in them, so the script that
+  // lifts a chip on tick has a box to lift into; CSS hides a box while it
+  // is empty (`field.css`), so an empty half takes no room.
   return field(
     "Depends on",
-    selected + phases(rest.map(chip).join("")),
+    phases(lockedBlock + picked.map(chip).join(""), "picked") + phases(rest.map(chip).join("")),
     { group: true, wide: o.wide, help, actions: o.actions },
   );
 }
