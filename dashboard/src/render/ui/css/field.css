@@ -149,6 +149,10 @@ select[name^="model."] {
 /* The picker spans the row, so Save and Cancel stand at its far right: the
    form a block rather than the inline-block a form in a cell is. */
 table.list tr.subrow[data-depends-line] form.dependsform { display: block; }
+/* One card round the picker, the settings and their Save and Cancel, with
+   the list's own border and corners, so the pair reads as theirs alone. */
+table.list tr.subrow[data-depends-line] form.dependsform { border: 1px solid var(--line);
+  border-radius: var(--r); padding: var(--sp-3); }
 .dependsform > .field { display: flex; max-width: none; }
 /* Its pick list as tall as its chips, up to the cap every pick list has,
    so a handful of specs leaves no empty box under them. */
