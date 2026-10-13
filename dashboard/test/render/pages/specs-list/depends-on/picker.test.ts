@@ -87,11 +87,12 @@ describe("the line the open row draws", () => {
     expect(dependsOnLine(g, opts)).toBe("");
   });
 
-  test("has no picker, only the spec's settings, for a spec alone in its project that depends on nothing (AC-1)", () => {
+  test("says it depends on nothing, with nothing to pick, for a spec alone in its project (AC-1)", () => {
     const targets = [spec(FOLDER)];
     const opts = optionsFor(targets);
     const html = dependsOnLine(groupOf(targets, opts), opts);
     expect(boxes(html)).toEqual([]);
+    expect(html).toContain("data-none");
     expect(html).toContain('name="settingsEditable"');
   });
 

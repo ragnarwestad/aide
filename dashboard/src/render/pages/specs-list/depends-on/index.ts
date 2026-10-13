@@ -81,13 +81,12 @@ export function dependsOnLine(g: SpecGroup, opts: Pick<SpecsPageOptions, "target
     actions,
   });
   const settings = settingsGroup(g, id, !held && !g.done.includes("analyze"), opts.lang);
-  // With no picker to carry them, Save and Cancel go with the settings.
-  const body = field ? field + settings : `<span class="frow options-row">${settings}${actions}</span>`;
+  const body = field + settings;
   return (
     `<tr class="subrow" data-depends-line="1"><td colspan="${LIST_COLUMNS}">` +
     `<form class="actionform dependsform" id="${esc(id)}" method="post" ` +
     `action="/api/queue/specs/${esc(g.project)}/${esc(g.specFolder)}/tracking">` +
-    (field ? `<input type="hidden" name="dependsOn" value="">` : "") +
+    `<input type="hidden" name="dependsOn" value="">` +
     body +
     `</form></td></tr>`
   );

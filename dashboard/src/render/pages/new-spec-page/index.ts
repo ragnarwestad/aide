@@ -123,7 +123,9 @@ export function dependsOnField(
       a.project.localeCompare(b.project) ||
       -a.specFolder.localeCompare(b.specFolder, "en", { numeric: true }),
   );
-  if (specs.length === 0 && !(o.locked ?? []).length) return "";
+  // Nothing to offer and nothing picked: New spec draws no field, while the
+  // Running tab's row still says "Depends on: none".
+  if (specs.length === 0 && !(o.locked ?? []).length && o.sideBySide) return "";
   const chip = (t: SpecTarget) =>
     `<span data-project="${esc(t.project)}">` +
     phaseChip({
