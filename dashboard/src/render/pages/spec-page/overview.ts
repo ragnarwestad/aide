@@ -16,13 +16,6 @@ import {
 import { SPEC_LINES, SPEC_REFUSED_LINE } from "./tabs.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
 
-/** What sits above the tabs: each phase's AI and model. The settings the
- *  spec was created with, and Depends on, are changed on its open row on the
- *  Running tab, where its runs are. */
-export function trackingControl(phases = ""): string {
-  return `<span class="frow options-row">${phases}</span>`;
-}
-
 /** One labelled fact about the spec: what it is, then what it says.
  *
  *  The shape `Depends on` already had, made shared (2026-08-23) because

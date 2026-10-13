@@ -7,7 +7,7 @@ import { t } from "../../../i18n";
 import { wordPhase } from "../../ui/job-state";
 import type { QueueRowView } from "../../ui/job-state";
 import type { SpecsPageOptions } from "./";
-import { PHASE_LINES, RUN_STEPS, groupKey, isArchivedRow, type SpecGroup } from "./data-model";
+import { RUN_STEPS, groupKey, isArchivedRow, type SpecGroup } from "./data-model";
 import { costCell, phaseDurationCell, phaseWordCell, specTotalCell } from "./cell-helpers.ts";
 import { aiPicker, ALREADY_RUN_REASON, compactModelLabel, compactModelLabelFull, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells } from "./model-picker.ts";
 import { chosenSteps, runFormId, specBusy } from "./row-state.ts";
@@ -393,36 +393,4 @@ function aiModel(
     `<label class="aimodelfield"><span>${t(lang, "list.captionModel")}</span>${model}</label>` +
     `</span></span>`
   );
-}
-
-/** What each phase of a spec runs on, as the open row on the Specs list
- *  shows it: the New spec page's phase table, with no box to tick — what
- *  runs is chosen on the Running tab. A pick is the same pending pick the
- *  Running tab saves the moment it is made, under the same locks: `create`
- *  always, everything while a job runs on the spec, and an archived spec
- *  as a record. */
-export function specPhaseTable(g: SpecGroup, opts: SpecsPageOptions): string {
-  const lang = opts.lang ?? "en";
-  const busy = specBusy(g);
-  const caption = (opts.modelChoices ?? []).length
-    ? `<tr class="subrow" data-caption="1">${phaseCaptionCells(opts, false, "", lang, undefined, false)}</tr>`
-    : "";
-  const lines = PHASE_LINES.map((step) => {
-    const p = g.phases.find((x) => x.step === step);
-    const latest = p?.attempts[0];
-    const recordedModel = p?.model?.split(" ").slice(1).join(" ") || undefined;
-    const usedTool = latest?.results?.find((x) => x.step === step)?.tool;
-    const ranModelId = p?.attempts[0]?.modelId ?? p?.modelId;
-    // Never `live`: a pick for the running job is the Running tab's. The
-    // run form's id is what the page reads the spec from when it saves a
-    // pick; no such form is drawn here, and none is needed.
-    const alreadyRun = !RUN_STEPS.includes(step);
-    const ai = aiPicker(g, opts, step, busy, false, latest?.model, recordedModel, undefined, alreadyRun, usedTool);
-    const model = modelPicker(g, opts, step, busy, false, latest?.model, recordedModel, undefined, alreadyRun, ranModelId);
-    return (
-      `<tr class="subrow" data-step="${esc(step)}"><td class="phasecell">${esc(stepLabel(step, opts.lang))}</td>` +
-      `<td class="modelcell"><span class="row"><span class="aimodel">${ai}${model}</span></span></td></tr>`
-    );
-  }).join("");
-  return `<table class="list"><tbody>${caption}${lines}</tbody></table>`;
 }

@@ -57,7 +57,7 @@ import { landingRefusal, stepResults, tabBar } from "../job-page";
 import { followMarker, followPart } from "../job-page/follow.ts";
 import {
   actionsHelp, testServerStatus, closedLine, closeControl,
-  reopenControl, trackingControl,
+  reopenControl,
 } from "./overview.ts";
 import { descriptionPanel, documentPanel } from "./panels.ts";
 import {
@@ -81,9 +81,6 @@ interface SpecDetailOpts {
   /** The list's view (filter, sort, search) the spec's links carry, so
    *  following one keeps the list around the open row. */
   view?: ListView;
-  /** What the Specs list knows of the spec and draws for it: its phase
-   *  table. */
-  top?: { phases: string };
 }
 
 /** What the Steps tab draws of a spec: its lead job and every step of the
@@ -146,7 +143,6 @@ export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}):
     // reader who came looking for it should not have to work out from a
     // missing textarea that the spec is closed.
     closedLine(view, opts.lang ?? "en") +
-    trackingControl(opts.top?.phases ?? "") +
     // What a board asked for is doing, in words. Its button lives in
     // the tab row below, which holds buttons only.
     testServerStatus(view) +

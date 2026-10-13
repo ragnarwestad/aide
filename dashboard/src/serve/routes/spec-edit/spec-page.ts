@@ -34,8 +34,8 @@ function specInRow(
     steptab?: string;
     listView: ReturnType<typeof listViewIn>;
   },
-): { detail: (top: { phases: string }) => string; scriptSrc: string | undefined } {
-  const detail = (top: { phases: string }): string => renderSpecDetail(
+): { detail: () => string; scriptSrc: string | undefined } {
+  const detail = (): string => renderSpecDetail(
     {
       ...view,
       error: failedRoundSentence(view.lead, o.lang),
@@ -46,7 +46,7 @@ function specInRow(
         o.lang,
       ),
     },
-    { tab: o.tab, step: o.step, steptab: o.steptab, lang: o.lang, view: o.listView, top },
+    { tab: o.tab, step: o.step, steptab: o.steptab, lang: o.lang, view: o.listView },
   );
   // REQ-1/REQ-4/REQ-5 (spec 315, extended by spec 333): a src= reference to
   // whichever bundle's own route this tab's panel actually mounts

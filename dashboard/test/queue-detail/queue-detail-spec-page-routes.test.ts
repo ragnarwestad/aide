@@ -220,8 +220,6 @@ describe("GET /specs/<project>/<specFolder>", () => {
     const html = await res.text();
     expect(html).toContain('id="jobrows"');
     expect(html).toContain(`data-spec-detail="aide/${SPEC}"`);
-    // The part above the tabs, once.
-    expect(html.match(/class="frow options-row"/g)).toHaveLength(1);
     // The tabs, each a link to the spec's own address, and the Description panel.
     for (const tab of ["description", "analysis", "solution", "status", "steps"]) {
       expect([tab, new RegExp(`href="/specs/aide/${SPEC}\\?[^"]*tab=${tab}`).test(html)]).toEqual([tab, true]);
@@ -281,7 +279,6 @@ describe("GET /specs/<project>/<specFolder>", () => {
     const html = await res.text();
     expect(html).not.toContain("<html");
     expect(html).toContain(`data-spec-detail="aide/${SPEC}"`);
-    expect(html.match(/class="frow options-row"/g)).toHaveLength(1);
     expect(html).toContain("It shows nothing about");
     expect(html).toMatch(/<script src="\/spec-editor\.js"><\/script>\s*$/);
   });

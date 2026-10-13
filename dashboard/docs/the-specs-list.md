@@ -446,16 +446,13 @@ branch where one is open, as of its last fetch, and off the specs checkout where
 draws the acceptance criteria first, as real boxes with a Save of their own (each with its note and the tests that
 name it), then the rest of `4-status.md` rendered read-only; an archived spec, or one with a job in flight, shows the
 same criteria without boxes. An old `?tab=checks` link opens the Status tab. Update, which pulls the specs
-checkout (`POST /api/queue/specs/<project>/<spec>/update`), sits at the end of the tab row. Above the
-banner, laid out as New spec's Options tab with the same components, each phase's AI and model. There is no box to
-tick, since what runs is chosen on the Running tab. A phase's AI and model take a pick the way the Running tab's do,
-saved for the spec the moment it is made (`POST /api/queue/specs/<project>/<spec>/model`); create's are locked, and so
-is every phase while a job runs on the spec or once it is archived. A spec's Depends on and the four settings it was
-created with are changed from its open row on the Running tab, not here (see [The row's controls](#the-rows-controls)). The banner
-holds the rest of what belongs to the spec rather than to one document: whether it is closed, the test server's state and any error.
-A spec created before a choice was recorded shows what a spec with nothing recorded runs with: AI formulated, checks
-Off, the approach not chosen, ticking required. `createChoicesIn` reads the four off the description's Tracking info;
-`aide-run-spec` writes the `Let AI formulate acceptance criteria:` line when a create completes.
+checkout (`POST /api/queue/specs/<project>/<spec>/update`), sits at the end of the tab row. What a spec runs on and
+with — each phase's AI and model, its Depends on and the four settings it was created with — is chosen on its open row
+on the Running tab, not here (see [The row's controls](#the-rows-controls)). The banner holds what belongs to the spec
+rather than to one document: whether it is closed, the test server's state and any error. A spec created before a
+choice was recorded runs with what a spec with nothing recorded runs with: AI formulated, checks Off, the approach not
+chosen, ticking required. `createChoicesIn` reads the four off the description's Tracking info; `aide-run-spec` writes
+the `Let AI formulate acceptance criteria:` line when a create completes.
 
 The spec is built when its address is asked, never when the list is drawn: the rows answers (`?rows=1`) carry a cell
 for it holding the state badge alone, and the page script puts the spec it holds back there after every redraw

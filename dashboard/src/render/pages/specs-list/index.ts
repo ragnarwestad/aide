@@ -83,7 +83,7 @@ export {
   type SpecTarget,
   type SpecGroup,
 };
-import { listColumns, phaseSubRows, phasePips, specHeadRow, specNoticeRow, specPhaseTable } from "./cells.ts";
+import { listColumns, phaseSubRows, phasePips, specHeadRow, specNoticeRow } from "./cells.ts";
 import { listRefusalLine, refusalRowTemplate, specLoadingRowTemplate } from "./notice-row.ts";
 // Re-exported for `spec-page.ts`, which draws a spec's phase pip strip
 // on its own Overview tab.
@@ -212,7 +212,7 @@ export interface SpecsPageOptions {
    *  where the page keeps the spec it holds. Only the Specs list sets it;
    *  the Jobs tab folds its rows as before. An open row on the Specs list
    *  carries no phase lines. */
-  openSpec?: { key?: string; detail?: (parts: { phases: string }) => string };
+  openSpec?: { key?: string; detail?: () => string };
   /** Whether this host can make a spec's PDF; false draws the PDF link
    *  disabled with the reason. */
   pdfAvailable?: boolean;
@@ -318,7 +318,7 @@ function groupRow(g: SpecGroup, opts: SpecsPageOptions, now: number, opened: Set
   // it already holds.
   const detail = opts.openSpec?.key === key
     ? `<tr class="specdetail" data-spec-detail="${esc(key)}"><td colspan="${columns}">` +
-      (opts.openSpec.detail?.({ phases: specPhaseTable(g, opts) }) ?? "") +
+      (opts.openSpec.detail?.() ?? "") +
       `</td></tr>`
     : "";
   const runs = opts.openSpec ? "" : phaseSubRows(g, opts, now);
