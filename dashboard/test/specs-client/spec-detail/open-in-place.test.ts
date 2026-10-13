@@ -133,7 +133,7 @@ async function openAndSettle(key: string, inner = "<p>the spec</p>"): Promise<vo
 }
 
 const unsavedIn = (key: string): void => {
-  detailRowOf(key).querySelector("td")!.insertAdjacentHTML("beforeend", `<form class="trackingform"><button id="trackingform-save" type="submit">Save</button></form>`);
+  detailRowOf(key).querySelector("td")!.insertAdjacentHTML("beforeend", `<form class="specform"><button id="specform-save" type="submit">Save</button></form>`);
 };
 const detailRowOf = (key: string) => details().find((d) => d.getAttribute("data-spec-detail") === key)!;
 

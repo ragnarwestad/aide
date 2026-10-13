@@ -312,7 +312,7 @@ describe("GET /specs/<project>/<specFolder>", () => {
     const stand = await (await fetch(`${base}${PATH}?rows=1`)).text();
     const none = reads();
     expect(stand).toContain(`data-spec-detail="aide/${SPEC}"`);
-    expect(stand).not.toContain("trackingform");
+    expect(stand).not.toContain("specform");
 
     await (await fetch(`${base}${PATH}`)).text();
     expect(reads()).toBeGreaterThan(none);

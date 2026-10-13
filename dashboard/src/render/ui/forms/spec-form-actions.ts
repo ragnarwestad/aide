@@ -30,7 +30,7 @@
   // the spec page has the Checks/document form AND the tracking form
   // above the tabs, and they save different things (spec 394).
   const bindAll = (): void => {
-    for (const prefix of ["specform", "trackingform", "settingsform"]) bind(prefix);
+    for (const prefix of ["specform", "settingsform"]) bind(prefix);
   };
   document.addEventListener("DOMContentLoaded", bindAll);
   // The Specs list draws the open spec's forms into a row after the page has

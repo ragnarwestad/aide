@@ -22,7 +22,7 @@ const LIST_PATH = "/specs";
 const DETAIL = "tr[data-spec-detail]";
 const KEY = "data-spec-detail";
 /** A Save an edit has switched on (`spec-form-actions.ts` keeps it off until then). */
-const UNSAVED = "#specform-save:not([disabled]), #trackingform-save:not([disabled])";
+const UNSAVED = "#specform-save:not([disabled])";
 const DETAIL_ROW = /<tr[^>]*\sdata-spec-detail=/;
 
 /** The press in flight, if any. */

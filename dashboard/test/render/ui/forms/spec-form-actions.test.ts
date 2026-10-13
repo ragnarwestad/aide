@@ -236,7 +236,7 @@ describe("REQ-5/REQ-10: Cancel writes nothing", () => {
 });
 
 // Spec 409, REQ-9: a third form, "settingsform", gets the exact same
-// dirty latch every `.specform`/`.trackingform` already has — nothing
+// dirty latch every `.specform` already has — nothing
 // new to prove about the mechanism itself, only that this prefix is
 // actually registered in the bind() loop.
 describe("spec 409: the settingsform prefix gets the same dirty latch", () => {
@@ -261,19 +261,19 @@ describe("spec 409: the settingsform prefix gets the same dirty latch", () => {
 });
 
 describe("a field inside the form that posts elsewhere", () => {
-  // The open row's phase table sits inside the tracking form, and its
-  // selects name the spec's run form, which is not on the page: a pick is
-  // saved the moment it is made, so it is nothing for this Save to post.
+  // A select inside the form that names another form not on the page,
+  // as a phase pick names the spec's run form: a pick is saved the moment
+  // it is made, so it is nothing for this Save to post.
   test("a phase pick leaves Save inactive; a setting of the form's own enables it", () => {
     document.body.innerHTML =
-      `<form class="trackingform" method="post">` +
+      `<form class="specform" method="post">` +
       `<select name="model.analyze" form="rowrun-aide/1-x"><option value="a">a</option><option value="b">b</option></select>` +
       `<select name="criteriaChecks"><option value="off">off</option><option value="warn">warn</option></select>` +
-      `<button id="trackingform-save" type="submit">Save</button>` +
-      `<button id="trackingform-cancel" type="button" disabled>Cancel</button>` +
+      `<button id="specform-save" type="submit">Save</button>` +
+      `<button id="specform-cancel" type="button" disabled>Cancel</button>` +
       `</form>`;
     mount();
-    const saveButton = document.getElementById("trackingform-save") as HTMLButtonElement;
+    const saveButton = document.getElementById("specform-save") as HTMLButtonElement;
     const pick = document.querySelector('select[name="model.analyze"]') as HTMLSelectElement;
     pick.value = "b";
     pick.dispatchEvent(new Event("change", { bubbles: true }));
@@ -293,13 +293,13 @@ describe("a form drawn after the page loaded (AC-4)", () => {
     mount();
     const { SPEC_DETAIL_DRAWN } = await import("../../../../src/specs-client/spec-detail/open.ts");
     document.body.innerHTML =
-      `<form class="trackingform" method="post">` +
+      `<form class="specform" method="post">` +
       `<textarea name="note" class="spec-editor-raw">old</textarea>` +
-      `<button id="trackingform-save" type="submit">Save</button>` +
-      `<button id="trackingform-cancel" type="button" disabled>Cancel</button>` +
+      `<button id="specform-save" type="submit">Save</button>` +
+      `<button id="specform-cancel" type="button" disabled>Cancel</button>` +
       `</form>`;
-    const saveButton = document.getElementById("trackingform-save") as HTMLButtonElement;
-    const cancelButton = document.getElementById("trackingform-cancel") as HTMLButtonElement;
+    const saveButton = document.getElementById("specform-save") as HTMLButtonElement;
+    const cancelButton = document.getElementById("specform-cancel") as HTMLButtonElement;
     const raw = document.querySelector(".spec-editor-raw") as HTMLTextAreaElement;
     expect(saveButton.disabled).toBe(false);
 

@@ -176,7 +176,7 @@ describe("a page with an unsaved edit warns before it is left (spec 438)", () =>
     expect(prevented).toBe(false);
   });
 
-  for (const cls of ["specform", "trackingform", "settingsform", "pageform", "scheduleform"]) {
+  for (const cls of ["specform", "settingsform", "pageform", "scheduleform"]) {
     test(`an input inside .${cls} arms the guard (AC-1/AC-2)`, () => {
       const h = harness();
       h.input(element({ classes: [cls] }));
@@ -203,9 +203,9 @@ describe("a page with an unsaved edit warns before it is left (spec 438)", () =>
 
   test("a pick on a field that posts to a form not on the page does not arm the guard", () => {
     const h = harness();
-    // The open row's phase table: inside the tracking form, saved the
-    // moment it is picked.
-    h.change({ ...element({ classes: ["trackingform"] }), getAttribute: (a: string) => (a === "form" ? "rowrun-aide/1-x" : null) } as FakeElement);
+    // As a phase pick names the spec's run form: saved the moment it is
+    // picked, so nothing this page would lose.
+    h.change({ ...element({ classes: ["specform"] }), getAttribute: (a: string) => (a === "form" ? "rowrun-aide/1-x" : null) } as FakeElement);
     expect(h.beforeunload().prevented).toBe(false);
   });
 

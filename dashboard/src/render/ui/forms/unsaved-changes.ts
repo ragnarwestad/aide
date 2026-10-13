@@ -21,7 +21,7 @@
 // transpiled source against a fake document and window.
 
 (() => {
-  const TRACKED = ".specform, .trackingform, .settingsform, .pageform, .scheduleform";
+  const TRACKED = ".specform, .settingsform, .pageform, .scheduleform";
   let dirty = false;
 
   const markDirty = (event: Event): void => {
