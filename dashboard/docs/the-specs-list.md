@@ -598,7 +598,11 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   Aide's own parts, the skill's steps and the merge into main, from the skill's `Step N of X` headings
   (`stepPlan()`) — in the row's own columns: the step's state as a badge under State/Action, from the job's log
   (`closeOrReopenSteps`, `serve/spec-views/job-marks.ts`); its time under Time, for Aide's own steps, off the run
-  log's `+Ns` stamps (counting while it runs); and a dash under Cost, since the job's cost is the row's. A tab with
+  log's `+Ns` stamps (counting while it runs); and a dash under Cost, since the job's cost is the row's. A step's
+  name starts where a spec's phase names do, and a step the log has marked unfolds with its › to its own part of
+  the job's Log, as a phase does: from its first mark until it ended, with what came between two steps given to
+  the next (`stepSlices`, `queue/parse-stream/step-marks.ts`). The unfolded steps are in `?phases=`, each as the
+  row's key and the step's place (`aide/01-x:close.0`). A tab with
   the row open hears the log grow (its key in `?open=` on `/api/queue/events`), so the lines move as the job goes.
   A reopen that has gone on to the spec's next step is the spec's again.
 - **A deploy is a row of its own on the Running tab** too, for the one project the board runs from. A job whose

@@ -116,6 +116,10 @@
      so it is 12px of nothing. The left padding stays: it is what makes
      the phase lines read as indented under the spec's own name. */
   table.list tr.subrow .phasecell { flex: 0 0 var(--phase-w); min-width: var(--phase-w); padding-right: 0; }
+  /* A Close's, Reopen's or deploy's step is named in a sentence, not a
+     word, and has no AI, model or box beside it: its name takes the room
+     up to its state and wraps there, rather than running under it. */
+  table.list tr.subrow[data-jobstep] .phasecell { flex: 1 1 0; min-width: 0; white-space: normal; }
   /* The compact button/panel toggle, the caption's AI/Model merge and
      the selects' own width un-cap all move to the two `@media` blocks at
      the end of this file (spec 488) — they are the one thing that now

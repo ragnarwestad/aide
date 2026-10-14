@@ -4,17 +4,17 @@
 // it stopped at and why.
 import type { Language } from "../../i18n";
 import { renderSentence } from "../../i18n/message.ts";
-import { stepLog, stepMarks, stepPlan, type PlannedStep, type StepMark } from "../../queue/parse-stream";
+import { stepLog, stepMarks, stepPlan, stepSlices, type LogPart, type PlannedStep, type StepMark } from "../../queue/parse-stream";
 import type { Job } from "../../queue/queue.ts";
 import { tailFileAt } from "../serve-helpers";
 import { deployPlan } from "../deploy-job/plan.ts";
 import { readRunLog } from "./job-detail.ts";
 
-export function jobMarks(job: Job, lang: Language): { marks: StepMark[]; reason?: string } {
+export function jobMarks(job: Job, lang: Language): { marks: StepMark[]; reason?: string; logs: LogPart[] } {
   // The running step's file, and once it has ended and lands, its result's.
   const result = job.results.at(-1);
   const file = job.streamFile ?? result?.streamFile;
-  if (!file) return { marks: [] };
+  if (!file) return { marks: [], logs: [] };
   const { logs } = stepLog(tailFileAt(file, Infinity), readRunLog(file), {
     tool: result?.tool,
     final: job.state !== "running",
@@ -24,14 +24,14 @@ export function jobMarks(job: Job, lang: Language): { marks: StepMark[]; reason?
   // A done job whose merge into main stopped stays done, with the landing's
   // own record (`landingError`) and the merge step marked stopped.
   const mergeStopped = job.landingError !== undefined || marks.some((m) => m.state === "failed");
-  if (!settled || (job.state === "done" && !mergeStopped)) return { marks };
+  if (!settled || (job.state === "done" && !mergeStopped)) return { marks, logs };
   // The step it stopped at: one the log says stopped, or else the last
   // one the log left running.
   const failed = marks.find((m) => m.state === "failed") ?? marks.findLast((m) => m.state === "running");
   if (failed) failed.state = "failed";
   const said = job.state === "done" ? job.landingError : (job.error ?? job.landingError);
   const reason = renderSentence(lang, said) || failed?.why;
-  return reason ? { marks, reason } : { marks };
+  return reason ? { marks, reason, logs } : { marks, logs };
 }
 
 /** One step of a Close, Reopen or deploy: its state, and for Aide's own steps
@@ -42,14 +42,18 @@ export interface CloseOrReopenStep {
   state?: StepMark["state"];
   seconds?: number;
   since?: string;
+  /** The step's own part of the job's Log (`stepSlices`), once it is marked. */
+  logs?: LogPart[];
 }
 
 /** A job's steps as its row on the Running page lists them: every step of
  *  `plan`, each in the state the job's log has it in (none yet is waiting),
  *  then any step the log marked that the plan did not name. */
 function jobSteps(job: Job, plan: PlannedStep[], lang: Language): CloseOrReopenStep[] {
-  const { marks } = jobMarks(job, lang);
+  const { marks, logs } = jobMarks(job, lang);
   const marked = new Map(marks.map((m) => [m.key, m]));
+  const slices = stepSlices(logs);
+  const own = (key: string) => (slices.has(key) ? { logs: slices.get(key)! } : {});
   const keys = new Set(plan.map((p) => p.key));
   const start = Date.parse(job.stepStartedAt ?? job.startedAt ?? "");
   const timed = (m: StepMark | undefined) => {
@@ -58,8 +62,8 @@ function jobSteps(job: Job, plan: PlannedStep[], lang: Language): CloseOrReopenS
     return m.state === "running" && Number.isFinite(start) ? { since: new Date(start + m.startedSec * 1000).toISOString() } : {};
   };
   return [
-    ...plan.map((p) => ({ key: p.key, label: p.label, state: marked.get(p.key)?.state, ...timed(marked.get(p.key)) })),
-    ...marks.filter((m) => !keys.has(m.key)).map((m) => ({ key: m.key, label: m.title, state: m.state, ...timed(m) })),
+    ...plan.map((p) => ({ key: p.key, label: p.label, state: marked.get(p.key)?.state, ...timed(marked.get(p.key)), ...own(p.key) })),
+    ...marks.filter((m) => !keys.has(m.key)).map((m) => ({ key: m.key, label: m.title, state: m.state, ...timed(m), ...own(m.key) })),
   ];
 }
 

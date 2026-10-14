@@ -24,6 +24,8 @@ import { costCell } from "../specs-list/cell-helpers.ts";
 import type { SpecsFilter } from "../specs-list";
 import { queuePath } from "../specs-list/filter-bar.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
+import { logBox } from "../specs-list/phase-messages";
+import type { LogPart } from "../../../queue/parse-stream";
 import { closeOrReopenStep, deployStep } from "../../../queue/queue.ts";
 import { jobControl, jobKey, jobMessage, jobTitle } from "./rows.ts";
 import { jobDurationMs, jobEndMs } from "./view.ts";
@@ -36,6 +38,8 @@ export interface JobStep {
   state?: ProgressStepState;
   seconds?: number;
   since?: string;
+  /** The step's own part of the job's Log, once it is marked. */
+  logs?: LogPart[];
 }
 
 export interface JobRowOptions {
@@ -118,17 +122,37 @@ function stepTime(s: JobStep, now: number): string {
   return "–";
 }
 
-/** A Close's, Reopen's or deploy's steps, a line each in the row's columns, while the row is open. */
+/** A Close's, Reopen's or deploy's steps, a line each in the row's columns, while the row is open.
+ *  The name starts where a spec's phase names do. A step its log has marked
+ *  unfolds to its own part of the log, as a phase does: the unfolded steps
+ *  are in the address (`phases`), each as the row's key and the step's place. */
 function stepLines(row: QueueRowView, o: JobRowOptions): string {
   const step = closeOrReopenStep(row) ?? deployStep(row);
+  const unfolded = (o.filter.phases ?? "").split(",").filter(Boolean);
   return (step ? (o.steps?.(row.id, step) ?? []) : [])
-    .map(
-      (s) =>
-        `<tr class="subrow" data-step="${esc(s.key)}"><td></td><td class="phasecell" colspan="2">${esc(s.label)}</td>` +
+    .map((s, i) => {
+      const key = `${jobKey(row)}.${i}`;
+      const open = unfolded.includes(key);
+      const next = open ? unfolded.filter((k) => k !== key) : [...unfolded, key];
+      const arrow = s.logs?.length
+        ? foldArrow({
+            href: queuePath(o.filter, { phases: next.join(",") }, o.listPath),
+            open,
+            lang: o.lang,
+            title: "list.phaseFoldTitle",
+            params: { phase: s.label },
+          })
+        : "";
+      return (
+        `<tr class="subrow" data-step="${esc(s.key)}" data-jobstep="1"><td class="phasecell" colspan="3">${arrow}${esc(s.label)}</td>` +
         `<td data-col="state">${stepState(s.state, o.lang)}</td>` +
         `<td data-col="started">${stepTime(s, o.now)}</td>` +
-        `<td class="num" data-col="cost">–</td></tr>`,
-    )
+        `<td class="num" data-col="cost">–</td></tr>` +
+        (open && s.logs?.length
+          ? `<tr class="phasemsgs" data-msgs="${esc(s.key)}"><td colspan="${LIST_COLUMNS}">${logBox(s.logs, undefined, o.lang)}</td></tr>`
+          : "")
+      );
+    })
     .join("");
 }
 

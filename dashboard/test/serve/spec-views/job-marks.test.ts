@@ -88,7 +88,7 @@ describe("jobMarks", () => {
   });
 
   test("a queued job with no stream file has no marks (AC-4)", () => {
-    expect(jobMarks(job({ state: "queued" }), "en")).toEqual({ marks: [] });
+    expect(jobMarks(job({ state: "queued" }), "en")).toEqual({ marks: [], logs: [] });
   });
 });
 
@@ -123,6 +123,21 @@ describe("closeOrReopenSteps", () => {
     expect(of("Step Aide: preparing")?.seconds).toBe(1);
     expect(of("Step Aide: tests and commit")).toMatchObject({ state: "running", since: "2026-10-03T10:00:03.000Z" });
     expect(of("Step 1 of 4")?.seconds).toBeUndefined();
+  });
+});
+
+describe("a step's own log", () => {
+  test("a marked step carries its part of the job's Log, a waiting one none", () => {
+    const file = step(
+      [said("--- Step 1 of 4: Run the mechanical script — started"), said("moved the folder")],
+      ["--- Step Aide: preparing — started", "pulled main", "--- Step Aide: preparing — done", "model turn started (transcript at byte 0)"],
+    );
+    const got = closeOrReopenSteps(job({ streamFile: file }), "close", "en");
+    const text = (key: string) => (got.find((s) => s.key === key)?.logs ?? []).flatMap((p) => p.lines).join("\n");
+    expect(text("Step Aide: preparing")).toContain("pulled main");
+    expect(text("Step Aide: preparing")).not.toContain("moved the folder");
+    expect(text("Step 1 of 4")).toContain("moved the folder");
+    expect(got.find((s) => s.state === undefined)?.logs).toBeUndefined();
   });
 });
 

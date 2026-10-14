@@ -79,3 +79,57 @@ export function stepMarks(logs: LogPart[]): StepMark[] {
   }
   return [...byKey.values()];
 }
+
+/** The step a line marks and whether the mark ends it, or undefined for any other line. */
+function markOf(line: string): { key: string; ends: boolean } | undefined {
+  const match = MARK.exec(unescape(line).replace(PREFIX, ""));
+  return match ? { key: stepKey(match[1]!, match[2]!), ends: match[3] !== "started" } : undefined;
+}
+
+/** A step's Log cut at its marks: each marked step's own part of it, by the
+ *  key `stepMarks` gives it. A step holds what came from its first mark until
+ *  it ended; what came between one step's end and the next step's first mark,
+ *  or before any mark, belongs to that next step, and what came after the
+ *  last step ended, to that last step. A subagent's work stays whole. */
+export function stepSlices(logs: LogPart[]): Map<string, LogPart[]> {
+  const slices = new Map<string, LogPart[]>();
+  let current: string | undefined;
+  let last: string | undefined;
+  let waiting: LogPart[] = [];
+  const put = (part: LogPart): void => {
+    if (current === undefined) waiting.push(part);
+    else slices.get(current)!.push(part);
+  };
+  const enter = (key: string): void => {
+    if (!slices.has(key)) slices.set(key, []);
+    slices.get(key)!.push(...waiting);
+    waiting = [];
+    current = last = key;
+  };
+  for (const part of logs) {
+    if (part.by === "subagent") {
+      put(part);
+      continue;
+    }
+    let lines: string[] = [];
+    const flush = (): void => {
+      if (lines.length) put({ by: part.by, lines });
+      lines = [];
+    };
+    for (const line of part.lines) {
+      const mark = markOf(line);
+      if (mark && mark.key !== current) {
+        flush();
+        enter(mark.key);
+      }
+      lines.push(line);
+      if (mark?.ends) {
+        flush();
+        current = undefined;
+      }
+    }
+    flush();
+  }
+  if (waiting.length && last !== undefined) slices.get(last)!.push(...waiting);
+  return slices;
+}

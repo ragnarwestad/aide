@@ -6,7 +6,7 @@
 import { foldArrow, stepLabel } from "../../../ui/components";
 import { esc } from "../../../ui/html.ts";
 import { withModelId } from "../../../ui/components/model-label.ts";
-import { t } from "../../../../i18n";
+import { t, type Language } from "../../../../i18n";
 import { specTabPath } from "../../spec-page";
 import type { Phase, SpecGroup } from "../data-model";
 import { queuePath } from "../filter-bar.ts";
@@ -90,17 +90,19 @@ export function phaseMessagesRow(
   const modelLine = modelId ? `<p class="muted small" data-model-id>${esc(t(lang, "list.phaseModel", { model: ranOn ?? "" }))}</p>` : "";
   const body = modelLine + (!found
     ? `<p class="phasemsgempty muted">${esc(t(lang, "list.phaseNoneKept"))}</p>`
-    : drawnParts(found.logs, found.aiModel, lang).length === 0
-      ? `<p class="phasemsgempty muted">${esc(t(lang, "list.phaseNoMessages"))}</p>`
-      : // The box opens at its end, where the last thing the phase did is.
-        `<div class="logbox"><ul class="phasemsglist">${drawnParts(found.logs, found.aiModel, lang)
-          .map(
-            (part) =>
-              `<li class="muted">— ${esc(part.writer)} —</li>` + part.lines.map((m) => `<li>${m}</li>`).join(""),
-          )
-          .join("")}</ul></div>`);
+    : logBox(found.logs, found.aiModel, lang));
   return {
     tag: `<tr class="phasemsgs" data-msgs="${esc(p.step)}">`,
     cells: `<td colspan="${LIST_COLUMNS}">${body}<a class="phasemsgopen" href="${href}">${esc(t(lang, "list.phaseOpenLog"))}</a></td>`,
   };
+}
+
+/** A step's Log in its box, part by part, or a line saying it has none. The
+ *  box opens at its end, where the last thing the step did is. */
+export function logBox(logs: LogPart[], aiModel: string | undefined, lang: Language): string {
+  const parts = drawnParts(logs, aiModel, lang);
+  if (parts.length === 0) return `<p class="phasemsgempty muted">${esc(t(lang, "list.phaseNoMessages"))}</p>`;
+  return `<div class="logbox"><ul class="phasemsglist">${parts
+    .map((part) => `<li class="muted">— ${esc(part.writer)} —</li>` + part.lines.map((m) => `<li>${m}</li>`).join(""))
+    .join("")}</ul></div>`;
 }

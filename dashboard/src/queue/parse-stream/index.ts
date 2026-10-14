@@ -17,5 +17,5 @@ export {
 } from "./entries.ts";
 export { endWithFinalMessage, finalMessage, linesWithFinalMessage } from "./final-message.ts";
 export { stepLog, type LogPart, type SubagentPart, type TextPart } from "./step-log.ts";
-export { stepMarks, type StepMark } from "./step-marks.ts";
+export { stepMarks, stepSlices, type StepMark } from "./step-marks.ts";
 export { AIDE_PARTS, NO_MODEL_TURN, stepPlan, type PlannedStep } from "./step-plan.ts";
