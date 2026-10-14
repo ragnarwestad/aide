@@ -3,12 +3,13 @@
 // never speaks for its spec on either page.
 
 import { describe, expect, test } from "bun:test";
+import type { JobLike } from "../../../../src/render/pages/jobs-page/rows.ts";
 import { listedSpecJobs } from "../../../../src/serve/routes/page-routes/spec-row-options.ts";
 
 const ctx = { allowed: new Set(["aide"]) };
-const job = (id: string, steps: string[], state: string, createdAt: string) => ({
+const job = (id: string, steps: string[], state: JobLike["state"], createdAt: string): JobLike => ({
   id, project: "aide", specFolder: "01-x", steps, stepIndex: 0, state, createdAt,
-}) as const;
+});
 
 describe("listedSpecJobs", () => {
   const analyze = job("a", ["analyze", "implement"], "cancelled", "2026-10-14T19:47:00Z");
