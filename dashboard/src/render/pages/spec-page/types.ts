@@ -146,14 +146,6 @@ export interface SpecPageView {
    *  drawn per request). Absent for a file git has never committed,
    *  which is not a mismatch. */
   formBaseSha?: string;
-  /** Why the spec's last round ended, when a Reopen or a Close failed
-   *  (`failedRoundSentence`) — read from the spec's own state. */
-  error?: string;
-  /** Why the spec's analyze stopped on files another open spec
-   *  changes (`sharedFilesSentence`) — read from the spec's own record,
-   *  with the job or without it, and drawn as a waiting line, not an
-   *  error. */
-  warning?: string;
   /** Where the "Start board" form posts (spec 388). Absent means no
    *  control is drawn at all — the round is unavailable on this host, or
    *  this spec's own code branch carries no commits (REQ-1). */

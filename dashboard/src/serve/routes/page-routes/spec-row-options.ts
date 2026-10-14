@@ -3,8 +3,9 @@
 // take these options from here and add what is their own.
 
 import type { Language } from "../../../i18n";
-import { isDeployJob } from "../../../queue/queue.ts";
-import type { SpecsPageOptions } from "../../../render";
+import { closeOrReopenStep, isDeployJob } from "../../../queue/queue.ts";
+import { jobsShown, type SpecsPageOptions } from "../../../render";
+import type { JobLike } from "../../../render/pages/jobs-page/rows.ts";
 import { openOverlappingSpecs } from "../../../project/overlapping-specs.ts";
 import { modelChoiceOptions } from "../../serve-helpers";
 import { closeOrReopenSteps, deploySteps } from "../../spec-views/job-marks.ts";
@@ -61,10 +62,13 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
 
 /** The jobs a spec's row is drawn from, on the Specs list and the Jobs tab
  *  alike: those of a project the queue may run that are neither a scheduled job
- *  nor a deploy (no spec folder). */
-export function listedSpecJobs<J extends { project: string; specFolder: string; steps: readonly string[] }>(
-  ctx: Pick<RoutesContext, "allowed">,
-  jobs: J[],
-): J[] {
-  return jobs.filter((j) => ctx.allowed.has(j.project) && !j.specFolder.startsWith("schedule-") && !isDeployJob(j));
+ *  nor a deploy (no spec folder), nor a Close or Reopen the Jobs tab draws as a
+ *  row of its own, so such a job never speaks for its spec on either page. */
+export function listedSpecJobs<J extends JobLike>(ctx: Pick<RoutesContext, "allowed">, jobs: J[]): J[] {
+  const own = new Set(
+    jobsShown(jobs, { scheduleEntryExists: () => false }).filter((j) => closeOrReopenStep(j)).map((j) => j.id),
+  );
+  return jobs.filter(
+    (j) => ctx.allowed.has(j.project) && !j.specFolder.startsWith("schedule-") && !isDeployJob(j) && !own.has(j.id),
+  );
 }

@@ -7,12 +7,10 @@ import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from
 import { pullFastForward, saveSpecFiles } from "../../../git/specs-pull.ts";
 import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
 import { criteriaChecksIn, dependsOnIn, specFileText, withDependsOnLine } from "../../../project/discover";
-import { openOverlappingSpecs } from "../../../project/overlapping-specs.ts";
 import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, listViewIn, renderSpecDetail, renderSpecGroupRows, renderSpecPageFailedRest, renderSpecsPageHead, renderSpecsPageRest, renderSpecStepsFollowParts, resolveSpecTab, specTabPath } from "../../../render";
 import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, languageChoice, logRefusal, readBounded, streamedPage } from "../../serve-helpers";
 import { listHeaders, specsListParts, specsRowsAnswer } from "../page-routes/specs-list-view.ts";
 
-import { failedRoundSentence, sharedFilesSentence } from "../../../render/ui/job-state";
 import { stepsOfRound } from "../../spec-views/work-round.ts";
 import type { Language } from "../../../i18n";
 import type { RoutesContext } from "..";
@@ -23,11 +21,8 @@ type SpecView = NonNullable<Awaited<ReturnType<RoutesContext["specPageView"]>>>;
  *  the streamed page and the answer for a row opened in place get both from,
  *  so the two cannot draw the spec differently. */
 function specInRow(
-  ctx: RoutesContext,
   view: SpecView,
   o: {
-    project: string;
-    specFolder: string;
     lang: Language;
     tab: ReturnType<typeof resolveSpecTab>;
     step?: string;
@@ -35,19 +30,15 @@ function specInRow(
     listView: ReturnType<typeof listViewIn>;
   },
 ): { detail: () => string; scriptSrc: string | undefined } {
-  const detail = (): string => renderSpecDetail(
-    {
-      ...view,
-      error: failedRoundSentence(view.lead, o.lang),
-      warning: sharedFilesSentence(
-        view.lead,
-        view.phases?.find((p) => p.step === "analyze")?.history.stopped,
-        () => openOverlappingSpecs(ctx.specDir(o.project, o.specFolder), (folder) => ctx.specRef(o.project, folder)),
-        o.lang,
-      ),
-    },
-    { tab: o.tab, step: o.step, steptab: o.steptab, lang: o.lang, view: o.listView },
-  );
+  // What went wrong, or what the spec waits on, is the row's own notice above
+  // the detail (`specNoticeRow`); the detail does not say it a second time.
+  const detail = (): string => renderSpecDetail(view, {
+    tab: o.tab,
+    step: o.step,
+    steptab: o.steptab,
+    lang: o.lang,
+    view: o.listView,
+  });
   // REQ-1/REQ-4/REQ-5 (spec 315, extended by spec 333): a src= reference to
   // whichever bundle's own route this tab's panel actually mounts
   // (`documentTabScript`, the same predicate `panels.ts` uses to decide what
@@ -178,9 +169,7 @@ export async function specPageRoutes(
     if (url.searchParams.get("rows")) return specsRowsAnswer(parts, url);
     const lang = parts.view.lang ?? "en";
     const inRow = (view: SpecView) =>
-      specInRow(ctx, view, {
-        project: project!,
-        specFolder: specFolder!,
+      specInRow(view, {
         lang,
         tab,
         step: url.searchParams.get("step") ?? undefined,

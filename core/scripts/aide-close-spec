@@ -150,9 +150,9 @@ case "$spec_folder" in
 esac
 
 # --- the conflict check ---------------------------------------------------
-# Same check aide-archive-spec makes: aide-run-spec's own
-# update_branch_to_base leaves MERGE_HEAD set for a close step rather
-# than aborting, so this can be running in a worktree that is mid-merge.
+# Same check aide-archive-spec makes: a checkout a person left mid-merge
+# is not one to stamp and move a folder in. aide-run-spec itself aborts a
+# conflicting catch-up for a close, and skips the code branch's.
 check_dirs=("$project_dir")
 [ -n "$specs_dir" ] && [ -d "$specs_dir" ] && check_dirs+=("$specs_dir")
 for dir in "${check_dirs[@]}"; do

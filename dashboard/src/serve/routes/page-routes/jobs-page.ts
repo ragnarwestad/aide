@@ -2,7 +2,6 @@
 // `handlePageRoutes` asks in turn, and answers `null` for a path that is not
 // its own.
 import { ACTIVE_FILTER_KEY, jobsShown, renderJobsPage, renderJobsRows, renderJobsSpecRows } from "../../../render";
-import { closeOrReopenStep, deployStep } from "../../../queue/queue.ts";
 import { jobsViewChoice, languageChoice, specsClientScript } from "../../serve-helpers";
 import { listedSpecJobs, specRowOptions } from "./spec-row-options.ts";
 import type { RoutesContext } from "..";
@@ -39,10 +38,8 @@ export async function jobsPage(
   const shown = jobsShown(jobs, {
     scheduleEntryExists: (project, name) => ctx.scheduleStore.list(project).some((e) => e.name === name),
   });
-  // The jobs a spec's row is drawn from, as the Specs list draws it, less a
-  // Close, Reopen or deploy that is a row of its own.
-  const own = new Set(shown.filter((j) => closeOrReopenStep(j) || deployStep(j)).map((j) => j.id));
-  const specJobs = listedSpecJobs(ctx, jobs).filter((j) => !own.has(j.id));
+  // The jobs a spec's row is drawn from, as the Specs list draws it.
+  const specJobs = listedSpecJobs(ctx, jobs);
   const built = new Map(
     (await Promise.all([...new Set([...specJobs, ...shown])].map(ctx.jobRow))).map((r) => [r.id, r]),
   );

@@ -194,8 +194,7 @@ underneath; which phase a press would run is on the Running tab's button, which 
 An analyze stopped on its acceptance criteria reads Stopped, and its notice line is amber, naming each fault the
 plan review found. Its phase counts as not done, even on a spec analyzed before, so the Running tab's button offers Analyze again.
 
-An analyze stopped on files another open spec also changes reads Stopped too, and its notice line, like the spec
-page's waiting line, names each spec that is still open by number and title, with the files it shares. The names are
+An analyze stopped on files another open spec also changes reads Stopped too, and its notice line names each spec that is still open by number and title, with the files it shares. The names are
 read from the `### Overlapping specs` record in the spec's own analysis each time the row is drawn, so the line is the
 same with the stopped job in the queue and without it. A spec archived since is left out; when every one is, the line
 says so and that pressing Analyze goes on, and asks for nothing in Depends on. Its phase counts as not done, so the
@@ -593,8 +592,9 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   534-…"), its key is `<project>/<spec>:<step>` so it never folds with the spec's own row, and it has no links under
   its title; when it fails or stops, a line under its state says why and ends with a Log link. It offers no Stop or
   Cancel: stopped part-way, the job would leave the spec between its two
-  places. The spec's own row is left as it is: an archived or closed spec gets no row on the tab for it, and a live
-  spec's row keeps its four phases and its own badge. The open job row has a line per step the job will run —
+  places. The spec's own row is left as it is, on this tab and on the Specs list alike (`listedSpecJobs`,
+  `serve/routes/page-routes/spec-row-options.ts`): an archived or closed spec gets no row on the tab for it, and a
+  live spec's row keeps its four phases, its own badge and its own notice. The open job row has a line per step the job will run —
   Aide's own parts, the skill's steps and the merge into main, from the skill's `Step N of X` headings
   (`stepPlan()`) — in the row's own columns: the step's state as a badge under State/Action, from the job's log
   (`closeOrReopenSteps`, `serve/spec-views/job-marks.ts`); its time under Time, for Aide's own steps, off the run

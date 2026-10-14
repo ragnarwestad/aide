@@ -300,6 +300,13 @@ open_merge_count=0
 base_merged_count=0
 update_branch_to_base() {
   local wt="$1" ref="$2" root="$3" conflicted="" rel="" expected1="" expected2=""
+  # A close deletes the code branch unmerged, so it has nothing to catch
+  # up on there, and a conflict in it must not stop the close. Where the
+  # specs live in the project, the one branch holds the folder the close
+  # moves, and is brought up as any other.
+  if [ "$command_name" = "close" ] && [ -n "$specs_repo" ] && [ "$root" != "$specs_repo" ]; then
+    return 0
+  fi
   git -C "$wt" merge -q --ff-only "$ref" 2>/dev/null && return 0
   [ "$root" != "$project_root" ] || base_merged_count=$((base_merged_count + 1))
   if ! git -C "$wt" merge -q --no-edit "$ref" >/dev/null 2>&1; then

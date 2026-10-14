@@ -47,7 +47,8 @@ describe("a stop on shared files names the specs its analysis recorded", () => {
     expect(list).not.toContain("99-the-jobs-own");
     expect(list).not.toContain("83-archived-since");
     const page = await pageOf(base);
-    expect(page).toContain(`${OTHER}: src/shared.ts`);
+    // Once: the row's own notice says it, and the spec open under it does not repeat it.
+    expect(page.split(`${OTHER}: src/shared.ts`).length - 1).toBe(1);
     expect(page).not.toContain("99-the-jobs-own");
   }, 8_000);
 

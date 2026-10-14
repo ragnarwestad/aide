@@ -114,6 +114,8 @@ A spec's branch is brought up to date with the default branch before a step's ow
 treats a conflict there as a user's problem: the merge is aborted and the run refuses on the spot with
 `errorReason: "conflict"`. `archive` is the exception, because
 `archive` is the step that LANDS the branch — a merge that fails is the merging step's problem, not a phase of its own.
+A `close` skips the code repository's branch altogether, since it deletes that branch unmerged; where the specs
+live in the project, the one branch holds the folder the close moves and is brought up as for any other step.
 
 So `core/scripts/aide-run-spec` hands `archive`, and only `archive`, the worktree with the merge still open:
 `MERGE_HEAD` set, the markers in the files. One conflict it settles itself first — a conflict confined to this

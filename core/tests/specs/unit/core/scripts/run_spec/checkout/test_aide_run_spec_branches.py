@@ -524,6 +524,27 @@ def test_a_branch_that_cannot_be_updated_refuses_rather_than_running(runner, wor
     # And the tree is left clean, not mid-merge.
     assert git(project, "status", "--porcelain") == ""
 
+def test_a_close_is_not_stopped_by_a_code_branch_that_conflicts_with_main(runner, workspace, fake_claude):
+    """A close throws the code branch away unmerged, so a conflict between
+    that branch and main is nothing it has to settle. Refusing on it left
+    exactly the spec that had to be closed impossible to close."""
+    project = workspace["project"]
+    branch = "aide/81-queue-and-runner"
+    git(project, "switch", "-q", "-c", branch)
+    (project / "contested.txt").write_text("the branch's version\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "branch side")
+    git(project, "switch", "-q", "main")
+    (project / "contested.txt").write_text("main's version\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "main side")
+
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="close", reason="the idea does not hold")
+    assert rc == 0, out
+    assert out["terminalReason"] == "closed", out
+    assert git(project, "status", "--porcelain") == ""
+
 def test_a_branch_already_landed_on_origin_is_not_reused(
     runner, workspace, fake_claude, fetchable_origin
 ):

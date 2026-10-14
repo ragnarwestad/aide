@@ -151,8 +151,6 @@ export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}):
     (tab === "steps" && lead
       ? followMarker(lead, { tab, step: opts.step, runningIndex: runningIndexOf(view) })
       : "") +
-    (view.error ? rowMessage("failed", view.error, { tag: "p" }) : "") +
-    (view.warning ? rowMessage("waiting", view.warning, { tag: "p" }) : "") +
     // Where the page script writes what a press on this page answered:
     // Update, Save, the banner, the Status tab's tick, Stop test server.
     messageSlot("refused", "failed", { id: SPEC_REFUSED_LINE }) +

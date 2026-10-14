@@ -1,8 +1,7 @@
 // What a Close's, Reopen's or deploy's line on the Running page lists: the steps the
 // job's step log has marked (`stepMarks`), and for a job that ended any
 // other way than done, or done with its merge into main stopped, the step
-// it stopped at and why — the sentence the spec page itself gives
-// (`failedRoundSentence`).
+// it stopped at and why.
 import type { Language } from "../../i18n";
 import { renderSentence } from "../../i18n/message.ts";
 import { stepLog, stepMarks, stepPlan, type PlannedStep, type StepMark } from "../../queue/parse-stream";
