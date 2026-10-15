@@ -385,3 +385,7 @@
    is a fixed width measured for the word, and "Implementing" with an icon
    in front of it does not fit. */
 @media (max-width: 40rem) { .badge[data-icon]::before { content: none; } }
+
+/* The open row's four settings one under the other on a phone: two side by
+   side are wider than the screen. */
+@media (max-width: 40rem) { .dependsform .options-group { grid-template-columns: max-content; } }
