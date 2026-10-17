@@ -7,9 +7,10 @@ the templates). It runs analyze and implement there through the runner of the Ai
 model and effort it is given per step and that commit's skills, then measures the run: the plan review's counts,
 whether every acceptance criterion has a place for its test, whether the suite is green and in how many rounds, how
 many of the original spec's tests pass against the new code, a judge's score of the new plan against the original,
-and time, tokens and cost per step. Without --implement only analyze runs. A row also says how many of the files the
-original landing changed the new analysis named. One table with a row per spec and the totals goes to a
-results folder.
+and time, tokens and cost per step. Without --implement only analyze runs; with --skip-analyze in place of
+--analyze, implement runs on the description alone, with the analysis and the plan as the templates left them, and
+no plan is judged. A row also says how many of the files the original landing changed the new analysis named. One
+table with a row per spec and the totals goes to a results folder.
 
 Nothing is written to the board's queue, to the real specs repository or to any origin, and the copies are removed
 when the run ends. The script is run by hand; it is no part of any test suite and does not run on the board.
@@ -25,6 +26,8 @@ Usage:
       [--code ~/.aide/dashboard/checkouts/<project>/code]
       [--specs-root ~/.aide/dashboard/checkouts/<project>/specs/<project>]
       [--aide-repo <the repository this script sits in>] [--results ~/.aide/replays]
+  python3 scripts/replay_specs --project aide --specs 590,601 --aide-commit 4e8a481a \\
+      --skip-analyze --implement claude sonnet
 
 A step is `TOOL MODEL [EFFORT]`, the tool one of claude, codex, opencode and fake-claude. --advisor gives every claude
 step that model as its advisor, through `advisorModel` in the step's Claude config folder.
@@ -61,7 +64,8 @@ def parse(argv):
     ap.add_argument("--project", default="aide")
     ap.add_argument("--specs", required=True, help="comma-separated spec numbers or folder names")
     ap.add_argument("--aide-commit", required=True)
-    ap.add_argument("--analyze", nargs="+", required=True, metavar="TOOL MODEL [EFFORT]")
+    ap.add_argument("--analyze", nargs="+", metavar="TOOL MODEL [EFFORT]")
+    ap.add_argument("--skip-analyze", action="store_true", help="implement runs on the description alone; needs --implement")
     ap.add_argument("--implement", nargs="+", metavar="TOOL MODEL [EFFORT]", help="left out, only analyze runs")
     ap.add_argument("--judge", default="opus", help="the Claude model that scores the new plan")
     ap.add_argument("--advisor", help="the model every claude step consults as its advisor")
@@ -81,7 +85,7 @@ def inside(path, repo):
     return path == repo or path.startswith(repo + os.sep)
 
 
-def check_inputs(args: argparse.Namespace, analyze: steps.Step, implement: Optional[steps.Step]) -> None:
+def check_inputs(args: argparse.Namespace, analyze: Optional[steps.Step], implement: Optional[steps.Step]) -> None:
     """Everything that can be refused before anything is copied."""
     if "claude" in {s.tool for s in (analyze, implement) if s} and not (os.environ.get("CLAUDE_CODE_OAUTH_TOKEN") or os.environ.get("ANTHROPIC_API_KEY")):
         raise Refusal("a step names claude, and a fresh Claude config folder has no login: run `claude setup-token` once and "
@@ -97,7 +101,7 @@ def check_inputs(args: argparse.Namespace, analyze: steps.Step, implement: Optio
             raise Refusal(f"the results folder {args.results} lies inside the {what} repository {top}")
 
 
-def prepare(args: argparse.Namespace, analyze: steps.Step, implement: Optional[steps.Step], tmp: Path):
+def prepare(args: argparse.Namespace, analyze: Optional[steps.Step], implement: Optional[steps.Step], tmp: Path):
     """The export, the tools' configuration folders and the run's folders; Refusal when the commit cannot be replayed with."""
     core, sha = copies.export_aide(args.aide_repo, args.aide_commit, tmp)
     home, configured = os.path.expanduser("~"), {}
@@ -125,7 +129,8 @@ def header(sha, run):
     parts = [f"Aide {sha[:8]}", *(f"{name} {s.tool} {s.model}" + (f" {s.effort}" if s.effort else "")
                                   for name, s in (("analyze", run.analyze), ("implement", run.implement)) if s),
              *([f"advisor {run.advisor}"] if run.advisor else []),
-             *([] if run.implement else ["analyze only"]), f"judge claude {run.judge_model}"]
+             *([] if run.implement else ["analyze only"]),
+             *([f"judge claude {run.judge_model}"] if run.analyze else ["no analyze"])]
     if "opencode" in {s.tool for s in (run.analyze, run.implement) if s}:
         parts.append("opencode reads its global AGENTS.md from the installed one")
     return " · ".join(parts)
@@ -146,7 +151,13 @@ def main(argv=None):
     handlers = {s: signal.signal(s, stop) for s in (signal.SIGINT, signal.SIGTERM)}
     tmp = None
     try:
-        analyze = step_argument(args.analyze, "--analyze")
+        if args.skip_analyze and args.analyze:
+            raise Refusal("--skip-analyze runs implement on the description alone, and --analyze names an analyze to run: give one of them")
+        if args.skip_analyze and not args.implement:
+            raise Refusal("--skip-analyze needs --implement: with analyze skipped, implement is the step that runs")
+        if not args.skip_analyze and not args.analyze:
+            raise Refusal("--analyze is needed, or --skip-analyze with --implement")
+        analyze = step_argument(args.analyze, "--analyze") if args.analyze else None
         implement = step_argument(args.implement, "--implement") if args.implement else None
         check_inputs(args, analyze, implement)
         tmp = Path(os.path.realpath(tempfile.mkdtemp(prefix="replay-specs-", dir=os.environ.get("TMPDIR") or None)))

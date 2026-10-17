@@ -39,7 +39,7 @@ class Run:
     core: Path
     tmp: Path
     out: Path
-    analyze: Step
+    analyze: Optional[Step]  # None: analyze is skipped, and implement runs on the description alone
     implement: Optional[Step]
     judge_model: str
     advisor: Optional[str]
@@ -167,6 +167,10 @@ def original_tests(run, folder, found, code_dir, work):
 
 
 def replay_steps(run, row, folder, archived, found, code_dir, specs_repo, specs_dir, work):
+    if run.analyze is None:
+        row.notes += ("analyze skipped",)
+        replay_implement(run, row, folder, found, code_dir, specs_dir, work)
+        return
     out = run.out / folder
     description = (Path(archived) / "1-description.md").read_text()
     first = run_step(run, "analyze", run.analyze, folder, code_dir, specs_dir, out)
@@ -187,10 +191,12 @@ def replay_steps(run, row, folder, archived, found, code_dir, specs_repo, specs_
     verdict = judge.ask(run.judge_model, description, original, plan, str(run.tmp))
     row.judge = verdict.score if verdict.score else "no score"
     row.reasons, row.judging = verdict.reasons, verdict.stats
-    if not run.implement:
-        return
+    if run.implement:
+        replay_implement(run, row, folder, found, code_dir, specs_dir, work)
 
-    second = run_step(run, "implement", run.implement, folder, code_dir, specs_dir, out)
+
+def replay_implement(run, row, folder, found, code_dir, specs_dir, work):
+    second = run_step(run, "implement", run.implement, folder, code_dir, specs_dir, run.out / folder)
     row.implement = stats_of(run.implement, second)
     row.green = measure.implement_green(second.result or {})
     row.rounds = measure.implement_rounds(Path(second.log).read_text(errors="replace"))

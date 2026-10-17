@@ -273,3 +273,29 @@ def test_the_row_says_how_many_of_the_files_the_landing_changed_the_analysis_nam
 
     (row,) = table(results_text(world))[:1]
     assert row["Files found"] == "1/2 (+1 not changed)"
+
+
+def test_with_analyze_skipped_implement_builds_from_the_description_alone_and_no_plan_is_judged(world, replay_main):
+    assert replay_main(world.argv("4-replayed", analyze=None, extra=("--skip-analyze",))) == 0
+
+    assert world.record("analyze", "args") is None
+    assert args_of(world, "implement")["--command"] == "implement"
+    solution = world.record("implement", "solution")
+    assert "NEW-PLAN-MARKER" not in solution and "ORIGINAL-PLAN-MARKER" not in solution
+    assert world.record("judge", "prompt") is None and not (world.standin / "judge-prompt").exists()
+    (row,) = table(results_text(world))[:1]
+    assert row["Judge"] == "–" and "analyze skipped" in row["Note"]
+    assert "no analyze" in results_text(world).splitlines()[0]
+
+
+def test_skipping_analyze_with_no_implement_is_refused_before_anything_is_copied(world, replay_main, capsys):
+    refused(world, capsys, replay_main, world.argv("4-replayed", analyze=None, implement=None, extra=("--skip-analyze",)),
+            "--skip-analyze")
+
+
+def test_skipping_analyze_and_naming_one_is_refused_before_anything_is_copied(world, replay_main, capsys):
+    refused(world, capsys, replay_main, world.argv("4-replayed", extra=("--skip-analyze",)), "--skip-analyze")
+
+
+def test_no_analyze_and_no_skip_is_refused_before_anything_is_copied(world, replay_main, capsys):
+    refused(world, capsys, replay_main, world.argv("4-replayed", analyze=None), "--analyze")

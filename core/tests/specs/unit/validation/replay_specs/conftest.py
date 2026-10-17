@@ -267,7 +267,7 @@ def world(tmp_path, monkeypatch, standin, aide_repo):
 
     def argv(*specs, analyze=("claude", "opus", "high"), implement=("claude", "sonnet"), commit_=None, extra=()):
         return ["--project", "proj", "--specs", ",".join(specs), "--aide-commit", commit_ or aide_repo.new,
-                "--analyze", *analyze, *(["--implement", *implement] if implement else []), "--judge", "opus", "--code", str(code),
+                *(["--analyze", *analyze] if analyze else []), *(["--implement", *implement] if implement else []), "--judge", "opus", "--code", str(code),
                 "--specs-root", str(specs_root), "--aide-repo", str(aide_repo.path), "--results", str(results), *extra]
 
     def record(step, name):
