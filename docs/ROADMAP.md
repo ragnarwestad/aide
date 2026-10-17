@@ -24,6 +24,7 @@
   - [18. A run that reaches only its own repository](#18-a-run-that-reaches-only-its-own-repository)
   - [19. Shorter command output for a run](#19-shorter-command-output-for-a-run)
   - [20. A spec's states, separate from its run's](#20-a-specs-states-separate-from-its-runs)
+  - [21. Named profiles for the AI and the step settings](#21-named-profiles-for-the-ai-and-the-step-settings)
 
 ---
 
@@ -39,7 +40,7 @@ An idea that becomes a spec names it, and leaves this page once the spec is arch
 
 Each idea has a number that stays with it. A new idea gets the next number after the highest one ever given, and
 the number of an idea taken off the page is never used again, so a number can be referred to and still mean the
-same idea later. The next number is 21.
+same idea later. The next number is 22.
 
 ## To consider
 
@@ -313,3 +314,28 @@ Open question: where a step the user cancelled belongs.
   the board stopped it.
 - **b. Idle.** Nothing needs fixing and the spec stands where it stood before the step, at the cost of a cancelled
   spec looking the same as one never started.
+
+### 21. Named profiles for the AI and the step settings
+
+From the user's wish to save choices once instead of setting them phase by phase. Today there is one table of
+models per step, under Settings → AI, and a spec can change the model of any of its phases. A profile is a named
+set of those choices, such as "Standard", "Cheap" or "Thorough", saved once and chosen for a project or a single
+spec.
+
+What a profile could hold:
+
+- **The AI and model for each step:** the table Settings → AI has today, which becomes the profile "Standard".
+- **The step settings:** acceptance ticking, AI formulation, criteria checks and choosing an approach, and the ones
+  fixed in code today: whether the review runs, how many rounds red tests get, and the time limit. A "Quick"
+  profile could then run Sonnet without plan review or code review, and a "Thorough" one Opus with every check on.
+
+Open questions:
+
+- Whether a profile is chosen per project, per spec, or both, with the spec's own choice winning.
+- Whether profiles by field (frontend, backend, cloud, AI, embedded) are worth having. As instructions they add
+  little to what a project's own CLAUDE.md, AGENTS.md and rules already say. As checks that run, such as a browser
+  check for a frontend change, they could catch defects; that is the part to start from, and only once a project
+  shows the need.
+
+Ideas 13, 14 and 15 are what a profile could later carry: a flow for the kind of task, a way to run a step, and an
+AI chosen from the spec's complexity.
