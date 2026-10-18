@@ -17,6 +17,10 @@
    leaves, and a path with no spaces in it breaks rather than pushing the
    page sideways at phone width. */
 .rowmsg > span { min-width: 0; overflow-wrap: anywhere; }
+/* A link inside a message's sentence is told apart from the words around
+   it, whatever colour the message's state gives them. */
+.rowmsg a { color: var(--link-text); text-decoration: underline; }
+.rowmsg a:hover { color: var(--link-text-strong); }
 /* A line with no words yet — the slot the page's script writes a
    refusal into. It takes no room and shows nothing, but is not
    display: none: that would take it out of what a screen reader hears

@@ -16,8 +16,6 @@ export interface ReportPanelRun {
   startedAt: string;
   /** The framed document (`buildReportDocument`); absent when the run wrote no report. */
   document?: string;
-  /** The run's `index.html` on its own; present with `document`. */
-  bareHref?: string;
 }
 
 export function renderReportPanel(opts: { lang: Language; run?: ReportPanelRun; now?: number }): string {
@@ -29,11 +27,7 @@ export function renderReportPanel(opts: { lang: Language; run?: ReportPanelRun; 
   const MARK = "\u0000";
   const ran = esc(t(lang, "report.ranAt", { time: MARK })).replace(MARK, relTime(run.startedAt, opts.now ?? Date.now()));
   const head =
-    `<p class="reporthead">${badge(BADGE_VARIANT[run.view.state], label)} ${ran}` +
-    (run.document !== undefined && run.bareHref
-      ? ` · <a href="${esc(run.bareHref)}">${esc(t(lang, "report.openFile"))}</a>`
-      : "") +
-    `</p>`;
+    `<p class="reporthead">${badge(BADGE_VARIANT[run.view.state], label)} ${ran}</p>`;
   const body =
     run.document !== undefined
       ? `<iframe class="reportframe" data-report-frame sandbox="${REPORT_SANDBOX}" ` +

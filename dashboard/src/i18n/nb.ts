@@ -239,7 +239,6 @@ export const nb: Record<TranslationKey, string> = {
   "schedule.yes": "ja",
   "schedule.no": "nei",
   "report.ranAt": "Kjørt {time}",
-  "report.openFile": "Åpne filen for seg selv",
   "report.none": "Ingen rapport fra denne kjøringen ({state}).",
   "report.frameTitle": "Rapport fra kjøringen",
   "report.neverRan": "Denne oppføringen har ikke kjørt ennå.",

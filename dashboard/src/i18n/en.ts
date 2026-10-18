@@ -247,7 +247,6 @@ export const en = {
   "schedule.yes": "yes",
   "schedule.no": "no",
   "report.ranAt": "Ran {time}",
-  "report.openFile": "Open the file on its own",
   "report.none": "No report from this run ({state}).",
   "report.frameTitle": "Report from the run",
   "report.neverRan": "This entry has not run yet.",

@@ -15,8 +15,8 @@ h4, h5, h6 { font-size: var(--fs-m); }
 h1:first-child, h2:first-child, p:first-child { margin-top: 0; }
 p, ul, ol, pre, table, blockquote { margin: 0 0 var(--sp-3); }
 ul, ol { padding-left: var(--sp-5); }
-a { color: var(--link); }
-a:hover { color: var(--link-strong); }
+a { color: var(--link-text); }
+a:hover { color: var(--link-text-strong); }
 code, pre { font-family: var(--mono), monospace; font-size: var(--fs-s); }
 code { background: var(--surface-2); border-radius: var(--r-s); padding: 0 var(--sp-1); }
 pre { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); padding: var(--sp-3); overflow-x: auto; }

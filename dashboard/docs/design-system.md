@@ -46,7 +46,10 @@ The palette is warm neutrals with zinc ink:
 - `--text` — ink.
 - `--accent` — vermilion, which marks action and activity and otherwise only the wordmark's own letter and the
   current tab's underline.
-- `--link` — a link is ink too, so a page of spec titles never reads as a page of failures.
+- `--link` — a link that names a thing (a spec title, a tab, the way back) is ink too, so a page of spec titles
+  never reads as a page of failures.
+- `--link-text` — blue, for a link inside running text: a scheduled run's report and a message's sentence, where
+  ink would hide it among the words around it.
 - `--ok`, `--warn` and `--danger` — the states, with three tones each: the token, a `-soft` for a badge and a
   `-ground` for a message box. Dark mode has its own, calmer copy of every one rather than an inverted one.
 

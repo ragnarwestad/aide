@@ -261,7 +261,7 @@ describe("GET /schedule/<project>/<entry> shows a run's report (spec 495)", () =
     (await fetch(`${base}${path}`, )).text();
   const PAGE = "/schedule/aide/nightly-report";
 
-  test("a picked run's report is in a frame, with its time, outcome and a link to the bare file", async () => {
+  test("a picked run's report is in a frame, with its time and outcome", async () => {
     const { base } = setup([
       { id: "old", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>OLD-TEXT</p>" },
       { id: "new", state: "done", at: "2026-09-02T03:00:00Z", report: "<p>NEW-TEXT</p>" },
@@ -271,7 +271,6 @@ describe("GET /schedule/<project>/<entry> shows a run's report (spec 495)", () =
     expect(html).toContain("NEW-TEXT");
     expect(html).not.toContain("OLD-TEXT");
     expect(html).toContain("2026-09-02T03:00:00Z");
-    expect(html).toContain(`href="/schedule-output/aide/${KEY}/runs/new/index.html"`);
   });
 
   test("an entry that has never run says so once, shows no list, and ?run= is ignored (AC-6)", async () => {

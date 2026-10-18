@@ -237,7 +237,6 @@ export const fr: Record<TranslationKey, string> = {
   "schedule.yes": "oui",
   "schedule.no": "non",
   "report.ranAt": "Exécuté {time}",
-  "report.openFile": "Ouvrir le fichier seul",
   "report.none": "Aucun rapport pour cette exécution ({state}).",
   "report.frameTitle": "Rapport de l'exécution",
   "report.neverRan": "Cette entrée n'a pas encore été exécutée.",

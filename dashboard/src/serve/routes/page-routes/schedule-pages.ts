@@ -108,7 +108,7 @@ export async function schedulePages(
         view: await ctx.jobRow(shown),
         startedAt: shown.startedAt ?? shown.createdAt,
         ...(report !== null
-          ? { document: await buildReportDocument(report, runDir), bareHref: `${runDir}index.html` }
+          ? { document: await buildReportDocument(report, runDir) }
           : {}),
       };
     }
