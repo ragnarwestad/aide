@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+"""Hold a `git push` while an archive is landing on the board: a Claude Code PreToolUse hook on Bash.
+
+Every push to main while a landing's test gate runs moves main under it, and the landing gives up after the second
+move. The hook reads the board's queue mirror, `~/.aide/dashboard/aide-queue.json`, on the machine that serves the
+board, and over ssh from AIDE_BOARD_HOST anywhere else. A job is landing when it carries `landing`, or is running
+with `archive` as its current step. A queue that cannot be read blocks the push too: not knowing is not "nothing is
+running".
+
+Exit 0 lets the command run; exit 2 blocks it, with the reason on stderr for the session to read.
+"""
+import json
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+PUSH = re.compile(r"(^|[;&|(\s])git(\s+-[Cc]\s+\S+)*\s+push(\s|$)")
+MIRROR = ".aide/dashboard/aide-queue.json"
+
+
+def read_queue():
+    """The queue's jobs, or a sentence saying why they could not be read."""
+    local = Path.home() / MIRROR
+    if local.exists():
+        text, where = local.read_text(), str(local)
+    else:
+        host = os.environ.get("AIDE_BOARD_HOST")
+        if not host:
+            return None, (f"there is no board on this machine ({local}) and AIDE_BOARD_HOST names none to read it from: "
+                          "set it to the host that serves the board, under \"env\" in .claude/settings.local.json")
+        try:
+            done = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", host, f"cat ~/{MIRROR}"],
+                                  capture_output=True, text=True, timeout=20)
+        except (OSError, subprocess.TimeoutExpired) as error:
+            return None, f"ssh to {host} failed: {error}"
+        if done.returncode != 0:
+            return None, f"ssh to {host} failed: {done.stderr.strip().splitlines()[-1] if done.stderr.strip() else done.returncode}"
+        text, where = done.stdout, f"{host}:~/{MIRROR}"
+    try:
+        queue = json.loads(text)
+    except ValueError:
+        return None, f"{where} is not JSON"
+    jobs = queue.get("jobs", []) if isinstance(queue, dict) else queue
+    return [j for j in jobs if isinstance(j, dict)], ""
+
+
+def landing(job):
+    steps, index = job.get("steps") or [], job.get("stepIndex") or 0
+    current = steps[index] if 0 <= index < len(steps) else None
+    return bool(job.get("landing")) or (job.get("state") == "running" and current == "archive")
+
+
+def main():
+    if any(arg in ("-h", "--help") for arg in sys.argv[1:]):
+        print("usage: guard-push < <a Claude Code PreToolUse payload on stdin>\n\n" + __doc__.strip())
+        return 0
+    try:
+        command = (json.load(sys.stdin).get("tool_input") or {}).get("command") or ""
+    except ValueError:
+        return 0
+    if not PUSH.search(command):
+        return 0
+    jobs, why = read_queue()
+    if jobs is None:
+        print(f"Blocked: the board's queue could not be read, so a landing may be running — {why}. "
+              "Check the board, then push.", file=sys.stderr)
+        return 2
+    busy = [j for j in jobs if landing(j)]
+    if busy:
+        names = ", ".join(f"{j.get('project')}/{j.get('specFolder')}" for j in busy)
+        print(f"Blocked: an archive is landing on the board ({names}). A push now moves main under its test gate; "
+              "push once it has landed.", file=sys.stderr)
+        return 2
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

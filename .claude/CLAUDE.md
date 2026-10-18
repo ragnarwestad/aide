@@ -107,6 +107,14 @@ the dashboard's docs pages to 550; they are written to be searched. Where to loo
 
 ## Important rules
 
+**A `git push` waits while an archive lands on the board.** A hook in
+`.claude/settings.json` (and `dashboard/.claude/settings.json`) runs
+`scripts/guard-push` before every Bash call, and blocks a push while the
+board's queue shows a landing, or when the queue cannot be read. Off the
+machine that serves the board it reads the queue over ssh from
+`AIDE_BOARD_HOST`, set under `"env"` in that folder's
+`.claude/settings.local.json`.
+
 **The workflow steps are skills (slash commands), not CLI scripts.**
 `/aide-create`, `/aide-analyze`, `/aide-implement` etc. run inside the AI tool.
 `core/scripts/` holds the helper scripts (`aide-*`) those skills and the runner call.
