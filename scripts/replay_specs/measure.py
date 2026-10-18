@@ -183,9 +183,22 @@ def command_for(worktree, rel, xml, python):
     return None
 
 
+class ProgramMissing(Exception):
+    """The program that runs a test file is not on PATH."""
+    def __init__(self, program):
+        super().__init__(program)
+        self.program = program
+
+
+def missing_programs_note(missing):
+    """The row's note for test files left unrun because their runner was not on PATH; empty when none was."""
+    return "; ".join(f"{program} was not found on PATH, so {n} test file{'s' if n != 1 else ''} did not run"
+                     for program, n in sorted(missing.items()))
+
+
 def run_test_file(worktree, rel, python=None, timeout=600):
     """(passed, ran) of one test file run on its own; a file that wrote no XML counts as one case, passed when it
-    exited 0. None when the file has no known runner or the runner is not installed."""
+    exited 0. None when the file has no known runner; ProgramMissing when its runner is not on PATH."""
     with tempfile.TemporaryDirectory() as folder:
         xml = os.path.join(folder, "junit.xml")
         command = command_for(str(worktree), rel, xml, python)
@@ -196,6 +209,8 @@ def run_test_file(worktree, rel, python=None, timeout=600):
             code = ran.returncode
         except subprocess.TimeoutExpired:
             code = 1
+        except FileNotFoundError:
+            raise ProgramMissing(command[0][0])
         except OSError:
             return None
         counts = junit_file_counts(xml)

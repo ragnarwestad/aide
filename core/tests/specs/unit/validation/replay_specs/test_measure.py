@@ -96,6 +96,28 @@ def test_a_test_file_is_run_on_its_own_and_its_cases_counted_AC_6(tmp_path):
     assert measure.run_test_file(str(work), "notes.sh", python=sys.executable) is None
 
 
+def test_a_test_runner_missing_from_path_is_named_not_counted_as_a_file_that_failed(tmp_path, monkeypatch):
+    work = tmp_path / "work"
+    write(work / "package.json", "{}\n")
+    write(work / "bun.lock", "\n")
+    write(work / "a.test.ts", "test('a', () => {})\n")
+    monkeypatch.setenv("PATH", str(tmp_path / "empty"))
+
+    try:
+        measure.run_test_file(str(work), "a.test.ts")
+    except measure.ProgramMissing as missing:
+        assert missing.program == "bun"
+    else:
+        raise AssertionError("a missing bun was not reported")
+
+
+def test_the_note_names_each_missing_test_runner_and_how_many_files_it_left_unrun():
+    note = measure.missing_programs_note({"bun": 7, "npx": 1})
+
+    assert "bun" in note and "7" in note and "npx" in note
+    assert measure.missing_programs_note({}) == ""
+
+
 def test_step_tokens_sum_every_turn_in_the_stream_not_the_last_AC_8(tmp_path):
     claude = tmp_path / "claude.jsonl"
     claude.write_text("\n".join(json.dumps(e) for e in [

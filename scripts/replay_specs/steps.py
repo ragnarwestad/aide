@@ -151,6 +151,7 @@ def original_tests(run, folder, found, code_dir, work):
     copies.link_worktree_paths(run.code, tree, manifest_dir=code_dir)
     python = Path(tree) / ".venv" / "bin" / "python"
     passed = ran = not_run = 0
+    missing = {}
     for rel in files:
         shown = subprocess.run(["git", "-C", run.code, "show", f"{found.landed}:{rel}"], capture_output=True)
         if shown.returncode != 0:
@@ -158,12 +159,16 @@ def original_tests(run, folder, found, code_dir, work):
             continue
         (Path(tree) / rel).parent.mkdir(parents=True, exist_ok=True)
         (Path(tree) / rel).write_bytes(shown.stdout)
-        counts = measure.run_test_file(tree, rel, python=str(python) if python.exists() else None)
+        try:
+            counts = measure.run_test_file(tree, rel, python=str(python) if python.exists() else None)
+        except measure.ProgramMissing as error:
+            missing[error.program] = missing.get(error.program, 0) + 1
+            counts = None
         if counts is None:
             not_run += 1
         else:
             passed, ran = passed + counts[0], ran + counts[1]
-    return (passed, ran, not_run), ""
+    return (passed, ran, not_run), measure.missing_programs_note(missing)
 
 
 def replay_steps(run, row, folder, archived, found, code_dir, specs_repo, specs_dir, work):
