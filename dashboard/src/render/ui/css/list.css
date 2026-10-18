@@ -355,6 +355,11 @@ table.list td[data-col="cost"] { text-align: center; }
    stays on the column's midline whatever its label says — which is the
    same promise the fixed width makes on the row above. */
 table.list tr.subrow[data-caption="1"] td[data-col="state"] > .actionslot { width: auto; }
+/* The Running list keeps a job's Stop or Cancel in the state cell, under
+   its badge: centred on the column's midline as the badge is, with the
+   row gap above it rather than touching the badge. */
+table.speclist[data-list="jobs"] tr.specstate > td[data-col="state"] > .actionslot {
+  display: flex; width: auto; justify-content: center; margin-top: var(--sp-2); }
 table.list thead a { color: var(--muted); }
 /* Every column is pinned to its own content, State included (REQ-1/
    REQ-2/REQ-3, spec 379) — `0`, not the `1%` this used to read

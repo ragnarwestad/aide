@@ -69,7 +69,7 @@ export function renderJobsRows(v: JobsView): string {
   return (
     notices +
     jobsFilterBar(all.map((e) => e.facts), f, lang) +
-    `<div class="tablewrap"><table class="list speclist">${jobsHead(f, lang)}<tbody>${body}</tbody></table></div>`
+    `<div class="tablewrap"><table class="list speclist" data-list="jobs">${jobsHead(f, lang)}<tbody>${body}</tbody></table></div>`
   );
 }
 
