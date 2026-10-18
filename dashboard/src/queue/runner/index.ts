@@ -298,7 +298,7 @@ export class Runner {
       // Fresh every call, unlike `startedAt` above — this step's own start,
       // not the job's (spec 384).
       stepStartedAt: this.o.now(),
-      error: undefined,
+      error: undefined, errorReason: undefined,
     });
     return true;
   }

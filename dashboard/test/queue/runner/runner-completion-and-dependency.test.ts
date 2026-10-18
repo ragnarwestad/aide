@@ -7,6 +7,9 @@ import {
   DEFAULTS, dir, spawns, store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness, setNow,
 } from "./runner-fixtures.ts";
 import { renderSentence } from "../../../src/i18n/message.ts";
+import { AideRunStore } from "../../../src/queue/aide-run-store.ts";
+import { jobRow } from "../../../src/serve/job-row.ts";
+import { specStateChip, wordPhase } from "../../../src/render/ui/job-state";
 
 /** What a reader would see: since spec 380 a message is stored as
  *  its key and the values that fill its blanks, and composed when
@@ -334,7 +337,7 @@ describe("spec 93: the completion hook and the landing window", () => {
 // nothing about steps or branches.
 
 describe("parked on a dependency (spec 122)", () => {
-  test("a job named in the blocked map is not spawned and stays queued with a reason", () => {
+  test("a job named in the blocked map is not spawned and stays queued with a reason (AC-3)", async () => {
     const job = enqueue({ steps: ["implement"] });
     const runner = makeRunner();
     runner.tick(new Map([[job.id, "80-dependency"]]));
@@ -344,9 +347,12 @@ describe("parked on a dependency (spec 122)", () => {
     // The NUMBER, not the folder: the row already names the folder a
     // line above, and the sentence beside it says the same fact short.
     expect(sentence(stored?.error)).toContain("depends on 80,");
+    expect(stored?.errorReason).toBe("held-back");
+    const row = await jobRow({ queue: store, store: new AideRunStore() }, stored!);
+    expect(specStateChip(row, "en")).toContain("Held back");
   });
 
-  test("the same job starts once the map no longer names it", () => {
+  test("the same job starts once the map no longer names it (AC-1, AC-2)", async () => {
     const job = enqueue({ steps: ["implement"] });
     const runner = makeRunner();
     runner.tick(new Map([[job.id, "80-dependency"]]));
@@ -358,6 +364,12 @@ describe("parked on a dependency (spec 122)", () => {
     // Cleared by the start itself, the way every other held-back reason
     // is — a stale line under a running row is a lie.
     expect(stored?.error).toBeUndefined();
+    expect(stored?.errorReason).toBeUndefined();
+    const row = await jobRow({ queue: store, store: new AideRunStore() }, stored!);
+    const chip = specStateChip(row, "en");
+    expect(chip).toContain("Implementing");
+    expect(chip).not.toContain("Held back");
+    expect(wordPhase(false, undefined, row, {}, "en").badge?.label).toBe("Running");
   });
 
   test("a parked job takes no slot: a job behind it still starts", () => {
