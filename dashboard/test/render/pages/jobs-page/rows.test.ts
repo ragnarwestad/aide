@@ -5,6 +5,7 @@
 import { describe, expect, test } from "bun:test";
 import { t } from "../../../../src/i18n";
 import { renderSentence } from "../../../../src/i18n/message.ts";
+import { phaseKey } from "../../../../src/render/pages/specs-list/phase-messages/keys.ts";
 import {
   byTabPlace,
   jobControl,
@@ -13,6 +14,7 @@ import {
   jobPlace,
   jobsShown,
   jobTitle,
+  scheduleStreamKey,
   specPlace,
 } from "../../../../src/render/pages/jobs-page/rows.ts";
 
@@ -375,6 +377,19 @@ describe("the line under a job row's state (AC-2, AC-3, AC-4, AC-5)", () => {
     const error = { key: "runner.landingPause" } as const;
     for (const make of [schedule, close, reopen]) {
       expect(message(make({ state: "queued", errorReason: "held-back", error }))).toBeUndefined();
+    }
+  });
+});
+
+describe("the key the event stream listens on for a job row's key (AC-4)", () => {
+  test("a scheduled job's row key gives its running step's phase key (AC-4)", () => {
+    expect(scheduleStreamKey("aide/schedule-nightly")).toBe(phaseKey("aide", "schedule-nightly", "schedule"));
+    expect(scheduleStreamKey(jobKey(sched()))).toBe("aide/schedule-nightly:schedule");
+  });
+
+  test("a spec's key, a Close's key and a malformed key give none (AC-4)", () => {
+    for (const key of ["aide/81-queue", "aide/534-a-card:reopen", "aide/schedule-nightly:schedule", "schedule-nightly", "/schedule-x", ""]) {
+      expect(scheduleStreamKey(key)).toBeUndefined();
     }
   });
 });

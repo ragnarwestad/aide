@@ -36,7 +36,7 @@ export function navigate(event: MouseEvent): void {
   history.replaceState(null, "", withFolds(link.getAttribute("href") ?? location.href));
   // The server tells a tab about a growing transcript only when the
   // stream's own query named that phase (spec 500), so a change of
-  // `phases` reopens the stream; a sort or a row fold leaves it alone.
+  // `phases` reopens the stream; a sort or a spec row's fold leaves it alone.
   if (new URLSearchParams(location.search).get("phases") !== phasesBefore) {
     disconnect();
     connect();
@@ -69,9 +69,16 @@ async function foldOne(link: HTMLAnchorElement, fold: string, key: string): Prom
   else params.delete(fold);
   const query = params.toString();
   history.replaceState(null, "", `${location.pathname}${query ? `?${query}` : ""}`);
+  const onJobRow = fold === "open" && link.closest("tr[data-job]") !== null;
   const chevron = link.innerHTML;
   link.innerHTML = SPINNER;
   await swapSpec(key);
+  // A job row's key in `open` is what the event stream listens on for the
+  // job's log, so opening or shutting one asks the stream again.
+  if (onJobRow) {
+    disconnect();
+    connect();
+  }
   // Still on the page only when no swap drew the row again — offline, or
   // the server restarting — and a spinner left there would say it is
   // still working on something that is over.

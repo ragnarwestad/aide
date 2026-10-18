@@ -1,4 +1,4 @@
-// What a Close's, Reopen's or deploy's line on the Running page lists: the steps the
+// What a Close's, Reopen's, deploy's or scheduled job's line on the Running page lists: the steps the
 // job's step log has marked (`stepMarks`), and for a job that ended any
 // other way than done, or done with its merge into main stopped, the step
 // it stopped at and why.
@@ -76,4 +76,10 @@ export function closeOrReopenSteps(job: Job, step: string, lang: Language): Clos
  *  after the restart marks its two in the same log, so they read done there. */
 export function deploySteps(job: Job, lang: Language): CloseOrReopenStep[] {
   return jobSteps(job, deployPlan(lang), lang);
+}
+
+/** A scheduled job's steps: only those its log has marked, since its prompt
+ *  plans none in advance. */
+export function scheduleSteps(job: Job, lang: Language): CloseOrReopenStep[] {
+  return jobSteps(job, [], lang);
 }

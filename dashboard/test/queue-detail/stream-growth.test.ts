@@ -122,4 +122,12 @@ describe("GET /api/queue/events?phases=… (AC-3)", () => {
     opened.push(s);
     expect(server.phaseWatchCount()).toBe(1);
   });
+
+  // A scheduled job's row key is no phase key; the page asks for its log by it.
+  test("a tab with a scheduled job's row open hears that job's log grow (AC-4)", async () => {
+    const { base, server } = harness.start();
+    const s = await connectStream(base, "?open=aide/schedule-nightly");
+    opened.push(s);
+    expect(server.phaseWatchCount()).toBe(1);
+  });
 });

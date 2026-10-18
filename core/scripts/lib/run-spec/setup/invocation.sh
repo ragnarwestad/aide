@@ -163,6 +163,19 @@ When the step ends, the same line ending in one of these:
 — stopped: <why> (the run ends here)
 N, X and the title come from the step's heading. A step whose text says Aide writes its marks is not yours
 to mark: leave it out."
+# A schedule prompt is free text, with no numbered steps for step_log_note
+# to name: the model is asked to name a few itself, so the job's row on the
+# Running page has steps to unfold into.
+schedule_step_note="Split this work into a few steps, named before you start, and mark each one in your output so
+whoever reads the log can see how far the run has come. Each mark is a line of its own — a line break before it and
+after it, never joined to other text, never written into a file — as plain text with no backticks or other
+formatting. Before a step's first action:
+--- Step N of X: <title> — started
+When the step ends, the same line ending in one of these:
+— done
+— skipped: <why> (the step does not apply to this run)
+— stopped: <why> (the run ends here)
+N is the step's number, X how many steps there are, and the title says what the step does."
 if [ "$command_name" = "schedule" ]; then
   # The prompt is the file's contents, verbatim — no aide skill, no spec
   # id, nothing invented on either side (spec 259). Read from
@@ -173,6 +186,7 @@ if [ "$command_name" = "schedule" ]; then
   [ -f "$project_root/$prompt_file" ] \
     || refuse "no such --prompt-file: $prompt_file (under $project_root)"
   prompt="$(cat "$project_root/$prompt_file")
+$schedule_step_note
 $headless_note"
 elif [ -n "$spec_folder" ]; then
   # Spec 386: stated to the skill, not just to the harness — a CLI flag

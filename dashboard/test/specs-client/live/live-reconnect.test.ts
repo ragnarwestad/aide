@@ -192,6 +192,37 @@ describe("the stream follows the address's phases (spec 500)", () => {
   });
 });
 
+// A job row's key in `open` is what the stream listens on for the job's log
+// (a scheduled job's, a Close's, a Reopen's, a deploy's), so a job row's ›
+// asks the stream again; a spec row's › leaves it as it was.
+describe("a job row's › reopens the stream with the address's open", () => {
+  const start = (onJobRow: boolean) => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }), "actionform", "?open=aide%2F81-x");
+    h.visibility("visible");
+    const plain = h.foldLink.closest;
+    h.foldLink.closest = (sel: string) => (sel === "tr[data-job]" ? (onJobRow ? h.foldLink : null) : plain(sel));
+    return h;
+  };
+
+  test("opening a job row closes the stream and opens it again naming the row (AC-4)", async () => {
+    const h = start(true);
+    h.foldAttrs["data-key"] = "aide/schedule-nightly";
+    h.clickFold();
+    await flush();
+    expect(h.sources).toHaveLength(2);
+    expect(h.sources[0]!.closed).toBe(true);
+    expect(h.live()!.url).toContain(encodeURIComponent("aide/schedule-nightly"));
+  });
+
+  test("a spec row's › leaves the stream as it was (AC-4)", async () => {
+    const h = start(false);
+    h.clickFold();
+    await flush();
+    expect(h.sources).toHaveLength(1);
+    expect(h.sources[0]!.closed).toBe(false);
+  });
+});
+
 // A phone coming back from the lock screen took seconds to show a list
 // that had moved on: the page waited for its stream to reopen before it
 // redrew (2026-09-20).

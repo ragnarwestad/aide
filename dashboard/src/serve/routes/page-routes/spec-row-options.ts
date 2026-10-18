@@ -8,7 +8,7 @@ import { jobsShown, type SpecsPageOptions } from "../../../render";
 import type { JobLike } from "../../../render/pages/jobs-page/rows.ts";
 import { openOverlappingSpecs } from "../../../project/overlapping-specs.ts";
 import { modelChoiceOptions } from "../../serve-helpers";
-import { closeOrReopenSteps, deploySteps } from "../../spec-views/job-marks.ts";
+import { closeOrReopenSteps, deploySteps, scheduleSteps } from "../../spec-views/job-marks.ts";
 import { phaseMessagesFor } from "../../spec-views/phase-messages.ts";
 import { codeBranchOnOrigin } from "../../test-servers/branch-on-origin.ts";
 import type { RoutesContext } from "..";
@@ -26,11 +26,12 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
     // from history alone.
     pendingModels: ctx.queue.pendingModels,
     pendingSteps: ctx.queue.pendingSteps,
-    // Called only for the open row of a Close, Reopen or deploy job.
+    // Called only for the open row of a Close, Reopen, deploy or scheduled job.
     closeOrReopenSteps: (jobId: string, step: string) => {
       const job = ctx.queue.get(jobId);
       if (!job) return [];
-      return step === "deploy" ? deploySteps(job, lang) : closeOrReopenSteps(job, step, lang);
+      if (step === "deploy") return deploySteps(job, lang);
+      return step === "schedule" ? scheduleSteps(job, lang) : closeOrReopenSteps(job, step, lang);
     },
     // The same capability check `spec-page.ts` and `project-pages.ts` call,
     // and the cached answer of whether origin holds the spec's branch in the

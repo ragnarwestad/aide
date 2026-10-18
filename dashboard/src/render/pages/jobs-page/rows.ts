@@ -116,6 +116,16 @@ export function jobKey(row: Pick<JobLike, "project" | "specFolder" | "steps" | "
   return step ? phaseKey(row.project, row.specFolder, step) : `${row.project}/${row.specFolder}`;
 }
 
+/** The key the event stream listens on for a scheduled job's row key in
+ *  `open`: its running step's phase key, `<project>/schedule-<name>:schedule`,
+ *  the key `createStreamGrowth` gives it. Undefined for any other key. */
+export function scheduleStreamKey(key: string): string | undefined {
+  const slash = key.indexOf("/");
+  const folder = key.slice(slash + 1);
+  if (slash <= 0 || key.includes(":") || !folder.startsWith("schedule-")) return undefined;
+  return phaseKey(key.slice(0, slash), folder, "schedule");
+}
+
 /** The line under a job row's state, or none. A job that failed, stopped or
  *  was interrupted says why, in its own sentence or, with none, in one saying
  *  how it ended, and the line carries the address of the job's own page for

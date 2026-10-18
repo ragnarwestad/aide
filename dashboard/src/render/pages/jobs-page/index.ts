@@ -19,7 +19,7 @@ import { jobRow } from "./job-row.ts";
 import { byTabPlace, jobKey, jobPlace, specPlace, type TabPlace } from "./rows.ts";
 import { jobFacts, jobsViewRows, type RowFacts } from "./view.ts";
 
-export { jobControl, jobKey, jobsShown, jobTitle } from "./rows.ts";
+export { jobControl, jobKey, jobsShown, jobTitle, scheduleStreamKey } from "./rows.ts";
 export type { JobLike } from "./rows.ts";
 
 /** What the page draws: the scheduled jobs it shows, and the Specs

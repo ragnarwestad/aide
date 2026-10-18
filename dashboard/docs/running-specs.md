@@ -669,8 +669,10 @@ its fetch and before its restart; the row says "Held back" with the reason under
 
 A scheduled job gets a job row in the same columns and the same two-line shape
 (`src/render/pages/jobs-page/job-row.ts`). Its title leads with the project, as a spec's does: "<project>:<name>". It folds as a spec's row does, by the `open` key in the address, and is
-shut by default: it shows its title, state, time and cost. Its › opens it to show Stop or Cancel. It has no links
-under its title. A job that failed, stopped or was interrupted says why in a line under its state, open or shut: its own
+shut by default: it shows its title, state, time and cost. Its › opens it to show Stop or Cancel, and a line per step its log has marked: Aide's preparing, the steps the model
+marks, and Aide's tests and commit, each with its state, its time (a figure for Aide's own parts, a dash for the
+model's) and a › that unfolds the step's own part of the log. A step not yet marked has no line; the open row follows
+the log while the job runs. The prompt asks the model for those marks. It has no links under its title. A job that failed, stopped or was interrupted says why in a line under its state, open or shut: its own
 sentence or, with none, one saying how it ended, and the line ends with a Log link to the job's own page. A queued,
 running or finished job has no Log link. A queued job offers Cancel and a running or landing one Stop, each asking
 first; a finished job has nothing to stop. The rules for which scheduled jobs show, their titles, the line under the

@@ -607,7 +607,11 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   the next (`stepSlices`, `queue/parse-stream/step-marks.ts`). The unfolded steps are in `?phases=`, each as the
   row's key and the step's place (`aide/01-x:close.0`). A tab with
   the row open hears the log grow (its key in `?open=` on `/api/queue/events`), so the lines move as the job goes.
-  A reopen that has gone on to the spec's next step is the spec's again.
+  A job row's › asks the event stream again with the address's new `open` (`foldOne`, `specs-client/navigation.ts`),
+  so a row opened on a page already drawn is followed, and a row shut is let go; a spec row's › leaves the stream
+  alone. A scheduled job's open row lists the steps its log has marked in the same way, with no plan
+  (`scheduleSteps`), and the stream listens on its running step's key (`scheduleStreamKey`,
+  `render/pages/jobs-page/rows.ts`). A reopen that has gone on to the spec's next step is the spec's again.
 - **A deploy is a row of its own on the Running tab** too, for the one project the board runs from. A job whose
   step is `deploy` (`deployStep`, `queue/steps.ts`) has a row named "Deploy <project>", with the key
   `<project>/deploy:deploy`; no spec row is drawn for its tracking key `deploy`, on the Running tab or the Specs list. It

@@ -9,7 +9,7 @@ import { describe, expect, test } from "bun:test";
 import { renderSentence } from "../../../src/i18n/message.ts";
 import type { Job } from "../../../src/queue/queue.ts";
 import { stepPlan } from "../../../src/queue/parse-stream";
-import { closeOrReopenSteps, deploySteps, jobMarks } from "../../../src/serve/spec-views/job-marks.ts";
+import { closeOrReopenSteps, deploySteps, jobMarks, scheduleSteps } from "../../../src/serve/spec-views/job-marks.ts";
 
 const dir = mkdtempSync(join(tmpdir(), "job-marks-"));
 let n = 0;
@@ -187,5 +187,48 @@ describe("deploySteps", () => {
     const got = deploySteps(job({ specFolder: "deploy", steps: ["deploy"], state: "queued" }), "en");
     expect(got.map((s) => s.key)).toEqual(KEYS);
     expect(got.every((s) => s.state === undefined)).toBe(true);
+  });
+});
+
+describe("scheduleSteps", () => {
+  const scheduled = (extra: Partial<Job>): Job => job({ specFolder: "schedule-nightly", steps: ["schedule"], stepStartedAt: "2026-10-03T10:00:00Z", ...extra });
+  const marked = () =>
+    step(
+      [
+        said("--- Step 1 of 2: Read the list — started"),
+        said("read the list line"),
+        said("--- Step 1 of 2: Read the list — done"),
+        said("--- Step 2 of 2: Write the report — started"),
+        said("wrote the report line"),
+      ],
+      ["--- Step Aide: preparing — started", "--- Step Aide: preparing — done", "model turn started (transcript at byte 0)"],
+    );
+
+  test("lists only the steps the log has marked, in the order marked, each in its state (AC-1)", () => {
+    const got = scheduleSteps(scheduled({ streamFile: marked() }), "en");
+    expect(got.map((s) => [s.label, s.state])).toEqual([
+      ["Preparing", "done"],
+      ["Read the list", "done"],
+      ["Write the report", "running"],
+    ]);
+  });
+
+  test("Aide's step has its seconds from the run log and the model's steps have none (AC-1)", () => {
+    const got = scheduleSteps(scheduled({ streamFile: marked() }), "en");
+    expect(got[0]!.seconds).toBe(1);
+    expect(got[1]!.seconds).toBeUndefined();
+    expect(got[2]!.seconds).toBeUndefined();
+  });
+
+  test("a queued job with no log yet has no steps (AC-1)", () => {
+    expect(scheduleSteps(scheduled({ state: "queued", streamFile: undefined }), "en")).toEqual([]);
+  });
+
+  test("each step carries its own part of the log (AC-2)", () => {
+    const got = scheduleSteps(scheduled({ streamFile: marked() }), "en");
+    const text = (label: string) => (got.find((s) => s.label === label)?.logs ?? []).flatMap((p) => p.lines).join("\n");
+    expect(text("Write the report")).toContain("wrote the report line");
+    expect(text("Read the list")).toContain("read the list line");
+    expect(text("Read the list")).not.toContain("wrote the report line");
   });
 });

@@ -161,6 +161,17 @@ def test_a_scheduled_prompt_now_carries_a_request_for_a_commit_message(runner, w
     assert "write the commit message for that change to " in prompt, prompt
 
 
+def test_a_scheduled_prompt_asks_the_model_to_mark_its_steps_AC_3(runner, workspace, fake_claude):
+    with_prompt(workspace)
+    seen = fake_claude.calls.parent / "prompt-seen.txt"
+    rc, out, _ = schedule(runner, workspace, fake_claude(f"cat > {seen}\n{FINISHED}"))
+    assert rc == 0, out
+    prompt = seen.read_text()
+    assert prompt.startswith("Write the report."), prompt
+    assert "--- Step N of X: <title> — started" in prompt, prompt
+    assert "\n— done\n" in prompt, prompt
+
+
 def test_an_analyze_prompt_still_asks_for_a_commit_message(runner, workspace, fake_claude):
     seen = fake_claude.calls.parent / "prompt-seen.txt"
     rc, out, _ = schedule(

@@ -83,18 +83,24 @@ describe("a final message holding marks", () => {
 // write a mark, and the parser here reads it. Every ending the prompt
 // names must come back as a mark.
 describe("the prompt's own format is what the parser reads", () => {
-  test("each line step_log_note asks for is a mark", () => {
-    const script = readFileSync(join(import.meta.dir, "../../../../core/scripts/lib/run-spec/setup/invocation.sh"), "utf-8");
-    const note = script.slice(script.indexOf('step_log_note="'), script.indexOf('"\n', script.indexOf('step_log_note="')));
-    const template = note.split("\n").find((l) => l.startsWith("--- Step "))!;
-    const endings = note.split("\n").filter((l) => l.startsWith("— ")).map((l) => l.replace(/ \(.*\)$/, "").replace("<why>", "no tests"));
-    expect(template).toBeDefined();
-    expect(endings.length).toBeGreaterThanOrEqual(3);
-    const head = template.replace("Step N of X", "Step 2 of 4").replace("<title>", "GREEN").replace(/ — started$/, "");
-    for (const ending of ["— started", ...endings]) {
-      expect(summarizeEntries(say(`${head} ${ending}`), { tool: "claude" })[0]!.mark).toBe(true);
-    }
-  });
+  // A skill's note names the skill's steps; a schedule prompt's asks the model
+  // to name its own. Both write the same mark line and endings.
+  for (const [name, ac] of [["step_log_note", ""], ["schedule_step_note", " (AC-3)"]] as const) {
+    test(`each line ${name} asks for is a mark${ac}`, () => {
+      const script = readFileSync(join(import.meta.dir, "../../../../core/scripts/lib/run-spec/setup/invocation.sh"), "utf-8");
+      const at = script.indexOf(`${name}="`);
+      expect(at).toBeGreaterThanOrEqual(0);
+      const note = script.slice(at, script.indexOf('"\n', at));
+      const template = note.split("\n").find((l) => l.startsWith("--- Step "))!;
+      const endings = note.split("\n").filter((l) => l.startsWith("— ")).map((l) => l.replace(/ \(.*\)$/, "").replace("<why>", "no tests"));
+      expect(template).toBeDefined();
+      expect(endings.length).toBeGreaterThanOrEqual(3);
+      const head = template.replace("Step N of X", "Step 2 of 4").replace("<title>", "GREEN").replace(/ — started$/, "");
+      for (const ending of ["— started", ...endings]) {
+        expect(summarizeEntries(say(`${head} ${ending}`), { tool: "claude" })[0]!.mark).toBe(true);
+      }
+    });
+  }
 });
 
 // What a Close or Reopen dialog lists while its job runs: the step log's

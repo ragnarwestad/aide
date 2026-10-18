@@ -1,7 +1,7 @@
 // The SSE subscription route (spec 189). Extracted from routes.ts
 // (split of split serve.ts step 2) so the dispatcher's own body reads as
 // a short sequence of theme calls.
-import { parsePhaseKeys } from "../../render";
+import { parsePhaseKeys, scheduleStreamKey } from "../../render";
 import type { RoutesContext } from "./";
 
 export function handleQueueEvents(ctx: RoutesContext, req: Request, path: string): Response | null {
@@ -15,10 +15,15 @@ export function handleQueueEvents(ctx: RoutesContext, req: Request, path: string
         // The phases this tab has unfolded (spec 500): only these hear a
         // transcript grow. A Close or Reopen row it has open hears its
         // job's log grow too: the row's key is the job's phase key, and the
-        // open row lists the steps the log marks.
+        // open row lists the steps the log marks. So does a scheduled job's
+        // row, whose key is no phase key: its running step's is.
         const url = new URL(req.url);
         const keys = parsePhaseKeys(url.searchParams.get("phases"));
         for (const key of parsePhaseKeys(url.searchParams.get("open"))) keys.add(key);
+        for (const key of (url.searchParams.get("open") ?? "").split(",")) {
+          const followed = scheduleStreamKey(key);
+          if (followed) keys.add(followed);
+        }
         if (keys.size) ctx.phaseWatchers.set(controller, keys);
         // The subscriber is registered — say so. A caller that acts
         // the instant its `fetch` resolves would otherwise race the

@@ -6,13 +6,14 @@
 // script treat it as a spec's row: it redraws it by that id and writes a
 // refused Stop under it. A scheduled job's row folds as a spec's does,
 // from the `open` key in the address: shut, it holds the title, state, time and
-// cost; open, it adds Stop or Cancel. A Close or Reopen is drawn the same way,
-// with no Stop or Cancel, and open it adds a line per step of the job, in the
-// row's own columns: its state, its time, and no cost of its own, since the
-// job's cost is the row's. A deploy is drawn as they are, with Cancel while it
-// is queued. A job that ended badly says why in a line under its state, open or
-// shut, and the line ends with a Log link to the job's own page; a deploy held
-// back has its waiting line there, with no link.
+// cost; open, it adds Stop or Cancel, and a line per step its log has marked, in
+// the row's own columns: its state, its time, and no cost of its own, since the
+// job's cost is the row's. A Close or Reopen is drawn the same way, with no
+// Stop or Cancel, and open it adds a line per step of the job. A deploy is
+// drawn as they are, with Cancel while it is queued. A job that ended badly
+// says why in a line under its state, open or shut, and the line ends with a
+// Log link to the job's own page; a deploy held back has its waiting line
+// there, with no link.
 
 import { t, type Language } from "../../../i18n";
 import { askButton, badge, confirmDialog, foldArrow, rowMessage, stepLabel, type ProgressStepState } from "../../ui/components";
@@ -27,7 +28,7 @@ import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { logBox } from "../specs-list/phase-messages";
 import type { LogPart } from "../../../queue/parse-stream";
 import { closeOrReopenStep, deployStep } from "../../../queue/queue.ts";
-import { jobControl, jobKey, jobMessage, jobTitle } from "./rows.ts";
+import { isScheduleJob, jobControl, jobKey, jobMessage, jobTitle } from "./rows.ts";
 import { jobDurationMs, jobEndMs } from "./view.ts";
 
 /** One step of a Close or Reopen: its state, and for Aide's own steps its
@@ -49,7 +50,7 @@ export interface JobRowOptions {
   filter: SpecsFilter;
   /** The page the row sits on, for its fold's address. */
   listPath: string;
-  /** A Close or Reopen job's steps, each in the state its log has it in. */
+  /** A Close, Reopen, deploy or scheduled job's steps, each in the state its log has it in. */
   steps?: (jobId: string, step: string) => JobStep[];
 }
 
@@ -122,12 +123,12 @@ function stepTime(s: JobStep, now: number): string {
   return "–";
 }
 
-/** A Close's, Reopen's or deploy's steps, a line each in the row's columns, while the row is open.
+/** A Close's, Reopen's, deploy's or scheduled job's steps, a line each in the row's columns, while the row is open.
  *  The name starts where a spec's phase names do. A step its log has marked
  *  unfolds to its own part of the log, as a phase does: the unfolded steps
  *  are in the address (`phases`), each as the row's key and the step's place. */
 function stepLines(row: QueueRowView, o: JobRowOptions): string {
-  const step = closeOrReopenStep(row) ?? deployStep(row);
+  const step = closeOrReopenStep(row) ?? deployStep(row) ?? (isScheduleJob(row) ? "schedule" : undefined);
   const unfolded = (o.filter.phases ?? "").split(",").filter(Boolean);
   return (step ? (o.steps?.(row.id, step) ?? []) : [])
     .map((s, i) => {

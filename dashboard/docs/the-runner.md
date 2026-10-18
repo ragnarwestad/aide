@@ -277,6 +277,11 @@ ending `— done`, or `— stopped: <why>` for a step that failed. A model turn 
 turn opens it again after itself, so the log reads as one sequence of marked parts (`aide_part_open`,
 `aide_part_close`).
 
+A `schedule` step's prompt is the prompt file's text, then a request to split the work into a few named steps and mark
+each one with the same lines (`schedule_step_note`, `core/scripts/lib/run-spec/setup/invocation.sh`), then the headless
+note. The prompt file names no steps, so the model names them itself, and the marks it writes in its output are the
+steps the job's row on the Running page unfolds into.
+
 Every physical line is its own line. Only the `error: ` prefix marks an error and only the turn line marks a turn:
 the transcript is cut at each turn's byte, and Aide's lines go between the turns. The script writes one `error:` line
 for the step's own failure before its result line, and one for a refused run.
