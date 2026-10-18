@@ -12,6 +12,7 @@ const close = {
 const STEPS: JobStep[] = [
   { key: "Step Aide: preparing", label: "Preparing", state: "done", logs: [{ by: "aide-before", lines: ["pulled main"] }] },
   { key: "Step 1 of 4", label: "Move the spec", state: undefined },
+  { key: "Step 2 of 4", label: "Commit", state: "done", seconds: 4, tokens: 12_345 },
 ];
 const draw = (phases?: string) =>
   jobRow(close, {
@@ -30,5 +31,17 @@ describe("a job step's own log", () => {
   test("unfolded, the step shows its part of the log; shut, it does not", () => {
     expect(draw("aide/01-x:close.0")).toContain("pulled main");
     expect(draw()).not.toContain("pulled main");
+  });
+});
+
+describe("a job step's Cost cell", () => {
+  const cost = (key: string) => {
+    const tr = draw().match(new RegExp(`<tr class="subrow"[^>]*data-step="${key}"[^>]*>.*?</tr>`))?.[0] ?? "";
+    return (tr.match(/data-col="cost">(.*?)<\/td>/)?.[1] ?? "").replace(/<[^>]*>/g, "");
+  };
+
+  test("a step whose run reported tokens shows them, and one with none shows a dash (AC-3, AC-4)", () => {
+    expect(cost("Step 2 of 4")).toBe("12.3k");
+    expect(cost("Step 1 of 4")).toBe("–");
   });
 });

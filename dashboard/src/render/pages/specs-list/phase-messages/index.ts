@@ -3,14 +3,15 @@
 // address (`?phases=`), like the row's own fold and the criteria's
 // (`?checks=`), so it survives the live redraw and works with script off.
 
-import { foldArrow, stepLabel } from "../../../ui/components";
-import { esc } from "../../../ui/html.ts";
+import { badge, foldArrow, stepLabel, type ProgressStepState } from "../../../ui/components";
+import { esc, tokens } from "../../../ui/html.ts";
+import { durationLabel } from "../../../ui/job-state";
 import { withModelId } from "../../../ui/components/model-label.ts";
 import { t, type Language } from "../../../../i18n";
 import { specTabPath } from "../../spec-page";
 import type { Phase, SpecGroup } from "../data-model";
 import { queuePath } from "../filter-bar.ts";
-import type { SpecsPageOptions } from "../";
+import type { SpecsFilter, SpecsPageOptions } from "../";
 import { phaseKey } from "./keys.ts";
 import { LIST_COLUMNS } from "../row-shared.ts";
 import type { LogPart } from "../../../../queue/parse-stream";
@@ -18,12 +19,27 @@ import { drawnParts } from "../../job-page/step-tabs.ts";
 
 export { phaseKey, parsePhaseKeys } from "./keys.ts";
 
+/** One step of a job or of a phase: its state, how long it took once ended or when it started while it
+ *  runs, the tokens the stream reported while it ran, and its own part of the Log once it is marked. */
+export interface JobStep {
+  key: string;
+  label: string;
+  state?: ProgressStepState;
+  seconds?: number;
+  since?: string;
+  tokens?: number;
+  /** The step's own part of the job's Log, once it is marked. */
+  logs?: LogPart[];
+}
+
 /** What the server knows of one phase's log: the step's Log, part by part. */
 export interface PhaseMessages {
   /** Oldest first, each part's lines already escaped: printed as given,
    *  never escaped again. The same parts the step's Log on the Logs tab
    *  draws, with the same separator line before each. */
   logs: LogPart[];
+  /** The steps the log has marked, in the order marked, listed above the Log. */
+  steps: JobStep[];
   /** The model the AI's parts name in their separator, when known. */
   aiModel?: string;
   /** The step's key on the Logs tab (`&step=`), when it has one there. */
@@ -66,14 +82,16 @@ export function phaseMessagesFold(g: SpecGroup, p: Phase, opts: SpecsPageOptions
   });
 }
 
-/** The row under an unfolded phase line, or nothing. */
+/** The rows under an unfolded phase line, or none: the steps its log marked, then the Log. */
 export function phaseMessagesRow(
   g: SpecGroup,
   p: Phase,
   opts: SpecsPageOptions,
   ran: boolean,
-): { tag: string; cells: string } | null {
-  if (!ran || !unfoldedKeys(opts.filter?.phases).has(phaseKey(g.project, g.specFolder, p.step))) return null;
+  now: number,
+): { tag: string; cells: string }[] {
+  const key = phaseKey(g.project, g.specFolder, p.step);
+  if (!ran || !unfoldedKeys(opts.filter?.phases).has(key)) return [];
   const lang = opts.lang ?? "en";
   const found = opts.phaseMessages?.(
     p.attempts.map((a) => a.id),
@@ -91,10 +109,66 @@ export function phaseMessagesRow(
   const body = modelLine + (!found
     ? `<p class="phasemsgempty muted">${esc(t(lang, "list.phaseNoneKept"))}</p>`
     : logBox(found.logs, found.aiModel, lang));
-  return {
-    tag: `<tr class="phasemsgs" data-msgs="${esc(p.step)}">`,
-    cells: `<td colspan="${LIST_COLUMNS}">${body}<a class="phasemsgopen" href="${href}">${esc(t(lang, "list.phaseOpenLog"))}</a></td>`,
-  };
+  return [
+    ...(found ? stepRows(found.steps, { prefix: key, filter: opts.filter ?? {}, listPath: opts.listPath, lang, now }) : []),
+    {
+      tag: `<tr class="phasemsgs" data-msgs="${esc(p.step)}">`,
+      cells: `<td colspan="${LIST_COLUMNS}">${body}<a class="phasemsgopen" href="${href}">${esc(t(lang, "list.phaseOpenLog"))}</a></td>`,
+    },
+  ];
+}
+
+/** A step's state, in the badge a phase line uses; a step not reached yet in a muted word. */
+function stepState(state: ProgressStepState | undefined, lang: Language): string {
+  if (state === "done") return badge("done", t(lang, "dialog.stepDone"));
+  if (state === "running") return badge("running", t(lang, "dialog.stepRunning"));
+  if (state === "failed") return badge("refused", t(lang, "dialog.stepFailed"));
+  return `<span class="muted small">${esc(t(lang, "dialog.stepWaiting"))}</span>`;
+}
+
+/** A step's time: its seconds once ended, counting from its start while it runs. */
+function stepTime(s: JobStep, now: number): string {
+  if (s.seconds !== undefined) return `<span class="muted small">${durationLabel(s.seconds * 1000)}</span>`;
+  if (s.since) {
+    return `<span class="muted small" data-elapsed="${esc(s.since)}">${durationLabel(Math.max(0, now - Date.parse(s.since)))}</span>`;
+  }
+  return "–";
+}
+
+/** A line per step, in the columns of a phase line, the name starting where a phase's does. A step its
+ *  log has marked unfolds to its own part of the log: the unfolded steps are in the address (`phases`),
+ *  each as `prefix` (the row's key) and the step's place. Its cost cell is the tokens the stream reported
+ *  while it ran, and a dash where none can be attributed to it. */
+export function stepRows(
+  steps: JobStep[],
+  o: { prefix: string; filter: SpecsFilter; listPath?: string; lang: Language; now: number },
+): { tag: string; cells: string }[] {
+  const unfolded = [...unfoldedKeys(o.filter.phases)];
+  return steps.flatMap((s, i) => {
+    const key = `${o.prefix}.${i}`;
+    const open = unfolded.includes(key);
+    const next = open ? unfolded.filter((k) => k !== key) : [...unfolded, key];
+    const arrow = s.logs?.length
+      ? foldArrow({
+          href: queuePath(o.filter, { phases: next.join(",") }, o.listPath),
+          open,
+          lang: o.lang,
+          title: "list.phaseFoldTitle",
+          params: { phase: s.label },
+        })
+      : "";
+    const row = {
+      tag: `<tr class="subrow" data-step="${esc(s.key)}" data-jobstep="1">`,
+      cells:
+        `<td class="phasecell" colspan="3">${arrow}${esc(s.label)}</td>` +
+        `<td data-col="state">${stepState(s.state, o.lang)}</td>` +
+        `<td data-col="started">${stepTime(s, o.now)}</td>` +
+        `<td class="num" data-col="cost">${s.tokens !== undefined ? tokens(s.tokens) : "–"}</td>`,
+    };
+    return open && s.logs?.length
+      ? [row, { tag: `<tr class="phasemsgs" data-msgs="${esc(s.key)}">`, cells: `<td colspan="${LIST_COLUMNS}">${logBox(s.logs, undefined, o.lang)}</td>` }]
+      : [row];
+  });
 }
 
 /** A step's Log in its box, part by part, or a line saying it has none. The

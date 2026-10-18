@@ -291,6 +291,17 @@ that ran the step, part by part and every line of it — in a box twenty lines t
 back to the start, and a link to that step on the Logs tab. The row is a window on that one log, not a shorter copy:
 Aide's own lines are in it in their place, so a landing's merge step and its test run show there while they go on.
 A phase whose job the queue has forgotten says no messages are kept and links to the Logs tab itself.
+Above the Log the unfolded row lists the steps the attempt's log has marked, in the order marked and Aide's own among
+them, as the job row's step lines do (`stepRows`, `render/pages/specs-list/phase-messages/index.ts`): the state, the
+time once it ended or counting from its start while it runs, and the tokens, with a › to its own part of the Log. The
+step's key in `?phases=` is the phase's key and the step's index, `aide/01-x:analyze.0`. An attempt that marked no
+step lists none.
+
+**Tokens per step.** A step's tokens are the usage the stream reported between its marks, summed per model call. A
+tool that reports usage less often than per call gives a step what can be attributed to it: Claude reports per message
+(output tokens are the count at the message's start, so a step reads low on output), opencode per model step, and Codex
+once per turn, so a Codex step shows a dash unless it was open through a whole turn. A run from before the marks were
+recorded shows a dash on its model steps, for time and for tokens.
 A phase that is only queued, or that nothing touched, has no ›.
 
 ## Which tests prove a criterion
@@ -600,8 +611,10 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   live spec's row keeps its four phases, its own badge and its own notice. The open job row has a line per step the job will run —
   Aide's own parts, the skill's steps and the merge into main, from the skill's `Step N of X` headings
   (`stepPlan()`) — in the row's own columns: the step's state as a badge under State/Action, from the job's log
-  (`closeOrReopenSteps`, `serve/spec-views/job-marks.ts`); its time under Time, for Aide's own steps, off the run
-  log's `+Ns` stamps (counting while it runs); and a dash under Cost, since the job's cost is the row's. A step's
+  (`closeOrReopenSteps`, `serve/spec-views/job-marks.ts`); its time under Time, off the run log's `+Ns` stamps
+  (counting while it runs), for Aide's own steps and for the model's in a run whose runner recorded its marks; and
+  the tokens the stream reported while it ran under Cost (`stepTokens`, `queue/parse-stream/step-tokens.ts`), a dash
+  where none can be attributed to it, since a step has no dollar figure and the job's cost is the row's. A step's
   name starts where a spec's phase names do, and a step the log has marked unfolds with its › to its own part of
   the job's Log, as a phase does: from its first mark until it ended, with what came between two steps given to
   the next (`stepSlices`, `queue/parse-stream/step-marks.ts`). The unfolded steps are in `?phases=`, each as the

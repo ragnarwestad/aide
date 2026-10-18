@@ -7,11 +7,12 @@
 // minutes (512's implement: nine in 33 minutes, over 107 commands), so
 // the row looked frozen while the step was busy.
 import type { QueueStore } from "../../queue/queue.ts";
-import { stepLog } from "../../queue/parse-stream";
+import { stepLog, stepMarks, stepTokens } from "../../queue/parse-stream";
 import type { PhaseMessages } from "../../render";
 import { tailFileAt } from "../serve-helpers";
 import { readCodexSession } from "./codex-sessions.ts";
 import { readRunLog } from "./job-detail.ts";
+import { stepLinesOf } from "./job-marks.ts";
 import { stepKey, workRoundJobs } from "./work-round.ts";
 
 /** `attemptIds` is newest first; the first attempt that ran (or is
@@ -36,8 +37,11 @@ export function phaseMessagesFor(
     const transcript = file ? tailFileAt(file, Infinity) : { text: "", start: 0 };
     const runLog = file ? readRunLog(file) : undefined;
     const { logs } = stepLog(transcript, runLog, { tool: result?.tool, final: !running, codexSession: readCodexSession });
+    // The steps the log marked, each with its time and the tokens it used, listed above the Log.
+    const marks = stepMarks(logs, stepTokens(transcript.text, result?.tool));
     return {
       logs,
+      steps: stepLinesOf(marks, logs, [], Date.parse(job.stepStartedAt ?? job.startedAt ?? ""), running),
       step: stepKey(workRoundJobs(queue, job.project, job.specFolder), job, step),
       running,
     };

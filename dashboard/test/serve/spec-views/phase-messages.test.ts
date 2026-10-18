@@ -138,6 +138,57 @@ describe("phaseMessagesFor", () => {
   });
 });
 
+// The steps the attempt's log has marked, with their time and tokens: what a phase's unfold
+// lists above its Log.
+describe("phaseMessagesFor: the steps the log has marked", () => {
+  const usage = (n: number) => ({ input_tokens: n, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 });
+  const call = (id: string, text: string, tokens: number) => ({ type: "assistant", message: { id, content: [{ type: "text", text }], usage: usage(tokens) } });
+  /** A stream and its run log, whose lines are stamped `[seconds, text]`. */
+  const logged = (events: unknown[], runLog: [number, string][]): string => {
+    const file = stream(events);
+    writeFileSync(file.replace(/\.stream\.jsonl$/, ".run.log"), runLog.map(([sec, l]) => `aide-run-spec 10:00:00 +${sec}s ${l}`).join("\n") + "\n");
+    return file;
+  };
+  const RUN_LOG: [number, string][] = [
+    [0, "--- Step Aide: preparing — started"],
+    [2, "--- Step Aide: preparing — done"],
+    [2, "model turn started (transcript at byte 0)"],
+    [3, "--- Step 1 of 2: Read — started"],
+    [10, "--- Step 1 of 2: Read — done"],
+    [11, "--- Step 2 of 2: Write — started"],
+  ];
+  const EVENTS = [call("m1", "--- Step 1 of 2: Read — started", 100), call("m2", "--- Step 1 of 2: Read — done", 20), call("m3", "--- Step 2 of 2: Write — started", 7)];
+
+  test("a finished attempt lists them in the order marked, Aide's own among them, each with its seconds and tokens (AC-2, AC-3)", () => {
+    const runLog: [number, string][] = [...RUN_LOG, [30, "--- Step 2 of 2: Write — done"], [31, "--- Step Aide: tests and commit — started"], [40, "--- Step Aide: tests and commit — done"]];
+    const streamFile = logged([...EVENTS, call("m4", "--- Step 2 of 2: Write — done", 3)], runLog);
+    const j = job("a", { results: [{ step: "analyze", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", tool: "claude", streamFile } as never] });
+    const got = phaseMessagesFor(queueOf([j]), ["a"], "analyze");
+    expect(got?.steps.map((s) => [s.label, s.state, s.seconds, s.tokens])).toEqual([
+      ["Preparing", "done", 2, undefined],
+      ["Read", "done", 7, 120],
+      ["Write", "done", 19, 10],
+      ["Tests and commit", "done", 9, undefined],
+    ]);
+    expect(got?.steps.find((s) => s.label === "Read")?.logs?.flatMap((p) => p.lines).join("\n")).toContain("Read — started");
+  });
+
+  test("a running attempt counts its open step from its start (AC-2)", () => {
+    const streamFile = logged(EVENTS, RUN_LOG);
+    const j = job("r", { state: "running", steps: ["analyze"], stepIndex: 0, streamFile, stepStartedAt: "2026-09-19T10:00:00Z" });
+    const write = phaseMessagesFor(queueOf([j]), ["r"], "analyze")?.steps.find((s) => s.label === "Write");
+    expect(write).toMatchObject({ state: "running", since: "2026-09-19T10:00:11.000Z", tokens: 7 });
+    expect(write?.seconds).toBeUndefined();
+  });
+
+  test("an attempt that marked no step lists none, and the Log is as before (AC-2)", () => {
+    const j = job("a", { results: [finishedStep("analyze", [said("plain words")])] });
+    const got = phaseMessagesFor(queueOf([j]), ["a"], "analyze");
+    expect(got?.steps).toEqual([]);
+    expect(lines(got)).toEqual(["plain words"]);
+  });
+});
+
 describe("the key it returns is the Logs tab's own (AC-5)", () => {
   const ctxFor = (jobs: Job[]): SpecViewsContext =>
     ({

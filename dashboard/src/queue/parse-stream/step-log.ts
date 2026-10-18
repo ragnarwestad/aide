@@ -3,6 +3,7 @@
 //
 // The run log's grammar, and nothing else about the file:
 //   aide-run-spec HH:MM:SS +Ns <text>                                     something the run did
+//   aide-run-spec HH:MM:SS +Ns --- Step N of X: <title> — started|done|…   a mark the model wrote, with its time
 //   aide-run-spec HH:MM:SS +Ns error: <text>                              a failure
 //   aide-run-spec HH:MM:SS +Ns model turn started (transcript at byte N)  where the AI's next turn begins
 //   aide-run-spec: <text>                                                 an older, unstamped note
@@ -11,7 +12,8 @@ import { aiParts, type AiTurn, type BuiltPart, type Owned } from "./ai-turn.ts";
 import { claudeSubagents } from "./claude-subagents.ts";
 import { codexSpawns } from "./codex-subagents.ts";
 import { codexNumbering } from "./numbering.ts";
-import { esc, sniff, type ItemNumbering, type SummarizeOptions } from "./shared.ts";
+import { clip, esc, sniff, type ItemNumbering, type SummarizeOptions } from "./shared.ts";
+import { markOf } from "./step-marks.ts";
 
 export type LogPart = TextPart | SubagentPart;
 
@@ -38,7 +40,10 @@ export interface SubagentPart {
   unread?: { thread: string };
 }
 
-type RunLine = { turn: true; offset?: number } | { turn?: false; text: string; error: boolean };
+/** `marked` is set on a stamped line that is a mark with a number place (`Step N of X`): the model's own
+ *  mark as `aide-run-spec` recorded it, or the landing's merge step. */
+type RunLine = { turn: true; offset?: number } | { turn?: false; text: string; error: boolean; marked?: { stamp: string; body: string } };
+const NUMBERED_MARK = /^--- Step \d+ of \d+: /;
 
 const STAMPED = /^aide-run-spec (\d\d:\d\d:\d\d) \+(\d+)s (.*)$/;
 const TURN = /^model turn started(?: \(transcript at byte (\d+)\))?$/;
@@ -55,7 +60,10 @@ function parseRunLog(runLog: string): RunLine[] {
     const [, clock, seconds, body] = stamped as unknown as [string, string, string, string];
     const turn = TURN.exec(body);
     if (turn) out.push({ turn: true, offset: turn[1] === undefined ? undefined : Number(turn[1]) });
-    else out.push({ text: esc(`${clock} +${seconds}s ${body}`), error: body.startsWith("error: ") });
+    else {
+      const stamp = `${clock} +${seconds}s`;
+      out.push({ text: esc(`${stamp} ${body}`), error: body.startsWith("error: "), ...(NUMBERED_MARK.test(body) ? { marked: { stamp, body } } : {}) });
+    }
   }
   return out;
 }
@@ -73,9 +81,13 @@ export function stepLog(
   const opts = { tool: o.tool, max: Infinity, whole: true }; // the Log is the whole step, every line of it in full
   const tool = o.tool ?? sniff(transcript.text);
   const aideParts: (BuiltPart | AiTurn)[] = [];
+  const noted: NotedMark[] = [];
   const aide = (by: TextPart["by"], lines: RunLine[]) => {
     const own = lines.filter((l): l is Extract<RunLine, { text: string }> => !l.turn);
-    if (own.length) aideParts.push({ part: { by, lines: own.map((l) => l.text) }, errors: own.filter((l) => l.error).map((l) => l.text) });
+    if (!own.length) return;
+    const part: TextPart = { by, lines: own.map((l) => l.text) };
+    aideParts.push({ part, errors: own.filter((l) => l.error).map((l) => l.text) });
+    for (const l of own) if (l.marked) noted.push({ ...l.marked, text: l.text, part });
   };
   const codex = tool === "codex";
   const turns: AiTurn[] = [];
@@ -115,7 +127,39 @@ export function stepLog(
   const built = aideParts.flatMap((p) =>
     "part" in p ? [p] : aiParts(p, opts, { final: o.final, claude, spawns: owned.get(p) ?? [], reader: o.codexSession }),
   );
+  stampModelMarks(built.map((b) => b.part), noted);
   return { logs: built.map((b) => b.part), errors: built.flatMap((b) => b.errors) };
+}
+
+/** A stamped mark line of the run log, and the part of Aide's it stands in. */
+interface NotedMark {
+  stamp: string;
+  body: string;
+  text: string;
+  part: TextPart;
+}
+
+/** `aide-run-spec` records each mark the model writes in the run log with its time, while the
+ *  model's own line stands in the transcript without one. The model's line takes the stamp, in
+ *  order, and the recorded line is dropped from Aide's part, so a mark is one line of the Log
+ *  and `stepMarks` reads its time off it. A recorded line no line of the model matches stays
+ *  where it was: the landing's merge step, a title the Log clips past its ending, a transcript
+ *  read from a later byte. */
+function stampModelMarks(parts: LogPart[], noted: NotedMark[]): void {
+  if (noted.length === 0) return;
+  let next = 0;
+  for (const part of parts) {
+    if (part.by !== "ai") continue;
+    part.lines = part.lines.map((line) => {
+      if (!markOf(line)) return line;
+      const at = noted.findIndex((n, i) => i >= next && esc(clip(n.body)) === line);
+      if (at < 0) return line;
+      const [used] = noted.splice(at, 1) as [NotedMark];
+      next = at;
+      used.part.lines.splice(used.part.lines.indexOf(used.text), 1);
+      return `${used.stamp} ${line}`;
+    });
+  }
 }
 
 /** Which turn each subagent a thread's session file says it started belongs

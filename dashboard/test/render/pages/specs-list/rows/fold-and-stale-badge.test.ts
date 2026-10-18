@@ -171,7 +171,7 @@ describe("an open row on the Specs list is the spec alone (AC-1, AC-2, AC-3)", (
     targets,
     archivedSpecs: [archived],
     modelChoices: [{ name: "sonnet" }, { name: "codex-fast", tool: "codex" }],
-    phaseMessages: () => ({ logs: [{ by: "ai" as const, lines: [] }], running: false }),
+    phaseMessages: () => ({ logs: [{ by: "ai" as const, lines: [] }], steps: [], running: false }),
   };
   const specs = ["aide/81-queue-x", "aide/82-queue-y", "aide/50-archived"];
 

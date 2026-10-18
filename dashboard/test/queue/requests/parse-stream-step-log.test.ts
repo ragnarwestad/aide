@@ -3,7 +3,7 @@
 // the byte each turn line names; the grammar of the run log is read here.
 
 import { describe, expect, test } from "bun:test";
-import { stepLog, type LogPart, type SubagentPart } from "../../../src/queue/parse-stream";
+import { stepLog, stepMarks, stepSlices, type LogPart, type SubagentPart } from "../../../src/queue/parse-stream";
 import { feasibility, lines as fileOf, ran, S, S2, sAgent, sDone, sEdit, sRan, sSpawn, started, said as codexSaid, T } from "../../helpers/codex-fixtures.ts";
 
 const line = (o: unknown) => JSON.stringify(o);
@@ -339,5 +339,56 @@ describe("stepLog: a Codex subagent's own part", () => {
     const { logs } = codex(stream(own), files({ [T]: parent, [S]: feasibility.child }));
 
     expect(subagents(logs)).toHaveLength(1);
+  });
+});
+
+// `aide-run-spec` writes each mark the model writes into the run log with its time, as it
+// sees it. The Log shows it once: the model's own line, with that stamp in front.
+describe("stepLog: the stamp on a mark the model wrote", () => {
+  const A = "--- Step 1 of 4: Read — started";
+  const B = "--- Step 1 of 4: Read — done";
+  const transcript = [say(A), say("worked"), say(B)].join("\n") + "\n";
+  const runLog = (...marks: string[]) => [stamp(0, "lock"), turn(0), ...marks, stamp(9, "the project's tests are green")].join("\n") + "\n";
+  const aiLines = (logs: LogPart[]) => logs.filter((p) => p.by === "ai").flatMap((p) => p.lines);
+  const aideLines = (logs: LogPart[]) => logs.filter((p) => p.by !== "ai" && p.by !== "subagent").flatMap((p) => p.lines);
+
+  test("each mark is one line, the model's own, with its recorded time in front (AC-1)", () => {
+    const { logs } = read(transcript, runLog(stamp(2, A), stamp(7, B)), { final: false });
+    expect(aiLines(logs)).toEqual([`10:45:02 +2s ${A}`, "worked", `10:45:07 +7s ${B}`]);
+    expect(aideLines(logs).join("\n")).not.toContain("Read");
+  });
+
+  test("the time reaches the step and the slices cut at the marks hold what lies between them (AC-1, AC-2)", () => {
+    const { logs } = read(transcript, runLog(stamp(2, A), stamp(7, B)), { final: false });
+    expect(stepMarks(logs)[0]).toMatchObject({ key: "Step 1 of 4", state: "done", startedSec: 2, endedSec: 7 });
+    // Aide's lines before the first mark and after the last stand in the step's slice too.
+    expect(aiLines(stepSlices(logs).get("Step 1 of 4")!)).toEqual([`10:45:02 +2s ${A}`, "worked", `10:45:07 +7s ${B}`]);
+  });
+
+  test("the same mark written twice takes the stamps in the order they were recorded (AC-1)", () => {
+    const twice = [say(A), say(B), say(A)].join("\n") + "\n";
+    const { logs } = read(twice, runLog(stamp(1, A), stamp(2, B), stamp(5, A)), { final: false });
+    expect(aiLines(logs)).toEqual([`10:45:01 +1s ${A}`, `10:45:02 +2s ${B}`, `10:45:05 +5s ${A}`]);
+  });
+
+  test("a stamped mark no line of the model matches stays among Aide's lines (AC-1)", () => {
+    const merge = "--- Step 11 of 11: Merge into main — started";
+    const { logs } = read(transcript, runLog(stamp(2, A), stamp(7, B), stamp(8, merge)), { final: false });
+    expect(aideLines(logs)).toContain(`10:45:08 +8s ${merge}`);
+    expect(aiLines(logs)).toEqual([`10:45:02 +2s ${A}`, "worked", `10:45:07 +7s ${B}`]);
+  });
+
+  test("a title past the Log's clip loses its ending there, so its stamped line stays and carries the time (AC-1)", () => {
+    const long = `--- Step 2 of 4: ${"x".repeat(200)} — started`;
+    const { logs } = read(say(long) + "\n", runLog(stamp(3, long)), { final: false });
+    expect(aideLines(logs)).toContain(`10:45:03 +3s ${long}`);
+    expect(aiLines(logs)[0]).toMatch(/^--- Step 2 of 4: x+…$/);
+    expect(stepMarks(logs)[0]).toMatchObject({ key: "Step 2 of 4", startedSec: 3 });
+  });
+
+  test("a run log with no stamped marks leaves the model's lines as written (AC-1)", () => {
+    const { logs } = read(transcript, runLog(), { final: false });
+    expect(aiLines(logs)).toEqual([A, "worked", B]);
+    expect(stepMarks(logs)[0]!.startedSec).toBeUndefined();
   });
 });

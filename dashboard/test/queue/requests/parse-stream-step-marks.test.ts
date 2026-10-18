@@ -59,6 +59,22 @@ describe("a mark is a line of its own", () => {
   });
 });
 
+// The line rule is decided twice, in bash (`model-marks.sh` records the lines) and
+// here (`splitMarks` shows them); one table pins both.
+describe("which lines are marks, for every case of the shared table", () => {
+  const cases = JSON.parse(readFileSync(join(import.meta.dir, "../../../../core/tests/fixtures/model-marks.json"), "utf-8")).cases as {
+    name: string;
+    text: string;
+    shown: string[];
+  }[];
+  test("the marks the Log shows are the table's `shown` lines (AC-1)", () => {
+    for (const c of cases) {
+      const marks = summarizeEntries(say(c.text), { tool: "claude" }).filter((e) => e.mark);
+      expect([c.name, marks.map((e) => e.text)]).toEqual([c.name, c.shown]);
+    }
+  });
+});
+
 describe("no bound drops a mark", () => {
   test("forty later lines push out older lines but not the marks among them", () => {
     const text = [say(START), bash("early"), say(DONE), ...Array.from({ length: 40 }, (_, i) => bash(`later ${i}`))].join("\n");

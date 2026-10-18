@@ -267,6 +267,7 @@ the transcript alone. The grammar is the whole contract between the bash script 
 aide-run-spec HH:MM:SS +Ns <text>                                      something the run did
 aide-run-spec HH:MM:SS +Ns error: <text>                               a failure, listed in the Errors tab
 aide-run-spec HH:MM:SS +Ns model turn started (transcript at byte N)   where the AI's next turn begins
+aide-run-spec HH:MM:SS +Ns --- Step N of X: <title> — started          a step mark the model wrote, with its time
 aide-run-spec: <text>                                                  an older, unstamped note
 <anything else>                                                        another script's line on stderr
 ```
@@ -276,6 +277,18 @@ its first line, `— done` just before the AI's first turn; `--- Step Aide: test
 ending `— done`, or `— stopped: <why>` for a step that failed. A model turn closes the part it interrupts and a fix
 turn opens it again after itself, so the log reads as one sequence of marked parts (`aide_part_open`,
 `aide_part_close`).
+
+The marks the model writes itself are dated while it works. The wait loop of `run_model_turn` reads the transcript's new
+bytes each time it polls (`model_marks_record`, `run-spec/turn/model-marks.sh`), finds the lines of the model's own
+text that are marks and prints each into the run log, so it carries the run's clock like Aide's own parts. The three
+tools share no clock of their own, so the time is the moment the runner first sees the line, at most a poll (0.2
+seconds) late; a model that writes several marks at once gets the same second for each, in order. The text is a
+`text` block of a Claude `assistant` event with no `parent_tool_use_id`, the text of a Codex `agent_message` item
+(`item_type` or `type`), or an opencode `text` part. A turn reads from where its own output begins, so the review's and
+a fix turn's marks are each recorded once; a line past 1 MiB is skipped, and a last line with no newline is read when
+the turn ends. The page shows the model's own line with that time in front and drops the recorded copy, so a mark is
+one line of the Log, and a recorded line no line of the model matches (the landing's merge step, a title the Log clips
+past its ending) stays among Aide's. A run from before has no recorded marks, and its model steps show a dash for time.
 
 A `schedule` step's prompt is the prompt file's text, then a request to split the work into a few named steps and mark
 each one with the same lines (`schedule_step_note`, `core/scripts/lib/run-spec/setup/invocation.sh`), then the headless

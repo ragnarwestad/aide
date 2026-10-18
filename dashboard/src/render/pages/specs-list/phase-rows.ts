@@ -327,8 +327,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
           }</td>`,
       });
       // The model's own messages, unfolded under the line (spec 500).
-      const messages = phaseMessagesRow(g, p, opts, ran);
-      if (messages) lines.push(messages);
+      lines.push(...phaseMessagesRow(g, p, opts, ran, now));
     });
   // Spec 386 drew the same switch as the New-spec page here, on a row
   // of its own. Spec 394 (REQ-2, REQ-8) removes it: the choice now lives

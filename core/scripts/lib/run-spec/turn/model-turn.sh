@@ -39,6 +39,9 @@ run_model_turn() {
   child=$!
   set +m
 
+  # The model's step marks go into the run log as they are written, each with the
+  # run's clock (run-spec/turn/model-marks.sh).
+  model_marks_begin "${turn_at:-0}"
   stopped=""
   deadline=$(( started_at + ${timeout_sec%.*} ))
   while kill -0 "$child" 2>/dev/null; do
@@ -52,10 +55,12 @@ run_model_turn() {
       kill -0 "$child" 2>/dev/null && kill_group KILL
       break
     fi
+    model_marks_record
     sleep 0.2
   done
   wait "$child" 2>/dev/null
   exit_code=$?
+  model_marks_record final
   # The turn is over; whatever it started and left running — a suite's
   # board, a decoy server — is stopped with its group, not left to hold
   # ports and slow every later run (2026-09-19).

@@ -4,7 +4,8 @@
 //
 // The marks have three writers, all in one shape: `aide-run-spec`'s own
 // parts in the run log (`--- Step Aide: preparing — started`), the
-// skill's steps in the transcript (`--- Step 1 of 4: … — done`), and the
+// skill's steps in the transcript (`--- Step 1 of 4: … — done`, which the
+// Log shows with the time `aide-run-spec` recorded for it), and the
 // landing's merge step in the run log, prefixed `error: ` when it stopped.
 import { capitalizeFirst } from "../../format/error-sentence.ts";
 import type { LogPart } from "./step-log.ts";
@@ -22,9 +23,13 @@ export interface StepMark {
   /** A stopped mark's reason, as the log wrote it. */
   why?: string;
   /** Seconds into the run the step started and ended, off the run log's
-   *  `+Ns` stamp: Aide's own steps have them, the model's never do. */
+   *  `+Ns` stamp: Aide's own steps have them, and so do the model's in a run
+   *  whose runner recorded its marks. A run from before has none for the model's. */
   startedSec?: number;
   endedSec?: number;
+  /** The tokens the stream reported while the step ran (`stepTokens`). Only a
+   *  step with a recorded time has them: a run from before shows none. */
+  tokens?: number;
 }
 
 /** A step's key, shared by a mark and the planned line it moves: the place
@@ -46,7 +51,7 @@ const STATE: Record<string, StepMark["state"]> = { started: "running", done: "do
 const unescape = (s: string): string =>
   s.replace(/&quot;/g, '"').replace(/&gt;/g, ">").replace(/&lt;/g, "<").replace(/&amp;/g, "&");
 
-export function stepMarks(logs: LogPart[]): StepMark[] {
+export function stepMarks(logs: LogPart[], tokens?: Map<string, number>): StepMark[] {
   const byKey = new Map<string, StepMark>();
   for (const line of logs.flatMap((part) => part.lines)) {
     const bare = unescape(line);
@@ -75,13 +80,14 @@ export function stepMarks(logs: LogPart[]): StepMark[] {
       ...(reason ? { why: reason } : {}),
       ...(startedSec !== undefined ? { startedSec } : {}),
       ...(endedSec !== undefined && startedSec !== undefined ? { endedSec } : {}),
+      ...(startedSec !== undefined && tokens?.has(key) ? { tokens: tokens.get(key)! } : {}),
     });
   }
   return [...byKey.values()];
 }
 
 /** The step a line marks and whether the mark ends it, or undefined for any other line. */
-function markOf(line: string): { key: string; ends: boolean } | undefined {
+export function markOf(line: string): { key: string; ends: boolean } | undefined {
   const match = MARK.exec(unescape(line).replace(PREFIX, ""));
   return match ? { key: stepKey(match[1]!, match[2]!), ends: match[3] !== "started" } : undefined;
 }

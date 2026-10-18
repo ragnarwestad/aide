@@ -1,0 +1,100 @@
+{
+  "_comment": [
+    "Which lines of a model's text are step marks.",
+    "`aide-run-spec` records the lines under `recorded` into the run log while the model runs",
+    "(core/scripts/lib/run-spec/turn/model-marks.sh); the board shows the lines under `shown` as marks",
+    "(`splitMarks`, dashboard/src/queue/parse-stream/shared.ts). The two differ for the older",
+    "`analyze · Step` form, which the board still reads and the runner never records, and for a",
+    "title past 160 characters, which the board clips and the runner records whole.",
+    "",
+    "`text` is one block of the model's text."
+  ],
+  "cases": [
+    {
+      "name": "bare",
+      "text": "--- Step 1 of 9: Read the description — started",
+      "recorded": [
+        "--- Step 1 of 9: Read the description — started"
+      ],
+      "shown": [
+        "--- Step 1 of 9: Read the description — started"
+      ]
+    },
+    {
+      "name": "in backticks",
+      "text": "`--- Step 1 of 9: Read the description — started`",
+      "recorded": [
+        "--- Step 1 of 9: Read the description — started"
+      ],
+      "shown": [
+        "--- Step 1 of 9: Read the description — started"
+      ]
+    },
+    {
+      "name": "in bold",
+      "text": "**--- Step 1 of 9: Read the description — done**",
+      "recorded": [
+        "--- Step 1 of 9: Read the description — done"
+      ],
+      "shown": [
+        "--- Step 1 of 9: Read the description — done"
+      ]
+    },
+    {
+      "name": "two marks with prose between",
+      "text": "--- Step 1 of 9: Read the description — started\n\nThe description asks for two tabs.\n\n--- Step 1 of 9: Read the description — done",
+      "recorded": [
+        "--- Step 1 of 9: Read the description — started",
+        "--- Step 1 of 9: Read the description — done"
+      ],
+      "shown": [
+        "--- Step 1 of 9: Read the description — started",
+        "--- Step 1 of 9: Read the description — done"
+      ]
+    },
+    {
+      "name": "a done with a note",
+      "text": "--- Step 4 of 9: Check for work already begun — done (nothing to keep)",
+      "recorded": [
+        "--- Step 4 of 9: Check for work already begun — done (nothing to keep)"
+      ],
+      "shown": [
+        "--- Step 4 of 9: Check for work already begun — done (nothing to keep)"
+      ]
+    },
+    {
+      "name": "a skipped with its reason",
+      "text": "--- Step 5 of 9: Update — skipped: nothing to update",
+      "recorded": [
+        "--- Step 5 of 9: Update — skipped: nothing to update"
+      ],
+      "shown": [
+        "--- Step 5 of 9: Update — skipped: nothing to update"
+      ]
+    },
+    {
+      "name": "a mention of a step",
+      "text": "Step 6 (Create the implementation plan) first.",
+      "recorded": [],
+      "shown": []
+    },
+    {
+      "name": "a title past 160 characters",
+      "text": "--- Step 2 of 9: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx — started",
+      "recorded": [
+        "--- Step 2 of 9: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx — started"
+      ],
+      "shown": [
+        "--- Step 2 of 9: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx…"
+      ]
+    },
+    {
+      "name": "the older form",
+      "text": "analyze · Step 1 of 9: Read the description — done",
+      "recorded": [],
+      "shown": [
+        "analyze · Step 1 of 9: Read the description — done"
+      ]
+    }
+  ]
+}
