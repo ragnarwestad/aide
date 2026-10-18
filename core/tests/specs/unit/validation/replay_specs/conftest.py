@@ -118,6 +118,7 @@ ls -A "$proj" > "$rec/project-files"
 cp "$sroot/$spec/1-description.md" "$rec/description"
 [ -f "$sroot/$spec/3-solution.md" ] && cp "$sroot/$spec/3-solution.md" "$rec/solution"
 cp "$sroot/$spec/2-analysis.md" "$rec/analysis"
+mkdir -p "$rec/status" && cp "$sroot/$spec"/4-status.* "$rec/status/"
 if [ "${CLAUDE_CONFIG_DIR-}" ]; then
   ls "$CLAUDE_CONFIG_DIR/skills" > "$rec/claude-skills"; ls "$CLAUDE_CONFIG_DIR/rules" > "$rec/claude-rules"
   cp "$CLAUDE_CONFIG_DIR/skills/aide-analyze/SKILL.md" "$rec/claude-skill"
@@ -157,6 +158,8 @@ echo "$line"
 '''
 
 SKILLS = ("aide-analyze", "aide-implement", "spec-structure")
+# What the runner's phase gate reads, copied into the stand-in Aide commit as the real one has it.
+SPEC_STATE_LIB = ("spec-transitions.sh", "spec-state.sh", "status-progress.sh", "transitions.json", "workflow-steps.json")
 RULES = ("llm-discipline", "git", "testing", "spec-structure", "communication", "extra")
 
 
@@ -166,7 +169,7 @@ def build_aide_commit(repo, version, rules_line, takes_worktree_base=True):
     scripts = repo / "core" / "scripts"
     write(scripts / "aide-run-spec", runner)
     write(scripts / "aide-write-spec", f"#!/usr/bin/env bash\n# write-spec {version}\n", 0o755)
-    for name in ("aide-reset-spec", "_aide-spec-lib.sh"):
+    for name in ("aide-reset-spec", "_aide-spec-lib.sh", *(f"lib/{n}" for n in SPEC_STATE_LIB)):
         write(scripts / name, (WORKSPACE / "core" / "scripts" / name).read_text(), 0o755)
     for skill in SKILLS:
         write(repo / "core" / "skills" / skill / "SKILL.md", f"skill {skill} {version}\n")

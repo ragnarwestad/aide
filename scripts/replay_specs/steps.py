@@ -169,6 +169,7 @@ def original_tests(run, folder, found, code_dir, work):
 def replay_steps(run, row, folder, archived, found, code_dir, specs_repo, specs_dir, work):
     if run.analyze is None:
         row.notes += ("analyze skipped",)
+        copies.mark_analyzed(specs_dir, folder, run.core)
         replay_implement(run, row, folder, found, code_dir, specs_dir, work)
         return
     out = run.out / folder

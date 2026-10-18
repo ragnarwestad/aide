@@ -165,3 +165,17 @@ def specs_copy(archived, folder, project, dest, core, specs_root):
     git(str(dest), "add", "-A")
     git(str(dest), "commit", "--quiet", "-m", f"Run /aide-create for {folder}")
     return str(root)
+
+
+def mark_analyzed(root, folder, core):
+    """Record analyze as run in the specs copy, the way the runner records a completed one, with the analysis and
+    the plan left as the templates wrote them: the runner refuses implement on a spec that has not analyzed."""
+    status = Path(root) / folder / "4-status.md"
+    stamp = subprocess.run(["bash", "-c", 'source "$1" && write_phase_stamp "$2" workflow-line "create, analyze" '
+                            '&& write_spec_state "$2" "create, analyze"', "mark",
+                            str(core / "scripts" / "lib" / "spec-transitions.sh"), str(status)], capture_output=True, text=True)
+    if stamp.returncode != 0:
+        raise CannotReplay(f"analyze could not be recorded as run: {stamp.stderr.strip() or stamp.stdout.strip()}")
+    repo = str(Path(root).parent)
+    git(repo, "add", "-A")
+    git(repo, "commit", "--quiet", "-m", f"Record analyze as run for {folder}, skipped by the replay")

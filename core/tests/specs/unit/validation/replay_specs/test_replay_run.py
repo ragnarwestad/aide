@@ -9,7 +9,7 @@ import time
 
 import pytest
 
-from .conftest import SCRIPT_DIR, git, judge_says, snapshot, write
+from .conftest import SCRIPT_DIR, WORKSPACE, git, judge_says, snapshot, write
 
 PLAN = """# Plan
 
@@ -275,6 +275,14 @@ def test_the_row_says_how_many_of_the_files_the_landing_changed_the_analysis_nam
     assert row["Files found"] == "1/2 (+1 not changed)"
 
 
+def runner_lets_implement_start(status):
+    """The real runner's own phase gate, asked about the spec implement was handed."""
+    gate = subprocess.run(["bash", "-c", 'source "$1" && may_apply_spec_transition "$2" implement', "gate",
+                           str(WORKSPACE / "core" / "scripts" / "lib" / "spec-transitions.sh"), str(status)],
+                          capture_output=True, text=True)
+    return gate.returncode == 0
+
+
 def test_with_analyze_skipped_implement_builds_from_the_description_alone_and_no_plan_is_judged(world, replay_main):
     assert replay_main(world.argv("4-replayed", analyze=None, extra=("--skip-analyze",))) == 0
 
@@ -283,6 +291,7 @@ def test_with_analyze_skipped_implement_builds_from_the_description_alone_and_no
     solution = world.record("implement", "solution")
     assert "NEW-PLAN-MARKER" not in solution and "ORIGINAL-PLAN-MARKER" not in solution
     assert world.record("judge", "prompt") is None and not (world.standin / "judge-prompt").exists()
+    assert runner_lets_implement_start(world.standin / "implement" / "status" / "4-status.md")
     (row,) = table(results_text(world))[:1]
     assert row["Judge"] == "–" and "analyze skipped" in row["Note"]
     assert "no analyze" in results_text(world).splitlines()[0]
