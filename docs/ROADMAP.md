@@ -118,8 +118,30 @@ found one fixed flow far too heavy for a small bug fix. Kinds of task:
 
 - **A bug fix:** a test that reproduces the bug is red before the change and green after it.
 - **A refactor:** the behaviour does not change, so the existing tests stay as they are and green throughout.
-- **A quick fix:** a small change skips the analysis, or gets a short plan without a plan review.
+- **A quick fix:** a small change gets a short analysis without a plan or a plan review, as described below.
 - **Explore first:** the analysis builds a throwaway prototype to learn from before it writes the plan.
+
+How a quick fix could work, with analyze deciding rather than the person writing the spec:
+
+- **Analyze always runs, and first judges the spec.** It finds the files the change touches and grades the spec.
+  A spec simple enough gets a short analysis: the files to change and where the tests sit, under a plain mark that
+  there is no plan and no plan review. Implement then knows what it has and what it lacks.
+- **The runner holds the line, not the model.** Analyze writes what the grade rests on as fixed fields: files to
+  change, separate places in the code, acceptance criteria. The short path is allowed only below limits the runner
+  checks itself, whatever the model thinks, set from measurements and perhaps per project.
+- **Implement can send the spec back, once.** When implement finds the spec is not simple after all, it ends with
+  a reason of its own, and the runner queues analyze with a full analysis required and no judgement, then
+  implement again. The requirement is kept on the spec, so it cannot go back and forth.
+- **The row says which path it took:** a short analysis, or sent back to a full one.
+- **A spec that asks to choose the approach always gets a full analysis,** since a short one weighs no
+  alternatives.
+
+What a measurement found: implement with Sonnet run on six archived specs with no analysis at all was green at the
+first try on four of them, for less than the original implement runs cost, and saved the analysis on Opus, $1.45 to
+$9.70 a spec. On the other two the implement skill refused to start, on its own judgement and not on size: one of
+them was smaller than a spec that ran. That is why the short path writes the files and the place for the tests,
+and why the runner, not the model, decides when it is taken. The next step is to measure the short analysis
+itself on more specs, with `scripts/replay_specs`, before the flow is built.
 
 ### 14. More than one way to run a step
 
