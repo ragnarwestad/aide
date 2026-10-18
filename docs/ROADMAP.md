@@ -140,8 +140,16 @@ What a measurement found: implement with Sonnet run on six archived specs with n
 first try on four of them, for less than the original implement runs cost, and saved the analysis on Opus, $1.45 to
 $9.70 a spec. On the other two the implement skill refused to start, on its own judgement and not on size: one of
 them was smaller than a spec that ran. That is why the short path writes the files and the place for the tests,
-and why the runner, not the model, decides when it is taken. The next step is to measure the short analysis
-itself on more specs, with `scripts/replay_specs`, before the flow is built.
+and why the runner, not the model, decides when it is taken. 199 of the 226 original tests passed against the new
+code, and the measurement cannot tell whether the other 27 failed because the code behaves differently or only
+because the new run named or placed things differently.
+
+The next step is to measure the short analysis itself on more specs, with `scripts/replay_specs`, before the flow
+is built:
+
+- **Each spec several times** (`--repeat`), so a steady result is told from a lucky one.
+- **The name of every original test that fails,** written into the results, so a difference in behaviour is told
+  from a difference in naming or placing.
 
 ### 14. More than one way to run a step
 
