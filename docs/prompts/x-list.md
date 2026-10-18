@@ -12,24 +12,27 @@ in the repository: commit nothing and push nothing.
 2. Collect the posts with mcp__claude-in-chrome__javascript_tool, running this script exactly
    as written. Do not read posts from a screenshot or the page text: X keeps only the posts near
    the screen in the page, so what is visible is a fraction of the list. The script scrolls until
-   it has seen a post older than 24 hours, and returns how many posts it kept.
+   the last three posts on the page are all older than 24 hours — one old post alone, a pinned one
+   or an old one quoted, does not stop it — and returns how many posts it kept.
 
    ```javascript
    const since = Date.now() - 24 * 3600 * 1000;
    const clean = s => s.replace(/\S*(https?:|www\.|\.com|\.ai|\.io|\.dev)\S*/g, '[link]').replace(/[?=&;%]/g, ' ').replace(/\n+/g, ' | ');
    const seen = new Map();
-   let oldest = Date.now();
+   let done = false;
    window.scrollTo(0, 0);
    await new Promise(r => setTimeout(r, 1500));
-   for (let round = 0; round < 40 && oldest > since; round++) {
+   for (let round = 0; round < 60 && !done; round++) {
+     const times = [];
      document.querySelectorAll('article').forEach(a => {
        const t = a.querySelector('time')?.getAttribute('datetime');
        const href = [...a.querySelectorAll('a')].map(x => x.getAttribute('href') || '').find(h => /^\/\w+\/status\/\d+$/.test(h));
        if (!t || !href) return;
        const at = Date.parse(t);
-       if (at < oldest) oldest = at;
+       times.push(at);
        if (at >= since && !seen.has(href)) seen.set(href, t.slice(11, 16) + ' ' + href.slice(1) + ' :: ' + clean(a.innerText).slice(0, 280));
      });
+     done = times.length >= 3 && times.slice(-3).every(at => at < since);
      window.scrollBy(0, 2500);
      await new Promise(r => setTimeout(r, 1500));
    }
