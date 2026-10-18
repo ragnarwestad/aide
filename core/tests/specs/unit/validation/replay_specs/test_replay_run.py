@@ -308,3 +308,27 @@ def test_skipping_analyze_and_naming_one_is_refused_before_anything_is_copied(wo
 
 def test_no_analyze_and_no_skip_is_refused_before_anything_is_copied(world, replay_main, capsys):
     refused(world, capsys, replay_main, world.argv("4-replayed", analyze=None), "--analyze")
+
+
+def test_repeat_replays_each_spec_that_many_times_with_a_row_and_a_log_folder_each_and_says_how_consistent_it_was(world, replay_main):
+    assert replay_main(world.argv("4-replayed", implement=("claude", "sonnet"), extra=("--repeat", "2"))) == 0
+
+    rows = table(results_text(world))
+    assert [r["Spec"] for r in rows[:2]] == ["4 (1/2)", "4 (2/2)"]
+    folder = next(p for p in world.run_folder().iterdir() if p.is_dir())
+    assert sorted(p.name for p in folder.iterdir()) == ["run-1", "run-2"]
+    assert all((folder / f"run-{k}" / "implement.log").exists() for k in (1, 2))
+    consistency = results_text(world).split("Consistency", 1)[1]
+    assert "4: green 2 of 2" in consistency
+
+
+def test_a_single_replay_keeps_its_logs_in_the_specs_own_folder_and_has_no_consistency_section(world, replay_main):
+    assert replay_main(world.argv("4-replayed")) == 0
+
+    folder = next(p for p in world.run_folder().iterdir() if p.is_dir())
+    assert (folder / "implement.log").exists()
+    assert "Consistency" not in results_text(world)
+
+
+def test_a_repeat_below_one_is_refused_before_anything_is_copied(world, replay_main, capsys):
+    refused(world, capsys, replay_main, world.argv("4-replayed", extra=("--repeat", "0")), "--repeat")

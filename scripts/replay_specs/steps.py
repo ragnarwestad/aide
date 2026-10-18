@@ -171,13 +171,12 @@ def original_tests(run, folder, found, code_dir, work):
     return (passed, ran, not_run), measure.missing_programs_note(missing)
 
 
-def replay_steps(run, row, folder, archived, found, code_dir, specs_repo, specs_dir, work):
+def replay_steps(run, row, folder, archived, found, code_dir, specs_repo, specs_dir, work, out):
     if run.analyze is None:
         row.notes += ("analyze skipped",)
         copies.mark_analyzed(specs_dir, folder, run.core)
-        replay_implement(run, row, folder, found, code_dir, specs_dir, work)
+        replay_implement(run, row, folder, found, code_dir, specs_dir, work, out)
         return
-    out = run.out / folder
     description = (Path(archived) / "1-description.md").read_text()
     first = run_step(run, "analyze", run.analyze, folder, code_dir, specs_dir, out)
     row.analyze = stats_of(run.analyze, first)
@@ -198,11 +197,11 @@ def replay_steps(run, row, folder, archived, found, code_dir, specs_repo, specs_
     row.judge = verdict.score if verdict.score else "no score"
     row.reasons, row.judging = verdict.reasons, verdict.stats
     if run.implement:
-        replay_implement(run, row, folder, found, code_dir, specs_dir, work)
+        replay_implement(run, row, folder, found, code_dir, specs_dir, work, out)
 
 
-def replay_implement(run, row, folder, found, code_dir, specs_dir, work):
-    second = run_step(run, "implement", run.implement, folder, code_dir, specs_dir, run.out / folder)
+def replay_implement(run, row, folder, found, code_dir, specs_dir, work, out):
+    second = run_step(run, "implement", run.implement, folder, code_dir, specs_dir, out)
     row.implement = stats_of(run.implement, second)
     row.green = measure.implement_green(second.result or {})
     row.rounds = measure.implement_rounds(Path(second.log).read_text(errors="replace"))
@@ -212,10 +211,11 @@ def replay_implement(run, row, folder, found, code_dir, specs_dir, work):
     row.notes += (why,) if why else ()
 
 
-def replay_one(run, arg, index):
-    """Replay one spec in copies that are removed afterwards; whatever goes wrong ends up in the row."""
+def replay_one(run, arg, index, attempt=None):
+    """Replay one spec in copies that are removed afterwards; whatever goes wrong ends up in the row. `attempt` is
+    (k, n) for the k-th of n replays of the same spec, each with a log folder of its own."""
     number = re.match(r"\d+", arg)
-    row = Row(spec=number.group() if number else arg, folder=arg)
+    row = Row(spec=number.group() if number else arg, folder=arg, attempt=attempt)
     work = run.tmp / f"spec-{index}"
     try:
         folder, archived = find_archived(run.specs_root, arg)
@@ -224,12 +224,13 @@ def replay_one(run, arg, index):
         if state.get("closed"):
             raise CannotReplay("closed")
         found = landing.find_landing(run.code, run.branch, folder, str(archived), run.code_landing)
-        (run.out / folder).mkdir(parents=True, exist_ok=True)
+        out = run.out / folder / (f"run-{attempt[0]}" if attempt else "")
+        out.mkdir(parents=True, exist_ok=True)
         code_dir = copies.code_copy(run.code, re.sub("^origin/", "", run.branch), found.before, work / "code")
         specs_repo = work / "specs"
         specs_dir = copies.specs_copy(archived, folder, run.project, specs_repo, run.core, run.specs_root)
         row.replayed = True
-        replay_steps(run, row, folder, archived, found, code_dir, str(specs_repo), specs_dir, work)
+        replay_steps(run, row, folder, archived, found, code_dir, str(specs_repo), specs_dir, work, out)
     except (CannotReplay, landing.NoLanding) as error:
         row.notes += (f"stopped: {error}" if row.replayed else f"cannot be replayed: {error}",)
     except Exception as error:  # one spec's trouble ends that spec, never the run

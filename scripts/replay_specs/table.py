@@ -31,6 +31,7 @@ class Row:
     implement: Optional[Stats] = None
     judging: Optional[Stats] = None
     notes: tuple = ()
+    attempt: Optional[tuple] = None  # (k, n): the k-th of n replays of this spec
 
 
 def duration(seconds):
@@ -73,7 +74,8 @@ def number(value):
 
 
 def cells(row):
-    return [row.spec, files_cell(row.files), number(row.must), number(row.should), row.placed, row.green, number(row.rounds), original_cell(row.original),
+    spec = f"{row.spec} ({row.attempt[0]}/{row.attempt[1]})" if row.attempt else row.spec
+    return [spec, files_cell(row.files), number(row.must), number(row.should), row.placed, row.green, number(row.rounds), original_cell(row.original),
             number(row.judge), step_cell(row.analyze), step_cell(row.implement), step_cell(row.judging), "; ".join(row.notes)]
 
 
@@ -107,12 +109,29 @@ def total_row(rows):
             total_step([r.judging for r in replayed], n), ""]
 
 
+def consistency(rows):
+    """One line per spec replayed more than once: how many of its replays went green, and the spread of implement's
+    cost."""
+    lines, specs = [], {}
+    for r in rows:
+        if r.attempt:
+            specs.setdefault(r.spec, []).append(r)
+    for spec, runs in specs.items():
+        costs = [r.implement.cost for r in runs if r.implement and r.implement.cost is not None]
+        spread = f", implement {money(min(costs))}–{money(max(costs))}" if costs else ""
+        lines.append(f"- {spec}: green {sum(r.green == 'yes' for r in runs)} of {len(runs)}{spread}")
+    return lines
+
+
 def render(header, rows):
     """The whole of results.md."""
     def line(values):
         return "| " + " | ".join(str(v).replace("|", "/").replace("\n", " ") for v in values) + " |"
     out = [header, "", line(COLUMNS), line(["---"] * len(COLUMNS))]
     out += [line(cells(r)) for r in rows] + [line(total_row(rows))]
+    steady = consistency(rows)
+    if steady:
+        out += ["", "Consistency", *steady]
     reasons = [f"- {r.folder or r.spec} ({number(r.judge)}): {r.reasons}" for r in rows if r.reasons]
     if reasons:
         out += ["", "Judge's reasons", *reasons]

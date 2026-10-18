@@ -25,12 +25,14 @@ Usage:
       --analyze claude opus high [--implement codex gpt-6.1-sol] --judge opus [--advisor opus]
       [--code ~/.aide/dashboard/checkouts/<project>/code]
       [--specs-root ~/.aide/dashboard/checkouts/<project>/specs/<project>]
-      [--aide-repo <the repository this script sits in>] [--results ~/.aide/replays]
+      [--aide-repo <the repository this script sits in>] [--results ~/.aide/replays] [--repeat 3]
   python3 scripts/replay_specs --project aide --specs 590,601 --aide-commit 4e8a481a \\
       --skip-analyze --implement claude sonnet
 
 A step is `TOOL MODEL [EFFORT]`, the tool one of claude, codex, opencode and fake-claude. --advisor gives every claude
 step that model as its advisor, through `advisorModel` in the step's Claude config folder.
+--repeat replays each spec that many times, a row and a log folder each, and adds how many of a spec's replays went
+green and the spread of implement's cost: one replay cannot tell a steady result from a lucky one.
 """
 import argparse
 import datetime
@@ -67,6 +69,7 @@ def parse(argv):
     ap.add_argument("--analyze", nargs="+", metavar="TOOL MODEL [EFFORT]")
     ap.add_argument("--skip-analyze", action="store_true", help="implement runs on the description alone; needs --implement")
     ap.add_argument("--implement", nargs="+", metavar="TOOL MODEL [EFFORT]", help="left out, only analyze runs")
+    ap.add_argument("--repeat", type=int, default=1, help="how many times each spec is replayed, to see how consistent it is")
     ap.add_argument("--judge", default="opus", help="the Claude model that scores the new plan")
     ap.add_argument("--advisor", help="the model every claude step consults as its advisor")
     ap.add_argument("--code")
@@ -157,14 +160,17 @@ def main(argv=None):
             raise Refusal("--skip-analyze needs --implement: with analyze skipped, implement is the step that runs")
         if not args.skip_analyze and not args.analyze:
             raise Refusal("--analyze is needed, or --skip-analyze with --implement")
+        if args.repeat < 1:
+            raise Refusal("--repeat is how many times each spec is replayed, at least 1")
         analyze = step_argument(args.analyze, "--analyze") if args.analyze else None
         implement = step_argument(args.implement, "--implement") if args.implement else None
         check_inputs(args, analyze, implement)
         tmp = Path(os.path.realpath(tempfile.mkdtemp(prefix="replay-specs-", dir=os.environ.get("TMPDIR") or None)))
         run, sha = prepare(args, analyze, implement, tmp)
         rows = []
-        for index, arg in enumerate(s.strip() for s in args.specs.split(",") if s.strip()):
-            rows.append(steps.replay_one(run, arg, index))
+        specs = [s.strip() for s in args.specs.split(",") if s.strip()]
+        for index, (arg, k) in enumerate((arg, k) for arg in specs for k in range(1, args.repeat + 1)):
+            rows.append(steps.replay_one(run, arg, index, (k, args.repeat) if args.repeat > 1 else None))
             write_results(run, sha, rows)
         print(run.out / "results.md")
         return 0
