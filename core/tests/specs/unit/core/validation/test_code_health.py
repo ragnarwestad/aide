@@ -19,6 +19,12 @@ SOURCE_SUFFIXES = {".sh", ".py", ".ts", ".js", ".mjs", ".css"}
 # None is left.
 OVER_LINE_LIMIT = {}
 
+# What a failure says to do, for the session that meets it: the message is what it reads.
+RULE = '.claude/rules/development.md, "Code health"'
+SPLIT_FILE = ("split it by responsibility, not in halves: move a part that has a name of its own into its own file, "
+              f"and make a module in several files a folder named after it ({RULE})")
+SPLIT_FOLDER = f"split it into subfolders named for what their files are about ({RULE})"
+
 # Folders already over the limit, at the count measured when this list was
 # written, held until they are split. None is left.
 OVER_FOLDER_LIMIT = {}
@@ -73,7 +79,7 @@ def test_every_source_and_test_file_stays_within_its_limit(workspace_root):
                 bad.append(f"{rel}: {lines} lines (recorded {recorded} — update or remove the exception)")
             continue
         if lines > limit:
-            bad.append(f"{rel}: {lines} lines (limit {limit})")
+            bad.append(f"{rel}: {lines} lines (limit {limit}) — {SPLIT_FILE}")
     assert bad == []
 
 
@@ -92,5 +98,9 @@ def test_every_folder_holds_at_most_fifteen_source_or_test_files(workspace_root)
                 bad.append(f"{folder}: {count} files (recorded {recorded} — update or remove the exception)")
             continue
         if count > FOLDER_LIMIT:
-            bad.append(f"{folder}: {count} files (limit {FOLDER_LIMIT})")
+            bad.append(f"{folder}: {count} files (limit {FOLDER_LIMIT}) — {SPLIT_FOLDER}")
     assert bad == []
+
+
+def test_the_rule_a_failure_points_to_is_there(workspace_root):
+    assert "\n## Code health\n" in Path(workspace_root, ".claude", "rules", "development.md").read_text()

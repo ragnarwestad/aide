@@ -53,6 +53,13 @@ const OVER_LINE_LIMIT: Record<string, number> = {
 // below) and is deliberately not duplicated here.
 const EXEMPT_BY_FILENAME = ["messages.ts", "en.ts", "nb.ts"];
 
+// What a failure says to do, for the session that meets it: the message is what it reads.
+const RULE = '.claude/rules/development.md, "Code health"';
+const SPLIT_FILE =
+  "split it by responsibility, not in halves: move a part that has a name of its own into its own file, " +
+  `and make a module in several files a folder named after it with an index.ts (${RULE})`;
+const SPLIT_FOLDER = `split it into subfolders named for what their files are about (${RULE})`;
+
 // Rule 3: directories already over the 15-.ts-file limit, keyed by their
 // path relative to the dashboard root, with the count measured when this
 // list was written.
@@ -91,7 +98,7 @@ describe("dashboard code health (spec 443)", () => {
         if (lines !== recorded) bad.push(`${rel}: ${lines} lines (recorded ${recorded} — update or remove the exception)`);
         continue;
       }
-      if (lines > 500) bad.push(`${rel}: ${lines} lines`);
+      if (lines > 500) bad.push(`${rel}: ${lines} lines (limit 500) — ${SPLIT_FILE}`);
     }
     expect(bad).toEqual([]);
   });
@@ -100,7 +107,7 @@ describe("dashboard code health (spec 443)", () => {
     const bad: string[] = [];
     for (const file of testFiles) {
       const lines = lineCount(file);
-      if (lines > 800) bad.push(`${relPath(file)}: ${lines} lines`);
+      if (lines > 800) bad.push(`${relPath(file)}: ${lines} lines (limit 800) — ${SPLIT_FILE}`);
     }
     expect(bad).toEqual([]);
   });
@@ -114,7 +121,7 @@ describe("dashboard code health (spec 443)", () => {
     for (const dir of dirs) {
       const count = readdirSync(dir).filter((name) => name.endsWith(".ts") && statSync(join(dir, name)).isFile()).length;
       const rel = relPath(dir);
-      if (count > 15) bad.push(`${rel}: ${count} files`);
+      if (count > 15) bad.push(`${rel}: ${count} files (limit 15) — ${SPLIT_FOLDER}`);
     }
     expect(bad).toEqual([]);
   });
