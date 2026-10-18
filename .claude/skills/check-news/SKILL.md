@@ -32,20 +32,19 @@ Fetch every source in the **Sources** table of `docs/AI_NEWS_LOG.md` (its
 address, all of them, every tool. The table is the one list of sources; add
 or change a source there, not here.
 
-Then read the daily digests of the X list "MyAI" since the last review. A
-launchd job on the machine that serves the board writes one a morning, to
-`~/.aide/news/YYYY-MM-DD.md`; read them there, or over ssh from
-`$AIDE_BOARD_HOST` anywhere else:
+Then read the daily digests of the X list "MyAI" since the last review. The
+board's scheduled job `X-lista` (`docs/prompts/x-list.md`) writes one a
+morning, as `digest.md` in its run's own directory on the machine that serves
+the board; read them there, or over ssh from `$AIDE_BOARD_HOST` anywhere else:
 
 ```bash
-ssh "$AIDE_BOARD_HOST" 'cd ~/.aide/news && ls 20*.md'
-ssh "$AIDE_BOARD_HOST" 'cat ~/.aide/news/2026-10-19.md'
+ls -t ~/.aide/dashboard/schedule-output/aide/schedule-X-lista/runs/*/digest.md
 ```
 
 A digest's posts are already marked with the icons Step 3 uses; take the ⭐
 and ⚠️ ones into the review, with the post's link as the source. A day whose
-file says "Not read:" is named in the review's relevance list, so a gap is
-seen.
+digest says the list could not be read is named in the review's relevance
+list, so a gap is seen.
 
 ## Step 3: Filter and assess
 
