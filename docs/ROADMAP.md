@@ -137,8 +137,9 @@ How a quick fix could work, with analyze deciding rather than the person writing
   alternatives.
 
 What a measurement found: implement with Sonnet run on six archived specs with no analysis at all was green at the
-first try on four of them, for less than the original implement runs cost, and saved the analysis on Opus, $1.45 to
-$9.70 a spec. On the other two the implement skill refused to start, on its own judgement and not on size: one of
+first try on four of them, for less than the original implement runs cost, and saved the analysis on Opus, $7.89 to
+$15.57 a spec. Only about one spec in six is graded LOW, and its analysis already costs about half another's,
+around $7 and 13 minutes on recent specs, so the short path saves time on small specs more than money. On the other two the implement skill refused to start, on its own judgement and not on size: one of
 them was smaller than a spec that ran. That is why the short path writes the files and the place for the tests,
 and why the runner, not the model, decides when it is taken. 199 of the 226 original tests passed against the new
 code, and the measurement cannot tell whether the other 27 failed because the code behaves differently or only
