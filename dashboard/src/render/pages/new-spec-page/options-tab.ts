@@ -6,24 +6,37 @@
 import { helpPopover, phaseChip, stepLabel } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import type { CriteriaChecks } from "../../../project/discover";
+import type { CardLock, CardPlace, CardSetting, CardValues, CardView } from "../../../project/spec-card.ts";
 import { PHASE_LINES, type SpecGroup } from "../specs-list";
 import { aiPicker, modelPicker, phaseCaptionCells, type PickerOptions } from "../specs-list/model-picker.ts";
 import type { NewSpecPageOptions } from ".";
 
+/** What New spec's form opens with: the four settings as they stand
+ *  before anything is chosen, and no dependency. */
+export const NEW_SPEC_VALUES: CardValues = {
+  dependsOn: [],
+  acceptanceRequired: true,
+  aiFormulate: true,
+  criteriaChecks: "off",
+  chooseApproach: false,
+};
+
 /** The Options tab: the phase table, then the four settings as one group
  *  beside it, one to a line, going under it where the screen has no room
  *  for both. One `.frow`, a full-width row of the form's own wrapping
- *  flex. */
-export function optionsTab(opts: NewSpecPageOptions, formId: string): string {
+ *  flex. `card` is what `cardStep` says the card shows. */
+export function optionsTab(opts: NewSpecPageOptions, formId: string, card: CardView): string {
   return (
     `<span class="frow options-row">` +
     newSpecPhaseTable(opts, formId) +
     optionsGroup({
       form: formId,
-      acceptance: true,
-      aiFormulate: true,
-      criteriaChecks: "off",
-      chooseApproach: false,
+      place: "new-spec",
+      locks: card.locks,
+      acceptance: card.shown.acceptanceRequired,
+      aiFormulate: card.shown.aiFormulate,
+      criteriaChecks: card.shown.criteriaChecks as CriteriaChecks,
+      chooseApproach: card.shown.chooseApproach,
     }) +
     `</span>`
   );
@@ -87,11 +100,10 @@ function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
   return `<table class="list"><tbody>${captionRow}${phaseRows}</tbody></table>`;
 }
 
-/** What the four settings show, and whether they post. New spec posts
- *  all four to its form; the open row on the Specs list shows what the
- *  spec was created with, locked, and names none of them — except
- *  acceptance, which posts with the row's own form until analyze has
- *  decided it. */
+/** What the four settings show, and whether they post. A setting posts its
+ *  name only while its lock is null: New spec posts all four to its form;
+ *  the open row on the Specs list shows what the spec was created with and
+ *  posts the three analyze reads until a job is in flight or analyze has run. */
 export interface OptionsGroupValues {
   /** The form the fields post to; absent, they post with the form they
    *  sit inside. */
@@ -100,12 +112,11 @@ export interface OptionsGroupValues {
   aiFormulate: boolean;
   criteriaChecks: CriteriaChecks;
   chooseApproach: boolean;
-  /** Shows the values and posts none of them. */
-  locked?: boolean;
-  /** The three settings analyze reads — acceptance, the checks and
-   *  choosing the approach — can still be changed although the AI
-   *  formulation, which create has already used, is locked. */
-  settingsEditable?: boolean;
+  /** The page the group is drawn on, which decides the sentinel and the
+   *  checks select's id. */
+  place: CardPlace;
+  /** Why each setting cannot be changed, or null where it can. */
+  locks: Record<CardSetting, CardLock | null>;
   /** The labels, where the page has a language of its own. */
   labels?: Partial<Record<"acceptance" | "aiFormulate" | "criteriaChecks" | "chooseApproach", string>>;
   /** The level words of the checks select, by value. */
@@ -146,16 +157,13 @@ export function optionsGroup(v: OptionsGroupValues): string {
 // decides once, from this, and locks the switch after — so a spec that
 // quietly skipped its acceptance table could only be put right by
 // running the whole analysis again.
-/** Whether one of the three settings analyze reads takes a change. */
-const editable = (v: OptionsGroupValues): boolean => !v.locked || !!v.settingsEditable;
-
 function acceptanceField(v: OptionsGroupValues): string {
-  const open = editable(v);
+  const open = v.locks.acceptanceRequired === null;
   return (
     `<span class="field"><span class="fieldhead">` +
     // What tells the route a cleared box from a locked one: a locked box
     // posts nothing, the same as a cleared one.
-    (v.locked && open ? `<input type="hidden" name="settingsEditable" value="1">` : "") +
+    (v.place === "running-row" && open ? `<input type="hidden" name="settingsEditable" value="1">` : "") +
     phaseChip({
       dataAttr: "data-acceptance",
       value: "1",
@@ -188,10 +196,10 @@ function aiFormulateAcceptanceField(v: OptionsGroupValues): string {
       dataAttr: "data-ai-formulate",
       value: "1",
       label: v.labels?.aiFormulate ?? "Let AI formulate acceptance criteria",
-      name: v.locked ? "" : "aiFormulateAcceptance",
+      name: v.locks.aiFormulate ? "" : "aiFormulateAcceptance",
       form: v.form,
       checked: v.aiFormulate,
-      disabled: v.locked,
+      disabled: v.locks.aiFormulate !== null,
       plain: true,
     }) +
     `<span class="fieldend">` +
@@ -217,10 +225,10 @@ function chooseApproachField(v: OptionsGroupValues): string {
       dataAttr: "data-choose-approach",
       value: "1",
       label: v.labels?.chooseApproach ?? "Let me choose the approach",
-      name: editable(v) ? "chooseApproach" : "",
+      name: v.locks.chooseApproach === null ? "chooseApproach" : "",
       form: v.form,
       checked: v.chooseApproach,
-      disabled: !editable(v),
+      disabled: v.locks.chooseApproach !== null,
       plain: true,
     }) +
     `<span class="fieldend">` +
@@ -251,12 +259,12 @@ export const criteriaChecksChoices = (): { value: CriteriaChecks; label: string 
 // the "(?)" at its end — so the three read as one row.
 function criteriaChecksField(v: OptionsGroupValues): string {
   // A row's own form names its select, so two open rows never share an id.
-  const row = v.locked && v.form;
-  const id = row ? `${v.form}-criteria-checks` : v.locked ? "spec-criteria-checks" : "new-spec-criteria-checks";
+  const row = v.place === "running-row" && v.form;
+  const id = row ? `${v.form}-criteria-checks` : v.place === "running-row" ? "spec-criteria-checks" : "new-spec-criteria-checks";
   return (
     `<span class="field"><span class="fieldhead"><span class="row">` +
     `<label for="${esc(id)}">${esc(v.labels?.criteriaChecks ?? "Acceptance criteria checks")}</label>` +
-    `<select ${editable(v) ? `name="criteriaChecks"` : "disabled"}${row ? ` form="${esc(v.form!)}"` : ""} id="${esc(id)}">` +
+    `<select ${v.locks.criteriaChecks === null ? `name="criteriaChecks"` : "disabled"}${row ? ` form="${esc(v.form!)}"` : ""} id="${esc(id)}">` +
     criteriaChecksChoices()
       .map((o) => `<option value="${o.value}"${o.value === v.criteriaChecks ? " selected" : ""}>${esc(v.levelWords?.[o.value] ?? o.label)}</option>`)
       .join("") +

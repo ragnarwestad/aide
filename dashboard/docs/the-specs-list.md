@@ -129,7 +129,10 @@ from. Under the picker, in the same form and saved by the same Save, are the fou
 with, laid out as New spec's Options tab: the three analyze reads — Acceptance ticking required, "Acceptance criteria
 checks" and "Let me choose the approach" — take a change until analyze has run and while no job of the spec is queued,
 running or landing; "Let AI formulate acceptance criteria", which create has already used, is locked with
-no field name. A change not yet saved outlives a redraw and offers Cancel, as a tick does. On a spec with an open `aide/<folder>` branch the picker and the row's own line show the branch's `Depends on:`
+no field name. A change not yet saved outlives a redraw and offers Cancel, as a tick does, and it outlives a job too: the locked card shows
+what was saved meanwhile, and the change comes back when the job ends on a field that can still be changed. What can be changed,
+whether Save and Cancel show, and what Cancel puts back are decided in one place, `cardStep` (`src/project/spec-card.ts`), which the
+row's drawing, its page script, New spec and the tracking route all ask. On a spec with an open `aide/<folder>` branch the picker and the row's own line show the branch's `Depends on:`
 line, since a save is written there; archive stays held on what the checkout names too, because the runner's own check
 reads the checkout.
 
@@ -529,7 +532,7 @@ one is open, and to the specs repo's default branch where none is — the same b
 
 `POST /api/queue/specs/<project>/<spec>/tracking` is the banner's own route: whether the spec requires acceptance
 ticking, merged into `1-description.md`'s Tracking info in one commit, refused once `analyze` has already decided the
-question. A request that names `dependsOn` writes the Depends on line in the same commit, and an empty entry
+question, and refused with 409 while a job of the spec is queued, running or landing. A request that names `dependsOn` writes the Depends on line in the same commit, and an empty entry
 (`dependsOn=`) beside the boxes is how the Running tab's picker with every box cleared removes it; one that names no
 `dependsOn` at all, as the banner's form does not, leaves the line as it is. A refusal answers `{ error, spec }`, so the
 Running tab writes it under the row the save was pressed on. The Description tab's `/save` keeps the line too: the tab shows the description without

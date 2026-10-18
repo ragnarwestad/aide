@@ -25,7 +25,8 @@ import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { pickTab, tabBar } from "../../ui/tabs.ts";
 import { NEW_SPEC_ROUTE } from "../projects-page";
 import type { SpecsPageOptions, SpecTarget } from "../specs-list";
-import { optionsTab } from "./options-tab.ts";
+import { cardStep } from "../../../project/spec-card.ts";
+import { NEW_SPEC_VALUES, optionsTab } from "./options-tab.ts";
 
 export interface NewSpecPageOptions {
   /** What a failed create had typed (spec 506): the form opens with it
@@ -233,6 +234,12 @@ const panel = (key: NewSpecTab, open: NewSpecTab, body: string): string =>
 // nothing in `aide-run-spec`, computes a spec number or a folder slug.
 function newSpecForm(opts: NewSpecPageOptions, projects: string[], open: NewSpecTab): string {
   const chosen = projects.find((p) => p === opts.prefill?.project);
+  // What can be changed on this page is the card's to say (`project/spec-card.ts`).
+  const { view } = cardStep(undefined, {
+    type: "opened",
+    facts: { place: "new-spec", jobInFlight: false, analyzeRun: false },
+    saved: NEW_SPEC_VALUES,
+  });
   // Each `.frow` is a full-width row inside the same wrapping flex the
   // Add form shares, so the shared `.pageform` look is untouched.
   const spec =
@@ -266,6 +273,7 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[], open: NewSpec
     `<span class="frow">` +
     dependsOnField(opts.targets ?? [], new Set(), {
       wide: true,
+      disabled: view.locks.dependsOn !== null,
       sideBySide: {
         dependsOnLabel: t(opts.lang ?? "en", "newSpec.dependsOn"),
         selectLabel: t(opts.lang ?? "en", "newSpec.select"),
@@ -275,7 +283,7 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[], open: NewSpec
   return (
     `<form method="post" action="/api/queue/create" class="pageform newspecform" id="${FORM_ID}">` +
     panel("spec", open, spec) +
-    panel("options", open, optionsTab(opts, FORM_ID)) +
+    panel("options", open, optionsTab(opts, FORM_ID, view)) +
     // The slot a refusal is written into, after both tabs so it is seen
     // from either. A rejected create names a spec that was never made, so
     // there is no row for the reason to land on the way there is for

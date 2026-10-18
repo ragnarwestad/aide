@@ -50,7 +50,7 @@ repository shows, not a census of every caller.
 **How an action answers.** Almost every `POST` reads its body as JSON or as a form
 (`application/x-www-form-urlencoded`), up to 4,096 bytes (65,536 for `tick`, `save` and `tracking`), and answers JSON,
 whatever `Accept` says: `{ ok: true, … }`, or `{ error }` with 400 (409 for a refused tick or cancel, and for a save or
-tracking refused while a job of the spec is queued or running; 404 for an unknown job). The page script reads that answer and
+tracking refused while a job of the spec is queued, running or landing; 404 for an unknown job). The page script reads that answer and
 writes a refusal into the page; no answer carries a message in an address. A body over the cap gets 413
 `{ error: "payload too large" }`, whatever the route. The wrong method on a known path gets 405
 `method not allowed` — except the two redirects `/queue` and `/queue/<rest>`, which answer

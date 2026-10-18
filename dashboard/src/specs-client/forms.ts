@@ -13,6 +13,7 @@ import { ACTIONS, postForm, writeLine } from "./press.ts";
 import { standOpen } from "./progress-dialog";
 import { swapRows } from "./row-swap.ts";
 import { showRefusal } from "./tail-actions.ts";
+import { cardAnswered } from "./depends-on";
 import { clearChosenSteps, NEW_SPEC_FORM } from "./state.ts";
 
 export async function submitAction(event: Event): Promise<void> {
@@ -29,6 +30,7 @@ export async function submitAction(event: Event): Promise<void> {
       // have done their job and must not go on deciding a later run
       // (REQ-2, spec 419).
       clearChosenSteps(form.id);
+      cardAnswered(form, "saved");
       // Now, not on the next five-second tick: the result belongs where
       // the reader already is.
       await swapRows();
@@ -37,6 +39,7 @@ export async function submitAction(event: Event): Promise<void> {
       // A row's Cancel is posted from its confirm dialog, and the
       // refusal is written under the row, behind it.
       (form.closest("dialog[open]") as HTMLDialogElement | null)?.close();
+      cardAnswered(form, "refused");
       return showRefusal(why, spec);
     },
   );

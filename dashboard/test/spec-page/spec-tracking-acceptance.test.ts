@@ -4,8 +4,11 @@
 // own coverage, plus the route's shared refusals (archived, busy).
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { queueHarness, statusSaying } from "../helpers/queue-server.ts";
+import { repoOf } from "../queue-routes/landing/every-step-lands-fixtures.ts";
+import { ARCHIVE_RESULT, gitFor, runStep, serverWithRunner, settle, start as startLanding } from "../queue-routes/landing/archive-landing-fixtures.ts";
 import { SPEC, TRACKING, FILE_SHA, ARCHIVED, ARCHIVED_TEXT, archivedDescriptionPath, descriptionPath, savable, post, answer } from "./spec-save-fixtures.ts";
 
 const harness = queueHarness("aide-spec-tracking-");
@@ -177,4 +180,54 @@ describe("the acceptance switch on the spec page's tracking route", () => {
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED());
   });
 
+  // A landing is a job in flight like a queued or a running one: the merge it
+  // makes is the very race this route's gate exists to stop.
+  test("AC-2: Depends on posted while the spec's archive job is landing is refused with 409, and nothing is written", async () => {
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    let codeRoot = "";
+    const needsRealMerge: string[] = [];
+    const inner = gitFor({ needsRealMerge });
+    // The landing is held at its gate while the save is posted, so only one of the two asks git at a time.
+    let posting = false;
+    const saveGit = savable("/host");
+    const git = {
+      run: async (dir: string, args: string[]) => {
+        if (posting) return saveGit(dir, args);
+        return repoOf(dir) === codeRoot && args.join(" ").startsWith("diff --quiet") ? { code: 1, stdout: "" } : inner.run(dir, args);
+      },
+    };
+    const { base, dir, results } = serverWithRunner(startLanding, "aide-tracking-landing-", git as never, {
+      landingGate: async () => {
+        await held;
+        return { ok: true };
+      },
+    });
+    codeRoot = join(dir, "root", "aide");
+    needsRealMerge.push(codeRoot);
+    writeFileSync(descriptionPath(dir), TRACKED());
+    const job = await runStep(base, "archive");
+    writeFileSync(
+      join(results, `${job.id}.json`),
+      JSON.stringify({
+        ...ARCHIVE_RESULT,
+        branchUrls: [
+          { root: join(dir, "root", "aide", "specs"), url: "https://example.test/aide-specs" },
+          { root: codeRoot, url: "https://example.test/aide" },
+        ],
+      }),
+    );
+    await settle(base, job.id, (j) => j.state === "done" && j.landing === true);
+
+    posting = true;
+    const { status, body } = await answer(await track(base, { dependsOn: "" }));
+    posting = false;
+    const written = readFileSync(descriptionPath(dir), "utf-8");
+    release();
+    await settle(base, job.id, (j) => !j.landing);
+
+    expect(status).toBe(409);
+    expect(body.spec).toBe(`aide/${SPEC}`);
+    expect(written).toBe(TRACKED());
+  });
 });

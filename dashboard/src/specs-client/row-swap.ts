@@ -92,6 +92,10 @@ export function relabelAll(body: Element): void {
  *  A remembered model is only put back if the fresh markup still offers
  *  it: a value no option carries is not a choice the row can honour. */
 export function restoreChosen(body: Element): void {
+  // First, and ahead of the early return: a Depends on card keeps its
+  // changes in a state of its own, so both maps can be empty while one
+  // holds a change.
+  syncDependsOnForms(body);
   if (!chosen.size && !chosenSteps.size) return;
   for (const el of body.querySelectorAll('select[name^="model."]')) {
     const model = el as HTMLSelectElement;
@@ -106,13 +110,7 @@ export function restoreChosen(body: Element): void {
     // every time, which is what stops the two disagreeing (spec 179).
     syncAiToModel(model);
   }
-  // A Depends on form's checks level, put back as a model is, without the AI that follows a model.
-  for (const el of body.querySelectorAll("form.dependsform select[name][form]")) {
-    const level = el as HTMLSelectElement;
-    const want = chosen.get(selectKey(level));
-    if (want !== undefined && Array.from(level.options).some((o) => o.value === want)) level.value = want;
-  }
-  for (const el of body.querySelectorAll('input[name="steps"], input[name="tick"], input[name="unverified"], input[name="failed"], input[name="approach"], input[name=dependsOn][form], form.dependsform input[type=checkbox][name][form]')) {
+  for (const el of body.querySelectorAll('input[name="steps"], input[name="tick"], input[name="unverified"], input[name="failed"], input[name="approach"]')) {
     const box = el as HTMLInputElement;
     const want = chosenSteps.get(checkboxKey(box));
     if (want === undefined) continue;
@@ -122,7 +120,6 @@ export function restoreChosen(body: Element): void {
   // Cancel off the approach picked.
   relabelAll(body);
   syncApproachCancels(body);
-  syncDependsOnForms(body);
 }
 
 // --- spec 204: a redraw never takes a press with it ------------------------

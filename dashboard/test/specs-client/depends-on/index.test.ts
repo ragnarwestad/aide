@@ -9,9 +9,10 @@ import { Window } from "happy-dom";
 import type { SpecTarget } from "../../../src/render";
 import { groupBySpec } from "../../../src/render/pages/specs-list/data-model";
 import { dependsOnFormId, dependsOnLine } from "../../../src/render/pages/specs-list/depends-on";
-import { cancelDependsOn, pickDependency, pickSetting } from "../../../src/specs-client/depends-on";
+import { cancelDependsOn, pickDependency, pickSetting, resetCards } from "../../../src/specs-client/depends-on";
 import { chosen, chosenSteps } from "../../../src/specs-client/state.ts";
 import { restoreChosen } from "../../../src/specs-client/row-swap.ts";
+import { row as jobRow } from "../../render/pages/fixtures.ts";
 
 const A = "81-first-spec";
 const B = "82-second-spec";
@@ -28,6 +29,7 @@ const savedEvent = globalThis.Event;
 beforeEach(() => {
   chosenSteps.clear();
   chosen.clear();
+  resetCards();
 });
 afterEach(async () => {
   globalThis.Event = savedEvent;
@@ -35,7 +37,7 @@ afterEach(async () => {
 });
 
 /** Two open rows, with the page's own chip mover loaded as the page loads it. */
-function list(): { rows: HTMLElement; redraw: () => void } {
+function list(): { rows: HTMLElement; redraw: (html?: string) => void } {
   const win = new Window();
   windows.push(win);
   globalThis.Event = win.Event as unknown as typeof Event;
@@ -47,8 +49,8 @@ function list(): { rows: HTMLElement; redraw: () => void } {
   const rows = win.document.getElementById("jobrows") as unknown as HTMLElement;
   return {
     rows,
-    redraw: () => {
-      rows.innerHTML = ROWS;
+    redraw: (html = ROWS) => {
+      rows.innerHTML = html;
       restoreChosen(rows);
     },
   };
@@ -139,5 +141,37 @@ describe("the settings under the picker", () => {
     redraw();
     expect(setting(rows, A, "criteriaChecks").value).toBe("off");
     expect(setting(rows, B, "criteriaChecks").value).toBe("stop");
+  });
+});
+
+describe("a redraw that locks the card", () => {
+  // Spec A depends on B; the redraws are the same spec with a job running, then none.
+  const withDependency: SpecTarget[] = [
+    { project: "aide", specFolder: A, dependsOn: [B] },
+    { project: "aide", specFolder: B },
+    { project: "aide", specFolder: THIRD },
+  ];
+  const rowsFor = (jobs: ReturnType<typeof jobRow>[]): string => {
+    const g = groupBySpec(jobs, withDependency).find((x) => x.specFolder === A)!;
+    return `<table><tbody>${dependsOnLine(g, { targets: withDependency })}</tbody></table>`;
+  };
+  const idle = rowsFor([]);
+  const running = rowsFor([jobRow({ id: "j-run", specFolder: A, state: "running", steps: ["analyze"], stepIndex: 0 })]);
+
+  test("shows the saved tick while the job runs, and brings the untick back when it ends (AC-6)", () => {
+    const { rows, redraw } = list();
+    redraw(idle);
+    tick(rows, A, B, false);
+    expect(cancel(rows, A).disabled).toBe(false);
+
+    redraw(running);
+    expect(box(rows, A, B).checked).toBe(true);
+    expect(pickedBlock(rows, A).contains(box(rows, A, B))).toBe(true);
+    expect(cancel(rows, A)).toBeNull();
+
+    redraw(idle);
+    expect(box(rows, A, B).checked).toBe(false);
+    expect(pickedBlock(rows, A).contains(box(rows, A, B))).toBe(false);
+    expect(cancel(rows, A).disabled).toBe(false);
   });
 });

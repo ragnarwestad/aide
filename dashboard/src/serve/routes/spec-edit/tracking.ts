@@ -7,10 +7,12 @@ import { saveSpecFiles } from "../../../git/specs-pull.ts";
 import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
 import { lastCommitOf } from "../../../git/description-freshness.ts";
 import {
-  chooseApproachIn, createChoicesIn, discoverProjects, manifestInside, parseCriteriaChecks, specFileText, withAcceptanceLine,
+  chooseApproachIn, createChoicesIn, dependsOnIn, discoverProjects, manifestInside, parseCriteriaChecks, specFileText, withAcceptanceLine,
   withChooseApproachLine, withCriteriaChecksLine, withDependsOnLine,
 } from "../../../project/discover";
 import { parseStatus } from "../../../project/parse-status";
+import { cardStep } from "../../../project/spec-card.ts";
+import { inFlight } from "../../../render/ui/job-state";
 import { EDITABLE_SPEC_FILE, STATUS_SPEC_FILE } from "../../../render";
 import { workRoundJobs } from "../../spec-views/work-round.ts";
 import {
@@ -47,15 +49,40 @@ export async function trackingRoutes(
     logRefusal("tracking", `${project}/${specFolder}`, ARCHIVED_REFUSAL);
     return refuse(ARCHIVED_REFUSAL);
   }
-  // The same job-state gate `/save` applies (REQ-6 of spec 310): a run
-  // works in a worktree branched when it started, but a hand edit
-  // racing the run's own commits to the SAME branch is exactly what
-  // this gate exists to prevent.
-  const activeJob = ctx.queue.list().some(
-    (job) => job.project === project && job.specFolder === specFolder &&
-      (job.state === "queued" || job.state === "running"),
-  );
-  if (activeJob) {
+  // This form carries no textarea — it is not one document's Save — so
+  // it reads `1-description.md` fresh itself, the same "ask the open
+  // branch first" question `/save`'s own REQ-4 asks, since `create` or
+  // `analyze` may have already pushed this spec's own branch. `4-status.md`
+  // is read the same way: whether analyze has run is a fact of the card.
+  const target = await resolveOpenBranchTarget(ctx, dir, specFolder!, EDITABLE_SPEC_FILE, true);
+  const branchRead = target
+    ? await readStatusFromBranch(ctx.gitRun, target.root, target.branch, target.relPath)
+    : null;
+  const currentSha = branchRead ? branchRead.sha : (await lastCommitOf(ctx.gitRun, dir, EDITABLE_SPEC_FILE))?.sha ?? null;
+  const currentText = branchRead ? branchRead.text : specFileText(dir, EDITABLE_SPEC_FILE);
+  const statusTarget = await resolveOpenBranchTarget(ctx, dir, specFolder!, STATUS_SPEC_FILE, false);
+  const statusRead = statusTarget
+    ? await readStatusFromBranch(ctx.gitRun, statusTarget.root, statusTarget.branch, statusTarget.relPath)
+    : null;
+  const statusText = statusRead ? statusRead.text : (specFileText(dir, STATUS_SPEC_FILE) ?? "");
+
+  // What can be changed is the card's to say (`project/spec-card.ts`), the
+  // same answer the Running row is drawn from. The job-state gate `/save`
+  // applies (REQ-6 of spec 310): a run works in a worktree branched when it
+  // started, but a hand edit racing the run's own commits to the SAME branch
+  // is exactly what this gate exists to prevent. A landing counts as a job
+  // in flight, as it does on the row.
+  const jobInFlight = ctx.queue.list().some((job) => job.project === project && job.specFolder === specFolder && inFlight(job));
+  const { view } = cardStep(undefined, {
+    type: "opened",
+    facts: {
+      place: "running-row",
+      jobInFlight,
+      analyzeRun: parseStatus(statusText).workflowSteps.includes("analyze"),
+    },
+    saved: { dependsOn: dependsOnIn(currentText ?? ""), ...createChoicesIn(currentText ?? "") },
+  });
+  if (view.locks.dependsOn === "job-in-flight") {
     const reason = "another job for this spec is still running — nothing was saved";
     logRefusal("tracking", `${project}/${specFolder}`, reason);
     return json({ error: reason, spec }, 409);
@@ -70,16 +97,6 @@ export async function trackingRoutes(
     return json({ error: "malformed body" }, 400);
   }
 
-  // This form carries no textarea — it is not one document's Save — so
-  // it reads `1-description.md` fresh itself, the same "ask the open
-  // branch first" question `/save`'s own REQ-4 asks, since `create` or
-  // `analyze` may have already pushed this spec's own branch.
-  const target = await resolveOpenBranchTarget(ctx, dir, specFolder!, EDITABLE_SPEC_FILE, true);
-  const branchRead = target
-    ? await readStatusFromBranch(ctx.gitRun, target.root, target.branch, target.relPath)
-    : null;
-  const currentSha = branchRead ? branchRead.sha : (await lastCommitOf(ctx.gitRun, dir, EDITABLE_SPEC_FILE))?.sha ?? null;
-  const currentText = branchRead ? branchRead.text : specFileText(dir, EDITABLE_SPEC_FILE);
   if (currentText === null) {
     return refuse("1-description.md could not be read — nothing was saved");
   }
@@ -145,13 +162,7 @@ export async function trackingRoutes(
   // could not tell "cleared" from "analyze already decided, leave it
   // alone".
   if (body.settingsEditable === "1") {
-    const statusTarget = await resolveOpenBranchTarget(ctx, dir, specFolder!, STATUS_SPEC_FILE, false);
-    const statusRead = statusTarget
-      ? await readStatusFromBranch(ctx.gitRun, statusTarget.root, statusTarget.branch, statusTarget.relPath)
-      : null;
-    const statusText = statusRead ? statusRead.text : (specFileText(dir, STATUS_SPEC_FILE) ?? "");
-    const analyzeDone = parseStatus(statusText).workflowSteps.includes("analyze");
-    if (analyzeDone) {
+    if (view.locks.acceptanceRequired === "analyze-run") {
       return refuse("analyze has already run on these settings — they cannot change now");
     }
     // The box says what it means: ticked is required. Absent is a

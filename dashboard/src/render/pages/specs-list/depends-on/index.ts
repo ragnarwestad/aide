@@ -7,7 +7,8 @@
 import { saveCancelActions } from "../../../ui/components";
 import { t } from "../../../../i18n";
 import { capitalizeFirst } from "../../../../format/error-sentence.ts";
-import { createChoicesIn } from "../../../../project/discover";
+import { createChoicesIn, type CriteriaChecks } from "../../../../project/discover";
+import { cardStep, type CardValues, type CardView } from "../../../../project/spec-card.ts";
 import { optionsGroup } from "../../new-spec-page/options-tab.ts";
 import { esc } from "../../../ui/html.ts";
 import { dependsOnField } from "../../new-spec-page";
@@ -36,20 +37,24 @@ export function dependsOnOffer(
   return { options, ticked: g.dependsOn, locked };
 }
 
+/** What the card holds as saved: the spec's dependencies and the four
+ *  settings it was created with. */
+function cardValuesOf(g: SpecGroup): CardValues {
+  return { dependsOn: g.dependsOn, ...(g.createChoices ?? createChoicesIn("")) };
+}
+
 /** The four settings the spec was created with, as New spec's Options tab
- *  draws them: the AI formulation locked, since create has used it, and the
- *  three analyze reads posting with the row's form while `editable`. */
-function settingsGroup(g: SpecGroup, id: string, editable: boolean, lang: SpecsPageOptions["lang"] = "en"): string {
-  const c = g.createChoices ?? createChoicesIn("");
+ *  draws them, each open or locked as the card's view says. */
+function settingsGroup(id: string, view: CardView, lang: SpecsPageOptions["lang"] = "en"): string {
   return optionsGroup({
     form: id,
-    locked: true,
+    place: "running-row",
+    locks: view.locks,
     checksLast: true,
-    settingsEditable: editable,
-    acceptance: c.acceptanceRequired,
-    aiFormulate: c.aiFormulate,
-    criteriaChecks: c.criteriaChecks,
-    chooseApproach: c.chooseApproach,
+    acceptance: view.shown.acceptanceRequired,
+    aiFormulate: view.shown.aiFormulate,
+    criteriaChecks: view.shown.criteriaChecks as CriteriaChecks,
+    chooseApproach: view.shown.chooseApproach,
     labels: {
       acceptance: capitalizeFirst(t(lang, "spec.acceptanceTickingRequired")),
       aiFormulate: t(lang, "spec.formulateCriteria"),
@@ -61,30 +66,30 @@ function settingsGroup(g: SpecGroup, id: string, editable: boolean, lang: SpecsP
 }
 
 /** The line after an open row's phase lines. Nothing for a record or for a
- *  create whose folder is not there yet. While the lead job is queued,
- *  running or landing nothing can be changed, as the phase lines above are
- *  locked then.
- *  The settings take a change only until analyze has run, as the route
- *  allows; Depends on until a job is queued again. */
+ *  create whose folder is not there yet. What can be changed, and whether
+ *  Save and Cancel show, is `cardStep`'s to say. The form carries the two
+ *  facts it was asked with, for the page script to hand back to it. */
 export function dependsOnLine(g: SpecGroup, opts: Pick<SpecsPageOptions, "targets" | "archived" | "lang">): string {
   if (isArchivedRow(g) || !g.named) return "";
   const offer = dependsOnOffer(g, opts);
   const id = dependsOnFormId(g);
-  const held = specBusy(g);
-  const actions = held ? "" : saveCancelActions(id);
+  const facts = { place: "running-row", jobInFlight: specBusy(g), analyzeRun: g.done.includes("analyze") } as const;
+  const { view } = cardStep(undefined, { type: "opened", facts, saved: cardValuesOf(g) });
   const field = dependsOnField(offer.options, new Set(offer.ticked), {
     wide: true,
     locked: offer.locked,
     project: g.project,
     form: id,
-    disabled: held,
-    actions,
+    disabled: view.locks.dependsOn !== null,
+    actions: view.saveCancel ? saveCancelActions(id) : "",
   });
-  const settings = settingsGroup(g, id, !held && !g.done.includes("analyze"), opts.lang);
+  const settings = settingsGroup(id, view, opts.lang);
   const body = field + settings;
   return (
     `<tr class="subrow" data-depends-line="1"><td colspan="${LIST_COLUMNS}">` +
     `<form class="actionform dependsform" id="${esc(id)}" method="post" ` +
+    (facts.jobInFlight ? `data-job-in-flight="1" ` : "") +
+    (facts.analyzeRun ? `data-analyze-run="1" ` : "") +
     `action="/api/queue/specs/${esc(g.project)}/${esc(g.specFolder)}/tracking">` +
     `<input type="hidden" name="dependsOn" value="">` +
     body +
