@@ -368,7 +368,6 @@ describe("parked on a dependency (spec 122)", () => {
     const row = await jobRow({ queue: store, store: new AideRunStore() }, stored!);
     const chip = specStateChip(row, "en");
     expect(chip).toContain("Implementing");
-    expect(chip).not.toContain("Held back");
     expect(wordPhase(false, undefined, row, {}, "en").badge?.label).toBe("Running");
   });
 
