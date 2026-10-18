@@ -107,6 +107,9 @@ resume_session=""
 # $project_root before the worktree is cut (see the prompt-construction
 # branch below). Meaningless for every other command.
 prompt_file=""
+# `schedule` with Claude alone: start Claude with the browser of the
+# logged-in Chrome, for a job whose prompt reads a page behind a login.
+chrome="no"
 # Where to keep the claude transcript. Opt-in: without it the captured
 # output goes with the rest of $work_dir, exactly as it always has, so
 # no existing caller changes behaviour.
@@ -149,6 +152,7 @@ while [ $# -gt 0 ]; do
     --choose-approach) choose_approach_arg="${2:-}"; shift 2 ;;
     --reset-files) reset_files="yes"; shift ;;
     --prompt-file) prompt_file="${2:-}"; shift 2 ;;
+    --chrome) chrome="yes"; shift ;;
     --timeout-sec) timeout_sec="${2:-}"; shift 2 ;;
     --permission-mode) permission_mode="${2:-}"; shift 2 ;;
     --result-file) result_file="${2:-}"; shift 2 ;;
@@ -231,6 +235,13 @@ if [ "$command_name" = "schedule" ]; then
   step_button="Run now"
 else
   step_button="$(printf '%s' "$command_name" | awk '{ print toupper(substr($0, 1, 1)) substr($0, 2) }')"
+fi
+
+# Refused rather than dropped: a job that asked for the browser and ran
+# without it would only fail later, saying less about why.
+if [ "$chrome" = "yes" ]; then
+  [ "$command_name" = "schedule" ] || refuse "--chrome is for --command schedule only, not $command_name"
+  [ "${tool:-claude}" = "claude" ] || refuse "--chrome needs --tool claude, not $tool"
 fi
 
 case "$push_mode" in

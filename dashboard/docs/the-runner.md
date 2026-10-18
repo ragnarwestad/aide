@@ -343,8 +343,9 @@ aide-run-spec --project-dir ~/develop/myproject --command analyze --spec 81 \
 and some of them need one more flag: `--title` and `--description` for a `create` whose `--spec` names no existing
 folder, `--prompt-file` for `schedule`, `--reason` for `close`. Beyond those: `--tool claude|codex|opencode`
 chooses the CLI, `--model` and `--effort` what it runs as, `--push none|branch|pr` what is published,
-`--kill-grace-sec` (30) how long the step has between SIGTERM and SIGKILL, and `--worktree-base` where the
-worktrees go. `run-spec/setup/arguments.sh` is the whole list.
+`--kill-grace-sec` (30) how long the step has between SIGTERM and SIGKILL, `--worktree-base` where the
+worktrees go, and `--chrome` starts Claude with the logged-in Chrome — for `schedule` with `--tool claude` only,
+refused anywhere else. `run-spec/setup/arguments.sh` is the whole list.
 It refuses to start when the spec folder does not exist or when a required value is missing — but not over a dirty
 checkout: the work happens in a worktree cut from origin's default branch, so what somebody left uncommitted in the
 main checkout stops nobody. `--permission-mode` is never defaulted: the most dangerous flag has to be typed out. The queue passes

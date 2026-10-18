@@ -54,6 +54,7 @@ export function renderScheduleSettings(opts: ScheduleSettingsOptions): string {
     { label: esc(t(lang, "schedule.promptFile")), value: esc(entry.prompt) },
     { label: esc(t(lang, "schedule.model")), value: model ? esc(model) : `<span class="muted">–</span>` },
     { label: esc(t(lang, "schedule.notify")), value: esc(t(lang, notify)) },
+    { label: esc(t(lang, "schedule.browser")), value: esc(t(lang, entry.chrome ? "schedule.browserChrome" : "schedule.browserNone")) },
     { label: esc(t(lang, "schedule.enabled")), value: enabledBox(project, entry) },
   ]);
   const actions =

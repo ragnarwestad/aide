@@ -256,6 +256,18 @@ describe("the entry's notification choice, over the wire", () => {
     expect(res.status).toBe(400);
     expect(t.stored()).toHaveLength(0);
   });
+
+  test("the browser choice the form posts reaches the stored entry", async () => {
+    const form = start();
+    const posted = await fetch(`${form.base}/api/queue/schedule`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ project: "aide", name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", chrome: "yes" }),
+    });
+    expect(posted.status).toBe(200);
+    expect(form.stored()[0]!.chrome).toBe(true);
+  });
 });
 
 describe("POST /api/queue/schedule/<project>/<name>/run", () => {

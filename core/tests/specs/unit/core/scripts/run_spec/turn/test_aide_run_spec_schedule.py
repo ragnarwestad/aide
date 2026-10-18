@@ -216,3 +216,30 @@ def test_the_schedule_guard_file_is_gone(runner):
     assert "run-spec-schedule-guard.sh" not in source_text
     for part in lib.glob("run-spec/**/*.sh"):
         assert "discard_scheduled_commits" not in part.read_text(), part
+
+
+def test_a_job_that_asks_for_chrome_starts_claude_with_it(runner, workspace, fake_claude):
+    """A scheduled job that reads a logged-in page needs the browser: `--chrome` reaches Claude's own command line."""
+    with_prompt(workspace)
+    rc, out, _ = schedule(runner, workspace, job(fake_claude, FINISHED), chrome=True)
+    assert rc == 0, out
+    assert "--chrome" in fake_claude.calls.read_text().split()
+
+
+def test_a_job_that_does_not_ask_for_chrome_starts_claude_without_it(runner, workspace, fake_claude):
+    with_prompt(workspace)
+    rc, out, _ = schedule(runner, workspace, job(fake_claude, FINISHED))
+    assert rc == 0, out
+    assert "--chrome" not in fake_claude.calls.read_text().split()
+
+
+@pytest.mark.parametrize("asked", [{"command": "analyze"}, {"tool": "codex"}])
+def test_chrome_is_refused_outside_a_scheduled_claude_job(runner, workspace, fake_claude, asked):
+    """Only a scheduled job run by Claude can be given the browser; anything else asking for it is refused by name
+    before a model is started, rather than run without what it asked for."""
+    with_prompt(workspace)
+    claude = job(fake_claude, FINISHED)
+    rc, out, _ = schedule(runner, workspace, claude, chrome=True, **asked)
+    assert rc == 2, out
+    assert "--chrome" in out["error"]
+    assert not fake_claude.calls.exists()

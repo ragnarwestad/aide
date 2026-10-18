@@ -43,7 +43,16 @@ export interface ScheduleEntry {
   /** When a run of this entry sends a push. Absent reads as
    *  `DEFAULT_SCHEDULE_NOTIFY`. */
   notify?: ScheduleNotify;
+  /** Whether a run starts Claude with the browser of the logged-in Chrome
+   *  on the serving host (`aide-run-spec --chrome`), for a prompt that
+   *  reads a page behind a login. Absent means no: every run gets the
+   *  browser only when its own entry asks. */
+  chrome?: boolean;
 }
+
+/** What the form posts for the browser choice: `yes` asks for Chrome,
+ *  `no` clears it. */
+export const isScheduleChrome = (v: unknown): v is "yes" | "no" => v === "yes" || v === "no";
 
 /** When a scheduled job's run sends a push: never, when the run did not
  *  succeed (`failed`, `stopped` or `interrupted`), or every run. */

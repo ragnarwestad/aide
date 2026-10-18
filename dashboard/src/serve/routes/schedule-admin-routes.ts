@@ -114,7 +114,7 @@ export async function handleScheduleAdminRoutes(
     if ("refusal" in sent) return sent.refusal;
     const body = sent.body;
     const result = updateScheduleEntry(ctx.scheduleStore, project, ctx.machineryProjectDir(project), name, {
-      name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model), notify: str(body.notify),
+      name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model), notify: str(body.notify), chrome: str(body.chrome),
     }, knownModels(ctx));
     if (!result.ok) return json({ error: result.error }, 400);
     const back = scheduleBackPath(body.back, projectScheduleTab(project));
@@ -134,7 +134,7 @@ export async function handleScheduleAdminRoutes(
     const project = str(body.project);
     if (!ctx.allowed.has(project)) return json({ error: `"${project}" is not a project this dashboard knows` }, 400);
     const result = createScheduleEntry(ctx.scheduleStore, project, ctx.machineryProjectDir(project), {
-      name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model), notify: str(body.notify),
+      name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model), notify: str(body.notify), chrome: str(body.chrome),
     }, knownModels(ctx));
     if (!result.ok) return json({ error: result.error }, 400);
     return json({ ok: true, location: scheduleBackPath(body.back, projectScheduleTab(project)) });

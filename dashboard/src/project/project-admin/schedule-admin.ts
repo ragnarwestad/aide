@@ -9,7 +9,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { CronExpressionParser } from "cron-parser";
 import { listedModelName } from "../../queue/model-name.ts";
-import { escapesRoot, isScheduleNotify, SCHEDULE_NAME_RE, type ScheduleEntry, type ScheduleNotify } from "../../queue/schedule.ts";
+import { escapesRoot, isScheduleChrome, isScheduleNotify, SCHEDULE_NAME_RE, type ScheduleEntry, type ScheduleNotify } from "../../queue/schedule.ts";
 import type { ScheduleStore } from "../../queue/schedule-store.ts";
 
 export type ScheduleAdminResult = { ok: true } | { ok: false; error: string };
@@ -26,7 +26,7 @@ function saveEntries(store: ScheduleStore, project: string, entries: readonly Sc
  *  is never mistaken for a collision with itself. */
 export function scheduleEntryError(
   projectDir: string,
-  req: { name?: string; cron?: string; prompt?: string; model?: string; notify?: string },
+  req: { name?: string; cron?: string; prompt?: string; model?: string; notify?: string; chrome?: string },
   existing: readonly ScheduleEntry[],
   excludeName?: string,
   /** Every model name the queue config lists. Passed by the
@@ -75,6 +75,9 @@ export function scheduleEntryError(
   // Empty means "keep what the entry has" (an edit) or "none" (a create).
   const notify = req.notify?.trim();
   if (notify && !isScheduleNotify(notify)) return `"${notify}" is not a notification choice: never, failure or always`;
+  // Empty means "keep what the entry has" (an edit) or "no" (a create).
+  const chrome = req.chrome?.trim();
+  if (chrome && !isScheduleChrome(chrome)) return `"${chrome}" is not a browser choice: yes or no`;
   return null;
 }
 
@@ -82,6 +85,13 @@ export function scheduleEntryError(
 const postedNotify = (notify: string | undefined): ScheduleNotify | undefined => {
   const posted = notify?.trim();
   return isScheduleNotify(posted) ? posted : undefined;
+};
+
+/** The browser choice a request names: true or false, or `undefined`
+ *  when it names none. */
+const postedChrome = (chrome: string | undefined): boolean | undefined => {
+  const posted = chrome?.trim();
+  return isScheduleChrome(posted) ? posted === "yes" : undefined;
 };
 
 /** The model an entry stores: the spelling the dashboard lists, when the
@@ -99,7 +109,7 @@ export function createScheduleEntry(
   store: ScheduleStore,
   project: string,
   projectDir: string,
-  req: { name: string; cron: string; prompt: string; model?: string; notify?: string },
+  req: { name: string; cron: string; prompt: string; model?: string; notify?: string; chrome?: string },
   knownModels?: readonly string[],
 ): ScheduleAdminResult {
   const existing = store.list(project);
@@ -115,6 +125,7 @@ export function createScheduleEntry(
     since: new Date().toISOString(),
     ...(model ? { model } : {}),
     ...(notify ? { notify } : {}),
+    ...(postedChrome(req.chrome) ? { chrome: true } : {}),
   };
   return saveEntries(store, project, [...existing, entry]);
 }
@@ -127,7 +138,7 @@ export function updateScheduleEntry(
   project: string,
   projectDir: string,
   currentName: string,
-  req: { name: string; cron: string; prompt: string; model?: string; notify?: string },
+  req: { name: string; cron: string; prompt: string; model?: string; notify?: string; chrome?: string },
   knownModels?: readonly string[],
 ): ScheduleAdminResult {
   const existing = store.list(project);
@@ -154,6 +165,8 @@ export function updateScheduleEntry(
           // entry's own: a form drawn without the field is not asking
           // for the default.
           ...((posted ?? e.notify) ? { notify: (posted ?? e.notify)! } : {}),
+          // Kept like the notify choice when the edit posts none.
+          ...((postedChrome(req.chrome) ?? e.chrome) ? { chrome: true } : {}),
         }
       : e,
   );

@@ -406,6 +406,11 @@ under a `schedules` key keyed by project name:
 An entry may also carry `"notify": "never" | "failure" | "always"`, set on its New-job page and Settings tab and read as
 `failure` when absent (see [Push notifications](#push-notifications-on-a-phone-or-laptop)).
 
+An entry may also carry `"chrome": true`, set as Browser on the same two pages: each run starts Claude with the
+browser of the logged-in Chrome on the serving host (`aide-run-spec --chrome`), for a prompt that reads a page behind a
+login. It needs Chrome running there with the Claude extension signed in to the same account as Claude Code, and a
+model run by Claude; absent means no browser.
+
 A fresh install has no scheduled jobs, whatever the projects it serves contain. A project's own files never carry a
 schedule; a job belongs to the installation that fires it.
 
@@ -430,7 +435,7 @@ sort it). It shows and links, and changes nothing: a click anywhere on a row ope
 an entry is enabled is text there. The project's own Schedule tab lists its entries by Name, Next run, the Enabled
 switch, Run now and Delete, with New above the list; a click on a row opens the entry's own page.
 `/schedule/<project>/<name>` is one entry's own page, with two tabs: Report and Settings. Settings shows
-every field of the entry — name, cron, prompt file, model and notify — with the Enabled switch, Run now and Delete;
+every field of the entry — name, cron, prompt file, model, notify and browser — with the Enabled switch, Run now and Delete;
 Delete there goes to the project's Schedule tab once it has gone through. Edit on Settings (`?tab=settings&edit=1`)
 draws the same fields as New as inputs on the tab, with Save and Cancel. New is a page of its own,
 `/schedule/new?project=<project>`. A save goes back to the page it was opened from (a path on the board, sent with the

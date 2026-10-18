@@ -115,6 +115,9 @@ export function runnerArgv(
      *  other step — `aide-run-spec` only ever reads `--prompt-file` for
      *  `--command schedule`. */
     promptFile?: string;
+    /** Whether a `schedule` step asks for the logged-in Chrome (its
+     *  entry's own `chrome`). Only ever true for that step. */
+    chrome?: boolean;
     /** The config's own table (spec 125). What a job stores per step is
      *  a NAME the request picked; what the CLI is handed — which tool,
      *  which model string — is looked up here, where the grants
@@ -195,6 +198,7 @@ export function runnerArgv(
     // `--spec` is a tracking key, never a folder on disk, so the file
     // is the whole of what the step is for.
     ...(o.promptFile ? ["--prompt-file", o.promptFile] : []),
+    ...(o.chrome ? ["--chrome"] : []),
     ...(model ? ["--model", model] : []),
     // Only when the job actually named one for this step (REQ-4): a job
     // with nothing chosen produces byte-for-byte the argv it produced

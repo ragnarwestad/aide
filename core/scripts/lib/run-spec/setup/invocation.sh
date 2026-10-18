@@ -310,6 +310,7 @@ else
   [ -n "$model" ] && argv+=(--model "$model")
   [ -n "$effort" ] && argv+=(--effort "$effort")
   [ -n "$session_id" ] && argv+=(--session-id "$session_id")
+  [ "$chrome" = "yes" ] && argv+=(--chrome)
 fi
 
 # An implement that continues its analysis's own session (the board passes

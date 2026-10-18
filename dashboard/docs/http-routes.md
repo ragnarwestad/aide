@@ -192,14 +192,14 @@ opened.
 
 Answered by `src/serve/routes/schedule-admin-routes.ts`.
 
-| Route                                               | Kind   | Takes                                            | Answers                                                                    | Made for |
-|-----------------------------------------------------|--------|--------------------------------------------------|----------------------------------------------------------------------------|----------|
-| `GET /api/queue/schedule/cron-next`                 | read   | `?cron=` a cron expression                       | `{ next }`: the next time it fires; 400 for an expression it cannot read   | form     |
-| `POST /api/queue/schedule`                          | action | project, name, cron, prompt, model, notify, back | `{ ok, location }`: `back`, or the project's Schedule tab; 400 `{ error }` | form     |
-| `POST /api/queue/schedule/<project>/<name>`         | action | name, cron, prompt, model, notify, back          | `{ ok, location }`: `back`, or the project's Schedule tab; 400 `{ error }` | form     |
-| `POST /api/queue/schedule/<project>/<name>/enabled` | action | enabled                                          | `{ ok, enabled }`; 400 `{ error }`                                         | form     |
-| `POST /api/queue/schedule/<project>/<name>/run`     | action | nothing                                          | `{ ok, job }`; 400 `{ error }`                                             | form     |
-| `POST /api/queue/schedule/<project>/<name>/delete`  | action | nothing                                          | `{ ok }`; 400 `{ error }`                                                  | form     |
+| Route                                               | Kind   | Takes                                                    | Answers                                                                    | Made for |
+|-----------------------------------------------------|--------|----------------------------------------------------------|----------------------------------------------------------------------------|----------|
+| `GET /api/queue/schedule/cron-next`                 | read   | `?cron=` a cron expression                               | `{ next }`: the next time it fires; 400 for an expression it cannot read   | form     |
+| `POST /api/queue/schedule`                          | action | project, name, cron, prompt, model, notify, chrome, back | `{ ok, location }`: `back`, or the project's Schedule tab; 400 `{ error }` | form     |
+| `POST /api/queue/schedule/<project>/<name>`         | action | name, cron, prompt, model, notify, chrome, back          | `{ ok, location }`: `back`, or the project's Schedule tab; 400 `{ error }` | form     |
+| `POST /api/queue/schedule/<project>/<name>/enabled` | action | enabled                                                  | `{ ok, enabled }`; 400 `{ error }`                                         | form     |
+| `POST /api/queue/schedule/<project>/<name>/run`     | action | nothing                                                  | `{ ok, job }`; 400 `{ error }`                                             | form     |
+| `POST /api/queue/schedule/<project>/<name>/delete`  | action | nothing                                                  | `{ ok }`; 400 `{ error }`                                                  | form     |
 
 ### Push
 

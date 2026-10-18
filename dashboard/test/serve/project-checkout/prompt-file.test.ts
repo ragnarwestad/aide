@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createScheduleStore } from "../../../src/queue/schedule-store.ts";
 import type { Job } from "../../../src/queue/queue.ts";
-import { promptFileFor, type ProjectCheckoutContext } from "../../../src/serve/project-checkout.ts";
+import { chromeFor, promptFileFor, type ProjectCheckoutContext } from "../../../src/serve/project-checkout.ts";
 
 let dir: string;
 let file: string;
@@ -39,4 +39,16 @@ test("a name only a manifest lists, an unknown name and a step other than schedu
 test("a job of another project's config is not found (AC-2)", () => {
   writeFileSync(file, JSON.stringify({ schedules: { paceup: [{ name: "nightly", cron: "0 3 * * *", prompt: "docs/a.md" }] } }));
   expect(promptFileFor(ctx(), job("schedule-nightly"), "schedule")).toBeUndefined();
+});
+
+test("a scheduled job gets Chrome only when its own entry asks, read fresh at spawn time", () => {
+  const entries = (chrome?: boolean) =>
+    JSON.stringify({ schedules: { aide: [{ name: "nightly", cron: "0 3 * * *", prompt: "docs/a.md", ...(chrome ? { chrome } : {}) }] } });
+  writeFileSync(file, entries(true));
+  const c = ctx();
+  expect(chromeFor(c, job("schedule-nightly"), "schedule")).toBe(true);
+  expect(chromeFor(c, job("schedule-nightly"), "implement")).toBe(false);
+  expect(chromeFor(c, job("schedule-other"), "schedule")).toBe(false);
+  writeFileSync(file, entries());
+  expect(chromeFor(c, job("schedule-nightly"), "schedule")).toBe(false);
 });

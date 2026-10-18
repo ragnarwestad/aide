@@ -285,3 +285,30 @@ describe("an entry's notification choice", () => {
     expect(stored()[0]!.notify).toBe("never");
   });
 });
+
+describe("an entry's browser choice", () => {
+  test("a create asks for Chrome only when yes is posted", () => {
+    const a = setup();
+    expect(createScheduleEntry(a.store, PROJECT, a.dir, { ...req(), chrome: "yes" }).ok).toBe(true);
+    expect(a.stored()[0]!.chrome).toBe(true);
+    for (const chrome of [undefined, "no"]) {
+      const b = setup();
+      expect(createScheduleEntry(b.store, PROJECT, b.dir, { ...req(), chrome }).ok).toBe(true);
+      expect(b.stored()[0]!.chrome).toBeUndefined();
+    }
+  });
+
+  test("a value other than yes or no is refused and nothing is written", () => {
+    const { dir, store, stored } = setup();
+    expect(createScheduleEntry(store, PROJECT, dir, { ...req(), chrome: "maybe" }).ok).toBe(false);
+    expect(stored()).toHaveLength(0);
+  });
+
+  test("an edit that posts no clears it, and one that posts nothing keeps it", () => {
+    const { dir, store, stored } = setup([{ name: "nightly", chrome: true }]);
+    expect(updateScheduleEntry(store, PROJECT, dir, "nightly", req()).ok).toBe(true);
+    expect(stored()[0]!.chrome).toBe(true);
+    expect(updateScheduleEntry(store, PROJECT, dir, "nightly", { ...req(), chrome: "no" }).ok).toBe(true);
+    expect(stored()[0]!.chrome).toBeUndefined();
+  });
+});

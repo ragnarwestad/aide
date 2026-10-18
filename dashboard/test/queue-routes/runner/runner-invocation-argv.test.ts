@@ -337,6 +337,26 @@ describe("--reset-files", () => {
   });
 });
 
+describe("--chrome", () => {
+  const argvFor = (chrome: boolean | undefined): string[] =>
+    runnerArgv(
+      {
+        id: "j1", project: "aide", specFolder: "schedule-x-list", steps: ["schedule"], stepIndex: 0,
+        model: {}, timeoutSec: {}, permissionMode: {}, state: "queued", createdAt: "", results: [],
+      } as unknown as Parameters<typeof runnerArgv>[0],
+      "schedule", "/tmp/r.json",
+      { runnerBin: "/bin/aide-run-spec", projectDir: "/p", push: "branch", promptFile: "docs/x.md", chrome },
+    );
+
+  test("a scheduled job whose entry asks for Chrome passes it", () => {
+    expect(argvFor(true)).toContain("--chrome");
+  });
+  test("one whose entry does not, does not", () => {
+    expect(argvFor(false)).not.toContain("--chrome");
+    expect(argvFor(undefined)).not.toContain("--chrome");
+  });
+});
+
 // An implement continues its analysis's own session: the latest finished
 // analysis of the spec, run with the same AI, ended within the hour.
 describe("the analysis session an implement continues", () => {

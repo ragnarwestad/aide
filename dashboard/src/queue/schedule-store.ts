@@ -54,6 +54,7 @@ export function parseScheduleEntries(raw: unknown): ScheduleEntry[] {
       ...(model && SCHEDULE_NAME_RE.test(model) ? { model } : {}),
       ...(since && !isNaN(Date.parse(since)) ? { since } : {}),
       ...(isScheduleNotify(notify) ? { notify } : {}),
+      ...(e.chrome === true ? { chrome: true } : {}),
     });
   }
   return entries;
@@ -69,6 +70,7 @@ function serialize(entry: ScheduleEntry): Record<string, unknown> {
     ...(entry.model ? { model: entry.model } : {}),
     ...(entry.since ? { since: entry.since } : {}),
     ...(entry.notify ? { notify: entry.notify } : {}),
+    ...(entry.chrome ? { chrome: true } : {}),
     ...(entry.enabled ? {} : { enabled: false }),
   };
 }

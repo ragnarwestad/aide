@@ -26,6 +26,7 @@ import {
   machineryProjectDir as machineryProjectDirImpl,
   codeLanding as codeLandingImpl,
   promptFileFor as promptFileForImpl,
+  chromeFor as chromeForImpl,
   ownedSpecsRoot as ownedSpecsRootImpl,
   machinerySpecsRoot as machinerySpecsRootImpl,
   complain as complainImpl,
@@ -104,6 +105,9 @@ export function setupProjectResolution(
   }
   function promptFileFor(job: Job, step: string) {
     return promptFileForImpl(projectCheckoutCtx, job, step);
+  }
+  function chromeFor(job: Job, step: string) {
+    return chromeForImpl(projectCheckoutCtx, job, step);
   }
   function ownedSpecsRoot(project: string) {
     return ownedSpecsRootImpl(projectCheckoutCtx, project);
@@ -219,7 +223,7 @@ export function setupProjectResolution(
       branchFileSteps = checker;
     },
     checkoutEnsurer, ensureCheckout, gitRun, branchStatus,
-    displayProjectDir, machineryProjectDir, codeLanding, promptFileFor, ownedSpecsRoot, machinerySpecsRoot,
+    displayProjectDir, machineryProjectDir, codeLanding, promptFileFor, chromeFor, ownedSpecsRoot, machinerySpecsRoot,
     targets, specRoots, rootsStillHolding, peekUnlanded, peekUnlandedCheckedAt, peekMergedOnOrigin,
     specDir, specRef, specsRoot, machinerySpecDir, peekMachinerySpecDir,
   };

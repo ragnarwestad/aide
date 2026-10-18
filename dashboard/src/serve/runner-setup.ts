@@ -45,6 +45,7 @@ export interface RunnerSetupContext {
   codeLanding: (project: string) => CodeLanding;
   queuePush: string | undefined;
   promptFileFor: (job: Job, step: string) => string | undefined;
+  chromeFor: (job: Job, step: string) => boolean;
   notifier: Notifier;
   landNewSpec: (job: Job, outcome: Partial<StepOutcome>) => Promise<void>;
   landStepBranch: (job: Job, step: WorkflowStep, outcome: Partial<StepOutcome>) => Promise<void>;
@@ -216,6 +217,7 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
             // deploy.
             push: ctx.codeLanding(job.project) === "pr" ? "pr" : (ctx.queuePush ?? "branch"),
             promptFile: ctx.promptFileFor(job, step),
+            chrome: ctx.chromeFor(job, step),
             modelChoices: ctx.store.defaults.modelChoices,
             timeoutSec: ctx.store.defaults.timeoutSec,
             permissionMode: ctx.store.defaults.permissionMode,

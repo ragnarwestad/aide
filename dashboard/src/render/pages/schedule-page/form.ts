@@ -16,7 +16,7 @@ export interface ScheduleFormOptions {
    *  label and nothing else, since both cases post to their own
    *  `action`. */
   entryName?: string;
-  entry?: { name: string; cron: string; prompt: string; model?: string; notify?: ScheduleNotify };
+  entry?: { name: string; cron: string; prompt: string; model?: string; notify?: ScheduleNotify; chrome?: boolean };
   action: string;
   /** Every allowed project (spec 278): draws a `<select name="project">`
    *  the same way the New-spec form's own Project field is
@@ -125,6 +125,22 @@ function notifyField(opts: ScheduleFormOptions, lang: Language): string {
   return `<div class="schedulenotify">${field(t(lang, "schedule.notify"), `<select name="notify">${options}</select>`)}</div>`;
 }
 
+/** Each browser choice the form posts and the catalogue key of its word. */
+export const BROWSER_WORDS = [
+  ["no", "schedule.browserNone"],
+  ["yes", "schedule.browserChrome"],
+] as const;
+
+/** Whether a run gets the logged-in Chrome: its own line under Notify,
+ *  starting on None, so the browser is something an entry asks for. */
+function browserField(opts: ScheduleFormOptions, lang: Language): string {
+  const chosen = opts.entry?.chrome ? "yes" : "no";
+  const options = BROWSER_WORDS
+    .map(([value, key]) => `<option value="${value}"${value === chosen ? " selected" : ""}>${esc(t(lang, key))}</option>`)
+    .join("");
+  return `<div class="schedulebrowser">${field(t(lang, "schedule.browser"), `<select name="chrome">${options}</select>`)}</div>`;
+}
+
 export const CRON_NEXT_HOOK = "cron-next";
 
 export function renderScheduleForm(opts: ScheduleFormOptions, lang: Language = "en"): string {
@@ -167,6 +183,7 @@ export function renderScheduleForm(opts: ScheduleFormOptions, lang: Language = "
     // separately again; this row is one item, in the first column.
     models +
     notifyField(opts, lang) +
+    browserField(opts, lang) +
     `<div class="factions">${btn({ label: opts.entryName ? "Save" : "Create", variant: "primary" })}` +
     // A link, as the Config tab's Cancel is: it loads the tab as saved,
     // and `data-discard-changes` lets it past the leave question.

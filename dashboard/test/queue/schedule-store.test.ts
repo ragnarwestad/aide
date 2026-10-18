@@ -217,3 +217,25 @@ describe("an entry's notification choice", () => {
     expect(store.list("aide")[0]!.notify).toBe("always");
   });
 });
+
+describe("an entry's browser choice", () => {
+  const base = { name: "n", cron: "0 3 * * *", prompt: "p.md" };
+
+  test("only the literal true asks for Chrome; anything else reads as none", () => {
+    expect(parseScheduleEntries([{ ...base, chrome: true }])[0]!.chrome).toBe(true);
+    for (const chrome of [undefined, false, "true", "yes", 1, null]) {
+      const [kept] = parseScheduleEntries([{ ...base, chrome }]);
+      expect(kept).toBeDefined();
+      expect(kept!.chrome).toBeUndefined();
+    }
+  });
+
+  test("a saved choice is written to the file only when it asks for Chrome", () => {
+    const store = createScheduleStore(file);
+    expect(store.save("aide", [entry({ chrome: true }), entry({ name: "plain" })])).toBeNull();
+    const written = JSON.parse(readFileSync(file, "utf-8")).schedules.aide;
+    expect(written[0].chrome).toBe(true);
+    expect("chrome" in written[1]).toBe(false);
+    expect(store.list("aide")[0]!.chrome).toBe(true);
+  });
+});
