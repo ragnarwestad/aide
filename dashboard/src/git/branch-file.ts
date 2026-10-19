@@ -64,8 +64,9 @@ export async function commitTimeOf(run: GitRunner, root: string, sha: string): P
   }
 }
 
-/** The path as origin's branch had it at its last fetch into `root`. */
-async function readFetched(run: GitRunner, root: string, branch: string, relPath: string): Promise<BranchFileRead | null> {
+/** The path as origin's branch had it at its last fetch into `root`;
+ *  fetches nothing. */
+export async function readFetched(run: GitRunner, root: string, branch: string, relPath: string): Promise<BranchFileRead | null> {
   const ref = `refs/remotes/origin/${branch}`;
   const commit = await run(root, ["log", "-1", "--format=%H", ref, "--", relPath]);
   const sha = commit.code === 0 ? commit.stdout.trim() : "";

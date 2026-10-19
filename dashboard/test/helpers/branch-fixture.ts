@@ -45,6 +45,34 @@ export function rootWithOrigin(dir: string): Omit<BranchFixture, "branch"> {
   return { root, origin };
 }
 
+/** One project directory of the harness's `root` as a repository of its
+ *  own on `main`, holding `files` (by path inside the project), pushed
+ *  to a new bare origin beside `root` — outside it, since the board scans
+ *  `root` for projects. In production a project directory is the root of
+ *  its clone, and `git show <ref>:<path>` reads from that root. Returns
+ *  the origin's path. */
+export function projectWithOrigin(dir: string, project: string, files: Record<string, string>): string {
+  const work = join(dir, "root", project);
+  const origin = join(dir, `${project}-origin.git`);
+  mkdirSync(work, { recursive: true });
+  git(work, "init", "-q", "-b", "main");
+  git(work, "config", "user.name", "Test");
+  git(work, "config", "user.email", "test@example.com");
+  for (const [file, text] of Object.entries(files)) {
+    const path = join(work, file);
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, text);
+  }
+  git(work, "add", "-A");
+  git(work, "commit", "-qm", "the project as it was found");
+  mkdirSync(origin, { recursive: true });
+  git(origin, "init", "-q", "--bare", "-b", "main");
+  git(work, "remote", "add", "origin", origin);
+  git(work, "push", "-q", "-u", "origin", "main");
+  git(work, "remote", "set-head", "origin", "main");
+  return origin;
+}
+
 /** `rootWithOrigin`, plus `aide/<folder>` on origin holding `files` (by
  *  file name, inside the spec's folder) one commit ahead of `main`. The
  *  branch is never checked out in `root`: the page reads it off origin. */

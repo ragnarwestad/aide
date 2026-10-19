@@ -15,5 +15,9 @@ export const scheduleTabPath = (project: string, name: string, tab: string): str
 export const scheduleSettingsPath = (project: string, name: string, edit = false): string =>
   `${scheduleTabPath(project, name, "settings")}${edit ? "&edit=1" : ""}`;
 
+/** The entry's prompt file, as the default branch of the board's checkout has it. */
+export const schedulePromptPath = (project: string, name: string): string =>
+  `${schedulePagePath(project, name)}/prompt`;
+
 export const SCHEDULE_TABS = ["report", "settings"] as const;
 export type ScheduleTab = (typeof SCHEDULE_TABS)[number];

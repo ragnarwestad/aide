@@ -435,8 +435,10 @@ sort it). It shows and links, and changes nothing: a click anywhere on a row ope
 an entry is enabled is text there. The project's own Schedule tab lists its entries by Name, Next run, the Enabled
 switch, Run now and Delete, with New above the list; a click on a row opens the entry's own page.
 `/schedule/<project>/<name>` is one entry's own page, with two tabs: Report and Settings. Settings shows
-every field of the entry — name, cron, prompt file, model, notify and browser — with the Enabled switch, Run now and Delete;
-Delete there goes to the project's Schedule tab once it has gone through. Edit on Settings (`?tab=settings&edit=1`)
+every field of the entry — name, cron, prompt file, model, notify and browser — with the Enabled switch, Edit and Delete
+(Run now is on the project's Schedule tab); Delete there goes to the project's Schedule tab once it has gone through.
+The prompt file's path links to `/schedule/<project>/<name>/prompt`, which shows the file as the default branch of the
+board's checkout last fetched it, drawn as Markdown, or one sentence saying it cannot be read. Edit on Settings (`?tab=settings&edit=1`)
 draws the same fields as New as inputs on the tab, with Save and Cancel. New is a page of its own,
 `/schedule/new?project=<project>`. A save goes back to the page it was opened from (a path on the board, sent with the
 form as `back`; a rename moves a `back` on the entry's old page to its new one), and a refused save stays on the page

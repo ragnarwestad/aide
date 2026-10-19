@@ -13,7 +13,8 @@ import { renderScheduleRuns } from "./runs.ts";
 import { renderScheduleList, type ScheduleFilter, type SchedulePageRow } from "./list.ts";
 import { renderScheduleSettings, type ScheduleSettingsOptions } from "./settings.ts";
 import {
-  schedulePagePath, scheduleRunPath, scheduleSettingsPath, SCHEDULE_TABS, scheduleTabPath, type ScheduleTab,
+  schedulePagePath, schedulePromptPath, scheduleRunPath, scheduleSettingsPath, SCHEDULE_TABS, scheduleTabPath,
+  type ScheduleTab,
 } from "./tabs.ts";
 import { pickTab, tabBar, tabbedBody } from "../job-page";
 
@@ -22,7 +23,9 @@ export { buildReportDocument } from "./report-document.ts";
 export { renderProposalsPanel } from "./proposals.ts";
 export { NEW_SCHEDULE_DEFAULTS, renderScheduleNewPage, scheduleNewPath } from "./new-page.ts";
 export type { ScheduleNewPageOptions } from "./new-page.ts";
-export { SCHEDULE_TABS, schedulePagePath, scheduleRunPath, scheduleSettingsPath, scheduleTabPath };
+export { renderSchedulePromptPage } from "./prompt-page.ts";
+export type { SchedulePromptPageOptions } from "./prompt-page.ts";
+export { SCHEDULE_TABS, schedulePagePath, schedulePromptPath, scheduleRunPath, scheduleSettingsPath, scheduleTabPath };
 export type { SchedulePageRow, ScheduleFilter, ScheduleTab };
 
 export const SCHEDULE_ROUTE = "/schedule";

@@ -1,7 +1,7 @@
 // A schedule entry's controls: the Enabled switch, Run now and Delete.
-// A project's own Schedule tab draws them on the entry's row, and the
-// entry's Settings tab draws the same three. The Schedule list only
-// shows and links.
+// A project's own Schedule tab draws all three on the entry's row; the
+// entry's Settings tab draws the Enabled switch and Delete, and no Run
+// now. The Schedule list only shows and links.
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import { askButton, buttonForm, confirmDialog } from "../../ui/components";
 import { esc } from "../../ui/html.ts";

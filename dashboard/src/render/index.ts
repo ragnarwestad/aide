@@ -67,11 +67,11 @@ export {
   renderSchedulePage, renderScheduleDetailPage, renderScheduleNewPage,
   NEW_SCHEDULE_DEFAULTS, scheduleNewPath,
   renderReportPanel, buildReportDocument,
-  SCHEDULE_ROUTE, SCHEDULE_TABS, schedulePagePath, scheduleRunPath, scheduleSettingsPath, scheduleTabPath,
-  renderProposalsPanel,
+  SCHEDULE_ROUTE, SCHEDULE_TABS, schedulePagePath, schedulePromptPath, scheduleRunPath, scheduleSettingsPath,
+  scheduleTabPath, renderProposalsPanel, renderSchedulePromptPage,
 } from "./pages/schedule-page";
 export type {
-  SchedulePageOptions, SchedulePageRow, ScheduleDetailPageOptions, ScheduleTab,
+  SchedulePageOptions, SchedulePageRow, ScheduleDetailPageOptions, SchedulePromptPageOptions, ScheduleTab,
 } from "./pages/schedule-page";
 
 // The eight answers that make the dashboard an app you install (spec

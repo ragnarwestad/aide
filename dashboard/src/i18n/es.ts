@@ -221,6 +221,8 @@ export const es: Record<TranslationKey, string> = {
   "schedule.cron": "Cron",
   "schedule.nextRun": "Próxima ejecución",
   "schedule.promptFile": "Archivo de prompt",
+  "schedule.promptOfJob": "Archivo de prompt de la tarea programada {job}",
+  "schedule.promptUnreadable": "el archivo de prompt {file} no se puede leer desde la rama por defecto del checkout del tablero de {project} — haz commit en esa rama, o cambia la ruta en la pestaña Ajustes.",
   "schedule.model": "Modelo",
   "schedule.modelNotOffered": "el modelo {model} no es uno de los que ofrece la cola — ofrece {choices}. Elige uno en la página de la entrada; hasta entonces sus ejecuciones se rechazan.",
   "schedule.modelNoneOffered": "el modelo {model} no es uno de los que ofrece la cola — no ofrece ningún modelo. Elige otro en la página de la entrada cuando la configuración de la cola liste alguno; hasta entonces sus ejecuciones se rechazan.",

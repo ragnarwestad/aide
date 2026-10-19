@@ -9,9 +9,10 @@ import { DEFAULT_SCHEDULE_OUTPUT_ROOT, readScheduleRunReport, scheduleTrackingKe
 import { readProposalsRecord } from "../../../queue/spec-proposals.ts";
 import {
   NEW_SCHEDULE_DEFAULTS, SCHEDULE_ROUTE, buildReportDocument, projectPagePath, renderProposalsPanel, renderReportPanel,
-  renderScheduleDetailPage, renderSchedulePage, resolveBackHref,
+  renderScheduleDetailPage, renderSchedulePage, renderSchedulePromptPage, resolveBackHref,
 } from "../../../render";
-import { languageChoice, modelChoiceOptions, specsClientScript } from "../../serve-helpers";
+import { readFetched } from "../../../git/branch-file.ts";
+import { SPEC_VIEWER_ASSET_PATH, languageChoice, modelChoiceOptions, specsClientScript } from "../../serve-helpers";
 import { serveStatic } from "../../serve-helpers";
 import type { RoutesContext } from "..";
 import { scheduleLastRun } from "./schedule-last-run.ts";
@@ -78,6 +79,37 @@ export async function schedulePages(
       values: NEW_SCHEDULE_DEFAULTS,
       back: resolveBackHref(req.headers.get("referer"), url.origin, projectScheduleTab(project), url.pathname),
     });
+  }
+
+  // A job's prompt file. The address names a job, never a file: what is read
+  // is always the entry's own `prompt`, which the store keeps inside the
+  // project, and any other address matches nothing.
+  const promptPage = path.match(/^\/schedule\/([^/]+)\/([^/]+)\/prompt$/);
+  if (promptPage) {
+    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    const project = decodeURIComponent(promptPage[1]!);
+    const name = decodeURIComponent(promptPage[2]!);
+    if (!ctx.allowed.has(project)) return new Response("not found", { status: 404 });
+    const entry = ctx.scheduleStore.list(project).find((e) => e.name === name);
+    if (!entry) return new Response("not found", { status: 404 });
+    // The directory a run of this entry is handed, at its default branch as the
+    // last pull left it. Never fetched here: the default branch of a shared
+    // checkout moves only under the per-root lock a run's pull holds.
+    const dir = ctx.machineryProjectDir(project);
+    const base = await ctx.branchStatus.defaultBranch(dir);
+    const read = base ? await readFetched(ctx.gitRun, dir, base, entry.prompt) : null;
+    const langResult = languageChoice(url, req);
+    const html = renderSchedulePromptPage(ctx.nav(), new Date().toISOString(), {
+      project,
+      entry,
+      text: read?.text ?? null,
+      viewerSrc: SPEC_VIEWER_ASSET_PATH,
+      lang: langResult.lang,
+      currentUrl: langResult.currentUrl,
+    });
+    const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
+    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
+    return new Response(html, { headers });
   }
 
   const scheduleDetailPage = path.match(/^\/schedule\/([^/]+)\/([^/]+)$/);

@@ -221,6 +221,8 @@ export const de: Record<TranslationKey, string> = {
   "schedule.cron": "Cron",
   "schedule.nextRun": "Nächster Lauf",
   "schedule.promptFile": "Prompt-Datei",
+  "schedule.promptOfJob": "Prompt-Datei des geplanten Jobs {job}",
+  "schedule.promptUnreadable": "die Prompt-Datei {file} kann nicht vom Standard-Branch des Checkouts von {project} auf dem Board gelesen werden — committe sie auf diesen Branch oder ändere den Pfad im Tab Einstellungen.",
   "schedule.model": "Modell",
   "schedule.modelNotOffered": "Das Modell {model} gehört nicht zu denen, die die Warteschlange anbietet — sie bietet {choices}. Wähle auf der Seite des Eintrags eines davon; bis dahin werden seine Läufe abgelehnt.",
   "schedule.modelNoneOffered": "Das Modell {model} gehört nicht zu denen, die die Warteschlange anbietet — sie bietet keine Modelle an. Wähle auf der Seite des Eintrags ein anderes, sobald die Konfiguration der Warteschlange eines nennt; bis dahin werden seine Läufe abgelehnt.",

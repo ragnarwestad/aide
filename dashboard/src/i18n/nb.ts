@@ -223,6 +223,8 @@ export const nb: Record<TranslationKey, string> = {
   "schedule.cron": "Cron",
   "schedule.nextRun": "Neste kjøring",
   "schedule.promptFile": "Promptfil",
+  "schedule.promptOfJob": "Promptfil for den planlagte jobben {job}",
+  "schedule.promptUnreadable": "promptfilen {file} kan ikke leses fra standardgrenen i tavlens egen utsjekk av {project} — commit den til den grenen, eller endre stien på Innstillinger-fanen.",
   "schedule.model": "Modell",
   "schedule.modelNotOffered": "modellen {model} er ikke en av dem køen tilbyr — den tilbyr {choices}. Velg en av dem på oppføringens side; til da blir kjøringene avvist.",
   "schedule.modelNoneOffered": "modellen {model} er ikke en av dem køen tilbyr — den tilbyr ingen modeller. Velg en annen på oppføringens side når køens oppsett har en; til da blir kjøringene avvist.",

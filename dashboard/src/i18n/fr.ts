@@ -221,6 +221,8 @@ export const fr: Record<TranslationKey, string> = {
   "schedule.cron": "Cron",
   "schedule.nextRun": "Prochaine exécution",
   "schedule.promptFile": "Fichier de prompt",
+  "schedule.promptOfJob": "Fichier de prompt de la tâche planifiée {job}",
+  "schedule.promptUnreadable": "le fichier de prompt {file} est introuvable sur la branche par défaut du dépôt local du tableau pour {project} — validez-le sur cette branche, ou changez le chemin dans l'onglet Paramètres.",
   "schedule.model": "Modèle",
   "schedule.modelNotOffered": "le modèle {model} ne fait pas partie de ceux que la file propose — elle propose {choices}. Choisissez-en un sur la page de l'entrée ; d'ici là, ses exécutions sont refusées.",
   "schedule.modelNoneOffered": "le modèle {model} ne fait pas partie de ceux que la file propose — elle ne propose aucun modèle. Choisissez-en un autre sur la page de l'entrée dès que la configuration de la file en liste un ; d'ici là, ses exécutions sont refusées.",

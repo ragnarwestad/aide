@@ -231,6 +231,8 @@ export const en = {
   "schedule.cron": "Cron",
   "schedule.nextRun": "Next run",
   "schedule.promptFile": "Prompt file",
+  "schedule.promptOfJob": "Prompt file of the scheduled job {job}",
+  "schedule.promptUnreadable": "the prompt file {file} cannot be read from the default branch of the board's checkout of {project} — commit it to that branch, or change the path on the Settings tab.",
   "schedule.model": "Model",
   "schedule.modelNotOffered": "model {model} is not one the queue offers — it offers {choices}. Choose one on the entry's page; until then its runs are refused.",
   "schedule.modelNoneOffered": "model {model} is not one the queue offers — it offers no models. Choose another on the entry's page once the queue config lists one; until then its runs are refused.",
