@@ -35,21 +35,6 @@ describe("Remove", () => {
     expect(h.location.href).toBe("/projects?state=running&sort=cost");
   });
 
-  test("a removal tells the unsaved-changes guard the page's edits are left behind (AC-3)", async () => {
-    const h = harness(() => ({ ok: true, body: { ok: true, results: [] } }), "actionform", "?tab=config", {
-      pathname: "/projects/atlasaurus",
-    });
-    await h.submitRemove();
-    expect(h.dispatched).toContain("aide-changes-discarded");
-    expect(h.location.href).toBe("/projects");
-  });
-
-  test("a refused removal leaves the guard armed (AC-3)", async () => {
-    const h = harness(() => ({ ok: false, body: { ok: false, results: [{ step: "allowlist", error: "no" }] } }));
-    await h.submitRemove();
-    expect(h.dispatched).not.toContain("aide-changes-discarded");
-  });
-
   test("the dialog stands while the removal is out, and stays standing as the page goes (AC-1, AC-4)", async () => {
     let standingWhileOut = false;
     const h = harness(

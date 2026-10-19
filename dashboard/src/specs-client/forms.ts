@@ -135,8 +135,8 @@ export async function submitCreate(form: HTMLFormElement, event: Event): Promise
 }
 
 // Adding and removing a project: the Add project page's form, and the
-// Remove on a project's Config tab. Both are bound directly, like the
-// New-spec form.
+// Delete on a project's row of the Projects list. Both are bound directly,
+// like the New-spec form.
 //
 // No refusal here has a row to land on: an Add names a project that was
 // never added, and a Remove that failed leaves the project exactly where
@@ -153,24 +153,16 @@ export async function submitProjectChange(form: HTMLFormElement, event: Event): 
     form,
     async (body) => {
       if (!hold) formNote(form, "");
-      // The press has done what it was for, and the page goes with it:
-      // edits left open beside it (a settings table on the Config tab
-      // Remove project sits on) are not a reason to ask before leaving.
-      // The guard is a head script with nothing to import, so it hears
-      // an event (`unsaved-changes.ts`).
-      document.dispatchEvent(new Event("aide-changes-discarded"));
       // An Add lands on the new project's Config tab, which says whether
       // a run can start there and every reason it cannot (spec 138): what
       // hid Skjer's missing specs root until someone pressed Run. A
-      // Remove — the press that asks in a dialog — lands on the list the
-      // project has left, in the reader's own view; `tab` is the Config
-      // tab Remove is pressed on.
+      // Remove — the press that asks in a dialog — lands on the list it
+      // was pressed on, in the reader's own view.
       if (!dialog && body?.project) {
         location.href = `/projects/${encodeURIComponent(body.project)}?tab=config`;
         return;
       }
       const params = new URLSearchParams(location.search);
-      params.delete("tab");
       const query = params.toString();
       location.href = query ? `/projects?${query}` : "/projects";
     },

@@ -278,7 +278,7 @@ export const en = {
   "schedule.colNextRun": "Next run",
 
   "project.add": "Add",
-  "project.remove": "Remove",
+  "project.delete": "Delete",
   "project.active": "active",
   "project.archived": "archived",
   "project.count": "{n} projects",

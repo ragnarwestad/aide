@@ -97,14 +97,6 @@
     dialog.showModal();
   });
 
-  // A press that takes the whole page away on purpose — Remove project,
-  // whose form is not one of the tracked ones — says so with this event
-  // once it has succeeded (`submitProjectChange`, specs-client/forms.ts),
-  // so the edits it leaves behind raise no question on the way out.
-  document.addEventListener("aide-changes-discarded", () => {
-    dirty = false;
-  });
-
   window.addEventListener("beforeunload", (event: BeforeUnloadEvent) => {
     if (!dirty) return;
     // preventDefault() alone asks for the browser's own prompt;

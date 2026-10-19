@@ -1,5 +1,6 @@
-// OK in Cancel's, Delete's and Remove project's dialogs does what the old
-// copy did: exactly one POST, to the route it always went to.
+// OK in Cancel's dialog and in the two Delete dialogs (a schedule entry's, a
+// project's row on the list) does what the old copy did: exactly one POST, to
+// the route it always went to.
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, writeFileSync } from "node:fs";
@@ -86,16 +87,22 @@ describe("OK posts once, to the old route", () => {
     await page.close();
   });
 
-  test("Remove project lands on the list, with the project off the allowlist (AC-3, AC-4)", async () => {
+  test("Delete on a project's row opens Remove's dialog without opening the project, and OK posts once (AC-2)", async () => {
     const base = board();
     const page = await browser.newPage();
-    const posts = await pressOk(page, `${base}/projects/aide?tab=config&live=0`, "removeask");
-    await page.waitForURL((u) => new URL(u).pathname === "/projects");
+    const posts: string[] = [];
+    page.on("request", (r) => {
+      if (r.method() === "POST") posts.push(new URL(r.url()).pathname);
+    });
+    await page.goto(`${base}/projects?live=0`);
+    await page.getByRole("button", { name: "Delete aide" }).click();
+    const box = page.locator('dialog[id="removeask-aide"]');
+    await box.waitFor({ state: "visible" });
+    expect(new URL(page.url()).pathname).toBe("/projects");
+    await box.getByRole("button", { name: "OK" }).click();
+    // The list is drawn again, and aide's row no longer offers Delete.
+    await page.getByRole("button", { name: "Delete aide" }).waitFor({ state: "detached" });
     expect(posts).toEqual(["/api/queue/projects/aide/remove"]);
-    // Its checkout stays on disk, so the list may still show it as found
-    // there; what is gone is the allowlist entry Remove took away.
-    const config = await (await fetch(`${base}/projects/aide?tab=config`)).text();
-    expect(config).not.toContain('data-ask="removeask"');
     await page.close();
   });
 });

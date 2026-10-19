@@ -1,7 +1,7 @@
 // The `/projects` list: the counts, then one row per project. Split
 // out of projects-page.ts by theme.
 
-import { ICON_WARN, rowMessage } from "../../ui/components";
+import { ICON_WARN, askButton, progressDialog, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import type { ProjectView } from "./types.ts";
@@ -15,12 +15,38 @@ export function projectDescription(p: ProjectView): string {
     : "";
 }
 
+/** Delete, at the far right of the row of a project on the allowlist: the
+ *  danger button a schedule entry's row has, opening the dialog Remove
+ *  project has always asked in. One dialog per row, its id naming the
+ *  project; a refusal is written in the dialog's own line, and success
+ *  draws the list again (`submitProjectChange`). */
+function projectDeleteControl(name: string, lang: Language): string {
+  const id = `removeask-${name}`;
+  const label = t(lang, "project.delete");
+  return (
+    askButton({ label, dialogId: id, variant: "danger", ariaLabel: `${label} ${name}` }) +
+    progressDialog(lang, {
+      id,
+      title: t(lang, "dialog.removing"),
+      ask: {
+        title: `Remove ${name}?`,
+        sentence:
+          `Removing ${name} takes it off the allowlist and off this dashboard. ` +
+          `Its checkout and its specs stay on disk, untouched. This cannot be undone.`,
+        ok: { variant: "danger", pending: "removing…" },
+        post: { action: `/api/queue/projects/${encodeURIComponent(name)}/remove`, hook: "removeform" },
+      },
+    })
+  );
+}
+
 function overviewRow(
   p: ProjectView,
   path: string,
   note?: string,
   warnHref?: string,
   lang: Language = "en",
+  removable = false,
 ): string {
   // Spec 369: the readiness sentence itself moved to the project's own
   // page — this is only a pointer to it, so it rises above the row's
@@ -28,6 +54,7 @@ function overviewRow(
   const warn = warnHref
     ? `<a class="proj-row-warn" href="${esc(warnHref)}" title="cannot run yet — see the project's page" aria-label="cannot run yet">${ICON_WARN}</a>`
     : "";
+  const del = removable ? projectDeleteControl(p.name, lang) : "";
   const projectLink = `<a class="proj-row-link" href="${esc(path)}">${esc(p.name)}</a>`;
   // Spec 142: on the row, not floating above the list — a reader should
   // not have to work out which project a warning is about. An error row
@@ -37,7 +64,7 @@ function overviewRow(
   if (!p.manifest.ok) {
     return (
       `<div class="proj-row error"><div>${projectLink}` +
-      `<p class="error-text">${esc(t(lang, "project.manifestFailed", { error: p.manifest.error }))}</p>${drift}</div>${warn}</div>`
+      `<p class="error-text">${esc(t(lang, "project.manifestFailed", { error: p.manifest.error }))}</p>${drift}</div>${warn}${del}</div>`
     );
   }
   const active = p.specs.filter((s) => !s.archived).length;
@@ -48,7 +75,7 @@ function overviewRow(
     `<span class="counts">${active} ${t(lang, "project.active")} · ${archived} ${t(lang, "project.archived")}</span>` +
     desc +
     drift +
-    `</div>${warn}</div>`
+    `</div>${warn}${del}</div>`
   );
 }
 
@@ -91,6 +118,8 @@ export function projectListBody(
      *  no mark at all — a callback of the same shape as `note`, not a
      *  change to how the row is composed. */
     warnHref?: (name: string) => string | undefined;
+    /** Whether the row offers Delete: a project on the allowlist. */
+    removable?: (name: string) => boolean;
     lang?: Language;
   },
 ): string {
@@ -104,6 +133,7 @@ export function projectListBody(
           opts.note?.(p.name),
           opts.warnHref?.(p.name),
           opts.lang ?? "en",
+          opts.removable?.(p.name) ?? false,
         ),
       )
       .join("\n")

@@ -33,9 +33,9 @@ The page has two parts. [Using it](#using-it) is for someone adding and running 
 
 ### Adding a project
 
-`/projects` lists every project the dashboard knows, with an **Add** button above the list and a **Remove** link on
-each row. Add opens a page of its own; both are held to the same-origin rule, like every other control that changes
-something.
+`/projects` lists every project the dashboard knows, with an **Add** button above the list and a **Delete** button on
+each row of a project on the allowlist. Add opens a page of its own; both are held to the same-origin rule, like every
+other control that changes something.
 
 **The projects root is where they all live** — the directory the server was started with as `--root`. A project is
 a directory under it, and the list is what the dashboard finds there. Adding one also puts its name on the queue's
@@ -121,11 +121,12 @@ project is in.
 
 ### Removing a project
 
-Remove takes the project off the allowlist and off this dashboard, and that is all it does: the checkout and the
-specs root stay on disk, untouched. Remove project is at the foot of the project's Config tab, for a project on the
+Delete takes the project off the allowlist and off this dashboard, and that is all it does: the checkout and the
+specs root stay on disk, untouched. Delete is at the far right of the project's row on the list, for a project on the
 allowlist, and asks in a dialog; OK is the answer, nothing is typed back. While the request is out the dialog shows
 "Removing…" alone, and Escape and a click outside do not close it; a refusal is written in the dialog's own line, with
-OK ready to press again. Success lands on the projects list.
+OK ready to press again. Success draws the list again, with the reader's query kept. A project whose checkout is
+still under the projects root keeps its row, without Delete, because the list shows what is found there.
 
 ### Whether a run can start there
 

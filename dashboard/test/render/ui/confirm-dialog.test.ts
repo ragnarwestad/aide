@@ -5,7 +5,7 @@
 // which dialog, and where OK posts, is proven in the browser
 // (test/e2e/confirm-boxes-ok.test.ts) and by the opener (ask.test.ts).
 import { describe, expect, test } from "bun:test";
-import { renderProjectPage, renderSpecsRows, type ProjectView } from "../../../src/render";
+import { renderProjectsPage, renderSpecsRows, type ProjectView } from "../../../src/render";
 import { scheduleControlCells } from "../../../src/render/pages/schedule-page/controls.ts";
 import { pageShell } from "../../../src/render/ui/shell.ts";
 import { openKeys, row } from "../pages/fixtures.ts";
@@ -42,14 +42,11 @@ describe("each confirmation is drawn by the shared function", () => {
     expect(expectAsk(schedule, "deleteask-aide/nightly")).not.toContain("data-progress-dialog");
   });
 
-  test("Remove project's form carries the hook the page script binds its submit by (AC-1)", () => {
+  test("Delete on a project's row of the list asks in a dialog whose form carries the hook the page script binds its submit by (AC-1)", () => {
     const view: ProjectView = { name: "aide", manifest: { ok: false, error: "no manifest" }, specs: [] };
-    const html = renderProjectPage(view, { hasConfigFile: false, rows: [] }, null, "2026-09-20T00:00:00Z", [], {
-      worktreeLinkCandidates: [],
-      editingGroup: null,
-      tab: "config",
-      removable: true,
+    const html = renderProjectsPage([view], "2026-09-20T00:00:00Z", [{ label: "Projects", path: "/projects" }], {
+      removable: () => true,
     });
-    expect(expectAsk(html, "removeask")).toMatch(/class="[^"]*\bremoveform\b/);
+    expect(expectAsk(html, "removeask-aide")).toMatch(/class="[^"]*\bremoveform\b/);
   });
 });

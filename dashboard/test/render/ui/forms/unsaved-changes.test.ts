@@ -78,7 +78,6 @@ function harness() {
   let submitHandler: ((event: unknown) => void) | undefined;
   let clickHandler: ((event: unknown) => void) | undefined;
   let beforeunloadHandler: ((event: unknown) => void) | undefined;
-  let discardedHandler: ((event: unknown) => void) | undefined;
 
   let showModalCalled = false;
   let closeHandler: (() => void) | undefined;
@@ -102,7 +101,6 @@ function harness() {
       else if (type === "change") changeHandler = fn;
       else if (type === "submit") submitHandler = fn;
       else if (type === "click") clickHandler = fn;
-      else if (type === "aide-changes-discarded") discardedHandler = fn;
     },
     getElementById: (id: string) => (id === "leaveapp" ? dialog : null),
   };
@@ -150,12 +148,9 @@ function harness() {
     return { prevented, returnValue };
   };
 
-  const discarded = () => discardedHandler!({});
-
   return {
     input,
     change,
-    discarded,
     submit,
     click,
     beforeunload,
@@ -228,14 +223,6 @@ describe("a page with an unsaved edit warns before it is left (spec 438)", () =>
     const h = harness();
     h.input(element({ classes: ["specform"] }));
     h.click(element({ id: "specform-cancel" }));
-    const { prevented } = h.beforeunload();
-    expect(prevented).toBe(false);
-  });
-
-  test("a press that took the page away on purpose disarms it (AC-3, Remove project beside an open settings table)", () => {
-    const h = harness();
-    h.input(element({ classes: ["pageform"] }));
-    h.discarded();
     const { prevented } = h.beforeunload();
     expect(prevented).toBe(false);
   });

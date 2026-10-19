@@ -175,9 +175,11 @@ describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
     // The checkout and its specs are exactly where they were.
     expect(existsSync(join(dir, "root", "aide", ".aide", "project.yaml"))).toBe(true);
     expect(existsSync(join(dir, "root", "aide", "specs", "81-queue-and-runner"))).toBe(true);
-    // And its page no longer offers it.
-    const html = await (await fetch(`${base}/projects/aide?tab=config`)).text();
+    // And the list no longer offers it, though the row stays: the
+    // checkout is still under the projects root.
+    const html = await (await fetch(`${base}/projects`)).text();
     expect(html).not.toContain('action="/api/queue/projects/aide/remove"');
+    expect(html).toContain('href="/projects/aide"');
   });
 
   // Criterion 8.
@@ -195,22 +197,19 @@ describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
     expect(res.status).toBe(400);
     const body = (await res.json()) as StepBody;
     expect(body.results.find((r) => r.step === "allowlist")!.ok).toBe(false);
-    // The project still stands, its Remove with it.
-    const html = await (await fetch(`${base}/projects/aide?tab=config`)).text();
+    // The refusal changes nothing: aide's row still carries its Delete.
+    const html = await (await fetch(`${base}/projects`)).text();
     expect(html).toContain('action="/api/queue/projects/aide/remove"');
   });
 
-  test("Remove project asks in a dialog on an allowlisted project's Config tab, and only there (AC-3)", async () => {
+  test("Delete is on an allowlisted project's row of the Projects list and no other, and the Config tab offers none (AC-1, AC-5)", async () => {
     const { base } = start({}, ["other"]);
-    const allowed = await (await fetch(`${base}/projects/aide?tab=config`)).text();
-    expect(allowed).toContain('data-ask="removeask"');
-    expect(allowed).toContain('action="/api/queue/projects/aide/remove"');
+    const list = await (await fetch(`${base}/projects`)).text();
+    expect(list).toContain('action="/api/queue/projects/aide/remove"');
     // Discovered, but never on the allowlist: nothing to remove it from.
-    const other = await fetch(`${base}/projects/other?tab=config`);
-    expect(other.status).toBe(200);
-    const otherHtml = await other.text();
-    expect(otherHtml).not.toContain('data-ask="removeask"');
-    expect(otherHtml).not.toContain("/remove");
+    expect(list).not.toContain("/api/queue/projects/other/remove");
+    const config = await (await fetch(`${base}/projects/aide?tab=config`)).text();
+    expect(config).not.toContain("/remove");
   });
 
   // Criterion 4, for the second route.

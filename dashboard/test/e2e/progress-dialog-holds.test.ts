@@ -54,9 +54,14 @@ async function tryToClose(page: Page): Promise<void> {
 
 describe("a running step stands in its progress dialog", () => {
   test("Remove project shows Removing… and not its question while its request is out, through Escape and a click outside (AC-1, AC-2)", async () => {
-    const page = await open("config", "/remove");
-    await page.locator('button[data-ask="removeask"]').click();
-    const box = page.locator("dialog#removeask");
+    const page = await browser.newPage();
+    await page.route(
+      (u) => u.pathname.endsWith("/remove"),
+      (route) => (route.request().method() === "POST" ? new Promise<void>(() => {}) : route.continue()),
+    );
+    await page.goto(`${base}/projects?live=0`);
+    await page.locator('button[data-ask="removeask-aide"]').click();
+    const box = page.locator('dialog[id="removeask-aide"]');
     await box.getByRole("button", { name: "OK" }).click();
     await box.getByRole("heading", { name: "Removing…" }).waitFor({ state: "visible", timeout: 5000 });
     expect(await box.getByText("takes it off the allowlist").isVisible()).toBe(false);

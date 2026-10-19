@@ -51,10 +51,6 @@ export interface ProjectPageOptions {
   /** Where "← Back" goes: the page the reader came from, resolved by the
    *  server from the request's `Referer`. Projects when there is none. */
   backHref?: string;
-  /** Whether the project is on the allowlist, so the Config tab offers
-   *  Remove project: a project that was only discovered has nothing to
-   *  be removed from. */
-  removable?: boolean;
   /** This checkout's last drift answer (spec 258), `undefined` when no
    *  `AIDE_INSTALL_CMD` is configured — the same gate `/projects`' own
    *  drift map uses. */

@@ -217,8 +217,6 @@ export async function projectPages(
         // The page the reader came from, so a project opened from a
         // spec's row goes back to that row; Projects without one.
         backHref: resolveBackHref(req.headers.get("referer"), url.origin, PROJECTS_ROUTE, url.pathname),
-        // Only a project the allowlist knows has anything to be removed from.
-        removable: !!ctx.opts.projectRoot && ctx.allowed.has(name),
         script: await specsClientScript(),
         // Specs root and Worktree links are no longer read a second
         // time here (spec 255): `projectSettings(dir, readiness)`
@@ -319,6 +317,8 @@ export async function projectPages(
       ctx.nav(),
       {
         readinessByProject,
+        // Only a project the allowlist knows has anything to be removed from.
+        removable: (name) => ctx.allowed.has(name),
         script: await specsClientScript(),
         lang: langResult.lang,
         currentUrl: langResult.currentUrl,

@@ -38,7 +38,6 @@ describe("which forms the New-spec handler binds", () => {
       worktreeLinkCandidates: [],
       editingGroup: "manifest",
       tab: "config",
-      removable: true,
     });
     expect(html).toContain("/settings");
     expect(await matched(html)).toEqual([]);

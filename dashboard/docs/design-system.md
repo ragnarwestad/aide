@@ -241,7 +241,7 @@ the Cancel beside a Save.
 
 `danger` means one thing only: an action a mistake cannot undo — removing a project, deleting a scheduled job,
 leaving a page with its edits unsaved. Every `danger` control is either the OK of a dialog asking the question first,
-or the button that opens one, as Delete in the scheduled jobs' list and Remove project do. A job's Cancel is `primary` and not `danger`, because a cancelled run can be started again.
+or the button that opens one, as Delete on a scheduled job's row and on a project's row do. A job's Cancel is `primary` and not `danger`, because a cancelled run can be started again.
 
 ## Theme choice
 

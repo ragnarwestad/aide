@@ -4,7 +4,7 @@
 // running face. Marks the script depends on, not layout or wording.
 import { describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import { renderProjectPage, renderSpecsRows, type ProjectPageOptions, type ProjectView } from "../../../src/render";
+import { renderProjectPage, renderProjectsPage, renderSpecsRows, type ProjectPageOptions, type ProjectView } from "../../../src/render";
 import { closeAskDialog } from "../../../src/render/pages/spec-page/ask-dialog.ts";
 import { reopenControl } from "../../../src/render/pages/spec-page/overview.ts";
 import { view } from "../pages/spec-page-fixtures.ts";
@@ -62,9 +62,11 @@ describe("every running step is drawn by the progress dialog", () => {
     expectProgress(box);
   });
 
-  test("Remove project's dialog is a progress dialog (AC-1)", () => {
-    const html = projectPage({ tab: "config", removable: true });
-    expectProgress(dialogWith(html, `id="removeask"`));
+  test("Delete's dialog on a project's row of the list is a progress dialog (AC-1)", () => {
+    const html = renderProjectsPage([project], "2026-09-20T00:00:00Z", [{ label: "Projects", path: "/projects" }], {
+      removable: () => true,
+    });
+    expectProgress(dialogWith(html, `id="removeask-aide"`));
   });
 
   test("Deploy's dialog is a progress dialog that asks nothing, so it stands from the moment it opens (AC-1, AC-5)", () => {

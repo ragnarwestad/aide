@@ -5,7 +5,7 @@
 // generated — adding a project is a mutating action, which needs a
 // server behind it. Add follows the New-spec pattern (2026-08-19): a real
 // button at the top right of the list that opens a page of its own with
-// Save and Cancel. Remove project is on the project's own Config tab.
+// Save and Cancel. Delete is on the project's own row of the list.
 //
 // Split by theme into projects-page/: types.ts (the view types),
 // routes.ts (nav and paths), overview-list.ts (the `/projects` list
@@ -87,6 +87,9 @@ export interface ProjectsPageOptions {
    *  Spec 369: the full sentence lives on the project's own Config tab
    *  — the list needs only whether a run can start, to gate the mark. */
   readinessByProject?: Record<string, boolean>;
+  /** Whether a project's row offers Delete: a project on the allowlist.
+   *  Absent offers none. */
+  removable?: (name: string) => boolean;
   /** What the project is configured with today — the Settings page's
    *  two fields, pre-filled. Empty means empty: this page never guesses
    *  on a configured project's behalf. */
@@ -134,7 +137,7 @@ export function renderProjectsPage(
     // (2026-08-21).
     `<div class="listtop">${projectSummary(projects, lang)}` +
     `${btnLink({ href: ADD_PROJECT_ROUTE, label: t(lang, "project.add"), variant: "primary" })}</div>\n` +
-    // Remove project is on each project's own Config tab.
+    // Delete is on each removable project's own row.
     projectListBody(projects, {
       pageHref: (name) => projectPagePath(name),
       lang,
@@ -144,6 +147,7 @@ export function renderProjectsPage(
       // on.
       warnHref: (name) =>
         opts.readinessByProject?.[name] === false ? `${projectPagePath(name)}?tab=config` : undefined,
+      removable: opts.removable,
     });
   // No reload of its own: a served page a reader may leave mid-thought needs
   // no blunt reload. The tagline rides on the tab here, the way it did
