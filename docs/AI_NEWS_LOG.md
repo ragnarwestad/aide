@@ -6,6 +6,7 @@
   - [Sources](#sources)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-10-19](#2026-10-19)
   - [2026-10-12](#2026-10-12)
   - [2026-10-05](#2026-10-05)
   - [2026-10-04](#2026-10-04)
@@ -73,6 +74,54 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-10-19
+
+Oct 12 – Oct 19. No change needed in the support matrix or the reference. Not read in full: Claude Code v2.1.297–298,
+Copilot CLI v1.0.97, the second half of the Codex changelog, the X list digest of Oct 19 (list could not be read).
+
+**Claude Code (Oct 14 – Oct 18, v2.1.299 → v2.1.303):**
+
+| Date   | Version  | News                                                                                        | Source                                                         |
+|--------|----------|---------------------------------------------------------------------------------------------|----------------------------------------------------------------|
+| Oct 14 | v2.1.299 | `CLAUDE_CODE_DISABLE_FILE_MENTIONS`; idle compaction (`idleCompaction`); MCP deny/ask fixes | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Oct 14 | v2.1.300 | `prompt.change` mod hook; `agent.spawn` can rewrite prompt and model                        | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Oct 15 | v2.1.301 | Skill argument names limited to 64; skills no longer vanish after `/rewind`                 | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Oct 16 | v2.1.302 | Prompt/agent hooks limited to 12 per event; fork subagents on by default in `claude -p`     | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Oct 18 | v2.1.303 | Bug fixes                                                                                   | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Oct 15 | —        | Code Review generally available                                                             | [Blog](https://claude.com/blog/)                               |
+
+**GitHub Copilot CLI (Oct 13 – Oct 16, v1.0.98 → v1.0.100-1 pre):**
+
+| Date   | Version                    | News                                                                                       | Source                                                     |
+|--------|----------------------------|--------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Oct 14 | v1.0.98                    | Gemini 4 Argon; command hooks complete reliably under Node                                 | [Releases](https://github.com/github/copilot-cli/releases) |
+| Oct 15 | v1.0.99-0…-1 (pre)         | `.github/instructions` files apply automatically; skills/plugins from GitHub install links | [Releases](https://github.com/github/copilot-cli/releases) |
+| Oct 16 | v1.0.99-2…v1.0.100-1 (pre) | `--disable-client-telemetry`; no stall on a hung MCP server                                | [Releases](https://github.com/github/copilot-cli/releases) |
+
+**OpenAI Codex CLI (Oct 14 – Oct 17, v0.163.0):**
+
+| Date      | Version            | News                                                                         | Source                                                |
+|-----------|--------------------|------------------------------------------------------------------------------|-------------------------------------------------------|
+| Oct 15    | v0.163.0           | Searchable `/config`; mid-turn steering; `/daemon`; parallel read-only tools | [Changelog](https://learn.chatgpt.com/docs/changelog) |
+| Oct 16–17 | v0.164.0-alpha.1…3 | Alpha builds, no release notes                                               | [Releases](https://github.com/openai/codex/releases)  |
+| Oct 14    | —                  | GPT-5.5 retired in Codex for ChatGPT sign-in; use GPT-6.1 Sol                | [Changelog](https://learn.chatgpt.com/docs/changelog) |
+
+**OpenCode (Oct 12 – Oct 16, v1.19.1 → v1.19.3; OpenCode 2 v2.0.27 → v2.0.32):**
+
+| Date      | Version         | News                                                            | Source                                                     |
+|-----------|-----------------|-----------------------------------------------------------------|------------------------------------------------------------|
+| Oct 15    | v1.19.1         | Session sharing discontinued                                    | [Releases](https://github.com/anomalyco/opencode/releases) |
+| Oct 16    | v1.19.2–3       | 1.x installs never offered 2.x; configurable reasoning variants | [Releases](https://github.com/anomalyco/opencode/releases) |
+| Oct 12–16 | v2.0.27–v2.0.32 | `instructions` loads globs and URLs; worktree tools             | [Changelog](https://opencode.ai/changelog)                 |
+
+**Relevance for Aide:**
+
+- ⚠️ Claude Code v2.1.302: fork subagents on by default in `claude -p`; no Aide step known to depend on it.
+- ⚠️ OpenCode security incident (X list, Oct 18): some users' saved provider keys were misused; Aide's installer stores
+  no keys.
+- ✅ Copilot `.github/instructions` auto-applied; Claude Code hook limits — no action.
+- ℹ Codex GPT-5.5 retirement, OpenCode 2.x beside 1.x, Codex v0.163.0, Code Review GA — no Aide action.
 
 ### 2026-10-12
 
