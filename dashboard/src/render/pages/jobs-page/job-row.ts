@@ -122,8 +122,8 @@ export function jobRow(row: QueueRowView, o: JobRowOptions): string {
     `${kind ? `<span class="actionslot">${control(row, kind, lang)}</span>` : ""}</td>` +
     `<td data-col="started">${timeCell(row, o.now)}</td>` +
     `<td class="num" data-col="cost">${costCell(row.spentUsd, row.spentTokens, "–")}</td></tr>` +
-    messageLine(row, lang) +
     (open ? stepLines(row, o) : "") +
+    messageLine(row, lang) +
     `<tr class="specgap" aria-hidden="true"><td colspan="${LIST_COLUMNS}"></td></tr>`
   );
 }
