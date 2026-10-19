@@ -7,9 +7,24 @@ and archive steps headless.
 Only read. Do not post, reply, like, repost, follow or change anything on X, and change no file
 in the repository: commit nothing and push nothing.
 
-1. Call mcp__claude-in-chrome__tabs_context_mcp with createIfEmpty true, then open
-   https://x.com/i/lists/1992629307080929379 in a new tab.
-2. Collect the posts with mcp__claude-in-chrome__javascript_tool, running this script exactly
+1. Use the Chrome on the machine that serves the board. Every Chrome signed in to the same Claude
+   account is connected, and their names and device ids say nothing about which machine each one
+   is on, so find it by a file only this machine's board serves. Nobody is there to answer a
+   question: this step is the choice, so do not ask.
+
+   Write a random token as the page title of `$AIDE_SCHEDULE_OUTPUT_DIR/browser-check.html`
+   (`<!doctype html><title>TOKEN</title>`; the browser tools cannot read a plain-text page). Call
+   mcp__claude-in-chrome__list_connected_browsers, and for each browser in turn:
+   mcp__claude-in-chrome__select_browser with its deviceId, then
+   mcp__claude-in-chrome__tabs_context_mcp with createIfEmpty true, then open
+   `http://127.0.0.1:8788/schedule-output/aide/schedule-X-lista/runs/<run>/browser-check.html` in a
+   new tab, where `<run>` is the last part of `$AIDE_SCHEDULE_OUTPUT_DIR`, and read `document.title`
+   with mcp__claude-in-chrome__javascript_tool. Any other machine's Chrome gets an error page there.
+   The browser whose title is the token is the one to use; close that tab and keep it selected.
+   Close the tab in every other browser you tried. When no browser shows the token, stop: the list cannot be read,
+   because this machine's Chrome is not connected.
+2. Open https://x.com/i/lists/1992629307080929379 in a new tab.
+3. Collect the posts with mcp__claude-in-chrome__javascript_tool, running this script exactly
    as written. Do not read posts from a screenshot or the page text: X keeps only the posts near
    the screen in the page, so what is visible is a fraction of the list. The script scrolls until
    the last three posts on the page are all older than 24 hours — one old post alone, a pinned one
@@ -44,10 +59,10 @@ in the repository: commit nothing and push nothing.
    with `window.__list.slice(0, 3).join('\n\n')`, then `slice(3, 6)`, and so on until every post
    has been read. Each line starts with the time (UTC), then `handle/status/ID`. A post whose
    text ends in "Show more" is cut short; open it and read it whole when it may matter to Aide.
-3. Keep only what matters to Aide: news or releases for Claude Code, Codex, OpenCode or Copilot;
+4. Keep only what matters to Aide: news or releases for Claude Code, Codex, OpenCode or Copilot;
    security incidents in AI coding tools; how people run agents, evals, specs, hooks, skills,
    reviews or tests; measured results. Leave out promotion, newsletters, politics, games and jokes.
-4. Close the tab you opened.
+5. Close the tab you opened.
 
 Write the digest, in English, to `$AIDE_SCHEDULE_OUTPUT_DIR/digest.md`, which the weekly news check
 reads:
@@ -65,5 +80,5 @@ script returned.
 Then write the same digest as plain HTML, no styling, to `$AIDE_SCHEDULE_OUTPUT_DIR/index.html`:
 that file is what the entry's page shows as the run's report, and each post's link opens it on X.
 
-If the list cannot be read (the browser is not connected, X asks for a login), write that reason
+If the list cannot be read (this machine's Chrome is not connected, X asks for a login), write that reason
 as the only line of both files.
