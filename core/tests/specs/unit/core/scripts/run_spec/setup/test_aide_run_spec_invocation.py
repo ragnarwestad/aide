@@ -717,3 +717,37 @@ def test_only_analyze_is_told_to_mark_the_approaches_AC_9(runner, workspace, fak
     rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command="implement", dry_run=True)
     assert rc == 0, out
     assert APPROACH_LINE not in out["prompt"], out["prompt"]
+
+
+# --- a short analysis is offered to analyze ----------------------------------
+#
+# Offered unless the spec asks to choose the approach. The limits are the
+# runner's own constants.
+
+SHORT_ANALYSIS_LINE = (
+    "A short analysis is allowed for this spec, per Step 3: "
+    "grade LOW, at most 3 acceptance criteria, at most 3 files to change"
+)
+
+
+@pytest.mark.parametrize(
+    "command, choose, checks, offered",
+    [
+        ("analyze", "no", "off", True),
+        ("analyze", None, None, True),
+        ("analyze", "no", "warn", True),
+        ("analyze", "no", "stop", True),
+        ("analyze", "yes", "off", False),
+        ("implement", "no", "off", False),
+    ],
+    ids=["the-offer", "nothing-recorded", "warn", "stop", "choose-approach", "not-analyze"],
+)
+def test_a_short_analysis_is_offered_unless_the_spec_asks_to_choose_AC_1_AC_3(
+    runner, workspace, fake_claude, command, choose, checks, offered,
+):
+    configure_choose_approach(workspace, choose)
+    configure_criteria_checks(workspace, checks)
+    rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command=command, dry_run=True)
+    assert rc == 0, out
+    lines = [l for l in out["prompt"].splitlines() if "A short analysis is allowed" in l]
+    assert lines == ([SHORT_ANALYSIS_LINE] if offered else []), out["prompt"]

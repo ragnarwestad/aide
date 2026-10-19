@@ -55,7 +55,11 @@ First write `--- Step 1 of 4: Preparation — started`, and when this step ends,
 2. Read `specs/XX-slug/3-solution.md` (implementation plan). Build its
    recommended solution. On a spec that asked to choose the approach, a
    choice not saved on the Specs list never stops this step: the
-   recommended approach is built
+   recommended approach is built. When `2-analysis.md`'s Tracking info
+   reads `- **Analysis:** short`, `3-solution.md` holds no plan and no plan
+   review by design: build the change `1-description.md` asks for, in the
+   files `### Files to change` names, with the tests at the places `###
+   Where the tests sit` names. A short analysis is never a reason to stop
 3. If the spec is MEDIUM/HIGH and `3-solution.md` has no "Plan review"
    section: suggest re-running `/aide-analyze` first (proceed if the
    user declines)
@@ -88,7 +92,9 @@ resume it at the first unticked task if it found it in progress.
 
 1. Read "Task 0" (the tests the plan asks for), the acceptance
    criteria and the `### Where the tests sit` subsection from
-   3-solution.md
+   3-solution.md. A short analysis has no Task 0: write one failing test
+   per `AC-n` of `1-description.md` at the places `### Where the tests
+   sit` names
 2. Run `aide-emit-run --phase red --spec <ID>` (see [Reporting RED, GREEN and VERIFY](#reporting-red-green-and-verify))
 3. Write the tests at the places `### Where the tests sit` names in
    `3-solution.md` — at least one failing test per acceptance criterion
@@ -126,7 +132,8 @@ First write `--- Step 3 of 4: GREEN — Implement until tests pass — started`,
 
 
 1. Run `aide-emit-run --phase green --spec <ID>`
-2. Implement each task from 3-solution.md's plan — before writing to a file,
+2. Implement each task from 3-solution.md's plan (on a short analysis the
+   change itself is the one task) — before writing to a file,
    check its current line count against any limit the project's coding
    standard states (e.g. dashboard/CLAUDE.md's "Code health" section),
    and split by responsibility instead of appending past it

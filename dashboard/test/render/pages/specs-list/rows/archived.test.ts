@@ -537,3 +537,24 @@ describe("an archived spec whose merged branch is still on origin", () => {
     expect(listed(closed, "all")).not.toContain(DELETE_ACTION);
   });
 });
+
+// A spec whose latest analysis was short says so on its row, archived or not:
+// the row is built from the analyze phase's own record.
+describe("an archived spec whose analysis was short", () => {
+  const NOW = Date.parse("2026-10-19T12:00:00Z");
+  const spec = (analysis: "short" | "full" | undefined): ArchivedSpecView => ({
+    project: "aide",
+    folder: "650-x",
+    done: ["create", "analyze", "implement", "archive"],
+    models: {},
+    phaseOutcomes: { analyze: { result: "completed", ...(analysis ? { analysis } : {}) } },
+  });
+  const noticed = (s: ArchivedSpecView): string =>
+    noticeCellHtml(renderSpecsRows([], { runnerAvailable: true, targets: [], archivedSpecs: [s], filter: { state: "archived" } }, NOW), "650-x");
+
+  test("the row carries the short-analysis line, and a full or unmarked one does not (AC-7)", () => {
+    expect(noticed(spec("short"))).toContain("Short analysis: no plan and no plan review");
+    expect(noticed(spec("full"))).not.toContain("Short analysis");
+    expect(noticed(spec(undefined))).not.toContain("Short analysis");
+  });
+});

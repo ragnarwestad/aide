@@ -136,6 +136,10 @@ given/when/then scenarios, Risk analysis, the implementation plan
   interface where the behaviour is observed, its test file and the rules
   tested there; `/aide-implement` writes its tests there
 - Manual testing is a note, not a checklist: what no test covers, and why
+- A small spec may have a short analysis instead (`references/spec-files.md`
+  in the aide-analyze skill): `3-solution.md` holds the grade, the two
+  counts, a `## Short analysis` sentence, Scope and Testing, with no plan
+  and no plan review
 
 ---
 
@@ -143,6 +147,8 @@ given/when/then scenarios, Risk analysis, the implementation plan
 
 Phase tables matching 3-solution.md's plan, one row per task, the Status
 cell a symbol from the file's own Notation (`⬜`, `🔄`, `✅`).
+A short analysis has the template's four phase tables with one row each,
+and no `## Plan review` section.
 
 - **The runner writes these lines; never edit them:** `Workflow steps
   completed:`, `Total progress:`, and each phase's `Repo`/`Model`/

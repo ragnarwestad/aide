@@ -28,6 +28,7 @@ const STOP_SENTENCES: Record<string, MessageKey> = {
   "model-at-capacity": "wordPhase.stopModelAtCapacity",
   "acceptance-criteria": "wordPhase.stopAcceptanceCriteria",
   "shared-files": "wordPhase.stopSharedFiles",
+  "short-analysis-over-limit": "wordPhase.stopShortAnalysisOverLimit",
 };
 
 export const stopSentence = (reason: string, lang: Language = "en"): string => {

@@ -50,7 +50,8 @@ specs/05-class-to-functional/
 4. Identifies affected projects (frontend, backend, etc.)
 5. Assesses API impact (see [api-impact.md](./api-impact.md))
 6. Updates all 4 document files
-7. **Reviews the plan** — at every complexity. Reviewers with distinct perspectives (feasibility, scope
+7. **Reviews the plan** — at every complexity of a full analysis; a short analysis (a small spec,
+   `aide-analyze`'s `references/spec-files.md`) has no plan and no review. Reviewers with distinct perspectives (feasibility, scope
    guardian, coherence) attack `3-solution.md` BEFORE any test is
    written — where mistakes are cheapest to catch. Findings land in a
    "Plan review" section of `3-solution.md`, and the plan is REVISED for

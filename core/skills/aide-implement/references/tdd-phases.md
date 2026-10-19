@@ -6,7 +6,7 @@ tools-and-scripts rules).
 
 ## Phase 1: RED — Write failing tests
 
-1. Read "Task 0" (the tests the plan asks for) and the `### Where the tests sit` subsection from 3-solution.md
+1. Read "Task 0" (the tests the plan asks for) and the `### Where the tests sit` subsection from 3-solution.md. A short analysis (`- **Analysis:** short` in 2-analysis.md) has no Task 0: the tests are one per `AC-n` of 1-description.md, at the places the subsection names
 2. Identify all tests to be written — one per acceptance criterion the places list gives a place
 3. Create the test files at those places (follow the testing rules and the frontend coding standard); a test needed in a file the list does not name is recorded in the Notes cell of its task's Phase 1 RED row
 4. Run: `pnpm test -- --run <test file>`
@@ -19,7 +19,7 @@ Show:
 
 ## Phase 2: GREEN — Implement until tests pass
 
-For each step in 3-solution.md:
+For each step in 3-solution.md (a short analysis has no plan: the change 1-description.md asks for, in the files `### Files to change` names, is the one step):
 
 1. Read the step
 2. Implement the code (follow the coding standard)

@@ -217,6 +217,12 @@ the held-back message, the test server's, and the preview link's. The preview li
 host has built the spec's branch on, for a project whose manifest says `deployment.previewFrom: cloudflare-pages`; it
 shows in the same window as the test server's link, and only once the build has succeeded.
 
+A spec whose latest analysis was short carries one more notice line, in the info variant of the row message component
+(`rowMessage()`, `dashboard/docs/design-system.md`): "Short analysis: no plan and no plan review". It is read from the
+`Analysis:` bullet in the analyze phase's own file, so it shows on a live, an archived and a closed row alike, and on the
+spec page, which is the list with the row open. A full analysis, or a spec analysed before the bullet existed, draws
+nothing.
+
 ## Judging a held-back archive from the row
 
 **A held-back archive can be judged without leaving the list.** The held-back message carries a › to its left. It

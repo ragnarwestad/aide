@@ -19,9 +19,9 @@ const NOT_FAILURES = [
 ];
 
 describe("isFailedStop", () => {
-  test("names the seven reasons a step ends failed for", () => {
+  test("names the eight reasons a step ends failed for", () => {
     expect([...FAILED_STOPS].sort()).toEqual(
-      ["cli-error", "merge-unfinished", "model-refused", "no-progress", "scope-violation", "tests-red", "unpushed"],
+      ["cli-error", "merge-unfinished", "model-refused", "no-progress", "scope-violation", "short-analysis-over-limit", "tests-red", "unpushed"],
     );
   });
 
@@ -73,5 +73,12 @@ describe("leavesStepUndone", () => {
     for (const reason of FAILED_STOPS) expect(leavesStepUndone(reason)).toBe(true);
     expect(leavesStepUndone("timeout")).toBe(false);
     expect(leavesStepUndone(undefined)).toBe(false);
+  });
+});
+
+describe("an analyze whose short analysis was over a limit", () => {
+  test("is a failed stop, and leaves its step undone (AC-5)", () => {
+    expect(isFailedStop("short-analysis-over-limit")).toBe(true);
+    expect(leavesStepUndone("short-analysis-over-limit")).toBe(true);
   });
 });

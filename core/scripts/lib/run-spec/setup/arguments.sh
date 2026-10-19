@@ -44,6 +44,14 @@ EFFORT_LEVELS="$(jq -r '.effortLevels | join(" ")' "$_effort_levels_file" 2>/dev
 # test_the_two_copies_of_the_worktree_link_denylist_agree pins them.
 WORKTREE_LINK_DENYLIST="build target dist .gradle"
 
+# The limits of a short analysis (analyze's Step 3), set here and nowhere
+# else: the prompt states them to the skill (setup/invocation.sh) and
+# record/short-analysis-check.sh fails a short analysis over any of them.
+# Plain assignments, so no environment variable makes them differ per run.
+SHORT_ANALYSIS_GRADE="LOW"
+SHORT_ANALYSIS_MAX_CRITERIA=3
+SHORT_ANALYSIS_MAX_FILES=3
+
 project_dir=""; command_name=""; spec_arg=""; timeout_sec=""
 # Where the caller says this project's spec folders live. The dashboard
 # passes it, so the run makes a folder in the same place the landing

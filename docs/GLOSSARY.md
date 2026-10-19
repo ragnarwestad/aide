@@ -27,6 +27,11 @@ Each entry says what the word is and links the page that has the rest.
   account: `off`, `warn` or `stop`, chosen when the spec is created.
 - **Plan review** — the last part of an analysis: three reviewers attack
   the plan, and it is revised before any test is written.
+- **Short analysis** — the analysis a small spec gets: the files to change
+  and where the tests sit, with no plan and no plan review. The runner
+  states the limits in the analyze prompt (set in
+  `core/scripts/lib/run-spec/setup/arguments.sh`) and fails a short analysis
+  over any of them. [Spec files](../core/skills/aide-analyze/references/spec-files.md).
 - **Phase** — one of the four steps a spec passes through: create,
   analyze, implement, archive.
 - **State** — where a spec stands, in the past tense: created, analyzed,

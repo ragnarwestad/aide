@@ -224,7 +224,13 @@ The acceptance criteria checks for this spec, per Step 1: criteriaChecks: $crite
   approach_line=""
   [ "$command_name" = "analyze" ] && [ "$choose_approach" = "yes" ] && approach_line="
 Let me choose the approach is on for this spec, per Step 7: mark each approach (recommended), (real alternative) or (considered and rejected)"
-  prompt="$(skill_call "aide-$command_name" "$spec_id")$acceptance_line$criteria_line$approach_line$reason_line
+  # A short analysis is offered unless the spec asks to choose the approach:
+  # a short one weighs no alternatives. The limits are SHORT_ANALYSIS_* (setup/arguments.sh), and
+  # record/short-analysis-check.sh holds the line after the turn.
+  short_line=""
+  [ "$command_name" = "analyze" ] && [ "$choose_approach" != "yes" ] && short_line="
+A short analysis is allowed for this spec, per Step 3: grade $SHORT_ANALYSIS_GRADE, at most $SHORT_ANALYSIS_MAX_CRITERIA acceptance criteria, at most $SHORT_ANALYSIS_MAX_FILES files to change"
+  prompt="$(skill_call "aide-$command_name" "$spec_id")$acceptance_line$criteria_line$approach_line$short_line$reason_line
 $step_log_note
 $headless_note"
 else

@@ -13,7 +13,7 @@
 // redraw of the rows replaces them (`specs-client/row-refusal/`, which
 // hand-pairs the two ids).
 
-import { helpPopover, messageSlot, rowMessageParts, stepLabel, type MessagePart } from "../../ui/components";
+import { helpPopover, messageSlot, rowMessage, rowMessageParts, stepLabel, type MessagePart } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { sharedFilesSentence, specNotice, wordPhase } from "../../ui/job-state";
 import type { OpenOverlap } from "../../../project/overlapping-specs.ts";
@@ -87,6 +87,17 @@ function phaseDisagreement(g: SpecGroup, lang: Language, sharedFiles?: string): 
   return earliest && said(earliest.step, earliest.qualifier, earliest.stopped);
 }
 
+/** The line a spec whose latest analysis was short carries, under its other
+ *  notices on the row and so on the spec page (the Specs list with the row
+ *  open): the plan and its review were left out by design. */
+function shortAnalysisLine(g: SpecGroup, lang: Language, columns: number): string {
+  if (g.phases.find((p) => p.step === "analyze")?.fileAnalysis !== "short") return "";
+  return (
+    `<tr class="specnotice" data-folder="${esc(g.specFolder)}">` +
+    `<td colspan="${columns}">${rowMessage("info", t(lang, "list.shortAnalysis"))}</td></tr>`
+  );
+}
+
 export function specNoticeRow(
   g: SpecGroup,
   now: number,
@@ -143,7 +154,7 @@ export function specNoticeRow(
   // stands without a › of its own.
   const holds = (notice?.parts ?? []).some((p) => "kind" in p && p.kind === "acceptance-hold");
   const columns = view.columns ?? LIST_COLUMNS;
-  const checks = checksRow(g, filter, lang, columns, !holds, view.listPath);
+  const checks = checksRow(g, filter, lang, columns, !holds, view.listPath) + shortAnalysisLine(g, lang, columns);
   if (!notice) return checks;
   // The held-back part is led by the › and carries the unfolded list
   // directly under its own box.

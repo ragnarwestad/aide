@@ -100,6 +100,7 @@ export const en = {
   "checks.failNote": "What did not hold",
   "checks.failedCount": "{n} failed",
   "list.checksOpenTab": "Open the Status tab",
+  "list.shortAnalysis": "short analysis: no plan and no plan review",
   "list.phaseFoldTitle": "{action} the latest messages of {phase}",
   "list.phaseNoneKept": "No messages are kept for this phase.",
   "list.phaseNoMessages": "Nothing has been captured from this step yet.",

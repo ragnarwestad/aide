@@ -3,15 +3,33 @@
 // `parse-status.test.ts` uses for `parseStepModels`, its closest sibling.
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parsePhaseOutcome, specPhaseOutcome } from "../../src/project/parse-phase-outcome.ts";
+
+const ANALYSIS_LINE = JSON.parse(
+  readFileSync(join(import.meta.dir, "..", "..", "..", "core", "tests", "fixtures", "analysis-line.json"), "utf-8"),
+).cases as { name: string; line: string | null; analysis: "short" | "full" }[];
 
 const withTracking = (...lines: string[]) =>
   ["# 247 - Analysis", "", "## Tracking info", "", ...lines, "", "## Findings", ""].join("\n");
 
 describe("parsePhaseOutcome", () => {
+  // The runner's check reads the same bullet over the same table
+  // (core/tests/fixtures/analysis-line.json): only `short` is kept.
+  test("the analysis is read as the runner reads it, for every case of the shared table (AC-4)", () => {
+    for (const c of ANALYSIS_LINE) {
+      const outcome = parsePhaseOutcome(withTracking(...(c.line === null ? [] : [c.line])));
+      expect([c.name, outcome.analysis === "short" ? "short" : "full"]).toEqual([c.name, c.analysis]);
+    }
+  });
+
+  test("an Analysis bullet outside Tracking info is ignored (AC-4)", () => {
+    const content = ["# 1 - Analysis", "", "## Tracking info", "", "- **Result:** completed", "", "## Findings", "", "- **Analysis:** short", ""].join("\n");
+    expect(parsePhaseOutcome(content).analysis).toBeUndefined();
+  });
+
   test("a recorded model comes back (criterion 6, 7)", () => {
     expect(parsePhaseOutcome(withTracking("- **Model:** claude claude-sonnet-5")).model).toBe(
       "claude claude-sonnet-5",

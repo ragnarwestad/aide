@@ -43,6 +43,10 @@ export interface PhaseOutcome {
    *  state in one word and the sentence on its own notice line — and
    *  this is the file's own claim, never proof the work landed. */
   result?: "completed" | "stopped";
+  /** Which analysis this file records as the latest: "short" or "full",
+   *  from its Tracking info `Analysis:` bullet. Absent for any other
+   *  value or no bullet — a spec analysed before the bullet existed. */
+  analysis?: "short" | "full";
 }
 
 // The same four-file mapping `core/scripts/aide-run-spec`'s own
@@ -67,6 +71,10 @@ const ATTEMPTS_RE = /^- \*\*Attempts:\*\*[ \t]*(\d+)\s*$/m;
  *  an em dash — `core/scripts/lib/run-spec/record/outcome.sh` writes no third
  *  shape. Only the first word is kept. */
 const RESULT_RE = /^- \*\*Result:\*\*[ \t]*(completed|stopped)\b/m;
+/** Only a lower-case `short` or `full`, then the end or a non-word character
+ *  (run-spec/record/short-analysis-check.sh reads the same shape over
+ *  core/tests/fixtures/analysis-line.json). */
+const ANALYSIS_RE = /^- \*\*Analysis:\*\*[ \t]*(short|full)(?![A-Za-z0-9_])/m;
 
 /** Scoped to `## Tracking info` only, same as the writer's own
  *  `in_tracking` awk guard — a `- **Cost:**`-shaped bullet in a
@@ -93,6 +101,8 @@ export function parsePhaseOutcome(content: string): PhaseOutcome {
   if (result === "completed" || result === "stopped") outcome.result = result;
   const attempts = section.match(ATTEMPTS_RE);
   if (attempts) outcome.attempts = Number(attempts[1]);
+  const analysis = section.match(ANALYSIS_RE)?.[1];
+  if (analysis === "short" || analysis === "full") outcome.analysis = analysis;
   return outcome;
 }
 

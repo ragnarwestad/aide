@@ -51,6 +51,15 @@ describe("an analyze stopped on its acceptance criteria", () => {
   });
 });
 
+describe("an analyze whose short analysis was over a limit", () => {
+  test("reads Failed from history, in a sentence rather than the raw token (AC-5)", () => {
+    const w = wordPhase(false, undefined, undefined, { stopped: "short-analysis-over-limit", step: "analyze" });
+    expect(w.badge).toEqual({ variant: "refused", label: "Failed" });
+    expect(w.qualifier).toBeDefined();
+    expect(w.qualifier).not.toContain("short-analysis-over-limit");
+  });
+});
+
 describe("an analyze stopped because the model was at capacity", () => {
   test("reads amber Stopped from history, in a sentence rather than the raw token (AC-3)", () => {
     const w = wordPhase(false, undefined, undefined, { stopped: "model-at-capacity", step: "analyze" });

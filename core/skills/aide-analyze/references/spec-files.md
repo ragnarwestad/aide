@@ -8,6 +8,7 @@ Read the section the step at hand needs.
 
 - [1-description: Tracking info and acceptance criteria](#1-description-tracking-info-and-acceptance-criteria)
 - [3-solution: approaches, parts and tests](#3-solution-approaches-parts-and-tests)
+- [A short analysis](#a-short-analysis)
 - [4-status: the lines the runner writes](#4-status-the-lines-the-runner-writes)
   - [Workflow steps completed](#workflow-steps-completed)
   - [Total progress](#total-progress)
@@ -97,6 +98,46 @@ Read the section the step at hand needs.
 - Manual testing is a NOTE, not a checklist: it names what no test
   covers and why. Nothing under it is a task, and nothing under it
   blocks archiving — 4-status has no row for it
+
+## A short analysis
+
+Step 3 of the analyze skill chooses it for a small spec, and the runner
+fails one written for a spec over a limit (`core/scripts/lib/run-spec/record/short-analysis-check.sh`).
+The limits are set in `core/scripts/lib/run-spec/setup/arguments.sh` and
+stated to the skill in the prompt line `A short analysis is allowed for this
+spec`; this page does not repeat their values. A path under `### Files to
+change` counts toward the files limit whatever it is: source, test, fixture
+or page.
+
+Every analysis, short or full, writes three fields the runner reads:
+
+- `2-analysis.md`, Tracking info: `- **Analysis:** short` or
+  `- **Analysis:** full`. Only these two lower-case values count; no line, or
+  anything else, reads as full
+- `3-solution.md`, Tracking info: `- **Grade:** LOW` (or `MEDIUM`, `HIGH`)
+  and `- **Acceptance criteria:** <n>`, the number of `- **AC-n:**` lines
+  in `1-description.md`
+- `2-analysis.md`, `### Files to change`: the list Step 5 writes
+
+A short analysis writes these three files and no more:
+
+- `2-analysis.md`: Tracking info, then Findings with `### Affected files`
+  (file:line, one line each), `### Files to change` and the `### Overlapping
+  specs` record Step 6 writes. No other section
+- `3-solution.md`: Tracking info with the two fields; a `## Short analysis`
+  section of one plain sentence saying there is no plan and no plan review,
+  the grade, the two counts, and that `/aide-implement` builds it from the
+  description, the files to change and the places below; `## Scope` with the
+  grade and its factors; `## Testing` with the project's test command and
+  `### Where the tests sit` (and a Manual testing note only for a criterion
+  that gets no place). No Approaches, Recommended solution, Behavior delta,
+  Acceptance criteria scenarios, Risk analysis, Implementation plan or Plan
+  review
+- `4-status.md`: the template's four phase tables, one row each, the last
+  `Run the full test suite`, and the `## Acceptance criteria` table as on any
+  spec. No `## Plan review` section
+
+---
 
 ---
 

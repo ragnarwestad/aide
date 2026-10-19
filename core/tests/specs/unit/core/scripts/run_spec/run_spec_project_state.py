@@ -145,6 +145,12 @@ def configure_criteria_checks(workspace, level):
     git(workspace["specs"], "commit", "-qm", "record the acceptance criteria checks level", "--allow-empty")
 
 
+ANALYSIS_LINE = json.loads(
+    (pathlib.Path(__file__).resolve().parents[5] / "fixtures" / "analysis-line.json")
+    .read_text()
+)["cases"]
+
+
 CHOOSE_APPROACH = json.loads(
     (pathlib.Path(__file__).resolve().parents[5] / "fixtures" / "choose-approach-line.json")
     .read_text()
@@ -217,6 +223,11 @@ BASH_ERROR_REGISTRY: list[dict] = [
         "name": "an analyze stopped on the acceptance criteria",
         "pattern": r"\$step_button stopped on the acceptance criteria — .*",
         "resolve": "press $step_button again",
+    },
+    {
+        "name": "an analyze wrote a short analysis for a spec over a limit",
+        "pattern": r"\$step_button wrote a short analysis for a spec that may not have one: .*",
+        "resolve": "again to have the full analysis written",
     },
     {
         "name": "a step stopped at its own time limit",

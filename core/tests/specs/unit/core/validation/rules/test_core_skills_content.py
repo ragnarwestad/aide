@@ -168,3 +168,19 @@ def test_analyze_compares_with_the_other_specs_between_writing_the_analysis_and_
     runs_comparison = [i for i, (_, body) in enumerate(steps) if re.search(r"aide-spec-overlap[^\n]*--record", body)]
     assert runs_comparison, "no step of the analyze skill runs aide-spec-overlap with --record"
     assert all(writes_analysis < i < writes_plan for i in runs_comparison), (titles, runs_comparison)
+
+
+@pytest.mark.validation
+def test_analyze_names_the_prompt_line_and_the_bullets_the_runner_reads_AC_4():
+    """The runner's prompt line offers the short analysis and its check reads
+    three Tracking-info bullets; the skill names the same strings."""
+    analyze = CORE_SKILLS_DIR / "aide-analyze"
+    text = "\n".join(path.read_text(encoding="utf-8") for path in (analyze / "SKILL.md", *(analyze / "references").glob("*.md")))
+    for name in ("A short analysis is allowed for this spec", "- **Analysis:**", "- **Grade:**", "- **Acceptance criteria:**"):
+        assert name in text, f"the analyze skill does not name {name!r}"
+
+
+@pytest.mark.validation
+def test_implement_names_the_mark_of_a_short_analysis_it_builds_from_AC_6():
+    text = (CORE_SKILLS_DIR / "aide-implement" / "SKILL.md").read_text(encoding="utf-8")
+    assert "- **Analysis:** short" in text

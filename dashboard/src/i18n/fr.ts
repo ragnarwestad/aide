@@ -99,6 +99,7 @@ export const fr: Record<TranslationKey, string> = {
   "checks.failNote": "Qu'est-ce qui n'a pas tenu ?",
   "checks.failedCount": "{n} échouée(s)",
   "list.checksOpenTab": "Ouvrir l'onglet Status",
+  "list.shortAnalysis": "analyse courte : pas de plan et pas de revue du plan",
   "list.phaseFoldTitle": "{action} les derniers messages de {phase}",
   "list.phaseNoneKept": "Aucun message n'est conservé pour cette phase.",
   "list.phaseNoMessages": "Rien n'a encore été capturé de cette étape.",

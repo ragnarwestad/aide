@@ -37,6 +37,11 @@ def _standalone_runner_copy(runner, tmp_path, name="aide-run-spec-under-test"):
     (tmp_path / "lib" / "status-progress.sh").write_bytes(
         (pathlib.Path(runner).parent / "lib" / "status-progress.sh").read_bytes()
     )
+    # files-to-change.sh too: the short-analysis check reads the analysis's
+    # `### Files to change` with it, and the script sources it by path.
+    (tmp_path / "lib" / "files-to-change.sh").write_bytes(
+        (pathlib.Path(runner).parent / "lib" / "files-to-change.sh").read_bytes()
+    )
     # And the runner's own phases (`lib/run-spec/`): the script sources
     # them by path, so a copy without them refuses before it starts.
     # Copied as a tree rather than one by one, so a phase that moves

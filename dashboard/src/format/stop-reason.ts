@@ -16,6 +16,7 @@ export const FAILED_STOPS: readonly string[] = [
   "merge-unfinished",
   "tests-red",
   "unpushed",
+  "short-analysis-over-limit",
 ];
 
 export const isFailedStop = (reason: string | undefined): boolean =>

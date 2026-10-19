@@ -692,6 +692,14 @@ export const MESSAGES = {
     fr: "d'autres specs ouvertes modifient les mêmes fichiers — ajoutez-les à Dépend de, ou relancez-le pour continuer",
     resolve: "add them to Depends on",
   },
+  "wordPhase.stopShortAnalysisOverLimit": {
+    en: "the short analysis was over a limit — run it again to have the full analysis written",
+    nb: "den korte analysen var over en grense — kjør på nytt for å få skrevet den fulle analysen",
+    es: "el análisis corto superaba un límite — ejecútalo de nuevo para que se escriba el análisis completo",
+    de: "die kurze Analyse lag über einer Grenze — führe es erneut aus, damit die vollständige Analyse geschrieben wird",
+    fr: "l'analyse courte dépassait une limite — relancez-le pour que l'analyse complète soit écrite",
+    resolve: "run it again to have the full analysis written",
+  },
   // The same stop said from the spec's own record, once the job that stopped
   // may have left the queue: no promise that Analyze runs by itself.
   "wordPhase.stopSharedFilesNamed": {

@@ -339,6 +339,9 @@ def test_runner_refuses_when_the_workflow_steps_file_is_missing(runner, workspac
     # missing and this test still asks what it was written to ask.
     (tmp_path / "lib").mkdir(exist_ok=True)
     shutil.copytree(pathlib.Path(runner).parent / "lib" / "run-spec", tmp_path / "lib" / "run-spec")
+    (tmp_path / "lib" / "files-to-change.sh").write_bytes(
+        (pathlib.Path(runner).parent / "lib" / "files-to-change.sh").read_bytes()
+    )
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, runner_path=lone_copy)
     assert rc == 2, out

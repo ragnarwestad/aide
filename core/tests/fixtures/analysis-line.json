@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "Which analysis a spec's latest analysis was: short or full.",
+    "`aide-run-spec` reads it off the `- **Analysis:**` bullet in the Tracking info of the spec's",
+    "2-analysis.md (record/short-analysis-check.sh) and the dashboard reads the same bullet",
+    "(parsePhaseOutcome) to draw the short-analysis line on the spec's row.",
+    "",
+    "`line` is the whole bullet written in Tracking info; null means the bullet is not written at all.",
+    "`analysis` is what both sides read: only a lower-case `short` is short and only a lower-case",
+    "`full` is full; no bullet, or any other value, is read as full (every spec analysed before the",
+    "bullet existed) and the dashboard keeps no value for it."
+  ],
+  "cases": [
+    { "name": "short", "line": "- **Analysis:** short", "analysis": "short" },
+    { "name": "full", "line": "- **Analysis:** full", "analysis": "full" },
+    { "name": "no-line-is-full", "line": null, "analysis": "full" },
+    { "name": "a-capital-is-not-read", "line": "- **Analysis:** Short", "analysis": "full" },
+    { "name": "words-after-the-value-are-allowed", "line": "- **Analysis:** short — no plan", "analysis": "short" }
+  ]
+}

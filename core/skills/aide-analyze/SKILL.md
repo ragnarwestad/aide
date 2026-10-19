@@ -71,6 +71,12 @@ First write `--- Step 1 of 11: Read the description — started`, and when this 
   approach is on for this spec`) and says nothing when it is not.
   Working interactively, read the `Let me choose the approach:` line in
   Tracking info of the spec's own `1-description.md`. Only `yes` is on.
+- **Learn whether a short analysis is allowed**, for Steps 3, 5, 7, 8 and
+  9. A headless run says so in the prompt, in the line `A short analysis is allowed for this spec, per Step 3`
+  followed by the runner's limits, and says nothing when it is not.
+  Working interactively there is no such line: write the full analysis. The limits are set in
+  `core/scripts/lib/run-spec/setup/arguments.sh` and checked there after
+  the turn.
 - If `4-status.md` ALSO already carries that same section plus a
   `**Round boundary:**` stamp, this is a held-back spec taking another
   round on its open checks, not a first analysis — see
@@ -130,6 +136,17 @@ Scale the analysis to the complexity:
 
 See `references/complexity-and-analysis.md` for detailed steps per level.
 
+**Choose the analysis.** Write a SHORT analysis only when Step 1 found the
+prompt line, this is not a held-back or reopened round, and the grade, the
+number of `- **AC-n:**` lines in `1-description.md` and the number of paths
+the change will create, change or delete (tests and pages included, as
+Step 5 lists them) are all within that line's limits. Otherwise write the
+full analysis. In doubt about a count on the limit, write the full one.
+A short analysis is the files to change and where the tests sit, under a
+plain mark that there is no plan and no plan review; its shape is in
+`references/spec-files.md`. The runner fails a short analysis over a
+limit, so the choice is never worth stretching.
+
 ### Step 4 of 11: Check for work already begun
 
 First write `--- Step 4 of 11: Check for work already begun — started`, and when this step ends, `--- Step 4 of 11: Check for work already begun — done`.
@@ -154,8 +171,11 @@ and is copied word for word, in a rewrite too: only `aide-spec-overlap
 --record` (Step 6) writes it.
 
 One exception: when `2-analysis.md`'s Tracking info reads `Result:
-stopped (acceptance-criteria)`, the earlier run stopped on the
-acceptance criteria, and the description has been put right since.
+stopped (acceptance-criteria)` or `Result: stopped
+(short-analysis-over-limit)`, the earlier run stopped on the
+acceptance criteria, or wrote a short analysis for a spec over a limit,
+and the description has been put right since. After the second, write the
+full analysis (Step 3).
 Treat every section that run wrote as unwritten, and write the three
 files afresh. On a held-back round, replace that round's own `## Round
 N` subsections rather than appending a new round.
@@ -215,6 +235,11 @@ A held-back round's `## Round N` carries its own `### Files to change`.
 
 Sections already filled in per Step 4 are left untouched.
 
+In Tracking info, on every run and a held-back round's included, write
+`- **Analysis:** short` or `- **Analysis:** full`: the analysis Step 3
+chose, the latest one this file holds. A short analysis writes only the
+sections `references/spec-files.md` names for it.
+
 Nothing that judges the solution goes here — complexity, estimate and risk
 analysis belong to 3-solution.md (spec structure § Separation of content).
 
@@ -255,6 +280,15 @@ then write it with `aide-write-spec --file 3-solution.md` (never
 Write/Edit). Follow the spec structure § 3-solution.
 
 Sections already filled in per Step 4 are left untouched.
+
+In Tracking info, on every run, write `- **Grade:** LOW` (or `MEDIUM`,
+`HIGH`: Step 3's grade) and `- **Acceptance criteria:** <n>`, the number of
+`- **AC-n:**` lines in `1-description.md`. The runner reads both.
+
+**A short analysis writes the short shape and nothing more** — the
+`## Short analysis` sentence, Scope, and Testing with Where the tests sit,
+as `references/spec-files.md` gives it — and the rest of this step does not
+apply to it. A full analysis writes everything below.
 
 **Scope:** the files to change, the complexity grade with each factor that
 set it and the files that show it (Step 3), and the estimate for manual and
@@ -348,8 +382,10 @@ whether the spec asks to choose the approach. The Scope guardian holds
 the plan to the description's `## Out of scope` section, when it has
 one, at every level.
 
-Skip this step only when `3-solution.md` is still an empty template —
-nothing was written in Step 7 to review.
+Skip this step when `3-solution.md` is still an empty template —
+nothing was written in Step 7 to review — and for a short analysis, which
+has no plan to review: `--- Step 8 of 11: Review the plan — skipped: a
+short analysis has no plan to review`.
 
 When AC-n ids exist, see `references/requirements-tracing.md` for the
 must-fix check on missing coverage.
@@ -362,6 +398,8 @@ First write `--- Step 9 of 11: Update 4-status.md — started`, and when this st
 Assemble the complete new text of `4-status.md` the same way as Step 5,
 then write it with `aide-write-spec --file 4-status.md` (never
 Write/Edit). Follow the spec structure § 4-status.
+- A short analysis: the template's four phase tables, one row each, the
+  last one `Run the full test suite`, and no `## Plan review` section
 - LOW: Simple checklist (< 30 lines)
 - MEDIUM/HIGH: Phase-based tracking (50-100 lines)
 
@@ -405,8 +443,9 @@ report's first line ends `— not finished, the merge into main is next
 (Step 11)`, and the report never calls the analyze done or complete.
 
 
-Show a summary with complexity, number of affected files, the plan
-review's verdict (counts of must-fix/should-fix, what was revised), the
+Show a summary with complexity, which analysis was written (short or
+full), number of affected files, the plan
+review's verdict (a short analysis has none) (counts of must-fix/should-fix, what was revised), the
 Criteria check line, and the next step.
 
 At `stop` with a fault on that line, a headless run is ended stopped by

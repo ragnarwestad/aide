@@ -283,6 +283,7 @@ function specPhases(all: QueueRowView[], dir?: string): Phase[] {
       // than only fall back to it.
       attemptCount: fileOutcome?.attempts,
       fileResult: fileOutcome?.result,
+      fileAnalysis: fileOutcome?.analysis,
     };
   });
 }

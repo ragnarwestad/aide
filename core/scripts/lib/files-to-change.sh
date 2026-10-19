@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# files-to-change.sh — sourced by aide-spec-overlap.
+# files-to-change.sh — sourced by aide-spec-overlap and by aide-run-spec
+# (run-spec/record/short-analysis-check.sh).
 #
 # Reading the `### Files to change` list of a spec's 2-analysis.md: the
 # newest round of the file, the lines under a heading, and a list of bare

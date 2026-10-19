@@ -21,6 +21,9 @@ Coherence is told, too, whether the spec asks to choose the approach.
 
 ## Review — three reviewers, at every complexity
 
+The review runs for every full analysis. A short analysis (`references/spec-files.md`)
+has no plan, and so no review.
+
 Three reviewers, each with ONE perspective and no sight of the others'
 findings, whatever the spec's complexity: the grade is the analyst's own,
 so it does not decide how strict the review of its plan is. A LOW plan
