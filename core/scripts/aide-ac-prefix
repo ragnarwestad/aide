@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# aide-ac-prefix — what a test's name puts before a criterion's id, the one
+# place it is worked out. `/aide-implement` runs this literal script, so
+# every tool and every kind of run (at a keyboard or headless) names a
+# project's tests the same way.
+#
+# The prefix is the manifest's `acPrefix:` with `{spec}` replaced by the
+# spec's number as its folder writes it (`652`, `02`), read in
+# --project-dir's `.aide/project.yaml` or, when that is a worktree without
+# one, in the main checkout it belongs to. `acPrefix: F{spec}` on spec 02
+# gives `F02`, and a test for its AC-2 is named `(F02 AC-2)`.
+#
+# The prefix is empty when the manifest sets no `acPrefix`, when there is
+# no manifest, and when the value holds `{spec}` but the folder has no
+# number (a `TODO-…` folder): a prefix without its number points at no spec.
+#
+# Prints ONE JSON line to stdout:
+#   {"ok":true,"prefix":"<prefix>"}   (empty when there is none)
+#   {"ok":false,"exitCode":2,"terminalReason":"refused","error":"..."}
+#
+# Usage:
+#   aide-ac-prefix --project-dir <path> --spec <folder>
+
+set -uo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=/dev/null
+[ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
+# shellcheck source=/dev/null
+[ -f "$SCRIPT_DIR/lib/manifest-root.sh" ] && source "$SCRIPT_DIR/lib/manifest-root.sh"
+
+project_dir=""
+spec=""
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -h|--help)
+      cat <<'USAGE'
+Usage:
+  aide-ac-prefix --project-dir <path> --spec <folder>
+USAGE
+      exit 0 ;;
+    --project-dir) project_dir="${2:-}"; shift 2 ;;
+    --spec) spec="${2:-}"; shift 2 ;;
+    *) printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"unknown argument: %s"}\n' "$1"; exit 2 ;;
+  esac
+done
+
+command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"jq is required"}'; exit 2; }
+
+refuse() {
+  jq -cn --arg e "$1" '{ok:false, exitCode:2, terminalReason:"refused", error:$e}'
+  exit 2
+}
+
+[ -n "$project_dir" ] || refuse "missing --project-dir"
+[ -n "$spec" ] || refuse "missing --spec"
+[ -d "$project_dir" ] || refuse "no such --project-dir: $project_dir"
+declare -f aide_manifest_get >/dev/null 2>&1 \
+  || refuse "aide_manifest_get is not available (missing _aide-spec-lib.sh)"
+declare -f aide_manifest_root >/dev/null 2>&1 \
+  || refuse "aide_manifest_root is not available (missing lib/manifest-root.sh)"
+
+pattern="$(aide_manifest_get acPrefix "$(aide_manifest_root "$project_dir")")"
+
+# The folder's own leading digits: the last path part, a trailing "/" cut.
+folder="${spec%/}"
+folder="${folder##*/}"
+number="${folder%%[!0-9]*}"
+
+prefix="$pattern"
+case "$pattern" in
+  *'{spec}'*)
+    if [ -n "$number" ]; then prefix="${pattern//\{spec\}/$number}"; else prefix=""; fi ;;
+esac
+
+jq -cn --arg p "$prefix" '{ok:true, prefix:$p}'

@@ -14,7 +14,7 @@
 
 export {
   configValue, resolveWorktreeLinks, resolveCodeLanding, resolvePreviewFrom,
-  resolveInstallCmd, resolveTestCmd, resolvePreviewCmd, resolveDescription,
+  resolveInstallCmd, resolveTestCmd, resolvePreviewCmd, resolveAcPrefix, resolveDescription,
   type WorktreeLinksSource, type CodeLanding, type ConfigOverrideSource,
 } from "./config.ts";
 

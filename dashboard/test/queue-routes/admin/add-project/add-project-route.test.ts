@@ -298,7 +298,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
     expect(readFileSync(join(dir, "root", "commands", ".aide", "config"), "utf-8")).toContain("AIDE_INSTALL_CMD=make install\n");
   });
 
-  test("every setting typed on Add is committed to a tracked manifest, and the rest of the file stays (AC-1, AC-3)", async () => {
+  test("every setting typed on Add is committed to a tracked manifest, and the rest of the file stays (AC-1, AC-3, AC-5)", async () => {
     const manifest = "name: demo\nlogging:\n  where: Cloudflare dashboard\n";
     const f = projectWithOrigin({ ".aide/project.yaml": manifest }, { clone: false });
     try {
@@ -316,6 +316,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
           testCmd: "make test",
           worktreeLinks: "node_modules",
           description: "Aide: the board",
+          acPrefix: "F{spec}",
         }),
       });
       expect(((await res.json()) as StepBody).ok).toBe(true);
@@ -329,6 +330,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
         worktreeLinks: "node_modules",
         codeLanding: "pr",
         description: "Aide: the board",
+        acPrefix: "F{spec}",
         deployment: { previewFrom: "command" },
       });
       for (const line of manifest.split("\n").filter(Boolean)) expect(onOrigin.split("\n")).toContain(line);

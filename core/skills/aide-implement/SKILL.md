@@ -101,17 +101,31 @@ resume it at the first unticked task if it found it in progress.
    it gives a place. A criterion an existing test already proves gets no
    second test: add the AC-id to that test's name instead (step 4). What
    a test is for, and what it is not, is the testing rule's "What to test"
-4. **Put the AC-id in the test's name.** A test written for a criterion
-   that opens with an AC-id carries that id in its own name, as the
-   name's last words: `test("the total keeps counting (AC-2)", ...)`.
-   The runner reads these names after the step to show, on the row the
-   user ticks, which test covers which requirement — a test without the
-   id is a requirement shown as untested
+4. **Put the AC-id in the test's name.** First ask for the project's
+   prefix for it:
+
+   ```bash
+   aide-ac-prefix --project-dir . --spec <spec-folder>
+   ```
+
+   `<spec-folder>` is the spec's folder name, so the number is the one
+   the folder writes. A test written for a criterion that opens with an
+   AC-id carries that id in its own name, as the name's last words,
+   after the `prefix` the command printed and a space:
+   `test("the total keeps counting (F02 AC-2)", ...)` for the prefix
+   `F02`, and `test("the total keeps counting (AC-2)", ...)` when the
+   prefix is empty, or when the command is not found or refuses. Two ids
+   in one name each carry it: `(F02 AC-2, F02 AC-3)`. Only the ids this
+   step writes carry it: a name an earlier spec gave a test is left as
+   it is. The runner reads these names after the step to show, on the
+   row the user ticks, which test covers which requirement — a test
+   without the id is a requirement shown as untested
 5. **Write a browser test for a *(browser)* criterion,** where the
    project keeps its browser tests; a project with none names that
    criterion in `3-solution.md`'s Manual testing note instead
 6. **Check the list before running anything:** every AC-id the places
-   list gives a place appears in at least one test name from steps 3-5.
+   list gives a place appears in at least one test name from steps 3-5,
+   with the prefix or without it.
    An id with none gets its test now, at its place. An id the plan
    leaves untested, with its reason under Manual testing, gets none
 7. Run the tests — verify that they FAIL

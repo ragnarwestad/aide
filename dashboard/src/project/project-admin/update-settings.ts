@@ -68,6 +68,9 @@ export async function updateProjectSettings(
      *  `AIDE_TEST_CMD`, read by `aide-resolve-test-cmd`. Gated on
      *  presence the same way. */
     testCmd?: string;
+    /** What implement puts before a criterion's id in a test's name, the
+     *  manifest's `acPrefix`. Gated on presence the same way. */
+    acPrefix?: string;
     /** One line saying what the project is, the manifest's `description`.
      *  Gated on presence like the fields above. */
     description?: string;
@@ -82,7 +85,7 @@ export async function updateProjectSettings(
   // A value is one line. A field the request does not carry stays
   // absent, so a partial save clears nothing.
   const req = { ...raw };
-  for (const key of ["specsPath", "worktreeLinks", "installCmd", "previewCmd", "testCmd", "description"] as const) {
+  for (const key of ["specsPath", "worktreeLinks", "installCmd", "previewCmd", "testCmd", "acPrefix", "description"] as const) {
     if (req[key] !== undefined) req[key] = oneLine(req[key]);
   }
   const links = (req.worktreeLinks ?? "").trim();
@@ -224,6 +227,7 @@ export async function updateProjectSettings(
   save("installCmd", req.installCmd, "AIDE_INSTALL_CMD", "installCmd", "", true);
   save("previewCmd", req.previewCmd, "", "previewCmd", fromManifest(manifestData.previewCmd), false);
   save("testCmd", req.testCmd, "", "AIDE_TEST_CMD", fromManifest(manifestData.AIDE_TEST_CMD), false);
+  save("acPrefix", req.acPrefix, "", "acPrefix", fromManifest(manifestData.acPrefix), false);
   // Compared folded to one line, as the form posts it back: a description
   // an older Add stored over several lines would otherwise differ from its
   // own folded value and be rewritten by every save.

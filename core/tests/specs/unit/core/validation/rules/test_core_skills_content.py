@@ -184,3 +184,12 @@ def test_analyze_names_the_prompt_line_and_the_bullets_the_runner_reads_AC_4():
 def test_implement_names_the_mark_of_a_short_analysis_it_builds_from_AC_6():
     text = (CORE_SKILLS_DIR / "aide-implement" / "SKILL.md").read_text(encoding="utf-8")
     assert "- **Analysis:** short" in text
+
+
+@pytest.mark.validation
+def test_the_implement_skill_asks_aide_ac_prefix_for_the_prefix_AC_1_AC_2():
+    """The prefix is worked out by the command, not by the session's own
+    reading of the manifest, so the skill has to run it."""
+    skill = (CORE_SKILLS_DIR / "aide-implement" / "SKILL.md").read_text(encoding="utf-8")
+    runs = [block for block in BASH_BLOCK.findall(skill) if re.search(r"^\s*aide-ac-prefix\b", block, re.M)]
+    assert runs, "no bash block of the implement skill runs aide-ac-prefix"

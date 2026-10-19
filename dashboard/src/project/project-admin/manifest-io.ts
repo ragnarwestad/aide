@@ -58,9 +58,11 @@ export function minimalManifest(name: string, description?: string): string {
  *  parser — a quoted value would read back there as empty, which is
  *  indistinguishable from "no links configured".
  *
- *  The one exception is a key only the YAML parser reads (`description`):
+ *  The exception is a key in `QUOTED_KEYS` (`description`, `acPrefix`):
  *  it is written as YAML needs it, quoted where a plain line would not read
- *  back, and replaces the lines a folded or block form took.
+ *  back, and replaces the lines a folded or block form took. Both readers
+ *  take that: the YAML parser, and `aide_manifest_get`, which strips a
+ *  value's quotes.
  *
  *  An empty value REMOVES the key: a manifest carrying `worktreeLinks:`
  *  with nothing after it says something no reader agrees about.
@@ -90,20 +92,20 @@ export function manifestWithScalar(text: string, key: string, value: string, lab
   // A trailing newline splits into a final empty element; it is put back
   // by the join, so the file's shape survives a no-op.
   const trailing = lines.length && lines[lines.length - 1] === "" ? lines.pop() : undefined;
-  const yamlOnly = YAML_ONLY_KEYS.has(key);
+  const quoted = QUOTED_KEYS.has(key);
   // Written in mapping context, so a value a plain line would not read back
   // is quoted, and `lineWidth: 0` keeps a long one on the one line.
-  const line = yamlOnly && value ? stringify({ [key]: value }, { lineWidth: 0 }).trimEnd() : `${key}: ${value}`;
+  const line = quoted && value ? stringify({ [key]: value }, { lineWidth: 0 }).trimEnd() : `${key}: ${value}`;
   const at = lines.findIndex((l) => l.startsWith(`${key}:`));
   if (at !== -1) {
     const next = lines[at + 1];
     const ownValue = lines[at]!.slice(key.length + 1).trim() !== "";
-    if (next !== undefined && /^\s+-\s/.test(next) && !(yamlOnly && ownValue)) {
+    if (next !== undefined && /^\s+-\s/.test(next) && !(quoted && ownValue)) {
       throw new Error(
         `${key} in ${label} is a YAML list, and this writes a single line — edit it by hand or make it a scalar first`,
       );
     }
-    const span = yamlOnly ? 1 + continuationLines(lines, at) : 1;
+    const span = quoted ? 1 + continuationLines(lines, at) : 1;
     if (value) lines.splice(at, span, line);
     else lines.splice(at, span);
   } else if (value) {
@@ -118,10 +120,11 @@ export function manifestWithScalar(text: string, key: string, value: string, lab
   return lines.join("\n") + (trailing !== undefined || lines.length ? "\n" : "");
 }
 
-/** The keys only the YAML parser reads: bash's anchored `sed` reads none
- *  of them, so they are written the way YAML needs, not the plain way the
- *  others are. */
-const YAML_ONLY_KEYS = new Set(["description"]);
+/** The keys written the way YAML needs, quoted where a plain line would not
+ *  read back, not the plain way the others are. Their bash reader,
+ *  `aide_manifest_get`, strips a quoted value; the readers of the others
+ *  are an anchored `sed` that would read quotes as part of the value. */
+const QUOTED_KEYS = new Set(["description", "acPrefix"]);
 
 /** How many lines after `lines[at]` belong to its value: the indented ones,
  *  and a blank line only when an indented line follows it. A line at column

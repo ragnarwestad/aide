@@ -125,6 +125,21 @@ describe("a project's settings route (spec 184)", () => {
     expect(kept.ok && kept.data.AIDE_TEST_CMD).toBe("make test");
   });
 
+  test("a criterion prefix is saved to the manifest when posted, and left alone when not (AC-5)", async () => {
+    const { base, dir } = await settled();
+    const post = (payload: object) =>
+      fetch(`${base}/api/queue/projects/aide/settings`, { method: "POST", headers: AUTH, body: JSON.stringify(payload) });
+    const first = await post({ acPrefix: "F{spec}" });
+    expect(first.status).toBe(200);
+    expect(((await first.json()) as StepBody).results.map((r) => r.step)).toContain("acPrefix");
+    const parsed = parseManifest(onOrigin(dir));
+    expect(parsed.ok && parsed.data.acPrefix).toBe("F{spec}");
+
+    expect((await post({ testCmd: "make test" })).status).toBe(200);
+    const kept = parseManifest(onOrigin(dir));
+    expect(kept.ok && kept.data.acPrefix).toBe("F{spec}");
+  });
+
   test("an unusable value is refused, and nothing is written", async () => {
     const { base, project } = await settled();
     const before = readFileSync(join(project, ".aide", "project.yaml"), "utf-8");

@@ -278,6 +278,11 @@ export function renderAddProjectPage(
       `<input type="text" name="previewCmd" maxlength="300" placeholder="optional — serving on $PORT">`,
       { wide: true },
     ) +
+    field(
+      SETTING_LABELS.acPrefix,
+      `<input type="text" name="acPrefix" maxlength="300" placeholder="optional — F{spec} names a test (F02 AC-2)">`,
+      { wide: true },
+    ) +
     `</span>` +
     `<span class="frow">` +
     field(

@@ -29,6 +29,8 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 [ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
+# shellcheck source=/dev/null
+[ -f "$SCRIPT_DIR/lib/manifest-root.sh" ] && source "$SCRIPT_DIR/lib/manifest-root.sh"
 
 project_dir=""
 changed_from=""
@@ -58,12 +60,10 @@ refuse() {
 [ -d "$project_dir" ] || refuse "no such --project-dir: $project_dir"
 declare -f aide_manifest_get >/dev/null 2>&1 \
   || refuse "aide_manifest_get is not available (missing _aide-spec-lib.sh)"
+declare -f aide_manifest_root >/dev/null 2>&1 \
+  || refuse "aide_manifest_root is not available (missing lib/manifest-root.sh)"
 
-manifest_dir="$project_dir"
-if [ ! -f "$project_dir/.aide/project.yaml" ]; then
-  common="$(git -C "$project_dir" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
-  case "$common" in */.git) manifest_dir="${common%/.git}" ;; esac
-fi
+manifest_dir="$(aide_manifest_root "$project_dir")"
 
 cmd="$(aide_manifest_get AIDE_TEST_CMD "$manifest_dir")"
 

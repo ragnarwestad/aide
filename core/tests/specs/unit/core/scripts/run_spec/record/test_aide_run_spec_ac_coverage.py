@@ -137,3 +137,16 @@ def test_a_template_title_shows_its_placeholders_as_an_ellipsis():
     assert _refs("    test(`${what} (AC-5)`, () => {") == [
         ["AC-5", "test/e2e/tabs.test.ts", "… (AC-5)"],
     ]
+
+
+def test_a_test_named_with_a_prefix_is_listed_under_its_criterion_AC_4():
+    assert _refs('test("the total keeps counting (F81 AC-2)", () => {});') == [
+        ["AC-2", "test/e2e/tabs.test.ts", "the total keeps counting (F81 AC-2)"],
+    ]
+
+
+def test_a_test_naming_two_prefixed_criteria_is_listed_under_both_AC_4():
+    assert _refs('test("it fits a phone (F652 AC-2, F652 AC-3)", () => {});') == [
+        ["AC-2", "test/e2e/tabs.test.ts", "it fits a phone (F652 AC-2, F652 AC-3)"],
+        ["AC-3", "test/e2e/tabs.test.ts", "it fits a phone (F652 AC-2, F652 AC-3)"],
+    ]

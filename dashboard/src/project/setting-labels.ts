@@ -7,6 +7,7 @@ export const SETTING_LABELS: Record<string, string> = {
   AIDE_SPECS_PATH: "Specs path",
   worktreeLinks: "Worktree links",
   AIDE_TEST_CMD: "Test command",
+  acPrefix: "Criterion prefix",
   AIDE_INSTALL_CMD: "Install command",
   previewCmd: "Preview command",
   description: "Description",

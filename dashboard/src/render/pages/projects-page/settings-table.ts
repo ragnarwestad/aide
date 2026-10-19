@@ -94,7 +94,9 @@ function settingValueCell(r: SettingRow, isEditingThis: boolean, opts: ProjectPa
       ? ` placeholder="its own specs/ when empty"`
       : r.key === "description"
         ? ` placeholder="one line: what the project is"`
-        : "";
+        : r.key === "acPrefix"
+          ? ` placeholder="F{spec} names a test (F02 AC-2)"`
+          : "";
   const maxlength = r.key === "description" ? 500 : 300;
   return `<textarea name="${field}" data-oneline rows="1" maxlength="${maxlength}"${placeholder}>${value}</textarea>`;
 }

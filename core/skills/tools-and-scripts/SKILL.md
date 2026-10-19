@@ -124,7 +124,7 @@ Everything is optional. Shell scripts read the file via `aide_config_get KEY <pr
 
 **The project manifest is the config's team-owned sibling:**
 `.aide/project.yaml` holds the settings a run and the board read
-(`name`, `description`, `AIDE_TEST_CMD`, `worktreeLinks`, `previewCmd`,
+(`name`, `description`, `AIDE_TEST_CMD`, `acPrefix`, `worktreeLinks`, `previewCmd`,
 `codeLanding`, `deployment.previewFrom`) and belongs in git. Only
 `.aide/config` is personal and gitignored — never ignore the whole
 `.aide/` directory.
