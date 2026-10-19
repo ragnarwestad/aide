@@ -29,6 +29,8 @@ const STOP_SENTENCES: Record<string, MessageKey> = {
   "acceptance-criteria": "wordPhase.stopAcceptanceCriteria",
   "shared-files": "wordPhase.stopSharedFiles",
   "short-analysis-over-limit": "wordPhase.stopShortAnalysisOverLimit",
+  "sent-back": "wordPhase.stopSentBack",
+  "sent-back-refused": "wordPhase.stopSentBackRefused",
 };
 
 export const stopSentence = (reason: string, lang: Language = "en"): string => {

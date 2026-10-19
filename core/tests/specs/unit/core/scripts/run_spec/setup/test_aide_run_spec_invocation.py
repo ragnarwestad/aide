@@ -12,7 +12,9 @@ import pytest
 from ...conftest import STOP_DEADLINE_SEC, git, run
 from ..run_spec_fakes import writing_claude
 from ..run_spec_invoking import BRANCH, _standalone_runner_copy
-from ..run_spec_project_state import CHOOSE_APPROACH, CRITERIA_CHECKS, configure_choose_approach, configure_criteria_checks
+from ..run_spec_project_state import (
+    CHOOSE_APPROACH, CRITERIA_CHECKS, SENT_BACK, configure_choose_approach, configure_criteria_checks, configure_sent_back,
+)
 from ..run_spec_results import FLAT_USAGE, MODEL_USAGE, RESULT_ERROR, RESULT_OK, init_event, stream_body
 
 def test_the_claude_binary_can_be_named_in_the_projects_own_config(runner, workspace, fake_claude):
@@ -751,3 +753,12 @@ def test_a_short_analysis_is_offered_unless_the_spec_asks_to_choose_AC_1_AC_3(
     assert rc == 0, out
     lines = [l for l in out["prompt"].splitlines() if "A short analysis is allowed" in l]
     assert lines == ([SHORT_ANALYSIS_LINE] if offered else []), out["prompt"]
+
+
+@pytest.mark.parametrize("case", SENT_BACK, ids=[c["name"] for c in SENT_BACK])
+def test_a_short_analysis_is_not_offered_to_a_spec_sent_back_to_a_full_one_AC_3(runner, workspace, fake_claude, case):
+    configure_sent_back(workspace, case)
+    rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command="analyze", dry_run=True)
+    assert rc == 0, out
+    lines = [l for l in out["prompt"].splitlines() if "A short analysis is allowed" in l]
+    assert lines == ([] if case["sentBack"] else [SHORT_ANALYSIS_LINE]), out["prompt"]

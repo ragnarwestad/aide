@@ -35,6 +35,14 @@ Read the section the step at hand needs.
   directly after the `Acceptance criteria checks:` line. `yes` asks
   `/aide-analyze` to mark each approach (see 3-solution below); absent, or any
   other value, is `no`
+- A `Sent back to a full analysis:` line in Tracking info — one sentence
+  saying what made the spec larger than its short analysis allowed —
+  written by `aide-run-spec` when `/aide-implement` on a short analysis
+  finds the spec is not small after all, directly after the `Let me choose
+  the approach:` line (else after `Acceptance criteria checks:`, else after
+  `Created:`). It is kept on the spec: a spec with the line is never given
+  a short analysis again, so it goes back at most once. Absent, or empty,
+  is not sent back
 - A held-back spec taking another round on its open checks (see
   4-status's own Acceptance criteria section below) numbers a new id
   after the highest one already written — the same additive rule,
@@ -107,7 +115,9 @@ The limits are set in `core/scripts/lib/run-spec/setup/arguments.sh` and
 stated to the skill in the prompt line `A short analysis is allowed for this
 spec`; this page does not repeat their values. A path under `### Files to
 change` counts toward the files limit whatever it is: source, test, fixture
-or page.
+or page. A spec whose description carries a `Sent back to a full analysis:`
+line is never given one: the prompt does not offer it, and the runner fails
+one written anyway.
 
 Every analysis, short or full, writes three fields the runner reads:
 

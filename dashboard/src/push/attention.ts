@@ -111,5 +111,6 @@ export function messageKeyFor(a: Attention): MessageKey {
   if (a.reason === "acceptance-criteria") return "push.stoppedAcceptanceCriteria";
   if (a.reason === "shared-files") return a.specs?.length ? "push.stoppedSharedFilesNamed" : "push.stoppedSharedFiles";
   if (a.reason === "model-at-capacity") return "push.stoppedModelAtCapacity";
+  if (a.reason === "sent-back") return "push.stoppedSentBack";
   return "push.stoppedTimeout";
 }

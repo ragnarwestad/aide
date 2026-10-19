@@ -100,6 +100,7 @@ export const es: Record<TranslationKey, string> = {
   "checks.failedCount": "{n} fallida(s)",
   "list.checksOpenTab": "Abrir la pestaña Status",
   "list.shortAnalysis": "análisis corto: sin plan y sin revisión del plan",
+  "list.sentBack": "devuelta a un análisis completo: {why}",
   "list.phaseFoldTitle": "{action} los últimos mensajes de {phase}",
   "list.phaseNoneKept": "No se conservan mensajes de esta fase.",
   "list.phaseNoMessages": "Aún no se ha capturado nada de este paso.",

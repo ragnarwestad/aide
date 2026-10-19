@@ -30,6 +30,8 @@ checkouts a step works in, what a finished step publishes — and, last, how to 
 | Stopping an analyze on its acceptance criteria      | `run-spec/record/criteria-check.sh`       |
 | Stopping an analyze on files another spec changes   | `run-spec/record/shared-files-check.sh`   |
 | Failing a short analysis that is over a limit       | `run-spec/record/short-analysis-check.sh` |
+| Ending an implement that sends its spec back        | `run-spec/record/sent-back-check.sh`      |
+| Reading and writing Tracking info bullets           | `lib/tracking-info.sh`                    |
 | The test gate an implement ends on                  | `run-spec/turn/step-tests.sh`             |
 | Where the specs root comes from                     | `run-spec/turn/spec-paths.sh`             |
 | The model turn, and reading what came back          | `run-spec/turn/model-turn.sh`             |
@@ -354,7 +356,21 @@ info, `Grade:` and `Acceptance criteria:` from `3-solution.md`'s, and counts the
 one over a limit, with no grade or no files recorded, or on a spec that asks to choose the approach, ends `short-analysis-over-limit`: `ok` false, the commit subject ending
 `(stopped: short-analysis-over-limit)`, and an error naming each limit crossed and telling the reader to press Analyze
 again for the full analysis. The state file does not gain `analyze`, and the next Analyze writes the full one. The
-`Analysis:` cases both the runner and the board read are in `core/tests/fixtures/analysis-line.json`.
+`Analysis:` cases both the runner and the board read are in `core/tests/fixtures/analysis-line.json`. A spec whose
+description carries a `Sent back to a full analysis:` line is never offered a short analysis, and one written for it
+anyway ends `short-analysis-over-limit` with "it was sent back to a full analysis" among the limits crossed.
+
+**The sent-back check.** Every implement prompt names a file in the run's work directory, `sent-back`, and says: if the
+spec's analysis is short and the change is not small after all (more files to change than the short analysis allows, or
+not graded LOW), write one sentence saying what made it larger there, change nothing else and end the step. After the
+turn (`run-spec/record/sent-back-check.sh`, after `checkout/cleanup.sh` and before the no-progress check, the code
+review and the step's test run) a non-empty file decides the step. The sentence is joined to one line, stripped of
+backticks and cut to 300 characters. When `2-analysis.md` reads `Analysis: short` and the description has a `Created:`
+line, `record_sent_back` (`lib/tracking-info.sh`) writes `- **Sent back to a full analysis:** <sentence>` into the
+description's Tracking info and the step ends `sent-back`: `ok` false, the commit subject ending `(stopped: sent-back)`.
+Otherwise the description is left as it was and the step ends `sent-back-refused`, failed, with `(stopped:
+sent-back-refused)`: the analysis was already full, or the line could not be kept. A missing or empty file changes
+nothing. The line's cases both the runner and the board read are in `core/tests/fixtures/sent-back-line.json`.
 
 ## Running a step by hand
 

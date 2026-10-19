@@ -147,6 +147,10 @@ describe("what a spec is waiting for picks the sentence (criterion 9)", () => {
     expect(key(job({ state: "stopped", stopReason: "shared-files", steps: ["analyze"] }))).toBe("push.stoppedSharedFiles");
   });
 
+  test("an implement sent back to a full analysis pushes its own sentence, not the time limit's (AC-2)", () => {
+    expect(key(job({ state: "stopped", stopReason: "sent-back" }))).toBe("push.stoppedSentBack");
+  });
+
   test("a shared-files stop names by number the specs its result holds, and keeps the plain sentence when it names none (AC-5)", () => {
     const stop = (sharedFiles: { spec: string; files: string[] }[]) =>
       job({

@@ -558,3 +558,29 @@ describe("an archived spec whose analysis was short", () => {
     expect(noticed(spec(undefined))).not.toContain("Short analysis");
   });
 });
+
+// A spec sent back to a full analysis says so, and why, on its row, archived or
+// not: the row is built from the create phase's own record, the description.
+describe("an archived spec that was sent back to a full analysis", () => {
+  const NOW = Date.parse("2026-10-19T12:00:00Z");
+  const spec = (sentBack: string | undefined): ArchivedSpecView => ({
+    project: "aide",
+    folder: "651-x",
+    done: ["create", "analyze", "implement", "archive"],
+    models: {},
+    phaseOutcomes: { create: { result: "completed", ...(sentBack ? { sentBack } : {}) } },
+  });
+  const noticed = (s: ArchivedSpecView): string =>
+    noticeCellHtml(renderSpecsRows([], { runnerAvailable: true, targets: [], archivedSpecs: [s], filter: { state: "archived" } }, NOW), "651-x");
+
+  test("the row carries the sent-back line with the sentence, and an unmarked one does not (AC-5)", () => {
+    expect(noticed(spec("it needs nine files"))).toContain("Sent back to a full analysis: it needs nine files");
+    expect(noticed(spec(undefined))).not.toContain("Sent back to a full analysis");
+  });
+
+  test("the sentence is HTML-escaped, since the session wrote it (AC-5)", () => {
+    const html = noticed(spec("<script>alert(1)</script> & more"));
+    expect(html).not.toContain("<script>");
+    expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt; &amp; more");
+  });
+});

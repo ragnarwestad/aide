@@ -91,6 +91,12 @@ A job survives a restart: the runner spawns detached in its own process group, a
 contract — the scheduler polls the pid and the file, and a job left `running` is reconciled from both. A step that
 hits its own time limit is `stopped`, not `failed`. [A job's states](job-states.md) has both in full.
 
+An implement on a short analysis that finds its spec is not small ends `stopped` with the reason `sent-back`. The board
+lands the step's specs branch when it pushed no code, then queues one job for the same spec with the steps Analyze and
+Implement, on the models and effort the stopped job ran with. The steps the stopped job still had after Implement are
+not carried over. The description keeps the requirement, so that analyze writes a full analysis and implement cannot
+send the spec back a second time: one that tries ends `failed` with `sent-back-refused`, and nothing is queued.
+
 ## Which requests the dashboard answers
 
 The dashboard asks for no sign-in. It refuses requests from other sites instead, with one check in front of every

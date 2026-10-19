@@ -20,28 +20,15 @@
 # the dashboard's parsePhaseOutcome reads too.
 #
 # `choose_approach` was read from the spec's own description in
-# run-spec/setup/invocation.sh.
-
-# The value after `- **<label>:**` in the Tracking info of a spec file; empty
-# when there is none. Scoped to `## Tracking info` like the writer's own awk.
-short_analysis_field() {
-  awk -v label="$2" '
-    /^## / { on = ($0 == "## Tracking info"); next }
-    on {
-      prefix = "- **" label ":**"
-      if (index($0, prefix) == 1) { v = substr($0, length(prefix) + 1); sub(/^[ \t]+/, "", v); print v; exit }
-    }' "$1" 2>/dev/null
-}
+# run-spec/setup/invocation.sh. Reading the Tracking info bullets and deciding
+# whether an analysis is short are lib/tracking-info.sh's.
 
 if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ]; then
   sa_dir="$specs_root_wt/$spec_label"
-  sa_short_re='^short([^[:alnum:]_]|$)'
-  sa_analysis="full"
-  sa_value="$(short_analysis_field "$sa_dir/2-analysis.md" "Analysis")"
-  [[ "$sa_value" =~ $sa_short_re ]] && sa_analysis="short"
-  sa_grade="$(short_analysis_field "$sa_dir/3-solution.md" "Grade")"
+  sa_analysis="$(spec_analysis "$sa_dir/2-analysis.md")"
+  sa_grade="$(tracking_info_field "$sa_dir/3-solution.md" "Grade")"
   sa_grade="${sa_grade%% *}"
-  sa_recorded="$(short_analysis_field "$sa_dir/3-solution.md" "Acceptance criteria")"
+  sa_recorded="$(tracking_info_field "$sa_dir/3-solution.md" "Acceptance criteria")"
   sa_recorded="${sa_recorded%% *}"
   case "$sa_recorded" in ''|*[!0-9]*) sa_recorded=0 ;; esac
   sa_counted="$(grep -oE '^- \*\*AC-[0-9]+' "$sa_dir/1-description.md" 2>/dev/null | sort -u | wc -l | tr -d ' ')"
@@ -66,6 +53,8 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ]; then
       sa_cross "it has $sa_files files to change, over the limit of $SHORT_ANALYSIS_MAX_FILES"
     fi
     [ "${choose_approach:-}" = "yes" ] && sa_cross "it asks to choose the approach"
+    [ -n "$(tracking_info_field "$sa_dir/1-description.md" "Sent back to a full analysis")" ] \
+      && sa_cross "it was sent back to a full analysis"
   fi
 
   sa_said="short analysis: $sa_analysis — grade ${sa_grade:-unrecorded}, $sa_criteria acceptance criteria, $sa_files files to change"

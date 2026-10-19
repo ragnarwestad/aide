@@ -225,10 +225,14 @@ The acceptance criteria checks for this spec, per Step 1: criteriaChecks: $crite
   [ "$command_name" = "analyze" ] && [ "$choose_approach" = "yes" ] && approach_line="
 Let me choose the approach is on for this spec, per Step 7: mark each approach (recommended), (real alternative) or (considered and rejected)"
   # A short analysis is offered unless the spec asks to choose the approach:
-  # a short one weighs no alternatives. The limits are SHORT_ANALYSIS_* (setup/arguments.sh), and
+  # a short one weighs no alternatives. Nor is it offered to a spec implement
+  # sent back to a full analysis (its description's `Sent back to a full
+  # analysis:` line, core/tests/fixtures/sent-back-line.json is the table).
+  # The limits are SHORT_ANALYSIS_* (setup/arguments.sh), and
   # record/short-analysis-check.sh holds the line after the turn.
+  already_sent_back="$(tracking_info_field "$specs_root/$spec_folder/1-description.md" "Sent back to a full analysis")"
   short_line=""
-  [ "$command_name" = "analyze" ] && [ "$choose_approach" != "yes" ] && short_line="
+  [ "$command_name" = "analyze" ] && [ "$choose_approach" != "yes" ] && [ -z "$already_sent_back" ] && short_line="
 A short analysis is allowed for this spec, per Step 3: grade $SHORT_ANALYSIS_GRADE, at most $SHORT_ANALYSIS_MAX_CRITERIA acceptance criteria, at most $SHORT_ANALYSIS_MAX_FILES files to change"
   prompt="$(skill_call "aide-$command_name" "$spec_id")$acceptance_line$criteria_line$approach_line$short_line$reason_line
 $step_log_note

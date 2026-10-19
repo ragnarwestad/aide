@@ -79,4 +79,8 @@ export interface Phase {
    *  names the analysis that file holds, whoever ran it. Only the analyze
    *  phase carries one. */
   fileAnalysis?: "short" | "full";
+  /** Why the spec was sent back to a full analysis, from the description
+   *  the phase's file is — read regardless of the queue's attempts, like
+   *  `fileAnalysis`. Only the create phase carries one. */
+  fileSentBack?: string;
 }

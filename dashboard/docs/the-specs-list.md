@@ -223,6 +223,11 @@ A spec whose latest analysis was short carries one more notice line, in the info
 spec page, which is the list with the row open. A full analysis, or a spec analysed before the bullet existed, draws
 nothing.
 
+A spec implement sent back to a full analysis carries one more line in the same variant: "Sent back to a full analysis:
+<the sentence>". It is read from the `Sent back to a full analysis:` bullet in the Tracking info of `1-description.md`,
+the create phase's own file, so it shows on a live and an archived row alike, and on the spec page. Without the bullet,
+or with an empty one, the row draws nothing.
+
 ## Judging a held-back archive from the row
 
 **A held-back archive can be judged without leaving the list.** The held-back message carries a › to its left. It

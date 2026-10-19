@@ -26,6 +26,7 @@ import { specAcceptanceNotRequired, type CodeLanding } from "../project/discover
 import { runnerArgv, DEFAULT_QUEUE_CONCURRENCY, logRefusal } from "./serve-helpers";
 import { analysisSessionToResume, stepTool } from "./serve-helpers/runner-argv.ts";
 import { openRunLog } from "../queue/runner/run-log-path.ts";
+import { followOnJob } from "./routes/spec-edit/shared.ts";
 
 export interface RunnerSetupContext {
   store: QueueStore;
@@ -291,8 +292,25 @@ export function stepDoneHandler(
     forgetSpecCachesFor(ctx, job);
     const landing = landingFor(job, step, outcome);
     if (!landing) rereadSpecCachesFor(ctx, job);
+    if (step === "implement" && outcome.terminalReason === "sent-back") queueFullAnalysisRound(job, landing);
     return landing;
   };
+
+  /** Analyze, then Implement, for a spec implement sent back to a full
+   *  analysis, on the models and effort the stopped job ran with. Queued on
+   *  a timer once the landing has settled: until the runner has moved the
+   *  job to `stopped` and cleared its `landing`, the store refuses a job for
+   *  the same spec (`clashing`, `landingJob`). */
+  function queueFullAnalysisRound(job: Job, landing: Promise<unknown> | undefined): void {
+    void Promise.resolve(landing)
+      .catch(() => undefined)
+      .then(() => {
+        setTimeout(() => {
+          const made = ctx.store.enqueue(followOnJob(job.project, job.specFolder, ["analyze", "implement"], job));
+          if (!made.ok) logRefusal("sent back", `${job.project}/${job.specFolder}`, made.error);
+        }, 0);
+      });
+  }
 
   function landingFor(job: Job, step: WorkflowStep | undefined, outcome: Partial<StepOutcome>): Promise<unknown> | undefined {
     if (outcome.ok) {
@@ -365,12 +383,13 @@ export function stepDoneHandler(
     // is no second list of "which steps are safe" to keep in step
     // with the first.
     //
-    // The wall clock, a provider limit and a shared-files stop all
-    // stop after the runner has committed the work. A CLI error has no
-    // such safe landing promise.
+    // The wall clock, a provider limit, a shared-files stop and an
+    // implement sent back to a full analysis all stop after the runner
+    // has committed the work. A CLI error has no such safe landing
+    // promise.
     if (
       !step ||
-      !["timeout", "provider-limit", "shared-files"].includes(outcome.terminalReason ?? "")
+      !["timeout", "provider-limit", "shared-files", "sent-back"].includes(outcome.terminalReason ?? "")
     ) return undefined;
     const codeRoots = new Set([ctx.machineryProjectDir(job.project)]);
     const pushed = outcome.branchUrls ?? [];

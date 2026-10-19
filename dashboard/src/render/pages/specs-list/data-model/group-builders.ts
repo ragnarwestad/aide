@@ -233,6 +233,7 @@ function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number): Sp
       attemptCount: outcome?.attempts,
       fileResult: outcome?.result,
       fileAnalysis: outcome?.analysis,
+      fileSentBack: outcome?.sentBack,
     };
   });
   const total = totalDurationOf(phases, now);

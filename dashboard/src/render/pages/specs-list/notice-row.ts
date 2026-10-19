@@ -98,6 +98,18 @@ function shortAnalysisLine(g: SpecGroup, lang: Language, columns: number): strin
   );
 }
 
+/** The line a spec implement sent back to a full analysis carries, under its
+ *  other notices on the row and so on the spec page: it says why the plan
+ *  and its review are coming. */
+function sentBackLine(g: SpecGroup, lang: Language, columns: number): string {
+  const why = g.phases.find((p) => p.step === "create")?.fileSentBack;
+  if (!why) return "";
+  return (
+    `<tr class="specnotice" data-folder="${esc(g.specFolder)}">` +
+    `<td colspan="${columns}">${rowMessage("info", t(lang, "list.sentBack", { why }))}</td></tr>`
+  );
+}
+
 export function specNoticeRow(
   g: SpecGroup,
   now: number,
@@ -154,7 +166,7 @@ export function specNoticeRow(
   // stands without a › of its own.
   const holds = (notice?.parts ?? []).some((p) => "kind" in p && p.kind === "acceptance-hold");
   const columns = view.columns ?? LIST_COLUMNS;
-  const checks = checksRow(g, filter, lang, columns, !holds, view.listPath) + shortAnalysisLine(g, lang, columns);
+  const checks = checksRow(g, filter, lang, columns, !holds, view.listPath) + shortAnalysisLine(g, lang, columns) + sentBackLine(g, lang, columns);
   if (!notice) return checks;
   // The held-back part is led by the › and carries the unfolded list
   // directly under its own box.

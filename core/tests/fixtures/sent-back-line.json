@@ -1,0 +1,37 @@
+{
+  "_comment": [
+    "Whether a spec was sent back to a full analysis, and why.",
+    "`aide-run-spec` reads it off the Tracking info of the spec's 1-description.md",
+    "(tracking_info_field, in run-spec/setup/invocation.sh) to stop offering Analyze a short",
+    "analysis, and the dashboard reads the same bullet (parsePhaseOutcome) to draw the",
+    "sent-back line on the spec's row.",
+    "",
+    "`where` is the section the bullet is written under: `tracking-info`, or `description`",
+    "for a bullet that sits in the body of the description and is not the record.",
+    "`line` is the whole bullet; null means the bullet is not written at all.",
+    "`sentBack` is what both sides read: the sentence as written, or null. Only the exact",
+    "label counts, and a bullet with nothing after it is no sentence."
+  ],
+  "cases": [
+    {
+      "name": "a-sentence",
+      "where": "tracking-info",
+      "line": "- **Sent back to a full analysis:** it changes the result format every page reads, in nine files",
+      "sentBack": "it changes the result format every page reads, in nine files"
+    },
+    { "name": "no-line", "where": "tracking-info", "line": null, "sentBack": null },
+    { "name": "an-empty-value", "where": "tracking-info", "line": "- **Sent back to a full analysis:**", "sentBack": null },
+    {
+      "name": "another-letter-case",
+      "where": "tracking-info",
+      "line": "- **sent back to a full analysis:** too big",
+      "sentBack": null
+    },
+    {
+      "name": "outside-tracking-info",
+      "where": "description",
+      "line": "- **Sent back to a full analysis:** too big",
+      "sentBack": null
+    }
+  ]
+}

@@ -12,6 +12,10 @@ const ANALYSIS_LINE = JSON.parse(
   readFileSync(join(import.meta.dir, "..", "..", "..", "core", "tests", "fixtures", "analysis-line.json"), "utf-8"),
 ).cases as { name: string; line: string | null; analysis: "short" | "full" }[];
 
+const SENT_BACK_LINE = JSON.parse(
+  readFileSync(join(import.meta.dir, "..", "..", "..", "core", "tests", "fixtures", "sent-back-line.json"), "utf-8"),
+).cases as { name: string; where: "tracking-info" | "description"; line: string | null; sentBack: string | null }[];
+
 const withTracking = (...lines: string[]) =>
   ["# 247 - Analysis", "", "## Tracking info", "", ...lines, "", "## Findings", ""].join("\n");
 
@@ -22,6 +26,19 @@ describe("parsePhaseOutcome", () => {
     for (const c of ANALYSIS_LINE) {
       const outcome = parsePhaseOutcome(withTracking(...(c.line === null ? [] : [c.line])));
       expect([c.name, outcome.analysis === "short" ? "short" : "full"]).toEqual([c.name, c.analysis]);
+    }
+  });
+
+  // The runner reads the same bullet over the same table
+  // (core/tests/fixtures/sent-back-line.json).
+  test("the sentence a spec was sent back with is read as the runner reads it, for every case of the shared table (AC-5)", () => {
+    for (const c of SENT_BACK_LINE) {
+      const line = c.line === null ? [] : [c.line];
+      const content =
+        c.where === "tracking-info"
+          ? withTracking(...line)
+          : ["# 1 - Description", "", "## Tracking info", "", "- **Result:** completed", "", "## Description", "", ...line, ""].join("\n");
+      expect([c.name, parsePhaseOutcome(content).sentBack ?? null]).toEqual([c.name, c.sentBack]);
     }
   });
 

@@ -48,6 +48,7 @@
 # terminalReason is this script's own vocabulary, not the CLI's:
 #   completed | timeout | provider-limit | refused | spawn-failed | cli-error
 #   | model-refused | model-at-capacity | already-landed | short-analysis-over-limit
+#   | sent-back | sent-back-refused
 #
 # --stream-file PATH keeps the claude transcript (stream-json, one event
 # per line) at PATH instead of discarding it with the working directory.
@@ -134,6 +135,8 @@ rm -f "$0"
 # shellcheck source=/dev/null
 [ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
 # shellcheck source=/dev/null
+[ -f "$SCRIPT_DIR/lib/tracking-info.sh" ] && source "$SCRIPT_DIR/lib/tracking-info.sh"
+# shellcheck source=/dev/null
 [ -f "$SCRIPT_DIR/lib/status-progress.sh" ] && source "$SCRIPT_DIR/lib/status-progress.sh"
 # spec 355: the spec's state file, derived from the prose this script
 # rewrites below. Guarded like status-progress.sh above.
@@ -162,7 +165,7 @@ need_part() {
 # EVERY phase, before the first one runs. Checked one at a time where
 # each is sourced, a missing late phase was only found after the step had
 # run and the money was spent.
-for _part in run-spec/setup/arguments.sh run-spec/setup/code-landing.sh run-spec/setup/gates.sh run-spec/setup/invocation.sh run-spec/checkout/checkouts.sh run-spec/checkout/worktree.sh run-spec/checkout/branch.sh run-spec/turn/provider-limit.sh run-spec/turn/model-marks.sh run-spec/turn/model-turn.sh run-spec/turn/spec-paths.sh run-spec/checkout/cleanup.sh run-spec/record/records.sh run-spec/record/status-line.sh run-spec/turn/review.sh run-spec/record/specs-guard.sh run-spec/record/shared-files-check.sh run-spec/record/short-analysis-check.sh files-to-change.sh run-spec/record/criteria-check.sh run-spec/record/outcome.sh run-spec/record/ac-coverage.sh run-spec/publish/publish.sh run-spec/publish/result.sh; do need_part "$_part"; done
+for _part in tracking-info.sh run-spec/setup/arguments.sh run-spec/setup/code-landing.sh run-spec/setup/gates.sh run-spec/setup/invocation.sh run-spec/checkout/checkouts.sh run-spec/checkout/worktree.sh run-spec/checkout/branch.sh run-spec/turn/provider-limit.sh run-spec/turn/model-marks.sh run-spec/turn/model-turn.sh run-spec/turn/spec-paths.sh run-spec/checkout/cleanup.sh run-spec/record/sent-back-check.sh run-spec/record/records.sh run-spec/record/status-line.sh run-spec/turn/review.sh run-spec/record/specs-guard.sh run-spec/record/shared-files-check.sh run-spec/record/short-analysis-check.sh files-to-change.sh run-spec/record/criteria-check.sh run-spec/record/outcome.sh run-spec/record/ac-coverage.sh run-spec/publish/publish.sh run-spec/publish/result.sh; do need_part "$_part"; done
 # The step's own clock, started before anything it does (2026-09-08).
 # It began beside the AI session and therefore measured the session
 # alone: the checkout, the worktree, the branch, the archive pre-check
@@ -251,6 +254,10 @@ source "$SCRIPT_DIR/lib/run-spec/turn/spec-paths.sh"
 # --- leaving the machine usable ---
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/run-spec/checkout/cleanup.sh"
+
+# --- an implement sent back to a full analysis ---
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/run-spec/record/sent-back-check.sh"
 
 # --- the record of what has run ---
 # shellcheck source=/dev/null

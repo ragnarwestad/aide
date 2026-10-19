@@ -100,6 +100,7 @@ export const nb: Record<TranslationKey, string> = {
   "checks.failedCount": "{n} feilet",
   "list.checksOpenTab": "Åpne Status-fanen",
   "list.shortAnalysis": "kort analyse: ingen plan og ingen gjennomgang av planen",
+  "list.sentBack": "sendt tilbake til en full analyse: {why}",
   "list.phaseFoldTitle": "{action} de siste meldingene fra {phase}",
   "list.phaseNoneKept": "Ingen meldinger er lagret for denne fasen.",
   "list.phaseNoMessages": "Ingenting er fanget opp fra dette steget ennå.",

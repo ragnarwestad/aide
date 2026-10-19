@@ -55,7 +55,7 @@ export interface QueueRowView {
    *  no step actually running right now — including while merely `queued`
    *  for its next one. */
   stepStartedAt?: string;
-  stopReason?: "timeout" | "provider-limit" | "model-at-capacity" | "tests-red" | "acceptance-criteria" | "shared-files";
+  stopReason?: "timeout" | "provider-limit" | "model-at-capacity" | "tests-red" | "acceptance-criteria" | "shared-files" | "sent-back";
   /** The pull request a `pr`-mode run opened for this job's code branch
    *  (spec 220). Stored on the job rather than derived at render time —
    *  only the run that called `gh` knows the URL, and there is nothing

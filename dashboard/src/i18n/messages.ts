@@ -700,6 +700,22 @@ export const MESSAGES = {
     fr: "l'analyse courte dépassait une limite — relancez-le pour que l'analyse complète soit écrite",
     resolve: "run it again to have the full analysis written",
   },
+  "wordPhase.stopSentBack": {
+    en: "the spec was not small after all and was sent back to a full analysis — the analysis and then the implement run again by themselves",
+    nb: "spec-en var ikke liten likevel og er sendt tilbake til en full analyse — analysen og så implementeringen kjører på nytt av seg selv",
+    es: "la spec no era pequeña después de todo y se devolvió a un análisis completo — el análisis y luego la implementación se ejecutan de nuevo por sí solos",
+    de: "die Spec war doch nicht klein und wurde zu einer vollständigen Analyse zurückgeschickt — die Analyse und danach die Implementierung laufen von selbst erneut",
+    fr: "la spec n'était finalement pas petite et a été renvoyée vers une analyse complète — l'analyse puis l'implémentation se relancent d'elles-mêmes",
+    resolve: "run again by themselves",
+  },
+  "wordPhase.stopSentBackRefused": {
+    en: "it asked to send the spec back to a full analysis, but its analysis was already full or its description could not hold the line — run the analysis again for a new plan, or run it again to build the plan there is",
+    nb: "den ba om å sende spec-en tilbake til en full analyse, men analysen var allerede full eller beskrivelsen kunne ikke ta imot linjen — kjør analysen på nytt for en ny plan, eller kjør på nytt for å bygge planen som finnes",
+    es: "pidió devolver la spec a un análisis completo, pero su análisis ya era completo o su descripción no pudo guardar la línea — ejecuta el análisis de nuevo para un plan nuevo, o ejecútalo de nuevo para construir el plan que hay",
+    de: "es wollte die Spec zu einer vollständigen Analyse zurückschicken, aber ihre Analyse war schon vollständig oder die Beschreibung konnte die Zeile nicht aufnehmen — führe die Analyse erneut aus für einen neuen Plan, oder führe es erneut aus, um den vorhandenen Plan zu bauen",
+    fr: "il a demandé de renvoyer la spec vers une analyse complète, mais son analyse était déjà complète ou sa description ne pouvait pas recevoir la ligne — relancez l'analyse pour un nouveau plan, ou relancez-le pour construire le plan existant",
+    resolve: "run the analysis again for a new plan",
+  },
   // The same stop said from the spec's own record, once the job that stopped
   // may have left the queue: no promise that Analyze runs by itself.
   "wordPhase.stopSharedFilesNamed": {
@@ -1278,6 +1294,14 @@ export const MESSAGES = {
     de: "{step} wurde bei den Akzeptanzkriterien angehalten — korrigiere die Beschreibung und klicke dann erneut auf {button}.",
     fr: "{step} s'est arrêté sur les critères d'acceptation — corrigez la description, puis cliquez de nouveau sur {button}.",
     resolve: "press {button} again",
+  },
+  "push.stoppedSentBack": {
+    en: "{step} found the spec was not small after all and sent it back to a full analysis — the analysis and then {button} run again by themselves.",
+    nb: "{step} fant ut at spec-en ikke var liten likevel og sendte den tilbake til en full analyse — analysen og så {button} kjører på nytt av seg selv.",
+    es: "{step} vio que la spec no era pequeña después de todo y la devolvió a un análisis completo — el análisis y luego {button} se ejecutan de nuevo por sí solos.",
+    de: "{step} hat festgestellt, dass die Spec doch nicht klein war, und sie zu einer vollständigen Analyse zurückgeschickt — die Analyse und danach {button} laufen von selbst erneut.",
+    fr: "{step} a constaté que la spec n'était finalement pas petite et l'a renvoyée vers une analyse complète — l'analyse puis {button} se relancent d'elles-mêmes.",
+    resolve: "run again by themselves",
   },
   "push.stoppedSharedFiles": {
     en: "{step} stopped: other open specs change the same files — add them to Depends on, or press {button} again to go on.",

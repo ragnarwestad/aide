@@ -195,17 +195,19 @@ export type JobState = (typeof JOB_STATES)[number];
 // spec's analysis lists the same files: the two specs must be ordered first.
 // `model-at-capacity` is a step the provider had no room for: unlike a
 // usage limit it has no reset to wait for, and another model runs at once.
+// `sent-back` is an implement that found its spec, analysed short, not small
+// after all: the board queues a full analysis and implement again.
 export type StopReason =
-  | "timeout" | "provider-limit" | "model-at-capacity" | "tests-red" | "acceptance-criteria" | "shared-files";
+  | "timeout" | "provider-limit" | "model-at-capacity" | "tests-red" | "acceptance-criteria" | "shared-files" | "sent-back";
 
 /** The reasons a RUN stops on, as a step's result names them. `tests-red`
  *  is not one: a step's own red run fails it, and only a landing stops a
  *  job on red. */
 export const isRunStop = (
   reason: string | undefined,
-): reason is "timeout" | "provider-limit" | "model-at-capacity" | "acceptance-criteria" | "shared-files" =>
+): reason is "timeout" | "provider-limit" | "model-at-capacity" | "acceptance-criteria" | "shared-files" | "sent-back" =>
   reason === "timeout" || reason === "provider-limit" || reason === "model-at-capacity" ||
-  reason === "acceptance-criteria" || reason === "shared-files";
+  reason === "acceptance-criteria" || reason === "shared-files" || reason === "sent-back";
 
 /** The states in which a job waits for a person. `cancelled` is not one:
  *  a person ended it themselves. */

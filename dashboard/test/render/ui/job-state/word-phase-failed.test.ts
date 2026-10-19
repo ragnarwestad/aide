@@ -77,3 +77,20 @@ describe("an analyze stopped on files another open spec changes", () => {
     expect(w.qualifier).not.toContain("shared-files");
   });
 });
+
+describe("an implement sent back to a full analysis", () => {
+  test("reads amber Stopped from history, in a sentence rather than the raw token (AC-5)", () => {
+    const w = wordPhase(false, undefined, undefined, { stopped: "sent-back", step: "implement" });
+    expect(w.badge).toEqual({ variant: "waiting", label: "Stopped" });
+    expect(w.qualifier).toBeDefined();
+    expect(w.qualifier).not.toContain("sent-back");
+  });
+
+  test("one refused, because its analysis was already full, reads Failed in a sentence of its own (AC-5)", () => {
+    const w = wordPhase(false, undefined, undefined, { stopped: "sent-back-refused", step: "implement" });
+    expect(w.badge).toEqual({ variant: "refused", label: "Failed" });
+    expect(w.qualifier).toBeDefined();
+    expect(w.qualifier).not.toContain("sent-back-refused");
+    expect(w.qualifier).not.toBe(wordPhase(false, undefined, undefined, { stopped: "sent-back", step: "implement" }).qualifier);
+  });
+});

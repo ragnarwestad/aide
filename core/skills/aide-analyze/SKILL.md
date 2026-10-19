@@ -76,7 +76,9 @@ First write `--- Step 1 of 11: Read the description — started`, and when this 
   followed by the runner's limits, and says nothing when it is not.
   Working interactively there is no such line: write the full analysis. The limits are set in
   `core/scripts/lib/run-spec/setup/arguments.sh` and checked there after
-  the turn.
+  the turn. A spec whose `1-description.md` has a `Sent back to a full
+  analysis:` line in Tracking info is never given a short analysis, run
+  headless or not: implement found it is not small.
 - If `4-status.md` ALSO already carries that same section plus a
   `**Round boundary:**` stamp, this is a held-back spec taking another
   round on its open checks, not a first analysis — see
@@ -137,7 +139,8 @@ Scale the analysis to the complexity:
 See `references/complexity-and-analysis.md` for detailed steps per level.
 
 **Choose the analysis.** Write a SHORT analysis only when Step 1 found the
-prompt line, this is not a held-back or reopened round, and the grade, the
+prompt line, this is not a held-back or reopened round, the description
+has no `Sent back to a full analysis:` line, and the grade, the
 number of `- **AC-n:**` lines in `1-description.md` and the number of paths
 the change will create, change or delete (tests and pages included, as
 Step 5 lists them) are all within that line's limits. Otherwise write the
@@ -180,7 +183,15 @@ Treat every section that run wrote as unwritten, and write the three
 files afresh. On a held-back round, replace that round's own `## Round
 N` subsections rather than appending a new round.
 
-A second exception: the newest round of `3-solution.md` records a
+A second exception, for a spec implement sent back: the description's
+Tracking info has a `Sent back to a full analysis:` line, and `2-analysis.md`
+reads `Analysis: short`. The short analysis was too small for the spec, so
+treat every section as unwritten and write the three files afresh as a full
+analysis (Step 3), keeping `### Overlapping specs` as it stands and the
+lines the runner wrote into each file's Tracking info (`Repo`, `Model`,
+`Result`, `Attempts`, `Cost` and the like).
+
+A third exception: the newest round of `3-solution.md` records a
 `**Chosen approach:** Approach X` line under its Approaches heading, and
 that approach's lead is not the one marked `(recommended)`. The person
 chose another approach on the Specs list. Move `(recommended)` to the
@@ -191,7 +202,7 @@ approach, and `4-status.md`'s phase tables for the new plan. Leave
 `2-analysis.md` as it stands. A chosen line on the recommended approach
 needs nothing: the choice is made, and is never asked again.
 
-A third exception: `aide-spec-overlap --specs-root <root> --spec XX-slug`
+A fourth exception: `aide-spec-overlap --specs-root <root> --spec XX-slug`
 lists a spec under `landed`. The analysis was made against code that has
 changed since, so treat every section as unwritten and write the three
 files afresh, keeping `### Overlapping specs` as it stands. Step 6's

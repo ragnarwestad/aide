@@ -173,6 +173,17 @@ If this step changes files outside the specs root, write the commit message for 
 The one commit you make yourself is the merge commit that finishes a merge conflict you resolved, exactly as the skill's conflict step says (git commit --no-edit); an unfinished merge leaves the step undone."
 fi
 
+# An implement on a short analysis that finds the spec is not small after
+# all says so in one sentence in a file the prompt names; the runner reads it
+# after the turn (record/sent-back-check.sh). The prompt names the file on
+# every implement, since only the runner knows from the files whether the
+# analysis is short. The limits are the ones the analyze prompt states.
+sent_back_file="$work_dir/sent-back"
+if [ "$command_name" = "implement" ]; then
+  prompt="$prompt
+If this spec's analysis is short and the change is not small after all, per Step 1 of the skill — it needs more than $SHORT_ANALYSIS_MAX_FILES files to change, or it is not graded $SHORT_ANALYSIS_GRADE — write one sentence saying what made it larger to $sent_back_file, change nothing else, and end the step."
+fi
+
 # Where the merge with the default branch was left open for this step
 # (update_branch_to_base, run-spec/checkout/worktree.sh): named, since it
 # can be the specs worktree as well as the project's, and a session that

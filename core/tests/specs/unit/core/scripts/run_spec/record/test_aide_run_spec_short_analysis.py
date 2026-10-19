@@ -20,12 +20,14 @@ from ..run_spec_status_files import phase_file_text, with_status
 FILES = ["a.ts", "b.ts", "c.ts"]
 
 
-def _describe(workspace, criteria, choose=None, checks="off"):
+def _describe(workspace, criteria, choose=None, checks="off", sent_back=None):
     """The spec's own description: `criteria` `- **AC-n:**` lines and the
     two Tracking-info choices the check reads, committed."""
     lines = ["# Queue - Description", "", "## Tracking info", "", "- **Task:** `81-queue-and-runner/`"]
     if choose is not None:
         lines.append(f"- **Let me choose the approach:** {choose}")
+    if sent_back is not None:
+        lines.append(f"- **Sent back to a full analysis:** {sent_back}")
     lines += [f"- **Acceptance criteria checks:** {checks}", "", "## Description", ""]
     lines += [f"- **AC-{n}:** the thing {n}" for n in range(1, criteria + 1)]
     (workspace["specs"] / workspace["folder"] / "1-description.md").write_text("\n".join(lines) + "\n")
@@ -49,12 +51,12 @@ def _solution(grade, recorded_criteria):
 
 def _analyze(
     runner, workspace, fake_claude, *, analysis_line="- **Analysis:** short", grade="LOW", criteria=3,
-    recorded_criteria=None, files=FILES, choose=None, checks="off",
+    recorded_criteria=None, files=FILES, choose=None, checks="off", sent_back=None,
 ):
     """An analyze whose session writes the three fields and reports success;
     the description has `criteria` acceptance criteria."""
     with_status(workspace, ["create"])
-    _describe(workspace, criteria, choose, checks)
+    _describe(workspace, criteria, choose, checks, sent_back)
     folder = workspace["folder"]
     body = (
         "cat > /dev/null\n" + READ_SPECS
@@ -159,3 +161,17 @@ def test_every_limit_crossed_is_named_AC_5(runner, workspace, fake_claude):
     for said in ("it is graded HIGH, not LOW", "it has 4 acceptance criteria, over the limit of 3",
                  "it has 5 files to change, over the limit of 3"):
         assert said in out["error"], out["error"]
+
+
+def test_a_short_analysis_for_a_spec_sent_back_to_a_full_one_fails_AC_3(runner, workspace, fake_claude):
+    out, _ = _analyze(runner, workspace, fake_claude, sent_back="it changes the result format")
+    _failed_on_a_limit(out, "it was sent back to a full analysis")
+
+
+def test_a_full_analysis_for_a_spec_sent_back_completes_AC_3(runner, workspace, fake_claude):
+    out, _ = _analyze(
+        runner, workspace, fake_claude, analysis_line="- **Analysis:** full", grade="MEDIUM",
+        sent_back="it changes the result format",
+    )
+    assert out["ok"] is True, out
+    assert out["terminalReason"] == "completed", out

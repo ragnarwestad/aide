@@ -80,9 +80,9 @@ new round — are in the aide-analyze skill's `references/spec-files.md`.
   a flat list of what the change must not do or touch. It is the
   author's own; the plan review and the review after implement hold the
   change to it
-- Tracking info may carry `Depends on:`, `Acceptance criteria checks:`
-  and `Let me choose the approach:` lines; `references/spec-files.md`
-  says what each does
+- Tracking info may carry `Depends on:`, `Acceptance criteria checks:`,
+  `Let me choose the approach:` and `Sent back to a full analysis:` lines;
+  `references/spec-files.md` says what each does
 
 #### Acceptance criteria in EARS
 

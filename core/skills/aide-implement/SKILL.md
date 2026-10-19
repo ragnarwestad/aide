@@ -60,6 +60,16 @@ First write `--- Step 1 of 4: Preparation — started`, and when this step ends,
    review by design: build the change `1-description.md` asks for, in the
    files `### Files to change` names, with the tests at the places `###
    Where the tests sit` names. A short analysis is never a reason to stop
+   for want of a plan; it is one only when the spec turned out not to be
+   small. Before any test or code is written, check the change against the
+   limits of a short analysis (the prompt states them: the files to change
+   and the grade). When it is past one, a headless run writes one sentence
+   saying what made the spec larger to the file the prompt names, changes
+   nothing else and ends with `--- Step 1 of 4: Preparation — stopped: sent
+   back to a full analysis`; the runner then sends the spec back to a full
+   analysis. Working interactively there is no such file: say what made the
+   spec larger and suggest `/aide-analyze`. Never write that file on a full
+   analysis
 3. If the spec is MEDIUM/HIGH and `3-solution.md` has no "Plan review"
    section: suggest re-running `/aide-analyze` first (proceed if the
    user declines)

@@ -47,6 +47,11 @@ export interface PhaseOutcome {
    *  from its Tracking info `Analysis:` bullet. Absent for any other
    *  value or no bullet — a spec analysed before the bullet existed. */
   analysis?: "short" | "full";
+  /** Why implement sent the spec back to a full analysis, from the
+   *  `Sent back to a full analysis:` bullet in Tracking info — the sentence
+   *  as written. Absent for no bullet or an empty one; only the description
+   *  (create's phase file) carries it. */
+  sentBack?: string;
 }
 
 // The same four-file mapping `core/scripts/aide-run-spec`'s own
@@ -75,6 +80,9 @@ const RESULT_RE = /^- \*\*Result:\*\*[ \t]*(completed|stopped)\b/m;
  *  (run-spec/record/short-analysis-check.sh reads the same shape over
  *  core/tests/fixtures/analysis-line.json). */
 const ANALYSIS_RE = /^- \*\*Analysis:\*\*[ \t]*(short|full)(?![A-Za-z0-9_])/m;
+/** The exact label, then a sentence (run-spec/record/sent-back-check.sh writes it;
+ *  core/tests/fixtures/sent-back-line.json is the table both sides read). */
+const SENT_BACK_RE = /^- \*\*Sent back to a full analysis:\*\*[ \t]*(\S.*?)[ \t]*$/m;
 
 /** Scoped to `## Tracking info` only, same as the writer's own
  *  `in_tracking` awk guard — a `- **Cost:**`-shaped bullet in a
@@ -103,6 +111,8 @@ export function parsePhaseOutcome(content: string): PhaseOutcome {
   if (attempts) outcome.attempts = Number(attempts[1]);
   const analysis = section.match(ANALYSIS_RE)?.[1];
   if (analysis === "short" || analysis === "full") outcome.analysis = analysis;
+  const sentBack = section.match(SENT_BACK_RE)?.[1];
+  if (sentBack) outcome.sentBack = sentBack;
   return outcome;
 }
 

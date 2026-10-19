@@ -12,16 +12,19 @@ const SCRIPTS = join(import.meta.dir, "../../../core/scripts");
 // The reasons the script writes that are NOT a failure of the step's work:
 // a finished step, a close, the two limits the queue keeps as stopped, a model
 // the provider had no room for, an analyze stopped on its acceptance criteria or on files another open
-// spec changes, a cancel, and the runner
+// spec changes, an implement sent back to a full analysis, a cancel, and the runner
 // declining before any model ran.
 const NOT_FAILURES = [
-  "completed", "closed", "timeout", "provider-limit", "model-at-capacity", "acceptance-criteria", "shared-files", "cancelled", "refused",
+  "completed", "closed", "timeout", "provider-limit", "model-at-capacity", "acceptance-criteria", "shared-files", "sent-back", "cancelled", "refused",
 ];
 
 describe("isFailedStop", () => {
-  test("names the eight reasons a step ends failed for", () => {
+  test("names the nine reasons a step ends failed for", () => {
     expect([...FAILED_STOPS].sort()).toEqual(
-      ["cli-error", "merge-unfinished", "model-refused", "no-progress", "scope-violation", "short-analysis-over-limit", "tests-red", "unpushed"],
+      [
+        "cli-error", "merge-unfinished", "model-refused", "no-progress", "scope-violation", "sent-back-refused",
+        "short-analysis-over-limit", "tests-red", "unpushed",
+      ],
     );
   });
 
@@ -80,5 +83,17 @@ describe("an analyze whose short analysis was over a limit", () => {
   test("is a failed stop, and leaves its step undone (AC-5)", () => {
     expect(isFailedStop("short-analysis-over-limit")).toBe(true);
     expect(leavesStepUndone("short-analysis-over-limit")).toBe(true);
+  });
+});
+
+describe("an implement sent back to a full analysis", () => {
+  test("is not a failure, and leaves its step undone (AC-2)", () => {
+    expect(isFailedStop("sent-back")).toBe(false);
+    expect(leavesStepUndone("sent-back")).toBe(true);
+  });
+
+  test("one refused, because its analysis was already full, is a failed stop (AC-4)", () => {
+    expect(isFailedStop("sent-back-refused")).toBe(true);
+    expect(leavesStepUndone("sent-back-refused")).toBe(true);
   });
 });

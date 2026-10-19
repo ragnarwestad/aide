@@ -170,6 +170,33 @@ def configure_choose_approach(workspace, value):
     git(workspace["specs"], "commit", "-qm", "record whether to choose the approach", "--allow-empty")
 
 
+SENT_BACK = json.loads(
+    (pathlib.Path(__file__).resolve().parents[5] / "fixtures" / "sent-back-line.json")
+    .read_text()
+)["cases"]
+
+
+def description_with(sent_back_line, where="tracking-info"):
+    """The text of a `1-description.md` whose Tracking info (or, for
+    `where="description"`, whose body) carries `sent_back_line`; `None`
+    writes no such line."""
+    in_tracking = sent_back_line if sent_back_line and where == "tracking-info" else None
+    in_body = sent_back_line if sent_back_line and where == "description" else None
+    lines = ["# Queue - Description", "", "## Tracking info", "", "- **Task:** `81-queue-and-runner/`"]
+    lines += [in_tracking] if in_tracking else []
+    lines += ["", "## Description", ""] + ([in_body] if in_body else [])
+    return "\n".join(lines) + "\n"
+
+
+def configure_sent_back(workspace, case):
+    """Write a case of sent-back-line.json into the spec's own
+    `1-description.md` and commit it."""
+    path = workspace["specs"] / workspace["folder"] / "1-description.md"
+    path.write_text(description_with(case["line"], case["where"]))
+    git(workspace["specs"], "add", "-A")
+    git(workspace["specs"], "commit", "-qm", "record whether the spec was sent back", "--allow-empty")
+
+
 # --- spec 352, REQ-7: the bash side of the sentence registry ---------------
 #
 # `aide-run-spec`'s own error strings reach the board unrewritten

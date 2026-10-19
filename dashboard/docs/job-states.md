@@ -196,10 +196,11 @@ rides with the last of them, and the permanent records of a landing attempt — 
   disagreeing — they have not seen the run yet. A step with no landing of its own (`implement`, a failed step) has
   those answers read again as soon as its result is written (`stepDoneHandler`, `src/serve/runner-setup.ts`); a step
   with a landing has them read again by the landing.
-- **`stopReason`** is `timeout`, `provider-limit`, `model-at-capacity`, `tests-red`, `acceptance-criteria` or `shared-files`, set with `stopped` and
+- **`stopReason`** is `timeout`, `provider-limit`, `model-at-capacity`, `tests-red`, `acceptance-criteria`, `shared-files` or `sent-back`, set with `stopped` and
   nowhere else. `stopped` is deliberately not `failed`: under a tight timeout a time-stop is a common, healthy
   outcome, a red suite on a landing is work that is not green yet rather than a broken agent, and an analyze stopped
-  on its acceptance criteria waits for the description to be put right.
+  on its acceptance criteria waits for the description to be put right. An implement sent back to a full analysis is
+  stopped too: the board queues Analyze and Implement for the spec by itself.
 - **`errorReason`** is `conflict`, `held-back`, `tests-red` or `unlanded`, set when something stands in the way of
   the job: the class of it, for a reader who needs to act without matching on the sentence. `conflict` and `unlanded` are
   resolved by running `archive` again; `tests-red` by making the suite green and running the step again; and

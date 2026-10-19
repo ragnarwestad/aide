@@ -101,6 +101,7 @@ export const en = {
   "checks.failedCount": "{n} failed",
   "list.checksOpenTab": "Open the Status tab",
   "list.shortAnalysis": "short analysis: no plan and no plan review",
+  "list.sentBack": "sent back to a full analysis: {why}",
   "list.phaseFoldTitle": "{action} the latest messages of {phase}",
   "list.phaseNoneKept": "No messages are kept for this phase.",
   "list.phaseNoMessages": "Nothing has been captured from this step yet.",
