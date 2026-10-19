@@ -154,6 +154,12 @@ its condition first:
 - `IF <condition>, THEN the <system> SHALL <response>` — unwanted behaviour
 - `WHERE <feature>, the <system> SHALL <response>` — an optional feature
 
+A criterion about how something in the user interface looks names it
+in the words of the project's design document, when the project has one
+(its CLAUDE.md or AGENTS.md says where), and names that document and its
+section: "the `danger` variant `docs/design-system.md` defines", never a
+bare "the danger variant" the reader has to look up.
+
 Never put the condition after SHALL. If a requirement is too thin to
 say when its criterion holds, ask the user now, before creating the
 spec. In a headless run, where nobody can answer, write the criterion
