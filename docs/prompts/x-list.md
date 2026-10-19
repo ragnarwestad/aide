@@ -70,10 +70,19 @@ reads:
     ## Posts
 
     - ICON **@handle**, HH:MM — what it says, in one or two sentences. Why it matters to Aide, in one. [post](https://x.com/handle/status/ID)
+      Proposed: what to do about it in Aide.
 
 One bullet per kept post, newest first. ICON is ⭐ (Aide should act on it), ⚠️ (a breaking change
-or an incident to check), ✅ (useful, nothing to do now) or ℹ (worth knowing). If nothing
-matters, write "Nothing that matters to Aide in the last 24 hours." in place of the bullets.
+or an incident to check), ✅ (useful, nothing to do now) or ℹ (worth knowing).
+
+A ⭐, ⚠️ or ✅ post gets the "Proposed:" line; an ℹ post does not. It names the concrete action:
+what to check first when the post is only a claim (the tool's own announcement, release notes or
+docs), or what to change and where (a file, a skill, a rule, an installer, an idea for
+`docs/ROADMAP.md`). When the right thing is to do nothing, say so plainly: start the line with
+"Proposed: nothing —" and give the reason in the same sentence. Never leave it vague, such as
+"keep an eye on it" or "worth considering".
+
+If nothing matters, write "Nothing that matters to Aide in the last 24 hours." in place of the bullets.
 End with one line: "Read N posts from the last 24 hours, kept M.", where N is the number the
 script returned.
 
