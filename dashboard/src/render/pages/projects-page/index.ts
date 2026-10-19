@@ -5,7 +5,7 @@
 // generated — adding a project is a mutating action, which needs a
 // server behind it. Add follows the New-spec pattern (2026-08-19): a real
 // button at the top right of the list that opens a page of its own with
-// Save and Cancel. Delete is on the project's own row of the list.
+// Save and Cancel. Remove is on the project's own row of the list.
 //
 // Split by theme into projects-page/: types.ts (the view types),
 // routes.ts (nav and paths), overview-list.ts (the `/projects` list
@@ -87,7 +87,7 @@ export interface ProjectsPageOptions {
    *  Spec 369: the full sentence lives on the project's own Config tab
    *  — the list needs only whether a run can start, to gate the mark. */
   readinessByProject?: Record<string, boolean>;
-  /** Whether a project's row offers Delete: a project on the allowlist.
+  /** Whether a project's row offers Remove: a project on the allowlist.
    *  Absent offers none. */
   removable?: (name: string) => boolean;
   /** What the project is configured with today — the Settings page's
@@ -137,7 +137,7 @@ export function renderProjectsPage(
     // (2026-08-21).
     `<div class="listtop">${projectSummary(projects, lang)}` +
     `${btnLink({ href: ADD_PROJECT_ROUTE, label: t(lang, "project.add"), variant: "primary" })}</div>\n` +
-    // Delete is on each removable project's own row.
+    // Remove is on each removable project's own row.
     projectListBody(projects, {
       pageHref: (name) => projectPagePath(name),
       lang,

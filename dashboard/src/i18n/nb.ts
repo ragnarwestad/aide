@@ -270,7 +270,7 @@ export const nb: Record<TranslationKey, string> = {
   "schedule.colNextRun": "Neste kjøring",
 
   "project.add": "Legg til",
-  "project.delete": "Slett",
+  "project.remove": "Fjern",
   "project.active": "aktive",
   "project.archived": "arkiverte",
   "project.count": "{n} prosjekter",

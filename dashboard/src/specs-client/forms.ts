@@ -135,7 +135,7 @@ export async function submitCreate(form: HTMLFormElement, event: Event): Promise
 }
 
 // Adding and removing a project: the Add project page's form, and the
-// Delete on a project's row of the Projects list. Both are bound directly,
+// Remove on a project's row of the Projects list. Both are bound directly,
 // like the New-spec form.
 //
 // No refusal here has a row to land on: an Add names a project that was

@@ -268,7 +268,7 @@ export const es: Record<TranslationKey, string> = {
   "schedule.colNextRun": "Próxima ejecución",
 
   "project.add": "Añadir",
-  "project.delete": "Eliminar",
+  "project.remove": "Quitar",
   "project.active": "activos",
   "project.archived": "archivados",
   "project.count": "{n} proyectos",

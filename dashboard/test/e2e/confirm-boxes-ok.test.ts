@@ -1,5 +1,5 @@
-// OK in Cancel's dialog and in the two Delete dialogs (a schedule entry's, a
-// project's row on the list) does what the old copy did: exactly one POST, to
+// OK in Cancel's dialog and in the two dialogs of a schedule entry's Delete and a
+// project row's Remove does what the old copy did: exactly one POST, to
 // the route it always went to.
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
@@ -87,7 +87,7 @@ describe("OK posts once, to the old route", () => {
     await page.close();
   });
 
-  test("Delete on a project's row opens Remove's dialog without opening the project, and OK posts once (AC-2)", async () => {
+  test("Remove on a project's row opens Remove's dialog without opening the project, and OK posts once (AC-2)", async () => {
     const base = board();
     const page = await browser.newPage();
     const posts: string[] = [];
@@ -95,13 +95,13 @@ describe("OK posts once, to the old route", () => {
       if (r.method() === "POST") posts.push(new URL(r.url()).pathname);
     });
     await page.goto(`${base}/projects?live=0`);
-    await page.getByRole("button", { name: "Delete aide" }).click();
+    await page.getByRole("button", { name: "Remove aide" }).click();
     const box = page.locator('dialog[id="removeask-aide"]');
     await box.waitFor({ state: "visible" });
     expect(new URL(page.url()).pathname).toBe("/projects");
     await box.getByRole("button", { name: "OK" }).click();
-    // The list is drawn again, and aide's row no longer offers Delete.
-    await page.getByRole("button", { name: "Delete aide" }).waitFor({ state: "detached" });
+    // The list is drawn again, and aide's row is gone.
+    await page.getByRole("button", { name: "Remove aide" }).waitFor({ state: "detached" });
     expect(posts).toEqual(["/api/queue/projects/aide/remove"]);
     await page.close();
   });

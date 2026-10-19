@@ -15,14 +15,14 @@ export function projectDescription(p: ProjectView): string {
     : "";
 }
 
-/** Delete, at the far right of the row of a project on the allowlist: the
+/** Remove, at the far right of a project's row: the
  *  danger button a schedule entry's row has, opening the dialog Remove
  *  project has always asked in. One dialog per row, its id naming the
  *  project; a refusal is written in the dialog's own line, and success
  *  draws the list again (`submitProjectChange`). */
-function projectDeleteControl(name: string, lang: Language): string {
+function projectRemoveControl(name: string, lang: Language): string {
   const id = `removeask-${name}`;
-  const label = t(lang, "project.delete");
+  const label = t(lang, "project.remove");
   return (
     askButton({ label, dialogId: id, variant: "danger", ariaLabel: `${label} ${name}` }) +
     progressDialog(lang, {
@@ -54,7 +54,7 @@ function overviewRow(
   const warn = warnHref
     ? `<a class="proj-row-warn" href="${esc(warnHref)}" title="cannot run yet — see the project's page" aria-label="cannot run yet">${ICON_WARN}</a>`
     : "";
-  const del = removable ? projectDeleteControl(p.name, lang) : "";
+  const del = removable ? projectRemoveControl(p.name, lang) : "";
   const projectLink = `<a class="proj-row-link" href="${esc(path)}">${esc(p.name)}</a>`;
   // Spec 142: on the row, not floating above the list — a reader should
   // not have to work out which project a warning is about. An error row
@@ -118,7 +118,7 @@ export function projectListBody(
      *  no mark at all — a callback of the same shape as `note`, not a
      *  change to how the row is composed. */
     warnHref?: (name: string) => string | undefined;
-    /** Whether the row offers Delete: a project on the allowlist. */
+    /** Whether the row offers Remove: a project on the allowlist. */
     removable?: (name: string) => boolean;
     lang?: Language;
   },

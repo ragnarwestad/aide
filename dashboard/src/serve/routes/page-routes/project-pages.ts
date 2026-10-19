@@ -282,8 +282,11 @@ export async function projectPages(
     }
     // Read fresh, uncached: unlike `/` nothing polls this page, so a
     // scan per request is cheap enough to redo every time — and no
-    // invalidation to get wrong.
-    const projects = buildProjectViews(ctx.opts.projectRoot, ctx.ownedSpecsRoot, manifestInside(ctx.machineryProjectDir));
+    // invalidation to get wrong. Only the projects on the allowlist, as
+    // on the specs list: a directory under the projects root that is not
+    // on it is not one of the board's projects.
+    const projects = buildProjectViews(ctx.opts.projectRoot, ctx.ownedSpecsRoot, manifestInside(ctx.machineryProjectDir))
+      .filter((p) => ctx.allowed.has(p.name));
     // Spec 184: whether a run could start in each project, asked on
     // every visit. The Add flow answered this exactly once, in the
     // query string of the redirect it landed on — so an operator who

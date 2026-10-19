@@ -62,7 +62,7 @@ describe("every running step is drawn by the progress dialog", () => {
     expectProgress(box);
   });
 
-  test("Delete's dialog on a project's row of the list is a progress dialog (AC-1)", () => {
+  test("Remove's dialog on a project's row of the list is a progress dialog (AC-1)", () => {
     const html = renderProjectsPage([project], "2026-09-20T00:00:00Z", [{ label: "Projects", path: "/projects" }], {
       removable: () => true,
     });

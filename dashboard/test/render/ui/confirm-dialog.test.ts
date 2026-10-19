@@ -42,7 +42,7 @@ describe("each confirmation is drawn by the shared function", () => {
     expect(expectAsk(schedule, "deleteask-aide/nightly")).not.toContain("data-progress-dialog");
   });
 
-  test("Delete on a project's row of the list asks in a dialog whose form carries the hook the page script binds its submit by (AC-1)", () => {
+  test("Remove on a project's row of the list asks in a dialog whose form carries the hook the page script binds its submit by (AC-1)", () => {
     const view: ProjectView = { name: "aide", manifest: { ok: false, error: "no manifest" }, specs: [] };
     const html = renderProjectsPage([view], "2026-09-20T00:00:00Z", [{ label: "Projects", path: "/projects" }], {
       removable: () => true,

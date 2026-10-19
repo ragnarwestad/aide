@@ -166,9 +166,9 @@ model may differ) and the analysis ended within the hour; past that the tool's c
 back costs more than starting afresh. A session that cannot be continued starts the implement afresh. Off unless set.
 
 The server WRITES some of that file's keys as well as reading them, each from one page: `projects` from the Add and
-Delete buttons on `/projects`, `schedules` from a project's Schedule tab, and `model`, `timeoutSec`, `concurrency`
+Remove buttons on `/projects`, `schedules` from a project's Schedule tab, and `model`, `timeoutSec`, `concurrency`
 and `modelChoices` from Settings. A write keeps the file's comments and every other key. `projects` is the queue's allowlist, and
-rewriting it is what makes Add and Delete take effect without a restart. The
+rewriting it is what makes Add and Remove take effect without a restart. The
 `--queue-projects` flag is the seed for a first install where this file does not exist yet; where the file HAS a
 `projects` array, it wins over the flag. A malformed one is ignored entirely and the flag is kept, the same direction
 every other key here fails in.

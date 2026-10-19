@@ -3,6 +3,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { t } from "../../../src/i18n";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
@@ -161,7 +162,7 @@ describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
   const AUTH = { "content-type": "application/json", accept: "application/json" };
 
   // Criterion 7.
-  test("the name typed back removes it from the allowlist and touches no file", async () => {
+  test("the name typed back removes it from the allowlist, touches no file and drops its row from the list (AC-2)",async () => {
     const { base, dir } = start();
     const res = await fetch(`${base}/api/queue/projects/aide/remove`, {
       method: "POST",
@@ -175,11 +176,10 @@ describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
     // The checkout and its specs are exactly where they were.
     expect(existsSync(join(dir, "root", "aide", ".aide", "project.yaml"))).toBe(true);
     expect(existsSync(join(dir, "root", "aide", "specs", "81-queue-and-runner"))).toBe(true);
-    // And the list no longer offers it, though the row stays: the
-    // checkout is still under the projects root.
+    // And the list drawn again no longer shows it (AC-2).
     const html = await (await fetch(`${base}/projects`)).text();
     expect(html).not.toContain('action="/api/queue/projects/aide/remove"');
-    expect(html).toContain('href="/projects/aide"');
+    expect(html).not.toContain('href="/projects/aide"');
   });
 
   // Criterion 8.
@@ -197,17 +197,19 @@ describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
     expect(res.status).toBe(400);
     const body = (await res.json()) as StepBody;
     expect(body.results.find((r) => r.step === "allowlist")!.ok).toBe(false);
-    // The refusal changes nothing: aide's row still carries its Delete.
+    // The refusal changes nothing: aide's row still carries its Remove.
     const html = await (await fetch(`${base}/projects`)).text();
     expect(html).toContain('action="/api/queue/projects/aide/remove"');
   });
 
-  test("Delete is on an allowlisted project's row of the Projects list and no other, and the Config tab offers none (AC-1, AC-5)", async () => {
+  test("the list shows the allowlisted project alone, and its counts are that project's (AC-1, AC-3)", async () => {
     const { base } = start({}, ["other"]);
     const list = await (await fetch(`${base}/projects`)).text();
+    expect(list).toContain('href="/projects/aide"');
     expect(list).toContain('action="/api/queue/projects/aide/remove"');
-    // Discovered, but never on the allowlist: nothing to remove it from.
-    expect(list).not.toContain("/api/queue/projects/other/remove");
+    // Under the projects root, but never on the allowlist: not the board's.
+    expect(list).not.toContain('href="/projects/other"');
+    expect(list).toContain(`${t("en", "project.count", { n: 1 })} · 1 active · 0 archived`);
     const config = await (await fetch(`${base}/projects/aide?tab=config`)).text();
     expect(config).not.toContain("/remove");
   });
