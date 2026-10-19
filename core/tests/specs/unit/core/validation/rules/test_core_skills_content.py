@@ -168,3 +168,12 @@ def test_analyze_compares_with_the_other_specs_between_writing_the_analysis_and_
     runs_comparison = [i for i, (_, body) in enumerate(steps) if re.search(r"aide-spec-overlap[^\n]*--record", body)]
     assert runs_comparison, "no step of the analyze skill runs aide-spec-overlap with --record"
     assert all(writes_analysis < i < writes_plan for i in runs_comparison), (titles, runs_comparison)
+
+
+@pytest.mark.validation
+def test_the_implement_skill_asks_aide_ac_prefix_for_the_prefix_AC_1_AC_2():
+    """The prefix is worked out by the command, not by the session's own
+    reading of the manifest, so the skill has to run it."""
+    skill = (CORE_SKILLS_DIR / "aide-implement" / "SKILL.md").read_text(encoding="utf-8")
+    runs = [block for block in BASH_BLOCK.findall(skill) if re.search(r"^\s*aide-ac-prefix\b", block, re.M)]
+    assert runs, "no bash block of the implement skill runs aide-ac-prefix"

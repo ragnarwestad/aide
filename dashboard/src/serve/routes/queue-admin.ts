@@ -216,6 +216,7 @@ export async function handleQueueAdminRoutes(
         ...(text(asked.testCmd) && { testCmd: text(asked.testCmd) }),
         ...(text(asked.installCmd) && { installCmd: text(asked.installCmd) }),
         ...(text(asked.previewCmd) && { previewCmd: text(asked.previewCmd) }),
+        ...(text(asked.acPrefix) && { acPrefix: text(asked.acPrefix) }),
       };
       if (Object.keys(later).length) {
         const saved = await updateProjectSettings(ctx.gitRun, join(ctx.opts.projectRoot, name), later, {
@@ -311,6 +312,7 @@ export async function handleQueueAdminRoutes(
       ...("installCmd" in asked && { installCmd: str(asked.installCmd) }),
       ...("previewCmd" in asked && { previewCmd: str(asked.previewCmd) }),
       ...("testCmd" in asked && { testCmd: str(asked.testCmd) }),
+      ...("acPrefix" in asked && { acPrefix: str(asked.acPrefix) }),
       ...("description" in asked && { description: str(asked.description) }),
       ...("previewFrom" in asked && { previewFrom: str(asked.previewFrom) }),
     }, { saveManifest: manifestSaver(ctx, name), settingsFile: dashboardSettingsFile(checkoutBase, name) });

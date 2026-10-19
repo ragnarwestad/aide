@@ -64,6 +64,11 @@ export interface ManifestData {
    *  A project that carries `dashboard/test/round/run` (aide itself)
    *  needs none — that script is what its own preview starts. */
   previewCmd?: string;
+  /** What `/aide-implement` puts before a criterion's id in a test's name
+   *  (`aide-ac-prefix`): `{spec}` stands for the spec's number as its
+   *  folder writes it, so `F{spec}` names spec 02's AC-2 `(F02 AC-2)`.
+   *  Absent means `(AC-2)`. */
+  acPrefix?: string;
 }
 
 export type ManifestResult =
@@ -96,6 +101,7 @@ export function parseManifest(text: string): ManifestResult {
   if (r.worktreeLinks != null) data.worktreeLinks = toStr(r.worktreeLinks);
   if (r.AIDE_TEST_CMD != null) data.AIDE_TEST_CMD = toStr(r.AIDE_TEST_CMD);
   if (r.previewCmd != null) data.previewCmd = toStr(r.previewCmd);
+  if (r.acPrefix != null) data.acPrefix = toStr(r.acPrefix);
   // The one field here that is VALIDATED rather than normalized: it is a
   // two-value enum, and an unrecognized spelling has to fail toward the
   // safe default the same way an absent key does.

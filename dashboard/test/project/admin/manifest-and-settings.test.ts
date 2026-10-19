@@ -531,9 +531,9 @@ describe("saving AIDE_INSTALL_CMD (spec 255)", () => {
   });
 });
 
-// A description is the one manifest key only the YAML parser reads, so it is
-// written whole: on one line, quoted where a plain line would not read back,
-// and in place of every line a folded or block form took.
+// A description is written as YAML needs it, so it is written whole: on one
+// line, quoted where a plain line would not read back, and in place of every
+// line a folded or block form took.
 describe("saving a description over every form it can be stored in (AC-2)", () => {
   const typed = "Aide: the board for specs # not a comment, and long enough to pass the eighty character mark";
   const forms: { form: string; description: string[]; tail: string[] }[] = [
@@ -589,4 +589,26 @@ describe("saving a description over every form it can be stored in (AC-2)", () =
       expect(readFileSync(file, "utf-8")).toBe(`${["name: p", ...tail].join("\n")}\n`);
     });
   }
+});
+
+// A criterion prefix is read by two readers, the page's YAML parser and the
+// implement command's `sed`, so the line is written as both read it back.
+describe("writing a criterion prefix (AC-5)", () => {
+  const write = (value: string) => manifestWithScalar("name: demo\n", "acPrefix", value, "project.yaml");
+  const read = (text: string) => {
+    const parsed = parseManifest(text);
+    return parsed.ok ? parsed.data.acPrefix : undefined;
+  };
+
+  test("a prefix with the spec's number in it is written plain and reads back as typed (AC-5)", () => {
+    const after = write("F{spec}");
+    expect(after).toBe("name: demo\nacPrefix: F{spec}\n");
+    expect(read(after)).toBe("F{spec}");
+  });
+
+  test("a prefix that is only the spec's number is quoted, so it reads back as typed (AC-5)", () => {
+    const after = write("{spec}");
+    expect(after).toBe('name: demo\nacPrefix: "{spec}"\n');
+    expect(read(after)).toBe("{spec}");
+  });
 });

@@ -134,6 +134,16 @@ export function resolvePreviewCmd(projectDir: string): { value: string | null; s
   return value ? { value, source: "project.yaml" } : { value: null, source: null };
 }
 
+/** What a test's name puts before a criterion's id — the manifest's
+ *  `acPrefix:` alone, in the same shape as `resolvePreviewCmd`. */
+export function resolveAcPrefix(projectDir: string): { value: string | null; source: "project.yaml" | null } {
+  const manifestFile = join(projectDir, ".aide", "project.yaml");
+  if (!existsSync(manifestFile)) return { value: null, source: null };
+  const parsed = parseManifest(readFileSync(manifestFile, "utf-8"));
+  const value = parsed.ok ? (parsed.data.acPrefix ?? "").trim() : "";
+  return value ? { value, source: "project.yaml" } : { value: null, source: null };
+}
+
 /** What the project says it is, in one line: the manifest's `description:`
  *  alone, in the same shape as `resolvePreviewCmd`. */
 export function resolveDescription(projectDir: string): { value: string | null; source: "project.yaml" | null } {

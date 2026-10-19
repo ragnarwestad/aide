@@ -42,9 +42,9 @@ function manifestSetting(key: string): string {
 }
 
 describe("the configuration reference's manifest table", () => {
-  test("names at least the keys a run reads", () => {
+  test("names at least the keys a run reads (AC-6)", () => {
     const keys = manifestTableKeys();
-    for (const key of ["AIDE_TEST_CMD", "worktreeLinks", "codeLanding", "name"]) expect(keys).toContain(key);
+    for (const key of ["AIDE_TEST_CMD", "worktreeLinks", "codeLanding", "name", "acPrefix"]) expect(keys).toContain(key);
   });
 
   test("every key in it reads back through the parser (AC-4)", () => {

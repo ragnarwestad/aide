@@ -43,18 +43,19 @@ allowlist, which is what a run checks before it starts; removing one takes the n
 
 The Add form asks for:
 
-| Field           | What it takes                                                                                                  |
-|-----------------|----------------------------------------------------------------------------------------------------------------|
-| Name            | Required. The name of the directory the clone makes under the projects root, and the project's name everywhere |
-| Git URL         | Required. The address to clone                                                                                 |
-| Specs path      | Optional. Where this project's specs live, when they are not in `specs/` inside it                             |
-| Code landing    | Required, none pre-selected — see [How a project's code lands](#how-a-projects-code-lands)                     |
-| Try a branch    | Optional. How a spec's branch can be tried before it is merged; starts on none                                 |
-| Worktree links  | Optional. Space-separated repo-relative paths a run has to symlink into its worktree                           |
-| Test command    | Optional. Its placeholder is the command the Git URL's root files point at — see below                         |
-| Install command | Optional. What installing the project means on this machine, run after its code merges                         |
-| Preview command | Optional. How to start the project for a look at one branch; it serves on `$PORT`                              |
-| Description     | One line saying what the project is                                                                            |
+| Field            | What it takes                                                                                                                 |
+|------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| Name             | Required. The name of the directory the clone makes under the projects root, and the project's name everywhere                |
+| Git URL          | Required. The address to clone                                                                                                |
+| Specs path       | Optional. Where this project's specs live, when they are not in `specs/` inside it                                            |
+| Code landing     | Required, none pre-selected — see [How a project's code lands](#how-a-projects-code-lands)                                    |
+| Try a branch     | Optional. How a spec's branch can be tried before it is merged; starts on none                                                |
+| Worktree links   | Optional. Space-separated repo-relative paths a run has to symlink into its worktree                                          |
+| Test command     | Optional. Its placeholder is the command the Git URL's root files point at — see below                                        |
+| Install command  | Optional. What installing the project means on this machine, run after its code merges                                        |
+| Preview command  | Optional. How to start the project for a look at one branch; it serves on `$PORT`                                             |
+| Criterion prefix | Optional. Put before a criterion's id in a test's name; `{spec}` is the spec's number, so `F{spec}` names a test `(F02 AC-2)` |
+| Description      | One line saying what the project is                                                                                           |
 
 **The Test command's placeholder is read off the Git URL, without a checkout.** When the Git URL field changes, the
 page asks the server (`POST /api/queue/projects/test-command`), which runs a shallow, contents-free clone into a
@@ -285,7 +286,7 @@ settings row owns, `specsRoot` and `worktreeLinks`, are left out here and carrie
 
 **Two settings tables, one per file** (every setting belongs to exactly one now): `.aide/config`, holding Specs
 path and Install command, and the manifest — headed `.aide/project.yaml`, or the dashboard's `settings.yaml` when
-the project tracks no manifest — holding Worktree links, Preview command, Test command, Description, a **Code landing** row and a **Try a branch** row, which are not config keys. How
+the project tracks no manifest — holding Worktree links, Preview command, Test command, Criterion prefix, Description, a **Code landing** row and a **Try a branch** row, which are not config keys. How
 strictly Analyze checks a spec's acceptance criteria is not a project setting: it is chosen per spec, on the New
 spec form. No row's Comment names a file: which table a setting is in already says that. `AIDE_LINT_CMD`
 and `AIDE_BUILD_CMD` have no row: the runner never runs them, and the implement step's AI works them out from the
@@ -299,7 +300,7 @@ lands", with the worked-out command beside it as a suggestion.
 **Each table has its own Edit**, on the same line as its own heading, opening only that table for editing
 (`?edit=config` or `?edit=manifest`) — at most one is open at a time. While one is, the other table's Edit stays on
 the page, disabled, rather than disappearing. Opening `.aide/config` turns on two controls, Specs path and Install
-command; opening the manifest turns on six, Worktree links, Preview command, Test command, Description, Code landing and Try a branch. The
+command; opening the manifest turns on seven, Worktree links, Preview command, Test command, Criterion prefix, Description, Code landing and Try a branch. The
 test field is empty with the worked-out command as its placeholder, so a save that never touched it configures
 nothing. Worktree links has a line of the checkout's own top-level `.gitignore` entries under it. Each open field
 is as wide as its cell and grows to show the whole value; with the board's script on, Enter saves, and a value is
@@ -308,8 +309,8 @@ always one line — a line break in it is folded to a space. Save and Cancel bot
 
 A save writes each value to the file its table names, and to no other file, regardless of where the value
 currently lives: Specs path and Install command to `.aide/config`, which is never committed; Worktree links,
-Preview command, Test command, Description, Code landing and Try a branch (`deployment.previewFrom`) to the manifest — the project's own `.aide/project.yaml` where it
-is tracked, else the dashboard's `settings.yaml`. A description is written on one line, quoted where a plain line would not read back as typed, and replaces a description that an older Add stored over several lines. Unchanged values are not rewritten.
+Preview command, Test command, Criterion prefix, Description, Code landing and Try a branch (`deployment.previewFrom`) to the manifest — the project's own `.aide/project.yaml` where it
+is tracked, else the dashboard's `settings.yaml`. A description or a criterion prefix is written on one line, quoted where a plain line would not read back as typed, and replaces a description that an older Add stored over several lines. Unchanged values are not rewritten.
 
 #### Schedule
 
