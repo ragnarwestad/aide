@@ -25,6 +25,7 @@
   - [19. Shorter command output for a run](#19-shorter-command-output-for-a-run)
   - [20. A spec's states, separate from its run's](#20-a-specs-states-separate-from-its-runs)
   - [21. Named profiles for the AI and the step settings](#21-named-profiles-for-the-ai-and-the-step-settings)
+  - [22. The analysis and the plan written in simplified technical English](#22-the-analysis-and-the-plan-written-in-simplified-technical-english)
 
 ---
 
@@ -40,7 +41,7 @@ An idea that becomes a spec names it, and leaves this page once the spec is arch
 
 Each idea has a number that stays with it. A new idea gets the next number after the highest one ever given, and
 the number of an idea taken off the page is never used again, so a number can be referred to and still mean the
-same idea later. The next number is 22.
+same idea later. The next number is 23.
 
 ## To consider
 
@@ -370,3 +371,24 @@ Open questions:
 
 Ideas 13, 14 and 15 are what a profile could later carry: a flow for the kind of task, a way to run a step, and an
 AI chosen from the spec's complexity.
+
+### 22. The analysis and the plan written in simplified technical English
+
+From Andrej Karpathy's [post](https://x.com/karpathy/status/2105819303471976479) on making what an AI writes easier
+to understand: ask for ASD-STE100, the controlled English of aerospace maintenance manuals, about 80% of the way to
+the full standard. `2-analysis.md` and `3-solution.md` are where the AI writes the long passages a person has to
+read and understand, so that is where it would help most.
+
+What it could take:
+
+- **The writing rules, not the dictionary:** short sentences (at most 20 words in an instruction, 25 in a
+  description), the active voice, one word for one thing, and one topic in each sentence. The approved dictionary of
+  about 900 words is left out, since words like branch, worktree and landing would have to be declared as technical
+  names one by one.
+- **The analyze skill first:** the rules added to what `/aide-analyze` writes, and a few specs compared before and
+  after, before they are used anywhere else.
+
+Open questions:
+
+- Whether the board's error sentences (`dashboard/docs/error-sentences.md`) and the documentation take the same
+  rules afterwards; both already follow some of them.
