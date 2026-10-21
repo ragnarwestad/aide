@@ -7,6 +7,17 @@ acceptance criteria checks still run — at `warn` and `stop` a
 description with no criteria is a finding of its own
 (`references/plan-review.md`, Coherence).
 
+## Table of contents
+
+- [Step 1 (read the description)](#step-1-read-the-description)
+- [Step 5 (2-analysis.md)](#step-5-2-analysismd)
+- [Step 7 (3-solution.md, Acceptance criteria)](#step-7-3-solutionmd-acceptance-criteria)
+- [Step 8 (Review the plan)](#step-8-review-the-plan)
+- [Step 9 (4-status.md, Acceptance criteria section)](#step-9-4-statusmd-acceptance-criteria-section)
+- [A held-back spec's second round](#a-held-back-specs-second-round)
+
+---
+
 ## Step 1 (read the description)
 
 Extract every AC-n id (matched by `^- \*\*AC-\d+:\*\*`). Keep the

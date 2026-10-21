@@ -1,5 +1,18 @@
 # Complexity detection and analysis patterns
 
+## Table of contents
+
+- [Classification](#classification)
+  - [Worked example: shared code, few files](#worked-example-shared-code-few-files)
+  - [Worked example: a large, self-contained addition](#worked-example-a-large-self-contained-addition)
+- [Analysis per level](#analysis-per-level)
+  - [LOW (Quick Fix, < 15 min analysis)](#low-quick-fix--15-min-analysis)
+  - [MEDIUM (Component analysis, 20-45 min)](#medium-component-analysis-20-45-min)
+  - [HIGH (Broad analysis, 1-3 hours)](#high-broad-analysis-1-3-hours)
+- [Example: Expected output (MEDIUM)](#example-expected-output-medium)
+
+---
+
 ## Classification
 
 The grade is set in Step 3, from what Step 2's search found: it is the

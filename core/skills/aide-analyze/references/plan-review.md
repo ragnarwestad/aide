@@ -19,6 +19,14 @@ both handed the spec's acceptance criteria checks level (`off`,
 Feasibility makes the cannot-be-built check, Coherence the other four.
 Coherence is told, too, whether the spec asks to choose the approach.
 
+## Table of contents
+
+- [Review — three reviewers, at every complexity](#review--three-reviewers-at-every-complexity)
+- [Consolidate](#consolidate)
+- [Revise — the review is not a stamp](#revise--the-review-is-not-a-stamp)
+
+---
+
 ## Review — three reviewers, at every complexity
 
 The review runs for every full analysis. A short analysis (`references/spec-files.md`)
