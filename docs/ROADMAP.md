@@ -25,7 +25,7 @@
   - [19. Shorter command output for a run](#19-shorter-command-output-for-a-run)
   - [20. A spec's states, separate from its run's](#20-a-specs-states-separate-from-its-runs)
   - [21. Named profiles for the AI and the step settings](#21-named-profiles-for-the-ai-and-the-step-settings)
-  - [22. The analysis and the plan written in simplified technical English](#22-the-analysis-and-the-plan-written-in-simplified-technical-english)
+  - [22. An analysis and a plan that are easier to read](#22-an-analysis-and-a-plan-that-are-easier-to-read)
 
 ---
 
@@ -372,12 +372,17 @@ Open questions:
 Ideas 13, 14 and 15 are what a profile could later carry: a flow for the kind of task, a way to run a step, and an
 AI chosen from the spec's complexity.
 
-### 22. The analysis and the plan written in simplified technical English
+### 22. An analysis and a plan that are easier to read
 
 From Andrej Karpathy's [post](https://x.com/karpathy/status/2105819303471976479) on making what an AI writes easier
-to understand: ask for ASD-STE100, the controlled English of aerospace maintenance manuals, about 80% of the way to
-the full standard. `2-analysis.md` and `3-solution.md` are where the AI writes the long passages a person has to
-read and understand, so that is where it would help most.
+to understand, and a colleague's plans written with as many diagrams as possible. `2-analysis.md` and
+`3-solution.md` are where the AI writes the long passages a person has to read and understand, so that is where it
+would help most. Two ways, which can be taken together:
+
+- **Simplified technical English:** ASD-STE100, the controlled English of aerospace maintenance manuals, about 80%
+  of the way to the full standard.
+- **Diagrams:** a small Mermaid diagram in the analysis and the plan, such as the files a change touches or a flow
+  before and after. Mermaid is plain text in the Markdown, so the files read as well for an AI as they do today.
 
 What it could take:
 
@@ -387,6 +392,8 @@ What it could take:
   names one by one.
 - **The analyze skill first:** the rules added to what `/aide-analyze` writes, and a few specs compared before and
   after, before they are used anywhere else.
+- **Diagrams drawn on the spec page:** the analyze skill asks for one where a picture says more than the text, and
+  the spec page draws Mermaid, which it shows as a code block today.
 
 Open questions:
 
