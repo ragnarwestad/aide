@@ -39,16 +39,27 @@ export function extraPathDirs(env: NodeJS.ProcessEnv = process.env): string[] {
   return [`${home}/.local/bin`, miseShims(env)].filter((dir) => existsSync(dir));
 }
 
-/** The server's own PATH with those directories in front of it. */
-export function pathWithToolDirs(env: NodeJS.ProcessEnv = process.env): string {
+/** Where `docker` and Homebrew's tools are installed. launchd's PATH
+ *  carries neither, and a project whose tests start their services with
+ *  `docker compose` went red in every run and landing under it. Added
+ *  AFTER the server's own PATH, not in front: a system directory never
+ *  takes a name over from the operator's own. */
+export const SYSTEM_DIRS = ["/usr/local/bin", "/opt/homebrew/bin"];
+
+/** The server's own PATH with those directories in front of it, and the
+ *  system directories it lacks after it. */
+export function pathWithToolDirs(env: NodeJS.ProcessEnv = process.env, systemDirs = SYSTEM_DIRS): string {
   const path = env.PATH ?? "";
   const present = new Set(path.split(":"));
   const missing = extraPathDirs(env).filter((dir) => !present.has(dir));
-  return missing.length === 0 ? path : `${missing.join(":")}:${path}`;
+  const withTools = missing.length === 0 ? path : `${missing.join(":")}:${path}`;
+  const after = systemDirs.filter((dir) => !present.has(dir) && existsSync(dir));
+  if (after.length === 0) return withTools;
+  return withTools ? `${withTools}:${after.join(":")}` : after.join(":");
 }
 
 /** The whole environment for a spawn, which is the server's own plus
  *  that one PATH change. */
-export function spawnEnv(env: NodeJS.ProcessEnv = process.env): Record<string, string | undefined> {
-  return { ...env, PATH: pathWithToolDirs(env) };
+export function spawnEnv(env: NodeJS.ProcessEnv = process.env, systemDirs = SYSTEM_DIRS): Record<string, string | undefined> {
+  return { ...env, PATH: pathWithToolDirs(env, systemDirs) };
 }

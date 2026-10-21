@@ -36,14 +36,14 @@ afterEach(() => {
 describe("pathWithToolDirs", () => {
   test("~/.local/bin is prepended when launchd's PATH does not carry it", () => {
     const dir = home();
-    const path = pathWithToolDirs({ HOME: dir, PATH: "/usr/bin:/bin" } as NodeJS.ProcessEnv);
+    const path = pathWithToolDirs({ HOME: dir, PATH: "/usr/bin:/bin" } as NodeJS.ProcessEnv, []);
     expect(path).toBe(`${join(dir, ".local", "bin")}:/usr/bin:/bin`);
   });
 
   test("mise's shims are prepended too, which is where three of the four CLIs live", () => {
     const dir = home();
     mkdirSync(join(dir, ".local", "share", "mise", "shims"), { recursive: true });
-    const path = pathWithToolDirs({ HOME: dir, PATH: "/usr/bin" } as NodeJS.ProcessEnv);
+    const path = pathWithToolDirs({ HOME: dir, PATH: "/usr/bin" } as NodeJS.ProcessEnv, []);
     expect(path).toContain(join(dir, ".local", "share", "mise", "shims"));
     expect(path).toContain(join(dir, ".local", "bin"));
     expect(path.endsWith("/usr/bin")).toBe(true);
@@ -68,7 +68,7 @@ describe("pathWithToolDirs", () => {
   test("a PATH that already carries a directory is left exactly as it is", () => {
     const dir = home();
     const already = `/usr/bin:${join(dir, ".local", "bin")}:/bin`;
-    const path = pathWithToolDirs({ HOME: dir, PATH: already } as NodeJS.ProcessEnv);
+    const path = pathWithToolDirs({ HOME: dir, PATH: already } as NodeJS.ProcessEnv, []);
     expect(path).toBe(already);
   });
 
@@ -81,9 +81,27 @@ describe("pathWithToolDirs", () => {
 
   test("spawnEnv keeps the rest of the environment", () => {
     const dir = home();
-    const env = spawnEnv({ HOME: dir, PATH: "/usr/bin", KEEP: "yes" } as NodeJS.ProcessEnv);
+    const env = spawnEnv({ HOME: dir, PATH: "/usr/bin", KEEP: "yes" } as NodeJS.ProcessEnv, []);
     expect(env.KEEP).toBe("yes");
     expect(env.PATH).toBe(`${join(dir, ".local", "bin")}:/usr/bin`);
+  });
+
+  // The failure that was reported: launchd's PATH has no /usr/local/bin,
+  // so `docker compose` in a Skjera run and its landing was "not found".
+  test("a system directory launchd's PATH lacks is added after it", () => {
+    const dir = home();
+    const system = join(dir, "usr-local-bin");
+    mkdirSync(system);
+    const path = pathWithToolDirs({ HOME: dir, PATH: "/usr/bin:/bin" } as NodeJS.ProcessEnv, [system]);
+    expect(path).toBe(`${join(dir, ".local", "bin")}:/usr/bin:/bin:${system}`);
+  });
+
+  test("a system directory that is missing, or already on the PATH, is not added", () => {
+    const dir = home();
+    const system = join(dir, "usr-local-bin");
+    mkdirSync(system);
+    const already = `${join(dir, ".local", "bin")}:${system}:/usr/bin`;
+    expect(pathWithToolDirs({ HOME: dir, PATH: already } as NodeJS.ProcessEnv, [system, join(dir, "nowhere")])).toBe(already);
   });
 });
 
