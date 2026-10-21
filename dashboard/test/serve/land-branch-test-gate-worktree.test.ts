@@ -92,38 +92,6 @@ describe("the landing's test gate", () => {
     expect(git(root, "worktree", "list").trim().split("\n")).toHaveLength(1);
   });
 
-  // Skjera's landing went red on every merge: the gate's tree is a new
-  // folder mise had never trusted, so mise skipped the project's
-  // mise.toml, and its suite ran with the global pnpm and none of the
-  // settings in its [env].
-  test("trusts the tree's mise.toml before the suite runs, and takes the trust back after", async () => {
-    const root = project();
-    writeFileSync(join(root, "mise.toml"), '[env]\nSETTING = "x"\n');
-    git(root, "add", "mise.toml");
-    git(root, "commit", "-qm", "mise");
-    const order = join(root, "..", `gate-mise-${Date.now()}.txt`);
-    dirs.push(order);
-    fakeScripts(order);
-    writeFileSync(process.env.AIDE_RECORD_TEST_RUN_BIN!, `#!/bin/sh\necho suite >> ${order}\n`, { mode: 0o755 });
-    const bin = mkdtempSync(join(tmpdir(), "aide-gate-mise-"));
-    dirs.push(bin);
-    writeFileSync(join(bin, "mise"), `#!/bin/sh\necho "mise $*" >> ${order}\n`, { mode: 0o755 });
-    const savedPath = process.env.PATH;
-    process.env.PATH = `${bin}:${savedPath}`;
-    try {
-      const verdict = await runProjectSuiteBeforePush(root, { project: "aide", specFolder: "81-x" }, "aide/81-x");
-      expect(verdict.ok).toBe(true);
-    } finally {
-      process.env.PATH = savedPath;
-    }
-
-    const lines = readFileSync(order, "utf-8").trim().split("\n");
-    expect(lines[0]).toMatch(/^mise trust --quiet \/.*\/mise\.toml$/);
-    expect(lines[1]).toBe("suite");
-    expect(lines[2]).toBe(lines[0]!.replace("--quiet", "--quiet --untrust"));
-    expect(lines[0]).not.toContain(root);
-  });
-
   // A landing merges in a worktree of its own, and the gate runs there:
   // `.venv`, `node_modules` and `.aide/config` are gitignored, so they
   // exist ONLY in the main checkout. Linked from the worktree they

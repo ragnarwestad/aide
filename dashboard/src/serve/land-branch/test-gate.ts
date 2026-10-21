@@ -131,37 +131,13 @@ async function checkoutForGate(root: string, ref = "HEAD"): Promise<{ dir: strin
       // missing, exactly as a run's worktree would.
     }
   }
-  await trustMise(dir, "trust");
   return {
     dir,
     remove: async () => {
-      await trustMise(dir, "untrust");
       await runScript(["git", "worktree", "remove", "--force", dir], root, 60_000);
       rmSync(dir, { recursive: true, force: true });
     },
   };
-}
-
-/** The config files mise reads from a project's own directory. */
-const MISE_CONFIGS = ["mise.toml", ".mise.toml", "mise.local.toml", ".config/mise.toml", ".config/mise/config.toml"];
-
-/** Trust the tree's mise config for the run, and take the trust back
- *  after. The tree is a new folder mise has never seen: untrusted, it
- *  skips the config's `[env]` and pinned tools, and a project's suite ran
- *  with the global tools and none of its settings — red on the merge for
- *  a reason the merge did not have. A run's own worktree is trusted by
- *  its session; the gate's never was. Best effort: without mise, or with
- *  a mise that refuses, the suite says what it is missing. */
-async function trustMise(dir: string, how: "trust" | "untrust"): Promise<void> {
-  for (const name of MISE_CONFIGS) {
-    const file = join(dir, name);
-    if (!existsSync(file)) continue;
-    try {
-      await runScript(["mise", "trust", "--quiet", ...(how === "untrust" ? ["--untrust"] : []), file], dir, 30_000);
-    } catch {
-      // No mise on this machine.
-    }
-  }
 }
 
 /** The default branch as origin has it, or the local one where there is
