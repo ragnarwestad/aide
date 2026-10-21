@@ -3,7 +3,8 @@ name: check-news
 description: >-
   Check AI tool news for the four tools Aide installs for: Claude Code,
   GitHub Copilot, OpenAI Codex and OpenCode.
-  Fetches changelogs and news from official sources, assesses relevance
+  Fetches changelogs and news from official sources and compares the
+  watched best-practice pages with their last copy, assesses relevance
   for Aide, and updates the news log.
   Use when: checking AI news, wanting to know what's new in
   Claude Code/Copilot/Codex/OpenCode, updating the news log.
@@ -32,6 +33,23 @@ Fetch every source in the **Sources** table of `docs/AI_NEWS_LOG.md` (its
 address, all of them, every tool. The table is the one list of sources; add
 or change a source there, not here.
 
+Then run the watched pages from the repo root:
+
+```bash
+scripts/watch-pages.py
+```
+
+It fetches every page in the **Watched pages** table (the `### Watched pages`
+section of `docs/AI_NEWS_LOG.md`), compares each with the copy kept from the
+previous run and keeps the new copy outside the repository. The table is the
+one list of watched pages; add or remove a page there, not here. It prints one
+line per page, starting with one of four words:
+
+- `new`: no copy before; stored, nothing to report.
+- `unchanged`: the page's text is the same as last time.
+- `changed`: the page's text differs; a diff follows the line.
+- `failed`: the page could not be fetched; the previous copy is kept.
+
 Then read the daily digests of the X list "MyAI" since the last review. The
 board's scheduled job `X-lista` (`docs/prompts/x-list.md`) writes one a
 morning, as `digest.md` in its run's own directory on the machine that serves
@@ -57,6 +75,16 @@ For each news item, assess:
   - ✅ Useful, but no immediate action
   - ℹ Informative, low relevance
   - ⚠️ Breaking change or something that must be verified
+
+For each watched page, go by the word `scripts/watch-pages.py` printed:
+
+- `changed`: read its diff. A change in what the page advises (a
+  recommendation added, dropped or reversed; a changed instruction, limit, file
+  name or setting) is a finding like any other, in the relevance list with the
+  page's address as its source. A change in wording, layout or navigation alone
+  is not, and gets no line.
+- `new` or `unchanged`: no line.
+- `failed`: name the page in the relevance list, so a gap is seen.
 
 ## Step 4: Update the news log
 
