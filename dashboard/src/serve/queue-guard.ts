@@ -4,13 +4,15 @@
 // self-contained: neither function reads a `let`, so there is no
 // getter/accessor dance here, unlike `schedules.ts` beside it.
 
-import { NEW_SPEC_ROUTE, PROJECTS_ROUTE, SCHEDULE_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE } from "../render";
+import { APP_START_ROUTE, NEW_SPEC_ROUTE, PROJECTS_ROUTE, SCHEDULE_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE } from "../render";
 
 /** `/jobs/<id>` joins the queue set HERE, never as a special case
  *  further down, so `handleRoutes` is what answers it. The retired
  *  `/queue` paths are in it too, for the redirect they answer with. */
 export const isQueuePath = (path: string) =>
   path === "/" ||
+  // The installed app's start address, answered by the same route as `/`.
+  path === APP_START_ROUTE ||
   // The overview is a served page since spec 115, and it carries the
   // Add and Remove forms — so it is guarded exactly as `/` is. The
   // GENERATED `projects.html` stays outside the guard, as every

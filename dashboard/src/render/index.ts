@@ -87,6 +87,7 @@ export {
   APP_ICON_MASKABLE_PNG_512,
   APP_ICON_PNG_192,
   APP_ICON_PNG_512,
+  APP_START_ROUTE,
   PWA_FILES,
   PWA_LINKS,
   SERVICE_WORKER,
@@ -110,7 +111,7 @@ export type {
 export type { QueueRowView } from "./ui/job-state";
 
 export { renderJobDetailPage, renderJobFollowParts } from "./pages/job-page";
-export { jobsShown, renderJobsPage, renderJobsRows, renderJobsSpecRows, scheduleStreamKey } from "./pages/jobs-page";
+export { jobsShown, jobsTabHasRows, renderJobsPage, renderJobsRows, renderJobsSpecRows, scheduleStreamKey } from "./pages/jobs-page";
 export type { JobsView } from "./pages/jobs-page";
 export type { JobDetailView, JobStepResultView, JobTab, SpecFileView } from "./pages/job-page";
 

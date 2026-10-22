@@ -328,6 +328,12 @@ describe("nothing running (AC-1)", () => {
     expect(empty).not.toContain("<table");
   });
 
+  test("the full page on an empty board is the Running tab, not a redirect to the Specs list (AC-3)", async () => {
+    const res = await fetch(`${board([], { queueProjects: [] }).base}/`, { redirect: "manual" });
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain(t("en", "jobs.nothingRunning"));
+  });
+
   test("an Active spec alone, with no job in the queue, is a row and not the empty sentence (AC-1)", async () => {
     const busy = await rowsOf(board().base);
     expect(busy).not.toContain(t("en", "jobs.nothingRunning"));
