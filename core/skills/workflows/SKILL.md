@@ -34,7 +34,7 @@ effort: medium
 
 **Grading:** the grade is set once the code has been read, by the risk of
 the change. The criteria and two worked examples are in `aide-analyze`'s
-`references/complexity-and-analysis.md`, and nowhere else. Each level
+`complexity-and-analysis.md`, section "Classification", and nowhere else. Each level
 below says what its grade means for the analysis and for the documents.
 
 ### LOW complexity (Quick Fix)
@@ -139,7 +139,7 @@ idea or scope is not ready for `/aide-create` yet. **Review runs at
 every complexity of a full analysis:** `/aide-analyze` attacks
 `3-solution.md` from three reviewer perspectives before the first test is
 written, as its own last step. A small spec gets a short analysis instead,
-with no plan and no review (`aide-analyze`'s `references/spec-files.md`).
+with no plan and no review (the aide-analyze skill's `spec-files.md`, section "A short analysis").
 
 The rest of the detail lives beside this file:
 

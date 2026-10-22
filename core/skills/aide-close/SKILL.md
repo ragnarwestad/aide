@@ -75,10 +75,8 @@ Branch on the JSON's `terminalReason`:
   Report that plainly and stop.
 - **`conflict-open`:** the specs branch would not merge cleanly with the
   default branch. Follow
-  [aide-archive's references/resolve-conflict.md](../aide-archive/references/resolve-conflict.md)
-  in full, the routine `/aide-archive` uses. Read every "archive"/`aide-archive`
-  in it as this step's own equivalent: `aide-close-spec` in place of
-  `aide-archive-spec`, this skill's Step 1 in place of `/aide-archive`'s.
+  [references/resolve-conflict.md](./references/resolve-conflict.md)
+  in full.
   Once past the conflict, run the script again before continuing.
 - **`closed`:** the reason was stamped and the folder moved to
   `specFolder` (the new `archive/NN-slug/` path). Continue straight to

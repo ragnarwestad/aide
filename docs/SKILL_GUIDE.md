@@ -293,16 +293,18 @@ One deep skill > four shallow skills.
 
 ### Frontmatter
 
-- [ ] `name` in kebab-case, matches the folder name
+- [ ] `name` matches the folder: 1–64 lowercase ASCII letters, digits and hyphens; no leading, trailing or consecutive hyphens (checked by the core suite)
 - [ ] `description` follows the formula: [What] + [When] + [Key features]
 - [ ] `description` includes trigger phrases users actually type
 - [ ] `description` has "Do NOT use for" where relevant
-- [ ] `description` under 1024 characters, no XML tags
+- [ ] `description` has 1–1,024 decoded characters, inclusive (checked by the core suite); no XML tags
+- [ ] Optional `compatibility` has 1–500 decoded characters, inclusive (checked by the core suite)
 
 ### Structure
 
 - [ ] SKILL.md focused on core instructions (under 500 lines and 5,000 tokens)
 - [ ] Heavy documentation in `references/` (not everything in SKILL.md)
+- [ ] Local file references in SKILL.md exist, stay inside the skill folder after resolving symlinks, and sit at most one folder below it (checked by the core suite for Markdown links and paths under `references/`, `scripts/` and `assets/`; illustrative examples and repository paths are excluded)
 - [ ] Instructions are specific and actionable, not vague
 
 ### Content quality

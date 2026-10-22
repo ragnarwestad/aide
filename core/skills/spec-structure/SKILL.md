@@ -45,7 +45,7 @@ or reads it.
 
 The details a step needs only in some runs — the Tracking info lines,
 approach marks, the lines the runner writes, the acceptance rows in a
-new round — are in the aide-analyze skill's `references/spec-files.md`.
+new round — are in the aide-analyze skill's `spec-files.md` reference.
 
 ---
 
@@ -88,7 +88,7 @@ new round — are in the aide-analyze skill's `references/spec-files.md`.
   change to it
 - Tracking info may carry `Depends on:`, `Acceptance criteria checks:`,
   `Let me choose the approach:` and `Sent back to a full analysis:` lines;
-  `references/spec-files.md` says what each does
+  the aide-analyze skill's `spec-files.md`, section "1-description: Tracking info and acceptance criteria", says what each does
 
 #### Acceptance criteria in EARS
 
@@ -137,13 +137,12 @@ given/when/then scenarios, Risk analysis, the implementation plan
 - Each approach is a bold lead, `**Approach A: [Name] (recommended).**`,
   never a heading; on a spec whose `Let me choose the approach:` line
   says `yes`, every lead carries one of three marks
-  (`references/spec-files.md`)
+  (the aide-analyze skill's `spec-files.md`, section "3-solution: approaches, parts and tests")
 - `### Where the tests sit` names, one line per place, the public
   interface where the behaviour is observed, its test file and the rules
   tested there; `/aide-implement` writes its tests there
 - Manual testing is a note, not a checklist: what no test covers, and why
-- A small spec may have a short analysis instead (`references/spec-files.md`
-  in the aide-analyze skill): `3-solution.md` holds the grade, the two
+- A small spec may have a short analysis instead (the aide-analyze skill's `spec-files.md`, section "A short analysis"): `3-solution.md` holds the grade, the two
   counts, a `## Short analysis` sentence, Scope and Testing, with no plan
   and no plan review
 
@@ -163,7 +162,7 @@ and no `## Plan review` section.
   writes `Not verified` or `Failed`: those are the user's judgment. The
   section has one row per `AC-n`, and archiving waits until every row is
   ticked. A new round on a held-back or reopened spec has its own rules
-  (`references/spec-files.md`)
+  (the aide-analyze skill's `spec-files.md`, section "4-status: Acceptance criteria")
 
 ---
 
