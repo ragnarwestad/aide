@@ -2,13 +2,23 @@
 // store, which takes its `observe` on its change hook, and read from the
 // store lazily so neither has to wait for the other.
 import { createPush, type Push } from "../../push";
+import { waitingCount } from "../../push/attention.ts";
+import { setWaitingCount } from "../../render/ui/pwa.ts";
 import type { Job } from "../../queue/queue.ts";
 import { scheduleNotifyOf, scheduleTrackingKey } from "../../queue/schedule.ts";
 import type { ScheduleStore } from "../../queue/schedule-store.ts";
 import type { ServerOptions } from "../options.ts";
 
-export function setupPush(opts: ServerOptions, inputs: { jobs: () => Job[]; notify: () => void; scheduleStore: ScheduleStore }): Push {
+export function setupPush(
+  opts: ServerOptions,
+  inputs: { jobs: () => Job[]; notify: () => void; scheduleStore: ScheduleStore; served: ReadonlySet<string> },
+): Push {
+  // The one count every page loads with, every live update carries and every
+  // push sends for the app's icon.
+  const waiting = () => waitingCount(inputs.jobs(), (project) => inputs.served.has(project));
+  setWaitingCount(waiting);
   return createPush({
+    waiting,
     jobs: inputs.jobs,
     subscriptionsPath: opts.pushSubscriptionsPath,
     keyPath: opts.pushKeyPath,

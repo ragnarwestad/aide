@@ -9,7 +9,7 @@ import { join } from "node:path";
 
 import { CSS } from "./css";
 import { ICON_LINKS, WORDMARK } from "./brand.ts";
-import { PWA_LINKS } from "./pwa.ts";
+import { PWA_LINKS, waitingMeta } from "./pwa.ts";
 import { esc } from "./html.ts";
 import { tabBar } from "./tabs.ts";
 import { buttonForm, confirmDialog, messageSlot } from "./components";
@@ -57,6 +57,9 @@ const MENU_SCRIPT = transpile("../scripts/menu-script.ts");
 // page. It shares the one <script> tag for the reason UNIT_SCRIPT
 // does.
 const SW_REGISTER_SCRIPT = transpile("../scripts/sw-register.ts");
+// The number of specs that wait for a person, set on the app's icon the
+// moment a page loads and again on every live update.
+const APP_BADGE_SCRIPT = transpile("../scripts/app-badge.ts");
 // The sixth: a link that leaves the page says so the moment it is
 // clicked, on every page (spec 312) — `specs-client.ts` used to own
 // this for the one page it loads on.
@@ -379,8 +382,9 @@ export function shellHead(
 <title>${esc(opts.docTitle ?? `aide -board · ${title}`)}</title>
 ${ICON_LINKS}
 ${PWA_LINKS}
+${waitingMeta()}
 <style>${CSS}</style>
-<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${UNSAVED_CHANGES_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}${SPEC_FORM_ACTIONS_SCRIPT}${DEPENDS_LIFT_SCRIPT}${RESTART_WATCH_SCRIPT}</script>
+<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${APP_BADGE_SCRIPT}${UNSAVED_CHANGES_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}${SPEC_FORM_ACTIONS_SCRIPT}${DEPENDS_LIFT_SCRIPT}${RESTART_WATCH_SCRIPT}</script>
 </head>
 <body data-overlay-note="${esc(capitalizeFirst(t(lang, "shell.overlayLoading")))}">`;
 }

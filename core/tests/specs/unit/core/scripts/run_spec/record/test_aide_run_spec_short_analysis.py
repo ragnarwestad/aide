@@ -86,7 +86,8 @@ def test_a_short_analysis_within_every_limit_completes_and_says_so_AC_1(runner, 
     assert out["ok"] is True, out
     assert out["terminalReason"] == "completed", out
     assert _log(err) == [
-        "short analysis: short — grade LOW, 3 acceptance criteria, 3 files to change — within the limits, the step completes"
+        "short analysis: short — grade LOW, 3 acceptance criteria, 3 files to change, 3 of them source files"
+        " — within the limits, the step completes"
     ], err
 
 
@@ -104,7 +105,9 @@ def test_a_full_analysis_over_every_limit_completes_AC_2_AC_8(runner, workspace,
     )
     assert out["ok"] is True, out
     assert out["terminalReason"] == "completed", out
-    assert _log(err) == ["short analysis: full — grade HIGH, 5 acceptance criteria, 7 files to change — the step completes"], err
+    assert _log(err) == [
+        "short analysis: full — grade HIGH, 5 acceptance criteria, 7 files to change, 7 of them source files — the step completes"
+    ], err
 
 
 def test_a_short_analysis_for_a_spec_that_asks_to_choose_the_approach_fails_AC_3(runner, workspace, fake_claude):
@@ -121,12 +124,14 @@ def test_the_analysis_line_is_read_as_the_shared_table_says_AC_4(runner, workspa
 
 def test_every_completed_analyze_logs_the_analysis_the_grade_and_both_counts_AC_4(runner, workspace, fake_claude):
     _, err = _analyze(runner, workspace, fake_claude, analysis_line=None, grade="MEDIUM", criteria=4, files=["a.ts"])
-    assert _log(err) == ["short analysis: full — grade MEDIUM, 4 acceptance criteria, 1 files to change — the step completes"], err
+    assert _log(err) == [
+        "short analysis: full — grade MEDIUM, 4 acceptance criteria, 1 files to change, 1 of them source files — the step completes"
+    ], err
 
 
 def test_a_short_analysis_over_the_files_limit_fails_the_step_AC_5(runner, workspace, fake_claude):
     out, _ = _analyze(runner, workspace, fake_claude, criteria=2, files=[f"f{n}.ts" for n in range(5)])
-    _failed_on_a_limit(out, "it has 5 files to change, over the limit of 3")
+    _failed_on_a_limit(out, "it has 5 source files to change, over the limit of 3 (f0.ts, f1.ts, f2.ts, f3.ts, f4.ts)")
     subject = git(workspace["specs"], "log", "-1", "--pretty=%s", BRANCH)
     assert subject.endswith("(stopped: short-analysis-over-limit)"), subject
     tree = git(workspace["specs"], "ls-tree", "-r", "--name-only", BRANCH)
@@ -159,7 +164,7 @@ def test_a_short_analysis_graded_above_low_fails_AC_8(runner, workspace, fake_cl
 def test_every_limit_crossed_is_named_AC_5(runner, workspace, fake_claude):
     out, _ = _analyze(runner, workspace, fake_claude, grade="HIGH", criteria=4, files=[f"f{n}.ts" for n in range(5)])
     for said in ("it is graded HIGH, not LOW", "it has 4 acceptance criteria, over the limit of 3",
-                 "it has 5 files to change, over the limit of 3"):
+                 "it has 5 source files to change, over the limit of 3 (f0.ts, f1.ts, f2.ts, f3.ts, f4.ts)"):
         assert said in out["error"], out["error"]
 
 
@@ -175,3 +180,47 @@ def test_a_full_analysis_for_a_spec_sent_back_completes_AC_3(runner, workspace, 
     )
     assert out["ok"] is True, out
     assert out["terminalReason"] == "completed", out
+
+
+def test_tests_and_documentation_are_not_counted_against_the_files_limit_AC_1(runner, workspace, fake_claude):
+    files = ["src/a.ts", "src/b.ts", "src/c.ts", "test/a.test.ts", "docs/page.md"]
+    out, err = _analyze(runner, workspace, fake_claude, files=files)
+    assert out["ok"] is True, out
+    assert out["terminalReason"] == "completed", out
+    assert _log(err) == [
+        "short analysis: short — grade LOW, 3 acceptance criteria, 5 files to change, 3 of them source files"
+        " — within the limits, the step completes"
+    ], err
+
+
+def test_a_short_analysis_listing_only_tests_and_documentation_completes_AC_1(runner, workspace, fake_claude):
+    out, err = _analyze(runner, workspace, fake_claude, files=["test/a.test.ts", "docs/page.md"])
+    assert out["ok"] is True, out
+    assert _log(err) == [
+        "short analysis: short — grade LOW, 3 acceptance criteria, 2 files to change, 0 of them source files"
+        " — within the limits, the step completes"
+    ], err
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["test/x.ts", "tests/x.py", "__tests__/x.js", "e2e/x.ts", "src/x.test.ts", "src/x.spec.ts", "src/test_x.py",
+     "src/x_test.go", "README.md"],
+)
+def test_a_path_that_is_a_test_or_a_markdown_file_is_not_counted_AC_2(runner, workspace, fake_claude, path):
+    out, _ = _analyze(runner, workspace, fake_claude, files=[*(f"src/{f}" for f in FILES), path])
+    assert out["ok"] is True, out
+    assert out["terminalReason"] == "completed", out
+
+
+@pytest.mark.parametrize("path", ["src/latest.ts", "src/testing/helper.ts", "src/attest_x.py", "src/tests.ts"])
+def test_a_path_that_only_looks_like_a_test_is_counted_AC_2(runner, workspace, fake_claude, path):
+    out, _ = _analyze(runner, workspace, fake_claude, files=[*(f"src/{f}" for f in FILES), path])
+    _failed_on_a_limit(out, "it has 4 source files to change")
+
+
+def test_the_crossing_sentence_names_the_source_files_it_counted_AC_4(runner, workspace, fake_claude):
+    sources = ["src/a.ts", "src/b.ts", "src/c.ts", "src/d.ts"]
+    out, _ = _analyze(runner, workspace, fake_claude, files=[*sources, "test/a.test.ts", "README.md"])
+    _failed_on_a_limit(out, "it has 4 source files to change, over the limit of 3 (src/a.ts, src/b.ts, src/c.ts, src/d.ts)")
+    assert "test/a.test.ts" not in out["error"] and "README.md" not in out["error"], out["error"]

@@ -62,6 +62,21 @@ export function onChanged(): void {
   }
 }
 
+// The number a queue move carries for the app's icon is handed to the head
+// script as an event on the document; the two cannot share a function. It is
+// not held back by a press in flight, which only holds the redraw. 0 is a
+// number to announce, and a `changed` without one announces nothing.
+function announceWaiting(e: Event): void {
+  let waiting: unknown;
+  try {
+    waiting = JSON.parse(String((e as MessageEvent).data)).waiting;
+  } catch {
+    return;
+  }
+  if (typeof waiting !== "number" || !Number.isInteger(waiting) || waiting < 0) return;
+  document.dispatchEvent(new CustomEvent("aide:waiting", { detail: waiting }));
+}
+
 // The page's own query goes with it, so the stream is asked with the same
 // filter and state the page was; a followed page adds the phases its marker
 // names.
@@ -92,6 +107,7 @@ export function connect(): void {
     follow.request();
   });
   source.addEventListener("changed", onChanged);
+  source.addEventListener("changed", announceWaiting);
   source.addEventListener("error", onError);
 }
 

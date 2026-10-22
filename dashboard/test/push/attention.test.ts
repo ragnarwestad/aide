@@ -2,7 +2,7 @@
 // observer sits on `onChange` exactly as `serve.ts` wires it, and every
 // case is a transition the queue really makes (AC-2, AC-5).
 import { afterEach, describe, expect, test } from "bun:test";
-import { attentionFor, messageKeyFor } from "../../src/push/attention.ts";
+import { attentionFor, messageKeyFor, waitingCount } from "../../src/push/attention.ts";
 import { createPush } from "../../src/push";
 import type { ScheduleNotify } from "../../src/queue/schedule.ts";
 import { endUntickedArchive } from "../../src/queue/runner/unticked-archive.ts";
@@ -265,5 +265,39 @@ describe("a scheduled run notifies by its entry's own choice", () => {
     await b.push.idle();
     expect(b.sent.calls).toHaveLength(1);
     expect(asked()).toBe(0);
+  });
+});
+
+describe("how many specs wait for a person", () => {
+  /** A job as the queue lists it: only what the count reads. */
+  const job = (project: string, specFolder: string, state: string, createdAt: string, results: unknown[] = []) =>
+    ({ project, specFolder, state, createdAt, results, steps: ["implement"], stepIndex: 0 }) as unknown as Job;
+  const unticked = [{ terminalReason: "acceptance-criteria-unticked" }];
+  const served = (p: string) => p === "aide";
+
+  const jobs = [
+    job("aide", "81-a", "failed", "2026-10-22T10:00:00Z"),
+    job("aide", "82-b", "done", "2026-10-22T10:00:00Z", unticked),
+    job("aide", "83-c", "running", "2026-10-22T10:05:00Z"),
+    job("aide", "83-c", "failed", "2026-10-22T10:00:00Z"),
+    job("other", "84-d", "stopped", "2026-10-22T10:00:00Z"),
+    job("aide", "schedule-nightly", "failed", "2026-10-22T10:00:00Z"),
+    job("aide", "85-e", "cancelled", "2026-10-22T10:05:00Z"),
+    job("aide", "85-e", "failed", "2026-10-22T10:00:00Z"),
+  ];
+
+  test("counts specs of a served project whose newest job waits, not scheduled jobs or a newer job in flight; a newer cancelled job is skipped as on the Running tab (AC-3)", () => {
+    expect(waitingCount(jobs, served)).toBe(3);
+  });
+
+  test("the first of two jobs with the same creation time wins, as the queue lists newest first (AC-3)", () => {
+    const at = "2026-10-22T10:00:00Z";
+    expect(waitingCount([job("aide", "81-a", "failed", at), job("aide", "81-a", "done", at)], served)).toBe(1);
+    expect(waitingCount([job("aide", "81-a", "done", at), job("aide", "81-a", "failed", at)], served)).toBe(0);
+  });
+
+  test("none counts when nothing waits (AC-6)", () => {
+    expect(waitingCount(jobs.slice(2, 3).concat(jobs.slice(4, 7)), served)).toBe(0);
+    expect(waitingCount([], served)).toBe(0);
   });
 });

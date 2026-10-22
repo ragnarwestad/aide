@@ -23,7 +23,7 @@ export interface FakeEventSourceInstance {
   readyState: number;
   addEventListener(type: string, fn: (e: unknown) => void): void;
   close(): void;
-  emit(type: string): void;
+  emit(type: string, data?: string): void;
   /** What the browser does on a non-200 answer (spec 368): the source is
    *  a "fail the connection" case per the WHATWG spec, never coming back
    *  on its own — `readyState` goes to CLOSED and `error` fires once. */
@@ -54,9 +54,10 @@ export function makeFakeEventSource() {
       this.closed = true;
     }
     /** What the browser would deliver. Synchronous, so a test says what
-     *  happened next without waiting on a real socket. */
-    emit(type: string): void {
-      for (const fn of this.listeners[type] ?? []) fn({ type });
+     *  happened next without waiting on a real socket. `data` is the
+     *  event's text, as a `MessageEvent` carries it. */
+    emit(type: string, data?: string): void {
+      for (const fn of this.listeners[type] ?? []) fn({ type, data });
     }
     fail(): void {
       this.readyState = FakeEventSource.CLOSED;

@@ -15,7 +15,7 @@ afterEach(() => {
   while (cleanups.length) cleanups.pop()!();
 });
 
-async function board(answer?: (url: string) => Answer) {
+async function board(answer?: (url: string) => Answer, waiting?: () => number) {
   const tmp = tempDir();
   cleanups.push(tmp.done);
   const sent = fakeFetch(answer);
@@ -29,6 +29,7 @@ async function board(answer?: (url: string) => Answer) {
     subscriptionsPath,
     keyPath: join(tmp.dir, "push-key.json"),
     log: (line) => logs.push(line),
+    ...(waiting ? { waiting } : {}),
   });
   /** A device with keys of its own; `answer` sees its endpoint. */
   const device = async (n: number, lang = "en") => {
@@ -54,6 +55,30 @@ describe("what a notification says (criterion 9)", () => {
     const sent = await openCall(b.sent.calls[0]!, d);
     expect(sent.title).toBe(`aide · ${SPEC}`);
     expect(sent.body).toBe("Implement failed — it waits for you to look at why and press Implement again.");
+  });
+
+  test("the payload carries how many specs wait, read once per delivery, when the board gives a count (AC-5)", async () => {
+    let asked = 0;
+    const b = await board(undefined, () => ((asked += 1), 2));
+    const first = await b.device(1);
+    const second = await b.device(2);
+    b.fail();
+    await b.push.idle();
+    expect(b.sent.calls).toHaveLength(2);
+    expect(asked).toBe(1);
+    const opened = await Promise.all(
+      [first, second].map((d) => openCall(b.sent.calls.find((c) => c.url === d.endpoint)!, d)),
+    );
+    expect(opened.map((p) => p.waiting)).toEqual([2, 2]);
+    expect(opened[0]).toMatchObject({ title: `aide · ${SPEC}`, url: expect.any(String) });
+  });
+
+  test("without a count the payload has no waiting field (AC-5)", async () => {
+    const b = await board();
+    const d = await b.device(1);
+    b.fail();
+    await b.push.idle();
+    expect(await openCall(b.sent.calls[0]!, d)).not.toHaveProperty("waiting");
   });
 
   test("a shared-files stop names the specs by number in the body, and says to add them to Depends on (AC-6)", async () => {

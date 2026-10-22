@@ -2,8 +2,8 @@
 // open, says nothing at all while nothing is happening, and writes one
 // `changed` event the moment the server's own picture of a job moves.
 // The browser answers that by fetching the rows it already knows how to
-// fetch — the event carries no payload, so nothing here has to be kept
-// in step with what a row looks like.
+// fetch — the event carries only how many specs wait for a person, so
+// nothing here has to be kept in step with what a row looks like.
 //
 // Every read in this file is BOUNDED. A regression that stops the
 // server writing has to fail the test promptly; it must never sit on
@@ -130,6 +130,35 @@ describe("GET /api/queue/events", () => {
     // broadcast is caught rather than passed over.
     await fetch(`${base}/api/queue/${await enqueueOther(base)}/cancel`, { method: "POST", headers: postJson });
     expect(await still.next()).toContain("event: changed");
+  });
+});
+
+// The number on the app's icon travels with the event a queue move sends.
+describe("a `changed` event after a queue move carries how many specs wait (AC-4)", () => {
+  const failedJob = {
+    id: "f1", project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"], stepIndex: 0, state: "failed",
+    timeoutSec: { implement: 60 }, permissionMode: { implement: "acceptEdits" }, model: { implement: "sonnet" },
+    createdAt: "2026-09-01T10:00:00.000Z", results: [], spentUsd: 0,
+  };
+  const enqueueFor = (base: string, specFolder: string) =>
+    fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: postJson,
+      body: JSON.stringify({ ...JOB, specFolder }),
+    });
+
+  test("another spec's job is queued while one spec has failed: the event says 1 waits (AC-4)", async () => {
+    const { base } = harness.start({ alsoSpecs: ["82-another-spec"], queueMirror: JSON.stringify([failedJob]) });
+    const s = await connect(base);
+    expect((await enqueueFor(base, "82-another-spec")).status).toBe(200);
+    expect(await s.next()).toContain('data: {"waiting":1}');
+  });
+
+  test("a new job for the failed spec itself leaves nothing waiting: the event says 0 (AC-4)", async () => {
+    const { base } = harness.start({ queueMirror: JSON.stringify([failedJob]) });
+    const s = await connect(base);
+    expect((await enqueueFor(base, "81-queue-and-runner")).status).toBe(200);
+    expect(await s.next()).toContain('data: {"waiting":0}');
   });
 });
 
