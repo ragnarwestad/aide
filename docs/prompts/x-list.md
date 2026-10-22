@@ -64,7 +64,7 @@ in the repository: commit nothing and push nothing.
    reviews or tests; measured results. Leave out promotion, newsletters, politics, games and jokes.
 5. Close the tab you opened.
 
-Write the digest, in English, to `$AIDE_SCHEDULE_OUTPUT_DIR/digest.md`, which the weekly news check
+Write the digest, in English, to `$AIDE_SCHEDULE_OUTPUT_DIR/digest.md`, which the daily news check
 reads:
 
     ## Posts

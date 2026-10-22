@@ -3,6 +3,12 @@ headless, from the last review date recorded in `docs/AI_NEWS_LOG.md` up to
 today: find the news, filter it, assess its relevance, and write the review
 into the news log. Do not carry out Steps 5 and 6.
 
+This runs every day, so most days bring little. Write a review into the news
+log only when the period has at least one finding marked ⭐, ✅ or ⚠️, or a
+watched page has changed. A period with nothing above ℹ gets no log entry and
+no change to the log at all: its findings stay unreviewed, and the next run's
+period starts from the same last review date, so nothing is lost.
+
 Then run `scripts/stamp-versions`, which stamps the "Supported versions" table
 in `docs/AI_SUPPORT_MATRIX.md` with what the installed CLIs report.
 
@@ -19,7 +25,9 @@ the run's report. Plain HTML, no styling:
   `docs/AI_SUPPORT_MATRIX.md` or `.claude/skills/ai-tools-reference/SKILL.md`
   as its own bullet starting with "Proposed:",
 - one line saying what was changed: the log entry's date, how many old reviews
-  were deleted, and which version rows `scripts/stamp-versions` changed.
+  were deleted, and which version rows `scripts/stamp-versions` changed — or,
+  when the period earned no log entry, that the log was left as it was, and
+  why.
 
 If a source could not be read, say so in the same file instead of leaving it
 out.
