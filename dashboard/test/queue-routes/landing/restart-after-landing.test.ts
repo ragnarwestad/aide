@@ -313,6 +313,45 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
     expect(sentence(result.installError)).not.toContain("AIDE_INSTALL_CMD");
   });
 
+  // The install gets two minutes. The kill timer's delay is captured and
+  // fired at once, so the test does not wait for it.
+  test("installAfterMerge stops a hung install at 120 seconds and names that limit (AC-1, AC-2)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-663-install-timeout-"));
+    ownDirs.push(dir);
+    mkdirSync(join(dir, ".aide"), { recursive: true });
+    writeFileSync(join(dir, ".aide", "config"), "AIDE_INSTALL_CMD=/bin/sleep 30\n");
+    const lock = createRootLock();
+    const { hook } = restartSpy();
+    const ctx = {
+      mergeLock: lock,
+      restart: hook,
+      restartPollMs: 5,
+      restartDeferTimeoutMs: 500,
+      queueInstallTimeoutMs: undefined,
+    } as unknown as LandContext;
+    const result: RepoMergeResult = { root: dir, ok: true };
+
+    const realSetTimeout = globalThis.setTimeout;
+    const longDelays: number[] = [];
+    globalThis.setTimeout = ((cb: () => void, ms?: number, ...rest: unknown[]) => {
+      if (typeof ms === "number" && ms >= 60_000) {
+        longDelays.push(ms);
+        return realSetTimeout(cb, 0);
+      }
+      return realSetTimeout(cb, ms, ...rest);
+    }) as unknown as typeof setTimeout;
+    let wantsRestart: boolean;
+    try {
+      wantsRestart = await installAfterMerge(ctx, result);
+    } finally {
+      globalThis.setTimeout = realSetTimeout;
+    }
+
+    expect(longDelays).toEqual([120_000]);
+    expect(wantsRestart).toBe(false);
+    expect(sentence(result.installError)).toContain("120 seconds");
+  });
+
   // The companion to criterion 4, rewritten around the ownership move:
   // a successful install ASKS for the restart and never fires one. It
   // used to fire here, from inside `landBranch`'s per-repo loop, which
