@@ -77,15 +77,15 @@ function payloadFor(a: Attention, job: Job, lang: Language): { title: string; bo
     };
   }
   const values = { step: stepLabel(a.step, lang), button: stepButton(a.step), specs: a.specs?.join(", ") ?? "" };
-  // Both open the Specs list, where the spec's state and the buttons that
-  // act on it are: a held-back archive with its criteria unfolded, since
-  // they are ticked there, and a failed, stopped or interrupted step with
-  // its row unfolded.
+  // Both open the Running tab, scrolled to the spec's row: a held-back
+  // archive with its criteria unfolded, since they are ticked there, and a
+  // failed, stopped or interrupted step with its row unfolded.
   const fold = a.kind === "archive-held-back" ? "checks" : "open";
+  const spec = `${job.project}/${job.specFolder}`;
   return {
     title: `${job.project} · ${job.specFolder}`,
     body: renderMessage(lang, { key: messageKeyFor(a), values }),
-    url: `/specs?${fold}=${encodeURIComponent(`${job.project}/${job.specFolder}`)}`,
+    url: `/?${fold}=${encodeURIComponent(spec)}#spec-${spec}`,
   };
 }
 
