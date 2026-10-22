@@ -113,9 +113,14 @@ Step 3 of the analyze skill chooses it for a small spec, and the runner
 fails one written for a spec over a limit (`core/scripts/lib/run-spec/record/short-analysis-check.sh`).
 The limits are set in `core/scripts/lib/run-spec/setup/arguments.sh` and
 stated to the skill in the prompt line `A short analysis is allowed for this
-spec`; this page does not repeat their values. A path under `### Files to
-change` counts toward the files limit whatever it is: source, test, fixture
-or page. A spec whose description carries a `Sent back to a full analysis:`
+spec`; this page does not repeat their values. Only source files count
+toward the files limit. A path under `### Files to change` is not counted
+when it is a test (under a folder named `test`, `tests`, `__tests__` or
+`e2e`, or named `*.test.*`, `*.spec.*`, `test_*.py` or `*_test.*`) or
+documentation (a Markdown file, `*.md`); the runner applies the same
+patterns in `source_paths` in `core/scripts/lib/files-to-change.sh`, and
+a name that only resembles one, such as `latest.ts` or `testing/helper.ts`,
+is a source file. A fixture or any other path counts. A spec whose description carries a `Sent back to a full analysis:`
 line is never given one: the prompt does not offer it, and the runner fails
 one written anyway.
 
