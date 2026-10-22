@@ -27,7 +27,7 @@ export const MAX_CREATE_BODY = (TITLE_MAX + DESCRIPTION_MAX) * 9 + MAX_BODY;
  *  The same bounded-timeout discipline every git call already has
  *  (`createGitRunner`): a hung install must not tie up a request
  *  handler, whatever the server's idle timeout is set to. */
-export const INSTALL_TIMEOUT_MS = 60_000;
+export const INSTALL_TIMEOUT_MS = 120_000;
 
 export const QUEUE_DEFAULTS: QueueDefaults = {
   // Per step since spec 152. 1200 is unchanged for everything else;

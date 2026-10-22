@@ -51,7 +51,7 @@ export async function installAfterMerge(ctx: LandContext, result: RepoMergeResul
     }
     const code = await proc.exited;
     if (timedOut) {
-      result.installError = { key: "landing.installTimedOut", values: { timeoutMs } };
+      result.installError = { key: "landing.installTimedOut", values: { seconds: timeoutMs / 1000 } };
       failed = true;
     } else if (code !== 0) {
       // The stderr tail (spec 352, REQ-5) stays out of the board-facing

@@ -373,13 +373,13 @@ export const MESSAGES = {
     resolve: "Set the {label} in the project's .aide/config",
   },
   "landing.installTimedOut": {
-    en: "merged, but the install timed out after {timeoutMs}ms and was stopped. — " +
+    en: "merged, but the install timed out after {seconds} seconds and was stopped. — " +
       "Check the install command in the checkout on the serving host.",
-    nb: "merget, men installasjonen brukte for lang tid ({timeoutMs}ms) og ble stoppet. — " +
+    nb: "merget, men installasjonen brukte for lang tid ({seconds} sekunder) og ble stoppet. — " +
       "Sjekk installasjonskommandoen i det lokale repoet på serveren.",
-    es: "mergeado, pero la instalación superó el tiempo de espera tras {timeoutMs}ms y se detuvo. — Revisa el comando de instalación en el checkout del servidor.",
-    de: "gemergt, aber die Installation hat nach {timeoutMs}ms das Zeitlimit überschritten und wurde gestoppt. — Prüfe den Installationsbefehl im Checkout auf dem Server.",
-    fr: "mergé, mais l'installation a dépassé le délai après {timeoutMs}ms et a été arrêtée. — Vérifiez la commande d'installation dans le checkout sur le serveur.",
+    es: "mergeado, pero la instalación superó el tiempo de espera tras {seconds} segundos y se detuvo. — Revisa el comando de instalación en el checkout del servidor.",
+    de: "gemergt, aber die Installation hat nach {seconds} Sekunden das Zeitlimit überschritten und wurde gestoppt. — Prüfe den Installationsbefehl im Checkout auf dem Server.",
+    fr: "mergé, mais l'installation a dépassé le délai après {seconds} secondes et a été arrêtée. — Vérifiez la commande d'installation dans le checkout sur le serveur.",
     resolve: "Check the install command in the checkout on the serving host.",
   },
   "landing.installFailedExit": {
