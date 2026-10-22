@@ -179,6 +179,28 @@ So the first step is to measure, not to route: keep, for each spec, the shape of
 changed, lines), the model each step ran with, and how it went (green at the first try, rounds of red tests, defects
 the review found, a step run again). Only once that shows what predicts trouble should anything choose the model.
 
+What a first measurement found (2026-10-22), from how full the context window got in each of 342 implement sessions
+on Claude: the highest sum of a turn's input and cache tokens in the main session, read from the step's stream. No
+session was compacted; the fullest reached about 626,000 tokens, so the window is at least that large.
+
+| Context at its fullest | Sessions | Ended badly | Red tests at least once | Review found defects |
+| ---------------------- | -------- | ----------- | ----------------------- | -------------------- |
+| Under 100,000          | 60       | 15 %        | 16 %                    | 18 %                 |
+| 100,000–200,000        | 171      | 4 %         | 8 %                     | 10 %                 |
+| 200,000–300,000        | 67       | 0 %         | 13 %                    | 20 %                 |
+| Over 300,000           | 44       | 14 %        | 19 %                    | 23 %                 |
+
+"Ended badly" is a step that stopped on red tests, no progress, its time limit, its budget or a refusal; the last two
+columns cover the 174 sessions that kept a run log. Over 300,000 tokens a session ended badly about four times as
+often as between 100,000 and 300,000, but the numbers are small, and the cause may run the other way: every round of
+red tests fills the window, so a session that struggles grows full. Under 100,000 the failures are mostly sessions
+that stopped early. Telling cause from effect needs the context measured before the first test round, kept with
+each step's result, before any limit is set on it.
+
+What a limit could then do: the runner reads the stream as it arrives, so it can follow how full the window is turn
+by turn. At a limit it could end the session and start a new one that picks up from the plan, the work committed so
+far and the test results, instead of letting the session grow or compact.
+
 Every source the research read:
 
 - Task difficulty:
