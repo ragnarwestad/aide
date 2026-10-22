@@ -45,7 +45,10 @@ describe("← Back after switching tabs", () => {
   // with something already remembered for the project page.
   let page: Page;
   beforeAll(async () => {
-    page = await browser.newPage();
+    // No service worker: a page load over half a second is answered by its
+    // wait page, whose reload is a page load from itself, and this test is
+    // about the Referer of the loads the reader made.
+    page = await (await browser.newContext({ serviceWorkers: "block" })).newPage();
   });
 
   test("the project page opened from the Specs page leads Back there after its tabs (AC-1)", async () => {

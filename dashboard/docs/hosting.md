@@ -109,11 +109,28 @@ is the four bars with nothing behind them. Named by the service worker alone —
 does not list it.
 
 The service worker caches **nothing**. Every line of this dashboard is live state, and a queue served out of yesterday's
-storage would be worse than no app at all: it passes every request through to the server and answers a page load with a
-short "not reachable" page when the server is out of reach. That is all it is for — that, and being what a browser
-looks for before it offers to install anything.
+storage would be worse than no app at all: it passes every request through to the server, and answers a page load with
+a wait page or a short "not reachable" page when the server is slow or out of reach. That is all it is for — that, and
+being what a browser looks for before it offers to install anything.
 
-The worker also shows a notification for every push the server sends and opens the spec on a tap; which events send
+**While the server is slow.** A page load (a GET) that has had no answer within half a second is answered by the worker
+with a wait page: the board's four-bar mark, moving, and the line "Connecting to" followed by the board's own host. The
+phone often needs 10 to 15 seconds to reach the serving host again after a pause, and this is what the installed app
+shows instead of a still splash screen. The wait page is drawn from the worker's own code, in the board's light and dark
+colours, and loads nothing from the network. It asks for the same address once a second and reloads onto the page as
+soon as the server answers, with no further tap; that reload goes straight to the server, with no wait page of its own.
+When 30 seconds after the page load have passed with no answer, it shows the "not reachable" page. A page load that
+the server answers within half a second shows no wait page, and one that is not a GET, such as a form posted by a
+button, goes to the server once and is never answered with the wait page.
+
+**A tap on a notification** brings a window of the board that is already open to the front and loads the notification's
+address in it; only when no window is open does it open a new one. A browser tab of the board counts as a window, since
+the worker cannot tell it from the installed app.
+
+**Shortcuts on the icon.** The manifest lists three shortcuts, shown on a long press on the app's icon in Chrome:
+Running (`/`), Specs (`/specs`) and New spec (`/new`), each with the mark as its icon. Safari offers none.
+
+The worker also shows a notification for every push the server sends; which events send
 one, and what is kept, is in [Running specs](running-specs.md#push-notifications-on-a-phone-or-laptop). A device can
 receive them only where the worker can run, so the same HTTPS requirement applies, and on iOS only from the installed
 app.

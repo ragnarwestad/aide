@@ -19,7 +19,9 @@
 // who wants it already is.
 import { Buffer } from "node:buffer";
 
-import { appBadge, appIcon, appIconMaskable } from "./brand.ts";
+import { t } from "../../i18n";
+import { appBadge, appIcon, appIconMaskable, MARK } from "./brand.ts";
+import { LOADING_CSS, TOKENS_CSS } from "./css";
 import { rasterizeIcon, rasterizeMark } from "./icon-png.ts";
 
 /** The window's own colour, light and dark: what paints the title bar
@@ -50,6 +52,10 @@ export const APP_BADGE_PNG_96 = rasterizeMark(appBadge(), 96);
  *  it on to the Running tab when the tab has a row, and to the Specs list
  *  when it has none. `/` itself is always the Running tab. */
 export const APP_START_ROUTE = "/app";
+
+/** What a shortcut on the app's icon shows: the one icon the board has
+ *  for itself, since no page has an icon of its own. */
+const SHORTCUT_ICON = { src: "/icon-192.png", sizes: "192x192", type: "image/png" };
 
 /** The manifest itself. `start_url` is the address above, with no query
  *  string; `id` stays `/`, so an app installed on `/` is the same app. */
@@ -83,6 +89,15 @@ export const WEBMANIFEST =
         { src: "/icon-512-maskable.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
         { src: "/icon-512.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
         { src: "/icon-512-maskable.svg", sizes: "any", type: "image/svg+xml", purpose: "maskable" },
+      ],
+      // Shown on a long press of the app's icon. The New spec route is
+      // written out: `NEW_SPEC_ROUTE` lives in a module that reaches
+      // `shell.ts`, which imports this file, and this constant is
+      // computed while the module loads. `test/pwa.test.ts` pins the two.
+      shortcuts: [
+        { name: t("en", "shell.tabRunning"), url: "/", icons: [SHORTCUT_ICON] },
+        { name: t("en", "shell.tabSpecs"), url: "/specs", icons: [SHORTCUT_ICON] },
+        { name: "New spec", url: "/new", icons: [SHORTCUT_ICON] },
       ],
     },
     null,
@@ -168,18 +183,76 @@ body { font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
 </html>
 `;
 
+/** The wait page's script: ask for this address until the server answers,
+ *  then reload; at the deadline, write the not reachable page over the wait
+ *  page and stop asking. `OFFLINE_PAGE` and `LEFT_MS` are constants the
+ *  page declares before it. A script and not a function so a test runs it
+ *  against fakes, as `restart-watch.test.ts` runs its own. */
+export const WAIT_SCRIPT =
+  "let done = false;" +
+  "const giveUp = setTimeout(() => { done = true; document.open(); document.write(OFFLINE_PAGE); document.close(); }, LEFT_MS);" +
+  "const ask = () => { if (done) return; fetch(location.href, { cache: 'no-store', redirect: 'manual' }).then(" +
+  "() => { if (done) return; done = true; clearTimeout(giveUp); location.reload(); }," +
+  "() => { if (!done) setTimeout(ask, 1000); }); };" +
+  "ask();";
+
+/** JSON for a `<script>`: every `<` is escaped, so the markup it carries
+ *  can never close the script it sits in. */
+const scriptJson = (value: string) => JSON.stringify(value).replace(/</g, "\\u003c");
+
+/** What the worker answers a page load with when the server has not
+ *  answered within half a second: the spec page's loading element, with
+ *  the board's own tokens and nothing fetched. The worker fills in
+ *  `__HOST__` and `__LEFT_MS__` (the time left of its 30 seconds). */
+const WAIT_PAGE = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>aide -board — connecting</title>
+<style>${TOKENS_CSS}${LOADING_CSS}body { margin: 0; font-family: var(--sans); }</style>
+</head>
+<body>
+<div class="pageloading" role="status">${MARK}<span>Connecting to __HOST__…</span></div>
+<script>(() => { const OFFLINE_PAGE = ${scriptJson(OFFLINE_PAGE)}; const LEFT_MS = __LEFT_MS__; ${WAIT_SCRIPT} })();</script>
+</body>
+</html>
+`;
+
 /** The service worker, as the browser will receive it.
  *
- *  It exists for three things: so the browser offers to install the
+ *  It exists for four things: so the browser offers to install the
  *  page at all, so an installed app says something honest when the
- *  server is not there, and so a push from the server (a spec needs a
- *  person) is shown as a notification. It caches NOTHING, and that is
+ *  server is slow or not there (a wait page, then a not reachable
+ *  page), and so a push from the server (a spec needs a person) is
+ *  shown as a notification, which opens in the window already open. It caches NOTHING, and that is
  *  the design
  *  rather than an omission — every line of this dashboard is live
  *  state, and a queue served out of yesterday's storage would be worse
  *  than no app at all. */
 export const SERVICE_WORKER = `// Served from /sw.js — built in src/render/ui/pwa.ts.
 const OFFLINE_PAGE = ${JSON.stringify(OFFLINE_PAGE)};
+const WAIT_PAGE = ${JSON.stringify(WAIT_PAGE)};
+const WAIT_AFTER_MS = 500;
+const GIVE_UP_AFTER_MS = 30000;
+const HTML = { "content-type": "text/html; charset=utf-8" };
+
+// The addresses this worker answered with a wait page, and when. The next
+// GET of one is the wait page's own reload: it goes straight to the server.
+const waited = new Map();
+
+const offlinePage = () => new Response(OFFLINE_PAGE, { status: 503, headers: HTML });
+
+const waitPage = (url, startedAt) => {
+  const now = Date.now();
+  for (const [address, at] of waited) if (now - at >= GIVE_UP_AFTER_MS) waited.delete(address);
+  waited.set(url, now);
+  const left = Math.max(0, GIVE_UP_AFTER_MS - (now - startedAt));
+  const html = WAIT_PAGE
+    .replace("__HOST__", () => new URL(url).host)
+    .replace("__LEFT_MS__", () => String(left));
+  return new Response(html, { headers: HTML });
+};
 
 // Take over at once: there is no cached anything for an older copy to
 // be holding on to, so nothing is gained by waiting for the old worker.
@@ -218,25 +291,50 @@ self.addEventListener("push", (event) => {
   }), badge]));
 });
 
-// A tap opens the spec the notification is about.
+// A tap opens the spec the notification is about, in the window of the
+// board that is already open. Chrome allows one window action per tap, so
+// once a window has been focused no new one is tried; a window that will
+// not navigate stays where it was.
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  event.waitUntil(self.clients.openWindow(event.notification.data.url || "/"));
+  const url = event.notification.data.url || "/";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window" }).then(async (windows) => {
+      const open = windows[0];
+      if (!open) return self.clients.openWindow(url);
+      await open.focus();
+      try { await open.navigate(url); } catch (e) {}
+    }),
+  );
 });
 
 self.addEventListener("fetch", (event) => {
+  const request = event.request;
   // Page loads only. An image or an API call that fails is the page's
   // own business, and answering one with HTML would lie about its type.
-  if (event.request.mode !== "navigate") return;
-  event.respondWith(
-    fetch(event.request).catch(
-      () =>
-        new Response(OFFLINE_PAGE, {
-          status: 503,
-          headers: { "content-type": "text/html; charset=utf-8" },
-        }),
-    ),
-  );
+  if (request.mode !== "navigate") return;
+  // A page load that is not a GET (a form posted by a button) must reach
+  // the server once and never be raced.
+  if (request.method !== "GET") {
+    event.respondWith(fetch(request).catch(offlinePage));
+    return;
+  }
+  const at = waited.get(request.url);
+  waited.delete(request.url);
+  if (at !== undefined && Date.now() - at < GIVE_UP_AFTER_MS) {
+    event.respondWith(fetch(request).catch(offlinePage));
+    return;
+  }
+  const startedAt = Date.now();
+  event.respondWith(new Promise((resolve) => {
+    let settled = false;
+    const settle = (answer) => { if (!settled) { settled = true; resolve(answer()); } };
+    const timer = setTimeout(() => settle(() => waitPage(request.url, startedAt)), WAIT_AFTER_MS);
+    fetch(request).then(
+      (answer) => { clearTimeout(timer); settle(() => answer); },
+      () => { clearTimeout(timer); settle(() => waitPage(request.url, startedAt)); },
+    );
+  }));
 });
 `;
 
