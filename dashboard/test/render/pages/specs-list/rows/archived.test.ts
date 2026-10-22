@@ -13,6 +13,7 @@ import {
 } from "../../../../../src/render/pages/specs-list/data-model";
 import { archivedRowNotices } from "../../../../../src/render/pages/specs-list/row-marks.ts";
 import { t } from "../../../../../src/i18n";
+import { row } from "../../fixtures.ts";
 
 // The row's own message panel (spec 143), where REQ-2's errors move to.
 const noticeCellHtml = (html: string, folder: string): string =>
@@ -349,6 +350,23 @@ describe("spec 221: archived specs on the spec list", () => {
     // Every other line stays a record.
     expect(open.match(/<select name="model\.implement"[^>]*>/)?.[0]).toContain("disabled");
     expect(open).not.toContain(">Reopen</button>");
+  });
+
+  // 659 on 2026-10-22: the row ignored the archive running on it, and
+  // said Archived, offered Archive and asked for a re-run while it ran.
+  test("whose archive is running reads as running, offers Cancel and asks for no re-run", () => {
+    const running = row({
+      id: "j-659", specFolder: "50-archived", steps: ["archive"], stepIndex: 0, state: "running",
+    });
+    const open = renderSpecsRows([running], {
+      runnerAvailable: true, targets: [],
+      archivedSpecs: [archivedSpec("50-archived", { notLanded: true })],
+      filter: { state: "archived", open: "aide/50-archived" },
+    });
+    expect(open).toContain(">Cancel</button>");
+    expect(open).not.toContain(">Archive</button>");
+    expect(open).not.toContain(">Archived<");
+    expect(open).not.toContain("re-run archive");
   });
 
   test("whose branch is open for review keeps Reopen", () => {

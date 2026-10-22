@@ -33,6 +33,8 @@ export interface PushOptions {
   scheduleNotify?: (project: string, key: string) => ScheduleNotify | null;
   /** Tells the open pages something changed that the queue did not announce: a dismissed message. */
   notify?: () => void;
+  /** How many specs wait for a person, read once per delivery and sent in every payload for the app's icon. Absent sends none. */
+  waiting?: () => number;
   /** The outgoing request; a test replaces it so nothing leaves the machine. */
   fetch?: typeof fetch;
   log?: (line: string) => void;
@@ -127,9 +129,10 @@ export function createPush(opts: PushOptions): Push {
   async function deliver(a: Attention, job: Job): Promise<void> {
     const subs = await exclusive(load);
     const vapid = await keys;
+    const waiting = opts.waiting?.();
     await Promise.all(
       subs.map(async (sub) => {
-        const payload = JSON.stringify(payloadFor(a, job, sub.lang));
+        const payload = JSON.stringify({ ...payloadFor(a, job, sub.lang), ...(waiting === undefined ? {} : { waiting }) });
         const outcome = await sendPush(sub, payload, vapid, send);
         if ("error" in outcome) return log(`push: ${where(sub.endpoint)} could not be reached — ${outcome.error}`);
         if (outcome.status >= 200 && outcome.status < 300) return;

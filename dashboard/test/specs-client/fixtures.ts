@@ -328,6 +328,8 @@ export function harness(
 
   /** The type of every event the script dispatches on the document. */
   const dispatched: string[] = [];
+  /** The same events with the `detail` each one carried. */
+  const dispatchedEvents: { type: string; detail?: unknown }[] = [];
   /** The list's own line above the rows, where a refusal naming no spec
    *  on the list is written (`row-refusal/`); its words are the span. */
   const listRefused = { textContent: "" };
@@ -368,7 +370,10 @@ export function harness(
     // closes the page's connection now, so a fake that swallowed it
     // could not tell a tab going quiet from one that never connected.
     addEventListener: (type: string, fn: (e: unknown) => void) => void (on[`doc:${type}`] = fn),
-    dispatchEvent: (e: { type: string }) => void dispatched.push(e.type),
+    dispatchEvent: (e: { type: string; detail?: unknown }) => {
+      dispatched.push(e.type);
+      dispatchedEvents.push({ type: e.type, detail: e.detail });
+    },
     visibilityState: "hidden",
   };
   const fetchStub = async (url: unknown, init: Record<string, unknown> = {}) => {
@@ -435,6 +440,11 @@ export function harness(
     if (!live()) visibility(document.visibilityState as "visible" | "hidden");
     live()?.emit("changed");
   };
+  /** A `changed` event that carries data, as a queue move sends it. */
+  const tickWith = (data: string) => {
+    if (!live()) visibility(document.visibilityState as "visible" | "hidden");
+    live()?.emit("changed", data);
+  };
 
   const { submit, submitCreate, click, clickFold, clickHref, fire, foldLink, foldAttrs } = buildNavigation(
     on,
@@ -458,12 +468,12 @@ export function harness(
     wrap: () => wrap,
     submit, submitCreate, click, clickFold, clickHref, foldLink, foldAttrs,
     button, createButton, requests, location, rows, inserted,
-    replaced, slot, resets, document, phases, otherPhases, rowQueries, tick,
+    replaced, slot, resets, document, phases, otherPhases, rowQueries, tick, tickWith,
     /** Whether the page still carries its follow marker. */
     marked: followed.marked,
     sources: sourcesMade, live, visibility, intervals, ticks, timeouts, elapsed, clock,
     projectSelect, chips,
-    removeButton, removeSlot, removeDialog, dispatched,
+    removeButton, removeSlot, removeDialog, dispatched, dispatchedEvents,
     addButton, addSlot,
     submitRemove: (extra: Partial<{ defaultPrevented: boolean }> = {}) =>
       fire("remove:submit", removeButton, extra),

@@ -280,6 +280,9 @@ function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number): Sp
     // kind of row it is, and a `readerGroup()` that left it unset would
     // sort every archived row as "unknown" regardless of its real date.
     createdAt: s.createdAt,
+    // A job running on it (archive again, a reopen) speaks for the row
+    // while it runs; a finished job does not, so the record stays a record.
+    lead: jobs.find(inFlight),
     archive: s,
   };
 }
