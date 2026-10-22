@@ -139,18 +139,20 @@ def land_analyze(specs_repo, folder):
 
 def original_tests(run, folder, found, code_dir, work):
     """(passed, ran, files not run) of the test files the original landing added or changed, taken as they landed and
-    run against the new implement's tip; None and why when that cannot be done."""
+    run against the new implement's tip, the failed cases by name, and the row's note; None, nothing and why when that
+    cannot be done."""
     files = measure.original_test_files(run.code, found.before, found.landed)
     if not files:
-        return None, "the landing changed no test files"
+        return None, (), "the landing changed no test files"
     tip = git(code_dir, "rev-parse", "--verify", "--quiet", f"aide/{folder}", check=False)
     if not tip:
-        return None, "implement left no branch to run the original tests against"
+        return None, (), "implement left no branch to run the original tests against"
     tree = str(work / "measure")
     git(code_dir, "worktree", "add", "--quiet", "--detach", tree, tip)
     copies.link_worktree_paths(run.code, tree, manifest_dir=code_dir)
     python = Path(tree) / ".venv" / "bin" / "python"
     passed = ran = not_run = 0
+    failed = []
     missing = {}
     for rel in files:
         shown = subprocess.run(["git", "-C", run.code, "show", f"{found.landed}:{rel}"], capture_output=True)
@@ -168,7 +170,8 @@ def original_tests(run, folder, found, code_dir, work):
             not_run += 1
         else:
             passed, ran = passed + counts[0], ran + counts[1]
-    return (passed, ran, not_run), measure.missing_programs_note(missing)
+            failed += counts[2]
+    return (passed, ran, not_run), tuple(failed), measure.missing_programs_note(missing)
 
 
 def replay_steps(run, row, folder, archived, found, code_dir, specs_repo, specs_dir, work, out):
@@ -207,7 +210,7 @@ def replay_implement(run, row, folder, found, code_dir, specs_dir, work, out):
     row.rounds = measure.implement_rounds(Path(second.log).read_text(errors="replace"))
     if ended(second) not in ("completed", "tests-red"):
         row.notes += (f"implement ended {ended(second)}",)
-    row.original, why = original_tests(run, folder, found, code_dir, work)
+    row.original, row.original_failed, why = original_tests(run, folder, found, code_dir, work)
     row.notes += (why,) if why else ()
 
 

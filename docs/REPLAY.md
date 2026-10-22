@@ -111,7 +111,8 @@ the skills come from that commit.
 
 Each spec's folder holds a run folder, `<date>-<time>-<aide commit>/`, with:
 
-- `results.md` — the table and the judge's reasons;
+- `results.md` — the table, the original tests that failed, named per spec as `<file>::<case>`, and the judge's
+  reasons;
 - per spec, `analyze.log` and `implement.log`, the steps' result JSON, and the raw
   `.stream` of each session, with the test log beside implement's.
 

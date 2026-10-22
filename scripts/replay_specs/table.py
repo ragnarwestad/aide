@@ -25,6 +25,7 @@ class Row:
     green: str = "–"
     rounds: Optional[int] = None
     original: Optional[tuple] = None  # (passed, ran, files not run)
+    original_failed: tuple = ()  # the original tests that failed, as `<file>::<case>`
     judge: object = None  # a score, or the words "no score"
     reasons: str = ""
     analyze: Optional[Stats] = None
@@ -132,6 +133,11 @@ def render(header, rows):
     steady = consistency(rows)
     if steady:
         out += ["", "Consistency", *steady]
+    # By name, so a round can tell code that behaves differently from a test that only names or places things
+    # differently than the new run did.
+    failed = [f"- {r.folder or r.spec}: {'; '.join(r.original_failed)}" for r in rows if r.original_failed]
+    if failed:
+        out += ["", "Original tests that failed", *failed]
     reasons = [f"- {r.folder or r.spec} ({number(r.judge)}): {r.reasons}" for r in rows if r.reasons]
     if reasons:
         out += ["", "Judge's reasons", *reasons]

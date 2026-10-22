@@ -92,8 +92,16 @@ def test_a_test_file_is_run_on_its_own_and_its_cases_counted_AC_6(tmp_path):
     write(work / "test_two.py", "def test_a():\n    pass\n\n\ndef test_b():\n    assert False\n")
     write(work / "notes.sh", "echo hi\n")
 
-    assert measure.run_test_file(str(work), "test_two.py", python=sys.executable) == (1, 2)
+    assert measure.run_test_file(str(work), "test_two.py", python=sys.executable) == (1, 2, ["test_two.py::test_b"])
     assert measure.run_test_file(str(work), "notes.sh", python=sys.executable) is None
+
+
+def test_a_test_file_that_fails_without_writing_junit_is_named_by_its_path(tmp_path, monkeypatch):
+    work = tmp_path / "work"
+    write(work / "test_broken.py", "def test_a():\n    assert False\n")
+    monkeypatch.setattr(measure, "junit_file_counts", lambda path: None)
+
+    assert measure.run_test_file(str(work), "test_broken.py", python=sys.executable) == (0, 1, ["test_broken.py"])
 
 
 def test_a_test_runner_missing_from_path_is_named_not_counted_as_a_file_that_failed(tmp_path, monkeypatch):

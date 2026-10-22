@@ -159,6 +159,15 @@ def junit_file_counts(path):
     return passed, ran
 
 
+def junit_failures(path):
+    """The cases in one JUnit file that failed or errored, by name; empty when it cannot be read."""
+    try:
+        root = ElementTree.parse(path).getroot()
+    except (ElementTree.ParseError, OSError):
+        return []
+    return [case.get("name", "") for case in root.iter("testcase") if {child.tag for child in case} & {"failure", "error"}]
+
+
 def junit_counts(paths):
     counts = [c for c in map(junit_file_counts, paths) if c]
     return sum(p for p, _ in counts), sum(r for _, r in counts)
@@ -197,8 +206,9 @@ def missing_programs_note(missing):
 
 
 def run_test_file(worktree, rel, python=None, timeout=600):
-    """(passed, ran) of one test file run on its own; a file that wrote no XML counts as one case, passed when it
-    exited 0. None when the file has no known runner; ProgramMissing when its runner is not on PATH."""
+    """(passed, ran, the failed cases as `<file>::<case>`) of one test file run on its own; a file that wrote no XML
+    counts as one case, passed when it exited 0, and is named by its path when it failed. None when the file has no
+    known runner; ProgramMissing when its runner is not on PATH."""
     with tempfile.TemporaryDirectory() as folder:
         xml = os.path.join(folder, "junit.xml")
         command = command_for(str(worktree), rel, xml, python)
@@ -214,7 +224,9 @@ def run_test_file(worktree, rel, python=None, timeout=600):
         except OSError:
             return None
         counts = junit_file_counts(xml)
-    return counts if counts and counts[1] else (int(code == 0), 1)
+        if counts and counts[1]:
+            return counts[0], counts[1], [f"{rel}::{name}" for name in junit_failures(xml)]
+    return (1, 1, []) if code == 0 else (0, 1, [rel])
 
 
 def claude_event_tokens(event):
