@@ -84,10 +84,8 @@ depends_on=""
 # hand it straight to `aide-close-spec --reason`, meaningless for every
 # other command.
 reason=""
-# Whether this run's analyze step should skip the acceptance-criteria
-# table in 4-status.md (spec 386). A bare flag, like --pull/--dry-run:
-# there is nothing to validate, and its absence is the byte-for-byte
-# behaviour every caller before this flag existed already has (REQ-3).
+# Create records this choice in the description. After analyze, the
+# runner reads that saved choice to mark every acceptance row Not verified.
 acceptance_not_required="no"
 # Whether a `create` step skips the AI session entirely (spec 433): the
 # New-spec form's "let AI formulate acceptance criteria" box, cleared. A

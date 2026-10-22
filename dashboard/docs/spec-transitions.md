@@ -71,10 +71,12 @@ without completing cancels nothing.
 
 **A completed analysis of an implemented spec also clears its acceptance ticks.** A tick says someone checked the
 criterion against the code that will land, and the new round replaces that code. The runner rewrites the table under
-`## Acceptance criteria` from the criteria in `1-description.md` as they read now: one row per `AC-n`, every one open
-(`Not verified` included), so a reworded criterion shows its new wording and a removed one is gone. A row keeps its
-Notes cell only while its criterion's text is unchanged. Archive then stops for the criteria as it does in a spec's
-first round. An analysis of a spec that never reached `implemented` leaves the rows as they are.
+`## Acceptance criteria` from the criteria in `1-description.md` as they read now: one row per `AC-n`, so a reworded
+criterion shows its new wording and a removed one is gone. A row keeps its Notes cell only while its criterion's
+text is unchanged. With acceptance ticking required, every row becomes open (`Not verified` included), and archive
+waits for the checks. When the description saves acceptance as not required, every row becomes `Not verified`,
+including new or reworded rows, and archive can proceed. That saved choice also applies on a first analysis;
+otherwise an analysis of a spec that never reached `implemented` leaves the rows as they are.
 
 The checks themselves, and what each one refuses, are in
 [The runner and its checkouts](the-runner.md#what-counts-as-a-step-having-run).
@@ -167,10 +169,16 @@ made after deploy does not hold the archive back, and the spec keeps showing it 
 `Failed` is open and does hold it back; Reopen (without reset) sets such rows back to open and leaves their `Failed:`
 notes.
 
-`acceptance-criteria-unticked` never applies to a spec created with the "acceptance ticking not required" switch.
-The switch itself is a `- **Acceptance:** not required` line in `1-description.md`'s Tracking info; its effect is
-that the analyze session writes one plain sentence under `## Acceptance criteria` in `4-status.md` instead of a
-table, and a section with no row is not one this gate can find open.
+Clearing "Acceptance ticking required" saves `- **Acceptance:** not required` in `1-description.md`'s Tracking info.
+Analyze writes the ordinary acceptance table with open rows. After a completed analyze, the runner rebuilds that
+table from the description and marks every row `Not verified` before deriving progress and state. This applies on
+first and later analyses, so those rows do not hold archive back. No skill writes the mark: the person chooses it
+row by row, or for every row by clearing the option when creating the spec. A row later marked Failed remains open
+and holds archive back.
+
+Existing specs with only "Acceptance ticking was not required for this run." keep that sentence until analyze runs
+again. A completed analyze with the saved not-required choice replaces the sentence with the table when the
+description has readable criteria; without readable criteria, it keeps the sentence.
 
 **`archive`'s landing** merges the specs repo, then the code root, runs `AIDE_INSTALL_CMD` after a code root, and then
 asks origin whether `aide/<folder>` is still there. A root that still holds it is a landing that did not finish: the

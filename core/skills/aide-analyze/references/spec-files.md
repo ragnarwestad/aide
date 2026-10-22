@@ -177,8 +177,11 @@ and `archive` off, since the plan they were made from has been replaced.
 A completed analysis of a spec that stood at `implemented` also clears
 every row of `## Acceptance criteria` (a `Not verified` one too) and
 rebuilds the table from the criteria in `1-description.md` as they read
-now, one open row per `AC-n`; a row keeps its Notes cell only while its
-criterion's text is unchanged.
+now, one row per `AC-n`; a row keeps its Notes cell only while its
+criterion's text is unchanged. The runner writes each row `⬜` when
+ticking is required. With `- **Acceptance:** not required` saved in the
+description, it writes each row `Not verified` on every completed
+analysis, including the first.
 
 ### Total progress
 
@@ -257,11 +260,11 @@ one id across several scenarios:
 | AC-2: <requirement text, verbatim from 1-description.md> | ⬜ | |
 ```
 
-Every row starts `⬜`, a `Not tested:` row too: a criterion no test
-proves is one the user checks by hand. `Not verified` is a done mark like
-`✅`: archiving does not wait for it, and the user can still tick it
-later. Only the user writes it, when a check can only be made after
-deploy — never a skill.
+The skill writes every row `⬜`, a `Not tested:` row too. `Not verified`
+is a done mark like `✅`: archiving does not wait for it, and the user can
+still tick it later. The user sets it row by row, or for every row by
+clearing "Acceptance ticking required" when creating the spec. No skill
+writes the mark; the runner applies the saved choice after analyze.
 
 A `Not verified` row that was checked after the deploy and did not hold is
 marked `❌ Failed`, with a Notes cell that starts `Failed:` and says what did

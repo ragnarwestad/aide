@@ -71,10 +71,11 @@ person ticking the row sees what the plan decided without reading it:
 
 Where more than one applies, the first in this list is the sentence.
 
-Every row starts `⬜`, a `Not tested:` row too: no test proves it, so
-the person ticking it checks it by hand, and until they have, it holds
-the archive back. `Not verified` is theirs alone to set, when a check
-can only be made after deploy — never this skill's.
+The skill writes every row `⬜`, a `Not tested:` row too. The person
+sets `Not verified` row by row, or for every row by clearing "Acceptance
+ticking required" when creating the spec. After analyze completes, the
+runner applies that saved choice to every row; no skill writes the mark.
+An open row holds archive back; a `Not verified` row does not.
 
 These rows are for the user the spec is for to judge and tick from the
 spec's Overview tab — never for `/aide-implement` or `/aide-analyze` to
@@ -154,14 +155,10 @@ case above.
 
 ---
 
-The run itself may say ticking is not required (spec 386): when the
-prompt states this, write a `## Acceptance criteria` heading followed by
-ONE plain sentence — "Acceptance ticking was not required for this
-run." — never a table row. A reader can then tell "nobody wrote
-requirements" (no heading at all) apart from "requirements exist and a
-deliberate choice skipped the tick" (the heading, with this one line
-under it). Requirements are still written into `1-description.md`
-exactly as they are today (REQ-6) — this branch changes `4-status.md`
-alone. Running analyze again on the same spec WITHOUT the switch writes
-the ordinary table (REQ-7): the prompt says nothing that run, so the
-first branch above applies as if this paragraph did not exist.
+Always write the ordinary acceptance table, including when ticking is
+not required. The runner reads `- **Acceptance:** not required` in the
+description and marks every row `Not verified` after a completed analyze,
+on the first analysis and later rounds. A legacy section containing only
+"Acceptance ticking was not required for this run." is replaced with the
+table when analyze runs again and readable criteria exist. Without a new
+analysis, existing specs keep their sentence.

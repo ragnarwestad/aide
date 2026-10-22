@@ -268,8 +268,10 @@ the Status tab, in two columns under a one-line heading: "Verified?" at the righ
 and "Not yet" each over its own box (the heading is drawn once, where the list has a box, and each box's accessible
 name repeats it). "Not yet"
 is the "Not verified" box. A read-only mark (✅, ☐, "Not verified", "Failed") sits in the same two columns, so the
-text stays at the left of every row. Every row starts open, a criterion no test proves as well: Not verified is the
-reader's mark alone, for a check that can only be made after deploy, and no step sets it. A row marked Not verified counts as done, so archive is not held back by it, but the spec keeps an
+text stays at the left of every row. When acceptance ticking is required, every row starts open, including a
+criterion no test proves. The reader sets Not verified row by row, or for every row by clearing "Acceptance ticking
+required" when creating the spec. No skill sets the mark; the runner applies that saved choice after analyze.
+A row marked Not verified counts as done, so archive is not held back by it, but the spec keeps an
 info line `N not verified` on its list row — live and archived, not closed — whose › unfolds the criteria. On a row
 held back for unticked criteria the held-back line's › unfolds that list, and the count's line has none of its own.
 While a job runs on the spec the unfolded list is drawn with its boxes disabled and nothing to save. When the rows cannot be read, the unfolded line says so and links to

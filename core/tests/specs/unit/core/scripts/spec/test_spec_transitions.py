@@ -412,7 +412,7 @@ def test_reopen_keep_without_a_failed_row_changes_no_row_AC_9(tmp_path):
 _TABLE_HEAD = "| Task | Status | Notes |\n|------|--------|-------|\n"
 
 
-def _rebuild(tmp_path, status_body, description_body):
+def _rebuild(tmp_path, status_body, description_body, mark="⬜"):
     folder = tmp_path / "81-x"
     folder.mkdir()
     status_file = folder / "4-status.md"
@@ -420,7 +420,7 @@ def _rebuild(tmp_path, status_body, description_body):
     (folder / "1-description.md").write_text(description_body)
     script = (
         f'source "{LIB}"\n'
-        f'rebuild_acceptance_rows "{status_file}" "{folder}/1-description.md"\n'
+        f'rebuild_acceptance_rows "{status_file}" "{folder}/1-description.md" "{mark}"\n'
         'echo "RC=$?"\n'
     )
     proc = _run(script)
@@ -496,7 +496,7 @@ def test_rebuild_acceptance_rows_keeps_a_note_only_while_the_wording_is_unchange
     assert "| AC-2: after | ⬜ | |" in text
 
 
-def test_rebuild_acceptance_rows_leaves_a_section_without_a_table_alone_AC_1(tmp_path):
+def test_rebuild_acceptance_rows_leaves_a_section_without_a_table_alone_AC_1_AC_5(tmp_path):
     body = "# X\n\n## Acceptance criteria\n\nAcceptance ticking was not required for this run.\n"
     assert _rebuild(tmp_path, body, "- **AC-1:** one\n").read_text() == body
 
@@ -510,3 +510,32 @@ def test_rebuild_acceptance_rows_without_a_criterion_line_only_clears_the_status
     ).read_text()
     assert "| AC-1: one | ⬜ | a note |" in text
     assert "| AC-2: two | ⬜ | |" in text
+
+
+def test_rebuild_marks_reworded_and_new_rows_and_keeps_matching_notes_AC_1_AC_2(tmp_path):
+    text = _rebuild(
+        tmp_path, "## Acceptance criteria\n\n" + _TABLE_HEAD
+        + "| AC-1: same | ✅ | Failed: check again |\n| AC-2: old | ⬜ | old note |\n",
+        "- **AC-1:** same\n- **AC-2:** new\n- **AC-3:** added\n", "Not verified",
+    ).read_text()
+    assert text == ("## Acceptance criteria\n\n" + _TABLE_HEAD
+        + "| AC-1: same | Not verified | Failed: check again |\n"
+        + "| AC-2: new | Not verified | |\n| AC-3: added | Not verified | |\n")
+
+
+@pytest.mark.parametrize("criteria", ["- **AC-1:** first\n", ""])
+def test_rebuild_replaces_legacy_sentence_only_with_readable_criteria_AC_1(tmp_path, criteria):
+    body = "## Acceptance criteria\n\nAcceptance ticking was not required for this run.\n"
+    tail = "\n## Notation\n\nKeep this.\n"
+    text = _rebuild(tmp_path, body + tail, criteria, "Not verified").read_text()
+    expected = ("## Acceptance criteria\n\n" + _TABLE_HEAD
+        + "| AC-1: first | Not verified | |\n") if criteria else body
+    assert text == expected + tail
+
+
+def test_rebuild_without_criteria_marks_existing_rows_and_keeps_notes_AC_2(tmp_path):
+    text = _rebuild(
+        tmp_path, "## Acceptance criteria\n\n" + _TABLE_HEAD
+        + "| AC-1: first | ✅ | note |\n", "# No readable criteria\n", "Not verified",
+    ).read_text()
+    assert "| AC-1: first | Not verified | note |" in text

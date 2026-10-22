@@ -10,6 +10,7 @@ import os
 import re
 import signal
 import subprocess
+import pytest
 from ...conftest import READ_SPECS, STOP_DEADLINE_SEC, git, run
 from ..run_spec_invoking import CREATE_KEY, create, wait_until
 from ..run_spec_fakes import project_only_claude, specs_only_claude, writing_claude
@@ -659,3 +660,66 @@ def test_a_cancelled_analysis_keeps_the_ticks_AC_5(runner, workspace, fake_claud
     assert section_of(branch_file(workspace["specs"], "4-status.md", workspace), "## Acceptance") == section_of(
         status_on_main(workspace), "## Acceptance"
     )
+
+
+@pytest.mark.parametrize("legacy,flag,saved", [(False, False, True), (True, True, True), (False, True, False)])
+def test_first_analysis_uses_saved_acceptance_choice_AC_1_AC_5(
+    runner, workspace, fake_claude, legacy, flag, saved,
+):
+    with_status(workspace, ["create"])
+    section = ("\n## Acceptance criteria\n\nAcceptance ticking was not required for this run.\n"
+        if legacy else acceptance_section(["| AC-1: first | ⬜ | |", "| AC-2: second | ⬜ | |"] ))
+    with_acceptance(workspace, section, {1: "first", 2: "second"})
+    if saved:
+        _save_not_required(workspace)
+    already_ran(workspace, ["create"])
+    rc, out, _ = run(runner, workspace, specs_only_claude(fake_claude, workspace),
+        command="analyze", **({"acceptance_not_required": True} if flag else {}))
+    assert rc == 0, out
+    expected = "Not verified" if saved else "⬜"
+    assert _statuses(branch_file(workspace["specs"], "4-status.md", workspace)) == [expected, expected]
+    rows = state_of(workspace)["acceptanceCriteria"]
+    assert len(rows) == 2
+    assert all(c["done"] == saved and c.get("notVerified", False) == saved for c in rows)
+
+
+def _save_not_required(workspace):
+    desc = workspace["specs"] / workspace["folder"] / "1-description.md"
+    desc.write_text(desc.read_text() + "\n \t- \t**Acceptance:**\tnot required \t\n")
+    git(workspace["specs"], "add", str(desc))
+    git(workspace["specs"], "commit", "-qm", "Save acceptance choice")
+
+
+def test_later_analysis_marks_new_and_rebuilt_rows_AC_2(runner, workspace, fake_claude):
+    _implemented_with_acceptance(workspace,
+        ["| AC-1: old | ✅ | old note |", "| AC-2: second | ⬜ | Failed: did not hold |"],
+        {1: "first", 2: "second", 3: "new"})
+    _save_not_required(workspace)
+    rc, out, _ = run(runner, workspace, specs_only_claude(fake_claude, workspace), command="analyze")
+    assert rc == 0, out
+    assert acceptance_cells(branch_file(workspace["specs"], "4-status.md", workspace)) == [
+        ("AC-1: first", "Not verified", ""),
+        ("AC-2: second", "Not verified", "Failed: did not hold"),
+        ("AC-3: new", "Not verified", ""),
+    ]
+
+
+def test_not_required_rows_archive_with_not_verified_state_AC_3_AC_4(runner, workspace, fake_claude):
+    with_status(workspace, ["create"], done=True)
+    with_acceptance(workspace, acceptance_section(["| AC-1: first | ⬜ | |"]), {1: "first"})
+    _save_not_required(workspace)
+    already_ran(workspace, ["create"])
+    specs = workspace["specs"]
+    for command, make_claude in [
+        ("analyze", lambda: specs_only_claude(fake_claude, workspace)),
+        ("implement", lambda: writing_claude(fake_claude, workspace)),
+        ("archive", lambda: fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")),
+    ]:
+        rc, out, _ = run(runner, workspace, make_claude(), command=command)
+        assert rc == 0, out
+        git(specs, "merge", "-q", "--ff-only", BRANCH)
+    archived = specs / "archive" / workspace["folder"]
+    assert archived.is_dir()
+    rows = json.loads((archived / "4-status.json").read_text())["acceptanceCriteria"]
+    assert len(rows) == 1
+    assert rows[0]["done"] and rows[0]["notVerified"]

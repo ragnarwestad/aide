@@ -178,7 +178,7 @@ function acceptanceField(v: OptionsGroupValues): string {
     helpPopover(
       "what this does",
       "Analyze writes an acceptance-criteria table, and archive waits until every row is ticked. " +
-        "Cleared, the requirements stay written down and nothing is left to tick.",
+        "Cleared, every acceptance criterion is marked Not verified. Archive can proceed, and you can verify each row later.",
     ) +
     `</span></span></span>`
   );
