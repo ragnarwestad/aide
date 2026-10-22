@@ -168,6 +168,11 @@ if [ "$tool" = "codex" ]; then
     [ -n "$codex_error_json" ] && codex_error="$(jq -r '(.message // .error.message // .error // empty) | tostring' \
       <<<"$codex_error_json" 2>/dev/null)"
     printf '%s' "$codex_error" | grep -qi 'at capacity' && at_capacity_out="$codex_error"
+    # A spent account can refuse the turn before any count shows a full
+    # window; then Codex's own error is the only place the limit is named.
+    if [ -z "$provider_limit_out" ] && printf '%s' "$codex_error" | grep -qi 'usage limit'; then
+      provider_limit_out="$(codex_message_limit "$codex_error")"
+    fi
   fi
 elif [ "$tool" = "opencode" ]; then
   # opencode closes no turn with a single result event. It emits one

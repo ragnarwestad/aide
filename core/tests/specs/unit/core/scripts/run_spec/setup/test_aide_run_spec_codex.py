@@ -8,10 +8,12 @@ unchanged and keep their names.
 import json
 import pytest
 import pytest
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from ...conftest import READ_SPECS, STOP_DEADLINE_SEC, git, run
 from ..run_spec_results import (
     CODEX_STREAM_AT_CAPACITY, CODEX_STREAM_AT_CAPACITY_NO_TURN, CODEX_STREAM_FAILED, CODEX_STREAM_OK,
-    CODEX_STREAM_RECOVERED, CODEX_THREAD_ID, CODEX_USAGE, RESULT_OK, emits,
+    CODEX_STREAM_RECOVERED, CODEX_STREAM_USAGE_LIMIT, CODEX_THREAD_ID, CODEX_USAGE, RESULT_OK, emits,
 )
 
 
@@ -233,6 +235,41 @@ def test_a_codex_turn_that_failed_with_room_left_is_still_a_cli_error(runner, wo
     rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
     assert out["terminalReason"] == "cli-error"
     assert "providerLimit" not in out
+
+
+def test_a_codex_turn_refused_for_a_spent_account_is_a_provider_limit(
+        runner, workspace, fake_codex, tmp_path, monkeypatch):
+    """A real Codex step (2026-10-22) found the account spent before its
+    first request: the session file holds only a `premium` count with no
+    window, and the limit is named in Codex's own error alone. The step
+    stops on the provider's limit, with the time Codex gave to try again."""
+    home = tmp_path / "codex-home"
+    _codex_session(home, {
+        "limit_id": "premium", "primary": None, "secondary": None,
+        "credits": {"has_credits": False, "unlimited": False, "balance": "0"},
+        "plan_type": None, "rate_limit_reached_type": None})
+    monkeypatch.setenv("CODEX_HOME", str(home))
+    monkeypatch.setenv("TZ", "Europe/Oslo")
+    codex = fake_codex(emits(CODEX_STREAM_USAGE_LIMIT) + "; exit 1")
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex, command="implement")
+    assert out["ok"] is False
+    assert out["terminalReason"] == "provider-limit", out
+    assert "press Implement again once it resets" in out["error"], out["error"]
+    oslo = ZoneInfo("Europe/Oslo")
+    now = datetime.now(oslo)
+    at = now.replace(hour=15, minute=42, second=0, microsecond=0)
+    if at <= now:
+        at += timedelta(days=1)
+    expected = at.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    assert out["providerLimit"] == {"tool": "codex", "window": "usage", "resetsAt": expected}
+
+
+def test_a_codex_usage_limit_with_no_time_to_try_again_has_no_reset(runner, workspace, fake_codex):
+    stream = CODEX_STREAM_USAGE_LIMIT.replace(" or try again at 3:42 PM", "")
+    codex = fake_codex(emits(stream) + "; exit 1")
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
+    assert out["terminalReason"] == "provider-limit", out
+    assert out["providerLimit"] == {"tool": "codex", "window": "usage"}
 
 
 def test_a_codex_model_at_capacity_is_its_own_stop_and_the_commit_says_so_AC_1(runner, workspace, fake_codex):

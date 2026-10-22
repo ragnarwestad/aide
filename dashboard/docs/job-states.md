@@ -109,8 +109,9 @@ queued `create`, `archive` or `close` step — the ones that do no model work �
 - `timeout` or `provider-limit` as the run's terminal reason gives `stopped`, with that `stopReason`. A
   `provider-limit` step also carries `providerLimit` — the tool's own record of which window ran out, when it resets,
   the other windows' figures, and the plan or refused credit where the tool names them. The runner reads it from
-  claude's `rate_limit_event` and from the session file Codex keeps for the thread (a Codex turn is a
-  `provider-limit` only when that file shows a full window); opencode has no reader. The row and the Logs tab say it
+  claude's `rate_limit_event` and from the session file Codex keeps for the thread. A Codex turn is a
+  `provider-limit` when that file shows a full window, or when Codex's own error says the usage limit is hit; the
+  error's "try again at" time is then the reset. opencode has no reader. The row and the Logs tab say it
   as one sentence in place of the runner's own summary. A stopped step lands what it pushed outside the code root — a
   `timeout` or `provider-limit` step, with something pushed, and no code root among it; a stopped `implement` whose
   code branch was pushed lands nothing, and that code waits for `archive`. A landing that does run leaves the job's

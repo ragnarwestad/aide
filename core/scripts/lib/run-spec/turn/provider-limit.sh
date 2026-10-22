@@ -74,3 +74,25 @@ codex_provider_limit() {   # $1: the thread id
         end
     ' 2>/dev/null
 }
+
+# Codex, when the account is spent before the turn's first request: no
+# count carries a window, and only Codex's own error names the limit
+# ("You've hit your usage limit … try again at 3:42 PM"). The clock time
+# is the machine's own, so it is read in the local zone, and one already
+# past means tomorrow. A message with no plain clock time has no reset.
+codex_message_limit() {   # $1: Codex's error message
+  jq -nc --arg m "$1" '
+    ([$m | capture("try again at (?<h>[0-9]{1,2}):(?<min>[0-9]{2}) ?(?<ap>[AaPp][Mm])")] | first) as $c
+    | {tool: "codex", window: "usage"}
+      + (if $c == null then {} else
+          (now | floor) as $now
+          | ($now | localtime) as $local
+          | (($local | .[5] = 0 | mktime) - ($now - ($now % 60))) as $offset
+          | ($c.h | tonumber) as $h
+          | ($c.ap | ascii_upcase) as $ap
+          | (if $ap == "PM" and $h != 12 then $h + 12 elif $ap == "AM" and $h == 12 then 0 else $h end) as $hour
+          | ($local | .[3] = $hour | .[4] = ($c.min | tonumber) | .[5] = 0 | mktime - $offset) as $at
+          | {resetsAt: ((if $at <= $now then $at + 86400 else $at end) | todateiso8601)}
+        end)
+  ' 2>/dev/null
+}
