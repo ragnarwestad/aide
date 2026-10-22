@@ -46,8 +46,13 @@ export const APP_ICON_MASKABLE_PNG_512 = rasterizeIcon(APP_ICON_MASKABLE, 512);
  *  badge is not an app icon, and nothing installs it. */
 export const APP_BADGE_PNG_96 = rasterizeMark(appBadge(), 96);
 
-/** The manifest itself. `start_url` carries no query string, so the
- *  installed app opens on the list. */
+/** Where the installed app is launched: an address of its own, which sends
+ *  it on to the Running tab when the tab has a row, and to the Specs list
+ *  when it has none. `/` itself is always the Running tab. */
+export const APP_START_ROUTE = "/app";
+
+/** The manifest itself. `start_url` is the address above, with no query
+ *  string; `id` stays `/`, so an app installed on `/` is the same app. */
 export const WEBMANIFEST =
   JSON.stringify(
     {
@@ -57,7 +62,7 @@ export const WEBMANIFEST =
       name: "aide -board",
       short_name: "aide -board",
       description: "from spec to merge",
-      start_url: "/",
+      start_url: APP_START_ROUTE,
       scope: "/",
       // Without this it is a bookmark with an icon, not an app.
       display: "standalone",

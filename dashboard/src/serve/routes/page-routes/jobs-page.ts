@@ -1,7 +1,15 @@
 // The Jobs tab at `/`: the board's first page. One of the route families
 // `handlePageRoutes` asks in turn, and answers `null` for a path that is not
 // its own.
-import { ACTIVE_FILTER_KEY, jobsShown, renderJobsPage, renderJobsRows, renderJobsSpecRows } from "../../../render";
+import {
+  ACTIVE_FILTER_KEY,
+  APP_START_ROUTE,
+  jobsShown,
+  jobsTabHasRows,
+  renderJobsPage,
+  renderJobsRows,
+  renderJobsSpecRows,
+} from "../../../render";
 import { jobsViewChoice, languageChoice, specsClientScript } from "../../serve-helpers";
 import { listedSpecJobs, specRowOptions } from "./spec-row-options.ts";
 import type { RoutesContext } from "..";
@@ -27,7 +35,7 @@ export async function jobsPage(
   url: URL,
   path: string,
 ): Promise<Response | null> {
-  if (path !== "/") return null;
+  if (path !== "/" && path !== APP_START_ROUTE) return null;
   if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
 
   const langResult = languageChoice(url, req);
@@ -65,6 +73,13 @@ export async function jobsPage(
       script: await specsClientScript(),
     },
   };
+
+  // The installed app's start: on to this tab when it has a row, and to the
+  // Specs list, bare, when it has none, so the list opens with the state
+  // filter and sort its cookies keep.
+  if (path === APP_START_ROUTE) {
+    return new Response(null, { status: 302, headers: { location: jobsTabHasRows(view) ? "/" : "/specs" } });
+  }
 
   const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
   if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);

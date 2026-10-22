@@ -11,7 +11,7 @@
 // so — that the eight routes answer, that they answer without a token,
 // and that the worker behind them caches nothing.
 import { afterEach, describe, expect, test } from "bun:test";
-import { PWA_FILES, SERVICE_WORKER, THEME_COLORS } from "../../../src/render/ui/pwa.ts";
+import { APP_START_ROUTE, PWA_FILES, SERVICE_WORKER, THEME_COLORS } from "../../../src/render/ui/pwa.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 
 const harness = queueHarness("aide-pwa-");
@@ -37,9 +37,11 @@ describe("the manifest (criterion 1)", () => {
     >;
     expect(manifest.name).toBe("aide -board");
     expect(typeof manifest.short_name).toBe("string");
-    // An installed app opens on the spec list, and its scope is the
-    // whole dashboard: a link out of scope opens a browser tab.
-    expect(manifest.start_url).toBe("/");
+    // An installed app opens on the address that picks the tab or the
+    // list, under the same `id` as ever, and its scope is the whole
+    // dashboard: a link out of scope opens a browser tab.
+    expect(manifest.id).toBe("/");
+    expect(manifest.start_url).toBe(APP_START_ROUTE);
     expect(manifest.scope).toBe("/");
     // Without this it is a bookmark with an icon, not an app.
     expect(manifest.display).toBe("standalone");

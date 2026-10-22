@@ -85,7 +85,11 @@ The served dashboard is a web app you can install: Chrome and Edge offer it from
 Share → "Add to Home Screen". It then opens in a window of its own, with the mark as its icon and the page's own
 background behind the title bar.
 
-An installed app is launched on `start_url` — `/`, with no query string — and opens straight into the Running tab.
+An installed app is launched on `start_url`, `/app`. It opens on the Running tab when the tab has a row, and on the
+Specs list, with the state filter and sort it last kept, when the tab has none. `/` itself, from the header, a link or a
+notification, is always the Running tab. The manifest's `id` is `/`, so the browser keeps an app installed on `/` as
+the same app. An app on an iPhone's Home Screen keeps the address it was added with, and opens on `/` until it is
+added again.
 
 Nine routes make it work — `/manifest.webmanifest`, `/sw.js`, `/icon-512.svg`, `/icon-512-maskable.svg`,
 `/icon-192.png`, `/icon-512.png`, `/icon-512-maskable.png`, `/apple-touch-icon.png` and `/badge-96.png`. All nine are
