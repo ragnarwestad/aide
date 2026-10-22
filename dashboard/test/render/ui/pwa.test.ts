@@ -11,7 +11,10 @@
 // so — that the eight routes answer, that they answer without a token,
 // and that the worker behind them caches nothing.
 import { afterEach, describe, expect, test } from "bun:test";
-import { APP_START_ROUTE, PWA_FILES, SERVICE_WORKER, THEME_COLORS } from "../../../src/render/ui/pwa.ts";
+import { t } from "../../../src/i18n";
+import { LOADING_CSS, TOKENS_CSS } from "../../../src/render/ui/css";
+import { NEW_SPEC_ROUTE } from "../../../src/render/pages/projects-page/routes.ts";
+import { APP_START_ROUTE, PWA_FILES, SERVICE_WORKER, THEME_COLORS, WAIT_SCRIPT } from "../../../src/render/ui/pwa.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 
 const harness = queueHarness("aide-pwa-");
@@ -82,6 +85,31 @@ describe("the manifest (criterion 1)", () => {
         200,
         "image/svg+xml; charset=utf-8",
       ]);
+    }
+  });
+});
+
+describe("the manifest's shortcuts", () => {
+  type Shortcut = { name: string; url: string; icons: { src: string; type: string }[] };
+  const shortcuts = async (base: string) =>
+    ((await (await fetch(`${base}/manifest.webmanifest`)).json()) as { shortcuts: Shortcut[] }).shortcuts;
+
+  test("it lists Running, Specs and New spec, in that order (AC-9)", async () => {
+    const { base } = start();
+    expect((await shortcuts(base)).map((s) => s.url)).toEqual(["/", "/specs", NEW_SPEC_ROUTE]);
+  });
+
+  test("each is named for its page and carries an icon the board serves as a PNG (AC-12)", async () => {
+    const { base } = start();
+    const list = await shortcuts(base);
+    expect(list[0]!.name).toBe(t("en", "shell.tabRunning"));
+    expect(list[1]!.name).toBe(t("en", "shell.tabSpecs"));
+    for (const shortcut of list) {
+      expect(shortcut.icons.length).toBeGreaterThan(0);
+      for (const icon of shortcut.icons) {
+        expect(icon.type).toBe("image/png");
+        expect((await fetch(`${base}${icon.src}`)).headers.get("content-type")).toBe("image/png");
+      }
     }
   });
 });
@@ -158,19 +186,38 @@ describe("the eight answer any request with a Host of the dashboard's own", () =
 
 // --- the worker itself -------------------------------------------------------
 
+/** A window of the board the worker can find, recording what it was asked. */
+function fakeWindow(refuseNavigate = false) {
+  const calls: string[] = [];
+  return {
+    calls,
+    focus: async () => void calls.push("focus"),
+    navigate: async (url: string) => {
+      calls.push(`navigate ${url}`);
+      if (refuseNavigate) throw new TypeError("not controlled");
+    },
+  };
+}
+
 /** The worker script, run against a fake global scope. It is a SCRIPT
  *  — no imports, no exports — so it is run as a function of the
- *  globals it uses. */
-function worker(networkAnswer: () => Promise<Response>) {
+ *  globals it uses, timers and clock included: a test decides whether
+ *  the half-second timer or the server comes first, with no waiting. */
+function worker(networkAnswer: (request: { method: string; url: string }) => Promise<Response>, windows: ReturnType<typeof fakeWindow>[] = []) {
   const listeners: Record<string, (event: unknown) => void> = {};
   const shown: {
     title: string;
     options: { body?: string; icon?: string; badge?: string; data?: { url?: string } };
   }[] = [];
   const opened: string[] = [];
+  const clock = fakeClock();
   const self = {
     addEventListener: (type: string, fn: (event: unknown) => void) => void (listeners[type] = fn),
-    clients: { claim: () => Promise.resolve(), openWindow: async (url: string) => void opened.push(url) },
+    clients: {
+      claim: () => Promise.resolve(),
+      openWindow: async (url: string) => void opened.push(url),
+      matchAll: async () => windows,
+    },
     registration: {
       showNotification: async (
         title: string,
@@ -180,7 +227,13 @@ function worker(networkAnswer: () => Promise<Response>) {
     },
   };
   // eslint-disable-next-line no-new-func -- the thing under test IS a script
-  new Function("self", "fetch", SERVICE_WORKER)(self, networkAnswer);
+  new Function("self", "fetch", "setTimeout", "clearTimeout", "Date", SERVICE_WORKER)(
+    self,
+    networkAnswer,
+    clock.setTimeout,
+    clock.clearTimeout,
+    { now: clock.now },
+  );
 
   /** An event that collects what `waitUntil` was handed, so a test can
    *  wait for the work the handler started. */
@@ -193,6 +246,7 @@ function worker(networkAnswer: () => Promise<Response>) {
     types: () => Object.keys(listeners),
     shown,
     opened,
+    advance: clock.advance,
     /** A push message arriving; `data` is what `event.data.json()` does. */
     push: async (json: () => unknown) => {
       const e = event({ data: { json } });
@@ -207,17 +261,61 @@ function worker(networkAnswer: () => Promise<Response>) {
       await e.done();
       return closed;
     },
-    /** One navigation through the worker. `undefined` means the worker
-     *  declined to answer, which leaves the request to the browser. */
-    navigate: async (mode = "navigate"): Promise<Response | undefined> => {
+    /** One navigation through the worker; it answers when the worker does,
+     *  so a slow one is awaited after `advance`. `undefined` means the
+     *  worker declined to answer, which leaves the request to the browser. */
+    navigate: async (mode = "navigate", method = "GET", url = "https://board.test/"): Promise<Response | undefined> => {
       let answered: Promise<Response> | undefined;
       listeners.fetch!({
-        request: { mode, url: "https://board.test/" },
+        request: { mode, method, url },
         respondWith: (r: Promise<Response>) => void (answered = r),
       });
       return answered ? await answered : undefined;
     },
   };
+}
+
+/** Timers and a clock that move only when a test says so. */
+function fakeClock() {
+  let now = 0;
+  let nextId = 1;
+  const timers = new Map<number, { due: number; fn: () => void }>();
+  const settle = () => new Promise<void>((resolve) => setImmediate(resolve));
+  return {
+    now: () => now,
+    setTimeout: (fn: () => void, ms: number) => {
+      const id = nextId++;
+      timers.set(id, { due: now + ms, fn });
+      return id;
+    },
+    clearTimeout: (id: number) => void timers.delete(id),
+    advance: async (ms: number) => {
+      // Let an answer the test just handed over reach the code waiting on it.
+      await settle();
+      const target = now + ms;
+      for (;;) {
+        const next = [...timers.entries()].filter(([, t]) => t.due <= target).sort((a, b) => a[1].due - b[1].due)[0];
+        if (!next) break;
+        now = next[1].due;
+        timers.delete(next[0]);
+        next[1].fn();
+        await settle();
+      }
+      now = target;
+      await settle();
+    },
+  };
+}
+
+/** A request the test answers by hand, later. */
+function pending() {
+  let answer!: (r: Response) => void;
+  let fail!: (e: Error) => void;
+  const promise = new Promise<Response>((resolve, reject) => {
+    answer = resolve;
+    fail = reject;
+  });
+  return { promise, answer, fail };
 }
 
 describe("the worker passes everything through and caches nothing", () => {
@@ -250,17 +348,206 @@ describe("the worker passes everything through and caches nothing", () => {
     expect(await w.navigate("no-cors")).toBeUndefined();
   });
 
-  test("with the server unreachable it says so, rather than showing the browser's error", async () => {
+  test("a page load posted to an unreachable server gets the not reachable page at once (AC-5)", async () => {
     const w = worker(async () => {
       throw new Error("the tailnet is not there");
     });
-    const res = (await w.navigate())!;
+    const res = (await w.navigate("navigate", "POST"))!;
     expect(res.status).toBe(503);
     expect(res.headers.get("content-type")).toContain("text/html");
     const html = await res.text();
     expect(html.toLowerCase()).toContain("reach");
     // And it offers the one thing that helps: trying again.
     expect(html).toContain("Try again");
+  });
+});
+
+// --- the wait page: what the worker answers while the server is slow ---------
+
+/** The worker with a server that answers when the test says. */
+function slowServer() {
+  const requests: { method: string; url: string; answer: (r: Response) => void; fail: (e: Error) => void }[] = [];
+  const w = worker((request) => {
+    const p = pending();
+    requests.push({ ...request, answer: p.answer, fail: p.fail });
+    return p.promise;
+  });
+  return { w, requests };
+}
+
+describe("a slow page load gets a wait page", () => {
+  test("after half a second it is the moving mark and the host the app waits for (AC-1)", async () => {
+    const { w } = slowServer();
+    const answer = w.navigate("navigate", "GET", "https://board.test/specs");
+    await w.advance(499);
+    await w.advance(1);
+    const res = (await answer)!;
+    expect(res.headers.get("content-type")).toContain("text/html");
+    const html = await res.text();
+    expect(html).toContain("pageloading");
+    expect(html).toContain("Connecting to board.test…");
+  });
+
+  test("a request that fails outright gets the wait page, not the not reachable page (AC-1)", async () => {
+    const { w, requests } = slowServer();
+    const answer = w.navigate();
+    await w.advance(200);
+    requests[0]!.fail(new Error("the tailnet is not there"));
+    const res = (await answer)!;
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain("Connecting to board.test…");
+  });
+
+  test("it gives the page the time left of 30 seconds after the page load (AC-3)", async () => {
+    const { w } = slowServer();
+    const answer = w.navigate();
+    await w.advance(500);
+    expect(await (await answer)!.text()).toContain("29500");
+  });
+
+  test("a failure at 200 ms leaves 29800 ms of the 30 seconds (AC-3)", async () => {
+    const { w, requests } = slowServer();
+    const answer = w.navigate();
+    await w.advance(200);
+    requests[0]!.fail(new Error("down"));
+    expect(await (await answer)!.text()).toContain("29800");
+  });
+
+  test("a server that answers within half a second is shown with no wait page (AC-4)", async () => {
+    const { w, requests } = slowServer();
+    const answer = w.navigate();
+    await w.advance(100);
+    requests[0]!.answer(new Response("the live page"));
+    await w.advance(1000);
+    expect(await (await answer)!.text()).toBe("the live page");
+  });
+
+  test("a page load that is not a GET goes to the server once and never gets the wait page (AC-5)", async () => {
+    const { w, requests } = slowServer();
+    const answer = w.navigate("navigate", "POST");
+    await w.advance(5000);
+    expect(requests.map((r) => r.method)).toEqual(["POST"]);
+    requests[0]!.answer(new Response("saved"));
+    expect(await (await answer)!.text()).toBe("saved");
+    expect(requests).toHaveLength(1);
+  });
+
+  test("the reload the wait page makes goes through with no timer, once (AC-2)", async () => {
+    const { w, requests } = slowServer();
+    const first = w.navigate();
+    await w.advance(500);
+    await first;
+    const reload = w.navigate();
+    await w.advance(3000);
+    requests[1]!.answer(new Response("the live page"));
+    expect(await (await reload)!.text()).toBe("the live page");
+    // The pass-through is used up: the next load of the address is raced again.
+    const next = w.navigate();
+    await w.advance(500);
+    expect(await (await next)!.text()).toContain("Connecting to");
+  });
+
+  test("a server answer that arrives after the wait page is dropped, and a later load asks again (AC-6)", async () => {
+    const { w, requests } = slowServer();
+    const first = w.navigate();
+    await w.advance(500);
+    await first;
+    requests[0]!.answer(new Response("too late"));
+    await w.advance(1);
+    const later = w.navigate();
+    requests[1]!.answer(new Response("fresh"));
+    expect(requests).toHaveLength(2);
+    expect(await (await later)!.text()).toBe("fresh");
+  });
+});
+
+describe("the wait page itself", () => {
+  const waitPage = async () => {
+    const { w } = slowServer();
+    const answer = w.navigate();
+    await w.advance(500);
+    return (await (await answer)!.text());
+  };
+
+  test("it carries the board's tokens and the loading stylesheet, and asks the network for nothing (AC-11)", async () => {
+    const html = await waitPage();
+    expect(html).toContain(TOKENS_CSS);
+    expect(html).toContain(LOADING_CSS);
+    expect(html).not.toMatch(/\ssrc=|<link|@import/);
+    for (const match of html.matchAll(/url\(([^)]{0,6})/g)) expect(match[1]).toMatch(/^["']?data:/);
+  });
+});
+
+/** The wait page's script, run against fakes the way restart-watch's is. */
+function waitScript(asks: (n: number) => Promise<unknown>, leftMs = 29500) {
+  const clock = fakeClock();
+  let fetches = 0;
+  let reloads = 0;
+  const written: string[] = [];
+  const location = { href: "https://board.test/specs", reload: () => void reloads++ };
+  const document = { open: () => {}, write: (html: string) => void written.push(html), close: () => {} };
+  const fetchFake = (url: string) => {
+    expect(url).toBe(location.href);
+    return asks(++fetches);
+  };
+  // eslint-disable-next-line no-new-func -- the thing under test IS a script
+  new Function("fetch", "location", "document", "setTimeout", "clearTimeout", "OFFLINE_PAGE", "LEFT_MS", WAIT_SCRIPT)(
+    fetchFake,
+    location,
+    document,
+    clock.setTimeout,
+    clock.clearTimeout,
+    "<p>offline</p>",
+    leftMs,
+  );
+  return { advance: clock.advance, fetches: () => fetches, reloads: () => reloads, written };
+}
+
+describe("the wait page's script", () => {
+  test("it asks for its own address again a second after a failure, and keeps doing so (AC-2)", async () => {
+    const s = waitScript(async () => {
+      throw new TypeError("down");
+    });
+    await s.advance(0);
+    expect(s.fetches()).toBe(1);
+    await s.advance(999);
+    expect(s.fetches()).toBe(1);
+    await s.advance(1);
+    expect(s.fetches()).toBe(2);
+    await s.advance(1000);
+    expect(s.fetches()).toBe(3);
+  });
+
+  test("it reloads once at the first answer, whatever its status, and asks no more (AC-2)", async () => {
+    const s = waitScript(async () => new Response("", { status: 500 }));
+    await s.advance(0);
+    expect(s.reloads()).toBe(1);
+    await s.advance(5000);
+    expect(s.reloads()).toBe(1);
+    expect(s.fetches()).toBe(1);
+  });
+
+  test("at the deadline it shows the not reachable page and asks no more (AC-3)", async () => {
+    const s = waitScript(async () => {
+      throw new TypeError("down");
+    });
+    await s.advance(29499);
+    expect(s.written).toEqual([]);
+    await s.advance(1);
+    expect(s.written).toEqual(["<p>offline</p>"]);
+    const asked = s.fetches();
+    await s.advance(10000);
+    expect(s.fetches()).toBe(asked);
+    expect(s.reloads()).toBe(0);
+  });
+
+  test("an answer that comes after the deadline does not reload over the not reachable page (AC-3)", async () => {
+    let answer!: () => void;
+    const s = waitScript(() => new Promise<void>((resolve) => void (answer = resolve)));
+    await s.advance(29500);
+    answer();
+    await s.advance(0);
+    expect(s.reloads()).toBe(0);
   });
 });
 
@@ -289,10 +576,32 @@ describe("the worker shows every push and opens the spec on a tap (criterion 10)
     expect(w.shown[1]!.options.data?.url).toBe("/");
   });
 
-  test("a tap closes the notification and opens the spec's path", async () => {
+  test("a tap with no window of the board open closes the notification and opens the spec's path (AC-8)", async () => {
     const w = worker(async () => new Response("ok"));
     expect(await w.tap("/specs/aide/81-x")).toBe(true);
     expect(w.opened).toEqual(["/specs/aide/81-x"]);
+  });
+
+  test("a notification with no address opens the Running tab (AC-8)", async () => {
+    const w = worker(async () => new Response("ok"));
+    await w.tap(undefined);
+    expect(w.opened).toEqual(["/"]);
+  });
+
+  test("a tap with a window open brings it to the front and loads the spec in it (AC-7)", async () => {
+    const open = fakeWindow();
+    const w = worker(async () => new Response("ok"), [open]);
+    await w.tap("/specs/aide/81-x");
+    expect(open.calls).toEqual(["focus", "navigate /specs/aide/81-x"]);
+    expect(w.opened).toEqual([]);
+  });
+
+  test("a window that refuses to navigate stays in front and no second window opens (AC-7)", async () => {
+    const open = fakeWindow(true);
+    const w = worker(async () => new Response("ok"), [open]);
+    await w.tap("/specs/aide/81-x");
+    expect(open.calls[0]).toBe("focus");
+    expect(w.opened).toEqual([]);
   });
 
   test("the notification has no tag, so a second event about a spec does not replace the first", async () => {
