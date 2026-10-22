@@ -89,6 +89,20 @@ codex_safety_flags() {
   esac
 }
 
+# The project's name as the board shows it. The dashboard keeps every
+# project's clone at `checkouts/<project>/code`, so there the project is the
+# parent directory's name, not the clone's. Names the worktree's directory
+# and the display name of each Claude session.
+worktree_project_key() {
+  local root="$1" parent
+  parent="$(dirname "$root")"
+  if [ "$(basename "$root")" = "code" ] && [ "$(basename "$(dirname "$parent")")" = "checkouts" ]; then
+    basename "$parent"
+  else
+    basename "$root"
+  fi
+}
+
 # How a step ASKS for its skill, which is not the same sentence in every
 # CLI. Claude Code and Codex read `/aide-implement 476` as a slash
 # command and load the skill from it. opencode has no slash command for
@@ -107,6 +121,8 @@ codex_safety_flags() {
 # rather than refused; opencode spells it `--session <id>` (`opencode run
 # --help`, 1.18.31), and its subcommand stays `run`. Used for a red
 # suite's fix turn and for an implement that continues its analysis.
+# Claude's `--name` goes too, with its value: a session is named once, by the
+# turn that starts it, and a name in a resumed turn's argv would rename it.
 resume_argv() {
   local session="$1" arg skip="no" resumes="no"
   resumed_argv=()
@@ -114,7 +130,7 @@ resume_argv() {
     if [ "$skip" = "yes" ]; then skip="no"; continue; fi
     case "$arg" in
       --session-id|--resume) resumed_argv+=(--resume "$session"); resumes="yes"; skip="yes" ;;
-      --sandbox|--add-dir) skip="yes" ;;
+      --sandbox|--add-dir|--name) skip="yes" ;;
       exec) resumed_argv+=(exec resume); resumes="yes" ;;
       *) resumed_argv+=("$arg") ;;
     esac
@@ -328,6 +344,17 @@ else
   [ -n "$effort" ] && argv+=(--effort "$effort")
   [ -n "$session_id" ] && argv+=(--session-id "$session_id")
   [ "$chrome" = "yes" ] && argv+=(--chrome)
+  # `--name` sets the session's display name: Claude Code writes it into
+  # the session's file and `claude --resume <name>` finds the session by
+  # it. Verified 2026-10-22 on 2.1.308 in -p stream-json mode. Codex and
+  # opencode get none: `codex exec` has no way to name a session.
+  session_project="$(worktree_project_key "$project_root")"
+  case "$command_name" in
+    create)   session_name="$session_project new create" ;;
+    schedule) session_name="$session_project schedule ${spec_arg#schedule-}" ;;
+    *)        session_name="$session_project $spec_id $command_name" ;;
+  esac
+  argv+=(--name "$session_name")
 fi
 
 # An implement that continues its analysis's own session (the board passes

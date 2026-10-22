@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [What a run does, in order](#what-a-run-does-in-order)
+- [How a run names its Claude sessions](#how-a-run-names-its-claude-sessions)
 - [The dashboard's own checkouts](#the-dashboards-own-checkouts)
 - [How a run touches the repositories](#how-a-run-touches-the-repositories)
 - [What counts as a step having run](#what-counts-as-a-step-having-run)
@@ -59,6 +60,24 @@ Two pages sit beside this one:
 
 Each of those is a section below, except the step's own turn, which is
 [Running specs](running-specs.md)'s business.
+
+## How a run names its Claude sessions
+
+Every Claude session a run starts gets a display name, so `claude --resume` on the serving host and the session lists of
+a tool that reads Claude Code's session files say which project, spec and step a session belonged to. The runner passes
+it as `--name`; `<project>` is the project's name on the board, the same as the first segment of the worktree path.
+
+| The session                                     | Its name                                        |
+|-------------------------------------------------|-------------------------------------------------|
+| A step on a spec: analyze, implement, archive … | `<project> <spec number> <step>`                |
+| The review after an implement                   | `<project> <spec number> review`                |
+| A create, which has no number yet               | `<project> new create`                          |
+| A scheduled job                                 | `<project> schedule <entry name>`               |
+
+A turn that continues a session passes no name, so the session keeps the one it has: the fix turn after a review or a
+red test run stays `<project> <spec number> implement`, and an implement that continues its analysis's session stays
+`<project> <spec number> analyze`. Codex and OpenCode sessions get no name: `codex exec` has no way to name one. The
+code is in `run-spec/setup/invocation.sh`, and the review's name in `run-spec/turn/review.sh`.
 
 ## The dashboard's own checkouts
 
@@ -135,7 +154,7 @@ one).
 
 **It branches them in `git worktree` checkouts of its own**, under `$HOME/.aide/dashboard/worktrees/`. The path is
 `<project>/<spec>/<basename of each root>`. The first segment is the project's name: for the dashboard's own clone,
-`checkouts/<project>/code`, it is `<project>` (`worktree_project_key` in `run-spec/checkout/checkouts.sh`), and for any other
+`checkouts/<project>/code`, it is `<project>` (`worktree_project_key` in `run-spec/setup/invocation.sh`), and for any other
 `--project-dir` it is that directory's basename. The real
 checkouts are put back **onto** their default branch before the worktrees are made and never leave it, so several runs
 can go at once, the dashboard's spec list never describes whatever branch a running job is on, and a user can use the
