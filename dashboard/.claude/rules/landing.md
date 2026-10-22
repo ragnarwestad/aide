@@ -46,7 +46,10 @@ reads what a landing left.
   row reads "archive held back" from `4-status.md` — but nothing was
   archived, and `already-landed` has nothing left to land. Neither
   reaches `landArchivedSpec`: landing a refusal would merge implement's
-  code branch into main with the spec still active.
+  code branch into main with the spec still active. A stopped, failed or
+  interrupted archive lands nothing either: its pre-check moves the folder
+  on the branch, and the move reaches the default branch only when the
+  archive step completes and lands.
 - **Two `archive` steps never run at once in one project.** Both branch
   from the code root's main and both land into it; the second is held
   `queued` with the reason on its row until the first has landed — the

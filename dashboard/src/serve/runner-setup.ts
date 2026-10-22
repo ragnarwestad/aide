@@ -376,12 +376,10 @@ export function stepDoneHandler(
     // stopped with a finished analysis nothing on this page
     // mentioned.
     //
-    // What decides is what the run TOUCHED, never which step it
-    // was. A run that moved a code root's HEAD is left exactly
-    // where a failed run is left — the code waits on its branch for
-    // `archive`, whether the step ran out of time or not — and there
-    // is no second list of "which steps are safe" to keep in step
-    // with the first.
+    // A stopped archive never lands: its pre-check already moved the
+    // folder on the branch, and that move must wait for a completed archive.
+    // Other stopped steps land only when no code root was pushed;
+    // code waits on its branch for `archive`.
     //
     // The wall clock, a provider limit, a shared-files stop and an
     // implement sent back to a full analysis all stop after the runner
@@ -391,6 +389,7 @@ export function stepDoneHandler(
       !step ||
       !["timeout", "provider-limit", "shared-files", "sent-back"].includes(outcome.terminalReason ?? "")
     ) return undefined;
+    if (step === "archive") return undefined;
     const codeRoots = new Set([ctx.machineryProjectDir(job.project)]);
     const pushed = outcome.branchUrls ?? [];
     if (pushed.length === 0 || pushed.some((r) => codeRoots.has(r.root))) return undefined;

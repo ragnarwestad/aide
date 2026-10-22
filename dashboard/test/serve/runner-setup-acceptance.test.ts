@@ -104,6 +104,14 @@ describe("stepDoneHandler", () => {
         calls.push("land");
         return Promise.resolve();
       },
+      landStoppedStepBranch: () => {
+        calls.push("land stopped");
+        return Promise.resolve();
+      },
+      landArchivedSpec: () => {
+        calls.push("land archive");
+        return Promise.resolve();
+      },
       store: { forgetPendingSteps: () => {} },
     };
     return { calls, handle: stepDoneHandler(ctx as unknown as Parameters<typeof stepDoneHandler>[0]) };
@@ -126,4 +134,26 @@ describe("stepDoneHandler", () => {
     expect(handle(job() as never, "analyze", { ok: true, terminalReason: "completed" })).toBeInstanceOf(Promise);
     expect(calls).toEqual(["forget /machinery/81-queue-and-runner", "land"]);
   });
+
+  const branchUrls = [{ root: "/specs", branch: "aide/81-queue-and-runner", url: "https://example.com/specs" }];
+  for (const terminalReason of ["timeout", "provider-limit", "cli-error"]) {
+    test(`an archive ending ${terminalReason} starts no landing (AC-1)`, () => {
+      const { calls, handle } = harness();
+      expect(handle(job(), "archive", { ok: false, terminalReason, branchUrls })).toBeUndefined();
+      expect(calls).toEqual(["forget /machinery/81-queue-and-runner", "reread /machinery/81-queue-and-runner"]);
+    });
+  }
+
+  test("a stopped analyze still lands its specs branch (AC-1)", async () => {
+    const { calls, handle } = harness();
+    await handle(job(), "analyze", { ok: false, terminalReason: "timeout", branchUrls });
+    expect(calls).toEqual(["forget /machinery/81-queue-and-runner", "land stopped"]);
+  });
+
+  test("a completed archive uses the archive landing (AC-3)", async () => {
+    const { calls, handle } = harness();
+    await handle(job(), "archive", { ok: true, terminalReason: "completed", branchUrls });
+    expect(calls).toEqual(["forget /machinery/81-queue-and-runner", "land archive"]);
+  });
+
 });
