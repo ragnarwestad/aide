@@ -27,6 +27,7 @@
   - [21. Named profiles for the AI and the step settings](#21-named-profiles-for-the-ai-and-the-step-settings)
   - [22. An analysis and a plan that are easier to read](#22-an-analysis-and-a-plan-that-are-easier-to-read)
   - [23. An agent that tries the criteria in a browser before a person ticks them](#23-an-agent-that-tries-the-criteria-in-a-browser-before-a-person-ticks-them)
+  - [24. One spec in sections, each analysed and implemented in turn on one branch](#24-one-spec-in-sections-each-analysed-and-implemented-in-turn-on-one-branch)
 
 ---
 
@@ -42,7 +43,7 @@ An idea that becomes a spec names it, and leaves this page once the spec is arch
 
 Each idea has a number that stays with it. A new idea gets the next number after the highest one ever given, and
 the number of an idea taken off the page is never used again, so a number can be referred to and still mean the
-same idea later. The next number is 24.
+same idea later. The next number is 25.
 
 ## To consider
 
@@ -426,3 +427,41 @@ Open questions:
 - Which criteria the agent may try, since a criterion about an email, a deploy or another machine cannot be tried
   in a browser on the test server.
 - What it costs per spec, and whether it runs for every held-back spec or only on request.
+
+### 24. One spec in sections, each analysed and implemented in turn on one branch
+
+From running the Skjera specs 19 to 25 as a chain joined by Depends on (2026-10-21), and the
+[AI Coding Dictionary](https://www.aicodingdictionary.com/?term=spec), where a spec is work over several sessions
+made of [tickets](https://www.aicodingdictionary.com/?term=ticket) that each fit one session. In a chain each spec
+has its own description, branch, landing and ticking, and only the conversation that made the chain knows what the
+whole is for: each analysis sees its own description and the code the specs before it landed, not the goal, the
+decisions taken for all of them, or what the earlier analyses found. Nothing checks that the whole works.
+
+The idea: one spec whose description holds the goal, the decisions and the criteria for the whole, and a section
+for each part. The runner analyses and implements the sections in turn on the spec's one branch, each analysis
+reading the whole description and what the sections before it found and built, so every session stays the size it
+is today. One landing at the end, and the criteria for the whole ticked with it.
+
+|                                      | A chain of specs today  | One spec in sections         |
+|--------------------------------------|-------------------------|------------------------------|
+| Description                          | One per spec            | One, with a section per part |
+| Analyze and implement                | Per spec                | Per section, in turn         |
+| Branch                               | One per spec            | One for the spec             |
+| Landing, with the test suite on main | One per spec            | One at the end               |
+| Order                                | Depends on, set by hand | The order of the sections    |
+
+What it would cost: conflicts with main gather until the one landing, and a section that fails leaves the ones
+before it on the branch with nothing in use, which the board would have to show plainly. The analysis files already
+hold several rounds (`## Round N`), which a section each could use.
+
+How to try it before building anything, with `scripts/replay_specs`, which leaves nothing behind in the real
+repositories:
+
+1. **The Skjera specs as they ran**, replayed as they are.
+2. **The same specs as sections of one spec**, with a shared description, each replayed on what the one before it
+   built rather than on the code from before it landed.
+
+Then compare the analyses' cost, the judge's score, the original tests and how full each session's context got
+(idea 15). The second round needs a chain mode in `scripts/replay_specs`, where each spec starts from the result of
+the one before it. Two rounds of five or six specs cost roughly $80–150 and several hours on the serving host, from
+the same usage limit as the board.
