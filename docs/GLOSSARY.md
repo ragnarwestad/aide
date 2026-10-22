@@ -25,8 +25,11 @@ Each entry says what the word is and links the page that has the rest.
   with optional acceptance criteria and an optional `## Out of scope`
   section. Never rewritten by a step.
 - **Acceptance criterion** (`AC-n`) — one requirement in the description,
-  one sentence in an EARS pattern. The user ticks its row in `4-status.md`;
-  no step ever does.
+  one sentence in an EARS pattern. The user ticks its row in `4-status.md`,
+  or marks it Not verified when it can only be checked later; no AI step
+  ever does. A spec created with acceptance ticking not required has every
+  row marked Not verified by the runner instead, so its archive is not held
+  back and the rows wait in the Not verified filter.
 - **EARS** — the five sentence patterns a criterion is written in (always,
   WHEN, WHILE, IF … THEN, WHERE), condition first.
 - **Criteria checks** — how strictly the analysis holds the criteria to
