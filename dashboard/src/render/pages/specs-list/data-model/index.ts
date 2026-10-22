@@ -37,6 +37,8 @@ export {
   filterShowsArchived,
   NOT_VERIFIED_KEY,
   isArchivedRow,
+  lockedAsArchived,
+  offersArchiveAgain,
   matchesSearch,
   ACTIVE_FILTER_KEY,
   applyFilter,

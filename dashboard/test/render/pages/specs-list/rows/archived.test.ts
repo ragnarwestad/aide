@@ -327,6 +327,39 @@ describe("spec 221: archived specs on the spec list", () => {
     expect(html).toContain("Its branch is still on origin — re-run archive");
   });
 
+  // An archive that stopped after moving the folder (a usage limit, 659
+  // on 2026-10-22) leaves the spec archived with its code unlanded. The
+  // queue refuses Reopen for it ("already active") and takes Archive, so
+  // the row offers what the queue takes: Archive, with its model.
+  test("whose code has not landed offers Archive, with the Archive line's model to pick, not Reopen", () => {
+    const open = rows({
+      archivedSpecs: [archivedSpec("50-archived", { notLanded: true })],
+      filter: { state: "archived", open: "aide/50-archived" },
+      modelChoices: [{ name: "claude opus", tool: "claude" }, { name: "codex gpt-6.1-sol", tool: "codex" }],
+    });
+    const form = open.match(/<form\b[^>]*\sid="rowrun-aide\/50-archived"[^>]*>[\s\S]*?<\/form>/)?.[0] ?? "";
+    expect(form).toContain('action="/api/queue"');
+    expect(form).toContain('name="steps" value="archive"');
+    expect(form).toContain(">Archive</button>");
+    expect(form).not.toContain("<select");
+    // The Archive line's own selects, named after that form and open to a pick.
+    const archiveModel = open.match(/<select name="model\.archive"[^>]*>/)?.[0] ?? "";
+    expect(archiveModel).toContain('form="rowrun-aide/50-archived"');
+    expect(archiveModel).not.toContain("disabled");
+    // Every other line stays a record.
+    expect(open.match(/<select name="model\.implement"[^>]*>/)?.[0]).toContain("disabled");
+    expect(open).not.toContain(">Reopen</button>");
+  });
+
+  test("whose branch is open for review keeps Reopen", () => {
+    const open = rows({
+      archivedSpecs: [archivedSpec("50-archived", { prOpen: true, prUrl: "https://github.test/aide/pull/9" })],
+      filter: { state: "archived", open: "aide/50-archived" },
+    });
+    expect(open).toContain(">Reopen</button>");
+    expect(open).not.toContain('name="steps" value="archive"');
+  });
+
   // Spec 335, REQ-2/REQ-4: `archive.prOpen` had no coverage anywhere —
   // and no State-column mark at all, since `g.state` reads `notLanded`
   // alone (spec-views.ts) and `prOpen` is mutually exclusive with it.
