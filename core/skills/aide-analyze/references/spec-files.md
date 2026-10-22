@@ -1,11 +1,8 @@
 # Spec files in detail
 
-The spec-structure rule holds what every step needs about the four files.
-This page holds the rest: what a step writes or reads only in some runs.
-Read the section the step at hand needs.
-
 ## Table of contents
 
+- [Overview](#overview)
 - [1-description: Tracking info and acceptance criteria](#1-description-tracking-info-and-acceptance-criteria)
 - [3-solution: approaches, parts and tests](#3-solution-approaches-parts-and-tests)
 - [A short analysis](#a-short-analysis)
@@ -16,6 +13,12 @@ Read the section the step at hand needs.
 - [4-status: Acceptance criteria](#4-status-acceptance-criteria)
 
 ---
+
+## Overview
+
+The spec-structure rule holds what every step needs about the four files.
+This page holds the rest: what a step writes or reads only in some runs.
+Read the section the step at hand needs.
 
 ## 1-description: Tracking info and acceptance criteria
 

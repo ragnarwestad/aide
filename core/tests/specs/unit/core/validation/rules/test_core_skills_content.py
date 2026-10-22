@@ -32,11 +32,11 @@ def test_every_aide_script_a_skill_runs_exists():
 
 
 @pytest.mark.validation
-def test_analyze_plan_and_review_share_the_parts_lines_AC_2_AC_3_AC_4():
+def test_analyze_plan_and_review_share_the_parts_lines_AC_2_AC_3_AC_4_AC_7():
     """The plan step writes the Parts lines the plan review checks
     (AC-2, AC-3, AC-4)."""
     analyze = CORE_SKILLS_DIR / "aide-analyze"
-    skill = (analyze / "SKILL.md").read_text(encoding="utf-8")
+    skill = (analyze / "references" / "implementation-plan.md").read_text(encoding="utf-8")
     review = (analyze / "references" / "plan-review.md").read_text(encoding="utf-8")
     for form in ("Reused:", "New, because", "None —"):
         assert form in skill, f"the plan step does not write {form!r}"
@@ -100,7 +100,7 @@ def test_the_rule_the_reader_the_create_skill_and_the_plan_review_share_the_out_
 
 
 @pytest.mark.validation
-def test_the_template_the_plan_step_the_plan_review_and_implement_share_the_test_places_heading_AC_5_AC_6():
+def test_the_template_the_plan_step_the_plan_review_and_implement_share_the_test_places_heading_AC_5_AC_6_AC_7():
     """Implement's RED step finds the plan's places by this heading, so the
     solution template, the plan step, the plan review and implement must
     all give it."""
@@ -108,7 +108,7 @@ def test_the_template_the_plan_step_the_plan_review_and_implement_share_the_test
     template = (REPO_ROOT / "core" / "templates" / "todo" / "3-solution.md.template").read_text(encoding="utf-8")
     assert f"\n{heading}\n" in template, "the solution template does not give the heading"
     for path in (
-        CORE_SKILLS_DIR / "aide-analyze" / "SKILL.md",
+        CORE_SKILLS_DIR / "aide-analyze" / "references" / "implementation-plan.md",
         CORE_SKILLS_DIR / "aide-analyze" / "references" / "plan-review.md",
         CORE_SKILLS_DIR / "aide-implement" / "SKILL.md",
     ):
@@ -193,3 +193,13 @@ def test_the_implement_skill_asks_aide_ac_prefix_for_the_prefix_AC_1_AC_2():
     skill = (CORE_SKILLS_DIR / "aide-implement" / "SKILL.md").read_text(encoding="utf-8")
     runs = [block for block in BASH_BLOCK.findall(skill) if re.search(r"^\s*aide-ac-prefix\b", block, re.M)]
     assert runs, "no bash block of the implement skill runs aide-ac-prefix"
+
+
+@pytest.mark.validation
+def test_analyze_names_every_reference_and_each_exists_AC_6():
+    analyze = CORE_SKILLS_DIR / "aide-analyze"
+    skill = (analyze / "SKILL.md").read_text(encoding="utf-8")
+    named = set(re.findall(r"references/[a-z0-9-]+\.md", skill))
+    actual = {str(path.relative_to(analyze)) for path in (analyze / "references").glob("*.md")}
+    assert actual, "No analyze references found"
+    assert named == actual, f"Unnamed: {actual - named}; missing: {named - actual}"

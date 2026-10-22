@@ -74,9 +74,9 @@ First write `--- Step 1 of 11: Read the description — started`, and when this 
 - **Learn whether a short analysis is allowed**, for Steps 3, 5, 7, 8 and
   9. A headless run says so in the prompt, in the line `A short analysis is allowed for this spec, per Step 3`
   followed by the runner's limits, and says nothing when it is not.
-  Working interactively there is no such line: write the full analysis. The limits are set in
-  `core/scripts/lib/run-spec/setup/arguments.sh` and checked there after
-  the turn. A spec whose `1-description.md` has a `Sent back to a full
+  Working interactively there is no such line: write the full analysis. The runner sets
+  the limits and checks the analysis against them after the turn. A spec whose
+  `1-description.md` has a `Sent back to a full
   analysis:` line in Tracking info is never given a short analysis, run
   headless or not: implement found it is not small.
 - If `4-status.md` ALSO already carries that same section plus a
@@ -174,41 +174,18 @@ The `### Overlapping specs` subsection under Findings is never unwritten,
 and is copied word for word, in a rewrite too: only `aide-spec-overlap
 --record` (Step 6) writes it.
 
-One exception: when `2-analysis.md`'s Tracking info reads `Result:
-stopped (acceptance-criteria)` or `Result: stopped
-(short-analysis-over-limit)`, the earlier run stopped on the
-acceptance criteria, or wrote a short analysis for a spec over a limit,
-and the description has been put right since. After the second, write the
-full analysis (Step 3).
-Treat every section that run wrote as unwritten, and write the three
-files afresh. On a held-back round, replace that round's own `## Round
-N` subsections rather than appending a new round.
+Four cases rewrite the three files instead, and
+`references/work-already-begun.md` says what each keeps and what it
+writes afresh. Run `aide-spec-overlap --specs-root <root> --spec XX-slug`,
+then read that reference before writing anything when one of these holds:
 
-A second exception, for a spec implement sent back: the description's
-Tracking info has a `Sent back to a full analysis:` line, and `2-analysis.md`
-reads `Analysis: short`. The short analysis was too small for the spec, so
-treat every section as unwritten and write the three files afresh as a full
-analysis (Step 3), keeping `### Overlapping specs` as it stands and the
-lines the runner wrote into each file's Tracking info (`Repo`, `Model`,
-`Result`, `Attempts`, `Cost` and the like).
-
-A third exception: the newest round of `3-solution.md` records a
-`**Chosen approach:** Approach X` line under its Approaches heading, and
-that approach's lead is not the one marked `(recommended)`. The person
-chose another approach on the Specs list. Move `(recommended)` to the
-chosen approach's lead and give the lead that carried it `(real
-alternative)`; keep every other lead and the chosen line word for word.
-Write `### Recommended:` and every section below it afresh for the chosen
-approach, and `4-status.md`'s phase tables for the new plan. Leave
-`2-analysis.md` as it stands. A chosen line on the recommended approach
-needs nothing: the choice is made, and is never asked again.
-
-A fourth exception: `aide-spec-overlap --specs-root <root> --spec XX-slug`
-lists a spec under `landed`. The analysis was made against code that has
-changed since, so treat every section as unwritten and write the three
-files afresh, keeping `### Overlapping specs` as it stands. Step 6's
-`--record` then drops the archived spec from the record, so the rewrite
-happens once.
+- `2-analysis.md`'s Tracking info reads `Result: stopped
+  (acceptance-criteria)` or `Result: stopped (short-analysis-over-limit)`
+- the description's Tracking info has a `Sent back to a full analysis:`
+  line, and `2-analysis.md` reads `Analysis: short`
+- the newest round of `3-solution.md` records a `**Chosen approach:**`
+  line under its Approaches heading
+- the command lists a spec under `landed`
 
 A held-back round (Step 1) is a different case from the above, not a
 variant of it: `2-analysis.md`/`3-solution.md` are already fully
@@ -300,80 +277,11 @@ In Tracking info, on every run, write `- **Grade:** LOW` (or `MEDIUM`,
 **A short analysis writes the short shape and nothing more** — the
 `## Short analysis` sentence, Scope, and Testing with Where the tests sit,
 as `references/spec-files.md` gives it — and the rest of this step does not
-apply to it. A full analysis writes everything below.
-
-**Scope:** the files to change, the complexity grade with each factor that
-set it and the files that show it (Step 3), and the estimate for manual and
-AI-assisted development.
-
-**Approaches:** when the spec asks to choose the approach (Step 1), every
-approach lead ends in one of three marks, letters A, B, C in order, as the
-spec structure shows: `(recommended)` on exactly one, `(real alternative)`
-on each other approach a person could reasonably pick instead, and
-`(considered and rejected)` on one that fails a requirement or is plainly
-worse. The Specs list offers the person every approach marked recommended
-or real alternative, so an approach left unmarked is never offered
-(`references/spec-files.md` has the format and the chosen line). When
-the spec does not ask, only the recommended lead carries a mark. Never write or remove a
-`**Chosen approach:**` line: the dashboard writes it.
-
-**Behavior delta:** state what the chosen solution ADDS / MODIFIES / REMOVES
-in behavior, relative to how the system works today — not just which files
-change (those are listed under Scope).
-
-**Parts:** a `### Parts` subsection under Recommended solution, with one
-line for every part the change needs that it does not have yet (Step 2):
-
-    - **<the part>** — Reused: <what, with file:line>
-    - **<the part>** — New, because <why nothing existing does it>
-
-A New reason names what was looked at and why it does not do the job. A
-change that needs no part of its own writes the one line
-`- None — <why>`, so an empty list is never mistaken for a forgotten one.
-
-**Risk analysis:** the risks the chosen solution carries, each with
-consequence, probability and mitigation.
-
-**Acceptance criteria:** testable given/when/then scenarios. Each criterion
-must be verifiable by a test — if you cannot phrase the test, the criterion
-is too vague. When AC-n ids exist, see `references/requirements-tracing.md`
-for how each criterion opens with the AC-id it covers.
-
-Unless the level is `off`, a criterion with a WHEN, WHILE or WHERE
-condition, wherever the condition is written, also gets a scenario for
-the case where that condition does not hold: what the system does then.
-
-End a criterion with *(browser)* when only a real browser can answer it:
-whether something is displayed, where it sits on the screen, what
-scrolls, what moves when its text changes. What the markup or the
-stylesheet says is not a browser question, and a criterion without the
-tag is tested the ordinary way. `/aide-implement` writes a browser test
-for every tagged criterion.
-
-**Name the project's test command.** `aide-resolve-test-cmd --project-dir .`
-prints it (the manifest's `AIDE_TEST_CMD`, the tools-and-scripts skill,
-"Project commands"). Write it into the plan verbatim — never leave the
-`<project test command>` placeholder standing.
-
-**Where the tests sit:** a `### Where the tests sit` subsection under
-Testing, one line per place: the public interface where the behaviour is
-observed, its test file, whether that file exists, and the rules tested
-there (the AC-ids). As few places as cover the criteria, and a new place
-only where no existing test file observes the behaviour — the testing
-rule's "One place per rule", decided before any test is written. A
-criterion no test can reach gets no place: the Manual testing note says
-why.
-
-    - **<public interface>** in `<test file>` (existing|new) — <AC-ids, or the rule in words>
-
-Structure the plan with TDD:
-- Task 0: Write tests (RED phase) — at least one failing test per acceptance criterion with a place, at the places Where the tests sit names
-- Task 1-N: Implementation (GREEN phase)
-- Testing strategy (VERIFY phase)
-
-Call a plan item a task, never a step: a step is what the queue runs, or
-a numbered section of a skill such as this one, and a log that says
-"Step 8" must mean one of those.
+apply to it. A full analysis writes everything
+`references/implementation-plan.md` gives: Scope, Approaches, Behavior
+delta, Parts, Risk analysis, Acceptance criteria, the test command, Where
+the tests sit and the TDD tasks. Read it before writing a full
+`3-solution.md`.
 
 ### Step 8 of 11: Review the plan
 

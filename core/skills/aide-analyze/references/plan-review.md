@@ -1,5 +1,16 @@
 # Plan review: attacking the plan before RED
 
+## Table of contents
+
+- [Overview](#overview)
+- [Review — three reviewers, at every complexity](#review--three-reviewers-at-every-complexity)
+- [Consolidate](#consolidate)
+- [Revise — the review is not a stamp](#revise--the-review-is-not-a-stamp)
+
+---
+
+## Overview
+
 Attack the plan while mistakes are still cheap: after `3-solution.md` is
 written, before any test exists. This routine used to be its own skill,
 `/aide-review-plan`, run as a separate step between `/aide-analyze` and
@@ -18,14 +29,6 @@ both handed the spec's acceptance criteria checks level (`off`,
 `warn` or `stop`, Step 1), since that is not in the spec either:
 Feasibility makes the cannot-be-built check, Coherence the other four.
 Coherence is told, too, whether the spec asks to choose the approach.
-
-## Table of contents
-
-- [Review — three reviewers, at every complexity](#review--three-reviewers-at-every-complexity)
-- [Consolidate](#consolidate)
-- [Revise — the review is not a stamp](#revise--the-review-is-not-a-stamp)
-
----
 
 ## Review — three reviewers, at every complexity
 

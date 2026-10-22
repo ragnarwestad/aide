@@ -1,14 +1,8 @@
 # Acceptance criteria tracing: AC-n through the analysis
 
-When 1-description.md has a `## Acceptance criteria` section, /aide-analyze
-threads its AC-n ids through the rest of the spec. No section present:
-every step below is unchanged from today's plain-text behavior, and the
-acceptance criteria checks still run — at `warn` and `stop` a
-description with no criteria is a finding of its own
-(`references/plan-review.md`, Coherence).
-
 ## Table of contents
 
+- [Overview](#overview)
 - [Step 1 (read the description)](#step-1-read-the-description)
 - [Step 5 (2-analysis.md)](#step-5-2-analysismd)
 - [Step 7 (3-solution.md, Acceptance criteria)](#step-7-3-solutionmd-acceptance-criteria)
@@ -17,6 +11,15 @@ description with no criteria is a finding of its own
 - [A held-back spec's second round](#a-held-back-specs-second-round)
 
 ---
+
+## Overview
+
+When 1-description.md has a `## Acceptance criteria` section, /aide-analyze
+threads its AC-n ids through the rest of the spec. No section present:
+every step below is unchanged from today's plain-text behavior, and the
+acceptance criteria checks still run — at `warn` and `stop` a
+description with no criteria is a finding of its own
+(`references/plan-review.md`, Coherence).
 
 ## Step 1 (read the description)
 

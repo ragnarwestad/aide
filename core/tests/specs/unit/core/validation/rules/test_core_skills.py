@@ -26,6 +26,51 @@ def get_skill_dirs() -> list[Path]:
     ]
 
 
+def skills_over_the_size_limit(skills_dir):
+    problems = []
+    for path in sorted(skills_dir.glob("*/SKILL.md")):
+        text = path.read_text(encoding="utf-8")
+        lines, characters = len(text.splitlines()), len(text)
+        if lines >= 500 or characters >= 20_000:
+            problems.append(f"{path.parent.name}: {lines} lines, {characters} characters")
+    return problems
+
+
+@pytest.mark.validation
+def test_every_core_skill_is_under_the_size_limit_AC_1_AC_5():
+    assert get_skill_dirs(), "No skill directories with SKILL.md in core/skills/"
+    assert not (problems := skills_over_the_size_limit(CORE_SKILLS_DIR)), "\n".join(problems)
+
+
+@pytest.mark.validation
+@pytest.mark.parametrize("lines,characters,over", [
+    (499, 19_999, False),
+    (500, 19_999, True),
+    (499, 20_000, True),
+    (500, 20_000, True),
+])
+def test_skill_size_boundaries_name_the_skill_AC_5(tmp_path, lines, characters, over):
+    skill = tmp_path / "boundary-skill"
+    skill.mkdir()
+    (skill / "SKILL.md").write_text("é" * (characters - lines) + "\n" * lines, encoding="utf-8")
+    (tmp_path / "not-a-skill").mkdir()
+    expected = [f"boundary-skill: {lines} lines, {characters} characters"] if over else []
+    assert skills_over_the_size_limit(tmp_path) == expected
+
+
+@pytest.mark.validation
+def test_long_analyze_references_start_with_contents_AC_4():
+    problems = []
+    for path in sorted((CORE_SKILLS_DIR / "aide-analyze" / "references").glob("*.md")):
+        lines = path.read_text(encoding="utf-8").splitlines()
+        if len(lines) <= 100:
+            continue
+        nonempty = [line for line in lines if line.strip()]
+        if not (nonempty[0].startswith("# ") and nonempty[1] == "## Table of contents"):
+            problems.append(path.name)
+    assert not problems, f"References without contents directly after the title: {problems}"
+
+
 def parse_frontmatter(content: str) -> dict:
     """Extract flat YAML frontmatter fields from a SKILL.md file."""
     match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
