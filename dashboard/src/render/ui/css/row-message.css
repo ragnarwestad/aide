@@ -19,8 +19,12 @@
 .rowmsg > span { min-width: 0; overflow-wrap: anywhere; }
 /* A link inside a message's sentence is told apart from the words around
    it, whatever colour the message's state gives them. */
-.rowmsg a { color: var(--link-text); text-decoration: underline; }
-.rowmsg a:hover { color: var(--link-text-strong); }
+.rowmsg a:not(.btn) { color: var(--link-text); text-decoration: underline; }
+.rowmsg a:not(.btn):hover { color: var(--link-text-strong); }
+/* A button the message carries (the empty Running tab's New) keeps its
+   own look and stands at the box's right edge, where New stands on the
+   controls line of a tab with rows. */
+.rowmsg > .btn { margin-left: auto; flex: none; }
 /* A line with no words yet — the slot the page's script writes a
    refusal into. It takes no room and shows nothing, but is not
    display: none: that would take it out of what a screen reader hears
