@@ -120,6 +120,25 @@ CODEX_STREAM_AT_CAPACITY_NO_TURN = "\n".join(
 )
 
 
+# What Codex says when the account's usage is already spent as the turn
+# starts: an `error` event, then a `turn.failed` with the same sentence.
+# No request is made, so its session file holds no full window to read.
+USAGE_LIMIT_MESSAGE = (
+    "You\u2019ve hit your usage limit. Upgrade to Pro (https://chatgpt.com/explore/pro), visit "
+    "https://chatgpt.com/settings/usage to purchase more credits or try again at 3:42 PM."
+)
+
+CODEX_STREAM_USAGE_LIMIT = "\n".join(
+    json.dumps(e)
+    for e in [
+        {"type": "thread.started", "thread_id": CODEX_THREAD_ID},
+        {"type": "turn.started"},
+        {"type": "error", "message": USAGE_LIMIT_MESSAGE},
+        {"type": "turn.failed", "error": {"message": USAGE_LIMIT_MESSAGE}},
+    ]
+)
+
+
 # An at-capacity error early on that Codex got past: the turn completes.
 CODEX_STREAM_RECOVERED = "\n".join(
     json.dumps(e)
