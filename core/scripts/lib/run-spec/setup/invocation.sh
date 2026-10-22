@@ -189,15 +189,8 @@ if [ "$command_name" = "schedule" ]; then
 $schedule_step_note
 $headless_note"
 elif [ -n "$spec_folder" ]; then
-  # Spec 386: stated to the skill, not just to the harness — a CLI flag
-  # on the claude/codex binary is invisible to the skill's own
-  # reasoning, and Step 9's branch has to be read out of the prompt the
-  # same way depends_line already is for /aide-create.
-  acceptance_line=""
-  [ "$command_name" = "analyze" ] && [ "$acceptance_not_required" = "yes" ] && acceptance_line="
-Acceptance ticking is not required for this run: per Step 9, do not write the acceptance-criteria table into 4-status.md — write the one-line note instead."
-  # Spec 406: stated to the skill the same way depends_line/acceptance_line
-  # are — a CLI flag alone is invisible to the skill's own reasoning, and
+  # Spec 406: stated to the skill the same way depends_line
+  # is — a CLI flag alone is invisible to the skill's own reasoning, and
   # Step 1 hands this straight to `aide-close-spec --reason`.
   reason_line=""
   [ "$command_name" = "close" ] && [ -n "$reason" ] && reason_line="
@@ -234,7 +227,7 @@ Let me choose the approach is on for this spec, per Step 7: mark each approach (
   short_line=""
   [ "$command_name" = "analyze" ] && [ "$choose_approach" != "yes" ] && [ -z "$already_sent_back" ] && short_line="
 A short analysis is allowed for this spec, per Step 3: grade $SHORT_ANALYSIS_GRADE, at most $SHORT_ANALYSIS_MAX_CRITERIA acceptance criteria, at most $SHORT_ANALYSIS_MAX_FILES files to change"
-  prompt="$(skill_call "aide-$command_name" "$spec_id")$acceptance_line$criteria_line$approach_line$short_line$reason_line
+  prompt="$(skill_call "aide-$command_name" "$spec_id")$criteria_line$approach_line$short_line$reason_line
 $step_log_note
 $headless_note"
 else

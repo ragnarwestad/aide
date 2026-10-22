@@ -267,25 +267,27 @@ untick_failed_acceptance_rows() {
   rm -f "$tmp"
 }
 
-# rebuild_acceptance_rows($status_file, $description_file) — the tick list
-# after a new analysis: the first table under the first `## Acceptance`
-# heading becomes one row per `- **AC-n:**` line of the description
-# (ascending, the first line of an id wins), every Status `⬜`. A row keeps
-# its Notes cell only while its criterion's text is unchanged. Every other
-# line stays byte for byte.
+# rebuild_acceptance_rows($status_file, $description_file[, $mark]) — the
+# tick list after a new analysis: the first table under the first
+# `## Acceptance` heading becomes one row per `- **AC-n:**` line of the
+# description (ascending, the first line of an id wins), every Status
+# `$mark` (default `⬜`). A row keeps its Notes cell only while its
+# criterion's text is unchanged. Every other line stays byte for byte.
 #
 # Two things it leaves alone on purpose: a section with no table (there is
-# nothing to tick), and, when the description has no criterion line the
+# nothing to tick) — unless a mark other than `⬜` is given, when the one
+# sentence a spec with ticking not required used to get is replaced by the
+# table — and, when the description has no criterion line the
 # pattern can read, the rows' text and Notes — only their Status cells are
 # cleared, so an unreadable description never empties the table and lets
 # an archive through unchecked. The criterion pattern is the one
 # run-spec/record/ac-coverage.sh reads, so both count the same ids.
 rebuild_acceptance_rows() {
-  local status_file="$1" description="${2:-/dev/null}" tmp
+  local status_file="$1" description="${2:-/dev/null}" mark="${3:-⬜}" tmp
   [ -f "$status_file" ] || return 0
   [ -f "$description" ] || description="/dev/null"
   tmp="$(mktemp)"
-  LC_ALL=C awk -v desc="$description" '
+  LC_ALL=C awk -v desc="$description" -v status_mark="$mark" '
     function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
     function flush(   i, j, n, cells, task, note, oid, mark, pl, pr) {
       in_table = 0; table_done = 1
@@ -297,7 +299,7 @@ rebuild_acceptance_rows() {
           pl = cells[3]; sub(/[^ \t].*$/, "", pl)
           pr = cells[3]; sub(/^.*[^ \t]/, "", pr)
           if (mark == "") { pl = " "; pr = " " }
-          print cells[1] "|" cells[2] "|" pl "⬜" pr "|" cells[4] "|" cells[5]
+          print cells[1] "|" cells[2] "|" pl status_mark pr "|" cells[4] "|" cells[5]
         }
         return
       }
@@ -314,8 +316,8 @@ rebuild_acceptance_rows() {
       for (i = 1; i <= nid; i++) {
         task = "AC-" ids[i] ": " text[ids[i]]
         note = (oldtask[ids[i]] == task) ? oldnote[ids[i]] : ""
-        if (note == "") print "| " task " | ⬜ | |"
-        else print "| " task " | ⬜ | " note " |"
+        if (note == "") print "| " task " | " status_mark " | |"
+        else print "| " task " | " status_mark " | " note " |"
       }
     }
     FILENAME == desc {
@@ -340,6 +342,7 @@ rebuild_acceptance_rows() {
     in_acc && !table_done {
       if ($0 ~ /^\|/) { in_table = 1; tbl[++ntbl] = $0; next }
       if (in_table) flush()
+      else if (status_mark != "⬜" && nid > 0 && trim($0) == "Acceptance ticking was not required for this run.") { flush(); next }
     }
     { print }
     END { if (in_table) flush() }

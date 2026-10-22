@@ -44,12 +44,18 @@ elif [ -n "$status_file" ]; then
 
   # A completed analysis of an implemented spec clears every acceptance
   # tick and rebuilds the rows from the description: the code the ticks
-  # judged is about to be replaced. Before Total progress and the state
-  # file, which both count these rows.
+  # judged is about to be replaced. A spec whose description saves
+  # "Acceptance: not required" gets every row marked Not verified after
+  # every completed analysis. Before Total progress and the state file,
+  # which both count these rows.
   if [ "$command_name" = "analyze" ] && [ "$terminal_reason" = "completed" ] && \
-     declare -f rebuild_acceptance_rows >/dev/null 2>&1 && \
-     analysis_follows_implement "$status_file" "$specs_ref_before"; then
-    rebuild_acceptance_rows "$status_file" "$(dirname "$status_file")/1-description.md"
+     declare -f rebuild_acceptance_rows >/dev/null 2>&1; then
+    if grep -Eq '^[[:blank:]]*-[[:blank:]]*\*\*Acceptance:\*\*[[:blank:]]*not required[[:blank:]]*$' \
+       "$(dirname "$status_file")/1-description.md" 2>/dev/null; then
+      rebuild_acceptance_rows "$status_file" "$(dirname "$status_file")/1-description.md" "Not verified"
+    elif analysis_follows_implement "$status_file" "$specs_ref_before"; then
+      rebuild_acceptance_rows "$status_file" "$(dirname "$status_file")/1-description.md"
+    fi
   fi
 
   # Nothing derived leaves the file alone: a fresh spec whose Phase
