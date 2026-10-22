@@ -181,7 +181,7 @@ the review found, a step run again). Only once that shows what predicts trouble 
 
 What a first measurement found (2026-10-22), from how full the context window got in each of 342 implement sessions
 on Claude: the highest sum of a turn's input and cache tokens in the main session, read from the step's stream. No
-session was compacted; the fullest reached about 626,000 tokens, so the window is at least that large.
+session was compacted; the fullest reached about 626,000 tokens, 63 % of the 1,000,000-token window Claude reports.
 
 | Context at its fullest | Sessions | Ended badly | Red tests at least once | Review found defects |
 | ---------------------- | -------- | ----------- | ----------------------- | -------------------- |
@@ -197,9 +197,22 @@ red tests fills the window, so a session that struggles grows full. Under 100,00
 that stopped early. Telling cause from effect needs the context measured before the first test round, kept with
 each step's result, before any limit is set on it.
 
-What a limit could then do: the runner reads the stream as it arrives, so it can follow how full the window is turn
-by turn. At a limit it could end the session and start a new one that picks up from the plan, the work committed so
-far and the test results, instead of letting the session grow or compact.
+What a limit could then do: the runner reads the stream as it arrives, so it can follow how full the window is after
+every call to the model. At a limit it could end the session and start a new one that picks up from the plan, the work
+committed so far and the test results, instead of letting the session grow or compact.
+
+A limit is a share of the window, not a number of tokens, since the windows differ by model:
+
+| AI     | Model                                      | Context window | Where the tool says it                                                 |
+|--------|--------------------------------------------|----------------|------------------------------------------------------------------------|
+| Claude | Opus 5.5, Sonnet 5.5, Haiku 5.5, Fable 5.1 | 1,000,000      | `contextWindow` under `modelUsage` in the result that ends the session |
+| Codex  | gpt-6.1-sol                                | 475,000        | `model_context_window` on every `token_count` in Codex's session file  |
+| Codex  | gpt-6-astra                                | 258,400        | the same                                                               |
+
+The same 300,000 tokens is 30 % of Claude's window and 116 % of gpt-6-astra's, where the session would already have
+been compacted. Codex states the window with every count; Claude only in its closing result, so the runner would take
+it from the model's previous run. OpenCode relays its provider's model, and the board has no OpenCode run to read
+it from yet.
 
 Every source the research read:
 
