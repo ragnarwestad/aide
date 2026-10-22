@@ -9,7 +9,9 @@ import { specNumber } from "../project/spec-folder.ts";
 import { createEndedWithoutSpec } from "../queue/create-failure.ts";
 import type { Job } from "../queue/queue.ts";
 import type { ScheduleNotify } from "../queue/schedule.ts";
-import { ACCEPTANCE_CRITERIA_UNTICKED, WAITS_FOR_PERSON, type JobState, type StopReason } from "../queue/steps.ts";
+import {
+  ACCEPTANCE_CRITERIA_UNTICKED, WAITS_FOR_PERSON, waitsForPerson, type JobState, type StopReason,
+} from "../queue/steps.ts";
 import { isSpecFolder } from "../render/ui/shell.ts";
 
 /** What the observer remembers of a job between two changes. */
@@ -91,6 +93,26 @@ export function attentionFor(prev: Seen | undefined, job: Job, scheduleChoice?: 
     return { kind: "archive-held-back", step: "archive" };
   }
   return null;
+}
+
+/** How many specs wait for a person: a spec of a project the board serves
+ *  whose newest job, by `createdAt`, waits for a person (`waitsForPerson`).
+ *  A cancelled job is a person ending a run, so it is not the newest: the
+ *  Running tab (`jobsShown`) skips it the same way.
+ *  Only spec folders count (`isSpecFolder`): not a scheduled job, a deploy, or
+ *  a create that has no number yet. Two jobs with the same `createdAt` are
+ *  settled by the order given, which is newest first as `queue.list()` has it. */
+export function waitingCount(jobs: readonly Job[], serves: (project: string) => boolean): number {
+  const latest = new Map<string, Job>();
+  for (const job of jobs) {
+    if (job.state === "cancelled" || !serves(job.project) || !isSpecFolder(job.specFolder)) continue;
+    const key = `${job.project}/${job.specFolder}`;
+    const seen = latest.get(key);
+    if (!seen || job.createdAt > seen.createdAt) latest.set(key, job);
+  }
+  let n = 0;
+  for (const job of latest.values()) if (waitsForPerson(job)) n += 1;
+  return n;
 }
 
 const SCHEDULE_KEYS: Record<ScheduleOutcome, MessageKey> = {

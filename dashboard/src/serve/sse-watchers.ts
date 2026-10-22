@@ -7,6 +7,7 @@
 
 import { statSync } from "node:fs";
 import { phaseKey } from "../render";
+import { readWaitingCount } from "../render/ui/pwa.ts";
 import { runLogPath } from "../queue/runner/run-log-path.ts";
 import type { Job } from "../queue/queue.ts";
 
@@ -45,11 +46,21 @@ export function writeTo(ctx: SseWatchersContext, c: ReadableStreamDefaultControl
  *  row reads, and the second is invisible to the first. A copy of the
  *  set is walked because `writeTo` removes from it. */
 export function notifyQueueChanged(ctx: SseWatchersContext): void {
-  for (const c of [...ctx.watchers]) writeTo(ctx, c, CHANGED_EVENT);
+  // Counted once per broadcast, not once per tab.
+  const event = changedEvent(readWaitingCount());
+  for (const c of [...ctx.watchers]) writeTo(ctx, c, event);
 }
 
-/** The signal itself: it carries nothing, and the page asks for its rows. */
+/** The signal itself: the page asks for its rows. It carries nothing about
+ *  them. */
 export const CHANGED_EVENT = "event: changed\ndata: {}\n\n";
+
+/** The signal with how many specs wait for a person, which a page sets on
+ *  the app's icon. With no count known it is the bare signal. A queue move
+ *  can change the count; a growing log and a recorded run cannot, and keep
+ *  the bare one. */
+export const changedEvent = (waiting?: number): string =>
+  waiting === undefined ? CHANGED_EVENT : `event: changed\ndata: {"waiting":${waiting}}\n\n`;
 
 // --- spec 204: a spec is a folder, and a folder changes no job -----------
 //
