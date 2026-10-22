@@ -331,17 +331,23 @@ describe("spec 221: archived specs on the spec list", () => {
   // on 2026-10-22) leaves the spec archived with its code unlanded. The
   // queue refuses Reopen for it ("already active") and takes Archive, so
   // the row offers what the queue takes: Archive, with its model.
-  test("whose code has not landed offers Archive with a model to pick, not Reopen", () => {
+  test("whose code has not landed offers Archive, with the Archive line's model to pick, not Reopen", () => {
     const open = rows({
       archivedSpecs: [archivedSpec("50-archived", { notLanded: true })],
       filter: { state: "archived", open: "aide/50-archived" },
       modelChoices: [{ name: "claude opus", tool: "claude" }, { name: "codex gpt-6.1-sol", tool: "codex" }],
     });
-    const form = open.match(/<form\b[^>]*\saction="\/api\/queue"[^>]*>[\s\S]*?<\/form>/)?.[0] ?? "";
+    const form = open.match(/<form\b[^>]*\sid="rowrun-aide\/50-archived"[^>]*>[\s\S]*?<\/form>/)?.[0] ?? "";
+    expect(form).toContain('action="/api/queue"');
     expect(form).toContain('name="steps" value="archive"');
-    expect(form).toContain('name="specFolder" value="50-archived"');
-    expect(form).toMatch(/<select name="model\.archive"(?![^>]*disabled)/);
     expect(form).toContain(">Archive</button>");
+    expect(form).not.toContain("<select");
+    // The Archive line's own selects, named after that form and open to a pick.
+    const archiveModel = open.match(/<select name="model\.archive"[^>]*>/)?.[0] ?? "";
+    expect(archiveModel).toContain('form="rowrun-aide/50-archived"');
+    expect(archiveModel).not.toContain("disabled");
+    // Every other line stays a record.
+    expect(open.match(/<select name="model\.implement"[^>]*>/)?.[0]).toContain("disabled");
     expect(open).not.toContain(">Reopen</button>");
   });
 

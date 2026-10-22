@@ -3,7 +3,7 @@ import { durationLabel } from "../../ui/job-state";
 import { aliasLabel, modelName } from "../../ui/components/model-label.ts";
 import { t, type Language } from "../../../i18n";
 import type { SpecsPageOptions } from "./";
-import { groupKey, isArchivedRow, type SpecGroup } from "./data-model";
+import { groupKey, lockedAsArchived, type SpecGroup } from "./data-model";
 import { runFormId } from "./cells.ts";
 import {
   SHORT_TOOL_NAMES,
@@ -73,7 +73,7 @@ export function modelPicker(
   // does not, `create` above all: no archived spec's `1-description.md`
   // has ever recorded a model, and a blank cell there read as a bug
   // rather than as "nothing recorded yet".
-  const archived = isArchivedRow(g);
+  const archived = lockedAsArchived(g, step);
   // Spec 225: the same rule the box beside it has followed since spec
   // 160. A phase the running job has not reached is a phase whose
   // model can still be chosen, so the row-level lock is narrowed by
@@ -383,7 +383,7 @@ export function aiPicker(
   // as `modelPicker`'s own archived branch, since this select says which
   // AI the model BESIDE it belongs to, and that model is drawn now
   // whether or not the row is locked.
-  const archived = isArchivedRow(g);
+  const archived = lockedAsArchived(g, step);
   // Spec 225, and the same `live` the model select beside it takes.
   // This one carries no `data-post-to`: it posts nothing itself, and a
   // pick made on it reaches the server through the model select it

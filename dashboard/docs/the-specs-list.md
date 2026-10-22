@@ -433,9 +433,9 @@ Created line of its description's Tracking info.
 **An archived spec whose code never landed offers Archive instead of Reopen.** When its own branch is still on
 origin and not open for review (the "not landed" mark) — an archive that stopped after moving the folder, on a usage
 limit for one — the queue counts the spec as active: it refuses Reopen ("already active") and takes Archive again.
-The row offers the same: an Archive button with its own model select, starting from Archive's configured default,
-since the row's phase lines are a record and their selects stay disabled (`offersArchiveAgain`,
-`render/pages/specs-list/row-controls.ts`).
+The row offers the same: an Archive button, and the Archive line's AI and model open to a pick and posted with it,
+while every other phase line stays a record with its selects disabled (`offersArchiveAgain` and `lockedAsArchived`,
+`render/pages/specs-list/data-model/filter-sort.ts`).
 
 **What that row says a spec cost, in time,** is computed the same way whether the row is live or archived
 (`totalDuration()`, `data-model/phases.ts`): a queue-measured span per phase — the worktree, the AI session, the commit
