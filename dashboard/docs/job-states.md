@@ -112,10 +112,12 @@ queued `create`, `archive` or `close` step — the ones that do no model work �
   claude's `rate_limit_event` and from the session file Codex keeps for the thread. A Codex turn is a
   `provider-limit` when that file shows a full window, or when Codex's own error says the usage limit is hit; the
   error's "try again at" time is then the reset. opencode has no reader. The row and the Logs tab say it
-  as one sentence in place of the runner's own summary. A stopped step lands what it pushed outside the code root — a
+  as one sentence in place of the runner's own summary. A stopped step other than `archive` lands what it pushed
+  outside the code root — a
   `timeout` or `provider-limit` step, with something pushed, and no code root among it; a stopped `implement` whose
   code branch was pushed lands nothing, and that code waits for `archive`. A landing that does run leaves the job's
-  `error` in place: it is the reason the step stopped, not a fault the landing resolved.
+  `error` in place: it is the reason the step stopped, not a fault the landing resolved. A stopped archive lands
+  nothing: its folder reaches `archive/` on the default branch only when the archive step completes and lands.
 - `model-at-capacity` gives `stopped` too: the provider had no room for the model, so unlike a usage limit there is
   no reset to wait for. The runner reads it from the last `error` or `turn.failed` event of a Codex turn that did not
   complete, when its message says "at capacity", and from Claude Code's closing result when that is an error with

@@ -431,8 +431,7 @@ control that should not be drawn. The list shows no creation date on any row; th
 Created line of its description's Tracking info.
 
 **An archived spec whose code never landed offers Archive instead of Reopen.** When its own branch is still on
-origin and not open for review (the "not landed" mark) — an archive that stopped after moving the folder, on a usage
-limit for one — the queue counts the spec as active: it refuses Reopen ("already active") and takes Archive again.
+origin and not open for review (the "not landed" mark) — an archive whose code landing did not finish — the queue counts the spec as active: it refuses Reopen ("already active") and takes Archive again.
 The row offers the same: an Archive button, and the Archive line's AI and model open to a pick and posted with it,
 while every other phase line stays a record with its selects disabled (`offersArchiveAgain` and `lockedAsArchived`,
 `render/pages/specs-list/data-model/filter-sort.ts`). While that archive runs, the job speaks for the row as it does

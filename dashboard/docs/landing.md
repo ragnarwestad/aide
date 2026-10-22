@@ -44,7 +44,8 @@ point.
   confirmed — so a failed code merge stops the loop before the specs root is attempted. After a code root merges,
   `AIDE_INSTALL_CMD` runs. Then the spec is archived.
 - A step that was stopped by its own time limit, or by a provider limit, still lands what it pushed outside the
-  code root.
+  code root, except `archive`, which lands nothing when stopped. The spec stays active and its row offers Archive
+  again; the folder reaches `archive/` on the default branch only when an archive step completes and lands.
 
 The landing is the last step of the step's own skill, and the step is not finished until it is. The step's Log marks
 it the way the AI marks the skill's other steps, in the words of that skill's last heading:
@@ -153,7 +154,8 @@ a failed resolution therefore holds structurally, not only because the skill beh
 **Most of what `archive` does is a script, not an AI session.** `core/scripts/aide-archive-spec` resolves the spec
 argument to a folder, checks whether a merge is open, and asks `core/scripts/lib/transitions.json` whether the spec
 may move to `archived` — which asks whether `implement` has happened, not whether every step has. Then it stamps and
-moves the folder, before any model is asked to. It reads the spec's own state file, falling back to `4-status.md`'s
+moves the folder on the spec's branch, before any model is asked to. The move reaches the default branch only when
+the archive step completes and lands; a stopped, failed or interrupted archive leaves it on the branch. It reads the spec's own state file, falling back to `4-status.md`'s
 `Workflow steps completed:` bullet, and never inspects a Phase table's Status cell. The two things that genuinely need judgment stay with the skill: resolving an actual merge conflict, and
 deciding what documentation should outlive the spec (`core/skills/aide-archive/SKILL.md`'s Step 2). `aide-run-spec`
 calls the same script once, right after worktree setup, purely to decide whether spawning `claude`/`codex` is worth

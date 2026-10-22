@@ -328,8 +328,8 @@ describe("spec 221: archived specs on the spec list", () => {
     expect(html).toContain("Its branch is still on origin — re-run archive");
   });
 
-  // An archive that stopped after moving the folder (a usage limit, 659
-  // on 2026-10-22) leaves the spec archived with its code unlanded. The
+  // An archive whose code landing did not finish can leave the spec
+  // archived with its code unlanded. The
   // queue refuses Reopen for it ("already active") and takes Archive, so
   // the row offers what the queue takes: Archive, with its model.
   test("whose code has not landed offers Archive, with the Archive line's model to pick, not Reopen", () => {

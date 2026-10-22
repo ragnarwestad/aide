@@ -1,6 +1,8 @@
 // Split out of phase-rules.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
+import { groupBySpec } from "../../../../../src/render/pages/specs-list/data-model";
+import { actionState } from "../../../../../src/render/pages/specs-list/row-state";
 import {
   renderSpecsRows,
   type SpecsPageOptions,
@@ -355,4 +357,14 @@ describe("spec 439: a recorded phase choice survives the render (AC-1 - AC-5)", 
     expect(action(html)).toMatch(/<button type="submit"/);
     expect(labels(action(html))).toEqual(["Archive"]);
   });
+});
+
+
+test("an active spec offers Archive again after a stopped archive (AC-2)", () => {
+  const specFolder = "664-archive";
+  const [group] = groupBySpec(
+    [row({ specFolder, steps: ["archive"], state: "stopped", stopReason: "provider-limit" })],
+    [{ project: "aide", specFolder, done: ["create", "analyze", "implement"], stopped: { archive: "provider-limit" } }],
+  );
+  expect(actionState(group!, {})).toEqual({ label: "Archive", active: true });
 });
