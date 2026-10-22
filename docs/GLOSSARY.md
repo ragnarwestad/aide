@@ -15,6 +15,12 @@ Each entry says what the word is and links the page that has the rest.
 
 - **Spec** — one piece of work: a folder of four files in the project's
   specs root, `NN-slug/`. [Spec structure](../core/rules/spec-structure.md).
+  Other tools use the word for something larger: the
+  [AI Coding Dictionary](https://www.aicodingdictionary.com/?term=spec)
+  calls a spec a piece of work over several sessions, made of
+  [tickets](https://www.aicodingdictionary.com/?term=ticket) that each fit
+  one session. An Aide spec is closer to their ticket; Aide has no word for
+  the larger piece, which is a chain of specs joined by Depends on.
 - **Description** — `1-description.md`: the problem as the author gave it,
   with optional acceptance criteria and an optional `## Out of scope`
   section. Never rewritten by a step.
