@@ -48,7 +48,7 @@ documentation (SQL queries, enum references, API mapping) to `references/`.
 
 ```text
 my-skill/
-├── SKILL.md              # Core instructions (max ~200 lines)
+├── SKILL.md              # Core instructions (under 500 lines, under 5,000 tokens)
 └── references/            # Detailed documentation (loaded on demand)
     ├── debugging.md
     ├── common-issues.md
@@ -58,9 +58,11 @@ my-skill/
 **Good examples of this:** e2e-test skills with reference files for
 debugging queries and enum references in `references/`.
 
-**Our skills that should be refactored:** aide-create, aide-analyze, aide-implement
-have everything in SKILL.md (150-200 lines). Detailed prompts should be moved to
-`references/`.
+**The limit is the Agent Skills standard's** ([agentskills.io](https://agentskills.io/specification)):
+SKILL.md under 500 lines, and its body under 5,000 tokens, since an agent loads the whole file
+once the skill is chosen. It is the one size limit that holds for all four AI tools Aide installs
+for: Claude Code's guidance gives the same 500 lines, and Codex, Copilot and OpenCode set none of
+their own. Count tokens as characters divided by four.
 
 ---
 
@@ -272,12 +274,12 @@ AND pi.OPPRETTET_TID < SYSDATE - INTERVAL '1' HOUR;
 
 ## Size and depth
 
-| Lines in SKILL.md | Assessment                                           |
-|-------------------|------------------------------------------------------|
-| < 80              | Too thin — use as a router skill or expand           |
-| 80-200            | Good for workflow skills and focused domain skills   |
-| 200-350           | Good for broad domain skills — consider references/  |
-| 350+              | Move details to references/, keep SKILL.md under 200 |
+| Lines in SKILL.md          | Assessment                                                  |
+|----------------------------|-------------------------------------------------------------|
+| < 80                       | Too thin — use as a router skill or expand                  |
+| 80-350                     | Good for workflow skills and domain skills                  |
+| 350-500                    | Near the limit — move details a step needs to `references/` |
+| 500+, or over 5,000 tokens | Over the standard's limit — move details to `references/`   |
 
 **Hyperspecialization works.** A skill like `pom-from-recording`
 (480 lines total, split between SKILL.md + references/) solves one hard
@@ -299,7 +301,7 @@ One deep skill > four shallow skills.
 
 ### Structure
 
-- [ ] SKILL.md focused on core instructions (under ~200 lines)
+- [ ] SKILL.md focused on core instructions (under 500 lines and 5,000 tokens)
 - [ ] Heavy documentation in `references/` (not everything in SKILL.md)
 - [ ] Instructions are specific and actionable, not vague
 
