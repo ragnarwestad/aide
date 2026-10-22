@@ -17,6 +17,7 @@
 - [Augment Code](#augment-code)
 - [Claude Projects](#claude-projects)
 - [T3 Code](#t3-code)
+- [PDD Kit](#pdd-kit)
 - [Aide's design choices](#aides-design-choices)
 
 ---
@@ -80,6 +81,7 @@ tool.
 | Augment Code       | None; it supplies context to other tools               | Its own service                                                 | Not applicable                                  | Not applicable                               | Nothing                                                                    |
 | Claude Projects    | Threads in a project, with a shared memory             | Claude only, as Claude Code cloud sessions                      | Unattended: a coordinator hands work to threads | Opens pull requests; runs tests              | Nothing required in the repo; branches and pull requests                   |
 | T3 Code            | None; a thread per task, kept as its events            | 6 agent CLIs, through their server protocols                    | By hand, one thread per task, in parallel       | Opens pull requests; tests not stated        | An optional `t3.json`; branches, worktrees and hidden checkpoint refs      |
+| PDD Kit            | A formal spec in Verus, approved before the code       | Not stated; works with Chopin, GitHub Next's planning tool      | Not stated                                      | Proves the code meets the spec; ends in a PR | Not stated                                                                 |
 
 ## Aide
 
@@ -454,6 +456,34 @@ straight to the default branch is refused. Whether tests run before the pull req
 
 **Invasiveness.** An optional `t3.json` in the project, naming scripts to run, such as on a new worktree. The work
 shows as branches, worktrees and the hidden checkpoint refs.
+
+## PDD Kit
+
+**What it is.** The Proof-Driven Development Kit, a research preview from GitHub Next and Microsoft Research,
+announced by [GitHub Next](https://x.com/GitHubNext/status/2112936525457740139) and
+[Microsoft Research](https://x.com/MSFTResearch/status/2112987215496093979) on 21 October 2026, with its first demo
+planned for GitHub Universe on 28–29 October. It works on Rust only, with [Verus](https://github.com/verus-lang/verus),
+an open-source proof framework for Rust. Whether the kit itself will be open source is not stated.
+
+**Document structure.** A formal specification of the change, written in Verus, which the kit proposes from the
+plan and the code it reads. What is kept of it after the change is not stated.
+
+**Workflow.** Five steps: the team plans the feature in Chopin, GitHub Next's planning tool; the kit proposes a
+formal spec; a person approves the spec, not the code; the Verus verifier proves that the agent's code meets the
+spec for every input; and what cannot be proved is checked with tests and with agents that use a browser or the
+screen. Approving the spec before the code is written is the step Aide has too, when a spec is written and read
+before analyze runs. The difference is in how the implementation is checked against it: PDD Kit proves it, where
+Aide relies on the tests implement writes, the review after it, and a person ticking each acceptance criterion.
+
+**AI tool support.** Not stated, beyond working with Chopin.
+
+**Execution.** Not stated.
+
+**Code handling.** The result is a pull request whose code is proved to meet the spec, for the properties a formal
+spec can state, such as what a function takes and returns. Interface behaviour, most input and output, and
+judgment calls still rest on tests and review.
+
+**Invasiveness.** Not stated.
 
 ## Aide's design choices
 

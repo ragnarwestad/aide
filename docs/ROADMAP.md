@@ -26,6 +26,7 @@
   - [20. A spec's states, separate from its run's](#20-a-specs-states-separate-from-its-runs)
   - [21. Named profiles for the AI and the step settings](#21-named-profiles-for-the-ai-and-the-step-settings)
   - [22. An analysis and a plan that are easier to read](#22-an-analysis-and-a-plan-that-are-easier-to-read)
+  - [23. An agent that tries the criteria in a browser before a person ticks them](#23-an-agent-that-tries-the-criteria-in-a-browser-before-a-person-ticks-them)
 
 ---
 
@@ -41,7 +42,7 @@ An idea that becomes a spec names it, and leaves this page once the spec is arch
 
 Each idea has a number that stays with it. A new idea gets the next number after the highest one ever given, and
 the number of an idea taken off the page is never used again, so a number can be referred to and still mean the
-same idea later. The next number is 23.
+same idea later. The next number is 24.
 
 ## To consider
 
@@ -399,3 +400,22 @@ Open questions:
 
 - Whether the board's error sentences (`dashboard/docs/error-sentences.md`) and the documentation take the same
   rules afterwards; both already follow some of them.
+
+### 23. An agent that tries the criteria in a browser before a person ticks them
+
+From GitHub Next and Microsoft Research's [PDD Kit](https://x.com/GitHubNext/status/2112936525457740139), compared
+in `docs/COMPARISON.md`: what a proof cannot cover, it checks with tests and with agents that use a browser or the
+screen. Aide checks an implementation with the tests implement writes, the review after it, and last a person
+ticking each acceptance criterion. Criteria about what a page shows or does are often the ones a person has to try
+by hand, or mark Not yet.
+
+An agent between the tests and the person could open the test server a held-back spec offers, try each criterion
+in a browser, and note on its row what it saw, so the person starts from that rather than from nothing. The
+person still ticks: the agent's note is evidence, not a tick.
+
+Open questions:
+
+- How PDD Kit's own browser agents work, which its demo at GitHub Universe (28–29 October 2026) should show.
+- Which criteria the agent may try, since a criterion about an email, a deploy or another machine cannot be tried
+  in a browser on the test server.
+- What it costs per spec, and whether it runs for every held-back spec or only on request.
