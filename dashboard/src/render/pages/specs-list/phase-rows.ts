@@ -7,7 +7,7 @@ import { t } from "../../../i18n";
 import { wordPhase } from "../../ui/job-state";
 import type { QueueRowView } from "../../ui/job-state";
 import type { SpecsPageOptions } from "./";
-import { RUN_STEPS, groupKey, isArchivedRow, type SpecGroup } from "./data-model";
+import { RUN_STEPS, groupKey, isArchivedRow, lockedAsArchived, type SpecGroup } from "./data-model";
 import { costCell, phaseDurationCell, phaseWordCell, specTotalCell } from "./cell-helpers.ts";
 import { aiPicker, ALREADY_RUN_REASON, compactModelLabel, compactModelLabelFull, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells } from "./model-picker.ts";
 import { chosenSteps, runFormId, specBusy } from "./row-state.ts";
@@ -368,7 +368,7 @@ function aiModel(
   const lang = opts.lang ?? "en";
   const ai = aiPicker(g, opts, step, busy, live, used, recordedModel, undefined, alreadyRun, usedTool);
   const model = modelPicker(g, opts, step, busy, live, used, recordedModel, undefined, alreadyRun, ranModelId);
-  const locked = isArchivedRow(g) || (busy && !live) || alreadyRun;
+  const locked = lockedAsArchived(g, step) || (busy && !live) || alreadyRun;
   // No "(?)" on a phase line: the State column already says what is
   // running, and an archived or already-run phase needs no sentence to
   // say it cannot run again. The column has no room for a mark.
