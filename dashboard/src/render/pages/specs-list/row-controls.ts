@@ -11,6 +11,7 @@ import type { SpecsPageOptions } from "./";
 import {
   groupKey,
   isArchivedRow,
+  offersArchiveAgain,
   type SpecsFilter,
   type SpecGroup,
 } from "./data-model";
@@ -127,6 +128,18 @@ function reopenAsk(g: SpecGroup, lang: Language): string {
   return askButton({ label: t(lang, "list.reopen"), dialogId: id, variant: "primary" }) + listReopenDialog(g, lang, id);
 }
 
+/** Archive again: the form the Archive line's AI and model selects name
+ *  (`form="rowrun-…"`), so the model picked there posts with the press. */
+function archiveAgainForm(g: SpecGroup, lang: Language): string {
+  return buttonForm({
+    id: runFormId(g),
+    action: "/api/queue",
+    hook: "actionform",
+    hidden: { project: g.project, specFolder: g.specFolder, steps: "archive" },
+    button: { label: stepLabel("archive", lang), variant: "primary", pending: "starting…" },
+  });
+}
+
 /** The press an archived row's "still on origin" note carries: a POST
  *  that deletes the merged branch on origin. */
 export function deleteBranchForm(g: SpecGroup, lang: Language): string {
@@ -173,7 +186,10 @@ export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
   // falling back to ticking `archive` alone (`defaultTicked`, spec 439's
   // own fallback for a spec with no recorded choice).
   // Nothing while a Close or Reopen is still working on it.
-  if (isArchivedRow(g)) return specBusy(g) ? "" : reopenAsk(g, lang);
+  if (isArchivedRow(g)) {
+    if (specBusy(g)) return "";
+    return offersArchiveAgain(g) ? archiveAgainForm(g, lang) : reopenAsk(g, lang);
+  }
   const busy = specBusy(g);
   // A conflict used to draw a Resolve control of its own here, off the
   // job's stored `errorReason`. Spec 171 took it away: `archive`

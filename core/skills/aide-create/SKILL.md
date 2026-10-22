@@ -135,8 +135,13 @@ a second Acceptance criteria section.
 
 **Then add a criterion for each requirement none of them covers.** Read
 the rest of the description for what it asks the system to do. For each
-requirement no existing criterion covers, add one line at the end of the
-same section, or, when there is no section, write one:
+requirement no existing criterion covers, add one line directly after the
+last criterion the description already has, wherever it stands: under an
+`## Acceptance criteria` heading, below `## Out of scope`, or after a plain
+line of its own. The given and the added criteria then stand together as
+one list, in id order. Only when the description has no criteria at all,
+write an `## Acceptance criteria` section last in the description and put
+them there:
 
 - The first new criterion takes the next id after the highest one
   present, and each further one the id after that: after `AC-1` and
