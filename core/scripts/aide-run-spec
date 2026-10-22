@@ -45,6 +45,33 @@
 # each part present only when the tool said it (lib/run-spec/turn/provider-limit.sh).
 # Absent on every other outcome.
 #
+# A Claude or Codex step adds `context`, how full the context window of its
+# main session got (lib/run-spec/turn/context-use.sh): {fullest, beforeChecks,
+# window, fullestPercent, beforeChecksPercent}, each part present only when
+# the tool stated it.
+#   fullest      the most tokens the model was sent in one call, over the
+#                whole step. Claude: an `assistant` event's `message.usage`,
+#                input_tokens + cache_creation_input_tokens +
+#                cache_read_input_tokens. Codex: a `token_count` event's
+#                `payload.info.last_token_usage.input_tokens` in the thread's
+#                session file, which already counts the cached tokens.
+#   beforeChecks the same, over the step's own turn alone: before the review's
+#                fix turn and the red tests' fix turns add theirs. The same as
+#                `fullest` for a step with no follow-up turn.
+#   window       the model's context window as the tool states it. Claude:
+#                `modelUsage.<model>.contextWindow` of the turn's `result`
+#                event, <model> being the one the `system`/`init` event names.
+#                Codex: `payload.info.model_context_window` of the same
+#                `token_count` events. The newest turn that states one wins.
+#   fullestPercent, beforeChecksPercent
+#                each of the two figures as a percentage of `window`, rounded
+#                to a whole number; present only with a window above 0.
+# Only the main session counts: Claude's subagent calls (a `parent_tool_use_id`
+# set), the review's own session and Codex's other threads are left out. A
+# turn stopped by its time limit keeps its figures, written as each call was
+# made, though its `tokens` are dropped. The key is absent, never zero, when
+# no call was stated, for OpenCode, and for a step with no model turn.
+#
 # terminalReason is this script's own vocabulary, not the CLI's:
 #   completed | timeout | provider-limit | refused | spawn-failed | cli-error
 #   | model-refused | model-at-capacity | already-landed | short-analysis-over-limit
@@ -165,7 +192,7 @@ need_part() {
 # EVERY phase, before the first one runs. Checked one at a time where
 # each is sourced, a missing late phase was only found after the step had
 # run and the money was spent.
-for _part in tracking-info.sh run-spec/setup/arguments.sh run-spec/setup/code-landing.sh run-spec/setup/gates.sh run-spec/setup/invocation.sh run-spec/checkout/checkouts.sh run-spec/checkout/worktree.sh run-spec/checkout/branch.sh run-spec/turn/provider-limit.sh run-spec/turn/model-marks.sh run-spec/turn/model-turn.sh run-spec/turn/spec-paths.sh run-spec/checkout/cleanup.sh run-spec/record/sent-back-check.sh run-spec/record/records.sh run-spec/record/status-line.sh run-spec/turn/review.sh run-spec/record/specs-guard.sh run-spec/record/shared-files-check.sh run-spec/record/short-analysis-check.sh files-to-change.sh run-spec/record/criteria-check.sh run-spec/record/outcome.sh run-spec/record/ac-coverage.sh run-spec/publish/publish.sh run-spec/publish/result.sh; do need_part "$_part"; done
+for _part in tracking-info.sh run-spec/setup/arguments.sh run-spec/setup/code-landing.sh run-spec/setup/gates.sh run-spec/setup/invocation.sh run-spec/checkout/checkouts.sh run-spec/checkout/worktree.sh run-spec/checkout/branch.sh run-spec/turn/provider-limit.sh run-spec/turn/context-use.sh run-spec/turn/model-marks.sh run-spec/turn/model-turn.sh run-spec/turn/spec-paths.sh run-spec/checkout/cleanup.sh run-spec/record/sent-back-check.sh run-spec/record/records.sh run-spec/record/status-line.sh run-spec/turn/review.sh run-spec/record/specs-guard.sh run-spec/record/shared-files-check.sh run-spec/record/short-analysis-check.sh files-to-change.sh run-spec/record/criteria-check.sh run-spec/record/outcome.sh run-spec/record/ac-coverage.sh run-spec/publish/publish.sh run-spec/publish/result.sh; do need_part "$_part"; done
 # The step's own clock, started before anything it does (2026-09-08).
 # It began beside the AI session and therefore measured the session
 # alone: the checkout, the worktree, the branch, the archive pre-check
@@ -242,6 +269,8 @@ source "$SCRIPT_DIR/lib/run-spec/checkout/branch.sh"
 # --- where the spec folder is, what a step may write, and reading what came back ---
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/run-spec/turn/provider-limit.sh"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/run-spec/turn/context-use.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/run-spec/turn/time-limit.sh"
 # shellcheck source=/dev/null

@@ -57,6 +57,18 @@ export interface TestedGreen {
   commands: string[];
 }
 
+/** How full the main session's context window got in one step, in tokens
+ *  and as a share of the model's own window. Each part is present only
+ *  when the tool stated it; `core/scripts/aide-run-spec`'s header says
+ *  what each holds and where it is read from. */
+export interface ContextUse {
+  fullest?: number;
+  beforeChecks?: number;
+  window?: number;
+  fullestPercent?: number;
+  beforeChecksPercent?: number;
+}
+
 export interface StepResult {
   step: WorkflowStep;
   ok: boolean;
@@ -74,6 +86,8 @@ export interface StepResult {
    *  a killed step, whose cost is over-charged by rule but whose token
    *  count has nothing to assume from. The page shows a dash. */
   tokens?: TokenUsage;
+  /** The result line's `context`; absent when the tool stated no call. */
+  context?: ContextUse;
   /** The model id the run's own log named — Claude Code's `init` event,
    *  e.g. `claude-opus-5-5` for the `opus` alias. Absent when the log
    *  named none (never a guess), and for every other tool. */

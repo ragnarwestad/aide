@@ -57,6 +57,34 @@ describe("a step's token usage", () => {
   });
 });
 
+// How full the step's context window got, kept beside its tokens and cost.
+// Another process's JSON: a part that is not a number is dropped alone.
+describe("a step's context use", () => {
+  const stored = (context: unknown) => {
+    const job = enqueue();
+    const runner = makeRunner({ readResult: () => ({ ...okResult(1), context }) });
+    runner.tick();
+    runner.poll();
+    return store.get(job.id)?.results[0]?.context;
+  };
+
+  test("a result carrying context records it on the step (AC-1)", () => {
+    const context = { fullest: 312600, beforeChecks: 185000, window: 1000000, fullestPercent: 31, beforeChecksPercent: 19 };
+    expect(stored(context)).toEqual(context);
+  });
+
+  test("a part that is not a number is dropped, the rest kept (AC-1)", () => {
+    expect(stored({ fullest: 120000, beforeChecks: "lots", window: -5, fullestPercent: null, beforeChecksPercent: 12 }))
+      .toEqual({ fullest: 120000, beforeChecksPercent: 12 });
+  });
+
+  test("a result with no usable context leaves the step's undefined (AC-1)", () => {
+    expect(stored(undefined)).toBeUndefined();
+    expect(stored("full")).toBeUndefined();
+    expect(stored({ fullest: "lots" })).toBeUndefined();
+  });
+});
+
 // What the run's own log said it ran on. Another process's JSON, so it is
 // read as a question: a usable id is kept, anything else is nothing.
 describe("a step's model id (AC-1)", () => {

@@ -34,7 +34,7 @@ import type { NotifyEvent } from "../../integrations/notify.ts";
 import type { BoardMessage } from "../../i18n/message.ts";
 import { stepButton } from "../../format/step-label.ts";
 import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from "../queue.ts";
-import { modelIdOf, providerLimit, sharedFiles, stepRepoRanges, testedGreen, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
+import { contextUse, modelIdOf, providerLimit, sharedFiles, stepRepoRanges, testedGreen, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
 import { asResultTool, isRunStop, takesSlot } from "../steps.ts";
 import { resolveStepModel } from "../model-name.ts";
 import { stepFailure } from "../../format/tool-failure.ts";
@@ -405,7 +405,7 @@ export class Runner {
         // "codex" — and must not be silently collapsed into "claude".
         // Checked against the one list rather than a copy of it.
         tool: asResultTool(outcome.tool) ?? "claude",
-        tokens, modelId, providerLimit: providerLimit(outcome.providerLimit), testedGreen: testedGreen(outcome.testedGreen),
+        tokens, modelId, context: contextUse(outcome.context), providerLimit: providerLimit(outcome.providerLimit), testedGreen: testedGreen(outcome.testedGreen),
         costMeasured: outcome.costMeasured !== false,
         terminalReason: outcome.terminalReason ?? "no reason recorded",
         subtype: outcome.subtype, sharedFiles: sharedFiles(outcome.sharedFiles),

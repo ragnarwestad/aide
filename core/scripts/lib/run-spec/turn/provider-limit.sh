@@ -34,6 +34,14 @@ claude_provider_limit() {   # $1: the event, as JSON
   ' <<<"$1" 2>/dev/null
 }
 
+# Codex's session file for a thread, under CODEX_HOME the way Codex itself
+# resolves it: prints its path, or nothing when the thread has none.
+codex_session_file() {   # $1: the thread id
+  local thread="$1" home="${CODEX_HOME:-$HOME/.codex}"
+  [ -n "$thread" ] && [ -d "$home/sessions" ] || return 0
+  find "$home/sessions" -type f -name "rollout-*-$thread.jsonl" 2>/dev/null | head -n 1
+}
+
 # Codex: `codex exec --json` says nothing about limits. Its own session
 # file does — every `token_count` event carries the account's windows,
 # the plan, and which window ran out — and it is named after the thread
@@ -43,9 +51,8 @@ claude_provider_limit() {   # $1: the event, as JSON
 # newest count that CARRIES a window is read: a spent session ends on a
 # count for another limit (`premium`) with none, after the one that ran out.
 codex_provider_limit() {   # $1: the thread id
-  local thread="$1" home="${CODEX_HOME:-$HOME/.codex}" file=""
-  [ -n "$thread" ] && [ -d "$home/sessions" ] || return 0
-  file="$(find "$home/sessions" -type f -name "rollout-*-$thread.jsonl" 2>/dev/null | head -n 1)"
+  local file
+  file="$(codex_session_file "$1")"
   [ -n "$file" ] || return 0
   jq -Rc 'fromjson? | select(type == "object" and (.payload | type) == "object"
             and .payload.type == "token_count" and (.payload.rate_limits | type) == "object"

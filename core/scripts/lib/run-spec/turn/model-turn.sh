@@ -307,6 +307,8 @@ if [ -n "$result_json" ]; then
   ' <<<"$result_json" 2>/dev/null)"
 fi
 fi
+# How full the window got in this turn's calls (run-spec/turn/context-use.sh).
+context_use_turn "${turn_at:-0}"
 
 if [ -n "$stopped" ]; then
   terminal_reason="timeout"

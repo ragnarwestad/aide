@@ -3,7 +3,7 @@
 
 import type { NotifyEvent } from "../../integrations/notify.ts";
 import type { Sentence } from "../../i18n/message.ts";
-import type { BranchRef, Job, ProviderLimit, QueueStore, SharedFiles, StepRepoRange, TestedGreen, TokenUsage, WorkflowStep } from "../queue.ts";
+import type { BranchRef, ContextUse, Job, ProviderLimit, QueueStore, SharedFiles, StepRepoRange, TestedGreen, TokenUsage, WorkflowStep } from "../queue.ts";
 
 export interface SpawnResult {
   pid: number;
@@ -78,6 +78,7 @@ export interface StepOutcome {
    *  measure it — there is no over-charge rule for tokens the way there
    *  is for cost, so absent is the only other answer. */
   tokens?: TokenUsage;
+  context?: unknown;
   /** The model id the run's log named; absent when it named none. */
   modelId?: string;
   providerLimit?: unknown;
@@ -184,6 +185,20 @@ export function tokenUsage(raw: unknown): TokenUsage | undefined {
     cacheCreation: r.cacheCreation as number,
     total: r.total as number,
   };
+}
+
+/** `outcome.context`, read the way `providerLimit` is: a part that is not
+ *  a finite number of 0 or more is dropped alone, and nothing left is
+ *  nothing. */
+export function contextUse(raw: unknown): ContextUse | undefined {
+  if (raw === null || typeof raw !== "object") return undefined;
+  const r = raw as Record<string, unknown>;
+  const out: ContextUse = {};
+  for (const key of ["fullest", "beforeChecks", "window", "fullestPercent", "beforeChecksPercent"] as const) {
+    const v = r[key];
+    if (typeof v === "number" && Number.isFinite(v) && v >= 0) out[key] = v;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 /** `outcome.repos`, read as defensively as `tokenUsage` reads

@@ -140,7 +140,10 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ]; th
 
   stage "reviewing what the step changed"
   argv=("${review_argv[@]}")
+  # The review is a session of its own: how full its window got is not the step's.
+  context_use_skip="yes"
   run_model_turn "$work_dir/prompt-review"
+  context_use_skip=""
   running_cost="$(jq -n --arg a "$running_cost" --arg b "$cost" '(($a|tonumber) + ($b|tonumber))')"
 
   if [ "$terminal_reason" != "completed" ]; then

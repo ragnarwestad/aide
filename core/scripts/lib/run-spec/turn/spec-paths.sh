@@ -373,9 +373,14 @@ else
     echo "aide-run-spec: the analysis session $resume_session could not be continued; starting the implement afresh" >&2
     argv=("${fresh_argv[@]}"); resume_session=""
     session_out=""; subtype=""; cost="0"; cost_measured="false"; terminal_reason=""; error_msg=""
+    # The refused attempt was not the step's session.
+    context_fullest=""; context_window=""
     run_model_turn "$work_dir/prompt"
   fi
 fi
+# The window's use so far is the step's own turn; what the review's fix turn
+# and the red tests' fix turns add comes after this point.
+context_before_checks="$context_fullest"
 # What Aide does once the AI is done: its own test run, the commit and
 # the push. A step with no AI turn goes straight on from preparing.
 aide_part_close

@@ -204,6 +204,8 @@ cost_json="null"
 [ -n "$error_msg" ] && stage_error "$(printf '%s' "$error_msg" | tr '\n' ' ')"
 if [ "$ok" = "true" ]; then aide_part_close; else aide_part_close "stopped: ${terminal_reason:-failed}"; fi
 
+context_json="$(context_use_json)"
+
 line="$(jq -cn \
   --argjson ok "$ok" --argjson exitCode "$exit_code" \
   --arg sessionId "${session_out:-$session_id}" \
@@ -218,6 +220,7 @@ line="$(jq -cn \
   --arg pullError "$pull_error" --arg specFolder "$created_spec_folder" \
   --arg worktreeLinksSource "$links_source" \
   --argjson tokens "${tokens_json:-null}" \
+  --argjson context "${context_json:-null}" \
   --arg modelId "${model_id_out:-}" \
   --argjson providerLimit "${provider_limit_out:-null}" \
   --argjson testedGreen "${tested_green_json:-null}" \
@@ -243,6 +246,9 @@ line="$(jq -cn \
    # used nothing", which is a claim, and the page shows a dash for a
    # field that is absent.
    + (if $tokens == null then {} else {tokens:$tokens} end)
+   # And for how full the context window got (run-spec/turn/context-use.sh):
+   # present only when a call was stated, each part only when the tool said it.
+   + (if $context == null then {} else {context:$context} end)
    # The same rule for the model the log named: absent, never "".
    + (if $modelId == "" then {} else {modelId:$modelId} end)
    # And the same rule once more, for the dollar figure itself: a Codex
