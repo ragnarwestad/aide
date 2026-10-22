@@ -327,10 +327,16 @@ if [ "$given_set" = "yes" ]; then
     next=$((next + 1))
   done
   # The "## Out of scope" section is the person's own too: kept word for
-  # word, and never written by the model.
+  # word, and never written by the model. The criteria added directly
+  # after the last given one may stand inside it, so the written side
+  # leaves them out; both sides go through the same bold rewrite.
+  without_added() { printf '%s\n' "$1" | awk -v ids="$given_ids" '
+    function given(s,  n) { if (s !~ /^- \*\*AC-[0-9]+:\*\*/) return -1; n = s; sub(/^- \*\*AC-/, "", n); sub(/:.*/, "", n); return index(ids, " " (n + 0) " ") > 0 }
+    { l[NR] = $0; if (given($0) == 1) last = NR }
+    END { i = last + 1; if (last) while (i <= NR && given(l[i]) == 0) i++; for (j = 1; j <= NR; j++) if (j <= last || j >= i) print l[j] }'; }
   if declare -f aide_out_of_scope_section >/dev/null 2>&1; then
-    given_scope="$(aide_out_of_scope_section "$given_description")"
-    written_scope="$(aide_out_of_scope_section "$description")"
+    given_scope="$(aide_out_of_scope_section "$(printf '%s\n' "$given_description" | sed -E "$AC_BOLD")")"
+    written_scope="$(aide_out_of_scope_section "$(without_added "$description")")"
     if [ -n "$given_scope" ] && [ "$given_scope" != "$written_scope" ]; then
       refuse "the ## Out of scope section must stay word for word as the description gave it"
     elif [ -z "$given_scope" ] && [ -n "$written_scope" ]; then
