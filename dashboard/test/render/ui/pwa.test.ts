@@ -203,7 +203,7 @@ function fakeWindow(refuseNavigate = false) {
  *  — no imports, no exports — so it is run as a function of the
  *  globals it uses, timers and clock included: a test decides whether
  *  the half-second timer or the server comes first, with no waiting. */
-function worker(networkAnswer: (request: { method: string; url: string }) => Promise<Response>, windows: ReturnType<typeof fakeWindow>[] = []) {
+function worker(networkAnswer: (request: { method: string; url: string }) => Promise<Response>, windows: ReturnType<typeof fakeWindow>[] = [], navigator?: object) {
   const listeners: Record<string, (event: unknown) => void> = {};
   const shown: {
     title: string;
@@ -212,6 +212,7 @@ function worker(networkAnswer: (request: { method: string; url: string }) => Pro
   const opened: string[] = [];
   const clock = fakeClock();
   const self = {
+    navigator,
     addEventListener: (type: string, fn: (event: unknown) => void) => void (listeners[type] = fn),
     clients: {
       claim: () => Promise.resolve(),
@@ -608,5 +609,59 @@ describe("the worker shows every push and opens the spec on a tap (criterion 10)
     const w = worker(async () => new Response("ok"));
     await w.push(() => ({ title: "t", body: "b", url: "/" }));
     expect(w.shown[0]!.options).not.toHaveProperty("tag");
+  });
+});
+
+// --- push: the number on the app's icon --------------------------------------
+
+describe("the worker sets the number on the app's icon when a push arrives", () => {
+  /** A worker whose `self.navigator` records the badge calls. `refuses`:
+   *  the call rejects, as an uninstalled tab's does. */
+  function badged(refuses = false) {
+    const calls: string[] = [];
+    const answer = () => (refuses ? Promise.reject(new Error("not installed")) : Promise.resolve());
+    const navigator = {
+      setAppBadge: (n: number) => (calls.push(`set ${n}`), answer()),
+      clearAppBadge: () => (calls.push("clear"), answer()),
+    };
+    return { calls, w: worker(async () => new Response("ok"), [], navigator) };
+  }
+
+  test("a push carrying a count sets it and still shows the notification (AC-5)", async () => {
+    const { calls, w } = badged();
+    await w.push(() => ({ title: "t", body: "b", url: "/", waiting: 2 }));
+    expect(calls).toEqual(["set 2"]);
+    expect(w.shown).toHaveLength(1);
+  });
+
+  test("a push carrying 0 clears the icon and sets no number (AC-6)", async () => {
+    const { calls, w } = badged();
+    await w.push(() => ({ title: "t", body: "b", url: "/", waiting: 0 }));
+    expect(calls).toEqual(["clear"]);
+  });
+
+  test("a push with no count leaves the icon as it was and still shows the notification (AC-5)", async () => {
+    const { calls, w } = badged();
+    await w.push(() => ({ title: "t", body: "b", url: "/" }));
+    await w.push(() => {
+      throw new SyntaxError("not json");
+    });
+    expect(calls).toEqual([]);
+    expect(w.shown).toHaveLength(2);
+  });
+
+  test("a device without the Badging API still gets its notification (AC-7)", async () => {
+    for (const navigator of [undefined, {}]) {
+      const w = worker(async () => new Response("ok"), [], navigator);
+      await w.push(() => ({ title: "t", body: "b", url: "/", waiting: 2 }));
+      expect(w.shown).toHaveLength(1);
+    }
+  });
+
+  test("a refused badge is caught and the notification is still shown (AC-7)", async () => {
+    const { calls, w } = badged(true);
+    await w.push(() => ({ title: "t", body: "b", url: "/", waiting: 2 }));
+    expect(calls).toEqual(["set 2"]);
+    expect(w.shown).toHaveLength(1);
   });
 });

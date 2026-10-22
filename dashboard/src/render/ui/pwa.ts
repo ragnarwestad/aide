@@ -275,11 +275,20 @@ self.addEventListener("push", (event) => {
   // Android draws as a white silhouette of whatever is opaque, so it
   // points at the mark on transparency and never at an app icon, whose
   // background rect would silhouette to a solid square.
-  event.waitUntil(self.registration.showNotification(n.title || "aide -board", {
+  //
+  // The number on the app's icon travels with the push: set when it
+  // arrives, cleared at 0, left alone when the push carries none. It is
+  // reached as self.navigator, and a device without the Badging API or one
+  // that refuses the call still gets its notification.
+  const nav = self.navigator;
+  const badge = typeof n.waiting !== "number" || !nav || typeof nav.setAppBadge !== "function"
+    ? Promise.resolve()
+    : (n.waiting > 0 ? nav.setAppBadge(n.waiting) : nav.clearAppBadge()).catch(() => {});
+  event.waitUntil(Promise.all([self.registration.showNotification(n.title || "aide -board", {
     body: n.body || "",
     badge: "/badge-96.png",
     data: { url: n.url || "/" },
-  }));
+  }), badge]));
 });
 
 // A tap opens the spec the notification is about, in the window of the
@@ -353,3 +362,24 @@ export const PWA_LINKS =
   `<link rel="apple-touch-icon" href="/apple-touch-icon.png">\n` +
   `<meta name="theme-color" content="${THEME_COLORS.light}" media="(prefers-color-scheme: light)">\n` +
   `<meta name="theme-color" content="${THEME_COLORS.dark}" media="(prefers-color-scheme: dark)">`;
+
+let readWaiting: (() => number) | null = null;
+
+/** Set once at boot to count the specs that wait for a person; null on a
+ *  generated page and in a test that boots no server. */
+export function setWaitingCount(read: (() => number) | null): void {
+  readWaiting = read;
+}
+
+/** How many specs wait for a person right now, or undefined when no count
+ *  is known. */
+export function readWaitingCount(): number | undefined {
+  return readWaiting?.();
+}
+
+/** The count a page loads with, for `app-badge.ts` to read; "" when no
+ *  count is known. */
+export function waitingMeta(): string {
+  const n = readWaitingCount();
+  return n === undefined ? "" : `<meta name="aide-waiting" content="${n}">`;
+}

@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [What a run does, in order](#what-a-run-does-in-order)
+- [How a run names its Claude sessions](#how-a-run-names-its-claude-sessions)
 - [The dashboard's own checkouts](#the-dashboards-own-checkouts)
 - [How a run touches the repositories](#how-a-run-touches-the-repositories)
 - [What counts as a step having run](#what-counts-as-a-step-having-run)
@@ -59,6 +60,24 @@ Two pages sit beside this one:
 
 Each of those is a section below, except the step's own turn, which is
 [Running specs](running-specs.md)'s business.
+
+## How a run names its Claude sessions
+
+Every Claude session a run starts gets a display name, so `claude --resume` on the serving host and the session lists of
+a tool that reads Claude Code's session files say which project, spec and step a session belonged to. The runner passes
+it as `--name`; `<project>` is the project's name on the board, the same as the first segment of the worktree path.
+
+| The session                                     | Its name                                        |
+|-------------------------------------------------|-------------------------------------------------|
+| A step on a spec: analyze, implement, archive … | `<project> <spec number> <step>`                |
+| The review after an implement                   | `<project> <spec number> review`                |
+| A create, which has no number yet               | `<project> new create`                          |
+| A scheduled job                                 | `<project> schedule <entry name>`               |
+
+A turn that continues a session passes no name, so the session keeps the one it has: the fix turn after a review or a
+red test run stays `<project> <spec number> implement`, and an implement that continues its analysis's session stays
+`<project> <spec number> analyze`. Codex and OpenCode sessions get no name: `codex exec` has no way to name one. The
+code is in `run-spec/setup/invocation.sh`, and the review's name in `run-spec/turn/review.sh`.
 
 ## The dashboard's own checkouts
 
@@ -135,7 +154,7 @@ one).
 
 **It branches them in `git worktree` checkouts of its own**, under `$HOME/.aide/dashboard/worktrees/`. The path is
 `<project>/<spec>/<basename of each root>`. The first segment is the project's name: for the dashboard's own clone,
-`checkouts/<project>/code`, it is `<project>` (`worktree_project_key` in `run-spec/checkout/checkouts.sh`), and for any other
+`checkouts/<project>/code`, it is `<project>` (`worktree_project_key` in `run-spec/setup/invocation.sh`), and for any other
 `--project-dir` it is that directory's basename. The real
 checkouts are put back **onto** their default branch before the worktrees are made and never leave it, so several runs
 can go at once, the dashboard's spec list never describes whatever branch a running job is on, and a user can use the
@@ -350,18 +369,18 @@ no plan and no plan review. The limits are the `SHORT_ANALYSIS_*` constants in `
 place they are set, with no per-project or environment override. For a spec that does not ask to choose the approach, the analyze prompt carries one line, `A short analysis is allowed for this spec`, stating
 them; any other spec is told nothing and gets the full analysis. After the turn (`run-spec/record/short-analysis-check.sh`,
 after the shared files check and before the criteria check) the runner reads `Analysis:` from `2-analysis.md`'s Tracking
-info, `Grade:` and `Acceptance criteria:` from `3-solution.md`'s, and counts the paths under `### Files to change` and the
+info, `Grade:` and `Acceptance criteria:` from `3-solution.md`'s, and counts the source files among the paths under `### Files to change` (a test or a Markdown file is not counted) and the
 `- **AC-n:**` lines of the description itself, taking the larger criteria count. Every completed analyze is logged as
-`short analysis: <short|full> — grade <g>, <n> acceptance criteria, <m> files to change`. A full analysis is only logged. A short
+`short analysis: <short|full> — grade <g>, <n> acceptance criteria, <m> files to change, <s> of them source files`. A full analysis is only logged. A short
 one over a limit, with no grade or no files recorded, or on a spec that asks to choose the approach, ends `short-analysis-over-limit`: `ok` false, the commit subject ending
-`(stopped: short-analysis-over-limit)`, and an error naming each limit crossed and telling the reader to press Analyze
+`(stopped: short-analysis-over-limit)`, and an error naming each limit crossed (for the files limit, the source files it counted) and telling the reader to press Analyze
 again for the full analysis. The state file does not gain `analyze`, and the next Analyze writes the full one. The
 `Analysis:` cases both the runner and the board read are in `core/tests/fixtures/analysis-line.json`. A spec whose
 description carries a `Sent back to a full analysis:` line is never offered a short analysis, and one written for it
 anyway ends `short-analysis-over-limit` with "it was sent back to a full analysis" among the limits crossed.
 
 **The sent-back check.** Every implement prompt names a file in the run's work directory, `sent-back`, and says: if the
-spec's analysis is short and the change is not small after all (more files to change than the short analysis allows, or
+spec's analysis is short and the change is not small after all (more source files to change than the short analysis allows, or
 not graded LOW), write one sentence saying what made it larger there, change nothing else and end the step. After the
 turn (`run-spec/record/sent-back-check.sh`, after `checkout/cleanup.sh` and before the no-progress check, the code
 review and the step's test run) a non-empty file decides the step. The sentence is joined to one line, stripped of

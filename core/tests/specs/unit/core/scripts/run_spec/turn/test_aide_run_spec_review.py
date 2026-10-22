@@ -117,6 +117,42 @@ def test_defects_found_are_listed_then_handed_to_a_third_turn_the_fix_never_a_se
     assert any(s.startswith("model turn started") for s in stages[count + 4:]), stages
 
 
+def test_the_review_session_is_named_review_not_for_the_implement_it_follows_AC_2(
+    runner, workspace, fake_claude
+):
+    """The stand-in records each call as its arguments joined by spaces."""
+    with_status(workspace, ["create", "analyze"])
+    claude = _reviewing_claude(fake_claude, "review: no defects found")
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    calls = fake_claude.calls.read_text().splitlines()
+    assert len(calls) == 2, calls
+    assert "--name proj 81 review" in calls[1], calls[1]
+    assert "--name proj 81 implement" not in calls[1], calls[1]
+
+
+def test_the_fix_turn_passes_no_name_so_the_session_keeps_its_own_AC_2(runner, workspace, fake_claude):
+    with_status(workspace, ["create", "analyze"])
+    claude = fake_claude(
+        "prompt=\"$(cat)\"\n"
+        f"if printf '%s' \"$prompt\" | grep -q \"{REVIEW_MARKER}\"; then\n"
+        f"  echo '{json.dumps(_result(REVIEW_SESSION, 'review: 1 defect(s) found' + chr(10) + '1. A defect', 0.05))}'\n"
+        f"elif printf '%s' \"$prompt\" | grep -q \"{FIX_MARKER}\"; then\n"
+        "  printf 'fixed\\n' > fixed.txt && git add -A && git commit -q -m 'the fix'\n"
+        f"  echo '{json.dumps(_result(IMPLEMENT_SESSION, 'done', 0.20))}'\n"
+        "else\n"
+        "  printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'\n"
+        f"  echo '{json.dumps(_result(IMPLEMENT_SESSION, 'done', 0.10))}'\n"
+        "fi\n"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    calls = fake_claude.calls.read_text().splitlines()
+    assert len(calls) == 3, calls
+    assert "--resume" in calls[2] and IMPLEMENT_SESSION in calls[2], calls[2]
+    assert "--name" not in calls[2], calls[2]
+
+
 def test_a_verdict_with_no_review_line_counts_as_no_defects_AC_4(runner, workspace, fake_claude):
     """The model answered in free prose, with no `review:` marker line
     at all — treated as no defects, never as an unspecified fix turn, but

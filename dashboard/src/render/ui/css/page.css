@@ -1,5 +1,12 @@
 /* --- the page ------------------------------------------------------ */
 
+/* A page load from one of the board's pages to another fades over, with the
+   browser's own default, instead of blanking. Reduced motion changes pages
+   with no transition. A browser without view transitions drops both rules
+   and changes pages as before. */
+@view-transition { navigation: auto; }
+@media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }
+
 /* The full-viewport-height floor used to sit on the .layout wrapper
    the sidebar shared with main (spec 119 removed it). It belongs on
    the body now, or a short page stops painting the background where

@@ -36,10 +36,11 @@ export function setupWatch(
   // --- spec 189: the pages that are watching --------------------------------
   //
   // One held-open response per open tab. The event is a SIGNAL and
-  // carries nothing: the browser already knows how to fetch a fresh
+  // describes no row: the browser already knows how to fetch a fresh
   // `#jobrows`, so `renderSpecsRows` stays the one place a row is
   // described and there is no second format to keep in step with it.
-  // What travels the wire is "go and look".
+  // What travels the wire is "go and look", and, after a queue move, how
+  // many specs wait for a person, for the app's icon.
   const encoder = new TextEncoder();
   const watchers = new Set<ReadableStreamDefaultController<Uint8Array>>();
   const phaseWatchers = new Map<ReadableStreamDefaultController<Uint8Array>, Set<string>>();

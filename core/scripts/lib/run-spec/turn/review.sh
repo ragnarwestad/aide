@@ -98,6 +98,7 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ]; th
     if [ "$review_skip" = "yes" ]; then review_skip="no"; continue; fi
     case "$review_arg" in
       --session-id) review_skip="yes" ;;
+      --name) review_argv+=(--name "$session_project $spec_id review"); review_skip="yes" ;;
       *) review_argv+=("$review_arg") ;;
     esac
   done

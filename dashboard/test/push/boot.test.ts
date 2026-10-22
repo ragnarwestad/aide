@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { createServer } from "../../src/serve/serve.ts";
 import { loadOrCreateKeys } from "../../src/push/vapid.ts";
 import { writeSubscriptions } from "../../src/push/subscriptions.ts";
-import { fakeFetch, subscribeBody, DEFAULTS, SPEC } from "./fixtures.ts";
+import { deviceKeys, fakeFetch, openCall, DEFAULTS, SPEC } from "./fixtures.ts";
 
 const dirs: string[] = [];
 const servers: { stop: () => void }[] = [];
@@ -31,17 +31,19 @@ async function boot(jobs: object[]) {
   const root = join(dir, "root");
   mkdirSync(join(root, "aide", ".aide"), { recursive: true });
   writeFileSync(join(root, "aide", ".aide", "project.yaml"), "name: aide\n");
-  mkdirSync(join(root, "aide", "specs", SPEC), { recursive: true });
-  writeFileSync(join(root, "aide", "specs", SPEC, "1-description.md"), "# x\n");
+  for (const folder of [SPEC, "82-another-spec"]) {
+    mkdirSync(join(root, "aide", "specs", folder), { recursive: true });
+    writeFileSync(join(root, "aide", "specs", folder, "1-description.md"), "# x\n");
+  }
   writeFileSync(join(dir, "queue.json"), JSON.stringify(jobs));
   // The device subscribed under an earlier run: its subscription and the
   // server's key are already on disk when this one starts.
   const keyPath = join(dir, "push-key.json");
   const subscriptionsPath = join(dir, "push-subscriptions.json");
   const keys = await loadOrCreateKeys(keyPath);
-  const body = await subscribeBody();
+  const device = { ...(await deviceKeys()), endpoint: "https://fcm.googleapis.com/fcm/send/boot-device" };
   writeSubscriptions(subscriptionsPath, [
-    { endpoint: body.endpoint, p256dh: body.keys.p256dh, auth: body.keys.auth, lang: "en", origin: "https://board.test", key: keys.publicKey },
+    { endpoint: device.endpoint, p256dh: device.p256dh, auth: device.auth, lang: "en", origin: "https://board.test", key: keys.publicKey },
   ]);
   const sent = fakeFetch();
   const runner = join(dir, "runner");
@@ -56,7 +58,7 @@ async function boot(jobs: object[]) {
     pushSubscriptionsPath: subscriptionsPath, pushKeyPath: keyPath, pushFetch: sent.fetch,
   });
   servers.push(server);
-  return sent;
+  return { ...sent, device };
 }
 
 describe("a restart sends one push for the job it cut off, and none for the finished ones (criterion 12)", () => {
@@ -73,5 +75,17 @@ describe("a restart sends one push for the job it cut off, and none for the fini
     const sent = await boot([job("f1", "failed"), job("d1", "done")]);
     await Bun.sleep(300);
     expect(sent.calls).toHaveLength(0);
+  });
+});
+
+describe("a push carries how many specs wait, counted from the real queue (AC-5)", () => {
+  test("a spec already failed plus the one the push is about makes 2", async () => {
+    const sent = await boot([
+      job("f1", "failed"),
+      job("r1", "running", { specFolder: "82-another-spec", pid: 2_000_000_000, startedAt: "2026-09-01T10:00:00.000Z" }),
+    ]);
+    await Bun.sleep(300);
+    expect(sent.calls).toHaveLength(1);
+    expect((await openCall(sent.calls[0]!, sent.device)).waiting).toBe(2);
   });
 });

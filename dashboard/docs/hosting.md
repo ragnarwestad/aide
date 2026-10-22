@@ -135,6 +135,18 @@ one, and what is kept, is in [Running specs](running-specs.md#push-notifications
 receive them only where the worker can run, so the same HTTPS requirement applies, and on iOS only from the installed
 app.
 
+**Pages change with a fade, and the app's icon carries a number.** Going from one page of the board to another fades
+over with the browser's own view transition instead of blanking, and changes with no fade when the reader has asked for
+reduced motion. A browser without view transitions changes pages as it always did. The live redraw of a page's rows is
+not a page load and is unchanged.
+
+The number on the app's icon is how many specs wait for a person: a spec counts when its latest job failed, stopped or
+was interrupted, or is an archive held back on unticked acceptance criteria, in a project the board serves. With none,
+the icon carries no number. A page sets the number when it loads and on every live update that changes it, and every
+push sets it when it arrives, so the icon is current while the app is closed. Where the device has no badge support, no
+number shows and nothing else changes. On an iPhone the number shows only on the Home Screen app, and only with
+notifications allowed.
+
 None of this works over plain HTTP: a service worker needs a secure context, which is what "HTTPS and other devices"
 above is about.
 The manifest and the icons are served either way, and the tags on the page are inert until then.

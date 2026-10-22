@@ -21,7 +21,7 @@ import { t, type Language } from "../../../i18n";
 import { archivedRowNotices, errorMarkNotices } from "./row-marks.ts";
 import { isArchivedRow, type SpecGroup, type SpecsFilter } from "./data-model";
 import { checksRow, checksFold, checksPanel } from "./row-checks.ts";
-import { nextPhase, specBusy } from "./row-state.ts";
+import { archivingAgain, nextPhase, specBusy } from "./row-state.ts";
 import { LIST_COLUMNS } from "./row-shared.ts";
 import { deleteBranchForm } from "./row-controls.ts";
 import { approachPanel } from "./approach-choice";
@@ -156,7 +156,7 @@ export function specNoticeRow(
     // and readyToArchive arguments beside this one already carry the
     // same gate.
     locked ? undefined : phaseDisagreement(g, lang, sharedFiles),
-    isArchivedRow(g) ? archivedRowNotices(g.archive, now, lang) : errorMarkNotices(g, lang, testServerAvailable, view.branchPreview),
+    isArchivedRow(g) ? (archivingAgain(g) ? [] : archivedRowNotices(g.archive, now, lang)) : errorMarkNotices(g, lang, testServerAvailable, view.branchPreview),
     lang,
     !isArchivedRow(g) && !archiveHeldBack && !specBusy(g) && nextPhase(g.done) === "archive",
   );

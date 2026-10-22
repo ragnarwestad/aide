@@ -181,7 +181,7 @@ fi
 sent_back_file="$work_dir/sent-back"
 if [ "$command_name" = "implement" ]; then
   prompt="$prompt
-If this spec's analysis is short and the change is not small after all, per Step 1 of the skill — it needs more than $SHORT_ANALYSIS_MAX_FILES files to change, or it is not graded $SHORT_ANALYSIS_GRADE — write one sentence saying what made it larger to $sent_back_file, change nothing else, and end the step."
+If this spec's analysis is short and the change is not small after all, per Step 1 of the skill — it needs more than $SHORT_ANALYSIS_MAX_FILES source files to change (tests and documentation are not counted), or it is not graded $SHORT_ANALYSIS_GRADE — write one sentence saying what made it larger to $sent_back_file, change nothing else, and end the step."
 fi
 
 # Where the merge with the default branch was left open for this step

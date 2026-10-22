@@ -124,4 +124,4 @@ export async function decryptPush(body: Bytes, device: { privateKey: CryptoKey; 
 
 /** The JSON a delivered push carried, opened with the device's key. */
 export const openCall = async (call: Call, device: Parameters<typeof decryptPush>[1]) =>
-  JSON.parse(await decryptPush(call.body, device)) as { title: string; body: string; url: string };
+  JSON.parse(await decryptPush(call.body, device)) as { title: string; body: string; url: string; waiting?: number };

@@ -11,6 +11,7 @@
 - [The results](#the-results)
 - [What a round costs](#what-a-round-costs)
 - [Deciding from a round](#deciding-from-a-round)
+- [What the rounds found](#what-the-rounds-found)
 
 ---
 
@@ -136,3 +137,39 @@ the specs the round replayed, compared with what those specs got on the board:
 - at least 25 % cheaper per step.
 
 Two or three specs are too few to decide on; a round has eight or more.
+
+The original tests favour the board's own runs: those runs pass their own tests by
+definition, and a replay that builds the same behaviour under other names or in other
+places fails some of them. A fair comparison on that criterion needs the current model
+replayed on the same specs as well, as its own round.
+
+---
+
+## What the rounds found
+
+Each question a round has settled, with the numbers that settled it. The results lie
+on the serving host, under `~/.aide/replays/`.
+
+**Analyze stays on Opus.** Two rounds replayed analyze on specs 615, 619, 622, 624,
+634, 637, 639 and 640, at Aide commit c206cae8, with implement on Sonnet and the judge
+on Opus (`analyze-model/b1` and `analyze-model/a1`):
+
+| Analyze on               | Green | Original tests | Judge mean | Analyze cost              |
+| ------------------------ | ----- | -------------- | ---------- | ------------------------- |
+| Sonnet alone             | 8/8   | 87 %           | 2.4        | 51 % below Opus           |
+| Sonnet with Opus advisor | 7/7   | 88.6 %         | 2.57       | 27 % above Sonnet alone   |
+
+The second round has seven specs: 640's analysis ran out of time on a loaded host and
+was left out. Neither meets the bar: the original tests are more than 5 points lower,
+and the judge's mean is under 3. The judge's recurring complaint was heavier plans that
+missed what the description meant. The advisor improves the plan a little, for about
+$1–2 an analysis.
+
+**A small spec needs only a short analysis.** Implement on Sonnet, run on six archived
+specs with no analysis at all, was green at the first try on four of them, for less
+than the original implement runs cost, and saved the analysis on Opus, $7.89 to $15.57
+a spec. On the other two the implement skill refused to start, on its own judgement and
+not on size: one of them was smaller than a spec that ran. 199 of the 226 original tests
+passed; the round cannot tell whether the other 27 failed on behaviour or only on naming
+and placing. That is why the short analysis still writes the files to change and where
+the tests go, and why the runner, not the model, decides when it is taken.

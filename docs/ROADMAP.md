@@ -120,39 +120,11 @@ found one fixed flow far too heavy for a small bug fix. Kinds of task:
 
 - **A bug fix:** a test that reproduces the bug is red before the change and green after it.
 - **A refactor:** the behaviour does not change, so the existing tests stay as they are and green throughout.
-- **A quick fix:** a small change gets a short analysis without a plan or a plan review, as described below.
+- **A quick fix:** built — a small spec gets a short analysis within limits the runner checks, and implement
+  can send it back to a full one once (`dashboard/docs/spec-lifecycle.md`).
 - **Explore first:** the analysis builds a throwaway prototype to learn from before it writes the plan.
 
-How a quick fix could work, with analyze deciding rather than the person writing the spec:
-
-- **Analyze always runs, and first judges the spec.** It finds the files the change touches and grades the spec.
-  A spec simple enough gets a short analysis: the files to change and where the tests sit, under a plain mark that
-  there is no plan and no plan review. Implement then knows what it has and what it lacks.
-- **The runner holds the line, not the model.** Analyze writes what the grade rests on as fixed fields: files to
-  change, separate places in the code, acceptance criteria. The short path is allowed only below limits the runner
-  checks itself, whatever the model thinks, set from measurements and perhaps per project.
-- **Implement can send the spec back, once.** When implement finds the spec is not simple after all, it ends with
-  a reason of its own, and the runner queues analyze with a full analysis required and no judgement, then
-  implement again. The requirement is kept on the spec, so it cannot go back and forth.
-- **The row says which path it took:** a short analysis, or sent back to a full one.
-- **A spec that asks to choose the approach always gets a full analysis,** since a short one weighs no
-  alternatives.
-
-What a measurement found: implement with Sonnet run on six archived specs with no analysis at all was green at the
-first try on four of them, for less than the original implement runs cost, and saved the analysis on Opus, $7.89 to
-$15.57 a spec. Only about one spec in six is graded LOW, and its analysis already costs about half another's,
-around $7 and 13 minutes on recent specs, so the short path saves time on small specs more than money. On the other two the implement skill refused to start, on its own judgement and not on size: one of
-them was smaller than a spec that ran. That is why the short path writes the files and the place for the tests,
-and why the runner, not the model, decides when it is taken. 199 of the 226 original tests passed against the new
-code, and the measurement cannot tell whether the other 27 failed because the code behaves differently or only
-because the new run named or placed things differently.
-
-The next step is to measure the short analysis itself on more specs, with `scripts/replay_specs`, before the flow
-is built:
-
-- **Each spec several times** (`--repeat`), so a steady result is told from a lucky one.
-- **The name of every original test that fails,** written into the results, so a difference in behaviour is told
-  from a difference in naming or placing.
+What the measurement behind the quick fix found is in `docs/REPLAY.md`, "What the rounds found".
 
 ### 14. More than one way to run a step
 

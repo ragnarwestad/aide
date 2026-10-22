@@ -99,7 +99,7 @@ def test_every_implement_prompt_names_the_sentence_file_and_the_limits_AC_1(runn
     _implement(runner, workspace, _claude(fake_claude, sentence=None, seen=seen))
     prompt = seen.read_text()
     [line] = [l for l in prompt.splitlines() if "sent-back" in l]
-    assert "more than 3 files to change" in line and "LOW" in line, line
+    assert "more than 3 source files to change (tests and documentation are not counted)" in line and "LOW" in line, line
 
 
 def test_an_analyze_prompt_does_not_name_a_sentence_file_AC_1(runner, workspace, fake_claude, tmp_path):
