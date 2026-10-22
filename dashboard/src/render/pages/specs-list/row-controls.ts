@@ -17,7 +17,7 @@ import {
 } from "./data-model";
 import { reopenAskDialog } from "../spec-page/ask-dialog.ts";
 import { queuePath } from "./filter-bar.ts";
-import { actionState, rowAnchorId, runFormId, specBusy } from "./row-state.ts";
+import { actionState, archivingAgain, rowAnchorId, runFormId, specBusy } from "./row-state.ts";
 import { specPagePath } from "../spec-page/tabs.ts";
 
 // The fold is a LINK, not a button, and the state is in the URL. That
@@ -187,6 +187,7 @@ export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
   // own fallback for a spec with no recorded choice).
   // Nothing while a Close or Reopen is still working on it.
   if (isArchivedRow(g)) {
+    if (archivingAgain(g)) return actionForm(g.lead!, lang);
     if (specBusy(g)) return "";
     return offersArchiveAgain(g) ? archiveAgainForm(g, lang) : reopenAsk(g, lang);
   }

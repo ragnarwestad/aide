@@ -4,7 +4,7 @@
 
 import { inFlight, type QueueRowView } from "../../ui/job-state";
 import { stepButton } from "../../../format/step-label.ts";
-import { RUN_STEPS, groupKey, type SpecGroup } from "./data-model";
+import { RUN_STEPS, groupKey, offersArchiveAgain, type SpecGroup } from "./data-model";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
 
 /** Whether a job is in flight on this spec — queued, running, or parked
@@ -17,6 +17,10 @@ import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status
  *  THIS, so a control added later has one question to ask rather than a
  *  rule to remember. */
 export const specBusy = (g: SpecGroup): boolean => !!g.lead && inFlight(g.lead);
+
+/** An archived row whose code never landed, with its archive running
+ *  again: it reads and acts as a live row does until the run is over. */
+export const archivingAgain = (g: SpecGroup): boolean => offersArchiveAgain(g) && specBusy(g);
 
 // THE phase a spec is still waiting on — one fact, read by both halves
 // of the State column, so the badge and the button beside it cannot

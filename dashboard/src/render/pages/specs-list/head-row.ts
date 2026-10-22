@@ -21,7 +21,7 @@ import {
 } from "./cell-helpers.ts";
 import { foldControl } from "./row-controls.ts";
 import { listColumns } from "./row-shared.ts";
-import { nextPhase, rowAnchorId, specNumber } from "./row-state.ts";
+import { archivingAgain, nextPhase, rowAnchorId, specNumber } from "./row-state.ts";
 
 // One line about the spec: what NOTHING ELSE on the row says. It used
 // to fall back to "no status recorded yet" rather than go blank, on the
@@ -291,7 +291,7 @@ function specPdf(g: SpecGroup, opts: SpecsPageOptions): string {
  *  A spec with no job in the queue's memory reads through `restingChip`
  *  (spec 176). */
 export function headStateBadge(g: SpecGroup, lang: Language): string {
-  const locked = isArchivedRow(g);
+  const locked = isArchivedRow(g) && !archivingAgain(g);
   const nextStep = locked ? undefined : nextPhase(g.done);
   const readyPhase = nextStep ? stepLabel(nextStep) : undefined;
   const heldBack = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
