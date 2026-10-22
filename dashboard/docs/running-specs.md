@@ -40,7 +40,9 @@ step that ends either advances the job or ends it, and several jobs run at once 
 ## Making a spec from the page
 
 Every active spec is a row on the list, and every row can be run. A spec that does not exist yet has no row, so
-above the table there is a **New** button — a plain link to `/new`. That page is the form and nothing
+there is a **New** button — a plain link to `/new` — at the right-hand end of the search field's row on the Specs list
+and on the Running tab, and on an empty Running tab in its "Nothing is running." message, or under the failed-create messages that stand in its place. It is not offered when no
+project on the board may have a spec made in it. That page is the form and nothing
 else, on two tabs with Create above them. **Spec**, the tab it opens on, holds a project, a title, a description and
 a **Depends on** field naming a spec this one has to wait for. **Options** (`/new?tab=options`) holds the acceptance
 and approach settings, then the phase table. Switching tabs keeps what was typed, and Create posts both tabs from
@@ -626,6 +628,9 @@ The Slack `notifyCommand` above is separate and unchanged.
 The Running tab is the board's first page, at `/`. It lists every spec the Specs list shows under Active, and the
 scheduled jobs, the Close and Reopen jobs and the board's own deploy that are running or wait for the user, in every
 project.
+
+The tab offers **New**, as the Specs list does, from the same function; see [Making a spec from the
+page](#making-a-spec-from-the-page).
 
 A spec has a row for as long as the Specs list shows it under Active: neither archived nor closed, whatever its jobs
 did and whether or not it has one in the queue. A spec waiting for Implement, one implemented and waiting to be tested

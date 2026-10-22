@@ -411,7 +411,10 @@ export function sortableHead(f: SpecsFilter, lang: Language = "en", specsList = 
 // it. It stood in a band of its own above the table before that.
 // Not offered at all when no project on this machine may have a spec
 // made in it, exactly as the panel was not.
-function newSpecLink(opts: SpecsPageOptions, lang: Language): string {
+//
+// The Running tab draws it too, in the same slot of its own search row and
+// in its empty message, from this one function.
+export function newSpecLink(opts: Pick<SpecsPageOptions, "createProjects">, lang: Language): string {
   if ((opts.createProjects ?? []).length === 0) return "";
   return btnLink({ href: NEW_SPEC_ROUTE, label: t(lang, "list.newSpec"), variant: "primary" });
 }

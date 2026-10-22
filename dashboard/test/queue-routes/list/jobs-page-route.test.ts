@@ -10,6 +10,7 @@ import { join } from "node:path";
 import { t } from "../../../src/i18n";
 import type { FailedCreate } from "../../../src/push/failed-creates.ts";
 import { renderFailedCreateNotices } from "../../../src/render/pages/specs-list/failed-create-notices.ts";
+import { newSpecLink } from "../../../src/render/pages/specs-list/filter-bar.ts";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
 import { dated, setupQueueRoutesHarness } from "../fixtures.ts";
 
@@ -332,6 +333,16 @@ describe("nothing running (AC-1)", () => {
     const busy = await rowsOf(board().base);
     expect(busy).not.toContain(t("en", "jobs.nothingRunning"));
     expect(busy).toContain("<table");
+  });
+});
+
+describe("New (AC-1, AC-3)", () => {
+  test("the Running tab and the Specs list draw the same New for a project on the allowlist (AC-1, AC-3)", async () => {
+    const { base } = board();
+    const link = newSpecLink({ createProjects: ["aide"] }, "en");
+    expect(await rowsOf(base)).toContain(link);
+    const specs = await fetch(`${base}/specs?rows=1`, { redirect: "manual" });
+    expect(await specs.text()).toContain(link);
   });
 });
 

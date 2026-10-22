@@ -59,6 +59,8 @@ export async function jobsPage(
       archivedSpecs: ctx.archivedSpecRows(ACTIVE_FILTER_KEY),
       listPath: "/",
       failedCreates: ctx.push.failedCreates.list(),
+      // Every project a spec may be made in: New is offered only when there is one.
+      createProjects: [...ctx.allowed].sort(),
       currentUrl: langResult.currentUrl,
       script: await specsClientScript(),
     },

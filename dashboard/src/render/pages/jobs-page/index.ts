@@ -11,6 +11,7 @@ import { rowMessage } from "../../ui/components";
 import type { QueueRowView } from "../../ui/job-state";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { renderFailedCreateNotices } from "../specs-list/failed-create-notices.ts";
+import { newSpecLink } from "../specs-list/filter-bar.ts";
 import { listRefusalLine, refusalRowTemplate } from "../specs-list/notice-row.ts";
 import { activeSpecRows, type SpecsPageOptions } from "../specs-list";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
@@ -55,12 +56,17 @@ function entries(v: JobsView): { key: string; html: string; place: TabPlace; fac
 }
 
 /** The failed-create messages, the bar and the table of the rows the view
- *  shows, or the sentence for no row. A tab with no row at all draws no bar. */
+ *  shows, or the sentence for no row; both offer New when it has no bar. A tab with no row at
+ *  all draws no bar. */
 export function renderJobsRows(v: JobsView): string {
   const lang = v.list.lang ?? "en";
   const all = entries(v);
   const notices = renderFailedCreateNotices(v.list.failedCreates ?? [], lang);
-  if (!all.length) return notices || rowMessage("info", t(lang, "jobs.nothingRunning"));
+  if (!all.length) {
+    const create = newSpecLink(v.list, lang);
+    if (!notices) return rowMessage("info", t(lang, "jobs.nothingRunning"), { actions: create });
+    return create ? `${notices}<div class="row">${create}</div>` : notices;
+  }
   const f = v.list.filter ?? {};
   const shown = jobsViewRows(all, f);
   const body = shown.length
@@ -68,7 +74,7 @@ export function renderJobsRows(v: JobsView): string {
     : `<tr><td colspan="${LIST_COLUMNS}" class="empty muted">${t(lang, "jobs.noRowMatchesFilter")}</td></tr>`;
   return (
     notices +
-    jobsFilterBar(all.map((e) => e.facts), f, lang) +
+    jobsFilterBar(all.map((e) => e.facts), f, lang, v.list) +
     `<div class="tablewrap"><table class="list speclist" data-list="jobs">${jobsHead(f, lang)}<tbody>${body}</tbody></table></div>`
   );
 }
