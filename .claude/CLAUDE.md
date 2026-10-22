@@ -98,6 +98,7 @@ the dashboard's docs pages to 550; they are written to be searched. Where to loo
 | Ideas being considered for Aide, and where they stand     | `docs/ROADMAP.md`                             | Both              |
 | How Aide uses agents, subagents and loops in each step    | `docs/AGENTS_AND_LOOPS.md`                    | Both              |
 | How Aide compares with spec tools and agent runners       | `docs/COMPARISON.md`                          | Both              |
+| Replaying archived specs to choose a step's model         | `docs/REPLAY.md`                              | Changing the code |
 | Sources on writing specs for AI agents, to be analysed    | `docs/SPEC_WRITING_SOURCES.md`                | Changing the code |
 | Every key in `.aide/config` and `.aide/project.yaml`      | `docs/CONFIGURATION.md`                       | Both              |
 | What each AI tool supports, verified                      | `docs/AI_SUPPORT_MATRIX.md`                   | Changing the code |
