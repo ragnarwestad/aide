@@ -27,6 +27,7 @@ Read these first — we do not repeat their content here:
 
 - [The Complete Guide to Building Skills for Claude](https://resources.anthropic.com/hubfs/The-Complete-Guide-to-Building-Skill-for-Claude.pdf) — Anthropic's complete guide (28 pages)
 - [How to Create Custom Skills](https://support.claude.com/en/articles/12512198-how-to-create-custom-skills) — technical requirements and best practices
+- [Skill authoring best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices) — Anthropic's guidance on concise skills, progressive disclosure, and tables of contents in long reference files
 - [skill-creator plugin](https://claude.com/plugins/skill-creator) — interactive tool for creating, testing and iterating on skills
 - [agentskills.io](https://agentskills.io) — open standard for portable skills across AI tools
 

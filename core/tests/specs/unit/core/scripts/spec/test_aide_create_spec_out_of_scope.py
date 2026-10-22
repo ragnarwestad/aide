@@ -4,7 +4,7 @@ by the model. Without the flag nothing is compared.
 """
 
 from .test_aide_create_spec import run, script, specs_root  # noqa: F401
-from .test_aide_create_spec_criteria import create
+from .test_aide_create_spec_criteria import ac_lines, create
 
 SECTION = (
     "## Out of scope\n\n"
@@ -12,6 +12,9 @@ SECTION = (
     "- Do not add a new route.\n"
 )
 CRITERION = "## Acceptance criteria\n\n- **AC-1:** The board SHALL a.\n"
+BELOW = "ACer:\n\n- **AC-1:** The board SHALL a.\n"
+AC_2 = "- **AC-2:** The board SHALL b.\n"
+AC_3 = "- **AC-3:** The board SHALL c.\n"
 
 
 def description(*parts):
@@ -81,3 +84,55 @@ def test_a_description_without_the_section_is_compared_as_before_AC_2(script, sp
     written = description(CRITERION, "- **AC-2:** The board SHALL b.\n")
     rc, out, _ = create(script, specs_root, given, written)
     assert rc == 0, out
+
+
+def test_criteria_added_directly_after_a_given_one_below_the_section_are_created_AC_1(script, specs_root):
+    given = description(SECTION, BELOW)
+    written = description(SECTION, BELOW + AC_2 + AC_3)
+    rc, out, _ = create(script, specs_root, given, written)
+    assert rc == 0, out
+    assert ac_lines(specs_root) == [
+        "- **AC-1:** The board SHALL a.",
+        "- **AC-2:** The board SHALL b.",
+        "- **AC-3:** The board SHALL c.",
+    ]
+
+
+def test_a_criterion_added_after_a_given_one_without_bold_below_the_section_is_created_AC_1(script, specs_root):
+    given = description(SECTION, "ACer:\n\n- AC-1: The board SHALL a.\n")
+    written = description(SECTION, "ACer:\n\n- AC-1: The board SHALL a.\n" + AC_2)
+    rc, out, _ = create(script, specs_root, given, written)
+    assert rc == 0, out
+    assert ac_lines(specs_root) == ["- **AC-1:** The board SHALL a.", "- **AC-2:** The board SHALL b."]
+
+
+def test_a_criterion_added_at_the_end_of_the_section_away_from_the_given_ones_is_refused_AC_1(script, specs_root):
+    given = description(CRITERION, SECTION)
+    written = description(CRITERION, SECTION + AC_2)
+    rc, out, _ = create(script, specs_root, given, written)
+    assert rc != 0, out
+    assert_refused(out, specs_root)
+
+
+def test_a_criterion_written_inside_the_section_when_none_were_given_is_refused_AC_2(script, specs_root):
+    given = description(SECTION)
+    written = description(SECTION + "\n- **AC-1:** The board SHALL a.\n")
+    rc, out, _ = create(script, specs_root, given, written)
+    assert rc != 0, out
+    assert_refused(out, specs_root)
+
+
+def test_a_reworded_item_is_refused_when_criteria_are_added_below_the_section_AC_3(script, specs_root):
+    given = description(SECTION, BELOW)
+    written = description(SECTION.replace("the queue", "the schedule"), BELOW + AC_2)
+    rc, out, _ = create(script, specs_root, given, written)
+    assert rc != 0, out
+    assert_refused(out, specs_root)
+
+
+def test_a_given_criterion_moved_out_of_the_section_is_refused_AC_3(script, specs_root):
+    given = description(SECTION, BELOW)
+    written = description(CRITERION, SECTION + AC_2)
+    rc, out, _ = create(script, specs_root, given, written)
+    assert rc != 0, out
+    assert_refused(out, specs_root)

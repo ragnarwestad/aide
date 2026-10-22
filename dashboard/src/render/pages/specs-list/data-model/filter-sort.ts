@@ -173,6 +173,18 @@ export function filterShowsArchived(state: string | undefined): boolean {
 export const isArchivedRow = (g: SpecGroup): boolean =>
   !!g.archive || g.state === ARCHIVED_STATE || g.state === ARCHIVED_OPEN_STATE || g.state === CLOSED_STATE;
 
+/** An archived spec whose code never landed: its own branch is still on
+ *  origin and not open for review. The queue counts it as active, so it
+ *  refuses Reopen and takes Archive again (`parse-request.ts`); the row
+ *  offers Archive, with the Archive line's AI and model to pick. */
+export const offersArchiveAgain = (g: SpecGroup): boolean =>
+  !!g.archive?.notLanded && !g.archive.prOpen && !g.archive.closed;
+
+/** Whether a phase line's AI and model are a record rather than a choice:
+ *  every line of an archived row, except Archive on one that offers it again. */
+export const lockedAsArchived = (g: SpecGroup, step: string): boolean =>
+  isArchivedRow(g) && !(step === "archive" && offersArchiveAgain(g));
+
 /** Everything the search reads, as one lowercase haystack. The WHOLE
  *  description, not the two lines a row shows: a term found in the
  *  clipped tail still turns up its row, and the note under the field
