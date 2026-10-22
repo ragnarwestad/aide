@@ -18,6 +18,7 @@ import { reopenAskDialog } from "../spec-page/ask-dialog.ts";
 import { queuePath } from "./filter-bar.ts";
 import { actionState, rowAnchorId, runFormId, specBusy } from "./row-state.ts";
 import { specPagePath } from "../spec-page/tabs.ts";
+import { modelOptions } from "./model-picker.ts";
 
 // The fold is a LINK, not a button, and the state is in the URL. That
 // buys three things at once for no browser code at all: it works with
@@ -127,6 +128,31 @@ function reopenAsk(g: SpecGroup, lang: Language): string {
   return askButton({ label: t(lang, "list.reopen"), dialogId: id, variant: "primary" }) + listReopenDialog(g, lang, id);
 }
 
+/** An archived spec whose code never landed — its own branch is still on
+ *  origin and not open for review. The queue counts it as active, so it
+ *  refuses Reopen and takes Archive again (`parse-request.ts`); the row
+ *  offers the same. */
+export const offersArchiveAgain = (g: SpecGroup): boolean =>
+  !!g.archive?.notLanded && !g.archive.prOpen && !g.archive.closed;
+
+/** Archive again, with the model it runs on: the archived row's phase
+ *  lines are a record and draw their selects disabled, so the choice
+ *  rides in this form, starting from Archive's configured default. */
+function archiveAgainForm(g: SpecGroup, opts: SpecsPageOptions, lang: Language): string {
+  const models = opts.modelChoices ?? [];
+  const configured = opts.defaultModels?.archive ?? opts.defaultModels?.default;
+  const select = models.length
+    ? `<select name="model.archive" aria-label="${esc(stepLabel("archive", lang))}">${modelOptions(models, configured)}</select> `
+    : "";
+  return buttonForm({
+    action: "/api/queue",
+    hook: "actionform",
+    hidden: { project: g.project, specFolder: g.specFolder, steps: "archive" },
+    before: select,
+    button: { label: stepLabel("archive", lang), variant: "primary", pending: "starting…" },
+  });
+}
+
 /** The press an archived row's "still on origin" note carries: a POST
  *  that deletes the merged branch on origin. */
 export function deleteBranchForm(g: SpecGroup, lang: Language): string {
@@ -173,7 +199,10 @@ export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
   // falling back to ticking `archive` alone (`defaultTicked`, spec 439's
   // own fallback for a spec with no recorded choice).
   // Nothing while a Close or Reopen is still working on it.
-  if (isArchivedRow(g)) return specBusy(g) ? "" : reopenAsk(g, lang);
+  if (isArchivedRow(g)) {
+    if (specBusy(g)) return "";
+    return offersArchiveAgain(g) ? archiveAgainForm(g, opts, lang) : reopenAsk(g, lang);
+  }
   const busy = specBusy(g);
   // A conflict used to draw a Resolve control of its own here, off the
   // job's stored `errorReason`. Spec 171 took it away: `archive`
