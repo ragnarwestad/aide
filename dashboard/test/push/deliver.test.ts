@@ -81,25 +81,25 @@ describe("what a notification says (criterion 9)", () => {
   };
 
   for (const ending of Object.keys(SPEC_ENDINGS) as (keyof typeof SPEC_ENDINGS)[]) {
-    test(`a step that ends ${ending} opens the Specs list with the spec's row unfolded (AC-1)`, async () => {
+    test(`a step that ends ${ending} opens the Running tab with the spec's row unfolded and scrolled to (AC-2)`, async () => {
       const b = await board();
       const d = await b.device(1);
       const job = runningJob(b.store);
       SPEC_ENDINGS[ending](b.store, job.id);
       await b.push.idle();
       const sent = await openCall(b.sent.calls[0]!, d);
-      expect(sent.url).toBe(`/specs?open=${encodeURIComponent(`aide/${SPEC}`)}`);
+      expect(sent.url).toBe(`/?open=${encodeURIComponent(`aide/${SPEC}`)}#spec-aide/${SPEC}`);
     });
   }
 
-  test("a held-back archive opens the Specs list with the spec's criteria unfolded (AC-2)", async () => {
+  test("a held-back archive opens the Running tab with the spec's criteria unfolded and scrolled to (AC-1)", async () => {
     const b = await board();
     const d = await b.device(1);
     const job = runningJob(b.store, ["archive"]);
     b.store.transition(job.id, "step-succeeded-last", { results: [result("archive", "acceptance-criteria-unticked")] });
     await b.push.idle();
     const sent = await openCall(b.sent.calls[0]!, d);
-    expect(sent.url).toBe(`/specs?checks=${encodeURIComponent(`aide/${SPEC}`)}`);
+    expect(sent.url).toBe(`/?checks=${encodeURIComponent(`aide/${SPEC}`)}#spec-aide/${SPEC}`);
   });
 
   test("the body is in the language stored with the subscription", async () => {
@@ -212,7 +212,7 @@ describe("what a scheduled run's notification says (AC-9)", () => {
   const KEYS = { done: "push.scheduleDone", failed: "push.scheduleFailed", stopped: "push.scheduleStopped", interrupted: "push.scheduleInterrupted" } as const;
 
   for (const ending of Object.keys(ENDINGS) as (keyof typeof ENDINGS)[]) {
-    test(`a run that ends ${ending}: the title names project and job, the body is its own sentence, the url is that run's report (AC-9) (AC-2)`, async () => {
+    test(`a run that ends ${ending}: the title names project and job, the body is its own sentence, the url is that run's report (AC-9) (AC-3)`, async () => {
       const b = await scheduledBoard();
       const job = runningJob(b.store, ["schedule"], "schedule-nightly-report");
       ENDINGS[ending](b.store, job.id);

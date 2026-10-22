@@ -74,8 +74,8 @@ row refresh treats a spec as its head row and every row up to the next head row 
 swapped away with the spec above it.
 
 Opening is a link to the spec's address, and the address is what says which row is open: `/specs` draws every row
-shut, and `/specs/<project>/<spec>` draws the list with that row open. `/specs?open=<project>/<folder>` (a push
-notification's link) answers a redirect to the spec's address, with the rest of the query, when there is such a spec;
+shut, and `/specs/<project>/<spec>` draws the list with that row open. `/specs?open=<project>/<folder>` (a link
+that bookmarks and other pages still use; a push notification opens the Running tab instead) answers a redirect to the spec's address, with the rest of the query, when there is such a spec;
 with several keys it goes to the first. The Running tab is the other page that draws these rows, and it keeps `?open=`
 for its own folds.
 
