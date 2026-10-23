@@ -9,6 +9,8 @@ import { join } from "node:path";
 import { chromium, type Browser, type Page } from "playwright";
 import { browserDeadline } from "../../helpers/browser-deadline.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
+import { fakeGit } from "../../helpers/fake-git.ts";
+import { t } from "../../../src/i18n";
 
 browserDeadline();
 
@@ -182,6 +184,56 @@ test("the first job arrives and the last leaves without a reload, then search st
     writeFileSync(go, "");
     await page.close();
     emptyHarness.cleanup();
+    rmSync(own, { recursive: true, force: true });
+  }
+});
+
+// A description changed since the analysis is said in the analysis phase's log, which opens even with
+// no transcript kept, and stays there while the new analysis runs; the phase's State/Action cell says
+// the standard word alone.
+test("a description changed since the analysis is in the analysis log, opened with a click, and stays there through a live update to Running (AC-2, AC-3)", async () => {
+  const own = mkdtempSync(join(tmpdir(), "aide-stale-log-"));
+  const go = join(own, "go");
+  const fakeRunner = join(own, "fake-run-spec");
+  writeFileSync(fakeRunner, `#!/bin/sh\nn=0\nwhile [ ! -f ${go} ] && [ $n -lt 1200 ]; do sleep 0.05; n=$((n+1)); done\n`, { mode: 0o755 });
+  // The specs repo: create and analyze ran, and the description was committed after the analysis.
+  const subject = (step: string) => `Run /aide-${step} for ${SPEC} (headless)`;
+  const git = fakeGit({
+    "log --all --format=%s": { code: 0, stdout: ["analyze", "create"].map(subject).join("\n") },
+    "log -1 --format=%H": { code: 0, stdout: "deadbee\t2026-08-18T09:10:36+02:00\n" },
+    "log --format=%H%x09%aI%x09%s": { code: 0, stdout: `deadbee\t2026-08-18T08:57:16+02:00\t${subject("analyze")}\n` },
+    "diff --quiet": { code: 1 },
+  });
+  const explanation = t("en", "list.descriptionChangedSince");
+  const page = await browser.newPage();
+  try {
+    const { base } = harness.start({
+      extra: { gitRun: git.run, queueRunnerBin: fakeRunner, queueResultDir: join(own, "jobs"), queuePollMs: 200 },
+    });
+    const analyzeLine = page.locator(`${SPEC_ROW} ~ tr.subrow[data-step="analyze"]`);
+    const state = analyzeLine.locator('td[data-col="state"]');
+    const log = page.locator('tr.phasemsgs[data-msgs="analyze"]');
+    const fold = analyzeLine.getByRole("link", { name: t("en", "list.phaseFoldTitle", { phase: "Analyze", action: t("en", "list.foldShow") }) });
+    // The freshness answer arrives on the cache schedule, so the page is asked again until it has it.
+    for (let tries = 0; tries < 50; tries++) {
+      await page.goto(`${base}/?open=aide/${SPEC}`);
+      if (await fold.count()) break;
+      await page.waitForTimeout(200);
+    }
+    const loads = countLoads(page);
+
+    await fold.click();
+    await log.getByText(explanation).waitFor({ timeout: 10_000 });
+    expect(await state.innerText()).not.toContain(explanation);
+
+    await queueAnalyze(base);
+    await state.getByText(t("en", "list.state.running"), { exact: true }).waitFor({ timeout: 10_000 });
+    expect((await state.innerText()).trim()).toBe(t("en", "list.state.running"));
+    await log.getByText(explanation).waitFor({ timeout: 10_000 });
+    expect(loads.n).toBe(0);
+  } finally {
+    writeFileSync(go, "");
+    await page.close();
     rmSync(own, { recursive: true, force: true });
   }
 });

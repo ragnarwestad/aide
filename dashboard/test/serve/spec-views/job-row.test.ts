@@ -124,3 +124,18 @@ describe("jobRow() carries the per-step start stamps through (spec 384)", () => 
     expect(row.results?.[0]?.startedAt).toBe("2026-08-16T09:00:00Z");
   });
 });
+
+// Why `gh` opened no pull request is the step's own answer, and the phase's
+// log says it: the row the page draws from has to carry it.
+describe("jobRow()'s step results", () => {
+  test("carry why no pull request was opened (AC-4)", async () => {
+    const store = makeStore();
+    const queued = store.enqueue({ project: "aide", specFolder: "a", steps: ["archive"] });
+    if (!queued.ok) throw new Error("enqueue failed");
+    store.update(queued.job.id, {
+      results: [{ step: "archive", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", prError: "gh auth login required" }],
+    });
+    const row = await jobRow({ queue: store, store: new AideRunStore() }, store.get(queued.job.id)!);
+    expect(row.results?.[0]?.prError).toBe("gh auth login required");
+  });
+});

@@ -105,6 +105,7 @@ export const en = {
   "list.phaseNoneKept": "No messages are kept for this phase.",
   "list.phaseNoMessages": "Nothing has been captured from this step yet.",
   "list.phaseModel": "Model: {model}",
+  "list.descriptionChangedSince": "The description has changed since the last analysis.",
   "list.phaseOpenLog": "Open this step's log",
   "list.cancel": "Cancel",
   "list.cancelling": "cancelling…",

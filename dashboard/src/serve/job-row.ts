@@ -87,6 +87,9 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
       // build out of these results have no other way to know a figure
       // they are summing was over-charged (spec 152).
       costMeasured: r.costMeasured,
+      // Why `gh` opened no pull request: the step's own answer, said in
+      // that phase's log.
+      prError: r.prError,
     })),
   };
 }

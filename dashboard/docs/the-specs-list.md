@@ -292,8 +292,8 @@ for the rule that a new round needs at least one.
 
 ## A phase's own transcript
 
-**A phase that has run unfolds to its own transcript.** Every phase line of the Running tab's open row that has run or is running
-starts with a ›. It adds or removes the phase's key, `<project>/<folder>:<step>`, in `?phases=<key>,…`, kept by
+**A phase that has run unfolds to its own transcript.** Every phase line of the Running tab's open row that has run or is running,
+or has something to explain about its state, starts with a ›. It adds or removes the phase's key, `<project>/<folder>:<step>`, in `?phases=<key>,…`, kept by
 every sort and filter link the way `?open=` is, and it is a plain link.
 
 The unfolded row starts with a `Model:` line when the step's run reported the id it ran on (a Claude Code step; an
@@ -304,6 +304,13 @@ that ran the step, part by part and every line of it — in a box twenty lines t
 back to the start, and a link to that step on the Logs tab. The row is a window on that one log, not a shorter copy:
 Aide's own lines are in it in their place, so a landing's merge step and its test run show there while they go on.
 A phase whose job the queue has forgotten says no messages are kept and links to the Logs tab itself.
+
+**The phase line's State/Action cell says the standard state alone; what explains it is in the unfolded row.** After the
+`Model:` line come the phase's explanations, one info line each: the description changed since the analysis (analyze
+only), no pull request could be opened for the latest attempt's branch, and the sentence the row's notice says about the
+phase (`phaseExplanations`, `render/pages/specs-list/phase-messages/explanations.ts`). They are worked out from the
+phase's state on every draw, never written into the transcript, so a new analysis or a pull request opened by a later
+attempt takes them away. A phase that has not run but has one of them unfolds to them alone.
 Above the Log the unfolded row lists the steps the attempt's log has marked, in the order marked and Aide's own among
 them, as the job row's step lines do (`stepRows`, `render/pages/specs-list/phase-messages/index.ts`): the state, the
 time once it ended or counting from its start while it runs, and the tokens, with a › to its own part of the Log. A
@@ -735,7 +742,7 @@ it was hidden.
 Two things this deliberately does NOT do:
 
 - There is no periodic server-side broadcast to reconcile drift — an idle page must issue no requests and redraw not
-  at all, which is the whole point — so a spec file hand-edited outside the dashboard leaves its staleness badge behind
+  at all, which is the whole point — so a spec file hand-edited outside the dashboard leaves its staleness explanation behind
   until some real change happens nearby. The transcript check above is the one exception, and only for a tab that
   unfolded the running phase.
 - The runner's own two-second poll is not made faster: "about a second" means about a second after the SERVER

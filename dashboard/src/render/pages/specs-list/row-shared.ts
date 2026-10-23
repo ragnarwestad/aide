@@ -47,8 +47,8 @@ export const NO_PULL_REQUEST = (lang: Language): string => t(lang, "list.noPullR
  *  is raw `gh pr create` stderr, and the other three are custom text
  *  this stands in for uniformly. Names the checkout (REQ-3, spec 352),
  *  the same location the push-failure sentence names. Said twice, by the
- *  row's panel and by the phase line's badge title, from here so the two
- *  cannot drift. */
+ *  row's panel and by the phase's log, from here so the two cannot
+ *  drift. */
 export const prErrorSentence = (lang: Language): string => t(lang, "list.prError");
 
 /** Why `gh` opened no pull request for this phase's branch, off the step

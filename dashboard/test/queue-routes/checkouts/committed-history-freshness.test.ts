@@ -3,6 +3,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { t } from "../../../src/i18n";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
 import { fakeGit as gitFake } from "../../helpers/fake-git.ts";
 import { specControls, phaseDone, OPEN_81, listUntil, dated, setupQueueRoutesHarness } from "../fixtures.ts";
@@ -128,19 +129,25 @@ describe("a description newer than the analysis is shown on the row", () => {
   const subRow = (html: string, phase: string): string =>
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
 
-  /** The badge sits on the analyze phase line and the marks on the step
-   *  boxes, and a collapsed row draws neither — so every fetch here
-   *  asks for the spec open. */
+  /** A phase's log, under its line once the address unfolds it. */
+  const phaseLog = (html: string, phase: string): string =>
+    html.match(new RegExp(`<tr class="phasemsgs" data-msgs="${phase}">.*?</tr>`))?.[0] ?? "";
+
+  /** The marks sit on the step boxes, which a collapsed row does not
+   *  draw — so every fetch here asks for the spec open. */
   const listPage = (base: string) => fetch(`${base}/?${OPEN_81}`).then((r) => r.text());
 
-  test("the analyze line says the description changed since (criterion 1)", async () => {
+  test("the analysis log says the description changed since, and the analyze line does not (AC-2)", async () => {
     const { base, dir } = start({
       gitRun: gitSaying(DESCRIPTION_EDITED, `deadbee\t2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
     });
     analysedSpec(dir);
-    const html = await listPage(base);
-    expect(subRow(html, "analyze")).toContain("Description changed since");
-    expect(subRow(html, "implement")).not.toContain("Description changed since");
+    const explanation = t("en", "list.descriptionChangedSince");
+    const opened = (step: string) => fetch(`${base}/?${OPEN_81}&phases=${encodeURIComponent(`aide/81-queue-and-runner:${step}`)}`).then((r) => r.text());
+    const analyze = await opened("analyze");
+    expect(phaseLog(analyze, "analyze")).toContain(explanation);
+    expect(subRow(analyze, "analyze")).not.toContain(explanation);
+    expect(phaseLog(await opened("implement"), "implement")).not.toContain(explanation);
   });
 
   test("analyze stops counting as done (criteria 2, 3)", async () => {

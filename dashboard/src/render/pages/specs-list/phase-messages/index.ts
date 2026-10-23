@@ -3,7 +3,7 @@
 // address (`?phases=`), like the row's own fold and the criteria's
 // (`?checks=`), so it survives the live redraw and works with script off.
 
-import { badge, foldArrow, stepLabel, type ProgressStepState } from "../../../ui/components";
+import { badge, foldArrow, rowMessage, stepLabel, type ProgressStepState } from "../../../ui/components";
 import { esc, tokens } from "../../../ui/html.ts";
 import { durationLabel } from "../../../ui/job-state";
 import { withModelId } from "../../../ui/components/model-label.ts";
@@ -16,6 +16,7 @@ import { phaseKey } from "./keys.ts";
 import { LIST_COLUMNS } from "../row-shared.ts";
 import type { LogPart } from "../../../../queue/parse-stream";
 import { drawnParts } from "../../job-page/step-tabs.ts";
+import { phaseExplanations } from "./explanations.ts";
 
 export { phaseKey, parsePhaseKeys } from "./keys.ts";
 
@@ -64,11 +65,16 @@ export function phaseHasRun(g: SpecGroup, p: Phase): boolean {
   );
 }
 
-/** The › at the head of a phase line that has run. Adds or removes only
+/** Whether a phase line opens to a log: it has run, or it has something
+ *  to explain about its state even with no run kept. */
+const hasLog = (g: SpecGroup, p: Phase, ran: boolean, lang: Language): boolean =>
+  ran || phaseExplanations(g, p, lang).length > 0;
+
+/** The › at the head of a phase line that has a log. Adds or removes only
  *  this phase's key and keeps every other part of the view. */
 export function phaseMessagesFold(g: SpecGroup, p: Phase, opts: SpecsPageOptions, ran: boolean): string {
-  if (!ran) return "";
   const lang = opts.lang ?? "en";
+  if (!hasLog(g, p, ran, lang)) return "";
   const key = phaseKey(g.project, g.specFolder, p.step);
   const unfolded = unfoldedKeys(opts.filter?.phases);
   const shut = !unfolded.has(key);
@@ -82,7 +88,8 @@ export function phaseMessagesFold(g: SpecGroup, p: Phase, opts: SpecsPageOptions
   });
 }
 
-/** The rows under an unfolded phase line, or none: the steps its log marked, then the Log. */
+/** The rows under an unfolded phase line, or none: the steps its log
+ *  marked, then what explains the phase's state, then the Log. */
 export function phaseMessagesRow(
   g: SpecGroup,
   p: Phase,
@@ -91,8 +98,8 @@ export function phaseMessagesRow(
   now: number,
 ): { tag: string; cells: string }[] {
   const key = phaseKey(g.project, g.specFolder, p.step);
-  if (!ran || !unfoldedKeys(opts.filter?.phases).has(key)) return [];
   const lang = opts.lang ?? "en";
+  if (!unfoldedKeys(opts.filter?.phases).has(key) || !hasLog(g, p, ran, lang)) return [];
   const found = opts.phaseMessages?.(
     p.attempts.map((a) => a.id),
     p.step,
@@ -106,7 +113,10 @@ export function phaseMessagesRow(
   const modelId = newest ? newest.modelId : p.modelId;
   const ranOn = withModelId(newest ? newest.model : p.model?.split(" ").slice(1).join(" ") || undefined, modelId);
   const modelLine = modelId ? `<p class="muted small" data-model-id>${esc(t(lang, "list.phaseModel", { model: ranOn ?? "" }))}</p>` : "";
-  const body = modelLine + (!found
+  // Plain text, escaped once here: a log part's lines are already escaped,
+  // so these are never put among them.
+  const explained = phaseExplanations(g, p, lang).map((s) => rowMessage("info", s, { tag: "p" })).join("");
+  const body = modelLine + explained + (!found
     ? `<p class="phasemsgempty muted">${esc(t(lang, "list.phaseNoneKept"))}</p>`
     : logBox(found.logs, found.aiModel, lang));
   return [

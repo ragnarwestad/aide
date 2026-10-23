@@ -37,21 +37,6 @@ export const stateCell = (r: QueueRowView, lang: Language, resting: RestingState
 // already reports what it did.
 export const phaseWordCell = (
   w: PhaseWord,
-  /** Marks that belong to the phase's STATE but used to be written on
-   *  its name cell, beside the model picker: the stale-description
-   *  badge and the attempt count. Out there they had no width of their
-   *  own, so two lines of free text stretched the name column and took
-   *  the whole table sideways with it (seen 2026-08-20). Whether the
-   *  State cell is their long-term home is still open; not stretching
-   *  the table is not.
-   *
-   *  BESIDE the badge, not under it (spec 176). A `<div>` of its own
-   *  made a phase line carrying a note taller than one without, so
-   *  everything down the row moved the moment a second attempt
-   *  started — and the page's own rule is that nothing moves because
-   *  something else changed. The mark brings its own `<span>`, so it
-   *  needs no wrapper of ours. */
-  aside = "",
   /** How many times this phase has been run, when it is more than once.
    *  Inside the badge — "done (2)" — rather than beside it: two marks
    *  for one fact read as two facts, and the pill is where the phase's
@@ -67,8 +52,9 @@ export const phaseWordCell = (
   // lines around it — the last place on the page where something moved
   // because something else changed, reported four times. The row's
   // panel says it instead (`phaseDisagreement`/`specNoticeRow`), once
-  // for the whole spec and named for the phase it is about, so a phase
-  // line is one line in every state a phase can be in.
+  // for the whole spec and named for the phase it is about, and the
+  // phase's own log says it too (`phaseExplanations`), so a phase line
+  // is one line in every state a phase can be in.
   (w.badge
     ? badge(
         w.badge.variant,
@@ -92,8 +78,7 @@ export const phaseWordCell = (
     // characters left of every word under it and read as stuck to the
     // column's left edge.
     : `<span class="muted small" data-none${attempts > 1 ? ` title="${attempts} attempts"` : ""}>` +
-      `–${attempts > 1 ? ` (${attempts})` : ""}</span>`) +
-  (aside ? ` ${aside}` : "");
+      `–${attempts > 1 ? ` (${attempts})` : ""}</span>`);
 
 /** The spec header row's own time cell: what its phases have come to so
  *  far, summed (spec 199, spec 281, spec 340).

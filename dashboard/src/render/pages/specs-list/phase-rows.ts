@@ -1,7 +1,7 @@
 // One line per phase, in the workflow's own order, whether or not it
 // has happened.
 
-import { badge, phaseChip, stepLabel } from "../../ui/components";
+import { phaseChip, stepLabel } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t } from "../../../i18n";
 import { wordPhase } from "../../ui/job-state";
@@ -12,7 +12,6 @@ import { costCell, phaseDurationCell, phaseWordCell, specTotalCell } from "./cel
 import { aiPicker, ALREADY_RUN_REASON, compactModelLabel, compactModelLabelFull, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells } from "./model-picker.ts";
 import { chosenSteps, runFormId, specBusy } from "./row-state.ts";
 import { stateAction } from "./row-controls.ts";
-import { NO_PULL_REQUEST, prErrorOf, prErrorSentence } from "./row-shared.ts";
 import { phaseHasRun, phaseMessagesFold, phaseMessagesRow } from "./phase-messages";
 import { dependsOnLine } from "./depends-on";
 
@@ -134,24 +133,10 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
       const name = `<span class="phasefold">${esc(stepLabel(p.step, opts.lang))}</span>`;
       // The latest attempt, with a count when there have been more —
       // three archive runs on one spec is a real history, not a row to
-      // repeat three times.
-      // The plan is about an older problem than the description is: said
-      // on the analyze line, because analyze is the phase that has to
-      // run again. Amber, like every other "worth noticing, not
-      // alarming" mark on this page — and it blocks nothing.
-      // `gh` opened no pull request for THIS step's branch. The row's
-      // panel carries the sentence for a reader; this says which of the
-      // five lines it happened on, which is the one thing the panel
-      // cannot say. A badge, not the text: a sentence beside a phase
-      // badge runs off the right edge of the table.
-      const noPullRequest = prErrorOf(p)
-        ? " " + badge("refused", NO_PULL_REQUEST(opts.lang ?? "en"), prErrorSentence(opts.lang ?? "en"))
-        : "";
-      const stale =
-        p.step === "analyze" && g.analyzeStale
-          ? " " +
-            badge("waiting", "description changed since")
-          : "";
+      // repeat three times. The State/Action cell says the standard word
+      // and nothing else: what explains it — a description changed since
+      // the analysis, a pull request that could not be opened — is said
+      // in the phase's log (`phaseExplanations`).
       // The larger of what the queue remembers and what the phase's own
       // file has stamped (spec 341) — the queue wins while it still
       // holds every attempt (including one still in flight, not yet
@@ -293,7 +278,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
           // 165 moved the box in beside the model.
           `<td class="phasecell" colspan="2">${phaseMessagesFold(g, p, opts, ran)}${name}</td>` +
           pickCell +
-          `<td data-col="state">${phaseWordCell(word, stale + noPullRequest, attemptCount)}</td>` +
+          `<td data-col="state">${phaseWordCell(word, attemptCount)}</td>` +
           // The phase's own duration, not when it began (spec 199).
           // Same physical column, a different question per row type —
           // which this column already did before, and which is what

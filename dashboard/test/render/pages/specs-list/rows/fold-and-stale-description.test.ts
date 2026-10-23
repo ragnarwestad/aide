@@ -5,11 +5,11 @@ import { row, openKeys } from "../../fixtures.ts";
 
 // Split out of grouping.test.ts by theme.
 
-// Spec 97: the row says when the plan describes an older problem than
-// the description does. Nothing is blocked — a person who knows the
-// edit was cosmetic can still start `implement`; the page just stops
-// pretending the plan is current.
-describe("the description-changed badge (criteria 1, 3)", () => {
+// Spec 97: a description changed since the analysis takes analyze back
+// from done. Nothing is blocked — a person who knows the edit was
+// cosmetic can still start `implement`. The explanation itself is the
+// analyze phase's log's to say (`phase-messages/explanations.test.ts`).
+describe("a description changed since the analysis (criterion 3)", () => {
   const job = (id: string, step: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
     row({ id, specFolder: "97-stale", steps: [step], stepIndex: 0, state: "done", ...extra });
 
@@ -19,8 +19,8 @@ describe("the description-changed badge (criteria 1, 3)", () => {
     ...extra,
   });
 
-  // The badge sits on the analyze PHASE LINE, which a collapsed row
-  // does not draw at all — so every example here opens its spec.
+  // The run controls sit on the phase lines, which a collapsed row does
+  // not draw at all — so every example here opens its spec.
   const rows = (list: QueueRowView[], targets: SpecTarget[]) =>
     renderSpecsRows(
       list,
@@ -36,31 +36,6 @@ describe("the description-changed badge (criteria 1, 3)", () => {
           `(?=<tr class="[^"]*spechead|</tbody>|$)`,
       ),
     )?.[0] ?? "";
-  /** A phase's own line — an ordinary row of six cells since spec 157,
-   *  with nothing spanning it. */
-  const subRow = (html: string, phase: string) =>
-    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
-
-  // The path every example in the ticket takes: 93, 94 and 96 had all
-  // actually run an analyze, so a badge wired only into `emptyGroup`
-  // would never fire for any of them.
-  test("a spec with job history carries it on the analyze line (criterion 1)", () => {
-    const html = rows([job("j1", "analyze")], [target("97-stale", { analyzeStale: true })]);
-    expect(subRow(html, "analyze")).toContain("Description changed since");
-    for (const phase of ["implement", "archive"]) {
-      expect(subRow(html, phase)).not.toContain("Description changed since");
-    }
-  });
-
-  test("a spec nothing has run carries it too (criterion 1)", () => {
-    const html = rows([], [target("97-never-run", { analyzeStale: true })]);
-    expect(subRow(html, "analyze")).toContain("Description changed since");
-  });
-
-  test("a spec whose description has not moved carries nothing (criterion 4)", () => {
-    const html = rows([job("j1", "analyze")], [target("97-stale")]);
-    expect(html).not.toContain("Description changed since");
-  });
 
   // `done` is what the server has already stripped `analyze`
   // out of; the row's job is to pre-tick the first phase
