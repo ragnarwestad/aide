@@ -629,7 +629,9 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   Cancel: stopped part-way, the job would leave the spec between its two
   places. The spec's own row is left as it is, on this tab and on the Specs list alike (`listedSpecJobs`,
   `serve/routes/page-routes/spec-row-options.ts`): an archived or closed spec gets no row on the tab for it, and a
-  live spec's row keeps its four phases, its own badge and its own notice. The open job row has a line per step the job will run —
+  live spec's row keeps its four phases, its own badge and its own notice. While the Close or Reopen is queued,
+  running or landing, the tab draws the job's row alone and leaves out the spec's own row, so the spec is not on the
+  tab twice (`specsStoodForByJobs`); a failed or stopped one has its row beside the spec's. The open job row has a line per step the job will run —
   Aide's own parts, the skill's steps and the merge into main, from the skill's `Step N of X` headings
   (`stepPlan()`) — in the row's own columns: the step's state as a badge under State/Action, from the job's log
   (`closeOrReopenSteps`, `serve/spec-views/job-marks.ts`); its time under Time, off the run log's `+Ns` stamps
