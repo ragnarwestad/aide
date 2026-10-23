@@ -20,8 +20,8 @@ Implement the solution for a spec with TDD.
 
 Parse `$ARGUMENTS`:
 
-**The spec:** the first word is its number, its `TODO-<name>` folder, or an issue key its title began with
-- Example: `/aide-implement 55` or `/aide-implement TODO-01`
+**The spec:** the first word is its number, its folder name, or an issue key its title began with
+- Example: `/aide-implement 55` or `/aide-implement 55-dark-mode`
 
 **Error handling:** If the argument is missing or has an invalid format, show:
 
@@ -30,7 +30,7 @@ Missing argument
 
 Usage:
 /aide-implement 55               # the spec's number
-/aide-implement TODO-01           # or its folder
+/aide-implement 55-dark-mode      # or its folder
 ```
 
 ---

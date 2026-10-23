@@ -119,13 +119,6 @@ class TestResolveSpec:
         )
         assert out == "17-clean-up-console-log"
 
-    def test_todo_shorthand_still_works(self, workspace_root, specs_root):
-        out = _call(
-            workspace_root,
-            f'aide_resolve_spec "todo-35" "{specs_root}"',
-        )
-        assert out == "35-todo-ai-nyheter"
-
 
 @pytest.mark.validation
 class TestArchiveAwareness:
@@ -176,10 +169,7 @@ class TestArchiveAwareness:
 class TestSlugFromTitle:
     """aide_slug_from_title (spec 433): the deterministic bash version of
     SKILL.md Step 3's slug rule, used by the no-AI create path so its
-    folder name matches what an AI-run create would also choose. NOT the
-    same one-liner run-spec/setup/invocation.sh:122-124 builds for the AI
-    prompt's own throwaway TODO-<slug> token — that one has no diacritic
-    handling and is explicitly not the spec's folder slug.
+    folder name matches what an AI-run create would also choose.
     """
 
     def test_skill_mds_own_worked_example(self, workspace_root):

@@ -22,8 +22,8 @@ Analyze the codebase for a spec.
 
 Parse `$ARGUMENTS`:
 
-**The spec:** the first word is its number, its `TODO-<name>` folder, or an issue key its title began with
-- Example: `/aide-analyze 55` or `/aide-analyze TODO-01`
+**The spec:** the first word is its number, its folder name, or an issue key its title began with
+- Example: `/aide-analyze 55` or `/aide-analyze 55-dark-mode`
 
 **Error handling:** If the argument is missing or has an invalid format, show:
 
@@ -32,7 +32,7 @@ Missing argument
 
 Usage:
 /aide-analyze 55               # the spec's number
-/aide-analyze TODO-01           # or its folder
+/aide-analyze 55-dark-mode      # or its folder
 
 Examples:
 /aide-analyze 55

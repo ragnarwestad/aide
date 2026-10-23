@@ -14,6 +14,7 @@ import json
 import pytest
 
 from ...conftest import run
+from ..run_spec_invoking import CREATE_KEY
 from ..run_spec_results import (
     OPENCODE_SESSION_ID,
     OPENCODE_STREAM_FAILED,
@@ -114,6 +115,19 @@ def test_the_prompt_names_the_skill_because_opencode_has_no_slash_command(
     # The spec's own number, which is what every tool is given — the
     # folder name is resolved on the runner's side, not the model's.
     assert workspace["folder"].split("-")[0] in prompt, prompt
+
+
+def test_a_create_names_the_skill_with_no_argument(runner, workspace, fake_opencode):
+    """A create hands the skill nothing as its argument: the title and the
+    description are in tags further down, so the sentence that names the
+    skill must not promise an argument it then leaves empty."""
+    oc = fake_opencode(emits(OPENCODE_STREAM_OK))
+    rc, out, _ = run(
+        runner, workspace, tool="opencode", opencode=oc, command="create",
+        spec=CREATE_KEY, title="A new spec", description="Do the thing", dry_run=True,
+    )
+    assert rc == 0, out
+    assert out["prompt"].splitlines()[0] == "Use the aide-create skill.", out["prompt"]
 
 
 def test_the_stream_is_asked_for_as_json_on_stdout(runner, workspace, fake_opencode):

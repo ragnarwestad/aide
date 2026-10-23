@@ -71,7 +71,7 @@ def e2e_env(e2e_workspace):
 def run_workflow(invoke: Invoke, specs: Path) -> None:
     """/aide-create a spec, find its folder, /aide-analyze it, and check
     the analysis and the plan were really written."""
-    created = invoke("aide-create", f"TODO-{FOLDER_NAME} {DESCRIPTION}", 180)
+    created = invoke("aide-create", f'"E2E greeting" {DESCRIPTION}', 180)
     assert created.returncode == 0, f"aide-create failed: {created.stderr}"
 
     folders = sorted(specs.glob(f"[0-9]*-{FOLDER_NAME}"))

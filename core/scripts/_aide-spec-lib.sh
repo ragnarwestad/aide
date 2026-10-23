@@ -36,15 +36,15 @@ _aide_find_spec() {
 # Resolve input to a folder name under the specs root. Echoes the folder
 # name (possibly prefixed "archive/"), or nothing. Active specs win over
 # archived ones with the same number.
-# Input: NN | todo-NN | <ISSUE-KEY> (e.g. PROJ-7637, MEL-123) | full <NN>-slug
+# Input: NN | <ISSUE-KEY> (e.g. PROJ-7637, MEL-123) | full <NN>-slug
 aide_resolve_spec() {
   local input="$1" root="$2" dir="" flag="" pattern="" num
   if [ -d "$root/$input" ]; then
     echo "$input"                                         # direct full-ID match
     return
-  elif echo "$input" | grep -qiE '^(todo-)?[0-9]+$'; then
-    # Number shorthand ("27", "05" or "todo-27"); base 10 avoids octal errors
-    num="${input#[Tt][Oo][Dd][Oo]-}"
+  elif echo "$input" | grep -qE '^[0-9]+$'; then
+    # Number shorthand ("27" or "05"); base 10 avoids octal errors
+    num="$input"
     flag="-name"; pattern="$(printf '%02d' "$((10#$num))")-*"
   elif echo "$input" | grep -qE '^[A-Z][A-Z0-9]*-[0-9]+$'; then
     # Issue key (any project prefix): the key is part of the slug
@@ -77,11 +77,6 @@ aide_next_spec_number() {
 # and runs of special characters collapse to one hyphen, no leading or
 # trailing hyphen. SKILL.md's Step 3 names this exact algorithm so a
 # human reading the skill and this function never drift apart.
-#
-# Not the same one-liner run-spec/setup/invocation.sh:122-124 builds for the
-# AI prompt's own throwaway TODO-<slug> token — that one is explicitly
-# commented as NOT the spec's folder slug and has no diacritic handling.
-# This is the first version meant to BE the real folder slug.
 #
 # The diacritic sed runs under LC_ALL=C.UTF-8, scoped to that one command:
 # in the "C" locale a bracket expression matches BYTES, not characters, and

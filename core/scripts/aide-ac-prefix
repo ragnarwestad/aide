@@ -12,7 +12,8 @@
 #
 # The prefix is empty when the manifest sets no `acPrefix`, when there is
 # no manifest, and when the value holds `{spec}` but the folder has no
-# number (a `TODO-…` folder): a prefix without its number points at no spec.
+# number (a `new-…` folder before its landing numbers it): a prefix without
+# its number points at no spec.
 #
 # Prints ONE JSON line to stdout:
 #   {"ok":true,"prefix":"<prefix>"}   (empty when there is none)

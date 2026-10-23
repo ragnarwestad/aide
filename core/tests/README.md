@@ -436,10 +436,10 @@ echo "$result" | jq '.result'
 
 ```python
 # Run the command
-subprocess.run(["claude", "-p", "/aide-create test Description"])
+subprocess.run(["claude", "-p", '/aide-create "Test" Description'])
 
 # Verify that the files were created
-assert (specs_dir / "todo-01-test" / "1-description.md").exists()
+assert (specs_dir / "01-test" / "1-description.md").exists()
 ```
 
 **4. Complete example with all verifications**
@@ -449,11 +449,11 @@ assert (specs_dir / "todo-01-test" / "1-description.md").exists()
 def test_aide_workflow_creates_files(tmp_path, monkeypatch):
     """Verify that the workflow creates the expected files."""
     monkeypatch.setenv("AIDE_INSTALLATION_PATH", str(tmp_path))
-    (tmp_path / "specs" / "todo").mkdir(parents=True)
+    (tmp_path / "specs").mkdir(parents=True)
 
     # Run the command
     result = subprocess.run(
-        ["claude", "-p", "/aide-create TODO-test-task Description",
+        ["claude", "-p", '/aide-create "Test task" Description',
          "--output-format", "json"],
         capture_output=True, text=True, timeout=120,
         cwd=str(tmp_path)
@@ -466,12 +466,12 @@ def test_aide_workflow_creates_files(tmp_path, monkeypatch):
     assert len(result.stdout) > 0, "No output"
 
     # 3. Verify side effects (files created)
-    todo_dirs = list((tmp_path / "specs" / "todo").glob("TODO-*"))
-    assert len(todo_dirs) >= 1, "No TODO directory created"
+    spec_dirs = list((tmp_path / "specs").glob("[0-9]*-test-task"))
+    assert len(spec_dirs) >= 1, "No spec folder created"
 
     expected_files = ["1-description.md", "2-analysis.md", "3-solution.md", "4-status.md"]
     for filename in expected_files:
-        assert (todo_dirs[0] / filename).exists(), f"Missing: {filename}"
+        assert (spec_dirs[0] / filename).exists(), f"Missing: {filename}"
 ```
 
 ### Important notes about E2E tests

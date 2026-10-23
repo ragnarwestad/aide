@@ -25,7 +25,7 @@ Read the section the step at hand needs.
 - Optionally a `Depends on:` line in Tracking info, naming the specs this
   one builds on (comma-separated; each identifier is either a bare number
   or a full `NN-slug` folder name — narrower than `/aide-analyze`'s
-  resolver, which also takes `TODO-NN` and an issue key). `analyze`,
+  resolver, which also takes an issue key). `analyze`,
   `implement` and `archive` wait until every named spec has landed on
   the default branch; `create` runs regardless
 - Optionally an `Acceptance criteria checks:` line in Tracking info —

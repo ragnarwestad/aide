@@ -38,9 +38,6 @@ The skills let you:
 /aide-create "Move the forms off Redux Form" The forms still use Redux Form, which is unmaintained. Move them to React Hook Form, one form at a time, keeping the validation rules.
 # → specs/55-move-forms-off-redux-form/, say
 
-/aide-create TODO-redux-form-migration Move all forms off Redux Form
-# → specs/55-redux-form-migration/ — the name given, not one made from the description
-
 /aide-analyze 55                  # Analyze the codebase
 /aide-implement 55                # Implement with TDD
 
@@ -124,12 +121,6 @@ Run `./install.sh` again to update after changes.
    /aide-create "Move the forms off Redux Form" The forms still use Redux Form, which is unmaintained. Move them to React Hook Form, one form at a time, keeping the validation rules.
    ```
    → Generates `specs/55-move-the-forms-off-redux-form/`, say.
-
-   With a name of your own instead of one made from the description:
-   ```bash
-   /aide-create TODO-redux-form-migration Move all forms from Redux Form to React Hook Form
-   ```
-   → Generates `specs/55-redux-form-migration/`.
 
    A title that begins with an issue key (`PROJ-7637 …`) keeps the key in
    the folder name, and every later command accepts that key in place of

@@ -17,7 +17,6 @@ if [ "$#" -eq 0 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
   echo ""
   echo "Examples (flat structure):"
   echo "  aide-generate-pdf 35                    # Shorthand: finds 35-todo-ai-nyheter"
-  echo "  aide-generate-pdf todo-35               # Alternative shorthand"
   echo "  aide-generate-pdf 35-todo-ai-nyheter    # Full ID"
   echo "  aide-generate-pdf 45-proj-7637          # by the folder name"
   echo "  aide-generate-pdf 35 /tmp/out.pdf       # Explicit output path"

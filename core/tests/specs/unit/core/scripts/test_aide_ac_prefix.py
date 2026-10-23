@@ -92,7 +92,7 @@ def test_a_bare_number_and_a_path_name_the_same_number_AC_1(script, project, spe
 
 def test_a_folder_without_a_number_has_no_prefix_AC_1(script, project):
     write_manifest(project, "acPrefix: F{spec}\n")
-    assert prefix_for(script, project, "TODO-01") == (0, {"ok": True, "prefix": ""})
+    assert prefix_for(script, project, "new-abc123de") == (0, {"ok": True, "prefix": ""})
 
 
 def test_no_acprefix_key_is_an_empty_prefix_AC_2(script, project):

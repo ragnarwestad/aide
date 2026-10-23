@@ -33,11 +33,11 @@ def test_every_other_step_still_refuses_an_unknown_spec(runner, workspace, fake_
     assert not fake_claude.calls.exists()
 
 def test_create_asks_the_skill_for_a_spec_by_title_and_description(runner, workspace, fake_claude):
-    """`/aide-create TODO-<name>` is the skill's own documented argument
-    shape for the queue (core/skills/aide-create/SKILL.md). The title and
-    the description are not in the argument: each is in a tag of its own,
-    so the session can tell the text the spec is made from apart from the
-    instructions around it."""
+    """The queue calls `/aide-create` with no argument, the skill's own
+    documented form for it (core/skills/aide-create/SKILL.md): the title
+    and the description are each in a tag of their own, so the session can
+    tell the text the spec is made from apart from the instructions around
+    it."""
     claude = fake_claude("exit 1")
     rc, out, _ = create(
         runner, workspace, claude,
@@ -46,7 +46,7 @@ def test_create_asks_the_skill_for_a_spec_by_title_and_description(runner, works
     )
     assert rc == 0, out
     prompt = out["prompt"]
-    assert prompt.splitlines()[0] == "/aide-create TODO-a-new-spec", prompt
+    assert prompt.splitlines()[0] == "/aide-create", prompt
     assert "<title>A new spec</title>" in prompt, prompt
     assert "<description>\nDo the thing that was asked for\n</description>" in prompt, prompt
     assert "headless" in prompt.lower()
@@ -96,7 +96,7 @@ def test_create_states_the_depends_on_value_the_form_chose(runner, workspace, fa
     prompt = out["prompt"]
     assert "Use exactly this Depends-on value in Tracking info: 92,97-freshness" in prompt, prompt
     # Still the skill's own argument shape, and still the title beside it.
-    assert prompt.startswith("/aide-create TODO-a-new-spec"), prompt
+    assert prompt.startswith("/aide-create\n"), prompt
     assert "<title>A new spec</title>" in prompt, prompt
 
 def test_create_without_the_flag_says_nothing_about_dependencies(runner, workspace, fake_claude):
@@ -332,7 +332,7 @@ def test_create_without_the_flag_still_spawns_ai_byte_for_byte(runner, workspace
     claude = fake_claude("exit 1")
     rc, out, _ = create(runner, workspace, claude, dry_run=True)
     assert rc == 0, out
-    assert out["prompt"].startswith("/aide-create TODO-a-new-spec"), out
+    assert out["prompt"].startswith("/aide-create\n"), out
 
 
 def test_create_with_no_ai_formulate_finishes_well_under_the_time_limit(runner, workspace, fake_claude):
