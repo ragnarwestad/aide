@@ -35,7 +35,7 @@ export interface ScheduleFilter {
   dir?: "asc" | "desc";
 }
 
-export const SORTS = ["name", "next", "last"];
+export const SORTS = ["name", "next", "last", "enabled"];
 export const DEFAULT_SORT = "name";
 // Each column has the direction you almost always want first: names
 // from A, the soonest next run, the most recent last run.
@@ -43,6 +43,7 @@ export const SORT_DEFAULT_DIR: Record<string, "asc" | "desc"> = {
   name: "asc",
   next: "asc",
   last: "desc",
+  enabled: "desc",
 };
 const SORT_COLUMNS: SortColumns = { keys: SORTS, fallback: DEFAULT_SORT, firstDir: SORT_DEFAULT_DIR };
 
@@ -54,19 +55,38 @@ export const matchesSearch = (r: SchedulePageRow, f: ScheduleFilter): boolean =>
   return !term || haystack(r).includes(term);
 };
 
-export function sortRows(rows: readonly SchedulePageRow[], f: ScheduleFilter, now: Date): SchedulePageRow[] {
-  const { sort, dir } = resolveSort(SORT_COLUMNS, f);
+/** What a row is sorted on: the entry, and on `/schedule` its project and last run. */
+interface Sortable {
+  project: string;
+  entry: ScheduleEntry;
+  lastRunAt?: string;
+}
+
+/** The rows in the order the address asks for, by `cols` — the `/schedule`
+ *  list's own unless a list with fewer columns says otherwise. Rows that
+ *  tie keep the name order, whichever way the column is turned. */
+export function sortRows<R extends Sortable>(
+  rows: readonly R[],
+  f: ScheduleFilter,
+  now: Date,
+  cols: SortColumns = SORT_COLUMNS,
+): R[] {
+  const { sort, dir } = resolveSort(cols, f);
   const sign = dir === "asc" ? 1 : -1;
-  const key = (r: SchedulePageRow): number | string =>
+  const name = (r: R): string => `${r.project}:${r.entry.name}`.toLowerCase();
+  const key = (r: R): number | string =>
     sort === "next"
       ? (nextFireTime(r.entry.cron, now)?.getTime() ?? Number.MAX_SAFE_INTEGER)
       : sort === "last"
         ? (r.lastRunAt ? Date.parse(r.lastRunAt) : 0)
-        : `${r.project}:${r.entry.name}`.toLowerCase();
+        : sort === "enabled"
+          ? (r.entry.enabled ? 1 : 0)
+          : name(r);
   return [...rows].sort((a, b) => {
     const x = key(a);
     const y = key(b);
-    return (typeof x === "string" ? x.localeCompare(String(y)) : (x as number) - (y as number)) * sign;
+    const by = typeof x === "string" ? x.localeCompare(String(y)) : (x as number) - (y as number);
+    return by * sign || name(a).localeCompare(name(b));
   });
 }
 
@@ -141,7 +161,7 @@ function sortableHead(f: ScheduleFilter): string {
     sortHeading(SORT_COLUMNS, now, key, label, (sort, dir) => scheduleHref(f, { sort, dir }));
   return (
     `<thead><tr>${th("name", "Name")}${th("next", "Next run")}${th("last", "Last run")}` +
-    `<th>Enabled</th></tr></thead>`
+    `${th("enabled", "Enabled")}</tr></thead>`
   );
 }
 

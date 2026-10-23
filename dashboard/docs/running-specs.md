@@ -439,9 +439,10 @@ project repository's commit only once that repository's own test command is gree
 directly. The New page and the Settings tab's Edit say what a scheduled job may commit to.
 
 `/schedule` lists every allowed project's entries, flattened into one list (`?q=`, `?sort=` and `?dir=` filter and
-sort it). It shows and links, and changes nothing: a click anywhere on a row opens the project's Schedule tab, whether
+sort it; a heading sorts by Name, Next run, Last run or Enabled). It shows and links, and changes nothing: a click anywhere on a row opens the project's Schedule tab, whether
 an entry is enabled is text there. The project's own Schedule tab lists its entries by Name, Next run, the Enabled
-switch, Run now and Delete, with New above the list; a click on a row opens the entry's own page.
+switch, Run now and Delete, with New above the list, and a heading sorts it by Name, Next run or Enabled the same way;
+a click on a row opens the entry's own page.
 `/schedule/<project>/<name>` is one entry's own page, with two tabs: Report and Settings. Settings shows
 every field of the entry — name, cron, prompt file, model, notify and browser — with the Enabled switch, Edit and Delete
 (Run now is on the project's Schedule tab); Delete there goes to the project's Schedule tab once it has gone through.

@@ -136,6 +136,16 @@ describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
     expect(html).toContain('value="codex-fast" data-tool="codex" selected>');
   });
 
+  test("?sort= and ?dir= reach the project's Schedule tab", async () => {
+    const { base } = start();
+    writeSchedule("aide", [
+      { name: "a-first", cron: "0 3 * * *", prompt: "docs/nightly.md" },
+      { name: "z-last", cron: "0 4 * * *", prompt: "docs/nightly.md" },
+    ]);
+    const tab = await (await fetch(`${base}/projects/aide?tab=schedule&sort=name&dir=desc`)).text();
+    expect(tab.indexOf(">z-last<")).toBeLessThan(tab.indexOf(">a-first<"));
+  });
+
   test("a row on the project's Schedule tab opens the entry's page on Report (AC-2)", async () => {
     const { base } = start();
     writeSchedule("aide", [NIGHTLY]);

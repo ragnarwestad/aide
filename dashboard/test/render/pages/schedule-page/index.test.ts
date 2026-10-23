@@ -75,15 +75,30 @@ describe("the /schedule list's sortable headings", () => {
       ["Name", "/schedule?sort=name&dir=desc", "ascending"],
       ["Next run", "/schedule?sort=next", null],
       ["Last run", "/schedule?sort=last", null],
-      ["Enabled", null, null],
+      ["Enabled", "/schedule?sort=enabled", null],
     ]);
     const sorted = renderSchedulePage(NAV, "2026-08-30T00:00:00Z", { rows, filter: { q: "night", sort: "next", dir: "desc" } });
     expect(headings(sorted)).toEqual([
       ["Name", "/schedule?q=night&sort=name", null],
       ["Next run", "/schedule?q=night&sort=next", "descending"],
       ["Last run", "/schedule?q=night&sort=last", null],
-      ["Enabled", null, null],
+      ["Enabled", "/schedule?q=night&sort=enabled", null],
     ]);
+  });
+
+  test("?sort=enabled puts the enabled entries first, by name, and ?dir=asc the disabled ones", () => {
+    const entry = (name: string, enabled: boolean) => ({
+      project: "aide",
+      entry: { name, cron: "0 3 * * *", prompt: "docs/nightly.md", enabled },
+      projectScheduleHref: "/projects/aide?tab=schedule",
+    });
+    const all = [entry("b-off", false), entry("c-on", true), entry("a-on", true)];
+    const order = (dir?: "asc" | "desc") => {
+      const html = renderSchedulePage(NAV, "2026-08-30T00:00:00Z", { rows: all, filter: { sort: "enabled", dir } });
+      return ["aide:a-on", "aide:c-on", "aide:b-off"].sort((x, y) => html.indexOf(x) - html.indexOf(y));
+    };
+    expect(order()).toEqual(["aide:a-on", "aide:c-on", "aide:b-off"]);
+    expect(order("asc")).toEqual(["aide:b-off", "aide:a-on", "aide:c-on"]);
   });
 });
 

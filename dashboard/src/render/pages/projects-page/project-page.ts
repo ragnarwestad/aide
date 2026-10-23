@@ -15,6 +15,8 @@ import { pickTab, tabBar, tabbedBody } from "../job-page";
 import { SCHEDULE_REFUSED_LINE, scheduleControlCells } from "../schedule-page/controls.ts";
 import { scheduleNewPath, schedulePagePath, scheduleSettingsPath } from "../schedule-page";
 import { modelFlag } from "../schedule-page/model-flag.ts";
+import { SORT_DEFAULT_DIR, sortRows } from "../schedule-page/list.ts";
+import { queryHref, resolveSort, sortHeading, type SortColumns } from "../schedule-page/sort-head.ts";
 import { deployAskDialog, STEP_LABEL } from "./deploy-dialog.ts";
 import { projectDescription } from "./overview-list.ts";
 import { PROJECTS_ROUTE, projectPagePath } from "./routes.ts";
@@ -229,6 +231,10 @@ function testServerSection(name: string, opts: ProjectPageOptions): string {
   return heading + panel(rowMessage("info", t(lang, "project.testServerNote")) + button);
 }
 
+/** The columns a project's Schedule tab sorts by: the /schedule list's,
+ *  less Last run, which this tab does not show. */
+const SCHEDULE_TAB_SORT: SortColumns = { keys: ["name", "next", "enabled"], fallback: "name", firstDir: SORT_DEFAULT_DIR };
+
 /** The Schedule section (spec 259, extended spec 468): each entry's
  *  name (linking to its own detail page), next fire time, its Enabled
  *  switch, Run now and Delete — what fits on one line; the rest of what
@@ -247,15 +253,22 @@ function testServerSection(name: string, opts: ProjectPageOptions): string {
 function scheduleSection(project: string, entries: readonly ScheduleEntry[], opts: ProjectPageOptions): string {
   const lang = opts.lang ?? "en";
   const now = new Date();
+  const f = opts.scheduleSort ?? {};
+  const sorted = resolveSort(SCHEDULE_TAB_SORT, f);
+  // The /schedule list's sortable heading, kept on this tab.
+  const th = (key: string, label: string): string =>
+    sortHeading(SCHEDULE_TAB_SORT, sorted, key, label, (sort, dir) =>
+      queryHref(projectPagePath(project), { tab: "schedule", sort, dir }));
+  const rows = sortRows(entries.map((entry) => ({ project, entry })), f, now, SCHEDULE_TAB_SORT);
   const table =
     entries.length === 0
       ? `<p class="muted">${t(lang, "schedule.nothingScheduled")}</p>`
-      : `<div class="tablewrap"><table class="list"><thead><tr><th>${t(lang, "schedule.colName")}</th>` +
-        `<th>${t(lang, "schedule.colNextRun")}</th>` +
+      : `<div class="tablewrap"><table class="list"><thead><tr>${th("name", t(lang, "schedule.colName"))}` +
+        th("next", t(lang, "schedule.colNextRun")) +
         // Enabled, then two unlabelled columns: Run now and Delete.
-        `<th>${t(lang, "schedule.enabled")}</th><th></th><th></th></tr></thead><tbody>` +
-        entries
-          .map((e) => {
+        `${th("enabled", t(lang, "schedule.enabled"))}<th></th><th></th></tr></thead><tbody>` +
+        rows
+          .map(({ entry: e }) => {
             const next = nextFireTime(e.cron, now);
             return (
               // The whole row, outside its controls, goes where the name

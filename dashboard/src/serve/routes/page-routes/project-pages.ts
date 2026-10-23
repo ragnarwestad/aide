@@ -243,6 +243,10 @@ export async function projectPages(
         // the choice falls back to the general word.
         defaultBranch: (await ctx.branchStatus.defaultBranch(dir).catch(() => null)) ?? undefined,
         schedule: ctx.scheduleStore.list(name),
+        scheduleSort: {
+          sort: url.searchParams.get("sort") ?? undefined,
+          dir: (url.searchParams.get("dir") as "asc" | "desc" | null) ?? undefined,
+        },
         scheduleModelNames: Object.keys(ctx.queue.defaults.modelChoices ?? {}),
         worktreeLinkCandidates: gitignoreCandidates(dir),
         editingGroup: groupForEditParam(url.searchParams.get("edit")),

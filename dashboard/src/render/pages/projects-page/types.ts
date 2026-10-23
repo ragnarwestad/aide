@@ -39,6 +39,8 @@ export interface ProjectPageOptions {
   /** This project's own recurring jobs (spec 259). Absent or empty
    *  means no Schedule section renders at all. */
   schedule?: readonly ScheduleEntry[];
+  /** The Schedule tab's `?sort=` and `?dir=`, as the address gave them. */
+  scheduleSort?: { sort?: string; dir?: "asc" | "desc" };
   /** The models the queue offers, for the flag on an entry naming one it
    *  does not. Absent draws no flag. */
   scheduleModelNames?: readonly string[];
