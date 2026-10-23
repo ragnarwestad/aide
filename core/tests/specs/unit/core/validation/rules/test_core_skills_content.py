@@ -115,6 +115,17 @@ def test_the_template_the_plan_step_the_plan_review_and_implement_share_the_test
         assert heading in path.read_text(encoding="utf-8"), f"{path.relative_to(REPO_ROOT)} does not name {heading!r}"
 
 
+@pytest.mark.validation
+def test_the_short_analysis_gives_the_test_places_and_the_criteria_table_AC_5_AC_8():
+    """A short analysis has no plan, so the places and the status table are
+    what the runner's record of a criterion with no test is built on."""
+    text = (CORE_SKILLS_DIR / "aide-analyze" / "references" / "spec-files.md").read_text(encoding="utf-8")
+    section = re.search(r"^## A short analysis$(.*?)(?=^## )", text, re.M | re.S)
+    assert section, "spec-files.md has no section 'A short analysis'"
+    for heading in ("### Where the tests sit", "## Acceptance criteria"):
+        assert heading in section.group(1), f"the short analysis does not give {heading!r}"
+
+
 STEP_TITLE = re.compile(r"^#+ Step \d+ of \d+: (.+)$", re.M)
 # A table row whose last three cells, stripped of padding, are the three grades.
 GRADE_ROW = re.compile(r"^\s*\|[^|\n]*\|\s*LOW\s*\|\s*MEDIUM\s*\|\s*HIGH\s*\|\s*$", re.M)

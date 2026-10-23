@@ -140,11 +140,10 @@ See `references/complexity-and-analysis.md` for detailed steps per level.
 
 **Choose the analysis.** Write a SHORT analysis only when Step 1 found the
 prompt line, this is not a held-back or reopened round, the description
-has no `Sent back to a full analysis:` line, and the grade, the
-number of `- **AC-n:**` lines in `1-description.md` and the number of source files
-among the paths the change will create, change or delete (tests and
-Markdown pages are listed, as Step 5 says, but not counted; see
-`references/spec-files.md`) are all within that line's limits. Otherwise write the
+has no `Sent back to a full analysis:` line, and the grade and
+the number of source files among the paths the change will create, change
+or delete (tests and Markdown pages are listed, as Step 5 says, but not
+counted; see `references/spec-files.md`) are both within that line's limits. Otherwise write the
 full analysis. In doubt about a count on the limit, write the full one.
 A short analysis is the files to change and where the tests sit, under a
 plain mark that there is no plan and no plan review; its shape is in

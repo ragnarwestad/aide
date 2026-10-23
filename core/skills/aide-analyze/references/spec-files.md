@@ -147,8 +147,10 @@ A short analysis writes these three files and no more:
   the grade, the two counts, and that `/aide-implement` builds it from the
   description, the files to change and the places below; `## Scope` with the
   grade and its factors; `## Testing` with the project's test command and
-  `### Where the tests sit` (and a Manual testing note only for a criterion
-  that gets no place). No Approaches, Recommended solution, Behavior delta,
+  `### Where the tests sit`, one line per place naming the AC-ids it covers,
+  in the shape `references/implementation-plan.md` gives, so every criterion
+  has a place (and a Manual testing note only for a criterion that gets
+  none). No Approaches, Recommended solution, Behavior delta,
   Acceptance criteria scenarios, Risk analysis, Implementation plan or Plan
   review
 - `4-status.md`: the template's four phase tables, one row each, the last

@@ -49,7 +49,6 @@ WORKTREE_LINK_DENYLIST="build target dist .gradle"
 # record/short-analysis-check.sh fails a short analysis over any of them.
 # Plain assignments, so no environment variable makes them differ per run.
 SHORT_ANALYSIS_GRADE="LOW"
-SHORT_ANALYSIS_MAX_CRITERIA=3
 SHORT_ANALYSIS_MAX_FILES=3
 
 project_dir=""; command_name=""; spec_arg=""; timeout_sec=""

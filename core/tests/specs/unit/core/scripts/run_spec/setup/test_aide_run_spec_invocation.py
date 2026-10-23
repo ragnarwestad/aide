@@ -7,6 +7,7 @@ in conftest.py beside them.
 
 import json
 import os
+import re
 import subprocess
 import pytest
 from ...conftest import STOP_DEADLINE_SEC, git, run
@@ -690,7 +691,7 @@ def test_only_analyze_is_told_to_mark_the_approaches_AC_9(runner, workspace, fak
 
 SHORT_ANALYSIS_LINE = (
     "A short analysis is allowed for this spec, per Step 3: "
-    "grade LOW, at most 3 acceptance criteria, at most 3 source files to change "
+    "grade LOW, at most 3 source files to change "
     "(tests and documentation are not counted)"
 )
 
@@ -707,7 +708,7 @@ SHORT_ANALYSIS_LINE = (
     ],
     ids=["the-offer", "nothing-recorded", "warn", "stop", "choose-approach", "not-analyze"],
 )
-def test_a_short_analysis_is_offered_unless_the_spec_asks_to_choose_AC_1_AC_3(
+def test_a_short_analysis_is_offered_unless_the_spec_asks_to_choose_AC_1_AC_2_AC_3(
     runner, workspace, fake_claude, command, choose, checks, offered,
 ):
     configure_choose_approach(workspace, choose)
@@ -716,6 +717,10 @@ def test_a_short_analysis_is_offered_unless_the_spec_asks_to_choose_AC_1_AC_3(
     assert rc == 0, out
     lines = [l for l in out["prompt"].splitlines() if "A short analysis is allowed" in l]
     assert lines == ([SHORT_ANALYSIS_LINE] if offered else []), out["prompt"]
+
+
+def test_the_runner_sets_no_limit_on_the_criteria_of_a_short_analysis_AC_7(run_spec_source):
+    assert not re.search(r"^\s*SHORT_ANALYSIS_\w*CRITERIA\w*=", run_spec_source, re.M)
 
 
 def test_the_short_analysis_line_says_tests_and_documentation_are_not_counted_AC_3(runner, workspace, fake_claude):

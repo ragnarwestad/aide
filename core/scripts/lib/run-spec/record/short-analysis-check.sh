@@ -11,11 +11,11 @@
 # The analyze skill writes three fields (core/skills/aide-analyze/references/
 # spec-files.md): `- **Analysis:** short|full` in 2-analysis.md's Tracking
 # info, `- **Grade:**` and `- **Acceptance criteria:**` in 3-solution.md's, and
-# the paths under `### Files to change` in 2-analysis.md. The limits are the
-# SHORT_ANALYSIS_* constants in run-spec/setup/arguments.sh, stated to the skill
-# in the prompt (run-spec/setup/invocation.sh); the runner counts the
-# description's criteria itself and takes the larger count, so a wrong recorded
-# one cannot let a short analysis through. The file limit counts the source
+# the paths under `### Files to change` in 2-analysis.md. The limits, the grade
+# and the number of source files, are the SHORT_ANALYSIS_* constants in
+# run-spec/setup/arguments.sh, stated to the skill in the prompt
+# (run-spec/setup/invocation.sh). The criteria count, the larger of the recorded
+# one and the description's own, is logged and held to no limit. The file limit counts the source
 # files only (lib/files-to-change.sh's source_paths): a test and a Markdown
 # file are listed but not counted. A full analysis is only logged.
 # core/tests/fixtures/analysis-line.json is the table of `Analysis:` cases that
@@ -49,8 +49,6 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ]; then
     elif [ "$sa_grade" != "$SHORT_ANALYSIS_GRADE" ]; then
       sa_cross "it is graded $sa_grade, not $SHORT_ANALYSIS_GRADE"
     fi
-    [ "$sa_criteria" -gt "$SHORT_ANALYSIS_MAX_CRITERIA" ] \
-      && sa_cross "it has $sa_criteria acceptance criteria, over the limit of $SHORT_ANALYSIS_MAX_CRITERIA"
     if [ "$sa_files" -eq 0 ]; then
       sa_cross "no files to change were recorded"
     elif [ "$sa_source_count" -gt "$SHORT_ANALYSIS_MAX_FILES" ]; then

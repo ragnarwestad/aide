@@ -242,7 +242,7 @@ Let me choose the approach is on for this spec, per Step 7: mark each approach (
   already_sent_back="$(tracking_info_field "$specs_root/$spec_folder/1-description.md" "Sent back to a full analysis")"
   short_line=""
   [ "$command_name" = "analyze" ] && [ "$choose_approach" != "yes" ] && [ -z "$already_sent_back" ] && short_line="
-A short analysis is allowed for this spec, per Step 3: grade $SHORT_ANALYSIS_GRADE, at most $SHORT_ANALYSIS_MAX_CRITERIA acceptance criteria, at most $SHORT_ANALYSIS_MAX_FILES source files to change (tests and documentation are not counted)"
+A short analysis is allowed for this spec, per Step 3: grade $SHORT_ANALYSIS_GRADE, at most $SHORT_ANALYSIS_MAX_FILES source files to change (tests and documentation are not counted)"
   prompt="$(skill_call "aide-$command_name" "$spec_id")$criteria_line$approach_line$short_line$reason_line
 $step_log_note
 $headless_note"

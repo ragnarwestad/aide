@@ -91,6 +91,16 @@ def test_a_short_analysis_within_every_limit_completes_and_says_so_AC_1(runner, 
     ], err
 
 
+def test_a_short_analysis_with_more_than_three_criteria_completes_AC_1(runner, workspace, fake_claude):
+    out, err = _analyze(runner, workspace, fake_claude, criteria=8)
+    assert out["ok"] is True, out
+    assert out["terminalReason"] == "completed", out
+    assert _log(err) == [
+        "short analysis: short — grade LOW, 8 acceptance criteria, 3 files to change, 3 of them source files"
+        " — within the limits, the step completes"
+    ], err
+
+
 @pytest.mark.parametrize("level", ["warn", "stop"])
 def test_a_short_analysis_is_not_failed_for_the_criteria_checks_level_AC_1(runner, workspace, fake_claude, level):
     out, _ = _analyze(runner, workspace, fake_claude, checks=level)
@@ -140,9 +150,14 @@ def test_a_short_analysis_over_the_files_limit_fails_the_step_AC_5(runner, works
         assert "analyze" not in json.loads(phase_file_text(workspace, state_path))["completedPhases"]
 
 
-def test_the_runner_counts_the_descriptions_criteria_itself_AC_5(runner, workspace, fake_claude):
-    out, _ = _analyze(runner, workspace, fake_claude, criteria=4, recorded_criteria=3)
-    _failed_on_a_limit(out, "it has 4 acceptance criteria, over the limit of 3")
+@pytest.mark.parametrize("criteria, recorded", [(4, 3), (2, 9)])
+def test_the_larger_of_the_two_criteria_counts_is_logged_and_limits_nothing_AC_4(
+    runner, workspace, fake_claude, criteria, recorded
+):
+    out, err = _analyze(runner, workspace, fake_claude, criteria=criteria, recorded_criteria=recorded)
+    assert out["ok"] is True, out
+    assert out["terminalReason"] == "completed", out
+    assert [f"{max(criteria, recorded)} acceptance criteria" in l for l in _log(err)] == [True], err
 
 
 @pytest.mark.parametrize(
@@ -161,11 +176,12 @@ def test_a_short_analysis_graded_above_low_fails_AC_8(runner, workspace, fake_cl
     _failed_on_a_limit(out, f"it is graded {grade}, not LOW")
 
 
-def test_every_limit_crossed_is_named_AC_5(runner, workspace, fake_claude):
-    out, _ = _analyze(runner, workspace, fake_claude, grade="HIGH", criteria=4, files=[f"f{n}.ts" for n in range(5)])
-    for said in ("it is graded HIGH, not LOW", "it has 4 acceptance criteria, over the limit of 3",
+def test_every_limit_crossed_is_named_and_the_criteria_are_not_one_AC_3_AC_4(runner, workspace, fake_claude):
+    out, _ = _analyze(runner, workspace, fake_claude, grade="HIGH", criteria=8, files=[f"f{n}.ts" for n in range(5)])
+    for said in ("it is graded HIGH, not LOW",
                  "it has 5 source files to change, over the limit of 3 (f0.ts, f1.ts, f2.ts, f3.ts, f4.ts)"):
         assert said in out["error"], out["error"]
+    assert "acceptance criteria" not in out["error"], out["error"]
 
 
 def test_a_short_analysis_for_a_spec_sent_back_to_a_full_one_fails_AC_3(runner, workspace, fake_claude):

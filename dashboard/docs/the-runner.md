@@ -365,12 +365,12 @@ result's `sharedFiles` (`[{ "spec": "<folder>", "files": [...] }]`) carrying the
 `aide-spec-overlap` is not installed, the check is skipped.
 
 **The short analysis check.** A small spec may get a short analysis: the files to change and where the tests sit, with
-no plan and no plan review. The limits are the `SHORT_ANALYSIS_*` constants in `run-spec/setup/arguments.sh`, the one
+no plan and no plan review. The limits, the grade and the number of source files, are the `SHORT_ANALYSIS_*` constants in `run-spec/setup/arguments.sh`, the one
 place they are set, with no per-project or environment override. For a spec that does not ask to choose the approach, the analyze prompt carries one line, `A short analysis is allowed for this spec`, stating
 them; any other spec is told nothing and gets the full analysis. After the turn (`run-spec/record/short-analysis-check.sh`,
 after the shared files check and before the criteria check) the runner reads `Analysis:` from `2-analysis.md`'s Tracking
 info, `Grade:` and `Acceptance criteria:` from `3-solution.md`'s, and counts the source files among the paths under `### Files to change` (a test or a Markdown file is not counted) and the
-`- **AC-n:**` lines of the description itself, taking the larger criteria count. Every completed analyze is logged as
+`- **AC-n:**` lines of the description itself. The larger of the two criteria counts is logged and held to no limit. Every completed analyze is logged as
 `short analysis: <short|full> — grade <g>, <n> acceptance criteria, <m> files to change, <s> of them source files`. A full analysis is only logged. A short
 one over a limit, with no grade or no files recorded, or on a spec that asks to choose the approach, ends `short-analysis-over-limit`: `ok` false, the commit subject ending
 `(stopped: short-analysis-over-limit)`, and an error naming each limit crossed (for the files limit, the source files it counted) and telling the reader to press Analyze
