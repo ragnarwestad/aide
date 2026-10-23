@@ -20,10 +20,6 @@
   table.list tr.specstate > td[data-col="state"] .badgeslot,
   table.list tr.specstate > td[data-col="state"] .badge {
     min-width: 100%; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
-  /* The Specs list's State cell is the row's last, the PDF after the
-     badge: it takes the rest of the line, the badge keeps its width. */
-  table.speclist[data-list="specs"] tr.specstate > td[data-col="state"] { flex: 1 1 auto; }
-  table.speclist[data-list="specs"] tr.specstate > td[data-col="state"] .badgeslot { min-width: 0; max-width: var(--state-w); }
   /* Time reads centred in its own column too, as it does above 640px:
      a two-character duration under a four-character one otherwise looks
      misplaced rather than merely short. */

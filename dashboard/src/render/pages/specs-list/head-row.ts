@@ -3,7 +3,6 @@ import type { Language } from "../../../i18n";
 // has cost, and the one thing that can be done about it.
 
 import { specPagePath } from "../spec-page";
-import { PDF_UNAVAILABLE, pdfLink } from "../spec-page/overview.ts";
 import { CHECKING, badge, stepLabel } from "../../ui/components";
 import { projectLink } from "../../ui/components/spec-name.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
@@ -20,7 +19,7 @@ import {
   stateCell,
 } from "./cell-helpers.ts";
 import { foldControl } from "./row-controls.ts";
-import { listColumns } from "./row-shared.ts";
+import { LIST_COLUMNS } from "./row-shared.ts";
 import { archivingAgain, nextPhase, rowAnchorId, specNumber } from "./row-state.ts";
 
 // One line about the spec: what NOTHING ELSE on the row says. It used
@@ -208,7 +207,7 @@ export function specHeadRow(
     // also gives the title and the pips below it the same left edge for
     // nothing — they both start where this cell ends.
     `<td class="foldcell" rowspan="2" data-col="fold">${foldControl(g, opts.filter ?? {}, opened, lang, opts.listPath, !!opts.openSpec)}</td>` +
-    `<td colspan="${listColumns(!!opts.openSpec) - 1}"><div class="spec-name">${spec}` +
+    `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name">${spec}` +
     `</div>` +
     under +
     `</td>` +
@@ -252,33 +251,20 @@ export function specHeadRow(
     // and the badge over the phases' own state column). A desktop hides
     // them: there the button's label already says how far the spec has
     // come, and the pips drew that fact a second time.
-    // The Specs list has no Time or Cost: its State cell ends the row, with
-    // the spec's PDF at its far right.
-    (opts.openSpec
-      ? `<td data-col="state"><span class="row"><span class="badgeslot">${stateBadge}</span>${specPdf(g, opts)}</span></td>`
-      : `<td data-col="state"><span class="badgeslot">${stateBadge}</span></td>` +
-      // When the spec was made (spec 317, REQ-1/REQ-6) — one call for
-      // either kind of row, now that `readerGroup()` copies an archived
-      // row's own answer onto these same top-level fields.
-      // How long the spec's phases have come to, summed (spec 199, spec
-      // 281). The column used to hold the most recent job's own start, so
-      // every run threw the row to the top of a list sorted by it — and
-      // later, the spec's own creation date instead, which stopped
-      // moving but stopped saying anything about the work either. A dash
-      // where nothing has settled yet: deliberately not a creation date,
-      // which is the text this change removes from this cell for good.
-      (locked
-        ? `<td class="archive-date" data-col="started">${archiveDateCell(g.totalDurationMs ?? 0)}</td>`
-        : `<td data-col="started">${activeDurationCell(g)}</td>`) +
-      `<td class="num" data-col="cost">${costCell(g.spentUsd, g.spentTokens, "–", g.done.length > 0)}</td>`) +
+    `<td data-col="state"><span class="badgeslot">${stateBadge}</span></td>` +
+    // How long the spec's phases have come to, summed (spec 199, spec
+    // 281). The column used to hold the most recent job's own start, so
+    // every run threw the row to the top of a list sorted by it — and
+    // later, the spec's own creation date instead, which stopped
+    // moving but stopped saying anything about the work either. A dash
+    // where nothing has settled yet. The spec's PDF is among the open
+    // spec's actions, beside Close and Update.
+    (locked
+      ? `<td class="archive-date" data-col="started">${archiveDateCell(g.totalDurationMs ?? 0)}</td>`
+      : `<td data-col="started">${activeDurationCell(g)}</td>`) +
+    `<td class="num" data-col="cost">${costCell(g.spentUsd, g.spentTokens, "–", g.done.length > 0)}</td>` +
     `</tr>`
   );
-}
-
-/** The spec as a PDF, for a spec whose folder exists. */
-function specPdf(g: SpecGroup, opts: SpecsPageOptions): string {
-  if (!g.named) return "";
-  return pdfLink(`${specPagePath(g.project, g.specFolder)}/pdf`, opts.pdfAvailable === false ? PDF_UNAVAILABLE : undefined);
 }
 
 /** The spec's own state badge — what the head row draws in the State

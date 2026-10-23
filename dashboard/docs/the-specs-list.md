@@ -35,9 +35,9 @@ The queue behind the rows is on [Running specs](running-specs.md); how a step's 
 
 One row per spec, not per job, and shut by default. A shut row shows the spec's name and title and one status line.
 On the Specs list that line is when the spec was created (the date and the time to the minute, what the Created sort
-orders by), its state, and its PDF at the right; the list has three headings, Created, Specification and State, and
-sorts by those alone. On the Running tab it is the phase pips, the state, how long its phases have taken and what
-they cost. The row carries no control but the one that opens it: a chevron in front of the name. Under it sit the row's notice lines, the `N not verified`
+orders by), its state, how long its phases have taken and what they cost; the list has five headings, Created,
+Specification, State, Time and Cost, and sorts by each. On the Running tab it is the phase pips, the state, the time
+and the cost. The spec's PDF is an icon after Update among the open spec's actions. The row carries no control but the one that opens it: a chevron in front of the name. Under it sit the row's notice lines, the `N not verified`
 line among them when the spec has one. They belong to the shut row, so a reader sees what went wrong without opening
 it.
 

@@ -56,7 +56,7 @@ import { groupKey } from "../specs-list/data-model";
 import { landingRefusal, stepResults, tabBar } from "../job-page";
 import { followMarker, followPart } from "../job-page/follow.ts";
 import {
-  actionsHelp, testServerStatus, closedLine, closeControl,
+  actionsHelp, testServerStatus, closedLine, closeControl, pdfControl,
   reopenControl,
 } from "./overview.ts";
 import { descriptionPanel, documentPanel } from "./panels.ts";
@@ -169,7 +169,9 @@ export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}):
     closeControl(view, opts.lang ?? "en") +
     // A GET would let a reload re-run the pull, so this is a form and
     // not a link, exactly as every other action on this dashboard is.
-    buttonForm({ action: view.updateAction, hook: "reloadform", data: SPEC_LINES, button: { label: "Update", pending: "updating…" } });
+    buttonForm({ action: view.updateAction, hook: "reloadform", data: SPEC_LINES, button: { label: "Update", pending: "updating…" } }) +
+    // Last, so it is not between two buttons.
+    pdfControl(view);
 
   // Every tab says what it is for (spec 311): a "(?)" at the right end of
   // the tab's own first line, using the same shared component the search

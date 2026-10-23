@@ -105,8 +105,6 @@ export function stateFilterLabel(key: string, lang: Language): string {
 }
 
 export const SORTS = ["started", "spec", "state", "cost", "created"];
-/** The Specs list's own: it has no Time or Cost column to sort by. */
-export const SPECS_LIST_SORTS = ["spec", "state", "created"];
 // The default view: the newest spec MADE at the top (spec 317, REQ-3).
 // Folder order was the default from 2026-08-19 (chosen over "last
 // activity", which put a spec that had just been created at the bottom
@@ -221,8 +219,8 @@ function compareFolders(a: string, b: string): number {
   return a.localeCompare(b);
 }
 
-export function sortGroups<T extends SortFacts>(groups: T[], f: SpecsFilter, sorts: string[] = SORTS): T[] {
-  const sort = sorts.includes(f.sort ?? "") ? f.sort! : DEFAULT_SORT;
+export function sortGroups<T extends SortFacts>(groups: T[], f: SpecsFilter): T[] {
+  const sort = SORTS.includes(f.sort ?? "") ? f.sort! : DEFAULT_SORT;
   const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : SORT_DEFAULT_DIR[sort]!;
   const sign = dir === "asc" ? 1 : -1;
   // Every row's Time cell shows its own summed duration now, live or

@@ -10,6 +10,7 @@ import {
 import { acceptanceSectionUnreadable, parseStatus } from "../../project/parse-status";
 import { phasesFor, specPagePath, resolveSpecTab, EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, TAB_FILES, type SpecPageView } from "../../render";
 import type { TestServerStatusView } from "../../render/pages/spec-page/types.ts";
+import { PDF_UNAVAILABLE } from "../../render/pages/spec-page/overview.ts";
 import { landingInProject } from "../../queue/queue.ts";
 import { lastCommitOf } from "../../git/description-freshness.ts";
 import { readStatusFromFetchedBranch, resolveOpenBranchTarget } from "../../git/branch-file.ts";
@@ -267,6 +268,7 @@ export async function specPageView(
     // Built from the page's own path, so the two cannot drift into a
     // button that posts where nothing listens.
     updateAction: `/api/queue${specPagePath(project, specFolder)}/update`,
+    pdfUnavailableReason: ctx.pdfToolAvailable ? undefined : PDF_UNAVAILABLE,
     // spec 406: always available, disabled with a reason while busy —
     // closeControl (overview.ts) is what hides it once the spec is
     // archived. No fallback page behind it (spec 527), so this is a flag.

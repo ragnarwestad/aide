@@ -243,14 +243,6 @@ table.speclist > colgroup > col[data-col="cost"] { width: 13.2654%; }
   table.speclist > colgroup > col[data-col="started"] { width: 0; }
   table.speclist > colgroup > col[data-col="cost"] { width: 0; }
 }
-/* The Specs list has no Time or Cost: four columns at every width, State
-   wide enough for the widest badge and the spec's PDF at its right edge
-   on the narrowest list (36rem). */
-table.speclist[data-list="specs"] > colgroup > col[data-col="fold"] { width: 5.5556%; }
-table.speclist[data-list="specs"] > colgroup > col[data-col="spec"] { width: 13.8888%; }
-table.speclist[data-list="specs"] > colgroup > col[data-col="phase"] { width: 45.5556%; }
-table.speclist[data-list="specs"] > colgroup > col[data-col="state"] { width: 35%; }
-table.speclist[data-list="specs"] tr.specstate > td[data-col="state"] > .row { justify-content: space-between; flex-wrap: nowrap; }
 /* The Test servers table (spec 519): a `table.list` with columns of its
    own, so nothing written for the specs list's `data-col`s reaches it.
    Its width is 100% of the page's frame and its six columns are

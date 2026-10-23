@@ -117,6 +117,9 @@ export interface SpecPageView {
   /** Why Close cannot be selected at this instant (REQ-11): a job in
    *  flight or a landing in progress blocks the move. */
   closeUnavailableReason?: string;
+  /** Why the PDF icon cannot be pressed: `md-to-pdf` missing on the
+   *  serving host. Drawn disabled with this as its reason, not hidden. */
+  pdfUnavailableReason?: string;
   /** Where the Description tab's Save posts. */
   saveAction: string;
   /** Where the Overview tab's checks form posts (spec 212). Its own

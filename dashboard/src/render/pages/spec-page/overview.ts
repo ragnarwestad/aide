@@ -13,7 +13,7 @@ import { t, type Language } from "../../../i18n";
 import {
   CLOSE_ASK_ID, CLOSE_SENTENCE, REOPEN_ASK_ID, closeAskDialog, reopenAskDialog,
 } from "./ask-dialog.ts";
-import { SPEC_LINES, SPEC_REFUSED_LINE } from "./tabs.ts";
+import { SPEC_LINES, SPEC_REFUSED_LINE, specPagePath } from "./tabs.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
 
 /** One labelled fact about the spec: what it is, then what it says.
@@ -268,6 +268,11 @@ export function pdfLink(action: string, unavailableReason?: string): string {
     `<a class="iconlink" href="${esc(action)}" target="_blank" rel="noopener" data-pdf ` +
     `aria-label="${esc(what)}" title="${esc(what)}">${ICON_PDF}</a>`
   );
+}
+
+/** The open spec's PDF, among its actions. */
+export function pdfControl(view: SpecPageView): string {
+  return pdfLink(`${specPagePath(view.project, view.specFolder)}/pdf`, view.pdfUnavailableReason);
 }
 
 /** What a board is doing, when one was ever asked for: starting,

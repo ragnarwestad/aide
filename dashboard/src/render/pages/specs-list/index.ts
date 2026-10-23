@@ -55,7 +55,6 @@ import {
   groupKey,
   isArchivedRow,
   sortGroups,
-  SPECS_LIST_SORTS,
   type ArchivedSpecView,
   type SpecsFilter,
   type SpecTarget,
@@ -83,7 +82,7 @@ export {
   type SpecTarget,
   type SpecGroup,
 };
-import { listColumns, phaseSubRows, phasePips, specHeadRow, specNoticeRow } from "./cells.ts";
+import { LIST_COLUMNS, phaseSubRows, phasePips, specHeadRow, specNoticeRow } from "./cells.ts";
 import { listRefusalLine, refusalRowTemplate, specLoadingRowTemplate } from "./notice-row.ts";
 // Re-exported for `spec-page.ts`, which draws a spec's phase pip strip
 // on its own Overview tab.
@@ -297,7 +296,7 @@ function groupRow(g: SpecGroup, opts: SpecsPageOptions, now: number, opened: Set
   // message rows; on the Specs list it reads head row, message rows, then
   // the spec, with no phase lines, since what runs is followed on the
   // Running tab. Every message keeps that one place.
-  const columns = listColumns(!!opts.openSpec);
+  const columns = LIST_COLUMNS;
   const head = specHeadRow(g, opts, opened);
   const notice = specNoticeRow(g, now, opts.lang ?? "en", testServerAvailable, {
     filter: opts.filter,
@@ -353,12 +352,12 @@ function groupRow(g: SpecGroup, opts: SpecsPageOptions, now: number, opened: Set
 export function renderSpecsRows(rows: QueueRowView[], opts: SpecsPageOptions, now = Date.now()): string {
   const f = opts.filter ?? {};
   const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now);
-  const matched = sortGroups(shownGroups(groups, opts), f, opts.openSpec ? SPECS_LIST_SORTS : undefined);
+  const matched = sortGroups(shownGroups(groups, opts), f);
   const body = matched.length
     ? // `groups`, not `matched`: a dependency the filter has hidden is
       // still in the way of the row that names it.
       groupRows(matched, opts, now, openedKeys(opts))
-    : `<tr><td colspan="${listColumns(!!opts.openSpec)}" class="empty muted">` +
+    : `<tr><td colspan="${LIST_COLUMNS}" class="empty muted">` +
       // Two different emptinesses. "Nothing matches what you asked for"
       // is answered by changing the filter; "there is no spec here at
       // all" is not, and telling that reader to pick one above is
@@ -408,9 +407,9 @@ function specsPageBody(rows: QueueRowView[], opts: SpecsPageOptions): string {
     // after the (?)): it is a plain link since spec 121, so the
     // five-second swap of `#jobrows` holds no half-typed state to lose.
     table +
-    refusalRowTemplate(listColumns(!!opts.openSpec)) +
+    refusalRowTemplate(LIST_COLUMNS) +
     // The row a › draws while its spec loads: only where a › opens a row.
-    (opts.openSpec ? specLoadingRowTemplate(listColumns(true), lang) : "")
+    (opts.openSpec ? specLoadingRowTemplate(LIST_COLUMNS, lang) : "")
   );
 }
 
