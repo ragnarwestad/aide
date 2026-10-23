@@ -407,6 +407,10 @@ table.list th[data-col="state"] { width: 0; white-space: nowrap; }
    top of it as they scroll under, positioned elements later in the page
    stacking above earlier ones. Below the menus (20), so an open menu
    still shows over it. */
+/* Every other list's header is the chevron's context the same way, as a
+   plain `relative`: without it the chevron is placed against the box
+   around the table and sits past its right edge. */
+table.list thead th { position: relative; }
 table.speclist thead th { position: sticky; top: 0; z-index: 5; }
 /* A row the address names is scrolled to just below those pinned headings,
    not under them: their padding and one line of their text. */
