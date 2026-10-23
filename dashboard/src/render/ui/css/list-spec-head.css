@@ -177,6 +177,9 @@ table.list tr.specstate > td { padding-top: var(--sp-1); }
    opposite edge. */
 .searchfield > .icon-search { position: absolute; left: 9px; top: 50%;
   transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+/* The platform's own clear button outlives `appearance: none`, and would
+   stand beside .searchclear as a second ×. */
+.archive-q::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; display: none; }
 .searchclear { position: absolute; right: 0; top: 0; bottom: 0;
   display: inline-flex; align-items: center; padding: 0 var(--sp-2);
   color: var(--muted); text-decoration: none; line-height: 1; }
