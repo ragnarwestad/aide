@@ -79,6 +79,11 @@ Project-level `.claude/skills/` is still read. The copilot and codex
 installers both install `core/skills/` to `~/.agents/skills/` via
 `core/scripts/_install-skills.sh`; each skill is listed once, no duplication.
 
+The Agent Skills standard that these skills follow is governed by the
+Agentic AI Foundation, a neutral body that also holds MCP. The
+specification at <https://agentskills.io/specification> defines the
+frontmatter fields; the allowlist test follows it.
+
 Skill frontmatter beyond `name`/`description` follows an additive-only
 policy (spec 71 in aide-specs): only Claude Code extras whose absence
 costs a nicety, never a guarantee (`effort`, `argument-hint`), enforced by
@@ -364,6 +369,11 @@ Check these when you update versions or wonder whether something has changed:
 ### Codex CLI
 
 - [Codex CLI — GitHub repo and README](https://github.com/openai/codex)
+
+### Agent Skills standard
+
+- [Agent Skills specification](https://agentskills.io/specification) — the frontmatter fields the allowlist test follows
+- [ClaudeDevs: the standard under the Agentic AI Foundation](https://x.com/ClaudeDevs/status/2113328526413996100) — the source for its governance
 
 ---
 
