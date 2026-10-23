@@ -29,7 +29,7 @@ and which configuration files each tool reads.
 | Tool               | Version | Last verified | Status       |
 |--------------------|---------|---------------|--------------|
 | Claude Code        | 2.1.309 | 2026-10-23    | ✅ Supported |
-| GitHub Copilot CLI | 1.0.101 | 2026-10-23    | ✅ Supported |
+| GitHub Copilot CLI | 1.0.102 | 2026-10-23    | ✅ Supported |
 | Codex CLI          | 0.163.0 | 2026-10-23    | ✅ Supported |
 | OpenCode           | 1.19.0  | 2026-10-23    | ✅ Supported |
 
