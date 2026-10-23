@@ -17,7 +17,7 @@ import { activeSpecRows, type SpecsPageOptions } from "../specs-list";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { jobsFilterBar, jobsHead } from "./filter-bar.ts";
 import { jobRow } from "./job-row.ts";
-import { byTabPlace, jobKey, jobPlace, specPlace, type TabPlace } from "./rows.ts";
+import { byTabPlace, jobKey, jobPlace, specPlace, specsStoodForByJobs, type TabPlace } from "./rows.ts";
 import { jobFacts, jobsViewRows, type RowFacts } from "./view.ts";
 
 export { jobControl, jobKey, jobsShown, jobTitle, scheduleStreamKey } from "./rows.ts";
@@ -43,7 +43,8 @@ export interface JobsView {
 function entries(v: JobsView): { key: string; html: string; place: TabPlace; facts: RowFacts }[] {
   const now = v.now ?? Date.now();
   const lang = v.list.lang ?? "en";
-  const specs = activeSpecRows(v.specJobs, v.list, now).map((s) => ({
+  const moving = specsStoodForByJobs(v.shown);
+  const specs = activeSpecRows(v.specJobs, v.list, now).filter((s) => !moving.has(s.key)).map((s) => ({
     key: s.key, html: s.html, place: specPlace(s.group), facts: s.group,
   }));
   const jobs = v.shown.map((job) => ({

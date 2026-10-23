@@ -16,6 +16,7 @@ import {
   jobTitle,
   scheduleStreamKey,
   specPlace,
+  specsStoodForByJobs,
 } from "../../../../src/render/pages/jobs-page/rows.ts";
 
 type J = Parameters<typeof jobsShown>[0][number];
@@ -229,6 +230,17 @@ describe("a Close or Reopen is a job row of its own, not its spec's", () => {
   test("offers neither Stop nor Cancel: a half-done move would leave the spec between two places", () => {
     for (const state of ["queued", "running"] as const) expect(jobControl(at("reopen", { state }))).toBeUndefined();
     expect(jobControl(at("close", { state: "done", landing: true }))).toBeUndefined();
+  });
+
+  test("while one is in flight it stands for its spec, whose own row is not drawn", () => {
+    const shown = [
+      at("close", { state: "running", specFolder: "670-a" }),
+      at("reopen", { state: "queued", specFolder: "671-b" }),
+      at("close", { state: "done", landing: true, specFolder: "672-c" }),
+      at("close", { state: "failed", specFolder: "673-d" }),
+      sched({ state: "running" }),
+    ];
+    expect([...specsStoodForByJobs(shown)].sort()).toEqual(["aide/670-a", "aide/671-b", "aide/672-c"]);
   });
 });
 
