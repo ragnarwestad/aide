@@ -218,6 +218,7 @@ export const nb: Record<TranslationKey, string> = {
   "job.subagentNoAnswer": "Har ikke svart ennå.",
   "job.subagentUnread": "Underagentens arbeid kunne ikke leses: sesjonsfilen ({thread}) ble ikke funnet eller kunne ikke leses. Codex lagrer en sesjonsfil under sessions/ i CODEX_HOME, eller i ~/.codex, på datamaskinen som viser tavla.",
   "job.noErrors": "Loggen har ingen feillinjer.",
+  "job.screenshots": "Skjermbilder",
   "job.noChangedFiles": "Ingen filer ble endret i dette steget.",
   "job.filesNotKnown": "Endrede filer ble ikke registrert for dette steget.",
   "job.filesRunning": "Endrede filer er kjent når steget er ferdig.",

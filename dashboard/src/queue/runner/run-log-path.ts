@@ -8,6 +8,10 @@ export const RUN_LOG_MAX_BYTES = 1024 * 1024;
 /** `<job id>.<step>.stream.jsonl` gives `<job id>.<step>.run.log`. */
 export const runLogPath = (streamFile: string): string => `${streamFile.replace(/\.stream\.jsonl$/, "")}.run.log`;
 
+/** `<job id>.<step>.stream.jsonl` gives `<job id>.<step>.screenshots`, the folder of the
+ *  pictures an implement took of the pages it changed. `screenshots.sh` names it the same way. */
+export const screenshotsDir = (streamFile: string): string => `${streamFile.replace(/\.stream\.jsonl$/, "")}.screenshots`;
+
 /** Empty the step's log and open it for the spawn: Bun writes from byte 0
  *  without truncating, so a shorter log would end in the tail of an earlier one. */
 export function openRunLog(streamFile: string): ReturnType<typeof Bun.file> {

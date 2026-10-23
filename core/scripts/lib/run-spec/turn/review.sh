@@ -121,12 +121,17 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ]; th
     review_scope="The description has an ## Out of scope section: what this change must not do or touch. Each change in the diff that falls under an item in it is a defect too, whatever kind of change it is, style, naming and structure included; say which item."
   fi
 
+  # The pictures of the pages the branch changed, when it changed any.
+  screenshots_settle "$review_fork"
+  review_screenshots="$(screenshots_review_line)"
+
   {
     printf '%s\n' \
       "Read this spec's own description and everything this spec's branch changed, and look for defects: behaviour that is wrong, broken or missing against the description. Say nothing about style, naming or structure." \
       "" "The description: $review_description_path" \
       "" "What changed: run \`git diff $review_fork\` in this directory, for every change since the branch left $review_base, committed or not, and \`git status --porcelain\` for new files not tracked yet. Read a whole file wherever the diff alone does not show enough."
     [ -n "$review_scope" ] && printf '%s\n' "" "$review_scope"
+    [ -n "$review_screenshots" ] && printf '%s\n' "" "$review_screenshots"
     printf '%s\n' \
       "" "Do not edit, create or delete any file — you are reading and reporting only." \
       "" "End your reply with exactly one of these, as your very last lines, plain text, no other formatting:" \
@@ -173,10 +178,12 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ]; th
       done <<<"$review_defects"
       stage "the defect(s) went back to the implement session to be fixed"
 
+      fix_screenshots="$(screenshots_fix_line)"
       printf '%s\n' \
         "A review of what you changed found the following defect(s), against the spec's description — not the runner's tests, which have not run yet:" \
         "" "$review_defects" \
         "" "Fix them, then report done. The runner's own test run follows this turn." \
+        ${fix_screenshots:+"$fix_screenshots"} \
         "$headless_note" \
         > "$work_dir/prompt-review-fix"
 

@@ -3,14 +3,14 @@
 // Split out of spec-views.ts 2026-09-04, where it had grown to 562
 // lines; every function is unchanged and keeps its name.
 import { specPhaseFile } from "../../project/discover";
-import type { JobDetailView } from "../../render";
+import type { JobDetailView, JobStepResultView } from "../../render";
 import { withModelId } from "../../render/ui/components/model-label.ts";
 import type { Job } from "../../queue/queue.ts";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { resolveStepModel, tailFile, tailFileAt } from "../serve-helpers";
 import { stepLog } from "../../queue/parse-stream";
 import { readCodexSession } from "./codex-sessions.ts";
-import { RUN_LOG_MAX_BYTES, runLogPath } from "../../queue/runner/run-log-path.ts";
+import { RUN_LOG_MAX_BYTES, runLogPath, screenshotsDir } from "../../queue/runner/run-log-path.ts";
 import { diffStatBetween } from "../../git/diff-stat.ts";
 import type { SpecViewsContext } from "./";
 
@@ -22,6 +22,19 @@ export function aiLabel(tool: string | undefined, choice: string | undefined): s
   const cap = (w: string) => w.charAt(0).toUpperCase() + w.slice(1);
   const words = choice && !choice.toLowerCase().startsWith(tool.toLowerCase()) ? [tool, choice] : [choice ?? tool];
   return words.map(cap).join(" ");
+}
+
+/** The pictures a finished step kept, by file name; none for a step without the folder or a PNG in it. */
+function stepScreenshots(jobId: string, step: string | undefined, streamFile: string | undefined): JobStepResultView["screenshots"] {
+  if (!step || !streamFile) return undefined;
+  let names: string[];
+  try {
+    names = readdirSync(screenshotsDir(streamFile));
+  } catch {
+    return undefined;
+  }
+  const files = names.filter((n) => n.endsWith(".png")).sort();
+  return files.length === 0 ? undefined : files.map((file) => ({ file, href: `/jobs/${jobId}/screenshots/${step}/${file}` }));
 }
 
 /** The step's run log, when it has one. */
@@ -95,6 +108,8 @@ export async function jobDetailView(
           errors: shown?.errors,
           aiModel: withModelId(aiLabel(tool, choice), r.modelId),
           changedFiles,
+          // Only the newest result of a step, which is the one the route serves.
+          screenshots: job.results.findLast((o) => o.step === r.step) === r ? stepScreenshots(job.id, r.step, r.streamFile) : undefined,
         };
       }),
     ),

@@ -226,6 +226,7 @@ export const en = {
   "job.subagentNoAnswer": "It has not answered yet.",
   "job.subagentUnread": "This subagent's work could not be read: its session file ({thread}) was not found or could not be read. Codex keeps a session file under sessions/ in CODEX_HOME, or in ~/.codex, on the computer that serves the board.",
   "job.noErrors": "The log has no error lines.",
+  "job.screenshots": "Screenshots",
   "job.noChangedFiles": "No file changed in this step.",
   "job.filesNotKnown": "The changed files were not recorded for this step.",
   "job.filesRunning": "The changed files are known when the step ends.",

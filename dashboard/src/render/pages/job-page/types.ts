@@ -52,6 +52,9 @@ export interface JobStepResultView {
    *  recorded — a result written before this field existed); an empty
    *  array means "checked, nothing changed" (`headBefore === headAfter`). */
   changedFiles?: DiffStatEntry[];
+  /** The pictures an implement took of the pages it changed, by file name,
+   *  each with the address that serves it. Absent when the step kept none. */
+  screenshots?: { file: string; href: string }[];
 }
 
 /** A spec's own file, or one section of one, as it stands on disk

@@ -184,6 +184,17 @@ if [ "$command_name" = "implement" ]; then
 If this spec's analysis is short and the change is not small after all, per Step 1 of the skill — it needs more than $SHORT_ANALYSIS_MAX_FILES source files to change (tests and documentation are not counted), or it is not graded $SHORT_ANALYSIS_GRADE — write one sentence saying what made it larger to $sent_back_file, change nothing else, and end the step."
 fi
 
+# In Aide's own repository an implement also leaves screenshots of the pages
+# its branch changed (run-spec/turn/screenshots.sh): the folder is made
+# empty here, so only this attempt's pictures are kept.
+if screenshots_wanted; then
+  screenshots_folder="$(screenshots_dir)"
+  rm -rf "$screenshots_folder"
+  mkdir -p "$screenshots_folder" 2>/dev/null || true
+  prompt="$prompt
+$(screenshots_prompt_line)"
+fi
+
 # Where the merge with the default branch was left open for this step
 # (update_branch_to_base, run-spec/checkout/worktree.sh): named, since it
 # can be the specs worktree as well as the project's, and a session that

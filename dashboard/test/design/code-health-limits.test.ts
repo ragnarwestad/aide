@@ -70,7 +70,7 @@ const SPLIT_FOLDER = `split it into subfolders named for what their files are ab
 const TEST_ONLY_TOP_LEVEL_DIRS = [
   "archived", "deploy", "design", "e2e", "fixtures", "guards",
   "helpers", "preview", "queue-detail", "queue-routes", "round", "routes",
-  "spec-page",
+  "scripts", "spec-page",
 ];
 
 function relPath(file: string): string {

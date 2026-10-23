@@ -193,17 +193,37 @@ decides nothing.
    browser suite. Red is fixed back through Step 3 like any red test. A
    file that could not start at all (no browser on the machine) is named
    in the step's summary, never passed over in silence.
-3. TypeScript check
-4. ESLint
-5. Build
-6. Tick this step's task rows in `4-status.md` as each check above
+3. **Look at the pages the change affects.** Only when the spec's branch,
+   compared with the default branch, changes a file under
+   `dashboard/src/render/` or a stylesheet, and the project has
+   `dashboard/scripts/look-at-pages.ts` (Aide's own repository);
+   otherwise take no screenshots.
+   - Write a scene that brings the changed part onto each page it
+     affects (the spec, queue and settings data; the live spec is
+     `81-queue-and-runner`, and the fields are listed at the top of the
+     script), then run
+     `bun dashboard/scripts/look-at-pages.ts --scene <scene.json> --out <folder> <path>...`
+     once, with every affected path. The folder is the one the prompt
+     names; working interactively, use a folder under `$TMPDIR`. The
+     script serves this checkout's own code on throwaway data and takes
+     each path at 1440 px and at 390 px wide.
+   - Read every picture with your image viewer and look at it against the
+     description and `dashboard/docs/design-system.md`. Fix what is wrong
+     back through Step 3, then take them again; the folder keeps the last
+     round.
+   - If the script cannot serve or take a page, it says why in
+     `not-taken.txt` in the folder. Go on with the step.
+4. TypeScript check
+5. ESLint
+6. Build
+7. Tick this step's task rows in `4-status.md` as each check above
    passes. Leave "Run the full test suite" as it is: the runner ticks it.
    Write the result with `aide-write-spec --file 4-status.md` (never
    Write/Edit)
-7. Before reporting anything: confirm every row in this step's own table
+8. Before reporting anything: confirm every row in this step's own table
    reads ✅, the full-suite row apart. This is a separate, required
    write, the last one this step makes.
-8. Show a summary — ready for commit
+9. Show a summary — ready for commit
 
 **Find a table in `4-status.md` by its HEADING TEXT, never by its
 number.** This skill's RED, GREEN and VERIFY are its Steps 2-4;
