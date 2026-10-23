@@ -6,6 +6,7 @@
 - [Which tests run](#which-tests-run)
 - [What the AI is told about tests](#what-the-ai-is-told-about-tests)
 - [What you see on the board](#what-you-see-on-the-board)
+- [Looking at the pages](#looking-at-the-pages)
 - [Aide's own suite](#aides-own-suite)
 
 ---
@@ -88,6 +89,32 @@ name, and none for a criterion an existing test already proves — that test get
 
 Acceptance criteria are a separate thing from the tests: those are the boxes you tick on the Status tab or under the
 row, usually after trying the change on a [test server](test-server.md).
+
+---
+
+## Looking at the pages
+
+A test may not pin how a page looks, and the review reads the diff, so neither sees the page. In Aide's own
+repository an implement that changes a page therefore looks at it before the step ends. Only a repository that has
+`dashboard/scripts/look-at-pages.ts` is asked to; every other project is left as it is.
+
+- **When:** the spec's branch, compared with the default branch, changes a file under `dashboard/src/render/` or a
+  stylesheet (`.css`). A branch that changes neither takes no screenshots.
+- **How:** the session writes a scene, the spec, queue and settings data that brings the changed part onto the page,
+  and runs `bun dashboard/scripts/look-at-pages.ts --scene <scene.json> --out <folder> <path>...`. The script
+  serves this checkout's own code, what `make serve-local` serves, on throwaway data with no runner. It does not run
+  `make serve-local` itself, because that board uses the live board's queue in `~/.aide/dashboard/`. It takes each
+  path at 1440 px and at 390 px wide, as `<NN>-<slug>-<width>.png`. The live spec's folder is always
+  `81-queue-and-runner`; the scene's fields are listed at the top of the script.
+- **What the session does:** it looks at every picture against the spec's description and
+  [the design system](design-system.md), fixes what is wrong, and takes them again. The folder keeps the last round.
+- **Where they are kept:** the runner names the folder in the prompt, `<job id>.<step>.screenshots` beside the step's
+  run log, and empties it before the turn. After the turn it logs `screenshots: <n> of the changed pages, kept with
+  the step's logs`. The review is given the folder beside the diff and reports what looks wrong as a defect. The
+  step's Log tab links each picture.
+- **When it cannot:** the script writes one sentence saying why to `not-taken.txt` in the folder and exits 1. The
+  runner logs it as an error line, `the changed pages were not looked at: <why>`, and the step goes on as it would
+  without screenshots.
 
 ---
 

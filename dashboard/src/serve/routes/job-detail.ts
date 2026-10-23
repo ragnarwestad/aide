@@ -4,7 +4,8 @@
 // overlaps with the exact-string routes handled elsewhere (e.g.
 // /api/queue/create) — it MUST be tried last, after every other
 // theme, exactly as it sat last in the original dispatcher.
-import { json, languageChoice, specsClientScript } from "../serve-helpers";
+import { json, languageChoice, serveStatic, specsClientScript } from "../serve-helpers";
+import { screenshotsDir } from "../../queue/runner/run-log-path.ts";
 import { renderJobDetailPage, renderJobFollowParts, resolveBackHref } from "../../render";
 import type { RoutesContext } from "./";
 
@@ -19,6 +20,18 @@ export async function handleJobDetailRoute(
   const old = path.match(/^\/specs\/([A-Za-z0-9-]+)$/);
   if (old && req.method === "GET") {
     return new Response(null, { status: 301, headers: { location: `/jobs/${old[1]}${url.search}` } });
+  }
+  // A finished step's picture of a page it changed, from the folder kept
+  // beside its transcript; a step run again is the newest attempt's. `serveStatic` cannot leave the folder.
+  const shot = path.match(/^\/jobs\/([A-Za-z0-9-]+)\/screenshots\/([a-z]+)\/([A-Za-z0-9_-]+\.png)$/);
+  if (shot) {
+    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    const [, id, step, file] = shot;
+    const streamFile = ctx.queue.get(id!)?.results.findLast((r) => r.step === step && r.streamFile)?.streamFile;
+    if (!streamFile) return new Response("not found", { status: 404 });
+    const found = serveStatic(screenshotsDir(streamFile), `/${file}`);
+    if (!found.ok) return found;
+    return new Response(found.body, { headers: { "content-type": "image/png", "cache-control": "no-store" } });
   }
   const detail = path.match(/^\/(api\/queue|jobs)\/([A-Za-z0-9-]+)$/);
   if (detail) {

@@ -98,6 +98,14 @@ export function jobsShown<T extends JobLike>(
   });
 }
 
+/** The `<project>/<folder>` keys of the specs a Close or Reopen in flight
+ *  stands for: the tab draws the job's row alone, so the spec is never on it
+ *  twice while it moves. A failed one stands for nothing, and its spec's row
+ *  stays beside it. */
+export function specsStoodForByJobs(shown: readonly JobLike[]): Set<string> {
+  return new Set(shown.filter((j) => closeOrReopenStep(j) && inFlight(j)).map((j) => `${j.project}/${j.specFolder}`));
+}
+
 /** What a job row is called, without its project, which the row draws
  *  before the name: the scheduled job, the Close or Reopen and its spec, or
  *  the deploy and the project it deploys. */

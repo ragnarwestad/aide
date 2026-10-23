@@ -216,6 +216,7 @@ export const de: Record<TranslationKey, string> = {
   "job.subagentNoAnswer": "Noch keine Antwort.",
   "job.subagentUnread": "Die Arbeit dieses Subagenten konnte nicht gelesen werden: Seine Sitzungsdatei ({thread}) wurde nicht gefunden oder war nicht lesbar. Codex legt eine Sitzungsdatei unter sessions/ in CODEX_HOME oder in ~/.codex auf dem Rechner ab, der das Board bereitstellt.",
   "job.noErrors": "Das Log enthält keine Fehlerzeilen.",
+  "job.screenshots": "Screenshots",
   "job.noChangedFiles": "In diesem Schritt wurde keine Datei geändert.",
   "job.filesNotKnown": "Die geänderten Dateien wurden für diesen Schritt nicht erfasst.",
   "job.filesRunning": "Die geänderten Dateien liegen vor, wenn der Schritt endet.",

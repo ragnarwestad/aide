@@ -3,7 +3,7 @@
 // content: the log parts (Aide's lines and the AI's, from the run log beside
 // the transcript), the error lines, and which files the step's commit touched.
 
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "bun:test";
@@ -280,5 +280,37 @@ describe("jobDetailView reads a Codex step's session files", () => {
     const view = await withHome(() => jobDetailView(makeCtx(), makeJob({ state: "running", streamFile: stream() })));
 
     expect(view.runningStep!.logs.map((p) => p.by)).toEqual(["ai", "subagent", "ai"]);
+  });
+});
+
+describe("jobDetailView's screenshots", () => {
+  const finishedStep = (streamFile: string) => ({
+    step: "implement" as const, ok: true, costUsd: 1, costMeasured: true, terminalReason: "completed", streamFile, tool: "claude" as const,
+  });
+
+  test("a finished step lists the PNGs in its screenshots folder by name, each with its link (AC-4)", async () => {
+    const streamFile = tempStreamFile([{ type: "result", subtype: "success", result: "done" }]);
+    const folder = streamFile.replace(/\.stream\.jsonl$/, ".screenshots");
+    mkdirSync(folder);
+    for (const name of ["02-jobs-390.png", "01-jobs-1440.png", "not-taken.txt"]) writeFileSync(join(folder, name), "x");
+
+    const view = await jobDetailView(makeCtx(), makeJob({ results: [finishedStep(streamFile)] }));
+
+    expect(view.results[0]!.screenshots).toEqual([
+      { file: "01-jobs-1440.png", href: "/jobs/job-1/screenshots/implement/01-jobs-1440.png" },
+      { file: "02-jobs-390.png", href: "/jobs/job-1/screenshots/implement/02-jobs-390.png" },
+    ]);
+  });
+
+  test("a step with no screenshots folder, or one with no PNG, has no screenshots (AC-4)", async () => {
+    const without = tempStreamFile([{ type: "result", subtype: "success", result: "done" }]);
+    const empty = tempStreamFile([{ type: "result", subtype: "success", result: "done" }]);
+    mkdirSync(empty.replace(/\.stream\.jsonl$/, ".screenshots"));
+    writeFileSync(join(empty.replace(/\.stream\.jsonl$/, ".screenshots"), "not-taken.txt"), "why");
+
+    const view = await jobDetailView(makeCtx(), makeJob({ results: [finishedStep(without), finishedStep(empty)] }));
+
+    expect(view.results[0]!.screenshots).toBeUndefined();
+    expect(view.results[1]!.screenshots).toBeUndefined();
   });
 });

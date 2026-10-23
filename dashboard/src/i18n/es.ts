@@ -216,6 +216,7 @@ export const es: Record<TranslationKey, string> = {
   "job.subagentNoAnswer": "Aún no ha respondido.",
   "job.subagentUnread": "No se pudo leer el trabajo de este subagente: su archivo de sesión ({thread}) no se encontró o no se pudo leer. Codex guarda un archivo de sesión en sessions/ dentro de CODEX_HOME, o en ~/.codex, en el equipo que sirve el tablero.",
   "job.noErrors": "El registro no tiene líneas de error.",
+  "job.screenshots": "Capturas de pantalla",
   "job.noChangedFiles": "Ningún archivo cambió en este paso.",
   "job.filesNotKnown": "No se registraron los archivos cambiados de este paso.",
   "job.filesRunning": "Los archivos cambiados se conocen cuando el paso termina.",

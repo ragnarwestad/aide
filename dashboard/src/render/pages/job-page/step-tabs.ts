@@ -19,7 +19,7 @@ export const resolveStepTab = (raw: string | undefined): StepTab => pickTab(STEP
 
 /** What the panel draws: a finished step's view already is this, and a
  *  running step's is built from its live log with `running` set. */
-export type StepPanelData = Pick<JobStepResultView, "logs" | "errors" | "aiModel" | "changedFiles" | "terminalReason"> & {
+export type StepPanelData = Pick<JobStepResultView, "logs" | "errors" | "aiModel" | "changedFiles" | "terminalReason" | "screenshots"> & {
   running?: boolean;
 };
 
@@ -58,16 +58,24 @@ export function drawnParts(parts: LogPart[], aiModel: string | undefined, lang: 
     .filter((drawn) => drawn.lines.length > 0);
 }
 
+/** One line under the log: the pictures the step took of the pages it changed, each opening in a new tab. */
+function screenshotLinks(r: StepPanelData, lang: Language): string {
+  if (!r.screenshots || r.screenshots.length === 0) return "";
+  const links = r.screenshots.map((s) => `<a href="${esc(s.href)}" target="_blank" rel="noopener">${esc(s.file)}</a>`).join(" ");
+  return `<p class="muted small">${esc(t(lang, "job.screenshots"))}: ${links}</p>`;
+}
+
 function logTab(r: StepPanelData, lang: Language): string {
   const parts = drawnParts(r.logs ?? [], r.aiModel, lang);
+  const pictures = screenshotLinks(r, lang);
   if (parts.length > 0) {
     const body = parts.map((part) => `<span class="muted">— ${esc(part.writer)} —</span>\n${part.lines.join("\n")}`).join("\n");
-    return `<pre class="specfile">${body}</pre>`;
+    return `<pre class="specfile">${body}</pre>${pictures}`;
   }
   if (r.terminalReason === "refused") {
-    return `<p class="muted">This step was refused before it started, so nothing ran and no transcript exists.</p>`;
+    return `<p class="muted">This step was refused before it started, so nothing ran and no transcript exists.</p>${pictures}`;
   }
-  return `<p class="muted">Nothing has been captured from this step.</p>`;
+  return `<p class="muted">Nothing has been captured from this step.</p>${pictures}`;
 }
 
 function filesTab(r: StepPanelData, lang: Language): string {

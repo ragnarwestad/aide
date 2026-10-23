@@ -216,6 +216,7 @@ export const fr: Record<TranslationKey, string> = {
   "job.subagentNoAnswer": "Pas encore de réponse.",
   "job.subagentUnread": "Le travail de ce sous-agent n'a pas pu être lu : son fichier de session ({thread}) est introuvable ou illisible. Codex garde un fichier de session dans sessions/ sous CODEX_HOME, ou dans ~/.codex, sur l'ordinateur qui sert le tableau.",
   "job.noErrors": "Le journal ne contient aucune ligne d'erreur.",
+  "job.screenshots": "Captures d'écran",
   "job.noChangedFiles": "Aucun fichier n'a changé dans cette étape.",
   "job.filesNotKnown": "Les fichiers modifiés n'ont pas été enregistrés pour cette étape.",
   "job.filesRunning": "Les fichiers modifiés sont connus à la fin de l'étape.",
