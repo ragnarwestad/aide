@@ -87,6 +87,14 @@ table.list { --fold-w: calc(24px + var(--sp-1)); }
 table.list tr.subrow .phasecell { white-space: nowrap;
   padding-left: calc(var(--sp-3) + var(--fold-w)); }
 table.list tr.subrow .phasecell > .fold { margin-left: calc(-1 * var(--fold-w)); }
+/* A phase's step line stands one level in under the phase's name: one
+   more fold control's own width, 24px and the gap after it, so the step's
+   control starts where the phase's name does. That width is the control's
+   own, not `--fold-w`, which the phone shortens (narrow.css). The cell
+   only pads itself, so the state, time and cost cells stay in their
+   columns. */
+table.list tr.subrow[data-phasestep] .phasecell {
+  padding-left: calc(var(--sp-3) + var(--fold-w) + 24px + var(--sp-1)); }
 /* The AI select, the model select and the phase's box, in the column
    the head row's pips leave empty on a phase line: they claim the width
    they need rather than wrapping, or the cell squeezes them into two

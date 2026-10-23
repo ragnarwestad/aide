@@ -73,4 +73,20 @@ describe("the steps above the Log", () => {
     expect(draw([`${KEY}:analyze.0`])).toContain("READ-LINE");
     expect(draw()).not.toContain("READ-LINE");
   });
+
+  test("every step line under an unfolded phase is marked as standing under a phase, whichever the phase (AC-1, AC-2)", () => {
+    const html = renderSpecsRows(
+      [finished("job-a", "analyze", "2026-09-19T10:00:00Z"), finished("job-i", "implement", "2026-09-19T10:30:00Z")],
+      {
+        runnerAvailable: true,
+        targets: [{ project: "aide", specFolder: FOLDER }],
+        filter: { open: KEY, phases: `${KEY}:analyze,${KEY}:implement` },
+        phaseMessages: () => ({ logs: [{ by: "ai", lines: ["THE-LOG-LINE"] }], steps, running: true }),
+      },
+      Date.parse("2026-09-19T12:00:00Z"),
+    );
+    const stepLines = html.match(/<tr class="subrow"[^>]*data-jobstep="1"[^>]*>/g) ?? [];
+    expect(stepLines).toHaveLength(4);
+    for (const tr of stepLines) expect(tr).toContain('data-phasestep="1"');
+  });
 });

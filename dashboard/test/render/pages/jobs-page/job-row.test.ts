@@ -34,6 +34,14 @@ describe("a job step's own log", () => {
   });
 });
 
+describe("a job step's place", () => {
+  test("a job's step lines stand under no phase, so none is marked as under one (AC-1)", () => {
+    const stepLines = draw().match(/<tr class="subrow"[^>]*data-jobstep="1"[^>]*>/g) ?? [];
+    expect(stepLines).toHaveLength(3);
+    for (const tr of stepLines) expect(tr).not.toContain("data-phasestep");
+  });
+});
+
 describe("a job step's Cost cell", () => {
   const cost = (key: string) => {
     const tr = draw().match(new RegExp(`<tr class="subrow"[^>]*data-step="${key}"[^>]*>.*?</tr>`))?.[0] ?? "";

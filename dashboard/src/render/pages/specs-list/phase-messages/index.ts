@@ -110,7 +110,7 @@ export function phaseMessagesRow(
     ? `<p class="phasemsgempty muted">${esc(t(lang, "list.phaseNoneKept"))}</p>`
     : logBox(found.logs, found.aiModel, lang));
   return [
-    ...(found ? stepRows(found.steps, { prefix: key, filter: opts.filter ?? {}, listPath: opts.listPath, lang, now }) : []),
+    ...(found ? stepRows(found.steps, { prefix: key, filter: opts.filter ?? {}, listPath: opts.listPath, lang, now, underPhase: true }) : []),
     {
       tag: `<tr class="phasemsgs" data-msgs="${esc(p.step)}">`,
       cells: `<td colspan="${LIST_COLUMNS}">${body}<a class="phasemsgopen" href="${href}">${esc(t(lang, "list.phaseOpenLog"))}</a></td>`,
@@ -138,10 +138,11 @@ function stepTime(s: JobStep, now: number): string {
 /** A line per step, in the columns of a phase line, the name starting where a phase's does. A step its
  *  log has marked unfolds to its own part of the log: the unfolded steps are in the address (`phases`),
  *  each as `prefix` (the row's key) and the step's place. Its cost cell is the tokens the stream reported
- *  while it ran, and a dash where none can be attributed to it. */
+ *  while it ran, and a dash where none can be attributed to it. `underPhase` marks the lines of a phase's
+ *  steps, which stand one level in under the phase's name; a job's own steps stand under no phase. */
 export function stepRows(
   steps: JobStep[],
-  o: { prefix: string; filter: SpecsFilter; listPath?: string; lang: Language; now: number },
+  o: { prefix: string; filter: SpecsFilter; listPath?: string; lang: Language; now: number; underPhase?: boolean },
 ): { tag: string; cells: string }[] {
   const unfolded = [...unfoldedKeys(o.filter.phases)];
   return steps.flatMap((s, i) => {
@@ -158,7 +159,7 @@ export function stepRows(
         })
       : "";
     const row = {
-      tag: `<tr class="subrow" data-step="${esc(s.key)}" data-jobstep="1">`,
+      tag: `<tr class="subrow" data-step="${esc(s.key)}" data-jobstep="1"${o.underPhase ? ' data-phasestep="1"' : ""}>`,
       cells:
         `<td class="phasecell" colspan="3">${arrow}${esc(s.label)}</td>` +
         `<td data-col="state">${stepState(s.state, o.lang)}</td>` +
