@@ -3,6 +3,9 @@
 // Stop end their job in place, as they do on the Specs list.
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { chromium, type Browser, type Page } from "playwright";
 import { browserDeadline } from "../../helpers/browser-deadline.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
@@ -136,4 +139,49 @@ describe("a scheduled job's row folds and stops in place", () => {
       await page.close();
     }
   });
+});
+
+
+test("the first job arrives and the last leaves without a reload, then search still works (AC-6, AC-7)", async () => {
+  const own = mkdtempSync(join(tmpdir(), "aide-empty-running-"));
+  const emptyHarness = queueHarness("aide-empty-running-board-");
+  const go = join(own, "go");
+  const fakeRunner = join(own, "fake-run-spec");
+  writeFileSync(fakeRunner, `#!/bin/sh\nn=0\nwhile [ ! -f ${go} ] && [ $n -lt 1200 ]; do sleep 0.05; n=$((n+1)); done\n`, { mode: 0o755 });
+  const page = await browser.newPage();
+  try {
+    const { base, dir } = emptyHarness.start({
+      extra: { queueRunnerBin: fakeRunner, queueResultDir: join(own, "jobs"), queuePollMs: 200 },
+    });
+    rmSync(join(dir, "root", "aide", "specs", SPEC), { recursive: true });
+    await page.goto(`${base}/`);
+    await page.getByText("Nothing is running.", { exact: true }).waitFor();
+    const loads = countLoads(page);
+    const res = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify({ project: "aide", specFolder: "schedule-nightly", steps: ["schedule"] }),
+    });
+    expect(res.ok).toBe(true);
+    const id = ((await res.json()) as { job: { id: string } }).job.id;
+    await page.locator('a[data-fold="open"][data-key="aide/schedule-nightly"]').click();
+    await page.getByRole("button", { name: "Stop", exact: true }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "OK", exact: true }).click();
+    await page.waitForFunction(async (jobId) => {
+      const r = await fetch(`/api/queue/${jobId}`);
+      return ((await r.json()) as { job: { state: string } }).job.state === "cancelled";
+    }, id);
+    await page.getByText("Nothing is running.", { exact: true }).waitFor();
+    expect(loads.n).toBe(0);
+    await page.getByRole("searchbox").fill("missing");
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+    await page.waitForURL((url) => url.searchParams.get("q") === "missing");
+    await page.getByText("Nothing is running.", { exact: true }).waitFor();
+    expect(await page.getByRole("searchbox").inputValue()).toBe("missing");
+  } finally {
+    writeFileSync(go, "");
+    await page.close();
+    emptyHarness.cleanup();
+    rmSync(own, { recursive: true, force: true });
+  }
 });

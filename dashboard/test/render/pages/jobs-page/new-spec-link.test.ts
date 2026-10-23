@@ -1,6 +1,5 @@
 // The Running tab offers the Specs list's New button: in its search row when it
-// has a row, in its "Nothing is running." message when it has none, and not at
-// all when no project may have a spec made in it.
+// has a row or is empty, and not at all when no project may have a spec made in it.
 
 import { describe, expect, test } from "bun:test";
 import { t } from "../../../../src/i18n";
@@ -28,13 +27,13 @@ describe("New on the Running tab", () => {
     expect(renderJobsRows(view([close], ["aide"]))).toContain(link);
   });
 
-  test("an empty tab offers New in its message (AC-1)", () => {
+  test("an empty tab offers New (AC-1, AC-3)", () => {
     const html = renderJobsRows(view([], ["aide"]));
     expect(html).toContain(t("en", "jobs.nothingRunning"));
     expect(html).toContain(link);
   });
 
-  test("an empty tab with only failed-create notices offers New beside them (AC-1)", () => {
+  test("an empty tab with failed-create notices respects New eligibility (AC-1, AC-3, AC-4)", () => {
     const failed: FailedCreate = {
       id: "cr", project: "aide", title: "x", description: "",
       reason: { key: "runner.serverRestarted", values: { button: "Create" } }, failedAt: "2026-10-14T19:00:00Z",
@@ -43,12 +42,11 @@ describe("New on the Running tab", () => {
     v.list.failedCreates = [failed];
     const html = renderJobsRows(v);
     expect(html).toContain(link);
-    expect(html).not.toContain(t("en", "jobs.nothingRunning"));
     v.list.createProjects = [];
     expect(renderJobsRows(v)).not.toContain('href="/new"');
   });
 
-  test("no project may have a spec made in it: no New, with a row or without (AC-2)", () => {
+  test("no project may have a spec made in it: no New, with a row or without (AC-2, AC-4)", () => {
     const withRow = renderJobsRows(view([close], []));
     const empty = renderJobsRows(view([], []));
     expect(withRow).not.toContain('href="/new"');

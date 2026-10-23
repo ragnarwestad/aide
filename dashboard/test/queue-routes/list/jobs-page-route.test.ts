@@ -297,14 +297,14 @@ describe("a create that ended without a spec shows as the Specs list's message",
     tmp.push(dir);
     const failedCreatesPath = join(dir, "failed-creates.json");
     writeFileSync(failedCreatesPath, JSON.stringify([record]));
-    return board([failed], { failedCreatesPath });
+    return board([failed], { failedCreatesPath, queueProjects: [] });
   }
 
-  test("its message is on the Jobs tab while it is not dismissed, never a row, and not the empty sentence", async () => {
+  test("its message coexists with the empty sentence until dismissed (AC-5)", async () => {
     const { base } = withRecord();
     const html = await rowsOf(base);
     expect(html).toContain(renderFailedCreateNotices([record], "en"));
-    expect(html).not.toContain(t("en", "jobs.nothingRunning"));
+    expect(html).toContain(t("en", "jobs.nothingRunning"));
     expect(html).not.toContain('id="spec-aide/new-0a1b2c3d"');
   });
 
@@ -323,10 +323,20 @@ describe("a create that ended without a spec shows as the Specs list's message",
 });
 
 describe("nothing running (AC-1)", () => {
-  test("with no Active spec, no scheduled row and no failed create the rows say so and draw no table (AC-1)", async () => {
+  test("with no Active spec, no scheduled row and no failed create the rows say so (AC-1, AC-2)", async () => {
     const empty = await rowsOf(board([], { queueProjects: [] }).base);
     expect(empty).toContain(t("en", "jobs.nothingRunning"));
-    expect(empty).not.toContain("<table");
+  });
+
+  test("an empty tab with a saved search still reports nothing running (AC-2)", async () => {
+    const { base } = board([], { queueProjects: [] });
+    const first = await fetch(`${base}/?rows=1&q=missing`);
+    const cookie = first.headers.getSetCookie().map((c) => c.split(";")[0]!).find((c) => c.startsWith("aide_jobs_view_"));
+    expect(cookie).toBeDefined();
+    const res = await fetch(`${base}/?rows=1`, { headers: { cookie: cookie! } });
+    const html = await res.text();
+    expect(html).toContain(t("en", "jobs.nothingRunning"));
+    expect(html).not.toContain(t("en", "jobs.noRowMatchesFilter"));
   });
 
   test("the full page on an empty board is the Running tab, not a redirect to the Specs list (AC-3)", async () => {
