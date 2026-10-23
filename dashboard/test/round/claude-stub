@@ -66,22 +66,14 @@ step="$(printf '%s' "$prompt" | sed -n 's#^/aide-\([a-z-]*\).*#\1#p' | head -1)"
 
 if [ "$step" = "create" ]; then
   # The prompt aide-run-spec builds for a create step
-  # (aide-run-spec:732-758) puts the description's OWN first line on the
-  # same source line as `/aide-create TODO-<slug>`. Recovering the
-  # description means stripping that prefix off line 1 as well as
-  # reading every line up to (but not including) "Use exactly this
-  # title" — not starting at line 2, which would silently drop the
-  # description's own first line. The title line is the anchor, not a
-  # blank line: a multi-paragraph description has blank lines of its
-  # own between paragraphs, which a blank-line search would stop at
-  # early and leave the rest of the description stuck in the title/
-  # depends-on lines instead.
-  title="$(printf '%s' "$prompt" | sed -n 's/^Use exactly this title for the spec: \(.*\)$/\1/p' | head -1)"
+  # (run-spec/setup/invocation.sh) gives the title and the description in
+  # tags of their own: the title on one line between <title> and </title>,
+  # the description on the lines between a line <description> and a line
+  # </description>, blank lines and all.
+  title="$(printf '%s' "$prompt" | sed -n 's#^<title>\(.*\)</title>$#\1#p' | head -1)"
   depends="$(printf '%s' "$prompt" | sed -n 's/^Use exactly this Depends-on value in Tracking info: \(.*\)$/\1/p' | head -1)"
-  first_line="$(printf '%s' "$prompt" | head -1 | sed -n 's#^/aide-create [^ ]* ##p')"
-  rest="$(printf '%s' "$prompt" | sed -n '2,/^Use exactly this title/p' | sed '$d')"
-  description="$(printf '%s\n%s' "$first_line" "$rest")"
-  [ -n "$title" ] || fail "claude-stub: no title line in the create prompt: $prompt"
+  description="$(printf '%s\n' "$prompt" | sed -n '/^<description>$/,/^<\/description>$/p' | sed '1d;$d')"
+  [ -n "$title" ] || fail "claude-stub: no <title> in the create prompt: $prompt"
 
   specs_root="$(aide_config_get AIDE_SPECS_PATH .)"
   [ -n "$specs_root" ] || fail "claude-stub: no AIDE_SPECS_PATH in .aide/config"
