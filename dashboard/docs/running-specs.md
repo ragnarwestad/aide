@@ -41,7 +41,7 @@ step that ends either advances the job or ends it, and several jobs run at once 
 
 Every active spec is a row on the list, and every row can be run. A spec that does not exist yet has no row, so
 there is a **New** button — a plain link to `/new` — at the right-hand end of the search field's row on the Specs list
-and on the Running tab, and on an empty Running tab in its "Nothing is running." message, or under the failed-create messages that stand in its place. It is not offered when no
+and on the Running tab, including when the tab is empty. It is not offered when no
 project on the board may have a spec made in it. That page is the form and nothing
 else, on two tabs with Create above them. **Spec**, the tab it opens on, holds a project, a title, a description and
 a **Depends on** field naming a spec this one has to wait for. **Options** (`/new?tab=options`) holds the acceptance
@@ -631,6 +631,11 @@ project.
 
 The tab offers **New**, as the Specs list does, from the same function; see [Making a spec from the
 page](#making-a-spec-from-the-page).
+
+When there are no rows, the search field, Search button, help, State filter and column headings stay visible.
+The table has one row saying "Nothing is running.", in the same place and style as the Specs list's empty row.
+Failed-create messages stay above the search row. The first job appears without a page reload; when the last row
+leaves, the table returns to its empty row and search remains available.
 
 A spec has a row for as long as the Specs list shows it under Active: neither archived nor closed, whatever its jobs
 did and whether or not it has one in the queue. A spec waiting for Implement, one implemented and waiting to be tested
