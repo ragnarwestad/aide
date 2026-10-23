@@ -153,9 +153,54 @@ tool that would prompt is denied and listed under `permission_denials`
 either way — so `aide-run-spec` leaves it out of its argv on purpose.
 `-p --resume <session-id>` continues a session the same run started.
 `defaultMode: "bypassPermissions"` is ignored in a project's
-`.claude/settings.json` (v2.1.257) — set it in user or managed settings.
-Aide installs `defaultMode: "default"` at user scope and nothing at
-project scope, so nothing there is affected — verified 2026-09-14.
+`.claude/settings.json` (v2.1.257), and the permission-modes page says
+the same of `"auto"` — set either in user or managed settings. Aide
+never edits `~/.claude/settings.json`: the template in
+`core/implementations/claude-code/settings.json` says `"default"`, but a
+machine may hold `"auto"`, and a bare `claude -p` there starts in auto
+mode (the dashboard's own `claude -p /usage` and `/model` do; they call
+no tool).
+
+The mode a `-p` run starts in is the first of: `--permission-mode` (or
+`--dangerously-skip-permissions`), `permissions.defaultMode` in a
+settings file, the built-in default. The built-in default for `-p` is
+`default`, which the CLI shows as Manual and accepts as `manual`; a
+terminal session starts in `auto` from v2.1.283. `--permission-mode
+default` is accepted although `--help` no longer lists it, and an
+unknown value is refused before any model call. `aide-run-spec` passes
+`--permission-mode` on every Claude turn — the step, a resumed session,
+the review — so no default reaches a queue run, and `--permission-mode`
+outranks any `defaultMode`. The mode is the step's entry in the host's
+`queue-config.json`, else the code's default (`acceptEdits`;
+`bypassPermissions` for implement). It also passes `--add-dir` for each
+root outside the project worktree. These are the only two flags it passes
+that bear on permissions. Verified on 2.1.309, 2026-10-23: with no flag,
+`system/init` reports `default` under `--setting-sources project` and
+`auto` under user settings holding `"auto"`; `--permission-mode
+acceptEdits` and `bypassPermissions` report the mode passed either way.
+
+Auto mode and v2.1.304 to v2.1.309, against a `-p` run:
+
+- Auto mode as the default for Claude web, desktop and mobile (October
+  2026): the apps only; no CLI default changes.
+- v2.1.304: `/auto-mode-setup` is interactive and sets no mode. `rm -r`
+  of a mounted drive or a top-level folder now gets the safety prompt,
+  which `-p` denies in `acceptEdits` and `bypassPermissions` alike
+  (release notes; not probed).
+- v2.1.305, v2.1.306, v2.1.307, v2.1.308: no change to the mode or to
+  which commands prompt in `-p`.
+- v2.1.309: no change to the mode. `sed -i` gets the standard Bash
+  prompt instead of counting as a file edit, so a step on `acceptEdits`
+  is denied both `sed -i '' 's/a/b/' x.txt` and `sed -i.bak 's/a/b/'
+  x.txt` on a file inside its working directory ("sed command requires
+  approval", under `permission_denials`), while plain `sed 's/a/b/'
+  x.txt` runs; the permission-modes page still lists `sed` among the
+  commands `acceptEdits` approves. By the release notes, a wrapped or
+  prefixed `cd` before `git` is newly denied there too (not probed). A
+  step on `bypassPermissions` is not affected. Sandbox and `Edit(path)`
+  deny hardening apply to settings Aide does not set. `claude
+  ultrareview` needs `--trust-workspace` in a script; `aide-run-spec`
+  never calls it.
 
 ### Skill/Agent frontmatter
 
@@ -321,6 +366,7 @@ structured inter-agent messaging.
 - Agents: <https://code.claude.com/docs/en/sub-agents.md>
 - Hooks: <https://code.claude.com/docs/en/hooks.md>
 - MCP: <https://code.claude.com/docs/en/mcp.md>
+- Permission modes: <https://code.claude.com/docs/en/permission-modes>
 
 ### GitHub Copilot
 
