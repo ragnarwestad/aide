@@ -7,6 +7,7 @@
   - [Watched pages](#watched-pages)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-10-23](#2026-10-23)
   - [2026-10-19](#2026-10-19)
   - [2026-10-12](#2026-10-12)
   - [2026-10-05](#2026-10-05)
@@ -104,6 +105,77 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-10-23
+
+Oct 19 – Oct 23. Not read: Claude Code v2.1.304 and v2.1.309 in full (cut off on the releases page), Codex CLI v0.164.0
+alphas (no notes), the blogs of Claude, Anthropic, GitHub and OpenAI, and Artificial Analysis. The 19 watched pages
+were all `new` (no earlier copy), so none is compared yet. The X list digest of Oct 19 (first one) could not be
+read; digests of Oct 20–23 were read.
+
+**Claude Code (Oct 19 – Oct 22, v2.1.304 → v2.1.309):**
+
+| Date   | Version      | News                                                                                                                                                                              | Source                                                         |
+|--------|--------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
+| Oct 19 | v2.1.304     | `/auto-mode-setup`; skill hooks capped at 1,024 per source; `updatedInput` from hooks validated; tool search on behind custom gateways                                            | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Oct 20 | v2.1.305     | `allowedMcpServers` no longer filters `managed-mcp.json` stdio servers with `${VAR}` in `env`; `sandbox.allowNestedUserNamespaces`                                                | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Oct 21 | v2.1.306     | `claude -p` "Not logged in" fix in cloud sessions                                                                                                                                 | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Oct 21 | v2.1.307     | `claude_code.safety_event` OTel event; HTTP MCP retry only for idempotent tools; self-hosted checkout hooks time out at 30 min                                                    | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Oct 22 | v2.1.308–309 | Sandbox hardening; `sed -i` now a normal Bash prompt; `claude ultrareview` needs `--trust-workspace` in scripts; skill name collision in `--add-dir` offered as `<folder>:<name>` | [Releases](https://github.com/anthropics/claude-code/releases) |
+
+**GitHub Copilot CLI (Oct 19 – Oct 22, v1.0.100 → v1.0.103):**
+
+| Date   | Version  | News                                                                                                                     | Source                                                     |
+|--------|----------|--------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Oct 19 | v1.0.100 | Skills/plugins from GitHub install links; path-specific `.github/instructions` applied; `--trust-folder` for prompt mode | [Releases](https://github.com/github/copilot-cli/releases) |
+| Oct 20 | v1.0.101 | Structured output for subagents; `assistedApprovalInstructions` setting                                                  | [Releases](https://github.com/github/copilot-cli/releases) |
+| Oct 21 | v1.0.102 | Subagents honor custom and MCP tool approvals; plugin marketplaces accept git-subdir sources                             | [Releases](https://github.com/github/copilot-cli/releases) |
+| Oct 22 | v1.0.103 | ACP sessions honor sandbox settings; `--remote/--no-remote` flags retired                                                | [Releases](https://github.com/github/copilot-cli/releases) |
+
+**OpenAI Codex CLI (Oct 20 – Oct 23, v0.164.0):**
+
+| Date      | Version             | News                                                                                                               | Source                                               |
+|-----------|---------------------|--------------------------------------------------------------------------------------------------------------------|------------------------------------------------------|
+| Oct 23    | v0.164.0            | `/presets` slots; inline `/model` and `/permissions` arguments; enterprise MCP auth; macOS sandbox checks hardened | [Releases](https://github.com/openai/codex/releases) |
+| Oct 20–22 | v0.164.0-alpha.7…12 | Alpha builds, no notes                                                                                             | [Releases](https://github.com/openai/codex/releases) |
+
+**OpenCode (Oct 20 – Oct 22, v1.19.4; OpenCode 2 v2.1.0 → v2.1.3):**
+
+| Date   | Version         | News                                                                                                   | Source                                                     |
+|--------|-----------------|--------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Oct 20 | v2.1.0          | Public fields renamed to `native`; `Credential.Key.configuration` removed; `session.compacted` removed | [Changelog](https://opencode.ai/changelog)                 |
+| Oct 21 | v2.1.2          | `OPENCODE_DISABLE_FREE_MODELS`                                                                         | [Changelog](https://opencode.ai/changelog)                 |
+| Oct 22 | v1.19.4, v2.1.3 | Bundled Bun 1.4.4 with security fixes; skill/instruction updates sent as changes only                  | [Releases](https://github.com/anomalyco/opencode/releases) |
+
+**Relevance for Aide:**
+
+- ⭐ Agent Skills standard donated to the Agentic AI Foundation (X list, Oct 22); Skills over MCP (SEP-2640) is now an MCP
+  extension. Aide's skills rest on this standard. Proposed: note the neutral governance in `docs/AI_SUPPORT_MATRIX.md`
+  and check the spec for changes to frontmatter fields or discovery paths against the allowlist test.
+  [Post](https://x.com/ClaudeDevs/status/2113328526413996100)
+- ⭐ Claude web/desktop/mobile sessions go to auto mode by default next week (X list, Oct 22), and Claude Code v2.1.304
+  adds `/auto-mode-setup`. Proposed: check whether auto mode changes defaults for `claude -p` and compare with the
+  permission flags in `core/scripts/aide-run-spec`. [Post](https://x.com/claudeai/status/2113360845409583307)
+- ⭐ Codex prompt cache kept 12 h in the API and "forever" for logged-in users (X list, Oct 21); not yet confirmed in the
+  Codex changelog. Proposed: verify in the Codex docs, then note it in the Codex part of `docs/CONFIGURATION.md` if real.
+  [Post](https://x.com/theo/status/2112713481946570967)
+- ⭐ Anthropic OSS Scanner (X list, Oct 20): free scans of critical open source projects. Proposed: check whether Aide's
+  dependencies qualify. [Post](https://x.com/ClaudeDevs/status/2112299602510749992)
+- ⚠️ Claude Code v2.1.305: `allowedMcpServers` stops filtering `${VAR}`-in-env managed stdio servers; use `deniedMcpServers`.
+  Proposed: nothing in Aide sets this, check only on machines with a managed MCP file.
+- ⚠️ Claude Code v2.1.309: `claude ultrareview` needs `--trust-workspace` in scripts; `sed -i` no longer restored by `/rewind`;
+  stricter sandbox/Edit-deny handling. No Aide script calls `ultrareview`; verify that headless runs are not newly blocked.
+- ⚠️ Claude Code v2.1.304: `updatedInput` from PreToolUse hooks is validated; unknown keys dropped. Check `scripts/guard-push`
+  does not rely on rewriting input.
+- ⚠️ OpenCode v2.1.0 renames public SDK/plugin fields; Aide's OpenCode install uses none known. Copilot v1.0.103 retires
+  `--remote/--no-remote`; Aide uses neither.
+- ⚠️ Same-day incident claims on PHP, Node.js, GitLab, LiteLLM (X list, Oct 21–23, no primary source). Proposed: check
+  Node and bun versions on the dashboard host. OpenCode and Claude Code both ship Bun 1.4.4 security fixes (Oct 22).
+- ✅ Claude Code v2.1.307 `claude_code.safety_event`; Copilot `.github/instructions` and skill install links; Codex v0.164.0.
+- ✅ X list ideas: PDD Kit (GitHub Next), `/grill-me` question rounds versus `aide-explore`, "code, not spec, is the center"
+  debate, MCP-delivered skills — roadmap/comparison candidates, no change to the matrix.
+- ℹ Claude Duet, Claude Security beta, Claude on Google Cloud, Codex on Google Cloud Model Garden, Gemini API CLI.
+- ℹ X list digest of Oct 19: could not be read (X login).
 
 ### 2026-10-19
 
