@@ -29,8 +29,11 @@ the run's report. Plain HTML, no styling:
   when the period earned no log entry, that the log was left as it was, and
   why.
 
-If a source could not be read, say so in the same file instead of leaving it
-out.
+Fetch every address in the log's Sources table, each one, on every run: a
+source is never skipped to save time, and a quiet source is still fetched. A
+fetch that fails is named in the same file with what the fetch answered,
+instead of being left out. "Not read" in the report means a fetch was tried
+and failed, never that it was not tried.
 
 Then write `$AIDE_SCHEDULE_OUTPUT_DIR/proposed-specs.json`: the specs this
 review calls for. When this run ends green the board creates each one as a

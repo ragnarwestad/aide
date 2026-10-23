@@ -33,6 +33,11 @@ Fetch every source in the **Sources** table of `docs/AI_NEWS_LOG.md` (its
 address, all of them, every tool. The table is the one list of sources; add
 or change a source there, not here.
 
+A releases page lists many versions, and a fetch can come back cut short. Read
+every version since the last review; when one is missing from what came back,
+or shown without its notes, fetch that version's own page
+(`.../releases/tag/<version>`) rather than leaving it unread.
+
 Then run the watched pages from the repo root:
 
 ```bash
