@@ -50,7 +50,7 @@ describe("the steps above the Log", () => {
   ];
   const draw = (extra: string[] = []) =>
     renderSpecsRows(
-      [finished("job", "analyze", "2026-09-19T10:00:00Z")],
+      [finished("job", "analyze", "2026-09-19T10:00:00Z"), finished("job-i", "implement", "2026-09-19T10:30:00Z")],
       {
         runnerAvailable: true,
         targets: [{ project: "aide", specFolder: FOLDER }],
@@ -72,6 +72,19 @@ describe("the steps above the Log", () => {
   test("a step unfolds to its own part of the Log by its key in the address, and shut it does not (AC-2)", () => {
     expect(draw([`${KEY}:analyze.0`])).toContain("READ-LINE");
     expect(draw()).not.toContain("READ-LINE");
+  });
+
+  test("only open phase-step logs carry their shared indent marker (AC-1, AC-2, AC-3)", () => {
+    const html = draw([`${KEY}:analyze.0`, `${KEY}:implement`, `${KEY}:implement.0`]);
+    const logs = html.match(/<tr class="phasemsgs"[^>]*>/g) ?? [];
+    const stepLogs = logs.filter((tag) => tag.includes('data-msgs="Step 1 of 2"'));
+    expect(stepLogs).toHaveLength(2);
+    for (const tag of stepLogs) expect(tag).toContain('data-phasesteplog="1"');
+    const phaseLogs = logs.filter((tag) => !stepLogs.includes(tag));
+    expect(phaseLogs).toHaveLength(2);
+    for (const tag of phaseLogs) expect(tag).not.toContain("data-phasesteplog");
+    expect(html).toContain("12.3k");
+    expect(html).toContain('data-elapsed="2026-09-19T11:59:30.000Z"');
   });
 
   test("every step line under an unfolded phase is marked as standing under a phase, whichever the phase (AC-1, AC-2)", () => {

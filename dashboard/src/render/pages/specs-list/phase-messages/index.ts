@@ -167,7 +167,7 @@ export function stepRows(
         `<td class="num" data-col="cost">${s.tokens !== undefined ? tokens(s.tokens) : "–"}</td>`,
     };
     return open && s.logs?.length
-      ? [row, { tag: `<tr class="phasemsgs" data-msgs="${esc(s.key)}">`, cells: `<td colspan="${LIST_COLUMNS}">${logBox(s.logs, undefined, o.lang)}</td>` }]
+      ? [row, { tag: `<tr class="phasemsgs" data-msgs="${esc(s.key)}"${o.underPhase ? ' data-phasesteplog="1"' : ""}>`, cells: `<td colspan="${LIST_COLUMNS}">${logBox(s.logs, undefined, o.lang)}</td>` }]
       : [row];
   });
 }

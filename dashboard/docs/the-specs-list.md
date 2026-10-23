@@ -308,7 +308,7 @@ Above the Log the unfolded row lists the steps the attempt's log has marked, in 
 them, as the job row's step lines do (`stepRows`, `render/pages/specs-list/phase-messages/index.ts`): the state, the
 time once it ended or counting from its start while it runs, and the tokens, with a › to its own part of the Log. A
 step's › and name stand one level in under the phase's name, its › where the phase's name starts, while its state, time
-and tokens stay in their columns. The
+and tokens stay in their columns. On the Running tab, the step’s own unfolded log uses the same deeper level. The
 step's key in `?phases=` is the phase's key and the step's index, `aide/01-x:analyze.0`. An attempt that marked no
 step lists none.
 

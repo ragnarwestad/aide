@@ -28,6 +28,12 @@ describe("a job step's own log", () => {
     expect(html).not.toContain(encodeURIComponent("aide/01-x:close.1"));
   });
 
+  test("a standalone step log has no phase-step log marker (AC-1, AC-2)", () => {
+    const html = draw("aide/01-x:close.0");
+    expect(html).toContain("pulled main");
+    expect(html).not.toContain("data-phasesteplog");
+  });
+
   test("unfolded, the step shows its part of the log; shut, it does not", () => {
     expect(draw("aide/01-x:close.0")).toContain("pulled main");
     expect(draw()).not.toContain("pulled main");
