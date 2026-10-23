@@ -32,7 +32,7 @@ import { handleCore, type CoreRoutesContext } from "./core-routes.ts";
 import { handleRoutes, type RoutesContext } from "./routes";
 import { DEFAULT_PDF_CACHE_DIR } from "./routes/spec-pdf.ts";
 import { type SpecViewsContext } from "./spec-views";
-import { isLoopbackBind, isQueuePath } from "./queue-guard.ts";
+import { DEFAULT_BIND_HOST, isLoopbackBind, isQueuePath } from "./queue-guard.ts";
 import { answerProjectChange, persistAllowlist as persistAllowlistImpl, type ProjectActionsContext } from "./project-actions.ts";
 import { createServerState } from "./state.ts";
 import { setupWatch } from "./setup/watch.ts";
@@ -56,14 +56,13 @@ import { navEntries } from "../render";
 export function createServer(opts: ServerOptions) {
   // Spec 363: a header this process trusts is only trustworthy because
   // nothing OTHER than the proxy in front of it can reach the port
-  // carrying it. Checked once, here, before anything
-  // else runs and before `Bun.serve()` binds a socket — an unconditional
-  // throw, not a per-request branch that a future new route could
-  // forget to add.
+  // carrying it. Checked once, here, before anything else runs and
+  // before `Bun.serve()` binds a socket — an unconditional throw, not a
+  // per-request branch that a future new route could forget to add.
   if (opts.headerAuth && !isLoopbackBind(opts.bindHost)) {
     throw new Error(
       `headerAuth names "${opts.headerAuth.header}" but the server binds ` +
-        `${opts.bindHost ?? "0.0.0.0"}, not loopback — a header from anywhere ` +
+        `${opts.bindHost ?? DEFAULT_BIND_HOST}, not loopback — a header from anywhere ` +
         "else can be forged by anyone who can reach this port. Bind to " +
         "127.0.0.1 (or ::1), or remove headerAuth from the queue config.",
     );
@@ -385,7 +384,7 @@ export function createServer(opts: ServerOptions) {
 
   const server = Bun.serve({
     port: opts.port,
-    hostname: opts.bindHost ?? "0.0.0.0",
+    hostname: opts.bindHost ?? DEFAULT_BIND_HOST,
     // Bun cuts an idle connection after 10 seconds when this is unset,
     // and a two-repo merge under load takes longer than that.
     idleTimeout: 120,
@@ -449,6 +448,7 @@ export function createServer(opts: ServerOptions) {
 
   return {
     port: server.port,
+    hostname: server.hostname,
     /** How many specs roots are being watched right now (spec 204).
      *  Here for one question nothing else can answer: that `stop()` let
      *  the handles go. A watcher nobody closes outlives the server for

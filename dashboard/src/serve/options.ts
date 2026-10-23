@@ -17,7 +17,7 @@ export interface ServerOptions {
   // Nav entries for /live: derived from --root's manifests when given,
   // else the fixed fallback `navEntries()` itself returns.
   navEntries?: NavEntry[];
-  /** Where to listen. Default 0.0.0.0; the mini pins its Tailscale
+  /** Where to listen. Default `DEFAULT_BIND_HOST`, 127.0.0.1; the mini pins its Tailscale
    *  address, the way claude-usage's plist does. */
   bindHost?: string;
   /** Host names the dashboard answers to besides `localhost`, `127.0.0.1`,
@@ -202,7 +202,8 @@ export interface ServerOptions {
    *  signed-in user's name (spec 363) — the tailnet proxy's own header
    *  is the worked example in `hosting.md`. It gates nothing
    *  now that no token check is left for it to skip; it is still read,
-   *  and refused at start-up unless `bindHost` is loopback (`127.0.0.1` or `::1`), since a header from anywhere else
+   *  and refused at start-up unless `bindHost` is loopback (`127.0.0.1` or `::1`, or absent, which is
+   *  `DEFAULT_BIND_HOST`), since a header from anywhere else
    *  can be forged by anyone who can reach the port. */
   headerAuth?: { header: string; users: string[] };
   /** Where the board registry persists (spec 388) — the `boards.json`

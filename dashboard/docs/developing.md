@@ -30,6 +30,6 @@ touches `dashboard/src` needs `make test` as well.
 CI runs both `make test` and `make test-slow`, on a pull request only — never on a push. A change the dashboard lands
 through its own merge does not reach CI at all; the landing's own run of `make test` is the gate it passes.
 
-`make serve-local` runs the checkout it is started in, which is how a change is tried before it lands. It serves on
-port 8788 unless `PORT=` names another — the installed service's own port, so on the serving host give it a different
-one. `ROOT=` names the directory holding the projects; without it, there is no project navigation.
+`make serve-local` runs the checkout it is started in, which is how a change is tried before it lands. It answers on
+the machine it runs on alone, at `http://localhost:8788`, on port 8788 unless `PORT=` names another — the installed
+service's own port, so on the serving host give it a different one. `ROOT=` names the directory holding the projects; without it, there is no project navigation.

@@ -56,7 +56,7 @@ describe("spec 363: port-scoped cookies and the headerAuth bind", () => {
   });
 
   test("headerAuth on a non-loopback bind refuses to start (REQ-5)", () => {
-    expect(() => start({ headerAuth: HEADER_AUTH })).toThrow(/loopback|127\.0\.0\.1/i);
+    expect(() => start({ bindHost: "0.0.0.0", headerAuth: HEADER_AUTH })).toThrow(/loopback|127\.0\.0\.1/i);
   });
 });
 

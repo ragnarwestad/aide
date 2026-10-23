@@ -5,7 +5,7 @@
 // (test/serve/schedule/schedule-output-route.test.ts).
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { networkInterfaces, tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer, parseArgs } from "../../src/serve/serve.ts";
 import { queueHarness } from "../helpers/queue-server.ts";
@@ -26,6 +26,36 @@ beforeAll(() => {
 afterAll(() => {
   server.stop();
   rmSync(dir, { recursive: true, force: true });
+});
+
+// The first IPv4 address of this machine that is not loopback, if it has one.
+const lanAddress = (): string | undefined =>
+  Object.values(networkInterfaces())
+    .flat()
+    .find((i) => i && i.family === "IPv4" && !i.internal)?.address;
+
+describe("the address the server listens on", () => {
+  test("with no bindHost it listens on 127.0.0.1 only (AC-1)", async () => {
+    expect(server.hostname).toBe("127.0.0.1");
+    const viaName = await fetch(`http://localhost:${server.port}/projects.html`, { redirect: "manual" });
+    expect(viaName.status).toBe(302);
+    const lan = lanAddress();
+    if (lan) await expect(fetch(`http://${lan}:${server.port}/projects.html`, { redirect: "manual" })).rejects.toThrow();
+  });
+
+  test("a bindHost given is used as given (AC-2)", async () => {
+    const wide = createServer({ port: 0, mirrorPath: join(dir, "wide-runs.json"), bindHost: "0.0.0.0" });
+    try {
+      expect(wide.hostname).toBe("0.0.0.0");
+      const lan = lanAddress();
+      if (lan) {
+        const res = await fetch(`http://${lan}:${wide.port}/projects.html`, { redirect: "manual" });
+        expect(res.status).toBeGreaterThan(0);
+      }
+    } finally {
+      wide.stop();
+    }
+  });
 });
 
 // --- spec 530: /projects.html is a redirect, answered by the server, ---

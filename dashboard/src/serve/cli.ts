@@ -1,5 +1,6 @@
 // The `serve.ts serve ...` command line entry point.
 
+import { bindWarning } from "./queue-guard.ts";
 import { createServer } from "./serve.ts";
 import { lookupTailscaleName, parseArgs } from "./serve-helpers";
 
@@ -20,4 +21,6 @@ export function runCli() {
   // board wants to know, on the page, whether each AI is usable here.
   const s = createServer({ ...opts, checkToolsOnStart: true, tailscaleName: lookupTailscaleName });
   console.log(`aide-dashboard serving ${opts.projectRoot ?? "no project root"} on :${s.port}`);
+  const warning = bindWarning(opts.bindHost);
+  if (warning) console.error(warning);
 }

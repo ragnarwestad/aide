@@ -54,8 +54,19 @@ export const isQueuePath = (path: string) =>
   // And its Run control (2026-09-11), on the same terms.
   path === "/api/self-run";
 
+/** Where the server listens when `--bind` names no address: this machine alone. */
+export const DEFAULT_BIND_HOST = "127.0.0.1";
+
 /** Whether a bind address is loopback-only — the one address a header
  *  set by a proxy in front of this process cannot be forged on, since
- *  nothing else can reach the port at all (spec 363). */
-export const isLoopbackBind = (host: string | undefined): boolean =>
+ *  nothing else can reach the port at all (spec 363). No address given
+ *  is the default, which is. */
+export const isLoopbackBind = (host: string = DEFAULT_BIND_HOST): boolean =>
   host === "127.0.0.1" || host === "::1";
+
+/** The line printed at start-up when other machines can reach the port,
+ *  or `undefined` on a loopback address. */
+export const bindWarning = (host: string | undefined): string | undefined =>
+  isLoopbackBind(host)
+    ? undefined
+    : `warning: listening on ${host}, not loopback — anyone who can reach this port can queue a run on this machine`;

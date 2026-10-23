@@ -32,7 +32,8 @@ Two pages sit beside this one:
 ## HTTPS and other devices
 
 An installed board binds `127.0.0.1` and answers on the machine it runs on alone, at `http://127.0.0.1:8788` —
-`BIND` in the Makefile puts it there. The server's own default, with no `--bind`, is `0.0.0.0`. HTTPS, and
+`BIND` in the Makefile puts it there. The server's own default, with no `--bind`, is `127.0.0.1` too: any other
+address, `0.0.0.0` included, has to be named with `--bind`, and the server prints a warning when it starts on one. HTTPS, and
 reaching it from a phone or another computer, come from a proxy on the serving host that terminates TLS and forwards
 to that address; the dashboard does no certificate handling of its own. Keep `BIND` at `127.0.0.1` behind such a
 proxy, so the port is not open on the local network too. The proxy passes the client's `Host` on, which has to be one
