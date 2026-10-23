@@ -33,7 +33,6 @@ export const fr: Record<TranslationKey, string> = {
   "dialog.stepRunning": "en cours",
   "dialog.stepDone": "terminé",
   "dialog.stepFailed": "échoué",
-  "deploy.finished": "Déploiement terminé",
   "deploy.failedAt": "{step} a échoué : {error}",
   "deploy.askTitle": "Déployer {project} ?",
   "deploy.askSentence": "Récupère depuis origin, installe et redémarre le service, puis vérifie que le dernier commit tourne. Cela s'exécute comme une tâche : suivez-la dans l'onglet En cours.",

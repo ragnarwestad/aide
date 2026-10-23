@@ -171,7 +171,10 @@ export async function projectPages(
     // pulls, fetches or checks anything out" contract
     // (project-detail-readiness-and-deploy.test.ts) must hold here too (spec 258).
     const driftRoot = ctx.machineryProjectDir(name);
-    const drift = resolveInstallCmd(driftRoot).value
+    const boardItself = ctx.deploy.isBoard(driftRoot);
+    // The board's own Deploy needs an install command; every other project
+    // is only counted against origin, whatever it has configured.
+    const drift = !boardItself || resolveInstallCmd(driftRoot).value
       ? ctx.branchStatus.peekDrift(driftRoot)
       : undefined;
     // Only meaningful for the one project this very process runs from —
@@ -247,7 +250,7 @@ export async function projectPages(
         deployFailure: ctx.readDeployFailure(name),
         serving,
         restartWaiting: ctx.readPendingRestart()?.jobs,
-        boardItself: ctx.deploy.isBoard(driftRoot),
+        boardItself,
         deployUnderWay: deployUnderWay(ctx, name),
         // AC-8: the same capability check the spec-page's own
         // test-server link already gates on.

@@ -33,7 +33,7 @@ export { confirmDialog, askButton, type ConfirmParts } from "./confirm-dialog.ts
 
 // --- progress dialog -------------------------------------------------------------
 
-export { progressDialog, progressSteps, type ProgressParts, type ProgressStepState } from "./progress-dialog.ts";
+export { progressDialog, type ProgressParts, type ProgressStepState } from "./progress-dialog.ts";
 
 // --- fold arrow ------------------------------------------------------------------
 

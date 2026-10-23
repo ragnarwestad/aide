@@ -235,8 +235,9 @@ describe("two specs sharing one checkout", () => {
       // `rev-parse --show-toplevel` for every live spec on its own
       // timer, and this fake counts exactly two such calls per SAVE
       // request to tell "key the lock" from "the sequence starts" apart
-      // — a third, unrelated caller would corrupt that count.
-      extra: { gitRun, specCachePollMs: 0 },
+      // — a third, unrelated caller would corrupt that count. The drift
+      // poll asks every project, so it is off too.
+      extra: { gitRun, specCachePollMs: 0, driftPollMs: 0 },
     });
 
     const first = post(base, { text: NEW_TEXT, baseSha: FILE_SHA });

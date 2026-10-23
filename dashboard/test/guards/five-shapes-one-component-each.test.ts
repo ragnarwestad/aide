@@ -46,7 +46,7 @@ function writesOneButtonForm(text: string): boolean {
     if (close === -1) break;
     const inner = text.slice(text.indexOf(">", at) + 1, close);
     let rest = replaceCalls(inner, "btn", "§BTN§").replace(/<button\b[\s\S]*?<\/button>/g, "§BTN§");
-    for (const helper of ["filterFields", "messageSlot", "deployDialog"]) rest = replaceCalls(rest, helper, "");
+    for (const helper of ["filterFields", "messageSlot"]) rest = replaceCalls(rest, helper, "");
     rest = rest
       .replace(/<input type=\\?"hidden\\?"[^>]*>/g, "")
       .replace(/<div class=\\?"configactions\\?">|<\/div>/g, "")

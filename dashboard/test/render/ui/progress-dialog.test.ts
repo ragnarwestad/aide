@@ -3,7 +3,6 @@
 // marked for the page script that holds it open, and has a heading for its
 // running face. Marks the script depends on, not layout or wording.
 import { describe, expect, test } from "bun:test";
-import { Window } from "happy-dom";
 import { renderProjectPage, renderProjectsPage, renderSpecsRows, type ProjectPageOptions, type ProjectView } from "../../../src/render";
 import { closeAskDialog } from "../../../src/render/pages/spec-page/ask-dialog.ts";
 import { reopenControl } from "../../../src/render/pages/spec-page/overview.ts";
@@ -69,29 +68,12 @@ describe("every running step is drawn by the progress dialog", () => {
     expectProgress(dialogWith(html, `id="removeask-aide"`));
   });
 
-  test("Deploy's dialog is a progress dialog that asks nothing, so it stands from the moment it opens (AC-1, AC-5)", () => {
-    const html = projectPage({ tab: "deploy", drift: { behind: 2, checkedAt: Date.parse("2026-09-20T00:00:00Z") } });
-    const box = dialogWith(html, "data-deploy-dialog");
-    expectProgress(box);
-    expect(box).not.toContain("data-asks");
-    expect(box).not.toContain(`method="dialog"`);
-  });
-});
-
-describe("the step list a dialog's script finds in its running face", () => {
-  /** The list in the box's running face, parsed. */
-  const stepsOf = (box: string) => {
-    const window = new Window();
-    window.document.body.innerHTML = box;
-    const face = window.document.querySelector("[data-running-face]");
-    return {
-      list: face?.querySelector("ol.progresssteps") ?? null,
-      steps: [...(face?.querySelectorAll("ol.progresssteps > li[data-step]") ?? [])].map((li) => li.getAttribute("data-step")),
-    };
-  };
-
-  test("Deploy's five steps are lines of the same list, in its running face (AC-5)", () => {
-    const html = projectPage({ tab: "deploy", drift: { behind: 2, checkedAt: Date.parse("2026-09-20T00:00:00Z") } });
-    expect(stepsOf(dialogWith(html, "data-deploy-dialog")).steps).toEqual(["fetch", "install", "restart", "wait", "check"]);
+  test("the board's Deploy ask is a progress dialog (AC-1)", () => {
+    const html = projectPage({
+      tab: "deploy",
+      boardItself: true,
+      drift: { behind: 2, checkedAt: Date.parse("2026-09-20T00:00:00Z") },
+    });
+    expectProgress(dialogWith(html, `id="deployask"`));
   });
 });

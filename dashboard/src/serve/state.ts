@@ -110,13 +110,13 @@ export interface ServerState {
    *  `null`. Lives as long as the process: a restart starts without it,
    *  which is "until a later deploy or restart fixes it". */
   deployFault: Sentence | null;
-  /** The step a project's last deploy failed at, and why, until the next
-   *  deploy of that project starts: the Deploy tab draws it. Lives as
-   *  long as the process, like `deployFault`. */
+  /** The step the board's last deploy job failed at, and why, until the
+   *  next deploy starts: the Deploy tab draws it. Lives as long as the
+   *  process, like `deployFault`. */
   deployFailures: Map<string, DeployFailure>;
 }
 
-/** What a refused deploy step leaves for the Deploy tab. */
+/** What a failed deploy job leaves for the Deploy tab. */
 export interface DeployFailure {
   step: string;
   error: string;
@@ -146,7 +146,7 @@ export function createServerState(): ServerState {
 }
 
 /** The one place that decides what a running-job list means for
- *  `pendingRestart` — called from the deploy route (the moment a press
+ *  `pendingRestart` — called from the deploy job (the moment its restart
  *  learns jobs are running) and from `restartAfterLanding`'s own wait
  *  loop (as that answer changes or the wait ends), so the two writers
  *  can never disagree about the shape. */

@@ -8,8 +8,6 @@
 
 import { postForm, writeLine } from "../press.ts";
 
-export * from "./steps.ts";
-
 /** Everything the press touches outside the form, so a test can stand in. */
 export interface ProgressIo {
   go(url: string): void;

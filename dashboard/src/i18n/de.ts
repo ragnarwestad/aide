@@ -33,7 +33,6 @@ export const de: Record<TranslationKey, string> = {
   "dialog.stepRunning": "läuft",
   "dialog.stepDone": "fertig",
   "dialog.stepFailed": "fehlgeschlagen",
-  "deploy.finished": "Deploy abgeschlossen",
   "deploy.failedAt": "{step} fehlgeschlagen: {error}",
   "deploy.askTitle": "{project} bereitstellen?",
   "deploy.askSentence": "Holt von origin, installiert und startet den Dienst neu und prüft dann, ob der neueste Commit läuft. Es läuft als Job: Verfolge ihn im Tab Läuft.",

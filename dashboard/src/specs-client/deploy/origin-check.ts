@@ -1,8 +1,6 @@
 // The Deploy tab asks origin the moment it is open, and draws itself again
-// from the answer: the server decides the sentence and the button, the page
-// only swaps in what the server now draws.
-
-import { bindDeployForms } from "./index.ts";
+// from the answer: the server decides the sentence, the page only swaps in
+// what the server now draws.
 
 export interface OriginCheckIo {
   /** Posts the check; true only for an answer that says `ok`. */
@@ -26,8 +24,8 @@ function browserIo(section: HTMLElement): OriginCheckIo {
 }
 
 /** Asks, then redraws the section from the page the server draws now —
- *  unless the check failed, Deploy was pressed meanwhile, or a dialog is open. */
-export async function checkOrigin(section: HTMLElement, io: OriginCheckIo, rebind: (root: ParentNode) => void): Promise<void> {
+ *  unless the check failed, a form in it was submitted meanwhile, or a dialog is open. */
+export async function checkOrigin(section: HTMLElement, io: OriginCheckIo): Promise<void> {
   let pressed = false;
   section.addEventListener("submit", () => (pressed = true), true);
   if (!(await io.check().catch(() => false))) return;
@@ -38,16 +36,11 @@ export async function checkOrigin(section: HTMLElement, io: OriginCheckIo, rebin
   if (!fresh) return;
   const node = doc.importNode(fresh, true);
   section.replaceWith(node);
-  rebind(node);
 }
 
 /** The page's Deploy section, when it has one, checked once at load. */
-export function startOriginCheck(
-  doc: Document,
-  makeIo: (section: HTMLElement) => OriginCheckIo = browserIo,
-  rebind: (root: ParentNode) => void = (root) => bindDeployForms(root),
-): void {
+export function startOriginCheck(doc: Document, makeIo: (section: HTMLElement) => OriginCheckIo = browserIo): void {
   const section = doc.querySelector("[data-origin-check]") as HTMLElement | null;
   if (!section?.dataset?.originCheck) return; // every other page — and the stand-in documents the page-script tests use
-  void checkOrigin(section, makeIo(section), rebind);
+  void checkOrigin(section, makeIo(section));
 }

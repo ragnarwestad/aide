@@ -20,7 +20,7 @@ import { askPullRequest, type GhRunner, type PullRequestAnswer } from "../../int
 import type { DashboardCheckout } from "../../git/dashboard-checkout.ts";
 import type { CheckoutEnsurer } from "../../git/checkout-ensurer.ts";
 import {
-  SPEC_FILES, buildProjectViews, manifestInside, resolveInstallCmd, type CodeLanding,
+  SPEC_FILES, buildProjectViews, manifestInside, type CodeLanding,
 } from "../../project/discover";
 import { isDue, mostRecentFireTime, scheduleTrackingKey, type ScheduleJobRef } from "../../queue/schedule.ts";
 import type { QueueStore } from "../../queue/queue.ts";
@@ -107,7 +107,6 @@ export async function refreshDrift(ctx: ScheduleContext): Promise<void> {
   await Promise.all(
     buildProjectViews(ctx.projectRoot, undefined, manifestInside(ctx.machineryProjectDir)).map(async (p) => {
       const root = ctx.machineryProjectDir(p.name);
-      if (!resolveInstallCmd(root).value) return;
       // Each call try/catches internally and degrades to null, so one
       // project's unreachable origin never takes the others with it.
       await ctx.branchStatus.commitsBehindOrigin(root);

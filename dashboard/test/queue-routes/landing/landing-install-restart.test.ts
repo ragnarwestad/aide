@@ -11,7 +11,7 @@ import { join } from "node:path";
 import { pickRefusal } from "../../../src/serve/land-branch/merge.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 
-import { AUTH, createOwnDirs, gitFor, repos, installs, serverWith, merges, stepWithResult, repoOf } from "./every-step-lands-fixtures.ts";
+import { createOwnDirs, gitFor, repos, installs, serverWith, merges, stepWithResult, repoOf } from "./every-step-lands-fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
 const { own, cleanup: cleanupOwnDirs } = createOwnDirs();
@@ -155,39 +155,6 @@ describe("a landing that installs and asks for a restart", () => {
     expect(pickRefusal(first, conflict)).toBe(conflict);
     const fine = { root: "/r", ok: true };
     expect(pickRefusal(fine, again)).toBe(again);
-  });
-
-  // The Deploy button's restart used to be awaited inside the route: the
-  // kickstart landed before the answer went out, and the page read "the
-  // request failed" for a deploy that had succeeded (2026-09-03).
-  test("Deploy's restart step answers before its restart fires, and says it fired", async () => {
-    const dir = own("aide-deploy-answers-first-");
-    const paths = repos(dir);
-    const git = gitFor();
-    let fired = 0;
-    let firedAt = 0;
-    const { base } = serverWithHarness(dir, paths, git, {
-      dashboardRoot: paths.project,
-      restart: {
-        // Slow on purpose: an answer that waited for this gate would
-        // take at least this long.
-        registered: () => new Promise<boolean>((r) => setTimeout(() => r(true), 400)),
-        fire: () => {
-          fired += 1;
-          firedAt = Date.now();
-        },
-      },
-    });
-    installs(paths.project);
-    const res = await fetch(`${base}/api/queue/projects/aide/deploy/restart`, { method: "POST", headers: AUTH });
-    const answeredAt = Date.now();
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as { ok: boolean; restart?: string };
-    expect(body.ok).toBe(true);
-    expect(body.restart).toBe("fired");
-    for (let i = 0; i < 60 && fired === 0; i++) await Bun.sleep(25);
-    expect(fired).toBe(1);
-    expect(firedAt).toBeGreaterThanOrEqual(answeredAt);
   });
 
   test("a landing into a project that is not the dashboard's own never restarts it", async () => {

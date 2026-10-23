@@ -4,6 +4,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync } from "node:fs";
 import { join } from "node:path";
 import { navEntries } from "../../../src/render";
+import { NO_DEPLOY_SENTENCE } from "../../../src/render/pages/projects-page/project-page.ts";
 import { parseArgs } from "../../../src/serve/serve.ts";
 import type { GitRunner } from "../../../src/git/branch-status.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
@@ -91,69 +92,165 @@ describe("what the page says about whether a run could start (criteria 4-6, 8)",
   });
 });
 
-// Spec 407 (REQ-1, REQ-4): the Deploy tab is offered on every project,
-// whatever it is configured with — the same rule spec 378 already
-// settled for Schedule. A project with nothing to deploy from here says
-// so on its own tab, rather than losing the tab.
-describe("the Deploy section on a project's own page (spec 258, spec 407)", () => {
-  // REQ-2, REQ-3: `?tab=deploy` opens the tab, and its panel names why
-  // there is nothing to deploy, with no button at all.
-  test("?tab=deploy on a project with no AIDE_INSTALL_CMD and no Serving opens the Deploy tab, saying why (REQ-2, REQ-3)", async () => {
+// The Deploy tab is offered on every project, but only the board's own
+// project has a Deploy: every other project's tab counts its checkout
+// against origin and says plainly that nothing is offered there.
+
+/** The buttons on a page whose label says Deploy. The tab bar's own Deploy is a link. */
+const deployButtons = (page: string): string[] => {
+  const html = page.replace(/<(style|script)\b[\s\S]*?<\/\1>/g, "");
+  return html.match(/<button\b[^>]*>(?:(?!<\/button>)[\s\S])*Deploy(?:(?!<\/button>)[\s\S])*<\/button>/g) ?? [];
+};
+
+/** The messages on a page, one string per box, so a test reads one line at a time. */
+const messages = (html: string): string[] => html.match(/<div class="[^"]*\browmsg\b[^"]*">[\s\S]*?<\/div>/g) ?? [];
+
+/** The board's own server: the checkout of `aide` is the one this process runs from. */
+const serveBoard = (root: string, git: { run: GitRunner }, driftPollMs?: number): string =>
+  harness.start({
+    extra: {
+      projectRoot: root,
+      queueProjectRoot: root,
+      gitRun: git.run,
+      ...(driftPollMs !== undefined ? { driftPollMs } : {}),
+      dashboardRoot: join(root, "aide"),
+    },
+  }).base;
+
+/** The board's Deploy ask button, whole opening tag. */
+const askTag = (html: string): string => html.match(/<button\b[^>]*data-ask="deployask"[^>]*>/)?.[0] ?? "";
+
+describe("the Deploy tab of a project that is not the board's own", () => {
+  test("a project with an install command, behind origin, has no Deploy button (AC-1)", async () => {
+    const root = projectsRoot({ aide: INSTALLS });
+    const html = await loadUntil(serve(root, behindBy(root, "aide", 2), 25), "aide", "2 commits behind origin", 2000, "deploy");
+    expect(html).toContain("2 commits behind origin, checked");
+    expect(deployButtons(html)).toEqual([]);
+    expect(html).not.toContain('class="deployform"');
+  });
+
+  test("a project with no install command has no Deploy button (AC-1)", async () => {
     const root = projectsRoot({ aide: null });
     const html = await (await get(serve(root, settled(root, "aide")), "aide", "deploy")).text();
-    expect(html).toMatch(/aria-current="page"[^>]*>Deploy/);
-    const panel = html.match(/<div class="deploypanel">[\s\S]*?<\/div>\s*<\/div>/)?.[0] ?? "";
-    expect(panel).toMatch(/install command/i);
-    expect(panel).not.toContain('class="deployform"');
-    expect(panel).not.toContain("<button");
+    expect(deployButtons(html)).toEqual([]);
   });
 
-  // Spec 392 (REQ-1, REQ-2, REQ-3, REQ-4): the never-asked state used to
-  // return before the button existed at all — now it says so in the same
-  // one sentence every other state uses, with a present, inactive button.
-  test("a project with AIDE_INSTALL_CMD but no drift check yet shows the not-yet-checked sentence and a disabled button (criterion 2)", async () => {
-    const root = projectsRoot({ aide: INSTALLS });
-    // The schedule is off entirely, so the answer never arrives: exactly
-    // the state a fresh boot or a project just added is in.
-    const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "deploy")).text();
-    const panel = html.match(/<div class="deploypanel">[\s\S]*?<\/div>\s*<\/div>/)?.[0] ?? "";
-    expect(panel).toContain("Whether this checkout is behind origin has not been checked yet.");
-    // REQ-2: plain language, not the internal check name or setting key —
-    // scoped to the panel itself, since the page's own CSS comments use
-    // "drift" in an unrelated sense (layout drifting out of alignment).
-    expect(panel).not.toContain("drift");
-    expect(panel).not.toContain("AIDE_INSTALL_CMD");
-    // REQ-3, REQ-4: the button is present and inactive, with a title
-    // naming why.
-    expect(html).toContain('class="deployform"');
-    const form = html.match(/<form[^>]*class="deployform"[\s\S]*?<\/form>/)?.[0] ?? "";
-    expect(form).toMatch(/<button[^>]*\bdisabled\b/);
-    expect(form).toContain('title="Origin has not been checked yet."');
+  test("the tab says once that Deploy is not offered, with or without an install command, and never names the board (AC-2)", async () => {
+    for (const config of [INSTALLS, null]) {
+      const root = projectsRoot({ aide: config });
+      const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "deploy")).text();
+      expect(html.split(NO_DEPLOY_SENTENCE).length - 1).toBe(1);
+      expect(NO_DEPLOY_SENTENCE).not.toMatch(/board/i);
+      expect(messages(html).filter((m) => m.includes(NO_DEPLOY_SENTENCE))[0]).not.toMatch(/board/i);
+    }
   });
 
-  test("a project behind origin shows the count and a Deploy button (criterion 1)", async () => {
-    const root = projectsRoot({ aide: INSTALLS });
-    const base = serve(root, behindBy(root, "aide", 3), 25);
-    const html = await loadUntil(base, "aide", "commits behind origin", 2000, "deploy");
+  test("the tab bar offers Deploy, with or without an install command (AC-3)", async () => {
+    for (const config of [INSTALLS, null]) {
+      const root = projectsRoot({ aide: config });
+      const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "config")).text();
+      expect(html).toMatch(/<a [^>]*>Deploy<\/a>/);
+    }
+  });
+
+  test("a project with no install command is counted against origin by the background poll, and the section carries the address the page asks origin through (AC-4)", async () => {
+    const root = projectsRoot({ aide: null });
+    const html = await loadUntil(serve(root, behindBy(root, "aide", 3), 25), "aide", "3 commits behind origin", 2000, "deploy");
     expect(html).toContain("3 commits behind origin, checked");
-    expect(html).toContain('class="deployform"');
-    expect(html).toContain('data-deploy-base="/api/queue/projects/aide/deploy"');
-    const form = html.match(/<form[^>]*class="deployform"[\s\S]*?<\/form>/)?.[0] ?? "";
-    expect(form).not.toMatch(/<button[^>]*\bdisabled\b/);
+    expect(html).toContain('data-origin-check="/api/queue/projects/aide/drift"');
+  });
+
+  test("a project with no install command and no answer from origin yet reloads itself (AC-4)", async () => {
+    const root = projectsRoot({ aide: null });
+    const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "deploy")).text();
+    expect(html).toContain("has not been checked yet");
+    expect(html).toContain("data-reload-every=");
+  });
+
+  test("the behind-origin sentence names no Deploy action (AC-5)", async () => {
+    const root = projectsRoot({ aide: INSTALLS });
+    const html = await loadUntil(serve(root, behindBy(root, "aide", 2), 25), "aide", "2 commits behind origin", 2000, "deploy");
+    const lines = messages(html).filter((m) => m.includes("2 commits behind origin"));
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).not.toContain("Deploy");
+  });
+
+  test("a project level with origin says so (AC-4)", async () => {
+    const root = projectsRoot({ aide: INSTALLS });
+    const html = await loadUntil(serve(root, behindBy(root, "aide", 0), 25), "aide", "matches origin", 2000, "deploy");
+    expect(html).toContain("This checkout matches origin.");
+    expect(deployButtons(html)).toEqual([]);
+  });
+
+  // The fail-open case: asked, unanswerable. Never "level" — that would
+  // be a guess dressed as an answer.
+  test("an unanswerable drift check draws no claim (AC-4)", async () => {
+    const root = projectsRoot({ aide: INSTALLS });
+    const base = serve(root, unanswerable(root, "aide"), 25);
+    // Poll until the "not checked yet" state has cleared — a real,
+    // timestamped `null` has replaced it — rather than asserting on the
+    // very first load, which would still be in the unchecked state.
+    const deadline = Date.now() + 15_000;
+    let html = await (await get(base, "aide", "deploy")).text();
+    while (
+      html.includes("Whether this checkout is behind origin has not been checked yet") &&
+      Date.now() < deadline
+    ) {
+      await new Promise((r) => setTimeout(r, 25));
+      html = await (await get(base, "aide", "deploy")).text();
+    }
+    expect(html).toMatch(/aria-current="page"[^>]*>Deploy/);
+    expect(html).not.toContain("commits behind origin");
+    expect(html).not.toContain("matches origin");
+    expect(html).not.toContain("Whether this checkout is behind origin has not been checked yet");
+  });
+
+  // Criterion 9: the request itself spawns no git — with the schedule
+  // disabled, any call at all could only have come from the GET handler.
+  test("the request spawns no fetch, pull, merge or checkout", async () => {
+    const root = projectsRoot({ aide: INSTALLS });
+    const git = settled(root, "aide");
+    await get(serve(root, git, 0), "aide");
+    for (const forbidden of ["merge", "pull", "reset", "checkout", "fetch", "switch"]) {
+      expect(git.calls.some((c) => c.args[0] === forbidden)).toBe(false);
+    }
+  });
+});
+
+describe("the Deploy tab of the board's own project", () => {
+  test("behind origin, it shows the count and a live Deploy ask button, and not the sentence that Deploy is not offered (AC-2, AC-7)", async () => {
+    const root = projectsRoot({ aide: INSTALLS });
+    const html = await loadUntil(serveBoard(root, behindBy(root, "aide", 3), 25), "aide", "commits behind origin", 2000, "deploy");
+    expect(html).toContain("3 commits behind origin, checked");
+    expect(html).not.toContain(NO_DEPLOY_SENTENCE);
+    expect(askTag(html)).not.toBe("");
+    expect(askTag(html)).not.toMatch(/\bdisabled\b/);
+    expect(deployButtons(html)).toHaveLength(1);
     // The list's own wording ends "— deploy is a hand step", which
     // would contradict the button right beside it here.
     expect(html).not.toContain("deploy is a hand step");
   });
 
-  test("a project level with origin says so, with a disabled Deploy button (criterion 3, spec 321)", async () => {
+  test("level with origin, the ask button is off (spec 321)", async () => {
     const root = projectsRoot({ aide: INSTALLS });
-    const base = serve(root, behindBy(root, "aide", 0), 25);
-    const html = await loadUntil(base, "aide", "matches origin", 2000, "deploy");
+    const html = await loadUntil(serveBoard(root, behindBy(root, "aide", 0), 25), "aide", "matches origin", 2000, "deploy");
     expect(html).toContain("This checkout matches origin.");
-    expect(html).toContain('class="deployform"');
-    const form = html.match(/<form[^>]*class="deployform"[\s\S]*?<\/form>/)?.[0] ?? "";
-    expect(form).toMatch(/<button[^>]*\bdisabled\b/);
-    expect(form).toContain('title="This checkout matches origin."');
+    expect(askTag(html)).toMatch(/\bdisabled\b/);
+    expect(askTag(html)).toContain('title="This checkout matches origin."');
+  });
+
+  // Spec 392 (REQ-1, REQ-2, REQ-3, REQ-4): the never-asked state says so
+  // in the same one sentence every other state uses, with a present,
+  // inactive button.
+  test("with no drift check yet, it shows the not-yet-checked sentence and an off button", async () => {
+    const root = projectsRoot({ aide: INSTALLS });
+    // The schedule is off entirely, so the answer never arrives: exactly
+    // the state a fresh boot or a project just added is in.
+    const html = await (await get(serveBoard(root, settled(root, "aide"), 0), "aide", "deploy")).text();
+    expect(html).toContain("Whether this checkout is behind origin has not been checked yet.");
+    expect(html).not.toContain("AIDE_INSTALL_CMD");
+    expect(askTag(html)).toMatch(/\bdisabled\b/);
+    expect(askTag(html)).toContain('title="Origin has not been checked yet."');
   });
 
   // Spec 392 (REQ-1, REQ-7): the one state where the panel names what the
@@ -183,7 +280,7 @@ describe("the Deploy section on a project's own page (spec 258, spec 407)", () =
 
     test("names how far behind the service is and the newest change (criteria 2, 8)", async () => {
       const root = projectsRoot({ aide: INSTALLS });
-      const base = serve(
+      const base = serveBoard(
         root,
         servingUnchecked(root, "aide", "abc1234deadbeef", "9999999cafefeed", "Add the frobnicator", 2),
         0,
@@ -195,13 +292,12 @@ describe("the Deploy section on a project's own page (spec 258, spec 407)", () =
         "Whether this checkout is behind origin has not been checked yet; the service is 2 commits " +
           "behind this checkout — the newest change is &quot;Add the frobnicator&quot;.",
       );
-      const form = html.match(/<form[^>]*class="deployform"[\s\S]*?<\/form>/)?.[0] ?? "";
-      expect(form).toMatch(/<button[^>]*\bdisabled\b/);
+      expect(askTag(html)).toMatch(/\bdisabled\b/);
     });
 
     test("names the newest change with no 'behind' claim when the service is current (criterion 9)", async () => {
       const root = projectsRoot({ aide: INSTALLS });
-      const base = serve(
+      const base = serveBoard(
         root,
         servingUnchecked(root, "aide", "abc1234deadbeef", "abc1234deadbeef", "Add the frobnicator", 0),
         0,
@@ -215,13 +311,11 @@ describe("the Deploy section on a project's own page (spec 258, spec 407)", () =
     });
   });
 
-  // The fail-open case: asked, unanswerable. Never "level" — that would
-  // be a guess dressed as an answer.
   // A landing installs but never restarts (the person presses Deploy),
   // so the common case after one is exactly this: level with origin,
   // and a served process older than the checkout. A disabled button
   // there left no way to deploy at all (2026-09-03).
-  test("level with origin but serving older code, the Deploy button is live", async () => {
+  test("level with origin but serving older code, the Deploy ask button is live", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     const level = behindBy(root, "aide", 0);
     let headCalls = 0;
@@ -232,7 +326,7 @@ describe("the Deploy section on a project's own page (spec 258, spec 407)", () =
       }
       return level.run(dir, args);
     };
-    const base = serve(root, { run }, 25);
+    const base = serveBoard(root, { run }, 25);
     const deadline = Date.now() + 15_000;
     let html = await (await get(base, "aide", "deploy")).text();
     while ((!html.includes("matches origin") || !html.includes("still running commit")) && Date.now() < deadline) {
@@ -243,42 +337,8 @@ describe("the Deploy section on a project's own page (spec 258, spec 407)", () =
       "This checkout matches origin, but the service is still running commit abc1234; " +
         "Deploy restarts it on commit 9999999.",
     );
-    const form = html.match(/<form[^>]*class="deployform"[\s\S]*?<\/form>/)?.[0] ?? "";
-    expect(form).toContain("Deploy");
-    expect(form).not.toMatch(/<button[^>]*\bdisabled\b/);
-  });
-
-  test("an unanswerable drift check draws no claim and no button (criterion 4)", async () => {
-    const root = projectsRoot({ aide: INSTALLS });
-    const base = serve(root, unanswerable(root, "aide"), 25);
-    // Poll until the "not checked yet" state has cleared — a real,
-    // timestamped `null` has replaced it — rather than asserting on the
-    // very first load, which would still be in the unchecked state.
-    const deadline = Date.now() + 15_000;
-    let html = await (await get(base, "aide", "deploy")).text();
-    while (
-      html.includes("Whether this checkout is behind origin has not been checked yet") &&
-      Date.now() < deadline
-    ) {
-      await new Promise((r) => setTimeout(r, 25));
-      html = await (await get(base, "aide", "deploy")).text();
-    }
-    expect(html).toMatch(/aria-current="page"[^>]*>Deploy/);
-    expect(html).not.toContain("commits behind origin");
-    expect(html).not.toContain("matches origin");
-    expect(html).not.toContain("Whether this checkout is behind origin has not been checked yet");
-    expect(html).not.toContain('class="deployform"');
-  });
-
-  // Criterion 9: the request itself spawns no git — with the schedule
-  // disabled, any call at all could only have come from the GET handler.
-  test("the request spawns no fetch, pull, merge or checkout, even when the project is gated", async () => {
-    const root = projectsRoot({ aide: INSTALLS });
-    const git = settled(root, "aide");
-    await get(serve(root, git, 0), "aide");
-    for (const forbidden of ["merge", "pull", "reset", "checkout", "fetch", "switch"]) {
-      expect(git.calls.some((c) => c.args[0] === forbidden)).toBe(false);
-    }
+    expect(askTag(html)).not.toBe("");
+    expect(askTag(html)).not.toMatch(/\bdisabled\b/);
   });
 });
 
@@ -468,9 +528,4 @@ describe("the Deploy tab asks for itself again while the origin answer is missin
     expect(html).not.toContain("data-reload-every=");
   });
 
-  test("a project with no install command has nothing to wait for, so no refresh", async () => {
-    const root = projectsRoot({ aide: null });
-    const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "deploy")).text();
-    expect(html).not.toContain("data-reload-every=");
-  });
 });

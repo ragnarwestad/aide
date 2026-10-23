@@ -38,7 +38,6 @@ import {
   submitTestServerStop,
   syncDependsOn,
 } from "./forms.ts";
-import { bindDeployForms } from "./deploy";
 import { startOriginCheck } from "./deploy/origin-check.ts";
 import { onApproachCancel, pickApproach } from "./approach-choice";
 import { onDependsOnCancel, pickDependency, pickSetting } from "./depends-on";
@@ -79,7 +78,6 @@ for (const el of document.querySelectorAll("form.addprojectform, form.removeform
 
 for (const el of document.querySelectorAll("form.addprojectform")) bindAddProjectForm(el as HTMLFormElement);
 
-bindDeployForms(document);
 // The Deploy tab asks origin the moment it is open, and redraws itself from the answer.
 startOriginCheck(document);
 

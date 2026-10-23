@@ -15,16 +15,13 @@ import { pickTab, tabBar, tabbedBody } from "../job-page";
 import { SCHEDULE_REFUSED_LINE, scheduleControlCells } from "../schedule-page/controls.ts";
 import { scheduleNewPath, schedulePagePath, scheduleSettingsPath } from "../schedule-page";
 import { modelFlag } from "../schedule-page/model-flag.ts";
-import { deployAskDialog, deployDialog, STEP_LABEL } from "./deploy-dialog.ts";
+import { deployAskDialog, STEP_LABEL } from "./deploy-dialog.ts";
 import { projectDescription } from "./overview-list.ts";
 import { PROJECTS_ROUTE, projectPagePath } from "./routes.ts";
 import { unifiedSettingsTable } from "./settings-table.ts";
 import { reloadMarker } from "../spec-page/tabs.ts";
-import type { ProjectPageOptions, ProjectView } from "./types.ts";
+import type { ProjectDrift, ProjectPageOptions, ProjectView } from "./types.ts";
 
-/** The drift sentence's own ending (spec 258), naming the Deploy button
- *  this file draws right beside it — the only ending this wording has,
- *  now that the Projects-list row shows no drift line of its own. */
 /** How long a Deploy tab that has no origin answer yet waits before
  *  asking for itself again. The answer is taken by a background poll,
  *  not by this render, so the only page that can be wrong is one drawn
@@ -33,11 +30,18 @@ import type { ProjectPageOptions, ProjectView } from "./types.ts";
  *  short enough that nobody reads the stale sentence twice. */
 export const AWAITING_DRIFT_REFRESH_SECONDS = 5;
 
+/** What the Deploy tab of every project but the board's own says in place of a button. */
+export const NO_DEPLOY_SENTENCE =
+  "There is not enough information about how this project is deployed to offer Deploy.";
+
+const NOT_CHECKED_SENTENCE = "Whether this checkout is behind origin has not been checked yet.";
+const MATCHES_ORIGIN_SENTENCE = "This checkout matches origin.";
+
 /** Shared by `deploySection` and `testServerSection`: the Deploy tab's own
  *  panel wrapper, empty content drawing nothing at all. */
 const panel = (inner: string): string => (inner ? `<div class="deploypanel">${inner}</div>` : "");
 
-/** The gated Deploy section, with the address the page script asks origin
+/** The Deploy section, with the address the page script asks origin
  *  through when the tab is open (`specs-client/deploy/origin-check.ts`). */
 const checked = (name: string, inner: string): string =>
   `<div data-origin-check="${esc(`/api/queue/projects/${encodeURIComponent(name)}/drift`)}">${inner}</div>`;
@@ -46,14 +50,36 @@ export const driftPrefix = (behind: number, checkedAt: number, now: number): str
   `${behind} ${behind === 1 ? "commit" : "commits"} behind origin, checked ` +
   `${relTimeLabel(new Date(checkedAt).toISOString(), now)}`;
 
-/** Plainly whether this checkout is behind origin, and — only when it
- *  is, and only when a deploy step is configured — a button that brings
- *  it up to date and deploys it in one action (spec 258).
+/** Every project but the board's own: how far its checkout is behind
+ *  origin, and one sentence saying Deploy is not offered. No button, and
+ *  no claim when origin was asked and could not answer. */
+function otherProjectDeploy(
+  name: string,
+  drift: ProjectDrift | undefined,
+  now: number,
+  heading: string,
+  servingLine: string,
+): string {
+  const line = !drift
+    ? ""
+    : drift.checkedAt === null
+      ? rowMessage("waiting", NOT_CHECKED_SENTENCE)
+      : drift.behind === null
+        ? "" // asked, unanswerable: no claim
+        : drift.behind > 0
+          ? rowMessage("waiting", `${driftPrefix(drift.behind, drift.checkedAt, now)}.`)
+          : rowMessage("info", MATCHES_ORIGIN_SENTENCE);
+  const inner = heading + panel(line + servingLine + rowMessage("info", NO_DEPLOY_SENTENCE));
+  return drift ? checked(name, inner) : inner;
+}
+
+/** The board's own Deploy: plainly whether this checkout is behind
+ *  origin, and — only when it is, and only when a deploy step is
+ *  configured — a button that asks, and queues the deploy job (spec 258).
+ *  Every other project is drawn by `otherProjectDeploy`.
  *
- *  `drift` undefined means ungated: no `AIDE_INSTALL_CMD`. Unlike the
- *  `/projects` list — which omits an ungated project's row-note
- *  entirely, to avoid noise on every row — this page keeps the section
- *  and says plainly why there is nothing to act on.
+ *  `drift` undefined means ungated: no `AIDE_INSTALL_CMD`. This page keeps
+ *  the section and says plainly why there is nothing to act on.
  *
  *  A real `drift` still carries three further states: unchecked
  *  (`checkedAt === null`), a real answer (`behind` a number), and
@@ -65,9 +91,7 @@ export const driftPrefix = (behind: number, checkedAt: number, now: number): str
  *  fold into the ONE sentence the reader needs, in whichever of REQ-4's
  *  three shapes applies — up to date, behind, or installed but not
  *  restarted. `serving` is undefined for every project except the one
- *  this server itself runs from (`ProjectPageOptions.serving`), so the
- *  third shape is reachable only there; every other gated project only
- *  ever shows the first two. */
+ *  this server itself runs from (`ProjectPageOptions.serving`). */
 function deploySection(name: string, opts: ProjectPageOptions, now: number): string {
   // AC-1/AC-2: this section's own heading, so it reads apart from the
   // new "Testserver med testspecene" section beside it.
@@ -83,6 +107,7 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
       )
     : "";
   const drift = opts.drift;
+  if (!opts.boardItself) return otherProjectDeploy(name, drift, now, heading, servingLine);
   if (!drift) {
     return heading + panel(
       rowMessage(
@@ -91,11 +116,8 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
       ) + servingLine,
     );
   }
-  // Shown wherever `drift` is defined — the same scope the original
-  // function gave it (never in the ungated branch above, which a
-  // deploy press could not have been refused FROM in the first place).
-  // The kept failure names its step, and carries `deploy-error`, the
-  // class a press removes.
+  // Shown wherever `drift` is defined, never in the ungated branch above.
+  // The kept failure names its step, and carries `deploy-error`.
   const failure = opts.deployFailure;
   const errorLine = failure
     ? rowMessage(
@@ -135,8 +157,8 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
     ? (() => {
         const phrase = serving && servedCommitPhrase(serving);
         return phrase
-          ? `Whether this checkout is behind origin has not been checked yet; ${phrase}.`
-          : "Whether this checkout is behind origin has not been checked yet.";
+          ? `${NOT_CHECKED_SENTENCE.slice(0, -1)}; ${phrase}.`
+          : NOT_CHECKED_SENTENCE;
       })()
     : behind! > 0
       ? `${driftPrefix(behind!, drift.checkedAt!, now)} — Deploy pulls ${behind === 1 ? "it" : "them"}, installs` +
@@ -155,12 +177,12 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
             `Deploy restarts it on commit ${serving!.checkoutHead.slice(0, 7)}.`
         : serving
           ? `This checkout matches origin, and the service is running commit ${serving.sha.slice(0, 7)}.`
-          : "This checkout matches origin.";
+          : MATCHES_ORIGIN_SENTENCE;
 
   const title = notYetChecked
     ? "Origin has not been checked yet."
     : disabled
-      ? "This checkout matches origin."
+      ? MATCHES_ORIGIN_SENTENCE
       // REQ-9 (spec 392): the button stays live (a press still retries
       // the install), but hovering it says a press will not restart the
       // service sooner.
@@ -170,41 +192,17 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
 
   // The board's own Deploy asks first, and OK queues the job. A second press
   // is refused while one is under way, and the hover line says so.
-  if (opts.boardItself) {
-    const lang = opts.lang ?? "en";
-    const dialogId = "deployask";
-    const underWay = opts.deployUnderWay
-      ? `A deploy is already ${opts.deployUnderWay} — follow it on the Running tab.`
-      : undefined;
-    const ask =
-      askButton({ label: "Deploy", dialogId, variant: "primary", disabled, title: underWay ?? title }) +
-      deployAskDialog(lang, name, dialogId);
-    return checked(
-      name,
-      heading + panel(errorLine + rowMessage(notYetChecked || behind! > 0 || stale ? "waiting" : "info", sentence, { html: sentenceHtml }) + ask),
-    );
-  }
-
-  // No action: the script posts each step to `<data-deploy-base>/<step>`
-  // (`specs-client/deploy/`), and nothing answers at the base itself.
-  const button = buttonForm({
-    hook: "deployform",
-    data: { "deploy-base": `/api/queue/projects/${encodeURIComponent(name)}/deploy` },
-    button: {
-      label: "Deploy",
-      variant: "primary",
-      pending: "deploying…",
-      // The title stays the short, common half of the sentence even
-      // when the up-to-date-with-serving-current case says more — a
-      // hover hint names WHY the button is off, not the whole state.
-      ...(disabled ? { disabled: true } : {}),
-      ...(title ? { title } : {}),
-    },
-    after: messageSlot("refused") + deployDialog(opts.lang ?? "en"),
-  });
+  const lang = opts.lang ?? "en";
+  const dialogId = "deployask";
+  const underWay = opts.deployUnderWay
+    ? `A deploy is already ${opts.deployUnderWay} — follow it on the Running tab.`
+    : undefined;
+  const ask =
+    askButton({ label: "Deploy", dialogId, variant: "primary", disabled, title: underWay ?? title }) +
+    deployAskDialog(lang, name, dialogId);
   return checked(
     name,
-    heading + panel(errorLine + rowMessage(notYetChecked || behind! > 0 || stale ? "waiting" : "info", sentence, { html: sentenceHtml }) + button),
+    heading + panel(errorLine + rowMessage(notYetChecked || behind! > 0 || stale ? "waiting" : "info", sentence, { html: sentenceHtml }) + ask),
   );
 }
 
@@ -217,8 +215,8 @@ function testServerSection(name: string, opts: ProjectPageOptions): string {
   if (!opts.testServerAvailable) return "";
   const lang = opts.lang ?? "en";
   const heading = `<h3>${esc(t(lang, "project.testServerHeading"))}</h3>`;
-  // Deliberately NOT class="deployform"/"actionform"/"rowrun" — any of
-  // those three classes gets its native submit replaced by an XHR
+  // Deliberately NOT class="actionform"/"rowrun" — either class gets its
+  // native submit replaced by an XHR
   // (`specs-client/forms.ts`/`press.ts`), which silently defeats
   // `target="_blank"` and breaks AC-5. `.deploypanel`'s own flex `gap`
   // spaces this form's children with no CSS of its own needed.
@@ -357,9 +355,9 @@ export function renderProjectPage(
   const stamped = Date.parse(generatedAt);
   const now = Number.isNaN(stamped) ? Date.now() : stamped;
 
-  // Deploy is offered on every project, the same as Schedule (spec 407,
-  // REQ-1, REQ-4): a project with nothing to deploy from here says so on
-  // its own tab (`deploySection`'s ungated branch), rather than the tab
+  // The Deploy tab is offered on every project, the same as Schedule (spec
+  // 407, REQ-1, REQ-4): a project other than the board's own says there
+  // that Deploy is not offered (`otherProjectDeploy`), rather than the tab
   // bar changing shape from project to project.
   // The page opens on Deploy; `?edit=` names a settings table's own edit
   // state, so it always opens on Config, where that table is.

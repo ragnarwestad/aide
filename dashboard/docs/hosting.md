@@ -12,7 +12,6 @@
 - [Keeping the host's specs current](#keeping-the-hosts-specs-current)
 - [Reviewing what an unattended run writes](#reviewing-what-an-unattended-run-writes)
 - [Not written down yet](#not-written-down-yet)
-- [Known gaps](#known-gaps)
 
 ---
 
@@ -179,8 +178,7 @@ the job first (`deploy.restartedAt`), and the process that starts checks that it
 contains it, and writes the job's result before the runner reconciles at boot. A restart with no new process within
 three minutes ends the job failed. The restart of that job waits for every merge to settle with no time limit: a
 landing that never settles holds the deploy and its row says why; Cancel on that landing ends the wait, and a deploy that
-is still queued can be cancelled itself. For any other project, the button's restart step answers before the restart
-fires; the dialog then waits for a process with a new `startedAt` to answer `/api/version`, checks it, and reloads the page. A running step
+is still queued can be cancelled itself. A running step
 does not hold the restart back: it runs detached, in a process group of its own, outlives the restart, and the new
 process reads its result. A landing runs inside the process, so the restart waits for every step whose landing has not
 settled and for any merge in flight (two hours at most), and every page shows a warning line under the header naming
@@ -355,7 +353,7 @@ Installing it is by hand, once, on the host. Every two minutes:
 **Point it at specs, not at code.** Merging code and installing it belong together (`AIDE_INSTALL_CMD`), and a
 background pull would move the code under a server that goes on running the old version — merged, but not
 deployed, and reported as deployed. Code that landed some other way is REPORTED instead of pulled: for every
-project that has an install command configured, the project's Deploy tab compares the checkout against `origin`
+project, the project's Deploy tab compares the checkout against `origin`
 and says how many commits behind it is, and which commit the service runs. It only ever looks; nothing there
 fetches more than the default branch, and nothing merges, pulls or moves a checkout.
 
@@ -401,14 +399,3 @@ What an operator needs and will not find here, or anywhere else in these pages:
 - **Disk growth.** `serve.log`, `~/.claude/security/log.txt`, the jobs directory, `pdf-cache`, `round-logs` and the
   worktrees all grow, and nothing prunes any of them.
 - **Decommissioning a host.** Stopping the job is `launchctl bootout`; what to remove afterwards is not written.
-
-## Known gaps
-
-The restart of a Deploy on any project but the board's own is not gated on `isDashboardRoot`. A landing never
-restarts anything; it uses `isDashboardRoot` (`land-branch/merge.ts`) to decide whether to LOG that the served page now
-runs older code than main. The `restart` step those projects' Deploy tab posts (`routes/deploy-steps.ts`) does restart,
-and carries no equivalent check: pressing Deploy on a project with an install command, on a host where this
-dashboard's own launchd job is registered, triggers the same restart wait and fire. No current page depends on this
-being scoped further, since the Deploy tab's own `serving` comparison only ever exists for the
-dashboard's own project — but a future project added to the dashboard whose install is slow or
-disruptive would restart the dashboard itself as a side effect of deploying something unrelated.

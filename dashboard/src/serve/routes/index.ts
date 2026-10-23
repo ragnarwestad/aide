@@ -16,7 +16,6 @@
 // changed without re-checking every regex for overlap.
 import type { GitRunner } from "../../git/branch-status.ts";
 import type { BranchStatusChecker } from "../../git/branch-status.ts";
-import type { Sentence } from "../../i18n/message.ts";
 import type { DashboardCheckout } from "../../git/dashboard-checkout.ts";
 import type { SpecRef } from "../../project/discover";
 import type {
@@ -133,14 +132,9 @@ export interface RoutesContext {
   /** The Deploy tab's own pending-restart state (spec 385) — see
    *  `state.ts`'s `pendingRestart` for what it means. */
   readPendingRestart: () => { jobs: string[] } | null;
-  setPendingRestart: (jobs: string[]) => void;
-  /** What a finished deploy left wrong at the top of every page, or
-   *  `null` to clear it (see `state.ts`'s `deployFault`). */
-  setDeployFault: (fault: Sentence | null) => void;
-  /** The step a project's last deploy failed at, for the Deploy tab;
-   *  `null` clears it (see `state.ts`'s `deployFailures`). */
+  /** The step the board's last deploy job failed at, for the Deploy tab
+   *  (see `state.ts`'s `deployFailures`). */
   readDeployFailure: (project: string) => DeployFailure | undefined;
-  setDeployFailure: (project: string, failure: DeployFailure | null) => void;
   /** The address a live spec's branch has been built on (see
    *  `state.ts`'s `branchPreviews`), for the specs list's preview link. */
   readBranchPreview: (project: string, specFolder: string) => string | undefined;

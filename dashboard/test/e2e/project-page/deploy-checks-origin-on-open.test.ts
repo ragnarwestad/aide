@@ -39,7 +39,7 @@ afterAll(async () => {
 });
 
 describe("opening the Deploy tab asks origin", () => {
-  test("a commit pushed since the last answer turns the sentence and the button in place, with one document load (AC-2)", async () => {
+  test("a commit pushed since the last answer turns the sentence in place, with one document load, and no Deploy button appears (AC-4)", async () => {
     ahead = 1;
     const page = await browser.newPage();
     let documents = 0;
@@ -48,7 +48,7 @@ describe("opening the Deploy tab asks origin", () => {
     });
     await page.goto(`${base}/projects/aide?tab=deploy&live=0`);
     await page.getByText("1 commit behind origin").waitFor({ state: "visible", timeout: 5000 });
-    expect(await page.locator("form.deployform").getByRole("button", { name: "Deploy" }).isEnabled()).toBe(true);
+    expect(await page.getByRole("button", { name: "Deploy" }).count()).toBe(0);
     expect(documents).toBe(1);
     await page.close();
   });

@@ -5,7 +5,7 @@
 // one stage that reads every other one.
 
 import type { BranchFileStepsChecker } from "../../git/workflow-history.ts";
-import { setDeployFailure, setDeployFault, setPendingRestart, type ServerState } from "../state.ts";
+import type { ServerState } from "../state.ts";
 import { CHANGED_EVENT } from "../sse-watchers.ts";
 import { type RoutesContext } from "../routes";
 
@@ -16,7 +16,7 @@ import { type RoutesContext } from "../routes";
  *  describes for `readScan`/`invalidateScan`. */
 export type QueueContextInputs = Omit<
   RoutesContext,
-  "readScan" | "invalidateScan" | "notifyQueueChanged" | "forgetBranchFileSteps" | "readServing" | "readPendingRestart" | "setPendingRestart" | "setDeployFault" | "readDeployFailure" | "setDeployFailure" | "readBranchPreview" | "selfStopExit"
+  "readScan" | "invalidateScan" | "notifyQueueChanged" | "forgetBranchFileSteps" | "readServing" | "readPendingRestart" | "readDeployFailure" | "readBranchPreview" | "selfStopExit"
 > & {
   branchFileSteps: BranchFileStepsChecker;
 };
@@ -67,10 +67,7 @@ export function setupQueueContext(state: ServerState, inputs: QueueContextInputs
     jobDetailView: inputs.jobDetailView,
     readServing: () => ({ sha: state.servingSha, repoRoot: state.servingRepoRoot }),
     readPendingRestart: () => state.pendingRestart,
-    setPendingRestart: (jobs) => setPendingRestart(state, jobs),
-    setDeployFault: (fault) => setDeployFault(state, fault),
     readDeployFailure: (project) => state.deployFailures.get(project),
-    setDeployFailure: (project, failure) => setDeployFailure(state, project, failure),
     readBranchPreview: (project, specFolder) => state.branchPreviews.get(`${project}/${specFolder}`),
     pdfCacheDir: inputs.pdfCacheDir,
     pdfGeneratorBin: inputs.pdfGeneratorBin,

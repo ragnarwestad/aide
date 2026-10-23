@@ -33,7 +33,6 @@ export const nb: Record<TranslationKey, string> = {
   "dialog.stepRunning": "kjører",
   "dialog.stepDone": "ferdig",
   "dialog.stepFailed": "feilet",
-  "deploy.finished": "Deploy er ferdig",
   "deploy.failedAt": "{step} feilet: {error}",
   "deploy.askTitle": "Deploy {project}?",
   "deploy.askSentence": "Henter fra origin, installerer og starter tjenesten på nytt, og sjekker så at nyeste commit kjører. Det går som en jobb du følger under Kjører.",

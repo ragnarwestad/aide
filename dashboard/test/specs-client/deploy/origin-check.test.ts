@@ -5,12 +5,10 @@
 import { describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import { renderProjectPage, type ProjectView } from "../../../src/render";
-import { bindDeployForms } from "../../../src/specs-client/deploy";
 import { startOriginCheck, type OriginCheckIo } from "../../../src/specs-client/deploy/origin-check.ts";
-import type { DeployIo } from "../../../src/specs-client/deploy/run.ts";
 
 /** The project page as the server draws it on the Deploy tab. An
- *  `undefined` drift is a project with no install command. */
+ *  `undefined` drift is a page drawn with no drift to check. */
 const projectPage = (drift?: { behind: number | null; checkedAt: number }): string => {
   const project: ProjectView = { name: "aide", manifest: { ok: false, error: "no manifest" }, specs: [] };
   return renderProjectPage(project, { hasConfigFile: false, rows: [] }, null, "2026-09-20T00:00:00Z", [], {
@@ -31,8 +29,7 @@ function load(html: string) {
   window.document.write(html);
   const doc = window.document as unknown as Document;
   const section = (): HTMLElement | null => doc.querySelector("[data-origin-check]");
-  const button = (): HTMLButtonElement | null => doc.querySelector("form.deployform button") as HTMLButtonElement | null;
-  return { window, doc, section, button, text: (): string => section()?.textContent ?? "" };
+  return { window, doc, section, text: (): string => section()?.textContent ?? "" };
 }
 
 /** An io that records what it was asked, and answers when told to. */
@@ -68,9 +65,9 @@ describe("the check made when the Deploy tab is opened", () => {
     const { io, asked } = fakeIo();
     let handedTo = null as HTMLElement | null;
     startOriginCheck(doc, (s) => {
-        handedTo = s;
-        return io;
-      }, () => {});
+      handedTo = s;
+      return io;
+    });
     expect(asked.check).toBe(1);
     expect(handedTo).toBe(section());
     expect(section()!.dataset.originCheck).toBe("/api/queue/projects/aide/drift");
@@ -78,32 +75,30 @@ describe("the check made when the Deploy tab is opened", () => {
     expect(asked.check).toBe(1);
   });
 
-  test("a project with no install command has no section to check, and asks nothing (AC-1)", () => {
+  test("a page drawn with no drift has no section to check, and asks nothing", () => {
     const { doc, section } = load(projectPage());
     expect(section()).toBeNull();
     let made = 0;
     startOriginCheck(doc, () => {
-        made++;
-        return fakeIo().io;
-      }, () => {});
+      made++;
+      return fakeIo().io;
+    });
     expect(made).toBe(0);
   });
 
   test("a document with no such section is left alone, as the page-script tests' stand-in is (AC-1)", () => {
     const doc = { querySelector: () => null } as unknown as Document;
-    expect(() => startOriginCheck(doc, () => fakeIo().io, () => {})).not.toThrow();
+    expect(() => startOriginCheck(doc, () => fakeIo().io)).not.toThrow();
   });
 
-  test("when the check answers, the sentence and the button come from the fresh page, in place (AC-2)", async () => {
-    const { doc, section, button, text } = load(LEVEL);
+  test("when the check answers, the sentence comes from the fresh page, in place (AC-2)", async () => {
+    const { doc, section, text } = load(LEVEL);
     expect(text()).toContain("This checkout matches origin");
-    expect(button()!.disabled).toBe(true);
     const before = section();
-    startOriginCheck(doc, () => fakeIo().io, () => {});
+    startOriginCheck(doc, () => fakeIo().io);
     await settle();
     expect(section()).not.toBe(before);
     expect(text()).toContain("1 commit behind origin");
-    expect(button()!.disabled).toBe(false);
   });
 
   test("while the check has not answered, the section is as it was drawn and the page is not read again (AC-3)", async () => {
@@ -112,7 +107,7 @@ describe("the check made when the Deploy tab is opened", () => {
     const html = before!.outerHTML;
     const gate = held<boolean>();
     const { io, asked } = fakeIo({ check: () => gate.promise });
-    startOriginCheck(doc, () => io, () => {});
+    startOriginCheck(doc, () => io);
     await settle();
     expect(section()).toBe(before);
     expect(section()!.outerHTML).toBe(html);
@@ -120,28 +115,11 @@ describe("the check made when the Deploy tab is opened", () => {
     expect(asked.page).toBe(0);
   });
 
-  test("the redrawn Deploy form is taken by the Deploy script, not posted to the page (AC-2)", async () => {
-    const { window, doc, section } = load(LEVEL);
-    const io: DeployIo = {
-      post: async () => ({ ok: false, error: "stopped here" }),
-      version: async () => ({ startedAt: "old" }),
-      sleep: async () => {},
-      reload: () => {},
-    };
-    startOriginCheck(doc, () => fakeIo().io, (root) => bindDeployForms(root, () => io));
-    await settle();
-    const form = section()!.querySelector("form.deployform") as unknown as HTMLFormElement;
-    const event = new window.Event("submit", { cancelable: true });
-    form.dispatchEvent(event as unknown as Event);
-    expect(event.defaultPrevented).toBe(true);
-    await settle();
-  });
-
   test("a press before the check answers leaves the section as it is (AC-2)", async () => {
     const { window, doc, section } = load(LEVEL);
     const gate = held<boolean>();
     const { io } = fakeIo({ check: () => gate.promise });
-    startOriginCheck(doc, () => io, () => {});
+    startOriginCheck(doc, () => io);
     const before = section();
     before!.dispatchEvent(new window.Event("submit", { bubbles: true }) as unknown as Event);
     gate.answer(true);
@@ -153,7 +131,7 @@ describe("the check made when the Deploy tab is opened", () => {
     const { window, doc, section } = load(LEVEL);
     const gate = held<boolean>();
     const { io } = fakeIo({ check: () => gate.promise });
-    startOriginCheck(doc, () => io, () => {});
+    startOriginCheck(doc, () => io);
     const before = section();
     const dialog = window.document.createElement("dialog");
     dialog.setAttribute("open", "");
@@ -169,7 +147,7 @@ describe("a check that did not answer changes nothing (AC-4)", () => {
     const { doc, section } = load(LEVEL);
     const before = section();
     const html = before!.outerHTML;
-    startOriginCheck(doc, () => io, () => {});
+    startOriginCheck(doc, () => io);
     await settle();
     expect(section()).toBe(before);
     expect(section()!.outerHTML).toBe(html);

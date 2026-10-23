@@ -51,12 +51,12 @@ export interface ProjectPageOptions {
   /** Where "← Back" goes: the page the reader came from, resolved by the
    *  server from the request's `Referer`. Projects when there is none. */
   backHref?: string;
-  /** This checkout's last drift answer (spec 258), `undefined` when no
-   *  `AIDE_INSTALL_CMD` is configured — the same gate `/projects`' own
-   *  drift map uses. */
+  /** This checkout's last drift answer (spec 258). `undefined` for the
+   *  board's own project when no `AIDE_INSTALL_CMD` is configured, since
+   *  its Deploy has nothing to act on then; every other project has one. */
   drift?: ProjectDrift;
-  /** The step the last Deploy failed at and why, kept by the server until
-   *  the next deploy starts. */
+  /** The step the board's last deploy job failed at and why, kept by the
+   *  server until the next deploy starts. */
   deployFailure?: { step: string; error: string };
   /** This process's own boot-time commit vs. this checkout's current
    *  HEAD (spec 269) — undefined for every project except the one this
@@ -81,7 +81,7 @@ export interface ProjectPageOptions {
    *  landings in flight (spec 385) — undefined everywhere `serving` is. */
   restartWaiting?: string[];
   /** This project is the checkout the board runs from, so its Deploy asks
-   *  first and queues a job. Every other project's Deploy is the form. */
+   *  first and queues a job. Every other project is offered no Deploy. */
   boardItself?: boolean;
   /** The state of the board's deploy job while one is queued or running. */
   deployUnderWay?: "queued" | "running";

@@ -224,47 +224,39 @@ there while the reader switches tabs. A page opened with none — a typed addres
 #### Deploy
 
 Two panels. The first says how far the checkout is behind origin, and for the one project this server runs from,
-which commit it is serving; under it a **Deploy** button, disabled when the checkout matches origin or when origin
-has not been checked yet. A project with no `AIDE_INSTALL_CMD` keeps the heading and a sentence saying there is
-nothing to act on. When drift has not been checked yet, the page asks for itself again after five seconds. Opening the
-tab of a project with an `AIDE_INSTALL_CMD` also asks origin at once, through `POST .../drift` (`http-routes.md`): a
-fresh count and nothing else, with no pull, install or restart and no failed deploy kept. When it answers, the page
-reads itself again and draws the section in place, unless Deploy was pressed or a dialog is open meanwhile. A check
-that fails leaves the tab as it was.
+which commit it is serving. Deploy is offered on the project this server runs from alone; every other project keeps
+the tab and has no button. When drift has not been checked yet, the page asks for itself again after five seconds.
+Opening the tab of any project also asks origin at once, through `POST .../drift` (`http-routes.md`): a fresh count
+and nothing else, with no pull, install or restart, whether or not the project has an `AIDE_INSTALL_CMD`. When it
+answers, the page reads itself again and draws the section in place, unless a form in it was submitted or a dialog
+is open meanwhile. A check that fails leaves the tab as it was.
 
-On the project this server runs from, **Deploy** is a job of its own. The button asks first ("Deploy aide?"); OK queues
-the deploy job and goes to the Running tab with the job's row open (`/?open=<project>/deploy:deploy`), where the five
-steps below are followed as lines of the row (`running-specs.md`, "The Running tab"). Closing the tab stops nothing. While a
+**Every other project** shows the count, which says only how far behind origin the checkout is and names no action,
+and one sentence saying there is not enough information about how the project is deployed to offer Deploy. The board
+cannot restart a service it does not run, so a Deploy there would fetch and install in the board's own checkout and
+publish nothing.
+
+**On the project this server runs from**, a **Deploy** button sits under the count. It is disabled when the checkout
+matches origin or when origin has not been checked yet. A board with no `AIDE_INSTALL_CMD` has no button, and says
+so in a sentence in place of the count. The button asks first ("Deploy aide?"); OK queues the deploy job and goes
+to the Running tab with the job's row open (`/?open=<project>/deploy:deploy`), where the five steps are followed as
+lines of the row (`running-specs.md`, "The Running tab"): fetch from origin, install, restart the service, wait for
+the service to answer, and check that the service runs the newest commit. Closing the tab stops nothing. While a
 deploy is queued or running a second press is refused, and the button's hover line says where to follow the first.
-Everything below, from the progress dialog to the last paragraph about the faulty service, is how every other
-project with an install command deploys.
 
-Pressing **Deploy** on another project opens the board's progress dialog: "Deploying…", its steps and one line under them, at one size
-while the steps run. Escape and a click outside do not close it while a step runs. It lists five steps, each waiting, running,
-done or failed, one running at a time: fetch from origin, install, restart the service, wait for the service to
-answer, and check that the service runs the newest commit. The page runs them one request each
-(`POST .../deploy/<step>`, `http-routes.md`). The fetch waits up to three seconds for a merge into the same checkout,
-and fails at once with "a spec is being merged into <project> right now" while a landing holds it through its tests.
-The restart runs until `/api/version` stops answering or answers a new
-`startedAt`, and the wait runs from then until a new `startedAt` answers. The last step counts the checkout against origin on the process that will serve the page, so the page
-that loads next never says the check has not been made. The running step's line is drawn in the accent colour, with
-the spinner the running badges use in front of its state word. When the last step is done the dialog says so in the line under the steps, stays
-two seconds and closes. A failed step is shown as failed, with the step and the reason in the dialog's own line,
-for two seconds, and the dialog closes by itself; the steps after it stay waiting, and Escape closes it at once. The
-failure is then drawn first on the Deploy tab, in the usual message layout, naming the step and the reason. The server keeps the
-failure of a refused step per project until the next deploy of that project starts (a restart of the dashboard
-loses it), so a reload or another tab shows it too. A press removes the error from the tab before the dialog opens.
+The job waits for a merge into the same checkout to finish, and its row says it is held back meanwhile. The restart runs until `/api/version` stops answering or answers a
+new `startedAt`, and the wait runs from then until a new `startedAt` answers. The last step counts the checkout
+against origin on the process that will serve the page, so the page that loads next never says the check has not been
+made. A failed step ends the job. The failure is drawn first on the Deploy tab, in the usual message layout, naming
+the step and the reason; the server keeps it until the next deploy starts (a restart of the dashboard loses it), so a
+reload or another tab shows it too.
 
 A restart held back by a landing in flight, or with nothing on the machine to restart the service, ends the run after the
-restart step: the dialog closes and the page reloads onto the Deploy tab's own sentence. While a restart is held,
-every page names the landings it waits for under the header, asks `/api/version` every five seconds, and loads itself again
-once the new service answers, so the line goes when the restart has happened. A deploy that leaves the
-dashboard's own service on an older commit than its checkout — the check finds them different, an install fails after
-the checkout moved, or there is nothing to restart with — stores one message that every page shows under the header
-until a later check finds them equal or the service restarts. A service that never answers after the restart cannot
-store anything, so the page already loaded draws that message, on the Deploy tab and under the header, when the
-dialog closes; a reload removes it. A failure that leaves the board faulty reloads the page instead, so the server
-draws the message under the header.
+restart step. While a restart is held, every page names the landings it waits for under the header, asks
+`/api/version` every five seconds, and loads itself again once the new service answers, so the line goes when the
+restart has happened. A deploy that leaves the dashboard's own service on an older commit than its checkout — the check
+finds them different, an install fails after the checkout moved, or there is nothing to restart with — stores one
+message that every page shows under the header until a later check finds them equal or the service restarts.
 
 The second panel starts a test server for the project, in a new tab. Unless the manifest says
 `deployment.previewFrom: command` and a preview command is configured, the heading stays with a sentence saying it is

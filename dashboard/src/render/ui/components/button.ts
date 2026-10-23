@@ -76,14 +76,13 @@ export const dataAttrs = (data: Record<string, string> = {}): string =>
 /** The class a script or the stylesheet selects a one-button form by:
  *  `actionform` is posted by script (`press.ts`), `reloadform` is posted
  *  by script and the page loaded again on success (`specs-client/reload-form/`),
- *  `schedulerun`, `deployform` and `removeform` have their own listeners,
+ *  `schedulerun` and `removeform` have their own listeners,
  *  and `configactions` lines the button up at the row's end. */
 export type FormHook =
   | "actionform"
   | "actionform schedulerun"
   | "actionform reloadform"
   | "reloadform"
-  | "deployform"
   | "removeform"
   | "configactions reloadform";
 

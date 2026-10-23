@@ -143,17 +143,12 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
       },
     };
   }
-  /** What the deploy routes ask of the landing code: the wrapper above
-   *  for the combined route, and the same install, the restart check and
-   *  the restart itself one at a time for the routes that run a step per
-   *  request. */
+  /** What the deploy routes and the deploy job ask of the landing code:
+   *  the install, the restart check and the restart itself. */
   const deploy: DeployHooks = {
     installAfterMerge,
     installCheckout: (result) => installAfterMergeImpl(landCtx, result),
     restartRegistered: () => inputs.restart.registered(),
-    restartDashboard: () => {
-      void restartAfterLanding(landCtx);
-    },
     isBoard: (root) => isDashboardRoot(landCtx, root),
     // The deploy job's restart waits as long as landings take: nothing may
     // be cut short, so no deadline.
