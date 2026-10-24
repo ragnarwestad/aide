@@ -21,9 +21,14 @@ the run's report. Plain HTML, no styling:
 
 - a tool-by-tool table for the period (date, version, news, source), as the
   log's own entries have it,
-- the "Relevance for Aide" list, each proposed change to
-  `docs/AI_SUPPORT_MATRIX.md` or `.claude/skills/ai-tools-reference/SKILL.md`
-  as its own bullet starting with "Proposed:",
+- the "Relevance for Aide" list,
+- a "To take up in a session" list: one numbered point for each finding that
+  calls for a change in Aide — in `docs/AI_SUPPORT_MATRIX.md` beyond its
+  version rows, `.claude/skills/ai-tools-reference/SKILL.md` or elsewhere (an
+  installer, a skill, a rule, the runner). Each point says what to change and
+  where, quotes the finding as its source words it, and links the sources.
+  A finding that needs no change is not on it, and a period with none says so
+  in one line,
 - one line saying what was changed: the log entry's date, how many old reviews
   were deleted, and which version rows `scripts/stamp-versions` changed — or,
   when the period earned no log entry, that the log was left as it was, and
@@ -35,25 +40,5 @@ fetch that fails is named in the same file with what the fetch answered,
 instead of being left out. "Not read" in the report means a fetch was tried
 and failed, never that it was not tried.
 
-Then write `$AIDE_SCHEDULE_OUTPUT_DIR/proposed-specs.json`: the specs this
-review calls for. When this run ends green the board creates each one as a
-spec; a person reads them and decides which to analyze and implement. The file
-is a JSON list of objects with a `title` and a `description`:
-
-    [{"title": "...", "description": "..."}]
-
-Propose one spec for each finding that calls for a change in Aide — in
-`docs/AI_SUPPORT_MATRIX.md` beyond its version rows,
-`.claude/skills/ai-tools-reference/SKILL.md` or elsewhere (an installer, a
-skill, a rule). Its title says the change. Its description quotes the finding
-as its source words it and lists the sources as links.
-
-A finding that needs no change gets no spec. Write `[]` when nothing needs
-proposing. A title is one line of at most 120 characters, and a description is
-at most 4,000 characters.
-
-The earlier runs' lists are in the sibling directories of
-`$AIDE_SCHEDULE_OUTPUT_DIR` (`../*/proposed-specs.json`). For a finding you
-proposed before, use exactly the title you used then: the board skips a
-proposal whose title matches a spec that already exists, closed ones too. If
-those files cannot be read, carry on without them.
+Propose no specs: write no `proposed-specs.json`. The list is read and taken
+up by a person in a session.
