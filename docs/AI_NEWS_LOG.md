@@ -7,6 +7,7 @@
   - [Watched pages](#watched-pages)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-10-24](#2026-10-24)
   - [2026-10-23](#2026-10-23)
   - [2026-10-19](#2026-10-19)
   - [2026-10-12](#2026-10-12)
@@ -105,6 +106,60 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-10-24
+
+Oct 23 – Oct 24. Not read: Codex changelog page past its first 100,000 characters, the Codex v0.165.0-alpha.1 and
+v0.164.0-alpha.11.1 builds (no notes), Copilot v1.0.104-1 (no notes), the OpenAI developer blog (no dates shown),
+Artificial Analysis (the harness comparison there is still "coming soon"). One X list digest (Oct 24) was read.
+
+**Claude Code (Oct 23, v2.1.310):**
+
+| Date   | Version  | News                                                                                                                                                                  | Source                                                         |
+|--------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
+| Oct 23 | v2.1.310 | Monitor tool on Bedrock/Vertex/Foundry; MCP tool timing out on an unanswered elicitation in `-p` now tells Claude not to repeat the call; Windows PreToolUse hook fix | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Oct 23 | —        | Claude Cowork and chat come together for Enterprise; Claude Duet safety, privacy and security                                                                         | [Blog](https://claude.com/blog/)                               |
+
+**GitHub Copilot CLI (Oct 23 – Oct 24, v1.0.104-0 → v1.0.104-2 pre):**
+
+| Date   | Version    | News                                                                                       | Source                                                     |
+|--------|------------|--------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Oct 23 | v1.0.104-0 | Assisted Permissions without experimental mode; saved Auto preference fallback             | [Releases](https://github.com/github/copilot-cli/releases) |
+| Oct 24 | v1.0.104-2 | Autopilot waits for background tasks (not in `-p --autopilot`); managed model "fusion" fix | [Releases](https://github.com/github/copilot-cli/releases) |
+| Oct 23 | —          | Usage metrics API adds usage from tools like OpenCode; Copilot in Teams                    | [Changelog](https://github.blog/changelog/label/copilot/)  |
+
+**OpenAI Codex CLI (Oct 23, v0.164.0):**
+
+| Date   | Version  | News                                                    | Source                                               |
+|--------|----------|---------------------------------------------------------|------------------------------------------------------|
+| Oct 23 | v0.164.0 | Already in the 2026-10-23 review (stable release notes) | [Releases](https://github.com/openai/codex/releases) |
+
+**OpenCode (Oct 23, v2.1.4):**
+
+| Date   | Version | News                                                                                                                                     | Source                                     |
+|--------|---------|------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------|
+| Oct 23 | v2.1.4  | MCP input forms shown instead of the call timing out; `experimental.background_compaction`; experimental TUI tools; `connectClientMcp()` | [Changelog](https://opencode.ai/changelog) |
+
+**Relevance for Aide:**
+
+- ⭐ MCP elicitation: Claude Code CLI got MCP Tasks and Elicitations (X list, Oct 23), and v2.1.310 changes the error for a
+  tool call that times out on an unanswered elicitation in a non-interactive session; OpenCode v2.1.4 now shows MCP input
+  forms. Proposed: add to `docs/AI_SUPPORT_MATRIX.md` how elicitation behaves in `claude -p`, and check whether
+  `core/scripts/aide-run-spec` should deny it so a headless run cannot wait for an answer.
+  [Post](https://x.com/ClaudeDevs/status/2113698007892070527)
+- ⚠️ OpenCode docs for skills changed: the `opencode/slash` and `opencode/autoinvoke` metadata keys are gone and the page
+  now says OpenCode 1 does not use metadata to control skills (`https://opencode.ai/docs/skills`). Proposed: confirm in
+  `.claude/skills/ai-tools-reference/SKILL.md` that nothing there relies on these keys, and note the 1 versus 2 difference.
+- ⚠️ OpenCode docs for agents changed: the Scout subagent is no longer listed, and Plan may now edit only Markdown plan files
+  in `.opencode/plans/` (`https://opencode.ai/docs/agents`). Proposed: check the OpenCode part of the reference for the
+  built-in agents and the old `~/.opencode/plan/` path.
+- ⚠️ OpenAI reports an unauthenticated remote code execution flaw in Brotli, used by Node.js, Bun and Envoy (X list, Oct 23;
+  no CVE confirmed). Proposed: check Bun and Node versions on the serving host against fixed releases.
+  [Post](https://x.com/OpenAI/status/2113766354386084338)
+- ✅ Copilot CLI v1.0.104-0: Assisted Permissions out of experimental; Copilot usage metrics now count OpenCode.
+- ℹ Watched pages: wording-only changes on the Claude skill best-practices page and three Anthropic engineering articles.
+- ℹ Thariq left Anthropic's Claude Code team; "council" skill idea; Mythos 5 incident analysis; Claude Cowork and chat for Enterprise.
+- ℹ LiteLLM/PHP incident claims (X list, no primary source) carry over from the 2026-10-23 review.
 
 ### 2026-10-23
 
