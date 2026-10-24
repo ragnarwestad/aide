@@ -180,6 +180,11 @@ Which files each tool reads automatically:
 - **Slash commands:** The user types `/command`, Claude executes it
 - **Agents:** Specialized sub-agents for parallel tasks
 - **MCP:** Support for MCP servers via `settings.json`
+- **MCP elicitation in `claude -p`:** the client tells a server it accepts
+  elicitation (form and url), then answers every request with
+  `{"action":"cancel"}` at once, so the tool gets a refusal and the run
+  goes on (verified 2.1.310). `aide-run-spec` therefore does not deny
+  elicitation: no headless run waits for an answer.
 - **Hooks:** Pre/post hooks for tool calls via `settings.json`
 - **Auto-apply edits:** Can be configured to write files without confirmation
 
@@ -355,6 +360,11 @@ reads the prompt from stdin and prints one JSON event per line; OpenCode
 - `--agent build` — the default.
 - `--auto` — additionally answers what it would otherwise ask about.
 - `--session <id>` — continues a session.
+
+MCP elicitation: `opencode run` does not tell a server it accepts
+elicitation (its `initialize` sends only `roots`), so a server that
+follows the MCP spec never asks, and the run never waits for an answer
+(verified 1.19.0).
 
 ---
 
