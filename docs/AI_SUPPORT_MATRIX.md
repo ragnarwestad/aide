@@ -306,11 +306,11 @@ one is logged in (`opencode providers login`).
 
 ### Instruction files (read automatically)
 
-| File                                         | Description                                               |
-|----------------------------------------------|-----------------------------------------------------------|
-| `AGENTS.md` (`~/.config/opencode/AGENTS.md`) | Global instruction file (installed from `core/AGENTS.md`) |
-| `~/.claude/CLAUDE.md`                        | Read as well, unqualified                                 |
-| `AGENTS.md` / `CLAUDE.md` in the project     | Read; the first project-level match wins                  |
+| File                                         | Description                                                                                                                                                                                                                            |
+|----------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `AGENTS.md` (`~/.config/opencode/AGENTS.md`) | Global instruction file (installed from `core/AGENTS.md`)                                                                                                                                                                              |
+| `~/.claude/CLAUDE.md`                        | OpenCode 1: read only when `~/.config/opencode/AGENTS.md` does not exist, so not where Aide is installed. OpenCode 2: not read                                                                                                         |
+| `AGENTS.md` / `CLAUDE.md` in the project     | OpenCode 1: the first of `AGENTS.md`, `CLAUDE.md` and `CONTEXT.md` that exists wins, searched from the working directory up to the root. OpenCode 2: `AGENTS.md` only, every one up to the project root, combined with the global file |
 
 ### Skills (read in place — nothing installed)
 
@@ -322,6 +322,14 @@ one is logged in (`opencode providers login`).
 A skill is reached through a `skill` tool, by name, not as a slash
 command — which is why a headless step names its skill in words.
 
+OpenCode 1 (1.19.0 on the serving host) does not use metadata to control
+slash commands or automatic skill selection: an unknown frontmatter field
+is ignored. OpenCode 2 does: a metadata key, or `disable-model-invocation:
+true`, hides a skill from the model's list while it can still be loaded by
+ID, and a prompt loads a skill by hand by mentioning it as `@skill-id`.
+Aide's installed skills set neither, so both versions offer every one of
+them to the model.
+
 ### Configuration
 
 | File                               | Description                                   |
@@ -330,10 +338,20 @@ command — which is why a headless step names its skill in words.
 
 ### Headless use
 
-`opencode run --format json` reads the prompt from stdin and prints one
-JSON event per line. Its flags:
+On OpenCode 1 (checked against 1.19.0), `opencode run --format json`
+reads the prompt from stdin and prints one JSON event per line; OpenCode
+2's CLI page documents none of these flags. Its flags:
 
-- `--agent plan` — read-only.
+- `--agent plan` — on 1.19.0 it denies file edits except Markdown plan
+  files in `.opencode/plans/` in the project and in `plans/` under
+  OpenCode's data directory, and it does not restrict shell commands
+  (`bash` falls through to the default `allow`, and the serving host's
+  `opencode.json` sets no `permission`). So the `plan` and `default`
+  permission modes, which `core/scripts/lib/run-spec/setup/invocation.sh`
+  runs as `--agent plan`, do not give a run that changes no file in the
+  project: it may write `.opencode/plans/*.md` in the worktree, and a
+  shell command it runs is not stopped. OpenCode 2's plan agent likewise
+  may write plan files and leaves shell commands to the permission config.
 - `--agent build` — the default.
 - `--auto` — additionally answers what it would otherwise ask about.
 - `--session <id>` — continues a session.

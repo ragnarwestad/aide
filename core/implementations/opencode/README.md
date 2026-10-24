@@ -55,8 +55,10 @@ step's totals are the SUM over every `step_finish` event, because
 OpenCode closes no turn with a single summary.
 
 A permission mode reaches it as an agent rather than a sandbox flag:
-`plan` is the read-only one, `build` allows every tool, and `--auto`
-additionally answers what `build` would otherwise ask about.
+`plan` denies file edits except its own plan files but leaves shell
+commands allowed (see `docs/AI_SUPPORT_MATRIX.md`, OpenCode), `build`
+allows every tool, and `--auto` additionally answers what `build` would
+otherwise ask about.
 
 Aide's skills have no slash command here — the model reaches a skill
 through a `skill` tool, by name — so a headless step names its skill in
