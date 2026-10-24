@@ -167,9 +167,6 @@ tests/
 │   │
 │   └── evaluation/                           # Prompt evaluation via API (excluded)
 │
-├── utils/                                    # Shared test utilities
-│   └── shared_assertions.py
-│
 └── conftest.py                               # Pytest fixtures
 ```
 
