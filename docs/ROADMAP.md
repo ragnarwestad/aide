@@ -313,6 +313,10 @@ runs outside the sandbox that a step may read but not write, with the network op
 - OpenCode steps, which have no sandbox.
 - The main checkouts' working trees, the step's own project's included, which a step can still read and write; a
   file the board or the runner reads from there (a project's own `.claude/` settings, `.mcp.json`) is not protected.
+- The main checkouts' git directories, apart from their hooks and settings: a step can still move a checkout's `HEAD`
+  or refs (and so the commit a scheduled job's prompt is read from), or swap a worktree's git directory for a link,
+  and a process a step leaves running can rewrite a worktree's git links after they are put back. Running the
+  runner's own git with an explicit `--git-dir` and `-c core.hooksPath=/dev/null` would close most of this.
 - The network, which is still open.
 - The runner's own test run, which executes what the step wrote outside the sandbox, with the denied paths
   reachable. Only b closes this.
