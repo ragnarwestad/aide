@@ -6,6 +6,7 @@
 - [How a run names its Claude sessions](#how-a-run-names-its-claude-sessions)
 - [The dashboard's own checkouts](#the-dashboards-own-checkouts)
 - [How a run touches the repositories](#how-a-run-touches-the-repositories)
+- [What a step can reach](#what-a-step-can-reach)
 - [What counts as a step having run](#what-counts-as-a-step-having-run)
 - [What a finished step publishes](#what-a-finished-step-publishes)
 - [The run log](#the-run-log)
@@ -17,11 +18,12 @@ What a run does to the repositories it touches: the clones the dashboard keeps o
 checkouts a step works in, what a finished step publishes — and, last, how to run one step by hand.
 
 **Where the code is.** `core/scripts/aide-run-spec` is the entry point and holds little else; the mechanics are in
-`core/scripts/lib/run-spec/`, twenty-five files in five folders named for when they run. The ones this page describes:
+`core/scripts/lib/run-spec/`, twenty-nine files in five folders named for when they run. The ones this page describes:
 
 | For a change to                                     | Open                                      |
 |-----------------------------------------------------|-------------------------------------------|
 | The flags and what each refuses                     | `run-spec/setup/arguments.sh`             |
+| What a step may not reach, and the sandbox settings | `run-spec/setup/sandbox.sh`               |
 | The worktrees, their paths and the links into them  | `run-spec/checkout/checkouts.sh`          |
 | Branching each root, and the per-root lock it takes | `run-spec/checkout/branch.sh`             |
 | The gates before a step starts, and the lock itself | `run-spec/setup/gates.sh`                 |
@@ -187,6 +189,34 @@ invocation would delete the installed script.
 **`aide-run-spec`'s shebang finds `/bin/bash` on this machine, and that is bash 3.2 — `mapfile` is bash 4 and is not
 available.** Anything added to this script that wants an array built from multiple lines has to set it via repeated
 `array+=(...)` instead.
+
+## What a step can reach
+
+**A Claude step runs in Claude Code's own sandbox, with a fixed list of paths it may not read or write.** The list is
+the credentials on the serving host and the board's own secrets: `~/.ssh`, `~/.gnupg`, `~/.aws`, `~/.config/gh`, the
+macOS keychains, Docker's, npm's and netrc's credentials, the Codex and OpenCode logins, and the board's tokens and
+push key. It lives in `run-spec/setup/sandbox.sh`, and no project setting changes it.
+
+Everything else is reachable:
+
+- shell commands may write anywhere else in the home directory and in the temporary directories;
+- the step's own worktree and its spec's worktree in the specs repository are writable, and so is the main checkout's
+  git directory they point into;
+- the network is open, and a command may start a server on localhost and reach it.
+
+The sandbox confines shell commands only. Claude's file tools follow permission rules instead, so the runner passes the
+same paths as `Read(...)` and `Edit(...)` deny rules, which win over the user's own global `allow` of `Edit` and
+`Write`. A command cannot ask to run outside the sandbox.
+
+**A browser cannot start in the sandbox.** Chromium registers a macOS service the sandbox has no setting for. A Claude
+step is told so in its prompt and does not run browser tests itself; the runner's own test run, outside the sandbox,
+runs them before the work can land.
+
+**A Codex step and an OpenCode step run without it.** Codex's sandbox can confine writing but not reading, and `git`
+in a worktree fails under `workspace-write`, because the worktree's git directory lies in the main checkout. OpenCode
+has no sandbox of its own. `docs/AI_SUPPORT_MATRIX.md` has the versions this was checked against.
+
+The runner's own commit, push and landing run outside the sandbox, as before.
 
 ## What counts as a step having run
 

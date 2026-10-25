@@ -185,6 +185,22 @@ Which files each tool reads automatically:
   `{"action":"cancel"}` at once, so the tool gets a refusal and the run
   goes on (verified 2.1.310). `aide-run-spec` therefore does not deny
   elicitation: no headless run waits for an answer.
+- **Sandbox in a headless step:** `aide-run-spec` passes `--settings` with
+  `sandbox.enabled`, `allowUnsandboxedCommands: false`,
+  `autoAllowBashIfSandboxed: true`, `filesystem.allowWrite` of `~/` and the
+  temporary directories, `network.allowLocalBinding: true`, and a fixed deny
+  list as `denyRead`, `denyWrite` and `Read(...)`/`Edit(...)` deny rules
+  (`core/scripts/lib/run-spec/setup/sandbox.sh`). Checked on 2.1.310:
+  - the sandbox confines shell commands only; the file tools follow
+    permission rules, and a `deny` rule wins over a global `allow`;
+  - a permission rule must start `~/` or `//`; one that starts with a single
+    `/` is read relative to the settings file and denies nothing;
+  - `Write(...)` rules are not used for files; `Edit(...)` covers every
+    tool that writes;
+  - a symlink to a denied path is denied as well;
+  - Chromium cannot start inside it (`bootstrap_check_in … Permission
+    denied`); `network.allowMachLookup` does not help, since it allows
+    looking a service up, not registering one.
 - **Hooks:** Pre/post hooks for tool calls via `settings.json`
 - **Auto-apply edits:** Can be configured to write files without confirmation
 
@@ -287,6 +303,12 @@ core/implementations/copilot/
 - **Aide skills** — read from `~/.agents/skills/`, where the installer puts `core/skills/`
 - **MCP:** Support via `~/.codex/config.toml`
 - **Parallel execution** — can work on several tasks at once
+- **Sandbox in a headless step:** `aide-run-spec` keeps
+  `--dangerously-bypass-approvals-and-sandbox` for `bypassPermissions`.
+  Checked on 0.164.0, `workspace-write` (with network access on) stops
+  `git` in a worktree, whose git directory lies in the main checkout,
+  stops writes to `~/.cache`, and still lets a command read `~/.ssh`: its
+  sandbox confines writing but cannot deny reading.
 
 ### Implementation
 

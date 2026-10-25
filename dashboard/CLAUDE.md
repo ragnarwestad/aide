@@ -46,6 +46,15 @@ get them, and reads them by hand.
   a step that writes another spec's folder ends `scope-violation`, with
   those changes discarded before the commit. `create` is the one step
   that makes a folder.
+- **A Claude step runs in Claude Code's sandbox with a fixed deny list**
+  (`run-spec/setup/sandbox.sh`), written twice: as the sandbox's
+  `denyRead`/`denyWrite`, which confine shell commands, and as `Read(...)`
+  and `Edit(...)` permission rules, which confine the file tools. Every path
+  starts `~/`: a rule that starts with a single `/` is read relative to the
+  settings file and denies nothing, silently. A deny cannot be opened again
+  for a folder under it, so nothing a step writes in, nor a folder above it,
+  goes on the list. Codex and OpenCode run without it (`docs/the-runner.md`,
+  "What a step can reach").
 - The script runs from a private copy of itself — an `implement` step
   reinstalls it under bash's feet — and `/bin/bash` here is 3.2: no
   `mapfile`, build arrays with `array+=(...)`.

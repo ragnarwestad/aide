@@ -303,7 +303,15 @@ Two ways to narrow it:
   Dagger: each agent gets a container on a branch of its own, and its commands and logs can be read afterwards.
 
 Neither keeps a run from damaging or reading its own repository, or from sending what it reads out, unless the
-network is narrowed too. Option a is where to start.
+network is narrowed too.
+
+Option a is in place for Claude steps: a fixed deny list of credentials and the board's secrets, with the network
+open (`dashboard/docs/the-runner.md`, "What a step can reach"). What is left:
+
+- Codex steps, whose sandbox cannot deny reading and stops `git` in a worktree.
+- OpenCode steps, which have no sandbox.
+- The other projects' checkouts, which a step can still read and write.
+- The network, which is still open.
 
 ### 19. Shorter command output for a run
 

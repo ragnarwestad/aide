@@ -260,6 +260,8 @@ source "$SCRIPT_DIR/lib/run-spec/setup/gates.sh"
 
 # --- finding the tool and building its command line ---
 # shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/run-spec/setup/sandbox.sh"
+# shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/run-spec/setup/invocation.sh"
 
 # --- the throwaway checkout each run works in ---
