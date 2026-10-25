@@ -419,6 +419,10 @@ browser of the logged-in Chrome on the serving host (`aide-run-spec --chrome`), 
 login. It needs Chrome running there with the Claude extension signed in to the same account as Claude Code, and a
 model run by Claude; absent means no browser.
 
+An entry may also carry `"sandbox": false`, set as Sandbox on the same two pages: each run starts Claude without its
+sandbox (`aide-run-spec --no-sandbox`), for a prompt whose commands start a browser, which cannot start inside it
+(`docs/the-runner.md`, "What a step can reach"). Absent means the sandbox, as for every step.
+
 A fresh install has no scheduled jobs, whatever the projects it serves contain. A project's own files never carry a
 schedule; a job belongs to the installation that fires it.
 

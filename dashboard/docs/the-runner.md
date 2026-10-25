@@ -197,6 +197,20 @@ the credentials on the serving host and the board's own secrets: `~/.ssh`, `~/.g
 macOS keychains, Docker's, npm's and netrc's credentials, the Codex and OpenCode logins, and the board's tokens and
 push key. It lives in `run-spec/setup/sandbox.sh`, and no project setting changes it.
 
+**A second list may be read but not written**: what something outside the sandbox later runs or reads as its
+settings. Those are:
+
+- the shell's startup files (`~/.zshrc`, `~/.zshenv`, `~/.bashrc` and the rest);
+- `~/Library/LaunchAgents`, `~/.local/bin` and mise's tools and settings;
+- git's own settings (`~/.gitconfig`, `~/.config/git`);
+- the AI tools' settings, hooks, skills, agents and rules (`~/.claude.json`, the settings and those folders under
+  `~/.claude`, `~/.agents`, `~/.codex`, `~/.config/opencode`);
+- the board's `queue-config.json`, where a scheduled job may turn the sandbox off;
+- the `.git/hooks` and `.git/config` of the step's own main checkouts and of every checkout under
+  `~/.aide/dashboard/checkouts`, and each of those checkouts' `settings.yaml`, which holds the project's test command.
+
+A step therefore cannot install anything onto the serving host; `AIDE_INSTALL_CMD` does that after a landing.
+
 Everything else is reachable:
 
 - shell commands may write anywhere else in the home directory and in the temporary directories;
@@ -210,7 +224,14 @@ same paths as `Read(...)` and `Edit(...)` deny rules, which win over the user's 
 
 **A browser cannot start in the sandbox.** Chromium registers a macOS service the sandbox has no setting for. A Claude
 step is told so in its prompt and does not run browser tests itself; the runner's own test run, outside the sandbox,
-runs them before the work can land.
+runs them before the work can land. A scheduled job whose own commands start a browser runs without the sandbox: its
+entry's Sandbox is set to Off on its Settings tab (`"sandbox": false`, `aide-run-spec --no-sandbox`).
+
+**The runner's own test run executes what the step wrote, outside the sandbox.** An `implement` step's tests, a
+landing's tests and every hook git runs there run with everything the user can reach, the denied paths included. A
+step talked into writing a test that reads a key gets that key read when the runner runs the suite; the step itself
+never sees the output of a passing run, but the test can send what it read over the open network. Only a container
+per run (`docs/ROADMAP.md`, idea 18b) closes this.
 
 **A Codex step and an OpenCode step run without it.** Codex's sandbox can confine writing but not reading, and `git`
 in a worktree fails under `workspace-write`, because the worktree's git directory lies in the main checkout. OpenCode
@@ -446,7 +467,8 @@ folder, `--prompt-file` for `schedule`, `--reason` for `close`. Beyond those: `-
 chooses the CLI, `--model` and `--effort` what it runs as, `--push none|branch|pr` what is published,
 `--kill-grace-sec` (30) how long the step has between SIGTERM and SIGKILL, `--worktree-base` where the
 worktrees go, and `--chrome` starts Claude with the logged-in Chrome — for `schedule` with `--tool claude` only,
-refused anywhere else. `run-spec/setup/arguments.sh` is the whole list.
+refused anywhere else, and `--no-sandbox` runs Claude without its sandbox, for the same step and tool only.
+`run-spec/setup/arguments.sh` is the whole list.
 It refuses to start when the spec folder does not exist or when a required value is missing — but not over a dirty
 checkout: the work happens in a worktree cut from origin's default branch, so what somebody left uncommitted in the
 main checkout stops nobody. `--permission-mode` is never defaulted: the most dangerous flag has to be typed out. The queue passes

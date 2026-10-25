@@ -312,3 +312,30 @@ describe("an entry's browser choice", () => {
     expect(stored()[0]!.chrome).toBeUndefined();
   });
 });
+
+describe("an entry's sandbox choice", () => {
+  test("a create runs without the sandbox only when off is posted", () => {
+    const a = setup();
+    expect(createScheduleEntry(a.store, PROJECT, a.dir, { ...req(), sandbox: "off" }).ok).toBe(true);
+    expect(a.stored()[0]!.sandbox).toBe(false);
+    for (const sandbox of [undefined, "on"]) {
+      const b = setup();
+      expect(createScheduleEntry(b.store, PROJECT, b.dir, { ...req(), sandbox }).ok).toBe(true);
+      expect(b.stored()[0]!.sandbox).toBeUndefined();
+    }
+  });
+
+  test("a value other than on or off is refused and nothing is written", () => {
+    const { dir, store, stored } = setup();
+    expect(createScheduleEntry(store, PROJECT, dir, { ...req(), sandbox: "no" }).ok).toBe(false);
+    expect(stored()).toHaveLength(0);
+  });
+
+  test("an edit that posts on turns it back on, and one that posts nothing keeps it", () => {
+    const { dir, store, stored } = setup([{ name: "nightly", sandbox: false }]);
+    expect(updateScheduleEntry(store, PROJECT, dir, "nightly", req()).ok).toBe(true);
+    expect(stored()[0]!.sandbox).toBe(false);
+    expect(updateScheduleEntry(store, PROJECT, dir, "nightly", { ...req(), sandbox: "on" }).ok).toBe(true);
+    expect(stored()[0]!.sandbox).toBeUndefined();
+  });
+});

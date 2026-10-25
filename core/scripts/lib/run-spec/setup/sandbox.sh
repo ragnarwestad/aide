@@ -29,6 +29,66 @@ sandbox_denied=(
   Library/Keychains
 )
 
+# What a step may read but not write: anything something outside the
+# sandbox later runs or reads as settings. A login shell, launchd, the
+# commands on PATH, git's own settings, the AI tools' settings, hooks and
+# skills, and the board's queue settings, where a schedule entry may turn
+# the sandbox off. Installing onto the serving host is the landing's job
+# (`AIDE_INSTALL_CMD`), never a step's.
+sandbox_write_denied=(
+  .zshrc
+  .zshenv
+  .zprofile
+  .zlogin
+  .bashrc
+  .bash_profile
+  .profile
+  Library/LaunchAgents
+  .local/bin
+  .local/share/mise
+  .config/mise
+  .gitconfig
+  .config/git
+  .claude.json
+  .claude/settings.json
+  .claude/settings.local.json
+  .claude/hooks
+  .claude/skills
+  .claude/agents
+  .claude/rules
+  .claude/plugins
+  .claude/CLAUDE.md
+  .agents
+  .codex
+  .config/opencode
+  .aide/dashboard/queue-config.json
+)
+
+# The same for the files the runner and the board run git and the tests
+# from, outside the sandbox: every main checkout's hooks and git settings,
+# and every dashboard checkout's settings.yaml, which holds the test
+# command (denied whether it exists or not, so none can be made). One path
+# per line, written the way the rules read it: `~/…` under $HOME, `//…`
+# anywhere else.
+sandbox_runtime_write_denied() {
+  local dir path
+  for dir in "${project_root:-}" "${specs_repo:-}" "$HOME"/.aide/dashboard/checkouts/*/code \
+             "$HOME"/.aide/dashboard/checkouts/*/specs; do
+    [ -n "$dir" ] && [ -d "$dir/.git" ] || continue
+    printf '%s\n' "$dir/.git/hooks" "$dir/.git/config"
+  done
+  for dir in "$HOME"/.aide/dashboard/checkouts/*/; do
+    [ -d "$dir" ] && printf '%s\n' "${dir%/}/settings.yaml"
+  done | sort -u
+} 2>/dev/null
+sandbox_rule_path() {
+  # shellcheck disable=SC2088  # a literal `~/`, as above
+  case "$1" in
+    "$HOME"/*) printf '~/%s\n' "${1#"$HOME"/}" ;;
+    *) printf '/%s\n' "$1" ;;
+  esac
+}
+
 # Claude's `--settings` for every step, as one line of JSON. The sandbox
 # confines shell commands only; the file tools (Read, Edit, Write) follow
 # permission rules, and a `deny` rule wins over the user's own global `allow`
@@ -52,22 +112,29 @@ sandbox_denied=(
 # anything, so the step is told instead ($sandbox_note), and the runner's own
 # test run after the step, outside the sandbox, runs the browser tests.
 sandbox_settings_json() {
-  local paths
+  local paths writes runtime path
   # shellcheck disable=SC2088  # a literal `~/`: the rules must say it, not $HOME
   paths="$(printf '~/%s\n' "${sandbox_denied[@]}" | jq -R . | jq -sc .)"
-  jq -cn --argjson paths "$paths" '{
+  runtime="$(sandbox_runtime_write_denied)"
+  # shellcheck disable=SC2088
+  writes="$({ printf '~/%s\n' "${sandbox_write_denied[@]}"
+              while IFS= read -r path; do
+                [ -n "$path" ] && sandbox_rule_path "$path"
+              done <<< "$runtime"; } | jq -R . | jq -sc .)"
+  jq -cn --argjson paths "$paths" --argjson writes "$writes" '{
     sandbox: {
       enabled: true,
       allowUnsandboxedCommands: false,
       autoAllowBashIfSandboxed: true,
       filesystem: {
         allowWrite: ["~/", "/tmp", "/private/tmp", "/private/var/folders"],
-        denyWrite: $paths, denyRead: $paths
+        denyWrite: ($paths + $writes), denyRead: $paths
       },
       network: { allowLocalBinding: true }
     },
     permissions: {
-      deny: [ $paths[] | ("Read(" + . + ")", "Read(" + . + "/**)", "Edit(" + . + ")", "Edit(" + . + "/**)") ]
+      deny: ([ $paths[] | ("Read(" + . + ")", "Read(" + . + "/**)", "Edit(" + . + ")", "Edit(" + . + "/**)") ]
+             + [ $writes[] | ("Edit(" + . + ")", "Edit(" + . + "/**)") ])
     }
   }'
 }

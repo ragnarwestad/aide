@@ -81,6 +81,16 @@ export function chromeFor(ctx: ProjectCheckoutContext, job: Job, step: string): 
   return ctx.scheduleStore.list(job.project).find((e) => e.name === name)?.chrome === true;
 }
 
+/** Whether a `schedule` step runs Claude without its sandbox: its entry's
+ *  own `sandbox: false`, read fresh at spawn time like `chrome` above.
+ *  False for every other step, and for an entry since removed. */
+export function noSandboxFor(ctx: ProjectCheckoutContext, job: Job, step: string): boolean {
+  if (step !== "schedule") return false;
+  if (!job.specFolder.startsWith("schedule-")) return false;
+  const name = job.specFolder.slice("schedule-".length);
+  return ctx.scheduleStore.list(job.project).find((e) => e.name === name)?.sandbox === false;
+}
+
 /** Where a project's spec folders are LISTED from (spec 218): the
  *  dashboard's own checkout once one has been resolved, and nothing
  *  otherwise — `discoverProjects` then walks the person's own, exactly

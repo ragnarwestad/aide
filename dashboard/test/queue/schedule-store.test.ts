@@ -239,3 +239,25 @@ describe("an entry's browser choice", () => {
     expect(store.list("aide")[0]!.chrome).toBe(true);
   });
 });
+
+describe("an entry's sandbox choice", () => {
+  const base = { name: "n", cron: "0 3 * * *", prompt: "p.md" };
+
+  test("only the literal false turns the sandbox off; anything else keeps it", () => {
+    expect(parseScheduleEntries([{ ...base, sandbox: false }])[0]!.sandbox).toBe(false);
+    for (const sandbox of [undefined, true, "false", "off", 0, null]) {
+      const [kept] = parseScheduleEntries([{ ...base, sandbox }]);
+      expect(kept).toBeDefined();
+      expect(kept!.sandbox).toBeUndefined();
+    }
+  });
+
+  test("a saved choice is written to the file only when it turns the sandbox off", () => {
+    const store = createScheduleStore(file);
+    expect(store.save("aide", [entry({ sandbox: false }), entry({ name: "plain" })])).toBeNull();
+    const written = JSON.parse(readFileSync(file, "utf-8")).schedules.aide;
+    expect(written[0].sandbox).toBe(false);
+    expect("sandbox" in written[1]).toBe(false);
+    expect(store.list("aide")[0]!.sandbox).toBe(false);
+  });
+});

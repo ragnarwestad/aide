@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createScheduleStore } from "../../../src/queue/schedule-store.ts";
 import type { Job } from "../../../src/queue/queue.ts";
-import { chromeFor, promptFileFor, type ProjectCheckoutContext } from "../../../src/serve/project-checkout.ts";
+import { chromeFor, noSandboxFor, promptFileFor, type ProjectCheckoutContext } from "../../../src/serve/project-checkout.ts";
 
 let dir: string;
 let file: string;
@@ -51,4 +51,16 @@ test("a scheduled job gets Chrome only when its own entry asks, read fresh at sp
   expect(chromeFor(c, job("schedule-other"), "schedule")).toBe(false);
   writeFileSync(file, entries());
   expect(chromeFor(c, job("schedule-nightly"), "schedule")).toBe(false);
+});
+
+test("a scheduled job runs without the sandbox only when its own entry says so, read fresh at spawn time", () => {
+  const entries = (sandbox?: false) =>
+    JSON.stringify({ schedules: { aide: [{ name: "nightly", cron: "0 3 * * *", prompt: "docs/a.md", ...(sandbox === false ? { sandbox } : {}) }] } });
+  writeFileSync(file, entries(false));
+  const c = ctx();
+  expect(noSandboxFor(c, job("schedule-nightly"), "schedule")).toBe(true);
+  expect(noSandboxFor(c, job("schedule-nightly"), "implement")).toBe(false);
+  expect(noSandboxFor(c, job("schedule-other"), "schedule")).toBe(false);
+  writeFileSync(file, entries());
+  expect(noSandboxFor(c, job("schedule-nightly"), "schedule")).toBe(false);
 });

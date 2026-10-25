@@ -53,7 +53,11 @@ get them, and reads them by hand.
   starts `~/`: a rule that starts with a single `/` is read relative to the
   settings file and denies nothing, silently. A deny cannot be opened again
   for a folder under it, so nothing a step writes in, nor a folder above it,
-  goes on the list. Codex and OpenCode run without it (`docs/the-runner.md`,
+  goes on the list. A second list is denied for writing only: what runs
+  outside the sandbox later (shell startup files, PATH, git and AI-tool
+  settings, `queue-config.json`, every checkout's `.git/hooks`,
+  `.git/config` and `settings.yaml`). Codex and OpenCode run without it, and
+  so does a schedule entry with `"sandbox": false` (`docs/the-runner.md`,
   "What a step can reach").
 - The script runs from a private copy of itself — an `implement` step
   reinstalls it under bash's feet — and `/bin/bash` here is 3.2: no

@@ -48,11 +48,19 @@ export interface ScheduleEntry {
    *  reads a page behind a login. Absent means no: every run gets the
    *  browser only when its own entry asks. */
   chrome?: boolean;
+  /** `false` runs Claude without its sandbox (`aide-run-spec
+   *  --no-sandbox`), for a prompt whose commands start a browser, which
+   *  cannot start in it. Absent means the sandbox, as for every step. */
+  sandbox?: false;
 }
 
 /** What the form posts for the browser choice: `yes` asks for Chrome,
  *  `no` clears it. */
 export const isScheduleChrome = (v: unknown): v is "yes" | "no" => v === "yes" || v === "no";
+
+/** What the form posts for the sandbox choice: `on` keeps it, `off` runs
+ *  without it. */
+export const isScheduleSandbox = (v: unknown): v is "on" | "off" => v === "on" || v === "off";
 
 /** When a scheduled job's run sends a push: never, when the run did not
  *  succeed (`failed`, `stopped` or `interrupted`), or every run. */

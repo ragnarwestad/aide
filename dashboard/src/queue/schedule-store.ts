@@ -55,6 +55,7 @@ export function parseScheduleEntries(raw: unknown): ScheduleEntry[] {
       ...(since && !isNaN(Date.parse(since)) ? { since } : {}),
       ...(isScheduleNotify(notify) ? { notify } : {}),
       ...(e.chrome === true ? { chrome: true } : {}),
+      ...(e.sandbox === false ? { sandbox: false as const } : {}),
     });
   }
   return entries;
@@ -71,6 +72,7 @@ function serialize(entry: ScheduleEntry): Record<string, unknown> {
     ...(entry.since ? { since: entry.since } : {}),
     ...(entry.notify ? { notify: entry.notify } : {}),
     ...(entry.chrome ? { chrome: true } : {}),
+    ...(entry.sandbox === false ? { sandbox: false } : {}),
     ...(entry.enabled ? {} : { enabled: false }),
   };
 }

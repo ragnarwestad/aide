@@ -115,6 +115,9 @@ prompt_file=""
 # `schedule` with Claude alone: start Claude with the browser of the
 # logged-in Chrome, for a job whose prompt reads a page behind a login.
 chrome="no"
+# `schedule` with Claude alone: run without Claude's sandbox
+# (setup/sandbox.sh), for a job whose commands start a browser.
+sandbox="yes"
 # Where to keep the claude transcript. Opt-in: without it the captured
 # output goes with the rest of $work_dir, exactly as it always has, so
 # no existing caller changes behaviour.
@@ -158,6 +161,7 @@ while [ $# -gt 0 ]; do
     --reset-files) reset_files="yes"; shift ;;
     --prompt-file) prompt_file="${2:-}"; shift 2 ;;
     --chrome) chrome="yes"; shift ;;
+    --no-sandbox) sandbox="no"; shift ;;
     --timeout-sec) timeout_sec="${2:-}"; shift 2 ;;
     --permission-mode) permission_mode="${2:-}"; shift 2 ;;
     --result-file) result_file="${2:-}"; shift 2 ;;
@@ -247,6 +251,10 @@ fi
 if [ "$chrome" = "yes" ]; then
   [ "$command_name" = "schedule" ] || refuse "--chrome is for --command schedule only, not $command_name"
   [ "${tool:-claude}" = "claude" ] || refuse "--chrome needs --tool claude, not $tool"
+fi
+if [ "$sandbox" = "no" ]; then
+  [ "$command_name" = "schedule" ] || refuse "--no-sandbox is for --command schedule only, not $command_name"
+  [ "${tool:-claude}" = "claude" ] || refuse "--no-sandbox needs --tool claude, not $tool"
 fi
 
 case "$push_mode" in

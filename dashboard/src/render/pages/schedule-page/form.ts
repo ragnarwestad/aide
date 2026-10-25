@@ -16,7 +16,7 @@ export interface ScheduleFormOptions {
    *  label and nothing else, since both cases post to their own
    *  `action`. */
   entryName?: string;
-  entry?: { name: string; cron: string; prompt: string; model?: string; notify?: ScheduleNotify; chrome?: boolean };
+  entry?: { name: string; cron: string; prompt: string; model?: string; notify?: ScheduleNotify; chrome?: boolean; sandbox?: false };
   action: string;
   /** Every allowed project (spec 278): draws a `<select name="project">`
    *  the same way the New-spec form's own Project field is
@@ -141,6 +141,23 @@ function browserField(opts: ScheduleFormOptions, lang: Language): string {
   return `<div class="schedulebrowser">${field(t(lang, "schedule.browser"), `<select name="chrome">${options}</select>`)}</div>`;
 }
 
+/** Each sandbox choice the form posts and the catalogue key of its word. */
+export const SANDBOX_WORDS = [
+  ["on", "schedule.sandboxOn"],
+  ["off", "schedule.sandboxOff"],
+] as const;
+
+/** Whether a run's commands run in Claude's sandbox: its own line under
+ *  Browser, starting on On, so running without it is something an entry
+ *  asks for. */
+function sandboxField(opts: ScheduleFormOptions, lang: Language): string {
+  const chosen = opts.entry?.sandbox === false ? "off" : "on";
+  const options = SANDBOX_WORDS
+    .map(([value, key]) => `<option value="${value}"${value === chosen ? " selected" : ""}>${esc(t(lang, key))}</option>`)
+    .join("");
+  return `<div class="schedulesandbox">${field(t(lang, "schedule.sandbox"), `<select name="sandbox">${options}</select>`)}</div>`;
+}
+
 export const CRON_NEXT_HOOK = "cron-next";
 
 export function renderScheduleForm(opts: ScheduleFormOptions, lang: Language = "en"): string {
@@ -184,6 +201,7 @@ export function renderScheduleForm(opts: ScheduleFormOptions, lang: Language = "
     models +
     notifyField(opts, lang) +
     browserField(opts, lang) +
+    sandboxField(opts, lang) +
     `<div class="factions">${btn({ label: opts.entryName ? "Save" : "Create", variant: "primary" })}` +
     // A link, as the Config tab's Cancel is: it loads the tab as saved,
     // and `data-discard-changes` lets it past the leave question.

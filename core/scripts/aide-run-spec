@@ -119,7 +119,7 @@ Usage:
                  --spec <arg> [--specs-root P] [--title T] [--description D] [--depends-on D]
                  [--reason R] [--acceptance-not-required] [--no-ai-formulate]
                  [--criteria-checks off|warn|stop] [--choose-approach yes|no]
-                 [--prompt-file F] [--chrome] [--timeout-sec S] [--permission-mode M]
+                 [--prompt-file F] [--chrome] [--no-sandbox] [--timeout-sec S] [--permission-mode M]
                  [--result-file F] [--model M] [--effort E] [--tool T]
                  [--session-id S] [--resume-session S] [--stream-file F] [--kill-grace-sec S]
                  [--push none|branch|pr] [--worktree-base P] [--pull] [--dry-run]

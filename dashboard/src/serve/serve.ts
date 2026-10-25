@@ -238,7 +238,7 @@ export function createServer(opts: ServerOptions) {
     codeLanding: resolution.codeLanding,
     queuePush: opts.queuePush,
     promptFileFor: resolution.promptFileFor,
-    chromeFor: resolution.chromeFor,
+    chromeFor: resolution.chromeFor, noSandboxFor: resolution.noSandboxFor,
     notifier,
     landNewSpec: land.landNewSpec,
     landStepBranch: land.landStepBranch,

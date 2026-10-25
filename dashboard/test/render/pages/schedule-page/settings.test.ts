@@ -106,7 +106,7 @@ describe("New", () => {
     const window = new Window();
     window.document.body.innerHTML = html;
     const names = fieldNames(window.document as unknown as Document);
-    expect(names).toEqual(["chrome", "cron", "model", "name", "notify", "prompt"]);
+    expect(names).toEqual(["chrome", "cron", "model", "name", "notify", "prompt", "sandbox"]);
     expect(fieldNames(page({ editing: true }))).toEqual(names);
   });
 });

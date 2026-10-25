@@ -9,7 +9,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { CronExpressionParser } from "cron-parser";
 import { listedModelName } from "../../queue/model-name.ts";
-import { escapesRoot, isScheduleChrome, isScheduleNotify, SCHEDULE_NAME_RE, type ScheduleEntry, type ScheduleNotify } from "../../queue/schedule.ts";
+import { escapesRoot, isScheduleChrome, isScheduleNotify, isScheduleSandbox, SCHEDULE_NAME_RE, type ScheduleEntry, type ScheduleNotify } from "../../queue/schedule.ts";
 import type { ScheduleStore } from "../../queue/schedule-store.ts";
 
 export type ScheduleAdminResult = { ok: true } | { ok: false; error: string };
@@ -26,7 +26,7 @@ function saveEntries(store: ScheduleStore, project: string, entries: readonly Sc
  *  is never mistaken for a collision with itself. */
 export function scheduleEntryError(
   projectDir: string,
-  req: { name?: string; cron?: string; prompt?: string; model?: string; notify?: string; chrome?: string },
+  req: { name?: string; cron?: string; prompt?: string; model?: string; notify?: string; chrome?: string; sandbox?: string },
   existing: readonly ScheduleEntry[],
   excludeName?: string,
   /** Every model name the queue config lists. Passed by the
@@ -78,6 +78,9 @@ export function scheduleEntryError(
   // Empty means "keep what the entry has" (an edit) or "no" (a create).
   const chrome = req.chrome?.trim();
   if (chrome && !isScheduleChrome(chrome)) return `"${chrome}" is not a browser choice: yes or no`;
+  // Empty means "keep what the entry has" (an edit) or "on" (a create).
+  const sandbox = req.sandbox?.trim();
+  if (sandbox && !isScheduleSandbox(sandbox)) return `"${sandbox}" is not a sandbox choice: on or off`;
   return null;
 }
 
@@ -92,6 +95,13 @@ const postedNotify = (notify: string | undefined): ScheduleNotify | undefined =>
 const postedChrome = (chrome: string | undefined): boolean | undefined => {
   const posted = chrome?.trim();
   return isScheduleChrome(posted) ? posted === "yes" : undefined;
+};
+
+/** The sandbox choice a request names: true for on, false for off, or
+ *  `undefined` when it names none. */
+const postedSandbox = (sandbox: string | undefined): boolean | undefined => {
+  const posted = sandbox?.trim();
+  return isScheduleSandbox(posted) ? posted === "on" : undefined;
 };
 
 /** The model an entry stores: the spelling the dashboard lists, when the
@@ -109,7 +119,7 @@ export function createScheduleEntry(
   store: ScheduleStore,
   project: string,
   projectDir: string,
-  req: { name: string; cron: string; prompt: string; model?: string; notify?: string; chrome?: string },
+  req: { name: string; cron: string; prompt: string; model?: string; notify?: string; chrome?: string; sandbox?: string },
   knownModels?: readonly string[],
 ): ScheduleAdminResult {
   const existing = store.list(project);
@@ -126,6 +136,7 @@ export function createScheduleEntry(
     ...(model ? { model } : {}),
     ...(notify ? { notify } : {}),
     ...(postedChrome(req.chrome) ? { chrome: true } : {}),
+    ...(postedSandbox(req.sandbox) === false ? { sandbox: false as const } : {}),
   };
   return saveEntries(store, project, [...existing, entry]);
 }
@@ -138,7 +149,7 @@ export function updateScheduleEntry(
   project: string,
   projectDir: string,
   currentName: string,
-  req: { name: string; cron: string; prompt: string; model?: string; notify?: string; chrome?: string },
+  req: { name: string; cron: string; prompt: string; model?: string; notify?: string; chrome?: string; sandbox?: string },
   knownModels?: readonly string[],
 ): ScheduleAdminResult {
   const existing = store.list(project);
@@ -167,6 +178,7 @@ export function updateScheduleEntry(
           ...((posted ?? e.notify) ? { notify: (posted ?? e.notify)! } : {}),
           // Kept like the notify choice when the edit posts none.
           ...((postedChrome(req.chrome) ?? e.chrome) ? { chrome: true } : {}),
+          ...((postedSandbox(req.sandbox) ?? e.sandbox) === false ? { sandbox: false as const } : {}),
         }
       : e,
   );

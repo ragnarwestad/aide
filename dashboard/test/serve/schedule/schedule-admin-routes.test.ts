@@ -263,10 +263,11 @@ describe("the entry's notification choice, over the wire", () => {
       method: "POST",
       redirect: "manual",
       headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ project: "aide", name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", chrome: "yes" }),
+      body: new URLSearchParams({ project: "aide", name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", chrome: "yes", sandbox: "off" }),
     });
     expect(posted.status).toBe(200);
     expect(form.stored()[0]!.chrome).toBe(true);
+    expect(form.stored()[0]!.sandbox).toBe(false);
   });
 });
 

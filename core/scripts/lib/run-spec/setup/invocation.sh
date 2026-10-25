@@ -183,8 +183,9 @@ what you would have asked, and finish the step. Never run tests or any
 other work in the background and never end your turn to wait for it:
 the run ends the moment you stop, and nothing resumes you. Run every
 test suite in the foreground and finish the step in this same turn.)"
-# Only Claude runs in the sandbox (setup/sandbox.sh), so only it is told.
-case "$tool" in codex|opencode) ;; *) headless_note="$headless_note
+# Only Claude runs in the sandbox (setup/sandbox.sh), so only it is told,
+# and not a schedule entry run without it (--no-sandbox).
+case "$tool" in codex|opencode) ;; *) [ "$sandbox" = "no" ] || headless_note="$headless_note
 
 $sandbox_note" ;; esac
 # The skill's own numbered steps, marked in the log. The instruction is in
@@ -362,8 +363,8 @@ else
   # --output-format=stream-json requires --verbose") — verified
   # 2026-08-16, version 2.1.233.
   argv=("$claude_bin" -p --output-format stream-json --verbose
-        --permission-mode "$permission_mode"
-        --settings "$(sandbox_settings_json)")
+        --permission-mode "$permission_mode")
+  [ "$sandbox" = "no" ] || argv+=(--settings "$(sandbox_settings_json)")
   [ -n "$model" ] && argv+=(--model "$model")
   [ -n "$effort" ] && argv+=(--effort "$effort")
   [ -n "$session_id" ] && argv+=(--session-id "$session_id")
