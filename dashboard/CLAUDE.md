@@ -66,7 +66,8 @@ get them, and reads them by hand.
   its tests decide anything** (`run-spec/turn/review.sh`): a second,
   fresh session with the same model reads the description and the
   branch's diff and looks for defects against the description alone.
-  Defects go back to the ORIGINAL session as one follow-up turn; the
+  Defects go back to the ORIGINAL session as one follow-up turn, which
+  may turn one down on a `not a defect:` line, logged; the
   review itself is best-effort, so a verdict it cannot parse counts as
   "found nothing". The step's cost sums every turn, and its `sessionId`
   stays the implement session's.

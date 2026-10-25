@@ -278,10 +278,11 @@ evidence that the phase happened:
   writes nothing itself. Otherwise the step ends `no-progress` and
   the line is not extended. Once past that check, a second, fresh AI session — same model, effort and tool as the
   step, never resumed — reads the spec's own description and, with `git diff` itself, everything the branch changed
-  since it left the default branch, and looks for defects against the description; it never comments on style,
-  naming or structure (`run-spec/turn/review.sh`),
+  since it left the default branch, and looks for defects against the description, each with the concrete case it
+  goes wrong for; it never comments on style, naming or structure (`run-spec/turn/review.sh`),
   except that a description with an `## Out of scope` section makes each change under an item in it a defect too. One or
-  more found go back to the ORIGINAL implement session as one follow-up turn that fixes them, and that turn's own
+  more found go back to the ORIGINAL implement session as one follow-up turn that fixes them, or turns one down on a
+  `not a defect: <number>. <why>` line when the review is wrong, and that turn's own
   failure stands as the step's outcome; the review's own turn is best-effort, and any outcome other than a clean
   "no defects" — a verdict it cannot parse, or its own turn failing to complete — falls back to "found nothing"
   rather than failing an already-successful, already-committed implement over the added safety net's own hiccup.
@@ -412,7 +413,8 @@ and `cannotBuild`. The state file does not gain `analyze`.
 A line reading `none found`, or no such line at all, completes the step, and the log says what was read. The
 runner reads the line and never judges the criteria itself. An implement's code review writes
 `the review found no defects`, or an `error:` line with the count, one `review: <line>` per line of the reviewer's
-list, and `the defect(s) went back to the implement session to be fixed` before the fix turn.
+list, and `the defect(s) went back to the implement session to be fixed` before the fix turn; after it, one
+`the implement session found it not a defect: <number>. <why>` line per defect the session turned down.
 
 **The shared files check.** The analyze skill compares the files its analysis will change (`### Files to change` in
 `2-analysis.md`) with those of every other open spec in the project that is analyzed or implemented and not archived,

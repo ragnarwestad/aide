@@ -128,6 +128,7 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ]; th
   {
     printf '%s\n' \
       "Read this spec's own description and everything this spec's branch changed, and look for defects: behaviour that is wrong, broken or missing against the description. Say nothing about style, naming or structure." \
+      "" "Report a defect only when you can name the concrete case: the input or state, and the wrong result the code gives for it. A guard that might be missing, or a state the code cannot reach, is not a defect." \
       "" "The description: $review_description_path" \
       "" "What changed: run \`git diff $review_fork\` in this directory, for every change since the branch left $review_base, committed or not, and \`git status --porcelain\` for new files not tracked yet. Read a whole file wherever the diff alone does not show enough."
     [ -n "$review_scope" ] && printf '%s\n' "" "$review_scope"
@@ -138,8 +139,8 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ]; th
       "review: no defects found" \
       "or" \
       "review: N defect(s) found" \
-      "1. <the defect, one sentence>" \
-      "2. <the defect, one sentence>" \
+      "1. <the defect and its concrete case, one sentence>" \
+      "2. <the defect and its concrete case, one sentence>" \
       "$headless_note"
   } > "$work_dir/prompt-review"
 
@@ -182,7 +183,7 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ]; th
       printf '%s\n' \
         "A review of what you changed found the following defect(s), against the spec's description — not the runner's tests, which have not run yet:" \
         "" "$review_defects" \
-        "" "Fix them, then report done. The runner's own test run follows this turn." \
+        "" "Fix each one that is a defect, then report done. The review can be wrong: for one that is not a defect, change nothing for it, and end your reply with a line \`not a defect: <its number>. <why, naming the code that shows it>\`. The runner's own test run follows this turn." \
         ${fix_screenshots:+"$fix_screenshots"} \
         "$headless_note" \
         > "$work_dir/prompt-review-fix"
@@ -193,6 +194,9 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ]; th
       argv=("${resumed_argv[@]}")
       run_model_turn "$work_dir/prompt-review-fix"
       cost="$(jq -n --arg a "$running_cost" --arg b "$cost" '(($a|tonumber) + ($b|tonumber))')"
+      while IFS= read -r review_rejected; do
+        stage "the implement session found it ${review_rejected}"
+      done < <(printf '%s\n' "$turn_message" | grep -iE '^not a defect: ')
       # NOT best-effort: a fix turn that does not end completed keeps its
       # own terminal reason as the step's own outcome — defects are known
       # and unresolved. session_out is already correct: a resumed call

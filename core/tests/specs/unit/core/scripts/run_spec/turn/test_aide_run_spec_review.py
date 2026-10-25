@@ -117,6 +117,30 @@ def test_defects_found_are_listed_then_handed_to_a_third_turn_the_fix_never_a_se
     assert any(s.startswith("model turn started") for s in stages[count + 4:]), stages
 
 
+def test_a_defect_the_session_finds_is_not_one_is_logged_with_its_reason(runner, workspace, fake_claude):
+    """The fix turn may turn a reported defect down on a `not a defect:`
+    line; each such line is logged, so how often it happens can be seen."""
+    with_status(workspace, ["create", "analyze"])
+    fix_reply = "Fixed 1." + chr(10) + "not a defect: 2. The guard is already in x.ts:10"
+    claude = fake_claude(
+        "prompt=\"$(cat)\"\n"
+        f"if printf '%s' \"$prompt\" | grep -q \"{REVIEW_MARKER}\"; then\n"
+        f"  echo '{json.dumps(_result(REVIEW_SESSION, 'review: 2 defect(s) found' + chr(10) + '1. First defect' + chr(10) + '2. Second defect', 0.05))}'\n"
+        f"elif printf '%s' \"$prompt\" | grep -q \"{FIX_MARKER}\"; then\n"
+        "  printf 'fixed\\n' > fixed.txt && git add -A && git commit -q -m 'the fix'\n"
+        f"  echo '{json.dumps(_result(IMPLEMENT_SESSION, fix_reply, 0.20))}'\n"
+        "else\n"
+        "  printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'\n"
+        f"  echo '{json.dumps(_result(IMPLEMENT_SESSION, 'done', 0.10))}'\n"
+        "fi\n"
+    )
+    rc, out, _, err = run(runner, workspace, claude, command="implement", return_stderr=True)
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed", out
+    stages = _stamped(err)
+    assert "the implement session found it not a defect: 2. The guard is already in x.ts:10" in stages, stages
+
+
 def test_the_review_session_is_named_review_not_for_the_implement_it_follows_AC_2(
     runner, workspace, fake_claude
 ):
