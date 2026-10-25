@@ -349,14 +349,16 @@ reads the prompt from stdin and prints one JSON event per line; OpenCode
 
 - `--agent plan` — on 1.19.0 it denies file edits except Markdown plan
   files in `.opencode/plans/` in the project and in `plans/` under
-  OpenCode's data directory, and it does not restrict shell commands
-  (`bash` falls through to the default `allow`, and the serving host's
-  `opencode.json` sets no `permission`). So the `plan` and `default`
-  permission modes, which `core/scripts/lib/run-spec/setup/invocation.sh`
-  runs as `--agent plan`, do not give a run that changes no file in the
-  project: it may write `.opencode/plans/*.md` in the worktree, and a
-  shell command it runs is not stopped. OpenCode 2's plan agent likewise
-  may write plan files and leaves shell commands to the permission config.
+  OpenCode's data directory, and it does not restrict shell commands. On
+  its own it is therefore not read-only, so for the `plan` and `default`
+  permission modes `core/scripts/lib/run-spec/setup/invocation.sh` also
+  passes `OPENCODE_CONFIG_CONTENT` denying `edit`, `bash` and `task`, both
+  for every agent and for the plan agent itself. That config outranks the
+  project's `opencode.json`, but a project's rule for one agent outranks a
+  general rule, hence both levels. The plan agent is left with glob, grep,
+  read, skill, todowrite, webfetch and websearch (verified 1.19.0).
+  OpenCode 2's plan agent likewise may write plan files and leaves shell
+  commands to the permission config.
 - `--agent build` — the default.
 - `--auto` — additionally answers what it would otherwise ask about.
 - `--session <id>` — continues a session.

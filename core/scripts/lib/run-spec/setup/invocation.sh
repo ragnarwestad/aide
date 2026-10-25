@@ -71,11 +71,25 @@ safety_flags=()
 # default `build` agent already allows every tool and `--auto` is what
 # additionally answers the rules it would otherwise ASK about. There is
 # no sandbox flag to set: the agent IS the boundary.
+#
+# The `plan` agent alone is not read-only, though: on 1.19.0 it still writes
+# `.opencode/plans/*.md`, runs any shell command, and can start a subagent
+# through `task` that does both. So a read-only mode also hands opencode a
+# config in $opencode_config, which run_model_turn exports as
+# OPENCODE_CONFIG_CONTENT. Verified on 1.19.0 (2026-10-25): that config
+# outranks the project's own `opencode.json`, but a project's rule for ONE
+# agent outranks a general rule, which is why the deny is written for the
+# plan agent too and `task` is denied with it. The plan agent is then left
+# with glob, grep, read, skill, todowrite, webfetch and websearch.
+opencode_config=""
 opencode_safety_flags() {
+  local deny='{"edit":"deny","bash":"deny","task":"deny"}'
+  opencode_config=""
   case "$1" in
     bypassPermissions) safety_flags=(--agent build --auto) ;;
     acceptEdits)       safety_flags=(--agent build) ;;
-    plan|default)      safety_flags=(--agent plan) ;;
+    plan|default)      safety_flags=(--agent plan)
+                       opencode_config="{\"permission\":$deny,\"agent\":{\"plan\":{\"permission\":$deny}}}" ;;
     *) return 1 ;;
   esac
 }

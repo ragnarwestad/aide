@@ -78,7 +78,8 @@ def test_a_permission_mode_reaches_opencode_as_an_agent(
     runner, workspace, fake_opencode, mode, expected, forbidden
 ):
     """opencode has no sandbox flag. The agent IS the boundary, and the
-    `plan` agent is the read-only one."""
+    `plan` agent, with the config the next test checks, is the read-only
+    one."""
     oc = fake_opencode(emits(OPENCODE_STREAM_OK))
     run(runner, workspace, tool="opencode", opencode=oc, permission_mode=mode)
     argv = fake_opencode.calls.read_text()
@@ -86,6 +87,37 @@ def test_a_permission_mode_reaches_opencode_as_an_agent(
         assert token in argv, argv
     for token in forbidden:
         assert token not in argv, argv
+
+
+def _config_seen(fake_opencode, tmp_path, runner, workspace, mode):
+    """The OPENCODE_CONFIG_CONTENT the turn was started with, or None."""
+    seen = tmp_path / "opencode-config.txt"
+    oc = fake_opencode(
+        f'printf "%s" "${{OPENCODE_CONFIG_CONTENT-<unset>}}" > {seen}\n' + emits(OPENCODE_STREAM_OK)
+    )
+    run(runner, workspace, tool="opencode", opencode=oc, permission_mode=mode)
+    text = seen.read_text()
+    return None if text == "<unset>" else json.loads(text)
+
+
+@pytest.mark.parametrize("mode", ["plan", "default"])
+def test_a_read_only_mode_denies_opencode_every_tool_that_changes_a_file(
+    runner, workspace, fake_opencode, tmp_path, mode
+):
+    """The `plan` agent alone still writes `.opencode/plans/*.md`, runs any
+    shell command, and can start a subagent that does both. A config passed
+    in the environment outranks the project's own `opencode.json`, but a
+    project's rule for one agent outranks a general one, so the deny is
+    written for the plan agent as well, and `task` is denied with it."""
+    config = _config_seen(fake_opencode, tmp_path, runner, workspace, mode)
+    assert config is not None
+    for rules in (config["permission"], config["agent"]["plan"]["permission"]):
+        assert rules == {"edit": "deny", "bash": "deny", "task": "deny"}, config
+
+
+@pytest.mark.parametrize("mode", ["bypassPermissions", "acceptEdits"])
+def test_a_writing_mode_passes_opencode_no_config(runner, workspace, fake_opencode, tmp_path, mode):
+    assert _config_seen(fake_opencode, tmp_path, runner, workspace, mode) is None
 
 
 def test_an_unknown_permission_mode_refuses_rather_than_guessing(

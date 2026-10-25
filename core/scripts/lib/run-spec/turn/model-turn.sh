@@ -35,7 +35,11 @@ run_model_turn() {
   # directory is the throwaway checkout, which is the tree this run will
   # commit from. `exec` keeps the pid, so $! is still the process group we
   # later signal.
-  ( cd "$project_wt" && AIDE_HEADLESS=1 exec "${argv[@]}" ) < "$1" >> "$transcript" 2>> "$work_dir/err" &
+  # opencode's read-only config ($opencode_config, setup/invocation.sh) is
+  # exported in the subshell alone, so the step's own test run never sees it.
+  ( cd "$project_wt" || exit
+    [ -n "${opencode_config:-}" ] && export OPENCODE_CONFIG_CONTENT="$opencode_config"
+    AIDE_HEADLESS=1 exec "${argv[@]}" ) < "$1" >> "$transcript" 2>> "$work_dir/err" &
   child=$!
   set +m
 
