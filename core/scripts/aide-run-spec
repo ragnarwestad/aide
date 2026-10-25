@@ -103,6 +103,10 @@
 # confirmation question, reported `done` and moved nothing. A skill that
 # has a question only a person can answer branches on this and writes
 # the question down instead of asking it.
+#
+# Sets ENABLE_CLAUDEAI_MCP_SERVERS=false as well: a claude logged in with a
+# claude.ai account otherwise loads that account's connectors (Gmail, Slack,
+# Drive, Calendar, Docs) into the step, and no step needs them.
 
 set -uo pipefail
 

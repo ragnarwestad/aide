@@ -303,6 +303,17 @@ def test_the_child_process_always_gets_aide_headless(runner, workspace, fake_cla
     assert rc == 0, out
     assert "AIDE_HEADLESS=1" in fake_claude.env_log.read_text().splitlines()
 
+def test_the_child_process_gets_no_claude_ai_connectors(runner, workspace, fake_claude):
+    """claude logged in with a claude.ai account loads that account's
+    connectors (Gmail, Slack, Drive, Calendar, Docs) into every session,
+    `-p` too. No step needs them, and a run talked into misusing them could
+    mail or post as the user. Verified on 2.1.310: the variable removes
+    those servers and leaves `--chrome` and a project's own MCP servers."""
+    claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert "ENABLE_CLAUDEAI_MCP_SERVERS=false" in fake_claude.env_log.read_text().splitlines()
+
 def test_survives_its_own_file_being_replaced_mid_run(runner, workspace, fake_claude, tmp_path):
     """An aide `implement` step reinstalls aide, which copies this very
     script over itself. Bash reads a script incrementally from disk, so

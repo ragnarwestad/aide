@@ -37,9 +37,13 @@ run_model_turn() {
   # later signal.
   # opencode's read-only config ($opencode_config, setup/invocation.sh) is
   # exported in the subshell alone, so the step's own test run never sees it.
+  # ENABLE_CLAUDEAI_MCP_SERVERS=false keeps the claude.ai account's own
+  # connectors (Gmail, Slack, Drive, Calendar, Docs) out of the session: claude
+  # loads them into every session, `-p` too, and no step needs them. `--chrome`
+  # and a project's own MCP servers are left as they are (verified 2.1.310).
   ( cd "$project_wt" || exit
     [ -n "${opencode_config:-}" ] && export OPENCODE_CONFIG_CONTENT="$opencode_config"
-    AIDE_HEADLESS=1 exec "${argv[@]}" ) < "$1" >> "$transcript" 2>> "$work_dir/err" &
+    AIDE_HEADLESS=1 ENABLE_CLAUDEAI_MCP_SERVERS=false exec "${argv[@]}" ) < "$1" >> "$transcript" 2>> "$work_dir/err" &
   child=$!
   set +m
 
