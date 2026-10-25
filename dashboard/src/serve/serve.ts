@@ -226,7 +226,7 @@ export function createServer(opts: ServerOptions) {
   });
 
   const runnerSetupCtx: RunnerSetupContext = {
-    store: queue,
+    store: queue, queueConfigFile: opts.queueConfigFile, dashboardCheckoutRoot: opts.dashboardCheckoutRoot,
     machineryProjectDir: resolution.machineryProjectDir,
     machinerySpecsRoot: resolution.machinerySpecsRoot,
     queueRunnerBin: opts.queueRunnerBin,

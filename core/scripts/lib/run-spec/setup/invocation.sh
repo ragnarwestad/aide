@@ -216,14 +216,13 @@ When the step ends, the same line ending in one of these:
 N is the step's number, X how many steps there are, and the title says what the step does."
 if [ "$command_name" = "schedule" ]; then
   # The prompt is the file's contents, verbatim — no aide skill, no spec
-  # id, nothing invented on either side (spec 259). Read from
-  # $project_root rather than the worktree: at this point in the script
-  # the worktree has not been cut yet, and $project_root was already
-  # pulled to origin/$base a few lines above, so the two are identical
-  # content-wise and only one of them exists yet.
-  [ -f "$project_root/$prompt_file" ] \
-    || refuse "no such --prompt-file: $prompt_file (under $project_root)"
-  prompt="$(cat "$project_root/$prompt_file")
+  # id, nothing invented on either side (spec 259). Read as committed at
+  # $project_root's HEAD, pulled to origin/<base> a few lines above, never
+  # off the disk: a step's shell may write the main checkout, and a
+  # schedule entry may run without the sandbox.
+  prompt_text="$(git -C "$project_root" show "HEAD:$prompt_file" 2>/dev/null)" \
+    || refuse "no such --prompt-file: $prompt_file (not committed in $project_root)"
+  prompt="$prompt_text
 $schedule_step_note
 $headless_note"
 elif [ -n "$spec_folder" ]; then

@@ -73,6 +73,7 @@ run_model_turn() {
   # board, a decoy server — is stopped with its group, not left to hold
   # ports and slow every later run (2026-09-19).
   kill_group TERM
+  sandbox_restore_git_links
   duration=$(( $(date +%s) - started_at ))
 
 # --- reading what came back --------------------------------------------------

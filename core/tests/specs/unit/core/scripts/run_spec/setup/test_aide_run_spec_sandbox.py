@@ -199,3 +199,48 @@ def test_no_sandbox_is_refused_outside_a_scheduled_claude_job(runner, workspace,
     assert rc == 2, out
     assert "--no-sandbox" in out["error"] and why in out["error"], out["error"]
     assert not fake_claude.calls.exists()
+
+
+def test_a_schedule_prompt_is_read_as_committed_never_off_the_disk(runner, workspace, fake_claude):
+    """A step's shell may write the main checkout, and a schedule entry may
+    run without the sandbox: what such a run is told must be what was
+    committed, not what a step left in the file."""
+    from ..turn.test_aide_run_spec_schedule import FINISHED, job, schedule, with_prompt
+
+    with_prompt(workspace)
+    (workspace["project"] / "docs" / "nightly-report.md").write_text("Planted by a step.\n")
+    rc, out, _ = schedule(runner, workspace, job(fake_claude, FINISHED), dry_run=True)
+    assert rc == 0, out
+    assert "Write the report." in out["prompt"]
+    assert "Planted by a step." not in out["prompt"]
+
+
+def test_a_worktree_git_file_the_step_rewrote_is_put_back_before_the_runner_runs_git(
+    runner, workspace, fake_claude, tmp_path
+):
+    """A `.git` file pointed at a git directory of the step's own would hand
+    the runner's git, outside the sandbox, hooks of the step's choosing."""
+    from ..turn.test_aide_run_spec_schedule import FINISHED, job, schedule, with_prompt
+
+    with_prompt(workspace)
+    planted = tmp_path / "planted-gitdir"
+    claude = job(fake_claude, f"cp .git {tmp_path}/seen; printf 'gitdir: {planted}\\n' > .git\n" + FINISHED)
+    rc, out, _, err = schedule(runner, workspace, claude, return_stderr=True)
+    assert rc == 0, (out, err)
+    assert "the step rewrote" in err and "/.git; it is put back" in err, err
+
+
+def test_the_boards_own_queue_settings_and_checkouts_are_denied_where_it_says_they_are(workspace_root, tmp_path):
+    """The board hands over where its files are (AIDE_QUEUE_CONFIG,
+    AIDE_CHECKOUT_ROOT); a board set up anywhere else is covered too."""
+    board = tmp_path / "board"
+    subprocess.run(["git", "init", "-q", str(board / "checkouts/alpha/code")], check=True)
+    script = workspace_root / "core/scripts/lib/run-spec/setup/sandbox.sh"
+    out = subprocess.run(["bash", "-c", f'source "{script}"; sandbox_settings_json'],
+                         capture_output=True, text=True, check=True,
+                         env={**os.environ, "HOME": str(tmp_path / "home"),
+                              "AIDE_QUEUE_CONFIG": str(board / "queue-config.json"),
+                              "AIDE_CHECKOUT_ROOT": str(board / "checkouts")}).stdout
+    denied = json.loads(out)["sandbox"]["filesystem"]["denyWrite"]
+    for path in ("queue-config.json", "checkouts/alpha/settings.yaml", "checkouts/alpha/code/.git/hooks"):
+        assert f"/{board}/{path}" in denied, (path, denied)

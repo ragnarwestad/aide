@@ -430,7 +430,8 @@ Each entry is:
 
 - `name` — becomes the job's `schedule-<name>` tracking key, never a spec folder.
 - `cron` — a standard five-field cron expression.
-- `prompt` — a prompt file's path, relative to the project's own root.
+- `prompt` — a prompt file's path, relative to the project's own root. A run reads the file as committed in the
+  dashboard's checkout, after pulling it, so a change to it takes effect once it is pushed.
 
 A background poll checks every project's
 entries and enqueues a `schedule` step through the same queue, runner and worktree machinery every other step uses
@@ -448,7 +449,7 @@ an entry is enabled is text there. The project's own Schedule tab lists its entr
 switch, Run now and Delete, with New above the list, and a heading sorts it by Name, Next run or Enabled the same way;
 a click on a row opens the entry's own page.
 `/schedule/<project>/<name>` is one entry's own page, with two tabs: Report and Settings. Settings shows
-every field of the entry — name, cron, prompt file, model, notify and browser — with the Enabled switch, Edit and Delete
+every field of the entry — name, cron, prompt file, model, notify, browser and sandbox — with the Enabled switch, Edit and Delete
 (Run now is on the project's Schedule tab); Delete there goes to the project's Schedule tab once it has gone through.
 The prompt file's path links to `/schedule/<project>/<name>/prompt`, which shows the file as the default branch of the
 board's checkout last fetched it, drawn as Markdown, or one sentence saying it cannot be read. Edit on Settings (`?tab=settings&edit=1`)

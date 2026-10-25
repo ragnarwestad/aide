@@ -61,23 +61,24 @@ sandbox_write_denied=(
   .agents
   .codex
   .config/opencode
-  .aide/dashboard/queue-config.json
 )
 
 # The same for the files the runner and the board run git and the tests
-# from, outside the sandbox: every main checkout's hooks and git settings,
-# and every dashboard checkout's settings.yaml, which holds the test
-# command (denied whether it exists or not, so none can be made). One path
-# per line, written the way the rules read it: `~/…` under $HOME, `//…`
-# anywhere else.
+# from, outside the sandbox: the board's queue settings, where a schedule
+# entry may turn the sandbox off, every main checkout's hooks and git
+# settings, and every dashboard checkout's settings.yaml, which holds the
+# test command (denied whether it exists or not, so none can be made). The
+# board hands over where its files are (AIDE_QUEUE_CONFIG,
+# AIDE_CHECKOUT_ROOT). One path per line, written the way the rules read
+# it: `~/…` under $HOME, `//…` anywhere else.
 sandbox_runtime_write_denied() {
-  local dir path
-  for dir in "${project_root:-}" "${specs_repo:-}" "$HOME"/.aide/dashboard/checkouts/*/code \
-             "$HOME"/.aide/dashboard/checkouts/*/specs; do
+  local dir checkouts="${AIDE_CHECKOUT_ROOT:-$HOME/.aide/dashboard/checkouts}"
+  printf '%s\n' "${AIDE_QUEUE_CONFIG:-$HOME/.aide/dashboard/queue-config.json}"
+  for dir in "${project_root:-}" "${specs_repo:-}" "$checkouts"/*/code "$checkouts"/*/specs; do
     [ -n "$dir" ] && [ -d "$dir/.git" ] || continue
     printf '%s\n' "$dir/.git/hooks" "$dir/.git/config"
   done
-  for dir in "$HOME"/.aide/dashboard/checkouts/*/; do
+  for dir in "$checkouts"/*/; do
     [ -d "$dir" ] && printf '%s\n' "${dir%/}/settings.yaml"
   done | sort -u
 } 2>/dev/null
@@ -137,6 +138,36 @@ sandbox_settings_json() {
              + [ $writes[] | ("Edit(" + . + ")", "Edit(" + . + "/**)") ])
     }
   }'
+}
+
+# A worktree's `.git` file, and its git directory's `commondir` and
+# `gitdir`, say where git finds its settings and hooks. A step that
+# rewrote them could point the runner's own git, outside the sandbox, at
+# hooks of its own, so they are kept as the worktree was cut and put back
+# once every turn has ended, before the runner runs git there. Every tool
+# gets this, the sandbox or not.
+sandbox_git_links=()
+sandbox_record_git_links() {
+  local wt gitdir link
+  sandbox_git_links=()
+  for wt in "$@"; do
+    [ -f "$wt/.git" ] || continue
+    gitdir="$(git -C "$wt" rev-parse --absolute-git-dir 2>/dev/null)" || continue
+    for link in "$wt/.git" "$gitdir/commondir" "$gitdir/gitdir"; do
+      [ -f "$link" ] && sandbox_git_links+=("$link" "$(cat "$link")")
+    done
+  done
+}
+sandbox_restore_git_links() {
+  local i=0 link want
+  while [ "$i" -lt "${#sandbox_git_links[@]}" ]; do
+    link="${sandbox_git_links[$i]}"; want="${sandbox_git_links[$((i + 1))]}"
+    i=$((i + 2))
+    [ -f "$link" ] && [ ! -L "$link" ] && [ "$(cat "$link")" = "$want" ] && continue
+    rm -rf "$link" && printf '%s\n' "$want" > "$link"
+    echo "aide-run-spec: the step rewrote $link; it is put back" >&2
+  done
+  return 0
 }
 
 # Told to every Claude step, in its prompt.

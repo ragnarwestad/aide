@@ -493,6 +493,8 @@ def test_schedule_runs_with_no_spec_folder_and_sends_the_file_verbatim(
     (workspace["project"] / "docs" / "nightly-report.md").write_text(
         "Summarize last night's traffic.\n"
     )
+    git(workspace["project"], "add", "docs/nightly-report.md")
+    git(workspace["project"], "commit", "-qm", "add the job's prompt")
     claude = fake_claude("cat > /dev/null\nexit 1")
     rc, out, _ = schedule(runner, workspace, claude, dry_run=True)
     assert rc == 0, out

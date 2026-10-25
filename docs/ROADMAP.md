@@ -311,7 +311,8 @@ runs outside the sandbox that a step may read but not write, with the network op
 
 - Codex steps, whose sandbox cannot deny reading and stops `git` in a worktree.
 - OpenCode steps, which have no sandbox.
-- The other projects' checkouts, which a step can still read and write.
+- The main checkouts' working trees, the step's own project's included, which a step can still read and write; a
+  file the board or the runner reads from there (a project's own `.claude/` settings, `.mcp.json`) is not protected.
 - The network, which is still open.
 - The runner's own test run, which executes what the step wrote outside the sandbox, with the denied paths
   reachable. Only b closes this.

@@ -41,7 +41,7 @@ describe("the runner invocation", () => {
     // half-empty on a slow machine.
     writeFileSync(
       bin,
-      `#!/usr/bin/env bash\nprintf '%s\\n' "$AIDE_RUN_URL" "$PATH" > ${envFile}\nprintf '%s\\n' "$*" > ${argvFile}\n`,
+      `#!/usr/bin/env bash\nprintf '%s\\n' "$AIDE_RUN_URL" "$PATH" "$AIDE_QUEUE_CONFIG" "$AIDE_CHECKOUT_ROOT" > ${envFile}\nprintf '%s\\n' "$*" > ${argvFile}\n`,
       { mode: 0o755 },
     );
     return { bin, argvFile, envFile };
@@ -53,9 +53,10 @@ describe("the runner invocation", () => {
 
   /** What the spawned child actually had in its environment: the run
    *  URL on the first line, PATH on the second. */
-  async function envOf(envFile: string): Promise<{ runUrl: string; path: string }> {
-    const [runUrl = "", path = ""] = (await fileOnceWritten(envFile, "the runner was never invoked")).split("\n");
-    return { runUrl, path };
+  async function envOf(envFile: string): Promise<{ runUrl: string; path: string; queueConfig: string; checkoutRoot: string }> {
+    const [runUrl = "", path = "", queueConfig = "", checkoutRoot = ""] =
+      (await fileOnceWritten(envFile, "the runner was never invoked")).split("\n");
+    return { runUrl, path, queueConfig, checkoutRoot };
   }
 
   /** Spec 222. The variable belongs to the SERVER's process while the
@@ -99,6 +100,29 @@ describe("the runner invocation", () => {
     if (!port) throw new Error("the test server never bound a port");
     return { env: await envOf(envFile), port };
   }
+
+  // The runner's sandbox denies a step writing the board's queue settings
+  // and its checkouts' git hooks and settings.yaml; it can only find them
+  // where this board says they are.
+  test("the runner is told where the board's queue settings and checkouts are", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-queue-sandbox-paths-"));
+    ownDirs.push(dir);
+    const { bin, envFile } = stub(dir);
+    const queueConfigFile = join(dir, "queue-config.json");
+    const dashboardCheckoutRoot = join(dir, "checkouts");
+    const { base } = start({
+      queueRunnerBin: bin, queueResultDir: join(dir, "jobs"), queuePush: "branch", queueConfigFile, dashboardCheckoutRoot,
+    });
+    const res = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
+    });
+    expect(res.status).toBe(200);
+    const env = await envOf(envFile);
+    expect(env.queueConfig).toBe(queueConfigFile);
+    expect(env.checkoutRoot).toBe(dashboardCheckoutRoot);
+  });
 
   test("what the runner writes to stderr lands in the step's own run log (AC-3)", async () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-queue-run-log-"));

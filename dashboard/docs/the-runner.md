@@ -209,7 +209,14 @@ settings. Those are:
 - the `.git/hooks` and `.git/config` of the step's own main checkouts and of every checkout under
   `~/.aide/dashboard/checkouts`, and each of those checkouts' `settings.yaml`, which holds the project's test command.
 
-A step therefore cannot install anything onto the serving host; `AIDE_INSTALL_CMD` does that after a landing.
+A step therefore cannot install anything onto the serving host; `AIDE_INSTALL_CMD` does that after a landing. The
+board hands the runner where its queue settings and checkouts are (`AIDE_QUEUE_CONFIG`, `AIDE_CHECKOUT_ROOT`).
+
+Two more things keep what a step writes from reaching the runner's own work outside the sandbox, for every tool:
+
+- a scheduled job's prompt is read as committed in the checkout, never from the file on disk;
+- each worktree's `.git` file, and the `commondir` and `gitdir` files of its git directory, are recorded when the
+  worktree is cut and put back after every turn, so the runner's own git never follows a step's rewrite of them.
 
 Everything else is reachable:
 

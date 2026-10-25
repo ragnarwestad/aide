@@ -9,7 +9,7 @@ import re
 
 import pytest
 
-from ...conftest import run
+from ...conftest import git, run
 from ..run_spec_invoking import CREATE_KEY, SCHEDULE_KEY, create, schedule
 
 SESSION = "analysis-session-1"
@@ -68,6 +68,8 @@ def test_a_create_s_session_is_named_for_its_project_and_new_create_AC_3(runner,
 def test_a_scheduled_job_s_session_is_named_for_its_project_and_entry_AC_3(runner, workspace, fake_claude):
     (workspace["project"] / "docs").mkdir()
     (workspace["project"] / "docs" / "nightly-report.md").write_text("Summarize last night's traffic.\n")
+    git(workspace["project"], "add", "docs/nightly-report.md")
+    git(workspace["project"], "commit", "-qm", "add the job's prompt")
     rc, out, _ = schedule(runner, workspace, fake_claude("exit 1"), spec=SCHEDULE_KEY, dry_run=True)
     assert rc == 0, out
     assert _name(out["argv"]) == "proj schedule nightly-report"

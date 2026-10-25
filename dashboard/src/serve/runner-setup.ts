@@ -30,6 +30,12 @@ import { followOnJob } from "./routes/spec-edit/shared.ts";
 
 export interface RunnerSetupContext {
   store: QueueStore;
+  /** Handed to every step as `AIDE_QUEUE_CONFIG` and `AIDE_CHECKOUT_ROOT`,
+   *  so the runner's sandbox denies writing the files this board really
+   *  reads (`run-spec/setup/sandbox.sh`). Absent leaves the runner's own
+   *  defaults under `~/.aide/dashboard`. */
+  queueConfigFile?: string;
+  dashboardCheckoutRoot?: string;
   machineryProjectDir: (project: string) => string;
   /** `machineryProjectDir`'s sibling for the specs root (spec 402) —
    *  `setupLand()` already takes this for the identical reason; passed
@@ -173,6 +179,8 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
       const env: Record<string, string | undefined> = {
         ...spawnEnv(),
         AIDE_RUN_URL: process.env.AIDE_RUN_URL ?? selfRunUrl,
+        ...(ctx.queueConfigFile ? { AIDE_QUEUE_CONFIG: ctx.queueConfigFile } : {}),
+        ...(ctx.dashboardCheckoutRoot ? { AIDE_CHECKOUT_ROOT: ctx.dashboardCheckoutRoot } : {}),
       };
       // Spec 272. Only a `schedule` step's own spawn gets this: the
       // directory THIS run's prompt writes its output to, made

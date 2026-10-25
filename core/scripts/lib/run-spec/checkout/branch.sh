@@ -98,6 +98,7 @@ for root in "${roots[@]}"; do
 done
 
 project_wt="${work_roots[0]}"
+sandbox_record_git_links "${work_roots[@]}"
 specs_wt=""
 [ -n "$specs_repo" ] && [ "$specs_repo" != "$project_root" ] && specs_wt="${work_roots[1]}"
 
