@@ -54,13 +54,13 @@ dates on its listing, so a post is opened to see when it was published. Artifici
 Index compares coding agents by score, cost and time per task; its tables are drawn in the browser, so a fetch
 sees only placeholders, and what is worth noting there is whether its comparison of the tools themselves has come.
 
-| Tool               | Changelog                                                                                          | News                                                           |
-|--------------------|----------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
-| Claude Code        | <https://github.com/anthropics/claude-code/releases>                                               | <https://claude.com/blog/><br><https://www.anthropic.com/news> |
-| GitHub Copilot CLI | <https://github.com/github/copilot-cli/releases><br><https://github.blog/changelog/label/copilot/> | <https://github.blog/ai-and-ml/github-copilot/>                |
-| OpenAI Codex CLI   | <https://github.com/openai/codex/releases><br><https://learn.chatgpt.com/docs/changelog>           | <https://developers.openai.com/blog>                           |
-| OpenCode           | <https://github.com/anomalyco/opencode/releases><br><https://opencode.ai/changelog>                | —                                                              |
-| All four           | —                                                                                                  | <https://artificialanalysis.ai/agents/coding-agents>           |
+| Tool               | Changelog                                                                                          | News                                                                                                      |
+|--------------------|----------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------|
+| Claude Code        | <https://github.com/anthropics/claude-code/releases>                                               | <https://claude.com/blog/><br><https://claude.com/resources/articles><br><https://www.anthropic.com/news> |
+| GitHub Copilot CLI | <https://github.com/github/copilot-cli/releases><br><https://github.blog/changelog/label/copilot/> | <https://github.blog/ai-and-ml/github-copilot/>                                                           |
+| OpenAI Codex CLI   | <https://github.com/openai/codex/releases><br><https://learn.chatgpt.com/docs/changelog>           | <https://developers.openai.com/blog>                                                                      |
+| OpenCode           | <https://github.com/anomalyco/opencode/releases><br><https://opencode.ai/changelog>                | —                                                                                                         |
+| All four           | —                                                                                                  | <https://artificialanalysis.ai/agents/coding-agents>                                                      |
 
 ### Watched pages
 

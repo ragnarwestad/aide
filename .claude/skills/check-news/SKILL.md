@@ -81,6 +81,14 @@ For each news item, assess:
   - ℹ Informative, low relevance
   - ⚠️ Breaking change or something that must be verified
 
+An article from one of the four vendors on how to work with coding agents —
+writing specs or plans, reviewing an agent's work, splitting work over
+subagents, managing context, test-driven work, running agents unattended — is
+a finding even when no tool changed, because Aide is built on that way of
+working. Mark it ⭐ when it advises something Aide does differently or does
+not do, ✅ when Aide already does what it advises, and name in one line what in
+Aide it touches.
+
 For each watched page, go by the word `scripts/watch-pages.py` printed:
 
 - `changed`: read its diff. A change in what the page advises (a

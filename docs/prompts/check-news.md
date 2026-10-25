@@ -27,6 +27,8 @@ the run's report. Plain HTML, no styling:
   version rows, `.claude/skills/ai-tools-reference/SKILL.md` or elsewhere (an
   installer, a skill, a rule, the runner). Each point says what to change and
   where, quotes the finding as its source words it, and links the sources.
+  Each ⭐ article on how to work with coding agents is on it too, saying what
+  in Aide it touches and what it advises differently.
   A finding that needs no change is not on it, and a period with none says so
   in one line,
 - one line saying what was changed: the log entry's date, how many old reviews
