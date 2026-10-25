@@ -56,7 +56,8 @@ function entries(v: JobsView): { key: string; html: string; place: TabPlace; fac
 
 /** Whether the tab has a row to draw, before its view cuts them: what the
  *  installed app's start address chooses between this tab and the Specs
- *  list by. A failed create's message is not a row. */
+ *  list by, and what decides whether this tab names the Specs list as the
+ *  page a browser tab starts on. A failed create's message is not a row. */
 export function jobsTabHasRows(v: JobsView): boolean {
   return entries(v).length > 0;
 }
@@ -96,5 +97,8 @@ export function renderJobsPage(v: JobsView, generatedAt: string, entriesNav: Nav
     script: v.list.script,
     lang,
     currentUrl: v.list.currentUrl,
+    // A browser tab that starts here with nothing running goes where `/app`
+    // sends it: the Specs list, bare, with the filter and sort its cookies keep.
+    startAt: jobsTabHasRows(v) ? undefined : "/specs",
   });
 }

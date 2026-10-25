@@ -50,7 +50,8 @@ export const APP_BADGE_PNG_96 = rasterizeMark(appBadge(), 96);
 
 /** Where the installed app is launched: an address of its own, which sends
  *  it on to the Running tab when the tab has a row, and to the Specs list
- *  when it has none. `/` itself is always the Running tab. */
+ *  when it has none. `/` is the Running tab; as the first page a browser tab
+ *  loads, with no row, it gives way to the Specs list (`start-page.ts`). */
 export const APP_START_ROUTE = "/app";
 
 /** What a shortcut on the app's icon shows: the one icon the board has

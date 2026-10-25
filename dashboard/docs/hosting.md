@@ -85,11 +85,16 @@ The served dashboard is a web app you can install: Chrome and Edge offer it from
 Share → "Add to Home Screen". It then opens in a window of its own, with the mark as its icon and the page's own
 background behind the title bar.
 
-An installed app is launched on `start_url`, `/app`. It opens on the Running tab when the tab has a row, and on the
-Specs list, with the state filter and sort it last kept, when the tab has none. `/` itself, from the header, a link or a
-notification, is always the Running tab. The manifest's `id` is `/`, so the browser keeps an app installed on `/` as
-the same app. An app on an iPhone's Home Screen keeps the address it was added with, and opens on `/` until it is
-added again.
+The board opens on the Specs list, with the state filter and sort it last kept, when it starts with nothing running,
+however it is opened. An installed app is launched on `start_url`, `/app`, which opens on the Running tab when the tab
+has a row and on the Specs list when it has none. Any other start does the same in the page itself: a bookmark, a typed
+address, a new tab, a Home Screen app on `/`, the app icon's "Running" shortcut, or a notification that opens a new
+window. The first page a browser tab or window loads, when it is the Running tab with no row, replaces itself with the
+Specs list. A click on Running, a link to it and a reload later in the same tab show the Running tab, empty or not. A
+notification about a spec opens that spec's row, which is on the Running tab as long as the spec is Active.
+
+The manifest's `id` is `/`, so the browser keeps an app installed on `/` as the same app. An app on an iPhone's
+Home Screen keeps the address it was added with, and opens on `/` until it is added again.
 
 Nine routes make it work — `/manifest.webmanifest`, `/sw.js`, `/icon-512.svg`, `/icon-512-maskable.svg`,
 `/icon-192.png`, `/icon-512.png`, `/icon-512-maskable.png`, `/apple-touch-icon.png` and `/badge-96.png`. All nine are

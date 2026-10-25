@@ -156,6 +156,8 @@ test("the first job arrives and the last leaves without a reload, then search st
       extra: { queueRunnerBin: fakeRunner, queueResultDir: join(own, "jobs"), queuePollMs: 200 },
     });
     rmSync(join(dir, "root", "aide", "specs", SPEC), { recursive: true });
+    // The board has started in this tab, so its empty Running tab is shown.
+    await page.addInitScript(() => sessionStorage.setItem("aide-started", "1"));
     await page.goto(`${base}/`);
     await page.getByText("Nothing is running.", { exact: true }).waitFor();
     const loads = countLoads(page);

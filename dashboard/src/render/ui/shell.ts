@@ -86,6 +86,10 @@ const DEPENDS_LIFT_SCRIPT = transpile("forms/depends-lift.ts");
 // since it rides `beforeunload` rather than intercepting any one of
 // those individually.
 const UNSAVED_CHANGES_SCRIPT = transpile("forms/unsaved-changes.ts");
+// Where a browser tab starts: an empty Running tab, as the tab's first
+// board page, gives way to the Specs list. First in the tag, so a throw in
+// a later script cannot keep the tab from being marked as started.
+const START_PAGE_SCRIPT = transpile("../scripts/start-page.ts");
 // Loads the page again once a Deploy's held restart has happened, so the
 // notice saying it waits does not outlive it.
 const RESTART_WATCH_SCRIPT = transpile("../scripts/restart-watch.ts");
@@ -365,13 +369,17 @@ export interface PageShellOpts {
    *  offers, so it draws no tab bar at all. Absent (never required)
    *  on every other page. */
   hideTabBar?: boolean;
+  /** Where a browser tab whose first board page this is goes instead, as
+   *  the `aide-start` meta `start-page.ts` reads. Absent on every page but
+   *  the Running tab with no row. */
+  startAt?: string;
 }
 
 /** The document up to and including `<body …>`: what a streamed page can
  *  send before it knows anything about its content (spec 515). */
 export function shellHead(
   title: string,
-  opts: { lang?: Language; docTitle?: string } = {},
+  opts: { lang?: Language; docTitle?: string; startAt?: string } = {},
 ): string {
   const lang = opts.lang ?? "en";
   return `<!doctype html>
@@ -383,8 +391,8 @@ export function shellHead(
 ${ICON_LINKS}
 ${PWA_LINKS}
 ${waitingMeta()}
-<style>${CSS}</style>
-<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${APP_BADGE_SCRIPT}${UNSAVED_CHANGES_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}${SPEC_FORM_ACTIONS_SCRIPT}${DEPENDS_LIFT_SCRIPT}${RESTART_WATCH_SCRIPT}</script>
+${opts.startAt ? `<meta name="aide-start" content="${esc(opts.startAt)}">\n` : ""}<style>${CSS}</style>
+<script>${START_PAGE_SCRIPT}${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${APP_BADGE_SCRIPT}${UNSAVED_CHANGES_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}${SPEC_FORM_ACTIONS_SCRIPT}${DEPENDS_LIFT_SCRIPT}${RESTART_WATCH_SCRIPT}</script>
 </head>
 <body data-overlay-note="${esc(capitalizeFirst(t(lang, "shell.overlayLoading")))}">`;
 }
@@ -436,5 +444,5 @@ export function pageShell(
   _generatedAt: string,
   opts: PageShellOpts = {},
 ): string {
-  return shellHead(title, { lang: opts.lang, docTitle: opts.docTitle }) + shellRest(entries, currentPath, title, body, opts);
+  return shellHead(title, { lang: opts.lang, docTitle: opts.docTitle, startAt: opts.startAt }) + shellRest(entries, currentPath, title, body, opts);
 }

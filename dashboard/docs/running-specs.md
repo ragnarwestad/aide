@@ -630,6 +630,11 @@ The Running tab is the board's first page, at `/`. It lists every spec the Specs
 scheduled jobs, the Close and Reopen jobs and the board's own deploy that are running or wait for the user, in every
 project.
 
+When the board starts with nothing running, it opens on the Specs list instead, whichever way it is opened: the first
+page a browser tab or window loads, if it is the Running tab with no row, replaces itself with the Specs list. Once the
+board has started in a tab, the Running tab shows, empty or not, on a click, a link or a reload. [Installing it as an
+app](hosting.md#installing-it-as-an-app) has the installed app's part.
+
 The tab offers **New**, as the Specs list does, from the same function; see [Making a spec from the
 page](#making-a-spec-from-the-page).
 

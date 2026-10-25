@@ -253,7 +253,7 @@ set falls straight through to the existing OS-driven CSS.
 
 Applying the stored choice before first paint (no flash) needs a script that runs before body content, on every page, so `src/render/ui/shell.ts`'s
 `pageShell()` emits exactly one `<script>` tag in `<head>`, unconditional and shared. `theme-script.ts` is what it
-exists for, but the tag carries eleven transpiled files in all — the unit setting, the "…" menu's close-on-outside-click,
+exists for, but the tag carries thirteen transpiled files in all — the unit setting, the "…" menu's close-on-outside-click,
 the service worker registration and the rest — each its own IIFE, concatenated into the one tag rather than one tag per
 file. Every file in it is transpiled raw by `Bun.Transpiler`, so none of them
 may `import` or `export`; `specs-client/index.ts` may, because it is bundled by `Bun.build({ format: "iife" })`

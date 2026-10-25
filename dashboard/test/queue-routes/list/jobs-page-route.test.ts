@@ -342,7 +342,15 @@ describe("nothing running (AC-1)", () => {
   test("the full page on an empty board is the Running tab, not a redirect to the Specs list (AC-3)", async () => {
     const res = await fetch(`${board([], { queueProjects: [] }).base}/`, { redirect: "manual" });
     expect(res.status).toBe(200);
-    expect(await res.text()).toContain(t("en", "jobs.nothingRunning"));
+    const html = await res.text();
+    expect(html).toContain(t("en", "jobs.nothingRunning"));
+    expect(html).toContain('<meta name="aide-start" content="/specs">');
+  });
+
+  test("the full page with a row names no page to start on (AC-2)", async () => {
+    const res = await fetch(`${board().base}/`, { redirect: "manual" });
+    expect(res.status).toBe(200);
+    expect(await res.text()).not.toContain('<meta name="aide-start"');
   });
 
   test("an Active spec alone, with no job in the queue, is a row and not the empty sentence (AC-1)", async () => {
