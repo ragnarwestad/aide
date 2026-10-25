@@ -7,6 +7,7 @@
   - [Watched pages](#watched-pages)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-10-25](#2026-10-25)
   - [2026-10-24](#2026-10-24)
   - [2026-10-23](#2026-10-23)
   - [2026-10-19](#2026-10-19)
@@ -106,6 +107,49 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-10-25
+
+Oct 24 – Oct 25. Quiet period. Not read: Copilot v1.0.104-3 (no notes), the Codex changelog page past its first
+100,000 characters, the OpenAI developer blog (no dates shown), Artificial Analysis (the harness comparison there is
+still "coming soon"). One X list digest (Oct 25) was read.
+
+**Claude Code (no release after v2.1.310):**
+
+| Date | Version | News                                                       | Source                                                         |
+|------|---------|------------------------------------------------------------|----------------------------------------------------------------|
+| —    | —       | No new release; no new post on the blog or the news page   | [Releases](https://github.com/anthropics/claude-code/releases) |
+
+**GitHub Copilot CLI (Oct 24, v1.0.104-3 pre):**
+
+| Date   | Version    | News                             | Source                                                     |
+|--------|------------|----------------------------------|------------------------------------------------------------|
+| Oct 24 | v1.0.104-3 | Pre-release, "Fixes and changes" | [Releases](https://github.com/github/copilot-cli/releases) |
+
+**OpenAI Codex CLI (no release after v0.164.0):**
+
+| Date | Version | News                                                              | Source                                               |
+|------|---------|-------------------------------------------------------------------|------------------------------------------------------|
+| —    | —       | No new stable release; only v0.165.0-alpha.1 (Oct 23, no notes)   | [Releases](https://github.com/openai/codex/releases) |
+
+**OpenCode (no release after v2.1.4):**
+
+| Date | Version | News                      | Source                                     |
+|------|---------|---------------------------|--------------------------------------------|
+| —    | —       | No new release or entry   | [Changelog](https://opencode.ai/changelog) |
+
+**Relevance for Aide:**
+
+- ✅ The Claude Code hooks guide changed its advice on several PreToolUse hooks that rewrite the same tool input: it used
+  to say the last one to finish wins, and now says Claude Code does not merge the rewrites or guarantee which one the tool
+  runs with (`https://code.claude.com/docs/en/hooks-guide`). No Aide document states the old rule, and no Aide hook rewrites
+  tool input, so nothing needs changing.
+- ℹ X list (Oct 25): a post says all Agents SDK use drains the 5-hour limit faster than Claude Code does directly
+  ([post](https://x.com/theo/status/2114166439813017873)). Aide's runner calls `claude -p` and not the Agents SDK, so it is
+  not affected.
+- ℹ X list (Oct 25): Agent Skills, Open Responses, OpenEnv and OpenSandbox have joined the Agentic AI Foundation (already
+  covered by the 2026-10-23 review); Google's Harness² framework for tuning an agent's harness; T3 Code remote work.
+- ℹ Watched pages: `agents.md` changed only in a repository star count.
 
 ### 2026-10-24
 
