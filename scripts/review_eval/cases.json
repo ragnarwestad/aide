@@ -180,6 +180,13 @@
    "reason": "It merges only with the call just before; parallel Agent calls interleave subagent events between a parent message's blocks, as real analyze streams show."
   },
   {
+   "id": "645-step-left-open-for-tokens",
+   "spec": "645",
+   "verdict": "real",
+   "text": "dashboard/src/queue/parse-stream/step-tokens.ts:71 keeps step 1 open in the token count when the model writes 'Step 1 — started' and then 'Step 2 — skipped' with no end for step 1, so later messages' tokens go to step 1 although the timing ended it at step 2's mark.",
+   "reason": "Only a started mark moves the open step; stepMarks ends a running step at a later step's mark, so the line shows tokens from after its own end."
+  },
+  {
    "id": "647-falls-back-to-person-checkout",
    "spec": "647",
    "verdict": "false",
@@ -264,6 +271,13 @@
    "reason": "jobsTabHasRows counts entries before jobsViewRows applies the filter kept in a cookie."
   },
   {
+   "id": "657-crlf-description",
+   "spec": "657",
+   "verdict": "false",
+   "text": "With CRLF line endings in 1-description.md the dashboard recognises '- **Acceptance:** not required' but core/scripts/lib/run-spec/publish/result.sh:53 does not, so analyze leaves the criteria open instead of marking them Not verified, against AC-1.",
+   "reason": "Nothing writes a description with CRLF: aide-create-spec and the dashboard's editor both write LF."
+  },
+  {
    "id": "667-window-without-fullest",
    "spec": "667",
    "verdict": "false",
@@ -278,6 +292,13 @@
    "reason": "Codex's reader keeps only numbers; every real Claude assistant event carries the counts, and a missing cache count means no cache."
   },
   {
+   "id": "673-test-binds-everywhere",
+   "spec": "673",
+   "verdict": "false",
+   "text": "dashboard/test/queue-routes/admin/cookies-and-redirects.test.ts changes an existing test server from no bindHost to bindHost 0.0.0.0, against the Out of scope item that forbids changing how the test servers bind.",
+   "reason": "The item means the served processes, which already pass their address; the unit test must name 0.0.0.0 to keep checking that headerAuth refuses a non-loopback bind."
+  },
+  {
    "id": "674-deploy-docs-wrong",
    "spec": "674",
    "verdict": "real",
@@ -290,6 +311,13 @@
    "verdict": "false",
    "text": "dashboard/src/render/pages/projects-page/project-page.ts:218 changes the comment inside testServerSection, against the Out of scope item that the test-server part of the Deploy tab stays untouched.",
    "reason": "Only a comment changed, because the class it named was removed; the form, its markup and its behaviour are the same."
+  },
+  {
+   "id": "681-duplicated-tab",
+   "spec": "681",
+   "verdict": "unclear",
+   "text": "Duplicating a tab that shows an empty Running tab copies sessionStorage, so start-page.ts reads aide-started=1 and the new tab shows the empty Running tab instead of the Specs list, against AC-1.",
+   "reason": "True of browsers; whether a duplicated tab is a new tab or a continuation, as a reload is, the description does not settle."
   }
  ]
 }
