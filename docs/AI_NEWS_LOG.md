@@ -7,6 +7,7 @@
   - [Watched pages](#watched-pages)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-10-26](#2026-10-26)
   - [2026-10-25](#2026-10-25)
   - [2026-10-24](#2026-10-24)
   - [2026-10-23](#2026-10-23)
@@ -107,6 +108,69 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-10-26
+
+Oct 25 – Oct 26. Not read: Copilot v1.0.104-3 and Codex v0.165.0-alpha.1 (no notes), the Codex changelog page past its
+first 100,000 characters, the OpenAI developer blog (no dates shown), Artificial Analysis (the harness comparison there is
+still "coming soon"). One X list digest (Oct 26) was read. The Claude blog posts of Oct 15–22 were not read in the
+2026-10-23 review; the four on coding agents are read here.
+
+**Claude Code (no release after v2.1.310):**
+
+| Date   | Version | News                                                                                                 | Source                                                                          |
+|--------|---------|------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
+| —      | —       | No new release                                                                                       | [Releases](https://github.com/anthropics/claude-code/releases)                  |
+| Oct 22 | —       | "Building agents: When to fold subagents into your main agent loop"                                  | [Blog](https://claude.com/resources/articles)                                   |
+| Oct 16 | —       | "How the Claude Code team does code review"                                                          | [Blog](https://claude.dev/blog/solving-code-review-at-anthropic/)               |
+| Oct 19 | —       | "Redesigning source control at Anthropic" (Scion, a version control system for always-online agents) | [Engineering](https://www.anthropic.com/engineering/redesigning-source-control) |
+
+**GitHub Copilot CLI (no release after v1.0.104-3 pre):**
+
+| Date | Version | News                                           | Source                                                     |
+|------|---------|------------------------------------------------|------------------------------------------------------------|
+| —    | —       | No new release; no new changelog entry or post | [Releases](https://github.com/github/copilot-cli/releases) |
+
+**OpenAI Codex CLI (no release after v0.164.0):**
+
+| Date | Version | News                                                               | Source                                               |
+|------|---------|--------------------------------------------------------------------|------------------------------------------------------|
+| —    | —       | No new stable release; no entry on the changelog page after Oct 23 | [Releases](https://github.com/openai/codex/releases) |
+
+**OpenCode (no release after v2.1.4):**
+
+| Date | Version | News                    | Source                                     |
+|------|---------|-------------------------|--------------------------------------------|
+| —    | —       | No new release or entry | [Changelog](https://opencode.ai/changelog) |
+
+**Relevance for Aide:**
+
+- ⭐ Article on code review, Claude Code team (Oct 16): "Claude verifies its own work first by running tests, builds, and linters",
+  "a fresh-context subagent reviews the diff", separate verifier agents "vote on each finding", human review scaled to a
+  risk tier set by the change and not the author, review rounds capped (after three, ask the author to rethink), every
+  incident or revert turned into an eval case for the reviewer. Touches the review in Implement (`docs/AGENTS_AND_LOOPS.md`,
+  `core/scripts/lib/run-spec/turn/review.sh`), which is one session and one fix turn. Advises differently: the article
+  uses verifier agents per finding and re-scores the reviewer on past incidents; Aide's review has neither.
+  [Article](https://claude.dev/blog/solving-code-review-at-anthropic/)
+- ⭐ Article on subagents (Oct 22): "Prefer a single agent loop", keep subagents for context bloat, parallel work with fresh
+  context or tool-selection trouble, "split work by context, not by org chart", and fold subagents in one at a time against
+  an eval set. Touches the three parallel plan reviewers in Analyze, which run on every spec whatever its complexity
+  (`docs/AGENTS_AND_LOOPS.md`, `core/skills/aide-analyze/references/plan-review.md`); the article would have that choice
+  tested against evals (`docs/REPLAY.md`). [Article](https://claude.com/resources/articles)
+- ✅ "Redesigning source control at Anthropic" (Oct 19): treat agents as always-online clients, minimise checkouts, keep shared
+  branch state small; Anthropic says Scion suits only enormous monorepos. Aide's per-step worktrees are the opposite choice and
+  fine at its size. [Article](https://www.anthropic.com/engineering/redesigning-source-control)
+- ✅ X list (Oct 26): a post argues one can check deterministically whether a PR can be auto-merged (only reorganises code,
+  does not change the module graph, does not make test coverage worse); a possible gate before landing a step's branch.
+  [Post](https://x.com/mattpocockuk/status/2114311664069718370)
+- ✅ X list (Oct 26): a software factory built on GitHub Actions in Matt Pocock's course, the same idea as the queue and runner
+  ([post](https://x.com/mattpocockuk/status/2114432666103931215)); Theo reports Gemini inventing line numbers and arguments when
+  used as a reviewer, which argues for a check that each `file:line` a finding cites exists
+  ([post](https://x.com/theo/status/2114483219538296946)).
+- ℹ The Brotli remote code execution claim (Oct 24 announcement) was repeated in the Oct 26 digest; nothing new beyond the
+  2026-10-24 review. OpenClaw v2026.10.7 fixes Claude CLI context; "how i work with agents in 2026" by badlogicgames; models
+  adding unrequested "phases" to specs.
+- ℹ Watched pages: all 19 unchanged.
 
 ### 2026-10-25
 
