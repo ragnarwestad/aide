@@ -123,6 +123,9 @@ table.settingstable tbody:first-of-type tr.settingsgroup th { padding-top: 0; }
    the check found. The output block is the preflight's own terminal
    text, so it keeps its line breaks and its monospace. */
 .toolpanel p { max-width: 70ch; }
+/* The Check row sits right under the panel's own tab bar, which has no
+   margin below it. */
+.toolpanel > .configactions { margin-top: var(--sp-3); }
 .checklist { list-style: none; padding-left: 0; margin: var(--sp-3) 0; }
 .checklist li { margin-bottom: var(--sp-2); }
 .checklist li > span:first-child {
