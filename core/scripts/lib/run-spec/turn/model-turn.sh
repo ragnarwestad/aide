@@ -131,13 +131,13 @@ if [ "$tool" = "codex" ]; then
   session_out="$(jq -Rr 'fromjson? | select(type == "object" and .type == "thread.started") | .thread_id // empty' \
     "$transcript" 2>/dev/null | tail -n 1)"
   # The turn's own final text: the last `item.completed` event whose item
-  # is an agent_message — a shape nothing else in this branch reads today.
+  # is an agent_message, named in `type` by Codex today and `item_type` before.
   # Selected as a whole EVENT first (compact, so `tail -n 1` counts events
   # rather than lines) and only THEN read for `.item.text`: that text can
   # carry its own embedded newlines, which `-r`'s raw output would split
   # across several lines and `tail -n 1` would then truncate to the last
   # one alone.
-  turn_message_json="$(jq -Rc 'fromjson? | select(type == "object" and .type == "item.completed" and .item.item_type == "agent_message")' \
+  turn_message_json="$(jq -Rc 'fromjson? | select(type == "object" and .type == "item.completed" and (.item.item_type // .item.type) == "agent_message")' \
     "$transcript" 2>/dev/null | tail -n 1)"
   turn_message=""
   [ -n "$turn_message_json" ] && turn_message="$(jq -r '.item.text // empty' <<<"$turn_message_json" 2>/dev/null)"

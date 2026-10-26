@@ -86,7 +86,8 @@ fi
 
 # What a verification decided for each of the numbered <defects>, given its
 # reply: one `keep <n>` or `drop <n>. <why>` line per defect, and a defect
-# it gives no line for is kept. One line per defect: `keep<TAB><defect>`,
+# it gives no line for is kept. A defect's text wrapped onto further
+# lines is joined back into one. One line per defect: `keep<TAB><defect>`,
 # or `drop<TAB><n>. <defect> — <why>`.
 verified_defects() {  # <defects> <reply>
   local line n text why
@@ -100,7 +101,10 @@ verified_defects() {  # <defects> <reply>
     else
       printf 'keep\t%s\n' "$text"
     fi
-  done <<<"$1"
+  done < <(printf '%s\n' "$1" | awk '
+    /^[[:space:]]*[0-9]+\.[[:space:]]/ { if (buf != "") print buf; buf = $0; next }
+    NF && buf != "" { sub(/^[[:space:]]+/, ""); buf = buf " " $0 }
+    END { if (buf != "") print buf }')
 }
 
 if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ]; then
@@ -182,17 +186,22 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ]; th
       fi
       if [ "$side_reason" = "completed" ]; then
         verify_decided="$(verified_defects "$review_defects" "$side_message")"
-        review_defects=""; verify_kept=0
-        while IFS="$(printf '\t')" read -r verify_action verify_line; do
-          if [ "$verify_action" = "drop" ]; then
-            stage "the verification dropped review: $verify_line"
-          elif [ "$verify_action" = "keep" ]; then
-            verify_kept=$((verify_kept + 1))
-            review_defects="${review_defects:+$review_defects
+        if [ -z "$verify_decided" ]; then
+          # A list with no numbered line has nothing to keep or drop by number.
+          stage_error "the review's list has no numbered defect to verify — all of it goes back to the session"
+        else
+          review_defects=""; verify_kept=0
+          while IFS="$(printf '\t')" read -r verify_action verify_line; do
+            if [ "$verify_action" = "drop" ]; then
+              stage "the verification dropped review: $verify_line"
+            elif [ "$verify_action" = "keep" ]; then
+              verify_kept=$((verify_kept + 1))
+              review_defects="${review_defects:+$review_defects
 }$verify_kept. $verify_line"
-          fi
-        done <<<"$verify_decided"
-        [ -n "$review_defects" ] || stage "the verification dropped every defect — nothing goes back to the session"
+            fi
+          done <<<"$verify_decided"
+          [ -n "$review_defects" ] || stage "the verification dropped every defect — nothing goes back to the session"
+        fi
       else
         stage_error "the verification did not complete (${side_reason}) — every defect goes back to the session"
       fi

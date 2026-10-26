@@ -54,10 +54,11 @@ def _claude(fake_claude, review_reply, verify_reply=None, verify_body=None, keep
 
 
 def _codex_says(text):
+    """Codex's stream as 0.164 writes it: the item's kind in `type`."""
     return "\n".join(json.dumps(e) for e in [
         {"type": "thread.started", "thread_id": "codex-review-thread"},
         {"type": "turn.started"},
-        {"type": "item.completed", "item": {"id": "item_0", "item_type": "agent_message", "text": text}},
+        {"type": "item.completed", "item": {"id": "item_0", "type": "agent_message", "text": text}},
         {"type": "turn.completed", "usage": CODEX_USAGE},
     ])
 
@@ -149,3 +150,19 @@ def test_a_review_tool_that_is_neither_the_steps_nor_codex_is_refused(runner, wo
     rc, out, _ = run(runner, workspace, fake_claude("exit 0"), command="implement", review_tool="opencode")
     assert rc != 0
     assert "--review-tool" in json.dumps(out), out
+
+
+def test_a_wrapped_defect_reaches_the_fix_turn_whole(runner, workspace, fake_claude, tmp_path):
+    with_status(workspace, ["create", "analyze"])
+    review = "review: 2 defect(s) found\n1. The first is real\n   and goes on here\n2. The second is not"
+    claude = _claude(fake_claude, review, "keep 1\ndrop 2. handled at y.ts:4", keep_in=tmp_path)
+    run(runner, workspace, claude, command="implement", verify_model="claude-opus-4")
+    assert "1. The first is real and goes on here" in (tmp_path / "fix-prompt.txt").read_text()
+
+
+def test_an_unnumbered_list_goes_back_whole_rather_than_being_dropped(runner, workspace, fake_claude, tmp_path):
+    with_status(workspace, ["create", "analyze"])
+    claude = _claude(fake_claude, "review: 1 defect(s) found\n- The list is not numbered", "drop 1. not a defect", keep_in=tmp_path)
+    rc, out, _, err = run(runner, workspace, claude, command="implement", verify_model="claude-opus-4", return_stderr=True)
+    assert WENT_BACK in _stamped(err)
+    assert "- The list is not numbered" in (tmp_path / "fix-prompt.txt").read_text()
