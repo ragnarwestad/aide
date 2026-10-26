@@ -18,9 +18,8 @@
 # or missing. It never comments on style, naming or structure — a
 # constraint the runner cannot check mechanically, so it is stated in
 # the prompt, the same way the runner already relies on prompt
-# compliance for what a review even looks for. A description with an
-# `## Out of scope` section adds one instruction: each change under an
-# item in it is a defect too.
+# compliance for what a review even looks for. The prompt's words are
+# in run-spec/turn/review-prompts.sh.
 #
 # When it names one or more defects, they go back to the ORIGINAL
 # implement session as ONE follow-up (fix) turn — the same `resume_argv`
@@ -110,39 +109,13 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ]; th
   git -C "$project_wt" rev-parse --verify --quiet "origin/$review_base" >/dev/null && review_base="origin/$review_base"
   review_fork="$(git -C "$project_wt" merge-base "$review_base" HEAD 2>/dev/null)" || review_fork="HEAD"
   review_description_path="$specs_root_wt/$spec_label/1-description.md"
-  review_description="$(cat "$review_description_path" 2>/dev/null)"
-
-  # A description's "## Out of scope" section makes each change under one
-  # of its items a defect too, at every acceptance criteria checks level;
-  # without the section the prompt is exactly what it was.
-  review_scope=""
-  if declare -f aide_out_of_scope_section >/dev/null 2>&1 \
-    && [ -n "$(aide_out_of_scope_section "$review_description")" ]; then
-    review_scope="The description has an ## Out of scope section: what this change must not do or touch. Each change in the diff that falls under an item in it is a defect too, whatever kind of change it is, style, naming and structure included; say which item."
-  fi
 
   # The pictures of the pages the branch changed, when it changed any.
   screenshots_settle "$review_fork"
   review_screenshots="$(screenshots_review_line)"
 
-  {
-    printf '%s\n' \
-      "Read this spec's own description and everything this spec's branch changed, and look for defects: behaviour that is wrong, broken or missing against the description. Say nothing about style, naming or structure." \
-      "" "Report a defect only when you can name the concrete case: the input or state, and the wrong result the code gives for it. A guard that might be missing, or a state the code cannot reach, is not a defect." \
-      "" "The description: $review_description_path" \
-      "" "What changed: run \`git diff $review_fork\` in this directory, for every change since the branch left $review_base, committed or not, and \`git status --porcelain\` for new files not tracked yet. Read a whole file wherever the diff alone does not show enough."
-    [ -n "$review_scope" ] && printf '%s\n' "" "$review_scope"
-    [ -n "$review_screenshots" ] && printf '%s\n' "" "$review_screenshots"
-    printf '%s\n' \
-      "" "Do not edit, create or delete any file — you are reading and reporting only." \
-      "" "End your reply with exactly one of these, as your very last lines, plain text, no other formatting:" \
-      "review: no defects found" \
-      "or" \
-      "review: N defect(s) found" \
-      "1. <the defect and its concrete case, one sentence>" \
-      "2. <the defect and its concrete case, one sentence>" \
-      "$headless_note"
-  } > "$work_dir/prompt-review"
+  review_prompt "$review_description_path" "$review_fork" "$review_base" "$review_screenshots" "$headless_note" \
+    > "$work_dir/prompt-review"
 
   stage "reviewing what the step changed"
   argv=("${review_argv[@]}")

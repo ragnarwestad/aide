@@ -1,0 +1,295 @@
+{
+ "_about": "Implement commits whose review on the board found nothing and whose tests went green the first time, with every finding a later review made on them and whether it is a defect. real: a reachable case where the code is wrong against the description. false: the code is right, the state cannot be reached, or only a guard might be missing. unclear: it turns on a judgement the description does not settle. Each verdict was reached by reading the code at the commit.",
+ "cases": [
+  {
+   "spec": "636",
+   "commit": "b40590de"
+  },
+  {
+   "spec": "637",
+   "commit": "25e6c61d"
+  },
+  {
+   "spec": "638",
+   "commit": "488a131c"
+  },
+  {
+   "spec": "640",
+   "commit": "5135ebf0"
+  },
+  {
+   "spec": "641",
+   "commit": "c8596282"
+  },
+  {
+   "spec": "642",
+   "commit": "bf3a4599"
+  },
+  {
+   "spec": "644",
+   "commit": "c184bbc5"
+  },
+  {
+   "spec": "645",
+   "commit": "4c7b2602"
+  },
+  {
+   "spec": "647",
+   "commit": "5ff91539"
+  },
+  {
+   "spec": "648",
+   "commit": "9c44570c"
+  },
+  {
+   "spec": "649",
+   "commit": "3ae3585f"
+  },
+  {
+   "spec": "651",
+   "commit": "e99bc2aa"
+  },
+  {
+   "spec": "652",
+   "commit": "90aad398"
+  },
+  {
+   "spec": "653",
+   "commit": "45b302c8"
+  },
+  {
+   "spec": "655",
+   "commit": "0ffa3566"
+  },
+  {
+   "spec": "657",
+   "commit": "6cbc752c"
+  },
+  {
+   "spec": "659",
+   "commit": "00aa1041"
+  },
+  {
+   "spec": "662",
+   "commit": "e05f2593"
+  },
+  {
+   "spec": "667",
+   "commit": "ecffe442"
+  },
+  {
+   "spec": "672",
+   "commit": "24189c29"
+  },
+  {
+   "spec": "673",
+   "commit": "c10722ba"
+  },
+  {
+   "spec": "674",
+   "commit": "6cb82342"
+  },
+  {
+   "spec": "681",
+   "commit": "cf715402"
+  }
+ ],
+ "findings": [
+  {
+   "id": "637-overload-in-errors",
+   "spec": "637",
+   "verdict": "false",
+   "text": "An overload Claude Code reports only in `errors`, not in `result`, is not recognised as model-at-capacity, so it ends cli-error and the next implement starts a fresh turn, a retry the Out of scope section rules out.",
+   "reason": "model-turn.sh reads only .api_error_status and .result, but nothing shows Claude Code ever writes an overload that way: a guard that might be missing."
+  },
+  {
+   "id": "637-capacity-in-later-turn",
+   "spec": "637",
+   "verdict": "real",
+   "text": "core/scripts/lib/run-spec/turn/model-turn.sh:155 skips the capacity check when the step's stream already holds a turn.completed from an earlier turn, so a later fix turn that ends on a capacity error with no turn.failed becomes cli-error, against AC-1.",
+   "reason": "Every turn appends to one transcript and the check reads its last turn.completed/turn.failed; a Codex fix turn ending on 'Selected model is at capacity' with exit 1 leaves subtype success from the first turn."
+  },
+  {
+   "id": "638-language-links-keep-project",
+   "spec": "638",
+   "verdict": "false",
+   "text": "The language links on Running keep `project` from the current address (jobs-page.ts hands the raw URL to languageHref in header-controls.ts), against AC-4 that links built from the view carry no project key.",
+   "reason": "The language links are built from the request address, not the view; the tab ignores a project key they carry over (AC-3), and the links built from the view carry none."
+  },
+  {
+   "id": "640-generic-route-second-deploy",
+   "spec": "640",
+   "verdict": "false",
+   "text": "AC-7 is enforced only in the new Deploy route: POST /api/queue now accepts a deploy job and queues a second one with no already-queued-or-running check.",
+   "reason": "QueueStore.insert refuses any unfinished job with the same project, folder and step, so a second deploy is refused there too."
+  },
+  {
+   "id": "640-timer-in-killed-process",
+   "spec": "640",
+   "verdict": "false",
+   "text": "dashboard/src/serve/deploy-job/run.ts:138: the timeout runs in the process the restart kills, so when the new service never starts the deploy job stays running with no failure, against AC-6.",
+   "reason": "With no new process there is no board to show the row; when one starts, finishDeployAfterRestart fails the job once the wait since restartedAt is over (after-restart.ts:45)."
+  },
+  {
+   "id": "640-missing-fetched-commit",
+   "spec": "640",
+   "verdict": "false",
+   "text": "dashboard/src/serve/deploy-job/after-restart.ts:49 marks the job done when the fetched commit is missing after a failed rev-parse in run.ts:105, without checking which commit the process runs, against AC-5.",
+   "reason": "Needs git rev-parse HEAD to fail right after a successful fast-forward in the same checkout: not a state that is reached."
+  },
+  {
+   "id": "640-done-before-serve",
+   "spec": "640",
+   "verdict": "real",
+   "text": "dashboard/src/serve/serve.ts:276 marks the deploy done before Bun.serve starts the HTTP server at line 385, so a deploy whose service never answers is recorded as a success, against AC-6.",
+   "reason": "finishDeployAfterRestart runs at :276; a deployed commit that throws between there and Bun.serve leaves the job done and the service down. A busy port is not the trigger: kickstart -k starts the new process after the old one exits."
+  },
+  {
+   "id": "644-model-steps-no-time",
+   "spec": "644",
+   "verdict": "real",
+   "text": "The model's steps always show a dash instead of a time: scheduleSteps in dashboard/src/serve/spec-views/job-marks.ts uses timing that only Aide's own stamped marks have, against AC-1.",
+   "reason": "timed() gives a time only to a mark with startedSec, which the model's marks never have."
+  },
+  {
+   "id": "645-clipped-mark-no-tokens",
+   "spec": "645",
+   "verdict": "real",
+   "text": "dashboard/src/queue/parse-stream/step-tokens.ts:61 clips marks at 160 characters before reading them, so a step with a long title shows a dash although the stream reported token use between its start and end, against AC-3.",
+   "reason": "prose() clips a mark even when whole; over about 130 characters markOf finds no mark and the step gets no token entry."
+  },
+  {
+   "id": "645-long-start-mark-after-done",
+   "spec": "645",
+   "verdict": "real",
+   "text": "dashboard/src/queue/parse-stream/step-log.ts:151 leaves long start marks after the model's messages while short done marks move into them, so a finished step can show as running with no duration, against AC-2.",
+   "reason": "For a title whose started line is over 160 characters and whose done line is not, the done mark is stamped in the AI part and the started mark read after it."
+  },
+  {
+   "id": "645-leftover-mark-negative-duration",
+   "spec": "645",
+   "verdict": "real",
+   "text": "dashboard/src/queue/parse-stream/step-log.ts:154 leaves clipped step marks after later steps in the log, so a running step started at +20s is ended at +5s and gets a negative duration, against AC-2.",
+   "reason": "Same cause as the clipped started mark, other symptom: the leftover started mark of step 1 (+5s) closes step 2 (+20s), and job-marks.ts:64 gives 5 - 20 = -15 seconds."
+  },
+  {
+   "id": "645-message-counted-twice",
+   "spec": "645",
+   "verdict": "real",
+   "text": "dashboard/src/queue/parse-stream/step-tokens.ts:106 counts the same Claude message several times when a subagent's message comes between its content blocks, so 130 real tokens show as 230, against AC-3.",
+   "reason": "It merges only with the call just before; parallel Agent calls interleave subagent events between a parent message's blocks, as real analyze streams show."
+  },
+  {
+   "id": "647-falls-back-to-person-checkout",
+   "spec": "647",
+   "verdict": "false",
+   "text": "dashboard/src/serve/routes/page-routes/schedule-pages.ts:98 uses machineryProjectDir, which falls back to the person's checkout when the board's own is missing, so the page shows the wrong checkout instead of the sentence AC-4 asks for.",
+   "reason": "machineryProjectDir is by design the directory a run of the entry is handed, so the page shows what the run reads."
+  },
+  {
+   "id": "647-directory-as-prompt",
+   "spec": "647",
+   "verdict": "real",
+   "text": "dashboard/src/serve/routes/page-routes/schedule-pages.ts:100 does not check that the prompt path is a file, so a saved path like `docs` shows a git tree listing as Markdown instead of the cannot-be-read sentence, against AC-4.",
+   "reason": "scheduleEntryError checks only existsSync, so `docs` is stored; git show origin/main:docs exits 0 with a tree listing that is drawn as text."
+  },
+  {
+   "id": "647-unnormalised-prompt-path",
+   "spec": "647",
+   "verdict": "real",
+   "text": "dashboard/src/serve/routes/page-routes/schedule-pages.ts:100 hands the prompt path to git unchanged, so an accepted path like docs/../docs/nightly.md or docs//nightly.md shows cannot be read although the file is on the default branch, against AC-2.",
+   "reason": "Saving checks a normalised path, git log normalises it, git show ref:<path> does not and fails."
+  },
+  {
+   "id": "648-row-stays-after-delete",
+   "spec": "648",
+   "verdict": "real",
+   "text": "After a successful Delete the Projects list still shows the project's row, only without the Delete button, because the list comes from the folders under the projects root, against AC-3.",
+   "reason": "The checkout stays on disk and the list showed every directory under the projects root; 649 fixed it."
+  },
+  {
+   "id": "651-sent-back-twice",
+   "spec": "651",
+   "verdict": "false",
+   "text": "core/scripts/lib/run-spec/record/sent-back-check.sh:33-35 does not check whether the spec was already sent back, so if analyze stops before the short analysis is replaced, the next implement sends it back again, against at most once.",
+   "reason": "At most once comes from analyze writing a full analysis; a second send-back after a failed analyze only queues the full analysis the spec still lacks."
+  },
+  {
+   "id": "651-landing-skips-specs-in-code-repo",
+   "spec": "651",
+   "verdict": "real",
+   "text": "For a spec whose specs folder lives in the code repository, landingFor in dashboard/src/serve/runner-setup.ts does not land the stopped implement's branch, so the Sent back line never reaches main and the row and page show no notice, against AC-5.",
+   "reason": "pushed.some(r => codeRoots.has(r.root)) makes landingFor return undefined; the row and the next analyze read the main checkout."
+  },
+  {
+   "id": "652-yaml-comment-in-prefix",
+   "spec": "652",
+   "verdict": "real",
+   "text": "core/scripts/aide-ac-prefix:64 reads a YAML comment as part of the prefix, so `acPrefix: F{spec} # feature` names tests `(F02 # feature AC-2)` instead of `(F02 AC-2)`, against AC-1.",
+   "reason": "aide_manifest_get strips only the key and trailing whitespace; the dashboard's parser drops the comment, so bash and TypeScript disagree."
+  },
+  {
+   "id": "652-existing-tests-renamed",
+   "spec": "652",
+   "verdict": "false",
+   "text": "Three existing tests get new names, although renaming tests written before the prefix was set is out of scope.",
+   "reason": "The three tests were extended to cover the new criterion and tagged with it; the item forbids renaming old tests to the new prefix, not tagging one that now covers this spec."
+  },
+  {
+   "id": "653-link-target-dropped",
+   "spec": "653",
+   "verdict": "unclear",
+   "text": "scripts/watch-pages.py:77 throws link targets away, so a changed recommendation of which resource to use is reported unchanged when the link text stays, against AC-3.",
+   "reason": "True of the code; whether a new link target is a change in what the page advises depends on the page, and the description says nothing about links."
+  },
+  {
+   "id": "653-pre-whitespace",
+   "spec": "653",
+   "verdict": "real",
+   "text": "scripts/watch-pages.py:108 removes newlines and indentation from code examples, so a change that alters what an example does can be reported unchanged, against AC-3.",
+   "reason": "A YAML example where model: moves under metadata: gives the same text before and after."
+  },
+  {
+   "id": "653-aside-dropped",
+   "spec": "653",
+   "verdict": "real",
+   "text": "scripts/watch-pages.py:31 drops everything inside <aside>, advice and warnings in the article too, so a change to that advice is never compared or reported, against AC-2 and AC-3.",
+   "reason": "OpenCode's docs and platform.claude.com put tips and cautions in <aside> callouts."
+  },
+  {
+   "id": "655-saved-filter-empty-running",
+   "spec": "655",
+   "verdict": "real",
+   "text": "dashboard/src/render/pages/jobs-page/index.ts:61 counts rows before the Running tab's saved filter applies, so /app opens a Running tab with no visible rows when the filter hides them all, against AC-2.",
+   "reason": "jobsTabHasRows counts entries before jobsViewRows applies the filter kept in a cookie."
+  },
+  {
+   "id": "667-window-without-fullest",
+   "spec": "667",
+   "verdict": "false",
+   "text": "core/scripts/lib/run-spec/turn/context-use.sh:97 leaves out the whole context object when fullest is missing, although the tool gives the window, so a known window is not recorded, against AC-3.",
+   "reason": "For Claude the window comes from modelUsage, which exists only after a call with usage; for Codex both come from one token_count.info. No input leads there."
+  },
+  {
+   "id": "667-missing-counts-as-zero",
+   "spec": "667",
+   "verdict": "false",
+   "text": "core/scripts/lib/run-spec/turn/context-use.sh:37 turns missing input and cache counts in a usage object into fullest=0, so the result reports an invented measurement, against AC-5.",
+   "reason": "Codex's reader keeps only numbers; every real Claude assistant event carries the counts, and a missing cache count means no cache."
+  },
+  {
+   "id": "674-deploy-docs-wrong",
+   "spec": "674",
+   "verdict": "real",
+   "text": "dashboard/docs/projects.md:254 now says the board's own Deploy ends after the restart step when a landing holds it back or there is nothing to restart, while the job waits for the landing and runs the check without a restart.",
+   "reason": "restartWhenSettled waits for the landings, and with nothing to restart run.ts still runs the check step; AC-8 asks projects.md to describe Deploy."
+  },
+  {
+   "id": "674-test-server-comment",
+   "spec": "674",
+   "verdict": "false",
+   "text": "dashboard/src/render/pages/projects-page/project-page.ts:218 changes the comment inside testServerSection, against the Out of scope item that the test-server part of the Deploy tab stays untouched.",
+   "reason": "Only a comment changed, because the class it named was removed; the form, its markup and its behaviour are the same."
+  }
+ ]
+}
