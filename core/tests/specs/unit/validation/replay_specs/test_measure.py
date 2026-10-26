@@ -47,7 +47,8 @@ def test_a_plan_without_the_subsection_or_a_description_without_criteria_says_so
 def test_implement_rounds_are_one_plus_every_hand_back_the_log_names_AC_6():
     log = "\n".join([
         "aide-run-spec 10:00:00 +1s preparing",
-        "aide-run-spec 10:20:00 +1200s the review found 2 defect(s) — handing them to the session",
+        "aide-run-spec 10:20:00 +1200s error: the review found 2 defect(s)",
+        "aide-run-spec 10:20:01 +1201s the defect(s) went back to the implement session to be fixed",
         "aide-run-spec 10:30:00 +1800s the tests are red — handing them back to the session (round 1 of 3)",
         "aide-run-spec 10:40:00 +2400s the tests are red — handing them back to the session (round 2 of 3)",
     ])

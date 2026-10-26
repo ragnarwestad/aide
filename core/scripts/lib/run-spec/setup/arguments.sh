@@ -68,6 +68,7 @@ kill_grace_sec="30"; do_pull="no"; dry_run="no"
 # invocation stays one path: the queue, the worktrees, the timeout and
 # all the git handling never learn there is a second tool.
 tool="claude"
+review_tool=""; review_model=""; verify_tool=""; verify_model=""
 # What a `create` step is FOR (spec 93). Every other step names a folder
 # that is already on disk; this one makes it, so the two things
 # /aide-create needs come in as arguments instead. Required for a create
@@ -168,6 +169,10 @@ while [ $# -gt 0 ]; do
     --model) model="${2:-}"; shift 2 ;;
     --effort) effort="${2:-}"; shift 2 ;;
     --tool) tool="${2:-}"; shift 2 ;;
+    --review-tool) review_tool="${2:-}"; shift 2 ;;
+    --review-model) review_model="${2:-}"; shift 2 ;;
+    --verify-tool) verify_tool="${2:-}"; shift 2 ;;
+    --verify-model) verify_model="${2:-}"; shift 2 ;;
     --session-id) session_id="${2:-}"; shift 2 ;;
     --resume-session) resume_session="${2:-}"; shift 2 ;;
     --stream-file) stream_file="${2:-}"; shift 2 ;;
@@ -281,6 +286,13 @@ case "$tool" in
   claude|codex|opencode|fake-claude) ;;
   *) refuse "invalid --tool: $tool (claude, codex, opencode or fake-claude)" ;;
 esac
+
+# Implement's review and its verification run on the step's own tool, or
+# on codex read-only beside it (run-spec/turn/side-turn.sh).
+for side_tool_arg in "$review_tool" "$verify_tool"; do
+  [ -z "$side_tool_arg" ] || [ "$side_tool_arg" = "$tool" ] || [ "$side_tool_arg" = "codex" ] \
+    || refuse "invalid --review-tool or --verify-tool: $side_tool_arg (the step's own tool, $tool, or codex)"
+done
 
 if [ -n "$effort" ]; then
   case " $EFFORT_LEVELS " in

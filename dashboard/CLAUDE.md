@@ -64,8 +64,12 @@ get them, and reads them by hand.
   `mapfile`, build arrays with `array+=(...)`.
 - **An `implement` whose own turn ends `completed` is reviewed before
   its tests decide anything** (`run-spec/turn/review.sh`): a second,
-  fresh session with the same model reads the description and the
-  branch's diff and looks for defects against the description alone.
+  fresh session reads the description and the branch's diff and looks
+  for defects against the description alone, on the queue config's
+  `model.review` or else the step's own model, Codex included
+  (`run-spec/turn/side-turn.sh`, which puts the step's own outcome,
+  tokens and limits back afterwards). With `model.verify` a third
+  session keeps or drops each defect first.
   Defects go back to the ORIGINAL session as one follow-up turn, which
   may turn one down on a `not a defect:` line, logged; the
   review itself is best-effort, so a verdict it cannot parse counts as

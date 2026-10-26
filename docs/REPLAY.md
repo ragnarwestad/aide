@@ -12,6 +12,7 @@
 - [What a round costs](#what-a-round-costs)
 - [Deciding from a round](#deciding-from-a-round)
 - [What the rounds found](#what-the-rounds-found)
+- [Measuring the review](#measuring-the-review)
 
 ---
 
@@ -174,3 +175,30 @@ not on size: one of them was smaller than a spec that ran. 199 of the 226 origin
 passed; the round cannot tell whether the other 27 failed on behaviour or only on naming
 and placing. That is why the short analysis still writes the files to change and where
 the tests go, and why the runner, not the model, decides when it is taken.
+
+## Measuring the review
+
+`scripts/review_eval` measures implement's review and its verification, which a replay cannot: a replay reruns the
+whole step, while these need fixed commits with known defects. `scripts/review_eval/cases.json` holds 23 implement
+commits whose review on the board found nothing, and every finding a later review made on them, each labelled
+`real`, `false` or `unclear` by reading the code at the commit. Both commands send the runner's own prompts
+(`run-spec/turn/review-prompts.sh`) in a detached worktree of each commit.
+
+- `review --tool codex --model gpt-6.1-sol` runs the review on every commit, and a Claude judge matches each finding
+  to a labelled one. It reports how many real defects were found and how many false ones reported, and lists the new
+  ones. A new one gets a verdict, by reading the code, before it goes into `cases.json`.
+- `verify --tool claude --model opus` hands each commit's labelled findings to the verification, and reports how many
+  real ones it kept and how many false ones it dropped.
+
+Results go to `~/.aide/review-eval/`. Run it on the serving host, as a round is run, with the same token.
+
+On 26 October 2026, with 17 real, 13 false and 2 unclear findings labelled:
+
+| What was measured                   | Result                                                  |
+| ----------------------------------- | ------------------------------------------------------- |
+| Review on gpt-6.1-sol               | 8 real found, 7 false and 2 unclear reported            |
+| Verification on Opus (28 findings)  | 13 of 16 real kept, 11 of 11 false dropped, $6.18       |
+| Verification on Sonnet (28 findings)| 9 of 16 real kept, 10 of 11 false dropped, $2.64        |
+
+That is why `model.review` is gpt-6.1-sol and `model.verify` Opus. The three real defects Opus dropped each turn on
+how the description is read.

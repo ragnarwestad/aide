@@ -168,6 +168,11 @@ three-reviewer-perspective routine runs inside it. A tightening
 override is checked against each step's OWN ceiling, so a job holding both steps cannot buy `analyze` more time by
 naming `implement`. A file still carrying the old flat `"timeoutSec": 1200` is ignored and the built-in defaults stand.
 
+`model` takes two keys besides the steps, read for an implement only: `review` names the choice implement's review
+runs on, and `verify` the choice that checks each defect the review finds before any goes back to the session
+(`docs/the-runner.md`). Either may be a Codex choice beside a Claude step; a choice on any other tool than the step's
+or Codex is left out. Without `review` the review runs on the step's own model, and without `verify` nothing checks it.
+
 `resumeAnalysis: true` lets an implement continue its analysis's own AI session, so it starts with what the analysis
 read instead of reading it again. It applies only when both steps run with the same AI (Claude, Codex or OpenCode — the
 model may differ) and the analysis ended within the hour; past that the tool's cache of the session is gone and reading it

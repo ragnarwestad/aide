@@ -50,6 +50,28 @@ export function stepTool(
   return ((choiceName ? o.modelChoices?.[choiceName]?.tool : undefined) ?? "claude") as CheckableTool;
 }
 
+/** The model an implement's review and the verification of its defects
+ *  run on, from the config's `model.review` and `model.verify`: a choice
+ *  name, looked up like a step's. The runner runs them on the step's own
+ *  tool or on codex beside it (run-spec/turn/side-turn.sh), so a choice on
+ *  any other tool is left out and that part runs on the step's own model.
+ *  Nothing for another step, or with neither key set. */
+export function reviewModelArgs(
+  step: string,
+  tool: string,
+  o: { model?: Record<string, string>; modelChoices?: Record<string, ModelChoice> },
+): string[] {
+  if (step !== "implement") return [];
+  return (["review", "verify"] as const).flatMap((part) => {
+    const name = o.model?.[part];
+    if (!name) return [];
+    const choice = o.modelChoices?.[name];
+    const sideTool = choice?.tool ?? "claude";
+    if (sideTool !== tool && sideTool !== "codex") return [];
+    return [`--${part}-model`, choice?.model ?? name, `--${part}-tool`, sideTool];
+  });
+}
+
 /** How recent an analysis must be for its implement to continue its
  *  session: past that, the tool's cache of it is gone, and reading the
  *  whole session back at full price costs more than starting afresh. */
@@ -214,6 +236,7 @@ export function runnerArgv(
     // the argv it produced before this flag existed — the same shape
     // `--model` itself has had all along.
     ...(tool !== "claude" ? ["--tool", tool] : []),
+    ...reviewModelArgs(step, tool, o),
     // Chosen by the runner BEFORE the spawn, so the queue can watch the
     // session while the step runs instead of learning it from a result
     // that only exists once the step is over.

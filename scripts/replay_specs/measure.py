@@ -15,7 +15,7 @@ from gitutil import git
 Counts = namedtuple("Counts", "must should note")
 
 AC_COVERAGE = Path(__file__).resolve().parents[2] / "core" / "scripts" / "lib" / "run-spec" / "record" / "ac-coverage.sh"
-HAND_BACK = re.compile(r"the review found .* defect\(s\) — handing them to the session|the tests are red — handing them back to the session")
+HAND_BACK = re.compile(r"the defect\(s\) went back to the implement session to be fixed|the tests are red — handing them back to the session")
 JS_TESTS = (".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs")
 
 

@@ -91,13 +91,17 @@ grade, and the runner does not check it.
 
 1. The runner starts one new session with `aide-implement`, which writes the code and its tests. With
    [`resumeAnalysis`](#settings) on, it continues the analysis's own session instead.
-2. **The review.** The runner starts a second, new session, with the same AI, model and effort
-   (`run-spec/turn/review.sh`). It reads the description, finds the branch's whole change against where it left the
-   default branch with `git diff` itself, and reports defects against the description. It changes nothing.
-3. Defects found go back to the implement session as one more turn, which fixes them. The review does not run again.
-4. The runner runs the tests itself (`run-spec/turn/step-tests.sh`). Red goes back to the implement session, with the
+2. **The review.** The runner starts a second, new session (`run-spec/turn/review.sh`), on the model the queue
+   config's `model.review` names, Codex included, else the step's own. It reads the description, finds the branch's
+   whole change against where it left the default branch with `git diff` itself, and reports defects against the
+   description. It changes nothing.
+3. **The verification**, when `model.verify` names a model. A third new session traces each defect in the code and
+   keeps or drops it. Only the kept ones go on.
+4. Defects found go back to the implement session as one more turn, which fixes them, or turns down one it shows is
+   not a defect. The review does not run again.
+5. The runner runs the tests itself (`run-spec/turn/step-tests.sh`). Red goes back to the implement session, with the
    failing lines, for up to two more turns.
-5. The step ends only on a green run the runner made itself.
+6. The step ends only on a green run the runner made itself.
 
 No subagents.
 
@@ -135,7 +139,8 @@ Every loop that sends work back goes to the session that did the work, and every
   the same AI and the analysis ended within the hour. Off unless set
   ([running specs](../dashboard/docs/running-specs.md)).
 - **`AIDE_TEST_FIX_ROUNDS`**: how many more turns red tests get. 2 unless set.
-- **The AI, model and effort for each step**, chosen per spec. The review in Implement always uses the step's own.
+- **The AI, model and effort for each step**, chosen per spec. The review in Implement and its verification use
+  `model.review` and `model.verify` from the queue config, and the step's own when those are not set.
 
 ## What Aide does not do
 

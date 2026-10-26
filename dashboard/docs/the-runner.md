@@ -73,6 +73,7 @@ it as `--name`; `<project>` is the project's name on the board, the same as the 
 |-------------------------------------------------|-------------------------------------------------|
 | A step on a spec: analyze, implement, archive … | `<project> <spec number> <step>`                |
 | The review after an implement                   | `<project> <spec number> review`                |
+| The verification of the review's defects        | `<project> <spec number> verify`                |
 | A create, which has no number yet               | `<project> new create`                          |
 | A scheduled job                                 | `<project> schedule <entry name>`               |
 
@@ -276,12 +277,16 @@ evidence that the phase happened:
 - `implement` counts only if the project's HEAD moved, its tree changed, or its branch differs from the default
   branch — the third catches a re-pressed implement that finds an earlier run's code already on the branch and
   writes nothing itself. Otherwise the step ends `no-progress` and
-  the line is not extended. Once past that check, a second, fresh AI session — same model, effort and tool as the
-  step, never resumed — reads the spec's own description and, with `git diff` itself, everything the branch changed
+  the line is not extended. Once past that check, a second, fresh AI session — never resumed, on the model the
+  queue config's `model.review` names, else the step's own — reads the spec's own description and, with `git diff` itself, everything the branch changed
   since it left the default branch, and looks for defects against the description, each with the concrete case it
   goes wrong for; it never comments on style, naming or structure (`run-spec/turn/review.sh`),
   except that a description with an `## Out of scope` section makes each change under an item in it a defect too. One or
-  more found go back to the ORIGINAL implement session as one follow-up turn that fixes them, or turns one down on a
+  more found are checked first, when `model.verify` names a model, by a third fresh session that keeps or drops each
+  one after tracing it in the code; only the kept ones go on, and a verification that does not complete keeps them
+  all. A review or verification runs on the step's own tool or on Codex, read-only (`run-spec/turn/side-turn.sh`),
+  and a review on Codex that does not complete, out of quota or at capacity, is done again by the step's own model.
+  Those found go back to the ORIGINAL implement session as one follow-up turn that fixes them, or turns one down on a
   `not a defect: <number>. <why>` line when the review is wrong, and that turn's own
   failure stands as the step's outcome; the review's own turn is best-effort, and any outcome other than a clean
   "no defects" — a verdict it cannot parse, or its own turn failing to complete — falls back to "found nothing"
@@ -413,7 +418,8 @@ and `cannotBuild`. The state file does not gain `analyze`.
 A line reading `none found`, or no such line at all, completes the step, and the log says what was read. The
 runner reads the line and never judges the criteria itself. An implement's code review writes
 `the review found no defects`, or an `error:` line with the count, one `review: <line>` per line of the reviewer's
-list, and `the defect(s) went back to the implement session to be fixed` before the fix turn; after it, one
+list, one `the verification dropped review: <number>. <defect> — <why>` per defect a verification dropped, and
+`the defect(s) went back to the implement session to be fixed` before the fix turn; after it, one
 `the implement session found it not a defect: <number>. <why>` line per defect the session turned down.
 
 **The shared files check.** The analyze skill compares the files its analysis will change (`### Files to change` in

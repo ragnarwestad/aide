@@ -84,23 +84,28 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ]; then
   esac
 fi
 
+# What a verification decided for each of the numbered <defects>, given its
+# reply: one `keep <n>` or `drop <n>. <why>` line per defect, and a defect
+# it gives no line for is kept. One line per defect: `keep<TAB><defect>`,
+# or `drop<TAB><n>. <defect> — <why>`.
+verified_defects() {  # <defects> <reply>
+  local line n text why
+  while IFS= read -r line; do
+    n="$(printf '%s' "$line" | sed -nE 's/^[[:space:]]*([0-9]+)\.[[:space:]].*/\1/p')"
+    [ -n "$n" ] || continue
+    text="$(printf '%s' "$line" | sed -E 's/^[[:space:]]*[0-9]+\.[[:space:]]+//')"
+    why="$(printf '%s\n' "$2" | grep -iE "^[[:space:]]*drop[[:space:]]+$n([^0-9]|$)" | tail -n 1)"
+    if [ -n "$why" ]; then
+      printf 'drop\t%s. %s — %s\n' "$n" "$text" "$(printf '%s' "$why" | sed -E 's/^[[:space:]]*[A-Za-z]+[[:space:]]+[0-9]+\.?[[:space:]]*//')"
+    else
+      printf 'keep\t%s\n' "$text"
+    fi
+  done <<<"$1"
+}
+
 if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ]; then
   implement_session="$session_out"
   running_cost="$cost"
-
-  # A fresh session, same tool/model/effort as the step (fresh_argv),
-  # minus the one collision: fresh_argv still carries claude's
-  # --session-id from the run's own pre-minted UUID, already spent by
-  # the main turn when it ran fresh. Let claude mint its own.
-  review_argv=(); review_skip="no"
-  for review_arg in "${fresh_argv[@]}"; do
-    if [ "$review_skip" = "yes" ]; then review_skip="no"; continue; fi
-    case "$review_arg" in
-      --session-id) review_skip="yes" ;;
-      --name) review_argv+=(--name "$session_project $spec_id review"); review_skip="yes" ;;
-      *) review_argv+=("$review_arg") ;;
-    esac
-  done
 
   # The review finds what changed itself, against where the branch left
   # the default branch: an earlier attempt's commits count as much as
@@ -117,39 +122,83 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ]; th
   review_prompt "$review_description_path" "$review_fork" "$review_base" "$review_screenshots" "$headless_note" \
     > "$work_dir/prompt-review"
 
+  # A fresh session (run-spec/turn/side-turn.sh): on --review-tool and
+  # --review-model when the board names them, else on the step's own.
+  # When that other tool does not complete — Codex out of quota, or its
+  # model at capacity — the step's own model reviews instead.
+  review_on="${review_tool:-$tool}"
   stage "reviewing what the step changed"
-  argv=("${review_argv[@]}")
-  # The review is a session of its own: how full its window got is not the step's.
-  context_use_skip="yes"
-  run_model_turn "$work_dir/prompt-review"
-  context_use_skip=""
-  running_cost="$(jq -n --arg a "$running_cost" --arg b "$cost" '(($a|tonumber) + ($b|tonumber))')"
+  side_reason="unavailable"
+  if side_argv_for "$review_on" "$review_model" "${session_project:-} ${spec_id:-} review"; then
+    side_turn "$review_on" "$work_dir/prompt-review"
+    running_cost="$(jq -n --arg a "$running_cost" --arg b "$side_cost" '(($a|tonumber) + ($b|tonumber))')"
+  fi
+  if [ "$side_reason" != "completed" ] && [ "$review_on" != "$tool" ]; then
+    stage_error "the review on $review_on did not complete (${side_reason}) — the step's own model reviews instead"
+    side_argv_for "$tool" "" "${session_project:-} ${spec_id:-} review"
+    side_turn "$tool" "$work_dir/prompt-review"
+    running_cost="$(jq -n --arg a "$running_cost" --arg b "$side_cost" '(($a|tonumber) + ($b|tonumber))')"
+  fi
+  cost="$running_cost"
 
-  if [ "$terminal_reason" != "completed" ]; then
+  if [ "$side_reason" != "completed" ]; then
     # Best-effort: the review's OWN turn shares the step's one deadline,
     # and a step whose real work is already done and committed must not
     # be reported timeout/cli-error purely because this added safety net
     # had a hiccup.
-    stage_error "the review's own turn did not complete (${terminal_reason}) — proceeding without it"
-    terminal_reason="completed"; error_msg=""
-    session_out="$implement_session"; cost="$running_cost"
+    stage_error "the review's own turn did not complete (${side_reason}) — proceeding without it"
   else
-    review_verdict="$(printf '%s\n' "$turn_message" | grep -iE '^review: ' | tail -n 1)"
+    review_verdict="$(printf '%s\n' "$side_message" | grep -iE '^review: ' | tail -n 1)"
+    review_defects=""
     if [ -z "$review_verdict" ]; then
       # Still best-effort, so the step goes on, but never logged as a
       # clean review: a reply without the line may well describe defects.
       stage_error "the review's reply has no review: line — proceeding as if it found none"
-      session_out="$implement_session"; cost="$running_cost"
     elif printf '%s' "$review_verdict" | grep -qi 'no defects found'; then
       stage "the review found no defects"
-      session_out="$implement_session"; cost="$running_cost"
     else
-      review_defects="$(printf '%s\n' "$turn_message" | sed -n '/^[Rr]eview: [0-9]/,$p' | tail -n +2)"
+      review_defects="$(printf '%s\n' "$side_message" | sed -n '/^[Rr]eview: [0-9]/,$p' | tail -n +2)"
       review_count="$(printf '%s' "$review_verdict" | grep -oE '[0-9]+' | head -1)"
-      stage_error "the review found ${review_count:-an unknown number of} defect(s) — handing them to the session"
+      stage_error "the review found ${review_count:-an unknown number of} defect(s)"
       while IFS= read -r review_defect_line; do
         [ -n "$review_defect_line" ] && stage "review: $review_defect_line"
       done <<<"$review_defects"
+    fi
+
+    # A second fresh session, when the board names a model for it, checks
+    # each defect in the code before any goes back: a review is often
+    # wrong, and the implement session defends its own code. Best-effort
+    # too: a verification that does not complete keeps every defect.
+    if [ -n "$review_defects" ] && { [ -n "$verify_model" ] || [ -n "$verify_tool" ]; }; then
+      verify_on="${verify_tool:-$tool}"
+      verify_prompt "$review_description_path" "$review_fork" "$review_base" "$review_defects" "$headless_note" \
+        > "$work_dir/prompt-verify"
+      stage "verifying the review's defect(s)"
+      side_reason="unavailable"
+      if side_argv_for "$verify_on" "$verify_model" "${session_project:-} ${spec_id:-} verify"; then
+        side_turn "$verify_on" "$work_dir/prompt-verify"
+        running_cost="$(jq -n --arg a "$running_cost" --arg b "$side_cost" '(($a|tonumber) + ($b|tonumber))')"
+        cost="$running_cost"
+      fi
+      if [ "$side_reason" = "completed" ]; then
+        verify_decided="$(verified_defects "$review_defects" "$side_message")"
+        review_defects=""; verify_kept=0
+        while IFS="$(printf '\t')" read -r verify_action verify_line; do
+          if [ "$verify_action" = "drop" ]; then
+            stage "the verification dropped review: $verify_line"
+          elif [ "$verify_action" = "keep" ]; then
+            verify_kept=$((verify_kept + 1))
+            review_defects="${review_defects:+$review_defects
+}$verify_kept. $verify_line"
+          fi
+        done <<<"$verify_decided"
+        [ -n "$review_defects" ] || stage "the verification dropped every defect — nothing goes back to the session"
+      else
+        stage_error "the verification did not complete (${side_reason}) — every defect goes back to the session"
+      fi
+    fi
+
+    if [ -n "$review_defects" ]; then
       stage "the defect(s) went back to the implement session to be fixed"
 
       fix_screenshots="$(screenshots_fix_line)"

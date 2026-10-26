@@ -110,7 +110,7 @@ def test_defects_found_are_listed_then_handed_to_a_third_turn_the_fix_never_a_se
     assert REVIEW_SESSION not in calls[2], calls[2]
     assert abs(out["costUsd"] - 0.35) < 1e-6, out
     stages = _stamped(err)
-    count = stages.index("error: the review found 2 defect(s) — handing them to the session")
+    count = stages.index("error: the review found 2 defect(s)")
     assert stages[count + 1:count + 4] == [
         "review: 1. First defect", "review: 2. Second defect", WENT_BACK,
     ], stages
