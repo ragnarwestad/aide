@@ -29,6 +29,8 @@ import os
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 from pathlib import Path
 
 import replies
@@ -94,6 +96,21 @@ def turn(tool, model, text, cwd, out):
     return reply
 
 
+WORKTREES = threading.Lock()
+
+
+def worktree(code, *args):
+    """git worktree, one at a time in this process, and tried again while another run holds the repository's lock."""
+    with WORKTREES:
+        for attempt in range(10):
+            try:
+                return git(code, "worktree", *args)
+            except subprocess.CalledProcessError:
+                if attempt == 9:
+                    raise
+                time.sleep(3)
+
+
 class Case:
     def __init__(self, args, case, scratch):
         self.args, self.spec, self.commit = args, case["spec"], case["commit"]
@@ -106,11 +123,11 @@ class Case:
         self.description.write_text(description_at(args.specs_repo, args.project, self.spec, when) + "\n")
 
     def __enter__(self):
-        git(self.args.code, "worktree", "add", "-q", "--detach", str(self.tree), self.commit)
+        worktree(self.args.code, "add", "-q", "--detach", str(self.tree), self.commit)
         return self
 
     def __exit__(self, *_):
-        git(self.args.code, "worktree", "remove", "--force", str(self.tree))
+        worktree(self.args.code, "remove", "--force", str(self.tree))
 
 
 def review_one(args, case, labelled, scratch):
