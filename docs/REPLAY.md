@@ -194,11 +194,11 @@ Results go to `~/.aide/review-eval/`. Run it on the serving host, as a round is 
 
 On 26 October 2026, with 17 real, 13 false and 2 unclear findings labelled:
 
-| What was measured                   | Result                                                  |
-| ----------------------------------- | ------------------------------------------------------- |
-| Review on gpt-6.1-sol               | 8 real found, 7 false and 2 unclear reported            |
-| Verification on Opus (28 findings)  | 13 of 16 real kept, 11 of 11 false dropped, $6.18       |
-| Verification on Sonnet (28 findings)| 9 of 16 real kept, 10 of 11 false dropped, $2.64        |
+| What was measured                    | Result                                               |
+| ------------------------------------ | ---------------------------------------------------- |
+| Review on gpt-6.1-sol                | 8 real found, 7 false and 2 unclear reported         |
+| Verification on Opus (32 findings)   | 14 of 17 real kept, 13 of 13 false dropped, about $7 |
+| Verification on Sonnet (28 findings) | 9 of 16 real kept, 10 of 11 false dropped, $2.64     |
 
 That is why `model.review` is gpt-6.1-sol and `model.verify` Opus. The three real defects Opus dropped each turn on
 how the description is read.
