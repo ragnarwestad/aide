@@ -7,6 +7,7 @@
   - [Watched pages](#watched-pages)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-10-27](#2026-10-27)
   - [2026-10-26](#2026-10-26)
   - [2026-10-25](#2026-10-25)
   - [2026-10-24](#2026-10-24)
@@ -108,6 +109,65 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-10-27
+
+Oct 26 – Oct 27. Not read: Copilot v1.0.104-1 to -4 and Codex v0.165.0 and v0.166.0 alphas (no notes), the Codex
+changelog page past its first 100,000 characters, the OpenAI developer blog (no dates shown), Artificial Analysis (the
+harness comparison there is still "coming soon"). The X list digest of Oct 27 could not be read: the list is
+unreachable because the machine's Chrome is not connected to the Claude account. Of the watched pages, `agents.md` and
+the Claude Code hooks guide also changed, but their diffs were lost (the watch script's output was cut off before them
+and a second run compares the page with itself), so they are not assessed.
+
+**Claude Code (v2.1.311):**
+
+| Date   | Version | News                                                                                                                                                                                                                                    | Source                                                                       |
+|--------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| Oct 26 | v2.1.311 | `--hold-idle-file` and `--max-hold-min` for `self-hosted-runner`; sessions that hit "Usage credits required for 1M context" past 200K tokens now compact and continue; `SubagentStop` hooks fired about twice a minute instead of once, fixed; subagents can use MCP tools from servers that connect after they start; `ultrathink` runs at xhigh effort; `DISABLE_COMPACT` can only turn compaction off | [Releases](https://github.com/anthropics/claude-code/releases/tag/v2.1.311) |
+| Oct 22 | —       | "Donating Agent Skills to the Agentic AI Foundation"                                                                                                                                                                                    | [News](https://www.anthropic.com/news)                                       |
+
+**GitHub Copilot CLI (v1.0.104):**
+
+| Date   | Version  | News                                                                                                                                                                      | Source                                                     |
+|--------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Oct 27 | v1.0.104 | Managed "fusion" model starts sessions on Auto; Autopilot sessions wait for attached background tasks past the timeout (`-p --autopilot` still honours it); Assisted Permissions work without experimental mode | [Releases](https://github.com/github/copilot-cli/releases) |
+| Oct 26 | —        | "GitHub Copilot assisted permissions generally available"; "GPT-6.1 Terra in GitHub Copilot"                                                                              | [Changelog](https://github.blog/changelog/label/copilot/)  |
+
+**OpenAI Codex CLI (no stable release after v0.164.0):**
+
+| Date   | Version | News                                                                                         | Source                                                     |
+|--------|---------|----------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Oct 27 | v0.166.0-alpha.1 | Alphas only, no notes                                                              | [Releases](https://github.com/openai/codex/releases)       |
+| Oct 26 | —       | "GPT-6.1 Terra in Work and Codex": a fast model with strong image understanding and computer use | [Changelog](https://learn.chatgpt.com/docs/changelog)      |
+
+**OpenCode (no release after v2.1.4):**
+
+| Date | Version | News                    | Source                                     |
+|------|---------|-------------------------|--------------------------------------------|
+| —    | —       | No new release or entry | [Changelog](https://opencode.ai/changelog) |
+
+**Relevance for aide:**
+
+- ⭐ The Claude Code best-practices page was largely rewritten (watched page). It now says "your first plain prompt in a
+  fresh session already does the right thing", that new terminal and VS Code sessions "start in auto mode", that a rule
+  that cannot bend belongs in a hook or deny rule while a line that keeps being missed means "the file needs to be
+  shorter", and its "What you can stop doing" table drops: managing the context window aggressively, ALL CAPS emphasis,
+  "use subagents to protect your context window", "delegate to a subagent for a better answer" (a fresh reviewer still
+  helps), "loop until done" lines in prompts, and describing architecture and file layout in CLAUDE.md ("Claude reads the
+  repo itself"). Touches Aide's CLAUDE.md and `.claude/rules/development.md` (a layout section and a documentation table
+  Claude can find itself), the shared rules in `core/rules/`, the plan reviewers and the review in `docs/AGENTS_AND_LOOPS.md`,
+  and the permission mode the runner starts sessions in. Advises differently: less description of what the repo shows,
+  deterministic checks (hooks) in place of emphatic prose. [Page](https://code.claude.com/docs/en/best-practices)
+- ✅ Claude Code v2.1.311: the `SubagentStop` fix and subagents reaching late-connecting MCP servers matter for the runner's
+  and the review's subagents; the compaction change keeps long steps going past 200K tokens.
+  [Release](https://github.com/anthropics/claude-code/releases/tag/v2.1.311)
+- ✅ Anthropic donates Agent Skills to the Agentic AI Foundation (Oct 22): the skills format Aide's `core/skills/` follows now
+  has a neutral home. [News](https://www.anthropic.com/news)
+- ✅ Copilot CLI v1.0.104 and the changelog: Assisted Permissions generally available and no longer experimental.
+  [Changelog](https://github.blog/changelog/label/copilot/)
+- ℹ Codex and Copilot got GPT-6.1 Terra (Oct 26). Anthropic filed an S-1 (Oct 26); Claude Duet, Cowork and nonprofit posts
+  are not about coding agents.
+- ℹ Watched pages: `agents.md` and the Claude Code hooks guide changed, diffs lost (see above); the rest unchanged.
 
 ### 2026-10-26
 
