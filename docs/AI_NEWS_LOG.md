@@ -121,24 +121,24 @@ and a second run compares the page with itself), so they are not assessed.
 
 **Claude Code (v2.1.311):**
 
-| Date   | Version | News                                                                                                                                                                                                                                    | Source                                                                       |
-|--------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| Date   | Version  | News                                                                                                                                                                                                                                                                                                                                                                                                     | Source                                                                      |
+|--------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
 | Oct 26 | v2.1.311 | `--hold-idle-file` and `--max-hold-min` for `self-hosted-runner`; sessions that hit "Usage credits required for 1M context" past 200K tokens now compact and continue; `SubagentStop` hooks fired about twice a minute instead of once, fixed; subagents can use MCP tools from servers that connect after they start; `ultrathink` runs at xhigh effort; `DISABLE_COMPACT` can only turn compaction off | [Releases](https://github.com/anthropics/claude-code/releases/tag/v2.1.311) |
-| Oct 22 | —       | "Donating Agent Skills to the Agentic AI Foundation"                                                                                                                                                                                    | [News](https://www.anthropic.com/news)                                       |
+| Oct 22 | —        | "Donating Agent Skills to the Agentic AI Foundation"                                                                                                                                                                                                                                                                                                                                                     | [News](https://www.anthropic.com/news)                                      |
 
 **GitHub Copilot CLI (v1.0.104):**
 
-| Date   | Version  | News                                                                                                                                                                      | Source                                                     |
-|--------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Date   | Version  | News                                                                                                                                                                                                            | Source                                                     |
+|--------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
 | Oct 27 | v1.0.104 | Managed "fusion" model starts sessions on Auto; Autopilot sessions wait for attached background tasks past the timeout (`-p --autopilot` still honours it); Assisted Permissions work without experimental mode | [Releases](https://github.com/github/copilot-cli/releases) |
-| Oct 26 | —        | "GitHub Copilot assisted permissions generally available"; "GPT-6.1 Terra in GitHub Copilot"                                                                              | [Changelog](https://github.blog/changelog/label/copilot/)  |
+| Oct 26 | —        | "GitHub Copilot assisted permissions generally available"; "GPT-6.1 Terra in GitHub Copilot"                                                                                                                    | [Changelog](https://github.blog/changelog/label/copilot/)  |
 
 **OpenAI Codex CLI (no stable release after v0.164.0):**
 
-| Date   | Version | News                                                                                         | Source                                                     |
-|--------|---------|----------------------------------------------------------------------------------------------|------------------------------------------------------------|
-| Oct 27 | v0.166.0-alpha.1 | Alphas only, no notes                                                              | [Releases](https://github.com/openai/codex/releases)       |
-| Oct 26 | —       | "GPT-6.1 Terra in Work and Codex": a fast model with strong image understanding and computer use | [Changelog](https://learn.chatgpt.com/docs/changelog)      |
+| Date   | Version          | News                                                                                             | Source                                                |
+|--------|------------------|--------------------------------------------------------------------------------------------------|-------------------------------------------------------|
+| Oct 27 | v0.166.0-alpha.1 | Alphas only, no notes                                                                            | [Releases](https://github.com/openai/codex/releases)  |
+| Oct 26 | —                | "GPT-6.1 Terra in Work and Codex": a fast model with strong image understanding and computer use | [Changelog](https://learn.chatgpt.com/docs/changelog) |
 
 **OpenCode (no release after v2.1.4):**
 
