@@ -201,7 +201,9 @@ decides nothing.
    - Write a scene that brings the changed part onto each page it
      affects (the spec, queue and settings data; the live spec is
      `81-queue-and-runner`, and the fields are listed at the top of the
-     script), then run
+     script). Where the changed part shows names or lists, make the scene
+     hard on it as well: a very long title or name, and an empty list. Then
+     run
      `bun dashboard/scripts/look-at-pages.ts --scene <scene.json> --out <folder> <path>...`
      once, with every affected path. The folder is the one the prompt
      names; working interactively, use a folder under `$TMPDIR`. The

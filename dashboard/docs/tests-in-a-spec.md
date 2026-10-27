@@ -101,7 +101,7 @@ repository an implement that changes a page therefore looks at it before the ste
 - **When:** the spec's branch, compared with the default branch, changes a file under `dashboard/src/render/` or a
   stylesheet (`.css`). A branch that changes neither takes no screenshots.
 - **How:** the session writes a scene, the spec, queue and settings data that brings the changed part onto the page,
-  and runs `bun dashboard/scripts/look-at-pages.ts --scene <scene.json> --out <folder> <path>...`. The script
+  with a very long title or name and an empty list where the part shows them, and runs `bun dashboard/scripts/look-at-pages.ts --scene <scene.json> --out <folder> <path>...`. The script
   serves this checkout's own code, what `make serve-local` serves, on throwaway data with no runner. It does not run
   `make serve-local` itself, because that board uses the live board's queue in `~/.aide/dashboard/`. It takes each
   path at 1440 px and at 390 px wide, as `<NN>-<slug>-<width>.png`. The live spec's folder is always
