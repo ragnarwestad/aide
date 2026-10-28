@@ -36,6 +36,11 @@ Each entry says what the word is and links the page that has the rest.
   account: `off`, `warn` or `stop`, chosen when the spec is created.
 - **Plan review** — the last part of an analysis: three reviewers attack
   the plan, and it is revised before any test is written.
+- **Code review** — the check after an implement, before its tests run:
+  a new session reads the description and the branch's changes and lists
+  defects, a third session may drop the false ones, and the implement
+  session fixes the rest in one more turn. Not the plan review.
+  [Implement](AGENTS_AND_LOOPS.md#implement).
 - **Short analysis** — the analysis a small spec gets: the files to change
   and where the tests sit, with no plan and no plan review. The runner
   states the limits in the analyze prompt (set in
