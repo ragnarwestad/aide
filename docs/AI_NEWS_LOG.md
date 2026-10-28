@@ -70,7 +70,8 @@ sees only placeholders, and what is worth noting there is whether its comparison
 The best-practice pages the skill fetches on every run and compares with the copy kept from the previous
 run. They change without an announcement, so none of the sources above shows it. This table is the one list of
 watched pages: a page is added or removed here. `scripts/watch-pages.py` reads it, and keeps the copies in
-`~/.aide/news-check/watched-pages/` on the machine that runs the news check, outside the repository.
+`~/.aide/news-check/watched-pages/` and each change's diff in `~/.aide/news-check/watched-diffs/`, on the machine
+that runs the news check, outside the repository.
 
 | Tool               | Page                                                                                                       |
 |--------------------|------------------------------------------------------------------------------------------------------------|

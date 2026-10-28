@@ -52,7 +52,9 @@ line per page, starting with one of four words:
 
 - `new`: no copy before; stored, nothing to report.
 - `unchanged`: the page's text is the same as last time.
-- `changed`: the page's text differs; a diff follows the line.
+- `changed`: the page's text differs; the line ends with the file its diff
+  is kept in. The diff is in that file only, so cutting the script's output
+  short or running it again does not lose it.
 - `failed`: the page could not be fetched; the previous copy is kept.
 
 Then read the daily digests of the X list "MyAI" since the last review. The
@@ -91,7 +93,7 @@ Aide it touches.
 
 For each watched page, go by the word `scripts/watch-pages.py` printed:
 
-- `changed`: read its diff. A change in what the page advises (a
+- `changed`: read the whole diff file the line names. A change in what the page advises (a
   recommendation added, dropped or reversed; a changed instruction, limit, file
   name or setting) is a finding like any other, in the relevance list with the
   page's address as its source. A change in wording, layout or navigation alone

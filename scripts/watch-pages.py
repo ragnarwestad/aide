@@ -4,12 +4,15 @@ in docs/AI_NEWS_LOG.md, compare each with the copy kept from the previous run,
 and keep the new copy.
 
 One line per page, in table order: `new` (no copy before; stored), `unchanged`,
-`changed` (a unified diff follows) or `failed` (could not be fetched; the
-previous copy is kept). The copies live outside the repository.
+`changed` (the line names the file its unified diff is kept in) or `failed`
+(could not be fetched; the previous copy is kept). The copies and the diffs live
+outside the repository. A diff is written to a file rather than printed, so
+output cut short, or a second run that finds the page unchanged, cannot lose it.
 
-usage: scripts/watch-pages.py [--log PATH] [--store DIR]
+usage: scripts/watch-pages.py [--log PATH] [--store DIR] [--diffs DIR]
   --log    the news log (default: docs/AI_NEWS_LOG.md in the repo the script sits in)
   --store  where the copies are kept (default: ~/.aide/news-check/watched-pages)
+  --diffs  where the diffs are kept (default: watched-diffs beside the store)
 
 Standard library only, and nothing newer than Python 3.9.
 """
@@ -18,6 +21,7 @@ import difflib
 import re
 import subprocess
 import sys
+import time
 from html.parser import HTMLParser
 from pathlib import Path
 
@@ -130,8 +134,8 @@ def copy_path(store, address):
     return Path(store) / (name + ".txt")
 
 
-def check(address, store):
-    """Fetch, compare and keep one page: (status, detail), detail being a reason or a diff."""
+def check(address, store, diffs):
+    """Fetch, compare and keep one page: (status, detail), detail being a reason or the diff's file."""
     html, reason = fetch(address)
     if html is None:
         return "failed", reason
@@ -149,8 +153,11 @@ def check(address, store):
     diff = difflib.unified_diff(
         previous.splitlines(), text.splitlines(), "previous", "now", n=3, lineterm=""
     )
+    kept = Path(diffs) / ("%s.%s.diff" % (path.stem, time.strftime("%Y%m%d-%H%M%S")))
+    kept.parent.mkdir(parents=True, exist_ok=True)
+    kept.write_text("\n".join(diff) + "\n", encoding="utf-8")
     path.write_text(text + "\n", encoding="utf-8")
-    return "changed", "\n".join(diff)
+    return "changed", str(kept)
 
 
 def main(argv=None):
@@ -158,7 +165,9 @@ def main(argv=None):
     parser = argparse.ArgumentParser(prog="scripts/watch-pages.py", description=__doc__.split("\n\n")[0])
     parser.add_argument("--log", default=str(here.parent / "docs" / "AI_NEWS_LOG.md"))
     parser.add_argument("--store", default=str(Path.home() / ".aide" / "news-check" / "watched-pages"))
+    parser.add_argument("--diffs")
     args = parser.parse_args(argv)
+    diffs = args.diffs or str(Path(args.store).parent / "watched-diffs")
 
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(errors="replace")
@@ -174,13 +183,13 @@ def main(argv=None):
 
     width = max(len(tool) for tool, _ in rows)
     for tool, address in rows:
-        status, detail = check(address, args.store)
+        status, detail = check(address, args.store, diffs)
         line = "%-10s %-*s %s" % (status, width, tool, address)
         if status == "failed":
             line += " — " + detail
+        elif status == "changed":
+            line += " — diff in " + detail
         print(line)
-        if status == "changed":
-            print(detail)
     return 0
 
 

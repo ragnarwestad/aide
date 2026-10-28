@@ -3,6 +3,7 @@ import importlib.util
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -90,7 +91,12 @@ def test_every_page_in_the_table_gets_a_line_in_table_order_ac_2(script, tmp_pat
     assert result.stdout.index(first) < result.stdout.index(second)
 
 
-def test_a_changed_page_prints_its_diff_and_keeps_the_new_copy_ac_3(script, tmp_path):
+def diff_file(line):
+    """The file a `changed` line names its diff in."""
+    return Path(line.rsplit(" in ", 1)[1].strip())
+
+
+def test_a_changed_page_keeps_its_diff_in_a_file_and_keeps_the_new_copy_ac_3(script, tmp_path):
     address = page(tmp_path, "p.html", article("Remove this advice.", "Stay as it was."))
     store = tmp_path / "store"
     log = write_log(tmp_path, [address])
@@ -101,13 +107,28 @@ def test_a_changed_page_prints_its_diff_and_keeps_the_new_copy_ac_3(script, tmp_
 
     assert result.returncode == 0
     assert result.stdout.startswith("changed")
-    assert "-Remove this advice." in result.stdout
-    assert "+Add this advice." in result.stdout
+    diff = diff_file(result.stdout.splitlines()[0]).read_text()
+    assert "-Remove this advice." in diff
+    assert "+Add this advice." in diff
     kept = [p.read_text() for p in store.iterdir()]
     assert len(kept) == 1 and "Add this advice." in kept[0] and "Remove this advice." not in kept[0]
 
     again = run(script, tmp_path, log, store)
     assert again.stdout.startswith("unchanged")
+
+
+def test_a_diff_cut_from_the_output_is_still_there_after_a_second_run(script, tmp_path):
+    address = page(tmp_path, "p.html", article("Old advice."))
+    store = tmp_path / "store"
+    log = write_log(tmp_path, [address])
+    run(script, tmp_path, log, store)
+
+    page(tmp_path, "p.html", article("New advice."))
+    first = run(script, tmp_path, log, store)
+    run(script, tmp_path, log, store)
+
+    assert "@@" not in first.stdout
+    assert "+New advice." in diff_file(first.stdout.splitlines()[0]).read_text()
 
 
 def test_a_change_inside_nav_header_footer_or_aside_is_unchanged_ac_4(script, tmp_path):
