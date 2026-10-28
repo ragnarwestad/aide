@@ -7,6 +7,7 @@
   - [Watched pages](#watched-pages)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-10-28](#2026-10-28)
   - [2026-10-27](#2026-10-27)
   - [2026-10-26](#2026-10-26)
   - [2026-10-25](#2026-10-25)
@@ -109,6 +110,71 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-10-28
+
+Oct 27 – Oct 28. Not read: Codex v0.165.0-alpha and v0.166.0-alpha builds (no notes), the Codex changelog page past its
+first 100,000 characters, the OpenAI developer blog (no dates shown), Artificial Analysis (the harness comparison there is
+still "coming soon"), the GitHub Copilot blog (newest post shown is Oct 20), the Copilot changelog entry "GitHub Copilot
+supports server-to-server authentication" (no text). The X list digest of Oct 28 was read. Of the watched pages, three
+changed that the run cannot assess, because the watch script's output was cut off before their diffs and a second run
+compares a page with itself: `agents.md`, the Claude Code prompting best-practices page, and the Agent Skills
+best-practices page (the part of its diff that was seen is typographic quotes only).
+
+**Claude Code (v2.1.312):**
+
+| Date   | Version  | News                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Source                                                                      |
+|--------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
+| Oct 27 | v2.1.312 | Prompt and agent hooks run at most 24 at a time per session, subagents included (a `timeout` under 1 second counts as 1); per-directory and `paths:` skills found after a Bash `cd` into a git repository; a command with an invalid name no longer stops all commands loading (could leave `claude -p` with no output); a subagent's `autoCompactWindow` now lowers `CLAUDE_CODE_AUTO_COMPACT_WINDOW`; Write no longer overwrites a very large CLAUDE.md or rules file it only read the start of | [Releases](https://github.com/anthropics/claude-code/releases/tag/v2.1.312) |
+| Oct 27 | —        | "Manage costs and demonstrate ROI for Claude Code on Google Cloud"                                                                                                                                                                                                                                                                                                                                                                                                                                | [News](https://claude.com/blog/)                                            |
+
+**GitHub Copilot CLI (v1.0.105):**
+
+| Date   | Version  | News                                                                            | Source                                                     |
+|--------|----------|---------------------------------------------------------------------------------|------------------------------------------------------------|
+| Oct 28 | v1.0.105 | Fixed picking Copilot Fusion High or Max in `/model` from long-context sessions | [Releases](https://github.com/github/copilot-cli/releases) |
+
+**OpenAI Codex CLI (v0.165.0):**
+
+| Date   | Version  | News                                                                                                                                                                                                                                                                                                                                                                                    | Source                                               |
+|--------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------|
+| Oct 27 | v0.165.0 | Built-in Google Cloud Vertex AI provider (`model_provider = "gcp"`); GPT-6.1 Terra in the model catalogs; reasoning effort can change mid-conversation by default; memory v2 on by default for fresh profiles, with import of other agents' memories; queued agent messages no longer restart work after an interrupt or a switch to Plan mode; a marketplace URL validation gap closed | [Releases](https://github.com/openai/codex/releases) |
+
+**OpenCode (v2.2.0):**
+
+| Date   | Version | News                                                                                                                                                                                                                                                                                                                                 | Source                                                                |
+|--------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
+| Oct 27 | v2.2.0  | Breaking: `@opencode/ai` root exports the Promise API (Effect API moved to `@opencode/ai/effect`), the OpenCode GitHub Action is no longer published, TUI plugins need OpenTUI 0.7. Plugins can manage keyed session instructions without touching the system prompt; configurable prompt-cache TTLs; desktop plugins (experimental) | [Releases](https://github.com/anomalyco/opencode/releases/tag/v2.2.0) |
+
+**Relevance for aide:**
+
+- ⚠️ OpenCode v2.2.0 has three breaking changes. None touches what Aide installs (skills and `AGENTS.md`; Aide does not use
+  the GitHub Action, `@opencode/ai` or TUI plugins, which a search of the repository confirms), but the supported-version
+  row and the OpenCode section of the matrix should be checked against 2.2.0.
+  [Release](https://github.com/anomalyco/opencode/releases/tag/v2.2.0)
+- ⚠️ Claude Code v2.1.312 caps prompt and agent hooks at 24 at a time per session, subagents included. Aide's hooks
+  (`scripts/guard-push`) are command hooks, so the cap should not reach them; worth verifying that no runner step starts
+  many prompt or agent hooks. [Release](https://github.com/anthropics/claude-code/releases/tag/v2.1.312)
+- ⚠️ X list, @theo (Oct 28), quoting a Claude Code engineer: `--dangerously-skip-permissions` still blocks things like
+  `rm -rf ~`, and the 27 Oct release adds an env var `CLAUDE_CODE_EVEN_MORE_DANGEROUSLY_SKIP_PERMISSIONS=1` to disable that
+  guard. The v2.1.312 release notes do not mention it (checked on the release page), so the claim is unconfirmed. Aide's
+  runner starts implement steps with `bypassPermissions` (`dashboard/src/serve/serve-helpers/config.ts`) and does not set
+  that variable. [Post](https://x.com/theo/status/2114978312426791384)
+- ✅ Claude Code v2.1.312: `paths:` skills found after a `cd` into a repository subfolder, and a command with an invalid
+  name no longer leaves `claude -p` with no output, both bear on headless runs and skills.
+  [Release](https://github.com/anthropics/claude-code/releases/tag/v2.1.312)
+- ✅ Codex v0.165.0: reasoning effort changeable mid-conversation, memory v2 on by default for fresh profiles, and a Vertex
+  AI provider; none changes how Aide installs. [Release](https://github.com/openai/codex/releases)
+- ✅ X list, @mattpocockuk (Oct 28): agents do best on fully verifiable tasks and wrongly claim "done" on partly verifiable
+  ones; this matches Aide's acceptance criteria and test-first steps.
+  [Post](https://x.com/mattpocockuk/status/2115035446627459461)
+- ✅ X list, @AgenticAIFdn (Oct 28): promotes Agent Skills as the way to share a team's process; Aide ships its skills in that
+  format. [Post](https://x.com/AgenticAIFdn/status/2115111507398664645)
+- ℹ Copilot CLI v1.0.105 is a bug fix. Anthropic posts on a drug-development effort, a GSA partnership and an S-1, and
+  Claude posts on financial advisors and nonprofits, are not about coding agents. X list, @coderabbitai: security review
+  across linked repos.
+- ℹ Watched pages: `agents.md`, the Claude Code prompting best-practices page and the Agent Skills best-practices page
+  changed, diffs lost (see above); the rest unchanged.
 
 ### 2026-10-27
 
