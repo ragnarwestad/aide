@@ -43,13 +43,19 @@ def article(*lines):
     return "".join(f"<p>{line}</p>" for line in lines) + f"<p>{FILLER}</p>"
 
 
-def write_log(tmp_path, pages):
-    rows = "\n".join(f"| Claude Code | <{address}> |" for address in pages)
+def write_log(tmp_path, pages, follow=None):
+    """A news log watching `pages`; `follow` maps a page to the links it is followed to."""
+    follow = follow or {}
+    rows = "\n".join(
+        f"| Claude Code | <{address}> | {('<' + follow[address] + '>') if address in follow else ''} |"
+        for address in pages
+    )
     log = tmp_path / "logs" / "AI_NEWS_LOG.md"
     log.parent.mkdir(exist_ok=True)
     log.write_text(
         "# News\n\n### Sources\n\n| Tool | Changelog |\n|---|---|\n| Claude Code | <https://x.example/> |\n\n"
-        f"### Watched pages\n\nSome words.\n\n| Tool | Page |\n|------|------|\n{rows}\n\n---\n\n## Notation\n"
+        "### Watched pages\n\nSome words.\n\n| Tool | Page | Also its links to |\n|------|------|------|\n"
+        f"{rows}\n\n---\n\n## Notation\n"
     )
     return log
 
@@ -70,10 +76,11 @@ def test_the_repo_s_table_names_a_tool_and_an_address_on_every_row_ac_1(module, 
     text = (workspace_root / "docs" / "AI_NEWS_LOG.md").read_text()
     rows = module.watched_pages(text)
     assert rows
-    for tool, address in rows:
+    for tool, address, follow in rows:
         assert tool in TOOLS
         assert address.startswith("https://")
-    addresses = [address for _, address in rows]
+        assert follow is None or follow.startswith("https://")
+    addresses = [address for _, address, _ in rows]
     assert len(addresses) == len(set(addresses))
 
 
@@ -129,6 +136,41 @@ def test_a_diff_cut_from_the_output_is_still_there_after_a_second_run(script, tm
 
     assert "@@" not in first.stdout
     assert "+New advice." in diff_file(first.stdout.splitlines()[0]).read_text()
+
+
+def test_a_page_s_links_matching_its_pattern_are_watched_after_it(script, tmp_path):
+    first = page(tmp_path, "model-one.html", article("Model one advice."))
+    page(tmp_path, "model-two.html", article("Model two advice."))
+    page(tmp_path, "other.html", article("Not a model page."))
+    overview = page(
+        tmp_path, "overview.html",
+        article("Overview.") + '<a href="model-two.html">2</a><a href="model-one.html#top">1</a>'
+        '<a href="other.html">x</a><a href="model-one.html">1 again</a>',
+    )
+    store = tmp_path / "store"
+    log = write_log(tmp_path, [overview], {overview: first.rsplit("/", 1)[0] + "/model-*"})
+
+    result = run(script, tmp_path, log, store)
+
+    lines = result.stdout.splitlines()
+    assert [line.split()[0] for line in lines] == ["new", "new", "new"]
+    assert overview in lines[0] and "model-one.html" in lines[1] and "model-two.html" in lines[2]
+    assert "other.html" not in result.stdout
+
+
+def test_a_followed_page_that_changes_keeps_its_diff(script, tmp_path):
+    model = page(tmp_path, "model-one.html", article("Old model advice."))
+    overview = page(tmp_path, "overview.html", article("Overview.") + '<a href="model-one.html">1</a>')
+    store = tmp_path / "store"
+    log = write_log(tmp_path, [overview], {overview: model.rsplit("/", 1)[0] + "/model-*"})
+    run(script, tmp_path, log, store)
+
+    page(tmp_path, "model-one.html", article("New model advice."))
+    result = run(script, tmp_path, log, store)
+
+    line = lines_for(result.stdout, "model-one.html")[0]
+    assert line.startswith("changed")
+    assert "+New model advice." in diff_file(line).read_text()
 
 
 def test_a_change_inside_nav_header_footer_or_aside_is_unchanged_ac_4(script, tmp_path):

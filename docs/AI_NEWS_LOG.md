@@ -69,31 +69,32 @@ sees only placeholders, and what is worth noting there is whether its comparison
 
 The best-practice pages the skill fetches on every run and compares with the copy kept from the previous
 run. They change without an announcement, so none of the sources above shows it. This table is the one list of
-watched pages: a page is added or removed here. `scripts/watch-pages.py` reads it, and keeps the copies in
-`~/.aide/news-check/watched-pages/` and each change's diff in `~/.aide/news-check/watched-diffs/`, on the machine
-that runs the news check, outside the repository.
+watched pages: a page is added or removed here. A pattern in the third column adds every link on that page matching
+it, so a page that lists one page per model brings each new model's page in by itself. `scripts/watch-pages.py`
+reads the table, and keeps the copies in `~/.aide/news-check/watched-pages/` and each change's diff in
+`~/.aide/news-check/watched-diffs/`, on the machine that runs the news check, outside the repository.
 
-| Tool               | Page                                                                                                       |
-|--------------------|------------------------------------------------------------------------------------------------------------|
-| Claude Code        | <https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices>                         |
-| Claude Code        | <https://code.claude.com/docs/en/best-practices>                                                           |
-| Claude Code        | <https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices> |
-| Claude Code        | <https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents>                        |
-| Claude Code        | <https://www.anthropic.com/engineering/building-effective-agents>                                          |
-| Claude Code        | <https://www.anthropic.com/engineering/writing-tools-for-agents>                                           |
-| Claude Code        | <https://code.claude.com/docs/en/hooks-guide>                                                              |
-| OpenAI Codex CLI   | <https://developers.openai.com/codex/learn/best-practices>                                                 |
-| OpenAI Codex CLI   | <https://developers.openai.com/codex/guides/agents-md>                                                     |
-| OpenAI Codex CLI   | <https://learn.chatgpt.com/docs/build-skills>                                                              |
-| OpenAI Codex CLI   | <https://developers.openai.com/cookbook/examples/gpt-5/codex_prompting_guide>                              |
-| GitHub Copilot CLI | <https://docs.github.com/en/copilot/tutorials/cloud-agent/get-the-best-results>                            |
-| GitHub Copilot CLI | <https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions>     |
-| GitHub Copilot CLI | <https://docs.github.com/en/copilot/concepts/customizations/agent-skills>                                  |
-| OpenCode           | <https://opencode.ai/docs/rules>                                                                           |
-| OpenCode           | <https://opencode.ai/docs/skills>                                                                          |
-| OpenCode           | <https://opencode.ai/docs/agents>                                                                          |
-| All four           | <https://agentskills.io/specification>                                                                     |
-| All four           | <https://agents.md>                                                                                        |
+| Tool               | Page                                                                                                       | Also its links to                                                                             |
+|--------------------|------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|
+| Claude Code        | <https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices>                         |                                                                                               |
+| Claude Code        | <https://code.claude.com/docs/en/best-practices>                                                           |                                                                                               |
+| Claude Code        | <https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices> | <https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-*> |
+| Claude Code        | <https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents>                        |                                                                                               |
+| Claude Code        | <https://www.anthropic.com/engineering/building-effective-agents>                                          |                                                                                               |
+| Claude Code        | <https://www.anthropic.com/engineering/writing-tools-for-agents>                                           |                                                                                               |
+| Claude Code        | <https://code.claude.com/docs/en/hooks-guide>                                                              |                                                                                               |
+| OpenAI Codex CLI   | <https://developers.openai.com/codex/learn/best-practices>                                                 |                                                                                               |
+| OpenAI Codex CLI   | <https://developers.openai.com/codex/guides/agents-md>                                                     |                                                                                               |
+| OpenAI Codex CLI   | <https://learn.chatgpt.com/docs/build-skills>                                                              |                                                                                               |
+| OpenAI Codex CLI   | <https://developers.openai.com/cookbook/examples/gpt-5/codex_prompting_guide>                              |                                                                                               |
+| GitHub Copilot CLI | <https://docs.github.com/en/copilot/tutorials/cloud-agent/get-the-best-results>                            |                                                                                               |
+| GitHub Copilot CLI | <https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions>     |                                                                                               |
+| GitHub Copilot CLI | <https://docs.github.com/en/copilot/concepts/customizations/agent-skills>                                  |                                                                                               |
+| OpenCode           | <https://opencode.ai/docs/rules>                                                                           |                                                                                               |
+| OpenCode           | <https://opencode.ai/docs/skills>                                                                          |                                                                                               |
+| OpenCode           | <https://opencode.ai/docs/agents>                                                                          |                                                                                               |
+| All four           | <https://agentskills.io/specification>                                                                     |                                                                                               |
+| All four           | <https://agents.md>                                                                                        |                                                                                               |
 
 ---
 

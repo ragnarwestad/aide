@@ -3,6 +3,10 @@
 in docs/AI_NEWS_LOG.md, compare each with the copy kept from the previous run,
 and keep the new copy.
 
+A row's third column, when it holds an address pattern (`*` for any text), adds
+every link on that page matching it, each checked after the page: a page that
+lists other pages, such as one per model, keeps the list current by itself.
+
 One line per page, in table order: `new` (no copy before; stored), `unchanged`,
 `changed` (the line names the file its unified diff is kept in) or `failed`
 (could not be fetched; the previous copy is kept). The copies and the diffs live
@@ -18,12 +22,14 @@ Standard library only, and nothing newer than Python 3.9.
 """
 import argparse
 import difflib
+import fnmatch
 import re
 import subprocess
 import sys
 import time
 from html.parser import HTMLParser
 from pathlib import Path
+from urllib.parse import urldefrag, urljoin
 
 USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
@@ -41,7 +47,8 @@ BLOCKS = {
 
 
 def watched_pages(log_text):
-    """The `(tool, address)` rows of the `### Watched pages` section."""
+    """The `(tool, address, follow)` rows of the `### Watched pages` section; `follow` is the
+    pattern of the page's links to watch as well, or None."""
     rows = []
     inside = False
     for line in log_text.splitlines():
@@ -58,8 +65,9 @@ def watched_pages(log_text):
         if len(cells) < 2:
             continue
         address = cells[1].strip("<>").strip()
+        follow = cells[2].strip("<>").strip() if len(cells) > 2 else ""
         if "://" in address:
-            rows.append((cells[0], address))
+            rows.append((cells[0], address, follow if "://" in follow else None))
     return rows
 
 
@@ -103,6 +111,29 @@ class _Text(HTMLParser):
             self.main[-1] += data
 
 
+class _Links(HTMLParser):
+    """Every <a href> on a page."""
+
+    def __init__(self):
+        super().__init__()
+        self.hrefs = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            href = dict(attrs).get("href")
+            if href:
+                self.hrefs.append(href)
+
+
+def followed_links(html, address, pattern):
+    """The page's links that match `pattern`, made absolute, without fragments, sorted, once each."""
+    parser = _Links()
+    parser.feed(html)
+    parser.close()
+    found = {urldefrag(urljoin(address, href))[0] for href in parser.hrefs}
+    return sorted(link for link in found if link != address and fnmatch.fnmatchcase(link, pattern))
+
+
 def page_text(html):
     """A page's text, one line per block, whitespace collapsed, empty lines dropped."""
     parser = _Text()
@@ -135,10 +166,17 @@ def copy_path(store, address):
 
 
 def check(address, store, diffs):
-    """Fetch, compare and keep one page: (status, detail), detail being a reason or the diff's file."""
+    """Fetch, compare and keep one page: (status, detail, html), detail being a reason or the
+    diff's file, and html the page as fetched (None when it failed)."""
     html, reason = fetch(address)
     if html is None:
-        return "failed", reason
+        return "failed", reason, None
+    status, detail = compare(address, html, store, diffs)
+    return status, detail, html
+
+
+def compare(address, html, store, diffs):
+    """Compare a fetched page with its kept copy and keep the new one: (status, detail)."""
     text = page_text(html)
     if len(text) < MIN_TEXT:
         return "failed", "almost no text on the page"
@@ -181,15 +219,23 @@ def main(argv=None):
         print("%s has no '%s' section with a page in it." % (args.log, SECTION), file=sys.stderr)
         return 1
 
-    width = max(len(tool) for tool, _ in rows)
-    for tool, address in rows:
-        status, detail = check(address, args.store, diffs)
+    width = max(len(tool) for tool, _, _ in rows)
+
+    def report(tool, address):
+        status, detail, html = check(address, args.store, diffs)
         line = "%-10s %-*s %s" % (status, width, tool, address)
         if status == "failed":
             line += " — " + detail
         elif status == "changed":
             line += " — diff in " + detail
         print(line)
+        return html
+
+    for tool, address, follow in rows:
+        html = report(tool, address)
+        if follow and html is not None:
+            for link in followed_links(html, address, follow):
+                report(tool, link)
     return 0
 
 

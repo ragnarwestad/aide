@@ -46,8 +46,10 @@ scripts/watch-pages.py
 
 It fetches every page in the **Watched pages** table (the `### Watched pages`
 section of `docs/AI_NEWS_LOG.md`), compares each with the copy kept from the
-previous run and keeps the new copy outside the repository. The table is the
-one list of watched pages; add or remove a page there, not here. It prints one
+previous run and keeps the new copy outside the repository. A page with a
+pattern in the table's third column brings its matching links along, each
+checked after it. The table is the one list of watched pages; add or remove a
+page there, not here. It prints one
 line per page, starting with one of four words:
 
 - `new`: no copy before; stored, nothing to report.
