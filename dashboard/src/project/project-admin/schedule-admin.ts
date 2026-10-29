@@ -5,7 +5,7 @@
 // write and nothing in git. Modeled on `update-settings.ts`'s
 // refuse-before-write shape.
 
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { CronExpressionParser } from "cron-parser";
 import { listedModelName } from "../../queue/model-name.ts";
@@ -55,7 +55,8 @@ export function scheduleEntryError(
   const prompt = req.prompt?.trim();
   if (!prompt) return "a prompt file path is required";
   if (escapesRoot(prompt)) return `${prompt} would leave the project root`;
-  if (!existsSync(join(projectDir, prompt))) {
+  const file = join(projectDir, prompt);
+  if (!existsSync(file) || !statSync(file).isFile()) {
     return `${prompt} does not exist in this project's checkout`;
   }
   // Empty means "the configuration decides" and is never refused — the

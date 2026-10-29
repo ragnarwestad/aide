@@ -46,6 +46,12 @@ describe("parseScheduleEntries", () => {
     expect(parseScheduleEntries([{ name: "n", cron: "0 3 * * *", prompt: "docs/../docs/n.md" }])).toHaveLength(1);
   });
 
+  test("a prompt typed with repeated slashes or . and .. parts reads as one normalised path (AC-2)", () => {
+    for (const prompt of ["docs//nightly.md", "./docs/nightly.md", "docs/../docs/nightly.md"]) {
+      expect(parseScheduleEntries([{ name: "nightly", cron: "0 3 * * *", prompt }])).toEqual([entry()]);
+    }
+  });
+
   test("only the literal false disables", () => {
     const base = { name: "n", cron: "0 3 * * *", prompt: "p.md" };
     expect(parseScheduleEntries([{ ...base, enabled: false }])[0]!.enabled).toBe(false);
@@ -130,6 +136,14 @@ describe("save", () => {
       name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md", model: "Sonnet", since: "2026-09-17T20:54:52.809Z",
     });
     expect(store.list("aide")).toEqual([entry({ since: "2026-09-17T20:54:52.809Z", model: "Sonnet" })]);
+  });
+
+  test("a prompt typed with repeated slashes or . and .. parts is written normalised (AC-2)", () => {
+    const store = createScheduleStore(file);
+    for (const prompt of ["docs//nightly.md", "./docs/nightly.md", "docs/../docs/nightly.md"]) {
+      expect(store.save("aide", [entry({ prompt })])).toBeNull();
+      expect(JSON.parse(readFileSync(file, "utf-8")).schedules.aide[0].prompt).toBe("docs/nightly.md");
+    }
   });
 
   test("enabled is written only when false", () => {

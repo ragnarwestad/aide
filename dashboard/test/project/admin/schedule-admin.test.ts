@@ -4,7 +4,7 @@
 // file and does nothing in git. Unit level; the routes suite proves the
 // same rules over HTTP.
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -26,6 +26,7 @@ function setup(entries: Partial<ScheduleEntry>[] = []) {
   const dir = mkdtempSync(join(tmpdir(), "aide-schedule-admin-"));
   dirs.push(dir);
   writeFileSync(join(dir, "docs-nightly.md"), "# nightly\n");
+  mkdirSync(join(dir, "docs"));
   const file = join(dir, "queue-config.json");
   if (entries.length) {
     writeFileSync(file, JSON.stringify({
@@ -63,6 +64,13 @@ describe("scheduleEntryError", () => {
   test("a missing prompt path is refused, naming the missing path", () => {
     const { dir } = setup();
     expect(scheduleEntryError(dir, req({ prompt: "does-not-exist.md" }), [])).toContain("does-not-exist.md");
+  });
+
+  test("a prompt path naming a directory is refused, naming the path (AC-1)", () => {
+    const { dir } = setup();
+    for (const prompt of ["docs", "docs/"]) {
+      expect(scheduleEntryError(dir, req({ prompt }), [])).toContain(prompt);
+    }
   });
 
   test("a prompt path escaping the project root is refused", () => {
