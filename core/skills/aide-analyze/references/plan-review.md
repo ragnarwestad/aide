@@ -12,11 +12,9 @@
 ## Overview
 
 Attack the plan while mistakes are still cheap: after `3-solution.md` is
-written, before any test exists. This routine used to be its own skill,
-`/aide-review-plan`, run as a separate step between `/aide-analyze` and
-`/aide-implement`; spec 181 folded it into `/aide-analyze` itself, as the
-step between writing `3-solution.md` and writing `4-status.md` — one run
-now produces both the plan and its review.
+written, before any test exists. It is the part of `/aide-analyze`
+between writing `3-solution.md` and writing `4-status.md`, so one run
+produces both the plan and its review.
 
 The property that made a standalone step worth having is unaffected by
 where it is invoked from: the reviewers below are spawned as separate
@@ -160,7 +158,7 @@ line.
    Acceptance criteria): verdict per perspective, the three lists, and
    what was changed in response. Assemble the complete new file text and
    write it with `aide-write-spec --file 3-solution.md` (never
-   Write/Edit — spec 282).
+   Write/Edit).
 
    The section opens with one Findings line, right under its heading:
 
@@ -216,7 +214,7 @@ line.
    right after `## Tracking info` and before `## Phase 1`, added to the
    Table of contents in the same position. Never fold this row into
    Phase 1's own table: Phase 1's rows are what `implement` ticks, and
-   `aide-run-spec`'s analyze-scope guard (spec 268) refuses the whole
+   `aide-run-spec`'s analyze-scope guard refuses the whole
    step the moment ANY Phase-table row's status changes during
    analyze — ticking the review there, instead of in its own section,
    trips that guard and fails the run.

@@ -4,9 +4,8 @@ Finish a merge that git could not finish on its own — or decide it
 cannot be finished safely, and put everything back.
 
 This is `/aide-archive`'s first step, and only when there is a conflict
-open. It was a step of its own (`/aide-resolve`) until spec 171: a merge
-that fails is the merging step's problem, not a sixth phase standing
-beside the five.
+open: a merge that fails is the merging step's problem, not a phase of
+its own.
 
 ## Table of contents
 
@@ -28,18 +27,17 @@ A spec's branch is brought up to date with the default branch before the
 step's own work starts. Every other step treats a conflict there as a
 user's problem and refuses on the spot. `archive` is the step that
 LANDS the branch, so the conflict is its own to settle: the by-hand
-routine that used to follow was always the same — merge the default
-branch into the spec's branch in a worktree, resolve, run the tests,
-push the branch — and this routine IS that routine. When archive goes on
+routine is always the same — merge the default branch into the spec's
+branch in a worktree, resolve, run the tests, push the branch. When archive goes on
 to report success the dashboard lands the resolved branch itself, as it
-lands every step's work (spec 149); when this routine stops, the branch
+lands every step's work; when this routine stops, the branch
 is left exactly as it was found, archive stops with it, and the failure
 is what the row says.
 
 ## What you are standing in
 
 `aide-run-spec` has already done the first half — including one narrow
-case this routine never sees at all (spec 280): a conflict confined to
+case this routine never sees at all: a conflict confined to
 the spec's own `4-status.md`, and nothing else, resolves mechanically
 before this step ever starts, taking the default branch's copy (a direct
 correction, not a second intent to merge). If you are standing in a

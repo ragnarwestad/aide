@@ -82,7 +82,7 @@ An open row holds archive back; a `Not verified` row does not.
 
 These rows are for the user the spec is for to judge and tick from the
 spec's Overview tab — never for `/aide-implement` or `/aide-analyze` to
-tick (spec 285). `aide-archive-spec` refuses to archive while any of
+tick. `aide-archive-spec` refuses to archive while any of
 them is still unticked (`Not verified` counts as ticked). No Acceptance criteria section: `4-status.md` is
 written exactly as it is today, with no such section.
 
